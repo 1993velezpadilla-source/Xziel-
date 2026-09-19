@@ -1532,6 +1532,7 @@ text = defs.read_text(encoding="utf-8")
 if "#define m_mobile" not in text:
     text = text.replace("#define m_gyro\t\t\t24\n", "#define m_gyro\t\t\t24\n#define m_mobile\t\t25\n", 1)
     text = text.replace("void Menu_Controls_Set(void);\n", "void Menu_Controls_Set(void);\nvoid Menu_Mobile_Set(void);\nvoid Menu_Mobile_Draw(void);\n", 1)
+    text = text.replace("void Menu_Controls_Set (void);\n", "void Menu_Controls_Set (void);\nvoid Menu_Mobile_Set(void);\nvoid Menu_Mobile_Draw(void);\n", 1)
 defs.write_text(text, encoding="utf-8")
 
 menu = source / "menu" / "menu.c"
