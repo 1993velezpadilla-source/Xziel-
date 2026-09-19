@@ -3105,3 +3105,174 @@ if "void Menu_MobileAim_Draw(void)" not in text:
     text += "\n" + mobile_pages
 
 controls.write_text(text, encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# Xziel Android sticky toggle ADS + reload restore v0.7
+# ---------------------------------------------------------------------------
+sys_sdl = source / "platform" / "sdl" / "sys_sdl.c"
+text = sys_sdl.read_text(encoding="utf-8")
+
+state_anchor = "static qboolean xziel_mobile_sprint_active = false;\n"
+state_add = """static qboolean xziel_mobile_restore_ads_after_reload = false;
+static qboolean xziel_mobile_reload_animation_seen = false;
+"""
+if "xziel_mobile_restore_ads_after_reload" not in text:
+    if state_anchor not in text:
+        raise SystemExit("Could not find mobile sprint state for ADS restore")
+    text = text.replace(state_anchor, state_anchor + state_add, 1)
+
+adsfire_down_old = """	case XZ_TOUCH_ADSFIRE:
+		xziel_mobile_adsfire_pressed = true;
+		Xziel_SetAttackRef(true);
+		Xziel_QueueHold("+aim\\n", "-aim\\n", &xziel_aim_refs, true);
+		break;
+"""
+adsfire_down_new = """	case XZ_TOUCH_ADSFIRE:
+		xziel_mobile_adsfire_pressed = true;
+		Xziel_SetAttackRef(true);
+		if (xziel_mobile_ads_toggle.value >= 0.5f) {
+			/* Toggle ADS behaves as sticky state: ADS+FIRE may enter ADS,
+			   but never becomes the control that exits it. */
+			if (cl.stats[STAT_ZOOM] == 0)
+				Cbuf_AddText("impulse 26\\n");
+		} else {
+			Xziel_QueueHold("+aim\\n", "-aim\\n", &xziel_aim_refs, true);
+		}
+		break;
+"""
+if adsfire_down_old not in text:
+    raise SystemExit("Could not find ADS+FIRE down block")
+text = text.replace(adsfire_down_old, adsfire_down_new, 1)
+
+adsfire_up_old = """	case XZ_TOUCH_ADSFIRE:
+		xziel_mobile_adsfire_pressed = false;
+		Xziel_SetAttackRef(false);
+		Xziel_QueueHold("+aim\\n", "-aim\\n", &xziel_aim_refs, false);
+		break;
+"""
+adsfire_up_new = """	case XZ_TOUCH_ADSFIRE:
+		xziel_mobile_adsfire_pressed = false;
+		Xziel_SetAttackRef(false);
+		if (xziel_mobile_ads_toggle.value < 0.5f)
+			Xziel_QueueHold("+aim\\n", "-aim\\n", &xziel_aim_refs, false);
+		break;
+"""
+if adsfire_up_old not in text:
+    raise SystemExit("Could not find ADS+FIRE up block")
+text = text.replace(adsfire_up_old, adsfire_up_new, 1)
+
+ads_down_old = """	case XZ_TOUCH_ADS:
+		xziel_mobile_ads_pressed = true;
+		if (xziel_mobile_ads_toggle.value >= 0.5f)
+			Cbuf_AddText("impulse 26\\n");
+		else
+			Xziel_QueueHold("+aim\\n", "-aim\\n", &xziel_aim_refs, true);
+		break;
+"""
+ads_down_new = """	case XZ_TOUCH_ADS:
+		xziel_mobile_ads_pressed = true;
+		if (xziel_mobile_ads_toggle.value >= 0.5f) {
+			/* A deliberate dedicated-ADS tap overrides any automatic
+			   post-reload restoration. */
+			xziel_mobile_restore_ads_after_reload = false;
+			xziel_mobile_reload_animation_seen = false;
+			Cbuf_AddText("impulse 26\\n");
+		} else {
+			Xziel_QueueHold("+aim\\n", "-aim\\n", &xziel_aim_refs, true);
+		}
+		break;
+"""
+if ads_down_old not in text:
+    raise SystemExit("Could not find dedicated ADS down block")
+text = text.replace(ads_down_old, ads_down_new, 1)
+
+reload_down_old = """	case XZ_TOUCH_RELOAD:
+		xziel_mobile_reload_pressed = true;
+		Cbuf_AddText("+reload\\n");
+		break;
+"""
+reload_down_new = """	case XZ_TOUCH_RELOAD:
+		xziel_mobile_reload_pressed = true;
+		if (xziel_mobile_ads_toggle.value >= 0.5f &&
+			(cl.stats[STAT_ZOOM] == 1 || cl.stats[STAT_ZOOM] == 2)) {
+			xziel_mobile_restore_ads_after_reload = true;
+			xziel_mobile_reload_animation_seen = false;
+		}
+		Cbuf_AddText("+reload\\n");
+		break;
+"""
+if reload_down_old not in text:
+    raise SystemExit("Could not find reload down block")
+text = text.replace(reload_down_old, reload_down_new, 1)
+
+restore_func = r'''
+static void Xziel_UpdateReloadAdsRestore(void)
+{
+	if (!xziel_mobile_restore_ads_after_reload)
+		return;
+
+	/* STAT_WEAPONFRAME is networked from the actual viewmodel animation.
+	   Wait until reload leaves idle, then returns to idle after the button
+	   has been released. This follows the real weapon animation instead of
+	   guessing a weapon-specific reload duration. */
+	if (cl.stats[STAT_WEAPONFRAME] != 0)
+		xziel_mobile_reload_animation_seen = true;
+
+	if (xziel_mobile_reload_animation_seen &&
+		!xziel_mobile_reload_pressed &&
+		cl.stats[STAT_WEAPONFRAME] == 0) {
+		if (xziel_mobile_ads_toggle.value >= 0.5f &&
+			cl.stats[STAT_ZOOM] == 0)
+			Cbuf_AddText("impulse 26\n");
+
+		xziel_mobile_restore_ads_after_reload = false;
+		xziel_mobile_reload_animation_seen = false;
+	}
+}
+'''
+update_anchor = "static void Xziel_UpdateAutoRebuild(void)\n"
+if "static void Xziel_UpdateReloadAdsRestore(void)" not in text:
+    idx = text.find(update_anchor)
+    if idx < 0:
+        # v0.6 may not have inserted auto rebuild if disabled; fall back to fire updater
+        idx = text.find("static void Xziel_UpdateMobileFire(void)\n")
+    if idx < 0:
+        raise SystemExit("Could not find mobile updater insertion point")
+    text = text[:idx] + restore_func + "\n" + text[idx:]
+
+pump_anchor = """	Xziel_UpdateMobileFire();
+	Xziel_UpdateAutoRebuild();
+"""
+pump_repl = """	Xziel_UpdateMobileFire();
+	Xziel_UpdateAutoRebuild();
+	Xziel_UpdateReloadAdsRestore();
+"""
+if "Xziel_UpdateReloadAdsRestore();" not in text:
+    if pump_anchor in text:
+        text = text.replace(pump_anchor, pump_repl, 1)
+    else:
+        pump_anchor2 = """	Xziel_UpdateMobileFire();
+	/* Touch is handled directly above."""
+        pump_repl2 = """	Xziel_UpdateMobileFire();
+	Xziel_UpdateReloadAdsRestore();
+	/* Touch is handled directly above."""
+        if pump_anchor2 not in text:
+            raise SystemExit("Could not find mobile pump for ADS restore")
+        text = text.replace(pump_anchor2, pump_repl2, 1)
+
+# Losing focus or leaving gameplay must never leave a deferred ADS action.
+release_anchor = """	xziel_aim_refs = 0;
+}
+"""
+release_repl = """	xziel_aim_refs = 0;
+	xziel_mobile_restore_ads_after_reload = false;
+	xziel_mobile_reload_animation_seen = false;
+}
+"""
+if "xziel_mobile_restore_ads_after_reload = false;" not in text[text.find("static void Xziel_ReleaseAllTouches"):text.find("static void Xziel_MenuFinger")]:
+    if release_anchor not in text:
+        raise SystemExit("Could not find touch release tail")
+    text = text.replace(release_anchor, release_repl, 1)
+
+sys_sdl.write_text(text, encoding="utf-8")
