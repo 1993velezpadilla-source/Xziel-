@@ -136,12 +136,13 @@ jobs:
             exit 1
           fi
 
-          if ! "$ADB" shell dumpsys activity activities | grep -q "mResumedActivity.*com.xziel.nzp"; then
-            echo "Xziel process exists but its Activity is no longer resumed."
+          STAGE="$("$ADB" shell run-as com.xziel.nzp cat files/nzp-runtime/.xziel-stage 2>/dev/null | tr -d '\\r' || true)"
+          if [[ "$STAGE" != "FIRST_FRAME_OK" ]]; then
+            echo "Xziel is alive but did not reach FIRST_FRAME_OK (stage=$STAGE)."
             exit 1
           fi
 
-          echo "Xziel remained alive and foreground after 20 seconds."
+          echo "Xziel remained alive and reached FIRST_FRAME_OK after 20 seconds."
 
       - name: Upload runtime diagnostics
         if: always()
