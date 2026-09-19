@@ -118,11 +118,15 @@ jobs:
           PID="$("$ADB" shell pidof com.xziel.nzp 2>/dev/null | tr -d '\\r' || true)"
           echo "PID=$PID"
 
+          echo "===== DEVICE STARTUP MARKER ====="
+          "$ADB" shell run-as com.xziel.nzp cat files/nzp-runtime/.xziel-stage 2>/dev/null || true
+          "$ADB" shell run-as com.xziel.nzp cat files/nzp-runtime/.xziel-last-error 2>/dev/null || true
+
           echo "===== XZIEL LOGCAT HIGHLIGHTS ====="
-          grep -Ei "FATAL EXCEPTION|Fatal signal|AndroidRuntime|DEBUG|libmain|gl4es|SDL|xziel|com.xziel.nzp|Vril Engine|Sys_Error|EGL_BAD_CONTEXT|no current context" \
+          grep -Ei "FATAL EXCEPTION|Fatal signal|AndroidRuntime|DEBUG|libmain|gl4es|SDL|xziel|com.xziel.nzp|Vril Engine|Sys_Error|EGL_BAD_CONTEXT|stage=SYS_ERROR|stage=HOST_INIT_OK|stage=FIRST_FRAME_OK" \
             dist/xziel-logcat.txt | tail -n 500 || true
 
-          if grep -Eq "Fatal signal .*SDLActivity|>>> com\\.xziel\\.nzp <<<|Process .*com\\.xziel\\.nzp.*exited due to signal|EGL_BAD_CONTEXT|OpenGL ES API with no current context" dist/xziel-logcat.txt; then
+          if grep -Eq "Fatal signal .*SDLActivity|>>> com\\.xziel\\.nzp <<<|Process .*com\\.xziel\\.nzp.*exited due to signal|EGL_BAD_CONTEXT|stage=SYS_ERROR" dist/xziel-logcat.txt; then
             echo "Detected native Xziel/EGL crash in logcat."
             exit 1
           fi

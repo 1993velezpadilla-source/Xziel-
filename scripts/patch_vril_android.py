@@ -319,3 +319,66 @@ if old_loop_tail not in text:
 text = text.replace(old_loop_tail, new_loop_tail, 1)
 
 sys_sdl.write_text(text, encoding="utf-8")
+
+
+# Android music fallback: Vril's SFX backend already owns an SDL audio device.
+# SDL_mixer currently attempts to open a second device for MP3 music and can
+# fail on Android/OpenSL ES. Do not abort the whole engine: keep SFX active and
+# leave background music disabled until both paths are mixed through one device.
+snd_music = source / "snd_music.c"
+text = snd_music.read_text(encoding="utf-8")
+
+old_music_init = """	if (music_init() == 0) {
+		Sys_Error("Could not Initialize Music Subsystem.");
+	}
+"""
+new_music_init = """	if (music_init() == 0) {
+#ifdef __ANDROID__
+		Con_Printf("Android music backend unavailable; continuing with SFX audio only.\\n");
+		enabled = false;
+		return;
+#else
+		Sys_Error("Could not Initialize Music Subsystem.");
+#endif
+	}
+"""
+if old_music_init not in text:
+    raise SystemExit("Could not find Music_Init failure block")
+text = text.replace(old_music_init, new_music_init, 1)
+
+old_music_play = """void Music_PlayFromString(char* track_name, qboolean looping)
+{
+	Music_Stop();
+"""
+new_music_play = """void Music_PlayFromString(char* track_name, qboolean looping)
+{
+#ifdef __ANDROID__
+	if (!enabled) return;
+#endif
+	Music_Stop();
+"""
+if old_music_play not in text:
+    raise SystemExit("Could not find Music_PlayFromString block")
+text = text.replace(old_music_play, new_music_play, 1)
+
+old_music_shutdown = """void Music_Shutdown(void)
+{
+	Music_Stop();
+	music_deinit();
+}
+"""
+new_music_shutdown = """void Music_Shutdown(void)
+{
+#ifdef __ANDROID__
+	if (!enabled) return;
+#endif
+	Music_Stop();
+	music_deinit();
+	enabled = false;
+}
+"""
+if old_music_shutdown not in text:
+    raise SystemExit("Could not find Music_Shutdown block")
+text = text.replace(old_music_shutdown, new_music_shutdown, 1)
+
+snd_music.write_text(text, encoding="utf-8")
