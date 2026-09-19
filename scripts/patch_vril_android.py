@@ -2005,3 +2005,502 @@ if hud_start_anchor not in text:
     raise SystemExit("Could not find HUD_Draw start for countdown")
 text = text.replace(hud_start_anchor, hud_start_repl, 1)
 hud.write_text(text, encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# Xziel Android Custom HUD editor v0.5
+# Persistent drag/drop positions shared by rendering and touch hitboxes.
+# ---------------------------------------------------------------------------
+
+inp = source / "input.c"
+text = inp.read_text(encoding="utf-8")
+
+pos_cvars = r'''
+#ifdef __ANDROID__
+cvar_t xziel_hud_joy_x = {"xziel_hud_joy_x", "0.17", true};
+cvar_t xziel_hud_joy_y = {"xziel_hud_joy_y", "0.74", true};
+cvar_t xziel_hud_fire_x = {"xziel_hud_fire_x", "0.885", true};
+cvar_t xziel_hud_fire_y = {"xziel_hud_fire_y", "0.585", true};
+cvar_t xziel_hud_adsfire_x = {"xziel_hud_adsfire_x", "0.795", true};
+cvar_t xziel_hud_adsfire_y = {"xziel_hud_adsfire_y", "0.435", true};
+cvar_t xziel_hud_ads_x = {"xziel_hud_ads_x", "0.695", true};
+cvar_t xziel_hud_ads_y = {"xziel_hud_ads_y", "0.575", true};
+cvar_t xziel_hud_reload_x = {"xziel_hud_reload_x", "0.805", true};
+cvar_t xziel_hud_reload_y = {"xziel_hud_reload_y", "0.785", true};
+cvar_t xziel_hud_use_x = {"xziel_hud_use_x", "0.605", true};
+cvar_t xziel_hud_use_y = {"xziel_hud_use_y", "0.675", true};
+cvar_t xziel_hud_jump_x = {"xziel_hud_jump_x", "0.695", true};
+cvar_t xziel_hud_jump_y = {"xziel_hud_jump_y", "0.790", true};
+cvar_t xziel_hud_knife_x = {"xziel_hud_knife_x", "0.915", true};
+cvar_t xziel_hud_knife_y = {"xziel_hud_knife_y", "0.800", true};
+cvar_t xziel_hud_switch_x = {"xziel_hud_switch_x", "0.905", true};
+cvar_t xziel_hud_switch_y = {"xziel_hud_switch_y", "0.300", true};
+cvar_t xziel_hud_pause_x = {"xziel_hud_pause_x", "0.965", true};
+cvar_t xziel_hud_pause_y = {"xziel_hud_pause_y", "0.075", true};
+#endif
+'''
+pos_anchor = '#endif\n#ifdef PLATFORM_SUPPORTS_GYRO\ncvar_t in_gyro_mode'
+if "cvar_t xziel_hud_fire_x" not in text:
+    if pos_anchor not in text:
+        raise SystemExit("Could not find mobile cvar insertion anchor")
+    text = text.replace(pos_anchor, '#endif\n' + pos_cvars + '#ifdef PLATFORM_SUPPORTS_GYRO\ncvar_t in_gyro_mode', 1)
+
+reg_anchor = """	Cvar_RegisterVariable(&xziel_mobile_autofire_ms);
+#endif
+"""
+reg_repl = """	Cvar_RegisterVariable(&xziel_mobile_autofire_ms);
+	Cvar_RegisterVariable(&xziel_hud_joy_x);
+	Cvar_RegisterVariable(&xziel_hud_joy_y);
+	Cvar_RegisterVariable(&xziel_hud_fire_x);
+	Cvar_RegisterVariable(&xziel_hud_fire_y);
+	Cvar_RegisterVariable(&xziel_hud_adsfire_x);
+	Cvar_RegisterVariable(&xziel_hud_adsfire_y);
+	Cvar_RegisterVariable(&xziel_hud_ads_x);
+	Cvar_RegisterVariable(&xziel_hud_ads_y);
+	Cvar_RegisterVariable(&xziel_hud_reload_x);
+	Cvar_RegisterVariable(&xziel_hud_reload_y);
+	Cvar_RegisterVariable(&xziel_hud_use_x);
+	Cvar_RegisterVariable(&xziel_hud_use_y);
+	Cvar_RegisterVariable(&xziel_hud_jump_x);
+	Cvar_RegisterVariable(&xziel_hud_jump_y);
+	Cvar_RegisterVariable(&xziel_hud_knife_x);
+	Cvar_RegisterVariable(&xziel_hud_knife_y);
+	Cvar_RegisterVariable(&xziel_hud_switch_x);
+	Cvar_RegisterVariable(&xziel_hud_switch_y);
+	Cvar_RegisterVariable(&xziel_hud_pause_x);
+	Cvar_RegisterVariable(&xziel_hud_pause_y);
+#endif
+"""
+if "Cvar_RegisterVariable(&xziel_hud_fire_x);" not in text:
+    if reg_anchor not in text:
+        raise SystemExit("Could not find mobile cvar registration tail")
+    text = text.replace(reg_anchor, reg_repl, 1)
+
+inp.write_text(text, encoding="utf-8")
+
+# Menu states/prototypes.
+defs = source / "menu" / "menu_defs.h"
+text = defs.read_text(encoding="utf-8")
+if "#define m_hudedit" not in text:
+    text = text.replace("#define m_mobile\t\t25\n", "#define m_mobile\t\t25\n#define m_hudedit\t\t26\n", 1)
+    proto = "void Menu_Mobile_Draw(void);\n"
+    if proto not in text:
+        raise SystemExit("Could not find Mobile menu prototype")
+    text = text.replace(proto, proto + "void Menu_HudEdit_Set(void);\nvoid Menu_HudEdit_Draw(void);\n", 1)
+defs.write_text(text, encoding="utf-8")
+
+menu = source / "menu" / "menu.c"
+text = menu.read_text(encoding="utf-8")
+case_anchor = """	case m_mobile:
+		Menu_Mobile_Draw ();
+		break;
+#endif
+"""
+case_repl = """	case m_mobile:
+		Menu_Mobile_Draw ();
+		break;
+	case m_hudedit:
+		Menu_HudEdit_Draw ();
+		break;
+#endif
+"""
+if "case m_hudedit:" not in text:
+    if case_anchor not in text:
+        raise SystemExit("Could not find m_mobile draw case")
+    text = text.replace(case_anchor, case_repl, 1)
+menu.write_text(text, encoding="utf-8")
+
+# Touch runtime now reads all button positions from archived cvars and supports
+# editor drags without triggering gameplay actions.
+sys_sdl = source / "platform" / "sdl" / "sys_sdl.c"
+text = sys_sdl.read_text(encoding="utf-8")
+
+pos_externs = r'''
+extern cvar_t xziel_mobile_hud_scale;
+extern cvar_t xziel_hud_joy_x;
+extern cvar_t xziel_hud_joy_y;
+extern cvar_t xziel_hud_fire_x;
+extern cvar_t xziel_hud_fire_y;
+extern cvar_t xziel_hud_adsfire_x;
+extern cvar_t xziel_hud_adsfire_y;
+extern cvar_t xziel_hud_ads_x;
+extern cvar_t xziel_hud_ads_y;
+extern cvar_t xziel_hud_reload_x;
+extern cvar_t xziel_hud_reload_y;
+extern cvar_t xziel_hud_use_x;
+extern cvar_t xziel_hud_use_y;
+extern cvar_t xziel_hud_jump_x;
+extern cvar_t xziel_hud_jump_y;
+extern cvar_t xziel_hud_knife_x;
+extern cvar_t xziel_hud_knife_y;
+extern cvar_t xziel_hud_switch_x;
+extern cvar_t xziel_hud_switch_y;
+extern cvar_t xziel_hud_pause_x;
+extern cvar_t xziel_hud_pause_y;
+'''
+pos_ext_anchor = "extern qboolean xziel_mobile_use_available;\n"
+if "extern cvar_t xziel_hud_fire_x;" not in text:
+    if pos_ext_anchor not in text:
+        raise SystemExit("Could not find sys mobile extern anchor")
+    text = text.replace(pos_ext_anchor, pos_ext_anchor + pos_externs, 1)
+
+slot_old = """	qboolean active;
+	SDL_FingerID finger;
+	xziel_touch_role_t role;
+	float last_x;
+	float last_y;
+"""
+slot_new = """	qboolean active;
+	qboolean editor_drag;
+	SDL_FingerID finger;
+	xziel_touch_role_t role;
+	float last_x;
+	float last_y;
+"""
+if "qboolean editor_drag;" not in text:
+    if slot_old not in text:
+        raise SystemExit("Could not find touch slot struct")
+    text = text.replace(slot_old, slot_new, 1)
+
+# Joystick default home follows saved layout.
+joy_init_anchor = """float xziel_mobile_move_anchor_x = 0.17f;
+float xziel_mobile_move_anchor_y = 0.74f;
+"""
+joy_init_repl = """float xziel_mobile_move_anchor_x = 0.17f;
+float xziel_mobile_move_anchor_y = 0.74f;
+"""
+# globals remain plain floats; HUD uses cvars when idle and touch down sets anchor dynamically.
+
+role_func_start = text.find("static xziel_touch_role_t Xziel_RoleForPoint(float x, float y)")
+if role_func_start < 0:
+    raise SystemExit("Could not find Xziel_RoleForPoint")
+role_func_end = text.find("\n}\n\nstatic void Xziel_UpdateMove", role_func_start)
+if role_func_end < 0:
+    raise SystemExit("Could not find Xziel_RoleForPoint end")
+role_func_end += 3
+
+new_role_func = r'''static xziel_touch_role_t Xziel_RoleForPoint(float x, float y)
+{
+	float hs = xziel_mobile_hud_scale.value;
+	if (Xziel_IsInside(x, y, xziel_hud_fire_x.value, xziel_hud_fire_y.value, 0.073f * hs)) return XZ_TOUCH_FIRE;
+	if (Xziel_IsInside(x, y, xziel_hud_adsfire_x.value, xziel_hud_adsfire_y.value, 0.056f * hs)) return XZ_TOUCH_ADSFIRE;
+	if (Xziel_IsInside(x, y, xziel_hud_ads_x.value, xziel_hud_ads_y.value, 0.047f * hs)) return XZ_TOUCH_ADS;
+	if (Xziel_IsInside(x, y, xziel_hud_reload_x.value, xziel_hud_reload_y.value, 0.044f * hs)) return XZ_TOUCH_RELOAD;
+	if (xziel_mobile_use_available && Xziel_IsInside(x, y, xziel_hud_use_x.value, xziel_hud_use_y.value, 0.050f * hs)) return XZ_TOUCH_USE;
+	if (Xziel_IsInside(x, y, xziel_hud_pause_x.value, xziel_hud_pause_y.value, 0.036f * hs)) return XZ_TOUCH_PAUSE;
+	if (Xziel_IsInside(x, y, xziel_hud_jump_x.value, xziel_hud_jump_y.value, 0.044f * hs)) return XZ_TOUCH_JUMP;
+	if (Xziel_IsInside(x, y, xziel_hud_knife_x.value, xziel_hud_knife_y.value, 0.044f * hs)) return XZ_TOUCH_KNIFE;
+	if (Xziel_IsInside(x, y, xziel_hud_switch_x.value, xziel_hud_switch_y.value, 0.041f * hs)) return XZ_TOUCH_SWITCH;
+	if (x < 0.45f && y > 0.30f) return XZ_TOUCH_MOVE;
+	return XZ_TOUCH_LOOK;
+}
+
+static xziel_touch_role_t Xziel_HudEditorRole(float x, float y)
+{
+	float hs = xziel_mobile_hud_scale.value;
+	if (Xziel_IsInside(x, y, xziel_hud_fire_x.value, xziel_hud_fire_y.value, 0.090f * hs)) return XZ_TOUCH_FIRE;
+	if (Xziel_IsInside(x, y, xziel_hud_adsfire_x.value, xziel_hud_adsfire_y.value, 0.075f * hs)) return XZ_TOUCH_ADSFIRE;
+	if (Xziel_IsInside(x, y, xziel_hud_ads_x.value, xziel_hud_ads_y.value, 0.065f * hs)) return XZ_TOUCH_ADS;
+	if (Xziel_IsInside(x, y, xziel_hud_reload_x.value, xziel_hud_reload_y.value, 0.060f * hs)) return XZ_TOUCH_RELOAD;
+	if (Xziel_IsInside(x, y, xziel_hud_use_x.value, xziel_hud_use_y.value, 0.065f * hs)) return XZ_TOUCH_USE;
+	if (Xziel_IsInside(x, y, xziel_hud_pause_x.value, xziel_hud_pause_y.value, 0.055f * hs)) return XZ_TOUCH_PAUSE;
+	if (Xziel_IsInside(x, y, xziel_hud_jump_x.value, xziel_hud_jump_y.value, 0.060f * hs)) return XZ_TOUCH_JUMP;
+	if (Xziel_IsInside(x, y, xziel_hud_knife_x.value, xziel_hud_knife_y.value, 0.060f * hs)) return XZ_TOUCH_KNIFE;
+	if (Xziel_IsInside(x, y, xziel_hud_switch_x.value, xziel_hud_switch_y.value, 0.057f * hs)) return XZ_TOUCH_SWITCH;
+	if (Xziel_IsInside(x, y, xziel_hud_joy_x.value, xziel_hud_joy_y.value, 0.120f * hs)) return XZ_TOUCH_MOVE;
+	return XZ_TOUCH_NONE;
+}
+
+static void Xziel_HudEditorSetPosition(xziel_touch_role_t role, float x, float y)
+{
+	if (x < 0.035f) x = 0.035f;
+	if (x > 0.965f) x = 0.965f;
+	if (y < 0.055f) y = 0.055f;
+	if (y > 0.945f) y = 0.945f;
+
+	switch (role) {
+	case XZ_TOUCH_MOVE:
+		Cvar_SetValue("xziel_hud_joy_x", x); Cvar_SetValue("xziel_hud_joy_y", y); break;
+	case XZ_TOUCH_FIRE:
+		Cvar_SetValue("xziel_hud_fire_x", x); Cvar_SetValue("xziel_hud_fire_y", y); break;
+	case XZ_TOUCH_ADSFIRE:
+		Cvar_SetValue("xziel_hud_adsfire_x", x); Cvar_SetValue("xziel_hud_adsfire_y", y); break;
+	case XZ_TOUCH_ADS:
+		Cvar_SetValue("xziel_hud_ads_x", x); Cvar_SetValue("xziel_hud_ads_y", y); break;
+	case XZ_TOUCH_RELOAD:
+		Cvar_SetValue("xziel_hud_reload_x", x); Cvar_SetValue("xziel_hud_reload_y", y); break;
+	case XZ_TOUCH_USE:
+		Cvar_SetValue("xziel_hud_use_x", x); Cvar_SetValue("xziel_hud_use_y", y); break;
+	case XZ_TOUCH_JUMP:
+		Cvar_SetValue("xziel_hud_jump_x", x); Cvar_SetValue("xziel_hud_jump_y", y); break;
+	case XZ_TOUCH_KNIFE:
+		Cvar_SetValue("xziel_hud_knife_x", x); Cvar_SetValue("xziel_hud_knife_y", y); break;
+	case XZ_TOUCH_SWITCH:
+		Cvar_SetValue("xziel_hud_switch_x", x); Cvar_SetValue("xziel_hud_switch_y", y); break;
+	case XZ_TOUCH_PAUSE:
+		Cvar_SetValue("xziel_hud_pause_x", x); Cvar_SetValue("xziel_hud_pause_y", y); break;
+	default:
+		break;
+	}
+}
+'''
+text = text[:role_func_start] + new_role_func + text[role_func_end:]
+
+# HUD editor down path before ordinary menu handling.
+fingerdown_anchor = """	if (cl.stats[STAT_HEALTH] <= 0 && key_dest == key_game) {
+		Xziel_ReleaseAllTouches();
+		Menu_ExitMap();
+		return;
+	}
+
+	if (key_dest == key_menu || key_dest == key_menu_pause) {
+"""
+fingerdown_repl = """	if (cl.stats[STAT_HEALTH] <= 0 && key_dest == key_game) {
+		Xziel_ReleaseAllTouches();
+		Menu_ExitMap();
+		return;
+	}
+
+	if (key_dest == key_menu && m_state == m_hudedit) {
+		xziel_touch_role_t edit_role = Xziel_HudEditorRole(finger->x, finger->y);
+		if (edit_role != XZ_TOUCH_NONE) {
+			slot = Xziel_AllocTouch(finger->fingerId);
+			if (slot) {
+				slot->editor_drag = true;
+				slot->role = edit_role;
+				slot->last_x = finger->x;
+				slot->last_y = finger->y;
+				Xziel_HudEditorSetPosition(edit_role, finger->x, finger->y);
+			}
+			return;
+		}
+		Xziel_MenuFinger(finger->x, finger->y, true, false);
+		return;
+	}
+
+	if (key_dest == key_menu || key_dest == key_menu_pause) {
+"""
+if "m_state == m_hudedit" not in text:
+    if fingerdown_anchor not in text:
+        raise SystemExit("Could not find finger down menu anchor")
+    text = text.replace(fingerdown_anchor, fingerdown_repl, 1)
+
+# Editor motion before ordinary menu-motion path.
+motion_anchor = """	if (key_dest == key_menu || key_dest == key_menu_pause) {
+		Xziel_MenuFinger(finger->x, finger->y, false, true);
+		return;
+	}
+
+	slot = Xziel_FindTouch(finger->fingerId);
+"""
+motion_repl = """	slot = Xziel_FindTouch(finger->fingerId);
+	if (slot && slot->editor_drag) {
+		Xziel_HudEditorSetPosition(slot->role, finger->x, finger->y);
+		slot->last_x = finger->x;
+		slot->last_y = finger->y;
+		return;
+	}
+
+	if (key_dest == key_menu || key_dest == key_menu_pause) {
+		Xziel_MenuFinger(finger->x, finger->y, false, true);
+		return;
+	}
+
+	slot = Xziel_FindTouch(finger->fingerId);
+"""
+if "slot && slot->editor_drag" not in text:
+    if motion_anchor not in text:
+        raise SystemExit("Could not find finger motion menu anchor")
+    text = text.replace(motion_anchor, motion_repl, 1)
+
+# Editor touch-up.
+up_anchor = """	if (key_dest == key_menu || key_dest == key_menu_pause) {
+		Xziel_MenuFinger(finger->x, finger->y, false, false);
+		return;
+	}
+
+	slot = Xziel_FindTouch(finger->fingerId);
+"""
+up_repl = """	slot = Xziel_FindTouch(finger->fingerId);
+	if (slot && slot->editor_drag) {
+		Xziel_HudEditorSetPosition(slot->role, finger->x, finger->y);
+		slot->active = false;
+		return;
+	}
+
+	if (key_dest == key_menu || key_dest == key_menu_pause) {
+		Xziel_MenuFinger(finger->x, finger->y, false, false);
+		return;
+	}
+
+	slot = Xziel_FindTouch(finger->fingerId);
+"""
+if up_anchor not in text:
+    raise SystemExit("Could not find finger up menu anchor")
+text = text.replace(up_anchor, up_repl, 1)
+
+sys_sdl.write_text(text, encoding="utf-8")
+
+# HUD reads persistent positions and exposes an editor rendering mode.
+hud = source / "render" / "r_hud.c"
+text = hud.read_text(encoding="utf-8")
+
+hud_pos_externs = r'''
+extern cvar_t xziel_hud_joy_x;
+extern cvar_t xziel_hud_joy_y;
+extern cvar_t xziel_hud_fire_x;
+extern cvar_t xziel_hud_fire_y;
+extern cvar_t xziel_hud_adsfire_x;
+extern cvar_t xziel_hud_adsfire_y;
+extern cvar_t xziel_hud_ads_x;
+extern cvar_t xziel_hud_ads_y;
+extern cvar_t xziel_hud_reload_x;
+extern cvar_t xziel_hud_reload_y;
+extern cvar_t xziel_hud_use_x;
+extern cvar_t xziel_hud_use_y;
+extern cvar_t xziel_hud_jump_x;
+extern cvar_t xziel_hud_jump_y;
+extern cvar_t xziel_hud_knife_x;
+extern cvar_t xziel_hud_knife_y;
+extern cvar_t xziel_hud_switch_x;
+extern cvar_t xziel_hud_switch_y;
+extern cvar_t xziel_hud_pause_x;
+extern cvar_t xziel_hud_pause_y;
+'''
+hud_pos_anchor = "extern cvar_t xziel_mobile_hud_opacity;\n"
+if "extern cvar_t xziel_hud_fire_x;" not in text:
+    text = text.replace(hud_pos_anchor, hud_pos_anchor + hud_pos_externs, 1)
+
+func_start = text.find("static void Xziel_MobileHUD_Draw(void)")
+if func_start < 0:
+    raise SystemExit("Could not find mobile HUD draw function")
+func_end = text.find("\n}\n\nstatic void Xziel_MobileGameOverPrompt", func_start)
+if func_end < 0:
+    raise SystemExit("Could not find mobile HUD draw function end")
+func_end += 3
+old_func = text[func_start:func_end]
+
+new_func = r'''static void Xziel_MobileHUD_DrawInternal(qboolean editor)
+{
+	int base_x, base_y, knob_x, knob_y, radius, knob_r;
+
+	if (!editor && (key_dest != key_game || cl.stats[STAT_HEALTH] <= 0))
+		return;
+
+	base_x = (int)((xziel_mobile_move_active && !editor ? xziel_mobile_move_anchor_x : xziel_hud_joy_x.value) * vid.width);
+	base_y = (int)((xziel_mobile_move_active && !editor ? xziel_mobile_move_anchor_y : xziel_hud_joy_y.value) * vid.height);
+	radius = (int)(0.095f * vid.height * xziel_mobile_hud_scale.value);
+	knob_r = (int)(0.042f * vid.height * xziel_mobile_hud_scale.value);
+	Xziel_DrawDisc(base_x, base_y, radius, 240, 240, 240, (int)(70 * xziel_mobile_hud_opacity.value));
+	Xziel_DrawDisc(base_x, base_y, radius - (int)(2 * vid.scale), 0, 0, 0, (int)(95 * xziel_mobile_hud_opacity.value));
+	knob_x = base_x + (int)(xziel_mobile_move_x * radius * 0.72f);
+	knob_y = base_y - (int)(xziel_mobile_move_y * radius * 0.72f);
+	Xziel_DrawDisc(knob_x, knob_y, knob_r, 245, 245, 245,
+		(int)((xziel_mobile_move_active ? 150 : 90) * xziel_mobile_hud_opacity.value));
+
+	Xziel_DrawTouchButton(xziel_hud_fire_x.value, xziel_hud_fire_y.value, 0.073f, "FIRE", "", xziel_mobile_fire_pressed);
+	Xziel_DrawTouchButton(xziel_hud_adsfire_x.value, xziel_hud_adsfire_y.value, 0.056f, "ADS", "FIRE", xziel_mobile_adsfire_pressed);
+	Xziel_DrawTouchButton(xziel_hud_ads_x.value, xziel_hud_ads_y.value, 0.047f, "ADS", "", xziel_mobile_ads_pressed);
+	Xziel_DrawTouchButton(xziel_hud_reload_x.value, xziel_hud_reload_y.value, 0.044f, "RLD", "", xziel_mobile_reload_pressed);
+	if (editor || xziel_mobile_use_available)
+		Xziel_DrawTouchButton(xziel_hud_use_x.value, xziel_hud_use_y.value, 0.050f, "USE", "", xziel_mobile_use_pressed);
+	Xziel_DrawTouchButton(xziel_hud_pause_x.value, xziel_hud_pause_y.value, 0.036f, "II", "", false);
+	Xziel_DrawTouchButton(xziel_hud_jump_x.value, xziel_hud_jump_y.value, 0.044f, "JUMP", "", xziel_mobile_jump_pressed);
+	Xziel_DrawTouchButton(xziel_hud_knife_x.value, xziel_hud_knife_y.value, 0.044f, "KNIFE", "", xziel_mobile_knife_pressed);
+	Xziel_DrawTouchButton(xziel_hud_switch_x.value, xziel_hud_switch_y.value, 0.041f, "SWAP", "", xziel_mobile_switch_pressed);
+}
+
+static void Xziel_MobileHUD_Draw(void)
+{
+	Xziel_MobileHUD_DrawInternal(false);
+}
+
+void Xziel_MobileHUD_DrawEditor(void)
+{
+	Xziel_MobileHUD_DrawInternal(true);
+}
+'''
+text = text[:func_start] + new_func + text[func_end:]
+
+# Context card follows custom USE position.
+fixed_card = """    y = (int)(vid.height * 0.54f);
+    x = (int)(vid.width * 0.48f) - getTextWidth(hud_usestring, vid.scale);
+"""
+custom_card = """    y = (int)(xziel_hud_use_y.value * vid.height) - (int)(35 * vid.scale);
+    x = (int)(xziel_hud_use_x.value * vid.width) - getTextWidth(hud_usestring, vid.scale) - (int)(28 * vid.scale);
+"""
+if fixed_card in text:
+    text = text.replace(fixed_card, custom_card, 1)
+
+hud.write_text(text, encoding="utf-8")
+
+# HUD editor UI lives in menu_controls.c.
+controls = source / "menu" / "menu_controls.c"
+text = controls.read_text(encoding="utf-8")
+
+editor_code = r'''
+#ifdef __ANDROID__
+void Xziel_MobileHUD_DrawEditor(void);
+extern void Host_WriteConfiguration(void);
+
+static void Menu_HudEdit_Reset(void)
+{
+	Cvar_SetValue("xziel_hud_joy_x", 0.17f); Cvar_SetValue("xziel_hud_joy_y", 0.74f);
+	Cvar_SetValue("xziel_hud_fire_x", 0.885f); Cvar_SetValue("xziel_hud_fire_y", 0.585f);
+	Cvar_SetValue("xziel_hud_adsfire_x", 0.795f); Cvar_SetValue("xziel_hud_adsfire_y", 0.435f);
+	Cvar_SetValue("xziel_hud_ads_x", 0.695f); Cvar_SetValue("xziel_hud_ads_y", 0.575f);
+	Cvar_SetValue("xziel_hud_reload_x", 0.805f); Cvar_SetValue("xziel_hud_reload_y", 0.785f);
+	Cvar_SetValue("xziel_hud_use_x", 0.605f); Cvar_SetValue("xziel_hud_use_y", 0.675f);
+	Cvar_SetValue("xziel_hud_jump_x", 0.695f); Cvar_SetValue("xziel_hud_jump_y", 0.790f);
+	Cvar_SetValue("xziel_hud_knife_x", 0.915f); Cvar_SetValue("xziel_hud_knife_y", 0.800f);
+	Cvar_SetValue("xziel_hud_switch_x", 0.905f); Cvar_SetValue("xziel_hud_switch_y", 0.300f);
+	Cvar_SetValue("xziel_hud_pause_x", 0.965f); Cvar_SetValue("xziel_hud_pause_y", 0.075f);
+}
+
+static void Menu_HudEdit_Done(void)
+{
+	Host_WriteConfiguration();
+	Menu_Mobile_Set();
+}
+
+void Menu_HudEdit_Set(void)
+{
+	Menu_ResetMenuButtons();
+	m_previous_state = m_mobile;
+	m_state = m_hudedit;
+}
+
+void Menu_HudEdit_Draw(void)
+{
+	Menu_DrawCustomBackground(true);
+	Menu_DrawMapPanel();
+	Menu_DrawTitle("CUSTOM HUD", MENU_COLOR_WHITE);
+
+	Draw_ColoredString((int)(vid.width * 0.5f) - getTextWidth("DRAG CONTROLS TO MOVE THEM", vid.scale) / 2,
+		(int)(28 * vid.scale), "DRAG CONTROLS TO MOVE THEM", 255, 255, 255, 230, vid.scale);
+
+	Xziel_MobileHUD_DrawEditor();
+
+	Menu_DrawButton(-2, 0, "RESET LAYOUT", "Restore default mobile HUD positions.", Menu_HudEdit_Reset);
+	Menu_DrawButton(-1, 1, "DONE", "Save HUD layout and return.", Menu_HudEdit_Done);
+}
+#endif
+'''
+if "void Menu_HudEdit_Draw(void)" not in text:
+    text += "\n" + editor_code
+
+mobile_back_anchor = """	Menu_DrawButton(-1, idx, "BACK", "Return to Control Options.", Menu_Controls_Set);
+}
+#endif
+"""
+mobile_back_repl = """	Menu_DrawButton(row++, idx++, "CUSTOM HUD", "Drag and place mobile controls.", Menu_HudEdit_Set);
+	Menu_DrawButton(-1, idx, "BACK", "Return to Control Options.", Menu_Controls_Set);
+}
+#endif
+"""
+if "Drag and place mobile controls." not in text:
+    if mobile_back_anchor not in text:
+        raise SystemExit("Could not find mobile menu back button")
+    text = text.replace(mobile_back_anchor, mobile_back_repl, 1)
+
+controls.write_text(text, encoding="utf-8")
