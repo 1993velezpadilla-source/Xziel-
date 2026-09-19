@@ -67,6 +67,10 @@ old_context = """\tSDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
 \tSDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
 """
 new_context = """#ifdef __ANDROID__
+\t/* GL4ES performs its own temporary EGL hardware probe and finishes by
+\t * unbinding/terminating that EGL display. Run it before SDL creates the
+\t * real game context so its cleanup cannot invalidate SDL's context. */
+\tinitialize_gl4es();
 \tSDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
 \tSDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 \tSDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
@@ -86,7 +90,8 @@ old_create = """\tsdl_gl_context = SDL_GL_CreateContext(sdl_window);
 new_create = """\tsdl_gl_context = SDL_GL_CreateContext(sdl_window);
 \tif (!sdl_gl_context) Sys_Error("SDL_GL_CreateContext: %s", SDL_GetError());
 #ifdef __ANDROID__
-\tinitialize_gl4es();
+\tif (SDL_GL_MakeCurrent(sdl_window, sdl_gl_context) != 0)
+\t\tSys_Error("SDL_GL_MakeCurrent: %s", SDL_GetError());
 #endif
 """
 if old_create not in text:
