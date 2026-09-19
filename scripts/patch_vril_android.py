@@ -2039,11 +2039,11 @@ cvar_t xziel_hud_pause_x = {"xziel_hud_pause_x", "0.965", true};
 cvar_t xziel_hud_pause_y = {"xziel_hud_pause_y", "0.075", true};
 #endif
 '''
-pos_anchor = '#endif\n#ifdef PLATFORM_SUPPORTS_GYRO\ncvar_t in_gyro_mode'
+pos_anchor = 'cvar_t xziel_mobile_autofire_ms = {"xziel_mobile_autofire_ms", "185", true};\n'
 if "cvar_t xziel_hud_fire_x" not in text:
     if pos_anchor not in text:
         raise SystemExit("Could not find mobile cvar insertion anchor")
-    text = text.replace(pos_anchor, '#endif\n' + pos_cvars + '#ifdef PLATFORM_SUPPORTS_GYRO\ncvar_t in_gyro_mode', 1)
+    text = text.replace(pos_anchor, pos_anchor + pos_cvars, 1)
 
 reg_anchor = """	Cvar_RegisterVariable(&xziel_mobile_autofire_ms);
 #endif
