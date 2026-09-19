@@ -30,14 +30,13 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Install Android 35 and NDK
         shell: bash
         run: |
+          echo "ANDROID_HOME=${ANDROID_HOME}"
+          command -v sdkmanager
           yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager             "platforms;android-35"             "build-tools;35.0.0"             "ndk;27.2.12479018"
+          sdkmanager             "platform-tools"             "platforms;android-35"             "build-tools;35.0.0"             "ndk;27.2.12479018"
 
       - name: Prepare full native NZ:P Android project
         shell: bash
