@@ -96,3 +96,65 @@ text = text.replace(old_create, new_create, 1)
 vid.write_text(text, encoding="utf-8")
 
 print(f"Patched Vril {git_hash} for Android/GL4ES")
+
+
+# Android/Bionic does not expose gethostid(). Keep UDP multiplayer enabled by
+# resolving the local hostname to an IPv4 address instead of disabling UDP.
+udp = source / "platform" / "sdl" / "net_udp_sdl.c"
+text = udp.read_text(encoding="utf-8")
+old_udp = """	#if defined(_WIN32)
+		{
+			char hostname[256];
+			struct hostent *hostentry;
+
+			gethostname(hostname, sizeof(hostname));
+
+			hostentry = gethostbyname(hostname);
+			if (hostentry && hostentry->h_addr_list[0])
+				myAddr = *(unsigned long *)hostentry->h_addr_list[0];
+			else
+				myAddr = inet_addr("127.0.0.1");
+		}
+	#else
+		myAddr = gethostid();
+	#endif
+"""
+new_udp = """	#if defined(_WIN32)
+		{
+			char hostname[256];
+			struct hostent *hostentry;
+
+			gethostname(hostname, sizeof(hostname));
+
+			hostentry = gethostbyname(hostname);
+			if (hostentry && hostentry->h_addr_list[0])
+				myAddr = *(unsigned long *)hostentry->h_addr_list[0];
+			else
+				myAddr = inet_addr("127.0.0.1");
+		}
+	#elif defined(__ANDROID__)
+		{
+			char local_hostname[256] = "localhost";
+			struct hostent *hostentry;
+			struct in_addr resolved;
+
+			if (gethostname(local_hostname, sizeof(local_hostname)) != 0)
+				strcpy(local_hostname, "localhost");
+			local_hostname[sizeof(local_hostname) - 1] = 0;
+
+			hostentry = gethostbyname(local_hostname);
+			if (hostentry && hostentry->h_addr_list[0]) {
+				memcpy(&resolved.s_addr, hostentry->h_addr_list[0], sizeof(resolved.s_addr));
+				myAddr = resolved.s_addr;
+			} else {
+				myAddr = inet_addr("127.0.0.1");
+			}
+		}
+	#else
+		myAddr = gethostid();
+	#endif
+"""
+if old_udp not in text:
+    raise SystemExit("Could not find UDP gethostid block")
+text = text.replace(old_udp, new_udp, 1)
+udp.write_text(text, encoding="utf-8")
