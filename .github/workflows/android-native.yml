@@ -69,26 +69,26 @@ jobs:
 
           nohup "${ANDROID_HOME}/emulator/emulator"             -avd xziel-ci             -no-window             -no-audio             -no-boot-anim             -no-snapshot             -gpu swiftshader_indirect             -memory 2048             > dist/emulator-stdout.txt 2>&1 &
 
-          adb wait-for-device
+          "${ANDROID_HOME}/platform-tools/adb" wait-for-device
           for i in $(seq 1 120); do
-            if [[ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == "1" ]]; then
+            if [[ "$("${ANDROID_HOME}/platform-tools/adb" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == "1" ]]; then
               break
             fi
             sleep 2
           done
 
-          adb install -r dist/Xziel-NZP-native-universal-debug.apk
-          adb logcat -c
-          adb shell am force-stop com.xziel.nzp || true
-          adb shell am start -W -n com.xziel.nzp/org.libsdl.app.NZPActivity             > dist/am-start.txt 2>&1 || true
+          "${ANDROID_HOME}/platform-tools/adb" install -r dist/Xziel-NZP-native-universal-debug.apk
+          "${ANDROID_HOME}/platform-tools/adb" logcat -c
+          "${ANDROID_HOME}/platform-tools/adb" shell am force-stop com.xziel.nzp || true
+          "${ANDROID_HOME}/platform-tools/adb" shell am start -W -n com.xziel.nzp/org.libsdl.app.NZPActivity             > dist/am-start.txt 2>&1 || true
 
           sleep 25
 
-          adb exec-out screencap -p > dist/xziel-screen.png || true
-          adb logcat -d -v threadtime > dist/xziel-logcat.txt || true
-          adb shell dumpsys activity processes > dist/activity-processes.txt || true
+          "${ANDROID_HOME}/platform-tools/adb" exec-out screencap -p > dist/xziel-screen.png || true
+          "${ANDROID_HOME}/platform-tools/adb" logcat -d -v threadtime > dist/xziel-logcat.txt || true
+          "${ANDROID_HOME}/platform-tools/adb" shell dumpsys activity processes > dist/activity-processes.txt || true
 
-          PID="$(adb shell pidof com.xziel.nzp 2>/dev/null | tr -d '\r')"
+          PID="$("${ANDROID_HOME}/platform-tools/adb" shell pidof com.xziel.nzp 2>/dev/null | tr -d '\r')"
           echo "PID=$PID"
           if [[ -z "$PID" ]]; then
             echo "Xziel process exited/crashed during smoke test."
