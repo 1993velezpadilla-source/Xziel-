@@ -158,3 +158,144 @@ if old_udp not in text:
     raise SystemExit("Could not find UDP gethostid block")
 text = text.replace(old_udp, new_udp, 1)
 udp.write_text(text, encoding="utf-8")
+
+
+# Persist coarse Android startup stages so a device-side crash can be
+# diagnosed on the next launch even without adb/logcat.
+sys_sdl = source / "platform" / "sdl" / "sys_sdl.c"
+text = sys_sdl.read_text(encoding="utf-8")
+
+android_diag = r'''
+#ifdef __ANDROID__
+#include <android/log.h>
+static const char *xziel_diag_basedir = NULL;
+
+static void Xziel_WriteStage(const char *stage)
+{
+    char path[1024];
+    FILE *f;
+    if (!xziel_diag_basedir || !stage)
+        return;
+    snprintf(path, sizeof(path), "%s/.xziel-stage", xziel_diag_basedir);
+    f = fopen(path, "wb");
+    if (f) {
+        fwrite(stage, 1, strlen(stage), f);
+        fwrite("\n", 1, 1, f);
+        fclose(f);
+    }
+    __android_log_print(ANDROID_LOG_INFO, "Xziel", "stage=%s", stage);
+}
+
+static void Xziel_WriteError(const char *error)
+{
+    char path[1024];
+    FILE *f;
+    if (!xziel_diag_basedir || !error)
+        return;
+    snprintf(path, sizeof(path), "%s/.xziel-last-error", xziel_diag_basedir);
+    f = fopen(path, "wb");
+    if (f) {
+        fwrite(error, 1, strlen(error), f);
+        fwrite("\n", 1, 1, f);
+        fclose(f);
+    }
+    __android_log_print(ANDROID_LOG_ERROR, "Xziel", "%s", error);
+}
+#endif
+'''
+
+needle = "#define DEFAULT_MEMORY_MB 128\n"
+if android_diag not in text:
+    text = text.replace(needle, needle + android_diag, 1)
+
+old_system_error = 'void Sys_SystemError(char *error) { fprintf(stderr, "Vril Engine: %s\\n", error); if (SDL_WasInit(SDL_INIT_VIDEO)) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Vril Engine", error, sdl_window); SDL_Quit(); exit(1); }'
+new_system_error = '''void Sys_SystemError(char *error) {
+#ifdef __ANDROID__
+    Xziel_WriteError(error);
+    Xziel_WriteStage("SYS_ERROR");
+#endif
+    fprintf(stderr, "Vril Engine: %s\\n", error);
+    if (SDL_WasInit(SDL_INIT_VIDEO))
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Vril Engine", error, sdl_window);
+    SDL_Quit();
+    exit(1);
+}'''
+if old_system_error in text:
+    text = text.replace(old_system_error, new_system_error, 1)
+
+old_base = '''	if (!Startup_GetBaseDirectory(&startup, ".", &base_directory,
+		startup_error, sizeof(startup_error))) {
+		fprintf(stderr, "Startup: %s\\n", startup_error);
+		Startup_FreeArguments(&startup);
+		return 1;
+	}
+'''
+new_base = old_base + '''#ifdef __ANDROID__
+	xziel_diag_basedir = base_directory;
+	Xziel_WriteStage("ARGS_READY");
+#endif
+'''
+if old_base not in text:
+    raise SystemExit("Could not find base-directory startup block")
+text = text.replace(old_base, new_base, 1)
+
+old_sdl = '''	if (SDL_Init(headless_test ? SDL_INIT_TIMER :
+		(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_GAMECONTROLLER)) != 0) {
+		fprintf(stderr, "SDL_Init: %s\\n", SDL_GetError());
+		Startup_FreeArguments(&startup);
+		return 1;
+	}
+'''
+new_sdl = old_sdl + '''#ifdef __ANDROID__
+	Xziel_WriteStage("SDL_INIT_OK");
+#endif
+'''
+if old_sdl not in text:
+    raise SystemExit("Could not find SDL_Init block")
+text = text.replace(old_sdl, new_sdl, 1)
+
+old_host = '''	Host_Init(&parms);
+	oldtime = Sys_FloatTime();
+	while (sdl_running) {
+'''
+new_host = '''#ifdef __ANDROID__
+	Xziel_WriteStage("HOST_INIT_BEGIN");
+#endif
+	Host_Init(&parms);
+#ifdef __ANDROID__
+	Xziel_WriteStage("HOST_INIT_OK");
+#endif
+	oldtime = Sys_FloatTime();
+	{
+		int xziel_first_frame = 1;
+	while (sdl_running) {
+'''
+if old_host not in text:
+    raise SystemExit("Could not find Host_Init block")
+text = text.replace(old_host, new_host, 1)
+
+old_loop_tail = '''		music_update();
+		oldtime = now;
+	}
+	if (host_initialized)
+'''
+new_loop_tail = '''		music_update();
+		oldtime = now;
+#ifdef __ANDROID__
+		if (xziel_first_frame) {
+			Xziel_WriteStage("FIRST_FRAME_OK");
+			xziel_first_frame = 0;
+		}
+#endif
+	}
+	}
+#ifdef __ANDROID__
+	Xziel_WriteStage("CLEAN_EXIT");
+#endif
+	if (host_initialized)
+'''
+if old_loop_tail not in text:
+    raise SystemExit("Could not find main loop tail")
+text = text.replace(old_loop_tail, new_loop_tail, 1)
+
+sys_sdl.write_text(text, encoding="utf-8")
