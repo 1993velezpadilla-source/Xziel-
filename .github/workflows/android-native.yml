@@ -1,0 +1,64 @@
+name: Native Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/android-native.yml"
+      - "android/**"
+      - "scripts/**"
+      - "README.md"
+
+permissions:
+  contents: read
+
+jobs:
+  build-arm64:
+    name: Build arm64-v8a APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout Xziel
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android 35 and NDK
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager             "platforms;android-35"             "build-tools;35.0.0"             "ndk;27.2.12479018"
+
+      - name: Prepare full native NZ:P Android project
+        shell: bash
+        run: bash scripts/prepare_android.sh
+
+      - name: Build debug APK
+        working-directory: build/android-project
+        shell: bash
+        run: ./gradlew --no-daemon assembleDebug --stacktrace
+
+      - name: Collect APK
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp build/android-project/app/build/outputs/apk/debug/app-debug.apk              dist/Xziel-NZP-native-arm64-debug.apk
+          ls -lh dist/Xziel-NZP-native-arm64-debug.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xziel-NZP-native-arm64-debug
+          path: dist/Xziel-NZP-native-arm64-debug.apk
+          if-no-files-found: error
+          retention-days: 14
