@@ -830,9 +830,12 @@ static void Xziel_FingerMotion(const SDL_TouchFingerEvent *finger)
 
 	if (slot->role == XZ_TOUCH_MOVE) {
 		Xziel_UpdateMove(finger->x, finger->y);
-	} else if (slot->role == XZ_TOUCH_LOOK) {
-		/* Feed the existing mouse-look pipeline so current sensitivity/FOV
-		   scaling stays authoritative. */
+	} else if (slot->role == XZ_TOUCH_LOOK ||
+		slot->role == XZ_TOUCH_FIRE ||
+		slot->role == XZ_TOUCH_ADSFIRE ||
+		slot->role == XZ_TOUCH_ADS) {
+		/* Free-look remains active while dragging FIRE/ADS controls, matching
+		   modern mobile FPS behavior. */
 		mouse_dx += (int)((finger->x - slot->last_x) * (float)vid.width);
 		mouse_dy += (int)((finger->y - slot->last_y) * (float)vid.height);
 	}
