@@ -2506,3 +2506,602 @@ if "Drag and place mobile controls." not in text:
     text = text.replace(mobile_back_anchor, mobile_back_repl, 1)
 
 controls.write_text(text, encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# Xziel Android mobile settings/gyro/full interaction pass v0.6
+# ---------------------------------------------------------------------------
+
+def xziel_replace_c_function(src, signature, replacement):
+    start = src.find(signature)
+    if start < 0:
+        raise SystemExit("Could not find function: " + signature)
+    brace = src.find("{", start)
+    if brace < 0:
+        raise SystemExit("Could not find function body: " + signature)
+    depth = 0
+    end = -1
+    for i in range(brace, len(src)):
+        ch = src[i]
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                end = i + 1
+                break
+    if end < 0:
+        raise SystemExit("Could not find function end: " + signature)
+    return src[:start] + replacement + src[end:]
+
+# ---- Phone-native gyro -----------------------------------------------------
+in_sdl = source / "platform" / "sdl" / "in_sdl.c"
+text = in_sdl.read_text(encoding="utf-8")
+
+sensor_global_anchor = "static SDL_GameController *sdl_controller;\n"
+sensor_global_repl = """static SDL_GameController *sdl_controller;
+#ifdef __ANDROID__
+static SDL_Sensor *xziel_android_gyro_sensor = NULL;
+#endif
+"""
+if "xziel_android_gyro_sensor" not in text:
+    if sensor_global_anchor not in text:
+        raise SystemExit("Could not find SDL controller global")
+    text = text.replace(sensor_global_anchor, sensor_global_repl, 1)
+
+gyro_func = r'''qboolean IN_PlatformGetGyro(float *x, float *y)
+{
+	float data[3];
+	*x = *y = 0.0f;
+
+#ifdef __ANDROID__
+	/* Phone gyro is a generic SDL sensor, not a GameController sensor.
+	   The game is locked to landscape, so rotate Android's portrait-natural
+	   sensor axes into screen-space pitch/yaw. */
+	if (xziel_android_gyro_sensor) {
+		SDL_DisplayOrientation orientation;
+		SDL_SensorUpdate();
+		if (SDL_SensorGetData(xziel_android_gyro_sensor, data, 3) == 0) {
+			orientation = SDL_GetDisplayOrientation(0);
+			if (orientation == SDL_ORIENTATION_LANDSCAPE_FLIPPED) {
+				*x = data[1];   /* pitch */
+				*y = -data[0];  /* yaw */
+			} else {
+				*x = -data[1];  /* pitch */
+				*y = data[0];   /* yaw */
+			}
+			return true;
+		}
+	}
+#endif
+
+	if (!sdl_controller || !SDL_GameControllerHasSensor(sdl_controller, SDL_SENSOR_GYRO))
+		return false;
+	if (SDL_GameControllerGetSensorData(sdl_controller, SDL_SENSOR_GYRO, data, 3) != 0)
+		return false;
+	*x = data[0];
+	*y = data[1];
+	return true;
+}'''
+text = xziel_replace_c_function(text, "qboolean IN_PlatformGetGyro(float *x, float *y)", gyro_func)
+
+init_old = """void IN_PlatformInit(void)
+{
+	int i;
+	Cvar_SetValue("in_anub_mode", 1);
+	for (i = 0; i < SDL_NumJoysticks(); ++i)
+		IN_SDLOpenController(i);
+}
+"""
+init_new = """void IN_PlatformInit(void)
+{
+	int i;
+	Cvar_SetValue("in_anub_mode", 1);
+	for (i = 0; i < SDL_NumJoysticks(); ++i)
+		IN_SDLOpenController(i);
+#ifdef __ANDROID__
+	for (i = 0; i < SDL_NumSensors(); ++i) {
+		if (SDL_SensorGetDeviceType(i) == SDL_SENSOR_GYRO) {
+			xziel_android_gyro_sensor = SDL_SensorOpen(i);
+			if (xziel_android_gyro_sensor) {
+				Con_Printf("Xziel: Android phone gyroscope opened: %s\\n",
+					SDL_SensorGetName(xziel_android_gyro_sensor));
+				break;
+			}
+		}
+	}
+#endif
+}
+"""
+if init_old not in text:
+    raise SystemExit("Could not find IN_PlatformInit for phone gyro")
+text = text.replace(init_old, init_new, 1)
+
+shutdown_old = """void IN_PlatformShutdown(void)
+{
+	int i;
+	for (i = 0; i < MAX_SDL_CONTROLLERS; ++i) {
+"""
+shutdown_new = """void IN_PlatformShutdown(void)
+{
+	int i;
+#ifdef __ANDROID__
+	if (xziel_android_gyro_sensor) {
+		SDL_SensorClose(xziel_android_gyro_sensor);
+		xziel_android_gyro_sensor = NULL;
+	}
+#endif
+	for (i = 0; i < MAX_SDL_CONTROLLERS; ++i) {
+"""
+if shutdown_old not in text:
+    raise SystemExit("Could not find IN_PlatformShutdown for phone gyro")
+text = text.replace(shutdown_old, shutdown_new, 1)
+in_sdl.write_text(text, encoding="utf-8")
+
+# ---- Persistent mobile interaction setting --------------------------------
+inp = source / "input.c"
+text = inp.read_text(encoding="utf-8")
+autocvar_anchor = 'cvar_t xziel_mobile_autofire_ms = {"xziel_mobile_autofire_ms", "185", true};\n'
+if "xziel_mobile_auto_rebuild" not in text:
+    if autocvar_anchor not in text:
+        raise SystemExit("Could not find mobile autofire cvar")
+    text = text.replace(
+        autocvar_anchor,
+        autocvar_anchor + 'cvar_t xziel_mobile_auto_rebuild = {"xziel_mobile_auto_rebuild", "1", true};\n',
+        1
+    )
+
+reg_anchor = "\tCvar_RegisterVariable(&xziel_mobile_autofire_ms);\n"
+if "Cvar_RegisterVariable(&xziel_mobile_auto_rebuild);" not in text:
+    if reg_anchor not in text:
+        raise SystemExit("Could not find mobile cvar registration anchor")
+    text = text.replace(
+        reg_anchor,
+        reg_anchor + "\tCvar_RegisterVariable(&xziel_mobile_auto_rebuild);\n",
+        1
+    )
+inp.write_text(text, encoding="utf-8")
+
+# ---- Contextual auto-rebuild -----------------------------------------------
+hud = source / "render" / "r_hud.c"
+text = hud.read_text(encoding="utf-8")
+
+use_flag_anchor = "qboolean xziel_mobile_use_available = false;\n"
+if "xziel_mobile_auto_rebuild_available" not in text:
+    if use_flag_anchor not in text:
+        raise SystemExit("Could not find mobile use availability global")
+    text = text.replace(
+        use_flag_anchor,
+        use_flag_anchor + "qboolean xziel_mobile_auto_rebuild_available = false;\n",
+        1
+    )
+
+inactive_anchor = """        xziel_mobile_use_available = false;
+#endif
+        return;
+"""
+inactive_repl = """        xziel_mobile_use_available = false;
+        xziel_mobile_auto_rebuild_available = false;
+#endif
+        return;
+"""
+if "xziel_mobile_auto_rebuild_available = false;" not in text[text.find("HUD_DrawUsePrint"):]:
+    if inactive_anchor not in text:
+        raise SystemExit("Could not find mobile use inactive block")
+    text = text.replace(inactive_anchor, inactive_repl, 1)
+
+active_anchor = """    xziel_mobile_use_available = true;
+#endif
+"""
+active_repl = """    xziel_mobile_use_available = true;
+    xziel_mobile_auto_rebuild_available =
+        (strstr(hud_usestring, "Rebuild Barrier") != NULL);
+#endif
+"""
+if "strstr(hud_usestring, \"Rebuild Barrier\")" not in text:
+    if active_anchor not in text:
+        raise SystemExit("Could not find mobile use active block")
+    text = text.replace(active_anchor, active_repl, 1)
+hud.write_text(text, encoding="utf-8")
+
+sys_sdl = source / "platform" / "sdl" / "sys_sdl.c"
+text = sys_sdl.read_text(encoding="utf-8")
+
+extern_anchor = "extern qboolean xziel_mobile_use_available;\n"
+auto_externs = """extern qboolean xziel_mobile_auto_rebuild_available;
+extern cvar_t xziel_mobile_auto_rebuild;
+"""
+if "extern qboolean xziel_mobile_auto_rebuild_available;" not in text:
+    if extern_anchor not in text:
+        raise SystemExit("Could not find mobile use extern")
+    text = text.replace(extern_anchor, extern_anchor + auto_externs, 1)
+
+state_anchor = "static qboolean xziel_mobile_sprint_active = false;\n"
+if "xziel_auto_rebuild_use_down" not in text:
+    if state_anchor not in text:
+        raise SystemExit("Could not find mobile sprint state")
+    text = text.replace(
+        state_anchor,
+        state_anchor + "static qboolean xziel_auto_rebuild_use_down = false;\n",
+        1
+    )
+
+# Make manual USE coexist safely with automatic barricade +use.
+use_down_old = """	case XZ_TOUCH_USE:
+		xziel_mobile_use_pressed = true;
+		Cbuf_AddText("+use\\n");
+		break;
+"""
+use_down_new = """	case XZ_TOUCH_USE:
+		xziel_mobile_use_pressed = true;
+		if (!xziel_auto_rebuild_use_down)
+			Cbuf_AddText("+use\\n");
+		break;
+"""
+if use_down_old in text:
+    text = text.replace(use_down_old, use_down_new, 1)
+
+use_up_old = """	case XZ_TOUCH_USE:
+		xziel_mobile_use_pressed = false;
+		Cbuf_AddText("-use\\n");
+		break;
+"""
+use_up_new = """	case XZ_TOUCH_USE:
+		xziel_mobile_use_pressed = false;
+		if (!xziel_auto_rebuild_use_down)
+			Cbuf_AddText("-use\\n");
+		break;
+"""
+if use_up_old in text:
+    text = text.replace(use_up_old, use_up_new, 1)
+
+autouse_func = r'''
+static void Xziel_UpdateAutoRebuild(void)
+{
+	qboolean should_hold =
+		xziel_mobile_auto_rebuild.value >= 0.5f &&
+		xziel_mobile_auto_rebuild_available &&
+		key_dest == key_game &&
+		cl.stats[STAT_HEALTH] > 0;
+
+	if (should_hold && !xziel_auto_rebuild_use_down) {
+		if (!xziel_mobile_use_pressed)
+			Cbuf_AddText("+use\n");
+		xziel_auto_rebuild_use_down = true;
+	} else if (!should_hold && xziel_auto_rebuild_use_down) {
+		xziel_auto_rebuild_use_down = false;
+		if (!xziel_mobile_use_pressed)
+			Cbuf_AddText("-use\n");
+	}
+}
+'''
+fire_func_anchor = "static void Xziel_UpdateMobileFire(void)\n"
+if "static void Xziel_UpdateAutoRebuild(void)" not in text:
+    idx = text.find(fire_func_anchor)
+    if idx < 0:
+        raise SystemExit("Could not find mobile fire updater")
+    text = text[:idx] + autouse_func + "\n" + text[idx:]
+
+pump_anchor = """	Xziel_UpdateMobileFire();
+	/* Touch is handled directly above."""
+pump_repl = """	Xziel_UpdateMobileFire();
+	Xziel_UpdateAutoRebuild();
+	/* Touch is handled directly above."""
+if "Xziel_UpdateAutoRebuild();" not in text:
+    if pump_anchor not in text:
+        raise SystemExit("Could not find mobile pump update")
+    text = text.replace(pump_anchor, pump_repl, 1)
+
+sys_sdl.write_text(text, encoding="utf-8")
+
+# ---- Mobile Settings hierarchy ---------------------------------------------
+defs = source / "menu" / "menu_defs.h"
+text = defs.read_text(encoding="utf-8")
+
+state_anchor = "#define m_hudedit\t\t26\n"
+state_repl = """#define m_hudedit		26
+#define m_mobileaim		27
+#define m_mobilegyro		28
+#define m_mobilehud		29
+#define m_mobilegameplay	30
+"""
+if "#define m_mobileaim" not in text:
+    if state_anchor not in text:
+        raise SystemExit("Could not find mobile HUD editor state")
+    text = text.replace(state_anchor, state_repl, 1)
+
+proto_anchor = "void Menu_HudEdit_Draw(void);\n"
+proto_repl = """void Menu_HudEdit_Draw(void);
+void Menu_MobileAim_Set(void);
+void Menu_MobileAim_Draw(void);
+void Menu_MobileGyro_Set(void);
+void Menu_MobileGyro_Draw(void);
+void Menu_MobileHud_Set(void);
+void Menu_MobileHud_Draw(void);
+void Menu_MobileGameplay_Set(void);
+void Menu_MobileGameplay_Draw(void);
+"""
+if "void Menu_MobileAim_Set(void);" not in text:
+    if proto_anchor not in text:
+        raise SystemExit("Could not find HUD editor prototypes")
+    text = text.replace(proto_anchor, proto_repl, 1)
+defs.write_text(text, encoding="utf-8")
+
+menu = source / "menu" / "menu.c"
+text = menu.read_text(encoding="utf-8")
+case_anchor = """	case m_hudedit:
+		Menu_HudEdit_Draw ();
+		break;
+#endif
+"""
+case_repl = """	case m_hudedit:
+		Menu_HudEdit_Draw ();
+		break;
+	case m_mobileaim:
+		Menu_MobileAim_Draw ();
+		break;
+	case m_mobilegyro:
+		Menu_MobileGyro_Draw ();
+		break;
+	case m_mobilehud:
+		Menu_MobileHud_Draw ();
+		break;
+	case m_mobilegameplay:
+		Menu_MobileGameplay_Draw ();
+		break;
+#endif
+"""
+if "case m_mobileaim:" not in text:
+    if case_anchor not in text:
+        raise SystemExit("Could not find HUD editor menu switch")
+    text = text.replace(case_anchor, case_repl, 1)
+menu.write_text(text, encoding="utf-8")
+
+menu_sys = source / "menu" / "menu_sys.c"
+text = menu_sys.read_text(encoding="utf-8")
+prev_anchor = """		case m_mobile:
+			Menu_Mobile_Set();
+			break;
+#endif
+"""
+prev_repl = """		case m_mobile:
+			Menu_Mobile_Set();
+			break;
+		case m_mobileaim:
+		case m_mobilegyro:
+		case m_mobilehud:
+		case m_mobilegameplay:
+		case m_hudedit:
+			Menu_Mobile_Set();
+			break;
+#endif
+"""
+if "case m_mobileaim:" not in text[text.find("void Menu_SetPreviousMenu"):]:
+    if prev_anchor not in text:
+        raise SystemExit("Could not find mobile previous-menu case")
+    text = text.replace(prev_anchor, prev_repl, 1)
+menu_sys.write_text(text, encoding="utf-8")
+
+# Put MOBILE SETTINGS directly under Configuration.
+config = source / "menu" / "menu_configuration.c"
+text = config.read_text(encoding="utf-8")
+config_buttons = """	Menu_DrawButton(1, 0, "VIDEO", "Visual Fidelity options.", Menu_Video_Set);
+	Menu_DrawButton(2, 1, "AUDIO", "Volume sliders.", Menu_Audio_Set);
+	Menu_DrawButton(3, 2, "CONTROLS", "Control Options and Bindings.", Menu_Controls_Set);
+    Menu_DrawButton(4, 3, "ACCESSIBILITY", "Content, Interface, and Readability options.", Menu_Accessibility_Set);
+
+	Menu_DrawDivider(5);
+
+    Menu_DrawButton(5, 4, "OPEN CONSOLE", "Access the Developer Console.", Con_ToggleConsole_f);
+
+	Menu_DrawButton(-1, 5, "BACK", "Return to Main Menu.", Menu_Configuration_Back);
+"""
+config_mobile = """	Menu_DrawButton(1, 0, "VIDEO", "Visual Fidelity options.", Menu_Video_Set);
+	Menu_DrawButton(2, 1, "AUDIO", "Volume sliders.", Menu_Audio_Set);
+	Menu_DrawButton(3, 2, "CONTROLS", "Keyboard, controller and general control options.", Menu_Controls_Set);
+#ifdef __ANDROID__
+	Menu_DrawButton(4, 3, "MOBILE SETTINGS", "Touch, aim, gyroscope, HUD and mobile gameplay.", Menu_Mobile_Set);
+	Menu_DrawButton(5, 4, "ACCESSIBILITY", "Content, Interface, and Readability options.", Menu_Accessibility_Set);
+	Menu_DrawDivider(6);
+	Menu_DrawButton(6, 5, "OPEN CONSOLE", "Access the Developer Console.", Con_ToggleConsole_f);
+	Menu_DrawButton(-1, 6, "BACK", "Return to Main Menu.", Menu_Configuration_Back);
+#else
+	Menu_DrawButton(4, 3, "ACCESSIBILITY", "Content, Interface, and Readability options.", Menu_Accessibility_Set);
+	Menu_DrawDivider(5);
+	Menu_DrawButton(5, 4, "OPEN CONSOLE", "Access the Developer Console.", Con_ToggleConsole_f);
+	Menu_DrawButton(-1, 5, "BACK", "Return to Main Menu.", Menu_Configuration_Back);
+#endif
+"""
+if "MOBILE SETTINGS" not in text:
+    if config_buttons not in text:
+        raise SystemExit("Could not find Configuration menu button block")
+    text = text.replace(config_buttons, config_mobile, 1)
+config.write_text(text, encoding="utf-8")
+
+controls = source / "menu" / "menu_controls.c"
+text = controls.read_text(encoding="utf-8")
+
+# Root Mobile Settings now comes back to Configuration, not legacy Controls.
+text = text.replace(
+"""void Menu_Mobile_Set(void)
+{
+	Menu_ResetMenuButtons();
+	m_previous_state = m_controls;
+	m_state = m_mobile;
+}
+""",
+"""void Menu_Mobile_Set(void)
+{
+	Menu_ResetMenuButtons();
+	m_previous_state = m_configuration;
+	m_state = m_mobile;
+}
+""", 1)
+
+# Remove the duplicate entry from the generic Controls page.
+legacy_mobile_entry = """#ifdef __ANDROID__
+	Menu_DrawButton(controls_buttons++, controls_index++, "MOBILE CONTROLS", "Touch HUD, ADS, sprint and mobile sensitivity.", Menu_Mobile_Set);
+#endif
+"""
+text = text.replace(legacy_mobile_entry, "", 1)
+
+# Toggle for auto-rebuild.
+if "extern cvar_t xziel_mobile_auto_rebuild;" not in text:
+    extern_anchor = "extern cvar_t xziel_mobile_autofire_ms;\n"
+    if extern_anchor not in text:
+        raise SystemExit("Could not find mobile cvar externs")
+    text = text.replace(
+        extern_anchor,
+        extern_anchor + "extern cvar_t xziel_mobile_auto_rebuild;\n",
+        1
+    )
+
+# Replace old all-in-one Mobile menu with a hub.
+mobile_root = r'''void Menu_Mobile_Draw(void)
+{
+	Menu_DrawCustomBackground(true);
+	Menu_DrawTitle("MOBILE SETTINGS", MENU_COLOR_WHITE);
+	Menu_DrawMapPanel();
+
+	Menu_DrawButton(1, 0, "AIM & TOUCH", "ADS behavior and touch camera sensitivity.", Menu_MobileAim_Set);
+	Menu_DrawButton(2, 1, "GYROSCOPE", "Phone gyroscope mode and sensitivity.", Menu_MobileGyro_Set);
+	Menu_DrawButton(3, 2, "HUD & LAYOUT", "HUD size, opacity and custom control placement.", Menu_MobileHud_Set);
+	Menu_DrawButton(4, 3, "GAMEPLAY & INTERACTIONS", "Auto sprint and contextual mobile interactions.", Menu_MobileGameplay_Set);
+
+	Menu_DrawButton(-1, 4, "BACK", "Return to Configuration.", Menu_Configuration_Set);
+}'''
+text = xziel_replace_c_function(text, "void Menu_Mobile_Draw(void)", mobile_root)
+
+mobile_pages = r'''
+#ifdef __ANDROID__
+static char *xziel_mobile_auto_rebuild_string;
+
+static void Menu_Mobile_ToggleAutoRebuild(void)
+{
+	Cvar_SetValue("xziel_mobile_auto_rebuild",
+		xziel_mobile_auto_rebuild.value >= 0.5f ? 0.0f : 1.0f);
+}
+
+void Menu_MobileAim_Set(void)
+{
+	Menu_ResetMenuButtons();
+	m_previous_state = m_mobile;
+	m_state = m_mobileaim;
+}
+
+void Menu_MobileGyro_Set(void)
+{
+	Menu_ResetMenuButtons();
+	m_previous_state = m_mobile;
+	m_state = m_mobilegyro;
+}
+
+void Menu_MobileHud_Set(void)
+{
+	Menu_ResetMenuButtons();
+	m_previous_state = m_mobile;
+	m_state = m_mobilehud;
+}
+
+void Menu_MobileGameplay_Set(void)
+{
+	Menu_ResetMenuButtons();
+	m_previous_state = m_mobile;
+	m_state = m_mobilegameplay;
+}
+
+void Menu_MobileAim_Draw(void)
+{
+	int idx = 0, row = 1;
+
+	Menu_DrawCustomBackground(true);
+	Menu_DrawTitle("MOBILE - AIM & TOUCH", MENU_COLOR_WHITE);
+	Menu_DrawMapPanel();
+	xziel_ads_mode_string = xziel_mobile_ads_toggle.value >= 0.5f ? "TOGGLE" : "HOLD";
+
+	Menu_DrawButton(row++, idx++, "ADS BEHAVIOR", "Dedicated ADS button: Hold or Toggle.", Menu_Mobile_ToggleADS);
+	Menu_DrawOptionButton(row-1, xziel_ads_mode_string);
+
+	Menu_DrawButton(row++, idx++, "TOUCH LOOK", "Hip-fire/free-look sensitivity.", NULL);
+	Menu_DrawOptionSlider(row-1, idx-1, 0.25f, 4.0f, xziel_mobile_touch_sensitivity, "xziel_mobile_touch_sensitivity", false, true, 0.05f);
+
+	Menu_DrawButton(row++, idx++, "ADS LOOK", "Touch sensitivity multiplier while ADS.", NULL);
+	Menu_DrawOptionSlider(row-1, idx-1, 0.20f, 1.50f, xziel_mobile_ads_sensitivity, "xziel_mobile_ads_sensitivity", false, true, 0.05f);
+
+	Menu_DrawButton(row++, idx++, "PISTOL AUTO FIRE", "Delay between automatic semi-auto trigger taps.", NULL);
+	Menu_DrawOptionSlider(row-1, idx-1, 140.0f, 320.0f, xziel_mobile_autofire_ms, "xziel_mobile_autofire_ms", false, true, 10.0f);
+
+	Menu_DrawButton(-1, idx, "BACK", "Return to Mobile Settings.", Menu_Mobile_Set);
+}
+
+void Menu_MobileGyro_Draw(void)
+{
+	int idx = 0, row = 1;
+
+	Menu_DrawCustomBackground(true);
+	Menu_DrawTitle("MOBILE - GYROSCOPE", MENU_COLOR_WHITE);
+	Menu_DrawMapPanel();
+	Menu_Controls_SetStrings();
+
+	Menu_DrawButton(row++, idx++, "GYRO MODE", "Off, Always On, or ADS Only.", Menu_Controls_ApplyGyroMode);
+	Menu_DrawOptionButton(row-1, gyro_mode_string);
+
+	Menu_DrawButton(row++, idx++, "HORIZONTAL", "Phone gyro horizontal/yaw sensitivity.", NULL);
+	Menu_DrawOptionSlider(row-1, idx-1, 0.5f, 30.0f, in_gyro_sensitivity_x, "in_gyro_sensitivity_x", false, true, 0.5f);
+
+	Menu_DrawButton(row++, idx++, "VERTICAL", "Phone gyro vertical/pitch sensitivity.", NULL);
+	Menu_DrawOptionSlider(row-1, idx-1, 0.5f, 30.0f, in_gyro_sensitivity_y, "in_gyro_sensitivity_y", false, true, 0.5f);
+
+	Menu_DrawButton(row++, idx++, "PHONE GYRO BOOST", "Extra Android phone-sensor multiplier.", NULL);
+	Menu_DrawOptionSlider(row-1, idx-1, 1.0f, 20.0f, xziel_mobile_gyro_boost, "xziel_mobile_gyro_boost", false, true, 0.5f);
+
+	Menu_DrawButton(row++, idx++, "ADS DAMPENING", "Reduce gyroscope sensitivity while ADS.", Menu_Controls_ApplyGyroZoomScaling);
+	Menu_DrawOptionButton(row-1, gyro_zoom_scaling_string);
+
+	Menu_DrawButton(-1, idx, "BACK", "Return to Mobile Settings.", Menu_Mobile_Set);
+}
+
+void Menu_MobileHud_Draw(void)
+{
+	int idx = 0, row = 1;
+
+	Menu_DrawCustomBackground(true);
+	Menu_DrawTitle("MOBILE - HUD & LAYOUT", MENU_COLOR_WHITE);
+	Menu_DrawMapPanel();
+
+	Menu_DrawButton(row++, idx++, "HUD SCALE", "Scale all mobile controls.", NULL);
+	Menu_DrawOptionSlider(row-1, idx-1, 0.70f, 1.35f, xziel_mobile_hud_scale, "xziel_mobile_hud_scale", false, true, 0.05f);
+
+	Menu_DrawButton(row++, idx++, "HUD OPACITY", "Opacity of mobile controls.", NULL);
+	Menu_DrawOptionSlider(row-1, idx-1, 0.25f, 1.0f, xziel_mobile_hud_opacity, "xziel_mobile_hud_opacity", false, true, 0.05f);
+
+	Menu_DrawButton(row++, idx++, "CUSTOM HUD", "Drag controls to your preferred positions.", Menu_HudEdit_Set);
+
+	Menu_DrawButton(-1, idx, "BACK", "Return to Mobile Settings.", Menu_Mobile_Set);
+}
+
+void Menu_MobileGameplay_Draw(void)
+{
+	int idx = 0, row = 1;
+
+	Menu_DrawCustomBackground(true);
+	Menu_DrawTitle("MOBILE - GAMEPLAY", MENU_COLOR_WHITE);
+	Menu_DrawMapPanel();
+
+	xziel_mobile_auto_rebuild_string =
+		xziel_mobile_auto_rebuild.value >= 0.5f ? "ENABLED" : "DISABLED";
+
+	Menu_DrawButton(row++, idx++, "AUTO SPRINT", "Stick-forward threshold that starts sprinting.", NULL);
+	Menu_DrawOptionSlider(row-1, idx-1, 0.65f, 0.98f, xziel_mobile_sprint_threshold, "xziel_mobile_sprint_threshold", false, true, 0.01f);
+
+	Menu_DrawButton(row++, idx++, "AUTO REBUILD BARRIERS", "Automatically repair barricades while you remain in range.", Menu_Mobile_ToggleAutoRebuild);
+	Menu_DrawOptionButton(row-1, xziel_mobile_auto_rebuild_string);
+
+	Menu_DrawButton(-1, idx, "BACK", "Return to Mobile Settings.", Menu_Mobile_Set);
+}
+#endif
+'''
+if "void Menu_MobileAim_Draw(void)" not in text:
+    text += "\n" + mobile_pages
+
+controls.write_text(text, encoding="utf-8")
