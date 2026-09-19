@@ -1432,6 +1432,8 @@ use_global_anchor = "static int hud_use_type;\n"
 use_global_repl = """static int hud_use_type;
 #ifdef __ANDROID__
 qboolean xziel_mobile_use_available = false;
+extern cvar_t xziel_hud_use_x;
+extern cvar_t xziel_hud_use_y;
 #endif
 """
 if "qboolean xziel_mobile_use_available" not in text:
