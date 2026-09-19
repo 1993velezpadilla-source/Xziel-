@@ -1166,3 +1166,841 @@ if hud_tail not in text:
 text = text.replace(hud_tail, hud_tail_repl, 1)
 
 hud.write_text(text, encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# Xziel Android mobile UX v0.4
+# Sprint threshold, persistent mobile settings, contextual use, pause/save/
+# resume countdown, stronger gyro and cleaner COD-style HUD behavior.
+# ---------------------------------------------------------------------------
+
+# Persistent mobile cvars live in input.c so Host_WriteConfiguration writes
+# them to config.cfg automatically (archive=true).
+inp = source / "input.c"
+text = inp.read_text(encoding="utf-8")
+
+mobile_cvars = r'''
+#ifdef __ANDROID__
+cvar_t xziel_mobile_ads_toggle = {"xziel_mobile_ads_toggle", "0", true};
+cvar_t xziel_mobile_sprint_threshold = {"xziel_mobile_sprint_threshold", "0.84", true};
+cvar_t xziel_mobile_touch_sensitivity = {"xziel_mobile_touch_sensitivity", "1.15", true};
+cvar_t xziel_mobile_ads_sensitivity = {"xziel_mobile_ads_sensitivity", "0.62", true};
+cvar_t xziel_mobile_gyro_boost = {"xziel_mobile_gyro_boost", "5.0", true};
+cvar_t xziel_mobile_hud_scale = {"xziel_mobile_hud_scale", "1.0", true};
+cvar_t xziel_mobile_hud_opacity = {"xziel_mobile_hud_opacity", "0.72", true};
+cvar_t xziel_mobile_autofire_ms = {"xziel_mobile_autofire_ms", "185", true};
+#endif
+'''
+active_anchor = "static in_device_t in_active_device = IN_DEVICE_KEYBOARD_MOUSE;\n"
+if mobile_cvars not in text:
+    if active_anchor not in text:
+        raise SystemExit("Could not find input.c active-device anchor")
+    text = text.replace(active_anchor, active_anchor + mobile_cvars, 1)
+
+register_anchor = """void IN_Init(void)
+{
+"""
+register_repl = """void IN_Init(void)
+{
+#ifdef __ANDROID__
+	Cvar_RegisterVariable(&xziel_mobile_ads_toggle);
+	Cvar_RegisterVariable(&xziel_mobile_sprint_threshold);
+	Cvar_RegisterVariable(&xziel_mobile_touch_sensitivity);
+	Cvar_RegisterVariable(&xziel_mobile_ads_sensitivity);
+	Cvar_RegisterVariable(&xziel_mobile_gyro_boost);
+	Cvar_RegisterVariable(&xziel_mobile_hud_scale);
+	Cvar_RegisterVariable(&xziel_mobile_hud_opacity);
+	Cvar_RegisterVariable(&xziel_mobile_autofire_ms);
+#endif
+"""
+if "Cvar_RegisterVariable(&xziel_mobile_ads_toggle);" not in text:
+    if register_anchor not in text:
+        raise SystemExit("Could not find IN_Init anchor")
+    text = text.replace(register_anchor, register_repl, 1)
+
+gyro_anchor = """			cl.viewangles[YAW] += gyro_y * radians_to_degrees * in_gyro_sensitivity_x.value * gyro_scale * (float)host_frametime;
+			cl.viewangles[PITCH] -= gyro_x * radians_to_degrees * in_gyro_sensitivity_y.value * (m_pitch.value > 0 ? -1.0f : 1.0f) * gyro_scale * (float)host_frametime;
+"""
+gyro_repl = """#ifdef __ANDROID__
+			gyro_scale *= xziel_mobile_gyro_boost.value;
+#endif
+			cl.viewangles[YAW] += gyro_y * radians_to_degrees * in_gyro_sensitivity_x.value * gyro_scale * (float)host_frametime;
+			cl.viewangles[PITCH] -= gyro_x * radians_to_degrees * in_gyro_sensitivity_y.value * (m_pitch.value > 0 ? -1.0f : 1.0f) * gyro_scale * (float)host_frametime;
+"""
+if "gyro_scale *= xziel_mobile_gyro_boost.value;" not in text:
+    if gyro_anchor not in text:
+        raise SystemExit("Could not find gyro scaling anchor")
+    text = text.replace(gyro_anchor, gyro_repl, 1)
+inp.write_text(text, encoding="utf-8")
+
+# Update Android touch runtime.
+sys_sdl = source / "platform" / "sdl" / "sys_sdl.c"
+text = sys_sdl.read_text(encoding="utf-8")
+
+externs_anchor = "#ifdef __ANDROID__\n#define XZIEL_MAX_TOUCHES 12\n"
+externs_repl = """#ifdef __ANDROID__
+extern cvar_t xziel_mobile_ads_toggle;
+extern cvar_t xziel_mobile_sprint_threshold;
+extern cvar_t xziel_mobile_touch_sensitivity;
+extern cvar_t xziel_mobile_ads_sensitivity;
+extern cvar_t xziel_mobile_autofire_ms;
+extern qboolean xziel_mobile_use_available;
+#define XZIEL_MAX_TOUCHES 12
+"""
+if "extern cvar_t xziel_mobile_ads_toggle;" not in text:
+    if externs_anchor not in text:
+        raise SystemExit("Could not find mobile touch block anchor")
+    text = text.replace(externs_anchor, externs_repl, 1)
+
+# Add Pause role.
+text = text.replace(
+"""	XZ_TOUCH_KNIFE,
+	XZ_TOUCH_SWITCH
+} xziel_touch_role_t;""",
+"""	XZ_TOUCH_KNIFE,
+	XZ_TOUCH_SWITCH,
+	XZ_TOUCH_PAUSE
+} xziel_touch_role_t;""", 1)
+
+# Sprint state.
+state_anchor = "static Uint32 xziel_attack_next_ms = 0;\n"
+state_repl = """static Uint32 xziel_attack_next_ms = 0;
+static qboolean xziel_mobile_sprint_active = false;
+"""
+if "xziel_mobile_sprint_active" not in text:
+    if state_anchor not in text:
+        raise SystemExit("Could not find mobile fire state anchor")
+    text = text.replace(state_anchor, state_repl, 1)
+
+# Slow semi-auto pulse to a COD-mobile-like pace; server fire_delay remains authoritative.
+old_next = "xziel_attack_next_ms = now + 92;"
+new_next = "xziel_attack_next_ms = now + (Uint32)fmaxf(120.0f, xziel_mobile_autofire_ms.value);"
+if old_next in text:
+    text = text.replace(old_next, new_next, 1)
+
+# Separate ADS button can be HOLD or TOGGLE. ADS+FIRE always behaves as hold.
+ads_down_old = """	case XZ_TOUCH_ADS:
+		xziel_mobile_ads_pressed = true;
+		Xziel_QueueHold("+aim\\n", "-aim\\n", &xziel_aim_refs, true);
+		break;
+"""
+ads_down_new = """	case XZ_TOUCH_ADS:
+		xziel_mobile_ads_pressed = true;
+		if (xziel_mobile_ads_toggle.value >= 0.5f)
+			Cbuf_AddText("impulse 26\\n");
+		else
+			Xziel_QueueHold("+aim\\n", "-aim\\n", &xziel_aim_refs, true);
+		break;
+"""
+if ads_down_old not in text:
+    raise SystemExit("Could not find ADS down block")
+text = text.replace(ads_down_old, ads_down_new, 1)
+
+ads_up_old = """	case XZ_TOUCH_ADS:
+		xziel_mobile_ads_pressed = false;
+		Xziel_QueueHold("+aim\\n", "-aim\\n", &xziel_aim_refs, false);
+		break;
+"""
+ads_up_new = """	case XZ_TOUCH_ADS:
+		xziel_mobile_ads_pressed = false;
+		if (xziel_mobile_ads_toggle.value < 0.5f)
+			Xziel_QueueHold("+aim\\n", "-aim\\n", &xziel_aim_refs, false);
+		break;
+"""
+if ads_up_old not in text:
+    raise SystemExit("Could not find ADS up block")
+text = text.replace(ads_up_old, ads_up_new, 1)
+
+# Contextual use + Pause hit region.
+role_old = """	if (Xziel_IsInside(x, y, 0.605f, 0.675f, 0.044f)) return XZ_TOUCH_USE;
+	if (Xziel_IsInside(x, y, 0.695f, 0.790f, 0.044f)) return XZ_TOUCH_JUMP;
+"""
+role_new = """	if (xziel_mobile_use_available && Xziel_IsInside(x, y, 0.605f, 0.675f, 0.050f)) return XZ_TOUCH_USE;
+	if (Xziel_IsInside(x, y, 0.965f, 0.075f, 0.036f)) return XZ_TOUCH_PAUSE;
+	if (Xziel_IsInside(x, y, 0.695f, 0.790f, 0.044f)) return XZ_TOUCH_JUMP;
+"""
+if role_old not in text:
+    raise SystemExit("Could not find mobile role layout block")
+text = text.replace(role_old, role_new, 1)
+
+# Pause is immediate on touch-down.
+action_down_anchor = """	case XZ_TOUCH_SWITCH:
+		xziel_mobile_switch_pressed = true;
+		Cbuf_AddText("+switch\\n");
+		break;
+	default:
+"""
+action_down_repl = """	case XZ_TOUCH_SWITCH:
+		xziel_mobile_switch_pressed = true;
+		Cbuf_AddText("+switch\\n");
+		break;
+	case XZ_TOUCH_PAUSE:
+		Xziel_ReleaseAllTouches();
+		Menu_Pause_Set();
+		break;
+	default:
+"""
+# Xziel_ReleaseAllTouches is defined later, so call would be undeclared in C99.
+# Use Menu_Pause_Set only; touch-up will be harmless because menu input takes over.
+action_down_repl = action_down_repl.replace("\t\tXziel_ReleaseAllTouches();\n", "")
+if "case XZ_TOUCH_PAUSE:" not in text:
+    if action_down_anchor not in text:
+        raise SystemExit("Could not find action down tail")
+    text = text.replace(action_down_anchor, action_down_repl, 1)
+
+# Sprint when stick crosses forward threshold; stop when it drops back.
+move_tail_old = """	xziel_mobile_move_x = dx;
+	xziel_mobile_move_y = dy;
+}
+"""
+move_tail_new = """	xziel_mobile_move_x = dx;
+	xziel_mobile_move_y = dy;
+
+	if (dy >= xziel_mobile_sprint_threshold.value) {
+		if (!xziel_mobile_sprint_active) {
+			Cbuf_AddText("impulse 23\\n");
+			xziel_mobile_sprint_active = true;
+		}
+	} else if (xziel_mobile_sprint_active) {
+		Cbuf_AddText("impulse 24\\n");
+		xziel_mobile_sprint_active = false;
+	}
+}
+"""
+if move_tail_old not in text:
+    raise SystemExit("Could not find Xziel_UpdateMove tail")
+text = text.replace(move_tail_old, move_tail_new, 1)
+
+# Stop sprint on joystick release and global touch release.
+move_up_old = """		xziel_mobile_move_active = false;
+		xziel_mobile_move_x = 0.0f;
+		xziel_mobile_move_y = 0.0f;
+"""
+move_up_new = """		xziel_mobile_move_active = false;
+		xziel_mobile_move_x = 0.0f;
+		xziel_mobile_move_y = 0.0f;
+		if (xziel_mobile_sprint_active) {
+			Cbuf_AddText("impulse 24\\n");
+			xziel_mobile_sprint_active = false;
+		}
+"""
+# Replace both relevant clear sequences.
+text = text.replace(move_up_old, move_up_new)
+
+# Look sensitivity and separate ADS dampening.
+look_old = """		mouse_dx += (int)((finger->x - slot->last_x) * (float)vid.width);
+		mouse_dy += (int)((finger->y - slot->last_y) * (float)vid.height);
+"""
+look_new = """		{
+			float look_scale = xziel_mobile_touch_sensitivity.value;
+			if (cl.stats[STAT_ZOOM] == 1 || cl.stats[STAT_ZOOM] == 2)
+				look_scale *= xziel_mobile_ads_sensitivity.value;
+			mouse_dx += (int)((finger->x - slot->last_x) * (float)vid.width * look_scale);
+			mouse_dy += (int)((finger->y - slot->last_y) * (float)vid.height * look_scale);
+		}
+"""
+if look_old not in text:
+    raise SystemExit("Could not find touch look delta block")
+text = text.replace(look_old, look_new, 1)
+
+# Pause role should not expect an up command.
+up_tail = """	case XZ_TOUCH_SWITCH:
+		xziel_mobile_switch_pressed = false;
+		Cbuf_AddText("-switch\\n");
+		break;
+	default:
+"""
+up_tail_repl = """	case XZ_TOUCH_SWITCH:
+		xziel_mobile_switch_pressed = false;
+		Cbuf_AddText("-switch\\n");
+		break;
+	case XZ_TOUCH_PAUSE:
+		break;
+	default:
+"""
+if up_tail not in text:
+    raise SystemExit("Could not find action up tail")
+text = text.replace(up_tail, up_tail_repl, 1)
+
+sys_sdl.write_text(text, encoding="utf-8")
+
+# Expose the existing NZ:P useprint as a contextual mobile action.
+hud = source / "render" / "r_hud.c"
+text = hud.read_text(encoding="utf-8")
+
+use_global_anchor = "static int hud_use_type;\n"
+use_global_repl = """static int hud_use_type;
+#ifdef __ANDROID__
+qboolean xziel_mobile_use_available = false;
+#endif
+"""
+if "qboolean xziel_mobile_use_available" not in text:
+    if use_global_anchor not in text:
+        raise SystemExit("Could not find HUD use globals")
+    text = text.replace(use_global_anchor, use_global_repl, 1)
+
+use_inactive_old = """    if (Sys_FloatTime() >= hud_use_until || key_dest != key_game || cl.stats[STAT_HEALTH] <= 0) {
+        scr_usetime_off = 0;
+        return;
+    }
+"""
+use_inactive_new = """    if (Sys_FloatTime() >= hud_use_until || key_dest != key_game || cl.stats[STAT_HEALTH] <= 0) {
+        scr_usetime_off = 0;
+#ifdef __ANDROID__
+        xziel_mobile_use_available = false;
+#endif
+        return;
+    }
+#ifdef __ANDROID__
+    xziel_mobile_use_available = true;
+#endif
+"""
+if use_inactive_old not in text:
+    raise SystemExit("Could not find HUD use active test")
+text = text.replace(use_inactive_old, use_inactive_new, 1)
+
+# Reposition prompt on Android into a COD-like contextual card near USE button.
+use_xy_old = """    y = vid.height - 74 * vid.scale;
+    x = (vid.width - getTextWidth(hud_usestring, vid.scale)) / 2;
+"""
+use_xy_new = """#ifdef __ANDROID__
+    y = (int)(vid.height * 0.54f);
+    x = (int)(vid.width * 0.48f) - getTextWidth(hud_usestring, vid.scale);
+#else
+    y = vid.height - 74 * vid.scale;
+    x = (vid.width - getTextWidth(hud_usestring, vid.scale)) / 2;
+#endif
+"""
+if use_xy_old not in text:
+    raise SystemExit("Could not find HUD use coordinates")
+text = text.replace(use_xy_old, use_xy_new, 1)
+
+# Mobile HUD cvar externs and scale/opacity.
+hud_extern_anchor = """extern qboolean xziel_mobile_switch_pressed;
+
+static void Xziel_DrawDisc"""
+hud_extern_repl = """extern qboolean xziel_mobile_switch_pressed;
+extern qboolean xziel_mobile_use_available;
+extern cvar_t xziel_mobile_hud_scale;
+extern cvar_t xziel_mobile_hud_opacity;
+
+static void Xziel_DrawDisc"""
+if hud_extern_anchor not in text:
+    raise SystemExit("Could not find mobile HUD extern anchor")
+text = text.replace(hud_extern_anchor, hud_extern_repl, 1)
+
+# Clean circle rendering and use cvar opacity.
+disc_old = """	int y;
+	int step = radius / 10;
+	if (step < 2) step = 2;
+	for (y = -radius; y <= radius; y += step) {
+"""
+disc_new = """	int y;
+	int step = 2;
+	for (y = -radius; y <= radius; y += step) {
+"""
+if disc_old not in text:
+    raise SystemExit("Could not find mobile disc renderer")
+text = text.replace(disc_old, disc_new, 1)
+
+button_radius_old = "int radius = (int)(radius_h * vid.height);"
+button_radius_new = "int radius = (int)(radius_h * vid.height * xziel_mobile_hud_scale.value);"
+text = text.replace(button_radius_old, button_radius_new, 1)
+
+# Replace fixed alpha values with persistent HUD opacity multiplier.
+text = text.replace("pressed ? 150 : 95", "(int)((pressed ? 190 : 125) * xziel_mobile_hud_opacity.value)", 1)
+text = text.replace("pressed ? 155 : 105", "(int)((pressed ? 180 : 130) * xziel_mobile_hud_opacity.value)", 1)
+
+# USE only while prompt is active, plus Pause button.
+use_draw_old = """	Xziel_DrawTouchButton(0.605f, 0.675f, 0.044f, "USE", "", xziel_mobile_use_pressed);
+	Xziel_DrawTouchButton(0.695f, 0.790f, 0.044f, "JUMP", "", xziel_mobile_jump_pressed);
+"""
+use_draw_new = """	if (xziel_mobile_use_available)
+		Xziel_DrawTouchButton(0.605f, 0.675f, 0.050f, "USE", "", xziel_mobile_use_pressed);
+	Xziel_DrawTouchButton(0.965f, 0.075f, 0.036f, "II", "", false);
+	Xziel_DrawTouchButton(0.695f, 0.790f, 0.044f, "JUMP", "", xziel_mobile_jump_pressed);
+"""
+if use_draw_old not in text:
+    raise SystemExit("Could not find mobile USE HUD line")
+text = text.replace(use_draw_old, use_draw_new, 1)
+
+hud.write_text(text, encoding="utf-8")
+
+# Mobile Controls menu integrated into existing menu system.
+defs = source / "menu" / "menu_defs.h"
+text = defs.read_text(encoding="utf-8")
+if "#define m_mobile" not in text:
+    text = text.replace("#define m_gyro\t\t\t24\n", "#define m_gyro\t\t\t24\n#define m_mobile\t\t25\n", 1)
+    text = text.replace("void Menu_Controls_Set(void);\n", "void Menu_Controls_Set(void);\nvoid Menu_Mobile_Set(void);\nvoid Menu_Mobile_Draw(void);\n", 1)
+defs.write_text(text, encoding="utf-8")
+
+menu = source / "menu" / "menu.c"
+text = menu.read_text(encoding="utf-8")
+mobile_case_anchor = """	case m_controls:
+		Menu_Controls_Draw ();
+		break;
+"""
+mobile_case_repl = """	case m_controls:
+		Menu_Controls_Draw ();
+		break;
+#ifdef __ANDROID__
+	case m_mobile:
+		Menu_Mobile_Draw ();
+		break;
+#endif
+"""
+if "case m_mobile:" not in text:
+    if mobile_case_anchor not in text:
+        raise SystemExit("Could not find menu controls switch")
+    text = text.replace(mobile_case_anchor, mobile_case_repl, 1)
+menu.write_text(text, encoding="utf-8")
+
+menu_sys = source / "menu" / "menu_sys.c"
+text = menu_sys.read_text(encoding="utf-8")
+prev_anchor = """		case m_controls:
+			Menu_Controls_Set();
+			break;
+"""
+prev_repl = """		case m_controls:
+			Menu_Controls_Set();
+			break;
+#ifdef __ANDROID__
+		case m_mobile:
+			Menu_Mobile_Set();
+			break;
+#endif
+"""
+if "case m_mobile:" not in text:
+    if prev_anchor not in text:
+        raise SystemExit("Could not find previous-menu controls block")
+    text = text.replace(prev_anchor, prev_repl, 1)
+menu_sys.write_text(text, encoding="utf-8")
+
+controls = source / "menu" / "menu_controls.c"
+text = controls.read_text(encoding="utf-8")
+
+mobile_menu_code = r'''
+#ifdef __ANDROID__
+extern cvar_t xziel_mobile_ads_toggle;
+extern cvar_t xziel_mobile_sprint_threshold;
+extern cvar_t xziel_mobile_touch_sensitivity;
+extern cvar_t xziel_mobile_ads_sensitivity;
+extern cvar_t xziel_mobile_gyro_boost;
+extern cvar_t xziel_mobile_hud_scale;
+extern cvar_t xziel_mobile_hud_opacity;
+extern cvar_t xziel_mobile_autofire_ms;
+
+static char *xziel_ads_mode_string;
+
+static void Menu_Mobile_ToggleADS(void)
+{
+	Cvar_SetValue("xziel_mobile_ads_toggle",
+		xziel_mobile_ads_toggle.value >= 0.5f ? 0.0f : 1.0f);
+}
+
+void Menu_Mobile_Set(void)
+{
+	Menu_ResetMenuButtons();
+	m_previous_state = m_controls;
+	m_state = m_mobile;
+}
+
+void Menu_Mobile_Draw(void)
+{
+	int idx = 0;
+	int row = 1;
+
+	Menu_DrawCustomBackground(true);
+	Menu_DrawTitle("MOBILE CONTROLS", MENU_COLOR_WHITE);
+	Menu_DrawMapPanel();
+
+	xziel_ads_mode_string = xziel_mobile_ads_toggle.value >= 0.5f ? "TOGGLE" : "HOLD";
+
+	Menu_DrawButton(row++, idx++, "ADS BEHAVIOR", "Choose Hold or Toggle for the dedicated ADS button.", Menu_Mobile_ToggleADS);
+	Menu_DrawOptionButton(row-1, xziel_ads_mode_string);
+
+	Menu_DrawButton(row++, idx++, "TOUCH LOOK", "Camera sensitivity while swiping the screen.", NULL);
+	Menu_DrawOptionSlider(row-1, idx-1, 0.35f, 3.0f, xziel_mobile_touch_sensitivity, "xziel_mobile_touch_sensitivity", false, true, 0.05f);
+
+	Menu_DrawButton(row++, idx++, "ADS LOOK", "Sensitivity multiplier while aiming down sights.", NULL);
+	Menu_DrawOptionSlider(row-1, idx-1, 0.25f, 1.0f, xziel_mobile_ads_sensitivity, "xziel_mobile_ads_sensitivity", false, true, 0.05f);
+
+	Menu_DrawButton(row++, idx++, "AUTO SPRINT", "How far forward the movement stick must travel before sprinting.", NULL);
+	Menu_DrawOptionSlider(row-1, idx-1, 0.65f, 0.98f, xziel_mobile_sprint_threshold, "xziel_mobile_sprint_threshold", false, true, 0.01f);
+
+	Menu_DrawButton(row++, idx++, "PISTOL AUTO FIRE", "Milliseconds between automatic semi-auto trigger taps.", NULL);
+	Menu_DrawOptionSlider(row-1, idx-1, 140.0f, 320.0f, xziel_mobile_autofire_ms, "xziel_mobile_autofire_ms", false, true, 10.0f);
+
+	Menu_DrawButton(row++, idx++, "HUD SCALE", "Scale all mobile HUD buttons.", NULL);
+	Menu_DrawOptionSlider(row-1, idx-1, 0.70f, 1.35f, xziel_mobile_hud_scale, "xziel_mobile_hud_scale", false, true, 0.05f);
+
+	Menu_DrawButton(row++, idx++, "HUD OPACITY", "Opacity of mobile controls.", NULL);
+	Menu_DrawOptionSlider(row-1, idx-1, 0.30f, 1.0f, xziel_mobile_hud_opacity, "xziel_mobile_hud_opacity", false, true, 0.05f);
+
+	Menu_DrawButton(row++, idx++, "GYRO BOOST", "Extra multiplier for phone gyroscope input.", NULL);
+	Menu_DrawOptionSlider(row-1, idx-1, 1.0f, 12.0f, xziel_mobile_gyro_boost, "xziel_mobile_gyro_boost", false, true, 0.5f);
+
+	Menu_DrawButton(-1, idx, "BACK", "Return to Control Options.", Menu_Controls_Set);
+}
+#endif
+'''
+if "void Menu_Mobile_Draw(void)" not in text:
+    text += "\n" + mobile_menu_code
+
+# Add Mobile Controls entry to controls screen.
+binding_anchor = """#ifdef PLATFORM_SUPPORTS_GYRO
+	Menu_DrawButton(controls_buttons++, controls_index++, "GYROSCOPE", "Configure Gyroscope.", Menu_Gyro_Set);
+#endif
+
+	// Bindings
+"""
+binding_repl = """#ifdef PLATFORM_SUPPORTS_GYRO
+	Menu_DrawButton(controls_buttons++, controls_index++, "GYROSCOPE", "Configure Gyroscope.", Menu_Gyro_Set);
+#endif
+#ifdef __ANDROID__
+	Menu_DrawButton(controls_buttons++, controls_index++, "MOBILE CONTROLS", "Touch HUD, ADS, sprint and mobile sensitivity.", Menu_Mobile_Set);
+#endif
+
+	// Bindings
+"""
+if "MOBILE CONTROLS" not in text:
+    if binding_anchor not in text:
+        raise SystemExit("Could not find controls gyro/bindings anchor")
+    text = text.replace(binding_anchor, binding_repl, 1)
+
+# Expand raw gyro sliders too; boost menu adds a second multiplier.
+text = text.replace("0.5f, 5.0f, in_gyro_sensitivity_x", "0.5f, 15.0f, in_gyro_sensitivity_x")
+text = text.replace("0.5f, 5.0f, in_gyro_sensitivity_y", "0.5f, 15.0f, in_gyro_sensitivity_y")
+controls.write_text(text, encoding="utf-8")
+
+# Pause/save/resume/countdown.
+host_cmd = source / "host_cmd.c"
+text = host_cmd.read_text(encoding="utf-8")
+countdown_globals = r'''
+#ifdef __ANDROID__
+qboolean xziel_mobile_resume_countdown = false;
+double xziel_mobile_resume_countdown_end = 0.0;
+
+void Xziel_BeginMobileResumeCountdown(void)
+{
+	sv.paused = true;
+	xziel_mobile_resume_countdown = true;
+	xziel_mobile_resume_countdown_end = Sys_FloatTime() + 3.0;
+}
+#endif
+'''
+host_anchor = "/*\n===============\nHost_Savegame_f"
+if countdown_globals not in text:
+    if host_anchor not in text:
+        raise SystemExit("Could not find host savegame anchor")
+    text = text.replace(host_anchor, countdown_globals + "\n" + host_anchor, 1)
+
+# Detect loading our mobile resume slot.
+load_set_anchor = """	sv.paused = true;		// pause until all clients connect
+	sv.loadgame = true;
+"""
+load_set_repl = """	sv.paused = true;		// pause until all clients connect
+	sv.loadgame = true;
+#ifdef __ANDROID__
+	if (!strcmp(Cmd_Argv(1), "xziel_resume"))
+		xziel_mobile_resume_countdown = true;
+#endif
+"""
+if "if (!strcmp(Cmd_Argv(1), \"xziel_resume\"))" not in text:
+    if load_set_anchor not in text:
+        raise SystemExit("Could not find loadgame paused block")
+    text = text.replace(load_set_anchor, load_set_repl, 1)
+
+# When client spawns from our save, keep paused and start countdown.
+spawn_anchor = """	if (sv.loadgame)
+	{	// loaded games are fully inited allready
+		// if this is the last client to be connected, unpause
+		sv.paused = false;
+	}
+"""
+spawn_repl = """	if (sv.loadgame)
+	{	// loaded games are fully inited allready
+#ifdef __ANDROID__
+		if (xziel_mobile_resume_countdown) {
+			sv.paused = true;
+			xziel_mobile_resume_countdown_end = Sys_FloatTime() + 3.0;
+		} else
+#endif
+		{
+			// if this is the last client to be connected, unpause
+			sv.paused = false;
+		}
+	}
+"""
+if spawn_anchor not in text:
+    raise SystemExit("Could not find Host_Spawn loadgame block")
+text = text.replace(spawn_anchor, spawn_repl, 1)
+host_cmd.write_text(text, encoding="utf-8")
+
+pause = source / "menu" / "menu_pause.c"
+text = pause.read_text(encoding="utf-8")
+pause_extern = r'''
+#ifdef __ANDROID__
+extern qboolean xziel_mobile_resume_countdown;
+extern double xziel_mobile_resume_countdown_end;
+void Xziel_BeginMobileResumeCountdown(void);
+#endif
+'''
+inc_anchor = '#include "menu_defs.h"\n'
+if pause_extern not in text:
+    text = text.replace(inc_anchor, inc_anchor + pause_extern, 1)
+
+resume_old = """void Menu_Resume(void)
+{ 
+	Music_Resume();
+
+	key_dest = key_game; 
+	m_state = m_none; 
+	m_previous_state = m_state; 
+}
+"""
+resume_new = """void Menu_Resume(void)
+{
+	key_dest = key_game;
+	m_state = m_none;
+	m_previous_state = m_state;
+#ifdef __ANDROID__
+	if (sv.active && svs.maxclients == 1) {
+		Xziel_BeginMobileResumeCountdown();
+		return;
+	}
+#endif
+	Music_Resume();
+}
+"""
+if resume_old not in text:
+    raise SystemExit("Could not find Menu_Resume")
+text = text.replace(resume_old, resume_new, 1)
+
+# Freeze solo world while pause menu is open.
+pause_set_anchor = """	m_state = m_pause;
+	m_previous_state = m_state;
+}
+"""
+pause_set_repl = """	m_state = m_pause;
+	m_previous_state = m_state;
+#ifdef __ANDROID__
+	if (sv.active && svs.maxclients == 1)
+		sv.paused = true;
+#endif
+}
+"""
+if "if (sv.active && svs.maxclients == 1)\n\t\tsv.paused = true;" not in text:
+    if pause_set_anchor not in text:
+        raise SystemExit("Could not find Menu_Pause_Set tail")
+    text = text.replace(pause_set_anchor, pause_set_repl, 1)
+
+saveexit_code = r'''
+#ifdef __ANDROID__
+static void Menu_Pause_SaveAndExit(void)
+{
+	if (!sv.active || svs.maxclients != 1 || cl.stats[STAT_HEALTH] <= 0)
+		return;
+	Cbuf_AddText("save xziel_resume\n");
+	Cbuf_Execute();
+	sv.paused = false;
+	Menu_ExitMap();
+}
+#endif
+'''
+draw_anchor = "void Menu_Pause_Draw (void)\n"
+if "Menu_Pause_SaveAndExit" not in text:
+    text = text.replace(draw_anchor, saveexit_code + "\n" + draw_anchor, 1)
+
+pause_buttons_old = """		// End game
+		Menu_DrawButton (4, 3, "END GAME", "Return to Main Menu.", Menu_Pause_EnterSubMenu);
+"""
+pause_buttons_new = """#ifdef __ANDROID__
+		// Save local solo state and return to main menu.
+		Menu_DrawButton (4, 3, "SAVE & EXIT", "Save current Solo state and return to Main Menu.", Menu_Pause_SaveAndExit);
+		// End game without keeping this state.
+		Menu_DrawButton (5, 4, "EXIT TO MENU", "Return to Main Menu without saving.", Menu_Pause_EnterSubMenu);
+#else
+		// End game
+		Menu_DrawButton (4, 3, "END GAME", "Return to Main Menu.", Menu_Pause_EnterSubMenu);
+#endif
+"""
+if pause_buttons_old not in text:
+    raise SystemExit("Could not find pause END GAME button")
+text = text.replace(pause_buttons_old, pause_buttons_new, 1)
+
+# Existing submenu index for end game was 3; Android's Exit To Menu is now cursor 4.
+text = text.replace(
+"""	} else if (menu_paus_submenu == 3) {
+		// User is returning to Main Menu
+""",
+"""	} else if (menu_paus_submenu ==
+#ifdef __ANDROID__
+		4
+#else
+		3
+#endif
+	) {
+		// User is returning to Main Menu
+""", 1)
+
+text = text.replace(
+"""		} else if (menu_paus_submenu == 3) {
+			Menu_DrawSubMenu("Are you sure you want to quit?", "You will lose any progress that you have made.");
+		}
+""",
+"""		} else if (menu_paus_submenu ==
+#ifdef __ANDROID__
+			4
+#else
+			3
+#endif
+		) {
+			Menu_DrawSubMenu("Are you sure you want to quit?", "You will lose any unsaved progress.");
+		}
+""", 1)
+
+pause.write_text(text, encoding="utf-8")
+
+# Main-menu Resume Game entry when a mobile save exists.
+main = source / "menu" / "menu_main.c"
+text = main.read_text(encoding="utf-8")
+
+resume_func = r'''
+#ifdef __ANDROID__
+static qboolean Menu_XzielResumeExists(void)
+{
+	char path[MAX_OSPATH + 1];
+	snprintf(path, sizeof(path), "%s/xziel_resume.sav", com_gamedir);
+	return Sys_FileTime(path) != -1;
+}
+
+static void Menu_XzielResume(void)
+{
+	Cbuf_AddText("load xziel_resume\n");
+	Cbuf_Execute();
+	key_dest = key_game;
+	m_state = m_none;
+}
+#endif
+'''
+main_anchor = "qboolean in_submenu;\n"
+if "Menu_XzielResumeExists" not in text:
+    text = text.replace(main_anchor, main_anchor + resume_func, 1)
+
+main_buttons_old = """	if (!in_submenu) {
+		Menu_DrawButton(1, 0, "SOLO", "Play Solo.", Menu_Solo);
+		Menu_DrawGreyButton(2, "COOPERATIVE");
+
+		Menu_DrawDivider(3);
+
+		Menu_DrawButton(3, 1, "CONFIGURATION", "Tweak Game Related Options", Menu_Configuration_Set);
+		Menu_DrawButton(4, 2, "CHARACTER BIOS", "View Character Bios", Menu_Bios_Set);
+
+		Menu_DrawDivider(5);
+
+		Menu_DrawButton(5, 3, "CREDITS", "NZ:P Team + Special Thanks", Menu_Credits_Set);
+
+		Menu_DrawDivider(6);
+
+		Menu_DrawButton(6, 4, "QUIT GAME", "Return to Home Screen", Menu_EnterSubMenu);
+"""
+main_buttons_new = """	if (!in_submenu) {
+#ifdef __ANDROID__
+		int xziel_offset = 0;
+		if (Menu_XzielResumeExists()) {
+			Menu_DrawButton(1, 0, "RESUME GAME", "Resume your saved Solo match.", Menu_XzielResume);
+			xziel_offset = 1;
+		}
+		Menu_DrawButton(1 + xziel_offset, xziel_offset, "SOLO", "Play Solo.", Menu_Solo);
+		Menu_DrawGreyButton(2 + xziel_offset, "COOPERATIVE");
+
+		Menu_DrawDivider(3 + xziel_offset);
+
+		Menu_DrawButton(3 + xziel_offset, 1 + xziel_offset, "CONFIGURATION", "Tweak Game Related Options", Menu_Configuration_Set);
+		Menu_DrawButton(4 + xziel_offset, 2 + xziel_offset, "CHARACTER BIOS", "View Character Bios", Menu_Bios_Set);
+
+		Menu_DrawDivider(5 + xziel_offset);
+
+		Menu_DrawButton(5 + xziel_offset, 3 + xziel_offset, "CREDITS", "NZ:P Team + Special Thanks", Menu_Credits_Set);
+
+		Menu_DrawDivider(6 + xziel_offset);
+
+		Menu_DrawButton(6 + xziel_offset, 4 + xziel_offset, "QUIT GAME", "Return to Home Screen", Menu_EnterSubMenu);
+#else
+		Menu_DrawButton(1, 0, "SOLO", "Play Solo.", Menu_Solo);
+		Menu_DrawGreyButton(2, "COOPERATIVE");
+
+		Menu_DrawDivider(3);
+
+		Menu_DrawButton(3, 1, "CONFIGURATION", "Tweak Game Related Options", Menu_Configuration_Set);
+		Menu_DrawButton(4, 2, "CHARACTER BIOS", "View Character Bios", Menu_Bios_Set);
+
+		Menu_DrawDivider(5);
+
+		Menu_DrawButton(5, 3, "CREDITS", "NZ:P Team + Special Thanks", Menu_Credits_Set);
+
+		Menu_DrawDivider(6);
+
+		Menu_DrawButton(6, 4, "QUIT GAME", "Return to Home Screen", Menu_EnterSubMenu);
+#endif
+"""
+if main_buttons_old not in text:
+    raise SystemExit("Could not find main menu button block")
+text = text.replace(main_buttons_old, main_buttons_new, 1)
+main.write_text(text, encoding="utf-8")
+
+# Draw/complete the 3-2-1 countdown in HUD.
+hud = source / "render" / "r_hud.c"
+text = hud.read_text(encoding="utf-8")
+countdown_draw = r'''
+#ifdef __ANDROID__
+extern qboolean xziel_mobile_resume_countdown;
+extern double xziel_mobile_resume_countdown_end;
+
+static void Xziel_MobileResumeCountdown(void)
+{
+	double left;
+	char number[8];
+	int w;
+	float scale = vid.scale * 4.0f;
+
+	if (!xziel_mobile_resume_countdown)
+		return;
+
+	left = xziel_mobile_resume_countdown_end - Sys_FloatTime();
+	if (left <= 0.0) {
+		xziel_mobile_resume_countdown = false;
+		sv.paused = false;
+		Music_Resume();
+		return;
+	}
+
+	snprintf(number, sizeof(number), "%d", (int)ceil(left));
+	w = getTextWidth(number, scale);
+	Draw_ColoredString((vid.width - w) / 2, (int)(vid.height * 0.42f),
+		number, 255, 255, 255, 255, scale);
+}
+#endif
+'''
+hud_draw_anchor = "void\nHUD_Draw(void)\n{"
+if "static void Xziel_MobileResumeCountdown" not in text:
+    text = text.replace(hud_draw_anchor, countdown_draw + "\n" + hud_draw_anchor, 1)
+
+hud_start_anchor = """void
+HUD_Draw(void)
+{
+    if (scr_con_current == vid.height)
+"""
+hud_start_repl = """void
+HUD_Draw(void)
+{
+#ifdef __ANDROID__
+    Xziel_MobileResumeCountdown();
+#endif
+    if (scr_con_current == vid.height)
+"""
+if hud_start_anchor not in text:
+    raise SystemExit("Could not find HUD_Draw start for countdown")
+text = text.replace(hud_start_anchor, hud_start_repl, 1)
+hud.write_text(text, encoding="utf-8")
