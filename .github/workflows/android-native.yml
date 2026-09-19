@@ -115,18 +115,29 @@ jobs:
           "$ADB" logcat -d -v threadtime > dist/xziel-logcat.txt || true
           "$ADB" shell dumpsys activity processes > dist/activity-processes.txt || true
 
-          PID="$("$ADB" shell pidof com.xziel.nzp 2>/dev/null | tr -d '\r' || true)"
+          PID="$("$ADB" shell pidof com.xziel.nzp 2>/dev/null | tr -d '\\r' || true)"
           echo "PID=$PID"
 
           echo "===== XZIEL LOGCAT HIGHLIGHTS ====="
-          grep -Ei "FATAL EXCEPTION|Fatal signal|AndroidRuntime|DEBUG|libmain|gl4es|SDL|xziel|com.xziel.nzp|Vril Engine|Sys_Error"             dist/xziel-logcat.txt | tail -n 400 || true
+          grep -Ei "FATAL EXCEPTION|Fatal signal|AndroidRuntime|DEBUG|libmain|gl4es|SDL|xziel|com.xziel.nzp|Vril Engine|Sys_Error|EGL_BAD_CONTEXT|no current context" \
+            dist/xziel-logcat.txt | tail -n 500 || true
 
-          if [[ -z "$PID" ]]; then
-            echo "Xziel exited/crashed during smoke test."
+          if grep -Eq "Fatal signal .*SDLActivity|>>> com\\.xziel\\.nzp <<<|Process .*com\\.xziel\\.nzp.*exited due to signal|EGL_BAD_CONTEXT|OpenGL ES API with no current context" dist/xziel-logcat.txt; then
+            echo "Detected native Xziel/EGL crash in logcat."
             exit 1
           fi
 
-          echo "Xziel remained alive after 20 seconds."
+          if [[ -z "$PID" ]]; then
+            echo "Xziel process is not alive after smoke test."
+            exit 1
+          fi
+
+          if ! "$ADB" shell dumpsys activity activities | grep -q "mResumedActivity.*com.xziel.nzp"; then
+            echo "Xziel process exists but its Activity is no longer resumed."
+            exit 1
+          fi
+
+          echo "Xziel remained alive and foreground after 20 seconds."
 
       - name: Upload runtime diagnostics
         if: always()

@@ -1,5 +1,6 @@
 package org.libsdl.app;
 
+import android.content.pm.ActivityInfo;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
@@ -23,6 +24,16 @@ import java.util.zip.ZipInputStream;
 public class NZPActivity extends SDLActivity {
     private static final String DATA_ARCHIVE = "nzp-data.zip";
     private static final String DATA_VERSION = "nzp-data.version";
+
+    /**
+     * Keep SDL/Vril locked to sensor-landscape. Without this override SDL2
+     * treats the resizable desktop-style window as FULL_USER and Android can
+     * rotate/recreate the Surface after the GLES context has been created.
+     */
+    @Override
+    public void setOrientationBis(int w, int h, boolean resizable, String hint) {
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+    }
 
     @Override
     protected String[] getLibraries() {

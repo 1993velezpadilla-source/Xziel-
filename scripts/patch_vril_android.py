@@ -239,6 +239,21 @@ if old_base not in text:
     raise SystemExit("Could not find base-directory startup block")
 text = text.replace(old_base, new_base, 1)
 
+# Keep Android in landscape before SDL creates the video window. SDL2 otherwise
+# maps a resizable window with no orientation hint to FULL_USER, which can
+# rotate/recreate the Surface and invalidate the just-created EGL context.
+android_orientation_needle = """	if (SDL_Init(headless_test ? SDL_INIT_TIMER :
+"""
+android_orientation_replacement = """#ifdef __ANDROID__
+	SDL_SetHintWithPriority(SDL_HINT_ORIENTATIONS,
+		"LandscapeLeft LandscapeRight", SDL_HINT_OVERRIDE);
+#endif
+	if (SDL_Init(headless_test ? SDL_INIT_TIMER :
+"""
+if android_orientation_needle not in text:
+    raise SystemExit("Could not find SDL_Init orientation insertion point")
+text = text.replace(android_orientation_needle, android_orientation_replacement, 1)
+
 old_sdl = '''	if (SDL_Init(headless_test ? SDL_INIT_TIMER :
 		(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_GAMECONTROLLER)) != 0) {
 		fprintf(stderr, "SDL_Init: %s\\n", SDL_GetError());
