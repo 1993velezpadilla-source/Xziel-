@@ -33,14 +33,10 @@ jobs:
       - name: Install Android SDK, NDK and emulator
         shell: bash
         run: |
-          echo "ANDROID_HOME=${ANDROID_HOME}"
           SDKMANAGER="$(find "${ANDROID_HOME}/cmdline-tools" -type f -name sdkmanager | sort | tail -n 1)"
-          if [[ -z "$SDKMANAGER" ]]; then
-            echo "sdkmanager not found under ${ANDROID_HOME}/cmdline-tools"
-            exit 1
-          fi
+          test -n "$SDKMANAGER"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER"             "platform-tools"             "platforms;android-35"             "build-tools;35.0.0"             "ndk;27.2.12479018"             "emulator"             "system-images;android-35;google_apis;x86_64"
+          "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;27.2.12479018" "emulator" "system-images;android-35;google_apis;x86_64"
 
       - name: Prepare full native NZ:P Android project
         shell: bash
@@ -55,7 +51,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-          cp build/android-project/app/build/outputs/apk/debug/app-debug.apk              dist/Xziel-NZP-native-universal-debug.apk
+          cp build/android-project/app/build/outputs/apk/debug/app-debug.apk dist/Xziel-NZP-native-universal-debug.apk
           ls -lh dist/Xziel-NZP-native-universal-debug.apk
 
       - name: Boot Android emulator and launch Xziel
@@ -63,15 +59,22 @@ jobs:
         shell: bash
         continue-on-error: true
         run: |
-          set -o pipefail
+          set -euxo pipefail
+
+          ADB="${ANDROID_HOME}/platform-tools/adb"
           AVDMANAGER="$(find "${ANDROID_HOME}/cmdline-tools" -type f -name avdmanager | sort | tail -n 1)"
-          echo no | "$AVDMANAGER" create avd             -n xziel-ci             -k "system-images;android-35;google_apis;x86_64"             --force
+          export ANDROID_AVD_HOME="$PWD/.android/avd"
+          mkdir -p "$ANDROID_AVD_HOME"
+
+          echo no | "$AVDMANAGER" create avd --force -n xziel-ci -k "system-images;android-35;google_apis;x86_64" -d "pixel_6"
+          echo "Created AVDs:"
+          "${ANDROID_HOME}/emulator/emulator" -list-avds
 
           if [[ -e /dev/kvm ]]; then
             sudo chmod 666 /dev/kvm || true
           fi
 
-          nohup "${ANDROID_HOME}/emulator/emulator"             -avd xziel-ci             -no-window             -no-audio             -no-boot-anim             -no-snapshot             -gpu swiftshader_indirect             -memory 2048             > dist/emulator-stdout.txt 2>&1 &
+          nohup "${ANDROID_HOME}/emulator/emulator" -avd xziel-ci -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -memory 2048 > dist/emulator-stdout.txt 2>&1 &
           EMU_PID=$!
 
           sleep 5
@@ -81,7 +84,6 @@ jobs:
             exit 1
           fi
 
-          ADB="$ADB"
           timeout 180 "$ADB" wait-for-device
 
           BOOTED=0
@@ -92,6 +94,7 @@ jobs:
             fi
             sleep 2
           done
+
           if [[ "$BOOTED" != "1" ]]; then
             echo "Android emulator did not finish booting"
             cat dist/emulator-stdout.txt || true
@@ -102,7 +105,7 @@ jobs:
           "$ADB" install -r dist/Xziel-NZP-native-universal-debug.apk
           "$ADB" logcat -c
           "$ADB" shell am force-stop com.xziel.nzp || true
-          "$ADB" shell am start -W -n com.xziel.nzp/org.libsdl.app.NZPActivity             > dist/am-start.txt 2>&1 || true
+          "$ADB" shell am start -W -n com.xziel.nzp/org.libsdl.app.NZPActivity > dist/am-start.txt 2>&1 || true
 
           sleep 25
 
@@ -112,9 +115,10 @@ jobs:
 
           PID="$("$ADB" shell pidof com.xziel.nzp 2>/dev/null | tr -d '\r')"
           echo "PID=$PID"
+
           if [[ -z "$PID" ]]; then
             echo "Xziel process exited/crashed during smoke test."
-            grep -Ei "FATAL EXCEPTION|Fatal signal|DEBUG|libmain|gl4es|SDL|xziel|com.xziel.nzp"               dist/xziel-logcat.txt | tail -n 300 || true
+            grep -Ei "FATAL EXCEPTION|Fatal signal|DEBUG|libmain|gl4es|SDL|xziel|com.xziel.nzp" dist/xziel-logcat.txt | tail -n 400 || true
             exit 1
           fi
 
