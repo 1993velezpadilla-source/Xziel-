@@ -1,0 +1,56 @@
+apply plugin: 'com.android.application'
+
+android {
+    namespace "org.libsdl.app"
+    compileSdkVersion 35
+    ndkVersion "27.2.12479018"
+
+    defaultConfig {
+        applicationId "com.xziel.nzp"
+        minSdkVersion 23
+        targetSdkVersion 35
+        versionCode 1
+        versionName "0.1-native"
+
+        externalNativeBuild {
+            ndkBuild {
+                arguments "APP_PLATFORM=android-23"
+                abiFilters "arm64-v8a"
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            minifyEnabled false
+        }
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    sourceSets.main {
+        jniLibs.srcDir 'libs'
+    }
+
+    externalNativeBuild {
+        ndkBuild {
+            path 'jni/Android.mk'
+        }
+    }
+
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging true
+        }
+    }
+
+    lint {
+        abortOnError false
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+}
