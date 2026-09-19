@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+BUILD="$ROOT/build"
+DEPS="$BUILD/deps"
+PROJECT="$BUILD/android-project"
+APP="$PROJECT/app"
+
+rm -rf "$BUILD"
+mkdir -p "$DEPS"
+
+echo "==> Cloning native dependencies"
+git clone --depth 1 --branch SDL2 https://github.com/libsdl-org/SDL.git "$DEPS/SDL"
+git clone --depth 1 --branch SDL2 https://github.com/libsdl-org/SDL_mixer.git "$DEPS/SDL2_mixer"
+git clone --depth 1 https://github.com/ptitSeb/gl4es.git "$DEPS/gl4es"
+git clone --depth 1 https://github.com/nzp-team/vril-engine.git "$DEPS/vril"
+
+echo "==> Patching Vril for Android GLES2 through GL4ES"
+python3 "$ROOT/scripts/patch_vril_android.py" "$DEPS/vril"
+
+# Initialize GL4ES explicitly only after SDL has created the GLES2 context.
+python3 - "$DEPS/gl4es/Android.mk" <<'PY'
+from pathlib import Path
+import sys
+path = Path(sys.argv[1])
+text = path.read_text()
+text = text.replace(
+    "#LOCAL_CFLAGS += -DNO_INIT_CONSTRUCTOR",
+    "LOCAL_CFLAGS += -DNO_INIT_CONSTRUCTOR",
+)
+path.write_text(text)
+PY
+
+echo "==> Creating SDL Android project"
+cp -a "$DEPS/SDL/android-project" "$PROJECT"
+
+rm -rf "$APP/jni/SDL" "$APP/jni/SDL2_mixer" "$APP/jni/gl4es" "$APP/jni/vril"
+ln -s "$DEPS/SDL" "$APP/jni/SDL"
+ln -s "$DEPS/SDL2_mixer" "$APP/jni/SDL2_mixer"
+ln -s "$DEPS/gl4es" "$APP/jni/gl4es"
+ln -s "$DEPS/vril" "$APP/jni/vril"
+
+cp "$ROOT/android/jni/Android.mk" "$APP/jni/Android.mk"
+cp "$ROOT/android/jni/Application.mk" "$APP/jni/Application.mk"
+mkdir -p "$APP/jni/src"
+cp "$ROOT/android/jni/src/Android.mk" "$APP/jni/src/Android.mk"
+
+cp "$ROOT/android/app-build.gradle" "$APP/build.gradle"
+cp "$ROOT/android/AndroidManifest.xml" "$APP/src/main/AndroidManifest.xml"
+cp "$ROOT/android/strings.xml" "$APP/src/main/res/values/strings.xml"
+cp "$ROOT/android/NZPActivity.java"    "$APP/src/main/java/org/libsdl/app/NZPActivity.java"
+
+echo "==> Assembling official NZ:P game data for the APK"
+ASSET_WORK="$BUILD/nzp-data"
+DOWNLOADS="$BUILD/downloads"
+mkdir -p "$ASSET_WORK" "$DOWNLOADS" "$APP/src/main/assets"
+
+curl -fL --retry 4 --retry-delay 2     https://github.com/nzp-team/assets/releases/download/newest/pc-nzp-assets.zip     -o "$DOWNLOADS/pc-nzp-assets.zip"
+
+curl -fL --retry 4 --retry-delay 2     https://github.com/nzp-team/quakec/releases/download/bleeding-edge/standard-nzp-qc.zip     -o "$DOWNLOADS/standard-nzp-qc.zip"
+
+unzip -q "$DOWNLOADS/pc-nzp-assets.zip" -d "$ASSET_WORK"
+mkdir -p "$ASSET_WORK/nzp"
+unzip -q "$DOWNLOADS/standard-nzp-qc.zip" -d "$ASSET_WORK/nzp"
+
+(
+    cd "$ASSET_WORK"
+    zip -q -r "$APP/src/main/assets/nzp-data.zip" .
+)
+
+sha256sum "$APP/src/main/assets/nzp-data.zip" | awk '{print $1}'     > "$APP/src/main/assets/nzp-data.version"
+
+mkdir -p "$APP/src/main/assets/licenses"
+cp "$DEPS/vril/LICENSE" "$APP/src/main/assets/licenses/VRIL-GPL-2.0.txt"
+
+curl -fL --retry 4 --retry-delay 2     https://raw.githubusercontent.com/nzp-team/assets/main/LICENSE.md     -o "$APP/src/main/assets/licenses/NZP-ASSETS-CC-BY-SA-4.0.txt"
+
+if [[ -f "$DEPS/gl4es/LICENSE" ]]; then
+    cp "$DEPS/gl4es/LICENSE" "$APP/src/main/assets/licenses/GL4ES-LICENSE.txt"
+elif [[ -f "$DEPS/gl4es/LICENSE.md" ]]; then
+    cp "$DEPS/gl4es/LICENSE.md" "$APP/src/main/assets/licenses/GL4ES-LICENSE.txt"
+fi
+
+echo "==> Native source revisions"
+echo "SDL:        $(git -C "$DEPS/SDL" rev-parse HEAD)"
+echo "SDL_mixer:  $(git -C "$DEPS/SDL2_mixer" rev-parse HEAD)"
+echo "GL4ES:      $(git -C "$DEPS/gl4es" rev-parse HEAD)"
+echo "Vril:       $(git -C "$DEPS/vril" rev-parse HEAD)"
+echo "Data SHA:   $(cat "$APP/src/main/assets/nzp-data.version")"
+
+chmod +x "$PROJECT/gradlew"
+
+echo "Prepared project: $PROJECT"
