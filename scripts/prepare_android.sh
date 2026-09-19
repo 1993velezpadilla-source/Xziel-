@@ -56,9 +56,9 @@ ASSET_WORK="$BUILD/nzp-data"
 DOWNLOADS="$BUILD/downloads"
 mkdir -p "$ASSET_WORK" "$DOWNLOADS" "$APP/src/main/assets"
 
-curl -fL --retry 4 --retry-delay 2     https://github.com/nzp-team/assets/releases/download/newest/pc-nzp-assets.zip     -o "$DOWNLOADS/pc-nzp-assets.zip"
+curl -fL --retry 6 --retry-delay 2 --retry-all-errors     https://github.com/nzp-team/assets/releases/download/newest/pc-nzp-assets.zip     -o "$DOWNLOADS/pc-nzp-assets.zip"
 
-curl -fL --retry 4 --retry-delay 2     https://github.com/nzp-team/quakec/releases/download/bleeding-edge/standard-nzp-qc.zip     -o "$DOWNLOADS/standard-nzp-qc.zip"
+curl -fL --retry 6 --retry-delay 2 --retry-all-errors     https://github.com/nzp-team/quakec/releases/download/bleeding-edge/standard-nzp-qc.zip     -o "$DOWNLOADS/standard-nzp-qc.zip"
 
 unzip -q "$DOWNLOADS/pc-nzp-assets.zip" -d "$ASSET_WORK"
 mkdir -p "$ASSET_WORK/nzp"
@@ -74,7 +74,7 @@ sha256sum "$APP/src/main/assets/nzp-data.zip" | awk '{print $1}'     > "$APP/src
 mkdir -p "$APP/src/main/assets/licenses"
 cp "$DEPS/vril/LICENSE" "$APP/src/main/assets/licenses/VRIL-GPL-2.0.txt"
 
-curl -fL --retry 4 --retry-delay 2     https://raw.githubusercontent.com/nzp-team/assets/main/LICENSE.md     -o "$APP/src/main/assets/licenses/NZP-ASSETS-CC-BY-SA-4.0.txt"
+curl -fL --retry 6 --retry-delay 2 --retry-all-errors     https://raw.githubusercontent.com/nzp-team/assets/main/LICENSE.md     -o "$APP/src/main/assets/licenses/NZP-ASSETS-CC-BY-SA-4.0.txt"
 
 if [[ -f "$DEPS/gl4es/LICENSE" ]]; then
     cp "$DEPS/gl4es/LICENSE" "$APP/src/main/assets/licenses/GL4ES-LICENSE.txt"
