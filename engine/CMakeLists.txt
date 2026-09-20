@@ -18,6 +18,9 @@ add_library(xziel_engine STATIC
     src/audio_scene.cpp
     src/frame_graph.cpp
     src/visibility.cpp
+    src/haptics.cpp
+    src/frame_telemetry.cpp
+    src/runtime_policy.cpp
 )
 
 target_include_directories(xziel_engine
@@ -98,4 +101,24 @@ if(XZIEL_ENGINE_BUILD_TESTS)
     target_link_libraries(xziel_visibility_smoke PRIVATE xziel_engine)
     target_compile_features(xziel_visibility_smoke PRIVATE cxx_std_20)
     add_test(NAME xziel_visibility_smoke COMMAND xziel_visibility_smoke)
+
+    add_executable(xziel_haptics_smoke tests/haptics_smoke.cpp)
+    target_link_libraries(xziel_haptics_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_haptics_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_haptics_smoke COMMAND xziel_haptics_smoke)
+
+    add_executable(xziel_frame_telemetry_smoke tests/frame_telemetry_smoke.cpp)
+    target_link_libraries(xziel_frame_telemetry_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_frame_telemetry_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_frame_telemetry_smoke COMMAND xziel_frame_telemetry_smoke)
+
+    add_executable(xziel_runtime_policy_smoke tests/runtime_policy_smoke.cpp)
+    target_link_libraries(xziel_runtime_policy_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_runtime_policy_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_runtime_policy_smoke COMMAND xziel_runtime_policy_smoke)
+
+    add_executable(xziel_spsc_queue_smoke tests/spsc_queue_smoke.cpp)
+    target_link_libraries(xziel_spsc_queue_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_spsc_queue_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_spsc_queue_smoke COMMAND xziel_spsc_queue_smoke)
 endif()
