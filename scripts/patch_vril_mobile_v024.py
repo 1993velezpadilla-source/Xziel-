@@ -33,7 +33,7 @@ def add_after(src: str, anchor: str, payload: str, label: str) -> str:
 sdl = source / "platform" / "sdl" / "sys_sdl.c"
 text = sdl.read_text(encoding="utf-8")
 
-state_anchor = "static qboolean xziel_mobile_slide_pressed = false;\n"
+state_anchor = "qboolean xziel_mobile_slide_pressed = false;\n"
 slide_state = r'''static Uint32 xziel_mobile_slide_visual_start_ms;
 static Uint32 xziel_mobile_slide_visual_end_ms;
 
