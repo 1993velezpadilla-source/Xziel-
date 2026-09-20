@@ -34,12 +34,14 @@ python3 "$ROOT/scripts/patch_vril_android.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_weaponhud.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_mobile_v018.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_combatfx.py" "$DEPS/vril"
+python3 "$ROOT/scripts/patch_vril_modern_movement.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_animation_feel.py" "$DEPS/vril"
 
 echo "==> Patching and compiling Xziel mobile QuakeC"
 python3 -m pip install --quiet colorama==0.4.6 fastcrc==0.3.0 pandas==2.1.4 cairosvg==2.8.2
 python3 "$ROOT/scripts/patch_quakec_mobile.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_combatfx.py" "$DEPS/quakec"
+python3 "$ROOT/scripts/patch_quakec_modern_movement.py" "$DEPS/quakec"
 chmod +x "$DEPS/quakec/bin/fteqcc-cli-lin" "$DEPS/quakec/tools/qc-compiler-gnu.sh"
 (
     cd "$DEPS/quakec"
