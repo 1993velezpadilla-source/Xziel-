@@ -305,6 +305,216 @@
       "requires_attribution": true,
       "status": "candidate",
       "notes": "Readable condensed OFL display/UI family; candidate for Enhanced points, prompts and menus after bitmap-atlas conversion."
+    },
+    {
+      "id": "valentin_retro_vending_machine",
+      "role": "perk_machine_base_candidate",
+      "source_url": "https://valentin-laffitte.itch.io/retro-vending-machine-3d-asset",
+      "author": "Valentin Laffitte",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Free game-ready low-poly vending machine in FBX and GLTF/GLB. Strong mobile-friendly base for original Enhanced perk machines after reskinning."
+    },
+    {
+      "id": "ogilvie_openable_vending_machine",
+      "role": "perk_machine_animated_base_candidate",
+      "source_url": "https://egnjonathan.itch.io/vending-machine-model",
+      "author": "Jonathan Dexter Ogilvie",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "Vending machine with an openable door and modeled interior; useful as a reference/base for dispense/open animations."
+    },
+    {
+      "id": "chilly_retro_plumbing_wiring_machinery",
+      "role": "power_room_and_industrial_systems_candidate",
+      "source_url": "https://chilly-durango.itch.io/3d-retro-plumbing-wiring",
+      "author": "chilly_durango",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Circuit breaker, fuse, wires, switches, turbine, pump, pipes, valve, generator and transformer; ideal for power-switch rooms and industrial map dressing."
+    },
+    {
+      "id": "drillimpact_psx_first_person_arms",
+      "role": "enhanced_viewmodel_arms_candidate",
+      "source_url": "https://drillimpact.itch.io/psx-first-person-arms-free",
+      "author": "Drillimpact",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Rigged first-person arms with grab, knife, jab, push and idle animations; FBX/GLB/Blend, multiple hand textures."
+    },
+    {
+      "id": "wriks_wrad_arms",
+      "role": "enhanced_viewmodel_arms_fallback_candidate",
+      "source_url": "https://wriks.itch.io/wrad-arms",
+      "author": "wriks",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Fully rigged IK FPS arms, ~1200 triangles, two skin colors, 512 textures, GLB/FBX/OBJ."
+    },
+    {
+      "id": "laleksic_low_poly_radio",
+      "role": "radio_prop_candidate",
+      "source_url": "https://aleksicluka.itch.io/low-poly-retro-radio",
+      "author": "Luka Aleksic",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "95-triangle retro radio with 1024 and 128 texture variants; excellent mobile prop replacement."
+    },
+    {
+      "id": "paul_wortmann_dungeon_gibs",
+      "role": "gore_3d_gibs_candidate",
+      "source_url": "https://opengameart.org/content/3d-dungeon-debris-gibs",
+      "author": "Paul Wortmann",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 3D gore/debris set containing body parts, hand, arm, leg, heart/lungs and corpse pieces; useful for dismemberment/explosive deaths."
+    },
+    {
+      "id": "tobiasm_blood_splat",
+      "role": "blood_hit_vfx_candidate",
+      "source_url": "https://opengameart.org/content/blood-splat",
+      "author": "TobiasM",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Transparent CC0 blood-splatter sprite for hits/decals."
+    },
+    {
+      "id": "musdasch_bullet_decal",
+      "role": "bullet_impact_decal_candidate",
+      "source_url": "https://opengameart.org/content/bullet-decal",
+      "author": "musdasch",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "512x512 CC0 bullet-hole decal texture."
+    },
+    {
+      "id": "leftshoe18_muzzle_flash_sheet",
+      "role": "muzzle_flash_candidate",
+      "source_url": "https://opengameart.org/content/muzzle-flash-particle-sheet",
+      "author": "leftshoe18",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 muzzle-flash particle sheet for higher-quality weapon fire presentation."
+    },
+    {
+      "id": "pretty_planets_liquid_assets",
+      "role": "perk_bottle_and_can_candidate",
+      "source_url": "https://pretty-planets.itch.io/liquid-assets-low-poly-drinks-pack",
+      "author": "pretty_planets",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 aluminum can, plastic bottle and glass soda bottle in Blend/FBX; useful for perk drink models and map clutter after original branding."
+    },
+    {
+      "id": "wreaderror_lightning_arcs",
+      "role": "electric_arc_vfx_candidate",
+      "source_url": "https://opengameart.org/content/lightning",
+      "author": "wreaderror",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Eight seamless 2048x512 electric-arc PNGs; useful for power switch, teleporter, perk sparks and wonder-weapon electricity."
+    },
+    {
+      "id": "polyhaven_ammo_box",
+      "role": "ammo_and_military_prop_candidate",
+      "source_url": "https://polyhaven.com/a/ammo_box",
+      "author": "DanKit / Poly Haven",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 rusted/vintage military ammo box with PBR maps; about 4K tris."
+    },
+    {
+      "id": "kutejnikov_pbr_hammer",
+      "role": "carpenter_powerup_model_candidate",
+      "source_url": "https://opengameart.org/content/hammer-4",
+      "author": "Kutejnikov",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 ~1.5K-triangle weathered hammer with 2K PBR maps; strong Carpenter power-up visual candidate."
+    },
+    {
+      "id": "polyhaven_kloppenheim07_puresky",
+      "role": "nacht_night_sky_candidate",
+      "source_url": "https://polyhaven.com/a/kloppenheim_07_puresky",
+      "author": "Greg Zaal / Jarod Guest / Poly Haven",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 overcast night pure-sky HDRI; can be converted to a Vril-compatible cubemap for Enhanced Nacht."
+    },
+    {
+      "id": "owlishmedia_sound_effects_pack",
+      "role": "general_foley_and_ui_audio_candidate",
+      "source_url": "https://opengameart.org/content/sound-effects-pack",
+      "author": "OwlishMedia",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Large CC0 foley pack with ambience, cloth, footsteps, impacts, UI, human, sci-fi, technology and water sounds."
+    },
+    {
+      "id": "fantozzi_footsteps",
+      "role": "surface_footstep_audio_candidate",
+      "source_url": "https://opengameart.org/content/fantozzis-footsteps-grasssand-stone",
+      "author": "Fantozzi / qubodup",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 single-step variations for stone/hard surfaces plus sand/grass; useful for material-aware footsteps."
+    },
+    {
+      "id": "bmaczero_metal_impacts",
+      "role": "metal_impact_audio_candidate",
+      "source_url": "https://opengameart.org/content/metal-impact-sounds",
+      "author": "BMacZero",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 metallic impact/clank/thud set for doors, machines, shells and environment interactions."
+    },
+    {
+      "id": "yethiel_dirty_trashcan",
+      "role": "trash_bin_prop_candidate",
+      "source_url": "https://opengameart.org/content/trashcan",
+      "author": "yethiel",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Dirty 1002-poly trash can with detached lid and diffuse/normal/spec/AO maps; suitable for shootable/explosive clutter."
+    },
+    {
+      "id": "arkore_low_poly_chairs",
+      "role": "chair_prop_candidate",
+      "source_url": "https://arkore.itch.io/low-poly-chair",
+      "author": "Arkore",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Three low-poly chair variations in OBJ/FBX under CC0."
+    },
+    {
+      "id": "renend_low_poly_teddy_bear",
+      "role": "mystery_box_teddy_candidate",
+      "source_url": "https://sketchfab.com/3d-models/low-poly-toy-pack-teddy-bear-rubber-duck-af885d4dd3514cc09ad6bdd446d2888c",
+      "author": "Renend Studio",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "Game-ready vintage teddy bear, ~1.5K polygons with 1K PBR textures; good mobile Mystery Box teddy replacement candidate."
     }
   ]
 }
