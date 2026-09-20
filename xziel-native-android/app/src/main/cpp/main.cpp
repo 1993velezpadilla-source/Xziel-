@@ -95,7 +95,8 @@ void handleCommand(
                 state->renderer.shutdown();
 
                 if (state->renderer.initialize(
-                        app->window)) {
+                        app->window,
+                        app->activity->assetManager)) {
                     state->hasWindow = true;
                     state->watchdog.reset();
                     logInfo("XZIEL_VULKAN_READY");
