@@ -4,26 +4,242 @@
   "policy": "docs/assets/README.md",
   "buckets": {
     "commercial_safe": [
-      {"name":"Quaternius Zombie Apocalypse Kit","category":"zombie_character","license":"CC0","url":"https://quaternius.com/packs/zombieapocalypsekit.html","raw_redistribution":true,"status":"green"},
-      {"name":"Quaternius Universal Animation Library","category":"animation","license":"CC0","url":"https://quaternius.com/packs/universalanimationlibrary.html","raw_redistribution":true,"status":"green"},
-      {"name":"Quaternius Universal Animation Library 2","category":"animation","license":"CC0","url":"https://quaternius.com/packs/universalanimationlibrary2.html","raw_redistribution":true,"status":"green"},
-      {"name":"Quaternius Ultimate Guns Pack","category":"weapons","license":"CC0","url":"https://quaternius.com/packs/ultimategun.html","raw_redistribution":true,"status":"green"},
-      {"name":"Drillimpact PSX First Person Arms","category":"fps_arms","license":"CC0","url":"https://drillimpact.itch.io/psx-first-person-arms-free","raw_redistribution":true,"status":"green"},
-      {"name":"OpenGameArt Low Poly Weapons Pack with Rigged Arms","category":"fps_arms_weapons","license":"CC0","url":"https://opengameart.org/content/low-poly-weapons-pack-with-rigged-arms","raw_redistribution":true,"status":"green"},
-      {"name":"Poly Haven","category":"environment_materials","license":"CC0","url":"https://polyhaven.com/license","raw_redistribution":true,"status":"green"},
-      {"name":"ambientCG","category":"materials","license":"CC0","url":"https://ambientcg.com/","raw_redistribution":true,"status":"green"},
-      {"name":"Kenney Graveyard Kit","category":"environment_horror","license":"CC0","url":"https://kenney.nl/assets/graveyard-kit","raw_redistribution":true,"status":"green"},
-      {"name":"Kenney Particle Pack","category":"vfx","license":"CC0","url":"https://kenney.nl/assets/particle-pack","raw_redistribution":true,"status":"green"},
-      {"name":"OpenGameArt Animated Particle Effects #2","category":"vfx_gore","license":"CC0","url":"https://opengameart.org/node/23001","raw_redistribution":true,"status":"green"},
-      {"name":"OpenGameArt Gore Blood Gibs Meat Chunks","category":"vfx_gore","license":"CC0","url":"https://opengameart.org/content/gore-blood-gibs-meat-chunks","raw_redistribution":true,"status":"green"}
+      {
+        "name": "Quaternius Zombie Apocalypse Kit",
+        "category": "zombie_character",
+        "license": "CC0",
+        "url": "https://quaternius.com/packs/zombieapocalypsekit.html",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "Quaternius Universal Animation Library",
+        "category": "animation",
+        "license": "CC0",
+        "url": "https://quaternius.com/packs/universalanimationlibrary.html",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "Quaternius Universal Animation Library 2",
+        "category": "animation",
+        "license": "CC0",
+        "url": "https://quaternius.com/packs/universalanimationlibrary2.html",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "Quaternius Ultimate Guns Pack",
+        "category": "weapons",
+        "license": "CC0",
+        "url": "https://quaternius.com/packs/ultimategun.html",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "Drillimpact PSX First Person Arms",
+        "category": "fps_arms",
+        "license": "CC0",
+        "url": "https://drillimpact.itch.io/psx-first-person-arms-free",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "OpenGameArt Low Poly Weapons Pack with Rigged Arms",
+        "category": "fps_arms_weapons",
+        "license": "CC0",
+        "url": "https://opengameart.org/content/low-poly-weapons-pack-with-rigged-arms",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "Poly Haven",
+        "category": "environment_materials",
+        "license": "CC0",
+        "url": "https://polyhaven.com/license",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "ambientCG",
+        "category": "materials",
+        "license": "CC0",
+        "url": "https://ambientcg.com/",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "Kenney Graveyard Kit",
+        "category": "environment_horror",
+        "license": "CC0",
+        "url": "https://kenney.nl/assets/graveyard-kit",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "Kenney Particle Pack",
+        "category": "vfx",
+        "license": "CC0",
+        "url": "https://kenney.nl/assets/particle-pack",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "OpenGameArt Animated Particle Effects #2",
+        "category": "vfx_gore",
+        "license": "CC0",
+        "url": "https://opengameart.org/node/23001",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "OpenGameArt Gore Blood Gibs Meat Chunks",
+        "category": "vfx_gore",
+        "license": "CC0",
+        "url": "https://opengameart.org/content/gore-blood-gibs-meat-chunks",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "OpenGameArt Male City Zombie",
+        "category": "zombie_character",
+        "license": "CC0",
+        "url": "https://opengameart.org/node/111870",
+        "raw_redistribution": true,
+        "status": "green_high_priority"
+      },
+      {
+        "name": "Petrov Zombie Grandma",
+        "category": "zombie_character",
+        "license": "CC0",
+        "url": "https://petrov-the-blind.itch.io/3d-zombie-grandma",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "Kenney Animated Characters 3",
+        "category": "zombie_character",
+        "license": "CC0",
+        "url": "https://opengameart.org/content/animated-characters-3",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "KayKit Character Animations",
+        "category": "animation",
+        "license": "CC0",
+        "url": "https://kaylousberg.itch.io/kaykit-character-animations",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "OpenGameArt Lowpoly Pistol FireWarden",
+        "category": "weapon",
+        "license": "CC0",
+        "url": "https://opengameart.org/content/lowpoly-pistol",
+        "raw_redistribution": true,
+        "status": "green_high_priority"
+      },
+      {
+        "name": "Pichuliru CC0 Flat Guns East",
+        "category": "weapon",
+        "license": "CC0",
+        "url": "https://pichuliru.itch.io/cc0-flat-guns-east",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "Quaternius Downtown City MegaKit",
+        "category": "environment_city",
+        "license": "CC0",
+        "url": "https://quaternius.com/packs/downtowncitymegakit.html",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "Majadroid 3D Apocalyptic Building City",
+        "category": "environment_apocalypse",
+        "license": "CC0",
+        "url": "https://majadroid.itch.io/3d-apocalyptic-building-city-cc0",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "Binbun Muzzle Flash VFX",
+        "category": "vfx_weapon",
+        "license": "CC0",
+        "url": "https://binbun3d.itch.io/muzzle-flash-vfx",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "Binbun Electric FX",
+        "category": "vfx_electric",
+        "license": "CC0",
+        "url": "https://binbun3d.itch.io/electric-fx",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "TomAzod Godot Water Splash VFX",
+        "category": "vfx_water",
+        "license": "CC0",
+        "url": "https://tomazod.itch.io/godot-splash-vfx",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "OpenGameArt 40 CC0 water splash slime SFX",
+        "category": "audio_water",
+        "license": "CC0",
+        "url": "https://opengameart.org/content/40-cc0-water-splash-slime-sfx",
+        "raw_redistribution": true,
+        "status": "green"
+      }
     ],
     "embedded_only": [
-      {"name":"Adobe Mixamo","category":"animation","license":"Adobe Mixamo royalty-free project use","url":"https://helpx.adobe.com/creative-cloud/faq/mixamo-faq.html","raw_redistribution":false,"status":"green_embed_only"},
-      {"name":"Sonniss GameAudioGDC","category":"audio","license":"Sonniss GDC Bundle License","url":"https://sonniss.com/gdc-bundle-license/","raw_redistribution":false,"status":"green_embed_only"}
+      {
+        "name": "Adobe Mixamo",
+        "category": "animation",
+        "license": "Adobe Mixamo royalty-free project use",
+        "url": "https://helpx.adobe.com/creative-cloud/faq/mixamo-faq.html",
+        "raw_redistribution": false,
+        "status": "green_embed_only"
+      },
+      {
+        "name": "Sonniss GameAudioGDC",
+        "category": "audio",
+        "license": "Sonniss GDC Bundle License",
+        "url": "https://sonniss.com/gdc-bundle-license/",
+        "raw_redistribution": false,
+        "status": "green_embed_only"
+      }
     ],
     "verify_before_use": [
-      {"name":"Studio New Punch FREE Shirtless Zombie","category":"zombie_dismemberment","license":"Unity Asset Store listing/EULA must be rechecked","url":"https://assetstore.unity.com/","raw_redistribution":false,"status":"verify"},
-      {"name":"Studio New Punch FREE Zombie Male AAB","category":"zombie_dismemberment","license":"Unity Asset Store listing/EULA must be rechecked","url":"https://assetstore.unity.com/","raw_redistribution":false,"status":"verify"}
+      {
+        "name": "Studio New Punch FREE Shirtless Zombie",
+        "category": "zombie_dismemberment",
+        "license": "Unity Asset Store listing/EULA must be rechecked",
+        "url": "https://assetstore.unity.com/",
+        "raw_redistribution": false,
+        "status": "verify"
+      },
+      {
+        "name": "Studio New Punch FREE Zombie Male AAB",
+        "category": "zombie_dismemberment",
+        "license": "Unity Asset Store listing/EULA must be rechecked",
+        "url": "https://assetstore.unity.com/",
+        "raw_redistribution": false,
+        "status": "verify"
+      },
+      {
+        "name": "3DAssets.dev FPS Survival Forest Outpost",
+        "category": "multi_asset_pack",
+        "license": "CC0 claimed by source; AI-generated",
+        "url": "https://3dassets.dev/packs/fps-survival-forest-outpost",
+        "raw_redistribution": true,
+        "status": "verify_visual_ip_topology_ai"
+      }
     ]
   }
 }
