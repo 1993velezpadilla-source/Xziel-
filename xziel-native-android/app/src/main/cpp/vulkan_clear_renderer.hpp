@@ -37,7 +37,17 @@ private:
         float timeSeconds = 0.0f;
         float aspect = 1.0f;
         float horrorPulse = 0.0f;
-        float padding = 0.0f;
+        float materialId = 0.0f;
+
+        float translationX = 0.0f;
+        float translationY = 0.0f;
+        float translationZ = 0.0f;
+        float translationPadding = 0.0f;
+
+        float scaleX = 1.0f;
+        float scaleY = 1.0f;
+        float scaleZ = 1.0f;
+        float scalePadding = 0.0f;
     };
 
     [[nodiscard]] bool createInstance() noexcept;
