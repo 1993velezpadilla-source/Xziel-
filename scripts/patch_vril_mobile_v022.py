@@ -349,7 +349,7 @@ touch = r'''static void Xziel_DrawTouchButton(float nx, float ny, float radius_h
 }'''
 text = replace_function(
     text,
-    "static void Xziel_DrawTouchButton(float nx, float ny, float radius_h,",
+    "static void Xziel_DrawTouchButton(",
     touch
 )
 
