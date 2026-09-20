@@ -4784,3 +4784,15 @@ if "static qboolean xziel_mobile_sprint_active = false;" in text:
         1
     )
 sys_sdl.write_text(text, encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# v0.9.2 linker correction: sprint state is shared with Android HUD
+# ---------------------------------------------------------------------------
+sys_sdl = source / "platform" / "sdl" / "sys_sdl.c"
+text = sys_sdl.read_text(encoding="utf-8")
+text = text.replace(
+    "static qboolean xziel_mobile_sprint_active = false;",
+    "qboolean xziel_mobile_sprint_active = false;"
+)
+sys_sdl.write_text(text, encoding="utf-8")
