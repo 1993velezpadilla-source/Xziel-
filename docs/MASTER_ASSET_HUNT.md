@@ -847,3 +847,71 @@ Every expensive presentation feature needs:
 - Ray Gun + fire + explosion overlap test.
 
 The goal is **visually modern enough to feel like a high-end mobile mode while the same APK still supports low-end hardware through Classic/Low**.
+
+
+---
+
+# 19. HUD elements verified in live QuakeC — do not forget
+
+Direct inspection of `source/client/hud.qc` confirms that Enhanced also needs to account for:
+
+- hit marker, including kill-state coloring/fade;
+- dynamic crosshair;
+- sniper-scope overlay;
+- hold-breath prompt;
+- revive progress bar;
+- frag/grenade icon and secondary-grenade icon;
+- perk icons and perk ordering;
+- weapon-name fade;
+- weapon-tier text colors;
+- round-display art/animation;
+- ammo readout;
+- use/buy text;
+- down/revive feedback.
+
+Ready-made legal raw-material candidates already in the manifest:
+
+- **Kenney Crosshair Pack** — 200 CC0 crosshairs, vector sources, outline/glow variants.
+- **Kenney UI Pack** — 430+ CC0 interface pieces, vectors, fonts and UI sounds.
+- **Kenney Game Icons** — 105 CC0 interface/game glyphs.
+
+These are raw materials only. Enhanced should keep a coherent Zombies-style visual identity rather than looking like an untouched Kenney demo.
+
+---
+
+# 20. Additional ready-made map-family pools found
+
+## Theatre / cinema
+
+Fastest zero-modeling sources:
+
+- **Theatre Stage and Backstage** — 53 CC0 GLB pieces; stage deck, proscenium, curtains/tabs, fly bars, counterweights, scenery flats, seating, pit rail, dressing-room and backstage props.
+- **Cinema Multiplex and Foyer** — 43 CC0 GLB pieces; tiered flip-up seating, screen, projection booth and front-of-house props.
+- **Abandoned Puppet Theatre and Prop Vault** — 51 CC0 pieces; abandoned curtain/proscenium/storage/repair detail.
+
+These 3DAssets.dev sets disclose AI-generated geometry. Treat them as optional/fallback sources: visually inspect each selected piece and optimize it before use. They are especially useful when a hard-to-find theatre prop would otherwise require custom modeling.
+
+Non-AI lightweight helpers:
+- **LUKY_LAND 3D LL Collection** — CC0 projector, facility doors, security camera, locker, lantern, shelf, wooden blockade and other tiny props.
+- **Lewie PSX Retro Props Pack** — 86 non-AI CC0 interior/horror props.
+
+## Asylum / hospital
+
+- **Free3DAsylum** — CC0 bed, wall, conduit, circuit breaker, fuse/fuse box, shelf, mattress and modular corridor.
+- **DREAM_SEARCH_REPEAT Medical Pharmacy Pack** — free CC0/non-AI medical/pharmacy clutter with fictional branding.
+- **Lewie PSX Retro Props Pack** — bathroom fixtures, bed, first aid box, cabinets, generator, panel box, etc.
+
+## Swamp
+
+- **Aredon LowPoly Reed** — CC0 FBX/OBJ reed vegetation.
+- **Kenney 3D Nature Pack** — CC0 modular plants, rocks, trees, bushes and grass.
+- 3DAssets.dev swamp/mangrove pieces are an optional CC0 fallback after triangle/visual review.
+
+## Industrial / factory
+
+- **chilly_durango Plumbing, Wiring & Machinery** — CC0 circuit breakers, fuses, switches, wires, pipes, valve, pump, turbine, generator and transformer.
+- **3DModelsCC0 Industrial Packs** — barrels, gas cans, cylinders, cable drums, work lights, generator, locker, extinguisher and pallets.
+- **Kenney Factory Kit** — 140+ optimized CC0 factory/warehouse objects.
+- **Kenney Conveyor Kit** — 60+ CC0 models on a shared texture, strong for large industrial rooms.
+
+The purpose is to reuse one coherent library across several maps rather than re-searching the internet for every room.
