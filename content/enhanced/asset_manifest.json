@@ -925,6 +925,96 @@
       "requires_attribution": false,
       "status": "candidate",
       "notes": "CC0 modular car source with thousands of possible body-part combinations; useful for visual vehicle variety from one lightweight library."
+    },
+    {
+      "id": "donte_rain_particle",
+      "role": "weather_rain_vfx_candidate",
+      "source_url": "https://opengameart.org/content/rain-particle-animated",
+      "author": "donte",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Five-frame CC0 animated rain particle; tiny/mobile-friendly source for rain presets."
+    },
+    {
+      "id": "ohyhei_smoke_sprite_sheet",
+      "role": "smoke_vfx_candidate",
+      "source_url": "https://opengameart.org/content/smoke-sprite-sheet",
+      "author": "ohyhei",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 transparent smoke sprite sheet for fires, barrels, muzzle smoke and ambient vents."
+    },
+    {
+      "id": "kenney_smoke_particles_77",
+      "role": "smoke_explosion_flash_vfx_library",
+      "source_url": "https://opengameart.org/content/smoke-particle-assets",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "77 CC0 sprites across black smoke, explosion, flash and white-puff styles."
+    },
+    {
+      "id": "hatmix_animated_steam",
+      "role": "steam_vfx_candidate",
+      "source_url": "https://opengameart.org/content/animated-steam",
+      "author": "hatmix",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "64x64 CC0 steam/smoke animation sheet from 2026; useful for pipes, perk machines and industrial maps."
+    },
+    {
+      "id": "lfa_thick_fog",
+      "role": "fog_texture_candidate",
+      "source_url": "https://opengameart.org/node/3505",
+      "author": "LFA",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "1024x512 horizontally tileable CC0 fog texture for cheap scrolling mist/fog layers."
+    },
+    {
+      "id": "lokif_swamp_environment_audio",
+      "role": "swamp_ambient_audio_candidate",
+      "source_url": "https://opengameart.org/content/swamp-environment-audio",
+      "author": "LokiF",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 swamp/marsh ambience with bugs, atmospheric filler and bubbling/gurgling sounds."
+    },
+    {
+      "id": "cluckfox_rain_thunder",
+      "role": "rain_thunder_audio_candidate",
+      "source_url": "https://cluckfox.itch.io/rain-and-thunder",
+      "author": "cluckfox",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "24-bit 48kHz CC0 rain and thunder recordings; trim/compress to mobile formats."
+    },
+    {
+      "id": "congusbongus_lost_horror_ambience",
+      "role": "dark_horror_ambient_loop_candidate",
+      "source_url": "https://opengameart.org/content/lost-in-a-bad-place-horror-ambience-loop",
+      "author": "congusbongus",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 seamless dark horror ambience loop."
+    },
+    {
+      "id": "beast_smoke_aura",
+      "role": "mystery_energy_smoke_aura_candidate",
+      "source_url": "https://opengameart.org/content/smoke-aura",
+      "author": "Beast",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 seamless swirling smoke/aura sheets in multiple frame counts; useful for Mystery Box, teleport, perk/powerup and dog-spawn effects after recoloring."
     }
   ]
 }
