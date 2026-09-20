@@ -1,6 +1,7 @@
 #include "vulkan_clear_renderer.hpp"
 
 #include <android/log.h>
+#include <swappy/swappyVk.h>
 
 #include <algorithm>
 #include <array>
@@ -61,7 +62,9 @@ VulkanClearRenderer::~VulkanClearRenderer() {
 
 bool VulkanClearRenderer::initialize(
     ANativeWindow* window,
-    AAssetManager* assetManager) noexcept {
+    AAssetManager* assetManager,
+    JNIEnv* env,
+    jobject javaActivity) noexcept {
     shutdown();
 
     if (window == nullptr || assetManager == nullptr) {
@@ -71,6 +74,8 @@ bool VulkanClearRenderer::initialize(
 
     window_ = window;
     assetManager_ = assetManager;
+    jniEnv_ = env;
+    javaActivity_ = javaActivity;
     ANativeWindow_acquire(window_);
 
     if (!createInstance() ||
@@ -174,6 +179,10 @@ void VulkanClearRenderer::shutdown() noexcept {
     }
 
     assetManager_ = nullptr;
+    jniEnv_ = nullptr;
+    javaActivity_ = nullptr;
+    refreshDurationNs_ = 0;
+    swappyInitialized_ = false;
     depthFormat_ = VK_FORMAT_UNDEFINED;
     frameIndex_ = 0;
 }
@@ -308,9 +317,13 @@ bool VulkanClearRenderer::drawFrame(
         &imageIndex;
 
     result =
-        vkQueuePresentKHR(
-            graphicsQueue_,
-            &present);
+        swappyInitialized_
+        ? SwappyVk_queuePresent(
+              graphicsQueue_,
+              &present)
+        : vkQueuePresentKHR(
+              graphicsQueue_,
+              &present);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR ||
         result == VK_SUBOPTIMAL_KHR ||
@@ -537,10 +550,113 @@ bool VulkanClearRenderer::createDevice() noexcept {
     queueInfo.pQueuePriorities =
         &priority;
 
-    constexpr std::array<const char*, 1>
-        extensions{
-            VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-        };
+    std::uint32_t availableExtensionCount = 0;
+    if (!ok(
+            vkEnumerateDeviceExtensionProperties(
+                physicalDevice_,
+                nullptr,
+                &availableExtensionCount,
+                nullptr))) {
+        logError("device extension count query failed");
+        return false;
+    }
+
+    std::vector<VkExtensionProperties>
+        availableExtensions(
+            availableExtensionCount);
+
+    if (availableExtensionCount > 0 &&
+        !ok(
+            vkEnumerateDeviceExtensionProperties(
+                physicalDevice_,
+                nullptr,
+                &availableExtensionCount,
+                availableExtensions.data()))) {
+        logError("device extension list query failed");
+        return false;
+    }
+
+    std::uint32_t swappyExtensionCount = 0;
+    SwappyVk_determineDeviceExtensions(
+        physicalDevice_,
+        availableExtensionCount,
+        availableExtensions.empty()
+            ? nullptr
+            : availableExtensions.data(),
+        &swappyExtensionCount,
+        nullptr);
+
+    std::vector<std::array<
+        char,
+        VK_MAX_EXTENSION_NAME_SIZE + 1U>>
+        swappyExtensionStorage(
+            swappyExtensionCount);
+
+    std::vector<char*>
+        swappyExtensionNames(
+            swappyExtensionCount);
+
+    for (std::uint32_t i = 0;
+         i < swappyExtensionCount;
+         ++i) {
+        swappyExtensionStorage[i].fill('\0');
+        swappyExtensionNames[i] =
+            swappyExtensionStorage[i].data();
+    }
+
+    if (swappyExtensionCount > 0) {
+        std::uint32_t requestedCount =
+            swappyExtensionCount;
+
+        SwappyVk_determineDeviceExtensions(
+            physicalDevice_,
+            availableExtensionCount,
+            availableExtensions.data(),
+            &requestedCount,
+            swappyExtensionNames.data());
+
+        swappyExtensionCount =
+            std::min(
+                swappyExtensionCount,
+                requestedCount);
+    }
+
+    std::vector<const char*>
+        enabledExtensions;
+    enabledExtensions.reserve(
+        static_cast<std::size_t>(
+            swappyExtensionCount) + 1U);
+
+    enabledExtensions.push_back(
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+
+    for (std::uint32_t i = 0;
+         i < swappyExtensionCount;
+         ++i) {
+        const char* name =
+            swappyExtensionNames[i];
+
+        if (name == nullptr ||
+            name[0] == '\0') {
+            continue;
+        }
+
+        bool duplicate = false;
+        for (const char* existing :
+             enabledExtensions) {
+            if (std::strcmp(
+                    existing,
+                    name) == 0) {
+                duplicate = true;
+                break;
+            }
+        }
+
+        if (!duplicate) {
+            enabledExtensions.push_back(
+                name);
+        }
+    }
 
     VkDeviceCreateInfo createInfo{
         VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO
@@ -550,9 +666,9 @@ bool VulkanClearRenderer::createDevice() noexcept {
         &queueInfo;
     createInfo.enabledExtensionCount =
         static_cast<std::uint32_t>(
-            extensions.size());
+            enabledExtensions.size());
     createInfo.ppEnabledExtensionNames =
-        extensions.data();
+        enabledExtensions.data();
 
     const VkResult result =
         vkCreateDevice(
@@ -572,7 +688,17 @@ bool VulkanClearRenderer::createDevice() noexcept {
         0,
         &graphicsQueue_);
 
-    return graphicsQueue_ != VK_NULL_HANDLE;
+    if (graphicsQueue_ == VK_NULL_HANDLE) {
+        logError("vkGetDeviceQueue returned null");
+        return false;
+    }
+
+    SwappyVk_setQueueFamilyIndex(
+        device_,
+        graphicsQueue_,
+        graphicsQueueFamily_);
+
+    return true;
 }
 
 bool VulkanClearRenderer::chooseSurfaceFormat(
@@ -817,6 +943,59 @@ bool VulkanClearRenderer::createSwapchain() noexcept {
         swapchainImages_.size(),
         VK_NULL_HANDLE);
 
+    (void) initializeFramePacing();
+
+    return true;
+}
+
+bool VulkanClearRenderer::initializeFramePacing() noexcept {
+    swappyInitialized_ = false;
+    refreshDurationNs_ = 0;
+
+    if (jniEnv_ == nullptr ||
+        javaActivity_ == nullptr ||
+        physicalDevice_ == VK_NULL_HANDLE ||
+        device_ == VK_NULL_HANDLE ||
+        swapchain_ == VK_NULL_HANDLE ||
+        window_ == nullptr) {
+        logInfo("Swappy unavailable; using direct Vulkan present");
+        return false;
+    }
+
+    const bool initialized =
+        SwappyVk_initAndGetRefreshCycleDuration(
+            jniEnv_,
+            javaActivity_,
+            physicalDevice_,
+            device_,
+            swapchain_,
+            &refreshDurationNs_);
+
+    if (!initialized ||
+        refreshDurationNs_ == 0) {
+        logInfo("Swappy init failed; using direct Vulkan present");
+        refreshDurationNs_ = 0;
+        return false;
+    }
+
+    SwappyVk_setWindow(
+        device_,
+        swapchain_,
+        window_);
+
+    SwappyVk_setAutoSwapInterval(true);
+    SwappyVk_setAutoPipelineMode(true);
+
+    // Begin at the native display cadence. Swappy may adapt the interval when
+    // sustained frame cost requires it. RuntimePolicy will later choose
+    // deliberate 60/90/120 targets.
+    SwappyVk_setSwapIntervalNS(
+        device_,
+        swapchain_,
+        refreshDurationNs_);
+
+    swappyInitialized_ = true;
+    logInfo("XZIEL_SWAPPY_READY");
     return true;
 }
 
@@ -1662,6 +1841,14 @@ void VulkanClearRenderer::destroySwapchainResources() noexcept {
     }
 
     if (swapchain_ != VK_NULL_HANDLE) {
+        if (swappyInitialized_) {
+            SwappyVk_destroySwapchain(
+                device_,
+                swapchain_);
+            swappyInitialized_ = false;
+            refreshDurationNs_ = 0;
+        }
+
         vkDestroySwapchainKHR(
             device_,
             swapchain_,
