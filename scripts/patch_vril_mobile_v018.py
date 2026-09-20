@@ -581,7 +581,7 @@ action_glyph = r'''static qboolean Xziel_DrawActionGlyph(int cx, int cy, int rad
 }'''
 htext = replace_function(htext, "static qboolean Xziel_DrawActionGlyph(int cx, int cy, int radius,", action_glyph)
 
-touch_button = r'''static void Xziel_DrawTouchButton(float nx, float ny, float nr,
+touch_button = r'''static void Xziel_DrawTouchButton(float nx, float ny, float radius_h,
 	const char *label1, const char *label2, qboolean pressed, qboolean editor)
 {
 	float local_scale, local_opacity;
@@ -590,7 +590,7 @@ touch_button = r'''static void Xziel_DrawTouchButton(float nx, float ny, float n
 	int radius;
 	int alpha;
 	Xziel_ControlStyle(label1, label2, &local_scale, &local_opacity);
-	radius = (int)(nr * vid.height * xziel_mobile_hud_scale.value * local_scale);
+	radius = (int)(radius_h * vid.height * xziel_mobile_hud_scale.value * local_scale);
 	if (radius < 10) radius = 10;
 	alpha = (int)((pressed ? 98 : 68) * xziel_mobile_hud_opacity.value * local_opacity);
 	if (editor) alpha = (int)(110 * xziel_mobile_hud_opacity.value * local_opacity);
@@ -603,7 +603,7 @@ touch_button = r'''static void Xziel_DrawTouchButton(float nx, float ny, float n
 			255,255,255,(int)(230*local_opacity),vid.scale);
 	}
 }'''
-htext = replace_function(htext, "static void Xziel_DrawTouchButton(float nx, float ny, float nr,", touch_button)
+htext = replace_function(htext, "static void Xziel_DrawTouchButton(float nx, float ny, float radius_h,", touch_button)
 
 weapon_glyph = r'''static void Xziel_DrawWeaponGlyph(int cx, int cy, int id, float scale, int alpha)
 {
@@ -661,6 +661,16 @@ weapon_strip = r'''static void Xziel_DrawWeaponStrip(qboolean editor)
 htext = replace_function(htext, "static void Xziel_DrawWeaponStrip(qboolean editor)", weapon_strip)
 
 mobile_hud = htext[htext.find("static void Xziel_MobileHUD_DrawInternal(qboolean editor)"):]
+# The v0.18 touch renderer takes the editor flag so selected controls can be
+# drawn more clearly. All calls live inside this internal draw function and
+# are single-line calls in the current Vril mobile HUD.
+_mobile_lines = []
+for _line in mobile_hud.splitlines(True):
+    if "Xziel_DrawTouchButton(" in _line and _line.rstrip().endswith(");") and ", editor);" not in _line:
+        _line = _line.replace(");", ", editor);", 1)
+    _mobile_lines.append(_line)
+mobile_hud = "".join(_mobile_lines)
+
 # Patch only joystick radius/alpha expressions in the final mobile HUD function.
 mobile_hud_new = mobile_hud.replace(
     "radius = (int)(0.095f * vid.height * xziel_mobile_hud_scale.value);",
