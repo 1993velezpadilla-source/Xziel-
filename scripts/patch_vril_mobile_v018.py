@@ -607,7 +607,8 @@ touch_button = r'''static void Xziel_DrawTouchButton(float nx, float ny, float r
 			255,255,255,(int)(230*local_opacity),vid.scale);
 	}
 }'''
-htext = replace_function(htext, "static void Xziel_DrawTouchButton(", touch_button)
+# Touch renderer is emitted in final scalable/editor-aware form by
+# patch_vril_weaponhud.py. Do not re-replace it here.
 
 weapon_glyph = r'''static void Xziel_DrawWeaponGlyph(int cx, int cy, int id, float scale, int alpha)
 {
