@@ -231,9 +231,10 @@ def build_xziel_v023_surfaces(out: Path) -> None:
     """Original Xziel mobile FPS surfaces inspired by modern touch shooters."""
     # A clean cartridge icon for the right-fire control.
     fire = '''
-      <g fill="#FFFFFF">
-        <path d="M229 72h54v66l-10 19v214l-17 69-17-69V157l-10-19z"/>
-        <path d="M223 72h66v30h-66z"/>
+      <g transform="rotate(-38 256 256)" fill="#FFFFFF">
+        <path d="M220 74h72v62l-12 18v210l-24 78-24-78V154l-12-18z"/>
+        <rect x="213" y="74" width="86" height="34" rx="5"/>
+        <path d="M232 364h48l-8 40-16 48-16-48z"/>
       </g>
     '''
     # Crisp optic reticle for dedicated ADS.
@@ -251,7 +252,10 @@ def build_xziel_v023_surfaces(out: Path) -> None:
         <path d="M236 72v70M236 342v70M66 242h70M336 242h70" stroke-width="21"/>
         <circle cx="236" cy="242" r="11" fill="#FFFFFF" stroke="none"/>
       </g>
-      <path d="M355 300h36v45l-7 13v83l-11 34-11-34v-83l-7-13z" fill="#F4C83D"/>
+      <g transform="rotate(-35 373 385)" fill="#F4C83D">
+        <path d="M351 298h44v45l-8 14v82l-14 38-14-38v-82l-8-14z"/>
+        <rect x="346" y="298" width="54" height="24" rx="3"/>
+      </g>
     '''
     small_idle = '''
       <circle cx="256" cy="256" r="218" fill="#05080B" fill-opacity=".34"/>
