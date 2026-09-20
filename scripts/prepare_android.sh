@@ -32,9 +32,10 @@ PY
 echo "==> Patching Vril for Android GLES2 through GL4ES"
 python3 "$ROOT/scripts/patch_vril_android.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_weaponhud.py" "$DEPS/vril"
+python3 "$ROOT/scripts/patch_vril_mobile_v018.py" "$DEPS/vril"
 
 echo "==> Patching and compiling Xziel mobile QuakeC"
-python3 -m pip install --quiet colorama==0.4.6 fastcrc==0.3.0 pandas==2.1.4
+python3 -m pip install --quiet colorama==0.4.6 fastcrc==0.3.0 pandas==2.1.4 cairosvg==2.8.2
 python3 "$ROOT/scripts/patch_quakec_mobile.py" "$DEPS/quakec"
 chmod +x "$DEPS/quakec/bin/fteqcc-cli-lin" "$DEPS/quakec/tools/qc-compiler-gnu.sh"
 (
@@ -86,6 +87,11 @@ curl -fL --retry 6 --retry-delay 2 --retry-all-errors     https://github.com/nzp
 unzip -q "$DOWNLOADS/pc-nzp-assets.zip" -d "$ASSET_WORK"
 mkdir -p "$ASSET_WORK/nzp"
 unzip -q "$DOWNLOADS/standard-nzp-qc.zip" -d "$ASSET_WORK/nzp"
+
+# Xziel mobile HUD art comes from a pinned CC0 icon pack and is rasterized at
+# build time. This keeps the repository text-only while packaging professional
+# touch-control art into the APK.
+python3 "$ROOT/scripts/build_xziel_icons.py" "$ASSET_WORK/nzp/gfx/xziel"
 
 # Replace the stock gameplay bytecode with our GPL QuakeC build. All other
 # release-side data stays from the official NZ:P package.
