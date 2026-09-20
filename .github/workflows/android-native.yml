@@ -11,6 +11,10 @@ on:
       - "scripts/**"
       - "README.md"
 
+concurrency:
+  group: xziel-android-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
