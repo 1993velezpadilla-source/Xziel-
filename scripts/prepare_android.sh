@@ -31,6 +31,7 @@ PY
 
 echo "==> Patching Vril for Android GLES2 through GL4ES"
 python3 "$ROOT/scripts/patch_vril_android.py" "$DEPS/vril"
+python3 "$ROOT/scripts/patch_vril_weaponhud.py" "$DEPS/vril"
 
 echo "==> Patching and compiling Xziel mobile QuakeC"
 python3 "$ROOT/scripts/patch_quakec_mobile.py" "$DEPS/quakec"
