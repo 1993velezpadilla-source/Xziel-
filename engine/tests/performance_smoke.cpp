@@ -20,8 +20,11 @@ int main() {
     }
     assert(workload.renderScale < 0.92f);
     assert(workload.particleDensityScale < 0.82f);
+    assert(workload.maxPlanarReflectionPasses <= 1);
+    assert(workload.ssrMaxSteps <= 24);
 
-    // Critical thermal state immediately enforces the low ceiling.
+    // Critical thermal state immediately enforces the low ceiling and turns
+    // off the expensive reflection paths before touching gameplay.
     workload = governor.advance(
         {
             .cpuFrameMs = 12.0f,
@@ -32,6 +35,9 @@ int main() {
     assert(workload.quality == xziel::RenderQuality::Low);
     assert(workload.dynamicLightBudget == 4);
     assert(workload.shadowedLightBudget == 1);
+    assert(workload.maxPlanarReflectionPasses == 0);
+    assert(!workload.ssrEnabled);
+    assert(workload.volumetricFogSteps == 8);
 
     governor.reset();
 
@@ -42,6 +48,9 @@ int main() {
             1.0f / 60.0f);
     }
     assert(workload.quality == xziel::RenderQuality::Ultra);
+    assert(workload.maxPlanarReflectionPasses == 2);
+    assert(workload.ssrEnabled);
+    assert(workload.ssrMaxSteps == 40);
 
     return 0;
 }
