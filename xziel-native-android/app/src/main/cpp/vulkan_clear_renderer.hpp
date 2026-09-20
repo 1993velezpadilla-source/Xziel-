@@ -1,0 +1,81 @@
+#pragma once
+
+#include <android/native_window.h>
+#include <vulkan/vulkan.h>
+
+#include <cstdint>
+#include <vector>
+
+namespace xziel::android {
+
+class VulkanClearRenderer final {
+public:
+    VulkanClearRenderer() = default;
+    ~VulkanClearRenderer();
+
+    VulkanClearRenderer(const VulkanClearRenderer&) = delete;
+    VulkanClearRenderer& operator=(const VulkanClearRenderer&) = delete;
+
+    [[nodiscard]] bool initialize(ANativeWindow* window) noexcept;
+    void shutdown() noexcept;
+
+    [[nodiscard]] bool drawFrame(float timeSeconds) noexcept;
+    [[nodiscard]] bool ready() const noexcept;
+
+private:
+    struct FrameSync {
+        VkSemaphore imageAvailable = VK_NULL_HANDLE;
+        VkSemaphore renderFinished = VK_NULL_HANDLE;
+        VkFence inFlight = VK_NULL_HANDLE;
+    };
+
+    [[nodiscard]] bool createInstance() noexcept;
+    [[nodiscard]] bool createSurface(ANativeWindow* window) noexcept;
+    [[nodiscard]] bool selectPhysicalDevice() noexcept;
+    [[nodiscard]] bool createDevice() noexcept;
+    [[nodiscard]] bool createSwapchain() noexcept;
+    [[nodiscard]] bool createRenderPass() noexcept;
+    [[nodiscard]] bool createImageViewsAndFramebuffers() noexcept;
+    [[nodiscard]] bool createCommandResources() noexcept;
+    [[nodiscard]] bool createSyncObjects() noexcept;
+
+    void destroySwapchainResources() noexcept;
+
+    [[nodiscard]] bool recreateSwapchain() noexcept;
+    [[nodiscard]] bool recordClearCommand(
+        std::uint32_t imageIndex,
+        float timeSeconds) noexcept;
+
+    [[nodiscard]] bool chooseSurfaceFormat(
+        VkSurfaceFormatKHR& out) const noexcept;
+
+    VkInstance instance_ = VK_NULL_HANDLE;
+    VkSurfaceKHR surface_ = VK_NULL_HANDLE;
+    VkPhysicalDevice physicalDevice_ = VK_NULL_HANDLE;
+    VkDevice device_ = VK_NULL_HANDLE;
+
+    std::uint32_t graphicsQueueFamily_ = UINT32_MAX;
+    VkQueue graphicsQueue_ = VK_NULL_HANDLE;
+
+    VkSwapchainKHR swapchain_ = VK_NULL_HANDLE;
+    VkFormat swapchainFormat_ = VK_FORMAT_UNDEFINED;
+    VkExtent2D swapchainExtent_{};
+
+    VkRenderPass renderPass_ = VK_NULL_HANDLE;
+    VkCommandPool commandPool_ = VK_NULL_HANDLE;
+
+    std::vector<VkImage> swapchainImages_;
+    std::vector<VkImageView> imageViews_;
+    std::vector<VkFramebuffer> framebuffers_;
+    std::vector<VkCommandBuffer> commandBuffers_;
+    std::vector<VkFence> imageFences_;
+
+    static constexpr std::uint32_t kFramesInFlight = 2;
+    FrameSync frames_[kFramesInFlight]{};
+    std::uint32_t frameIndex_ = 0;
+
+    ANativeWindow* window_ = nullptr;
+    bool initialized_ = false;
+};
+
+} // namespace xziel::android
