@@ -5346,3 +5346,23 @@ mtext = xziel_replace_c_function(
     aim_menu_func
 )
 controls.write_text(mtext, encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# v0.10.1 compile-order correction
+# ---------------------------------------------------------------------------
+sys_sdl = source / "platform" / "sdl" / "sys_sdl.c"
+text = sys_sdl.read_text(encoding="utf-8")
+
+proto_anchor = "static void Xziel_UpdateMobileFire(void)\n"
+proto_block = """static qboolean Xziel_WeaponCanAdsMobile(void);
+static qboolean Xziel_AdsReadyForFire(void);
+
+"""
+if proto_block not in text:
+    idx = text.find(proto_anchor)
+    if idx < 0:
+        raise SystemExit("Could not find mobile fire updater for v0.10.1 prototypes")
+    text = text[:idx] + proto_block + text[idx:]
+
+sys_sdl.write_text(text, encoding="utf-8")
