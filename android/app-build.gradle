@@ -9,8 +9,8 @@ android {
         applicationId "com.xziel.nzp"
         minSdkVersion 23
         targetSdkVersion 35
-        versionCode 16
-        versionName "0.16-input-menu-polish"
+        versionCode 17
+        versionName "0.17-weapon-strip"
 
         externalNativeBuild {
             ndkBuild {
