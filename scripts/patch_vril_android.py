@@ -7372,3 +7372,166 @@ elif held_only not in htext:
     raise SystemExit("Could not find v0.14 sprint icon visibility block")
 
 hud.write_text(htext, encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# Xziel Android universal sprint-cancels-ADS pass v0.15
+# Sprint activation always exits every mobile/native ADS path before requesting
+# native sprint. Stamina/sprint duration/recovery remain fully native.
+# ---------------------------------------------------------------------------
+sys_sdl = source / "platform" / "sdl" / "sys_sdl.c"
+text = sys_sdl.read_text(encoding="utf-8")
+
+force_ads_helper = r'''
+static void Xziel_ForceExitAdsForSprint(void)
+{
+	qboolean had_hold_aim =
+		xziel_aim_refs > 0 ||
+		xziel_adsfire_temp_aim ||
+		xziel_marksman_sticky_ads;
+
+	/* Sprint cancels any prepared/active ADS+FIRE shot rather than allowing
+	   a delayed shot to escape after the player has committed to running. */
+	if (xziel_adsfire_attack_engaged) {
+		Xziel_SetAttackRef(false);
+		xziel_adsfire_attack_engaged = false;
+	}
+	if (xziel_release_shot_active) {
+		Xziel_SetAttackRef(false);
+		xziel_release_shot_active = false;
+		xziel_release_shot_aimout_pending = false;
+	}
+
+	xziel_adsfire_release_pending = false;
+	xziel_adsfire_release_requested = false;
+	xziel_adsfire_ads_seen = false;
+	xziel_adsfire_cancelled = true;
+	xziel_mobile_restore_ads_after_reload = false;
+	xziel_mobile_reload_animation_seen = false;
+
+	/* Temporary ADS+FIRE and sticky marksman ADS both own +aim references. */
+	Xziel_FinishTemporaryAdsFireAim();
+	Xziel_ClearMarksmanStickyAds();
+
+	/* Dedicated HOLD ADS may own an additional +aim reference. Release every
+	   remaining mobile aim reference so holding ADS cannot block sprint. */
+	while (xziel_aim_refs > 0)
+		Xziel_QueueHold("+aim\n", "-aim\n", &xziel_aim_refs, false);
+
+	/* Dedicated TOGGLE ADS is not reference-counted; toggle it out explicitly.
+	   If the engine is ADS for some residual path that mobile state no longer
+	   owns, use the same native impulse as a final fallback. */
+	if (xziel_mobile_ads_latched) {
+		Cbuf_AddText("impulse 26\n");
+		xziel_mobile_ads_latched = false;
+	} else if (!had_hold_aim &&
+		(cl.stats[STAT_ZOOM] == 1 || cl.stats[STAT_ZOOM] == 2)) {
+		Cbuf_AddText("impulse 26\n");
+	}
+
+	/* A finger may still physically be resting on ADS; the existing touch slot
+	   can release later without re-arming because refs/latch are already zero. */
+	xziel_mobile_ads_pressed = false;
+	Cbuf_Execute();
+}
+'''
+
+if "static void Xziel_ForceExitAdsForSprint(void)" not in text:
+    anchor = "static void Xziel_CancelAdsFireForSprint(void)\n"
+    idx = text.find(anchor)
+    if idx < 0:
+        raise SystemExit("Could not find sprint ADS cancellation helper anchor")
+    text = text[:idx] + force_ads_helper + "\n" + text[idx:]
+
+move_func = r'''static void Xziel_UpdateMove(float x, float y)
+{
+	float raw_dx, raw_dy, dx, dy, len, radius_x, radius_y;
+	float sprint_zone;
+	Uint32 now = SDL_GetTicks();
+
+	radius_x = 0.16f * ((float)vid.height / (float)vid.width);
+	radius_y = 0.16f;
+	raw_dx = (x - xziel_mobile_move_anchor_x) / radius_x;
+	raw_dy = (xziel_mobile_move_anchor_y - y) / radius_y;
+
+	dx = raw_dx;
+	dy = raw_dy;
+	len = sqrtf(dx * dx + dy * dy);
+
+	if (len < 0.10f) {
+		xziel_mobile_move_x = 0.0f;
+		xziel_mobile_move_y = 0.0f;
+		xziel_mobile_sprint_zone_hot = false;
+		if (xziel_mobile_sprint_active || cl.stats[STAT_ZOOM] == 3) {
+			Cbuf_AddText("impulse 24\n");
+			Cbuf_Execute();
+		}
+		xziel_mobile_sprint_active = false;
+		xziel_mobile_sprint_suppressed = false;
+		xziel_mobile_sprint_retry_ms = 0;
+		return;
+	}
+
+	if (len > 1.0f) {
+		dx /= len;
+		dy /= len;
+	}
+
+	xziel_mobile_move_x = dx;
+	xziel_mobile_move_y = dy;
+
+	sprint_zone = xziel_mobile_sprint_zone.value;
+	if (sprint_zone < 1.10f) sprint_zone = 1.10f;
+	if (sprint_zone > 1.85f) sprint_zone = 1.85f;
+
+	xziel_mobile_sprint_zone_hot =
+		raw_dy >= sprint_zone &&
+		fabsf(raw_dx) <= raw_dy * 0.70f;
+
+	if (xziel_mobile_sprint_zone_hot) {
+		if (!xziel_mobile_sprint_suppressed) {
+			/* Universal mobile rule: committing the movement thumb to the
+			   sprint target always exits ADS first, regardless of weapon class
+			   or whether ADS came from Hold, Toggle, ADS+FIRE, sticky marksman,
+			   sniper scope, or a residual native zoom state. */
+			if (cl.stats[STAT_ZOOM] == 1 ||
+				cl.stats[STAT_ZOOM] == 2 ||
+				xziel_aim_refs > 0 ||
+				xziel_adsfire_release_pending ||
+				xziel_adsfire_release_requested ||
+				xziel_adsfire_attack_engaged ||
+				xziel_adsfire_temp_aim ||
+				xziel_release_shot_active ||
+				xziel_marksman_sticky_ads ||
+				xziel_mobile_ads_latched) {
+				Xziel_ForceExitAdsForSprint();
+			}
+
+			/* Native NZ:P remains authoritative for stamina and whether sprint
+			   is currently allowed. Retry only while the thumb deliberately
+			   stays inside the configured sprint target. */
+			if (cl.stats[STAT_ZOOM] != 3 && now >= xziel_mobile_sprint_retry_ms) {
+				Cbuf_AddText("impulse 23\n");
+				Cbuf_Execute();
+				xziel_mobile_sprint_retry_ms = now + 120;
+			}
+			xziel_mobile_sprint_active = true;
+		}
+	} else {
+		if (xziel_mobile_sprint_active || cl.stats[STAT_ZOOM] == 3) {
+			Cbuf_AddText("impulse 24\n");
+			Cbuf_Execute();
+		}
+		xziel_mobile_sprint_active = false;
+		xziel_mobile_sprint_suppressed = false;
+		xziel_mobile_sprint_retry_ms = 0;
+	}
+}'''
+
+text = xziel_replace_c_function(
+    text,
+    "static void Xziel_UpdateMove(float x, float y)",
+    move_func
+)
+
+sys_sdl.write_text(text, encoding="utf-8")
