@@ -54,7 +54,9 @@ if "xziel_weapon1_id" not in text:
 custom.write_text(text, encoding="utf-8")
 
 # ---------------------------------------------------------------------------
-# Inventory rules: optional third slot without requiring Mule Kick.
+# Inventory rules: preserve classic Zombies capacity.
+# Two normal weapon slots by default; Mule Kick unlocks the third.
+# Unlimited pistol is an ammo behavior only and never creates a hidden slot.
 # ---------------------------------------------------------------------------
 util = root / "source/server/utilities/weapon_utilities.qc"
 text = util.read_text(encoding="utf-8")
@@ -97,7 +99,7 @@ text = text.replace(
         weapon_slots = MULEKICK_WEAPON_SLOT;
     else
         weapon_slots = MULEKICK_WEAPON_SLOT - 1;''',
-'''    if ((self.perks & P_MULE) || cvar("xziel_mobile_unlimited_pistol") >= 0.5)
+'''    if ((self.perks & P_MULE))
         weapon_slots = MULEKICK_WEAPON_SLOT;
     else
         weapon_slots = MULEKICK_WEAPON_SLOT - 1;''',
