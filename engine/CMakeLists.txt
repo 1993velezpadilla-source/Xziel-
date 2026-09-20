@@ -21,6 +21,7 @@ add_library(xziel_engine STATIC
     src/haptics.cpp
     src/frame_telemetry.cpp
     src/runtime_policy.cpp
+    src/renderer_watchdog.cpp
 )
 
 target_include_directories(xziel_engine
@@ -121,4 +122,9 @@ if(XZIEL_ENGINE_BUILD_TESTS)
     target_link_libraries(xziel_spsc_queue_smoke PRIVATE xziel_engine)
     target_compile_features(xziel_spsc_queue_smoke PRIVATE cxx_std_20)
     add_test(NAME xziel_spsc_queue_smoke COMMAND xziel_spsc_queue_smoke)
+
+    add_executable(xziel_renderer_watchdog_smoke tests/renderer_watchdog_smoke.cpp)
+    target_link_libraries(xziel_renderer_watchdog_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_renderer_watchdog_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_renderer_watchdog_smoke COMMAND xziel_renderer_watchdog_smoke)
 endif()
