@@ -50,6 +50,30 @@ jobs:
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER"             "platform-tools"             "platforms;android-36.1"             "build-tools;36.0.0"             "ndk;28.2.13676358"             "cmake;3.22.1"
 
+      - name: Compile Xziel GLSL to SPIR-V assets
+        working-directory: xziel-native-android
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          GLSLC="$(find "${ANDROID_HOME}/ndk/28.2.13676358" -type f -name glslc -perm -111 | head -n 1)"
+          test -n "$GLSLC"
+
+          mkdir -p app/src/main/assets/shaders
+
+          "$GLSLC"             -O             -fshader-stage=vert             app/src/main/shaders/xziel_first.vert             -o app/src/main/assets/shaders/xziel_first.vert.spv
+
+          "$GLSLC"             -O             -fshader-stage=frag             app/src/main/shaders/xziel_first.frag             -o app/src/main/assets/shaders/xziel_first.frag.spv
+
+          test -s app/src/main/assets/shaders/xziel_first.vert.spv
+          test -s app/src/main/assets/shaders/xziel_first.frag.spv
+
+          SPIRV_VAL="$(find "${ANDROID_HOME}/ndk/28.2.13676358" -type f -name spirv-val -perm -111 | head -n 1 || true)"
+          if [[ -n "$SPIRV_VAL" ]]; then
+            "$SPIRV_VAL" app/src/main/assets/shaders/xziel_first.vert.spv
+            "$SPIRV_VAL" app/src/main/assets/shaders/xziel_first.frag.spv
+          fi
+
       - name: Build Xziel GameActivity Vulkan APK
         working-directory: xziel-native-android
         shell: bash
