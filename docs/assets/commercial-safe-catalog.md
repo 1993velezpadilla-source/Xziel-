@@ -424,3 +424,140 @@ Use: puddles, wet gore, rain layers and creature/slime Foley.
 - **AI-QA REQUIRED** means the source license is permissive but every chosen model must be manually inspected for geometry, visual coherence, accidental resemblance/IP issues, UV/material quality and mobile cost.
 - Prefer fictional weapons over close copies of branded real firearms for the future original commercial game.
 - A model being CC0 does not automatically mean its visual design is free of third-party trademark/design-patent concerns; do a final release audit.
+
+
+---
+
+## Deep-search expansion — pass 3: attribution, audio, UI
+
+## Attribution-required commercial candidates
+
+### Tony Flanagan — free animated zombie series — GREEN / ATTRIBUTION REQUIRED
+Fab seller search: https://www.fab.com/sellers/Tony%20Flanagan?q=zombies  
+Examples include Zombie Number 1–10, male/female zombies and a crawling zombie. Multiple listings are free and rigged/animated. Number 4 reports 23 animations + T-pose; several others report 12 animations + T-pose.  
+Independent shipped-project attribution records identify Zombie Number 3 and Zombie Number 8 as **CC BY 4.0** by Tony Flanagan.  
+Use: strong free variety pool with real animation coverage. Preserve creator attribution and verify the exact license attached to each downloaded model.
+
+### Sketchfab — Aiden Studios Zombie (Rigged & Animated) — GREEN / ATTRIBUTION REQUIRED
+Source: https://sketchfab.com/3d-models/zombie-rigged-animated-131688807ad444609ed9b2ed572dc4aa  
+License shown: CC Attribution.  
+~19.5k triangles / ~9.8k vertices; idle, walk and attack animations plus facial/body blendshapes.  
+Use: good modern-ish topology target within the approximate mobile LOD0 range; attribution required.
+
+### Sketchfab — Gowo.Stoyanov Zombie — GREEN / ATTRIBUTION REQUIRED
+Source: https://sketchfab.com/3d-models/zombie-95ea4fdb12314e3f96963a0c99fe4f4d  
+License shown: CC Attribution.  
+Rigged/game-ready but ~75.9k triangles, so it needs aggressive LOD/retopo for mobile.  
+Use: higher-detail visual reference/source, not a direct common-enemy runtime mesh.
+
+## Fab candidates to acquire under verified terms
+
+### Hotstrike Studio — Stylized Dark Fantasy Zombie — VERIFY / EMBED ONLY
+Source: https://www.fab.com/listings/685ab2d1-8085-4a1a-95aa-10fde20ff772  
+Currently shown as Free. 8,286 tris, one material, 2k PBR textures, humanoid/Mecanim rig, FBX + Blend plus converted formats.  
+Use: excellent low-cost rigged candidate after confirming the acquisition license in the user's Fab library. If acquired under Fab Standard, commercial project use/modification is allowed but raw standalone redistribution is not.
+
+### Fab — Zombies Modular Four Pack — VERIFY / EMBED ONLY
+Source: https://www.fab.com/listings/1761fc07-b493-4b05-83dc-fe90fde46d4d  
+Research page reports 8 skinned zombies, 34 animations, dismembered limbs, gore/dismemberment masks, ragdolls/physics and LODs down to very low-poly meshes.  
+Use: benchmark for the exact runtime feature set Xziel wants; only ingest if the acquired license/price terms are acceptable.
+
+### Fab — Dismemberable Zombie Pack 01 — VERIFY / EMBED ONLY
+Source: https://www.fab.com/listings/dc8cb28c-6f61-47bf-b1fb-a4cdfdda1f43  
+UE5 Epic-skeleton characters, bone-break/dismemberment system and ARKit 52 blendshapes.  
+Use: dismemberment architecture benchmark; not classified free from current research.
+
+### Fab — Dismemberment Gore System — VERIFY / EMBED ONLY
+Source: https://www.fab.com/listings/d1dd22c2-d42f-4db2-9646-fe9c4e818acc  
+Includes a rigged/animated zombie, 77 dismemberment parts, blood masks, particles/decals and an animated shotgun.  
+Use: feature benchmark, not a free/open source assumption.
+
+Fab Standard License reference: https://www.fab.com/eula  
+Fab states Standard assets may be commercially used, modified and distributed inside Projects, but may not be redistributed standalone.
+
+## Audio — commercial-safe/open
+
+### OpenGameArt — Zombies Sound Pack — GREEN
+Source: https://opengameart.org/content/zombies-sound-pack  
+License: CC0.  
+24 WAV zombie sounds covering undead combat/vocal use.
+
+### OpenGameArt — Zombie noises and moans — GREEN
+Source: https://opengameart.org/content/zombie-noises-and-moans  
+License: CC0.  
+Use: extra variation for proximity/alert/damage vocal pools.
+
+### OpenGameArt — The Free Firearm Sound Library — GREEN
+Source: https://opengameart.org/content/the-free-firearm-sound-library  
+License: CC0.  
+Broad real firearm recording library.  
+Use: source layers for original weapon sound design; process/layer rather than ship every recording dry.
+
+### OpenGameArt — Gunshot Sounds — GREEN
+Source: https://opengameart.org/content/gunshot-sounds  
+License: CC0.  
+Pistol/rifle/SKS/shotgun recordings.
+
+### OpenGameArt — 100 CC0 metal and wood SFX — GREEN
+Source: https://opengameart.org/content/100-cc0-metal-and-wood-sfx  
+License: CC0.  
+Doors, hits, breaking, locks, tools, falling, squeaks and impacts.
+
+### OpenGameArt — 100 CC0 SFX — GREEN
+Source: https://opengameart.org/content/100-cc0-sfx  
+License: CC0.  
+Doors, glass, metal, splashes, shots, switches, tools and general interaction sounds.
+
+### OpenGameArt — Metal footsteps on concrete — GREEN
+Source: https://opengameart.org/content/metal-footsteps-on-concrete  
+License: CC0.  
+25 recorded footsteps, 48 kHz / 24-bit download.
+
+### OpenGameArt — Impact — GREEN
+Source: https://opengameart.org/content/impact  
+License: CC0.  
+Wood/metal/stone/meat/flesh/wet impacts useful for material-aware melee and bullet hit systems.
+
+### OpenGameArt — Rain and thunders — GREEN
+Source: https://opengameart.org/content/rain-and-thunders  
+License: CC0.  
+Dark rain/thunder ambience.
+
+### OpenGameArt — Ambient horror — GREEN
+Source: https://opengameart.org/content/ambient-horror  
+License: CC0.
+
+### OpenGameArt — A lurking evil — GREEN
+Source: https://opengameart.org/content/a-lurking-evil-horror-ambience  
+License: CC0. Heartbeat/subtle-piano horror ambience.
+
+### OpenGameArt — Abandoned passages — GREEN
+Source: https://opengameart.org/content/abandoned-passages-horror-ambience-loop  
+License: CC0. Seamless dark cramped-space ambience.
+
+### OpenGameArt — Lost in a bad place — GREEN
+Source: https://opengameart.org/content/lost-in-a-bad-place-horror-ambience-loop  
+License: CC0. Seamless dark ambient loop.
+
+## UI / HUD
+
+### Kenney — UI Pack — GREEN
+Source: https://kenney.nl/assets/ui-pack  
+License: CC0. 430 UI files.
+
+### Kenney — Crosshair Pack — GREEN
+Source: https://kenney.nl/assets/crosshair-pack  
+License: CC0. 200 crosshair files at 64x64, including vector/glow additions.  
+Use: source material for a custom Xziel crosshair system, not a reason to make the HUD generic.
+
+### Kenney — Pixel UI Pack — GREEN
+Source: https://kenney.nl/assets/pixel-ui-pack  
+License: CC0. 750 files.
+
+### Kenney — UI Pack Sci-Fi — GREEN
+Source: https://kenney.nl/assets/ui-pack-sci-fi  
+License: CC0. 130 files.
+
+## License note: CC BY is allowed for profit
+
+CC BY assets are commercially usable when their attribution/license requirements are followed. Keep them in the attribution-required bucket rather than rejecting them. NC (NonCommercial) assets remain excluded from the future for-profit game.
