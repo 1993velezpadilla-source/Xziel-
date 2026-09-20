@@ -845,6 +845,86 @@
       "requires_attribution": false,
       "status": "candidate",
       "notes": "155 organic CC0 sounds including glass bottles, corks, coins, keys, vials and cutlery; useful for perks, pickups and props."
+    },
+    {
+      "id": "kenney_city_kit_suburban",
+      "role": "nuketown_suburban_environment_candidate",
+      "source_url": "https://opengameart.org/content/city-kit-suburban",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "40 optimized CC0 suburban buildings/details including fences, trees and driveways; FBX/OBJ/glTF. Strong legal replacement pool for suburban/Nuketown-like props."
+    },
+    {
+      "id": "kenney_city_kit_roads",
+      "role": "roads_signs_traffic_environment_candidate",
+      "source_url": "https://opengameart.org/content/city-kit-roads",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "90 optimized CC0 road assets including barriers, traffic lights and road signs; FBX/OBJ/glTF."
+    },
+    {
+      "id": "burning_barb_prototyping_mannequin",
+      "role": "nuketown_mannequin_candidate",
+      "source_url": "https://burning-barb.itch.io/mannequin",
+      "author": "burning_barb",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 non-AI mannequin with Blender source and glTF; 9.6K tris. Suitable for re-rig/LOD and multiple skins."
+    },
+    {
+      "id": "plaggy_male_mannequin",
+      "role": "nuketown_mannequin_lightweight_candidate",
+      "source_url": "https://opengameart.org/content/mannequin-male",
+      "author": "plaggy",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 male mannequin with ambient-occlusion maps; lightweight alternate for mannequin variety."
+    },
+    {
+      "id": "lyricsz_cc0_car",
+      "role": "suburban_vehicle_candidate",
+      "source_url": "https://opengameart.org/content/3d-car-0",
+      "author": "Lyricsz",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 generic car, 8.9K tris; can be damaged/retextured for abandoned suburban maps."
+    },
+    {
+      "id": "ajanhallinta_cc0_bus",
+      "role": "bus_vehicle_candidate",
+      "source_url": "https://opengameart.org/content/3d-bus",
+      "author": "ajanhallinta",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 bus in Blend/FBX/OBJ. ~14.5K tris as supplied; requires LOD/reduction for mobile hero-prop use."
+    },
+    {
+      "id": "plaggy_wall_clock_3",
+      "role": "nuketown_clock_and_interior_prop_candidate",
+      "source_url": "https://opengameart.org/content/wall-clock-3",
+      "author": "plaggy",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 PBR wall clock, ~1.4K polys; useful for Nuketown-style timing/clock set dressing and interiors."
+    },
+    {
+      "id": "demonio_puerto_modular_cars",
+      "role": "vehicle_variety_library_candidate",
+      "source_url": "https://opengameart.org/content/modular-car",
+      "author": "DemonioPuerto",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 modular car source with thousands of possible body-part combinations; useful for visual vehicle variety from one lightweight library."
     }
   ]
 }
