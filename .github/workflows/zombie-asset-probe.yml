@@ -1,0 +1,74 @@
+name: Probe CC0 Zombie Pack
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/zombie-asset-probe.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-cc0-pack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Download CC0 Male City Zombie
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq p7zip-full
+          mkdir -p probe/source probe/out
+          curl -fL --retry 5 --retry-delay 2             "https://opengameart.org/sites/default/files/Male%20City%20Zombie.7z"             -o probe/source/male-city-zombie.7z
+          7z l probe/source/male-city-zombie.7z | tee probe/out/archive-list.txt
+          7z x -y probe/source/male-city-zombie.7z -oprobe/extracted >/dev/null
+          find probe/extracted -type f -printf '%P\t%s bytes\n' | sort | tee probe/out/files.txt
+          find probe/extracted -type f -print0 | xargs -0 file | tee probe/out/file-types.txt
+          {
+            echo "Source: OpenGameArt Male City Zombie"
+            echo "License: CC0"
+            echo "Retrieved: $(date -u +%FT%TZ)"
+            sha256sum probe/source/male-city-zombie.7z
+          } | tee probe/out/provenance.txt
+
+      - name: Inspect FBX animation metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' | tee probe/out/fbx-hints.txt
+          from pathlib import Path
+          import re
+          files=list(Path("probe/extracted").rglob("*"))
+          fbx=[p for p in files if p.is_file() and p.suffix.lower()==".fbx"]
+          print("fbx_count",len(fbx))
+          words=("walk","run","attack","death","idle","hit","react","scream","zombie","take")
+          for p in fbx:
+              print("\nFILE",p)
+              data=p.read_bytes()
+              text=data.decode("latin1","ignore")
+              hits=[]
+              for line in re.findall(r"[ -~]{5,160}", text):
+                  low=line.lower()
+                  if any(w in low for w in words):
+                      clean=" ".join(line.split())
+                      if clean not in hits:
+                          hits.append(clean)
+                  if len(hits)>=120:
+                      break
+              for h in hits:
+                  print(h[:160])
+          PY
+
+      - name: Upload probe report
+        uses: actions/upload-artifact@v4
+        with:
+          name: cc0-zombie-pack-probe
+          path: probe/out
+          retention-days: 14
