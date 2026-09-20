@@ -7,7 +7,10 @@ Pinned revision: b1a5fec8b68c99e7b46484db707610ab2414ad4c
 """
 from pathlib import Path
 from urllib.request import Request, urlopen
+import io
+import re
 import sys
+import zipfile
 import cairosvg
 
 REV = "b1a5fec8b68c99e7b46484db707610ab2414ad4c"
@@ -45,9 +48,59 @@ def main() -> None:
             output_width=256,
             output_height=256,
         )
+    # Weapon cards use actual CC0 gun artwork rather than a hand-drawn glyph.
+    # Kay Lousberg's pack is CC0, transparent PNG, and explicitly includes
+    # pistol/revolver/shotgun/sniper/SMG/assault-rifle artwork.
+    # OpenGameArt canonical page:
+    # https://opengameart.org/content/2d-guns
+    try:
+        weapon_zip = fetch("https://opengameart.org/sites/default/files/guns_gameassets.zip")
+        with zipfile.ZipFile(io.BytesIO(weapon_zip)) as archive:
+            names = [
+                n for n in archive.namelist()
+                if n.lower().endswith(".png")
+                and "__macosx" not in n.lower()
+                and "spritesheet" not in n.lower()
+            ]
+
+            def pick(keyword: str) -> str | None:
+                choices = []
+                for name in names:
+                    base = Path(name).stem.lower()
+                    if keyword not in base:
+                        continue
+                    if any(bad in base for bad in ("magazine", "bullet", "ammo", "box")):
+                        continue
+                    score = 0
+                    if "@2x" in base or "2x" in base:
+                        score += 5
+                    if "separate" in name.lower() or "individual" in name.lower():
+                        score += 3
+                    if "alternate" not in name.lower() and "alt" not in base:
+                        score += 1
+                    choices.append((score, len(name), name))
+                if not choices:
+                    return None
+                choices.sort(key=lambda x: (-x[0], x[1], x[2]))
+                return choices[0][2]
+
+            pistol = pick("pistol")
+            assault = pick("assault")
+            if pistol:
+                (out / "pistol.png").write_bytes(archive.read(pistol))
+            if assault:
+                (out / "weapon.png").write_bytes(archive.read(assault))
+    except Exception as exc:
+        # The Nieobie CC0 pistol/bullet icons remain a deterministic fallback
+        # if OpenGameArt is temporarily unavailable during CI.
+        print(f"warning: Kay Lousberg weapon art unavailable: {exc}", file=sys.stderr)
+
     (out / "LICENSE-CC0.txt").write_text(
-        "Derived from Nieobie/Game-Icon-Pack under CC0 1.0 Universal.\n"
-        f"Source revision: {REV}\nhttps://github.com/Nieobie/Game-Icon-Pack\n",
+        "Xziel mobile HUD assets are CC0/public-domain.\n"
+        "Touch/action icons: Nieobie/Game-Icon-Pack, CC0 1.0 Universal.\n"
+        f"Source revision: {REV}\nhttps://github.com/Nieobie/Game-Icon-Pack\n"
+        "Weapon card art: Kay Lousberg, 2D Guns, CC0.\n"
+        "https://opengameart.org/content/2d-guns\n",
         encoding="utf-8",
     )
 
