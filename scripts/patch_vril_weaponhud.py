@@ -656,7 +656,7 @@ gameplay = r'''void Menu_MobileGameplay_Draw(void)
         xziel_mobile_sprint_zone, "xziel_mobile_sprint_zone", false, true, 0.05f);
 
     Menu_DrawButton(row++, idx++, "UNLIMITED PISTOL RESERVE",
-        "Pistol magazines stay finite and still reload. Reserve refills and a third weapon slot becomes available.",
+        "Pistol magazines stay finite and still reload. Reserve refills only; weapon-slot capacity stays classic Zombies.",
         Menu_Mobile_ToggleUnlimitedPistol);
     Menu_DrawOptionButton(row-1, xziel_mobile_unlimited_pistol_string);
 
