@@ -183,20 +183,20 @@ text = replace_function(text, "inline void() WeaponCore_UpdateWeaponStats", upda
 
 # Add direct mobile slot selection impulses. Slot 0 is already active; 60/61
 # select the other visible cards in the native rotating inventory.
-impulse_anchor = '''        case 33:
-            W_PrimeBetty();
-            break;'''
-impulse_add = '''        case 33:
-            W_PrimeBetty();
-            break;
-        case 60:
-            if (self.weapons[1].weapon_id != 0)
-                Weapon_SetActiveInSlot(1, false);
-            break;
-        case 61:
-            if (self.weapons[2].weapon_id != 0)
-                Weapon_SetActiveInSlot(2, false);
-            break;'''
+impulse_anchor = '''\t\tcase 33:
+\t\t\tW_PrimeBetty();
+\t\t\tbreak;'''
+impulse_add = '''\t\tcase 33:
+\t\t\tW_PrimeBetty();
+\t\t\tbreak;
+\t\tcase 60:
+\t\t\tif (self.weapons[1].weapon_id != 0)
+\t\t\t\tWeapon_SetActiveInSlot(1, false);
+\t\t\tbreak;
+\t\tcase 61:
+\t\t\tif (self.weapons[2].weapon_id != 0)
+\t\t\t\tWeapon_SetActiveInSlot(2, false);
+\t\t\tbreak;'''
 if "case 60:" not in text:
     if impulse_anchor not in text:
         raise SystemExit("Could not find impulse 33 anchor")
