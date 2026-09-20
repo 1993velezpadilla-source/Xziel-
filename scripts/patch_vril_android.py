@@ -7143,3 +7143,184 @@ mtext = mtext.replace(
     '"AUTO BY WEAPON: semi-auto marksman stay ADS for repeat shots; bolt rifles use release-fire."'
 )
 controls.write_text(mtext, encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# Xziel Android visible adjustable sprint target + v0.13 compile fix v0.14
+# ---------------------------------------------------------------------------
+
+# Fresh installs start with a more deliberate sprint throw. Existing archived
+# configs remain user-controlled through the slider.
+inp = source / "input.c"
+itext = inp.read_text(encoding="utf-8")
+itext = itext.replace(
+    'cvar_t xziel_mobile_sprint_zone = {"xziel_mobile_sprint_zone", "1.10", true};',
+    'cvar_t xziel_mobile_sprint_zone = {"xziel_mobile_sprint_zone", "1.35", true};'
+)
+inp.write_text(itext, encoding="utf-8")
+
+sys_sdl = source / "platform" / "sdl" / "sys_sdl.c"
+text = sys_sdl.read_text(encoding="utf-8")
+
+# v0.13 helpers are used by Xziel_UpdateMobileFire before their definitions.
+proto_anchor = "static void Xziel_UpdateMobileFire(void)\n"
+marksman_protos = """static qboolean Xziel_IsMarksmanMobile(void);
+static void Xziel_CommitMarksmanStickyAds(void);
+static void Xziel_ClearMarksmanStickyAds(void);
+
+"""
+if "static void Xziel_CommitMarksmanStickyAds(void);" not in text:
+    idx = text.find(proto_anchor)
+    if idx < 0:
+        raise SystemExit("Could not find mobile fire updater for v0.14 prototypes")
+    text = text[:idx] + marksman_protos + text[idx:]
+
+# Wider deliberate sprint activation range. The native stamina system is not
+# touched: this only controls when mobile input requests impulse 23/24.
+move_func = r'''static void Xziel_UpdateMove(float x, float y)
+{
+	float raw_dx, raw_dy, dx, dy, len, radius_x, radius_y;
+	float sprint_zone;
+	Uint32 now = SDL_GetTicks();
+
+	radius_x = 0.16f * ((float)vid.height / (float)vid.width);
+	radius_y = 0.16f;
+	raw_dx = (x - xziel_mobile_move_anchor_x) / radius_x;
+	raw_dy = (xziel_mobile_move_anchor_y - y) / radius_y;
+
+	dx = raw_dx;
+	dy = raw_dy;
+	len = sqrtf(dx * dx + dy * dy);
+
+	if (len < 0.10f) {
+		xziel_mobile_move_x = 0.0f;
+		xziel_mobile_move_y = 0.0f;
+		xziel_mobile_sprint_zone_hot = false;
+		if (xziel_mobile_sprint_active || cl.stats[STAT_ZOOM] == 3) {
+			Cbuf_AddText("impulse 24\n");
+			Cbuf_Execute();
+		}
+		xziel_mobile_sprint_active = false;
+		xziel_mobile_sprint_suppressed = false;
+		xziel_mobile_sprint_retry_ms = 0;
+		return;
+	}
+
+	if (len > 1.0f) {
+		dx /= len;
+		dy /= len;
+	}
+
+	xziel_mobile_move_x = dx;
+	xziel_mobile_move_y = dy;
+
+	/* This is intentionally beyond the normal joystick circle. Higher values
+	   require a farther, deliberate upward drag before sprint is requested. */
+	sprint_zone = xziel_mobile_sprint_zone.value;
+	if (sprint_zone < 1.10f) sprint_zone = 1.10f;
+	if (sprint_zone > 1.85f) sprint_zone = 1.85f;
+
+	xziel_mobile_sprint_zone_hot =
+		raw_dy >= sprint_zone &&
+		fabsf(raw_dx) <= raw_dy * 0.70f;
+
+	if (xziel_mobile_sprint_zone_hot) {
+		if (!xziel_mobile_sprint_suppressed) {
+			if (xziel_adsfire_release_pending ||
+				xziel_adsfire_release_requested ||
+				xziel_adsfire_attack_engaged ||
+				xziel_adsfire_temp_aim ||
+				xziel_marksman_sticky_ads ||
+				xziel_mobile_ads_latched)
+				Xziel_CancelAdsFireForSprint();
+
+			/* Native NZ:P still owns stamina, sprint duration and recovery.
+			   While the thumb deliberately remains in the sprint target,
+			   retry a rejected request so sprint starts once native stamina/
+			   weapon rules permit it. */
+			if (cl.stats[STAT_ZOOM] != 3 && now >= xziel_mobile_sprint_retry_ms) {
+				Cbuf_AddText("impulse 23\n");
+				Cbuf_Execute();
+				xziel_mobile_sprint_retry_ms = now + 120;
+			}
+			xziel_mobile_sprint_active = true;
+		}
+	} else {
+		if (xziel_mobile_sprint_active || cl.stats[STAT_ZOOM] == 3) {
+			Cbuf_AddText("impulse 24\n");
+			Cbuf_Execute();
+		}
+		xziel_mobile_sprint_active = false;
+		xziel_mobile_sprint_suppressed = false;
+		xziel_mobile_sprint_retry_ms = 0;
+	}
+}'''
+text = xziel_replace_c_function(
+    text,
+    "static void Xziel_UpdateMove(float x, float y)",
+    move_func
+)
+sys_sdl.write_text(text, encoding="utf-8")
+
+# Sprint icon is now always visible during gameplay, not only after a thumb is
+# already touching the joystick. Its vertical position exactly matches the
+# activation-height setting.
+hud = source / "render" / "r_hud.c"
+htext = hud.read_text(encoding="utf-8")
+
+htext = htext.replace(
+    "if (sprint_zone < 1.02f) sprint_zone = 1.02f;",
+    "if (sprint_zone < 1.10f) sprint_zone = 1.10f;"
+)
+htext = htext.replace(
+    "if (sprint_zone > 1.35f) sprint_zone = 1.35f;",
+    "if (sprint_zone > 1.85f) sprint_zone = 1.85f;"
+)
+
+old_visible_gate = """	if (editor || xziel_mobile_move_active) {
+		qboolean sprint_on = xziel_mobile_sprint_zone_hot || xziel_mobile_sprint_active ||
+			cl.stats[STAT_ZOOM] == 3;
+		Xziel_DrawDisc(sprint_x, sprint_y, sprint_r, 245, 245, 245,
+			(int)((sprint_on ? 145 : 70) * xziel_mobile_hud_opacity.value));
+		Xziel_DrawDisc(sprint_x, sprint_y, sprint_r - (int)(2 * vid.scale),
+			sprint_on ? 95 : 8, sprint_on ? 95 : 8, sprint_on ? 20 : 8,
+			(int)((sprint_on ? 165 : 100) * xziel_mobile_hud_opacity.value));
+		sprint_tw = getTextWidth((char *)sprint_label, vid.scale * 0.70f);
+		Draw_ColoredString(sprint_x - sprint_tw / 2, sprint_y - (int)(3 * vid.scale),
+			(char *)sprint_label, 255, 255, 255, 235, vid.scale * 0.70f);
+	}
+"""
+new_visible_gate = """	{
+		qboolean sprint_on = xziel_mobile_sprint_zone_hot || xziel_mobile_sprint_active ||
+			cl.stats[STAT_ZOOM] == 3;
+		int outer_alpha = sprint_on ? 190 : (xziel_mobile_move_active ? 135 : 105);
+		int inner_alpha = sprint_on ? 205 : (xziel_mobile_move_active ? 150 : 125);
+
+		Xziel_DrawDisc(sprint_x, sprint_y, sprint_r, 245, 245, 245,
+			(int)(outer_alpha * xziel_mobile_hud_opacity.value));
+		Xziel_DrawDisc(sprint_x, sprint_y, sprint_r - (int)(2 * vid.scale),
+			sprint_on ? 95 : 8, sprint_on ? 95 : 8, sprint_on ? 20 : 8,
+			(int)(inner_alpha * xziel_mobile_hud_opacity.value));
+		sprint_tw = getTextWidth((char *)sprint_label, vid.scale * 0.70f);
+		Draw_ColoredString(sprint_x - sprint_tw / 2, sprint_y - (int)(3 * vid.scale),
+			(char *)sprint_label, 255, 255, 255,
+			sprint_on ? 255 : 220, vid.scale * 0.70f);
+	}
+"""
+if old_visible_gate not in htext:
+    raise SystemExit("Could not find sprint HUD visibility gate for v0.14")
+htext = htext.replace(old_visible_gate, new_visible_gate, 1)
+hud.write_text(htext, encoding="utf-8")
+
+# Clearer mobile setting and much wider adjustable height.
+controls = source / "menu" / "menu_controls.c"
+mtext = controls.read_text(encoding="utf-8")
+mtext = mtext.replace(
+    '"SPRINT LOCK ZONE", "Drag the joystick into the icon above it to request native sprint."',
+    '"SPRINT ACTIVATION HEIGHT", "Higher = drag farther above the joystick before native sprint starts."'
+)
+mtext = mtext.replace(
+    'Menu_DrawOptionSlider(row-1, idx-1, 1.02f, 1.35f, xziel_mobile_sprint_zone, "xziel_mobile_sprint_zone", false, true, 0.01f);',
+    'Menu_DrawOptionSlider(row-1, idx-1, 1.10f, 1.85f, xziel_mobile_sprint_zone, "xziel_mobile_sprint_zone", false, true, 0.05f);'
+)
+controls.write_text(mtext, encoding="utf-8")
