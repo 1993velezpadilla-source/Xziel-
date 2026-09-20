@@ -171,6 +171,39 @@
       "editable_source": "not_confirmed",
       "known_notes": "Community Nuketown map/config with navmesh/nZombies ecosystem support. Uses ported COD props, so do not import those assets into Enhanced.",
       "enhanced_fit": "nav_layout_reference_only"
+    },
+    {
+      "id": "stairway_to_heaven",
+      "title": "Stairway to Heaven",
+      "type": "nzp_native_original_community_map",
+      "source_url": "https://github.com/nzp-team/nzportable/discussions/1364",
+      "status": "high_priority_editable",
+      "runtime_readiness": "playable_nzp_release",
+      "editable_source": "yes_jack_project_files",
+      "known_notes": "2026 MICRO MAP MADNESS release. Author publishes J.A.C.K Project Files. Collision exploit near archways was fixed after release; zones were implemented with community help.",
+      "enhanced_fit": "very_high"
+    },
+    {
+      "id": "one_window_nzp",
+      "title": "One Window In NZP",
+      "type": "nzp_native_original_community_map",
+      "source_url": "https://github.com/nzp-team/nzportable/discussions/997",
+      "status": "playable_small_map_candidate",
+      "runtime_readiness": "playable_with_known_glitch_spots",
+      "editable_source": "created_in_trenchbroom_source_not_confirmed",
+      "known_notes": "Small one-window survival map with wall gun, eight perks, PaP and Mystery Box. Useful as a tiny performance/AI stress arena after collision cleanup.",
+      "enhanced_fit": "medium_high"
+    },
+    {
+      "id": "bcdeshig_beta_map_archive",
+      "title": "BCDeshiG Beta Map Archive",
+      "type": "nzp_legacy_map_archive",
+      "source_url": "https://github.com/nzp-team/nzportable/discussions/158",
+      "status": "legacy_mining_pool",
+      "runtime_readiness": "mixed_beta_maps",
+      "editable_source": "some_original_map_packs_include_mapper_sources",
+      "known_notes": "Preservation repack of many legacy NZ:P maps. Repack omits mapper source files, but original archived map packs are linked and reportedly include released mapper source files/other assets. Audit each map individually.",
+      "enhanced_fit": "research_pool"
     }
   ]
 }
