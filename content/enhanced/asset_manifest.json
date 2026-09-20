@@ -175,6 +175,136 @@
       "requires_attribution": false,
       "status": "candidate",
       "notes": "40 gun models in FBX/OBJ/Blend, CC0 and commercial-use friendly; useful as low-cost replacement/prototype weapon library."
+    },
+    {
+      "id": "polyhaven_barrel_03",
+      "role": "nacht_explosive_barrel_visual_candidate",
+      "source_url": "https://polyhaven.com/a/barrel_03",
+      "author": "Serhii Khromov / Poly Haven",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "~1K-triangle weathered steel barrel with PBR maps; strong fit for Nacht explosive barrel replacement."
+    },
+    {
+      "id": "polyhaven_wooden_crate_01",
+      "role": "nacht_crate_prop_candidate",
+      "source_url": "https://polyhaven.com/a/wooden_crate_01",
+      "author": "James Ray Cock / Poly Haven",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Weathered wooden crate with PBR maps; ~7K tris; use LOD/reduced mesh on mobile."
+    },
+    {
+      "id": "polyhaven_trashbag",
+      "role": "nacht_ground_clutter_candidate",
+      "source_url": "https://polyhaven.com/a/trashbag",
+      "author": "Benny Weimer / Poly Haven",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "~4K-triangle worn trash bag; suitable for sparse floor clutter on High/Max."
+    },
+    {
+      "id": "polyhaven_concrete_debris",
+      "role": "nacht_floor_material_candidate",
+      "source_url": "https://polyhaven.com/a/concrete_debris",
+      "author": "Amal Kumar / Poly Haven",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Damaged concrete/rubble PBR material for bunker floors and broken areas."
+    },
+    {
+      "id": "polyhaven_rusty_corrugated_iron",
+      "role": "nacht_metal_material_candidate",
+      "source_url": "https://polyhaven.com/a/rusty_corrugated_iron",
+      "author": "Charlotte Baglioni / Poly Haven",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Weathered/rusted corrugated metal PBR material."
+    },
+    {
+      "id": "polyhaven_old_wood_floor",
+      "role": "nacht_wood_material_candidate",
+      "source_url": "https://polyhaven.com/a/old_wood_floor",
+      "author": "Guillaume Monsergent / Poly Haven",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Old weathered planks with diffuse/normal/roughness/displacement maps; useful for boards and floors."
+    },
+    {
+      "id": "polyhaven_gravel_stones",
+      "role": "nacht_pebbles_ground_candidate",
+      "source_url": "https://polyhaven.com/a/gravel_stones",
+      "author": "Amal Kumar / Poly Haven",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "PBR gravel/pebbles ground material for small-scale surface detail without spawning hundreds of meshes."
+    },
+    {
+      "id": "nailfighter_low_poly_bunker_modular",
+      "role": "nacht_bunker_prop_candidate",
+      "source_url": "https://nailfighter.itch.io/low-poly-bunker-modular-assets",
+      "author": "Nailfighter",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Commercial CC0 bunker kit with low-poly walls, broken tiles, barrel, crates, chair, torch and door; good mobile geometry donor."
+    },
+    {
+      "id": "brackeys_vfx_bundle",
+      "role": "nacht_general_vfx_candidate",
+      "source_url": "https://brackeysgames.itch.io/brackeys-vfx-bundle",
+      "author": "Brackeys / source creators listed by pack",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 particle textures, flipbooks and spritesheets for smoke/fire/sparks/impacts; engine-neutral source for Enhanced effects."
+    },
+    {
+      "id": "kenney_particle_pack",
+      "role": "nacht_particle_texture_candidate",
+      "source_url": "https://opengameart.org/content/particle-pack-80-sprites",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "80 CC0 particle/light-cookie textures with fire, smoke, sparks and electricity."
+    },
+    {
+      "id": "opengameart_energy_sprite_sheets",
+      "role": "ray_energy_vfx_candidate",
+      "source_url": "https://opengameart.org/content/energy-sprite-sheets",
+      "author": "fzeeshan",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Transparent energy sprite sheets for projectile glow, trail and impact experiments."
+    },
+    {
+      "id": "opengameart_plasma_electric_animations",
+      "role": "ray_plasma_vfx_candidate",
+      "source_url": "https://opengameart.org/content/plasma-electric-effect-animations",
+      "author": "Reactorcore",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 plasma/electric/vortex animation sheets; candidate for Ray Gun projectile/splash stylization."
+    },
+    {
+      "id": "barlow_condensed",
+      "role": "enhanced_hud_font_candidate",
+      "source_url": "https://github.com/jpt/barlow",
+      "author": "The Barlow Project Authors / Jeremy Tribby",
+      "license": "OFL-1.1",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "Readable condensed OFL display/UI family; candidate for Enhanced points, prompts and menus after bitmap-atlas conversion."
     }
   ]
 }
