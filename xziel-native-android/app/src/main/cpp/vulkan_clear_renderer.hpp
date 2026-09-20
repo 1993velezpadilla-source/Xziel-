@@ -20,6 +20,7 @@ public:
     [[nodiscard]] bool initialize(
         ANativeWindow* window,
         AAssetManager* assetManager) noexcept;
+
     void shutdown() noexcept;
 
     [[nodiscard]] bool drawFrame(float timeSeconds) noexcept;
@@ -32,29 +33,50 @@ private:
         VkFence inFlight = VK_NULL_HANDLE;
     };
 
+    struct PushConstants {
+        float timeSeconds = 0.0f;
+        float aspect = 1.0f;
+        float horrorPulse = 0.0f;
+        float padding = 0.0f;
+    };
+
     [[nodiscard]] bool createInstance() noexcept;
     [[nodiscard]] bool createSurface(ANativeWindow* window) noexcept;
     [[nodiscard]] bool selectPhysicalDevice() noexcept;
     [[nodiscard]] bool createDevice() noexcept;
     [[nodiscard]] bool createSwapchain() noexcept;
+
+    [[nodiscard]] bool chooseSurfaceFormat(
+        VkSurfaceFormatKHR& out) const noexcept;
+
+    [[nodiscard]] bool chooseDepthFormat(
+        VkFormat& out) const noexcept;
+
+    [[nodiscard]] bool findMemoryType(
+        std::uint32_t typeBits,
+        VkMemoryPropertyFlags required,
+        std::uint32_t& outIndex) const noexcept;
+
     [[nodiscard]] bool createRenderPass() noexcept;
     [[nodiscard]] bool createGraphicsPipeline() noexcept;
+
     [[nodiscard]] bool createShaderModuleFromAsset(
         const char* assetPath,
         VkShaderModule& outModule) noexcept;
-    [[nodiscard]] bool createImageViewsAndFramebuffers() noexcept;
+
+    [[nodiscard]] bool createImageViews() noexcept;
+    [[nodiscard]] bool createDepthResources() noexcept;
+    [[nodiscard]] bool createFramebuffers() noexcept;
     [[nodiscard]] bool createCommandResources() noexcept;
     [[nodiscard]] bool createSyncObjects() noexcept;
 
     void destroySwapchainResources() noexcept;
 
     [[nodiscard]] bool recreateSwapchain() noexcept;
-    [[nodiscard]] bool recordClearCommand(
+
+    [[nodiscard]] bool recordDrawCommand(
         std::uint32_t imageIndex,
         float timeSeconds) noexcept;
-
-    [[nodiscard]] bool chooseSurfaceFormat(
-        VkSurfaceFormatKHR& out) const noexcept;
 
     VkInstance instance_ = VK_NULL_HANDLE;
     VkSurfaceKHR surface_ = VK_NULL_HANDLE;
@@ -66,6 +88,7 @@ private:
 
     VkSwapchainKHR swapchain_ = VK_NULL_HANDLE;
     VkFormat swapchainFormat_ = VK_FORMAT_UNDEFINED;
+    VkFormat depthFormat_ = VK_FORMAT_UNDEFINED;
     VkExtent2D swapchainExtent_{};
 
     VkRenderPass renderPass_ = VK_NULL_HANDLE;
@@ -75,6 +98,11 @@ private:
 
     std::vector<VkImage> swapchainImages_;
     std::vector<VkImageView> imageViews_;
+
+    std::vector<VkImage> depthImages_;
+    std::vector<VkDeviceMemory> depthMemory_;
+    std::vector<VkImageView> depthViews_;
+
     std::vector<VkFramebuffer> framebuffers_;
     std::vector<VkCommandBuffer> commandBuffers_;
     std::vector<VkFence> imageFences_;
@@ -85,6 +113,7 @@ private:
 
     ANativeWindow* window_ = nullptr;
     AAssetManager* assetManager_ = nullptr;
+
     bool initialized_ = false;
 };
 
