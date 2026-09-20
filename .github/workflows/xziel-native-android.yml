@@ -16,7 +16,7 @@ on:
       - ".github/workflows/xziel-native-android.yml"
 
 concurrency:
-  group: xziel-native-prototype-${{ github.ref }}
+  group: xziel-native-prototype-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 permissions:
