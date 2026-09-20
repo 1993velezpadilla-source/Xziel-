@@ -42,6 +42,14 @@ jobs:
             -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
             >/dev/null || true
 
+      - name: Validate patch scripts
+        shell: bash
+        run: |
+          python3 -m py_compile \
+            scripts/patch_vril_mobile_v024.py \
+            scripts/patch_quakec_mobile_v024.py
+
+
       - name: Set up Java 17
         uses: actions/setup-java@v5
         with:
