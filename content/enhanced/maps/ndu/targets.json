@@ -1,0 +1,187 @@
+{
+  "schema_version": 1,
+  "map_id": "ndu",
+  "display_name": "Nacht der Untoten",
+  "source": {
+    "repository": "nzp-team/assets",
+    "path": "source/maps/ndu/ndu.map",
+    "source_char_count": 486694,
+    "entity_count": 432
+  },
+  "immutable_gameplay": [
+    "brush collision",
+    "zombie spawn logic",
+    "path corners",
+    "doors",
+    "weapon costs",
+    "mystery box RNG",
+    "ray gun damage",
+    "round logic"
+  ],
+  "verified_entities": {
+    "spawn_zombie": 24,
+    "explosive_barrel": 21,
+    "path_corner": 16,
+    "light": 14,
+    "light_spot": 10,
+    "light_environment": 1,
+    "item_barricade": 12,
+    "buy_weapon": 9,
+    "weapon_wall": 8,
+    "place_fire": 8,
+    "mystery_box": 1
+  },
+  "priority_surfaces": [
+    {
+      "texture": "NDUWALL",
+      "faces": 986,
+      "asset_candidates": [
+        "polyhaven_concrete_debris"
+      ]
+    },
+    {
+      "texture": "CONS5NNY3",
+      "faces": 185,
+      "asset_candidates": [
+        "polyhaven_rusty_corrugated_iron"
+      ]
+    },
+    {
+      "texture": "DEBRIS_HNF3P",
+      "faces": 148,
+      "asset_candidates": [
+        "polyhaven_concrete_debris"
+      ]
+    },
+    {
+      "texture": "GROUND_HB3",
+      "faces": 48,
+      "asset_candidates": [
+        "polyhaven_concrete_debris",
+        "polyhaven_gravel_stones"
+      ]
+    },
+    {
+      "texture": "3TILES_GREY_64",
+      "faces": 37,
+      "asset_candidates": [
+        "polyhaven_concrete_debris"
+      ]
+    },
+    {
+      "texture": "DOORWAY_MET",
+      "faces": 33,
+      "asset_candidates": [
+        "polyhaven_rusty_corrugated_iron"
+      ]
+    },
+    {
+      "texture": "W_WOOD_BROWN_RE",
+      "faces": 31,
+      "asset_candidates": [
+        "polyhaven_old_wood_floor"
+      ]
+    },
+    {
+      "texture": "M_METAL_DARKBLU",
+      "faces": 30,
+      "asset_candidates": [
+        "polyhaven_rusty_corrugated_iron"
+      ]
+    },
+    {
+      "texture": "W_S_WOODEN_B64",
+      "faces": 23,
+      "asset_candidates": [
+        "polyhaven_old_wood_floor"
+      ]
+    },
+    {
+      "texture": "BOX_SIDE_O",
+      "faces": 18,
+      "asset_candidates": [
+        "polyhaven_wooden_crate_01"
+      ]
+    }
+  ],
+  "model_targets": [
+    {
+      "current": "models/props/Barrel_m.mdl",
+      "occurrences": 21,
+      "role": "explosive_barrel",
+      "enhanced_candidate": "polyhaven_barrel_03",
+      "gameplay_unchanged": true
+    }
+  ],
+  "systems": [
+    {
+      "id": "zombies",
+      "first_candidate": "studio_new_punch_free_shirtless_zombie",
+      "requirements": [
+        "humanoid rig",
+        "crawler mapping",
+        "head/arm/leg detach mapping",
+        "LOD selection",
+        "same stats as regular zombie"
+      ]
+    },
+    {
+      "id": "mystery_box",
+      "current_origin": [
+        1080,
+        2368,
+        56
+      ],
+      "presentation_only": true,
+      "enhancements": [
+        "model/texture pass",
+        "open/close interpolation",
+        "glow",
+        "floating weapon aura",
+        "sparks",
+        "dynamic surface light"
+      ]
+    },
+    {
+      "id": "ray_gun",
+      "presentation_only": true,
+      "locked_gameplay": {
+        "splash_radius": 64
+      },
+      "enhancements": [
+        "projectile core",
+        "trail",
+        "outer glow",
+        "impact ring",
+        "plasma splash",
+        "dynamic surface light"
+      ]
+    },
+    {
+      "id": "fire",
+      "occurrences": 8,
+      "enhancements": [
+        "modern flame sprite/particle",
+        "smoke",
+        "embers",
+        "bounded dynamic light"
+      ]
+    },
+    {
+      "id": "ground_clutter",
+      "candidates": [
+        "polyhaven_trashbag",
+        "polyhaven_gravel_stones",
+        "polyhaven_wooden_crate_01",
+        "nailfighter_low_poly_bunker_modular"
+      ],
+      "quality_scaling": true
+    },
+    {
+      "id": "hud_font",
+      "candidate": "barlow_condensed",
+      "output_format": "bitmap charset atlas",
+      "classic_untouched": true
+    }
+  ]
+}
