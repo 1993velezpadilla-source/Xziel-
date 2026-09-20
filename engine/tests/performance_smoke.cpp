@@ -1,0 +1,47 @@
+#include "xziel/performance.hpp"
+
+#include <cassert>
+
+int main() {
+    xziel::PerformanceConfig config{};
+    config.targetFps = 60.0f;
+    config.degradeHoldSeconds = 0.20f;
+    config.recoverHoldSeconds = 0.50f;
+    config.smoothing = 1.0f;
+
+    xziel::PerformanceGovernor governor(config);
+
+    // Sustained overload steps quality down.
+    xziel::RenderWorkload workload{};
+    for (int i = 0; i < 30; ++i) {
+        workload = governor.advance(
+            {.cpuFrameMs = 24.0f, .gpuFrameMs = 27.0f},
+            1.0f / 60.0f);
+    }
+    assert(workload.renderScale < 0.92f);
+    assert(workload.particleDensityScale < 0.82f);
+
+    // Critical thermal state immediately enforces the low ceiling.
+    workload = governor.advance(
+        {
+            .cpuFrameMs = 12.0f,
+            .gpuFrameMs = 12.0f,
+            .thermal = xziel::ThermalLevel::Critical,
+        },
+        1.0f / 60.0f);
+    assert(workload.quality == xziel::RenderQuality::Low);
+    assert(workload.dynamicLightBudget == 4);
+    assert(workload.shadowedLightBudget == 1);
+
+    governor.reset();
+
+    // Fast frames sustained for long enough can recover upward.
+    for (int i = 0; i < 240; ++i) {
+        workload = governor.advance(
+            {.cpuFrameMs = 5.0f, .gpuFrameMs = 6.0f},
+            1.0f / 60.0f);
+    }
+    assert(workload.quality == xziel::RenderQuality::Ultra);
+
+    return 0;
+}
