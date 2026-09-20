@@ -1113,13 +1113,25 @@ weapon_card_v23 = r'''static void Xziel_DrawWeaponCard(int cx, int cy, int w, in
 	edge_alpha = (int)((active ? 250 : 152) *
 		xziel_mobile_hud_opacity.value * opacity);
 
-	/* Full graphite card with warm active outline, like the approved mockup. */
-	Draw_FillByColor(x, y, w, h,
-		active ? 244 : 92, active ? 198 : 100, active ? 42 : 108, edge_alpha);
+	/* Dark graphite card with a thin warm outline. Do not tint the whole
+	   active panel yellow: that was the main visual mismatch in v0.23 RC1. */
+	Draw_FillByColor(x, y, w, h, 5,8,11,panel_alpha);
 	Draw_FillByColor(x + border, y + border, w - border*2, h - border*2,
-		5,8,11,panel_alpha);
+		10,13,16,(int)((active ? 222 : 188) *
+		xziel_mobile_hud_opacity.value * opacity));
 	Draw_FillByColor(x + border*2, y + border*2, w - border*4,
-		(int)fmaxf(1.0f, 6.0f*vid.scale), 21,25,29,(int)(76*opacity));
+		(int)fmaxf(1.0f, 5.0f*vid.scale), 24,28,32,(int)(88*opacity));
+
+	/* Four explicit border strips create the selected yellow outline without
+	   bleeding yellow through the translucent card body. */
+	Draw_FillByColor(x, y, w, border,
+		active ? 244 : 92, active ? 198 : 100, active ? 42 : 108, edge_alpha);
+	Draw_FillByColor(x, y + h - border, w, border,
+		active ? 244 : 92, active ? 198 : 100, active ? 42 : 108, edge_alpha);
+	Draw_FillByColor(x, y, border, h,
+		active ? 244 : 92, active ? 198 : 100, active ? 42 : 108, edge_alpha);
+	Draw_FillByColor(x + w - border, y, border, h,
+		active ? 244 : 92, active ? 198 : 100, active ? 42 : 108, edge_alpha);
 
 	chip = (int)(14.0f * vid.scale);
 	if (chip < 11) chip = 11;
@@ -1147,7 +1159,7 @@ weapon_card_v23 = r'''static void Xziel_DrawWeaponCard(int cx, int cy, int w, in
 		Draw_ColoredString(x + (int)(7*vid.scale),
 			y + h - (int)(12*vid.scale), ammo,
 			244,246,248,(int)(242*opacity),
-			vid.scale*(active ? 0.68f : 0.61f));
+			vid.scale*(active ? 0.72f : 0.64f));
 	} else if (editor) {
 		const char *empty = "EMPTY";
 		int tw = getTextWidth((char *)empty, vid.scale*0.55f);
@@ -1201,7 +1213,7 @@ static void Xziel_DrawMiniMapV23(qboolean editor)
 
 	cx = (int)(xziel_hud_minimap_x.value * vid.width);
 	cy = (int)(xziel_hud_minimap_y.value * vid.height);
-	radius = (int)(0.077f * vid.height * xziel_mobile_hud_scale.value * s);
+	radius = (int)(0.090f * vid.height * xziel_mobile_hud_scale.value * s);
 	if (radius < 28) radius = 28;
 	size = radius*2;
 	inner = (int)(radius*0.76f);
