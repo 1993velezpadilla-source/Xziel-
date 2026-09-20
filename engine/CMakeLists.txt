@@ -16,6 +16,8 @@ add_library(xziel_engine STATIC
     src/streaming.cpp
     src/scene_fx.cpp
     src/audio_scene.cpp
+    src/frame_graph.cpp
+    src/visibility.cpp
 )
 
 target_include_directories(xziel_engine
@@ -86,4 +88,14 @@ if(XZIEL_ENGINE_BUILD_TESTS)
     target_link_libraries(xziel_audio_scene_smoke PRIVATE xziel_engine)
     target_compile_features(xziel_audio_scene_smoke PRIVATE cxx_std_20)
     add_test(NAME xziel_audio_scene_smoke COMMAND xziel_audio_scene_smoke)
+
+    add_executable(xziel_frame_graph_smoke tests/frame_graph_smoke.cpp)
+    target_link_libraries(xziel_frame_graph_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_frame_graph_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_frame_graph_smoke COMMAND xziel_frame_graph_smoke)
+
+    add_executable(xziel_visibility_smoke tests/visibility_smoke.cpp)
+    target_link_libraries(xziel_visibility_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_visibility_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_visibility_smoke COMMAND xziel_visibility_smoke)
 endif()
