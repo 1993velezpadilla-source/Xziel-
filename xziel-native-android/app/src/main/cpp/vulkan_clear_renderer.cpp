@@ -1797,13 +1797,12 @@ bool VulkanClearRenderer::recordDrawCommand(
         VK_PIPELINE_BIND_POINT_GRAPHICS,
         graphicsPipeline_);
 
-    PushConstants push{};
-    push.timeSeconds =
+    const float safeTime =
         std::isfinite(timeSeconds)
         ? timeSeconds
         : 0.0f;
 
-    push.aspect =
+    const float aspect =
         swapchainExtent_.height > 0
         ? static_cast<float>(
               swapchainExtent_.width) /
@@ -1811,24 +1810,77 @@ bool VulkanClearRenderer::recordDrawCommand(
               swapchainExtent_.height)
         : 1.0f;
 
-    push.horrorPulse =
-        pulse;
+    const auto drawBox = [&](
+        float tx,
+        float ty,
+        float tz,
+        float sx,
+        float sy,
+        float sz,
+        float materialId) noexcept {
+        PushConstants push{};
+        push.timeSeconds = safeTime;
+        push.aspect = aspect;
+        push.horrorPulse = pulse;
+        push.materialId = materialId;
 
-    vkCmdPushConstants(
-        command,
-        pipelineLayout_,
-        VK_SHADER_STAGE_VERTEX_BIT,
-        0,
-        static_cast<std::uint32_t>(
-            sizeof(PushConstants)),
-        &push);
+        push.translationX = tx;
+        push.translationY = ty;
+        push.translationZ = tz;
 
-    vkCmdDraw(
-        command,
-        36,
-        1,
-        0,
-        0);
+        push.scaleX = sx;
+        push.scaleY = sy;
+        push.scaleZ = sz;
+
+        vkCmdPushConstants(
+            command,
+            pipelineLayout_,
+            VK_SHADER_STAGE_VERTEX_BIT,
+            0,
+            static_cast<std::uint32_t>(
+                sizeof(PushConstants)),
+            &push);
+
+        vkCmdDraw(
+            command,
+            36,
+            1,
+            0,
+            0);
+    };
+
+    // First procedural Xziel horror room. Geometry is deliberately generated
+    // without a model asset so the earliest Android renderer milestone proves
+    // depth, projection, repeated draws and lighting before asset streaming.
+    drawBox(
+        0.0f, -1.58f, 0.0f,
+        4.2f, 0.12f, 5.0f,
+        0.0f);
+
+    drawBox(
+        -3.15f, 0.05f, 0.0f,
+        0.12f, 2.2f, 5.0f,
+        1.0f);
+
+    drawBox(
+        3.15f, 0.05f, 0.0f,
+        0.12f, 2.2f, 5.0f,
+        1.0f);
+
+    drawBox(
+        0.0f, 0.05f, 3.85f,
+        4.2f, 2.2f, 0.12f,
+        2.0f);
+
+    drawBox(
+        0.0f, 2.02f, 0.0f,
+        4.2f, 0.10f, 5.0f,
+        2.0f);
+
+    drawBox(
+        0.0f, -0.42f, 0.35f,
+        0.72f, 1.35f, 0.72f,
+        3.0f);
 
     vkCmdEndRenderPass(command);
 
