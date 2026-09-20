@@ -417,7 +417,7 @@ ads_delay = r'''static Uint32 Xziel_AdsVisualDelayMs(void)
 		return 165;
 	}
 }'''
-text = replace_function(text, "static Uint32 Xziel_AdsVisualDelayMs(void)", ads_delay)
+text = replace_function(text, "static Uint32 Xziel_AdsVisualDelayMs(void)\n{", ads_delay)
 
 sdl.write_text(text, encoding="utf-8")
 
