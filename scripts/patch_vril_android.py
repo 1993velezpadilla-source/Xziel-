@@ -4739,3 +4739,36 @@ if "static qboolean Xziel_IsDualWeaponMobile(void);" not in text:
     text = text[:idx] + prototypes + text[idx:]
 
 sys_sdl.write_text(text, encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# v0.9.1 compile-order / Krauss client-ID correction
+# ---------------------------------------------------------------------------
+sys_sdl = source / "platform" / "sdl" / "sys_sdl.c"
+text = sys_sdl.read_text(encoding="utf-8")
+
+# Vril's client header comments out W_KRAUS even though QuakeC still assigns
+# the Pack-a-Punched Ballistic Knife weapon ID 53. Use the protocol ID here so
+# mobile behavior continues to match the authoritative QuakeC definition.
+text = text.replace("case W_KRAUS:", "case 53: /* W_KRAUS in QuakeC */")
+text = text.replace(
+	"cl.stats[STAT_ACTIVEWEAPON] == W_KRAUS",
+	"cl.stats[STAT_ACTIVEWEAPON] == 53 /* W_KRAUS in QuakeC */"
+)
+
+# Xziel_UpdateMobileFire is physically earlier in sys_sdl.c than the v0.9
+# helper definitions. C99 requires declarations before use.
+proto_anchor = "static void Xziel_UpdateMobileFire(void)\n"
+proto_block = """static qboolean Xziel_IsDualWeaponMobile(void);
+static qboolean Xziel_WeaponDoesNotAdsMobile(void);
+static void Xziel_PulseAttackNow(void);
+static void Xziel_FinishTemporaryAdsFireAim(void);
+
+"""
+if proto_block not in text:
+    idx = text.find(proto_anchor)
+    if idx < 0:
+        raise SystemExit("Could not find mobile fire updater for v0.9.1 prototypes")
+    text = text[:idx] + proto_block + text[idx:]
+
+sys_sdl.write_text(text, encoding="utf-8")
