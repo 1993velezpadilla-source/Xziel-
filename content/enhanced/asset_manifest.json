@@ -75,6 +75,106 @@
       "requires_attribution": false,
       "status": "candidate",
       "notes": "CC0 horror ambience source."
+    },
+    {
+      "id": "studio_new_punch_free_shirtless_zombie",
+      "role": "zombie_dismemberment_primary_candidate",
+      "source_url": "https://assetstore.unity.com/packages/3d/characters/humanoids/free-shirtless-zombie-276762",
+      "author": "Studio New Punch",
+      "license": "UNITY-ASSET-STORE-EULA",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Free humanoid-rigged zombie with detachable body-parts variant, glowing eyes, facial blendshapes and 3 LOD levels (~7100/~3500/~2000 verts); ideal first Enhanced dismemberment test."
+    },
+    {
+      "id": "hotstrike_free_stylized_dark_fantasy_zombie",
+      "role": "zombie_visual_variant_candidate",
+      "source_url": "https://hotstrikestudio.itch.io/free-stylized-dark-fantasy-zombie",
+      "author": "Hotstrike Studio",
+      "license": "CUSTOM-COMMERCIAL-FINISHED-PROJECT",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Free, fully rigged game-ready humanoid zombie; ~8.3k tris, PBR, Mixamo/ActorCore/Cascadeur compatible; commercial finished-project use permitted."
+    },
+    {
+      "id": "aiden_studios_zombie_rigged_animated",
+      "role": "zombie_visual_variant_candidate",
+      "source_url": "https://sketchfab.com/3d-models/zombie-rigged-animated-131688807ad444609ed9b2ed572dc4aa",
+      "author": "Aiden Studios",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "~19.5k tris; rigged and already includes idle, walk and attack plus facial/body blendshapes."
+    },
+    {
+      "id": "pachedore_zombie_female",
+      "role": "zombie_visual_variant_candidate",
+      "source_url": "https://sketchfab.com/3d-models/zombie-female-3d-24aa8315c0ef4fbeb1c0dd183322d11a",
+      "author": "Pachedore3D",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "Female zombie visual variant; ~19.1k tris. Candidate for mobile LOD/reduction pass."
+    },
+    {
+      "id": "rokoko_free_zombie_mocap_12",
+      "role": "zombie_animation_library_candidate",
+      "source_url": "https://www.rokoko.com/resources/rokoko-mocap-12-free-zombie-animations",
+      "author": "Rokoko",
+      "license": "ROKOKO-FREE-COMMERCIAL",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "12 free zombie/halloween full-body mocap clips; FBX, Mixamo skeleton, 30 FPS; commercial game use permitted."
+    },
+    {
+      "id": "adobe_mixamo_animation_library",
+      "role": "humanoid_animation_library_candidate",
+      "source_url": "https://www.mixamo.com/",
+      "author": "Adobe Mixamo",
+      "license": "ADOBE-MIXAMO-ROYALTY-FREE",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Royalty-free characters and animations for commercial video games; useful for zombie walk/crawl/death/bite retargeting to compatible humanoid rigs."
+    },
+    {
+      "id": "cc0_industrial_props_pack_1",
+      "role": "environment_prop_library_candidate",
+      "source_url": "https://3dmodelscc0.itch.io/free-cc0-industrial-3d-models",
+      "author": "3dmodelscc0",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "12 CC0 industrial props including explosive barrel, gas can, gas cylinder, cable drum, trolley, work lights and water barrel."
+    },
+    {
+      "id": "cc0_industrial_props_pack_2",
+      "role": "environment_prop_library_candidate",
+      "source_url": "https://3dmodelscc0.itch.io/free-cc0-3d-industrial-props-pack-2",
+      "author": "3dmodelscc0",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "9 CC0 industrial props including generator, locker, fire extinguisher, pallet and cement mixer."
+    },
+    {
+      "id": "unity_labs_cc0_vfx_flipbooks",
+      "role": "explosion_smoke_vfx_candidate",
+      "source_url": "https://unity.com/blog/engine-platform/free-vfx-image-sequences-flipbooks",
+      "author": "Unity Labs",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 fire/smoke/explosion image sequences and flipbooks suitable for replacing low-resolution sprite effects."
+    },
+    {
+      "id": "quaternius_ultimate_guns",
+      "role": "weapon_model_library_candidate",
+      "source_url": "https://quaternius.com/packs/ultimategun.html",
+      "author": "Quaternius",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "40 gun models in FBX/OBJ/Blend, CC0 and commercial-use friendly; useful as low-cost replacement/prototype weapon library."
     }
   ]
 }
