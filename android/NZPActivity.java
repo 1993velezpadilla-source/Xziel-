@@ -130,6 +130,19 @@ public class NZPActivity extends SDLActivity {
             throw new RuntimeException("Unable to prepare bundled NZ:P game data", e);
         }
 
+        boolean hudPreview = getIntent() != null
+            && getIntent().getBooleanExtra("xziel_ci_hud_preview", false);
+
+        if (hudPreview) {
+            // CI-only visual validation path. "ndu" is the bundled Nacht der
+            // Untoten map; starting it directly lets the workflow capture the
+            // actual gameplay HUD rather than only a menu/loading screen.
+            return new String[] {
+                "-basedir", dataRoot.getAbsolutePath(),
+                "+map", "ndu"
+            };
+        }
+
         return new String[] {
             "-basedir", dataRoot.getAbsolutePath()
         };
