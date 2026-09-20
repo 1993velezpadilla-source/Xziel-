@@ -1,0 +1,103 @@
+name: Inspect CC0 Zombie Animation Rig
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/zombie-rig-inspect.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-rig:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install Blender and unpack source
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq p7zip-full blender
+          mkdir -p rig/source rig/extracted rig/out
+          curl -fL --retry 5 --retry-delay 2             "https://opengameart.org/sites/default/files/Male%20City%20Zombie.7z"             -o rig/source/male-city-zombie.7z
+          7z x -y rig/source/male-city-zombie.7z -orig/extracted >/dev/null
+
+      - name: Inspect all FBX files in Blender
+        shell: bash
+        run: |
+          cat > rig/inspect.py <<'PY'
+          import bpy, json, sys
+          from pathlib import Path
+
+          root=Path("rig/extracted")
+          out=[]
+          for path in sorted(root.glob("*.fbx")):
+              bpy.ops.wm.read_factory_settings(use_empty=True)
+              try:
+                  bpy.ops.import_scene.fbx(filepath=str(path.resolve()), automatic_bone_orientation=False)
+              except Exception as exc:
+                  out.append({"file":path.name,"error":repr(exc)})
+                  continue
+
+              meshes=[]
+              arms=[]
+              for obj in bpy.context.scene.objects:
+                  if obj.type=="MESH":
+                      meshes.append({
+                          "name":obj.name,
+                          "vertices":len(obj.data.vertices),
+                          "polygons":len(obj.data.polygons),
+                          "materials":[m.name for m in obj.data.materials if m],
+                          "modifiers":[m.type for m in obj.modifiers],
+                      })
+                  elif obj.type=="ARMATURE":
+                      arms.append({
+                          "name":obj.name,
+                          "bones":len(obj.data.bones),
+                          "action":obj.animation_data.action.name if obj.animation_data and obj.animation_data.action else None,
+                      })
+
+              actions=[]
+              for a in bpy.data.actions:
+                  fr=a.frame_range
+                  actions.append({
+                      "name":a.name,
+                      "frame_start":float(fr[0]),
+                      "frame_end":float(fr[1]),
+                      "fcurves":len(a.fcurves),
+                  })
+
+              out.append({
+                  "file":path.name,
+                  "scene_range":[bpy.context.scene.frame_start,bpy.context.scene.frame_end],
+                  "meshes":meshes,
+                  "armatures":arms,
+                  "actions":actions,
+                  "objects":[[o.name,o.type] for o in bpy.context.scene.objects],
+              })
+
+          Path("rig/out/rig-report.json").write_text(json.dumps(out,indent=2))
+          for e in out:
+              print("\n==",e["file"],"==")
+              if "error" in e:
+                  print("ERROR",e["error"]); continue
+              print("scene",e["scene_range"])
+              print("meshes",e["meshes"])
+              print("armatures",e["armatures"])
+              print("actions",e["actions"])
+          PY
+          blender -b --python rig/inspect.py | tee rig/out/blender-log.txt
+
+      - name: Upload rig report
+        uses: actions/upload-artifact@v4
+        with:
+          name: cc0-zombie-rig-report
+          path: rig/out
+          retention-days: 14
