@@ -80,8 +80,8 @@ sv_main = source / "sv_main.c"
 stext = sv_main.read_text(encoding="utf-8")
 bad_dist = "float dist = VecLength2(waypoints[s].origin, waypoints[i].origin);"
 good_dist = (
-    "int target_idx = waypoints[i].target[p];\\n"
-    "\\t\\t\\tfloat dist = VecLength2(waypoints[target_idx].origin, waypoints[i].origin);"
+    "int target_idx = waypoints[i].target[p];\n"
+    "\t\t\tfloat dist = VecLength2(waypoints[target_idx].origin, waypoints[i].origin);"
 )
 if bad_dist not in stext:
     raise SystemExit("Could not find waypoint edge-distance bug anchor")
