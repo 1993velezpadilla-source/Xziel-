@@ -5366,3 +5366,846 @@ if proto_block not in text:
     text = text[:idx] + proto_block + text[idx:]
 
 sys_sdl.write_text(text, encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# Xziel Android settings/input correctness pass v0.11
+# - split-panel touch rules across settings
+# - auto-fit long setting labels
+# - release-to-fire ADS-ready latch
+# - exact native melee trace for auto knife
+# - clearer gyro wording
+# - persistent grenade touch control
+# ---------------------------------------------------------------------------
+
+# ---- Grenade control persistent HUD position -------------------------------
+inp = source / "input.c"
+itext = inp.read_text(encoding="utf-8")
+
+grenade_cvar_anchor = 'cvar_t xziel_hud_pause_y = {"xziel_hud_pause_y", "0.075", true};\n'
+grenade_cvars = '''cvar_t xziel_hud_grenade_x = {"xziel_hud_grenade_x", "0.835", true};
+cvar_t xziel_hud_grenade_y = {"xziel_hud_grenade_y", "0.300", true};
+'''
+if "xziel_hud_grenade_x" not in itext:
+    if grenade_cvar_anchor not in itext:
+        raise SystemExit("Could not find pause HUD cvar anchor for grenade")
+    itext = itext.replace(grenade_cvar_anchor, grenade_cvar_anchor + grenade_cvars, 1)
+
+grenade_reg_anchor = "\tCvar_RegisterVariable(&xziel_hud_pause_y);\n"
+grenade_regs = """	Cvar_RegisterVariable(&xziel_hud_grenade_x);
+	Cvar_RegisterVariable(&xziel_hud_grenade_y);
+"""
+if "Cvar_RegisterVariable(&xziel_hud_grenade_x);" not in itext:
+    if grenade_reg_anchor not in itext:
+        raise SystemExit("Could not find pause HUD registration anchor for grenade")
+    itext = itext.replace(grenade_reg_anchor, grenade_reg_anchor + grenade_regs, 1)
+
+inp.write_text(itext, encoding="utf-8")
+
+# ---- Runtime input ----------------------------------------------------------
+sys_sdl = source / "platform" / "sdl" / "sys_sdl.c"
+text = sys_sdl.read_text(encoding="utf-8")
+
+# Add grenade role after pause.
+if "XZ_TOUCH_GRENADE" not in text:
+    enum_anchors = [
+        "\tXZ_TOUCH_SWITCH,\n\tXZ_TOUCH_PAUSE\n} xziel_touch_role_t;",
+        "\tXZ_TOUCH_SWITCH,\n\tXZ_TOUCH_PAUSE,\n} xziel_touch_role_t;"
+    ]
+    replaced = False
+    for anchor in enum_anchors:
+        if anchor in text:
+            repl = anchor.replace("\tXZ_TOUCH_PAUSE\n", "\tXZ_TOUCH_PAUSE,\n\tXZ_TOUCH_GRENADE\n")
+            repl = repl.replace("\tXZ_TOUCH_PAUSE,\n} xziel_touch_role_t;", "\tXZ_TOUCH_PAUSE,\n\tXZ_TOUCH_GRENADE\n} xziel_touch_role_t;")
+            text = text.replace(anchor, repl, 1)
+            replaced = True
+            break
+    if not replaced:
+        raise SystemExit("Could not find touch enum pause/switch tail for grenade")
+
+state_anchor = "qboolean xziel_mobile_switch_pressed = false;\n"
+if "qboolean xziel_mobile_grenade_pressed" not in text:
+    if state_anchor not in text:
+        raise SystemExit("Could not find mobile switch state for grenade")
+    text = text.replace(
+        state_anchor,
+        state_anchor + "qboolean xziel_mobile_grenade_pressed = false;\n",
+        1
+    )
+
+pos_anchor = "extern cvar_t xziel_hud_pause_y;\n"
+if "extern cvar_t xziel_hud_grenade_x;" not in text:
+    if pos_anchor not in text:
+        raise SystemExit("Could not find pause position extern for grenade")
+    text = text.replace(
+        pos_anchor,
+        pos_anchor +
+        "extern cvar_t xziel_hud_grenade_x;\n"
+        "extern cvar_t xziel_hud_grenade_y;\n",
+        1
+    )
+
+# Track whether release-mode ADS actually reached a shoot-ready state during
+# the hold. This avoids racing the networked zoom stat on the exact finger-up.
+ads_seen_anchor = "static qboolean xziel_adsfire_cancelled = false;\n"
+if "xziel_adsfire_ads_seen" not in text:
+    if ads_seen_anchor not in text:
+        raise SystemExit("Could not find ADS+FIRE state anchor")
+    text = text.replace(
+        ads_seen_anchor,
+        ads_seen_anchor + "static qboolean xziel_adsfire_ads_seen = false;\n",
+        1
+    )
+
+# Auto-knife uses a real held input edge for long enough to cross a move packet,
+# rather than +knife/-knife in the same event callback.
+knife_state_anchor = "static Uint32 xziel_mobile_auto_knife_next_ms = 0;\n"
+if "xziel_auto_knife_down" not in text:
+    if knife_state_anchor not in text:
+        raise SystemExit("Could not find auto knife timing state")
+    text = text.replace(
+        knife_state_anchor,
+        knife_state_anchor +
+        "static qboolean xziel_auto_knife_down = false;\n"
+        "static Uint32 xziel_auto_knife_release_ms = 0;\n",
+        1
+    )
+
+# ---- Split settings touch behavior across all yellow-divider settings -------
+split_helpers = r'''
+static qboolean Xziel_IsSplitSettingsMenu(void)
+{
+	switch (m_state) {
+	case m_video:
+	case m_accessibility:
+	case m_controls:
+	case m_gyro:
+	case m_gamesettings:
+	case m_mobileaim:
+	case m_mobilegyro:
+	case m_mobilehud:
+	case m_mobilegameplay:
+		return true;
+	default:
+		return false;
+	}
+}
+
+static qboolean Xziel_LeftSideIsNavigation(const char *name)
+{
+	if (!name) return false;
+	return !strcmp(name, "BACK") ||
+		!strcmp(name, "GYROSCOPE") ||
+		!strcmp(name, "BINDINGS") ||
+		!strcmp(name, "CUSTOM HUD");
+}
+'''
+if "static qboolean Xziel_IsSplitSettingsMenu(void)" not in text:
+    helper_anchor = "static qboolean Xziel_IsMobileSettingsChild(void)\n"
+    idx = text.find(helper_anchor)
+    if idx < 0:
+        raise SystemExit("Could not find old mobile settings helper")
+    text = text[:idx] + split_helpers + "\n" + text[idx:]
+
+menu_finger = r'''static void Xziel_MenuFinger(float x, float y, qboolean down, qboolean motion)
+{
+	int mx = (int)(x * (float)vid.width);
+	int my = (int)(y * (float)vid.height);
+	int divider_x = UI_X(150);
+	qboolean slider_handled = false;
+
+	if (Xziel_IsSplitSettingsMenu()) {
+		int row = Xziel_MenuRowAtY(my);
+
+		/* On every settings page with the yellow vertical divider:
+		   LEFT = select/navigate only. RIGHT = edit values. */
+		if (mx < divider_x) {
+			if (down && row >= 0) {
+				Xziel_MenuSetCursor(row);
+				if (Xziel_LeftSideIsNavigation(current_menu.button[row].name))
+					Menu_ButtonPress();
+			}
+			return;
+		}
+
+		if (down && row >= 0) {
+			Xziel_MenuSetCursor(row);
+			slider_handled = Menu_MouseButton(mx, my, true);
+			if (!slider_handled)
+				Menu_ButtonPress();
+			return;
+		}
+
+		if (motion) {
+			/* Only let stock slider dragging see motion on the value side. */
+			Menu_MouseMove(mx, my);
+			return;
+		}
+
+		Menu_MouseButton(mx, my, false);
+		return;
+	}
+
+	Menu_MouseMove(mx, my);
+	if (motion)
+		return;
+
+	if (down) {
+		slider_handled = Menu_MouseButton(mx, my, true);
+		if (!slider_handled)
+			Menu_ButtonPress();
+	} else {
+		Menu_MouseButton(mx, my, false);
+	}
+}'''
+text = xziel_replace_c_function(
+    text,
+    "static void Xziel_MenuFinger(float x, float y, qboolean down, qboolean motion)",
+    menu_finger
+)
+
+# ---- ADS+FIRE state machine ------------------------------------------------
+update_fire = r'''static void Xziel_UpdateMobileFire(void)
+{
+	Uint32 now = SDL_GetTicks();
+	qboolean changed = false;
+
+	if (xziel_mobile_adsfire_pressed &&
+		!xziel_adsfire_cancelled &&
+		Xziel_WeaponCanAdsMobile() &&
+		Xziel_AdsReadyForFire())
+		xziel_adsfire_ads_seen = true;
+
+	if ((xziel_mobile_adsfire_pressed || xziel_adsfire_release_requested) &&
+		!xziel_adsfire_cancelled) {
+		if (!xziel_adsfire_release_pending &&
+			!xziel_adsfire_attack_engaged) {
+			if (!Xziel_WeaponCanAdsMobile() || Xziel_AdsReadyForFire()) {
+				Xziel_SetAttackRef(true);
+				xziel_adsfire_attack_engaged = true;
+			}
+		}
+	}
+
+	if (xziel_attack_refs <= 0) {
+		if (xziel_attack_command_down) {
+			Cbuf_AddText("-attack\n");
+			xziel_attack_command_down = false;
+			changed = true;
+		}
+		if (changed)
+			Cbuf_Execute();
+		return;
+	}
+
+	if (!Xziel_IsAutoTapPistol())
+		return;
+
+	if (xziel_attack_command_down && now >= xziel_attack_release_ms) {
+		Cbuf_AddText("-attack\n");
+		xziel_attack_command_down = false;
+		changed = true;
+	}
+	if (!xziel_attack_command_down && now >= xziel_attack_next_ms) {
+		Cbuf_AddText("+attack\n");
+		xziel_attack_command_down = true;
+		xziel_attack_release_ms = now + 42;
+		xziel_attack_next_ms =
+			now + (Uint32)fmaxf(120.0f, xziel_mobile_autofire_ms.value);
+		changed = true;
+	}
+	if (changed)
+		Cbuf_Execute();
+}'''
+text = xziel_replace_c_function(
+    text,
+    "static void Xziel_UpdateMobileFire(void)",
+    update_fire
+)
+
+action_down = r'''static void Xziel_ActionDown(xziel_touch_role_t role)
+{
+	switch (role) {
+	case XZ_TOUCH_FIRE:
+		xziel_mobile_fire_pressed = true;
+		Xziel_StopSprintForAction();
+		Xziel_SetAttackRef(true);
+		break;
+
+	case XZ_TOUCH_ADSFIRE:
+		xziel_mobile_adsfire_pressed = true;
+		xziel_adsfire_cancelled = false;
+		xziel_adsfire_attack_engaged = false;
+		xziel_adsfire_release_requested = false;
+		xziel_adsfire_release_pending = Xziel_AdsFireReleaseWeapon();
+		xziel_adsfire_temp_aim = false;
+		xziel_adsfire_ads_seen = false;
+
+		Xziel_StopSprintForAction();
+
+		if (Xziel_WeaponCanAdsMobile()) {
+			if (!xziel_mobile_ads_latched) {
+				Xziel_QueueHold("+aim\n", "-aim\n", &xziel_aim_refs, true);
+				xziel_adsfire_temp_aim = true;
+				Cbuf_Execute();
+			}
+
+			if (Xziel_AdsReadyForFire())
+				xziel_adsfire_ads_seen = true;
+
+			if (!xziel_adsfire_release_pending &&
+				(xziel_mobile_ads_latched || Xziel_AdsReadyForFire())) {
+				Xziel_SetAttackRef(true);
+				xziel_adsfire_attack_engaged = true;
+			}
+		} else {
+			if (!xziel_adsfire_release_pending) {
+				Xziel_SetAttackRef(true);
+				xziel_adsfire_attack_engaged = true;
+			}
+		}
+		break;
+
+	case XZ_TOUCH_ADS:
+		xziel_mobile_ads_pressed = true;
+		xziel_mobile_restore_ads_after_reload = false;
+		xziel_mobile_reload_animation_seen = false;
+		Xziel_StopSprintForAction();
+		if (xziel_mobile_ads_toggle.value >= 0.5f) {
+			xziel_mobile_ads_latched = !xziel_mobile_ads_latched;
+			Cbuf_AddText("impulse 26\n");
+		} else {
+			xziel_mobile_ads_latched = false;
+			Xziel_QueueHold("+aim\n", "-aim\n", &xziel_aim_refs, true);
+		}
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_RELOAD:
+		xziel_mobile_reload_pressed = true;
+		xziel_mobile_restore_ads_after_reload =
+			(xziel_mobile_ads_toggle.value >= 0.5f && xziel_mobile_ads_latched);
+		xziel_mobile_reload_animation_seen = false;
+		xziel_mobile_reload_start_frame = cl.stats[STAT_WEAPONFRAME];
+		Cbuf_AddText("+reload\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_USE:
+		xziel_mobile_use_pressed = true;
+		if (!xziel_auto_rebuild_use_down) {
+			Cbuf_AddText("+use\n");
+			Cbuf_Execute();
+		}
+		break;
+
+	case XZ_TOUCH_JUMP:
+		xziel_mobile_jump_pressed = true;
+		Cbuf_AddText("+jump\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_KNIFE:
+		xziel_mobile_knife_pressed = true;
+		Xziel_StopSprintForAction();
+		Cbuf_AddText("+knife\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_GRENADE:
+		xziel_mobile_grenade_pressed = true;
+		Xziel_StopSprintForAction();
+		Cbuf_AddText("+grenade\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_SWITCH:
+		xziel_mobile_switch_pressed = true;
+		if (xziel_adsfire_release_pending || xziel_adsfire_release_requested)
+			Xziel_CancelAdsFireForSprint();
+		Cbuf_AddText("+switch\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_PAUSE:
+		Menu_Pause_Set();
+		break;
+
+	default:
+		break;
+	}
+}'''
+text = xziel_replace_c_function(
+    text,
+    "static void Xziel_ActionDown(xziel_touch_role_t role)",
+    action_down
+)
+
+action_up = r'''static void Xziel_ActionUp(xziel_touch_role_t role)
+{
+	switch (role) {
+	case XZ_TOUCH_FIRE:
+		xziel_mobile_fire_pressed = false;
+		Xziel_SetAttackRef(false);
+		break;
+
+	case XZ_TOUCH_ADSFIRE:
+		xziel_mobile_adsfire_pressed = false;
+
+		if (xziel_adsfire_release_pending && !xziel_adsfire_cancelled) {
+			/* A release shot is legal if ADS became ready at any time during
+			   this hold. Do not depend on the exact zoom value on finger-up. */
+			if (!Xziel_WeaponCanAdsMobile() ||
+				xziel_adsfire_ads_seen ||
+				Xziel_AdsReadyForFire()) {
+				Xziel_PulseAttackNow();
+			}
+			xziel_adsfire_release_pending = false;
+			xziel_adsfire_release_requested = false;
+			Xziel_FinishTemporaryAdsFireAim();
+		} else {
+			if (xziel_adsfire_attack_engaged) {
+				Xziel_SetAttackRef(false);
+				xziel_adsfire_attack_engaged = false;
+			}
+			Xziel_FinishTemporaryAdsFireAim();
+			xziel_adsfire_release_pending = false;
+			xziel_adsfire_release_requested = false;
+		}
+
+		xziel_adsfire_ads_seen = false;
+		xziel_adsfire_cancelled = false;
+		break;
+
+	case XZ_TOUCH_ADS:
+		xziel_mobile_ads_pressed = false;
+		if (xziel_mobile_ads_toggle.value < 0.5f) {
+			Xziel_QueueHold("+aim\n", "-aim\n", &xziel_aim_refs, false);
+			Cbuf_Execute();
+		}
+		break;
+
+	case XZ_TOUCH_RELOAD:
+		xziel_mobile_reload_pressed = false;
+		Cbuf_AddText("-reload\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_USE:
+		xziel_mobile_use_pressed = false;
+		if (!xziel_auto_rebuild_use_down) {
+			Cbuf_AddText("-use\n");
+			Cbuf_Execute();
+		}
+		break;
+
+	case XZ_TOUCH_JUMP:
+		xziel_mobile_jump_pressed = false;
+		Cbuf_AddText("-jump\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_KNIFE:
+		xziel_mobile_knife_pressed = false;
+		Cbuf_AddText("-knife\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_GRENADE:
+		xziel_mobile_grenade_pressed = false;
+		Cbuf_AddText("-grenade\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_SWITCH:
+		xziel_mobile_switch_pressed = false;
+		Cbuf_AddText("-switch\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_PAUSE:
+		break;
+
+	default:
+		break;
+	}
+}'''
+text = xziel_replace_c_function(
+    text,
+    "static void Xziel_ActionUp(xziel_touch_role_t role)",
+    action_up
+)
+
+# Cancel helper must clear ADS-ready history too.
+cancel_func = r'''static void Xziel_CancelAdsFireForSprint(void)
+{
+	if (xziel_adsfire_attack_engaged) {
+		Xziel_SetAttackRef(false);
+		xziel_adsfire_attack_engaged = false;
+	}
+
+	xziel_adsfire_release_pending = false;
+	xziel_adsfire_release_requested = false;
+	xziel_adsfire_ads_seen = false;
+	xziel_adsfire_cancelled = true;
+	Xziel_FinishTemporaryAdsFireAim();
+
+	if (xziel_mobile_ads_latched) {
+		Cbuf_AddText("impulse 26\n");
+		Cbuf_Execute();
+		xziel_mobile_ads_latched = false;
+	}
+	xziel_mobile_restore_ads_after_reload = false;
+}'''
+text = xziel_replace_c_function(
+    text,
+    "static void Xziel_CancelAdsFireForSprint(void)",
+    cancel_func
+)
+
+# ---- Exact native melee trace ----------------------------------------------
+auto_knife = r'''static void Xziel_UpdateAutoKnife(void)
+{
+	qboolean near_target = false;
+	Uint32 now = SDL_GetTicks();
+
+	/* Finish the short synthetic knife hold after at least one movement packet
+	   has had a chance to carry button6 to the native server code. */
+	if (xziel_auto_knife_down && now >= xziel_auto_knife_release_ms) {
+		Cbuf_AddText("-knife\n");
+		Cbuf_Execute();
+		xziel_auto_knife_down = false;
+	}
+
+	if (key_dest == key_game &&
+		sv.active && sv_player &&
+		sv_player->v.health > 0 &&
+		cls.signon == SIGNONS) {
+		vec3_t start, end, forward;
+		trace_t tr;
+		edict_t *target = NULL;
+		const char *classname = "";
+		int weapon = (int)sv_player->v.weapon;
+		float range = (weapon == W_BK || weapon == 53) ? 96.0f : 88.0f;
+
+		/* Mirror WeaponCore_Melee:
+		   makevectors(self.v_angle)
+		   trace_source = self.origin + self.view_ofs
+		   traceline(trace_source, trace_source + v_forward * range, 0, self) */
+		VectorAdd(sv_player->v.origin, sv_player->v.view_ofs, start);
+		AngleVectors(sv_player->v.v_angle, forward, NULLVEC, NULLVEC);
+		VectorMA(start, range, forward, end);
+		tr = SV_Move(start, vec3_origin, vec3_origin, end, 0, sv_player);
+		target = tr.ent;
+
+		if (target && target != sv.edicts && tr.fraction < 1.0f &&
+			(tr.endpos[2] - start[2]) <= 15.0f) {
+			/* Native melee promotes zombie limb edicts back to their body. */
+			if (target->v.owner) {
+				edict_t *owner = PROG_TO_EDICT(target->v.owner);
+				int target_prog = EDICT_TO_PROG(target);
+				if (owner && owner != sv.edicts &&
+					(owner->v.head == target_prog ||
+					 owner->v.larm == target_prog ||
+					 owner->v.rarm == target_prog))
+					target = owner;
+			}
+
+			classname = PR_GetString(target->v.classname);
+			near_target =
+				(!strcmp(classname, "ai_zombie") ||
+				 !strcmp(classname, "ai_dog")) &&
+				target->v.takedamage != 0;
+		}
+	}
+
+	xziel_mobile_knife_target_near = near_target;
+
+	if (xziel_mobile_auto_knife.value >= 0.5f &&
+		near_target &&
+		!xziel_mobile_knife_pressed &&
+		!xziel_auto_knife_down &&
+		sv_player && sv_player->v.zoom == 0 &&
+		now >= xziel_mobile_auto_knife_next_ms) {
+		Cbuf_AddText("+knife\n");
+		Cbuf_Execute();
+		xziel_auto_knife_down = true;
+		xziel_auto_knife_release_ms = now + 90;
+		xziel_mobile_auto_knife_next_ms = now + 450;
+	} else if (!near_target && !xziel_auto_knife_down) {
+		xziel_mobile_auto_knife_next_ms = now;
+	}
+}'''
+text = xziel_replace_c_function(
+    text,
+    "static void Xziel_UpdateAutoKnife(void)",
+    auto_knife
+)
+
+# ---- Grenade hitbox + HUD editor ------------------------------------------
+role_func = r'''static xziel_touch_role_t Xziel_RoleForPoint(float x, float y)
+{
+	float hs = xziel_mobile_hud_scale.value;
+	if (Xziel_IsInside(x, y, xziel_hud_fire_x.value, xziel_hud_fire_y.value, 0.073f * hs)) return XZ_TOUCH_FIRE;
+	if (Xziel_IsInside(x, y, xziel_hud_adsfire_x.value, xziel_hud_adsfire_y.value, 0.056f * hs)) return XZ_TOUCH_ADSFIRE;
+	if (Xziel_IsInside(x, y, xziel_hud_ads_x.value, xziel_hud_ads_y.value, 0.047f * hs)) return XZ_TOUCH_ADS;
+	if (Xziel_IsInside(x, y, xziel_hud_reload_x.value, xziel_hud_reload_y.value, 0.044f * hs)) return XZ_TOUCH_RELOAD;
+	if (xziel_mobile_use_available && Xziel_IsInside(x, y, xziel_hud_use_x.value, xziel_hud_use_y.value, 0.050f * hs)) return XZ_TOUCH_USE;
+	if (Xziel_IsInside(x, y, xziel_hud_pause_x.value, xziel_hud_pause_y.value, 0.036f * hs)) return XZ_TOUCH_PAUSE;
+	if (Xziel_IsInside(x, y, xziel_hud_grenade_x.value, xziel_hud_grenade_y.value, 0.041f * hs)) return XZ_TOUCH_GRENADE;
+	if (Xziel_IsInside(x, y, xziel_hud_jump_x.value, xziel_hud_jump_y.value, 0.044f * hs)) return XZ_TOUCH_JUMP;
+	if ((!xziel_mobile_knife_range_only.value || xziel_mobile_knife_target_near) &&
+		Xziel_IsInside(x, y, xziel_hud_knife_x.value, xziel_hud_knife_y.value, 0.044f * hs))
+		return XZ_TOUCH_KNIFE;
+	if (Xziel_IsInside(x, y, xziel_hud_switch_x.value, xziel_hud_switch_y.value, 0.041f * hs)) return XZ_TOUCH_SWITCH;
+	if (x < 0.45f && y > 0.30f) return XZ_TOUCH_MOVE;
+	return XZ_TOUCH_LOOK;
+}'''
+text = xziel_replace_c_function(
+    text,
+    "static xziel_touch_role_t Xziel_RoleForPoint(float x, float y)",
+    role_func
+)
+
+editor_role = r'''static xziel_touch_role_t Xziel_HudEditorRole(float x, float y)
+{
+	float hs = xziel_mobile_hud_scale.value;
+	if (Xziel_IsInside(x, y, xziel_hud_fire_x.value, xziel_hud_fire_y.value, 0.090f * hs)) return XZ_TOUCH_FIRE;
+	if (Xziel_IsInside(x, y, xziel_hud_adsfire_x.value, xziel_hud_adsfire_y.value, 0.075f * hs)) return XZ_TOUCH_ADSFIRE;
+	if (Xziel_IsInside(x, y, xziel_hud_ads_x.value, xziel_hud_ads_y.value, 0.065f * hs)) return XZ_TOUCH_ADS;
+	if (Xziel_IsInside(x, y, xziel_hud_reload_x.value, xziel_hud_reload_y.value, 0.060f * hs)) return XZ_TOUCH_RELOAD;
+	if (Xziel_IsInside(x, y, xziel_hud_use_x.value, xziel_hud_use_y.value, 0.065f * hs)) return XZ_TOUCH_USE;
+	if (Xziel_IsInside(x, y, xziel_hud_pause_x.value, xziel_hud_pause_y.value, 0.055f * hs)) return XZ_TOUCH_PAUSE;
+	if (Xziel_IsInside(x, y, xziel_hud_grenade_x.value, xziel_hud_grenade_y.value, 0.057f * hs)) return XZ_TOUCH_GRENADE;
+	if (Xziel_IsInside(x, y, xziel_hud_jump_x.value, xziel_hud_jump_y.value, 0.060f * hs)) return XZ_TOUCH_JUMP;
+	if (Xziel_IsInside(x, y, xziel_hud_knife_x.value, xziel_hud_knife_y.value, 0.060f * hs)) return XZ_TOUCH_KNIFE;
+	if (Xziel_IsInside(x, y, xziel_hud_switch_x.value, xziel_hud_switch_y.value, 0.057f * hs)) return XZ_TOUCH_SWITCH;
+	if (Xziel_IsInside(x, y, xziel_hud_joy_x.value, xziel_hud_joy_y.value, 0.120f * hs)) return XZ_TOUCH_MOVE;
+	return XZ_TOUCH_NONE;
+}'''
+text = xziel_replace_c_function(
+    text,
+    "static xziel_touch_role_t Xziel_HudEditorRole(float x, float y)",
+    editor_role
+)
+
+editor_set = r'''static void Xziel_HudEditorSetPosition(xziel_touch_role_t role, float x, float y)
+{
+	if (x < 0.035f) x = 0.035f;
+	if (x > 0.965f) x = 0.965f;
+	if (y < 0.055f) y = 0.055f;
+	if (y > 0.945f) y = 0.945f;
+
+	switch (role) {
+	case XZ_TOUCH_MOVE:
+		Cvar_SetValue("xziel_hud_joy_x", x); Cvar_SetValue("xziel_hud_joy_y", y); break;
+	case XZ_TOUCH_FIRE:
+		Cvar_SetValue("xziel_hud_fire_x", x); Cvar_SetValue("xziel_hud_fire_y", y); break;
+	case XZ_TOUCH_ADSFIRE:
+		Cvar_SetValue("xziel_hud_adsfire_x", x); Cvar_SetValue("xziel_hud_adsfire_y", y); break;
+	case XZ_TOUCH_ADS:
+		Cvar_SetValue("xziel_hud_ads_x", x); Cvar_SetValue("xziel_hud_ads_y", y); break;
+	case XZ_TOUCH_RELOAD:
+		Cvar_SetValue("xziel_hud_reload_x", x); Cvar_SetValue("xziel_hud_reload_y", y); break;
+	case XZ_TOUCH_USE:
+		Cvar_SetValue("xziel_hud_use_x", x); Cvar_SetValue("xziel_hud_use_y", y); break;
+	case XZ_TOUCH_JUMP:
+		Cvar_SetValue("xziel_hud_jump_x", x); Cvar_SetValue("xziel_hud_jump_y", y); break;
+	case XZ_TOUCH_KNIFE:
+		Cvar_SetValue("xziel_hud_knife_x", x); Cvar_SetValue("xziel_hud_knife_y", y); break;
+	case XZ_TOUCH_GRENADE:
+		Cvar_SetValue("xziel_hud_grenade_x", x); Cvar_SetValue("xziel_hud_grenade_y", y); break;
+	case XZ_TOUCH_SWITCH:
+		Cvar_SetValue("xziel_hud_switch_x", x); Cvar_SetValue("xziel_hud_switch_y", y); break;
+	case XZ_TOUCH_PAUSE:
+		Cvar_SetValue("xziel_hud_pause_x", x); Cvar_SetValue("xziel_hud_pause_y", y); break;
+	default:
+		break;
+	}
+}'''
+text = xziel_replace_c_function(
+    text,
+    "static void Xziel_HudEditorSetPosition(xziel_touch_role_t role, float x, float y)",
+    editor_set
+)
+
+# Global release clears pending mobile-only action states.
+release_all = r'''static void Xziel_ReleaseAllTouches(void)
+{
+	int i;
+	for (i = 0; i < XZIEL_MAX_TOUCHES; ++i) {
+		if (!xziel_touches[i].active)
+			continue;
+		if (!xziel_touches[i].editor_drag)
+			Xziel_ActionUp(xziel_touches[i].role);
+		xziel_touches[i].active = false;
+	}
+	xziel_mobile_move_active = false;
+	xziel_mobile_move_x = 0.0f;
+	xziel_mobile_move_y = 0.0f;
+	xziel_mobile_sprint_zone_hot = false;
+	xziel_mobile_sprint_suppressed = false;
+	xziel_mobile_sprint_active = false;
+	xziel_mobile_sprint_retry_ms = 0;
+
+	if (xziel_attack_command_down) {
+		Cbuf_AddText("-attack\n");
+		xziel_attack_command_down = false;
+	}
+	if (xziel_auto_knife_down) {
+		Cbuf_AddText("-knife\n");
+		xziel_auto_knife_down = false;
+	}
+	xziel_mobile_grenade_pressed = false;
+	xziel_attack_refs = 0;
+	if (xziel_aim_refs > 0)
+		Cbuf_AddText("-aim\n");
+	xziel_aim_refs = 0;
+
+	xziel_adsfire_attack_engaged = false;
+	xziel_adsfire_release_pending = false;
+	xziel_adsfire_release_requested = false;
+	xziel_adsfire_temp_aim = false;
+	xziel_adsfire_ads_seen = false;
+	xziel_adsfire_cancelled = false;
+	xziel_mobile_restore_ads_after_reload = false;
+	xziel_mobile_reload_animation_seen = false;
+	xziel_menu_touch_active = false;
+	xziel_menu_touch_state = -1;
+	Cbuf_Execute();
+}'''
+text = xziel_replace_c_function(
+    text,
+    "static void Xziel_ReleaseAllTouches(void)",
+    release_all
+)
+
+sys_sdl.write_text(text, encoding="utf-8")
+
+# ---- HUD rendering + persistent editor -------------------------------------
+hud = source / "render" / "r_hud.c"
+htext = hud.read_text(encoding="utf-8")
+
+hud_pos_anchor = "extern cvar_t xziel_hud_pause_y;\n"
+if "extern cvar_t xziel_hud_grenade_x;" not in htext:
+    if hud_pos_anchor not in htext:
+        raise SystemExit("Could not find HUD pause extern for grenade")
+    htext = htext.replace(
+        hud_pos_anchor,
+        hud_pos_anchor +
+        "extern cvar_t xziel_hud_grenade_x;\n"
+        "extern cvar_t xziel_hud_grenade_y;\n"
+        "extern qboolean xziel_mobile_grenade_pressed;\n",
+        1
+    )
+
+# Add grenade button to the latest HUD renderer.
+hud_draw_anchor = '\tXziel_DrawTouchButton(xziel_hud_pause_x.value, xziel_hud_pause_y.value, 0.036f, "II", "", false);\n'
+if '"NADE"' not in htext:
+    if hud_draw_anchor not in htext:
+        raise SystemExit("Could not find mobile pause draw line for grenade")
+    htext = htext.replace(
+        hud_draw_anchor,
+        hud_draw_anchor +
+        '\tXziel_DrawTouchButton(xziel_hud_grenade_x.value, xziel_hud_grenade_y.value, 0.041f, "NADE", "", xziel_mobile_grenade_pressed);\n',
+        1
+    )
+
+hud.write_text(htext, encoding="utf-8")
+
+# ---- Menus: clearer wording + grenade editor reset --------------------------
+controls = source / "menu" / "menu_controls.c"
+mtext = controls.read_text(encoding="utf-8")
+
+# Remove product-name wording from user-visible settings.
+mtext = mtext.replace('return "COD STYLE";', 'return "AUTO BY WEAPON";')
+mtext = mtext.replace("COD STYLE defaults to release.", "AUTO BY WEAPON defaults to release.")
+mtext = mtext.replace("COD STYLE: bolt marksman release; semi-auto marksman press.", "AUTO BY WEAPON: bolt rifles release; semi-auto rifles press.")
+
+# Clearer gyro label in both stock and Mobile pages.
+mtext = mtext.replace('"ADS DAMPENING"', '"GYRO ADS SLOWDOWN"')
+mtext = mtext.replace(
+    '"Reduce Gyroscope sensitivity in ADS."',
+    '"Reduce gyro sensitivity while aiming down sights."'
+)
+mtext = mtext.replace(
+    '"Reduce gyroscope sensitivity while ADS."',
+    '"Reduce gyro sensitivity while aiming down sights."'
+)
+
+reset_anchor = 'Cvar_SetValue("xziel_hud_pause_x", 0.965f); Cvar_SetValue("xziel_hud_pause_y", 0.075f);\n'
+if 'Cvar_SetValue("xziel_hud_grenade_x"' not in mtext:
+    if reset_anchor not in mtext:
+        raise SystemExit("Could not find HUD reset pause line for grenade")
+    mtext = mtext.replace(
+        reset_anchor,
+        reset_anchor +
+        '\tCvar_SetValue("xziel_hud_grenade_x", 0.835f); Cvar_SetValue("xziel_hud_grenade_y", 0.300f);\n',
+        1
+    )
+
+controls.write_text(mtext, encoding="utf-8")
+
+# ---- Android menu label auto-fit -------------------------------------------
+helper = source / "menu" / "menu_helper.c"
+mhelp = helper.read_text(encoding="utf-8")
+
+draw_button = r'''void Menu_DrawButton (int order, int button_index, char* button_name, char* button_summary, void *on_activate)
+{
+	int y_factor = 15;
+	int x_pos = 140;
+	int y_pos = 0;
+	float label_scale = vid.scale;
+
+#ifdef __ANDROID__
+	/* Keep long setting labels inside the left pane instead of letting them
+	   run off-screen. Only shrink when necessary. */
+	{
+		int max_width = UI_W(134);
+		int width = getTextWidth(button_name, label_scale);
+		if (width > max_width && width > 0) {
+			label_scale *= (float)max_width / (float)width;
+			if (label_scale < vid.scale * 0.68f)
+				label_scale = vid.scale * 0.68f;
+		}
+	}
+#endif
+
+	if (order < 0) {
+		y_pos = big_bar_height + ((order*-1)*y_factor);
+		UI_SetAlignment (UI_ANCHOR_LEFT, UI_ANCHOR_BOTTOM);
+	} else {
+		y_pos = 30 + (order*y_factor);
+		UI_SetAlignment (UI_ANCHOR_LEFT, UI_ANCHOR_TOP);
+	}
+
+	if (!current_menu.button[button_index].enabled)
+		Menu_BuildMenuButtons (button_index, button_name, on_activate);
+
+	current_menu.button[button_index].x = 0;
+	current_menu.button[button_index].width = UI_W(141);
+	current_menu.button[button_index].height = UI_H(_CHAR_HEIGHT + 8);
+	if (order < 0)
+		current_menu.button[button_index].y = vid.height - UI_Y(y_pos + _CHAR_HEIGHT + 4);
+	else
+		current_menu.button[button_index].y = UI_Y(y_pos - 4);
+
+	if (Menu_IsButtonHovered(button_index)) {
+		Menu_DrawSelectionBox (x_pos, y_pos);
+		Menu_DrawString (x_pos, y_pos, button_name, 255, 0, 0, 255, label_scale, UI_FLIPTEXTPOS);
+		UI_SetAlignment (UI_ANCHOR_CENTER, UI_ANCHOR_BOTTOM);
+		Menu_DrawStringCentered (0, big_bar_height + 4 - _CHAR_HEIGHT, button_summary, 255, 255, 255, 255);
+	} else {
+		if (order < 0)
+			UI_SetAlignment (UI_ANCHOR_LEFT, UI_ANCHOR_BOTTOM);
+		else
+			UI_SetAlignment (UI_ANCHOR_LEFT, UI_ANCHOR_TOP);
+		Menu_DrawString (x_pos, y_pos, button_name, 255, 255, 255, 255, label_scale, UI_FLIPTEXTPOS);
+	}
+}'''
+mhelp = xziel_replace_c_function(
+    mhelp,
+    "void Menu_DrawButton (int order, int button_index, char* button_name, char* button_summary, void *on_activate)",
+    draw_button
+)
+helper.write_text(mhelp, encoding="utf-8")
