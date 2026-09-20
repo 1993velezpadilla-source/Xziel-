@@ -755,6 +755,96 @@
       "requires_attribution": false,
       "status": "candidate",
       "notes": "25 recorded CC0 bangs/fireworks/cannon/explosion sounds; useful as transient layers, not necessarily final gunshots."
+    },
+    {
+      "id": "kenney_factory_kit",
+      "role": "factory_warehouse_prop_library",
+      "source_url": "https://opengameart.org/content/factory-kit",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "140+ optimized low-poly factory/warehouse objects; CC0, non-AI. Strong reusable pool for industrial maps."
+    },
+    {
+      "id": "tiko479_vending_machines",
+      "role": "perk_machine_visual_variant_library",
+      "source_url": "https://opengameart.org/content/vending-machines-low-poly-style",
+      "author": "tiko479",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Tiny CC0 low-poly vending-machine pack in Blender/FBX; useful for additional perk-machine bases and prototype variants."
+    },
+    {
+      "id": "3dassets_animated_vending_machine",
+      "role": "perk_machine_animation_reference_fallback",
+      "source_url": "https://3dassets.dev/assets/trampoline-park-and-soft-play-vending-machine-0b02ec87",
+      "author": "3DAssets.dev contributors",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "1.2K-triangle vending machine with open/close animation. AI-generated; use only as animation/pivot reference or after manual visual review."
+    },
+    {
+      "id": "cdmir_human_skull",
+      "role": "instakill_powerup_visual_candidate",
+      "source_url": "https://opengameart.org/content/human-skull-0",
+      "author": "CDmir",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 textured human skull, ~4.5K tris; candidate for an original Insta-Kill-style pickup visual after optimization."
+    },
+    {
+      "id": "qubodup_liquid_bottle_drink_sfx",
+      "role": "perk_drink_audio_candidate",
+      "source_url": "https://opengameart.org/content/liquid-bottle-drink-set",
+      "author": "qubodup",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 bottle/liquid/shake/swallow/gulp recordings; useful for perk drink presentation."
+    },
+    {
+      "id": "rubberduck_wood_metal_sfx",
+      "role": "barricade_door_prop_audio_library",
+      "source_url": "https://opengameart.org/content/100-cc0-metal-and-wood-sfx",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "100 CC0 metal/wood sounds covering doors, hammering, locks, impacts, falling, breaking and squeaks."
+    },
+    {
+      "id": "rubberduck_breaking_sfx",
+      "role": "destruction_audio_library",
+      "source_url": "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "75 CC0 wood/metal/glass/rock breaking, falling and impact sounds for barricades, debris, props and glass."
+    },
+    {
+      "id": "tinyworlds_glass_break",
+      "role": "glass_break_audio_candidate",
+      "source_url": "https://opengameart.org/content/glass-break",
+      "author": "Till Behrend / TinyWorlds",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 game-ready glass break sound."
+    },
+    {
+      "id": "vehicle_fantasy_accessory_sfx",
+      "role": "bottle_coin_small_prop_audio_library",
+      "source_url": "https://opengameart.org/content/fantasy-accessory-sfx-library",
+      "author": "Vehicle",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "155 organic CC0 sounds including glass bottles, corks, coins, keys, vials and cutlery; useful for perks, pickups and props."
     }
   ]
 }
