@@ -7535,3 +7535,524 @@ text = xziel_replace_c_function(
 )
 
 sys_sdl.write_text(text, encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# Xziel Android input/menu/quit polish v0.16
+# - grenade drag-look
+# - first tap select / second tap confirm
+# - stronger text auto-fit
+# - Android finishAndRemoveTask on Quit Game
+# - ADS+FIRE waits for visual ADS completion before firing
+# ---------------------------------------------------------------------------
+
+sys_sdl = source / "platform" / "sdl" / "sys_sdl.c"
+text = sys_sdl.read_text(encoding="utf-8")
+
+# JNI is only needed for Android task shutdown.
+if "#include <jni.h>" not in text:
+    include_anchor = "#include <unistd.h>\n"
+    if include_anchor not in text:
+        raise SystemExit("Could not find sys_sdl include anchor for JNI")
+    text = text.replace(
+        include_anchor,
+        include_anchor + "#ifdef __ANDROID__\n#include <jni.h>\n#endif\n",
+        1
+    )
+
+# Fully finish/remove the Android Activity task when native Quit Game executes.
+sys_quit = r'''void Sys_Quit(void)
+{
+#ifdef __ANDROID__
+	JNIEnv *env = (JNIEnv *)SDL_AndroidGetJNIEnv();
+	jobject activity = (jobject)SDL_AndroidGetActivity();
+
+	if (env && activity) {
+		jclass cls = (*env)->GetObjectClass(env, activity);
+		if (cls) {
+			jmethodID method = (*env)->GetMethodID(env, cls,
+				"requestFullExitFromNative", "()V");
+			if (method)
+				(*env)->CallVoidMethod(env, activity, method);
+			if ((*env)->ExceptionCheck(env))
+				(*env)->ExceptionClear(env);
+			(*env)->DeleteLocalRef(env, cls);
+		}
+		(*env)->DeleteLocalRef(env, activity);
+	}
+#endif
+	sdl_running = false;
+}'''
+text = xziel_replace_c_function(text, "void Sys_Quit(void)", sys_quit)
+
+# ADS+FIRE timing state. NZ:P sets zoom=1 at the START of aim-in while the
+# viewmodel is still interpolating. Gate mobile firing until the visible aim-in
+# is effectively complete instead of treating zoom=1 as instant readiness.
+ads_state_anchor = "static qboolean xziel_adsfire_ads_seen = false;\n"
+if "xziel_adsfire_visual_ready_ms" not in text:
+    if ads_state_anchor not in text:
+        raise SystemExit("Could not find ADS state anchor for visual-ready timing")
+    text = text.replace(
+        ads_state_anchor,
+        ads_state_anchor + "static Uint32 xziel_adsfire_visual_ready_ms = 0;\n",
+        1
+    )
+
+menu_state_anchor = "static int xziel_menu_touch_state = -1;\n"
+menu_states = """static int xziel_menu_confirm_state = -1;
+static int xziel_menu_confirm_row = -1;
+"""
+if "xziel_menu_confirm_state" not in text:
+    if menu_state_anchor not in text:
+        raise SystemExit("Could not find menu touch state anchor")
+    text = text.replace(menu_state_anchor, menu_state_anchor + menu_states, 1)
+
+timing_helpers = r'''
+static Uint32 Xziel_AdsVisualDelayMs(void)
+{
+	/* Scoped NZ:P weapons already define a native 0.2 s scope-in timer.
+	   Ordinary ADS viewmodel interpolation uses 16*frametime smoothing; ~180
+	   ms is about 96% visually settled at common 60-120 Hz frame rates. */
+	if (Xziel_IsSniperMobile())
+		return 200;
+	return 180;
+}
+
+static qboolean Xziel_AdsVisualReady(void)
+{
+	Uint32 now = SDL_GetTicks();
+
+	if (!Xziel_WeaponCanAdsMobile())
+		return true;
+
+	if (now < xziel_adsfire_visual_ready_ms)
+		return false;
+
+	if (Xziel_IsSniperMobile())
+		return cl.stats[STAT_ZOOM] == 2;
+
+	return cl.stats[STAT_ZOOM] == 1 || cl.stats[STAT_ZOOM] == 2;
+}
+'''
+if "static Uint32 Xziel_AdsVisualDelayMs(void)" not in text:
+    anchor = "static qboolean Xziel_AdsReadyForFire(void)\n"
+    idx = text.find(anchor)
+    if idx < 0:
+        raise SystemExit("Could not find ADS-ready helper for visual timing")
+    text = text[:idx] + timing_helpers + "\n" + text[idx:]
+
+# Keep legacy helper name but make it respect visual aim-in completion.
+ads_ready = r'''static qboolean Xziel_AdsReadyForFire(void)
+{
+	return Xziel_AdsVisualReady();
+}'''
+text = xziel_replace_c_function(
+    text,
+    "static qboolean Xziel_AdsReadyForFire(void)",
+    ads_ready
+)
+
+# Grenade finger can drag-look exactly like FIRE / ADS+FIRE / ADS.
+finger_motion = r'''static void Xziel_FingerMotion(const SDL_TouchFingerEvent *finger)
+{
+	xziel_touch_slot_t *slot;
+
+	slot = Xziel_FindTouch(finger->fingerId);
+	if (slot && slot->editor_drag) {
+		Xziel_HudEditorSetPosition(slot->role, finger->x, finger->y);
+		slot->last_x = finger->x;
+		slot->last_y = finger->y;
+		return;
+	}
+
+	if (key_dest == key_menu || key_dest == key_menu_pause) {
+		if (!xziel_menu_touch_active ||
+			xziel_menu_touch_finger != finger->fingerId ||
+			xziel_menu_touch_state != m_state)
+			return;
+		Xziel_MenuFinger(finger->x, finger->y, false, true);
+		return;
+	}
+
+	slot = Xziel_FindTouch(finger->fingerId);
+	if (!slot)
+		return;
+
+	if (slot->role == XZ_TOUCH_MOVE) {
+		Xziel_UpdateMove(finger->x, finger->y);
+	} else if (slot->role == XZ_TOUCH_LOOK ||
+		slot->role == XZ_TOUCH_FIRE ||
+		slot->role == XZ_TOUCH_ADSFIRE ||
+		slot->role == XZ_TOUCH_ADS ||
+		slot->role == XZ_TOUCH_GRENADE) {
+		float look_scale = xziel_mobile_touch_sensitivity.value;
+		if (cl.stats[STAT_ZOOM] == 1 || cl.stats[STAT_ZOOM] == 2)
+			look_scale *= xziel_mobile_ads_sensitivity.value;
+		mouse_dx += (int)((finger->x - slot->last_x) * (float)vid.width * look_scale);
+		mouse_dy += (int)((finger->y - slot->last_y) * (float)vid.height * look_scale);
+	}
+	slot->last_x = finger->x;
+	slot->last_y = finger->y;
+}'''
+text = xziel_replace_c_function(
+    text,
+    "static void Xziel_FingerMotion(const SDL_TouchFingerEvent *finger)",
+    finger_motion
+)
+
+# More robust hit test for two-tap menu confirmation.
+menu_helpers = r'''
+static int Xziel_MenuButtonAtPoint(int mx, int my)
+{
+	int i;
+	for (i = 0; i < MAX_MENU_BUTTONS; ++i) {
+		menu_button_t *button = &current_menu.button[i];
+		if (!button->enabled)
+			continue;
+		if (mx >= button->x && mx < button->x + button->width &&
+			my >= button->y && my < button->y + button->height)
+			return i;
+	}
+	return -1;
+}
+
+static qboolean Xziel_MenuTapConfirms(int row)
+{
+	if (row < 0)
+		return false;
+
+	if (xziel_menu_confirm_state == m_state &&
+		xziel_menu_confirm_row == row) {
+		xziel_menu_confirm_state = -1;
+		xziel_menu_confirm_row = -1;
+		return true;
+	}
+
+	xziel_menu_confirm_state = m_state;
+	xziel_menu_confirm_row = row;
+	Xziel_MenuSetCursor(row);
+	return false;
+}
+'''
+if "static int Xziel_MenuButtonAtPoint(int mx, int my)" not in text:
+    anchor = "static void Xziel_MenuSetCursor(int row)\n"
+    idx = text.find(anchor)
+    if idx < 0:
+        raise SystemExit("Could not find menu cursor helper for two-tap insertion")
+    # Insert after the full function body.
+    brace = text.find("{", idx)
+    depth = 0
+    end = -1
+    for j in range(brace, len(text)):
+        if text[j] == "{":
+            depth += 1
+        elif text[j] == "}":
+            depth -= 1
+            if depth == 0:
+                end = j + 1
+                break
+    if end < 0:
+        raise SystemExit("Could not find MenuSetCursor function end")
+    text = text[:end] + "\n\n" + menu_helpers + text[end:]
+
+menu_finger = r'''static void Xziel_MenuFinger(float x, float y, qboolean down, qboolean motion)
+{
+	int mx = (int)(x * (float)vid.width);
+	int my = (int)(y * (float)vid.height);
+	int divider_x = UI_X(150);
+	qboolean slider_handled = false;
+
+	if (Xziel_IsSplitSettingsMenu()) {
+		int row = Xziel_MenuRowAtY(my);
+
+		/* LEFT pane = select/navigate. First tap selects, second tap on the
+		   same row confirms navigation. RIGHT pane = edit setting directly. */
+		if (mx < divider_x) {
+			if (down && row >= 0) {
+				if (Xziel_MenuTapConfirms(row) &&
+					Xziel_LeftSideIsNavigation(current_menu.button[row].name))
+					Menu_ButtonPress();
+			}
+			return;
+		}
+
+		if (down && row >= 0) {
+			xziel_menu_confirm_state = -1;
+			xziel_menu_confirm_row = -1;
+			Xziel_MenuSetCursor(row);
+			slider_handled = Menu_MouseButton(mx, my, true);
+			if (!slider_handled)
+				Menu_ButtonPress();
+			return;
+		}
+
+		if (motion) {
+			Menu_MouseMove(mx, my);
+			return;
+		}
+
+		Menu_MouseButton(mx, my, false);
+		return;
+	}
+
+	/* Non-settings menus: first tap only selects. A second tap on the same
+	   actual button confirms/opens it. This prevents accidental one-touch
+	   traversal through parent + child menus. */
+	if (motion) {
+		Menu_MouseMove(mx, my);
+		return;
+	}
+
+	if (down) {
+		int row = Xziel_MenuButtonAtPoint(mx, my);
+		if (row >= 0) {
+			if (Xziel_MenuTapConfirms(row))
+				Menu_ButtonPress();
+		}
+		return;
+	}
+
+	Menu_MouseButton(mx, my, false);
+}'''
+text = xziel_replace_c_function(
+    text,
+    "static void Xziel_MenuFinger(float x, float y, qboolean down, qboolean motion)",
+    menu_finger
+)
+
+# ADS+FIRE starts a visual-ready deadline whenever it begins a fresh aim-in.
+action_down = r'''static void Xziel_ActionDown(xziel_touch_role_t role)
+{
+	switch (role) {
+	case XZ_TOUCH_FIRE:
+		xziel_mobile_fire_pressed = true;
+		Xziel_StopSprintForAction();
+		Xziel_SetAttackRef(true);
+		break;
+
+	case XZ_TOUCH_ADSFIRE:
+		xziel_mobile_adsfire_pressed = true;
+		xziel_adsfire_cancelled = false;
+		xziel_adsfire_attack_engaged = false;
+		xziel_adsfire_release_requested = false;
+		xziel_adsfire_release_pending = Xziel_AdsFireReleaseWeapon();
+		xziel_adsfire_temp_aim = false;
+		xziel_adsfire_ads_seen = false;
+
+		Xziel_StopSprintForAction();
+
+		if (Xziel_WeaponCanAdsMobile()) {
+			if (xziel_mobile_ads_latched || xziel_marksman_sticky_ads) {
+				/* Already visually ADS: next shot can use the sight picture
+				   immediately, especially semi-auto marksman repeat fire. */
+				xziel_adsfire_visual_ready_ms = SDL_GetTicks();
+			} else {
+				xziel_adsfire_visual_ready_ms =
+					SDL_GetTicks() + Xziel_AdsVisualDelayMs();
+				Xziel_QueueHold("+aim\n", "-aim\n", &xziel_aim_refs, true);
+				xziel_adsfire_temp_aim = true;
+				Cbuf_Execute();
+			}
+
+			if (Xziel_AdsReadyForFire())
+				xziel_adsfire_ads_seen = true;
+
+			if (!xziel_adsfire_release_pending &&
+				Xziel_AdsReadyForFire()) {
+				Xziel_SetAttackRef(true);
+				xziel_adsfire_attack_engaged = true;
+				Xziel_CommitMarksmanStickyAds();
+			}
+		} else {
+			xziel_adsfire_visual_ready_ms = SDL_GetTicks();
+			if (!xziel_adsfire_release_pending) {
+				Xziel_SetAttackRef(true);
+				xziel_adsfire_attack_engaged = true;
+			}
+		}
+		break;
+
+	case XZ_TOUCH_ADS:
+		xziel_mobile_ads_pressed = true;
+		xziel_mobile_restore_ads_after_reload = false;
+		xziel_mobile_reload_animation_seen = false;
+
+		if (xziel_marksman_sticky_ads) {
+			Xziel_ClearMarksmanStickyAds();
+			break;
+		}
+
+		Xziel_StopSprintForAction();
+		if (xziel_mobile_ads_toggle.value >= 0.5f) {
+			xziel_mobile_ads_latched = !xziel_mobile_ads_latched;
+			Cbuf_AddText("impulse 26\n");
+		} else {
+			xziel_mobile_ads_latched = false;
+			Xziel_QueueHold("+aim\n", "-aim\n", &xziel_aim_refs, true);
+		}
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_RELOAD:
+		xziel_mobile_reload_pressed = true;
+		xziel_mobile_restore_ads_after_reload =
+			(xziel_mobile_ads_toggle.value >= 0.5f && xziel_mobile_ads_latched);
+		xziel_mobile_reload_animation_seen = false;
+		xziel_mobile_reload_start_frame = cl.stats[STAT_WEAPONFRAME];
+		Cbuf_AddText("+reload\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_USE:
+		xziel_mobile_use_pressed = true;
+		if (!xziel_auto_rebuild_use_down) {
+			Cbuf_AddText("+use\n");
+			Cbuf_Execute();
+		}
+		break;
+
+	case XZ_TOUCH_JUMP:
+		xziel_mobile_jump_pressed = true;
+		Cbuf_AddText("+jump\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_KNIFE:
+		xziel_mobile_knife_pressed = true;
+		Xziel_StopSprintForAction();
+		Cbuf_AddText("+knife\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_GRENADE:
+		Xziel_ClearMarksmanStickyAds();
+		xziel_mobile_grenade_pressed = true;
+		xziel_mobile_grenade_pending = true;
+		xziel_mobile_grenade_cooking = false;
+		xziel_mobile_grenade_seconds_left = 5.0f;
+		xziel_mobile_grenade_press_ms = SDL_GetTicks();
+		xziel_mobile_grenade_count_before =
+			(sv_player && sv.active) ? (int)sv_player->v.primary_grenades :
+			(int)cl.stats[STAT_GRENADES];
+		Xziel_StopSprintForAction();
+		Cbuf_AddText("+grenade\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_SWITCH:
+		xziel_mobile_switch_pressed = true;
+		Xziel_ClearMarksmanStickyAds();
+		if (xziel_adsfire_release_pending || xziel_adsfire_release_requested)
+			Xziel_CancelAdsFireForSprint();
+		Cbuf_AddText("+switch\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_PAUSE:
+		Menu_Pause_Set();
+		break;
+
+	default:
+		break;
+	}
+}'''
+text = xziel_replace_c_function(
+    text,
+    "static void Xziel_ActionDown(xziel_touch_role_t role)",
+    action_down
+)
+
+# Reset two-tap/ADS deadline state on forced input release.
+release_reset_anchor = """	xziel_menu_touch_active = false;
+	xziel_menu_touch_state = -1;
+	Cbuf_Execute();
+}"""
+release_reset_repl = """	xziel_menu_touch_active = false;
+	xziel_menu_touch_state = -1;
+	xziel_menu_confirm_state = -1;
+	xziel_menu_confirm_row = -1;
+	xziel_adsfire_visual_ready_ms = 0;
+	Cbuf_Execute();
+}"""
+if release_reset_anchor in text:
+    text = text.replace(release_reset_anchor, release_reset_repl, 1)
+
+sys_sdl.write_text(text, encoding="utf-8")
+
+# ---- Menu text fitting ------------------------------------------------------
+helper = source / "menu" / "menu_helper.c"
+mhelp = helper.read_text(encoding="utf-8")
+
+# Allow very long left labels to shrink farther before overflowing.
+mhelp = mhelp.replace(
+    "if (label_scale < vid.scale * 0.68f)\n\t\t\t\tlabel_scale = vid.scale * 0.68f;",
+    "if (label_scale < vid.scale * 0.48f)\n\t\t\t\tlabel_scale = vid.scale * 0.48f;"
+)
+
+option_button = r'''void Menu_DrawOptionButton(int order, char* selection_name)
+{
+	int y_factor = 15;
+	int x_pos = 165;
+	int y_pos = 30 + (order*y_factor);
+	float option_scale = vid.scale;
+	int max_width;
+
+	UI_SetAlignment (UI_ANCHOR_LEFT, UI_ANCHOR_TOP);
+
+#ifdef __ANDROID__
+	max_width = vid.width - UI_X(x_pos) - UI_W(8);
+	if (max_width > 0) {
+		int width = getTextWidth(selection_name, option_scale);
+		if (width > max_width && width > 0) {
+			option_scale *= (float)max_width / (float)width;
+			if (option_scale < vid.scale * 0.50f)
+				option_scale = vid.scale * 0.50f;
+		}
+	}
+#endif
+
+	Menu_DrawString(x_pos, y_pos, selection_name,
+		255, 255, 255, 255, option_scale, 0);
+}'''
+mhelp = xziel_replace_c_function(
+    mhelp,
+    "void Menu_DrawOptionButton(int order, char* selection_name)",
+    option_button
+)
+
+title_func = r'''void Menu_DrawTitle (char *title_name, int color)
+{
+	int x_pos = vid.width/64;
+	int y_pos = 5 * vid.scale;
+	float title_scale = vid.scale * 2.0f;
+
+#ifdef __ANDROID__
+	{
+		int max_width = vid.width - (x_pos * 2);
+		int width = getTextWidth(title_name, title_scale);
+		if (width > max_width && width > 0) {
+			title_scale *= (float)max_width / (float)width;
+			if (title_scale < vid.scale)
+				title_scale = vid.scale;
+		}
+	}
+#endif
+
+	switch (color) {
+	case MENU_COLOR_WHITE:
+		Draw_ColoredString (x_pos, y_pos, title_name,
+			255, 255, 255, 255, title_scale);
+		break;
+	case MENU_COLOR_YELLOW:
+		Draw_ColoredString (x_pos, y_pos, title_name,
+			255, 255, 0, 255, title_scale);
+		break;
+	}
+}'''
+mhelp = xziel_replace_c_function(
+    mhelp,
+    "void Menu_DrawTitle (char *title_name, int color)",
+    title_func
+)
+
+helper.write_text(mhelp, encoding="utf-8")
