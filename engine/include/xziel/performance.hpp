@@ -41,6 +41,20 @@ struct RenderWorkload {
     std::uint32_t dynamicLightBudget = 16;
     std::uint32_t shadowedLightBudget = 4;
     std::uint32_t shadowMapResolution = 1024;
+
+    // Reflection budgets are explicit so mirrors/water cannot accidentally
+    // multiply the full scene cost without bounds.
+    std::uint32_t maxPlanarReflectionPasses = 1;
+    float planarReflectionScale = 0.60f;
+    float reflectionDistanceMeters = 35.0f;
+
+    bool ssrEnabled = true;
+    float ssrResolutionScale = 0.50f;
+    std::uint32_t ssrMaxSteps = 24;
+
+    // Volumetric/post effects are budgeted independently of gameplay.
+    std::uint32_t volumetricFogSteps = 24;
+    float postProcessScale = 0.75f;
 };
 
 class PerformanceGovernor final {
