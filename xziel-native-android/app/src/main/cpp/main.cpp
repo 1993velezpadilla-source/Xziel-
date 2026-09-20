@@ -19,6 +19,11 @@ struct NativeAppState {
 
     bool hasWindow = false;
 
+    JNIEnv* jniEnv = nullptr;
+    jobject javaActivity = nullptr;
+    JavaVM* javaVm = nullptr;
+    bool attachedToJvm = false;
+
     std::chrono::steady_clock::time_point start =
         std::chrono::steady_clock::now();
 };
@@ -96,7 +101,9 @@ void handleCommand(
 
                 if (state->renderer.initialize(
                         app->window,
-                        app->activity->assetManager)) {
+                        app->activity->assetManager,
+                        state->jniEnv,
+                        state->javaActivity)) {
                     state->hasWindow = true;
                     state->watchdog.reset();
                     logInfo("XZIEL_VULKAN_READY");
@@ -149,6 +156,40 @@ extern "C" void android_main(
 
     state.runtime.onEvent(
         xziel::AndroidLifecycleEvent::Create);
+
+    if (app->activity != nullptr) {
+        state.javaVm =
+            app->activity->vm;
+        state.javaActivity =
+            app->activity->javaGameActivity;
+    }
+
+    if (state.javaVm != nullptr) {
+        const jint getEnvResult =
+            state.javaVm->GetEnv(
+                reinterpret_cast<void**>(
+                    &state.jniEnv),
+                JNI_VERSION_1_6);
+
+        if (getEnvResult == JNI_EDETACHED) {
+            if (state.javaVm->AttachCurrentThread(
+                    &state.jniEnv,
+                    nullptr) == JNI_OK) {
+                state.attachedToJvm = true;
+                logInfo("XZIEL_APP_THREAD_ATTACHED_TO_JVM");
+            } else {
+                state.jniEnv = nullptr;
+                logError(
+                    "Unable to attach native app thread to JVM; "
+                    "Swappy will use fallback present path");
+            }
+        } else if (getEnvResult != JNI_OK) {
+            state.jniEnv = nullptr;
+            logError(
+                "Unable to obtain JNIEnv; "
+                "Swappy will use fallback present path");
+        }
+    }
 
     app->userData = &state;
     app->onAppCmd = handleCommand;
@@ -231,6 +272,13 @@ extern "C" void android_main(
 
     state.runtime.onEvent(
         xziel::AndroidLifecycleEvent::Destroy);
+
+    if (state.attachedToJvm &&
+        state.javaVm != nullptr) {
+        state.javaVm->DetachCurrentThread();
+        state.jniEnv = nullptr;
+        state.attachedToJvm = false;
+    }
 
     logInfo("XZIEL_NATIVE_EXIT");
 }
