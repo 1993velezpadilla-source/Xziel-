@@ -143,7 +143,7 @@ float(float weapon_id) Xziel_IsPistolWeapon =
 '''
     text = text[:insert_at] + helper + text[insert_at:]
 
-update_stats = r'''inline void() WeaponCore_UpdateWeaponStats =
+update_stats = r'''void() WeaponCore_UpdateWeaponStats =
 {
     /* Unlimited pistol mode refills RESERVE only. Magazine capacity and native
        reload timing remain untouched, so the player still has to reload. */
