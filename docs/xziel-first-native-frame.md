@@ -14,7 +14,7 @@ job is to make the new first-party engine executable on Android early.
 The prototype now contains:
 
 - AndroidX GameActivity 4.4.2
-- API 37 compile SDK, Android 16 / API 36 target
+- Android 16 QPR2 / API 36.1 compile SDK, API 36 target
 - Android 10 / API 29 minimum
 - arm64-v8a and x86_64 native targets
 - the existing first-party Xziel C++ core linked into the APK
