@@ -6262,7 +6262,7 @@ pulse_func = r'''static void Xziel_PulseAttackNow(void)
 }'''
 text = xziel_replace_c_function(
     text,
-    "static void Xziel_PulseAttackNow(void)",
+    "static void Xziel_PulseAttackNow(void)\n{",
     pulse_func
 )
 
