@@ -5,6 +5,9 @@ option(XZIEL_ENGINE_BUILD_TESTS "Build Xziel Engine smoke tests" ON)
 
 add_library(xziel_engine STATIC
     src/engine.cpp
+    src/movement.cpp
+    src/mobile_controls.cpp
+    src/environment.cpp
 )
 
 target_include_directories(xziel_engine
@@ -26,6 +29,19 @@ if(XZIEL_ENGINE_BUILD_TESTS)
     )
     target_link_libraries(xziel_engine_smoke PRIVATE xziel_engine)
     target_compile_features(xziel_engine_smoke PRIVATE cxx_std_20)
-
     add_test(NAME xziel_engine_smoke COMMAND xziel_engine_smoke)
+
+    add_executable(xziel_movement_smoke
+        tests/movement_smoke.cpp
+    )
+    target_link_libraries(xziel_movement_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_movement_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_movement_smoke COMMAND xziel_movement_smoke)
+
+    add_executable(xziel_environment_smoke
+        tests/environment_smoke.cpp
+    )
+    target_link_libraries(xziel_environment_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_environment_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_environment_smoke COMMAND xziel_environment_smoke)
 endif()
