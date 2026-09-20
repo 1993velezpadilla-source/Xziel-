@@ -27,6 +27,8 @@ ICONS = {
     "sprint": "3-gear/shoe.svg",
     "pistol": "3-gear/pistol.svg",
     "weapon": "3-gear/bullet.svg",
+    "weapon_wonder": "4-nature/lightning.svg",
+    "weapon_launcher": "3-gear/missile.svg",
     "threat": "1-game/skull.svg",
 }
 
@@ -84,16 +86,47 @@ def main() -> None:
                 choices.sort(key=lambda x: (-x[0], x[1], x[2]))
                 return choices[0][2]
 
-            pistol = pick("pistol")
-            assault = pick("assault")
-            if pistol:
-                (out / "pistol.png").write_bytes(archive.read(pistol))
-            if assault:
-                (out / "weapon.png").write_bytes(archive.read(assault))
+            categories = {
+                "weapon_pistol.png": "pistol",
+                "weapon_revolver.png": "revolver",
+                "weapon_shotgun.png": "shotgun",
+                "weapon_sniper.png": "sniper",
+                "weapon_smg.png": "smg",
+                "weapon_assault.png": "assault",
+            }
+            picked = {}
+            for filename, keyword in categories.items():
+                selected = pick(keyword)
+                if selected:
+                    payload = archive.read(selected)
+                    (out / filename).write_bytes(payload)
+                    picked[keyword] = filename
+
+            # Preserve legacy names used by older checkpoints.
+            if "pistol" in picked:
+                (out / "pistol.png").write_bytes((out / picked["pistol"]).read_bytes())
+            if "assault" in picked:
+                (out / "weapon.png").write_bytes((out / picked["assault"]).read_bytes())
     except Exception as exc:
         # The Nieobie CC0 pistol/bullet icons remain a deterministic fallback
         # if OpenGameArt is temporarily unavailable during CI.
         print(f"warning: Kay Lousberg weapon art unavailable: {exc}", file=sys.stderr)
+
+    # CI must always produce every HUD path even when OpenGameArt is down or
+    # the upstream archive changes a filename. The fallback images are also
+    # CC0 from the already-pinned Nieobie pack.
+    fallback_map = {
+        "weapon_pistol.png": "pistol.png",
+        "weapon_revolver.png": "pistol.png",
+        "weapon_shotgun.png": "weapon.png",
+        "weapon_sniper.png": "weapon.png",
+        "weapon_smg.png": "weapon.png",
+        "weapon_assault.png": "weapon.png",
+    }
+    for dst, src in fallback_map.items():
+        target = out / dst
+        if not target.exists():
+            target.write_bytes((out / src).read_bytes())
 
     (out / "LICENSE-CC0.txt").write_text(
         "Xziel mobile HUD assets are CC0/public-domain.\n"
