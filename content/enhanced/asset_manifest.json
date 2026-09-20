@@ -1015,6 +1015,126 @@
       "requires_attribution": false,
       "status": "candidate",
       "notes": "CC0 seamless swirling smoke/aura sheets in multiple frame counts; useful for Mystery Box, teleport, perk/powerup and dog-spawn effects after recoloring."
+    },
+    {
+      "id": "akiohonda_ww2_lowpoly_weapon_pack",
+      "role": "ww2_weapon_library_candidate",
+      "source_url": "https://sketchfab.com/3d-models/ww2-low-poly-weapons-pack-4242e664ec1a489b99dc0d543f958915",
+      "author": "J.AkioHonda",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "Creator-made WW2 pack with M1 Garand+clip/ammo, Thompson M1+mag/ammo, PPSh-41+mag/ammo, STG44+mag/ammo, M1911, C96, TT pistol, three knives and three grenades. Author explicitly permits personal/commercial use with credit."
+    },
+    {
+      "id": "zillious_ppsh41",
+      "role": "ppsh41_high_quality_candidate",
+      "source_url": "https://sketchfab.com/3d-models/ppsh-41-5c8a64490fa747389e9cfcaecc69c88a",
+      "author": "Zillious",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "12.4K-triangle game-optimized PPSh-41; magazine and trigger separable; 4K PBR source textures for downscaling."
+    },
+    {
+      "id": "max3dd_ppsh41_lowpoly",
+      "role": "ppsh41_mobile_candidate",
+      "source_url": "https://sketchfab.com/3d-models/ppsh-41-low-poly-d9ee1742732c4aec9c98aeddfb93071c",
+      "author": "MaX3Dd",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "4.2K-triangle game-ready PPSh-41 with 2K PBR texture set; especially attractive for Android."
+    },
+    {
+      "id": "raymond_m1_garand",
+      "role": "m1_garand_candidate",
+      "source_url": "https://sketchfab.com/3d-models/realistic-m1-garand-8d639aed01a94c8bb6e8cb58070a71f3",
+      "author": "Raymond",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "13.7K-triangle realistic M1 Garand. Showcase animations are included on the source model; evaluate whether usable/retargetable in export."
+    },
+    {
+      "id": "yieldingmist_m1_garand",
+      "role": "m1_garand_mobile_candidate",
+      "source_url": "https://sketchfab.com/3d-models/m1-garand-ec368667c6a54f018c8cb4bacdebbb94",
+      "author": "YieldingMist206",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "11.1K-triangle M1 Garand with FBX/Blend, clip and bullets; source also uses ambientCG CC0 material assets."
+    },
+    {
+      "id": "konstantinos_mp40_animated",
+      "role": "mp40_animated_candidate",
+      "source_url": "https://sketchfab.com/3d-models/low-poly-mp40-75c810c123204637ae1854168dc53138",
+      "author": "Konstantinos.Simantiras",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "9.4K-triangle MP40 with separated parts plus reload, aim, run and walk animations. High-priority Enhanced weapon test."
+    },
+    {
+      "id": "tastytony_thompson_m1a1",
+      "role": "thompson_mobile_candidate",
+      "source_url": "https://sketchfab.com/3d-models/low-poly-thompson-m1a1-6f090d072c094ddfb1f1ca5ca4827c88",
+      "author": "TastyTony",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "3.9K-triangle low-poly Thompson M1A1. Excellent mobile triangle budget."
+    },
+    {
+      "id": "anick_m1897_trench",
+      "role": "m1897_shotgun_candidate",
+      "source_url": "https://sketchfab.com/3d-models/winchester-m1897-trench-gun-b36e917fc21f411c85b0e6ba6d61b285",
+      "author": "Anick_Schwartz",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "5.9K-triangle Winchester M1897 Trench Gun; good Android hero-weapon budget."
+    },
+    {
+      "id": "peanut_bar_m1918a2_rigged",
+      "role": "bar_rigged_candidate",
+      "source_url": "https://sketchfab.com/3d-models/bar-m1918-a2-game-ready-rigged-1213683e58b14dd89fd4520489c7b732",
+      "author": "Peanut_Butcher",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "13.3K-triangle game-ready and rigged BAR M1918A2, published in 2026."
+    },
+    {
+      "id": "pippa_bar_m1918",
+      "role": "bar_mobile_candidate",
+      "source_url": "https://sketchfab.com/3d-models/bar-m1918-4d00b2d0a6894aae874c66ca739735e4",
+      "author": "Pippa",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "6.8K-triangle BAR with simple charging animation; author also provides magazine and .30-06 round models."
+    },
+    {
+      "id": "konstantinos_mg42_animated",
+      "role": "mg42_animated_candidate",
+      "source_url": "https://sketchfab.com/3d-models/low-poly-mg42-c62bb36055b74cd7bf646ad6d8c03b38",
+      "author": "Konstantinos.Simantiras",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "15.3K-triangle MG42 with separated parts, bullet casing/head, reload animation and barrel-change animation."
+    },
+    {
+      "id": "observer3d_stg44",
+      "role": "stg44_candidate",
+      "source_url": "https://sketchfab.com/3d-models/stg-44-c1fa5b79ab0c42a1949506b3e0137424",
+      "author": "Observer3D",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "25K-triangle game-ready PBR STG-44. High-detail source; requires LOD/downscale for mobile."
     }
   ]
 }
