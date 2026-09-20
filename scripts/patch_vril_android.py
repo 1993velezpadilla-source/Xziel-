@@ -7635,20 +7635,31 @@ static qboolean Xziel_AdsVisualReady(void)
 }
 '''
 if "static Uint32 Xziel_AdsVisualDelayMs(void)" not in text:
-    anchor = "static qboolean Xziel_AdsReadyForFire(void)\n"
+    anchor = "static qboolean Xziel_AdsReadyForFire(void)\n{"
     idx = text.find(anchor)
     if idx < 0:
         raise SystemExit("Could not find ADS-ready helper for visual timing")
     text = text[:idx] + timing_helpers + "\n" + text[idx:]
 
 # Keep legacy helper name but make it respect visual aim-in completion.
+proto_anchor = "static void Xziel_UpdateMobileFire(void)\n"
+visual_protos = """static Uint32 Xziel_AdsVisualDelayMs(void);
+static qboolean Xziel_AdsVisualReady(void);
+
+"""
+if visual_protos not in text:
+    idx = text.find(proto_anchor)
+    if idx < 0:
+        raise SystemExit("Could not find mobile fire prototype anchor for visual ADS helpers")
+    text = text[:idx] + visual_protos + text[idx:]
+
 ads_ready = r'''static qboolean Xziel_AdsReadyForFire(void)
 {
 	return Xziel_AdsVisualReady();
 }'''
 text = xziel_replace_c_function(
     text,
-    "static qboolean Xziel_AdsReadyForFire(void)",
+    "static qboolean Xziel_AdsReadyForFire(void)\n{",
     ads_ready
 )
 
