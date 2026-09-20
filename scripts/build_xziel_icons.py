@@ -226,6 +226,101 @@ def build_xziel_modern_surfaces(out: Path) -> None:
     for name, body in silhouettes.items():
         _render_svg(out, name, f'<g fill="#FFFFFF">{body}</g>', 512)
 
+
+def build_xziel_v023_surfaces(out: Path) -> None:
+    """Original Xziel mobile FPS surfaces inspired by modern touch shooters."""
+    # A clean cartridge icon for the right-fire control.
+    fire = '''
+      <g fill="#FFFFFF">
+        <path d="M229 72h54v66l-10 19v214l-17 69-17-69V157l-10-19z"/>
+        <path d="M223 72h66v30h-66z"/>
+      </g>
+    '''
+    # Crisp optic reticle for dedicated ADS.
+    ads = '''
+      <g fill="none" stroke="#FFFFFF" stroke-linecap="round">
+        <circle cx="256" cy="256" r="112" stroke-width="24"/>
+        <path d="M256 74v80M256 358v80M74 256h80M358 256h80" stroke-width="22"/>
+        <circle cx="256" cy="256" r="12" fill="#FFFFFF" stroke="none"/>
+      </g>
+    '''
+    # ADS+fire is deliberately distinct: optic with a small cartridge mark.
+    adsfire = '''
+      <g fill="none" stroke="#FFFFFF" stroke-linecap="round">
+        <circle cx="236" cy="242" r="105" stroke-width="23"/>
+        <path d="M236 72v70M236 342v70M66 242h70M336 242h70" stroke-width="21"/>
+        <circle cx="236" cy="242" r="11" fill="#FFFFFF" stroke="none"/>
+      </g>
+      <path d="M355 300h36v45l-7 13v83l-11 34-11-34v-83l-7-13z" fill="#F4C83D"/>
+    '''
+    small_idle = '''
+      <circle cx="256" cy="256" r="218" fill="#05080B" fill-opacity=".34"/>
+      <circle cx="256" cy="256" r="218" fill="none" stroke="#EAF0F4" stroke-opacity=".48" stroke-width="12"/>
+      <circle cx="256" cy="256" r="188" fill="none" stroke="#EAF0F4" stroke-opacity=".08" stroke-width="3"/>
+    '''
+    small_pressed = '''
+      <circle cx="256" cy="256" r="220" fill="#090B0D" fill-opacity=".72"/>
+      <circle cx="256" cy="256" r="218" fill="none" stroke="#F4C83D" stroke-opacity=".90" stroke-width="15"/>
+      <circle cx="256" cy="256" r="184" fill="none" stroke="#F4C83D" stroke-opacity=".18" stroke-width="5"/>
+    '''
+    fire_idle = '''
+      <circle cx="256" cy="256" r="226" fill="#050607" fill-opacity=".42"/>
+      <circle cx="256" cy="256" r="222" fill="none" stroke="#F4F6F7" stroke-opacity=".66" stroke-width="14"/>
+      <circle cx="256" cy="256" r="188" fill="none" stroke="#F4F6F7" stroke-opacity=".10" stroke-width="4"/>
+    '''
+    fire_pressed = '''
+      <circle cx="256" cy="256" r="228" fill="#0A0905" fill-opacity=".72"/>
+      <circle cx="256" cy="256" r="223" fill="none" stroke="#F4C83D" stroke-width="19"/>
+      <circle cx="256" cy="256" r="184" fill="none" stroke="#F4C83D" stroke-opacity=".24" stroke-width="7"/>
+    '''
+    ads_idle = '''
+      <circle cx="256" cy="256" r="218" fill="#05080B" fill-opacity=".28"/>
+      <circle cx="256" cy="256" r="216" fill="none" stroke="#EEF3F6" stroke-opacity=".50" stroke-width="11"/>
+      <path d="M256 25v46M256 441v46M25 256h46M441 256h46" stroke="#EEF3F6" stroke-opacity=".56" stroke-width="9" stroke-linecap="round"/>
+    '''
+    ads_pressed = '''
+      <circle cx="256" cy="256" r="220" fill="#080A0C" fill-opacity=".70"/>
+      <circle cx="256" cy="256" r="216" fill="none" stroke="#F4C83D" stroke-opacity=".92" stroke-width="15"/>
+      <path d="M256 22v50M256 440v50M22 256h50M440 256h50" stroke="#FFF5C9" stroke-width="10" stroke-linecap="round"/>
+    '''
+    adsfire_idle = '''
+      <circle cx="256" cy="256" r="226" fill="#050607" fill-opacity=".40"/>
+      <circle cx="256" cy="256" r="222" fill="none" stroke="#F1F5F7" stroke-opacity=".64" stroke-width="14"/>
+      <circle cx="256" cy="256" r="184" fill="none" stroke="#F1F5F7" stroke-opacity=".08" stroke-width="4"/>
+      <path d="M256 20v33M256 459v33M20 256h33M459 256h33" stroke="#F4C83D" stroke-opacity=".70" stroke-width="8" stroke-linecap="round"/>
+    '''
+    adsfire_pressed = '''
+      <circle cx="256" cy="256" r="228" fill="#0B0A06" fill-opacity=".76"/>
+      <circle cx="256" cy="256" r="223" fill="none" stroke="#F4C83D" stroke-width="19"/>
+      <circle cx="256" cy="256" r="181" fill="none" stroke="#FFF2B0" stroke-opacity=".18" stroke-width="6"/>
+    '''
+    minimap_ring = '''
+      <circle cx="256" cy="256" r="231" fill="#030507" fill-opacity=".58"/>
+      <circle cx="256" cy="256" r="229" fill="none" stroke="#E7ECEF" stroke-opacity=".70" stroke-width="12"/>
+      <circle cx="256" cy="256" r="190" fill="none" stroke="#E7ECEF" stroke-opacity=".11" stroke-width="4"/>
+      <path d="M256 27v24M256 461v24M27 256h24M461 256h24" stroke="#E7ECEF" stroke-opacity=".70" stroke-width="8" stroke-linecap="round"/>
+    '''
+    minimap_player = '''
+      <path d="M256 58l95 326-95-58-95 58z" fill="#F4C83D"/>
+      <path d="M256 93l61 236-61-37-61 37z" fill="#FFF5C9" fill-opacity=".58"/>
+    '''
+    for name, body in {
+        "fire": fire,
+        "ads": ads,
+        "adsfire": adsfire,
+        "touch_small_idle": small_idle,
+        "touch_small_pressed": small_pressed,
+        "touch_fire_idle": fire_idle,
+        "touch_fire_pressed": fire_pressed,
+        "touch_ads_idle": ads_idle,
+        "touch_ads_pressed": ads_pressed,
+        "touch_adsfire_idle": adsfire_idle,
+        "touch_adsfire_pressed": adsfire_pressed,
+        "minimap_ring": minimap_ring,
+        "minimap_player": minimap_player,
+    }.items():
+        _render_svg(out, name, body, 512)
+
 def main() -> None:
     if len(sys.argv) != 2:
         raise SystemExit("usage: build_xziel_icons.py <output-dir>")
@@ -240,6 +335,8 @@ def main() -> None:
             output_width=256,
             output_height=256,
         )
+    build_xziel_v023_surfaces(out)
+
     # Weapon cards use actual CC0 gun artwork rather than a hand-drawn glyph.
     # Kay Lousberg's pack is CC0, transparent PNG, and explicitly includes
     # pistol/revolver/shotgun/sniper/SMG/assault-rifle artwork.
