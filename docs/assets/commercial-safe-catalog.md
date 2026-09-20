@@ -217,3 +217,210 @@ Code is MIT, but its art assets/models are CC-BY-NC-SA 4.0. Do NOT place the art
 - creature/dog/crawler rigs
 - gore decals and severed-limb cap textures
 - mobile-ready hand/weapon LOD chains
+
+
+---
+
+## Deep-search expansion — pass 2
+
+### OpenGameArt — Male City Zombie — GREEN / HIGH PRIORITY
+Source: https://opengameart.org/node/111870  
+License: CC0.  
+Rigged, textured and animation-ready. Included animation set: two walks, three attacks, death, two idles, hit reaction, running and scream.  
+Use: one of the strongest truly open zombie baselines found so far. Test topology, bone naming, root motion and mobile draw cost, then retarget Quaternius/KayKit animations as needed.
+
+### Petrov_the_blind — 3D Zombie Grandma — GREEN
+Source: https://petrov-the-blind.itch.io/3d-zombie-grandma  
+License: CC0.  
+Includes a rigged walking zombie plus a lower-resolution PSX-style rigged variant; Blend + FBX.  
+Use: body-shape/age diversity and low-cost zombie variant.
+
+### Kenney — Animated Characters 1/2/3 — GREEN
+Sources:
+- https://opengameart.org/content/animated-characters-1
+- https://opengameart.org/content/animated-characters-2
+- https://opengameart.org/content/animated-characters-3
+License: CC0.  
+Rigged/animated humans/zombie skins with idle, jump and run.  
+Use: ultra-light crowd/prototype bodies and rig compatibility tests.
+
+### Standout 7 — LOWPO Horror Character Pack free tier — GREEN
+Source: https://standout7.itch.io/horror-character-pack  
+License stated: CC0.  
+Free tier includes Ghost, Vampire and Zombie FBX characters; rigged/game-ready; commercial use allowed; Mixamo-compatible.  
+Use: additional low-poly horror silhouettes. Verify the downloaded free-tier archive matches the page license.
+
+### OpenGameArt — Giant Mutant — GREEN
+Source: https://opengameart.org/content/giant-mutant  
+License: CC0.  
+Rigged with run, idle, left/right/ultimate punches and death.  
+Use: brute/special-zombie prototype.
+
+### KayKit — Character Animations — GREEN
+Source: https://kaylousberg.itch.io/kaykit-character-animations  
+License: CC0.  
+161 humanoid animations in FBX/GLTF, retargetable beyond KayKit rigs.  
+Use: broad fallback animation library and player/NPC locomotion.
+
+### KayKit — Adventurers — GREEN
+Source: https://kaylousberg.itch.io/kaykit-adventurers  
+License: CC0.  
+Free tier includes multiple rigged characters and accessories; compatible with KayKit animation library.  
+Use: rig testing, survivor/NPC prototypes and mobile performance baselines.
+
+### KayKit — Prototype Bits — GREEN
+Source: https://kaylousberg.itch.io/prototype-bits  
+License: CC0.  
+64+ optimized 3D models, OBJ/FBX/GLTF, single atlas that can be downsampled aggressively.  
+Use: placeholder gameplay/environment assets.
+
+## Weapons expansion
+
+### OpenGameArt — Lowpoly Pistol by FireWarden — GREEN / HIGH PRIORITY
+Source: https://opengameart.org/content/lowpoly-pistol  
+License: CC0.  
+Original/non-real firearm design; 1350 tris; separate barrel, loaded/empty magazines, hammer, trigger and slide. FBX + Blend.  
+Use: excellent animation-system test gun with legal-friendly fictional silhouette.
+
+### Pichuliru — CC0 Flat Guns East — GREEN
+Source: https://pichuliru.itch.io/cc0-flat-guns-east  
+License: CC0.  
+10 gun models, rigged and ready for animation, attachment bones; Blend/FBX/GLB/OBJ.  
+Use: low-cost weapon variety; inspect magazine separation per model before selecting for reload animation.
+
+### OpenGameArt — Low-Poly M4A1 — GREEN
+Source: https://opengameart.org/content/low-poly-m4a1  
+License: CC0.  
+167 tris; hand-painted 1k texture; magazine separated for reload animation.  
+Use: extreme-low-end/mobile LOD reference. For an original commercial title, fictionalize real-world weapon identity/trademarks where appropriate.
+
+### 3DAssets.dev — FPS Survival Forest Outpost — GREEN / AI-QA REQUIRED
+Source: https://3dassets.dev/packs/fps-survival-forest-outpost  
+License stated by source: CC0.  
+109 GLB models; modular survival outpost, traps/crafting/power, vehicles, five invented weapons and 12 jointed characters. Pack states 37.3 MB total individual assets and CC0 commercial use.  
+Weapon examples include animated moving magazine/bolt/slide and a break-action shotgun.  
+Important: source declares all files AI-generated. Treat as a candidate library requiring manual visual/topology/IP-similarity QA before production selection.
+
+Useful individual candidates:
+- https://3dassets.dev/assets/fps-survival-forest-outpost-weapon-sidearm-pistol-afb8da46 — 3.5k tris, animated magazine + slide.
+- https://3dassets.dev/assets/fps-survival-forest-outpost-weapon-scrap-rifle-b357ed81 — 2.6k tris, animated magazine + bolt.
+- https://3dassets.dev/assets/fps-survival-forest-outpost-weapon-marksman-rifle-e20c7bc2 — 6.1k tris, animated magazine + bolt.
+- https://3dassets.dev/assets/fps-survival-forest-outpost-weapon-scout-carbine-55d669ba — 6.4k tris, animated magazine + bolt.
+- https://3dassets.dev/assets/fps-survival-forest-outpost-weapon-breach-shotgun-7f8e2b62 — 2.5k tris, animated break action.
+
+## Environment expansion
+
+### Quaternius — Downtown City MegaKit — GREEN
+Source: https://quaternius.com/packs/downtowncitymegakit.html  
+License shown: CC0.  
+315 models / 300+ modular Boston/NYC-style building and street pieces. Free standard formats include FBX/glTF/OBJ; source edition adds engine projects, custom collisions, shader work and Blender sources.  
+Use: city-block construction, abandoned urban map prototypes and reusable architecture.
+
+### Quaternius — Modular Streets Pack — GREEN
+Source: https://quaternius.com/packs/modularstreets.html  
+License shown: CC0.  
+25 modular road/street assets, FBX/OBJ/Blend.
+
+### Quaternius — Cars Pack — GREEN
+Source: https://quaternius.com/packs/cars.html  
+License shown: CC0.  
+8 car models, FBX/OBJ/Blend.
+
+### Majadroid — 3D Apocalyptic Building / City — GREEN
+Source: https://majadroid.itch.io/3d-apocalyptic-building-city-cc0  
+License: CC0; page explicitly allows commercial use.  
+7 ruined skyscrapers plus billboards/wreckage and original Blend file.  
+Use: destroyed-city silhouettes, skyline and background set dressing.
+
+### Kenney — City Kit (Industrial) — GREEN
+Source: https://kenney.nl/assets/city-kit-industrial  
+License: CC0. 40 3D files.
+
+### Kenney — City Kit (Commercial) — GREEN
+Source: https://kenney.nl/assets/city-kit-commercial  
+License: CC0. 50 3D files.
+
+### Kenney — City Kit (Suburban) — GREEN
+Source: https://kenney.nl/assets/city-kit-suburban  
+License: CC0. 40 3D files.
+
+### Kenney — City Kit (Roads) — GREEN
+Source: https://kenney.nl/assets/city-kit-roads  
+License: CC0. 90 3D files.
+
+### Kenney — Factory Kit — GREEN
+Source: https://kenney.nl/assets/factory-kit  
+License: CC0. 140 3D files with variations and animation.
+
+### Kenney — Survival Kit — GREEN
+Source: https://kenney.nl/assets/survival-kit  
+License: CC0. 80 3D files and animation.
+
+### Poly Pizza — industrial CC0 props — GREEN, VERIFY PER MODEL
+Example: https://poly.pizza/m/j5sQIqPke1  
+The cited shipping container page is explicitly Public Domain/CC0 and supplies OBJ/GLTF.  
+Use Poly Pizza's per-model license metadata rather than assuming all hosted models share one license.
+
+## VFX expansion
+
+### Binbun — Muzzle Flash VFX (Godot 3D) — GREEN
+Source: https://binbun3d.itch.io/muzzle-flash-vfx  
+License: CC0.  
+Free/name-your-price package; configurable 3D muzzle flashes with LOD/transparency-performance controls.  
+Use: high-value reference/source for modern weapon flash while adapting shaders/materials to Xziel.
+
+### Binbun — Hit FX — GREEN
+Source: https://binbun3d.itch.io/hit-fx  
+License: CC0 for free and full versions.  
+Free effect presets can cover bullet/material hit feedback.
+
+### Binbun — Electric FX — GREEN
+Source: https://binbun3d.itch.io/electric-fx  
+License: CC0.  
+Free version includes reusable lightning/electric effect components and presets.  
+Use: electric traps, perk-machine arcs and storm events.
+
+### Binbun — Flame FX / Fire VFX — GREEN
+Sources:
+- https://binbun3d.itch.io/flame-fx
+- https://binbun3d.itch.io/fire
+License: CC0.  
+Use: trap flame, burning props, muzzle after-flame and environmental fire.
+
+### TomAzod — Godot Water Splash VFX — GREEN
+Source: https://tomazod.itch.io/godot-splash-vfx  
+License: CC0.  
+Dynamic splash with ripples, foam, bubbles and pillar layers plus shaders/controller.  
+Use: rain puddle impacts, water interaction and environmental splash research.
+
+### bigdamnhero6 — Free 2D VFX Pack — GREEN
+Source: https://bigdamnhero6.itch.io/free-2d-vfx-pack  
+License: CC0.  
+Blood splatter, muzzle flashes, particle splash, explosion, dust, poison smoke, flame and lightning spark.
+
+### Kenney — Splat Pack — GREEN
+Source: https://kenney.nl/assets/splat-pack  
+License: CC0.  
+30 VFX textures.  
+Use: blood, mud, grime and wet-surface decal bases after art-direction pass.
+
+### OpenGameArt — Color Spot 2 — GREEN
+Source: https://opengameart.org/content/color-spot-2  
+License: CC0.  
+126-poly splash/drop model with 2k PBR maps.  
+Use: stylized water/blood-droplet experiments or source geometry for splash meshes.
+
+## Audio expansion
+
+### OpenGameArt — 40 CC0 water / splash / slime SFX — GREEN
+Source: https://opengameart.org/content/40-cc0-water-splash-slime-sfx  
+License: CC0.  
+40 sounds: bubbles, rain/water loops, slime and splash.  
+Use: puddles, wet gore, rain layers and creature/slime Foley.
+
+## Candidate grading rules added after this pass
+
+- **HIGH PRIORITY** means license and feature fit are strong enough to prototype first.
+- **AI-QA REQUIRED** means the source license is permissive but every chosen model must be manually inspected for geometry, visual coherence, accidental resemblance/IP issues, UV/material quality and mobile cost.
+- Prefer fictional weapons over close copies of branded real firearms for the future original commercial game.
+- A model being CC0 does not automatically mean its visual design is free of third-party trademark/design-patent concerns; do a final release audit.
