@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "policy": {
+    "commercial_use_required": true,
+    "unknown_license_allowed": false,
+    "ripped_or_extracted_assets_allowed": false
+  },
+  "assets": [
+    {
+      "id": "zombie_soldier_peter_d",
+      "role": "zombie_primary_candidate",
+      "source_url": "https://sketchfab.com/3d-models/zombie-soldier-176e930e63d144cc8f615b8dd3a8c74f",
+      "author": "Peter_D",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "Mobile-oriented zombie soldier; ~7.2k triangles; rigged; normal/roughness maps; Mixamo-compatible."
+    },
+    {
+      "id": "male_city_zombie_rikindle3d",
+      "role": "zombie_fallback_candidate",
+      "source_url": "https://opengameart.org/node/111870",
+      "author": "Rikindle3D",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Rigged and textured with walk, attack, death, idle, hit reaction, run and scream animations."
+    },
+    {
+      "id": "quaternius_zombie_apocalypse_kit",
+      "role": "dog_and_prop_candidate",
+      "source_url": "https://quaternius.com/packs/zombieapocalypsekit.html",
+      "author": "Quaternius",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "60 models; animated characters/enemies; two dogs; environment and vehicle props."
+    },
+    {
+      "id": "poly_haven_library",
+      "role": "environment_material_source",
+      "source_url": "https://polyhaven.com/",
+      "author": "Poly Haven contributors",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Use for concrete, metal, wood, brick, debris and other environment materials/models."
+    },
+    {
+      "id": "kenney_splat_pack",
+      "role": "blood_and_grime_decal_candidate",
+      "source_url": "https://kenney-assets.itch.io/splat-pack",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "30+ splat sprites plus vector source files."
+    },
+    {
+      "id": "saturn91_zomby_sfx_pack",
+      "role": "zombie_voice_candidate",
+      "source_url": "https://opengameart.org/content/zomby-sfx-pack",
+      "author": "saturn91",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Original recorded zombie calls; suitable for pitch randomization."
+    },
+    {
+      "id": "techiew_ambient_horror",
+      "role": "ambient_audio_candidate",
+      "source_url": "https://opengameart.org/content/ambient-horror",
+      "author": "techiew",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 horror ambience source."
+    }
+  ]
+}
