@@ -2,6 +2,7 @@
 
 #include <android/asset_manager.h>
 #include <android/native_window.h>
+#include <jni.h>
 #include <vulkan/vulkan.h>
 
 #include <cstdint>
@@ -19,7 +20,9 @@ public:
 
     [[nodiscard]] bool initialize(
         ANativeWindow* window,
-        AAssetManager* assetManager) noexcept;
+        AAssetManager* assetManager,
+        JNIEnv* env,
+        jobject javaActivity) noexcept;
 
     void shutdown() noexcept;
 
@@ -55,6 +58,7 @@ private:
     [[nodiscard]] bool selectPhysicalDevice() noexcept;
     [[nodiscard]] bool createDevice() noexcept;
     [[nodiscard]] bool createSwapchain() noexcept;
+    [[nodiscard]] bool initializeFramePacing() noexcept;
 
     [[nodiscard]] bool chooseSurfaceFormat(
         VkSurfaceFormatKHR& out) const noexcept;
@@ -123,7 +127,11 @@ private:
 
     ANativeWindow* window_ = nullptr;
     AAssetManager* assetManager_ = nullptr;
+    JNIEnv* jniEnv_ = nullptr;
+    jobject javaActivity_ = nullptr;
 
+    std::uint64_t refreshDurationNs_ = 0;
+    bool swappyInitialized_ = false;
     bool initialized_ = false;
 };
 
