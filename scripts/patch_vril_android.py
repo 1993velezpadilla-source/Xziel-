@@ -7324,3 +7324,51 @@ mtext = mtext.replace(
     'Menu_DrawOptionSlider(row-1, idx-1, 1.10f, 1.85f, xziel_mobile_sprint_zone, "xziel_mobile_sprint_zone", false, true, 0.05f);'
 )
 controls.write_text(mtext, encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# v0.14.1 sprint icon visibility correction
+# Keep the existing UX: sprint target appears only while the joystick is held.
+# Retain the wider adjustable activation-height range from v0.14.
+# ---------------------------------------------------------------------------
+hud = source / "render" / "r_hud.c"
+htext = hud.read_text(encoding="utf-8")
+
+always_visible = """	{
+		qboolean sprint_on = xziel_mobile_sprint_zone_hot || xziel_mobile_sprint_active ||
+			cl.stats[STAT_ZOOM] == 3;
+		int outer_alpha = sprint_on ? 190 : (xziel_mobile_move_active ? 135 : 105);
+		int inner_alpha = sprint_on ? 205 : (xziel_mobile_move_active ? 150 : 125);
+
+		Xziel_DrawDisc(sprint_x, sprint_y, sprint_r, 245, 245, 245,
+			(int)(outer_alpha * xziel_mobile_hud_opacity.value));
+		Xziel_DrawDisc(sprint_x, sprint_y, sprint_r - (int)(2 * vid.scale),
+			sprint_on ? 95 : 8, sprint_on ? 95 : 8, sprint_on ? 20 : 8,
+			(int)(inner_alpha * xziel_mobile_hud_opacity.value));
+		sprint_tw = getTextWidth((char *)sprint_label, vid.scale * 0.70f);
+		Draw_ColoredString(sprint_x - sprint_tw / 2, sprint_y - (int)(3 * vid.scale),
+			(char *)sprint_label, 255, 255, 255,
+			sprint_on ? 255 : 220, vid.scale * 0.70f);
+	}
+"""
+
+held_only = """	if (editor || xziel_mobile_move_active) {
+		qboolean sprint_on = xziel_mobile_sprint_zone_hot || xziel_mobile_sprint_active ||
+			cl.stats[STAT_ZOOM] == 3;
+		Xziel_DrawDisc(sprint_x, sprint_y, sprint_r, 245, 245, 245,
+			(int)((sprint_on ? 145 : 70) * xziel_mobile_hud_opacity.value));
+		Xziel_DrawDisc(sprint_x, sprint_y, sprint_r - (int)(2 * vid.scale),
+			sprint_on ? 95 : 8, sprint_on ? 95 : 8, sprint_on ? 20 : 8,
+			(int)((sprint_on ? 165 : 100) * xziel_mobile_hud_opacity.value));
+		sprint_tw = getTextWidth((char *)sprint_label, vid.scale * 0.70f);
+		Draw_ColoredString(sprint_x - sprint_tw / 2, sprint_y - (int)(3 * vid.scale),
+			(char *)sprint_label, 255, 255, 255, 235, vid.scale * 0.70f);
+	}
+"""
+
+if always_visible in htext:
+    htext = htext.replace(always_visible, held_only, 1)
+elif held_only not in htext:
+    raise SystemExit("Could not find v0.14 sprint icon visibility block")
+
+hud.write_text(htext, encoding="utf-8")
