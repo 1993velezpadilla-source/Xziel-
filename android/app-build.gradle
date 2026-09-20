@@ -9,8 +9,8 @@ android {
         applicationId "com.xziel.nzp"
         minSdkVersion 23
         targetSdkVersion 35
-        versionCode 11
-        versionName "0.11-touch-melee-releasefire"
+        versionCode 12
+        versionName "0.12-releasefire-grenade-fuse"
 
         externalNativeBuild {
             ndkBuild {
