@@ -24,7 +24,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          sudo apt-get install -y -qq p7zip-full blender
+          sudo apt-get install -y -qq p7zip-full blender python3-numpy
           mkdir -p rig/source rig/extracted rig/out
           curl -fL --retry 5 --retry-delay 2             "https://opengameart.org/sites/default/files/Male%20City%20Zombie.7z"             -o rig/source/male-city-zombie.7z
           7z x -y rig/source/male-city-zombie.7z -orig/extracted >/dev/null
