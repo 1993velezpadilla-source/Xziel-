@@ -561,3 +561,85 @@ License: CC0. 130 files.
 ## License note: CC BY is allowed for profit
 
 CC BY assets are commercially usable when their attribution/license requirements are followed. Keep them in the attribution-required bucket rather than rejecting them. NC (NonCommercial) assets remain excluded from the future for-profit game.
+
+
+---
+
+## Deep-search expansion — pass 4: creatures, crawler candidates and typography
+
+## Creatures / special enemies
+
+### Gobkit — Free Animal Pack — GREEN / HIGH PRIORITY
+Source: https://gobkit.itch.io/gobkit-free-animal-pack  
+License: CC0 1.0; commercial use explicitly allowed; no attribution required.  
+10 rigged + animated GLB creatures with clean low-poly topology and a single atlas. Each contains baked idle / attack / dead / walk clips. Pack includes a Corgi and Bat among other animals.  
+Use: excellent skeleton/AI-state integration test for hellhound-like and flying-enemy prototypes before producing final horror skins.
+
+### Gobkit — Free Animal Pack B / Dinosaur Pack — GREEN
+Source hub: https://gobkit.itch.io/  
+License advertised as CC0 for the free rigged/animated creature packs.  
+Use: stress-test non-humanoid skeletal animation, pooled enemies and retarget-independent creature state machines.
+
+### OpenGameArt — 3D Horror Game Monster — GREEN
+Source: https://opengameart.org/content/3d-horror-game-monster  
+License: CC0.  
+Includes run, attack, jump and walk animations, multiple poses and three color schemes.  
+Use: special zombie / stalker / jumpscare enemy prototype.
+
+### OpenGameArt — Hydrach — GREEN
+Source: https://opengameart.org/content/hydrach  
+License: CC0.  
+Low-poly rigged/textured monster with walk, jump, idle, crouch, hit, attack and death animations.  
+Use: non-humanoid mutation/special-enemy prototype.
+
+### OpenGameArt — Spider — GREEN
+Source: https://opengameart.org/content/spider-2  
+License: CC0.  
+222 triangles, 256x256 texture; idle / walk / attack animation.  
+Use: ultra-light crawler/swarm prototype and Android crowd-load test.
+
+### OpenGameArt — Undead Squirrel (Animated) — GREEN
+Source: https://opengameart.org/content/undead-squirrel-animated  
+License: CC0.  
+Rigged + animated undead creature with diffuse + normal map.  
+Use: small undead-creature pipeline test; not necessarily a final visual direction.
+
+### OpenGameArt — Dog Low Poly (Rigged) — GREEN
+Source: https://opengameart.org/content/dog-low-poly-rigged  
+License: CC0.  
+1,428 vertices; rigged Blender source plus OBJ.  
+Use: legal base mesh for a custom infected-dog derivative if we author our own attack/run/death set.
+
+### RetroStyle Games — German Shepherd 3D Dog Model — VERIFY / EMBED ONLY
+Sources:
+- https://retrostylegames.com/portfolio/shepherd-valley-free-german-shepherd-3d-model/
+- https://www.fab.com/listings/5ffcabde-3356-4d75-b98e-580825f15e47
+Free listing; 2,272 triangles, custom rig, 2K PBR and 8 animations including walk/run/turn/idle.  
+The live Fab scrape does not expose a concrete license value, so keep this out of the commercial-safe bucket until acquisition terms are confirmed.
+
+### DaniilT17 — Shadow Crawler — VERIFY
+Source: https://daniilt17.itch.io/nightmare-entity-rigged-monster-with-animations  
+Name-your-own-price/free download, ~7,000 tris, Mixamo-compatible rig and six essential animations.  
+The public page does not expose a clear reuse license in the research scrape. Do not ship until explicit commercial-use terms are confirmed.
+
+## Typography / HUD fonts
+
+### Creepster — GREEN / OFL
+Google Fonts family: Creepster.  
+License: SIL Open Font License.  
+Use: title cards, round/event stingers, limited horror display text. Avoid as dense HUD/body text.
+
+### Bebas Neue — GREEN / OFL
+Google Fonts family: Bebas Neue.  
+License: SIL Open Font License.  
+Use: condensed weapon/ammo headings, scoreboard labels, round/status typography and mobile-safe large labels.
+
+### Oswald / Rajdhani / Chakra Petch — GREEN / OFL CANDIDATES
+Google Fonts families distributed under SIL OFL.  
+Use: test as readable condensed/technical HUD families. Verify and preserve each font's OFL file in the source package when adopted.
+
+Typography rule: keep horror display fonts separate from high-frequency gameplay text. The HUD needs fast recognition on a phone screen; visual aggression should come from hierarchy, spacing, texture treatment and motion rather than making every number hard to read.
+
+## Creature implementation rule
+
+Prefer rigs with explicit attack / locomotion / death clips and low triangle counts. Creature candidates without a clear license stay in VERIFY even when the download is free. "Free download" is not equivalent to "commercially reusable."
