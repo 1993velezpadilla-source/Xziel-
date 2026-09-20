@@ -85,32 +85,28 @@ if "Xziel_UpdateVisualWeaponRecoil();" not in text:
 
 # Apply recoil after ADS translation, before locomotion bob. This keeps ADS
 # alignment intact at rest while the shot itself visibly displaces the model.
-origin_anchor = '''\tview->origin[0] +=(temp_forward[0] + temp_right[0] + temp_up[0]);
-\tview->origin[1] +=(temp_forward[1] + temp_right[1] + temp_up[1]);
-\tview->origin[2] +=(temp_forward[2] + temp_right[2] + temp_up[2]);
+speed_anchor = "\tfloat speed = (0.2f + sqrtf"
+recoil_application = r'''#ifdef __ANDROID__
+	/* Rebuild a clean, unscaled camera basis here. ADS and sprint posture code
+	   above are presentation transforms and must not change recoil travel. */
+	AngleVectors(r_refdef.viewangles, temp_forward, temp_right, temp_up);
 
-\tfloat speed ='''
-origin_repl = '''\tview->origin[0] +=(temp_forward[0] + temp_right[0] + temp_up[0]);
-\tview->origin[1] +=(temp_forward[1] + temp_right[1] + temp_up[1]);
-\tview->origin[2] +=(temp_forward[2] + temp_right[2] + temp_up[2]);
-
-#ifdef __ANDROID__
-\t/* Physical-looking viewmodel kick: backwards toward the camera with a
-\t   smaller upward component. No camera/aim mutation. */
-\tview->origin[0] -= temp_forward[0] * xziel_vm_recoil_back;
-\tview->origin[1] -= temp_forward[1] * xziel_vm_recoil_back;
-\tview->origin[2] -= temp_forward[2] * xziel_vm_recoil_back;
-\tview->origin[0] += temp_up[0] * xziel_vm_recoil_up;
-\tview->origin[1] += temp_up[1] * xziel_vm_recoil_up;
-\tview->origin[2] += temp_up[2] * xziel_vm_recoil_up;
-\tview->angles[ROLL] += xziel_vm_recoil_roll;
+	/* Presentation-only mechanical kick. Authoritative aim/spread/cadence stay
+	   in the existing NZ:P weapon and recoil systems. */
+	view->origin[0] -= temp_forward[0] * xziel_vm_recoil_back;
+	view->origin[1] -= temp_forward[1] * xziel_vm_recoil_back;
+	view->origin[2] -= temp_forward[2] * xziel_vm_recoil_back;
+	view->origin[0] += temp_up[0] * xziel_vm_recoil_up;
+	view->origin[1] += temp_up[1] * xziel_vm_recoil_up;
+	view->origin[2] += temp_up[2] * xziel_vm_recoil_up;
+	view->angles[ROLL] += xziel_vm_recoil_roll;
 #endif
 
-\tfloat speed ='''
-if "Physical-looking viewmodel kick" not in text:
-    if origin_anchor not in text:
-        raise SystemExit("Could not find ADS-origin tail")
-    text = text.replace(origin_anchor, origin_repl, 1)
+'''
+if "view->origin[0] -= temp_forward[0] * xziel_vm_recoil_back;" not in text:
+    if speed_anchor not in text:
+        raise SystemExit("Could not find viewmodel bob/speed anchor")
+    text = text.replace(speed_anchor, recoil_application + speed_anchor, 1)
 
 view.write_text(text, encoding="utf-8")
 
