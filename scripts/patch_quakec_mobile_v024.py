@@ -29,21 +29,23 @@ end += 3
 chunk = text[start:end]
 
 old = '''\tW_AimOut();
-\tW_SprintStop();
-\tPlayer_SetStance(self, PLAYER_STANCE_CROUCH, false);
+\tif (self.sprinting)
+\t\tW_SprintStop();
+\tself.sprintflag = false;
 '''
 new = '''\tW_AimOut();
-\tW_SprintStop();
+\tif (self.sprinting)
+\t\tW_SprintStop();
 
-\t// Sprint-stop is a presentation transition. The slide has its own
+\t// Sprint-stop is only a presentation transition. The slide has its own
 \t// first-person pose in Vril, so do not let that old transition block the
-\t// first shot. Do NOT clear reload/swap/grenade delays here.
+\t// first shot. Reload/swap/grenade delay fields are deliberately untouched.
 \tself.new_anim_stop = false;
 \tself.new_anim2_stop = false;
 \tself.fire_delay = 0;
 \tself.fire_delay2 = 0;
 
-\tPlayer_SetStance(self, PLAYER_STANCE_CROUCH, false);
+\tself.sprintflag = false;
 '''
 if "do not let that old transition block" not in chunk:
     if old not in chunk:
