@@ -4706,3 +4706,36 @@ mtext = xziel_replace_c_function(
     gameplay_func
 )
 controls.write_text(mtext, encoding="utf-8")
+
+
+# ---- v0.9.1 compile-order compatibility -----------------------------------
+# Vril currently comments out W_KRAUS even though the current QuakeC weapon
+# table still assigns the upgraded Ballistic Knife/Krauss ID 53.
+sys_sdl = source / "platform" / "sdl" / "sys_sdl.c"
+text = sys_sdl.read_text(encoding="utf-8")
+
+compat_anchor = "#ifdef __ANDROID__\n"
+compat_define = """#ifdef __ANDROID__
+#ifndef W_KRAUS
+#define W_KRAUS 53
+#endif
+"""
+if "#ifndef W_KRAUS" not in text:
+    if compat_anchor not in text:
+        raise SystemExit("Could not find Android runtime block for W_KRAUS compatibility")
+    text = text.replace(compat_anchor, compat_define, 1)
+
+proto_anchor = "static void Xziel_UpdateMobileFire(void)\n"
+prototypes = """static qboolean Xziel_IsDualWeaponMobile(void);
+static qboolean Xziel_WeaponDoesNotAdsMobile(void);
+static void Xziel_PulseAttackNow(void);
+static void Xziel_FinishTemporaryAdsFireAim(void);
+
+"""
+if "static qboolean Xziel_IsDualWeaponMobile(void);" not in text:
+    idx = text.find(proto_anchor)
+    if idx < 0:
+        raise SystemExit("Could not find mobile-fire function for v0.9 helper prototypes")
+    text = text[:idx] + prototypes + text[idx:]
+
+sys_sdl.write_text(text, encoding="utf-8")
