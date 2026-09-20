@@ -550,31 +550,41 @@ if "static qboolean Xziel_DrawActionGlyph(int cx, int cy, int radius," not in te
     text = text[:pidx] + touch_proto + text[pidx:]
 
 touch_button = r'''static void Xziel_DrawTouchButton(float nx, float ny, float radius_h,
-    const char *label1, const char *label2, qboolean pressed)
+    const char *label1, const char *label2, qboolean pressed, qboolean editor)
 {
+    float local_scale = 1.0f;
+    float local_opacity = 1.0f;
     int cx = (int)(nx * vid.width);
     int cy = (int)(ny * vid.height);
-    int radius = (int)(radius_h * vid.height);
-    int inner = radius - (int)(2.0f * vid.scale);
-    float text_scale = vid.scale * 0.58f;
+    int radius;
+    int inner;
+    int alpha;
+    float text_scale;
     int tw;
 
+    Xziel_ControlStyle(label1, label2, &local_scale, &local_opacity);
+    radius = (int)(radius_h * vid.height * xziel_mobile_hud_scale.value * local_scale);
+    if (radius < 10) radius = 10;
+    inner = radius - (int)(2.0f * vid.scale);
     if (inner < 2) inner = 2;
-    Xziel_DrawDisc(cx, cy, radius, 235, 235, 235,
-        (int)((pressed ? 155 : 95) * xziel_mobile_hud_opacity.value));
+    text_scale = vid.scale * 0.58f;
+
+    alpha = (int)((pressed ? 155 : (editor ? 118 : 95)) *
+        xziel_mobile_hud_opacity.value * local_opacity);
+    Xziel_DrawDisc(cx, cy, radius, 235, 235, 235, alpha);
     Xziel_DrawDisc(cx, cy, inner,
         pressed ? 110 : 8, pressed ? 18 : 8, pressed ? 18 : 8,
-        (int)((pressed ? 175 : 115) * xziel_mobile_hud_opacity.value));
+        (int)((pressed ? 175 : (editor ? 145 : 115)) *
+            xziel_mobile_hud_opacity.value * local_opacity));
 
-    /* Icon-first mobile controls. Labels remain a fallback for any future
-       action that does not yet have an original glyph. */
     if (Xziel_DrawActionGlyph(cx, cy, radius, label1, label2, pressed))
         return;
 
     if (label1 && label1[0]) {
         tw = getTextWidth((char *)label1, text_scale);
         Draw_ColoredString(cx - tw / 2, cy - (int)(3 * vid.scale),
-            (char *)label1, 255,255,255,235, text_scale);
+            (char *)label1, 255,255,255,
+            (int)(235 * local_opacity), text_scale);
     }
 }'''
 text = replace_c_function(
