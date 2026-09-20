@@ -111,11 +111,44 @@ jobs:
           "$ADB" install -r dist/Xziel-NZP-native-universal-debug.apk
           "$ADB" logcat -c
           "$ADB" shell am force-stop com.xziel.nzp || true
-          "$ADB" shell am start -W -n com.xziel.nzp/org.libsdl.app.NZPActivity             > dist/am-start.txt 2>&1 || true
+          "$ADB" shell am start -W -n com.xziel.nzp/org.libsdl.app.NZPActivity             --ez xziel_ci_hud_preview true             > dist/am-start.txt 2>&1 || true
 
-          sleep 20
+          # Let bundled data extraction finish and boot directly into Nacht der
+          # Untoten so CI validates the actual gameplay HUD.
+          sleep 30
 
-          "$ADB" exec-out screencap -p > dist/xziel-screen.png || true
+          "$ADB" exec-out screencap -p > dist/xziel-hud-preview-a.png || true
+          sleep 3
+          "$ADB" exec-out screencap -p > dist/xziel-hud-preview-b.png || true
+          cp dist/xziel-hud-preview-a.png dist/xziel-screen.png || true
+
+          # Automated visual sanity pass: both frames must be valid, non-blank
+          # landscape gameplay-sized images. We also record inter-frame change
+          # as evidence the renderer is live rather than frozen.
+          python3 -m pip install --quiet pillow==11.3.0
+          python3 - <<'PY' > dist/hud-visual-report.txt
+          from pathlib import Path
+          from PIL import Image, ImageChops, ImageStat
+
+          paths = [Path("dist/xziel-hud-preview-a.png"), Path("dist/xziel-hud-preview-b.png")]
+          images = []
+          for path in paths:
+              im = Image.open(path).convert("RGB")
+              if im.width < 1000 or im.height < 500 or im.width <= im.height:
+                  raise SystemExit(f"HUD preview has invalid dimensions: {path} {im.size}")
+              gray = im.convert("L")
+              stat = ImageStat.Stat(gray)
+              lo, hi = gray.getextrema()
+              if hi - lo < 24 or stat.stddev[0] < 8:
+                  raise SystemExit(f"HUD preview appears blank/flat: {path} extrema={(lo,hi)} std={stat.stddev[0]:.2f}")
+              images.append(im)
+              print(f"{path.name}: size={im.size} mean={stat.mean[0]:.2f} std={stat.stddev[0]:.2f} extrema={(lo,hi)}")
+
+          diff = ImageChops.difference(images[0], images[1]).convert("L")
+          dstat = ImageStat.Stat(diff)
+          print(f"frame_delta_mean={dstat.mean[0]:.3f} frame_delta_std={dstat.stddev[0]:.3f}")
+          PY
+          cat dist/hud-visual-report.txt
           "$ADB" logcat -d -v threadtime > dist/xziel-logcat.txt || true
           "$ADB" shell dumpsys activity processes > dist/activity-processes.txt || true
 
@@ -156,6 +189,9 @@ jobs:
           path: |
             dist/xziel-logcat.txt
             dist/xziel-screen.png
+            dist/xziel-hud-preview-a.png
+            dist/xziel-hud-preview-b.png
+            dist/hud-visual-report.txt
             dist/emulator-stdout.txt
             dist/am-start.txt
             dist/activity-processes.txt
