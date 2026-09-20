@@ -756,7 +756,7 @@ if "xziel_mobile_track_fire" not in text:
     text = add_after(text, cvar_anchor, v23_cvars, "v0.23 cvars")
 
 reg_anchor = "\tCvar_RegisterVariable(&xziel_modern_zombies);\n"
-v23_regs = r'''\tCvar_RegisterVariable(&xziel_mobile_track_fire);
+v23_regs = '''\tCvar_RegisterVariable(&xziel_mobile_track_fire);
 \tCvar_RegisterVariable(&xziel_mobile_fire_camera_rotation);
 \tCvar_RegisterVariable(&xziel_mobile_minimap);
 \tCvar_RegisterVariable(&xziel_mobile_minimap_range);
@@ -900,7 +900,7 @@ fm = text[fm0:fm1]
 motion_old = '''\t\tmouse_dx += (int)((finger->x - slot->last_x) * (float)vid.width * look_scale);
 \t\tmouse_dy += (int)((finger->y - slot->last_y) * (float)vid.height * look_scale);
 '''
-motion_new = r'''\t\tif (!((slot->role == XZ_TOUCH_FIRE || slot->role == XZ_TOUCH_ADSFIRE) &&
+motion_new = '''\t\tif (!((slot->role == XZ_TOUCH_FIRE || slot->role == XZ_TOUCH_ADSFIRE) &&
 \t\t\txziel_mobile_fire_camera_rotation.value < 0.5f)) {
 \t\t\tmouse_dx += (int)((finger->x - slot->last_x) * (float)vid.width * look_scale);
 \t\t\tmouse_dy += (int)((finger->y - slot->last_y) * (float)vid.height * look_scale);
