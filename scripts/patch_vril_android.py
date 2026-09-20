@@ -4796,3 +4796,553 @@ text = text.replace(
     "qboolean xziel_mobile_sprint_active = false;"
 )
 sys_sdl.write_text(text, encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# Xziel Android weapon-class ADS+FIRE pass v0.10
+# Per-class PRESS/RELEASE/COD STYLE, pistol ADS coverage, early-release cancel.
+# ---------------------------------------------------------------------------
+
+# Archived per-class behavior. 0=PRESS, 1=RELEASE, 2=COD STYLE.
+inp = source / "input.c"
+itext = inp.read_text(encoding="utf-8")
+cvar_anchor = 'cvar_t xziel_mobile_sprint_zone = {"xziel_mobile_sprint_zone", "1.10", true};\n'
+class_cvars = """cvar_t xziel_mobile_sniper_adsfire = {"xziel_mobile_sniper_adsfire", "2", true};
+cvar_t xziel_mobile_shotgun_adsfire = {"xziel_mobile_shotgun_adsfire", "2", true};
+cvar_t xziel_mobile_marksman_adsfire = {"xziel_mobile_marksman_adsfire", "2", true};
+"""
+if "xziel_mobile_sniper_adsfire" not in itext:
+    if cvar_anchor not in itext:
+        raise SystemExit("Could not find v0.9 mobile cvar anchor")
+    itext = itext.replace(cvar_anchor, cvar_anchor + class_cvars, 1)
+
+reg_anchor = "\tCvar_RegisterVariable(&xziel_mobile_sprint_zone);\n"
+class_regs = """	Cvar_RegisterVariable(&xziel_mobile_sniper_adsfire);
+	Cvar_RegisterVariable(&xziel_mobile_shotgun_adsfire);
+	Cvar_RegisterVariable(&xziel_mobile_marksman_adsfire);
+"""
+if "Cvar_RegisterVariable(&xziel_mobile_sniper_adsfire);" not in itext:
+    if reg_anchor not in itext:
+        raise SystemExit("Could not find v0.9 mobile cvar register anchor")
+    itext = itext.replace(reg_anchor, reg_anchor + class_regs, 1)
+inp.write_text(itext, encoding="utf-8")
+
+sys_sdl = source / "platform" / "sdl" / "sys_sdl.c"
+text = sys_sdl.read_text(encoding="utf-8")
+
+extern_anchor = "extern cvar_t xziel_mobile_sprint_zone;\n"
+class_externs = """extern cvar_t xziel_mobile_sniper_adsfire;
+extern cvar_t xziel_mobile_shotgun_adsfire;
+extern cvar_t xziel_mobile_marksman_adsfire;
+"""
+if "extern cvar_t xziel_mobile_sniper_adsfire;" not in text:
+    if extern_anchor not in text:
+        raise SystemExit("Could not find v0.9 runtime cvar extern anchor")
+    text = text.replace(extern_anchor, extern_anchor + class_externs, 1)
+
+# All native ADS-capable single weapons must use ADS+FIRE. Only the weapons
+# explicitly blocked by QuakeC WepDef_DoesNotADS(), plus the two native dual
+# wield forms that W_AimIn rejects, bypass ADS.
+weapon_helpers = r'''
+static qboolean Xziel_WeaponCanAdsMobile(void)
+{
+	switch (cl.stats[STAT_ACTIVEWEAPON]) {
+	case W_TESLA:
+	case W_DG3:
+	case W_BK:
+	case 53: /* W_KRAUS in QuakeC */
+	case W_BIATCH:
+	case W_SNUFF:
+		return false;
+	default:
+		return true;
+	}
+}
+
+static qboolean Xziel_IsPistolMobile(void)
+{
+	switch (cl.stats[STAT_ACTIVEWEAPON]) {
+	case W_COLT:
+	case W_357:
+	case W_KILLU:
+		return true;
+	default:
+		return false;
+	}
+}
+
+static qboolean Xziel_IsShotgunMobile(void)
+{
+	switch (cl.stats[STAT_ACTIVEWEAPON]) {
+	case W_DB:
+	case W_BORE:
+	case W_SAWNOFF:
+	case W_TRENCH:
+	case W_GUT:
+		return true;
+	default:
+		return false;
+	}
+}
+
+static qboolean Xziel_IsSniperMobile(void)
+{
+	switch (cl.stats[STAT_ACTIVEWEAPON]) {
+	case W_KAR_SCOPE:
+	case W_HEADCRACKER:
+	case W_PTRS:
+	case W_PENETRATOR:
+		return true;
+	default:
+		return false;
+	}
+}
+
+static qboolean Xziel_IsMarksmanMobile(void)
+{
+	switch (cl.stats[STAT_ACTIVEWEAPON]) {
+	/* Bolt/iron-sight precision rifles */
+	case W_KAR:
+	case W_ARMAGEDDON:
+	case W_SPRING:
+	case W_PULVERIZER:
+	/* Semi-auto precision rifles */
+	case W_GEWEHR:
+	case W_COMPRESSOR:
+	case W_M1:
+	case W_M1000:
+	case W_M1A1:
+	case W_WIDDER:
+		return true;
+	default:
+		return false;
+	}
+}
+
+static qboolean Xziel_IsBoltMarksmanMobile(void)
+{
+	switch (cl.stats[STAT_ACTIVEWEAPON]) {
+	case W_KAR:
+	case W_ARMAGEDDON:
+	case W_SPRING:
+	case W_PULVERIZER:
+		return true;
+	default:
+		return false;
+	}
+}
+
+static qboolean Xziel_AdsReadyForFire(void)
+{
+	/* NZ:P reports a true sniper scope as zoom 2 after its scope-in delay.
+	   Ordinary iron-sight ADS uses zoom 1. */
+	if (Xziel_IsSniperMobile())
+		return cl.stats[STAT_ZOOM] == 2;
+	return cl.stats[STAT_ZOOM] == 1 || cl.stats[STAT_ZOOM] == 2;
+}
+
+static int Xziel_AdsFireModeForCurrentWeapon(void)
+{
+	int mode = 0;
+
+	if (Xziel_IsSniperMobile()) {
+		mode = (int)xziel_mobile_sniper_adsfire.value;
+		if (mode == 2) return 1; /* COD style: release */
+		return mode == 1 ? 1 : 0;
+	}
+
+	if (Xziel_IsShotgunMobile()) {
+		mode = (int)xziel_mobile_shotgun_adsfire.value;
+		if (mode == 2) return 1; /* COD style: release */
+		return mode == 1 ? 1 : 0;
+	}
+
+	if (Xziel_IsMarksmanMobile()) {
+		mode = (int)xziel_mobile_marksman_adsfire.value;
+		if (mode == 2)
+			return Xziel_IsBoltMarksmanMobile() ? 1 : 0;
+		return mode == 1 ? 1 : 0;
+	}
+
+	return 0; /* pistols/SMGs/ARs/LMGs/etc: press-to-fire */
+}
+'''
+helper_anchor = "static qboolean Xziel_IsDualWeaponMobile(void)\n"
+if "static qboolean Xziel_WeaponCanAdsMobile(void)" not in text:
+    idx = text.find(helper_anchor)
+    if idx < 0:
+        raise SystemExit("Could not find v0.9 helper insertion anchor")
+    text = text[:idx] + weapon_helpers + "\n" + text[idx:]
+
+# Replace release classification with the new per-class setting.
+release_func = r'''static qboolean Xziel_AdsFireReleaseWeapon(void)
+{
+	return Xziel_AdsFireModeForCurrentWeapon() == 1;
+}'''
+text = xziel_replace_c_function(
+    text,
+    "static qboolean Xziel_AdsFireReleaseWeapon(void)",
+    release_func
+)
+
+# Native ADS readiness is now centralized. This removes pistol/weapon-specific
+# holes caused by relying on older no-ADS/dual shortcuts.
+update_fire_func = r'''static void Xziel_UpdateMobileFire(void)
+{
+	Uint32 now = SDL_GetTicks();
+	qboolean changed = false;
+
+	if ((xziel_mobile_adsfire_pressed || xziel_adsfire_release_requested) &&
+		!xziel_adsfire_cancelled) {
+		if (xziel_adsfire_release_pending) {
+			/* Release-mode never fires after an early cancellation. Finger-up
+			   is the only trigger edge and ActionUp requires ADS-ready first. */
+		} else if (!xziel_adsfire_attack_engaged) {
+			if (!Xziel_WeaponCanAdsMobile() || Xziel_AdsReadyForFire()) {
+				Xziel_SetAttackRef(true);
+				xziel_adsfire_attack_engaged = true;
+			}
+		}
+	}
+
+	if (xziel_attack_refs <= 0) {
+		if (xziel_attack_command_down) {
+			Cbuf_AddText("-attack\n");
+			xziel_attack_command_down = false;
+			changed = true;
+		}
+		if (changed)
+			Cbuf_Execute();
+		return;
+	}
+
+	if (!Xziel_IsAutoTapPistol())
+		return;
+
+	/* Mobile hold-fire for native semi-auto pistols. Native weapon fire_delay
+	   remains authoritative; these are only input edges. */
+	if (xziel_attack_command_down && now >= xziel_attack_release_ms) {
+		Cbuf_AddText("-attack\n");
+		xziel_attack_command_down = false;
+		changed = true;
+	}
+	if (!xziel_attack_command_down && now >= xziel_attack_next_ms) {
+		Cbuf_AddText("+attack\n");
+		xziel_attack_command_down = true;
+		xziel_attack_release_ms = now + 42;
+		xziel_attack_next_ms =
+			now + (Uint32)fmaxf(120.0f, xziel_mobile_autofire_ms.value);
+		changed = true;
+	}
+	if (changed)
+		Cbuf_Execute();
+}'''
+text = xziel_replace_c_function(
+    text,
+    "static void Xziel_UpdateMobileFire(void)",
+    update_fire_func
+)
+
+# ADS+FIRE: every native ADS-capable single weapon begins ADS immediately.
+# PRESS mode fires on the earliest native ADS-ready frame. RELEASE mode arms
+# the shot but does not fire until finger-up. No arbitrary timer is used.
+action_down_func = r'''static void Xziel_ActionDown(xziel_touch_role_t role)
+{
+	switch (role) {
+	case XZ_TOUCH_FIRE:
+		xziel_mobile_fire_pressed = true;
+		Xziel_StopSprintForAction();
+		Xziel_SetAttackRef(true);
+		break;
+
+	case XZ_TOUCH_ADSFIRE:
+		xziel_mobile_adsfire_pressed = true;
+		xziel_adsfire_cancelled = false;
+		xziel_adsfire_attack_engaged = false;
+		xziel_adsfire_release_requested = false;
+		xziel_adsfire_release_pending = Xziel_AdsFireReleaseWeapon();
+		xziel_adsfire_temp_aim = false;
+
+		Xziel_StopSprintForAction();
+
+		if (Xziel_WeaponCanAdsMobile()) {
+			if (!xziel_mobile_ads_latched) {
+				Xziel_QueueHold("+aim\n", "-aim\n", &xziel_aim_refs, true);
+				xziel_adsfire_temp_aim = true;
+				Cbuf_Execute();
+			}
+
+			/* If already ADS-latched, PRESS mode can fire in this same touch
+			   turn. Otherwise UpdateMobileFire starts at the first native
+			   ADS-ready frame. */
+			if (!xziel_adsfire_release_pending &&
+				(xziel_mobile_ads_latched || Xziel_AdsReadyForFire())) {
+				Xziel_SetAttackRef(true);
+				xziel_adsfire_attack_engaged = true;
+			}
+		} else {
+			/* True native no-ADS or dual-wield forms behave as fire-only. */
+			if (!xziel_adsfire_release_pending) {
+				Xziel_SetAttackRef(true);
+				xziel_adsfire_attack_engaged = true;
+			}
+		}
+		break;
+
+	case XZ_TOUCH_ADS:
+		xziel_mobile_ads_pressed = true;
+		xziel_mobile_restore_ads_after_reload = false;
+		xziel_mobile_reload_animation_seen = false;
+		Xziel_StopSprintForAction();
+		if (xziel_mobile_ads_toggle.value >= 0.5f) {
+			xziel_mobile_ads_latched = !xziel_mobile_ads_latched;
+			Cbuf_AddText("impulse 26\n");
+		} else {
+			xziel_mobile_ads_latched = false;
+			Xziel_QueueHold("+aim\n", "-aim\n", &xziel_aim_refs, true);
+		}
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_RELOAD:
+		xziel_mobile_reload_pressed = true;
+		xziel_mobile_restore_ads_after_reload =
+			(xziel_mobile_ads_toggle.value >= 0.5f && xziel_mobile_ads_latched);
+		xziel_mobile_reload_animation_seen = false;
+		xziel_mobile_reload_start_frame = cl.stats[STAT_WEAPONFRAME];
+		Cbuf_AddText("+reload\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_USE:
+		xziel_mobile_use_pressed = true;
+		if (!xziel_auto_rebuild_use_down) {
+			Cbuf_AddText("+use\n");
+			Cbuf_Execute();
+		}
+		break;
+
+	case XZ_TOUCH_JUMP:
+		xziel_mobile_jump_pressed = true;
+		Cbuf_AddText("+jump\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_KNIFE:
+		xziel_mobile_knife_pressed = true;
+		Xziel_StopSprintForAction();
+		Cbuf_AddText("+knife\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_SWITCH:
+		xziel_mobile_switch_pressed = true;
+		if (xziel_adsfire_release_pending || xziel_adsfire_release_requested)
+			Xziel_CancelAdsFireForSprint();
+		Cbuf_AddText("+switch\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_PAUSE:
+		Menu_Pause_Set();
+		break;
+
+	default:
+		break;
+	}
+}'''
+text = xziel_replace_c_function(
+    text,
+    "static void Xziel_ActionDown(xziel_touch_role_t role)",
+    action_down_func
+)
+
+# Critical cancellation semantics:
+# - RELEASE mode fires only if the weapon reached its native ADS-ready state.
+# - releasing before that immediately aims out and produces NO shot.
+# - PRESS mode releases whatever trigger is active and also exits temporary ADS.
+action_up_func = r'''static void Xziel_ActionUp(xziel_touch_role_t role)
+{
+	switch (role) {
+	case XZ_TOUCH_FIRE:
+		xziel_mobile_fire_pressed = false;
+		Xziel_SetAttackRef(false);
+		break;
+
+	case XZ_TOUCH_ADSFIRE:
+		xziel_mobile_adsfire_pressed = false;
+
+		if (xziel_adsfire_release_pending && !xziel_adsfire_cancelled) {
+			if (Xziel_WeaponCanAdsMobile() && Xziel_AdsReadyForFire()) {
+				Xziel_PulseAttackNow();
+			}
+			/* If ADS was not ready, this is a cancelled shot: show whatever
+			   partial aim-in animation occurred, then immediately aim back out. */
+			xziel_adsfire_release_pending = false;
+			xziel_adsfire_release_requested = false;
+			Xziel_FinishTemporaryAdsFireAim();
+		} else {
+			if (xziel_adsfire_attack_engaged) {
+				Xziel_SetAttackRef(false);
+				xziel_adsfire_attack_engaged = false;
+			}
+			Xziel_FinishTemporaryAdsFireAim();
+			xziel_adsfire_release_pending = false;
+			xziel_adsfire_release_requested = false;
+		}
+
+		xziel_adsfire_cancelled = false;
+		break;
+
+	case XZ_TOUCH_ADS:
+		xziel_mobile_ads_pressed = false;
+		if (xziel_mobile_ads_toggle.value < 0.5f) {
+			Xziel_QueueHold("+aim\n", "-aim\n", &xziel_aim_refs, false);
+			Cbuf_Execute();
+		}
+		break;
+
+	case XZ_TOUCH_RELOAD:
+		xziel_mobile_reload_pressed = false;
+		Cbuf_AddText("-reload\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_USE:
+		xziel_mobile_use_pressed = false;
+		if (!xziel_auto_rebuild_use_down) {
+			Cbuf_AddText("-use\n");
+			Cbuf_Execute();
+		}
+		break;
+
+	case XZ_TOUCH_JUMP:
+		xziel_mobile_jump_pressed = false;
+		Cbuf_AddText("-jump\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_KNIFE:
+		xziel_mobile_knife_pressed = false;
+		Cbuf_AddText("-knife\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_SWITCH:
+		xziel_mobile_switch_pressed = false;
+		Cbuf_AddText("-switch\n");
+		Cbuf_Execute();
+		break;
+
+	default:
+		break;
+	}
+}'''
+text = xziel_replace_c_function(
+    text,
+    "static void Xziel_ActionUp(xziel_touch_role_t role)",
+    action_up_func
+)
+
+sys_sdl.write_text(text, encoding="utf-8")
+
+# ---- Aim & Touch menu: class-specific ADS+FIRE behavior --------------------
+controls = source / "menu" / "menu_controls.c"
+mtext = controls.read_text(encoding="utf-8")
+
+menu_extern_anchor = "extern cvar_t xziel_mobile_autofire_ms;\n"
+menu_externs = """extern cvar_t xziel_mobile_sniper_adsfire;
+extern cvar_t xziel_mobile_shotgun_adsfire;
+extern cvar_t xziel_mobile_marksman_adsfire;
+"""
+if "extern cvar_t xziel_mobile_sniper_adsfire;" not in mtext:
+    if menu_extern_anchor not in mtext:
+        raise SystemExit("Could not find Aim & Touch cvar extern anchor")
+    mtext = mtext.replace(menu_extern_anchor, menu_extern_anchor + menu_externs, 1)
+
+strings_anchor = "static char *xziel_ads_mode_string;\n"
+strings = """static char *xziel_sniper_fire_string;
+static char *xziel_shotgun_fire_string;
+static char *xziel_marksman_fire_string;
+"""
+if "xziel_sniper_fire_string" not in mtext:
+    if strings_anchor not in mtext:
+        raise SystemExit("Could not find mobile aim menu string anchor")
+    mtext = mtext.replace(strings_anchor, strings_anchor + strings, 1)
+
+cycle_code = r'''
+static const char *Menu_MobileAdsFireModeString(cvar_t *value)
+{
+	int mode = (int)value->value;
+	if (mode == 0) return "PRESS TO FIRE";
+	if (mode == 1) return "RELEASE TO FIRE";
+	return "COD STYLE";
+}
+
+static void Menu_MobileCycleSniperFire(void)
+{
+	Cvar_SetValue("xziel_mobile_sniper_adsfire",
+		((int)xziel_mobile_sniper_adsfire.value + 1) % 3);
+}
+
+static void Menu_MobileCycleShotgunFire(void)
+{
+	Cvar_SetValue("xziel_mobile_shotgun_adsfire",
+		((int)xziel_mobile_shotgun_adsfire.value + 1) % 3);
+}
+
+static void Menu_MobileCycleMarksmanFire(void)
+{
+	Cvar_SetValue("xziel_mobile_marksman_adsfire",
+		((int)xziel_mobile_marksman_adsfire.value + 1) % 3);
+}
+'''
+toggle_anchor = "static void Menu_Mobile_ToggleADS(void)\n"
+if "Menu_MobileCycleSniperFire" not in mtext:
+    idx = mtext.find(toggle_anchor)
+    if idx < 0:
+        raise SystemExit("Could not find ADS toggle helper for class fire options")
+    mtext = mtext[:idx] + cycle_code + "\n" + mtext[idx:]
+
+aim_menu_func = r'''void Menu_MobileAim_Draw(void)
+{
+	int idx = 0, row = 1;
+
+	Menu_DrawCustomBackground(true);
+	Menu_DrawTitle("MOBILE - AIM & TOUCH", MENU_COLOR_WHITE);
+	Menu_DrawMapPanel();
+
+	xziel_ads_mode_string = xziel_mobile_ads_toggle.value >= 0.5f ? "TOGGLE" : "HOLD";
+	xziel_sniper_fire_string = (char *)Menu_MobileAdsFireModeString(&xziel_mobile_sniper_adsfire);
+	xziel_shotgun_fire_string = (char *)Menu_MobileAdsFireModeString(&xziel_mobile_shotgun_adsfire);
+	xziel_marksman_fire_string = (char *)Menu_MobileAdsFireModeString(&xziel_mobile_marksman_adsfire);
+
+	Menu_DrawButton(row++, idx++, "ADS BEHAVIOR", "Dedicated ADS button: Hold or Toggle.", Menu_Mobile_ToggleADS);
+	Menu_DrawOptionButton(row-1, xziel_ads_mode_string);
+
+	Menu_DrawButton(row++, idx++, "SNIPER ADS+FIRE", "PRESS fires when native scope is ready. RELEASE fires on release. COD STYLE defaults to release.", Menu_MobileCycleSniperFire);
+	Menu_DrawOptionButton(row-1, xziel_sniper_fire_string);
+
+	Menu_DrawButton(row++, idx++, "SHOTGUN ADS+FIRE", "Choose press-to-fire or hold ADS and release to shoot.", Menu_MobileCycleShotgunFire);
+	Menu_DrawOptionButton(row-1, xziel_shotgun_fire_string);
+
+	Menu_DrawButton(row++, idx++, "MARKSMAN ADS+FIRE", "COD STYLE: bolt marksman release; semi-auto marksman press.", Menu_MobileCycleMarksmanFire);
+	Menu_DrawOptionButton(row-1, xziel_marksman_fire_string);
+
+	Menu_DrawButton(row++, idx++, "TOUCH LOOK", "Hip-fire/free-look sensitivity.", NULL);
+	Menu_DrawOptionSlider(row-1, idx-1, 0.25f, 4.0f, xziel_mobile_touch_sensitivity, "xziel_mobile_touch_sensitivity", false, true, 0.05f);
+
+	Menu_DrawButton(row++, idx++, "ADS LOOK", "Touch sensitivity multiplier while ADS.", NULL);
+	Menu_DrawOptionSlider(row-1, idx-1, 0.20f, 1.50f, xziel_mobile_ads_sensitivity, "xziel_mobile_ads_sensitivity", false, true, 0.05f);
+
+	Menu_DrawButton(row++, idx++, "PISTOL AUTO FIRE", "Delay between mobile trigger taps for native semi-auto pistols.", NULL);
+	Menu_DrawOptionSlider(row-1, idx-1, 140.0f, 320.0f, xziel_mobile_autofire_ms, "xziel_mobile_autofire_ms", false, true, 10.0f);
+
+	Menu_DrawButton(-1, idx, "BACK", "Return to Mobile Settings.", Menu_Mobile_Set);
+}'''
+mtext = xziel_replace_c_function(
+    mtext,
+    "void Menu_MobileAim_Draw(void)",
+    aim_menu_func
+)
+controls.write_text(mtext, encoding="utf-8")
