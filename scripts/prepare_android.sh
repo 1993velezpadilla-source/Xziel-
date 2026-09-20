@@ -15,6 +15,7 @@ git clone --depth 1 --branch SDL2 https://github.com/libsdl-org/SDL.git "$DEPS/S
 git clone --depth 1 --branch SDL2 https://github.com/libsdl-org/SDL_mixer.git "$DEPS/SDL2_mixer"
 git clone --depth 1 https://github.com/ptitSeb/gl4es.git "$DEPS/gl4es"
 git clone --depth 1 https://github.com/nzp-team/vril-engine.git "$DEPS/vril"
+git clone --depth 1 https://github.com/nzp-team/quakec.git "$DEPS/quakec"
 
 # Raise SDL's Android phone sensor polling target from 60 Hz to 120 Hz.
 # The backend still clamps to the physical sensor's minimum delay, so devices
@@ -30,6 +31,14 @@ PY
 
 echo "==> Patching Vril for Android GLES2 through GL4ES"
 python3 "$ROOT/scripts/patch_vril_android.py" "$DEPS/vril"
+
+echo "==> Patching and compiling Xziel mobile QuakeC"
+python3 "$ROOT/scripts/patch_quakec_mobile.py" "$DEPS/quakec"
+chmod +x "$DEPS/quakec/bin/fteqcc-cli-lin" "$DEPS/quakec/tools/qc-compiler-gnu.sh"
+(
+    cd "$DEPS/quakec"
+    bash tools/qc-compiler-gnu.sh
+)
 
 # Initialize GL4ES explicitly only after SDL has created the GLES2 context.
 python3 - "$DEPS/gl4es/Android.mk" <<'PY'
@@ -76,6 +85,13 @@ unzip -q "$DOWNLOADS/pc-nzp-assets.zip" -d "$ASSET_WORK"
 mkdir -p "$ASSET_WORK/nzp"
 unzip -q "$DOWNLOADS/standard-nzp-qc.zip" -d "$ASSET_WORK/nzp"
 
+# Replace the stock gameplay bytecode with our GPL QuakeC build. All other
+# release-side data stays from the official NZ:P package.
+cp "$DEPS/quakec/build/standard/progs.dat" "$ASSET_WORK/nzp/progs.dat"
+if [[ -f "$DEPS/quakec/build/standard/progs.lno" ]]; then
+    cp "$DEPS/quakec/build/standard/progs.lno" "$ASSET_WORK/nzp/progs.lno"
+fi
+
 (
     cd "$ASSET_WORK"
     zip -q -r "$APP/src/main/assets/nzp-data.zip" .
@@ -85,6 +101,7 @@ sha256sum "$APP/src/main/assets/nzp-data.zip" | awk '{print $1}'     > "$APP/src
 
 mkdir -p "$APP/src/main/assets/licenses"
 cp "$DEPS/vril/LICENSE" "$APP/src/main/assets/licenses/VRIL-GPL-2.0.txt"
+cp "$DEPS/quakec/LICENSE" "$APP/src/main/assets/licenses/NZP-QUAKEC-GPL-2.0.txt"
 
 curl -fL --retry 6 --retry-delay 2 --retry-all-errors     https://raw.githubusercontent.com/nzp-team/assets/main/LICENSE.md     -o "$APP/src/main/assets/licenses/NZP-ASSETS-CC-BY-SA-4.0.txt"
 
@@ -99,6 +116,7 @@ echo "SDL:        $(git -C "$DEPS/SDL" rev-parse HEAD)"
 echo "SDL_mixer:  $(git -C "$DEPS/SDL2_mixer" rev-parse HEAD)"
 echo "GL4ES:      $(git -C "$DEPS/gl4es" rev-parse HEAD)"
 echo "Vril:       $(git -C "$DEPS/vril" rev-parse HEAD)"
+echo "QuakeC:     $(git -C "$DEPS/quakec" rev-parse HEAD)"
 echo "Data SHA:   $(cat "$APP/src/main/assets/nzp-data.version")"
 
 chmod +x "$PROJECT/gradlew"
