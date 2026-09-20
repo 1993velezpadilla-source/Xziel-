@@ -204,6 +204,17 @@
       "editable_source": "some_original_map_packs_include_mapper_sources",
       "known_notes": "Preservation repack of many legacy NZ:P maps. Repack omits mapper source files, but original archived map packs are linked and reportedly include released mapper source files/other assets. Audit each map individually.",
       "enhanced_fit": "research_pool"
+    },
+    {
+      "id": "nacht_plus",
+      "title": "Nacht der Untoten Plus / Nacht 2.0",
+      "type": "nzp_native_stock_map_extension",
+      "source_url": "https://github.com/nzp-team/nzportable/discussions/688",
+      "status": "high_priority_system_test_variant",
+      "runtime_readiness": "playable_nzp_release",
+      "editable_source": "built_on_stock_ndu",
+      "known_notes": "Built on standard Nacht and adds the four core perks plus Pack-a-Punch/teddy unlock flow. Useful as a compact Enhanced testbed for perk-machine, drink and PaP presentation while keeping stock Nacht as the fidelity benchmark.",
+      "enhanced_fit": "extreme_for_machine_fx_testing"
     }
   ]
 }
