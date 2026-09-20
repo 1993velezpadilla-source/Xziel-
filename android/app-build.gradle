@@ -9,8 +9,8 @@ android {
         applicationId "com.xziel.nzp"
         minSdkVersion 23
         targetSdkVersion 35
-        versionCode 12
-        versionName "0.12-releasefire-grenade-fuse"
+        versionCode 13
+        versionName "0.13-marksman-sticky-ads"
 
         externalNativeBuild {
             ndkBuild {
