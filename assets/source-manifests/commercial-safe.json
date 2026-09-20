@@ -195,6 +195,46 @@
         "url": "https://opengameart.org/content/40-cc0-water-splash-slime-sfx",
         "raw_redistribution": true,
         "status": "green"
+      },
+      {
+        "name": "OpenGameArt Zombies Sound Pack",
+        "category": "audio_zombie",
+        "license": "CC0",
+        "url": "https://opengameart.org/content/zombies-sound-pack",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "OpenGameArt Free Firearm Sound Library",
+        "category": "audio_weapon",
+        "license": "CC0",
+        "url": "https://opengameart.org/content/the-free-firearm-sound-library",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "OpenGameArt 100 CC0 metal and wood SFX",
+        "category": "audio_environment",
+        "license": "CC0",
+        "url": "https://opengameart.org/content/100-cc0-metal-and-wood-sfx",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "Kenney UI Pack",
+        "category": "ui",
+        "license": "CC0",
+        "url": "https://kenney.nl/assets/ui-pack",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "Kenney Crosshair Pack",
+        "category": "ui_crosshair",
+        "license": "CC0",
+        "url": "https://kenney.nl/assets/crosshair-pack",
+        "raw_redistribution": true,
+        "status": "green"
       }
     ],
     "embedded_only": [
@@ -239,6 +279,56 @@
         "url": "https://3dassets.dev/packs/fps-survival-forest-outpost",
         "raw_redistribution": true,
         "status": "verify_visual_ip_topology_ai"
+      },
+      {
+        "name": "Hotstrike Stylized Dark Fantasy Zombie",
+        "category": "zombie_character",
+        "license": "Fab acquisition license must be confirmed",
+        "url": "https://www.fab.com/listings/685ab2d1-8085-4a1a-95aa-10fde20ff772",
+        "raw_redistribution": false,
+        "status": "verify_embed_only"
+      },
+      {
+        "name": "Zombies Modular Four Pack",
+        "category": "zombie_dismemberment",
+        "license": "Fab acquisition license must be confirmed",
+        "url": "https://www.fab.com/listings/1761fc07-b493-4b05-83dc-fe90fde46d4d",
+        "raw_redistribution": false,
+        "status": "verify_embed_only"
+      },
+      {
+        "name": "Dismemberable Zombie Pack 01",
+        "category": "zombie_dismemberment",
+        "license": "Fab acquisition license must be confirmed",
+        "url": "https://www.fab.com/listings/dc8cb28c-6f61-47bf-b1fb-a4cdfdda1f43",
+        "raw_redistribution": false,
+        "status": "verify_embed_only"
+      }
+    ],
+    "attribution_required": [
+      {
+        "name": "Tony Flanagan free animated zombie series",
+        "category": "zombie_character",
+        "license": "CC BY 4.0 (documented for multiple series assets; verify each exact download)",
+        "url": "https://www.fab.com/sellers/Tony%20Flanagan?q=zombies",
+        "raw_redistribution": "license-dependent",
+        "status": "green_attribution"
+      },
+      {
+        "name": "Aiden Studios Zombie Rigged Animated",
+        "category": "zombie_character",
+        "license": "CC Attribution",
+        "url": "https://sketchfab.com/3d-models/zombie-rigged-animated-131688807ad444609ed9b2ed572dc4aa",
+        "raw_redistribution": "per_CC_BY",
+        "status": "green_attribution"
+      },
+      {
+        "name": "Gowo Stoyanov Zombie",
+        "category": "zombie_character",
+        "license": "CC Attribution",
+        "url": "https://sketchfab.com/3d-models/zombie-95ea4fdb12314e3f96963a0c99fe4f4d",
+        "raw_redistribution": "per_CC_BY",
+        "status": "green_attribution"
       }
     ]
   }
