@@ -34,7 +34,7 @@ python3 "$ROOT/scripts/patch_vril_android.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_weaponhud.py" "$DEPS/vril"
 
 echo "==> Patching and compiling Xziel mobile QuakeC"
-python3 -m pip install --quiet pandas fastcrc
+python3 -m pip install --quiet colorama==0.4.6 fastcrc==0.3.0 pandas==2.1.4
 python3 "$ROOT/scripts/patch_quakec_mobile.py" "$DEPS/quakec"
 chmod +x "$DEPS/quakec/bin/fteqcc-cli-lin" "$DEPS/quakec/tools/qc-compiler-gnu.sh"
 (
