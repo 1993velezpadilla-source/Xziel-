@@ -1,5 +1,6 @@
 #pragma once
 
+#include <android/asset_manager.h>
 #include <android/native_window.h>
 #include <vulkan/vulkan.h>
 
@@ -16,7 +17,9 @@ public:
     VulkanClearRenderer(const VulkanClearRenderer&) = delete;
     VulkanClearRenderer& operator=(const VulkanClearRenderer&) = delete;
 
-    [[nodiscard]] bool initialize(ANativeWindow* window) noexcept;
+    [[nodiscard]] bool initialize(
+        ANativeWindow* window,
+        AAssetManager* assetManager) noexcept;
     void shutdown() noexcept;
 
     [[nodiscard]] bool drawFrame(float timeSeconds) noexcept;
@@ -35,6 +38,10 @@ private:
     [[nodiscard]] bool createDevice() noexcept;
     [[nodiscard]] bool createSwapchain() noexcept;
     [[nodiscard]] bool createRenderPass() noexcept;
+    [[nodiscard]] bool createGraphicsPipeline() noexcept;
+    [[nodiscard]] bool createShaderModuleFromAsset(
+        const char* assetPath,
+        VkShaderModule& outModule) noexcept;
     [[nodiscard]] bool createImageViewsAndFramebuffers() noexcept;
     [[nodiscard]] bool createCommandResources() noexcept;
     [[nodiscard]] bool createSyncObjects() noexcept;
@@ -62,6 +69,8 @@ private:
     VkExtent2D swapchainExtent_{};
 
     VkRenderPass renderPass_ = VK_NULL_HANDLE;
+    VkPipelineLayout pipelineLayout_ = VK_NULL_HANDLE;
+    VkPipeline graphicsPipeline_ = VK_NULL_HANDLE;
     VkCommandPool commandPool_ = VK_NULL_HANDLE;
 
     std::vector<VkImage> swapchainImages_;
@@ -75,6 +84,7 @@ private:
     std::uint32_t frameIndex_ = 0;
 
     ANativeWindow* window_ = nullptr;
+    AAssetManager* assetManager_ = nullptr;
     bool initialized_ = false;
 };
 
