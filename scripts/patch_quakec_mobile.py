@@ -53,6 +53,17 @@ if "xziel_weapon1_id" not in text:
     text = text.replace(anchor, anchor + fields, 1)
 custom.write_text(text, encoding="utf-8")
 
+# weapon_utilities.qc is compiled before weapon_core.qc, so declare the helper
+# here and define it later in weapon_core.qc.
+text = custom.read_text(encoding="utf-8")
+prototype_anchor = ".float weapon_count;\n"
+prototype = "float(float weapon_id) Xziel_IsPistolWeapon;\n"
+if prototype not in text:
+    if prototype_anchor not in text:
+        raise SystemExit("Could not find pistol-helper prototype anchor")
+    text = text.replace(prototype_anchor, prototype_anchor + prototype, 1)
+custom.write_text(text, encoding="utf-8")
+
 # ---------------------------------------------------------------------------
 # Inventory rules.
 # Stock mode keeps classic Zombies capacity.
