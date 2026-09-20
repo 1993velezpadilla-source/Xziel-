@@ -3541,8 +3541,9 @@ static void Xziel_UpdateAutoKnife(void)
 		   Combining that with this short local collision trace gives us a
 		   real melee-distance gate without auto-knifing distant targets. */
 		near_target =
-			cl.stats[STAT_FACINGENEMY] &&
-			tr.fraction < 1.0f;
+			tr.fraction < 1.0f &&
+			tr.ent != NULL &&
+			(((int)tr.ent->v.flags & FL_MONSTER) != 0);
 	}
 
 	xziel_mobile_knife_target_near = near_target;
