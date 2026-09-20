@@ -933,3 +933,366 @@ if "xziel_mobile_fire_camera_rotation.value" not in fm:
     text = text[:fm0] + fm + text[fm1:]
 
 sdl.write_text(text, encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# v0.23 HUD presentation: distinct controls, compact weapon cards and minimap
+# ---------------------------------------------------------------------------
+hud = source / "render" / "r_hud.c"
+text = hud.read_text(encoding="utf-8")
+
+hud_ext_anchor = "extern cvar_t xziel_hud_slide_opacity;\n"
+hud_exts = r'''extern cvar_t xziel_mobile_track_fire;
+extern cvar_t xziel_mobile_fire_camera_rotation;
+extern cvar_t xziel_mobile_minimap;
+extern cvar_t xziel_mobile_minimap_range;
+extern cvar_t xziel_hud_minimap_x;
+extern cvar_t xziel_hud_minimap_y;
+extern cvar_t xziel_hud_minimap_scale;
+extern cvar_t xziel_hud_minimap_opacity;
+extern float xziel_mobile_track_fire_dx;
+extern float xziel_mobile_track_fire_dy;
+extern float xziel_mobile_track_adsfire_dx;
+extern float xziel_mobile_track_adsfire_dy;
+'''
+if "extern cvar_t xziel_mobile_track_fire;" not in text:
+    text = add_after(text, hud_ext_anchor, hud_exts, "v0.23 HUD externs")
+
+handle_anchor = "static image_t xziel_joystick_knob_active;\n"
+v23_handles = r'''static image_t xziel_icon_adsfire;
+static image_t xziel_touch_small_idle;
+static image_t xziel_touch_small_pressed;
+static image_t xziel_touch_fire_idle;
+static image_t xziel_touch_fire_pressed;
+static image_t xziel_touch_ads_idle;
+static image_t xziel_touch_ads_pressed;
+static image_t xziel_touch_adsfire_idle;
+static image_t xziel_touch_adsfire_pressed;
+static image_t xziel_minimap_ring;
+static image_t xziel_minimap_player;
+'''
+if "static image_t xziel_icon_adsfire;" not in text:
+    text = add_after(text, handle_anchor, v23_handles, "v0.23 image handles")
+
+load_anchor = '    xziel_joystick_knob_active = Image_LoadImage("gfx/xziel/joystick_knob_active", IMAGE_PNG, 0, true, false);\n'
+v23_loads = r'''    xziel_icon_adsfire = Image_LoadImage("gfx/xziel/adsfire", IMAGE_PNG, 0, true, false);
+    xziel_touch_small_idle = Image_LoadImage("gfx/xziel/touch_small_idle", IMAGE_PNG, 0, true, false);
+    xziel_touch_small_pressed = Image_LoadImage("gfx/xziel/touch_small_pressed", IMAGE_PNG, 0, true, false);
+    xziel_touch_fire_idle = Image_LoadImage("gfx/xziel/touch_fire_idle", IMAGE_PNG, 0, true, false);
+    xziel_touch_fire_pressed = Image_LoadImage("gfx/xziel/touch_fire_pressed", IMAGE_PNG, 0, true, false);
+    xziel_touch_ads_idle = Image_LoadImage("gfx/xziel/touch_ads_idle", IMAGE_PNG, 0, true, false);
+    xziel_touch_ads_pressed = Image_LoadImage("gfx/xziel/touch_ads_pressed", IMAGE_PNG, 0, true, false);
+    xziel_touch_adsfire_idle = Image_LoadImage("gfx/xziel/touch_adsfire_idle", IMAGE_PNG, 0, true, false);
+    xziel_touch_adsfire_pressed = Image_LoadImage("gfx/xziel/touch_adsfire_pressed", IMAGE_PNG, 0, true, false);
+    xziel_minimap_ring = Image_LoadImage("gfx/xziel/minimap_ring", IMAGE_PNG, 0, true, false);
+    xziel_minimap_player = Image_LoadImage("gfx/xziel/minimap_player", IMAGE_PNG, 0, true, false);
+'''
+if 'gfx/xziel/adsfire' not in text:
+    text = add_after(text, load_anchor, v23_loads, "v0.23 image loads")
+
+action_icon_v23 = r'''static image_t Xziel_ActionIcon(const char *label1, const char *label2)
+{
+	if (!strcmp(label1, "ADS") && label2 && !strcmp(label2, "FIRE")) return xziel_icon_adsfire;
+	if (!strcmp(label1, "FIRE")) return xziel_icon_fire;
+	if (!strcmp(label1, "ADS")) return xziel_icon_ads;
+	if (!strcmp(label1, "RLD")) return xziel_icon_reload;
+	if (!strcmp(label1, "USE")) return xziel_icon_use;
+	if (!strcmp(label1, "JUMP")) return xziel_icon_jump;
+	if (!strcmp(label1, "KNIFE")) return xziel_icon_knife;
+	if (!strcmp(label1, "NADE")) return xziel_icon_grenade;
+	if (!strcmp(label1, "SLIDE")) return xziel_icon_slide;
+	if (!strcmp(label1, "II")) return xziel_icon_pause;
+	return 0;
+}'''
+text = replace_function(text, "static image_t Xziel_ActionIcon", action_icon_v23)
+
+action_glyph_v23 = r'''static qboolean Xziel_DrawActionGlyph(int cx, int cy, int radius,
+	const char *label1, const char *label2, qboolean pressed)
+{
+	image_t icon = Xziel_ActionIcon(label1, label2);
+	int size;
+	int alpha;
+	int gx = cx, gy = cy;
+
+	if (!icon)
+		return false;
+
+	if (!strcmp(label1, "FIRE")) {
+		size = (int)(radius * 1.08f);
+		if (pressed && xziel_mobile_track_fire.value >= 0.5f) {
+			gx += (int)(xziel_mobile_track_fire_dx * radius * 0.58f);
+			gy += (int)(xziel_mobile_track_fire_dy * radius * 0.58f);
+		}
+	} else if (!strcmp(label1, "ADS") && label2 && !strcmp(label2, "FIRE")) {
+		size = (int)(radius * 1.18f);
+		if (pressed && xziel_mobile_track_fire.value >= 0.5f) {
+			gx += (int)(xziel_mobile_track_adsfire_dx * radius * 0.58f);
+			gy += (int)(xziel_mobile_track_adsfire_dy * radius * 0.58f);
+		}
+	} else if (!strcmp(label1, "ADS")) {
+		size = (int)(radius * 1.08f);
+	} else {
+		size = (int)(radius * 0.90f);
+	}
+
+	if (size < 14) size = 14;
+	alpha = pressed ? 255 : 238;
+	Draw_ColoredStretchPic(gx - size/2, gy - size/2, icon,
+		size, size, 255,255,255,alpha);
+	return true;
+}'''
+action_pos = text.rfind("static qboolean Xziel_DrawActionGlyph(")
+if action_pos < 0:
+    raise SystemExit("Could not find final action glyph for v0.23")
+text = text[:action_pos] + replace_function(
+    text[action_pos:], "static qboolean Xziel_DrawActionGlyph(", action_glyph_v23
+)
+
+touch_v23 = r'''static void Xziel_DrawTouchButton(float nx, float ny, float radius_h,
+	const char *label1, const char *label2, qboolean pressed, qboolean editor)
+{
+	float local_scale, local_opacity;
+	int cx = (int)(nx * vid.width);
+	int cy = (int)(ny * vid.height);
+	int radius;
+	int size;
+	int alpha;
+	image_t surface = 0;
+
+	Xziel_ControlStyle(label1, label2, &local_scale, &local_opacity);
+	if (local_scale < 0.20f) local_scale = 0.20f;
+	if (local_scale > 4.00f) local_scale = 4.00f;
+	if (local_opacity < 0.15f) local_opacity = 0.15f;
+	if (local_opacity > 1.00f) local_opacity = 1.00f;
+
+	radius = (int)(radius_h * vid.height *
+		xziel_mobile_hud_scale.value * local_scale);
+	if (radius < 9) radius = 9;
+	size = (int)(radius * 2.14f);
+	alpha = (int)(255 * xziel_mobile_hud_opacity.value * local_opacity);
+
+	if (editor) {
+		surface = xziel_touch_editor;
+	} else if (!strcmp(label1, "FIRE")) {
+		surface = pressed ? xziel_touch_fire_pressed : xziel_touch_fire_idle;
+	} else if (!strcmp(label1, "ADS") && label2 && !strcmp(label2, "FIRE")) {
+		surface = pressed ? xziel_touch_adsfire_pressed : xziel_touch_adsfire_idle;
+	} else if (!strcmp(label1, "ADS")) {
+		surface = pressed ? xziel_touch_ads_pressed : xziel_touch_ads_idle;
+	} else {
+		surface = pressed ? xziel_touch_small_pressed : xziel_touch_small_idle;
+	}
+
+	if (surface)
+		Draw_ColoredStretchPic(cx - size/2, cy - size/2, surface,
+			size,size,255,255,255,alpha);
+
+	Xziel_DrawActionGlyph(cx,cy,radius,label1,label2,pressed);
+}'''
+text = replace_function(text, "static void Xziel_DrawTouchButton(", touch_v23)
+
+weapon_card_v23 = r'''static void Xziel_DrawWeaponCard(int cx, int cy, int w, int h,
+	int weapon, int mag, int reserve, qboolean active, qboolean editor,
+	float opacity, const char *slot_name)
+{
+	int x = cx - w/2;
+	int y = cy - h/2;
+	int border = (int)fmaxf(1.0f, 1.5f * vid.scale);
+	int panel_alpha;
+	int edge_alpha;
+	int chip;
+	char ammo[32];
+	qboolean protected_pistol =
+		xziel_mobile_unlimited_pistol.value >= 0.5f &&
+		Xziel_HUDIsPistol(weapon);
+
+	if (opacity < 0.15f) opacity = 0.15f;
+	if (opacity > 1.0f) opacity = 1.0f;
+	panel_alpha = (int)((active ? 204 : 164) *
+		xziel_mobile_hud_opacity.value * opacity);
+	edge_alpha = (int)((active ? 250 : 152) *
+		xziel_mobile_hud_opacity.value * opacity);
+
+	/* Full graphite card with warm active outline, like the approved mockup. */
+	Draw_FillByColor(x, y, w, h,
+		active ? 244 : 92, active ? 198 : 100, active ? 42 : 108, edge_alpha);
+	Draw_FillByColor(x + border, y + border, w - border*2, h - border*2,
+		5,8,11,panel_alpha);
+	Draw_FillByColor(x + border*2, y + border*2, w - border*4,
+		(int)fmaxf(1.0f, 6.0f*vid.scale), 21,25,29,(int)(76*opacity));
+
+	chip = (int)(14.0f * vid.scale);
+	if (chip < 11) chip = 11;
+	Draw_FillByColor(x + border, y + border, chip, chip,
+		active ? 244 : 62, active ? 198 : 67, active ? 42 : 72,
+		(int)(232*opacity));
+	{
+		int tw = getTextWidth((char *)slot_name, vid.scale*0.56f);
+		Draw_ColoredString(x + border + (chip-tw)/2,
+			y + border + (int)(2*vid.scale), (char *)slot_name,
+			active ? 12 : 235, active ? 12 : 235, active ? 12 : 235,
+			245,vid.scale*0.56f);
+	}
+
+	if (weapon != 0) {
+		float icon_scale = h / (active ? 48.0f : 52.0f);
+		Xziel_DrawWeaponGlyph(cx, cy - (int)(5*vid.scale), weapon,
+			icon_scale, (int)((active ? 255 : 224)*opacity));
+
+		if (protected_pistol)
+			snprintf(ammo, sizeof(ammo), "%d / INF", mag);
+		else
+			snprintf(ammo, sizeof(ammo), "%d / %d", mag, reserve);
+
+		Draw_ColoredString(x + (int)(7*vid.scale),
+			y + h - (int)(12*vid.scale), ammo,
+			244,246,248,(int)(242*opacity),
+			vid.scale*(active ? 0.68f : 0.61f));
+	} else if (editor) {
+		const char *empty = "EMPTY";
+		int tw = getTextWidth((char *)empty, vid.scale*0.55f);
+		Draw_ColoredString(cx-tw/2,cy-(int)(3*vid.scale),(char *)empty,
+			145,151,158,(int)(185*opacity),vid.scale*0.55f);
+	}
+}'''
+text = replace_function(text, "static void Xziel_DrawWeaponCard(", weapon_card_v23)
+
+# Slightly widen the v0.20 rail without changing the user's saved positions.
+text = text.replace(
+    "int w = (int)((i==0 ? 108 : 84) * vid.scale * c[i].s);",
+    "int w = (int)((i==0 ? 118 : 96) * vid.scale * c[i].s);"
+)
+text = text.replace(
+    "int h = (int)((i==0 ? 60 : 50) * vid.scale * c[i].s);",
+    "int h = (int)((i==0 ? 59 : 52) * vid.scale * c[i].s);"
+)
+
+# Live rotating player-up minimap. It reuses the strict zombie whitelist and
+# server-authoritative alive filter, so dead/stale render entities never become
+# phantom red dots.
+mobile_pos = text.find("static void Xziel_MobileHUD_DrawInternal")
+if mobile_pos < 0:
+    raise SystemExit("Could not find mobile HUD renderer for minimap")
+if "static void Xziel_DrawMiniMapV23" not in text:
+    minimap_v23 = r'''
+static qboolean Xziel_IsZombieThreatEntity(entity_t *ent);
+static qboolean Xziel_ServerThreatAlive(int entnum);
+
+static void Xziel_DrawMiniMapV23(qboolean editor)
+{
+	float s = xziel_hud_minimap_scale.value;
+	float o = xziel_hud_minimap_opacity.value;
+	float range = xziel_mobile_minimap_range.value;
+	int cx,cy,radius,size,inner,alpha;
+	int i;
+	float yaw,cs,sn;
+
+	if (!editor && xziel_mobile_minimap.value < 0.5f)
+		return;
+	if (!editor && (key_dest != key_game || cl.stats[STAT_HEALTH] <= 0))
+		return;
+
+	if (s < 0.20f) s = 0.20f;
+	if (s > 4.00f) s = 4.00f;
+	if (o < 0.15f) o = 0.15f;
+	if (o > 1.00f) o = 1.00f;
+	if (range < 300.0f) range = 300.0f;
+	if (range > 2400.0f) range = 2400.0f;
+
+	cx = (int)(xziel_hud_minimap_x.value * vid.width);
+	cy = (int)(xziel_hud_minimap_y.value * vid.height);
+	radius = (int)(0.077f * vid.height * xziel_mobile_hud_scale.value * s);
+	if (radius < 28) radius = 28;
+	size = radius*2;
+	inner = (int)(radius*0.76f);
+	alpha = (int)(255*xziel_mobile_hud_opacity.value*o);
+
+	if (xziel_minimap_ring)
+		Draw_ColoredStretchPic(cx-radius,cy-radius,xziel_minimap_ring,
+			size,size,255,255,255,alpha);
+
+	if (editor || cl.viewentity <= 0 || cl.viewentity >= cl.num_entities) {
+		if (xziel_minimap_player) {
+			int p=(int)(radius*0.30f);
+			Draw_ColoredStretchPic(cx-p/2,cy-p/2,xziel_minimap_player,
+				p,p,255,226,92,245);
+		}
+		return;
+	}
+
+	yaw = cl.viewangles[YAW] * 0.017453292519943295f;
+	cs = cosf(yaw);
+	sn = sinf(yaw);
+
+	for (i=1; i<cl.num_entities; ++i) {
+		entity_t *ent;
+		float dx,dy,dz,dist,fwd,right,nx,ny;
+		int px,py,dot;
+		if (i == cl.viewentity) continue;
+		ent = &cl_entities[i];
+		if (!Xziel_IsZombieThreatEntity(ent)) continue;
+		if (!Xziel_ServerThreatAlive(i)) continue;
+
+		dx = ent->origin[0] - cl_entities[cl.viewentity].origin[0];
+		dy = ent->origin[1] - cl_entities[cl.viewentity].origin[1];
+		dz = ent->origin[2] - cl_entities[cl.viewentity].origin[2];
+		dist = sqrtf(dx*dx + dy*dy + dz*dz);
+		if (dist > range || dist < 12.0f) continue;
+
+		fwd = dx*cs + dy*sn;
+		right = -dx*sn + dy*cs;
+		nx = right/range;
+		ny = -fwd/range;
+		if (nx*nx + ny*ny > 0.96f) continue;
+		px = cx + (int)(nx*inner);
+		py = cy + (int)(ny*inner);
+		dot = (int)fmaxf(3.0f, 4.0f*vid.scale*s);
+		Draw_FillByColor(px-dot/2,py-dot/2,dot,dot,
+			229,38,44,(int)(242*o));
+	}
+
+	if (xziel_minimap_player) {
+		int p=(int)(radius*0.30f);
+		Draw_ColoredStretchPic(cx-p/2,cy-p/2,xziel_minimap_player,
+			p,p,255,226,92,245);
+	}
+
+	/* Cardinal markers rotate around a fixed player-up arrow. */
+	{
+		const char *labels[4]={"N","E","S","W"};
+		float wx[4]={0,1,0,-1};
+		float wy[4]={1,0,-1,0};
+		int k;
+		for (k=0;k<4;++k) {
+			float f=wx[k]*cs+wy[k]*sn;
+			float r=-wx[k]*sn+wy[k]*cs;
+			int tx=cx+(int)(r*radius*0.83f);
+			int ty=cy-(int)(f*radius*0.83f);
+			int tw=getTextWidth((char*)labels[k],vid.scale*0.48f*s);
+			Draw_ColoredString(tx-tw/2,ty-(int)(3*vid.scale*s),
+				(char*)labels[k],215,220,225,(int)(205*o),
+				vid.scale*0.48f*s);
+		}
+	}
+}
+
+'''
+    text = text[:mobile_pos] + minimap_v23 + text[mobile_pos:]
+
+# Draw minimap before controls so controls remain on top if the user overlaps
+# them in Custom HUD.
+mh0 = text.find("static void Xziel_MobileHUD_DrawInternal")
+mh1 = text.find("static void Xziel_MobileHUD_Draw(", mh0)
+if mh0 < 0:
+    raise SystemExit("Could not find final mobile HUD for minimap call")
+mh = text[mh0:mh1 if mh1 > 0 else len(text)]
+health_block = '''\tif (!editor && (key_dest != key_game || cl.stats[STAT_HEALTH] <= 0))
+\t\treturn;
+'''
+if "Xziel_DrawMiniMapV23(editor);" not in mh:
+    if health_block not in mh:
+        raise SystemExit("Could not find HUD early-return block")
+    mh = mh.replace(health_block, health_block + "\n\tXziel_DrawMiniMapV23(editor);\n", 1)
+    text = text[:mh0] + mh + text[mh1 if mh1 > 0 else len(text):]
+
+hud.write_text(text, encoding="utf-8")
