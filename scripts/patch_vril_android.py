@@ -3698,3 +3698,1011 @@ game_func = r'''void Menu_MobileGameplay_Draw(void)
 }'''
 mtext = xziel_replace_c_function(mtext, "void Menu_MobileGameplay_Draw(void)", game_func)
 controls.write_text(mtext, encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# Xziel Android COD-style touch input correction pass v0.9
+# Native melee distance, menu touch isolation, weapon-aware ADS+FIRE release
+# semantics, and explicit sprint-lock zone above the movement stick.
+# ---------------------------------------------------------------------------
+
+# ---- Persistent sprint-lock setting ----------------------------------------
+inp = source / "input.c"
+itext = inp.read_text(encoding="utf-8")
+sprint_cvar_anchor = 'cvar_t xziel_mobile_auto_knife_range = {"xziel_mobile_auto_knife_range", "96", true};\n'
+if "xziel_mobile_sprint_zone" not in itext:
+    if sprint_cvar_anchor not in itext:
+        raise SystemExit("Could not find v0.8 mobile cvar anchor for sprint zone")
+    itext = itext.replace(
+        sprint_cvar_anchor,
+        sprint_cvar_anchor + 'cvar_t xziel_mobile_sprint_zone = {"xziel_mobile_sprint_zone", "1.10", true};\n',
+        1
+    )
+
+sprint_reg_anchor = "\tCvar_RegisterVariable(&xziel_mobile_auto_knife_range);\n"
+if "Cvar_RegisterVariable(&xziel_mobile_sprint_zone);" not in itext:
+    if sprint_reg_anchor not in itext:
+        raise SystemExit("Could not find v0.8 cvar registration anchor for sprint zone")
+    itext = itext.replace(
+        sprint_reg_anchor,
+        sprint_reg_anchor + "\tCvar_RegisterVariable(&xziel_mobile_sprint_zone);\n",
+        1
+    )
+inp.write_text(itext, encoding="utf-8")
+
+# ---- Touch runtime ----------------------------------------------------------
+sys_sdl = source / "platform" / "sdl" / "sys_sdl.c"
+text = sys_sdl.read_text(encoding="utf-8")
+
+sprint_extern_anchor = "extern cvar_t xziel_mobile_auto_knife_range;\n"
+if "extern cvar_t xziel_mobile_sprint_zone;" not in text:
+    if sprint_extern_anchor not in text:
+        raise SystemExit("Could not find v0.8 runtime cvar extern anchor")
+    text = text.replace(
+        sprint_extern_anchor,
+        sprint_extern_anchor + "extern cvar_t xziel_mobile_sprint_zone;\n",
+        1
+    )
+
+state_anchor = "static Uint32 xziel_mobile_auto_knife_next_ms = 0;\n"
+state_add = """qboolean xziel_mobile_sprint_zone_hot = false;
+static qboolean xziel_mobile_sprint_suppressed = false;
+static Uint32 xziel_mobile_sprint_retry_ms = 0;
+static qboolean xziel_adsfire_attack_engaged = false;
+static qboolean xziel_adsfire_release_pending = false;
+static qboolean xziel_adsfire_release_requested = false;
+static qboolean xziel_adsfire_temp_aim = false;
+static qboolean xziel_adsfire_cancelled = false;
+static qboolean xziel_menu_touch_active = false;
+static SDL_FingerID xziel_menu_touch_finger = 0;
+static int xziel_menu_touch_state = -1;
+"""
+if "xziel_adsfire_release_pending" not in text:
+    if state_anchor not in text:
+        raise SystemExit("Could not find v0.8 runtime state anchor")
+    text = text.replace(state_anchor, state_anchor + state_add, 1)
+
+helpers = r'''
+static qboolean Xziel_IsDualWeaponMobile(void)
+{
+	switch (cl.stats[STAT_ACTIVEWEAPON]) {
+	case W_BIATCH:
+	case W_SNUFF:
+		return true;
+	default:
+		return false;
+	}
+}
+
+static qboolean Xziel_WeaponDoesNotAdsMobile(void)
+{
+	switch (cl.stats[STAT_ACTIVEWEAPON]) {
+	case W_TESLA:
+	case W_DG3:
+	case W_BK:
+	case W_KRAUS:
+		return true;
+	default:
+		return false;
+	}
+}
+
+static qboolean Xziel_AdsFireReleaseWeapon(void)
+{
+	/* COD-mobile-like hold-to-aim / release-to-fire behavior is most useful
+	   for the native bolt-action rifles and single-shot shotguns.  Upgraded
+	   dual Sawed-Off (SNUFF) is intentionally excluded because native NZ:P
+	   treats its ADS input as the second trigger, not as ADS. */
+	switch (cl.stats[STAT_ACTIVEWEAPON]) {
+	case W_KAR:
+	case W_ARMAGEDDON:
+	case W_SPRING:
+	case W_PULVERIZER:
+	case W_KAR_SCOPE:
+	case W_DB:
+	case W_BORE:
+	case W_SAWNOFF:
+	case W_TRENCH:
+	case W_GUT:
+		return true;
+	default:
+		return false;
+	}
+}
+
+static void Xziel_PulseAttackNow(void)
+{
+	/* KeyDown+KeyUp in one pump leaves the impulse-down bit set for the next
+	   CL_SendMove, producing exactly one server trigger edge. */
+	Cbuf_AddText("+attack\n-attack\n");
+	Cbuf_Execute();
+}
+
+static void Xziel_StopSprintForAction(void)
+{
+	if (xziel_mobile_sprint_zone_hot)
+		xziel_mobile_sprint_suppressed = true;
+
+	if (xziel_mobile_sprint_active || cl.stats[STAT_ZOOM] == 3) {
+		Cbuf_AddText("impulse 24\n");
+		Cbuf_Execute();
+	}
+	xziel_mobile_sprint_active = false;
+}
+
+static void Xziel_FinishTemporaryAdsFireAim(void)
+{
+	if (xziel_adsfire_temp_aim && !xziel_mobile_ads_latched) {
+		Xziel_QueueHold("+aim\n", "-aim\n", &xziel_aim_refs, false);
+		Cbuf_Execute();
+	}
+	xziel_adsfire_temp_aim = false;
+}
+
+static void Xziel_CancelAdsFireForSprint(void)
+{
+	if (xziel_adsfire_attack_engaged) {
+		Xziel_SetAttackRef(false);
+		xziel_adsfire_attack_engaged = false;
+	}
+
+	xziel_adsfire_release_pending = false;
+	xziel_adsfire_release_requested = false;
+	xziel_adsfire_cancelled = true;
+	Xziel_FinishTemporaryAdsFireAim();
+
+	/* Dedicated toggle ADS must be explicitly toggled out before native
+	   W_SprintStart can succeed.  Sprint is retried while the stick remains
+	   in the sprint lock zone, so the following frame starts running as soon
+	   as the native zoom state has cleared. */
+	if (xziel_mobile_ads_latched) {
+		Cbuf_AddText("impulse 26\n");
+		Cbuf_Execute();
+		xziel_mobile_ads_latched = false;
+	}
+	xziel_mobile_restore_ads_after_reload = false;
+}
+'''
+action_anchor = "static void Xziel_ActionDown(xziel_touch_role_t role)\n"
+if "static qboolean Xziel_AdsFireReleaseWeapon(void)" not in text:
+    idx = text.find(action_anchor)
+    if idx < 0:
+        raise SystemExit("Could not find mobile action insertion point")
+    text = text[:idx] + helpers + "\n" + text[idx:]
+
+# Immediate command-buffer execution removes the avoidable extra event-pump
+# latency from ordinary FIRE.  Weapon fire_delay remains native authority.
+attack_ref_func = r'''static void Xziel_SetAttackRef(qboolean pressed)
+{
+	qboolean changed = false;
+
+	if (pressed) {
+		xziel_attack_refs++;
+		if (xziel_attack_refs == 1) {
+			Uint32 now = SDL_GetTicks();
+			Cbuf_AddText("+attack\n");
+			xziel_attack_command_down = true;
+			changed = true;
+			if (Xziel_IsAutoTapPistol()) {
+				xziel_attack_release_ms = now + 42;
+				xziel_attack_next_ms =
+					now + (Uint32)fmaxf(120.0f, xziel_mobile_autofire_ms.value);
+			} else {
+				xziel_attack_release_ms = 0;
+				xziel_attack_next_ms = 0;
+			}
+		}
+	} else {
+		if (xziel_attack_refs > 0)
+			xziel_attack_refs--;
+		if (xziel_attack_refs == 0 && xziel_attack_command_down) {
+			Cbuf_AddText("-attack\n");
+			xziel_attack_command_down = false;
+			changed = true;
+		}
+	}
+
+	if (changed)
+		Cbuf_Execute();
+}'''
+text = xziel_replace_c_function(text, "static void Xziel_SetAttackRef(qboolean pressed)", attack_ref_func)
+
+update_fire_func = r'''static void Xziel_UpdateMobileFire(void)
+{
+	Uint32 now = SDL_GetTicks();
+	qboolean changed = false;
+
+	/* ADS+FIRE is a state machine rather than two commands submitted in the
+	   same usercmd. Native NZ:P evaluates FIRE before ADS, so sending both
+	   together can hip-fire or add inconsistent latency. Establish ADS first,
+	   then engage the trigger on the earliest frame where the native zoom
+	   state confirms ADS. No arbitrary millisecond ADS delay is added. */
+	if ((xziel_mobile_adsfire_pressed || xziel_adsfire_release_requested) &&
+		!xziel_adsfire_cancelled) {
+		if (xziel_adsfire_release_pending) {
+			if (xziel_adsfire_release_requested &&
+				(cl.stats[STAT_ZOOM] == 1 || cl.stats[STAT_ZOOM] == 2 ||
+				 xziel_mobile_ads_latched)) {
+				Xziel_PulseAttackNow();
+				xziel_adsfire_release_pending = false;
+				xziel_adsfire_release_requested = false;
+				Xziel_FinishTemporaryAdsFireAim();
+			}
+		} else if (!xziel_adsfire_attack_engaged &&
+			(Xziel_WeaponDoesNotAdsMobile() || Xziel_IsDualWeaponMobile() ||
+			 cl.stats[STAT_ZOOM] == 1 || cl.stats[STAT_ZOOM] == 2)) {
+			Xziel_SetAttackRef(true);
+			xziel_adsfire_attack_engaged = true;
+		}
+	}
+
+	if (xziel_attack_refs <= 0) {
+		if (xziel_attack_command_down) {
+			Cbuf_AddText("-attack\n");
+			xziel_attack_command_down = false;
+			changed = true;
+		}
+		if (changed)
+			Cbuf_Execute();
+		return;
+	}
+
+	if (!Xziel_IsAutoTapPistol())
+		return;
+
+	/* Semi-auto pistols are held like COD Mobile but translated to bounded
+	   native trigger taps. The actual NZ:P fire_delay still limits ROF. */
+	if (xziel_attack_command_down && now >= xziel_attack_release_ms) {
+		Cbuf_AddText("-attack\n");
+		xziel_attack_command_down = false;
+		changed = true;
+	}
+	if (!xziel_attack_command_down && now >= xziel_attack_next_ms) {
+		Cbuf_AddText("+attack\n");
+		xziel_attack_command_down = true;
+		xziel_attack_release_ms = now + 42;
+		xziel_attack_next_ms =
+			now + (Uint32)fmaxf(120.0f, xziel_mobile_autofire_ms.value);
+		changed = true;
+	}
+	if (changed)
+		Cbuf_Execute();
+}'''
+text = xziel_replace_c_function(text, "static void Xziel_UpdateMobileFire(void)", update_fire_func)
+
+action_down_func = r'''static void Xziel_ActionDown(xziel_touch_role_t role)
+{
+	switch (role) {
+	case XZ_TOUCH_FIRE:
+		xziel_mobile_fire_pressed = true;
+		Xziel_StopSprintForAction();
+		Xziel_SetAttackRef(true);
+		break;
+
+	case XZ_TOUCH_ADSFIRE:
+		xziel_mobile_adsfire_pressed = true;
+		xziel_adsfire_cancelled = false;
+		xziel_adsfire_attack_engaged = false;
+		xziel_adsfire_release_requested = false;
+		xziel_adsfire_release_pending = Xziel_AdsFireReleaseWeapon();
+		xziel_adsfire_temp_aim = false;
+
+		Xziel_StopSprintForAction();
+
+		/* Dual/no-ADS weapons must never wait for a zoom state that cannot
+		   exist. Everything else enters ADS immediately, and UpdateMobileFire
+		   starts standard weapons as soon as native ADS is established. */
+		if (Xziel_WeaponDoesNotAdsMobile() || Xziel_IsDualWeaponMobile()) {
+			if (!xziel_adsfire_release_pending) {
+				Xziel_SetAttackRef(true);
+				xziel_adsfire_attack_engaged = true;
+			}
+		} else {
+			if (!xziel_mobile_ads_latched) {
+				Xziel_QueueHold("+aim\n", "-aim\n", &xziel_aim_refs, true);
+				xziel_adsfire_temp_aim = true;
+				Cbuf_Execute();
+			}
+			if (!xziel_adsfire_release_pending &&
+				(cl.stats[STAT_ZOOM] == 1 || cl.stats[STAT_ZOOM] == 2)) {
+				Xziel_SetAttackRef(true);
+				xziel_adsfire_attack_engaged = true;
+			}
+		}
+		break;
+
+	case XZ_TOUCH_ADS:
+		xziel_mobile_ads_pressed = true;
+		xziel_mobile_restore_ads_after_reload = false;
+		xziel_mobile_reload_animation_seen = false;
+		Xziel_StopSprintForAction();
+		if (xziel_mobile_ads_toggle.value >= 0.5f) {
+			xziel_mobile_ads_latched = !xziel_mobile_ads_latched;
+			Cbuf_AddText("impulse 26\n");
+		} else {
+			xziel_mobile_ads_latched = false;
+			Xziel_QueueHold("+aim\n", "-aim\n", &xziel_aim_refs, true);
+		}
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_RELOAD:
+		xziel_mobile_reload_pressed = true;
+		xziel_mobile_restore_ads_after_reload =
+			(xziel_mobile_ads_toggle.value >= 0.5f && xziel_mobile_ads_latched);
+		xziel_mobile_reload_animation_seen = false;
+		xziel_mobile_reload_start_frame = cl.stats[STAT_WEAPONFRAME];
+		Cbuf_AddText("+reload\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_USE:
+		xziel_mobile_use_pressed = true;
+		if (!xziel_auto_rebuild_use_down) {
+			Cbuf_AddText("+use\n");
+			Cbuf_Execute();
+		}
+		break;
+
+	case XZ_TOUCH_JUMP:
+		xziel_mobile_jump_pressed = true;
+		Cbuf_AddText("+jump\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_KNIFE:
+		xziel_mobile_knife_pressed = true;
+		Xziel_StopSprintForAction();
+		Cbuf_AddText("+knife\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_SWITCH:
+		xziel_mobile_switch_pressed = true;
+		if (xziel_adsfire_release_pending || xziel_adsfire_release_requested)
+			Xziel_CancelAdsFireForSprint();
+		Cbuf_AddText("+switch\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_PAUSE:
+		Menu_Pause_Set();
+		break;
+
+	default:
+		break;
+	}
+}'''
+text = xziel_replace_c_function(text, "static void Xziel_ActionDown(xziel_touch_role_t role)", action_down_func)
+
+action_up_func = r'''static void Xziel_ActionUp(xziel_touch_role_t role)
+{
+	switch (role) {
+	case XZ_TOUCH_FIRE:
+		xziel_mobile_fire_pressed = false;
+		Xziel_SetAttackRef(false);
+		break;
+
+	case XZ_TOUCH_ADSFIRE:
+		xziel_mobile_adsfire_pressed = false;
+
+		if (xziel_adsfire_release_pending && !xziel_adsfire_cancelled) {
+			/* Release is the trigger edge for bolt-action rifles and the
+			   single-shot shotguns. If ADS has not arrived yet, keep the
+			   temporary aim down for the minimum additional frame and let the
+			   updater fire immediately when the native zoom state appears. */
+			xziel_adsfire_release_requested = true;
+			if (cl.stats[STAT_ZOOM] == 1 || cl.stats[STAT_ZOOM] == 2 ||
+				xziel_mobile_ads_latched) {
+				Xziel_PulseAttackNow();
+				xziel_adsfire_release_pending = false;
+				xziel_adsfire_release_requested = false;
+				Xziel_FinishTemporaryAdsFireAim();
+			}
+		} else {
+			if (xziel_adsfire_attack_engaged) {
+				Xziel_SetAttackRef(false);
+				xziel_adsfire_attack_engaged = false;
+			}
+			Xziel_FinishTemporaryAdsFireAim();
+			xziel_adsfire_release_pending = false;
+			xziel_adsfire_release_requested = false;
+		}
+		xziel_adsfire_cancelled = false;
+		break;
+
+	case XZ_TOUCH_ADS:
+		xziel_mobile_ads_pressed = false;
+		if (xziel_mobile_ads_toggle.value < 0.5f) {
+			Xziel_QueueHold("+aim\n", "-aim\n", &xziel_aim_refs, false);
+			Cbuf_Execute();
+		}
+		break;
+
+	case XZ_TOUCH_RELOAD:
+		xziel_mobile_reload_pressed = false;
+		Cbuf_AddText("-reload\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_USE:
+		xziel_mobile_use_pressed = false;
+		if (!xziel_auto_rebuild_use_down) {
+			Cbuf_AddText("-use\n");
+			Cbuf_Execute();
+		}
+		break;
+
+	case XZ_TOUCH_JUMP:
+		xziel_mobile_jump_pressed = false;
+		Cbuf_AddText("-jump\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_KNIFE:
+		xziel_mobile_knife_pressed = false;
+		Cbuf_AddText("-knife\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_SWITCH:
+		xziel_mobile_switch_pressed = false;
+		Cbuf_AddText("-switch\n");
+		Cbuf_Execute();
+		break;
+
+	default:
+		break;
+	}
+}'''
+text = xziel_replace_c_function(text, "static void Xziel_ActionUp(xziel_touch_role_t role)", action_up_func)
+
+# Exact native melee distance: WepDef_GetWeaponMeleeRange() is 88 for normal
+# weapons and 96 for Ballistic Knife / Krauss. Match the same short forward
+# trace and recognize the limb classnames the native melee code can hit.
+auto_knife_func = r'''static void Xziel_UpdateAutoKnife(void)
+{
+	qboolean near_target = false;
+	Uint32 now = SDL_GetTicks();
+
+	if (key_dest == key_game &&
+		cl.stats[STAT_HEALTH] > 0 &&
+		sv.active && sv_player && cls.signon == SIGNONS) {
+		vec3_t start, end, forward;
+		trace_t tr;
+		const char *classname = "";
+		float range =
+			(cl.stats[STAT_ACTIVEWEAPON] == W_BK ||
+			 cl.stats[STAT_ACTIVEWEAPON] == W_KRAUS) ? 96.0f : 88.0f;
+
+		VectorAdd(sv_player->v.origin, sv_player->v.view_ofs, start);
+		AngleVectors(cl.viewangles, forward, NULLVEC, NULLVEC);
+		VectorMA(start, range, forward, end);
+		tr = SV_Move(start, vec3_origin, vec3_origin, end, MOVE_NORMAL, sv_player);
+
+		if (tr.fraction < 1.0f && tr.ent != NULL)
+			classname = PR_GetString(tr.ent->v.classname);
+
+		near_target =
+			!strcmp(classname, "ai_zombie") ||
+			!strcmp(classname, "ai_zombie_head") ||
+			!strcmp(classname, "ai_zombie_larm") ||
+			!strcmp(classname, "ai_zombie_rarm") ||
+			!strcmp(classname, "ai_dog");
+	}
+
+	xziel_mobile_knife_target_near = near_target;
+
+	if (xziel_mobile_auto_knife.value >= 0.5f &&
+		near_target &&
+		!xziel_mobile_knife_pressed &&
+		cl.stats[STAT_ZOOM] == 0 &&
+		now >= xziel_mobile_auto_knife_next_ms) {
+		Cbuf_AddText("+knife\n-knife\n");
+		Cbuf_Execute();
+		/* Native knife_delay remains authoritative. This throttle only avoids
+		   flooding input edges while the same target remains in range. */
+		xziel_mobile_auto_knife_next_ms = now + 250;
+	} else if (!near_target) {
+		xziel_mobile_auto_knife_next_ms = now;
+	}
+}'''
+text = xziel_replace_c_function(text, "static void Xziel_UpdateAutoKnife(void)", auto_knife_func)
+
+# Explicit outer sprint-lock zone. Normal full-forward movement remains a walk
+# until the thumb is deliberately dragged into the icon above the stick.
+move_func = r'''static void Xziel_UpdateMove(float x, float y)
+{
+	float raw_dx, raw_dy, dx, dy, len, radius_x, radius_y;
+	float sprint_zone;
+	Uint32 now = SDL_GetTicks();
+
+	radius_x = 0.16f * ((float)vid.height / (float)vid.width);
+	radius_y = 0.16f;
+	raw_dx = (x - xziel_mobile_move_anchor_x) / radius_x;
+	raw_dy = (xziel_mobile_move_anchor_y - y) / radius_y;
+
+	dx = raw_dx;
+	dy = raw_dy;
+	len = sqrtf(dx * dx + dy * dy);
+
+	if (len < 0.10f) {
+		xziel_mobile_move_x = 0.0f;
+		xziel_mobile_move_y = 0.0f;
+		xziel_mobile_sprint_zone_hot = false;
+		if (xziel_mobile_sprint_active || cl.stats[STAT_ZOOM] == 3) {
+			Cbuf_AddText("impulse 24\n");
+			Cbuf_Execute();
+		}
+		xziel_mobile_sprint_active = false;
+		xziel_mobile_sprint_suppressed = false;
+		return;
+	}
+
+	if (len > 1.0f) {
+		dx /= len;
+		dy /= len;
+	}
+
+	xziel_mobile_move_x = dx;
+	xziel_mobile_move_y = dy;
+
+	sprint_zone = xziel_mobile_sprint_zone.value;
+	if (sprint_zone < 1.02f) sprint_zone = 1.02f;
+	if (sprint_zone > 1.35f) sprint_zone = 1.35f;
+
+	xziel_mobile_sprint_zone_hot =
+		raw_dy >= sprint_zone &&
+		fabsf(raw_dx) <= raw_dy * 0.70f;
+
+	if (xziel_mobile_sprint_zone_hot) {
+		if (!xziel_mobile_sprint_suppressed) {
+			if (xziel_adsfire_release_pending ||
+				xziel_adsfire_release_requested ||
+				xziel_adsfire_attack_engaged ||
+				xziel_adsfire_temp_aim ||
+				xziel_mobile_ads_latched)
+				Xziel_CancelAdsFireForSprint();
+
+			/* The native stamina/fire-delay rules can legitimately reject a
+			   sprint request. Retry while the user is explicitly holding the
+			   sprint zone, but never modify native stamina. STAT_ZOOM==3 is
+			   the native confirmed sprint state. */
+			if (cl.stats[STAT_ZOOM] != 3 && now >= xziel_mobile_sprint_retry_ms) {
+				Cbuf_AddText("impulse 23\n");
+				Cbuf_Execute();
+				xziel_mobile_sprint_retry_ms = now + 120;
+			}
+			xziel_mobile_sprint_active = true;
+		}
+	} else {
+		if (xziel_mobile_sprint_active || cl.stats[STAT_ZOOM] == 3) {
+			Cbuf_AddText("impulse 24\n");
+			Cbuf_Execute();
+		}
+		xziel_mobile_sprint_active = false;
+		xziel_mobile_sprint_suppressed = false;
+		xziel_mobile_sprint_retry_ms = 0;
+	}
+}'''
+text = xziel_replace_c_function(text, "static void Xziel_UpdateMove(float x, float y)", move_func)
+
+# Menu touch semantics:
+# - one gesture can never activate a control in a newly-opened child menu;
+# - in Mobile Settings child pages, left of the yellow divider selects a row
+#   only; values/toggles change only on the right side.
+menu_helper = r'''
+static qboolean Xziel_IsMobileSettingsChild(void)
+{
+	return m_state == m_mobileaim ||
+		m_state == m_mobilegyro ||
+		m_state == m_mobilehud ||
+		m_state == m_mobilegameplay;
+}
+
+static int Xziel_MenuRowAtY(int my)
+{
+	int i;
+	for (i = 0; i < MAX_MENU_BUTTONS; ++i) {
+		menu_button_t *button = &current_menu.button[i];
+		if (!button->enabled)
+			break;
+		if (my >= button->y && my < button->y + button->height)
+			return i;
+	}
+	return -1;
+}
+
+static void Xziel_MenuSetCursor(int row)
+{
+	if (row < 0 || row >= MAX_MENU_BUTTONS)
+		return;
+	if (current_menu.cursor != row) {
+		current_menu.cursor = row;
+		Menu_SetSound(MENU_SND_NAVIGATE);
+	}
+}
+'''
+menu_func_anchor = "static void Xziel_MenuFinger(float x, float y, qboolean down, qboolean motion)\n"
+if "static qboolean Xziel_IsMobileSettingsChild(void)" not in text:
+    idx = text.find(menu_func_anchor)
+    if idx < 0:
+        raise SystemExit("Could not find menu finger helper insertion point")
+    text = text[:idx] + menu_helper + "\n" + text[idx:]
+
+menu_finger_func = r'''static void Xziel_MenuFinger(float x, float y, qboolean down, qboolean motion)
+{
+	int mx = (int)(x * (float)vid.width);
+	int my = (int)(y * (float)vid.height);
+	int divider_x = UI_X(150);
+	qboolean slider_handled = false;
+
+	if (Xziel_IsMobileSettingsChild()) {
+		int row = Xziel_MenuRowAtY(my);
+
+		/* Left of the exact yellow MapPanel divider is navigation/selection
+		   only. This prevents touching a label from toggling its value. */
+		if (mx < divider_x) {
+			if (down && row >= 0) {
+				Xziel_MenuSetCursor(row);
+				if (current_menu.button[row].name &&
+					!strcmp(current_menu.button[row].name, "BACK"))
+					Menu_ButtonPress();
+			}
+			return;
+		}
+
+		/* Right panel owns settings. Pick the row by Y even though the stock
+		   menu's text hitbox lives on the left. Sliders drag directly; option
+		   rows activate once on touch-down. */
+		if (down && row >= 0) {
+			Xziel_MenuSetCursor(row);
+			slider_handled = Menu_MouseButton(mx, my, true);
+			if (!slider_handled)
+				Menu_ButtonPress();
+			return;
+		}
+		if (motion) {
+			Menu_MouseMove(mx, my);
+			return;
+		}
+		Menu_MouseButton(mx, my, false);
+		return;
+	}
+
+	Menu_MouseMove(mx, my);
+	if (motion)
+		return;
+
+	if (down) {
+		slider_handled = Menu_MouseButton(mx, my, true);
+		if (!slider_handled)
+			Menu_ButtonPress();
+	} else {
+		Menu_MouseButton(mx, my, false);
+	}
+}'''
+text = xziel_replace_c_function(
+    text,
+    "static void Xziel_MenuFinger(float x, float y, qboolean down, qboolean motion)",
+    menu_finger_func
+)
+
+finger_down_func = r'''static void Xziel_FingerDown(const SDL_TouchFingerEvent *finger)
+{
+	xziel_touch_slot_t *slot;
+	xziel_touch_role_t role;
+
+	IN_SetActiveDevice(IN_DEVICE_KEYBOARD_MOUSE);
+	Menu_SetInputDevice(IN_DEVICE_KEYBOARD_MOUSE);
+
+	if (cl.stats[STAT_HEALTH] <= 0 && key_dest == key_game) {
+		Xziel_ReleaseAllTouches();
+		Menu_ExitMap();
+		return;
+	}
+
+	if (m_state == m_hudedit && (key_dest == key_menu || key_dest == key_menu_pause)) {
+		role = Xziel_HudEditorRole(finger->x, finger->y);
+		if (role != XZ_TOUCH_LOOK) {
+			slot = Xziel_AllocTouch(finger->fingerId);
+			if (!slot) return;
+			slot->role = role;
+			slot->editor_drag = true;
+			slot->last_x = finger->x;
+			slot->last_y = finger->y;
+			Xziel_HudEditorSetPosition(role, finger->x, finger->y);
+			return;
+		}
+	}
+
+	if (key_dest == key_menu || key_dest == key_menu_pause) {
+		xziel_menu_touch_active = true;
+		xziel_menu_touch_finger = finger->fingerId;
+		xziel_menu_touch_state = m_state;
+		Xziel_MenuFinger(finger->x, finger->y, true, false);
+		return;
+	}
+
+	if (key_dest != key_game)
+		return;
+
+	slot = Xziel_AllocTouch(finger->fingerId);
+	if (!slot)
+		return;
+
+	role = Xziel_RoleForPoint(finger->x, finger->y);
+	slot->role = role;
+	slot->last_x = finger->x;
+	slot->last_y = finger->y;
+
+	if (role == XZ_TOUCH_MOVE) {
+		xziel_mobile_move_active = true;
+		xziel_mobile_move_anchor_x = finger->x;
+		xziel_mobile_move_anchor_y = finger->y;
+		Xziel_UpdateMove(finger->x, finger->y);
+	} else if (role != XZ_TOUCH_LOOK) {
+		Xziel_ActionDown(role);
+	}
+}'''
+text = xziel_replace_c_function(text, "static void Xziel_FingerDown(const SDL_TouchFingerEvent *finger)", finger_down_func)
+
+finger_motion_func = r'''static void Xziel_FingerMotion(const SDL_TouchFingerEvent *finger)
+{
+	xziel_touch_slot_t *slot;
+
+	slot = Xziel_FindTouch(finger->fingerId);
+	if (slot && slot->editor_drag) {
+		Xziel_HudEditorSetPosition(slot->role, finger->x, finger->y);
+		slot->last_x = finger->x;
+		slot->last_y = finger->y;
+		return;
+	}
+
+	if (key_dest == key_menu || key_dest == key_menu_pause) {
+		if (!xziel_menu_touch_active ||
+			xziel_menu_touch_finger != finger->fingerId ||
+			xziel_menu_touch_state != m_state)
+			return;
+		Xziel_MenuFinger(finger->x, finger->y, false, true);
+		return;
+	}
+
+	slot = Xziel_FindTouch(finger->fingerId);
+	if (!slot)
+		return;
+
+	if (slot->role == XZ_TOUCH_MOVE) {
+		Xziel_UpdateMove(finger->x, finger->y);
+	} else if (slot->role == XZ_TOUCH_LOOK ||
+		slot->role == XZ_TOUCH_FIRE ||
+		slot->role == XZ_TOUCH_ADSFIRE ||
+		slot->role == XZ_TOUCH_ADS) {
+		float look_scale = xziel_mobile_touch_sensitivity.value;
+		if (cl.stats[STAT_ZOOM] == 1 || cl.stats[STAT_ZOOM] == 2)
+			look_scale *= xziel_mobile_ads_sensitivity.value;
+		mouse_dx += (int)((finger->x - slot->last_x) * (float)vid.width * look_scale);
+		mouse_dy += (int)((finger->y - slot->last_y) * (float)vid.height * look_scale);
+	}
+	slot->last_x = finger->x;
+	slot->last_y = finger->y;
+}'''
+text = xziel_replace_c_function(text, "static void Xziel_FingerMotion(const SDL_TouchFingerEvent *finger)", finger_motion_func)
+
+finger_up_func = r'''static void Xziel_FingerUp(const SDL_TouchFingerEvent *finger)
+{
+	xziel_touch_slot_t *slot;
+
+	slot = Xziel_FindTouch(finger->fingerId);
+	if (slot && slot->editor_drag) {
+		Xziel_HudEditorSetPosition(slot->role, finger->x, finger->y);
+		slot->active = false;
+		return;
+	}
+
+	if (key_dest == key_menu || key_dest == key_menu_pause) {
+		/* If touch-down changed menu state, consume the rest of that gesture.
+		   This is the parent->child accidental selection bug reported on
+		   Android. */
+		if (xziel_menu_touch_active &&
+			xziel_menu_touch_finger == finger->fingerId &&
+			xziel_menu_touch_state == m_state)
+			Xziel_MenuFinger(finger->x, finger->y, false, false);
+		xziel_menu_touch_active = false;
+		xziel_menu_touch_state = -1;
+		return;
+	}
+
+	slot = Xziel_FindTouch(finger->fingerId);
+	if (!slot)
+		return;
+
+	if (slot->role == XZ_TOUCH_MOVE) {
+		xziel_mobile_move_active = false;
+		xziel_mobile_move_x = 0.0f;
+		xziel_mobile_move_y = 0.0f;
+		xziel_mobile_sprint_zone_hot = false;
+		xziel_mobile_sprint_suppressed = false;
+		if (xziel_mobile_sprint_active || cl.stats[STAT_ZOOM] == 3) {
+			Cbuf_AddText("impulse 24\n");
+			Cbuf_Execute();
+		}
+		xziel_mobile_sprint_active = false;
+		xziel_mobile_sprint_retry_ms = 0;
+	} else if (slot->role != XZ_TOUCH_LOOK) {
+		Xziel_ActionUp(slot->role);
+	}
+	slot->active = false;
+}'''
+text = xziel_replace_c_function(text, "static void Xziel_FingerUp(const SDL_TouchFingerEvent *finger)", finger_up_func)
+
+# Full reset must also clear pending release-fire/sprint/menu state.
+release_func = r'''static void Xziel_ReleaseAllTouches(void)
+{
+	int i;
+	for (i = 0; i < XZIEL_MAX_TOUCHES; ++i) {
+		if (!xziel_touches[i].active)
+			continue;
+		if (!xziel_touches[i].editor_drag)
+			Xziel_ActionUp(xziel_touches[i].role);
+		xziel_touches[i].active = false;
+	}
+	xziel_mobile_move_active = false;
+	xziel_mobile_move_x = 0.0f;
+	xziel_mobile_move_y = 0.0f;
+	xziel_mobile_sprint_zone_hot = false;
+	xziel_mobile_sprint_suppressed = false;
+	xziel_mobile_sprint_active = false;
+	xziel_mobile_sprint_retry_ms = 0;
+
+	if (xziel_attack_command_down) {
+		Cbuf_AddText("-attack\n");
+		xziel_attack_command_down = false;
+	}
+	xziel_attack_refs = 0;
+	if (xziel_aim_refs > 0)
+		Cbuf_AddText("-aim\n");
+	xziel_aim_refs = 0;
+
+	xziel_adsfire_attack_engaged = false;
+	xziel_adsfire_release_pending = false;
+	xziel_adsfire_release_requested = false;
+	xziel_adsfire_temp_aim = false;
+	xziel_adsfire_cancelled = false;
+	xziel_mobile_restore_ads_after_reload = false;
+	xziel_mobile_reload_animation_seen = false;
+	xziel_menu_touch_active = false;
+	xziel_menu_touch_state = -1;
+	Cbuf_Execute();
+}'''
+text = xziel_replace_c_function(text, "static void Xziel_ReleaseAllTouches(void)", release_func)
+
+sys_sdl.write_text(text, encoding="utf-8")
+
+# ---- HUD: explicit sprint lock icon ----------------------------------------
+hud = source / "render" / "r_hud.c"
+htext = hud.read_text(encoding="utf-8")
+
+hud_extern_anchor = "extern cvar_t xziel_mobile_knife_range_only;\n"
+hud_externs = """extern qboolean xziel_mobile_sprint_zone_hot;
+extern qboolean xziel_mobile_sprint_active;
+extern cvar_t xziel_mobile_sprint_zone;
+"""
+if "extern qboolean xziel_mobile_sprint_zone_hot;" not in htext:
+    if hud_extern_anchor not in htext:
+        raise SystemExit("Could not find HUD v0.8 extern anchor for sprint icon")
+    htext = htext.replace(hud_extern_anchor, hud_extern_anchor + hud_externs, 1)
+
+hud_func = r'''static void Xziel_MobileHUD_DrawInternal(qboolean editor)
+{
+	int base_x, base_y, knob_x, knob_y, radius, knob_r;
+	int sprint_x, sprint_y, sprint_r;
+	float sprint_zone;
+	const char *sprint_label = "^^";
+	int sprint_tw;
+
+	if (!editor && (key_dest != key_game || cl.stats[STAT_HEALTH] <= 0))
+		return;
+
+	base_x = (int)((xziel_mobile_move_active && !editor ? xziel_mobile_move_anchor_x : xziel_hud_joy_x.value) * vid.width);
+	base_y = (int)((xziel_mobile_move_active && !editor ? xziel_mobile_move_anchor_y : xziel_hud_joy_y.value) * vid.height);
+	radius = (int)(0.095f * vid.height * xziel_mobile_hud_scale.value);
+	knob_r = (int)(0.042f * vid.height * xziel_mobile_hud_scale.value);
+	Xziel_DrawDisc(base_x, base_y, radius, 240, 240, 240, (int)(70 * xziel_mobile_hud_opacity.value));
+	Xziel_DrawDisc(base_x, base_y, radius - (int)(2 * vid.scale), 0, 0, 0, (int)(95 * xziel_mobile_hud_opacity.value));
+	knob_x = base_x + (int)(xziel_mobile_move_x * radius * 0.72f);
+	knob_y = base_y - (int)(xziel_mobile_move_y * radius * 0.72f);
+	Xziel_DrawDisc(knob_x, knob_y, knob_r, 245, 245, 245,
+		(int)((xziel_mobile_move_active ? 150 : 90) * xziel_mobile_hud_opacity.value));
+
+	/* COD-style sprint lock target lives beyond the normal joystick throw.
+	   It is not a separate tap button: drag the movement thumb upward into it. */
+	sprint_zone = xziel_mobile_sprint_zone.value;
+	if (sprint_zone < 1.02f) sprint_zone = 1.02f;
+	if (sprint_zone > 1.35f) sprint_zone = 1.35f;
+	sprint_x = base_x;
+	sprint_y = base_y - (int)(0.16f * vid.height * sprint_zone);
+	sprint_r = (int)(0.030f * vid.height * xziel_mobile_hud_scale.value);
+	if (editor || xziel_mobile_move_active) {
+		qboolean sprint_on = xziel_mobile_sprint_zone_hot || xziel_mobile_sprint_active ||
+			cl.stats[STAT_ZOOM] == 3;
+		Xziel_DrawDisc(sprint_x, sprint_y, sprint_r, 245, 245, 245,
+			(int)((sprint_on ? 145 : 70) * xziel_mobile_hud_opacity.value));
+		Xziel_DrawDisc(sprint_x, sprint_y, sprint_r - (int)(2 * vid.scale),
+			sprint_on ? 95 : 8, sprint_on ? 95 : 8, sprint_on ? 20 : 8,
+			(int)((sprint_on ? 165 : 100) * xziel_mobile_hud_opacity.value));
+		sprint_tw = getTextWidth((char *)sprint_label, vid.scale * 0.70f);
+		Draw_ColoredString(sprint_x - sprint_tw / 2, sprint_y - (int)(3 * vid.scale),
+			(char *)sprint_label, 255, 255, 255, 235, vid.scale * 0.70f);
+	}
+
+	Xziel_DrawTouchButton(xziel_hud_fire_x.value, xziel_hud_fire_y.value, 0.073f, "FIRE", "", xziel_mobile_fire_pressed);
+	Xziel_DrawTouchButton(xziel_hud_adsfire_x.value, xziel_hud_adsfire_y.value, 0.056f, "ADS", "FIRE", xziel_mobile_adsfire_pressed);
+	Xziel_DrawTouchButton(xziel_hud_ads_x.value, xziel_hud_ads_y.value, 0.047f, "ADS", "", xziel_mobile_ads_pressed);
+	Xziel_DrawTouchButton(xziel_hud_reload_x.value, xziel_hud_reload_y.value, 0.044f, "RLD", "", xziel_mobile_reload_pressed);
+	if (editor || xziel_mobile_use_available)
+		Xziel_DrawTouchButton(xziel_hud_use_x.value, xziel_hud_use_y.value, 0.050f, "USE", "", xziel_mobile_use_pressed);
+	Xziel_DrawTouchButton(xziel_hud_pause_x.value, xziel_hud_pause_y.value, 0.036f, "II", "", false);
+	Xziel_DrawTouchButton(xziel_hud_jump_x.value, xziel_hud_jump_y.value, 0.044f, "JUMP", "", xziel_mobile_jump_pressed);
+	if (editor || !xziel_mobile_knife_range_only.value || xziel_mobile_knife_target_near)
+		Xziel_DrawTouchButton(xziel_hud_knife_x.value, xziel_hud_knife_y.value, 0.044f, "KNIFE", "", xziel_mobile_knife_pressed);
+	Xziel_DrawTouchButton(xziel_hud_switch_x.value, xziel_hud_switch_y.value, 0.041f, "SWAP", "", xziel_mobile_switch_pressed);
+}'''
+htext = xziel_replace_c_function(
+    htext,
+    "static void Xziel_MobileHUD_DrawInternal(qboolean editor)",
+    hud_func
+)
+hud.write_text(htext, encoding="utf-8")
+
+# ---- Mobile Gameplay UI -----------------------------------------------------
+controls = source / "menu" / "menu_controls.c"
+mtext = controls.read_text(encoding="utf-8")
+menu_extern_anchor = "extern cvar_t xziel_mobile_auto_knife_range;\n"
+if "extern cvar_t xziel_mobile_sprint_zone;" not in mtext:
+    if menu_extern_anchor not in mtext:
+        raise SystemExit("Could not find Mobile Gameplay extern anchor")
+    mtext = mtext.replace(
+        menu_extern_anchor,
+        menu_extern_anchor + "extern cvar_t xziel_mobile_sprint_zone;\n",
+        1
+    )
+
+gameplay_func = r'''void Menu_MobileGameplay_Draw(void)
+{
+	int idx = 0, row = 1;
+
+	Menu_DrawCustomBackground(true);
+	Menu_DrawTitle("MOBILE - GAMEPLAY", MENU_COLOR_WHITE);
+	Menu_DrawMapPanel();
+
+	xziel_mobile_auto_rebuild_string =
+		xziel_mobile_auto_rebuild.value >= 0.5f ? "ENABLED" : "DISABLED";
+	xziel_mobile_auto_knife_string =
+		xziel_mobile_auto_knife.value >= 0.5f ? "ENABLED" : "DISABLED";
+	xziel_mobile_knife_visibility_string =
+		xziel_mobile_knife_range_only.value >= 0.5f ? "IN RANGE" : "ALWAYS";
+
+	Menu_DrawButton(row++, idx++, "SPRINT LOCK ZONE", "Drag the joystick into the icon above it to request native sprint.", NULL);
+	Menu_DrawOptionSlider(row-1, idx-1, 1.02f, 1.35f, xziel_mobile_sprint_zone, "xziel_mobile_sprint_zone", false, true, 0.01f);
+
+	Menu_DrawButton(row++, idx++, "AUTO REBUILD BARRIERS", "Automatically repair barricades while you remain in range.", Menu_Mobile_ToggleAutoRebuild);
+	Menu_DrawOptionButton(row-1, xziel_mobile_auto_rebuild_string);
+
+	Menu_DrawButton(row++, idx++, "AUTO KNIFE", "Automatically melee only when native NZ:P melee distance can reach the target.", Menu_Mobile_ToggleAutoKnife);
+	Menu_DrawOptionButton(row-1, xziel_mobile_auto_knife_string);
+
+	Menu_DrawButton(row++, idx++, "KNIFE BUTTON", "Show the manual knife button always or only at native melee distance.", Menu_Mobile_ToggleKnifeVisibility);
+	Menu_DrawOptionButton(row-1, xziel_mobile_knife_visibility_string);
+
+	Menu_DrawButton(row++, idx++, "KNIFE RANGE", "Uses native weapon melee range; not an artificial mobile distance.", NULL);
+	Menu_DrawOptionButton(row-1, "NATIVE 88 / 96");
+
+	Menu_DrawButton(-1, idx, "BACK", "Return to Mobile Settings.", Menu_Mobile_Set);
+}'''
+mtext = xziel_replace_c_function(
+    mtext,
+    "void Menu_MobileGameplay_Draw(void)",
+    gameplay_func
+)
+controls.write_text(mtext, encoding="utf-8")
