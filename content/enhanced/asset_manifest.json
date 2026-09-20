@@ -665,6 +665,96 @@
       "requires_attribution": false,
       "status": "candidate",
       "notes": "Free 30-model CC0 GLB selection of everyday interior props; source/license notes included; non-AI packaging."
+    },
+    {
+      "id": "kenney_crosshair_pack",
+      "role": "enhanced_crosshair_library",
+      "source_url": "https://kenney.nl/assets/crosshair-pack",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "200 CC0 crosshairs with outline/glow/vector sources; current 2026 pack includes retina-size variants."
+    },
+    {
+      "id": "kenney_ui_pack",
+      "role": "enhanced_ui_component_library",
+      "source_url": "https://opengameart.org/content/ui-pack",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "430+ CC0 UI sprites plus vector sources, two fonts and six UI sounds; useful raw material for settings/HUD/prompt chrome."
+    },
+    {
+      "id": "kenney_game_icons",
+      "role": "enhanced_ui_icon_library",
+      "source_url": "https://kenney.nl/assets/game-icons",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "105 CC0 vector-backed interface/game icons including settings, multiplayer, power, audio, warning, save and controls."
+    },
+    {
+      "id": "xhunterko_radio_static",
+      "role": "radio_static_audio_candidate",
+      "source_url": "https://opengameart.org/content/static",
+      "author": "xhunterko",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 radio/static noise source for radio props and easter-egg/intercom ambience."
+    },
+    {
+      "id": "pagdev_fireplace_loop",
+      "role": "fire_loop_audio_candidate",
+      "source_url": "https://opengameart.org/content/fireplace-sound-loop",
+      "author": "PagDev",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 crackling/burning fire loop for map fire entities; trim/compress for mobile."
+    },
+    {
+      "id": "bmaczero_electricity_sfx",
+      "role": "electric_sfx_candidate",
+      "source_url": "https://opengameart.org/content/electricity-sound-effects-0",
+      "author": "BMacZero",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 recorded spark and continuous electrical sounds; useful for power switch, perk machine faults, teleporter and energy weapons."
+    },
+    {
+      "id": "bmaczero_mechanical_sfx",
+      "role": "machine_mechanical_sfx_candidate",
+      "source_url": "https://opengameart.org/content/mechanical-sounds",
+      "author": "BMacZero",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 clanks, ratchets, slides, squeaks and mechanical sounds; useful for Mystery Box, perk vending, doors and upgrade machine."
+    },
+    {
+      "id": "ycbr_generator_loop",
+      "role": "generator_hum_audio_candidate",
+      "source_url": "https://opengameart.org/content/generator-loop",
+      "author": "YCbCr",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 low-frequency generator/motor hum. Source page notes the supplied version may need loop-point cleanup."
+    },
+    {
+      "id": "rubberduck_cc0_bangs",
+      "role": "explosion_gunshot_layer_candidate",
+      "source_url": "https://opengameart.org/content/25-cc0-bang-firework-sfx",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "25 recorded CC0 bangs/fireworks/cannon/explosion sounds; useful as transient layers, not necessarily final gunshots."
     }
   ]
 }
