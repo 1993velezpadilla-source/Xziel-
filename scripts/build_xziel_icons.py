@@ -25,6 +25,7 @@ ICONS = {
     "grenade": "3-gear/bomb.svg",
     "pause": "9-media/pause.svg",
     "sprint": "3-gear/shoe.svg",
+    "slide": "8-ui/arrow-down-02.svg",
     "pistol": "3-gear/pistol.svg",
     "weapon": "3-gear/bullet.svg",
     "weapon_wonder": "4-nature/lightning.svg",
