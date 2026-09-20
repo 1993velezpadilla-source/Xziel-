@@ -4,7 +4,11 @@ plugins {
 
 android {
     namespace "com.xziel.engineprototype"
-    compileSdk 37
+    compileSdk {
+        version = release(36) {
+            it.minorApiLevel = 1
+        }
+    }
     ndkVersion "28.2.13676358"
 
     defaultConfig {
@@ -57,8 +61,8 @@ android {
 }
 
 dependencies {
-    implementation "androidx.appcompat:appcompat:1.8.0"
-    implementation "androidx.core:core:1.19.0"
+    implementation "androidx.appcompat:appcompat:1.7.1"
+    implementation "androidx.core:core:1.18.0"
     implementation "androidx.constraintlayout:constraintlayout:2.2.1"
     implementation "androidx.games:games-activity:4.4.2"
 }
