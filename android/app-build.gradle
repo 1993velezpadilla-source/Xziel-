@@ -9,8 +9,8 @@ android {
         applicationId "com.xziel.nzp"
         minSdkVersion 23
         targetSdkVersion 35
-        versionCode 7
-        versionName "0.7-mobile-ads-gyro"
+        versionCode 8
+        versionName "0.8-gyro-autoknife"
 
         externalNativeBuild {
             ndkBuild {
