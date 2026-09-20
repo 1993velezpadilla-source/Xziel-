@@ -4772,3 +4772,15 @@ if proto_block not in text:
     text = text[:idx] + proto_block + text[idx:]
 
 sys_sdl.write_text(text, encoding="utf-8")
+
+
+# ---- v0.9.2 HUD/runtime link visibility ------------------------------------
+sys_sdl = source / "platform" / "sdl" / "sys_sdl.c"
+text = sys_sdl.read_text(encoding="utf-8")
+if "static qboolean xziel_mobile_sprint_active = false;" in text:
+    text = text.replace(
+        "static qboolean xziel_mobile_sprint_active = false;",
+        "qboolean xziel_mobile_sprint_active = false;",
+        1
+    )
+sys_sdl.write_text(text, encoding="utf-8")
