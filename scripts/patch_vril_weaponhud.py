@@ -614,7 +614,7 @@ if "xziel_mobile_unlimited_pistol_string" not in text:
         raise SystemExit("Could not find mobile gameplay string anchor")
     text = text.replace(
         string_anchor,
-        string_anchor + "static char *xziel_mobile_unlimited_pistol_string;\n",
+        string_anchor + "static char *xziel_mobile_unlimited_pistol_string;\nstatic char *xziel_mobile_movement_string;\n",
         1
     )
 
@@ -624,7 +624,13 @@ if "Menu_Mobile_ToggleUnlimitedPistol" not in text:
     if idx < 0:
         raise SystemExit("Could not find mobile toggle insertion point")
     # Insert before existing toggle so no function parsing is needed.
-    toggle = r'''static void Menu_Mobile_ToggleUnlimitedPistol(void)
+    toggle = r'''static void Menu_Mobile_ToggleModernMovement(void)
+{
+    Cvar_SetValue("xziel_modern_movement",
+        Cvar_VariableValue("xziel_modern_movement") >= 0.5f ? 0.0f : 1.0f);
+}
+
+static void Menu_Mobile_ToggleUnlimitedPistol(void)
 {
     Cvar_SetValue("xziel_mobile_unlimited_pistol",
         xziel_mobile_unlimited_pistol.value >= 0.5f ? 0.0f : 1.0f);
@@ -649,6 +655,13 @@ gameplay = r'''void Menu_MobileGameplay_Draw(void)
         xziel_mobile_knife_range_only.value >= 0.5f ? "IN RANGE" : "ALWAYS";
     xziel_mobile_unlimited_pistol_string =
         xziel_mobile_unlimited_pistol.value >= 0.5f ? "ENABLED" : "DISABLED";
+    xziel_mobile_movement_string =
+        Cvar_VariableValue("xziel_modern_movement") >= 0.5f ? "MODERN" : "CLASSIC";
+
+    Menu_DrawButton(row++, idx++, "MOVEMENT MODEL",
+        "Modern: grounded FPS acceleration, braking, air steering and a heavier jump arc. Classic restores legacy Quake movement.",
+        Menu_Mobile_ToggleModernMovement);
+    Menu_DrawOptionButton(row-1, xziel_mobile_movement_string);
 
     Menu_DrawButton(row++, idx++, "SPRINT ACTIVATION HEIGHT",
         "Higher means drag farther above the joystick before native sprint starts.", NULL);
