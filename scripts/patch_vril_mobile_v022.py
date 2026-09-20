@@ -1296,3 +1296,151 @@ if "Xziel_DrawMiniMapV23(editor);" not in mh:
     text = text[:mh0] + mh + text[mh1 if mh1 > 0 else len(text):]
 
 hud.write_text(text, encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# v0.23 menus: Track/Fixed fire and Custom HUD minimap
+# ---------------------------------------------------------------------------
+controls = source / "menu" / "menu_controls.c"
+text = controls.read_text(encoding="utf-8")
+
+menu_ext_anchor = "extern cvar_t xziel_modern_zombies;\n"
+menu_exts = r'''extern cvar_t xziel_mobile_track_fire;
+extern cvar_t xziel_mobile_fire_camera_rotation;
+extern cvar_t xziel_mobile_minimap;
+extern cvar_t xziel_mobile_minimap_range;
+extern cvar_t xziel_hud_minimap_x;
+extern cvar_t xziel_hud_minimap_y;
+extern cvar_t xziel_hud_minimap_scale;
+extern cvar_t xziel_hud_minimap_opacity;
+'''
+if "extern cvar_t xziel_mobile_track_fire;" not in text:
+    text = add_after(text, menu_ext_anchor, menu_exts, "v0.23 menu externs")
+
+helper_anchor = "static void Menu_Mobile_ToggleModernZombiesV22(void)"
+if "Menu_Mobile_ToggleTrackFireV23" not in text:
+    idx = text.find(helper_anchor)
+    if idx < 0:
+        raise SystemExit("Could not find v0.22 menu helper anchor")
+    helpers = r'''static char *xziel_mobile_track_fire_string;
+static char *xziel_mobile_fire_rotation_string;
+
+static void Menu_Mobile_ToggleTrackFireV23(void)
+{
+	Cvar_SetValue("xziel_mobile_track_fire",
+		xziel_mobile_track_fire.value >= 0.5f ? 0.0f : 1.0f);
+}
+
+static void Menu_Mobile_ToggleFireRotationV23(void)
+{
+	Cvar_SetValue("xziel_mobile_fire_camera_rotation",
+		xziel_mobile_fire_camera_rotation.value >= 0.5f ? 0.0f : 1.0f);
+}
+
+'''
+    text = text[:idx] + helpers + text[idx:]
+
+# Add COD-style fire behavior controls without removing the existing ADS
+# Hold/Toggle or sensitivity families.
+aim0 = text.find("void Menu_MobileAim_Draw(void)")
+if aim0 < 0:
+    raise SystemExit("Could not find Mobile Aim menu for v0.23")
+aim1 = text.find("}", text.find("{", aim0))
+depth=0
+for j in range(text.find("{", aim0), len(text)):
+    if text[j] == "{": depth += 1
+    elif text[j] == "}":
+        depth -= 1
+        if depth == 0:
+            aim1 = j+1
+            break
+aim = text[aim0:aim1]
+
+if "xziel_mobile_track_fire_string =" not in aim:
+    assign = '''\txziel_mobile_ads_button_string =
+\t\txziel_mobile_ads_toggle.value >= 0.5f ? "TOGGLE" : "HOLD";
+'''
+    extra_assign = assign + '''\txziel_mobile_track_fire_string =
+\t\txziel_mobile_track_fire.value >= 0.5f ? "TRACK" : "FIXED";
+\txziel_mobile_fire_rotation_string =
+\t\txziel_mobile_fire_camera_rotation.value >= 0.5f ? "ON" : "OFF";
+'''
+    if assign not in aim:
+        raise SystemExit("Could not find ADS button string in Mobile Aim")
+    aim = aim.replace(assign, extra_assign, 1)
+
+ads_option = '''\tMenu_DrawOptionButton(b-1, xziel_mobile_ads_button_string);
+'''
+if '"FIRE BUTTON BEHAVIOR"' not in aim:
+    fire_rows = r'''
+	Menu_DrawButton(b++, i++, "FIRE BUTTON BEHAVIOR",
+		"Track lets the FIRE / ADS+FIRE control follow your thumb inside the button while you aim and shoot. Fixed keeps the icon centered.",
+		Menu_Mobile_ToggleTrackFireV23);
+	Menu_DrawOptionButton(b-1, xziel_mobile_track_fire_string);
+
+	Menu_DrawButton(b++, i++, "FIRE CAMERA ROTATION",
+		"ON lets dragging FIRE / ADS+FIRE rotate the camera while the shot remains held, matching modern mobile FPS controls.",
+		Menu_Mobile_ToggleFireRotationV23);
+	Menu_DrawOptionButton(b-1, xziel_mobile_fire_rotation_string);
+'''
+    if ads_option not in aim:
+        raise SystemExit("Could not find ADS option row in Mobile Aim")
+    aim = aim.replace(ads_option, ads_option + fire_rows, 1)
+text = text[:aim0] + aim + text[aim1:]
+
+# Custom HUD role 17 is the v0.23 minimap. It can be dragged and independently
+# resized/faded exactly like the rest of the touch layout.
+ed0 = text.find("void Menu_HudEdit_Draw(void)")
+if ed0 < 0:
+    raise SystemExit("Could not find Custom HUD menu for minimap")
+brace = text.find("{", ed0); depth=0; ed1=-1
+for j in range(brace, len(text)):
+    if text[j] == "{": depth += 1
+    elif text[j] == "}":
+        depth -= 1
+        if depth == 0:
+            ed1=j+1
+            break
+ed = text[ed0:ed1]
+
+if 'case 17: name="MINIMAP";' not in ed:
+    label_anchor = '\tcase 16: name="CROUCH / SLIDE"; break;\n'
+    if label_anchor not in ed:
+        raise SystemExit("Could not find slide label in Custom HUD")
+    ed = ed.replace(label_anchor,
+        label_anchor + '\tcase 17: name="MINIMAP"; break;\n', 1)
+
+if "case 17: DRAW_STYLE(xziel_hud_minimap_scale" not in ed:
+    style_anchor = "\tcase 16: DRAW_STYLE(xziel_hud_slide_scale, xziel_hud_slide_opacity); break;\n"
+    if style_anchor not in ed:
+        raise SystemExit("Could not find slide style in Custom HUD")
+    ed = ed.replace(style_anchor, style_anchor +
+        "\tcase 17: DRAW_STYLE(xziel_hud_minimap_scale, xziel_hud_minimap_opacity); break;\n", 1)
+
+text = text[:ed0] + ed + text[ed1:]
+
+# Restore minimap defaults together with the rest of the Custom HUD.
+reset0 = text.find("static void Menu_HudEdit_Reset(void)")
+if reset0 < 0:
+    raise SystemExit("Could not find Custom HUD reset")
+brace = text.find("{", reset0); depth=0; reset1=-1
+for j in range(brace, len(text)):
+    if text[j] == "{": depth += 1
+    elif text[j] == "}":
+        depth -= 1
+        if depth == 0:
+            reset1=j+1
+            break
+reset = text[reset0:reset1]
+if '"xziel_hud_minimap_x"' not in reset:
+    reset_anchor = '\tCvar_SetValue("xziel_hud_slide_scale", 1.0f); Cvar_SetValue("xziel_hud_slide_opacity", 0.82f);\n'
+    payload = reset_anchor + \
+        '\tCvar_SetValue("xziel_hud_minimap_x", 0.915f); Cvar_SetValue("xziel_hud_minimap_y", 0.155f);\n' + \
+        '\tCvar_SetValue("xziel_hud_minimap_scale", 1.0f); Cvar_SetValue("xziel_hud_minimap_opacity", 0.88f);\n'
+    if reset_anchor not in reset:
+        raise SystemExit("Could not find slide reset anchor")
+    reset = reset.replace(reset_anchor, payload, 1)
+    text = text[:reset0] + reset + text[reset1:]
+
+controls.write_text(text, encoding="utf-8")
+print("Applied Xziel v0.23 COD-style HUD, Track Fire and live minimap.")
