@@ -16,6 +16,18 @@ git clone --depth 1 --branch SDL2 https://github.com/libsdl-org/SDL_mixer.git "$
 git clone --depth 1 https://github.com/ptitSeb/gl4es.git "$DEPS/gl4es"
 git clone --depth 1 https://github.com/nzp-team/vril-engine.git "$DEPS/vril"
 
+# Raise SDL's Android phone sensor polling target from 60 Hz to 120 Hz.
+# The backend still clamps to the physical sensor's minimum delay, so devices
+# that cannot sustain 120 Hz automatically run at their supported rate.
+python3 - "$DEPS/SDL/src/sensor/android/SDL_androidsensor.c" <<'PY'
+from pathlib import Path
+import sys
+path = Path(sys.argv[1])
+text = path.read_text()
+text = text.replace("delay_us = 1000000 / 60;", "delay_us = 1000000 / 120;")
+path.write_text(text)
+PY
+
 echo "==> Patching Vril for Android GLES2 through GL4ES"
 python3 "$ROOT/scripts/patch_vril_android.py" "$DEPS/vril"
 
