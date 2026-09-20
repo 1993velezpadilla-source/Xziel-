@@ -515,6 +515,156 @@
       "requires_attribution": true,
       "status": "candidate",
       "notes": "Game-ready vintage teddy bear, ~1.5K polygons with 1K PBR textures; good mobile Mystery Box teddy replacement candidate."
+    },
+    {
+      "id": "quaternius_universal_animation_library",
+      "role": "global_humanoid_animation_library",
+      "source_url": "https://quaternius.com/packs/universalanimationlibrary.html",
+      "author": "Quaternius",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "120+ retargetable humanoid animations; locomotion, 8-direction movement, jog/sprint, push, crawl, swimming, sitting, deaths and more. June 2026 update adds root-motion and non-root-motion exports."
+    },
+    {
+      "id": "kenney_weapon_pack",
+      "role": "weapon_and_shell_casing_library",
+      "source_url": "https://opengameart.org/content/weapon-pack",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "30 optimized low-poly weapons plus bullet casings and 2D silhouettes/renders; useful for shell casing models and lightweight weapon fallbacks."
+    },
+    {
+      "id": "lonesomeducky_mk2_grenade",
+      "role": "grenade_model_candidate",
+      "source_url": "https://opengameart.org/node/173481",
+      "author": "LonesomeDucky",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Mk2 grenade with low-poly 2568-tri 1K PBR version and 594-tri PSX 256px version; Blend + GLB."
+    },
+    {
+      "id": "jhan_free3dasylum",
+      "role": "asylum_hospital_environment_library",
+      "source_url": "https://opengameart.org/content/free3dasylum",
+      "author": "Jhan Gutierrez",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Asylum/hospital kit with bed, wall, conduit, electrical, circuit breaker, fuse/fuse box, shelf, mattress and modular corridor; Blend sources, ready for custom texturing."
+    },
+    {
+      "id": "lewie_psx_retro_props_pack",
+      "role": "general_horror_interior_prop_library",
+      "source_url": "https://lewie-kowalski.itch.io/psx-retro-props-pack",
+      "author": "Lewie",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "86 CC0 non-AI horror/interior props: CCTV, alarms, extinguisher, pallets, cabinets, chairs, desks, lamp, tools, fan, bed, shelf, fridge, vending machine, generator, trash container, panel box, first aid box, bathtub, basin, urinals, toilet and more."
+    },
+    {
+      "id": "aredon_lowpoly_reed",
+      "role": "swamp_reed_vegetation_candidate",
+      "source_url": "https://opengameart.org/content/lowpoly-reed",
+      "author": "Aredon",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Free CC0 low-poly reed in FBX/OBJ/MTL; useful for swamp/marsh maps."
+    },
+    {
+      "id": "kenney_3d_nature_pack",
+      "role": "general_nature_vegetation_library",
+      "source_url": "https://opengameart.org/content/3d-nature-pack",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Modular low-poly plants, rocks, trees, bushes and grass; lightweight reusable nature library."
+    },
+    {
+      "id": "skywolf_cc0tree",
+      "role": "mobile_filler_prop_library",
+      "source_url": "https://github.com/SkywolfGameStudios/CC0Tree",
+      "author": "Skywolf Game Studios",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Hand-made, non-generative-AI, CC0 low-poly game asset library focused on lightweight/mobile-friendly props and environment pieces."
+    },
+    {
+      "id": "lukyland_3dll_collection",
+      "role": "misc_small_prop_library",
+      "source_url": "https://luky-land.itch.io/3dll",
+      "author": "LUKY_LAND",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Non-AI CC0 collection with projector, CCTV/security camera, medkit, mechanical/facility doors, locker, crate, bucket, lantern, barrel, pallet, metal shelf, wooden blockade and other tiny lightweight props."
+    },
+    {
+      "id": "3dassets_theatre_stage_backstage",
+      "role": "theater_map_prop_pool_fallback",
+      "source_url": "https://3dassets.dev/packs/theatre-stage-and-backstage",
+      "author": "3DAssets.dev contributors",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "53-piece CC0 theatre/stage/backstage GLB kit, 5.2MB total: stage decking, proscenium, curtains/tabs, fly bars, counterweights, scenery flats, stalls, circle/pit rail, dressing room/wardrobe/props tables. AI-generated; use only after visual/manual review."
+    },
+    {
+      "id": "3dassets_cinema_multiplex_foyer",
+      "role": "cinema_seating_projection_prop_pool_fallback",
+      "source_url": "https://3dassets.dev/packs/cinema-multiplex-and-foyer",
+      "author": "3DAssets.dev contributors",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "43-piece CC0 cinema GLB kit, 5.5MB total: tiered seating rows with flip-up seats, screen, acoustic/exit modules, projection booth, concessions. AI-generated; selectively cherry-pick after visual/manual review."
+    },
+    {
+      "id": "3dassets_abandoned_puppet_theatre",
+      "role": "abandoned_theater_detail_pool_fallback",
+      "source_url": "https://3dassets.dev/packs/abandoned-puppet-theatre-and-prop-vault",
+      "author": "3DAssets.dev contributors",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "51-piece abandoned theatre/prop-vault CC0 kit with stage curtains, proscenium, storage/repair props and theatre shell. AI-generated and relatively detailed; use only selected pieces/LODs after visual review."
+    },
+    {
+      "id": "3dassets_swamp_mangrove",
+      "role": "swamp_environment_pool_fallback",
+      "source_url": "https://3dassets.dev/assets/swamp-and-mangrove-cypress-swamp-7d5e1765-starter-scene",
+      "author": "3DAssets.dev contributors",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 cypress-swamp/mangrove environment source; use only cherry-picked optimized pieces after triangle/AI/source review."
+    },
+    {
+      "id": "dream_search_repeat_medical_pharmacy",
+      "role": "hospital_small_medical_prop_library",
+      "source_url": "https://dream-search-repeat.itch.io/medical-pharpacy-pack",
+      "author": "DREAM_SEARCH_REPEAT",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Free/non-AI medical/pharmacy prop pack with PBR textures and fictional brands; creator explicitly states models/textures are CC0/Public Domain."
+    },
+    {
+      "id": "eclair_everyday_home_desk_props",
+      "role": "general_interior_clutter_library",
+      "source_url": "https://eclair-assets.itch.io/everyday-home-desk-props-glb-pack-30-free-cc0-3d-models",
+      "author": "Eclair Assets / The Base Mesh sources",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Free 30-model CC0 GLB selection of everyday interior props; source/license notes included; non-AI packaging."
     }
   ]
 }
