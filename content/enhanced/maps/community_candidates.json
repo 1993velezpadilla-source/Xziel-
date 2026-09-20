@@ -1,0 +1,220 @@
+{
+  "schema_version": 1,
+  "policy": {
+    "classic_content_untouched": true,
+    "permission_required_before_redistributing_third_party_map": true,
+    "cod_remakes_are_fan_build_only_until_rights_are_clear": true,
+    "prefer_nzp_native_or_editable_source": true
+  },
+  "candidates": [
+    {
+      "id": "nzp_kino_for_realsies",
+      "title": "Kino der Toten (For realsies)",
+      "type": "nzp_native_cod_remake",
+      "source_url": "https://github.com/nzp-team/nzportable/discussions/708",
+      "status": "high_priority_fan_build",
+      "runtime_readiness": "playable_nzp_release",
+      "editable_source": "yes",
+      "known_notes": "Release explicitly says sources are included. Later update reports most spawns/waypoints fixed plus lighting/detail work and source files published.",
+      "enhanced_fit": "very_high"
+    },
+    {
+      "id": "facility_v2",
+      "title": "Facility V2",
+      "type": "nzp_native_original_community_map",
+      "source_url": "https://github.com/nzp-team/nzportable/discussions/1444",
+      "status": "high_priority_editable",
+      "runtime_readiness": "playable_with_known_edge_cases",
+      "editable_source": "yes_map_in_download",
+      "known_notes": "Abandoned research facility. .map included; waypoint, clipping, interact trigger and zone-file fixes documented.",
+      "enhanced_fit": "very_high"
+    },
+    {
+      "id": "simulacra",
+      "title": "Simulacra",
+      "type": "nzp_native_original_community_map",
+      "source_url": "https://github.com/nzp-team/nzportable/discussions/858",
+      "status": "high_priority_editable",
+      "runtime_readiness": "playable_large_map",
+      "editable_source": "yes_project_files",
+      "known_notes": "Simulated American town in a German viral testing facility; project files public; clipping/geometry/zombie stuck spots cleaned in updates.",
+      "enhanced_fit": "very_high"
+    },
+    {
+      "id": "perish",
+      "title": "Perish",
+      "type": "nzp_native_original_community_map",
+      "source_url": "https://github.com/nzp-team/nzportable/discussions/1133",
+      "status": "high_priority_editable",
+      "runtime_readiness": "playable",
+      "editable_source": "yes_jack_project_files",
+      "known_notes": "J.A.C.K project files published; WADs embedded into BSP in update. Strong candidate for complete Enhanced reskin because base map intentionally uses dev textures.",
+      "enhanced_fit": "extreme"
+    },
+    {
+      "id": "isolation",
+      "title": "Isolation",
+      "type": "nzp_native_original_community_map",
+      "source_url": "https://github.com/nzp-team/nzportable/discussions/882",
+      "status": "playable_candidate",
+      "runtime_readiness": "playable",
+      "editable_source": "not_confirmed",
+      "known_notes": "Original community map with teleporter, zapper trap, PaP, easter eggs and corrected special waypoints; tiny ground bumps were removed to avoid zombie stuck spots.",
+      "enhanced_fit": "high"
+    },
+    {
+      "id": "yukon_yard",
+      "title": "Yukon Yard",
+      "type": "nzp_native_original_community_map",
+      "source_url": "https://github.com/nzp-team/nzportable/discussions/1526",
+      "status": "playable_candidate",
+      "runtime_readiness": "playable",
+      "editable_source": "not_confirmed",
+      "known_notes": "Original lumber-yard survival map with perks, PaP, bunker/buyable ending and Ray Gun Mark II availability.",
+      "enhanced_fit": "high"
+    },
+    {
+      "id": "shipment_survival",
+      "title": "Shipment Survival",
+      "type": "nzp_native_cod4_remake",
+      "source_url": "https://github.com/nzp-team/nzportable/discussions/1513",
+      "status": "fan_build_candidate",
+      "runtime_readiness": "playable_nzp_release",
+      "editable_source": "not_confirmed",
+      "known_notes": "Small/tight NZ:P recreation, mystery box + four classic perks. v1.1 fixed glitch spots and added Ray Gun Mark II to box list.",
+      "enhanced_fit": "medium_high"
+    },
+    {
+      "id": "bo2_town",
+      "title": "BO2 Town",
+      "type": "nzp_native_cod_remake",
+      "source_url": "https://github.com/nzp-team/nzportable/discussions/470",
+      "status": "high_priority_fan_build",
+      "runtime_readiness": "playable_pc_psp",
+      "editable_source": "not_confirmed",
+      "known_notes": "PaP, 13 wall buys, dogs, custom skybox, perks and traps. Later download fixed a zombie stuck spot near Quick Revive.",
+      "enhanced_fit": "very_high"
+    },
+    {
+      "id": "bus_depot",
+      "title": "Bus Depot",
+      "type": "nzp_native_cod_remake",
+      "source_url": "https://github.com/nzp-team/nzportable/discussions/1471",
+      "status": "fan_build_candidate",
+      "runtime_readiness": "playable",
+      "editable_source": "not_confirmed",
+      "known_notes": "Stable NZ:P Bus Depot recreation with box locations, perks/power and buyable ending; later update fixed pathfinding and geometry.",
+      "enhanced_fit": "high"
+    },
+    {
+      "id": "der_riese_updated",
+      "title": "Der Riese Updated",
+      "type": "nzp_native_cod_remake",
+      "source_url": "https://github.com/nzp-team/nzportable/discussions/473",
+      "status": "fan_build_candidate_needs_latest_package_audit",
+      "runtime_readiness": "community_release",
+      "editable_source": "not_confirmed",
+      "known_notes": "Original discussion points users to a newer updated release. Must audit latest package before Android integration.",
+      "enhanced_fit": "very_high"
+    },
+    {
+      "id": "das_alte_haus",
+      "title": "Das Alte Haus",
+      "type": "nzp_native_custom_zombies_remake",
+      "source_url": "https://github.com/nzp-team/nzportable/discussions/1440",
+      "status": "fan_build_candidate",
+      "runtime_readiness": "playable",
+      "editable_source": "not_confirmed",
+      "known_notes": "Remake of a WaW custom-zombies map; includes Kino-style PaP, core perks, dog rounds, ambience and spawn zones.",
+      "enhanced_fit": "high"
+    },
+    {
+      "id": "no_mans_land",
+      "title": "No Man's Land",
+      "type": "nzp_native_cod_remake_partial",
+      "source_url": "https://github.com/nzp-team/nzportable/discussions/1450",
+      "status": "fan_build_candidate",
+      "runtime_readiness": "playable",
+      "editable_source": "not_confirmed",
+      "known_notes": "Based on Moon spawn; staged zombie spawns, teleporter/shop, teddies and buyable ending.",
+      "enhanced_fit": "high"
+    },
+    {
+      "id": "nuketown_b03_clixmods",
+      "title": "Nuketown Zombies [Mod-Friendly] (BO3)",
+      "type": "external_cod_zombies_reference",
+      "source_url": "https://github.com/clixmods/zm_nuked",
+      "status": "reference_scripts_only",
+      "runtime_readiness": "not_nzp",
+      "editable_source": "scripts_only_no_geometry",
+      "known_notes": "Public script repository for a modern BO3 Nuketown Zombies map. Geometry/Workshop files are not included.",
+      "enhanced_fit": "reference_only"
+    },
+    {
+      "id": "nuketown_source_vmf_light",
+      "title": "Nuketown Light Edition (Source/TTT)",
+      "type": "external_editable_brush_map_reference",
+      "source_url": "https://steamcommunity.com/sharedfiles/filedetails/?id=1252683895",
+      "status": "technical_conversion_candidate_permission_audit_required",
+      "runtime_readiness": "not_nzp",
+      "editable_source": "yes_vmf",
+      "known_notes": "Author publicly posted a VMF mapfile. Brush geometry is technically more convertible than a mesh/BSP, but rights/texture provenance and permission must be audited before bundling.",
+      "enhanced_fit": "technical_reference"
+    },
+    {
+      "id": "nuketown_gmod_nzombies",
+      "title": "Nuketown for GMod/nZombies",
+      "type": "external_collision_nav_reference",
+      "source_url": "https://steamcommunity.com/sharedfiles/filedetails/?id=2157868169",
+      "status": "reference_only_asset_rip_risk",
+      "runtime_readiness": "collision_navmesh_nzombies_in_gmod",
+      "editable_source": "not_confirmed",
+      "known_notes": "Community Nuketown map/config with navmesh/nZombies ecosystem support. Uses ported COD props, so do not import those assets into Enhanced.",
+      "enhanced_fit": "nav_layout_reference_only"
+    },
+    {
+      "id": "stairway_to_heaven",
+      "title": "Stairway to Heaven",
+      "type": "nzp_native_original_community_map",
+      "source_url": "https://github.com/nzp-team/nzportable/discussions/1364",
+      "status": "high_priority_editable",
+      "runtime_readiness": "playable_nzp_release",
+      "editable_source": "yes_jack_project_files",
+      "known_notes": "2026 MICRO MAP MADNESS release. Author publishes J.A.C.K Project Files. Collision exploit near archways was fixed after release; zones were implemented with community help.",
+      "enhanced_fit": "very_high"
+    },
+    {
+      "id": "one_window_nzp",
+      "title": "One Window In NZP",
+      "type": "nzp_native_original_community_map",
+      "source_url": "https://github.com/nzp-team/nzportable/discussions/997",
+      "status": "playable_small_map_candidate",
+      "runtime_readiness": "playable_with_known_glitch_spots",
+      "editable_source": "created_in_trenchbroom_source_not_confirmed",
+      "known_notes": "Small one-window survival map with wall gun, eight perks, PaP and Mystery Box. Useful as a tiny performance/AI stress arena after collision cleanup.",
+      "enhanced_fit": "medium_high"
+    },
+    {
+      "id": "bcdeshig_beta_map_archive",
+      "title": "BCDeshiG Beta Map Archive",
+      "type": "nzp_legacy_map_archive",
+      "source_url": "https://github.com/nzp-team/nzportable/discussions/158",
+      "status": "legacy_mining_pool",
+      "runtime_readiness": "mixed_beta_maps",
+      "editable_source": "some_original_map_packs_include_mapper_sources",
+      "known_notes": "Preservation repack of many legacy NZ:P maps. Repack omits mapper source files, but original archived map packs are linked and reportedly include released mapper source files/other assets. Audit each map individually.",
+      "enhanced_fit": "research_pool"
+    },
+    {
+      "id": "nacht_plus",
+      "title": "Nacht der Untoten Plus / Nacht 2.0",
+      "type": "nzp_native_stock_map_extension",
+      "source_url": "https://github.com/nzp-team/nzportable/discussions/688",
+      "status": "high_priority_system_test_variant",
+      "runtime_readiness": "playable_nzp_release",
+      "editable_source": "built_on_stock_ndu",
+      "known_notes": "Built on standard Nacht and adds the four core perks plus Pack-a-Punch/teddy unlock flow. Useful as a compact Enhanced testbed for perk-machine, drink and PaP presentation while keeping stock Nacht as the fidelity benchmark.",
+      "enhanced_fit": "extreme_for_machine_fx_testing"
+    }
+  ]
+}

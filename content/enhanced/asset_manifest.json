@@ -1,0 +1,1140 @@
+{
+  "schema_version": 1,
+  "policy": {
+    "commercial_use_required": true,
+    "unknown_license_allowed": false,
+    "ripped_or_extracted_assets_allowed": false
+  },
+  "assets": [
+    {
+      "id": "zombie_soldier_peter_d",
+      "role": "zombie_primary_candidate",
+      "source_url": "https://sketchfab.com/3d-models/zombie-soldier-176e930e63d144cc8f615b8dd3a8c74f",
+      "author": "Peter_D",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "Mobile-oriented zombie soldier; ~7.2k triangles; rigged; normal/roughness maps; Mixamo-compatible."
+    },
+    {
+      "id": "male_city_zombie_rikindle3d",
+      "role": "zombie_fallback_candidate",
+      "source_url": "https://opengameart.org/node/111870",
+      "author": "Rikindle3D",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Rigged and textured with walk, attack, death, idle, hit reaction, run and scream animations."
+    },
+    {
+      "id": "quaternius_zombie_apocalypse_kit",
+      "role": "dog_and_prop_candidate",
+      "source_url": "https://quaternius.com/packs/zombieapocalypsekit.html",
+      "author": "Quaternius",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "60 models; animated characters/enemies; two dogs; environment and vehicle props."
+    },
+    {
+      "id": "poly_haven_library",
+      "role": "environment_material_source",
+      "source_url": "https://polyhaven.com/",
+      "author": "Poly Haven contributors",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Use for concrete, metal, wood, brick, debris and other environment materials/models."
+    },
+    {
+      "id": "kenney_splat_pack",
+      "role": "blood_and_grime_decal_candidate",
+      "source_url": "https://kenney-assets.itch.io/splat-pack",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "30+ splat sprites plus vector source files."
+    },
+    {
+      "id": "saturn91_zomby_sfx_pack",
+      "role": "zombie_voice_candidate",
+      "source_url": "https://opengameart.org/content/zomby-sfx-pack",
+      "author": "saturn91",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Original recorded zombie calls; suitable for pitch randomization."
+    },
+    {
+      "id": "techiew_ambient_horror",
+      "role": "ambient_audio_candidate",
+      "source_url": "https://opengameart.org/content/ambient-horror",
+      "author": "techiew",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 horror ambience source."
+    },
+    {
+      "id": "studio_new_punch_free_shirtless_zombie",
+      "role": "zombie_dismemberment_primary_candidate",
+      "source_url": "https://assetstore.unity.com/packages/3d/characters/humanoids/free-shirtless-zombie-276762",
+      "author": "Studio New Punch",
+      "license": "UNITY-ASSET-STORE-EULA",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Free humanoid-rigged zombie with detachable body-parts variant, glowing eyes, facial blendshapes and 3 LOD levels (~7100/~3500/~2000 verts); ideal first Enhanced dismemberment test."
+    },
+    {
+      "id": "hotstrike_free_stylized_dark_fantasy_zombie",
+      "role": "zombie_visual_variant_candidate",
+      "source_url": "https://hotstrikestudio.itch.io/free-stylized-dark-fantasy-zombie",
+      "author": "Hotstrike Studio",
+      "license": "CUSTOM-COMMERCIAL-FINISHED-PROJECT",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Free, fully rigged game-ready humanoid zombie; ~8.3k tris, PBR, Mixamo/ActorCore/Cascadeur compatible; commercial finished-project use permitted."
+    },
+    {
+      "id": "aiden_studios_zombie_rigged_animated",
+      "role": "zombie_visual_variant_candidate",
+      "source_url": "https://sketchfab.com/3d-models/zombie-rigged-animated-131688807ad444609ed9b2ed572dc4aa",
+      "author": "Aiden Studios",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "~19.5k tris; rigged and already includes idle, walk and attack plus facial/body blendshapes."
+    },
+    {
+      "id": "pachedore_zombie_female",
+      "role": "zombie_visual_variant_candidate",
+      "source_url": "https://sketchfab.com/3d-models/zombie-female-3d-24aa8315c0ef4fbeb1c0dd183322d11a",
+      "author": "Pachedore3D",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "Female zombie visual variant; ~19.1k tris. Candidate for mobile LOD/reduction pass."
+    },
+    {
+      "id": "rokoko_free_zombie_mocap_12",
+      "role": "zombie_animation_library_candidate",
+      "source_url": "https://www.rokoko.com/resources/rokoko-mocap-12-free-zombie-animations",
+      "author": "Rokoko",
+      "license": "ROKOKO-FREE-COMMERCIAL",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "12 free zombie/halloween full-body mocap clips; FBX, Mixamo skeleton, 30 FPS; commercial game use permitted."
+    },
+    {
+      "id": "adobe_mixamo_animation_library",
+      "role": "humanoid_animation_library_candidate",
+      "source_url": "https://www.mixamo.com/",
+      "author": "Adobe Mixamo",
+      "license": "ADOBE-MIXAMO-ROYALTY-FREE",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Royalty-free characters and animations for commercial video games; useful for zombie walk/crawl/death/bite retargeting to compatible humanoid rigs."
+    },
+    {
+      "id": "cc0_industrial_props_pack_1",
+      "role": "environment_prop_library_candidate",
+      "source_url": "https://3dmodelscc0.itch.io/free-cc0-industrial-3d-models",
+      "author": "3dmodelscc0",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "12 CC0 industrial props including explosive barrel, gas can, gas cylinder, cable drum, trolley, work lights and water barrel."
+    },
+    {
+      "id": "cc0_industrial_props_pack_2",
+      "role": "environment_prop_library_candidate",
+      "source_url": "https://3dmodelscc0.itch.io/free-cc0-3d-industrial-props-pack-2",
+      "author": "3dmodelscc0",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "9 CC0 industrial props including generator, locker, fire extinguisher, pallet and cement mixer."
+    },
+    {
+      "id": "unity_labs_cc0_vfx_flipbooks",
+      "role": "explosion_smoke_vfx_candidate",
+      "source_url": "https://unity.com/blog/engine-platform/free-vfx-image-sequences-flipbooks",
+      "author": "Unity Labs",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 fire/smoke/explosion image sequences and flipbooks suitable for replacing low-resolution sprite effects."
+    },
+    {
+      "id": "quaternius_ultimate_guns",
+      "role": "weapon_model_library_candidate",
+      "source_url": "https://quaternius.com/packs/ultimategun.html",
+      "author": "Quaternius",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "40 gun models in FBX/OBJ/Blend, CC0 and commercial-use friendly; useful as low-cost replacement/prototype weapon library."
+    },
+    {
+      "id": "polyhaven_barrel_03",
+      "role": "nacht_explosive_barrel_visual_candidate",
+      "source_url": "https://polyhaven.com/a/barrel_03",
+      "author": "Serhii Khromov / Poly Haven",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "~1K-triangle weathered steel barrel with PBR maps; strong fit for Nacht explosive barrel replacement."
+    },
+    {
+      "id": "polyhaven_wooden_crate_01",
+      "role": "nacht_crate_prop_candidate",
+      "source_url": "https://polyhaven.com/a/wooden_crate_01",
+      "author": "James Ray Cock / Poly Haven",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Weathered wooden crate with PBR maps; ~7K tris; use LOD/reduced mesh on mobile."
+    },
+    {
+      "id": "polyhaven_trashbag",
+      "role": "nacht_ground_clutter_candidate",
+      "source_url": "https://polyhaven.com/a/trashbag",
+      "author": "Benny Weimer / Poly Haven",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "~4K-triangle worn trash bag; suitable for sparse floor clutter on High/Max."
+    },
+    {
+      "id": "polyhaven_concrete_debris",
+      "role": "nacht_floor_material_candidate",
+      "source_url": "https://polyhaven.com/a/concrete_debris",
+      "author": "Amal Kumar / Poly Haven",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Damaged concrete/rubble PBR material for bunker floors and broken areas."
+    },
+    {
+      "id": "polyhaven_rusty_corrugated_iron",
+      "role": "nacht_metal_material_candidate",
+      "source_url": "https://polyhaven.com/a/rusty_corrugated_iron",
+      "author": "Charlotte Baglioni / Poly Haven",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Weathered/rusted corrugated metal PBR material."
+    },
+    {
+      "id": "polyhaven_old_wood_floor",
+      "role": "nacht_wood_material_candidate",
+      "source_url": "https://polyhaven.com/a/old_wood_floor",
+      "author": "Guillaume Monsergent / Poly Haven",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Old weathered planks with diffuse/normal/roughness/displacement maps; useful for boards and floors."
+    },
+    {
+      "id": "polyhaven_gravel_stones",
+      "role": "nacht_pebbles_ground_candidate",
+      "source_url": "https://polyhaven.com/a/gravel_stones",
+      "author": "Amal Kumar / Poly Haven",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "PBR gravel/pebbles ground material for small-scale surface detail without spawning hundreds of meshes."
+    },
+    {
+      "id": "nailfighter_low_poly_bunker_modular",
+      "role": "nacht_bunker_prop_candidate",
+      "source_url": "https://nailfighter.itch.io/low-poly-bunker-modular-assets",
+      "author": "Nailfighter",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Commercial CC0 bunker kit with low-poly walls, broken tiles, barrel, crates, chair, torch and door; good mobile geometry donor."
+    },
+    {
+      "id": "brackeys_vfx_bundle",
+      "role": "nacht_general_vfx_candidate",
+      "source_url": "https://brackeysgames.itch.io/brackeys-vfx-bundle",
+      "author": "Brackeys / source creators listed by pack",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 particle textures, flipbooks and spritesheets for smoke/fire/sparks/impacts; engine-neutral source for Enhanced effects."
+    },
+    {
+      "id": "kenney_particle_pack",
+      "role": "nacht_particle_texture_candidate",
+      "source_url": "https://opengameart.org/content/particle-pack-80-sprites",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "80 CC0 particle/light-cookie textures with fire, smoke, sparks and electricity."
+    },
+    {
+      "id": "opengameart_energy_sprite_sheets",
+      "role": "ray_energy_vfx_candidate",
+      "source_url": "https://opengameart.org/content/energy-sprite-sheets",
+      "author": "fzeeshan",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Transparent energy sprite sheets for projectile glow, trail and impact experiments."
+    },
+    {
+      "id": "opengameart_plasma_electric_animations",
+      "role": "ray_plasma_vfx_candidate",
+      "source_url": "https://opengameart.org/content/plasma-electric-effect-animations",
+      "author": "Reactorcore",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 plasma/electric/vortex animation sheets; candidate for Ray Gun projectile/splash stylization."
+    },
+    {
+      "id": "barlow_condensed",
+      "role": "enhanced_hud_font_candidate",
+      "source_url": "https://github.com/jpt/barlow",
+      "author": "The Barlow Project Authors / Jeremy Tribby",
+      "license": "OFL-1.1",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "Readable condensed OFL display/UI family; candidate for Enhanced points, prompts and menus after bitmap-atlas conversion."
+    },
+    {
+      "id": "valentin_retro_vending_machine",
+      "role": "perk_machine_base_candidate",
+      "source_url": "https://valentin-laffitte.itch.io/retro-vending-machine-3d-asset",
+      "author": "Valentin Laffitte",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Free game-ready low-poly vending machine in FBX and GLTF/GLB. Strong mobile-friendly base for original Enhanced perk machines after reskinning."
+    },
+    {
+      "id": "ogilvie_openable_vending_machine",
+      "role": "perk_machine_animated_base_candidate",
+      "source_url": "https://egnjonathan.itch.io/vending-machine-model",
+      "author": "Jonathan Dexter Ogilvie",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "Vending machine with an openable door and modeled interior; useful as a reference/base for dispense/open animations."
+    },
+    {
+      "id": "chilly_retro_plumbing_wiring_machinery",
+      "role": "power_room_and_industrial_systems_candidate",
+      "source_url": "https://chilly-durango.itch.io/3d-retro-plumbing-wiring",
+      "author": "chilly_durango",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Circuit breaker, fuse, wires, switches, turbine, pump, pipes, valve, generator and transformer; ideal for power-switch rooms and industrial map dressing."
+    },
+    {
+      "id": "drillimpact_psx_first_person_arms",
+      "role": "enhanced_viewmodel_arms_candidate",
+      "source_url": "https://drillimpact.itch.io/psx-first-person-arms-free",
+      "author": "Drillimpact",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Rigged first-person arms with grab, knife, jab, push and idle animations; FBX/GLB/Blend, multiple hand textures."
+    },
+    {
+      "id": "wriks_wrad_arms",
+      "role": "enhanced_viewmodel_arms_fallback_candidate",
+      "source_url": "https://wriks.itch.io/wrad-arms",
+      "author": "wriks",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Fully rigged IK FPS arms, ~1200 triangles, two skin colors, 512 textures, GLB/FBX/OBJ."
+    },
+    {
+      "id": "laleksic_low_poly_radio",
+      "role": "radio_prop_candidate",
+      "source_url": "https://aleksicluka.itch.io/low-poly-retro-radio",
+      "author": "Luka Aleksic",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "95-triangle retro radio with 1024 and 128 texture variants; excellent mobile prop replacement."
+    },
+    {
+      "id": "paul_wortmann_dungeon_gibs",
+      "role": "gore_3d_gibs_candidate",
+      "source_url": "https://opengameart.org/content/3d-dungeon-debris-gibs",
+      "author": "Paul Wortmann",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 3D gore/debris set containing body parts, hand, arm, leg, heart/lungs and corpse pieces; useful for dismemberment/explosive deaths."
+    },
+    {
+      "id": "tobiasm_blood_splat",
+      "role": "blood_hit_vfx_candidate",
+      "source_url": "https://opengameart.org/content/blood-splat",
+      "author": "TobiasM",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Transparent CC0 blood-splatter sprite for hits/decals."
+    },
+    {
+      "id": "musdasch_bullet_decal",
+      "role": "bullet_impact_decal_candidate",
+      "source_url": "https://opengameart.org/content/bullet-decal",
+      "author": "musdasch",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "512x512 CC0 bullet-hole decal texture."
+    },
+    {
+      "id": "leftshoe18_muzzle_flash_sheet",
+      "role": "muzzle_flash_candidate",
+      "source_url": "https://opengameart.org/content/muzzle-flash-particle-sheet",
+      "author": "leftshoe18",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 muzzle-flash particle sheet for higher-quality weapon fire presentation."
+    },
+    {
+      "id": "pretty_planets_liquid_assets",
+      "role": "perk_bottle_and_can_candidate",
+      "source_url": "https://pretty-planets.itch.io/liquid-assets-low-poly-drinks-pack",
+      "author": "pretty_planets",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 aluminum can, plastic bottle and glass soda bottle in Blend/FBX; useful for perk drink models and map clutter after original branding."
+    },
+    {
+      "id": "wreaderror_lightning_arcs",
+      "role": "electric_arc_vfx_candidate",
+      "source_url": "https://opengameart.org/content/lightning",
+      "author": "wreaderror",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Eight seamless 2048x512 electric-arc PNGs; useful for power switch, teleporter, perk sparks and wonder-weapon electricity."
+    },
+    {
+      "id": "polyhaven_ammo_box",
+      "role": "ammo_and_military_prop_candidate",
+      "source_url": "https://polyhaven.com/a/ammo_box",
+      "author": "DanKit / Poly Haven",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 rusted/vintage military ammo box with PBR maps; about 4K tris."
+    },
+    {
+      "id": "kutejnikov_pbr_hammer",
+      "role": "carpenter_powerup_model_candidate",
+      "source_url": "https://opengameart.org/content/hammer-4",
+      "author": "Kutejnikov",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 ~1.5K-triangle weathered hammer with 2K PBR maps; strong Carpenter power-up visual candidate."
+    },
+    {
+      "id": "polyhaven_kloppenheim07_puresky",
+      "role": "nacht_night_sky_candidate",
+      "source_url": "https://polyhaven.com/a/kloppenheim_07_puresky",
+      "author": "Greg Zaal / Jarod Guest / Poly Haven",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 overcast night pure-sky HDRI; can be converted to a Vril-compatible cubemap for Enhanced Nacht."
+    },
+    {
+      "id": "owlishmedia_sound_effects_pack",
+      "role": "general_foley_and_ui_audio_candidate",
+      "source_url": "https://opengameart.org/content/sound-effects-pack",
+      "author": "OwlishMedia",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Large CC0 foley pack with ambience, cloth, footsteps, impacts, UI, human, sci-fi, technology and water sounds."
+    },
+    {
+      "id": "fantozzi_footsteps",
+      "role": "surface_footstep_audio_candidate",
+      "source_url": "https://opengameart.org/content/fantozzis-footsteps-grasssand-stone",
+      "author": "Fantozzi / qubodup",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 single-step variations for stone/hard surfaces plus sand/grass; useful for material-aware footsteps."
+    },
+    {
+      "id": "bmaczero_metal_impacts",
+      "role": "metal_impact_audio_candidate",
+      "source_url": "https://opengameart.org/content/metal-impact-sounds",
+      "author": "BMacZero",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 metallic impact/clank/thud set for doors, machines, shells and environment interactions."
+    },
+    {
+      "id": "yethiel_dirty_trashcan",
+      "role": "trash_bin_prop_candidate",
+      "source_url": "https://opengameart.org/content/trashcan",
+      "author": "yethiel",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Dirty 1002-poly trash can with detached lid and diffuse/normal/spec/AO maps; suitable for shootable/explosive clutter."
+    },
+    {
+      "id": "arkore_low_poly_chairs",
+      "role": "chair_prop_candidate",
+      "source_url": "https://arkore.itch.io/low-poly-chair",
+      "author": "Arkore",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Three low-poly chair variations in OBJ/FBX under CC0."
+    },
+    {
+      "id": "renend_low_poly_teddy_bear",
+      "role": "mystery_box_teddy_candidate",
+      "source_url": "https://sketchfab.com/3d-models/low-poly-toy-pack-teddy-bear-rubber-duck-af885d4dd3514cc09ad6bdd446d2888c",
+      "author": "Renend Studio",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "Game-ready vintage teddy bear, ~1.5K polygons with 1K PBR textures; good mobile Mystery Box teddy replacement candidate."
+    },
+    {
+      "id": "quaternius_universal_animation_library",
+      "role": "global_humanoid_animation_library",
+      "source_url": "https://quaternius.com/packs/universalanimationlibrary.html",
+      "author": "Quaternius",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "120+ retargetable humanoid animations; locomotion, 8-direction movement, jog/sprint, push, crawl, swimming, sitting, deaths and more. June 2026 update adds root-motion and non-root-motion exports."
+    },
+    {
+      "id": "kenney_weapon_pack",
+      "role": "weapon_and_shell_casing_library",
+      "source_url": "https://opengameart.org/content/weapon-pack",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "30 optimized low-poly weapons plus bullet casings and 2D silhouettes/renders; useful for shell casing models and lightweight weapon fallbacks."
+    },
+    {
+      "id": "lonesomeducky_mk2_grenade",
+      "role": "grenade_model_candidate",
+      "source_url": "https://opengameart.org/node/173481",
+      "author": "LonesomeDucky",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Mk2 grenade with low-poly 2568-tri 1K PBR version and 594-tri PSX 256px version; Blend + GLB."
+    },
+    {
+      "id": "jhan_free3dasylum",
+      "role": "asylum_hospital_environment_library",
+      "source_url": "https://opengameart.org/content/free3dasylum",
+      "author": "Jhan Gutierrez",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Asylum/hospital kit with bed, wall, conduit, electrical, circuit breaker, fuse/fuse box, shelf, mattress and modular corridor; Blend sources, ready for custom texturing."
+    },
+    {
+      "id": "lewie_psx_retro_props_pack",
+      "role": "general_horror_interior_prop_library",
+      "source_url": "https://lewie-kowalski.itch.io/psx-retro-props-pack",
+      "author": "Lewie",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "86 CC0 non-AI horror/interior props: CCTV, alarms, extinguisher, pallets, cabinets, chairs, desks, lamp, tools, fan, bed, shelf, fridge, vending machine, generator, trash container, panel box, first aid box, bathtub, basin, urinals, toilet and more."
+    },
+    {
+      "id": "aredon_lowpoly_reed",
+      "role": "swamp_reed_vegetation_candidate",
+      "source_url": "https://opengameart.org/content/lowpoly-reed",
+      "author": "Aredon",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Free CC0 low-poly reed in FBX/OBJ/MTL; useful for swamp/marsh maps."
+    },
+    {
+      "id": "kenney_3d_nature_pack",
+      "role": "general_nature_vegetation_library",
+      "source_url": "https://opengameart.org/content/3d-nature-pack",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Modular low-poly plants, rocks, trees, bushes and grass; lightweight reusable nature library."
+    },
+    {
+      "id": "skywolf_cc0tree",
+      "role": "mobile_filler_prop_library",
+      "source_url": "https://github.com/SkywolfGameStudios/CC0Tree",
+      "author": "Skywolf Game Studios",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Hand-made, non-generative-AI, CC0 low-poly game asset library focused on lightweight/mobile-friendly props and environment pieces."
+    },
+    {
+      "id": "lukyland_3dll_collection",
+      "role": "misc_small_prop_library",
+      "source_url": "https://luky-land.itch.io/3dll",
+      "author": "LUKY_LAND",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Non-AI CC0 collection with projector, CCTV/security camera, medkit, mechanical/facility doors, locker, crate, bucket, lantern, barrel, pallet, metal shelf, wooden blockade and other tiny lightweight props."
+    },
+    {
+      "id": "3dassets_theatre_stage_backstage",
+      "role": "theater_map_prop_pool_fallback",
+      "source_url": "https://3dassets.dev/packs/theatre-stage-and-backstage",
+      "author": "3DAssets.dev contributors",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "53-piece CC0 theatre/stage/backstage GLB kit, 5.2MB total: stage decking, proscenium, curtains/tabs, fly bars, counterweights, scenery flats, stalls, circle/pit rail, dressing room/wardrobe/props tables. AI-generated; use only after visual/manual review."
+    },
+    {
+      "id": "3dassets_cinema_multiplex_foyer",
+      "role": "cinema_seating_projection_prop_pool_fallback",
+      "source_url": "https://3dassets.dev/packs/cinema-multiplex-and-foyer",
+      "author": "3DAssets.dev contributors",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "43-piece CC0 cinema GLB kit, 5.5MB total: tiered seating rows with flip-up seats, screen, acoustic/exit modules, projection booth, concessions. AI-generated; selectively cherry-pick after visual/manual review."
+    },
+    {
+      "id": "3dassets_abandoned_puppet_theatre",
+      "role": "abandoned_theater_detail_pool_fallback",
+      "source_url": "https://3dassets.dev/packs/abandoned-puppet-theatre-and-prop-vault",
+      "author": "3DAssets.dev contributors",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "51-piece abandoned theatre/prop-vault CC0 kit with stage curtains, proscenium, storage/repair props and theatre shell. AI-generated and relatively detailed; use only selected pieces/LODs after visual review."
+    },
+    {
+      "id": "3dassets_swamp_mangrove",
+      "role": "swamp_environment_pool_fallback",
+      "source_url": "https://3dassets.dev/assets/swamp-and-mangrove-cypress-swamp-7d5e1765-starter-scene",
+      "author": "3DAssets.dev contributors",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 cypress-swamp/mangrove environment source; use only cherry-picked optimized pieces after triangle/AI/source review."
+    },
+    {
+      "id": "dream_search_repeat_medical_pharmacy",
+      "role": "hospital_small_medical_prop_library",
+      "source_url": "https://dream-search-repeat.itch.io/medical-pharpacy-pack",
+      "author": "DREAM_SEARCH_REPEAT",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Free/non-AI medical/pharmacy prop pack with PBR textures and fictional brands; creator explicitly states models/textures are CC0/Public Domain."
+    },
+    {
+      "id": "eclair_everyday_home_desk_props",
+      "role": "general_interior_clutter_library",
+      "source_url": "https://eclair-assets.itch.io/everyday-home-desk-props-glb-pack-30-free-cc0-3d-models",
+      "author": "Eclair Assets / The Base Mesh sources",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Free 30-model CC0 GLB selection of everyday interior props; source/license notes included; non-AI packaging."
+    },
+    {
+      "id": "kenney_crosshair_pack",
+      "role": "enhanced_crosshair_library",
+      "source_url": "https://kenney.nl/assets/crosshair-pack",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "200 CC0 crosshairs with outline/glow/vector sources; current 2026 pack includes retina-size variants."
+    },
+    {
+      "id": "kenney_ui_pack",
+      "role": "enhanced_ui_component_library",
+      "source_url": "https://opengameart.org/content/ui-pack",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "430+ CC0 UI sprites plus vector sources, two fonts and six UI sounds; useful raw material for settings/HUD/prompt chrome."
+    },
+    {
+      "id": "kenney_game_icons",
+      "role": "enhanced_ui_icon_library",
+      "source_url": "https://kenney.nl/assets/game-icons",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "105 CC0 vector-backed interface/game icons including settings, multiplayer, power, audio, warning, save and controls."
+    },
+    {
+      "id": "xhunterko_radio_static",
+      "role": "radio_static_audio_candidate",
+      "source_url": "https://opengameart.org/content/static",
+      "author": "xhunterko",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 radio/static noise source for radio props and easter-egg/intercom ambience."
+    },
+    {
+      "id": "pagdev_fireplace_loop",
+      "role": "fire_loop_audio_candidate",
+      "source_url": "https://opengameart.org/content/fireplace-sound-loop",
+      "author": "PagDev",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 crackling/burning fire loop for map fire entities; trim/compress for mobile."
+    },
+    {
+      "id": "bmaczero_electricity_sfx",
+      "role": "electric_sfx_candidate",
+      "source_url": "https://opengameart.org/content/electricity-sound-effects-0",
+      "author": "BMacZero",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 recorded spark and continuous electrical sounds; useful for power switch, perk machine faults, teleporter and energy weapons."
+    },
+    {
+      "id": "bmaczero_mechanical_sfx",
+      "role": "machine_mechanical_sfx_candidate",
+      "source_url": "https://opengameart.org/content/mechanical-sounds",
+      "author": "BMacZero",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 clanks, ratchets, slides, squeaks and mechanical sounds; useful for Mystery Box, perk vending, doors and upgrade machine."
+    },
+    {
+      "id": "ycbr_generator_loop",
+      "role": "generator_hum_audio_candidate",
+      "source_url": "https://opengameart.org/content/generator-loop",
+      "author": "YCbCr",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 low-frequency generator/motor hum. Source page notes the supplied version may need loop-point cleanup."
+    },
+    {
+      "id": "rubberduck_cc0_bangs",
+      "role": "explosion_gunshot_layer_candidate",
+      "source_url": "https://opengameart.org/content/25-cc0-bang-firework-sfx",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "25 recorded CC0 bangs/fireworks/cannon/explosion sounds; useful as transient layers, not necessarily final gunshots."
+    },
+    {
+      "id": "kenney_factory_kit",
+      "role": "factory_warehouse_prop_library",
+      "source_url": "https://opengameart.org/content/factory-kit",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "140+ optimized low-poly factory/warehouse objects; CC0, non-AI. Strong reusable pool for industrial maps."
+    },
+    {
+      "id": "tiko479_vending_machines",
+      "role": "perk_machine_visual_variant_library",
+      "source_url": "https://opengameart.org/content/vending-machines-low-poly-style",
+      "author": "tiko479",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Tiny CC0 low-poly vending-machine pack in Blender/FBX; useful for additional perk-machine bases and prototype variants."
+    },
+    {
+      "id": "3dassets_animated_vending_machine",
+      "role": "perk_machine_animation_reference_fallback",
+      "source_url": "https://3dassets.dev/assets/trampoline-park-and-soft-play-vending-machine-0b02ec87",
+      "author": "3DAssets.dev contributors",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "1.2K-triangle vending machine with open/close animation. AI-generated; use only as animation/pivot reference or after manual visual review."
+    },
+    {
+      "id": "cdmir_human_skull",
+      "role": "instakill_powerup_visual_candidate",
+      "source_url": "https://opengameart.org/content/human-skull-0",
+      "author": "CDmir",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 textured human skull, ~4.5K tris; candidate for an original Insta-Kill-style pickup visual after optimization."
+    },
+    {
+      "id": "qubodup_liquid_bottle_drink_sfx",
+      "role": "perk_drink_audio_candidate",
+      "source_url": "https://opengameart.org/content/liquid-bottle-drink-set",
+      "author": "qubodup",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 bottle/liquid/shake/swallow/gulp recordings; useful for perk drink presentation."
+    },
+    {
+      "id": "rubberduck_wood_metal_sfx",
+      "role": "barricade_door_prop_audio_library",
+      "source_url": "https://opengameart.org/content/100-cc0-metal-and-wood-sfx",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "100 CC0 metal/wood sounds covering doors, hammering, locks, impacts, falling, breaking and squeaks."
+    },
+    {
+      "id": "rubberduck_breaking_sfx",
+      "role": "destruction_audio_library",
+      "source_url": "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "75 CC0 wood/metal/glass/rock breaking, falling and impact sounds for barricades, debris, props and glass."
+    },
+    {
+      "id": "tinyworlds_glass_break",
+      "role": "glass_break_audio_candidate",
+      "source_url": "https://opengameart.org/content/glass-break",
+      "author": "Till Behrend / TinyWorlds",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 game-ready glass break sound."
+    },
+    {
+      "id": "vehicle_fantasy_accessory_sfx",
+      "role": "bottle_coin_small_prop_audio_library",
+      "source_url": "https://opengameart.org/content/fantasy-accessory-sfx-library",
+      "author": "Vehicle",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "155 organic CC0 sounds including glass bottles, corks, coins, keys, vials and cutlery; useful for perks, pickups and props."
+    },
+    {
+      "id": "kenney_city_kit_suburban",
+      "role": "nuketown_suburban_environment_candidate",
+      "source_url": "https://opengameart.org/content/city-kit-suburban",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "40 optimized CC0 suburban buildings/details including fences, trees and driveways; FBX/OBJ/glTF. Strong legal replacement pool for suburban/Nuketown-like props."
+    },
+    {
+      "id": "kenney_city_kit_roads",
+      "role": "roads_signs_traffic_environment_candidate",
+      "source_url": "https://opengameart.org/content/city-kit-roads",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "90 optimized CC0 road assets including barriers, traffic lights and road signs; FBX/OBJ/glTF."
+    },
+    {
+      "id": "burning_barb_prototyping_mannequin",
+      "role": "nuketown_mannequin_candidate",
+      "source_url": "https://burning-barb.itch.io/mannequin",
+      "author": "burning_barb",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 non-AI mannequin with Blender source and glTF; 9.6K tris. Suitable for re-rig/LOD and multiple skins."
+    },
+    {
+      "id": "plaggy_male_mannequin",
+      "role": "nuketown_mannequin_lightweight_candidate",
+      "source_url": "https://opengameart.org/content/mannequin-male",
+      "author": "plaggy",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 male mannequin with ambient-occlusion maps; lightweight alternate for mannequin variety."
+    },
+    {
+      "id": "lyricsz_cc0_car",
+      "role": "suburban_vehicle_candidate",
+      "source_url": "https://opengameart.org/content/3d-car-0",
+      "author": "Lyricsz",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 generic car, 8.9K tris; can be damaged/retextured for abandoned suburban maps."
+    },
+    {
+      "id": "ajanhallinta_cc0_bus",
+      "role": "bus_vehicle_candidate",
+      "source_url": "https://opengameart.org/content/3d-bus",
+      "author": "ajanhallinta",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 bus in Blend/FBX/OBJ. ~14.5K tris as supplied; requires LOD/reduction for mobile hero-prop use."
+    },
+    {
+      "id": "plaggy_wall_clock_3",
+      "role": "nuketown_clock_and_interior_prop_candidate",
+      "source_url": "https://opengameart.org/content/wall-clock-3",
+      "author": "plaggy",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 PBR wall clock, ~1.4K polys; useful for Nuketown-style timing/clock set dressing and interiors."
+    },
+    {
+      "id": "demonio_puerto_modular_cars",
+      "role": "vehicle_variety_library_candidate",
+      "source_url": "https://opengameart.org/content/modular-car",
+      "author": "DemonioPuerto",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 modular car source with thousands of possible body-part combinations; useful for visual vehicle variety from one lightweight library."
+    },
+    {
+      "id": "donte_rain_particle",
+      "role": "weather_rain_vfx_candidate",
+      "source_url": "https://opengameart.org/content/rain-particle-animated",
+      "author": "donte",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "Five-frame CC0 animated rain particle; tiny/mobile-friendly source for rain presets."
+    },
+    {
+      "id": "ohyhei_smoke_sprite_sheet",
+      "role": "smoke_vfx_candidate",
+      "source_url": "https://opengameart.org/content/smoke-sprite-sheet",
+      "author": "ohyhei",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 transparent smoke sprite sheet for fires, barrels, muzzle smoke and ambient vents."
+    },
+    {
+      "id": "kenney_smoke_particles_77",
+      "role": "smoke_explosion_flash_vfx_library",
+      "source_url": "https://opengameart.org/content/smoke-particle-assets",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "77 CC0 sprites across black smoke, explosion, flash and white-puff styles."
+    },
+    {
+      "id": "hatmix_animated_steam",
+      "role": "steam_vfx_candidate",
+      "source_url": "https://opengameart.org/content/animated-steam",
+      "author": "hatmix",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "64x64 CC0 steam/smoke animation sheet from 2026; useful for pipes, perk machines and industrial maps."
+    },
+    {
+      "id": "lfa_thick_fog",
+      "role": "fog_texture_candidate",
+      "source_url": "https://opengameart.org/node/3505",
+      "author": "LFA",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "1024x512 horizontally tileable CC0 fog texture for cheap scrolling mist/fog layers."
+    },
+    {
+      "id": "lokif_swamp_environment_audio",
+      "role": "swamp_ambient_audio_candidate",
+      "source_url": "https://opengameart.org/content/swamp-environment-audio",
+      "author": "LokiF",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 swamp/marsh ambience with bugs, atmospheric filler and bubbling/gurgling sounds."
+    },
+    {
+      "id": "cluckfox_rain_thunder",
+      "role": "rain_thunder_audio_candidate",
+      "source_url": "https://cluckfox.itch.io/rain-and-thunder",
+      "author": "cluckfox",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "24-bit 48kHz CC0 rain and thunder recordings; trim/compress to mobile formats."
+    },
+    {
+      "id": "congusbongus_lost_horror_ambience",
+      "role": "dark_horror_ambient_loop_candidate",
+      "source_url": "https://opengameart.org/content/lost-in-a-bad-place-horror-ambience-loop",
+      "author": "congusbongus",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 seamless dark horror ambience loop."
+    },
+    {
+      "id": "beast_smoke_aura",
+      "role": "mystery_energy_smoke_aura_candidate",
+      "source_url": "https://opengameart.org/content/smoke-aura",
+      "author": "Beast",
+      "license": "CC0-1.0",
+      "requires_attribution": false,
+      "status": "candidate",
+      "notes": "CC0 seamless swirling smoke/aura sheets in multiple frame counts; useful for Mystery Box, teleport, perk/powerup and dog-spawn effects after recoloring."
+    },
+    {
+      "id": "akiohonda_ww2_lowpoly_weapon_pack",
+      "role": "ww2_weapon_library_candidate",
+      "source_url": "https://sketchfab.com/3d-models/ww2-low-poly-weapons-pack-4242e664ec1a489b99dc0d543f958915",
+      "author": "J.AkioHonda",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "Creator-made WW2 pack with M1 Garand+clip/ammo, Thompson M1+mag/ammo, PPSh-41+mag/ammo, STG44+mag/ammo, M1911, C96, TT pistol, three knives and three grenades. Author explicitly permits personal/commercial use with credit."
+    },
+    {
+      "id": "zillious_ppsh41",
+      "role": "ppsh41_high_quality_candidate",
+      "source_url": "https://sketchfab.com/3d-models/ppsh-41-5c8a64490fa747389e9cfcaecc69c88a",
+      "author": "Zillious",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "12.4K-triangle game-optimized PPSh-41; magazine and trigger separable; 4K PBR source textures for downscaling."
+    },
+    {
+      "id": "max3dd_ppsh41_lowpoly",
+      "role": "ppsh41_mobile_candidate",
+      "source_url": "https://sketchfab.com/3d-models/ppsh-41-low-poly-d9ee1742732c4aec9c98aeddfb93071c",
+      "author": "MaX3Dd",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "4.2K-triangle game-ready PPSh-41 with 2K PBR texture set; especially attractive for Android."
+    },
+    {
+      "id": "raymond_m1_garand",
+      "role": "m1_garand_candidate",
+      "source_url": "https://sketchfab.com/3d-models/realistic-m1-garand-8d639aed01a94c8bb6e8cb58070a71f3",
+      "author": "Raymond",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "13.7K-triangle realistic M1 Garand. Showcase animations are included on the source model; evaluate whether usable/retargetable in export."
+    },
+    {
+      "id": "yieldingmist_m1_garand",
+      "role": "m1_garand_mobile_candidate",
+      "source_url": "https://sketchfab.com/3d-models/m1-garand-ec368667c6a54f018c8cb4bacdebbb94",
+      "author": "YieldingMist206",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "11.1K-triangle M1 Garand with FBX/Blend, clip and bullets; source also uses ambientCG CC0 material assets."
+    },
+    {
+      "id": "konstantinos_mp40_animated",
+      "role": "mp40_animated_candidate",
+      "source_url": "https://sketchfab.com/3d-models/low-poly-mp40-75c810c123204637ae1854168dc53138",
+      "author": "Konstantinos.Simantiras",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "9.4K-triangle MP40 with separated parts plus reload, aim, run and walk animations. High-priority Enhanced weapon test."
+    },
+    {
+      "id": "tastytony_thompson_m1a1",
+      "role": "thompson_mobile_candidate",
+      "source_url": "https://sketchfab.com/3d-models/low-poly-thompson-m1a1-6f090d072c094ddfb1f1ca5ca4827c88",
+      "author": "TastyTony",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "3.9K-triangle low-poly Thompson M1A1. Excellent mobile triangle budget."
+    },
+    {
+      "id": "anick_m1897_trench",
+      "role": "m1897_shotgun_candidate",
+      "source_url": "https://sketchfab.com/3d-models/winchester-m1897-trench-gun-b36e917fc21f411c85b0e6ba6d61b285",
+      "author": "Anick_Schwartz",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "5.9K-triangle Winchester M1897 Trench Gun; good Android hero-weapon budget."
+    },
+    {
+      "id": "peanut_bar_m1918a2_rigged",
+      "role": "bar_rigged_candidate",
+      "source_url": "https://sketchfab.com/3d-models/bar-m1918-a2-game-ready-rigged-1213683e58b14dd89fd4520489c7b732",
+      "author": "Peanut_Butcher",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "13.3K-triangle game-ready and rigged BAR M1918A2, published in 2026."
+    },
+    {
+      "id": "pippa_bar_m1918",
+      "role": "bar_mobile_candidate",
+      "source_url": "https://sketchfab.com/3d-models/bar-m1918-4d00b2d0a6894aae874c66ca739735e4",
+      "author": "Pippa",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "6.8K-triangle BAR with simple charging animation; author also provides magazine and .30-06 round models."
+    },
+    {
+      "id": "konstantinos_mg42_animated",
+      "role": "mg42_animated_candidate",
+      "source_url": "https://sketchfab.com/3d-models/low-poly-mg42-c62bb36055b74cd7bf646ad6d8c03b38",
+      "author": "Konstantinos.Simantiras",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "15.3K-triangle MG42 with separated parts, bullet casing/head, reload animation and barrel-change animation."
+    },
+    {
+      "id": "observer3d_stg44",
+      "role": "stg44_candidate",
+      "source_url": "https://sketchfab.com/3d-models/stg-44-c1fa5b79ab0c42a1949506b3e0137424",
+      "author": "Observer3D",
+      "license": "CC-BY-4.0",
+      "requires_attribution": true,
+      "status": "candidate",
+      "notes": "25K-triangle game-ready PBR STG-44. High-detail source; requires LOD/downscale for mobile."
+    }
+  ]
+}

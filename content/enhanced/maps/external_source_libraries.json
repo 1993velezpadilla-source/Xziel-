@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "policy": {
+    "require_per_map_license_audit": true,
+    "replace_nonfree_textures_models_sounds": true,
+    "prefer_brush_source_over_decompiled_bsp": true,
+    "decompiled_commercial_maps_reference_only": true
+  },
+  "sources": [
+    {
+      "id": "spirit_quake_maps_gpl",
+      "title": "Spirit Quake Maps GPL",
+      "source_url": "https://github.com/dfsp-spirit/spirit-quake-maps-gpl",
+      "source_format": "Quake-series .map",
+      "license": "GPL-2.0",
+      "map_count": 21,
+      "readiness": "editable_geometry_sources",
+      "notes": "Author explicitly publishes only his own map geometry under GPL and says assets/textures must be replaced. Excellent geometry/layout donor source for original zombie conversions."
+    },
+    {
+      "id": "quetoo_data_maps",
+      "title": "Quetoo Editable Map Sources",
+      "source_url": "https://github.com/jdolan/quetoo-data",
+      "source_format": "Quake3 .map / TrenchBroom",
+      "license": "CC-BY-SA-4.0 repo level, per-map audit required",
+      "map_count": "80+ work-in-progress/source maps",
+      "readiness": "editable_sources_and_bsp",
+      "notes": "Repository ships editable map sources, textures, models and map docs. Includes both original maps and remakes of id maps; use only individually audited original designs."
+    },
+    {
+      "id": "simple_afps_level",
+      "title": "Simple AFPS Level",
+      "source_url": "https://opengameart.org/content/simple-afps-level",
+      "source_format": "Blend + OBJ",
+      "license": "CC0-1.0",
+      "map_count": 1,
+      "readiness": "geometry_model_needs_brush_or_collision_conversion",
+      "notes": "Original CC0 low-poly Quake-style arena. Less convenient than .map but completely clean prototype geometry."
+    },
+    {
+      "id": "rbdoom_cc0_test_maps",
+      "title": "RBDOOM-3-BFG CC0 Test Maps",
+      "source_url": "https://github.com/RobertBeckebans/RBDOOM-3-BFG_mod_unittests",
+      "source_format": "Valve220/Doom3 .map",
+      "license": "CC0-1.0",
+      "map_count": "multiple test/sample maps",
+      "readiness": "editable_map_sources",
+      "notes": "CC0 custom test maps. Better as conversion/renderer workflow examples than finished zombie maps."
+    },
+    {
+      "id": "goldsrc_restored_sources",
+      "title": "GoldSrc Map Sources Restored",
+      "source_url": "https://github.com/kolokola777/GoldSrc-map-sources-restored",
+      "source_format": "RMF / restored GoldSrc brush sources",
+      "license": "repository claims CC0",
+      "map_count": "multiple classic GoldSrc maps",
+      "readiness": "reference_only",
+      "notes": "Sources were reconstructed from commercial GoldSrc BSPs. Repository license cannot automatically clear underlying commercial map rights. Do NOT ship these as Enhanced maps; use only to study toolchains/brush repair."
+    },
+    {
+      "id": "source_vmf_to_map_tool",
+      "title": "vmf2map Conversion Tool",
+      "source_url": "https://github.com/JakobCh/vmf2map",
+      "source_format": "VMF -> Valve .map converter",
+      "license": "tool license audit required",
+      "map_count": 0,
+      "readiness": "conversion_tool",
+      "notes": "Useful for author-permitted Source VMF maps such as a Nuketown blockout/source. Displacements become normal brushes."
+    },
+    {
+      "id": "nzp_toolbox",
+      "title": "NZ:P Toolbox",
+      "source_url": "https://github.com/nzp-team/toolbox",
+      "source_format": "NZ:P map build pipeline",
+      "license": "CC0-1.0",
+      "map_count": 0,
+      "readiness": "official_conversion_build_tool",
+      "notes": "Official NZ:P tooling can create new .map templates and build .map -> BSP through the full pipeline including Spawn Zone generation."
+    }
+  ]
+}
