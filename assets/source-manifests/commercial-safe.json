@@ -235,6 +235,70 @@
         "url": "https://kenney.nl/assets/crosshair-pack",
         "raw_redistribution": true,
         "status": "green"
+      },
+      {
+        "name": "Gobkit Free Animal Pack",
+        "category": "creature_rigged_animated",
+        "license": "CC0 1.0",
+        "url": "https://gobkit.itch.io/gobkit-free-animal-pack",
+        "raw_redistribution": true,
+        "status": "green_high_priority"
+      },
+      {
+        "name": "OpenGameArt 3D Horror Game Monster",
+        "category": "creature_horror",
+        "license": "CC0",
+        "url": "https://opengameart.org/content/3d-horror-game-monster",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "OpenGameArt Hydrach",
+        "category": "creature_horror",
+        "license": "CC0",
+        "url": "https://opengameart.org/content/hydrach",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "OpenGameArt Spider",
+        "category": "creature_crawler",
+        "license": "CC0",
+        "url": "https://opengameart.org/content/spider-2",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "OpenGameArt Undead Squirrel",
+        "category": "creature_undead",
+        "license": "CC0",
+        "url": "https://opengameart.org/content/undead-squirrel-animated",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "OpenGameArt Dog Low Poly Rigged",
+        "category": "creature_dog",
+        "license": "CC0",
+        "url": "https://opengameart.org/content/dog-low-poly-rigged",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "Creepster",
+        "category": "font_horror_display",
+        "license": "SIL OFL",
+        "url": "https://fonts.google.com/specimen/Creepster",
+        "raw_redistribution": true,
+        "status": "green"
+      },
+      {
+        "name": "Bebas Neue",
+        "category": "font_hud_display",
+        "license": "SIL OFL",
+        "url": "https://fonts.google.com/specimen/Bebas+Neue",
+        "raw_redistribution": true,
+        "status": "green"
       }
     ],
     "embedded_only": [
@@ -303,6 +367,22 @@
         "url": "https://www.fab.com/listings/dc8cb28c-6f61-47bf-b1fb-a4cdfdda1f43",
         "raw_redistribution": false,
         "status": "verify_embed_only"
+      },
+      {
+        "name": "RetroStyle Games German Shepherd",
+        "category": "creature_dog",
+        "license": "Free listing; exact commercial-use license must be confirmed at acquisition",
+        "url": "https://www.fab.com/listings/5ffcabde-3356-4d75-b98e-580825f15e47",
+        "raw_redistribution": false,
+        "status": "verify"
+      },
+      {
+        "name": "DaniilT17 Shadow Crawler",
+        "category": "creature_horror",
+        "license": "Public page lacks explicit reuse license in current research",
+        "url": "https://daniilt17.itch.io/nightmare-entity-rigged-monster-with-animations",
+        "raw_redistribution": false,
+        "status": "verify"
       }
     ],
     "attribution_required": [
