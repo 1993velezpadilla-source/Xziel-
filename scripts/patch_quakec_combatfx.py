@@ -12,10 +12,10 @@ root = Path(sys.argv[1])
 # SVC_REGISTERUSEPRINT (57) in current NZ:P/Vril.
 defs = root / "source/server/defs/standard.qc"
 text = defs.read_text(encoding="utf-8")
-anchor = "#define     SVC_REGISTERUSEPRINT        57\n"
+anchor = "#define \tSVC_ACHIEVEMENT \t\t\t52\n"
 if "SVC_XZIELDAMAGE" not in text:
     if anchor not in text:
-        raise SystemExit("Could not find SVC_REGISTERUSEPRINT protocol anchor")
+        raise SystemExit("Could not find SVC_ACHIEVEMENT protocol anchor")
     text = text.replace(anchor, anchor + "#define     SVC_XZIELDAMAGE             58\n", 1)
 defs.write_text(text, encoding="utf-8")
 
