@@ -3276,3 +3276,424 @@ if "xziel_mobile_restore_ads_after_reload = false;" not in text[text.find("stati
     text = text.replace(release_anchor, release_repl, 1)
 
 sys_sdl.write_text(text, encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# Xziel Android gyro/ADS/auto-knife correction pass v0.8
+# ---------------------------------------------------------------------------
+
+# SDL's Android generic sensor backend is a separate subsystem. Without this
+# flag SDL_NumSensors() returns no phone sensors even though the device has a
+# gyroscope.
+sys_sdl = source / "platform" / "sdl" / "sys_sdl.c"
+text = sys_sdl.read_text(encoding="utf-8")
+sensor_init_old = "(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_GAMECONTROLLER)"
+sensor_init_new = "(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_GAMECONTROLLER | SDL_INIT_SENSOR)"
+if sensor_init_old not in text:
+    raise SystemExit("Could not find SDL_Init flags for phone sensor subsystem")
+text = text.replace(sensor_init_old, sensor_init_new, 1)
+
+# Persistent auto-melee behavior.
+inp = source / "input.c"
+itext = inp.read_text(encoding="utf-8")
+knife_cvar_anchor = 'cvar_t xziel_mobile_auto_rebuild = {"xziel_mobile_auto_rebuild", "1", true};\n'
+knife_cvars = """cvar_t xziel_mobile_auto_knife = {"xziel_mobile_auto_knife", "1", true};
+cvar_t xziel_mobile_knife_range_only = {"xziel_mobile_knife_range_only", "1", true};
+cvar_t xziel_mobile_auto_knife_range = {"xziel_mobile_auto_knife_range", "96", true};
+"""
+if "xziel_mobile_auto_knife" not in itext:
+    if knife_cvar_anchor not in itext:
+        raise SystemExit("Could not find mobile interaction cvar anchor")
+    itext = itext.replace(knife_cvar_anchor, knife_cvar_anchor + knife_cvars, 1)
+
+knife_reg_anchor = "\tCvar_RegisterVariable(&xziel_mobile_auto_rebuild);\n"
+knife_regs = """	Cvar_RegisterVariable(&xziel_mobile_auto_knife);
+	Cvar_RegisterVariable(&xziel_mobile_knife_range_only);
+	Cvar_RegisterVariable(&xziel_mobile_auto_knife_range);
+"""
+if "Cvar_RegisterVariable(&xziel_mobile_auto_knife);" not in itext:
+    if knife_reg_anchor not in itext:
+        raise SystemExit("Could not find mobile interaction registration anchor")
+    itext = itext.replace(knife_reg_anchor, knife_reg_anchor + knife_regs, 1)
+inp.write_text(itext, encoding="utf-8")
+
+# Runtime state.
+state_anchor = "static qboolean xziel_mobile_reload_animation_seen = false;\n"
+state_more = """static qboolean xziel_mobile_ads_latched = false;
+static int xziel_mobile_reload_start_frame = 0;
+qboolean xziel_mobile_knife_target_near = false;
+static Uint32 xziel_mobile_auto_knife_next_ms = 0;
+"""
+if "xziel_mobile_ads_latched" not in text:
+    if state_anchor not in text:
+        raise SystemExit("Could not find v0.7 ADS state anchor")
+    text = text.replace(state_anchor, state_anchor + state_more, 1)
+
+extern_anchor = "extern cvar_t xziel_mobile_auto_rebuild;\n"
+extern_more = """extern cvar_t xziel_mobile_auto_knife;
+extern cvar_t xziel_mobile_knife_range_only;
+extern cvar_t xziel_mobile_auto_knife_range;
+"""
+if "extern cvar_t xziel_mobile_auto_knife;" not in text:
+    if extern_anchor not in text:
+        raise SystemExit("Could not find mobile interaction extern anchor")
+    text = text.replace(extern_anchor, extern_anchor + extern_more, 1)
+
+# Immediate attack-down removes the extra frame of touch latency. Semi-auto
+# pistols still use timed release/repress pulses after the first immediate shot.
+attack_ref_func = r'''static void Xziel_SetAttackRef(qboolean pressed)
+{
+	if (pressed) {
+		xziel_attack_refs++;
+		if (xziel_attack_refs == 1) {
+			Uint32 now = SDL_GetTicks();
+			Cbuf_AddText("+attack\n");
+			xziel_attack_command_down = true;
+			if (Xziel_IsAutoTapPistol()) {
+				xziel_attack_release_ms = now + 42;
+				xziel_attack_next_ms =
+					now + (Uint32)fmaxf(120.0f, xziel_mobile_autofire_ms.value);
+			} else {
+				xziel_attack_release_ms = 0;
+				xziel_attack_next_ms = 0;
+			}
+		}
+	} else {
+		if (xziel_attack_refs > 0)
+			xziel_attack_refs--;
+		if (xziel_attack_refs == 0 && xziel_attack_command_down) {
+			Cbuf_AddText("-attack\n");
+			xziel_attack_command_down = false;
+		}
+	}
+}'''
+text = xziel_replace_c_function(text, "static void Xziel_SetAttackRef(qboolean pressed)", attack_ref_func)
+
+# Dedicated ADS toggle owns the persistent latch. ADS+FIRE becomes temporary
+# hold ADS when the latch is not already active.
+adsfire_down_old = """	case XZ_TOUCH_ADSFIRE:
+		xziel_mobile_adsfire_pressed = true;
+		Xziel_SetAttackRef(true);
+		if (xziel_mobile_ads_toggle.value >= 0.5f) {
+			/* Toggle ADS behaves as sticky state: ADS+FIRE may enter ADS,
+			   but never becomes the control that exits it. */
+			if (cl.stats[STAT_ZOOM] == 0)
+				Cbuf_AddText("impulse 26\\n");
+		} else {
+			Xziel_QueueHold("+aim\\n", "-aim\\n", &xziel_aim_refs, true);
+		}
+		break;
+"""
+adsfire_down_new = """	case XZ_TOUCH_ADSFIRE:
+		xziel_mobile_adsfire_pressed = true;
+		if (xziel_mobile_ads_toggle.value >= 0.5f && !xziel_mobile_ads_latched)
+			Xziel_QueueHold("+aim\\n", "-aim\\n", &xziel_aim_refs, true);
+		else if (xziel_mobile_ads_toggle.value < 0.5f)
+			Xziel_QueueHold("+aim\\n", "-aim\\n", &xziel_aim_refs, true);
+		Xziel_SetAttackRef(true);
+		Cbuf_Execute();
+		break;
+"""
+if adsfire_down_old not in text:
+    raise SystemExit("Could not find v0.7 ADS+FIRE down block")
+text = text.replace(adsfire_down_old, adsfire_down_new, 1)
+
+adsfire_up_old = """	case XZ_TOUCH_ADSFIRE:
+		xziel_mobile_adsfire_pressed = false;
+		Xziel_SetAttackRef(false);
+		if (xziel_mobile_ads_toggle.value < 0.5f)
+			Xziel_QueueHold("+aim\\n", "-aim\\n", &xziel_aim_refs, false);
+		break;
+"""
+adsfire_up_new = """	case XZ_TOUCH_ADSFIRE:
+		xziel_mobile_adsfire_pressed = false;
+		Xziel_SetAttackRef(false);
+		if (xziel_mobile_ads_toggle.value < 0.5f ||
+			(xziel_mobile_ads_toggle.value >= 0.5f && !xziel_mobile_ads_latched))
+			Xziel_QueueHold("+aim\\n", "-aim\\n", &xziel_aim_refs, false);
+		Cbuf_Execute();
+		break;
+"""
+if adsfire_up_old not in text:
+    raise SystemExit("Could not find v0.7 ADS+FIRE up block")
+text = text.replace(adsfire_up_old, adsfire_up_new, 1)
+
+ads_down_old = """	case XZ_TOUCH_ADS:
+		xziel_mobile_ads_pressed = true;
+		if (xziel_mobile_ads_toggle.value >= 0.5f) {
+			/* A deliberate dedicated-ADS tap overrides any automatic
+			   post-reload restoration. */
+			xziel_mobile_restore_ads_after_reload = false;
+			xziel_mobile_reload_animation_seen = false;
+			Cbuf_AddText("impulse 26\\n");
+		} else {
+			Xziel_QueueHold("+aim\\n", "-aim\\n", &xziel_aim_refs, true);
+		}
+		break;
+"""
+ads_down_new = """	case XZ_TOUCH_ADS:
+		xziel_mobile_ads_pressed = true;
+		xziel_mobile_restore_ads_after_reload = false;
+		xziel_mobile_reload_animation_seen = false;
+		if (xziel_mobile_ads_toggle.value >= 0.5f) {
+			xziel_mobile_ads_latched = !xziel_mobile_ads_latched;
+			Cbuf_AddText("impulse 26\\n");
+		} else {
+			xziel_mobile_ads_latched = false;
+			Xziel_QueueHold("+aim\\n", "-aim\\n", &xziel_aim_refs, true);
+		}
+		Cbuf_Execute();
+		break;
+"""
+if ads_down_old not in text:
+    raise SystemExit("Could not find v0.7 dedicated ADS down block")
+text = text.replace(ads_down_old, ads_down_new, 1)
+
+reload_down_old = """	case XZ_TOUCH_RELOAD:
+		xziel_mobile_reload_pressed = true;
+		if (xziel_mobile_ads_toggle.value >= 0.5f &&
+			(cl.stats[STAT_ZOOM] == 1 || cl.stats[STAT_ZOOM] == 2)) {
+			xziel_mobile_restore_ads_after_reload = true;
+			xziel_mobile_reload_animation_seen = false;
+		}
+		Cbuf_AddText("+reload\\n");
+		break;
+"""
+reload_down_new = """	case XZ_TOUCH_RELOAD:
+		xziel_mobile_reload_pressed = true;
+		xziel_mobile_restore_ads_after_reload =
+			(xziel_mobile_ads_toggle.value >= 0.5f && xziel_mobile_ads_latched);
+		xziel_mobile_reload_animation_seen = false;
+		xziel_mobile_reload_start_frame = cl.stats[STAT_WEAPONFRAME];
+		Cbuf_AddText("+reload\\n");
+		Cbuf_Execute();
+		break;
+"""
+if reload_down_old not in text:
+    raise SystemExit("Could not find v0.7 reload block")
+text = text.replace(reload_down_old, reload_down_new, 1)
+
+restore_func = r'''static void Xziel_UpdateReloadAdsRestore(void)
+{
+	if (!xziel_mobile_restore_ads_after_reload)
+		return;
+
+	if (cl.stats[STAT_WEAPONFRAME] != xziel_mobile_reload_start_frame)
+		xziel_mobile_reload_animation_seen = true;
+
+	if (xziel_mobile_reload_animation_seen &&
+		!xziel_mobile_reload_pressed &&
+		(cl.stats[STAT_WEAPONFRAME] == xziel_mobile_reload_start_frame ||
+		 cl.stats[STAT_WEAPONFRAME] == 0)) {
+		if (xziel_mobile_ads_toggle.value >= 0.5f &&
+			xziel_mobile_ads_latched &&
+			cl.stats[STAT_ZOOM] == 0) {
+			Cbuf_AddText("impulse 26\n");
+			Cbuf_Execute();
+		}
+
+		xziel_mobile_restore_ads_after_reload = false;
+		xziel_mobile_reload_animation_seen = false;
+	}
+}'''
+text = xziel_replace_c_function(text, "static void Xziel_UpdateReloadAdsRestore(void)", restore_func)
+
+# Sprint should end sticky ADS just like CoD-style mobile controls.
+sprint_old = """		if (!xziel_mobile_sprint_active) {
+			Cbuf_AddText("impulse 23\\n");
+			xziel_mobile_sprint_active = true;
+		}
+"""
+sprint_new = """		if (!xziel_mobile_sprint_active) {
+			xziel_mobile_ads_latched = false;
+			xziel_mobile_restore_ads_after_reload = false;
+			Cbuf_AddText("impulse 23\\n");
+			xziel_mobile_sprint_active = true;
+		}
+"""
+if sprint_old in text:
+    text = text.replace(sprint_old, sprint_new, 1)
+
+# Auto knife uses the real local server collision trace. This is intentionally
+# local-Solo only for now; remote multiplayer needs a networked proximity stat.
+knife_func = r'''
+static void Xziel_UpdateAutoKnife(void)
+{
+	qboolean near_target = false;
+	Uint32 now = SDL_GetTicks();
+
+	if (key_dest == key_game &&
+		cl.stats[STAT_HEALTH] > 0 &&
+		sv.active && sv_player && cls.signon == SIGNONS) {
+		vec3_t start, end, forward;
+		trace_t tr;
+		float range = xziel_mobile_auto_knife_range.value;
+
+		if (range < 48.0f) range = 48.0f;
+		if (range > 128.0f) range = 128.0f;
+
+		VectorAdd(sv_player->v.origin, sv_player->v.view_ofs, start);
+		AngleVectors(cl.viewangles, forward, NULLVEC, NULLVEC);
+		VectorMA(start, range, forward, end);
+		tr = SV_Move(start, vec3_origin, vec3_origin, end, MOVE_NORMAL, sv_player);
+
+		/* The server already tells us whether the forward trace is an enemy.
+		   Combining that with this short local collision trace gives us a
+		   real melee-distance gate without auto-knifing distant targets. */
+		near_target =
+			cl.stats[STAT_FACINGENEMY] &&
+			tr.fraction < 1.0f;
+	}
+
+	xziel_mobile_knife_target_near = near_target;
+
+	if (xziel_mobile_auto_knife.value >= 0.5f &&
+		near_target &&
+		!xziel_mobile_knife_pressed &&
+		cl.stats[STAT_ZOOM] == 0 &&
+		now >= xziel_mobile_auto_knife_next_ms) {
+		Cbuf_AddText("+knife\n-knife\n");
+		Cbuf_Execute();
+		xziel_mobile_auto_knife_next_ms = now + 180;
+	} else if (!near_target) {
+		xziel_mobile_auto_knife_next_ms = now;
+	}
+}
+'''
+insert_anchor = "static void Xziel_UpdateAutoRebuild(void)\n"
+if "static void Xziel_UpdateAutoKnife(void)" not in text:
+    idx = text.find(insert_anchor)
+    if idx < 0:
+        raise SystemExit("Could not find auto rebuild updater for knife insertion")
+    text = text[:idx] + knife_func + "\n" + text[idx:]
+
+pump_old = """	Xziel_UpdateMobileFire();
+	Xziel_UpdateAutoRebuild();
+	Xziel_UpdateReloadAdsRestore();
+"""
+pump_new = """	Xziel_UpdateMobileFire();
+	Xziel_UpdateAutoRebuild();
+	Xziel_UpdateAutoKnife();
+	Xziel_UpdateReloadAdsRestore();
+"""
+if "Xziel_UpdateAutoKnife();" not in text:
+    if pump_old not in text:
+        raise SystemExit("Could not find mobile updater pump for auto knife")
+    text = text.replace(pump_old, pump_new, 1)
+
+# Knife hitbox exists only when configured visible.
+knife_role_old = """	if (Xziel_IsInside(x, y, xziel_hud_knife_x.value, xziel_hud_knife_y.value, 0.044f * hs)) return XZ_TOUCH_KNIFE;
+"""
+knife_role_new = """	if ((!xziel_mobile_knife_range_only.value || xziel_mobile_knife_target_near) &&
+		Xziel_IsInside(x, y, xziel_hud_knife_x.value, xziel_hud_knife_y.value, 0.044f * hs))
+		return XZ_TOUCH_KNIFE;
+"""
+if knife_role_old not in text:
+    raise SystemExit("Could not find custom knife role hitbox")
+text = text.replace(knife_role_old, knife_role_new, 1)
+
+sys_sdl.write_text(text, encoding="utf-8")
+
+# HUD visibility follows Always/In Range setting, while editor always shows it.
+hud = source / "render" / "r_hud.c"
+htext = hud.read_text(encoding="utf-8")
+hud_extern_anchor = "extern qboolean xziel_mobile_switch_pressed;\n"
+hud_extern_more = """extern qboolean xziel_mobile_knife_target_near;
+extern cvar_t xziel_mobile_knife_range_only;
+"""
+if "extern qboolean xziel_mobile_knife_target_near;" not in htext:
+    if hud_extern_anchor not in htext:
+        raise SystemExit("Could not find mobile HUD knife extern anchor")
+    htext = htext.replace(hud_extern_anchor, hud_extern_anchor + hud_extern_more, 1)
+
+knife_draw_old = """	Xziel_DrawTouchButton(xziel_hud_knife_x.value, xziel_hud_knife_y.value, 0.044f, "KNIFE", "", xziel_mobile_knife_pressed);
+"""
+knife_draw_new = """	if (editor || !xziel_mobile_knife_range_only.value || xziel_mobile_knife_target_near)
+		Xziel_DrawTouchButton(xziel_hud_knife_x.value, xziel_hud_knife_y.value, 0.044f, "KNIFE", "", xziel_mobile_knife_pressed);
+"""
+if knife_draw_old not in htext:
+    raise SystemExit("Could not find mobile knife HUD draw")
+htext = htext.replace(knife_draw_old, knife_draw_new, 1)
+hud.write_text(htext, encoding="utf-8")
+
+# Add Auto Knife and Knife Button visibility to Mobile Gameplay settings.
+controls = source / "menu" / "menu_controls.c"
+mtext = controls.read_text(encoding="utf-8")
+
+extern_anchor = "extern cvar_t xziel_mobile_auto_rebuild;\n"
+extern_more = """extern cvar_t xziel_mobile_auto_knife;
+extern cvar_t xziel_mobile_knife_range_only;
+extern cvar_t xziel_mobile_auto_knife_range;
+"""
+if "extern cvar_t xziel_mobile_auto_knife;" not in mtext:
+    if extern_anchor not in mtext:
+        raise SystemExit("Could not find mobile gameplay cvar extern anchor")
+    mtext = mtext.replace(extern_anchor, extern_anchor + extern_more, 1)
+
+string_anchor = "static char *xziel_mobile_auto_rebuild_string;\n"
+string_more = """static char *xziel_mobile_auto_knife_string;
+static char *xziel_mobile_knife_visibility_string;
+"""
+if "xziel_mobile_auto_knife_string" not in mtext:
+    if string_anchor not in mtext:
+        raise SystemExit("Could not find mobile gameplay strings")
+    mtext = mtext.replace(string_anchor, string_anchor + string_more, 1)
+
+toggle_anchor = """static void Menu_Mobile_ToggleAutoRebuild(void)
+{
+	Cvar_SetValue("xziel_mobile_auto_rebuild",
+		xziel_mobile_auto_rebuild.value >= 0.5f ? 0.0f : 1.0f);
+}
+"""
+toggle_more = """
+static void Menu_Mobile_ToggleAutoKnife(void)
+{
+	Cvar_SetValue("xziel_mobile_auto_knife",
+		xziel_mobile_auto_knife.value >= 0.5f ? 0.0f : 1.0f);
+}
+
+static void Menu_Mobile_ToggleKnifeVisibility(void)
+{
+	Cvar_SetValue("xziel_mobile_knife_range_only",
+		xziel_mobile_knife_range_only.value >= 0.5f ? 0.0f : 1.0f);
+}
+"""
+if "Menu_Mobile_ToggleAutoKnife" not in mtext:
+    if toggle_anchor not in mtext:
+        raise SystemExit("Could not find auto rebuild toggle")
+    mtext = mtext.replace(toggle_anchor, toggle_anchor + toggle_more, 1)
+
+game_func = r'''void Menu_MobileGameplay_Draw(void)
+{
+	int idx = 0, row = 1;
+
+	Menu_DrawCustomBackground(true);
+	Menu_DrawTitle("MOBILE - GAMEPLAY", MENU_COLOR_WHITE);
+	Menu_DrawMapPanel();
+
+	xziel_mobile_auto_rebuild_string =
+		xziel_mobile_auto_rebuild.value >= 0.5f ? "ENABLED" : "DISABLED";
+	xziel_mobile_auto_knife_string =
+		xziel_mobile_auto_knife.value >= 0.5f ? "ENABLED" : "DISABLED";
+	xziel_mobile_knife_visibility_string =
+		xziel_mobile_knife_range_only.value >= 0.5f ? "IN RANGE" : "ALWAYS";
+
+	Menu_DrawButton(row++, idx++, "AUTO SPRINT", "Stick-forward threshold that starts sprinting.", NULL);
+	Menu_DrawOptionSlider(row-1, idx-1, 0.65f, 0.98f, xziel_mobile_sprint_threshold, "xziel_mobile_sprint_threshold", false, true, 0.01f);
+
+	Menu_DrawButton(row++, idx++, "AUTO REBUILD BARRIERS", "Automatically repair barricades while you remain in range.", Menu_Mobile_ToggleAutoRebuild);
+	Menu_DrawOptionButton(row-1, xziel_mobile_auto_rebuild_string);
+
+	Menu_DrawButton(row++, idx++, "AUTO KNIFE", "Automatically melee a zombie/dog directly inside melee range.", Menu_Mobile_ToggleAutoKnife);
+	Menu_DrawOptionButton(row-1, xziel_mobile_auto_knife_string);
+
+	Menu_DrawButton(row++, idx++, "KNIFE BUTTON", "Show the manual knife button always or only when a melee target is in range.", Menu_Mobile_ToggleKnifeVisibility);
+	Menu_DrawOptionButton(row-1, xziel_mobile_knife_visibility_string);
+
+	Menu_DrawButton(row++, idx++, "AUTO KNIFE RANGE", "Distance used by the mobile auto-melee proximity check.", NULL);
+	Menu_DrawOptionSlider(row-1, idx-1, 64.0f, 120.0f, xziel_mobile_auto_knife_range, "xziel_mobile_auto_knife_range", false, true, 4.0f);
+
+	Menu_DrawButton(-1, idx, "BACK", "Return to Mobile Settings.", Menu_Mobile_Set);
+}'''
+mtext = xziel_replace_c_function(mtext, "void Menu_MobileGameplay_Draw(void)", game_func)
+controls.write_text(mtext, encoding="utf-8")
