@@ -915,3 +915,62 @@ Non-AI lightweight helpers:
 - **Kenney Conveyor Kit** — 60+ CC0 models on a shared texture, strong for large industrial rooms.
 
 The purpose is to reuse one coherent library across several maps rather than re-searching the internet for every room.
+
+
+---
+
+# 21. WWII / classic weapon replacement pool
+
+Enhanced should not end up with modern zombies and environments while the first-person weapon mesh remains low-resolution.
+
+## High-priority ready-made candidates
+
+### One-pack baseline
+**J.AkioHonda WW2 Low Poly Weapons Pack — CC BY**
+Includes:
+- M1 Garand + clip/ammo
+- Thompson M1 + magazine/ammo
+- PPSh-41 + magazine/ammo
+- STG 44 + magazine/ammo
+- M1911
+- C96
+- TT pistol
+- knives
+- Mk2 / F1 / stick grenades
+
+The creator states that the models are their own and permits personal/commercial use with credit. This is an unusually efficient baseline library.
+
+### Individual hero candidates
+
+- **MP40 — Konstantinos.Simantiras**: ~9.4K tris, separated parts, reload + aim + run + walk animations.
+- **MG42 — Konstantinos.Simantiras**: ~15.3K tris, separated parts, casing/bullet, reload + barrel-change animations.
+- **BAR M1918A2 — Peanut_Butcher**: ~13.3K tris, game-ready and rigged.
+- **BAR M1918 — Pippa**: ~6.8K tris, simple charging animation, companion magazine/round models.
+- **Thompson M1A1 — TastyTony**: ~3.9K tris.
+- **Winchester M1897 — Anick_Schwartz**: ~5.9K tris.
+- **PPSh-41 — MaX3Dd**: ~4.2K tris, game-ready.
+- **PPSh-41 — Zillious**: ~12.4K tris, separated magazine/trigger.
+- **M1 Garand — Raymond**: ~13.7K tris.
+- **M1 Garand — YieldingMist206**: ~11.1K tris with clip/bullets.
+- **STG-44 — Observer3D**: ~25K tris; high-quality source that needs an Android LOD.
+
+## Integration rule
+
+Prefer models with:
+1. separate magazine/bolt/trigger/charging-handle pieces;
+2. existing FPS animations;
+3. known triangle count;
+4. 1K/2K source textures that can be downscaled by quality preset;
+5. independent creator provenance.
+
+Never use a model merely because Sketchfab says CC if the description identifies it as ripped from Call of Duty or another commercial game.
+
+### Quality strategy
+
+- Low: aggressive weapon LOD / 512 textures.
+- Medium: lightweight hero mesh / 1K.
+- High: full mobile hero mesh / 1K.
+- Max: highest validated hero mesh / selective 2K.
+- Classic: untouched NZ:P weapon presentation.
+
+Weapon damage, fire rate, reload timing, ammo count and spread remain gameplay-authoritative unless separately fixing an actual gameplay bug.
