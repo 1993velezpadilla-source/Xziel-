@@ -6209,3 +6209,584 @@ mhelp = xziel_replace_c_function(
     draw_button
 )
 helper.write_text(mhelp, encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# Xziel Android ADS+FIRE / grenade cook feedback v0.12
+# Fixes release-to-fire by holding a real attack state across usercmd frames.
+# Adds a tiny 5-second grenade fuse indicator beside the NADE button.
+# ---------------------------------------------------------------------------
+
+sys_sdl = source / "platform" / "sdl" / "sys_sdl.c"
+text = sys_sdl.read_text(encoding="utf-8")
+
+# Real release-shot pulse state. A +attack/-attack pair in the same command
+# pump does NOT survive KeyUp() into CL_SendMove; keep +attack alive long enough
+# for real movement packets, just like the now-working auto-knife path.
+release_state_anchor = "static qboolean xziel_adsfire_ads_seen = false;\n"
+release_states = """static qboolean xziel_release_shot_active = false;
+static qboolean xziel_release_shot_aimout_pending = false;
+static Uint32 xziel_release_shot_release_ms = 0;
+"""
+if "xziel_release_shot_active" not in text:
+    if release_state_anchor not in text:
+        raise SystemExit("Could not find ADS-ready state for v0.12 release shot")
+    text = text.replace(release_state_anchor, release_state_anchor + release_states, 1)
+
+# Grenade cook state is shared with the HUD. The native frag fuse is exactly
+# 5 seconds (W_Grenade sets self.grenade_delay = time + 5).
+grenade_state_anchor = "qboolean xziel_mobile_grenade_pressed = false;\n"
+grenade_states = """qboolean xziel_mobile_grenade_cooking = false;
+float xziel_mobile_grenade_seconds_left = 0.0f;
+static qboolean xziel_mobile_grenade_pending = false;
+static Uint32 xziel_mobile_grenade_press_ms = 0;
+static int xziel_mobile_grenade_count_before = 0;
+"""
+if "xziel_mobile_grenade_cooking" not in text:
+    if grenade_state_anchor not in text:
+        raise SystemExit("Could not find grenade pressed state for cook timer")
+    text = text.replace(grenade_state_anchor, grenade_state_anchor + grenade_states, 1)
+
+pulse_func = r'''static void Xziel_PulseAttackNow(void)
+{
+	if (xziel_release_shot_active)
+		return;
+
+	/* Keep native FIRE down across actual CL_SendMove packets. 90 ms is short
+	   enough to remain a single trigger pull, but long enough to survive
+	   typical 60/90/120 Hz frame pacing. */
+	Xziel_SetAttackRef(true);
+	xziel_release_shot_active = true;
+	xziel_release_shot_aimout_pending = true;
+	xziel_release_shot_release_ms = SDL_GetTicks() + 90;
+}'''
+text = xziel_replace_c_function(
+    text,
+    "static void Xziel_PulseAttackNow(void)",
+    pulse_func
+)
+
+update_fire = r'''static void Xziel_UpdateMobileFire(void)
+{
+	Uint32 now = SDL_GetTicks();
+	qboolean changed = false;
+
+	/* Finish a release-to-fire pulse only after it has lived across real input
+	   frames. Keep temporary ADS held until after FIRE is released so the
+	   server receives ADS + FIRE together for the shot. */
+	if (xziel_release_shot_active && now >= xziel_release_shot_release_ms) {
+		Xziel_SetAttackRef(false);
+		xziel_release_shot_active = false;
+		if (xziel_release_shot_aimout_pending) {
+			xziel_release_shot_aimout_pending = false;
+			Xziel_FinishTemporaryAdsFireAim();
+		}
+	}
+
+	if (xziel_mobile_adsfire_pressed &&
+		!xziel_adsfire_cancelled &&
+		Xziel_WeaponCanAdsMobile() &&
+		Xziel_AdsReadyForFire())
+		xziel_adsfire_ads_seen = true;
+
+	/* PRESS behavior is universal: ADS-capable weapons establish native ADS
+	   first, then use the exact same trigger path as the normal FIRE button.
+	   No-ADS weapons simply become FIRE immediately. */
+	if ((xziel_mobile_adsfire_pressed || xziel_adsfire_release_requested) &&
+		!xziel_adsfire_cancelled &&
+		!xziel_release_shot_active) {
+		if (!xziel_adsfire_release_pending &&
+			!xziel_adsfire_attack_engaged) {
+			if (!Xziel_WeaponCanAdsMobile() || Xziel_AdsReadyForFire()) {
+				Xziel_SetAttackRef(true);
+				xziel_adsfire_attack_engaged = true;
+			}
+		}
+	}
+
+	if (xziel_attack_refs <= 0) {
+		if (xziel_attack_command_down) {
+			Cbuf_AddText("-attack\n");
+			xziel_attack_command_down = false;
+			changed = true;
+		}
+		if (changed)
+			Cbuf_Execute();
+		return;
+	}
+
+	/* Pistols use native semi-auto edges while the mobile trigger is held.
+	   Automatic weapons simply keep +attack down; native weapon fire_delay
+	   remains authoritative in every case. */
+	if (!Xziel_IsAutoTapPistol())
+		return;
+
+	if (xziel_attack_command_down && now >= xziel_attack_release_ms) {
+		Cbuf_AddText("-attack\n");
+		xziel_attack_command_down = false;
+		changed = true;
+	}
+	if (!xziel_attack_command_down && now >= xziel_attack_next_ms) {
+		Cbuf_AddText("+attack\n");
+		xziel_attack_command_down = true;
+		xziel_attack_release_ms = now + 42;
+		xziel_attack_next_ms =
+			now + (Uint32)fmaxf(120.0f, xziel_mobile_autofire_ms.value);
+		changed = true;
+	}
+	if (changed)
+		Cbuf_Execute();
+}'''
+text = xziel_replace_c_function(
+    text,
+    "static void Xziel_UpdateMobileFire(void)",
+    update_fire
+)
+
+# Release mode now delays aim-out until the actual held FIRE pulse completes.
+action_up = r'''static void Xziel_ActionUp(xziel_touch_role_t role)
+{
+	switch (role) {
+	case XZ_TOUCH_FIRE:
+		xziel_mobile_fire_pressed = false;
+		Xziel_SetAttackRef(false);
+		break;
+
+	case XZ_TOUCH_ADSFIRE:
+		xziel_mobile_adsfire_pressed = false;
+
+		if (xziel_adsfire_release_pending && !xziel_adsfire_cancelled) {
+			if (!Xziel_WeaponCanAdsMobile() ||
+				xziel_adsfire_ads_seen ||
+				Xziel_AdsReadyForFire()) {
+				/* Do NOT aim out here. Xziel_UpdateMobileFire releases FIRE
+				   after 90 ms, then releases temporary ADS. */
+				Xziel_PulseAttackNow();
+			} else {
+				/* Early release before native ADS became ready = cancel. */
+				Xziel_FinishTemporaryAdsFireAim();
+			}
+			xziel_adsfire_release_pending = false;
+			xziel_adsfire_release_requested = false;
+		} else {
+			if (xziel_adsfire_attack_engaged) {
+				Xziel_SetAttackRef(false);
+				xziel_adsfire_attack_engaged = false;
+			}
+			if (!xziel_release_shot_active)
+				Xziel_FinishTemporaryAdsFireAim();
+			xziel_adsfire_release_pending = false;
+			xziel_adsfire_release_requested = false;
+		}
+
+		xziel_adsfire_ads_seen = false;
+		xziel_adsfire_cancelled = false;
+		break;
+
+	case XZ_TOUCH_ADS:
+		xziel_mobile_ads_pressed = false;
+		if (xziel_mobile_ads_toggle.value < 0.5f) {
+			Xziel_QueueHold("+aim\n", "-aim\n", &xziel_aim_refs, false);
+			Cbuf_Execute();
+		}
+		break;
+
+	case XZ_TOUCH_RELOAD:
+		xziel_mobile_reload_pressed = false;
+		Cbuf_AddText("-reload\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_USE:
+		xziel_mobile_use_pressed = false;
+		if (!xziel_auto_rebuild_use_down) {
+			Cbuf_AddText("-use\n");
+			Cbuf_Execute();
+		}
+		break;
+
+	case XZ_TOUCH_JUMP:
+		xziel_mobile_jump_pressed = false;
+		Cbuf_AddText("-jump\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_KNIFE:
+		xziel_mobile_knife_pressed = false;
+		Cbuf_AddText("-knife\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_GRENADE:
+		xziel_mobile_grenade_pressed = false;
+		xziel_mobile_grenade_pending = false;
+		xziel_mobile_grenade_cooking = false;
+		xziel_mobile_grenade_seconds_left = 0.0f;
+		Cbuf_AddText("-grenade\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_SWITCH:
+		xziel_mobile_switch_pressed = false;
+		Cbuf_AddText("-switch\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_PAUSE:
+		break;
+
+	default:
+		break;
+	}
+}'''
+text = xziel_replace_c_function(
+    text,
+    "static void Xziel_ActionUp(xziel_touch_role_t role)",
+    action_up
+)
+
+# Start grenade cook tracking only when the button is actually pressed.
+action_down = r'''static void Xziel_ActionDown(xziel_touch_role_t role)
+{
+	switch (role) {
+	case XZ_TOUCH_FIRE:
+		xziel_mobile_fire_pressed = true;
+		Xziel_StopSprintForAction();
+		Xziel_SetAttackRef(true);
+		break;
+
+	case XZ_TOUCH_ADSFIRE:
+		xziel_mobile_adsfire_pressed = true;
+		xziel_adsfire_cancelled = false;
+		xziel_adsfire_attack_engaged = false;
+		xziel_adsfire_release_requested = false;
+		xziel_adsfire_release_pending = Xziel_AdsFireReleaseWeapon();
+		xziel_adsfire_temp_aim = false;
+		xziel_adsfire_ads_seen = false;
+
+		Xziel_StopSprintForAction();
+
+		if (Xziel_WeaponCanAdsMobile()) {
+			if (!xziel_mobile_ads_latched) {
+				Xziel_QueueHold("+aim\n", "-aim\n", &xziel_aim_refs, true);
+				xziel_adsfire_temp_aim = true;
+				Cbuf_Execute();
+			}
+
+			if (Xziel_AdsReadyForFire())
+				xziel_adsfire_ads_seen = true;
+
+			if (!xziel_adsfire_release_pending &&
+				(xziel_mobile_ads_latched || Xziel_AdsReadyForFire())) {
+				Xziel_SetAttackRef(true);
+				xziel_adsfire_attack_engaged = true;
+			}
+		} else {
+			if (!xziel_adsfire_release_pending) {
+				Xziel_SetAttackRef(true);
+				xziel_adsfire_attack_engaged = true;
+			}
+		}
+		break;
+
+	case XZ_TOUCH_ADS:
+		xziel_mobile_ads_pressed = true;
+		xziel_mobile_restore_ads_after_reload = false;
+		xziel_mobile_reload_animation_seen = false;
+		Xziel_StopSprintForAction();
+		if (xziel_mobile_ads_toggle.value >= 0.5f) {
+			xziel_mobile_ads_latched = !xziel_mobile_ads_latched;
+			Cbuf_AddText("impulse 26\n");
+		} else {
+			xziel_mobile_ads_latched = false;
+			Xziel_QueueHold("+aim\n", "-aim\n", &xziel_aim_refs, true);
+		}
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_RELOAD:
+		xziel_mobile_reload_pressed = true;
+		xziel_mobile_restore_ads_after_reload =
+			(xziel_mobile_ads_toggle.value >= 0.5f && xziel_mobile_ads_latched);
+		xziel_mobile_reload_animation_seen = false;
+		xziel_mobile_reload_start_frame = cl.stats[STAT_WEAPONFRAME];
+		Cbuf_AddText("+reload\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_USE:
+		xziel_mobile_use_pressed = true;
+		if (!xziel_auto_rebuild_use_down) {
+			Cbuf_AddText("+use\n");
+			Cbuf_Execute();
+		}
+		break;
+
+	case XZ_TOUCH_JUMP:
+		xziel_mobile_jump_pressed = true;
+		Cbuf_AddText("+jump\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_KNIFE:
+		xziel_mobile_knife_pressed = true;
+		Xziel_StopSprintForAction();
+		Cbuf_AddText("+knife\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_GRENADE:
+		xziel_mobile_grenade_pressed = true;
+		xziel_mobile_grenade_pending = true;
+		xziel_mobile_grenade_cooking = false;
+		xziel_mobile_grenade_seconds_left = 5.0f;
+		xziel_mobile_grenade_press_ms = SDL_GetTicks();
+		xziel_mobile_grenade_count_before =
+			(sv_player && sv.active) ? (int)sv_player->v.primary_grenades :
+			(int)cl.stats[STAT_GRENADES];
+		Xziel_StopSprintForAction();
+		Cbuf_AddText("+grenade\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_SWITCH:
+		xziel_mobile_switch_pressed = true;
+		if (xziel_adsfire_release_pending || xziel_adsfire_release_requested)
+			Xziel_CancelAdsFireForSprint();
+		Cbuf_AddText("+switch\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_PAUSE:
+		Menu_Pause_Set();
+		break;
+
+	default:
+		break;
+	}
+}'''
+text = xziel_replace_c_function(
+    text,
+    "static void Xziel_ActionDown(xziel_touch_role_t role)",
+    action_down
+)
+
+# Grenade cook updater: confirm that native W_Grenade actually consumed a frag
+# before showing the timer. This avoids fake countdowns when grenade use is
+# rejected (no grenades, ADS, animation lock, etc.).
+grenade_update = r'''
+static void Xziel_UpdateGrenadeCook(void)
+{
+	Uint32 now = SDL_GetTicks();
+	int current_count;
+
+	if (!xziel_mobile_grenade_pressed) {
+		xziel_mobile_grenade_pending = false;
+		xziel_mobile_grenade_cooking = false;
+		xziel_mobile_grenade_seconds_left = 0.0f;
+		return;
+	}
+
+	current_count = (sv_player && sv.active) ?
+		(int)sv_player->v.primary_grenades :
+		(int)cl.stats[STAT_GRENADES];
+
+	if (xziel_mobile_grenade_pending) {
+		if (current_count < xziel_mobile_grenade_count_before) {
+			xziel_mobile_grenade_pending = false;
+			xziel_mobile_grenade_cooking = true;
+		} else if (now - xziel_mobile_grenade_press_ms > 350) {
+			/* Native grenade action never started. */
+			xziel_mobile_grenade_pending = false;
+			xziel_mobile_grenade_cooking = false;
+			xziel_mobile_grenade_seconds_left = 0.0f;
+			return;
+		}
+	}
+
+	if (xziel_mobile_grenade_cooking) {
+		float elapsed = (float)(now - xziel_mobile_grenade_press_ms) / 1000.0f;
+		xziel_mobile_grenade_seconds_left = 5.0f - elapsed;
+		if (xziel_mobile_grenade_seconds_left < 0.0f)
+			xziel_mobile_grenade_seconds_left = 0.0f;
+	}
+}
+'''
+if "static void Xziel_UpdateGrenadeCook(void)" not in text:
+    anchor = "static void Xziel_UpdateAutoKnife(void)\n"
+    idx = text.find(anchor)
+    if idx < 0:
+        raise SystemExit("Could not find auto knife updater for grenade cook insertion")
+    text = text[:idx] + grenade_update + "\n" + text[idx:]
+
+pump_anchor = """	Xziel_UpdateMobileFire();
+	Xziel_UpdateAutoRebuild();
+	Xziel_UpdateAutoKnife();
+	Xziel_UpdateReloadAdsRestore();
+"""
+pump_repl = """	Xziel_UpdateMobileFire();
+	Xziel_UpdateAutoRebuild();
+	Xziel_UpdateAutoKnife();
+	Xziel_UpdateGrenadeCook();
+	Xziel_UpdateReloadAdsRestore();
+"""
+if "Xziel_UpdateGrenadeCook();" not in text:
+    if pump_anchor not in text:
+        raise SystemExit("Could not find v0.12 mobile updater pump")
+    text = text.replace(pump_anchor, pump_repl, 1)
+
+# Cancellation/reset covers any in-flight release shot and grenade timer.
+release_all = r'''static void Xziel_ReleaseAllTouches(void)
+{
+	int i;
+	for (i = 0; i < XZIEL_MAX_TOUCHES; ++i) {
+		if (!xziel_touches[i].active)
+			continue;
+		if (!xziel_touches[i].editor_drag)
+			Xziel_ActionUp(xziel_touches[i].role);
+		xziel_touches[i].active = false;
+	}
+	xziel_mobile_move_active = false;
+	xziel_mobile_move_x = 0.0f;
+	xziel_mobile_move_y = 0.0f;
+	xziel_mobile_sprint_zone_hot = false;
+	xziel_mobile_sprint_suppressed = false;
+	xziel_mobile_sprint_active = false;
+	xziel_mobile_sprint_retry_ms = 0;
+
+	if (xziel_release_shot_active) {
+		Xziel_SetAttackRef(false);
+		xziel_release_shot_active = false;
+		xziel_release_shot_aimout_pending = false;
+	}
+	if (xziel_attack_command_down) {
+		Cbuf_AddText("-attack\n");
+		xziel_attack_command_down = false;
+	}
+	if (xziel_auto_knife_down) {
+		Cbuf_AddText("-knife\n");
+		xziel_auto_knife_down = false;
+	}
+
+	xziel_mobile_grenade_pressed = false;
+	xziel_mobile_grenade_pending = false;
+	xziel_mobile_grenade_cooking = false;
+	xziel_mobile_grenade_seconds_left = 0.0f;
+
+	xziel_attack_refs = 0;
+	if (xziel_aim_refs > 0)
+		Cbuf_AddText("-aim\n");
+	xziel_aim_refs = 0;
+
+	xziel_adsfire_attack_engaged = false;
+	xziel_adsfire_release_pending = false;
+	xziel_adsfire_release_requested = false;
+	xziel_adsfire_temp_aim = false;
+	xziel_adsfire_ads_seen = false;
+	xziel_adsfire_cancelled = false;
+	xziel_mobile_restore_ads_after_reload = false;
+	xziel_mobile_reload_animation_seen = false;
+	xziel_menu_touch_active = false;
+	xziel_menu_touch_state = -1;
+	Cbuf_Execute();
+}'''
+text = xziel_replace_c_function(
+    text,
+    "static void Xziel_ReleaseAllTouches(void)",
+    release_all
+)
+
+sys_sdl.write_text(text, encoding="utf-8")
+
+# ---- HUD: compact cook timer beside NADE, only while held ------------------
+hud = source / "render" / "r_hud.c"
+htext = hud.read_text(encoding="utf-8")
+
+grenade_hud_extern_anchor = "extern qboolean xziel_mobile_grenade_pressed;\n"
+grenade_hud_externs = """extern qboolean xziel_mobile_grenade_cooking;
+extern float xziel_mobile_grenade_seconds_left;
+"""
+if "extern qboolean xziel_mobile_grenade_cooking;" not in htext:
+    if grenade_hud_extern_anchor not in htext:
+        raise SystemExit("Could not find grenade HUD extern state")
+    htext = htext.replace(
+        grenade_hud_extern_anchor,
+        grenade_hud_extern_anchor + grenade_hud_externs,
+        1
+    )
+
+fuse_helper = r'''
+static void Xziel_DrawGrenadeFuseIndicator(void)
+{
+	char timer_text[16];
+	int cx, cy, w, bar_w, fill_w;
+	float left, fraction;
+	int r = 255, g = 255, b = 255;
+
+	if (!xziel_mobile_grenade_cooking || !xziel_mobile_grenade_pressed)
+		return;
+
+	left = xziel_mobile_grenade_seconds_left;
+	if (left < 0.0f) left = 0.0f;
+	if (left > 5.0f) left = 5.0f;
+	fraction = left / 5.0f;
+
+	cx = (int)(xziel_hud_grenade_x.value * vid.width);
+	cy = (int)(xziel_hud_grenade_y.value * vid.height);
+	bar_w = (int)(42.0f * vid.scale * xziel_mobile_hud_scale.value);
+	if (bar_w < 24) bar_w = 24;
+	fill_w = (int)(bar_w * fraction);
+
+	if (left <= 1.0f) {
+		r = 255; g = 70; b = 70;
+	} else if (left <= 2.0f) {
+		r = 255; g = 210; b = 70;
+	}
+
+	snprintf(timer_text, sizeof(timer_text), "%.1f", (double)left);
+	w = getTextWidth(timer_text, vid.scale * 0.72f);
+
+	/* Tiny readout + 2px fuse bar directly above NADE. No center-screen UI. */
+	Draw_ColoredString(cx - w / 2, cy - (int)(38 * vid.scale),
+		timer_text, r, g, b, 235, vid.scale * 0.72f);
+	Draw_FillByColor(cx - bar_w / 2, cy - (int)(28 * vid.scale),
+		bar_w, (int)fmaxf(2.0f, 2.0f * vid.scale),
+		20, 20, 20, 150);
+	if (fill_w > 0)
+		Draw_FillByColor(cx - bar_w / 2, cy - (int)(28 * vid.scale),
+			fill_w, (int)fmaxf(2.0f, 2.0f * vid.scale),
+			r, g, b, 220);
+}
+'''
+if "static void Xziel_DrawGrenadeFuseIndicator(void)" not in htext:
+    anchor = "static void Xziel_MobileHUD_DrawInternal(qboolean editor)\n"
+    idx = htext.find(anchor)
+    if idx < 0:
+        raise SystemExit("Could not find mobile HUD renderer for fuse helper")
+    htext = htext[:idx] + fuse_helper + "\n" + htext[idx:]
+
+# Draw after the grenade button so timer is always readable above it.
+nade_draw = '\tXziel_DrawTouchButton(xziel_hud_grenade_x.value, xziel_hud_grenade_y.value, 0.041f, "NADE", "", xziel_mobile_grenade_pressed);\n'
+if "Xziel_DrawGrenadeFuseIndicator();" not in htext:
+    if nade_draw not in htext:
+        raise SystemExit("Could not find NADE draw line for fuse indicator")
+    htext = htext.replace(
+        nade_draw,
+        nade_draw + "\tif (!editor) Xziel_DrawGrenadeFuseIndicator();\n",
+        1
+    )
+
+hud.write_text(htext, encoding="utf-8")
+
+# ---- Aim & Touch descriptions: explain universal behavior succinctly -------
+controls = source / "menu" / "menu_controls.c"
+mtext = controls.read_text(encoding="utf-8")
+mtext = mtext.replace(
+    '"Dedicated ADS button: Hold or Toggle."',
+    '"Dedicated ADS control. ADS+FIRE automatically uses each weapon native trigger."'
+)
+mtext = mtext.replace(
+    '"Delay between mobile trigger taps for native semi-auto pistols."',
+    '"Repeat-fire speed for semi-auto pistols on FIRE and ADS+FIRE."'
+)
+controls.write_text(mtext, encoding="utf-8")
