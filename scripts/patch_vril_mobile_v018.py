@@ -649,7 +649,7 @@ weapon_strip = r'''static void Xziel_DrawWeaponStrip(qboolean editor)
 	c[1].x=xziel_hud_weapon2_x.value; c[1].y=xziel_hud_weapon2_y.value; c[1].s=xziel_hud_weapon2_scale.value; c[1].o=xziel_hud_weapon2_opacity.value;
 	c[1].weapon=cl.stats[STAT_XZIEL_W2]; c[1].mag=cl.stats[STAT_XZIEL_W2MAG]; c[1].reserve=cl.stats[STAT_XZIEL_W2RES]; c[1].name="WEAPON 2"; c[1].active=false;
 	c[2].x=xziel_hud_pistol_x.value; c[2].y=xziel_hud_pistol_y.value; c[2].s=xziel_hud_pistol_scale.value; c[2].o=xziel_hud_pistol_opacity.value;
-	c[2].weapon=cl.stats[STAT_XZIEL_W3]; c[2].mag=cl.stats[STAT_XZIEL_W3MAG]; c[2].reserve=cl.stats[STAT_XZIEL_W3RES]; c[2].name="PISTOLS"; c[2].active=false;
+	c[2].weapon=cl.stats[STAT_XZIEL_W3]; c[2].mag=cl.stats[STAT_XZIEL_W3MAG]; c[2].reserve=cl.stats[STAT_XZIEL_W3RES]; c[2].name="WEAPON 3"; c[2].active=false;
 	for (int i=0;i<3;i++) {
 		int w = (int)((i==0 ? 96 : 78) * vid.scale * c[i].s);
 		int h = (int)((i==0 ? 54 : 48) * vid.scale * c[i].s);
@@ -756,7 +756,7 @@ draw_editor = r'''void Menu_HudEdit_Draw(void)
 	case 11: name="PAUSE"; break;
 	case 12: name="GRENADE"; break;
 	case 13: name="WEAPON 2"; break;
-	case 14: name="PISTOLS"; break;
+	case 14: name="WEAPON 3"; break;
 	case 15: name="WEAPON 1"; break;
 	default: break;
 	}
