@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(game-activity REQUIRED CONFIG)
+find_package(games-frame-pacing REQUIRED CONFIG)
 
 set(XZIEL_ENGINE_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 add_subdirectory(
@@ -39,6 +40,7 @@ target_link_libraries(xziel-native
     PRIVATE
         xziel_engine
         game-activity::game-activity_static
+        games-frame-pacing::swappy_static
         android
         log
         vulkan
