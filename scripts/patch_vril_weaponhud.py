@@ -537,6 +537,18 @@ if "static void Xziel_DrawWeaponStrip(qboolean editor)" not in text:
         raise SystemExit("Could not find mobile HUD renderer for weapon strip")
     text = text[:idx] + glyph_code + "\n" + text[idx:]
 
+# DrawTouchButton is physically earlier in r_hud.c than the v0.17 helper body.
+touch_proto_anchor = "static void Xziel_DrawTouchButton(float nx, float ny, float radius_h,\n"
+if "static qboolean Xziel_DrawActionGlyph(int cx, int cy, int radius," not in text[:text.find(touch_proto_anchor)]:
+    pidx = text.find(touch_proto_anchor)
+    if pidx < 0:
+        raise SystemExit("Could not find touch-button prototype insertion point")
+    touch_proto = """static qboolean Xziel_DrawActionGlyph(int cx, int cy, int radius,
+    const char *label1, const char *label2, qboolean pressed);
+
+"""
+    text = text[:pidx] + touch_proto + text[pidx:]
+
 touch_button = r'''static void Xziel_DrawTouchButton(float nx, float ny, float radius_h,
     const char *label1, const char *label2, qboolean pressed)
 {
