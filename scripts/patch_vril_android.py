@@ -6790,3 +6790,356 @@ mtext = mtext.replace(
     '"Repeat-fire speed for semi-auto pistols on FIRE and ADS+FIRE."'
 )
 controls.write_text(mtext, encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# Xziel Android CODM-like marksman sticky ADS pass v0.13
+# Semi-auto / PRESS-mode marksman rifles remain ADS after a shot so repeated
+# ADS+FIRE presses shoot immediately without replaying ADS in/out every shot.
+# AUTO BY WEAPON keeps bolt marksman on RELEASE behavior.
+# ---------------------------------------------------------------------------
+
+sys_sdl = source / "platform" / "sdl" / "sys_sdl.c"
+text = sys_sdl.read_text(encoding="utf-8")
+
+sticky_anchor = "static Uint32 xziel_release_shot_release_ms = 0;\n"
+if "xziel_marksman_sticky_ads" not in text:
+    if sticky_anchor not in text:
+        raise SystemExit("Could not find release-shot state for marksman sticky ADS")
+    text = text.replace(
+        sticky_anchor,
+        sticky_anchor + "static qboolean xziel_marksman_sticky_ads = false;\n",
+        1
+    )
+
+sticky_helpers = r'''
+static qboolean Xziel_ShouldKeepMarksmanAds(void)
+{
+	/* COD Mobile-style marksman behavior: PRESS-mode marksman rifles stay ADS
+	   after the shot so the next trigger press fires from the existing sight
+	   picture. AUTO BY WEAPON still maps bolt marksman rifles to RELEASE. */
+	return Xziel_IsMarksmanMobile() && !Xziel_AdsFireReleaseWeapon();
+}
+
+static void Xziel_CommitMarksmanStickyAds(void)
+{
+	if (!Xziel_ShouldKeepMarksmanAds() ||
+		xziel_mobile_ads_latched ||
+		!xziel_adsfire_temp_aim)
+		return;
+
+	/* The ADS hold that began as a temporary ADS+FIRE hold becomes persistent
+	   only once a real shot has actually been engaged. Early-release cancel
+	   therefore still works before ADS is ready. */
+	xziel_marksman_sticky_ads = true;
+	xziel_adsfire_temp_aim = false;
+}
+
+static void Xziel_ClearMarksmanStickyAds(void)
+{
+	if (!xziel_marksman_sticky_ads)
+		return;
+
+	Xziel_QueueHold("+aim\n", "-aim\n", &xziel_aim_refs, false);
+	xziel_marksman_sticky_ads = false;
+	Cbuf_Execute();
+}
+'''
+if "static qboolean Xziel_ShouldKeepMarksmanAds(void)" not in text:
+    anchor = "static void Xziel_PulseAttackNow(void)\n"
+    idx = text.find(anchor)
+    if idx < 0:
+        raise SystemExit("Could not find release-shot helper insertion point for marksman ADS")
+    text = text[:idx] + sticky_helpers + "\n" + text[idx:]
+
+update_fire = r'''static void Xziel_UpdateMobileFire(void)
+{
+	Uint32 now = SDL_GetTicks();
+	qboolean changed = false;
+
+	/* Safety: weapon switches or scripted weapon changes must never leave an
+	   orphan marksman ADS hold behind. */
+	if (xziel_marksman_sticky_ads && !Xziel_IsMarksmanMobile())
+		Xziel_ClearMarksmanStickyAds();
+
+	/* Finish a release-to-fire pulse only after it has lived across real input
+	   frames. Keep temporary ADS held until after FIRE is released so the
+	   server receives ADS + FIRE together for the shot. */
+	if (xziel_release_shot_active && now >= xziel_release_shot_release_ms) {
+		Xziel_SetAttackRef(false);
+		xziel_release_shot_active = false;
+		if (xziel_release_shot_aimout_pending) {
+			xziel_release_shot_aimout_pending = false;
+			Xziel_FinishTemporaryAdsFireAim();
+		}
+	}
+
+	if (xziel_mobile_adsfire_pressed &&
+		!xziel_adsfire_cancelled &&
+		Xziel_WeaponCanAdsMobile() &&
+		Xziel_AdsReadyForFire())
+		xziel_adsfire_ads_seen = true;
+
+	/* PRESS behavior is universal: ADS-capable weapons establish native ADS
+	   first, then use the exact same trigger path as the normal FIRE button. */
+	if ((xziel_mobile_adsfire_pressed || xziel_adsfire_release_requested) &&
+		!xziel_adsfire_cancelled &&
+		!xziel_release_shot_active) {
+		if (!xziel_adsfire_release_pending &&
+			!xziel_adsfire_attack_engaged) {
+			if (!Xziel_WeaponCanAdsMobile() || Xziel_AdsReadyForFire()) {
+				Xziel_SetAttackRef(true);
+				xziel_adsfire_attack_engaged = true;
+				Xziel_CommitMarksmanStickyAds();
+			}
+		}
+	}
+
+	if (xziel_attack_refs <= 0) {
+		if (xziel_attack_command_down) {
+			Cbuf_AddText("-attack\n");
+			xziel_attack_command_down = false;
+			changed = true;
+		}
+		if (changed)
+			Cbuf_Execute();
+		return;
+	}
+
+	if (!Xziel_IsAutoTapPistol())
+		return;
+
+	if (xziel_attack_command_down && now >= xziel_attack_release_ms) {
+		Cbuf_AddText("-attack\n");
+		xziel_attack_command_down = false;
+		changed = true;
+	}
+	if (!xziel_attack_command_down && now >= xziel_attack_next_ms) {
+		Cbuf_AddText("+attack\n");
+		xziel_attack_command_down = true;
+		xziel_attack_release_ms = now + 42;
+		xziel_attack_next_ms =
+			now + (Uint32)fmaxf(120.0f, xziel_mobile_autofire_ms.value);
+		changed = true;
+	}
+	if (changed)
+		Cbuf_Execute();
+}'''
+text = xziel_replace_c_function(
+    text,
+    "static void Xziel_UpdateMobileFire(void)",
+    update_fire
+)
+
+action_down = r'''static void Xziel_ActionDown(xziel_touch_role_t role)
+{
+	switch (role) {
+	case XZ_TOUCH_FIRE:
+		xziel_mobile_fire_pressed = true;
+		Xziel_StopSprintForAction();
+		Xziel_SetAttackRef(true);
+		break;
+
+	case XZ_TOUCH_ADSFIRE:
+		xziel_mobile_adsfire_pressed = true;
+		xziel_adsfire_cancelled = false;
+		xziel_adsfire_attack_engaged = false;
+		xziel_adsfire_release_requested = false;
+		xziel_adsfire_release_pending = Xziel_AdsFireReleaseWeapon();
+		xziel_adsfire_temp_aim = false;
+		xziel_adsfire_ads_seen = false;
+
+		Xziel_StopSprintForAction();
+
+		if (Xziel_WeaponCanAdsMobile()) {
+			/* A marksman rifle that already committed sticky ADS reuses that
+			   native +aim hold. Do not stack another aim reference. */
+			if (!xziel_mobile_ads_latched && !xziel_marksman_sticky_ads) {
+				Xziel_QueueHold("+aim\n", "-aim\n", &xziel_aim_refs, true);
+				xziel_adsfire_temp_aim = true;
+				Cbuf_Execute();
+			}
+
+			if (Xziel_AdsReadyForFire())
+				xziel_adsfire_ads_seen = true;
+
+			if (!xziel_adsfire_release_pending &&
+				(xziel_mobile_ads_latched ||
+				 xziel_marksman_sticky_ads ||
+				 Xziel_AdsReadyForFire())) {
+				Xziel_SetAttackRef(true);
+				xziel_adsfire_attack_engaged = true;
+				Xziel_CommitMarksmanStickyAds();
+			}
+		} else {
+			if (!xziel_adsfire_release_pending) {
+				Xziel_SetAttackRef(true);
+				xziel_adsfire_attack_engaged = true;
+			}
+		}
+		break;
+
+	case XZ_TOUCH_ADS:
+		xziel_mobile_ads_pressed = true;
+		xziel_mobile_restore_ads_after_reload = false;
+		xziel_mobile_reload_animation_seen = false;
+
+		/* When a marksman is sticky-ADS, the normal ADS button becomes the
+		   explicit cancel/unscope control, matching CODM's sticky marksman
+		   sight behavior. */
+		if (xziel_marksman_sticky_ads) {
+			Xziel_ClearMarksmanStickyAds();
+			break;
+		}
+
+		Xziel_StopSprintForAction();
+		if (xziel_mobile_ads_toggle.value >= 0.5f) {
+			xziel_mobile_ads_latched = !xziel_mobile_ads_latched;
+			Cbuf_AddText("impulse 26\n");
+		} else {
+			xziel_mobile_ads_latched = false;
+			Xziel_QueueHold("+aim\n", "-aim\n", &xziel_aim_refs, true);
+		}
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_RELOAD:
+		xziel_mobile_reload_pressed = true;
+		xziel_mobile_restore_ads_after_reload =
+			(xziel_mobile_ads_toggle.value >= 0.5f && xziel_mobile_ads_latched);
+		xziel_mobile_reload_animation_seen = false;
+		xziel_mobile_reload_start_frame = cl.stats[STAT_WEAPONFRAME];
+		Cbuf_AddText("+reload\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_USE:
+		xziel_mobile_use_pressed = true;
+		if (!xziel_auto_rebuild_use_down) {
+			Cbuf_AddText("+use\n");
+			Cbuf_Execute();
+		}
+		break;
+
+	case XZ_TOUCH_JUMP:
+		xziel_mobile_jump_pressed = true;
+		Cbuf_AddText("+jump\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_KNIFE:
+		xziel_mobile_knife_pressed = true;
+		Xziel_StopSprintForAction();
+		Cbuf_AddText("+knife\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_GRENADE:
+		/* Native grenade use rejects while zoomed, so explicitly leave sticky
+		   marksman ADS before starting the grenade action. */
+		Xziel_ClearMarksmanStickyAds();
+		xziel_mobile_grenade_pressed = true;
+		xziel_mobile_grenade_pending = true;
+		xziel_mobile_grenade_cooking = false;
+		xziel_mobile_grenade_seconds_left = 5.0f;
+		xziel_mobile_grenade_press_ms = SDL_GetTicks();
+		xziel_mobile_grenade_count_before =
+			(sv_player && sv.active) ? (int)sv_player->v.primary_grenades :
+			(int)cl.stats[STAT_GRENADES];
+		Xziel_StopSprintForAction();
+		Cbuf_AddText("+grenade\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_SWITCH:
+		xziel_mobile_switch_pressed = true;
+		Xziel_ClearMarksmanStickyAds();
+		if (xziel_adsfire_release_pending || xziel_adsfire_release_requested)
+			Xziel_CancelAdsFireForSprint();
+		Cbuf_AddText("+switch\n");
+		Cbuf_Execute();
+		break;
+
+	case XZ_TOUCH_PAUSE:
+		Menu_Pause_Set();
+		break;
+
+	default:
+		break;
+	}
+}'''
+text = xziel_replace_c_function(
+    text,
+    "static void Xziel_ActionDown(xziel_touch_role_t role)",
+    action_down
+)
+
+# Sprint cancellation must also release marksman sticky ADS.
+cancel_ads = r'''static void Xziel_CancelAdsFireForSprint(void)
+{
+	if (xziel_adsfire_attack_engaged) {
+		Xziel_SetAttackRef(false);
+		xziel_adsfire_attack_engaged = false;
+	}
+
+	xziel_adsfire_release_pending = false;
+	xziel_adsfire_release_requested = false;
+	xziel_adsfire_ads_seen = false;
+	xziel_adsfire_cancelled = true;
+	Xziel_FinishTemporaryAdsFireAim();
+	Xziel_ClearMarksmanStickyAds();
+
+	if (xziel_mobile_ads_latched) {
+		Cbuf_AddText("impulse 26\n");
+		Cbuf_Execute();
+		xziel_mobile_ads_latched = false;
+	}
+	xziel_mobile_restore_ads_after_reload = false;
+}'''
+text = xziel_replace_c_function(
+    text,
+    "static void Xziel_CancelAdsFireForSprint(void)",
+    cancel_ads
+)
+
+# The sprint-zone gate must notice sticky marksman ADS as an ADS state that
+# needs cancellation before native sprint can begin.
+move_old = """				xziel_adsfire_temp_aim ||
+				xziel_mobile_ads_latched)
+				Xziel_CancelAdsFireForSprint();"""
+move_new = """				xziel_adsfire_temp_aim ||
+				xziel_marksman_sticky_ads ||
+				xziel_mobile_ads_latched)
+				Xziel_CancelAdsFireForSprint();"""
+if move_old in text:
+    text = text.replace(move_old, move_new, 1)
+elif "xziel_marksman_sticky_ads ||\n\t\t\t\txziel_mobile_ads_latched" not in text:
+    raise SystemExit("Could not find sprint ADS cancellation gate for marksman sticky ADS")
+
+# Reset sticky state whenever all touch state is force-released.
+release_tail = """	xziel_adsfire_temp_aim = false;
+	xziel_adsfire_ads_seen = false;
+	xziel_adsfire_cancelled = false;"""
+release_tail_new = """	xziel_adsfire_temp_aim = false;
+	xziel_adsfire_ads_seen = false;
+	xziel_marksman_sticky_ads = false;
+	xziel_adsfire_cancelled = false;"""
+if release_tail in text:
+    text = text.replace(release_tail, release_tail_new, 1)
+elif "xziel_marksman_sticky_ads = false;" not in text[text.find("static void Xziel_ReleaseAllTouches"):]:
+    raise SystemExit("Could not find touch reset tail for marksman sticky ADS")
+
+sys_sdl.write_text(text, encoding="utf-8")
+
+# Menu copy: explain the actual AUTO BY WEAPON marksman behavior.
+controls = source / "menu" / "menu_controls.c"
+mtext = controls.read_text(encoding="utf-8")
+mtext = mtext.replace(
+    '"AUTO BY WEAPON: bolt rifles release; semi-auto rifles press."',
+    '"AUTO BY WEAPON: semi-auto marksman stay ADS for repeat shots; bolt rifles use release-fire."'
+)
+mtext = mtext.replace(
+    '"AUTO BY WEAPON: bolt marksman release; semi-auto marksman press."',
+    '"AUTO BY WEAPON: semi-auto marksman stay ADS for repeat shots; bolt rifles use release-fire."'
+)
+controls.write_text(mtext, encoding="utf-8")
