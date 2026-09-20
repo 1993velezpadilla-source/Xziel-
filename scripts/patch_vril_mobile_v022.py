@@ -734,3 +734,202 @@ text = text.replace(
 controls.write_text(text, encoding="utf-8")
 
 print("Applied Xziel v0.22 Vril mobile polish.")
+
+
+# ===========================================================================
+# v0.23 final pass: COD-style Track Fire + live minimap foundation
+# ===========================================================================
+# Persistent settings.
+inp = source / "input.c"
+text = inp.read_text(encoding="utf-8")
+cvar_anchor = 'cvar_t xziel_modern_zombies = {"xziel_modern_zombies", "1", true};\n'
+v23_cvars = r'''cvar_t xziel_mobile_track_fire = {"xziel_mobile_track_fire", "1", true};
+cvar_t xziel_mobile_fire_camera_rotation = {"xziel_mobile_fire_camera_rotation", "1", true};
+cvar_t xziel_mobile_minimap = {"xziel_mobile_minimap", "1", true};
+cvar_t xziel_mobile_minimap_range = {"xziel_mobile_minimap_range", "950", true};
+cvar_t xziel_hud_minimap_x = {"xziel_hud_minimap_x", "0.915", true};
+cvar_t xziel_hud_minimap_y = {"xziel_hud_minimap_y", "0.155", true};
+cvar_t xziel_hud_minimap_scale = {"xziel_hud_minimap_scale", "1.00", true};
+cvar_t xziel_hud_minimap_opacity = {"xziel_hud_minimap_opacity", "0.88", true};
+'''
+if "xziel_mobile_track_fire" not in text:
+    text = add_after(text, cvar_anchor, v23_cvars, "v0.23 cvars")
+
+reg_anchor = "\tCvar_RegisterVariable(&xziel_modern_zombies);\n"
+v23_regs = r'''\tCvar_RegisterVariable(&xziel_mobile_track_fire);
+\tCvar_RegisterVariable(&xziel_mobile_fire_camera_rotation);
+\tCvar_RegisterVariable(&xziel_mobile_minimap);
+\tCvar_RegisterVariable(&xziel_mobile_minimap_range);
+\tCvar_RegisterVariable(&xziel_hud_minimap_x);
+\tCvar_RegisterVariable(&xziel_hud_minimap_y);
+\tCvar_RegisterVariable(&xziel_hud_minimap_scale);
+\tCvar_RegisterVariable(&xziel_hud_minimap_opacity);
+'''
+if "Cvar_RegisterVariable(&xziel_mobile_track_fire);" not in text:
+    text = add_after(text, reg_anchor, v23_regs, "v0.23 cvar registration")
+inp.write_text(text, encoding="utf-8")
+
+# Touch runtime. Keep the existing relative-delta aiming model, but expose the
+# two COD-style concepts separately: Track/Fixed visual behavior and whether
+# R-Fire is allowed to rotate the camera.
+sdl = source / "platform" / "sdl" / "sys_sdl.c"
+text = sdl.read_text(encoding="utf-8")
+
+ext_anchor = "extern cvar_t xziel_mobile_ads_move_sensitivity;\n"
+v23_exts = r'''extern cvar_t xziel_mobile_track_fire;
+extern cvar_t xziel_mobile_fire_camera_rotation;
+extern cvar_t xziel_mobile_minimap;
+extern cvar_t xziel_mobile_minimap_range;
+extern cvar_t xziel_hud_minimap_x;
+extern cvar_t xziel_hud_minimap_y;
+extern cvar_t xziel_hud_minimap_scale;
+extern cvar_t xziel_hud_minimap_opacity;
+'''
+if "extern cvar_t xziel_mobile_track_fire;" not in text:
+    text = add_after(text, ext_anchor, v23_exts, "v0.23 SDL externs")
+
+# Append one editor-only role after SLIDE, preserving all established role IDs.
+if "XZ_TOUCH_MINIMAP" not in text:
+    enum_end = text.find("} xziel_touch_role_t;")
+    if enum_end < 0:
+        raise SystemExit("Could not find touch role enum for minimap")
+    prefix = text[:enum_end].rstrip()
+    if not prefix.endswith(","):
+        prefix += ","
+    text = prefix + "\n\tXZ_TOUCH_MINIMAP\n" + text[enum_end:]
+
+state_anchor = "qboolean xziel_mobile_slide_pressed = false;\n"
+v23_state = r'''float xziel_mobile_track_fire_dx = 0.0f;
+float xziel_mobile_track_fire_dy = 0.0f;
+float xziel_mobile_track_adsfire_dx = 0.0f;
+float xziel_mobile_track_adsfire_dy = 0.0f;
+'''
+if "xziel_mobile_track_fire_dx" not in text:
+    text = add_after(text, state_anchor, v23_state, "Track Fire state")
+
+editor_role_v23 = r'''static xziel_touch_role_t Xziel_HudEditorRole(float x, float y)
+{
+	float hs = xziel_mobile_hud_scale.value;
+	if (Xziel_IsInside(x, y, xziel_hud_minimap_x.value, xziel_hud_minimap_y.value,
+		0.082f * hs * xziel_hud_minimap_scale.value)) return XZ_TOUCH_MINIMAP;
+	if (Xziel_WeaponStripHit(x, y, 0)) return XZ_TOUCH_WEAPONSTRIP;
+	if (Xziel_WeaponStripHit(x, y, 1)) return XZ_TOUCH_WEAPON2;
+	if (Xziel_WeaponStripHit(x, y, 2)) return XZ_TOUCH_WEAPON3;
+	if (Xziel_IsInside(x, y, xziel_hud_fire_x.value, xziel_hud_fire_y.value, 0.090f * hs * xziel_hud_fire_scale.value)) return XZ_TOUCH_FIRE;
+	if (Xziel_IsInside(x, y, xziel_hud_adsfire_x.value, xziel_hud_adsfire_y.value, 0.075f * hs * xziel_hud_adsfire_scale.value)) return XZ_TOUCH_ADSFIRE;
+	if (Xziel_IsInside(x, y, xziel_hud_ads_x.value, xziel_hud_ads_y.value, 0.065f * hs * xziel_hud_ads_scale.value)) return XZ_TOUCH_ADS;
+	if (Xziel_IsInside(x, y, xziel_hud_reload_x.value, xziel_hud_reload_y.value, 0.060f * hs * xziel_hud_reload_scale.value)) return XZ_TOUCH_RELOAD;
+	if (Xziel_IsInside(x, y, xziel_hud_use_x.value, xziel_hud_use_y.value, 0.065f * hs * xziel_hud_use_scale.value)) return XZ_TOUCH_USE;
+	if (Xziel_IsInside(x, y, xziel_hud_pause_x.value, xziel_hud_pause_y.value, 0.055f * hs * xziel_hud_pause_scale.value)) return XZ_TOUCH_PAUSE;
+	if (Xziel_IsInside(x, y, xziel_hud_grenade_x.value, xziel_hud_grenade_y.value, 0.057f * hs * xziel_hud_grenade_scale.value)) return XZ_TOUCH_GRENADE;
+	if (Xziel_IsInside(x, y, xziel_hud_slide_x.value, xziel_hud_slide_y.value, 0.060f * hs * xziel_hud_slide_scale.value)) return XZ_TOUCH_SLIDE;
+	if (Xziel_IsInside(x, y, xziel_hud_jump_x.value, xziel_hud_jump_y.value, 0.060f * hs * xziel_hud_jump_scale.value)) return XZ_TOUCH_JUMP;
+	if (Xziel_IsInside(x, y, xziel_hud_knife_x.value, xziel_hud_knife_y.value, 0.060f * hs * xziel_hud_knife_scale.value)) return XZ_TOUCH_KNIFE;
+	if (Xziel_IsInside(x, y, xziel_hud_joy_x.value, xziel_hud_joy_y.value, 0.120f * hs * xziel_hud_joy_scale.value)) return XZ_TOUCH_MOVE;
+	return XZ_TOUCH_NONE;
+}'''
+text = replace_function(text, "static xziel_touch_role_t Xziel_HudEditorRole", editor_role_v23)
+
+editor_set_v23 = r'''static void Xziel_HudEditorSetPosition(xziel_touch_role_t role, float x, float y)
+{
+	if (x < 0.035f) x = 0.035f;
+	if (x > 0.965f) x = 0.965f;
+	if (y < 0.055f) y = 0.055f;
+	if (y > 0.945f) y = 0.945f;
+	xziel_hud_editor_selected = role;
+	switch (role) {
+	case XZ_TOUCH_MOVE: Cvar_SetValue("xziel_hud_joy_x", x); Cvar_SetValue("xziel_hud_joy_y", y); break;
+	case XZ_TOUCH_FIRE: Cvar_SetValue("xziel_hud_fire_x", x); Cvar_SetValue("xziel_hud_fire_y", y); break;
+	case XZ_TOUCH_ADSFIRE: Cvar_SetValue("xziel_hud_adsfire_x", x); Cvar_SetValue("xziel_hud_adsfire_y", y); break;
+	case XZ_TOUCH_ADS: Cvar_SetValue("xziel_hud_ads_x", x); Cvar_SetValue("xziel_hud_ads_y", y); break;
+	case XZ_TOUCH_RELOAD: Cvar_SetValue("xziel_hud_reload_x", x); Cvar_SetValue("xziel_hud_reload_y", y); break;
+	case XZ_TOUCH_USE: Cvar_SetValue("xziel_hud_use_x", x); Cvar_SetValue("xziel_hud_use_y", y); break;
+	case XZ_TOUCH_JUMP: Cvar_SetValue("xziel_hud_jump_x", x); Cvar_SetValue("xziel_hud_jump_y", y); break;
+	case XZ_TOUCH_SLIDE: Cvar_SetValue("xziel_hud_slide_x", x); Cvar_SetValue("xziel_hud_slide_y", y); break;
+	case XZ_TOUCH_KNIFE: Cvar_SetValue("xziel_hud_knife_x", x); Cvar_SetValue("xziel_hud_knife_y", y); break;
+	case XZ_TOUCH_GRENADE: Cvar_SetValue("xziel_hud_grenade_x", x); Cvar_SetValue("xziel_hud_grenade_y", y); break;
+	case XZ_TOUCH_PAUSE: Cvar_SetValue("xziel_hud_pause_x", x); Cvar_SetValue("xziel_hud_pause_y", y); break;
+	case XZ_TOUCH_WEAPONSTRIP: Cvar_SetValue("xziel_hud_weapon1_x", x); Cvar_SetValue("xziel_hud_weapon1_y", y); break;
+	case XZ_TOUCH_WEAPON2: Cvar_SetValue("xziel_hud_weapon2_x", x); Cvar_SetValue("xziel_hud_weapon2_y", y); break;
+	case XZ_TOUCH_WEAPON3: Cvar_SetValue("xziel_hud_pistol_x", x); Cvar_SetValue("xziel_hud_pistol_y", y); break;
+	case XZ_TOUCH_MINIMAP: Cvar_SetValue("xziel_hud_minimap_x", x); Cvar_SetValue("xziel_hud_minimap_y", y); break;
+	default: break;
+	}
+}'''
+text = replace_function(text, "static void Xziel_HudEditorSetPosition", editor_set_v23)
+
+# Reset the tracked knob to center on each new FIRE / ADS+FIRE press.
+down_block = '''\tslot->role = Xziel_RoleForPoint(finger->x, finger->y);
+\tslot->last_x = finger->x;
+\tslot->last_y = finger->y;
+\tif (slot->role == XZ_TOUCH_MOVE) {
+'''
+down_repl = '''\tslot->role = Xziel_RoleForPoint(finger->x, finger->y);
+\tslot->last_x = finger->x;
+\tslot->last_y = finger->y;
+\tif (slot->role == XZ_TOUCH_FIRE) {
+\t\txziel_mobile_track_fire_dx = 0.0f;
+\t\txziel_mobile_track_fire_dy = 0.0f;
+\t} else if (slot->role == XZ_TOUCH_ADSFIRE) {
+\t\txziel_mobile_track_adsfire_dx = 0.0f;
+\t\txziel_mobile_track_adsfire_dy = 0.0f;
+\t}
+\tif (slot->role == XZ_TOUCH_MOVE) {
+'''
+fd0 = text.find("static void Xziel_FingerDown")
+fd1 = text.find("static void Xziel_FingerMotion", fd0)
+if fd0 < 0 or fd1 < 0:
+    raise SystemExit("Could not find FingerDown for Track Fire")
+fd = text[fd0:fd1]
+if "xziel_mobile_track_fire_dx = 0.0f;" not in fd:
+    if down_block not in fd:
+        raise SystemExit("Could not find FingerDown gameplay block")
+    fd = fd.replace(down_block, down_repl, 1)
+    text = text[:fd0] + fd + text[fd1:]
+
+# Existing mobile controls already aim by relative drag while FIRE/ADS+FIRE is
+# held. Preserve that feel, add the explicit camera-rotation switch, and track
+# the visual knob inside the circular button.
+fm0 = text.find("static void Xziel_FingerMotion")
+fm1 = text.find("static void Xziel_Finger", fm0 + 10)
+if fm0 < 0:
+    raise SystemExit("Could not find FingerMotion")
+if fm1 < 0:
+    fm1 = text.find("#endif", fm0)
+fm = text[fm0:fm1]
+motion_old = '''\t\tmouse_dx += (int)((finger->x - slot->last_x) * (float)vid.width * look_scale);
+\t\tmouse_dy += (int)((finger->y - slot->last_y) * (float)vid.height * look_scale);
+'''
+motion_new = r'''\t\tif (!((slot->role == XZ_TOUCH_FIRE || slot->role == XZ_TOUCH_ADSFIRE) &&
+\t\t\txziel_mobile_fire_camera_rotation.value < 0.5f)) {
+\t\t\tmouse_dx += (int)((finger->x - slot->last_x) * (float)vid.width * look_scale);
+\t\t\tmouse_dy += (int)((finger->y - slot->last_y) * (float)vid.height * look_scale);
+\t\t}
+
+\t\tif (xziel_mobile_track_fire.value >= 0.5f &&
+\t\t\t(slot->role == XZ_TOUCH_FIRE || slot->role == XZ_TOUCH_ADSFIRE)) {
+\t\t\tfloat cx = slot->role == XZ_TOUCH_FIRE ? xziel_hud_fire_x.value : xziel_hud_adsfire_x.value;
+\t\t\tfloat cy = slot->role == XZ_TOUCH_FIRE ? xziel_hud_fire_y.value : xziel_hud_adsfire_y.value;
+\t\t\tfloat rs = slot->role == XZ_TOUCH_FIRE ?
+\t\t\t\t(0.073f * xziel_mobile_hud_scale.value * xziel_hud_fire_scale.value) :
+\t\t\t\t(0.056f * xziel_mobile_hud_scale.value * xziel_hud_adsfire_scale.value);
+\t\t\tfloat dx = (finger->x - cx) * ((float)vid.width / (float)vid.height) / rs;
+\t\t\tfloat dy = (finger->y - cy) / rs;
+\t\t\tfloat len = sqrtf(dx*dx + dy*dy);
+\t\t\tif (len > 0.78f) { dx *= 0.78f/len; dy *= 0.78f/len; }
+\t\t\tif (slot->role == XZ_TOUCH_FIRE) {
+\t\t\t\txziel_mobile_track_fire_dx = dx;
+\t\t\t\txziel_mobile_track_fire_dy = dy;
+\t\t\t} else {
+\t\t\t\txziel_mobile_track_adsfire_dx = dx;
+\t\t\t\txziel_mobile_track_adsfire_dy = dy;
+\t\t\t}
+\t\t}
+'''
+if "xziel_mobile_fire_camera_rotation.value" not in fm:
+    if motion_old not in fm:
+        raise SystemExit("Could not find relative-look lines in FingerMotion")
+    fm = fm.replace(motion_old, motion_new, 1)
+    text = text[:fm0] + fm + text[fm1:]
+
+sdl.write_text(text, encoding="utf-8")
