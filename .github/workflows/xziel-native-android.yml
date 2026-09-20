@@ -65,6 +65,45 @@ jobs:
 
           grep -q "lib/arm64-v8a/libxziel-native.so" xziel-native-apk-contents.txt
           grep -q "lib/x86_64/libxziel-native.so" xziel-native-apk-contents.txt
+          grep -q "assets/shaders/xziel_first.vert.spv" xziel-native-apk-contents.txt
+          grep -q "assets/shaders/xziel_first.frag.spv" xziel-native-apk-contents.txt
+
+          # Android 15+ devices may use 16 KB memory pages. Verify that the APK
+          # zip layout and every native ELF LOAD segment are compatible.
+          ZIPALIGN="${ANDROID_HOME}/build-tools/36.0.0/zipalign"
+          "$ZIPALIGN" -c -P 16 -v 4 "$APK"
+
+          rm -rf build/xziel-elf-check
+          mkdir -p build/xziel-elf-check
+          unzip -q "$APK" "lib/*/*.so" -d build/xziel-elf-check
+
+          OBJDUMP="${ANDROID_HOME}/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-objdump"
+          READELF="${ANDROID_HOME}/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+
+          while IFS= read -r -d '' SO; do
+            echo "Checking 16 KB LOAD alignment: $SO"
+            "$OBJDUMP" -p "$SO" | awk '
+              $1 == "LOAD" {
+                found = 1
+                for (i = 1; i <= NF; ++i) {
+                  if ($i == "align") {
+                    split($(i+1), parts, "\\*\\*")
+                    if ((parts[2] + 0) < 14) {
+                      bad = 1
+                    }
+                  }
+                }
+              }
+              END {
+                if (!found || bad) {
+                  exit 1
+                }
+              }
+            '
+
+            echo "Checking GNU_RELRO: $SO"
+            "$READELF" -l "$SO" | grep -q "GNU_RELRO"
+          done < <(find build/xziel-elf-check -type f -name '*.so' -print0)
 
           mkdir -p dist
           cp "$APK" dist/Xziel-Engine-Vulkan-Prototype-debug.apk
