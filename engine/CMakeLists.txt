@@ -22,6 +22,10 @@ add_library(xziel_engine STATIC
     src/frame_telemetry.cpp
     src/runtime_policy.cpp
     src/renderer_watchdog.cpp
+    src/android_runtime.cpp
+    src/crowd_budget.cpp
+    src/camera_rig.cpp
+    src/gpu_scene.cpp
 )
 
 target_include_directories(xziel_engine
@@ -127,4 +131,24 @@ if(XZIEL_ENGINE_BUILD_TESTS)
     target_link_libraries(xziel_renderer_watchdog_smoke PRIVATE xziel_engine)
     target_compile_features(xziel_renderer_watchdog_smoke PRIVATE cxx_std_20)
     add_test(NAME xziel_renderer_watchdog_smoke COMMAND xziel_renderer_watchdog_smoke)
+
+    add_executable(xziel_android_runtime_smoke tests/android_runtime_smoke.cpp)
+    target_link_libraries(xziel_android_runtime_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_android_runtime_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_android_runtime_smoke COMMAND xziel_android_runtime_smoke)
+
+    add_executable(xziel_crowd_budget_smoke tests/crowd_budget_smoke.cpp)
+    target_link_libraries(xziel_crowd_budget_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_crowd_budget_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_crowd_budget_smoke COMMAND xziel_crowd_budget_smoke)
+
+    add_executable(xziel_camera_rig_smoke tests/camera_rig_smoke.cpp)
+    target_link_libraries(xziel_camera_rig_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_camera_rig_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_camera_rig_smoke COMMAND xziel_camera_rig_smoke)
+
+    add_executable(xziel_gpu_scene_smoke tests/gpu_scene_smoke.cpp)
+    target_link_libraries(xziel_gpu_scene_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_gpu_scene_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_gpu_scene_smoke COMMAND xziel_gpu_scene_smoke)
 endif()
