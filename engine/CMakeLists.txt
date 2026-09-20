@@ -10,6 +10,8 @@ add_library(xziel_engine STATIC
     src/environment.cpp
     src/particles.cpp
     src/performance.cpp
+    src/horror.cpp
+    src/render_features.cpp
 )
 
 target_include_directories(xziel_engine
@@ -50,4 +52,14 @@ if(XZIEL_ENGINE_BUILD_TESTS)
     target_link_libraries(xziel_performance_smoke PRIVATE xziel_engine)
     target_compile_features(xziel_performance_smoke PRIVATE cxx_std_20)
     add_test(NAME xziel_performance_smoke COMMAND xziel_performance_smoke)
+
+    add_executable(xziel_horror_smoke tests/horror_smoke.cpp)
+    target_link_libraries(xziel_horror_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_horror_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_horror_smoke COMMAND xziel_horror_smoke)
+
+    add_executable(xziel_render_features_smoke tests/render_features_smoke.cpp)
+    target_link_libraries(xziel_render_features_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_render_features_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_render_features_smoke COMMAND xziel_render_features_smoke)
 endif()
