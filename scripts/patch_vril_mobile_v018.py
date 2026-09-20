@@ -579,7 +579,7 @@ action_glyph = r'''static qboolean Xziel_DrawActionGlyph(int cx, int cy, int rad
 	}
 	return true;
 }'''
-htext = replace_function(htext, "static qboolean Xziel_DrawActionGlyph(int cx, int cy, int radius,", action_glyph)
+htext = replace_function(htext, "static qboolean Xziel_DrawActionGlyph(", action_glyph)
 
 touch_button = r'''static void Xziel_DrawTouchButton(float nx, float ny, float radius_h,
 	const char *label1, const char *label2, qboolean pressed, qboolean editor)
@@ -603,7 +603,7 @@ touch_button = r'''static void Xziel_DrawTouchButton(float nx, float ny, float r
 			255,255,255,(int)(230*local_opacity),vid.scale);
 	}
 }'''
-htext = replace_function(htext, "static void Xziel_DrawTouchButton(float nx, float ny, float radius_h,", touch_button)
+htext = replace_function(htext, "static void Xziel_DrawTouchButton(", touch_button)
 
 weapon_glyph = r'''static void Xziel_DrawWeaponGlyph(int cx, int cy, int id, float scale, int alpha)
 {
