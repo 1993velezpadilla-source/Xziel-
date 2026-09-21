@@ -89,6 +89,10 @@ struct NativeAppState {
     float impactFxSeconds = 0.0f;
     xziel::Vec3 impactPoint{};
 
+    float decapFxSeconds = 0.0f;
+    xziel::Vec3 decapOrigin{};
+    xziel::Vec3 decapDirection{};
+
     float muzzleFlashSeconds = 0.0f;
     float zombieAttackFlashSeconds = 0.0f;
     float scorePulseSeconds = 0.0f;
@@ -762,6 +766,19 @@ void advancePlayer(
                         nearestHit.region,
                         killed);
 
+                    if (killed &&
+                        nearestHit.region ==
+                            xziel::ZombieHitRegion::Head) {
+                        state.decapFxSeconds =
+                            0.80f;
+
+                        state.decapOrigin =
+                            nearestHit.point;
+
+                        state.decapDirection =
+                            ray.direction;
+                    }
+
                     state.scorePulseSeconds =
                         0.24f;
 
@@ -1180,6 +1197,27 @@ xziel::android::VulkanSceneState makeSceneState(
         state.criticalHitSeconds >
         0.0f;
 
+    scene.decapOriginX =
+        state.decapOrigin.x;
+    scene.decapOriginY =
+        state.decapOrigin.y;
+    scene.decapOriginZ =
+        state.decapOrigin.z;
+
+    scene.decapDirectionX =
+        state.decapDirection.x;
+    scene.decapDirectionY =
+        state.decapDirection.y;
+    scene.decapDirectionZ =
+        state.decapDirection.z;
+
+    scene.decapAlpha =
+        std::clamp(
+            state.decapFxSeconds /
+                0.80f,
+            0.0f,
+            1.0f);
+
     return scene;
 }
 
@@ -1453,6 +1491,12 @@ extern "C" void android_main(
             std::max(
                 0.0f,
                 state.impactFxSeconds -
+                    frameDelta);
+
+        state.decapFxSeconds =
+            std::max(
+                0.0f,
+                state.decapFxSeconds -
                     frameDelta);
 
         state.muzzleFlashSeconds =
