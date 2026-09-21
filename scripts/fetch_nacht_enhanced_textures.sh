@@ -46,18 +46,22 @@ fetch_source "medieval_wood" "wood_structural.jpg"
 fetch_source "wood_planks" "wood_board.jpg"
 
 # Opaque surfaces that cover almost all visible bunker geometry.
-alias_tex wall.jpg nduwall
-alias_tex plaster.jpg cons5nny3
-alias_tex debris.jpg debris_hnf3p
-alias_tex floor.jpg ground_hb3
-alias_tex tile.jpg 3tiles_grey_64
-alias_tex metal_sheet.jpg doorway_met
-alias_tex metal_blue.jpg m_metal_darkblu
-alias_tex wood_dark.jpg w_wood_brown_re box_side_o
-alias_tex wood_structural.jpg w_s_wooden_b64
-alias_tex wood_board.jpg board_fe
-alias_tex metal_door.jpg ndu_doors_64
-alias_tex metal_painted.jpg m_cupb_front
+# Vril uses the BSP texture token verbatim when probing external files.
+# Android/Linux filesystems are case-sensitive, and the original map contains
+# both uppercase and mixed-case spellings. Ship explicit aliases so the real
+# renderer cannot silently fall back to the embedded low-resolution WAD art.
+alias_tex wall.jpg nduwall NDUWALL NDUWall
+alias_tex plaster.jpg cons5nny3 CONS5NNY3 conS5NNY3
+alias_tex debris.jpg debris_hnf3p DEBRIS_HNF3P debris_HNf3P
+alias_tex floor.jpg ground_hb3 GROUND_HB3
+alias_tex tile.jpg 3tiles_grey_64 3TILES_GREY_64
+alias_tex metal_sheet.jpg doorway_met DOORWAY_MET
+alias_tex metal_blue.jpg m_metal_darkblu M_METAL_DARKBLU m_metal_darkBlu
+alias_tex wood_dark.jpg w_wood_brown_re W_WOOD_BROWN_RE box_side_o BOX_SIDE_O
+alias_tex wood_structural.jpg w_s_wooden_b64 W_S_WOODEN_B64
+alias_tex wood_board.jpg board_fe BOARD_FE
+alias_tex metal_door.jpg ndu_doors_64 NDU_DOORS_64
+alias_tex metal_painted.jpg m_cupb_front M_CUPB_FRONT
 
 rm -rf "$CACHE"
 
