@@ -21,6 +21,13 @@ struct FpsPlayerConfig {
     float collisionRadius = 0.28f;
     float collisionHeight = 1.78f;
 
+    float mantleProbeDistance = 0.46f;
+    float mantleMinimumHeight = 0.24f;
+    float mantleMaximumHeight = 1.08f;
+
+    float wallRunProbeDistance = 0.24f;
+    float wallRunMinimumWallHeight = 1.10f;
+
     float minX = -2.78f;
     float maxX = 2.78f;
     float minZ = -3.35f;
