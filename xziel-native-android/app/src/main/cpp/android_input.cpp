@@ -208,6 +208,11 @@ void AndroidInputAdapter::beginFrame(
     }
 }
 
+void AndroidInputAdapter::setInteractAvailable(
+    bool available) noexcept {
+    interactAvailable_ = available;
+}
+
 void AndroidInputAdapter::handleLooperIdentifier(
     int identifier) noexcept {
     if (identifier != kSensorLooperId ||
@@ -440,6 +445,13 @@ AndroidInputAdapter::chooseRole(
         return TouchRole::Reload;
     }
 
+    if (interactAvailable_ &&
+        insideButton(
+            x, y, width, height,
+            0.65f, 0.73f, 0.058f)) {
+        return TouchRole::Interact;
+    }
+
     bool moveAssigned = false;
     bool lookAssigned = false;
 
@@ -477,6 +489,7 @@ void AndroidInputAdapter::updateDerivedState(
     snapshot_.input.fire = false;
     snapshot_.input.aim = false;
     snapshot_.input.reload = false;
+    snapshot_.input.interact = false;
     snapshot_.input.jump = false;
     snapshot_.input.crouch = false;
     snapshot_.moveActive = false;
@@ -573,6 +586,10 @@ void AndroidInputAdapter::updateDerivedState(
 
             case TouchRole::Reload:
                 snapshot_.input.reload = true;
+                break;
+
+            case TouchRole::Interact:
+                snapshot_.input.interact = true;
                 break;
 
             case TouchRole::Jump:
