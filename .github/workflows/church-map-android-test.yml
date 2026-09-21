@@ -1,0 +1,217 @@
+name: Sanctum Android Harness APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/church-map-android-test.yml"
+      - "scripts/prepare_android.sh"
+      - "android/NZPActivity.java"
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: sanctum-android-harness
+  cancel-in-progress: true
+
+jobs:
+  build-test-map-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout Xziel
+        uses: actions/checkout@v5
+
+      - name: Download validated Sanctum map build
+        uses: actions/download-artifact@v5
+        with:
+          name: Xziel-Sanctum-of-Ash-Runtime-Blockout
+          path: church-artifact
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: 35656011200
+
+      - name: Verify map payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s church-artifact/nzp_harness/sanctum_harness.bsp
+          test -s church-artifact/nzp_harness/sanctum_harness.nsz
+          ls -lh church-artifact/nzp_harness/
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Android SDK, NDK and emulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$(find "${ANDROID_HOME}/cmdline-tools" -type f -name sdkmanager | sort | tail -n 1)"
+          test -n "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.0" \
+            "ndk;27.2.12479018" \
+            "emulator" \
+            "system-images;android-35;google_apis;x86_64"
+
+      - name: Prepare Android project with Sanctum harness
+        shell: bash
+        env:
+          XZIEL_EXTRA_MAP_NAME: sanctum_harness
+          XZIEL_EXTRA_MAP_BSP: ${{ github.workspace }}/church-artifact/nzp_harness/sanctum_harness.bsp
+          XZIEL_EXTRA_MAP_NSZ: ${{ github.workspace }}/church-artifact/nzp_harness/sanctum_harness.nsz
+        run: |
+          set -euo pipefail
+          bash scripts/prepare_android.sh
+          unzip -l build/android-project/app/src/main/assets/nzp-data.zip | \
+            grep -E 'nzp/maps/sanctum_harness\.(bsp|nsz)'
+          unzip -l build/android-project/app/src/main/assets/nzp-data.zip | \
+            grep 'nzp/maps/sanctum_harness.bsp'
+          unzip -l build/android-project/app/src/main/assets/nzp-data.zip | \
+            grep 'nzp/maps/sanctum_harness.nsz'
+
+      - name: Build Sanctum debug APK
+        working-directory: build/android-project
+        shell: bash
+        run: ./gradlew --no-daemon assembleDebug --stacktrace
+
+      - name: Collect APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp build/android-project/app/build/outputs/apk/debug/app-debug.apk \
+            dist/Xziel-Sanctum-of-Ash-Harness-debug.apk
+          ls -lh dist/Xziel-Sanctum-of-Ash-Harness-debug.apk
+
+      - name: Boot Sanctum on Android emulator
+        id: smoke
+        continue-on-error: true
+        shell: bash
+        env:
+          ANDROID_AVD_HOME: ${{ runner.temp }}/xziel-sanctum-avd
+        run: |
+          set -euo pipefail
+          mkdir -p "$ANDROID_AVD_HOME" dist
+          ADB="${ANDROID_HOME}/platform-tools/adb"
+          EMULATOR="${ANDROID_HOME}/emulator/emulator"
+          AVDMANAGER="$(find "${ANDROID_HOME}/cmdline-tools" -type f -name avdmanager | sort | tail -n 1)"
+
+          printf 'no\n' | "$AVDMANAGER" create avd \
+            --force \
+            --name xziel-sanctum-ci \
+            --package "system-images;android-35;google_apis;x86_64" \
+            --device "pixel_6"
+
+          if [[ -e /dev/kvm ]]; then
+            sudo chmod 666 /dev/kvm || true
+          fi
+
+          nohup "$EMULATOR" \
+            @xziel-sanctum-ci \
+            -no-window -no-audio -no-boot-anim -no-snapshot \
+            -gpu swiftshader_indirect -memory 2048 \
+            > dist/emulator-stdout.txt 2>&1 &
+          EMU_PID=$!
+
+          sleep 5
+          kill -0 "$EMU_PID"
+
+          timeout 120 "$ADB" wait-for-device
+          for i in $(seq 1 60); do
+            if [[ "$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == "1" ]]; then
+              break
+            fi
+            sleep 2
+          done
+          test "$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1"
+
+          "$ADB" install -r dist/Xziel-Sanctum-of-Ash-Harness-debug.apk
+          "$ADB" shell settings put secure immersive_mode_confirmations confirmed || true
+          "$ADB" logcat -c
+          "$ADB" shell am force-stop com.xziel.nzp || true
+          "$ADB" shell am start -W \
+            -n com.xziel.nzp/org.libsdl.app.NZPActivity \
+            --es xziel_ci_map sanctum_harness \
+            > dist/am-start.txt 2>&1 || true
+
+          sleep 30
+
+          "$ADB" exec-out screencap -p > dist/sanctum-harness-a.png
+          sleep 3
+          "$ADB" exec-out screencap -p > dist/sanctum-harness-b.png
+          "$ADB" logcat -d -v threadtime > dist/sanctum-logcat.txt || true
+
+          python3 -m pip install --quiet pillow==11.3.0
+          python3 - <<'PY' | tee dist/sanctum-visual-report.txt
+          from pathlib import Path
+          from PIL import Image, ImageChops, ImageStat
+
+          paths=[Path("dist/sanctum-harness-a.png"),Path("dist/sanctum-harness-b.png")]
+          images=[]
+          for p in paths:
+              im=Image.open(p).convert("RGB")
+              if im.width < 1000 or im.height < 500 or im.width <= im.height:
+                  raise SystemExit(f"bad screenshot dimensions: {p} {im.size}")
+              gray=im.convert("L")
+              stat=ImageStat.Stat(gray)
+              lo,hi=gray.getextrema()
+              if hi-lo < 20 or stat.stddev[0] < 6:
+                  raise SystemExit(f"screenshot appears blank/flat: {p} extrema={(lo,hi)} std={stat.stddev[0]:.2f}")
+              images.append(im)
+              print(p.name, im.size, "mean",stat.mean[0],"std",stat.stddev[0],"extrema",(lo,hi))
+          diff=ImageChops.difference(images[0],images[1]).convert("L")
+          ds=ImageStat.Stat(diff)
+          print("frame_delta_mean",ds.mean[0],"frame_delta_std",ds.stddev[0])
+          PY
+
+          PID="$("$ADB" shell pidof com.xziel.nzp 2>/dev/null | tr -d '\r' || true)"
+          STAGE="$("$ADB" shell run-as com.xziel.nzp cat files/nzp-runtime/.xziel-stage 2>/dev/null | tr -d '\r' || true)"
+          echo "PID=$PID" | tee dist/runtime-state.txt
+          echo "STAGE=$STAGE" | tee -a dist/runtime-state.txt
+          "$ADB" shell run-as com.xziel.nzp ls -l files/nzp-runtime/nzp/maps/ 2>/dev/null | \
+            tee dist/runtime-map-files.txt || true
+
+          grep -Ei "sanctum_harness|SANCTUM OF ASH|Host_Map|maps/" dist/sanctum-logcat.txt | \
+            tail -n 300 > dist/sanctum-map-log-highlights.txt || true
+
+          if grep -Eq "Fatal signal|FATAL EXCEPTION|EGL_BAD_CONTEXT|stage=SYS_ERROR" dist/sanctum-logcat.txt; then
+            echo "Detected game/runtime crash."
+            exit 1
+          fi
+          test -n "$PID"
+          test "$STAGE" = "FIRST_FRAME_OK"
+
+      - name: Upload Sanctum APK and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xziel-Sanctum-of-Ash-Harness-APK
+          path: |
+            dist/Xziel-Sanctum-of-Ash-Harness-debug.apk
+            dist/sanctum-harness-a.png
+            dist/sanctum-harness-b.png
+            dist/sanctum-visual-report.txt
+            dist/sanctum-logcat.txt
+            dist/sanctum-map-log-highlights.txt
+            dist/runtime-state.txt
+            dist/runtime-map-files.txt
+            dist/am-start.txt
+            dist/emulator-stdout.txt
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Fail on Sanctum smoke failure
+        if: steps.smoke.outcome == 'failure'
+        shell: bash
+        run: exit 1
