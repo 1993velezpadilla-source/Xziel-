@@ -78,14 +78,24 @@ jobs:
         shell: bash
         run: |
           grep -q 'xziel_nacht_enhanced' build/deps/vril/source/input.c
-          grep -q 'NACHT VISUALS' build/deps/quakec/source/menu/menu_gset.qc
-          grep -q 'current_selected_bsp == "ndu"' build/deps/quakec/source/menu/menu_gset.qc
           grep -q 'Xziel_NachtEnhanced_Init' build/deps/quakec/source/server/main.qc
           grep -q 'Xziel_NachtEnhanced_Render' build/deps/quakec/source/client/main.qc
-          grep -q 'Menu_Lobby_ToggleNachtEnhanced' build/deps/quakec/source/menu/menu_loby.qc
+          grep -q 'if (bsp_name == "ndu")' build/deps/quakec/source/menu/menu_maps.qc
+          grep -q 'cvar_set("xziel_nacht_enhanced", "0")' build/deps/quakec/source/menu/menu_maps.qc
+          grep -q 'if (bsp_name == "ndu_enchanted")' build/deps/quakec/source/menu/menu_maps.qc
           grep -q 'cvar_set("xziel_nacht_enhanced", "1")' build/deps/quakec/source/menu/menu_maps.qc
-          grep -q 'MAP VERSION: ENCHANTED' build/deps/quakec/source/menu/menu_loby.qc
-          grep -q 'launch_bsp = "ndu_enchanted"' build/deps/quakec/source/menu/menu_loby.qc
+          if grep -q 'Menu_Lobby_ToggleNachtEnhanced\|MAP VERSION: ENCHANTED\|lo_enh' build/deps/quakec/source/menu/menu_loby.qc; then
+            echo "Separate-map architecture regressed: lobby toggle returned"
+            exit 1
+          fi
+          if grep -q 'NACHT VISUALS\|ge_enhc' build/deps/quakec/source/menu/menu_gset.qc; then
+            echo "Separate-map architecture regressed: game-settings toggle returned"
+            exit 1
+          fi
+          if grep -R -q 'mapname == "ndu" && cvar("xziel_nacht_enhanced")' build/deps/quakec/source; then
+            echo "Stock ndu still has an Enchanted runtime path"
+            exit 1
+          fi
           grep -q 'flames.flame_particle' build/deps/quakec/source/client/main.qc
           grep -q 'weapons.impact' build/deps/quakec/source/client/main.qc
           grep -q 'xziel_nacht_fx_next_lightning' build/deps/quakec/source/client/main.qc
