@@ -2612,6 +2612,9 @@ void VulkanClearRenderer::destroyReflectionPassResources() noexcept {
 }
 
 void VulkanClearRenderer::destroyReflectionTarget() noexcept {
+    // Descriptor resources currently reference the target image. Tear them
+    // down before destroying the image so no stale descriptor can survive a
+    // quality downgrade or target reallocation.
     destroyReflectionPassResources();
 
     if (device_ != VK_NULL_HANDLE) {
@@ -3296,9 +3299,8 @@ bool VulkanClearRenderer::recordDrawCommand(
     // xziel_first.frag statically declares the reflection sampler. Vulkan
     // therefore requires descriptor set 0 to be valid for every main-pipeline
     // draw, even when the current material is not water. Never submit a draw
-    // with an unbound descriptor after a low-quality downgrade or allocation
-    // failure; skip the frame instead until the persistent fallback descriptor
-    // path is available.
+    // with an unbound or stale descriptor after a quality downgrade, target
+    // reallocation, or allocation failure.
     if (reflectionDescriptorSet_ == VK_NULL_HANDLE) {
         vkCmdEndRenderPass(command);
         logError("reflection descriptor missing; refusing invalid Vulkan draw");
