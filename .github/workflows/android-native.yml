@@ -136,11 +136,13 @@ jobs:
               raise SystemExit(f"unexpected Lab zombie triangle count: {numtris}")
           if numframes != 211:
               raise SystemExit(f"Lab zombie must mirror NZ:P frames 0..210, got {numframes}")
-          if skinw <= 0 or skinh <= 0 or skinw > 2048 or skinh > 2048:
-              raise SystemExit(f"unexpected Lab zombie skin dimensions: {skinw}x{skinh}")
+          if skinw <= 0 or skinh <= 0 or skinw > 480 or skinh > 480:
+              raise SystemExit(f"MDL fallback skin exceeds Vril legacy limit: {skinw}x{skinh}")
           meta = json.loads(Path("build/nzp-data/nzp/models/xziel_lab/zombie_basic.json").read_text())
           if meta["license"] != "CC0-1.0" or meta["frames"] != 211:
               raise SystemExit(f"bad Lab zombie metadata: {meta}")
+          if max(meta["mdl_skin"]) > 480 or max(meta["external_skin"]) <= 480:
+              raise SystemExit(f"expected small MDL fallback + high-res external atlas: {meta}")
           print(f"verified real Lab zombie MDL: {numverts} verts / {numtris} tris / {numframes} frames / {skinw}x{skinh}")
           PY
           grep -q 'sounds/ambience/wind2.wav' build/deps/quakec/source/server/main.qc
@@ -387,6 +389,20 @@ jobs:
             echo "Xziel process exited before visual validation."
             grep -Ei "FATAL EXCEPTION|Fatal signal|AndroidRuntime|DEBUG|libmain|gl4es|SDL|xziel|com.xziel.nzp|Vril Engine|Sys_Error|EGL_BAD_CONTEXT|stage=" \
               dist/xziel-logcat.txt | tail -n 500 || true
+            exit 1
+          fi
+
+          # A Vril Sys_Error can leave Android's Activity alive while showing
+          # a modal error dialog. Treat the stage marker/log line as fatal
+          # before screenshot heuristics have a chance to mistake that dialog
+          # for a valid non-flat game frame.
+          if grep -Fq "stage=SYS_ERROR" dist/xziel-logcat.txt; then
+            echo "Vril reached SYS_ERROR before visual validation."
+            grep -F "stage=SYS_ERROR" dist/xziel-logcat.txt | tail -n 20 || true
+            exit 1
+          fi
+          if grep -Fq "has a skin taller than" dist/xziel-logcat.txt; then
+            echo "Legacy alias skin-height rejection detected."
             exit 1
           fi
 
