@@ -91,6 +91,27 @@ if 'XzAndroidRuntime_BeginFrame(now);' not in text:
         raise SystemExit("Missing SDL frame-loop Phase-0 anchor")
     text = text.replace(loop_anchor, loop_block, 1)
 
+first_frame_old = (
+    '#ifdef __ANDROID__\n'
+    '\t\tif (xziel_first_frame) {\n'
+    '\t\t\tXziel_WriteStage("FIRST_FRAME_OK");\n'
+    '\t\t\txziel_first_frame = 0;\n'
+    '\t\t}\n'
+    '#endif\n'
+)
+first_frame_new = (
+    '#ifdef __ANDROID__\n'
+    '\t\tif (xziel_first_frame && host_framecount != xz_frame_before) {\n'
+    '\t\t\tXziel_WriteStage("FIRST_FRAME_OK");\n'
+    '\t\t\txziel_first_frame = 0;\n'
+    '\t\t}\n'
+    '#endif\n'
+)
+if 'xziel_first_frame && host_framecount != xz_frame_before' not in text:
+    if first_frame_old not in text:
+        raise SystemExit("Missing FIRST_FRAME_OK hardening anchor")
+    text = text.replace(first_frame_old, first_frame_new, 1)
+
 shutdown_anchor = '\tif (host_initialized)\n\t\tHost_Shutdown();\n'
 shutdown_block = (
     '#ifdef __ANDROID__\n'
@@ -113,6 +134,7 @@ checks = {
     "init": "XzAndroidRuntime_Init(heap_size);",
     "begin": "XzAndroidRuntime_BeginFrame(now);",
     "accepted-frame gate": "host_framecount != xz_frame_before",
+    "real first-frame gate": "xziel_first_frame && host_framecount != xz_frame_before",
     "end": "XzAndroidRuntime_EndFrame(Sys_FloatTime());",
     "shutdown": "XzAndroidRuntime_Shutdown();",
 }
