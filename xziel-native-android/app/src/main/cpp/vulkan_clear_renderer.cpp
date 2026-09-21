@@ -188,6 +188,56 @@ void VulkanClearRenderer::shutdown() noexcept {
     frameIndex_ = 0;
 }
 
+void VulkanClearRenderer::setPreferredFrameRate(
+    float framesPerSecond) noexcept {
+    if (!std::isfinite(framesPerSecond) ||
+        framesPerSecond <= 0.0f) {
+        return;
+    }
+
+    preferredFrameRate_ =
+        std::clamp(
+            framesPerSecond,
+            30.0f,
+            240.0f);
+
+    if (!swappyInitialized_ ||
+        device_ == VK_NULL_HANDLE ||
+        swapchain_ == VK_NULL_HANDLE) {
+        return;
+    }
+
+    const double targetNs =
+        1000000000.0 /
+        static_cast<double>(
+            preferredFrameRate_);
+
+    std::uint64_t intervalNs =
+        static_cast<std::uint64_t>(
+            std::llround(
+                targetNs));
+
+    if (refreshDurationNs_ > 0) {
+        intervalNs =
+            std::max(
+                intervalNs,
+                refreshDurationNs_);
+    }
+
+    if (intervalNs ==
+        requestedSwapIntervalNs_) {
+        return;
+    }
+
+    SwappyVk_setSwapIntervalNS(
+        device_,
+        swapchain_,
+        intervalNs);
+
+    requestedSwapIntervalNs_ =
+        intervalNs;
+}
+
 bool VulkanClearRenderer::drawFrame(
     float timeSeconds,
     const VulkanCamera& camera,
@@ -960,6 +1010,7 @@ bool VulkanClearRenderer::createSwapchain() noexcept {
 bool VulkanClearRenderer::initializeFramePacing() noexcept {
     swappyInitialized_ = false;
     refreshDurationNs_ = 0;
+    requestedSwapIntervalNs_ = 0;
 
     if (jniEnv_ == nullptr ||
         javaActivity_ == nullptr ||
@@ -998,10 +1049,24 @@ bool VulkanClearRenderer::initializeFramePacing() noexcept {
     // Begin at the native display cadence. Swappy may adapt the interval when
     // sustained frame cost requires it. RuntimePolicy will later choose
     // deliberate 60/90/120 targets.
+    const std::uint64_t initialInterval =
+        preferredFrameRate_ > 0.0f
+        ? static_cast<std::uint64_t>(
+              std::llround(
+                  1000000000.0 /
+                  static_cast<double>(
+                      preferredFrameRate_)))
+        : refreshDurationNs_;
+
+    requestedSwapIntervalNs_ =
+        std::max(
+            initialInterval,
+            refreshDurationNs_);
+
     SwappyVk_setSwapIntervalNS(
         device_,
         swapchain_,
-        refreshDurationNs_);
+        requestedSwapIntervalNs_);
 
     swappyInitialized_ = true;
     logInfo("XZIEL_SWAPPY_READY");
