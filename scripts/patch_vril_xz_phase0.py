@@ -35,6 +35,10 @@ for name in (
     "xz_present_world.c",
     "xz_vril_bridge.h",
     "xz_vril_bridge.c",
+    "xz_device_caps.h",
+    "xz_device_caps.c",
+    "xz_scene_budget.h",
+    "xz_scene_budget.c",
 ):
     src = modules / name
     if not src.is_file():
@@ -159,4 +163,4 @@ for label, needle in checks.items():
             f"Phase-0 integration check failed for {label}: {count} occurrences"
         )
 
-print("Injected Xziel Xz runtime Phase 0 + PresentWorld Phase 1 bridge.")
+print("Injected Xziel Xz runtime through Phase 2 (caps + scene budgets).")
