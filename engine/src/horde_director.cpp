@@ -84,6 +84,42 @@ HordeDirector::HordeDirector(
                 config_.maximumMoveSpeed,
                 1.45f));
 
+    config_.separationRadius =
+        positiveOr(
+            config_.separationRadius,
+            0.72f);
+
+    config_.separationStrength =
+        std::clamp(
+            std::isfinite(
+                config_.separationStrength)
+                ? config_.separationStrength
+                : 0.62f,
+            0.0f,
+            2.0f);
+
+    config_.minimumSpawnDistanceFromPlayer =
+        std::max(
+            0.0f,
+            std::isfinite(
+                config_.minimumSpawnDistanceFromPlayer)
+                ? config_.minimumSpawnDistanceFromPlayer
+                : 3.0f);
+
+    if (config_.arenaMinimumX >
+        config_.arenaMaximumX) {
+        std::swap(
+            config_.arenaMinimumX,
+            config_.arenaMaximumX);
+    }
+
+    if (config_.arenaMinimumZ >
+        config_.arenaMaximumZ) {
+        std::swap(
+            config_.arenaMinimumZ,
+            config_.arenaMaximumZ);
+    }
+
     reset();
 }
 
@@ -151,6 +187,9 @@ HordeFrame HordeDirector::step(
         ++frame_.alive;
     }
 
+    applyCrowdSeparation();
+    constrainToArena();
+
     const bool roundExhausted =
         frame_.spawnedThisRound >=
             frame_.targetThisRound &&
@@ -178,7 +217,8 @@ HordeFrame HordeDirector::step(
         frame_.alive <
             config_.maxActive &&
         spawnCooldownSeconds_ <= 0.0f &&
-        spawnOne()) {
+        spawnOne(
+            playerFeetPosition)) {
         ++frame_.spawnedThisRound;
         ++frame_.alive;
         frame_.spawnedThisTick = true;
@@ -259,7 +299,8 @@ std::uint32_t HordeDirector::targetForRound(
             999ULL));
 }
 
-bool HordeDirector::spawnOne() noexcept {
+bool HordeDirector::spawnOne(
+    Vec3 playerFeetPosition) noexcept {
     std::size_t freeSlot =
         zombies_.size();
 
@@ -283,10 +324,61 @@ bool HordeDirector::spawnOne() noexcept {
         : 0U;
 
     ZombieConfig config{};
+
+    std::uint32_t chosenSpawn =
+        nextSpawnPoint_ %
+        config_.spawnPointCount;
+
+    float bestDistanceSquared = -1.0f;
+
+    const float minimumDistanceSquared =
+        config_.minimumSpawnDistanceFromPlayer *
+        config_.minimumSpawnDistanceFromPlayer;
+
+    for (std::uint32_t offset = 0;
+         offset < config_.spawnPointCount;
+         ++offset) {
+        const std::uint32_t candidateIndex =
+            (nextSpawnPoint_ + offset) %
+            config_.spawnPointCount;
+
+        const auto& candidate =
+            config_.spawnPoints[
+                candidateIndex];
+
+        const float dx =
+            candidate.x -
+            playerFeetPosition.x;
+
+        const float dz =
+            candidate.z -
+            playerFeetPosition.z;
+
+        const float distanceSquared =
+            dx * dx +
+            dz * dz;
+
+        if (distanceSquared >=
+            minimumDistanceSquared) {
+            chosenSpawn =
+                candidateIndex;
+            bestDistanceSquared =
+                distanceSquared;
+            break;
+        }
+
+        if (distanceSquared >
+            bestDistanceSquared) {
+            bestDistanceSquared =
+                distanceSquared;
+            chosenSpawn =
+                candidateIndex;
+        }
+    }
+
     config.spawnPosition =
         config_.spawnPoints[
-            nextSpawnPoint_ %
-            config_.spawnPointCount];
+            chosenSpawn];
 
     config.maxHealth =
         config_.baseHealth +
@@ -308,10 +400,153 @@ bool HordeDirector::spawnOne() noexcept {
         config);
 
     nextSpawnPoint_ =
-        (nextSpawnPoint_ + 1U) %
+        (chosenSpawn + 1U) %
         config_.spawnPointCount;
 
     return true;
+}
+
+void HordeDirector::applyCrowdSeparation() noexcept {
+    const float radius =
+        config_.separationRadius;
+
+    if (radius <= 0.0f ||
+        config_.separationStrength <= 0.0f) {
+        return;
+    }
+
+    const float radiusSquared =
+        radius * radius;
+
+    for (std::size_t a = 0;
+         a < zombies_.size();
+         ++a) {
+        if (!zombies_[a].has_value() ||
+            zombies_[a]->frame().state ==
+                ZombieState::Dead) {
+            continue;
+        }
+
+        for (std::size_t b = a + 1;
+             b < zombies_.size();
+             ++b) {
+            if (!zombies_[b].has_value() ||
+                zombies_[b]->frame().state ==
+                    ZombieState::Dead) {
+                continue;
+            }
+
+            const auto& aPosition =
+                zombies_[a]->frame().
+                    position;
+
+            const auto& bPosition =
+                zombies_[b]->frame().
+                    position;
+
+            float dx =
+                aPosition.x -
+                bPosition.x;
+
+            float dz =
+                aPosition.z -
+                bPosition.z;
+
+            float distanceSquared =
+                dx * dx +
+                dz * dz;
+
+            if (distanceSquared >=
+                radiusSquared) {
+                continue;
+            }
+
+            if (distanceSquared <
+                1.0e-8f) {
+                dx =
+                    ((a + b) & 1U) != 0U
+                    ? 1.0f
+                    : -1.0f;
+
+                dz = 0.0f;
+                distanceSquared = 1.0f;
+            }
+
+            const float distance =
+                std::sqrt(
+                    distanceSquared);
+
+            const float overlap =
+                radius -
+                distance;
+
+            if (overlap <= 0.0f) {
+                continue;
+            }
+
+            const float inverseDistance =
+                1.0f /
+                distance;
+
+            const float push =
+                overlap *
+                0.5f *
+                config_.separationStrength;
+
+            const float pushX =
+                dx *
+                inverseDistance *
+                push;
+
+            const float pushZ =
+                dz *
+                inverseDistance *
+                push;
+
+            zombies_[a]->
+                translateHorizontal(
+                    pushX,
+                    pushZ);
+
+            zombies_[b]->
+                translateHorizontal(
+                    -pushX,
+                    -pushZ);
+        }
+    }
+}
+
+void HordeDirector::constrainToArena() noexcept {
+    for (auto& zombieSlot : zombies_) {
+        if (!zombieSlot.has_value() ||
+            zombieSlot->frame().state ==
+                ZombieState::Dead) {
+            continue;
+        }
+
+        const auto position =
+            zombieSlot->frame().
+                position;
+
+        const float clampedX =
+            std::clamp(
+                position.x,
+                config_.arenaMinimumX,
+                config_.arenaMaximumX);
+
+        const float clampedZ =
+            std::clamp(
+                position.z,
+                config_.arenaMinimumZ,
+                config_.arenaMaximumZ);
+
+        zombieSlot->
+            translateHorizontal(
+                clampedX -
+                    position.x,
+                clampedZ -
+                    position.z);
+    }
 }
 
 void HordeDirector::beginNextRound() noexcept {
