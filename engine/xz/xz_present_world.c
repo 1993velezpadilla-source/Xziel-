@@ -151,6 +151,24 @@ void XzPresentWorld_SetStaticBrushCount(unsigned int count)
     frame->static_brush_count = count;
 }
 
+int XzPresentWorld_PushLight(const XzPresentLight *light)
+{
+    XzPresentFrame *frame;
+
+    if (!light)
+        return 0;
+
+    frame = &xz_present_world.frames[xz_present_world.write_index];
+
+    if (frame->active_light_count >= XZ_PRESENT_MAX_LIGHTS) {
+        frame->dropped_lights++;
+        return 0;
+    }
+
+    frame->lights[frame->active_light_count++] = *light;
+    return 1;
+}
+
 void XzPresentWorld_SetActiveLightCount(unsigned int count)
 {
     XzPresentFrame *frame =
