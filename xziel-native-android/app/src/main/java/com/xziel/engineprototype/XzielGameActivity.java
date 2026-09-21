@@ -2,6 +2,7 @@ package com.xziel.engineprototype;
 
 import android.os.Build;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.os.VibratorManager;
@@ -49,6 +50,31 @@ public final class XzielGameActivity extends GameActivity {
         return getWindowManager()
             .getDefaultDisplay()
             .getRotation();
+    }
+
+    public int getXzielThermalStatus() {
+        if (Build.VERSION.SDK_INT < 29) {
+            return 0;
+        }
+
+        PowerManager manager =
+            (PowerManager) getSystemService(
+                Context.POWER_SERVICE
+            );
+
+        return manager != null
+            ? manager.getCurrentThermalStatus()
+            : 0;
+    }
+
+    public boolean isXzielPowerSaveMode() {
+        PowerManager manager =
+            (PowerManager) getSystemService(
+                Context.POWER_SERVICE
+            );
+
+        return manager != null
+            && manager.isPowerSaveMode();
     }
 
     @SuppressWarnings("deprecation")
