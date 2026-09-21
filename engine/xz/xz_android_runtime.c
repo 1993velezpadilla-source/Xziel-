@@ -8,6 +8,8 @@
 #include "xz_gles3_probe.h"
 #include "xz_render_graph.h"
 #include "xz_gles3_shadow.h"
+#include "xz_gpu_resources.h"
+#include "xz_command_stream.h"
 
 #include <SDL.h>
 
@@ -36,6 +38,11 @@ typedef struct {
     XzRenderGraph render_graph;
     XzRenderGraphCompiled render_graph_compiled;
     XzGles3ShadowState gles3_shadow;
+    XzGpuResourcePool gpu_resources;
+    XzGpuHandle graph_resource_handles[XZ_RG_MAX_RESOURCES];
+    XzCommandStream command_stream;
+    uint64_t command_encode_failures;
+    int graph_resources_ready;
     int initialized;
     int cpu_cores;
     int system_ram_mb;
@@ -328,6 +335,125 @@ static int XzBuildBootstrapRenderGraph(void)
         &xz_runtime.render_graph_compiled);
 }
 
+static uint64_t XzGraphResourceSizeBytes(
+    const XzRgResourceDesc *resource)
+{
+    uint64_t bytes_per_pixel = 4u;
+
+    if (!resource)
+        return 0u;
+
+    switch (resource->format) {
+    case XZ_RG_FORMAT_RGBA16F:
+        bytes_per_pixel = 8u;
+        break;
+    case XZ_RG_FORMAT_RG16F:
+        bytes_per_pixel = 4u;
+        break;
+    case XZ_RG_FORMAT_DEPTH16:
+        bytes_per_pixel = 2u;
+        break;
+    case XZ_RG_FORMAT_DEPTH24:
+        bytes_per_pixel = 4u;
+        break;
+    case XZ_RG_FORMAT_RGBA8:
+    case XZ_RG_FORMAT_UNKNOWN:
+    default:
+        bytes_per_pixel = 4u;
+        break;
+    }
+
+    return (uint64_t)resource->width *
+           (uint64_t)resource->height *
+           (uint64_t)(resource->samples ?
+               resource->samples : 1u) *
+           bytes_per_pixel;
+}
+
+static XzGpuResourceType XzGraphResourceType(
+    const XzRgResourceDesc *resource)
+{
+    if (!resource)
+        return XZ_GPU_RESOURCE_UNKNOWN;
+
+    if (resource->flags & XZ_RG_RESOURCE_IMPORTED)
+        return XZ_GPU_RESOURCE_EXTERNAL_SURFACE;
+
+    if (resource->format == XZ_RG_FORMAT_DEPTH16 ||
+        resource->format == XZ_RG_FORMAT_DEPTH24)
+        return XZ_GPU_RESOURCE_DEPTH;
+
+    return XZ_GPU_RESOURCE_TEXTURE;
+}
+
+static int XzInitGraphResourceHandles(void)
+{
+    unsigned int i;
+
+    memset(
+        xz_runtime.graph_resource_handles,
+        0,
+        sizeof(xz_runtime.graph_resource_handles));
+
+    XzGpuResourcePool_Init(
+        &xz_runtime.gpu_resources);
+
+    for (i = 0u;
+         i < xz_runtime.render_graph.resource_count;
+         ++i) {
+        const XzRgResourceDesc *source =
+            &xz_runtime.render_graph.resources[i];
+        XzGpuResourceDesc desc;
+        XzGpuHandle handle;
+
+        memset(&desc, 0, sizeof(desc));
+        desc.type = XzGraphResourceType(source);
+        desc.format = (uint32_t)source->format;
+        desc.flags = source->flags;
+        desc.width = source->width;
+        desc.height = source->height;
+        desc.samples = source->samples ?
+            source->samples : 1u;
+        desc.size_bytes =
+            XzGraphResourceSizeBytes(source);
+
+        handle = XzGpuResource_Create(
+            &xz_runtime.gpu_resources,
+            &desc);
+
+        if (handle == XZ_GPU_INVALID_HANDLE)
+            return 0;
+
+        xz_runtime.graph_resource_handles[i] =
+            handle;
+    }
+
+    xz_runtime.graph_resources_ready = 1;
+    return 1;
+}
+
+static void XzDestroyGraphResourceHandles(void)
+{
+    unsigned int i;
+
+    for (i = 0u;
+         i < xz_runtime.render_graph.resource_count;
+         ++i) {
+        XzGpuHandle handle =
+            xz_runtime.graph_resource_handles[i];
+
+        if (handle != XZ_GPU_INVALID_HANDLE)
+            XzGpuResource_Destroy(
+                &xz_runtime.gpu_resources,
+                handle);
+
+        xz_runtime.graph_resource_handles[i] =
+            XZ_GPU_INVALID_HANDLE;
+    }
+
+    xz_runtime.graph_resources_ready = 0;
+}
+
 static void XzLogSnapshot(double now_seconds)
 {
     const XzGovernorRecommendation *rec =
@@ -342,6 +468,10 @@ static void XzLogSnapshot(double now_seconds)
         &xz_runtime.rhi;
     const XzGles3ShadowState *g3 =
         &xz_runtime.gles3_shadow;
+    const XzGpuResourcePool *gpu =
+        &xz_runtime.gpu_resources;
+    const XzCommandStream *commands =
+        &xz_runtime.command_stream;
     const uint64_t present_generation =
         present ? present->generation : 0u;
     const unsigned int present_entities =
@@ -376,6 +506,8 @@ static void XzLogSnapshot(double now_seconds)
         " g3shadow(submitted=%" PRIu64 " packets=%" PRIu64
         " draws=%" PRIu64 " fail=%" PRIu64 " readback=%" PRIu64
         " restoreFail=%" PRIu64 " restore=%d glerr=0x%x hash=%08x)"
+        " cmd(count=%u hash=%08x overflow=%u resources=%u high=%u"
+        " stale=%" PRIu64 " encodeFail=%" PRIu64 ")"
         " advice(render=%.2f anim=%.2f shadow=%.2f vfx=%.2f light=%.2f stream=%.2f)",
         xz_runtime.frame.total_frames,
         xz_runtime.frame.last_ms,
@@ -436,6 +568,13 @@ static void XzLogSnapshot(double now_seconds)
         g3->restore_ok,
         g3->last_gl_error,
         g3->last_plan_hash,
+        commands->count,
+        commands->content_hash,
+        commands->overflow_count,
+        gpu->alive_count,
+        gpu->high_water_count,
+        gpu->stale_resolves,
+        xz_runtime.command_encode_failures,
         rec->render_scale,
         rec->animation_rate_scale,
         rec->shadow_budget_scale,
@@ -598,6 +737,7 @@ void XzAndroidRuntime_Init(size_t engine_heap_bytes)
         int graph_ok = XzBuildBootstrapRenderGraph();
         const XzRenderGraphCompiled *compiled =
             &xz_runtime.render_graph_compiled;
+        int resources_ok = 0;
 
         XzAndroidLog(
             graph_ok ? ANDROID_LOG_INFO : ANDROID_LOG_WARN,
@@ -617,6 +757,20 @@ void XzAndroidRuntime_Init(size_t engine_heap_bytes)
             compiled->fused_pass_count,
             xz_runtime.display_width,
             xz_runtime.display_height);
+
+        if (graph_ok)
+            resources_ok =
+                XzInitGraphResourceHandles();
+
+        XzAndroidLog(
+            resources_ok ? ANDROID_LOG_INFO : ANDROID_LOG_WARN,
+            "phase8 resource_cmd resources_selftest=%s commands_selftest=%s"
+            " init=%s alive=%u high=%u",
+            XzGpuResourcePool_SelfTest() ? "PASS" : "FAIL",
+            XzCommandStream_SelfTest() ? "PASS" : "FAIL",
+            resources_ok ? "PASS" : "FAIL",
+            xz_runtime.gpu_resources.alive_count,
+            xz_runtime.gpu_resources.high_water_count);
     }
 
     XzGles3Shadow_InitState(&xz_runtime.gles3_shadow);
@@ -715,6 +869,17 @@ void XzAndroidRuntime_EndFrame(double now_seconds)
         &xz_runtime.scene_budget,
         xz_runtime.caps.tier);
 
+    if (xz_runtime.graph_resources_ready) {
+        if (!XzCommandStream_EncodeFrame(
+                &xz_runtime.command_stream,
+                &xz_runtime.render_graph,
+                &xz_runtime.render_graph_compiled,
+                &xz_runtime.gpu_resources,
+                xz_runtime.graph_resource_handles,
+                &xz_runtime.render_plan))
+            xz_runtime.command_encode_failures++;
+    }
+
     XzRhi_BeginFrame(&xz_runtime.rhi);
     XzRhi_SubmitPlan(
         &xz_runtime.rhi,
@@ -733,6 +898,7 @@ void XzAndroidRuntime_Shutdown(void)
 
     XzLogSnapshot(xz_runtime.last_log_seconds + 5.0);
     XzRhi_Shutdown(&xz_runtime.rhi);
+    XzDestroyGraphResourceHandles();
     XzAndroidLog(
         ANDROID_LOG_INFO,
         "phase0 shutdown processed_frames=%" PRIu64
