@@ -292,10 +292,16 @@ AXIS = np.array([[0.0, 0.0, -1.0],
                  [-1.0, 0.0, 0.0],
                  [0.0, 1.0, 0.0]], dtype=np.float64)
 MODEL_SCALE = 52.0
+# Keep stock NZ:P standing height, but pull the exaggerated low-poly silhouette
+# inward in the horizontal plane. This improves visual proportion without
+# changing feet/head height or the authoritative movement hull.
+MODEL_HORIZONTAL_SCALE = 0.86
 
 
 def convert_axes(pos: np.ndarray, normals: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     p = (pos @ AXIS.T) * MODEL_SCALE
+    p[:, 0] *= MODEL_HORIZONTAL_SCALE
+    p[:, 1] *= MODEL_HORIZONTAL_SCALE
     n = normals @ AXIS.T
     lengths = np.linalg.norm(n, axis=1)
     lengths[lengths < 1e-12] = 1.0
@@ -468,6 +474,7 @@ meta = {
     "mdl_skin": [skinw, skinh],
     "external_skin": [external_skinw, external_skinh],
     "model_scale": MODEL_SCALE,
+    "model_horizontal_scale": MODEL_HORIZONTAL_SCALE,
     "idle_z_offset": z_offset,
     "animations": sorted(animations.keys()),
 }
