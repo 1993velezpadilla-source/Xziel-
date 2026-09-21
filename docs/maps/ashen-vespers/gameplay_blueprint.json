@@ -1,0 +1,493 @@
+{
+  "schemaVersion": 1,
+  "mapId": "ashen_vespers",
+  "workingTitle": "ASHEN VESPERS",
+  "source": {
+    "sketchfabUid": "b92917ff83914adc8bc93959ba8b4399",
+    "creator": "artfletch",
+    "license": "CC BY",
+    "verifiedSourceTriangles": 2822713,
+    "currentMobileLod0Triangles": 649977,
+    "sourceMeshObjects": 43,
+    "sourceBounds": [
+      61.443695068359375,
+      38.40231704711914,
+      44.688514709472656
+    ]
+  },
+  "designTargets": {
+    "players": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "firstSpecialRound": 6,
+    "bishopRounds": [
+      15,
+      25,
+      35,
+      45
+    ],
+    "specialRecurrenceRounds": [
+      5,
+      6
+    ],
+    "activeEnemyCap": {
+      "1p": 24,
+      "2p": 28,
+      "3p": 32,
+      "4p": 36
+    },
+    "powerTargetRound": "5-7",
+    "upgradeTargetRound": "7-10",
+    "mainQuestTypicalBossRound": "18-22"
+  },
+  "zones": [
+    {
+      "id": "Z00",
+      "name": "West Vestibule / Spawn",
+      "tags": [
+        "spawn",
+        "early"
+      ]
+    },
+    {
+      "id": "Z01",
+      "name": "Nave",
+      "tags": [
+        "combat",
+        "organ_trap"
+      ]
+    },
+    {
+      "id": "Z02",
+      "name": "North Aisle",
+      "tags": [
+        "route_a",
+        "box_candidate"
+      ]
+    },
+    {
+      "id": "Z03",
+      "name": "South Aisle",
+      "tags": [
+        "route_b",
+        "box_candidate"
+      ]
+    },
+    {
+      "id": "Z04",
+      "name": "Chancel / High Altar",
+      "tags": [
+        "upgrade_station",
+        "boss_arena"
+      ]
+    },
+    {
+      "id": "Z05",
+      "name": "North Chapel",
+      "tags": [
+        "perk",
+        "quest",
+        "box_candidate"
+      ]
+    },
+    {
+      "id": "Z06",
+      "name": "South Chapel",
+      "tags": [
+        "perk",
+        "quest"
+      ]
+    },
+    {
+      "id": "Z07",
+      "name": "Vestry / Office",
+      "tags": [
+        "build_table",
+        "quest"
+      ]
+    },
+    {
+      "id": "Z08",
+      "name": "Underchurch Boiler / Service",
+      "tags": [
+        "power",
+        "perk",
+        "trap",
+        "box_candidate"
+      ]
+    },
+    {
+      "id": "Z09",
+      "name": "Tower Stairs",
+      "tags": [
+        "vertical",
+        "trap",
+        "wallbuy"
+      ]
+    },
+    {
+      "id": "Z10",
+      "name": "Ringing Chamber",
+      "tags": [
+        "perk",
+        "quest",
+        "box_candidate"
+      ]
+    },
+    {
+      "id": "Z11",
+      "name": "Clock Chamber",
+      "tags": [
+        "quest",
+        "elite"
+      ]
+    },
+    {
+      "id": "Z12",
+      "name": "Roof Chamber / Tower Top",
+      "tags": [
+        "quest_climax",
+        "end_interaction"
+      ]
+    },
+    {
+      "id": "Z13",
+      "name": "Exterior Courtyard Loop",
+      "tags": [
+        "loop",
+        "box_candidate",
+        "perk_candidate"
+      ]
+    }
+  ],
+  "doors": [
+    {
+      "from": "Z00",
+      "to": "Z02",
+      "cost": 750
+    },
+    {
+      "from": "Z00",
+      "to": "Z03",
+      "cost": 750
+    },
+    {
+      "from": "Z02",
+      "to": "Z05",
+      "cost": 1000
+    },
+    {
+      "from": "Z03",
+      "to": "Z06",
+      "cost": 1000
+    },
+    {
+      "from": "Z06",
+      "to": "Z07",
+      "cost": 1000
+    },
+    {
+      "from": "Z05",
+      "to": "Z04",
+      "cost": 1250
+    },
+    {
+      "from": "Z07",
+      "to": "Z04",
+      "cost": 750
+    },
+    {
+      "from": "Z07",
+      "to": "Z08",
+      "cost": 1250
+    },
+    {
+      "from": "Z01",
+      "to": "Z09",
+      "cost": 1250
+    },
+    {
+      "from": "Z09",
+      "to": "Z10",
+      "cost": 1250,
+      "powerRequired": true
+    },
+    {
+      "from": "Z10",
+      "to": "Z11",
+      "cost": 1500
+    },
+    {
+      "from": "Z02",
+      "to": "Z13",
+      "cost": 1000
+    },
+    {
+      "from": "Z03",
+      "to": "Z13",
+      "cost": 0,
+      "openFromInside": true
+    }
+  ],
+  "weapons": {
+    "starter": [
+      "M1911-style starter"
+    ],
+    "wallBuys": [
+      {
+        "weapon": "Kar98k",
+        "zone": "Z00",
+        "cost": 300
+      },
+      {
+        "weapon": "M1A1 Carbine",
+        "zone": "Z00",
+        "cost": 500
+      },
+      {
+        "weapon": "Thompson",
+        "zone": "Z02",
+        "cost": 1200
+      },
+      {
+        "weapon": "Double-Barreled Shotgun",
+        "zone": "Z03",
+        "cost": 1000
+      },
+      {
+        "weapon": "STG-44",
+        "zone": "Z04",
+        "cost": 1200
+      },
+      {
+        "weapon": "M1897 Trench Gun",
+        "zone": "Z07",
+        "cost": 1200
+      },
+      {
+        "weapon": "BAR",
+        "zone": "Z08",
+        "cost": 1400
+      },
+      {
+        "weapon": "FG42",
+        "zone": "Z09",
+        "cost": 1500
+      }
+    ],
+    "boxOnly": [
+      "PPSh-41",
+      "MG42",
+      "M1919 Browning",
+      ".357 Magnum",
+      "PTRS-41",
+      "Panzerschreck"
+    ],
+    "questExclusive": [
+      "BELLWETHER"
+    ],
+    "upgradedQuestWeapon": "FINAL TOLL"
+  },
+  "mysteryBox": {
+    "initialAnchorPool": [
+      "BOX_NORTH_AISLE",
+      "BOX_SOUTH_AISLE",
+      "BOX_NORTH_CHAPEL"
+    ],
+    "anchors": [
+      {
+        "id": "BOX_NORTH_AISLE",
+        "zone": "Z02"
+      },
+      {
+        "id": "BOX_SOUTH_AISLE",
+        "zone": "Z03"
+      },
+      {
+        "id": "BOX_NORTH_CHAPEL",
+        "zone": "Z05"
+      },
+      {
+        "id": "BOX_BOILER",
+        "zone": "Z08"
+      },
+      {
+        "id": "BOX_RINGING",
+        "zone": "Z10"
+      },
+      {
+        "id": "BOX_COURTYARD",
+        "zone": "Z13",
+        "requiresZoneOpen": true
+      }
+    ],
+    "spinsBeforeMove": {
+      "min": 5,
+      "max": 8,
+      "minimumCompletedBeforeFirstMove": 3
+    },
+    "allowImmediateRepeat": false,
+    "movePresentation": "Bell-Raven / ash swarm",
+    "locationCue": "vertical spectral ash + distant bell"
+  },
+  "power": {
+    "zone": "Z08",
+    "fuseItem": "Brass Fuse",
+    "requiredCount": 2,
+    "spawnPolicy": "choose 2 authored anchors from 4 at match start",
+    "consumers": [
+      "perks",
+      "traps",
+      "tower machinery",
+      "upgrade station",
+      "quest nodes"
+    ]
+  },
+  "upgradeStation": {
+    "id": "CONSECRATOR",
+    "zone": "Z04",
+    "requiresPower": true
+  },
+  "traps": [
+    {
+      "id": "TRAP_ORGAN",
+      "name": "Organ Resonance",
+      "zone": "Z01",
+      "cost": 1000,
+      "durationSec": 18,
+      "cooldownSec": 60
+    },
+    {
+      "id": "TRAP_BOILER",
+      "name": "Boiler Purge",
+      "zone": "Z08",
+      "cost": 1000,
+      "durationSec": 15,
+      "cooldownSec": 75
+    },
+    {
+      "id": "TRAP_COUNTERWEIGHT",
+      "name": "Bell Counterweight",
+      "zone": "Z09",
+      "cost": 1250,
+      "durationSec": 10,
+      "cooldownSec": 90
+    },
+    {
+      "id": "TRAP_CHANCEL_ARC",
+      "name": "Chancel Arc",
+      "zone": "Z04",
+      "cost": 1500,
+      "durationSec": 20,
+      "cooldownSec": 90
+    }
+  ],
+  "perks": [
+    {
+      "workingName": "Second Breath",
+      "zone": "Z00",
+      "function": "revive aid"
+    },
+    {
+      "workingName": "Iron Blood",
+      "zone": "Z08",
+      "function": "extra survivability"
+    },
+    {
+      "workingName": "Quick Hands",
+      "zone": "Z05",
+      "function": "faster reload/handling"
+    },
+    {
+      "workingName": "Overpressure",
+      "zone": "Z06",
+      "function": "higher fire output"
+    },
+    {
+      "workingName": "Fleetfoot",
+      "zone": "Z10",
+      "alternateZone": "Z13",
+      "function": "mobility"
+    },
+    {
+      "workingName": "Pilgrim's Burden",
+      "zone": "Z11",
+      "function": "third weapon slot"
+    }
+  ],
+  "enemies": {
+    "normal": {
+      "id": "parishioner",
+      "startRound": 1
+    },
+    "fast": {
+      "id": "penitent_nun",
+      "startRound": 4
+    },
+    "elite": {
+      "id": "ash_priest",
+      "firstEligibleRound": 8,
+      "maxAliveEarly": 1,
+      "maxAliveLate": 2
+    },
+    "boss": {
+      "id": "hollow_bishop",
+      "rounds": [
+        15,
+        25,
+        35,
+        45
+      ],
+      "recurrence": 10
+    },
+    "specialRounds": [
+      {
+        "id": "choir_rush",
+        "firstRound": 6,
+        "reward": "full_ammo"
+      },
+      {
+        "id": "ash_procession",
+        "firstEligibleRound": 16
+      }
+    ]
+  },
+  "mainQuest": {
+    "id": "the_last_toll",
+    "steps": [
+      "restore_power",
+      "collect_resonance_key_parts",
+      "build_resonance_key",
+      "wake_organ",
+      "solve_stained_glass_sequence",
+      "open_reliquary",
+      "charge_three_resonance_stations",
+      "build_bellwether",
+      "strike_midnight",
+      "defeat_hollow_bishop",
+      "install_black_clapper",
+      "end_or_continue"
+    ]
+  },
+  "sideQuests": [
+    "broken_hymn",
+    "candle_circle",
+    "monument_offering",
+    "bellwether_upgrade"
+  ],
+  "implementationOrder": [
+    "source_preservation",
+    "gameplay_segmentation",
+    "geometry_cleanup_collision_nav",
+    "mobile_lod_occlusion_materials",
+    "semantic_markers",
+    "base_survival_loop",
+    "enemy_roster_dismemberment",
+    "quest_and_traps",
+    "art_audio_dressing",
+    "mobile_stress_and_launch_qa"
+  ]
+}
