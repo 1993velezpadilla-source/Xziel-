@@ -151,7 +151,7 @@ cull_repl = '''	if (R_CullBox (mins, maxs))
 
 	specChar = clmodel->name[strlen(clmodel->name) - 5];
 '''
-if "Xziel_NachtEnhanced_ShouldReplaceZombie(clmodel)" not in chunk:
+if "Xziel_NachtEnhanced_ZombieVariant(clmodel)" not in chunk:
     if cull_anchor not in chunk:
         raise SystemExit("Nacht zombie cull anchor missing")
     chunk = chunk.replace(cull_anchor, cull_repl, 1)
