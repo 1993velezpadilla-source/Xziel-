@@ -47,7 +47,7 @@ python3 "$ROOT/scripts/patch_quakec_mobile.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_combatfx.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_modern_movement.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_mobile_v021.py" "$DEPS/quakec"
-python3 "$ROOT/scripts/patch_quakec_mobile_v022.py" "$DEPS/quakec"\npython3 "$ROOT/scripts/patch_quakec_nacht_enhanced.py" "$DEPS/quakec"
+python3 "$ROOT/scripts/patch_quakec_mobile_v022.py" "$DEPS/quakec"\npython3 "$ROOT/scripts/patch_quakec_nacht_enhanced.py" "$DEPS/quakec"\npython3 "$ROOT/scripts/patch_quakec_nacht_runtime.py" "$DEPS/quakec"
 chmod +x "$DEPS/quakec/bin/fteqcc-cli-lin" "$DEPS/quakec/tools/qc-compiler-gnu.sh"
 (
     cd "$DEPS/quakec"
