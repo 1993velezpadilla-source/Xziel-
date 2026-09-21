@@ -1,5 +1,6 @@
 #include "xz_render_plan.h"
 #include "xz_visibility.h"
+#include "xz_material_lighting.h"
 
 #include <stddef.h>
 #include <stdlib.h>
@@ -60,6 +61,7 @@ void XzRenderPlan_Build(
     XzDeviceTier tier)
 {
     XzRenderRank ranks[XZ_RENDER_MAX_PACKETS];
+    XzMaterialLightSet material_lights;
     unsigned int rank_count = 0u;
     unsigned int i;
     uint32_t hash = 2166136261u;
@@ -76,11 +78,19 @@ void XzRenderPlan_Build(
     plan->generation = frame->generation;
     plan->source_frame = frame->source_frame;
     plan->requested_lights = frame->active_light_count;
-    plan->admitted_lights = budget->admitted_lights;
+
+    XzMaterialLighting_Select(
+        &material_lights,
+        frame,
+        budget);
+
+    plan->admitted_lights = material_lights.count;
+    plan->dark_lights = material_lights.dark_count;
 
     for (i = 0u; i < frame->entity_count; ++i) {
         const XzPresentEntity *src = &frame->entities[i];
         XzVisibilityResult visibility;
+        XzMaterialSample material;
         XzRenderPacket *dst;
 
         plan->source_packet_count++;
@@ -109,6 +119,33 @@ void XzRenderPlan_Build(
         dst->frame = src->frame;
         dst->skin = src->skin;
         dst->render_mode = src->render_mode;
+        XzMaterialLighting_Shade(
+            &material,
+            src,
+            &material_lights);
+        dst->material_flags = material.flags;
+        memcpy(
+            dst->base_rgba,
+            material.base_rgba,
+            sizeof(dst->base_rgba));
+        memcpy(
+            dst->lit_rgba,
+            material.lit_rgba,
+            sizeof(dst->lit_rgba));
+        dst->contributing_lights =
+            material.contributing_lights;
+
+        if (material.flags & XZ_MATERIAL_COLOR)
+            plan->material_color_count++;
+        if (material.flags & XZ_MATERIAL_TRANSLUCENT)
+            plan->material_translucent_count++;
+        if (material.flags & XZ_MATERIAL_GLOW)
+            plan->material_glow_count++;
+        if (material.flags & XZ_MATERIAL_ADDITIVE)
+            plan->material_additive_count++;
+        if (material.contributing_lights > 0u)
+            plan->lit_packet_count++;
+
         dst->scale = src->scale;
         dst->priority_class = src->priority_class;
         dst->kind = (unsigned char)src->kind;
@@ -195,12 +232,31 @@ void XzRenderPlan_Build(
     hash = XzHashU32(hash, (uint32_t)plan->packet_count);
     hash = XzHashU32(hash, (uint32_t)plan->culled_packets);
     hash = XzHashU32(hash, (uint32_t)plan->admitted_lights);
+    hash = XzHashU32(hash, (uint32_t)plan->dark_lights);
+    hash = XzHashU32(hash, (uint32_t)plan->material_color_count);
+    hash = XzHashU32(hash, (uint32_t)plan->material_translucent_count);
+    hash = XzHashU32(hash, (uint32_t)plan->material_glow_count);
+    hash = XzHashU32(hash, (uint32_t)plan->material_additive_count);
+    hash = XzHashU32(hash, (uint32_t)plan->lit_packet_count);
 
     for (i = 0u; i < plan->packet_count; ++i) {
         const XzRenderPacket *packet = &plan->packets[i];
         hash = XzHashU32(hash, packet->source_id);
         hash = XzHashU32(hash, packet->asset_hash);
         hash = XzHashU32(hash, packet->feature_mask);
+        hash = XzHashU32(hash, packet->material_flags);
+        hash = XzHashU32(
+            hash,
+            (uint32_t)(packet->lit_rgba[0] * 255.0f));
+        hash = XzHashU32(
+            hash,
+            (uint32_t)(packet->lit_rgba[1] * 255.0f));
+        hash = XzHashU32(
+            hash,
+            (uint32_t)(packet->lit_rgba[2] * 255.0f));
+        hash = XzHashU32(
+            hash,
+            (uint32_t)(packet->lit_rgba[3] * 255.0f));
         hash = XzHashU32(hash, (uint32_t)packet->lod);
         hash = XzHashU32(
             hash,
@@ -219,6 +275,7 @@ int XzRenderPlan_Validate(const XzRenderPlan *plan)
     unsigned int animation_count = 0u;
     unsigned int shadow_count = 0u;
     unsigned int vfx_count = 0u;
+    unsigned int lit_count = 0u;
 
     if (!plan)
         return 0;
@@ -254,6 +311,18 @@ int XzRenderPlan_Validate(const XzRenderPlan *plan)
         if (packet->feature_mask &
             XZ_RENDER_FEATURE_PREMIUM_VFX)
             vfx_count++;
+        if (packet->contributing_lights > 0u)
+            lit_count++;
+
+        if (packet->base_rgba[3] < 0.0f ||
+            packet->base_rgba[3] > 1.0f ||
+            packet->lit_rgba[0] < 0.0f ||
+            packet->lit_rgba[0] > 1.0f ||
+            packet->lit_rgba[1] < 0.0f ||
+            packet->lit_rgba[1] > 1.0f ||
+            packet->lit_rgba[2] < 0.0f ||
+            packet->lit_rgba[2] > 1.0f)
+            return 0;
     }
 
     return near_count == plan->near_count &&
@@ -265,7 +334,8 @@ int XzRenderPlan_Validate(const XzRenderPlan *plan)
                plan->packet_count &&
            animation_count == plan->full_animation_count &&
            shadow_count == plan->shadow_count &&
-           vfx_count == plan->premium_vfx_count;
+           vfx_count == plan->premium_vfx_count &&
+           lit_count == plan->lit_packet_count;
 }
 
 int XzRenderPlan_SelfTest(void)
