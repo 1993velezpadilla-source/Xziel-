@@ -596,3 +596,44 @@ A useful community correction:
 
 Research lesson: player folklore is not source truth. Where map-editor/source evidence contradicts a guessed walkthrough, preserve the correction.
 
+
+## Facility V2 — deeper 1.2.3 audit
+
+Source: https://github.com/nzp-team/nzportable/discussions/1444  
+Archive identifier inferred from current download URL: `ftwo_20260601`  
+Current release filename exposed by the download link: `ftwo (1.2.3).zip`
+
+Additional verified details:
+
+- update changelog explicitly says the **Ray Gun EE** was fixed and its room moved
+- **Key Card** and other interact triggers were fixed
+- Pack Room was updated as a spoiler-sensitive secret
+- functional zone files were added
+- a community reply confirms the release ZIP contains the editable `.map`
+- the teddy Easter egg contains **5 teddy bears**
+- all 5 teddies unlock the Easter-egg song
+- **ordering branch:** if all 5 are completed **before power is turned on**, the player receives a hint toward obtaining the free Ray Gun
+- community play also confirms a separate bonus Pack-a-Punch Easter egg
+
+Normalized design pattern:
+
+```
+Teddy1..5 -> Counter(5)
+CounterComplete -> Song
+
+if CounterComplete && Power == OFF:
+    -> RayGunHint
+```
+
+This is important because the completion event reads **shared world state at the moment of completion**. Xziel therefore needs quest conditions that can branch on current state, not only static prerequisites.
+
+The source-extraction target for Facility is now:
+
+1. identify exact teddy event class/targets
+2. identify Power-state branch implementation
+3. reconstruct KeyCard acquisition/use graph
+4. reconstruct free-Ray-Gun reward path
+5. reconstruct bonus Pack Room/PAP path
+6. capture retry/failure behavior
+7. verify solo/co-op semantics independently
+
