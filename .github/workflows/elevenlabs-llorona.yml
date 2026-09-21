@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      ELEVENLABS_API_KEY: \${{ secrets.ELEVENLABS_API_KEY }}
+      ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
       LLORONA_OUT_DIR: dist/llorona-elevenlabs
 
     steps:
@@ -29,7 +29,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "\${ELEVENLABS_API_KEY:-}" ]; then
+          if [ -z "${ELEVENLABS_API_KEY:-}" ]; then
             echo "::error::GitHub secret ELEVENLABS_API_KEY is not configured for this repository."
             exit 2
           fi
