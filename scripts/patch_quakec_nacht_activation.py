@@ -57,6 +57,7 @@ load_map = r'''void(string bsp_name) Menu_Maps_LoadMap =
     // - ndu_enchanted  = Xziel development laboratory
     if (bsp_name == "ndu") {
         cvar_set("xziel_nacht_enhanced", "0");
+        cvar_set("xziel_modern_zombies", "0");
     }
 
     if (bsp_name == "ndu_enchanted") {
