@@ -2,13 +2,6 @@ name: Xziel Native Android Prototype
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - feature/xziel-engine-foundation
-    paths:
-      - "engine/**"
-      - "xziel-native-android/**"
-      - ".github/workflows/xziel-native-android.yml"
   pull_request:
     paths:
       - "engine/**"
