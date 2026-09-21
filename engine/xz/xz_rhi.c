@@ -1,4 +1,5 @@
 #include "xz_rhi.h"
+#include "xz_command_stream.h"
 
 #include <string.h>
 
@@ -22,12 +23,17 @@ static int XzRhiSelfTestBegin(
 
 static int XzRhiSelfTestSubmit(
     void *user,
-    const XzRenderPlan *plan)
+    const XzRhiSubmission *submission)
 {
     XzRhiSelfTestMirror *mirror =
         (XzRhiSelfTestMirror *)user;
     mirror->submit_calls++;
-    return plan && plan->packet_count == 1u;
+
+    return submission &&
+           submission->plan &&
+           submission->plan->packet_count == 1u &&
+           submission->commands &&
+           submission->commands->count == 2u;
 }
 
 static int XzRhiSelfTestEnd(void *user)
@@ -135,6 +141,7 @@ void XzRhi_BeginFrame(XzRhiState *state)
     state->last_packet_count = 0u;
     state->last_light_count = 0u;
     state->last_plan_hash = 0u;
+    state->last_command_hash = 0u;
 
     if (state->mirror_attached &&
         state->mirror_driver.begin_frame) {
@@ -143,6 +150,74 @@ void XzRhi_BeginFrame(XzRhiState *state)
                 state->frame_index))
             state->mirror_begin_failures++;
     }
+}
+
+static int XzRhiCommandsLookValid(
+    const XzCommandStream *commands)
+{
+    if (!commands ||
+        commands->count < 2u ||
+        commands->count > XZ_COMMAND_MAX ||
+        commands->overflow_count != 0u ||
+        commands->content_hash == 0u)
+        return 0;
+
+    if (commands->commands[0].op !=
+            XZ_CMD_BEGIN_FRAME ||
+        commands->commands[
+            commands->count - 1u].op !=
+            XZ_CMD_END_FRAME)
+        return 0;
+
+    return 1;
+}
+
+int XzRhi_SubmitFrame(
+    XzRhiState *state,
+    const XzRenderPlan *plan,
+    const XzCommandStream *commands)
+{
+    XzRhiSubmission submission;
+
+    if (!state || !state->initialized || !plan)
+        return 0;
+
+    if (!XzRenderPlan_Validate(plan)) {
+        state->rejected_plans++;
+        return 0;
+    }
+
+    if (!XzRhiCommandsLookValid(commands)) {
+        state->rejected_commands++;
+        return 0;
+    }
+
+    submission.plan = plan;
+    submission.commands = commands;
+
+    state->submitted_frames++;
+    state->submitted_packets += plan->packet_count;
+    state->submitted_command_streams++;
+    state->last_packet_count = plan->packet_count;
+    state->last_light_count = plan->admitted_lights;
+    state->last_plan_hash = plan->content_hash;
+    state->last_command_hash = commands->content_hash;
+
+    if (state->mirror_attached) {
+        int mirror_ok;
+
+        state->mirror_submit_attempts++;
+        mirror_ok = state->mirror_driver.submit_plan(
+            state->mirror_driver.user,
+            &submission);
+
+        if (mirror_ok)
+            state->mirror_submitted_frames++;
+        else
+            state->mirror_failures++;
+    }
+
+    return state->mirror_failures == 0u;
 }
 
 int XzRhi_SubmitPlan(
@@ -163,25 +238,12 @@ int XzRhi_SubmitPlan(
     state->last_light_count = plan->admitted_lights;
     state->last_plan_hash = plan->content_hash;
 
-    if (state->mirror_attached) {
-        int mirror_ok;
-
-        state->mirror_submit_attempts++;
-        mirror_ok = state->mirror_driver.submit_plan(
-            state->mirror_driver.user,
-            plan);
-
-        if (mirror_ok)
-            state->mirror_submitted_frames++;
-        else
-            state->mirror_failures++;
-    }
-
     /*
-     * The active backend remains NULL in shadow mode. Mirror backends are
-     * validation/execution sidecars owned by XzRHI, never by AndroidRuntime.
+     * Compatibility path for callers that have not yet adopted Phase 9.
+     * Mirror execution intentionally requires XzRhi_SubmitFrame so a backend
+     * can never silently bypass the command stream.
      */
-    return state->mirror_failures == 0u;
+    return state->mirror_attached ? 0 : 1;
 }
 
 void XzRhi_EndFrame(XzRhiState *state)
@@ -229,11 +291,13 @@ int XzRhi_SelfTest(void)
     XzSceneBudget budget;
     XzRenderPlan plan;
     XzRhiState rhi;
+    XzCommandStream commands;
     XzRhiMirrorDriver mirror_driver;
     XzRhiSelfTestMirror mirror_state;
 
     memset(&frame, 0, sizeof(frame));
     memset(&budget, 0, sizeof(budget));
+    memset(&commands, 0, sizeof(commands));
     memset(&mirror_driver, 0, sizeof(mirror_driver));
     memset(&mirror_state, 0, sizeof(mirror_state));
 
@@ -276,6 +340,11 @@ int XzRhi_SelfTest(void)
     if (rhi.active_backend != XZ_RHI_BACKEND_NULL)
         return 0;
 
+    commands.count = 2u;
+    commands.content_hash = 0x5aa55aa5u;
+    commands.commands[0].op = XZ_CMD_BEGIN_FRAME;
+    commands.commands[1].op = XZ_CMD_END_FRAME;
+
     mirror_driver.user = &mirror_state;
     mirror_driver.begin_frame = XzRhiSelfTestBegin;
     mirror_driver.submit_plan = XzRhiSelfTestSubmit;
@@ -289,7 +358,10 @@ int XzRhi_SelfTest(void)
         return 0;
 
     XzRhi_BeginFrame(&rhi);
-    if (!XzRhi_SubmitPlan(&rhi, &plan))
+    if (!XzRhi_SubmitFrame(
+            &rhi,
+            &plan,
+            &commands))
         return 0;
     XzRhi_EndFrame(&rhi);
 
@@ -299,7 +371,11 @@ int XzRhi_SelfTest(void)
         return 0;
     if (rhi.last_plan_hash != plan.content_hash)
         return 0;
-    if (rhi.rejected_plans != 0u)
+    if (rhi.rejected_plans != 0u ||
+        rhi.rejected_commands != 0u)
+        return 0;
+    if (rhi.submitted_command_streams != 1u ||
+        rhi.last_command_hash != commands.content_hash)
         return 0;
     if (!rhi.mirror_attached ||
         rhi.mirror_backend != XZ_RHI_BACKEND_GLES3)
