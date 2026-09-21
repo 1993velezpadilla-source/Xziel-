@@ -607,6 +607,18 @@ static void XzLogSnapshot(double now_seconds)
      */
     XzAndroidLog(
         ANDROID_LOG_INFO,
+        "phase12 heartbeat init=%d graph=%d resources=%u mirror=%d"
+        " gles3=%d sampled=%" PRIu64 " sampleFail=%" PRIu64,
+        xz_runtime.initialized,
+        xz_runtime.render_graph_compiled.valid,
+        xz_runtime.gpu_resources.alive_count,
+        xz_runtime.rhi.mirror_attached,
+        xz_runtime.gles3_shadow.available,
+        xz_runtime.gles3_shadow.sampled_passes,
+        xz_runtime.gles3_shadow.sampled_failures);
+
+    XzAndroidLog(
+        ANDROID_LOG_INFO,
         "graphio g3res(mapped=%u objects=%u create=%" PRIu64
         " reuse=%" PRIu64 " destroy=%" PRIu64
         " read=%" PRIu64 " write=%" PRIu64
