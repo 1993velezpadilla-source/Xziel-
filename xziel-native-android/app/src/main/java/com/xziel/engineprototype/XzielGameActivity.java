@@ -7,9 +7,12 @@ import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.os.VibratorManager;
 import android.content.Context;
+import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
+import android.view.View;
 
 import com.google.androidgamesdk.GameActivity;
 
@@ -21,6 +24,15 @@ public final class XzielGameActivity extends GameActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setRequestedOrientation(
+            ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        );
+        enterImmersiveMode();
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
         enterImmersiveMode();
     }
 
@@ -172,8 +184,21 @@ public final class XzielGameActivity extends GameActivity {
         }
     }
 
+    @SuppressWarnings("deprecation")
     private void enterImmersiveMode() {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        // Keep a true fullscreen gameplay surface on OEM skins and foldables
+        // that still honor the legacy sticky flags more reliably than insets
+        // alone. The modern API below remains authoritative on Android 11+.
+        getWindow().getDecorView().setSystemUiVisibility(
+            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                | View.SYSTEM_UI_FLAG_FULLSCREEN
+                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+        );
 
         if (Build.VERSION.SDK_INT >= 30) {
             getWindow().setDecorFitsSystemWindows(false);

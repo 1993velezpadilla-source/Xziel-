@@ -26,6 +26,18 @@ float length(float x, float y) noexcept {
     return std::sqrt(x * x + y * y);
 }
 
+float pointerX(const GameActivityPointerAxes& pointer) noexcept {
+    return GameActivityPointerAxes_getAxisValue(
+        &pointer,
+        AMOTION_EVENT_AXIS_X);
+}
+
+float pointerY(const GameActivityPointerAxes& pointer) noexcept {
+    return GameActivityPointerAxes_getAxisValue(
+        &pointer,
+        AMOTION_EVENT_AXIS_Y);
+}
+
 } // namespace
 
 AndroidInputAdapter::~AndroidInputAdapter() {
@@ -656,16 +668,16 @@ void AndroidInputAdapter::processMotionEvent(
             acquirePointer(source.id);
 
         if (pointer != nullptr) {
-            pointer->x = source.rawX;
-            pointer->y = source.rawY;
-            pointer->previousX = source.rawX;
-            pointer->previousY = source.rawY;
-            pointer->anchorX = source.rawX;
-            pointer->anchorY = source.rawY;
+            pointer->x = pointerX(source);
+            pointer->y = pointerY(source);
+            pointer->previousX = pointerX(source);
+            pointer->previousY = pointerY(source);
+            pointer->anchorX = pointerX(source);
+            pointer->anchorY = pointerY(source);
             pointer->role =
                 chooseRole(
-                    source.rawX,
-                    source.rawY,
+                    pointerX(source),
+                    pointerY(source),
                     width,
                     height);
 
@@ -707,8 +719,8 @@ void AndroidInputAdapter::processMotionEvent(
 
             pointer->previousX = oldX;
             pointer->previousY = oldY;
-            pointer->x = source.rawX;
-            pointer->y = source.rawY;
+            pointer->x = pointerX(source);
+            pointer->y = pointerY(source);
 
             if (pointer->role ==
                     TouchRole::Look &&
