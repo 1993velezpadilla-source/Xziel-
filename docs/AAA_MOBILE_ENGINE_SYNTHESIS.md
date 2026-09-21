@@ -9,6 +9,7 @@ Reference titles:
 - Arena Breakout
 - Wuthering Waves
 - Call of Duty: Warzone Mobile
+- Delta Force
 
 ## What all successful high-end mobile engines converge on
 
@@ -35,6 +36,7 @@ The exact engines differ, but the engineering patterns repeat:
 | Arena Breakout | hybrid Vulkan Ray Query + frame prediction/high refresh |
 | Wuthering Waves | one-pass deferred + measured power engineering |
 | Warzone Mobile | shared high-end content with mobile-specific renderer/cook, plus streaming/product cautions |
+| Delta Force | unified source content + automatic platform recomposition + feature planning |
 
 ## Proposed Xziel renderer stack
 
@@ -281,6 +283,30 @@ Outputs:
 
 Use hysteresis and cooldown windows to prevent visible quality oscillation.
 
+## XzFeaturePlanner
+
+Delta Force adds a stronger idea on top of ordinary quality presets: treat scalable presentation features as an optimization problem.
+
+Each candidate feature has:
+- visual value;
+- gameplay value;
+- CPU cost;
+- GPU cost;
+- memory cost;
+- dependencies/conflicts;
+- distance/screen-size/importance constraints.
+
+The planner selects the best feature set that fits the current budgets.
+
+This lets Xziel preserve premium presentation on the most important entities instead of degrading the whole scene uniformly.
+
+Example:
+- nearest zombie: full animation rate, hit reaction, dynamic shadow, premium VFX/audio;
+- mid zombie: lower animation rate, cheaper shadow, reduced VFX;
+- distant zombie: authoritative gameplay unchanged, but no IK/dynamic shadow and minimal presentation cost.
+
+XzPerformanceGovernor chooses the global budgets; XzFeaturePlanner distributes those budgets intelligently.
+
 ## Shader / PSO system
 
 At cook time:
@@ -367,44 +393,52 @@ Performance is not "FPS only."
 - thermal hooks
 - frame pacing
 
-### 2. Modern rendering foundation
+### 2. Content/runtime recomposition
+- XzFeaturePlanner
+- XzVirtualMaterial
+- platform/quality cook profiles
+- runtime-level builder
+- gameplay collision contracts
+- automatic asset validation and performance estimates
+
+### 3. Modern rendering foundation
 - XzRHI
 - GLES3 backend
 - GPU timers
 - resource lifetime tracking
 - render-pass abstraction
 
-### 3. Visibility
+### 4. Visibility
 - room/cell layer over BSP
 - CPU occlusion
 - static instancing
 - cluster cooker/culling
 
-### 4. Materials/lighting
+### 5. Materials/lighting
 - linear PBR
 - texture arrays
 - lightmaps
 - probes
 - short-range shadows
 
-### 5. Streaming
+### 6. Streaming
 - asynchronous textures/meshes/audio
 - memory-aware eviction
 - preload graph
 
-### 6. Vulkan
+### 7. Vulkan
 - backend
 - PSO cache
 - renderpass/subpass capabilities
 - dynamic resolution/upscale
 
-### 7. Modern presentation
+### 8. Modern presentation
 - skeletal animation
 - VFX engine
 - decals
 - unified/spatial audio
 
-### 8. Experimental flagship features
+### 9. Experimental flagship features
 - one-pass deferred
 - RT Ray Query
 - frame prediction/high-refresh reconstruction
@@ -425,4 +459,4 @@ AAA visual language
 + graceful quality degradation
 ```
 
-The strongest lesson from all six games is that mobile AAA quality comes from **removing invisible work**, not merely adding visible effects.
+The strongest lesson from all seven production case studies is that mobile AAA quality comes from **removing invisible work, cooking the right representation for the target, and spending runtime budget only where the player can perceive the value**.
