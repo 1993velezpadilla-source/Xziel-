@@ -1214,6 +1214,9 @@ extern "C" void android_main(
     (void) state.player.addStaticObstacle(
         prototypeCenterObstacle);
 
+    (void) state.horde.addNavigationObstacle(
+        prototypeCenterObstacle);
+
     xziel::WeatherConfig prototypeStorm{};
     prototypeStorm.rainIntensity = 0.78f;
     prototypeStorm.windMetersPerSecond = {
