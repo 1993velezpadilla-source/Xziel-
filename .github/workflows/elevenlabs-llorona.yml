@@ -1,0 +1,73 @@
+name: ElevenLabs La Llorona Audio
+
+on:
+  push:
+    branches:
+      - audio/llorona-elevenlabs
+    paths:
+      - "tools/audio/**"
+      - "docs/llorona-event-design.md"
+      - ".github/workflows/elevenlabs-llorona.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render-llorona:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ELEVENLABS_API_KEY: \${{ secrets.ELEVENLABS_API_KEY }}
+      LLORONA_OUT_DIR: dist/llorona-elevenlabs
+
+    steps:
+      - name: Checkout Xziel
+        uses: actions/checkout@v4
+
+      - name: Verify ElevenLabs credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "\${ELEVENLABS_API_KEY:-}" ]; then
+            echo "::error::GitHub secret ELEVENLABS_API_KEY is not configured for this repository."
+            exit 2
+          fi
+
+      - name: Install audio tools
+        shell: bash
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          ffmpeg -version | head -n 1
+          python3 --version
+
+      - name: Design original La Llorona voice and render variants
+        shell: bash
+        run: |
+          set -euxo pipefail
+          rm -rf "$LLORONA_OUT_DIR"
+          python3 tools/audio/generate_llorona_elevenlabs.py
+
+      - name: Validate output
+        shell: bash
+        run: |
+          set -euxo pipefail
+          test -s "$LLORONA_OUT_DIR/manifest.json"
+          test -s "$LLORONA_OUT_DIR/llorona_prayer_game_48k.wav"
+          test -s "$LLORONA_OUT_DIR/llorona_mis_hijos_game_48k.wav"
+          test -s "$LLORONA_OUT_DIR/llorona_rage_trigger_game_48k.wav"
+          test -s "$LLORONA_OUT_DIR/llorona_prayer_game_48k.ogg"
+          test -s "$LLORONA_OUT_DIR/llorona_mis_hijos_game_48k.ogg"
+          test -s "$LLORONA_OUT_DIR/llorona_rage_trigger_game_48k.ogg"
+          python3 -m json.tool "$LLORONA_OUT_DIR/manifest.json"
+          ls -lah "$LLORONA_OUT_DIR"
+
+      - name: Upload La Llorona audio pack
+        uses: actions/upload-artifact@v4
+        with:
+          name: xziel-llorona-elevenlabs
+          path: dist/llorona-elevenlabs/
+          if-no-files-found: error
+          retention-days: 14

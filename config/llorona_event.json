@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "encounter": "la_llorona",
+  "earliest_child_round": 6,
+  "child_spawn_chance_per_eligible_round": 0.09,
+  "max_children_per_round": 1,
+  "manifestations": {
+    "penitent_round_start_chance": 0.06,
+    "wailing_midround_chance": 0.05,
+    "cooldown_rounds": 2,
+    "min_spawn_distance_m": 12
+  },
+  "discovery": {
+    "corpse_los_distance_m": 6,
+    "corpse_min_age_s": 2,
+    "search_marker_probability": 0.6
+  },
+  "boss": {
+    "min_health": 2500,
+    "round_zombie_health_multiplier": 8,
+    "player_scale": [
+      1,
+      1.55,
+      2,
+      2.45
+    ],
+    "phase2_health_fraction": 0.4,
+    "attacks": {
+      "swipe_damage": 45,
+      "swipe_repeat_s": 1.15,
+      "lunge_damage": 70,
+      "lunge_max_distance_m": 7,
+      "lunge_cooldown_s": 5.5,
+      "wail_close_damage": 20,
+      "wail_radius_m": 12,
+      "wail_cooldown_s": 9
+    }
+  }
+}
