@@ -47,6 +47,23 @@ int main() {
     assert(frame.mode == xziel::MovementMode::Sliding);
     assert(frame.cue == xziel::MovementCue::SlideStart);
 
+    // Releasing the joystick on the same frame as the stance tap must not
+    // erase momentum. Touchscreens commonly report the two fingers in a
+    // different order, so slide direction falls back to current velocity.
+    movement.reset();
+    for (int i = 0; i < 80; ++i) {
+        frame = movement.step(
+            {.move = {0.0f, 1.0f}, .sprintRequested = true},
+            traversal,
+            1.0f / 120.0f);
+    }
+    frame = movement.step(
+        {.slideRequested = true},
+        traversal,
+        1.0f / 120.0f);
+    assert(frame.mode == xziel::MovementMode::Sliding);
+    assert(frame.velocity.z > 3.0f);
+
     // Jump is also slide-cancel: no extra touchscreen button.
     buttons = {};
     buttons.jumpPressed = true;

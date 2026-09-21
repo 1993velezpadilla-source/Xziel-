@@ -127,13 +127,21 @@ MovementFrame MovementController::step(
                   frame_.velocity.z * frame_.velocity.z) >=
         config_.slideExitSpeed;
 
+    const Vec2 actionDirection =
+        moveMagnitude > 0.05f
+        ? direction
+        : normalizedOrZero(
+              {frame_.velocity.x, frame_.velocity.z});
+
     if (traversal.grounded &&
         capabilities_.dolphinDive &&
         input.diveRequested &&
         movingFast) {
         setMode(MovementMode::Diving, MovementCue::DiveStart);
-        frame_.velocity.x = direction.x * config_.diveForwardSpeed;
-        frame_.velocity.z = direction.y * config_.diveForwardSpeed;
+        frame_.velocity.x =
+            actionDirection.x * config_.diveForwardSpeed;
+        frame_.velocity.z =
+            actionDirection.y * config_.diveForwardSpeed;
         frame_.velocity.y = config_.diveVerticalVelocity;
     } else if (traversal.grounded &&
                capabilities_.slide &&
@@ -144,8 +152,8 @@ MovementFrame MovementController::step(
             config_.slideEntrySpeed,
             std::sqrt(frame_.velocity.x * frame_.velocity.x +
                       frame_.velocity.z * frame_.velocity.z));
-        frame_.velocity.x = direction.x * speed;
-        frame_.velocity.z = direction.y * speed;
+        frame_.velocity.x = actionDirection.x * speed;
+        frame_.velocity.z = actionDirection.y * speed;
     }
 
     switch (frame_.mode) {
