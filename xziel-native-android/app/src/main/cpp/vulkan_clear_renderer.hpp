@@ -263,6 +263,8 @@ private:
     [[nodiscard]] bool createDepthResources() noexcept;
     [[nodiscard]] bool createReflectionTarget(
         float resolutionScale) noexcept;
+    [[nodiscard]] bool createReflectionPassResources() noexcept;
+    void destroyReflectionPassResources() noexcept;
     void destroyReflectionTarget() noexcept;
     [[nodiscard]] bool createFramebuffers() noexcept;
     [[nodiscard]] bool createCommandResources() noexcept;
@@ -319,6 +321,9 @@ private:
     VkImageView reflectionDepthView_ = VK_NULL_HANDLE;
     VkExtent2D reflectionExtent_{};
     float reflectionTargetScale_ = 0.0f;
+    VkRenderPass reflectionRenderPass_ = VK_NULL_HANDLE;
+    VkFramebuffer reflectionFramebuffer_ = VK_NULL_HANDLE;
+    VkPipeline reflectionPipeline_ = VK_NULL_HANDLE;
 
     std::vector<VkFramebuffer> framebuffers_;
     std::vector<VkCommandBuffer> commandBuffers_;

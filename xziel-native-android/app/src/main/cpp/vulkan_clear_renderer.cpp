@@ -2122,11 +2122,301 @@ bool VulkanClearRenderer::createReflectionTarget(
         return true;
     }
 
+    if (!createReflectionPassResources()) {
+        logError("Planar reflection pass setup failed; falling back");
+        destroyReflectionTarget();
+        return true;
+    }
+
     logInfo("XZIEL_PLANAR_REFLECTION_TARGET_READY");
     return true;
 }
 
+bool VulkanClearRenderer::createReflectionPassResources() noexcept {
+    if (reflectionColorView_ == VK_NULL_HANDLE ||
+        reflectionDepthView_ == VK_NULL_HANDLE ||
+        reflectionExtent_.width == 0 ||
+        reflectionExtent_.height == 0) {
+        return false;
+    }
+
+    VkAttachmentDescription color{};
+    color.format = swapchainFormat_;
+    color.samples = VK_SAMPLE_COUNT_1_BIT;
+    color.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    color.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    color.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    color.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    color.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    color.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+    VkAttachmentDescription depth{};
+    depth.format = depthFormat_;
+    depth.samples = VK_SAMPLE_COUNT_1_BIT;
+    depth.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depth.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depth.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    depth.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depth.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    depth.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    const std::array<VkAttachmentDescription, 2> attachments{
+        color,
+        depth,
+    };
+
+    VkAttachmentReference colorReference{};
+    colorReference.attachment = 0;
+    colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    VkAttachmentReference depthReference{};
+    depthReference.attachment = 1;
+    depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    VkSubpassDescription subpass{};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &colorReference;
+    subpass.pDepthStencilAttachment = &depthReference;
+
+    std::array<VkSubpassDependency, 2> dependencies{};
+
+    dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependencies[0].dstSubpass = 0;
+    dependencies[0].srcStageMask =
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    dependencies[0].dstStageMask =
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+        VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    dependencies[0].srcAccessMask =
+        VK_ACCESS_SHADER_READ_BIT;
+    dependencies[0].dstAccessMask =
+        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+        VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+    dependencies[1].srcSubpass = 0;
+    dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+    dependencies[1].srcStageMask =
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependencies[1].dstStageMask =
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    dependencies[1].srcAccessMask =
+        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    dependencies[1].dstAccessMask =
+        VK_ACCESS_SHADER_READ_BIT;
+
+    VkRenderPassCreateInfo renderPassInfo{
+        VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO
+    };
+    renderPassInfo.attachmentCount =
+        static_cast<std::uint32_t>(attachments.size());
+    renderPassInfo.pAttachments = attachments.data();
+    renderPassInfo.subpassCount = 1;
+    renderPassInfo.pSubpasses = &subpass;
+    renderPassInfo.dependencyCount =
+        static_cast<std::uint32_t>(dependencies.size());
+    renderPassInfo.pDependencies = dependencies.data();
+
+    if (!ok(
+            vkCreateRenderPass(
+                device_,
+                &renderPassInfo,
+                nullptr,
+                &reflectionRenderPass_))) {
+        return false;
+    }
+
+    const std::array<VkImageView, 2> views{
+        reflectionColorView_,
+        reflectionDepthView_,
+    };
+
+    VkFramebufferCreateInfo framebufferInfo{
+        VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO
+    };
+    framebufferInfo.renderPass = reflectionRenderPass_;
+    framebufferInfo.attachmentCount =
+        static_cast<std::uint32_t>(views.size());
+    framebufferInfo.pAttachments = views.data();
+    framebufferInfo.width = reflectionExtent_.width;
+    framebufferInfo.height = reflectionExtent_.height;
+    framebufferInfo.layers = 1;
+
+    if (!ok(
+            vkCreateFramebuffer(
+                device_,
+                &framebufferInfo,
+                nullptr,
+                &reflectionFramebuffer_))) {
+        destroyReflectionPassResources();
+        return false;
+    }
+
+    VkShaderModule vertex = VK_NULL_HANDLE;
+    VkShaderModule fragment = VK_NULL_HANDLE;
+
+    if (!createShaderModuleFromAsset(
+            "shaders/xziel_first.vert.spv",
+            vertex) ||
+        !createShaderModuleFromAsset(
+            "shaders/xziel_first.frag.spv",
+            fragment)) {
+        if (vertex != VK_NULL_HANDLE) {
+            vkDestroyShaderModule(device_, vertex, nullptr);
+        }
+        if (fragment != VK_NULL_HANDLE) {
+            vkDestroyShaderModule(device_, fragment, nullptr);
+        }
+        destroyReflectionPassResources();
+        return false;
+    }
+
+    const std::array<VkPipelineShaderStageCreateInfo, 2> stages{{
+        {
+            VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            VK_SHADER_STAGE_VERTEX_BIT,
+            vertex,
+            "main",
+            nullptr,
+        },
+        {
+            VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            VK_SHADER_STAGE_FRAGMENT_BIT,
+            fragment,
+            "main",
+            nullptr,
+        },
+    }};
+
+    VkPipelineVertexInputStateCreateInfo vertexInput{
+        VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO
+    };
+    VkPipelineInputAssemblyStateCreateInfo inputAssembly{
+        VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO
+    };
+    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+    VkViewport viewport{};
+    viewport.width = static_cast<float>(reflectionExtent_.width);
+    viewport.height = static_cast<float>(reflectionExtent_.height);
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+
+    VkRect2D scissor{};
+    scissor.extent = reflectionExtent_;
+
+    VkPipelineViewportStateCreateInfo viewportState{
+        VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO
+    };
+    viewportState.viewportCount = 1;
+    viewportState.pViewports = &viewport;
+    viewportState.scissorCount = 1;
+    viewportState.pScissors = &scissor;
+
+    VkPipelineRasterizationStateCreateInfo raster{
+        VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO
+    };
+    raster.polygonMode = VK_POLYGON_MODE_FILL;
+    raster.cullMode = VK_CULL_MODE_NONE;
+    raster.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    raster.lineWidth = 1.0f;
+
+    VkPipelineMultisampleStateCreateInfo multisample{
+        VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO
+    };
+    multisample.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+    VkPipelineDepthStencilStateCreateInfo depthStencil{
+        VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO
+    };
+    depthStencil.depthTestEnable = VK_TRUE;
+    depthStencil.depthWriteEnable = VK_TRUE;
+    depthStencil.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+
+    VkPipelineColorBlendAttachmentState blendAttachment{};
+    blendAttachment.colorWriteMask =
+        VK_COLOR_COMPONENT_R_BIT |
+        VK_COLOR_COMPONENT_G_BIT |
+        VK_COLOR_COMPONENT_B_BIT |
+        VK_COLOR_COMPONENT_A_BIT;
+
+    VkPipelineColorBlendStateCreateInfo blend{
+        VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO
+    };
+    blend.attachmentCount = 1;
+    blend.pAttachments = &blendAttachment;
+
+    VkGraphicsPipelineCreateInfo pipelineInfo{
+        VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO
+    };
+    pipelineInfo.stageCount =
+        static_cast<std::uint32_t>(stages.size());
+    pipelineInfo.pStages = stages.data();
+    pipelineInfo.pVertexInputState = &vertexInput;
+    pipelineInfo.pInputAssemblyState = &inputAssembly;
+    pipelineInfo.pViewportState = &viewportState;
+    pipelineInfo.pRasterizationState = &raster;
+    pipelineInfo.pMultisampleState = &multisample;
+    pipelineInfo.pDepthStencilState = &depthStencil;
+    pipelineInfo.pColorBlendState = &blend;
+    pipelineInfo.layout = pipelineLayout_;
+    pipelineInfo.renderPass = reflectionRenderPass_;
+    pipelineInfo.subpass = 0;
+
+    const VkResult pipelineResult =
+        vkCreateGraphicsPipelines(
+            device_,
+            VK_NULL_HANDLE,
+            1,
+            &pipelineInfo,
+            nullptr,
+            &reflectionPipeline_);
+
+    vkDestroyShaderModule(device_, fragment, nullptr);
+    vkDestroyShaderModule(device_, vertex, nullptr);
+
+    if (!ok(pipelineResult)) {
+        destroyReflectionPassResources();
+        return false;
+    }
+
+    return true;
+}
+
+void VulkanClearRenderer::destroyReflectionPassResources() noexcept {
+    if (device_ != VK_NULL_HANDLE) {
+        if (reflectionPipeline_ != VK_NULL_HANDLE) {
+            vkDestroyPipeline(
+                device_,
+                reflectionPipeline_,
+                nullptr);
+        }
+        if (reflectionFramebuffer_ != VK_NULL_HANDLE) {
+            vkDestroyFramebuffer(
+                device_,
+                reflectionFramebuffer_,
+                nullptr);
+        }
+        if (reflectionRenderPass_ != VK_NULL_HANDLE) {
+            vkDestroyRenderPass(
+                device_,
+                reflectionRenderPass_,
+                nullptr);
+        }
+    }
+
+    reflectionPipeline_ = VK_NULL_HANDLE;
+    reflectionFramebuffer_ = VK_NULL_HANDLE;
+    reflectionRenderPass_ = VK_NULL_HANDLE;
+}
+
 void VulkanClearRenderer::destroyReflectionTarget() noexcept {
+    destroyReflectionPassResources();
+
     if (device_ != VK_NULL_HANDLE) {
         if (reflectionDepthView_ != VK_NULL_HANDLE) {
             vkDestroyImageView(
@@ -2581,6 +2871,145 @@ bool VulkanClearRenderer::recordDrawCommand(
             clears.size());
     render.pClearValues =
         clears.data();
+
+    // Refresh the offscreen planar scene before the main pass. The first
+    // implementation intentionally renders a compact subset of the room with
+    // a reflected camera; the target is already transitioned to shader-read
+    // layout by the reflection render pass for the material sampling stage.
+    if (reflectionRenderPass_ != VK_NULL_HANDLE &&
+        reflectionFramebuffer_ != VK_NULL_HANDLE &&
+        reflectionPipeline_ != VK_NULL_HANDLE &&
+        environment.maxPlanarReflectionPasses > 0) {
+        std::array<VkClearValue, 2> reflectionClears{};
+        reflectionClears[0].color.float32[0] =
+            clears[0].color.float32[0] * 0.55f;
+        reflectionClears[0].color.float32[1] =
+            clears[0].color.float32[1] * 0.65f;
+        reflectionClears[0].color.float32[2] =
+            clears[0].color.float32[2] * 0.80f;
+        reflectionClears[0].color.float32[3] = 1.0f;
+        reflectionClears[1].depthStencil.depth = 1.0f;
+
+        VkRenderPassBeginInfo reflectionBegin{
+            VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO
+        };
+        reflectionBegin.renderPass = reflectionRenderPass_;
+        reflectionBegin.framebuffer = reflectionFramebuffer_;
+        reflectionBegin.renderArea.extent = reflectionExtent_;
+        reflectionBegin.clearValueCount =
+            static_cast<std::uint32_t>(reflectionClears.size());
+        reflectionBegin.pClearValues = reflectionClears.data();
+
+        vkCmdBeginRenderPass(
+            command,
+            &reflectionBegin,
+            VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBindPipeline(
+            command,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            reflectionPipeline_);
+
+        const float reflectedAspect =
+            reflectionExtent_.height > 0
+            ? static_cast<float>(reflectionExtent_.width) /
+              static_cast<float>(reflectionExtent_.height)
+            : 1.0f;
+
+        const auto drawReflectedBox = [&](
+            float tx,
+            float ty,
+            float tz,
+            float sx,
+            float sy,
+            float sz,
+            float materialId) noexcept {
+            PushConstants push{};
+            push.timeSeconds =
+                std::isfinite(timeSeconds) ? timeSeconds : 0.0f;
+            push.aspect = reflectedAspect;
+            push.horrorPulse = pulse;
+            push.materialId = materialId;
+            push.translationX = tx;
+            push.translationY = ty;
+            push.translationZ = tz;
+            push.scaleX = sx;
+            push.scaleY = sy;
+            push.scaleZ = sz;
+
+            constexpr float kWaterPlaneY = -1.48f;
+            push.cameraX = camera.x;
+            push.cameraY =
+                2.0f * kWaterPlaneY - camera.y;
+            push.cameraZ = camera.z;
+            push.cameraYawRadians = camera.yawRadians;
+            push.cameraPitchRadians = -camera.pitchRadians;
+            push.verticalFovDegrees =
+                std::clamp(camera.verticalFovDegrees, 50.0f, 110.0f);
+            push.fogDensity =
+                std::clamp(environment.fogDensity, 0.0f, 1.0f);
+            push.lightningFlash =
+                std::clamp(environment.lightningFlash, 0.0f, 2.0f);
+            push.wetness =
+                std::clamp(environment.wetness, 0.0f, 1.0f);
+            push.rainIntensity =
+                std::clamp(environment.rainIntensity, 0.0f, 1.0f);
+            push.waterWavePhase = environment.waterWavePhase;
+            push.waterFoamStrength =
+                std::clamp(environment.waterFoamStrength, 0.0f, 1.0f);
+            push.waterReflectionStrength = 0.0f;
+            push.waterRefractionStrength = 0.0f;
+            push.waterRoughness =
+                std::clamp(environment.waterRoughness, 0.02f, 0.85f);
+            push.waterQualityScale =
+                std::clamp(environment.postProcessScale, 0.35f, 1.0f);
+            push.waterParticleScale =
+                std::clamp(environment.particleDensityScale, 0.25f, 1.0f);
+            push.waterFogScale =
+                std::clamp(environment.fogQualityScale, 0.35f, 1.0f);
+
+            vkCmdPushConstants(
+                command,
+                pipelineLayout_,
+                VK_SHADER_STAGE_VERTEX_BIT,
+                0,
+                static_cast<std::uint32_t>(sizeof(PushConstants)),
+                &push);
+            vkCmdDraw(command, 36, 1, 0, 0);
+        };
+
+        // Deliberately omit the water itself to prevent recursive reflection.
+        drawReflectedBox(0.0f, -1.58f, 0.0f, 4.2f, 0.12f, 5.0f, 0.0f);
+        drawReflectedBox(-3.15f, 0.05f, 0.0f, 0.12f, 2.2f, 5.0f, 1.0f);
+        drawReflectedBox(3.15f, 0.05f, 0.0f, 0.12f, 2.2f, 5.0f, 1.0f);
+        drawReflectedBox(0.0f, 0.05f, 3.85f, 4.2f, 2.2f, 0.12f, 2.0f);
+
+        const std::size_t reflectedZombieCount =
+            std::min(scene.zombieCount, scene.zombies.size());
+        for (std::size_t i = 0; i < reflectedZombieCount; ++i) {
+            const auto& zombie = scene.zombies[i];
+            if (!zombie.visible) {
+                continue;
+            }
+            drawReflectedBox(
+                zombie.x,
+                zombie.y + 1.08f,
+                zombie.z,
+                0.34f,
+                0.55f,
+                0.22f,
+                4.0f);
+            drawReflectedBox(
+                zombie.x,
+                zombie.y + 1.73f,
+                zombie.z + 0.01f,
+                0.23f,
+                0.24f,
+                0.22f,
+                5.0f);
+        }
+
+        vkCmdEndRenderPass(command);
+    }
 
     vkCmdBeginRenderPass(
         command,
