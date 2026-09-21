@@ -11,6 +11,7 @@
 #include "xziel/engine.hpp"
 #include "xziel/fps_player.hpp"
 #include "xziel/hitscan.hpp"
+#include "xziel/horde_director.hpp"
 #include "xziel/haptics.hpp"
 #include "xziel/horror.hpp"
 #include "xziel/player_vitals.hpp"
