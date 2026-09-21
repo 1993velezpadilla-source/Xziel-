@@ -5,6 +5,8 @@ layout(location = 1) in vec3 vWorldPosition;
 layout(location = 2) in float vPulse;
 layout(location = 3) flat in int vMaterial;
 layout(location = 4) in vec4 vEnvironment;
+layout(location = 5) in vec4 vWaterSurface;
+layout(location = 6) in vec4 vWaterSurfaceExtra;
 
 layout(location = 0) out vec4 outColor;
 
@@ -51,6 +53,14 @@ vec3 materialBase(int material, float pulse) {
 
     if (material == 12) {
         return vec3(0.045, 0.050, 0.060);
+    }
+
+    if (material == 13) {
+        return vec3(0.018, 0.055, 0.078);
+    }
+
+    if (material == 14) {
+        return vec3(0.095, 0.115, 0.135);
     }
 
     vec3 core = vec3(0.12, 0.015, 0.040);
@@ -149,6 +159,142 @@ void main() {
                 0.58) *
             (0.35 +
              lightning * 0.40);
+    }
+
+    if (vMaterial == 13) {
+        float wavePhase =
+            vWaterSurface.x;
+
+        float foam =
+            clamp(
+                vWaterSurface.y,
+                0.0,
+                1.0);
+
+        float reflectionStrength =
+            clamp(
+                vWaterSurface.z,
+                0.0,
+                1.0);
+
+        float refractionStrength =
+            clamp(
+                vWaterSurface.w,
+                0.0,
+                1.0);
+
+        float roughness =
+            clamp(
+                vWaterSurfaceExtra.x,
+                0.02,
+                0.85);
+
+        float waveA =
+            sin(
+                vWorldPosition.x * 4.8 +
+                vWorldPosition.z * 2.6 +
+                wavePhase * 6.2831853);
+
+        float waveB =
+            cos(
+                vWorldPosition.z * 5.3 -
+                vWorldPosition.x * 1.9 -
+                wavePhase * 8.1);
+
+        float wave =
+            0.5 +
+            0.25 * waveA +
+            0.25 * waveB;
+
+        float gloss =
+            (1.0 - roughness) *
+            reflectionStrength;
+
+        vec3 reflectedSky =
+            vec3(
+                0.10,
+                0.22,
+                0.34) *
+            (0.45 +
+             wave * 0.55);
+
+        vec3 refractedDepth =
+            vec3(
+                0.006,
+                0.028,
+                0.040) *
+            (0.70 +
+             refractionStrength *
+                0.45);
+
+        vec3 foamColor =
+            vec3(
+                0.42,
+                0.58,
+                0.66) *
+            foam *
+            smoothstep(
+                0.64,
+                0.96,
+                wave) *
+            0.34;
+
+        lit =
+            mix(
+                refractedDepth,
+                reflectedSky,
+                clamp(
+                    0.28 +
+                    gloss * 0.62,
+                    0.0,
+                    1.0)) +
+            foamColor +
+            vec3(
+                0.58,
+                0.72,
+                0.96) *
+                lightning *
+                0.28;
+    }
+
+    if (vMaterial == 14) {
+        float facing =
+            abs(
+                dot(
+                    normal,
+                    normalize(
+                        vec3(
+                            0.72,
+                            0.10,
+                            -0.68))));
+
+        float glossy =
+            pow(
+                clamp(
+                    1.0 -
+                    facing,
+                    0.0,
+                    1.0),
+                2.0);
+
+        lit =
+            mix(
+                vec3(
+                    0.025,
+                    0.032,
+                    0.042),
+                vec3(
+                    0.18,
+                    0.25,
+                    0.34),
+                0.40 +
+                    glossy * 0.45) +
+            vec3(
+                0.48,
+                0.58,
+                0.86) *
+                lightning *
+                0.35;
     }
 
     if (vMaterial >= 10) {
