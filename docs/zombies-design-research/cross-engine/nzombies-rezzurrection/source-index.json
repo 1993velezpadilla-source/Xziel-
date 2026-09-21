@@ -1,0 +1,21 @@
+{
+  "schema": "xziel.cross-engine.nzombies-rezzurrection.v1",
+  "source_repo": "nZombies-Time/nZombies-Rezzurrection",
+  "source_commit": "ee145e14f457e26f7d5314a9f67eb821d69e3e2a",
+  "license": "GPL-3.0",
+  "sources": [
+    {
+      "path": "gamemode/gamemodes/nzombies/gamemode/easter_eggs/sv_major_ee.lua",
+      "role": "major quest ordered step state machine"
+    },
+    {
+      "path": "gamemode/lua/nzmapscripts/nz_zs_obj_station;Imprisoned.lua",
+      "role": "5-step quest; buildable shield; fuses; soul charging; timed puzzle; PAP-gated targets; finale"
+    },
+    {
+      "path": "gamemode/lua/nzmapscripts/nz_ttt_kosovos;Breakout.lua",
+      "role": "key/item gates; battery transform; electric soul charging"
+    }
+  ],
+  "policy": "Structural research only; do not import third-party/proprietary media assets. Direct GPL code reuse requires GPL compliance review."
+}
