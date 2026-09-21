@@ -346,6 +346,204 @@ def build_xziel_fps_controls(out: Path) -> None:
     }.items():
         _render_svg(out, name, body, 512)
 
+
+def build_xziel_v024_assets(out: Path) -> None:
+    """Final v0.24 HUD art approved from the visual mockup.
+
+    Keep every action readable at phone size and keep every physical weapon
+    family on its own silhouette. PaP aliases are mapped in runtime to the
+    silhouette of the same physical gun, never to a generic category icon.
+    """
+    controls = {
+        "jump": '''
+          <g fill="#FFFFFF">
+            <circle cx="232" cy="112" r="27"/>
+            <path d="M205 149l58 16 38 47-27 22-31-34-15 60 47 42-25 29-63-51-31 6-45 59-31-24 58-82 22-77z"/>
+            <path d="M307 326l31-43 31 43h-20v82h-23v-82z"/>
+          </g>
+          <path d="M82 416h292" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round" stroke-opacity=".72"/>
+        ''',
+        "slide": '''
+          <g fill="#FFFFFF">
+            <circle cx="307" cy="160" r="25"/>
+            <path d="M265 187l60 17 43 38-24 27-40-29-48 41 73 20-9 35-103-24-74 51-25-29 86-72 31-61z"/>
+            <path d="M159 320l-68 10 4 18 74-3zM188 352l-93 19 5 18 102-13z" opacity=".82"/>
+          </g>
+          <path d="M102 414h309" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round" stroke-opacity=".72"/>
+        ''',
+        "sprint": '''
+          <g fill="#FFFFFF">
+            <circle cx="301" cy="112" r="27"/>
+            <path d="M255 148l67 19 43 51-29 23-32-35-25 61 62 55-26 31-81-63-39 91-38-18 48-116-55 23-15-34 86-45z"/>
+            <path d="M107 178h74v16h-74zM83 225h92v16H83zM100 272h64v16h-64z" opacity=".78"/>
+          </g>
+        ''',
+        "reload": '''
+          <g fill="none" stroke="#FFFFFF" stroke-width="20" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M136 191a146 146 0 0 1 237-37"/>
+            <path d="M370 120l17 76-76-15"/>
+            <path d="M380 322a146 146 0 0 1-237 37"/>
+            <path d="M145 394l-17-76 76 15"/>
+          </g>
+          <g fill="#FFFFFF">
+            <path d="M222 170h72v178l-36 39-36-39z"/>
+            <rect x="232" y="194" width="52" height="21" rx="5" fill="#111820" fill-opacity=".35"/>
+          </g>
+        ''',
+        "use": '''
+          <g fill="#FFFFFF">
+            <rect x="216" y="101" width="31" height="163" rx="15"/>
+            <rect x="255" y="116" width="31" height="148" rx="15"/>
+            <rect x="294" y="145" width="31" height="130" rx="15"/>
+            <rect x="333" y="177" width="31" height="116" rx="15"/>
+            <path d="M174 235c18-28 47-15 68 10l19 23v-26h103v97c0 58-45 95-105 95h-12c-53 0-89-31-108-72l-34-76c-12-27 25-45 42-21z"/>
+          </g>
+        ''',
+        "knife": '''
+          <g fill="#FFFFFF">
+            <path d="M98 352l223-223 83-20-22 82-223 223z"/>
+            <path d="M123 367l39 39-31 31-39-39z"/>
+            <path d="M156 337l60 60-20 20-60-60z"/>
+          </g>
+        ''',
+        "grenade": '''
+          <g fill="#FFFFFF">
+            <path d="M175 205h160l43 57v119l-53 54H186l-52-54V262z"/>
+            <rect x="213" y="147" width="90" height="58" rx="12"/>
+            <path d="M296 146l37-45 59 28-17 35-51-14-20 22z"/>
+          </g>
+          <circle cx="394" cy="116" r="23" fill="none" stroke="#FFFFFF" stroke-width="14"/>
+          <path d="M178 281h157M178 332h157" stroke="#111820" stroke-opacity=".25" stroke-width="14"/>
+        ''',
+    }
+    for name, body in controls.items():
+        _render_svg(out, name, body, 512)
+
+    # Premium card surfaces from the approved mockup. The weapon, slot number,
+    # name and ammo remain live overlays; this is only the translucent frame.
+    card_active = '''
+      <defs>
+        <linearGradient id="bg" x1="0" x2="1">
+          <stop offset="0" stop-color="#050607" stop-opacity=".90"/>
+          <stop offset=".60" stop-color="#111418" stop-opacity=".82"/>
+          <stop offset="1" stop-color="#080A0D" stop-opacity=".92"/>
+        </linearGradient>
+      </defs>
+      <path d="M18 18H830L998 154v320H18z" fill="url(#bg)"/>
+      <path d="M18 18H830L998 154" fill="none" stroke="#D7DDE2" stroke-opacity=".34" stroke-width="7"/>
+      <path d="M18 472h980" stroke="#F4C72E" stroke-width="18"/>
+      <path d="M18 441h500" stroke="#F4C72E" stroke-width="5" stroke-opacity=".55"/>
+      <path d="M210 18l150 0-120 118H90z" fill="#F4C72E" fill-opacity=".07"/>
+      <path d="M650 18h120L620 166H500z" fill="#F4C72E" fill-opacity=".05"/>
+    '''
+    card_inactive = '''
+      <path d="M18 18H842L998 145v329H18z" fill="#07090B" fill-opacity=".72"/>
+      <path d="M18 18H842L998 145" fill="none" stroke="#C9D0D5" stroke-opacity=".20" stroke-width="6"/>
+      <path d="M18 472h980" stroke="#899096" stroke-width="10" stroke-opacity=".52"/>
+    '''
+    _render_svg(out, "weapon_card_active", card_active, 1024)
+    _render_svg(out, "weapon_card_inactive", card_inactive, 1024)
+
+    # Refined, original side-profile silhouettes. These are drawn from public
+    # reference research but are original vector geometry. They replace the
+    # rough blocky silhouettes from v0.22.
+    silhouettes = {
+      "weapon_colt": '''
+        <path d="M70 197h314l39 13v31l-50 8-52 26-15 129h-75l-55-146H96l-26-17z"/>
+        <path d="M148 173h170l35 24H143z"/>
+        <path d="M206 258h99l-11 38h-68z" fill="#000000" fill-opacity=".38"/>
+        <path d="M394 196l28-24 17 10-15 31z"/>
+      ''',
+      "weapon_revolver": '''
+        <path d="M71 213h246l44 25-25 48H213l-18 126h-68l25-126H91z"/>
+        <circle cx="249" cy="259" r="61"/>
+        <rect x="311" y="227" width="144" height="26" rx="8"/>
+        <path d="M317 213l27-40 24 12-17 43z"/>
+      ''',
+      "weapon_thompson": '''
+        <path d="M35 246l92-57h87v39h152v61H208l-82 51-91-16z"/>
+        <rect x="361" y="240" width="120" height="20" rx="5"/>
+        <path d="M201 286h39l-8 112h-44z"/>
+        <circle cx="286" cy="318" r="58"/>
+        <path d="M78 247l-56-61 24-19 84 62z"/>
+      ''',
+      "weapon_doublebarrel": '''
+        <path d="M23 270l104-62h155v62H129L23 320z"/>
+        <rect x="276" y="215" width="218" height="17" rx="7"/>
+        <rect x="276" y="244" width="218" height="17" rx="7"/>
+        <path d="M164 268l37 12-21 99h-43z"/>
+      ''',
+      "weapon_sawnoff": '''
+        <path d="M61 272l88-53h145v61H149l-88 41z"/>
+        <rect x="288" y="227" width="139" height="16" rx="7"/>
+        <rect x="288" y="253" width="139" height="16" rx="7"/>
+        <path d="M178 278h49l-27 92h-45z"/>
+      ''',
+      "weapon_mp40": '''
+        <path d="M54 247l75-37h185l55 31h111v31H310l-54 28H128l-74 31z"/>
+        <rect x="220" y="292" width="38" height="121" rx="5"/>
+        <path d="M117 247L44 180l12-13 86 61z" fill="none" stroke="#FFFFFF" stroke-width="14"/>
+        <path d="M57 181L27 158" fill="none" stroke="#FFFFFF" stroke-width="14"/>
+      ''',
+      "weapon_ppsh": '''
+        <path d="M42 252l83-46h190l61 31h111v29H311l-61 30H125l-83 39z"/>
+        <circle cx="281" cy="321" r="60"/>
+        <rect x="357" y="224" width="130" height="14"/>
+        <path d="M91 249l-50-40 13-15 63 38z"/>
+      ''',
+      "weapon_mg42": '''
+        <path d="M20 247l93-45h226l61 30h97v29H334l-63 35H113l-93 37z"/>
+        <rect x="360" y="217" width="138" height="14"/>
+        <path d="M390 262l-55 124h14l66-124zM424 262l58 124h-14l-68-124z"/>
+        <path d="M88 246l-53-37 12-16 66 37z"/>
+      ''',
+      "weapon_stg": '''
+        <path d="M34 255l89-50h201l67 33h96v28H321l-61 31H123l-89 41z"/>
+        <path d="M239 289h49l-14 111h-52z"/>
+        <rect x="372" y="225" width="116" height="13"/>
+        <path d="M100 254L38 210l12-15 75 39z"/>
+      ''',
+      "weapon_mp5": '''
+        <path d="M66 246l61-32h194l52 29h103v31H317l-55 29H127l-61 30z"/>
+        <path d="M226 295h39l12 109h-43z"/>
+        <path d="M108 246L49 196l12-14 71 45z" fill="none" stroke="#FFFFFF" stroke-width="13"/>
+        <rect x="374" y="235" width="103" height="13"/>
+      ''',
+      "weapon_trench": '''
+        <path d="M29 261l98-54h201l58 31h103v27H323l-61 28H127l-98 43z"/>
+        <rect x="329" y="224" width="160" height="14"/>
+        <rect x="314" y="270" width="100" height="20" rx="9"/>
+        <path d="M83 258l-54-35 14-16 64 33z"/>
+      ''',
+      "weapon_browning": '''
+        <path d="M23 248l90-45h239l52 28h97v30H350l-59 36H112l-89 36z"/>
+        <rect x="226" y="286" width="44" height="116"/>
+        <rect x="361" y="218" width="140" height="14"/>
+        <path d="M393 262l-40 121h14l51-121zM430 262l50 121h-14l-60-121z"/>
+      ''',
+      "weapon_panzer": '''
+        <rect x="47" y="220" width="399" height="89" rx="40"/>
+        <rect x="16" y="239" width="70" height="52" rx="17"/>
+        <path d="M197 306h64l-10 98h-57z"/>
+        <rect x="436" y="237" width="66" height="57" rx="15"/>
+        <path d="M122 220l-20-54h25l27 54z"/>
+      ''',
+      "weapon_ray": '''
+        <path d="M92 213h204l103 62-60 62H215l-19 105h-78l30-119-56-34z"/>
+        <circle cx="294" cy="276" r="62"/>
+        <rect x="321" y="186" width="106" height="42" rx="18"/>
+        <path d="M408 206l56-28 16 18-47 39z"/>
+      ''',
+      "weapon_raymk2": '''
+        <path d="M48 242l84-47h231l80 48-47 61H228l-15 110h-67l19-110H77z"/>
+        <circle cx="338" cy="255" r="43"/>
+        <rect x="362" y="195" width="121" height="25" rx="10"/>
+        <path d="M84 243l-49-48 14-15 63 43z"/>
+      ''',
+    }
+    for name, body in silhouettes.items():
+        _render_svg(out, name, f'<g fill="#FFFFFF">{body}</g>', 512)
+
 def main() -> None:
     if len(sys.argv) != 2:
         raise SystemExit("usage: build_xziel_icons.py <output-dir>")
@@ -362,6 +560,7 @@ def main() -> None:
         )
     # Overwrite generic source-pack glyphs with Xziel's original mobile-FPS controls.
     build_xziel_fps_controls(out)
+    build_xziel_v024_assets(out)
 
     # Weapon cards use actual CC0 gun artwork rather than a hand-drawn glyph.
     # Kay Lousberg's pack is CC0, transparent PNG, and explicitly includes
