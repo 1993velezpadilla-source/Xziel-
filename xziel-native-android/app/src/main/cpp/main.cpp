@@ -1,20 +1,29 @@
+#include "android_input.hpp"
 #include "vulkan_clear_renderer.hpp"
 
 #include <android/log.h>
+#include <android/native_window.h>
 #include <game-activity/native_app_glue/android_native_app_glue.h>
 
 #include "xziel/android_runtime.hpp"
+#include "xziel/engine.hpp"
 #include "xziel/renderer_watchdog.hpp"
 
+#include <algorithm>
 #include <chrono>
+#include <cmath>
 
 namespace {
 
 constexpr const char* kTag = "XzielNative";
+constexpr const char* kPackageName =
+    "com.xziel.engineprototype";
 
 struct NativeAppState {
     xziel::AndroidRuntimeStateMachine runtime{};
     xziel::RendererWatchdog watchdog{};
+    xziel::Engine engine{};
+    xziel::android::AndroidInputAdapter input{};
     xziel::android::VulkanClearRenderer renderer{};
 
     bool hasWindow = false;
@@ -26,6 +35,11 @@ struct NativeAppState {
 
     std::chrono::steady_clock::time_point start =
         std::chrono::steady_clock::now();
+
+    std::chrono::steady_clock::time_point lastFrame =
+        std::chrono::steady_clock::now();
+
+    bool hasLastFrame = false;
 };
 
 void logInfo(const char* message) noexcept {
@@ -64,16 +78,24 @@ void handleCommand(
         case APP_CMD_RESUME:
             state->runtime.onEvent(
                 xziel::AndroidLifecycleEvent::Resume);
+            state->input.onResume();
+            state->lastFrame =
+                std::chrono::steady_clock::now();
+            state->hasLastFrame = false;
             break;
 
         case APP_CMD_PAUSE:
+            state->input.onPause();
             state->runtime.onEvent(
                 xziel::AndroidLifecycleEvent::Pause);
+            state->hasLastFrame = false;
             break;
 
         case APP_CMD_STOP:
+            state->input.onPause();
             state->runtime.onEvent(
                 xziel::AndroidLifecycleEvent::Stop);
+            state->hasLastFrame = false;
             break;
 
         case APP_CMD_GAINED_FOCUS:
@@ -106,6 +128,9 @@ void handleCommand(
                         state->javaActivity)) {
                     state->hasWindow = true;
                     state->watchdog.reset();
+                    state->lastFrame =
+                        std::chrono::steady_clock::now();
+                    state->hasLastFrame = false;
                     logInfo("XZIEL_VULKAN_READY");
                 } else {
                     state->hasWindow = false;
@@ -135,10 +160,12 @@ void handleCommand(
             state->renderer.shutdown();
             state->runtime.onEvent(
                 xziel::AndroidLifecycleEvent::SurfaceDestroyed);
+            state->hasLastFrame = false;
             logInfo("SURFACE_DESTROYED");
             break;
 
         case APP_CMD_DESTROY:
+            state->input.onPause();
             state->runtime.onEvent(
                 xziel::AndroidLifecycleEvent::Destroy);
             break;
@@ -146,6 +173,32 @@ void handleCommand(
         default:
             break;
     }
+}
+
+float computeFrameDelta(
+    NativeAppState& state,
+    std::chrono::steady_clock::time_point now) noexcept {
+    if (!state.hasLastFrame) {
+        state.lastFrame = now;
+        state.hasLastFrame = true;
+        return 1.0f / 60.0f;
+    }
+
+    const float raw =
+        std::chrono::duration<float>(
+            now - state.lastFrame).count();
+
+    state.lastFrame = now;
+
+    if (!std::isfinite(raw) ||
+        raw <= 0.0f) {
+        return 1.0f / 60.0f;
+    }
+
+    return std::clamp(
+        raw,
+        1.0f / 1000.0f,
+        0.100f);
 }
 
 } // namespace
@@ -176,7 +229,8 @@ extern "C" void android_main(
                     &state.jniEnv,
                     nullptr) == JNI_OK) {
                 state.attachedToJvm = true;
-                logInfo("XZIEL_APP_THREAD_ATTACHED_TO_JVM");
+                logInfo(
+                    "XZIEL_APP_THREAD_ATTACHED_TO_JVM");
             } else {
                 state.jniEnv = nullptr;
                 logError(
@@ -194,6 +248,14 @@ extern "C" void android_main(
     app->userData = &state;
     app->onAppCmd = handleCommand;
 
+    if (!state.input.initialize(
+            app,
+            kPackageName)) {
+        logError(
+            "Input adapter initialization failed; "
+            "continuing with renderer-only prototype");
+    }
+
     logInfo("XZIEL_NATIVE_BOOT");
 
     while (!app->destroyRequested) {
@@ -205,14 +267,30 @@ extern "C" void android_main(
             state.hasWindow &&
             state.renderer.ready();
 
-        int events = 0;
+        int outEvents = 0;
         android_poll_source* source = nullptr;
 
-        while (ALooper_pollOnce(
-                   animating ? 0 : -1,
-                   nullptr,
-                   &events,
-                   reinterpret_cast<void**>(&source)) >= 0) {
+        while (true) {
+            const int identifier =
+                ALooper_pollOnce(
+                    animating ? 0 : -1,
+                    nullptr,
+                    &outEvents,
+                    reinterpret_cast<void**>(
+                        &source));
+
+            if (identifier == ALOOPER_POLL_TIMEOUT ||
+                identifier == ALOOPER_POLL_ERROR) {
+                break;
+            }
+
+            if (identifier ==
+                xziel::android::AndroidInputAdapter::
+                    sensorLooperIdentifier()) {
+                state.input.handleLooperIdentifier(
+                    identifier);
+            }
+
             if (source != nullptr) {
                 source->process(
                     source->app,
@@ -232,20 +310,58 @@ extern "C" void android_main(
         const auto latest =
             state.runtime.state();
 
+        const auto now =
+            std::chrono::steady_clock::now();
+
+        const float frameDelta =
+            computeFrameDelta(
+                state,
+                now);
+
+        state.input.beginFrame(
+            frameDelta);
+
+        const int width =
+            app->window != nullptr
+            ? ANativeWindow_getWidth(
+                  app->window)
+            : 0;
+
+        const int height =
+            app->window != nullptr
+            ? ANativeWindow_getHeight(
+                  app->window)
+            : 0;
+
+        state.input.consumeInputBuffer(
+            app,
+            width,
+            height);
+
+        if (latest.canSimulate) {
+            state.engine.submitInput(
+                state.input.snapshot().input);
+
+            const auto stats =
+                state.engine.advance(
+                    static_cast<double>(
+                        frameDelta));
+
+            (void) stats;
+        }
+
         if (!latest.canRender ||
             !state.hasWindow ||
             !state.renderer.ready()) {
             continue;
         }
 
-        const auto now =
-            std::chrono::steady_clock::now();
-
         const float seconds =
             std::chrono::duration<float>(
                 now - state.start).count();
 
-        if (!state.renderer.drawFrame(seconds)) {
+        if (!state.renderer.drawFrame(
+                seconds)) {
             const auto recovery =
                 state.watchdog.report(
                     {
@@ -268,6 +384,7 @@ extern "C" void android_main(
         }
     }
 
+    state.input.shutdown();
     state.renderer.shutdown();
 
     state.runtime.onEvent(
