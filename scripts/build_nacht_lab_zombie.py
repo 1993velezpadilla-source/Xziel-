@@ -391,9 +391,18 @@ raw = buffers[bv.get("buffer", 0)]
 bo = bv.get("byteOffset", 0)
 atlas_bytes = raw[bo:bo + bv["byteLength"]]
 atlas = Image.open(io.BytesIO(atlas_bytes)).convert("RGBA")
-skinw, skinh = atlas.size
-if skinw <= 0 or skinh <= 0 or skinw > 2048 or skinh > 2048:
+external_skinw, external_skinh = atlas.size
+if external_skinw <= 0 or external_skinh <= 0 or external_skinw > 4096 or external_skinh > 4096:
     raise SystemExit(f"Unexpected zombie atlas size: {atlas.size}")
+
+# Quake MDL's legacy loader caps the embedded skin height at 480. The embedded
+# indexed skin is only a crash-safe fallback; Vril renders the external TGA.
+# Preserve UV normalization by scaling the MDL skin dimensions proportionally.
+fallback_scale = min(1.0, 480.0 / max(external_skinw, external_skinh))
+skinw = max(16, int(round(external_skinw * fallback_scale / 4.0)) * 4)
+skinh = max(16, int(round(external_skinh * fallback_scale / 4.0)) * 4)
+skinw = min(skinw, 480)
+skinh = min(skinh, 480)
 
 out_dir = root / "models" / "xziel_lab"
 out_dir.mkdir(parents=True, exist_ok=True)
@@ -456,7 +465,8 @@ meta = {
     "vertices": numverts,
     "triangles": numtris,
     "frames": 211,
-    "skin": [skinw, skinh],
+    "mdl_skin": [skinw, skinh],
+    "external_skin": [external_skinw, external_skinh],
     "model_scale": MODEL_SCALE,
     "idle_z_offset": z_offset,
     "animations": sorted(animations.keys()),
@@ -467,5 +477,5 @@ meta = {
 
 print(
     f"Built Lab zombie: {numverts} verts, {numtris} tris, 211 frames, "
-    f"{skinw}x{skinh} atlas -> {mdl_path}"
+    f"MDL skin {skinw}x{skinh}, external atlas {external_skinw}x{external_skinh} -> {mdl_path}"
 )
