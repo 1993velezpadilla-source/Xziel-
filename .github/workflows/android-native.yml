@@ -9,6 +9,8 @@ on:
       - ".github/workflows/android-native.yml"
       - "android/**"
       - "scripts/**"
+      - "engine/**"
+      - "tests/**"
       - "README.md"
       - "assets/nacht_enhanced/**"
       - "docs/NACHT_ENHANCED*.md"
@@ -19,6 +21,8 @@ on:
       - ".github/workflows/android-native.yml"
       - "android/**"
       - "scripts/**"
+      - "engine/**"
+      - "tests/**"
       - "README.md"
 
 concurrency:
@@ -57,8 +61,65 @@ jobs:
         run: |
           python3 -m py_compile \
             scripts/patch_vril_mobile_v024.py \
-            scripts/patch_quakec_mobile_v024.py
+            scripts/patch_quakec_mobile_v024.py \
+            scripts/patch_vril_xz_phase0.py
 
+      - name: Test Xz Phase-0 core
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_phase0_test.c engine/xz/xz_phase0.c \
+            -lm -o /tmp/xz_phase0_test
+          /tmp/xz_phase0_test
+
+      - name: Test Xz PresentWorld core
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_present_world_test.c engine/xz/xz_present_world.c \
+            -o /tmp/xz_present_world_test
+          /tmp/xz_present_world_test
+
+      - name: Test Xz DeviceCaps
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_device_caps_test.c engine/xz/xz_device_caps.c \
+            -o /tmp/xz_device_caps_test
+          /tmp/xz_device_caps_test
+
+      - name: Test Xz SceneBudget
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_scene_budget_test.c engine/xz/xz_scene_budget.c \
+            -o /tmp/xz_scene_budget_test
+          /tmp/xz_scene_budget_test
+
+      - name: Test Xz RenderPlan
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_render_plan_test.c engine/xz/xz_render_plan.c \
+            -o /tmp/xz_render_plan_test
+          /tmp/xz_render_plan_test
+
+      - name: Test Xz RHI
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_rhi_test.c \
+            engine/xz/xz_rhi.c \
+            engine/xz/xz_render_plan.c \
+            engine/xz/xz_device_caps.c \
+            -o /tmp/xz_rhi_test
+          /tmp/xz_rhi_test
 
       - name: Set up Java 17
         uses: actions/setup-java@v5
@@ -195,7 +256,7 @@ jobs:
           "$ADB" shell run-as com.xziel.nzp cat files/nzp-runtime/.xziel-last-error 2>/dev/null || true
 
           echo "===== XZIEL LOGCAT HIGHLIGHTS ====="
-          grep -Ei "FATAL EXCEPTION|Fatal signal|AndroidRuntime|DEBUG|libmain|gl4es|SDL|xziel|com.xziel.nzp|Vril Engine|Sys_Error|EGL_BAD_CONTEXT|stage=SYS_ERROR|stage=HOST_INIT_OK|stage=FIRST_FRAME_OK" \
+          grep -Ei "FATAL EXCEPTION|Fatal signal|AndroidRuntime|DEBUG|libmain|gl4es|SDL|xziel|XZIEL-XZ|com.xziel.nzp|Vril Engine|Sys_Error|EGL_BAD_CONTEXT|stage=SYS_ERROR|stage=HOST_INIT_OK|stage=FIRST_FRAME_OK" \
             dist/xziel-logcat.txt | tail -n 500 || true
 
           if grep -Eq "Fatal signal .*SDLActivity|>>> com\\.xziel\\.nzp <<<|Process .*com\\.xziel\\.nzp.*exited due to signal|EGL_BAD_CONTEXT|stage=SYS_ERROR" dist/xziel-logcat.txt; then
@@ -214,7 +275,43 @@ jobs:
             exit 1
           fi
 
-          echo "Xziel remained alive and reached FIRST_FRAME_OK after 20 seconds."
+          if ! grep -Eq "XZIEL-XZ.*phase0 init passive=1 selftest=PASS" dist/xziel-logcat.txt; then
+            echo "Xz Phase-0 runtime did not initialize or its self-test failed."
+            grep -E "XZIEL-XZ|phase0" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*present_gen=[1-9][0-9]*.*present=[0-9]+" dist/xziel-logcat.txt; then
+            echo "Xz PresentWorld did not publish a live presentation snapshot."
+            grep -E "XZIEL-XZ.*present_" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*phase2 caps selftest=PASS tier=" dist/xziel-logcat.txt; then
+            echo "Xz DeviceCaps did not initialize or self-test."
+            grep -E "XZIEL-XZ.*phase2 caps" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*budget\(near=[0-9]+ mid=[0-9]+ far=[0-9]+.*anim=[0-9]+ shadow=[0-9]+ vfx=[0-9]+ light=[0-9]+/[0-9]+\)" dist/xziel-logcat.txt; then
+            echo "Xz SceneBudget did not publish a live budget."
+            grep -E "XZIEL-XZ.*budget\(" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*phase3 renderplan=PASS rhi=PASS requested=GLES3 active=NULL shadow=1" dist/xziel-logcat.txt; then
+            echo "Xz Phase-3 RenderPlan/RHI did not initialize in shadow mode."
+            grep -E "XZIEL-XZ.*phase3" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*plan\(gen=[1-9][0-9]* packets=[1-9][0-9]* lod=[0-9]+/[0-9]+/[0-9]+.*hash=[0-9a-fA-F]{8}\).*rhi\(active=NULL shadow=1 submitted=[1-9][0-9]* rejected=0\)" dist/xziel-logcat.txt; then
+            echo "Xz Phase-3 did not publish a validated live render plan."
+            grep -E "XZIEL-XZ.*plan\(" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          echo "Xziel remained alive; Phase 0-3 telemetry, PresentWorld, RenderPlan and shadow RHI are live."
 
       - name: Upload runtime diagnostics
         if: always()
