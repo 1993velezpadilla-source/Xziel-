@@ -1,64 +1,67 @@
 # Blender Zombie Pipeline
 
-This branch turns GitHub Actions into the Blender workstation for the zombie project. The phone/chat workflow stays lightweight: code and art-generation recipes live in GitHub, Actions runs Blender headless, and the resulting GLB/BLEND/PNG files are returned as workflow artifacts.
+This branch turns GitHub Actions into the Blender workstation for ZOMBIESSSSSSS PORTABLE. The phone/chat workflow stays lightweight: generation code lives in GitHub, Actions runs Blender headlessly, and review/export files return as workflow artifacts.
 
-## Phase 1
+## Phase 1 — proof of execution
 
-1. Clone the current MakeHuman repository.
-2. Read the MakeHuman core human base mesh.
-3. Run Blender without a GUI.
-4. Normalize the body to game scale.
-5. Apply deterministic corpse asymmetry.
-6. Build procedural decomposed-skin, cloth, blood, bone and eye materials.
-7. Add torn clothing shells and wound geometry.
-8. Export:
-   - `zombie_lod0.glb`
-   - `zombie_lod1.glb`
-   - `zombie_lod2.glb`
-   - `zombie_lod0.blend`
-   - `zombie_preview.png`
-   - `zombie_manifest.json`
-9. Upload the whole output directory as a GitHub Actions artifact.
+Phase 1 proved the autonomous path with Blender 4.0 + the raw MakeHuman base OBJ. It successfully generated GLB/BLEND/PNG outputs, but the raw base includes helper geometry that produced unacceptable visual artifacts when treated as a finished game body. That route is retained only as a historical smoke test and is **not** approved for game integration.
 
-The model is intentionally generated from a real humanoid topology instead of primitive boxes/cylinders. Phase 1 is the visual pipeline proof and does not yet replace the in-game zombie.
+## Phase 2 — MPFB rigged character pipeline
+
+The active path now uses:
+
+- Blender 4.5.14 LTS from the official Blender Linux build.
+- MPFB2 2.0.17 source installed as a Blender extension.
+- MakeHuman System Assets CC0 pack.
+- MPFB's `game_engine` skeleton and weights.
+- MPFB's official helper-removal/export copy workflow.
+
+The generator creates an adult humanoid through MPFB, applies a real MakeHuman skin, attaches system eyes/teeth/work clothing/shoes where available, then adds procedural corpse treatment:
+
+- desaturated decomposed skin while preserving source skin detail;
+- bruising/necrosis and integrated blood material regions;
+- grime overlays on clothing;
+- cloudy corpse-eye treatment;
+- dirty/yellowed teeth;
+- cold key + red rim review lighting.
+
+### Phase 2 outputs
+
+- `zombie_mpfb_lod0.glb`
+- `zombie_mpfb_lod0.fbx`
+- `zombie_mpfb.blend`
+- `zombie_mpfb_preview.png`
+- `zombie_mpfb_manifest.json`
+
+LOD1/LOD2 are intentionally deferred until we validate a reduction method that preserves the MPFB skin weights instead of pretending a static decimation is game-ready.
 
 ## Source/licensing
 
-The source body is the MakeHuman core base mesh. MakeHuman core graphical assets are CC0. The generated visual asset therefore has a clean starting point for game use. Third-party MakeHuman community assets are **not** automatically accepted by this pipeline because their licenses can differ.
+The active Phase 2 character uses the MakeHuman System Assets pack, which is published as CC0. MPFB itself is a GPL Blender extension used as a build tool; its code is not copied into the game asset output. Third-party community assets are not automatically accepted because their licenses can differ.
 
-## Phase 2
+## Next engineering stage
 
-Move the generator to Blender 4.2+ + MPFB2 and automate:
-- humanoid skeleton generation;
-- skin weights;
-- game-engine rig conversion;
-- retargeting of walk/run/attack/hit/death animations;
-- head/limb separation anchors for dismemberment;
-- headless/deheaded locomotion variants;
-- socket/attachment points;
-- FBX/GLB export validation.
+After the Phase 2 visual/rig output is accepted:
 
-## Phase 3
-
-Generate a small zombie family from one recipe:
-- normal male;
-- normal female;
-- thin/decomposed;
-- heavy;
-- burned;
-- partial-face destruction.
-
-All variants will share compatible gameplay dimensions and animation contracts while changing proportions, face damage, clothing and material seed.
+- validate bone orientation and scale in the game importer;
+- add walk/run/attack/hit/death animation retargeting;
+- create head and limb separation anchors for dismemberment;
+- create headless/deheaded locomotion variants;
+- add gameplay sockets and hitbox metadata;
+- build weight-preserving LOD1/LOD2;
+- validate mobile triangle/material/texture budgets;
+- run Nacht spawn/path/headshot smoke tests.
 
 ## Game integration gates
 
 A generated zombie is not promoted into the Android map until it passes:
+
 - collider/hitbox alignment;
 - headshot registration;
 - correct forward-facing root orientation;
-- walk/run animation root motion policy;
+- animation root-motion policy;
 - no backwards-facing locomotion;
 - dismemberment socket validation;
-- mobile triangle/material/texture budgets;
+- mobile performance budget;
 - LOD switch test;
-- Nacht spawn-path smoke test.
+- map spawn-path smoke test.
