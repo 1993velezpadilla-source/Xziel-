@@ -145,7 +145,9 @@ void main() {
             scaledNormal);
 
     vec3 camera =
-        worldToView(world);
+        material >= 10
+        ? world
+        : worldToView(world);
 
     const float nearPlane = 0.08;
     const float farPlane = 48.0;
