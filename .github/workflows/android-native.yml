@@ -141,6 +141,11 @@ jobs:
           test -s build/nzp-data/nzp/textures/nacht_enhanced/cons5nny3.jpg
           test -s build/nzp-data/nzp/textures/nacht_enhanced/debris_hnf3p.jpg
           test -s build/nzp-data/nzp/textures/nacht_enhanced/ground_hb3.jpg
+          test -s build/nzp-data/nzp/textures/nacht_enhanced/NDUWALL.jpg
+          test -s build/nzp-data/nzp/textures/nacht_enhanced/NDU_DOORS_64.jpg
+          test -s 'build/nzp-data/nzp/textures/nacht_enhanced/{RAILLING_NDU.png'
+          test -s 'build/nzp-data/nzp/textures/nacht_enhanced/{BOARD_FE.png'
+          test -s 'build/nzp-data/nzp/textures/nacht_enhanced/{BARBED_WIRE_V.png'
           test -s build/nzp-data/nzp/maps/ndu_enchanted.bsp
           test -s build/nzp-data/nzp/maps/ndu_enchanted.txt
           if cmp -s build/nzp-data/nzp/maps/ndu.bsp build/nzp-data/nzp/maps/ndu_enchanted.bsp; then
@@ -183,6 +188,10 @@ jobs:
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/textures/nacht_enhanced/cons5nny3.jpg'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/textures/nacht_enhanced/debris_hnf3p.jpg'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/textures/nacht_enhanced/ground_hb3.jpg'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/textures/nacht_enhanced/NDUWALL.jpg'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/textures/nacht_enhanced/NDU_DOORS_64.jpg'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/textures/nacht_enhanced/{RAILLING_NDU.png'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/textures/nacht_enhanced/{BOARD_FE.png'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/maps/ndu_enchanted.bsp'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/maps/ndu_enchanted.txt'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/models/machines/mystery.mdl_0.tga'
