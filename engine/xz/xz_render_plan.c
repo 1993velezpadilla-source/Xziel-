@@ -1,4 +1,5 @@
 #include "xz_render_plan.h"
+#include "xz_visibility.h"
 
 #include <stddef.h>
 #include <stdlib.h>
@@ -79,7 +80,20 @@ void XzRenderPlan_Build(
 
     for (i = 0u; i < frame->entity_count; ++i) {
         const XzPresentEntity *src = &frame->entities[i];
+        XzVisibilityResult visibility;
         XzRenderPacket *dst;
+
+        plan->source_packet_count++;
+
+        XzVisibility_Classify(
+            frame,
+            src,
+            &visibility);
+
+        if (!visibility.admitted) {
+            plan->culled_packets++;
+            continue;
+        }
 
         if (plan->packet_count >= XZ_RENDER_MAX_PACKETS) {
             plan->dropped_packets++;
@@ -99,7 +113,22 @@ void XzRenderPlan_Build(
         dst->priority_class = src->priority_class;
         dst->kind = (unsigned char)src->kind;
         dst->lod = (unsigned char)XzChooseLod(src);
+        dst->visibility_class =
+            (unsigned char)visibility.visibility_class;
         dst->distance_sq = src->distance_sq;
+        dst->view_forward = visibility.view_forward;
+        dst->view_right = visibility.view_right;
+        dst->view_up = visibility.view_up;
+
+        if (visibility.visibility_class ==
+                XZ_VISIBILITY_FRONT)
+            plan->visibility_front_count++;
+        else if (visibility.visibility_class ==
+                 XZ_VISIBILITY_EDGE)
+            plan->visibility_edge_count++;
+        else if (visibility.visibility_class ==
+                 XZ_VISIBILITY_BEHIND)
+            plan->visibility_behind_count++;
 
         dst->origin[0] = src->origin[0];
         dst->origin[1] = src->origin[1];
@@ -162,7 +191,9 @@ void XzRenderPlan_Build(
 
     hash = XzHashU32(hash, (uint32_t)plan->generation);
     hash = XzHashU32(hash, (uint32_t)plan->source_frame);
+    hash = XzHashU32(hash, (uint32_t)plan->source_packet_count);
     hash = XzHashU32(hash, (uint32_t)plan->packet_count);
+    hash = XzHashU32(hash, (uint32_t)plan->culled_packets);
     hash = XzHashU32(hash, (uint32_t)plan->admitted_lights);
 
     for (i = 0u; i < plan->packet_count; ++i) {
@@ -171,6 +202,9 @@ void XzRenderPlan_Build(
         hash = XzHashU32(hash, packet->asset_hash);
         hash = XzHashU32(hash, packet->feature_mask);
         hash = XzHashU32(hash, (uint32_t)packet->lod);
+        hash = XzHashU32(
+            hash,
+            (uint32_t)packet->visibility_class);
     }
 
     plan->content_hash = hash;
@@ -189,6 +223,9 @@ int XzRenderPlan_Validate(const XzRenderPlan *plan)
     if (!plan)
         return 0;
     if (plan->packet_count > XZ_RENDER_MAX_PACKETS)
+        return 0;
+    if (plan->source_packet_count <
+        plan->packet_count + plan->culled_packets)
         return 0;
     if (plan->admitted_lights > plan->requested_lights)
         return 0;
@@ -222,6 +259,10 @@ int XzRenderPlan_Validate(const XzRenderPlan *plan)
     return near_count == plan->near_count &&
            mid_count == plan->mid_count &&
            far_count == plan->far_count &&
+           plan->visibility_front_count +
+               plan->visibility_edge_count +
+               plan->visibility_behind_count ==
+               plan->packet_count &&
            animation_count == plan->full_animation_count &&
            shadow_count == plan->shadow_count &&
            vfx_count == plan->premium_vfx_count;
