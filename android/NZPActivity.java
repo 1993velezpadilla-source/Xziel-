@@ -32,13 +32,14 @@ public class NZPActivity extends SDLActivity {
     private static final String DATA_VERSION = "nzp-data.version";
 
     /**
-     * Keep SDL/Vril locked to sensor-landscape. Without this override SDL2
-     * treats the resizable desktop-style window as FULL_USER and Android can
-     * rotate/recreate the Surface after the GLES context has been created.
+     * Keep SDL/Vril on one authoritative landscape orientation. Use a fixed
+     * landscape request rather than sensorLandscape so headless emulators and
+     * phones with transient/disabled sensor state cannot create the first GLES
+     * Surface in portrait and rotate it afterwards.
      */
     @Override
     public void setOrientationBis(int w, int h, boolean resizable, String hint) {
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
     }
 
     private void applyImmersiveMode() {
@@ -74,6 +75,10 @@ public class NZPActivity extends SDLActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Orientation must be authoritative before SDLActivity creates its
+        // Surface/GLES context. Applying it only after super.onCreate() is too
+        // late on some Android/emulator configurations.
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         super.onCreate(savedInstanceState);
         applyImmersiveMode();
         getWindow().getDecorView().postDelayed(new Runnable() {
@@ -86,6 +91,7 @@ public class NZPActivity extends SDLActivity {
 
     @Override
     protected void onResume() {
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         super.onResume();
         applyImmersiveMode();
     }
