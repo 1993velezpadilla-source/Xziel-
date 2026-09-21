@@ -1400,26 +1400,63 @@ xziel::android::VulkanEnvironmentState makeEnvironmentState(
                ? 2U
                : 4U);
 
-    // The prototype water occupies a meaningful portion of the room whenever
-    // the player is within the reflection workload's distance budget. Carry a
-    // conservative coverage hint now; scene culling can replace this estimate
-    // with exact projected bounds without changing the renderer contract.
+    // Estimate projected contribution using the actual camera heading rather
+    // than distance alone. A reflection target behind the player should not
+    // consume a second scene pass merely because it is geographically close.
+    constexpr float kReflectionFocusX = 0.0f;
+    constexpr float kReflectionFocusZ = 1.0f;
+    const float reflectionDx =
+        kReflectionFocusX - state.camera.x;
+    const float reflectionDz =
+        kReflectionFocusZ - state.camera.z;
     const float reflectionDistance =
         std::sqrt(
-            state.camera.x * state.camera.x +
-            (state.camera.z - 1.0f) *
-                (state.camera.z - 1.0f));
+            reflectionDx * reflectionDx +
+            reflectionDz * reflectionDz);
+
+    const float safeReflectionDistance =
+        std::max(
+            reflectionDistance,
+            0.001f);
+    const float directionX =
+        reflectionDx / safeReflectionDistance;
+    const float directionZ =
+        reflectionDz / safeReflectionDistance;
+
+    // Camera forward convention follows the Vulkan view path: yaw zero looks
+    // toward +Z. The soft facing ramp avoids reflection-pass thrashing while
+    // the player rotates near the edge of the visible hemisphere.
+    const float forwardX =
+        std::sin(state.camera.yawRadians);
+    const float forwardZ =
+        std::cos(state.camera.yawRadians);
+    const float facing =
+        std::clamp(
+            forwardX * directionX +
+            forwardZ * directionZ,
+            -1.0f,
+            1.0f);
+    const float facingWeight =
+        std::clamp(
+            (facing + 0.18f) / 0.58f,
+            0.0f,
+            1.0f);
+
     environment.planarReflectionVisible =
         state.renderWorkload.maxPlanarReflectionPasses > 0 &&
         reflectionDistance <=
-            state.renderWorkload.reflectionDistanceMeters;
+            state.renderWorkload.reflectionDistanceMeters &&
+        facingWeight > 0.01f;
+
+    const float distanceCoverage =
+        0.30f /
+        (1.0f +
+         reflectionDistance * 0.08f);
     environment.planarReflectionScreenCoverage =
         environment.planarReflectionVisible
         ? std::clamp(
-              0.30f /
-                  (1.0f +
-                   reflectionDistance * 0.08f),
-              0.01f,
+              distanceCoverage * facingWeight,
+              0.0f,
               0.30f)
         : 0.0f;
 
