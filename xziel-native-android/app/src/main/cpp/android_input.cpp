@@ -434,6 +434,12 @@ AndroidInputAdapter::chooseRole(
         return TouchRole::Aim;
     }
 
+    if (insideButton(
+            x, y, width, height,
+            0.80f, 0.35f, 0.055f)) {
+        return TouchRole::Reload;
+    }
+
     bool moveAssigned = false;
     bool lookAssigned = false;
 
@@ -470,6 +476,7 @@ void AndroidInputAdapter::updateDerivedState(
     snapshot_.input.move = {};
     snapshot_.input.fire = false;
     snapshot_.input.aim = false;
+    snapshot_.input.reload = false;
     snapshot_.input.jump = false;
     snapshot_.input.crouch = false;
     snapshot_.moveActive = false;
@@ -562,6 +569,10 @@ void AndroidInputAdapter::updateDerivedState(
 
             case TouchRole::Aim:
                 snapshot_.input.aim = true;
+                break;
+
+            case TouchRole::Reload:
+                snapshot_.input.reload = true;
                 break;
 
             case TouchRole::Jump:
