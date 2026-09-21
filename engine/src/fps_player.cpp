@@ -47,6 +47,33 @@ void FpsPlayerController::reset() noexcept {
     updateCameraPosition();
 }
 
+void FpsPlayerController::clearStaticObstacles() noexcept {
+    staticObstacleCount_ = 0;
+}
+
+bool FpsPlayerController::addStaticObstacle(
+    const Aabb& obstacle) noexcept {
+    if (staticObstacleCount_ >=
+        staticObstacles_.size()) {
+        return false;
+    }
+
+    if (obstacle.minimum.x >
+            obstacle.maximum.x ||
+        obstacle.minimum.y >
+            obstacle.maximum.y ||
+        obstacle.minimum.z >
+            obstacle.maximum.z) {
+        return false;
+    }
+
+    staticObstacles_[
+        staticObstacleCount_++] =
+        obstacle;
+
+    return true;
+}
+
 void FpsPlayerController::sampleViewInput(
     const InputState& input,
     float frameDeltaSeconds) noexcept {
@@ -140,6 +167,9 @@ FpsPlayerFrame FpsPlayerController::fixedStep(
             traversal,
             dt);
 
+    const Vec3 previousFeetPosition =
+        frame_.feetPosition;
+
     frame_.feetPosition.x +=
         frame_.movement.velocity.x *
         dt;
@@ -163,6 +193,9 @@ FpsPlayerFrame FpsPlayerController::fixedStep(
             frame_.feetPosition.z,
             config_.minZ,
             config_.maxZ);
+
+    resolveStaticCollision(
+        previousFeetPosition);
 
     if (frame_.feetPosition.y <
         config_.floorY) {
@@ -247,6 +280,96 @@ Vec2 FpsPlayerController::localToWorldMove(
         right.y * local.x +
             forward.y * local.y,
     };
+}
+
+bool FpsPlayerController::overlapsObstacle(
+    float x,
+    float z,
+    const Aabb& obstacle) const noexcept {
+    const float radius =
+        std::max(
+            0.0f,
+            config_.collisionRadius);
+
+    const float playerBottom =
+        frame_.feetPosition.y;
+
+    const float playerTop =
+        playerBottom +
+        std::max(
+            0.1f,
+            config_.collisionHeight);
+
+    const bool verticalOverlap =
+        playerTop >
+            obstacle.minimum.y &&
+        playerBottom <
+            obstacle.maximum.y;
+
+    if (!verticalOverlap) {
+        return false;
+    }
+
+    return x >
+            obstacle.minimum.x -
+                radius &&
+        x <
+            obstacle.maximum.x +
+                radius &&
+        z >
+            obstacle.minimum.z -
+                radius &&
+        z <
+            obstacle.maximum.z +
+                radius;
+}
+
+void FpsPlayerController::resolveStaticCollision(
+    const Vec3& previousFeetPosition) noexcept {
+    if (staticObstacleCount_ == 0) {
+        return;
+    }
+
+    float resolvedX =
+        frame_.feetPosition.x;
+
+    const float desiredZ =
+        frame_.feetPosition.z;
+
+    for (std::size_t i = 0;
+         i < staticObstacleCount_;
+         ++i) {
+        if (overlapsObstacle(
+                resolvedX,
+                previousFeetPosition.z,
+                staticObstacles_[i])) {
+            resolvedX =
+                previousFeetPosition.x;
+            break;
+        }
+    }
+
+    float resolvedZ =
+        desiredZ;
+
+    for (std::size_t i = 0;
+         i < staticObstacleCount_;
+         ++i) {
+        if (overlapsObstacle(
+                resolvedX,
+                resolvedZ,
+                staticObstacles_[i])) {
+            resolvedZ =
+                previousFeetPosition.z;
+            break;
+        }
+    }
+
+    frame_.feetPosition.x =
+        resolvedX;
+
+    frame_.feetPosition.z =
+        resolvedZ;
 }
 
 void FpsPlayerController::updateCameraPosition() noexcept {
