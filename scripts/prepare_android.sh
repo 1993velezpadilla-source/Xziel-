@@ -40,7 +40,8 @@ python3 "$ROOT/scripts/patch_vril_camera_feel.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_animation_feel.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_mobile_v021.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_mobile_v022.py" "$DEPS/vril"
-python3 "$ROOT/scripts/patch_vril_nacht_enhanced.py" "$DEPS/vril"\npython3 "$ROOT/scripts/patch_vril_nacht_textures.py" "$DEPS/vril"
+python3 "$ROOT/scripts/patch_vril_nacht_enhanced.py" "$DEPS/vril"
+python3 "$ROOT/scripts/patch_vril_nacht_textures.py" "$DEPS/vril"
 
 echo "==> Patching and compiling Xziel mobile QuakeC"
 python3 -m pip install --quiet colorama==0.4.6 fastcrc==0.3.0 pandas==2.1.4 cairosvg==2.8.2
@@ -106,7 +107,8 @@ unzip -q "$DOWNLOADS/standard-nzp-qc.zip" -d "$ASSET_WORK/nzp"
 # build time. This keeps the repository text-only while packaging professional
 # touch-control art into the APK.
 python3 "$ROOT/scripts/build_xziel_icons.py" "$ASSET_WORK/nzp/gfx/xziel"
-\necho "==> Staging opt-in Nacht Enhanced CC0 texture pack"\nbash "$ROOT/scripts/fetch_nacht_enhanced_textures.sh" "$ASSET_WORK"\n
+\necho "==> Staging opt-in Nacht Enhanced CC0 texture pack"
+bash "$ROOT/scripts/fetch_nacht_enhanced_textures.sh" "$ASSET_WORK"\n
 # Replace the stock gameplay bytecode with our GPL QuakeC build. All other
 # release-side data stays from the official NZ:P package.
 cp "$DEPS/quakec/build/standard/progs.dat" "$ASSET_WORK/nzp/progs.dat"
