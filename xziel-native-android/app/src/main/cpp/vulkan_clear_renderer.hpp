@@ -218,9 +218,9 @@ private:
         float waterRefractionStrength = 0.0f;
 
         float waterRoughness = 0.10f;
-        float waterPadding0 = 0.0f;
-        float waterPadding1 = 0.0f;
-        float waterPadding2 = 0.0f;
+        float waterQualityScale = 1.0f;
+        float waterParticleScale = 1.0f;
+        float waterFogScale = 1.0f;
     };
 
     [[nodiscard]] bool createInstance() noexcept;

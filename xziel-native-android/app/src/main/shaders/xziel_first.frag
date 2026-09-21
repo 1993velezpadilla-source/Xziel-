@@ -99,6 +99,24 @@ void main() {
             0.0,
             2.0);
 
+    float rainIntensity =
+        clamp(
+            vEnvironment.w,
+            0.0,
+            1.0);
+
+    float surfaceQuality =
+        clamp(
+            vWaterSurfaceExtra.y,
+            0.35,
+            1.0);
+
+    float rainDetailScale =
+        clamp(
+            vWaterSurfaceExtra.z,
+            0.25,
+            1.0);
+
     vec3 lit =
         base *
             (0.20 +
@@ -125,31 +143,76 @@ void main() {
             normal.y,
             0.0);
 
-    float wetRipple =
-        0.5 +
-        0.5 *
-        sin(
-            vWorldPosition.x *
-                2.7 +
-            vWorldPosition.z *
-                3.3 +
-            pulse *
-                4.0);
+    if (vMaterial == 0 &&
+        wetness > 0.001) {
+        float rainResponse =
+            rainIntensity *
+            rainDetailScale;
 
-    float wetFloorHighlight =
-        vMaterial == 0
-        ? floorFacing *
+        float broadPuddle =
+            0.5 +
+            0.25 *
+                sin(
+                    vWorldPosition.x * 1.35 +
+                    vWorldPosition.z * 1.80) +
+            0.25 *
+                cos(
+                    vWorldPosition.z * 1.10 -
+                    vWorldPosition.x * 1.65);
+
+        float puddleMask =
+            smoothstep(
+                0.42,
+                0.78,
+                broadPuddle +
+                wetness * 0.28);
+
+        float rainRipple =
+            0.5 +
+            0.5 *
+                sin(
+                    vWorldPosition.x * 8.4 +
+                    vWorldPosition.z * 10.2 +
+                    vWaterSurface.x * 31.0);
+
+        float wetFloorHighlight =
+            floorFacing *
+            wetness *
+            puddleMask *
+            (0.055 +
+             rainRipple *
+                 rainResponse *
+                 surfaceQuality *
+                 0.10);
+
+        // Wet concrete darkens while the sky/lightning response becomes more
+        // visible. This is a reflection proxy, not a second scene render.
+        lit =
+            mix(
+                lit,
+                lit * 0.76,
+                puddleMask *
+                    wetness *
+                    0.24);
+
+        lit +=
+            vec3(
+                0.10,
+                0.22,
+                0.34) *
+            wetFloorHighlight;
+
+        lit +=
+            vec3(
+                0.42,
+                0.55,
+                0.82) *
+            lightning *
+            puddleMask *
             wetness *
             (0.06 +
-             wetRipple * 0.10)
-        : 0.0;
-
-    lit +=
-        vec3(
-            0.12,
-            0.25,
-            0.38) *
-        wetFloorHighlight;
+             0.10 * surfaceQuality);
+    }
 
     if (vMaterial == 8) {
         lit +=
@@ -189,6 +252,18 @@ void main() {
                 0.02,
                 0.85);
 
+        float rainResponse =
+            rainIntensity *
+            rainDetailScale;
+
+        roughness =
+            clamp(
+                roughness +
+                    (1.0 - surfaceQuality) * 0.16 -
+                    rainResponse * 0.035,
+                0.02,
+                0.92);
+
         float waveA =
             sin(
                 vWorldPosition.x * 4.8 +
@@ -201,14 +276,30 @@ void main() {
                 vWorldPosition.x * 1.9 -
                 wavePhase * 8.1);
 
+        float microWave =
+            sin(
+                (vWorldPosition.x -
+                 vWorldPosition.z) *
+                    12.0 +
+                wavePhase *
+                    18.0) *
+            rainResponse *
+            surfaceQuality;
+
         float wave =
-            0.5 +
-            0.25 * waveA +
-            0.25 * waveB;
+            clamp(
+                0.5 +
+                    0.25 * waveA +
+                    0.25 * waveB +
+                    microWave * 0.075,
+                0.0,
+                1.0);
 
         float gloss =
             (1.0 - roughness) *
-            reflectionStrength;
+            reflectionStrength *
+            (0.55 +
+             0.45 * surfaceQuality);
 
         vec3 reflectedSky =
             vec3(
@@ -232,12 +323,17 @@ void main() {
                 0.42,
                 0.58,
                 0.66) *
-            foam *
+            clamp(
+                foam +
+                    rainResponse * 0.16,
+                0.0,
+                1.0) *
             smoothstep(
                 0.64,
                 0.96,
                 wave) *
-            0.34;
+            (0.24 +
+             0.10 * surfaceQuality);
 
         lit =
             mix(

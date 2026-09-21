@@ -2473,6 +2473,28 @@ bool VulkanClearRenderer::recordDrawCommand(
                 0.02f,
                 0.85f);
 
+        // Reuse the final water push-constant vec4 as a compact, uniform
+        // adaptive-quality budget. These values are constant for each draw,
+        // so the fragment shader can cheaply scale storm surface detail
+        // without allocating textures or adding a render pass.
+        push.waterQualityScale =
+            std::clamp(
+                environment.postProcessScale,
+                0.35f,
+                1.0f);
+
+        push.waterParticleScale =
+            std::clamp(
+                environment.particleDensityScale,
+                0.25f,
+                1.0f);
+
+        push.waterFogScale =
+            std::clamp(
+                environment.fogQualityScale,
+                0.35f,
+                1.0f);
+
         vkCmdPushConstants(
             command,
             pipelineLayout_,
