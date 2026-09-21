@@ -20,6 +20,21 @@ struct VulkanCamera {
     float verticalFovDegrees = 72.0f;
 };
 
+struct VulkanHudState {
+    float moveX = 0.0f;
+    float moveY = 0.0f;
+
+    float moveAnchorX = 0.17f;
+    float moveAnchorY = 0.78f;
+
+    bool moveActive = false;
+    bool fire = false;
+    bool aim = false;
+    bool jump = false;
+    bool stance = false;
+    bool gyroAvailable = false;
+};
+
 class VulkanClearRenderer final {
 public:
     VulkanClearRenderer() = default;
@@ -38,7 +53,8 @@ public:
 
     [[nodiscard]] bool drawFrame(
         float timeSeconds,
-        const VulkanCamera& camera) noexcept;
+        const VulkanCamera& camera,
+        const VulkanHudState& hud) noexcept;
     [[nodiscard]] bool ready() const noexcept;
 
 private:
@@ -46,6 +62,23 @@ private:
         VkSemaphore imageAvailable = VK_NULL_HANDLE;
         VkSemaphore renderFinished = VK_NULL_HANDLE;
         VkFence inFlight = VK_NULL_HANDLE;
+    };
+
+    struct UiPushConstants {
+        float centerX = 0.0f;
+        float centerY = 0.0f;
+        float halfWidth = 0.1f;
+        float halfHeight = 0.1f;
+
+        float colorR = 1.0f;
+        float colorG = 1.0f;
+        float colorB = 1.0f;
+        float colorA = 1.0f;
+
+        float shape = 0.0f;
+        float ringWidth = 0.15f;
+        float padding0 = 0.0f;
+        float padding1 = 0.0f;
     };
 
     struct PushConstants {
@@ -95,6 +128,7 @@ private:
 
     [[nodiscard]] bool createRenderPass() noexcept;
     [[nodiscard]] bool createGraphicsPipeline() noexcept;
+    [[nodiscard]] bool createUiPipeline() noexcept;
 
     [[nodiscard]] bool createShaderModuleFromAsset(
         const char* assetPath,
@@ -113,7 +147,8 @@ private:
     [[nodiscard]] bool recordDrawCommand(
         std::uint32_t imageIndex,
         float timeSeconds,
-        const VulkanCamera& camera) noexcept;
+        const VulkanCamera& camera,
+        const VulkanHudState& hud) noexcept;
 
     VkInstance instance_ = VK_NULL_HANDLE;
     VkSurfaceKHR surface_ = VK_NULL_HANDLE;
@@ -131,6 +166,10 @@ private:
     VkRenderPass renderPass_ = VK_NULL_HANDLE;
     VkPipelineLayout pipelineLayout_ = VK_NULL_HANDLE;
     VkPipeline graphicsPipeline_ = VK_NULL_HANDLE;
+
+    VkPipelineLayout uiPipelineLayout_ = VK_NULL_HANDLE;
+    VkPipeline uiPipeline_ = VK_NULL_HANDLE;
+
     VkCommandPool commandPool_ = VK_NULL_HANDLE;
 
     std::vector<VkImage> swapchainImages_;
