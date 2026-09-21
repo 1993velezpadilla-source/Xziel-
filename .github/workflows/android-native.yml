@@ -88,11 +88,38 @@ jobs:
           grep -q 'splash_tune = xziel_waw_round1_path' build/deps/quakec/source/server/main.qc
           grep -q 'xziel_waw_gameover_ready' build/deps/quakec/source/server/damage.qc
           grep -q 'ADS+FIRE deliberately uses the bullet-over-reticle art' build/deps/vril/source/render/r_hud.c
-          grep -q 'i==0 ? 92 : 68' build/deps/vril/source/render/r_hud.c
+          grep -q 'i==0 ? 112 : 76' build/deps/vril/source/render/r_hud.c
+          grep -q 'xziel_weapon_card_active' build/deps/vril/source/render/r_hud.c
           test -s build/nzp-data/nzp/gfx/xziel/fire.png
           test -s build/nzp-data/nzp/gfx/xziel/ads.png
           test -s build/nzp-data/nzp/gfx/xziel/reload.png
           test -s build/nzp-data/nzp/gfx/xziel/slide.png
+          test -s build/nzp-data/nzp/gfx/xziel/weapon_card_active.png
+          test -s build/nzp-data/nzp/gfx/xziel/weapon_card_inactive.png
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          root = Path("build/nzp-data/nzp/gfx/xziel")
+          names = [
+              "weapon_colt","weapon_revolver","weapon_kar","weapon_kar_scope",
+              "weapon_thompson","weapon_bar","weapon_ballistic","weapon_browning",
+              "weapon_doublebarrel","weapon_sawnoff","weapon_fg42","weapon_gewehr",
+              "weapon_m1","weapon_m1a1","weapon_flamer","weapon_mp40","weapon_mg42",
+              "weapon_panzer","weapon_ppsh","weapon_ptrs","weapon_ray","weapon_raymk2",
+              "weapon_stg","weapon_trench","weapon_type100","weapon_mp5",
+              "weapon_tesla","weapon_springfield"
+          ]
+          digests = {}
+          for name in names:
+              path = root / f"{name}.png"
+              if not path.is_file() or path.stat().st_size < 100:
+                  raise SystemExit(f"missing dedicated weapon silhouette: {path}")
+              digest = hashlib.sha256(path.read_bytes()).hexdigest()
+              if digest in digests:
+                  raise SystemExit(f"duplicate silhouettes: {digests[digest]} and {name}")
+              digests[digest] = name
+          print(f"verified {len(names)} unique dedicated weapon silhouettes")
+          PY
           grep -q 'KILLS  %d     HEADSHOTS' build/deps/quakec/source/client/hud.qc
           test -s build/nzp-data/nzp/textures/nacht_enhanced/nduwall.jpg
           test -s build/nzp-data/nzp/textures/nacht_enhanced/cons5nny3.jpg
