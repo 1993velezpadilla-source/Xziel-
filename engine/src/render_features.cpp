@@ -85,6 +85,65 @@ WaterSurfaceState WaterSystem::advance(
     return state_;
 }
 
+ReflectionTargetPlan ReflectionTargetPlanner::plan(
+    std::uint32_t mainWidth,
+    std::uint32_t mainHeight,
+    const ReflectionDecision& decision,
+    std::uint32_t maxDimension) const noexcept {
+    ReflectionTargetPlan out{};
+
+    if (mainWidth == 0 ||
+        mainHeight == 0 ||
+        maxDimension < 16 ||
+        decision.resolutionScale <= 0.0f ||
+        (!decision.needsExtraScenePass &&
+         !decision.samplePreviousFrame)) {
+        return out;
+    }
+
+    const float scale =
+        std::clamp(
+            decision.resolutionScale,
+            0.10f,
+            1.0f);
+
+    const auto scaledDimension =
+        [scale, maxDimension](
+            std::uint32_t value) noexcept {
+            const auto scaled =
+                static_cast<std::uint32_t>(
+                    std::max(
+                        16.0f,
+                        std::floor(
+                            static_cast<float>(value) *
+                            scale)));
+            const auto bounded =
+                std::min(
+                    scaled,
+                    maxDimension);
+            return std::max(
+                16U,
+                bounded & ~15U);
+        };
+
+    out.width =
+        scaledDimension(mainWidth);
+    out.height =
+        scaledDimension(mainHeight);
+
+    const std::uint64_t pixels =
+        static_cast<std::uint64_t>(out.width) *
+        static_cast<std::uint64_t>(out.height);
+
+    // Current Vulkan target design uses one 32-bit color attachment and one
+    // 32-bit depth attachment. Keeping this estimate beside the target policy
+    // lets mobile memory budgets reject expensive reflection targets early.
+    out.estimatedColorBytes = pixels * 4ULL;
+    out.estimatedDepthBytes = pixels * 4ULL;
+    out.enabled = true;
+    return out;
+}
+
 std::size_t ReflectionPlanner::plan(
     const ReflectionSurface* surfaces,
     std::size_t surfaceCount,

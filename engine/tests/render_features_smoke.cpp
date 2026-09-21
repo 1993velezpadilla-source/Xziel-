@@ -122,6 +122,28 @@ int main() {
     assert(!unorderedDecisions[0].needsExtraScenePass);
     assert(unorderedDecisions[1].needsExtraScenePass);
 
+    xziel::ReflectionTargetPlanner targetPlanner;
+    const auto target = targetPlanner.plan(
+        2400,
+        1080,
+        unorderedDecisions[1],
+        1536);
+    assert(target.enabled);
+    assert(target.width == 1440);
+    assert(target.height == 640);
+    assert(target.width % 16 == 0);
+    assert(target.height % 16 == 0);
+    assert(target.estimatedColorBytes == 1440ULL * 640ULL * 4ULL);
+    assert(target.estimatedDepthBytes == target.estimatedColorBytes);
+
+    xziel::ReflectionDecision disabledTargetDecision{};
+    const auto disabledTarget = targetPlanner.plan(
+        2400,
+        1080,
+        disabledTargetDecision,
+        1536);
+    assert(!disabledTarget.enabled);
+
     std::array<xziel::ShadowRequest, 4> lights{{
         {
             .lightId = 10,

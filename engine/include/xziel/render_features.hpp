@@ -90,6 +90,25 @@ private:
     WaterSurfaceState state_{};
 };
 
+struct ReflectionTargetPlan {
+    std::uint32_t width = 0;
+    std::uint32_t height = 0;
+    std::uint64_t estimatedColorBytes = 0;
+    std::uint64_t estimatedDepthBytes = 0;
+    bool enabled = false;
+};
+
+class ReflectionTargetPlanner final {
+public:
+    // Produces a bounded offscreen target size from a planner decision.
+    // Dimensions are aligned down to 16 pixels for predictable tile memory.
+    [[nodiscard]] ReflectionTargetPlan plan(
+        std::uint32_t mainWidth,
+        std::uint32_t mainHeight,
+        const ReflectionDecision& decision,
+        std::uint32_t maxDimension = 1536) const noexcept;
+};
+
 class ReflectionPlanner final {
 public:
     // Decisions are written into caller-owned memory. At most the reflection
