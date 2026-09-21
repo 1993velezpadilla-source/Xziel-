@@ -1120,6 +1120,10 @@ static int XzGles3Shadow_SubmitInternal(
     int readback_ok;
     int command_ok = 1;
     int saw_draw = 0;
+    XzPassTargetPlan target_plan;
+    const XzPassTarget *current_target = NULL;
+    unsigned int target_cursor = 0u;
+    int target_bound = 0;
     XzNativeGles3Api *gl;
 
     if (!state || !plan ||
@@ -1153,6 +1157,18 @@ static int XzGles3Shadow_SubmitInternal(
         (plan->generation % state->submit_stride) != 0u) {
         state->skipped_frames++;
         return 1;
+    }
+
+    memset(&target_plan, 0, sizeof(target_plan));
+    if (commands &&
+        !XzPassTargetPlan_Build(
+            &target_plan,
+            commands,
+            resources)) {
+        state->target_plan_failures++;
+        state->command_failures++;
+        state->failures++;
+        return 0;
     }
 
     if (!XzMakeShadowCurrent(
@@ -1205,6 +1221,7 @@ static int XzGles3Shadow_SubmitInternal(
                  : plan->content_hash,
         expected);
 
+    gl->BindFramebuffer(GL_FRAMEBUFFER, 0u);
     gl->Viewport(
         0, 0, XZ_SHADOW_WIDTH, XZ_SHADOW_HEIGHT);
     gl->ClearColor(
@@ -1270,6 +1287,17 @@ static int XzGles3Shadow_SubmitInternal(
             switch (command->op) {
             case XZ_CMD_BEGIN_PASS:
                 state->passes_executed++;
+
+                if (target_cursor >= target_plan.count ||
+                    target_plan.passes[target_cursor].pass_index !=
+                        command->a) {
+                    command_ok = 0;
+                    break;
+                }
+
+                current_target =
+                    &target_plan.passes[target_cursor];
+                target_bound = 0;
                 break;
 
             case XZ_CMD_RESOURCE_READ:
@@ -1300,6 +1328,17 @@ static int XzGles3Shadow_SubmitInternal(
 
             case XZ_CMD_DRAW_PACKETS:
                 state->draw_commands++;
+
+                if (commands && !target_bound) {
+                    if (!current_target ||
+                        !XzBindPassTarget(
+                            state,
+                            current_target)) {
+                        command_ok = 0;
+                        break;
+                    }
+                    target_bound = 1;
+                }
 
                 if (saw_draw ||
                     command->a != plan->packet_count ||
@@ -1345,8 +1384,30 @@ static int XzGles3Shadow_SubmitInternal(
                 }
                 break;
 
-            case XZ_CMD_BEGIN_FRAME:
             case XZ_CMD_END_PASS:
+                if (!current_target ||
+                    command->a !=
+                        current_target->pass_index) {
+                    command_ok = 0;
+                    break;
+                }
+
+                if (!target_bound) {
+                    if (!XzBindPassTarget(
+                            state,
+                            current_target)) {
+                        command_ok = 0;
+                        break;
+                    }
+                    target_bound = 1;
+                }
+
+                target_cursor++;
+                current_target = NULL;
+                target_bound = 0;
+                break;
+
+            case XZ_CMD_BEGIN_FRAME:
             case XZ_CMD_END_FRAME:
                 break;
 
@@ -1362,6 +1423,10 @@ static int XzGles3Shadow_SubmitInternal(
 
         if (plan->packet_count > 0u &&
             !saw_draw)
+            command_ok = 0;
+
+        if (target_cursor != target_plan.count ||
+            current_target != NULL)
             command_ok = 0;
     } else if (plan->packet_count > 0u) {
         gl->BufferSubData(
@@ -1393,6 +1458,10 @@ static int XzGles3Shadow_SubmitInternal(
 
         state->draw_calls++;
     }
+
+    gl->BindFramebuffer(GL_FRAMEBUFFER, 0u);
+    gl->Viewport(
+        0, 0, XZ_SHADOW_WIDTH, XZ_SHADOW_HEIGHT);
 
     gl->Finish();
     if (XzCaptureError(
@@ -1483,6 +1552,11 @@ void XzGles3Shadow_Shutdown(
             &previous_read,
             &previous_context)) {
         XzDestroyAllPhysicalResources(state);
+
+        if (xz_shadow.gl.DeleteFramebuffers &&
+            xz_shadow.scratch_fbo)
+            xz_shadow.gl.DeleteFramebuffers(
+                1, &xz_shadow.scratch_fbo);
 
         if (xz_shadow.gl.DeleteBuffers &&
             xz_shadow.vbo)
