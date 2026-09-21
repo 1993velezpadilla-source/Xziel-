@@ -2424,7 +2424,7 @@ bool VulkanClearRenderer::createReflectionPassResources() noexcept {
             "shaders/xziel_first.vert.spv",
             vertex) ||
         !createShaderModuleFromAsset(
-            "shaders/xziel_first.frag.spv",
+            "shaders/xziel_reflection_capture.frag.spv",
             fragment)) {
         if (vertex != VK_NULL_HANDLE) {
             vkDestroyShaderModule(device_, vertex, nullptr);
