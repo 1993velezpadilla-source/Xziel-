@@ -2226,66 +2226,71 @@ bool VulkanClearRenderer::createReflectionTarget(
         return true;
     }
 
-    VkSamplerCreateInfo samplerInfo{
-        VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO
-    };
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerInfo.maxAnisotropy = 1.0f;
-    samplerInfo.maxLod = 0.0f;
+    // Descriptor allocation is stable across transient target churn. Reuse
+    // the sampler/pool/set instead of leaking a new set on every reallocation.
+    if (reflectionDescriptorSet_ == VK_NULL_HANDLE) {
+        VkSamplerCreateInfo samplerInfo{
+            VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO
+        };
+        samplerInfo.magFilter = VK_FILTER_LINEAR;
+        samplerInfo.minFilter = VK_FILTER_LINEAR;
+        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        samplerInfo.maxAnisotropy = 1.0f;
+        samplerInfo.maxLod = 0.0f;
 
-    if (!ok(
-            vkCreateSampler(
-                device_,
-                &samplerInfo,
-                nullptr,
-                &reflectionSampler_))) {
-        logError("Planar reflection sampler creation failed; falling back");
-        destroyReflectionTarget();
-        return true;
-    }
+        if (!ok(
+                vkCreateSampler(
+                    device_,
+                    &samplerInfo,
+                    nullptr,
+                    &reflectionSampler_))) {
+            logError("Planar reflection sampler creation failed; falling back");
+            destroyReflectionTarget();
+            return true;
+        }
 
-    VkDescriptorPoolSize poolSize{};
-    poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSize.descriptorCount = 1;
+        VkDescriptorPoolSize poolSize{};
+        poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        poolSize.descriptorCount = 1;
 
-    VkDescriptorPoolCreateInfo poolInfo{
-        VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO
-    };
-    poolInfo.maxSets = 1;
-    poolInfo.poolSizeCount = 1;
-    poolInfo.pPoolSizes = &poolSize;
+        VkDescriptorPoolCreateInfo poolInfo{
+            VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO
+        };
+        poolInfo.maxSets = 1;
+        poolInfo.poolSizeCount = 1;
+        poolInfo.pPoolSizes = &poolSize;
 
-    if (!ok(
-            vkCreateDescriptorPool(
-                device_,
-                &poolInfo,
-                nullptr,
-                &reflectionDescriptorPool_))) {
-        logError("Planar reflection descriptor pool failed; falling back");
-        destroyReflectionTarget();
-        return true;
-    }
+        if (!ok(
+                vkCreateDescriptorPool(
+                    device_,
+                    &poolInfo,
+                    nullptr,
+                    &reflectionDescriptorPool_))) {
+            logError("Planar reflection descriptor pool failed; falling back");
+            destroyReflectionTarget();
+            return true;
+        }
 
-    VkDescriptorSetAllocateInfo allocateInfo{
-        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO
-    };
-    allocateInfo.descriptorPool = reflectionDescriptorPool_;
-    allocateInfo.descriptorSetCount = 1;
-    allocateInfo.pSetLayouts = &reflectionDescriptorSetLayout_;
+        VkDescriptorSetAllocateInfo allocateInfo{
+            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO
+        };
+        allocateInfo.descriptorPool = reflectionDescriptorPool_;
+        allocateInfo.descriptorSetCount = 1;
+        allocateInfo.pSetLayouts = &reflectionDescriptorSetLayout_;
 
-    if (!ok(
-            vkAllocateDescriptorSets(
-                device_,
-                &allocateInfo,
-                &reflectionDescriptorSet_))) {
-        logError("Planar reflection descriptor allocation failed; falling back");
-        destroyReflectionTarget();
-        return true;
+        if (!ok(
+                vkAllocateDescriptorSets(
+                    device_,
+                    &allocateInfo,
+                    &reflectionDescriptorSet_))) {
+            logError("Planar reflection descriptor allocation failed; falling back");
+            destroyReflectionTarget();
+            return true;
+        }
+
     }
 
     // Do not expose the descriptor until the target has completed at least
