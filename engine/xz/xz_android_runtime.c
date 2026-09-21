@@ -55,6 +55,36 @@ typedef struct {
 
 static XzAndroidRuntimeState xz_runtime;
 
+static int XzGles3MirrorBegin(
+    void *user,
+    uint64_t frame_index)
+{
+    (void)user;
+    (void)frame_index;
+    return 1;
+}
+
+static int XzGles3MirrorSubmit(
+    void *user,
+    const XzRenderPlan *plan)
+{
+    return XzGles3Shadow_Submit(
+        (XzGles3ShadowState *)user,
+        plan);
+}
+
+static int XzGles3MirrorEnd(void *user)
+{
+    (void)user;
+    return 1;
+}
+
+static void XzGles3MirrorShutdown(void *user)
+{
+    XzGles3Shadow_Shutdown(
+        (XzGles3ShadowState *)user);
+}
+
 static uint64_t XzClampU64(uint64_t value, uint64_t lo, uint64_t hi)
 {
     if (value < lo) return lo;
@@ -340,6 +370,9 @@ static void XzLogSnapshot(double now_seconds)
         " anim=%u shadow=%u vfx=%u light=%u/%u)"
         " plan(gen=%" PRIu64 " packets=%u lod=%u/%u/%u anim=%u shadow=%u vfx=%u hash=%08x)"
         " rhi(active=%s shadow=%d submitted=%" PRIu64 " rejected=%" PRIu64 ")"
+        " mirror(backend=%s attached=%d attempts=%" PRIu64
+        " submitted=%" PRIu64 " fail=%" PRIu64
+        " beginFail=%" PRIu64 " endFail=%" PRIu64 ")"
         " g3shadow(submitted=%" PRIu64 " packets=%" PRIu64
         " draws=%" PRIu64 " fail=%" PRIu64 " readback=%" PRIu64
         " restoreFail=%" PRIu64 " restore=%d glerr=0x%x hash=%08x)"
@@ -387,6 +420,13 @@ static void XzLogSnapshot(double now_seconds)
         rhi->shadow_mode,
         rhi->submitted_frames,
         rhi->rejected_plans,
+        XzRhiBackend_Name(rhi->mirror_backend),
+        rhi->mirror_attached,
+        rhi->mirror_submit_attempts,
+        rhi->mirror_submitted_frames,
+        rhi->mirror_failures,
+        rhi->mirror_begin_failures,
+        rhi->mirror_end_failures,
         g3->submitted_frames,
         g3->submitted_packets,
         g3->draw_calls,
@@ -596,6 +636,34 @@ void XzAndroidRuntime_Init(size_t engine_heap_bytes)
             xz_runtime.gles3_shadow.shader_ok,
             xz_runtime.gles3_shadow.restore_ok,
             xz_runtime.gles3_shadow.submit_stride);
+
+        if (shadow_ok) {
+            XzRhiMirrorDriver mirror;
+            int attach_ok;
+
+            memset(&mirror, 0, sizeof(mirror));
+            mirror.user = &xz_runtime.gles3_shadow;
+            mirror.begin_frame = XzGles3MirrorBegin;
+            mirror.submit_plan = XzGles3MirrorSubmit;
+            mirror.end_frame = XzGles3MirrorEnd;
+            mirror.shutdown = XzGles3MirrorShutdown;
+
+            attach_ok = XzRhi_AttachMirror(
+                &xz_runtime.rhi,
+                XZ_RHI_BACKEND_GLES3,
+                &mirror);
+
+            XzAndroidLog(
+                attach_ok ? ANDROID_LOG_INFO : ANDROID_LOG_WARN,
+                "phase7 rhi_mirror attach=%s backend=%s",
+                attach_ok ? "PASS" : "FAIL",
+                XzRhiBackend_Name(
+                    xz_runtime.rhi.mirror_backend));
+
+            if (!attach_ok)
+                XzGles3Shadow_Shutdown(
+                    &xz_runtime.gles3_shadow);
+        }
     } else {
         XzAndroidLog(
             ANDROID_LOG_INFO,
@@ -653,11 +721,6 @@ void XzAndroidRuntime_EndFrame(double now_seconds)
         &xz_runtime.render_plan);
     XzRhi_EndFrame(&xz_runtime.rhi);
 
-    if (xz_runtime.gles3_shadow.available)
-        XzGles3Shadow_Submit(
-            &xz_runtime.gles3_shadow,
-            &xz_runtime.render_plan);
-
     if (xz_runtime.last_log_seconds == 0.0 ||
         now_seconds - xz_runtime.last_log_seconds >= 5.0)
         XzLogSnapshot(now_seconds);
@@ -669,7 +732,6 @@ void XzAndroidRuntime_Shutdown(void)
         return;
 
     XzLogSnapshot(xz_runtime.last_log_seconds + 5.0);
-    XzGles3Shadow_Shutdown(&xz_runtime.gles3_shadow);
     XzRhi_Shutdown(&xz_runtime.rhi);
     XzAndroidLog(
         ANDROID_LOG_INFO,
