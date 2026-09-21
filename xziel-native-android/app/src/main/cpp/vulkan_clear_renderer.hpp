@@ -10,6 +10,16 @@
 
 namespace xziel::android {
 
+struct VulkanCamera {
+    float x = 0.0f;
+    float y = 0.14f;
+    float z = -2.55f;
+
+    float yawRadians = 0.0f;
+    float pitchRadians = 0.0f;
+    float verticalFovDegrees = 72.0f;
+};
+
 class VulkanClearRenderer final {
 public:
     VulkanClearRenderer() = default;
@@ -26,7 +36,9 @@ public:
 
     void shutdown() noexcept;
 
-    [[nodiscard]] bool drawFrame(float timeSeconds) noexcept;
+    [[nodiscard]] bool drawFrame(
+        float timeSeconds,
+        const VulkanCamera& camera) noexcept;
     [[nodiscard]] bool ready() const noexcept;
 
 private:
@@ -51,6 +63,16 @@ private:
         float scaleY = 1.0f;
         float scaleZ = 1.0f;
         float scalePadding = 0.0f;
+
+        float cameraX = 0.0f;
+        float cameraY = 0.14f;
+        float cameraZ = -2.55f;
+        float cameraYawRadians = 0.0f;
+
+        float cameraPitchRadians = 0.0f;
+        float verticalFovDegrees = 72.0f;
+        float cameraPadding0 = 0.0f;
+        float cameraPadding1 = 0.0f;
     };
 
     [[nodiscard]] bool createInstance() noexcept;
@@ -90,7 +112,8 @@ private:
 
     [[nodiscard]] bool recordDrawCommand(
         std::uint32_t imageIndex,
-        float timeSeconds) noexcept;
+        float timeSeconds,
+        const VulkanCamera& camera) noexcept;
 
     VkInstance instance_ = VK_NULL_HANDLE;
     VkSurfaceKHR surface_ = VK_NULL_HANDLE;
