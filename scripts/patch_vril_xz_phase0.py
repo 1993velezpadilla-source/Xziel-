@@ -35,6 +35,8 @@ for name in (
     "xz_present_world.c",
     "xz_vril_bridge.h",
     "xz_vril_bridge.c",
+    "xz_bottleneck.h",
+    "xz_bottleneck.c",
 ):
     src = modules / name
     if not src.is_file():
