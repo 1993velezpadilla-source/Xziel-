@@ -187,6 +187,7 @@ void AndroidInputAdapter::beginFrame(
         ? 0.0f
         : std::min(deltaSeconds, 0.10f);
 
+    firePressedThisFrame_ = false;
     jumpPressedThisFrame_ = false;
     stancePressedThisFrame_ = false;
 
@@ -492,6 +493,8 @@ void AndroidInputAdapter::updateDerivedState(
     snapshot_.input.interact = false;
     snapshot_.input.jump = false;
     snapshot_.input.crouch = false;
+    snapshot_.firePressed =
+        firePressedThisFrame_;
     snapshot_.moveActive = false;
     snapshot_.moveAnchorNormalized = {
         0.17f,
@@ -667,6 +670,10 @@ void AndroidInputAdapter::processMotionEvent(
                     height);
 
             if (pointer->role ==
+                TouchRole::Fire) {
+                firePressedThisFrame_ = true;
+            } else if (
+                pointer->role ==
                 TouchRole::Jump) {
                 jumpPressedThisFrame_ = true;
             } else if (
