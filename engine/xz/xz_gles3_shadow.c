@@ -1071,6 +1071,76 @@ static int XzBindPassTarget(
     return 1;
 }
 
+static int XzDrawSampledPass(
+    XzGles3ShadowState *state,
+    const XzPassInput *input)
+{
+    unsigned int i;
+    GLenum error;
+
+    if (!state || !input || input->count == 0u)
+        return 0;
+
+    if (input->count > 2u) {
+        state->sampled_failures++;
+        return 0;
+    }
+
+    for (i = 0u; i < input->count; ++i) {
+        XzGles3PhysicalResource *resource =
+            XzPhysicalForHandle(input->handles[i]);
+
+        if (!resource ||
+            (resource->spec.kind !=
+                 XZ_G3_RESOURCE_TEXTURE_2D &&
+             resource->spec.kind !=
+                 XZ_G3_RESOURCE_DEPTH_TEXTURE)) {
+            state->sampled_failures++;
+            return 0;
+        }
+
+        xz_shadow.gl.ActiveTexture(
+            GL_TEXTURE0 + (GLenum)i);
+        xz_shadow.gl.BindTexture(
+            GL_TEXTURE_2D,
+            resource->object);
+        state->sampled_input_binds++;
+    }
+
+    xz_shadow.gl.UseProgram(
+        xz_shadow.fullscreen_program);
+    xz_shadow.gl.Uniform1i(
+        xz_shadow.fullscreen_input_count_loc,
+        (GLint)input->count);
+    xz_shadow.gl.BindVertexArray(xz_shadow.vao);
+    xz_shadow.gl.DrawArrays(
+        GL_TRIANGLES, 0, 3);
+
+    error = xz_shadow.gl.GetError();
+    if (error != GL_NO_ERROR) {
+        state->sampled_failures++;
+        if (state->last_gl_error == 0u)
+            state->last_gl_error =
+                (unsigned int)error;
+        return 0;
+    }
+
+    for (i = 0u; i < input->count; ++i) {
+        xz_shadow.gl.ActiveTexture(
+            GL_TEXTURE0 + (GLenum)i);
+        xz_shadow.gl.BindTexture(
+            GL_TEXTURE_2D, 0u);
+    }
+    xz_shadow.gl.ActiveTexture(GL_TEXTURE0);
+
+    state->sampled_passes++;
+    state->sampled_draws++;
+    if (input->count > state->sampled_max_inputs)
+        state->sampled_max_inputs = input->count;
+
+    return 1;
+}
+
 void XzGles3Shadow_InitState(
     XzGles3ShadowState *state)
 {
@@ -1178,6 +1248,9 @@ int XzGles3Shadow_Init(
         goto fail_current;
 
     if (!XzCreateProgramAndBuffer())
+        goto fail_current;
+
+    if (!XzCreateFullscreenProgram())
         goto fail_current;
 
     xz_shadow.gl.Viewport(
@@ -1697,6 +1770,10 @@ void XzGles3Shadow_Shutdown(
             xz_shadow.program)
             xz_shadow.gl.DeleteProgram(
                 xz_shadow.program);
+        if (xz_shadow.gl.DeleteProgram &&
+            xz_shadow.fullscreen_program)
+            xz_shadow.gl.DeleteProgram(
+                xz_shadow.fullscreen_program);
 
         XzRestorePrevious(
             previous_display,
