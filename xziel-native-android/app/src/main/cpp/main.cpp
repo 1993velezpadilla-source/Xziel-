@@ -7,6 +7,7 @@
 
 #include "xziel/android_runtime.hpp"
 #include "xziel/engine.hpp"
+#include "xziel/fps_player.hpp"
 #include "xziel/renderer_watchdog.hpp"
 
 #include <algorithm>
@@ -19,10 +20,17 @@ constexpr const char* kTag = "XzielNative";
 constexpr const char* kPackageName =
     "com.xziel.engineprototype";
 
+constexpr float kPi =
+    3.14159265358979323846f;
+
+constexpr float kDegreesToRadians =
+    kPi / 180.0f;
+
 struct NativeAppState {
     xziel::AndroidRuntimeStateMachine runtime{};
     xziel::RendererWatchdog watchdog{};
     xziel::Engine engine{};
+    xziel::FpsPlayerController player{};
     xziel::android::AndroidInputAdapter input{};
     xziel::android::VulkanClearRenderer renderer{};
 
@@ -58,6 +66,72 @@ void logError(const char* message) noexcept {
         message);
 }
 
+int queryDisplayRotation(
+    NativeAppState& state) noexcept {
+    if (state.jniEnv == nullptr ||
+        state.javaActivity == nullptr) {
+        return 0;
+    }
+
+    JNIEnv* env =
+        state.jniEnv;
+
+    jclass activityClass =
+        env->GetObjectClass(
+            state.javaActivity);
+
+    if (activityClass == nullptr) {
+        if (env->ExceptionCheck()) {
+            env->ExceptionClear();
+        }
+        return 0;
+    }
+
+    jmethodID method =
+        env->GetMethodID(
+            activityClass,
+            "getXzielDisplayRotation",
+            "()I");
+
+    if (method == nullptr) {
+        if (env->ExceptionCheck()) {
+            env->ExceptionClear();
+        }
+
+        env->DeleteLocalRef(
+            activityClass);
+
+        return 0;
+    }
+
+    const jint value =
+        env->CallIntMethod(
+            state.javaActivity,
+            method);
+
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+        env->DeleteLocalRef(
+            activityClass);
+        return 0;
+    }
+
+    env->DeleteLocalRef(
+        activityClass);
+
+    return std::clamp(
+        static_cast<int>(value),
+        0,
+        3);
+}
+
+void refreshDisplayRotation(
+    NativeAppState& state) noexcept {
+    state.input.setDisplayRotation(
+        queryDisplayRotation(
+            state));
+}
+
 void handleCommand(
     android_app* app,
     int32_t command) {
@@ -78,6 +152,8 @@ void handleCommand(
         case APP_CMD_RESUME:
             state->runtime.onEvent(
                 xziel::AndroidLifecycleEvent::Resume);
+            refreshDisplayRotation(
+                *state);
             state->input.onResume();
             state->lastFrame =
                 std::chrono::steady_clock::now();
@@ -101,6 +177,8 @@ void handleCommand(
         case APP_CMD_GAINED_FOCUS:
             state->runtime.onEvent(
                 xziel::AndroidLifecycleEvent::FocusGained);
+            refreshDisplayRotation(
+                *state);
             break;
 
         case APP_CMD_LOST_FOCUS:
@@ -118,6 +196,9 @@ void handleCommand(
             if (app->window != nullptr) {
                 state->runtime.onEvent(
                     xziel::AndroidLifecycleEvent::SurfaceCreated);
+
+                refreshDisplayRotation(
+                    *state);
 
                 state->renderer.shutdown();
 
@@ -201,6 +282,72 @@ float computeFrameDelta(
         0.100f);
 }
 
+void advancePlayer(
+    NativeAppState& state,
+    const xziel::android::AndroidInputSnapshot& input,
+    const xziel::FrameStats& stats) noexcept {
+    state.player.sampleViewInput(
+        input.input,
+        static_cast<float>(
+            stats.clampedFrameDeltaSeconds));
+
+    if (stats.ticksThisFrame == 0) {
+        return;
+    }
+
+    const float fixedDelta =
+        static_cast<float>(
+            1.0 /
+            state.engine.config().
+                fixedTickHz);
+
+    for (std::uint32_t tick = 0;
+         tick < stats.ticksThisFrame;
+         ++tick) {
+        xziel::MobileMovementButtons buttons =
+            input.movementButtons;
+
+        if (tick > 0) {
+            buttons.jumpPressed = false;
+            buttons.stancePressed = false;
+            buttons.movementCancelGesture = false;
+        }
+
+        (void) state.player.fixedStep(
+            input.input.move,
+            buttons,
+            fixedDelta);
+    }
+}
+
+xziel::android::VulkanCamera makeRenderCamera(
+    const xziel::FpsPlayerFrame& player) noexcept {
+    xziel::android::VulkanCamera camera{};
+
+    camera.x =
+        player.cameraPosition.x;
+    camera.y =
+        player.cameraPosition.y;
+    camera.z =
+        player.cameraPosition.z;
+
+    camera.yawRadians =
+        player.yawDegrees *
+        kDegreesToRadians;
+
+    camera.pitchRadians =
+        player.pitchDegrees *
+        kDegreesToRadians;
+
+    camera.verticalFovDegrees =
+        player.movement.mode ==
+            xziel::MovementMode::Sprinting
+        ? 76.0f
+        : 72.0f;
+
+    return camera;
+}
+
 } // namespace
 
 extern "C" void android_main(
@@ -255,6 +402,9 @@ extern "C" void android_main(
             "Input adapter initialization failed; "
             "continuing with renderer-only prototype");
     }
+
+    refreshDisplayRotation(
+        state);
 
     logInfo("XZIEL_NATIVE_BOOT");
 
@@ -338,16 +488,22 @@ extern "C" void android_main(
             width,
             height);
 
+        const auto inputSnapshot =
+            state.input.snapshot();
+
         if (latest.canSimulate) {
             state.engine.submitInput(
-                state.input.snapshot().input);
+                inputSnapshot.input);
 
             const auto stats =
                 state.engine.advance(
                     static_cast<double>(
                         frameDelta));
 
-            (void) stats;
+            advancePlayer(
+                state,
+                inputSnapshot,
+                stats);
         }
 
         if (!latest.canRender ||
@@ -360,8 +516,13 @@ extern "C" void android_main(
             std::chrono::duration<float>(
                 now - state.start).count();
 
+        const auto camera =
+            makeRenderCamera(
+                state.player.frame());
+
         if (!state.renderer.drawFrame(
-                seconds)) {
+                seconds,
+                camera)) {
             const auto recovery =
                 state.watchdog.report(
                     {
