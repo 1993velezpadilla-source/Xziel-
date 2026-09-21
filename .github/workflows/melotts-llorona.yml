@@ -40,7 +40,7 @@ jobs:
           set -euxo pipefail
           git clone https://github.com/myshell-ai/MeloTTS.git /tmp/MeloTTS
           git -C /tmp/MeloTTS checkout 209145371cff8fc3bd60d7be902ea69cbdb7965a
-          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install --upgrade pip wheel\n          python -m pip install "setuptools<81"
           python -m pip install -e /tmp/MeloTTS
           python -m unidic download
 
