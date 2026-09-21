@@ -57,6 +57,7 @@ ScoreFrame ScoreSystem::awardRoundClear(
     frame_.changedThisTick = false;
     frame_.criticalAwardThisTick = false;
     frame_.spentThisTick = false;
+    frame_.insufficientFundsThisTick = false;
     frame_.lastAward = 0;
     frame_.lastSpend = 0;
 
@@ -81,6 +82,18 @@ ScoreFrame ScoreSystem::awardRoundClear(
 
 bool ScoreSystem::trySpend(
     std::uint32_t points) noexcept {
+    return spend(points);
+}
+
+bool ScoreSystem::canAfford(
+    std::uint32_t cost) const noexcept {
+    return frame_.total >=
+        static_cast<std::uint64_t>(
+            cost);
+}
+
+bool ScoreSystem::spend(
+    std::uint32_t cost) noexcept {
     frame_.changedThisTick = false;
     frame_.criticalAwardThisTick = false;
     frame_.spentThisTick = false;
@@ -88,13 +101,11 @@ bool ScoreSystem::trySpend(
     frame_.lastAward = 0;
     frame_.lastSpend = 0;
 
-    if (points == 0U) {
+    if (cost == 0U) {
         return true;
     }
 
-    if (frame_.total <
-        static_cast<std::uint64_t>(
-            points)) {
+    if (!canAfford(cost)) {
         frame_.insufficientFundsThisTick =
             true;
         return false;
@@ -102,11 +113,25 @@ bool ScoreSystem::trySpend(
 
     frame_.total -=
         static_cast<std::uint64_t>(
-            points);
+            cost);
 
-    frame_.lastSpend = points;
-    frame_.changedThisTick = true;
+    const std::uint64_t maximum =
+        std::numeric_limits<
+            std::uint64_t>::max();
+
+    if (maximum -
+            frame_.lifetimeSpent <
+        cost) {
+        frame_.lifetimeSpent =
+            maximum;
+    } else {
+        frame_.lifetimeSpent +=
+            cost;
+    }
+
+    frame_.lastSpend = cost;
     frame_.spentThisTick = true;
+    frame_.changedThisTick = true;
 
     return true;
 }
@@ -151,6 +176,16 @@ void ScoreSystem::add(
         frame_.total = maximum;
     } else {
         frame_.total += points;
+    }
+
+    if (maximum -
+            frame_.lifetimeEarned <
+        points) {
+        frame_.lifetimeEarned =
+            maximum;
+    } else {
+        frame_.lifetimeEarned +=
+            points;
     }
 
     frame_.lastAward = points;
