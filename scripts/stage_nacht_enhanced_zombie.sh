@@ -28,6 +28,12 @@ im.save(dst, format="TGA")
 print(f"staged Nacht replacement zombie texture: {im.size[0]}x{im.size[1]}")
 PY
 
+echo "==> Building Nacht Enhanced dismemberment body variants"
+python3 "$ROOT/scripts/build_nacht_zombie_variants.py" "$DEST/zombie_lq.mdl" "$DEST"
+for mdl in "$DEST"/zombie_lq_*.mdl; do
+  cp "$DEST/zombie_lq.mdl_0.tga" "${mdl}_0.tga"
+done
+
 cp "$SRC/COPYING.txt" "$LIC/LIBREQUAKE-BSD-3-CLAUSE.txt"
 cp "$SRC/CREDITS.txt" "$LIC/LIBREQUAKE-CREDITS.txt"
 cp "$SRC/SOURCE.txt" "$LIC/XZIEL-NACHT-ZOMBIE-SOURCE.txt"
@@ -54,3 +60,18 @@ if numskins < 1 or skinwidth <= 0 or skinheight <= 0:
     raise SystemExit("replacement zombie has invalid skin metadata")
 print(f"validated Nacht zombie MDL: verts={numverts} tris={numtris} frames={numframes} skin={skinwidth}x{skinheight}")
 PY
+
+expected=(
+  zombie_lq_h0.mdl
+  zombie_lq_l0.mdl
+  zombie_lq_r0.mdl
+  zombie_lq_h0_l0.mdl
+  zombie_lq_h0_r0.mdl
+  zombie_lq_l0_r0.mdl
+  zombie_lq_h0_l0_r0.mdl
+)
+for name in "${expected[@]}"; do
+  test -s "$DEST/$name"
+  test -s "$DEST/${name}_0.tga"
+done
+echo "validated ${#expected[@]} Nacht Enhanced dismemberment variants"
