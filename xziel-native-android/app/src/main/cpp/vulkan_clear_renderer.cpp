@@ -2473,6 +2473,17 @@ bool VulkanClearRenderer::recordDrawCommand(
             zombieState.z -
             attackLunge;
 
+        // Cheap contact shadow proxy keeps mobile cost bounded while giving
+        // the procedural horde visible grounding before shadow maps land.
+        drawBox(
+            zombieX,
+            -1.472f,
+            zombieZ,
+            0.44f,
+            0.010f,
+            0.30f,
+            7.0f);
+
         drawBox(
             zombieX,
             zombieY + 1.08f,
@@ -2590,6 +2601,65 @@ bool VulkanClearRenderer::recordDrawCommand(
             impactSize * 0.42f,
             impactSize * 0.42f,
             6.0f);
+    }
+
+    const float rainForSplashes =
+        std::clamp(
+            environment.rainIntensity *
+                environment.particleDensityScale,
+            0.0f,
+            1.0f);
+
+    if (rainForSplashes > 0.08f) {
+        constexpr int kPrototypeSplashCount = 7;
+
+        for (int splashIndex = 0;
+             splashIndex < kPrototypeSplashCount;
+             ++splashIndex) {
+            const float seed =
+                static_cast<float>(
+                    splashIndex);
+
+            const float cycle =
+                std::fmod(
+                    safeTime *
+                        (1.7f +
+                         rainForSplashes *
+                             1.4f) +
+                    seed *
+                        0.173f,
+                    1.0f);
+
+            const float x =
+                -2.35f +
+                std::fmod(
+                    seed *
+                        1.381f,
+                    4.70f);
+
+            const float z =
+                -2.80f +
+                std::fmod(
+                    seed *
+                        1.917f,
+                    5.70f);
+
+            const float radius =
+                0.025f +
+                cycle *
+                    0.12f;
+
+            if (cycle < 0.72f) {
+                drawBox(
+                    x,
+                    -1.455f,
+                    z,
+                    radius,
+                    0.006f,
+                    radius,
+                    8.0f);
+            }
+        }
     }
 
     const float weaponAds =
