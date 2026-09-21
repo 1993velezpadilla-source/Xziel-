@@ -131,6 +131,16 @@ jobs:
             -o /tmp/xz_render_graph_test
           /tmp/xz_render_graph_test
 
+      - name: Test Xz ShadowPackets
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_shadow_packets_test.c \
+            engine/xz/xz_shadow_packets.c \
+            -o /tmp/xz_shadow_packets_test
+          /tmp/xz_shadow_packets_test
+
       - name: Set up Java 17
         uses: actions/setup-java@v5
         with:
@@ -315,7 +325,7 @@ jobs:
             exit 1
           fi
 
-          if ! grep -Eq "XZIEL-XZ.*plan\(gen=[1-9][0-9]* packets=[1-9][0-9]* lod=[0-9]+/[0-9]+/[0-9]+.*hash=[0-9a-fA-F]{8}\).*rhi\(active=NULL shadow=1 submitted=[1-9][0-9]* rejected=0\)" dist/xziel-logcat.txt; then
+          if ! grep -Eq "XZIEL-XZ.*plan\(gen=[1-9][0-9]* packets=[1-9][0-9]* lod=[0-9]+/[0-9]+/[0-9]+.*hash=[0-9a-fA-F]{8}\).*rhi\(active=NULL shadow=1 backend=GLES3 submitted=[1-9][0-9]* rejected=0\)" dist/xziel-logcat.txt; then
             echo "Xz Phase-3 did not publish a validated live render plan."
             grep -E "XZIEL-XZ.*plan\(" dist/xziel-logcat.txt | tail -n 100 || true
             exit 1
@@ -335,7 +345,53 @@ jobs:
             exit 1
           fi
 
-          echo "Xziel remained alive; Phase 0-5 including native GLES3 probe and RenderGraph are live."
+          if grep -Eq "XZIEL-XZ.*phase2 caps.*allow\(gles3=1" dist/xziel-logcat.txt; then
+            if ! grep -Eq "XZIEL-XZ.*phase6 gles3_shadow=PASS packet_pack=PASS backend=GLES3 surface=32x32 restore=1" dist/xziel-logcat.txt; then
+              echo "Xz Phase-6 GLES3 shadow renderer failed to initialize."
+              grep -E "XZIEL-XZ.*phase6 gles3_shadow" dist/xziel-logcat.txt | tail -n 100 || true
+              exit 1
+            fi
+
+            python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          text = Path("dist/xziel-logcat.txt").read_text(errors="replace")
+          pattern = re.compile(
+              r"XZIEL-XZ: perf .*?"
+              r"gles3\(frames=(\d+) draws=(\d+) instances=(\d+) "
+              r"last=(\d+) pix=([0-9a-fA-F]{8}) spread=(\d+) "
+              r"err=0x([0-9a-fA-F]+) restore=(\d+) glfail=(\d+) "
+              r"restorefail=(\d+)\)"
+          )
+          matches = pattern.findall(text)
+          valid = False
+          for row in matches:
+              frames, draws, instances, last, pix, spread, err, restore, glfail, restorefail = row
+              if (
+                  int(frames) > 0
+                  and int(draws) > 0
+                  and int(instances) > 0
+                  and int(last) > 0
+                  and int(pix, 16) != 0
+                  and int(spread) >= 16
+                  and int(err, 16) == 0
+                  and int(restore) == 1
+                  and int(glfail) == 0
+                  and int(restorefail) == 0
+              ):
+                  valid = True
+                  break
+
+          if not valid:
+              raise SystemExit(
+                  "No healthy live GLES3 shadow-render sample found: " +
+                  repr(matches[-5:])
+              )
+          PY
+          fi
+
+          echo "Xziel remained alive; Phase 0-6 including real offscreen GLES3 draws are live."
 
       - name: Upload runtime diagnostics
         if: always()
