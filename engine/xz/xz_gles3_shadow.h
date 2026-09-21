@@ -45,6 +45,14 @@ typedef struct {
     uint64_t physical_failures;
     uint64_t physical_bytes;
 
+    uint64_t framebuffer_binds;
+    uint64_t framebuffer_checks;
+    uint64_t framebuffer_failures;
+    uint64_t framebuffer_external_passes;
+    uint64_t framebuffer_color_attachments;
+    uint64_t framebuffer_depth_attachments;
+    uint64_t target_plan_failures;
+
     unsigned int last_packet_count;
     uint32_t last_plan_hash;
     uint32_t last_command_hash;
