@@ -29,6 +29,8 @@ typedef struct {
     unsigned int last_packet_count;
     uint32_t last_plan_hash;
     unsigned int last_gl_error;
+    unsigned int last_error_stage;
+    uint64_t preexisting_errors;
 
     unsigned char last_expected_rgba[4];
     unsigned char last_readback_rgba[4];
