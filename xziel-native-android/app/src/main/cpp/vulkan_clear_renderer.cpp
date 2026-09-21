@@ -88,8 +88,8 @@ bool VulkanClearRenderer::initialize(
         !createUiPipeline() ||
         !createImageViews() ||
         !createDepthResources() ||
-        !createFramebuffers() ||
         !createCommandResources() ||
+        !createFramebuffers() ||
         !createSyncObjects()) {
         logError("Vulkan initialization failed");
         shutdown();
@@ -2985,8 +2985,8 @@ bool VulkanClearRenderer::recreateSwapchain() noexcept {
         createUiPipeline() &&
         createImageViews() &&
         createDepthResources() &&
-        createFramebuffers() &&
-        createCommandResources();
+        createCommandResources() &&
+        createFramebuffers();
 
     if (!success) {
         logError("Swapchain recreation failed");
