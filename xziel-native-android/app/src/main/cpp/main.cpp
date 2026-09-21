@@ -40,7 +40,7 @@ struct NativeAppState {
     xziel::Engine engine{};
     xziel::FpsPlayerController player{};
     xziel::WeaponController weapon{};
-    xziel::ZombieActor zombie{};
+    xziel::HordeDirector horde{};
     xziel::PlayerVitals vitals{};
     xziel::HorrorDirector horror{};
     xziel::HorrorFrame horrorFrame{};
@@ -352,7 +352,7 @@ void advancePlayer(
         if (vitalsFrame.respawnedThisTick) {
             state.player.reset();
             state.weapon.reset();
-            state.zombie.reset();
+            state.horde.reset();
             state.pendingRecoilPitch = 0.0f;
             state.pendingRecoilYaw = 0.0f;
         }
@@ -374,16 +374,38 @@ void advancePlayer(
                   fixedDelta)
             : state.player.frame();
 
-        const auto zombieFrame =
-            state.zombie.step(
+        const auto hordeFrame =
+            state.horde.step(
                 playerFrame.feetPosition,
                 fixedDelta);
 
-        if (zombieFrame.attackThisTick &&
-            state.vitals.frame().alive &&
-            state.vitals.applyDamage(
-                state.zombie.config().
-                    attackDamage)) {
+        (void) hordeFrame;
+
+        bool damagedByZombie = false;
+
+        for (std::size_t slot = 0;
+             slot < state.horde.capacity();
+             ++slot) {
+            const auto* zombie =
+                state.horde.zombie(
+                    slot);
+
+            if (zombie == nullptr ||
+                !zombie->frame().
+                    attackThisTick ||
+                !state.vitals.frame().
+                    alive) {
+                continue;
+            }
+
+            if (state.vitals.applyDamage(
+                    zombie->config().
+                        attackDamage)) {
+                damagedByZombie = true;
+            }
+        }
+
+        if (damagedByZombie) {
             state.zombieAttackFlashSeconds =
                 0.22f;
 
@@ -391,8 +413,6 @@ void advancePlayer(
                 state,
                 xziel::HapticEvent::PlayerHit);
         }
-
-        (void) zombieFrame;
 
         const auto weaponFrame =
             state.weapon.step(
@@ -446,26 +466,56 @@ void advancePlayer(
             state.pendingRecoilYaw +=
                 weaponFrame.recoilYawImpulse;
 
-            if (state.zombie.frame().state !=
-                xziel::ZombieState::Dead) {
-                const auto ray =
-                    xziel::makeViewRay(
-                        playerFrame.cameraPosition,
-                        playerFrame.yawDegrees,
-                        playerFrame.pitchDegrees);
+            const auto ray =
+                xziel::makeViewRay(
+                    playerFrame.cameraPosition,
+                    playerFrame.yawDegrees,
+                    playerFrame.pitchDegrees);
+
+            std::size_t nearestSlot =
+                state.horde.capacity();
+
+            float nearestDistance =
+                20.0f;
+
+            for (std::size_t slot = 0;
+                 slot < state.horde.capacity();
+                 ++slot) {
+                const auto* zombie =
+                    state.horde.zombie(
+                        slot);
+
+                if (zombie == nullptr ||
+                    zombie->frame().state ==
+                        xziel::ZombieState::Dead) {
+                    continue;
+                }
 
                 const auto hit =
                     xziel::raycastAabb(
                         ray,
-                        state.zombie.bounds(),
-                        20.0f);
+                        zombie->bounds(),
+                        nearestDistance);
 
-                if (hit.hit &&
-                    state.zombie.applyDamage(
-                        34.0f)) {
-                    state.hitMarkerSeconds =
-                        0.12f;
+                if (!hit.hit ||
+                    hit.distance >
+                        nearestDistance) {
+                    continue;
                 }
+
+                nearestDistance =
+                    hit.distance;
+                nearestSlot =
+                    slot;
+            }
+
+            if (nearestSlot <
+                    state.horde.capacity() &&
+                state.horde.damageZombie(
+                    nearestSlot,
+                    34.0f)) {
+                state.hitMarkerSeconds =
+                    0.12f;
             }
         }
     }
@@ -501,29 +551,48 @@ xziel::CameraRigFrame advanceCameraRig(
                 1.85f,
             1.0f);
 
-    const auto& zombie =
-        state.zombie.frame();
+    float nearestZombieDistance =
+        999.0f;
 
-    const float dx =
-        zombie.position.x -
-        player.feetPosition.x;
+    std::uint32_t aliveZombies = 0;
 
-    const float dz =
-        zombie.position.z -
-        player.feetPosition.z;
+    for (std::size_t slot = 0;
+         slot < state.horde.capacity();
+         ++slot) {
+        const auto* zombie =
+            state.horde.zombie(
+                slot);
 
-    const float zombieDistance =
-        std::sqrt(
-            dx * dx +
-            dz * dz);
+        if (zombie == nullptr ||
+            zombie->frame().state ==
+                xziel::ZombieState::Dead) {
+            continue;
+        }
+
+        ++aliveZombies;
+
+        const float dx =
+            zombie->frame().position.x -
+            player.feetPosition.x;
+
+        const float dz =
+            zombie->frame().position.z -
+            player.feetPosition.z;
+
+        nearestZombieDistance =
+            std::min(
+                nearestZombieDistance,
+                std::sqrt(
+                    dx * dx +
+                    dz * dz));
+    }
 
     const float threat =
-        zombie.state ==
-            xziel::ZombieState::Dead
+        aliveZombies == 0
         ? 0.0f
         : 1.0f -
             std::clamp(
-                zombieDistance / 8.0f,
+                nearestZombieDistance / 8.0f,
                 0.0f,
                 1.0f);
 
@@ -542,10 +611,16 @@ xziel::CameraRigFrame advanceCameraRig(
                 .threatProximity =
                     threat,
                 .hordePressure =
-                    zombie.state ==
-                        xziel::ZombieState::Dead
-                    ? 0.0f
-                    : 0.28f,
+                    std::clamp(
+                        static_cast<float>(
+                            aliveZombies) /
+                        static_cast<float>(
+                            std::max<std::uint32_t>(
+                                state.horde.config().
+                                    maxActive,
+                                1U)),
+                        0.0f,
+                        1.0f),
                 .recentDamage =
                     state.vitals.frame().
                         damageFlash,
@@ -559,8 +634,7 @@ xziel::CameraRigFrame advanceCameraRig(
                     state.vitals.frame().
                         healthRatio,
                 .beingChased =
-                    zombie.state !=
-                    xziel::ZombieState::Dead,
+                    aliveZombies > 0,
                 .safeRoom = false,
                 .scriptedScareWindow =
                     false,
@@ -642,8 +716,7 @@ xziel::android::VulkanHudState makeHudState(
             1.0f);
 
     hud.targetAlive =
-        state.zombie.frame().state !=
-        xziel::ZombieState::Dead;
+        state.horde.frame().alive > 0;
 
     hud.weaponAdsAlpha =
         state.weapon.frame().adsAlpha;
@@ -695,33 +768,68 @@ xziel::android::VulkanSceneState makeSceneState(
     const NativeAppState& state) noexcept {
     xziel::android::VulkanSceneState scene{};
 
-    const auto& zombie =
-        state.zombie.frame();
+    for (std::size_t slot = 0;
+         slot < state.horde.capacity() &&
+         scene.zombieCount <
+             scene.zombies.size();
+         ++slot) {
+        const auto* actor =
+            state.horde.zombie(
+                slot);
 
-    scene.zombieX =
-        zombie.position.x;
-    scene.zombieY =
-        zombie.position.y;
-    scene.zombieZ =
-        zombie.position.z;
+        if (actor == nullptr ||
+            actor->frame().state ==
+                xziel::ZombieState::Dead) {
+            continue;
+        }
 
-    scene.zombieYawRadians =
-        zombie.yawDegrees *
-        kDegreesToRadians;
+        auto& zombie =
+            scene.zombies[
+                scene.zombieCount++];
 
-    scene.zombieStridePhase =
-        zombie.stridePhase;
+        const auto& frame =
+            actor->frame();
 
-    scene.zombieHealthRatio =
-        zombie.healthRatio;
+        zombie.x =
+            frame.position.x;
+        zombie.y =
+            frame.position.y;
+        zombie.z =
+            frame.position.z;
 
-    scene.zombieVisible =
-        zombie.state !=
-        xziel::ZombieState::Dead;
+        zombie.yawRadians =
+            frame.yawDegrees *
+            kDegreesToRadians;
 
-    scene.zombieStaggered =
-        zombie.state ==
-        xziel::ZombieState::Staggered;
+        zombie.stridePhase =
+            frame.stridePhase;
+
+        zombie.healthRatio =
+            frame.healthRatio;
+
+        zombie.visible = true;
+        zombie.staggered =
+            frame.state ==
+            xziel::ZombieState::Staggered;
+
+        zombie.attack =
+            frame.attackThisTick;
+    }
+
+    scene.roundProgress =
+        state.horde.frame().
+            targetThisRound > 0
+        ? static_cast<float>(
+              state.horde.frame().
+                  killedThisRound) /
+          static_cast<float>(
+              state.horde.frame().
+                  targetThisRound)
+        : 0.0f;
+
+    scene.interRound =
+        state.horde.frame().
+            interRound;
 
     return scene;
 }

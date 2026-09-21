@@ -2386,33 +2386,53 @@ bool VulkanClearRenderer::recordDrawCommand(
         4.2f, 0.10f, 5.0f,
         2.0f);
 
-    if (scene.zombieVisible) {
+    const std::size_t visibleZombieCount =
+        std::min(
+            scene.zombieCount,
+            scene.zombies.size());
+
+    for (std::size_t zombieIndex = 0;
+         zombieIndex < visibleZombieCount;
+         ++zombieIndex) {
+        const auto& zombieState =
+            scene.zombies[
+                zombieIndex];
+
+        if (!zombieState.visible) {
+            continue;
+        }
+
         const float stride =
             std::sin(
-                scene.zombieStridePhase *
+                zombieState.stridePhase *
                 6.28318530718f);
 
         const float staggerOffset =
-            scene.zombieStaggered
+            zombieState.staggered
             ? std::sin(
                   safeTime *
-                  38.0f) *
+                  38.0f +
+                  static_cast<float>(
+                      zombieIndex)) *
                   0.045f
             : 0.0f;
 
+        const float attackLunge =
+            zombieState.attack
+            ? 0.18f
+            : 0.0f;
+
         const float zombieX =
-            scene.zombieX +
+            zombieState.x +
             staggerOffset;
 
         const float zombieY =
-            scene.zombieY;
+            zombieState.y;
 
         const float zombieZ =
-            scene.zombieZ;
+            zombieState.z -
+            attackLunge;
 
-        // Procedural humanoid target: this is intentionally original geometry
-        // used to prove actor motion, hitboxes, damage and rendering before any
-        // external zombie mesh/animation package is introduced.
         drawBox(
             zombieX,
             zombieY + 1.08f,
@@ -2435,7 +2455,8 @@ bool VulkanClearRenderer::recordDrawCommand(
             zombieX - 0.43f,
             zombieY + 1.08f,
             zombieZ +
-                stride * 0.08f,
+                stride * 0.08f -
+                attackLunge * 0.45f,
             0.11f,
             0.48f,
             0.11f,
@@ -2445,7 +2466,8 @@ bool VulkanClearRenderer::recordDrawCommand(
             zombieX + 0.43f,
             zombieY + 1.08f,
             zombieZ -
-                stride * 0.08f,
+                stride * 0.08f -
+                attackLunge * 0.45f,
             0.11f,
             0.48f,
             0.11f,
@@ -2471,7 +2493,7 @@ bool VulkanClearRenderer::recordDrawCommand(
             0.14f,
             4.0f);
 
-        if (scene.zombieHealthRatio <
+        if (zombieState.healthRatio <
             0.70f) {
             drawBox(
                 zombieX + 0.16f,
@@ -2848,6 +2870,55 @@ bool VulkanClearRenderer::recordDrawCommand(
         hud.stance
             ? 0.24f
             : 0.12f);
+
+    const float roundProgress =
+        std::clamp(
+            scene.roundProgress,
+            0.0f,
+            1.0f);
+
+    constexpr float roundCenterX = 0.5f;
+    constexpr float roundCenterY = 0.055f;
+    constexpr float roundHalfWidth = 0.13f;
+    constexpr float roundHalfHeight = 0.0035f;
+
+    drawUiPrimitive(
+        roundCenterX,
+        roundCenterY,
+        roundHalfWidth,
+        roundHalfHeight,
+        0.02f,
+        0.025f,
+        0.035f,
+        0.62f,
+        0.0f,
+        0.10f);
+
+    const float roundFill =
+        std::max(
+            roundHalfWidth *
+                roundProgress,
+            0.0005f);
+
+    drawUiPrimitive(
+        roundCenterX -
+            roundHalfWidth +
+            roundFill,
+        roundCenterY,
+        roundFill,
+        roundHalfHeight * 0.70f,
+        scene.interRound
+            ? 0.72f
+            : 0.62f,
+        scene.interRound
+            ? 0.16f
+            : 0.06f,
+        scene.interRound
+            ? 0.96f
+            : 0.78f,
+        0.88f,
+        0.0f,
+        0.10f);
 
     const float magazineRatio =
         std::clamp(

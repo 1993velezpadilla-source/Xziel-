@@ -5,6 +5,7 @@
 #include <jni.h>
 #include <vulkan/vulkan.h>
 
+#include <array>
 #include <cstdint>
 #include <vector>
 
@@ -20,17 +21,26 @@ struct VulkanCamera {
     float verticalFovDegrees = 72.0f;
 };
 
+struct VulkanZombieState {
+    float x = 0.0f;
+    float y = -1.48f;
+    float z = 2.45f;
+
+    float yawRadians = 0.0f;
+    float stridePhase = 0.0f;
+    float healthRatio = 1.0f;
+
+    bool visible = false;
+    bool staggered = false;
+    bool attack = false;
+};
+
 struct VulkanSceneState {
-    float zombieX = 0.0f;
-    float zombieY = -1.48f;
-    float zombieZ = 2.45f;
+    std::array<VulkanZombieState, 8> zombies{};
+    std::size_t zombieCount = 0;
 
-    float zombieYawRadians = 0.0f;
-    float zombieStridePhase = 0.0f;
-    float zombieHealthRatio = 1.0f;
-
-    bool zombieVisible = true;
-    bool zombieStaggered = false;
+    float roundProgress = 0.0f;
+    bool interRound = false;
 };
 
 struct VulkanHudState {
