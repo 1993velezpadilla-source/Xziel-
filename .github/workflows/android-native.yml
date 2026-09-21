@@ -153,6 +153,11 @@ jobs:
           test -s build/nzp-data/nzp/models/ai/zfull.mdl_1.tga
           test -s build/nzp-data/nzp/models/ai/zfull.mdl_2.tga
           test -s build/nzp-data/nzp/models/ai/zfull.mdl_3.tga
+          test -s build/nzp-data/nzp/sounds/xziel/enchant/round_omen.wav
+          test -s build/nzp-data/nzp/sounds/xziel/enchant/mystery_hum.wav
+          test -s build/nzp-data/nzp/sounds/xziel/enchant/gameover_guitar.wav
+          grep -q 'sounds/xziel/enchant/round_omen.wav' build/deps/quakec/source/server/main.qc
+          grep -q 'sounds/xziel/enchant/gameover_guitar.wav' build/deps/quakec/source/server/damage.qc
           test -s build/nzp-data/nzp/licenses/XZIEL-WAW-REFERENCE-AUDIO.txt
           if find build/nzp-data/nzp/sounds/xziel/waw -type f -name '*.wav' 2>/dev/null | grep -q .; then
             echo "Unexpected copyrighted/local WaW audio entered default CI package"
@@ -179,6 +184,9 @@ jobs:
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/maps/ndu_enchanted.txt'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/models/machines/mystery.mdl_0.tga'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/models/ai/zfull.mdl_0.tga'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/sounds/xziel/enchant/round_omen.wav'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/sounds/xziel/enchant/mystery_hum.wav'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/sounds/xziel/enchant/gameover_guitar.wav'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/licenses/NACHT-ENHANCED-CC0-SOURCES.txt'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/licenses/XZIEL-WAW-REFERENCE-AUDIO.txt'
 

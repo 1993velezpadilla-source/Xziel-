@@ -59,6 +59,7 @@ python3 "$ROOT/scripts/patch_quakec_nacht_runtime.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_nacht_fx_v2.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_nacht_gore.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_waw_legacy_audio.py" "$DEPS/quakec"
+python3 "$ROOT/scripts/patch_quakec_nacht_original_audio.py" "$DEPS/quakec"
 chmod +x "$DEPS/quakec/bin/fteqcc-cli-lin" "$DEPS/quakec/tools/qc-compiler-gnu.sh"
 (
     cd "$DEPS/quakec"
@@ -120,6 +121,7 @@ python3 "$ROOT/scripts/build_xziel_icons.py" "$ASSET_WORK/nzp/gfx/xziel"
 echo "==> Staging opt-in Nacht Enhanced CC0 texture pack"
 bash "$ROOT/scripts/fetch_nacht_enhanced_textures.sh" "$ASSET_WORK"
 python3 "$ROOT/scripts/build_nacht_enchanted_props.py" "$ASSET_WORK/nzp"
+python3 "$ROOT/scripts/build_nacht_enchanted_audio.py" "$ASSET_WORK/nzp"
 bash "$ROOT/scripts/import_waw_reference_audio.sh" "$ASSET_WORK"
 
 # Replace the stock gameplay bytecode with our GPL QuakeC build. All other
