@@ -23,62 +23,118 @@ permissions:
 jobs:
   build-zombie:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Checkout Xziel
         uses: actions/checkout@v4
 
-      - name: Install Blender runtime
+      - name: Install Linux render dependencies
         shell: bash
         run: |
           set -euxo pipefail
           sudo apt-get update
-          sudo apt-get install -y             blender             git-lfs             python3-numpy             libegl1             libgl1-mesa-dri             libglx-mesa0             mesa-utils             xvfb
-          blender --version
-          git lfs version
-          blender --background --python-expr "import numpy; print('BLENDER_NUMPY', numpy.__version__)"
+          sudo apt-get install -y \
+            curl xz-utils unzip git \
+            libegl1 libgl1-mesa-dri libglx-mesa0 mesa-utils xvfb
 
-      - name: Fetch MakeHuman CC0 core base mesh
+      - name: Cache Blender 4.5.14 LTS
+        id: cache-blender
+        uses: actions/cache@v4
+        with:
+          path: /opt/blender-4.5.14
+          key: blender-linux-x64-4.5.14
+
+      - name: Install Blender 4.5.14 LTS
+        if: steps.cache-blender.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -euxo pipefail
-          rm -rf /tmp/makehuman
-          git clone --depth 1 https://github.com/makehumancommunity/makehuman.git /tmp/makehuman
-          cd /tmp/makehuman
-          git lfs install --local
-          git lfs pull
-          test -s makehuman/data/3dobjs/base.obj
-          file makehuman/data/3dobjs/base.obj
-          wc -c makehuman/data/3dobjs/base.obj
+          curl -fL --retry 4 \
+            https://download.blender.org/release/Blender4.5/blender-4.5.14-linux-x64.tar.xz \
+            -o /tmp/blender.tar.xz
+          sudo mkdir -p /opt/blender-4.5.14
+          sudo tar -xJf /tmp/blender.tar.xz --strip-components=1 -C /opt/blender-4.5.14
 
-      - name: Generate zombie in headless Blender
+      - name: Verify Blender
+        shell: bash
+        run: |
+          set -euxo pipefail
+          /opt/blender-4.5.14/blender --version
+          /opt/blender-4.5.14/blender --background --python-expr \
+            "import bpy, numpy; print('BLENDER', bpy.app.version_string, 'NUMPY', numpy.__version__)"
+
+      - name: Build and install MPFB2 extension
+        shell: bash
+        run: |
+          set -euxo pipefail
+          rm -rf /tmp/mpfb2 /tmp/mpfb.zip
+          git clone https://github.com/makehumancommunity/mpfb2.git /tmp/mpfb2
+          git -C /tmp/mpfb2 checkout b58176c661a9680294eb75f127842cb8378e4974
+          /opt/blender-4.5.14/blender --command extension build \
+            --source-dir /tmp/mpfb2/src/mpfb \
+            --output-filepath /tmp/mpfb.zip
+          /opt/blender-4.5.14/blender --command extension install-file \
+            -r user_default -e /tmp/mpfb.zip
+
+      - name: Cache MakeHuman CC0 system assets
+        id: cache-mhassets
+        uses: actions/cache@v4
+        with:
+          path: /tmp/mhassets
+          key: makehuman-system-assets-cc0-v2026
+
+      - name: Download MakeHuman CC0 system assets
+        if: steps.cache-mhassets.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euxo pipefail
+          rm -rf /tmp/mhassets
+          mkdir -p /tmp/mhassets
+          curl -fL --retry 4 \
+            https://files2.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip \
+            -o /tmp/makehuman_system_assets_cc0.zip
+          unzip -q /tmp/makehuman_system_assets_cc0.zip -d /tmp/mhassets
+
+      - name: Verify MakeHuman assets
+        shell: bash
+        run: |
+          set -euxo pipefail
+          find /tmp/mhassets -name 'middleage_caucasian_male.mhmat' -print -quit | grep .
+          find /tmp/mhassets -name 'low-poly.mhclo' -print -quit | grep .
+          find /tmp/mhassets -name 'male_worksuit01.mhclo' -print -quit | grep .
+
+      - name: Generate rigged MPFB zombie
         shell: bash
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
         run: |
           set -euxo pipefail
-          rm -rf dist/blender-zombie
-          mkdir -p dist/blender-zombie/lods
-          xvfb-run -a -s "-screen 0 1280x1024x24"             blender --background             --python tools/blender/build_zombie.py             --             --base /tmp/makehuman/makehuman/data/3dobjs/base.obj             --out dist/blender-zombie/zombie_lod0.glb             --preview dist/blender-zombie/zombie_preview.png             --manifest dist/blender-zombie/zombie_manifest.json             --lod-dir dist/blender-zombie/lods
+          rm -rf dist/blender-zombie-mpfb
+          mkdir -p dist/blender-zombie-mpfb
+          xvfb-run -a -s "-screen 0 1280x1024x24" \
+            /opt/blender-4.5.14/blender --background \
+            --python tools/blender/build_zombie_mpfb.py \
+            -- \
+            --assets-root /tmp/mhassets \
+            --out-dir dist/blender-zombie-mpfb
 
-      - name: Validate outputs
+      - name: Validate rigged outputs
         shell: bash
         run: |
           set -euxo pipefail
-          test -s dist/blender-zombie/zombie_lod0.glb
-          test -s dist/blender-zombie/zombie_lod0.blend
-          test -s dist/blender-zombie/lods/zombie_lod1.glb
-          test -s dist/blender-zombie/lods/zombie_lod2.glb
-          test -s dist/blender-zombie/zombie_preview.png
-          test -s dist/blender-zombie/zombie_manifest.json
-          python3 -m json.tool dist/blender-zombie/zombie_manifest.json
-          ls -lah dist/blender-zombie dist/blender-zombie/lods
+          test -s dist/blender-zombie-mpfb/zombie_mpfb_lod0.glb
+          test -s dist/blender-zombie-mpfb/zombie_mpfb_lod0.fbx
+          test -s dist/blender-zombie-mpfb/zombie_mpfb.blend
+          test -s dist/blender-zombie-mpfb/zombie_mpfb_preview.png
+          test -s dist/blender-zombie-mpfb/zombie_mpfb_manifest.json
+          python3 -m json.tool dist/blender-zombie-mpfb/zombie_mpfb_manifest.json
+          ls -lah dist/blender-zombie-mpfb
 
-      - name: Upload zombie build
+      - name: Upload rigged zombie build
         uses: actions/upload-artifact@v4
         with:
-          name: blender-zombie-phase1
-          path: dist/blender-zombie/
+          name: blender-zombie-mpfb-phase2
+          path: dist/blender-zombie-mpfb/
           if-no-files-found: error
           retention-days: 14
