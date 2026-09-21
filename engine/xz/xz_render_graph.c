@@ -310,6 +310,10 @@ static int XzCanFuse(
     const XzRgPassDesc *previous,
     const XzRgPassDesc *current)
 {
+    if (previous->flags &
+        (XZ_RG_PASS_NEEDS_NEIGHBORHOOD |
+         XZ_RG_PASS_NEEDS_HISTORY))
+        return 0;
     if ((current->flags &
          XZ_RG_PASS_CAN_FUSE_PREVIOUS) == 0u)
         return 0;
