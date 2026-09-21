@@ -58,13 +58,21 @@ jobs:
 
           "$GLSLC"             -O             -fshader-stage=frag             app/src/main/shaders/xziel_first.frag             -o app/src/main/assets/shaders/xziel_first.frag.spv
 
+          "$GLSLC"             -O             -fshader-stage=vert             app/src/main/shaders/xziel_ui.vert             -o app/src/main/assets/shaders/xziel_ui.vert.spv
+
+          "$GLSLC"             -O             -fshader-stage=frag             app/src/main/shaders/xziel_ui.frag             -o app/src/main/assets/shaders/xziel_ui.frag.spv
+
           test -s app/src/main/assets/shaders/xziel_first.vert.spv
           test -s app/src/main/assets/shaders/xziel_first.frag.spv
+          test -s app/src/main/assets/shaders/xziel_ui.vert.spv
+          test -s app/src/main/assets/shaders/xziel_ui.frag.spv
 
           SPIRV_VAL="$(find "${ANDROID_HOME}/ndk/28.2.13676358" -type f -name spirv-val -perm -111 -print -quit || true)"
           if [[ -n "$SPIRV_VAL" ]]; then
             "$SPIRV_VAL" app/src/main/assets/shaders/xziel_first.vert.spv
             "$SPIRV_VAL" app/src/main/assets/shaders/xziel_first.frag.spv
+            "$SPIRV_VAL" app/src/main/assets/shaders/xziel_ui.vert.spv
+            "$SPIRV_VAL" app/src/main/assets/shaders/xziel_ui.frag.spv
           fi
 
       - name: Build Xziel GameActivity Vulkan APK
@@ -84,6 +92,8 @@ jobs:
           grep -q "lib/x86_64/libxziel-native.so" xziel-native-apk-contents.txt
           grep -q "assets/shaders/xziel_first.vert.spv" xziel-native-apk-contents.txt
           grep -q "assets/shaders/xziel_first.frag.spv" xziel-native-apk-contents.txt
+          grep -q "assets/shaders/xziel_ui.vert.spv" xziel-native-apk-contents.txt
+          grep -q "assets/shaders/xziel_ui.frag.spv" xziel-native-apk-contents.txt
 
           # Android 15+ devices may use 16 KB memory pages. Verify that the APK
           # zip layout and every native ELF LOAD segment are compatible.
