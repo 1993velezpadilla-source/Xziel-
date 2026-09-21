@@ -1324,7 +1324,7 @@ xziel::android::VulkanHudState makeHudState(
 }
 
 xziel::android::VulkanEnvironmentState makeEnvironmentState(
-    const NativeAppState& state) noexcept {
+    NativeAppState& state) noexcept {
     xziel::android::VulkanEnvironmentState environment{};
 
     environment.rainIntensity =
