@@ -46,6 +46,8 @@ void MovementController::reset() noexcept {
     frame_ = {};
     frame_.mode = MovementMode::Grounded;
     stateSeconds_ = 0.0f;
+    coyoteSecondsRemaining_ = 0.0f;
+    jumpBufferSecondsRemaining_ = 0.0f;
     usedDoubleJump_ = false;
     wasGrounded_ = true;
 }
@@ -63,6 +65,36 @@ MovementFrame MovementController::step(
     frame_.canFire = true;
     frame_.canReload = true;
     stateSeconds_ += dt;
+
+    if (traversal.grounded) {
+        coyoteSecondsRemaining_ =
+            std::max(
+                0.0f,
+                config_.coyoteTimeSeconds);
+    } else {
+        coyoteSecondsRemaining_ =
+            std::max(
+                0.0f,
+                coyoteSecondsRemaining_ -
+                    dt);
+    }
+
+    if (input.jumpPressed) {
+        jumpBufferSecondsRemaining_ =
+            std::max(
+                0.0f,
+                config_.jumpBufferSeconds);
+    } else {
+        jumpBufferSecondsRemaining_ =
+            std::max(
+                0.0f,
+                jumpBufferSecondsRemaining_ -
+                    dt);
+    }
+
+    const bool jumpRequested =
+        input.jumpPressed ||
+        jumpBufferSecondsRemaining_ > 0.0f;
 
     const bool landed = traversal.grounded && !wasGrounded_;
     if (landed) {
@@ -82,7 +114,7 @@ MovementFrame MovementController::step(
     // Mantle wins over jump when the geometry says a ledge is available.
     if (capabilities_.mantle &&
         traversal.mantleAvailable &&
-        input.jumpPressed &&
+        jumpRequested &&
         frame_.mode != MovementMode::Sliding &&
         frame_.mode != MovementMode::Diving) {
         setMode(MovementMode::Mantling, MovementCue::MantleStart);
@@ -189,7 +221,10 @@ MovementFrame MovementController::step(
                 config_.airAcceleration,
                 dt);
 
-            if (input.jumpPressed && capabilities_.wallJump) {
+            if (jumpRequested && capabilities_.wallJump) {
+                jumpBufferSecondsRemaining_ = 0.0f;
+                coyoteSecondsRemaining_ = 0.0f;
+
                 setMode(MovementMode::Airborne, MovementCue::WallJump);
                 frame_.velocity.y = config_.wallJumpVerticalVelocity;
                 frame_.velocity.x +=
@@ -216,9 +251,19 @@ MovementFrame MovementController::step(
                 traversal.wallRunnable &&
                 moveMagnitude > 0.45f) {
                 setMode(MovementMode::WallRunning, MovementCue::WallRunStart);
-            } else if (input.jumpPressed &&
+            } else if (jumpRequested &&
+                       coyoteSecondsRemaining_ > 0.0f) {
+                jumpBufferSecondsRemaining_ = 0.0f;
+                coyoteSecondsRemaining_ = 0.0f;
+
+                frame_.velocity.y =
+                    config_.jumpVelocity;
+                frame_.cue =
+                    MovementCue::Jump;
+            } else if (jumpRequested &&
                        capabilities_.doubleJump &&
                        !usedDoubleJump_) {
+                jumpBufferSecondsRemaining_ = 0.0f;
                 usedDoubleJump_ = true;
                 frame_.velocity.y = config_.doubleJumpVelocity;
                 frame_.cue = MovementCue::DoubleJump;
@@ -230,13 +275,37 @@ MovementFrame MovementController::step(
         case MovementMode::Grounded:
         case MovementMode::Sprinting: {
             if (!traversal.grounded) {
-                setMode(MovementMode::Airborne, MovementCue::None);
+                if (jumpRequested &&
+                    coyoteSecondsRemaining_ > 0.0f) {
+                    jumpBufferSecondsRemaining_ = 0.0f;
+                    coyoteSecondsRemaining_ = 0.0f;
+
+                    setMode(
+                        MovementMode::Airborne,
+                        MovementCue::Jump);
+
+                    frame_.velocity.y =
+                        config_.jumpVelocity;
+                } else {
+                    setMode(
+                        MovementMode::Airborne,
+                        MovementCue::None);
+                }
+
                 break;
             }
 
-            if (input.jumpPressed) {
-                setMode(MovementMode::Airborne, MovementCue::Jump);
-                frame_.velocity.y = config_.jumpVelocity;
+            if (jumpRequested) {
+                jumpBufferSecondsRemaining_ = 0.0f;
+                coyoteSecondsRemaining_ = 0.0f;
+
+                setMode(
+                    MovementMode::Airborne,
+                    MovementCue::Jump);
+
+                frame_.velocity.y =
+                    config_.jumpVelocity;
+
                 break;
             }
 
