@@ -105,7 +105,7 @@ jobs:
         run: |
           cc -std=c99 -O2 -Wall -Wextra -Werror \
             -Iengine/xz \
-            tests/xz_render_plan_test.c engine/xz/xz_render_plan.c engine/xz/xz_visibility.c \
+            tests/xz_render_plan_test.c engine/xz/xz_render_plan.c engine/xz/xz_visibility.c engine/xz/xz_material_lighting.c \
             -o /tmp/xz_render_plan_test
           /tmp/xz_render_plan_test
 
@@ -118,6 +118,16 @@ jobs:
             -o /tmp/xz_visibility_test
           /tmp/xz_visibility_test
 
+      - name: Test Xz MaterialLighting
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_material_lighting_test.c \
+            engine/xz/xz_material_lighting.c \
+            -o /tmp/xz_material_lighting_test
+          /tmp/xz_material_lighting_test
+
       - name: Test Xz RHI
         shell: bash
         run: |
@@ -127,6 +137,7 @@ jobs:
             engine/xz/xz_rhi.c \
             engine/xz/xz_render_plan.c \
             engine/xz/xz_visibility.c \
+            engine/xz/xz_material_lighting.c \
             engine/xz/xz_device_caps.c \
             engine/xz/xz_gpu_resources.c \
             -o /tmp/xz_rhi_test
@@ -153,6 +164,7 @@ jobs:
             engine/xz/xz_render_graph.c \
             engine/xz/xz_render_plan.c \
             engine/xz/xz_visibility.c \
+            engine/xz/xz_material_lighting.c \
             -o /tmp/xz_resource_command_test
           /tmp/xz_resource_command_test
 
@@ -178,6 +190,7 @@ jobs:
             engine/xz/xz_render_graph.c \
             engine/xz/xz_render_plan.c \
             engine/xz/xz_visibility.c \
+            engine/xz/xz_material_lighting.c \
             -o /tmp/xz_pass_targets_test
           /tmp/xz_pass_targets_test
 
@@ -193,6 +206,7 @@ jobs:
             engine/xz/xz_render_graph.c \
             engine/xz/xz_render_plan.c \
             engine/xz/xz_visibility.c \
+            engine/xz/xz_material_lighting.c \
             -o /tmp/xz_pass_inputs_test
           /tmp/xz_pass_inputs_test
 
@@ -549,7 +563,27 @@ jobs:
             exit 1
           fi
 
-          echo "Xziel remained alive; Phase 0-13 including camera-space geometry visibility is live."
+          if ! grep -Eq "XZIEL-XZ.*phase14 materials_lighting selftest=PASS source=VRIL modes=COLOR/TEXTURE/GLOW/SOLID/ADDITIVE/LMPOINT lights=DLIGHT" dist/xziel-logcat.txt; then
+            echo "Xz Phase-14 materials/lighting planner did not initialize."
+            grep -E "XZIEL-XZ.*phase14 materials_lighting" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*plan\(gen=[1-9][0-9]* .*mat=[0-9]+/[0-9]+/[0-9]+/[0-9]+ lit=[0-9]+ lights=[0-9]+/[0-9]+ dark=[0-9]+ hash=[0-9a-fA-F]{8}\)" dist/xziel-logcat.txt; then
+            echo "Xz Phase-14 did not publish live material/light counts."
+            grep -E "XZIEL-XZ.*plan\(" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          if grep -Eq "XZIEL-XZ.*phase2 caps.*allow\(gles3=1" dist/xziel-logcat.txt; then
+            if ! grep -Eq "XZIEL-XZ.*g3material\(packets=[1-9][0-9]* lit=[0-9]+ vertices=[1-9][0-9]* flags=0x[0-9a-fA-F]+\)" dist/xziel-logcat.txt; then
+              echo "Xz Phase-14 material colors did not reach the GLES3 vertex/shader path."
+              grep -E "XZIEL-XZ.*g3material\(" dist/xziel-logcat.txt | tail -n 100 || true
+              exit 1
+            fi
+          fi
+
+          echo "Xziel remained alive; Phase 0-14 including Vril materials and dynamic lighting is live."
 
       - name: Upload runtime diagnostics
         if: always()
