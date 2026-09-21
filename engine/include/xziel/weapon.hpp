@@ -19,6 +19,12 @@ struct WeaponConfig {
     float adsInSeconds = 0.15f;
     float adsOutSeconds = 0.11f;
 
+    // Per-weapon option for marksman/sniper behavior: a tap can be buffered
+    // while the weapon finishes ADS instead of firing from the hip first.
+    bool fireRequiresAds = false;
+    float minimumAdsAlphaToFire = 0.92f;
+    float triggerBufferSeconds = 0.18f;
+
     float recoilPitchDegrees = 0.78f;
     float recoilYawDegrees = 0.26f;
 
@@ -46,6 +52,7 @@ struct WeaponFrame {
     bool dryFireThisTick = false;
     bool reloadStartedThisTick = false;
     bool reloadCompletedThisTick = false;
+    bool triggerBuffered = false;
 
     float recoilPitchImpulse = 0.0f;
     float recoilYawImpulse = 0.0f;
@@ -80,6 +87,7 @@ private:
 
     float fireCooldownSeconds_ = 0.0f;
     float reloadElapsedSeconds_ = 0.0f;
+    float triggerBufferRemaining_ = 0.0f;
 };
 
 } // namespace xziel
