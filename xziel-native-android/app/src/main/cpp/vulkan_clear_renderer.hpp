@@ -107,6 +107,11 @@ struct VulkanEnvironmentState {
     float planarPlaneNormalY = 1.0f;
     float planarPlaneNormalZ = 0.0f;
     float planarPlaneDistance = 1.48f;
+
+    // Material that currently owns the single live planar target. The main
+    // shader samples the target only for this material to prevent water from
+    // sampling a mirror capture (and vice versa).
+    std::uint32_t planarReflectionMaterialId = 0;
 };
 
 struct VulkanHudState {

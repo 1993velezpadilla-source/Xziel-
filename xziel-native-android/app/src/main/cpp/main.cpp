@@ -1487,10 +1487,22 @@ xziel::android::VulkanEnvironmentState makeEnvironmentState(
         environment.planarPlaneDistance = selected->planeDistance;
         environment.planarReflectionVisible = selectedSurface->visible;
         environment.planarReflectionScreenCoverage = selectedSurface->screenCoverage;
+        switch (selectedSurface->kind) {
+            case xziel::ReflectionSurfaceKind::Water:
+                environment.planarReflectionMaterialId = 13U;
+                break;
+            case xziel::ReflectionSurfaceKind::Mirror:
+                environment.planarReflectionMaterialId = 14U;
+                break;
+            default:
+                environment.planarReflectionMaterialId = 0U;
+                break;
+        }
     } else {
         environment.planarReflectionUpdateEveryNFrames = 1U;
         environment.planarReflectionVisible = false;
         environment.planarReflectionScreenCoverage = 0.0f;
+        environment.planarReflectionMaterialId = 0U;
     }
 
     environment.waterWavePhase =

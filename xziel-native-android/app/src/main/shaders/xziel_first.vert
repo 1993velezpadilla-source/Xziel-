@@ -25,6 +25,7 @@ layout(location = 4) out vec4 vEnvironment;
 layout(location = 5) out vec4 vWaterSurface;
 layout(location = 6) out vec4 vWaterSurfaceExtra;
 layout(location = 7) out vec4 vReflectionClip;
+layout(location = 8) flat out int vReflectionOwnerMaterial;
 
 const vec3 kPositions[36] = vec3[](
     vec3(-0.75, -0.75, -0.75), vec3( 0.75, -0.75, -0.75), vec3( 0.75,  0.75, -0.75),
@@ -248,5 +249,6 @@ void main() {
     vEnvironment = pc.environment;
     vWaterSurface = pc.waterSurface;
     vWaterSurfaceExtra = pc.waterSurfaceExtra;
+    vReflectionOwnerMaterial = int(pc.cameraPitchFov.z + 0.5);
     // vReflectionClip was populated above from the reflected camera.
 }

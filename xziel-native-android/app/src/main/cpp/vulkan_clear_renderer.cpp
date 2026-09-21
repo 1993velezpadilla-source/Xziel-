@@ -361,6 +361,15 @@ bool VulkanClearRenderer::drawFrame(
             reflectionAllocationBackoffFrames_ = 120U;
         } else {
             reflectionAllocationBackoffFrames_ = 0U;
+            // createReflectionTarget() intentionally tears down the previous
+            // target first, which also clears its plane ownership cache.
+            // Restore ownership immediately so the next frame does not
+            // invalidate a freshly captured target a second time.
+            reflectionTargetPlaneX_ = requestedPlaneX;
+            reflectionTargetPlaneY_ = requestedPlaneY;
+            reflectionTargetPlaneZ_ = requestedPlaneZ;
+            reflectionTargetPlaneD_ = requestedPlaneD;
+            reflectionTargetHasPlane_ = true;
         }
     } else if (!targetWantedByQuality &&
                reflectionColorImage_ != VK_NULL_HANDLE) {
@@ -3577,6 +3586,10 @@ bool VulkanClearRenderer::recordDrawCommand(
                     : 72.0f,
                 50.0f,
                 110.0f);
+
+        push.cameraPadding0 =
+            static_cast<float>(
+                environment.planarReflectionMaterialId);
 
         push.fogDensity =
             std::clamp(

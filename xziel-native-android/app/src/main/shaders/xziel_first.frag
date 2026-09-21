@@ -8,6 +8,7 @@ layout(location = 4) in vec4 vEnvironment;
 layout(location = 5) in vec4 vWaterSurface;
 layout(location = 6) in vec4 vWaterSurfaceExtra;
 layout(location = 7) in vec4 vReflectionClip;
+layout(location = 8) flat in int vReflectionOwnerMaterial;
 
 layout(set = 0, binding = 0) uniform sampler2D uPlanarReflection;
 
@@ -392,6 +393,7 @@ void main() {
                 planarScene,
                 clamp(
                     reflectionStrength *
+                    (vReflectionOwnerMaterial == 13 ? 1.0 : 0.0) *
                     (reflectionProjectionValid ? 1.0 : 0.0) *
                     (0.42 +
                      fresnel * 0.48) *
@@ -444,11 +446,6 @@ void main() {
     }
 
     if (vMaterial == 14) {
-        // The current offscreen target is reflected across the horizontal
-        // water plane. A vertical mirror needs a different reflected camera
-        // plane; sampling the water target here is geometrically incorrect.
-        // Keep a cheap probe-style mirror response until per-surface planar
-        // targets are carried into the backend.
         float facing =
             abs(
                 dot(
@@ -474,8 +471,37 @@ void main() {
                 vec3(0.11, 0.16, 0.23),
                 0.30 + glossy * 0.52);
 
+        float mirrorW = max(vReflectionClip.w, 0.0001);
+        vec2 mirrorNdc = vReflectionClip.xy / mirrorW;
+        vec2 mirrorUv = vec2(
+            mirrorNdc.x * 0.5 + 0.5,
+            mirrorNdc.y * 0.5 + 0.5);
+        bool mirrorProjectionValid =
+            vReflectionOwnerMaterial == 14 &&
+            vReflectionClip.w > 0.08 &&
+            mirrorUv.x >= -0.015 &&
+            mirrorUv.x <= 1.015 &&
+            mirrorUv.y >= -0.015 &&
+            mirrorUv.y <= 1.015;
+
+        vec3 mirrorPlanar =
+            texture(
+                uPlanarReflection,
+                clamp(
+                    mirrorUv,
+                    vec2(0.002),
+                    vec2(0.998))).rgb;
+
+        vec3 mirrorBase =
+            mix(
+                mirrorProbe,
+                mirrorPlanar,
+                mirrorProjectionValid
+                    ? clamp(0.76 + glossy * 0.18, 0.0, 0.94)
+                    : 0.0);
+
         lit =
-            mirrorProbe +
+            mirrorBase +
             vec3(
                 0.48,
                 0.58,
