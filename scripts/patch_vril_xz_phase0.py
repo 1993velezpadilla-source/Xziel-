@@ -57,6 +57,8 @@ for name in (
     "xz_gles3_resource_plan.c",
     "xz_pass_targets.h",
     "xz_pass_targets.c",
+    "xz_pass_inputs.h",
+    "xz_pass_inputs.c",
 ):
     src = modules / name
     if not src.is_file():
@@ -181,4 +183,4 @@ for label, needle in checks.items():
             f"Phase-0 integration check failed for {label}: {count} occurrences"
         )
 
-print("Injected Xziel Xz runtime through Phase 11 (GLES3 render targets).")
+print("Injected Xziel Xz runtime through Phase 12 (sampled pass inputs).")
