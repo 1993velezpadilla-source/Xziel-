@@ -5,6 +5,7 @@ The Enchanted Lab's CC0 zombie is intentionally kept at source quality instead
 of being crushed below legacy Quake's 2K vertex/triangle defaults.
 """
 from pathlib import Path
+import re
 import sys
 
 if len(sys.argv) != 2:
@@ -35,28 +36,29 @@ if "#define MAXALIASVERTS\t\t8192" not in s:
 r_local.write_text(s, encoding="utf-8")
 
 s = mesh_c.read_text(encoding="utf-8")
-repls = {
-    "qboolean\tused[8192];":
-        "qboolean\tused[MAXALIASTRIS];",
-    "int\t\tcommands[8192];":
-        "int\t\tcommands[MAXALIASTRIS * 7 + 1];",
-    "int\t\tvertexorder[8192];":
-        "int\t\tvertexorder[MAXALIASTRIS * 3];",
-    "int\t\tstripverts[128];":
-        "int\t\tstripverts[MAXALIASTRIS + 2];",
-    "int\t\tstriptris[128];":
-        "int\t\tstriptris[MAXALIASTRIS];",
-    "\tint \tbestverts[1024];":
-        "\tstatic int bestverts[MAXALIASTRIS + 2];",
-    "\tint \tbesttris[1024];":
-        "\tstatic int besttris[MAXALIASTRIS];",
-}
-for old, new in repls.items():
+
+regex_repls = [
+    (r"qboolean\s+used\s*\[\s*8192\s*\]\s*;",
+     "qboolean\tused[MAXALIASTRIS];"),
+    (r"int\s+commands\s*\[\s*8192\s*\]\s*;",
+     "int\t\tcommands[MAXALIASTRIS * 7 + 1];"),
+    (r"int\s+vertexorder\s*\[\s*8192\s*\]\s*;",
+     "int\t\tvertexorder[MAXALIASTRIS * 3];"),
+    (r"int\s+stripverts\s*\[\s*128\s*\]\s*;",
+     "int\t\tstripverts[MAXALIASTRIS + 2];"),
+    (r"int\s+striptris\s*\[\s*128\s*\]\s*;",
+     "int\t\tstriptris[MAXALIASTRIS];"),
+    (r"\bint\s+bestverts\s*\[\s*1024\s*\]\s*;",
+     "static int bestverts[MAXALIASTRIS + 2];"),
+    (r"\bint\s+besttris\s*\[\s*1024\s*\]\s*;",
+     "static int besttris[MAXALIASTRIS];"),
+]
+for pattern, new in regex_repls:
     if new in s:
         continue
-    if old not in s:
-        raise SystemExit(f"SDL gl_mesh anchor changed: {old!r}")
-    s = s.replace(old, new, 1)
+    s, count = re.subn(pattern, new, s, count=1)
+    if count != 1:
+        raise SystemExit(f"SDL gl_mesh anchor changed: {pattern!r}")
 
 # Belt-and-suspenders checks before emitting into the display-list buffers.
 emit_anchor = '''\tcommands[numcommands++] = 0;\t\t// end of list marker
