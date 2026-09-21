@@ -32,5 +32,33 @@ int main() {
     score.reset();
     assert(score.frame().total == 0U);
 
+    const auto beforeSpend =
+        score.frame().total;
+
+    assert(
+        score.trySpend(50U));
+
+    assert(
+        score.frame().total ==
+        beforeSpend - 50U);
+
+    assert(
+        score.frame().spentThisTick);
+
+    const auto afterSpend =
+        score.frame().total;
+
+    assert(
+        !score.trySpend(
+            0xFFFFFFFFU));
+
+    assert(
+        score.frame().total ==
+        afterSpend);
+
+    assert(
+        score.frame().
+            insufficientFundsThisTick);
+
     return 0;
 }
