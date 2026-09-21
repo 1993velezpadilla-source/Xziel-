@@ -252,6 +252,18 @@ bool VulkanClearRenderer::drawFrame(
         return false;
     }
 
+    const auto waitForDeviceIdle = [&]() noexcept {
+        const VkResult idleResult =
+            vkDeviceWaitIdle(
+                device_);
+
+        if (idleResult == VK_ERROR_DEVICE_LOST) {
+            deviceLost_ = true;
+        }
+
+        return ok(idleResult);
+    };
+
     // Keep one reusable offscreen reflection target synchronized with the
     // adaptive workload. Allocation happens only when the scale changes, never
     // as per-frame churn. Failure is deliberately non-fatal: probe/shader
@@ -347,7 +359,7 @@ bool VulkanClearRenderer::drawFrame(
              reflectionTargetScale_) > 0.025f);
 
     if (shouldAllocateReflectionTarget) {
-        if (!ok(vkDeviceWaitIdle(device_))) {
+        if (!waitForDeviceIdle()) {
             return false;
         }
         const bool reflectionTargetReady =
@@ -373,7 +385,7 @@ bool VulkanClearRenderer::drawFrame(
         }
     } else if (!targetWantedByQuality &&
                reflectionColorImage_ != VK_NULL_HANDLE) {
-        if (!ok(vkDeviceWaitIdle(device_))) {
+        if (!waitForDeviceIdle()) {
             return false;
         }
         destroyReflectionTarget();
@@ -382,7 +394,7 @@ bool VulkanClearRenderer::drawFrame(
                reflectionInvisibleFrames_ >= 90U) {
         // Camera-facing changes are transient: debounce only this case so a
         // quick turn never creates a device-idle destroy/reallocate loop.
-        if (!ok(vkDeviceWaitIdle(device_))) {
+        if (!waitForDeviceIdle()) {
             return false;
         }
         destroyReflectionTarget();
@@ -448,6 +460,9 @@ bool VulkanClearRenderer::drawFrame(
                 UINT64_MAX);
 
         if (!ok(result)) {
+            if (result == VK_ERROR_DEVICE_LOST) {
+                deviceLost_ = true;
+            }
             logError("image ownership fence wait failed");
             return false;
         }
@@ -463,6 +478,9 @@ bool VulkanClearRenderer::drawFrame(
             &frame.inFlight);
 
     if (!ok(result)) {
+        if (result == VK_ERROR_DEVICE_LOST) {
+            deviceLost_ = true;
+        }
         logError("vkResetFences failed");
         return false;
     }
@@ -3138,9 +3156,14 @@ bool VulkanClearRenderer::recreateSwapchain() noexcept {
         return true;
     }
 
-    if (!ok(
-            vkDeviceWaitIdle(
-                device_))) {
+    const VkResult idleResult =
+        vkDeviceWaitIdle(
+            device_);
+
+    if (!ok(idleResult)) {
+        if (idleResult == VK_ERROR_DEVICE_LOST) {
+            deviceLost_ = true;
+        }
         return false;
     }
 
