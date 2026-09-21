@@ -424,7 +424,8 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService):
 def main():
     args=parse_args(); spec=json.loads(Path(args.spec).read_text(encoding="utf-8")); out=Path(args.out_dir); out.mkdir(parents=True,exist_ok=True)
     HumanService=dynamic_import("mpfb.services.humanservice","HumanService")
-    ObjectService=dynamic_import("mpfb.services.objectservice","ObjectService")\n    TargetService=dynamic_import("mpfb.services.targetservice","TargetService")
+    ObjectService=dynamic_import("mpfb.services.objectservice","ObjectService")
+    TargetService=dynamic_import("mpfb.services.targetservice","TargetService")
     only={x.strip() for x in args.only.split(",") if x.strip()}
     manifests=[]; errors={}
     for ch in spec["characters"]:
