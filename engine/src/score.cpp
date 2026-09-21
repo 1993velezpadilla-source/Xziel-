@@ -82,6 +82,19 @@ ScoreFrame ScoreSystem::awardRoundClear(
     return frame_;
 }
 
+ScoreFrame ScoreSystem::awardUtility(
+    std::uint32_t points) noexcept {
+    frame_.changedThisTick = false;
+    frame_.criticalAwardThisTick = false;
+    frame_.spentThisTick = false;
+    frame_.insufficientFundsThisTick = false;
+    frame_.lastAward = 0;
+    frame_.lastSpend = 0;
+
+    add(points, false);
+    return frame_;
+}
+
 bool ScoreSystem::trySpend(
     std::uint32_t points) noexcept {
     return spend(points);

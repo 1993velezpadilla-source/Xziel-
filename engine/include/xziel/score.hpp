@@ -48,6 +48,9 @@ public:
     [[nodiscard]] ScoreFrame awardRoundClear(
         std::uint32_t completedRound) noexcept;
 
+    [[nodiscard]] ScoreFrame awardUtility(
+        std::uint32_t points) noexcept;
+
     [[nodiscard]] bool trySpend(
         std::uint32_t points) noexcept;
 

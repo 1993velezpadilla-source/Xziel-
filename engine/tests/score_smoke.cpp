@@ -89,5 +89,12 @@ int main() {
     assert(
         !score.frame().spentThisTick);
 
+    const auto beforeUtility = score.frame().total;
+    auto utility = score.awardUtility(10);
+    assert(utility.total == beforeUtility + 10);
+    assert(utility.lastAward == 10);
+    assert(utility.changedThisTick);
+    assert(!utility.criticalAwardThisTick);
+
     return 0;
 }
