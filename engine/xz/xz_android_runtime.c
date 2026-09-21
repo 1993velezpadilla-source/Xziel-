@@ -81,7 +81,8 @@ static int XzGles3MirrorSubmit(
     return XzGles3Shadow_SubmitCommands(
         (XzGles3ShadowState *)user,
         submission->commands,
-        submission->plan);
+        submission->plan,
+        submission->resources);
 }
 
 static int XzGles3MirrorEnd(void *user)
@@ -921,7 +922,8 @@ void XzAndroidRuntime_EndFrame(double now_seconds)
     XzRhi_SubmitFrame(
         &xz_runtime.rhi,
         &xz_runtime.render_plan,
-        &xz_runtime.command_stream);
+        &xz_runtime.command_stream,
+        &xz_runtime.gpu_resources);
     XzRhi_EndFrame(&xz_runtime.rhi);
 
     if (xz_runtime.last_log_seconds == 0.0 ||
