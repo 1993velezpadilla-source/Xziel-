@@ -637,3 +637,65 @@ The source-extraction target for Facility is now:
 6. capture retry/failure behavior
 7. verify solo/co-op semantics independently
 
+
+## Research expansion — conditional order and mixed interaction modalities
+
+## Facility V2 — conditional-order side quest refinement
+
+Source: https://github.com/nzp-team/nzportable/discussions/1444  
+Status: **MECHANICS_VERIFIED / CONDITIONAL_ORDER_STEP**.
+
+Additional verified behavior:
+
+- There are **5 teddy bears** in total.
+- Collecting all 5 yields the Easter-egg song.
+- If all 5 are completed **before turning the power on**, the player receives a hint toward the free Ray Gun Easter egg.
+- Therefore the teddy completion event has at least one branch whose consequence depends on the current global power state.
+
+Normalized pattern:
+
+`Collect 5 Secrets -> if PowerOff then RevealHint(FreeRayGun) -> SongReward`
+
+Engine lesson:
+- quest completion actions may depend on **current world state at the instant of completion**
+- Xziel needs conditional branches like `If(WorldState.Power == Off)`
+- ordering should be recorded explicitly so later power activation does not retroactively grant a missed branch unless the quest author asks for that behavior
+
+## Croft Manor — mixed collectible interaction modalities
+
+Source: https://github.com/nzp-team/nzportable/discussions/963  
+Status: **MECHANICS_VERIFIED / MIXED_INTERACTION_MODALITY**.
+
+Additional verified behavior:
+
+- The **5 teddy bears** belong to one collectible chain.
+- The **3 dragon trophies** belong to a separate collectible chain.
+- The map author explicitly confirms the dragon trophies are **interactable, not shootable**.
+- Completing each collectible family produces its own secret weapon + song reward path.
+- The weapons board in the Pack-a-Punch room is a key clue for progressing toward the map ending.
+- Version 1.1.0 fixed the buyable ending.
+
+Known teddy locations publicly identified by players include:
+- fireplace
+- chandelier
+- Pack-a-Punch area
+- near the bathroom
+- on top of the teleporter in the teleporter room
+
+Normalized pattern:
+
+`ShootableCollection(5) -> RewardA`
+`InteractableCollection(3) -> RewardB`
+`WeaponBoardClue -> EndingProgression`
+
+Engine lesson:
+A "collectible" cannot be modeled as one universal trigger type. Xziel needs per-item activation modes such as:
+- shoot
+- interact
+- damage/explode
+- touch/pickup
+- use-specific-item
+- use-specific-weapon
+- enter-volume
+
+and all of those should feed the same generic quest event/counter layer.
