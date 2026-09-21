@@ -49,6 +49,9 @@ int main() {
 
     assert(frame.promptVisible);
     assert(frame.targetId == 2U);
+    assert(
+        frame.targetPosition.z >
+        1.19f);
     assert(!frame.activatedThisTick);
 
     for (int i = 0;
