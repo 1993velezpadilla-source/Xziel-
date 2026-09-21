@@ -93,5 +93,61 @@ int main() {
         config.startingReserve -
         config.magazineSize);
 
+    // Marksman-style ADS gating must never fire the shot before the configured
+    // ADS threshold. A quick tap is buffered and released only when ready.
+    xziel::WeaponConfig marksmanConfig{};
+    marksmanConfig.magazineSize = 5;
+    marksmanConfig.startingReserve = 15;
+    marksmanConfig.automatic = false;
+    marksmanConfig.fireRequiresAds = true;
+    marksmanConfig.minimumAdsAlphaToFire = 0.90f;
+    marksmanConfig.adsInSeconds = 0.20f;
+    marksmanConfig.triggerBufferSeconds = 0.30f;
+
+    xziel::WeaponController marksman(
+        marksmanConfig);
+
+    auto marksmanFrame =
+        marksman.step(
+            {
+                .firePressed = true,
+                .aimHeld = true,
+            },
+            1.0f / 120.0f);
+
+    assert(
+        !marksmanFrame.firedThisTick);
+
+    assert(
+        marksmanFrame.triggerBuffered);
+
+    bool firedAfterAds = false;
+
+    for (int i = 0;
+         i < 40;
+         ++i) {
+        marksmanFrame =
+            marksman.step(
+                {
+                    .aimHeld = true,
+                },
+                1.0f / 120.0f);
+
+        if (marksmanFrame.firedThisTick) {
+            firedAfterAds = true;
+
+            assert(
+                marksmanFrame.adsAlpha >=
+                marksmanConfig.
+                    minimumAdsAlphaToFire);
+
+            break;
+        }
+    }
+
+    assert(firedAfterAds);
+    assert(
+        marksmanFrame.magazine == 4U);
+
     return 0;
 }
