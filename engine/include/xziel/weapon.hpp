@@ -65,6 +65,9 @@ public:
 
     void reset() noexcept;
 
+    void equip(
+        WeaponConfig config) noexcept;
+
     [[nodiscard]] WeaponFrame step(
         const WeaponInput& input,
         float deltaSeconds) noexcept;
