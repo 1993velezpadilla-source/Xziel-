@@ -148,6 +148,34 @@ int main() {
     assert(!unorderedDecisions[0].needsExtraScenePass);
     assert(unorderedDecisions[1].needsExtraScenePass);
 
+    // Equal-priority surfaces must choose the same authored surface even
+    // when a streamed map chunk submits them in the opposite order.
+    std::array<xziel::ReflectionSurface, 2> tieA{{
+        {.id = 40, .kind = xziel::ReflectionSurfaceKind::Mirror,
+         .distanceMeters = 4.0f, .screenCoverage = 0.30f, .importance = 1.0f,
+         .roughness = 0.05f, .visible = true, .planarEligible = true,
+         .hasStaticProbe = true},
+        {.id = 41, .kind = xziel::ReflectionSurfaceKind::Mirror,
+         .distanceMeters = 4.0f, .screenCoverage = 0.30f, .importance = 1.0f,
+         .roughness = 0.05f, .visible = true, .planarEligible = true,
+         .hasStaticProbe = true},
+    }};
+    std::array<xziel::ReflectionSurface, 2> tieB{{tieA[1], tieA[0]}};
+    std::array<xziel::ReflectionDecision, 2> tieDecisionA{};
+    std::array<xziel::ReflectionDecision, 2> tieDecisionB{};
+    reflectionPlanner.plan(tieA.data(), tieA.size(), high, 2,
+                           tieDecisionA.data(), tieDecisionA.size());
+    reflectionPlanner.plan(tieB.data(), tieB.size(), high, 2,
+                           tieDecisionB.data(), tieDecisionB.size());
+    std::uint32_t selectedA = 0;
+    std::uint32_t selectedB = 0;
+    for (const auto& decision : tieDecisionA)
+        if (decision.needsExtraScenePass) selectedA = decision.surfaceId;
+    for (const auto& decision : tieDecisionB)
+        if (decision.needsExtraScenePass) selectedB = decision.surfaceId;
+    assert(selectedA == 40);
+    assert(selectedB == 40);
+
     xziel::ReflectionTargetPlanner targetPlanner;
     const auto target = targetPlanner.plan(
         2400,

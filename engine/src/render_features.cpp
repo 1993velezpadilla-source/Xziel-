@@ -250,10 +250,16 @@ std::size_t ReflectionPlanner::plan(
                     continue;
                 }
 
+                // Stable tie-break by authored surface id rather than
+                // submission order. Streaming/chunk traversal can reorder
+                // otherwise identical surfaces between frames; using index
+                // here would make the expensive planar slot flicker.
                 const bool outranks =
                     otherPriority > priority ||
                     (otherPriority == priority &&
-                     otherIndex < i);
+                     (other.id < surface.id ||
+                      (other.id == surface.id &&
+                       otherIndex < i)));
 
                 if (outranks) {
                     ++higherPriorityCandidates;
