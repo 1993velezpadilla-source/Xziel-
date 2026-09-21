@@ -94,6 +94,7 @@ jobs:
           grep -q "assets/shaders/xziel_first.frag.spv" xziel-native-apk-contents.txt
           grep -q "assets/shaders/xziel_ui.vert.spv" xziel-native-apk-contents.txt
           grep -q "assets/shaders/xziel_ui.frag.spv" xziel-native-apk-contents.txt
+          grep -q "assets/maps/prototype.xmap" xziel-native-apk-contents.txt
 
           # Android 15+ devices may use 16 KB memory pages. Verify that the APK
           # zip layout and every native ELF LOAD segment are compatible.
