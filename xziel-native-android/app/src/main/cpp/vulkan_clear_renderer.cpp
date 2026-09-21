@@ -2497,8 +2497,8 @@ bool VulkanClearRenderer::recordDrawCommand(
             0.0f,
             1.0f);
 
-    // A simple purchasable gate proves that contextual interactions can alter
-    // both gameplay collision/navigation and visible world state.
+    // The single authoritative purchasable door proves that contextual
+    // interactions alter collision, zombie navigation and visible world state.
     drawBox(
         -2.88f,
         -0.12f,
@@ -2539,47 +2539,6 @@ bool VulkanClearRenderer::recordDrawCommand(
             0.01f
             ? 7.0f
             : 8.0f);
-
-    if (!scene.gateOpen) {
-        // Procedural locked gate matches the gameplay collision AABB closely
-        // enough for the vertical slice. Purchasing it removes both this
-        // geometry and the player/zombie blockers.
-        drawBox(
-            -0.40f,
-            -0.36f,
-            0.35f,
-            0.11f,
-            1.38f,
-            0.68f,
-            1.0f);
-
-        drawBox(
-            0.0f,
-            -0.36f,
-            0.35f,
-            0.11f,
-            1.38f,
-            0.68f,
-            1.0f);
-
-        drawBox(
-            0.40f,
-            -0.36f,
-            0.35f,
-            0.11f,
-            1.38f,
-            0.68f,
-            1.0f);
-
-        drawBox(
-            0.0f,
-            0.58f,
-            0.35f,
-            0.72f,
-            0.10f,
-            0.68f,
-            2.0f);
-    }
 
     if (scene.interactionVisible) {
         drawBox(
