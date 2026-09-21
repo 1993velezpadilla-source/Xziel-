@@ -17,6 +17,7 @@
 #include "xz_material_lighting.h"
 #include "xz_active_quality.h"
 #include "xz_stream_residency.h"
+#include "xz_cutover.h"
 
 #include <SDL.h>
 
@@ -50,6 +51,7 @@ typedef struct {
     XzCommandStream command_stream;
     XzActiveQualityState active_quality;
     XzStreamResidency stream_residency;
+    XzCutoverState cutover;
     uint64_t command_encode_failures;
     uint64_t graph_rebuild_failures;
     int graph_resources_ready;
@@ -495,6 +497,58 @@ static int XzRebuildGraphResources(void)
     return 1;
 }
 
+static void XzEvaluateCutover(void)
+{
+    XzCutoverEvidence evidence;
+
+    memset(&evidence, 0, sizeof(evidence));
+
+    evidence.backend_healthy =
+        xz_runtime.gles3_shadow.available &&
+        xz_runtime.gles3_shadow.failures == 0u &&
+        xz_runtime.gles3_shadow.restore_failures == 0u &&
+        xz_runtime.rhi.mirror_failures == 0u;
+
+    evidence.commands_healthy =
+        xz_runtime.rhi.rejected_plans == 0u &&
+        xz_runtime.rhi.rejected_commands == 0u &&
+        xz_runtime.command_encode_failures == 0u &&
+        xz_runtime.gles3_shadow.command_failures == 0u;
+
+    evidence.graph_healthy =
+        xz_runtime.render_graph_compiled.valid &&
+        xz_runtime.graph_resources_ready &&
+        xz_runtime.gles3_shadow.physical_failures == 0u &&
+        xz_runtime.gles3_shadow.framebuffer_failures == 0u &&
+        xz_runtime.gles3_shadow.sampled_failures == 0u;
+
+    evidence.residency_healthy =
+        xz_runtime.render_plan.packet_count == 0u ||
+        xz_runtime.stream_residency.resident_count > 0u;
+
+    evidence.active_quality_healthy =
+        xz_runtime.active_quality.initialized &&
+        xz_runtime.graph_rebuild_failures == 0u;
+
+    /*
+     * These remain intentionally false in Phase 16. The modern validation
+     * path still renders proxy geometry/material colors into an offscreen
+     * target, and GL4ES still owns the visible swapchain. Claiming parity
+     * before real meshes, asset textures and visible presentation exist would
+     * make cutover unsafe.
+     */
+    evidence.real_geometry_ready = 0;
+    evidence.real_textures_ready = 0;
+    evidence.visible_present_ready = 0;
+
+    evidence.healthy_frames =
+        xz_runtime.frame.total_frames;
+
+    XzCutover_Evaluate(
+        &xz_runtime.cutover,
+        &evidence);
+}
+
 static void XzLogSnapshot(double now_seconds)
 {
     const XzGovernorRecommendation *rec =
@@ -705,6 +759,24 @@ static void XzLogSnapshot(double now_seconds)
 
     XzAndroidLog(
         ANDROID_LOG_INFO,
+        "phase16 heartbeat requested=%s active=%s candidate=%d allowed=%d"
+        " caps=0x%x blockers=0x%x eval=%" PRIu64
+        " blocked=%" PRIu64 " legacyVisible=%d",
+        XzCutoverMode_Name(
+            xz_runtime.cutover.requested_mode),
+        XzCutoverMode_Name(
+            xz_runtime.cutover.active_mode),
+        xz_runtime.cutover.candidate_ready,
+        xz_runtime.cutover.cutover_allowed,
+        xz_runtime.cutover.capability_mask,
+        xz_runtime.cutover.blocker_mask,
+        xz_runtime.cutover.evaluations,
+        xz_runtime.cutover.blocked_modern_evaluations,
+        xz_runtime.cutover.active_mode !=
+            XZ_CUTOVER_MODE_MODERN);
+
+    XzAndroidLog(
+        ANDROID_LOG_INFO,
         "graphio g3res(mapped=%u objects=%u create=%" PRIu64
         " reuse=%" PRIu64 " destroy=%" PRIu64
         " read=%" PRIu64 " write=%" PRIu64
@@ -826,6 +898,12 @@ void XzAndroidRuntime_Init(size_t engine_heap_bytes)
 
     XzStreamResidency_Init(
         &xz_runtime.stream_residency);
+
+    XzCutover_Init(
+        &xz_runtime.cutover);
+    XzCutover_RequestMode(
+        &xz_runtime.cutover,
+        XZ_CUTOVER_MODE_MODERN);
 
     XzGpuResourcePool_Init(
         &xz_runtime.gpu_resources);
@@ -1070,6 +1148,15 @@ void XzAndroidRuntime_Init(size_t engine_heap_bytes)
                 xz_runtime.active_quality.width,
                 xz_runtime.active_quality.height);
 
+            XzAndroidLog(
+                XzCutover_SelfTest()
+                    ? ANDROID_LOG_INFO
+                    : ANDROID_LOG_WARN,
+                "phase16 cutover selftest=%s requested=MODERN safety=STRICT"
+                " geometry=PROXY textures=METADATA visible=GL4ES",
+                XzCutover_SelfTest()
+                    ? "PASS" : "FAIL");
+
             if (!attach_ok)
                 XzGles3Shadow_Shutdown(
                     &xz_runtime.gles3_shadow);
@@ -1167,6 +1254,8 @@ void XzAndroidRuntime_EndFrame(double now_seconds)
         &xz_runtime.command_stream,
         &xz_runtime.gpu_resources);
     XzRhi_EndFrame(&xz_runtime.rhi);
+
+    XzEvaluateCutover();
 
     if (xz_runtime.last_log_seconds == 0.0 ||
         now_seconds - xz_runtime.last_log_seconds >= 5.0)
