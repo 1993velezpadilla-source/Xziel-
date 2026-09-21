@@ -9,7 +9,7 @@ on:
       - ".github/workflows/xziel-native-android.yml"
 
 concurrency:
-  group: xziel-native-prototype-${{ github.head_ref || github.ref_name }}
+  group: xziel-native-prototype-${{ github.head_ref || github.ref_name }}-${{ github.sha }}
   cancel-in-progress: true
 
 permissions:
