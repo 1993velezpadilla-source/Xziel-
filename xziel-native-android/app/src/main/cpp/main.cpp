@@ -1548,6 +1548,9 @@ extern "C" void android_main(
                     state.renderWorkload,
                     runtimePolicy);
 
+        state.renderer.setPreferredFrameRate(
+            runtimePolicy.preferredFps);
+
         state.environment.setQuality(
             state.renderWorkload.
                 quality);
