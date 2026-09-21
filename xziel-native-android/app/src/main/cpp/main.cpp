@@ -18,6 +18,7 @@
 #include "xziel/interaction.hpp"
 #include "xziel/player_vitals.hpp"
 #include "xziel/performance.hpp"
+#include "xziel/render_features.hpp"
 #include "xziel/renderer_watchdog.hpp"
 #include "xziel/runtime_policy.hpp"
 #include "xziel/score.hpp"
@@ -120,6 +121,9 @@ struct NativeAppState {
 
     xziel::EnvironmentSystem environment{};
     xziel::EnvironmentFrame environmentFrame{};
+
+    xziel::WaterSystem water{};
+    xziel::WaterSurfaceState waterFrame{};
 
     xziel::WeatherConfig stormWeather{};
     xziel::WeatherConfig calmWeather{};
@@ -1304,6 +1308,26 @@ xziel::android::VulkanEnvironmentState makeEnvironmentState(
         state.renderWorkload.
             postProcessScale;
 
+    environment.waterWavePhase =
+        state.waterFrame.
+            wavePhase;
+
+    environment.waterFoamStrength =
+        state.waterFrame.
+            foamStrength;
+
+    environment.waterReflectionStrength =
+        state.waterFrame.
+            reflectionStrength;
+
+    environment.waterRefractionStrength =
+        state.waterFrame.
+            refractionStrength;
+
+    environment.waterRoughness =
+        state.waterFrame.
+            roughness;
+
     return environment;
 }
 
@@ -1852,6 +1876,24 @@ extern "C" void android_main(
 
         state.environmentFrame =
             state.environment.advance(
+                frameDelta);
+
+        const float windSpeed =
+            std::sqrt(
+                state.environmentFrame.
+                    windMetersPerSecond.x *
+                    state.environmentFrame.
+                        windMetersPerSecond.x +
+                state.environmentFrame.
+                    windMetersPerSecond.z *
+                    state.environmentFrame.
+                        windMetersPerSecond.z);
+
+        state.waterFrame =
+            state.water.advance(
+                windSpeed,
+                state.environmentFrame.
+                    rainIntensity,
                 frameDelta);
 
         state.input.beginFrame(
