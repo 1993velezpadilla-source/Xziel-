@@ -79,6 +79,7 @@ for obj in plan["interactives"]:
         zone = normalize_zone(props.get("zone", "unassigned"))
         spawns.append({
             "id": uid(name),
+            "name": name,
             "type": "zombie_spawn",
             "transform": {"position": position, "rotation": {"pitch":0,"yaw":0,"roll":0}},
             "zone": "zone_" + zone,
