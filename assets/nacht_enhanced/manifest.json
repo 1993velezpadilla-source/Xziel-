@@ -15,7 +15,7 @@
         "PNG source texture",
         "TGA runtime texture"
       ],
-      "integration": "shipping in Enhanced; pinned upstream commit; presentation-only render swap; regular whole-body zombies only; crawlers retain stock segmented model until dedicated crawl conversion"
+      "integration": "shipping in Enhanced; pinned upstream commit; presentation-only render swap; seven build-derived partial-body variants follow NZ:P head/left-arm/right-arm state; crawlers retain stock segmented model until dedicated crawl conversion"
     },
     {
       "id": "quaternius-zombie-apocalypse-kit",
