@@ -68,6 +68,12 @@ void XzVrilBridge_CapturePresentation(int source_frame)
     unsigned int i;
 
     XzPresentWorld_Begin(source_frame, r_origin);
+    XzPresentWorld_SetCameraBasis(
+        vpn,
+        vright,
+        vup,
+        r_refdef.fov_x,
+        r_refdef.fov_y);
 
     for (i = 0u; i < (unsigned int)cl_numvisedicts; ++i) {
         const entity_t *source = cl_visedicts[i];
