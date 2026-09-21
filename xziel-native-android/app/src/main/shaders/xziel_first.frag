@@ -338,12 +338,18 @@ void main() {
 
         // Perspective-correct lookup from the same reflected camera used by
         // the offscreen capture. Vulkan NDC Y is converted to texture space.
-        float reflectionW = max(abs(vReflectionClip.w), 0.0001);
+        float reflectionW = max(vReflectionClip.w, 0.0001);
         vec2 reflectionNdc = vReflectionClip.xy / reflectionW;
         vec2 reflectionUv =
             vec2(
                 reflectionNdc.x * 0.5 + 0.5,
                 reflectionNdc.y * 0.5 + 0.5);
+        bool reflectionProjectionValid =
+            vReflectionClip.w > 0.08 &&
+            reflectionUv.x >= -0.02 &&
+            reflectionUv.x <= 1.02 &&
+            reflectionUv.y >= -0.02 &&
+            reflectionUv.y <= 1.02;
 
         float distortion =
             (1.0 - roughness) *
@@ -356,6 +362,12 @@ void main() {
                 waveA,
                 waveB) *
             distortion;
+        reflectionProjectionValid =
+            reflectionProjectionValid &&
+            reflectionUv.x >= -0.015 &&
+            reflectionUv.x <= 1.015 &&
+            reflectionUv.y >= -0.015 &&
+            reflectionUv.y <= 1.015;
 
         vec3 planarScene =
             texture(
@@ -380,6 +392,7 @@ void main() {
                 planarScene,
                 clamp(
                     reflectionStrength *
+                    (reflectionProjectionValid ? 1.0 : 0.0) *
                     (0.42 +
                      fresnel * 0.48) *
                     (1.0 - roughness * 0.72),
