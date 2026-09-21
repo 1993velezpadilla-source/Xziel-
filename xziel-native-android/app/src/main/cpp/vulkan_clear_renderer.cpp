@@ -2546,6 +2546,52 @@ bool VulkanClearRenderer::recordDrawCommand(
         }
     }
 
+    const float impactAlpha =
+        std::clamp(
+            scene.impactAlpha,
+            0.0f,
+            1.0f);
+
+    if (impactAlpha > 0.001f) {
+        const float impactSize =
+            scene.impactCritical
+            ? 0.12f
+            : 0.075f;
+
+        drawBox(
+            scene.impactX,
+            scene.impactY,
+            scene.impactZ,
+            impactSize,
+            impactSize,
+            impactSize,
+            6.0f);
+
+        drawBox(
+            scene.impactX +
+                0.08f * impactAlpha,
+            scene.impactY +
+                0.05f * impactAlpha,
+            scene.impactZ -
+                0.04f * impactAlpha,
+            impactSize * 0.55f,
+            impactSize * 0.55f,
+            impactSize * 0.55f,
+            6.0f);
+
+        drawBox(
+            scene.impactX -
+                0.07f * impactAlpha,
+            scene.impactY +
+                0.02f * impactAlpha,
+            scene.impactZ +
+                0.05f * impactAlpha,
+            impactSize * 0.42f,
+            impactSize * 0.42f,
+            impactSize * 0.42f,
+            6.0f);
+    }
+
     const float weaponAds =
         std::clamp(
             hud.weaponAdsAlpha,
@@ -3285,14 +3331,31 @@ bool VulkanClearRenderer::recordDrawCommand(
             0.0f,
             1.0f);
 
+    const float criticalHit =
+        std::clamp(
+            hud.criticalHitAlpha,
+            0.0f,
+            1.0f);
+
     const float reticleR =
-        0.95f;
+        std::min(
+            1.0f,
+            0.95f +
+                criticalHit * 0.05f);
+
     const float reticleG =
-        0.96f -
-        hitMarker * 0.78f;
+        std::max(
+            0.0f,
+            0.96f -
+                hitMarker * 0.78f -
+                criticalHit * 0.14f);
+
     const float reticleB =
-        1.0f -
-        hitMarker * 0.72f;
+        std::max(
+            0.0f,
+            1.0f -
+                hitMarker * 0.72f -
+                criticalHit * 0.10f);
 
     const float reticleAlpha =
         0.72f +
@@ -3324,9 +3387,12 @@ bool VulkanClearRenderer::recordDrawCommand(
 
     if (hitMarker > 0.001f) {
         const float slashWidth =
-            0.0012f;
+            0.0012f +
+            criticalHit * 0.0008f;
+
         const float slashHeight =
-            0.013f;
+            0.013f +
+            criticalHit * 0.009f;
 
         drawUiPrimitive(
             0.490f,
