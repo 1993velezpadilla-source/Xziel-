@@ -122,7 +122,55 @@ def corpse_overlay(mat):
             mix.inputs[1].default_value = base.default_value
         links.new(noise.outputs["Fac"], ramp.inputs["Fac"])
         links.new(ramp.outputs["Color"], mix.inputs[2])
-        links.new(mix.outputs["Color"], base)
+
+        # Organic wounds in Generated coordinates. MakeHuman faces -Y, so the
+        # visible facial surface lives close to Generated Y=0.
+        tex = nodes.new("ShaderNodeTexCoord")
+        wound_noise = nodes.new("ShaderNodeTexNoise")
+        wound_noise.inputs["Scale"].default_value = 18.0
+        wound_noise.inputs["Detail"].default_value = 5.0
+        links.new(tex.outputs["Generated"], wound_noise.inputs["Vector"])
+
+        masks = []
+        for center, radius in [
+            ((0.405, 0.025, 0.865), 0.060),  # left cheek / jaw
+            ((0.565, 0.030, 0.895), 0.048),  # right temple
+            ((0.470, 0.035, 0.815), 0.042),  # lower face
+            ((0.105, 0.045, 0.470), 0.050),  # wrist/hand region
+            ((0.895, 0.045, 0.455), 0.047),  # opposite wrist
+        ]:
+            dist = nodes.new("ShaderNodeVectorMath")
+            dist.operation = "DISTANCE"
+            dist.inputs[1].default_value = center
+            links.new(tex.outputs["Generated"], dist.inputs[0])
+
+            wramp = nodes.new("ShaderNodeValToRGB")
+            wramp.color_ramp.elements[0].position = radius * 0.18
+            wramp.color_ramp.elements[0].color = (1, 1, 1, 1)
+            wramp.color_ramp.elements[1].position = radius
+            wramp.color_ramp.elements[1].color = (0, 0, 0, 1)
+            links.new(dist.outputs["Value"], wramp.inputs["Fac"])
+            masks.append(wramp.outputs["Color"])
+
+        combined = masks[0]
+        for socket in masks[1:]:
+            m = nodes.new("ShaderNodeMath")
+            m.operation = "MAXIMUM"
+            links.new(combined, m.inputs[0])
+            links.new(socket, m.inputs[1])
+            combined = m.outputs[0]
+
+        ragged = nodes.new("ShaderNodeMath")
+        ragged.operation = "MULTIPLY"
+        links.new(combined, ragged.inputs[0])
+        links.new(wound_noise.outputs["Fac"], ragged.inputs[1])
+
+        wound_mix = nodes.new("ShaderNodeMixRGB")
+        wound_mix.blend_type = "MIX"
+        links.new(ragged.outputs[0], wound_mix.inputs[0])
+        links.new(mix.outputs["Color"], wound_mix.inputs[1])
+        wound_mix.inputs[2].default_value = (0.075, 0.0015, 0.0025, 1.0)
+        links.new(wound_mix.outputs["Color"], base)
 
     set_principled_input(bsdf, ["Roughness"], 0.66)
     set_principled_input(bsdf, ["Specular IOR Level", "Specular"], 0.24)
@@ -362,6 +410,27 @@ def look_at(obj, target):
     obj.rotation_euler = (Vector(target) - obj.location).to_track_quat("-Z", "Y").to_euler()
 
 
+def pose_zombie_preview(rig):
+    """Pose only the review character. Production exports are already written."""
+    def rot(name, xyz_deg):
+        pb = rig.pose.bones.get(name)
+        if not pb:
+            return
+        pb.rotation_mode = "XYZ"
+        pb.rotation_euler = tuple(math.radians(v) for v in xyz_deg)
+
+    # Uneven forward reach + head cant. Kept moderate to avoid destroying the
+    # clothing silhouette while still reading as an undead stance.
+    rot("spine_03", (7, 0, 3))
+    rot("neck_01", (-6, 0, -7))
+    rot("head", (-5, 0, 11))
+    rot("upperarm_l", (-24, -10, 16))
+    rot("lowerarm_l", (-16, 4, 4))
+    rot("upperarm_r", (-31, 8, -13))
+    rot("lowerarm_r", (-22, -5, -4))
+    bpy.context.view_layer.update()
+
+
 def preview_stage(body, front_sign, out_png):
     scene = bpy.context.scene
     scene.render.engine = "BLENDER_EEVEE_NEXT"
@@ -545,6 +614,7 @@ def main():
         o.hide_viewport = True
 
     preview_path = out / "zombie_mpfb_preview.png"
+    pose_zombie_preview(rig)
     preview_stage(body, front_sign, preview_path)
 
     blend_path = out / "zombie_mpfb.blend"
