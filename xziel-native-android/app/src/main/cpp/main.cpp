@@ -371,6 +371,38 @@ xziel::CameraRigFrame advanceCameraRig(
         frameDeltaSeconds);
 }
 
+xziel::android::VulkanHudState makeHudState(
+    const xziel::android::AndroidInputSnapshot& input) noexcept {
+    xziel::android::VulkanHudState hud{};
+
+    hud.moveX =
+        input.input.move.x;
+    hud.moveY =
+        input.input.move.y;
+
+    hud.moveAnchorX =
+        input.moveAnchorNormalized.x;
+    hud.moveAnchorY =
+        input.moveAnchorNormalized.y;
+
+    hud.moveActive =
+        input.moveActive;
+    hud.fire =
+        input.input.fire;
+    hud.aim =
+        input.input.aim;
+    hud.jump =
+        input.movementButtons.jumpHeld ||
+        input.movementButtons.jumpPressed;
+    hud.stance =
+        input.movementButtons.stanceHeld ||
+        input.movementButtons.stancePressed;
+    hud.gyroAvailable =
+        input.gyroAvailable;
+
+    return hud;
+}
+
 xziel::android::VulkanCamera makeRenderCamera(
     const xziel::FpsPlayerFrame& player,
     const xziel::CameraRigFrame& rig) noexcept {
@@ -597,9 +629,14 @@ extern "C" void android_main(
                 state.player.frame(),
                 rigFrame);
 
+        const auto hud =
+            makeHudState(
+                inputSnapshot);
+
         if (!state.renderer.drawFrame(
                 seconds,
-                camera)) {
+                camera,
+                hud)) {
             const auto recovery =
                 state.watchdog.report(
                     {
