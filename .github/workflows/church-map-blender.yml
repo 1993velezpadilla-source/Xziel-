@@ -113,6 +113,19 @@ jobs:
             --python tools/church_map/design_zombies_gameplay.py \
             2>&1 | tee church/out/zombies-gameplay-build.log
 
+      - name: Export portable map package
+        shell: bash
+        env:
+          CHURCH_PLAN: church/out/zombies_map_plan.json
+          CHURCH_PACKAGE: church/out/SanctumOfAsh
+        run: |
+          set -euo pipefail
+          python3 tools/church_map/export_map_package.py | tee church/out/map-package-preflight.log
+          mkdir -p church/out/SanctumOfAsh/geometry
+          cp church/out/church_map_mobile_lod0.glb church/out/SanctumOfAsh/geometry/
+          cp church/out/ATTRIBUTION.txt church/out/SanctumOfAsh/
+          cp church/out/SANCTUM_OF_ASH_MAP_BIBLE.md church/out/SanctumOfAsh/
+
       - name: Validate outputs
         shell: bash
         run: |
@@ -130,24 +143,32 @@ jobs:
           test -s church/out/zombies_gameplay_iso.png
           test -s church/out/zombies_tower_quest.png
           test -s church/out/SANCTUM_OF_ASH_MAP_BIBLE.md
+          test -s church/out/SanctumOfAsh/map.json
+          test -s church/out/SanctumOfAsh/entities.json
+          test -s church/out/SanctumOfAsh/spawns.json
+          test -s church/out/SanctumOfAsh/logic.json
+          test -s church/out/SanctumOfAsh/quests.json
+          test -s church/out/SanctumOfAsh/preflight.json
+          test -s church/out/SanctumOfAsh/geometry/church_map_mobile_lod0.glb
           python3 - <<'PY'
           import json
           r=json.load(open("church/out/church_scene_report.json", encoding="utf-8"))
           p=json.load(open("church/out/zombies_map_plan.json", encoding="utf-8"))
+          q=json.load(open("church/out/SanctumOfAsh/preflight.json", encoding="utf-8"))
           assert r["source_triangles"] > 100000, r
           assert r["mobile_lod0_triangles"] > 10000, r
           assert p["working_title"] == "SANCTUM OF ASH"
           assert len(p["interactives"]) >= 30, len(p["interactives"])
-          assert "boiler" in p["zones"]
-          assert "clock_chamber" in p["zones"]
-          assert "ringing_chamber" in p["zones"]
-          assert "tower_stairs" in p["zones"]
+          assert q["ok"], q
+          for zone in ["boiler","clock_chamber","ringing_chamber","tower_stairs"]:
+              assert zone in p["zones"], zone
           print("SOURCE_TRIANGLES", r["source_triangles"])
           print("MOBILE_LOD0_TRIANGLES", r["mobile_lod0_triangles"])
           print("MESHES", r["source_meshes"])
           print("BOUNDS", r["bounds_size"])
           print("GAMEPLAY_ZONES", sorted(p["zones"]))
           print("INTERACTIVES", len(p["interactives"]))
+          print("PACKAGE_PREFLIGHT", q)
           PY
 
       - name: Upload church map build
