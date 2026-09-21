@@ -20,6 +20,14 @@ vec3 materialBase(int material, float pulse) {
         return vec3(0.040, 0.055, 0.065);
     }
 
+    if (material == 10) {
+        return vec3(0.055, 0.065, 0.078);
+    }
+
+    if (material == 11) {
+        return vec3(1.0, 0.24, 0.035);
+    }
+
     vec3 core = vec3(0.12, 0.015, 0.040);
     vec3 hot = vec3(0.78, 0.025, 0.22);
     return mix(core, hot, 0.30 + 0.32 * pulse);
@@ -48,6 +56,20 @@ void main() {
         base * (0.20 + key * 0.90)
         + coldBounce
         + magentaRim;
+
+    if (vMaterial >= 10) {
+        if (vMaterial == 11) {
+            lit +=
+                vec3(1.0, 0.15, 0.02) *
+                (0.35 + pulse * 0.55);
+        }
+
+        outColor =
+            vec4(
+                lit,
+                1.0);
+        return;
+    }
 
     float distanceFog =
         clamp((vWorldPosition.z + 3.0) / 8.0, 0.0, 1.0);
