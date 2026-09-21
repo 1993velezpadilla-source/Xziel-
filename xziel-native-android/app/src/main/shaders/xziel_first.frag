@@ -151,14 +151,23 @@ void main() {
 
         float broadPuddle =
             0.5 +
-            0.25 *
+            0.5 *
                 sin(
                     vWorldPosition.x * 1.35 +
-                    vWorldPosition.z * 1.80) +
-            0.25 *
-                cos(
-                    vWorldPosition.z * 1.10 -
-                    vWorldPosition.x * 1.65);
+                    vWorldPosition.z * 1.80);
+
+        if (surfaceQuality > 0.68) {
+            broadPuddle =
+                0.5 +
+                0.25 *
+                    sin(
+                        vWorldPosition.x * 1.35 +
+                        vWorldPosition.z * 1.80) +
+                0.25 *
+                    cos(
+                        vWorldPosition.z * 1.10 -
+                        vWorldPosition.x * 1.65);
+        }
 
         float puddleMask =
             smoothstep(
@@ -167,13 +176,18 @@ void main() {
                 broadPuddle +
                 wetness * 0.28);
 
-        float rainRipple =
-            0.5 +
-            0.5 *
-                sin(
-                    vWorldPosition.x * 8.4 +
-                    vWorldPosition.z * 10.2 +
-                    vWaterSurface.x * 31.0);
+        float rainRipple = 0.5;
+
+        if (surfaceQuality > 0.60 &&
+            rainResponse > 0.025) {
+            rainRipple =
+                0.5 +
+                0.5 *
+                    sin(
+                        vWorldPosition.x * 8.4 +
+                        vWorldPosition.z * 10.2 +
+                        vWaterSurface.x * 31.0);
+        }
 
         float wetFloorHighlight =
             floorFacing *
@@ -271,20 +285,30 @@ void main() {
                 wavePhase * 6.2831853);
 
         float waveB =
-            cos(
-                vWorldPosition.z * 5.3 -
-                vWorldPosition.x * 1.9 -
-                wavePhase * 8.1);
+            waveA * 0.65;
 
-        float microWave =
-            sin(
-                (vWorldPosition.x -
-                 vWorldPosition.z) *
-                    12.0 +
-                wavePhase *
-                    18.0) *
-            rainResponse *
-            surfaceQuality;
+        if (surfaceQuality > 0.58) {
+            waveB =
+                cos(
+                    vWorldPosition.z * 5.3 -
+                    vWorldPosition.x * 1.9 -
+                    wavePhase * 8.1);
+        }
+
+        float microWave = 0.0;
+
+        if (surfaceQuality > 0.72 &&
+            rainResponse > 0.025) {
+            microWave =
+                sin(
+                    (vWorldPosition.x -
+                     vWorldPosition.z) *
+                        12.0 +
+                    wavePhase *
+                        18.0) *
+                rainResponse *
+                surfaceQuality;
+        }
 
         float wave =
             clamp(
