@@ -57,6 +57,10 @@ struct VulkanEnvironmentState {
 
     float windX = 0.0f;
     float windZ = 0.0f;
+
+    float particleDensityScale = 1.0f;
+    float fogQualityScale = 1.0f;
+    float postProcessScale = 1.0f;
 };
 
 struct VulkanHudState {
