@@ -35,6 +35,25 @@ static XzRhiBackend XzRhiResolveBackend(
     }
 }
 
+static XzRhiBackend XzRhiResolveShadowBackend(
+    XzRhiBackend requested,
+    const XzDeviceCaps *caps,
+    int shadow_mode)
+{
+    if (!shadow_mode || !caps)
+        return XZ_RHI_BACKEND_NULL;
+
+    if (requested == XZ_RHI_BACKEND_GLES3 &&
+        caps->allow_gles3)
+        return XZ_RHI_BACKEND_GLES3;
+
+    if (requested == XZ_RHI_BACKEND_VULKAN &&
+        caps->allow_vulkan)
+        return XZ_RHI_BACKEND_VULKAN;
+
+    return XZ_RHI_BACKEND_NULL;
+}
+
 void XzRhi_Init(
     XzRhiState *state,
     XzRhiBackend requested_backend,
@@ -49,6 +68,11 @@ void XzRhi_Init(
     state->shadow_mode = shadow_mode ? 1 : 0;
     state->active_backend =
         XzRhiResolveBackend(
+            requested_backend,
+            caps,
+            state->shadow_mode);
+    state->shadow_backend =
+        XzRhiResolveShadowBackend(
             requested_backend,
             caps,
             state->shadow_mode);
@@ -163,6 +187,8 @@ int XzRhi_SelfTest(void)
         1);
 
     if (rhi.active_backend != XZ_RHI_BACKEND_NULL)
+        return 0;
+    if (rhi.shadow_backend != XZ_RHI_BACKEND_GLES3)
         return 0;
 
     XzRhi_BeginFrame(&rhi);
