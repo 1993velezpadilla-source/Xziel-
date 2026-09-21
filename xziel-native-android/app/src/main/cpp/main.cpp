@@ -44,10 +44,19 @@ constexpr float kDegreesToRadians =
 constexpr std::uint32_t kPrototypePowerSwitchId =
     1001U;
 
+constexpr std::uint32_t kPrototypeGateId =
+    1002U;
+
 constexpr xziel::Vec3 kPrototypePowerSwitchPosition{
     -2.05f,
     -0.60f,
     0.45f,
+};
+
+constexpr xziel::Vec3 kPrototypeGateInteractPosition{
+    0.0f,
+    -0.45f,
+    -0.48f,
 };
 
 constexpr std::uint32_t kPrototypeDoorId =
@@ -102,6 +111,9 @@ struct NativeAppState {
 
     xziel::InteractionSystem interaction{};
     xziel::InteractionFrame interactionFrame{};
+
+    bool gateOpen = false;
+
     xziel::PlayerVitals vitals{};
     xziel::HorrorDirector horror{};
     xziel::HorrorFrame horrorFrame{};
@@ -1372,6 +1384,9 @@ xziel::android::VulkanSceneState makeSceneState(
     scene.interactionActive =
         state.stormEnabled;
 
+    scene.gateOpen =
+        state.gateOpen;
+
     scene.doorOpenAlpha =
         state.prototypeDoorOpenAlpha;
 
@@ -1506,6 +1521,22 @@ extern "C" void android_main(
             .holdSeconds = 0.18f,
             .cost =
                 kPrototypeDoorCost,
+            .enabled = true,
+        });
+
+    (void) state.interaction.addTarget(
+        {
+            .id =
+                kPrototypeGateId,
+            .kind =
+                xziel::InteractionKind::Door,
+            .position =
+                kPrototypeGateInteractPosition,
+            .maximumDistance = 1.80f,
+            .minimumFacingDot = 0.25f,
+            .priority = 1.35f,
+            .holdSeconds = 0.38f,
+            .cost = 500U,
             .enabled = true,
         });
 
