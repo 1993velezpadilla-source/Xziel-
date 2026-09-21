@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "encounter": "la_llorona",
   "earliest_child_round": 6,
   "child_spawn_chance_per_eligible_round": 0.09,
@@ -72,5 +72,88 @@
       "max_uses_per_manifestation": 1,
       "does_not_reveal_easter_egg_solution": true
     }
+  },
+  "audio_candidates": {
+    "baseline_locked": {
+      "id": "llorona_prayer_enchanted_v2",
+      "role": "rollback_baseline",
+      "duration_s": 81.944,
+      "status": "locked"
+    },
+    "current_candidate": {
+      "id": "llorona_prayer_enchanted_v3_darker",
+      "role": "active_candidate",
+      "duration_s": 81.944,
+      "status": "test"
+    }
+  },
+  "hidden_fate": {
+    "roll_at_manifestation_start": true,
+    "visible_to_player": false,
+    "modes": {
+      "offering": 0.48,
+      "hostile_test": 0.52
+    },
+    "seen_tracking": {
+      "enabled": true,
+      "max_distance_m": 18,
+      "require_line_of_sight": true,
+      "view_cone_degrees": 85,
+      "min_continuous_seen_s": 0.3,
+      "persists_for_manifestation": true
+    },
+    "interact": {
+      "max_distance_m": 2.4,
+      "only_during_prayer_window": true,
+      "once_per_manifestation": true,
+      "outcomes": {
+        "offering": "grant_random_boon_then_depart",
+        "hostile_test": "immediate_rage"
+      }
+    },
+    "ignore_until_prayer_end": {
+      "if_not_seen": "depart_neutral",
+      "if_seen_and_offering": "rage_ungrateful",
+      "if_seen_and_hostile_test": "depart_neutral"
+    },
+    "dead_child_override": {
+      "corpse_discovery_always_rage": true,
+      "priority_over_hidden_fate": true,
+      "cancels_pending_boon": true
+    }
+  },
+  "boon_pool": {
+    "selection": "weighted_random_one",
+    "reveal_only_after_granted": true,
+    "entries": [
+      {
+        "id": "ammo_blessing",
+        "weight": 0.3,
+        "effect": "refill_current_weapon_and_reserve_partial"
+      },
+      {
+        "id": "temporary_damage",
+        "weight": 0.22,
+        "effect": "+20_percent_weapon_damage",
+        "duration_s": 45
+      },
+      {
+        "id": "spirit_armor",
+        "weight": 0.2,
+        "effect": "absorb_next_2_zombie_hits",
+        "duration_s": 75
+      },
+      {
+        "id": "haste",
+        "weight": 0.16,
+        "effect": "+10_percent_move_and_reload_speed",
+        "duration_s": 40
+      },
+      {
+        "id": "points_mercy",
+        "weight": 0.12,
+        "effect": "small_points_grant"
+      }
+    ]
   }
 }
