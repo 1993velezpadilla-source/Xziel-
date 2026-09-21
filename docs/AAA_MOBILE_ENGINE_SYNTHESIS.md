@@ -12,6 +12,17 @@ Reference titles:
 - Delta Force
 - Earth: Revival
 - LifeAfter (software-occlusion subsystem study)
+- Honor of Kings
+- Ace Racer
+- Return to Empire
+- Rock Kingdom World
+- SmartGI / NanoMesh
+- Tencent CROS / Digital Great Wall
+- LIGHTSPEED UE5 Mobile
+- UNDAWN
+- Diablo Immortal
+- Black Desert Mobile
+- 2026 mobile platform work: Arm ASR + Qualcomm HPM / Neural Fusion
 
 ## What all successful high-end mobile engines converge on
 
@@ -41,6 +52,17 @@ The exact engines differ, but the engineering patterns repeat:
 | Delta Force | unified source content + automatic platform recomposition + feature planning |
 | Earth: Revival | render graph + multithreaded rendering + tile-based deferred + hybrid occlusion |
 | LifeAfter | software occlusion benchmark: ~1.5 ms low-end / ~65% average draw-call reduction |
+| Honor of Kings | differentiable/perceptual asset simplification driven by image-space error |
+| Ace Racer | 90-FPS perceptual rendering, aggressive baking and correlation-aware material compression |
+| Return to Empire | 1000+ unit DOTS/job/instancing architecture for mass presentation |
+| Rock Kingdom World | framebuffer-fetch/SubPass pass fusion and tile-local HDR |
+| SmartGI / NanoMesh | cluster virtual geometry and adaptive/power-aware seamless LOD |
+| Tencent CROS | ECS/jobs + FrameGraph + virtual geometry/texture + GPU-driven high-end path |
+| LIGHTSPEED UE5 Mobile | new mobile pipelines and GPU-driven geometry path when hardware benefits |
+| UNDAWN | irradiance-probe indirect lighting for dynamic open-world mobile scenes |
+| Diablo Immortal | explicit dynamic-light/shadow budgeting under mobile memory/performance constraints |
+| Black Desert Mobile | runtime thermal/memory downshift while preserving player-requested FPS when possible |
+| 2026 platform tech | transient tile-memory heaps, temporal upscaling, neural SR/frame generation as optional backends |
 
 ## Proposed Xziel renderer stack
 
@@ -311,6 +333,124 @@ Example:
 
 XzPerformanceGovernor chooses the global budgets; XzFeaturePlanner distributes those budgets intelligently.
 
+## XzPerceptualCooker
+
+Honor of Kings, Ace Racer and the newer cross-platform pipelines add a crucial idea: asset reduction should be judged by **perceptual error**, not only triangle count or texture resolution.
+
+XzPerceptualCooker inputs:
+- master asset/material/rig;
+- representative cameras;
+- representative lighting;
+- target tier/backend;
+- CPU/GPU/memory/storage budgets;
+- maximum visual error;
+- gameplay-semantic protection masks.
+
+Outputs can include:
+- simplified mesh;
+- reduced skeleton;
+- cheaper material recipe;
+- packed/reduced textures;
+- billboard/impostor;
+- occluder proxy;
+- cluster hierarchy.
+
+Gameplay-critical silhouettes, hit regions, doors/windows and interaction geometry receive stricter protection than decorative detail.
+
+## XzPresentWorld / mass-entity path
+
+Return to Empire demonstrates that rendering LODs should not duplicate logical entities.
+
+Xziel should extract authoritative Vril/QuakeC state into compact presentation arrays:
+- transform;
+- render asset;
+- animation state;
+- material variant;
+- importance;
+- visibility;
+- LOD/cluster state;
+- shadow/VFX flags.
+
+Jobs update only visible/relevant presentation records and fill preallocated instance buffers.
+
+One zombie remains one gameplay entity regardless of how many render representations are available.
+
+## XzClusterGeometry
+
+Evolve the existing mesh-cluster cooker toward a streamed virtual-geometry-style path:
+
+Offline:
+- spatial triangle clustering;
+- hierarchy;
+- compact/quantized payload;
+- geometric + perceptual error;
+- streaming pages.
+
+Runtime selection considers:
+- PVS/cell visibility;
+- screen error;
+- camera distance;
+- thermal/power budget;
+- residency.
+
+Do not delete ordinary LOD support. Cluster geometry is a higher-tier extension.
+
+## XzRenderGraph tile-local policy
+
+Modern mobile GPUs reward keeping temporary data inside tile/on-chip memory.
+
+Each resource/pass should declare:
+- transient;
+- tileLocalPreferred;
+- memorylessAllowed;
+- preserveAfterPass;
+- currentPixelOnly;
+- neighborhoodSampleRequired;
+- historyRequired;
+- canFramebufferFetch;
+- canFuseWithPrevious.
+
+The graph can then fuse passes or choose subpass/framebuffer-fetch paths where capability and profiling justify it.
+
+## XzTemporalUpscaler
+
+Create one vendor-neutral reconstruction interface.
+
+Inputs:
+- low-resolution scene color;
+- depth;
+- motion vectors;
+- jitter;
+- exposure;
+- optional reactive/transparency masks.
+
+Backends:
+- basic spatial fallback;
+- Xziel temporal fallback;
+- Arm ASR;
+- Snapdragon/SGSR-family integration;
+- future neural/hardware reconstruction.
+
+Neural frame generation remains optional Ultra-tier presentation and must never change authoritative simulation/input timing.
+
+## XzLightBudget
+
+Every dynamic light is a scalable feature candidate.
+
+Possible states:
+- dynamic + shadow;
+- dynamic no shadow;
+- probe/baked contribution;
+- emissive-only approximation;
+- disabled.
+
+Priority uses:
+- gameplay relevance;
+- distance/screen influence;
+- occlusion/room;
+- shadow value;
+- thermal/GPU budget.
+
 ## Shader / PSO system
 
 At cook time:
@@ -399,6 +539,7 @@ Performance is not "FPS only."
 
 ### 2. Content/runtime recomposition
 - XzFeaturePlanner
+- XzPerceptualCooker
 - XzVirtualMaterial
 - platform/quality cook profiles
 - runtime-level builder
@@ -408,19 +549,22 @@ Performance is not "FPS only."
 ### 3. Modern rendering foundation
 - XzRHI
 - XzRenderGraph
+- XzPresentWorld / jobified presentation arrays
 - GLES3 backend
 - GPU timers
 - resource lifetime tracking
-- transient render-target pool
-- render-pass/subpass abstraction
+- transient/tile-local render-target pool
+- render-pass/subpass/framebuffer-fetch abstraction
 - multithreaded render preparation
 
-### 4. Visibility
+### 4. Visibility / geometry
 - room/cell layer over BSP
 - CPU/software occlusion with conservative occluder meshes
 - zero-false-occlusion regression path
 - static instancing
 - cluster cooker/culling
+- XzClusterGeometry experimental streamed-detail path
+- dual CPU-driven / GPU-driven submission policy
 - target <=1.5 ms SOC stress cost on representative low/mid hardware when enabled
 - target strong indoor draw-call rejection before default-on
 
@@ -428,7 +572,8 @@ Performance is not "FPS only."
 - linear PBR
 - texture arrays
 - lightmaps
-- probes
+- sparse irradiance/SH probes
+- XzLightBudget
 - short-range shadows
 
 ### 6. Streaming
@@ -439,8 +584,9 @@ Performance is not "FPS only."
 ### 7. Vulkan
 - backend
 - PSO cache
-- renderpass/subpass capabilities
-- dynamic resolution/upscale
+- renderpass/subpass/tile-memory capabilities
+- dynamic resolution
+- XzTemporalUpscaler interface
 
 ### 8. Modern presentation
 - skeletal animation
@@ -449,8 +595,10 @@ Performance is not "FPS only."
 - unified/spatial audio
 
 ### 9. Experimental flagship features
-- one-pass deferred
+- tile/one-pass deferred
+- virtual/cluster geometry
 - RT Ray Query
+- neural/vendor temporal reconstruction
 - frame prediction/high-refresh reconstruction
 
 ## Release philosophy
@@ -469,4 +617,4 @@ AAA visual language
 + graceful quality degradation
 ```
 
-The strongest lesson from the accumulated production case studies is that mobile AAA quality comes from **removing invisible work, cooking the right representation for the target, and spending runtime budget only where the player can perceive the value**.
+The strongest lesson from the accumulated production case studies is that mobile AAA quality comes from **removing invisible work, cooking the right representation for the target, measuring perceptual error instead of guessing, keeping transient work on-chip when possible, and spending runtime budget only where the player can perceive the value**.
