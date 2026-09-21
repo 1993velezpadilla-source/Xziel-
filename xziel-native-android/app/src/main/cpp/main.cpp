@@ -841,6 +841,7 @@ void advancePlayer(
             if (zombie == nullptr ||
                 !zombie->frame().
                     attackThisTick ||
+                state.horde.zombieDynamicBlockerTarget(slot) != 0U ||
                 !state.vitals.frame().
                     alive) {
                 continue;
