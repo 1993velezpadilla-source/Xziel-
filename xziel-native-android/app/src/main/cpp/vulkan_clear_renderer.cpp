@@ -2613,6 +2613,10 @@ void VulkanClearRenderer::destroyReflectionTarget() noexcept {
     // Pass/framebuffer resources follow the transient target. Descriptor
     // allocation and sampler lifetime are deliberately independent so the
     // main pipeline can keep one stable descriptor slot across target churn.
+    // The descriptor must be considered unusable before its image view is
+    // destroyed; a later fallback/live target update is the only path that
+    // makes it sampleable again.
+    reflectionHasValidContents_ = false;
     destroyReflectionPassResources();
 
     if (device_ != VK_NULL_HANDLE) {
