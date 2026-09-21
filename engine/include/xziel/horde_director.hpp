@@ -10,6 +10,7 @@
 namespace xziel {
 
 inline constexpr std::size_t kMaxHordeZombies = 16;
+inline constexpr std::size_t kMaxHordeNavigationObstacles = 8;
 
 struct HordeConfig {
     std::uint32_t startingRound = 1;
@@ -69,6 +70,11 @@ public:
 
     void reset() noexcept;
 
+    void clearNavigationObstacles() noexcept;
+
+    [[nodiscard]] bool addNavigationObstacle(
+        const Aabb& obstacle) noexcept;
+
     [[nodiscard]] HordeFrame step(
         Vec3 playerFeetPosition,
         float deltaSeconds) noexcept;
@@ -94,7 +100,12 @@ private:
     [[nodiscard]] bool spawnOne(
         Vec3 playerFeetPosition) noexcept;
 
+    [[nodiscard]] Vec3 steeringTargetFor(
+        const ZombieActor& actor,
+        Vec3 playerFeetPosition) const noexcept;
+
     void applyCrowdSeparation() noexcept;
+    void resolveNavigationPenetration() noexcept;
     void constrainToArena() noexcept;
     void beginNextRound() noexcept;
 
@@ -103,6 +114,11 @@ private:
 
     std::array<std::optional<ZombieActor>, kMaxHordeZombies>
         zombies_{};
+
+    std::array<Aabb, kMaxHordeNavigationObstacles>
+        navigationObstacles_{};
+
+    std::size_t navigationObstacleCount_ = 0;
 
     float spawnCooldownSeconds_ = 0.0f;
     float interRoundSeconds_ = 0.0f;
