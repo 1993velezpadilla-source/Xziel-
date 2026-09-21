@@ -46,6 +46,13 @@ jobs:
         shell: bash
         run: bash scripts/prepare_android.sh
 
+      - name: Verify Nacht Enhanced integration
+        shell: bash
+        run: |
+          grep -q 'xziel_nacht_enhanced' build/android-project/app/jni/vril/Source/input.c
+          grep -q 'NACHT VISUALS' build/android-project/app/jni/quakec/source/menu/menu_gset.qc
+          grep -q 'current_selected_bsp == "ndu"' build/android-project/app/jni/quakec/source/menu/menu_gset.qc
+
       - name: Build debug APK
         working-directory: build/android-project
         shell: bash
