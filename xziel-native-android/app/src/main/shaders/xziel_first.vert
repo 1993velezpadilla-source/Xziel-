@@ -127,17 +127,100 @@ void main() {
         ? sin(pc.timeSeconds * 0.31) * 0.10
         : 0.0;
 
+    int shape =
+        int(pc.scale.w + 0.5);
+
+    float objectYaw =
+        pc.translation.w;
+
+    float objectPitch =
+        pc.cameraPitchFov.w;
+
     mat3 rotation =
-        rotateY(turn) *
-        rotateX(lean);
+        rotateY(objectYaw + turn) *
+        rotateX(objectPitch + lean);
 
     vec3 objectScale =
         max(
             abs(pc.scale.xyz),
             vec3(0.001));
 
+    vec3 unitPosition;
+    vec3 unitNormal;
+
+    if (shape == 1) {
+        // Low-poly UV sphere generated from gl_VertexIndex. Scaling this unit
+        // sphere produces rounded heads, torsos and limbs without adding a
+        // vertex buffer or asset upload cost to the mobile prototype.
+        const int segments = 8;
+        const int bands = 6;
+        const float pi = 3.14159265358979323846;
+
+        int triangleIndex =
+            gl_VertexIndex / 3;
+        int triangleCorner =
+            gl_VertexIndex % 3;
+        int quadIndex =
+            triangleIndex / 2;
+        int triangleInQuad =
+            triangleIndex % 2;
+        int segment =
+            quadIndex % segments;
+        int band =
+            quadIndex / segments;
+
+        int segmentCorner;
+        int bandCorner;
+
+        if (triangleInQuad == 0) {
+            segmentCorner =
+                triangleCorner == 0
+                ? segment
+                : segment + 1;
+            bandCorner =
+                triangleCorner == 2
+                ? band + 1
+                : band;
+        } else {
+            segmentCorner =
+                triangleCorner == 2
+                ? segment
+                : segment + 1;
+            bandCorner =
+                triangleCorner == 0
+                ? band
+                : band + 1;
+        }
+
+        float theta =
+            2.0 * pi *
+            float(segmentCorner) /
+            float(segments);
+
+        float phi =
+            -0.5 * pi +
+            pi *
+            float(bandCorner) /
+            float(bands);
+
+        unitNormal =
+            normalize(
+                vec3(
+                    cos(phi) * cos(theta),
+                    sin(phi),
+                    cos(phi) * sin(theta)));
+
+        unitPosition =
+            unitNormal * 0.75;
+    } else {
+        unitPosition =
+            kPositions[gl_VertexIndex];
+        unitNormal =
+            kNormals[gl_VertexIndex];
+    }
+
     vec3 local =
-        kPositions[gl_VertexIndex] *
+        unitPosition *
         objectScale;
 
     vec3 world =
@@ -145,7 +228,7 @@ void main() {
         pc.translation.xyz;
 
     vec3 scaledNormal =
-        kNormals[gl_VertexIndex] /
+        unitNormal /
         objectScale;
 
     vec3 normal =

@@ -3589,14 +3589,18 @@ bool VulkanClearRenderer::recordDrawCommand(
               swapchainExtent_.height)
         : 1.0f;
 
-    const auto drawBox = [&](
+    const auto drawPrimitive = [&](
         float tx,
         float ty,
         float tz,
         float sx,
         float sy,
         float sz,
-        float materialId) noexcept {
+        float materialId,
+        float shapeId,
+        float objectYawRadians,
+        float objectPitchRadians,
+        std::uint32_t vertexCount) noexcept {
         PushConstants push{};
         push.timeSeconds = safeTime;
         push.aspect = aspect;
@@ -3606,10 +3610,18 @@ bool VulkanClearRenderer::recordDrawCommand(
         push.translationX = tx;
         push.translationY = ty;
         push.translationZ = tz;
+        push.translationPadding =
+            std::isfinite(objectYawRadians)
+            ? objectYawRadians
+            : 0.0f;
 
         push.scaleX = sx;
         push.scaleY = sy;
         push.scaleZ = sz;
+        push.scalePadding =
+            std::isfinite(shapeId)
+            ? shapeId
+            : 0.0f;
 
         push.cameraX =
             std::isfinite(camera.x)
@@ -3645,6 +3657,10 @@ bool VulkanClearRenderer::recordDrawCommand(
         push.cameraPadding0 =
             static_cast<float>(
                 environment.planarReflectionMaterialId);
+        push.cameraPadding1 =
+            std::isfinite(objectPitchRadians)
+            ? objectPitchRadians
+            : 0.0f;
 
         push.fogDensity =
             std::clamp(
@@ -3773,10 +3789,58 @@ bool VulkanClearRenderer::recordDrawCommand(
 
         vkCmdDraw(
             command,
-            36,
+            std::max<std::uint32_t>(
+                vertexCount,
+                3U),
             1,
             0,
             0);
+    };
+
+    const auto drawBox = [&](
+        float tx,
+        float ty,
+        float tz,
+        float sx,
+        float sy,
+        float sz,
+        float materialId) noexcept {
+        drawPrimitive(
+            tx,
+            ty,
+            tz,
+            sx,
+            sy,
+            sz,
+            materialId,
+            0.0f,
+            0.0f,
+            0.0f,
+            36U);
+    };
+
+    const auto drawRounded = [&](
+        float tx,
+        float ty,
+        float tz,
+        float sx,
+        float sy,
+        float sz,
+        float materialId,
+        float yawRadians,
+        float pitchRadians) noexcept {
+        drawPrimitive(
+            tx,
+            ty,
+            tz,
+            sx,
+            sy,
+            sz,
+            materialId,
+            1.0f,
+            yawRadians,
+            pitchRadians,
+            288U);
     };
 
     // Main world geometry is now submitted from MapDefinition rather than
@@ -3970,76 +4034,100 @@ bool VulkanClearRenderer::recordDrawCommand(
             zombieState.z -
             attackLunge;
 
-        // Cheap contact shadow proxy keeps mobile cost bounded while giving
-        // the procedural horde visible grounding before shadow maps land.
+        // Rounded low-poly humanoid proxy. This remains generated geometry,
+        // but it deliberately avoids the old stack-of-cubes look while the
+        // external skinned-mesh importer is being integrated.
         drawBox(
             zombieX,
             -1.472f,
             zombieZ,
-            0.44f,
+            0.38f,
             0.010f,
-            0.30f,
+            0.26f,
             7.0f);
 
-        drawBox(
-            zombieX,
-            zombieY + 1.08f,
-            zombieZ,
-            0.34f,
-            0.55f,
-            0.22f,
-            4.0f);
+        const float zombieYaw =
+            zombieState.yawRadians;
 
-        drawBox(
+        const float legSwing =
+            stride * 0.46f;
+
+        const float armSwing =
+            zombieState.attack
+            ? -1.10f
+            : -legSwing * 0.78f;
+
+        drawRounded(
+            zombieX,
+            zombieY + 1.06f,
+            zombieZ,
+            0.36f,
+            0.58f,
+            0.24f,
+            4.0f,
+            zombieYaw,
+            zombieState.staggered
+                ? staggerOffset * 3.5f
+                : 0.0f);
+
+        drawRounded(
             zombieX,
             zombieY + 1.73f,
-            zombieZ + 0.01f,
-            0.23f,
-            0.24f,
-            0.22f,
-            5.0f);
+            zombieZ + 0.005f,
+            0.235f,
+            0.255f,
+            0.225f,
+            5.0f,
+            zombieYaw,
+            zombieState.attack
+                ? -0.12f
+                : 0.04f);
 
-        drawBox(
-            zombieX - 0.43f,
-            zombieY + 1.08f,
-            zombieZ +
-                stride * 0.08f -
-                attackLunge * 0.45f,
-            0.11f,
-            0.48f,
-            0.11f,
-            5.0f);
-
-        drawBox(
-            zombieX + 0.43f,
+        drawRounded(
+            zombieX - 0.39f,
             zombieY + 1.08f,
             zombieZ -
-                stride * 0.08f -
-                attackLunge * 0.45f,
-            0.11f,
-            0.48f,
-            0.11f,
-            5.0f);
+                attackLunge * 0.48f,
+            0.115f,
+            0.47f,
+            0.115f,
+            5.0f,
+            zombieYaw,
+            armSwing);
 
-        drawBox(
-            zombieX - 0.17f,
-            zombieY + 0.38f,
+        drawRounded(
+            zombieX + 0.39f,
+            zombieY + 1.08f,
             zombieZ -
-                stride * 0.09f,
-            0.13f,
-            0.43f,
-            0.14f,
-            4.0f);
+                attackLunge * 0.48f,
+            0.115f,
+            0.47f,
+            0.115f,
+            5.0f,
+            zombieYaw,
+            -armSwing);
 
-        drawBox(
-            zombieX + 0.17f,
+        drawRounded(
+            zombieX - 0.16f,
             zombieY + 0.38f,
-            zombieZ +
-                stride * 0.09f,
-            0.13f,
-            0.43f,
-            0.14f,
-            4.0f);
+            zombieZ,
+            0.135f,
+            0.45f,
+            0.145f,
+            4.0f,
+            zombieYaw,
+            legSwing);
+
+        drawRounded(
+            zombieX + 0.16f,
+            zombieY + 0.38f,
+            zombieZ,
+            0.135f,
+            0.45f,
+            0.145f,
+            4.0f,
+            zombieYaw,
+            -legSwing);
 
         if (zombieState.healthRatio <
             0.70f) {
