@@ -2383,10 +2383,12 @@ bool VulkanClearRenderer::recordDrawCommand(
         4.2f, 0.10f, 5.0f,
         2.0f);
 
-    drawBox(
-        0.0f, -0.42f, 0.35f,
-        0.72f, 1.35f, 0.72f,
-        3.0f);
+    if (hud.targetAlive) {
+        drawBox(
+            0.0f, -0.42f, 0.35f,
+            0.72f, 1.35f, 0.72f,
+            3.0f);
+    }
 
     if (uiPipeline_ == VK_NULL_HANDLE ||
         uiPipelineLayout_ == VK_NULL_HANDLE) {
@@ -2650,15 +2652,34 @@ bool VulkanClearRenderer::recordDrawCommand(
 
     // Thin center reticle. Keeping this procedural avoids introducing font or
     // texture dependencies before the renderer has an asset streaming layer.
+    const float hitMarker =
+        std::clamp(
+            hud.hitMarkerAlpha,
+            0.0f,
+            1.0f);
+
+    const float reticleR =
+        0.95f;
+    const float reticleG =
+        0.96f -
+        hitMarker * 0.78f;
+    const float reticleB =
+        1.0f -
+        hitMarker * 0.72f;
+
+    const float reticleAlpha =
+        0.72f +
+        hitMarker * 0.24f;
+
     drawUiPrimitive(
         0.5f,
         0.5f,
         0.0011f,
         0.010f,
-        0.95f,
-        0.96f,
-        1.0f,
-        0.72f,
+        reticleR,
+        reticleG,
+        reticleB,
+        reticleAlpha,
         0.0f,
         0.10f);
 
@@ -2667,12 +2688,43 @@ bool VulkanClearRenderer::recordDrawCommand(
         0.5f,
         0.0060f,
         0.0016f,
-        0.95f,
-        0.96f,
-        1.0f,
-        0.72f,
+        reticleR,
+        reticleG,
+        reticleB,
+        reticleAlpha,
         0.0f,
         0.10f);
+
+    if (hitMarker > 0.001f) {
+        const float slashWidth =
+            0.0012f;
+        const float slashHeight =
+            0.013f;
+
+        drawUiPrimitive(
+            0.490f,
+            0.490f,
+            slashWidth,
+            slashHeight,
+            1.0f,
+            0.10f,
+            0.18f,
+            hitMarker,
+            0.0f,
+            0.10f);
+
+        drawUiPrimitive(
+            0.510f,
+            0.510f,
+            slashWidth,
+            slashHeight,
+            1.0f,
+            0.10f,
+            0.18f,
+            hitMarker,
+            0.0f,
+            0.10f);
+    }
 
     if (hud.gyroAvailable) {
         drawUiCircle(
