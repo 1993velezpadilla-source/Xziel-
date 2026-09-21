@@ -519,16 +519,6 @@ static void XzLogSnapshot(double now_seconds)
         " g3cmd(streams=%" PRIu64 " commands=%" PRIu64
         " passes=%" PRIu64 " reads=%" PRIu64 " writes=%" PRIu64
         " draws=%" PRIu64 " fail=%" PRIu64 " hash=%08x)"
-        " g3res(mapped=%u objects=%u create=%" PRIu64
-        " reuse=%" PRIu64 " destroy=%" PRIu64
-        " read=%" PRIu64 " write=%" PRIu64
-        " fail=%" PRIu64 " bytes=%" PRIu64 ")"
-        " g3fbo(bind=%" PRIu64 " check=%" PRIu64
-        " fail=%" PRIu64 " external=%" PRIu64
-        " color=%" PRIu64 " depth=%" PRIu64
-        " targetFail=%" PRIu64 ")"
-        " cmd(count=%u hash=%08x overflow=%u resources=%u high=%u"
-        " stale=%" PRIu64 " encodeFail=%" PRIu64 ")"
         " advice(render=%.2f anim=%.2f shadow=%.2f vfx=%.2f light=%.2f stream=%.2f)",
         xz_runtime.frame.total_frames,
         xz_runtime.frame.last_ms,
@@ -602,6 +592,30 @@ static void XzLogSnapshot(double now_seconds)
         g3->draw_commands,
         g3->command_failures,
         g3->last_command_hash,
+        rec->render_scale,
+        rec->animation_rate_scale,
+        rec->shadow_budget_scale,
+        rec->vfx_budget_scale,
+        rec->light_budget_scale,
+        rec->streaming_aggression);
+
+    /*
+     * Keep graph/resource telemetry on a dedicated short logcat record.
+     * Android truncates oversized records; splitting this preserves stable
+     * machine-readable gates as Xz telemetry grows.
+     */
+    XzAndroidLog(
+        ANDROID_LOG_INFO,
+        "graphio g3res(mapped=%u objects=%u create=%" PRIu64
+        " reuse=%" PRIu64 " destroy=%" PRIu64
+        " read=%" PRIu64 " write=%" PRIu64
+        " fail=%" PRIu64 " bytes=%" PRIu64 ")"
+        " g3fbo(bind=%" PRIu64 " check=%" PRIu64
+        " fail=%" PRIu64 " external=%" PRIu64
+        " color=%" PRIu64 " depth=%" PRIu64
+        " targetFail=%" PRIu64 ")"
+        " cmd(count=%u hash=%08x overflow=%u resources=%u high=%u"
+        " stale=%" PRIu64 " encodeFail=%" PRIu64 ")",
         g3->physical_alive,
         g3->physical_gl_objects,
         g3->physical_creates,
@@ -624,13 +638,7 @@ static void XzLogSnapshot(double now_seconds)
         gpu->alive_count,
         gpu->high_water_count,
         gpu->stale_resolves,
-        xz_runtime.command_encode_failures,
-        rec->render_scale,
-        rec->animation_rate_scale,
-        rec->shadow_budget_scale,
-        rec->vfx_budget_scale,
-        rec->light_budget_scale,
-        rec->streaming_aggression);
+        xz_runtime.command_encode_failures);
 
     xz_runtime.last_log_seconds = now_seconds;
 }
