@@ -1,6 +1,7 @@
 #include "xz_gles3_shadow.h"
 #include "xz_gles3_resource_plan.h"
 #include "xz_pass_targets.h"
+#include "xz_pass_inputs.h"
 
 #include <EGL/egl.h>
 #include <GLES3/gl3.h>
@@ -77,6 +78,9 @@ typedef void (*XzGlEnableVertexAttribArrayFn)(GLuint);
 typedef void (*XzGlVertexAttribPointerFn)(
     GLuint, GLint, GLenum, GLboolean, GLsizei, const void *);
 typedef void (*XzGlUseProgramFn)(GLuint);
+typedef void (*XzGlActiveTextureFn)(GLenum);
+typedef GLint (*XzGlGetUniformLocationFn)(GLuint, const GLchar *);
+typedef void (*XzGlUniform1iFn)(GLint, GLint);
 typedef void (*XzGlViewportFn)(GLint, GLint, GLsizei, GLsizei);
 typedef void (*XzGlClearColorFn)(GLfloat, GLfloat, GLfloat, GLfloat);
 typedef void (*XzGlClearFn)(GLbitfield);
@@ -131,6 +135,9 @@ typedef struct {
     XzGlVertexAttribPointerFn VertexAttribPointer;
 
     XzGlUseProgramFn UseProgram;
+    XzGlActiveTextureFn ActiveTexture;
+    XzGlGetUniformLocationFn GetUniformLocation;
+    XzGlUniform1iFn Uniform1i;
     XzGlViewportFn Viewport;
     XzGlClearColorFn ClearColor;
     XzGlClearFn Clear;
@@ -156,6 +163,8 @@ typedef struct {
     EGLContext context;
 
     GLuint program;
+    GLuint fullscreen_program;
+    GLint fullscreen_input_count_loc;
     GLuint vbo;
     GLuint vao;
     GLuint scratch_fbo;
@@ -245,6 +254,9 @@ static int XzLoadApi(XzNativeGles3Api *api)
         "glVertexAttribPointer");
 
     XZ_GL_LOAD(UseProgram, "glUseProgram");
+    XZ_GL_LOAD(ActiveTexture, "glActiveTexture");
+    XZ_GL_LOAD(GetUniformLocation, "glGetUniformLocation");
+    XZ_GL_LOAD(Uniform1i, "glUniform1i");
     XZ_GL_LOAD(Viewport, "glViewport");
     XZ_GL_LOAD(ClearColor, "glClearColor");
     XZ_GL_LOAD(Clear, "glClear");
