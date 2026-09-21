@@ -59,5 +59,16 @@ if 'textures/nacht_enhanced/%s' not in s:
         raise SystemExit("HL external-texture block not found")
     s = s.replace(old, new, 1)
 
+# The SDL renderer historically requested zombie atlases as PCX-only even
+# though the generic alias loader already supports TGA. Let the high-detail
+# Enchanted overrides win while preserving PCX fallback for stock packages.
+rmisc = Path(sys.argv[1]) / "source" / "platform" / "sdl" / "gl" / "gl_rmisc.c"
+rs = rmisc.read_text(encoding="utf-8")
+for i in range(4):
+    old = f'Image_LoadImage ("models/ai/zfull.mdl_{i}", IMAGE_PCX, 0, true, false)'
+    new = f'Image_LoadImage ("models/ai/zfull.mdl_{i}", IMAGE_TGA | IMAGE_PCX, 0, true, false)'
+    rs = rs.replace(old, new)
+rmisc.write_text(rs, encoding="utf-8")
+
 p.write_text(s, encoding="utf-8")
-print("Enabled opt-in Nacht Enhanced external texture namespace.")
+print("Enabled opt-in Nacht Enhanced external texture and high-detail zombie-skin paths.")

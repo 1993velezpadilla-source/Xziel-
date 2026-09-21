@@ -136,6 +136,12 @@ jobs:
           test -s build/nzp-data/nzp/textures/nacht_enhanced/ground_hb3.jpg
           test -s build/nzp-data/nzp/maps/ndu_enchanted.bsp
           test -s build/nzp-data/nzp/maps/ndu_enchanted.txt
+          test -s build/nzp-data/nzp/models/machines/mystery.mdl_0.tga
+          test -s build/nzp-data/nzp/models/props/mystery_debris.mdl_0.tga
+          test -s build/nzp-data/nzp/models/ai/zfull.mdl_0.tga
+          test -s build/nzp-data/nzp/models/ai/zfull.mdl_1.tga
+          test -s build/nzp-data/nzp/models/ai/zfull.mdl_2.tga
+          test -s build/nzp-data/nzp/models/ai/zfull.mdl_3.tga
           test -s build/nzp-data/nzp/licenses/XZIEL-WAW-REFERENCE-AUDIO.txt
           if find build/nzp-data/nzp/sounds/xziel/waw -type f -name '*.wav' 2>/dev/null | grep -q .; then
             echo "Unexpected copyrighted/local WaW audio entered default CI package"
@@ -160,6 +166,8 @@ jobs:
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/textures/nacht_enhanced/ground_hb3.jpg'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/maps/ndu_enchanted.bsp'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/maps/ndu_enchanted.txt'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/models/machines/mystery.mdl_0.tga'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/models/ai/zfull.mdl_0.tga'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/licenses/NACHT-ENHANCED-CC0-SOURCES.txt'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/licenses/XZIEL-WAW-REFERENCE-AUDIO.txt'
 

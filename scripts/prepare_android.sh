@@ -47,7 +47,7 @@ python3 "$ROOT/scripts/patch_vril_nacht_enhanced.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_nacht_textures.py" "$DEPS/vril"
 
 echo "==> Patching and compiling Xziel mobile QuakeC"
-python3 -m pip install --quiet colorama==0.4.6 fastcrc==0.3.0 pandas==2.1.4 cairosvg==2.8.2
+python3 -m pip install --quiet colorama==0.4.6 fastcrc==0.3.0 pandas==2.1.4 cairosvg==2.8.2 pillow==11.3.0
 python3 "$ROOT/scripts/patch_quakec_mobile.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_combatfx.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_modern_movement.py" "$DEPS/quakec"
@@ -118,6 +118,7 @@ bash "$ROOT/scripts/stage_nacht_enchanted_map.sh" "$ASSET_WORK"
 python3 "$ROOT/scripts/build_xziel_icons.py" "$ASSET_WORK/nzp/gfx/xziel"
 echo "==> Staging opt-in Nacht Enhanced CC0 texture pack"
 bash "$ROOT/scripts/fetch_nacht_enhanced_textures.sh" "$ASSET_WORK"
+python3 "$ROOT/scripts/build_nacht_enchanted_props.py" "$ASSET_WORK/nzp"
 bash "$ROOT/scripts/import_waw_reference_audio.sh" "$ASSET_WORK"
 
 # Replace the stock gameplay bytecode with our GPL QuakeC build. All other
