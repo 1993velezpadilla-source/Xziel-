@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Nacht Enhanced runtime atmosphere: spatial audio + bounded client lights.
 
-This is deliberately presentation-only. It does not modify the ndu BSP,
+This is deliberately presentation-only and runs only on ndu_enchanted.
 zombie rules, doors, windows, purchases, scoring or navigation.
 """
 from pathlib import Path
@@ -28,7 +28,7 @@ runtime = r'''
 // ---------------------------------------------------------------------------
 void() Xziel_NachtEnhanced_AmbientOneShotThink =
 {
-    if (mapname != "ndu_enchanted" && (mapname != "ndu" || cvar("xziel_nacht_enhanced") < 0.5)) {
+    if (mapname != "ndu_enchanted") {
         remove(self);
         return;
     }
@@ -59,7 +59,7 @@ void(vector org, float style, float base_wait, float jitter) Xziel_NachtEnhanced
 
 void() Xziel_NachtEnhanced_Init =
 {
-    if (mapname != "ndu_enchanted" && (mapname != "ndu" || cvar("xziel_nacht_enhanced") < 0.5))
+    if (mapname != "ndu_enchanted")
         return;
 
     // Explicitly precache everything this optional layer can emit.
@@ -116,7 +116,7 @@ s = client.read_text(encoding="utf-8")
 render = r'''
 void() Xziel_NachtEnhanced_Render =
 {
-    if (mapname != "ndu_enchanted" && (mapname != "ndu" || cvar("xziel_nacht_enhanced") < 0.5))
+    if (mapname != "ndu_enchanted")
         return;
 
     // Small independent phase offsets prevent synchronized "breathing".
