@@ -42,6 +42,7 @@ python3 "$ROOT/scripts/patch_vril_mobile_v021.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_mobile_v022.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_mobile_v023.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_mobile_v024.py" "$DEPS/vril"
+python3 "$ROOT/scripts/patch_vril_mobile_v025.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_nacht_enhanced.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_nacht_textures.py" "$DEPS/vril"
 
