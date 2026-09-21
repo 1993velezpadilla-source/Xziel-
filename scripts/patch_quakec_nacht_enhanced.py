@@ -13,6 +13,28 @@ s=g.read_text()
 s=s.replace('string menu_gset_buttons[8] = {"ge_mode", "ge_diff", "ge_rond", "ge_magc", "ge_head", "ge_hord", "ge_frnd", "ge_back"};',
 '''string menu_gset_buttons[9] = {"ge_mode", "ge_diff", "ge_rond", "ge_magc", "ge_head", "ge_hord", "ge_frnd", "ge_enhc", "ge_back"};''')
 
+# Skip the Nacht-only row when navigating settings for every other map.
+s=s.replace("""    return ret;
+};
+
+string(string next_id) Menu_GameSettings_GetPreviousButton =""","""    if (ret == "ge_enhc" && current_selected_bsp != "ndu")
+        return "ge_back";
+
+    return ret;
+};
+
+string(string next_id) Menu_GameSettings_GetPreviousButton =""",1)
+s=s.replace("""    return ret;
+};
+
+void() Menu_GameSettings_ApplyGameMode =""","""    if (ret == "ge_enhc" && current_selected_bsp != "ndu")
+        return "ge_frnd";
+
+    return ret;
+};
+
+void() Menu_GameSettings_ApplyGameMode =""",1)
+
 anchor='void() Menu_GameSettings = \n{'
 helper='''void() Menu_GameSettings_ApplyNachtEnhanced =
 {
