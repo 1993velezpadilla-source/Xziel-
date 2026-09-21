@@ -41,7 +41,7 @@ jobs:
           SDKMANAGER="$(find "${ANDROID_HOME}/cmdline-tools" -type f -name sdkmanager | sort | tail -n 1)"
           test -n "$SDKMANAGER"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER"             "platform-tools"             "platforms;android-36.1"             "build-tools;36.0.0"             "ndk;28.2.13676358"             "cmake;3.22.1"
+          "$SDKMANAGER"             "platform-tools"             "platforms;android-36.1"             "build-tools;36.0.0"             "ndk;28.2.13676358"             "cmake;3.22.1"             "emulator"             "system-images;android-35;google_apis;x86_64"
 
       - name: Compile Xziel GLSL to SPIR-V assets
         working-directory: xziel-native-android
@@ -139,6 +139,76 @@ jobs:
           mkdir -p dist
           cp "$APK" dist/Xziel-Engine-Vulkan-Prototype-debug.apk
           ls -lh dist/Xziel-Engine-Vulkan-Prototype-debug.apk
+
+      - name: Boot native prototype and verify first render
+        shell: bash
+        env:
+          ANDROID_AVD_HOME: ${{ runner.temp }}/xziel-native-avd
+        run: |
+          set -euo pipefail
+          mkdir -p "$ANDROID_AVD_HOME" dist
+          ADB="${ANDROID_HOME}/platform-tools/adb"
+          EMULATOR="${ANDROID_HOME}/emulator/emulator"
+          AVDMANAGER="$(find "${ANDROID_HOME}/cmdline-tools" -type f -name avdmanager | sort | tail -n 1)"
+
+          printf 'no\n' | "$AVDMANAGER" create avd             --force             --name xziel-native-ci             --package "system-images;android-35;google_apis;x86_64"             --device "pixel_6"
+
+          if [[ -e /dev/kvm ]]; then
+            sudo chmod 666 /dev/kvm || true
+          fi
+
+          nohup "$EMULATOR"             @xziel-native-ci             -no-window             -no-audio             -no-boot-anim             -no-snapshot             -gpu swiftshader_indirect             -memory 2048             > dist/native-emulator-stdout.txt 2>&1 &
+          EMU_PID=$!
+
+          sleep 5
+          kill -0 "$EMU_PID"
+
+          timeout 150 "$ADB" wait-for-device
+          BOOTED=0
+          for i in $(seq 1 75); do
+            if [[ "$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == "1" ]]; then
+              BOOTED=1
+              break
+            fi
+            sleep 2
+          done
+          test "$BOOTED" = "1"
+
+          APK="xziel-native-android/app/build/outputs/apk/debug/app-debug.apk"
+          "$ADB" install -r "$APK"
+          "$ADB" logcat -c
+          "$ADB" shell am force-stop com.xziel.engineprototype || true
+          "$ADB" shell am start -W             -n com.xziel.engineprototype/.XzielGameActivity             > dist/native-am-start.txt 2>&1
+
+          sleep 12
+          "$ADB" logcat -d -v threadtime > dist/native-logcat.txt
+          "$ADB" exec-out screencap -p > dist/native-first-frame.png || true
+
+          PID="$("$ADB" shell pidof com.xziel.engineprototype 2>/dev/null | tr -d '\r' || true)"
+          test -n "$PID"
+
+          if grep -Eq "FATAL EXCEPTION|Fatal signal|ANR in com\.xziel\.engineprototype|>>> com\.xziel\.engineprototype <<<" dist/native-logcat.txt; then
+            echo "Native prototype crashed or ANRed"
+            grep -Ei "FATAL EXCEPTION|Fatal signal|ANR|XzielNative|com\.xziel\.engineprototype" dist/native-logcat.txt | tail -n 400
+            exit 1
+          fi
+
+          grep -q "XZIEL_NATIVE_BOOT" dist/native-logcat.txt
+          grep -q "XZIEL_VULKAN_READY" dist/native-logcat.txt
+          echo "Native Xziel process remained alive and reached Vulkan-ready state."
+
+      - name: Upload native runtime diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xziel-Engine-Vulkan-Prototype-runtime
+          path: |
+            dist/native-logcat.txt
+            dist/native-first-frame.png
+            dist/native-emulator-stdout.txt
+            dist/native-am-start.txt
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Upload prototype APK
         uses: actions/upload-artifact@v4
