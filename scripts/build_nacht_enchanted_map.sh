@@ -32,6 +32,10 @@ git -C "$SRC" sparse-checkout set --skip-checks   source/maps/ndu   'source/text
 mkdir -p "$MAP_SRC"
 cp "$SRC/source/maps/ndu/ndu.map" "$MAP_SRC/ndu_enchanted.map"
 
+# Give the derivative its own skybox identity. The six matching runtime faces
+# are generated from the licensed stock sky with an Enchanted storm grade.
+sed -i 's/"sky" "ndu"/"sky" "xziel_enchant"/' "$MAP_SRC/ndu_enchanted.map"
+
 # The base geometry/layout remains the community NZ:P Nacht map for this
 # practice derivative, but this BSP is compiled independently and receives its
 # own authored lighting entities. That means we can keep pushing the map

@@ -148,6 +148,9 @@ jobs:
           test -s 'build/nzp-data/nzp/textures/nacht_enhanced/{BARBED_WIRE_V.png'
           test -s build/nzp-data/nzp/maps/ndu_enchanted.bsp
           test -s build/nzp-data/nzp/maps/ndu_enchanted.txt
+          test -s build/nzp-data/nzp/gfx/env/xziel_enchantbk.tga
+          test -s build/nzp-data/nzp/gfx/env/xziel_enchantft.tga
+          test -s build/nzp-data/nzp/gfx/env/xziel_enchantup.tga
           if cmp -s build/nzp-data/nzp/maps/ndu.bsp build/nzp-data/nzp/maps/ndu_enchanted.bsp; then
             echo "ndu_enchanted.bsp must be a separately compiled derivative, not a copied stock BSP"
             exit 1
@@ -194,6 +197,8 @@ jobs:
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/textures/nacht_enhanced/{BOARD_FE.png'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/maps/ndu_enchanted.bsp'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/maps/ndu_enchanted.txt'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/gfx/env/xziel_enchantbk.tga'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/gfx/env/xziel_enchantup.tga'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/models/machines/mystery.mdl_0.tga'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/models/ai/zfull.mdl_0.tga'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/sounds/xziel/enchant/round_omen.wav'
