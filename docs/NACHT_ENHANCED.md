@@ -1,34 +1,43 @@
-# Nacht der Untoten — Enhanced Mode
+# Nacht: Enchanted Lab
 
-Enhanced Mode is an opt-in presentation layer for the stock `ndu` map. Classic remains the compatibility baseline.
+Nacht: Enchanted Lab is a separate development/practice map. It is not a
+Classic/Enhanced toggle layered over stock Nacht.
 
-## Hard invariants
-- Keep the stock BSP layout, playable bounds, doors, windows, wallbuys, spawn topology, round rules and economy.
-- No replacement of stock maps in the APK.
-- Android-first budgets; every enhanced feature must have a cheap fallback.
-- Commercial-safe/free assets live separately from extracted/reference material.
+## Runtime identity
+- Stock comparison map: `ndu`
+- Xziel laboratory map: `ndu_enchanted`
+- Menu location: User Maps
+- Stock `ndu` must never load Lab-only materials, audio, FX or future zombie
+  replacements.
+- Loading `ndu_enchanted` automatically enables the Lab runtime profile.
 
-## Runtime switch
-`xziel_nacht_enhanced 0|1`, exposed only when `current_selected_bsp == "ndu"`.
+## Why it is separate
+The Lab lets Xziel repeatedly experiment with modern mobile presentation while
+keeping a known-good stock baseline. We can aggressively change materials,
+lighting, particles, audio, props, zombie models, animation feel, gore and
+touch presentation without turning stock Nacht into a moving target.
 
 ## Enhancement passes
-1. Environment materials: concrete, damaged plaster, metal, wood barricades, rubble.
-2. Props: sandbags, crates, debris, lamps, cables, barrels; preserve collision/navigation.
-3. Atmosphere: dust motes, localized smoke, embers/sparks, exterior fog, lightning flashes.
-4. Lighting: stronger practical-light contrast and selective dynamic lights; never make interactables unreadable.
-5. Zombies: rigged animated replacement set with stock hitbox/gameplay contract and LOD/mobile fallback.
-6. First-person presentation: improved hands/weapon materials where licensing and Vril model path permit.
-7. Audio: layered wind, distant thunder, structure creaks, debris, zombie ambience using redistribution-safe sources.
-8. Destruction feedback: better impact particles/decals and barricade feedback without changing scoring.
-9. Performance: distance culling, particle caps, dynamic-light caps, texture/model budgets and Classic fallback.
+1. Environment materials: concrete, damaged plaster, metal, wood barricades,
+   rubble and exterior treatment.
+2. Props: sandbags, crates, debris, lamps, cables, barrels and Mystery Box
+   presentation.
+3. Atmosphere: bounded dust/smoke/embers/sparks, fog and lightning.
+4. Lighting: authored BSP lighting plus bounded dynamic lights.
+5. Zombies: real Lab-specific model/animation replacements with stock hitbox,
+   damage and gameplay contracts preserved.
+6. Audio: Lab-only positional ambience and original/redistribution-safe cues.
+7. Gore/destruction: stronger feedback without changing scoring or rules.
+8. Performance: Android-first culling, particle/light caps, texture/model
+   budgets and fallbacks.
 
-## Initial mobile budgets
-- 60 FPS target on modern Android handhelds; graceful 30/45 fallback.
-- Dynamic lights: <= 8 important transient lights in view.
-- Ambient emitters: <= 24 active, distance-gated.
-- Particles: bounded per effect; no unbounded per-frame spawning.
-- Enhanced prop collision: default SOLID_NOT unless gameplay explicitly requires collision.
-- Zombie replacement must preserve server bbox, damage regions and state machine.
+## Asset namespace rule
+New Lab character/model assets must use Lab-specific paths instead of silently
+overwriting stock `models/ai/*` resources. This guarantees that stock maps stay
+stock while the Lab can evolve independently.
 
-## Asset intake
-Every imported asset must record source URL, author, license, original format, converted format, modifications and redistribution/commercial status in a manifest before entering a distributable APK.
+## Release rule
+This duplicated Nacht layout is a development/reference derivative. The
+eventual original Xziel game map must use new geometry, art, naming and content.
+We keep the engineering lessons and pacing/adrenaline lessons, not the copied
+map identity.
