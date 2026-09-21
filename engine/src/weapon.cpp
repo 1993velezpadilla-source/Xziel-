@@ -63,6 +63,20 @@ WeaponController::WeaponController(
             config_.adsOutSeconds,
             0.11f);
 
+    config_.minimumAdsAlphaToFire =
+        std::clamp(
+            std::isfinite(
+                config_.minimumAdsAlphaToFire)
+                ? config_.minimumAdsAlphaToFire
+                : 0.92f,
+            0.0f,
+            1.0f);
+
+    config_.triggerBufferSeconds =
+        sanitizeDuration(
+            config_.triggerBufferSeconds,
+            0.18f);
+
     reset();
 }
 
@@ -77,6 +91,7 @@ void WeaponController::reset() noexcept {
 
     fireCooldownSeconds_ = 0.0f;
     reloadElapsedSeconds_ = 0.0f;
+    triggerBufferRemaining_ = 0.0f;
 }
 
 WeaponFrame WeaponController::step(
@@ -94,6 +109,7 @@ WeaponFrame WeaponController::step(
     frame_.dryFireThisTick = false;
     frame_.reloadStartedThisTick = false;
     frame_.reloadCompletedThisTick = false;
+    frame_.triggerBuffered = false;
     frame_.recoilPitchImpulse = 0.0f;
     frame_.recoilYawImpulse = 0.0f;
 
@@ -101,6 +117,21 @@ WeaponFrame WeaponController::step(
         std::max(
             0.0f,
             fireCooldownSeconds_ - dt);
+
+    triggerBufferRemaining_ =
+        std::max(
+            0.0f,
+            triggerBufferRemaining_ - dt);
+
+    const bool directShotRequest =
+        wantsShot(input);
+
+    if (directShotRequest) {
+        triggerBufferRemaining_ =
+            std::max(
+                triggerBufferRemaining_,
+                config_.triggerBufferSeconds);
+    }
 
     const float adsTarget =
         input.aimHeld
@@ -147,21 +178,39 @@ WeaponFrame WeaponController::step(
         frame_.magazine <
             config_.magazineSize &&
         frame_.reserve > 0) {
+        triggerBufferRemaining_ = 0.0f;
         startReload();
         return frame_;
     }
 
-    if (!wantsShot(input) ||
+    const bool hasBufferedTrigger =
+        triggerBufferRemaining_ > 0.0f;
+
+    const bool adsReady =
+        !config_.fireRequiresAds ||
+        frame_.adsAlpha >=
+            config_.minimumAdsAlphaToFire;
+
+    frame_.triggerBuffered =
+        hasBufferedTrigger &&
+        !adsReady;
+
+    if (!hasBufferedTrigger ||
+        !adsReady ||
         fireCooldownSeconds_ > 0.0f) {
         return frame_;
     }
 
     if (frame_.magazine == 0) {
+        triggerBufferRemaining_ = 0.0f;
         frame_.dryFireThisTick = true;
         fireCooldownSeconds_ =
             config_.fireIntervalSeconds;
         return frame_;
     }
+
+    triggerBufferRemaining_ = 0.0f;
+    frame_.triggerBuffered = false;
 
     --frame_.magazine;
     ++frame_.shotCounter;
