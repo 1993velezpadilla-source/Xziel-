@@ -1,5 +1,6 @@
 #include "xz_gles3_shadow.h"
 #include "xz_gles3_resource_plan.h"
+#include "xz_pass_targets.h"
 
 #include <EGL/egl.h>
 #include <GLES3/gl3.h>
@@ -61,6 +62,14 @@ typedef void (*XzGlDeleteRenderbuffersFn)(GLsizei, const GLuint *);
 typedef void (*XzGlBindRenderbufferFn)(GLenum, GLuint);
 typedef void (*XzGlRenderbufferStorageFn)(
     GLenum, GLenum, GLsizei, GLsizei);
+typedef void (*XzGlGenFramebuffersFn)(GLsizei, GLuint *);
+typedef void (*XzGlDeleteFramebuffersFn)(GLsizei, const GLuint *);
+typedef void (*XzGlBindFramebufferFn)(GLenum, GLuint);
+typedef void (*XzGlFramebufferTexture2DFn)(
+    GLenum, GLenum, GLenum, GLuint, GLint);
+typedef void (*XzGlFramebufferRenderbufferFn)(
+    GLenum, GLenum, GLenum, GLuint);
+typedef GLenum (*XzGlCheckFramebufferStatusFn)(GLenum);
 typedef void (*XzGlGenVertexArraysFn)(GLsizei, GLuint *);
 typedef void (*XzGlDeleteVertexArraysFn)(GLsizei, const GLuint *);
 typedef void (*XzGlBindVertexArrayFn)(GLuint);
@@ -108,6 +117,13 @@ typedef struct {
     XzGlBindRenderbufferFn BindRenderbuffer;
     XzGlRenderbufferStorageFn RenderbufferStorage;
 
+    XzGlGenFramebuffersFn GenFramebuffers;
+    XzGlDeleteFramebuffersFn DeleteFramebuffers;
+    XzGlBindFramebufferFn BindFramebuffer;
+    XzGlFramebufferTexture2DFn FramebufferTexture2D;
+    XzGlFramebufferRenderbufferFn FramebufferRenderbuffer;
+    XzGlCheckFramebufferStatusFn CheckFramebufferStatus;
+
     XzGlGenVertexArraysFn GenVertexArrays;
     XzGlDeleteVertexArraysFn DeleteVertexArrays;
     XzGlBindVertexArrayFn BindVertexArray;
@@ -142,6 +158,7 @@ typedef struct {
     GLuint program;
     GLuint vbo;
     GLuint vao;
+    GLuint scratch_fbo;
 
     XzGles3PhysicalResource
         physical[XZ_GPU_MAX_RESOURCES];
@@ -209,6 +226,13 @@ static int XzLoadApi(XzNativeGles3Api *api)
     XZ_GL_LOAD(DeleteRenderbuffers, "glDeleteRenderbuffers");
     XZ_GL_LOAD(BindRenderbuffer, "glBindRenderbuffer");
     XZ_GL_LOAD(RenderbufferStorage, "glRenderbufferStorage");
+
+    XZ_GL_LOAD(GenFramebuffers, "glGenFramebuffers");
+    XZ_GL_LOAD(DeleteFramebuffers, "glDeleteFramebuffers");
+    XZ_GL_LOAD(BindFramebuffer, "glBindFramebuffer");
+    XZ_GL_LOAD(FramebufferTexture2D, "glFramebufferTexture2D");
+    XZ_GL_LOAD(FramebufferRenderbuffer, "glFramebufferRenderbuffer");
+    XZ_GL_LOAD(CheckFramebufferStatus, "glCheckFramebufferStatus");
 
     XZ_GL_LOAD(GenVertexArrays, "glGenVertexArrays");
     XZ_GL_LOAD(DeleteVertexArrays, "glDeleteVertexArrays");
