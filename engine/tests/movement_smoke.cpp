@@ -107,6 +107,67 @@ int main() {
     frame = movement.step(input, traversal, 1.0f / 120.0f);
     assert(frame.cue == xziel::MovementCue::DoubleJump);
 
+    // Coyote time accepts a jump a few ticks after ground contact is lost,
+    // which matters on touchscreens where a thumb can land slightly late.
+    movement.reset();
+
+    traversal = {};
+    traversal.grounded = true;
+
+    frame = movement.step(
+        {},
+        traversal,
+        1.0f / 120.0f);
+
+    traversal.grounded = false;
+
+    xziel::MovementInput lateJump{};
+    lateJump.jumpPressed = true;
+
+    frame = movement.step(
+        lateJump,
+        traversal,
+        1.0f / 120.0f);
+
+    assert(
+        frame.mode ==
+        xziel::MovementMode::Airborne);
+
+    assert(
+        frame.cue ==
+        xziel::MovementCue::Jump);
+
+    // Jump buffering remembers an early press and fires it on the landing
+    // tick instead of eating the input.
+    movement.reset();
+
+    traversal = {};
+    traversal.grounded = false;
+
+    xziel::MovementInput buffered{};
+    buffered.jumpPressed = true;
+
+    frame = movement.step(
+        buffered,
+        traversal,
+        1.0f / 120.0f);
+
+    buffered.jumpPressed = false;
+    traversal.grounded = true;
+
+    frame = movement.step(
+        buffered,
+        traversal,
+        1.0f / 120.0f);
+
+    assert(
+        frame.mode ==
+        xziel::MovementMode::Airborne);
+
+    assert(
+        frame.cue ==
+        xziel::MovementCue::Jump);
+
     // Approaching a runnable wall needs no wall-run button.
     traversal.wallRunnable = true;
     traversal.wallOnRight = true;
