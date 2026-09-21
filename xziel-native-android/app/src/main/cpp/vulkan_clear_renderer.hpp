@@ -272,6 +272,9 @@ private:
 
     [[nodiscard]] bool createImageViews() noexcept;
     [[nodiscard]] bool createDepthResources() noexcept;
+    [[nodiscard]] bool createReflectionFallbackResources() noexcept;
+    void destroyReflectionFallbackResources() noexcept;
+    void updateReflectionDescriptor(VkImageView view) noexcept;
     [[nodiscard]] bool createReflectionTarget(
         float resolutionScale) noexcept;
     [[nodiscard]] bool createReflectionPassResources() noexcept;
@@ -338,6 +341,9 @@ private:
     VkRenderPass reflectionRenderPass_ = VK_NULL_HANDLE;
     VkFramebuffer reflectionFramebuffer_ = VK_NULL_HANDLE;
     VkPipeline reflectionPipeline_ = VK_NULL_HANDLE;
+    VkImage reflectionFallbackImage_ = VK_NULL_HANDLE;
+    VkDeviceMemory reflectionFallbackMemory_ = VK_NULL_HANDLE;
+    VkImageView reflectionFallbackView_ = VK_NULL_HANDLE;
     VkSampler reflectionSampler_ = VK_NULL_HANDLE;
     VkDescriptorSetLayout reflectionDescriptorSetLayout_ = VK_NULL_HANDLE;
     VkDescriptorPool reflectionDescriptorPool_ = VK_NULL_HANDLE;

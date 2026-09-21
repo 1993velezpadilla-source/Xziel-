@@ -89,6 +89,7 @@ bool VulkanClearRenderer::initialize(
         !createImageViews() ||
         !createDepthResources() ||
         !createCommandResources() ||
+        !createReflectionFallbackResources() ||
         !createFramebuffers() ||
         !createSyncObjects()) {
         logError("Vulkan initialization failed");
@@ -2031,6 +2032,147 @@ bool VulkanClearRenderer::createDepthResources() noexcept {
     return true;
 }
 
+bool VulkanClearRenderer::createReflectionFallbackResources() noexcept {
+    if (device_ == VK_NULL_HANDLE || commandPool_ == VK_NULL_HANDLE ||
+        reflectionDescriptorSetLayout_ == VK_NULL_HANDLE) {
+        return false;
+    }
+
+    if (reflectionFallbackView_ != VK_NULL_HANDLE &&
+        reflectionDescriptorSet_ != VK_NULL_HANDLE) {
+        updateReflectionDescriptor(reflectionFallbackView_);
+        reflectionHasValidContents_ = true;
+        return true;
+    }
+
+    VkImageCreateInfo imageInfo{VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
+    imageInfo.imageType = VK_IMAGE_TYPE_2D;
+    imageInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+    imageInfo.extent = {1, 1, 1};
+    imageInfo.mipLevels = 1;
+    imageInfo.arrayLayers = 1;
+    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    if (!ok(vkCreateImage(device_, &imageInfo, nullptr, &reflectionFallbackImage_))) return false;
+
+    VkMemoryRequirements requirements{};
+    vkGetImageMemoryRequirements(device_, reflectionFallbackImage_, &requirements);
+    std::uint32_t memoryType = 0;
+    if (!findMemoryType(requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType)) return false;
+    VkMemoryAllocateInfo allocation{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
+    allocation.allocationSize = requirements.size;
+    allocation.memoryTypeIndex = memoryType;
+    if (!ok(vkAllocateMemory(device_, &allocation, nullptr, &reflectionFallbackMemory_)) ||
+        !ok(vkBindImageMemory(device_, reflectionFallbackImage_, reflectionFallbackMemory_, 0))) return false;
+
+    VkImageViewCreateInfo viewInfo{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
+    viewInfo.image = reflectionFallbackImage_;
+    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    viewInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    viewInfo.subresourceRange.levelCount = 1;
+    viewInfo.subresourceRange.layerCount = 1;
+    if (!ok(vkCreateImageView(device_, &viewInfo, nullptr, &reflectionFallbackView_))) return false;
+
+    VkSamplerCreateInfo samplerInfo{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.maxAnisotropy = 1.0f;
+    if (!ok(vkCreateSampler(device_, &samplerInfo, nullptr, &reflectionSampler_))) return false;
+
+    VkDescriptorPoolSize poolSize{};
+    poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    poolSize.descriptorCount = 1;
+    VkDescriptorPoolCreateInfo poolInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
+    poolInfo.maxSets = 1;
+    poolInfo.poolSizeCount = 1;
+    poolInfo.pPoolSizes = &poolSize;
+    if (!ok(vkCreateDescriptorPool(device_, &poolInfo, nullptr, &reflectionDescriptorPool_))) return false;
+
+    VkDescriptorSetAllocateInfo setInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
+    setInfo.descriptorPool = reflectionDescriptorPool_;
+    setInfo.descriptorSetCount = 1;
+    setInfo.pSetLayouts = &reflectionDescriptorSetLayout_;
+    if (!ok(vkAllocateDescriptorSets(device_, &setInfo, &reflectionDescriptorSet_))) return false;
+
+    VkCommandBufferAllocateInfo commandInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+    commandInfo.commandPool = commandPool_;
+    commandInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    commandInfo.commandBufferCount = 1;
+    VkCommandBuffer command = VK_NULL_HANDLE;
+    if (!ok(vkAllocateCommandBuffers(device_, &commandInfo, &command))) return false;
+    VkCommandBufferBeginInfo begin{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+    begin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    if (!ok(vkBeginCommandBuffer(command, &begin))) return false;
+
+    VkImageMemoryBarrier toTransfer{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+    toTransfer.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    toTransfer.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    toTransfer.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    toTransfer.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    toTransfer.image = reflectionFallbackImage_;
+    toTransfer.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    toTransfer.subresourceRange.levelCount = 1;
+    toTransfer.subresourceRange.layerCount = 1;
+    toTransfer.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    vkCmdPipelineBarrier(command, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &toTransfer);
+
+    VkClearColorValue clear{};
+    clear.float32[0] = 0.008f; clear.float32[1] = 0.010f; clear.float32[2] = 0.016f; clear.float32[3] = 1.0f;
+    VkImageSubresourceRange range{};
+    range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; range.levelCount = 1; range.layerCount = 1;
+    vkCmdClearColorImage(command, reflectionFallbackImage_, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clear, 1, &range);
+
+    VkImageMemoryBarrier toSample = toTransfer;
+    toSample.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    toSample.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    toSample.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    toSample.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    vkCmdPipelineBarrier(command, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &toSample);
+    if (!ok(vkEndCommandBuffer(command))) return false;
+    VkSubmitInfo submit{VK_STRUCTURE_TYPE_SUBMIT_INFO};
+    submit.commandBufferCount = 1; submit.pCommandBuffers = &command;
+    if (!ok(vkQueueSubmit(graphicsQueue_, 1, &submit, VK_NULL_HANDLE)) || !ok(vkQueueWaitIdle(graphicsQueue_))) return false;
+    vkFreeCommandBuffers(device_, commandPool_, 1, &command);
+
+    updateReflectionDescriptor(reflectionFallbackView_);
+    reflectionHasValidContents_ = true;
+    return true;
+}
+
+void VulkanClearRenderer::updateReflectionDescriptor(VkImageView view) noexcept {
+    if (device_ == VK_NULL_HANDLE || reflectionDescriptorSet_ == VK_NULL_HANDLE ||
+        reflectionSampler_ == VK_NULL_HANDLE || view == VK_NULL_HANDLE) return;
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.sampler = reflectionSampler_;
+    imageInfo.imageView = view;
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+    write.dstSet = reflectionDescriptorSet_;
+    write.dstBinding = 0;
+    write.descriptorCount = 1;
+    write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    write.pImageInfo = &imageInfo;
+    vkUpdateDescriptorSets(device_, 1, &write, 0, nullptr);
+}
+
+void VulkanClearRenderer::destroyReflectionFallbackResources() noexcept {
+    if (device_ == VK_NULL_HANDLE) return;
+    if (reflectionFallbackView_ != VK_NULL_HANDLE) vkDestroyImageView(device_, reflectionFallbackView_, nullptr);
+    if (reflectionFallbackImage_ != VK_NULL_HANDLE) vkDestroyImage(device_, reflectionFallbackImage_, nullptr);
+    if (reflectionFallbackMemory_ != VK_NULL_HANDLE) vkFreeMemory(device_, reflectionFallbackMemory_, nullptr);
+    reflectionFallbackView_ = VK_NULL_HANDLE;
+    reflectionFallbackImage_ = VK_NULL_HANDLE;
+    reflectionFallbackMemory_ = VK_NULL_HANDLE;
+}
+
 bool VulkanClearRenderer::createReflectionTarget(
     float resolutionScale) noexcept {
     destroyReflectionTarget();
@@ -2226,71 +2368,10 @@ bool VulkanClearRenderer::createReflectionTarget(
         return true;
     }
 
-    // Descriptor allocation is stable across transient target churn. Reuse
-    // the sampler/pool/set instead of leaking a new set on every reallocation.
     if (reflectionDescriptorSet_ == VK_NULL_HANDLE) {
-        VkSamplerCreateInfo samplerInfo{
-            VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO
-        };
-        samplerInfo.magFilter = VK_FILTER_LINEAR;
-        samplerInfo.minFilter = VK_FILTER_LINEAR;
-        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        samplerInfo.maxAnisotropy = 1.0f;
-        samplerInfo.maxLod = 0.0f;
-
-        if (!ok(
-                vkCreateSampler(
-                    device_,
-                    &samplerInfo,
-                    nullptr,
-                    &reflectionSampler_))) {
-            logError("Planar reflection sampler creation failed; falling back");
-            destroyReflectionTarget();
-            return true;
-        }
-
-        VkDescriptorPoolSize poolSize{};
-        poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSize.descriptorCount = 1;
-
-        VkDescriptorPoolCreateInfo poolInfo{
-            VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO
-        };
-        poolInfo.maxSets = 1;
-        poolInfo.poolSizeCount = 1;
-        poolInfo.pPoolSizes = &poolSize;
-
-        if (!ok(
-                vkCreateDescriptorPool(
-                    device_,
-                    &poolInfo,
-                    nullptr,
-                    &reflectionDescriptorPool_))) {
-            logError("Planar reflection descriptor pool failed; falling back");
-            destroyReflectionTarget();
-            return true;
-        }
-
-        VkDescriptorSetAllocateInfo allocateInfo{
-            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO
-        };
-        allocateInfo.descriptorPool = reflectionDescriptorPool_;
-        allocateInfo.descriptorSetCount = 1;
-        allocateInfo.pSetLayouts = &reflectionDescriptorSetLayout_;
-
-        if (!ok(
-                vkAllocateDescriptorSets(
-                    device_,
-                    &allocateInfo,
-                    &reflectionDescriptorSet_))) {
-            logError("Planar reflection descriptor allocation failed; falling back");
-            destroyReflectionTarget();
-            return true;
-        }
-
+        logError("Reflection descriptor fallback is unavailable");
+        destroyReflectionTarget();
+        return true;
     }
 
     // A newly allocated target starts UNDEFINED. Keep it unavailable until
@@ -2298,32 +2379,9 @@ bool VulkanClearRenderer::createReflectionTarget(
     // The persistent descriptor allocation itself survives target churn.
     reflectionHasValidContents_ = false;
 
-    // Repoint the persistent descriptor at the newly allocated target. This
-    // update is performed while draw submission is idle during target churn;
-    // recordDrawCommand still refuses to sample it until valid contents exist.
-    VkDescriptorImageInfo imageInfo{};
-    imageInfo.sampler = reflectionSampler_;
-    imageInfo.imageView = reflectionColorView_;
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-    VkWriteDescriptorSet write{
-        VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET
-    };
-    write.dstSet = reflectionDescriptorSet_;
-    write.dstBinding = 0;
-    write.descriptorCount = 1;
-    write.descriptorType =
-        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    write.pImageInfo = &imageInfo;
-
-    vkUpdateDescriptorSets(
-        device_,
-        1,
-        &write,
-        0,
-        nullptr);
-
-    logInfo("XZIEL_PLANAR_REFLECTION_TARGET_READY");
+    // The capture pass runs before the main pass in the same command buffer,
+    // so the live target reaches shader-read layout before it is sampled.
+    updateReflectionDescriptor(reflectionColorView_);
     return true;
 }
 
@@ -2617,6 +2675,10 @@ void VulkanClearRenderer::destroyReflectionTarget() noexcept {
     // destroyed; a later fallback/live target update is the only path that
     // makes it sampleable again.
     reflectionHasValidContents_ = false;
+    if (reflectionFallbackView_ != VK_NULL_HANDLE) {
+        updateReflectionDescriptor(reflectionFallbackView_);
+        reflectionHasValidContents_ = true;
+    }
     destroyReflectionPassResources();
 
     if (device_ != VK_NULL_HANDLE) {
@@ -2922,6 +2984,8 @@ void VulkanClearRenderer::destroySwapchainResources() noexcept {
             VK_NULL_HANDLE;
     }
 
+    destroyReflectionFallbackResources();
+
     if (reflectionDescriptorPool_ != VK_NULL_HANDLE) {
         vkDestroyDescriptorPool(device_, reflectionDescriptorPool_, nullptr);
         reflectionDescriptorPool_ = VK_NULL_HANDLE;
@@ -2998,6 +3062,7 @@ bool VulkanClearRenderer::recreateSwapchain() noexcept {
         createImageViews() &&
         createDepthResources() &&
         createCommandResources() &&
+        createReflectionFallbackResources() &&
         createFramebuffers();
 
     if (!success) {
@@ -3313,8 +3378,7 @@ bool VulkanClearRenderer::recordDrawCommand(
     // draw, even when the current material is not water. Never submit a draw
     // with an unbound or stale descriptor after a quality downgrade, target
     // reallocation, or allocation failure.
-    if (reflectionDescriptorSet_ == VK_NULL_HANDLE ||
-        !reflectionHasValidContents_) {
+    if (reflectionDescriptorSet_ == VK_NULL_HANDLE) {
         vkCmdEndRenderPass(command);
         logError("reflection descriptor unavailable; refusing invalid Vulkan draw");
         return false;
