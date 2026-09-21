@@ -165,6 +165,42 @@ bool HordeDirector::addNavigationObstacle(
     return true;
 }
 
+void HordeDirector::clearDynamicBlockers() noexcept {
+    dynamicBlockerCount_ = 0;
+}
+
+bool HordeDirector::addDynamicBlocker(
+    std::uint32_t id,
+    const Aabb& obstacle,
+    bool enabled) noexcept {
+    if (id == 0 ||
+        dynamicBlockerCount_ >= dynamicBlockers_.size() ||
+        obstacle.minimum.x > obstacle.maximum.x ||
+        obstacle.minimum.y > obstacle.maximum.y ||
+        obstacle.minimum.z > obstacle.maximum.z) {
+        return false;
+    }
+    for (std::size_t i = 0; i < dynamicBlockerCount_; ++i) {
+        if (dynamicBlockers_[i].id == id) {
+            return false;
+        }
+    }
+    dynamicBlockers_[dynamicBlockerCount_++] = {id, obstacle, enabled};
+    return true;
+}
+
+bool HordeDirector::setDynamicBlockerEnabled(
+    std::uint32_t id,
+    bool enabled) noexcept {
+    for (std::size_t i = 0; i < dynamicBlockerCount_; ++i) {
+        if (dynamicBlockers_[i].id == id) {
+            dynamicBlockers_[i].enabled = enabled;
+            return true;
+        }
+    }
+    return false;
+}
+
 HordeFrame HordeDirector::step(
     Vec3 playerFeetPosition,
     float deltaSeconds) noexcept {
@@ -485,13 +521,23 @@ Vec3 HordeDirector::steeringTargetFor(
         dz * inverseDistance,
     };
 
+    const std::size_t totalObstacles =
+        navigationObstacleCount_ + dynamicBlockerCount_;
     for (std::size_t obstacleIndex = 0;
-         obstacleIndex <
-             navigationObstacleCount_;
+         obstacleIndex < totalObstacles;
          ++obstacleIndex) {
-        const auto& source =
-            navigationObstacles_[
-                obstacleIndex];
+        const Aabb* sourcePointer = nullptr;
+        if (obstacleIndex < navigationObstacleCount_) {
+            sourcePointer = &navigationObstacles_[obstacleIndex];
+        } else {
+            const auto& blocker =
+                dynamicBlockers_[obstacleIndex - navigationObstacleCount_];
+            if (!blocker.enabled) {
+                continue;
+            }
+            sourcePointer = &blocker.obstacle;
+        }
+        const auto& source = *sourcePointer;
 
         const float marginX =
             actor.config().halfWidth +
@@ -743,13 +789,23 @@ void HordeDirector::resolveNavigationPenetration() noexcept {
             continue;
         }
 
+        const std::size_t totalObstacles =
+            navigationObstacleCount_ + dynamicBlockerCount_;
         for (std::size_t obstacleIndex = 0;
-             obstacleIndex <
-                 navigationObstacleCount_;
+             obstacleIndex < totalObstacles;
              ++obstacleIndex) {
-            const auto& obstacle =
-                navigationObstacles_[
-                    obstacleIndex];
+            const Aabb* obstaclePointer = nullptr;
+            if (obstacleIndex < navigationObstacleCount_) {
+                obstaclePointer = &navigationObstacles_[obstacleIndex];
+            } else {
+                const auto& blocker =
+                    dynamicBlockers_[obstacleIndex - navigationObstacleCount_];
+                if (!blocker.enabled) {
+                    continue;
+                }
+                obstaclePointer = &blocker.obstacle;
+            }
+            const auto& obstacle = *obstaclePointer;
 
             const auto position =
                 zombieSlot->frame().

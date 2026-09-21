@@ -136,5 +136,18 @@ int main() {
 
     assert(!insideObstacle);
 
+    // Barricades/doors can change navigation at runtime without rebuilding
+    // the director. This is the bridge used by breakable zombie windows.
+    xziel::HordeDirector dynamic(navigationConfig);
+    assert(dynamic.addDynamicBlocker(
+        77,
+        {
+            .minimum = {-0.75f, -1.60f, 0.60f},
+            .maximum = { 0.75f,  0.95f, 0.85f},
+        },
+        true));
+    assert(dynamic.setDynamicBlockerEnabled(77, false));
+    assert(!dynamic.setDynamicBlockerEnabled(999, false));
+
     return 0;
 }

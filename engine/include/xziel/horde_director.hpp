@@ -11,6 +11,7 @@ namespace xziel {
 
 inline constexpr std::size_t kMaxHordeZombies = 16;
 inline constexpr std::size_t kMaxHordeNavigationObstacles = 8;
+inline constexpr std::size_t kMaxHordeDynamicBlockers = 8;
 
 struct HordeConfig {
     std::uint32_t startingRound = 1;
@@ -75,6 +76,17 @@ public:
     [[nodiscard]] bool addNavigationObstacle(
         const Aabb& obstacle) noexcept;
 
+    void clearDynamicBlockers() noexcept;
+
+    [[nodiscard]] bool addDynamicBlocker(
+        std::uint32_t id,
+        const Aabb& obstacle,
+        bool enabled = true) noexcept;
+
+    [[nodiscard]] bool setDynamicBlockerEnabled(
+        std::uint32_t id,
+        bool enabled) noexcept;
+
     [[nodiscard]] HordeFrame step(
         Vec3 playerFeetPosition,
         float deltaSeconds) noexcept;
@@ -119,6 +131,16 @@ private:
         navigationObstacles_{};
 
     std::size_t navigationObstacleCount_ = 0;
+
+    struct DynamicBlocker {
+        std::uint32_t id = 0;
+        Aabb obstacle{};
+        bool enabled = false;
+    };
+
+    std::array<DynamicBlocker, kMaxHordeDynamicBlockers>
+        dynamicBlockers_{};
+    std::size_t dynamicBlockerCount_ = 0;
 
     float spawnCooldownSeconds_ = 0.0f;
     float interRoundSeconds_ = 0.0f;
