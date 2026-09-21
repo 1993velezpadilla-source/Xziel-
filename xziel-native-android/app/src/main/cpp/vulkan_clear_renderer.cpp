@@ -250,6 +250,36 @@ bool VulkanClearRenderer::drawFrame(
         return false;
     }
 
+    // Keep one reusable offscreen reflection target synchronized with the
+    // adaptive workload. Allocation happens only when the scale changes, never
+    // as per-frame churn. Failure is deliberately non-fatal: probe/shader
+    // fallback remains available on memory-constrained devices.
+    const float requestedReflectionScale =
+        environment.maxPlanarReflectionPasses > 0
+        ? std::clamp(
+              environment.planarReflectionScale,
+              0.0f,
+              1.0f)
+        : 0.0f;
+
+    if (requestedReflectionScale > 0.0f &&
+        (reflectionColorImage_ == VK_NULL_HANDLE ||
+         std::abs(
+             requestedReflectionScale -
+             reflectionTargetScale_) > 0.025f)) {
+        if (!ok(vkDeviceWaitIdle(device_))) {
+            return false;
+        }
+        (void) createReflectionTarget(
+            requestedReflectionScale);
+    } else if (requestedReflectionScale <= 0.0f &&
+               reflectionColorImage_ != VK_NULL_HANDLE) {
+        if (!ok(vkDeviceWaitIdle(device_))) {
+            return false;
+        }
+        destroyReflectionTarget();
+    }
+
     auto& frame =
         frames_[frameIndex_ % kFramesInFlight];
 
@@ -1935,6 +1965,217 @@ bool VulkanClearRenderer::createDepthResources() noexcept {
     return true;
 }
 
+bool VulkanClearRenderer::createReflectionTarget(
+    float resolutionScale) noexcept {
+    destroyReflectionTarget();
+
+    if (device_ == VK_NULL_HANDLE ||
+        swapchainExtent_.width == 0 ||
+        swapchainExtent_.height == 0 ||
+        !std::isfinite(resolutionScale) ||
+        resolutionScale <= 0.0f) {
+        return true;
+    }
+
+    const float scale =
+        std::clamp(
+            resolutionScale,
+            0.10f,
+            1.0f);
+
+    const auto scaledDimension =
+        [scale](std::uint32_t value) noexcept {
+            const auto scaled =
+                static_cast<std::uint32_t>(
+                    std::max(
+                        16.0f,
+                        std::floor(
+                            static_cast<float>(value) *
+                            scale)));
+            const auto bounded =
+                std::min(
+                    scaled,
+                    1536U);
+            return std::max(
+                16U,
+                bounded & ~15U);
+        };
+
+    reflectionExtent_.width =
+        scaledDimension(swapchainExtent_.width);
+    reflectionExtent_.height =
+        scaledDimension(swapchainExtent_.height);
+    reflectionTargetScale_ = scale;
+
+    const auto createAttachment =
+        [&](VkFormat format,
+            VkImageUsageFlags usage,
+            VkImageAspectFlags aspect,
+            VkImage& image,
+            VkDeviceMemory& memory,
+            VkImageView& view) noexcept {
+            VkImageCreateInfo imageInfo{
+                VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO
+            };
+            imageInfo.imageType = VK_IMAGE_TYPE_2D;
+            imageInfo.format = format;
+            imageInfo.extent = {
+                reflectionExtent_.width,
+                reflectionExtent_.height,
+                1,
+            };
+            imageInfo.mipLevels = 1;
+            imageInfo.arrayLayers = 1;
+            imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+            imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+            imageInfo.usage = usage;
+            imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+            imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+            if (!ok(
+                    vkCreateImage(
+                        device_,
+                        &imageInfo,
+                        nullptr,
+                        &image))) {
+                return false;
+            }
+
+            VkMemoryRequirements requirements{};
+            vkGetImageMemoryRequirements(
+                device_,
+                image,
+                &requirements);
+
+            std::uint32_t memoryType = 0;
+            if (!findMemoryType(
+                    requirements.memoryTypeBits,
+                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                    memoryType)) {
+                return false;
+            }
+
+            VkMemoryAllocateInfo allocation{
+                VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO
+            };
+            allocation.allocationSize = requirements.size;
+            allocation.memoryTypeIndex = memoryType;
+
+            if (!ok(
+                    vkAllocateMemory(
+                        device_,
+                        &allocation,
+                        nullptr,
+                        &memory)) ||
+                !ok(
+                    vkBindImageMemory(
+                        device_,
+                        image,
+                        memory,
+                        0))) {
+                return false;
+            }
+
+            VkImageViewCreateInfo viewInfo{
+                VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO
+            };
+            viewInfo.image = image;
+            viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            viewInfo.format = format;
+            viewInfo.subresourceRange.aspectMask = aspect;
+            viewInfo.subresourceRange.baseMipLevel = 0;
+            viewInfo.subresourceRange.levelCount = 1;
+            viewInfo.subresourceRange.baseArrayLayer = 0;
+            viewInfo.subresourceRange.layerCount = 1;
+
+            return ok(
+                vkCreateImageView(
+                    device_,
+                    &viewInfo,
+                    nullptr,
+                    &view));
+        };
+
+    const bool colorReady =
+        createAttachment(
+            swapchainFormat_,
+            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                VK_IMAGE_USAGE_SAMPLED_BIT,
+            VK_IMAGE_ASPECT_COLOR_BIT,
+            reflectionColorImage_,
+            reflectionColorMemory_,
+            reflectionColorView_);
+
+    const bool depthReady =
+        colorReady &&
+        createAttachment(
+            depthFormat_,
+            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+            VK_IMAGE_ASPECT_DEPTH_BIT,
+            reflectionDepthImage_,
+            reflectionDepthMemory_,
+            reflectionDepthView_);
+
+    if (!colorReady || !depthReady) {
+        logError("Planar reflection target allocation failed; falling back");
+        destroyReflectionTarget();
+        return true;
+    }
+
+    logInfo("XZIEL_PLANAR_REFLECTION_TARGET_READY");
+    return true;
+}
+
+void VulkanClearRenderer::destroyReflectionTarget() noexcept {
+    if (device_ != VK_NULL_HANDLE) {
+        if (reflectionDepthView_ != VK_NULL_HANDLE) {
+            vkDestroyImageView(
+                device_,
+                reflectionDepthView_,
+                nullptr);
+        }
+        if (reflectionDepthImage_ != VK_NULL_HANDLE) {
+            vkDestroyImage(
+                device_,
+                reflectionDepthImage_,
+                nullptr);
+        }
+        if (reflectionDepthMemory_ != VK_NULL_HANDLE) {
+            vkFreeMemory(
+                device_,
+                reflectionDepthMemory_,
+                nullptr);
+        }
+        if (reflectionColorView_ != VK_NULL_HANDLE) {
+            vkDestroyImageView(
+                device_,
+                reflectionColorView_,
+                nullptr);
+        }
+        if (reflectionColorImage_ != VK_NULL_HANDLE) {
+            vkDestroyImage(
+                device_,
+                reflectionColorImage_,
+                nullptr);
+        }
+        if (reflectionColorMemory_ != VK_NULL_HANDLE) {
+            vkFreeMemory(
+                device_,
+                reflectionColorMemory_,
+                nullptr);
+        }
+    }
+
+    reflectionColorImage_ = VK_NULL_HANDLE;
+    reflectionColorMemory_ = VK_NULL_HANDLE;
+    reflectionColorView_ = VK_NULL_HANDLE;
+    reflectionDepthImage_ = VK_NULL_HANDLE;
+    reflectionDepthMemory_ = VK_NULL_HANDLE;
+    reflectionDepthView_ = VK_NULL_HANDLE;
+    reflectionExtent_ = {};
+    reflectionTargetScale_ = 0.0f;
+}
+
 bool VulkanClearRenderer::createFramebuffers() noexcept {
     if (imageViews_.size() != depthViews_.size()) {
         return false;
@@ -2081,6 +2322,8 @@ void VulkanClearRenderer::destroySwapchainResources() noexcept {
         imageFences_.clear();
         return;
     }
+
+    destroyReflectionTarget();
 
     if (commandPool_ != VK_NULL_HANDLE &&
         !commandBuffers_.empty()) {

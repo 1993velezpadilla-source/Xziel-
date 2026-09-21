@@ -261,6 +261,9 @@ private:
 
     [[nodiscard]] bool createImageViews() noexcept;
     [[nodiscard]] bool createDepthResources() noexcept;
+    [[nodiscard]] bool createReflectionTarget(
+        float resolutionScale) noexcept;
+    void destroyReflectionTarget() noexcept;
     [[nodiscard]] bool createFramebuffers() noexcept;
     [[nodiscard]] bool createCommandResources() noexcept;
     [[nodiscard]] bool createSyncObjects() noexcept;
@@ -305,6 +308,17 @@ private:
     std::vector<VkImage> depthImages_;
     std::vector<VkDeviceMemory> depthMemory_;
     std::vector<VkImageView> depthViews_;
+
+    // Single bounded offscreen planar-reflection target. It is intentionally
+    // shared/reused rather than allocating one texture per reflective surface.
+    VkImage reflectionColorImage_ = VK_NULL_HANDLE;
+    VkDeviceMemory reflectionColorMemory_ = VK_NULL_HANDLE;
+    VkImageView reflectionColorView_ = VK_NULL_HANDLE;
+    VkImage reflectionDepthImage_ = VK_NULL_HANDLE;
+    VkDeviceMemory reflectionDepthMemory_ = VK_NULL_HANDLE;
+    VkImageView reflectionDepthView_ = VK_NULL_HANDLE;
+    VkExtent2D reflectionExtent_{};
+    float reflectionTargetScale_ = 0.0f;
 
     std::vector<VkFramebuffer> framebuffers_;
     std::vector<VkCommandBuffer> commandBuffers_;
