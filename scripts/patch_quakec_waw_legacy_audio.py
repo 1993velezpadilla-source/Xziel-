@@ -137,19 +137,35 @@ if "xziel_waw_roundover_ready" not in s:
         raise SystemExit("EndRound audio anchor missing")
     s = s.replace(needle, repl, 1)
 
+# Start the classic laugh exactly when the Round 1 center tally begins its
+# existing white->red transition, not several seconds later at spawn commit.
+needle = '''\tif (cvar("sv_startround") == 0) {
+\t\tround_changetime = time + 3.5;
+\t\trounds_change = 1;
+\t} else {
+\t\tNewRound();
+\t}'''
+repl = '''\tif (cvar("sv_startround") == 0) {
+\t\tround_changetime = time + 3.5;
+\t\trounds_change = 1;
+\t\tif (mapname == "ndu" && cvar("xziel_nacht_enhanced") >= 0.5 && xziel_waw_round1_ready)
+\t\t\tRounds_PlayTransition(xziel_waw_round1_path);
+\t} else {
+\t\tNewRound();
+\t}'''
+if "rounds_change = 1;\n\t\tif (mapname == \"ndu\"" not in s:
+    if needle not in s:
+        raise SystemExit("InitRounds round-1 presentation anchor missing")
+    s = s.replace(needle, repl, 1)
+
 needle = "\trounds = rounds + 1;\n"
 repl = '''\trounds = rounds + 1;
 
-\t// The stock HUD already animates the first tally from white toward red.
-\t// Synchronize the optional classic WaW evil-laugh slot with that moment.
-\tif (mapname == "ndu" && cvar("xziel_nacht_enhanced") >= 0.5) {
-\t\tif (rounds == 1 && xziel_waw_round1_ready)
-\t\t\tRounds_PlayTransition(xziel_waw_round1_path);
-\t\telse if (rounds > 1 && xziel_waw_chalk_ready)
-\t\t\tSound_PlaySound(world, xziel_waw_chalk_path, SOUND_TYPE_MUSIC_ROUND, SOUND_PRIORITY_PLAYALWAYS);
-\t}
+\t// Optional original chalk accent for subsequent round transitions.
+\tif (rounds > 1 && mapname == "ndu" && cvar("xziel_nacht_enhanced") >= 0.5 && xziel_waw_chalk_ready)
+\t\tSound_PlaySound(world, xziel_waw_chalk_path, SOUND_TYPE_MUSIC_ROUND, SOUND_PRIORITY_PLAYALWAYS);
 '''
-if "Synchronize the optional classic WaW evil-laugh slot" not in s:
+if "Optional original chalk accent" not in s:
     if needle not in s:
         raise SystemExit("round increment anchor missing")
     s = s.replace(needle, repl, 1)
