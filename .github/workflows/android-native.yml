@@ -61,6 +61,7 @@ jobs:
           grep -q 'invalid SOLID_BSP entity' build/deps/vril/source/world.c
           grep -q 'xziel_waw_round1_ready' build/deps/quakec/source/server/defs/custom.qc
           grep -q 'waw_round_start_laugh.wav' build/deps/quakec/source/server/main.qc
+          grep -q 'splash_tune = xziel_waw_round1_path' build/deps/quakec/source/server/main.qc
           grep -q 'xziel_waw_gameover_ready' build/deps/quakec/source/server/damage.qc
           grep -q 'KILLS  %d     HEADSHOTS' build/deps/quakec/source/client/hud.qc
           test -s build/nzp-data/nzp/textures/nacht_enhanced/nduwall.jpg
@@ -77,6 +78,20 @@ jobs:
         working-directory: build/android-project
         shell: bash
         run: ./gradlew --no-daemon assembleDebug --stacktrace
+
+      - name: Verify Enhanced payload inside APK
+        shell: bash
+        run: |
+          APK="build/android-project/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          unzip -p "$APK" assets/nzp-data.zip > build/apk-nzp-data.zip
+          test -s build/apk-nzp-data.zip
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/textures/nacht_enhanced/nduwall.jpg'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/textures/nacht_enhanced/cons5nny3.jpg'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/textures/nacht_enhanced/debris_hnf3p.jpg'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/textures/nacht_enhanced/ground_hb3.jpg'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/licenses/NACHT-ENHANCED-CC0-SOURCES.txt'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/licenses/XZIEL-WAW-REFERENCE-AUDIO.txt'
 
       - name: Collect APK
         shell: bash
