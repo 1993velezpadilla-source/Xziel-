@@ -9,6 +9,8 @@ on:
       - ".github/workflows/android-native.yml"
       - "android/**"
       - "scripts/**"
+      - "engine/**"
+      - "tests/**"
       - "README.md"
       - "assets/nacht_enhanced/**"
       - "docs/NACHT_ENHANCED*.md"
@@ -19,6 +21,8 @@ on:
       - ".github/workflows/android-native.yml"
       - "android/**"
       - "scripts/**"
+      - "engine/**"
+      - "tests/**"
       - "README.md"
 
 concurrency:
@@ -57,8 +61,27 @@ jobs:
         run: |
           python3 -m py_compile \
             scripts/patch_vril_mobile_v024.py \
-            scripts/patch_quakec_mobile_v024.py
+            scripts/patch_quakec_mobile_v024.py \
+            scripts/patch_vril_xz_phase0.py \
+            scripts/patch_vril_xz_stage_metrics.py
 
+      - name: Test Xz Phase-0 core
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_phase0_test.c engine/xz/xz_phase0.c \
+            -lm -o /tmp/xz_phase0_test
+          /tmp/xz_phase0_test
+
+      - name: Test Xz PresentWorld core
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_present_world_test.c engine/xz/xz_present_world.c \
+            -o /tmp/xz_present_world_test
+          /tmp/xz_present_world_test
 
       - name: Set up Java 17
         uses: actions/setup-java@v5
@@ -195,7 +218,7 @@ jobs:
           "$ADB" shell run-as com.xziel.nzp cat files/nzp-runtime/.xziel-last-error 2>/dev/null || true
 
           echo "===== XZIEL LOGCAT HIGHLIGHTS ====="
-          grep -Ei "FATAL EXCEPTION|Fatal signal|AndroidRuntime|DEBUG|libmain|gl4es|SDL|xziel|com.xziel.nzp|Vril Engine|Sys_Error|EGL_BAD_CONTEXT|stage=SYS_ERROR|stage=HOST_INIT_OK|stage=FIRST_FRAME_OK" \
+          grep -Ei "FATAL EXCEPTION|Fatal signal|AndroidRuntime|DEBUG|libmain|gl4es|SDL|xziel|XZIEL-XZ|com.xziel.nzp|Vril Engine|Sys_Error|EGL_BAD_CONTEXT|stage=SYS_ERROR|stage=HOST_INIT_OK|stage=FIRST_FRAME_OK" \
             dist/xziel-logcat.txt | tail -n 500 || true
 
           if grep -Eq "Fatal signal .*SDLActivity|>>> com\\.xziel\\.nzp <<<|Process .*com\\.xziel\\.nzp.*exited due to signal|EGL_BAD_CONTEXT|stage=SYS_ERROR" dist/xziel-logcat.txt; then
@@ -214,7 +237,25 @@ jobs:
             exit 1
           fi
 
-          echo "Xziel remained alive and reached FIRST_FRAME_OK after 20 seconds."
+          if ! grep -Eq "XZIEL-XZ.*phase0 init passive=1 selftest=PASS" dist/xziel-logcat.txt; then
+            echo "Xz Phase-0 runtime did not initialize or its self-test failed."
+            grep -E "XZIEL-XZ|phase0" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*present_gen=[1-9][0-9]*.*present=[0-9]+" dist/xziel-logcat.txt; then
+            echo "Xz PresentWorld did not publish a live presentation snapshot."
+            grep -E "XZIEL-XZ.*present_" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*stage_p95\(update=[0-9.]+ render=[0-9.]+ audio=[0-9.]+\)" dist/xziel-logcat.txt; then
+            echo "Xz CPU stage metrics were not published."
+            grep -E "XZIEL-XZ.*stage_p95" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          echo "Xziel remained alive with Phase-0, PresentWorld, and CPU stage metrics active."
 
       - name: Upload runtime diagnostics
         if: always()
