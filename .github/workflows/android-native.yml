@@ -9,6 +9,8 @@ on:
       - ".github/workflows/android-native.yml"
       - "android/**"
       - "scripts/**"
+      - "engine/**"
+      - "tests/**"
       - "README.md"
       - "assets/nacht_enhanced/**"
       - "docs/NACHT_ENHANCED*.md"
@@ -19,6 +21,8 @@ on:
       - ".github/workflows/android-native.yml"
       - "android/**"
       - "scripts/**"
+      - "engine/**"
+      - "tests/**"
       - "README.md"
 
 concurrency:
@@ -57,8 +61,113 @@ jobs:
         run: |
           python3 -m py_compile \
             scripts/patch_vril_mobile_v024.py \
-            scripts/patch_quakec_mobile_v024.py
+            scripts/patch_quakec_mobile_v024.py \
+            scripts/patch_vril_xz_phase0.py
 
+      - name: Test Xz Phase-0 core
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_phase0_test.c engine/xz/xz_phase0.c \
+            -lm -o /tmp/xz_phase0_test
+          /tmp/xz_phase0_test
+
+      - name: Test Xz PresentWorld core
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_present_world_test.c engine/xz/xz_present_world.c \
+            -o /tmp/xz_present_world_test
+          /tmp/xz_present_world_test
+
+      - name: Test Xz DeviceCaps
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_device_caps_test.c engine/xz/xz_device_caps.c \
+            -o /tmp/xz_device_caps_test
+          /tmp/xz_device_caps_test
+
+      - name: Test Xz SceneBudget
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_scene_budget_test.c engine/xz/xz_scene_budget.c \
+            -o /tmp/xz_scene_budget_test
+          /tmp/xz_scene_budget_test
+
+      - name: Test Xz RenderPlan
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_render_plan_test.c engine/xz/xz_render_plan.c \
+            -o /tmp/xz_render_plan_test
+          /tmp/xz_render_plan_test
+
+      - name: Test Xz RHI
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_rhi_test.c \
+            engine/xz/xz_rhi.c \
+            engine/xz/xz_render_plan.c \
+            engine/xz/xz_device_caps.c \
+            engine/xz/xz_gpu_resources.c \
+            -o /tmp/xz_rhi_test
+          /tmp/xz_rhi_test
+
+      - name: Test Xz RenderGraph
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_render_graph_test.c \
+            engine/xz/xz_render_graph.c \
+            -o /tmp/xz_render_graph_test
+          /tmp/xz_render_graph_test
+
+      - name: Test Xz resource handles + command stream
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_resource_command_test.c \
+            engine/xz/xz_gpu_resources.c \
+            engine/xz/xz_command_stream.c \
+            engine/xz/xz_render_graph.c \
+            engine/xz/xz_render_plan.c \
+            -o /tmp/xz_resource_command_test
+          /tmp/xz_resource_command_test
+
+      - name: Test Xz GLES3 resource planner
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_gles3_resource_plan_test.c \
+            engine/xz/xz_gles3_resource_plan.c \
+            -o /tmp/xz_gles3_resource_plan_test
+          /tmp/xz_gles3_resource_plan_test
+
+      - name: Test Xz pass target planner
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_pass_targets_test.c \
+            engine/xz/xz_pass_targets.c \
+            engine/xz/xz_gpu_resources.c \
+            engine/xz/xz_command_stream.c \
+            engine/xz/xz_render_graph.c \
+            engine/xz/xz_render_plan.c \
+            -o /tmp/xz_pass_targets_test
+          /tmp/xz_pass_targets_test
 
       - name: Set up Java 17
         uses: actions/setup-java@v5
@@ -195,7 +304,7 @@ jobs:
           "$ADB" shell run-as com.xziel.nzp cat files/nzp-runtime/.xziel-last-error 2>/dev/null || true
 
           echo "===== XZIEL LOGCAT HIGHLIGHTS ====="
-          grep -Ei "FATAL EXCEPTION|Fatal signal|AndroidRuntime|DEBUG|libmain|gl4es|SDL|xziel|com.xziel.nzp|Vril Engine|Sys_Error|EGL_BAD_CONTEXT|stage=SYS_ERROR|stage=HOST_INIT_OK|stage=FIRST_FRAME_OK" \
+          grep -Ei "FATAL EXCEPTION|Fatal signal|AndroidRuntime|DEBUG|libmain|gl4es|SDL|xziel|XZIEL-XZ|com.xziel.nzp|Vril Engine|Sys_Error|EGL_BAD_CONTEXT|stage=SYS_ERROR|stage=HOST_INIT_OK|stage=FIRST_FRAME_OK" \
             dist/xziel-logcat.txt | tail -n 500 || true
 
           if grep -Eq "Fatal signal .*SDLActivity|>>> com\\.xziel\\.nzp <<<|Process .*com\\.xziel\\.nzp.*exited due to signal|EGL_BAD_CONTEXT|stage=SYS_ERROR" dist/xziel-logcat.txt; then
@@ -214,7 +323,127 @@ jobs:
             exit 1
           fi
 
-          echo "Xziel remained alive and reached FIRST_FRAME_OK after 20 seconds."
+          if ! grep -Eq "XZIEL-XZ.*phase0 init passive=1 selftest=PASS" dist/xziel-logcat.txt; then
+            echo "Xz Phase-0 runtime did not initialize or its self-test failed."
+            grep -E "XZIEL-XZ|phase0" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*present_gen=[1-9][0-9]*.*present=[0-9]+" dist/xziel-logcat.txt; then
+            echo "Xz PresentWorld did not publish a live presentation snapshot."
+            grep -E "XZIEL-XZ.*present_" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*phase2 caps selftest=PASS tier=" dist/xziel-logcat.txt; then
+            echo "Xz DeviceCaps did not initialize or self-test."
+            grep -E "XZIEL-XZ.*phase2 caps" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*budget\(near=[0-9]+ mid=[0-9]+ far=[0-9]+.*anim=[0-9]+ shadow=[0-9]+ vfx=[0-9]+ light=[0-9]+/[0-9]+\)" dist/xziel-logcat.txt; then
+            echo "Xz SceneBudget did not publish a live budget."
+            grep -E "XZIEL-XZ.*budget\(" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*phase3 renderplan=PASS rhi=PASS requested=GLES3 active=NULL shadow=1" dist/xziel-logcat.txt; then
+            echo "Xz Phase-3 RenderPlan/RHI did not initialize in shadow mode."
+            grep -E "XZIEL-XZ.*phase3" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*plan\(gen=[1-9][0-9]* packets=[1-9][0-9]* lod=[0-9]+/[0-9]+/[0-9]+.*hash=[0-9a-fA-F]{8}\).*rhi\(active=NULL shadow=1 submitted=[1-9][0-9]*.*rejected=0" dist/xziel-logcat.txt; then
+            echo "Xz Phase-3 did not publish a validated live render plan."
+            grep -E "XZIEL-XZ.*plan\(" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          if grep -Eq "XZIEL-XZ.*phase2 caps.*allow\(gles3=1" dist/xziel-logcat.txt; then
+            if ! grep -Eq "XZIEL-XZ.*phase4 gles3_probe=PASS status=SHADER_OK.*gl=3\.[0-9]+.*shader_compile=1 shader_link=1 restore=1 err=0x0" dist/xziel-logcat.txt; then
+              echo "Xz Phase-4 native GLES3 probe failed or did not restore the legacy context."
+              grep -E "XZIEL-XZ.*phase4 gles3_probe" dist/xziel-logcat.txt | tail -n 100 || true
+              exit 1
+            fi
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*phase5 rendergraph selftest=PASS compile=PASS error=OK.*resources=5 passes=4 alias=3 peak=3 tile=4 memoryless=1 fusion_groups=4 fused=0" dist/xziel-logcat.txt; then
+            echo "Xz Phase-5 RenderGraph did not compile the bootstrap graph correctly."
+            grep -E "XZIEL-XZ.*phase5 rendergraph" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          if grep -Eq "XZIEL-XZ.*phase2 caps.*allow\(gles3=1" dist/xziel-logcat.txt; then
+            if ! grep -Eq "XZIEL-XZ.*phase6 gles3shadow init=PASS available=1 shader=1 restore=1 stride=8" dist/xziel-logcat.txt; then
+              echo "Xz Phase-6 persistent GLES3 shadow backend did not initialize."
+              grep -E "XZIEL-XZ.*phase6 gles3shadow" dist/xziel-logcat.txt | tail -n 100 || true
+              exit 1
+            fi
+
+            if ! grep -Eq "XZIEL-XZ.*phase7 rhi_mirror attach=PASS backend=GLES3" dist/xziel-logcat.txt; then
+              echo "Xz Phase-7 did not attach GLES3 through the RHI mirror contract."
+              grep -E "XZIEL-XZ.*phase7 rhi_mirror" dist/xziel-logcat.txt | tail -n 100 || true
+              exit 1
+            fi
+
+            if ! grep -Eq "XZIEL-XZ.*mirror\(backend=GLES3 attached=1 attempts=[1-9][0-9]* submitted=[1-9][0-9]* fail=0 beginFail=0 endFail=0\).*g3shadow\(submitted=[1-9][0-9]* packets=[1-9][0-9]* draws=[1-9][0-9]* fail=0 readback=0 restoreFail=0 restore=1 glerr=0x0 hash=[0-9a-fA-F]{8}\)" dist/xziel-logcat.txt; then
+              echo "Xz Phase-7 RHI mirror did not own successful GLES3 execution."
+              grep -E "XZIEL-XZ.*mirror\(" dist/xziel-logcat.txt | tail -n 100 || true
+              exit 1
+            fi
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*phase8 resource_cmd resources_selftest=PASS commands_selftest=PASS init=PASS alive=5 high=5" dist/xziel-logcat.txt; then
+            echo "Xz Phase-8 resource handles / command stream did not initialize."
+            grep -E "XZIEL-XZ.*phase8 resource_cmd" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*cmd\(count=20 hash=[0-9a-fA-F]{8} overflow=0 resources=5 high=5 stale=0 encodeFail=0\)" dist/xziel-logcat.txt; then
+            echo "Xz Phase-8 did not encode a clean live RenderGraph command stream."
+            grep -E "XZIEL-XZ.*cmd\(" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          if grep -Eq "XZIEL-XZ.*phase2 caps.*allow\(gles3=1" dist/xziel-logcat.txt; then
+            if ! grep -Eq "XZIEL-XZ.*phase9 command_executor init=PASS submit=COMMAND_STREAM backend=GLES3 resources=1" dist/xziel-logcat.txt; then
+              echo "Xz Phase-9 command executor did not initialize."
+              grep -E "XZIEL-XZ.*phase9 command_executor" dist/xziel-logcat.txt | tail -n 100 || true
+              exit 1
+            fi
+
+            if ! grep -Eq "XZIEL-XZ.*rhi\(active=NULL shadow=1 submitted=[1-9][0-9]* cmdStreams=[1-9][0-9]* rejected=0 rejectedCmd=0 cmdHash=[0-9a-fA-F]{8}\).*g3cmd\(streams=[1-9][0-9]* commands=[1-9][0-9]* passes=[1-9][0-9]* reads=[1-9][0-9]* writes=[1-9][0-9]* draws=[1-9][0-9]* fail=0 hash=[0-9a-fA-F]{8}\)" dist/xziel-logcat.txt; then
+              echo "Xz Phase-9 did not execute live command streams through GLES3."
+              grep -E "XZIEL-XZ.*g3cmd\(" dist/xziel-logcat.txt | tail -n 100 || true
+              exit 1
+            fi
+
+            if ! grep -Eq "XZIEL-XZ.*phase10 gles3_resources planner=PASS proxyMax=128" dist/xziel-logcat.txt; then
+              echo "Xz Phase-10 GLES3 resource planner did not initialize."
+              grep -E "XZIEL-XZ.*phase10 gles3_resources" dist/xziel-logcat.txt | tail -n 100 || true
+              exit 1
+            fi
+
+            if ! grep -Eq "XZIEL-XZ.*g3res\(mapped=5 objects=4 create=5 reuse=[1-9][0-9]* destroy=0 read=[1-9][0-9]* write=[1-9][0-9]* fail=0 bytes=[1-9][0-9]*\)" dist/xziel-logcat.txt; then
+              echo "Xz Phase-10 did not materialize clean physical GLES3 resources."
+              grep -E "XZIEL-XZ.*g3res\(" dist/xziel-logcat.txt | tail -n 100 || true
+              exit 1
+            fi
+
+            if ! grep -Eq "XZIEL-XZ.*phase11 pass_targets planner=PASS" dist/xziel-logcat.txt; then
+              echo "Xz Phase-11 pass target planner did not initialize."
+              grep -E "XZIEL-XZ.*phase11 pass_targets" dist/xziel-logcat.txt | tail -n 100 || true
+              exit 1
+            fi
+
+            if ! grep -Eq "XZIEL-XZ.*g3fbo\(bind=[1-9][0-9]* check=[1-9][0-9]* fail=0 external=[1-9][0-9]* color=[1-9][0-9]* depth=[1-9][0-9]* targetFail=0\)" dist/xziel-logcat.txt; then
+              echo "Xz Phase-11 did not execute clean GLES3 render targets."
+              grep -E "XZIEL-XZ.*g3fbo\(" dist/xziel-logcat.txt | tail -n 100 || true
+              exit 1
+            fi
+          fi
+
+          echo "Xziel remained alive; Phase 0-11 including real GLES3 render targets is live."
 
       - name: Upload runtime diagnostics
         if: always()
