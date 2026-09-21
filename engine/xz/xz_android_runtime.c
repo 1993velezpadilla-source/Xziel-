@@ -837,6 +837,20 @@ void XzAndroidRuntime_Init(size_t engine_heap_bytes)
                 XzRhiBackend_Name(
                     xz_runtime.rhi.mirror_backend));
 
+            XzAndroidLog(
+                (attach_ok &&
+                 xz_runtime.graph_resources_ready)
+                    ? ANDROID_LOG_INFO
+                    : ANDROID_LOG_WARN,
+                "phase9 command_executor init=%s submit=COMMAND_STREAM"
+                " backend=%s resources=%d",
+                (attach_ok &&
+                 xz_runtime.graph_resources_ready)
+                    ? "PASS" : "FAIL",
+                XzRhiBackend_Name(
+                    xz_runtime.rhi.mirror_backend),
+                xz_runtime.graph_resources_ready);
+
             if (!attach_ok)
                 XzGles3Shadow_Shutdown(
                     &xz_runtime.gles3_shadow);
