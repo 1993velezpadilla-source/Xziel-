@@ -59,6 +59,11 @@ typedef struct {
     uint64_t sampled_failures;
     unsigned int sampled_max_inputs;
 
+    uint64_t material_packets;
+    uint64_t material_lit_packets;
+    uint64_t material_vertices;
+    unsigned int last_material_flags;
+
     unsigned int last_packet_count;
     uint32_t last_plan_hash;
     uint32_t last_command_hash;
