@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - feature/xziel-engine-foundation
     paths:
       - ".github/workflows/zombie-asset-probe.yml"
 
@@ -72,3 +73,10 @@ jobs:
           name: cc0-zombie-pack-probe
           path: probe/out
           retention-days: 14
+
+      - name: Upload CC0 source pack for importer work
+        uses: actions/upload-artifact@v4
+        with:
+          name: cc0-zombie-source
+          path: probe/extracted
+          retention-days: 2
