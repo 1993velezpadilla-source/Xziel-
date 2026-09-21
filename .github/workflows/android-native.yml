@@ -115,6 +115,7 @@ jobs:
           grep -q 'setmodel(szombie, "models/xziel_lab/zombie_basic.mdl")' build/deps/quakec/source/server/ai/zombie_core.qc
           grep -q 'setmodel(szombie.head, "")' build/deps/quakec/source/server/ai/zombie_core.qc
           grep -q 'XZIEL_LAB_SKIN_VARIANTS' build/deps/quakec/source/server/ai/zombie_core.qc
+          grep -q 'XZIEL_LAB_HEADSHOT_GIB' build/deps/quakec/source/server/ai/zombie_core.qc
           grep -q 'XZIEL_LAB_VISUAL_DISMEMBERMENT' build/deps/quakec/source/server/main.qc
           grep -q 'zombie_basic_nohead.mdl' build/deps/quakec/source/server/main.qc
           grep -q 'zombie_basic_nolarm.mdl' build/deps/quakec/source/server/main.qc
