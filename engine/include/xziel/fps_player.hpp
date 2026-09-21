@@ -1,6 +1,10 @@
 #pragma once
 
 #include "xziel/mobile_controls.hpp"
+#include "xziel/hitscan.hpp"
+
+#include <array>
+#include <cstddef>
 
 namespace xziel {
 
@@ -14,6 +18,8 @@ struct FpsPlayerConfig {
 
     float floorY = -1.48f;
     float standingEyeHeight = 1.62f;
+    float collisionRadius = 0.28f;
+    float collisionHeight = 1.78f;
 
     float minX = -2.78f;
     float maxX = 2.78f;
@@ -50,6 +56,11 @@ public:
 
     void reset() noexcept;
 
+    void clearStaticObstacles() noexcept;
+
+    [[nodiscard]] bool addStaticObstacle(
+        const Aabb& obstacle) noexcept;
+
     // Touch look is a frame-relative delta and is consumed exactly once here.
     // Gyro is angular velocity and is integrated by frame delta.
     void sampleViewInput(
@@ -74,10 +85,26 @@ private:
 
     void updateCameraPosition() noexcept;
 
+    void resolveStaticCollision(
+        const Vec3& previousFeetPosition) noexcept;
+
+    [[nodiscard]] bool overlapsObstacle(
+        float x,
+        float z,
+        const Aabb& obstacle) const noexcept;
+
+    static constexpr std::size_t
+        kMaximumStaticObstacles = 16;
+
     FpsPlayerConfig config_{};
     MobileMovementResolver mobileResolver_{};
     MovementController movement_{};
     FpsPlayerFrame frame_{};
+
+    std::array<Aabb, kMaximumStaticObstacles>
+        staticObstacles_{};
+
+    std::size_t staticObstacleCount_ = 0;
 };
 
 } // namespace xziel
