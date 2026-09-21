@@ -7,6 +7,8 @@
 namespace xziel {
 
 struct ScoreConfig {
+    std::uint32_t startingPoints = 0;
+
     std::uint32_t limbHitPoints = 5;
     std::uint32_t torsoHitPoints = 10;
     std::uint32_t headHitPoints = 20;
