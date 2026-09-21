@@ -188,7 +188,8 @@ void VulkanClearRenderer::shutdown() noexcept {
 }
 
 bool VulkanClearRenderer::drawFrame(
-    float timeSeconds) noexcept {
+    float timeSeconds,
+    const VulkanCamera& camera) noexcept {
     if (!initialized_ ||
         device_ == VK_NULL_HANDLE ||
         swapchain_ == VK_NULL_HANDLE) {
@@ -270,7 +271,8 @@ bool VulkanClearRenderer::drawFrame(
 
     if (!recordDrawCommand(
             imageIndex,
-            timeSeconds)) {
+            timeSeconds,
+            camera)) {
         return false;
     }
 
@@ -1898,7 +1900,8 @@ bool VulkanClearRenderer::recreateSwapchain() noexcept {
 
 bool VulkanClearRenderer::recordDrawCommand(
     std::uint32_t imageIndex,
-    float timeSeconds) noexcept {
+    float timeSeconds,
+    const VulkanCamera& camera) noexcept {
     if (imageIndex >= commandBuffers_.size() ||
         imageIndex >= framebuffers_.size()) {
         return false;
@@ -2018,6 +2021,37 @@ bool VulkanClearRenderer::recordDrawCommand(
         push.scaleX = sx;
         push.scaleY = sy;
         push.scaleZ = sz;
+
+        push.cameraX =
+            std::isfinite(camera.x)
+            ? camera.x
+            : 0.0f;
+        push.cameraY =
+            std::isfinite(camera.y)
+            ? camera.y
+            : 0.14f;
+        push.cameraZ =
+            std::isfinite(camera.z)
+            ? camera.z
+            : -2.55f;
+
+        push.cameraYawRadians =
+            std::isfinite(camera.yawRadians)
+            ? camera.yawRadians
+            : 0.0f;
+
+        push.cameraPitchRadians =
+            std::isfinite(camera.pitchRadians)
+            ? camera.pitchRadians
+            : 0.0f;
+
+        push.verticalFovDegrees =
+            std::clamp(
+                std::isfinite(camera.verticalFovDegrees)
+                    ? camera.verticalFovDegrees
+                    : 72.0f,
+                50.0f,
+                110.0f);
 
         vkCmdPushConstants(
             command,
