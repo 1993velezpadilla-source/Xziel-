@@ -2621,6 +2621,21 @@ bool VulkanClearRenderer::recordDrawCommand(
             : 0.12f);
 
     drawUiCircle(
+        0.80f,
+        0.35f,
+        0.055f,
+        0.96f,
+        0.62f,
+        0.08f,
+        hud.reload
+            ? 0.80f
+            : 0.24f,
+        true,
+        hud.reload
+            ? 0.24f
+            : 0.11f);
+
+    drawUiCircle(
         0.89f,
         0.72f,
         0.075f,
