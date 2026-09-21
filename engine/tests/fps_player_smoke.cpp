@@ -114,6 +114,102 @@ int main() {
         frame.movement.velocity.y >
         0.0f);
 
+    // Mantle probe turns a nearby low obstacle into the existing contextual
+    // Jump/Mantle action without adding another touch-screen button.
+    {
+        xziel::FpsPlayerController mantlingPlayer;
+
+        assert(
+            mantlingPlayer.addStaticObstacle(
+                {
+                    .minimum = {
+                        -0.45f,
+                        -1.60f,
+                        -2.12f,
+                    },
+                    .maximum = {
+                        0.45f,
+                        -0.72f,
+                        -1.55f,
+                    },
+                }));
+
+        xziel::MobileMovementButtons mantleButtons{};
+        mantleButtons.jumpPressed = true;
+
+        const auto mantleFrame =
+            mantlingPlayer.fixedStep(
+                {0.0f, 1.0f},
+                mantleButtons,
+                1.0f / 120.0f);
+
+        assert(
+            mantleFrame.movement.mode ==
+            xziel::MovementMode::Mantling);
+
+        assert(
+            mantleFrame.movement.cue ==
+            xziel::MovementCue::MantleStart);
+    }
+
+    // Wall-run probing is geometry driven and stays opt-in through movement
+    // capabilities, so classic Zombies maps can leave it disabled.
+    {
+        xziel::MovementCapabilities capabilities{};
+        capabilities.wallRun = true;
+        capabilities.wallJump = true;
+
+        xziel::FpsPlayerController wallPlayer(
+            {},
+            {},
+            {},
+            capabilities);
+
+        assert(
+            wallPlayer.addStaticObstacle(
+                {
+                    .minimum = {
+                        0.34f,
+                        -1.60f,
+                        -3.20f,
+                    },
+                    .maximum = {
+                        0.62f,
+                        1.20f,
+                        -1.80f,
+                    },
+                }));
+
+        xziel::MobileMovementButtons wallButtons{};
+        wallButtons.jumpPressed = true;
+
+        auto wallFrame =
+            wallPlayer.fixedStep(
+                {0.0f, 1.0f},
+                wallButtons,
+                1.0f / 120.0f);
+
+        assert(
+            wallFrame.movement.mode ==
+            xziel::MovementMode::Airborne);
+
+        wallButtons.jumpPressed = false;
+
+        wallFrame =
+            wallPlayer.fixedStep(
+                {0.0f, 1.0f},
+                wallButtons,
+                1.0f / 120.0f);
+
+        assert(
+            wallFrame.movement.mode ==
+            xziel::MovementMode::WallRunning);
+
+        assert(
+            wallFrame.movement.cue ==
+            xziel::MovementCue::WallRunStart);
+    }
+
     // Pitch is hard bounded even under absurd input.
     view.look = {0.0f, 100.0f};
 
