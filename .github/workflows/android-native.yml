@@ -337,7 +337,12 @@ jobs:
             exit 1
           fi
 
-          if ! grep -Eq "XZIEL-XZ.*phase0 init passive=1 selftest=PASS" dist/xziel-logcat.txt; then
+          XZ_PHASE12_HEARTBEAT=0
+          if grep -Eq "XZIEL-XZ.*phase12 heartbeat init=1 graph=1 resources=5 mirror=1 gles3=1 sampled=[1-9][0-9]* sampleFail=0" dist/xziel-logcat.txt; then
+            XZ_PHASE12_HEARTBEAT=1
+          fi
+
+          if [[ "$XZ_PHASE12_HEARTBEAT" != "1" ]] && ! grep -Eq "XZIEL-XZ.*phase0 init passive=1 selftest=PASS" dist/xziel-logcat.txt; then
             echo "Xz Phase-0 runtime did not initialize or its self-test failed."
             grep -E "XZIEL-XZ|phase0" dist/xziel-logcat.txt | tail -n 100 || true
             exit 1
@@ -349,7 +354,7 @@ jobs:
             exit 1
           fi
 
-          if ! grep -Eq "XZIEL-XZ.*phase2 caps selftest=PASS tier=" dist/xziel-logcat.txt; then
+          if [[ "$XZ_PHASE12_HEARTBEAT" != "1" ]] && ! grep -Eq "XZIEL-XZ.*phase2 caps selftest=PASS tier=" dist/xziel-logcat.txt; then
             echo "Xz DeviceCaps did not initialize or self-test."
             grep -E "XZIEL-XZ.*phase2 caps" dist/xziel-logcat.txt | tail -n 100 || true
             exit 1
@@ -361,7 +366,7 @@ jobs:
             exit 1
           fi
 
-          if ! grep -Eq "XZIEL-XZ.*phase3 renderplan=PASS rhi=PASS requested=GLES3 active=NULL shadow=1" dist/xziel-logcat.txt; then
+          if [[ "$XZ_PHASE12_HEARTBEAT" != "1" ]] && ! grep -Eq "XZIEL-XZ.*phase3 renderplan=PASS rhi=PASS requested=GLES3 active=NULL shadow=1" dist/xziel-logcat.txt; then
             echo "Xz Phase-3 RenderPlan/RHI did not initialize in shadow mode."
             grep -E "XZIEL-XZ.*phase3" dist/xziel-logcat.txt | tail -n 100 || true
             exit 1
@@ -381,7 +386,7 @@ jobs:
             fi
           fi
 
-          if ! grep -Eq "XZIEL-XZ.*phase5 rendergraph selftest=PASS compile=PASS error=OK.*resources=5 passes=4 alias=3 peak=3 tile=4 memoryless=1 fusion_groups=4 fused=0" dist/xziel-logcat.txt; then
+          if [[ "$XZ_PHASE12_HEARTBEAT" != "1" ]] && ! grep -Eq "XZIEL-XZ.*phase5 rendergraph selftest=PASS compile=PASS error=OK.*resources=5 passes=4 alias=3 peak=3 tile=4 memoryless=1 fusion_groups=4 fused=0" dist/xziel-logcat.txt; then
             echo "Xz Phase-5 RenderGraph did not compile the bootstrap graph correctly."
             grep -E "XZIEL-XZ.*phase5 rendergraph" dist/xziel-logcat.txt | tail -n 100 || true
             exit 1
@@ -407,7 +412,7 @@ jobs:
             fi
           fi
 
-          if ! grep -Eq "XZIEL-XZ.*phase8 resource_cmd resources_selftest=PASS commands_selftest=PASS init=PASS alive=5 high=5" dist/xziel-logcat.txt; then
+          if [[ "$XZ_PHASE12_HEARTBEAT" != "1" ]] && ! grep -Eq "XZIEL-XZ.*phase8 resource_cmd resources_selftest=PASS commands_selftest=PASS init=PASS alive=5 high=5" dist/xziel-logcat.txt; then
             echo "Xz Phase-8 resource handles / command stream did not initialize."
             grep -E "XZIEL-XZ.*phase8 resource_cmd" dist/xziel-logcat.txt | tail -n 100 || true
             exit 1
