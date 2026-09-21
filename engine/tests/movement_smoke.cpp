@@ -169,6 +169,7 @@ int main() {
         xziel::MovementCue::Jump);
 
     // Approaching a runnable wall needs no wall-run button.
+    traversal.grounded = false;
     traversal.wallRunnable = true;
     traversal.wallOnRight = true;
     buttons = {};
