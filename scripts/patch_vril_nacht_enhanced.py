@@ -6,7 +6,7 @@ if len(sys.argv)!=2: raise SystemExit("usage: patch_vril_nacht_enhanced.py <vril
 p=Path(sys.argv[1])/"source"/"input.c"
 s=p.read_text()
 anchor='cvar_t xziel_modern_zombies = {"xziel_modern_zombies", "1", true};\n'
-decl='cvar_t xziel_nacht_enhanced = {"xziel_nacht_enhanced", "0", true};\n'
+decl='cvar_t xziel_nacht_enhanced = {"xziel_nacht_enhanced", "1", true};\n'
 if decl not in s:
     if anchor not in s: raise SystemExit("modern zombie cvar anchor missing")
     s=s.replace(anchor,anchor+decl,1)
@@ -16,4 +16,4 @@ if reg not in s:
     if anchor not in s: raise SystemExit("modern zombie registration anchor missing")
     s=s.replace(anchor,anchor+reg,1)
 p.write_text(s)
-print("Registered xziel_nacht_enhanced runtime cvar.")
+print("Registered xziel_nacht_enhanced runtime cvar (Enhanced default, Classic one-tap fallback).")
