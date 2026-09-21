@@ -178,9 +178,12 @@ jobs:
           "$ADB" install -r "$APK"
           "$ADB" logcat -c
           "$ADB" shell am force-stop com.xziel.engineprototype || true
-          "$ADB" shell am start -W             -n com.xziel.engineprototype/.XzielGameActivity             > dist/native-am-start.txt 2>&1
+          # Launch asynchronously. GameActivity/Vulkan does not necessarily
+          # satisfy Android's conventional fully-drawn wait even when the
+          # native renderer is healthy; explicit native markers are stronger.
+          "$ADB" shell am start             -n com.xziel.engineprototype/.XzielGameActivity             > dist/native-am-start.txt 2>&1 || true
 
-          sleep 12
+          sleep 15
           "$ADB" logcat -d -v threadtime > dist/native-logcat.txt
           "$ADB" exec-out screencap -p > dist/native-first-frame.png || true
 
