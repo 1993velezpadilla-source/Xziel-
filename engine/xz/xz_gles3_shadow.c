@@ -410,6 +410,103 @@ static int XzCreateProgramAndBuffer(void)
     return gl->GetError() == GL_NO_ERROR;
 }
 
+static int XzCreateFullscreenProgram(void)
+{
+    static const char *vs_source =
+        "#version 300 es\n"
+        "out vec2 vUV;\n"
+        "void main(){\n"
+        "  vec2 p;\n"
+        "  if(gl_VertexID==0) p=vec2(-1.0,-1.0);\n"
+        "  else if(gl_VertexID==1) p=vec2(3.0,-1.0);\n"
+        "  else p=vec2(-1.0,3.0);\n"
+        "  gl_Position=vec4(p,0.0,1.0);\n"
+        "  vUV=p*0.5+0.5;\n"
+        "}\n";
+
+    static const char *fs_source =
+        "#version 300 es\n"
+        "precision mediump float;\n"
+        "in vec2 vUV;\n"
+        "uniform sampler2D uInput0;\n"
+        "uniform sampler2D uInput1;\n"
+        "uniform int uInputCount;\n"
+        "out vec4 outColor;\n"
+        "void main(){\n"
+        "  vec4 c=texture(uInput0,vUV);\n"
+        "  if(uInputCount>1){\n"
+        "    float d=texture(uInput1,vUV).r;\n"
+        "    c.rgb*=0.75+0.25*d;\n"
+        "  }\n"
+        "  outColor=c;\n"
+        "}\n";
+
+    XzNativeGles3Api *gl = &xz_shadow.gl;
+    GLuint vs = 0u;
+    GLuint fs = 0u;
+    GLint linked = 0;
+    GLint input0;
+    GLint input1;
+
+    if (!XzCompileShader(
+            gl, GL_VERTEX_SHADER, vs_source, &vs))
+        return 0;
+
+    if (!XzCompileShader(
+            gl, GL_FRAGMENT_SHADER, fs_source, &fs)) {
+        gl->DeleteShader(vs);
+        return 0;
+    }
+
+    xz_shadow.fullscreen_program =
+        gl->CreateProgram();
+    if (!xz_shadow.fullscreen_program) {
+        gl->DeleteShader(vs);
+        gl->DeleteShader(fs);
+        return 0;
+    }
+
+    gl->AttachShader(
+        xz_shadow.fullscreen_program, vs);
+    gl->AttachShader(
+        xz_shadow.fullscreen_program, fs);
+    gl->LinkProgram(
+        xz_shadow.fullscreen_program);
+    gl->GetProgramiv(
+        xz_shadow.fullscreen_program,
+        GL_LINK_STATUS,
+        &linked);
+
+    gl->DeleteShader(vs);
+    gl->DeleteShader(fs);
+
+    if (!linked)
+        return 0;
+
+    input0 = gl->GetUniformLocation(
+        xz_shadow.fullscreen_program,
+        "uInput0");
+    input1 = gl->GetUniformLocation(
+        xz_shadow.fullscreen_program,
+        "uInput1");
+    xz_shadow.fullscreen_input_count_loc =
+        gl->GetUniformLocation(
+            xz_shadow.fullscreen_program,
+            "uInputCount");
+
+    if (input0 < 0 || input1 < 0 ||
+        xz_shadow.fullscreen_input_count_loc < 0)
+        return 0;
+
+    gl->UseProgram(
+        xz_shadow.fullscreen_program);
+    gl->Uniform1i(input0, 0);
+    gl->Uniform1i(input1, 1);
+    gl->UseProgram(0u);
+
+    return gl->GetError() == GL_NO_ERROR;
+}
+
 static int XzMakeShadowCurrent(
     EGLDisplay *previous_display,
     EGLSurface *previous_draw,
