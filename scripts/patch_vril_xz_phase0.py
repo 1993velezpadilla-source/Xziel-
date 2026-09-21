@@ -53,6 +53,8 @@ for name in (
     "xz_gpu_resources.c",
     "xz_command_stream.h",
     "xz_command_stream.c",
+    "xz_gles3_resource_plan.h",
+    "xz_gles3_resource_plan.c",
 ):
     src = modules / name
     if not src.is_file():
@@ -177,4 +179,4 @@ for label, needle in checks.items():
             f"Phase-0 integration check failed for {label}: {count} occurrences"
         )
 
-print("Injected Xziel Xz runtime through Phase 8 (resource handles + command stream).")
+print("Injected Xziel Xz runtime through Phase 10 (physical GLES3 resources).")
