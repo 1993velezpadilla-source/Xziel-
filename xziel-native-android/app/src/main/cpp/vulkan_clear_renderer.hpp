@@ -33,6 +33,9 @@ struct VulkanHudState {
     bool jump = false;
     bool stance = false;
     bool gyroAvailable = false;
+
+    float hitMarkerAlpha = 0.0f;
+    bool targetAlive = true;
 };
 
 class VulkanClearRenderer final {
