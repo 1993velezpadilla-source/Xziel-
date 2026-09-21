@@ -181,3 +181,65 @@ Presentation:
 - gameplay continues normally while it is visible.
 
 Language comes from the phone/OS language. Android passes `Locale.getDefault().getLanguage()` into the runtime cvar `xziel_language`. Unsupported languages fall back to English. The localization table lives at `config/llorona_localization.json`.
+
+
+## Prayer-timed manifestation window
+
+La Llorona's neutral/penitent manifestation is now hard-bound to the prayer audio itself.
+
+Authoritative duration: **82.0 seconds**.
+
+The prayer is the event clock. The player does not get a separate timer UI.
+
+### If no child has spawned or died yet
+
+La Llorona may still manifest in PENITENT form before either child has appeared in the match.
+
+For the entire 82-second prayer:
+- the player may approach, observe, ignore her, or receive one of the randomized neutral interaction behaviors;
+- any optional interaction prompt exists only while the prayer is still playing;
+- there is no quest marker, countdown, objective text, or explanation that reveals the child mechanic;
+- only one neutral behavior roll is selected for that manifestation.
+
+At the final Amen:
+- all neutral interaction closes immediately;
+- La Llorona finishes the final pose/animation;
+- she fades/despawns;
+- nothing is punished merely because the player ignored her;
+- the encounter can roll again on a later eligible manifestation according to normal cooldown/random rules.
+
+### Random neutral behaviors
+
+One behavior is chosen per manifestation:
+
+- **prayer_only — 35%**: she never acknowledges the player and simply completes the prayer.
+- **proximity_reaction — 25%**: close approach causes a subtle body/shoulder reaction but no direct interaction.
+- **optional_use_interaction — 25%**: within 2.4 m a minimal Use prompt may appear; it can resolve only once and never reveals the Easter egg solution.
+- **silent_head_turn — 15%**: at a random point during the prayer she slowly turns her head toward the nearby player, then resumes/holds the penitential pose.
+
+The behavior roll is intentionally hidden so players cannot assume every apparition works the same way.
+
+### If she finds a dead child during the prayer
+
+A child discovery overrides the 82-second timer immediately.
+
+The exact moment line-of-sight discovery conditions succeed:
+1. stop the prayer audio mid-word/mid-sentence rather than fading it politely;
+2. cancel any neutral interaction prompt;
+3. freeze La Llorona for the DISCOVERY beat;
+4. redirect her attention to the child corpse;
+5. play the rage-trigger voice cue;
+6. enter RAGE and reveal the boss HUD.
+
+Once DISCOVERY happens, the prayer timer is discarded. She does **not** disappear at the original 82-second endpoint.
+
+### Audio asset
+
+Current selected prayer treatment:
+- source performance: user-selected Spanish prayer recording;
+- game timing target: 82.0 seconds;
+- dark/enchantment treatment: church reverb, reverse/pre-echo, restrained ghost doubles, low drone and atmospheric air;
+- package target: `llorona_prayer_enchanted_v2.ogg`;
+- master target: 48 kHz stereo / 24-bit WAV.
+
+The spoken content includes Padre Nuestro, Ave Maria, Gloria and the closing Fatima prayer. The player experiences the entire sequence as one uninterrupted manifestation unless a dead-child discovery interrupts it.
