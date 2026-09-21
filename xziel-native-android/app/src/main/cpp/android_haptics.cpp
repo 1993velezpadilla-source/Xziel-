@@ -141,11 +141,14 @@ void AndroidHapticsBridge::play(
             1.0f,
             120.0f);
 
-    env_->CallVoidMethod(
+    jvalue arguments[2]{};
+    arguments[0].f = amplitude;
+    arguments[1].f = durationMs;
+
+    env_->CallVoidMethodA(
         activity_,
         playMethod_,
-        amplitude,
-        durationMs);
+        arguments);
 
     if (env_->ExceptionCheck()) {
         env_->ExceptionClear();
