@@ -13,6 +13,8 @@ ScoreSystem::ScoreSystem(
 
 void ScoreSystem::reset() noexcept {
     frame_ = {};
+    frame_.total =
+        config_.startingPoints;
 }
 
 ScoreFrame ScoreSystem::awardHit(
