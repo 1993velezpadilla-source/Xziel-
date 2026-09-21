@@ -1,0 +1,494 @@
+{
+  "schema": "xziel.nzp.quakec-symbol-index.v1",
+  "source_repo": "nzp-team/quakec",
+  "source_commit": "dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163",
+  "part": 7,
+  "range": [
+    72,
+    77
+  ],
+  "total_files": 78,
+  "files": [
+    {
+      "path": "source/server/weapons/grenade_launcher.qc",
+      "blob": "2e885ff9a22d3ca4ef2c25018b3e5ac5d146a2bd",
+      "functions": [
+        {
+          "name": "W_FireGrenade",
+          "line": 36,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/grenade_launcher.qc#L36"
+        }
+      ],
+      "entity_mentions": {},
+      "api_mentions": {
+        "touch": [
+          49
+        ]
+      }
+    },
+    {
+      "path": "source/server/weapons/ray_gun_mk2.qc",
+      "blob": "c30b0f06fb4778236f9e45e9ab17d2433056e8c7",
+      "functions": [
+        {
+          "name": "Ray2_LaserImpact",
+          "line": 33,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/ray_gun_mk2.qc#L33"
+        },
+        {
+          "name": "Ray2_VelocityIncrease",
+          "line": 75,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/ray_gun_mk2.qc#L75"
+        },
+        {
+          "name": "Ray2_Impact",
+          "line": 86,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/ray_gun_mk2.qc#L86"
+        },
+        {
+          "name": "W_FireRay2",
+          "line": 113,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/ray_gun_mk2.qc#L113"
+        }
+      ],
+      "entity_mentions": {},
+      "api_mentions": {
+        "think": [
+          73,
+          139
+        ],
+        "touch": [
+          138
+        ]
+      }
+    },
+    {
+      "path": "source/server/weapons/ray_gun.qc",
+      "blob": "257dd4f8681acf79eeab3ee75ff0d76d6a032f20",
+      "functions": [
+        {
+          "name": "Ray_BeamExplode",
+          "line": 38,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/ray_gun.qc#L38"
+        },
+        {
+          "name": "Ray_VelocityIncrease",
+          "line": 99,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/ray_gun.qc#L99"
+        },
+        {
+          "name": "Ray_Impact",
+          "line": 110,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/ray_gun.qc#L110"
+        },
+        {
+          "name": "W_FireRay",
+          "line": 134,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/ray_gun.qc#L134"
+        }
+      ],
+      "entity_mentions": {},
+      "api_mentions": {
+        "think": [
+          97,
+          159
+        ],
+        "touch": [
+          158
+        ]
+      }
+    },
+    {
+      "path": "source/server/weapons/rocket_launcher.qc",
+      "blob": "37def6654d21197fca42a7b67b9816c87d7dfcf9",
+      "functions": [
+        {
+          "name": "Rocket_Die",
+          "line": 34,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/rocket_launcher.qc#L34"
+        },
+        {
+          "name": "Rocket_Impact",
+          "line": 45,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/rocket_launcher.qc#L45"
+        },
+        {
+          "name": "W_FireRocket",
+          "line": 94,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/rocket_launcher.qc#L94"
+        }
+      ],
+      "entity_mentions": {},
+      "api_mentions": {
+        "touch": [
+          116
+        ],
+        "think": [
+          117
+        ]
+      }
+    },
+    {
+      "path": "source/server/weapons/tesla.qc",
+      "blob": "9de182b589c01f204a649d32addad91d7fd4a2c4",
+      "functions": [
+        {
+          "name": "tesla_spark_think",
+          "line": 34,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/tesla.qc#L34"
+        },
+        {
+          "name": "tesla_spark",
+          "line": 49,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/tesla.qc#L49"
+        },
+        {
+          "name": "tesla_damage",
+          "line": 63,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/tesla.qc#L63"
+        },
+        {
+          "name": "tesla_arc_ofs_for_ent",
+          "line": 116,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/tesla.qc#L116"
+        },
+        {
+          "name": "tesla_arc",
+          "line": 134,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/tesla.qc#L134"
+        },
+        {
+          "name": "W_FireTesla",
+          "line": 228,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/tesla.qc#L228"
+        }
+      ],
+      "entity_mentions": {},
+      "api_mentions": {
+        "think": [
+          54
+        ]
+      }
+    },
+    {
+      "path": "source/server/weapons/weapon_core.qc",
+      "blob": "b31170fbcfcca1277427fafd5a8dd06173eb1e4a",
+      "functions": [
+        {
+          "name": "W_HideCrosshair",
+          "line": 47,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L47"
+        },
+        {
+          "name": "W_ShowCrosshair",
+          "line": 66,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L66"
+        },
+        {
+          "name": "ReturnWeaponModel",
+          "line": 90,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L90"
+        },
+        {
+          "name": "W_PlayTakeOut",
+          "line": 128,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L128"
+        },
+        {
+          "name": "W_AimIn",
+          "line": 136,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L136"
+        },
+        {
+          "name": "W_AimOut",
+          "line": 177,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L177"
+        },
+        {
+          "name": "W_SprintStop",
+          "line": 201,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L201"
+        },
+        {
+          "name": "W_PutOutHack",
+          "line": 255,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L255"
+        },
+        {
+          "name": "W_PutOut",
+          "line": 260,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L260"
+        },
+        {
+          "name": "W_TakeOut",
+          "line": 281,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L281"
+        },
+        {
+          "name": "W_Give_Ammo",
+          "line": 297,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L297"
+        },
+        {
+          "name": "ContinueReload",
+          "line": 348,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L348"
+        },
+        {
+          "name": "endanimfunc",
+          "line": 362,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L362"
+        },
+        {
+          "name": "W_AdvanceAnim",
+          "line": 409,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L409"
+        },
+        {
+          "name": "W_Reload",
+          "line": 428,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L428"
+        },
+        {
+          "name": "endanimfunc",
+          "line": 495,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L495"
+        },
+        {
+          "name": "W_LoadAmmoDone",
+          "line": 563,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L563"
+        },
+        {
+          "name": "W_LoadAmmo",
+          "line": 567,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L567"
+        },
+        {
+          "name": "endanimfunc",
+          "line": 585,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L585"
+        },
+        {
+          "name": "WeaponCore_CheckForReload",
+          "line": 620,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L620"
+        },
+        {
+          "name": "SpawnBlood",
+          "line": 651,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L651"
+        },
+        {
+          "name": "spawn_gibs",
+          "line": 669,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L669"
+        },
+        {
+          "name": "TraceAttack",
+          "line": 834,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L834"
+        },
+        {
+          "name": "FireTrace",
+          "line": 932,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L932"
+        },
+        {
+          "name": "W_Fire_Burst",
+          "line": 1003,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L1003"
+        },
+        {
+          "name": "W_Fire",
+          "line": 1010,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L1010"
+        },
+        {
+          "name": "WeaponCore_Melee",
+          "line": 1304,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L1304"
+        },
+        {
+          "name": "switch_nade",
+          "line": 1415,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L1415"
+        },
+        {
+          "name": "GrenadeExplode",
+          "line": 1435,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L1435"
+        },
+        {
+          "name": "NadeStraighten",
+          "line": 1467,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L1467"
+        },
+        {
+          "name": "Velocity_reduce",
+          "line": 1474,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L1474"
+        },
+        {
+          "name": "W_ThrowGrenade",
+          "line": 1495,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L1495"
+        },
+        {
+          "name": "checkHold",
+          "line": 1553,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L1553"
+        },
+        {
+          "name": "W_Grenade",
+          "line": 1590,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L1590"
+        },
+        {
+          "name": "CheckButton",
+          "line": 1612,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L1612"
+        },
+        {
+          "name": "Change_Stance",
+          "line": 1616,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L1616"
+        },
+        {
+          "name": "Change_StanceToggle",
+          "line": 1654,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L1654"
+        },
+        {
+          "name": "dolphin_dive",
+          "line": 1665,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L1665"
+        },
+        {
+          "name": "Change_StanceProne",
+          "line": 1711,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L1711"
+        },
+        {
+          "name": "Impulse_Functions",
+          "line": 1725,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L1725"
+        },
+        {
+          "name": "WeaponCore_PowerUpBlink",
+          "line": 1814,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L1814"
+        },
+        {
+          "name": "CheckPlayer",
+          "line": 1841,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L1841"
+        },
+        {
+          "name": "WeaponCore_UpdateRecoilAndSpread",
+          "line": 1942,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L1942"
+        },
+        {
+          "name": "WeaponCore_UpdateViewModels",
+          "line": 1973,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L1973"
+        },
+        {
+          "name": "WeaponCore_ResetHoldFireWeapon",
+          "line": 1992,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L1992"
+        },
+        {
+          "name": "WeaponCore_UpdateSniperScope",
+          "line": 2007,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L2007"
+        },
+        {
+          "name": "WeaponCore_FireButtonPressed",
+          "line": 2044,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L2044"
+        },
+        {
+          "name": "WeaponCore_FireButtonReleased",
+          "line": 2078,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L2078"
+        },
+        {
+          "name": "WeaponCore_AimButtonPressed",
+          "line": 2102,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L2102"
+        },
+        {
+          "name": "WeaponCore_AimButtonReleased",
+          "line": 2140,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L2140"
+        },
+        {
+          "name": "WeaponCore_GrenadeButtonPressed",
+          "line": 2166,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L2166"
+        },
+        {
+          "name": "WeaponCore_MeleeButtonPressed",
+          "line": 2186,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L2186"
+        },
+        {
+          "name": "WeaponCore_ClientLogic",
+          "line": 2222,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/weapon_core.qc#L2222"
+        }
+      ],
+      "entity_mentions": {
+        "spawn_gibs": [
+          669,
+          721,
+          750,
+          776,
+          799
+        ],
+        "item_radio": [
+          847
+        ],
+        "teddy_spawn": [
+          847
+        ],
+        "func_button": [
+          867
+        ],
+        "game_modifier_can_melee": [
+          1306
+        ],
+        "game_modifier_grenades_explode_on_contact": [
+          1477
+        ],
+        "game_modifier_can_use_equipment": [
+          1592
+        ]
+      },
+      "api_mentions": {
+        "use": [
+          43,
+          62,
+          1354,
+          1736,
+          2298
+        ],
+        "think": [
+          716,
+          1527
+        ],
+        "touch": [
+          1529
+        ],
+        "rounds": [
+          1744
+        ],
+        "button7": [
+          2297
+        ]
+      }
+    }
+  ]
+}
