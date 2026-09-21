@@ -121,6 +121,16 @@ jobs:
             -o /tmp/xz_rhi_test
           /tmp/xz_rhi_test
 
+      - name: Test Xz RenderGraph
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_render_graph_test.c \
+            engine/xz/xz_render_graph.c \
+            -o /tmp/xz_render_graph_test
+          /tmp/xz_render_graph_test
+
       - name: Set up Java 17
         uses: actions/setup-java@v5
         with:
@@ -319,7 +329,13 @@ jobs:
             fi
           fi
 
-          echo "Xziel remained alive; Phase 0-4 and the isolated native GLES3 probe are live."
+          if ! grep -Eq "XZIEL-XZ.*phase5 rendergraph selftest=PASS compile=PASS error=OK.*resources=5 passes=4 alias=3 peak=3 tile=4 memoryless=1 fusion_groups=4 fused=0" dist/xziel-logcat.txt; then
+            echo "Xz Phase-5 RenderGraph did not compile the bootstrap graph correctly."
+            grep -E "XZIEL-XZ.*phase5 rendergraph" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          echo "Xziel remained alive; Phase 0-5 including native GLES3 probe and RenderGraph are live."
 
       - name: Upload runtime diagnostics
         if: always()
