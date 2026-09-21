@@ -342,14 +342,20 @@ jobs:
               exit 1
             fi
 
-            if ! grep -Eq "XZIEL-XZ.*g3shadow\(submitted=[1-9][0-9]* packets=[1-9][0-9]* draws=[1-9][0-9]* fail=0 readback=0 restoreFail=0 restore=1 glerr=0x0 hash=[0-9a-fA-F]{8}\)" dist/xziel-logcat.txt; then
-              echo "Xz Phase-6 did not execute live RenderPlan packets successfully on native GLES3."
-              grep -E "XZIEL-XZ.*g3shadow\(" dist/xziel-logcat.txt | tail -n 100 || true
+            if ! grep -Eq "XZIEL-XZ.*phase7 rhi_mirror attach=PASS backend=GLES3" dist/xziel-logcat.txt; then
+              echo "Xz Phase-7 did not attach GLES3 through the RHI mirror contract."
+              grep -E "XZIEL-XZ.*phase7 rhi_mirror" dist/xziel-logcat.txt | tail -n 100 || true
+              exit 1
+            fi
+
+            if ! grep -Eq "XZIEL-XZ.*mirror\(backend=GLES3 attached=1 attempts=[1-9][0-9]* submitted=[1-9][0-9]* fail=0 beginFail=0 endFail=0\).*g3shadow\(submitted=[1-9][0-9]* packets=[1-9][0-9]* draws=[1-9][0-9]* fail=0 readback=0 restoreFail=0 restore=1 glerr=0x0 hash=[0-9a-fA-F]{8}\)" dist/xziel-logcat.txt; then
+              echo "Xz Phase-7 RHI mirror did not own successful GLES3 execution."
+              grep -E "XZIEL-XZ.*mirror\(" dist/xziel-logcat.txt | tail -n 100 || true
               exit 1
             fi
           fi
 
-          echo "Xziel remained alive; Phase 0-6 and native GLES3 RenderPlan execution are live."
+          echo "Xziel remained alive; Phase 0-7 and GLES3 execution through XzRHI are live."
 
       - name: Upload runtime diagnostics
         if: always()
