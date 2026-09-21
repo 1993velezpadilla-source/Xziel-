@@ -12,6 +12,8 @@ layout(push_constant) uniform PushConstants {
     vec4 cameraPositionYaw;
     vec4 cameraPitchFov;
     vec4 environment;
+    vec4 waterSurface;
+    vec4 waterSurfaceExtra;
 } pc;
 
 layout(location = 0) out vec3 vNormal;
@@ -19,6 +21,8 @@ layout(location = 1) out vec3 vWorldPosition;
 layout(location = 2) out float vPulse;
 layout(location = 3) flat out int vMaterial;
 layout(location = 4) out vec4 vEnvironment;
+layout(location = 5) out vec4 vWaterSurface;
+layout(location = 6) out vec4 vWaterSurfaceExtra;
 
 const vec3 kPositions[36] = vec3[](
     vec3(-0.75, -0.75, -0.75), vec3( 0.75, -0.75, -0.75), vec3( 0.75,  0.75, -0.75),
@@ -146,8 +150,12 @@ void main() {
             rotation *
             scaledNormal);
 
+    bool viewmodelMaterial =
+        material >= 10 &&
+        material <= 12;
+
     vec3 camera =
-        material >= 10
+        viewmodelMaterial
         ? world
         : worldToView(world);
 
@@ -196,4 +204,6 @@ void main() {
     vPulse = pc.horrorPulse;
     vMaterial = material;
     vEnvironment = pc.environment;
+    vWaterSurface = pc.waterSurface;
+    vWaterSurfaceExtra = pc.waterSurfaceExtra;
 }
