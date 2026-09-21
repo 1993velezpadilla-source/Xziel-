@@ -2927,6 +2927,140 @@ bool VulkanClearRenderer::recordDrawCommand(
             0.10f);
     }
 
+    const float healthRatio =
+        std::clamp(
+            hud.playerHealthRatio,
+            0.0f,
+            1.0f);
+
+    constexpr float healthCenterX = 0.145f;
+    constexpr float healthCenterY = 0.935f;
+    constexpr float healthHalfWidth = 0.082f;
+    constexpr float healthHalfHeight = 0.0050f;
+
+    drawUiPrimitive(
+        healthCenterX,
+        healthCenterY,
+        healthHalfWidth,
+        healthHalfHeight,
+        0.025f,
+        0.020f,
+        0.025f,
+        0.76f,
+        0.0f,
+        0.10f);
+
+    const float healthFillHalf =
+        std::max(
+            healthHalfWidth *
+                healthRatio,
+            0.0005f);
+
+    drawUiPrimitive(
+        healthCenterX -
+            healthHalfWidth +
+            healthFillHalf,
+        healthCenterY,
+        healthFillHalf,
+        healthHalfHeight * 0.72f,
+        0.96f -
+            healthRatio * 0.70f,
+        0.08f +
+            healthRatio * 0.58f,
+        0.12f,
+        0.92f,
+        0.0f,
+        0.10f);
+
+    const float damageFlash =
+        std::clamp(
+            hud.damageFlashAlpha,
+            0.0f,
+            1.0f);
+
+    const float horrorVignette =
+        std::clamp(
+            hud.horrorVignette,
+            0.0f,
+            0.45f);
+
+    const float edgeAlpha =
+        std::clamp(
+            damageFlash * 0.34f +
+                horrorVignette * 0.45f,
+            0.0f,
+            0.52f);
+
+    if (edgeAlpha > 0.001f) {
+        drawUiPrimitive(
+            0.5f,
+            0.055f,
+            0.5f,
+            0.055f,
+            0.34f,
+            0.005f,
+            0.012f,
+            edgeAlpha,
+            0.0f,
+            0.10f);
+
+        drawUiPrimitive(
+            0.5f,
+            0.945f,
+            0.5f,
+            0.055f,
+            0.34f,
+            0.005f,
+            0.012f,
+            edgeAlpha,
+            0.0f,
+            0.10f);
+
+        drawUiPrimitive(
+            0.035f,
+            0.5f,
+            0.035f,
+            0.5f,
+            0.34f,
+            0.005f,
+            0.012f,
+            edgeAlpha,
+            0.0f,
+            0.10f);
+
+        drawUiPrimitive(
+            0.965f,
+            0.5f,
+            0.035f,
+            0.5f,
+            0.34f,
+            0.005f,
+            0.012f,
+            edgeAlpha,
+            0.0f,
+            0.10f);
+    }
+
+    const float deathAlpha =
+        std::clamp(
+            hud.deathAlpha,
+            0.0f,
+            1.0f);
+
+    if (deathAlpha > 0.001f) {
+        drawUiPrimitive(
+            0.5f,
+            0.5f,
+            0.5f,
+            0.5f,
+            0.035f,
+            0.0f,
+            0.006f,
+            deathAlpha * 0.86f,
+            0.0f,
+            0.10f);
+    }
+
     // Thin center reticle. Keeping this procedural avoids introducing font or
     // texture dependencies before the renderer has an asset streaming layer.
     const float hitMarker =

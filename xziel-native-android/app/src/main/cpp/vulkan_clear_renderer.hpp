@@ -55,6 +55,11 @@ struct VulkanHudState {
     float weaponReloadAlpha = 0.0f;
     float weaponFireAlpha = 0.0f;
     float weaponMagazineRatio = 1.0f;
+
+    float playerHealthRatio = 1.0f;
+    float damageFlashAlpha = 0.0f;
+    float deathAlpha = 0.0f;
+    float horrorVignette = 0.0f;
 };
 
 class VulkanClearRenderer final {

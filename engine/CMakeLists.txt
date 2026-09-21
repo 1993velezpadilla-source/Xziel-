@@ -11,6 +11,7 @@ add_library(xziel_engine STATIC
     src/weapon.cpp
     src/hitscan.cpp
     src/zombie_actor.cpp
+    src/player_vitals.cpp
     src/environment.cpp
     src/particles.cpp
     src/performance.cpp
@@ -76,6 +77,11 @@ if(XZIEL_ENGINE_BUILD_TESTS)
     target_link_libraries(xziel_zombie_actor_smoke PRIVATE xziel_engine)
     target_compile_features(xziel_zombie_actor_smoke PRIVATE cxx_std_20)
     add_test(NAME xziel_zombie_actor_smoke COMMAND xziel_zombie_actor_smoke)
+
+    add_executable(xziel_player_vitals_smoke tests/player_vitals_smoke.cpp)
+    target_link_libraries(xziel_player_vitals_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_player_vitals_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_player_vitals_smoke COMMAND xziel_player_vitals_smoke)
 
     add_executable(xziel_environment_smoke tests/environment_smoke.cpp)
     target_link_libraries(xziel_environment_smoke PRIVATE xziel_engine)

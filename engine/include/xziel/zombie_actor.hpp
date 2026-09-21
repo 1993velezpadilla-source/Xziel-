@@ -25,6 +25,9 @@ struct ZombieConfig {
     float staggerSeconds = 0.12f;
     float respawnSeconds = 1.80f;
 
+    float attackIntervalSeconds = 0.85f;
+    float attackDamage = 34.0f;
+
     float halfWidth = 0.38f;
     float bodyHeight = 1.86f;
     float halfDepth = 0.34f;
@@ -42,6 +45,7 @@ struct ZombieFrame {
     float stridePhase = 0.0f;
 
     bool inAttackRange = false;
+    bool attackThisTick = false;
     std::uint64_t generation = 0;
 };
 
@@ -74,6 +78,7 @@ private:
     ZombieFrame frame_{};
 
     float stateSeconds_ = 0.0f;
+    float attackCooldownSeconds_ = 0.0f;
 };
 
 } // namespace xziel

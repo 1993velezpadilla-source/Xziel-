@@ -54,6 +54,16 @@ ZombieActor::ZombieActor(
             config_.respawnSeconds,
             1.80f);
 
+    config_.attackIntervalSeconds =
+        safePositive(
+            config_.attackIntervalSeconds,
+            0.85f);
+
+    config_.attackDamage =
+        safePositive(
+            config_.attackDamage,
+            34.0f);
+
     config_.halfWidth =
         safePositive(
             config_.halfWidth,
@@ -84,9 +94,11 @@ void ZombieActor::reset() noexcept {
     frame_.yawDegrees = 180.0f;
     frame_.stridePhase = 0.0f;
     frame_.inAttackRange = false;
+    frame_.attackThisTick = false;
     frame_.generation = 0;
 
     stateSeconds_ = 0.0f;
+    attackCooldownSeconds_ = 0.0f;
 }
 
 ZombieFrame ZombieActor::step(
@@ -101,7 +113,14 @@ ZombieFrame ZombieActor::step(
               0.05f);
 
     frame_.inAttackRange = false;
+    frame_.attackThisTick = false;
     stateSeconds_ += dt;
+
+    attackCooldownSeconds_ =
+        std::max(
+            0.0f,
+            attackCooldownSeconds_ -
+                dt);
 
     if (frame_.state ==
         ZombieState::Dead) {
@@ -156,6 +175,13 @@ ZombieFrame ZombieActor::step(
     if (distance <=
         config_.stopDistance) {
         frame_.inAttackRange = true;
+
+        if (attackCooldownSeconds_ <= 0.0f) {
+            frame_.attackThisTick = true;
+            attackCooldownSeconds_ =
+                config_.attackIntervalSeconds;
+        }
+
         return frame_;
     }
 
@@ -275,10 +301,12 @@ void ZombieActor::respawn() noexcept {
     frame_.yawDegrees = 180.0f;
     frame_.stridePhase = 0.0f;
     frame_.inAttackRange = false;
+    frame_.attackThisTick = false;
     frame_.generation =
         nextGeneration;
 
     stateSeconds_ = 0.0f;
+    attackCooldownSeconds_ = 0.0f;
 }
 
 } // namespace xziel

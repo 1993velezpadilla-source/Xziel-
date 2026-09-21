@@ -10,6 +10,8 @@
 #include "xziel/engine.hpp"
 #include "xziel/fps_player.hpp"
 #include "xziel/hitscan.hpp"
+#include "xziel/horror.hpp"
+#include "xziel/player_vitals.hpp"
 #include "xziel/renderer_watchdog.hpp"
 #include "xziel/weapon.hpp"
 #include "xziel/zombie_actor.hpp"
@@ -37,6 +39,9 @@ struct NativeAppState {
     xziel::FpsPlayerController player{};
     xziel::WeaponController weapon{};
     xziel::ZombieActor zombie{};
+    xziel::PlayerVitals vitals{};
+    xziel::HorrorDirector horror{};
+    xziel::HorrorFrame horrorFrame{};
     xziel::CameraRig cameraRig{};
     xziel::android::AndroidInputAdapter input{};
     xziel::android::VulkanClearRenderer renderer{};
@@ -62,6 +67,7 @@ struct NativeAppState {
 
     float hitMarkerSeconds = 0.0f;
     float muzzleFlashSeconds = 0.0f;
+    float zombieAttackFlashSeconds = 0.0f;
 };
 
 void logInfo(const char* message) noexcept {
@@ -318,6 +324,18 @@ void advancePlayer(
     for (std::uint32_t tick = 0;
          tick < stats.ticksThisFrame;
          ++tick) {
+        const auto vitalsFrame =
+            state.vitals.step(
+                fixedDelta);
+
+        if (vitalsFrame.respawnedThisTick) {
+            state.player.reset();
+            state.weapon.reset();
+            state.zombie.reset();
+            state.pendingRecoilPitch = 0.0f;
+            state.pendingRecoilYaw = 0.0f;
+        }
+
         xziel::MobileMovementButtons buttons =
             input.movementButtons;
 
@@ -328,15 +346,26 @@ void advancePlayer(
         }
 
         const auto playerFrame =
-            state.player.fixedStep(
-                input.input.move,
-                buttons,
-                fixedDelta);
+            state.vitals.frame().alive
+            ? state.player.fixedStep(
+                  input.input.move,
+                  buttons,
+                  fixedDelta)
+            : state.player.frame();
 
         const auto zombieFrame =
             state.zombie.step(
                 playerFrame.feetPosition,
                 fixedDelta);
+
+        if (zombieFrame.attackThisTick &&
+            state.vitals.frame().alive &&
+            state.vitals.applyDamage(
+                state.zombie.config().
+                    attackDamage)) {
+            state.zombieAttackFlashSeconds =
+                0.22f;
+        }
 
         (void) zombieFrame;
 
@@ -344,13 +373,16 @@ void advancePlayer(
             state.weapon.step(
                 {
                     .fireHeld =
+                        state.vitals.frame().alive &&
                         input.input.fire &&
                         playerFrame.movement.canFire,
                     .firePressed = false,
                     .reloadPressed =
+                        state.vitals.frame().alive &&
                         input.input.reload &&
                         playerFrame.movement.canReload,
                     .aimHeld =
+                        state.vitals.frame().alive &&
                         input.input.aim &&
                         playerFrame.movement.canAim,
                 },
@@ -420,7 +452,71 @@ xziel::CameraRigFrame advanceCameraRig(
                 1.85f,
             1.0f);
 
-    xziel::HorrorFrame horror{};
+    const auto& zombie =
+        state.zombie.frame();
+
+    const float dx =
+        zombie.position.x -
+        player.feetPosition.x;
+
+    const float dz =
+        zombie.position.z -
+        player.feetPosition.z;
+
+    const float zombieDistance =
+        std::sqrt(
+            dx * dx +
+            dz * dz);
+
+    const float threat =
+        zombie.state ==
+            xziel::ZombieState::Dead
+        ? 0.0f
+        : 1.0f -
+            std::clamp(
+                zombieDistance / 8.0f,
+                0.0f,
+                1.0f);
+
+    const float magazineRatio =
+        static_cast<float>(
+            state.weapon.frame().magazine) /
+        static_cast<float>(
+            std::max<std::uint32_t>(
+                state.weapon.config().
+                    magazineSize,
+                1U));
+
+    state.horrorFrame =
+        state.horror.advance(
+            {
+                .threatProximity =
+                    threat,
+                .hordePressure =
+                    zombie.state ==
+                        xziel::ZombieState::Dead
+                    ? 0.0f
+                    : 0.28f,
+                .recentDamage =
+                    state.vitals.frame().
+                        damageFlash,
+                .darkness = 0.82f,
+                .isolation = 0.76f,
+                .lowAmmoPressure =
+                    1.0f -
+                    magazineRatio,
+                .lowHealthPressure =
+                    1.0f -
+                    state.vitals.frame().
+                        healthRatio,
+                .beingChased =
+                    zombie.state !=
+                    xziel::ZombieState::Dead,
+                .safeRoom = false,
+                .scriptedScareWindow =
+                    false,
+            },
+            frameDeltaSeconds);
 
     const float recoilPitch =
         state.pendingRecoilPitch;
@@ -453,7 +549,7 @@ xziel::CameraRigFrame advanceCameraRig(
                 : 0.0f,
         },
         player.movement,
-        horror,
+        state.horrorFrame,
         frameDeltaSeconds);
 }
 
@@ -520,6 +616,28 @@ xziel::android::VulkanHudState makeHudState(
             std::max<std::uint32_t>(
                 state.weapon.config().magazineSize,
                 1U));
+
+    hud.playerHealthRatio =
+        state.vitals.frame().
+            healthRatio;
+
+    hud.damageFlashAlpha =
+        std::max(
+            state.vitals.frame().
+                damageFlash,
+            std::clamp(
+                state.zombieAttackFlashSeconds /
+                    0.22f,
+                0.0f,
+                1.0f));
+
+    hud.deathAlpha =
+        state.vitals.frame().
+            deathAlpha;
+
+    hud.horrorVignette =
+        state.horrorFrame.
+            vignetteStrength;
 
     return hud;
 }
@@ -736,6 +854,12 @@ extern "C" void android_main(
             std::max(
                 0.0f,
                 state.muzzleFlashSeconds -
+                    frameDelta);
+
+        state.zombieAttackFlashSeconds =
+            std::max(
+                0.0f,
+                state.zombieAttackFlashSeconds -
                     frameDelta);
 
         state.input.beginFrame(
