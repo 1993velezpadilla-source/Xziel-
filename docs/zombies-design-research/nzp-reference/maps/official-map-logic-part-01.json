@@ -1,0 +1,5842 @@
+{
+  "schema": "xziel.nzp.official-map-logic-batch.v1",
+  "source_repo": "nzp-team/assets",
+  "source_commit": "c8135a66e00bb64577912fbf792f8fef7f47658e",
+  "maps": [
+    {
+      "source": {
+        "path": "source/maps/4all/4all.map",
+        "blob": "736a28bb9bc1554bf7adae0b84b875430845b658"
+      },
+      "map": "4all",
+      "entity_count": 209,
+      "edge_count": 88,
+      "unresolved_ref_count": 3,
+      "graph": {
+        "edges": [
+          {
+            "from": 10,
+            "key": "target",
+            "value": "b1",
+            "to": 142
+          },
+          {
+            "from": 11,
+            "key": "target",
+            "value": "b2",
+            "to": 145
+          },
+          {
+            "from": 12,
+            "key": "target",
+            "value": "b3",
+            "to": 143
+          },
+          {
+            "from": 13,
+            "key": "target",
+            "value": "b4",
+            "to": 144
+          },
+          {
+            "from": 14,
+            "key": "target",
+            "value": "p5c",
+            "to": 20
+          },
+          {
+            "from": 15,
+            "key": "target",
+            "value": "p6b",
+            "to": 16
+          },
+          {
+            "from": 16,
+            "key": "target",
+            "value": "b8",
+            "to": 149
+          },
+          {
+            "from": 17,
+            "key": "target",
+            "value": "p7b",
+            "to": 18
+          },
+          {
+            "from": 18,
+            "key": "target",
+            "value": "p7c",
+            "to": 19
+          },
+          {
+            "from": 19,
+            "key": "target",
+            "value": "b9",
+            "to": 148
+          },
+          {
+            "from": 20,
+            "key": "target",
+            "value": "b7",
+            "to": 147
+          },
+          {
+            "from": 21,
+            "key": "target",
+            "value": "p5b",
+            "to": 14
+          },
+          {
+            "from": 22,
+            "key": "target",
+            "value": "b10",
+            "to": 150
+          },
+          {
+            "from": 23,
+            "key": "target",
+            "value": "bbb",
+            "to": 153
+          },
+          {
+            "from": 24,
+            "key": "target",
+            "value": "bccc",
+            "to": 154
+          },
+          {
+            "from": 35,
+            "key": "target",
+            "value": "springf",
+            "to": 36
+          },
+          {
+            "from": 38,
+            "key": "target",
+            "value": "m1a1",
+            "to": 37
+          },
+          {
+            "from": 40,
+            "key": "target",
+            "value": "kars",
+            "to": 39
+          },
+          {
+            "from": 41,
+            "key": "target",
+            "value": "thompson",
+            "to": 42
+          },
+          {
+            "from": 43,
+            "key": "target",
+            "value": "sawn",
+            "to": 44
+          },
+          {
+            "from": 46,
+            "key": "target",
+            "value": "mp40",
+            "to": 45
+          },
+          {
+            "from": 47,
+            "key": "target",
+            "value": "trench",
+            "to": 48
+          },
+          {
+            "from": 49,
+            "key": "target",
+            "value": "fg42",
+            "to": 50
+          },
+          {
+            "from": 51,
+            "key": "target",
+            "value": "browning",
+            "to": 52
+          },
+          {
+            "from": 54,
+            "key": "target",
+            "value": "shrek",
+            "to": 53
+          },
+          {
+            "from": 86,
+            "key": "target",
+            "value": "p1",
+            "to": 10
+          },
+          {
+            "from": 87,
+            "key": "target",
+            "value": "p3",
+            "to": 12
+          },
+          {
+            "from": 88,
+            "key": "target",
+            "value": "p2",
+            "to": 11
+          },
+          {
+            "from": 92,
+            "key": "target",
+            "value": "p8",
+            "to": 22
+          },
+          {
+            "from": 93,
+            "key": "target",
+            "value": "p9",
+            "to": 23
+          },
+          {
+            "from": 94,
+            "key": "target",
+            "value": "p9",
+            "to": 23
+          },
+          {
+            "from": 95,
+            "key": "target",
+            "value": "p10",
+            "to": 24
+          },
+          {
+            "from": 96,
+            "key": "target",
+            "value": "b11",
+            "to": 151
+          },
+          {
+            "from": 97,
+            "key": "target",
+            "value": "b12",
+            "to": 152
+          },
+          {
+            "from": 98,
+            "key": "target",
+            "value": "b13",
+            "to": 157
+          },
+          {
+            "from": 99,
+            "key": "target",
+            "value": "back-b2",
+            "to": 155
+          },
+          {
+            "from": 100,
+            "key": "target",
+            "value": "back-b1",
+            "to": 156
+          },
+          {
+            "from": 101,
+            "key": "target",
+            "value": "b6",
+            "to": 158
+          },
+          {
+            "from": 102,
+            "key": "target",
+            "value": "b5",
+            "to": 146
+          },
+          {
+            "from": 103,
+            "key": "target",
+            "value": "p4",
+            "to": 13
+          },
+          {
+            "from": 104,
+            "key": "target",
+            "value": "p5a",
+            "to": 21
+          },
+          {
+            "from": 105,
+            "key": "target",
+            "value": "p6a",
+            "to": 15
+          },
+          {
+            "from": 106,
+            "key": "target",
+            "value": "p7a",
+            "to": 17
+          },
+          {
+            "from": 109,
+            "key": "target",
+            "value": "garden",
+            "to": 89
+          },
+          {
+            "from": 109,
+            "key": "target",
+            "value": "garden",
+            "to": 90
+          },
+          {
+            "from": 109,
+            "key": "target",
+            "value": "garden",
+            "to": 91
+          },
+          {
+            "from": 109,
+            "key": "target2",
+            "value": "living",
+            "to": 104
+          },
+          {
+            "from": 109,
+            "key": "target2",
+            "value": "living",
+            "to": 105
+          },
+          {
+            "from": 109,
+            "key": "target2",
+            "value": "living",
+            "to": 106
+          },
+          {
+            "from": 110,
+            "key": "target",
+            "value": "living",
+            "to": 104
+          },
+          {
+            "from": 110,
+            "key": "target",
+            "value": "living",
+            "to": 105
+          },
+          {
+            "from": 110,
+            "key": "target",
+            "value": "living",
+            "to": 106
+          },
+          {
+            "from": 110,
+            "key": "target2",
+            "value": "spawn",
+            "to": 86
+          },
+          {
+            "from": 110,
+            "key": "target2",
+            "value": "spawn",
+            "to": 87
+          },
+          {
+            "from": 110,
+            "key": "target2",
+            "value": "spawn",
+            "to": 88
+          },
+          {
+            "from": 110,
+            "key": "target2",
+            "value": "spawn",
+            "to": 103
+          },
+          {
+            "from": 111,
+            "key": "target",
+            "value": "kitchen",
+            "to": 101
+          },
+          {
+            "from": 111,
+            "key": "target",
+            "value": "kitchen",
+            "to": 102
+          },
+          {
+            "from": 111,
+            "key": "target2",
+            "value": "spawn",
+            "to": 86
+          },
+          {
+            "from": 111,
+            "key": "target2",
+            "value": "spawn",
+            "to": 87
+          },
+          {
+            "from": 111,
+            "key": "target2",
+            "value": "spawn",
+            "to": 88
+          },
+          {
+            "from": 111,
+            "key": "target2",
+            "value": "spawn",
+            "to": 103
+          },
+          {
+            "from": 112,
+            "key": "target",
+            "value": "garden",
+            "to": 89
+          },
+          {
+            "from": 112,
+            "key": "target",
+            "value": "garden",
+            "to": 90
+          },
+          {
+            "from": 112,
+            "key": "target",
+            "value": "garden",
+            "to": 91
+          },
+          {
+            "from": 112,
+            "key": "target2",
+            "value": "kitchen",
+            "to": 101
+          },
+          {
+            "from": 112,
+            "key": "target2",
+            "value": "kitchen",
+            "to": 102
+          },
+          {
+            "from": 113,
+            "key": "target",
+            "value": "bunk",
+            "to": 92
+          },
+          {
+            "from": 114,
+            "key": "target",
+            "value": "curve",
+            "to": 96
+          },
+          {
+            "from": 114,
+            "key": "target",
+            "value": "curve",
+            "to": 97
+          },
+          {
+            "from": 114,
+            "key": "target",
+            "value": "curve",
+            "to": 98
+          },
+          {
+            "from": 114,
+            "key": "target2",
+            "value": "back",
+            "to": 99
+          },
+          {
+            "from": 114,
+            "key": "target2",
+            "value": "back",
+            "to": 100
+          },
+          {
+            "from": 116,
+            "key": "target",
+            "value": "stair",
+            "to": 95
+          },
+          {
+            "from": 116,
+            "key": "target2",
+            "value": "pass",
+            "to": 93
+          },
+          {
+            "from": 116,
+            "key": "target2",
+            "value": "pass",
+            "to": 94
+          },
+          {
+            "from": 117,
+            "key": "target",
+            "value": "bed",
+            "to": 107
+          },
+          {
+            "from": 117,
+            "key": "target2",
+            "value": "stair",
+            "to": 95
+          },
+          {
+            "from": 118,
+            "key": "target",
+            "value": "back",
+            "to": 99
+          },
+          {
+            "from": 118,
+            "key": "target",
+            "value": "back",
+            "to": 100
+          },
+          {
+            "from": 118,
+            "key": "target2",
+            "value": "bed",
+            "to": 107
+          },
+          {
+            "from": 120,
+            "key": "target",
+            "value": "pass",
+            "to": 93
+          },
+          {
+            "from": 120,
+            "key": "target",
+            "value": "pass",
+            "to": 94
+          },
+          {
+            "from": 120,
+            "key": "target2",
+            "value": "spawn",
+            "to": 86
+          },
+          {
+            "from": 120,
+            "key": "target2",
+            "value": "spawn",
+            "to": 87
+          },
+          {
+            "from": 120,
+            "key": "target2",
+            "value": "spawn",
+            "to": 88
+          },
+          {
+            "from": 120,
+            "key": "target2",
+            "value": "spawn",
+            "to": 103
+          },
+          {
+            "from": 138,
+            "key": "killtarget",
+            "value": "cliprev",
+            "to": 32
+          }
+        ],
+        "unresolved": [
+          {
+            "from": 56,
+            "key": "target",
+            "value": "1"
+          },
+          {
+            "from": 62,
+            "key": "target",
+            "value": "2"
+          },
+          {
+            "from": 77,
+            "key": "target",
+            "value": "3"
+          }
+        ]
+      },
+      "entities": [
+        {
+          "id": 0,
+          "line": 4,
+          "classname": "worldspawn",
+          "sky": "Sky_Waldon01",
+          "mapversion": "220",
+          "wad": "../../textures/wad/4all.wad;../../textures/wad/zhlt.wad",
+          "_generator": "J.A.C.K. 1.1.1064 (vpHalfLife)",
+          "person": "BCDeshiG",
+          "date": "26th June 1997",
+          "chaptertitle": "F4ll",
+          "location": "Facility N"
+        },
+        {
+          "id": 1,
+          "line": 2824,
+          "classname": "func_wall"
+        },
+        {
+          "id": 2,
+          "line": 2954,
+          "classname": "func_wall"
+        },
+        {
+          "id": 3,
+          "line": 3014,
+          "classname": "func_wall"
+        },
+        {
+          "id": 4,
+          "line": 3074,
+          "classname": "func_wall"
+        },
+        {
+          "id": 5,
+          "line": 3110,
+          "classname": "func_wall"
+        },
+        {
+          "id": 6,
+          "line": 3146,
+          "classname": "func_wall"
+        },
+        {
+          "id": 7,
+          "line": 3206,
+          "classname": "func_wall"
+        },
+        {
+          "id": 8,
+          "line": 3314,
+          "classname": "func_wall"
+        },
+        {
+          "id": 9,
+          "line": 3444,
+          "classname": "power_switch",
+          "origin": "1200 1696 180",
+          "model": "models/machines/hl_scale/power_switch.mdl"
+        },
+        {
+          "id": 10,
+          "line": 3450,
+          "classname": "path_corner",
+          "origin": "1640 64 192",
+          "targetname": "p1",
+          "target": "b1"
+        },
+        {
+          "id": 11,
+          "line": 3457,
+          "classname": "path_corner",
+          "origin": "1912 296 192",
+          "targetname": "p2",
+          "target": "b2"
+        },
+        {
+          "id": 12,
+          "line": 3464,
+          "classname": "path_corner",
+          "origin": "1912 368 192",
+          "targetname": "p3",
+          "target": "b3"
+        },
+        {
+          "id": 13,
+          "line": 3471,
+          "classname": "path_corner",
+          "origin": "1912 896 192",
+          "targetname": "p4",
+          "target": "b4"
+        },
+        {
+          "id": 14,
+          "line": 3478,
+          "classname": "path_corner",
+          "origin": "1016 104 192",
+          "targetname": "p5b",
+          "target": "p5c"
+        },
+        {
+          "id": 15,
+          "line": 3485,
+          "classname": "path_corner",
+          "origin": "1056 72 192",
+          "targetname": "p6a",
+          "target": "p6b"
+        },
+        {
+          "id": 16,
+          "line": 3492,
+          "classname": "path_corner",
+          "origin": "1056 168 192",
+          "targetname": "p6b",
+          "target": "b8"
+        },
+        {
+          "id": 17,
+          "line": 3499,
+          "classname": "path_corner",
+          "origin": "1080 40 192",
+          "targetname": "p7a",
+          "target": "p7b"
+        },
+        {
+          "id": 18,
+          "line": 3506,
+          "classname": "path_corner",
+          "origin": "1080 192 192",
+          "targetname": "p7b",
+          "target": "p7c"
+        },
+        {
+          "id": 19,
+          "line": 3513,
+          "classname": "path_corner",
+          "origin": "1216 192 192",
+          "targetname": "p7c",
+          "target": "b9"
+        },
+        {
+          "id": 20,
+          "line": 3520,
+          "classname": "path_corner",
+          "origin": "1016 224 192",
+          "target": "b7",
+          "targetname": "p5c"
+        },
+        {
+          "id": 21,
+          "line": 3527,
+          "classname": "path_corner",
+          "origin": "728 104 80",
+          "targetname": "p5a",
+          "target": "p5b",
+          "wait": "1"
+        },
+        {
+          "id": 22,
+          "line": 3535,
+          "classname": "path_corner",
+          "origin": "680 1512 64",
+          "targetname": "p8",
+          "target": "b10"
+        },
+        {
+          "id": 23,
+          "line": 3542,
+          "classname": "path_corner",
+          "origin": "1864 1152 440",
+          "targetname": "p9",
+          "target": "bbb"
+        },
+        {
+          "id": 24,
+          "line": 3549,
+          "classname": "path_corner",
+          "origin": "1528 1816 440",
+          "targetname": "p10",
+          "target": "bccc"
+        },
+        {
+          "id": 25,
+          "line": 3556,
+          "classname": "func_wall"
+        },
+        {
+          "id": 26,
+          "line": 3569,
+          "classname": "func_wall"
+        },
+        {
+          "id": 27,
+          "line": 3582,
+          "classname": "info_player_2_spawn",
+          "angle": "90",
+          "origin": "1536 224 160"
+        },
+        {
+          "id": 28,
+          "line": 3588,
+          "classname": "func_wall"
+        },
+        {
+          "id": 29,
+          "line": 3704,
+          "classname": "info_player_3_spawn",
+          "angle": "90",
+          "origin": "1640 224 160"
+        },
+        {
+          "id": 30,
+          "line": 3710,
+          "classname": "info_player_4_spawn",
+          "angle": "90",
+          "origin": "1632 328 160"
+        },
+        {
+          "id": 31,
+          "line": 3716,
+          "classname": "info_player_1_spawn",
+          "angle": "90",
+          "origin": "1520 320 160"
+        },
+        {
+          "id": 32,
+          "line": 3722,
+          "classname": "func_wall",
+          "rendermode": "4",
+          "renderamt": "255",
+          "spawnflags": "0",
+          "targetname": "cliprev"
+        },
+        {
+          "id": 33,
+          "line": 3739,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "HintTunnel",
+          "_tb_id": "2",
+          "_tb_layer_sort_index": "0",
+          "_tb_layer_hidden": "1"
+        },
+        {
+          "id": 34,
+          "line": 3823,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "Weapons",
+          "_tb_id": "3",
+          "_tb_layer_sort_index": "1"
+        },
+        {
+          "id": 35,
+          "line": 3831,
+          "classname": "buy_weapon",
+          "cost": "200",
+          "target": "springf",
+          "weapon": "58",
+          "cost2": "100",
+          "_tb_layer": "3"
+        },
+        {
+          "id": 36,
+          "line": 3849,
+          "classname": "weapon_wall",
+          "origin": "1528 160 188",
+          "sequence": "29",
+          "angle": "180",
+          "targetname": "springf",
+          "_tb_layer": "3"
+        },
+        {
+          "id": 37,
+          "line": 3858,
+          "classname": "weapon_wall",
+          "origin": "1448 336 188",
+          "sequence": "12",
+          "angle": "90",
+          "targetname": "m1a1",
+          "_tb_layer": "3"
+        },
+        {
+          "id": 38,
+          "line": 3867,
+          "classname": "buy_weapon",
+          "cost": "600",
+          "target": "m1a1",
+          "weapon": "13",
+          "cost2": "300",
+          "_tb_layer": "3"
+        },
+        {
+          "id": 39,
+          "line": 3885,
+          "classname": "weapon_wall",
+          "origin": "1576 704 188",
+          "sequence": "10",
+          "angle": "270",
+          "targetname": "kars",
+          "_tb_layer": "3"
+        },
+        {
+          "id": 40,
+          "line": 3894,
+          "classname": "buy_weapon",
+          "cost": "1800",
+          "target": "kars",
+          "weapon": "11",
+          "cost2": "900",
+          "_tb_layer": "3"
+        },
+        {
+          "id": 41,
+          "line": 3912,
+          "classname": "buy_weapon",
+          "cost": "1200",
+          "target": "thompson",
+          "weapon": "3",
+          "cost2": "600",
+          "_tb_layer": "3"
+        },
+        {
+          "id": 42,
+          "line": 3930,
+          "classname": "weapon_wall",
+          "origin": "1632 1512 188",
+          "sequence": "2",
+          "angle": "0",
+          "targetname": "thompson",
+          "_tb_layer": "3"
+        },
+        {
+          "id": 43,
+          "line": 3939,
+          "classname": "buy_weapon",
+          "cost": "1200",
+          "target": "sawn",
+          "weapon": "21",
+          "cost2": "600",
+          "_tb_layer": "3"
+        },
+        {
+          "id": 44,
+          "line": 3957,
+          "classname": "weapon_wall",
+          "origin": "1392 488 188",
+          "sequence": "20",
+          "angle": "270",
+          "targetname": "sawn",
+          "_tb_layer": "3"
+        },
+        {
+          "id": 45,
+          "line": 3966,
+          "classname": "weapon_wall",
+          "origin": "1024 1568 188",
+          "sequence": "14",
+          "angle": "0",
+          "targetname": "mp40",
+          "_tb_layer": "3"
+        },
+        {
+          "id": 46,
+          "line": 3975,
+          "classname": "buy_weapon",
+          "cost": "1300",
+          "target": "mp40",
+          "weapon": "15",
+          "cost2": "650",
+          "_tb_layer": "3"
+        },
+        {
+          "id": 47,
+          "line": 3993,
+          "classname": "buy_weapon",
+          "cost": "1500",
+          "target": "trench",
+          "weapon": "23",
+          "cost2": "750",
+          "_tb_layer": "3"
+        },
+        {
+          "id": 48,
+          "line": 4011,
+          "classname": "weapon_wall",
+          "origin": "1448 1184 444",
+          "sequence": "22",
+          "angle": "90",
+          "targetname": "trench",
+          "_tb_layer": "3"
+        },
+        {
+          "id": 49,
+          "line": 4020,
+          "classname": "buy_weapon",
+          "cost": "1500",
+          "target": "fg42",
+          "weapon": "9",
+          "cost2": "750",
+          "_tb_layer": "3"
+        },
+        {
+          "id": 50,
+          "line": 4038,
+          "classname": "weapon_wall",
+          "origin": "1960 1944 316",
+          "sequence": "8",
+          "angle": "270",
+          "targetname": "fg42",
+          "_tb_layer": "3"
+        },
+        {
+          "id": 51,
+          "line": 4047,
+          "classname": "buy_weapon",
+          "cost": "2200",
+          "target": "browning",
+          "weapon": "7",
+          "cost2": "1100",
+          "_tb_layer": "3"
+        },
+        {
+          "id": 52,
+          "line": 4065,
+          "classname": "weapon_wall",
+          "origin": "1136 2672 188",
+          "sequence": "6",
+          "angle": "0",
+          "targetname": "browning",
+          "_tb_layer": "3"
+        },
+        {
+          "id": 53,
+          "line": 4074,
+          "classname": "weapon_wall",
+          "origin": "1336 2672 188",
+          "sequence": "16",
+          "angle": "0",
+          "targetname": "shrek",
+          "_tb_layer": "3"
+        },
+        {
+          "id": 54,
+          "line": 4083,
+          "classname": "buy_weapon",
+          "cost": "1600",
+          "target": "shrek",
+          "weapon": "17",
+          "cost2": "800",
+          "_tb_layer": "3"
+        },
+        {
+          "id": 55,
+          "line": 4101,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "Props",
+          "_tb_id": "7",
+          "_tb_layer_sort_index": "3"
+        },
+        {
+          "id": 56,
+          "line": 4127,
+          "classname": "teddy_spawn",
+          "spawnflags": "1",
+          "noise": "sounds/misc/buy.wav",
+          "target": "1",
+          "origin": "1188 1576 288",
+          "_tb_layer": "7"
+        },
+        {
+          "id": 57,
+          "line": 4136,
+          "classname": "func_wall",
+          "_tb_layer": "7"
+        },
+        {
+          "id": 58,
+          "line": 4168,
+          "classname": "func_illusionary",
+          "_tb_layer": "7"
+        },
+        {
+          "id": 59,
+          "line": 4222,
+          "classname": "func_wall",
+          "_tb_layer": "7"
+        },
+        {
+          "id": 60,
+          "line": 4280,
+          "classname": "func_wall",
+          "renderamt": "255",
+          "rendermode": "4",
+          "spawnflags": "0",
+          "_tb_layer": "7"
+        },
+        {
+          "id": 61,
+          "line": 4297,
+          "classname": "func_wall",
+          "_tb_layer": "7"
+        },
+        {
+          "id": 62,
+          "line": 4320,
+          "classname": "teddy_spawn",
+          "spawnflags": "1",
+          "angles": "0 180 0",
+          "noise": "sounds/misc/buy.wav",
+          "target": "2",
+          "origin": "512 1704 16",
+          "_tb_layer": "7"
+        },
+        {
+          "id": 63,
+          "line": 4330,
+          "classname": "func_wall",
+          "_tb_layer": "7"
+        },
+        {
+          "id": 64,
+          "line": 4344,
+          "classname": "func_wall",
+          "_tb_layer": "7"
+        },
+        {
+          "id": 65,
+          "line": 4376,
+          "classname": "func_group",
+          "_tb_type": "_tb_group",
+          "_tb_name": "Splash",
+          "_tb_id": "12",
+          "_tb_linked_group_id": "{12e7bf1d-0195-42ce-9f19-a521e53711fd}",
+          "_tb_layer": "7"
+        },
+        {
+          "id": 66,
+          "line": 4439,
+          "classname": "light",
+          "origin": "0 0 0",
+          "_light": "255 255 255 64",
+          "_tb_group": "12"
+        },
+        {
+          "id": 67,
+          "line": 4446,
+          "classname": "func_wall",
+          "_tb_layer": "7"
+        },
+        {
+          "id": 68,
+          "line": 4496,
+          "classname": "func_group",
+          "_tb_type": "_tb_group",
+          "_tb_name": "TV",
+          "_tb_id": "13",
+          "_tb_linked_group_id": "{b68ff2db-10d7-4822-9447-5e14f2354b4b}",
+          "_tb_layer": "7"
+        },
+        {
+          "id": 69,
+          "line": 4505,
+          "classname": "func_wall",
+          "_tb_group": "13"
+        },
+        {
+          "id": 70,
+          "line": 4555,
+          "classname": "func_wall",
+          "_tb_group": "13"
+        },
+        {
+          "id": 71,
+          "line": 4596,
+          "classname": "func_group",
+          "_tb_type": "_tb_group",
+          "_tb_name": "Fan",
+          "_tb_id": "14",
+          "_tb_linked_group_id": "{72580a68-d7e9-48fa-99d7-7dd22cf7bbdf}",
+          "_tb_layer": "7"
+        },
+        {
+          "id": 72,
+          "line": 4605,
+          "classname": "func_wall",
+          "_tb_group": "14"
+        },
+        {
+          "id": 73,
+          "line": 4628,
+          "classname": "func_wall",
+          "_tb_group": "14"
+        },
+        {
+          "id": 74,
+          "line": 4669,
+          "classname": "func_wall",
+          "_tb_group": "14"
+        },
+        {
+          "id": 75,
+          "line": 4683,
+          "classname": "func_wall",
+          "_tb_layer": "7"
+        },
+        {
+          "id": 76,
+          "line": 4708,
+          "classname": "func_wall",
+          "_tb_layer": "7"
+        },
+        {
+          "id": 77,
+          "line": 4723,
+          "classname": "teddy_spawn",
+          "spawnflags": "1",
+          "angles": "0 90 0",
+          "noise": "sounds/music/tune1.wav",
+          "target": "3",
+          "origin": "1000 2100 264",
+          "_tb_layer": "7"
+        },
+        {
+          "id": 78,
+          "line": 4733,
+          "classname": "func_wall",
+          "renderamt": "255",
+          "rendermode": "4",
+          "spawnflags": "0",
+          "teddyremovetarget": "3",
+          "_tb_layer": "7"
+        },
+        {
+          "id": 79,
+          "line": 4751,
+          "classname": "func_wall",
+          "renderamt": "255",
+          "rendermode": "4",
+          "spawnflags": "0",
+          "teddyremovetarget": "2",
+          "_tb_layer": "7"
+        },
+        {
+          "id": 80,
+          "line": 4769,
+          "classname": "func_wall",
+          "renderamt": "255",
+          "rendermode": "4",
+          "spawnflags": "0",
+          "teddyremovetarget": "1",
+          "_tb_layer": "7"
+        },
+        {
+          "id": 81,
+          "line": 4787,
+          "classname": "item_radio",
+          "origin": "1783 1489 236",
+          "tune": "sounds/music/tune1.wav",
+          "length": "8.7",
+          "angles": "0 270 0",
+          "_tb_layer": "7"
+        },
+        {
+          "id": 82,
+          "line": 4796,
+          "classname": "func_wall",
+          "_tb_layer": "7"
+        },
+        {
+          "id": 83,
+          "line": 4810,
+          "classname": "func_ending",
+          "origin": "1736 1408 416",
+          "cost": "32000",
+          "model": "models/sprites/null.spr",
+          "_tb_layer": "7"
+        },
+        {
+          "id": 84,
+          "line": 4818,
+          "classname": "func_illusionary",
+          "_tb_layer": "7"
+        },
+        {
+          "id": 85,
+          "line": 4832,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "Zombies",
+          "_tb_id": "8",
+          "_tb_layer_sort_index": "4"
+        },
+        {
+          "id": 86,
+          "line": 4840,
+          "classname": "spawn_zombie",
+          "origin": "1168 80 40",
+          "target": "p1",
+          "targetname": "spawn",
+          "angles": "0 0 0",
+          "_tb_layer": "8"
+        },
+        {
+          "id": 87,
+          "line": 4849,
+          "classname": "spawn_zombie",
+          "origin": "1912 608 160",
+          "angles": "0 -90 0",
+          "target": "p3",
+          "targetname": "spawn",
+          "_tb_layer": "8"
+        },
+        {
+          "id": 88,
+          "line": 4858,
+          "classname": "spawn_zombie",
+          "origin": "1920 528 160",
+          "angles": "0 -90 0",
+          "target": "p2",
+          "targetname": "spawn",
+          "_tb_layer": "8"
+        },
+        {
+          "id": 89,
+          "line": 4867,
+          "classname": "spawn_zombie",
+          "origin": "1056 1384 152",
+          "targetname": "garden",
+          "spawnflags": "7",
+          "angles": "0 0 0",
+          "_tb_layer": "8"
+        },
+        {
+          "id": 90,
+          "line": 4876,
+          "classname": "spawn_zombie",
+          "origin": "1152 1336 152",
+          "targetname": "garden",
+          "spawnflags": "7",
+          "angles": "0 0 0",
+          "_tb_layer": "8"
+        },
+        {
+          "id": 91,
+          "line": 4885,
+          "classname": "spawn_zombie",
+          "origin": "1072 1272 152",
+          "targetname": "garden",
+          "spawnflags": "7",
+          "angles": "0 0 0",
+          "_tb_layer": "8"
+        },
+        {
+          "id": 92,
+          "line": 4894,
+          "classname": "spawn_zombie",
+          "origin": "680 1752 40",
+          "angles": "0 -90 0",
+          "targetname": "bunk",
+          "spawnflags": "1",
+          "target": "p8",
+          "_tb_layer": "8"
+        },
+        {
+          "id": 93,
+          "line": 4904,
+          "classname": "spawn_zombie",
+          "origin": "1864 1032 416",
+          "angles": "0 90 0",
+          "targetname": "pass",
+          "spawnflags": "1",
+          "target": "p9",
+          "_tb_layer": "8"
+        },
+        {
+          "id": 94,
+          "line": 4914,
+          "classname": "spawn_zombie",
+          "origin": "1864 1296 416",
+          "angles": "0 -90 0",
+          "targetname": "pass",
+          "spawnflags": "1",
+          "target": "p9",
+          "_tb_layer": "8"
+        },
+        {
+          "id": 95,
+          "line": 4924,
+          "classname": "spawn_zombie",
+          "origin": "1720 1824 416",
+          "angles": "0 180 0",
+          "targetname": "stair",
+          "spawnflags": "1",
+          "target": "p10",
+          "_tb_layer": "8"
+        },
+        {
+          "id": 96,
+          "line": 4934,
+          "classname": "spawn_zombie",
+          "origin": "552 2016 40",
+          "angles": "0 -180 0",
+          "targetname": "curve",
+          "spawnflags": "3",
+          "target": "b11",
+          "_tb_layer": "8"
+        },
+        {
+          "id": 97,
+          "line": 4944,
+          "classname": "spawn_zombie",
+          "origin": "416 2200 40",
+          "angles": "0 135 0",
+          "targetname": "curve",
+          "spawnflags": "3",
+          "target": "b12",
+          "_tb_layer": "8"
+        },
+        {
+          "id": 98,
+          "line": 4954,
+          "classname": "spawn_zombie",
+          "origin": "464 2280 40",
+          "angles": "0 135 0",
+          "targetname": "curve",
+          "spawnflags": "3",
+          "target": "b13",
+          "_tb_layer": "8"
+        },
+        {
+          "id": 99,
+          "line": 4964,
+          "classname": "spawn_zombie",
+          "origin": "1744 2616 288",
+          "angles": "0 180 0",
+          "targetname": "back",
+          "spawnflags": "3",
+          "target": "back-b2",
+          "_tb_layer": "8"
+        },
+        {
+          "id": 100,
+          "line": 4974,
+          "classname": "spawn_zombie",
+          "origin": "1744 2416 288",
+          "angles": "0 180 0",
+          "targetname": "back",
+          "spawnflags": "3",
+          "target": "back-b1",
+          "_tb_layer": "8"
+        },
+        {
+          "id": 101,
+          "line": 4984,
+          "classname": "spawn_zombie",
+          "origin": "1912 1360 160",
+          "angles": "0 180 0",
+          "target": "b6",
+          "spawnflags": "3",
+          "targetname": "kitchen",
+          "_tb_layer": "8"
+        },
+        {
+          "id": 102,
+          "line": 4994,
+          "classname": "spawn_zombie",
+          "origin": "1912 1208 160",
+          "angles": "0 180 0",
+          "target": "b5",
+          "spawnflags": "3",
+          "targetname": "kitchen",
+          "_tb_layer": "8"
+        },
+        {
+          "id": 103,
+          "line": 5004,
+          "classname": "spawn_zombie",
+          "origin": "1912 736 160",
+          "angles": "0 90 0",
+          "target": "p4",
+          "targetname": "spawn",
+          "_tb_layer": "8"
+        },
+        {
+          "id": 104,
+          "line": 5013,
+          "classname": "spawn_zombie",
+          "origin": "592 96 40",
+          "angles": "0 0 0",
+          "targetname": "living",
+          "spawnflags": "1",
+          "target": "p5a",
+          "_tb_layer": "8"
+        },
+        {
+          "id": 105,
+          "line": 5023,
+          "classname": "spawn_zombie",
+          "origin": "656 72 40",
+          "angles": "0 0 0",
+          "targetname": "living",
+          "spawnflags": "1",
+          "target": "p6a",
+          "_tb_layer": "8"
+        },
+        {
+          "id": 106,
+          "line": 5033,
+          "classname": "spawn_zombie",
+          "origin": "720 48 40",
+          "angles": "0 0 0",
+          "targetname": "living",
+          "spawnflags": "1",
+          "target": "p7a",
+          "_tb_layer": "8"
+        },
+        {
+          "id": 107,
+          "line": 5043,
+          "classname": "spawn_zombie",
+          "origin": "1912 2048 288",
+          "angles": "0 180 0",
+          "targetname": "bed",
+          "spawnflags": "7",
+          "_tb_layer": "8"
+        },
+        {
+          "id": 108,
+          "line": 5052,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "Doors",
+          "_tb_id": "10",
+          "_tb_layer_sort_index": "6"
+        },
+        {
+          "id": 109,
+          "line": 5060,
+          "classname": "func_door_nzp",
+          "cost": "750",
+          "angles": "-90 0 0",
+          "target": "garden",
+          "target2": "living",
+          "wayTarget": "LiveG",
+          "_tb_layer": "10"
+        },
+        {
+          "id": 110,
+          "line": 5079,
+          "classname": "func_door_nzp",
+          "cost": "500",
+          "angles": "-90 0 0",
+          "target": "living",
+          "target2": "spawn",
+          "wayTarget": "spawnL",
+          "_tb_layer": "10"
+        },
+        {
+          "id": 111,
+          "line": 5098,
+          "classname": "func_door_nzp",
+          "cost": "500",
+          "angles": "-90 0 0",
+          "target": "kitchen",
+          "target2": "spawn",
+          "wayTarget": "spawnK",
+          "_tb_layer": "10"
+        },
+        {
+          "id": 112,
+          "line": 5117,
+          "classname": "func_door_nzp",
+          "cost": "750",
+          "angles": "-90 0 0",
+          "target": "garden",
+          "target2": "kitchen",
+          "wayTarget": "kitchG",
+          "_tb_layer": "10"
+        },
+        {
+          "id": 113,
+          "line": 5136,
+          "classname": "func_door_nzp",
+          "angles": "-90 0 0",
+          "spawnflags": "64",
+          "target": "bunk",
+          "wayTarget": "GardenB",
+          "_tb_layer": "10"
+        },
+        {
+          "id": 114,
+          "line": 5154,
+          "classname": "func_door_nzp",
+          "cost": "1000",
+          "angles": "-90 0 0",
+          "target": "curve",
+          "target2": "back",
+          "wayTarget": "tunnel",
+          "_tb_layer": "10"
+        },
+        {
+          "id": 115,
+          "line": 5173,
+          "classname": "func_door_nzp",
+          "spawnflags": "64",
+          "angles": "-90 0 0",
+          "_tb_layer": "10"
+        },
+        {
+          "id": 116,
+          "line": 5189,
+          "classname": "func_door_nzp",
+          "cost": "1000",
+          "angles": "-90 0 0",
+          "target": "stair",
+          "target2": "pass",
+          "wayTarget": "ups",
+          "_tb_layer": "10"
+        },
+        {
+          "id": 117,
+          "line": 5208,
+          "classname": "func_door_nzp",
+          "cost": "1000",
+          "spawnflags": "0",
+          "target": "bed",
+          "target2": "stair",
+          "wayTarget": "bedU",
+          "angles": "-90 0 0",
+          "_tb_layer": "10"
+        },
+        {
+          "id": 118,
+          "line": 5228,
+          "classname": "func_door_nzp",
+          "angles": "-90 0 0",
+          "cost": "1000",
+          "target": "back",
+          "target2": "bed",
+          "wayTarget": "bedO",
+          "_tb_layer": "10"
+        },
+        {
+          "id": 119,
+          "line": 5247,
+          "classname": "func_door_nzp",
+          "angles": "-90 0 0",
+          "cost": "1000",
+          "wayTarget": "powa",
+          "_tb_layer": "10"
+        },
+        {
+          "id": 120,
+          "line": 5264,
+          "classname": "func_door_nzp",
+          "cost": "1000",
+          "angles": "-90 0 0",
+          "target": "pass",
+          "target2": "spawn",
+          "wayTarget": "spawnS",
+          "_tb_layer": "10"
+        },
+        {
+          "id": 121,
+          "line": 5283,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "Mbox",
+          "_tb_id": "15",
+          "_tb_layer_sort_index": "7"
+        },
+        {
+          "id": 122,
+          "line": 5300,
+          "classname": "func_wall",
+          "_tb_layer": "15"
+        },
+        {
+          "id": 123,
+          "line": 5314,
+          "classname": "func_wall",
+          "_tb_layer": "15"
+        },
+        {
+          "id": 124,
+          "line": 5391,
+          "classname": "func_wall",
+          "_tb_layer": "15"
+        },
+        {
+          "id": 125,
+          "line": 5405,
+          "classname": "mystery_box",
+          "angles": "0 270 0",
+          "spawnflags": "2",
+          "origin": "1368 344 160",
+          "_tb_layer": "15"
+        },
+        {
+          "id": 126,
+          "line": 5413,
+          "classname": "mystery_box_tp_spot",
+          "origin": "116 2500 40",
+          "angles": "0 45 0",
+          "_tb_layer": "15"
+        },
+        {
+          "id": 127,
+          "line": 5420,
+          "classname": "func_wall",
+          "_tb_layer": "15"
+        },
+        {
+          "id": 128,
+          "line": 5434,
+          "classname": "mystery_box_tp_spot",
+          "origin": "1520 2512 160",
+          "angles": "0 270 0",
+          "_tb_layer": "15"
+        },
+        {
+          "id": 129,
+          "line": 5441,
+          "classname": "func_wall",
+          "_tb_layer": "15"
+        },
+        {
+          "id": 130,
+          "line": 5455,
+          "classname": "mystery_box_tp_spot",
+          "origin": "1496 1920 288",
+          "angles": "0 90 0",
+          "_tb_layer": "15"
+        },
+        {
+          "id": 131,
+          "line": 5462,
+          "classname": "mystery_box_tp_spot",
+          "origin": "1360 1704 160",
+          "angles": "0 270 0",
+          "_tb_layer": "15"
+        },
+        {
+          "id": 132,
+          "line": 5469,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "Perks",
+          "_tb_id": "16",
+          "_tb_layer_sort_index": "8"
+        },
+        {
+          "id": 133,
+          "line": 5528,
+          "classname": "perk_double",
+          "origin": "1792 1060 160",
+          "angles": "0 180 0",
+          "model": "models/machines/hl_scale/double_tap_2.mdl",
+          "_tb_layer": "16"
+        },
+        {
+          "id": 134,
+          "line": 5536,
+          "classname": "perk_deadshot",
+          "origin": "888 1080 160",
+          "angles": "0 45 0",
+          "model": "models/machines/hl_scale/deadshot.mdl",
+          "_tb_layer": "16"
+        },
+        {
+          "id": 135,
+          "line": 5544,
+          "classname": "perk_speed",
+          "angles": "0 225 0",
+          "origin": "1360 624 160",
+          "model": "models/machines/hl_scale/speed_cola.mdl",
+          "_tb_layer": "16"
+        },
+        {
+          "id": 136,
+          "line": 5552,
+          "classname": "perk_staminup",
+          "origin": "1676 1324 416",
+          "angles": "0 225 0",
+          "model": "models/machines/hl_scale/staminup.mdl",
+          "_tb_layer": "16"
+        },
+        {
+          "id": 137,
+          "line": 5560,
+          "classname": "perk_pap",
+          "angles": "0 270 0",
+          "origin": "1768 2160 288",
+          "model": "models/machines/hl_scale/pap/p_machine.mdl",
+          "skin": "0",
+          "oldorigin": "0 0 8",
+          "oldz": "30",
+          "weapon2model": "models/machines/hl_scale/pap/p_roller.mdl",
+          "box1": "7.5 0.1 6.0",
+          "door_model_name": "models/machines/hl_scale/pap/p_flag.mdl",
+          "box3": "-18 -31.7 18",
+          "box2": "17 0 6",
+          "cost": "5000",
+          "oldmodel": "sounds/machines/packapunch/upgrade.wav",
+          "spawnflags": "3",
+          "_tb_layer": "16"
+        },
+        {
+          "id": 138,
+          "line": 5579,
+          "classname": "perk_revive",
+          "angles": "0 90 0",
+          "origin": "936 2112 160",
+          "model": "models/machines/hl_scale/quick_revive.mdl",
+          "killtarget": "cliprev",
+          "_tb_layer": "16"
+        },
+        {
+          "id": 139,
+          "line": 5588,
+          "classname": "perk_juggernog",
+          "angles": "0 180 0",
+          "origin": "504 1744 40",
+          "model": "models/machines/hl_scale/juggernog.mdl",
+          "_tb_layer": "16"
+        },
+        {
+          "id": 140,
+          "line": 5596,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "Hint2",
+          "_tb_id": "17",
+          "_tb_layer_sort_index": "9",
+          "_tb_layer_hidden": "1"
+        },
+        {
+          "id": 141,
+          "line": 5791,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "Barrier",
+          "_tb_id": "18",
+          "_tb_layer_sort_index": "10"
+        },
+        {
+          "id": 142,
+          "line": 5889,
+          "classname": "item_barricade",
+          "origin": "1636 156 192",
+          "angles": "0 90 0",
+          "targetname": "b1",
+          "model": "models/misc/window.mdl",
+          "_tb_layer": "18"
+        },
+        {
+          "id": 143,
+          "line": 5898,
+          "classname": "item_barricade",
+          "origin": "1708 364 192",
+          "angles": "0 180 0",
+          "targetname": "b3",
+          "model": "models/misc/window.mdl",
+          "_tb_layer": "18"
+        },
+        {
+          "id": 144,
+          "line": 5907,
+          "classname": "item_barricade",
+          "origin": "1580 892 192",
+          "targetname": "b4",
+          "model": "models/misc/window.mdl",
+          "angles": "0 180 0",
+          "_tb_layer": "18"
+        },
+        {
+          "id": 145,
+          "line": 5916,
+          "classname": "item_barricade",
+          "origin": "1708 300 192",
+          "angles": "0 180 0",
+          "targetname": "b2",
+          "model": "models/misc/window.mdl",
+          "_tb_layer": "18"
+        },
+        {
+          "id": 146,
+          "line": 5925,
+          "classname": "item_barricade",
+          "origin": "1812 1204 192",
+          "targetname": "b5",
+          "model": "models/misc/window.mdl",
+          "angles": "0 180 0",
+          "_tb_layer": "18"
+        },
+        {
+          "id": 147,
+          "line": 5934,
+          "classname": "item_barricade",
+          "origin": "1060 284 192",
+          "angles": "0 90 0",
+          "targetname": "b7",
+          "model": "models/misc/window.mdl",
+          "_tb_layer": "18"
+        },
+        {
+          "id": 148,
+          "line": 5943,
+          "classname": "item_barricade",
+          "origin": "1212 284 192",
+          "angles": "0 90 0",
+          "targetname": "b9",
+          "model": "models/misc/window.mdl",
+          "_tb_layer": "18"
+        },
+        {
+          "id": 149,
+          "line": 5952,
+          "classname": "item_barricade",
+          "origin": "1140 284 192",
+          "angles": "0 90 0",
+          "targetname": "b8",
+          "model": "models/misc/window.mdl",
+          "_tb_layer": "18"
+        },
+        {
+          "id": 150,
+          "line": 5961,
+          "classname": "item_barricade",
+          "origin": "524 1508 72",
+          "angles": "0 180 0",
+          "targetname": "b10",
+          "model": "models/misc/window.mdl",
+          "_tb_layer": "18"
+        },
+        {
+          "id": 151,
+          "line": 5970,
+          "classname": "item_barricade",
+          "origin": "268 2012 72",
+          "angles": "0 180 0",
+          "targetname": "b11",
+          "model": "models/misc/window.mdl",
+          "_tb_layer": "18"
+        },
+        {
+          "id": 152,
+          "line": 5979,
+          "classname": "item_barricade",
+          "origin": "332 2284 72",
+          "angles": "0 135 0",
+          "targetname": "b12",
+          "model": "models/misc/window.mdl",
+          "_tb_layer": "18"
+        },
+        {
+          "id": 153,
+          "line": 5988,
+          "classname": "item_barricade",
+          "origin": "1708 1156 448",
+          "angles": "0 180 0",
+          "targetname": "bbb",
+          "model": "models/misc/window.mdl",
+          "_tb_layer": "18"
+        },
+        {
+          "id": 154,
+          "line": 5997,
+          "classname": "item_barricade",
+          "origin": "1524 1740 448",
+          "angles": "0 270 0",
+          "targetname": "bccc",
+          "model": "models/misc/window.mdl",
+          "_tb_layer": "18"
+        },
+        {
+          "id": 155,
+          "line": 6006,
+          "classname": "item_barricade",
+          "origin": "1540 2612 320",
+          "angles": "0 180 0",
+          "targetname": "back-b2",
+          "spawnflags": "1",
+          "model": "models/misc/window.mdl",
+          "_tb_layer": "18"
+        },
+        {
+          "id": 156,
+          "line": 6016,
+          "classname": "item_barricade",
+          "origin": "1540 2412 320",
+          "angles": "0 180 0",
+          "targetname": "back-b1",
+          "spawnflags": "1",
+          "model": "models/misc/window.mdl",
+          "_tb_layer": "18"
+        },
+        {
+          "id": 157,
+          "line": 6026,
+          "classname": "item_barricade",
+          "origin": "396 2348 72",
+          "angles": "0 135 0",
+          "targetname": "b13",
+          "model": "models/misc/window.mdl",
+          "_tb_layer": "18"
+        },
+        {
+          "id": 158,
+          "line": 6035,
+          "classname": "item_barricade",
+          "origin": "1812 1364 192",
+          "targetname": "b6",
+          "model": "models/misc/window.mdl",
+          "angles": "0 180 0",
+          "_tb_layer": "18"
+        },
+        {
+          "id": 159,
+          "line": 6044,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "Light",
+          "_tb_id": "19",
+          "_tb_layer_sort_index": "11"
+        },
+        {
+          "id": 160,
+          "line": 6052,
+          "classname": "light",
+          "_light": "255 255 127 144",
+          "delay": "2",
+          "origin": "1160 616 240",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 161,
+          "line": 6060,
+          "classname": "light",
+          "_light": "255 255 127 144",
+          "delay": "2",
+          "origin": "984 1440 240",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 162,
+          "line": 6068,
+          "classname": "light",
+          "_light": "255 255 127 144",
+          "delay": "2",
+          "origin": "1624 1312 240",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 163,
+          "line": 6076,
+          "classname": "light",
+          "_light": "255 255 127 144",
+          "delay": "2",
+          "origin": "1496 800 240",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 164,
+          "line": 6084,
+          "classname": "light",
+          "_light": "255 255 127 144",
+          "delay": "2",
+          "origin": "1568 352 240",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 165,
+          "line": 6092,
+          "classname": "light",
+          "_light": "255 255 127 144",
+          "delay": "2",
+          "origin": "1296 1656 176",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 166,
+          "line": 6100,
+          "classname": "light",
+          "_light": "255 255 127 144",
+          "delay": "2",
+          "origin": "1176 352 240",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 167,
+          "line": 6108,
+          "classname": "light",
+          "_light": "255 255 127 144",
+          "delay": "2",
+          "origin": "1240 1184 240",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 168,
+          "line": 6116,
+          "classname": "light",
+          "_light": "255 255 127 144",
+          "delay": "2",
+          "origin": "1648 656 280",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 169,
+          "line": 6124,
+          "classname": "light",
+          "_light": "255 255 127 144",
+          "delay": "2",
+          "origin": "1640 904 432",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 170,
+          "line": 6132,
+          "classname": "light",
+          "_light": "255 255 127 144",
+          "delay": "2",
+          "origin": "1536 1176 480",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 171,
+          "line": 6140,
+          "classname": "light",
+          "_light": "255 255 127 144",
+          "delay": "2",
+          "origin": "1696 1448 448",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 172,
+          "line": 6148,
+          "classname": "light",
+          "_light": "255 255 127 144",
+          "delay": "2",
+          "origin": "1704 1672 392",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 173,
+          "line": 6156,
+          "classname": "light",
+          "_light": "255 255 127 144",
+          "delay": "2",
+          "origin": "1600 1944 304",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 174,
+          "line": 6164,
+          "classname": "light",
+          "_light": "255 255 127 144",
+          "delay": "2",
+          "origin": "1544 2280 280",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 175,
+          "line": 6172,
+          "classname": "light",
+          "_light": "255 255 127 144",
+          "delay": "2",
+          "origin": "1888 1888 328",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 176,
+          "line": 6180,
+          "classname": "light",
+          "_light": "255 255 127 144",
+          "delay": "2",
+          "origin": "1400 2512 280",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 177,
+          "line": 6188,
+          "classname": "light",
+          "_light": "255 255 127 144",
+          "delay": "2",
+          "origin": "1040 2328 232",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 178,
+          "line": 6196,
+          "classname": "light",
+          "_light": "255 255 127 144",
+          "delay": "2",
+          "origin": "152 2272 72",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 179,
+          "line": 6204,
+          "classname": "light",
+          "_light": "255 255 127 144",
+          "delay": "2",
+          "origin": "488 2504 72",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 180,
+          "line": 6212,
+          "classname": "light",
+          "_light": "255 255 127 144",
+          "delay": "2",
+          "origin": "144 1888 72",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 181,
+          "line": 6220,
+          "classname": "light",
+          "_light": "255 255 127 144",
+          "delay": "2",
+          "origin": "400 1456 80",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 182,
+          "line": 6228,
+          "classname": "light",
+          "_light": "255 255 127 144",
+          "delay": "2",
+          "origin": "152 1552 80",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 183,
+          "line": 6236,
+          "classname": "light",
+          "_light": "255 255 127 144",
+          "delay": "2",
+          "origin": "456 1744 80",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 184,
+          "line": 6244,
+          "classname": "light",
+          "_light": "255 255 127 144",
+          "delay": "2",
+          "origin": "688 1344 168",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 185,
+          "line": 6252,
+          "classname": "light",
+          "_light": "255 255 127 144",
+          "delay": "2",
+          "origin": "1112 864 240",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 186,
+          "line": 6260,
+          "classname": "light",
+          "_light": "255 255 127 144",
+          "delay": "2",
+          "origin": "552 2016 96",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 187,
+          "line": 6268,
+          "classname": "light",
+          "_light": "255 255 127 144",
+          "delay": "2",
+          "origin": "488 2192 96",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 188,
+          "line": 6276,
+          "classname": "light",
+          "_light": "255 255 127 144",
+          "delay": "2",
+          "origin": "1912 896 216",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 189,
+          "line": 6284,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "Horde",
+          "_tb_id": "20",
+          "_tb_layer_sort_index": "12"
+        },
+        {
+          "id": 190,
+          "line": 6292,
+          "classname": "zombie_horde_point",
+          "origin": "1200 2496 152",
+          "_tb_layer": "20"
+        },
+        {
+          "id": 191,
+          "line": 6298,
+          "classname": "zombie_horde_point",
+          "origin": "208 2232 40",
+          "_tb_layer": "20"
+        },
+        {
+          "id": 192,
+          "line": 6304,
+          "classname": "zombie_horde_point",
+          "origin": "1312 1112 160",
+          "_tb_layer": "20"
+        },
+        {
+          "id": 193,
+          "line": 6310,
+          "classname": "zombie_horde_point",
+          "origin": "1528 1432 160",
+          "_tb_layer": "20"
+        },
+        {
+          "id": 194,
+          "line": 6316,
+          "classname": "zombie_horde_point",
+          "origin": "1584 272 160",
+          "_tb_layer": "20"
+        },
+        {
+          "id": 195,
+          "line": 6322,
+          "classname": "zombie_horde_point",
+          "origin": "1520 1120 416",
+          "_tb_layer": "20"
+        },
+        {
+          "id": 196,
+          "line": 6328,
+          "classname": "zombie_horde_point",
+          "origin": "1696 1544 416",
+          "_tb_layer": "20"
+        },
+        {
+          "id": 197,
+          "line": 6334,
+          "classname": "zombie_horde_point",
+          "origin": "1296 512 160",
+          "_tb_layer": "20"
+        },
+        {
+          "id": 198,
+          "line": 6340,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "zones",
+          "_tb_id": "21",
+          "_tb_layer_sort_index": "13"
+        },
+        {
+          "id": 199,
+          "line": 6348,
+          "classname": "spawn_zone",
+          "zone_name": "spawn",
+          "zone_target": "spawn",
+          "door_way_targets": "spawnL, spawnK, spawnS",
+          "adjacent_zones": "speed, double, stam",
+          "_tb_layer": "21"
+        },
+        {
+          "id": 200,
+          "line": 6366,
+          "classname": "spawn_zone",
+          "adjacent_zones": "end, spawn",
+          "zone_name": "stam",
+          "zone_target": "pass",
+          "door_way_targets": "spawnS, ups",
+          "_tb_layer": "21"
+        },
+        {
+          "id": 201,
+          "line": 6384,
+          "classname": "spawn_zone",
+          "zone_name": "end",
+          "adjacent_zones": "bump, stam",
+          "zone_target": "stair",
+          "door_way_targets": "bedO, ups",
+          "_tb_layer": "21"
+        },
+        {
+          "id": 202,
+          "line": 6411,
+          "classname": "spawn_zone",
+          "zone_name": "bump",
+          "adjacent_zones": "end, quick",
+          "zone_target": "bed",
+          "door_way_targets": "bedU, bedO",
+          "_tb_layer": "21"
+        },
+        {
+          "id": 203,
+          "line": 6429,
+          "classname": "spawn_zone",
+          "adjacent_zones": "bunker, bump",
+          "zone_name": "quick",
+          "zone_target": "back",
+          "door_way_targets": "bedO",
+          "_tb_layer": "21"
+        },
+        {
+          "id": 204,
+          "line": 6447,
+          "classname": "spawn_zone",
+          "zone_name": "bunker",
+          "zone_target": "curve",
+          "adjacent_zones": "quick, jugg",
+          "door_way_targets": "tunnel",
+          "_tb_layer": "21"
+        },
+        {
+          "id": 205,
+          "line": 6465,
+          "classname": "spawn_zone",
+          "adjacent_zones": "bunker, courtyard",
+          "zone_target": "bunk",
+          "zone_name": "jugg",
+          "door_way_targets": "GardenB, tunnel",
+          "_tb_layer": "21"
+        },
+        {
+          "id": 206,
+          "line": 6483,
+          "classname": "spawn_zone",
+          "adjacent_zones": "speed, jugg, double",
+          "zone_name": "courtyard",
+          "zone_target": "garden",
+          "door_way_targets": "kitchG, LiveG, GardenB",
+          "_tb_layer": "21"
+        },
+        {
+          "id": 207,
+          "line": 6501,
+          "classname": "spawn_zone",
+          "adjacent_zones": "spawn, courtyard",
+          "zone_target": "living",
+          "zone_name": "speed",
+          "door_way_targets": "LiveG, spawnL",
+          "_tb_layer": "21"
+        },
+        {
+          "id": 208,
+          "line": 6519,
+          "classname": "spawn_zone",
+          "adjacent_zones": "spawn, courtyard",
+          "zone_name": "double",
+          "zone_target": "kitchen",
+          "door_way_targets": "kitchG, spawnK",
+          "_tb_layer": "21"
+        }
+      ]
+    },
+    {
+      "source": {
+        "path": "source/maps/b1oodv3/b1oodv3.map",
+        "blob": "d2970a6be55eb98fe8fe669d20f596e32ea84256"
+      },
+      "map": "b1oodv3",
+      "entity_count": 101,
+      "edge_count": 19,
+      "unresolved_ref_count": 0,
+      "graph": {
+        "edges": [
+          {
+            "from": 11,
+            "key": "target",
+            "value": "r1",
+            "to": 89
+          },
+          {
+            "from": 11,
+            "key": "target",
+            "value": "r1",
+            "to": 90
+          },
+          {
+            "from": 12,
+            "key": "target",
+            "value": "r2",
+            "to": 83
+          },
+          {
+            "from": 12,
+            "key": "target",
+            "value": "r2",
+            "to": 84
+          },
+          {
+            "from": 62,
+            "key": "target",
+            "value": "garand",
+            "to": 63
+          },
+          {
+            "from": 64,
+            "key": "target",
+            "value": "kar",
+            "to": 65
+          },
+          {
+            "from": 67,
+            "key": "target",
+            "value": "scop",
+            "to": 66
+          },
+          {
+            "from": 69,
+            "key": "target",
+            "value": "thomp",
+            "to": 68
+          },
+          {
+            "from": 71,
+            "key": "target",
+            "value": "sawn",
+            "to": 70
+          },
+          {
+            "from": 73,
+            "key": "target",
+            "value": "357",
+            "to": 72
+          },
+          {
+            "from": 83,
+            "key": "target",
+            "value": "b",
+            "to": 7
+          },
+          {
+            "from": 84,
+            "key": "target",
+            "value": "b_1",
+            "to": 8
+          },
+          {
+            "from": 85,
+            "key": "target",
+            "value": "b2",
+            "to": 14
+          },
+          {
+            "from": 86,
+            "key": "target",
+            "value": "b1",
+            "to": 13
+          },
+          {
+            "from": 87,
+            "key": "target",
+            "value": "b4",
+            "to": 15
+          },
+          {
+            "from": 88,
+            "key": "target",
+            "value": "b3",
+            "to": 16
+          },
+          {
+            "from": 89,
+            "key": "target",
+            "value": "b5",
+            "to": 17
+          },
+          {
+            "from": 90,
+            "key": "target",
+            "value": "b6",
+            "to": 30
+          },
+          {
+            "from": 92,
+            "key": "killtarget",
+            "value": "revclip",
+            "to": 24
+          }
+        ],
+        "unresolved": []
+      },
+      "entities": [
+        {
+          "id": 0,
+          "line": 4,
+          "classname": "worldspawn",
+          "_tb_mod": "nzp",
+          "chaptertitle": "B1ood",
+          "location": "Crime Scene",
+          "date": "2nd January 1994",
+          "person": "BCDeshiG",
+          "mapversion": "220",
+          "wad": "../../textures/wad/4all.wad;../../textures/wad/b1oodv4.wad;../../textures/wad/zhlt.wad",
+          "_generator": "J.A.C.K. 1.1.1064 (vpHalfLife)"
+        },
+        {
+          "id": 1,
+          "line": 1240,
+          "classname": "info_player_1_spawn",
+          "angles": "0 90 0",
+          "origin": "472 64 120"
+        },
+        {
+          "id": 2,
+          "line": 1246,
+          "classname": "light",
+          "_light": "255 255 255 160",
+          "origin": "512 408 200"
+        },
+        {
+          "id": 3,
+          "line": 1252,
+          "classname": "light",
+          "_light": "255 255 255 160",
+          "origin": "512 856 136"
+        },
+        {
+          "id": 4,
+          "line": 1258,
+          "classname": "func_wall"
+        },
+        {
+          "id": 5,
+          "line": 1271,
+          "classname": "func_wall"
+        },
+        {
+          "id": 6,
+          "line": 1284,
+          "classname": "light",
+          "_light": "255 100 100 200",
+          "origin": "632 1880 176"
+        },
+        {
+          "id": 7,
+          "line": 1290,
+          "classname": "item_barricade",
+          "targetname": "b",
+          "origin": "456 1888 64"
+        },
+        {
+          "id": 8,
+          "line": 1296,
+          "classname": "item_barricade",
+          "angles": "0 90 0",
+          "targetname": "b_1",
+          "origin": "536 1584 64"
+        },
+        {
+          "id": 9,
+          "line": 1303,
+          "classname": "func_wall",
+          "renderamt": "255",
+          "rendermode": "4",
+          "spawnflags": "0"
+        },
+        {
+          "id": 10,
+          "line": 1373,
+          "classname": "func_wall",
+          "renderamt": "255",
+          "rendermode": "4",
+          "spawnflags": "0"
+        },
+        {
+          "id": 11,
+          "line": 1470,
+          "classname": "func_door_nzp",
+          "angles": "-90 0 0",
+          "cost": "750",
+          "target": "r1",
+          "wayTarget": "door1"
+        },
+        {
+          "id": 12,
+          "line": 1487,
+          "classname": "func_door_nzp",
+          "angles": "-90 0 0",
+          "cost": "1000",
+          "target": "r2",
+          "wayTarget": "door2"
+        },
+        {
+          "id": 13,
+          "line": 1504,
+          "classname": "item_barricade",
+          "angles": "0 180 0",
+          "targetname": "b1",
+          "origin": "824 320 152"
+        },
+        {
+          "id": 14,
+          "line": 1511,
+          "classname": "item_barricade",
+          "angles": "0 180 0",
+          "targetname": "b2",
+          "origin": "824 136 152"
+        },
+        {
+          "id": 15,
+          "line": 1518,
+          "classname": "item_barricade",
+          "angles": "0 0 0",
+          "targetname": "b4",
+          "origin": "200 176 152"
+        },
+        {
+          "id": 16,
+          "line": 1525,
+          "classname": "item_barricade",
+          "angles": "0 0 0",
+          "targetname": "b3",
+          "origin": "200 272 152"
+        },
+        {
+          "id": 17,
+          "line": 1532,
+          "classname": "item_barricade",
+          "angles": "0 270 0",
+          "targetname": "b5",
+          "origin": "336 1080 64"
+        },
+        {
+          "id": 18,
+          "line": 1539,
+          "classname": "light",
+          "_light": "255 160 160 200",
+          "origin": "272 1520 176"
+        },
+        {
+          "id": 19,
+          "line": 1545,
+          "classname": "light",
+          "_light": "255 160 160 50",
+          "origin": "896 1472 176"
+        },
+        {
+          "id": 20,
+          "line": 1551,
+          "classname": "light",
+          "spawnflags": "0",
+          "_light": "255 255 255 80",
+          "origin": "488 2424 185"
+        },
+        {
+          "id": 21,
+          "line": 1558,
+          "classname": "info_player_2_spawn",
+          "angles": "0 90 0",
+          "origin": "552 64 120"
+        },
+        {
+          "id": 22,
+          "line": 1564,
+          "classname": "info_player_3_spawn",
+          "angles": "0 90 0",
+          "origin": "392 64 120"
+        },
+        {
+          "id": 23,
+          "line": 1570,
+          "classname": "info_player_4_spawn",
+          "angles": "0 90 0",
+          "origin": "632 64 120"
+        },
+        {
+          "id": 24,
+          "line": 1576,
+          "classname": "func_wall",
+          "rendermode": "4",
+          "renderamt": "255",
+          "spawnflags": "0",
+          "targetname": "revclip"
+        },
+        {
+          "id": 25,
+          "line": 1592,
+          "classname": "zombie_horde_point",
+          "origin": "864 1936 32"
+        },
+        {
+          "id": 26,
+          "line": 1597,
+          "classname": "zombie_horde_point",
+          "origin": "208 1312 32"
+        },
+        {
+          "id": 27,
+          "line": 1602,
+          "classname": "zombie_horde_point",
+          "origin": "384 1024 32"
+        },
+        {
+          "id": 28,
+          "line": 1607,
+          "classname": "zombie_horde_point",
+          "origin": "768 704 32"
+        },
+        {
+          "id": 29,
+          "line": 1612,
+          "classname": "zombie_horde_point",
+          "origin": "504 80 120"
+        },
+        {
+          "id": 30,
+          "line": 1617,
+          "classname": "item_barricade",
+          "angles": "0 270 0",
+          "targetname": "b6",
+          "origin": "248 1080 64"
+        },
+        {
+          "id": 31,
+          "line": 1624,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "Splash",
+          "_tb_id": "13",
+          "_tb_layer_sort_index": "0"
+        },
+        {
+          "id": 32,
+          "line": 1632,
+          "classname": "func_group",
+          "_tb_type": "_tb_group",
+          "_tb_name": "Splash",
+          "_tb_id": "23",
+          "_tb_layer": "13"
+        },
+        {
+          "id": 33,
+          "line": 1694,
+          "classname": "light",
+          "_light": "255 255 255 200",
+          "origin": "0 0 0",
+          "_tb_group": "23"
+        },
+        {
+          "id": 34,
+          "line": 1701,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "Models",
+          "_tb_id": "14",
+          "_tb_layer_sort_index": "1"
+        },
+        {
+          "id": 35,
+          "line": 1709,
+          "classname": "place_model",
+          "model": "models/props/sandbags.mdl",
+          "angles": "0 0 0",
+          "origin": "451.153 1910.33 0.420109",
+          "_tb_layer": "14"
+        },
+        {
+          "id": 36,
+          "line": 1717,
+          "classname": "place_model",
+          "model": "models/props/sandbags.mdl",
+          "angles": "0 180 0",
+          "origin": "449.39 1866.14 0.420109",
+          "_tb_layer": "14"
+        },
+        {
+          "id": 37,
+          "line": 1725,
+          "classname": "place_model",
+          "model": "models/props/sandbags.mdl",
+          "angles": "0 90 0",
+          "origin": "513.668 1579.15 0.420109",
+          "_tb_layer": "14"
+        },
+        {
+          "id": 38,
+          "line": 1733,
+          "classname": "place_model",
+          "model": "models/props/sandbags.mdl",
+          "angles": "0 270 0",
+          "origin": "557.856 1577.39 0.420109",
+          "_tb_layer": "14"
+        },
+        {
+          "id": 39,
+          "line": 1741,
+          "classname": "place_model",
+          "model": "models/props/shelf.mdl",
+          "angles": "0 270 0",
+          "origin": "86 1280 40",
+          "_tb_layer": "14"
+        },
+        {
+          "id": 40,
+          "line": 1749,
+          "classname": "place_model",
+          "model": "models/props/dummy.mdl",
+          "angles": "0 180 0",
+          "origin": "444 1416 48",
+          "_tb_layer": "14"
+        },
+        {
+          "id": 41,
+          "line": 1757,
+          "classname": "place_model",
+          "model": "models/props/dummy.mdl",
+          "angles": "0 144 0",
+          "origin": "444 1532 48",
+          "_tb_layer": "14"
+        },
+        {
+          "id": 42,
+          "line": 1765,
+          "classname": "place_model",
+          "model": "models/props/dummy.mdl",
+          "angles": "0 219 0",
+          "origin": "444 1456 48",
+          "_tb_layer": "14"
+        },
+        {
+          "id": 43,
+          "line": 1773,
+          "classname": "place_model",
+          "model": "models/props/dummy.mdl",
+          "angles": "0 200 0",
+          "origin": "812 436 136",
+          "_tb_layer": "14"
+        },
+        {
+          "id": 44,
+          "line": 1781,
+          "classname": "place_model",
+          "model": "models/props/radiator.mdl",
+          "angles": "0 180 0",
+          "origin": "824 224 104",
+          "_tb_layer": "14"
+        },
+        {
+          "id": 45,
+          "line": 1789,
+          "classname": "place_model",
+          "model": "models/props/radiator.mdl",
+          "angles": "0 270 0",
+          "origin": "512 1078 24",
+          "_tb_layer": "14"
+        },
+        {
+          "id": 46,
+          "line": 1797,
+          "classname": "place_model",
+          "model": "models/props/radiator.mdl",
+          "angles": "0 90 0",
+          "origin": "704 1584 24",
+          "_tb_layer": "14"
+        },
+        {
+          "id": 47,
+          "line": 1805,
+          "classname": "place_model",
+          "model": "models/props/lamp_ndu.mdl",
+          "origin": "512 408 208",
+          "_tb_layer": "14"
+        },
+        {
+          "id": 48,
+          "line": 1812,
+          "classname": "place_model",
+          "model": "models/props/lamp_ndu.mdl",
+          "origin": "512 856 208",
+          "_tb_layer": "14"
+        },
+        {
+          "id": 49,
+          "line": 1819,
+          "classname": "place_model",
+          "model": "models/props/lamp_ndu.mdl",
+          "origin": "896 1472 208",
+          "_tb_layer": "14"
+        },
+        {
+          "id": 50,
+          "line": 1826,
+          "classname": "place_model",
+          "model": "models/props/lamp_ndu.mdl",
+          "origin": "272 1520 208",
+          "_tb_layer": "14"
+        },
+        {
+          "id": 51,
+          "line": 1833,
+          "classname": "place_model",
+          "model": "models/props/lamp_ndu.mdl",
+          "origin": "632 1880 208",
+          "_tb_layer": "14"
+        },
+        {
+          "id": 52,
+          "line": 1840,
+          "classname": "place_model",
+          "model": "models/props/lamp_ndu.mdl",
+          "origin": "488 2424 208",
+          "_tb_layer": "14"
+        },
+        {
+          "id": 53,
+          "line": 1847,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "PropSpam1",
+          "_tb_id": "15",
+          "_tb_layer_sort_index": "2"
+        },
+        {
+          "id": 54,
+          "line": 1864,
+          "classname": "place_model",
+          "model": "models/props/metal_chair.mdl",
+          "angles": "0 0 270",
+          "origin": "320 824 60",
+          "_tb_layer": "15"
+        },
+        {
+          "id": 55,
+          "line": 1872,
+          "classname": "place_model",
+          "model": "models/props/radio.mdl",
+          "angles": "0 270 0",
+          "origin": "360 808 52",
+          "_tb_layer": "15"
+        },
+        {
+          "id": 56,
+          "line": 1880,
+          "classname": "place_model",
+          "model": "models/props/metal_chair.mdl",
+          "angles": "0 180 0",
+          "origin": "392 848 48",
+          "_tb_layer": "15"
+        },
+        {
+          "id": 57,
+          "line": 1888,
+          "classname": "func_wall",
+          "_tb_layer": "15"
+        },
+        {
+          "id": 58,
+          "line": 1938,
+          "classname": "func_wall",
+          "_tb_layer": "15"
+        },
+        {
+          "id": 59,
+          "line": 2096,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "PropSpam2",
+          "_tb_id": "16",
+          "_tb_layer_sort_index": "3"
+        },
+        {
+          "id": 60,
+          "line": 2104,
+          "classname": "func_wall",
+          "_tb_layer": "16"
+        },
+        {
+          "id": 61,
+          "line": 2145,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "Weapons",
+          "_tb_id": "17",
+          "_tb_layer_sort_index": "4"
+        },
+        {
+          "id": 62,
+          "line": 2153,
+          "classname": "buy_weapon",
+          "cost": "600",
+          "weapon": "12",
+          "cost2": "300",
+          "target": "garand",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 63,
+          "line": 2171,
+          "classname": "weapon_wall",
+          "angles": "0 180 0",
+          "sequence": "11",
+          "origin": "640 8 144",
+          "targetname": "garand",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 64,
+          "line": 2180,
+          "classname": "buy_weapon",
+          "cost": "200",
+          "weapon": "2",
+          "cost2": "100",
+          "target": "kar",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 65,
+          "line": 2198,
+          "classname": "weapon_wall",
+          "angles": "0 180 0",
+          "sequence": "1",
+          "origin": "384 8 144",
+          "targetname": "kar",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 66,
+          "line": 2207,
+          "classname": "weapon_wall",
+          "sequence": "10",
+          "origin": "672 1384 56",
+          "targetname": "scop",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 67,
+          "line": 2215,
+          "classname": "buy_weapon",
+          "cost": "1800",
+          "weapon": "11",
+          "cost2": "900",
+          "target": "scop",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 68,
+          "line": 2233,
+          "classname": "weapon_wall",
+          "angles": "0 270 0",
+          "sequence": "2",
+          "origin": "952 704 56",
+          "targetname": "thomp",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 69,
+          "line": 2242,
+          "classname": "buy_weapon",
+          "cost": "1200",
+          "weapon": "3",
+          "cost2": "600",
+          "target": "thomp",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 70,
+          "line": 2260,
+          "classname": "weapon_wall",
+          "angles": "0 180 0",
+          "sequence": "20",
+          "origin": "288 1960 56",
+          "targetname": "sawn",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 71,
+          "line": 2269,
+          "classname": "buy_weapon",
+          "cost": "1200",
+          "weapon": "21",
+          "cost2": "600",
+          "target": "sawn",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 72,
+          "line": 2287,
+          "classname": "weapon_wall",
+          "angles": "0 270 0",
+          "sequence": "3",
+          "origin": "888 1728 56",
+          "targetname": "357",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 73,
+          "line": 2296,
+          "classname": "buy_weapon",
+          "cost": "2400",
+          "weapon": "4",
+          "cost2": "1200",
+          "target": "357",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 74,
+          "line": 2314,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "MBOX",
+          "_tb_id": "18",
+          "_tb_layer_sort_index": "5"
+        },
+        {
+          "id": 75,
+          "line": 2349,
+          "classname": "mystery_box",
+          "angles": "0 90 0",
+          "spawnflags": "2",
+          "origin": "56 1028 44",
+          "_tb_layer": "18"
+        },
+        {
+          "id": 76,
+          "line": 2357,
+          "classname": "mystery_box_tp_spot",
+          "origin": "752 432 100",
+          "_tb_layer": "18"
+        },
+        {
+          "id": 77,
+          "line": 2363,
+          "classname": "mystery_box_tp_spot",
+          "angles": "0 270 0",
+          "origin": "776 2416 76",
+          "_tb_layer": "18"
+        },
+        {
+          "id": 78,
+          "line": 2370,
+          "classname": "func_wall",
+          "_tb_layer": "18"
+        },
+        {
+          "id": 79,
+          "line": 2384,
+          "classname": "func_wall",
+          "_tb_layer": "18"
+        },
+        {
+          "id": 80,
+          "line": 2398,
+          "classname": "func_wall",
+          "_tb_layer": "18"
+        },
+        {
+          "id": 81,
+          "line": 2412,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "HINT",
+          "_tb_id": "19",
+          "_tb_layer_sort_index": "6"
+        },
+        {
+          "id": 82,
+          "line": 2429,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "Zombies",
+          "_tb_id": "20",
+          "_tb_layer_sort_index": "7"
+        },
+        {
+          "id": 83,
+          "line": 2437,
+          "classname": "spawn_zombie",
+          "spawnflags": "3",
+          "target": "b",
+          "targetname": "r2",
+          "origin": "392 1888 32",
+          "_tb_layer": "20"
+        },
+        {
+          "id": 84,
+          "line": 2446,
+          "classname": "spawn_zombie",
+          "angles": "0 90 0",
+          "spawnflags": "3",
+          "target": "b_1",
+          "targetname": "r2",
+          "origin": "536 1528 32",
+          "_tb_layer": "20"
+        },
+        {
+          "id": 85,
+          "line": 2456,
+          "classname": "spawn_zombie",
+          "angles": "0 180 0",
+          "spawnflags": "2",
+          "target": "b2",
+          "origin": "909.089 124.939 120",
+          "_tb_layer": "20"
+        },
+        {
+          "id": 86,
+          "line": 2465,
+          "classname": "spawn_zombie",
+          "angles": "0 180 0",
+          "spawnflags": "2",
+          "target": "b1",
+          "origin": "907.089 315.939 120",
+          "_tb_layer": "20"
+        },
+        {
+          "id": 87,
+          "line": 2474,
+          "classname": "spawn_zombie",
+          "spawnflags": "2",
+          "target": "b4",
+          "origin": "124 144 120",
+          "_tb_layer": "20"
+        },
+        {
+          "id": 88,
+          "line": 2482,
+          "classname": "spawn_zombie",
+          "spawnflags": "2",
+          "target": "b3",
+          "origin": "120 281 120",
+          "_tb_layer": "20"
+        },
+        {
+          "id": 89,
+          "line": 2490,
+          "classname": "spawn_zombie",
+          "angles": "0 270 0",
+          "spawnflags": "3",
+          "targetname": "r1",
+          "target": "b5",
+          "origin": "336 1152 32",
+          "_tb_layer": "20"
+        },
+        {
+          "id": 90,
+          "line": 2500,
+          "classname": "spawn_zombie",
+          "angles": "0 270 0",
+          "spawnflags": "3",
+          "targetname": "r1",
+          "target": "b6",
+          "origin": "248 1152 32",
+          "_tb_layer": "20"
+        },
+        {
+          "id": 91,
+          "line": 2510,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "Perks",
+          "_tb_id": "22",
+          "_tb_layer_sort_index": "9"
+        },
+        {
+          "id": 92,
+          "line": 2570,
+          "classname": "perk_revive",
+          "angles": "0 315 0",
+          "origin": "228 420 120",
+          "model": "models/machines/hl_scale/quick_revive.mdl",
+          "killtarget": "revclip",
+          "_tb_layer": "22"
+        },
+        {
+          "id": 93,
+          "line": 2579,
+          "classname": "perk_double",
+          "origin": "60 704 32",
+          "model": "models/machines/hl_scale/double_tap_2.mdl",
+          "_tb_layer": "22"
+        },
+        {
+          "id": 94,
+          "line": 2586,
+          "classname": "perk_deadshot",
+          "origin": "88 1360 32",
+          "model": "models/machines/hl_scale/deadshot.mdl",
+          "_tb_layer": "22"
+        },
+        {
+          "id": 95,
+          "line": 2593,
+          "classname": "perk_speed",
+          "angles": "0 270 0",
+          "origin": "272 1768 32",
+          "model": "models/machines/hl_scale/speed_cola.mdl",
+          "_tb_layer": "22"
+        },
+        {
+          "id": 96,
+          "line": 2601,
+          "classname": "power_switch",
+          "angles": "0 270 0",
+          "origin": "408 1748 52",
+          "model": "models/machines/hl_scale/power_switch.mdl",
+          "_tb_layer": "22"
+        },
+        {
+          "id": 97,
+          "line": 2609,
+          "classname": "perk_staminup",
+          "angles": "0 225 0",
+          "origin": "924 2076 32",
+          "model": "models/machines/hl_scale/staminup.mdl",
+          "_tb_layer": "22"
+        },
+        {
+          "id": 98,
+          "line": 2617,
+          "classname": "perk_flopper",
+          "angles": "0 136 0",
+          "origin": "932 1812 32",
+          "model": "models/machines/hl_scale/flopper.mdl",
+          "_tb_layer": "22"
+        },
+        {
+          "id": 99,
+          "line": 2625,
+          "classname": "perk_juggernog",
+          "origin": "776 1440 32",
+          "model": "models/machines/hl_scale/juggernog.mdl",
+          "_tb_layer": "22"
+        },
+        {
+          "id": 100,
+          "line": 2632,
+          "classname": "perk_pap",
+          "origin": "488 2416 96",
+          "spawnflags": "3",
+          "model": "models/machines/hl_scale/pap/p_machine.mdl",
+          "oldorigin": "0 0 8",
+          "_tb_layer": "22"
+        }
+      ]
+    },
+    {
+      "source": {
+        "path": "source/maps/b1oodv4/b1oodv4.map",
+        "blob": "7f54e041b1c04ba4b3f5c755366a9cf65a94779a"
+      },
+      "map": "b1oodv4",
+      "entity_count": 172,
+      "edge_count": 42,
+      "unresolved_ref_count": 0,
+      "graph": {
+        "edges": [
+          {
+            "from": 15,
+            "key": "target",
+            "value": "b1",
+            "to": 73
+          },
+          {
+            "from": 16,
+            "key": "target",
+            "value": "b2",
+            "to": 71
+          },
+          {
+            "from": 17,
+            "key": "target",
+            "value": "b4",
+            "to": 72
+          },
+          {
+            "from": 18,
+            "key": "target",
+            "value": "b5",
+            "to": 74
+          },
+          {
+            "from": 19,
+            "key": "target",
+            "value": "b3",
+            "to": 70
+          },
+          {
+            "from": 20,
+            "key": "target",
+            "value": "path1",
+            "to": 76
+          },
+          {
+            "from": 21,
+            "key": "target",
+            "value": "b8",
+            "to": 78
+          },
+          {
+            "from": 22,
+            "key": "target",
+            "value": "b7",
+            "to": 77
+          },
+          {
+            "from": 23,
+            "key": "target",
+            "value": "b9",
+            "to": 79
+          },
+          {
+            "from": 24,
+            "key": "target",
+            "value": "b10",
+            "to": 80
+          },
+          {
+            "from": 25,
+            "key": "target",
+            "value": "b11",
+            "to": 81
+          },
+          {
+            "from": 26,
+            "key": "target",
+            "value": "b12",
+            "to": 82
+          },
+          {
+            "from": 28,
+            "key": "killtarget",
+            "value": "revclip",
+            "to": 11
+          },
+          {
+            "from": 39,
+            "key": "target",
+            "value": "stairs",
+            "to": 18
+          },
+          {
+            "from": 39,
+            "key": "target",
+            "value": "stairs",
+            "to": 149
+          },
+          {
+            "from": 39,
+            "key": "target",
+            "value": "stairs",
+            "to": 150
+          },
+          {
+            "from": 40,
+            "key": "target",
+            "value": "inter",
+            "to": 20
+          },
+          {
+            "from": 40,
+            "key": "target",
+            "value": "inter",
+            "to": 151
+          },
+          {
+            "from": 41,
+            "key": "target",
+            "value": "mid",
+            "to": 21
+          },
+          {
+            "from": 41,
+            "key": "target",
+            "value": "mid",
+            "to": 22
+          },
+          {
+            "from": 41,
+            "key": "target",
+            "value": "mid",
+            "to": 23
+          },
+          {
+            "from": 41,
+            "key": "target",
+            "value": "mid",
+            "to": 24
+          },
+          {
+            "from": 41,
+            "key": "target",
+            "value": "mid",
+            "to": 152
+          },
+          {
+            "from": 41,
+            "key": "target",
+            "value": "mid",
+            "to": 153
+          },
+          {
+            "from": 42,
+            "key": "target",
+            "value": "end",
+            "to": 25
+          },
+          {
+            "from": 42,
+            "key": "target",
+            "value": "end",
+            "to": 26
+          },
+          {
+            "from": 42,
+            "key": "target",
+            "value": "end",
+            "to": 154
+          },
+          {
+            "from": 42,
+            "key": "target",
+            "value": "end",
+            "to": 155
+          },
+          {
+            "from": 42,
+            "key": "target",
+            "value": "end",
+            "to": 156
+          },
+          {
+            "from": 42,
+            "key": "target",
+            "value": "end",
+            "to": 157
+          },
+          {
+            "from": 42,
+            "key": "target",
+            "value": "end",
+            "to": 158
+          },
+          {
+            "from": 76,
+            "key": "target",
+            "value": "b6",
+            "to": 75
+          },
+          {
+            "from": 89,
+            "key": "target",
+            "value": "kars",
+            "to": 88
+          },
+          {
+            "from": 91,
+            "key": "target",
+            "value": "357",
+            "to": 90
+          },
+          {
+            "from": 92,
+            "key": "target",
+            "value": "garand",
+            "to": 94
+          },
+          {
+            "from": 93,
+            "key": "target",
+            "value": "kar98k",
+            "to": 95
+          },
+          {
+            "from": 97,
+            "key": "target",
+            "value": "bar",
+            "to": 96
+          },
+          {
+            "from": 99,
+            "key": "target",
+            "value": "betty",
+            "to": 98
+          },
+          {
+            "from": 101,
+            "key": "target",
+            "value": "thomp",
+            "to": 100
+          },
+          {
+            "from": 103,
+            "key": "target",
+            "value": "shrek",
+            "to": 102
+          },
+          {
+            "from": 105,
+            "key": "target",
+            "value": "bowie",
+            "to": 104
+          },
+          {
+            "from": 106,
+            "key": "target",
+            "value": "flame",
+            "to": 107
+          }
+        ],
+        "unresolved": []
+      },
+      "entities": [
+        {
+          "id": 0,
+          "line": 4,
+          "mapversion": "220",
+          "classname": "worldspawn",
+          "wad": "../../textures/wad/b1oodv4.wad;../../textures/wad/zhlt.wad",
+          "person": "BCDeshiG",
+          "date": "2nd January 1994",
+          "location": "Crime Scene?",
+          "chaptertitle": "B1ooD",
+          "message": "That damn place again, of all places..."
+        },
+        {
+          "id": 1,
+          "line": 1091,
+          "classname": "info_player_4_spawn",
+          "origin": "912 176 32",
+          "angles": "0 90 0"
+        },
+        {
+          "id": 2,
+          "line": 1097,
+          "classname": "info_player_2_spawn",
+          "origin": "848 176 32",
+          "angles": "0 90 0"
+        },
+        {
+          "id": 3,
+          "line": 1103,
+          "classname": "info_player_1_spawn",
+          "origin": "784 176 32",
+          "angles": "0 90 0"
+        },
+        {
+          "id": 4,
+          "line": 1109,
+          "classname": "info_player_3_spawn",
+          "origin": "720 176 32",
+          "angles": "0 90 0"
+        },
+        {
+          "id": 5,
+          "line": 1115,
+          "classname": "func_wall"
+        },
+        {
+          "id": 6,
+          "line": 1183,
+          "classname": "func_wall"
+        },
+        {
+          "id": 7,
+          "line": 1205,
+          "classname": "func_wall"
+        },
+        {
+          "id": 8,
+          "line": 1290,
+          "classname": "func_wall"
+        },
+        {
+          "id": 9,
+          "line": 1358,
+          "classname": "func_wall"
+        },
+        {
+          "id": 10,
+          "line": 1410,
+          "classname": "func_wall"
+        },
+        {
+          "id": 11,
+          "line": 1423,
+          "classname": "func_wall",
+          "rendermode": "4",
+          "renderamt": "255",
+          "targetname": "revclip"
+        },
+        {
+          "id": 12,
+          "line": 1438,
+          "classname": "func_group",
+          "_tb_type": "_tb_group",
+          "_tb_name": "Splash",
+          "_tb_id": "27",
+          "_tb_linked_group_id": "{d851ee91-09e6-4e71-8832-31b2f0fe9633}"
+        },
+        {
+          "id": 13,
+          "line": 1500,
+          "classname": "light",
+          "origin": "0 0 0",
+          "_light": "255 255 255 64",
+          "_tb_group": "27"
+        },
+        {
+          "id": 14,
+          "line": 1507,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "Zombies",
+          "_tb_id": "13",
+          "_tb_layer_sort_index": "0"
+        },
+        {
+          "id": 15,
+          "line": 1515,
+          "classname": "spawn_zombie",
+          "origin": "576 288 128",
+          "spawnflags": "2",
+          "target": "b1",
+          "targetname": "spawn",
+          "_tb_layer": "13"
+        },
+        {
+          "id": 16,
+          "line": 1524,
+          "classname": "spawn_zombie",
+          "origin": "752 48 128",
+          "angles": "0 90 0",
+          "spawnflags": "2",
+          "target": "b2",
+          "targetname": "spawn",
+          "_tb_layer": "13"
+        },
+        {
+          "id": 17,
+          "line": 1534,
+          "classname": "spawn_zombie",
+          "origin": "1056 288 128",
+          "angles": "0 180 0",
+          "spawnflags": "2",
+          "target": "b4",
+          "targetname": "spawn",
+          "_tb_layer": "13"
+        },
+        {
+          "id": 18,
+          "line": 1544,
+          "classname": "spawn_zombie",
+          "origin": "440 376 96",
+          "angles": "0 90 0",
+          "spawnflags": "3",
+          "target": "b5",
+          "targetname": "stairs",
+          "_tb_layer": "13"
+        },
+        {
+          "id": 19,
+          "line": 1554,
+          "classname": "spawn_zombie",
+          "origin": "880 48 128",
+          "angles": "0 90 0",
+          "spawnflags": "2",
+          "target": "b3",
+          "targetname": "spawn",
+          "_tb_layer": "13"
+        },
+        {
+          "id": 20,
+          "line": 1564,
+          "classname": "spawn_zombie",
+          "origin": "256 1072 96",
+          "angles": "0 180 0",
+          "spawnflags": "3",
+          "target": "path1",
+          "targetname": "inter",
+          "_tb_layer": "13"
+        },
+        {
+          "id": 21,
+          "line": 1574,
+          "classname": "spawn_zombie",
+          "origin": "576 1392 96",
+          "angles": "0 -90 0",
+          "spawnflags": "3",
+          "target": "b8",
+          "targetname": "mid",
+          "_tb_layer": "13"
+        },
+        {
+          "id": 22,
+          "line": 1584,
+          "classname": "spawn_zombie",
+          "origin": "504 1392 96",
+          "angles": "0 -90 0",
+          "spawnflags": "3",
+          "target": "b7",
+          "targetname": "mid",
+          "_tb_layer": "13"
+        },
+        {
+          "id": 23,
+          "line": 1594,
+          "classname": "spawn_zombie",
+          "origin": "1048 1064 144",
+          "angles": "0 -180 0",
+          "spawnflags": "3",
+          "target": "b9",
+          "targetname": "mid",
+          "_tb_layer": "13"
+        },
+        {
+          "id": 24,
+          "line": 1604,
+          "classname": "spawn_zombie",
+          "origin": "1048 992 144",
+          "angles": "0 -180 0",
+          "spawnflags": "3",
+          "target": "b10",
+          "targetname": "mid",
+          "_tb_layer": "13"
+        },
+        {
+          "id": 25,
+          "line": 1614,
+          "classname": "spawn_zombie",
+          "origin": "680 1696 96",
+          "angles": "0 90 0",
+          "spawnflags": "3",
+          "target": "b11",
+          "targetname": "end",
+          "_tb_layer": "13"
+        },
+        {
+          "id": 26,
+          "line": 1624,
+          "classname": "spawn_zombie",
+          "origin": "496 2104 96",
+          "angles": "0 0 0",
+          "spawnflags": "3",
+          "target": "b12",
+          "targetname": "end",
+          "_tb_layer": "13"
+        },
+        {
+          "id": 27,
+          "line": 1634,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "Perks",
+          "_tb_id": "14",
+          "_tb_layer_sort_index": "1"
+        },
+        {
+          "id": 28,
+          "line": 1721,
+          "classname": "perk_revive",
+          "origin": "684 412 32",
+          "angles": "0 315 0",
+          "model": "models/machines/hl_scale/quick_revive.mdl",
+          "killtarget": "revclip",
+          "_tb_layer": "14"
+        },
+        {
+          "id": 29,
+          "line": 1730,
+          "classname": "perk_double",
+          "origin": "16 648 96",
+          "model": "models/machines/hl_scale/double_tap_2.mdl",
+          "_tb_layer": "14"
+        },
+        {
+          "id": 30,
+          "line": 1737,
+          "classname": "perk_mule",
+          "origin": "944 888 96",
+          "model": "models/machines/hl_scale/mulekick.mdl",
+          "angles": "0 180 0",
+          "_tb_layer": "14"
+        },
+        {
+          "id": 31,
+          "line": 1745,
+          "classname": "perk_pap",
+          "origin": "632 2640 32",
+          "spawnflags": "3",
+          "model": "models/machines/hl_scale/pap/p_machine.mdl",
+          "oldorigin": "0 0 8",
+          "box1": "7.5 0.1 6.0",
+          "box2": "17 0 6",
+          "box3": "-18 -31.7 18",
+          "_tb_layer": "14"
+        },
+        {
+          "id": 32,
+          "line": 1757,
+          "classname": "perk_juggernog",
+          "origin": "920 1668 96",
+          "model": "models/machines/hl_scale/juggernog.mdl",
+          "_tb_layer": "14"
+        },
+        {
+          "id": 33,
+          "line": 1764,
+          "classname": "perk_speed",
+          "angles": "0 270 0",
+          "origin": "416 1992 96",
+          "model": "models/machines/hl_scale/speed_cola.mdl",
+          "_tb_layer": "14"
+        },
+        {
+          "id": 34,
+          "line": 1772,
+          "classname": "power_switch",
+          "angles": "0 270 0",
+          "origin": "552 1976 116",
+          "model": "models/machines/hl_scale/power_switch.mdl",
+          "_tb_layer": "14"
+        },
+        {
+          "id": 35,
+          "line": 1780,
+          "classname": "perk_deadshot",
+          "origin": "232 1576 96",
+          "model": "models/machines/hl_scale/deadshot.mdl",
+          "_tb_layer": "14"
+        },
+        {
+          "id": 36,
+          "line": 1787,
+          "classname": "perk_flopper",
+          "angles": "0 135 0",
+          "origin": "1080 2032 96",
+          "model": "models/machines/hl_scale/flopper.mdl",
+          "_tb_layer": "14"
+        },
+        {
+          "id": 37,
+          "line": 1795,
+          "classname": "perk_staminup",
+          "angles": "0 225 0",
+          "origin": "1072 2304 96",
+          "model": "models/machines/hl_scale/staminup.mdl",
+          "_tb_layer": "14"
+        },
+        {
+          "id": 38,
+          "line": 1803,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "Doors",
+          "_tb_id": "15",
+          "_tb_layer_sort_index": "2"
+        },
+        {
+          "id": 39,
+          "line": 1811,
+          "classname": "func_door_nzp",
+          "cost": "500",
+          "angles": "-90 0 0",
+          "target": "stairs",
+          "_tb_layer": "15"
+        },
+        {
+          "id": 40,
+          "line": 1828,
+          "classname": "func_door_nzp",
+          "angles": "-90 0 0",
+          "cost": "750",
+          "target": "inter",
+          "_tb_layer": "15"
+        },
+        {
+          "id": 41,
+          "line": 1845,
+          "classname": "func_door_nzp",
+          "angles": "-90 0 0",
+          "cost": "750",
+          "target": "mid",
+          "_tb_layer": "15"
+        },
+        {
+          "id": 42,
+          "line": 1862,
+          "classname": "func_door_nzp",
+          "angles": "-90 0 0",
+          "cost": "1000",
+          "target": "end",
+          "_tb_layer": "15"
+        },
+        {
+          "id": 43,
+          "line": 1888,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "Models",
+          "_tb_id": "16",
+          "_tb_layer_sort_index": "3"
+        },
+        {
+          "id": 44,
+          "line": 1905,
+          "classname": "explosive_barrel",
+          "origin": "936 832 64",
+          "model": "models/props/Barrel_m.mdl",
+          "skin": "1",
+          "_tb_layer": "16"
+        },
+        {
+          "id": 45,
+          "line": 1913,
+          "classname": "explosive_barrel",
+          "origin": "14 600 64",
+          "model": "models/props/Barrel_m.mdl",
+          "skin": "1",
+          "_tb_layer": "16"
+        },
+        {
+          "id": 46,
+          "line": 1921,
+          "classname": "func_wall",
+          "_tb_layer": "16"
+        },
+        {
+          "id": 47,
+          "line": 1935,
+          "classname": "func_wall",
+          "_tb_layer": "16"
+        },
+        {
+          "id": 48,
+          "line": 1949,
+          "classname": "place_model",
+          "model": "models/props/shelf.mdl",
+          "angles": "0 270 0",
+          "skin": "0",
+          "sequence": "0",
+          "origin": "232 1504 104",
+          "_tb_layer": "16"
+        },
+        {
+          "id": 49,
+          "line": 1959,
+          "classname": "place_model",
+          "origin": "592 2128 64",
+          "model": "models/props/sandbags.mdl",
+          "angles": "0 180 0",
+          "_tb_layer": "16"
+        },
+        {
+          "id": 50,
+          "line": 1967,
+          "classname": "place_model",
+          "origin": "592 2080 64",
+          "model": "models/props/sandbags.mdl",
+          "angles": "0 0 0",
+          "_tb_layer": "16"
+        },
+        {
+          "id": 51,
+          "line": 1975,
+          "classname": "place_model",
+          "origin": "656 1800 64",
+          "model": "models/props/sandbags.mdl",
+          "angles": "0 90 0",
+          "_tb_layer": "16"
+        },
+        {
+          "id": 52,
+          "line": 1983,
+          "classname": "place_model",
+          "origin": "704 1800 64",
+          "model": "models/props/sandbags.mdl",
+          "angles": "0 -90 0",
+          "_tb_layer": "16"
+        },
+        {
+          "id": 53,
+          "line": 1991,
+          "classname": "place_model",
+          "skin": "0",
+          "sequence": "0",
+          "origin": "416 1744 272",
+          "model": "models/props/lamp_ndu.mdl",
+          "_tb_layer": "16"
+        },
+        {
+          "id": 54,
+          "line": 2000,
+          "classname": "place_model",
+          "skin": "0",
+          "sequence": "0",
+          "origin": "776 2104 272",
+          "model": "models/props/lamp_ndu.mdl",
+          "_tb_layer": "16"
+        },
+        {
+          "id": 55,
+          "line": 2009,
+          "classname": "place_model",
+          "skin": "0",
+          "sequence": "0",
+          "origin": "1040 1696 272",
+          "model": "models/props/lamp_ndu.mdl",
+          "_tb_layer": "16"
+        },
+        {
+          "id": 56,
+          "line": 2018,
+          "classname": "place_model",
+          "origin": "968 672 0",
+          "model": "models/props/lamp_oil.mdl",
+          "_tb_layer": "16"
+        },
+        {
+          "id": 57,
+          "line": 2025,
+          "classname": "place_model",
+          "skin": "0",
+          "sequence": "0",
+          "origin": "816 344 200",
+          "model": "models/props/lamp_ndu.mdl",
+          "spawnflags": "1",
+          "_tb_layer": "16"
+        },
+        {
+          "id": 58,
+          "line": 2035,
+          "classname": "place_model",
+          "skin": "0",
+          "sequence": "0",
+          "origin": "504 640 200",
+          "model": "models/props/lamp_ndu.mdl",
+          "spawnflags": "1",
+          "_tb_layer": "16"
+        },
+        {
+          "id": 59,
+          "line": 2045,
+          "classname": "place_model",
+          "skin": "0",
+          "sequence": "0",
+          "origin": "128 712 200",
+          "model": "models/props/lamp_ndu.mdl",
+          "spawnflags": "1",
+          "_tb_layer": "16"
+        },
+        {
+          "id": 60,
+          "line": 2055,
+          "classname": "place_model",
+          "skin": "0",
+          "sequence": "0",
+          "origin": "696 1072 256",
+          "model": "models/props/lamp_ndu.mdl",
+          "spawnflags": "1",
+          "_tb_layer": "16"
+        },
+        {
+          "id": 61,
+          "line": 2065,
+          "classname": "place_model",
+          "origin": "912 2680 0",
+          "model": "models/props/lamp_oil.mdl",
+          "_tb_layer": "16"
+        },
+        {
+          "id": 62,
+          "line": 2072,
+          "classname": "func_wall",
+          "_tb_layer": "16"
+        },
+        {
+          "id": 63,
+          "line": 2095,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "Barriers",
+          "_tb_id": "17",
+          "_tb_layer_sort_index": "4"
+        },
+        {
+          "id": 64,
+          "line": 2148,
+          "classname": "func_wall",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 65,
+          "line": 2162,
+          "classname": "func_wall",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 66,
+          "line": 2176,
+          "classname": "func_illusionary",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 67,
+          "line": 2190,
+          "classname": "func_illusionary",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 68,
+          "line": 2204,
+          "classname": "func_illusionary",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 69,
+          "line": 2218,
+          "classname": "func_wall",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 70,
+          "line": 2232,
+          "classname": "item_barricade",
+          "origin": "876 124 160",
+          "model": "models/misc/window.mdl",
+          "angles": "0 90 0",
+          "spawnflags": "1",
+          "targetname": "b3",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 71,
+          "line": 2242,
+          "classname": "item_barricade",
+          "origin": "756 124 160",
+          "model": "models/misc/window.mdl",
+          "angles": "0 90 0",
+          "spawnflags": "1",
+          "targetname": "b2",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 72,
+          "line": 2252,
+          "classname": "item_barricade",
+          "origin": "980 284 160",
+          "model": "models/misc/window.mdl",
+          "angles": "0 180 0",
+          "spawnflags": "1",
+          "targetname": "b4",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 73,
+          "line": 2262,
+          "classname": "item_barricade",
+          "origin": "652 284 160",
+          "model": "models/misc/window.mdl",
+          "angles": "0 0 0",
+          "spawnflags": "1",
+          "targetname": "b1",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 74,
+          "line": 2272,
+          "classname": "item_barricade",
+          "origin": "436 452 128",
+          "model": "models/misc/window.mdl",
+          "angles": "0 90 0",
+          "targetname": "b5",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 75,
+          "line": 2281,
+          "classname": "item_barricade",
+          "origin": "124 908 128",
+          "model": "models/misc/window.mdl",
+          "angles": "0 -90 0",
+          "targetname": "b6",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 76,
+          "line": 2290,
+          "classname": "path_corner",
+          "origin": "120 1072 120",
+          "targetname": "path1",
+          "target": "b6",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 77,
+          "line": 2298,
+          "classname": "item_barricade",
+          "origin": "508 1252 128",
+          "model": "models/misc/window.mdl",
+          "angles": "0 -90 0",
+          "targetname": "b7",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 78,
+          "line": 2307,
+          "classname": "item_barricade",
+          "origin": "580 1252 128",
+          "model": "models/misc/window.mdl",
+          "angles": "0 -90 0",
+          "targetname": "b8",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 79,
+          "line": 2316,
+          "classname": "item_barricade",
+          "origin": "964 1060 176",
+          "model": "models/misc/window.mdl",
+          "angles": "0 180 0",
+          "targetname": "b9",
+          "spawnflags": "1",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 80,
+          "line": 2326,
+          "classname": "item_barricade",
+          "origin": "964 988 176",
+          "model": "models/misc/window.mdl",
+          "angles": "0 180 0",
+          "targetname": "b10",
+          "spawnflags": "1",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 81,
+          "line": 2336,
+          "classname": "item_barricade",
+          "origin": "676 1804 128",
+          "model": "models/misc/window.mdl",
+          "angles": "0 90 0",
+          "targetname": "b11",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 82,
+          "line": 2345,
+          "classname": "item_barricade",
+          "origin": "596 2108 128",
+          "model": "models/misc/window.mdl",
+          "angles": "0 0 0",
+          "targetname": "b12",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 83,
+          "line": 2354,
+          "classname": "func_wall",
+          "_tb_layer": "17"
+        },
+        {
+          "id": 84,
+          "line": 2368,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "Legacy",
+          "_tb_id": "18",
+          "_tb_layer_sort_index": "5"
+        },
+        {
+          "id": 85,
+          "line": 2376,
+          "classname": "func_wall",
+          "_tb_layer": "18"
+        },
+        {
+          "id": 86,
+          "line": 2390,
+          "classname": "func_wall",
+          "_tb_layer": "18"
+        },
+        {
+          "id": 87,
+          "line": 2422,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "Weapons",
+          "_tb_id": "19",
+          "_tb_layer_sort_index": "6"
+        },
+        {
+          "id": 88,
+          "line": 2430,
+          "classname": "weapon_wall",
+          "sequence": "10",
+          "origin": "816 1607 124",
+          "targetname": "kars",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 89,
+          "line": 2438,
+          "classname": "buy_weapon",
+          "cost": "1800",
+          "weapon": "11",
+          "cost2": "900",
+          "target": "kars",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 90,
+          "line": 2456,
+          "classname": "weapon_wall",
+          "angles": "0 270 0",
+          "sequence": "3",
+          "origin": "1031 1952 124",
+          "targetname": "357",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 91,
+          "line": 2465,
+          "classname": "buy_weapon",
+          "cost": "2400",
+          "weapon": "4",
+          "cost2": "1200",
+          "target": "357",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 92,
+          "line": 2483,
+          "classname": "buy_weapon",
+          "cost": "600",
+          "weapon": "12",
+          "cost2": "300",
+          "target": "garand",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 93,
+          "line": 2501,
+          "classname": "buy_weapon",
+          "cost": "200",
+          "weapon": "2",
+          "cost2": "100",
+          "target": "kar98k",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 94,
+          "line": 2519,
+          "classname": "weapon_wall",
+          "angles": "0 -90 0",
+          "sequence": "11",
+          "origin": "975 208 60",
+          "targetname": "garand",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 95,
+          "line": 2528,
+          "classname": "weapon_wall",
+          "angles": "0 90 0",
+          "sequence": "1",
+          "origin": "657 208 60",
+          "targetname": "kar98k",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 96,
+          "line": 2537,
+          "classname": "weapon_wall",
+          "angles": "0 0 0",
+          "sequence": "4",
+          "origin": "928 679 60",
+          "targetname": "bar",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 97,
+          "line": 2546,
+          "classname": "buy_weapon",
+          "cost": "1800",
+          "weapon": "5",
+          "cost2": "900",
+          "target": "bar",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 98,
+          "line": 2564,
+          "classname": "weapon_wall",
+          "angles": "0 270 0",
+          "sequence": "26",
+          "origin": "511 528 124",
+          "targetname": "betty",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 99,
+          "line": 2573,
+          "classname": "buy_weapon",
+          "cost": "1000",
+          "weapon": "27",
+          "cost2": "1000",
+          "target": "betty",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 100,
+          "line": 2591,
+          "classname": "weapon_wall",
+          "angles": "0 -180 0",
+          "sequence": "2",
+          "origin": "704 809 124",
+          "targetname": "thomp",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 101,
+          "line": 2600,
+          "classname": "buy_weapon",
+          "cost": "1200",
+          "weapon": "3",
+          "cost2": "600",
+          "target": "thomp",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 102,
+          "line": 2618,
+          "classname": "weapon_wall",
+          "sequence": "16",
+          "origin": "480 2185 124",
+          "targetname": "shrek",
+          "angles": "0 180 0",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 103,
+          "line": 2627,
+          "classname": "buy_weapon",
+          "cost": "1600",
+          "weapon": "17",
+          "cost2": "800",
+          "target": "shrek",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 104,
+          "line": 2645,
+          "classname": "weapon_wall",
+          "sequence": "24",
+          "origin": "856 2687 60",
+          "targetname": "bowie",
+          "angles": "0 0 0",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 105,
+          "line": 2654,
+          "classname": "buy_weapon",
+          "cost": "3000",
+          "weapon": "25",
+          "cost2": "3000",
+          "target": "bowie",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 106,
+          "line": 2672,
+          "classname": "buy_weapon",
+          "weapon": "14",
+          "cost": "2000",
+          "cost2": "200",
+          "target": "flame",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 107,
+          "line": 2690,
+          "classname": "weapon_wall",
+          "angles": "90 0 -90",
+          "sequence": "13",
+          "origin": "960 828 72",
+          "targetname": "flame",
+          "_tb_layer": "19"
+        },
+        {
+          "id": 108,
+          "line": 2699,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "Lights",
+          "_tb_id": "20",
+          "_tb_layer_sort_index": "7"
+        },
+        {
+          "id": 109,
+          "line": 2707,
+          "classname": "light",
+          "origin": "816 344 152",
+          "_light": "128",
+          "_tb_layer": "20"
+        },
+        {
+          "id": 110,
+          "line": 2714,
+          "classname": "light",
+          "origin": "960 664 32",
+          "_light": "64",
+          "_tb_layer": "20"
+        },
+        {
+          "id": 111,
+          "line": 2721,
+          "classname": "light",
+          "origin": "504 640 152",
+          "_light": "128",
+          "_tb_layer": "20"
+        },
+        {
+          "id": 112,
+          "line": 2728,
+          "classname": "light",
+          "origin": "128 712 152",
+          "_light": "128",
+          "_tb_layer": "20"
+        },
+        {
+          "id": 113,
+          "line": 2735,
+          "classname": "light",
+          "origin": "696 1072 208",
+          "_light": "128",
+          "_tb_layer": "20"
+        },
+        {
+          "id": 114,
+          "line": 2742,
+          "classname": "light",
+          "_light": "255 100 100 80",
+          "origin": "904 2672 32",
+          "_tb_layer": "20"
+        },
+        {
+          "id": 115,
+          "line": 2749,
+          "classname": "light",
+          "_light": "255 100 100 200",
+          "origin": "776 2104 224",
+          "_tb_layer": "20"
+        },
+        {
+          "id": 116,
+          "line": 2756,
+          "classname": "light",
+          "_light": "255 160 160 200",
+          "origin": "416 1744 224",
+          "_tb_layer": "20"
+        },
+        {
+          "id": 117,
+          "line": 2763,
+          "classname": "light",
+          "_light": "255 100 100 80",
+          "origin": "680 2648 96",
+          "_tb_layer": "20"
+        },
+        {
+          "id": 118,
+          "line": 2770,
+          "classname": "light",
+          "_light": "255 160 160 50",
+          "origin": "1040 1696 224",
+          "_tb_layer": "20"
+        },
+        {
+          "id": 119,
+          "line": 2777,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "Hint",
+          "_tb_id": "21",
+          "_tb_layer_sort_index": "8",
+          "_tb_layer_hidden": "1"
+        },
+        {
+          "id": 120,
+          "line": 2803,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "Mbox",
+          "_tb_id": "22",
+          "_tb_layer_sort_index": "9"
+        },
+        {
+          "id": 121,
+          "line": 2865,
+          "classname": "func_wall",
+          "_tb_layer": "22"
+        },
+        {
+          "id": 122,
+          "line": 2906,
+          "classname": "func_wall",
+          "_tb_layer": "22"
+        },
+        {
+          "id": 123,
+          "line": 2947,
+          "classname": "mystery_box_tp_spot",
+          "origin": "16 808 90",
+          "angles": "0 90 0",
+          "_tb_layer": "22"
+        },
+        {
+          "id": 124,
+          "line": 2954,
+          "classname": "mystery_box",
+          "origin": "336 1200 90",
+          "angles": "0 90 0",
+          "spawnflags": "2",
+          "_tb_layer": "22"
+        },
+        {
+          "id": 125,
+          "line": 2962,
+          "classname": "mystery_box_tp_spot",
+          "origin": "800 424 26",
+          "angles": "0 0 0",
+          "_tb_layer": "22"
+        },
+        {
+          "id": 126,
+          "line": 2969,
+          "classname": "mystery_box_tp_spot",
+          "origin": "450 1732.54 90",
+          "angles": "0 120 0",
+          "_tb_layer": "22"
+        },
+        {
+          "id": 127,
+          "line": 2976,
+          "classname": "mystery_box_tp_spot",
+          "origin": "700 2568 138",
+          "angles": "0 0 0",
+          "_tb_layer": "22"
+        },
+        {
+          "id": 128,
+          "line": 2983,
+          "classname": "func_wall",
+          "_tb_layer": "22"
+        },
+        {
+          "id": 129,
+          "line": 3024,
+          "classname": "func_wall",
+          "_tb_layer": "22"
+        },
+        {
+          "id": 130,
+          "line": 3065,
+          "classname": "func_wall",
+          "_tb_layer": "22"
+        },
+        {
+          "id": 131,
+          "line": 3106,
+          "classname": "func_wall",
+          "_tb_layer": "22"
+        },
+        {
+          "id": 132,
+          "line": 3147,
+          "classname": "mystery_box_tp_spot",
+          "origin": "936 1352 106",
+          "angles": "0 -90 0",
+          "_tb_layer": "22"
+        },
+        {
+          "id": 133,
+          "line": 3154,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "CragWall",
+          "_tb_id": "23",
+          "_tb_layer_sort_index": "10"
+        },
+        {
+          "id": 134,
+          "line": 3162,
+          "classname": "func_wall",
+          "_tb_layer": "23"
+        },
+        {
+          "id": 135,
+          "line": 3220,
+          "classname": "func_wall",
+          "_tb_layer": "23"
+        },
+        {
+          "id": 136,
+          "line": 3293,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "WallSigns",
+          "_tb_id": "26",
+          "_tb_layer_sort_index": "12"
+        },
+        {
+          "id": 137,
+          "line": 3301,
+          "classname": "func_illusionary",
+          "_tb_layer": "26"
+        },
+        {
+          "id": 138,
+          "line": 3315,
+          "classname": "func_illusionary",
+          "_tb_layer": "26"
+        },
+        {
+          "id": 139,
+          "line": 3329,
+          "classname": "func_illusionary",
+          "_tb_layer": "26"
+        },
+        {
+          "id": 140,
+          "line": 3343,
+          "classname": "func_illusionary",
+          "_tb_layer": "26"
+        },
+        {
+          "id": 141,
+          "line": 3357,
+          "classname": "func_illusionary",
+          "_tb_layer": "26"
+        },
+        {
+          "id": 142,
+          "line": 3371,
+          "classname": "func_illusionary",
+          "_tb_layer": "26"
+        },
+        {
+          "id": 143,
+          "line": 3385,
+          "classname": "func_illusionary",
+          "_tb_layer": "26"
+        },
+        {
+          "id": 144,
+          "line": 3399,
+          "classname": "func_illusionary",
+          "_tb_layer": "26"
+        },
+        {
+          "id": 145,
+          "line": 3413,
+          "classname": "func_illusionary",
+          "_tb_layer": "26"
+        },
+        {
+          "id": 146,
+          "line": 3427,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "Dogs",
+          "_tb_id": "28",
+          "_tb_layer_sort_index": "13"
+        },
+        {
+          "id": 147,
+          "line": 3435,
+          "classname": "spawn_dog",
+          "origin": "720 320 32",
+          "targetname": "spawn",
+          "_tb_layer": "28"
+        },
+        {
+          "id": 148,
+          "line": 3442,
+          "classname": "spawn_dog",
+          "origin": "912 320 32",
+          "targetname": "spawn",
+          "_tb_layer": "28"
+        },
+        {
+          "id": 149,
+          "line": 3449,
+          "classname": "spawn_dog",
+          "origin": "440 520 96",
+          "targetname": "stairs",
+          "spawnflags": "1",
+          "_tb_layer": "28"
+        },
+        {
+          "id": 150,
+          "line": 3457,
+          "classname": "spawn_dog",
+          "origin": "928 624 32",
+          "targetname": "stairs",
+          "spawnflags": "1",
+          "_tb_layer": "28"
+        },
+        {
+          "id": 151,
+          "line": 3465,
+          "classname": "spawn_dog",
+          "origin": "80 720 96",
+          "targetname": "inter",
+          "spawnflags": "1",
+          "_tb_layer": "28"
+        },
+        {
+          "id": 152,
+          "line": 3473,
+          "classname": "spawn_dog",
+          "origin": "544 1024 144",
+          "targetname": "mid",
+          "spawnflags": "1",
+          "_tb_layer": "28"
+        },
+        {
+          "id": 153,
+          "line": 3481,
+          "classname": "spawn_dog",
+          "origin": "856 1008 144",
+          "targetname": "mid",
+          "spawnflags": "1",
+          "_tb_layer": "28"
+        },
+        {
+          "id": 154,
+          "line": 3489,
+          "classname": "spawn_dog",
+          "origin": "368 1536 96",
+          "targetname": "end",
+          "spawnflags": "1",
+          "_tb_layer": "28"
+        },
+        {
+          "id": 155,
+          "line": 3497,
+          "classname": "spawn_dog",
+          "origin": "464 1872 96",
+          "targetname": "end",
+          "spawnflags": "1",
+          "_tb_layer": "28"
+        },
+        {
+          "id": 156,
+          "line": 3505,
+          "classname": "spawn_dog",
+          "origin": "1008 2160 96",
+          "targetname": "end",
+          "spawnflags": "1",
+          "_tb_layer": "28"
+        },
+        {
+          "id": 157,
+          "line": 3513,
+          "classname": "spawn_dog",
+          "origin": "400 2256 96",
+          "targetname": "end",
+          "spawnflags": "1",
+          "_tb_layer": "28"
+        },
+        {
+          "id": 158,
+          "line": 3521,
+          "classname": "spawn_dog",
+          "origin": "848 2640 32",
+          "targetname": "end",
+          "spawnflags": "1",
+          "_tb_layer": "28"
+        },
+        {
+          "id": 159,
+          "line": 3529,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "Horde",
+          "_tb_id": "29",
+          "_tb_layer_sort_index": "14"
+        },
+        {
+          "id": 160,
+          "line": 3537,
+          "classname": "zombie_horde_point",
+          "origin": "720 240 32",
+          "_tb_layer": "29"
+        },
+        {
+          "id": 161,
+          "line": 3543,
+          "classname": "zombie_horde_point",
+          "origin": "432 552 96",
+          "_tb_layer": "29"
+        },
+        {
+          "id": 162,
+          "line": 3549,
+          "classname": "zombie_horde_point",
+          "origin": "64 640 96",
+          "_tb_layer": "29"
+        },
+        {
+          "id": 163,
+          "line": 3555,
+          "classname": "zombie_horde_point",
+          "origin": "848 864 96",
+          "_tb_layer": "29"
+        },
+        {
+          "id": 164,
+          "line": 3561,
+          "classname": "zombie_horde_point",
+          "origin": "304 1520 96",
+          "_tb_layer": "29"
+        },
+        {
+          "id": 165,
+          "line": 3567,
+          "classname": "zombie_horde_point",
+          "origin": "800 2224 96",
+          "_tb_layer": "29"
+        },
+        {
+          "id": 166,
+          "line": 3573,
+          "classname": "func_group",
+          "_tb_type": "_tb_layer",
+          "_tb_name": "zones",
+          "_tb_id": "30",
+          "_tb_layer_sort_index": "15"
+        },
+        {
+          "id": 167,
+          "line": 3581,
+          "classname": "spawn_zone",
+          "adjacent_zones": "hall",
+          "zone_name": "spawn",
+          "zone_target": "spawn",
+          "_tb_layer": "30"
+        },
+        {
+          "id": 168,
+          "line": 3598,
+          "classname": "spawn_zone",
+          "zone_name": "stairs",
+          "zone_target": "stairs",
+          "adjacent_zones": "spawn, double",
+          "_tb_layer": "30"
+        },
+        {
+          "id": 169,
+          "line": 3615,
+          "classname": "spawn_zone",
+          "adjacent_zones": "stairs, mule",
+          "zone_name": "double",
+          "zone_target": "inter",
+          "_tb_layer": "30"
+        },
+        {
+          "id": 170,
+          "line": 3632,
+          "classname": "spawn_zone",
+          "adjacent_zones": "jugg, double",
+          "zone_target": "mid",
+          "zone_name": "mule",
+          "_tb_layer": "30"
+        },
+        {
+          "id": 171,
+          "line": 3649,
+          "classname": "spawn_zone",
+          "zone_name": "jugg",
+          "adjacent_zones": "mule",
+          "zone_target": "end",
+          "_tb_layer": "30"
+        }
+      ]
+    },
+    {
+      "source": {
+        "path": "source/maps/boxxer/boxxer.map",
+        "blob": "8970dde65d56a1152a7050cb9c59a01670e90a95"
+      },
+      "map": "boxxer",
+      "entity_count": 52,
+      "edge_count": 8,
+      "unresolved_ref_count": 0,
+      "graph": {
+        "edges": [
+          {
+            "from": 29,
+            "key": "target",
+            "value": "teddyremovetarget",
+            "to": 17
+          },
+          {
+            "from": 29,
+            "key": "target",
+            "value": "teddyremovetarget",
+            "to": 26
+          },
+          {
+            "from": 29,
+            "key": "target",
+            "value": "teddyremovetarget",
+            "to": 27
+          },
+          {
+            "from": 29,
+            "key": "target",
+            "value": "teddyremovetarget",
+            "to": 28
+          },
+          {
+            "from": 50,
+            "key": "target",
+            "value": "teddyremovetarget",
+            "to": 17
+          },
+          {
+            "from": 50,
+            "key": "target",
+            "value": "teddyremovetarget",
+            "to": 26
+          },
+          {
+            "from": 50,
+            "key": "target",
+            "value": "teddyremovetarget",
+            "to": 27
+          },
+          {
+            "from": 50,
+            "key": "target",
+            "value": "teddyremovetarget",
+            "to": 28
+          }
+        ],
+        "unresolved": []
+      },
+      "entities": [
+        {
+          "id": 0,
+          "line": 4,
+          "classname": "worldspawn",
+          "sounds": "1",
+          "mapversion": "220",
+          "wad": "../../textures/wad/Example_02.wad;../../textures/wad/Ju[s]tice_null2.wad;../../textures/wad/nzphlwad.wad;../../textures/wad/verruckt.wad;../../textures/wad/zhlt.wad",
+          "_generator": "Jackhammer 1.1.700 (vpHalfLife)"
+        },
+        {
+          "id": 1,
+          "line": 1281,
+          "classname": "light",
+          "style": "0",
+          "wait": "1",
+          "_light": "255 255 128 200",
+          "light": "255 255 128 200",
+          "origin": "0 0 128"
+        },
+        {
+          "id": 2,
+          "line": 1290,
+          "classname": "spawn_zombie",
+          "spawnflags": "6",
+          "angles": "-0 0 -0",
+          "impulse": "0",
+          "volume": "1",
+          "speed": "1",
+          "origin": "197 212 33"
+        },
+        {
+          "id": 3,
+          "line": 1300,
+          "classname": "light",
+          "style": "0",
+          "wait": "1",
+          "_light": "47 158 255",
+          "spawnflags": "0",
+          "angles": "-0 0 -0",
+          "impulse": "0",
+          "volume": "1",
+          "speed": "1",
+          "targetname": "light",
+          "origin": "9 -202 244"
+        },
+        {
+          "id": 4,
+          "line": 1314,
+          "classname": "buy_weapon",
+          "cost2": "150",
+          "cost": "1500",
+          "weapon": "21",
+          "spawnflags": "0",
+          "angles": "0 180 0"
+        },
+        {
+          "id": 5,
+          "line": 1332,
+          "classname": "weapon_wall",
+          "model": "progs/s_blood1.spr",
+          "sequence": "20",
+          "angles": "-0 179 -0",
+          "impulse": "0",
+          "volume": "1",
+          "speed": "1",
+          "origin": "6.70044 25.2287 62"
+        },
+        {
+          "id": 6,
+          "line": 1343,
+          "classname": "light",
+          "style": "0",
+          "wait": "1",
+          "_light": "47 158 255",
+          "spawnflags": "0",
+          "angles": "-0 0 -0",
+          "impulse": "0",
+          "volume": "1",
+          "speed": "1",
+          "targetname": "light",
+          "origin": "1 204 245"
+        },
+        {
+          "id": 7,
+          "line": 1357,
+          "classname": "light",
+          "style": "0",
+          "wait": "1",
+          "_light": "47 158 255",
+          "spawnflags": "0",
+          "angles": "-0 90 -0",
+          "impulse": "0",
+          "volume": "1",
+          "speed": "1",
+          "targetname": "light",
+          "origin": "-204 -8 245"
+        },
+        {
+          "id": 8,
+          "line": 1371,
+          "classname": "light",
+          "style": "0",
+          "wait": "1",
+          "_light": "47 158 255",
+          "spawnflags": "0",
+          "angles": "-0 90 -0",
+          "impulse": "0",
+          "volume": "1",
+          "speed": "1",
+          "targetname": "light",
+          "origin": "202 0 244"
+        },
+        {
+          "id": 9,
+          "line": 1385,
+          "classname": "func_wall",
+          "renderamt": "200",
+          "rendermode": "2",
+          "spawnflags": "0",
+          "cost2": "0",
+          "cost": "0",
+          "weapon": "0"
+        },
+        {
+          "id": 10,
+          "line": 1404,
+          "classname": "func_wall",
+          "renderamt": "200",
+          "rendermode": "2",
+          "spawnflags": "0",
+          "cost2": "0",
+          "cost": "0",
+          "weapon": "0"
+        },
+        {
+          "id": 11,
+          "line": 1423,
+          "classname": "func_wall",
+          "renderamt": "200",
+          "rendermode": "2",
+          "spawnflags": "0",
+          "cost2": "0",
+          "cost": "0",
+          "weapon": "0"
+        },
+        {
+          "id": 12,
+          "line": 1442,
+          "classname": "func_wall",
+          "renderamt": "200",
+          "rendermode": "2",
+          "spawnflags": "0",
+          "cost2": "0",
+          "cost": "0",
+          "weapon": "0"
+        },
+        {
+          "id": 13,
+          "line": 1461,
+          "classname": "spawn_zombie",
+          "spawnflags": "6",
+          "angles": "-0 0 -0",
+          "impulse": "0",
+          "volume": "1",
+          "speed": "1",
+          "origin": "-222 212 33"
+        },
+        {
+          "id": 14,
+          "line": 1471,
+          "classname": "spawn_zombie",
+          "spawnflags": "6",
+          "angles": "-0 0 -0",
+          "impulse": "0",
+          "volume": "1",
+          "speed": "1",
+          "origin": "213 -227 33"
+        },
+        {
+          "id": 15,
+          "line": 1481,
+          "classname": "spawn_zombie",
+          "spawnflags": "6",
+          "angles": "-0 0 -0",
+          "impulse": "0",
+          "volume": "1",
+          "speed": "1",
+          "origin": "-232 -227 33"
+        },
+        {
+          "id": 16,
+          "line": 1491,
+          "classname": "light",
+          "style": "0",
+          "wait": "1",
+          "_light": "255 255 128 200",
+          "angles": "-0 0 -0",
+          "light": "255 255 128 200",
+          "origin": "0 544 128"
+        },
+        {
+          "id": 17,
+          "line": 1501,
+          "classname": "spawn_zombie",
+          "spawnflags": "7",
+          "angles": "-0 0 -0",
+          "impulse": "0",
+          "volume": "1",
+          "speed": "1",
+          "targetname": "teddyremovetarget",
+          "origin": "195 721 33"
+        },
+        {
+          "id": 18,
+          "line": 1512,
+          "classname": "light",
+          "style": "0",
+          "wait": "1",
+          "_light": "47 158 255",
+          "spawnflags": "0",
+          "angles": "-0 0 -0",
+          "impulse": "0",
+          "volume": "1",
+          "speed": "1",
+          "targetname": "light",
+          "origin": "9 342 244"
+        },
+        {
+          "id": 19,
+          "line": 1526,
+          "classname": "light",
+          "style": "0",
+          "wait": "1",
+          "_light": "47 158 255",
+          "spawnflags": "0",
+          "angles": "-0 0 -0",
+          "impulse": "0",
+          "volume": "1",
+          "speed": "1",
+          "targetname": "light",
+          "origin": "1 748 245"
+        },
+        {
+          "id": 20,
+          "line": 1540,
+          "classname": "light",
+          "style": "0",
+          "wait": "1",
+          "_light": "47 158 255",
+          "spawnflags": "0",
+          "angles": "-0 90 -0",
+          "impulse": "0",
+          "volume": "1",
+          "speed": "1",
+          "targetname": "light",
+          "origin": "-204 536 245"
+        },
+        {
+          "id": 21,
+          "line": 1554,
+          "classname": "light",
+          "style": "0",
+          "wait": "1",
+          "_light": "47 158 255",
+          "spawnflags": "0",
+          "angles": "-0 90 -0",
+          "impulse": "0",
+          "volume": "1",
+          "speed": "1",
+          "targetname": "light",
+          "origin": "202 544 244"
+        },
+        {
+          "id": 22,
+          "line": 1568,
+          "classname": "func_wall",
+          "renderamt": "200",
+          "rendermode": "2",
+          "spawnflags": "0",
+          "cost2": "0",
+          "cost": "0",
+          "weapon": "0"
+        },
+        {
+          "id": 23,
+          "line": 1587,
+          "classname": "func_wall",
+          "renderamt": "200",
+          "rendermode": "2",
+          "spawnflags": "0",
+          "cost2": "0",
+          "cost": "0",
+          "weapon": "0"
+        },
+        {
+          "id": 24,
+          "line": 1606,
+          "classname": "func_wall",
+          "renderamt": "200",
+          "rendermode": "2",
+          "spawnflags": "0",
+          "cost2": "0",
+          "cost": "0",
+          "weapon": "0"
+        },
+        {
+          "id": 25,
+          "line": 1625,
+          "classname": "func_wall",
+          "renderamt": "200",
+          "rendermode": "2",
+          "spawnflags": "0",
+          "cost2": "0",
+          "cost": "0",
+          "weapon": "0"
+        },
+        {
+          "id": 26,
+          "line": 1644,
+          "classname": "spawn_zombie",
+          "spawnflags": "7",
+          "angles": "-0 0 -0",
+          "impulse": "0",
+          "volume": "1",
+          "speed": "1",
+          "targetname": "teddyremovetarget",
+          "origin": "-225 727 33"
+        },
+        {
+          "id": 27,
+          "line": 1655,
+          "classname": "spawn_zombie",
+          "spawnflags": "7",
+          "angles": "-0 0 -0",
+          "impulse": "0",
+          "volume": "1",
+          "speed": "1",
+          "targetname": "teddyremovetarget",
+          "origin": "213 335 33"
+        },
+        {
+          "id": 28,
+          "line": 1666,
+          "classname": "spawn_zombie",
+          "spawnflags": "7",
+          "angles": "-0 0 -0",
+          "impulse": "0",
+          "volume": "1",
+          "speed": "1",
+          "targetname": "teddyremovetarget",
+          "origin": "-232 335 33"
+        },
+        {
+          "id": 29,
+          "line": 1677,
+          "classname": "teddy_spawn",
+          "spawnflags": "1",
+          "angles": "-0 0 -0",
+          "impulse": "0",
+          "volume": "1",
+          "speed": "1",
+          "target": "teddyremovetarget",
+          "origin": "-280.844 -161.397 60"
+        },
+        {
+          "id": 30,
+          "line": 1688,
+          "classname": "weapon_wall",
+          "model": "progs/s_blood1.spr",
+          "sequence": "4",
+          "angles": "-0 269 -0",
+          "impulse": "0",
+          "volume": "1",
+          "speed": "1",
+          "origin": "-25.7287 0.397839 63"
+        },
+        {
+          "id": 31,
+          "line": 1699,
+          "classname": "buy_weapon",
+          "cost2": "50",
+          "cost": "500",
+          "weapon": "5",
+          "spawnflags": "0",
+          "angles": "0 180 0"
+        },
+        {
+          "id": 32,
+          "line": 1717,
+          "classname": "weapon_wall",
+          "model": "progs/s_blood1.spr",
+          "sequence": "2",
+          "angles": "-0 90 -0",
+          "impulse": "0",
+          "volume": "1",
+          "speed": "1",
+          "origin": "25.2713 -0.20044 62"
+        },
+        {
+          "id": 33,
+          "line": 1728,
+          "classname": "buy_weapon",
+          "cost2": "0",
+          "cost": "10",
+          "weapon": "3",
+          "spawnflags": "0"
+        },
+        {
+          "id": 34,
+          "line": 1745,
+          "classname": "perk_flopper",
+          "spawnflags": "0",
+          "angles": "-0 270 -0",
+          "wait": "0",
+          "impulse": "0",
+          "volume": "1",
+          "speed": "1",
+          "origin": "-149.5 787.5 32",
+          "model": "models/machines/hl_scale/flopper.mdl",
+          "aistatus": "sounds/music/perksacola/flopper.wav"
+        },
+        {
+          "id": 35,
+          "line": 1758,
+          "classname": "perk_staminup",
+          "spawnflags": "0",
+          "angles": "-0 270 -0",
+          "wait": "0",
+          "impulse": "0",
+          "volume": "1",
+          "speed": "1",
+          "origin": "-82.5 788.5 32",
+          "model": "models/machines/hl_scale/staminup.mdl",
+          "aistatus": "sounds/music/perksacola/staminup.wav"
+        },
+        {
+          "id": 36,
+          "line": 1771,
+          "classname": "perk_juggernog",
+          "spawnflags": "0",
+          "angles": "-0 270 -0",
+          "wait": "0",
+          "impulse": "0",
+          "volume": "1",
+          "speed": "1",
+          "origin": "-18.5 788.5 32",
+          "model": "models/machines/hl_scale/juggernog.mdl",
+          "aistatus": "sounds/music/perksacola/juggernog.wav"
+        },
+        {
+          "id": 37,
+          "line": 1784,
+          "classname": "perk_speed",
+          "spawnflags": "0",
+          "angles": "-0 270 -0",
+          "wait": "0",
+          "impulse": "0",
+          "volume": "1",
+          "speed": "1",
+          "origin": "43.5 779.5 32",
+          "model": "models/machines/hl_scale/speed_cola.mdl",
+          "aistatus": "sounds/music/perksacola/speedcola.wav"
+        },
+        {
+          "id": 38,
+          "line": 1797,
+          "classname": "perk_revive",
+          "spawnflags": "0",
+          "angles": "-0 180 -0",
+          "wait": "0",
+          "impulse": "0",
+          "volume": "1",
+          "speed": "1",
+          "origin": "242 -22 32",
+          "model": "models/machines/hl_scale/quick_revive.mdl",
+          "aistatus": "sounds/music/perksacola/quickrevive.wav"
+        },
+        {
+          "id": 39,
+          "line": 1810,
+          "classname": "func_door_nzp",
+          "cost": "750",
+          "health": "0",
+          "dmg": "0",
+          "lip": "8",
+          "wait": "4",
+          "sounds": "0",
+          "speed": "100",
+          "spawnflags": "0",
+          "cost2": "0",
+          "weapon": "0"
+        },
+        {
+          "id": 40,
+          "line": 1833,
+          "classname": "func_wall",
+          "spawnflags": "0",
+          "cost2": "0",
+          "cost": "0",
+          "weapon": "0",
+          "teddyremovetarget": "teddyremovetarget"
+        },
+        {
+          "id": 41,
+          "line": 1851,
+          "classname": "perk_double",
+          "spawnflags": "0",
+          "angles": "-0 270 -0",
+          "wait": "0",
+          "impulse": "0",
+          "volume": "1",
+          "speed": "1",
+          "origin": "116.5 787.5 32",
+          "model": "models/machines/hl_scale/double_tap_2.mdl",
+          "aistatus": "sounds/music/perksacola/doubletap.wav"
+        },
+        {
+          "id": 42,
+          "line": 1864,
+          "classname": "perk_mule",
+          "origin": "203 785 32",
+          "model": "models/machines/hl_scale/mulekick.mdl",
+          "angle": "270",
+          "aistatus": "sounds/music/perksacola/mulekick.wav"
+        },
+        {
+          "id": 43,
+          "line": 1872,
+          "classname": "perk_deadshot",
+          "origin": "-209 787 32",
+          "model": "models/machines/hl_scale/deadshot.mdl",
+          "angle": "270",
+          "aistatus": "sounds/music/perksacola/deadshot.wav"
+        },
+        {
+          "id": 44,
+          "line": 1880,
+          "classname": "perk_pap",
+          "model": "models/machines/hl_scale/pap/p_machine.mdl",
+          "skin": "0",
+          "oldorigin": "0 0 2",
+          "oldz": "30",
+          "weapon2model": "models/machines/hl_scale/pap/p_roller.mdl",
+          "box1": "7.5 0.1 6.0",
+          "door_model_name": "models/machines/hl_scale/pap/p_flag.mdl",
+          "box3": "-18 -31.7 18",
+          "box2": "17 0 6",
+          "cost": "5000",
+          "oldmodel": "sounds/machines/packapunch/upgrade.wav",
+          "spawnflags": "3",
+          "origin": "4 -224 32",
+          "angle": "90"
+        },
+        {
+          "id": 45,
+          "line": 1898,
+          "classname": "info_player_1_spawn",
+          "weapon": "0",
+          "currentmag": "0",
+          "currentammo": "0",
+          "origin": "-160 -96 32"
+        },
+        {
+          "id": 46,
+          "line": 1906,
+          "classname": "info_player_2_spawn",
+          "weapon": "0",
+          "currentmag": "0",
+          "currentammo": "0",
+          "origin": "-160 96 32"
+        },
+        {
+          "id": 47,
+          "line": 1914,
+          "classname": "info_player_3_spawn",
+          "weapon": "0",
+          "currentmag": "0",
+          "currentammo": "0",
+          "origin": "160 96 32",
+          "angle": "180"
+        },
+        {
+          "id": 48,
+          "line": 1923,
+          "classname": "info_player_4_spawn",
+          "weapon": "0",
+          "currentmag": "0",
+          "currentammo": "0",
+          "origin": "160 -96 32",
+          "angle": "180"
+        },
+        {
+          "id": 49,
+          "line": 1932,
+          "classname": "power_switch",
+          "model": "models/machines/quake_scale/power_switch.mdl",
+          "skin": "0",
+          "oldmodel": "sounds/machines/power.wav",
+          "origin": "-1 -41 32",
+          "angle": "270"
+        },
+        {
+          "id": 50,
+          "line": 1941,
+          "classname": "func_button",
+          "spawnflags": "0",
+          "health": "1",
+          "speed": "40",
+          "lip": "4",
+          "wait": "1",
+          "angle": "180",
+          "target": "teddyremovetarget"
+        },
+        {
+          "id": 51,
+          "line": 1965,
+          "classname": "func_illusionary",
+          "rendermode": "4",
+          "renderamt": "255"
+        }
+      ]
+    }
+  ]
+}
