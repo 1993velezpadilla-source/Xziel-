@@ -2755,6 +2755,84 @@ bool VulkanClearRenderer::recordDrawCommand(
             ? 0.24f
             : 0.12f);
 
+    const float magazineRatio =
+        std::clamp(
+            hud.weaponMagazineRatio,
+            0.0f,
+            1.0f);
+
+    constexpr float ammoCenterX = 0.885f;
+    constexpr float ammoCenterY = 0.935f;
+    constexpr float ammoHalfWidth = 0.072f;
+    constexpr float ammoHalfHeight = 0.0045f;
+
+    drawUiPrimitive(
+        ammoCenterX,
+        ammoCenterY,
+        ammoHalfWidth,
+        ammoHalfHeight,
+        0.02f,
+        0.025f,
+        0.035f,
+        0.72f,
+        0.0f,
+        0.10f);
+
+    const float ammoFillHalf =
+        std::max(
+            ammoHalfWidth *
+                magazineRatio,
+            0.0005f);
+
+    const float ammoLeft =
+        ammoCenterX -
+        ammoHalfWidth;
+
+    const float ammoFillCenter =
+        ammoLeft +
+        ammoFillHalf;
+
+    const bool lowAmmo =
+        magazineRatio <
+        0.25f;
+
+    drawUiPrimitive(
+        ammoFillCenter,
+        ammoCenterY,
+        ammoFillHalf,
+        ammoHalfHeight * 0.72f,
+        lowAmmo ? 0.98f : 0.08f,
+        lowAmmo ? 0.08f : 0.78f,
+        lowAmmo ? 0.12f : 0.96f,
+        0.92f,
+        0.0f,
+        0.10f);
+
+    if (hud.weaponReloadAlpha > 0.001f) {
+        const float reloadProgress =
+            std::clamp(
+                hud.weaponReloadAlpha,
+                0.0f,
+                1.0f);
+
+        drawUiPrimitive(
+            ammoLeft +
+                ammoHalfWidth *
+                reloadProgress,
+            ammoCenterY - 0.014f,
+            std::max(
+                ammoHalfWidth *
+                    reloadProgress,
+                0.0005f),
+            ammoHalfHeight * 0.48f,
+            0.96f,
+            0.62f,
+            0.08f,
+            0.78f,
+            0.0f,
+            0.10f);
+    }
+
     // Thin center reticle. Keeping this procedural avoids introducing font or
     // texture dependencies before the renderer has an asset streaming layer.
     const float hitMarker =
