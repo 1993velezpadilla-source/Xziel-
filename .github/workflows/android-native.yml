@@ -106,6 +106,43 @@ jobs:
           test -s 'build/nzp-data/nzp/models/ai/zh^.mdl'
           test -s 'build/nzp-data/nzp/models/ai/zal(.mdl'
           test -s 'build/nzp-data/nzp/models/ai/zar(.mdl'
+          grep -q '#define.*MAXALIASVERTS.*8192' build/deps/vril/source/platform/sdl/gl/gl_model.h
+          grep -q '#define.*MAXALIASTRIS.*8192' build/deps/vril/source/platform/sdl/gl/gl_model.h
+          grep -q 'MAXALIASTRIS \* 7 + 1' build/deps/vril/source/platform/sdl/gl/gl_mesh.c
+          grep -q 'models/xziel_lab/zombie_basic.mdl' build/deps/quakec/source/server/main.qc
+          grep -q 'mapname == "ndu_enchanted"' build/deps/quakec/source/server/main.qc
+          grep -q 'models/xziel_lab/zombie_basic.mdl' build/deps/quakec/source/client/zombie.qc
+          test -s build/nzp-data/nzp/models/xziel_lab/zombie_basic.mdl
+          test -s build/nzp-data/nzp/models/xziel_lab/zombie_basic.mdl_0.tga
+          test -s build/nzp-data/nzp/models/xziel_lab/zombie_basic.json
+          test -s build/nzp-data/nzp/licenses/XZIEL-QUATERNIUS-ZOMBIE-CC0.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, struct
+
+          path = Path("build/nzp-data/nzp/models/xziel_lab/zombie_basic.mdl")
+          data = path.read_bytes()
+          hdr = struct.unpack_from("<4si3f3ff3f8if", data, 0)
+          ident, version = hdr[0], hdr[1]
+          numskins, skinw, skinh = hdr[12], hdr[13], hdr[14]
+          numverts, numtris, numframes = hdr[15], hdr[16], hdr[17]
+          if ident != b"IDPO" or version != 6:
+              raise SystemExit(f"unexpected Lab zombie MDL signature/version: {ident!r} v{version}")
+          if numskins != 1:
+              raise SystemExit(f"unexpected Lab zombie skin count: {numskins}")
+          if not (4000 <= numverts <= 8192):
+              raise SystemExit(f"unexpected Lab zombie vertex count: {numverts}")
+          if not (7000 <= numtris <= 8192):
+              raise SystemExit(f"unexpected Lab zombie triangle count: {numtris}")
+          if numframes != 211:
+              raise SystemExit(f"Lab zombie must mirror NZ:P frames 0..210, got {numframes}")
+          if skinw <= 0 or skinh <= 0 or skinw > 2048 or skinh > 2048:
+              raise SystemExit(f"unexpected Lab zombie skin dimensions: {skinw}x{skinh}")
+          meta = json.loads(Path("build/nzp-data/nzp/models/xziel_lab/zombie_basic.json").read_text())
+          if meta["license"] != "CC0-1.0" or meta["frames"] != 211:
+              raise SystemExit(f"bad Lab zombie metadata: {meta}")
+          print(f"verified real Lab zombie MDL: {numverts} verts / {numtris} tris / {numframes} frames / {skinw}x{skinh}")
+          PY
           grep -q 'sounds/ambience/wind2.wav' build/deps/quakec/source/server/main.qc
           grep -q 'invalid SOLID_BSP entity' build/deps/vril/source/world.c
           grep -q 'xziel_waw_round1_ready' build/deps/quakec/source/server/defs/custom.qc
@@ -245,6 +282,10 @@ jobs:
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/gfx/env/xziel_enchantup.tga'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/models/machines/mystery.mdl_0.tga'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/models/ai/zfull.mdl_0.tga'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/models/xziel_lab/zombie_basic.mdl'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/models/xziel_lab/zombie_basic.mdl_0.tga'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/models/xziel_lab/zombie_basic.json'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/licenses/XZIEL-QUATERNIUS-ZOMBIE-CC0.txt'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/sounds/xziel/enchant/round_omen.wav'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/sounds/xziel/enchant/mystery_hum.wav'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/sounds/xziel/enchant/gameover_guitar.wav'
