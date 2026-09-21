@@ -47,6 +47,16 @@ struct VulkanSceneState {
     float impactZ = 0.0f;
     float impactAlpha = 0.0f;
     bool impactCritical = false;
+
+    float decapOriginX = 0.0f;
+    float decapOriginY = 0.0f;
+    float decapOriginZ = 0.0f;
+
+    float decapDirectionX = 0.0f;
+    float decapDirectionY = 0.0f;
+    float decapDirectionZ = 1.0f;
+
+    float decapAlpha = 0.0f;
 };
 
 struct VulkanEnvironmentState {
