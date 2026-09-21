@@ -9,6 +9,7 @@
 #include "xziel/android_runtime.hpp"
 #include "xziel/camera_rig.hpp"
 #include "xziel/engine.hpp"
+#include "xziel/door.hpp"
 #include "xziel/environment.hpp"
 #include "xziel/fps_player.hpp"
 #include "xziel/hitscan.hpp"
@@ -123,6 +124,7 @@ struct NativeAppState {
 
     xziel::InteractionSystem interaction{};
     xziel::InteractionFrame interactionFrame{};
+    xziel::DoorSystem doors{};
 
     xziel::PlayerVitals vitals{};
     xziel::HorrorDirector horror{};
@@ -138,7 +140,6 @@ struct NativeAppState {
     xziel::WeatherConfig calmWeather{};
     bool stormEnabled = true;
 
-    bool prototypeDoorOpen = false;
     bool prototypeWeaponBuyPurchased = false;
 
     float prototypeDoorOpenAlpha = 0.0f;
@@ -213,13 +214,6 @@ void rebuildPrototypeObstacles(
     (void) state.horde.addNavigationObstacle(
         kPrototypeCenterObstacle);
 
-    if (!state.prototypeDoorOpen) {
-        (void) state.player.addStaticObstacle(
-            kPrototypeDoorObstacle);
-
-        (void) state.horde.addNavigationObstacle(
-            kPrototypeDoorObstacle);
-    }
 }
 
 void logInfo(const char* message) noexcept {
@@ -752,20 +746,19 @@ void advancePlayer(
                     xziel::HapticEvent::UiConfirm);
             } else if (
                 state.interactionFrame.targetId ==
-                    kPrototypeDoorId &&
-                !state.prototypeDoorOpen) {
-                if (state.score.trySpend(
-                        kPrototypeDoorCost)) {
-                    state.prototypeDoorOpen =
-                        true;
+                    kPrototypeDoorId) {
+                const auto doorFrame =
+                    state.doors.activate(
+                        kPrototypeDoorId,
+                        state.horde,
+                        state.player,
+                        state.score);
 
+                if (doorFrame.openedThisTick) {
                     (void) state.interaction.
                         setTargetEnabled(
                             kPrototypeDoorId,
                             false);
-
-                    rebuildPrototypeObstacles(
-                        state);
 
                     state.scorePulseSeconds =
                         0.38f;
@@ -773,7 +766,8 @@ void advancePlayer(
                     requestHaptic(
                         state,
                         xziel::HapticEvent::UiConfirm);
-                } else {
+                } else if (
+                    doorFrame.insufficientFundsThisTick) {
                     state.purchaseDeniedSeconds =
                         0.42f;
 
@@ -1714,6 +1708,16 @@ extern "C" void android_main(
     rebuildPrototypeObstacles(
         state);
 
+    (void) state.doors.addDoor(
+        {
+            .id = kPrototypeDoorId,
+            .blocker = kPrototypeDoorObstacle,
+            .cost = kPrototypeDoorCost,
+            .startsOpen = false,
+        },
+        state.horde,
+        state.player);
+
     (void) state.interaction.addTarget(
         {
             .id =
@@ -2012,8 +2016,13 @@ extern "C" void android_main(
                 state.purchaseDeniedSeconds -
                     frameDelta);
 
+        const auto* prototypeDoor =
+            state.doors.frame(
+                kPrototypeDoorId);
+
         const float doorTargetAlpha =
-            state.prototypeDoorOpen
+            prototypeDoor != nullptr &&
+                    prototypeDoor->open
             ? 1.0f
             : 0.0f;
 
