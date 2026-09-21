@@ -430,3 +430,91 @@ Players should learn over repeated runs that:
 - rejecting a peaceful OFFERING and surviving the resulting boss fight can produce unusually valuable drops.
 
 The reward object should visually read as supernatural rather than as a normal zombie drop until it resolves into the final reward.
+
+
+## Fragmento de Misericordia — diminishing drop curve
+
+Fragmento de Misericordia is no longer a one-time-only reward.
+
+Global chance across every eligible La Llorona kill-reward pool:
+- before any Fragmento has been granted: **6%**;
+- after the first Fragmento: **3%**;
+- after the second Fragmento: **1.5%** for the remainder of the match.
+
+The chance only decays after a Fragmento is actually granted.
+
+A player can hold up to two Fragmentos at once. Across the whole match, at most two authentic relic slots may be substituted, guaranteeing that at least one authentic ritual relic is still required.
+
+If another Fragmento roll occurs after the two-slot substitution cap has already been consumed, convert the result into a high-value fallback:
+- 55% Nuke;
+- 45% eligible Wonder Weapon.
+
+### Child-event probability
+
+Child injection now uses **6% per eligible round**, preserving the hidden-event rarity.
+
+Each individual child still appears at most once per match.
+
+The Fragmento's initial 6% roll and the child 6% roll remain independent. If both systems are eligible in the same round, the natural probability of both 6% rolls succeeding is **0.36%**. No artificial 6% double-event override is used; the simultaneous occurrence stays genuinely exceptional.
+
+### HOSTILE_TEST rewards upgraded
+
+Interacting with La Llorona when her hidden fate is HOSTILE_TEST can still produce premium loot if the player survives and defeats her.
+
+Reward algorithm:
+1. first roll the current dynamic Fragmento chance (6% / 3% / 1.5%);
+2. if it fails, normalize the non-Fragmento scores and roll exactly one reward;
+3. there is never an empty boss-kill result.
+
+HOSTILE_TEST non-Fragmento score weights:
+- Max Ammo — 40;
+- Carpenter — 27;
+- Insta-Kill — 16;
+- Nuke — 9;
+- Wonder Weapon — 2.
+
+This keeps premium outcomes possible after a trap interaction, but rarer than on the rejected-OFFERING path.
+
+### Rejected OFFERING reward scores
+
+After the dynamic Fragmento roll fails:
+- Max Ammo — 32;
+- Carpenter — 24;
+- Insta-Kill — 18;
+- Nuke — 12;
+- Wonder Weapon — 8.
+
+### Dead-child discovery reward scores
+
+After the dynamic Fragmento roll fails:
+- Max Ammo — 44;
+- Insta-Kill — 25;
+- Nuke — 15;
+- Wonder Weapon — 10.
+
+The same 6/3/1.5 Fragmento curve applies here.
+
+## V4 horror audio candidate
+
+V2 remains the locked rollback baseline.
+
+V3 remains preserved as the previous candidate.
+
+Current candidate:
+- **llorona_prayer_enchanted_v4_horror**
+- duration: **81.944 s**
+- 48 kHz stereo master;
+- game OGG derived from the same master.
+
+V4 specifically addresses the audible static/white-noise buildup heard in V3:
+- V3 is denoised before new effects are created;
+- no generated white-noise layer is added;
+- whisper textures are derived from the actual prayer voice;
+- one higher spectral whisper and one lower breath-shadow move behind the lead;
+- reverse echo creates horror-film pre-verb before phrases;
+- the chapel tail is darker and longer;
+- a very low, quiet spectral shadow adds supernatural mass without masking consonants;
+- final output remains trimmed to exactly 81.944 s so manifestation timing does not drift.
+
+Reproduction script:
+`tools/audio/process_llorona_v4_horror.sh`
