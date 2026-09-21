@@ -173,6 +173,12 @@ void AndroidInputAdapter::onPause() noexcept {
     snapshot_.input.gyroRadiansPerSecond = {};
 }
 
+void AndroidInputAdapter::setDisplayRotation(
+    int rotation) noexcept {
+    displayRotation_ =
+        std::clamp(rotation, 0, 3);
+}
+
 void AndroidInputAdapter::beginFrame(
     float deltaSeconds) noexcept {
     const float dt =
@@ -232,14 +238,47 @@ void AndroidInputAdapter::handleLooperIdentifier(
                 continue;
             }
 
-            // Preserve Android device-axis radians/second in the platform
-            // snapshot. Screen-rotation remapping belongs in the camera/input
-            // policy layer so landscape-left and landscape-right stay correct.
-            snapshot_.input.gyroRadiansPerSecond = {
-                event.vector.x,
-                event.vector.y,
-                event.vector.z,
-            };
+            const float x = event.vector.x;
+            const float y = event.vector.y;
+            const float z = event.vector.z;
+
+            // Remap Android's fixed device coordinates into the active screen
+            // coordinates. This keeps gyro aim consistent in landscape-left,
+            // landscape-right and 180-degree device rotation.
+            switch (displayRotation_) {
+                case 1: // ROTATION_90
+                    snapshot_.input.gyroRadiansPerSecond = {
+                        y,
+                        -x,
+                        z,
+                    };
+                    break;
+
+                case 2: // ROTATION_180
+                    snapshot_.input.gyroRadiansPerSecond = {
+                        -x,
+                        -y,
+                        z,
+                    };
+                    break;
+
+                case 3: // ROTATION_270
+                    snapshot_.input.gyroRadiansPerSecond = {
+                        -y,
+                        x,
+                        z,
+                    };
+                    break;
+
+                case 0:
+                default:
+                    snapshot_.input.gyroRadiansPerSecond = {
+                        x,
+                        y,
+                        z,
+                    };
+                    break;
+            }
         }
     }
 }
