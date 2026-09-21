@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "title": "Call of Duty: World at War Zombies sound-alias reference (metadata only)",
+  "note": "Names/event relationships are preserved as engineering reference. No Activision/Treyarch audio bytes are stored.",
+  "sources": [
+    "https://gist.github.com/wolfl96/c6b8d59ce387e90cbc880e936ac90986",
+    "https://www.ugx-mods.com/forum/scripting/11/game-over-music/16292/",
+    "https://www.ugx-mods.com/forum/modding/13/problem-changing-round-sounds-and-background-music/11886/",
+    "https://www.ugx-mods.com/forum/modding/13/change-background-music/12104/"
+  ],
+  "events": {
+    "end_of_round": "round_over",
+    "end_of_game": "mx_game_over",
+    "chalk_one_up": "chalk",
+    "purchase": "cha_ching",
+    "no_purchase": "no_cha_ching",
+    "playerzombie_usebutton_sound": "attack_vocals",
+    "playerzombie_attackbutton_sound": "attack_vocals",
+    "playerzombie_adsbutton_sound": "attack_vocals",
+    "zombie_head_gib": "zombie_head_gib",
+    "rebuild_barrier_piece": "repair_boards",
+    "rebuild_barrier_hover": "boards_float",
+    "debris_hover_loop": "couch_loop",
+    "break_barrier_piece": "break_boards",
+    "blocker_end_move": "board_slam",
+    "barrier_rebuild_slam": "board_slam",
+    "door_slide_open": "door_slide_open",
+    "door_rotate_open": "door_slide_open",
+    "debris_move": "weap_wall",
+    "open_chest": "lid_open",
+    "music_chest": "music_box",
+    "close_chest": "lid_close",
+    "weapon_show": "weap_wall"
+  },
+  "known_paths": {
+    "mx_game_over": "Stream/Music/Mission/zombie/mx_game_over_4.wav",
+    "mx_zombie_wave_1": "background_music/mx_wave_1.wav"
+  },
+  "music_states": {
+    "SPLASH_SCREEN": "intro/splash presentation",
+    "WAVE_1": "initial zombie-wave music state; public modding references associate normal wave ambience with mx_zombie_wave_1"
+  },
+  "nzp_mapping_plan": {
+    "round_start": "optional local waw_round_start_laugh.wav + existing NZ:P tally animation",
+    "round_end": "optional local waw_round_over.wav",
+    "game_over": "optional local waw_game_over.wav",
+    "chalk": "optional local waw_chalk.wav",
+    "fallback": "existing NZ:P sounds when local reference audio is absent"
+  }
+}
