@@ -256,6 +256,18 @@ bool ZombieActor::applyDamage(
     return true;
 }
 
+void ZombieActor::translateHorizontal(
+    float deltaX,
+    float deltaZ) noexcept {
+    if (std::isfinite(deltaX)) {
+        frame_.position.x += deltaX;
+    }
+
+    if (std::isfinite(deltaZ)) {
+        frame_.position.z += deltaZ;
+    }
+}
+
 Aabb ZombieActor::bounds() const noexcept {
     return {
         .minimum = {
