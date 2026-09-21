@@ -11,6 +11,7 @@ This is **design research, not an asset-ripping plan**. We study progression, pa
 - `cod-zombies-main-quest-compendium.md` — game-by-game/map-by-map quest catalog and normalized completion routes.
 - `quest-design-patterns.md` — reusable design rules extracted from successful Zombies maps.
 - `sources.md` — primary/current references and full-walkthrough indexes.
+- `nzp-reference/` — exhaustive pinned NZ:P engine/map interaction corpus plus verified community quest mechanics and source availability.
 
 ## What counts as a quest map
 
@@ -76,6 +77,8 @@ The compendium covers:
 - Modern Warfare III — MWZ
 - Black Ops 6
 - Black Ops 7 through Season 06 (2026-09-20)
+- NZ:P official source-map interaction graphs and mapper/QuakeC quest primitives
+- verified NZ:P community-map Easter eggs, secrets, round gates, teleporter chains, collectible counters and known broken quest paths
 
 ## Engine target
 
