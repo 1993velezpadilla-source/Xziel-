@@ -73,12 +73,16 @@ loop_anchor = (
 loop_block = (
     '\t\tdouble now = Sys_FloatTime();\n'
     '#ifdef __ANDROID__\n'
+    '\t\tint xz_frame_before = host_framecount;\n'
     '\t\tXzAndroidRuntime_BeginFrame(now);\n'
     '#endif\n'
     '\t\tHost_Frame(now - oldtime);\n'
     '\t\tmusic_update();\n'
     '#ifdef __ANDROID__\n'
-    '\t\tXzAndroidRuntime_EndFrame(Sys_FloatTime());\n'
+    '\t\t/* Host_FilterTime can reject a loop iteration. Only publish a\n'
+    '\t\t * metric when Vril actually processed a frame. */\n'
+    '\t\tif (host_framecount != xz_frame_before)\n'
+    '\t\t\tXzAndroidRuntime_EndFrame(Sys_FloatTime());\n'
     '#endif\n'
     '\t\toldtime = now;\n'
 )
@@ -108,7 +112,7 @@ checks = {
     "header": '#include "xz_android_runtime.h"',
     "init": "XzAndroidRuntime_Init(heap_size);",
     "begin": "XzAndroidRuntime_BeginFrame(now);",
-    "end": "XzAndroidRuntime_EndFrame(Sys_FloatTime());",
+    "accepted-frame gate": "host_framecount != xz_frame_before",\n    "end": "XzAndroidRuntime_EndFrame(Sys_FloatTime());",
     "shutdown": "XzAndroidRuntime_Shutdown();",
 }
 final = sys_sdl.read_text(encoding="utf-8")
