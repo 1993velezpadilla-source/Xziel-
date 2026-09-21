@@ -154,6 +154,8 @@ InteractionFrame InteractionSystem::step(
         target->kind;
     frame_.cost =
         target->cost;
+    frame_.targetPosition =
+        target->position;
     frame_.distanceMeters =
         distance;
     frame_.facingDot =
