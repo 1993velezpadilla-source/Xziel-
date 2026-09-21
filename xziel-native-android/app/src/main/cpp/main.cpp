@@ -10,6 +10,7 @@
 #include "xziel/engine.hpp"
 #include "xziel/fps_player.hpp"
 #include "xziel/renderer_watchdog.hpp"
+#include "xziel/weapon.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -32,6 +33,7 @@ struct NativeAppState {
     xziel::RendererWatchdog watchdog{};
     xziel::Engine engine{};
     xziel::FpsPlayerController player{};
+    xziel::WeaponController weapon{};
     xziel::CameraRig cameraRig{};
     xziel::android::AndroidInputAdapter input{};
     xziel::android::VulkanClearRenderer renderer{};
@@ -51,6 +53,9 @@ struct NativeAppState {
 
     bool hasLastFrame = false;
     float stridePhase = 0.0f;
+
+    float pendingRecoilPitch = 0.0f;
+    float pendingRecoilYaw = 0.0f;
 };
 
 void logInfo(const char* message) noexcept {
@@ -316,10 +321,34 @@ void advancePlayer(
             buttons.movementCancelGesture = false;
         }
 
-        (void) state.player.fixedStep(
-            input.input.move,
-            buttons,
-            fixedDelta);
+        const auto playerFrame =
+            state.player.fixedStep(
+                input.input.move,
+                buttons,
+                fixedDelta);
+
+        const auto weaponFrame =
+            state.weapon.step(
+                {
+                    .fireHeld =
+                        input.input.fire &&
+                        playerFrame.movement.canFire,
+                    .firePressed = false,
+                    .reloadPressed =
+                        input.input.reload &&
+                        playerFrame.movement.canReload,
+                    .aimHeld =
+                        input.input.aim &&
+                        playerFrame.movement.canAim,
+                },
+                fixedDelta);
+
+        if (weaponFrame.firedThisTick) {
+            state.pendingRecoilPitch +=
+                weaponFrame.recoilPitchImpulse;
+            state.pendingRecoilYaw +=
+                weaponFrame.recoilYawImpulse;
+        }
     }
 }
 
@@ -355,6 +384,15 @@ xziel::CameraRigFrame advanceCameraRig(
 
     xziel::HorrorFrame horror{};
 
+    const float recoilPitch =
+        state.pendingRecoilPitch;
+
+    const float recoilYaw =
+        state.pendingRecoilYaw;
+
+    state.pendingRecoilPitch = 0.0f;
+    state.pendingRecoilYaw = 0.0f;
+
     return state.cameraRig.advance(
         {
             .moveSpeedNormalized =
@@ -362,9 +400,19 @@ xziel::CameraRigFrame advanceCameraRig(
             .stridePhase =
                 state.stridePhase,
             .aiming =
-                input.input.aim,
+                state.weapon.frame().adsAlpha >
+                0.5f,
             .reducedMotion =
                 false,
+            .weaponRecoilPitchImpulse =
+                recoilPitch,
+            .weaponRecoilYawImpulse =
+                recoilYaw,
+            .landingImpact =
+                player.movement.cue ==
+                    xziel::MovementCue::Land
+                ? 1.0f
+                : 0.0f,
         },
         player.movement,
         horror,
