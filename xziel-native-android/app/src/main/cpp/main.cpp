@@ -12,6 +12,7 @@
 #include "xziel/door.hpp"
 #include "xziel/environment.hpp"
 #include "xziel/fps_player.hpp"
+#include "xziel/gameplay_events.hpp"
 #include "xziel/hitscan.hpp"
 #include "xziel/horde_director.hpp"
 #include "xziel/haptics.hpp"
@@ -19,6 +20,7 @@
 #include "xziel/interaction.hpp"
 #include "xziel/map_runtime.hpp"
 #include "xziel/player_vitals.hpp"
+#include "xziel/quest_runtime.hpp"
 #include "xziel/performance.hpp"
 #include "xziel/render_features.hpp"
 #include "xziel/renderer_watchdog.hpp"
@@ -149,6 +151,8 @@ struct NativeAppState {
     xziel::InteractionFrame interactionFrame{};
     xziel::MapRuntime mapRuntime{};
     xziel::MapDefinition mapDefinition{};
+    xziel::GameplayEventQueue gameplayEvents{};
+    xziel::QuestRuntime questRuntime{};
 
     xziel::PlayerVitals vitals{};
     xziel::HorrorDirector horror{};
@@ -392,6 +396,40 @@ void configurePrototypeMap(
         .enabled = true,
     };
     map.interactionCount = 2;
+}
+
+void configurePrototypeQuest(
+    NativeAppState& state) noexcept {
+    xziel::QuestDefinition quest{};
+    quest.id = 9001U;
+
+    quest.steps[0] = {
+        .id = 1U,
+        .requiredEvent =
+            xziel::GameplayEventType::PowerStateChanged,
+        .subjectId = kPrototypePowerSwitchId,
+        .requiredCount = 1U,
+    };
+
+    quest.steps[1] = {
+        .id = 2U,
+        .requiredEvent =
+            xziel::GameplayEventType::DoorOpened,
+        .subjectId = kPrototypeDoorId,
+        .requiredCount = 1U,
+    };
+
+    quest.steps[2] = {
+        .id = 3U,
+        .requiredEvent =
+            xziel::GameplayEventType::PurchaseCompleted,
+        .subjectId = kPrototypeWeaponBuyId,
+        .requiredCount = 1U,
+    };
+
+    quest.stepCount = 3U;
+    (void) state.questRuntime.load(
+        quest);
 }
 
 void logInfo(const char* message) noexcept {
@@ -919,6 +957,22 @@ void advancePlayer(
                         ? state.stormWeather
                         : state.calmWeather);
 
+                (void) state.gameplayEvents.push(
+                    {
+                        .type =
+                            xziel::GameplayEventType::
+                                PowerStateChanged,
+                        .subjectId =
+                            kPrototypePowerSwitchId,
+                        .amount = 1U,
+                        .value =
+                            state.stormEnabled
+                            ? 1.0f
+                            : 0.0f,
+                        .simulationTick =
+                            state.engine.simulationTick(),
+                    });
+
                 requestHaptic(
                     state,
                     xziel::HapticEvent::UiConfirm);
@@ -941,6 +995,18 @@ void advancePlayer(
 
                     state.scorePulseSeconds =
                         0.38f;
+
+                    (void) state.gameplayEvents.push(
+                        {
+                            .type =
+                                xziel::GameplayEventType::
+                                    DoorOpened,
+                            .subjectId =
+                                kPrototypeDoorId,
+                            .amount = 1U,
+                            .simulationTick =
+                                state.engine.simulationTick(),
+                        });
 
                     requestHaptic(
                         state,
@@ -980,6 +1046,18 @@ void advancePlayer(
                     state.scorePulseSeconds =
                         0.38f;
 
+                    (void) state.gameplayEvents.push(
+                        {
+                            .type =
+                                xziel::GameplayEventType::
+                                    PurchaseCompleted,
+                            .subjectId =
+                                kPrototypeWeaponBuyId,
+                            .amount = 1U,
+                            .simulationTick =
+                                state.engine.simulationTick(),
+                        });
+
                     requestHaptic(
                         state,
                         xziel::HapticEvent::UiConfirm);
@@ -1018,14 +1096,83 @@ void advancePlayer(
         if (prototypeWindowFrame.
                 barricade.pointsAwardedThisTick > 0U) {
             state.scorePulseSeconds = 0.24f;
+
+            (void) state.gameplayEvents.push(
+                {
+                    .type =
+                        xziel::GameplayEventType::
+                            PlankRebuilt,
+                    .subjectId =
+                        kPrototypeWindowId,
+                    .amount = 1U,
+                    .value =
+                        static_cast<float>(
+                            prototypeWindowFrame.
+                                barricade.intactPlanks),
+                    .simulationTick =
+                        state.engine.simulationTick(),
+                });
+        }
+
+        if (prototypeWindowFrame.
+                barricade.breachedThisTick) {
+            (void) state.gameplayEvents.push(
+                {
+                    .type =
+                        xziel::GameplayEventType::
+                            WindowBreached,
+                    .subjectId =
+                        kPrototypeWindowId,
+                    .amount = 1U,
+                    .simulationTick =
+                        state.engine.simulationTick(),
+                });
+        }
+
+        if (prototypeWindowFrame.
+                barricade.fullyRebuiltThisTick) {
+            (void) state.gameplayEvents.push(
+                {
+                    .type =
+                        xziel::GameplayEventType::
+                            WindowFullyRebuilt,
+                    .subjectId =
+                        kPrototypeWindowId,
+                    .amount = 1U,
+                    .simulationTick =
+                        state.engine.simulationTick(),
+                });
         }
 
         if (hordeFrame.roundStartedThisTick) {
             state.mapRuntime.beginRound();
+
+            (void) state.gameplayEvents.push(
+                {
+                    .type =
+                        xziel::GameplayEventType::
+                            RoundStarted,
+                    .subjectId =
+                        hordeFrame.round,
+                    .amount = 1U,
+                    .simulationTick =
+                        state.engine.simulationTick(),
+                });
         }
 
         if (hordeFrame.roundStartedThisTick &&
             hordeFrame.round > 1U) {
+            (void) state.gameplayEvents.push(
+                {
+                    .type =
+                        xziel::GameplayEventType::
+                            RoundCompleted,
+                    .subjectId =
+                        hordeFrame.round - 1U,
+                    .amount = 1U,
+                    .simulationTick =
+                        state.engine.simulationTick(),
+                });
             (void) state.score.awardRoundClear(
                 hordeFrame.round - 1U);
 
@@ -1055,6 +1202,25 @@ void advancePlayer(
                     zombie->config().
                         attackDamage)) {
                 damagedByZombie = true;
+
+                (void) state.gameplayEvents.push(
+                    {
+                        .type =
+                            state.vitals.frame().alive
+                            ? xziel::GameplayEventType::
+                                  PlayerDamaged
+                            : xziel::GameplayEventType::
+                                  PlayerDowned,
+                        .subjectId = 1U,
+                        .actorId =
+                            static_cast<std::uint32_t>(
+                                slot + 1U),
+                        .value =
+                            zombie->config().
+                                attackDamage,
+                        .simulationTick =
+                            state.engine.simulationTick(),
+                    });
             }
         }
 
@@ -1199,6 +1365,26 @@ void advancePlayer(
                         nearestHit.region,
                         killed);
 
+                    if (killed) {
+                        (void) state.gameplayEvents.push(
+                            {
+                                .type =
+                                    nearestHit.region ==
+                                        xziel::ZombieHitRegion::Head
+                                    ? xziel::GameplayEventType::
+                                          ZombieHeadshot
+                                    : xziel::GameplayEventType::
+                                          ZombieKilled,
+                                .subjectId =
+                                    static_cast<std::uint32_t>(
+                                        nearestSlot + 1U),
+                                .actorId = 1U,
+                                .amount = 1U,
+                                .simulationTick =
+                                    state.engine.simulationTick(),
+                            });
+                    }
+
                     if (killed &&
                         nearestHit.region ==
                             xziel::ZombieHitRegion::Head) {
@@ -1230,6 +1416,26 @@ void advancePlayer(
                     state.impactPoint =
                         nearestHit.point;
                 }
+            }
+        }
+
+        xziel::GameplayEvent gameplayEvent{};
+        while (state.gameplayEvents.pop(
+                   gameplayEvent)) {
+            const auto questFrame =
+                state.questRuntime.consume(
+                    gameplayEvent);
+
+            if (questFrame.stepCompletedThisTick ||
+                questFrame.questCompletedThisTick) {
+                state.scorePulseSeconds =
+                    std::max(
+                        state.scorePulseSeconds,
+                        0.32f);
+
+                requestHaptic(
+                    state,
+                    xziel::HapticEvent::UiConfirm);
             }
         }
     }
@@ -2014,6 +2220,8 @@ extern "C" void android_main(
         xziel::AndroidLifecycleEvent::Create);
 
     configurePrototypeMap(
+        state);
+    configurePrototypeQuest(
         state);
 
     const auto prototypeMapLoad =
