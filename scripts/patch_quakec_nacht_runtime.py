@@ -33,23 +33,23 @@ void() Xziel_NachtEnhanced_AmbientOneShotThink =
         return;
     }
 
-    if (self.style == 1)
+    if (self.impulse == 1)
         sound(self, CHAN_VOICE, "sounds/misc/electric_bolt.wav", 0.30, ATTN_STATIC);
-    else if (self.style == 2)
+    else if (self.impulse == 2)
         sound(self, CHAN_VOICE, "sounds/misc/wood_door.wav", 0.22, ATTN_STATIC);
-    else if (self.style == 3)
+    else if (self.impulse == 3)
         sound(self, CHAN_VOICE, "sounds/misc/debris.wav", 0.18, ATTN_STATIC);
 
-    self.nextthink = time + self.wait + random() * self.waitmax;
+    self.nextthink = time + self.wait + random() * self.speed;
 };
 
 void(vector org, float style, float base_wait, float jitter) Xziel_NachtEnhanced_SpawnOneShot =
 {
     entity emitter = spawn();
     emitter.classname = "xziel_nacht_enhanced_audio";
-    emitter.style = style;
+    emitter.impulse = style;
     emitter.wait = base_wait;
-    emitter.waitmax = jitter;
+    emitter.speed = jitter;
     emitter.solid = SOLID_NOT;
     emitter.movetype = MOVETYPE_NONE;
     setorigin(emitter, org);
