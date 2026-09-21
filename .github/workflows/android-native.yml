@@ -88,6 +88,13 @@ jobs:
           grep -q 'weapons.impact' build/deps/quakec/source/client/main.qc
           grep -q 'xziel_nacht_fx_next_lightning' build/deps/quakec/source/client/main.qc
           grep -q 'Xziel_NachtEnhanced_MapZombieFrame' build/deps/vril/source/platform/sdl/gl/gl_rmain.c
+          grep -q 'Xziel_NachtEnhanced_ScaleFrame' build/deps/vril/source/platform/sdl/gl/gl_rmain.c
+          grep -q 'frame >= 53 && frame <= 66' build/deps/vril/source/platform/sdl/gl/gl_rmain.c
+          grep -q 'frame >= 202 && frame <= 210' build/deps/vril/source/platform/sdl/gl/gl_rmain.c
+          if grep -q 'return frame % 250' build/deps/vril/source/platform/sdl/gl/gl_rmain.c; then
+            echo "unsafe modulo zombie animation fallback survived patch" >&2
+            exit 1
+          fi
           grep -q 'Xziel_NachtEnhanced_ZombieVariant' build/deps/vril/source/platform/sdl/gl/gl_rmain.c
           grep -q 'models/xziel/nacht/zombie_lq.mdl' build/deps/vril/source/platform/sdl/gl/gl_rmain.c
           grep -q 'models/xziel/nacht/zombie_lq_h0_l0_r0.mdl' build/deps/vril/source/platform/sdl/gl/gl_rmain.c
