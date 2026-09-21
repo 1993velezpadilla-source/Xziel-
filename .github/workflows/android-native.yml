@@ -52,9 +52,13 @@ jobs:
       - name: Verify Nacht Enhanced integration
         shell: bash
         run: |
-          grep -q 'xziel_nacht_enhanced' build/android-project/app/jni/vril/Source/input.c
-          grep -q 'NACHT VISUALS' build/android-project/app/jni/quakec/source/menu/menu_gset.qc
-          grep -q 'current_selected_bsp == "ndu"' build/android-project/app/jni/quakec/source/menu/menu_gset.qc
+          grep -q 'xziel_nacht_enhanced' build/deps/vril/source/input.c
+          grep -q 'NACHT VISUALS' build/deps/quakec/source/menu/menu_gset.qc
+          grep -q 'current_selected_bsp == "ndu"' build/deps/quakec/source/menu/menu_gset.qc
+          grep -q 'Xziel_NachtEnhanced_Init' build/deps/quakec/source/server/main.qc
+          grep -q 'Xziel_NachtEnhanced_Render' build/deps/quakec/source/client/main.qc
+          grep -q 'sounds/ambience/wind2.wav' build/deps/quakec/source/server/main.qc
+          grep -q 'invalid SOLID_BSP entity' build/deps/vril/source/world.c
 
       - name: Build debug APK
         working-directory: build/android-project
