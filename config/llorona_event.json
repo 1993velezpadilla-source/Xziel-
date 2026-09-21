@@ -1,8 +1,8 @@
 {
-  "version": 2,
+  "version": 3,
   "encounter": "la_llorona",
   "earliest_child_round": 6,
-  "child_spawn_chance_per_eligible_round": 0.09,
+  "child_spawn_chance_per_eligible_round": 0.06,
   "max_children_per_round": 1,
   "manifestations": {
     "penitent_round_start_chance": 0.06,
@@ -46,8 +46,8 @@
     "localization_key": "llorona_child_corpse_hint"
   },
   "prayer_window": {
-    "audio_id": "llorona_prayer_enchanted_v2",
-    "duration_s": 82,
+    "audio_id": "llorona_prayer_enchanted_v4_horror",
+    "duration_s": 81.944,
     "manifestation_lifetime_follows_audio": true,
     "interaction_open_while_audio_playing": true,
     "interaction_closes_on_audio_end": true,
@@ -80,11 +80,25 @@
       "duration_s": 81.944,
       "status": "locked"
     },
-    "current_candidate": {
+    "previous_candidate": {
       "id": "llorona_prayer_enchanted_v3_darker",
+      "role": "rollback_candidate",
+      "duration_s": 81.944,
+      "status": "preserved"
+    },
+    "current_candidate": {
+      "id": "llorona_prayer_enchanted_v4_horror",
       "role": "active_candidate",
       "duration_s": 81.944,
-      "status": "test"
+      "status": "test",
+      "changes": [
+        "denoise_v3_hiss_before_fx",
+        "no_generated_white_noise",
+        "voice_derived_whisper_layers",
+        "reverse_pre_echo",
+        "deeper_chapel_tail",
+        "subtle_low_spectral_shadow"
+      ]
     }
   },
   "hidden_fate": {
@@ -161,113 +175,49 @@
     "rejected_offering": {
       "drop_id": "corrupted_offering",
       "guaranteed_drop": true,
-      "selection": "weighted_random_one",
-      "smart_reroll_if_reward_would_be_wasted": true,
-      "entries": [
-        {
-          "id": "max_ammo",
-          "weight": 0.32,
-          "native_powerup": "PU_MAXAMMO",
-          "tier": "common_high_value",
-          "effect": "spawn_native_max_ammo"
-        },
-        {
-          "id": "carpenter",
-          "weight": 0.24,
-          "native_powerup": "PU_CARPENTER",
-          "tier": "common_high_value",
-          "effect": "repair_all_repairable_barriers"
-        },
-        {
-          "id": "insta_kill",
-          "weight": 0.18,
-          "native_powerup": "PU_INSTAKILL",
-          "tier": "uncommon",
-          "effect": "spawn_native_insta_kill"
-        },
-        {
-          "id": "nuke",
-          "weight": 0.12,
-          "native_powerup": "PU_NUKE",
-          "tier": "rare",
-          "effect": "spawn_native_nuke"
-        },
-        {
-          "id": "wonder_weapon",
-          "weight": 0.08,
-          "tier": "very_rare",
-          "effect": "grant_one_map_approved_wonder_weapon",
-          "no_duplicate_if_player_already_owns_same_weapon": true,
-          "fallback": "nuke"
-        },
-        {
-          "id": "reliquary_substitute",
-          "weight": 0.06,
-          "tier": "mythic",
-          "effect": "grant_one_relic_substitute_token",
-          "max_active_per_match": 1,
-          "fallback_if_ritual_already_complete": "wonder_weapon"
-        }
-      ]
+      "fragment_chance_source": "fragment_mercy_drop",
+      "non_fragment_weight_scores": {
+        "max_ammo": 32,
+        "carpenter": 24,
+        "insta_kill": 18,
+        "nuke": 12,
+        "wonder_weapon": 8
+      },
+      "smart_reroll_if_reward_would_be_wasted": true
     },
     "hostile_test_rage": {
-      "guaranteed_drop": true,
       "drop_id": "wrath_compensation",
-      "selection": "weighted_random_one",
-      "entries": [
-        {
-          "id": "max_ammo",
-          "weight": 0.55,
-          "native_powerup": "PU_MAXAMMO"
-        },
-        {
-          "id": "carpenter",
-          "weight": 0.3,
-          "native_powerup": "PU_CARPENTER"
-        },
-        {
-          "id": "insta_kill",
-          "weight": 0.15,
-          "native_powerup": "PU_INSTAKILL"
-        }
-      ]
+      "guaranteed_drop": true,
+      "fragment_chance_source": "fragment_mercy_drop",
+      "non_fragment_weight_scores": {
+        "max_ammo": 40,
+        "carpenter": 27,
+        "insta_kill": 16,
+        "nuke": 9,
+        "wonder_weapon": 2
+      },
+      "note": "Trap interaction can still pay out premium loot, but premium odds are lower than rejected OFFERING."
     },
     "child_discovery_rage": {
-      "guaranteed_drop": true,
       "drop_id": "mourning_cache",
-      "selection": "weighted_random_one",
-      "entries": [
-        {
-          "id": "max_ammo",
-          "weight": 0.5,
-          "native_powerup": "PU_MAXAMMO"
-        },
-        {
-          "id": "insta_kill",
-          "weight": 0.25,
-          "native_powerup": "PU_INSTAKILL"
-        },
-        {
-          "id": "nuke",
-          "weight": 0.15,
-          "native_powerup": "PU_NUKE"
-        },
-        {
-          "id": "reliquary_substitute",
-          "weight": 0.1,
-          "effect": "grant_one_relic_substitute_token",
-          "max_active_per_match": 1,
-          "fallback_if_duplicate": "wonder_weapon"
-        }
-      ]
+      "guaranteed_drop": true,
+      "fragment_chance_source": "fragment_mercy_drop",
+      "non_fragment_weight_scores": {
+        "max_ammo": 44,
+        "insta_kill": 25,
+        "nuke": 15,
+        "wonder_weapon": 10
+      },
+      "note": "Child-linked rage keeps the same dynamic Fragmento chance so the storyline can still self-repair."
     }
   },
   "relic_substitute": {
     "id": "reliquary_substitute",
     "display_name": "Fragmento de Misericordia",
-    "purpose": "substitute_exactly_one_missing_mercy_relic",
+    "purpose": "substitute_one_missing_mercy_relic_per_fragment",
     "consumed_on_use": true,
-    "max_uses_per_match": 1,
+    "max_fragments_held_at_once": 2,
+    "max_relic_slots_substitutable_per_match": 2,
     "can_replace": [
       "broken_rosary_beads",
       "child_shoe",
@@ -275,10 +225,52 @@
     ],
     "cannot_replace": [
       "dead_child_marker",
-      "second_missing_relic",
       "llorona_interaction_requirement"
     ],
+    "requires_at_least_one_authentic_relic_for_full_ritual": true,
     "cannot_duplicate_completed_slot": true,
-    "if_no_relics_missing": "convert_to_wonder_weapon_roll"
+    "if_no_relics_missing": "convert_to_high_value_fallback"
+  },
+  "fragment_mercy_drop": {
+    "id": "reliquary_substitute",
+    "global_across_all_eligible_llorona_kill_pools": true,
+    "probability_by_fragments_already_granted": [
+      {
+        "granted_count": 0,
+        "chance": 0.06
+      },
+      {
+        "granted_count": 1,
+        "chance": 0.03
+      },
+      {
+        "granted_count_min": 2,
+        "chance": 0.015
+      }
+    ],
+    "decrement_only_after_fragment_is_actually_granted": true,
+    "max_fragments_held_at_once": 2,
+    "max_relic_slots_substitutable_per_match": 2,
+    "after_substitution_cap": {
+      "fragment_roll_converts_to": "high_value_fallback",
+      "high_value_fallback_weights": {
+        "nuke": 0.55,
+        "wonder_weapon": 0.45
+      }
+    },
+    "reset_each_match": true
+  },
+  "reward_roll_algorithm": {
+    "step_1": "roll_dynamic_fragment_chance_for_eligible_pool",
+    "step_2_if_fragment_fails": "normalize_non_fragment_weights_and_roll_one",
+    "guaranteed_reward_after_llorona_kill": true,
+    "no_empty_result": true
+  },
+  "rare_overlap": {
+    "child_spawn_chance": 0.06,
+    "first_fragment_chance_when_eligible": 0.06,
+    "independent_same_round_probability_if_both_rolls_are_eligible": 0.0036,
+    "display_to_player": false,
+    "note": "Independent 6% x 6% rolls naturally create a 0.36% same-round coincidence; no forced 6% collision."
   }
 }
