@@ -1664,6 +1664,46 @@ xziel::android::VulkanSceneState makeSceneState(
     const NativeAppState& state) noexcept {
     xziel::android::VulkanSceneState scene{};
 
+    for (std::size_t index = 0;
+         index < state.mapDefinition.boxCount &&
+         scene.mapBoxCount < scene.mapBoxes.size();
+         ++index) {
+        const auto& authored =
+            state.mapDefinition.boxes[index];
+
+        if (!authored.visible) {
+            continue;
+        }
+
+        auto& box =
+            scene.mapBoxes[scene.mapBoxCount++];
+
+        box.x = authored.center.x;
+        box.y = authored.center.y;
+        box.z = authored.center.z;
+
+        // The renderer's procedural cube spans +/-0.75 in local space.
+        // Convert authored half-extents into its scale convention here so map
+        // data remains renderer-agnostic.
+        box.scaleX =
+            std::max(
+                std::fabs(authored.halfExtents.x) / 0.75f,
+                0.001f);
+        box.scaleY =
+            std::max(
+                std::fabs(authored.halfExtents.y) / 0.75f,
+                0.001f);
+        box.scaleZ =
+            std::max(
+                std::fabs(authored.halfExtents.z) / 0.75f,
+                0.001f);
+
+        box.materialId =
+            static_cast<float>(
+                authored.materialId);
+        box.visible = true;
+    }
+
     for (std::size_t slot = 0;
          slot < state.horde.capacity() &&
          scene.zombieCount <

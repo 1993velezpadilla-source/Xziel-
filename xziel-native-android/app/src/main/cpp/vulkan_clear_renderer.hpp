@@ -21,6 +21,19 @@ struct VulkanCamera {
     float verticalFovDegrees = 72.0f;
 };
 
+struct VulkanMapBoxState {
+    float x = 0.0f;
+    float y = 0.0f;
+    float z = 0.0f;
+
+    float scaleX = 1.0f;
+    float scaleY = 1.0f;
+    float scaleZ = 1.0f;
+
+    float materialId = 0.0f;
+    bool visible = false;
+};
+
 struct VulkanZombieState {
     float x = 0.0f;
     float y = -1.48f;
@@ -36,6 +49,9 @@ struct VulkanZombieState {
 };
 
 struct VulkanSceneState {
+    std::array<VulkanMapBoxState, 128> mapBoxes{};
+    std::size_t mapBoxCount = 0;
+
     std::array<VulkanZombieState, 8> zombies{};
     std::size_t zombieCount = 0;
 

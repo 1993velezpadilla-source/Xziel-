@@ -3446,11 +3446,33 @@ bool VulkanClearRenderer::recordDrawCommand(
             vkCmdDraw(command, 36, 1, 0, 0);
         };
 
-        // Deliberately omit the water itself to prevent recursive reflection.
-        drawReflectedBox(0.0f, -1.58f, 0.0f, 4.2f, 0.12f, 5.0f, 0.0f);
-        drawReflectedBox(-3.15f, 0.05f, 0.0f, 0.12f, 2.2f, 5.0f, 1.0f);
-        drawReflectedBox(3.15f, 0.05f, 0.0f, 0.12f, 2.2f, 5.0f, 1.0f);
-        drawReflectedBox(0.0f, 0.05f, 3.85f, 4.2f, 2.2f, 0.12f, 2.0f);
+        // Render authored map geometry into the planar capture. Reflective
+        // surfaces themselves are omitted to avoid recursive feedback.
+        const std::size_t reflectedMapBoxCount =
+            std::min(
+                scene.mapBoxCount,
+                scene.mapBoxes.size());
+
+        for (std::size_t i = 0;
+             i < reflectedMapBoxCount;
+             ++i) {
+            const auto& box = scene.mapBoxes[i];
+
+            if (!box.visible ||
+                box.materialId == 13.0f ||
+                box.materialId == 14.0f) {
+                continue;
+            }
+
+            drawReflectedBox(
+                box.x,
+                box.y,
+                box.z,
+                box.scaleX,
+                box.scaleY,
+                box.scaleZ,
+                box.materialId);
+        }
 
         const std::size_t reflectedZombieCount =
             std::min(scene.zombieCount, scene.zombies.size());
@@ -3723,56 +3745,32 @@ bool VulkanClearRenderer::recordDrawCommand(
             0);
     };
 
-    // First procedural Xziel horror room. Geometry is deliberately generated
-    // without a model asset so the earliest Android renderer milestone proves
-    // depth, projection, repeated draws and lighting before asset streaming.
-    drawBox(
-        0.0f, -1.58f, 0.0f,
-        4.2f, 0.12f, 5.0f,
-        0.0f);
+    // Main world geometry is now submitted from MapDefinition rather than
+    // being duplicated inside the renderer. Map authors can change geometry
+    // without touching Vulkan command recording.
+    const std::size_t visibleMapBoxCount =
+        std::min(
+            scene.mapBoxCount,
+            scene.mapBoxes.size());
 
-    drawBox(
-        -3.15f, 0.05f, 0.0f,
-        0.12f, 2.2f, 5.0f,
-        1.0f);
+    for (std::size_t i = 0;
+         i < visibleMapBoxCount;
+         ++i) {
+        const auto& box = scene.mapBoxes[i];
 
-    drawBox(
-        3.15f, 0.05f, 0.0f,
-        0.12f, 2.2f, 5.0f,
-        1.0f);
+        if (!box.visible) {
+            continue;
+        }
 
-    drawBox(
-        0.0f, 0.05f, 3.85f,
-        4.2f, 2.2f, 0.12f,
-        2.0f);
-
-    drawBox(
-        0.0f, 2.02f, 0.0f,
-        4.2f, 0.10f, 5.0f,
-        2.0f);
-
-    // First live procedural water surface. This is fixed-cost geometry with
-    // storm-driven wave/foam/roughness state, ready to receive a later planar
-    // reflection texture without changing gameplay code.
-    drawBox(
-        -1.70f,
-        -1.505f,
-        -0.25f,
-        1.10f,
-        0.025f,
-        1.45f,
-        13.0f);
-
-    // Glossy reflection panel exercises the reflective-material path. True
-    // offscreen planar scene reflection remains a separate render-pass step.
-    drawBox(
-        3.00f,
-        0.15f,
-        -0.65f,
-        0.025f,
-        1.05f,
-        1.10f,
-        14.0f);
+        drawBox(
+            box.x,
+            box.y,
+            box.z,
+            box.scaleX,
+            box.scaleY,
+            box.scaleZ,
+            box.materialId);
+    }
 
     const float prototypeDoorOpen =
         std::clamp(
