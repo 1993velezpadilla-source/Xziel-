@@ -24,7 +24,10 @@ mkdir -p "$WORK" "$TOOLS"
 
 echo "==> Sparse-cloning NZ:P map source and the three WAD source sets"
 git clone --depth 1 --filter=blob:none --sparse https://github.com/nzp-team/assets.git "$SRC"
-git -C "$SRC" sparse-checkout set   source/maps/ndu   'source/textures/wad/Ju[s]tice_null2'   source/textures/wad/zhlt   source/textures/wad/chalk_drawings
+# The upstream WAD directory literally contains '[' and ']'. Cone-mode
+# validation mistakes that directory for a sparse pattern unless checks are
+# skipped explicitly.
+git -C "$SRC" sparse-checkout set --skip-checks   source/maps/ndu   'source/textures/wad/Ju[s]tice_null2'   source/textures/wad/zhlt   source/textures/wad/chalk_drawings
 
 mkdir -p "$MAP_SRC"
 cp "$SRC/source/maps/ndu/ndu.map" "$MAP_SRC/ndu_enchanted.map"
