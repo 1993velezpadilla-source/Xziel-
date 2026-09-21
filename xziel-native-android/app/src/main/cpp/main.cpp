@@ -984,6 +984,10 @@ xziel::android::VulkanHudState makeHudState(
                 state.weapon.config().magazineSize,
                 1U));
 
+    hud.viewmodelLowering =
+        state.player.frame().
+            movement.viewmodelLowering;
+
     hud.playerHealthRatio =
         state.vitals.frame().
             healthRatio;
