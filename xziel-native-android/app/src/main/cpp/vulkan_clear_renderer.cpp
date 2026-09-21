@@ -2390,6 +2390,96 @@ bool VulkanClearRenderer::recordDrawCommand(
             3.0f);
     }
 
+    const float weaponAds =
+        std::clamp(
+            hud.weaponAdsAlpha,
+            0.0f,
+            1.0f);
+
+    const float weaponReload =
+        std::clamp(
+            hud.weaponReloadAlpha,
+            0.0f,
+            1.0f);
+
+    const float weaponFire =
+        std::clamp(
+            hud.weaponFireAlpha,
+            0.0f,
+            1.0f);
+
+    const float reloadArc =
+        std::sin(
+            weaponReload *
+            3.14159265358979323846f);
+
+    const float weaponX =
+        0.72f *
+            (1.0f - weaponAds) +
+        0.05f *
+            weaponAds;
+
+    const float weaponY =
+        -0.72f +
+        0.16f *
+            weaponAds -
+        0.30f *
+            reloadArc;
+
+    const float weaponZ =
+        1.22f -
+        0.12f *
+            weaponAds +
+        0.10f *
+            reloadArc;
+
+    // First procedural viewmodel: receiver, barrel and sight. This deliberately
+    // uses the same cube primitive as the room so the weapon path is proven
+    // before importing any external mesh asset.
+    drawBox(
+        weaponX,
+        weaponY,
+        weaponZ,
+        0.38f,
+        0.22f,
+        0.72f,
+        10.0f);
+
+    drawBox(
+        weaponX + 0.02f,
+        weaponY + 0.015f,
+        weaponZ + 0.72f,
+        0.15f,
+        0.12f,
+        0.78f,
+        10.0f);
+
+    drawBox(
+        weaponX,
+        weaponY + 0.20f,
+        weaponZ - 0.02f,
+        0.085f,
+        0.09f,
+        0.18f,
+        10.0f);
+
+    if (weaponFire > 0.01f) {
+        drawBox(
+            weaponX + 0.02f,
+            weaponY + 0.015f,
+            weaponZ + 1.34f,
+            0.13f +
+                0.05f *
+                weaponFire,
+            0.13f +
+                0.05f *
+                weaponFire,
+            0.16f +
+                0.10f *
+                weaponFire,
+            11.0f);
+    }
+
     if (uiPipeline_ == VK_NULL_HANDLE ||
         uiPipelineLayout_ == VK_NULL_HANDLE) {
         vkCmdEndRenderPass(command);
