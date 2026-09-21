@@ -544,6 +544,120 @@ def build_xziel_v024_assets(out: Path) -> None:
     for name, body in silhouettes.items():
         _render_svg(out, name, f'<g fill="#FFFFFF">{body}</g>', 512)
 
+
+def build_xziel_v025_assets(out: Path) -> None:
+    """Phone-readability cleanup for the approved HUD."""
+    controls = {
+        "jump": '''
+          <g fill="#FFFFFF">
+            <circle cx="214" cy="122" r="28"/>
+            <path d="M184 154l60 13 47 47-27 25-35-31-13 60 53 44-27 31-69-55-34 4-48 61-31-24 62-86 20-75z"/>
+            <path d="M321 300l39-51 39 51h-24v100h-29V300z"/>
+          </g>
+          <path d="M78 416h265" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round" stroke-opacity=".76"/>
+        ''',
+        "slide": '''
+          <g fill="#FFFFFF">
+            <circle cx="315" cy="164" r="27"/>
+            <path d="M270 193l62 17 48 40-27 29-43-29-48 42 84 24-11 38-116-28-73 49-26-31 88-73 30-62z"/>
+            <path d="M155 316H78v18h68zM180 350H65v18h105zM207 384H95v18h102z" opacity=".86"/>
+          </g>
+          <path d="M103 422h317" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round" stroke-opacity=".76"/>
+        ''',
+        "sprint": '''
+          <g fill="#FFFFFF">
+            <circle cx="296" cy="115" r="28"/>
+            <path d="M249 151l69 18 46 53-30 24-34-37-25 64 65 57-27 32-84-66-42 94-39-19 52-119-59 23-15-36 91-45z"/>
+            <path d="M112 177H52v17h60zM130 225H48v17h82zM115 274H66v17h49z" opacity=".84"/>
+          </g>
+        ''',
+    }
+    for name, body in controls.items():
+        _render_svg(out, name, body, 512)
+
+    # M1911: unmistakable long slide, trigger guard and rear angled grip.
+    # Muzzle points right, matching the in-hand presentation.
+    colt = '''
+      <g fill="#FFFFFF">
+        <rect x="74" y="184" width="332" height="58" rx="7"/>
+        <rect x="394" y="197" width="61" height="30" rx="4"/>
+        <rect x="111" y="166" width="80" height="18" rx="4"/>
+        <rect x="326" y="167" width="15" height="17"/>
+        <path d="M132 241h218l-17 47h-49l-18 125h-78l33-125h-62z"/>
+        <path d="M289 284l73 2-21 131h-82z"/>
+        <path d="M341 184l30-28 22 12-20 28z"/>
+      </g>
+      <path d="M200 247h91c29 0 48 14 48 36s-19 37-48 37h-58"
+            fill="none" stroke="#FFFFFF" stroke-width="24" stroke-linecap="round"/>
+      <path d="M228 270h58c13 0 20 5 20 13s-7 14-20 14h-49"
+            fill="none" stroke="#050607" stroke-width="12" stroke-linecap="round"/>
+    '''
+    _render_svg(out, "weapon_colt", colt, 512)
+
+    # Keep the most visually recognizable families strongly distinct.
+    revolver = '''
+      <g fill="#FFFFFF">
+        <rect x="74" y="210" width="244" height="48" rx="8"/>
+        <rect x="314" y="218" width="146" height="22" rx="7"/>
+        <circle cx="248" cy="252" r="58"/>
+        <path d="M185 282h79l-30 132h-72z"/>
+        <path d="M315 209l26-39 24 12-16 39z"/>
+      </g>
+    '''
+    _render_svg(out, "weapon_revolver", revolver, 512)
+
+    thompson = '''
+      <g fill="#FFFFFF">
+        <path d="M36 245l91-61h73v38h169v58H203l-76 54-91-15z"/>
+        <rect x="366" y="235" width="122" height="22" rx="5"/>
+        <path d="M198 278h42l-11 116h-42z"/>
+        <circle cx="288" cy="314" r="58"/>
+        <path d="M118 242L42 174l-27 25 92 70z"/>
+      </g>
+    '''
+    _render_svg(out, "weapon_thompson", thompson, 512)
+
+    mp40 = '''
+      <g fill="#FFFFFF">
+        <path d="M57 244l73-38h189l54 29h111v31H315l-58 29H129l-72 32z"/>
+        <rect x="222" y="286" width="39" height="126" rx="5"/>
+      </g>
+      <path d="M127 244L48 177l-22-16M48 177l-20 28"
+            fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round"/>
+    '''
+    _render_svg(out, "weapon_mp40", mp40, 512)
+
+    ppsh = '''
+      <g fill="#FFFFFF">
+        <path d="M40 250l84-47h194l60 30h111v30H313l-62 31H125l-85 40z"/>
+        <circle cx="283" cy="318" r="62"/>
+        <rect x="359" y="220" width="131" height="15"/>
+        <path d="M115 248L53 197l-18 21 67 48z"/>
+      </g>
+    '''
+    _render_svg(out, "weapon_ppsh", ppsh, 512)
+
+    stg = '''
+      <g fill="#FFFFFF">
+        <path d="M34 253l90-52h205l66 32h96v29H324l-63 32H124l-90 42z"/>
+        <path d="M237 286h52l-16 116h-54z"/>
+        <rect x="373" y="221" width="118" height="14"/>
+        <path d="M119 252L47 203l-19 22 73 47z"/>
+      </g>
+    '''
+    _render_svg(out, "weapon_stg", stg, 512)
+
+    mg42 = '''
+      <g fill="#FFFFFF">
+        <path d="M19 245l94-47h230l60 29h98v30H338l-65 36H113l-94 38z"/>
+        <rect x="364" y="213" width="138" height="15"/>
+        <path d="M118 244L51 201l-20 23 70 39z"/>
+      </g>
+      <path d="M391 258l-58 129M425 258l61 129"
+            fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round"/>
+    '''
+    _render_svg(out, "weapon_mg42", mg42, 512)
+
 def main() -> None:
     if len(sys.argv) != 2:
         raise SystemExit("usage: build_xziel_icons.py <output-dir>")
@@ -561,6 +675,7 @@ def main() -> None:
     # Overwrite generic source-pack glyphs with Xziel's original mobile-FPS controls.
     build_xziel_fps_controls(out)
     build_xziel_v024_assets(out)
+    build_xziel_v025_assets(out)
 
     # Weapon cards use actual CC0 gun artwork rather than a hand-drawn glyph.
     # Kay Lousberg's pack is CC0, transparent PNG, and explicitly includes
