@@ -40,6 +40,12 @@ jobs:
           python3 -m pip install --quiet objaverse trimesh huggingface_hub
           blender --version
 
+      - name: Validate Penitent event contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/church_map/validate_penitent_event.py
+
       - name: Fetch St Giles Cripplegate from Objaverse
         shell: bash
         run: |
