@@ -69,7 +69,69 @@
       "OPTIONAL_DECEPTION_STING",
       "DEFEATED_REWARD",
       "COMPLETE"
-    ]
+    ],
+    "transitions": {
+      "DORMANT": {
+        "eligible": "SCHEDULED"
+      },
+      "SCHEDULED": {
+        "anchor_selected": "PLACED_HIDDEN",
+        "blocked": "SCHEDULED"
+      },
+      "PLACED_HIDDEN": {
+        "player_can_discover": "PRAYING"
+      },
+      "PRAYING": {
+        "prayer_finished": "COMPLETED_UNDISTURBED",
+        "interact": "PLAYER_INTERACTED",
+        "damaged": "PLAYER_ATTACKED",
+        "personal_space": "PERSONAL_SPACE_REACTION"
+      },
+      "PLAYER_INTERACTED": {
+        "mercy": "MERCY_EXIT",
+        "judgement": "JUDGEMENT_LOCKDOWN",
+        "deception": "DECEPTION_EXIT"
+      },
+      "PLAYER_ATTACKED": {
+        "resolve": "WRATH_TRANSFORM"
+      },
+      "PERSONAL_SPACE_REACTION": {
+        "continue": "PRAYING",
+        "head_turn": "PRAYING",
+        "judgement": "JUDGEMENT_LOCKDOWN"
+      },
+      "MERCY_EXIT": {
+        "vanished": "REWARD"
+      },
+      "JUDGEMENT_LOCKDOWN": {
+        "survived": "REWARD",
+        "penitent_killed": "DEFEATED_REWARD"
+      },
+      "DECEPTION_EXIT": {
+        "vanished": "REWARD"
+      },
+      "WRATH_TRANSFORM": {
+        "ready": "WRATH_HUNT"
+      },
+      "WRATH_HUNT": {
+        "penitent_killed": "DEFEATED_REWARD",
+        "survived": "REWARD"
+      },
+      "COMPLETED_UNDISTURBED": {
+        "vanished": "REWARD"
+      },
+      "REWARD": {
+        "deception_sting": "OPTIONAL_DECEPTION_STING",
+        "complete": "COMPLETE"
+      },
+      "OPTIONAL_DECEPTION_STING": {
+        "resolved": "COMPLETE"
+      },
+      "DEFEATED_REWARD": {
+        "granted": "COMPLETE"
+      },
+      "COMPLETE": {}
+    }
   },
   "seededOutcomeWeights": {
     "mercy": 0.3,
@@ -104,5 +166,11 @@
   "roundAccounting": {
     "prayingCountsTowardRoundPopulation": false,
     "transformedCountsAsAuthoritativeEnemy": true
+  },
+  "networkAuthority": {
+    "stateOwner": "server",
+    "interactionResolution": "single authoritative transaction",
+    "duplicatedTransitionPolicy": "idempotent",
+    "disconnectPolicy": "event continues or resolves without orphaning state"
   }
 }
