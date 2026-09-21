@@ -4908,8 +4908,8 @@ bool VulkanClearRenderer::recordDrawCommand(
             0.10f);
         drawShortRect(x, y - 0.037f, 0.0022f, 0.010f, 0.93f, 0.96f, 1.0f, alpha);
         drawShortRect(x, y + 0.037f, 0.0022f, 0.010f, 0.93f, 0.96f, 1.0f, alpha);
-        drawShortRect(x - 0.037f * shortToX / shortToY, y, 0.010f, 0.0022f, 0.93f, 0.96f, 1.0f, alpha);
-        drawShortRect(x + 0.037f * shortToX / shortToY, y, 0.010f, 0.0022f, 0.93f, 0.96f, 1.0f, alpha);
+        drawShortRect(x - 0.037f * shortToX, y, 0.010f, 0.0022f, 0.93f, 0.96f, 1.0f, alpha);
+        drawShortRect(x + 0.037f * shortToX, y, 0.010f, 0.0022f, 0.93f, 0.96f, 1.0f, alpha);
     };
 
     const auto drawBulletIcon = [&](
@@ -4944,9 +4944,9 @@ bool VulkanClearRenderer::recordDrawCommand(
             true,
             0.11f);
         // Break a small section of the ring and add a blocky arrowhead.
-        drawShortRect(x + 0.020f * shortToX / shortToY, y - 0.018f, 0.010f, 0.007f, 0.015f, 0.020f, 0.028f, 0.98f);
-        drawShortRect(x + 0.023f * shortToX / shortToY, y - 0.018f, 0.009f, 0.0025f, 0.96f, 0.96f, 0.96f, alpha);
-        drawShortRect(x + 0.029f * shortToX / shortToY, y - 0.011f, 0.0028f, 0.008f, 0.96f, 0.96f, 0.96f, alpha);
+        drawShortRect(x + 0.020f * shortToX, y - 0.018f, 0.010f, 0.007f, 0.015f, 0.020f, 0.028f, 0.98f);
+        drawShortRect(x + 0.023f * shortToX, y - 0.018f, 0.009f, 0.0025f, 0.96f, 0.96f, 0.96f, alpha);
+        drawShortRect(x + 0.029f * shortToX, y - 0.011f, 0.0028f, 0.008f, 0.96f, 0.96f, 0.96f, alpha);
     };
 
     const auto drawJumpIcon = [&](
@@ -4956,8 +4956,8 @@ bool VulkanClearRenderer::recordDrawCommand(
         drawUiCircle(x, y - 0.023f, 0.0072f, 0.96f, 0.98f, 1.0f, alpha, false);
         drawShortRect(x, y - 0.002f, 0.0035f, 0.013f, 0.96f, 0.98f, 1.0f, alpha);
         drawShortRect(x, y - 0.004f, 0.015f, 0.0030f, 0.96f, 0.98f, 1.0f, alpha);
-        drawShortRect(x - 0.008f * shortToX / shortToY, y + 0.016f, 0.0032f, 0.012f, 0.96f, 0.98f, 1.0f, alpha);
-        drawShortRect(x + 0.008f * shortToX / shortToY, y + 0.016f, 0.0032f, 0.012f, 0.96f, 0.98f, 1.0f, alpha);
+        drawShortRect(x - 0.008f * shortToX, y + 0.016f, 0.0032f, 0.012f, 0.96f, 0.98f, 1.0f, alpha);
+        drawShortRect(x + 0.008f * shortToX, y + 0.016f, 0.0032f, 0.012f, 0.96f, 0.98f, 1.0f, alpha);
         drawShortRect(x, y - 0.042f, 0.0024f, 0.007f, 0.96f, 0.98f, 1.0f, alpha * 0.85f);
         drawShortRect(x, y - 0.050f, 0.009f, 0.0023f, 0.96f, 0.98f, 1.0f, alpha * 0.85f);
     };
@@ -4966,11 +4966,11 @@ bool VulkanClearRenderer::recordDrawCommand(
         float x,
         float y,
         float alpha) noexcept {
-        drawUiCircle(x - 0.013f * shortToX / shortToY, y - 0.016f, 0.0072f, 0.96f, 0.98f, 1.0f, alpha, false);
+        drawUiCircle(x - 0.013f * shortToX, y - 0.016f, 0.0072f, 0.96f, 0.98f, 1.0f, alpha, false);
         drawShortRect(x, y, 0.017f, 0.0036f, 0.96f, 0.98f, 1.0f, alpha);
-        drawShortRect(x + 0.014f * shortToX / shortToY, y + 0.012f, 0.004f, 0.012f, 0.96f, 0.98f, 1.0f, alpha);
-        drawShortRect(x + 0.027f * shortToX / shortToY, y + 0.022f, 0.015f, 0.0036f, 0.96f, 0.98f, 1.0f, alpha);
-        drawShortRect(x - 0.016f * shortToX / shortToY, y + 0.014f, 0.0035f, 0.012f, 0.96f, 0.98f, 1.0f, alpha * 0.85f);
+        drawShortRect(x + 0.014f * shortToX, y + 0.012f, 0.004f, 0.012f, 0.96f, 0.98f, 1.0f, alpha);
+        drawShortRect(x + 0.027f * shortToX, y + 0.022f, 0.015f, 0.0036f, 0.96f, 0.98f, 1.0f, alpha);
+        drawShortRect(x - 0.016f * shortToX, y + 0.014f, 0.0035f, 0.012f, 0.96f, 0.98f, 1.0f, alpha * 0.85f);
     };
 
     const float moveAnchorX =
@@ -5006,7 +5006,7 @@ bool VulkanClearRenderer::recordDrawCommand(
     drawUiCircle(
         moveAnchorX +
             std::clamp(hud.moveX, -1.0f, 1.0f) *
-            knobTravel * shortToX / shortToY,
+            knobTravel * shortToX,
         moveAnchorY -
             std::clamp(hud.moveY, -1.0f, 1.0f) *
             knobTravel,
