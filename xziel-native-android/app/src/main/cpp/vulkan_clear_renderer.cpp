@@ -287,6 +287,51 @@ bool VulkanClearRenderer::drawFrame(
         ? qualityReflectionScale
         : 0.0f;
 
+    float requestedPlaneX = environment.planarPlaneNormalX;
+    float requestedPlaneY = environment.planarPlaneNormalY;
+    float requestedPlaneZ = environment.planarPlaneNormalZ;
+    float requestedPlaneD = environment.planarPlaneDistance;
+    const float requestedPlaneLength = std::sqrt(
+        requestedPlaneX * requestedPlaneX +
+        requestedPlaneY * requestedPlaneY +
+        requestedPlaneZ * requestedPlaneZ);
+    if (!std::isfinite(requestedPlaneLength) || requestedPlaneLength < 0.0001f) {
+        requestedPlaneX = 0.0f;
+        requestedPlaneY = 1.0f;
+        requestedPlaneZ = 0.0f;
+        requestedPlaneD = 1.48f;
+    } else {
+        const float inverseRequestedPlaneLength = 1.0f / requestedPlaneLength;
+        requestedPlaneX *= inverseRequestedPlaneLength;
+        requestedPlaneY *= inverseRequestedPlaneLength;
+        requestedPlaneZ *= inverseRequestedPlaneLength;
+        requestedPlaneD = std::isfinite(requestedPlaneD)
+            ? requestedPlaneD * inverseRequestedPlaneLength
+            : 0.0f;
+    }
+
+    // A single reusable target must never be treated as valid after the
+    // planner switches ownership to a different surface plane. Without this,
+    // a mirror can briefly sample the previous water capture (or vice versa)
+    // until the normal temporal refresh interval expires.
+    const bool reflectionPlaneChanged =
+        reflectionTargetHasPlane_ &&
+        (std::abs(requestedPlaneX - reflectionTargetPlaneX_) > 0.0005f ||
+         std::abs(requestedPlaneY - reflectionTargetPlaneY_) > 0.0005f ||
+         std::abs(requestedPlaneZ - reflectionTargetPlaneZ_) > 0.0005f ||
+         std::abs(requestedPlaneD - reflectionTargetPlaneD_) > 0.002f);
+
+    if (reflectionContributes &&
+        (!reflectionTargetHasPlane_ || reflectionPlaneChanged)) {
+        reflectionTargetPlaneX_ = requestedPlaneX;
+        reflectionTargetPlaneY_ = requestedPlaneY;
+        reflectionTargetPlaneZ_ = requestedPlaneZ;
+        reflectionTargetPlaneD_ = requestedPlaneD;
+        reflectionTargetHasPlane_ = true;
+        reflectionHasValidContents_ = false;
+        reflectionFrameCounter_ = 0;
+    }
+
     const bool shouldAllocateReflectionTarget =
         targetWantedByQuality &&
         reflectionContributes &&
@@ -2728,6 +2773,11 @@ void VulkanClearRenderer::destroyReflectionTarget() noexcept {
     reflectionDepthView_ = VK_NULL_HANDLE;
     reflectionExtent_ = {};
     reflectionTargetScale_ = 0.0f;
+    reflectionTargetPlaneX_ = 0.0f;
+    reflectionTargetPlaneY_ = 1.0f;
+    reflectionTargetPlaneZ_ = 0.0f;
+    reflectionTargetPlaneD_ = 0.0f;
+    reflectionTargetHasPlane_ = false;
     reflectionHasValidContents_ = false;
     reflectionInvisibleFrames_ = 0;
 }

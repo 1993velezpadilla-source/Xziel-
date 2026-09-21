@@ -340,6 +340,11 @@ private:
     VkImageView reflectionDepthView_ = VK_NULL_HANDLE;
     VkExtent2D reflectionExtent_{};
     float reflectionTargetScale_ = 0.0f;
+    float reflectionTargetPlaneX_ = 0.0f;
+    float reflectionTargetPlaneY_ = 1.0f;
+    float reflectionTargetPlaneZ_ = 0.0f;
+    float reflectionTargetPlaneD_ = 0.0f;
+    bool reflectionTargetHasPlane_ = false;
     std::uint64_t reflectionFrameCounter_ = 0;
     bool reflectionHasValidContents_ = false;
     std::uint32_t reflectionInvisibleFrames_ = 0;
