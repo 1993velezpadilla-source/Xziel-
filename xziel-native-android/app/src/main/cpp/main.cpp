@@ -17,6 +17,7 @@
 #include "xziel/haptics.hpp"
 #include "xziel/horror.hpp"
 #include "xziel/interaction.hpp"
+#include "xziel/map_runtime.hpp"
 #include "xziel/player_vitals.hpp"
 #include "xziel/performance.hpp"
 #include "xziel/render_features.hpp"
@@ -124,7 +125,8 @@ struct NativeAppState {
 
     xziel::InteractionSystem interaction{};
     xziel::InteractionFrame interactionFrame{};
-    xziel::DoorSystem doors{};
+    xziel::MapRuntime mapRuntime{};
+    xziel::MapDefinition mapDefinition{};
 
     xziel::PlayerVitals vitals{};
     xziel::HorrorDirector horror{};
@@ -203,17 +205,145 @@ struct NativeAppState {
     float thermalPollSeconds = 1.0f;
 };
 
-void rebuildPrototypeObstacles(
+void configurePrototypeMap(
     NativeAppState& state) noexcept {
-    state.player.clearStaticObstacles();
-    state.horde.clearNavigationObstacles();
+    auto& map = state.mapDefinition;
+    map = {};
 
-    (void) state.player.addStaticObstacle(
-        kPrototypeCenterObstacle);
+    const auto addVisualBox =
+        [&](std::uint32_t id,
+            xziel::Vec3 center,
+            xziel::Vec3 halfExtents,
+            std::uint32_t materialId) noexcept {
+            if (map.boxCount >= map.boxes.size()) {
+                return;
+            }
 
-    (void) state.horde.addNavigationObstacle(
-        kPrototypeCenterObstacle);
+            map.boxes[map.boxCount++] = {
+                .id = id,
+                .center = center,
+                .halfExtents = halfExtents,
+                .materialId = materialId,
+                .visible = true,
+                .blocksPlayer = false,
+                .blocksZombies = false,
+            };
+        };
 
+    // Prototype room content now lives in the same authored map definition
+    // consumed by gameplay and, progressively, the renderer. The dimensions
+    // match the existing procedural room exactly.
+    addVisualBox(
+        1U,
+        {0.0f, -1.58f, 0.0f},
+        {3.15f, 0.09f, 3.75f},
+        0U);
+
+    addVisualBox(
+        2U,
+        {-3.15f, 0.05f, 0.0f},
+        {0.09f, 1.65f, 3.75f},
+        1U);
+
+    addVisualBox(
+        3U,
+        {3.15f, 0.05f, 0.0f},
+        {0.09f, 1.65f, 3.75f},
+        1U);
+
+    addVisualBox(
+        4U,
+        {0.0f, 0.05f, 3.85f},
+        {3.15f, 1.65f, 0.09f},
+        2U);
+
+    addVisualBox(
+        5U,
+        {0.0f, 2.02f, 0.0f},
+        {3.15f, 0.075f, 3.75f},
+        2U);
+
+    addVisualBox(
+        6U,
+        {-1.70f, -1.505f, -0.25f},
+        {0.825f, 0.01875f, 1.0875f},
+        13U);
+
+    addVisualBox(
+        7U,
+        {3.00f, 0.15f, -0.65f},
+        {0.01875f, 0.7875f, 0.825f},
+        14U);
+
+    map.boxes[map.boxCount++] = {
+        .id = 8U,
+        .center = {
+            (kPrototypeCenterObstacle.minimum.x +
+             kPrototypeCenterObstacle.maximum.x) * 0.5f,
+            (kPrototypeCenterObstacle.minimum.y +
+             kPrototypeCenterObstacle.maximum.y) * 0.5f,
+            (kPrototypeCenterObstacle.minimum.z +
+             kPrototypeCenterObstacle.maximum.z) * 0.5f,
+        },
+        .halfExtents = {
+            (kPrototypeCenterObstacle.maximum.x -
+             kPrototypeCenterObstacle.minimum.x) * 0.5f,
+            (kPrototypeCenterObstacle.maximum.y -
+             kPrototypeCenterObstacle.minimum.y) * 0.5f,
+            (kPrototypeCenterObstacle.maximum.z -
+             kPrototypeCenterObstacle.minimum.z) * 0.5f,
+        },
+        .materialId = 1U,
+        .visible = false,
+        .blocksPlayer = true,
+        .blocksZombies = true,
+    };
+
+    map.doors[0] = {
+        .door = {
+            .id = kPrototypeDoorId,
+            .blocker = kPrototypeDoorObstacle,
+            .cost = kPrototypeDoorCost,
+            .startsOpen = false,
+        },
+        .interaction = {
+            .id = kPrototypeDoorId,
+            .kind = xziel::InteractionKind::Door,
+            .position = kPrototypeDoorInteractionPosition,
+            .maximumDistance = 1.75f,
+            .minimumFacingDot = 0.10f,
+            .priority = 1.35f,
+            .holdSeconds = 0.18f,
+            .cost = kPrototypeDoorCost,
+            .enabled = true,
+        },
+    };
+    map.doorCount = 1;
+
+    map.interactions[0] = {
+        .id = kPrototypePowerSwitchId,
+        .kind = xziel::InteractionKind::Switch,
+        .position = kPrototypePowerSwitchPosition,
+        .maximumDistance = 1.65f,
+        .minimumFacingDot = 0.20f,
+        .priority = 1.0f,
+        .holdSeconds = 0.32f,
+        .cost = 0,
+        .enabled = true,
+    };
+
+    map.interactions[1] = {
+        .id = kPrototypeWeaponBuyId,
+        .kind = xziel::InteractionKind::WeaponBuy,
+        .position = kPrototypeWeaponBuyPosition,
+        .maximumDistance = 1.55f,
+        .minimumFacingDot = 0.18f,
+        .priority = 1.20f,
+        .holdSeconds = 0.20f,
+        .cost = kPrototypeWeaponBuyCost,
+        .enabled = true,
+    };
+    map.interactionCount = 2;
 }
 
 void logInfo(const char* message) noexcept {
@@ -748,10 +878,11 @@ void advancePlayer(
                 state.interactionFrame.targetId ==
                     kPrototypeDoorId) {
                 const auto doorFrame =
-                    state.doors.activate(
+                    state.mapRuntime.activateDoor(
                         kPrototypeDoorId,
-                        state.horde,
                         state.player,
+                        state.horde,
+                        state.interaction,
                         state.score);
 
                 if (doorFrame.openedThisTick) {
@@ -1718,68 +1849,20 @@ extern "C" void android_main(
     state.runtime.onEvent(
         xziel::AndroidLifecycleEvent::Create);
 
-    rebuildPrototypeObstacles(
+    configurePrototypeMap(
         state);
 
-    (void) state.doors.addDoor(
-        {
-            .id = kPrototypeDoorId,
-            .blocker = kPrototypeDoorObstacle,
-            .cost = kPrototypeDoorCost,
-            .startsOpen = false,
-        },
-        state.horde,
-        state.player);
+    const auto prototypeMapLoad =
+        state.mapRuntime.load(
+            state.mapDefinition,
+            state.player,
+            state.horde,
+            state.interaction);
 
-    (void) state.interaction.addTarget(
-        {
-            .id =
-                kPrototypePowerSwitchId,
-            .kind =
-                xziel::InteractionKind::Switch,
-            .position =
-                kPrototypePowerSwitchPosition,
-            .maximumDistance = 1.65f,
-            .minimumFacingDot = 0.20f,
-            .priority = 1.0f,
-            .holdSeconds = 0.32f,
-            .cost = 0,
-            .enabled = true,
-        });
-
-    (void) state.interaction.addTarget(
-        {
-            .id =
-                kPrototypeDoorId,
-            .kind =
-                xziel::InteractionKind::Door,
-            .position =
-                kPrototypeDoorInteractionPosition,
-            .maximumDistance = 1.75f,
-            .minimumFacingDot = 0.10f,
-            .priority = 1.35f,
-            .holdSeconds = 0.18f,
-            .cost =
-                kPrototypeDoorCost,
-            .enabled = true,
-        });
-
-    (void) state.interaction.addTarget(
-        {
-            .id =
-                kPrototypeWeaponBuyId,
-            .kind =
-                xziel::InteractionKind::WeaponBuy,
-            .position =
-                kPrototypeWeaponBuyPosition,
-            .maximumDistance = 1.55f,
-            .minimumFacingDot = 0.18f,
-            .priority = 1.20f,
-            .holdSeconds = 0.20f,
-            .cost =
-                kPrototypeWeaponBuyCost,
-            .enabled = true,
-        });
+    if (!prototypeMapLoad.success) {
+        logError(
+            "Prototype map failed to load into Xziel map runtime");
+    }
 
     xziel::WeatherConfig prototypeStorm{};
     prototypeStorm.rainIntensity = 0.78f;
@@ -2030,7 +2113,7 @@ extern "C" void android_main(
                     frameDelta);
 
         const auto* prototypeDoor =
-            state.doors.frame(
+            state.mapRuntime.doors().frame(
                 kPrototypeDoorId);
 
         const float doorTargetAlpha =
