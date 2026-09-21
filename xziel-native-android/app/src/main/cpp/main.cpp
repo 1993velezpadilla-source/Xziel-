@@ -2476,21 +2476,27 @@ extern "C" void android_main(
     logInfo("XZIEL_NATIVE_BOOT");
 
     while (!app->destroyRequested) {
-        const auto runtimeState =
-            state.runtime.state();
-
-        const bool animating =
-            runtimeState.canRender &&
-            state.hasWindow &&
-            state.renderer.ready();
-
         int outEvents = 0;
         android_poll_source* source = nullptr;
 
         while (true) {
+            // Re-evaluate renderability after every lifecycle event. On first
+            // launch APP_CMD_INIT_WINDOW can make the renderer ready while
+            // this event-pump iteration started non-rendering. Keeping the
+            // old value here would call ALooper_pollOnce(-1) again and block
+            // the native app thread indefinitely even though a valid surface
+            // is ready, which Android reports as an ANR/"not responding".
+            const auto pumpState =
+                state.runtime.state();
+
+            const bool canAnimateNow =
+                pumpState.canRender &&
+                state.hasWindow &&
+                state.renderer.ready();
+
             const int identifier =
                 ALooper_pollOnce(
-                    animating ? 0 : -1,
+                    canAnimateNow ? 0 : -1,
                     nullptr,
                     &outEvents,
                     reinterpret_cast<void**>(
@@ -2514,8 +2520,13 @@ extern "C" void android_main(
                     source);
             }
 
+            const auto afterEvent =
+                state.runtime.state();
+
             if (app->destroyRequested ||
-                animating) {
+                (afterEvent.canRender &&
+                 state.hasWindow &&
+                 state.renderer.ready())) {
                 break;
             }
         }
