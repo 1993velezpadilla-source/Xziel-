@@ -21,6 +21,7 @@ struct AndroidInputSnapshot {
     };
 
     bool moveActive = false;
+    bool firePressed = false;
     bool gyroAvailable = false;
 };
 
@@ -134,6 +135,7 @@ private:
     AndroidInputSnapshot snapshot_{};
 
     bool sensorsEnabled_ = false;
+    bool firePressedThisFrame_ = false;
     bool jumpPressedThisFrame_ = false;
     bool stancePressedThisFrame_ = false;
 
