@@ -3272,11 +3272,24 @@ bool VulkanClearRenderer::recordDrawCommand(
                     : 0.0f;
             }
 
-            const float signedCameraDistance =
+            float signedCameraDistance =
                 planeNx * camera.x +
                 planeNy * camera.y +
                 planeNz * camera.z +
                 planeD;
+
+            // Plane equations are geometrically equivalent under sign flip,
+            // but the capture shader deliberately keeps the positive half
+            // space. Orient authored planes toward the real camera so water,
+            // mirrors and map-authored surfaces all retain the visible world
+            // side regardless of authoring normal direction.
+            if (signedCameraDistance < 0.0f) {
+                planeNx = -planeNx;
+                planeNy = -planeNy;
+                planeNz = -planeNz;
+                planeD = -planeD;
+                signedCameraDistance = -signedCameraDistance;
+            }
             push.cameraX = camera.x - 2.0f * signedCameraDistance * planeNx;
             push.cameraY = camera.y - 2.0f * signedCameraDistance * planeNy;
             push.cameraZ = camera.z - 2.0f * signedCameraDistance * planeNz;
