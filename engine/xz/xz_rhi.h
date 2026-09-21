@@ -20,6 +20,7 @@ typedef enum {
 typedef struct {
     XzRhiBackend requested_backend;
     XzRhiBackend active_backend;
+    XzRhiBackend shadow_backend;
 
     int shadow_mode;
     int initialized;
