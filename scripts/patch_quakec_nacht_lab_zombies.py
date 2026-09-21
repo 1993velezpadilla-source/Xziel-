@@ -14,6 +14,7 @@ if len(sys.argv) != 2:
 root = Path(sys.argv[1])
 main = root / "source/server/main.qc"
 client = root / "source/client/zombie.qc"
+zombie_core = root / "source/server/ai/zombie_core.qc"
 
 s = main.read_text(encoding="utf-8")
 
@@ -60,6 +61,65 @@ if 'setmodel(ent, "models/xziel_lab/zombie_basic.mdl")' not in s:
     s = s.replace(old, new, 1)
 
 main.write_text(s, encoding="utf-8")
+
+# The real zombie spawn path lives in zombie_core.qc. RelinkZombies() is not
+# enough on Vril/standard QuakeC because its visual model switching is inside
+# an FTE-only branch. Bind the Lab model at the actual allocation/spawn point.
+zs = zombie_core.read_text(encoding="utf-8")
+
+limb_anchor = '''#ifndef FTE
+
+\tupdateLimb (szombie, 0, szombie.head);
+\tupdateLimb (szombie, 1, szombie.larm);
+\tupdateLimb (szombie, 2, szombie.rarm);
+
+#endif // FTE
+'''
+limb_new = limb_anchor + '''
+\t// XZIEL_LAB_SPAWN_MODEL: keep the stock limb entities alive for hitboxes
+\t// and dismemberment bookkeeping, but do not render their legacy meshes
+\t// over the complete Lab character.
+\tif (mapname == "ndu_enchanted") {
+\t\tsetmodel(szombie.head, "");
+\t\tsetmodel(szombie.rarm, "");
+\t\tsetmodel(szombie.larm, "");
+\t}
+'''
+if 'XZIEL_LAB_SPAWN_MODEL' not in zs:
+    if limb_anchor not in zs:
+        raise SystemExit("Lab zombie limb-link spawn anchor missing")
+    zs = zs.replace(limb_anchor, limb_new, 1)
+
+body_anchor = '''\tszombie.movetype = MOVETYPE_WALK;
+\tsetmodel(szombie, "models/ai/zb%.mdl");
+\tszombie.hop_step = 0;
+'''
+body_new = '''\tszombie.movetype = MOVETYPE_WALK;
+\tif (mapname == "ndu_enchanted")
+\t\tsetmodel(szombie, "models/xziel_lab/zombie_basic.mdl");
+\telse
+\t\tsetmodel(szombie, "models/ai/zb%.mdl");
+\tszombie.hop_step = 0;
+'''
+if 'if (mapname == "ndu_enchanted")\n\t\tsetmodel(szombie, "models/xziel_lab/zombie_basic.mdl");' not in zs:
+    if body_anchor not in zs:
+        raise SystemExit("Lab zombie body spawn anchor missing")
+    zs = zs.replace(body_anchor, body_new, 1)
+
+skin_anchor = '''\tszombie.head.skin = szombie.larm.skin = szombie.rarm.skin = szombie.skin;
+'''
+skin_new = skin_anchor + '''
+\t// The baked Lab MDL currently exposes one atlas/skin. Do not inherit the
+\t// stock random 0..3 zombie skin index.
+\tif (mapname == "ndu_enchanted")
+\t\tszombie.head.skin = szombie.larm.skin = szombie.rarm.skin = szombie.skin = 0;
+'''
+if 'stock random 0..3 zombie skin index' not in zs:
+    if skin_anchor not in zs:
+        raise SystemExit("Lab zombie spawn skin anchor missing")
+    zs = zs.replace(skin_anchor, skin_new, 1)
+
+zombie_core.write_text(zs, encoding="utf-8")
 
 s = client.read_text(encoding="utf-8")
 snap_anchor = '''    {"models/ai/zfull.mdl", [0, 0, 18], [0, 0, 35]},
