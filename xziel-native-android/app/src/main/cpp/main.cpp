@@ -146,6 +146,8 @@ struct NativeAppState {
 
     xziel::PerformanceGovernor performance{};
     xziel::RenderWorkload renderWorkload{};
+    xziel::ReflectionPlanner reflectionPlanner{};
+    std::uint64_t reflectionPlannerFrame = 0;
     xziel::RuntimePolicyPlanner runtimePolicyPlanner{};
 
     xziel::CameraRig cameraRig{};
@@ -1393,80 +1395,109 @@ xziel::android::VulkanEnvironmentState makeEnvironmentState(
         state.renderWorkload.
             ssrMaxSteps;
 
-    environment.planarReflectionUpdateEveryNFrames =
-        state.renderWorkload.maxPlanarReflectionPasses >= 2
-        ? 1U
-        : (state.renderWorkload.planarReflectionScale >= 0.60f
-               ? 2U
-               : 4U);
+    // Feed authored candidate surfaces through the engine ReflectionPlanner
+    // instead of hardcoding Vulkan to the prototype water plane. This is the
+    // Android bridge that lets mirrors/water compete for the bounded planar
+    // budget using the same policy as production map content.
+    constexpr float kWaterFocusX = 0.0f;
+    constexpr float kWaterFocusZ = 1.0f;
+    constexpr float kMirrorFocusX = 3.2f;
+    constexpr float kMirrorFocusZ = 2.2f;
 
-    // Prototype water is the first real planar surface. Keep its geometry
-    // explicit at the Android boundary so future map content can replace this
-    // with the ReflectionPlanner-selected surface without changing Vulkan.
-    environment.planarPlaneNormalX = 0.0f;
-    environment.planarPlaneNormalY = 1.0f;
-    environment.planarPlaneNormalZ = 0.0f;
-    environment.planarPlaneDistance = 1.48f;
+    const auto& playerFrame = state.player.frame();
+    const float cameraX = playerFrame.cameraPosition.x;
+    const float cameraZ = playerFrame.cameraPosition.z;
+    const float forwardX = std::sin(playerFrame.yawDegrees * kDegreesToRadians);
+    const float forwardZ = std::cos(playerFrame.yawDegrees * kDegreesToRadians);
 
-    // Estimate projected contribution using the actual camera heading rather
-    // than distance alone. A reflection target behind the player should not
-    // consume a second scene pass merely because it is geographically close.
-    constexpr float kReflectionFocusX = 0.0f;
-    constexpr float kReflectionFocusZ = 1.0f;
-    const float reflectionDx =
-        kReflectionFocusX - state.player.frame().cameraPosition.x;
-    const float reflectionDz =
-        kReflectionFocusZ - state.player.frame().cameraPosition.z;
-    const float reflectionDistance =
-        std::sqrt(
-            reflectionDx * reflectionDx +
-            reflectionDz * reflectionDz);
+    auto makeCandidate = [&](std::uint32_t id,
+                             xziel::ReflectionSurfaceKind kind,
+                             float focusX,
+                             float focusZ,
+                             float coverageBase,
+                             float importance,
+                             float roughness,
+                             float nx,
+                             float ny,
+                             float nz,
+                             float d) noexcept {
+        xziel::ReflectionSurface surface{};
+        surface.id = id;
+        surface.kind = kind;
+        const float dx = focusX - cameraX;
+        const float dz = focusZ - cameraZ;
+        surface.distanceMeters = std::sqrt(dx * dx + dz * dz);
+        const float safeDistance = std::max(surface.distanceMeters, 0.001f);
+        const float facing = std::clamp(
+            forwardX * (dx / safeDistance) +
+            forwardZ * (dz / safeDistance), -1.0f, 1.0f);
+        const float facingWeight = std::clamp((facing + 0.18f) / 0.58f, 0.0f, 1.0f);
+        surface.visible =
+            surface.distanceMeters <= state.renderWorkload.reflectionDistanceMeters &&
+            facingWeight > 0.01f;
+        surface.screenCoverage = surface.visible
+            ? std::clamp(coverageBase / (1.0f + surface.distanceMeters * 0.08f) * facingWeight,
+                         0.0f, coverageBase)
+            : 0.0f;
+        surface.importance = importance;
+        surface.roughness = roughness;
+        surface.planarEligible = true;
+        surface.hasStaticProbe = true;
+        surface.animated = kind == xziel::ReflectionSurfaceKind::Water;
+        surface.planeNormalX = nx;
+        surface.planeNormalY = ny;
+        surface.planeNormalZ = nz;
+        surface.planeDistance = d;
+        return surface;
+    };
 
-    const float safeReflectionDistance =
-        std::max(
-            reflectionDistance,
-            0.001f);
-    const float directionX =
-        reflectionDx / safeReflectionDistance;
-    const float directionZ =
-        reflectionDz / safeReflectionDistance;
+    std::array<xziel::ReflectionSurface, 2> reflectionCandidates{
+        makeCandidate(1U, xziel::ReflectionSurfaceKind::Water,
+                      kWaterFocusX, kWaterFocusZ, 0.30f, 1.0f, state.waterFrame.roughness,
+                      0.0f, 1.0f, 0.0f, 1.48f),
+        makeCandidate(2U, xziel::ReflectionSurfaceKind::Mirror,
+                      kMirrorFocusX, kMirrorFocusZ, 0.22f, 1.15f, 0.04f,
+                      -1.0f, 0.0f, 0.0f, 3.2f)
+    };
+    std::array<xziel::ReflectionDecision, 2> reflectionDecisions{};
+    const std::size_t decisionCount =
+        state.reflectionPlanner.plan(
+            reflectionCandidates.data(),
+            reflectionCandidates.size(),
+            state.renderWorkload,
+            state.reflectionPlannerFrame++,
+            reflectionDecisions.data(),
+            reflectionDecisions.size());
 
-    // Camera forward convention follows the Vulkan view path: yaw zero looks
-    // toward +Z. The soft facing ramp avoids reflection-pass thrashing while
-    // the player rotates near the edge of the visible hemisphere.
-    const float forwardX =
-        std::sin((state.player.frame().yawDegrees * kDegreesToRadians));
-    const float forwardZ =
-        std::cos((state.player.frame().yawDegrees * kDegreesToRadians));
-    const float facing =
-        std::clamp(
-            forwardX * directionX +
-            forwardZ * directionZ,
-            -1.0f,
-            1.0f);
-    const float facingWeight =
-        std::clamp(
-            (facing + 0.18f) / 0.58f,
-            0.0f,
-            1.0f);
+    const xziel::ReflectionDecision* selected = nullptr;
+    const xziel::ReflectionSurface* selectedSurface = nullptr;
+    for (std::size_t index = 0; index < decisionCount; ++index) {
+        if (!reflectionDecisions[index].needsExtraScenePass) continue;
+        selected = &reflectionDecisions[index];
+        for (const auto& candidate : reflectionCandidates) {
+            if (candidate.id == selected->surfaceId) {
+                selectedSurface = &candidate;
+                break;
+            }
+        }
+        if (selectedSurface != nullptr) break;
+    }
 
-    environment.planarReflectionVisible =
-        state.renderWorkload.maxPlanarReflectionPasses > 0 &&
-        reflectionDistance <=
-            state.renderWorkload.reflectionDistanceMeters &&
-        facingWeight > 0.01f;
-
-    const float distanceCoverage =
-        0.30f /
-        (1.0f +
-         reflectionDistance * 0.08f);
-    environment.planarReflectionScreenCoverage =
-        environment.planarReflectionVisible
-        ? std::clamp(
-              distanceCoverage * facingWeight,
-              0.0f,
-              0.30f)
-        : 0.0f;
+    if (selected != nullptr && selectedSurface != nullptr) {
+        environment.planarReflectionScale = selected->resolutionScale;
+        environment.planarReflectionUpdateEveryNFrames =
+            std::max(selected->updateEveryNFrames, 1U);
+        environment.planarPlaneNormalX = selected->planeNormalX;
+        environment.planarPlaneNormalY = selected->planeNormalY;
+        environment.planarPlaneNormalZ = selected->planeNormalZ;
+        environment.planarPlaneDistance = selected->planeDistance;
+        environment.planarReflectionVisible = selectedSurface->visible;
+        environment.planarReflectionScreenCoverage = selectedSurface->screenCoverage;
+    } else {
+        environment.planarReflectionUpdateEveryNFrames = 1U;
+        environment.planarReflectionVisible = false;
+        environment.planarReflectionScreenCoverage = 0.0f;
+    }
 
     environment.waterWavePhase =
         state.waterFrame.
