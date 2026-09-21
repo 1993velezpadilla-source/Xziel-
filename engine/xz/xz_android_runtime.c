@@ -15,6 +15,8 @@
 #include "xz_pass_inputs.h"
 #include "xz_visibility.h"
 #include "xz_material_lighting.h"
+#include "xz_active_quality.h"
+#include "xz_stream_residency.h"
 
 #include <SDL.h>
 
@@ -46,7 +48,10 @@ typedef struct {
     XzGpuResourcePool gpu_resources;
     XzGpuHandle graph_resource_handles[XZ_RG_MAX_RESOURCES];
     XzCommandStream command_stream;
+    XzActiveQualityState active_quality;
+    XzStreamResidency stream_residency;
     uint64_t command_encode_failures;
+    uint64_t graph_rebuild_failures;
     int graph_resources_ready;
     int initialized;
     int cpu_cores;
@@ -258,11 +263,17 @@ static int XzBuildBootstrapRenderGraph(void)
     int post;
     int swapchain;
     unsigned int width =
-        xz_runtime.display_width > 0
-            ? (unsigned int)xz_runtime.display_width : 1280u;
+        xz_runtime.active_quality.initialized
+            ? xz_runtime.active_quality.width
+            : (xz_runtime.display_width > 0
+                ? (unsigned int)xz_runtime.display_width
+                : 1280u);
     unsigned int height =
-        xz_runtime.display_height > 0
-            ? (unsigned int)xz_runtime.display_height : 720u;
+        xz_runtime.active_quality.initialized
+            ? xz_runtime.active_quality.height
+            : (xz_runtime.display_height > 0
+                ? (unsigned int)xz_runtime.display_height
+                : 720u);
     XzRgFormat color_format =
         xz_runtime.caps.has_half_float_color
             ? XZ_RG_FORMAT_RGBA16F
@@ -298,6 +309,14 @@ static int XzBuildBootstrapRenderGraph(void)
     post = XzRenderGraph_AddResource(
         &xz_runtime.render_graph, &resource);
 
+    resource.width =
+        xz_runtime.display_width > 0
+            ? (unsigned int)xz_runtime.display_width
+            : width;
+    resource.height =
+        xz_runtime.display_height > 0
+            ? (unsigned int)xz_runtime.display_height
+            : height;
     resource.format = XZ_RG_FORMAT_RGBA8;
     resource.flags =
         XZ_RG_RESOURCE_IMPORTED |
@@ -405,9 +424,6 @@ static int XzInitGraphResourceHandles(void)
         0,
         sizeof(xz_runtime.graph_resource_handles));
 
-    XzGpuResourcePool_Init(
-        &xz_runtime.gpu_resources);
-
     for (i = 0u;
          i < xz_runtime.render_graph.resource_count;
          ++i) {
@@ -462,6 +478,21 @@ static void XzDestroyGraphResourceHandles(void)
     }
 
     xz_runtime.graph_resources_ready = 0;
+}
+
+static int XzRebuildGraphResources(void)
+{
+    XzDestroyGraphResourceHandles();
+
+    if (!XzBuildBootstrapRenderGraph())
+        return 0;
+
+    if (!XzInitGraphResourceHandles()) {
+        XzDestroyGraphResourceHandles();
+        return 0;
+    }
+
+    return 1;
 }
 
 static void XzLogSnapshot(double now_seconds)
@@ -643,6 +674,34 @@ static void XzLogSnapshot(double now_seconds)
 
     XzAndroidLog(
         ANDROID_LOG_INFO,
+        "phase15 heartbeat active=%d scale=%.2f requested=%.2f size=%ux%u"
+        " changes=%" PRIu64 " suppressed=%" PRIu64
+        " rebuildFail=%" PRIu64
+        " streamCap=%u resident=%u high=%u"
+        " loads=%" PRIu64 " hits=%" PRIu64
+        " evict=%" PRIu64 " miss=%" PRIu64
+        " unique=%u/%u aggression=%.2f",
+        xz_runtime.governor.passive ? 0 : 1,
+        xz_runtime.active_quality.applied_render_scale,
+        xz_runtime.active_quality.requested_render_scale,
+        xz_runtime.active_quality.width,
+        xz_runtime.active_quality.height,
+        xz_runtime.active_quality.changes,
+        xz_runtime.active_quality.suppressed_changes,
+        xz_runtime.graph_rebuild_failures,
+        xz_runtime.stream_residency.capacity,
+        xz_runtime.stream_residency.resident_count,
+        xz_runtime.stream_residency.high_water_count,
+        xz_runtime.stream_residency.loads,
+        xz_runtime.stream_residency.hits,
+        xz_runtime.stream_residency.evictions,
+        xz_runtime.stream_residency.misses,
+        xz_runtime.stream_residency.last_admitted_unique,
+        xz_runtime.stream_residency.last_requested_unique,
+        xz_runtime.stream_residency.last_aggression);
+
+    XzAndroidLog(
+        ANDROID_LOG_INFO,
         "graphio g3res(mapped=%u objects=%u create=%" PRIu64
         " reuse=%" PRIu64 " destroy=%" PRIu64
         " read=%" PRIu64 " write=%" PRIu64
@@ -746,19 +805,33 @@ void XzAndroidRuntime_Init(size_t engine_heap_bytes)
     XzMemoryBudget_Init(&xz_runtime.memory, soft_bytes, hard_bytes);
 
     /*
-     * Phase 0 is deliberately advisory-only. It measures and computes quality
-     * recommendations but cannot alter render scale, shadows, animation, VFX,
-     * lights or streaming yet. That makes this safe to land before those
-     * systems exist.
+     * Phase 15 activates the governor for the modern shadow path. Legacy GL4ES
+     * remains the visible renderer until Phase 16, but Xz render scale, scene
+     * budgets and asset residency now follow measured recommendations.
      */
     XzPerformanceGovernor_Init(
-        &xz_runtime.governor, 1000.0 / 60.0, 1);
+        &xz_runtime.governor, 1000.0 / 60.0, 0);
+
+    XzActiveQuality_Init(
+        &xz_runtime.active_quality,
+        xz_runtime.display_width > 0
+            ? (unsigned int)xz_runtime.display_width
+            : 1280u,
+        xz_runtime.display_height > 0
+            ? (unsigned int)xz_runtime.display_height
+            : 720u);
+
+    XzStreamResidency_Init(
+        &xz_runtime.stream_residency);
+
+    XzGpuResourcePool_Init(
+        &xz_runtime.gpu_resources);
 
     xz_runtime.initialized = 1;
 
     XzAndroidLog(
         ANDROID_LOG_INFO,
-        "phase0 init passive=1 selftest=%s model='%s' board='%s'"
+        "phase0 init passive=0 selftest=%s model='%s' board='%s'"
         " egl='%s' vk='%s' sdk=%d cores=%d ram=%dMiB refresh=%dHz"
         " engine_heap=%.1fMiB mem_soft=%.1fMiB mem_hard=%.1fMiB",
         XzPhase0_SelfTest() ? "PASS" : "FAIL",
@@ -979,6 +1052,21 @@ void XzAndroidRuntime_Init(size_t engine_heap_bytes)
                 XzMaterialLighting_SelfTest()
                     ? "PASS" : "FAIL");
 
+            XzAndroidLog(
+                (XzActiveQuality_SelfTest() &&
+                 XzStreamResidency_SelfTest())
+                    ? ANDROID_LOG_INFO
+                    : ANDROID_LOG_WARN,
+                "phase15 active_scaling=%s residency=%s governor=ACTIVE"
+                " initialScale=%.2f size=%ux%u",
+                XzActiveQuality_SelfTest()
+                    ? "PASS" : "FAIL",
+                XzStreamResidency_SelfTest()
+                    ? "PASS" : "FAIL",
+                xz_runtime.active_quality.applied_render_scale,
+                xz_runtime.active_quality.width,
+                xz_runtime.active_quality.height);
+
             if (!attach_ok)
                 XzGles3Shadow_Shutdown(
                     &xz_runtime.gles3_shadow);
@@ -1022,6 +1110,20 @@ void XzAndroidRuntime_EndFrame(double now_seconds)
         &xz_runtime.memory,
         -1);
 
+    if (XzActiveQuality_Update(
+            &xz_runtime.active_quality,
+            &xz_runtime.governor.recommendation,
+            xz_runtime.frame.total_frames,
+            xz_runtime.display_width > 0
+                ? (unsigned int)xz_runtime.display_width
+                : 1280u,
+            xz_runtime.display_height > 0
+                ? (unsigned int)xz_runtime.display_height
+                : 720u)) {
+        if (!XzRebuildGraphResources())
+            xz_runtime.graph_rebuild_failures++;
+    }
+
     XzSceneBudget_Build(
         &xz_runtime.scene_budget,
         XzPresentWorld_GetReadFrame(),
@@ -1033,6 +1135,12 @@ void XzAndroidRuntime_EndFrame(double now_seconds)
         XzPresentWorld_GetReadFrame(),
         &xz_runtime.scene_budget,
         xz_runtime.caps.tier);
+
+    XzStreamResidency_Update(
+        &xz_runtime.stream_residency,
+        &xz_runtime.render_plan,
+        xz_runtime.caps.tier,
+        &xz_runtime.governor.recommendation);
 
     if (xz_runtime.graph_resources_ready) {
         if (!XzCommandStream_EncodeFrame(
