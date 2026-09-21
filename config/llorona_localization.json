@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "fallback_language": "en",
+  "key": "llorona_child_corpse_hint",
+  "strings": {
+    "es": "Antes que la madre lo halle, reúne sus tres reliquias en el altar.",
+    "en": "Before the mother finds him, gather his three relics at the altar.",
+    "pt": "Antes que a mãe o encontre, reúna suas três relíquias no altar.",
+    "fr": "Avant que la mère ne le trouve, réunis ses trois reliques à l’autel.",
+    "de": "Bevor die Mutter ihn findet, bring seine drei Reliquien zum Altar.",
+    "it": "Prima che la madre lo trovi, riunisci le sue tre reliquie all’altare."
+  }
+}
