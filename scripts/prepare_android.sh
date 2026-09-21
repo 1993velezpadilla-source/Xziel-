@@ -106,7 +106,7 @@ unzip -q "$DOWNLOADS/standard-nzp-qc.zip" -d "$ASSET_WORK/nzp"
 # build time. This keeps the repository text-only while packaging professional
 # touch-control art into the APK.
 python3 "$ROOT/scripts/build_xziel_icons.py" "$ASSET_WORK/nzp/gfx/xziel"
-
+\necho "==> Staging opt-in Nacht Enhanced CC0 texture pack"\nbash "$ROOT/scripts/fetch_nacht_enhanced_textures.sh" "$ASSET_WORK"\n
 # Replace the stock gameplay bytecode with our GPL QuakeC build. All other
 # release-side data stays from the official NZ:P package.
 cp "$DEPS/quakec/build/standard/progs.dat" "$ASSET_WORK/nzp/progs.dat"
