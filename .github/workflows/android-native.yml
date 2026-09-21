@@ -111,6 +111,10 @@ jobs:
           grep -q 'MAXALIASTRIS \* 7 + 1' build/deps/vril/source/platform/sdl/gl/gl_mesh.c
           grep -q 'models/xziel_lab/zombie_basic.mdl' build/deps/quakec/source/server/main.qc
           grep -q 'mapname == "ndu_enchanted"' build/deps/quakec/source/server/main.qc
+          grep -q 'XZIEL_LAB_SPAWN_MODEL' build/deps/quakec/source/server/ai/zombie_core.qc
+          grep -q 'setmodel(szombie, "models/xziel_lab/zombie_basic.mdl")' build/deps/quakec/source/server/ai/zombie_core.qc
+          grep -q 'setmodel(szombie.head, "")' build/deps/quakec/source/server/ai/zombie_core.qc
+          grep -q 'stock random 0..3 zombie skin index' build/deps/quakec/source/server/ai/zombie_core.qc
           grep -q 'models/xziel_lab/zombie_basic.mdl' build/deps/quakec/source/client/zombie.qc
           test -s build/nzp-data/nzp/models/xziel_lab/zombie_basic.mdl
           test -s build/nzp-data/nzp/models/xziel_lab/zombie_basic.mdl_0.tga
