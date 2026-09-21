@@ -3772,6 +3772,50 @@ bool VulkanClearRenderer::recordDrawCommand(
             box.materialId);
     }
 
+    const std::size_t visibleWindowCount =
+        std::min(
+            scene.windowCount,
+            scene.windows.size());
+
+    for (std::size_t windowIndex = 0;
+         windowIndex < visibleWindowCount;
+         ++windowIndex) {
+        const auto& window =
+            scene.windows[windowIndex];
+
+        if (!window.visible ||
+            window.maximumPlanks == 0U) {
+            continue;
+        }
+
+        const std::uint32_t plankCount =
+            std::min(
+                window.intactPlanks,
+                window.maximumPlanks);
+
+        for (std::uint32_t plankIndex = 0U;
+             plankIndex < plankCount;
+             ++plankIndex) {
+            const float alpha =
+                (static_cast<float>(plankIndex) + 0.5f) /
+                static_cast<float>(window.maximumPlanks);
+
+            const float plankY =
+                window.y -
+                window.halfHeight +
+                alpha * window.halfHeight * 2.0f;
+
+            drawBox(
+                window.x,
+                plankY,
+                window.z,
+                window.halfWidth / 0.75f,
+                0.075f,
+                window.halfDepth / 0.75f,
+                5.0f);
+        }
+    }
+
     const float prototypeDoorOpen =
         std::clamp(
             scene.doorOpenAlpha,

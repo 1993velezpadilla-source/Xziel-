@@ -34,6 +34,20 @@ struct VulkanMapBoxState {
     bool visible = false;
 };
 
+struct VulkanWindowState {
+    float x = 0.0f;
+    float y = 0.0f;
+    float z = 0.0f;
+
+    float halfWidth = 0.5f;
+    float halfHeight = 1.0f;
+    float halfDepth = 0.08f;
+
+    std::uint32_t intactPlanks = 0;
+    std::uint32_t maximumPlanks = 0;
+    bool visible = false;
+};
+
 struct VulkanZombieState {
     float x = 0.0f;
     float y = -1.48f;
@@ -51,6 +65,9 @@ struct VulkanZombieState {
 struct VulkanSceneState {
     std::array<VulkanMapBoxState, 128> mapBoxes{};
     std::size_t mapBoxCount = 0;
+
+    std::array<VulkanWindowState, 8> windows{};
+    std::size_t windowCount = 0;
 
     std::array<VulkanZombieState, 8> zombies{};
     std::size_t zombieCount = 0;

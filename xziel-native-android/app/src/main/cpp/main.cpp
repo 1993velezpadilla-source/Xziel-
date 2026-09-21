@@ -66,6 +66,28 @@ constexpr xziel::Vec3 kPrototypeDoorInteractionPosition{
     1.34f,
 };
 
+constexpr std::uint32_t kPrototypeWindowId =
+    1004U;
+
+constexpr xziel::Vec3 kPrototypeWindowInteractionPosition{
+    0.0f,
+    -0.30f,
+    2.48f,
+};
+
+const xziel::Aabb kPrototypeWindowObstacle{
+    .minimum = {
+        -0.82f,
+        -1.58f,
+        2.62f,
+    },
+    .maximum = {
+        0.82f,
+        1.02f,
+        2.84f,
+    },
+};
+
 constexpr std::uint32_t kPrototypeWeaponBuyId =
     1003U;
 
@@ -319,6 +341,32 @@ void configurePrototypeMap(
         },
     };
     map.doorCount = 1;
+
+    map.windows[0] = {
+        .window = {
+            .id = kPrototypeWindowId,
+            .blocker = kPrototypeWindowObstacle,
+            .barricade = {
+                .maximumPlanks = 6,
+                .zombieTearSeconds = 0.92f,
+                .rebuildSeconds = 0.68f,
+                .rebuildPointsPerPlank = 10U,
+                .maximumRebuildPointsPerRound = 60U,
+            },
+        },
+        .interaction = {
+            .id = kPrototypeWindowId,
+            .kind = xziel::InteractionKind::Use,
+            .position = kPrototypeWindowInteractionPosition,
+            .maximumDistance = 1.65f,
+            .minimumFacingDot = 0.08f,
+            .priority = 1.30f,
+            .holdSeconds = 0.0f,
+            .cost = 0U,
+            .enabled = true,
+        },
+    };
+    map.windowCount = 1;
 
     map.interactions[0] = {
         .id = kPrototypePowerSwitchId,
@@ -950,6 +998,31 @@ void advancePlayer(
             state.horde.step(
                 playerFrame.feetPosition,
                 fixedDelta);
+
+        const bool rebuildingPrototypeWindow =
+            state.vitals.frame().alive &&
+            state.interactionFrame.promptVisible &&
+            state.interactionFrame.targetId ==
+                kPrototypeWindowId &&
+            input.input.interact;
+
+        const auto prototypeWindowFrame =
+            state.mapRuntime.stepWindow(
+                kPrototypeWindowId,
+                rebuildingPrototypeWindow,
+                fixedDelta,
+                state.player,
+                state.horde,
+                state.score);
+
+        if (prototypeWindowFrame.
+                barricade.pointsAwardedThisTick > 0U) {
+            state.scorePulseSeconds = 0.24f;
+        }
+
+        if (hordeFrame.roundStartedThisTick) {
+            state.mapRuntime.beginRound();
+        }
 
         if (hordeFrame.roundStartedThisTick &&
             hordeFrame.round > 1U) {
@@ -1702,6 +1775,57 @@ xziel::android::VulkanSceneState makeSceneState(
             static_cast<float>(
                 authored.materialId);
         box.visible = true;
+    }
+
+    for (std::size_t index = 0;
+         index < state.mapDefinition.windowCount &&
+         scene.windowCount < scene.windows.size();
+         ++index) {
+        const auto& authored =
+            state.mapDefinition.windows[index].window;
+
+        const auto* runtimeWindow =
+            state.mapRuntime.windows().frame(
+                authored.id);
+
+        if (runtimeWindow == nullptr) {
+            continue;
+        }
+
+        auto& window =
+            scene.windows[scene.windowCount++];
+
+        window.x =
+            (authored.blocker.minimum.x +
+             authored.blocker.maximum.x) * 0.5f;
+        window.y =
+            (authored.blocker.minimum.y +
+             authored.blocker.maximum.y) * 0.5f;
+        window.z =
+            (authored.blocker.minimum.z +
+             authored.blocker.maximum.z) * 0.5f;
+
+        window.halfWidth =
+            std::max(
+                (authored.blocker.maximum.x -
+                 authored.blocker.minimum.x) * 0.5f,
+                0.01f);
+        window.halfHeight =
+            std::max(
+                (authored.blocker.maximum.y -
+                 authored.blocker.minimum.y) * 0.5f,
+                0.01f);
+        window.halfDepth =
+            std::max(
+                (authored.blocker.maximum.z -
+                 authored.blocker.minimum.z) * 0.5f,
+                0.01f);
+
+        window.intactPlanks =
+            runtimeWindow->barricade.intactPlanks;
+        window.maximumPlanks =
+            authored.barricade.maximumPlanks;
+        window.visible = true;
     }
 
     for (std::size_t slot = 0;
