@@ -3568,6 +3568,48 @@ bool VulkanClearRenderer::recordDrawCommand(
                 0.35f,
                 1.0f);
 
+        // Main-pass projection must use the exact plane selected by the
+        // ReflectionPlanner. Keep the plane orientation consistent with the
+        // capture pass so projective UVs remain valid for both water and
+        // vertical mirrors.
+        float mainPlaneNx = environment.planarPlaneNormalX;
+        float mainPlaneNy = environment.planarPlaneNormalY;
+        float mainPlaneNz = environment.planarPlaneNormalZ;
+        float mainPlaneD = environment.planarPlaneDistance;
+        const float mainPlaneLength = std::sqrt(
+            mainPlaneNx * mainPlaneNx +
+            mainPlaneNy * mainPlaneNy +
+            mainPlaneNz * mainPlaneNz);
+        if (!std::isfinite(mainPlaneLength) || mainPlaneLength < 0.0001f) {
+            mainPlaneNx = 0.0f;
+            mainPlaneNy = 1.0f;
+            mainPlaneNz = 0.0f;
+            mainPlaneD = 1.48f;
+        } else {
+            const float inverseMainPlaneLength = 1.0f / mainPlaneLength;
+            mainPlaneNx *= inverseMainPlaneLength;
+            mainPlaneNy *= inverseMainPlaneLength;
+            mainPlaneNz *= inverseMainPlaneLength;
+            mainPlaneD = std::isfinite(mainPlaneD)
+                ? mainPlaneD * inverseMainPlaneLength
+                : 0.0f;
+        }
+        const float mainCameraSide =
+            mainPlaneNx * push.cameraX +
+            mainPlaneNy * push.cameraY +
+            mainPlaneNz * push.cameraZ +
+            mainPlaneD;
+        if (mainCameraSide < 0.0f) {
+            mainPlaneNx = -mainPlaneNx;
+            mainPlaneNy = -mainPlaneNy;
+            mainPlaneNz = -mainPlaneNz;
+            mainPlaneD = -mainPlaneD;
+        }
+        push.reflectionPlaneX = mainPlaneNx;
+        push.reflectionPlaneY = mainPlaneNy;
+        push.reflectionPlaneZ = mainPlaneNz;
+        push.reflectionPlaneDistance = mainPlaneD;
+
         vkCmdPushConstants(
             command,
             pipelineLayout_,
