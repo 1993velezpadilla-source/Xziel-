@@ -16,6 +16,11 @@ git clone --depth 1 --branch SDL2 https://github.com/libsdl-org/SDL_mixer.git "$
 git clone --depth 1 https://github.com/ptitSeb/gl4es.git "$DEPS/gl4es"
 git clone --depth 1 https://github.com/nzp-team/vril-engine.git "$DEPS/vril"
 git clone --depth 1 https://github.com/nzp-team/quakec.git "$DEPS/quakec"
+git -C "$DEPS/quakec" fetch --depth 1 origin 04bd544172e16193162277a7c356c827e9653b06
+git -C "$DEPS/quakec" checkout 04bd544172e16193162277a7c356c827e9653b06
+git clone --depth 1 --branch feature/shadows-of-evil-completion https://github.com/1993velezpadilla-source/nzp-android.git "$DEPS/soe"
+git -C "$DEPS/soe" fetch --depth 1 origin e39d0edc060341d5843ea2bac026aa4502040e16
+git -C "$DEPS/soe" checkout e39d0edc060341d5843ea2bac026aa4502040e16
 
 # Raise SDL's Android phone sensor polling target from 60 Hz to 120 Hz.
 # The backend still clamps to the physical sensor's minimum delay, so devices
@@ -48,6 +53,8 @@ python3 "$ROOT/scripts/patch_quakec_combatfx.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_modern_movement.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_mobile_v021.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_mobile_v022.py" "$DEPS/quakec"
+echo "==> Applying tested Shadows of Evil gameplay overlay"
+python3 "$DEPS/soe/scripts/apply_soe_quakec_overlay.py" "$DEPS/quakec"
 chmod +x "$DEPS/quakec/bin/fteqcc-cli-lin" "$DEPS/quakec/tools/qc-compiler-gnu.sh"
 (
     cd "$DEPS/quakec"
@@ -98,6 +105,26 @@ curl -fL --retry 6 --retry-delay 2 --retry-all-errors     https://github.com/nzp
 unzip -q "$DOWNLOADS/pc-nzp-assets.zip" -d "$ASSET_WORK"
 mkdir -p "$ASSET_WORK/nzp"
 unzip -q "$DOWNLOADS/standard-nzp-qc.zip" -d "$ASSET_WORK/nzp"
+
+echo "==> Building additive Shadows of Evil map package"
+git clone https://github.com/nzp-team/assets.git "$DEPS/soe-assets"
+git -C "$DEPS/soe-assets" checkout c8135a66e00bb64577912fbf792f8fef7f47658e
+git clone --recurse-submodules https://github.com/nzp-team/spawn-zone-tool.git "$DEPS/spawn-zone-tool"
+git -C "$DEPS/spawn-zone-tool" checkout 3c6f9b87208026d7d639565deed64e541ffb18bf
+python3 -m pip install --quiet -r "$DEPS/spawn-zone-tool/requirements.txt"
+python3 "$DEPS/soe/scripts/generate_soe_full_city.py"
+python3 "$DEPS/soe/scripts/apply_soe_asset_overlay.py" --assets-root "$DEPS/soe-assets"
+(
+    cd "$DEPS/soe-assets"
+    bash tools/compile-wads.sh
+    bash tools/compile-maps.sh -m soe/soe.map --zone-tool-path "$DEPS/spawn-zone-tool"
+)
+test -s "$DEPS/soe-assets/common/maps/soe.bsp"
+test -s "$DEPS/soe-assets/common/maps/soe.nsz"
+mkdir -p "$ASSET_WORK/nzp/maps"
+cp "$DEPS/soe-assets/common/maps/soe.bsp" "$ASSET_WORK/nzp/maps/soe.bsp"
+cp "$DEPS/soe-assets/common/maps/soe.nsz" "$ASSET_WORK/nzp/maps/soe.nsz"
+echo "SoE map added without replacing stock v0.22 maps"
 
 # Xziel mobile HUD art comes from a pinned CC0 icon pack and is rasterized at
 # build time. This keeps the repository text-only while packaging professional
