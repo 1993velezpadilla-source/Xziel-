@@ -19,6 +19,7 @@
 #include "xziel/performance.hpp"
 #include "xziel/renderer_watchdog.hpp"
 #include "xziel/runtime_policy.hpp"
+#include "xziel/score.hpp"
 #include "xziel/weapon.hpp"
 #include "xziel/zombie_actor.hpp"
 #include "xziel/zombie_hit_regions.hpp"
@@ -46,6 +47,7 @@ struct NativeAppState {
     xziel::FpsPlayerController player{};
     xziel::WeaponController weapon{};
     xziel::HordeDirector horde{};
+    xziel::ScoreSystem score{};
     xziel::PlayerVitals vitals{};
     xziel::HorrorDirector horror{};
     xziel::HorrorFrame horrorFrame{};
@@ -89,6 +91,7 @@ struct NativeAppState {
 
     float muzzleFlashSeconds = 0.0f;
     float zombieAttackFlashSeconds = 0.0f;
+    float scorePulseSeconds = 0.0f;
     float hapticElapsedSeconds = 1.0f;
 
     xziel::ThermalLevel thermalLevel =
@@ -598,7 +601,14 @@ void advancePlayer(
                 playerFrame.feetPosition,
                 fixedDelta);
 
-        (void) hordeFrame;
+        if (hordeFrame.roundStartedThisTick &&
+            hordeFrame.round > 1U) {
+            (void) state.score.awardRoundClear(
+                hordeFrame.round - 1U);
+
+            state.scorePulseSeconds =
+                0.38f;
+        }
 
         bool damagedByZombie = false;
 
@@ -739,6 +749,22 @@ void advancePlayer(
                 if (state.horde.damageZombie(
                         nearestSlot,
                         damage)) {
+                    const auto* damagedZombie =
+                        state.horde.zombie(
+                            nearestSlot);
+
+                    const bool killed =
+                        damagedZombie != nullptr &&
+                        damagedZombie->frame().state ==
+                            xziel::ZombieState::Dead;
+
+                    (void) state.score.awardHit(
+                        nearestHit.region,
+                        killed);
+
+                    state.scorePulseSeconds =
+                        0.24f;
+
                     state.hitMarkerSeconds =
                         0.12f;
 
@@ -1009,6 +1035,17 @@ xziel::android::VulkanHudState makeHudState(
     hud.horrorVignette =
         state.horrorFrame.
             vignetteStrength;
+
+    hud.scoreTotal =
+        state.score.frame().
+            total;
+
+    hud.scorePulseAlpha =
+        std::clamp(
+            state.scorePulseSeconds /
+                0.38f,
+            0.0f,
+            1.0f);
 
     return hud;
 }
@@ -1428,6 +1465,12 @@ extern "C" void android_main(
             std::max(
                 0.0f,
                 state.zombieAttackFlashSeconds -
+                    frameDelta);
+
+        state.scorePulseSeconds =
+            std::max(
+                0.0f,
+                state.scorePulseSeconds -
                     frameDelta);
 
         state.renderWorkload =
