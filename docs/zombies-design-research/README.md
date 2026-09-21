@@ -9,6 +9,11 @@ This is **design research, not an asset-ripping plan**. We study progression, pa
 ## Files
 
 - `cod-zombies-main-quest-compendium.md` — game-by-game/map-by-map quest catalog and normalized completion routes.
+- `modern-exact-walkthroughs.md` — dependency-accurate BO6/BO7 quest orders, randomized-input rules, retries and boss logic.
+- `map-side-content-index.md` — map-by-map index of optional systems, hidden rewards, minigames and replay mechanics.
+- `side-quest-mechanic-library.md` — reusable side-quest and minigame primitives extracted from successful maps.
+- `super-ee-meta-progression.md` — cross-map completion, persistent rewards, Director's Cut/Pact-style lessons and an original Xziel Super Quest model.
+- `community-quest-feedback.md` — recurring player praise/frustrations converted into design guardrails.
 - `quest-design-patterns.md` — reusable design rules extracted from successful Zombies maps.
 - `sources.md` — primary/current references and full-walkthrough indexes.
 - `nzp-reference/` — exhaustive pinned NZ:P engine/map interaction corpus plus verified community quest mechanics and source availability.
