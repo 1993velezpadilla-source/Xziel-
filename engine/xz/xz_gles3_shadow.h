@@ -25,6 +25,7 @@ typedef struct {
     unsigned int last_gl_error;
     uint32_t last_plan_hash;
     uint32_t last_pixel_hash;
+    unsigned int last_pixel_spread;
 
     int surface_width;
     int surface_height;
