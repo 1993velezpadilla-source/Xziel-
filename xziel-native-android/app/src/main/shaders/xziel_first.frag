@@ -8,6 +8,8 @@ layout(location = 4) in vec4 vEnvironment;
 layout(location = 5) in vec4 vWaterSurface;
 layout(location = 6) in vec4 vWaterSurfaceExtra;
 
+layout(set = 0, binding = 0) uniform sampler2D uPlanarReflection;
+
 layout(location = 0) out vec4 outColor;
 
 vec3 materialBase(int material, float pulse) {
@@ -333,6 +335,58 @@ void main() {
             (0.45 +
              wave * 0.55);
 
+        // Project the prototype horizontal water plane into a stable
+        // screen-like lookup. Wave offsets provide inexpensive roughness
+        // distortion while the reflected scene itself comes from Vulkan's
+        // offscreen planar pass.
+        vec2 reflectionUv =
+            vec2(
+                0.5 +
+                    vWorldPosition.x / 8.4,
+                0.5 -
+                    vWorldPosition.z / 10.0);
+
+        float distortion =
+            (1.0 - roughness) *
+            (0.003 +
+             rainResponse * 0.006) *
+            surfaceQuality;
+
+        reflectionUv +=
+            vec2(
+                waveA,
+                waveB) *
+            distortion;
+
+        vec3 planarScene =
+            texture(
+                uPlanarReflection,
+                clamp(
+                    reflectionUv,
+                    vec2(0.002),
+                    vec2(0.998))).rgb;
+
+        float fresnel =
+            pow(
+                clamp(
+                    1.0 -
+                    abs(normal.y),
+                    0.0,
+                    1.0),
+                3.0);
+
+        reflectedSky =
+            mix(
+                reflectedSky,
+                planarScene,
+                clamp(
+                    reflectionStrength *
+                    (0.42 +
+                     fresnel * 0.48) *
+                    (1.0 - roughness * 0.72),
+                    0.0,
+                    0.92));
+
         vec3 refractedDepth =
             vec3(
                 0.006,
@@ -397,18 +451,30 @@ void main() {
                     1.0),
                 2.0);
 
+        vec2 mirrorUv =
+            clamp(
+                vec2(
+                    0.5 +
+                        vWorldPosition.z / 8.0,
+                    0.5 -
+                        vWorldPosition.y / 4.4),
+                vec2(0.002),
+                vec2(0.998));
+
+        vec3 planarScene =
+            texture(
+                uPlanarReflection,
+                mirrorUv).rgb;
+
         lit =
             mix(
                 vec3(
                     0.025,
                     0.032,
                     0.042),
-                vec3(
-                    0.18,
-                    0.25,
-                    0.34),
-                0.40 +
-                    glossy * 0.45) +
+                planarScene,
+                0.62 +
+                    glossy * 0.28) +
             vec3(
                 0.48,
                 0.58,

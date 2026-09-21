@@ -324,6 +324,10 @@ private:
     VkRenderPass reflectionRenderPass_ = VK_NULL_HANDLE;
     VkFramebuffer reflectionFramebuffer_ = VK_NULL_HANDLE;
     VkPipeline reflectionPipeline_ = VK_NULL_HANDLE;
+    VkSampler reflectionSampler_ = VK_NULL_HANDLE;
+    VkDescriptorSetLayout reflectionDescriptorSetLayout_ = VK_NULL_HANDLE;
+    VkDescriptorPool reflectionDescriptorPool_ = VK_NULL_HANDLE;
+    VkDescriptorSet reflectionDescriptorSet_ = VK_NULL_HANDLE;
 
     std::vector<VkFramebuffer> framebuffers_;
     std::vector<VkCommandBuffer> commandBuffers_;

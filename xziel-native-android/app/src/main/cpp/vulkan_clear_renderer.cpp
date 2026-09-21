@@ -1430,6 +1430,32 @@ bool VulkanClearRenderer::createGraphicsPipeline() noexcept {
     colorBlend.pAttachments =
         &colorAttachment;
 
+    VkDescriptorSetLayoutBinding reflectionBinding{};
+    reflectionBinding.binding = 0;
+    reflectionBinding.descriptorType =
+        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    reflectionBinding.descriptorCount = 1;
+    reflectionBinding.stageFlags =
+        VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    VkDescriptorSetLayoutCreateInfo descriptorLayoutInfo{
+        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO
+    };
+    descriptorLayoutInfo.bindingCount = 1;
+    descriptorLayoutInfo.pBindings = &reflectionBinding;
+
+    if (!ok(
+            vkCreateDescriptorSetLayout(
+                device_,
+                &descriptorLayoutInfo,
+                nullptr,
+                &reflectionDescriptorSetLayout_))) {
+        vkDestroyShaderModule(device_, fragment, nullptr);
+        vkDestroyShaderModule(device_, vertex, nullptr);
+        logError("vkCreateDescriptorSetLayout reflection failed");
+        return false;
+    }
+
     VkPushConstantRange pushRange{};
     pushRange.stageFlags =
         VK_SHADER_STAGE_VERTEX_BIT;
@@ -1441,6 +1467,9 @@ bool VulkanClearRenderer::createGraphicsPipeline() noexcept {
     VkPipelineLayoutCreateInfo layoutInfo{
         VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO
     };
+    layoutInfo.setLayoutCount = 1;
+    layoutInfo.pSetLayouts =
+        &reflectionDescriptorSetLayout_;
     layoutInfo.pushConstantRangeCount = 1;
     layoutInfo.pPushConstantRanges =
         &pushRange;
@@ -2128,6 +2157,90 @@ bool VulkanClearRenderer::createReflectionTarget(
         return true;
     }
 
+    VkSamplerCreateInfo samplerInfo{
+        VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO
+    };
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.maxAnisotropy = 1.0f;
+    samplerInfo.maxLod = 0.0f;
+
+    if (!ok(
+            vkCreateSampler(
+                device_,
+                &samplerInfo,
+                nullptr,
+                &reflectionSampler_))) {
+        logError("Planar reflection sampler creation failed; falling back");
+        destroyReflectionTarget();
+        return true;
+    }
+
+    VkDescriptorPoolSize poolSize{};
+    poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    poolSize.descriptorCount = 1;
+
+    VkDescriptorPoolCreateInfo poolInfo{
+        VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO
+    };
+    poolInfo.maxSets = 1;
+    poolInfo.poolSizeCount = 1;
+    poolInfo.pPoolSizes = &poolSize;
+
+    if (!ok(
+            vkCreateDescriptorPool(
+                device_,
+                &poolInfo,
+                nullptr,
+                &reflectionDescriptorPool_))) {
+        logError("Planar reflection descriptor pool failed; falling back");
+        destroyReflectionTarget();
+        return true;
+    }
+
+    VkDescriptorSetAllocateInfo allocateInfo{
+        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO
+    };
+    allocateInfo.descriptorPool = reflectionDescriptorPool_;
+    allocateInfo.descriptorSetCount = 1;
+    allocateInfo.pSetLayouts = &reflectionDescriptorSetLayout_;
+
+    if (!ok(
+            vkAllocateDescriptorSets(
+                device_,
+                &allocateInfo,
+                &reflectionDescriptorSet_))) {
+        logError("Planar reflection descriptor allocation failed; falling back");
+        destroyReflectionTarget();
+        return true;
+    }
+
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.sampler = reflectionSampler_;
+    imageInfo.imageView = reflectionColorView_;
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+    VkWriteDescriptorSet write{
+        VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET
+    };
+    write.dstSet = reflectionDescriptorSet_;
+    write.dstBinding = 0;
+    write.descriptorCount = 1;
+    write.descriptorType =
+        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    write.pImageInfo = &imageInfo;
+
+    vkUpdateDescriptorSets(
+        device_,
+        1,
+        &write,
+        0,
+        nullptr);
+
     logInfo("XZIEL_PLANAR_REFLECTION_TARGET_READY");
     return true;
 }
@@ -2389,6 +2502,18 @@ bool VulkanClearRenderer::createReflectionPassResources() noexcept {
 
 void VulkanClearRenderer::destroyReflectionPassResources() noexcept {
     if (device_ != VK_NULL_HANDLE) {
+        if (reflectionDescriptorPool_ != VK_NULL_HANDLE) {
+            vkDestroyDescriptorPool(
+                device_,
+                reflectionDescriptorPool_,
+                nullptr);
+        }
+        if (reflectionSampler_ != VK_NULL_HANDLE) {
+            vkDestroySampler(
+                device_,
+                reflectionSampler_,
+                nullptr);
+        }
         if (reflectionPipeline_ != VK_NULL_HANDLE) {
             vkDestroyPipeline(
                 device_,
@@ -2412,6 +2537,9 @@ void VulkanClearRenderer::destroyReflectionPassResources() noexcept {
     reflectionPipeline_ = VK_NULL_HANDLE;
     reflectionFramebuffer_ = VK_NULL_HANDLE;
     reflectionRenderPass_ = VK_NULL_HANDLE;
+    reflectionSampler_ = VK_NULL_HANDLE;
+    reflectionDescriptorPool_ = VK_NULL_HANDLE;
+    reflectionDescriptorSet_ = VK_NULL_HANDLE;
 }
 
 void VulkanClearRenderer::destroyReflectionTarget() noexcept {
@@ -2715,6 +2843,15 @@ void VulkanClearRenderer::destroySwapchainResources() noexcept {
             pipelineLayout_,
             nullptr);
         pipelineLayout_ =
+            VK_NULL_HANDLE;
+    }
+
+    if (reflectionDescriptorSetLayout_ != VK_NULL_HANDLE) {
+        vkDestroyDescriptorSetLayout(
+            device_,
+            reflectionDescriptorSetLayout_,
+            nullptr);
+        reflectionDescriptorSetLayout_ =
             VK_NULL_HANDLE;
     }
 
@@ -3027,6 +3164,18 @@ bool VulkanClearRenderer::recordDrawCommand(
         command,
         VK_PIPELINE_BIND_POINT_GRAPHICS,
         graphicsPipeline_);
+
+    if (reflectionDescriptorSet_ != VK_NULL_HANDLE) {
+        vkCmdBindDescriptorSets(
+            command,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            pipelineLayout_,
+            0,
+            1,
+            &reflectionDescriptorSet_,
+            0,
+            nullptr);
+    }
 
     const float safeTime =
         std::isfinite(timeSeconds)
