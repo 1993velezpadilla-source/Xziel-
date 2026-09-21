@@ -269,31 +269,48 @@ bool VulkanClearRenderer::drawFrame(
         ++reflectionInvisibleFrames_;
     }
 
-    const float requestedReflectionScale =
+    const float qualityReflectionScale =
+        std::clamp(
+            environment.planarReflectionScale,
+            0.0f,
+            1.0f);
+    const bool targetWantedByQuality =
         environment.maxPlanarReflectionPasses > 0 &&
-        reflectionContributes
-        ? std::clamp(
-              environment.planarReflectionScale,
-              0.0f,
-              1.0f)
+        qualityReflectionScale > 0.0f;
+
+    // Quality policy and temporary camera visibility are deliberately
+    // separate. Looking away keeps a valid target warm for a short grace
+    // period; a quality/thermal downgrade releases it immediately.
+    const float requestedReflectionScale =
+        targetWantedByQuality
+        ? qualityReflectionScale
         : 0.0f;
 
-    if (requestedReflectionScale > 0.0f &&
+    const bool shouldAllocateReflectionTarget =
+        targetWantedByQuality &&
+        reflectionContributes &&
         (reflectionColorImage_ == VK_NULL_HANDLE ||
          std::abs(
              requestedReflectionScale -
-             reflectionTargetScale_) > 0.025f)) {
+             reflectionTargetScale_) > 0.025f);
+
+    if (shouldAllocateReflectionTarget) {
         if (!ok(vkDeviceWaitIdle(device_))) {
             return false;
         }
         (void) createReflectionTarget(
             requestedReflectionScale);
-    } else if (requestedReflectionScale <= 0.0f &&
+    } else if (!targetWantedByQuality &&
+               reflectionColorImage_ != VK_NULL_HANDLE) {
+        if (!ok(vkDeviceWaitIdle(device_))) {
+            return false;
+        }
+        destroyReflectionTarget();
+    } else if (!reflectionContributes &&
                reflectionColorImage_ != VK_NULL_HANDLE &&
                reflectionInvisibleFrames_ >= 90U) {
-        // Debounce teardown so a quick camera turn does not force a device-idle
-        // destroy/reallocate cycle. Sustained invisibility still returns the
-        // bounded target memory to the device.
+        // Camera-facing changes are transient: debounce only this case so a
+        // quick turn never creates a device-idle destroy/reallocate loop.
         if (!ok(vkDeviceWaitIdle(device_))) {
             return false;
         }
@@ -3093,6 +3110,8 @@ bool VulkanClearRenderer::recordDrawCommand(
         reflectionFramebuffer_ != VK_NULL_HANDLE &&
         reflectionPipeline_ != VK_NULL_HANDLE &&
         environment.maxPlanarReflectionPasses > 0 &&
+        environment.planarReflectionVisible &&
+        reflectionCoverage > 0.0025f &&
         reflectionDue) {
         std::array<VkClearValue, 2> reflectionClears{};
         reflectionClears[0].color.float32[0] =
