@@ -55,7 +55,7 @@ int XzGles3ResourcePlan_Build(
 
     case XZ_GPU_RESOURCE_DEPTH:
         spec->kind =
-            XZ_G3_RESOURCE_DEPTH_RENDERBUFFER;
+            XZ_G3_RESOURCE_DEPTH_TEXTURE;
         break;
 
     case XZ_GPU_RESOURCE_EXTERNAL_SURFACE:
@@ -150,7 +150,7 @@ int XzGles3ResourcePlan_SelfTest(void)
         return 0;
 
     if (spec.kind !=
-            XZ_G3_RESOURCE_DEPTH_RENDERBUFFER ||
+            XZ_G3_RESOURCE_DEPTH_TEXTURE ||
         spec.physical_width != 64u ||
         spec.physical_height != 64u ||
         spec.bytes_per_pixel != 4u)
