@@ -432,6 +432,11 @@ void main() {
     }
 
     if (vMaterial == 14) {
+        // The current offscreen target is reflected across the horizontal
+        // water plane. A vertical mirror needs a different reflected camera
+        // plane; sampling the water target here is geometrically incorrect.
+        // Keep a cheap probe-style mirror response until per-surface planar
+        // targets are carried into the backend.
         float facing =
             abs(
                 dot(
@@ -451,36 +456,20 @@ void main() {
                     1.0),
                 2.0);
 
-        vec2 mirrorUv =
-            clamp(
-                vec2(
-                    0.5 +
-                        vWorldPosition.z / 8.0,
-                    0.5 -
-                        vWorldPosition.y / 4.4),
-                vec2(0.002),
-                vec2(0.998));
-
-        vec3 planarScene =
-            texture(
-                uPlanarReflection,
-                mirrorUv).rgb;
+        vec3 mirrorProbe =
+            mix(
+                vec3(0.018, 0.024, 0.034),
+                vec3(0.11, 0.16, 0.23),
+                0.30 + glossy * 0.52);
 
         lit =
-            mix(
-                vec3(
-                    0.025,
-                    0.032,
-                    0.042),
-                planarScene,
-                0.62 +
-                    glossy * 0.28) +
+            mirrorProbe +
             vec3(
                 0.48,
                 0.58,
                 0.86) *
                 lightning *
-                0.35;
+                (0.22 + glossy * 0.18);
     }
 
     if (vMaterial >= 10) {
