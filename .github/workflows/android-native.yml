@@ -271,6 +271,16 @@ jobs:
           # show the game instead of the system education overlay.
           "$ADB" shell settings put secure immersive_mode_confirmations confirmed || true
           "$ADB" logcat -c
+
+          collect_runtime_diagnostics() {
+            "$ADB" logcat -d -v threadtime > dist/xziel-logcat.txt 2>/dev/null || true
+            "$ADB" shell dumpsys activity activities > dist/activity-activities.txt 2>/dev/null || true
+            "$ADB" shell dumpsys activity processes > dist/activity-processes.txt 2>/dev/null || true
+            "$ADB" shell dumpsys window displays > dist/window-displays.txt 2>/dev/null || true
+            "$ADB" shell dumpsys display > dist/display.txt 2>/dev/null || true
+          }
+          trap collect_runtime_diagnostics EXIT
+
           "$ADB" shell am force-stop com.xziel.nzp || true
           "$ADB" shell am start -W -n com.xziel.nzp/org.libsdl.app.NZPActivity \
             --ez xziel_ci_nacht_enhanced_preview true \
@@ -278,6 +288,24 @@ jobs:
 
           # Data extraction + direct map load can take longer than menu boot.
           sleep 30
+          collect_runtime_diagnostics
+
+          PID="$("$ADB" shell pidof com.xziel.nzp 2>/dev/null | tr -d '\r' || true)"
+          RESUMED="$("$ADB" shell dumpsys activity activities 2>/dev/null | grep -m1 'mResumedActivity' || true)"
+          echo "PID=$PID" | tee dist/runtime-state.txt
+          echo "RESUMED=$RESUMED" | tee -a dist/runtime-state.txt
+
+          if [[ -z "$PID" ]]; then
+            echo "Xziel process exited before visual validation."
+            grep -Ei "FATAL EXCEPTION|Fatal signal|AndroidRuntime|DEBUG|libmain|gl4es|SDL|xziel|com.xziel.nzp|Vril Engine|Sys_Error|EGL_BAD_CONTEXT|stage=" \
+              dist/xziel-logcat.txt | tail -n 500 || true
+            exit 1
+          fi
+
+          if [[ "$RESUMED" != *"com.xziel.nzp/org.libsdl.app.NZPActivity"* ]]; then
+            echo "Xziel is alive but is not the resumed foreground activity."
+            exit 1
+          fi
 
           "$ADB" exec-out screencap -p > dist/xziel-enhanced-a.png || true
           sleep 3
@@ -318,8 +346,7 @@ jobs:
           PY
           cat dist/enhanced-visual-report.txt
 
-          "$ADB" logcat -d -v threadtime > dist/xziel-logcat.txt || true
-          "$ADB" shell dumpsys activity processes > dist/activity-processes.txt || true
+          collect_runtime_diagnostics
 
           PID="$("$ADB" shell pidof com.xziel.nzp 2>/dev/null | tr -d '\\r' || true)"
           echo "PID=$PID"
@@ -364,6 +391,10 @@ jobs:
             dist/emulator-stdout.txt
             dist/am-start.txt
             dist/activity-processes.txt
+            dist/activity-activities.txt
+            dist/window-displays.txt
+            dist/display.txt
+            dist/runtime-state.txt
           if-no-files-found: warn
           retention-days: 14
 
