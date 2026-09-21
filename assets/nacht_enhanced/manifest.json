@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "bundle": "nacht-enhanced-commercial-safe",
+  "assets": [
+    {
+      "id": "quaternius-zombie-apocalypse-kit",
+      "source": "https://quaternius.com/packs/zombieapocalypsekit.html",
+      "author": "Quaternius",
+      "license": "CC0-1.0",
+      "redistributable": true,
+      "commercial_use": true,
+      "role": "candidate zombies, dogs, props and environment",
+      "formats": ["FBX", "OBJ", "glTF", "Blend"],
+      "integration": "candidate; convert only selected optimized assets"
+    },
+    {
+      "id": "quaternius-animated-zombie-pack",
+      "source": "https://quaternius.com/packs/animatedzombie.html",
+      "author": "Quaternius",
+      "license": "CC0-1.0",
+      "redistributable": true,
+      "commercial_use": true,
+      "role": "candidate rigged zombie and animation reference",
+      "formats": ["FBX", "OBJ", "Blend"],
+      "integration": "candidate; preserve NZP server hitbox/state contract"
+    },
+    {
+      "id": "quaternius-universal-animation-library-2",
+      "source": "https://quaternius.com/packs/universalanimationlibrary2.html",
+      "author": "Quaternius",
+      "license": "CC0-1.0",
+      "redistributable": true,
+      "commercial_use": true,
+      "role": "candidate zombie locomotion/death animation source",
+      "formats": ["FBX", "GLB", "Blend"],
+      "integration": "candidate retarget source; never change gameplay timing blindly"
+    }
+  ]
+}
