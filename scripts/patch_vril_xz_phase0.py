@@ -49,6 +49,10 @@ for name in (
     "xz_render_graph.c",
     "xz_gles3_shadow.h",
     "xz_gles3_shadow.c",
+    "xz_gpu_resources.h",
+    "xz_gpu_resources.c",
+    "xz_command_stream.h",
+    "xz_command_stream.c",
 ):
     src = modules / name
     if not src.is_file():
@@ -173,4 +177,4 @@ for label, needle in checks.items():
             f"Phase-0 integration check failed for {label}: {count} occurrences"
         )
 
-print("Injected Xziel Xz runtime through Phase 6 (persistent GLES3 shadow executor).")
+print("Injected Xziel Xz runtime through Phase 8 (resource handles + command stream).")
