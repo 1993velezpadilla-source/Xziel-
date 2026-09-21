@@ -429,9 +429,21 @@ jobs:
               grep -E "XZIEL-XZ.*g3res\(" dist/xziel-logcat.txt | tail -n 100 || true
               exit 1
             fi
+
+            if ! grep -Eq "XZIEL-XZ.*phase11 pass_targets planner=PASS" dist/xziel-logcat.txt; then
+              echo "Xz Phase-11 pass target planner did not initialize."
+              grep -E "XZIEL-XZ.*phase11 pass_targets" dist/xziel-logcat.txt | tail -n 100 || true
+              exit 1
+            fi
+
+            if ! grep -Eq "XZIEL-XZ.*g3fbo\(bind=[1-9][0-9]* check=[1-9][0-9]* fail=0 external=[1-9][0-9]* color=[1-9][0-9]* depth=[1-9][0-9]* targetFail=0\)" dist/xziel-logcat.txt; then
+              echo "Xz Phase-11 did not execute clean GLES3 render targets."
+              grep -E "XZIEL-XZ.*g3fbo\(" dist/xziel-logcat.txt | tail -n 100 || true
+              exit 1
+            fi
           fi
 
-          echo "Xziel remained alive; Phase 0-10 including physical GLES3 resources is live."
+          echo "Xziel remained alive; Phase 0-11 including real GLES3 render targets is live."
 
       - name: Upload runtime diagnostics
         if: always()
