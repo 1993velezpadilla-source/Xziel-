@@ -35,6 +35,11 @@ public:
     void onResume() noexcept;
     void onPause() noexcept;
 
+    // Android Surface rotation constants: 0, 1, 2, 3 correspond to
+    // ROTATION_0/90/180/270. Gyro device axes are remapped into current screen
+    // axes before entering the engine input snapshot.
+    void setDisplayRotation(int rotation) noexcept;
+
     void beginFrame(float deltaSeconds) noexcept;
 
     void handleLooperIdentifier(int identifier) noexcept;
@@ -122,6 +127,7 @@ private:
     bool stancePressedThisFrame_ = false;
 
     float stanceHeldSeconds_ = 0.0f;
+    int displayRotation_ = 0;
 };
 
 } // namespace xziel::android
