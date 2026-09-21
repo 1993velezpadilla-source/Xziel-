@@ -88,6 +88,10 @@ struct VulkanHudState {
     bool stance = false;
     bool gyroAvailable = false;
 
+    bool interactAvailable = false;
+    bool interactHeld = false;
+    float interactProgress = 0.0f;
+
     float hitMarkerAlpha = 0.0f;
     float criticalHitAlpha = 0.0f;
     bool targetAlive = true;
