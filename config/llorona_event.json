@@ -35,5 +35,14 @@
       "wail_radius_m": 12,
       "wail_cooldown_s": 9
     }
+  },
+  "hint": {
+    "trigger": "first_player_look_at_child_corpse",
+    "once_per_player": true,
+    "require_reconciliation_still_possible": true,
+    "max_distance_m": 4.5,
+    "min_look_time_s": 0.35,
+    "display_time_s": 4.25,
+    "localization_key": "llorona_child_corpse_hint"
   }
 }
