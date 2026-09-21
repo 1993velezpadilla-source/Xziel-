@@ -19,8 +19,8 @@ git clone --depth 1 https://github.com/nzp-team/quakec.git "$DEPS/quakec"
 git -C "$DEPS/quakec" fetch --depth 1 origin 04bd544172e16193162277a7c356c827e9653b06
 git -C "$DEPS/quakec" checkout 04bd544172e16193162277a7c356c827e9653b06
 git clone --depth 1 --branch feature/shadows-of-evil-completion https://github.com/1993velezpadilla-source/nzp-android.git "$DEPS/soe"
-git -C "$DEPS/soe" fetch --depth 1 origin e39d0edc060341d5843ea2bac026aa4502040e16
-git -C "$DEPS/soe" checkout e39d0edc060341d5843ea2bac026aa4502040e16
+git -C "$DEPS/soe" fetch --depth 1 origin 79002407ec3261f2bbe8cc6b92155175b1905f0a
+git -C "$DEPS/soe" checkout 79002407ec3261f2bbe8cc6b92155175b1905f0a
 
 # Raise SDL's Android phone sensor polling target from 60 Hz to 120 Hz.
 # The backend still clamps to the physical sensor's minimum delay, so devices
