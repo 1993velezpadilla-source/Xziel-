@@ -2491,6 +2491,30 @@ bool VulkanClearRenderer::recordDrawCommand(
         4.2f, 0.10f, 5.0f,
         2.0f);
 
+    if (scene.interactionVisible) {
+        drawBox(
+            scene.interactionX,
+            scene.interactionY,
+            scene.interactionZ,
+            0.18f,
+            0.30f,
+            0.12f,
+            scene.interactionActive
+                ? 7.0f
+                : 8.0f);
+
+        drawBox(
+            scene.interactionX,
+            scene.interactionY + 0.30f,
+            scene.interactionZ - 0.02f,
+            0.09f,
+            0.055f,
+            0.035f,
+            scene.interactionActive
+                ? 7.0f
+                : 8.0f);
+    }
+
     const std::size_t visibleZombieCount =
         std::min(
             scene.zombieCount,
@@ -3502,6 +3526,41 @@ bool VulkanClearRenderer::recordDrawCommand(
         hud.reload
             ? 0.24f
             : 0.11f);
+
+    if (hud.interactAvailable) {
+        const float interactProgress =
+            std::clamp(
+                hud.interactProgress,
+                0.0f,
+                1.0f);
+
+        drawUiCircle(
+            0.65f,
+            0.73f,
+            0.058f,
+            0.12f,
+            0.82f,
+            0.92f,
+            hud.interactHeld
+                ? 0.82f
+                : 0.42f,
+            true,
+            0.16f);
+
+        drawUiCircle(
+            0.65f,
+            0.73f,
+            0.016f +
+                interactProgress *
+                    0.024f,
+            0.18f,
+            0.88f,
+            1.0f,
+            0.28f +
+                interactProgress *
+                    0.52f,
+            false);
+    }
 
     drawUiCircle(
         0.89f,
