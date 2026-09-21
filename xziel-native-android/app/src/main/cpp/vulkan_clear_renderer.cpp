@@ -263,6 +263,12 @@ bool VulkanClearRenderer::drawFrame(
         environment.planarReflectionVisible &&
         reflectionCoverage > 0.0025f;
 
+    if (reflectionContributes) {
+        reflectionInvisibleFrames_ = 0;
+    } else if (reflectionInvisibleFrames_ < UINT32_MAX) {
+        ++reflectionInvisibleFrames_;
+    }
+
     const float requestedReflectionScale =
         environment.maxPlanarReflectionPasses > 0 &&
         reflectionContributes
@@ -283,7 +289,11 @@ bool VulkanClearRenderer::drawFrame(
         (void) createReflectionTarget(
             requestedReflectionScale);
     } else if (requestedReflectionScale <= 0.0f &&
-               reflectionColorImage_ != VK_NULL_HANDLE) {
+               reflectionColorImage_ != VK_NULL_HANDLE &&
+               reflectionInvisibleFrames_ >= 90U) {
+        // Debounce teardown so a quick camera turn does not force a device-idle
+        // destroy/reallocate cycle. Sustained invisibility still returns the
+        // bounded target memory to the device.
         if (!ok(vkDeviceWaitIdle(device_))) {
             return false;
         }
@@ -2603,6 +2613,7 @@ void VulkanClearRenderer::destroyReflectionTarget() noexcept {
     reflectionExtent_ = {};
     reflectionTargetScale_ = 0.0f;
     reflectionHasValidContents_ = false;
+    reflectionInvisibleFrames_ = 0;
 }
 
 bool VulkanClearRenderer::createFramebuffers() noexcept {

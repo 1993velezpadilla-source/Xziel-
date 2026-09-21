@@ -326,6 +326,7 @@ private:
     float reflectionTargetScale_ = 0.0f;
     std::uint64_t reflectionFrameCounter_ = 0;
     bool reflectionHasValidContents_ = false;
+    std::uint32_t reflectionInvisibleFrames_ = 0;
     VkRenderPass reflectionRenderPass_ = VK_NULL_HANDLE;
     VkFramebuffer reflectionFramebuffer_ = VK_NULL_HANDLE;
     VkPipeline reflectionPipeline_ = VK_NULL_HANDLE;
