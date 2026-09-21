@@ -67,6 +67,7 @@ private:
         Look,
         Fire,
         Aim,
+        Reload,
         Jump,
         Stance,
     };
