@@ -10,6 +10,21 @@ layout(location = 6) in vec4 vWaterSurfaceExtra;
 
 layout(location = 0) out vec4 outColor;
 
+layout(push_constant) uniform PushConstants {
+    float timeSeconds;
+    float aspect;
+    float horrorPulse;
+    float materialId;
+    vec4 translation;
+    vec4 scale;
+    vec4 cameraPositionYaw;
+    vec4 cameraPitchFov;
+    vec4 environment;
+    vec4 waterSurface;
+    vec4 waterSurfaceExtra;
+    vec4 reflectionPlane;
+} pc;
+
 vec3 materialBase(int material, float pulse) {
     if (material == 0) return vec3(0.055, 0.060, 0.070);
     if (material == 1) return vec3(0.075, 0.070, 0.080);
@@ -25,6 +40,11 @@ vec3 materialBase(int material, float pulse) {
 }
 
 void main() {
+    // Reject geometry on the non-reflected side of the authored surface.
+    // A small bias prevents coplanar floor/wall fragments from flickering.
+    float planeSide = dot(pc.reflectionPlane.xyz, vWorldPosition) + pc.reflectionPlane.w;
+    if (planeSide < -0.015) discard;
+
     // Capture pass intentionally owns no sampled-image descriptors. The live
     // planar target is the color attachment being written by this pass, so
     // sampling it here would create an attachment feedback hazard.

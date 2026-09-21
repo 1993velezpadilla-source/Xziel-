@@ -242,6 +242,11 @@ private:
         float waterQualityScale = 1.0f;
         float waterParticleScale = 1.0f;
         float waterFogScale = 1.0f;
+
+        float reflectionPlaneX = 0.0f;
+        float reflectionPlaneY = 1.0f;
+        float reflectionPlaneZ = 0.0f;
+        float reflectionPlaneDistance = 1.48f;
     };
 
     [[nodiscard]] bool createInstance() noexcept;

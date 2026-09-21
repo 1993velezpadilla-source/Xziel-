@@ -3326,6 +3326,10 @@ bool VulkanClearRenderer::recordDrawCommand(
                 std::clamp(environment.particleDensityScale, 0.25f, 1.0f);
             push.waterFogScale =
                 std::clamp(environment.fogQualityScale, 0.35f, 1.0f);
+            push.reflectionPlaneX = planeNx;
+            push.reflectionPlaneY = planeNy;
+            push.reflectionPlaneZ = planeNz;
+            push.reflectionPlaneDistance = planeD;
 
             vkCmdPushConstants(
                 command,
