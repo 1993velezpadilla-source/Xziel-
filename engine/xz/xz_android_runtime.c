@@ -1,5 +1,6 @@
 #include "xz_android_runtime.h"
 #include "xz_phase0.h"
+#include "xz_present_world.h"
 
 #include <SDL.h>
 
@@ -160,12 +161,32 @@ static void XzLogSnapshot(double now_seconds)
 {
     const XzGovernorRecommendation *rec =
         &xz_runtime.governor.recommendation;
+    const XzPresentFrame *present =
+        XzPresentWorld_GetReadFrame();
+    const uint64_t present_generation =
+        present ? present->generation : 0u;
+    const unsigned int present_entities =
+        present ? present->entity_count : 0u;
+    const unsigned int present_alias =
+        present ? present->alias_count : 0u;
+    const unsigned int present_brush =
+        present ? present->brush_count : 0u;
+    const unsigned int present_sprite =
+        present ? present->sprite_count : 0u;
+    const unsigned int present_static =
+        present ? present->static_brush_count : 0u;
+    const unsigned int present_lights =
+        present ? present->active_light_count : 0u;
+    const unsigned int present_dropped =
+        present ? present->dropped_entities : 0u;
 
     XzAndroidLog(
         ANDROID_LOG_INFO,
         "perf processed_frames=%" PRIu64
         " last=%.2fms avg=%.2f p50=%.2f p95=%.2f p99=%.2f max=%.2f"
         " rss=%.1fMiB high=%.1fMiB state=%s passive=%d"
+        " present_gen=%" PRIu64
+        " present=%u alias=%u brush=%u sprite=%u static=%u lights=%u dropped=%u"
         " advice(render=%.2f anim=%.2f shadow=%.2f vfx=%.2f light=%.2f stream=%.2f)",
         xz_runtime.frame.total_frames,
         xz_runtime.frame.last_ms,
@@ -178,6 +199,14 @@ static void XzLogSnapshot(double now_seconds)
         (double)xz_runtime.memory.high_water_bytes / (double)XZ_MIB,
         XzGovernorState_Name(xz_runtime.governor.state),
         xz_runtime.governor.passive,
+        present_generation,
+        present_entities,
+        present_alias,
+        present_brush,
+        present_sprite,
+        present_static,
+        present_lights,
+        present_dropped,
         rec->render_scale,
         rec->animation_rate_scale,
         rec->shadow_budget_scale,
