@@ -11,6 +11,7 @@
 #include "xz_gpu_resources.h"
 #include "xz_command_stream.h"
 #include "xz_gles3_resource_plan.h"
+#include "xz_pass_targets.h"
 
 #include <SDL.h>
 
@@ -522,6 +523,10 @@ static void XzLogSnapshot(double now_seconds)
         " reuse=%" PRIu64 " destroy=%" PRIu64
         " read=%" PRIu64 " write=%" PRIu64
         " fail=%" PRIu64 " bytes=%" PRIu64 ")"
+        " g3fbo(bind=%" PRIu64 " check=%" PRIu64
+        " fail=%" PRIu64 " external=%" PRIu64
+        " color=%" PRIu64 " depth=%" PRIu64
+        " targetFail=%" PRIu64 ")"
         " cmd(count=%u hash=%08x overflow=%u resources=%u high=%u"
         " stale=%" PRIu64 " encodeFail=%" PRIu64 ")"
         " advice(render=%.2f anim=%.2f shadow=%.2f vfx=%.2f light=%.2f stream=%.2f)",
@@ -606,6 +611,13 @@ static void XzLogSnapshot(double now_seconds)
         g3->physical_write_binds,
         g3->physical_failures,
         g3->physical_bytes,
+        g3->framebuffer_binds,
+        g3->framebuffer_checks,
+        g3->framebuffer_failures,
+        g3->framebuffer_external_passes,
+        g3->framebuffer_color_attachments,
+        g3->framebuffer_depth_attachments,
+        g3->target_plan_failures,
         commands->count,
         commands->content_hash,
         commands->overflow_count,
@@ -874,6 +886,14 @@ void XzAndroidRuntime_Init(size_t engine_heap_bytes)
                 XzGles3ResourcePlan_SelfTest()
                     ? "PASS" : "FAIL",
                 128u);
+
+            XzAndroidLog(
+                XzPassTargetPlan_SelfTest()
+                    ? ANDROID_LOG_INFO
+                    : ANDROID_LOG_WARN,
+                "phase11 pass_targets planner=%s",
+                XzPassTargetPlan_SelfTest()
+                    ? "PASS" : "FAIL");
 
             if (!attach_ok)
                 XzGles3Shadow_Shutdown(
