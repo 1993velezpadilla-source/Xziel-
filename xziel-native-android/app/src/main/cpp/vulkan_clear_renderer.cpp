@@ -2388,6 +2388,304 @@ bool VulkanClearRenderer::recordDrawCommand(
         0.72f, 1.35f, 0.72f,
         3.0f);
 
+    if (uiPipeline_ == VK_NULL_HANDLE ||
+        uiPipelineLayout_ == VK_NULL_HANDLE) {
+        vkCmdEndRenderPass(command);
+        logError("UI pipeline missing");
+        return false;
+    }
+
+    vkCmdBindPipeline(
+        command,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        uiPipeline_);
+
+    const float viewportWidth =
+        static_cast<float>(
+            std::max(
+                swapchainExtent_.width,
+                1U));
+
+    const float viewportHeight =
+        static_cast<float>(
+            std::max(
+                swapchainExtent_.height,
+                1U));
+
+    const float minViewport =
+        std::min(
+            viewportWidth,
+            viewportHeight);
+
+    const auto drawUiPrimitive = [&](
+        float centerXNormalized,
+        float centerYNormalized,
+        float halfWidthNormalized,
+        float halfHeightNormalized,
+        float red,
+        float green,
+        float blue,
+        float alpha,
+        float shape,
+        float ringWidth) noexcept {
+        UiPushConstants ui{};
+
+        ui.centerX =
+            std::clamp(
+                centerXNormalized,
+                0.0f,
+                1.0f) *
+                2.0f -
+            1.0f;
+
+        ui.centerY =
+            1.0f -
+            std::clamp(
+                centerYNormalized,
+                0.0f,
+                1.0f) *
+                2.0f;
+
+        ui.halfWidth =
+            std::max(
+                halfWidthNormalized,
+                0.0005f) *
+            2.0f;
+
+        ui.halfHeight =
+            std::max(
+                halfHeightNormalized,
+                0.0005f) *
+            2.0f;
+
+        ui.colorR =
+            std::clamp(
+                red,
+                0.0f,
+                1.0f);
+
+        ui.colorG =
+            std::clamp(
+                green,
+                0.0f,
+                1.0f);
+
+        ui.colorB =
+            std::clamp(
+                blue,
+                0.0f,
+                1.0f);
+
+        ui.colorA =
+            std::clamp(
+                alpha,
+                0.0f,
+                1.0f);
+
+        ui.shape = shape;
+        ui.ringWidth = ringWidth;
+
+        vkCmdPushConstants(
+            command,
+            uiPipelineLayout_,
+            VK_SHADER_STAGE_VERTEX_BIT |
+                VK_SHADER_STAGE_FRAGMENT_BIT,
+            0,
+            static_cast<std::uint32_t>(
+                sizeof(UiPushConstants)),
+            &ui);
+
+        vkCmdDraw(
+            command,
+            6,
+            1,
+            0,
+            0);
+    };
+
+    const auto drawUiCircle = [&](
+        float centerXNormalized,
+        float centerYNormalized,
+        float radiusOfShortSide,
+        float red,
+        float green,
+        float blue,
+        float alpha,
+        bool ring,
+        float ringWidth = 0.18f) noexcept {
+        const float radiusPixels =
+            std::max(
+                radiusOfShortSide,
+                0.002f) *
+            minViewport;
+
+        drawUiPrimitive(
+            centerXNormalized,
+            centerYNormalized,
+            radiusPixels /
+                viewportWidth,
+            radiusPixels /
+                viewportHeight,
+            red,
+            green,
+            blue,
+            alpha,
+            ring ? 2.0f : 1.0f,
+            ringWidth);
+    };
+
+    const float moveAnchorX =
+        hud.moveActive
+        ? std::clamp(
+              hud.moveAnchorX,
+              0.08f,
+              0.42f)
+        : 0.17f;
+
+    const float moveAnchorY =
+        hud.moveActive
+        ? std::clamp(
+              hud.moveAnchorY,
+              0.55f,
+              0.92f)
+        : 0.78f;
+
+    drawUiCircle(
+        moveAnchorX,
+        moveAnchorY,
+        0.105f,
+        0.04f,
+        0.70f,
+        0.95f,
+        hud.moveActive
+            ? 0.38f
+            : 0.20f,
+        true,
+        0.12f);
+
+    const float knobTravel =
+        0.060f;
+
+    drawUiCircle(
+        moveAnchorX +
+            std::clamp(
+                hud.moveX,
+                -1.0f,
+                1.0f) *
+            knobTravel,
+        moveAnchorY -
+            std::clamp(
+                hud.moveY,
+                -1.0f,
+                1.0f) *
+            knobTravel,
+        0.040f,
+        0.08f,
+        0.78f,
+        1.0f,
+        hud.moveActive
+            ? 0.62f
+            : 0.28f,
+        false);
+
+    drawUiCircle(
+        0.90f,
+        0.47f,
+        0.082f,
+        0.98f,
+        0.05f,
+        0.24f,
+        hud.fire
+            ? 0.82f
+            : 0.30f,
+        true,
+        hud.fire
+            ? 0.24f
+            : 0.12f);
+
+    drawUiCircle(
+        0.73f,
+        0.54f,
+        0.070f,
+        0.10f,
+        0.72f,
+        0.96f,
+        hud.aim
+            ? 0.78f
+            : 0.27f,
+        true,
+        hud.aim
+            ? 0.22f
+            : 0.12f);
+
+    drawUiCircle(
+        0.89f,
+        0.72f,
+        0.075f,
+        0.88f,
+        0.93f,
+        1.0f,
+        hud.jump
+            ? 0.72f
+            : 0.24f,
+        true,
+        hud.jump
+            ? 0.22f
+            : 0.11f);
+
+    drawUiCircle(
+        0.77f,
+        0.83f,
+        0.067f,
+        0.66f,
+        0.10f,
+        0.95f,
+        hud.stance
+            ? 0.76f
+            : 0.25f,
+        true,
+        hud.stance
+            ? 0.24f
+            : 0.12f);
+
+    // Thin center reticle. Keeping this procedural avoids introducing font or
+    // texture dependencies before the renderer has an asset streaming layer.
+    drawUiPrimitive(
+        0.5f,
+        0.5f,
+        0.0011f,
+        0.010f,
+        0.95f,
+        0.96f,
+        1.0f,
+        0.72f,
+        0.0f,
+        0.10f);
+
+    drawUiPrimitive(
+        0.5f,
+        0.5f,
+        0.0060f,
+        0.0016f,
+        0.95f,
+        0.96f,
+        1.0f,
+        0.72f,
+        0.0f,
+        0.10f);
+
+    if (hud.gyroAvailable) {
+        drawUiCircle(
+            0.965f,
+            0.075f,
+            0.010f,
+            0.10f,
+            0.82f,
+            0.96f,
+            0.58f,
+            false);
+    }
+
     vkCmdEndRenderPass(command);
 
     if (!ok(
