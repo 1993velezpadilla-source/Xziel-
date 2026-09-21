@@ -21,6 +21,8 @@ add_library(xziel_engine STATIC
     src/zombie_window.cpp
     src/door.cpp
     src/map_runtime.cpp
+    src/gameplay_events.cpp
+    src/quest_runtime.cpp
     src/environment.cpp
     src/particles.cpp
     src/performance.cpp
@@ -137,6 +139,16 @@ if(XZIEL_ENGINE_BUILD_TESTS)
     target_link_libraries(xziel_map_runtime_smoke PRIVATE xziel_engine)
     target_compile_features(xziel_map_runtime_smoke PRIVATE cxx_std_20)
     add_test(NAME xziel_map_runtime_smoke COMMAND xziel_map_runtime_smoke)
+
+    add_executable(xziel_gameplay_events_smoke tests/gameplay_events_smoke.cpp)
+    target_link_libraries(xziel_gameplay_events_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_gameplay_events_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_gameplay_events_smoke COMMAND xziel_gameplay_events_smoke)
+
+    add_executable(xziel_quest_runtime_smoke tests/quest_runtime_smoke.cpp)
+    target_link_libraries(xziel_quest_runtime_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_quest_runtime_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_quest_runtime_smoke COMMAND xziel_quest_runtime_smoke)
 
     add_executable(xziel_environment_smoke tests/environment_smoke.cpp)
     target_link_libraries(xziel_environment_smoke PRIVATE xziel_engine)
