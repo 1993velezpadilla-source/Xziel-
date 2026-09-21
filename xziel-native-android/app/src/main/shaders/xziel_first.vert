@@ -14,6 +14,7 @@ layout(push_constant) uniform PushConstants {
     vec4 environment;
     vec4 waterSurface;
     vec4 waterSurfaceExtra;
+    vec4 reflectionPlane;
 } pc;
 
 layout(location = 0) out vec3 vNormal;
