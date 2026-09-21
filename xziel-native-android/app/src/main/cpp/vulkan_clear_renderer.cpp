@@ -2288,6 +2288,13 @@ bool VulkanClearRenderer::createReflectionTarget(
         return true;
     }
 
+    // Do not expose the descriptor until the target has completed at least
+    // one reflection render pass. The image starts UNDEFINED and only the
+    // reflection pass transitions it to SHADER_READ_ONLY_OPTIMAL. Binding it
+    // earlier would make the descriptor's declared layout disagree with the
+    // image's actual layout on the first frame.
+    reflectionHasValidContents_ = false;
+
     VkDescriptorImageInfo imageInfo{};
     imageInfo.sampler = reflectionSampler_;
     imageInfo.imageView = reflectionColorView_;
@@ -3301,9 +3308,10 @@ bool VulkanClearRenderer::recordDrawCommand(
     // draw, even when the current material is not water. Never submit a draw
     // with an unbound or stale descriptor after a quality downgrade, target
     // reallocation, or allocation failure.
-    if (reflectionDescriptorSet_ == VK_NULL_HANDLE) {
+    if (reflectionDescriptorSet_ == VK_NULL_HANDLE ||
+        !reflectionHasValidContents_) {
         vkCmdEndRenderPass(command);
-        logError("reflection descriptor missing; refusing invalid Vulkan draw");
+        logError("reflection descriptor unavailable; refusing invalid Vulkan draw");
         return false;
     }
 
