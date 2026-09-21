@@ -62,7 +62,8 @@ jobs:
           python3 -m py_compile \
             scripts/patch_vril_mobile_v024.py \
             scripts/patch_quakec_mobile_v024.py \
-            scripts/patch_vril_xz_phase0.py
+            scripts/patch_vril_xz_phase0.py \
+            scripts/patch_vril_xz_stage_metrics.py
 
       - name: Test Xz Phase-0 core
         shell: bash
@@ -248,7 +249,13 @@ jobs:
             exit 1
           fi
 
-          echo "Xziel remained alive, reached FIRST_FRAME_OK, and Xz Phase-0 + PresentWorld initialized."
+          if ! grep -Eq "XZIEL-XZ.*stage_p95\(update=[0-9.]+ render=[0-9.]+ audio=[0-9.]+\)" dist/xziel-logcat.txt; then
+            echo "Xz CPU stage metrics were not published."
+            grep -E "XZIEL-XZ.*stage_p95" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          echo "Xziel remained alive with Phase-0, PresentWorld, and CPU stage metrics active."
 
       - name: Upload runtime diagnostics
         if: always()
