@@ -2446,6 +2446,33 @@ bool VulkanClearRenderer::recordDrawCommand(
                 0.0f,
                 1.0f);
 
+        push.waterWavePhase =
+            environment.waterWavePhase;
+
+        push.waterFoamStrength =
+            std::clamp(
+                environment.waterFoamStrength,
+                0.0f,
+                1.0f);
+
+        push.waterReflectionStrength =
+            std::clamp(
+                environment.waterReflectionStrength,
+                0.0f,
+                1.0f);
+
+        push.waterRefractionStrength =
+            std::clamp(
+                environment.waterRefractionStrength,
+                0.0f,
+                1.0f);
+
+        push.waterRoughness =
+            std::clamp(
+                environment.waterRoughness,
+                0.02f,
+                0.85f);
+
         vkCmdPushConstants(
             command,
             pipelineLayout_,
@@ -2490,6 +2517,29 @@ bool VulkanClearRenderer::recordDrawCommand(
         0.0f, 2.02f, 0.0f,
         4.2f, 0.10f, 5.0f,
         2.0f);
+
+    // First live procedural water surface. This is fixed-cost geometry with
+    // storm-driven wave/foam/roughness state, ready to receive a later planar
+    // reflection texture without changing gameplay code.
+    drawBox(
+        -1.70f,
+        -1.505f,
+        -0.25f,
+        1.10f,
+        0.025f,
+        1.45f,
+        13.0f);
+
+    // Glossy reflection panel exercises the reflective-material path. True
+    // offscreen planar scene reflection remains a separate render-pass step.
+    drawBox(
+        3.00f,
+        0.15f,
+        -0.65f,
+        0.025f,
+        1.05f,
+        1.10f,
+        14.0f);
 
     const float prototypeDoorOpen =
         std::clamp(
