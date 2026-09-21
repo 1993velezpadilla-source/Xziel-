@@ -44,5 +44,33 @@
     "min_look_time_s": 0.35,
     "display_time_s": 4.25,
     "localization_key": "llorona_child_corpse_hint"
+  },
+  "prayer_window": {
+    "audio_id": "llorona_prayer_enchanted_v2",
+    "duration_s": 82,
+    "manifestation_lifetime_follows_audio": true,
+    "interaction_open_while_audio_playing": true,
+    "interaction_closes_on_audio_end": true,
+    "disappear_on_audio_end_if_no_child_discovery": true,
+    "interrupt_audio_on_child_discovery": true,
+    "child_discovery_overrides_timer": true,
+    "no_dead_children_behavior": "neutral_penitent_window_only"
+  },
+  "neutral_manifestation": {
+    "requires_dead_child": false,
+    "available_before_any_child_spawn": true,
+    "one_behavior_roll_per_manifestation": true,
+    "behavior_weights": {
+      "prayer_only": 0.35,
+      "proximity_reaction": 0.25,
+      "optional_use_interaction": 0.25,
+      "silent_head_turn": 0.15
+    },
+    "optional_use_interaction": {
+      "max_distance_m": 2.4,
+      "prompt_only_during_prayer": true,
+      "max_uses_per_manifestation": 1,
+      "does_not_reveal_easter_egg_solution": true
+    }
   }
 }
