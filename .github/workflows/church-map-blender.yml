@@ -19,22 +19,23 @@ concurrency:
 
 jobs:
   build-church-map:
-    name: Fetch CC-BY church + Blender headless conversion
+    name: Sanctum of Ash Blender + runtime validation
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 55
 
     steps:
       - name: Checkout Xziel
         uses: actions/checkout@v5
 
-      - name: Install 3D pipeline dependencies
+      - name: Install 3D and NZP map dependencies
         shell: bash
         run: |
           set -euo pipefail
           sudo apt-get update -qq
           sudo apt-get install -y -qq \
             blender python3-numpy \
-            libegl1 libgl1-mesa-dri libglx-mesa0 mesa-utils xvfb
+            libegl1 libgl1-mesa-dri libglx-mesa0 mesa-utils xvfb \
+            git wget curl unzip zip libicu-dev
           python3 -m pip install --quiet --upgrade pip
           python3 -m pip install --quiet objaverse trimesh huggingface_hub
           blender --version
@@ -98,7 +99,6 @@ jobs:
           cp church/source/source_metadata.json church/out/
           cp church/source/ATTRIBUTION.txt church/out/
           cp docs/SANCTUM_OF_ASH_MAP_BIBLE.md church/out/
-          ls -lh church/out
 
       - name: Author Zombies gameplay blockout from real scan zones
         shell: bash
@@ -113,6 +113,20 @@ jobs:
             --python tools/church_map/design_zombies_gameplay.py \
             2>&1 | tee church/out/zombies-gameplay-build.log
 
+      - name: Build collision and nav proxy pass
+        shell: bash
+        env:
+          CHURCH_GAMEPLAY_BLEND: church/out/church_zombies_gameplay_v1.blend
+          CHURCH_PLAN: church/out/zombies_map_plan.json
+          CHURCH_OUT: church/out
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          xvfb-run -a -s "-screen 0 1600x1000x24" \
+            blender --background \
+            --python tools/church_map/build_runtime_collision.py \
+            2>&1 | tee church/out/collision-nav-build.log
+
       - name: Export portable map package
         shell: bash
         env:
@@ -121,60 +135,115 @@ jobs:
         run: |
           set -euo pipefail
           python3 tools/church_map/export_map_package.py | tee church/out/map-package-preflight.log
-          mkdir -p church/out/SanctumOfAsh/geometry
+          mkdir -p church/out/SanctumOfAsh/geometry church/out/SanctumOfAsh/nav
           cp church/out/church_map_mobile_lod0.glb church/out/SanctumOfAsh/geometry/
+          cp church/out/church_collision_proxy_v1.glb church/out/SanctumOfAsh/geometry/
+          cp church/out/church_nav_proxy_v1.json church/out/SanctumOfAsh/nav/
           cp church/out/ATTRIBUTION.txt church/out/SanctumOfAsh/
           cp church/out/SANCTUM_OF_ASH_MAP_BIBLE.md church/out/SanctumOfAsh/
 
-      - name: Validate outputs
+      - name: Export NZP compatibility harness
+        shell: bash
+        env:
+          CHURCH_PACKAGE: church/out/SanctumOfAsh
+          CHURCH_PLAN: church/out/zombies_map_plan.json
+          NZP_MAP_OUT: church/out/nzp_harness/sanctum_harness.map
+        run: |
+          set -euo pipefail
+          python3 tools/church_map/export_nzp_harness.py | tee church/out/nzp-harness-export.log
+          test -s church/out/nzp_harness/sanctum_harness.map
+
+      - name: Compile NZP BSP and spawn zones with official toolchain
         shell: bash
         run: |
           set -euo pipefail
-          test -s church/out/church_map_master.blend
-          test -s church/out/church_map_mobile_lod0.glb
-          test -s church/out/church_scene_report.json
-          test -s church/out/exterior_3q.png
-          test -s church/out/exterior_opposite.png
-          test -s church/out/top_layout.png
-          test -s church/out/entry_axis.png
-          test -s church/out/church_zombies_gameplay_v1.blend
-          test -s church/out/zombies_map_plan.json
-          test -s church/out/zombies_gameplay_top.png
-          test -s church/out/zombies_gameplay_iso.png
-          test -s church/out/zombies_tower_quest.png
-          test -s church/out/SANCTUM_OF_ASH_MAP_BIBLE.md
-          test -s church/out/SanctumOfAsh/map.json
-          test -s church/out/SanctumOfAsh/entities.json
-          test -s church/out/SanctumOfAsh/spawns.json
-          test -s church/out/SanctumOfAsh/logic.json
-          test -s church/out/SanctumOfAsh/quests.json
-          test -s church/out/SanctumOfAsh/preflight.json
-          test -s church/out/SanctumOfAsh/geometry/church_map_mobile_lod0.glb
+          rm -rf /tmp/nzp-assets /tmp/spawn-zone-tool
+          git clone --depth 1 https://github.com/nzp-team/assets.git /tmp/nzp-assets
+          git clone --depth 1 --recursive https://github.com/nzp-team/spawn-zone-tool.git /tmp/spawn-zone-tool
+          python3 -m pip install --quiet -r /tmp/spawn-zone-tool/requirements.txt
+
+          (
+            cd /tmp/nzp-assets
+            bash tools/compile-wads.sh
+            mkdir -p source/maps/sanctum_harness
+            cp "$GITHUB_WORKSPACE/church/out/nzp_harness/sanctum_harness.map" source/maps/sanctum_harness/sanctum_harness.map
+            bash tools/compile-maps.sh --map sanctum_harness --zone-tool-path /tmp/spawn-zone-tool
+          ) 2>&1 | tee church/out/nzp-harness-compile.log
+
+          cp /tmp/nzp-assets/common/maps/sanctum_harness.bsp church/out/nzp_harness/
+          if [[ -s /tmp/nzp-assets/common/maps/sanctum_harness.nsz ]]; then
+            cp /tmp/nzp-assets/common/maps/sanctum_harness.nsz church/out/nzp_harness/
+          fi
+          ls -lh church/out/nzp_harness/
+
+      - name: Validate all outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in \
+            church/out/church_map_master.blend \
+            church/out/church_map_mobile_lod0.glb \
+            church/out/church_scene_report.json \
+            church/out/exterior_3q.png \
+            church/out/exterior_opposite.png \
+            church/out/top_layout.png \
+            church/out/entry_axis.png \
+            church/out/church_zombies_gameplay_v1.blend \
+            church/out/zombies_map_plan.json \
+            church/out/zombies_gameplay_top.png \
+            church/out/zombies_gameplay_iso.png \
+            church/out/zombies_tower_quest.png \
+            church/out/church_zombies_collision_nav_v1.blend \
+            church/out/church_collision_proxy_v1.glb \
+            church/out/church_nav_proxy_v1.json \
+            church/out/SANCTUM_OF_ASH_MAP_BIBLE.md \
+            church/out/SanctumOfAsh/map.json \
+            church/out/SanctumOfAsh/entities.json \
+            church/out/SanctumOfAsh/spawns.json \
+            church/out/SanctumOfAsh/logic.json \
+            church/out/SanctumOfAsh/quests.json \
+            church/out/SanctumOfAsh/preflight.json \
+            church/out/SanctumOfAsh/geometry/church_map_mobile_lod0.glb \
+            church/out/SanctumOfAsh/geometry/church_collision_proxy_v1.glb \
+            church/out/nzp_harness/sanctum_harness.map \
+            church/out/nzp_harness/sanctum_harness.bsp
+          do
+            test -s "$f"
+          done
+
+          test -s church/out/nzp_harness/sanctum_harness.nsz
+
           python3 - <<'PY'
           import json
           r=json.load(open("church/out/church_scene_report.json", encoding="utf-8"))
           p=json.load(open("church/out/zombies_map_plan.json", encoding="utf-8"))
           q=json.load(open("church/out/SanctumOfAsh/preflight.json", encoding="utf-8"))
-          assert r["source_triangles"] > 100000, r
-          assert r["mobile_lod0_triangles"] > 10000, r
+          n=json.load(open("church/out/church_nav_proxy_v1.json", encoding="utf-8"))
+          h=json.load(open("church/out/nzp_harness/sanctum_harness_export.json", encoding="utf-8"))
+          assert r["source_triangles"] > 100000
+          assert r["mobile_lod0_triangles"] > 10000
           assert p["working_title"] == "SANCTUM OF ASH"
-          assert len(p["interactives"]) >= 30, len(p["interactives"])
+          assert len(p["interactives"]) >= 30
           assert q["ok"], q
+          assert len(n["nodes"]) >= 8
+          assert len(n["windowCandidates"]) >= 8
+          assert h["spawns"] >= 8
           for zone in ["boiler","clock_chamber","ringing_chamber","tower_stairs"]:
               assert zone in p["zones"], zone
           print("SOURCE_TRIANGLES", r["source_triangles"])
           print("MOBILE_LOD0_TRIANGLES", r["mobile_lod0_triangles"])
-          print("MESHES", r["source_meshes"])
-          print("BOUNDS", r["bounds_size"])
           print("GAMEPLAY_ZONES", sorted(p["zones"]))
           print("INTERACTIVES", len(p["interactives"]))
+          print("NAV_NODES", len(n["nodes"]))
+          print("WINDOW_CANDIDATES", len(n["windowCandidates"]))
+          print("NZP_HARNESS", h)
           print("PACKAGE_PREFLIGHT", q)
           PY
 
-      - name: Upload church map build
+      - name: Upload Sanctum of Ash development build
         uses: actions/upload-artifact@v4
         with:
-          name: Xziel-Sanctum-of-Ash-Gameplay-Blockout
+          name: Xziel-Sanctum-of-Ash-Runtime-Blockout
           path: church/out/
           if-no-files-found: error
           retention-days: 14
