@@ -2680,6 +2680,12 @@ bool VulkanClearRenderer::recordDrawCommand(
             0.0f,
             1.0f);
 
+    const float viewmodelLowering =
+        std::clamp(
+            hud.viewmodelLowering,
+            0.0f,
+            1.0f);
+
     const float reloadArc =
         std::sin(
             weaponReload *
@@ -2689,21 +2695,27 @@ bool VulkanClearRenderer::recordDrawCommand(
         0.72f *
             (1.0f - weaponAds) +
         0.05f *
-            weaponAds;
+            weaponAds +
+        0.11f *
+            viewmodelLowering;
 
     const float weaponY =
         -0.72f +
         0.16f *
             weaponAds -
         0.30f *
-            reloadArc;
+            reloadArc -
+        0.46f *
+            viewmodelLowering;
 
     const float weaponZ =
         1.22f -
         0.12f *
             weaponAds +
         0.10f *
-            reloadArc;
+            reloadArc +
+        0.08f *
+            viewmodelLowering;
 
     // First procedural viewmodel: receiver, barrel and sight. This deliberately
     // uses the same cube primitive as the room so the weapon path is proven
@@ -2734,6 +2746,39 @@ bool VulkanClearRenderer::recordDrawCommand(
         0.09f,
         0.18f,
         10.0f);
+
+    // Procedural gloved hands make slide/dive/reload motion visible in
+    // first-person before a final skinned viewmodel is imported.
+    drawBox(
+        weaponX + 0.22f,
+        weaponY - 0.10f -
+            reloadArc * 0.05f,
+        weaponZ - 0.18f +
+            reloadArc * 0.10f,
+        0.11f,
+        0.13f,
+        0.28f,
+        12.0f);
+
+    drawBox(
+        weaponX - 0.18f -
+            reloadArc * 0.10f,
+        weaponY - 0.04f -
+            reloadArc * 0.12f,
+        weaponZ + 0.35f,
+        0.10f,
+        0.12f,
+        0.23f,
+        12.0f);
+
+    drawBox(
+        weaponX + 0.31f,
+        weaponY - 0.20f,
+        weaponZ - 0.34f,
+        0.13f,
+        0.10f,
+        0.32f,
+        12.0f);
 
     if (weaponFire > 0.01f) {
         drawBox(
