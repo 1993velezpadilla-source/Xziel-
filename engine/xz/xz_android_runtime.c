@@ -1,6 +1,8 @@
 #include "xz_android_runtime.h"
 #include "xz_phase0.h"
 #include "xz_present_world.h"
+#include "xz_device_caps.h"
+#include "xz_scene_budget.h"
 
 #include <SDL.h>
 
@@ -21,11 +23,14 @@ typedef struct {
     XzFrameMetrics frame;
     XzMemoryBudget memory;
     XzPerformanceGovernor governor;
+    XzDeviceCaps caps;
+    XzSceneBudget scene_budget;
     int initialized;
     int cpu_cores;
     int system_ram_mb;
     int refresh_hz;
     int android_api;
+    int packed_gles_version;
     size_t engine_heap_bytes;
     uint64_t last_memory_sample_frame;
     double last_log_seconds;
@@ -157,12 +162,35 @@ static void XzDetectDisplay(void)
         xz_runtime.refresh_hz = mode.refresh_rate;
 }
 
+static void XzDetectRuntimeGlCaps(void)
+{
+    int major = 0;
+    int minor = 0;
+
+    if (SDL_GL_GetCurrentContext() != NULL) {
+        SDL_GL_GetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, &major);
+        SDL_GL_GetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, &minor);
+    }
+
+    XzDeviceCaps_SetRuntimeGl(
+        &xz_runtime.caps,
+        major,
+        minor,
+        SDL_GL_ExtensionSupported("GL_OES_vertex_array_object"),
+        SDL_GL_ExtensionSupported("GL_EXT_discard_framebuffer"),
+        SDL_GL_ExtensionSupported("GL_EXT_color_buffer_half_float") ||
+            SDL_GL_ExtensionSupported("GL_EXT_color_buffer_float"),
+        SDL_GL_ExtensionSupported("GL_EXT_disjoint_timer_query"));
+}
+
 static void XzLogSnapshot(double now_seconds)
 {
     const XzGovernorRecommendation *rec =
         &xz_runtime.governor.recommendation;
     const XzPresentFrame *present =
         XzPresentWorld_GetReadFrame();
+    const XzSceneBudget *scene =
+        &xz_runtime.scene_budget;
     const uint64_t present_generation =
         present ? present->generation : 0u;
     const unsigned int present_entities =
@@ -187,6 +215,8 @@ static void XzLogSnapshot(double now_seconds)
         " rss=%.1fMiB high=%.1fMiB state=%s passive=%d"
         " present_gen=%" PRIu64
         " present=%u alias=%u brush=%u sprite=%u static=%u lights=%u dropped=%u"
+        " budget(near=%u mid=%u far=%u crit=%u imp=%u bg=%u"
+        " anim=%u shadow=%u vfx=%u light=%u/%u)"
         " advice(render=%.2f anim=%.2f shadow=%.2f vfx=%.2f light=%.2f stream=%.2f)",
         xz_runtime.frame.total_frames,
         xz_runtime.frame.last_ms,
@@ -207,6 +237,17 @@ static void XzLogSnapshot(double now_seconds)
         present_static,
         present_lights,
         present_dropped,
+        scene->near_entities,
+        scene->mid_entities,
+        scene->far_entities,
+        scene->critical_entities,
+        scene->important_entities,
+        scene->background_entities,
+        scene->full_animation_budget,
+        scene->shadowed_entity_budget,
+        scene->premium_vfx_budget,
+        scene->admitted_lights,
+        scene->dynamic_light_budget,
         rec->render_scale,
         rec->animation_rate_scale,
         rec->shadow_budget_scale,
@@ -222,6 +263,7 @@ void XzAndroidRuntime_Init(size_t engine_heap_bytes)
     uint64_t soft_bytes;
     uint64_t hard_bytes;
     char api[PROP_VALUE_MAX];
+    char gles[PROP_VALUE_MAX];
 
     memset(&xz_runtime, 0, sizeof(xz_runtime));
 
@@ -248,7 +290,20 @@ void XzAndroidRuntime_Init(size_t engine_heap_bytes)
         xz_runtime.device_model,
         sizeof(xz_runtime.device_model));
     XzReadProperty("ro.build.version.sdk", api, sizeof(api));
+    XzReadProperty("ro.opengles.version", gles, sizeof(gles));
     xz_runtime.android_api = api[0] ? atoi(api) : 0;
+    xz_runtime.packed_gles_version = gles[0] ? atoi(gles) : 0;
+
+    XzDeviceCaps_Init(&xz_runtime.caps);
+    XzDeviceCaps_SetPlatform(
+        &xz_runtime.caps,
+        xz_runtime.cpu_cores,
+        xz_runtime.system_ram_mb,
+        xz_runtime.refresh_hz,
+        xz_runtime.android_api,
+        xz_runtime.packed_gles_version,
+        xz_runtime.vulkan_driver[0] != '\0');
+    XzDetectRuntimeGlCaps();
 
     XzFrameMetrics_Init(&xz_runtime.frame);
     XzChooseMemoryBudget(
@@ -283,6 +338,29 @@ void XzAndroidRuntime_Init(size_t engine_heap_bytes)
         (double)xz_runtime.engine_heap_bytes / (double)XZ_MIB,
         (double)soft_bytes / (double)XZ_MIB,
         (double)hard_bytes / (double)XZ_MIB);
+
+    XzAndroidLog(
+        ANDROID_LOG_INFO,
+        "phase2 caps selftest=%s tier=%s platform_gles=%d.%d runtime_gl=%d.%d"
+        " vulkan_hint=%d allow(gles3=%d vk=%d gpuDriven=%d temporal=%d highHz=%d rt=%d)"
+        " ext(vao=%d discard=%d halfFloat=%d timer=%d)",
+        XzDeviceCaps_SelfTest() ? "PASS" : "FAIL",
+        XzDeviceTier_Name(xz_runtime.caps.tier),
+        xz_runtime.caps.platform_gles_major,
+        xz_runtime.caps.platform_gles_minor,
+        xz_runtime.caps.runtime_gl_major,
+        xz_runtime.caps.runtime_gl_minor,
+        xz_runtime.caps.vulkan_hint,
+        xz_runtime.caps.allow_gles3,
+        xz_runtime.caps.allow_vulkan,
+        xz_runtime.caps.allow_gpu_driven,
+        xz_runtime.caps.allow_temporal_upscale,
+        xz_runtime.caps.allow_high_refresh,
+        xz_runtime.caps.allow_ray_query,
+        xz_runtime.caps.has_vao,
+        xz_runtime.caps.has_discard_framebuffer,
+        xz_runtime.caps.has_half_float_color,
+        xz_runtime.caps.has_timer_query);
 }
 
 void XzAndroidRuntime_BeginFrame(double now_seconds)
@@ -315,6 +393,12 @@ void XzAndroidRuntime_EndFrame(double now_seconds)
         &xz_runtime.frame,
         &xz_runtime.memory,
         -1);
+
+    XzSceneBudget_Build(
+        &xz_runtime.scene_budget,
+        XzPresentWorld_GetReadFrame(),
+        xz_runtime.caps.tier,
+        &xz_runtime.governor.recommendation);
 
     if (xz_runtime.last_log_seconds == 0.0 ||
         now_seconds - xz_runtime.last_log_seconds >= 5.0)
