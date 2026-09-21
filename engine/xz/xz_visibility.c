@@ -1,6 +1,5 @@
 #include "xz_visibility.h"
 
-#include <math.h>
 #include <string.h>
 
 #define XZ_VISIBILITY_NEAR_KEEP_SQ (160.0f * 160.0f)
@@ -18,16 +17,31 @@ static float XzDot3(
 
 static float XzHalfFovTangent(float degrees)
 {
-    const float pi = 3.14159265358979323846f;
+    static const float tangent_half[] = {
+        0.176327f, 0.267949f, 0.363970f, 0.466308f,
+        0.577350f, 0.700208f, 0.839100f, 1.000000f,
+        1.191754f, 1.428148f, 1.732051f, 2.144507f,
+        2.747477f, 3.732051f, 5.671282f, 11.430052f
+    };
     float clamped = degrees;
+    float scaled;
+    unsigned int index;
+    float fraction;
 
     if (clamped < 20.0f)
         clamped = 20.0f;
     if (clamped > 170.0f)
         clamped = 170.0f;
 
-    return tanf(
-        clamped * 0.5f * pi / 180.0f);
+    scaled = (clamped - 20.0f) / 10.0f;
+    index = (unsigned int)scaled;
+    if (index >= 15u)
+        return tangent_half[15];
+
+    fraction = scaled - (float)index;
+    return tangent_half[index] +
+        (tangent_half[index + 1u] - tangent_half[index]) *
+        fraction;
 }
 
 void XzVisibility_Classify(
