@@ -30,6 +30,7 @@ typedef struct {
     uint32_t asset_hash;
     uint32_t effects;
     uint32_t feature_mask;
+    uint32_t material_flags;
 
     int frame;
     int skin;
@@ -47,6 +48,9 @@ typedef struct {
     float view_forward;
     float view_right;
     float view_up;
+    float base_rgba[4];
+    float lit_rgba[4];
+    unsigned int contributing_lights;
 } XzRenderPacket;
 
 typedef struct {
@@ -74,6 +78,13 @@ typedef struct {
 
     unsigned int requested_lights;
     unsigned int admitted_lights;
+    unsigned int dark_lights;
+
+    unsigned int material_color_count;
+    unsigned int material_translucent_count;
+    unsigned int material_glow_count;
+    unsigned int material_additive_count;
+    unsigned int lit_packet_count;
 
     uint32_t content_hash;
 } XzRenderPlan;
