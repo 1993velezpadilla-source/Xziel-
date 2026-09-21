@@ -1,0 +1,86 @@
+name: Sanctum NZP Brush Selftest
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/church-nzp-brush-test.yml"
+      - "tools/church_map/export_nzp_harness.py"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sanctum-nzp-brush-selftest
+  cancel-in-progress: true
+
+jobs:
+  hlcsg-brush-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install VHLT
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/vhlt
+          wget -q https://github.com/nzp-team/vhlt/releases/download/Vanilla/vhlt-v34-linux-x86_64.zip -O /tmp/vhlt.zip
+          unzip -q /tmp/vhlt.zip -d /tmp/vhlt
+          chmod +x /tmp/vhlt/*
+
+      - name: Generate cube using production brush_box
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/brush-test
+          python3 - <<'PY'
+          import ast
+          from pathlib import Path
+
+          src=Path("tools/church_map/export_nzp_harness.py").read_text(encoding="utf-8")
+          tree=ast.parse(src)
+          fn=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=="brush_box")
+          module=ast.Module(body=[fn],type_ignores=[])
+          ast.fix_missing_locations(module)
+          ns={}
+          exec(compile(module,"export_nzp_harness.py","exec"),ns)
+          brush_box=ns["brush_box"]
+
+          text='''// Format: Valve
+          {
+          "mapversion" "220"
+          "classname" "worldspawn"
+          '''
+          text+=brush_box((-128,-128,-16),(128,128,0),"null")
+          text+='''}
+          {
+          "classname" "info_player_1_spawn"
+          "origin" "0 0 32"
+          }
+          '''
+          Path("/tmp/brush-test/brush_test.map").write_text(text,encoding="utf-8")
+          print(text)
+          PY
+
+      - name: Compile cube with official HLCsg
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/brush-test
+          /tmp/vhlt/hlcsg -threads 2 -nowadtextures brush_test.map 2>&1 | tee hlcsg.log
+          test -s brush_test.bsp || test -s brush_test.p0 || test -s brush_test.hsz
+          ! grep -q "outside world" hlcsg.log
+          ! grep -q "Illegal Brush" hlcsg.log
+          echo "SANCTUM_BRUSH_SELFTEST_OK"
+
+      - name: Upload selftest evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sanctum-nzp-brush-selftest
+          path: /tmp/brush-test/
+          if-no-files-found: warn
+          retention-days: 7
