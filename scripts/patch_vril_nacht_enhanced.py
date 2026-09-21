@@ -5,7 +5,7 @@ import sys
 if len(sys.argv)!=2: raise SystemExit("usage: patch_vril_nacht_enhanced.py <vril-root>")
 p=Path(sys.argv[1])/"source"/"input.c"
 s=p.read_text()
-anchor='cvar_t xziel_modern_zombies = {"xziel_modern_zombies", "1", true};\n'
+anchor='cvar_t xziel_modern_zombies = {"xziel_modern_zombies", "0", true};\n'
 decl='cvar_t xziel_nacht_enhanced = {"xziel_nacht_enhanced", "0", true};\n'
 if decl not in s:
     if anchor not in s: raise SystemExit("modern zombie cvar anchor missing")
