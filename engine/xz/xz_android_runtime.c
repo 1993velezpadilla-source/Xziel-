@@ -5,6 +5,7 @@
 #include "xz_scene_budget.h"
 #include "xz_render_plan.h"
 #include "xz_rhi.h"
+#include "xz_gles3_probe.h"
 
 #include <SDL.h>
 
@@ -29,6 +30,7 @@ typedef struct {
     XzSceneBudget scene_budget;
     XzRenderPlan render_plan;
     XzRhiState rhi;
+    XzGles3ProbeResult gles3_probe;
     int initialized;
     int cpu_cores;
     int system_ram_mb;
@@ -399,6 +401,35 @@ void XzAndroidRuntime_Init(size_t engine_heap_bytes)
         XzRhiBackend_Name(xz_runtime.rhi.requested_backend),
         XzRhiBackend_Name(xz_runtime.rhi.active_backend),
         xz_runtime.rhi.shadow_mode);
+
+    XzGles3Probe_InitResult(&xz_runtime.gles3_probe);
+    if (xz_runtime.caps.allow_gles3) {
+        int probe_ok =
+            XzGles3Probe_Run(&xz_runtime.gles3_probe);
+        XzAndroidLog(
+            probe_ok ? ANDROID_LOG_INFO : ANDROID_LOG_WARN,
+            "phase4 gles3_probe=%s status=%s egl=%d.%d gl=%d.%d"
+            " shader_compile=%d shader_link=%d restore=%d err=0x%x"
+            " vendor='%s' renderer='%s' version='%s'",
+            probe_ok ? "PASS" : "FAIL",
+            XzGles3ProbeStatus_Name(
+                xz_runtime.gles3_probe.status),
+            xz_runtime.gles3_probe.egl_major,
+            xz_runtime.gles3_probe.egl_minor,
+            xz_runtime.gles3_probe.gl_major,
+            xz_runtime.gles3_probe.gl_minor,
+            xz_runtime.gles3_probe.shader_compile_ok,
+            xz_runtime.gles3_probe.shader_link_ok,
+            xz_runtime.gles3_probe.restore_ok,
+            xz_runtime.gles3_probe.gl_error,
+            xz_runtime.gles3_probe.vendor,
+            xz_runtime.gles3_probe.renderer,
+            xz_runtime.gles3_probe.version);
+    } else {
+        XzAndroidLog(
+            ANDROID_LOG_INFO,
+            "phase4 gles3_probe=SKIP status=UNAVAILABLE restore=1");
+    }
 }
 
 void XzAndroidRuntime_BeginFrame(double now_seconds)
