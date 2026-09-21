@@ -128,6 +128,26 @@ jobs:
             -o /tmp/xz_material_lighting_test
           /tmp/xz_material_lighting_test
 
+      - name: Test Xz ActiveQuality
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_active_quality_test.c \
+            engine/xz/xz_active_quality.c \
+            -o /tmp/xz_active_quality_test
+          /tmp/xz_active_quality_test
+
+      - name: Test Xz StreamResidency
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_stream_residency_test.c \
+            engine/xz/xz_stream_residency.c \
+            -o /tmp/xz_stream_residency_test
+          /tmp/xz_stream_residency_test
+
       - name: Test Xz RHI
         shell: bash
         run: |
@@ -413,7 +433,7 @@ jobs:
             XZ_PHASE12_HEARTBEAT=1
           fi
 
-          if [[ "$XZ_PHASE12_HEARTBEAT" != "1" ]] && ! grep -Eq "XZIEL-XZ.*phase0 init passive=1 selftest=PASS" dist/xziel-logcat.txt; then
+          if [[ "$XZ_PHASE12_HEARTBEAT" != "1" ]] && ! grep -Eq "XZIEL-XZ.*phase0 init passive=[01] selftest=PASS" dist/xziel-logcat.txt; then
             echo "Xz Phase-0 runtime did not initialize or its self-test failed."
             grep -E "XZIEL-XZ|phase0" dist/xziel-logcat.txt | tail -n 100 || true
             exit 1
@@ -583,7 +603,33 @@ jobs:
             fi
           fi
 
-          echo "Xziel remained alive; Phase 0-14 including Vril materials and dynamic lighting is live."
+          if ! grep -Eq "XZIEL-XZ.*phase15 active_scaling=PASS residency=PASS governor=ACTIVE initialScale=1\.00" dist/xziel-logcat.txt; then
+            echo "Xz Phase-15 active scaling / residency did not initialize."
+            grep -E "XZIEL-XZ.*phase15 active_scaling" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*phase15 heartbeat active=1 scale=[0-9]+\.[0-9]+ requested=[0-9]+\.[0-9]+ size=[1-9][0-9]*x[1-9][0-9]* proxy=[1-9][0-9]* qUpdates=[0-9]+ changes=[0-9]+.*rebuildFail=0.*streamCap=[1-9][0-9]* resident=[1-9][0-9]*.*loads=[1-9][0-9]* hits=[1-9][0-9]*.*miss=[0-9]+ unique=[1-9][0-9]*/[1-9][0-9]* aggression=[0-9]+\.[0-9]+" dist/xziel-logcat.txt; then
+            echo "Xz Phase-15 did not publish healthy active-quality/residency telemetry."
+            grep -E "XZIEL-XZ.*phase15 heartbeat" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          if grep -Eq "XZIEL-XZ: perf .*state=FRAME_PRESSURE" dist/xziel-logcat.txt; then
+            if ! grep -Eq "XZIEL-XZ.*phase15 heartbeat active=1 scale=0\.85 requested=0\.85 .*proxy=109 qUpdates=[1-9][0-9]* changes=[1-9][0-9]*.*rebuildFail=0" dist/xziel-logcat.txt; then
+              echo "Xz Phase-15 observed FRAME_PRESSURE but did not apply 0.85 render scale."
+              grep -E "XZIEL-XZ.*phase15 heartbeat|XZIEL-XZ: perf .*state=FRAME_PRESSURE" dist/xziel-logcat.txt | tail -n 120 || true
+              exit 1
+            fi
+
+            if ! grep -Eq "XZIEL-XZ.*g3res\(mapped=5 objects=4 create=([1-9][0-9]+).*destroy=[1-9][0-9]*.*fail=0 bytes=[1-9][0-9]*\)" dist/xziel-logcat.txt; then
+              echo "Xz Phase-15 scaling did not recreate physical GLES3 resources."
+              grep -E "XZIEL-XZ.*g3res\(" dist/xziel-logcat.txt | tail -n 120 || true
+              exit 1
+            fi
+          fi
+
+          echo "Xziel remained alive; Phase 0-15 active scaling and asset residency are live."
 
       - name: Upload runtime diagnostics
         if: always()
