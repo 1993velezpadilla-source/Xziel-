@@ -63,24 +63,38 @@ helper = r'''static int Xziel_NachtEnhanced_MapZombieFrame(int frame)
     return frame % 250;
 }
 
-static qboolean Xziel_NachtEnhanced_ShouldReplaceZombie(model_t *source)
+static const char *Xziel_NachtEnhanced_ZombieVariant(model_t *source)
 {
     if (xziel_nacht_enhanced.value < 0.5f || !source || !cl.worldmodel)
-        return false;
+        return NULL;
     if (strcmp(cl.worldmodel->name, "maps/ndu.bsp"))
-        return false;
+        return NULL;
 
-    // Crawlers retain stock segmented geometry until a purpose-built
-    // crawl/death replacement is ready. Likewise, once NZ:P has detached a
-    // head or arm, fall back to the stock segmented renderer so Enhanced
-    // never "grows back" a limb just because the replacement body is whole.
+    // Normal standing/running zombie body only. Crawlers use zbc%.mdl and
+    // deliberately stay on the stock segmented path until a purpose-built
+    // crawl replacement ships.
     if (strcmp(source->name, "models/ai/zb%.mdl"))
-        return false;
-    if (!currententity->z_head || !currententity->z_larm || !currententity->z_rarm)
-        return false;
-    return true;
-}
+        return NULL;
 
+    // z_head/z_larm/z_rarm are NZ:P's authoritative attached-limb entity
+    // indices. Pick a body variant that visually matches that state instead
+    // of snapping back to the Classic zombie after dismemberment.
+    if (currententity->z_head && currententity->z_larm && currententity->z_rarm)
+        return "models/xziel/nacht/zombie_lq.mdl";
+    if (!currententity->z_head && currententity->z_larm && currententity->z_rarm)
+        return "models/xziel/nacht/zombie_lq_h0.mdl";
+    if (currententity->z_head && !currententity->z_larm && currententity->z_rarm)
+        return "models/xziel/nacht/zombie_lq_l0.mdl";
+    if (currententity->z_head && currententity->z_larm && !currententity->z_rarm)
+        return "models/xziel/nacht/zombie_lq_r0.mdl";
+    if (!currententity->z_head && !currententity->z_larm && currententity->z_rarm)
+        return "models/xziel/nacht/zombie_lq_h0_l0.mdl";
+    if (!currententity->z_head && currententity->z_larm && !currententity->z_rarm)
+        return "models/xziel/nacht/zombie_lq_h0_r0.mdl";
+    if (currententity->z_head && !currententity->z_larm && !currententity->z_rarm)
+        return "models/xziel/nacht/zombie_lq_l0_r0.mdl";
+    return "models/xziel/nacht/zombie_lq_h0_l0_r0.mdl";
+}
 '''
 if "Xziel_NachtEnhanced_MapZombieFrame" not in s:
     if helper_anchor not in s:
@@ -116,19 +130,22 @@ cull_repl = '''	if (R_CullBox (mins, maxs))
 		return;
 
 	// Swap only the render model. Network/server state never changes.
-	if (Xziel_NachtEnhanced_ShouldReplaceZombie(clmodel))
 	{
-		model_t *replacement = Mod_ForName("models/xziel/nacht/zombie_lq.mdl", false);
-		if (replacement && replacement->type == mod_alias)
+		const char *xziel_variant = Xziel_NachtEnhanced_ZombieVariant(clmodel);
+		if (xziel_variant)
 		{
-			xziel_source_model = e->model;
-			xziel_source_frame = e->frame;
-			xziel_source_skin = e->skinnum;
-			e->model = replacement;
-			e->frame = Xziel_NachtEnhanced_MapZombieFrame(xziel_source_frame);
-			e->skinnum = 0;
-			clmodel = replacement;
-			xziel_nacht_zombie_replaced = true;
+			model_t *replacement = Mod_ForName((char *)xziel_variant, false);
+			if (replacement && replacement->type == mod_alias)
+			{
+				xziel_source_model = e->model;
+				xziel_source_frame = e->frame;
+				xziel_source_skin = e->skinnum;
+				e->model = replacement;
+				e->frame = Xziel_NachtEnhanced_MapZombieFrame(xziel_source_frame);
+				e->skinnum = 0;
+				clmodel = replacement;
+				xziel_nacht_zombie_replaced = true;
+			}
 		}
 	}
 
