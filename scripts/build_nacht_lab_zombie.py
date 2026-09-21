@@ -513,10 +513,6 @@ def make_horror_skin(source: Image.Image, variant: int) -> Image.Image:
     small_h = max(8, external_skinh // 32)
     small_w = max(8, external_skinw // 32)
     m = rng.uniform(0.0, 255.0, (small_h, small_w)).astype(np.uint8)
-    mimg = Image.fromarray(m, mode="L").resize(
-        (external_skinw, external_skinh), Image.Resampling.BILINEAR
-    ).filter(Image.Filter.GaussianBlur(5.0)) if False else None
-
     # PIL exposes filters in ImageFilter; import locally to keep startup simple.
     from PIL import ImageEnhance, ImageFilter, ImageDraw
     mimg = Image.fromarray(m, mode="L").resize(
