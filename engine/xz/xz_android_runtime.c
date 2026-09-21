@@ -73,11 +73,15 @@ static int XzGles3MirrorBegin(
 
 static int XzGles3MirrorSubmit(
     void *user,
-    const XzRenderPlan *plan)
+    const XzRhiSubmission *submission)
 {
-    return XzGles3Shadow_Submit(
+    if (!submission)
+        return 0;
+
+    return XzGles3Shadow_SubmitCommands(
         (XzGles3ShadowState *)user,
-        plan);
+        submission->commands,
+        submission->plan);
 }
 
 static int XzGles3MirrorEnd(void *user)
@@ -499,7 +503,9 @@ static void XzLogSnapshot(double now_seconds)
         " budget(near=%u mid=%u far=%u crit=%u imp=%u bg=%u"
         " anim=%u shadow=%u vfx=%u light=%u/%u)"
         " plan(gen=%" PRIu64 " packets=%u lod=%u/%u/%u anim=%u shadow=%u vfx=%u hash=%08x)"
-        " rhi(active=%s shadow=%d submitted=%" PRIu64 " rejected=%" PRIu64 ")"
+        " rhi(active=%s shadow=%d submitted=%" PRIu64
+        " cmdStreams=%" PRIu64 " rejected=%" PRIu64
+        " rejectedCmd=%" PRIu64 " cmdHash=%08x)"
         " mirror(backend=%s attached=%d attempts=%" PRIu64
         " submitted=%" PRIu64 " fail=%" PRIu64
         " beginFail=%" PRIu64 " endFail=%" PRIu64 ")"
@@ -507,6 +513,9 @@ static void XzLogSnapshot(double now_seconds)
         " draws=%" PRIu64 " fail=%" PRIu64 " readback=%" PRIu64
         " restoreFail=%" PRIu64 " restore=%d glerr=0x%x hash=%08x)"
         " g3diag(stage=%u preerr=%" PRIu64 ")"
+        " g3cmd(streams=%" PRIu64 " commands=%" PRIu64
+        " passes=%" PRIu64 " reads=%" PRIu64 " writes=%" PRIu64
+        " draws=%" PRIu64 " fail=%" PRIu64 " hash=%08x)"
         " cmd(count=%u hash=%08x overflow=%u resources=%u high=%u"
         " stale=%" PRIu64 " encodeFail=%" PRIu64 ")"
         " advice(render=%.2f anim=%.2f shadow=%.2f vfx=%.2f light=%.2f stream=%.2f)",
@@ -552,7 +561,10 @@ static void XzLogSnapshot(double now_seconds)
         XzRhiBackend_Name(rhi->active_backend),
         rhi->shadow_mode,
         rhi->submitted_frames,
+        rhi->submitted_command_streams,
         rhi->rejected_plans,
+        rhi->rejected_commands,
+        rhi->last_command_hash,
         XzRhiBackend_Name(rhi->mirror_backend),
         rhi->mirror_attached,
         rhi->mirror_submit_attempts,
@@ -571,6 +583,14 @@ static void XzLogSnapshot(double now_seconds)
         g3->last_plan_hash,
         g3->last_error_stage,
         g3->preexisting_errors,
+        g3->command_stream_submissions,
+        g3->commands_executed,
+        g3->passes_executed,
+        g3->resource_read_commands,
+        g3->resource_write_commands,
+        g3->draw_commands,
+        g3->command_failures,
+        g3->last_command_hash,
         commands->count,
         commands->content_hash,
         commands->overflow_count,
@@ -884,9 +904,10 @@ void XzAndroidRuntime_EndFrame(double now_seconds)
     }
 
     XzRhi_BeginFrame(&xz_runtime.rhi);
-    XzRhi_SubmitPlan(
+    XzRhi_SubmitFrame(
         &xz_runtime.rhi,
-        &xz_runtime.render_plan);
+        &xz_runtime.render_plan,
+        &xz_runtime.command_stream);
     XzRhi_EndFrame(&xz_runtime.rhi);
 
     if (xz_runtime.last_log_seconds == 0.0 ||
