@@ -15,6 +15,7 @@ add_library(xziel_engine STATIC
     src/horde_director.cpp
     src/zombie_hit_regions.cpp
     src/score.cpp
+    src/interaction.cpp
     src/environment.cpp
     src/particles.cpp
     src/performance.cpp
@@ -101,6 +102,11 @@ if(XZIEL_ENGINE_BUILD_TESTS)
     target_link_libraries(xziel_horde_director_smoke PRIVATE xziel_engine)
     target_compile_features(xziel_horde_director_smoke PRIVATE cxx_std_20)
     add_test(NAME xziel_horde_director_smoke COMMAND xziel_horde_director_smoke)
+
+    add_executable(xziel_interaction_smoke tests/interaction_smoke.cpp)
+    target_link_libraries(xziel_interaction_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_interaction_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_interaction_smoke COMMAND xziel_interaction_smoke)
 
     add_executable(xziel_environment_smoke tests/environment_smoke.cpp)
     target_link_libraries(xziel_environment_smoke PRIVATE xziel_engine)
