@@ -1406,9 +1406,9 @@ xziel::android::VulkanEnvironmentState makeEnvironmentState(
     constexpr float kReflectionFocusX = 0.0f;
     constexpr float kReflectionFocusZ = 1.0f;
     const float reflectionDx =
-        kReflectionFocusX - state.camera.x;
+        kReflectionFocusX - state.player.frame().cameraPosition.x;
     const float reflectionDz =
-        kReflectionFocusZ - state.camera.z;
+        kReflectionFocusZ - state.player.frame().cameraPosition.z;
     const float reflectionDistance =
         std::sqrt(
             reflectionDx * reflectionDx +
@@ -1427,9 +1427,9 @@ xziel::android::VulkanEnvironmentState makeEnvironmentState(
     // toward +Z. The soft facing ramp avoids reflection-pass thrashing while
     // the player rotates near the edge of the visible hemisphere.
     const float forwardX =
-        std::sin(state.camera.yawRadians);
+        std::sin((state.player.frame().yawDegrees * kDegreesToRadians));
     const float forwardZ =
-        std::cos(state.camera.yawRadians);
+        std::cos((state.player.frame().yawDegrees * kDegreesToRadians));
     const float facing =
         std::clamp(
             forwardX * directionX +
