@@ -80,6 +80,12 @@ struct VulkanEnvironmentState {
     float particleDensityScale = 1.0f;
     float fogQualityScale = 1.0f;
     float postProcessScale = 1.0f;
+
+    float waterWavePhase = 0.0f;
+    float waterFoamStrength = 0.0f;
+    float waterReflectionStrength = 0.0f;
+    float waterRefractionStrength = 0.0f;
+    float waterRoughness = 0.10f;
 };
 
 struct VulkanHudState {
@@ -205,6 +211,16 @@ private:
         float lightningFlash = 0.0f;
         float wetness = 0.0f;
         float rainIntensity = 0.0f;
+
+        float waterWavePhase = 0.0f;
+        float waterFoamStrength = 0.0f;
+        float waterReflectionStrength = 0.0f;
+        float waterRefractionStrength = 0.0f;
+
+        float waterRoughness = 0.10f;
+        float waterPadding0 = 0.0f;
+        float waterPadding1 = 0.0f;
+        float waterPadding2 = 0.0f;
     };
 
     [[nodiscard]] bool createInstance() noexcept;
