@@ -100,11 +100,31 @@ std::size_t ReflectionPlanner::plan(
 
     const std::size_t count =
         std::min(surfaceCount, destinationCapacity);
-    std::uint32_t planarRemaining = planarBudgetFor(workload);
+    const std::uint32_t planarBudget =
+        planarBudgetFor(workload);
 
-    // We deliberately avoid a heap/sort here. The content pipeline should send
-    // reflection surfaces roughly front-to-back/importance order. Each decision
-    // still has a deterministic score gate and safe fallback.
+    const auto isPlanarCandidate =
+        [&workload](
+            const ReflectionSurface& surface,
+            float priority) noexcept {
+            return surface.visible &&
+                surface.distanceMeters <=
+                    workload.reflectionDistanceMeters &&
+                surface.screenCoverage > 0.0005f &&
+                surface.planarEligible &&
+                surface.roughness < 0.42f &&
+                priority >= 0.10f &&
+                workload.planarReflectionScale > 0.0f &&
+                (surface.kind ==
+                     ReflectionSurfaceKind::Mirror ||
+                 surface.kind ==
+                     ReflectionSurfaceKind::Water);
+        };
+
+    // Rank planar candidates in caller-owned memory order without allocating
+    // or sorting. O(n^2) is deliberate here: reflection surface counts are
+    // small, and this makes the scarce extra scene passes independent of
+    // content submission order.
     for (std::size_t i = 0; i < count; ++i) {
         const auto& surface = surfaces[i];
         auto& out = destination[i];
@@ -120,16 +140,48 @@ std::size_t ReflectionPlanner::plan(
 
         const float priority = score(surface);
         const bool lowRoughness = surface.roughness < 0.42f;
-        const bool wantsPlanar =
-            surface.planarEligible &&
-            lowRoughness &&
-            priority >= 0.10f &&
-            planarRemaining > 0 &&
-            workload.planarReflectionScale > 0.0f;
 
-        if (wantsPlanar &&
-            (surface.kind == ReflectionSurfaceKind::Mirror ||
-             surface.kind == ReflectionSurfaceKind::Water)) {
+        bool wantsPlanar = false;
+        if (planarBudget > 0 &&
+            isPlanarCandidate(
+                surface,
+                priority)) {
+            std::uint32_t higherPriorityCandidates = 0;
+
+            for (std::size_t otherIndex = 0;
+                 otherIndex < count;
+                 ++otherIndex) {
+                if (otherIndex == i) {
+                    continue;
+                }
+
+                const auto& other =
+                    surfaces[otherIndex];
+                const float otherPriority =
+                    score(other);
+
+                if (!isPlanarCandidate(
+                        other,
+                        otherPriority)) {
+                    continue;
+                }
+
+                const bool outranks =
+                    otherPriority > priority ||
+                    (otherPriority == priority &&
+                     otherIndex < i);
+
+                if (outranks) {
+                    ++higherPriorityCandidates;
+                }
+            }
+
+            wantsPlanar =
+                higherPriorityCandidates <
+                planarBudget;
+        }
+
+        if (wantsPlanar) {
             out.technique = surface.hasStaticProbe
                 ? ReflectionTechnique::HybridPlanarProbe
                 : ReflectionTechnique::Planar;
@@ -141,7 +193,6 @@ std::size_t ReflectionPlanner::plan(
                 frameIndex % out.updateEveryNFrames == 0;
             out.needsExtraScenePass = out.updateThisFrame;
             out.samplePreviousFrame = !out.updateThisFrame;
-            --planarRemaining;
             continue;
         }
 

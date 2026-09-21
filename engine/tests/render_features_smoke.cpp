@@ -78,6 +78,50 @@ int main() {
         reflectionDecisions[2].technique ==
         xziel::ReflectionTechnique::HybridScreenSpaceProbe);
 
+    // Submission order must not steal the single expensive planar slot.
+    // A lower-priority water surface is deliberately listed before the mirror.
+    std::array<xziel::ReflectionSurface, 2> unorderedSurfaces{{
+        {
+            .id = 21,
+            .kind = xziel::ReflectionSurfaceKind::Water,
+            .distanceMeters = 18.0f,
+            .screenCoverage = 0.08f,
+            .importance = 0.45f,
+            .roughness = 0.18f,
+            .visible = true,
+            .planarEligible = true,
+            .hasStaticProbe = true,
+        },
+        {
+            .id = 22,
+            .kind = xziel::ReflectionSurfaceKind::Mirror,
+            .distanceMeters = 3.0f,
+            .screenCoverage = 0.42f,
+            .importance = 1.0f,
+            .roughness = 0.04f,
+            .visible = true,
+            .planarEligible = true,
+            .hasStaticProbe = true,
+        },
+    }};
+
+    std::array<xziel::ReflectionDecision, 2> unorderedDecisions{};
+    const auto unorderedCount = reflectionPlanner.plan(
+        unorderedSurfaces.data(),
+        unorderedSurfaces.size(),
+        high,
+        2,
+        unorderedDecisions.data(),
+        unorderedDecisions.size());
+    assert(unorderedCount == unorderedSurfaces.size());
+    assert(
+        unorderedDecisions[1].technique ==
+            xziel::ReflectionTechnique::HybridPlanarProbe ||
+        unorderedDecisions[1].technique ==
+            xziel::ReflectionTechnique::Planar);
+    assert(!unorderedDecisions[0].needsExtraScenePass);
+    assert(unorderedDecisions[1].needsExtraScenePass);
+
     std::array<xziel::ShadowRequest, 4> lights{{
         {
             .lightId = 10,
