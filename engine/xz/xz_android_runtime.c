@@ -3,6 +3,8 @@
 #include "xz_present_world.h"
 #include "xz_device_caps.h"
 #include "xz_scene_budget.h"
+#include "xz_render_plan.h"
+#include "xz_rhi.h"
 
 #include <SDL.h>
 
@@ -25,6 +27,8 @@ typedef struct {
     XzPerformanceGovernor governor;
     XzDeviceCaps caps;
     XzSceneBudget scene_budget;
+    XzRenderPlan render_plan;
+    XzRhiState rhi;
     int initialized;
     int cpu_cores;
     int system_ram_mb;
@@ -191,6 +195,10 @@ static void XzLogSnapshot(double now_seconds)
         XzPresentWorld_GetReadFrame();
     const XzSceneBudget *scene =
         &xz_runtime.scene_budget;
+    const XzRenderPlan *plan =
+        &xz_runtime.render_plan;
+    const XzRhiState *rhi =
+        &xz_runtime.rhi;
     const uint64_t present_generation =
         present ? present->generation : 0u;
     const unsigned int present_entities =
@@ -217,6 +225,8 @@ static void XzLogSnapshot(double now_seconds)
         " present=%u alias=%u brush=%u sprite=%u static=%u lights=%u dropped=%u"
         " budget(near=%u mid=%u far=%u crit=%u imp=%u bg=%u"
         " anim=%u shadow=%u vfx=%u light=%u/%u)"
+        " plan(gen=%" PRIu64 " packets=%u lod=%u/%u/%u anim=%u shadow=%u vfx=%u hash=%08x)"
+        " rhi(active=%s shadow=%d submitted=%" PRIu64 " rejected=%" PRIu64 ")"
         " advice(render=%.2f anim=%.2f shadow=%.2f vfx=%.2f light=%.2f stream=%.2f)",
         xz_runtime.frame.total_frames,
         xz_runtime.frame.last_ms,
@@ -248,6 +258,19 @@ static void XzLogSnapshot(double now_seconds)
         scene->premium_vfx_budget,
         scene->admitted_lights,
         scene->dynamic_light_budget,
+        plan->generation,
+        plan->packet_count,
+        plan->near_count,
+        plan->mid_count,
+        plan->far_count,
+        plan->full_animation_count,
+        plan->shadow_count,
+        plan->premium_vfx_count,
+        plan->content_hash,
+        XzRhiBackend_Name(rhi->active_backend),
+        rhi->shadow_mode,
+        rhi->submitted_frames,
+        rhi->rejected_plans,
         rec->render_scale,
         rec->animation_rate_scale,
         rec->shadow_budget_scale,
@@ -361,6 +384,21 @@ void XzAndroidRuntime_Init(size_t engine_heap_bytes)
         xz_runtime.caps.has_discard_framebuffer,
         xz_runtime.caps.has_half_float_color,
         xz_runtime.caps.has_timer_query);
+
+    XzRhi_Init(
+        &xz_runtime.rhi,
+        XZ_RHI_BACKEND_GLES3,
+        &xz_runtime.caps,
+        1);
+
+    XzAndroidLog(
+        ANDROID_LOG_INFO,
+        "phase3 renderplan=%s rhi=%s requested=%s active=%s shadow=%d",
+        XzRenderPlan_SelfTest() ? "PASS" : "FAIL",
+        XzRhi_SelfTest() ? "PASS" : "FAIL",
+        XzRhiBackend_Name(xz_runtime.rhi.requested_backend),
+        XzRhiBackend_Name(xz_runtime.rhi.active_backend),
+        xz_runtime.rhi.shadow_mode);
 }
 
 void XzAndroidRuntime_BeginFrame(double now_seconds)
@@ -400,6 +438,18 @@ void XzAndroidRuntime_EndFrame(double now_seconds)
         xz_runtime.caps.tier,
         &xz_runtime.governor.recommendation);
 
+    XzRenderPlan_Build(
+        &xz_runtime.render_plan,
+        XzPresentWorld_GetReadFrame(),
+        &xz_runtime.scene_budget,
+        xz_runtime.caps.tier);
+
+    XzRhi_BeginFrame(&xz_runtime.rhi);
+    XzRhi_SubmitPlan(
+        &xz_runtime.rhi,
+        &xz_runtime.render_plan);
+    XzRhi_EndFrame(&xz_runtime.rhi);
+
     if (xz_runtime.last_log_seconds == 0.0 ||
         now_seconds - xz_runtime.last_log_seconds >= 5.0)
         XzLogSnapshot(now_seconds);
@@ -411,6 +461,7 @@ void XzAndroidRuntime_Shutdown(void)
         return;
 
     XzLogSnapshot(xz_runtime.last_log_seconds + 5.0);
+    XzRhi_Shutdown(&xz_runtime.rhi);
     XzAndroidLog(
         ANDROID_LOG_INFO,
         "phase0 shutdown processed_frames=%" PRIu64
