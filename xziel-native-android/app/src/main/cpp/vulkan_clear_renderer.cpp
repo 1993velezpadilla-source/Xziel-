@@ -65,6 +65,7 @@ bool VulkanClearRenderer::initialize(
     AAssetManager* assetManager,
     JNIEnv* env,
     jobject javaActivity) noexcept {
+    deviceLost_ = false;
     shutdown();
 
     if (window == nullptr || assetManager == nullptr) {
@@ -390,6 +391,9 @@ bool VulkanClearRenderer::drawFrame(
             UINT64_MAX);
 
     if (!ok(result)) {
+        if (result == VK_ERROR_DEVICE_LOST) {
+            deviceLost_ = true;
+        }
         logError("vkWaitForFences failed");
         return false;
     }
@@ -413,6 +417,9 @@ bool VulkanClearRenderer::drawFrame(
         result == VK_SUBOPTIMAL_KHR;
 
     if (result != VK_SUCCESS && !suboptimal) {
+        if (result == VK_ERROR_DEVICE_LOST) {
+            deviceLost_ = true;
+        }
         logError("vkAcquireNextImageKHR failed");
         return false;
     }
@@ -487,6 +494,9 @@ bool VulkanClearRenderer::drawFrame(
             frame.inFlight);
 
     if (!ok(result)) {
+        if (result == VK_ERROR_DEVICE_LOST) {
+            deviceLost_ = true;
+        }
         logError("vkQueueSubmit failed");
         return false;
     }
@@ -519,6 +529,9 @@ bool VulkanClearRenderer::drawFrame(
             return false;
         }
     } else if (!ok(result)) {
+        if (result == VK_ERROR_DEVICE_LOST) {
+            deviceLost_ = true;
+        }
         logError("vkQueuePresentKHR failed");
         return false;
     }
@@ -529,6 +542,10 @@ bool VulkanClearRenderer::drawFrame(
 
 bool VulkanClearRenderer::ready() const noexcept {
     return initialized_;
+}
+
+bool VulkanClearRenderer::deviceLost() const noexcept {
+    return deviceLost_;
 }
 
 bool VulkanClearRenderer::createInstance() noexcept {

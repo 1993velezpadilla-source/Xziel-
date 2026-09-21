@@ -177,6 +177,7 @@ public:
         const VulkanSceneState& scene,
         const VulkanEnvironmentState& environment) noexcept;
     [[nodiscard]] bool ready() const noexcept;
+    [[nodiscard]] bool deviceLost() const noexcept;
 
 private:
     struct FrameSync {
@@ -380,6 +381,7 @@ private:
 
     bool swappyInitialized_ = false;
     bool initialized_ = false;
+    bool deviceLost_ = false;
 };
 
 } // namespace xziel::android
