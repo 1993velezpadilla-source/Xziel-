@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "purpose": "Reference metadata and local-import contract for classic World at War Zombies audio. No copyrighted Activision/Treyarch audio bytes are stored in this repository.",
+  "redistributable": false,
+  "commit_audio": false,
+  "local_import_env": "XZIEL_WAW_AUDIO_DIR",
+  "destination": "nzp/sounds/xziel/waw",
+  "references": [
+    {
+      "id": "waw_game_over",
+      "local_filename": "waw_game_over.wav",
+      "known_waw_alias": "mx_game_over",
+      "known_waw_source_path": "Stream/Music/Mission/zombie/mx_game_over_4.wav",
+      "behavior": "Classic Zombies GAME OVER musical sting/guitar sequence; use on Nacht end-game screen.",
+      "source_docs": [
+        "https://www.ugx-mods.com/forum/scripting/11/game-over-music/16292/",
+        "https://gist.github.com/wolfl96/c6b8d59ce387e90cbc880e936ac90986"
+      ]
+    },
+    {
+      "id": "waw_round1_laugh",
+      "local_filename": "waw_round_start_laugh.wav",
+      "known_waw_context": "Initial WAVE_1 / classic round-start presentation; community references commonly identify the WaW round-start evil laugh.",
+      "behavior": "Play once when Round 1 is committed while the first chalk/tally presentation changes from white toward red.",
+      "source_docs": [
+        "https://nextgenupdate.com/forums/call-duty-world-at-war/395635-possible-menu-dpad-3.html",
+        "https://www.myinstants.com/search/?name=Cod+zombie+round+start"
+      ]
+    },
+    {
+      "id": "waw_chalk",
+      "local_filename": "waw_chalk.wav",
+      "known_waw_alias": "chalk",
+      "known_waw_event": "chalk_one_up",
+      "behavior": "Optional tally/chalk accent for later round transitions.",
+      "source_docs": [
+        "https://zombiemodding.com/index.php?topic=6112.0",
+        "https://gist.github.com/wolfl96/c6b8d59ce387e90cbc880e936ac90986"
+      ]
+    },
+    {
+      "id": "waw_round_over",
+      "local_filename": "waw_round_over.wav",
+      "known_waw_alias": "round_over",
+      "known_waw_event": "end_of_round",
+      "behavior": "Optional exact classic end-of-round sting.",
+      "source_docs": [
+        "https://zombiemodding.com/index.php?topic=6112.0"
+      ]
+    }
+  ],
+  "policy": {
+    "repository": "metadata and integration code only",
+    "audio_bytes": "must come from a user's lawfully obtained local files or separately licensed replacement sources",
+    "noncommercial_note": "A community/noncommercial build does not by itself grant redistribution rights to copyrighted game audio."
+  }
+}
