@@ -113,6 +113,23 @@ if [[ -f "$DEPS/quakec/build/standard/progs.lno" ]]; then
     cp "$DEPS/quakec/build/standard/progs.lno" "$ASSET_WORK/nzp/progs.lno"
 fi
 
+# Optional CI/development map overlay. Normal Android builds leave these
+# variables unset and are byte-for-byte unaffected by this block. Map-specific
+# workflows can inject a freshly compiled BSP/NSZ without committing binary
+# build outputs to the source repository.
+if [[ -n "${XZIEL_EXTRA_MAP_BSP:-}" ]]; then
+    test -s "$XZIEL_EXTRA_MAP_BSP"
+    EXTRA_MAP_NAME="${XZIEL_EXTRA_MAP_NAME:-$(basename "$XZIEL_EXTRA_MAP_BSP" .bsp)}"
+    mkdir -p "$ASSET_WORK/nzp/maps"
+    cp "$XZIEL_EXTRA_MAP_BSP" "$ASSET_WORK/nzp/maps/${EXTRA_MAP_NAME}.bsp"
+    echo "==> Bundled development map BSP: ${EXTRA_MAP_NAME}.bsp"
+
+    if [[ -n "${XZIEL_EXTRA_MAP_NSZ:-}" && -s "$XZIEL_EXTRA_MAP_NSZ" ]]; then
+        cp "$XZIEL_EXTRA_MAP_NSZ" "$ASSET_WORK/nzp/maps/${EXTRA_MAP_NAME}.nsz"
+        echo "==> Bundled development spawn zones: ${EXTRA_MAP_NAME}.nsz"
+    fi
+fi
+
 (
     cd "$ASSET_WORK"
     zip -q -r "$APP/src/main/assets/nzp-data.zip" .
