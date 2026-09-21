@@ -18,6 +18,7 @@ add_library(xziel-native SHARED
     main.cpp
     android_input.cpp
     android_haptics.cpp
+    android_audio.cpp
     vulkan_clear_renderer.cpp
 )
 
@@ -44,6 +45,7 @@ target_link_libraries(xziel-native
         game-activity::game-activity_static
         games-frame-pacing::swappy_static
         android
+        aaudio
         log
         vulkan
 )
