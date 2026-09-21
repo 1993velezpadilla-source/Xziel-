@@ -33,6 +33,14 @@ vec3 materialBase(int material, float pulse) {
         return vec3(0.30, 0.012, 0.018);
     }
 
+    if (material == 7) {
+        return vec3(0.006, 0.008, 0.012);
+    }
+
+    if (material == 8) {
+        return vec3(0.20, 0.48, 0.68);
+    }
+
     if (material == 10) {
         return vec3(0.055, 0.065, 0.078);
     }
@@ -97,6 +105,47 @@ void main() {
               0.95) *
             lightning *
             0.55;
+
+    float floorFacing =
+        max(
+            normal.y,
+            0.0);
+
+    float wetRipple =
+        0.5 +
+        0.5 *
+        sin(
+            vWorldPosition.x *
+                2.7 +
+            vWorldPosition.z *
+                3.3 +
+            pulse *
+                4.0);
+
+    float wetFloorHighlight =
+        vMaterial == 0
+        ? floorFacing *
+            wetness *
+            (0.06 +
+             wetRipple * 0.10)
+        : 0.0;
+
+    lit +=
+        vec3(
+            0.12,
+            0.25,
+            0.38) *
+        wetFloorHighlight;
+
+    if (vMaterial == 8) {
+        lit +=
+            vec3(
+                0.18,
+                0.38,
+                0.58) *
+            (0.35 +
+             lightning * 0.40);
+    }
 
     if (vMaterial >= 10) {
         if (vMaterial == 11) {
