@@ -201,6 +201,20 @@ std::size_t ReflectionPlanner::plan(
         out = {};
         out.surfaceId = surface.id;
 
+        const float planeLength = std::sqrt(
+            surface.planeNormalX * surface.planeNormalX +
+            surface.planeNormalY * surface.planeNormalY +
+            surface.planeNormalZ * surface.planeNormalZ);
+        if (std::isfinite(planeLength) && planeLength > 0.0001f) {
+            const float inverseLength = 1.0f / planeLength;
+            out.planeNormalX = surface.planeNormalX * inverseLength;
+            out.planeNormalY = surface.planeNormalY * inverseLength;
+            out.planeNormalZ = surface.planeNormalZ * inverseLength;
+            out.planeDistance = std::isfinite(surface.planeDistance)
+                ? surface.planeDistance * inverseLength
+                : 0.0f;
+        }
+
         if (!surface.visible ||
             surface.distanceMeters > workload.reflectionDistanceMeters ||
             surface.screenCoverage <= 0.0005f) {

@@ -38,6 +38,14 @@ struct ReflectionSurface {
     bool planarEligible = false;
     bool hasStaticProbe = true;
     bool animated = false;
+
+    // World-space plane used by planar captures: n.x*x + n.y*y + n.z*z + d = 0.
+    // Content defaults to a horizontal plane through the origin and can supply
+    // vertical mirror planes without renderer-side hardcoded geometry.
+    float planeNormalX = 0.0f;
+    float planeNormalY = 1.0f;
+    float planeNormalZ = 0.0f;
+    float planeDistance = 0.0f;
 };
 
 struct ReflectionDecision {
@@ -51,6 +59,11 @@ struct ReflectionDecision {
     bool updateThisFrame = false;
     bool needsExtraScenePass = false;
     bool samplePreviousFrame = false;
+
+    float planeNormalX = 0.0f;
+    float planeNormalY = 1.0f;
+    float planeNormalZ = 0.0f;
+    float planeDistance = 0.0f;
 };
 
 struct WaterSurfaceState {

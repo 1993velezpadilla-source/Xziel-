@@ -78,6 +78,32 @@ int main() {
         reflectionDecisions[2].technique ==
         xziel::ReflectionTechnique::HybridScreenSpaceProbe);
 
+    // Planar geometry is content data, not a hardcoded renderer assumption.
+    // Normalize the plane so downstream camera reflection math is stable.
+    std::array<xziel::ReflectionSurface, 1> verticalMirror{{{
+        .id = 9,
+        .kind = xziel::ReflectionSurfaceKind::Mirror,
+        .distanceMeters = 2.0f,
+        .screenCoverage = 0.40f,
+        .importance = 1.0f,
+        .roughness = 0.02f,
+        .visible = true,
+        .planarEligible = true,
+        .hasStaticProbe = true,
+        .planeNormalX = 2.0f,
+        .planeNormalY = 0.0f,
+        .planeNormalZ = 0.0f,
+        .planeDistance = -6.0f,
+    }}};
+    std::array<xziel::ReflectionDecision, 1> verticalDecision{};
+    assert(reflectionPlanner.plan(
+        verticalMirror.data(), 1, high, 0,
+        verticalDecision.data(), 1) == 1);
+    assert(verticalDecision[0].planeNormalX == 1.0f);
+    assert(verticalDecision[0].planeNormalY == 0.0f);
+    assert(verticalDecision[0].planeNormalZ == 0.0f);
+    assert(verticalDecision[0].planeDistance == -3.0f);
+
     // Submission order must not steal the single expensive planar slot.
     // A lower-priority water surface is deliberately listed before the mirror.
     std::array<xziel::ReflectionSurface, 2> unorderedSurfaces{{
