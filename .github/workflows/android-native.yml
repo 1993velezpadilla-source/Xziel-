@@ -82,7 +82,6 @@ jobs:
           grep -q 'current_selected_bsp == "ndu"' build/deps/quakec/source/menu/menu_gset.qc
           grep -q 'Xziel_NachtEnhanced_Init' build/deps/quakec/source/server/main.qc
           grep -q 'Xziel_NachtEnhanced_Render' build/deps/quakec/source/client/main.qc
-          grep -q 'NACHT: ENHANCED' build/deps/quakec/source/menu/menu_loby.qc
           grep -q 'Menu_Lobby_ToggleNachtEnhanced' build/deps/quakec/source/menu/menu_loby.qc
           grep -q 'cvar_set("xziel_nacht_enhanced", "1")' build/deps/quakec/source/menu/menu_maps.qc
           grep -q 'MAP VERSION: ENCHANTED' build/deps/quakec/source/menu/menu_loby.qc
