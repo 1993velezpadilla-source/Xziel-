@@ -1321,7 +1321,9 @@ static int XzGles3Shadow_SubmitInternal(
     int command_ok = 1;
     int saw_draw = 0;
     XzPassTargetPlan target_plan;
+    XzPassInputPlan input_plan;
     const XzPassTarget *current_target = NULL;
+    const XzPassInput *current_input = NULL;
     unsigned int target_cursor = 0u;
     int target_bound = 0;
     XzNativeGles3Api *gl;
@@ -1360,12 +1362,25 @@ static int XzGles3Shadow_SubmitInternal(
     }
 
     memset(&target_plan, 0, sizeof(target_plan));
+    memset(&input_plan, 0, sizeof(input_plan));
+
     if (commands &&
         !XzPassTargetPlan_Build(
             &target_plan,
             commands,
             resources)) {
         state->target_plan_failures++;
+        state->command_failures++;
+        state->failures++;
+        return 0;
+    }
+
+    if (commands &&
+        !XzPassInputPlan_Build(
+            &input_plan,
+            commands,
+            resources)) {
+        state->sampled_failures++;
         state->command_failures++;
         state->failures++;
         return 0;
@@ -1497,6 +1512,14 @@ static int XzGles3Shadow_SubmitInternal(
 
                 current_target =
                     &target_plan.passes[target_cursor];
+                current_input =
+                    XzPassInputPlan_Find(
+                        &input_plan,
+                        command->a);
+                if (!current_input) {
+                    command_ok = 0;
+                    break;
+                }
                 target_bound = 0;
                 break;
 
@@ -1602,8 +1625,18 @@ static int XzGles3Shadow_SubmitInternal(
                     target_bound = 1;
                 }
 
+                if (current_input->count > 0u) {
+                    if (!XzDrawSampledPass(
+                            state,
+                            current_input)) {
+                        command_ok = 0;
+                        break;
+                    }
+                }
+
                 target_cursor++;
                 current_target = NULL;
+                current_input = NULL;
                 target_bound = 0;
                 break;
 
@@ -1626,7 +1659,8 @@ static int XzGles3Shadow_SubmitInternal(
             command_ok = 0;
 
         if (target_cursor != target_plan.count ||
-            current_target != NULL)
+            current_target != NULL ||
+            current_input != NULL)
             command_ok = 0;
     } else if (plan->packet_count > 0u) {
         gl->BufferSubData(
