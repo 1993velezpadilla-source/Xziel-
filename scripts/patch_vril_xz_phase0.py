@@ -43,6 +43,8 @@ for name in (
     "xz_render_plan.c",
     "xz_rhi.h",
     "xz_rhi.c",
+    "xz_gles3_probe.h",
+    "xz_gles3_probe.c",
 ):
     src = modules / name
     if not src.is_file():
@@ -167,4 +169,4 @@ for label, needle in checks.items():
             f"Phase-0 integration check failed for {label}: {count} occurrences"
         )
 
-print("Injected Xziel Xz runtime through Phase 3 (RenderPlan + shadow RHI).")
+print("Injected Xziel Xz runtime through Phase 4 (native GLES3 probe).")
