@@ -10,7 +10,12 @@
       "redistributable": true,
       "commercial_use": true,
       "role": "candidate zombies, dogs, props and environment",
-      "formats": ["FBX", "OBJ", "glTF", "Blend"],
+      "formats": [
+        "FBX",
+        "OBJ",
+        "glTF",
+        "Blend"
+      ],
       "integration": "candidate; convert only selected optimized assets"
     },
     {
@@ -21,7 +26,11 @@
       "redistributable": true,
       "commercial_use": true,
       "role": "candidate rigged zombie and animation reference",
-      "formats": ["FBX", "OBJ", "Blend"],
+      "formats": [
+        "FBX",
+        "OBJ",
+        "Blend"
+      ],
       "integration": "candidate; preserve NZP server hitbox/state contract"
     },
     {
@@ -32,8 +41,62 @@
       "redistributable": true,
       "commercial_use": true,
       "role": "candidate zombie locomotion/death animation source",
-      "formats": ["FBX", "GLB", "Blend"],
+      "formats": [
+        "FBX",
+        "GLB",
+        "Blend"
+      ],
       "integration": "candidate retarget source; never change gameplay timing blindly"
+    },
+    {
+      "id": "polyhaven-cracked-concrete-wall",
+      "source": "https://polyhaven.com/a/cracked_concrete_wall",
+      "author": "Dimitrios Savva / Rico Cilliers",
+      "license": "CC0-1.0",
+      "redistributable": true,
+      "commercial_use": true,
+      "role": "environment material: damaged bunker concrete",
+      "integration": "candidate; mobile LOD/texture downsample required"
+    },
+    {
+      "id": "polyhaven-concrete-debris",
+      "source": "https://polyhaven.com/a/concrete_debris",
+      "author": "Amal Kumar",
+      "license": "CC0-1.0",
+      "redistributable": true,
+      "commercial_use": true,
+      "role": "environment material: rubble/debris",
+      "integration": "candidate; mobile LOD/texture downsample required"
+    },
+    {
+      "id": "polyhaven-rubble",
+      "source": "https://polyhaven.com/a/rubble",
+      "author": "Amal Kumar",
+      "license": "CC0-1.0",
+      "redistributable": true,
+      "commercial_use": true,
+      "role": "environment material: interior rubble",
+      "integration": "candidate; mobile LOD/texture downsample required"
+    },
+    {
+      "id": "polyhaven-ammo-box",
+      "source": "https://polyhaven.com/a/ammo_box",
+      "author": "DanKit",
+      "license": "CC0-1.0",
+      "redistributable": true,
+      "commercial_use": true,
+      "role": "prop: military ammo box",
+      "integration": "candidate; mobile LOD/texture downsample required"
+    },
+    {
+      "id": "polyhaven-wooden-crate-01",
+      "source": "https://polyhaven.com/a/wooden_crate_01",
+      "author": "James Ray Cock",
+      "license": "CC0-1.0",
+      "redistributable": true,
+      "commercial_use": true,
+      "role": "prop: worn wooden crate",
+      "integration": "candidate; mobile LOD/texture downsample required"
     }
   ]
 }
