@@ -27,6 +27,15 @@ struct HordeConfig {
     float moveSpeedAddedPerRound = 0.035f;
     float maximumMoveSpeed = 1.45f;
 
+    float separationRadius = 0.72f;
+    float separationStrength = 0.62f;
+    float minimumSpawnDistanceFromPlayer = 3.0f;
+
+    float arenaMinimumX = -2.82f;
+    float arenaMaximumX = 2.82f;
+    float arenaMinimumZ = -3.25f;
+    float arenaMaximumZ = 3.45f;
+
     std::array<Vec3, 8> spawnPoints{{
         {-2.35f, -1.48f,  3.15f},
         { 2.35f, -1.48f,  3.15f},
@@ -82,7 +91,11 @@ private:
     [[nodiscard]] std::uint32_t targetForRound(
         std::uint32_t round) const noexcept;
 
-    [[nodiscard]] bool spawnOne() noexcept;
+    [[nodiscard]] bool spawnOne(
+        Vec3 playerFeetPosition) noexcept;
+
+    void applyCrowdSeparation() noexcept;
+    void constrainToArena() noexcept;
     void beginNextRound() noexcept;
 
     HordeConfig config_{};
