@@ -13,6 +13,7 @@ add_library(xziel_engine STATIC
     src/zombie_actor.cpp
     src/player_vitals.cpp
     src/horde_director.cpp
+    src/zombie_hit_regions.cpp
     src/environment.cpp
     src/particles.cpp
     src/performance.cpp
@@ -79,6 +80,11 @@ if(XZIEL_ENGINE_BUILD_TESTS)
     target_link_libraries(xziel_zombie_actor_smoke PRIVATE xziel_engine)
     target_compile_features(xziel_zombie_actor_smoke PRIVATE cxx_std_20)
     add_test(NAME xziel_zombie_actor_smoke COMMAND xziel_zombie_actor_smoke)
+
+    add_executable(xziel_zombie_hit_regions_smoke tests/zombie_hit_regions_smoke.cpp)
+    target_link_libraries(xziel_zombie_hit_regions_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_zombie_hit_regions_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_zombie_hit_regions_smoke COMMAND xziel_zombie_hit_regions_smoke)
 
     add_executable(xziel_player_vitals_smoke tests/player_vitals_smoke.cpp)
     target_link_libraries(xziel_player_vitals_smoke PRIVATE xziel_engine)
