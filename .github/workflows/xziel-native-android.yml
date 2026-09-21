@@ -184,10 +184,10 @@ jobs:
           timeout 8 "$ADB" shell am start             -n com.xziel.engineprototype/.XzielGameActivity             > dist/native-am-start.txt 2>&1 || true
 
           sleep 15
-          "$ADB" logcat -d -v threadtime > dist/native-logcat.txt
-          "$ADB" exec-out screencap -p > dist/native-first-frame.png || true
+          timeout 8 "$ADB" logcat -d -v threadtime > dist/native-logcat.txt || true
+          timeout 8 "$ADB" exec-out screencap -p > dist/native-first-frame.png || true
 
-          PID="$("$ADB" shell pidof com.xziel.engineprototype 2>/dev/null | tr -d '\r' || true)"
+          PID="$(timeout 5 "$ADB" shell pidof com.xziel.engineprototype 2>/dev/null | tr -d '\r' || true)"
           test -n "$PID"
 
           if grep -Eq "FATAL EXCEPTION|Fatal signal|ANR in com\.xziel\.engineprototype|>>> com\.xziel\.engineprototype <<<" dist/native-logcat.txt; then
