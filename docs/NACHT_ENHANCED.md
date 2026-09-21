@@ -47,6 +47,18 @@ alternate model's stand/walk/run/attack/down ranges.
 
 This first model is deliberately a low-cost Quake MDL v6 compatibility
 milestone: 373 vertices, 436 triangles and 250 frames. It proves the complete
-Android model path. Crawlers retain the stock segmented model until a
-purpose-built crawl/death conversion is ready. The same isolated runtime slot
-can later receive a higher-detail CC0/CC-BY zombie without rewriting gameplay.
+Android model path.
+
+Enhanced now also derives seven partial-body render variants at build time:
+headless, left-arm missing, right-arm missing, and every combination of those
+three limb states. The variants collapse only the removed anatomical vertex
+set onto animated neck/shoulder anchors, so NZ:P remains authoritative for
+limb state while the visible zombie no longer snaps back to the Classic body
+after a dismemberment event. The renderer selects the matching variant from
+the existing z_head/z_larm/z_rarm entity indices and restores the real network
+entity immediately after drawing.
+
+Crawlers retain the stock segmented model until a purpose-built crawl/death
+conversion is ready; Enhanced deliberately does not fake a standing body into
+a crawler pose. The same isolated runtime slot can later receive a
+higher-detail CC0/CC-BY zombie without rewriting gameplay.
