@@ -68,6 +68,17 @@ public:
     [[nodiscard]] bool addStaticObstacle(
         const Aabb& obstacle) noexcept;
 
+    void clearDynamicObstacles() noexcept;
+
+    [[nodiscard]] bool addDynamicObstacle(
+        std::uint32_t id,
+        const Aabb& obstacle,
+        bool enabled = true) noexcept;
+
+    [[nodiscard]] bool setDynamicObstacleEnabled(
+        std::uint32_t id,
+        bool enabled) noexcept;
+
     // Touch look is a frame-relative delta and is consumed exactly once here.
     // Gyro is angular velocity and is integrated by frame delta.
     void sampleViewInput(
@@ -103,6 +114,9 @@ private:
     static constexpr std::size_t
         kMaximumStaticObstacles = 16;
 
+    static constexpr std::size_t
+        kMaximumDynamicObstacles = 16;
+
     FpsPlayerConfig config_{};
     MobileMovementResolver mobileResolver_{};
     MovementController movement_{};
@@ -112,6 +126,17 @@ private:
         staticObstacles_{};
 
     std::size_t staticObstacleCount_ = 0;
+
+    struct DynamicObstacle {
+        std::uint32_t id = 0;
+        Aabb obstacle{};
+        bool enabled = false;
+    };
+
+    std::array<DynamicObstacle, kMaximumDynamicObstacles>
+        dynamicObstacles_{};
+
+    std::size_t dynamicObstacleCount_ = 0;
 };
 
 } // namespace xziel

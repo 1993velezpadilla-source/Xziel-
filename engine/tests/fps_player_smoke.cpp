@@ -221,5 +221,36 @@ int main() {
         player.frame().pitchDegrees <=
         82.0001f);
 
+    // Runtime collision gates let doors/windows open without rebuilding
+    // player collision state.
+    {
+        xziel::FpsPlayerController dynamicPlayer;
+        assert(dynamicPlayer.addDynamicObstacle(
+            501,
+            {
+                .minimum = {-0.58f, -1.60f, -0.25f},
+                .maximum = { 0.58f,  0.95f,  0.95f},
+            },
+            true));
+
+        xziel::FpsPlayerFrame blocked{};
+        for (int i = 0; i < 360; ++i) {
+            blocked = dynamicPlayer.fixedStep(
+                {0.0f, 1.0f},
+                {},
+                1.0f / 120.0f);
+        }
+        assert(blocked.feetPosition.z < -0.45f);
+
+        assert(dynamicPlayer.setDynamicObstacleEnabled(501, false));
+        for (int i = 0; i < 360; ++i) {
+            blocked = dynamicPlayer.fixedStep(
+                {0.0f, 1.0f},
+                {},
+                1.0f / 120.0f);
+        }
+        assert(blocked.feetPosition.z > 0.95f);
+    }
+
     return 0;
 }

@@ -74,6 +74,48 @@ bool FpsPlayerController::addStaticObstacle(
     return true;
 }
 
+void FpsPlayerController::clearDynamicObstacles() noexcept {
+    dynamicObstacleCount_ = 0;
+}
+
+bool FpsPlayerController::addDynamicObstacle(
+    std::uint32_t id,
+    const Aabb& obstacle,
+    bool enabled) noexcept {
+    if (id == 0 ||
+        dynamicObstacleCount_ >= dynamicObstacles_.size() ||
+        obstacle.minimum.x > obstacle.maximum.x ||
+        obstacle.minimum.y > obstacle.maximum.y ||
+        obstacle.minimum.z > obstacle.maximum.z) {
+        return false;
+    }
+
+    for (std::size_t i = 0; i < dynamicObstacleCount_; ++i) {
+        if (dynamicObstacles_[i].id == id) {
+            return false;
+        }
+    }
+
+    dynamicObstacles_[dynamicObstacleCount_++] = {
+        id,
+        obstacle,
+        enabled,
+    };
+    return true;
+}
+
+bool FpsPlayerController::setDynamicObstacleEnabled(
+    std::uint32_t id,
+    bool enabled) noexcept {
+    for (std::size_t i = 0; i < dynamicObstacleCount_; ++i) {
+        if (dynamicObstacles_[i].id == id) {
+            dynamicObstacles_[i].enabled = enabled;
+            return true;
+        }
+    }
+    return false;
+}
+
 void FpsPlayerController::sampleViewInput(
     const InputState& input,
     float frameDeltaSeconds) noexcept {
@@ -283,11 +325,23 @@ FpsPlayerController::buildTraversalContext() const noexcept {
         wallProbe +
         1.0f;
 
+    const std::size_t traversalObstacleCount =
+        staticObstacleCount_ + dynamicObstacleCount_;
     for (std::size_t i = 0;
-         i < staticObstacleCount_;
+         i < traversalObstacleCount;
          ++i) {
-        const auto& obstacle =
-            staticObstacles_[i];
+        const Aabb* obstaclePointer = nullptr;
+        if (i < staticObstacleCount_) {
+            obstaclePointer = &staticObstacles_[i];
+        } else {
+            const auto& dynamic =
+                dynamicObstacles_[i - staticObstacleCount_];
+            if (!dynamic.enabled) {
+                continue;
+            }
+            obstaclePointer = &dynamic.obstacle;
+        }
+        const auto& obstacle = *obstaclePointer;
 
         const float nearestX =
             std::clamp(
@@ -562,7 +616,8 @@ bool FpsPlayerController::overlapsObstacle(
 
 void FpsPlayerController::resolveStaticCollision(
     const Vec3& previousFeetPosition) noexcept {
-    if (staticObstacleCount_ == 0) {
+    if (staticObstacleCount_ == 0 &&
+        dynamicObstacleCount_ == 0) {
         return;
     }
 
@@ -572,13 +627,27 @@ void FpsPlayerController::resolveStaticCollision(
     const float desiredZ =
         frame_.feetPosition.z;
 
+    const std::size_t totalObstacleCount =
+        staticObstacleCount_ + dynamicObstacleCount_;
+
     for (std::size_t i = 0;
-         i < staticObstacleCount_;
+         i < totalObstacleCount;
          ++i) {
+        const Aabb* obstacle = nullptr;
+        if (i < staticObstacleCount_) {
+            obstacle = &staticObstacles_[i];
+        } else {
+            const auto& dynamic =
+                dynamicObstacles_[i - staticObstacleCount_];
+            if (!dynamic.enabled) {
+                continue;
+            }
+            obstacle = &dynamic.obstacle;
+        }
         if (overlapsObstacle(
                 resolvedX,
                 previousFeetPosition.z,
-                staticObstacles_[i])) {
+                *obstacle)) {
             resolvedX =
                 previousFeetPosition.x;
             break;
@@ -589,12 +658,23 @@ void FpsPlayerController::resolveStaticCollision(
         desiredZ;
 
     for (std::size_t i = 0;
-         i < staticObstacleCount_;
+         i < totalObstacleCount;
          ++i) {
+        const Aabb* obstacle = nullptr;
+        if (i < staticObstacleCount_) {
+            obstacle = &staticObstacles_[i];
+        } else {
+            const auto& dynamic =
+                dynamicObstacles_[i - staticObstacleCount_];
+            if (!dynamic.enabled) {
+                continue;
+            }
+            obstacle = &dynamic.obstacle;
+        }
         if (overlapsObstacle(
                 resolvedX,
                 resolvedZ,
-                staticObstacles_[i])) {
+                *obstacle)) {
             resolvedZ =
                 previousFeetPosition.z;
             break;
