@@ -85,7 +85,11 @@ echo "==> Building only the WADs required by Nacht"
 WADMAKER_ZIP="$TOOLS/wadmaker.zip"
 curl -fL --retry 5 --retry-delay 2 --retry-all-errors   https://github.com/pwitvoet/wadmaker/releases/download/1.3/WadMaker_1.3_linux64.zip   -o "$WADMAKER_ZIP"
 mkdir -p "$TOOLS/wadmaker"
-unzip -q -j "$WADMAKER_ZIP" -d "$TOOLS/wadmaker"
+# The upstream WadMaker ZIP stores Windows-style backslashes and Info-ZIP
+# returns warning status 1 after extracting successfully. Do not let that
+# harmless warning abort the map build; verify the binary explicitly instead.
+unzip -q -j "$WADMAKER_ZIP" -d "$TOOLS/wadmaker" || true
+test -s "$TOOLS/wadmaker/WadMaker"
 chmod +x "$TOOLS/wadmaker/WadMaker"
 
 build_wad() {
