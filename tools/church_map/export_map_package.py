@@ -55,6 +55,16 @@ for a, b in [
 ]:
     link_zone(a,b)
 
+ZONE_ALIASES = {
+    "courtyard": "exterior",
+    "nave": "main_church",
+    "altar": "main_church",
+}
+
+def normalize_zone(name):
+    name = str(name or "main_church")
+    return ZONE_ALIASES.get(name, name)
+
 entities = []
 spawns = []
 doors = []
@@ -66,7 +76,7 @@ for obj in plan["interactives"]:
     position = vec(obj["location"])
 
     if kind == "zombie_spawn":
-        zone = props.get("zone", "unassigned")
+        zone = normalize_zone(props.get("zone", "unassigned"))
         spawns.append({
             "id": uid(name),
             "type": "zombie_spawn",
@@ -106,7 +116,7 @@ for obj in plan["interactives"]:
         "name": name,
         "type": ent_type,
         "transform": {"position": position, "rotation": {"pitch":0,"yaw":0,"roll":0}},
-        "zone": "zone_" + str(props.get("zone","main_church")),
+        "zone": "zone_" + normalize_zone(props.get("zone","main_church")),
         "tags": [kind, "sanctum_of_ash"],
         "properties": props,
         "links": [],
