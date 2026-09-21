@@ -89,6 +89,7 @@ jobs:
           grep -q 'xziel_nacht_fx_next_lightning' build/deps/quakec/source/client/main.qc
           grep -q 'Xziel_NachtEnhanced_MapZombieFrame' build/deps/vril/source/platform/sdl/gl/gl_rmain.c
           grep -q 'models/xziel/nacht/zombie_lq.mdl' build/deps/vril/source/platform/sdl/gl/gl_rmain.c
+          grep -q '!currententity->z_head' build/deps/vril/source/platform/sdl/gl/gl_rmain.c
           test -s build/nzp-data/nzp/models/xziel/nacht/zombie_lq.mdl
           test -s build/nzp-data/nzp/models/xziel/nacht/zombie_lq.mdl_0.tga
           test -s build/nzp-data/nzp/licenses/LIBREQUAKE-BSD-3-CLAUSE.txt
