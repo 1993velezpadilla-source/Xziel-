@@ -98,5 +98,36 @@
       "role": "prop: worn wooden crate",
       "integration": "candidate; mobile LOD/texture downsample required"
     }
-  ]
+  ],
+  "audio_policy": {
+    "commercial_safe_only": true,
+    "required_fields": [
+      "id",
+      "source",
+      "author",
+      "license",
+      "redistributable",
+      "commercial_use",
+      "role"
+    ],
+    "categories": [
+      "weather_wind",
+      "weather_thunder",
+      "structure_creaks",
+      "metal_stress",
+      "electrical_buzz",
+      "electrical_sparks",
+      "barricade_wood",
+      "zombie_vocals",
+      "zombie_foley",
+      "weapon_mechanics",
+      "weapon_reports",
+      "surface_impacts",
+      "player_movement",
+      "interaction_ui",
+      "round_stingers"
+    ],
+    "spatial_audio": "mono positional where practical; attenuated through native Vril/NZ:P sound paths",
+    "reference_only_audio": "must not enter distributable commercial-safe APK"
+  }
 }
