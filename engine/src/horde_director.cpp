@@ -141,6 +141,30 @@ void HordeDirector::reset() noexcept {
     nextSpawnPoint_ = 0;
 }
 
+void HordeDirector::clearNavigationObstacles() noexcept {
+    navigationObstacleCount_ = 0;
+}
+
+bool HordeDirector::addNavigationObstacle(
+    const Aabb& obstacle) noexcept {
+    if (navigationObstacleCount_ >=
+            navigationObstacles_.size() ||
+        obstacle.minimum.x >
+            obstacle.maximum.x ||
+        obstacle.minimum.y >
+            obstacle.maximum.y ||
+        obstacle.minimum.z >
+            obstacle.maximum.z) {
+        return false;
+    }
+
+    navigationObstacles_[
+        navigationObstacleCount_++] =
+        obstacle;
+
+    return true;
+}
+
 HordeFrame HordeDirector::step(
     Vec3 playerFeetPosition,
     float deltaSeconds) noexcept {
@@ -173,8 +197,13 @@ HordeFrame HordeDirector::step(
             continue;
         }
 
+        const Vec3 steeringTarget =
+            steeringTargetFor(
+                actor,
+                playerFeetPosition);
+
         (void) actor.step(
-            playerFeetPosition,
+            steeringTarget,
             dt);
 
         if (actor.frame().state ==
@@ -188,6 +217,7 @@ HordeFrame HordeDirector::step(
     }
 
     applyCrowdSeparation();
+    resolveNavigationPenetration();
     constrainToArena();
 
     const bool roundExhausted =
@@ -406,6 +436,195 @@ bool HordeDirector::spawnOne(
     return true;
 }
 
+Vec3 HordeDirector::steeringTargetFor(
+    const ZombieActor& actor,
+    Vec3 playerFeetPosition) const noexcept {
+    if (navigationObstacleCount_ == 0) {
+        return playerFeetPosition;
+    }
+
+    const auto& position =
+        actor.frame().position;
+
+    const float dx =
+        playerFeetPosition.x -
+        position.x;
+
+    const float dz =
+        playerFeetPosition.z -
+        position.z;
+
+    const float distanceSquared =
+        dx * dx +
+        dz * dz;
+
+    if (distanceSquared <= 1.0e-8f) {
+        return playerFeetPosition;
+    }
+
+    const float distance =
+        std::sqrt(
+            distanceSquared);
+
+    const float inverseDistance =
+        1.0f /
+        distance;
+
+    Ray ray{};
+    ray.origin = {
+        position.x,
+        position.y +
+            actor.config().bodyHeight *
+                0.45f,
+        position.z,
+    };
+
+    ray.direction = {
+        dx * inverseDistance,
+        0.0f,
+        dz * inverseDistance,
+    };
+
+    for (std::size_t obstacleIndex = 0;
+         obstacleIndex <
+             navigationObstacleCount_;
+         ++obstacleIndex) {
+        const auto& source =
+            navigationObstacles_[
+                obstacleIndex];
+
+        const float marginX =
+            actor.config().halfWidth +
+            0.14f;
+
+        const float marginZ =
+            actor.config().halfDepth +
+            0.14f;
+
+        const Aabb expanded{
+            .minimum = {
+                source.minimum.x -
+                    marginX,
+                source.minimum.y,
+                source.minimum.z -
+                    marginZ,
+            },
+            .maximum = {
+                source.maximum.x +
+                    marginX,
+                source.maximum.y,
+                source.maximum.z +
+                    marginZ,
+            },
+        };
+
+        const auto obstruction =
+            raycastAabb(
+                ray,
+                expanded,
+                distance);
+
+        if (!obstruction.hit) {
+            continue;
+        }
+
+        const float cornerMargin = 0.18f;
+
+        const std::array<Vec3, 4> candidates{{
+            {
+                expanded.minimum.x -
+                    cornerMargin,
+                playerFeetPosition.y,
+                expanded.minimum.z -
+                    cornerMargin,
+            },
+            {
+                expanded.minimum.x -
+                    cornerMargin,
+                playerFeetPosition.y,
+                expanded.maximum.z +
+                    cornerMargin,
+            },
+            {
+                expanded.maximum.x +
+                    cornerMargin,
+                playerFeetPosition.y,
+                expanded.minimum.z -
+                    cornerMargin,
+            },
+            {
+                expanded.maximum.x +
+                    cornerMargin,
+                playerFeetPosition.y,
+                expanded.maximum.z +
+                    cornerMargin,
+            },
+        }};
+
+        Vec3 best =
+            playerFeetPosition;
+
+        float bestCost =
+            std::numeric_limits<float>::max();
+
+        for (const auto& candidate :
+             candidates) {
+            const float boundedX =
+                std::clamp(
+                    candidate.x,
+                    config_.arenaMinimumX,
+                    config_.arenaMaximumX);
+
+            const float boundedZ =
+                std::clamp(
+                    candidate.z,
+                    config_.arenaMinimumZ,
+                    config_.arenaMaximumZ);
+
+            const float fromZombieX =
+                boundedX -
+                position.x;
+
+            const float fromZombieZ =
+                boundedZ -
+                position.z;
+
+            const float toPlayerX =
+                playerFeetPosition.x -
+                boundedX;
+
+            const float toPlayerZ =
+                playerFeetPosition.z -
+                boundedZ;
+
+            const float cost =
+                std::sqrt(
+                    fromZombieX *
+                        fromZombieX +
+                    fromZombieZ *
+                        fromZombieZ) +
+                std::sqrt(
+                    toPlayerX *
+                        toPlayerX +
+                    toPlayerZ *
+                        toPlayerZ);
+
+            if (cost < bestCost) {
+                bestCost = cost;
+                best = {
+                    boundedX,
+                    playerFeetPosition.y,
+                    boundedZ,
+                };
+            }
+        }
+
+        return best;
+    }
+
+    return playerFeetPosition;
+}
+
 void HordeDirector::applyCrowdSeparation() noexcept {
     const float radius =
         config_.separationRadius;
@@ -512,6 +731,111 @@ void HordeDirector::applyCrowdSeparation() noexcept {
                 translateHorizontal(
                     -pushX,
                     -pushZ);
+        }
+    }
+}
+
+void HordeDirector::resolveNavigationPenetration() noexcept {
+    for (auto& zombieSlot : zombies_) {
+        if (!zombieSlot.has_value() ||
+            zombieSlot->frame().state ==
+                ZombieState::Dead) {
+            continue;
+        }
+
+        for (std::size_t obstacleIndex = 0;
+             obstacleIndex <
+                 navigationObstacleCount_;
+             ++obstacleIndex) {
+            const auto& obstacle =
+                navigationObstacles_[
+                    obstacleIndex];
+
+            const auto position =
+                zombieSlot->frame().
+                    position;
+
+            const float marginX =
+                zombieSlot->config().
+                    halfWidth +
+                0.08f;
+
+            const float marginZ =
+                zombieSlot->config().
+                    halfDepth +
+                0.08f;
+
+            const float minX =
+                obstacle.minimum.x -
+                marginX;
+
+            const float maxX =
+                obstacle.maximum.x +
+                marginX;
+
+            const float minZ =
+                obstacle.minimum.z -
+                marginZ;
+
+            const float maxZ =
+                obstacle.maximum.z +
+                marginZ;
+
+            const bool inside =
+                position.x > minX &&
+                position.x < maxX &&
+                position.z > minZ &&
+                position.z < maxZ;
+
+            if (!inside) {
+                continue;
+            }
+
+            const float toLeft =
+                position.x -
+                minX;
+
+            const float toRight =
+                maxX -
+                position.x;
+
+            const float toNear =
+                position.z -
+                minZ;
+
+            const float toFar =
+                maxZ -
+                position.z;
+
+            const float minimum =
+                std::min({
+                    toLeft,
+                    toRight,
+                    toNear,
+                    toFar,
+                });
+
+            float pushX = 0.0f;
+            float pushZ = 0.0f;
+
+            if (minimum == toLeft) {
+                pushX =
+                    -(toLeft + 0.002f);
+            } else if (minimum == toRight) {
+                pushX =
+                    toRight + 0.002f;
+            } else if (minimum == toNear) {
+                pushZ =
+                    -(toNear + 0.002f);
+            } else {
+                pushZ =
+                    toFar + 0.002f;
+            }
+
+            zombieSlot->
+                translateHorizontal(
+                    pushX,
+                    pushZ);
         }
     }
 }
