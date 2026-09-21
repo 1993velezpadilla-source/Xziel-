@@ -81,6 +81,15 @@ int XzPresentWorld_Push(const XzPresentEntity *entity)
     dst->distance_sq =
         XzDistanceSq(dst->origin, frame->camera_origin);
 
+    if (dst->effects != 0u || dst->distance_sq <= 16384.0f)
+        dst->priority_class = 3u;
+    else if (dst->distance_sq <= 65536.0f)
+        dst->priority_class = 2u;
+    else if (dst->distance_sq <= 589824.0f)
+        dst->priority_class = 1u;
+    else
+        dst->priority_class = 0u;
+
     if (dst->distance_sq < frame->nearest_distance_sq)
         frame->nearest_distance_sq = dst->distance_sq;
     if (dst->distance_sq > frame->farthest_distance_sq)
