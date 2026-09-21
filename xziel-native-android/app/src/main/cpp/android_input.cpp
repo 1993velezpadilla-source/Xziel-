@@ -472,6 +472,11 @@ void AndroidInputAdapter::updateDerivedState(
     snapshot_.input.aim = false;
     snapshot_.input.jump = false;
     snapshot_.input.crouch = false;
+    snapshot_.moveActive = false;
+    snapshot_.moveAnchorNormalized = {
+        0.17f,
+        0.78f,
+    };
 
     snapshot_.movementButtons.jumpPressed =
         jumpPressedThisFrame_;
@@ -504,6 +509,16 @@ void AndroidInputAdapter::updateDerivedState(
 
         switch (pointer.role) {
             case TouchRole::Move: {
+                snapshot_.moveActive = true;
+                snapshot_.moveAnchorNormalized = {
+                    clamp01(
+                        pointer.anchorX /
+                        static_cast<float>(width)),
+                    clamp01(
+                        pointer.anchorY /
+                        static_cast<float>(height)),
+                };
+
                 float dx =
                     (pointer.x -
                      pointer.anchorX) /
