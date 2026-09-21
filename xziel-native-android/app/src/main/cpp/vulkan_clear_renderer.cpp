@@ -3293,17 +3293,27 @@ bool VulkanClearRenderer::recordDrawCommand(
         VK_PIPELINE_BIND_POINT_GRAPHICS,
         graphicsPipeline_);
 
-    if (reflectionDescriptorSet_ != VK_NULL_HANDLE) {
-        vkCmdBindDescriptorSets(
-            command,
-            VK_PIPELINE_BIND_POINT_GRAPHICS,
-            pipelineLayout_,
-            0,
-            1,
-            &reflectionDescriptorSet_,
-            0,
-            nullptr);
+    // xziel_first.frag statically declares the reflection sampler. Vulkan
+    // therefore requires descriptor set 0 to be valid for every main-pipeline
+    // draw, even when the current material is not water. Never submit a draw
+    // with an unbound descriptor after a low-quality downgrade or allocation
+    // failure; skip the frame instead until the persistent fallback descriptor
+    // path is available.
+    if (reflectionDescriptorSet_ == VK_NULL_HANDLE) {
+        vkCmdEndRenderPass(command);
+        logError("reflection descriptor missing; refusing invalid Vulkan draw");
+        return false;
     }
+
+    vkCmdBindDescriptorSets(
+        command,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        pipelineLayout_,
+        0,
+        1,
+        &reflectionDescriptorSet_,
+        0,
+        nullptr);
 
     const float safeTime =
         std::isfinite(timeSeconds)
