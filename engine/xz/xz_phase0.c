@@ -190,7 +190,7 @@ void XzPerformanceGovernor_Update(
         rec.vfx_budget_scale = 0.72f;
         rec.light_budget_scale = 0.80f;
         rec.streaming_aggression = 0.55f;
-    } else if (metrics->count >= 15u &&
+    } else if (metrics->total_frames >= XZ_FRAME_WINDOW &&
                metrics->p95_ms > governor->target_frame_ms * 1.35) {
         governor->state = XZ_GOVERNOR_FRAME_PRESSURE;
         rec.render_scale = 0.85f;
@@ -199,7 +199,7 @@ void XzPerformanceGovernor_Update(
         rec.vfx_budget_scale = 0.75f;
         rec.light_budget_scale = 0.75f;
         rec.streaming_aggression = 0.90f;
-    } else if (metrics->count >= 30u &&
+    } else if (metrics->total_frames >= XZ_FRAME_WINDOW &&
                metrics->p95_ms < governor->target_frame_ms * 0.80 &&
                memory_ratio < 0.70) {
         governor->state = XZ_GOVERNOR_HEADROOM;
