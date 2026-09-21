@@ -1174,7 +1174,15 @@ bool VulkanClearRenderer::createSwapchain() noexcept {
         swapchainImages_.size(),
         VK_NULL_HANDLE);
 
-    (void) initializeFramePacing();
+    // Do not initialize Swappy inside swapchain creation. On some Android
+    // devices (and SwiftShader CI) Swappy's refresh-cycle bootstrap can block
+    // the native GameActivity thread before the first frame, which Android
+    // surfaces as an ANR/"app isn't responding". FIFO present remains a safe
+    // baseline; frame pacing can be enabled later after first-frame health is
+    // established without making startup depend on the Java choreographer.
+    swappyInitialized_ = false;
+    refreshDurationNs_ = 0;
+    requestedSwapIntervalNs_ = 0;
 
     return true;
 }
