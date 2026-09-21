@@ -24,6 +24,7 @@ typedef struct {
     int skin;
     int render_mode;
     unsigned char scale;
+    unsigned char priority_class;
     XzPresentKind kind;
     float origin[3];
     float angles[3];
