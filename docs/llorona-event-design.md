@@ -342,3 +342,91 @@ V3 keeps the lead voice readable and adds only supporting horror layers:
 - intermittent non-verbal breath texture in long pauses.
 
 Do not overwrite V2 when iterating on V3 or later versions.
+
+
+## Rage kill rewards
+
+La Llorona's kill reward depends on **why** she entered RAGE. This prevents all Rage encounters from feeling identical and preserves the hidden-fate gamble.
+
+### Rejected OFFERING -> Corrupted Offering
+
+This is the premium reward path.
+
+Condition:
+- hidden fate was OFFERING;
+- La Llorona saw the player;
+- the player ignored her until the prayer ended;
+- she entered RAGE because she interpreted the rejection as ingratitude;
+- the player defeats her.
+
+On death she always drops exactly one **Corrupted Offering** result.
+
+Weighted table:
+- 32% — Max Ammo.
+- 24% — Carpenter / repair all repairable barriers.
+- 18% — Insta-Kill.
+- 12% — Nuke.
+- 8% — one map-approved Wonder Weapon.
+- 6% — Fragmento de Misericordia, the relic substitute.
+
+The table is intentionally weighted by practical match value. Common results are immediately useful round stabilizers; the rare results can materially change the run.
+
+### Smart anti-waste handling
+
+A Corrupted Offering should not become a useless joke roll.
+
+- If Carpenter rolls while all repairable barriers are already effectively full, reroll once into another eligible reward.
+- If the selected Wonder Weapon duplicates the exact Wonder Weapon already held by the receiving player, choose another map-approved Wonder Weapon; if none is eligible, fall back to Nuke.
+- If Fragmento de Misericordia rolls after the mercy ritual is already complete, convert it into the Wonder Weapon roll.
+- Never spawn two Fragmentos de Misericordia in the same match.
+
+### Fragmento de Misericordia
+
+This is not a fourth normal relic and it is not a permanent wildcard inventory slot.
+
+It is a one-use substitute token that can replace **exactly one** missing mercy-ritual relic:
+- broken rosary beads;
+- child's shoe;
+- torn baptism record/page.
+
+Rules:
+- consumed when committed at the altar;
+- can substitute only one missing slot;
+- cannot replace a child corpse/death marker;
+- cannot satisfy two missing relics;
+- cannot duplicate a relic slot already completed;
+- only one can exist/activate per match.
+
+This means a very lucky La Llorona kill can rescue a damaged Easter-egg attempt without trivializing the full ritual.
+
+### HOSTILE_TEST Rage -> Wrath Compensation
+
+If the player interacted and the hidden fate was HOSTILE_TEST, killing her grants a smaller guaranteed combat reward:
+
+- 55% — Max Ammo.
+- 30% — Carpenter.
+- 15% — Insta-Kill.
+
+No Wonder Weapon or relic substitute on this path.
+
+### Dead-child discovery Rage -> Mourning Cache
+
+If she entered RAGE because she physically discovered a dead child, defeating her grants:
+
+- 50% — Max Ammo.
+- 25% — Insta-Kill.
+- 15% — Nuke.
+- 10% — Fragmento de Misericordia.
+
+This path has a higher relic-substitute chance than rejected OFFERING because it is directly connected to the child storyline, but it does not grant the full premium Wonder Weapon roll by default.
+
+### Player-facing presentation
+
+Do not show percentages or reward tables in-game.
+
+Players should learn over repeated runs that:
+- defeating an enraged La Llorona always matters;
+- different causes of Rage appear to produce different loot quality;
+- rejecting a peaceful OFFERING and surviving the resulting boss fight can produce unusually valuable drops.
+
+The reward object should visually read as supernatural rather than as a normal zombie drop until it resolves into the final reward.
