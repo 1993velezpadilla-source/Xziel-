@@ -16,6 +16,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -133,18 +134,26 @@ public class NZPActivity extends SDLActivity {
         boolean hudPreview = getIntent() != null
             && getIntent().getBooleanExtra("xziel_ci_hud_preview", false);
 
+        String systemLanguage = Locale.getDefault().getLanguage();
+        if (systemLanguage == null || systemLanguage.isEmpty()) {
+            systemLanguage = "en";
+        }
+        systemLanguage = systemLanguage.toLowerCase(Locale.ROOT);
+
         if (hudPreview) {
             // CI-only visual validation path. "ndu" is the bundled Nacht der
             // Untoten map; starting it directly lets the workflow capture the
             // actual gameplay HUD rather than only a menu/loading screen.
             return new String[] {
                 "-basedir", dataRoot.getAbsolutePath(),
+                "+set", "xziel_language", systemLanguage,
                 "+map", "ndu"
             };
         }
 
         return new String[] {
-            "-basedir", dataRoot.getAbsolutePath()
+            "-basedir", dataRoot.getAbsolutePath(),
+            "+set", "xziel_language", systemLanguage
         };
     }
 
