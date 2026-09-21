@@ -56,7 +56,7 @@ cvar_anchor = 'cvar_t xziel_mobile_ads_move_sensitivity = {"xziel_mobile_ads_mov
 if "xziel_modern_zombies" not in text:
     text = add_after(
         text, cvar_anchor,
-        'cvar_t xziel_modern_zombies = {"xziel_modern_zombies", "1", true};\n',
+        'cvar_t xziel_modern_zombies = {"xziel_modern_zombies", "0", true};\n',
         "modern zombie cvar"
     )
 reg_anchor = "\tCvar_RegisterVariable(&xziel_mobile_ads_move_sensitivity);\n"
