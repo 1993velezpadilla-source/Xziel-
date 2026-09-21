@@ -6,6 +6,7 @@
 #include "xz_render_plan.h"
 #include "xz_rhi.h"
 #include "xz_gles3_probe.h"
+#include "xz_render_graph.h"
 
 #include <SDL.h>
 
@@ -31,10 +32,14 @@ typedef struct {
     XzRenderPlan render_plan;
     XzRhiState rhi;
     XzGles3ProbeResult gles3_probe;
+    XzRenderGraph render_graph;
+    XzRenderGraphCompiled render_graph_compiled;
     int initialized;
     int cpu_cores;
     int system_ram_mb;
     int refresh_hz;
+    int display_width;
+    int display_height;
     int android_api;
     int packed_gles_version;
     size_t engine_heap_bytes;
@@ -162,10 +167,15 @@ static void XzDetectDisplay(void)
 
     memset(&mode, 0, sizeof(mode));
     xz_runtime.refresh_hz = 0;
+    xz_runtime.display_width = 0;
+    xz_runtime.display_height = 0;
 
     if (SDL_GetNumVideoDisplays() > 0 &&
-        SDL_GetCurrentDisplayMode(0, &mode) == 0)
+        SDL_GetCurrentDisplayMode(0, &mode) == 0) {
         xz_runtime.refresh_hz = mode.refresh_rate;
+        xz_runtime.display_width = mode.w;
+        xz_runtime.display_height = mode.h;
+    }
 }
 
 static void XzDetectRuntimeGlCaps(void)
@@ -187,6 +197,103 @@ static void XzDetectRuntimeGlCaps(void)
         SDL_GL_ExtensionSupported("GL_EXT_color_buffer_half_float") ||
             SDL_GL_ExtensionSupported("GL_EXT_color_buffer_float"),
         SDL_GL_ExtensionSupported("GL_EXT_disjoint_timer_query"));
+}
+
+static int XzBuildBootstrapRenderGraph(void)
+{
+    XzRgResourceDesc resource;
+    XzRgPassDesc pass;
+    int scene_color;
+    int depth;
+    int lit;
+    int post;
+    int swapchain;
+    unsigned int width =
+        xz_runtime.display_width > 0
+            ? (unsigned int)xz_runtime.display_width : 1280u;
+    unsigned int height =
+        xz_runtime.display_height > 0
+            ? (unsigned int)xz_runtime.display_height : 720u;
+    XzRgFormat color_format =
+        xz_runtime.caps.has_half_float_color
+            ? XZ_RG_FORMAT_RGBA16F
+            : XZ_RG_FORMAT_RGBA8;
+
+    XzRenderGraph_Init(&xz_runtime.render_graph);
+
+    memset(&resource, 0, sizeof(resource));
+    resource.width = width;
+    resource.height = height;
+    resource.samples = 1u;
+    resource.format = color_format;
+    resource.flags =
+        XZ_RG_RESOURCE_TRANSIENT |
+        XZ_RG_RESOURCE_TILE_LOCAL;
+    scene_color = XzRenderGraph_AddResource(
+        &xz_runtime.render_graph, &resource);
+
+    resource.format = XZ_RG_FORMAT_DEPTH24;
+    resource.flags =
+        XZ_RG_RESOURCE_TRANSIENT |
+        XZ_RG_RESOURCE_TILE_LOCAL |
+        XZ_RG_RESOURCE_MEMORYLESS;
+    depth = XzRenderGraph_AddResource(
+        &xz_runtime.render_graph, &resource);
+
+    resource.format = color_format;
+    resource.flags =
+        XZ_RG_RESOURCE_TRANSIENT |
+        XZ_RG_RESOURCE_TILE_LOCAL;
+    lit = XzRenderGraph_AddResource(
+        &xz_runtime.render_graph, &resource);
+    post = XzRenderGraph_AddResource(
+        &xz_runtime.render_graph, &resource);
+
+    resource.format = XZ_RG_FORMAT_RGBA8;
+    resource.flags =
+        XZ_RG_RESOURCE_IMPORTED |
+        XZ_RG_RESOURCE_PRESERVE;
+    swapchain = XzRenderGraph_AddResource(
+        &xz_runtime.render_graph, &resource);
+
+    if (scene_color < 0 || depth < 0 || lit < 0 ||
+        post < 0 || swapchain < 0)
+        return 0;
+
+    memset(&pass, 0, sizeof(pass));
+    pass.write_mask =
+        (1u << (unsigned int)scene_color) |
+        (1u << (unsigned int)depth);
+    if (XzRenderGraph_AddPass(
+            &xz_runtime.render_graph, &pass) < 0)
+        return 0;
+
+    memset(&pass, 0, sizeof(pass));
+    pass.read_mask =
+        (1u << (unsigned int)scene_color) |
+        (1u << (unsigned int)depth);
+    pass.write_mask = 1u << (unsigned int)lit;
+    if (XzRenderGraph_AddPass(
+            &xz_runtime.render_graph, &pass) < 0)
+        return 0;
+
+    memset(&pass, 0, sizeof(pass));
+    pass.read_mask = 1u << (unsigned int)lit;
+    pass.write_mask = 1u << (unsigned int)post;
+    if (XzRenderGraph_AddPass(
+            &xz_runtime.render_graph, &pass) < 0)
+        return 0;
+
+    memset(&pass, 0, sizeof(pass));
+    pass.read_mask = 1u << (unsigned int)post;
+    pass.write_mask = 1u << (unsigned int)swapchain;
+    if (XzRenderGraph_AddPass(
+            &xz_runtime.render_graph, &pass) < 0)
+        return 0;
+
+    return XzRenderGraph_Compile(
+        &xz_runtime.render_graph,
+        &xz_runtime.render_graph_compiled);
 }
 
 static void XzLogSnapshot(double now_seconds)
@@ -429,6 +536,31 @@ void XzAndroidRuntime_Init(size_t engine_heap_bytes)
         XzAndroidLog(
             ANDROID_LOG_INFO,
             "phase4 gles3_probe=SKIP status=UNAVAILABLE restore=1");
+    }
+
+    {
+        int graph_ok = XzBuildBootstrapRenderGraph();
+        const XzRenderGraphCompiled *compiled =
+            &xz_runtime.render_graph_compiled;
+
+        XzAndroidLog(
+            graph_ok ? ANDROID_LOG_INFO : ANDROID_LOG_WARN,
+            "phase5 rendergraph selftest=%s compile=%s error=%s"
+            " resources=%u passes=%u alias=%u peak=%u tile=%u"
+            " memoryless=%u fusion_groups=%u fused=%u size=%dx%d",
+            XzRenderGraph_SelfTest() ? "PASS" : "FAIL",
+            graph_ok ? "PASS" : "FAIL",
+            XzRgError_Name(compiled->error),
+            compiled->resource_count,
+            compiled->pass_count,
+            compiled->alias_slot_count,
+            compiled->peak_live_transient_slots,
+            compiled->tile_local_resource_count,
+            compiled->memoryless_resource_count,
+            compiled->fusion_group_count,
+            compiled->fused_pass_count,
+            xz_runtime.display_width,
+            xz_runtime.display_height);
     }
 }
 
