@@ -113,6 +113,37 @@ int XzPresentWorld_Push(const XzPresentEntity *entity)
     return 1;
 }
 
+void XzPresentWorld_SetCameraBasis(
+    const float forward[3],
+    const float right[3],
+    const float up[3],
+    float fov_x,
+    float fov_y)
+{
+    XzPresentFrame *frame =
+        &xz_present_world.frames[xz_present_world.write_index];
+
+    if (!forward || !right || !up)
+        return;
+
+    frame->camera_forward[0] = forward[0];
+    frame->camera_forward[1] = forward[1];
+    frame->camera_forward[2] = forward[2];
+
+    frame->camera_right[0] = right[0];
+    frame->camera_right[1] = right[1];
+    frame->camera_right[2] = right[2];
+
+    frame->camera_up[0] = up[0];
+    frame->camera_up[1] = up[1];
+    frame->camera_up[2] = up[2];
+
+    frame->fov_x = fov_x;
+    frame->fov_y = fov_y;
+    frame->camera_basis_valid =
+        fov_x > 0.0f && fov_y > 0.0f ? 1 : 0;
+}
+
 void XzPresentWorld_SetStaticBrushCount(unsigned int count)
 {
     XzPresentFrame *frame =
