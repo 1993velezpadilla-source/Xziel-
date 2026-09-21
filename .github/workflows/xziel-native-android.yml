@@ -157,7 +157,7 @@ jobs:
             sudo chmod 666 /dev/kvm || true
           fi
 
-          nohup "$EMULATOR"             @xziel-native-ci             -no-window             -no-audio             -no-boot-anim             -no-snapshot             -gpu swiftshader_indirect             -memory 2048             > dist/native-emulator-stdout.txt 2>&1 &
+          nohup "$EMULATOR"             @xziel-native-ci             -no-window             -no-audio             -no-boot-anim             -no-snapshot             -gpu software             -feature VulkanNativeSwapchain             -memory 2048             > dist/native-emulator-stdout.txt 2>&1 &
           EMU_PID=$!
 
           sleep 5
