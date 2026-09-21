@@ -19,6 +19,7 @@
 #include "xziel/renderer_watchdog.hpp"
 #include "xziel/weapon.hpp"
 #include "xziel/zombie_actor.hpp"
+#include "xziel/zombie_hit_regions.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -76,6 +77,10 @@ struct NativeAppState {
     float pendingRecoilYaw = 0.0f;
 
     float hitMarkerSeconds = 0.0f;
+    float criticalHitSeconds = 0.0f;
+    float impactFxSeconds = 0.0f;
+    xziel::Vec3 impactPoint{};
+
     float muzzleFlashSeconds = 0.0f;
     float zombieAttackFlashSeconds = 0.0f;
     float hapticElapsedSeconds = 1.0f;
@@ -481,8 +486,8 @@ void advancePlayer(
             std::size_t nearestSlot =
                 state.horde.capacity();
 
-            float nearestDistance =
-                20.0f;
+            xziel::ZombieHitResult nearestHit{};
+            nearestHit.distance = 20.0f;
 
             for (std::size_t slot = 0;
                  slot < state.horde.capacity();
@@ -498,30 +503,49 @@ void advancePlayer(
                 }
 
                 const auto hit =
-                    xziel::raycastAabb(
+                    xziel::raycastZombie(
                         ray,
-                        zombie->bounds(),
-                        nearestDistance);
+                        *zombie,
+                        nearestHit.hit
+                            ? nearestHit.distance
+                            : 20.0f);
 
                 if (!hit.hit ||
-                    hit.distance >
-                        nearestDistance) {
+                    (nearestHit.hit &&
+                     hit.distance >
+                         nearestHit.distance)) {
                     continue;
                 }
 
-                nearestDistance =
-                    hit.distance;
-                nearestSlot =
-                    slot;
+                nearestHit = hit;
+                nearestSlot = slot;
             }
 
             if (nearestSlot <
                     state.horde.capacity() &&
-                state.horde.damageZombie(
-                    nearestSlot,
-                    34.0f)) {
-                state.hitMarkerSeconds =
-                    0.12f;
+                nearestHit.hit) {
+                const float damage =
+                    34.0f *
+                    nearestHit.damageMultiplier;
+
+                if (state.horde.damageZombie(
+                        nearestSlot,
+                        damage)) {
+                    state.hitMarkerSeconds =
+                        0.12f;
+
+                    state.criticalHitSeconds =
+                        nearestHit.region ==
+                            xziel::ZombieHitRegion::Head
+                        ? 0.18f
+                        : 0.0f;
+
+                    state.impactFxSeconds =
+                        0.10f;
+
+                    state.impactPoint =
+                        nearestHit.point;
+                }
             }
         }
     }
@@ -721,6 +745,13 @@ xziel::android::VulkanHudState makeHudState(
             0.0f,
             1.0f);
 
+    hud.criticalHitAlpha =
+        std::clamp(
+            state.criticalHitSeconds /
+                0.18f,
+            0.0f,
+            1.0f);
+
     hud.targetAlive =
         state.horde.frame().alive > 0;
 
@@ -869,6 +900,24 @@ xziel::android::VulkanSceneState makeSceneState(
     scene.interRound =
         state.horde.frame().
             interRound;
+
+    scene.impactX =
+        state.impactPoint.x;
+    scene.impactY =
+        state.impactPoint.y;
+    scene.impactZ =
+        state.impactPoint.z;
+
+    scene.impactAlpha =
+        std::clamp(
+            state.impactFxSeconds /
+                0.10f,
+            0.0f,
+            1.0f);
+
+    scene.impactCritical =
+        state.criticalHitSeconds >
+        0.0f;
 
     return scene;
 }
@@ -1080,6 +1129,18 @@ extern "C" void android_main(
             std::max(
                 0.0f,
                 state.hitMarkerSeconds -
+                    frameDelta);
+
+        state.criticalHitSeconds =
+            std::max(
+                0.0f,
+                state.criticalHitSeconds -
+                    frameDelta);
+
+        state.impactFxSeconds =
+            std::max(
+                0.0f,
+                state.impactFxSeconds -
                     frameDelta);
 
         state.muzzleFlashSeconds =
