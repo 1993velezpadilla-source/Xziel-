@@ -59,6 +59,11 @@ struct MovementConfig {
     float doubleJumpVelocity = 5.0f;
     float gravity = 18.0f;
 
+    // Short forgiveness windows keep touch input responsive without changing
+    // the map's actual collision geometry.
+    float coyoteTimeSeconds = 0.10f;
+    float jumpBufferSeconds = 0.12f;
+
     float slideEntrySpeed = 6.8f;
     float slideExitSpeed = 3.0f;
     float slideDurationSeconds = 0.78f;
@@ -158,6 +163,9 @@ private:
     MovementFrame frame_{};
 
     float stateSeconds_ = 0.0f;
+    float coyoteSecondsRemaining_ = 0.0f;
+    float jumpBufferSecondsRemaining_ = 0.0f;
+
     bool usedDoubleJump_ = false;
     bool wasGrounded_ = true;
 };
