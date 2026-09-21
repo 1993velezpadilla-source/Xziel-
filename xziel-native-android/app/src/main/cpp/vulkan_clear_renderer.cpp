@@ -2491,6 +2491,55 @@ bool VulkanClearRenderer::recordDrawCommand(
         4.2f, 0.10f, 5.0f,
         2.0f);
 
+    const float prototypeDoorOpen =
+        std::clamp(
+            scene.doorOpenAlpha,
+            0.0f,
+            1.0f);
+
+    // A simple purchasable gate proves that contextual interactions can alter
+    // both gameplay collision/navigation and visible world state.
+    drawBox(
+        -2.88f,
+        -0.12f,
+        1.57f,
+        0.12f,
+        1.52f,
+        0.20f,
+        1.0f);
+
+    drawBox(
+        2.88f,
+        -0.12f,
+        1.57f,
+        0.12f,
+        1.52f,
+        0.20f,
+        1.0f);
+
+    drawBox(
+        0.0f,
+        1.34f,
+        1.57f,
+        3.0f,
+        0.10f,
+        0.20f,
+        1.0f);
+
+    drawBox(
+        0.0f,
+        -0.18f +
+            prototypeDoorOpen *
+                3.05f,
+        1.57f,
+        2.72f,
+        1.32f,
+        0.10f,
+        prototypeDoorOpen >
+            0.01f
+            ? 7.0f
+            : 8.0f);
+
     if (scene.interactionVisible) {
         drawBox(
             scene.interactionX,
@@ -3534,18 +3583,51 @@ bool VulkanClearRenderer::recordDrawCommand(
                 0.0f,
                 1.0f);
 
+        const float denied =
+            std::clamp(
+                hud.interactionDeniedAlpha,
+                0.0f,
+                1.0f);
+
+        const bool affordable =
+            hud.interactionAffordable;
+
+        const float interactR =
+            denied > 0.001f ||
+                !affordable
+            ? 0.98f
+            : 0.12f;
+
+        const float interactG =
+            denied > 0.001f ||
+                !affordable
+            ? 0.10f
+            : 0.82f;
+
+        const float interactB =
+            denied > 0.001f ||
+                !affordable
+            ? 0.16f
+            : 0.92f;
+
         drawUiCircle(
             0.65f,
             0.73f,
-            0.058f,
-            0.12f,
-            0.82f,
-            0.92f,
+            0.058f +
+                denied *
+                    0.006f,
+            interactR,
+            interactG,
+            interactB,
             hud.interactHeld
                 ? 0.82f
-                : 0.42f,
+                : 0.42f +
+                    denied *
+                        0.24f,
             true,
-            0.16f);
+            0.16f +
+                denied *
+                    0.06f);
 
         drawUiCircle(
             0.65f,
@@ -3553,13 +3635,75 @@ bool VulkanClearRenderer::recordDrawCommand(
             0.016f +
                 interactProgress *
                     0.024f,
-            0.18f,
-            0.88f,
-            1.0f,
+            interactR,
+            interactG,
+            interactB,
             0.28f +
                 interactProgress *
                     0.52f,
             false);
+
+        if (hud.interactionCost > 0U) {
+            std::array<int, 5> costDigits{};
+            std::uint32_t costValue =
+                std::min<std::uint32_t>(
+                    hud.interactionCost,
+                    99999U);
+
+            for (std::size_t reverseIndex = 0;
+                 reverseIndex <
+                     costDigits.size();
+                 ++reverseIndex) {
+                const std::size_t index =
+                    costDigits.size() -
+                    1U -
+                    reverseIndex;
+
+                costDigits[index] =
+                    static_cast<int>(
+                        costValue %
+                        10U);
+
+                costValue /= 10U;
+            }
+
+            std::size_t firstCostDigit =
+                costDigits.size() - 1U;
+
+            for (std::size_t i = 0;
+                 i + 1U <
+                     costDigits.size();
+                 ++i) {
+                if (costDigits[i] != 0) {
+                    firstCostDigit = i;
+                    break;
+                }
+            }
+
+            float costX =
+                0.65f -
+                static_cast<float>(
+                    costDigits.size() -
+                    firstCostDigit) *
+                    0.010f;
+
+            for (std::size_t i = firstCostDigit;
+                 i < costDigits.size();
+                 ++i) {
+                drawSevenSegmentDigit(
+                    costDigits[i],
+                    costX,
+                    0.655f,
+                    0.72f,
+                    affordable
+                        ? 0.78f
+                        : 0.50f +
+                            denied *
+                                0.40f);
+
+                costX += 0.017f;
+            }
+        }
     }
 
     drawUiCircle(
