@@ -10,6 +10,7 @@
 #include "xz_gles3_shadow.h"
 #include "xz_gpu_resources.h"
 #include "xz_command_stream.h"
+#include "xz_gles3_resource_plan.h"
 
 #include <SDL.h>
 
@@ -517,6 +518,10 @@ static void XzLogSnapshot(double now_seconds)
         " g3cmd(streams=%" PRIu64 " commands=%" PRIu64
         " passes=%" PRIu64 " reads=%" PRIu64 " writes=%" PRIu64
         " draws=%" PRIu64 " fail=%" PRIu64 " hash=%08x)"
+        " g3res(mapped=%u objects=%u create=%" PRIu64
+        " reuse=%" PRIu64 " destroy=%" PRIu64
+        " read=%" PRIu64 " write=%" PRIu64
+        " fail=%" PRIu64 " bytes=%" PRIu64 ")"
         " cmd(count=%u hash=%08x overflow=%u resources=%u high=%u"
         " stale=%" PRIu64 " encodeFail=%" PRIu64 ")"
         " advice(render=%.2f anim=%.2f shadow=%.2f vfx=%.2f light=%.2f stream=%.2f)",
@@ -592,6 +597,15 @@ static void XzLogSnapshot(double now_seconds)
         g3->draw_commands,
         g3->command_failures,
         g3->last_command_hash,
+        g3->physical_alive,
+        g3->physical_gl_objects,
+        g3->physical_creates,
+        g3->physical_reuses,
+        g3->physical_destroys,
+        g3->physical_read_binds,
+        g3->physical_write_binds,
+        g3->physical_failures,
+        g3->physical_bytes,
         commands->count,
         commands->content_hash,
         commands->overflow_count,
@@ -851,6 +865,15 @@ void XzAndroidRuntime_Init(size_t engine_heap_bytes)
                 XzRhiBackend_Name(
                     xz_runtime.rhi.mirror_backend),
                 xz_runtime.graph_resources_ready);
+
+            XzAndroidLog(
+                XzGles3ResourcePlan_SelfTest()
+                    ? ANDROID_LOG_INFO
+                    : ANDROID_LOG_WARN,
+                "phase10 gles3_resources planner=%s proxyMax=%u",
+                XzGles3ResourcePlan_SelfTest()
+                    ? "PASS" : "FAIL",
+                128u);
 
             if (!attach_ok)
                 XzGles3Shadow_Shutdown(
