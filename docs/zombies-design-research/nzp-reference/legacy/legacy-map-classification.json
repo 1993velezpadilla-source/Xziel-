@@ -1,0 +1,431 @@
+{
+  "schema": "xziel.nzp.legacy-map-classification.v1",
+  "source_archives": [
+    "Beta Archiev5p.7z",
+    "betaARC2.7z"
+  ],
+  "total_maps": 31,
+  "classification_policy": "Behavior-derived from recovered source entities/target graph; filenames do not imply quest fidelity.",
+  "maps": [
+    {
+      "map": "bunker",
+      "classification": "SURVIVAL_PROGRESSION",
+      "entities": 30,
+      "edges": 8,
+      "unresolved": 0,
+      "sha256": "e435de7cd140a93817173012f0cc8405b0bf851e7397b76e86a18838cff8d0bf",
+      "primitives": {
+        "item_cover": 4,
+        "spawn_zombie": 4,
+        "path_corner": 4,
+        "func_door_nzp": 2,
+        "buy_weapon": 2
+      },
+      "note": ""
+    },
+    {
+      "map": "facility",
+      "classification": "PROTOTYPE_SHELL",
+      "entities": 2,
+      "edges": 0,
+      "unresolved": 0,
+      "sha256": "2c51b5416226ef3574c806655c7bfdaa9e833ba840ac2f5902581d21cacdc120",
+      "primitives": {},
+      "note": "legacy shell only; unrelated to modern Facility V2"
+    },
+    {
+      "map": "five",
+      "classification": "PROTOTYPE_SHELL",
+      "entities": 2,
+      "edges": 0,
+      "unresolved": 0,
+      "sha256": "e56e0d7ec09a3fbac94fee7cb88e735df3e2307fd39b9d5c5007689ebe3cc192",
+      "primitives": {},
+      "note": "name resembles Treyarch Five, but source has only worldspawn + player spawn; no quest graph"
+    },
+    {
+      "map": "four",
+      "classification": "PROTOTYPE_SHELL",
+      "entities": 2,
+      "edges": 0,
+      "unresolved": 0,
+      "sha256": "dc510f553a9e88131fdc8d5226fd92f580325cde237c03288ee48d90b4fcc5ac",
+      "primitives": {},
+      "note": ""
+    },
+    {
+      "map": "fourtex",
+      "classification": "SECRET_INTERACTION",
+      "entities": 98,
+      "edges": 15,
+      "unresolved": 0,
+      "sha256": "29ffa284b54402b800995425bcfd16e6fd790eddf79e72db0e9b127dc8e286c8",
+      "primitives": {
+        "item_cover": 19,
+        "func_door_nzp": 9,
+        "mystery_box_tp_spot": 2,
+        "item_pap": 1,
+        "func_door": 2,
+        "power_switch": 1,
+        "func_button": 1,
+        "spawn_zombie": 19,
+        "path_corner": 9,
+        "buy_weapon": 2,
+        "trigger_command": 1
+      },
+      "note": "button -> trigger_command plays 115 secret audio; PAP, power, box spots, doors"
+    },
+    {
+      "map": "gunrange",
+      "classification": "SYSTEM_TEST",
+      "entities": 59,
+      "edges": 0,
+      "unresolved": 0,
+      "sha256": "a94b522972bb70dfb1fc5e61093452e566569f436a436e161059d4908d7eb74e",
+      "primitives": {
+        "buy_weapon": 28
+      },
+      "note": "weapon/wallbuy test range, no quest graph"
+    },
+    {
+      "map": "jungle",
+      "classification": "SURVIVAL_PROGRESSION",
+      "entities": 63,
+      "edges": 10,
+      "unresolved": 0,
+      "sha256": "0c1d8a361ef78ed877cbff1fbc9d5032ab40b11b4e290808717cae9198fe2666",
+      "primitives": {
+        "buy_weapon": 2,
+        "item_cover": 4,
+        "path_corner": 4,
+        "spawn_zombie": 4,
+        "func_door_nzp": 1
+      },
+      "note": ""
+    },
+    {
+      "map": "junglerelease",
+      "classification": "SURVIVAL_PROGRESSION",
+      "entities": 63,
+      "edges": 10,
+      "unresolved": 0,
+      "sha256": "153ca5dd72452052c722d4b0d17a5ea0e46e5b10367497d5b61f6fb74cb498c8",
+      "primitives": {
+        "buy_weapon": 2,
+        "item_cover": 4,
+        "path_corner": 4,
+        "spawn_zombie": 4,
+        "func_door_nzp": 1
+      },
+      "note": ""
+    },
+    {
+      "map": "mansion",
+      "classification": "SURVIVAL_PROGRESSION",
+      "entities": 31,
+      "edges": 16,
+      "unresolved": 1,
+      "sha256": "5b0450baba091bed9d5ebd04b66144d8a790cad8d5698e4703dc868328a7259f",
+      "primitives": {
+        "func_door_nzp": 3,
+        "item_cover": 9,
+        "buy_weapon": 2,
+        "spawn_zombie": 6,
+        "path_corner": 6
+      },
+      "note": "purchased doors activate later zombie spawn groups"
+    },
+    {
+      "map": "moonagain",
+      "classification": "RECREATION_LAYOUT_ONLY",
+      "entities": 7,
+      "edges": 0,
+      "unresolved": 0,
+      "sha256": "d61cc5cb9ed5d80723b53a5f2d7c1925d08f2a349958f56be8798693d0b67604",
+      "primitives": {
+        "item_cover": 2,
+        "mystery_box_tp_spot": 1
+      },
+      "note": ""
+    },
+    {
+      "map": "moonredux",
+      "classification": "RECREATION_LAYOUT_ONLY",
+      "entities": 12,
+      "edges": 4,
+      "unresolved": 0,
+      "sha256": "d1e921e1e5c08eea3bd01592f4ff267e958514fbe2b614c5ce93881443b76838",
+      "primitives": {
+        "spawn_zombie": 2,
+        "path_corner": 2,
+        "item_cover": 2,
+        "mystery_box": 1,
+        "func_door_nzp": 1
+      },
+      "note": ""
+    },
+    {
+      "map": "moonrelease",
+      "classification": "RECREATION_LAYOUT_ONLY",
+      "entities": 12,
+      "edges": 4,
+      "unresolved": 0,
+      "sha256": "a4fbbdab1e368e22486334901693073f79e9d7d52dda64fcd6c5bf42ed615a32",
+      "primitives": {
+        "item_cover": 2,
+        "mystery_box_tp_spot": 1,
+        "spawn_zombie": 2,
+        "path_corner": 2
+      },
+      "note": ""
+    },
+    {
+      "map": "newmoon",
+      "classification": "RECREATION_LAYOUT_ONLY",
+      "entities": 8,
+      "edges": 0,
+      "unresolved": 0,
+      "sha256": "c652f71e52fa2080eeca63e686506572c3bd25a46104aaa1d0a0fdbdb9cc4c2d",
+      "primitives": {
+        "item_cover": 1,
+        "func_door_nzp": 1
+      },
+      "note": ""
+    },
+    {
+      "map": "random",
+      "classification": "SYSTEM_TEST",
+      "entities": 4,
+      "edges": 0,
+      "unresolved": 0,
+      "sha256": "e3b2fda00c2cb3e63094815e86b3730e32514a443a2045c978c00fbb17d447c6",
+      "primitives": {
+        "buy_weapon": 1
+      },
+      "note": ""
+    },
+    {
+      "map": "road",
+      "classification": "PROTOTYPE_FRAGMENT",
+      "entities": 3,
+      "edges": 0,
+      "unresolved": 0,
+      "sha256": "8f202f4fb4804577699d309cfd0fe6e61017fe2bd0f960842dabc8206efb9baf",
+      "primitives": {
+        "func_door_nzp": 1
+      },
+      "note": ""
+    },
+    {
+      "map": "room",
+      "classification": "PROTOTYPE_SHELL",
+      "entities": 2,
+      "edges": 0,
+      "unresolved": 0,
+      "sha256": "a40efa7bb2a35813635f63d4aad6e5cdd95bd30cf1e93b2f102ba75ce4b0c336",
+      "primitives": {},
+      "note": ""
+    },
+    {
+      "map": "sector 7",
+      "classification": "PROTOTYPE_FRAGMENT",
+      "entities": 3,
+      "edges": 0,
+      "unresolved": 0,
+      "sha256": "0d6fc8779bcf31e914c1a939bff8ccf1d56df38430d3f4823147e87dbaa38deb",
+      "primitives": {
+        "item_cover": 1
+      },
+      "note": ""
+    },
+    {
+      "map": "sectorz",
+      "classification": "SURVIVAL_FRAGMENT",
+      "entities": 10,
+      "edges": 3,
+      "unresolved": 1,
+      "sha256": "383c1468f41b21ce60bdc7929156d73de7b4f115c509ffb6e9a7b60e306510a6",
+      "primitives": {
+        "item_cover": 2,
+        "spawn_zombie": 2,
+        "path_corner": 2
+      },
+      "note": ""
+    },
+    {
+      "map": "subway",
+      "classification": "PROTOTYPE_SHELL",
+      "entities": 2,
+      "edges": 0,
+      "unresolved": 0,
+      "sha256": "c0842acce08191cb81913ce8b6074af81e54877a167c20d452130468e0e1e642",
+      "primitives": {},
+      "note": ""
+    },
+    {
+      "map": "summit",
+      "classification": "PROTOTYPE_SHELL",
+      "entities": 2,
+      "edges": 0,
+      "unresolved": 0,
+      "sha256": "fff48a25cfad912855cd7f65918ba0056ccdb5bf92a89646637e0dec11f1f63e",
+      "primitives": {},
+      "note": ""
+    },
+    {
+      "map": "tele",
+      "classification": "SYSTEM_TEST",
+      "entities": 5,
+      "edges": 1,
+      "unresolved": 0,
+      "sha256": "e62b06863dccee6e04bc4aeccbc195073141c38a76ae324b5b916f39c243f5ac",
+      "primitives": {
+        "trigger_teleport": 1,
+        "buy_weapon": 1,
+        "info_teleport_destination": 1
+      },
+      "note": "trigger_teleport -> info_teleport_destination"
+    },
+    {
+      "map": "test",
+      "classification": "PROTOTYPE_SHELL",
+      "entities": 2,
+      "edges": 0,
+      "unresolved": 0,
+      "sha256": "92f4ad7d2803fff539c536b98c84aa9976749d19302b22680ab11d075e6603f3",
+      "primitives": {},
+      "note": ""
+    },
+    {
+      "map": "themall",
+      "classification": "PROTOTYPE_SHELL",
+      "entities": 2,
+      "edges": 0,
+      "unresolved": 0,
+      "sha256": "cc7c5555aed43ca6e09f02dc1eb5a6af995dfc80f3de7ecf1406b42c1ab2c831",
+      "primitives": {},
+      "note": ""
+    },
+    {
+      "map": "themoon",
+      "classification": "RECREATION_LAYOUT_ONLY",
+      "entities": 12,
+      "edges": 0,
+      "unresolved": 0,
+      "sha256": "f4dade9a07fac283a6e832c40d6a56d1dca14afba4caf203b8dfeb5f57b3f90e",
+      "primitives": {
+        "item_cover": 2,
+        "mystery_box_tp_spot": 1,
+        "func_door_nzp": 4,
+        "trigger_command": 1
+      },
+      "note": "low-gravity command sv_gravity 300; no Treyarch Moon quest graph"
+    },
+    {
+      "map": "themoontextured",
+      "classification": "RECREATION_LAYOUT_ONLY",
+      "entities": 26,
+      "edges": 12,
+      "unresolved": 0,
+      "sha256": "d37a381a0bd803b8f0bc8af22588c4dfd9188a578c3ff156cbb95acaccb846ee",
+      "primitives": {
+        "item_cover": 4,
+        "mystery_box_tp_spot": 1,
+        "func_door_nzp": 4,
+        "trigger_command": 1,
+        "spawn_zombie": 4,
+        "path_corner": 4,
+        "buy_weapon": 2
+      },
+      "note": "low-gravity command sv_gravity 300; doors/spawns; no Treyarch Moon quest graph"
+    },
+    {
+      "map": "thenewmoon",
+      "classification": "RECREATION_LAYOUT_ONLY",
+      "entities": 18,
+      "edges": 3,
+      "unresolved": 1,
+      "sha256": "9bb039102fdb3519831c5c3faf93f70a54fa0bbe0aac859d9888a60a044c1ab5",
+      "primitives": {
+        "item_cover": 2,
+        "mystery_box_tp_spot": 1,
+        "func_door_nzp": 2,
+        "spawn_zombie": 2,
+        "path_corner": 2
+      },
+      "note": ""
+    },
+    {
+      "map": "theroom",
+      "classification": "PROTOTYPE_FRAGMENT",
+      "entities": 3,
+      "edges": 0,
+      "unresolved": 0,
+      "sha256": "a9d4ca8666df2c5b576162321d32e2c954efc7c394ca4a36227e7b36d92cdaf5",
+      "primitives": {
+        "item_cover": 1
+      },
+      "note": ""
+    },
+    {
+      "map": "train",
+      "classification": "SYSTEM_TEST",
+      "entities": 4,
+      "edges": 1,
+      "unresolved": 0,
+      "sha256": "0691d657ca900192c0970eac81fd04ba2606624b97dc0d68e245bf5a7ee29f75",
+      "primitives": {
+        "func_train": 1,
+        "func_rotate_train": 1
+      },
+      "note": ""
+    },
+    {
+      "map": "way",
+      "classification": "SYSTEM_TEST",
+      "entities": 4,
+      "edges": 0,
+      "unresolved": 0,
+      "sha256": "fbb2966da1d36f4850ea6692352dd25ed514200c133a45ea25d45f3551c18691",
+      "primitives": {
+        "spawn_zombie": 2
+      },
+      "note": ""
+    },
+    {
+      "map": "Research_Center_psp",
+      "classification": "FULL_SURVIVAL_SYSTEMS",
+      "entities": 39,
+      "edges": 9,
+      "unresolved": 0,
+      "sha256": "8bf4efda048862dfc302e558a9161528d8146e5ef60b0df1ee87fcec5c5e0706",
+      "primitives": {
+        "func_door_nzp": 4,
+        "spawn_zombie": 3,
+        "mystery_box": 1,
+        "path_corner": 4,
+        "item_cover": 3,
+        "item_pap": 1,
+        "power_switch": 1
+      },
+      "note": "power + PAP + mystery box + 4 buyable doors + spawn/path graph"
+    },
+    {
+      "map": "bigj",
+      "classification": "FULL_SURVIVAL_SYSTEMS",
+      "entities": 104,
+      "edges": 0,
+      "unresolved": 3,
+      "sha256": "2dce6a6760af1c1a8409872c4c537b43ad591d0f392a1462c7c5ce69ea75673b",
+      "primitives": {
+        "mystery_box": 1,
+        "func_door_nzp": 8,
+        "buy_weapon": 9,
+        "func_door": 1,
+        "item_pap": 1,
+        "item_radio": 1
+      },
+      "note": "mystery box + 8 buyable doors + PAP + radio + 9 wall buys; 3 unresolved door target refs"
+    }
+  ]
+}

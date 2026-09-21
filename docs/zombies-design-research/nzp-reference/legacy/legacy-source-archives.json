@@ -1,0 +1,57 @@
+{
+  "schema": "xziel.nzp.legacy-source-archive.v1",
+  "updated": "2026-09-20",
+  "archives": [
+    {
+      "name": "betaARC2.7z",
+      "sha256": "a63bee0fe7d5f52e3acbacfe650869668ae7a8c01a0412a4eae6df490f7e851b",
+      "size_bytes": 63782742,
+      "source": "BCDeshiG NZ:P beta map archive original Google Drive pack",
+      "editable_map_sources": [
+        "bigj2/bigj.map"
+      ],
+      "notes": "Second preservation pack; text/source extraction available in research runtime."
+    },
+    {
+      "name": "Beta Archiev5p.7z",
+      "sha256": "bd74f07509a12f1294657c8a15cfc31a570847f2021fa3e2f6e5d293e65cd776",
+      "size_bytes": 130790409,
+      "source": "BCDeshiG NZ:P beta map archive original Google Drive pack",
+      "editable_map_sources": [
+        "Mapping/bunker.map",
+        "Mapping/facility.map",
+        "Mapping/five.map",
+        "Mapping/four.map",
+        "Mapping/fourtex.map",
+        "Mapping/gunrange.map",
+        "Mapping/jungle.map",
+        "Mapping/junglerelease.map",
+        "Mapping/mansion.map",
+        "Mapping/moonagain.map",
+        "Mapping/moonredux.map",
+        "Mapping/moonrelease.map",
+        "Mapping/newmoon.map",
+        "Mapping/random.map",
+        "Mapping/road.map",
+        "Mapping/room.map",
+        "Mapping/sector 7.map",
+        "Mapping/sectorz.map",
+        "Mapping/subway.map",
+        "Mapping/summit.map",
+        "Mapping/tele.map",
+        "Mapping/test.map",
+        "Mapping/themall.map",
+        "Mapping/themoon.map",
+        "Mapping/themoontextured.map",
+        "Mapping/thenewmoon.map",
+        "Mapping/theroom.map",
+        "Mapping/train.map",
+        "Mapping/way.map",
+        "research_center/Research_Center_psp.map"
+      ],
+      "notes": "Contains legacy mapper FGD plus 30 editable .map sources."
+    }
+  ],
+  "total_editable_map_sources": 31,
+  "redistribution_policy": "Corpus stores hashes, entity/key-value logic, graph relationships, provenance and analysis. Do not mirror proprietary/third-party media assets merely because they are present in preservation archives."
+}

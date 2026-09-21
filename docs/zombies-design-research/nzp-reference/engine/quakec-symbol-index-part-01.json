@@ -1,0 +1,3588 @@
+{
+  "schema": "xziel.nzp.quakec-symbol-index.v1",
+  "source_repo": "nzp-team/quakec",
+  "source_commit": "dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163",
+  "part": 1,
+  "range": [
+    0,
+    11
+  ],
+  "files": [
+    {
+      "path": "source/server/ai/ai_core.qc",
+      "blob": "59d62ef41eeb89ce5d6b88ac21ac98b17a18eecc",
+      "functions": [
+        {
+          "name": "path_corner_touch",
+          "line": 34,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/ai_core.qc#L34"
+        },
+        {
+          "name": "path_corner",
+          "line": 54,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/ai_core.qc#L54"
+        },
+        {
+          "name": "Respawn",
+          "line": 63,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/ai_core.qc#L63"
+        },
+        {
+          "name": "find_new_enemy",
+          "line": 82,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/ai_core.qc#L82"
+        },
+        {
+          "name": "avoid_zombies",
+          "line": 167,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/ai_core.qc#L167"
+        },
+        {
+          "name": "push_away_zombies",
+          "line": 199,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/ai_core.qc#L199"
+        },
+        {
+          "name": "do_walk_to_vec",
+          "line": 223,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/ai_core.qc#L223"
+        },
+        {
+          "name": "do_walk",
+          "line": 251,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/ai_core.qc#L251"
+        },
+        {
+          "name": "walk_to_window",
+          "line": 256,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/ai_core.qc#L256"
+        },
+        {
+          "name": "interpolateToVector",
+          "line": 262,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/ai_core.qc#L262"
+        },
+        {
+          "name": "nearby",
+          "line": 270,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/ai_core.qc#L270"
+        },
+        {
+          "name": "Window_Walk",
+          "line": 293,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/ai_core.qc#L293"
+        },
+        {
+          "name": "Window_Hop",
+          "line": 489,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/ai_core.qc#L489"
+        },
+        {
+          "name": "tracemove_fake",
+          "line": 566,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/ai_core.qc#L566"
+        },
+        {
+          "name": "TryWalkToEnemy",
+          "line": 602,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/ai_core.qc#L602"
+        },
+        {
+          "name": "PathfindToEnemy",
+          "line": 635,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/ai_core.qc#L635"
+        },
+        {
+          "name": "Inside_Walk",
+          "line": 720,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/ai_core.qc#L720"
+        },
+        {
+          "name": "Zombie_Walk",
+          "line": 804,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/ai_core.qc#L804"
+        },
+        {
+          "name": "Zombie_AI",
+          "line": 846,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/ai_core.qc#L846"
+        },
+        {
+          "name": "Hellhound_AI",
+          "line": 875,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/ai_core.qc#L875"
+        },
+        {
+          "name": "Do_Zombie_AI",
+          "line": 887,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/ai_core.qc#L887"
+        },
+        {
+          "name": "AI_SetAllEnemiesBBOX",
+          "line": 937,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/ai_core.qc#L937"
+        },
+        {
+          "name": "AI_RevertEnemySolidState",
+          "line": 966,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/ai_core.qc#L966"
+        }
+      ],
+      "entity_mentions": {
+        "info_player_1_spawn": [
+          143,
+          155
+        ]
+      },
+      "api_mentions": {
+        "touch": [
+          41,
+          59
+        ],
+        "targetname": [
+          48,
+          307,
+          326
+        ],
+        "use": [
+          69,
+          561
+        ],
+        "rounds": [
+          76,
+          469
+        ]
+      }
+    },
+    {
+      "path": "source/server/ai/crawler_core.qc",
+      "blob": "3177ac8649a9ce2555933c01987db8bd0169d54b",
+      "functions": [
+        {
+          "name": "zombie_crawl1",
+          "line": 57,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L57"
+        },
+        {
+          "name": "zombie_crawl2",
+          "line": 58,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L58"
+        },
+        {
+          "name": "zombie_crawl3",
+          "line": 59,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L59"
+        },
+        {
+          "name": "zombie_crawl4",
+          "line": 60,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L60"
+        },
+        {
+          "name": "zombie_crawl5",
+          "line": 61,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L61"
+        },
+        {
+          "name": "zombie_crawl6",
+          "line": 62,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L62"
+        },
+        {
+          "name": "zombie_crawl7",
+          "line": 63,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L63"
+        },
+        {
+          "name": "zombie_crawl8",
+          "line": 64,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L64"
+        },
+        {
+          "name": "zombie_crawl9",
+          "line": 65,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L65"
+        },
+        {
+          "name": "zombie_crawl10",
+          "line": 66,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L66"
+        },
+        {
+          "name": "zombie_crawl11",
+          "line": 67,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L67"
+        },
+        {
+          "name": "zombie_crawl12",
+          "line": 68,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L68"
+        },
+        {
+          "name": "zombie_crawl13",
+          "line": 69,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L69"
+        },
+        {
+          "name": "zombie_crawl14",
+          "line": 70,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L70"
+        },
+        {
+          "name": "zombie_crawl15",
+          "line": 71,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L71"
+        },
+        {
+          "name": "zombie_fastcrawl1",
+          "line": 73,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L73"
+        },
+        {
+          "name": "zombie_fastcrawl2",
+          "line": 74,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L74"
+        },
+        {
+          "name": "zombie_fastcrawl3",
+          "line": 75,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L75"
+        },
+        {
+          "name": "zombie_fastcrawl4",
+          "line": 76,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L76"
+        },
+        {
+          "name": "zombie_fastcrawl5",
+          "line": 77,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L77"
+        },
+        {
+          "name": "zombie_fastcrawl6",
+          "line": 78,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L78"
+        },
+        {
+          "name": "zombie_fastcrawl7",
+          "line": 79,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L79"
+        },
+        {
+          "name": "zombie_fastcrawl8",
+          "line": 80,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L80"
+        },
+        {
+          "name": "crawlerify1",
+          "line": 84,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L84"
+        },
+        {
+          "name": "crawlerify2",
+          "line": 85,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L85"
+        },
+        {
+          "name": "crawlerify3",
+          "line": 86,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L86"
+        },
+        {
+          "name": "crawlerify4",
+          "line": 87,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L87"
+        },
+        {
+          "name": "crawlerify5",
+          "line": 88,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L88"
+        },
+        {
+          "name": "crawler_idle1",
+          "line": 92,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L92"
+        },
+        {
+          "name": "crawler_idle2",
+          "line": 93,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L93"
+        },
+        {
+          "name": "crawler_idle3",
+          "line": 94,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L94"
+        },
+        {
+          "name": "crawler_idle4",
+          "line": 95,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L95"
+        },
+        {
+          "name": "crawler_idle5",
+          "line": 96,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L96"
+        },
+        {
+          "name": "crawler_idle6",
+          "line": 97,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L97"
+        },
+        {
+          "name": "crawler_idle7",
+          "line": 98,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L98"
+        },
+        {
+          "name": "crawler_idle8",
+          "line": 99,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L99"
+        },
+        {
+          "name": "crawler_idle9",
+          "line": 100,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L100"
+        },
+        {
+          "name": "crawler_idle10",
+          "line": 101,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L101"
+        },
+        {
+          "name": "crawler_atk1",
+          "line": 104,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L104"
+        },
+        {
+          "name": "crawler_atk2",
+          "line": 105,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L105"
+        },
+        {
+          "name": "crawler_atk3",
+          "line": 106,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L106"
+        },
+        {
+          "name": "crawler_atk4",
+          "line": 107,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L107"
+        },
+        {
+          "name": "crawler_atk5",
+          "line": 108,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L108"
+        },
+        {
+          "name": "crawler_atk6",
+          "line": 109,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L109"
+        },
+        {
+          "name": "crawler_atk7",
+          "line": 110,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L110"
+        },
+        {
+          "name": "crawler_atk8",
+          "line": 111,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L111"
+        },
+        {
+          "name": "crawler_attack_choose",
+          "line": 116,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L116"
+        },
+        {
+          "name": "crawler_da1",
+          "line": 137,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L137"
+        },
+        {
+          "name": "crawler_da2",
+          "line": 138,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L138"
+        },
+        {
+          "name": "crawler_da3",
+          "line": 139,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L139"
+        },
+        {
+          "name": "crawler_da4",
+          "line": 140,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L140"
+        },
+        {
+          "name": "crawler_da5",
+          "line": 141,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L141"
+        },
+        {
+          "name": "crawler_da6",
+          "line": 142,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L142"
+        },
+        {
+          "name": "crawler_da7",
+          "line": 143,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L143"
+        },
+        {
+          "name": "crawler_da8",
+          "line": 144,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L144"
+        },
+        {
+          "name": "crawler_da9",
+          "line": 145,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L145"
+        },
+        {
+          "name": "crawler_da10",
+          "line": 146,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L146"
+        },
+        {
+          "name": "crawler_die1",
+          "line": 151,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L151"
+        },
+        {
+          "name": "crawler_die2",
+          "line": 152,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L152"
+        },
+        {
+          "name": "crawler_die3",
+          "line": 153,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L153"
+        },
+        {
+          "name": "crawler_death_wunder1",
+          "line": 156,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L156"
+        },
+        {
+          "name": "crawler_death_wunder2",
+          "line": 157,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L157"
+        },
+        {
+          "name": "crawler_death_wunder3",
+          "line": 158,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L158"
+        },
+        {
+          "name": "crawler_death_wunder4",
+          "line": 159,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L159"
+        },
+        {
+          "name": "crawler_death_wunder5",
+          "line": 160,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L160"
+        },
+        {
+          "name": "crawler_death_wunder6",
+          "line": 161,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L161"
+        },
+        {
+          "name": "crawler_death_wunder7",
+          "line": 162,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L162"
+        },
+        {
+          "name": "crawler_death_wunder8",
+          "line": 163,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L163"
+        },
+        {
+          "name": "crawler_death_wunder9",
+          "line": 164,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L164"
+        },
+        {
+          "name": "crawler_death_wunder10",
+          "line": 165,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L165"
+        },
+        {
+          "name": "crawler_climbBarricade1",
+          "line": 172,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L172"
+        },
+        {
+          "name": "crawler_climbBarricade2",
+          "line": 173,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L173"
+        },
+        {
+          "name": "crawler_climbBarricade3",
+          "line": 174,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L174"
+        },
+        {
+          "name": "crawler_climbBarricade4",
+          "line": 175,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L175"
+        },
+        {
+          "name": "crawler_climbBarricade5",
+          "line": 176,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L176"
+        },
+        {
+          "name": "crawler_climbBarricade6",
+          "line": 177,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L177"
+        },
+        {
+          "name": "crawler_climbBarricade7",
+          "line": 178,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L178"
+        },
+        {
+          "name": "crawler_climbBarricade8",
+          "line": 179,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L179"
+        },
+        {
+          "name": "crawler_climbBarricade9",
+          "line": 180,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L180"
+        },
+        {
+          "name": "crawler_climbBarricade10",
+          "line": 181,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L181"
+        },
+        {
+          "name": "crawler_climbBarricade11",
+          "line": 182,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L182"
+        },
+        {
+          "name": "crawler_climbBarricade12",
+          "line": 183,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L183"
+        },
+        {
+          "name": "crawler_climbBarricade13",
+          "line": 184,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L184"
+        },
+        {
+          "name": "crawler_climbBarricade14",
+          "line": 185,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L185"
+        },
+        {
+          "name": "crawler_climbBarricade15",
+          "line": 186,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L186"
+        },
+        {
+          "name": "crawler_climbBarricade16",
+          "line": 187,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L187"
+        },
+        {
+          "name": "crawler_climbBarricade17",
+          "line": 188,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L188"
+        },
+        {
+          "name": "crawler_climbBarricade18",
+          "line": 189,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L189"
+        },
+        {
+          "name": "crawler_climbBarricade19",
+          "line": 190,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L190"
+        },
+        {
+          "name": "crawler_climbBarricade20",
+          "line": 191,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L191"
+        },
+        {
+          "name": "crawler_climbBarricade21",
+          "line": 192,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L192"
+        },
+        {
+          "name": "crawler_climbBarricade22",
+          "line": 193,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L193"
+        },
+        {
+          "name": "crawler_climbBarricade23",
+          "line": 194,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L194"
+        },
+        {
+          "name": "crawler_climbBarricade24",
+          "line": 195,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L195"
+        },
+        {
+          "name": "crawler_climbBarricade25",
+          "line": 196,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L196"
+        },
+        {
+          "name": "crawler_climbBarricade26",
+          "line": 197,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L197"
+        },
+        {
+          "name": "crawler_climbBarricade27",
+          "line": 198,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L198"
+        },
+        {
+          "name": "crawler_climbBarricade28",
+          "line": 199,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L199"
+        },
+        {
+          "name": "crawler_climbBarricade29",
+          "line": 200,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L200"
+        },
+        {
+          "name": "crawler_climbBarricade30",
+          "line": 201,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L201"
+        },
+        {
+          "name": "crawler_climbBarricade31",
+          "line": 202,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L202"
+        },
+        {
+          "name": "crawler_fall1",
+          "line": 206,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L206"
+        },
+        {
+          "name": "crawler_fall2",
+          "line": 207,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L207"
+        },
+        {
+          "name": "crawler_fall3",
+          "line": 208,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L208"
+        },
+        {
+          "name": "crawler_fall4",
+          "line": 209,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L209"
+        },
+        {
+          "name": "crawler_fall5",
+          "line": 210,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L210"
+        },
+        {
+          "name": "crawler_fall6",
+          "line": 211,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L211"
+        },
+        {
+          "name": "crawler_fall7",
+          "line": 212,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L212"
+        },
+        {
+          "name": "crawler_land1",
+          "line": 215,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L215"
+        },
+        {
+          "name": "crawler_land2",
+          "line": 216,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L216"
+        },
+        {
+          "name": "crawler_land3",
+          "line": 217,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L217"
+        },
+        {
+          "name": "crawler_land4",
+          "line": 218,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L218"
+        },
+        {
+          "name": "crawler_land5",
+          "line": 219,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L219"
+        },
+        {
+          "name": "crawler_land6",
+          "line": 220,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L220"
+        },
+        {
+          "name": "crawler_land7",
+          "line": 221,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L221"
+        },
+        {
+          "name": "crawler_land8",
+          "line": 222,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L222"
+        },
+        {
+          "name": "crawler_land9",
+          "line": 223,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L223"
+        },
+        {
+          "name": "crawler_land10",
+          "line": 224,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L224"
+        },
+        {
+          "name": "crawler_rip_board1",
+          "line": 228,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L228"
+        },
+        {
+          "name": "crawler_rip_board2",
+          "line": 229,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L229"
+        },
+        {
+          "name": "crawler_rip_board3",
+          "line": 230,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L230"
+        },
+        {
+          "name": "crawler_rip_board4",
+          "line": 231,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L231"
+        },
+        {
+          "name": "crawler_rip_board5",
+          "line": 232,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L232"
+        },
+        {
+          "name": "crawler_rip_board6",
+          "line": 233,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L233"
+        },
+        {
+          "name": "crawler_rip_board7",
+          "line": 234,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L234"
+        },
+        {
+          "name": "crawler_rip_board8",
+          "line": 235,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L235"
+        },
+        {
+          "name": "crawler_rip_board9",
+          "line": 236,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L236"
+        },
+        {
+          "name": "crawler_rip_board10",
+          "line": 237,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L237"
+        },
+        {
+          "name": "crawler_rip_board11",
+          "line": 238,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L238"
+        },
+        {
+          "name": "crawler_rip_board12",
+          "line": 239,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L239"
+        },
+        {
+          "name": "crawler_rip_board13",
+          "line": 240,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L240"
+        },
+        {
+          "name": "crawler_rip_board14",
+          "line": 241,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L241"
+        },
+        {
+          "name": "crawler_rip_board15",
+          "line": 242,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L242"
+        },
+        {
+          "name": "crawler_rip_board16",
+          "line": 243,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L243"
+        },
+        {
+          "name": "crawler_rip_board17",
+          "line": 244,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L244"
+        },
+        {
+          "name": "crawler_rip_board18",
+          "line": 245,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L245"
+        },
+        {
+          "name": "crawler_rip_board19",
+          "line": 246,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L246"
+        },
+        {
+          "name": "crawler_rip_board20",
+          "line": 247,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L247"
+        },
+        {
+          "name": "crawler_rip_board21",
+          "line": 248,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L248"
+        },
+        {
+          "name": "crawler_rip_board22",
+          "line": 249,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L249"
+        },
+        {
+          "name": "crawler_rip_board23",
+          "line": 250,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L250"
+        },
+        {
+          "name": "crawler_rip_board24",
+          "line": 251,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L251"
+        },
+        {
+          "name": "makeCrawler",
+          "line": 253,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/crawler_core.qc#L253"
+        }
+      ],
+      "entity_mentions": {},
+      "api_mentions": {
+        "think": [
+          153,
+          165
+        ]
+      }
+    },
+    {
+      "path": "source/server/ai/dog_core.qc",
+      "blob": "69f181bdfce68703a729fea3cf9c850a143eb3a9",
+      "functions": [
+        {
+          "name": "dog_runanim",
+          "line": 34,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L34"
+        },
+        {
+          "name": "dog_runanim2",
+          "line": 35,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L35"
+        },
+        {
+          "name": "dog_runanim3",
+          "line": 36,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L36"
+        },
+        {
+          "name": "dog_runanim4",
+          "line": 37,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L37"
+        },
+        {
+          "name": "dog_runanim5",
+          "line": 38,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L38"
+        },
+        {
+          "name": "dog_runanim6",
+          "line": 39,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L39"
+        },
+        {
+          "name": "dog_runanim7",
+          "line": 40,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L40"
+        },
+        {
+          "name": "dog_walkanim",
+          "line": 45,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L45"
+        },
+        {
+          "name": "dog_walkanim2",
+          "line": 46,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L46"
+        },
+        {
+          "name": "dog_walkanim3",
+          "line": 47,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L47"
+        },
+        {
+          "name": "dog_walkanim4",
+          "line": 48,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L48"
+        },
+        {
+          "name": "dog_walkanim5",
+          "line": 49,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L49"
+        },
+        {
+          "name": "dog_walkanim6",
+          "line": 50,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L50"
+        },
+        {
+          "name": "dog_walkanim7",
+          "line": 51,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L51"
+        },
+        {
+          "name": "dog_walkanim8",
+          "line": 52,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L52"
+        },
+        {
+          "name": "dog_walkanim9",
+          "line": 53,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L53"
+        },
+        {
+          "name": "dog_walkanim10",
+          "line": 54,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L54"
+        },
+        {
+          "name": "dog_walkanim11",
+          "line": 55,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L55"
+        },
+        {
+          "name": "dog_walkanim12",
+          "line": 56,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L56"
+        },
+        {
+          "name": "dog_idleanim",
+          "line": 61,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L61"
+        },
+        {
+          "name": "dog_idleanim2",
+          "line": 62,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L62"
+        },
+        {
+          "name": "dog_idleanim3",
+          "line": 63,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L63"
+        },
+        {
+          "name": "dog_idleanim4",
+          "line": 64,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L64"
+        },
+        {
+          "name": "dog_idleanim5",
+          "line": 65,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L65"
+        },
+        {
+          "name": "dog_idleanim6",
+          "line": 66,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L66"
+        },
+        {
+          "name": "dog_meleeanim",
+          "line": 71,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L71"
+        },
+        {
+          "name": "dog_meleeanim2",
+          "line": 72,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L72"
+        },
+        {
+          "name": "dog_meleeanim3",
+          "line": 73,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L73"
+        },
+        {
+          "name": "dog_meleeanim4",
+          "line": 74,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L74"
+        },
+        {
+          "name": "dog_meleeanim5",
+          "line": 75,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L75"
+        },
+        {
+          "name": "dog_deathanim",
+          "line": 80,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L80"
+        },
+        {
+          "name": "dog_deathanim2",
+          "line": 81,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L81"
+        },
+        {
+          "name": "dog_lightninganim",
+          "line": 87,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L87"
+        },
+        {
+          "name": "dog_lightninganim2",
+          "line": 88,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L88"
+        },
+        {
+          "name": "dog_lightninganim3",
+          "line": 89,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L89"
+        },
+        {
+          "name": "dog_lightninganim4",
+          "line": 90,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L90"
+        },
+        {
+          "name": "dog_lightninganim5",
+          "line": 91,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L91"
+        },
+        {
+          "name": "dog_lightninganim6",
+          "line": 92,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L92"
+        },
+        {
+          "name": "dog_lightninganim7",
+          "line": 93,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L93"
+        },
+        {
+          "name": "dog_lightninganim8",
+          "line": 94,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L94"
+        },
+        {
+          "name": "dog_lightninganim9",
+          "line": 95,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L95"
+        },
+        {
+          "name": "dog_lightninganim10",
+          "line": 96,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L96"
+        },
+        {
+          "name": "dog_lightninganim11",
+          "line": 97,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L97"
+        },
+        {
+          "name": "dog_lightninganim12",
+          "line": 98,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L98"
+        },
+        {
+          "name": "dog_lightninganim13",
+          "line": 99,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L99"
+        },
+        {
+          "name": "dog_explodeanim",
+          "line": 104,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L104"
+        },
+        {
+          "name": "dog_explodeanim2",
+          "line": 105,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L105"
+        },
+        {
+          "name": "dog_explodeanim3",
+          "line": 106,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L106"
+        },
+        {
+          "name": "dog_explodeanim4",
+          "line": 107,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L107"
+        },
+        {
+          "name": "dog_explodeanim5",
+          "line": 108,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L108"
+        },
+        {
+          "name": "dog_explodeanim6",
+          "line": 109,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L109"
+        },
+        {
+          "name": "Dog_Walk_Setup",
+          "line": 111,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L111"
+        },
+        {
+          "name": "Dog_Taunt",
+          "line": 123,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L123"
+        },
+        {
+          "name": "Dog_Think",
+          "line": 137,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L137"
+        },
+        {
+          "name": "Dog_Death_Cleanup",
+          "line": 167,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L167"
+        },
+        {
+          "name": "Dog_Death",
+          "line": 186,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L186"
+        },
+        {
+          "name": "dog_die_wunder1",
+          "line": 212,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L212"
+        },
+        {
+          "name": "dog_die_wunder2",
+          "line": 213,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L213"
+        },
+        {
+          "name": "dog_die_wunder3",
+          "line": 214,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L214"
+        },
+        {
+          "name": "dog_die_wunder4",
+          "line": 215,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L215"
+        },
+        {
+          "name": "dog_die_wunder5",
+          "line": 216,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L216"
+        },
+        {
+          "name": "dog_die_wunder6",
+          "line": 217,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L217"
+        },
+        {
+          "name": "dog_die_wunder7",
+          "line": 218,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L218"
+        },
+        {
+          "name": "dog_die_wunder8",
+          "line": 219,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L219"
+        },
+        {
+          "name": "dog_die_wunder9",
+          "line": 220,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L220"
+        },
+        {
+          "name": "dog_die_wunder10",
+          "line": 221,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L221"
+        },
+        {
+          "name": "Dog_Death_Tesla",
+          "line": 224,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L224"
+        },
+        {
+          "name": "Dog_FindEnemy",
+          "line": 242,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L242"
+        },
+        {
+          "name": "Dog_GetHealth",
+          "line": 286,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L286"
+        },
+        {
+          "name": "spawn_a_dogB",
+          "line": 298,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L298"
+        },
+        {
+          "name": "dogsprite_think",
+          "line": 371,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L371"
+        },
+        {
+          "name": "spawn_dog_lightning",
+          "line": 387,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L387"
+        },
+        {
+          "name": "spawn_a_dogA",
+          "line": 416,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L416"
+        },
+        {
+          "name": "spawn_dog",
+          "line": 461,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/dog_core.qc#L461"
+        }
+      ],
+      "entity_mentions": {
+        "spawn_time": [
+          206,
+          453
+        ],
+        "info_player_1_spawn": [
+          278
+        ],
+        "spawn_a_dogB": [
+          298,
+          380,
+          450
+        ],
+        "spawn_dog_lightning": [
+          387,
+          451
+        ],
+        "spawn_a_dogA": [
+          416
+        ],
+        "spawn_dog": [
+          429,
+          432,
+          456,
+          461,
+          488
+        ],
+        "spawn_dog_in": [
+          482
+        ]
+      },
+      "api_mentions": {
+        "think": [
+          81,
+          221,
+          408,
+          411
+        ],
+        "rounds": [
+          189,
+          229,
+          468,
+          469
+        ],
+        "use": [
+          410
+        ],
+        "player_count": [
+          425
+        ]
+      }
+    },
+    {
+      "path": "source/server/ai/fte/waypoints_core.qc",
+      "blob": "98bcc8f33c41a706cb41c2a5d829c99111987411",
+      "functions": [
+        {
+          "name": "creator_way_touch",
+          "line": 28,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/fte/waypoints_core.qc#L28"
+        },
+        {
+          "name": "Create_New_Waypoint",
+          "line": 39,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/fte/waypoints_core.qc#L39"
+        },
+        {
+          "name": "Make_Special_Waypoint",
+          "line": 78,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/fte/waypoints_core.qc#L78"
+        },
+        {
+          "name": "Move_Waypoint",
+          "line": 114,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/fte/waypoints_core.qc#L114"
+        },
+        {
+          "name": "Select_Waypoint",
+          "line": 126,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/fte/waypoints_core.qc#L126"
+        },
+        {
+          "name": "Remove_Waypoint",
+          "line": 181,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/fte/waypoints_core.qc#L181"
+        },
+        {
+          "name": "Link_Waypoints",
+          "line": 245,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/fte/waypoints_core.qc#L245"
+        },
+        {
+          "name": "Dual_Link_Waypoints",
+          "line": 293,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/fte/waypoints_core.qc#L293"
+        },
+        {
+          "name": "Auto_Link_Waypoints",
+          "line": 331,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/fte/waypoints_core.qc#L331"
+        },
+        {
+          "name": "Remove_Links",
+          "line": 360,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/fte/waypoints_core.qc#L360"
+        },
+        {
+          "name": "Save_Waypoints_Legacy",
+          "line": 380,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/fte/waypoints_core.qc#L380"
+        },
+        {
+          "name": "Create_Waypoint",
+          "line": 489,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/fte/waypoints_core.qc#L489"
+        },
+        {
+          "name": "Waypoint_Functions",
+          "line": 829,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/fte/waypoints_core.qc#L829"
+        },
+        {
+          "name": "Waypoint_Logic",
+          "line": 889,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/fte/waypoints_core.qc#L889"
+        }
+      ],
+      "entity_mentions": {},
+      "api_mentions": {
+        "targetname": [
+          69,
+          69,
+          83,
+          85,
+          103,
+          108,
+          143,
+          151,
+          158,
+          161,
+          169,
+          232,
+          369,
+          409,
+          458,
+          459,
+          515,
+          517,
+          629,
+          756
+        ],
+        "touch": [
+          74,
+          531,
+          589,
+          744
+        ],
+        "use": [
+          329,
+          358
+        ],
+        "button7": [
+          867
+        ]
+      }
+    },
+    {
+      "path": "source/server/ai/pathfind_code.qc",
+      "blob": "daa4584ab7172fa12300d933ff1cc0b27d543bb6",
+      "functions": [],
+      "entity_mentions": {},
+      "api_mentions": {
+        "touch": [
+          405
+        ],
+        "targetname": [
+          438,
+          450
+        ]
+      }
+    },
+    {
+      "path": "source/server/ai/standard/waypoints_core.qc",
+      "blob": "e77d828f54bd91601dd199ac5a495f3d0b475b91",
+      "functions": [
+        {
+          "name": "Waypoint_Functions",
+          "line": 30,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/standard/waypoints_core.qc#L30"
+        },
+        {
+          "name": "Waypoint_Logic",
+          "line": 107,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/standard/waypoints_core.qc#L107"
+        }
+      ],
+      "entity_mentions": {},
+      "api_mentions": {
+        "button7": [
+          73,
+          99
+        ]
+      }
+    },
+    {
+      "path": "source/server/ai/standard/waypoints_func.qc",
+      "blob": "3323f0fb85cecea0ec1085817a6bef24f285d38c",
+      "functions": [
+        {
+          "name": "progs_Link_Waypoints",
+          "line": 32,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/standard/waypoints_func.qc#L32"
+        },
+        {
+          "name": "Auto_Link_Waypoints",
+          "line": 109,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/standard/waypoints_func.qc#L109"
+        },
+        {
+          "name": "Remove_Waypoint",
+          "line": 136,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/standard/waypoints_func.qc#L136"
+        },
+        {
+          "name": "creator_way_touch",
+          "line": 188,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/standard/waypoints_func.qc#L188"
+        },
+        {
+          "name": "Create_New_Waypoint",
+          "line": 199,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/standard/waypoints_func.qc#L199"
+        },
+        {
+          "name": "Move_Waypoint",
+          "line": 238,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/standard/waypoints_func.qc#L238"
+        },
+        {
+          "name": "Dual_Link_Waypoints",
+          "line": 250,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/standard/waypoints_func.qc#L250"
+        },
+        {
+          "name": "Link_Waypoints",
+          "line": 331,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/standard/waypoints_func.qc#L331"
+        },
+        {
+          "name": "Select_Waypoint",
+          "line": 413,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/standard/waypoints_func.qc#L413"
+        },
+        {
+          "name": "closestDoor",
+          "line": 589,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/standard/waypoints_func.qc#L589"
+        },
+        {
+          "name": "Make_Special_Waypoint",
+          "line": 615,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/standard/waypoints_func.qc#L615"
+        },
+        {
+          "name": "Create_Waypoint",
+          "line": 660,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/standard/waypoints_func.qc#L660"
+        }
+      ],
+      "entity_mentions": {},
+      "api_mentions": {
+        "target2": [
+          44,
+          62,
+          64,
+          65,
+          65,
+          155,
+          157,
+          344,
+          362,
+          364,
+          365,
+          365,
+          469,
+          471,
+          478,
+          483,
+          705,
+          706,
+          706,
+          707,
+          708,
+          791
+        ],
+        "target3": [
+          45,
+          67,
+          69,
+          70,
+          70,
+          158,
+          160,
+          345,
+          367,
+          369,
+          370,
+          370,
+          486,
+          488,
+          495,
+          500,
+          713,
+          714,
+          714,
+          715,
+          716,
+          793
+        ],
+        "target4": [
+          46,
+          72,
+          74,
+          75,
+          75,
+          161,
+          163,
+          346,
+          372,
+          374,
+          375,
+          375,
+          503,
+          505,
+          512,
+          517,
+          721,
+          722,
+          722,
+          723,
+          724,
+          795
+        ],
+        "use": [
+          107,
+          600
+        ],
+        "targetname": [
+          145,
+          178,
+          231,
+          231,
+          320,
+          325,
+          408,
+          430,
+          438,
+          445,
+          448,
+          457,
+          474,
+          491,
+          508,
+          525,
+          542,
+          558,
+          575,
+          621,
+          624,
+          632,
+          646,
+          647,
+          648,
+          648,
+          649,
+          649,
+          650,
+          650,
+          654,
+          688,
+          689,
+          689,
+          691,
+          787
+        ],
+        "touch": [
+          236,
+          760
+        ]
+      }
+    },
+    {
+      "path": "source/server/ai/zombie_core.qc",
+      "blob": "69bff4c1a1bbf09274d8306c36826e652139b2a5",
+      "functions": [
+        {
+          "name": "Zombie_PlaySoundType",
+          "line": 51,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L51"
+        },
+        {
+          "name": "vector_scale_hack",
+          "line": 314,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L314"
+        },
+        {
+          "name": "SetZombieHitBox",
+          "line": 321,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L321"
+        },
+        {
+          "name": "Zombie_ProcessRespawn",
+          "line": 467,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L467"
+        },
+        {
+          "name": "Zombie_Think",
+          "line": 506,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L506"
+        },
+        {
+          "name": "zombie_walk1",
+          "line": 564,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L564"
+        },
+        {
+          "name": "zombie_walk2",
+          "line": 565,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L565"
+        },
+        {
+          "name": "zombie_walk3",
+          "line": 566,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L566"
+        },
+        {
+          "name": "zombie_walk4",
+          "line": 567,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L567"
+        },
+        {
+          "name": "zombie_walk5",
+          "line": 568,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L568"
+        },
+        {
+          "name": "zombie_walk6",
+          "line": 569,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L569"
+        },
+        {
+          "name": "zombie_walk7",
+          "line": 570,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L570"
+        },
+        {
+          "name": "zombie_walk8",
+          "line": 571,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L571"
+        },
+        {
+          "name": "zombie_walk9",
+          "line": 572,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L572"
+        },
+        {
+          "name": "zombie_walk10",
+          "line": 573,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L573"
+        },
+        {
+          "name": "zombie_walk11",
+          "line": 574,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L574"
+        },
+        {
+          "name": "zombie_walk12",
+          "line": 575,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L575"
+        },
+        {
+          "name": "zombie_walk13",
+          "line": 576,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L576"
+        },
+        {
+          "name": "zombie_walk14",
+          "line": 577,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L577"
+        },
+        {
+          "name": "zombie_walk15",
+          "line": 578,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L578"
+        },
+        {
+          "name": "zombie_walk16",
+          "line": 579,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L579"
+        },
+        {
+          "name": "zombie_walkb1",
+          "line": 586,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L586"
+        },
+        {
+          "name": "zombie_walkb2",
+          "line": 587,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L587"
+        },
+        {
+          "name": "zombie_walkb3",
+          "line": 588,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L588"
+        },
+        {
+          "name": "zombie_walkb4",
+          "line": 589,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L589"
+        },
+        {
+          "name": "zombie_walkb5",
+          "line": 590,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L590"
+        },
+        {
+          "name": "zombie_walkb6",
+          "line": 591,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L591"
+        },
+        {
+          "name": "zombie_walkb7",
+          "line": 592,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L592"
+        },
+        {
+          "name": "zombie_walkb8",
+          "line": 593,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L593"
+        },
+        {
+          "name": "zombie_walkb9",
+          "line": 594,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L594"
+        },
+        {
+          "name": "zombie_walkb10",
+          "line": 595,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L595"
+        },
+        {
+          "name": "zombie_walkb11",
+          "line": 596,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L596"
+        },
+        {
+          "name": "zombie_walkb12",
+          "line": 597,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L597"
+        },
+        {
+          "name": "zombie_walkb13",
+          "line": 598,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L598"
+        },
+        {
+          "name": "zombie_walkb14",
+          "line": 599,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L599"
+        },
+        {
+          "name": "zombie_walkc1",
+          "line": 606,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L606"
+        },
+        {
+          "name": "zombie_walkc2",
+          "line": 607,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L607"
+        },
+        {
+          "name": "zombie_walkc3",
+          "line": 608,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L608"
+        },
+        {
+          "name": "zombie_walkc4",
+          "line": 609,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L609"
+        },
+        {
+          "name": "zombie_walkc5",
+          "line": 610,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L610"
+        },
+        {
+          "name": "zombie_walkc6",
+          "line": 611,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L611"
+        },
+        {
+          "name": "zombie_walkc7",
+          "line": 612,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L612"
+        },
+        {
+          "name": "zombie_walkc8",
+          "line": 613,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L613"
+        },
+        {
+          "name": "zombie_walkc9",
+          "line": 614,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L614"
+        },
+        {
+          "name": "zombie_walkc10",
+          "line": 615,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L615"
+        },
+        {
+          "name": "zombie_walkc11",
+          "line": 616,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L616"
+        },
+        {
+          "name": "zombie_walkc12",
+          "line": 617,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L617"
+        },
+        {
+          "name": "zombie_walkc13",
+          "line": 618,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L618"
+        },
+        {
+          "name": "zombie_walkc14",
+          "line": 619,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L619"
+        },
+        {
+          "name": "zombie_walkc15",
+          "line": 620,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L620"
+        },
+        {
+          "name": "zombie_walkc16",
+          "line": 621,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L621"
+        },
+        {
+          "name": "zombie_jog1",
+          "line": 628,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L628"
+        },
+        {
+          "name": "zombie_jog2",
+          "line": 629,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L629"
+        },
+        {
+          "name": "zombie_jog3",
+          "line": 630,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L630"
+        },
+        {
+          "name": "zombie_jog4",
+          "line": 631,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L631"
+        },
+        {
+          "name": "zombie_jog5",
+          "line": 632,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L632"
+        },
+        {
+          "name": "zombie_jog6",
+          "line": 633,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L633"
+        },
+        {
+          "name": "zombie_jog7",
+          "line": 634,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L634"
+        },
+        {
+          "name": "zombie_jog8",
+          "line": 635,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L635"
+        },
+        {
+          "name": "zombie_run1",
+          "line": 641,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L641"
+        },
+        {
+          "name": "zombie_run2",
+          "line": 642,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L642"
+        },
+        {
+          "name": "zombie_run3",
+          "line": 643,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L643"
+        },
+        {
+          "name": "zombie_run4",
+          "line": 644,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L644"
+        },
+        {
+          "name": "zombie_run5",
+          "line": 645,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L645"
+        },
+        {
+          "name": "zombie_run6",
+          "line": 646,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L646"
+        },
+        {
+          "name": "zombie_run7",
+          "line": 647,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L647"
+        },
+        {
+          "name": "zombie_run8",
+          "line": 648,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L648"
+        },
+        {
+          "name": "zombie_run9",
+          "line": 649,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L649"
+        },
+        {
+          "name": "zombie_run10",
+          "line": 650,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L650"
+        },
+        {
+          "name": "Zombie_RunAtEndOfRound",
+          "line": 652,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L652"
+        },
+        {
+          "name": "Zombie_Walk_Setup",
+          "line": 664,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L664"
+        },
+        {
+          "name": "zombie_idle",
+          "line": 698,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L698"
+        },
+        {
+          "name": "zombie_idle1",
+          "line": 699,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L699"
+        },
+        {
+          "name": "zombie_idle2",
+          "line": 700,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L700"
+        },
+        {
+          "name": "zombie_idle3",
+          "line": 701,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L701"
+        },
+        {
+          "name": "zombie_idle4",
+          "line": 702,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L702"
+        },
+        {
+          "name": "zombie_idle5",
+          "line": 703,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L703"
+        },
+        {
+          "name": "zombie_idle6",
+          "line": 704,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L704"
+        },
+        {
+          "name": "zombie_idle7",
+          "line": 705,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L705"
+        },
+        {
+          "name": "zombie_idle8",
+          "line": 706,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L706"
+        },
+        {
+          "name": "zombie_idle9",
+          "line": 707,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L707"
+        },
+        {
+          "name": "zombie_idle10",
+          "line": 708,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L708"
+        },
+        {
+          "name": "zombie_idle11",
+          "line": 709,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L709"
+        },
+        {
+          "name": "zombie_idle12",
+          "line": 710,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L710"
+        },
+        {
+          "name": "zombie_decide",
+          "line": 712,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L712"
+        },
+        {
+          "name": "Window_Damage_Setup",
+          "line": 726,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L726"
+        },
+        {
+          "name": "zombie_attack2",
+          "line": 734,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L734"
+        },
+        {
+          "name": "moveforwardalittle",
+          "line": 771,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L771"
+        },
+        {
+          "name": "zombie_hop1",
+          "line": 799,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L799"
+        },
+        {
+          "name": "zombie_hop1_5",
+          "line": 800,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L800"
+        },
+        {
+          "name": "zombie_hop2",
+          "line": 801,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L801"
+        },
+        {
+          "name": "zombie_hop2_5",
+          "line": 802,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L802"
+        },
+        {
+          "name": "zombie_hop3",
+          "line": 803,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L803"
+        },
+        {
+          "name": "zombie_hop3_5",
+          "line": 804,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L804"
+        },
+        {
+          "name": "zombie_hop4",
+          "line": 805,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L805"
+        },
+        {
+          "name": "zombie_hop4_5",
+          "line": 806,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L806"
+        },
+        {
+          "name": "zombie_hop5",
+          "line": 807,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L807"
+        },
+        {
+          "name": "zombie_hop5_5",
+          "line": 808,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L808"
+        },
+        {
+          "name": "zombie_hop6",
+          "line": 809,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L809"
+        },
+        {
+          "name": "zombie_hop6_5",
+          "line": 810,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L810"
+        },
+        {
+          "name": "zombie_hop7",
+          "line": 811,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L811"
+        },
+        {
+          "name": "zombie_hop7_5",
+          "line": 812,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L812"
+        },
+        {
+          "name": "zombie_hop8",
+          "line": 813,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L813"
+        },
+        {
+          "name": "zombie_hop8_5",
+          "line": 814,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L814"
+        },
+        {
+          "name": "zombie_hop9",
+          "line": 815,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L815"
+        },
+        {
+          "name": "zombie_hop9_5",
+          "line": 816,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L816"
+        },
+        {
+          "name": "zombie_hop10",
+          "line": 817,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L817"
+        },
+        {
+          "name": "zombie_hop10_5",
+          "line": 818,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L818"
+        },
+        {
+          "name": "zombie_ripboardA1",
+          "line": 835,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L835"
+        },
+        {
+          "name": "zombie_ripboardA2",
+          "line": 836,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L836"
+        },
+        {
+          "name": "zombie_ripboardA3",
+          "line": 837,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L837"
+        },
+        {
+          "name": "zombie_ripboardA4",
+          "line": 838,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L838"
+        },
+        {
+          "name": "zombie_ripboardA5",
+          "line": 839,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L839"
+        },
+        {
+          "name": "zombie_ripboardA6",
+          "line": 840,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L840"
+        },
+        {
+          "name": "zombie_ripboardA7",
+          "line": 841,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L841"
+        },
+        {
+          "name": "zombie_ripboardA8",
+          "line": 842,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L842"
+        },
+        {
+          "name": "zombie_ripboardA9",
+          "line": 843,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L843"
+        },
+        {
+          "name": "zombie_ripboardA10",
+          "line": 844,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L844"
+        },
+        {
+          "name": "zombie_ripboardA11",
+          "line": 845,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L845"
+        },
+        {
+          "name": "zombie_ripboardB1",
+          "line": 850,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L850"
+        },
+        {
+          "name": "zombie_ripboardB2",
+          "line": 851,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L851"
+        },
+        {
+          "name": "zombie_ripboardB3",
+          "line": 852,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L852"
+        },
+        {
+          "name": "zombie_ripboardB4",
+          "line": 853,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L853"
+        },
+        {
+          "name": "zombie_ripboardB5",
+          "line": 854,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L854"
+        },
+        {
+          "name": "zombie_ripboardB6",
+          "line": 855,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L855"
+        },
+        {
+          "name": "zombie_ripboardB7",
+          "line": 856,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L856"
+        },
+        {
+          "name": "zombie_ripboardB8",
+          "line": 857,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L857"
+        },
+        {
+          "name": "zombie_ripboardB9",
+          "line": 858,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L858"
+        },
+        {
+          "name": "zombie_ripboardB10",
+          "line": 859,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L859"
+        },
+        {
+          "name": "zombie_attack_through_window",
+          "line": 865,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L865"
+        },
+        {
+          "name": "zombie_attack_through_w1",
+          "line": 887,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L887"
+        },
+        {
+          "name": "zombie_attack_through_w2",
+          "line": 889,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L889"
+        },
+        {
+          "name": "zombie_attack_through_w3",
+          "line": 890,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L890"
+        },
+        {
+          "name": "zombie_attack_through_w4",
+          "line": 891,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L891"
+        },
+        {
+          "name": "zombie_attack_through_w5",
+          "line": 892,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L892"
+        },
+        {
+          "name": "zombie_attack_through_w6",
+          "line": 893,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L893"
+        },
+        {
+          "name": "zombie_attack_through_w7",
+          "line": 895,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L895"
+        },
+        {
+          "name": "zombie_attack_through_w8",
+          "line": 896,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L896"
+        },
+        {
+          "name": "zombie_attack_through_w9",
+          "line": 897,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L897"
+        },
+        {
+          "name": "zombie_attack_through_w10",
+          "line": 898,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L898"
+        },
+        {
+          "name": "zombie_attack_through_w11",
+          "line": 899,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L899"
+        },
+        {
+          "name": "zombie_attack_through_w12",
+          "line": 901,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L901"
+        },
+        {
+          "name": "zombie_attack_through_w13",
+          "line": 902,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L902"
+        },
+        {
+          "name": "zombie_attack_through_w14",
+          "line": 903,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L903"
+        },
+        {
+          "name": "zombie_attack_through_w15",
+          "line": 904,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L904"
+        },
+        {
+          "name": "zombie_attack_through_w16",
+          "line": 905,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L905"
+        },
+        {
+          "name": "zombie_attack_through_w17",
+          "line": 907,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L907"
+        },
+        {
+          "name": "zombie_attack_through_w18",
+          "line": 908,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L908"
+        },
+        {
+          "name": "zombie_attack_through_w19",
+          "line": 909,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L909"
+        },
+        {
+          "name": "zm_swipe_right_slow",
+          "line": 911,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L911"
+        },
+        {
+          "name": "zm_swipe_right_slow1",
+          "line": 912,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L912"
+        },
+        {
+          "name": "zm_swipe_right_slow2",
+          "line": 913,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L913"
+        },
+        {
+          "name": "zm_swipe_right_slow3",
+          "line": 914,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L914"
+        },
+        {
+          "name": "zm_swipe_right_slow4",
+          "line": 915,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L915"
+        },
+        {
+          "name": "zm_swipe_right_fast",
+          "line": 917,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L917"
+        },
+        {
+          "name": "zm_swipe_right_fast1",
+          "line": 918,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L918"
+        },
+        {
+          "name": "zm_swipe_right_fast2",
+          "line": 919,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L919"
+        },
+        {
+          "name": "zm_swipe_left_slow",
+          "line": 921,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L921"
+        },
+        {
+          "name": "zm_swipe_left_slow1",
+          "line": 922,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L922"
+        },
+        {
+          "name": "zm_swipe_left_slow2",
+          "line": 923,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L923"
+        },
+        {
+          "name": "zm_swipe_left_slow3",
+          "line": 924,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L924"
+        },
+        {
+          "name": "zm_swipe_left_slow4",
+          "line": 925,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L925"
+        },
+        {
+          "name": "zm_swipe_left_slow5",
+          "line": 926,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L926"
+        },
+        {
+          "name": "zm_swipe_left_fast",
+          "line": 928,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L928"
+        },
+        {
+          "name": "zm_swipe_left_fast1",
+          "line": 929,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L929"
+        },
+        {
+          "name": "zm_swipe_left_fast2",
+          "line": 930,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L930"
+        },
+        {
+          "name": "zm_swipe_left_fast3",
+          "line": 931,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L931"
+        },
+        {
+          "name": "zm_swipe_both_slow",
+          "line": 933,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L933"
+        },
+        {
+          "name": "zm_swipe_both_slow1",
+          "line": 934,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L934"
+        },
+        {
+          "name": "zm_swipe_both_slow2",
+          "line": 935,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L935"
+        },
+        {
+          "name": "zm_swipe_both_slow3",
+          "line": 936,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L936"
+        },
+        {
+          "name": "zm_swipe_both_slow4",
+          "line": 937,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L937"
+        },
+        {
+          "name": "zm_swipe_both_slow5",
+          "line": 938,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L938"
+        },
+        {
+          "name": "zm_swipe_both_slow6",
+          "line": 939,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L939"
+        },
+        {
+          "name": "zm_swipe_both_slow7",
+          "line": 940,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L940"
+        },
+        {
+          "name": "zm_swipe_both_slow8",
+          "line": 941,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L941"
+        },
+        {
+          "name": "zm_swipe_both_slow9",
+          "line": 942,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L942"
+        },
+        {
+          "name": "zm_swipe_both_fast",
+          "line": 944,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L944"
+        },
+        {
+          "name": "zm_swipe_both_fast1",
+          "line": 945,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L945"
+        },
+        {
+          "name": "zm_swipe_both_fast2",
+          "line": 946,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L946"
+        },
+        {
+          "name": "zm_swipe_both_fast3",
+          "line": 947,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L947"
+        },
+        {
+          "name": "zm_swipe_both_fast4",
+          "line": 948,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L948"
+        },
+        {
+          "name": "zm_swipe_both_fast5",
+          "line": 949,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L949"
+        },
+        {
+          "name": "zm_swipe_both_fast6",
+          "line": 950,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L950"
+        },
+        {
+          "name": "zombie_attack_choose",
+          "line": 952,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L952"
+        },
+        {
+          "name": "zombie_zda",
+          "line": 1008,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1008"
+        },
+        {
+          "name": "zombie_zda1",
+          "line": 1009,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1009"
+        },
+        {
+          "name": "zombie_zda2",
+          "line": 1010,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1010"
+        },
+        {
+          "name": "zombie_zda3",
+          "line": 1011,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1011"
+        },
+        {
+          "name": "zombie_zda4",
+          "line": 1012,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1012"
+        },
+        {
+          "name": "zombie_zda5",
+          "line": 1013,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1013"
+        },
+        {
+          "name": "zombie_zda6",
+          "line": 1014,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1014"
+        },
+        {
+          "name": "zombie_zda7",
+          "line": 1015,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1015"
+        },
+        {
+          "name": "zombie_zda8",
+          "line": 1016,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1016"
+        },
+        {
+          "name": "zombie_zda9",
+          "line": 1017,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1017"
+        },
+        {
+          "name": "zombie_zda10",
+          "line": 1018,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1018"
+        },
+        {
+          "name": "zombie_zda11",
+          "line": 1019,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1019"
+        },
+        {
+          "name": "zombie_zda12",
+          "line": 1020,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1020"
+        },
+        {
+          "name": "zombie_attack",
+          "line": 1022,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1022"
+        },
+        {
+          "name": "zombie_fall1",
+          "line": 1107,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1107"
+        },
+        {
+          "name": "zombie_fall2",
+          "line": 1108,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1108"
+        },
+        {
+          "name": "zombie_fall3",
+          "line": 1109,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1109"
+        },
+        {
+          "name": "zombie_fall4",
+          "line": 1110,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1110"
+        },
+        {
+          "name": "zombie_land1",
+          "line": 1115,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1115"
+        },
+        {
+          "name": "zombie_land2",
+          "line": 1116,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1116"
+        },
+        {
+          "name": "zombie_land3",
+          "line": 1117,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1117"
+        },
+        {
+          "name": "zombie_land4",
+          "line": 1118,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1118"
+        },
+        {
+          "name": "zombie_land5",
+          "line": 1119,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1119"
+        },
+        {
+          "name": "zombie_land6",
+          "line": 1120,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1120"
+        },
+        {
+          "name": "zombie_land7",
+          "line": 1121,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1121"
+        },
+        {
+          "name": "removeZombie",
+          "line": 1123,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1123"
+        },
+        {
+          "name": "zombie_deathA1",
+          "line": 1205,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1205"
+        },
+        {
+          "name": "zombie_death2",
+          "line": 1206,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1206"
+        },
+        {
+          "name": "zombie_death3",
+          "line": 1207,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1207"
+        },
+        {
+          "name": "zombie_death4",
+          "line": 1208,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1208"
+        },
+        {
+          "name": "zombie_death5",
+          "line": 1209,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1209"
+        },
+        {
+          "name": "zombie_death6",
+          "line": 1210,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1210"
+        },
+        {
+          "name": "zombie_death7",
+          "line": 1211,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1211"
+        },
+        {
+          "name": "zombie_death8",
+          "line": 1212,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1212"
+        },
+        {
+          "name": "zombie_death9",
+          "line": 1213,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1213"
+        },
+        {
+          "name": "zombie_death10",
+          "line": 1214,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1214"
+        },
+        {
+          "name": "zombie_death11",
+          "line": 1215,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1215"
+        },
+        {
+          "name": "zombie_deathB1",
+          "line": 1221,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1221"
+        },
+        {
+          "name": "zombie_deathB2",
+          "line": 1222,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1222"
+        },
+        {
+          "name": "zombie_deathB3",
+          "line": 1223,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1223"
+        },
+        {
+          "name": "zombie_deathB4",
+          "line": 1224,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1224"
+        },
+        {
+          "name": "zombie_deathB5",
+          "line": 1225,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1225"
+        },
+        {
+          "name": "zombie_deathC1",
+          "line": 1233,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1233"
+        },
+        {
+          "name": "zombie_deathC2",
+          "line": 1234,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1234"
+        },
+        {
+          "name": "zombie_deathC3",
+          "line": 1235,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1235"
+        },
+        {
+          "name": "zombie_deathC4",
+          "line": 1236,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1236"
+        },
+        {
+          "name": "zombie_deathC5",
+          "line": 1237,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1237"
+        },
+        {
+          "name": "zombie_deathC6",
+          "line": 1238,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1238"
+        },
+        {
+          "name": "zombie_deathC7",
+          "line": 1239,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1239"
+        },
+        {
+          "name": "zombie_deathC8",
+          "line": 1240,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1240"
+        },
+        {
+          "name": "zombie_deathC9",
+          "line": 1241,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1241"
+        },
+        {
+          "name": "zombie_deathC10",
+          "line": 1242,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1242"
+        },
+        {
+          "name": "Zombie_Death_Cleanup",
+          "line": 1246,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1246"
+        },
+        {
+          "name": "Zombie_PowerUpDropPercentage",
+          "line": 1311,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1311"
+        },
+        {
+          "name": "Zombie_Death",
+          "line": 1323,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1323"
+        },
+        {
+          "name": "Z_ElectroShock",
+          "line": 1379,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1379"
+        },
+        {
+          "name": "zombie_wunder1",
+          "line": 1449,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1449"
+        },
+        {
+          "name": "zombie_wunder2",
+          "line": 1450,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1450"
+        },
+        {
+          "name": "zombie_wunder3",
+          "line": 1451,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1451"
+        },
+        {
+          "name": "zombie_wunder4",
+          "line": 1452,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1452"
+        },
+        {
+          "name": "zombie_wunder5",
+          "line": 1453,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1453"
+        },
+        {
+          "name": "zombie_wunder6",
+          "line": 1454,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1454"
+        },
+        {
+          "name": "zombie_wunder7",
+          "line": 1455,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1455"
+        },
+        {
+          "name": "zombie_wunder8",
+          "line": 1456,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1456"
+        },
+        {
+          "name": "zombie_wunder9",
+          "line": 1457,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1457"
+        },
+        {
+          "name": "zombie_wunder10",
+          "line": 1458,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1458"
+        },
+        {
+          "name": "Zombie_Tesla_Death",
+          "line": 1475,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1475"
+        },
+        {
+          "name": "Zombie_HeadCanGib",
+          "line": 1492,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1492"
+        },
+        {
+          "name": "zombieRise",
+          "line": 1513,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1513"
+        },
+        {
+          "name": "spawn_zombie",
+          "line": 1541,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1541"
+        },
+        {
+          "name": "set_z_health",
+          "line": 1566,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1566"
+        },
+        {
+          "name": "Zombie_ReassignSpawnIDs",
+          "line": 1594,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1594"
+        },
+        {
+          "name": "spawn_a_zombieA",
+          "line": 1630,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1630"
+        },
+        {
+          "name": "spawnSingleZombEnt",
+          "line": 1675,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1675"
+        },
+        {
+          "name": "SetUpHitBoxes",
+          "line": 1729,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1729"
+        },
+        {
+          "name": "Zombie_BasicWalkChance",
+          "line": 1760,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1760"
+        },
+        {
+          "name": "Zombie_JogWalkChance",
+          "line": 1772,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1772"
+        },
+        {
+          "name": "SetZombieWalk",
+          "line": 1784,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1784"
+        },
+        {
+          "name": "spawnAllZombEnts",
+          "line": 1810,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1810"
+        },
+        {
+          "name": "spawn_a_zombieB",
+          "line": 1833,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L1833"
+        },
+        {
+          "name": "zombie_dummy",
+          "line": 2027,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zombie_core.qc#L2027"
+        }
+      ],
+      "entity_mentions": {
+        "spawn_gibs": [
+          1256,
+          1408,
+          1421,
+          1434
+        ],
+        "spawn_zombie": [
+          1541,
+          1554,
+          1613,
+          1618,
+          1655,
+          1660
+        ],
+        "spawn_zombie_in": [
+          1548
+        ],
+        "spawn_id": [
+          1555,
+          1602,
+          1604,
+          1609,
+          1615,
+          1657
+        ],
+        "spawn_a_zombieB": [
+          1565,
+          1670,
+          1833
+        ],
+        "spawn_a_zombieA": [
+          1590,
+          1630,
+          1665
+        ],
+        "spawn_delay": [
+          1671
+        ]
+      },
+      "api_mentions": {
+        "rounds": [
+          487,
+          666,
+          1568,
+          1570,
+          1575,
+          1584,
+          1786
+        ],
+        "think": [
+          1159,
+          1215,
+          1225,
+          1242,
+          1459,
+          1536,
+          1559,
+          1896
+        ],
+        "use": [
+          1649
+        ]
+      }
+    },
+    {
+      "path": "source/server/ai/zoning_core.qc",
+      "blob": "3943084f4efb584557e438d4575385471f65f017",
+      "functions": [
+        {
+          "name": "spawn_zone",
+          "line": 43,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zoning_core.qc#L43"
+        },
+        {
+          "name": "Zoning_IsOpen",
+          "line": 49,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zoning_core.qc#L49"
+        },
+        {
+          "name": "Zoning_CheckDoors",
+          "line": 65,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zoning_core.qc#L65"
+        },
+        {
+          "name": "Zoning_UpdateSpawns",
+          "line": 106,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zoning_core.qc#L106"
+        },
+        {
+          "name": "Zoning_GetCurrentZone",
+          "line": 196,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zoning_core.qc#L196"
+        },
+        {
+          "name": "Zoning_SpawnEnts",
+          "line": 228,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zoning_core.qc#L228"
+        },
+        {
+          "name": "Zoning_SetFog",
+          "line": 419,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zoning_core.qc#L419"
+        },
+        {
+          "name": "Zoning_PrintZones",
+          "line": 467,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zoning_core.qc#L467"
+        },
+        {
+          "name": "Zoning_UpdateAllZones",
+          "line": 527,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zoning_core.qc#L527"
+        },
+        {
+          "name": "Zoning_ParseZoneFile",
+          "line": 582,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zoning_core.qc#L582"
+        },
+        {
+          "name": "Zoning_LoadData",
+          "line": 672,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/ai/zoning_core.qc#L672"
+        }
+      ],
+      "entity_mentions": {
+        "spawn_zone": [
+          43
+        ],
+        "spawn_zombie": [
+          116,
+          493,
+          503
+        ],
+        "spawn_zombie_disabled": [
+          117,
+          506,
+          516
+        ],
+        "spawn_dog": [
+          120
+        ],
+        "spawn_dog_disabled": [
+          121
+        ],
+        "game_modifier_hellhound_fog_color": [
+          429
+        ],
+        "game_modifier_default_fog_color": [
+          440,
+          442,
+          451,
+          452
+        ]
+      },
+      "api_mentions": {
+        "targetname": [
+          128,
+          130,
+          137,
+          148,
+          167,
+          177,
+          496,
+          509
+        ],
+        "rounds": [
+          427
+        ],
+        "use": [
+          441,
+          450
+        ]
+      }
+    },
+    {
+      "path": "source/server/clientfuncs.qc",
+      "blob": "b0e7bcb43962bd8e8f4048cc802a4e04eb9f6f89",
+      "functions": [
+        {
+          "name": "FTE_RunParticleEffect",
+          "line": 35,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/clientfuncs.qc#L35"
+        },
+        {
+          "name": "NotifyGameEnd",
+          "line": 56,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/clientfuncs.qc#L56"
+        },
+        {
+          "name": "ReportMapMode",
+          "line": 97,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/clientfuncs.qc#L97"
+        },
+        {
+          "name": "songegg",
+          "line": 105,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/clientfuncs.qc#L105"
+        },
+        {
+          "name": "CallExplosion",
+          "line": 114,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/clientfuncs.qc#L114"
+        },
+        {
+          "name": "FTE_IncrementRound",
+          "line": 137,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/clientfuncs.qc#L137"
+        },
+        {
+          "name": "ChangeReviveIconState",
+          "line": 148,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/clientfuncs.qc#L148"
+        },
+        {
+          "name": "EnableReviveIcon",
+          "line": 161,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/clientfuncs.qc#L161"
+        },
+        {
+          "name": "DisableReviveIcon",
+          "line": 173,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/clientfuncs.qc#L173"
+        },
+        {
+          "name": "CL_SendWeaponFire",
+          "line": 185,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/clientfuncs.qc#L185"
+        },
+        {
+          "name": "nzp_hitmarker",
+          "line": 219,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/clientfuncs.qc#L219"
+        },
+        {
+          "name": "FTE_BroadcastMessage",
+          "line": 244,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/clientfuncs.qc#L244"
+        },
+        {
+          "name": "nzp_screenflash",
+          "line": 264,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/clientfuncs.qc#L264"
+        },
+        {
+          "name": "nzp_rumble",
+          "line": 284,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/clientfuncs.qc#L284"
+        },
+        {
+          "name": "UpdatePlayerCount",
+          "line": 298,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/clientfuncs.qc#L298"
+        },
+        {
+          "name": "grenade_pulse",
+          "line": 313,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/clientfuncs.qc#L313"
+        },
+        {
+          "name": "nzp_bettyprompt",
+          "line": 326,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/clientfuncs.qc#L326"
+        },
+        {
+          "name": "FTE_InterpolatePunchAngle",
+          "line": 343,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/clientfuncs.qc#L343"
+        },
+        {
+          "name": "FTE_UpdateDynamicFOV",
+          "line": 374,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/clientfuncs.qc#L374"
+        },
+        {
+          "name": "nzp_poweruptoast",
+          "line": 434,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/clientfuncs.qc#L434"
+        },
+        {
+          "name": "nzp_setplayername",
+          "line": 446,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/clientfuncs.qc#L446"
+        },
+        {
+          "name": "WorldText",
+          "line": 455,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/clientfuncs.qc#L455"
+        },
+        {
+          "name": "GiveAchievement",
+          "line": 477,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/clientfuncs.qc#L477"
+        },
+        {
+          "name": "nzp_setdoubletapver",
+          "line": 566,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/clientfuncs.qc#L566"
+        },
+        {
+          "name": "Effect_Fire",
+          "line": 577,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/clientfuncs.qc#L577"
+        },
+        {
+          "name": "Ent_FakeRemove",
+          "line": 597,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/clientfuncs.qc#L597"
+        },
+        {
+          "name": "Precache_Set",
+          "line": 620,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/clientfuncs.qc#L620"
+        },
+        {
+          "name": "crandom",
+          "line": 627,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/clientfuncs.qc#L627"
+        },
+        {
+          "name": "PlayerIsLooking",
+          "line": 632,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/clientfuncs.qc#L632"
+        }
+      ],
+      "entity_mentions": {
+        "trigger_field": [
+          602,
+          602,
+          603
+        ]
+      },
+      "api_mentions": {
+        "player_count": [
+          456,
+          492,
+          493
+        ],
+        "use": [
+          599,
+          611
+        ],
+        "think": [
+          612
+        ]
+      }
+    },
+    {
+      "path": "source/server/damage.qc",
+      "blob": "97deafb9770af3b549a428008634ed4ae044ab0c",
+      "functions": [
+        {
+          "name": "Do_Restart",
+          "line": 48,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/damage.qc#L48"
+        },
+        {
+          "name": "EndGame_FadePrompt",
+          "line": 54,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/damage.qc#L54"
+        },
+        {
+          "name": "EndGame",
+          "line": 76,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/damage.qc#L76"
+        },
+        {
+          "name": "startspectate",
+          "line": 98,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/damage.qc#L98"
+        },
+        {
+          "name": "PollPlayersAlive",
+          "line": 124,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/damage.qc#L124"
+        },
+        {
+          "name": "EndGameSetup",
+          "line": 139,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/damage.qc#L139"
+        },
+        {
+          "name": "GetUp",
+          "line": 182,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/damage.qc#L182"
+        },
+        {
+          "name": "CheckRevive",
+          "line": 226,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/damage.qc#L226"
+        },
+        {
+          "name": "DieHandler",
+          "line": 236,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/damage.qc#L236"
+        },
+        {
+          "name": "DamageHandler",
+          "line": 301,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/damage.qc#L301"
+        },
+        {
+          "name": "CanDamage",
+          "line": 408,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/damage.qc#L408"
+        },
+        {
+          "name": "calculate_proximity_value",
+          "line": 442,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/damage.qc#L442"
+        },
+        {
+          "name": "DamgageExplode",
+          "line": 457,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/damage.qc#L457"
+        }
+      ],
+      "entity_mentions": {
+        "teddy_spawn": [
+          545
+        ]
+      },
+      "api_mentions": {
+        "think": [
+          53,
+          64,
+          68,
+          93,
+          105,
+          138,
+          142
+        ],
+        "player_count": [
+          118
+        ],
+        "rounds": [
+          568,
+          569,
+          570,
+          575,
+          576,
+          581,
+          582,
+          594
+        ]
+      }
+    },
+    {
+      "path": "source/server/defs/custom.qc",
+      "blob": "917de955901997cee56c1fb9fe7d53d898e05dc1",
+      "functions": [
+        {
+          "name": "SUB_Null",
+          "line": 280,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/defs/custom.qc#L280"
+        },
+        {
+          "name": "SUB_Null2",
+          "line": 281,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/defs/custom.qc#L281"
+        }
+      ],
+      "entity_mentions": {
+        "info_player_1_spawn": [
+          39
+        ],
+        "info_player_2_spawn": [
+          40
+        ],
+        "info_player_3_spawn": [
+          41
+        ],
+        "info_player_4_spawn": [
+          42
+        ],
+        "info_player_5_spawn": [
+          43
+        ],
+        "info_player_6_spawn": [
+          44
+        ],
+        "info_player_7_spawn": [
+          45
+        ],
+        "info_player_8_spawn": [
+          46
+        ],
+        "spawn_id": [
+          394
+        ],
+        "spawn_a_zombieA": [
+          452
+        ],
+        "perk_delay": [
+          494
+        ],
+        "perk_purchase_count": [
+          496
+        ],
+        "perk_purchase_limit_solo": [
+          497
+        ],
+        "perk_purchase_limit_coop": [
+          498
+        ],
+        "perk_requires_power_solo": [
+          499
+        ],
+        "perk_requires_power_coop": [
+          500
+        ],
+        "game_modifier_can_melee": [
+          502
+        ],
+        "game_modifier_can_use_equipment": [
+          503
+        ],
+        "game_modifier_can_earn_misc_score": [
+          504
+        ],
+        "game_modifier_can_packapunch": [
+          505
+        ],
+        "game_modifier_powerup_free_perk": [
+          506
+        ],
+        "game_modifier_powerup_free_perk_is_rare": [
+          507
+        ],
+        "game_modifier_powerup_max_ammo": [
+          508
+        ],
+        "game_modifier_powerup_weapon_upgrade": [
+          509
+        ],
+        "game_modifier_powerup_bonus_points": [
+          510
+        ],
+        "game_modifier_powerup_toast_for_all": [
+          511
+        ],
+        "game_modifier_perk_purchase_limit": [
+          512
+        ],
+        "game_modifier_cost_multiplier": [
+          513
+        ],
+        "game_modifier_grenades_explode_on_contact": [
+          514
+        ],
+        "game_modifier_packapunch_uses_tiers": [
+          515
+        ],
+        "game_modifier_packapunch_is_instant": [
+          516
+        ],
+        "game_modifier_maxammo_fills_magazine": [
+          517
+        ],
+        "game_modifier_hellhound_fog_color": [
+          518
+        ],
+        "game_modifier_default_fog_color": [
+          519
+        ],
+        "spawn_time": [
+          600
+        ],
+        "spawn_delay": [
+          604
+        ],
+        "trigger_field": [
+          670
+        ]
+      },
+      "api_mentions": {
+        "killtarget": [
+          61
+        ],
+        "player_count": [
+          99
+        ],
+        "targetname": [
+          366,
+          377
+        ],
+        "target2": [
+          368
+        ],
+        "target3": [
+          369
+        ],
+        "target4": [
+          370
+        ],
+        "rounds": [
+          593,
+          610
+        ]
+      }
+    }
+  ]
+}

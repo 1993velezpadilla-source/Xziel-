@@ -1,0 +1,779 @@
+{
+  "schema": "xziel.nzp.quakec-symbol-index.v1",
+  "source_repo": "nzp-team/quakec",
+  "source_commit": "dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163",
+  "part": 6,
+  "range": [
+    60,
+    71
+  ],
+  "files": [
+    {
+      "path": "source/server/tests/test_useprints.qc",
+      "blob": "fc76bc02fae6bd954140c61236314c58ba10c666",
+      "functions": [
+        {
+          "name": "Test_Useprint_RegisterAllocatesDefinition",
+          "line": 30,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_useprints.qc#L30"
+        },
+        {
+          "name": "Test_Useprint_RegisterDeduplicatesDefinition",
+          "line": 47,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_useprints.qc#L47"
+        },
+        {
+          "name": "Test_Useprint_RegisterSeparatesColors",
+          "line": 64,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_useprints.qc#L64"
+        },
+        {
+          "name": "Test_Useprint_GenericSlotsStoreIndexes",
+          "line": 81,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_useprints.qc#L81"
+        },
+        {
+          "name": "Test_Useprint_RegistryLockedAfterClientJoin",
+          "line": 106,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_useprints.qc#L106"
+        }
+      ],
+      "entity_mentions": {},
+      "api_mentions": {}
+    },
+    {
+      "path": "source/server/tests/test_weapons.qc",
+      "blob": "b9d493f3851d71420f946dedb18ebb320e2ed756",
+      "functions": [
+        {
+          "name": "Test_Weapons_Gewehr_MagazineSize",
+          "line": 42,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_weapons.qc#L42"
+        },
+        {
+          "name": "Test_Weapons_DualWield_ReloadLowReserveRightLeft",
+          "line": 56,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_weapons.qc#L56"
+        },
+        {
+          "name": "Test_Weapons_DualWield_ReloadLowReserveLeftRight",
+          "line": 81,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_weapons.qc#L81"
+        },
+        {
+          "name": "Test_Weapons_BowieKnife_RemovedAfterRespawn",
+          "line": 104,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_weapons.qc#L104"
+        },
+        {
+          "name": "Test_Weapons_HoldTwoWeapons",
+          "line": 117,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_weapons.qc#L117"
+        },
+        {
+          "name": "Test_Weapons_HoldThreeWeapons",
+          "line": 133,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_weapons.qc#L133"
+        },
+        {
+          "name": "Test_Weapons_UpgradedSound",
+          "line": 155,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_weapons.qc#L155"
+        },
+        {
+          "name": "Test_Weapons_RayGunClassification",
+          "line": 170,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_weapons.qc#L170"
+        },
+        {
+          "name": "Test_Weapons_BurstCannotBeInterruptedBySwap",
+          "line": 185,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_weapons.qc#L185"
+        },
+        {
+          "name": "Test_MysteryBox_RayGunsAreMutuallyExclusive",
+          "line": 218,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_weapons.qc#L218"
+        },
+        {
+          "name": "Test_MysteryBox_MarkTwoIsOptIn",
+          "line": 244,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_weapons.qc#L244"
+        },
+        {
+          "name": "Test_Weapons_ShotgunPenetration",
+          "line": 257,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_weapons.qc#L257"
+        },
+        {
+          "name": "Test_Weapons_WunderWaffe_UpgradedReserve",
+          "line": 271,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_weapons.qc#L271"
+        },
+        {
+          "name": "Test_Weapons_FeverWallAmmoUsesRefillCost",
+          "line": 282,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_weapons.qc#L282"
+        },
+        {
+          "name": "Test_Weapons_WunderWaffe_FireAtBarrel",
+          "line": 300,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_weapons.qc#L300"
+        },
+        {
+          "name": "Test_WallWeapons_Message",
+          "line": 338,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_weapons.qc#L338"
+        },
+        {
+          "name": "Test_WallWeapons_ActivatesAllTargets",
+          "line": 360,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_weapons.qc#L360"
+        }
+      ],
+      "entity_mentions": {
+        "game_counter": [
+          374
+        ]
+      },
+      "api_mentions": {
+        "targetname": [
+          371
+        ],
+        "target2": [
+          379
+        ],
+        "target3": [
+          380
+        ],
+        "target4": [
+          381
+        ],
+        "SUB_UseTargets": [
+          387
+        ]
+      }
+    },
+    {
+      "path": "source/server/useprints.qc",
+      "blob": "d2b264d6ecbd0687eda37459699a19767b0c5fbb",
+      "functions": [
+        {
+          "name": "Useprint_Register",
+          "line": 33,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/useprints.qc#L33"
+        }
+      ],
+      "entity_mentions": {},
+      "api_mentions": {}
+    },
+    {
+      "path": "source/server/utilities/command_parser.qc",
+      "blob": "4ee80e225a60773df44caeb19b8885444046d5d3",
+      "functions": [
+        {
+          "name": "Command_give",
+          "line": 44,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/command_parser.qc#L44"
+        },
+        {
+          "name": "Command_addmoney",
+          "line": 69,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/command_parser.qc#L69"
+        },
+        {
+          "name": "Command_godmode",
+          "line": 97,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/command_parser.qc#L97"
+        },
+        {
+          "name": "Command_noclip",
+          "line": 113,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/command_parser.qc#L113"
+        },
+        {
+          "name": "Command_powerup",
+          "line": 136,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/command_parser.qc#L136"
+        },
+        {
+          "name": "Command_tracedmgmultiplier",
+          "line": 158,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/command_parser.qc#L158"
+        },
+        {
+          "name": "Command_say",
+          "line": 183,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/command_parser.qc#L183"
+        },
+        {
+          "name": "SV_IsCommand",
+          "line": 246,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/command_parser.qc#L246"
+        },
+        {
+          "name": "SV_ParseClientCommand",
+          "line": 261,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/command_parser.qc#L261"
+        },
+        {
+          "name": "ParseClientCommand",
+          "line": 312,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/command_parser.qc#L312"
+        }
+      ],
+      "entity_mentions": {
+        "spawn_pu": [
+          140,
+          236,
+          236
+        ]
+      },
+      "api_mentions": {
+        "player_count": [
+          47,
+          72,
+          100,
+          116,
+          139,
+          161
+        ]
+      }
+    },
+    {
+      "path": "source/server/utilities/map_compatibility.qc",
+      "blob": "44e77498f387af3eb2583df2fa7bd2275b5fcbcf",
+      "functions": [
+        {
+          "name": "Compat_TryLoadBetaWaypoints",
+          "line": 40,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/map_compatibility.qc#L40"
+        },
+        {
+          "name": "Compat_ConvertPropScale",
+          "line": 143,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/map_compatibility.qc#L143"
+        },
+        {
+          "name": "Compat_ConvertWorldModelScales",
+          "line": 158,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/map_compatibility.qc#L158"
+        },
+        {
+          "name": "Compat_ConvertPropScaling",
+          "line": 180,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/map_compatibility.qc#L180"
+        },
+        {
+          "name": "Compat_ConvertBetaWallWeapons",
+          "line": 199,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/map_compatibility.qc#L199"
+        },
+        {
+          "name": "Compat_ConvertBetaBarricade",
+          "line": 277,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/map_compatibility.qc#L277"
+        },
+        {
+          "name": "item_cover",
+          "line": 293,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/map_compatibility.qc#L293"
+        },
+        {
+          "name": "Compat_FixMysteryBox",
+          "line": 304,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/map_compatibility.qc#L304"
+        },
+        {
+          "name": "Compat_FixPowerSwitch",
+          "line": 339,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/map_compatibility.qc#L339"
+        },
+        {
+          "name": "Compat_RelocateBetaPerkMachine",
+          "line": 368,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/map_compatibility.qc#L368"
+        },
+        {
+          "name": "item_revive",
+          "line": 390,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/map_compatibility.qc#L390"
+        },
+        {
+          "name": "item_speed",
+          "line": 391,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/map_compatibility.qc#L391"
+        },
+        {
+          "name": "item_flopper",
+          "line": 392,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/map_compatibility.qc#L392"
+        },
+        {
+          "name": "item_juggernog",
+          "line": 393,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/map_compatibility.qc#L393"
+        },
+        {
+          "name": "item_douple",
+          "line": 394,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/map_compatibility.qc#L394"
+        },
+        {
+          "name": "item_staminup",
+          "line": 395,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/map_compatibility.qc#L395"
+        },
+        {
+          "name": "item_pap",
+          "line": 396,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/map_compatibility.qc#L396"
+        },
+        {
+          "name": "Compat_TriggerCommandIsSafe",
+          "line": 410,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/map_compatibility.qc#L410"
+        },
+        {
+          "name": "touch_command",
+          "line": 426,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/map_compatibility.qc#L426"
+        },
+        {
+          "name": "trigger_command",
+          "line": 447,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/map_compatibility.qc#L447"
+        },
+        {
+          "name": "Compat_ConvertOldAssetPath",
+          "line": 480,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/map_compatibility.qc#L480"
+        },
+        {
+          "name": "Compat_Init",
+          "line": 517,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/map_compatibility.qc#L517"
+        }
+      ],
+      "entity_mentions": {
+        "item_cover": [
+          293
+        ],
+        "item_barricade": [
+          293
+        ],
+        "power_switch": [
+          341,
+          349
+        ],
+        "item_revive": [
+          390
+        ],
+        "perk_revive": [
+          390
+        ],
+        "item_speed": [
+          391
+        ],
+        "perk_speed": [
+          391
+        ],
+        "item_flopper": [
+          392
+        ],
+        "perk_flopper": [
+          392
+        ],
+        "item_juggernog": [
+          393
+        ],
+        "perk_juggernog": [
+          393
+        ],
+        "item_douple": [
+          394
+        ],
+        "perk_double": [
+          394
+        ],
+        "item_staminup": [
+          395
+        ],
+        "perk_staminup": [
+          395
+        ],
+        "item_pap": [
+          396
+        ],
+        "perk_pap": [
+          396
+        ],
+        "trigger_command": [
+          406,
+          441,
+          447
+        ]
+      },
+      "api_mentions": {
+        "touch": [
+          114,
+          460
+        ],
+        "use": [
+          408
+        ]
+      }
+    },
+    {
+      "path": "source/server/utilities/math.qc",
+      "blob": "f2c005ff1055b2f42540509eaf87fc9780f16cda",
+      "functions": [
+        {
+          "name": "clamp",
+          "line": 28,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/math.qc#L28"
+        },
+        {
+          "name": "mod",
+          "line": 53,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/math.qc#L53"
+        },
+        {
+          "name": "sign",
+          "line": 68,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/math.qc#L68"
+        },
+        {
+          "name": "wrap",
+          "line": 105,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/math.qc#L105"
+        },
+        {
+          "name": "lerp",
+          "line": 113,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/math.qc#L113"
+        },
+        {
+          "name": "lerpVector",
+          "line": 120,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/math.qc#L120"
+        },
+        {
+          "name": "lerpHermite",
+          "line": 128,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/math.qc#L128"
+        },
+        {
+          "name": "lerpVectorHermite",
+          "line": 141,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/math.qc#L141"
+        },
+        {
+          "name": "angledif",
+          "line": 154,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/math.qc#L154"
+        },
+        {
+          "name": "isInAngle",
+          "line": 163,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/math.qc#L163"
+        },
+        {
+          "name": "normalizeAngles",
+          "line": 172,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/math.qc#L172"
+        },
+        {
+          "name": "normalizeAngles180",
+          "line": 201,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/math.qc#L201"
+        },
+        {
+          "name": "abs",
+          "line": 228,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/math.qc#L228"
+        }
+      ],
+      "entity_mentions": {},
+      "api_mentions": {}
+    },
+    {
+      "path": "source/server/utilities/sound_helper.qc",
+      "blob": "b1a2648b65dd1b64ca933e2097a98810420c1c91",
+      "functions": [
+        {
+          "name": "Sound_GetEnvironmentVoice",
+          "line": 70,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/sound_helper.qc#L70"
+        },
+        {
+          "name": "Sound_SetEnvironmentVoice",
+          "line": 83,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/sound_helper.qc#L83"
+        },
+        {
+          "name": "Sound_GetWeaponExplosion",
+          "line": 91,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/sound_helper.qc#L91"
+        },
+        {
+          "name": "Sound_SetWeaponExplosion",
+          "line": 104,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/sound_helper.qc#L104"
+        },
+        {
+          "name": "Sound_GetZombieGroan",
+          "line": 112,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/sound_helper.qc#L112"
+        },
+        {
+          "name": "Sound_SetZombieGroan",
+          "line": 125,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/sound_helper.qc#L125"
+        },
+        {
+          "name": "Sound_PlaySound",
+          "line": 133,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/sound_helper.qc#L133"
+        }
+      ],
+      "entity_mentions": {},
+      "api_mentions": {}
+    },
+    {
+      "path": "source/server/utilities/weapon_utilities.qc",
+      "blob": "f3e59c5a5b2c7f454b9b2620d6f19fd30323944e",
+      "functions": [
+        {
+          "name": "Weapon_GetPlayerAmmoInSlot",
+          "line": 61,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/weapon_utilities.qc#L61"
+        },
+        {
+          "name": "Weapon_SetPlayerAmmoInSlot",
+          "line": 75,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/weapon_utilities.qc#L75"
+        },
+        {
+          "name": "Weapon_PlayerHasWeapon",
+          "line": 92,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/weapon_utilities.qc#L92"
+        },
+        {
+          "name": "Weapon_PlayerHasWeaponWithFiretype",
+          "line": 118,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/weapon_utilities.qc#L118"
+        },
+        {
+          "name": "Weapon_IsSemiAutomatic",
+          "line": 137,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/weapon_utilities.qc#L137"
+        },
+        {
+          "name": "Weapon_FiresTraceshot",
+          "line": 154,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/utilities/weapon_utilities.qc#L154"
+        }
+      ],
+      "entity_mentions": {
+        "game_modifier_packapunch_uses_tiers": [
+          346
+        ]
+      },
+      "api_mentions": {}
+    },
+    {
+      "path": "source/server/weapons/ballistic_knife.qc",
+      "blob": "d3f63ea43326d5ba89e066d95cfd0d67ae08c0d8",
+      "functions": [
+        {
+          "name": "Blade_Damage",
+          "line": 30,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/ballistic_knife.qc#L30"
+        },
+        {
+          "name": "Blade_Revive",
+          "line": 69,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/ballistic_knife.qc#L69"
+        },
+        {
+          "name": "Blade_VelocityIncrease",
+          "line": 96,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/ballistic_knife.qc#L96"
+        },
+        {
+          "name": "Blade_Die",
+          "line": 105,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/ballistic_knife.qc#L105"
+        },
+        {
+          "name": "Blade_Pickup",
+          "line": 110,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/ballistic_knife.qc#L110"
+        },
+        {
+          "name": "Blade_Impact",
+          "line": 130,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/ballistic_knife.qc#L130"
+        },
+        {
+          "name": "W_FireBlade",
+          "line": 169,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/ballistic_knife.qc#L169"
+        }
+      ],
+      "entity_mentions": {},
+      "api_mentions": {
+        "think": [
+          94,
+          158,
+          200
+        ],
+        "touch": [
+          156,
+          199
+        ]
+      }
+    },
+    {
+      "path": "source/server/weapons/bouncing_betty.qc",
+      "blob": "bd22ca59c00710d377d19bc5a76cd93171b48f5f",
+      "functions": [
+        {
+          "name": "Betty_Rise",
+          "line": 32,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/bouncing_betty.qc#L32"
+        },
+        {
+          "name": "Betty_Touch",
+          "line": 51,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/bouncing_betty.qc#L51"
+        },
+        {
+          "name": "Betty_Drop",
+          "line": 77,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/bouncing_betty.qc#L77"
+        },
+        {
+          "name": "Betty_CheckForRelease",
+          "line": 137,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/bouncing_betty.qc#L137"
+        },
+        {
+          "name": "W_PrimeBetty",
+          "line": 161,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/bouncing_betty.qc#L161"
+        }
+      ],
+      "entity_mentions": {
+        "game_modifier_can_use_equipment": [
+          163
+        ]
+      },
+      "api_mentions": {
+        "think": [
+          37,
+          64
+        ],
+        "touch": [
+          65,
+          90
+        ],
+        "use": [
+          178
+        ]
+      }
+    },
+    {
+      "path": "source/server/weapons/flamethrower.qc",
+      "blob": "2493357f5db992cf6a1667b5a55724c300e5ac6d",
+      "functions": [
+        {
+          "name": "Flame_LingerThink",
+          "line": 34,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/flamethrower.qc#L34"
+        },
+        {
+          "name": "Flame_Linger",
+          "line": 48,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/flamethrower.qc#L48"
+        },
+        {
+          "name": "Flame_Touch",
+          "line": 64,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/flamethrower.qc#L64"
+        },
+        {
+          "name": "Flame_DropCatch",
+          "line": 118,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/flamethrower.qc#L118"
+        },
+        {
+          "name": "Flame_DropDissapate",
+          "line": 130,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/flamethrower.qc#L130"
+        },
+        {
+          "name": "Flame_Drop",
+          "line": 140,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/flamethrower.qc#L140"
+        },
+        {
+          "name": "Flame_Buildup",
+          "line": 165,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/flamethrower.qc#L165"
+        },
+        {
+          "name": "W_FireFlame",
+          "line": 183,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/flamethrower.qc#L183"
+        }
+      ],
+      "entity_mentions": {
+        "func_button": [
+          73,
+          74
+        ]
+      },
+      "api_mentions": {
+        "think": [
+          55,
+          151,
+          208
+        ],
+        "touch": [
+          150,
+          210
+        ]
+      }
+    },
+    {
+      "path": "source/server/weapons/frames_core.qc",
+      "blob": "67bc8de4ddb7eafd735ddb6377cd71dd6a981588",
+      "functions": [
+        {
+          "name": "ContinueRun",
+          "line": 30,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/frames_core.qc#L30"
+        },
+        {
+          "name": "W2_Frame_Update",
+          "line": 50,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/frames_core.qc#L50"
+        },
+        {
+          "name": "W_Frame_Update",
+          "line": 111,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/frames_core.qc#L111"
+        },
+        {
+          "name": "model_should_hide_weapon2",
+          "line": 188,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/weapons/frames_core.qc#L188"
+        }
+      ],
+      "entity_mentions": {},
+      "api_mentions": {}
+    }
+  ]
+}

@@ -1,0 +1,4731 @@
+{
+  "schema": "xziel.nzp.fgd-entity-catalog.v1",
+  "source_repo": "nzp-team/assets",
+  "source_commit": "c8135a66e00bb64577912fbf792f8fef7f47658e",
+  "source_files": [
+    {
+      "path": "source/maps/fgd/hl-nzp.fgd",
+      "blob": "a19cbf414c3238773a2b80a764288cc24b15341d"
+    },
+    {
+      "path": "source/maps/fgd/tb-nzp.fgd",
+      "blob": "e30ae6835a62daebafef9e4b2ed6482b9655582e"
+    }
+  ],
+  "class_count": 90,
+  "classes": [
+    {
+      "classname": "ambient_bgm",
+      "description": "Back Ground Music",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1459
+      },
+      "fields": [
+        {
+          "name": "noise1",
+          "type": "string",
+          "label": "Intro wav",
+          "default": null,
+          "line": 1465
+        },
+        {
+          "name": "button1",
+          "type": "string",
+          "label": "Intro length (in seconds)",
+          "default": null,
+          "line": 1466
+        },
+        {
+          "name": "noise2",
+          "type": "string",
+          "label": "Looped wav",
+          "default": null,
+          "line": 1467
+        },
+        {
+          "name": "button2",
+          "type": "string",
+          "label": "Loop length (-1 for no looping)",
+          "default": null,
+          "line": 1468
+        },
+        {
+          "name": "waitmax",
+          "type": "integer",
+          "label": "Number of Loops(0 for forever)",
+          "default": null,
+          "line": 1469
+        },
+        {
+          "name": "noise3",
+          "type": "string",
+          "label": "Extro wav",
+          "default": null,
+          "line": 1470
+        },
+        {
+          "name": "target",
+          "type": "string",
+          "label": "Target when extro is done",
+          "default": null,
+          "line": 1471
+        },
+        {
+          "name": "button0",
+          "type": "string",
+          "label": "Extro length",
+          "default": null,
+          "line": 1472
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "Start On",
+          "default": false,
+          "line": 1463
+        }
+      ]
+    },
+    {
+      "classname": "ambient_generic",
+      "description": "Universal Ambient Sound",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1438
+      },
+      "fields": [
+        {
+          "name": "volume",
+          "type": "integer",
+          "label": "Volume",
+          "default": "1",
+          "line": 1450
+        },
+        {
+          "name": "message",
+          "type": "string",
+          "label": "Ambient Sound",
+          "default": null,
+          "line": 1451
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "buy_weapon",
+      "description": "buy_weapon",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 905
+      },
+      "fields": [
+        {
+          "name": "weapon",
+          "type": "choices",
+          "label": "Weapon",
+          "default": "0",
+          "line": 907
+        },
+        {
+          "name": "cost",
+          "type": "integer",
+          "label": "Cost",
+          "default": "0",
+          "line": 969
+        },
+        {
+          "name": "cost2",
+          "type": "integer",
+          "label": "Ammo Cost",
+          "default": "0",
+          "line": 970
+        },
+        {
+          "name": "pap_cost",
+          "type": "integer",
+          "label": "Pack-A-Punch Ammo Cost",
+          "default": "4500",
+          "line": 971
+        },
+        {
+          "name": "target",
+          "type": "target_destination",
+          "label": "Target",
+          "default": null,
+          "line": 972
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "Inactive until Triggered",
+          "default": false,
+          "line": 975
+        }
+      ]
+    },
+    {
+      "classname": "explosive_barrel",
+      "description": "Barrel that can explode when shot at",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 891
+      },
+      "fields": [
+        {
+          "name": "model",
+          "type": "studio",
+          "label": "Model",
+          "default": "\"models/props/barrel_m.mdl\"",
+          "line": 893
+        },
+        {
+          "name": "health",
+          "type": "integer",
+          "label": "Health",
+          "default": "300",
+          "line": 894
+        },
+        {
+          "name": "oldmodel",
+          "type": "string",
+          "label": "sounds/weapons/grenade/explode.wav",
+          "default": null,
+          "line": 895
+        },
+        {
+          "name": "skin",
+          "type": "choices",
+          "label": "Color",
+          "default": "0",
+          "line": 896
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "func_button",
+      "description": "Button",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1319
+      },
+      "fields": [
+        {
+          "name": "speed",
+          "type": "integer",
+          "label": "Speed",
+          "default": "40",
+          "line": 1321
+        },
+        {
+          "name": "lip",
+          "type": "integer",
+          "label": "Lip",
+          "default": "4",
+          "line": 1322
+        },
+        {
+          "name": "target",
+          "type": "target_source",
+          "label": "Targetted object",
+          "default": null,
+          "line": 1323
+        },
+        {
+          "name": "health",
+          "type": "integer",
+          "label": "Health (shootable if > 0)",
+          "default": null,
+          "line": 1324
+        },
+        {
+          "name": "sounds",
+          "type": "choices",
+          "label": "Sounds",
+          "default": null,
+          "line": 1325
+        },
+        {
+          "name": "wait",
+          "type": "string",
+          "label": "Delay before reset",
+          "default": "\"1\"",
+          "line": 1332
+        },
+        {
+          "name": "delay",
+          "type": "string",
+          "label": "Delay before trigger",
+          "default": null,
+          "line": 1333
+        },
+        {
+          "name": "message",
+          "type": "string",
+          "label": "Message",
+          "default": null,
+          "line": 1334
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "Only takes Fire damage",
+          "default": false,
+          "line": 1337
+        }
+      ]
+    },
+    {
+      "classname": "func_clock",
+      "description": "Clock Hand",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1715
+      },
+      "fields": [
+        {
+          "name": "target",
+          "type": "target_destination",
+          "label": "Rotate Object",
+          "default": null,
+          "line": 1717
+        },
+        {
+          "name": "cnt",
+          "type": "integer",
+          "label": "Starting Time",
+          "default": null,
+          "line": 1718
+        },
+        {
+          "name": "count",
+          "type": "choices",
+          "label": "Revolution Time",
+          "default": "60",
+          "line": 1719
+        },
+        {
+          "name": "event",
+          "type": "string",
+          "label": "Event to Trigger at 12",
+          "default": null,
+          "line": 1725
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "func_counter",
+      "description": "Activation Counter",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1274
+      },
+      "fields": [
+        {
+          "name": "count",
+          "type": "integer",
+          "label": "# of entities to trigger",
+          "default": null,
+          "line": 1286
+        },
+        {
+          "name": "wait",
+          "type": "string",
+          "label": "Sec. between each triggering",
+          "default": "\"0.2\"",
+          "line": 1287
+        },
+        {
+          "name": "delay",
+          "type": "string",
+          "label": "Delay before first trigger",
+          "default": null,
+          "line": 1288
+        },
+        {
+          "name": "killtarget",
+          "type": "string",
+          "label": "Killtarget",
+          "default": null,
+          "line": 1289
+        },
+        {
+          "name": "killtarget2",
+          "type": "string",
+          "label": "Killtarget #2",
+          "default": null,
+          "line": 1290
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "Togglable",
+          "default": false,
+          "line": 1278
+        },
+        {
+          "id": 2,
+          "name": "Looping",
+          "default": true,
+          "line": 1279
+        },
+        {
+          "id": 4,
+          "name": "Step",
+          "default": false,
+          "line": 1280
+        },
+        {
+          "id": 8,
+          "name": "Reset",
+          "default": false,
+          "line": 1281
+        },
+        {
+          "id": 16,
+          "name": "Random",
+          "default": false,
+          "line": 1282
+        },
+        {
+          "id": 32,
+          "name": "Finishcount",
+          "default": false,
+          "line": 1283
+        },
+        {
+          "id": 64,
+          "name": "Start On",
+          "default": true,
+          "line": 1284
+        }
+      ]
+    },
+    {
+      "classname": "func_detail",
+      "description": "Detail brushes",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1254
+      },
+      "fields": [
+        {
+          "name": "zhlt_detaillevel",
+          "type": "integer",
+          "label": "Detail level",
+          "default": "1",
+          "line": 1257
+        },
+        {
+          "name": "zhlt_chopdown",
+          "type": "integer",
+          "label": "Lower its level to chop others",
+          "default": "0",
+          "line": 1259
+        },
+        {
+          "name": "zhlt_chopup",
+          "type": "integer",
+          "label": "Raise its level to get chopped",
+          "default": "0",
+          "line": 1261
+        },
+        {
+          "name": "zhlt_coplanarpriority",
+          "type": "integer",
+          "label": "Priority when faces overlap",
+          "default": "0",
+          "line": 1263
+        },
+        {
+          "name": "zhlt_clipnodedetaillevel",
+          "type": "integer",
+          "label": "Detail level of cliphulls",
+          "default": "1",
+          "line": 1265
+        },
+        {
+          "name": "zhlt_noclip",
+          "type": "choices",
+          "label": "Passable",
+          "default": "\"\"",
+          "line": 1267
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "func_door",
+      "description": "Basic door",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1181
+      },
+      "fields": [
+        {
+          "name": "speed",
+          "type": "integer",
+          "label": "Speed",
+          "default": "100",
+          "line": 1183
+        },
+        {
+          "name": "sounds",
+          "type": "choices",
+          "label": "Sound",
+          "default": "0",
+          "line": 1184
+        },
+        {
+          "name": "noise2",
+          "type": "string",
+          "label": "Move sound",
+          "default": null,
+          "line": 1193
+        },
+        {
+          "name": "noise1",
+          "type": "string",
+          "label": "Stop sound",
+          "default": null,
+          "line": 1194
+        },
+        {
+          "name": "wait",
+          "type": "string",
+          "label": "Delay before close",
+          "default": "\"4\"",
+          "line": 1195
+        },
+        {
+          "name": "lip",
+          "type": "integer",
+          "label": "Lip",
+          "default": "8",
+          "line": 1196
+        },
+        {
+          "name": "dmg",
+          "type": "integer",
+          "label": "Damage inflicted when blocked",
+          "default": "0",
+          "line": 1197
+        },
+        {
+          "name": "message",
+          "type": "string",
+          "label": "Message if triggered",
+          "default": null,
+          "line": 1198
+        },
+        {
+          "name": "health",
+          "type": "integer",
+          "label": "Health (shoot open)",
+          "default": "0",
+          "line": 1199
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "Starts Open",
+          "default": false,
+          "line": 1202
+        },
+        {
+          "id": 4,
+          "name": "Don't link",
+          "default": false,
+          "line": 1203
+        },
+        {
+          "id": 8,
+          "name": "Gold Key required",
+          "default": false,
+          "line": 1204
+        },
+        {
+          "id": 16,
+          "name": "Silver Key required",
+          "default": false,
+          "line": 1205
+        },
+        {
+          "id": 32,
+          "name": "Toggle",
+          "default": false,
+          "line": 1206
+        }
+      ]
+    },
+    {
+      "classname": "func_door_nzp",
+      "description": "nzp door",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1210
+      },
+      "fields": [
+        {
+          "name": "wayTarget",
+          "type": "string",
+          "label": "Waypoint Target",
+          "default": null,
+          "line": 1212
+        },
+        {
+          "name": "speed",
+          "type": "integer",
+          "label": "Speed",
+          "default": "100",
+          "line": 1213
+        },
+        {
+          "name": "sounds",
+          "type": "choices",
+          "label": "Sound",
+          "default": "0",
+          "line": 1214
+        },
+        {
+          "name": "noise2",
+          "type": "string",
+          "label": "Move sound",
+          "default": null,
+          "line": 1220
+        },
+        {
+          "name": "noise1",
+          "type": "string",
+          "label": "Stop sound",
+          "default": null,
+          "line": 1221
+        },
+        {
+          "name": "wait",
+          "type": "string",
+          "label": "Delay before close",
+          "default": "\"4\"",
+          "line": 1222
+        },
+        {
+          "name": "lip",
+          "type": "integer",
+          "label": "Lip",
+          "default": "8",
+          "line": 1223
+        },
+        {
+          "name": "distance",
+          "type": "integer",
+          "label": "Distance (deg)",
+          "default": "90",
+          "line": 1224
+        },
+        {
+          "name": "dmg",
+          "type": "integer",
+          "label": "Damage inflicted when blocked",
+          "default": "0",
+          "line": 1225
+        },
+        {
+          "name": "message",
+          "type": "string",
+          "label": "Message if triggered",
+          "default": null,
+          "line": 1226
+        },
+        {
+          "name": "health",
+          "type": "integer",
+          "label": "Health (shoot open)",
+          "default": "0",
+          "line": 1227
+        },
+        {
+          "name": "cost",
+          "type": "integer",
+          "label": "cost to open (0 no need)",
+          "default": "0",
+          "line": 1228
+        }
+      ],
+      "flags": [
+        {
+          "id": 4,
+          "name": "Don't link",
+          "default": false,
+          "line": 1231
+        },
+        {
+          "id": 8,
+          "name": "Debris",
+          "default": false,
+          "line": 1232
+        },
+        {
+          "id": 16,
+          "name": "Silver Key required",
+          "default": false,
+          "line": 1233
+        },
+        {
+          "id": 32,
+          "name": "Toggle",
+          "default": false,
+          "line": 1234
+        },
+        {
+          "id": 64,
+          "name": "Requires Power",
+          "default": false,
+          "line": 1235
+        },
+        {
+          "id": 128,
+          "name": "Dont Remove",
+          "default": false,
+          "line": 1236
+        },
+        {
+          "id": 256,
+          "name": "Rotating (ignore lip)",
+          "default": false,
+          "line": 1237
+        }
+      ]
+    },
+    {
+      "classname": "func_ending",
+      "description": "Buyable Ending",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 373
+      },
+      "fields": [
+        {
+          "name": "model",
+          "type": "studio",
+          "label": "Model",
+          "default": "\"models/props/\"",
+          "line": 375
+        },
+        {
+          "name": "skin",
+          "type": "integer",
+          "label": "Skin",
+          "default": "0",
+          "line": 376
+        },
+        {
+          "name": "cost",
+          "type": "integer",
+          "label": "Cost",
+          "default": "0",
+          "line": 377
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "func_illusionary",
+      "description": "Static model",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1148
+      },
+      "fields": [
+        {
+          "name": "rendermode",
+          "type": "integer",
+          "label": "rendermode",
+          "default": "4",
+          "line": 1150
+        },
+        {
+          "name": "renderamt",
+          "type": "integer",
+          "label": "renderamt",
+          "default": "255",
+          "line": 1151
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "func_model",
+      "description": "Custom map model",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1039
+      },
+      "fields": [],
+      "flags": []
+    },
+    {
+      "classname": "func_movewall",
+      "description": "Movable Wall, used for rotating brush collision",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1623
+      },
+      "fields": [
+        {
+          "name": "dmg",
+          "type": "integer",
+          "label": "Damage",
+          "default": null,
+          "line": 1631
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "Visible",
+          "default": false,
+          "line": 1627
+        },
+        {
+          "id": 2,
+          "name": "Dmg on Touch",
+          "default": false,
+          "line": 1628
+        },
+        {
+          "id": 4,
+          "name": "Non Blocking",
+          "default": false,
+          "line": 1629
+        }
+      ]
+    },
+    {
+      "classname": "func_oncount",
+      "description": "Counter Target",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1293
+      },
+      "fields": [
+        {
+          "name": "count",
+          "type": "integer",
+          "label": "# to Trigger On",
+          "default": "1",
+          "line": 1295
+        },
+        {
+          "name": "delay",
+          "type": "integer",
+          "label": "Trigger Delay",
+          "default": null,
+          "line": 1296
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "func_plat",
+      "description": "Elevator",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1353
+      },
+      "fields": [
+        {
+          "name": "speed",
+          "type": "integer",
+          "label": "Speed",
+          "default": "150",
+          "line": 1359
+        },
+        {
+          "name": "height",
+          "type": "integer",
+          "label": "Travel altitude (can be negative)",
+          "default": "0",
+          "line": 1360
+        },
+        {
+          "name": "sounds",
+          "type": "choices",
+          "label": "Sound group",
+          "default": "1",
+          "line": 1361
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "Low trigger",
+          "default": false,
+          "line": 1357
+        }
+      ]
+    },
+    {
+      "classname": "func_pushable",
+      "description": "Pushable Walls",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1729
+      },
+      "fields": [
+        {
+          "name": "model",
+          "type": "string",
+          "label": "Sprite Model",
+          "default": "\"progs/s_blood1.spr\"",
+          "line": 1733
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "func_rotate_door",
+      "description": "Rotating Door",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1634
+      },
+      "fields": [
+        {
+          "name": "target",
+          "type": "target_destination",
+          "label": "Name of door parts",
+          "default": null,
+          "line": 1640
+        },
+        {
+          "name": "angles",
+          "type": "string",
+          "label": "Angle to rotate door",
+          "default": null,
+          "line": 1641
+        },
+        {
+          "name": "rotate",
+          "type": "string",
+          "label": "Rotate (x y z)",
+          "default": null,
+          "line": 1642
+        },
+        {
+          "name": "speed",
+          "type": "integer",
+          "label": "Rotation Time",
+          "default": "2",
+          "line": 1643
+        },
+        {
+          "name": "dmg",
+          "type": "integer",
+          "label": "Blocking Damage",
+          "default": "2",
+          "line": 1644
+        },
+        {
+          "name": "deathtype",
+          "type": "string",
+          "label": "Death Message",
+          "default": null,
+          "line": 1645
+        },
+        {
+          "name": "sounds",
+          "type": "choices",
+          "label": "Sounds",
+          "default": "1",
+          "line": 1646
+        },
+        {
+          "name": "noise1",
+          "type": "string",
+          "label": "Stop Sound",
+          "default": null,
+          "line": 1653
+        },
+        {
+          "name": "noise2",
+          "type": "string",
+          "label": "Move Sound",
+          "default": null,
+          "line": 1654
+        },
+        {
+          "name": "noise3",
+          "type": "string",
+          "label": "Blocked Sound",
+          "default": null,
+          "line": 1655
+        },
+        {
+          "name": "killtarget",
+          "type": "string",
+          "label": "Killtarget",
+          "default": null,
+          "line": 1656
+        },
+        {
+          "name": "killtarget2",
+          "type": "string",
+          "label": "Killtarget #2",
+          "default": null,
+          "line": 1657
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "Stay Open",
+          "default": false,
+          "line": 1638
+        }
+      ]
+    },
+    {
+      "classname": "func_rotate_entity",
+      "description": "func_rotate_entity",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1660
+      },
+      "fields": [
+        {
+          "name": "target",
+          "type": "target_destination",
+          "label": "Rotate Object",
+          "default": null,
+          "line": 1667
+        },
+        {
+          "name": "speed",
+          "type": "integer",
+          "label": "Acceleration Time",
+          "default": "0",
+          "line": 1668
+        },
+        {
+          "name": "rotate",
+          "type": "string",
+          "label": "Rate of Rotation",
+          "default": null,
+          "line": 1669
+        },
+        {
+          "name": "dmg",
+          "type": "integer",
+          "label": "Damage",
+          "default": null,
+          "line": 1670
+        },
+        {
+          "name": "deathtype",
+          "type": "string",
+          "label": "Death Message",
+          "default": null,
+          "line": 1671
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "Toggleable",
+          "default": false,
+          "line": 1664
+        },
+        {
+          "id": 2,
+          "name": "Start On",
+          "default": false,
+          "line": 1665
+        }
+      ]
+    },
+    {
+      "classname": "func_rotate_train",
+      "description": "Rotating Train",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1698
+      },
+      "fields": [
+        {
+          "name": "target",
+          "type": "target_destination",
+          "label": "Name of Parts",
+          "default": null,
+          "line": 1700
+        },
+        {
+          "name": "path",
+          "type": "string",
+          "label": "First path_rotate",
+          "default": null,
+          "line": 1701
+        },
+        {
+          "name": "rotate",
+          "type": "string",
+          "label": "Rotation Speed",
+          "default": null,
+          "line": 1702
+        },
+        {
+          "name": "speed",
+          "type": "integer",
+          "label": "Speed",
+          "default": null,
+          "line": 1703
+        },
+        {
+          "name": "dmg",
+          "type": "integer",
+          "label": "Damage",
+          "default": null,
+          "line": 1704
+        },
+        {
+          "name": "deathtype",
+          "type": "string",
+          "label": "Death Message",
+          "default": null,
+          "line": 1705
+        },
+        {
+          "name": "sounds",
+          "type": "choices",
+          "label": "Sounds",
+          "default": "1",
+          "line": 1706
+        },
+        {
+          "name": "noise",
+          "type": "string",
+          "label": "Stop Sound",
+          "default": null,
+          "line": 1711
+        },
+        {
+          "name": "noise1",
+          "type": "string",
+          "label": "Move Sound",
+          "default": null,
+          "line": 1712
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "func_rotating",
+      "description": "Rotateing Brush",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1611
+      },
+      "fields": [],
+      "flags": []
+    },
+    {
+      "classname": "func_teleporter_destination",
+      "description": "Teleporter Destination",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 358
+      },
+      "fields": [
+        {
+          "name": "targetname",
+          "type": "target_source",
+          "label": "Name",
+          "default": null,
+          "line": 360
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "func_teleporter_entrance",
+      "description": "Teleporter Entrance",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 344
+      },
+      "fields": [
+        {
+          "name": "target",
+          "type": "target_destination",
+          "label": "Destination",
+          "default": null,
+          "line": 346
+        },
+        {
+          "name": "cost",
+          "type": "integer",
+          "label": "Cost",
+          "default": null,
+          "line": 347
+        },
+        {
+          "name": "mode",
+          "type": "choices",
+          "label": "Teleporter Mode",
+          "default": "0",
+          "line": 348
+        },
+        {
+          "name": "target2",
+          "type": "target_destination",
+          "label": "[Linked/Timed] Pad",
+          "default": null,
+          "line": 354
+        },
+        {
+          "name": "tpTimer",
+          "type": "integer",
+          "label": "[Timed] Time before return",
+          "default": null,
+          "line": 355
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "func_teleporter_pad",
+      "description": "Teleporter Pad",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 368
+      },
+      "fields": [
+        {
+          "name": "targetname",
+          "type": "target_source",
+          "label": "Name",
+          "default": null,
+          "line": 370
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "func_teleporter_timed",
+      "description": "Teleporter Timed Destination",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 363
+      },
+      "fields": [
+        {
+          "name": "targetname",
+          "type": "target_source",
+          "label": "Name",
+          "default": null,
+          "line": 365
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "func_train",
+      "description": "Moving platform",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1341
+      },
+      "fields": [
+        {
+          "name": "sounds",
+          "type": "choices",
+          "label": "Sound",
+          "default": "1",
+          "line": 1343
+        },
+        {
+          "name": "speed",
+          "type": "integer",
+          "label": "Speed (units per second)",
+          "default": "64",
+          "line": 1348
+        },
+        {
+          "name": "target",
+          "type": "target_source",
+          "label": "First stop target",
+          "default": null,
+          "line": 1349
+        },
+        {
+          "name": "dmg",
+          "type": "integer",
+          "label": "Damage on crush",
+          "default": "0",
+          "line": 1350
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "func_wall",
+      "description": "Wall",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1241
+      },
+      "fields": [
+        {
+          "name": "alpha",
+          "type": "string",
+          "label": "Transparency (0.1 - 1.0)",
+          "default": null,
+          "line": 1243
+        },
+        {
+          "name": "rendermode",
+          "type": "integer",
+          "label": "rendermode",
+          "default": "4",
+          "line": 1244
+        },
+        {
+          "name": "renderamt",
+          "type": "integer",
+          "label": "renderamt",
+          "default": "255",
+          "line": 1245
+        }
+      ],
+      "flags": [
+        {
+          "id": 4,
+          "name": "Glass",
+          "default": false,
+          "line": 1248
+        }
+      ]
+    },
+    {
+      "classname": "game_counter",
+      "description": "Fires when it hits limit",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1787
+      },
+      "fields": [
+        {
+          "name": "master",
+          "type": "string",
+          "label": "Master",
+          "default": null,
+          "line": 1794
+        },
+        {
+          "name": "frags",
+          "type": "integer",
+          "label": "Initial Value",
+          "default": "0",
+          "line": 1795
+        },
+        {
+          "name": "health",
+          "type": "integer",
+          "label": "Limit Value",
+          "default": "10",
+          "line": 1796
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "Remove On fire",
+          "default": false,
+          "line": 1791
+        },
+        {
+          "id": 2,
+          "name": "Reset On fire",
+          "default": true,
+          "line": 1792
+        }
+      ]
+    },
+    {
+      "classname": "game_random",
+      "description": "Fires random entity",
+      "source": {
+        "path": "source/maps/fgd/tb-nzp.fgd",
+        "blob": "e30ae6835a62daebafef9e4b2ed6482b9655582e",
+        "line": 1806
+      },
+      "fields": [
+        {
+          "name": "name",
+          "type": "string",
+          "label": "Entity targetnames",
+          "default": "\"\"",
+          "line": 1808
+        },
+        {
+          "name": "health",
+          "type": "integer",
+          "label": "Max Number",
+          "default": "10",
+          "line": 1809
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "game_screenflash",
+      "description": "Sends screenflash message to server",
+      "source": {
+        "path": "source/maps/fgd/tb-nzp.fgd",
+        "blob": "e30ae6835a62daebafef9e4b2ed6482b9655582e",
+        "line": 1812
+      },
+      "fields": [
+        {
+          "name": "noise",
+          "type": "string",
+          "label": "Sound to play",
+          "default": "\"\"",
+          "line": 1814
+        },
+        {
+          "name": "weapon",
+          "type": "choices",
+          "label": "Screenflash color",
+          "default": "0",
+          "line": 1815
+        },
+        {
+          "name": "ltime",
+          "type": "integer",
+          "label": "Duration",
+          "default": "2",
+          "line": 1820
+        },
+        {
+          "name": "currentammo",
+          "type": "integer",
+          "label": "Round delay if End Round spawnflag is set",
+          "default": "10",
+          "line": 1825
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "End current round",
+          "default": false,
+          "line": 1823
+        }
+      ]
+    },
+    {
+      "classname": "game_songplay",
+      "description": "Plays a track from tracks/ when triggered.",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1815
+      },
+      "fields": [
+        {
+          "name": "aistatus",
+          "type": "string",
+          "label": "Track name (looks in nzp/tracks/)",
+          "default": null,
+          "line": 1817
+        },
+        {
+          "name": "cost",
+          "type": "integer",
+          "label": "Track duration (seconds)",
+          "default": "0",
+          "line": 1818
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "info_changesky",
+      "description": "info_changesky (change skybpx)",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 320
+      },
+      "fields": [
+        {
+          "name": "targetname",
+          "type": "target_source",
+          "label": "Name",
+          "default": null,
+          "line": 322
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "label": "Skybox to change to",
+          "default": null,
+          "line": 323
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "info_command",
+      "description": "Triggered Server Command",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1029
+      },
+      "fields": [
+        {
+          "name": "message",
+          "type": "string",
+          "label": "Command",
+          "default": null,
+          "line": 1031
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "info_intermission",
+      "description": "Intermission camera",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 339
+      },
+      "fields": [
+        {
+          "name": "mangle",
+          "type": "string",
+          "label": "Mangle (Pitch Yaw Roll)",
+          "default": null,
+          "line": 341
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "info_notnull",
+      "description": "info_notnull (spotlight target)",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 331
+      },
+      "fields": [
+        {
+          "name": "use",
+          "type": "string",
+          "label": "self.use",
+          "default": null,
+          "line": 333
+        },
+        {
+          "name": "think",
+          "type": "string",
+          "label": "self.think",
+          "default": null,
+          "line": 334
+        },
+        {
+          "name": "nextthink",
+          "type": "integer",
+          "label": "nextthink",
+          "default": null,
+          "line": 335
+        },
+        {
+          "name": "noise",
+          "type": "string",
+          "label": "noise",
+          "default": null,
+          "line": 336
+        },
+        {
+          "name": "wait",
+          "type": "integer",
+          "label": "wait",
+          "default": null,
+          "line": 337
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "info_null",
+      "description": "info_null (spotlight target)",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 326
+      },
+      "fields": [
+        {
+          "name": "targetname",
+          "type": "target_source",
+          "label": "Name",
+          "default": null,
+          "line": 328
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "info_player_1_spawn",
+      "description": "Player 1 Spawn Point",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 72
+      },
+      "fields": [],
+      "flags": []
+    },
+    {
+      "classname": "info_player_2_spawn",
+      "description": "Player 2 Spawn Point",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 134
+      },
+      "fields": [],
+      "flags": []
+    },
+    {
+      "classname": "info_player_3_spawn",
+      "description": "Player 3 Spawn Point",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 196
+      },
+      "fields": [],
+      "flags": []
+    },
+    {
+      "classname": "info_player_4_spawn",
+      "description": "Player 4 Spawn Point",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 258
+      },
+      "fields": [],
+      "flags": []
+    },
+    {
+      "classname": "info_texlights",
+      "description": "Texture name : Brightness",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 61
+      },
+      "fields": [],
+      "flags": []
+    },
+    {
+      "classname": "item_barricade",
+      "description": "Window Barricade",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 808
+      },
+      "fields": [
+        {
+          "name": "model",
+          "type": "studio",
+          "label": "Model",
+          "default": "\"models/misc/window.mdl\"",
+          "line": 810
+        },
+        {
+          "name": "skin",
+          "type": "integer",
+          "label": "Skin",
+          "default": "0",
+          "line": 811
+        },
+        {
+          "name": "health",
+          "type": "integer",
+          "label": "Starting Boards (-1 for none)",
+          "default": "6",
+          "line": 812
+        },
+        {
+          "name": "health_delay",
+          "type": "integer",
+          "label": "Max/Repairable Boards",
+          "default": "6",
+          "line": 813
+        },
+        {
+          "name": "oldmodel",
+          "type": "string",
+          "label": "Rebuild Sound",
+          "default": "\"sounds/misc/barricade.wav\"",
+          "line": 814
+        },
+        {
+          "name": "aistatus",
+          "type": "string",
+          "label": "Destroy Sound",
+          "default": "\"sounds/misc/barricade_destroy.wav\"",
+          "line": 815
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "No boards/Not Repairable",
+          "default": false,
+          "line": 818
+        }
+      ]
+    },
+    {
+      "classname": "item_radio",
+      "description": "Radio",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 388
+      },
+      "fields": [
+        {
+          "name": "model",
+          "type": "studio",
+          "label": "Model",
+          "default": "\"models/props/radio.mdl\"",
+          "line": 390
+        },
+        {
+          "name": "mins",
+          "type": "vector",
+          "label": "Bounding Box Mins",
+          "default": "\"-8",
+          "line": 391
+        },
+        {
+          "name": "maxs",
+          "type": "vector",
+          "label": "Bounding Box Maxs",
+          "default": "\"8",
+          "line": 392
+        },
+        {
+          "name": "tune",
+          "type": "string",
+          "label": "tune",
+          "default": null,
+          "line": 393
+        },
+        {
+          "name": "length",
+          "type": "integer",
+          "label": "length",
+          "default": null,
+          "line": 394
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "Play Once",
+          "default": false,
+          "line": 397
+        }
+      ]
+    },
+    {
+      "classname": "light_environment",
+      "description": "Environment",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1076
+      },
+      "fields": [
+        {
+          "name": "pitch",
+          "type": "integer",
+          "label": "Pitch",
+          "default": "0",
+          "line": 1078
+        },
+        {
+          "name": "_light",
+          "type": "color255",
+          "label": "Brightness",
+          "default": "\"255",
+          "line": 1079
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "light_spot",
+      "description": "Spotlight",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1114
+      },
+      "fields": [
+        {
+          "name": "_cone",
+          "type": "integer",
+          "label": "Inner (bright) angle",
+          "default": "30",
+          "line": 1116
+        },
+        {
+          "name": "_cone2",
+          "type": "integer",
+          "label": "Outer (fading) angle",
+          "default": "45",
+          "line": 1117
+        },
+        {
+          "name": "pitch",
+          "type": "integer",
+          "label": "Pitch",
+          "default": "-90",
+          "line": 1118
+        },
+        {
+          "name": "_light",
+          "type": "color255",
+          "label": "Brightness",
+          "default": "\"255",
+          "line": 1119
+        },
+        {
+          "name": "_sky",
+          "type": "Choices",
+          "label": "Is Sky",
+          "default": "0",
+          "line": 1120
+        },
+        {
+          "name": "style",
+          "type": "Choices",
+          "label": "Appearance",
+          "default": "0",
+          "line": 1126
+        },
+        {
+          "name": "pattern",
+          "type": "string",
+          "label": "Custom Appearance",
+          "default": null,
+          "line": 1141
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "misc_model",
+      "description": "A point entity for displaying models. A frame range can be given to animate the model. 'frame' can also be used to offset the animation. NOTE: set angle value to 0 if using angles key to rotate mdls",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1736
+      },
+      "fields": [
+        {
+          "name": "skin",
+          "type": "integer",
+          "label": "Skin index (default 0)",
+          "default": ":",
+          "line": 1738
+        },
+        {
+          "name": "model",
+          "type": "studio",
+          "label": "Model Selection (ex progs/model.mdl)",
+          "default": null,
+          "line": 1739
+        },
+        {
+          "name": "frame",
+          "type": "integer",
+          "label": "Single Frame to Display",
+          "default": null,
+          "line": 1740
+        },
+        {
+          "name": "first_frame",
+          "type": "integer",
+          "label": "Start Animation Frame",
+          "default": null,
+          "line": 1741
+        },
+        {
+          "name": "last_frame",
+          "type": "integer",
+          "label": "Last Animation Frame",
+          "default": null,
+          "line": 1742
+        },
+        {
+          "name": "speed",
+          "type": "integer",
+          "label": "1 divided by frames per second (default 0.1)",
+          "default": null,
+          "line": 1743
+        },
+        {
+          "name": "angles",
+          "type": "integer",
+          "label": "set 'angle' to 0 if this is used",
+          "default": null,
+          "line": 1744
+        },
+        {
+          "name": "mdlsz",
+          "type": "integer",
+          "label": "Entity size (x y z)",
+          "default": null,
+          "line": 1745
+        },
+        {
+          "name": "centeroffset",
+          "type": "integer",
+          "label": "Model center offset",
+          "default": null,
+          "line": 1746
+        },
+        {
+          "name": "gamemode_limiter",
+          "type": "choices",
+          "label": "Only Appear on specified Game Mode",
+          "default": "0",
+          "line": 1747
+        },
+        {
+          "name": "month_limiter",
+          "type": "choices",
+          "label": "Only Appear on specified Month of the Year",
+          "default": "0",
+          "line": 1756
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "Gravity",
+          "default": false,
+          "line": 1774
+        },
+        {
+          "id": 2,
+          "name": "Solid",
+          "default": false,
+          "line": 1775
+        },
+        {
+          "id": 4,
+          "name": "Back and forth",
+          "default": false,
+          "line": 1776
+        },
+        {
+          "id": 8,
+          "name": "Only once",
+          "default": false,
+          "line": 1777
+        },
+        {
+          "id": 16,
+          "name": "Play count times",
+          "default": false,
+          "line": 1778
+        },
+        {
+          "id": 32,
+          "name": "Start Hidden",
+          "default": false,
+          "line": 1779
+        },
+        {
+          "id": 64,
+          "name": "Fullbright",
+          "default": false,
+          "line": 1780
+        }
+      ]
+    },
+    {
+      "classname": "path_rotate",
+      "description": "Path_Rotate",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1674
+      },
+      "fields": [
+        {
+          "name": "rotate",
+          "type": "string",
+          "label": "Rotation Speed",
+          "default": null,
+          "line": 1686
+        },
+        {
+          "name": "angles",
+          "type": "string",
+          "label": "Angles",
+          "default": null,
+          "line": 1687
+        },
+        {
+          "name": "speed",
+          "type": "integer",
+          "label": "Speed or Move Time",
+          "default": null,
+          "line": 1688
+        },
+        {
+          "name": "wait",
+          "type": "integer",
+          "label": "Wait Time",
+          "default": null,
+          "line": 1689
+        },
+        {
+          "name": "dmg",
+          "type": "integer",
+          "label": "Damage",
+          "default": null,
+          "line": 1690
+        },
+        {
+          "name": "event",
+          "type": "string",
+          "label": "Event Target",
+          "default": null,
+          "line": 1691
+        },
+        {
+          "name": "message",
+          "type": "string",
+          "label": "Event Message",
+          "default": null,
+          "line": 1692
+        },
+        {
+          "name": "noise",
+          "type": "string",
+          "label": "Stop Noise",
+          "default": null,
+          "line": 1693
+        },
+        {
+          "name": "noise1",
+          "type": "string",
+          "label": "Move Noise",
+          "default": null,
+          "line": 1694
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "Rotation set",
+          "default": false,
+          "line": 1678
+        },
+        {
+          "id": 2,
+          "name": "Angles set",
+          "default": false,
+          "line": 1679
+        },
+        {
+          "id": 4,
+          "name": "Stop",
+          "default": false,
+          "line": 1680
+        },
+        {
+          "id": 8,
+          "name": "No Rotate",
+          "default": false,
+          "line": 1681
+        },
+        {
+          "id": 16,
+          "name": "Cause Damage",
+          "default": false,
+          "line": 1682
+        },
+        {
+          "id": 32,
+          "name": "Move Time",
+          "default": false,
+          "line": 1683
+        },
+        {
+          "id": 64,
+          "name": "Set Damage",
+          "default": false,
+          "line": 1684
+        }
+      ]
+    },
+    {
+      "classname": "perk_deadshot",
+      "description": "Deadshot Daiquiri",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 678
+      },
+      "fields": [
+        {
+          "name": "model",
+          "type": "studio",
+          "label": "Model",
+          "default": "\"models/machines/hl_scale/deadshot.mdl\"",
+          "line": 680
+        },
+        {
+          "name": "skin",
+          "type": "integer",
+          "label": "Skin",
+          "default": "0",
+          "line": 681
+        },
+        {
+          "name": "aistatus",
+          "type": "string",
+          "label": "Perk Sting",
+          "default": "\"\"",
+          "line": 682
+        },
+        {
+          "name": "anim_weapon_time",
+          "type": "integer",
+          "label": "Perk Sting Duration (s)",
+          "default": "0",
+          "line": 683
+        },
+        {
+          "name": "powerup_vo",
+          "type": "string",
+          "label": "Perk Jingle",
+          "default": "\"\"",
+          "line": 684
+        },
+        {
+          "name": "anim_weapon2_time",
+          "type": "integer",
+          "label": "Perk Jingle Duration (s)",
+          "default": "0",
+          "line": 685
+        },
+        {
+          "name": "cost",
+          "type": "integer",
+          "label": "Perk Cost (Normal)",
+          "default": "1500",
+          "line": 686
+        },
+        {
+          "name": "cost2",
+          "type": "integer",
+          "label": "Perk Cost (Co-Op, 0 for no change)",
+          "default": "0",
+          "line": 687
+        },
+        {
+          "name": "oldmodel",
+          "type": "string",
+          "label": "Player Trigger Sound",
+          "default": "\"sounds/machines/perk_drink.wav\"",
+          "line": 688
+        },
+        {
+          "name": "weapon2model",
+          "type": "studio",
+          "label": "View Model",
+          "default": "\"models/machines/v_perk.mdl\"",
+          "line": 689
+        },
+        {
+          "name": "weapon_animduration",
+          "type": "integer",
+          "label": "View Model Start Frame",
+          "default": "0",
+          "line": 690
+        },
+        {
+          "name": "weapon2_animduration",
+          "type": "integer",
+          "label": "View Model End Frame",
+          "default": "31",
+          "line": 691
+        },
+        {
+          "name": "perk_purchase_limit_solo",
+          "type": "integer",
+          "label": "Maximum amount of uses before leave (solo)",
+          "default": "0",
+          "line": 692
+        },
+        {
+          "name": "perk_purchase_limit_coop",
+          "type": "integer",
+          "label": "Maximum amount of uses before leave (co-op)",
+          "default": "0",
+          "line": 693
+        },
+        {
+          "name": "perk_requires_power_solo",
+          "type": "integer",
+          "label": "-1 for Always On, 1 for Power Switch dependency (solo)",
+          "default": "1",
+          "line": 694
+        },
+        {
+          "name": "perk_requires_power_coop",
+          "type": "integer",
+          "label": "-1 for Always On, 1 for Power Switch dependency (coop)",
+          "default": "1",
+          "line": 695
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "No Light",
+          "default": false,
+          "line": 698
+        },
+        {
+          "id": 2,
+          "name": "Red Light",
+          "default": false,
+          "line": 699
+        },
+        {
+          "id": 4,
+          "name": "Green Light",
+          "default": false,
+          "line": 700
+        },
+        {
+          "id": 8,
+          "name": "Blue Light",
+          "default": false,
+          "line": 701
+        },
+        {
+          "id": 16,
+          "name": "Orange Light",
+          "default": false,
+          "line": 702
+        },
+        {
+          "id": 32,
+          "name": "Purple Light",
+          "default": false,
+          "line": 703
+        },
+        {
+          "id": 64,
+          "name": "Cyan Light",
+          "default": false,
+          "line": 704
+        },
+        {
+          "id": 128,
+          "name": "Pink Light",
+          "default": false,
+          "line": 705
+        },
+        {
+          "id": 256,
+          "name": "Lime Light",
+          "default": false,
+          "line": 706
+        },
+        {
+          "id": 512,
+          "name": "Yellow Light",
+          "default": true,
+          "line": 707
+        },
+        {
+          "id": 2048,
+          "name": "Allow Purchase while Prone",
+          "default": false,
+          "line": 708
+        },
+        {
+          "id": 4096,
+          "name": "Silent leave (no animation)",
+          "default": false,
+          "line": 709
+        }
+      ]
+    },
+    {
+      "classname": "perk_double",
+      "description": "Double Tap Root Beer",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 533
+      },
+      "fields": [
+        {
+          "name": "model",
+          "type": "studio",
+          "label": "Model",
+          "default": "\"models/machines/hl_scale/double_tap_2.mdl\"",
+          "line": 535
+        },
+        {
+          "name": "skin",
+          "type": "integer",
+          "label": "Skin",
+          "default": "0",
+          "line": 536
+        },
+        {
+          "name": "aistatus",
+          "type": "string",
+          "label": "Perk Sting",
+          "default": "\"\"",
+          "line": 537
+        },
+        {
+          "name": "anim_weapon_time",
+          "type": "integer",
+          "label": "Perk Sting Duration (s)",
+          "default": "0",
+          "line": 538
+        },
+        {
+          "name": "powerup_vo",
+          "type": "string",
+          "label": "Perk Jingle",
+          "default": "\"\"",
+          "line": 539
+        },
+        {
+          "name": "anim_weapon2_time",
+          "type": "integer",
+          "label": "Perk Jingle Duration (s)",
+          "default": "0",
+          "line": 540
+        },
+        {
+          "name": "cost",
+          "type": "integer",
+          "label": "Perk Cost (Normal)",
+          "default": "2000",
+          "line": 541
+        },
+        {
+          "name": "cost2",
+          "type": "integer",
+          "label": "Perk Cost (Co-Op, 0 for no change)",
+          "default": "0",
+          "line": 542
+        },
+        {
+          "name": "oldmodel",
+          "type": "string",
+          "label": "Player Trigger Sound",
+          "default": "\"sounds/machines/perk_drink.wav\"",
+          "line": 543
+        },
+        {
+          "name": "weapon2model",
+          "type": "studio",
+          "label": "View Model",
+          "default": "\"models/machines/v_perk.mdl\"",
+          "line": 544
+        },
+        {
+          "name": "weapon_animduration",
+          "type": "integer",
+          "label": "View Model Start Frame",
+          "default": "0",
+          "line": 545
+        },
+        {
+          "name": "weapon2_animduration",
+          "type": "integer",
+          "label": "View Model End Frame",
+          "default": "31",
+          "line": 546
+        },
+        {
+          "name": "perk_purchase_limit_solo",
+          "type": "integer",
+          "label": "Maximum amount of uses before leave (solo)",
+          "default": "0",
+          "line": 547
+        },
+        {
+          "name": "perk_purchase_limit_coop",
+          "type": "integer",
+          "label": "Maximum amount of uses before leave (co-op)",
+          "default": "0",
+          "line": 548
+        },
+        {
+          "name": "perk_requires_power_solo",
+          "type": "integer",
+          "label": "-1 for Always On, 1 for Power Switch dependency (solo)",
+          "default": "1",
+          "line": 549
+        },
+        {
+          "name": "perk_requires_power_coop",
+          "type": "integer",
+          "label": "-1 for Always On, 1 for Power Switch dependency (coop)",
+          "default": "1",
+          "line": 550
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "No Light",
+          "default": false,
+          "line": 553
+        },
+        {
+          "id": 2,
+          "name": "Red Light",
+          "default": false,
+          "line": 554
+        },
+        {
+          "id": 4,
+          "name": "Green Light",
+          "default": false,
+          "line": 555
+        },
+        {
+          "id": 8,
+          "name": "Blue Light",
+          "default": false,
+          "line": 556
+        },
+        {
+          "id": 16,
+          "name": "Orange Light",
+          "default": false,
+          "line": 557
+        },
+        {
+          "id": 32,
+          "name": "Purple Light",
+          "default": false,
+          "line": 558
+        },
+        {
+          "id": 64,
+          "name": "Cyan Light",
+          "default": false,
+          "line": 559
+        },
+        {
+          "id": 128,
+          "name": "Pink Light",
+          "default": false,
+          "line": 560
+        },
+        {
+          "id": 256,
+          "name": "Lime Light",
+          "default": false,
+          "line": 561
+        },
+        {
+          "id": 512,
+          "name": "Yellow Light",
+          "default": true,
+          "line": 562
+        },
+        {
+          "id": 1024,
+          "name": "No damage increase (Double-Tap 1.0)",
+          "default": false,
+          "line": 563
+        },
+        {
+          "id": 2048,
+          "name": "Allow Purchase while Prone",
+          "default": false,
+          "line": 564
+        },
+        {
+          "id": 4096,
+          "name": "Silent leave (no animation)",
+          "default": false,
+          "line": 565
+        }
+      ]
+    },
+    {
+      "classname": "perk_flopper",
+      "description": "PhD Flopper",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 497
+      },
+      "fields": [
+        {
+          "name": "model",
+          "type": "studio",
+          "label": "Model",
+          "default": "\"models/machines/hl_scale/flopper.mdl\"",
+          "line": 499
+        },
+        {
+          "name": "skin",
+          "type": "integer",
+          "label": "Skin",
+          "default": "0",
+          "line": 500
+        },
+        {
+          "name": "aistatus",
+          "type": "string",
+          "label": "Perk Sting",
+          "default": "\"\"",
+          "line": 501
+        },
+        {
+          "name": "anim_weapon_time",
+          "type": "integer",
+          "label": "Perk Sting Duration (s)",
+          "default": "0",
+          "line": 502
+        },
+        {
+          "name": "powerup_vo",
+          "type": "string",
+          "label": "Perk Jingle",
+          "default": "\"\"",
+          "line": 503
+        },
+        {
+          "name": "anim_weapon2_time",
+          "type": "integer",
+          "label": "Perk Jingle Duration (s)",
+          "default": "0",
+          "line": 504
+        },
+        {
+          "name": "cost",
+          "type": "integer",
+          "label": "Perk Cost (Normal)",
+          "default": "2000",
+          "line": 505
+        },
+        {
+          "name": "cost2",
+          "type": "integer",
+          "label": "Perk Cost (Co-Op, 0 for no change)",
+          "default": "0",
+          "line": 506
+        },
+        {
+          "name": "oldmodel",
+          "type": "string",
+          "label": "Player Trigger Sound",
+          "default": "\"sounds/machines/perk_drink.wav\"",
+          "line": 507
+        },
+        {
+          "name": "weapon2model",
+          "type": "studio",
+          "label": "View Model",
+          "default": "\"models/machines/v_perk.mdl\"",
+          "line": 508
+        },
+        {
+          "name": "weapon_animduration",
+          "type": "integer",
+          "label": "View Model Start Frame",
+          "default": "0",
+          "line": 509
+        },
+        {
+          "name": "weapon2_animduration",
+          "type": "integer",
+          "label": "View Model End Frame",
+          "default": "31",
+          "line": 510
+        },
+        {
+          "name": "perk_purchase_limit_solo",
+          "type": "integer",
+          "label": "Maximum amount of uses before leave (solo)",
+          "default": "0",
+          "line": 511
+        },
+        {
+          "name": "perk_purchase_limit_coop",
+          "type": "integer",
+          "label": "Maximum amount of uses before leave (co-op)",
+          "default": "0",
+          "line": 512
+        },
+        {
+          "name": "perk_requires_power_solo",
+          "type": "integer",
+          "label": "-1 for Always On, 1 for Power Switch dependency (solo)",
+          "default": "1",
+          "line": 513
+        },
+        {
+          "name": "perk_requires_power_coop",
+          "type": "integer",
+          "label": "-1 for Always On, 1 for Power Switch dependency (coop)",
+          "default": "1",
+          "line": 514
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "No Light",
+          "default": false,
+          "line": 517
+        },
+        {
+          "id": 2,
+          "name": "Red Light",
+          "default": false,
+          "line": 518
+        },
+        {
+          "id": 4,
+          "name": "Green Light",
+          "default": false,
+          "line": 519
+        },
+        {
+          "id": 8,
+          "name": "Blue Light",
+          "default": false,
+          "line": 520
+        },
+        {
+          "id": 16,
+          "name": "Orange Light",
+          "default": false,
+          "line": 521
+        },
+        {
+          "id": 32,
+          "name": "Purple Light",
+          "default": false,
+          "line": 522
+        },
+        {
+          "id": 64,
+          "name": "Cyan Light",
+          "default": false,
+          "line": 523
+        },
+        {
+          "id": 128,
+          "name": "Pink Light",
+          "default": false,
+          "line": 524
+        },
+        {
+          "id": 256,
+          "name": "Lime Light",
+          "default": false,
+          "line": 525
+        },
+        {
+          "id": 512,
+          "name": "Yellow Light",
+          "default": true,
+          "line": 526
+        },
+        {
+          "id": 2048,
+          "name": "Allow Purchase while Prone",
+          "default": false,
+          "line": 527
+        },
+        {
+          "id": 4096,
+          "name": "Silent leave (no animation)",
+          "default": false,
+          "line": 528
+        }
+      ]
+    },
+    {
+      "classname": "perk_juggernog",
+      "description": "Jugger-Nog",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 461
+      },
+      "fields": [
+        {
+          "name": "model",
+          "type": "studio",
+          "label": "Model",
+          "default": "\"models/machines/hl_scale/juggernog.mdl\"",
+          "line": 463
+        },
+        {
+          "name": "skin",
+          "type": "integer",
+          "label": "Skin",
+          "default": "0",
+          "line": 464
+        },
+        {
+          "name": "aistatus",
+          "type": "string",
+          "label": "Perk Sting",
+          "default": "\"\"",
+          "line": 465
+        },
+        {
+          "name": "anim_weapon_time",
+          "type": "integer",
+          "label": "Perk Sting Duration (s)",
+          "default": "0",
+          "line": 466
+        },
+        {
+          "name": "powerup_vo",
+          "type": "string",
+          "label": "Perk Jingle",
+          "default": "\"\"",
+          "line": 467
+        },
+        {
+          "name": "anim_weapon2_time",
+          "type": "integer",
+          "label": "Perk Jingle Duration (s)",
+          "default": "0",
+          "line": 468
+        },
+        {
+          "name": "cost",
+          "type": "integer",
+          "label": "Perk Cost (Normal)",
+          "default": "2500",
+          "line": 469
+        },
+        {
+          "name": "cost2",
+          "type": "integer",
+          "label": "Perk Cost (Co-Op, 0 for no change)",
+          "default": "0",
+          "line": 470
+        },
+        {
+          "name": "oldmodel",
+          "type": "string",
+          "label": "Player Trigger Sound",
+          "default": "\"sounds/machines/perk_drink.wav\"",
+          "line": 471
+        },
+        {
+          "name": "weapon2model",
+          "type": "studio",
+          "label": "View Model",
+          "default": "\"models/machines/v_perk.mdl\"",
+          "line": 472
+        },
+        {
+          "name": "weapon_animduration",
+          "type": "integer",
+          "label": "View Model Start Frame",
+          "default": "0",
+          "line": 473
+        },
+        {
+          "name": "weapon2_animduration",
+          "type": "integer",
+          "label": "View Model End Frame",
+          "default": "31",
+          "line": 474
+        },
+        {
+          "name": "perk_purchase_limit_solo",
+          "type": "integer",
+          "label": "Maximum amount of uses before leave (solo)",
+          "default": "0",
+          "line": 475
+        },
+        {
+          "name": "perk_purchase_limit_coop",
+          "type": "integer",
+          "label": "Maximum amount of uses before leave (co-op)",
+          "default": "0",
+          "line": 476
+        },
+        {
+          "name": "perk_requires_power_solo",
+          "type": "integer",
+          "label": "-1 for Always On, 1 for Power Switch dependency (solo)",
+          "default": "1",
+          "line": 477
+        },
+        {
+          "name": "perk_requires_power_coop",
+          "type": "integer",
+          "label": "-1 for Always On, 1 for Power Switch dependency (coop)",
+          "default": "1",
+          "line": 478
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "No Light",
+          "default": false,
+          "line": 481
+        },
+        {
+          "id": 2,
+          "name": "Red Light",
+          "default": false,
+          "line": 482
+        },
+        {
+          "id": 4,
+          "name": "Green Light",
+          "default": false,
+          "line": 483
+        },
+        {
+          "id": 8,
+          "name": "Blue Light",
+          "default": false,
+          "line": 484
+        },
+        {
+          "id": 16,
+          "name": "Orange Light",
+          "default": false,
+          "line": 485
+        },
+        {
+          "id": 32,
+          "name": "Purple Light",
+          "default": false,
+          "line": 486
+        },
+        {
+          "id": 64,
+          "name": "Cyan Light",
+          "default": false,
+          "line": 487
+        },
+        {
+          "id": 128,
+          "name": "Pink Light",
+          "default": true,
+          "line": 488
+        },
+        {
+          "id": 256,
+          "name": "Lime Light",
+          "default": false,
+          "line": 489
+        },
+        {
+          "id": 512,
+          "name": "Yellow Light",
+          "default": false,
+          "line": 490
+        },
+        {
+          "id": 2048,
+          "name": "Allow Purchase while Prone",
+          "default": false,
+          "line": 491
+        },
+        {
+          "id": 4096,
+          "name": "Silent leave (no animation)",
+          "default": false,
+          "line": 492
+        }
+      ]
+    },
+    {
+      "classname": "perk_mule",
+      "description": "Mule Kick",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 714
+      },
+      "fields": [
+        {
+          "name": "model",
+          "type": "studio",
+          "label": "Model",
+          "default": "\"models/machines/hl_scale/mulekick.mdl\"",
+          "line": 716
+        },
+        {
+          "name": "skin",
+          "type": "integer",
+          "label": "Skin",
+          "default": "0",
+          "line": 717
+        },
+        {
+          "name": "aistatus",
+          "type": "string",
+          "label": "Perk Sting",
+          "default": "\"\"",
+          "line": 718
+        },
+        {
+          "name": "anim_weapon_time",
+          "type": "integer",
+          "label": "Perk Sting Duration (s)",
+          "default": "0",
+          "line": 719
+        },
+        {
+          "name": "powerup_vo",
+          "type": "string",
+          "label": "Perk Jingle",
+          "default": "\"\"",
+          "line": 720
+        },
+        {
+          "name": "anim_weapon2_time",
+          "type": "integer",
+          "label": "Perk Jingle Duration (s)",
+          "default": "0",
+          "line": 721
+        },
+        {
+          "name": "cost",
+          "type": "integer",
+          "label": "Perk Cost (Normal)",
+          "default": "4000",
+          "line": 722
+        },
+        {
+          "name": "cost2",
+          "type": "integer",
+          "label": "Perk Cost (Co-Op, 0 for no change)",
+          "default": "0",
+          "line": 723
+        },
+        {
+          "name": "oldmodel",
+          "type": "string",
+          "label": "Player Trigger Sound",
+          "default": "\"sounds/machines/perk_drink.wav\"",
+          "line": 724
+        },
+        {
+          "name": "weapon2model",
+          "type": "studio",
+          "label": "View Model",
+          "default": "\"models/machines/v_perk.mdl\"",
+          "line": 725
+        },
+        {
+          "name": "weapon_animduration",
+          "type": "integer",
+          "label": "View Model Start Frame",
+          "default": "0",
+          "line": 726
+        },
+        {
+          "name": "weapon2_animduration",
+          "type": "integer",
+          "label": "View Model End Frame",
+          "default": "31",
+          "line": 727
+        },
+        {
+          "name": "perk_purchase_limit_solo",
+          "type": "integer",
+          "label": "Maximum amount of uses before leave (solo)",
+          "default": "0",
+          "line": 728
+        },
+        {
+          "name": "perk_purchase_limit_coop",
+          "type": "integer",
+          "label": "Maximum amount of uses before leave (co-op)",
+          "default": "0",
+          "line": 729
+        },
+        {
+          "name": "perk_requires_power_solo",
+          "type": "integer",
+          "label": "-1 for Always On, 1 for Power Switch dependency (solo)",
+          "default": "1",
+          "line": 730
+        },
+        {
+          "name": "perk_requires_power_coop",
+          "type": "integer",
+          "label": "-1 for Always On, 1 for Power Switch dependency (coop)",
+          "default": "1",
+          "line": 731
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "No Light",
+          "default": false,
+          "line": 734
+        },
+        {
+          "id": 2,
+          "name": "Red Light",
+          "default": false,
+          "line": 735
+        },
+        {
+          "id": 4,
+          "name": "Green Light",
+          "default": false,
+          "line": 736
+        },
+        {
+          "id": 8,
+          "name": "Blue Light",
+          "default": false,
+          "line": 737
+        },
+        {
+          "id": 16,
+          "name": "Orange Light",
+          "default": false,
+          "line": 738
+        },
+        {
+          "id": 32,
+          "name": "Purple Light",
+          "default": false,
+          "line": 739
+        },
+        {
+          "id": 64,
+          "name": "Cyan Light",
+          "default": false,
+          "line": 740
+        },
+        {
+          "id": 128,
+          "name": "Pink Light",
+          "default": false,
+          "line": 741
+        },
+        {
+          "id": 256,
+          "name": "Lime Light",
+          "default": true,
+          "line": 742
+        },
+        {
+          "id": 512,
+          "name": "Yellow Light",
+          "default": false,
+          "line": 743
+        },
+        {
+          "id": 2048,
+          "name": "Allow Purchase while Prone",
+          "default": false,
+          "line": 744
+        },
+        {
+          "id": 4096,
+          "name": "Silent leave (no animation)",
+          "default": false,
+          "line": 745
+        }
+      ]
+    },
+    {
+      "classname": "perk_revive",
+      "description": "Quick Revive",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 606
+      },
+      "fields": [
+        {
+          "name": "model",
+          "type": "studio",
+          "label": "Model",
+          "default": "\"models/machines/hl_scale/quick_revive.mdl\"",
+          "line": 608
+        },
+        {
+          "name": "skin",
+          "type": "integer",
+          "label": "Skin",
+          "default": "0",
+          "line": 609
+        },
+        {
+          "name": "aistatus",
+          "type": "string",
+          "label": "Perk Sting",
+          "default": "\"\"",
+          "line": 610
+        },
+        {
+          "name": "anim_weapon_time",
+          "type": "integer",
+          "label": "Perk Sting Duration (s)",
+          "default": "0",
+          "line": 611
+        },
+        {
+          "name": "powerup_vo",
+          "type": "string",
+          "label": "Perk Jingle",
+          "default": "\"\"",
+          "line": 612
+        },
+        {
+          "name": "anim_weapon2_time",
+          "type": "integer",
+          "label": "Perk Jingle Duration (s)",
+          "default": "0",
+          "line": 613
+        },
+        {
+          "name": "cost",
+          "type": "integer",
+          "label": "Perk Cost (Normal)",
+          "default": "500",
+          "line": 614
+        },
+        {
+          "name": "cost2",
+          "type": "integer",
+          "label": "Perk Cost (Co-Op, 0 for no change)",
+          "default": "1500",
+          "line": 615
+        },
+        {
+          "name": "oldmodel",
+          "type": "string",
+          "label": "Player Trigger Sound",
+          "default": "\"sounds/machines/perk_drink.wav\"",
+          "line": 616
+        },
+        {
+          "name": "weapon2model",
+          "type": "studio",
+          "label": "View Model",
+          "default": "\"models/machines/v_perk.mdl\"",
+          "line": 617
+        },
+        {
+          "name": "weapon_animduration",
+          "type": "integer",
+          "label": "View Model Start Frame",
+          "default": "0",
+          "line": 618
+        },
+        {
+          "name": "weapon2_animduration",
+          "type": "integer",
+          "label": "View Model End Frame",
+          "default": "31",
+          "line": 619
+        },
+        {
+          "name": "perk_purchase_limit_solo",
+          "type": "integer",
+          "label": "Maximum amount of uses before leave (solo)",
+          "default": "3",
+          "line": 620
+        },
+        {
+          "name": "perk_purchase_limit_coop",
+          "type": "integer",
+          "label": "Maximum amount of uses before leave (co-op)",
+          "default": "0",
+          "line": 621
+        },
+        {
+          "name": "perk_requires_power_solo",
+          "type": "integer",
+          "label": "-1 for Always On, 1 for Power Switch dependency (solo)",
+          "default": "-1",
+          "line": 622
+        },
+        {
+          "name": "perk_requires_power_coop",
+          "type": "integer",
+          "label": "-1 for Always On, 1 for Power Switch dependency (coop)",
+          "default": "1",
+          "line": 623
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "No Light",
+          "default": false,
+          "line": 626
+        },
+        {
+          "id": 2,
+          "name": "Red Light",
+          "default": false,
+          "line": 627
+        },
+        {
+          "id": 4,
+          "name": "Green Light",
+          "default": false,
+          "line": 628
+        },
+        {
+          "id": 8,
+          "name": "Blue Light",
+          "default": false,
+          "line": 629
+        },
+        {
+          "id": 16,
+          "name": "Orange Light",
+          "default": false,
+          "line": 630
+        },
+        {
+          "id": 32,
+          "name": "Purple Light",
+          "default": false,
+          "line": 631
+        },
+        {
+          "id": 64,
+          "name": "Cyan Light",
+          "default": true,
+          "line": 632
+        },
+        {
+          "id": 128,
+          "name": "Pink Light",
+          "default": false,
+          "line": 633
+        },
+        {
+          "id": 256,
+          "name": "Lime Light",
+          "default": false,
+          "line": 634
+        },
+        {
+          "id": 512,
+          "name": "Yellow Light",
+          "default": false,
+          "line": 635
+        },
+        {
+          "id": 2048,
+          "name": "Allow Purchase while Prone",
+          "default": false,
+          "line": 636
+        },
+        {
+          "id": 4096,
+          "name": "Silent leave (no animation)",
+          "default": false,
+          "line": 637
+        }
+      ]
+    },
+    {
+      "classname": "perk_speed",
+      "description": "Speed Cola",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 570
+      },
+      "fields": [
+        {
+          "name": "model",
+          "type": "studio",
+          "label": "Model",
+          "default": "\"models/machines/hl_scale/speed_cola.mdl\"",
+          "line": 572
+        },
+        {
+          "name": "skin",
+          "type": "integer",
+          "label": "Skin",
+          "default": "0",
+          "line": 573
+        },
+        {
+          "name": "aistatus",
+          "type": "string",
+          "label": "Perk Sting",
+          "default": "\"\"",
+          "line": 574
+        },
+        {
+          "name": "anim_weapon_time",
+          "type": "integer",
+          "label": "Perk Sting Duration (s)",
+          "default": "0",
+          "line": 575
+        },
+        {
+          "name": "powerup_vo",
+          "type": "string",
+          "label": "Perk Jingle",
+          "default": "\"\"",
+          "line": 576
+        },
+        {
+          "name": "anim_weapon2_time",
+          "type": "integer",
+          "label": "Perk Jingle Duration (s)",
+          "default": "0",
+          "line": 577
+        },
+        {
+          "name": "cost",
+          "type": "integer",
+          "label": "Perk Cost (Normal)",
+          "default": "3000",
+          "line": 578
+        },
+        {
+          "name": "cost2",
+          "type": "integer",
+          "label": "Perk Cost (Co-Op, 0 for no change)",
+          "default": "0",
+          "line": 579
+        },
+        {
+          "name": "oldmodel",
+          "type": "string",
+          "label": "Player Trigger Sound",
+          "default": "\"sounds/machines/perk_drink.wav\"",
+          "line": 580
+        },
+        {
+          "name": "weapon2model",
+          "type": "studio",
+          "label": "View Model",
+          "default": "\"models/machines/v_perk.mdl\"",
+          "line": 581
+        },
+        {
+          "name": "weapon_animduration",
+          "type": "integer",
+          "label": "View Model Start Frame",
+          "default": "0",
+          "line": 582
+        },
+        {
+          "name": "weapon2_animduration",
+          "type": "integer",
+          "label": "View Model End Frame",
+          "default": "31",
+          "line": 583
+        },
+        {
+          "name": "perk_purchase_limit_solo",
+          "type": "integer",
+          "label": "Maximum amount of uses before leave (solo)",
+          "default": "0",
+          "line": 584
+        },
+        {
+          "name": "perk_purchase_limit_coop",
+          "type": "integer",
+          "label": "Maximum amount of uses before leave (co-op)",
+          "default": "0",
+          "line": 585
+        },
+        {
+          "name": "perk_requires_power_solo",
+          "type": "integer",
+          "label": "-1 for Always On, 1 for Power Switch dependency (solo)",
+          "default": "1",
+          "line": 586
+        },
+        {
+          "name": "perk_requires_power_coop",
+          "type": "integer",
+          "label": "-1 for Always On, 1 for Power Switch dependency (coop)",
+          "default": "1",
+          "line": 587
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "No Light",
+          "default": false,
+          "line": 590
+        },
+        {
+          "id": 2,
+          "name": "Red Light",
+          "default": false,
+          "line": 591
+        },
+        {
+          "id": 4,
+          "name": "Green Light",
+          "default": false,
+          "line": 592
+        },
+        {
+          "id": 8,
+          "name": "Blue Light",
+          "default": false,
+          "line": 593
+        },
+        {
+          "id": 16,
+          "name": "Orange Light",
+          "default": false,
+          "line": 594
+        },
+        {
+          "id": 32,
+          "name": "Purple Light",
+          "default": false,
+          "line": 595
+        },
+        {
+          "id": 64,
+          "name": "Cyan Light",
+          "default": false,
+          "line": 596
+        },
+        {
+          "id": 128,
+          "name": "Pink Light",
+          "default": false,
+          "line": 597
+        },
+        {
+          "id": 256,
+          "name": "Lime Light",
+          "default": true,
+          "line": 598
+        },
+        {
+          "id": 512,
+          "name": "Yellow Light",
+          "default": false,
+          "line": 599
+        },
+        {
+          "id": 2048,
+          "name": "Allow Purchase while Prone",
+          "default": false,
+          "line": 600
+        },
+        {
+          "id": 4096,
+          "name": "Silent leave (no animation)",
+          "default": false,
+          "line": 601
+        }
+      ]
+    },
+    {
+      "classname": "perk_staminup",
+      "description": "Stamin-Up",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 642
+      },
+      "fields": [
+        {
+          "name": "model",
+          "type": "studio",
+          "label": "Model",
+          "default": "\"models/machines/hl_scale/staminup.mdl\"",
+          "line": 644
+        },
+        {
+          "name": "skin",
+          "type": "integer",
+          "label": "Skin",
+          "default": "0",
+          "line": 645
+        },
+        {
+          "name": "aistatus",
+          "type": "string",
+          "label": "Perk Sting",
+          "default": "\"\"",
+          "line": 646
+        },
+        {
+          "name": "anim_weapon_time",
+          "type": "integer",
+          "label": "Perk Sting Duration (s)",
+          "default": "0",
+          "line": 647
+        },
+        {
+          "name": "powerup_vo",
+          "type": "string",
+          "label": "Perk Jingle",
+          "default": "\"\"",
+          "line": 648
+        },
+        {
+          "name": "anim_weapon2_time",
+          "type": "integer",
+          "label": "Perk Jingle Duration (s)",
+          "default": "0",
+          "line": 649
+        },
+        {
+          "name": "cost",
+          "type": "integer",
+          "label": "Perk Cost (Normal)",
+          "default": "2000",
+          "line": 650
+        },
+        {
+          "name": "cost2",
+          "type": "integer",
+          "label": "Perk Cost (Co-Op, 0 for no change)",
+          "default": "0",
+          "line": 651
+        },
+        {
+          "name": "oldmodel",
+          "type": "string",
+          "label": "Player Trigger Sound",
+          "default": "\"sounds/machines/perk_drink.wav\"",
+          "line": 652
+        },
+        {
+          "name": "weapon2model",
+          "type": "studio",
+          "label": "View Model",
+          "default": "\"models/machines/v_perk.mdl\"",
+          "line": 653
+        },
+        {
+          "name": "weapon_animduration",
+          "type": "integer",
+          "label": "View Model Start Frame",
+          "default": "0",
+          "line": 654
+        },
+        {
+          "name": "weapon2_animduration",
+          "type": "integer",
+          "label": "View Model End Frame",
+          "default": "31",
+          "line": 655
+        },
+        {
+          "name": "perk_purchase_limit_solo",
+          "type": "integer",
+          "label": "Maximum amount of uses before leave (solo)",
+          "default": "0",
+          "line": 656
+        },
+        {
+          "name": "perk_purchase_limit_coop",
+          "type": "integer",
+          "label": "Maximum amount of uses before leave (co-op)",
+          "default": "0",
+          "line": 657
+        },
+        {
+          "name": "perk_requires_power_solo",
+          "type": "integer",
+          "label": "-1 for Always On, 1 for Power Switch dependency (solo)",
+          "default": "1",
+          "line": 658
+        },
+        {
+          "name": "perk_requires_power_coop",
+          "type": "integer",
+          "label": "-1 for Always On, 1 for Power Switch dependency (coop)",
+          "default": "1",
+          "line": 659
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "No Light",
+          "default": false,
+          "line": 662
+        },
+        {
+          "id": 2,
+          "name": "Red Light",
+          "default": false,
+          "line": 663
+        },
+        {
+          "id": 4,
+          "name": "Green Light",
+          "default": false,
+          "line": 664
+        },
+        {
+          "id": 8,
+          "name": "Blue Light",
+          "default": false,
+          "line": 665
+        },
+        {
+          "id": 16,
+          "name": "Orange Light",
+          "default": false,
+          "line": 666
+        },
+        {
+          "id": 32,
+          "name": "Purple Light",
+          "default": false,
+          "line": 667
+        },
+        {
+          "id": 64,
+          "name": "Cyan Light",
+          "default": false,
+          "line": 668
+        },
+        {
+          "id": 128,
+          "name": "Pink Light",
+          "default": false,
+          "line": 669
+        },
+        {
+          "id": 256,
+          "name": "Lime Light",
+          "default": false,
+          "line": 670
+        },
+        {
+          "id": 512,
+          "name": "Yellow Light",
+          "default": true,
+          "line": 671
+        },
+        {
+          "id": 2048,
+          "name": "Allow Purchase while Prone",
+          "default": false,
+          "line": 672
+        },
+        {
+          "id": 4096,
+          "name": "Silent leave (no animation)",
+          "default": false,
+          "line": 673
+        }
+      ]
+    },
+    {
+      "classname": "place_fire",
+      "description": "Place a fire effect",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 844
+      },
+      "fields": [
+        {
+          "name": "frame",
+          "type": "choices",
+          "label": "Size",
+          "default": "111",
+          "line": 846
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "place_model",
+      "description": "Place a Model",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 830
+      },
+      "fields": [
+        {
+          "name": "model",
+          "type": "studio",
+          "label": "Model",
+          "default": "\"models/Props/\"",
+          "line": 832
+        },
+        {
+          "name": "skin",
+          "type": "integer",
+          "label": "Skin",
+          "default": "0",
+          "line": 833
+        },
+        {
+          "name": "sequence",
+          "type": "integer",
+          "label": "Frame",
+          "default": "0",
+          "line": 834
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "Fullbright",
+          "default": false,
+          "line": 837
+        },
+        {
+          "id": 2,
+          "name": "Not on PSP",
+          "default": false,
+          "line": 838
+        }
+      ]
+    },
+    {
+      "classname": "power_switch",
+      "description": "Power Switch",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 823
+      },
+      "fields": [
+        {
+          "name": "model",
+          "type": "studio",
+          "label": "Model",
+          "default": "\"models/machines/hl_scale/power_switch.mdl\"",
+          "line": 825
+        },
+        {
+          "name": "skin",
+          "type": "integer",
+          "label": "Skin",
+          "default": "0",
+          "line": 826
+        },
+        {
+          "name": "oldmodel",
+          "type": "string",
+          "label": "Activation Sound",
+          "default": "\"sounds/machines/power.wav\"",
+          "line": 827
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "rotate_object",
+      "description": "Object to be rotated",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1619
+      },
+      "fields": [],
+      "flags": []
+    },
+    {
+      "classname": "spawn_dog",
+      "description": "Hellhound",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 988
+      },
+      "fields": [],
+      "flags": [
+        {
+          "id": 1,
+          "name": "inactive",
+          "default": false,
+          "line": 992
+        }
+      ]
+    },
+    {
+      "classname": "spawn_zombie",
+      "description": "zombie respawn",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 998
+      },
+      "fields": [],
+      "flags": [
+        {
+          "id": 1,
+          "name": "inactive",
+          "default": false,
+          "line": 1002
+        },
+        {
+          "id": 2,
+          "name": "ground rise",
+          "default": false,
+          "line": 1003
+        },
+        {
+          "id": 4,
+          "name": "Start inside",
+          "default": false,
+          "line": 1004
+        }
+      ]
+    },
+    {
+      "classname": "spawn_zone",
+      "description": "Zone Spawning Definition",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1311
+      },
+      "fields": [
+        {
+          "name": "zone_name",
+          "type": "string",
+          "label": "Name of Zone",
+          "default": "\"\"",
+          "line": 1313
+        },
+        {
+          "name": "adjacent_zones",
+          "type": "string",
+          "label": "Comma separated list of touching Zones (e.g. 'spawn_zone, jugg_zone, third_zone'), Up to 8",
+          "default": "\"\"",
+          "line": 1314
+        },
+        {
+          "name": "zone_target",
+          "type": "target_source",
+          "label": "Targetname of all AI that are spawnable in this Zone",
+          "default": null,
+          "line": 1315
+        },
+        {
+          "name": "zone_fog",
+          "type": "string",
+          "label": "Fog value specific to this Zone",
+          "default": null,
+          "line": 1316
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "teddy_spawn",
+      "description": "Teddy spawn location",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 401
+      },
+      "fields": [
+        {
+          "name": "model",
+          "type": "studio",
+          "label": "Model",
+          "default": "\"models/machines/hl_scale/zapper/z_switch.mdl\"",
+          "line": 406
+        },
+        {
+          "name": "skin",
+          "type": "integer",
+          "label": "Skin",
+          "default": "0",
+          "line": 407
+        },
+        {
+          "name": "cost",
+          "type": "integer",
+          "label": "Cost",
+          "default": "1000",
+          "line": 408
+        },
+        {
+          "name": "zappername",
+          "type": "string",
+          "label": "Zapper Name",
+          "default": null,
+          "line": 409
+        },
+        {
+          "name": "mode",
+          "type": "choices",
+          "label": "Cooldown Mode",
+          "default": "0",
+          "line": 410
+        },
+        {
+          "name": "cooldown",
+          "type": "integer",
+          "label": "Cooldown Time (s)",
+          "default": "30",
+          "line": 415
+        },
+        {
+          "name": "calc_time",
+          "type": "integer",
+          "label": "Lasting Time (s)",
+          "default": "60",
+          "line": 416
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "Requires Power",
+          "default": false,
+          "line": 419
+        }
+      ]
+    },
+    {
+      "classname": "trigger_activator",
+      "description": "Trigger: Activate spawnpoints",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1501
+      },
+      "fields": [],
+      "flags": []
+    },
+    {
+      "classname": "trigger_atroundend",
+      "description": "Trigger at End of Round",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1454
+      },
+      "fields": [
+        {
+          "name": "health",
+          "type": "integer",
+          "label": "Round to Activate on",
+          "default": "0",
+          "line": 1456
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "trigger_awardpoints",
+      "description": "Award Score to Client",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1598
+      },
+      "fields": [
+        {
+          "name": "points",
+          "type": "integer",
+          "label": "Score to add",
+          "default": "25",
+          "line": 1600
+        },
+        {
+          "name": "noise",
+          "type": "string",
+          "label": "Sound to play on trigger",
+          "default": "\"sounds/misc/ching.wav\"",
+          "line": 1601
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "Requires Client to Stand",
+          "default": false,
+          "line": 1604
+        },
+        {
+          "id": 2,
+          "name": "Requires Client to Crouch",
+          "default": false,
+          "line": 1605
+        },
+        {
+          "id": 4,
+          "name": "Requires Client to Prone",
+          "default": false,
+          "line": 1606
+        },
+        {
+          "id": 8,
+          "name": "Affected by Double Points Power-Up",
+          "default": false,
+          "line": 1607
+        }
+      ]
+    },
+    {
+      "classname": "trigger_changelevel",
+      "description": "Trigger: Change level",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1475
+      },
+      "fields": [
+        {
+          "name": "map",
+          "type": "string",
+          "label": "New map name",
+          "default": null,
+          "line": 1477
+        },
+        {
+          "name": "target",
+          "type": "target_destination",
+          "label": "Target",
+          "default": null,
+          "line": 1478
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "No Intermission",
+          "default": false,
+          "line": 1481
+        }
+      ]
+    },
+    {
+      "classname": "trigger_command",
+      "description": "Triggered Client Command",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1024
+      },
+      "fields": [
+        {
+          "name": "message",
+          "type": "string",
+          "label": "Command",
+          "default": null,
+          "line": 1026
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "trigger_counter",
+      "description": "Trigger counter",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1567
+      },
+      "fields": [
+        {
+          "name": "count",
+          "type": "integer",
+          "label": "Count before activation",
+          "default": "2",
+          "line": 1570
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "trigger_damagethreshold",
+      "description": "Damage Threshold Trigger",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1301
+      },
+      "fields": [
+        {
+          "name": "health",
+          "type": "integer",
+          "label": "Damage Threshold",
+          "default": "60",
+          "line": 1308
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "Multiple Use",
+          "default": false,
+          "line": 1305
+        },
+        {
+          "id": 2,
+          "name": "Invisible",
+          "default": false,
+          "line": 1306
+        }
+      ]
+    },
+    {
+      "classname": "trigger_electro",
+      "description": "Zapper trigger field",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 436
+      },
+      "fields": [
+        {
+          "name": "zappername",
+          "type": "string",
+          "label": "Zapper Name",
+          "default": null,
+          "line": 438
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "trigger_hurt",
+      "description": "Trigger damage",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1578
+      },
+      "fields": [
+        {
+          "name": "dmg",
+          "type": "integer",
+          "label": "Damage",
+          "default": "5",
+          "line": 1580
+        },
+        {
+          "name": "wait",
+          "type": "integer",
+          "label": "Delay before reset",
+          "default": null,
+          "line": 1581
+        },
+        {
+          "name": "message",
+          "type": "string",
+          "label": "Message",
+          "default": null,
+          "line": 1582
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "No damage to AI/Enemies",
+          "default": false,
+          "line": 1585
+        },
+        {
+          "id": 2,
+          "name": "No damage to clients",
+          "default": false,
+          "line": 1586
+        }
+      ]
+    },
+    {
+      "classname": "trigger_interact",
+      "description": "Trigger: On Use Button",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1505
+      },
+      "fields": [],
+      "flags": [
+        {
+          "id": 1,
+          "name": "Inactive until Triggered",
+          "default": false,
+          "line": 1509
+        }
+      ]
+    },
+    {
+      "classname": "trigger_monsterjump",
+      "description": "Trigger monster jump",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1562
+      },
+      "fields": [
+        {
+          "name": "speed",
+          "type": "integer",
+          "label": "Jump Speed",
+          "default": "200",
+          "line": 1564
+        },
+        {
+          "name": "height",
+          "type": "integer",
+          "label": "Jump Height",
+          "default": "200",
+          "line": 1565
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "trigger_multiple",
+      "description": "Trigger: Activate multiple",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1513
+      },
+      "fields": [
+        {
+          "name": "wait",
+          "type": "string",
+          "label": "Wait before reset",
+          "default": "\"4\"",
+          "line": 1515
+        },
+        {
+          "name": "health",
+          "type": "integer",
+          "label": "Health",
+          "default": null,
+          "line": 1516
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "trigger_once",
+      "description": "Trigger: Activate once",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1485
+      },
+      "fields": [
+        {
+          "name": "health",
+          "type": "integer",
+          "label": "Health",
+          "default": null,
+          "line": 1487
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "trigger_onlyregistered",
+      "description": "Trigger: Registered only",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1525
+      },
+      "fields": [],
+      "flags": []
+    },
+    {
+      "classname": "trigger_push",
+      "description": "Trigger player push",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1572
+      },
+      "fields": [
+        {
+          "name": "speed",
+          "type": "integer",
+          "label": "Speed of push",
+          "default": "1000",
+          "line": 1575
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "trigger_relay",
+      "description": "Trigger relay",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1553
+      },
+      "fields": [
+        {
+          "name": "triggerstate",
+          "type": "choices",
+          "label": "Trigger State",
+          "default": "0",
+          "line": 1555
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "trigger_secret",
+      "description": "Trigger: Secret",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1529
+      },
+      "fields": [
+        {
+          "name": "sounds",
+          "type": "choices",
+          "label": "Sound style",
+          "default": "1",
+          "line": 1531
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "trigger_setfire",
+      "description": "Trigger fire effect",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1589
+      },
+      "fields": [
+        {
+          "name": "fire_timeout",
+          "type": "integer",
+          "label": "Effect Duration",
+          "default": "2",
+          "line": 1591
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "Applies to Clients",
+          "default": false,
+          "line": 1594
+        },
+        {
+          "id": 2,
+          "name": "No damage to AI/Enemies",
+          "default": false,
+          "line": 1595
+        }
+      ]
+    },
+    {
+      "classname": "trigger_song",
+      "description": "Song trigger",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 445
+      },
+      "fields": [
+        {
+          "name": "model",
+          "type": "studio",
+          "label": "Model",
+          "default": "\"models/props/\"",
+          "line": 447
+        },
+        {
+          "name": "skin",
+          "type": "integer",
+          "label": "Skin",
+          "default": "0",
+          "line": 448
+        },
+        {
+          "name": "tune",
+          "type": "string",
+          "label": "Trigger Sound",
+          "default": "\"sounds/\"",
+          "line": 449
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "Fullbright",
+          "default": false,
+          "line": 452
+        }
+      ]
+    },
+    {
+      "classname": "trigger_stuffcmd",
+      "description": "Trigger: Run CMD on Client (NZP)",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1491
+      },
+      "fields": [
+        {
+          "name": "message",
+          "type": "string",
+          "label": "CMD",
+          "default": null,
+          "line": 1493
+        }
+      ],
+      "flags": [
+        {
+          "id": 1,
+          "name": "Don't exec on Players",
+          "default": false,
+          "line": 1496
+        },
+        {
+          "id": 2,
+          "name": "Don't exec on Spectators",
+          "default": false,
+          "line": 1497
+        }
+      ]
+    },
+    {
+      "classname": "trigger_teleport",
+      "description": "Trigger teleport",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1542
+      },
+      "fields": [],
+      "flags": [
+        {
+          "id": 1,
+          "name": "Player only",
+          "default": false,
+          "line": 1546
+        },
+        {
+          "id": 2,
+          "name": "Silent",
+          "default": false,
+          "line": 1547
+        }
+      ]
+    },
+    {
+      "classname": "trigger_voice",
+      "description": "Trigger: Activate voice",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1519
+      },
+      "fields": [
+        {
+          "name": "wait",
+          "type": "string",
+          "label": "Wait before reset",
+          "default": "\"4\"",
+          "line": 1521
+        },
+        {
+          "name": "health",
+          "type": "integer",
+          "label": "Health",
+          "default": null,
+          "line": 1522
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "weapon_wall",
+      "description": "Wall weapon for buy_weapon",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 853
+      },
+      "fields": [
+        {
+          "name": "sequence",
+          "type": "choices",
+          "label": "Weapon",
+          "default": "0",
+          "line": 855
+        },
+        {
+          "name": "model",
+          "type": "studio",
+          "label": "World Model",
+          "default": "\"models/GModels/\"",
+          "line": 889
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "worldspawn",
+      "description": "World entity",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 12
+      },
+      "fields": [
+        {
+          "name": "message",
+          "type": "string",
+          "label": "Text on entering the world",
+          "default": null,
+          "line": 14
+        },
+        {
+          "name": "sounds",
+          "type": "integer",
+          "label": "CD track to play",
+          "default": "1",
+          "line": 15
+        },
+        {
+          "name": "sky",
+          "type": "string",
+          "label": "Skybox Name",
+          "default": null,
+          "line": 16
+        },
+        {
+          "name": "light",
+          "type": "integer",
+          "label": "Default light level",
+          "default": null,
+          "line": 17
+        },
+        {
+          "name": "WaveHeight",
+          "type": "string",
+          "label": "Default Wave Height",
+          "default": null,
+          "line": 18
+        },
+        {
+          "name": "chaptertitle",
+          "type": "string",
+          "label": "Chapter Title Message",
+          "default": null,
+          "line": 19
+        },
+        {
+          "name": "location",
+          "type": "string",
+          "label": "Location of the Map",
+          "default": null,
+          "line": 20
+        },
+        {
+          "name": "date",
+          "type": "string",
+          "label": "Time Era of the Map",
+          "default": null,
+          "line": 21
+        },
+        {
+          "name": "person",
+          "type": "string",
+          "label": "Creator or fictional character of map",
+          "default": null,
+          "line": 22
+        },
+        {
+          "name": "song",
+          "type": "string",
+          "label": "Triggered song of the map",
+          "default": null,
+          "line": 23
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "zapper_light",
+      "description": "Electro-Shock Node",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 430
+      },
+      "fields": [
+        {
+          "name": "model",
+          "type": "studio",
+          "label": "Model",
+          "default": "\"models/machines/hl_scale/zapper/z_light.mdl\"",
+          "line": 432
+        },
+        {
+          "name": "skin",
+          "type": "integer",
+          "label": "Skin",
+          "default": "0",
+          "line": 433
+        },
+        {
+          "name": "zappername",
+          "type": "string",
+          "label": "Zapper Name",
+          "default": null,
+          "line": 434
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "zapper_node",
+      "description": "Electro-Shock Node",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 422
+      },
+      "fields": [
+        {
+          "name": "model",
+          "type": "studio",
+          "label": "Model",
+          "default": "\"models/machines/hl_scale/zapper/z_zap.mdl\"",
+          "line": 424
+        },
+        {
+          "name": "skin",
+          "type": "integer",
+          "label": "Skin",
+          "default": "0",
+          "line": 425
+        },
+        {
+          "name": "zappername",
+          "type": "string",
+          "label": "Zapper Name",
+          "default": null,
+          "line": 426
+        },
+        {
+          "name": "targetname",
+          "type": "target_source",
+          "label": "Name",
+          "default": null,
+          "line": 427
+        },
+        {
+          "name": "target",
+          "type": "target_destination",
+          "label": "Target",
+          "default": null,
+          "line": 428
+        }
+      ],
+      "flags": []
+    },
+    {
+      "classname": "zombie_horde_point",
+      "description": "Hording spot for Zombies",
+      "source": {
+        "path": "source/maps/fgd/hl-nzp.fgd",
+        "blob": "a19cbf414c3238773a2b80a764288cc24b15341d",
+        "line": 1784
+      },
+      "fields": [],
+      "flags": []
+    }
+  ]
+}

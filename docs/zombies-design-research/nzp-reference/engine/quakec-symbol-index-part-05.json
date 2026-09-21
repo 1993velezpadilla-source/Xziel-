@@ -1,0 +1,499 @@
+{
+  "schema": "xziel.nzp.quakec-symbol-index.v1",
+  "source_repo": "nzp-team/quakec",
+  "source_commit": "dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163",
+  "part": 5,
+  "range": [
+    48,
+    59
+  ],
+  "files": [
+    {
+      "path": "source/server/tests/test_game_counter.qc",
+      "blob": "2fd2560bc346d9272cbc560d57597038c2ffa445",
+      "functions": [
+        {
+          "name": "Test_game_counter_IncrementsOnUse",
+          "line": 35,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_game_counter.qc#L35"
+        },
+        {
+          "name": "Test_game_counter_IncrementsOnTriggerRelayStateOn",
+          "line": 65,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_game_counter.qc#L65"
+        },
+        {
+          "name": "Test_game_counter_IncrementsOnTriggerRelayStateOff",
+          "line": 96,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_game_counter.qc#L96"
+        }
+      ],
+      "entity_mentions": {
+        "game_counter": [
+          4,
+          32,
+          46,
+          53,
+          62,
+          76,
+          84,
+          93,
+          107,
+          115
+        ]
+      },
+      "api_mentions": {
+        "targetname": [
+          45,
+          75,
+          106
+        ],
+        "SUB_UseTargets": [
+          51,
+          82,
+          113
+        ]
+      }
+    },
+    {
+      "path": "source/server/tests/test_game_random.qc",
+      "blob": "bde75398b755c9503067a9c4f055ff5db89a5e5e",
+      "functions": [
+        {
+          "name": "test_game_random_count_use",
+          "line": 32,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_game_random.qc#L32"
+        },
+        {
+          "name": "Test_game_random_FiresOneValidTargetPerUse",
+          "line": 43,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_game_random.qc#L43"
+        }
+      ],
+      "entity_mentions": {
+        "game_random": [
+          4,
+          61,
+          69,
+          71,
+          73
+        ],
+        "game_random_ent": [
+          45,
+          57,
+          73,
+          81
+        ]
+      },
+      "api_mentions": {
+        "use": [
+          41,
+          54,
+          69
+        ],
+        "targetname": [
+          53,
+          60,
+          77
+        ],
+        "SUB_UseTargets": [
+          67
+        ]
+      }
+    },
+    {
+      "path": "source/server/tests/test_math.qc",
+      "blob": "f070a00117c875e1d5a071bc0ffbb53449cca800",
+      "functions": [
+        {
+          "name": "Test_Math_ClampReturnsMin",
+          "line": 35,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_math.qc#L35"
+        },
+        {
+          "name": "Test_Math_ClampReturnsMax",
+          "line": 46,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_math.qc#L46"
+        }
+      ],
+      "entity_mentions": {},
+      "api_mentions": {}
+    },
+    {
+      "path": "source/server/tests/test_misc_model.qc",
+      "blob": "c03e9437a4afc73999fc8d912c756a26b1813a17",
+      "functions": [
+        {
+          "name": "Test_misc_model_ModelNotHiddenByDefault",
+          "line": 36,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_misc_model.qc#L36"
+        }
+      ],
+      "entity_mentions": {},
+      "api_mentions": {}
+    },
+    {
+      "path": "source/server/tests/test_misc.qc",
+      "blob": "899aa6182901404622572cd2d7253376320e9671",
+      "functions": [
+        {
+          "name": "Test_Door_FakeRemoveDoorDisablesTriggerField",
+          "line": 34,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_misc.qc#L34"
+        },
+        {
+          "name": "Test_Door_TriggeredCostDoorOpensOnce",
+          "line": 59,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_misc.qc#L59"
+        },
+        {
+          "name": "Test_Door_RotatingUsesAnglesAndPreservesOrigin",
+          "line": 95,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_misc.qc#L95"
+        },
+        {
+          "name": "Test_Door_ToggleCanCompleteMultipleCycles",
+          "line": 134,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_misc.qc#L134"
+        },
+        {
+          "name": "Test_TriggerInteract_CountUse",
+          "line": 185,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_misc.qc#L185"
+        },
+        {
+          "name": "Test_TriggerInteract_RequiresReactivation",
+          "line": 195,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_misc.qc#L195"
+        },
+        {
+          "name": "Test_TriggerInteract_RejectsInsufficientFunds",
+          "line": 245,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_misc.qc#L245"
+        },
+        {
+          "name": "Test_TriggerInteract_RegistersOptionalUseprintWithCost",
+          "line": 276,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_misc.qc#L276"
+        },
+        {
+          "name": "Test_TriggerInteract_DoesNotRegisterDefaultUseprint",
+          "line": 299,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_misc.qc#L299"
+        }
+      ],
+      "entity_mentions": {
+        "trigger_field": [
+          39
+        ],
+        "game_modifier_cost_multiplier": [
+          203,
+          204,
+          239,
+          251,
+          252,
+          271
+        ],
+        "trigger_interact_touch": [
+          206,
+          228,
+          254,
+          267
+        ],
+        "trigger_interact_activate": [
+          207,
+          223
+        ],
+        "trigger_interact": [
+          287,
+          308
+        ]
+      },
+      "api_mentions": {
+        "use": [
+          110,
+          207,
+          210,
+          223,
+          227
+        ],
+        "touch": [
+          192,
+          206,
+          219,
+          222,
+          228,
+          231,
+          233,
+          254,
+          263,
+          267
+        ],
+        "targetname": [
+          209
+        ],
+        "button7": [
+          212,
+          257
+        ]
+      }
+    },
+    {
+      "path": "source/server/tests/test_module.qc",
+      "blob": "2554dc293458894cabc4eb7492c291d9ee8caaef",
+      "functions": [
+        {
+          "name": "Test_Assert",
+          "line": 42,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_module.qc#L42"
+        },
+        {
+          "name": "Test_Skip",
+          "line": 53,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_module.qc#L53"
+        },
+        {
+          "name": "Test_SimulateUse",
+          "line": 59,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_module.qc#L59"
+        },
+        {
+          "name": "Test_PrintSummary",
+          "line": 109,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_module.qc#L109"
+        },
+        {
+          "name": "Test_RunAllTests",
+          "line": 119,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_module.qc#L119"
+        }
+      ],
+      "entity_mentions": {},
+      "api_mentions": {
+        "button7": [
+          66,
+          75
+        ],
+        "touch": [
+          71
+        ]
+      }
+    },
+    {
+      "path": "source/server/tests/test_perksacola.qc",
+      "blob": "ded96d5dea2c029fde360279584c5cb11b5b7184",
+      "functions": [
+        {
+          "name": "Test_Perks_QuickRevive_ValidateFields",
+          "line": 38,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_perksacola.qc#L38"
+        },
+        {
+          "name": "Test_Perks_NameOverridePreserved",
+          "line": 55,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_perksacola.qc#L55"
+        },
+        {
+          "name": "Test_Perks_JuggerNog_ValidateFields",
+          "line": 80,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_perksacola.qc#L80"
+        },
+        {
+          "name": "Test_Perks_SpeedCola_ValidateFields",
+          "line": 104,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_perksacola.qc#L104"
+        },
+        {
+          "name": "Test_Perks_DoubleTap_ValidateFields",
+          "line": 128,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_perksacola.qc#L128"
+        },
+        {
+          "name": "Test_Perks_StaminUp_ValidateFields",
+          "line": 152,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_perksacola.qc#L152"
+        },
+        {
+          "name": "Test_Perks_PhDFlopper_ValidateFields",
+          "line": 176,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_perksacola.qc#L176"
+        },
+        {
+          "name": "Test_Perks_DeadshotDaiquiri_ValidateFields",
+          "line": 200,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_perksacola.qc#L200"
+        },
+        {
+          "name": "Test_Perks_MuleKick_ValidateFields",
+          "line": 224,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_perksacola.qc#L224"
+        },
+        {
+          "name": "Test_Perks_Random_LegacyFields",
+          "line": 250,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_perksacola.qc#L250"
+        },
+        {
+          "name": "Test_Perks_ReloadWhileBuyingPerk_Blocked",
+          "line": 270,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_perksacola.qc#L270"
+        }
+      ],
+      "entity_mentions": {
+        "perk_revive": [
+          44,
+          64
+        ],
+        "perk_juggernog": [
+          86
+        ],
+        "perk_speed": [
+          110
+        ],
+        "perk_double": [
+          134
+        ],
+        "perk_staminup": [
+          158
+        ],
+        "perk_flopper": [
+          182
+        ],
+        "perk_deadshot": [
+          206
+        ],
+        "perk_mule": [
+          230
+        ],
+        "perk_random": [
+          246,
+          256
+        ]
+      },
+      "api_mentions": {}
+    },
+    {
+      "path": "source/server/tests/test_player.qc",
+      "blob": "d7a91abd6fb06af5dcd68c1ef9b638461efa9826",
+      "functions": [
+        {
+          "name": "Test_Player_StanceInterruption",
+          "line": 22,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_player.qc#L22"
+        },
+        {
+          "name": "Test_Player_StanceInterruption_HalfLife",
+          "line": 56,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_player.qc#L56"
+        },
+        {
+          "name": "Test_Player_StanceInterruption_Beta",
+          "line": 61,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_player.qc#L61"
+        },
+        {
+          "name": "Test_Player_DownedDisconnectUnlinksReviver",
+          "line": 72,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_player.qc#L72"
+        },
+        {
+          "name": "Test_Player_AlternateReviveRemovesBleedoutTimers",
+          "line": 105,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_player.qc#L105"
+        }
+      ],
+      "entity_mentions": {},
+      "api_mentions": {}
+    },
+    {
+      "path": "source/server/tests/test_power.qc",
+      "blob": "2af0e218aa29c517befe0910d6f73e17639ffb7c",
+      "functions": [],
+      "entity_mentions": {},
+      "api_mentions": {}
+    },
+    {
+      "path": "source/server/tests/test_rounds.qc",
+      "blob": "f68ceffc1564445f245eb77b57c37c0498379482",
+      "functions": [
+        {
+          "name": "Test_Rounds_NewClientsDontCauseReset",
+          "line": 36,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_rounds.qc#L36"
+        }
+      ],
+      "entity_mentions": {},
+      "api_mentions": {
+        "rounds": [
+          38,
+          39,
+          43,
+          44
+        ]
+      }
+    },
+    {
+      "path": "source/server/tests/test_score.qc",
+      "blob": "00e27208456e9337bdc67d4859ed11950d221d34",
+      "functions": [
+        {
+          "name": "Test_AddScore_NonClient",
+          "line": 35,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_score.qc#L35"
+        },
+        {
+          "name": "Test_AddScore_DamageTypes",
+          "line": 48,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_score.qc#L48"
+        },
+        {
+          "name": "Test_AddScore_MysteryBoxLeave",
+          "line": 93,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_score.qc#L93"
+        },
+        {
+          "name": "Test_AddScore_PhD_GunGame",
+          "line": 124,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_score.qc#L124"
+        },
+        {
+          "name": "Test_AddScore_PhD_Festive",
+          "line": 142,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_score.qc#L142"
+        }
+      ],
+      "entity_mentions": {},
+      "api_mentions": {}
+    },
+    {
+      "path": "source/server/tests/test_teleporter.qc",
+      "blob": "fc80908af01c3af0586fdb3af02f53a109c58d7a",
+      "functions": [
+        {
+          "name": "Test_Teleporter_PlayerCanMoveAfterTeleport",
+          "line": 20,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_teleporter.qc#L20"
+        },
+        {
+          "name": "Test_Teleporter_PlayerOffsetsDoNotOverlap",
+          "line": 50,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_teleporter.qc#L50"
+        }
+      ],
+      "entity_mentions": {
+        "func_teleporter_destination": [
+          29
+        ]
+      },
+      "api_mentions": {
+        "target2": [
+          27,
+          28
+        ],
+        "targetname": [
+          28
+        ]
+      }
+    }
+  ]
+}

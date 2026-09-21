@@ -1,0 +1,6784 @@
+{
+  "schema": "xziel.nzp.quest-subgraph.v1",
+  "source": {
+    "repo": "nzp-team/assets",
+    "commit": "c8135a66e00bb64577912fbf792f8fef7f47658e",
+    "path": "source/maps/nzp_xmas2/nzp_xmas2.map"
+  },
+  "map": "nzp_xmas2",
+  "selection": "entities participating in q_* or sq_* target graphs plus reachable destination entities",
+  "entity_count": 328,
+  "edge_count": 377,
+  "unresolved_count": 8,
+  "clusters": {
+    "q_bell": [
+      38,
+      477,
+      519,
+      520,
+      521,
+      522,
+      523,
+      524,
+      525,
+      526,
+      527,
+      528,
+      529,
+      530,
+      531,
+      532,
+      533,
+      534,
+      535,
+      536,
+      537,
+      538,
+      539,
+      540,
+      541,
+      542,
+      549,
+      550,
+      551,
+      552,
+      559,
+      565,
+      593,
+      623,
+      630,
+      631,
+      632,
+      633,
+      634,
+      635,
+      636,
+      637,
+      638,
+      639,
+      640,
+      641,
+      642,
+      643,
+      645,
+      646
+    ],
+    "q_bells": [
+      38,
+      62,
+      64
+    ],
+    "q_body": [
+      478,
+      480,
+      563,
+      567,
+      569,
+      678
+    ],
+    "q_boiler": [
+      561,
+      608,
+      625
+    ],
+    "q_drawer": [
+      559,
+      562,
+      607,
+      608,
+      626,
+      627,
+      628
+    ],
+    "q_fire": [
+      570,
+      576,
+      579,
+      580,
+      581,
+      583,
+      588,
+      675,
+      676,
+      677,
+      678,
+      679,
+      680
+    ],
+    "q_gramo": [
+      13,
+      15,
+      16,
+      24,
+      32,
+      33,
+      36,
+      56,
+      64,
+      91,
+      106,
+      200,
+      201,
+      202,
+      203,
+      326,
+      332,
+      333,
+      475,
+      476,
+      629
+    ],
+    "q_gramophone": [
+      15,
+      655,
+      656
+    ],
+    "q_key": [
+      562,
+      607,
+      608,
+      666
+    ],
+    "q_sky": [
+      560,
+      603,
+      644,
+      689
+    ],
+    "q_spirit": [
+      37,
+      481,
+      482,
+      603,
+      604,
+      687
+    ],
+    "q_token": [
+      570,
+      573,
+      576,
+      577,
+      587,
+      588,
+      592,
+      669,
+      670,
+      671,
+      672,
+      673,
+      674
+    ],
+    "q_tokens": [
+      564,
+      587
+    ],
+    "q_wep": [
+      479,
+      564,
+      568,
+      569,
+      582,
+      585,
+      590,
+      594,
+      599,
+      600,
+      601,
+      602,
+      604,
+      605,
+      606,
+      667,
+      668,
+      683,
+      684,
+      685,
+      686,
+      688
+    ],
+    "sq_free": [
+      609,
+      612,
+      648,
+      649,
+      650,
+      651,
+      652,
+      653,
+      701
+    ],
+    "sq_snowman": [
+      597,
+      598,
+      611,
+      613,
+      614,
+      615,
+      616,
+      617,
+      618,
+      619,
+      620,
+      621,
+      622,
+      624,
+      654,
+      658,
+      659,
+      661,
+      662,
+      663,
+      664
+    ],
+    "sq_song": [
+      690,
+      691,
+      692,
+      693,
+      695
+    ]
+  },
+  "entities": [
+    {
+      "id": 13,
+      "line": 7290,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "delay": "5",
+      "targetname": "q_gramo_interact_seq",
+      "target": "q_gramo_voice"
+    },
+    {
+      "id": 15,
+      "line": 7342,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "delay": "0",
+      "targetname": "q_gramo_dis_start",
+      "target": "q_gramophone",
+      "target2": "q_gramo_interact"
+    },
+    {
+      "id": 16,
+      "line": 7362,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "delay": "0",
+      "targetname": "q_gramo_interact_seq",
+      "target": "q_gramo_jumpscare"
+    },
+    {
+      "id": 24,
+      "line": 7774,
+      "classname": "trigger_multiple",
+      "wait": "1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "delay": "16.9",
+      "targetname": "q_gramo_normal_loop",
+      "target": "q_gramo_start",
+      "message": ""
+    },
+    {
+      "id": 29,
+      "line": 7910,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "delay": "3",
+      "targetname": "p_turn_lights_on",
+      "target": "p_lights_41",
+      "target2": "fake_power_noise"
+    },
+    {
+      "id": 32,
+      "line": 8000,
+      "classname": "trigger_multiple",
+      "wait": "1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "delay": "5",
+      "targetname": "q_gramo_dis_start",
+      "target": "q_gramo_distorted",
+      "target2": "q_gramo_distorted_loop",
+      "message": ""
+    },
+    {
+      "id": 33,
+      "line": 8021,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "delay": "0",
+      "targetname": "q_gramo_normal_kill",
+      "target": "q_gramo_normal_loop"
+    },
+    {
+      "id": 36,
+      "line": 8127,
+      "classname": "trigger_multiple",
+      "wait": "1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "delay": "16.9",
+      "targetname": "q_gramo_distorted_loop",
+      "target": "q_gramo_dis_start"
+    },
+    {
+      "id": 37,
+      "line": 8146,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "targetname": "q_spirit_final",
+      "delay": "1.5",
+      "target": "q_spirit_final_voice"
+    },
+    {
+      "id": 38,
+      "line": 8165,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "targetname": "q_bells_kill_blocker",
+      "killtarget": "q_bell_blocker"
+    },
+    {
+      "id": 44,
+      "line": 8635,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "delay": "4",
+      "targetname": "p_turn_lights_on",
+      "target": "p_lights_42",
+      "target2": "fake_power_noise"
+    },
+    {
+      "id": 45,
+      "line": 8655,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "delay": "5",
+      "targetname": "p_turn_lights_on",
+      "target": "p_lights_43",
+      "target2": "fake_power_noise"
+    },
+    {
+      "id": 56,
+      "line": 9066,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "delay": "0",
+      "targetname": "q_gramo_normal_kill",
+      "target": "q_gramo_normal"
+    },
+    {
+      "id": 62,
+      "line": 9202,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "round_delay": "1",
+      "targetname": "q_bells_activate",
+      "target": "q_bells_kill_blocker"
+    },
+    {
+      "id": 64,
+      "line": 9247,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "targetname": "q_gramo_interact_seq",
+      "target": "q_bells_activate"
+    },
+    {
+      "id": 91,
+      "line": 9990,
+      "classname": "trigger_multiple",
+      "wait": "1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "delay": "5",
+      "targetname": "q_gramo_start",
+      "target": "q_gramo_normal",
+      "target2": "q_gramo_normal_loop",
+      "message": ""
+    },
+    {
+      "id": 106,
+      "line": 10635,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "delay": "0",
+      "targetname": "q_gramo_normal_kill",
+      "target": "q_gramo_start"
+    },
+    {
+      "id": 108,
+      "line": 10676,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "delay": "2",
+      "targetname": "p_turn_lights_on",
+      "target": "p_lights_40",
+      "target2": "fake_power_noise"
+    },
+    {
+      "id": 120,
+      "line": 11301,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "delay": "2",
+      "targetname": "p_turn_lights_on",
+      "target": "p_lights_40_flicker"
+    },
+    {
+      "id": 121,
+      "line": 11320,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "delay": "1",
+      "targetname": "p_turn_lights_on",
+      "target": "sting_power"
+    },
+    {
+      "id": 200,
+      "line": 12890,
+      "classname": "info_player_4_spawn",
+      "angles": "0 90 0",
+      "origin": "872 1552 -64",
+      "target": "q_gramo_start"
+    },
+    {
+      "id": 201,
+      "line": 12897,
+      "classname": "info_player_3_spawn",
+      "angles": "0 150 0",
+      "origin": "1168 1808 -64",
+      "target": "q_gramo_start"
+    },
+    {
+      "id": 202,
+      "line": 12904,
+      "classname": "info_player_2_spawn",
+      "angles": "0 0 0",
+      "origin": "624 2032 -56",
+      "target": "q_gramo_start"
+    },
+    {
+      "id": 203,
+      "line": 12911,
+      "classname": "info_player_1_spawn",
+      "angles": "0 180 0",
+      "origin": "1264 2024 -64",
+      "target": "q_gramo_start"
+    },
+    {
+      "id": 326,
+      "line": 13988,
+      "classname": "power_switch",
+      "model": "models/machines/hl_scale/power_switch.mdl",
+      "skin": "0",
+      "oldmodel": "sounds/machines/power.wav",
+      "angles": "0 0 0",
+      "origin": "1016 1536 88",
+      "powerup_vo": "sounds/weapons/tesla/switchon.wav",
+      "killtarget": "q_gramo_normal_kill",
+      "target": "q_gramo_dis_start",
+      "target2": "p_turn_lights_on"
+    },
+    {
+      "id": 331,
+      "line": 14040,
+      "classname": "ambient_generic",
+      "origin": "2232 1640 -112",
+      "spawnflags": "49",
+      "message": "sounds/weapons/tesla/switchoff.wav",
+      "targetname": "fake_power_noise"
+    },
+    {
+      "id": 332,
+      "line": 14048,
+      "classname": "ambient_generic",
+      "origin": "984 1864 -24",
+      "spawnflags": "52",
+      "message": "sounds/music/gramophone.wav",
+      "targetname": "q_gramo_normal"
+    },
+    {
+      "id": 333,
+      "line": 14056,
+      "classname": "ambient_generic",
+      "origin": "984 1860 -24",
+      "spawnflags": "52",
+      "message": "sounds/music/gramophone_distorted.wav",
+      "targetname": "q_gramo_distorted"
+    },
+    {
+      "id": 337,
+      "line": 14090,
+      "classname": "light_spot",
+      "origin": "802 1346 -72",
+      "_light": "255 255 255 200",
+      "_cone": "15",
+      "_cone2": "45",
+      "roll": "15",
+      "angle": "10",
+      "pitch": "0",
+      "targetname": "p_lights_43",
+      "style": "43",
+      "spawnflags": "1",
+      "aistatus": "m"
+    },
+    {
+      "id": 339,
+      "line": 14115,
+      "classname": "light_spot",
+      "origin": "1066 1659 -13",
+      "_light": "234 75 0 200",
+      "_cone": "15",
+      "_cone2": "45",
+      "pitch": "-90",
+      "style": "43",
+      "angles": "0 -90 0",
+      "spawnflags": "1",
+      "aistatus": "m",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 341,
+      "line": 14139,
+      "classname": "light_spot",
+      "origin": "1144 1823 -14",
+      "_light": "234 75 0 200",
+      "_cone": "15",
+      "_cone2": "45",
+      "pitch": "-90",
+      "style": "43",
+      "angles": "0 -90 0",
+      "spawnflags": "1",
+      "aistatus": "m",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 343,
+      "line": 14163,
+      "classname": "light_spot",
+      "origin": "704 1940 2",
+      "_light": "234 75 0 200",
+      "_cone": "15",
+      "_cone2": "45",
+      "pitch": "-90",
+      "style": "43",
+      "angles": "0 -90 0",
+      "spawnflags": "1",
+      "aistatus": "m",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 345,
+      "line": 14187,
+      "classname": "light_spot",
+      "origin": "966 1454 -84",
+      "_light": "234 150 0 100",
+      "_cone": "15",
+      "_cone2": "45",
+      "roll": "15",
+      "angle": "210",
+      "pitch": "0",
+      "targetname": "p_lights_43",
+      "style": "44",
+      "spawnflags": "1",
+      "aistatus": "jklmnopqrstuvwxyzyxwvutsrqponmlkj"
+    },
+    {
+      "id": 347,
+      "line": 14212,
+      "classname": "light_spot",
+      "origin": "891 1654 -14",
+      "_light": "234 75 0 200",
+      "_cone": "15",
+      "_cone2": "45",
+      "pitch": "-90",
+      "style": "43",
+      "angles": "0 -90 0",
+      "spawnflags": "1",
+      "aistatus": "m",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 349,
+      "line": 14236,
+      "classname": "light_spot",
+      "origin": "903 2025 -14",
+      "_light": "234 75 0 200",
+      "_cone": "15",
+      "_cone2": "45",
+      "pitch": "-90",
+      "style": "43",
+      "angles": "0 -90 0",
+      "spawnflags": "1",
+      "aistatus": "m",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 351,
+      "line": 14260,
+      "classname": "light_spot",
+      "origin": "1274 2020 -14",
+      "_light": "234 75 0 200",
+      "_cone": "15",
+      "_cone2": "45",
+      "pitch": "-90",
+      "style": "43",
+      "angles": "0 -90 0",
+      "spawnflags": "1",
+      "aistatus": "m",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 353,
+      "line": 14284,
+      "classname": "light_spot",
+      "origin": "696 1172 -15",
+      "_light": "234 75 0 200",
+      "_cone": "15",
+      "_cone2": "45",
+      "pitch": "-90",
+      "style": "43",
+      "angles": "0 90 0",
+      "spawnflags": "1",
+      "aistatus": "m",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 355,
+      "line": 14308,
+      "classname": "light_spot",
+      "origin": "989 1110 -15",
+      "_light": "234 75 0 200",
+      "_cone": "15",
+      "_cone2": "45",
+      "pitch": "-90",
+      "style": "43",
+      "angles": "0 0 0",
+      "spawnflags": "1",
+      "aistatus": "m",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 390,
+      "line": 14598,
+      "classname": "light_spot",
+      "origin": "1180 1088 -4",
+      "_light": "234 75 0 200",
+      "_cone": "15",
+      "_cone2": "45",
+      "pitch": "0",
+      "style": "43",
+      "angles": "45 -60 0",
+      "spawnflags": "1",
+      "aistatus": "m",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 414,
+      "line": 14802,
+      "classname": "light_spot",
+      "origin": "1436 1226 -14",
+      "_light": "234 75 0 200",
+      "_cone": "15",
+      "_cone2": "45",
+      "pitch": "-90",
+      "style": "43",
+      "angles": "0 -90 0",
+      "spawnflags": "1",
+      "aistatus": "m",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 421,
+      "line": 14870,
+      "classname": "light_spot",
+      "origin": "1452 864 -14",
+      "_light": "234 75 0 200",
+      "_cone": "15",
+      "_cone2": "45",
+      "pitch": "-90",
+      "style": "43",
+      "angles": "0 -90 0",
+      "spawnflags": "1",
+      "aistatus": "m",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 423,
+      "line": 14894,
+      "classname": "light_spot",
+      "origin": "1208 643 -14",
+      "_light": "234 75 0 200",
+      "_cone": "15",
+      "_cone2": "45",
+      "pitch": "-90",
+      "style": "43",
+      "angles": "0 -90 0",
+      "spawnflags": "1",
+      "aistatus": "m",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 424,
+      "line": 14908,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "32",
+      "origin": "1435 1226 -29",
+      "model": "models/sprites/lamp_glow2.spr",
+      "angles": "-74 163 -166",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 425,
+      "line": 14919,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "32",
+      "origin": "1434 1364 -20",
+      "model": "models/sprites/lamp_glow2.spr",
+      "angles": "-74 163 -166",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 426,
+      "line": 14930,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "32",
+      "origin": "1452 864 -29",
+      "model": "models/sprites/lamp_glow2.spr",
+      "angles": "-74 163 -166",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 427,
+      "line": 14941,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "32",
+      "origin": "1207 643 -29",
+      "model": "models/sprites/lamp_glow2.spr",
+      "angles": "-74 163 -166",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 428,
+      "line": 14952,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "32",
+      "origin": "987 1110 -27",
+      "model": "models/sprites/lamp_glow2.spr",
+      "angles": "-74 163 -166",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 429,
+      "line": 14963,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "32",
+      "origin": "696 1170 -27",
+      "model": "models/sprites/lamp_glow2.spr",
+      "angles": "-74 163 -166",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 430,
+      "line": 14974,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "32",
+      "origin": "892 1655 -31",
+      "model": "models/sprites/lamp_glow2.spr",
+      "angles": "-74 163 -166",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 431,
+      "line": 14985,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "32",
+      "origin": "904 2025 -32",
+      "model": "models/sprites/lamp_glow2.spr",
+      "angles": "-74 163 -166",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 432,
+      "line": 14996,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "32",
+      "origin": "703 1940 -15",
+      "model": "models/sprites/lamp_glow2.spr",
+      "angles": "-74 163 -166",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 433,
+      "line": 15007,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "32",
+      "origin": "1274 2020 -32",
+      "model": "models/sprites/lamp_glow2.spr",
+      "angles": "-74 163 -166",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 435,
+      "line": 15024,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "96",
+      "origin": "804 1333 -67",
+      "model": "models/sprites/lamp_glow.spr",
+      "angles": "-74 163 -166",
+      "targetname": "p_lights_43",
+      "scale": ".5"
+    },
+    {
+      "id": 436,
+      "line": 15036,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "32",
+      "origin": "1065 1658 -30",
+      "model": "models/sprites/lamp_glow2.spr",
+      "angles": "-74 163 -166",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 437,
+      "line": 15047,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "32",
+      "origin": "1143 1823 -31",
+      "model": "models/sprites/lamp_glow2.spr",
+      "angles": "-74 163 -166",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 449,
+      "line": 15183,
+      "classname": "light_spot",
+      "origin": "1248 465 -75",
+      "_light": "214 100 100 100",
+      "_cone": "15",
+      "_cone2": "90",
+      "style": "43",
+      "angles": "90 0 0",
+      "spawnflags": "1",
+      "aistatus": "m",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 450,
+      "line": 15196,
+      "classname": "light_spot",
+      "origin": "1357 465 -126",
+      "_light": "214 100 100 100",
+      "_cone": "15",
+      "_cone2": "90",
+      "style": "43",
+      "angles": "90 0 0",
+      "spawnflags": "1",
+      "aistatus": "m",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 451,
+      "line": 15209,
+      "classname": "light_spot",
+      "origin": "1506 465 -149",
+      "_light": "214 100 100 100",
+      "_cone": "15",
+      "_cone2": "90",
+      "style": "43",
+      "angles": "90 0 0",
+      "spawnflags": "1",
+      "aistatus": "m",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 452,
+      "line": 15222,
+      "classname": "light_spot",
+      "origin": "1695 465 -149",
+      "_light": "214 100 100 100",
+      "_cone": "15",
+      "_cone2": "90",
+      "style": "43",
+      "angles": "90 0 0",
+      "spawnflags": "1",
+      "aistatus": "m",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 453,
+      "line": 15235,
+      "classname": "light_spot",
+      "origin": "1871 465 -149",
+      "_light": "214 100 100 100",
+      "_cone": "15",
+      "_cone2": "90",
+      "style": "43",
+      "angles": "90 0 0",
+      "spawnflags": "1",
+      "aistatus": "m",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 457,
+      "line": 15278,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "32",
+      "origin": "1310 864 -29",
+      "model": "models/sprites/lamp_glow2.spr",
+      "angles": "-74 163 -166",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 458,
+      "line": 15289,
+      "classname": "light_spot",
+      "origin": "1310 864 -14",
+      "_light": "234 75 0 200",
+      "_cone": "15",
+      "_cone2": "45",
+      "pitch": "-90",
+      "style": "43",
+      "angles": "0 -90 0",
+      "spawnflags": "1",
+      "aistatus": "m",
+      "targetname": "p_lights_43"
+    },
+    {
+      "id": 471,
+      "line": 15411,
+      "classname": "game_songplay",
+      "cost": "45",
+      "origin": "1012 1704 40",
+      "aistatus": "xmas/power",
+      "targetname": "sting_power"
+    },
+    {
+      "id": 475,
+      "line": 15449,
+      "classname": "ambient_generic",
+      "origin": "984 1848 -24",
+      "spawnflags": "49",
+      "message": "sounds/misc/jumpscare.wav",
+      "targetname": "q_gramo_jumpscare"
+    },
+    {
+      "id": 476,
+      "line": 15457,
+      "classname": "ambient_generic",
+      "origin": "1048 1896 -88",
+      "spawnflags": "49",
+      "message": "sounds/voice/xmas/s_gramo_interact.wav",
+      "targetname": "q_gramo_voice"
+    },
+    {
+      "id": 477,
+      "line": 15465,
+      "classname": "ambient_generic",
+      "spawnflags": "49",
+      "volume": "1",
+      "speed": "1",
+      "impulse": "0",
+      "origin": "712 2228 -60",
+      "targetname": "q_bell_voice",
+      "message": "sounds/voice/xmas/s_bell_interact.wav"
+    },
+    {
+      "id": 478,
+      "line": 15476,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1915.87 1864.22 -107.034",
+      "model": "models/props/xmas/dead_soldier.mdl",
+      "angles": "0 -150 0",
+      "targetname": "q_body_frozen",
+      "skin": "1"
+    },
+    {
+      "id": 479,
+      "line": 15488,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "64",
+      "origin": "1912.75 1846.95 -111.064",
+      "model": "models/props/xmas/wep_energy.mdl",
+      "angles": "-29 -73 9",
+      "targetname": "q_wep_energy",
+      "skin": "0"
+    },
+    {
+      "id": 480,
+      "line": 15500,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "32",
+      "origin": "1915.87 1864.22 -107.034",
+      "model": "models/props/xmas/dead_soldier.mdl",
+      "angles": "0 -150 0",
+      "targetname": "q_body_thawed",
+      "skin": "0"
+    },
+    {
+      "id": 481,
+      "line": 15512,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "96",
+      "origin": "1054 1844 -34",
+      "model": "models/sprites/lightning.spr",
+      "angles": "-74 163 -166",
+      "targetname": "q_spirit",
+      "first_frame": "0",
+      "last_frame": "2"
+    },
+    {
+      "id": 482,
+      "line": 15525,
+      "classname": "ambient_generic",
+      "origin": "1048 1896 -64",
+      "spawnflags": "49",
+      "message": "sounds/voice/xmas/s_final.wav",
+      "targetname": "q_spirit_final_voice"
+    },
+    {
+      "id": 498,
+      "line": 16052,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1724 1962 -104",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents"
+    },
+    {
+      "id": 499,
+      "line": 16064,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1540 2052 -104",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents"
+    },
+    {
+      "id": 519,
+      "line": 16922,
+      "classname": "func_wall",
+      "rendermode": "4",
+      "renderamt": "255",
+      "spawnflags": "0",
+      "targetname": "q_bell_blocker"
+    },
+    {
+      "id": 520,
+      "line": 16939,
+      "classname": "func_button",
+      "speed": "40",
+      "lip": "4",
+      "wait": "-1",
+      "health": "1",
+      "target": "q_bell_increment",
+      "target2": "q_bell_2"
+    },
+    {
+      "id": 521,
+      "line": 16958,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "origin": "1004 1024 104",
+      "model": "models/props/xmas/bell.mdl",
+      "targetname": "q_bell_2",
+      "scale": "3",
+      "angles": "0 180 0"
+    },
+    {
+      "id": 522,
+      "line": 16969,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "40",
+      "origin": "1004 1024 104",
+      "model": "models/props/xmas/bell.mdl",
+      "first_frame": "0",
+      "last_frame": "14",
+      "targetname": "q_bell_2",
+      "scale": "3",
+      "angles": "0 180 0"
+    },
+    {
+      "id": 523,
+      "line": 16983,
+      "classname": "func_wall",
+      "rendermode": "4",
+      "renderamt": "255",
+      "spawnflags": "0",
+      "targetname": "q_bell_blocker"
+    },
+    {
+      "id": 524,
+      "line": 17000,
+      "classname": "func_button",
+      "speed": "40",
+      "lip": "4",
+      "wait": "-1",
+      "health": "1",
+      "target": "q_bell_increment",
+      "target2": "q_bell_5"
+    },
+    {
+      "id": 525,
+      "line": 17019,
+      "classname": "func_wall",
+      "rendermode": "4",
+      "renderamt": "255",
+      "spawnflags": "0",
+      "targetname": "q_bell_blocker"
+    },
+    {
+      "id": 526,
+      "line": 17036,
+      "classname": "func_button",
+      "speed": "40",
+      "lip": "4",
+      "wait": "-1",
+      "health": "1",
+      "target": "q_bell_increment",
+      "target2": "q_bell_4"
+    },
+    {
+      "id": 527,
+      "line": 17055,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "origin": "1918 1816 96",
+      "model": "models/props/xmas/bell.mdl",
+      "targetname": "q_bell_5",
+      "scale": "3",
+      "angles": "0 180 0"
+    },
+    {
+      "id": 528,
+      "line": 17066,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "40",
+      "origin": "1918 1816 96",
+      "model": "models/props/xmas/bell.mdl",
+      "first_frame": "0",
+      "last_frame": "14",
+      "targetname": "q_bell_5",
+      "scale": "3",
+      "angles": "0 180 0"
+    },
+    {
+      "id": 529,
+      "line": 17080,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "origin": "1918 1556 96",
+      "model": "models/props/xmas/bell.mdl",
+      "targetname": "q_bell_4",
+      "scale": "3",
+      "angles": "0 180 0"
+    },
+    {
+      "id": 530,
+      "line": 17091,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "40",
+      "origin": "1918 1556 96",
+      "model": "models/props/xmas/bell.mdl",
+      "first_frame": "0",
+      "last_frame": "14",
+      "targetname": "q_bell_4",
+      "scale": "3",
+      "angles": "0 180 0"
+    },
+    {
+      "id": 531,
+      "line": 17105,
+      "classname": "func_wall",
+      "rendermode": "4",
+      "renderamt": "255",
+      "spawnflags": "0",
+      "targetname": "q_bell_blocker"
+    },
+    {
+      "id": 532,
+      "line": 17122,
+      "classname": "func_wall",
+      "rendermode": "4",
+      "renderamt": "255",
+      "spawnflags": "0",
+      "targetname": "q_bell_blocker"
+    },
+    {
+      "id": 533,
+      "line": 17139,
+      "classname": "func_button",
+      "speed": "40",
+      "lip": "4",
+      "wait": "-1",
+      "health": "1",
+      "target": "q_bell_increment",
+      "target2": "q_bell_7"
+    },
+    {
+      "id": 534,
+      "line": 17158,
+      "classname": "func_button",
+      "speed": "40",
+      "lip": "4",
+      "wait": "-1",
+      "health": "1",
+      "target": "q_bell_increment",
+      "target2": "q_bell_6"
+    },
+    {
+      "id": 535,
+      "line": 17177,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "origin": "1616 2604 32",
+      "model": "models/props/xmas/bell.mdl",
+      "targetname": "q_bell_6",
+      "scale": "3",
+      "angles": "0 -90 0"
+    },
+    {
+      "id": 536,
+      "line": 17188,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "40",
+      "origin": "1616 2604 32",
+      "model": "models/props/xmas/bell.mdl",
+      "first_frame": "0",
+      "last_frame": "14",
+      "targetname": "q_bell_6",
+      "scale": "3",
+      "angles": "0 -90 0"
+    },
+    {
+      "id": 537,
+      "line": 17202,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "origin": "1852 2340 96",
+      "model": "models/props/xmas/bell.mdl",
+      "targetname": "q_bell_7",
+      "scale": "3",
+      "angles": "0 -90 0"
+    },
+    {
+      "id": 538,
+      "line": 17213,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "40",
+      "origin": "1852 2340 96",
+      "model": "models/props/xmas/bell.mdl",
+      "first_frame": "0",
+      "last_frame": "14",
+      "targetname": "q_bell_7",
+      "scale": "3",
+      "angles": "0 -90 0"
+    },
+    {
+      "id": 539,
+      "line": 17227,
+      "classname": "func_wall",
+      "rendermode": "4",
+      "renderamt": "255",
+      "spawnflags": "0",
+      "targetname": "q_bell_blocker"
+    },
+    {
+      "id": 540,
+      "line": 17244,
+      "classname": "func_button",
+      "speed": "40",
+      "lip": "4",
+      "wait": "-1",
+      "health": "1",
+      "target": "q_bell_increment",
+      "target2": "q_bell_1"
+    },
+    {
+      "id": 541,
+      "line": 17263,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "origin": "730 2465 34",
+      "model": "models/props/xmas/bell.mdl",
+      "targetname": "q_bell_1",
+      "scale": "3",
+      "angles": "0 90 0"
+    },
+    {
+      "id": 542,
+      "line": 17274,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "40",
+      "origin": "730 2465 34",
+      "model": "models/props/xmas/bell.mdl",
+      "first_frame": "0",
+      "last_frame": "14",
+      "targetname": "q_bell_1",
+      "scale": "3",
+      "angles": "0 90 0"
+    },
+    {
+      "id": 549,
+      "line": 17376,
+      "classname": "func_wall",
+      "rendermode": "4",
+      "renderamt": "255",
+      "spawnflags": "0",
+      "targetname": "q_bell_blocker"
+    },
+    {
+      "id": 550,
+      "line": 17393,
+      "classname": "func_button",
+      "speed": "40",
+      "lip": "4",
+      "wait": "-1",
+      "health": "1",
+      "target": "q_bell_increment",
+      "target2": "q_bell_3"
+    },
+    {
+      "id": 551,
+      "line": 17412,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "origin": "336 1064 -64",
+      "model": "models/props/xmas/bell.mdl",
+      "targetname": "q_bell_3",
+      "scale": "3",
+      "angles": "0 180 0"
+    },
+    {
+      "id": 552,
+      "line": 17423,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "40",
+      "origin": "336 1064 -64",
+      "model": "models/props/xmas/bell.mdl",
+      "first_frame": "0",
+      "last_frame": "14",
+      "targetname": "q_bell_3",
+      "scale": "3",
+      "angles": "0 180 0"
+    },
+    {
+      "id": 559,
+      "line": 17659,
+      "classname": "trigger_multiple",
+      "wait": "4",
+      "spawnflags": "1",
+      "sounds": "0",
+      "delay": "90",
+      "targetname": "q_bell_finished_wait",
+      "target": "q_drawer_interact",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 560,
+      "line": 17679,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "delay": "1",
+      "targetname": "q_sky_change_wait",
+      "target": "sky_sunset",
+      "target2": "sky_alien",
+      "killtarget": "snow_ents",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 561,
+      "line": 17701,
+      "classname": "trigger_interact",
+      "sounds": "0",
+      "delay": "0",
+      "target": "q_boiler_door",
+      "spawnflags": "1",
+      "targetname": "q_boiler_door_interact",
+      "noise": "sounds/misc/debris.wav",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 562,
+      "line": 17721,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "delay": "0.25",
+      "targetname": "q_drawer_key_delay",
+      "target": "q_drawer_key",
+      "target2": "q_key_music",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 563,
+      "line": 17742,
+      "classname": "func_wall",
+      "rendermode": "4",
+      "renderamt": "255",
+      "spawnflags": "0",
+      "targetname": "q_body_blocker",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 564,
+      "line": 17760,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "round_delay": "1",
+      "targetname": "q_wep_frame_collect",
+      "target": "q_wep_frame_voice",
+      "target2": "q_tokens_show",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 565,
+      "line": 17781,
+      "classname": "trigger_multiple",
+      "wait": "4",
+      "spawnflags": "1",
+      "sounds": "0",
+      "delay": "2.9",
+      "targetname": "q_bell_finished_wait",
+      "target": "q_bell_sting",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 567,
+      "line": 17880,
+      "classname": "func_door",
+      "speed": "25",
+      "sounds": "0",
+      "wait": "-1",
+      "lip": "-5",
+      "dmg": "0",
+      "health": "0",
+      "spawnflags": "0",
+      "angle": "-2",
+      "targetname": "q_body_snow",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 568,
+      "line": 17908,
+      "classname": "trigger_interact",
+      "sounds": "0",
+      "delay": "0",
+      "target": "q_wep_frame",
+      "noise": "sounds/player/pickup.wav",
+      "target2": "q_wep_frame_collect",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 569,
+      "line": 17927,
+      "classname": "func_button",
+      "speed": "40",
+      "lip": "4",
+      "wait": "1",
+      "health": "300",
+      "spawnflags": "1",
+      "target": "q_body_frozen",
+      "target2": "q_body_thawed",
+      "target3": "q_body_snow",
+      "target4": "q_wep_energy_collect",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 570,
+      "line": 17950,
+      "classname": "trigger_interact",
+      "sounds": "0",
+      "delay": "0",
+      "spawnflags": "1",
+      "targetname": "q_token_glasses_interact",
+      "target": "q_token_glasses",
+      "target2": "q_token_glasses_wait",
+      "noise": "sounds/player/pickup.wav",
+      "target3": "q_fire_g_interact",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 573,
+      "line": 18034,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "targetname": "q_token_glasses_wait",
+      "target": "q_token_glasses_voice",
+      "delay": "2",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 576,
+      "line": 18137,
+      "classname": "trigger_interact",
+      "sounds": "0",
+      "delay": "0",
+      "spawnflags": "1",
+      "targetname": "q_token_toy_interact",
+      "target": "q_token_toy",
+      "target2": "q_token_toy_wait",
+      "noise": "sounds/player/pickup.wav",
+      "target3": "q_fire_t_interact",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 577,
+      "line": 18159,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "targetname": "q_token_toy_wait",
+      "target": "q_token_toy_voice",
+      "delay": "2",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 579,
+      "line": 18216,
+      "classname": "trigger_interact",
+      "sounds": "0",
+      "delay": "0",
+      "targetname": "q_fire_t_interact",
+      "target": "q_fire_t",
+      "spawnflags": "1",
+      "noise": "sounds/player/pickup.wav",
+      "target2": "q_fire_counter",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 580,
+      "line": 18237,
+      "classname": "trigger_interact",
+      "sounds": "0",
+      "delay": "0",
+      "targetname": "q_fire_s_interact",
+      "target": "q_fire_s",
+      "spawnflags": "1",
+      "noise": "sounds/player/pickup.wav",
+      "target2": "q_fire_counter",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 581,
+      "line": 18258,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "delay": "2",
+      "targetname": "q_fire_dialogue",
+      "target": "q_fire_voice",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 582,
+      "line": 18278,
+      "classname": "trigger_interact",
+      "sounds": "0",
+      "delay": "0",
+      "noise": "sounds/player/pickup.wav",
+      "spawnflags": "1",
+      "targetname": "q_wep_energy_collect",
+      "target": "q_wep_energy",
+      "killtarget": "q_wep_cart_box_closed",
+      "target2": "q_wep_cart_box_opened",
+      "target3": "q_wep_cart",
+      "target4": "q_wep_cart_interact",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 583,
+      "line": 18302,
+      "classname": "trigger_interact",
+      "sounds": "0",
+      "delay": "0",
+      "targetname": "q_fire_g_interact",
+      "target": "q_fire_g",
+      "spawnflags": "1",
+      "noise": "sounds/player/pickup.wav",
+      "target2": "q_fire_counter",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 585,
+      "line": 18360,
+      "classname": "func_illusionary",
+      "rendermode": "4",
+      "renderamt": "255",
+      "targetname": "q_wep_cart_box_opened",
+      "spawnflags": "1",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 587,
+      "line": 18438,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "targetname": "q_tokens_show",
+      "target": "q_token_scarf",
+      "target2": "q_token_scarf_interact",
+      "target3": "q_token_glasses",
+      "target4": "q_token_glasses_interact",
+      "target5": "q_token_toy",
+      "target6": "q_token_toy_interact",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 588,
+      "line": 18462,
+      "classname": "trigger_interact",
+      "sounds": "0",
+      "delay": "0",
+      "spawnflags": "1",
+      "targetname": "q_token_scarf_interact",
+      "target": "q_token_scarf",
+      "target2": "q_token_scarf_wait",
+      "noise": "sounds/player/pickup.wav",
+      "target3": "q_fire_s_interact",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 590,
+      "line": 18521,
+      "classname": "func_illusionary",
+      "rendermode": "4",
+      "renderamt": "255",
+      "targetname": "q_wep_cart_box_closed",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 592,
+      "line": 18575,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "targetname": "q_token_scarf_wait",
+      "target": "q_token_scarf_voice",
+      "delay": "2",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 593,
+      "line": 18595,
+      "classname": "trigger_multiple",
+      "wait": "4",
+      "spawnflags": "1",
+      "sounds": "0",
+      "delay": "3",
+      "targetname": "q_bell_finished_wait",
+      "target": "q_bell_finished",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 594,
+      "line": 18615,
+      "classname": "trigger_interact",
+      "sounds": "0",
+      "delay": "0",
+      "target": "q_wep_cart",
+      "noise": "sounds/player/pickup.wav",
+      "target2": "q_wep_cart_collect",
+      "target3": "q_wep_assembly_interact",
+      "spawnflags": "1",
+      "targetname": "q_wep_cart_interact",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 597,
+      "line": 18684,
+      "classname": "trigger_interact",
+      "sounds": "0",
+      "delay": "0",
+      "killtarget": "sq_snowman_snow_1",
+      "target": "sq_snowman_chime",
+      "target2": "sq_snowman_counter",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 598,
+      "line": 18703,
+      "classname": "func_illusionary",
+      "rendermode": "4",
+      "renderamt": "255",
+      "targetname": "sq_snowman_snow_1",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 599,
+      "line": 18720,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "targetname": "q_wep_cleanup",
+      "killtarget": "q_wep_obtain",
+      "target": "dummy",
+      "delay": "0.1",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 600,
+      "line": 18741,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "targetname": "q_wep_cleanup",
+      "killtarget": "q_wep_assembly_spr",
+      "target": "dummy",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 601,
+      "line": 18761,
+      "classname": "trigger_interact",
+      "sounds": "0",
+      "delay": "0",
+      "target": "q_wep_assembly",
+      "targetname": "q_wep_assembly_interact",
+      "spawnflags": "1",
+      "target2": "q_wep_assembly_spr",
+      "target3": "q_wep_assembly_flash",
+      "target4": "q_wep_obtain_delay",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 602,
+      "line": 18783,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "targetname": "q_wep_obtain_delay",
+      "target": "q_wep_obtain",
+      "delay": "2.5",
+      "killtarget": "",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 603,
+      "line": 18804,
+      "classname": "trigger_interact",
+      "sounds": "0",
+      "delay": "0",
+      "spawnflags": "1",
+      "targetname": "q_spirit_interact",
+      "target": "q_sky_change_wait",
+      "target2": "q_sky_change_flash",
+      "target3": "q_spirit",
+      "target4": "q_spirit_final",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 604,
+      "line": 18826,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "targetname": "q_wep_cleanup",
+      "target": "q_spirit",
+      "round_delay": "2",
+      "target2": "q_spirit_interact",
+      "target3": "q_spirit_reveal",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 605,
+      "line": 18848,
+      "classname": "buy_weapon",
+      "weapon": "60",
+      "cost": "0",
+      "cost2": "0",
+      "pap_cost": "0",
+      "spawnflags": "1",
+      "targetname": "q_wep_obtain",
+      "target2": "q_wep_cleanup",
+      "target": "dummy",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 606,
+      "line": 18870,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "targetname": "q_wep_cleanup",
+      "killtarget": "q_wep_assembly",
+      "target": "dummy",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 607,
+      "line": 18890,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "delay": "1.5",
+      "targetname": "q_drawer_key_delay",
+      "target": "q_key_interact",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 608,
+      "line": 18910,
+      "classname": "trigger_interact",
+      "sounds": "0",
+      "delay": "0",
+      "targetname": "q_key_interact",
+      "killtarget": "q_drawer_key",
+      "spawnflags": "1",
+      "noise": "sounds/misc/xmas/key.wav",
+      "target": "q_boiler_door_interact",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 609,
+      "line": 18931,
+      "classname": "func_button",
+      "speed": "40",
+      "lip": "4",
+      "wait": "-1",
+      "health": "1",
+      "target": "sq_free_insta",
+      "target2": "sq_free_insta_model",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 611,
+      "line": 18995,
+      "classname": "func_illusionary",
+      "rendermode": "4",
+      "renderamt": "255",
+      "targetname": "sq_snowman_coal",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 612,
+      "line": 19030,
+      "classname": "func_button",
+      "speed": "40",
+      "lip": "4",
+      "wait": "-1",
+      "health": "1",
+      "target": "sq_free_points",
+      "target2": "sq_free_points_model",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 613,
+      "line": 19050,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "delay": "3",
+      "targetname": "sq_snowman_dropper",
+      "target": "sq_snowman_drop_2",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 614,
+      "line": 19070,
+      "classname": "func_illusionary",
+      "rendermode": "4",
+      "renderamt": "255",
+      "targetname": "sq_snowman_carrot",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 615,
+      "line": 19086,
+      "classname": "trigger_interact",
+      "sounds": "0",
+      "delay": "0",
+      "killtarget": "sq_snowman_coal",
+      "target": "sq_snowman_chime",
+      "target2": "sq_snowman_counter",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 616,
+      "line": 19105,
+      "classname": "trigger_interact",
+      "sounds": "0",
+      "delay": "0",
+      "killtarget": "sq_snowman_carrot",
+      "target": "sq_snowman_chime",
+      "target2": "sq_snowman_counter",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 617,
+      "line": 19124,
+      "classname": "func_illusionary",
+      "rendermode": "4",
+      "renderamt": "255",
+      "targetname": "sq_snowman_snow_2",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 618,
+      "line": 19141,
+      "classname": "func_illusionary",
+      "rendermode": "4",
+      "renderamt": "255",
+      "targetname": "sq_snowman_snow_3",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 619,
+      "line": 19158,
+      "classname": "trigger_interact",
+      "sounds": "0",
+      "delay": "0",
+      "killtarget": "sq_snowman_snow_2",
+      "target": "sq_snowman_chime",
+      "target2": "sq_snowman_counter",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 620,
+      "line": 19177,
+      "classname": "trigger_interact",
+      "sounds": "0",
+      "delay": "0",
+      "killtarget": "sq_snowman_snow_3",
+      "target": "sq_snowman_chime",
+      "target2": "sq_snowman_counter",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 621,
+      "line": 19196,
+      "classname": "trigger_interact",
+      "sounds": "0",
+      "delay": "0",
+      "spawnflags": "1",
+      "target": "sq_snowman_full",
+      "targetname": "sq_snowman_trigger",
+      "target2": "sq_snowman_music",
+      "target3": "sq_snowman_dropper",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 622,
+      "line": 19217,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "delay": "2",
+      "targetname": "sq_snowman_dropper",
+      "target": "sq_snowman_drop_1",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 623,
+      "line": 19237,
+      "classname": "trigger_multiple",
+      "wait": "4",
+      "spawnflags": "1",
+      "sounds": "0",
+      "delay": "5",
+      "targetname": "q_bell_finished_wait",
+      "target": "q_bell_voice",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 624,
+      "line": 19257,
+      "classname": "trigger_multiple",
+      "wait": "-1",
+      "spawnflags": "1",
+      "sounds": "0",
+      "delay": "4",
+      "targetname": "sq_snowman_dropper",
+      "target": "sq_snowman_drop_3",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 625,
+      "line": 19277,
+      "classname": "func_door",
+      "speed": "100",
+      "sounds": "0",
+      "wait": "-1",
+      "lip": "-5",
+      "dmg": "0",
+      "health": "0",
+      "spawnflags": "0",
+      "targetname": "q_boiler_door",
+      "angle": "-2",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 626,
+      "line": 19300,
+      "classname": "func_door",
+      "speed": "100",
+      "sounds": "0",
+      "wait": "-1",
+      "lip": "8",
+      "dmg": "0",
+      "health": "0",
+      "spawnflags": "128",
+      "targetname": "q_drawer",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 627,
+      "line": 19358,
+      "classname": "trigger_interact",
+      "sounds": "0",
+      "delay": "0",
+      "target": "q_drawer",
+      "targetname": "q_drawer_interact",
+      "target2": "q_drawer_key_delay",
+      "noise": "sounds/misc/drawer.wav",
+      "spawnflags": "1",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 628,
+      "line": 19379,
+      "classname": "func_illusionary",
+      "rendermode": "4",
+      "renderamt": "255",
+      "targetname": "q_drawer_key",
+      "spawnflags": "1",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 629,
+      "line": 19440,
+      "classname": "trigger_interact",
+      "sounds": "0",
+      "delay": "0",
+      "spawnflags": "1",
+      "target": "q_gramo_interact_seq",
+      "targetname": "q_gramo_interact",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 630,
+      "line": 19459,
+      "classname": "ambient_generic",
+      "spawnflags": "49",
+      "volume": "1",
+      "speed": "1",
+      "impulse": "0",
+      "origin": "377 2292 -59",
+      "targetname": "q_bell_ring_1",
+      "message": "sounds/misc/xmas/bells/d4.wav",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 631,
+      "line": 19471,
+      "classname": "game_counter",
+      "spawnflags": "1",
+      "frags": "0",
+      "health": "1",
+      "origin": "376 2340 -60",
+      "targetname": "q_bell_increment",
+      "target": "q_bell_ring_1",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 632,
+      "line": 19482,
+      "classname": "ambient_generic",
+      "spawnflags": "49",
+      "volume": "1",
+      "speed": "1",
+      "impulse": "0",
+      "origin": "409 2292 -59",
+      "targetname": "q_bell_ring_2",
+      "message": "sounds/misc/xmas/bells/a4.wav",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 633,
+      "line": 19494,
+      "classname": "game_counter",
+      "spawnflags": "1",
+      "frags": "0",
+      "health": "2",
+      "origin": "408 2340 -60",
+      "targetname": "q_bell_increment",
+      "target": "q_bell_ring_2",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 634,
+      "line": 19505,
+      "classname": "ambient_generic",
+      "spawnflags": "49",
+      "volume": "1",
+      "speed": "1",
+      "impulse": "0",
+      "origin": "441 2292 -59",
+      "targetname": "q_bell_ring_3",
+      "message": "sounds/misc/xmas/bells/g4.wav",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 635,
+      "line": 19517,
+      "classname": "game_counter",
+      "spawnflags": "1",
+      "frags": "0",
+      "health": "3",
+      "origin": "440 2340 -60",
+      "targetname": "q_bell_increment",
+      "target": "q_bell_ring_3",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 636,
+      "line": 19528,
+      "classname": "ambient_generic",
+      "spawnflags": "49",
+      "volume": "1",
+      "speed": "1",
+      "impulse": "0",
+      "origin": "473 2292 -59",
+      "targetname": "q_bell_ring_4",
+      "message": "sounds/misc/xmas/bells/a4.wav",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 637,
+      "line": 19540,
+      "classname": "game_counter",
+      "spawnflags": "1",
+      "frags": "0",
+      "health": "4",
+      "origin": "472 2340 -60",
+      "targetname": "q_bell_increment",
+      "target": "q_bell_ring_4",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 638,
+      "line": 19551,
+      "classname": "ambient_generic",
+      "spawnflags": "49",
+      "volume": "1",
+      "speed": "1",
+      "impulse": "0",
+      "origin": "505 2292 -59",
+      "targetname": "q_bell_ring_5",
+      "message": "sounds/misc/xmas/bells/as4.wav",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 639,
+      "line": 19563,
+      "classname": "game_counter",
+      "spawnflags": "1",
+      "frags": "0",
+      "health": "5",
+      "origin": "504 2340 -60",
+      "targetname": "q_bell_increment",
+      "target": "q_bell_ring_5",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 640,
+      "line": 19574,
+      "classname": "ambient_generic",
+      "spawnflags": "49",
+      "volume": "1",
+      "speed": "1",
+      "impulse": "0",
+      "origin": "537 2292 -59",
+      "targetname": "q_bell_ring_6",
+      "message": "sounds/misc/xmas/bells/a4.wav",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 641,
+      "line": 19586,
+      "classname": "game_counter",
+      "spawnflags": "1",
+      "frags": "0",
+      "health": "6",
+      "origin": "536 2340 -60",
+      "targetname": "q_bell_increment",
+      "target": "q_bell_ring_6",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 642,
+      "line": 19597,
+      "classname": "ambient_generic",
+      "spawnflags": "49",
+      "volume": "1",
+      "speed": "1",
+      "impulse": "0",
+      "origin": "569 2292 -59",
+      "targetname": "q_bell_ring_7",
+      "message": "sounds/misc/xmas/bells/f4.wav",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 643,
+      "line": 19609,
+      "classname": "game_counter",
+      "spawnflags": "1",
+      "frags": "0",
+      "health": "7",
+      "origin": "568 2340 -60",
+      "targetname": "q_bell_increment",
+      "target": "q_bell_ring_7",
+      "target2": "q_bell_finished_wait",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 644,
+      "line": 19621,
+      "classname": "game_screenflash",
+      "ltime": "2",
+      "weapon": "0",
+      "origin": "1624 1256 -96",
+      "targetname": "q_sky_change_flash",
+      "noise": "sounds/misc/event.wav",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 645,
+      "line": 19631,
+      "classname": "game_screenflash",
+      "ltime": "2",
+      "weapon": "0",
+      "origin": "636 2230 -52",
+      "targetname": "q_bell_finished",
+      "noise": "sounds/misc/event.wav",
+      "currentammo": "96",
+      "spawnflags": "1",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 646,
+      "line": 19643,
+      "classname": "game_songplay",
+      "cost": "96",
+      "origin": "677 2232 -60",
+      "targetname": "q_bell_sting",
+      "aistatus": "xmas/phoenix",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 647,
+      "line": 19652,
+      "classname": "info_changesky",
+      "origin": "1626 1277 -96",
+      "name": "xmas/alien",
+      "targetname": "sky_alien",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 648,
+      "line": 19660,
+      "classname": "misc_model",
+      "model": "models/pu/x2!.mdl",
+      "skin": "0",
+      "sequence": "0",
+      "spawnflags": "0",
+      "angles": "0 150 0",
+      "origin": "108 806 -140",
+      "scale": "0.25",
+      "targetname": "sq_free_2x_model",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 649,
+      "line": 19673,
+      "classname": "spawn_pu",
+      "origin": "108 812 -106",
+      "targetname": "sq_free_2x",
+      "spawn_id": "2",
+      "spawnflags": "1",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 650,
+      "line": 19682,
+      "classname": "misc_model",
+      "model": "models/pu/points!.mdl",
+      "skin": "0",
+      "sequence": "0",
+      "spawnflags": "0",
+      "angles": "0 150 0",
+      "origin": "1936 1856 240",
+      "scale": "0.25",
+      "targetname": "sq_free_points_model",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 651,
+      "line": 19695,
+      "classname": "spawn_pu",
+      "origin": "1936 1862 274",
+      "targetname": "sq_free_points",
+      "spawn_id": "7",
+      "spawnflags": "1",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 652,
+      "line": 19704,
+      "classname": "spawn_pu",
+      "origin": "1684 2802 198",
+      "targetname": "sq_free_insta",
+      "spawn_id": "7",
+      "spawnflags": "1",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 653,
+      "line": 19713,
+      "classname": "misc_model",
+      "model": "models/pu/instakill!.mdl",
+      "skin": "0",
+      "sequence": "0",
+      "spawnflags": "0",
+      "angles": "0 150 0",
+      "origin": "1684 2796 164",
+      "scale": "0.25",
+      "targetname": "sq_free_insta_model",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 654,
+      "line": 19726,
+      "classname": "ambient_generic",
+      "origin": "964 1440 108",
+      "spawnflags": "49",
+      "message": "sounds/misc/chime.wav",
+      "targetname": "sq_snowman_chime",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 655,
+      "line": 19735,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "980 1856 -52",
+      "model": "models/props/gramophone.mdl",
+      "angles": "0 -30 0",
+      "first_frame": "0",
+      "last_frame": "14",
+      "targetname": "q_gramophone",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 656,
+      "line": 19749,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "32",
+      "origin": "980 1856 -52",
+      "model": "models/props/gramophone_skip.mdl",
+      "angles": "0 -30 0",
+      "first_frame": "0",
+      "last_frame": "14",
+      "targetname": "q_gramophone",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 658,
+      "line": 19773,
+      "classname": "func_illusionary",
+      "rendermode": "4",
+      "renderamt": "255",
+      "targetname": "sq_snowman_full",
+      "spawnflags": "1",
+      "_tb_group": "12"
+    },
+    {
+      "id": 659,
+      "line": 19926,
+      "classname": "game_counter",
+      "spawnflags": "1",
+      "frags": "0",
+      "health": "5",
+      "origin": "1948 2856 -68",
+      "target": "sq_snowman_trigger",
+      "targetname": "sq_snowman_counter",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 661,
+      "line": 19947,
+      "classname": "game_songplay",
+      "cost": "40",
+      "origin": "1960 2864 -48",
+      "aistatus": "xmas/jingle_bells",
+      "targetname": "sq_snowman_music",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 662,
+      "line": 19956,
+      "classname": "spawn_pu",
+      "origin": "1856 2916 -56",
+      "targetname": "sq_snowman_drop_2",
+      "spawn_id": "7",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 663,
+      "line": 19964,
+      "classname": "spawn_pu",
+      "origin": "1944 2812 -56",
+      "targetname": "sq_snowman_drop_1",
+      "spawn_id": "7",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 664,
+      "line": 19972,
+      "classname": "spawn_pu",
+      "origin": "1880 2860 -56",
+      "targetname": "sq_snowman_drop_3",
+      "spawn_id": "5",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 666,
+      "line": 19991,
+      "classname": "game_songplay",
+      "cost": "30",
+      "origin": "572 1340 86",
+      "aistatus": "xmas/boiler",
+      "targetname": "q_key_music",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 667,
+      "line": 20000,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1280 1060 -198",
+      "model": "models/props/xmas/wep_frame.mdl",
+      "angles": "0 -45 -90",
+      "targetname": "q_wep_frame",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 668,
+      "line": 20012,
+      "classname": "ambient_generic",
+      "spawnflags": "49",
+      "volume": "1",
+      "speed": "1",
+      "impulse": "0",
+      "origin": "1296 992 -208",
+      "targetname": "q_wep_frame_voice",
+      "message": "sounds/voice/xmas/s_frame_interact.wav",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 669,
+      "line": 20024,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "32",
+      "origin": "1583.26 1158.2 0",
+      "model": "models/props/xmas/token_scarf.mdl",
+      "angles": "0 150 0",
+      "targetname": "q_token_scarf",
+      "skin": "0",
+      "scale": "0.75",
+      "first_frame": "1",
+      "last_frame": "9",
+      "speed": ".1",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 670,
+      "line": 20041,
+      "classname": "ambient_generic",
+      "spawnflags": "49",
+      "volume": "1",
+      "speed": "1",
+      "impulse": "0",
+      "origin": "1592 1172 44",
+      "targetname": "q_token_scarf_voice",
+      "message": "sounds/voice/xmas/s_remember_s.wav",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 671,
+      "line": 20053,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "32",
+      "origin": "756 1364 64",
+      "model": "models/props/xmas/token_glasses.mdl",
+      "angles": "0 0 0",
+      "targetname": "q_token_glasses",
+      "skin": "0",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 672,
+      "line": 20066,
+      "classname": "ambient_generic",
+      "spawnflags": "49",
+      "volume": "1",
+      "speed": "1",
+      "impulse": "0",
+      "origin": "768 1356 108",
+      "targetname": "q_token_glasses_voice",
+      "message": "sounds/voice/xmas/s_remember_g.wav",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 673,
+      "line": 20078,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "32",
+      "origin": "600 1844 -80",
+      "model": "models/props/xmas/token_toy.mdl",
+      "angles": "0 0 0",
+      "targetname": "q_token_toy",
+      "skin": "0",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 674,
+      "line": 20091,
+      "classname": "ambient_generic",
+      "spawnflags": "49",
+      "volume": "1",
+      "speed": "1",
+      "impulse": "0",
+      "origin": "612 1836 -40",
+      "targetname": "q_token_toy_voice",
+      "message": "sounds/voice/xmas/s_remember_t.wav",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 675,
+      "line": 20103,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "32",
+      "origin": "1130 1649 -48",
+      "model": "models/props/xmas/token_glasses.mdl",
+      "angles": "0 135 0",
+      "targetname": "q_fire_g",
+      "skin": "0",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 676,
+      "line": 20116,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "32",
+      "origin": "1120.71 1642.78 -46",
+      "model": "models/props/xmas/token_scarf.mdl",
+      "angles": "0 -150 0",
+      "targetname": "q_fire_s",
+      "skin": "0",
+      "scale": "0.75",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 677,
+      "line": 20130,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "32",
+      "origin": "1113 1629 -46",
+      "model": "models/props/xmas/token_toy.mdl",
+      "angles": "0 135 0",
+      "targetname": "q_fire_t",
+      "skin": "0",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 678,
+      "line": 20143,
+      "classname": "game_counter",
+      "spawnflags": "2",
+      "frags": "0",
+      "health": "3",
+      "origin": "1048 1624 -52",
+      "targetname": "q_fire_counter",
+      "target": "q_fire_flash",
+      "killtarget": "q_body_blocker",
+      "target2": "q_fire_dialogue",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 679,
+      "line": 20156,
+      "classname": "game_screenflash",
+      "ltime": "2",
+      "weapon": "0",
+      "origin": "1056 1628 -80",
+      "targetname": "q_fire_flash",
+      "noise": "sounds/misc/event.wav",
+      "currentammo": "20",
+      "spawnflags": "1",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 680,
+      "line": 20168,
+      "classname": "ambient_generic",
+      "origin": "1042 1598 -96",
+      "spawnflags": "49",
+      "message": "sounds/voice/xmas/s_tokens.wav",
+      "targetname": "q_fire_voice",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 683,
+      "line": 20197,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "32",
+      "origin": "1663 388 -196.5",
+      "model": "models/props/xmas/wep_cart.mdl",
+      "angles": "0 -45 -90",
+      "targetname": "q_wep_cart",
+      "scale": "1.25",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 684,
+      "line": 20210,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "96",
+      "origin": "1280 1060 -182",
+      "model": "models/weapons/ray2/g_ray2.mdl",
+      "angles": "0 -45 0",
+      "targetname": "q_wep_assembly",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 685,
+      "line": 20222,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "96",
+      "origin": "1280 1060 -182",
+      "model": "models/sprites/lightning.spr",
+      "angles": "0 -45 0",
+      "targetname": "q_wep_assembly_spr",
+      "first_frame": "0",
+      "last_frame": "2",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 686,
+      "line": 20236,
+      "classname": "game_screenflash",
+      "ltime": "2",
+      "weapon": "0",
+      "origin": "1308 960 -208",
+      "targetname": "q_wep_assembly_flash",
+      "noise": "sounds/misc/event.wav",
+      "spawnflags": "0",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 687,
+      "line": 20247,
+      "classname": "ambient_generic",
+      "spawnflags": "49",
+      "volume": "1",
+      "speed": "1",
+      "impulse": "0",
+      "origin": "1296 992 -180",
+      "targetname": "q_spirit_reveal",
+      "message": "sounds/voice/xmas/s_reveal.wav",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 688,
+      "line": 20259,
+      "classname": "game_songplay",
+      "cost": "103",
+      "origin": "1304 961 -130",
+      "targetname": "q_wep_obtain",
+      "aistatus": "xmas/obtain",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 689,
+      "line": 20268,
+      "classname": "game_songplay",
+      "cost": "103",
+      "origin": "1093 1909 -82",
+      "targetname": "q_sky_change_flash",
+      "aistatus": "xmas/reveal",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 690,
+      "line": 20277,
+      "classname": "trigger_interact",
+      "sounds": "0",
+      "delay": "0",
+      "noise": "sounds/pu/pickup.wav",
+      "target": "sq_song_counter",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 691,
+      "line": 20295,
+      "classname": "game_songplay",
+      "cost": "330",
+      "origin": "1093 1909 -64",
+      "targetname": "sq_song_trigger",
+      "aistatus": "xmas/trgir",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 692,
+      "line": 20304,
+      "classname": "game_counter",
+      "spawnflags": "2",
+      "frags": "0",
+      "health": "3",
+      "origin": "1118 1913 -77",
+      "targetname": "sq_song_counter",
+      "target": "sq_song_trigger",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 693,
+      "line": 20315,
+      "classname": "trigger_interact",
+      "sounds": "0",
+      "delay": "0",
+      "noise": "sounds/pu/pickup.wav",
+      "target": "sq_song_counter",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 695,
+      "line": 20344,
+      "classname": "trigger_interact",
+      "sounds": "0",
+      "delay": "0",
+      "noise": "sounds/pu/pickup.wav",
+      "target": "sq_song_counter",
+      "_tb_layer": "1"
+    },
+    {
+      "id": 701,
+      "line": 20942,
+      "classname": "func_button",
+      "speed": "40",
+      "lip": "4",
+      "wait": "-1",
+      "health": "1",
+      "target": "sq_free_2x",
+      "target2": "sq_free_2x_model",
+      "_tb_layer": "2"
+    },
+    {
+      "id": 785,
+      "line": 22335,
+      "classname": "light",
+      "_light": "5 20 36 1500",
+      "angles": "15 90 0",
+      "origin": "1660 1055.1 252.381",
+      "spawnflags": "2",
+      "targetname": "sky_sunset",
+      "style": "33",
+      "aistatus": "m",
+      "_fade": "80",
+      "_tb_layer": "6"
+    },
+    {
+      "id": 801,
+      "line": 22485,
+      "classname": "light",
+      "_light": "25 0 25 5000",
+      "angles": "15 90 0",
+      "origin": "1620 1591.1 276.381",
+      "spawnflags": "1",
+      "targetname": "sky_alien",
+      "style": "32",
+      "aistatus": "m",
+      "_fade": "60",
+      "_tb_layer": "6"
+    },
+    {
+      "id": 823,
+      "line": 22687,
+      "classname": "light",
+      "_light": "25 0 25 5000",
+      "angles": "15 90 0",
+      "origin": "1808 2675.1 276.381",
+      "spawnflags": "1",
+      "targetname": "sky_alien",
+      "style": "32",
+      "aistatus": "m",
+      "_fade": "60",
+      "_tb_layer": "6"
+    },
+    {
+      "id": 824,
+      "line": 22700,
+      "classname": "light",
+      "_light": "25 0 25 5000",
+      "angles": "15 90 0",
+      "origin": "380 1455.1 276.381",
+      "spawnflags": "1",
+      "targetname": "sky_alien",
+      "style": "32",
+      "aistatus": "m",
+      "_fade": "60",
+      "_tb_layer": "6"
+    },
+    {
+      "id": 825,
+      "line": 22713,
+      "classname": "light",
+      "_light": "25 0 25 5000",
+      "angles": "15 90 0",
+      "origin": "388 915.1 276.381",
+      "spawnflags": "1",
+      "targetname": "sky_alien",
+      "style": "32",
+      "aistatus": "m",
+      "_fade": "60",
+      "_tb_layer": "6"
+    },
+    {
+      "id": 826,
+      "line": 22726,
+      "classname": "light",
+      "_light": "25 0 25 5000",
+      "angles": "15 90 0",
+      "origin": "444 555.1 276.381",
+      "spawnflags": "1",
+      "targetname": "sky_alien",
+      "style": "32",
+      "aistatus": "m",
+      "_fade": "60",
+      "_tb_layer": "6"
+    },
+    {
+      "id": 827,
+      "line": 22739,
+      "classname": "light",
+      "_light": "25 0 25 5000",
+      "angles": "15 90 0",
+      "origin": "272 2087.1 276.381",
+      "spawnflags": "1",
+      "targetname": "sky_alien",
+      "style": "32",
+      "aistatus": "m",
+      "_fade": "60",
+      "_tb_layer": "6"
+    },
+    {
+      "id": 828,
+      "line": 22752,
+      "classname": "light",
+      "_light": "25 0 25 5000",
+      "angles": "15 90 0",
+      "origin": "756 2359.1 276.381",
+      "spawnflags": "1",
+      "targetname": "sky_alien",
+      "style": "32",
+      "aistatus": "m",
+      "_fade": "60",
+      "_tb_layer": "6"
+    },
+    {
+      "id": 831,
+      "line": 22785,
+      "classname": "light_spot",
+      "origin": "1434 1363.46 -8",
+      "_light": "234 75 0 200",
+      "_cone": "15",
+      "_cone2": "45",
+      "pitch": "-90",
+      "style": "43",
+      "angles": "0 -90 0",
+      "spawnflags": "1",
+      "aistatus": "m",
+      "targetname": "p_lights_43",
+      "_tb_layer": "6"
+    },
+    {
+      "id": 836,
+      "line": 22836,
+      "classname": "light_spot",
+      "origin": "1870.27 1617.53 44",
+      "_light": "200 200 255 200",
+      "_cone": "10",
+      "_cone2": "50",
+      "pitch": "45",
+      "style": "43",
+      "spawnflags": "1",
+      "aistatus": "m",
+      "targetname": "p_lights_40",
+      "angles": "-25 30 0",
+      "_tb_layer": "6"
+    },
+    {
+      "id": 837,
+      "line": 22851,
+      "classname": "light_spot",
+      "origin": "1869.73 1751.53 46",
+      "_light": "200 200 255 200",
+      "_cone": "10",
+      "_cone2": "50",
+      "pitch": "45",
+      "style": "40",
+      "spawnflags": "1",
+      "aistatus": "m",
+      "targetname": "p_lights_40",
+      "angles": "-25 -30 0",
+      "_tb_layer": "6"
+    },
+    {
+      "id": 838,
+      "line": 22866,
+      "classname": "light",
+      "_light": "5 20 36 5000",
+      "angles": "15 90 0",
+      "origin": "1108 2147.1 200.381",
+      "spawnflags": "2",
+      "targetname": "sky_sunset",
+      "style": "33",
+      "aistatus": "m",
+      "_fade": "80",
+      "_tb_layer": "6"
+    },
+    {
+      "id": 839,
+      "line": 22879,
+      "classname": "light",
+      "_light": "5 20 36 2500",
+      "angles": "15 90 0",
+      "origin": "-12 2411.1 200.381",
+      "spawnflags": "2",
+      "targetname": "sky_sunset",
+      "style": "33",
+      "aistatus": "m",
+      "_fade": "80",
+      "_tb_layer": "6"
+    },
+    {
+      "id": 840,
+      "line": 22892,
+      "classname": "light",
+      "_light": "5 20 36 2500",
+      "angles": "15 90 0",
+      "origin": "-12 1563.1 200.381",
+      "spawnflags": "2",
+      "targetname": "sky_sunset",
+      "style": "33",
+      "aistatus": "m",
+      "_fade": "80",
+      "_tb_layer": "6"
+    },
+    {
+      "id": 841,
+      "line": 22905,
+      "classname": "light",
+      "_light": "5 20 36 2500",
+      "angles": "15 90 0",
+      "origin": "-12 739.1 200.381",
+      "spawnflags": "2",
+      "targetname": "sky_sunset",
+      "style": "33",
+      "aistatus": "m",
+      "_fade": "80",
+      "_tb_layer": "6"
+    },
+    {
+      "id": 842,
+      "line": 22918,
+      "classname": "light",
+      "_light": "5 20 36 1750",
+      "angles": "15 90 0",
+      "origin": "1660 1641.1 92.381",
+      "spawnflags": "2",
+      "targetname": "sky_sunset",
+      "style": "33",
+      "aistatus": "m",
+      "_fade": "80",
+      "_tb_layer": "6"
+    },
+    {
+      "id": 843,
+      "line": 22931,
+      "classname": "light",
+      "_light": "5 20 36 1500",
+      "angles": "15 90 0",
+      "origin": "1697 2445.1 78.381",
+      "spawnflags": "2",
+      "targetname": "sky_sunset",
+      "style": "33",
+      "aistatus": "m",
+      "_fade": "80",
+      "_tb_layer": "6"
+    },
+    {
+      "id": 844,
+      "line": 22944,
+      "classname": "light",
+      "_light": "5 20 36 2500",
+      "angles": "15 90 0",
+      "origin": "548 575.1 200.381",
+      "spawnflags": "2",
+      "targetname": "sky_sunset",
+      "style": "33",
+      "aistatus": "m",
+      "_fade": "80",
+      "_tb_layer": "6"
+    },
+    {
+      "id": 845,
+      "line": 22957,
+      "classname": "light",
+      "_light": "5 20 36 1500",
+      "angles": "15 90 0",
+      "origin": "1693 2113.1 128.381",
+      "spawnflags": "2",
+      "targetname": "sky_sunset",
+      "style": "33",
+      "aistatus": "m",
+      "_fade": "80",
+      "_tb_layer": "6"
+    },
+    {
+      "id": 846,
+      "line": 22970,
+      "classname": "light",
+      "_light": "5 20 36 1000",
+      "angles": "15 90 0",
+      "origin": "1339 1536.1 92.381",
+      "spawnflags": "2",
+      "targetname": "sky_sunset",
+      "style": "33",
+      "aistatus": "m",
+      "_fade": "80",
+      "_tb_layer": "6"
+    },
+    {
+      "id": 847,
+      "line": 22983,
+      "classname": "light",
+      "_light": "5 20 36 1750",
+      "angles": "15 90 0",
+      "origin": "1416 2714.1 172.381",
+      "spawnflags": "2",
+      "targetname": "sky_sunset",
+      "style": "33",
+      "aistatus": "m",
+      "_fade": "80",
+      "_tb_layer": "6"
+    },
+    {
+      "id": 862,
+      "line": 23427,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1152 2168 -16",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 863,
+      "line": 23440,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1088 2184 -16",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 864,
+      "line": 23453,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1024 2200 -16",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 865,
+      "line": 23466,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "944 2200 -16",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "4",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 866,
+      "line": 23480,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "864 2216 -16",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 867,
+      "line": 23493,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "768 2216 -16",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "4",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 868,
+      "line": 23507,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "688 2216 -16",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 869,
+      "line": 23520,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "608 2216 -16",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "4",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 870,
+      "line": 23534,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "512 2216 -16",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 871,
+      "line": 23547,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "432 2216 -16",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "4",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 872,
+      "line": 23561,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "448 2136 -16",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 873,
+      "line": 23574,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "432 2040 -16",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 874,
+      "line": 23587,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "432 1944 -16",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "4",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 875,
+      "line": 23601,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "448 1864 -16",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 876,
+      "line": 23614,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "448 1768 -16",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "4",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 877,
+      "line": 23628,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "512 1464 -16",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 878,
+      "line": 23641,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "512 1400 -16",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "6",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 879,
+      "line": 23655,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "512 1336 -16",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 880,
+      "line": 23668,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "528 1272 -16",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 881,
+      "line": 23681,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "528 1160 32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "6",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 882,
+      "line": 23695,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "528 1112 32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 883,
+      "line": 23708,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "528 1064 32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "6",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 884,
+      "line": 23722,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "528 1016 32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 885,
+      "line": 23735,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "592 1000 32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "4",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 886,
+      "line": 23749,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "640 1000 32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "2",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 887,
+      "line": 23763,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "688 1000 32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 888,
+      "line": 23776,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "736 1000 32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 889,
+      "line": 23789,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "784 1000 32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "6",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 890,
+      "line": 23803,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "832 1000 32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "4",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 891,
+      "line": 23817,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "880 1000 32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "2",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 892,
+      "line": 23831,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "928 1000 32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "6",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 893,
+      "line": 23845,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "976 1000 32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "4",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 894,
+      "line": 23859,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "960 920 -96",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 895,
+      "line": 23872,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "960 856 -96",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "7",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 896,
+      "line": 23886,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "960 792 -96",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "2",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 897,
+      "line": 23900,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1088 616 32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 898,
+      "line": 23913,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1716 2208 -32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "2",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 899,
+      "line": 23927,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1656 2130 -32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "3",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 900,
+      "line": 23941,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1700 2032 -32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 901,
+      "line": 23954,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1732 1852 -32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "2",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 902,
+      "line": 23968,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1604 1852 -32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "3",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 903,
+      "line": 23982,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1624 1738 -32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 904,
+      "line": 23995,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1524 1612 -32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 905,
+      "line": 24008,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1700 1660 -32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "3",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 906,
+      "line": 24022,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1732 1754 -32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 907,
+      "line": 24035,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1836 1786 -32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 908,
+      "line": 24048,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1808 1672 -32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "5",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 909,
+      "line": 24062,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1788 1586 -32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 910,
+      "line": 24075,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1736 1546 -32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 911,
+      "line": 24088,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1424 1514 20",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "3",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 912,
+      "line": 24102,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1496 1398 -32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 913,
+      "line": 24115,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1728 1346 -32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "3",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 914,
+      "line": 24129,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1728 1222 -32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 915,
+      "line": 24142,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1612 1222 -32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "2",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 916,
+      "line": 24156,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1612 1346 -32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 917,
+      "line": 24169,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1628 1570 -32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "2",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 918,
+      "line": 24183,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1496 1738 -32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 919,
+      "line": 24196,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1444 1624 20",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 920,
+      "line": 24209,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1532 1860 -32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "2",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 921,
+      "line": 24223,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1668 1902 -32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 922,
+      "line": 24236,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1652 2280 -32",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "3",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 923,
+      "line": 24250,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1736 2374 -28",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "3",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 924,
+      "line": 24264,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1824 2474 -28",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 925,
+      "line": 24277,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1664 2464 12",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 926,
+      "line": 24290,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1752 2548 8",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "3",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 927,
+      "line": 24304,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1588 2532 20",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 928,
+      "line": 24317,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1884 2712 12",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 929,
+      "line": 24330,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1920 2610 -28",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "2",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 930,
+      "line": 24344,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1930 2898 -16",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "3",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 931,
+      "line": 24358,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1632 2912 -64",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "3",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 932,
+      "line": 24372,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1748 2856 -24",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 933,
+      "line": 24385,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1516 2860 12",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 934,
+      "line": 24398,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1328 2892 -64",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 935,
+      "line": 24411,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1412 2832 16",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "3",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 936,
+      "line": 24425,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1312 2776 52",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 937,
+      "line": 24438,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1280 2596 68",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "2",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 938,
+      "line": 24452,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1416 2548 200",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "3",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 939,
+      "line": 24466,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1428 2728 192",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 940,
+      "line": 24479,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1428 2728 -28",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "2",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 941,
+      "line": 24493,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1416 2548 -20",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 942,
+      "line": 24506,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1424 2632 -20",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "frame": "3",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 943,
+      "line": 24520,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1424 2632 200",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 944,
+      "line": 24533,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1256 1660 88",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 945,
+      "line": 24546,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1260 1570 96",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 946,
+      "line": 24559,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1252 1358 92",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 947,
+      "line": 24572,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1268 1442 -76",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    },
+    {
+      "id": 948,
+      "line": 24585,
+      "classname": "misc_model",
+      "gamemode_limiter": "0",
+      "month_limiter": "0",
+      "spawnflags": "0",
+      "origin": "1268 1442 172",
+      "model": "models/sprites/snowfall.spr",
+      "first_frame": "0",
+      "last_frame": "11",
+      "targetname": "snow_ents",
+      "_tb_layer": "11"
+    }
+  ],
+  "edges": [
+    {
+      "from": 13,
+      "key": "target",
+      "value": "q_gramo_voice",
+      "to": 476
+    },
+    {
+      "from": 15,
+      "key": "target",
+      "value": "q_gramophone",
+      "to": 655
+    },
+    {
+      "from": 15,
+      "key": "target",
+      "value": "q_gramophone",
+      "to": 656
+    },
+    {
+      "from": 15,
+      "key": "target2",
+      "value": "q_gramo_interact",
+      "to": 629
+    },
+    {
+      "from": 16,
+      "key": "target",
+      "value": "q_gramo_jumpscare",
+      "to": 475
+    },
+    {
+      "from": 24,
+      "key": "target",
+      "value": "q_gramo_start",
+      "to": 91
+    },
+    {
+      "from": 29,
+      "key": "target2",
+      "value": "fake_power_noise",
+      "to": 331
+    },
+    {
+      "from": 32,
+      "key": "target",
+      "value": "q_gramo_distorted",
+      "to": 333
+    },
+    {
+      "from": 32,
+      "key": "target2",
+      "value": "q_gramo_distorted_loop",
+      "to": 36
+    },
+    {
+      "from": 33,
+      "key": "target",
+      "value": "q_gramo_normal_loop",
+      "to": 24
+    },
+    {
+      "from": 36,
+      "key": "target",
+      "value": "q_gramo_dis_start",
+      "to": 15
+    },
+    {
+      "from": 36,
+      "key": "target",
+      "value": "q_gramo_dis_start",
+      "to": 32
+    },
+    {
+      "from": 37,
+      "key": "target",
+      "value": "q_spirit_final_voice",
+      "to": 482
+    },
+    {
+      "from": 38,
+      "key": "killtarget",
+      "value": "q_bell_blocker",
+      "to": 519
+    },
+    {
+      "from": 38,
+      "key": "killtarget",
+      "value": "q_bell_blocker",
+      "to": 523
+    },
+    {
+      "from": 38,
+      "key": "killtarget",
+      "value": "q_bell_blocker",
+      "to": 525
+    },
+    {
+      "from": 38,
+      "key": "killtarget",
+      "value": "q_bell_blocker",
+      "to": 531
+    },
+    {
+      "from": 38,
+      "key": "killtarget",
+      "value": "q_bell_blocker",
+      "to": 532
+    },
+    {
+      "from": 38,
+      "key": "killtarget",
+      "value": "q_bell_blocker",
+      "to": 539
+    },
+    {
+      "from": 38,
+      "key": "killtarget",
+      "value": "q_bell_blocker",
+      "to": 549
+    },
+    {
+      "from": 44,
+      "key": "target2",
+      "value": "fake_power_noise",
+      "to": 331
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 337
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 339
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 341
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 343
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 345
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 347
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 349
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 351
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 353
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 355
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 390
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 414
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 421
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 423
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 424
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 425
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 426
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 427
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 428
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 429
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 430
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 431
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 432
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 433
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 435
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 436
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 437
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 449
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 450
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 451
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 452
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 453
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 457
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 458
+    },
+    {
+      "from": 45,
+      "key": "target",
+      "value": "p_lights_43",
+      "to": 831
+    },
+    {
+      "from": 45,
+      "key": "target2",
+      "value": "fake_power_noise",
+      "to": 331
+    },
+    {
+      "from": 56,
+      "key": "target",
+      "value": "q_gramo_normal",
+      "to": 332
+    },
+    {
+      "from": 62,
+      "key": "target",
+      "value": "q_bells_kill_blocker",
+      "to": 38
+    },
+    {
+      "from": 64,
+      "key": "target",
+      "value": "q_bells_activate",
+      "to": 62
+    },
+    {
+      "from": 91,
+      "key": "target",
+      "value": "q_gramo_normal",
+      "to": 332
+    },
+    {
+      "from": 91,
+      "key": "target2",
+      "value": "q_gramo_normal_loop",
+      "to": 24
+    },
+    {
+      "from": 106,
+      "key": "target",
+      "value": "q_gramo_start",
+      "to": 91
+    },
+    {
+      "from": 108,
+      "key": "target",
+      "value": "p_lights_40",
+      "to": 836
+    },
+    {
+      "from": 108,
+      "key": "target",
+      "value": "p_lights_40",
+      "to": 837
+    },
+    {
+      "from": 108,
+      "key": "target2",
+      "value": "fake_power_noise",
+      "to": 331
+    },
+    {
+      "from": 121,
+      "key": "target",
+      "value": "sting_power",
+      "to": 471
+    },
+    {
+      "from": 200,
+      "key": "target",
+      "value": "q_gramo_start",
+      "to": 91
+    },
+    {
+      "from": 201,
+      "key": "target",
+      "value": "q_gramo_start",
+      "to": 91
+    },
+    {
+      "from": 202,
+      "key": "target",
+      "value": "q_gramo_start",
+      "to": 91
+    },
+    {
+      "from": 203,
+      "key": "target",
+      "value": "q_gramo_start",
+      "to": 91
+    },
+    {
+      "from": 326,
+      "key": "target",
+      "value": "q_gramo_dis_start",
+      "to": 15
+    },
+    {
+      "from": 326,
+      "key": "target",
+      "value": "q_gramo_dis_start",
+      "to": 32
+    },
+    {
+      "from": 326,
+      "key": "target2",
+      "value": "p_turn_lights_on",
+      "to": 29
+    },
+    {
+      "from": 326,
+      "key": "target2",
+      "value": "p_turn_lights_on",
+      "to": 44
+    },
+    {
+      "from": 326,
+      "key": "target2",
+      "value": "p_turn_lights_on",
+      "to": 45
+    },
+    {
+      "from": 326,
+      "key": "target2",
+      "value": "p_turn_lights_on",
+      "to": 108
+    },
+    {
+      "from": 326,
+      "key": "target2",
+      "value": "p_turn_lights_on",
+      "to": 120
+    },
+    {
+      "from": 326,
+      "key": "target2",
+      "value": "p_turn_lights_on",
+      "to": 121
+    },
+    {
+      "from": 326,
+      "key": "killtarget",
+      "value": "q_gramo_normal_kill",
+      "to": 33
+    },
+    {
+      "from": 326,
+      "key": "killtarget",
+      "value": "q_gramo_normal_kill",
+      "to": 56
+    },
+    {
+      "from": 326,
+      "key": "killtarget",
+      "value": "q_gramo_normal_kill",
+      "to": 106
+    },
+    {
+      "from": 520,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 631
+    },
+    {
+      "from": 520,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 633
+    },
+    {
+      "from": 520,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 635
+    },
+    {
+      "from": 520,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 637
+    },
+    {
+      "from": 520,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 639
+    },
+    {
+      "from": 520,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 641
+    },
+    {
+      "from": 520,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 643
+    },
+    {
+      "from": 520,
+      "key": "target2",
+      "value": "q_bell_2",
+      "to": 521
+    },
+    {
+      "from": 520,
+      "key": "target2",
+      "value": "q_bell_2",
+      "to": 522
+    },
+    {
+      "from": 524,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 631
+    },
+    {
+      "from": 524,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 633
+    },
+    {
+      "from": 524,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 635
+    },
+    {
+      "from": 524,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 637
+    },
+    {
+      "from": 524,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 639
+    },
+    {
+      "from": 524,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 641
+    },
+    {
+      "from": 524,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 643
+    },
+    {
+      "from": 524,
+      "key": "target2",
+      "value": "q_bell_5",
+      "to": 527
+    },
+    {
+      "from": 524,
+      "key": "target2",
+      "value": "q_bell_5",
+      "to": 528
+    },
+    {
+      "from": 526,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 631
+    },
+    {
+      "from": 526,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 633
+    },
+    {
+      "from": 526,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 635
+    },
+    {
+      "from": 526,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 637
+    },
+    {
+      "from": 526,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 639
+    },
+    {
+      "from": 526,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 641
+    },
+    {
+      "from": 526,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 643
+    },
+    {
+      "from": 526,
+      "key": "target2",
+      "value": "q_bell_4",
+      "to": 529
+    },
+    {
+      "from": 526,
+      "key": "target2",
+      "value": "q_bell_4",
+      "to": 530
+    },
+    {
+      "from": 533,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 631
+    },
+    {
+      "from": 533,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 633
+    },
+    {
+      "from": 533,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 635
+    },
+    {
+      "from": 533,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 637
+    },
+    {
+      "from": 533,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 639
+    },
+    {
+      "from": 533,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 641
+    },
+    {
+      "from": 533,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 643
+    },
+    {
+      "from": 533,
+      "key": "target2",
+      "value": "q_bell_7",
+      "to": 537
+    },
+    {
+      "from": 533,
+      "key": "target2",
+      "value": "q_bell_7",
+      "to": 538
+    },
+    {
+      "from": 534,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 631
+    },
+    {
+      "from": 534,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 633
+    },
+    {
+      "from": 534,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 635
+    },
+    {
+      "from": 534,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 637
+    },
+    {
+      "from": 534,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 639
+    },
+    {
+      "from": 534,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 641
+    },
+    {
+      "from": 534,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 643
+    },
+    {
+      "from": 534,
+      "key": "target2",
+      "value": "q_bell_6",
+      "to": 535
+    },
+    {
+      "from": 534,
+      "key": "target2",
+      "value": "q_bell_6",
+      "to": 536
+    },
+    {
+      "from": 540,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 631
+    },
+    {
+      "from": 540,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 633
+    },
+    {
+      "from": 540,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 635
+    },
+    {
+      "from": 540,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 637
+    },
+    {
+      "from": 540,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 639
+    },
+    {
+      "from": 540,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 641
+    },
+    {
+      "from": 540,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 643
+    },
+    {
+      "from": 540,
+      "key": "target2",
+      "value": "q_bell_1",
+      "to": 541
+    },
+    {
+      "from": 540,
+      "key": "target2",
+      "value": "q_bell_1",
+      "to": 542
+    },
+    {
+      "from": 550,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 631
+    },
+    {
+      "from": 550,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 633
+    },
+    {
+      "from": 550,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 635
+    },
+    {
+      "from": 550,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 637
+    },
+    {
+      "from": 550,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 639
+    },
+    {
+      "from": 550,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 641
+    },
+    {
+      "from": 550,
+      "key": "target",
+      "value": "q_bell_increment",
+      "to": 643
+    },
+    {
+      "from": 550,
+      "key": "target2",
+      "value": "q_bell_3",
+      "to": 551
+    },
+    {
+      "from": 550,
+      "key": "target2",
+      "value": "q_bell_3",
+      "to": 552
+    },
+    {
+      "from": 559,
+      "key": "target",
+      "value": "q_drawer_interact",
+      "to": 627
+    },
+    {
+      "from": 560,
+      "key": "target",
+      "value": "sky_sunset",
+      "to": 785
+    },
+    {
+      "from": 560,
+      "key": "target",
+      "value": "sky_sunset",
+      "to": 838
+    },
+    {
+      "from": 560,
+      "key": "target",
+      "value": "sky_sunset",
+      "to": 839
+    },
+    {
+      "from": 560,
+      "key": "target",
+      "value": "sky_sunset",
+      "to": 840
+    },
+    {
+      "from": 560,
+      "key": "target",
+      "value": "sky_sunset",
+      "to": 841
+    },
+    {
+      "from": 560,
+      "key": "target",
+      "value": "sky_sunset",
+      "to": 842
+    },
+    {
+      "from": 560,
+      "key": "target",
+      "value": "sky_sunset",
+      "to": 843
+    },
+    {
+      "from": 560,
+      "key": "target",
+      "value": "sky_sunset",
+      "to": 844
+    },
+    {
+      "from": 560,
+      "key": "target",
+      "value": "sky_sunset",
+      "to": 845
+    },
+    {
+      "from": 560,
+      "key": "target",
+      "value": "sky_sunset",
+      "to": 846
+    },
+    {
+      "from": 560,
+      "key": "target",
+      "value": "sky_sunset",
+      "to": 847
+    },
+    {
+      "from": 560,
+      "key": "target2",
+      "value": "sky_alien",
+      "to": 647
+    },
+    {
+      "from": 560,
+      "key": "target2",
+      "value": "sky_alien",
+      "to": 801
+    },
+    {
+      "from": 560,
+      "key": "target2",
+      "value": "sky_alien",
+      "to": 823
+    },
+    {
+      "from": 560,
+      "key": "target2",
+      "value": "sky_alien",
+      "to": 824
+    },
+    {
+      "from": 560,
+      "key": "target2",
+      "value": "sky_alien",
+      "to": 825
+    },
+    {
+      "from": 560,
+      "key": "target2",
+      "value": "sky_alien",
+      "to": 826
+    },
+    {
+      "from": 560,
+      "key": "target2",
+      "value": "sky_alien",
+      "to": 827
+    },
+    {
+      "from": 560,
+      "key": "target2",
+      "value": "sky_alien",
+      "to": 828
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 498
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 499
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 862
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 863
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 864
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 865
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 866
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 867
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 868
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 869
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 870
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 871
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 872
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 873
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 874
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 875
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 876
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 877
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 878
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 879
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 880
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 881
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 882
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 883
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 884
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 885
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 886
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 887
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 888
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 889
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 890
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 891
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 892
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 893
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 894
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 895
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 896
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 897
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 898
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 899
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 900
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 901
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 902
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 903
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 904
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 905
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 906
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 907
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 908
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 909
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 910
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 911
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 912
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 913
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 914
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 915
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 916
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 917
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 918
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 919
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 920
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 921
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 922
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 923
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 924
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 925
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 926
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 927
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 928
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 929
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 930
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 931
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 932
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 933
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 934
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 935
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 936
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 937
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 938
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 939
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 940
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 941
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 942
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 943
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 944
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 945
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 946
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 947
+    },
+    {
+      "from": 560,
+      "key": "killtarget",
+      "value": "snow_ents",
+      "to": 948
+    },
+    {
+      "from": 561,
+      "key": "target",
+      "value": "q_boiler_door",
+      "to": 625
+    },
+    {
+      "from": 562,
+      "key": "target",
+      "value": "q_drawer_key",
+      "to": 628
+    },
+    {
+      "from": 562,
+      "key": "target2",
+      "value": "q_key_music",
+      "to": 666
+    },
+    {
+      "from": 564,
+      "key": "target",
+      "value": "q_wep_frame_voice",
+      "to": 668
+    },
+    {
+      "from": 564,
+      "key": "target2",
+      "value": "q_tokens_show",
+      "to": 587
+    },
+    {
+      "from": 565,
+      "key": "target",
+      "value": "q_bell_sting",
+      "to": 646
+    },
+    {
+      "from": 568,
+      "key": "target",
+      "value": "q_wep_frame",
+      "to": 667
+    },
+    {
+      "from": 568,
+      "key": "target2",
+      "value": "q_wep_frame_collect",
+      "to": 564
+    },
+    {
+      "from": 569,
+      "key": "target",
+      "value": "q_body_frozen",
+      "to": 478
+    },
+    {
+      "from": 569,
+      "key": "target2",
+      "value": "q_body_thawed",
+      "to": 480
+    },
+    {
+      "from": 569,
+      "key": "target3",
+      "value": "q_body_snow",
+      "to": 567
+    },
+    {
+      "from": 569,
+      "key": "target4",
+      "value": "q_wep_energy_collect",
+      "to": 582
+    },
+    {
+      "from": 570,
+      "key": "target",
+      "value": "q_token_glasses",
+      "to": 671
+    },
+    {
+      "from": 570,
+      "key": "target2",
+      "value": "q_token_glasses_wait",
+      "to": 573
+    },
+    {
+      "from": 570,
+      "key": "target3",
+      "value": "q_fire_g_interact",
+      "to": 583
+    },
+    {
+      "from": 573,
+      "key": "target",
+      "value": "q_token_glasses_voice",
+      "to": 672
+    },
+    {
+      "from": 576,
+      "key": "target",
+      "value": "q_token_toy",
+      "to": 673
+    },
+    {
+      "from": 576,
+      "key": "target2",
+      "value": "q_token_toy_wait",
+      "to": 577
+    },
+    {
+      "from": 576,
+      "key": "target3",
+      "value": "q_fire_t_interact",
+      "to": 579
+    },
+    {
+      "from": 577,
+      "key": "target",
+      "value": "q_token_toy_voice",
+      "to": 674
+    },
+    {
+      "from": 579,
+      "key": "target",
+      "value": "q_fire_t",
+      "to": 677
+    },
+    {
+      "from": 579,
+      "key": "target2",
+      "value": "q_fire_counter",
+      "to": 678
+    },
+    {
+      "from": 580,
+      "key": "target",
+      "value": "q_fire_s",
+      "to": 676
+    },
+    {
+      "from": 580,
+      "key": "target2",
+      "value": "q_fire_counter",
+      "to": 678
+    },
+    {
+      "from": 581,
+      "key": "target",
+      "value": "q_fire_voice",
+      "to": 680
+    },
+    {
+      "from": 582,
+      "key": "target",
+      "value": "q_wep_energy",
+      "to": 479
+    },
+    {
+      "from": 582,
+      "key": "target2",
+      "value": "q_wep_cart_box_opened",
+      "to": 585
+    },
+    {
+      "from": 582,
+      "key": "target3",
+      "value": "q_wep_cart",
+      "to": 683
+    },
+    {
+      "from": 582,
+      "key": "target4",
+      "value": "q_wep_cart_interact",
+      "to": 594
+    },
+    {
+      "from": 582,
+      "key": "killtarget",
+      "value": "q_wep_cart_box_closed",
+      "to": 590
+    },
+    {
+      "from": 583,
+      "key": "target",
+      "value": "q_fire_g",
+      "to": 675
+    },
+    {
+      "from": 583,
+      "key": "target2",
+      "value": "q_fire_counter",
+      "to": 678
+    },
+    {
+      "from": 587,
+      "key": "target",
+      "value": "q_token_scarf",
+      "to": 669
+    },
+    {
+      "from": 587,
+      "key": "target2",
+      "value": "q_token_scarf_interact",
+      "to": 588
+    },
+    {
+      "from": 587,
+      "key": "target3",
+      "value": "q_token_glasses",
+      "to": 671
+    },
+    {
+      "from": 587,
+      "key": "target4",
+      "value": "q_token_glasses_interact",
+      "to": 570
+    },
+    {
+      "from": 588,
+      "key": "target",
+      "value": "q_token_scarf",
+      "to": 669
+    },
+    {
+      "from": 588,
+      "key": "target2",
+      "value": "q_token_scarf_wait",
+      "to": 592
+    },
+    {
+      "from": 588,
+      "key": "target3",
+      "value": "q_fire_s_interact",
+      "to": 580
+    },
+    {
+      "from": 592,
+      "key": "target",
+      "value": "q_token_scarf_voice",
+      "to": 670
+    },
+    {
+      "from": 593,
+      "key": "target",
+      "value": "q_bell_finished",
+      "to": 645
+    },
+    {
+      "from": 594,
+      "key": "target",
+      "value": "q_wep_cart",
+      "to": 683
+    },
+    {
+      "from": 594,
+      "key": "target3",
+      "value": "q_wep_assembly_interact",
+      "to": 601
+    },
+    {
+      "from": 597,
+      "key": "target",
+      "value": "sq_snowman_chime",
+      "to": 654
+    },
+    {
+      "from": 597,
+      "key": "target2",
+      "value": "sq_snowman_counter",
+      "to": 659
+    },
+    {
+      "from": 597,
+      "key": "killtarget",
+      "value": "sq_snowman_snow_1",
+      "to": 598
+    },
+    {
+      "from": 599,
+      "key": "killtarget",
+      "value": "q_wep_obtain",
+      "to": 605
+    },
+    {
+      "from": 599,
+      "key": "killtarget",
+      "value": "q_wep_obtain",
+      "to": 688
+    },
+    {
+      "from": 600,
+      "key": "killtarget",
+      "value": "q_wep_assembly_spr",
+      "to": 685
+    },
+    {
+      "from": 601,
+      "key": "target",
+      "value": "q_wep_assembly",
+      "to": 684
+    },
+    {
+      "from": 601,
+      "key": "target2",
+      "value": "q_wep_assembly_spr",
+      "to": 685
+    },
+    {
+      "from": 601,
+      "key": "target3",
+      "value": "q_wep_assembly_flash",
+      "to": 686
+    },
+    {
+      "from": 601,
+      "key": "target4",
+      "value": "q_wep_obtain_delay",
+      "to": 602
+    },
+    {
+      "from": 602,
+      "key": "target",
+      "value": "q_wep_obtain",
+      "to": 605
+    },
+    {
+      "from": 602,
+      "key": "target",
+      "value": "q_wep_obtain",
+      "to": 688
+    },
+    {
+      "from": 603,
+      "key": "target",
+      "value": "q_sky_change_wait",
+      "to": 560
+    },
+    {
+      "from": 603,
+      "key": "target2",
+      "value": "q_sky_change_flash",
+      "to": 644
+    },
+    {
+      "from": 603,
+      "key": "target2",
+      "value": "q_sky_change_flash",
+      "to": 689
+    },
+    {
+      "from": 603,
+      "key": "target3",
+      "value": "q_spirit",
+      "to": 481
+    },
+    {
+      "from": 603,
+      "key": "target4",
+      "value": "q_spirit_final",
+      "to": 37
+    },
+    {
+      "from": 604,
+      "key": "target",
+      "value": "q_spirit",
+      "to": 481
+    },
+    {
+      "from": 604,
+      "key": "target2",
+      "value": "q_spirit_interact",
+      "to": 603
+    },
+    {
+      "from": 604,
+      "key": "target3",
+      "value": "q_spirit_reveal",
+      "to": 687
+    },
+    {
+      "from": 605,
+      "key": "target2",
+      "value": "q_wep_cleanup",
+      "to": 599
+    },
+    {
+      "from": 605,
+      "key": "target2",
+      "value": "q_wep_cleanup",
+      "to": 600
+    },
+    {
+      "from": 605,
+      "key": "target2",
+      "value": "q_wep_cleanup",
+      "to": 604
+    },
+    {
+      "from": 605,
+      "key": "target2",
+      "value": "q_wep_cleanup",
+      "to": 606
+    },
+    {
+      "from": 606,
+      "key": "killtarget",
+      "value": "q_wep_assembly",
+      "to": 684
+    },
+    {
+      "from": 607,
+      "key": "target",
+      "value": "q_key_interact",
+      "to": 608
+    },
+    {
+      "from": 608,
+      "key": "target",
+      "value": "q_boiler_door_interact",
+      "to": 561
+    },
+    {
+      "from": 608,
+      "key": "killtarget",
+      "value": "q_drawer_key",
+      "to": 628
+    },
+    {
+      "from": 609,
+      "key": "target",
+      "value": "sq_free_insta",
+      "to": 652
+    },
+    {
+      "from": 609,
+      "key": "target2",
+      "value": "sq_free_insta_model",
+      "to": 653
+    },
+    {
+      "from": 612,
+      "key": "target",
+      "value": "sq_free_points",
+      "to": 651
+    },
+    {
+      "from": 612,
+      "key": "target2",
+      "value": "sq_free_points_model",
+      "to": 650
+    },
+    {
+      "from": 613,
+      "key": "target",
+      "value": "sq_snowman_drop_2",
+      "to": 662
+    },
+    {
+      "from": 615,
+      "key": "target",
+      "value": "sq_snowman_chime",
+      "to": 654
+    },
+    {
+      "from": 615,
+      "key": "target2",
+      "value": "sq_snowman_counter",
+      "to": 659
+    },
+    {
+      "from": 615,
+      "key": "killtarget",
+      "value": "sq_snowman_coal",
+      "to": 611
+    },
+    {
+      "from": 616,
+      "key": "target",
+      "value": "sq_snowman_chime",
+      "to": 654
+    },
+    {
+      "from": 616,
+      "key": "target2",
+      "value": "sq_snowman_counter",
+      "to": 659
+    },
+    {
+      "from": 616,
+      "key": "killtarget",
+      "value": "sq_snowman_carrot",
+      "to": 614
+    },
+    {
+      "from": 619,
+      "key": "target",
+      "value": "sq_snowman_chime",
+      "to": 654
+    },
+    {
+      "from": 619,
+      "key": "target2",
+      "value": "sq_snowman_counter",
+      "to": 659
+    },
+    {
+      "from": 619,
+      "key": "killtarget",
+      "value": "sq_snowman_snow_2",
+      "to": 617
+    },
+    {
+      "from": 620,
+      "key": "target",
+      "value": "sq_snowman_chime",
+      "to": 654
+    },
+    {
+      "from": 620,
+      "key": "target2",
+      "value": "sq_snowman_counter",
+      "to": 659
+    },
+    {
+      "from": 620,
+      "key": "killtarget",
+      "value": "sq_snowman_snow_3",
+      "to": 618
+    },
+    {
+      "from": 621,
+      "key": "target",
+      "value": "sq_snowman_full",
+      "to": 658
+    },
+    {
+      "from": 621,
+      "key": "target2",
+      "value": "sq_snowman_music",
+      "to": 661
+    },
+    {
+      "from": 621,
+      "key": "target3",
+      "value": "sq_snowman_dropper",
+      "to": 613
+    },
+    {
+      "from": 621,
+      "key": "target3",
+      "value": "sq_snowman_dropper",
+      "to": 622
+    },
+    {
+      "from": 621,
+      "key": "target3",
+      "value": "sq_snowman_dropper",
+      "to": 624
+    },
+    {
+      "from": 622,
+      "key": "target",
+      "value": "sq_snowman_drop_1",
+      "to": 663
+    },
+    {
+      "from": 623,
+      "key": "target",
+      "value": "q_bell_voice",
+      "to": 477
+    },
+    {
+      "from": 624,
+      "key": "target",
+      "value": "sq_snowman_drop_3",
+      "to": 664
+    },
+    {
+      "from": 627,
+      "key": "target",
+      "value": "q_drawer",
+      "to": 626
+    },
+    {
+      "from": 627,
+      "key": "target2",
+      "value": "q_drawer_key_delay",
+      "to": 562
+    },
+    {
+      "from": 627,
+      "key": "target2",
+      "value": "q_drawer_key_delay",
+      "to": 607
+    },
+    {
+      "from": 629,
+      "key": "target",
+      "value": "q_gramo_interact_seq",
+      "to": 13
+    },
+    {
+      "from": 629,
+      "key": "target",
+      "value": "q_gramo_interact_seq",
+      "to": 16
+    },
+    {
+      "from": 629,
+      "key": "target",
+      "value": "q_gramo_interact_seq",
+      "to": 64
+    },
+    {
+      "from": 631,
+      "key": "target",
+      "value": "q_bell_ring_1",
+      "to": 630
+    },
+    {
+      "from": 633,
+      "key": "target",
+      "value": "q_bell_ring_2",
+      "to": 632
+    },
+    {
+      "from": 635,
+      "key": "target",
+      "value": "q_bell_ring_3",
+      "to": 634
+    },
+    {
+      "from": 637,
+      "key": "target",
+      "value": "q_bell_ring_4",
+      "to": 636
+    },
+    {
+      "from": 639,
+      "key": "target",
+      "value": "q_bell_ring_5",
+      "to": 638
+    },
+    {
+      "from": 641,
+      "key": "target",
+      "value": "q_bell_ring_6",
+      "to": 640
+    },
+    {
+      "from": 643,
+      "key": "target",
+      "value": "q_bell_ring_7",
+      "to": 642
+    },
+    {
+      "from": 643,
+      "key": "target2",
+      "value": "q_bell_finished_wait",
+      "to": 559
+    },
+    {
+      "from": 643,
+      "key": "target2",
+      "value": "q_bell_finished_wait",
+      "to": 565
+    },
+    {
+      "from": 643,
+      "key": "target2",
+      "value": "q_bell_finished_wait",
+      "to": 593
+    },
+    {
+      "from": 643,
+      "key": "target2",
+      "value": "q_bell_finished_wait",
+      "to": 623
+    },
+    {
+      "from": 659,
+      "key": "target",
+      "value": "sq_snowman_trigger",
+      "to": 621
+    },
+    {
+      "from": 678,
+      "key": "target",
+      "value": "q_fire_flash",
+      "to": 679
+    },
+    {
+      "from": 678,
+      "key": "target2",
+      "value": "q_fire_dialogue",
+      "to": 581
+    },
+    {
+      "from": 678,
+      "key": "killtarget",
+      "value": "q_body_blocker",
+      "to": 563
+    },
+    {
+      "from": 690,
+      "key": "target",
+      "value": "sq_song_counter",
+      "to": 692
+    },
+    {
+      "from": 692,
+      "key": "target",
+      "value": "sq_song_trigger",
+      "to": 691
+    },
+    {
+      "from": 693,
+      "key": "target",
+      "value": "sq_song_counter",
+      "to": 692
+    },
+    {
+      "from": 695,
+      "key": "target",
+      "value": "sq_song_counter",
+      "to": 692
+    },
+    {
+      "from": 701,
+      "key": "target",
+      "value": "sq_free_2x",
+      "to": 649
+    },
+    {
+      "from": 701,
+      "key": "target2",
+      "value": "sq_free_2x_model",
+      "to": 648
+    }
+  ],
+  "unresolved": [
+    {
+      "from": 29,
+      "key": "target",
+      "value": "p_lights_41"
+    },
+    {
+      "from": 44,
+      "key": "target",
+      "value": "p_lights_42"
+    },
+    {
+      "from": 120,
+      "key": "target",
+      "value": "p_lights_40_flicker"
+    },
+    {
+      "from": 594,
+      "key": "target2",
+      "value": "q_wep_cart_collect"
+    },
+    {
+      "from": 599,
+      "key": "target",
+      "value": "dummy"
+    },
+    {
+      "from": 600,
+      "key": "target",
+      "value": "dummy"
+    },
+    {
+      "from": 605,
+      "key": "target",
+      "value": "dummy"
+    },
+    {
+      "from": 606,
+      "key": "target",
+      "value": "dummy"
+    }
+  ]
+}
