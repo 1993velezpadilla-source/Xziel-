@@ -9,6 +9,7 @@
 #include "xziel/camera_rig.hpp"
 #include "xziel/engine.hpp"
 #include "xziel/fps_player.hpp"
+#include "xziel/hitscan.hpp"
 #include "xziel/renderer_watchdog.hpp"
 #include "xziel/weapon.hpp"
 
@@ -56,6 +57,9 @@ struct NativeAppState {
 
     float pendingRecoilPitch = 0.0f;
     float pendingRecoilYaw = 0.0f;
+
+    float targetHealth = 100.0f;
+    float hitMarkerSeconds = 0.0f;
 };
 
 void logInfo(const char* message) noexcept {
@@ -348,6 +352,44 @@ void advancePlayer(
                 weaponFrame.recoilPitchImpulse;
             state.pendingRecoilYaw +=
                 weaponFrame.recoilYawImpulse;
+
+            if (state.targetHealth > 0.0f) {
+                const auto ray =
+                    xziel::makeViewRay(
+                        playerFrame.cameraPosition,
+                        playerFrame.yawDegrees,
+                        playerFrame.pitchDegrees);
+
+                const xziel::Aabb target{
+                    .minimum = {
+                        -0.54f,
+                        -1.44f,
+                        -0.19f,
+                    },
+                    .maximum = {
+                        0.54f,
+                        0.60f,
+                        0.89f,
+                    },
+                };
+
+                const auto hit =
+                    xziel::raycastAabb(
+                        ray,
+                        target,
+                        20.0f);
+
+                if (hit.hit) {
+                    state.targetHealth =
+                        std::max(
+                            0.0f,
+                            state.targetHealth -
+                                34.0f);
+
+                    state.hitMarkerSeconds =
+                        0.12f;
+                }
+            }
         }
     }
 }
@@ -420,6 +462,7 @@ xziel::CameraRigFrame advanceCameraRig(
 }
 
 xziel::android::VulkanHudState makeHudState(
+    const NativeAppState& state,
     const xziel::android::AndroidInputSnapshot& input) noexcept {
     xziel::android::VulkanHudState hud{};
 
@@ -447,6 +490,17 @@ xziel::android::VulkanHudState makeHudState(
         input.movementButtons.stancePressed;
     hud.gyroAvailable =
         input.gyroAvailable;
+
+    hud.hitMarkerAlpha =
+        std::clamp(
+            state.hitMarkerSeconds /
+                0.12f,
+            0.0f,
+            1.0f);
+
+    hud.targetAlive =
+        state.targetHealth >
+        0.0f;
 
     return hud;
 }
@@ -618,6 +672,12 @@ extern "C" void android_main(
                 state,
                 now);
 
+        state.hitMarkerSeconds =
+            std::max(
+                0.0f,
+                state.hitMarkerSeconds -
+                    frameDelta);
+
         state.input.beginFrame(
             frameDelta);
 
@@ -679,6 +739,7 @@ extern "C" void android_main(
 
         const auto hud =
             makeHudState(
+                state,
                 inputSnapshot);
 
         if (!state.renderer.drawFrame(
