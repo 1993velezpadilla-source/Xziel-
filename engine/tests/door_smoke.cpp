@@ -5,6 +5,7 @@
 int main() {
     xziel::HordeDirector horde;
     xziel::ScoreSystem score({.startingPoints = 1000});
+    xziel::FpsPlayerController player;
     xziel::DoorSystem doors;
 
     assert(doors.addDoor(
@@ -16,14 +17,15 @@ int main() {
             },
             .cost = 750,
         },
-        horde));
+        horde,
+        player));
 
-    auto frame = doors.activate(201, horde, score);
+    auto frame = doors.activate(201, horde, player, score);
     assert(frame.open);
     assert(frame.openedThisTick);
     assert(score.frame().total == 250);
 
-    frame = doors.activate(201, horde, score);
+    frame = doors.activate(201, horde, player, score);
     assert(frame.open);
     assert(!frame.openedThisTick);
     assert(score.frame().total == 250);
@@ -38,8 +40,9 @@ int main() {
             },
             .cost = 500,
         },
-        horde));
-    frame = doors.activate(202, horde, poor);
+        horde,
+        player));
+    frame = doors.activate(202, horde, player, poor);
     assert(!frame.open);
     assert(frame.insufficientFundsThisTick);
     assert(poor.frame().total == 100);

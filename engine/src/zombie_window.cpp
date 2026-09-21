@@ -26,13 +26,18 @@ void ZombieWindowSystem::beginRound() noexcept {
 
 bool ZombieWindowSystem::addWindow(
     const ZombieWindowDefinition& definition,
-    HordeDirector& horde) noexcept {
+    HordeDirector& horde,
+    FpsPlayerController& player) noexcept {
     if (definition.id == 0 || count_ >= windows_.size() ||
         find(definition.id) != nullptr) {
         return false;
     }
 
     if (!horde.addDynamicBlocker(
+            definition.id,
+            definition.blocker,
+            true) ||
+        !player.addDynamicObstacle(
             definition.id,
             definition.blocker,
             true)) {
@@ -64,6 +69,7 @@ ZombieWindowFrame ZombieWindowSystem::step(
     bool playerRebuilding,
     float deltaSeconds,
     HordeDirector& horde,
+    FpsPlayerController& player,
     ScoreSystem& score) noexcept {
     auto* slot = find(id);
     if (slot == nullptr) {
@@ -77,6 +83,7 @@ ZombieWindowFrame ZombieWindowSystem::step(
 
     const bool blocked = barricade.blocksZombieTraversal;
     (void) horde.setDynamicBlockerEnabled(id, blocked);
+    (void) player.setDynamicObstacleEnabled(id, blocked);
 
     if (barricade.pointsAwardedThisTick > 0) {
         (void) score.awardUtility(barricade.pointsAwardedThisTick);

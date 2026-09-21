@@ -9,12 +9,17 @@ void DoorSystem::clear() noexcept {
 
 bool DoorSystem::addDoor(
     const DoorDefinition& definition,
-    HordeDirector& horde) noexcept {
+    HordeDirector& horde,
+    FpsPlayerController& player) noexcept {
     if (definition.id == 0 || count_ >= doors_.size() ||
         find(definition.id) != nullptr) {
         return false;
     }
     if (!horde.addDynamicBlocker(
+            definition.id,
+            definition.blocker,
+            !definition.startsOpen) ||
+        !player.addDynamicObstacle(
             definition.id,
             definition.blocker,
             !definition.startsOpen)) {
@@ -39,6 +44,7 @@ bool DoorSystem::addDoor(
 DoorFrame DoorSystem::activate(
     std::uint32_t id,
     HordeDirector& horde,
+    FpsPlayerController& player,
     ScoreSystem& score) noexcept {
     auto* slot = find(id);
     if (slot == nullptr) {
@@ -56,6 +62,7 @@ DoorFrame DoorSystem::activate(
     slot->frame.open = true;
     slot->frame.openedThisTick = true;
     (void) horde.setDynamicBlockerEnabled(id, false);
+    (void) player.setDynamicObstacleEnabled(id, false);
     return slot->frame;
 }
 

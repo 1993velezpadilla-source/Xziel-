@@ -5,6 +5,7 @@
 int main() {
     xziel::HordeDirector horde;
     xziel::ScoreSystem score;
+    xziel::FpsPlayerController player;
     xziel::ZombieWindowSystem windows;
 
     assert(windows.addWindow(
@@ -22,20 +23,21 @@ int main() {
                 .maximumRebuildPointsPerRound = 10,
             },
         },
-        horde));
-    assert(!windows.addWindow({.id = 101}, horde));
+        horde,
+        player));
+    assert(!windows.addWindow({.id = 101}, horde, player));
 
     xziel::ZombieWindowFrame frame{};
     for (int plank = 0; plank < 2; ++plank) {
         for (int tick = 0; tick < 2; ++tick) {
-            frame = windows.step(101, true, false, 0.05f, horde, score);
+            frame = windows.step(101, true, false, 0.05f, horde, player, score);
         }
     }
     assert(frame.barricade.breachedThisTick);
     assert(!frame.navigationBlocked);
 
     for (int tick = 0; tick < 2; ++tick) {
-        frame = windows.step(101, false, true, 0.05f, horde, score);
+        frame = windows.step(101, false, true, 0.05f, horde, player, score);
     }
     assert(frame.navigationBlocked);
     assert(frame.barricade.intactPlanks == 1);
@@ -43,16 +45,16 @@ int main() {
 
     // The per-round cap prevents farming the same window indefinitely.
     for (int tick = 0; tick < 2; ++tick) {
-        frame = windows.step(101, false, true, 0.05f, horde, score);
+        frame = windows.step(101, false, true, 0.05f, horde, player, score);
     }
     assert(score.frame().total == 10);
 
     windows.beginRound();
     for (int tick = 0; tick < 2; ++tick) {
-        frame = windows.step(101, true, false, 0.05f, horde, score);
+        frame = windows.step(101, true, false, 0.05f, horde, player, score);
     }
     for (int tick = 0; tick < 2; ++tick) {
-        frame = windows.step(101, false, true, 0.05f, horde, score);
+        frame = windows.step(101, false, true, 0.05f, horde, player, score);
     }
     assert(score.frame().total == 20);
 

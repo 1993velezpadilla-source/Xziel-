@@ -1,6 +1,7 @@
 #pragma once
 
 #include "xziel/horde_director.hpp"
+#include "xziel/fps_player.hpp"
 #include "xziel/score.hpp"
 
 #include <array>
@@ -32,11 +33,13 @@ public:
 
     [[nodiscard]] bool addDoor(
         const DoorDefinition& definition,
-        HordeDirector& horde) noexcept;
+        HordeDirector& horde,
+        FpsPlayerController& player) noexcept;
 
     [[nodiscard]] DoorFrame activate(
         std::uint32_t id,
         HordeDirector& horde,
+        FpsPlayerController& player,
         ScoreSystem& score) noexcept;
 
     [[nodiscard]] const DoorFrame* frame(std::uint32_t id) const noexcept;

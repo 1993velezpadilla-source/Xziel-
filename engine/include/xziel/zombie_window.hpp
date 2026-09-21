@@ -2,6 +2,7 @@
 
 #include "xziel/barricade.hpp"
 #include "xziel/horde_director.hpp"
+#include "xziel/fps_player.hpp"
 #include "xziel/score.hpp"
 
 #include <array>
@@ -31,7 +32,8 @@ public:
 
     [[nodiscard]] bool addWindow(
         const ZombieWindowDefinition& definition,
-        HordeDirector& horde) noexcept;
+        HordeDirector& horde,
+        FpsPlayerController& player) noexcept;
 
     [[nodiscard]] ZombieWindowFrame step(
         std::uint32_t id,
@@ -39,6 +41,7 @@ public:
         bool playerRebuilding,
         float deltaSeconds,
         HordeDirector& horde,
+        FpsPlayerController& player,
         ScoreSystem& score) noexcept;
 
     [[nodiscard]] const ZombieWindowFrame*
