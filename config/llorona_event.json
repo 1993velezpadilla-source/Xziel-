@@ -155,5 +155,130 @@
         "effect": "small_points_grant"
       }
     ]
+  },
+  "rage_kill_rewards": {
+    "context_sensitive": true,
+    "rejected_offering": {
+      "drop_id": "corrupted_offering",
+      "guaranteed_drop": true,
+      "selection": "weighted_random_one",
+      "smart_reroll_if_reward_would_be_wasted": true,
+      "entries": [
+        {
+          "id": "max_ammo",
+          "weight": 0.32,
+          "native_powerup": "PU_MAXAMMO",
+          "tier": "common_high_value",
+          "effect": "spawn_native_max_ammo"
+        },
+        {
+          "id": "carpenter",
+          "weight": 0.24,
+          "native_powerup": "PU_CARPENTER",
+          "tier": "common_high_value",
+          "effect": "repair_all_repairable_barriers"
+        },
+        {
+          "id": "insta_kill",
+          "weight": 0.18,
+          "native_powerup": "PU_INSTAKILL",
+          "tier": "uncommon",
+          "effect": "spawn_native_insta_kill"
+        },
+        {
+          "id": "nuke",
+          "weight": 0.12,
+          "native_powerup": "PU_NUKE",
+          "tier": "rare",
+          "effect": "spawn_native_nuke"
+        },
+        {
+          "id": "wonder_weapon",
+          "weight": 0.08,
+          "tier": "very_rare",
+          "effect": "grant_one_map_approved_wonder_weapon",
+          "no_duplicate_if_player_already_owns_same_weapon": true,
+          "fallback": "nuke"
+        },
+        {
+          "id": "reliquary_substitute",
+          "weight": 0.06,
+          "tier": "mythic",
+          "effect": "grant_one_relic_substitute_token",
+          "max_active_per_match": 1,
+          "fallback_if_ritual_already_complete": "wonder_weapon"
+        }
+      ]
+    },
+    "hostile_test_rage": {
+      "guaranteed_drop": true,
+      "drop_id": "wrath_compensation",
+      "selection": "weighted_random_one",
+      "entries": [
+        {
+          "id": "max_ammo",
+          "weight": 0.55,
+          "native_powerup": "PU_MAXAMMO"
+        },
+        {
+          "id": "carpenter",
+          "weight": 0.3,
+          "native_powerup": "PU_CARPENTER"
+        },
+        {
+          "id": "insta_kill",
+          "weight": 0.15,
+          "native_powerup": "PU_INSTAKILL"
+        }
+      ]
+    },
+    "child_discovery_rage": {
+      "guaranteed_drop": true,
+      "drop_id": "mourning_cache",
+      "selection": "weighted_random_one",
+      "entries": [
+        {
+          "id": "max_ammo",
+          "weight": 0.5,
+          "native_powerup": "PU_MAXAMMO"
+        },
+        {
+          "id": "insta_kill",
+          "weight": 0.25,
+          "native_powerup": "PU_INSTAKILL"
+        },
+        {
+          "id": "nuke",
+          "weight": 0.15,
+          "native_powerup": "PU_NUKE"
+        },
+        {
+          "id": "reliquary_substitute",
+          "weight": 0.1,
+          "effect": "grant_one_relic_substitute_token",
+          "max_active_per_match": 1,
+          "fallback_if_duplicate": "wonder_weapon"
+        }
+      ]
+    }
+  },
+  "relic_substitute": {
+    "id": "reliquary_substitute",
+    "display_name": "Fragmento de Misericordia",
+    "purpose": "substitute_exactly_one_missing_mercy_relic",
+    "consumed_on_use": true,
+    "max_uses_per_match": 1,
+    "can_replace": [
+      "broken_rosary_beads",
+      "child_shoe",
+      "torn_baptism_record"
+    ],
+    "cannot_replace": [
+      "dead_child_marker",
+      "second_missing_relic",
+      "llorona_interaction_requirement"
+    ],
+    "cannot_duplicate_completed_slot": true,
+    "if_no_relics_missing": "convert_to_wonder_weapon_roll"
   }
 }
