@@ -16,6 +16,7 @@ add_subdirectory(
 
 add_library(xziel-native SHARED
     main.cpp
+    android_input.cpp
     vulkan_clear_renderer.cpp
 )
 
