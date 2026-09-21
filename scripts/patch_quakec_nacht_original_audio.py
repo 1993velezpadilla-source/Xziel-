@@ -28,9 +28,7 @@ if 'precache_sound("sounds/xziel/enchant/round_omen.wav")' not in s:
         raise SystemExit("WaW audio init anchor missing")
     s = s.replace(anchor, insert, 1)
 
-# Add a subtle positional magical bed at the actual Nacht Mystery Box origin.
-ambient_anchor = '    xziel_waw_roundover_path = "sounds/xziel/waw/waw_round_over.wav";
-'
+ambient_anchor = '    xziel_waw_roundover_path = "sounds/xziel/waw/waw_round_over.wav";\n'
 if 'mystery_hum.wav", 0.10' not in s:
     if ambient_anchor not in s:
         raise SystemExit("WaW path anchor missing")
@@ -42,18 +40,16 @@ if 'mystery_hum.wav", 0.10' not in s:
         1,
     )
 
-# Round 1: original omen by default, exact WaW cue only when explicitly
-# imported by the developer.
-old = '''				string splash_tune = "sounds/rounds/splash.wav";
-				splash_tune = Gamemode_GetSplashTune(splash_tune);
-				if ((mapname == "ndu_enchanted" || (mapname == "ndu" && cvar("xziel_nacht_enhanced") >= 0.5)) && xziel_waw_round1_ready)
-					splash_tune = xziel_waw_round1_path;'''
-new = '''				string splash_tune = "sounds/rounds/splash.wav";
-				splash_tune = Gamemode_GetSplashTune(splash_tune);
-				if (mapname == "ndu_enchanted")
-					splash_tune = "sounds/xziel/enchant/round_omen.wav";
-				if ((mapname == "ndu_enchanted" || (mapname == "ndu" && cvar("xziel_nacht_enhanced") >= 0.5)) && xziel_waw_round1_ready)
-					splash_tune = xziel_waw_round1_path;'''
+old = '''\t\t\t\tstring splash_tune = "sounds/rounds/splash.wav";
+\t\t\t\tsplash_tune = Gamemode_GetSplashTune(splash_tune);
+\t\t\t\tif ((mapname == "ndu_enchanted" || (mapname == "ndu" && cvar("xziel_nacht_enhanced") >= 0.5)) && xziel_waw_round1_ready)
+\t\t\t\t\tsplash_tune = xziel_waw_round1_path;'''
+new = '''\t\t\t\tstring splash_tune = "sounds/rounds/splash.wav";
+\t\t\t\tsplash_tune = Gamemode_GetSplashTune(splash_tune);
+\t\t\t\tif (mapname == "ndu_enchanted")
+\t\t\t\t\tsplash_tune = "sounds/xziel/enchant/round_omen.wav";
+\t\t\t\tif ((mapname == "ndu_enchanted" || (mapname == "ndu" && cvar("xziel_nacht_enhanced") >= 0.5)) && xziel_waw_round1_ready)
+\t\t\t\t\tsplash_tune = xziel_waw_round1_path;'''
 if 'splash_tune = "sounds/xziel/enchant/round_omen.wav";' not in s:
     if old not in s:
         raise SystemExit("round splash override anchor missing")
@@ -62,14 +58,14 @@ main.write_text(s, encoding="utf-8")
 
 damage = root / "source/server/damage.qc"
 s = damage.read_text(encoding="utf-8")
-old = '''		string endgame_tune = "sounds/music/end.wav";
-		if ((mapname == "ndu_enchanted" || (mapname == "ndu" && cvar("xziel_nacht_enhanced") >= 0.5)) && xziel_waw_gameover_ready)
-			endgame_tune = xziel_waw_gameover_path;'''
-new = '''		string endgame_tune = "sounds/music/end.wav";
-		if (mapname == "ndu_enchanted")
-			endgame_tune = "sounds/xziel/enchant/gameover_guitar.wav";
-		if ((mapname == "ndu_enchanted" || (mapname == "ndu" && cvar("xziel_nacht_enhanced") >= 0.5)) && xziel_waw_gameover_ready)
-			endgame_tune = xziel_waw_gameover_path;'''
+old = '''\t\tstring endgame_tune = "sounds/music/end.wav";
+\t\tif ((mapname == "ndu_enchanted" || (mapname == "ndu" && cvar("xziel_nacht_enhanced") >= 0.5)) && xziel_waw_gameover_ready)
+\t\t\tendgame_tune = xziel_waw_gameover_path;'''
+new = '''\t\tstring endgame_tune = "sounds/music/end.wav";
+\t\tif (mapname == "ndu_enchanted")
+\t\t\tendgame_tune = "sounds/xziel/enchant/gameover_guitar.wav";
+\t\tif ((mapname == "ndu_enchanted" || (mapname == "ndu" && cvar("xziel_nacht_enhanced") >= 0.5)) && xziel_waw_gameover_ready)
+\t\t\tendgame_tune = xziel_waw_gameover_path;'''
 if 'endgame_tune = "sounds/xziel/enchant/gameover_guitar.wav";' not in s:
     if old not in s:
         raise SystemExit("game-over audio override anchor missing")
