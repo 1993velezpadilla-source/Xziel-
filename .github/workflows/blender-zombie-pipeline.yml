@@ -1,0 +1,81 @@
+name: Blender Zombie Pipeline
+
+on:
+  push:
+    branches:
+      - art/blender-zombie-pipeline
+    paths:
+      - "tools/blender/**"
+      - "docs/blender-zombie-pipeline.md"
+      - ".github/workflows/blender-zombie-pipeline.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-zombie:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout Xziel
+        uses: actions/checkout@v4
+
+      - name: Install Blender and Git LFS
+        shell: bash
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y blender git-lfs
+          blender --version
+          git lfs version
+
+      - name: Fetch MakeHuman CC0 core base mesh
+        shell: bash
+        run: |
+          set -euxo pipefail
+          rm -rf /tmp/makehuman
+          git clone --depth 1 https://github.com/makehumancommunity/makehuman.git /tmp/makehuman
+          cd /tmp/makehuman
+          git lfs install --local
+          git lfs pull
+          test -s makehuman/data/3dobjs/base.obj
+          file makehuman/data/3dobjs/base.obj
+          wc -c makehuman/data/3dobjs/base.obj
+
+      - name: Generate zombie in headless Blender
+        shell: bash
+        run: |
+          set -euxo pipefail
+          rm -rf dist/blender-zombie
+          mkdir -p dist/blender-zombie/lods
+          blender --background \
+            --python tools/blender/build_zombie.py \
+            -- \
+            --base /tmp/makehuman/makehuman/data/3dobjs/base.obj \
+            --out dist/blender-zombie/zombie_lod0.glb \
+            --preview dist/blender-zombie/zombie_preview.png \
+            --manifest dist/blender-zombie/zombie_manifest.json \
+            --lod-dir dist/blender-zombie/lods
+
+      - name: Validate outputs
+        shell: bash
+        run: |
+          set -euxo pipefail
+          test -s dist/blender-zombie/zombie_lod0.glb
+          test -s dist/blender-zombie/zombie_lod0.blend
+          test -s dist/blender-zombie/lods/zombie_lod1.glb
+          test -s dist/blender-zombie/lods/zombie_lod2.glb
+          test -s dist/blender-zombie/zombie_preview.png
+          test -s dist/blender-zombie/zombie_manifest.json
+          python3 -m json.tool dist/blender-zombie/zombie_manifest.json
+          ls -lah dist/blender-zombie dist/blender-zombie/lods
+
+      - name: Upload zombie build
+        uses: actions/upload-artifact@v4
+        with:
+          name: blender-zombie-phase1
+          path: dist/blender-zombie/
+          if-no-files-found: error
+          retention-days: 14
