@@ -231,6 +231,7 @@ bool parseMapText(
             }
 
             MapWindowEntity entity{};
+            unsigned int maximumPlanks = 0U;
 
             if (!(record >>
                   entity.window.id >>
@@ -240,7 +241,7 @@ bool parseMapText(
                   entity.window.blocker.maximum.x >>
                   entity.window.blocker.maximum.y >>
                   entity.window.blocker.maximum.z >>
-                  entity.window.barricade.maximumPlanks >>
+                  maximumPlanks >>
                   entity.window.barricade.zombieTearSeconds >>
                   entity.window.barricade.rebuildSeconds >>
                   entity.window.barricade.rebuildPointsPerPlank >>
@@ -258,6 +259,19 @@ bool parseMapText(
                 };
                 return false;
             }
+
+            if (maximumPlanks == 0U ||
+                maximumPlanks > 255U) {
+                error = {
+                    MapParseErrorCode::MalformedRecord,
+                    lineNumber,
+                };
+                return false;
+            }
+
+            entity.window.barricade.maximumPlanks =
+                static_cast<std::uint8_t>(
+                    maximumPlanks);
 
             entity.interaction.id =
                 entity.window.id;
