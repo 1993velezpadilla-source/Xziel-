@@ -54,7 +54,7 @@ jobs:
             echo "Fatal BSP guard still present in patched Vril source"
             exit 1
           fi
-          grep -R -q "invalid SOLID_BSP entity" build/android-project/app/jni/src/vril
+          grep -R -q "invalid SOLID_BSP entity" build/android-project/app/jni/vril/source/world.c
 
       - name: Build debug APK
         working-directory: build/android-project
