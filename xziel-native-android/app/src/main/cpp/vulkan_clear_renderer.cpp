@@ -3063,6 +3063,12 @@ bool VulkanClearRenderer::recordDrawCommand(
     render.pClearValues =
         clears.data();
 
+    const float reflectionCoverage =
+        std::clamp(
+            environment.planarReflectionScreenCoverage,
+            0.0f,
+            1.0f);
+
     // Refresh the offscreen planar scene before the main pass. The first
     // implementation intentionally renders a compact subset of the room with
     // a reflected camera; the target is already transitioned to shader-read
