@@ -35,6 +35,16 @@ typedef struct {
     uint64_t draw_commands;
     uint64_t command_failures;
 
+    unsigned int physical_alive;
+    unsigned int physical_gl_objects;
+    uint64_t physical_creates;
+    uint64_t physical_reuses;
+    uint64_t physical_destroys;
+    uint64_t physical_read_binds;
+    uint64_t physical_write_binds;
+    uint64_t physical_failures;
+    uint64_t physical_bytes;
+
     unsigned int last_packet_count;
     uint32_t last_plan_hash;
     uint32_t last_command_hash;
