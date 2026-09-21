@@ -60,6 +60,7 @@ struct NativeAppState {
 
     float targetHealth = 100.0f;
     float hitMarkerSeconds = 0.0f;
+    float muzzleFlashSeconds = 0.0f;
 };
 
 void logInfo(const char* message) noexcept {
@@ -348,6 +349,9 @@ void advancePlayer(
                 fixedDelta);
 
         if (weaponFrame.firedThisTick) {
+            state.muzzleFlashSeconds =
+                0.055f;
+
             state.pendingRecoilPitch +=
                 weaponFrame.recoilPitchImpulse;
             state.pendingRecoilYaw +=
@@ -503,6 +507,19 @@ xziel::android::VulkanHudState makeHudState(
     hud.targetAlive =
         state.targetHealth >
         0.0f;
+
+    hud.weaponAdsAlpha =
+        state.weapon.frame().adsAlpha;
+
+    hud.weaponReloadAlpha =
+        state.weapon.frame().reloadAlpha;
+
+    hud.weaponFireAlpha =
+        std::clamp(
+            state.muzzleFlashSeconds /
+                0.055f,
+            0.0f,
+            1.0f);
 
     return hud;
 }
@@ -678,6 +695,12 @@ extern "C" void android_main(
             std::max(
                 0.0f,
                 state.hitMarkerSeconds -
+                    frameDelta);
+
+        state.muzzleFlashSeconds =
+            std::max(
+                0.0f,
+                state.muzzleFlashSeconds -
                     frameDelta);
 
         state.input.beginFrame(
