@@ -7,6 +7,7 @@ layout(location = 3) flat in int vMaterial;
 layout(location = 4) in vec4 vEnvironment;
 layout(location = 5) in vec4 vWaterSurface;
 layout(location = 6) in vec4 vWaterSurfaceExtra;
+layout(location = 7) in vec4 vReflectionClip;
 
 layout(set = 0, binding = 0) uniform sampler2D uPlanarReflection;
 
@@ -335,16 +336,14 @@ void main() {
             (0.45 +
              wave * 0.55);
 
-        // Project the prototype horizontal water plane into a stable
-        // screen-like lookup. Wave offsets provide inexpensive roughness
-        // distortion while the reflected scene itself comes from Vulkan's
-        // offscreen planar pass.
+        // Perspective-correct lookup from the same reflected camera used by
+        // the offscreen capture. Vulkan NDC Y is converted to texture space.
+        float reflectionW = max(abs(vReflectionClip.w), 0.0001);
+        vec2 reflectionNdc = vReflectionClip.xy / reflectionW;
         vec2 reflectionUv =
             vec2(
-                0.5 +
-                    vWorldPosition.x / 8.4,
-                0.5 -
-                    vWorldPosition.z / 10.0);
+                reflectionNdc.x * 0.5 + 0.5,
+                reflectionNdc.y * 0.5 + 0.5);
 
         float distortion =
             (1.0 - roughness) *
