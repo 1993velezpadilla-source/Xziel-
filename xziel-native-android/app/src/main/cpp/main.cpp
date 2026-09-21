@@ -9,6 +9,7 @@
 #include "xziel/android_runtime.hpp"
 #include "xziel/camera_rig.hpp"
 #include "xziel/engine.hpp"
+#include "xziel/environment.hpp"
 #include "xziel/fps_player.hpp"
 #include "xziel/hitscan.hpp"
 #include "xziel/horde_director.hpp"
@@ -45,6 +46,10 @@ struct NativeAppState {
     xziel::PlayerVitals vitals{};
     xziel::HorrorDirector horror{};
     xziel::HorrorFrame horrorFrame{};
+
+    xziel::EnvironmentSystem environment{};
+    xziel::EnvironmentFrame environmentFrame{};
+
     xziel::CameraRig cameraRig{};
     xziel::HapticsPlanner haptics{};
     xziel::android::AndroidHapticsBridge hapticsBridge{};
@@ -765,6 +770,39 @@ xziel::android::VulkanHudState makeHudState(
     return hud;
 }
 
+xziel::android::VulkanEnvironmentState makeEnvironmentState(
+    const NativeAppState& state) noexcept {
+    xziel::android::VulkanEnvironmentState environment{};
+
+    environment.rainIntensity =
+        state.environmentFrame.
+            rainIntensity;
+
+    environment.fogDensity =
+        state.environmentFrame.
+            fogDensity +
+        state.horrorFrame.
+            fogDensityBoost;
+
+    environment.lightningFlash =
+        state.environmentFrame.
+            lightningFlash;
+
+    environment.wetness =
+        state.environmentFrame.
+            wetness;
+
+    environment.windX =
+        state.environmentFrame.
+            windMetersPerSecond.x;
+
+    environment.windZ =
+        state.environmentFrame.
+            windMetersPerSecond.z;
+
+    return environment;
+}
+
 xziel::android::VulkanSceneState makeSceneState(
     const NativeAppState& state) noexcept {
     xziel::android::VulkanSceneState scene{};
@@ -890,6 +928,29 @@ extern "C" void android_main(
 
     state.runtime.onEvent(
         xziel::AndroidLifecycleEvent::Create);
+
+    xziel::WeatherConfig prototypeStorm{};
+    prototypeStorm.rainIntensity = 0.78f;
+    prototypeStorm.windMetersPerSecond = {
+        1.35f,
+        0.0f,
+        0.42f,
+    };
+    prototypeStorm.wetnessRisePerSecond = 0.18f;
+    prototypeStorm.wetnessDryPerSecond = 0.025f;
+    prototypeStorm.lightningIntervalSeconds = 7.5f;
+    prototypeStorm.lightningDurationSeconds = 0.14f;
+    prototypeStorm.lightningIntensity = 1.0f;
+    prototypeStorm.fogDensity = 0.26f;
+    prototypeStorm.fogHeightFalloff = 0.12f;
+    prototypeStorm.precipitationOcclusion = true;
+    prototypeStorm.splashParticles = true;
+    prototypeStorm.wetSurfaceResponse = true;
+
+    state.environment.setWeather(
+        prototypeStorm);
+    state.environment.setQuality(
+        xziel::RenderQuality::High);
 
     if (app->activity != nullptr) {
         state.javaVm =
@@ -1033,6 +1094,10 @@ extern "C" void android_main(
                 state.zombieAttackFlashSeconds -
                     frameDelta);
 
+        state.environmentFrame =
+            state.environment.advance(
+                frameDelta);
+
         state.input.beginFrame(
             frameDelta);
 
@@ -1108,11 +1173,16 @@ extern "C" void android_main(
             makeSceneState(
                 state);
 
+        const auto environment =
+            makeEnvironmentState(
+                state);
+
         if (!state.renderer.drawFrame(
                 seconds,
                 camera,
                 hud,
-                scene)) {
+                scene,
+                environment)) {
             const auto recovery =
                 state.watchdog.report(
                     {

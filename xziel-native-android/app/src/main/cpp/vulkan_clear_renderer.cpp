@@ -192,7 +192,8 @@ bool VulkanClearRenderer::drawFrame(
     float timeSeconds,
     const VulkanCamera& camera,
     const VulkanHudState& hud,
-    const VulkanSceneState& scene) noexcept {
+    const VulkanSceneState& scene,
+    const VulkanEnvironmentState& environment) noexcept {
     if (!initialized_ ||
         device_ == VK_NULL_HANDLE ||
         swapchain_ == VK_NULL_HANDLE) {
@@ -277,7 +278,8 @@ bool VulkanClearRenderer::drawFrame(
             timeSeconds,
             camera,
             hud,
-            scene)) {
+            scene,
+            environment)) {
         return false;
     }
 
@@ -2189,7 +2191,8 @@ bool VulkanClearRenderer::recordDrawCommand(
     float timeSeconds,
     const VulkanCamera& camera,
     const VulkanHudState& hud,
-    const VulkanSceneState& scene) noexcept {
+    const VulkanSceneState& scene,
+    const VulkanEnvironmentState& environment) noexcept {
     if (imageIndex >= commandBuffers_.size() ||
         imageIndex >= framebuffers_.size()) {
         return false;
@@ -2227,12 +2230,25 @@ bool VulkanClearRenderer::recordDrawCommand(
 
     std::array<VkClearValue, 2> clears{};
 
+    const float lightning =
+        std::clamp(
+            environment.lightningFlash,
+            0.0f,
+            1.0f);
+
     clears[0].color.float32[0] =
-        0.006f + pulse * 0.006f;
+        0.006f +
+        pulse * 0.006f +
+        lightning * 0.18f;
+
     clears[0].color.float32[1] =
-        0.004f;
+        0.004f +
+        lightning * 0.22f;
+
     clears[0].color.float32[2] =
-        0.010f + pulse * 0.010f;
+        0.010f +
+        pulse * 0.010f +
+        lightning * 0.30f;
     clears[0].color.float32[3] =
         1.0f;
 
@@ -2340,6 +2356,30 @@ bool VulkanClearRenderer::recordDrawCommand(
                     : 72.0f,
                 50.0f,
                 110.0f);
+
+        push.fogDensity =
+            std::clamp(
+                environment.fogDensity,
+                0.0f,
+                1.0f);
+
+        push.lightningFlash =
+            std::clamp(
+                environment.lightningFlash,
+                0.0f,
+                2.0f);
+
+        push.wetness =
+            std::clamp(
+                environment.wetness,
+                0.0f,
+                1.0f);
+
+        push.rainIntensity =
+            std::clamp(
+                environment.rainIntensity,
+                0.0f,
+                1.0f);
 
         vkCmdPushConstants(
             command,
@@ -2741,6 +2781,111 @@ bool VulkanClearRenderer::recordDrawCommand(
             ring ? 2.0f : 1.0f,
             ringWidth);
     };
+
+    const float rainIntensity =
+        std::clamp(
+            environment.rainIntensity,
+            0.0f,
+            1.0f);
+
+    if (rainIntensity > 0.01f) {
+        constexpr int kVisibleRainStreaks = 18;
+
+        for (int i = 0;
+             i < kVisibleRainStreaks;
+             ++i) {
+            const float seed =
+                static_cast<float>(i) *
+                0.61803398875f;
+
+            const float wrappedX =
+                std::fmod(
+                    seed +
+                    safeTime *
+                        (0.035f +
+                         rainIntensity *
+                             0.018f) +
+                    environment.windX *
+                        0.012f,
+                    1.0f);
+
+            const float normalizedX =
+                wrappedX < 0.0f
+                ? wrappedX + 1.0f
+                : wrappedX;
+
+            const float fall =
+                std::fmod(
+                    static_cast<float>(i) *
+                        0.173f +
+                    safeTime *
+                        (0.72f +
+                         0.35f *
+                             rainIntensity),
+                    1.18f);
+
+            const float normalizedY =
+                fall - 0.09f;
+
+            drawUiPrimitive(
+                normalizedX,
+                normalizedY,
+                0.0008f,
+                0.022f +
+                    rainIntensity *
+                        0.018f,
+                0.52f,
+                0.72f,
+                0.92f,
+                0.10f +
+                    rainIntensity *
+                        0.22f,
+                0.0f,
+                0.10f);
+        }
+    }
+
+    const float fogOverlay =
+        std::clamp(
+            environment.fogDensity *
+                0.10f,
+            0.0f,
+            0.12f);
+
+    if (fogOverlay > 0.001f) {
+        drawUiPrimitive(
+            0.5f,
+            0.5f,
+            0.5f,
+            0.5f,
+            0.035f,
+            0.045f,
+            0.065f,
+            fogOverlay,
+            0.0f,
+            0.10f);
+    }
+
+    const float lightningOverlay =
+        std::clamp(
+            environment.lightningFlash *
+                0.24f,
+            0.0f,
+            0.30f);
+
+    if (lightningOverlay > 0.001f) {
+        drawUiPrimitive(
+            0.5f,
+            0.5f,
+            0.5f,
+            0.5f,
+            0.68f,
+            0.78f,
+            1.0f,
+            lightningOverlay,
+            0.0f,
+            0.10f);
+    }
 
     const float moveAnchorX =
         hud.moveActive

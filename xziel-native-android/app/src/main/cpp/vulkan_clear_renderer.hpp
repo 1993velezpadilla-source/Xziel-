@@ -43,6 +43,16 @@ struct VulkanSceneState {
     bool interRound = false;
 };
 
+struct VulkanEnvironmentState {
+    float rainIntensity = 0.0f;
+    float fogDensity = 0.0f;
+    float lightningFlash = 0.0f;
+    float wetness = 0.0f;
+
+    float windX = 0.0f;
+    float windZ = 0.0f;
+};
+
 struct VulkanHudState {
     float moveX = 0.0f;
     float moveY = 0.0f;
@@ -92,7 +102,8 @@ public:
         float timeSeconds,
         const VulkanCamera& camera,
         const VulkanHudState& hud,
-        const VulkanSceneState& scene) noexcept;
+        const VulkanSceneState& scene,
+        const VulkanEnvironmentState& environment) noexcept;
     [[nodiscard]] bool ready() const noexcept;
 
 private:
@@ -144,6 +155,11 @@ private:
         float verticalFovDegrees = 72.0f;
         float cameraPadding0 = 0.0f;
         float cameraPadding1 = 0.0f;
+
+        float fogDensity = 0.0f;
+        float lightningFlash = 0.0f;
+        float wetness = 0.0f;
+        float rainIntensity = 0.0f;
     };
 
     [[nodiscard]] bool createInstance() noexcept;
@@ -187,7 +203,8 @@ private:
         float timeSeconds,
         const VulkanCamera& camera,
         const VulkanHudState& hud,
-        const VulkanSceneState& scene) noexcept;
+        const VulkanSceneState& scene,
+        const VulkanEnvironmentState& environment) noexcept;
 
     VkInstance instance_ = VK_NULL_HANDLE;
     VkSurfaceKHR surface_ = VK_NULL_HANDLE;

@@ -11,12 +11,14 @@ layout(push_constant) uniform PushConstants {
 
     vec4 cameraPositionYaw;
     vec4 cameraPitchFov;
+    vec4 environment;
 } pc;
 
 layout(location = 0) out vec3 vNormal;
 layout(location = 1) out vec3 vWorldPosition;
 layout(location = 2) out float vPulse;
 layout(location = 3) flat out int vMaterial;
+layout(location = 4) out vec4 vEnvironment;
 
 const vec3 kPositions[36] = vec3[](
     vec3(-0.75, -0.75, -0.75), vec3( 0.75, -0.75, -0.75), vec3( 0.75,  0.75, -0.75),
@@ -193,4 +195,5 @@ void main() {
     vWorldPosition = world;
     vPulse = pc.horrorPulse;
     vMaterial = material;
+    vEnvironment = pc.environment;
 }
