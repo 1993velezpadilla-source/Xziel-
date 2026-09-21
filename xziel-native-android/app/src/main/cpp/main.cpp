@@ -1,4 +1,5 @@
 #include "android_haptics.hpp"
+#include "android_audio.hpp"
 #include "android_input.hpp"
 #include "vulkan_clear_renderer.hpp"
 
@@ -182,6 +183,7 @@ struct NativeAppState {
     xziel::CameraRig cameraRig{};
     xziel::HapticsPlanner haptics{};
     xziel::android::AndroidHapticsBridge hapticsBridge{};
+    xziel::android::AndroidAudioEngine audio{};
     xziel::android::AndroidInputAdapter input{};
     xziel::android::VulkanClearRenderer renderer{};
 
@@ -973,6 +975,10 @@ void advancePlayer(
                             state.engine.simulationTick(),
                     });
 
+                state.audio.play(
+                    xziel::android::AndroidAudioCue::UiConfirm,
+                    0.72f);
+
                 requestHaptic(
                     state,
                     xziel::HapticEvent::UiConfirm);
@@ -1008,6 +1014,10 @@ void advancePlayer(
                                 state.engine.simulationTick(),
                         });
 
+                    state.audio.play(
+                        xziel::android::AndroidAudioCue::Door,
+                        0.92f);
+
                     requestHaptic(
                         state,
                         xziel::HapticEvent::UiConfirm);
@@ -1015,6 +1025,10 @@ void advancePlayer(
                     doorFrame.insufficientFundsThisTick) {
                     state.purchaseDeniedSeconds =
                         0.42f;
+
+                    state.audio.play(
+                        xziel::android::AndroidAudioCue::UiError,
+                        0.78f);
 
                     requestHaptic(
                         state,
@@ -1058,12 +1072,20 @@ void advancePlayer(
                                 state.engine.simulationTick(),
                         });
 
+                    state.audio.play(
+                        xziel::android::AndroidAudioCue::UiConfirm,
+                        0.80f);
+
                     requestHaptic(
                         state,
                         xziel::HapticEvent::UiConfirm);
                 } else {
                     state.purchaseDeniedSeconds =
                         0.42f;
+
+                    state.audio.play(
+                        xziel::android::AndroidAudioCue::UiError,
+                        0.78f);
 
                     requestHaptic(
                         state,
@@ -1097,6 +1119,11 @@ void advancePlayer(
                 barricade.pointsAwardedThisTick > 0U) {
             state.scorePulseSeconds = 0.24f;
 
+            state.audio.play(
+                xziel::android::AndroidAudioCue::
+                    BarricadeRebuild,
+                0.70f);
+
             (void) state.gameplayEvents.push(
                 {
                     .type =
@@ -1112,6 +1139,14 @@ void advancePlayer(
                     .simulationTick =
                         state.engine.simulationTick(),
                 });
+        }
+
+        if (prototypeWindowFrame.
+                barricade.plankRemovedThisTick) {
+            state.audio.play(
+                xziel::android::AndroidAudioCue::
+                    BarricadeBreak,
+                0.76f);
         }
 
         if (prototypeWindowFrame.
@@ -1146,6 +1181,10 @@ void advancePlayer(
 
         if (hordeFrame.roundStartedThisTick) {
             state.mapRuntime.beginRound();
+
+            state.audio.play(
+                xziel::android::AndroidAudioCue::RoundStart,
+                0.78f);
 
             (void) state.gameplayEvents.push(
                 {
@@ -1228,6 +1267,10 @@ void advancePlayer(
             state.zombieAttackFlashSeconds =
                 0.22f;
 
+            state.audio.play(
+                xziel::android::AndroidAudioCue::PlayerHit,
+                0.90f);
+
             requestHaptic(
                 state,
                 xziel::HapticEvent::PlayerHit);
@@ -1257,6 +1300,10 @@ void advancePlayer(
                 fixedDelta);
 
         if (weaponFrame.reloadCompletedThisTick) {
+            state.audio.play(
+                xziel::android::AndroidAudioCue::Reload,
+                0.68f);
+
             requestHaptic(
                 state,
                 xziel::HapticEvent::ReloadComplete);
@@ -1279,6 +1326,10 @@ void advancePlayer(
         if (weaponFrame.firedThisTick) {
             state.muzzleFlashSeconds =
                 0.055f;
+
+            state.audio.play(
+                xziel::android::AndroidAudioCue::Fire,
+                0.92f);
 
             requestHaptic(
                 state,
@@ -1352,6 +1403,15 @@ void advancePlayer(
                 if (state.horde.damageZombie(
                         nearestSlot,
                         damage)) {
+                    state.audio.play(
+                        nearestHit.region ==
+                                xziel::ZombieHitRegion::Head
+                            ? xziel::android::AndroidAudioCue::
+                                  CriticalHit
+                            : xziel::android::AndroidAudioCue::
+                                  Hit,
+                        0.74f);
+
                     const auto* damagedZombie =
                         state.horde.zombie(
                             nearestSlot);
@@ -2336,6 +2396,11 @@ extern "C" void android_main(
             "Haptics unavailable; gameplay continues without vibration");
     }
 
+    if (!state.audio.initialize()) {
+        logInfo(
+            "AAudio unavailable; gameplay continues with silent fallback");
+    }
+
     logInfo("XZIEL_NATIVE_BOOT");
 
     while (!app->destroyRequested) {
@@ -2397,6 +2462,8 @@ extern "C" void android_main(
             computeFrameDelta(
                 state,
                 now);
+
+        state.audio.service();
 
         state.hapticElapsedSeconds =
             std::min(
@@ -2635,6 +2702,10 @@ extern "C" void android_main(
 
         if (state.horrorFrame.
                 requestAudioStinger) {
+            state.audio.play(
+                xziel::android::AndroidAudioCue::HorrorStinger,
+                0.82f);
+
             requestHaptic(
                 state,
                 xziel::HapticEvent::HorrorStinger);
@@ -2717,6 +2788,7 @@ extern "C" void android_main(
     }
 
     state.input.shutdown();
+    state.audio.shutdown();
     state.hapticsBridge.reset();
     state.renderer.shutdown();
 
