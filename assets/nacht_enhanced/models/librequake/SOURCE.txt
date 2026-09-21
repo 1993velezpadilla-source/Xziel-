@@ -1,0 +1,28 @@
+XZIEL NACHT ENHANCED - RUNTIME ZOMBIE MODEL
+
+Upstream project: LibreQuake
+Pinned upstream commit: 4d2da523331f00211c97c90dc5af8672a2967618
+
+Runtime model source:
+  lq1/progs/zombie.mdl
+  Git blob: 8b4ad34bd5064d8a1ae80e815475bcc4251f008e
+
+Source texture:
+  lq1/progs/src/textures/zombie.mdl.0.png
+  Git blob: 8de96f1bb1fc878d2278dd6327ec1bc146951629
+
+License:
+  LibreQuake docs/COPYING (3-clause BSD terms)
+  A complete copy is distributed beside this file.
+  Full upstream CREDITS are distributed beside this file.
+
+Validated runtime metadata:
+  Quake Alias MDL version 6
+  373 vertices
+  436 triangles
+  250 animation frames
+  256x128 source skin
+
+This is a real alternate rendered model and an Android compatibility
+milestone, not the final high-detail visual target. The swap is presentation
+only and leaves NZ:P gameplay/hitboxes/AI authoritative.
