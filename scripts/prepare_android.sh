@@ -45,6 +45,7 @@ python3 "$ROOT/scripts/patch_vril_mobile_v024.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_mobile_v025.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_nacht_enhanced.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_nacht_textures.py" "$DEPS/vril"
+python3 "$ROOT/scripts/patch_vril_nacht_zombie_model.py" "$DEPS/vril"
 
 echo "==> Patching and compiling Xziel mobile QuakeC"
 python3 -m pip install --quiet colorama==0.4.6 fastcrc==0.3.0 pandas==2.1.4 cairosvg==2.8.2
@@ -115,6 +116,7 @@ unzip -q "$DOWNLOADS/standard-nzp-qc.zip" -d "$ASSET_WORK/nzp"
 python3 "$ROOT/scripts/build_xziel_icons.py" "$ASSET_WORK/nzp/gfx/xziel"
 echo "==> Staging opt-in Nacht Enhanced CC0 texture pack"
 bash "$ROOT/scripts/fetch_nacht_enhanced_textures.sh" "$ASSET_WORK"
+bash "$ROOT/scripts/stage_nacht_enhanced_zombie.sh" "$ASSET_WORK"
 bash "$ROOT/scripts/import_waw_reference_audio.sh" "$ASSET_WORK"
 
 # Replace the stock gameplay bytecode with our GPL QuakeC build. All other

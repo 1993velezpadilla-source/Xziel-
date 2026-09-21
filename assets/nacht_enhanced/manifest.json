@@ -3,6 +3,21 @@
   "bundle": "nacht-enhanced-commercial-safe",
   "assets": [
     {
+      "id": "librequake-zombie-runtime",
+      "source": "https://github.com/lavenderdotpet/LibreQuake/tree/4d2da523331f00211c97c90dc5af8672a2967618",
+      "author": "LibreQuake contributors",
+      "license": "BSD-3-Clause",
+      "redistributable": true,
+      "commercial_use": true,
+      "role": "Nacht Enhanced runtime zombie compatibility model",
+      "formats": [
+        "Quake MDL v6",
+        "PNG source texture",
+        "TGA runtime texture"
+      ],
+      "integration": "shipping in Enhanced; pinned upstream commit; presentation-only render swap; regular whole-body zombies only; crawlers retain stock segmented model until dedicated crawl conversion"
+    },
+    {
       "id": "quaternius-zombie-apocalypse-kit",
       "source": "https://quaternius.com/packs/zombieapocalypsekit.html",
       "author": "Quaternius",

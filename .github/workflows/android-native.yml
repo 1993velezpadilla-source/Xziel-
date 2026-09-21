@@ -87,6 +87,24 @@ jobs:
           grep -q 'flames.flame_particle' build/deps/quakec/source/client/main.qc
           grep -q 'weapons.impact' build/deps/quakec/source/client/main.qc
           grep -q 'xziel_nacht_fx_next_lightning' build/deps/quakec/source/client/main.qc
+          grep -q 'Xziel_NachtEnhanced_MapZombieFrame' build/deps/vril/source/platform/sdl/gl/gl_rmain.c
+          grep -q 'models/xziel/nacht/zombie_lq.mdl' build/deps/vril/source/platform/sdl/gl/gl_rmain.c
+          test -s build/nzp-data/nzp/models/xziel/nacht/zombie_lq.mdl
+          test -s build/nzp-data/nzp/models/xziel/nacht/zombie_lq.mdl_0.tga
+          test -s build/nzp-data/nzp/licenses/LIBREQUAKE-BSD-3-CLAUSE.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          import struct
+          p = Path("build/nzp-data/nzp/models/xziel/nacht/zombie_lq.mdl")
+          b = p.read_bytes()
+          ident, version = struct.unpack_from("<II", b, 0)
+          numverts, numtris, numframes = struct.unpack_from("<III", b, 60)
+          assert ident == 0x4F504449, hex(ident)
+          assert version == 6, version
+          assert 0 < numverts <= 2000, numverts
+          assert numframes >= 211, numframes
+          print(f"verified real Nacht zombie model: verts={numverts} tris={numtris} frames={numframes}")
+          PY
           grep -q 'sounds/ambience/wind2.wav' build/deps/quakec/source/server/main.qc
           grep -q 'invalid SOLID_BSP entity' build/deps/vril/source/world.c
           grep -q 'xziel_waw_round1_ready' build/deps/quakec/source/server/defs/custom.qc
@@ -226,7 +244,8 @@ jobs:
             > dist/am-start.txt 2>&1 || true
 
           # Data extraction + direct map load can take longer than menu boot.
-          sleep 30
+          # Give the live round time to render the alternate zombie model.
+          sleep 38
 
           "$ADB" exec-out screencap -p > dist/xziel-enhanced-a.png || true
           sleep 3

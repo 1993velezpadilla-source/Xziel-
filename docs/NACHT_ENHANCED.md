@@ -32,3 +32,21 @@ Enhanced Mode is an opt-in presentation layer for the stock `ndu` map. Classic r
 
 ## Asset intake
 Every imported asset must record source URL, author, license, original format, converted format, modifications and redistribution/commercial status in a manifest before entering a distributable APK.
+
+
+## Runtime zombie replacement
+
+Enhanced now has a **real alternate zombie model path**, not only motion
+smoothing. The first shipping compatibility model is the BSD-licensed
+LibreQuake zombie pinned at commit `4d2da523331f00211c97c90dc5af8672a2967618`.
+
+Vril swaps the normal Nacht zombie body at draw time while stock NZ:P remains
+authoritative for AI, HP, damage, collision, navigation, scoring, limb state,
+windows and round logic. NZ:P animation frame IDs are mapped onto the
+alternate model's stand/walk/run/attack/down ranges.
+
+This first model is deliberately a low-cost Quake MDL v6 compatibility
+milestone: 373 vertices, 436 triangles and 250 frames. It proves the complete
+Android model path. Crawlers retain the stock segmented model until a
+purpose-built crawl/death conversion is ready. The same isolated runtime slot
+can later receive a higher-detail CC0/CC-BY zombie without rewriting gameplay.
