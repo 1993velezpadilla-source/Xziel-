@@ -5,8 +5,9 @@ The Android build intentionally clones upstream Vril on every run. Xziel-owned
 modules live in engine/xz/ and are copied into Vril's source root here so the
 existing Android.mk wildcard compiles them without vendoring/forking Vril.
 
-Phase 0 is passive: it measures frame/memory/device state and computes quality
-recommendations, but it does not mutate gameplay or renderer state.
+Phase 0 established telemetry and recommendations. By Phase 15 the modern
+shadow renderer actively applies those recommendations to render scale,
+quality budgets and asset residency while legacy GL4ES remains visible.
 """
 
 from pathlib import Path
@@ -63,6 +64,10 @@ for name in (
     "xz_visibility.c",
     "xz_material_lighting.h",
     "xz_material_lighting.c",
+    "xz_active_quality.h",
+    "xz_active_quality.c",
+    "xz_stream_residency.h",
+    "xz_stream_residency.c",
 ):
     src = modules / name
     if not src.is_file():
@@ -187,4 +192,4 @@ for label, needle in checks.items():
             f"Phase-0 integration check failed for {label}: {count} occurrences"
         )
 
-print("Injected Xziel Xz runtime through Phase 14 (materials + lighting).")
+print("Injected Xziel Xz runtime through Phase 15 (active scaling + residency).")
