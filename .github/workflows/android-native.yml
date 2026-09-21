@@ -90,6 +90,8 @@ jobs:
           grep -q 'ADS+FIRE deliberately uses the bullet-over-reticle art' build/deps/vril/source/render/r_hud.c
           grep -q 'i==0 ? 112 : 76' build/deps/vril/source/render/r_hud.c
           grep -q 'xziel_weapon_card_active' build/deps/vril/source/render/r_hud.c
+          grep -q '0.050f, "JUMP"' build/deps/vril/source/render/r_hud.c
+          grep -q '0.050f, "SLIDE"' build/deps/vril/source/render/r_hud.c
           test -s build/nzp-data/nzp/gfx/xziel/fire.png
           test -s build/nzp-data/nzp/gfx/xziel/ads.png
           test -s build/nzp-data/nzp/gfx/xziel/reload.png
