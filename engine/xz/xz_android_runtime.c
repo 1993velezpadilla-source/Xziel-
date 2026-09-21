@@ -14,6 +14,7 @@
 #include "xz_pass_targets.h"
 #include "xz_pass_inputs.h"
 #include "xz_visibility.h"
+#include "xz_material_lighting.h"
 
 #include <SDL.h>
 
@@ -508,7 +509,8 @@ static void XzLogSnapshot(double now_seconds)
         " budget(near=%u mid=%u far=%u crit=%u imp=%u bg=%u"
         " anim=%u shadow=%u vfx=%u light=%u/%u)"
         " plan(gen=%" PRIu64 " src=%u packets=%u culled=%u vis=%u/%u/%u"
-        " lod=%u/%u/%u anim=%u shadow=%u vfx=%u hash=%08x)"
+        " lod=%u/%u/%u anim=%u shadow=%u vfx=%u"
+        " mat=%u/%u/%u/%u lit=%u lights=%u/%u dark=%u hash=%08x)"
         " rhi(active=%s shadow=%d submitted=%" PRIu64
         " cmdStreams=%" PRIu64 " rejected=%" PRIu64
         " rejectedCmd=%" PRIu64 " cmdHash=%08x)"
@@ -566,6 +568,14 @@ static void XzLogSnapshot(double now_seconds)
         plan->full_animation_count,
         plan->shadow_count,
         plan->premium_vfx_count,
+        plan->material_color_count,
+        plan->material_translucent_count,
+        plan->material_glow_count,
+        plan->material_additive_count,
+        plan->lit_packet_count,
+        plan->admitted_lights,
+        plan->requested_lights,
+        plan->dark_lights,
         plan->content_hash,
         XzRhiBackend_Name(rhi->active_backend),
         rhi->shadow_mode,
@@ -643,6 +653,8 @@ static void XzLogSnapshot(double now_seconds)
         " targetFail=%" PRIu64 ")"
         " g3sample(passes=%" PRIu64 " draws=%" PRIu64
         " inputs=%" PRIu64 " fail=%" PRIu64 " max=%u)"
+        " g3material(packets=%" PRIu64 " lit=%" PRIu64
+        " vertices=%" PRIu64 " flags=0x%x)"
         " cmd(count=%u hash=%08x overflow=%u resources=%u high=%u"
         " stale=%" PRIu64 " encodeFail=%" PRIu64 ")",
         g3->physical_alive,
@@ -666,6 +678,10 @@ static void XzLogSnapshot(double now_seconds)
         g3->sampled_input_binds,
         g3->sampled_failures,
         g3->sampled_max_inputs,
+        g3->material_packets,
+        g3->material_lit_packets,
+        g3->material_vertices,
+        g3->last_material_flags,
         commands->count,
         commands->content_hash,
         commands->overflow_count,
@@ -952,6 +968,15 @@ void XzAndroidRuntime_Init(size_t engine_heap_bytes)
                 "phase13 visibility selftest=%s source=VRIL_PVS camera=VPN_FOV"
                 " conservative=1",
                 XzVisibility_SelfTest()
+                    ? "PASS" : "FAIL");
+
+            XzAndroidLog(
+                XzMaterialLighting_SelfTest()
+                    ? ANDROID_LOG_INFO
+                    : ANDROID_LOG_WARN,
+                "phase14 materials_lighting selftest=%s source=VRIL"
+                " modes=COLOR/TEXTURE/GLOW/SOLID/ADDITIVE/LMPOINT lights=DLIGHT",
+                XzMaterialLighting_SelfTest()
                     ? "PASS" : "FAIL");
 
             if (!attach_ok)
