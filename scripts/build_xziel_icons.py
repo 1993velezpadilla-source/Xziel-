@@ -226,6 +226,126 @@ def build_xziel_modern_surfaces(out: Path) -> None:
     for name, body in silhouettes.items():
         _render_svg(out, name, f'<g fill="#FFFFFF">{body}</g>', 512)
 
+
+def build_xziel_fps_controls(out: Path) -> None:
+    """Render Xziel's original mobile-FPS control language.
+
+    The layout is informed by common mobile-FPS conventions (large primary
+    fire, separate ADS, compact reload/jump/crouch utility controls), but all
+    vector artwork below is original and generated at build time.
+    """
+    controls = {
+        # Primary fire: the requested bullet over a segmented aiming reticle.
+        "fire": '''
+          <g fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="256" cy="256" r="132" stroke-width="18" stroke-opacity=".86"
+                    stroke-dasharray="92 34"/>
+            <path d="M256 80v54M256 378v54M80 256h54M378 256h54"
+                  stroke-width="18" stroke-opacity=".94"/>
+          </g>
+          <g transform="rotate(-38 256 256)" fill="#FFFFFF">
+            <path d="M225 118h62l18 44v196l-49 52-49-52V162z"/>
+            <path d="M225 164h80v24h-80z" fill="#111820" fill-opacity=".30"/>
+            <path d="M237 118l19-36 19 36z"/>
+          </g>
+        ''',
+        # ADS is deliberately a clean reticle instead of another bullet.
+        "ads": '''
+          <g fill="none" stroke="#FFFFFF" stroke-linecap="round">
+            <circle cx="256" cy="256" r="118" stroke-width="18" stroke-opacity=".94"/>
+            <circle cx="256" cy="256" r="24" stroke-width="14"/>
+            <path d="M256 76v102M256 334v102M76 256h102M334 256h102"
+                  stroke-width="18"/>
+          </g>
+        ''',
+        "reload": '''
+          <g fill="none" stroke="#FFFFFF" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M135 196a142 142 0 0 1 232-40"/>
+            <path d="M366 123l18 71-72-13"/>
+            <path d="M377 316a142 142 0 0 1-232 40"/>
+            <path d="M146 389l-18-71 72 13"/>
+          </g>
+          <path d="M220 183h74v151l-37 34-37-34z" fill="#FFFFFF"/>
+          <path d="M229 202h56v23h-56z" fill="#111820" fill-opacity=".42"/>
+        ''',
+        "use": '''
+          <g fill="#FFFFFF">
+            <rect x="221" y="104" width="34" height="164" rx="16"/>
+            <rect x="263" y="121" width="34" height="147" rx="16"/>
+            <rect x="305" y="153" width="34" height="128" rx="16"/>
+            <path d="M174 235c17-25 43-14 62 8l18 21v-28h85v102c0 55-42 91-98 91h-8c-49 0-83-29-101-67l-35-77c-11-25 24-42 39-20z"/>
+          </g>
+        ''',
+        "jump": '''
+          <g fill="#FFFFFF">
+            <circle cx="266" cy="108" r="30"/>
+            <path d="M227 148l70 14 45 58-30 22-34-42-17 78 52 56-27 25-73-66-27-5-55 67-31-24 69-92 25-74z"/>
+          </g>
+          <path d="M98 405h316" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round" stroke-opacity=".72"/>
+        ''',
+        "slide": '''
+          <g fill="#FFFFFF">
+            <circle cx="328" cy="139" r="27"/>
+            <path d="M278 168l60 22 46 58-29 22-38-43-73 51 77 27-10 37-110-32-58 55-30-27 78-83z"/>
+            <path d="M104 378h297v18H104z" opacity=".76"/>
+          </g>
+        ''',
+        "sprint": '''
+          <g fill="#FFFFFF">
+            <circle cx="300" cy="112" r="28"/>
+            <path d="M252 148l70 18 40 55-30 22-31-36-31 68 67 54-24 31-85-61-44 87-37-18 54-116-54 21-13-35z"/>
+          </g>
+        ''',
+        "knife": '''
+          <g fill="#FFFFFF">
+            <path d="M100 344l211-211 78-22-22 78-211 211z"/>
+            <path d="M123 365l38 38-29 29-38-38z"/>
+            <path d="M161 339l53 53-18 18-53-53z"/>
+          </g>
+        ''',
+        "grenade": '''
+          <g fill="#FFFFFF">
+            <path d="M180 194h151l42 57v126l-52 55H190l-52-55V251z"/>
+            <rect x="213" y="135" width="86" height="60" rx="14"/>
+            <path d="M292 134l38-40 57 27-16 33-50-13-19 21z"/>
+            <circle cx="393" cy="112" r="22" fill="none" stroke="#FFFFFF" stroke-width="15"/>
+          </g>
+          <path d="M177 268h157M177 320h157" stroke="#111820" stroke-opacity=".28" stroke-width="15"/>
+        ''',
+        "pause": '''
+          <rect x="154" y="112" width="70" height="288" rx="20" fill="#FFFFFF"/>
+          <rect x="288" y="112" width="70" height="288" rx="20" fill="#FFFFFF"/>
+        ''',
+    }
+    for name, body in controls.items():
+        _render_svg(out, name, body, 512)
+
+    # Thin translucent mobile-FPS surfaces: visible enough to target, without
+    # the old oversized compass-like rings around every action.
+    touch_idle = '''
+      <circle cx="256" cy="256" r="220" fill="#05080B" fill-opacity=".34"/>
+      <circle cx="256" cy="256" r="216" fill="none" stroke="#FFFFFF"
+              stroke-opacity=".34" stroke-width="10"/>
+    '''
+    touch_pressed = '''
+      <circle cx="256" cy="256" r="222" fill="#0B0E12" fill-opacity=".66"/>
+      <circle cx="256" cy="256" r="216" fill="none" stroke="#F4C83D"
+              stroke-opacity=".96" stroke-width="16"/>
+      <circle cx="256" cy="256" r="186" fill="none" stroke="#F4C83D"
+              stroke-opacity=".18" stroke-width="7"/>
+    '''
+    touch_editor = '''
+      <circle cx="256" cy="256" r="222" fill="#071018" fill-opacity=".42"/>
+      <circle cx="256" cy="256" r="216" fill="none" stroke="#F2F7FA"
+              stroke-opacity=".88" stroke-width="13" stroke-dasharray="36 18"/>
+    '''
+    for name, body in {
+        "touch_idle": touch_idle,
+        "touch_pressed": touch_pressed,
+        "touch_editor": touch_editor,
+    }.items():
+        _render_svg(out, name, body, 512)
+
 def main() -> None:
     if len(sys.argv) != 2:
         raise SystemExit("usage: build_xziel_icons.py <output-dir>")
@@ -240,6 +360,9 @@ def main() -> None:
             output_width=256,
             output_height=256,
         )
+    # Overwrite generic source-pack glyphs with Xziel's original mobile-FPS controls.
+    build_xziel_fps_controls(out)
+
     # Weapon cards use actual CC0 gun artwork rather than a hand-drawn glyph.
     # Kay Lousberg's pack is CC0, transparent PNG, and explicitly includes
     # pistol/revolver/shotgun/sniper/SMG/assault-rifle artwork.
@@ -319,7 +442,7 @@ def main() -> None:
             target.write_bytes((out / src).read_bytes())
 
     (out / "LICENSE-CC0.txt").write_text(
-        "Xziel mobile HUD assets are CC0/public-domain.\n"
+        "Xziel mobile HUD assets are CC0/public-domain or original Xziel vector art.\n"
         "Touch/action icons: Nieobie/Game-Icon-Pack, CC0 1.0 Universal.\n"
         f"Source revision: {REV}\nhttps://github.com/Nieobie/Game-Icon-Pack\n"
         "Weapon card art: Kay Lousberg, 2D Guns, CC0.\n"
