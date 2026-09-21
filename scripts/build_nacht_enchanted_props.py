@@ -93,8 +93,30 @@ def write_override(src_rel: str, transform, dst_rel: str | None = None) -> None:
 write_override("models/machines/mystery.mdl_0.pcx", grade_box)
 write_override("models/props/mystery_debris.mdl_0.pcx", grade_box)
 
+# Sandbags appear twenty times across both floors of Nacht, so leaving them at
+# the old palette skin would make the upgraded walls/floors look inconsistent.
+def grade_sandbag(im: Image.Image) -> Image.Image:
+    im = ImageEnhance.Contrast(im).enhance(1.26)
+    im = ImageEnhance.Color(im).enhance(0.78)
+    im = ImageEnhance.Brightness(im).enhance(0.84)
+    overlay = Image.new("RGBA", im.size, (0,0,0,0))
+    d = ImageDraw.Draw(overlay)
+    w, h = im.size
+    local = random.Random(0x5A4DBA6)
+    for _ in range(95):
+        x = local.randrange(w); y = local.randrange(h)
+        length = local.randrange(max(3,w//100), max(7,w//24))
+        d.line(
+            (x, y, min(w-1,x+length), y+local.randrange(-2,3)),
+            fill=(75,58,39,local.randrange(18,44)),
+            width=max(1,w//512),
+        )
+    return finish(Image.alpha_composite(im.convert("RGBA"), overlay).convert("RGB"))
+
+write_override("models/props/sandbags.mdl_0.pcx", grade_sandbag)
+
 for i in range(4):
     src = f"models/ai/zfull.mdl_{i}.pcx"
     write_override(src, lambda im, i=i: grade_zombie(im, i))
 
-print("Built Enchanted Mystery Box/debris and four high-detail zombie skin overrides.")
+print("Built Enchanted Mystery Box/debris, sandbags and four high-detail zombie skin overrides.")
