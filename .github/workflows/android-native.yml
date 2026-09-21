@@ -335,7 +335,21 @@ jobs:
             exit 1
           fi
 
-          echo "Xziel remained alive; Phase 0-5 including native GLES3 probe and RenderGraph are live."
+          if grep -Eq "XZIEL-XZ.*phase2 caps.*allow\(gles3=1" dist/xziel-logcat.txt; then
+            if ! grep -Eq "XZIEL-XZ.*phase6 gles3shadow init=PASS available=1 shader=1 restore=1 stride=8" dist/xziel-logcat.txt; then
+              echo "Xz Phase-6 persistent GLES3 shadow backend did not initialize."
+              grep -E "XZIEL-XZ.*phase6 gles3shadow" dist/xziel-logcat.txt | tail -n 100 || true
+              exit 1
+            fi
+
+            if ! grep -Eq "XZIEL-XZ.*g3shadow\(submitted=[1-9][0-9]* packets=[1-9][0-9]* draws=[1-9][0-9]* fail=0 readback=0 restoreFail=0 restore=1 glerr=0x0 hash=[0-9a-fA-F]{8}\)" dist/xziel-logcat.txt; then
+              echo "Xz Phase-6 did not execute live RenderPlan packets successfully on native GLES3."
+              grep -E "XZIEL-XZ.*g3shadow\(" dist/xziel-logcat.txt | tail -n 100 || true
+              exit 1
+            fi
+          fi
+
+          echo "Xziel remained alive; Phase 0-6 and native GLES3 RenderPlan execution are live."
 
       - name: Upload runtime diagnostics
         if: always()
