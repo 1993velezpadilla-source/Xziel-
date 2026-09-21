@@ -7,6 +7,7 @@ from mathutils import Vector
 
 MASTER = os.environ.get("CHURCH_MASTER", "church/out/church_map_master.blend")
 OUTDIR = Path(os.environ.get("CHURCH_OUT", "church/out"))
+PENITENT_CONFIG_PATH = Path(os.environ.get("PENITENT_CONFIG", "tools/church_map/penitent_event_config.json"))
 OUTDIR.mkdir(parents=True, exist_ok=True)
 
 bpy.ops.wm.open_mainfile(filepath=MASTER)
@@ -123,6 +124,7 @@ MATS = {
     "trap": mat("GM_Trap", (0.1, 0.85, 0.9), 1.5),
     "quest": mat("GM_Quest", (0.95, 0.95, 0.95), 2.0),
     "boss": mat("GM_Boss", (0.8, 0.05, 0.05), 2.5),
+    "penitent": mat("GM_Penitent", (0.65, 0.65, 0.72), 2.0),
 }
 
 created = []
@@ -291,6 +293,82 @@ for zone_name, info in zone_info.items():
     add_label(zone_name.replace("_"," ").upper(), p, 0.8)
 
 # -----------------------------
+# Signature horror event: The Penitent
+# -----------------------------
+penitent_config = {}
+if PENITENT_CONFIG_PATH.exists():
+    penitent_config = json.loads(PENITENT_CONFIG_PATH.read_text(encoding="utf-8"))
+
+penitent_anchors = []
+
+def penitent_corner(zone_name, corner):
+    info = zone_info.get(zone_name)
+    if not info:
+        return None, None
+    mn, mx = info["min"], info["max"]
+    ix = max((mx.x - mn.x) * 0.10, 0.35)
+    iy = max((mx.y - mn.y) * 0.10, 0.35)
+    x = mn.x + ix if "W" in corner else mx.x - ix
+    y = mx.y - iy if "N" in corner else mn.y + iy
+    p = Vector((x, y, mn.z + 0.35))
+
+    # Candidate body-forward direction toward the closest bbox wall.
+    wall_options = [
+        ((p.x - mn.x), Vector((-1,0,0))),
+        ((mx.x - p.x), Vector((1,0,0))),
+        ((p.y - mn.y), Vector((0,-1,0))),
+        ((mx.y - p.y), Vector((0,1,0))),
+    ]
+    wall_forward = min(wall_options, key=lambda item: item[0])[1]
+    return p, wall_forward
+
+penitent_specs = [
+    ("PENITENT_MAIN_NW", "main_church", "NW"),
+    ("PENITENT_MAIN_SE", "main_church", "SE"),
+    ("PENITENT_OFFICE_NW", "office", "NW"),
+    ("PENITENT_OFFICE_CORRIDOR_SE", "office_corridor", "SE"),
+    ("PENITENT_BOILER_NW", "boiler", "NW"),
+    ("PENITENT_BOILER_SE", "boiler", "SE"),
+    ("PENITENT_TOWER_STAIRS_NE", "tower_stairs", "NE"),
+    ("PENITENT_RINGING_SW", "ringing_chamber", "SW"),
+    ("PENITENT_CLOCK_NE", "clock_chamber", "NE"),
+    ("PENITENT_ROOF_SW", "roof_chamber", "SW"),
+    ("PENITENT_EXTERIOR_NE", "exterior", "NE"),
+]
+
+for name, zone_name, corner in penitent_specs:
+    p, wall_forward = penitent_corner(zone_name, corner)
+    if p is None:
+        continue
+    obj = add_proxy(
+        name,
+        "penitent",
+        p,
+        0.48,
+        "sphere",
+        {
+            "zone": zone_name,
+            "xziel_event": "event_penitent_nun",
+            "xziel_anchor_tag": "penitent_anchor",
+            "candidate": True,
+            "min_spawn_player_distance": 10.0,
+            "personal_space_radius": 1.35,
+            "min_retreat_clearance": 2.5,
+            "wall_forward_x": float(wall_forward.x),
+            "wall_forward_y": float(wall_forward.y),
+            "wall_forward_z": float(wall_forward.z),
+            "pose": "kneeling_crouched_facing_wall",
+        },
+    )
+    # Make the sphere itself face the candidate wall direction for easy inspection.
+    target = p + wall_forward
+    look_dir = target - p
+    if look_dir.length > 1e-5:
+        obj.rotation_euler = look_dir.to_track_quat("Y", "Z").to_euler()
+    penitent_anchors.append(obj)
+
+
+# -----------------------------
 # Camera plan renders
 # -----------------------------
 world = scene.world
@@ -377,6 +455,19 @@ plan = {
         "roof_chamber",
         "tower_top",
     ],
+    "signature_horror_event": penitent_config,
+    "penitent_anchors": [
+        {
+            "name": o.name,
+            "zone": o.get("zone"),
+            "location": list(o.location),
+            "wall_forward": [o.get("wall_forward_x"), o.get("wall_forward_y"), o.get("wall_forward_z")],
+            "min_spawn_player_distance": o.get("min_spawn_player_distance"),
+            "personal_space_radius": o.get("personal_space_radius"),
+            "min_retreat_clearance": o.get("min_retreat_clearance"),
+        }
+        for o in penitent_anchors
+    ],
     "quest": {
         "id": "seven_bells",
         "steps": [
@@ -407,3 +498,4 @@ print("GAMEPLAY_PASS_OK")
 print("ZONES", sorted(zone_info))
 print("INTERACTIVES", len(created))
 print("ZOMBIE_SPAWNS", len(spawn_points))
+print("PENITENT_ANCHORS", len(penitent_anchors))
