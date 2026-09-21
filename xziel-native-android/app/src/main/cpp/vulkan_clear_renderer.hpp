@@ -37,6 +37,10 @@ struct VulkanHudState {
 
     float hitMarkerAlpha = 0.0f;
     bool targetAlive = true;
+
+    float weaponAdsAlpha = 0.0f;
+    float weaponReloadAlpha = 0.0f;
+    float weaponFireAlpha = 0.0f;
 };
 
 class VulkanClearRenderer final {
