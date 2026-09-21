@@ -424,14 +424,14 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService):
 def main():
     args=parse_args(); spec=json.loads(Path(args.spec).read_text(encoding="utf-8")); out=Path(args.out_dir); out.mkdir(parents=True,exist_ok=True)
     HumanService=dynamic_import("mpfb.services.humanservice","HumanService")
-    ObjectService=dynamic_import("mpfb.services.objectservice","ObjectService")
+    ObjectService=dynamic_import("mpfb.services.objectservice","ObjectService")\n    TargetService=dynamic_import("mpfb.services.targetservice","TargetService")
     only={x.strip() for x in args.only.split(",") if x.strip()}
     manifests=[]; errors={}
     for ch in spec["characters"]:
         if only and ch["id"] not in only: continue
         print("\\n=== BUILD",ch["id"],"===")
         try:
-            manifests.append(make_character(ch,args.assets_root,out,HumanService,ObjectService))
+            manifests.append(make_character(ch,args.assets_root,out,HumanService,ObjectService,TargetService))
         except Exception as e:
             errors[ch["id"]]=repr(e); traceback.print_exc()
     summary={"project":spec["project"],"built":[m["id"] for m in manifests],"errors":errors}
