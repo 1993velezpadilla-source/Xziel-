@@ -163,7 +163,7 @@ static void XzLogSnapshot(double now_seconds)
 
     XzAndroidLog(
         ANDROID_LOG_INFO,
-        "perf frames=%" PRIu64
+        "perf processed_frames=%" PRIu64
         " last=%.2fms avg=%.2f p50=%.2f p95=%.2f p99=%.2f max=%.2f"
         " rss=%.1fMiB high=%.1fMiB state=%s passive=%d"
         " advice(render=%.2f anim=%.2f shadow=%.2f vfx=%.2f light=%.2f stream=%.2f)",
@@ -300,7 +300,7 @@ void XzAndroidRuntime_Shutdown(void)
     XzLogSnapshot(xz_runtime.last_log_seconds + 5.0);
     XzAndroidLog(
         ANDROID_LOG_INFO,
-        "phase0 shutdown frames=%" PRIu64
+        "phase0 shutdown processed_frames=%" PRIu64
         " spikes25=%" PRIu64 " spikes33=%" PRIu64
         " spikes50=%" PRIu64,
         xz_runtime.frame.total_frames,
