@@ -56,9 +56,13 @@ load_map = r'''void(string bsp_name) Menu_Maps_LoadMap =
 	cvar_set("sv_maxai", "24");
 	cvar_set("sv_fastrounds", "0");
 
-    // Xziel's stock Nacht entry is the Enhanced presentation by default.
-    // The PRE-GAME screen exposes a one-tap Classic/Enhanced switch.
-    if (bsp_name == "ndu") {
+    // Stock Nacht remains the clean comparison/control map.
+    if (bsp_name == "ndu")
+        cvar_set("xziel_nacht_enhanced", "0");
+
+    // Separate derivative practice map: always enable the full Enchanted
+    // presentation and smoother zombie motion.
+    if (bsp_name == "ndu_enchanted") {
         cvar_set("xziel_nacht_enhanced", "1");
         cvar_set("xziel_modern_zombies", "1");
     }

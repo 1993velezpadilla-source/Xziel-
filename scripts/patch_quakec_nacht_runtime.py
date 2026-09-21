@@ -28,7 +28,7 @@ runtime = r'''
 // ---------------------------------------------------------------------------
 void() Xziel_NachtEnhanced_AmbientOneShotThink =
 {
-    if (mapname != "ndu" || cvar("xziel_nacht_enhanced") < 0.5) {
+    if (mapname != "ndu_enchanted" && (mapname != "ndu" || cvar("xziel_nacht_enhanced") < 0.5)) {
         remove(self);
         return;
     }
@@ -59,7 +59,7 @@ void(vector org, float style, float base_wait, float jitter) Xziel_NachtEnhanced
 
 void() Xziel_NachtEnhanced_Init =
 {
-    if (mapname != "ndu" || cvar("xziel_nacht_enhanced") < 0.5)
+    if (mapname != "ndu_enchanted" && (mapname != "ndu" || cvar("xziel_nacht_enhanced") < 0.5))
         return;
 
     // Explicitly precache everything this optional layer can emit.
@@ -116,7 +116,7 @@ s = client.read_text(encoding="utf-8")
 render = r'''
 void() Xziel_NachtEnhanced_Render =
 {
-    if (mapname != "ndu" || cvar("xziel_nacht_enhanced") < 0.5)
+    if (mapname != "ndu_enchanted" && (mapname != "ndu" || cvar("xziel_nacht_enhanced") < 0.5))
         return;
 
     // Small independent phase offsets prevent synchronized "breathing".

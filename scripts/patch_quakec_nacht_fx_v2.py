@@ -58,7 +58,7 @@ if "float xziel_nacht_fx_next_fire;" not in s:
 
 render = r'''void() Xziel_NachtEnhanced_Render =
 {
-    if (mapname != "ndu" || cvar("xziel_nacht_enhanced") < 0.5)
+    if (mapname != "ndu_enchanted" && (mapname != "ndu" || cvar("xziel_nacht_enhanced") < 0.5))
         return;
 
     // Small independent phase offsets prevent synchronized "breathing".

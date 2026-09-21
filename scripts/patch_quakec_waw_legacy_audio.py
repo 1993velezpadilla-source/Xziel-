@@ -62,7 +62,7 @@ void() Xziel_WaWLegacyAudio_Init =
     xziel_waw_chalk_ready = false;
     xziel_waw_roundover_ready = false;
 
-    if (mapname != "ndu" || cvar("xziel_nacht_enhanced") < 0.5)
+    if (mapname != "ndu_enchanted" && (mapname != "ndu" || cvar("xziel_nacht_enhanced") < 0.5))
         return;
 
     xziel_waw_round1_path = "sounds/xziel/waw/waw_round_start_laugh.wav";
@@ -116,7 +116,7 @@ splash_needle = '''\t\t\tif (cvar("sv_startround") == 0) {
 splash_repl = '''\t\t\tif (cvar("sv_startround") == 0) {
 \t\t\t\tstring splash_tune = "sounds/rounds/splash.wav";
 \t\t\t\tsplash_tune = Gamemode_GetSplashTune(splash_tune);
-\t\t\t\tif (mapname == "ndu" && cvar("xziel_nacht_enhanced") >= 0.5 && xziel_waw_round1_ready)
+\t\t\t\tif ((mapname == "ndu_enchanted" || (mapname == "ndu" && cvar("xziel_nacht_enhanced") >= 0.5)) && xziel_waw_round1_ready)
 \t\t\t\t\tsplash_tune = xziel_waw_round1_path;
 \t\t\t\tRounds_PlayTransition(splash_tune);
 \t\t\t}'''
@@ -147,7 +147,7 @@ repl = '''\t} else {
 \t\tend_round_tune = Gamemode_GetEndRoundTune(end_round_tune);
 \t}
 
-\tif (mapname == "ndu" && cvar("xziel_nacht_enhanced") >= 0.5 && xziel_waw_roundover_ready)
+\tif ((mapname == "ndu_enchanted" || (mapname == "ndu" && cvar("xziel_nacht_enhanced") >= 0.5)) && xziel_waw_roundover_ready)
 \t\tend_round_tune = xziel_waw_roundover_path;
 
 \tif (cvar("sv_fastrounds") == 0)
@@ -161,7 +161,7 @@ needle = "\trounds = rounds + 1;\n"
 repl = '''\trounds = rounds + 1;
 
 \t// Optional original chalk accent for subsequent round transitions.
-\tif (rounds > 1 && mapname == "ndu" && cvar("xziel_nacht_enhanced") >= 0.5 && xziel_waw_chalk_ready)
+\tif (rounds > 1 && (mapname == "ndu_enchanted" || (mapname == "ndu" && cvar("xziel_nacht_enhanced") >= 0.5)) && xziel_waw_chalk_ready)
 \t\tSound_PlaySound(world, xziel_waw_chalk_path, SOUND_TYPE_MUSIC_ROUND, SOUND_PRIORITY_PLAYALWAYS);
 '''
 if "Optional original chalk accent" not in s:
@@ -182,7 +182,7 @@ needle = '''\tif (in_endgame_sequence == false) {
 \t}'''
 repl = '''\tif (in_endgame_sequence == false) {
 \t\tstring endgame_tune = "sounds/music/end.wav";
-\t\tif (mapname == "ndu" && cvar("xziel_nacht_enhanced") >= 0.5 && xziel_waw_gameover_ready)
+\t\tif ((mapname == "ndu_enchanted" || (mapname == "ndu" && cvar("xziel_nacht_enhanced") >= 0.5)) && xziel_waw_gameover_ready)
 \t\t\tendgame_tune = xziel_waw_gameover_path;
 \t\tRounds_PlayTransition(endgame_tune);
 \t\tNotifyGameEnd();
@@ -234,7 +234,7 @@ new = '''void() HUD_Endgame = {
 \tfloat survive_width = getTextWidth(survive, 18);
 \tHUD_DrawStringWithBackdrop([g_width/2 - survive_width/2, 123], survive, [18, 18], [1, 1, 1], 1, 0);
 
-\tif (mapname == "ndu" && cvar("xziel_nacht_enhanced") >= 0.5) {
+\tif ((mapname == "ndu_enchanted" || (mapname == "ndu" && cvar("xziel_nacht_enhanced") >= 0.5))) {
 \t\tentity me = findfloat(world, playernum, getstatf(STAT_PLAYERNUM));
 \t\tif (me != world) {
 \t\t\tstring stats1 = sprintf("KILLS  %d     HEADSHOTS  %d", me.kills, me.headshots);

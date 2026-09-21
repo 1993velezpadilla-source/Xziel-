@@ -36,7 +36,8 @@ new = '''\t\t\t\ttexture_mode = GL_LINEAR_MIPMAP_NEAREST;
 \t\t\t\t// embedded BSP pixels untouched in Classic mode.
 \t\t\t\ttx->gl_texturenum = -1;
 \t\t\t\tif (xziel_nacht_enhanced.value >= 0.5f &&
-\t\t\t\t\t!strcmp(loadmodel->name, "maps/ndu.bsp")) {
+\t\t\t\t\t(!strcmp(loadmodel->name, "maps/ndu.bsp") ||
+					 !strcmp(loadmodel->name, "maps/ndu_enchanted.bsp"))) {
 \t\t\t\t\tsnprintf (texname, sizeof(texname), "textures/nacht_enhanced/%s", mt->name);
 \t\t\t\t\ttx->gl_texturenum = Image_LoadImage (texname, IMAGE_TGA | IMAGE_PNG | IMAGE_JPG, 0, false, true);
 \t\t\t\t}
