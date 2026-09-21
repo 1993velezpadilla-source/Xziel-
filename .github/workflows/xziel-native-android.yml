@@ -56,7 +56,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          GLSLC="$(find "${ANDROID_HOME}/ndk/28.2.13676358" -type f -name glslc -perm -111 | head -n 1)"
+          GLSLC="$(find "${ANDROID_HOME}/ndk/28.2.13676358" -type f -name glslc -perm -111 -print -quit)"
           test -n "$GLSLC"
 
           mkdir -p app/src/main/assets/shaders
@@ -68,7 +68,7 @@ jobs:
           test -s app/src/main/assets/shaders/xziel_first.vert.spv
           test -s app/src/main/assets/shaders/xziel_first.frag.spv
 
-          SPIRV_VAL="$(find "${ANDROID_HOME}/ndk/28.2.13676358" -type f -name spirv-val -perm -111 | head -n 1 || true)"
+          SPIRV_VAL="$(find "${ANDROID_HOME}/ndk/28.2.13676358" -type f -name spirv-val -perm -111 -print -quit || true)"
           if [[ -n "$SPIRV_VAL" ]]; then
             "$SPIRV_VAL" app/src/main/assets/shaders/xziel_first.vert.spv
             "$SPIRV_VAL" app/src/main/assets/shaders/xziel_first.frag.spv
@@ -126,7 +126,10 @@ jobs:
             '
 
             echo "Checking GNU_RELRO: $SO"
-            "$READELF" -l "$SO" | grep -q "GNU_RELRO"
+            RELRO_REPORT="$(mktemp)"
+            "$READELF" -l "$SO" > "$RELRO_REPORT"
+            grep -q "GNU_RELRO" "$RELRO_REPORT"
+            rm -f "$RELRO_REPORT"
           done < <(find build/xziel-elf-check -type f -name '*.so' -print0)
 
           mkdir -p dist
