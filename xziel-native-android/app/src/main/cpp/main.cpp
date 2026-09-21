@@ -2187,11 +2187,15 @@ extern "C" void android_main(
                 hud,
                 scene,
                 environment)) {
+            const bool deviceLost =
+                state.renderer.deviceLost();
             const auto recovery =
                 state.watchdog.report(
                     {
                         .fault =
-                            xziel::RendererFault::PresentFailed,
+                            deviceLost
+                            ? xziel::RendererFault::DeviceLost
+                            : xziel::RendererFault::PresentFailed,
                         .frameIndex =
                             latest.generation,
                         .code = 0,
@@ -2199,12 +2203,38 @@ extern "C" void android_main(
                     xziel::RendererBackend::Vulkan,
                     false);
 
-            if (recovery.recommendedAction ==
-                xziel::RendererRecoveryAction::RecreateSwapchain) {
+            if (deviceLost ||
+                recovery.recommendedAction ==
+                    xziel::RendererRecoveryAction::RecreateDevice ||
+                recovery.recommendedAction ==
+                    xziel::RendererRecoveryAction::RecreateSwapchain) {
+                // Stop all submission immediately. Android may keep the same
+                // ANativeWindow alive after a Vulkan device loss, so waiting
+                // exclusively for APP_CMD_INIT_WINDOW would deadlock recovery.
                 state.hasWindow = false;
                 state.renderer.shutdown();
-                logError(
-                    "Frame failed; waiting for a fresh Android surface");
+
+                if (app->window != nullptr &&
+                    state.renderer.initialize(
+                        app->window,
+                        app->activity->assetManager,
+                        state.jniEnv,
+                        state.javaActivity)) {
+                    state.hasWindow = true;
+                    state.watchdog.reset();
+                    state.lastFrame =
+                        std::chrono::steady_clock::now();
+                    state.hasLastFrame = false;
+                    logInfo(
+                        deviceLost
+                        ? "XZIEL_VULKAN_DEVICE_RECOVERED"
+                        : "XZIEL_VULKAN_SURFACE_RECOVERED");
+                } else {
+                    logError(
+                        deviceLost
+                        ? "Vulkan device recovery failed; waiting for Android lifecycle"
+                        : "Frame recovery failed; waiting for a fresh Android surface");
+                }
             }
         }
     }
