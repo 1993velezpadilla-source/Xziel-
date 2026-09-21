@@ -2835,10 +2835,21 @@ bool VulkanClearRenderer::recordDrawCommand(
             1.0f);
 
     if (rainIntensity > 0.01f) {
-        constexpr int kVisibleRainStreaks = 18;
+        const int visibleRainStreaks =
+            std::clamp(
+                static_cast<int>(
+                    std::lround(
+                        18.0f *
+                        std::clamp(
+                            environment.
+                                particleDensityScale,
+                            0.25f,
+                            1.0f))),
+                5,
+                18);
 
         for (int i = 0;
-             i < kVisibleRainStreaks;
+             i < visibleRainStreaks;
              ++i) {
             const float seed =
                 static_cast<float>(i) *
@@ -2894,7 +2905,11 @@ bool VulkanClearRenderer::recordDrawCommand(
     const float fogOverlay =
         std::clamp(
             environment.fogDensity *
-                0.10f,
+                0.10f *
+                std::clamp(
+                    environment.fogQualityScale,
+                    0.25f,
+                    1.0f),
             0.0f,
             0.12f);
 
@@ -2915,7 +2930,11 @@ bool VulkanClearRenderer::recordDrawCommand(
     const float lightningOverlay =
         std::clamp(
             environment.lightningFlash *
-                0.24f,
+                0.24f *
+                std::clamp(
+                    environment.postProcessScale,
+                    0.35f,
+                    1.0f),
             0.0f,
             0.30f);
 
