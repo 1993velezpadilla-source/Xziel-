@@ -48,6 +48,8 @@ struct InteractionFrame {
     InteractionKind kind = InteractionKind::Use;
     std::uint32_t cost = 0;
 
+    Vec3 targetPosition{};
+
     float distanceMeters = 0.0f;
     float facingDot = 0.0f;
     float holdAlpha = 0.0f;
