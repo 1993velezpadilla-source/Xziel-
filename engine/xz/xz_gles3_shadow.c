@@ -566,8 +566,9 @@ fail:
     return 0;
 }
 
-int XzGles3Shadow_Submit(
+static int XzGles3Shadow_SubmitInternal(
     XzGles3ShadowState *state,
+    const XzCommandStream *commands,
     const XzRenderPlan *plan)
 {
     float vertices[
@@ -583,6 +584,8 @@ int XzGles3Shadow_Submit(
     unsigned char readback[4] = {0u, 0u, 0u, 0u};
     int had_gl_error = 0;
     int readback_ok;
+    int command_ok = 1;
+    int saw_draw = 0;
     XzNativeGles3Api *gl;
 
     if (!state || !plan ||
@@ -594,6 +597,13 @@ int XzGles3Shadow_Submit(
     state->submit_attempts++;
 
     if (!XzRenderPlan_Validate(plan)) {
+        state->failures++;
+        return 0;
+    }
+
+    if (commands &&
+        !XzCommandStream_Validate(commands)) {
+        state->command_failures++;
         state->failures++;
         return 0;
     }
@@ -630,7 +640,6 @@ int XzGles3Shadow_Submit(
             (512.0f + XzAbsFloat(packet->origin[1]));
         const float weight =
             (float)packet->priority_class / 3.0f;
-
         const float delta =
             0.004f + 0.004f * weight;
         const unsigned int base =
@@ -651,7 +660,8 @@ int XzGles3Shadow_Submit(
     }
 
     XzEncodePlanColor(
-        plan->content_hash,
+        commands ? commands->content_hash
+                 : plan->content_hash,
         expected);
 
     gl->Viewport(
@@ -705,7 +715,96 @@ int XzGles3Shadow_Submit(
             XZ_G3_STAGE_BIND_BUFFER) != GL_NO_ERROR)
         had_gl_error = 1;
 
-    if (plan->packet_count > 0u) {
+    if (commands) {
+        state->command_stream_submissions++;
+        state->last_command_hash =
+            commands->content_hash;
+
+        for (i = 0u; i < commands->count; ++i) {
+            const XzCommand *command =
+                &commands->commands[i];
+
+            state->commands_executed++;
+
+            switch (command->op) {
+            case XZ_CMD_BEGIN_PASS:
+                state->passes_executed++;
+                break;
+
+            case XZ_CMD_RESOURCE_READ:
+                state->resource_read_commands++;
+                break;
+
+            case XZ_CMD_RESOURCE_WRITE:
+                state->resource_write_commands++;
+                break;
+
+            case XZ_CMD_DRAW_PACKETS:
+                state->draw_commands++;
+
+                if (saw_draw ||
+                    command->a != plan->packet_count ||
+                    command->value64 !=
+                        (uint64_t)plan->content_hash) {
+                    command_ok = 0;
+                    break;
+                }
+
+                saw_draw = 1;
+
+                if (plan->packet_count > 0u) {
+                    gl->BufferSubData(
+                        GL_ARRAY_BUFFER,
+                        0,
+                        (GLsizeiptr)(
+                            plan->packet_count *
+                            XZ_VERTICES_PER_PACKET *
+                            XZ_VERTEX_FLOATS *
+                            sizeof(float)),
+                        vertices);
+
+                    if (XzCaptureError(
+                            state,
+                            XZ_G3_STAGE_BUFFER_UPLOAD) !=
+                        GL_NO_ERROR)
+                        had_gl_error = 1;
+
+                    gl->DrawArrays(
+                        GL_TRIANGLES,
+                        0,
+                        (GLsizei)(
+                            plan->packet_count *
+                            XZ_VERTICES_PER_PACKET));
+
+                    if (XzCaptureError(
+                            state,
+                            XZ_G3_STAGE_DRAW) !=
+                        GL_NO_ERROR)
+                        had_gl_error = 1;
+
+                    state->draw_calls++;
+                }
+                break;
+
+            case XZ_CMD_BEGIN_FRAME:
+            case XZ_CMD_END_PASS:
+            case XZ_CMD_END_FRAME:
+                break;
+
+            case XZ_CMD_NOP:
+            default:
+                command_ok = 0;
+                break;
+            }
+
+            if (!command_ok)
+                break;
+        }
+
+        if (plan->packet_count > 0u &&
+            !saw_draw)
+            command_ok = 0;
+    } else if (plan->packet_count > 0u) {
         gl->BufferSubData(
             GL_ARRAY_BUFFER,
             0,
@@ -761,6 +860,11 @@ int XzGles3Shadow_Submit(
         readback,
         sizeof(readback));
 
+    if (!command_ok) {
+        state->command_failures++;
+        state->failures++;
+    }
+
     if (had_gl_error)
         state->failures++;
 
@@ -779,7 +883,26 @@ int XzGles3Shadow_Submit(
     state->submitted_frames++;
     state->submitted_packets += plan->packet_count;
 
-    return !had_gl_error && readback_ok;
+    return !had_gl_error &&
+           readback_ok &&
+           command_ok;
+}
+
+int XzGles3Shadow_Submit(
+    XzGles3ShadowState *state,
+    const XzRenderPlan *plan)
+{
+    return XzGles3Shadow_SubmitInternal(
+        state, NULL, plan);
+}
+
+int XzGles3Shadow_SubmitCommands(
+    XzGles3ShadowState *state,
+    const XzCommandStream *commands,
+    const XzRenderPlan *plan)
+{
+    return XzGles3Shadow_SubmitInternal(
+        state, commands, plan);
 }
 
 void XzGles3Shadow_Shutdown(
