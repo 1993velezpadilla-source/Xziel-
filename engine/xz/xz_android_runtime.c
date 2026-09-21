@@ -675,6 +675,7 @@ static void XzLogSnapshot(double now_seconds)
     XzAndroidLog(
         ANDROID_LOG_INFO,
         "phase15 heartbeat active=%d scale=%.2f requested=%.2f size=%ux%u"
+        " proxy=%u qUpdates=%" PRIu64
         " changes=%" PRIu64 " suppressed=%" PRIu64
         " rebuildFail=%" PRIu64
         " streamCap=%u resident=%u high=%u"
@@ -686,6 +687,8 @@ static void XzLogSnapshot(double now_seconds)
         xz_runtime.active_quality.requested_render_scale,
         xz_runtime.active_quality.width,
         xz_runtime.active_quality.height,
+        xz_runtime.gles3_shadow.resource_proxy_max,
+        xz_runtime.gles3_shadow.quality_scale_updates,
         xz_runtime.active_quality.changes,
         xz_runtime.active_quality.suppressed_changes,
         xz_runtime.graph_rebuild_failures,
@@ -1120,6 +1123,10 @@ void XzAndroidRuntime_EndFrame(double now_seconds)
             xz_runtime.display_height > 0
                 ? (unsigned int)xz_runtime.display_height
                 : 720u)) {
+        XzGles3Shadow_SetQualityScale(
+            &xz_runtime.gles3_shadow,
+            xz_runtime.active_quality.applied_render_scale);
+
         if (!XzRebuildGraphResources())
             xz_runtime.graph_rebuild_failures++;
     }
