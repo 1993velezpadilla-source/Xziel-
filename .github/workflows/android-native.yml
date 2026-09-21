@@ -311,7 +311,15 @@ jobs:
             exit 1
           fi
 
-          echo "Xziel remained alive; Phase 0-3 telemetry, PresentWorld, RenderPlan and shadow RHI are live."
+          if grep -Eq "XZIEL-XZ.*phase2 caps.*allow\(gles3=1" dist/xziel-logcat.txt; then
+            if ! grep -Eq "XZIEL-XZ.*phase4 gles3_probe=PASS status=SHADER_OK.*gl=3\.[0-9]+.*shader_compile=1 shader_link=1 restore=1 err=0x0" dist/xziel-logcat.txt; then
+              echo "Xz Phase-4 native GLES3 probe failed or did not restore the legacy context."
+              grep -E "XZIEL-XZ.*phase4 gles3_probe" dist/xziel-logcat.txt | tail -n 100 || true
+              exit 1
+            fi
+          fi
+
+          echo "Xziel remained alive; Phase 0-4 and the isolated native GLES3 probe are live."
 
       - name: Upload runtime diagnostics
         if: always()
