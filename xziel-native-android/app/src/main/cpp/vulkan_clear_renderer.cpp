@@ -3169,13 +3169,42 @@ bool VulkanClearRenderer::recordDrawCommand(
             push.scaleY = sy;
             push.scaleZ = sz;
 
-            constexpr float kWaterPlaneY = -1.48f;
-            push.cameraX = camera.x;
-            push.cameraY =
-                2.0f * kWaterPlaneY - camera.y;
-            push.cameraZ = camera.z;
+            float planeNx = environment.planarPlaneNormalX;
+            float planeNy = environment.planarPlaneNormalY;
+            float planeNz = environment.planarPlaneNormalZ;
+            float planeD = environment.planarPlaneDistance;
+            const float planeLength = std::sqrt(
+                planeNx * planeNx +
+                planeNy * planeNy +
+                planeNz * planeNz);
+            if (!std::isfinite(planeLength) || planeLength < 0.0001f) {
+                planeNx = 0.0f;
+                planeNy = 1.0f;
+                planeNz = 0.0f;
+                planeD = 1.48f;
+            } else {
+                const float inversePlaneLength = 1.0f / planeLength;
+                planeNx *= inversePlaneLength;
+                planeNy *= inversePlaneLength;
+                planeNz *= inversePlaneLength;
+                planeD = std::isfinite(planeD)
+                    ? planeD * inversePlaneLength
+                    : 0.0f;
+            }
+
+            const float signedCameraDistance =
+                planeNx * camera.x +
+                planeNy * camera.y +
+                planeNz * camera.z +
+                planeD;
+            push.cameraX = camera.x - 2.0f * signedCameraDistance * planeNx;
+            push.cameraY = camera.y - 2.0f * signedCameraDistance * planeNy;
+            push.cameraZ = camera.z - 2.0f * signedCameraDistance * planeNz;
             push.cameraYawRadians = camera.yawRadians;
-            push.cameraPitchRadians = -camera.pitchRadians;
+            push.cameraPitchRadians =
+                std::fabs(planeNy) > 0.999f
+                ? -camera.pitchRadians
+                : camera.pitchRadians;
             push.verticalFovDegrees =
                 std::clamp(camera.verticalFovDegrees, 50.0f, 110.0f);
             push.fogDensity =
