@@ -39,7 +39,7 @@ python3 "$ROOT/scripts/patch_vril_modern_movement.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_camera_feel.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_animation_feel.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_mobile_v021.py" "$DEPS/vril"
-python3 "$ROOT/scripts/patch_vril_mobile_v022.py" "$DEPS/vril"
+python3 "$ROOT/scripts/patch_vril_mobile_v022.py" "$DEPS/vril"\npython3 "$ROOT/scripts/patch_vril_nacht_enhanced.py" "$DEPS/vril"
 
 echo "==> Patching and compiling Xziel mobile QuakeC"
 python3 -m pip install --quiet colorama==0.4.6 fastcrc==0.3.0 pandas==2.1.4 cairosvg==2.8.2
