@@ -136,6 +136,44 @@ int main() {
     assert(target.estimatedColorBytes == 1440ULL * 640ULL * 4ULL);
     assert(target.estimatedDepthBytes == target.estimatedColorBytes);
 
+    // Wide/high-resolution mobile displays must preserve aspect ratio when
+    // the absolute target cap is reached. A per-axis clamp would incorrectly
+    // turn this 16:9 source into a square-ish reflection texture.
+    const auto cappedTarget = targetPlanner.plan(
+        3840,
+        2160,
+        unorderedDecisions[1],
+        1536);
+    assert(cappedTarget.enabled);
+    assert(cappedTarget.width == 1536);
+    assert(cappedTarget.height == 864);
+    assert(
+        cappedTarget.width * 2160ULL ==
+        cappedTarget.height * 3840ULL);
+
+    xziel::ReflectionDecision previousFrameDecision{};
+    previousFrameDecision.resolutionScale = 0.50f;
+    previousFrameDecision.samplePreviousFrame = true;
+    const auto previousFrameTarget = targetPlanner.plan(
+        1920,
+        1080,
+        previousFrameDecision,
+        1536);
+    assert(previousFrameTarget.enabled);
+    assert(previousFrameTarget.width == 960);
+    assert(previousFrameTarget.height == 528);
+
+    xziel::ReflectionDecision zeroScaleDecision{};
+    zeroScaleDecision.needsExtraScenePass = true;
+    zeroScaleDecision.resolutionScale = 0.0f;
+    assert(
+        !targetPlanner.plan(
+             1920,
+             1080,
+             zeroScaleDecision,
+             1536)
+             .enabled);
+
     xziel::ReflectionDecision disabledTargetDecision{};
     const auto disabledTarget = targetPlanner.plan(
         2400,

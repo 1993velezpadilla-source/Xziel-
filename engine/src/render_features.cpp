@@ -101,14 +101,29 @@ ReflectionTargetPlan ReflectionTargetPlanner::plan(
         return out;
     }
 
-    const float scale =
+    const float requestedScale =
         std::clamp(
             decision.resolutionScale,
             0.10f,
             1.0f);
 
+    // Clamp the target with one uniform scale. Independent width/height caps
+    // distort the reflected image on wide displays (especially 18:9/20:9
+    // phones), which then becomes visible as stretched water/mirror content.
+    const float dimensionCapScale =
+        std::min(
+            static_cast<float>(maxDimension) /
+                static_cast<float>(mainWidth),
+            static_cast<float>(maxDimension) /
+                static_cast<float>(mainHeight));
+
+    const float scale =
+        std::min(
+            requestedScale,
+            dimensionCapScale);
+
     const auto scaledDimension =
-        [scale, maxDimension](
+        [scale](
             std::uint32_t value) noexcept {
             const auto scaled =
                 static_cast<std::uint32_t>(
@@ -117,13 +132,9 @@ ReflectionTargetPlan ReflectionTargetPlanner::plan(
                         std::floor(
                             static_cast<float>(value) *
                             scale)));
-            const auto bounded =
-                std::min(
-                    scaled,
-                    maxDimension);
             return std::max(
                 16U,
-                bounded & ~15U);
+                scaled & ~15U);
         };
 
     out.width =
