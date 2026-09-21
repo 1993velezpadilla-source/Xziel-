@@ -47,6 +47,14 @@ jobs:
         shell: bash
         run: bash scripts/prepare_android.sh
 
+      - name: Verify SoE crash guard in native source
+        run: |
+          grep -q "invalid SOLID_BSP entity" build/android-project/app/jni/src/vril/Source/world.c
+          if grep -q 'Sys_Error ("SOLID_BSP without MOVETYPE_PUSH")' build/android-project/app/jni/src/vril/Source/world.c; then
+            echo "Fatal BSP guard still present in compiled native source"
+            exit 1
+          fi
+
       - name: Build debug APK
         working-directory: build/android-project
         shell: bash
