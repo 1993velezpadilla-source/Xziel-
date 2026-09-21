@@ -18,6 +18,66 @@ float sanitizeDuration(
     return value;
 }
 
+WeaponConfig sanitizeConfig(
+    WeaponConfig config) noexcept {
+    config.magazineSize =
+        std::max<std::uint32_t>(
+            config.magazineSize,
+            1U);
+
+    config.fireIntervalSeconds =
+        sanitizeDuration(
+            config.fireIntervalSeconds,
+            0.095f);
+
+    config.reloadSeconds =
+        sanitizeDuration(
+            config.reloadSeconds,
+            1.85f);
+
+    config.adsInSeconds =
+        sanitizeDuration(
+            config.adsInSeconds,
+            0.15f);
+
+    config.adsOutSeconds =
+        sanitizeDuration(
+            config.adsOutSeconds,
+            0.11f);
+
+    config.minimumAdsAlphaToFire =
+        std::clamp(
+            std::isfinite(
+                config.minimumAdsAlphaToFire)
+                ? config.minimumAdsAlphaToFire
+                : 0.92f,
+            0.0f,
+            1.0f);
+
+    config.triggerBufferSeconds =
+        sanitizeDuration(
+            config.triggerBufferSeconds,
+            0.18f);
+
+    config.recoilPitchDegrees =
+        std::max(
+            0.0f,
+            std::isfinite(
+                config.recoilPitchDegrees)
+                ? config.recoilPitchDegrees
+                : 0.78f);
+
+    config.recoilYawDegrees =
+        std::max(
+            0.0f,
+            std::isfinite(
+                config.recoilYawDegrees)
+                ? config.recoilYawDegrees
+                : 0.26f);
+
+    return config;
+}
+
 float moveToward(
     float current,
     float target,
@@ -37,45 +97,17 @@ float moveToward(
 
 WeaponController::WeaponController(
     WeaponConfig config)
-    : config_(config) {
-    config_.magazineSize =
-        std::max<std::uint32_t>(
-            config_.magazineSize,
-            1U);
+    : config_(
+          sanitizeConfig(
+              config)) {
+    reset();
+}
 
-    config_.fireIntervalSeconds =
-        sanitizeDuration(
-            config_.fireIntervalSeconds,
-            0.095f);
-
-    config_.reloadSeconds =
-        sanitizeDuration(
-            config_.reloadSeconds,
-            1.85f);
-
-    config_.adsInSeconds =
-        sanitizeDuration(
-            config_.adsInSeconds,
-            0.15f);
-
-    config_.adsOutSeconds =
-        sanitizeDuration(
-            config_.adsOutSeconds,
-            0.11f);
-
-    config_.minimumAdsAlphaToFire =
-        std::clamp(
-            std::isfinite(
-                config_.minimumAdsAlphaToFire)
-                ? config_.minimumAdsAlphaToFire
-                : 0.92f,
-            0.0f,
-            1.0f);
-
-    config_.triggerBufferSeconds =
-        sanitizeDuration(
-            config_.triggerBufferSeconds,
-            0.18f);
+void WeaponController::equip(
+    WeaponConfig config) noexcept {
+    config_ =
+        sanitizeConfig(
+            config);
 
     reset();
 }
