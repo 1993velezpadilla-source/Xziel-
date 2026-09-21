@@ -17,6 +17,9 @@ typedef struct {
     int restore_ok;
 
     unsigned int submit_stride;
+    float quality_scale;
+    unsigned int resource_proxy_max;
+    uint64_t quality_scale_updates;
 
     uint64_t submit_attempts;
     uint64_t submitted_frames;
@@ -81,6 +84,10 @@ void XzGles3Shadow_InitState(
 int XzGles3Shadow_Init(
     XzGles3ShadowState *state,
     unsigned int submit_stride);
+
+int XzGles3Shadow_SetQualityScale(
+    XzGles3ShadowState *state,
+    float scale);
 
 int XzGles3Shadow_Submit(
     XzGles3ShadowState *state,
