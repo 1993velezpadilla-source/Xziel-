@@ -380,7 +380,21 @@ jobs:
             exit 1
           fi
 
-          echo "Xziel remained alive; Phase 0-8 including generational GPU resources and command stream are live."
+          if grep -Eq "XZIEL-XZ.*phase2 caps.*allow\(gles3=1" dist/xziel-logcat.txt; then
+            if ! grep -Eq "XZIEL-XZ.*phase9 command_executor init=PASS submit=COMMAND_STREAM backend=GLES3 resources=1" dist/xziel-logcat.txt; then
+              echo "Xz Phase-9 command executor did not initialize."
+              grep -E "XZIEL-XZ.*phase9 command_executor" dist/xziel-logcat.txt | tail -n 100 || true
+              exit 1
+            fi
+
+            if ! grep -Eq "XZIEL-XZ.*rhi\(active=NULL shadow=1 submitted=[1-9][0-9]* cmdStreams=[1-9][0-9]* rejected=0 rejectedCmd=0 cmdHash=[0-9a-fA-F]{8}\).*g3cmd\(streams=[1-9][0-9]* commands=[1-9][0-9]* passes=[1-9][0-9]* reads=[1-9][0-9]* writes=[1-9][0-9]* draws=[1-9][0-9]* fail=0 hash=[0-9a-fA-F]{8}\)" dist/xziel-logcat.txt; then
+              echo "Xz Phase-9 did not execute live command streams through GLES3."
+              grep -E "XZIEL-XZ.*g3cmd\(" dist/xziel-logcat.txt | tail -n 100 || true
+              exit 1
+            fi
+          fi
+
+          echo "Xziel remained alive; Phase 0-9 command-stream-driven GLES3 execution is live."
 
       - name: Upload runtime diagnostics
         if: always()
