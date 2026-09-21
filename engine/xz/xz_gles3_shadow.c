@@ -653,12 +653,10 @@ static void XzDestroyPhysicalResource(
 
     if (resource->object != 0u) {
         if (resource->spec.kind ==
-            XZ_G3_RESOURCE_TEXTURE_2D) {
+                XZ_G3_RESOURCE_TEXTURE_2D ||
+            resource->spec.kind ==
+                XZ_G3_RESOURCE_DEPTH_TEXTURE) {
             xz_shadow.gl.DeleteTextures(
-                1, &resource->object);
-        } else if (resource->spec.kind ==
-                   XZ_G3_RESOURCE_DEPTH_RENDERBUFFER) {
-            xz_shadow.gl.DeleteRenderbuffers(
                 1, &resource->object);
         }
 
@@ -692,14 +690,9 @@ static int XzBindPhysicalResource(
 
     switch (resource->spec.kind) {
     case XZ_G3_RESOURCE_TEXTURE_2D:
+    case XZ_G3_RESOURCE_DEPTH_TEXTURE:
         xz_shadow.gl.BindTexture(
             GL_TEXTURE_2D,
-            resource->object);
-        break;
-
-    case XZ_G3_RESOURCE_DEPTH_RENDERBUFFER:
-        xz_shadow.gl.BindRenderbuffer(
-            GL_RENDERBUFFER,
             resource->object);
         break;
 
@@ -831,22 +824,48 @@ static int XzEnsurePhysicalResource(
             NULL);
     } else if (
         spec.kind ==
-        XZ_G3_RESOURCE_DEPTH_RENDERBUFFER) {
-        xz_shadow.gl.GenRenderbuffers(
-            1, &object);
+        XZ_G3_RESOURCE_DEPTH_TEXTURE) {
+        GLenum depth_type =
+            spec.logical_format ==
+                XZ_RG_FORMAT_DEPTH16
+                ? GL_UNSIGNED_SHORT
+                : GL_UNSIGNED_INT;
+
+        xz_shadow.gl.GenTextures(1, &object);
         if (!object) {
             state->physical_failures++;
             return 0;
         }
 
-        xz_shadow.gl.BindRenderbuffer(
-            GL_RENDERBUFFER, object);
-        xz_shadow.gl.RenderbufferStorage(
-            GL_RENDERBUFFER,
-            XzDepthInternalFormat(
+        xz_shadow.gl.BindTexture(
+            GL_TEXTURE_2D, object);
+        xz_shadow.gl.TexParameteri(
+            GL_TEXTURE_2D,
+            GL_TEXTURE_MIN_FILTER,
+            GL_NEAREST);
+        xz_shadow.gl.TexParameteri(
+            GL_TEXTURE_2D,
+            GL_TEXTURE_MAG_FILTER,
+            GL_NEAREST);
+        xz_shadow.gl.TexParameteri(
+            GL_TEXTURE_2D,
+            GL_TEXTURE_WRAP_S,
+            GL_CLAMP_TO_EDGE);
+        xz_shadow.gl.TexParameteri(
+            GL_TEXTURE_2D,
+            GL_TEXTURE_WRAP_T,
+            GL_CLAMP_TO_EDGE);
+        xz_shadow.gl.TexImage2D(
+            GL_TEXTURE_2D,
+            0,
+            (GLint)XzDepthInternalFormat(
                 spec.logical_format),
             (GLsizei)spec.physical_width,
-            (GLsizei)spec.physical_height);
+            (GLsizei)spec.physical_height,
+            0,
+            GL_DEPTH_COMPONENT,
+            depth_type,
+            NULL);
     } else if (
         spec.kind !=
         XZ_G3_RESOURCE_EXTERNAL_SURFACE) {
@@ -858,12 +877,10 @@ static int XzEnsurePhysicalResource(
     if (error != GL_NO_ERROR) {
         if (object != 0u) {
             if (spec.kind ==
-                XZ_G3_RESOURCE_TEXTURE_2D)
+                    XZ_G3_RESOURCE_TEXTURE_2D ||
+                spec.kind ==
+                    XZ_G3_RESOURCE_DEPTH_TEXTURE)
                 xz_shadow.gl.DeleteTextures(
-                    1, &object);
-            else if (spec.kind ==
-                     XZ_G3_RESOURCE_DEPTH_RENDERBUFFER)
-                xz_shadow.gl.DeleteRenderbuffers(
                     1, &object);
         }
 
@@ -983,7 +1000,7 @@ static int XzBindPassTarget(
         depth = XzPhysicalForHandle(target->depth);
         if (!depth ||
             depth->spec.kind !=
-                XZ_G3_RESOURCE_DEPTH_RENDERBUFFER) {
+                XZ_G3_RESOURCE_DEPTH_TEXTURE) {
             state->framebuffer_failures++;
             return 0;
         }
@@ -1017,11 +1034,12 @@ static int XzBindPassTarget(
         color ? color->object : 0u,
         0);
 
-    xz_shadow.gl.FramebufferRenderbuffer(
+    xz_shadow.gl.FramebufferTexture2D(
         GL_FRAMEBUFFER,
         GL_DEPTH_ATTACHMENT,
-        GL_RENDERBUFFER,
-        depth ? depth->object : 0u);
+        GL_TEXTURE_2D,
+        depth ? depth->object : 0u,
+        0);
 
     state->framebuffer_binds++;
     if (color)
