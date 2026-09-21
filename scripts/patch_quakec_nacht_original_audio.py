@@ -42,13 +42,13 @@ if 'mystery_hum.wav", 0.10' not in s:
 
 old = '''\t\t\t\tstring splash_tune = "sounds/rounds/splash.wav";
 \t\t\t\tsplash_tune = Gamemode_GetSplashTune(splash_tune);
-\t\t\t\tif ((mapname == "ndu_enchanted" || (mapname == "ndu" && cvar("xziel_nacht_enhanced") >= 0.5)) && xziel_waw_round1_ready)
+\t\t\t\tif ((mapname == "ndu_enchanted") && xziel_waw_round1_ready)
 \t\t\t\t\tsplash_tune = xziel_waw_round1_path;'''
 new = '''\t\t\t\tstring splash_tune = "sounds/rounds/splash.wav";
 \t\t\t\tsplash_tune = Gamemode_GetSplashTune(splash_tune);
 \t\t\t\tif (mapname == "ndu_enchanted")
 \t\t\t\t\tsplash_tune = "sounds/xziel/enchant/round_omen.wav";
-\t\t\t\tif ((mapname == "ndu_enchanted" || (mapname == "ndu" && cvar("xziel_nacht_enhanced") >= 0.5)) && xziel_waw_round1_ready)
+\t\t\t\tif ((mapname == "ndu_enchanted") && xziel_waw_round1_ready)
 \t\t\t\t\tsplash_tune = xziel_waw_round1_path;'''
 if 'splash_tune = "sounds/xziel/enchant/round_omen.wav";' not in s:
     if old not in s:
@@ -59,12 +59,12 @@ main.write_text(s, encoding="utf-8")
 damage = root / "source/server/damage.qc"
 s = damage.read_text(encoding="utf-8")
 old = '''\t\tstring endgame_tune = "sounds/music/end.wav";
-\t\tif ((mapname == "ndu_enchanted" || (mapname == "ndu" && cvar("xziel_nacht_enhanced") >= 0.5)) && xziel_waw_gameover_ready)
+\t\tif ((mapname == "ndu_enchanted") && xziel_waw_gameover_ready)
 \t\t\tendgame_tune = xziel_waw_gameover_path;'''
 new = '''\t\tstring endgame_tune = "sounds/music/end.wav";
 \t\tif (mapname == "ndu_enchanted")
 \t\t\tendgame_tune = "sounds/xziel/enchant/gameover_guitar.wav";
-\t\tif ((mapname == "ndu_enchanted" || (mapname == "ndu" && cvar("xziel_nacht_enhanced") >= 0.5)) && xziel_waw_gameover_ready)
+\t\tif ((mapname == "ndu_enchanted") && xziel_waw_gameover_ready)
 \t\t\tendgame_tune = xziel_waw_gameover_path;'''
 if 'endgame_tune = "sounds/xziel/enchant/gameover_guitar.wav";' not in s:
     if old not in s:
