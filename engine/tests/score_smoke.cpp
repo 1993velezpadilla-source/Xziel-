@@ -29,6 +29,29 @@ int main() {
     assert(frame.lastAward == 145U);
     assert(!frame.criticalAwardThisTick);
 
+    assert(
+        score.canAfford(250U));
+
+    assert(
+        score.spend(250U));
+
+    assert(
+        score.frame().total == 25U);
+
+    assert(
+        score.frame().lifetimeEarned ==
+        275U);
+
+    assert(
+        score.frame().lifetimeSpent ==
+        250U);
+
+    assert(
+        !score.spend(500U));
+
+    assert(
+        score.frame().total == 25U);
+
     score.reset();
     assert(score.frame().total == 0U);
 
