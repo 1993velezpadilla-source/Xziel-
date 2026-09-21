@@ -150,3 +150,34 @@ Result:
 - players receive a modest one-time reward such as an ammo refill or map-specific utility.
 
 No on-screen quest checklist. Environmental clues should carry the discovery.
+
+
+## Corpse discovery hint
+
+The mercy route gets one subtle assist so players understand that the corpse matters without turning the event into a checklist.
+
+Trigger conditions:
+- first time each player deliberately looks at a dead child;
+- player is within 4.5 m;
+- unobstructed line of sight;
+- crosshair/look direction remains on the corpse for at least 0.35 s;
+- only while RECONCILIATION is still possible;
+- shown once per player per match.
+
+Display time: 4.25 s.
+
+Spanish:
+> Antes que la madre lo halle, reúne sus tres reliquias en el altar.
+
+English:
+> Before the mother finds him, gather his three relics at the altar.
+
+Presentation:
+- one short centered/bottom-center line;
+- aged serif / old-church inscription treatment when the custom HUD skin is available;
+- warm faded parchment-white rather than bright quest yellow;
+- quick fade in and out;
+- no icon, waypoint, objective counter, item names, or quest log entry;
+- gameplay continues normally while it is visible.
+
+Language comes from the phone/OS language. Android passes `Locale.getDefault().getLanguage()` into the runtime cvar `xziel_language`. Unsupported languages fall back to English. The localization table lives at `config/llorona_localization.json`.
