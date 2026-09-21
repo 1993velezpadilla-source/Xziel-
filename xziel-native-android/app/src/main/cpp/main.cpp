@@ -521,6 +521,14 @@ xziel::android::VulkanHudState makeHudState(
             0.0f,
             1.0f);
 
+    hud.weaponMagazineRatio =
+        static_cast<float>(
+            state.weapon.frame().magazine) /
+        static_cast<float>(
+            std::max<std::uint32_t>(
+                state.weapon.config().magazineSize,
+                1U));
+
     return hud;
 }
 
