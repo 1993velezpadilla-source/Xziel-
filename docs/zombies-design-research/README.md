@@ -15,6 +15,7 @@ This is **design research, not an asset-ripping plan**. We study progression, pa
 - `bo6-bo7-launch-exact.md` — exact Liberty Falls, Terminus, Citadelle des Morts, The Tomb and Ashes of the Damned dependency chains.
 - `modern-exact-walkthroughs.md` — exact later BO6/BO7 quest orders, randomized-input rules, retries and boss logic.
 - `bo7-cursed-relic-catalog.md` — all 30 BO7 Cursed Relics by map/tier/effect/trial type, including the still-unsolved Wrestler's Belt and reusable modifier-system architecture.
+- `modern-side-easter-eggs.md` — exact modern BO6/BO7 optional content: minigames, companions, temporary transformations, traversal trials, wearables, high-round challenges, Survival and Rogue Run.
 - `map-side-content-index.md` — map-by-map index of optional systems, hidden rewards, minigames and replay mechanics.
 - `side-quest-mechanic-library.md` — reusable side-quest and minigame primitives extracted from successful maps.
 - `super-ee-meta-progression.md` — cross-map completion, persistent rewards, Director's Cut/Pact-style lessons and an original Xziel Super Quest model.
