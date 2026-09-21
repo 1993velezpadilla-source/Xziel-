@@ -34,7 +34,7 @@ jobs:
         run: |
           set -euxo pipefail
           sudo apt-get update
-          sudo apt-get install -y blender git-lfs python3-numpy
+          sudo apt-get install -y             blender             git-lfs             python3-numpy             libegl1             libgl1-mesa-dri             libglx-mesa0             mesa-utils             xvfb
           blender --version
           git lfs version
           blender --background --python-expr "import numpy; print('BLENDER_NUMPY', numpy.__version__)"
@@ -54,18 +54,13 @@ jobs:
 
       - name: Generate zombie in headless Blender
         shell: bash
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
         run: |
           set -euxo pipefail
           rm -rf dist/blender-zombie
           mkdir -p dist/blender-zombie/lods
-          blender --background \
-            --python tools/blender/build_zombie.py \
-            -- \
-            --base /tmp/makehuman/makehuman/data/3dobjs/base.obj \
-            --out dist/blender-zombie/zombie_lod0.glb \
-            --preview dist/blender-zombie/zombie_preview.png \
-            --manifest dist/blender-zombie/zombie_manifest.json \
-            --lod-dir dist/blender-zombie/lods
+          xvfb-run -a -s "-screen 0 1280x1024x24"             blender --background             --python tools/blender/build_zombie.py             --             --base /tmp/makehuman/makehuman/data/3dobjs/base.obj             --out dist/blender-zombie/zombie_lod0.glb             --preview dist/blender-zombie/zombie_preview.png             --manifest dist/blender-zombie/zombie_manifest.json             --lod-dir dist/blender-zombie/lods
 
       - name: Validate outputs
         shell: bash
