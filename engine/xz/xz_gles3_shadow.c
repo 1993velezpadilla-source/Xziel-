@@ -1,4 +1,5 @@
 #include "xz_gles3_shadow.h"
+#include "xz_gles3_resource_plan.h"
 
 #include <EGL/egl.h>
 #include <GLES3/gl3.h>
@@ -16,6 +17,7 @@
 #define XZ_SHADOW_HEIGHT 64
 #define XZ_VERTEX_FLOATS 3u
 #define XZ_VERTICES_PER_PACKET 3u
+#define XZ_G3_RESOURCE_PROXY_MAX 128u
 
 enum {
     XZ_G3_STAGE_NONE = 0u,
@@ -47,6 +49,18 @@ typedef void (*XzGlBufferDataFn)(
     GLenum, GLsizeiptr, const void *, GLenum);
 typedef void (*XzGlBufferSubDataFn)(
     GLenum, GLintptr, GLsizeiptr, const void *);
+typedef void (*XzGlGenTexturesFn)(GLsizei, GLuint *);
+typedef void (*XzGlDeleteTexturesFn)(GLsizei, const GLuint *);
+typedef void (*XzGlBindTextureFn)(GLenum, GLuint);
+typedef void (*XzGlTexParameteriFn)(GLenum, GLenum, GLint);
+typedef void (*XzGlTexImage2DFn)(
+    GLenum, GLint, GLint, GLsizei, GLsizei, GLint,
+    GLenum, GLenum, const void *);
+typedef void (*XzGlGenRenderbuffersFn)(GLsizei, GLuint *);
+typedef void (*XzGlDeleteRenderbuffersFn)(GLsizei, const GLuint *);
+typedef void (*XzGlBindRenderbufferFn)(GLenum, GLuint);
+typedef void (*XzGlRenderbufferStorageFn)(
+    GLenum, GLenum, GLsizei, GLsizei);
 typedef void (*XzGlGenVertexArraysFn)(GLsizei, GLuint *);
 typedef void (*XzGlDeleteVertexArraysFn)(GLsizei, const GLuint *);
 typedef void (*XzGlBindVertexArrayFn)(GLuint);
@@ -83,6 +97,17 @@ typedef struct {
     XzGlBufferDataFn BufferData;
     XzGlBufferSubDataFn BufferSubData;
 
+    XzGlGenTexturesFn GenTextures;
+    XzGlDeleteTexturesFn DeleteTextures;
+    XzGlBindTextureFn BindTexture;
+    XzGlTexParameteriFn TexParameteri;
+    XzGlTexImage2DFn TexImage2D;
+
+    XzGlGenRenderbuffersFn GenRenderbuffers;
+    XzGlDeleteRenderbuffersFn DeleteRenderbuffers;
+    XzGlBindRenderbufferFn BindRenderbuffer;
+    XzGlRenderbufferStorageFn RenderbufferStorage;
+
     XzGlGenVertexArraysFn GenVertexArrays;
     XzGlDeleteVertexArraysFn DeleteVertexArrays;
     XzGlBindVertexArrayFn BindVertexArray;
@@ -100,6 +125,13 @@ typedef struct {
 } XzNativeGles3Api;
 
 typedef struct {
+    XzGpuHandle handle;
+    XzGles3ResourceSpec spec;
+    GLuint object;
+    int alive;
+} XzGles3PhysicalResource;
+
+typedef struct {
     int ready;
 
     EGLDisplay display;
@@ -110,6 +142,9 @@ typedef struct {
     GLuint program;
     GLuint vbo;
     GLuint vao;
+
+    XzGles3PhysicalResource
+        physical[XZ_GPU_MAX_RESOURCES];
 
     XzNativeGles3Api gl;
 } XzGles3ShadowInternal;
@@ -163,6 +198,17 @@ static int XzLoadApi(XzNativeGles3Api *api)
     XZ_GL_LOAD(BindBuffer, "glBindBuffer");
     XZ_GL_LOAD(BufferData, "glBufferData");
     XZ_GL_LOAD(BufferSubData, "glBufferSubData");
+
+    XZ_GL_LOAD(GenTextures, "glGenTextures");
+    XZ_GL_LOAD(DeleteTextures, "glDeleteTextures");
+    XZ_GL_LOAD(BindTexture, "glBindTexture");
+    XZ_GL_LOAD(TexParameteri, "glTexParameteri");
+    XZ_GL_LOAD(TexImage2D, "glTexImage2D");
+
+    XZ_GL_LOAD(GenRenderbuffers, "glGenRenderbuffers");
+    XZ_GL_LOAD(DeleteRenderbuffers, "glDeleteRenderbuffers");
+    XZ_GL_LOAD(BindRenderbuffer, "glBindRenderbuffer");
+    XZ_GL_LOAD(RenderbufferStorage, "glRenderbufferStorage");
 
     XZ_GL_LOAD(GenVertexArrays, "glGenVertexArrays");
     XZ_GL_LOAD(DeleteVertexArrays, "glDeleteVertexArrays");
