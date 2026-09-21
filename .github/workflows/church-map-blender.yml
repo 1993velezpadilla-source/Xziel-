@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - feature/ashen-vespers-map-roadmap
     paths:
       - ".github/workflows/church-map-blender.yml"
       - "tools/church_map/**"
@@ -142,12 +143,16 @@ jobs:
           assert "clock_chamber" in p["zones"]
           assert "ringing_chamber" in p["zones"]
           assert "tower_stairs" in p["zones"]
+          assert p["signature_horror_event"]["id"] == "event_penitent_nun"
+          assert len(p["penitent_anchors"]) >= 10, len(p["penitent_anchors"])
+          assert p["signature_horror_event"]["spatialAudio"]["placeholder"]["license"] == "CC0"
           print("SOURCE_TRIANGLES", r["source_triangles"])
           print("MOBILE_LOD0_TRIANGLES", r["mobile_lod0_triangles"])
           print("MESHES", r["source_meshes"])
           print("BOUNDS", r["bounds_size"])
           print("GAMEPLAY_ZONES", sorted(p["zones"]))
           print("INTERACTIVES", len(p["interactives"]))
+          print("PENITENT_ANCHORS", len(p["penitent_anchors"]))
           PY
 
       - name: Upload church map build
