@@ -148,6 +148,16 @@ jobs:
             -o /tmp/xz_stream_residency_test
           /tmp/xz_stream_residency_test
 
+      - name: Test Xz Cutover
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_cutover_test.c \
+            engine/xz/xz_cutover.c \
+            -o /tmp/xz_cutover_test
+          /tmp/xz_cutover_test
+
       - name: Test Xz RHI
         shell: bash
         run: |
@@ -629,7 +639,25 @@ jobs:
             fi
           fi
 
-          echo "Xziel remained alive; Phase 0-15 active scaling and asset residency are live."
+          if ! grep -Eq "XZIEL-XZ.*phase16 cutover selftest=PASS requested=MODERN safety=STRICT geometry=PROXY textures=METADATA visible=GL4ES" dist/xziel-logcat.txt; then
+            echo "Xz Phase-16 cutover parity controller did not initialize."
+            grep -E "XZIEL-XZ.*phase16 cutover" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*phase16 heartbeat requested=MODERN active=MIRROR candidate=1 allowed=0 caps=0x1f blockers=0xe0 eval=[1-9][0-9]* blocked=[1-9][0-9]* legacyVisible=1" dist/xziel-logcat.txt; then
+            echo "Xz Phase-16 did not enforce the expected content-parity cutover block."
+            grep -E "XZIEL-XZ.*phase16 heartbeat" dist/xziel-logcat.txt | tail -n 120 || true
+            exit 1
+          fi
+
+          if grep -Eq "XZIEL-XZ.*phase16 heartbeat .*active=MODERN" dist/xziel-logcat.txt; then
+            echo "Xz Phase-16 performed an unsafe visible modern cutover before content parity."
+            grep -E "XZIEL-XZ.*phase16 heartbeat" dist/xziel-logcat.txt | tail -n 120 || true
+            exit 1
+          fi
+
+          echo "Xziel remained alive; Phase 0-16 cutover parity gate is live and unsafe modern takeover remains blocked."
 
       - name: Upload runtime diagnostics
         if: always()
