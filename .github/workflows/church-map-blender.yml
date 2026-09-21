@@ -8,6 +8,7 @@ on:
     paths:
       - ".github/workflows/church-map-blender.yml"
       - "tools/church_map/**"
+      - "docs/SANCTUM_OF_ASH_MAP_BIBLE.md"
 
 permissions:
   contents: read
@@ -20,7 +21,7 @@ jobs:
   build-church-map:
     name: Fetch CC-BY church + Blender headless conversion
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
 
     steps:
       - name: Checkout Xziel
@@ -96,7 +97,21 @@ jobs:
             2>&1 | tee church/out/blender-build.log
           cp church/source/source_metadata.json church/out/
           cp church/source/ATTRIBUTION.txt church/out/
+          cp docs/SANCTUM_OF_ASH_MAP_BIBLE.md church/out/
           ls -lh church/out
+
+      - name: Author Zombies gameplay blockout from real scan zones
+        shell: bash
+        env:
+          CHURCH_MASTER: church/out/church_map_master.blend
+          CHURCH_OUT: church/out
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          xvfb-run -a -s "-screen 0 1600x1000x24" \
+            blender --background \
+            --python tools/church_map/design_zombies_gameplay.py \
+            2>&1 | tee church/out/zombies-gameplay-build.log
 
       - name: Validate outputs
         shell: bash
@@ -109,21 +124,36 @@ jobs:
           test -s church/out/exterior_opposite.png
           test -s church/out/top_layout.png
           test -s church/out/entry_axis.png
+          test -s church/out/church_zombies_gameplay_v1.blend
+          test -s church/out/zombies_map_plan.json
+          test -s church/out/zombies_gameplay_top.png
+          test -s church/out/zombies_gameplay_iso.png
+          test -s church/out/zombies_tower_quest.png
+          test -s church/out/SANCTUM_OF_ASH_MAP_BIBLE.md
           python3 - <<'PY'
           import json
           r=json.load(open("church/out/church_scene_report.json", encoding="utf-8"))
+          p=json.load(open("church/out/zombies_map_plan.json", encoding="utf-8"))
           assert r["source_triangles"] > 100000, r
           assert r["mobile_lod0_triangles"] > 10000, r
+          assert p["working_title"] == "SANCTUM OF ASH"
+          assert len(p["interactives"]) >= 30, len(p["interactives"])
+          assert "boiler" in p["zones"]
+          assert "clock_chamber" in p["zones"]
+          assert "ringing_chamber" in p["zones"]
+          assert "tower_stairs" in p["zones"]
           print("SOURCE_TRIANGLES", r["source_triangles"])
           print("MOBILE_LOD0_TRIANGLES", r["mobile_lod0_triangles"])
           print("MESHES", r["source_meshes"])
           print("BOUNDS", r["bounds_size"])
+          print("GAMEPLAY_ZONES", sorted(p["zones"]))
+          print("INTERACTIVES", len(p["interactives"]))
           PY
 
       - name: Upload church map build
         uses: actions/upload-artifact@v4
         with:
-          name: Xziel-St-Giles-Church-Map-Blender
+          name: Xziel-Sanctum-of-Ash-Gameplay-Blockout
           path: church/out/
           if-no-files-found: error
           retention-days: 14
