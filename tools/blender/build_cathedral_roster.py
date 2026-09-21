@@ -358,9 +358,9 @@ def preview(body,folder,style):
 def collect_character_objects():
     return [o for o in bpy.context.scene.objects if o.type in {"MESH","ARMATURE","CURVE","EMPTY"} and not o.name.startswith(("Camera","Key","Rim","Fill","PreviewGround"))]
 
-def make_character(ch,assets_root,outroot,HumanService,ObjectService):
+def make_character(ch,assets_root,outroot,HumanService,ObjectService,TargetService):
     clean_scene()
-    macro=HumanService.get_default_macro_info_dict() if hasattr(HumanService,"get_default_macro_info_dict") else {}
+    macro=TargetService.get_default_macro_info_dict()
     for k in ("gender","age","weight","muscle"):
         if k in macro: macro[k]=float(ch.get(k,macro[k]))
     body=HumanService.create_human(mask_helpers=True,detailed_helpers=False,extra_vertex_groups=True,feet_on_ground=True,scale=.1,macro_detail_dict=macro)
