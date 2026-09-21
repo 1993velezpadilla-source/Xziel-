@@ -30,6 +30,7 @@ struct VulkanHudState {
     bool moveActive = false;
     bool fire = false;
     bool aim = false;
+    bool reload = false;
     bool jump = false;
     bool stance = false;
     bool gyroAvailable = false;
