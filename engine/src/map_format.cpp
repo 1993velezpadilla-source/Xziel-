@@ -76,7 +76,7 @@ bool parseMapText(
 
         const auto first =
             line.find_first_not_of(
-                " 	");
+                " \\t\\r");
 
         if (first == std::string::npos ||
             line[first] == '#') {
