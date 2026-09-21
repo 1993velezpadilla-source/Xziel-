@@ -2293,13 +2293,14 @@ bool VulkanClearRenderer::createReflectionTarget(
 
     }
 
-    // Do not expose the descriptor until the target has completed at least
-    // one reflection render pass. The image starts UNDEFINED and only the
-    // reflection pass transitions it to SHADER_READ_ONLY_OPTIMAL. Binding it
-    // earlier would make the descriptor's declared layout disagree with the
-    // image's actual layout on the first frame.
+    // A newly allocated target starts UNDEFINED. Keep it unavailable until
+    // its first capture pass performs the transition to shader-read layout.
+    // The persistent descriptor allocation itself survives target churn.
     reflectionHasValidContents_ = false;
 
+    // Repoint the persistent descriptor at the newly allocated target. This
+    // update is performed while draw submission is idle during target churn;
+    // recordDrawCommand still refuses to sample it until valid contents exist.
     VkDescriptorImageInfo imageInfo{};
     imageInfo.sampler = reflectionSampler_;
     imageInfo.imageView = reflectionColorView_;
