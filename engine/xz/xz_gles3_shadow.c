@@ -778,7 +778,9 @@ static int XzEnsurePhysicalResource(
 
     if (!XzGles3ResourcePlan_Build(
             desc,
-            XZ_G3_RESOURCE_PROXY_MAX,
+            state->resource_proxy_max > 0u
+                ? state->resource_proxy_max
+                : XZ_G3_RESOURCE_PROXY_MAX,
             &spec)) {
         state->physical_failures++;
         return 0;
@@ -1159,6 +1161,42 @@ void XzGles3Shadow_InitState(
 
     memset(state, 0, sizeof(*state));
     state->restore_ok = 1;
+    state->quality_scale = 1.0f;
+    state->resource_proxy_max =
+        XZ_G3_RESOURCE_PROXY_MAX;
+}
+
+int XzGles3Shadow_SetQualityScale(
+    XzGles3ShadowState *state,
+    float scale)
+{
+    unsigned int proxy;
+
+    if (!state)
+        return 0;
+
+    if (scale < 0.50f)
+        scale = 0.50f;
+    if (scale > 1.0f)
+        scale = 1.0f;
+
+    proxy = (unsigned int)(
+        (float)XZ_G3_RESOURCE_PROXY_MAX *
+        scale + 0.5f);
+
+    if (proxy < 64u)
+        proxy = 64u;
+    if (proxy > XZ_G3_RESOURCE_PROXY_MAX)
+        proxy = XZ_G3_RESOURCE_PROXY_MAX;
+
+    if (state->quality_scale == scale &&
+        state->resource_proxy_max == proxy)
+        return 0;
+
+    state->quality_scale = scale;
+    state->resource_proxy_max = proxy;
+    state->quality_scale_updates++;
+    return 1;
 }
 
 int XzGles3Shadow_Init(
