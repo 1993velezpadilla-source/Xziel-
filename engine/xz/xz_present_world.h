@@ -35,6 +35,12 @@ typedef struct {
     uint64_t generation;
     int source_frame;
     float camera_origin[3];
+    float camera_forward[3];
+    float camera_right[3];
+    float camera_up[3];
+    float fov_x;
+    float fov_y;
+    int camera_basis_valid;
 
     XzPresentEntity entities[XZ_PRESENT_MAX_ENTITIES];
     unsigned int entity_count;
@@ -57,6 +63,12 @@ void XzPresentWorld_Begin(
     int source_frame,
     const float camera_origin[3]);
 int XzPresentWorld_Push(const XzPresentEntity *entity);
+void XzPresentWorld_SetCameraBasis(
+    const float forward[3],
+    const float right[3],
+    const float up[3],
+    float fov_x,
+    float fov_y);
 void XzPresentWorld_SetStaticBrushCount(unsigned int count);
 void XzPresentWorld_SetActiveLightCount(unsigned int count);
 void XzPresentWorld_Commit(void);
