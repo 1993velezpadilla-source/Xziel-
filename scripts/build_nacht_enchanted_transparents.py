@@ -21,14 +21,15 @@ out = root / "textures/nacht_enhanced"
 out.mkdir(parents=True, exist_ok=True)
 
 entries = [
-    ("source/textures/wad/Ju[s]tice_null2/{railling_ndu.png", "{RAILLING_NDU.png"),
-    ("source/textures/wad/Ju[s]tice_null2/{board_fe.png", "{BOARD_FE.png"),
-    ("source/textures/wad/Ju[s]tice_null2/{barbed_wire_V.png", "{BARBED_WIRE_V.png"),
-    ("source/textures/wad/Ju[s]tice_null2/{metal_rail7.png", "{METAL_RAIL7.png"),
-    ("source/textures/wad/Ju[s]tice_null2/{camo_2.png", "{CAMO_2.png"),
+    ("source/textures/wad/Ju[s]tice_null2/{railling_ndu.png", ["{railling_ndu.png", "{RAILLING_NDU.png"]),
+    ("source/textures/wad/Ju[s]tice_null2/{board_fe.png", ["{board_fe.png", "{BOARD_FE.png"]),
+    ("source/textures/wad/Ju[s]tice_null2/{barbed_wire_V.png", ["{barbed_wire_v.png", "{BARBED_WIRE_V.png"]),
+    ("source/textures/wad/Ju[s]tice_null2/{metal_rail7.png", ["{metal_rail7.png", "{METAL_RAIL7.png"]),
+    ("source/textures/wad/Ju[s]tice_null2/{camo_2.png", ["{camo_2.png", "{CAMO_2.png"]),
+    ("source/textures/wad/Ju[s]tice_null2/{clfND.png", ["{clfnd.png", "{CLFND.png"]),
 ]
 
-for rel, name in entries:
+for rel, names in entries:
     src = source / rel
     if not src.is_file():
         raise SystemExit(f"missing transparent source texture: {src}")
@@ -50,8 +51,9 @@ for rel, name in entries:
     rgb = rgb.filter(ImageFilter.UnsharpMask(radius=1.0, percent=140, threshold=3))
     result = rgb.convert("RGBA")
     result.putalpha(alpha)
-    dst = out / name
-    result.save(dst, optimize=True)
-    print(f"{rel} -> {dst.name} {result.size}")
+    for name in names:
+        dst = out / name
+        result.save(dst, optimize=True)
+        print(f"{rel} -> {dst.name} {result.size}")
 
-print("Built alpha-safe Enchanted railing, barricade, wire and camo overrides.")
+print("Built case-safe alpha Enchanted railing, barricade, wire, camo and fence overrides.")

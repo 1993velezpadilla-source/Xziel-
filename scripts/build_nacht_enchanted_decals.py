@@ -71,11 +71,13 @@ def sigil(seed, variant):
     return Image.alpha_composite(blur, layer)
 
 names = [
-    ("{CHK_ASCEND", 0xA51CE, 0),
-    ("{CHK_SALVAT", 0x5A1A47, 1),
-    ("{CHK_BOX", 0xB0B0B0, 2),
+    (["{chk_ascend", "{CHK_ASCEND"], 0xA51CE, 0),
+    (["{chk_salvat", "{CHK_SALVAT"], 0x5A1A47, 1),
+    (["{chk_box", "{CHK_BOX"], 0xB0B0B0, 2),
 ]
-for name, seed, variant in names:
-    path = out / f"{name}.png"
-    sigil(seed, variant).save(path)
-    print(f"generated {path.name} {path.stat().st_size} bytes")
+for aliases, seed, variant in names:
+    image = sigil(seed, variant)
+    for name in aliases:
+        path = out / f"{name}.png"
+        image.save(path)
+        print(f"generated {path.name} {path.stat().st_size} bytes")

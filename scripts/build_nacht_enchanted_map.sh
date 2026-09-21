@@ -122,7 +122,10 @@ chmod +x "$TOOLS/vhlt/"*
 
 (
   cd "$MAP_SRC"
-  "$TOOLS/vhlt/hlcsg" -threads 8 -wadautodetect ndu_enchanted.map
+  "$TOOLS/vhlt/hlcsg" -threads 8 -wadautodetect \
+    -wadinclude 'Ju[s]tice_null2.wad' \
+    -wadinclude chalk_drawings.wad \
+    ndu_enchanted.map
   "$TOOLS/vhlt/hlbsp" -threads 8 ndu_enchanted.map
   "$TOOLS/vhlt/hlvis" -threads 8 -maxdistance 750 ndu_enchanted.bsp
   "$TOOLS/vhlt/hlrad" -threads 8 -extra ndu_enchanted.bsp

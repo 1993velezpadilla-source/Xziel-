@@ -51,7 +51,25 @@ new = '''\t\t\t\ttexture_mode = GL_LINEAR_MIPMAP_NEAREST;
 \t\t\t\ttexture_mode = GL_LINEAR;
 
 \t\t\t  \tif (tx->gl_texturenum < 0) {
-\t\t\t\t\tdata = WAD3_LoadTexture(mt);
+\t\t\t\t\tdata = WAD3_LoadTexture(mt);\n\n\t\t\t\t\t// Never hand GL_Upload32 a NULL source. A malformed/portable
+\t\t\t\t\t// package may be missing a WAD or external texture; keep the
+\t\t\t\t\t// renderer alive with a bounded diagnostic checker instead.
+\t\t\t\t\tif (data == NULL) {
+\t\t\t\t\t\tint fallback_pixels = tx->width * tx->height;
+\t\t\t\t\t\tdata = malloc(fallback_pixels * 4);
+\t\t\t\t\t\tif (data == NULL)
+\t\t\t\t\t\t\tSys_Error("Missing texture %s and fallback allocation failed\\n", mt->name);
+\n\t\t\t\t\t\tfor (int p = 0; p < fallback_pixels; ++p) {
+\t\t\t\t\t\t\tint x = p % tx->width;
+\t\t\t\t\t\t\tint y = p / tx->width;
+\t\t\t\t\t\t\tbyte c = (((x >> 3) ^ (y >> 3)) & 1) ? 92 : 36;
+\t\t\t\t\t\t\tdata[p * 4 + 0] = c;
+\t\t\t\t\t\t\tdata[p * 4 + 1] = 8;
+\t\t\t\t\t\t\tdata[p * 4 + 2] = c;
+\t\t\t\t\t\t\tdata[p * 4 + 3] = 255;
+\t\t\t\t\t\t}
+\t\t\t\t\t\tCon_Printf("Xziel: missing texture %s; using safe fallback\\n", mt->name);
+\t\t\t\t\t}
 '''
 
 if 'textures/nacht_enhanced/%s' not in s:

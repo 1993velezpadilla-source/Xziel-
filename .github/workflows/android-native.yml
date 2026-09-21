@@ -146,8 +146,39 @@ jobs:
           test -s 'build/nzp-data/nzp/textures/nacht_enhanced/{RAILLING_NDU.png'
           test -s 'build/nzp-data/nzp/textures/nacht_enhanced/{BOARD_FE.png'
           test -s 'build/nzp-data/nzp/textures/nacht_enhanced/{BARBED_WIRE_V.png'
+          test -s 'build/nzp-data/nzp/textures/nacht_enhanced/{railling_ndu.png'
+          test -s 'build/nzp-data/nzp/textures/nacht_enhanced/{board_fe.png'
+          test -s 'build/nzp-data/nzp/textures/nacht_enhanced/{barbed_wire_v.png'
+          test -s 'build/nzp-data/nzp/textures/nacht_enhanced/{metal_rail7.png'
+          test -s 'build/nzp-data/nzp/textures/nacht_enhanced/{camo_2.png'
+          test -s 'build/nzp-data/nzp/textures/nacht_enhanced/{clfnd.png'
           test -s build/nzp-data/nzp/maps/ndu_enchanted.bsp
           test -s build/nzp-data/nzp/maps/ndu_enchanted.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          import struct
+
+          path = Path("build/nzp-data/nzp/maps/ndu_enchanted.bsp")
+          data = path.read_bytes()
+          version = struct.unpack_from("<i", data, 0)[0]
+          if version != 30:
+              raise SystemExit(f"unexpected BSP version {version}")
+          tex_off, tex_len = struct.unpack_from("<ii", data, 4 + 2 * 8)
+          lump = data[tex_off:tex_off + tex_len]
+          count = struct.unpack_from("<i", lump, 0)[0]
+          table = struct.unpack_from("<" + "i" * count, lump, 4)
+          missing = []
+          for entry_off in table:
+              if entry_off < 0:
+                  continue
+              name = lump[entry_off:entry_off + 16].split(b"\\0", 1)[0].decode("latin1")
+              width, height, mip0 = struct.unpack_from("<III", lump, entry_off + 16)
+              if mip0 == 0:
+                  missing.append(f"{name}({width}x{height})")
+          if missing:
+              raise SystemExit("ndu_enchanted has unembedded WAD textures: " + ", ".join(missing))
+          print(f"verified {count} BSP texture slots with embedded fallback pixels")
+          PY
           test -s build/nzp-data/nzp/gfx/env/xziel_enchantbk.tga
           test -s build/nzp-data/nzp/gfx/env/xziel_enchantft.tga
           test -s build/nzp-data/nzp/gfx/env/xziel_enchantup.tga
@@ -166,6 +197,8 @@ jobs:
           test -s build/nzp-data/nzp/sounds/xziel/enchant/gameover_guitar.wav
           test -s 'build/nzp-data/nzp/textures/nacht_enhanced/{CHK_ASCEND.png'
           test -s 'build/nzp-data/nzp/textures/nacht_enhanced/{CHK_SALVAT.png'
+          test -s 'build/nzp-data/nzp/textures/nacht_enhanced/{chk_ascend.png'
+          test -s 'build/nzp-data/nzp/textures/nacht_enhanced/{chk_salvat.png'
           grep -q 'Mystery Box: cold violet supernatural pool' build/deps/quakec/source/client/main.qc
           grep -q 'sounds/xziel/enchant/round_omen.wav' build/deps/quakec/source/server/main.qc
           grep -q 'sounds/xziel/enchant/gameover_guitar.wav' build/deps/quakec/source/server/damage.qc
@@ -206,6 +239,9 @@ jobs:
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/sounds/xziel/enchant/gameover_guitar.wav'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/textures/nacht_enhanced/{CHK_ASCEND.png'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/textures/nacht_enhanced/{CHK_SALVAT.png'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/textures/nacht_enhanced/{barbed_wire_v.png'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/textures/nacht_enhanced/{clfnd.png'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/textures/nacht_enhanced/{chk_ascend.png'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/licenses/NACHT-ENHANCED-CC0-SOURCES.txt'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/licenses/XZIEL-WAW-REFERENCE-AUDIO.txt'
 
