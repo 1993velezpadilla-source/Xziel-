@@ -57,6 +57,15 @@ struct VulkanSceneState {
     float decapDirectionZ = 1.0f;
 
     float decapAlpha = 0.0f;
+
+    float interactionX = 0.0f;
+    float interactionY = 0.0f;
+    float interactionZ = 0.0f;
+
+    bool interactionVisible = false;
+    bool interactionActive = false;
+
+    float doorOpenAlpha = 0.0f;
 };
 
 struct VulkanEnvironmentState {
@@ -91,6 +100,10 @@ struct VulkanHudState {
     bool interactAvailable = false;
     bool interactHeld = false;
     float interactProgress = 0.0f;
+
+    std::uint32_t interactionCost = 0;
+    bool interactionAffordable = true;
+    float interactionDeniedAlpha = 0.0f;
 
     float hitMarkerAlpha = 0.0f;
     float criticalHitAlpha = 0.0f;
