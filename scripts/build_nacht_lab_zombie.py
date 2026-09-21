@@ -231,6 +231,7 @@ mesh_records = []
 vertex_base = 0
 all_uv = []
 all_indices = []
+all_dominant_joint_names: list[str] = []
 for node_index, node in enumerate(nodes):
     if "mesh" not in node or node.get("skin") != 0:
         continue
@@ -248,12 +249,24 @@ for node_index, node in enumerate(nodes):
         mesh_records.append((node_index, pos, nrm, jnt, wgt))
         all_uv.append(uv)
         all_indices.append(idx.reshape(-1, 3) + vertex_base)
+
+        # Keep the dominant skeleton joint for each rendered vertex. We later
+        # use this to bake real no-head/no-arm mesh variants while retaining
+        # NZ:P's proven invisible damage entities and gameplay rules.
+        dominant_slots = np.argmax(wgt, axis=1)
+        for vi, slot in enumerate(dominant_slots):
+            skin_joint = int(jnt[vi, int(slot)])
+            node_id = int(joints[skin_joint])
+            all_dominant_joint_names.append(nodes[node_id].get("name", ""))
+
         vertex_base += len(pos)
 
 uvs = np.concatenate(all_uv, axis=0)
 triangles = np.concatenate(all_indices, axis=0)
 numverts = len(uvs)
 numtris = len(triangles)
+if len(all_dominant_joint_names) != numverts:
+    raise SystemExit("Dominant-joint table does not match Lab zombie vertex count")
 if numverts > 8192 or numtris > 8192:
     raise SystemExit(f"Lab zombie exceeds Android alias budget: {numverts} verts / {numtris} tris")
 
@@ -287,21 +300,25 @@ def bake_pose(anim_name: str, t: float) -> tuple[np.ndarray, np.ndarray]:
     return np.concatenate(out_pos), np.concatenate(out_nrm)
 
 
-# glTF Y-up -> Quake Z-up. Quaternius humanoids face -Z, so -Z becomes +X.
-AXIS = np.array([[0.0, 0.0, -1.0],
-                 [-1.0, 0.0, 0.0],
+# glTF is Y-up and conventionally faces +Z. Map +Z to Quake +X
+# (forward), +X to Quake +Y (left), and +Y to Quake +Z (up).
+# The previous -Z mapping mirrored the character 180 degrees, which is why
+# some Lab zombies visibly walked toward the player while looking backward.
+AXIS = np.array([[0.0, 0.0, 1.0],
+                 [1.0, 0.0, 0.0],
                  [0.0, 1.0, 0.0]], dtype=np.float64)
 MODEL_SCALE = 52.0
-# Keep stock NZ:P standing height, but pull the exaggerated low-poly silhouette
-# inward in the horizontal plane. This improves visual proportion without
-# changing feet/head height or the authoritative movement hull.
-MODEL_HORIZONTAL_SCALE = 0.86
+# Preserve NZ:P's standing height but tighten the cartoon-wide source mesh.
+# Forward depth and shoulder width are tuned separately so the presentation
+# tracks the legacy damage proxies without changing the movement hull.
+MODEL_FORWARD_SCALE = 0.78
+MODEL_LATERAL_SCALE = 0.60
 
 
 def convert_axes(pos: np.ndarray, normals: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     p = (pos @ AXIS.T) * MODEL_SCALE
-    p[:, 0] *= MODEL_HORIZONTAL_SCALE
-    p[:, 1] *= MODEL_HORIZONTAL_SCALE
+    p[:, 0] *= MODEL_FORWARD_SCALE
+    p[:, 1] *= MODEL_LATERAL_SCALE
     n = normals @ AXIS.T
     lengths = np.linalg.norm(n, axis=1)
     lengths[lengths < 1e-12] = 1.0
@@ -360,6 +377,49 @@ z_offset = -32.0 - idle_min_z
 for p in frames_pos:
     p[:, 2] += z_offset
 
+# Classify the animated surface into removable anatomical regions. The source
+# skeleton names are preferred; a conservative rest-pose fallback catches
+# clothing/skin vertices weighted mostly to torso joints at the seams.
+def joint_part(name: str) -> str:
+    raw = name.lower()
+    compact = re.sub(r"[^a-z0-9]", "", raw)
+    if "head" in compact or "neck" in compact:
+        return "head"
+
+    armish = any(token in compact for token in ("arm", "forearm", "hand", "shoulder"))
+    if armish:
+        if "left" in compact or compact.endswith(("l", "01l", "02l")):
+            return "larm"
+        if "right" in compact or compact.endswith(("r", "01r", "02r")):
+            return "rarm"
+    return "body"
+
+
+vertex_parts = np.asarray([joint_part(name) for name in all_dominant_joint_names], dtype=object)
+rest = frames_pos[0]
+body_mask = vertex_parts == "body"
+
+# Head fallback: upper central portion of the standing character.
+head_fallback = body_mask & (rest[:, 2] > 14.0) & (np.abs(rest[:, 1]) < 17.0)
+vertex_parts[head_fallback] = "head"
+
+# Arm fallback: lateral upper/mid-body geometry. With the corrected axis map,
+# anatomical left is +Y and anatomical right is -Y in Quake coordinates.
+body_mask = vertex_parts == "body"
+left_fallback = body_mask & (rest[:, 1] > 8.0) & (rest[:, 2] > -13.0) & (rest[:, 2] < 24.0)
+vertex_parts[left_fallback] = "larm"
+body_mask = vertex_parts == "body"
+right_fallback = body_mask & (rest[:, 1] < -8.0) & (rest[:, 2] > -13.0) & (rest[:, 2] < 24.0)
+vertex_parts[right_fallback] = "rarm"
+
+triangle_parts: list[str] = []
+for tri in triangles:
+    labels = [str(vertex_parts[int(v)]) for v in tri]
+    counts = {part: labels.count(part) for part in ("head", "larm", "rarm")}
+    part = max(counts, key=counts.get)
+    triangle_parts.append(part if counts[part] >= 2 else "body")
+triangle_parts_np = np.asarray(triangle_parts, dtype=object)
+
 # Parse Quake's canonical 162 normal directions and map each baked vertex.
 norm_text = anorms_path.read_text(encoding="utf-8")
 normal_rows = re.findall(
@@ -388,7 +448,9 @@ scale = (maxs - mins) / 255.0
 scale[scale < 1e-7] = 1.0
 origin = mins
 
-# Extract the embedded atlas and use its dimensions for MDL UV scaling.
+# Extract the embedded atlas. The original Quaternius material is intentionally
+# low-poly/stylized, so build four higher-resolution horror treatments instead
+# of stretching the same flat 512px look over every zombie.
 image = doc["images"][0]
 if "bufferView" not in image:
     raise SystemExit("Zombie atlas must be embedded in the glTF")
@@ -396,70 +458,197 @@ bv = doc["bufferViews"][image["bufferView"]]
 raw = buffers[bv.get("buffer", 0)]
 bo = bv.get("byteOffset", 0)
 atlas_bytes = raw[bo:bo + bv["byteLength"]]
-atlas = Image.open(io.BytesIO(atlas_bytes)).convert("RGBA")
-external_skinw, external_skinh = atlas.size
-if external_skinw <= 0 or external_skinh <= 0 or external_skinw > 4096 or external_skinh > 4096:
-    raise SystemExit(f"Unexpected zombie atlas size: {atlas.size}")
+source_atlas = Image.open(io.BytesIO(atlas_bytes)).convert("RGBA")
+source_skinw, source_skinh = source_atlas.size
+if source_skinw <= 0 or source_skinh <= 0 or source_skinw > 4096 or source_skinh > 4096:
+    raise SystemExit(f"Unexpected zombie atlas size: {source_atlas.size}")
+
+external_skinw = min(1024, source_skinw * 2)
+external_skinh = min(1024, source_skinh * 2)
 
 # Quake MDL's legacy loader caps the embedded skin height at 480. The embedded
-# indexed skin is only a crash-safe fallback; Vril renders the external TGA.
-# Preserve UV normalization by scaling the MDL skin dimensions proportionally.
+# indexed skins are crash-safe fallbacks; Vril renders the external TGAs.
 fallback_scale = min(1.0, 480.0 / max(external_skinw, external_skinh))
 skinw = max(16, int(round(external_skinw * fallback_scale / 4.0)) * 4)
 skinh = max(16, int(round(external_skinh * fallback_scale / 4.0)) * 4)
 skinw = min(skinw, 480)
 skinh = min(skinh, 480)
+SKIN_COUNT = 4
 
 out_dir = root / "models" / "xziel_lab"
 out_dir.mkdir(parents=True, exist_ok=True)
-mdl_path = out_dir / "zombie_basic.mdl"
-tga_path = out_dir / "zombie_basic.mdl_0.tga"
-atlas.save(tga_path, format="TGA", rle=True)
 
-boundingradius = float(np.max(np.linalg.norm(stack - np.array([0.0, 0.0, 0.0]), axis=1)))
-header = struct.pack(
-    "<4si3f3ff3f8if",
-    b"IDPO", 6,
-    *[float(v) for v in scale],
-    *[float(v) for v in origin],
-    boundingradius,
-    0.0, 0.0, 0.0,
-    1, skinw, skinh, numverts, numtris, 211, 0, 0,
-    0.0,
+
+def make_horror_skin(source: Image.Image, variant: int) -> Image.Image:
+    im = source.resize((external_skinw, external_skinh), Image.Resampling.LANCZOS)
+    arr = np.asarray(im).astype(np.float32)
+    rgb = arr[:, :, :3]
+    alpha = arr[:, :, 3:4]
+
+    gray = (
+        rgb[:, :, 0] * 0.299
+        + rgb[:, :, 1] * 0.587
+        + rgb[:, :, 2] * 0.114
+    )
+    saturations = (0.58, 0.46, 0.54, 0.40)
+    saturation = saturations[variant]
+    rgb = gray[:, :, None] * (1.0 - saturation) + rgb * saturation
+
+    # Four corpse palettes: sickly, ashen, bruised, and decayed. Keep values
+    # lifted enough to read under Nacht's dark lighting.
+    tints = (
+        (0.88, 1.00, 0.76),
+        (0.86, 0.91, 0.88),
+        (0.96, 0.79, 0.77),
+        (0.76, 0.88, 0.71),
+    )
+    rgb *= np.asarray(tints[variant], dtype=np.float32)[None, None, :]
+
+    rng = np.random.default_rng(7319 + variant * 101)
+    noise = rng.normal(0.0, 5.5, (external_skinh, external_skinw, 1)).astype(np.float32)
+    rgb += noise
+
+    # Broad deterministic mottling adds readable skin breakup without changing
+    # UVs or requiring another runtime material system.
+    small_h = max(8, external_skinh // 32)
+    small_w = max(8, external_skinw // 32)
+    m = rng.uniform(0.0, 255.0, (small_h, small_w)).astype(np.uint8)
+    mimg = Image.fromarray(m, mode="L").resize(
+        (external_skinw, external_skinh), Image.Resampling.BILINEAR
+    ).filter(Image.Filter.GaussianBlur(5.0)) if False else None
+
+    # PIL exposes filters in ImageFilter; import locally to keep startup simple.
+    from PIL import ImageEnhance, ImageFilter, ImageDraw
+    mimg = Image.fromarray(m, mode="L").resize(
+        (external_skinw, external_skinh), Image.Resampling.BILINEAR
+    ).filter(ImageFilter.GaussianBlur(5.0))
+    mottling = (np.asarray(mimg).astype(np.float32) / 255.0 - 0.5)[:, :, None] * 24.0
+    rgb += mottling
+
+    rgb = np.clip(rgb, 0.0, 255.0) / 255.0
+    rgb = np.power(rgb, 0.90) * 255.0
+    rgba = np.concatenate([np.clip(rgb, 0.0, 255.0), alpha], axis=2).astype(np.uint8)
+    out = Image.fromarray(rgba, mode="RGBA")
+
+    # Procedural dried-blood/grime streaks. These are deliberately irregular,
+    # subtle, and deterministic so each of the four stock skin slots reads as
+    # a different corpse rather than a flat recolor.
+    overlay = Image.new("RGBA", out.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay, "RGBA")
+    stain_palette = (
+        (70, 7, 6, 62),
+        (92, 15, 10, 48),
+        (45, 18, 12, 52),
+        (28, 22, 14, 42),
+    )
+    for i in range(30):
+        x = int(rng.integers(0, external_skinw))
+        y = int(rng.integers(0, external_skinh))
+        length = int(rng.integers(max(8, external_skinh // 80), max(20, external_skinh // 18)))
+        width = int(rng.integers(2, max(3, external_skinw // 140)))
+        col = stain_palette[(i + variant) % len(stain_palette)]
+        draw.line((x, y, x + int(rng.integers(-10, 11)), min(external_skinh - 1, y + length)),
+                  fill=col, width=width)
+
+    out = Image.alpha_composite(out, overlay)
+    out = ImageEnhance.Contrast(out).enhance(1.16)
+    out = ImageEnhance.Sharpness(out).enhance(1.45)
+    return out
+
+
+horror_skins = [make_horror_skin(source_atlas, i) for i in range(SKIN_COUNT)]
+
+# Prepare quantized frame payload once; every dismemberment variant shares the
+# same skeleton, frame indices and vertices. Only the triangle list differs.
+stack = np.concatenate(frames_pos, axis=0)
+mins = stack.min(axis=0)
+maxs = stack.max(axis=0)
+scale = (maxs - mins) / 255.0
+scale[scale < 1e-7] = 1.0
+origin = mins
+boundingradius = float(
+    np.max(np.linalg.norm(stack - np.array([0.0, 0.0, 0.0]), axis=1))
 )
 
-with mdl_path.open("wb") as f:
-    f.write(header)
+packed_frames: list[tuple[np.ndarray, np.ndarray, np.ndarray]] = []
+for p, nidx in zip(frames_pos, normal_indices):
+    q = np.rint((p - origin) / scale).clip(0, 255).astype(np.uint8)
+    packed = np.empty((numverts, 4), dtype=np.uint8)
+    packed[:, :3] = q
+    packed[:, 3] = nidx
+    packed_frames.append((q.min(axis=0), q.max(axis=0), packed))
 
-    # Single embedded fallback skin. Android uses the external TGA above.
-    f.write(struct.pack("<i", 0))
-    f.write(bytes(skinw * skinh))
+variant_removals = {
+    "zombie_basic.mdl": frozenset(),
+    "zombie_basic_nohead.mdl": frozenset(("head",)),
+    "zombie_basic_nolarm.mdl": frozenset(("larm",)),
+    "zombie_basic_normarm.mdl": frozenset(("rarm",)),
+    "zombie_basic_nohead_nolarm.mdl": frozenset(("head", "larm")),
+    "zombie_basic_nohead_normarm.mdl": frozenset(("head", "rarm")),
+    "zombie_basic_noarms.mdl": frozenset(("larm", "rarm")),
+    "zombie_basic_nohead_noarms.mdl": frozenset(("head", "larm", "rarm")),
+}
+variant_triangle_counts: dict[str, int] = {}
 
-    # Each glTF UV split already has its own vertex, so no Quake seam flag is
-    # needed and every triangle can be treated as front-facing for UV lookup.
-    for uv in uvs:
-        u = float(uv[0] % 1.0)
-        v = float(uv[1] % 1.0)
-        ss = int(round(u * (skinw - 1)))
-        tt = int(round((1.0 - v) * (skinh - 1)))
-        f.write(struct.pack("<3i", 0, ss, tt))
 
-    for tri in triangles:
-        f.write(struct.pack("<4i", 1, int(tri[0]), int(tri[1]), int(tri[2])))
+def write_variant(filename: str, removed: frozenset[str]) -> None:
+    keep = np.asarray([part not in removed for part in triangle_parts_np], dtype=bool)
+    variant_triangles = triangles[keep]
+    if len(variant_triangles) <= 0:
+        raise SystemExit(f"Lab variant {filename} removed every triangle")
+    if len(variant_triangles) > 8192:
+        raise SystemExit(f"Lab variant {filename} exceeds triangle budget")
+    variant_triangle_counts[filename] = int(len(variant_triangles))
 
-    for frame_index, (p, nidx) in enumerate(zip(frames_pos, normal_indices)):
-        q = np.rint((p - origin) / scale).clip(0, 255).astype(np.uint8)
-        qmin = q.min(axis=0)
-        qmax = q.max(axis=0)
-        f.write(struct.pack("<i", 0))  # ALIAS_SINGLE
-        f.write(bytes([int(qmin[0]), int(qmin[1]), int(qmin[2]), 0]))
-        f.write(bytes([int(qmax[0]), int(qmax[1]), int(qmax[2]), 0]))
-        name = f"xz{frame_index:03d}".encode("ascii")[:15]
-        f.write(name + bytes(16 - len(name)))
-        packed = np.empty((numverts, 4), dtype=np.uint8)
-        packed[:, :3] = q
-        packed[:, 3] = nidx
-        f.write(packed.tobytes())
+    mdl_path = out_dir / filename
+    header = struct.pack(
+        "<4si3f3ff3f8if",
+        b"IDPO", 6,
+        *[float(v) for v in scale],
+        *[float(v) for v in origin],
+        boundingradius,
+        0.0, 0.0, 0.0,
+        SKIN_COUNT, skinw, skinh, numverts, len(variant_triangles), 211, 0, 0,
+        0.0,
+    )
+
+    with mdl_path.open("wb") as f:
+        f.write(header)
+
+        # Four tiny indexed fallbacks matching the four external horror skins.
+        for _ in range(SKIN_COUNT):
+            f.write(struct.pack("<i", 0))
+            f.write(bytes(skinw * skinh))
+
+        for uv in uvs:
+            u = float(uv[0] % 1.0)
+            v = float(uv[1] % 1.0)
+            ss = int(round(u * (skinw - 1)))
+            tt = int(round((1.0 - v) * (skinh - 1)))
+            f.write(struct.pack("<3i", 0, ss, tt))
+
+        for tri in variant_triangles:
+            f.write(struct.pack("<4i", 1, int(tri[0]), int(tri[1]), int(tri[2])))
+
+        for frame_index, (qmin, qmax, packed) in enumerate(packed_frames):
+            f.write(struct.pack("<i", 0))
+            f.write(bytes([int(qmin[0]), int(qmin[1]), int(qmin[2]), 0]))
+            f.write(bytes([int(qmax[0]), int(qmax[1]), int(qmax[2]), 0]))
+            name = f"xz{frame_index:03d}".encode("ascii")[:15]
+            f.write(name + bytes(16 - len(name)))
+            f.write(packed.tobytes())
+
+    for skin_index, skin_image in enumerate(horror_skins):
+        skin_image.save(out_dir / f"{filename}_{skin_index}.tga", format="TGA", rle=True)
+
+
+for filename, removed in variant_removals.items():
+    write_variant(filename, removed)
+
+part_counts = {
+    part: int(np.count_nonzero(triangle_parts_np == part))
+    for part in ("body", "head", "larm", "rarm")
+}
 
 # Machine-readable metadata makes CI/review catch accidental source/model drift.
 meta = {
@@ -471,18 +660,24 @@ meta = {
     "vertices": numverts,
     "triangles": numtris,
     "frames": 211,
+    "skins": SKIN_COUNT,
+    "source_skin": [source_skinw, source_skinh],
     "mdl_skin": [skinw, skinh],
     "external_skin": [external_skinw, external_skinh],
     "model_scale": MODEL_SCALE,
-    "model_horizontal_scale": MODEL_HORIZONTAL_SCALE,
+    "model_forward_scale": MODEL_FORWARD_SCALE,
+    "model_lateral_scale": MODEL_LATERAL_SCALE,
     "idle_z_offset": z_offset,
+    "triangle_parts": part_counts,
+    "variants": variant_triangle_counts,
     "animations": sorted(animations.keys()),
 }
-(root / "models" / "xziel_lab" / "zombie_basic.json").write_text(
+(out_dir / "zombie_basic.json").write_text(
     json.dumps(meta, indent=2) + "\n", encoding="utf-8"
 )
 
 print(
-    f"Built Lab zombie: {numverts} verts, {numtris} tris, 211 frames, "
-    f"MDL skin {skinw}x{skinh}, external atlas {external_skinw}x{external_skinh} -> {mdl_path}"
+    f"Built Lab zombie family: {numverts} verts / {numtris} source tris / "
+    f"211 frames / {SKIN_COUNT} horror skins / {external_skinw}x{external_skinh}; "
+    f"parts={part_counts}; variants={variant_triangle_counts}"
 )
