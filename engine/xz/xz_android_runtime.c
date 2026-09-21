@@ -343,6 +343,7 @@ static void XzLogSnapshot(double now_seconds)
         " g3shadow(submitted=%" PRIu64 " packets=%" PRIu64
         " draws=%" PRIu64 " fail=%" PRIu64 " readback=%" PRIu64
         " restoreFail=%" PRIu64 " restore=%d glerr=0x%x hash=%08x)"
+        " g3diag(stage=%u preerr=%" PRIu64 ")"
         " advice(render=%.2f anim=%.2f shadow=%.2f vfx=%.2f light=%.2f stream=%.2f)",
         xz_runtime.frame.total_frames,
         xz_runtime.frame.last_ms,
@@ -396,6 +397,8 @@ static void XzLogSnapshot(double now_seconds)
         g3->restore_ok,
         g3->last_gl_error,
         g3->last_plan_hash,
+        g3->last_error_stage,
+        g3->preexisting_errors,
         rec->render_scale,
         rec->animation_rate_scale,
         rec->shadow_budget_scale,
