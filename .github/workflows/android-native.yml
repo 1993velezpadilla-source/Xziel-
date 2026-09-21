@@ -385,7 +385,7 @@ jobs:
             exit 1
           fi
 
-          if ! grep -Eq "XZIEL-XZ.*plan\(gen=[1-9][0-9]* packets=[1-9][0-9]* lod=[0-9]+/[0-9]+/[0-9]+.*hash=[0-9a-fA-F]{8}\).*rhi\(active=NULL shadow=1 submitted=[1-9][0-9]*.*rejected=0" dist/xziel-logcat.txt; then
+          if ! grep -Eq "XZIEL-XZ.*plan\(gen=[1-9][0-9]* .*packets=[1-9][0-9]* .*lod=[0-9]+/[0-9]+/[0-9]+.*hash=[0-9a-fA-F]{8}\).*rhi\(active=NULL shadow=1 submitted=[1-9][0-9]*.*rejected=0" dist/xziel-logcat.txt; then
             echo "Xz Phase-3 did not publish a validated live render plan."
             grep -E "XZIEL-XZ.*plan\(" dist/xziel-logcat.txt | tail -n 100 || true
             exit 1
