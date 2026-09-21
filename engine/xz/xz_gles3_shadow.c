@@ -391,6 +391,10 @@ static int XzCreateProgramAndBuffer(void)
     gl->BindVertexArray(0u);
     gl->BindBuffer(GL_ARRAY_BUFFER, 0u);
 
+    gl->GenFramebuffers(1, &xz_shadow.scratch_fbo);
+    if (!xz_shadow.scratch_fbo)
+        return 0;
+
     return gl->GetError() == GL_NO_ERROR;
 }
 
@@ -787,6 +791,157 @@ static void XzDestroyAllPhysicalResources(
 
     for (i = 0u; i < XZ_GPU_MAX_RESOURCES; ++i)
         XzDestroyPhysicalResource(state, i);
+}
+
+static XzGles3PhysicalResource *XzPhysicalForHandle(
+    XzGpuHandle handle)
+{
+    unsigned int index;
+
+    if (handle == XZ_GPU_INVALID_HANDLE)
+        return NULL;
+
+    index = XzGpuHandle_Index(handle);
+    if (index >= XZ_GPU_MAX_RESOURCES)
+        return NULL;
+
+    if (!xz_shadow.physical[index].alive ||
+        xz_shadow.physical[index].handle != handle)
+        return NULL;
+
+    return &xz_shadow.physical[index];
+}
+
+static int XzBindPassTarget(
+    XzGles3ShadowState *state,
+    const XzPassTarget *target)
+{
+    XzGles3PhysicalResource *color = NULL;
+    XzGles3PhysicalResource *depth = NULL;
+    XzGles3PhysicalResource *external = NULL;
+    unsigned int width = XZ_SHADOW_WIDTH;
+    unsigned int height = XZ_SHADOW_HEIGHT;
+    GLbitfield clear_mask = 0u;
+    GLenum status;
+    GLenum error;
+
+    if (!state || !target)
+        return 0;
+
+    if (target->external != XZ_GPU_INVALID_HANDLE) {
+        external = XzPhysicalForHandle(target->external);
+        if (!external ||
+            external->spec.kind !=
+                XZ_G3_RESOURCE_EXTERNAL_SURFACE) {
+            state->framebuffer_failures++;
+            return 0;
+        }
+
+        xz_shadow.gl.BindFramebuffer(
+            GL_FRAMEBUFFER, 0u);
+        xz_shadow.gl.Viewport(
+            0, 0, XZ_SHADOW_WIDTH, XZ_SHADOW_HEIGHT);
+        xz_shadow.gl.ClearColor(
+            0.015f, 0.020f, 0.025f, 1.0f);
+        xz_shadow.gl.Clear(GL_COLOR_BUFFER_BIT);
+
+        state->framebuffer_binds++;
+        state->framebuffer_external_passes++;
+
+        error = xz_shadow.gl.GetError();
+        if (error != GL_NO_ERROR) {
+            state->framebuffer_failures++;
+            return 0;
+        }
+
+        return 1;
+    }
+
+    if (target->color != XZ_GPU_INVALID_HANDLE) {
+        color = XzPhysicalForHandle(target->color);
+        if (!color ||
+            color->spec.kind !=
+                XZ_G3_RESOURCE_TEXTURE_2D) {
+            state->framebuffer_failures++;
+            return 0;
+        }
+        width = color->spec.physical_width;
+        height = color->spec.physical_height;
+        clear_mask |= GL_COLOR_BUFFER_BIT;
+    }
+
+    if (target->depth != XZ_GPU_INVALID_HANDLE) {
+        depth = XzPhysicalForHandle(target->depth);
+        if (!depth ||
+            depth->spec.kind !=
+                XZ_G3_RESOURCE_DEPTH_RENDERBUFFER) {
+            state->framebuffer_failures++;
+            return 0;
+        }
+
+        if (!color) {
+            width = depth->spec.physical_width;
+            height = depth->spec.physical_height;
+        } else {
+            if (depth->spec.physical_width < width)
+                width = depth->spec.physical_width;
+            if (depth->spec.physical_height < height)
+                height = depth->spec.physical_height;
+        }
+
+        clear_mask |= GL_DEPTH_BUFFER_BIT;
+    }
+
+    if (!color && !depth) {
+        state->framebuffer_failures++;
+        return 0;
+    }
+
+    xz_shadow.gl.BindFramebuffer(
+        GL_FRAMEBUFFER,
+        xz_shadow.scratch_fbo);
+
+    xz_shadow.gl.FramebufferTexture2D(
+        GL_FRAMEBUFFER,
+        GL_COLOR_ATTACHMENT0,
+        GL_TEXTURE_2D,
+        color ? color->object : 0u,
+        0);
+
+    xz_shadow.gl.FramebufferRenderbuffer(
+        GL_FRAMEBUFFER,
+        GL_DEPTH_ATTACHMENT,
+        GL_RENDERBUFFER,
+        depth ? depth->object : 0u);
+
+    state->framebuffer_binds++;
+    if (color)
+        state->framebuffer_color_attachments++;
+    if (depth)
+        state->framebuffer_depth_attachments++;
+
+    status = xz_shadow.gl.CheckFramebufferStatus(
+        GL_FRAMEBUFFER);
+    state->framebuffer_checks++;
+
+    if (status != GL_FRAMEBUFFER_COMPLETE) {
+        state->framebuffer_failures++;
+        return 0;
+    }
+
+    xz_shadow.gl.Viewport(
+        0, 0, (GLsizei)width, (GLsizei)height);
+    xz_shadow.gl.ClearColor(
+        0.010f, 0.015f, 0.020f, 1.0f);
+    xz_shadow.gl.Clear(clear_mask);
+
+    error = xz_shadow.gl.GetError();
+    if (error != GL_NO_ERROR) {
+        state->framebuffer_failures++;
+        return 0;
+    }
+
+    return 1;
 }
 
 void XzGles3Shadow_InitState(
