@@ -63,6 +63,10 @@ public:
     [[nodiscard]] bool applyDamage(
         float damage) noexcept;
 
+    void translateHorizontal(
+        float deltaX,
+        float deltaZ) noexcept;
+
     [[nodiscard]] Aabb bounds() const noexcept;
 
     [[nodiscard]] const ZombieFrame&
