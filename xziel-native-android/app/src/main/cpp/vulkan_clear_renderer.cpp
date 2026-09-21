@@ -2943,6 +2943,150 @@ bool VulkanClearRenderer::recordDrawCommand(
             ringWidth);
     };
 
+    static constexpr std::array<std::uint8_t, 10>
+        kDigitMasks{{
+            0x3FU,
+            0x06U,
+            0x5BU,
+            0x4FU,
+            0x66U,
+            0x6DU,
+            0x7DU,
+            0x07U,
+            0x7FU,
+            0x6FU,
+        }};
+
+    const auto drawSevenSegmentDigit = [&](
+        int digit,
+        float centerX,
+        float centerY,
+        float scale,
+        float alpha) noexcept {
+        if (digit < 0 || digit > 9) {
+            return;
+        }
+
+        const std::uint8_t mask =
+            kDigitMasks[
+                static_cast<std::size_t>(
+                    digit)];
+
+        const float horizontalHalfWidth =
+            0.0078f * scale;
+
+        const float horizontalHalfHeight =
+            0.00125f * scale;
+
+        const float verticalHalfWidth =
+            0.00120f * scale;
+
+        const float verticalHalfHeight =
+            0.0062f * scale;
+
+        const float xOffset =
+            0.0084f * scale;
+
+        const float yOffset =
+            0.0080f * scale;
+
+        const float red =
+            0.92f;
+
+        const float green =
+            0.58f +
+            0.20f *
+                std::clamp(
+                    hud.scorePulseAlpha,
+                    0.0f,
+                    1.0f);
+
+        const float blue =
+            0.10f;
+
+        const auto segment = [&](
+            std::uint8_t bit,
+            float x,
+            float y,
+            float halfWidth,
+            float halfHeight) noexcept {
+            if ((mask & bit) == 0U) {
+                return;
+            }
+
+            drawUiPrimitive(
+                x,
+                y,
+                halfWidth,
+                halfHeight,
+                red,
+                green,
+                blue,
+                alpha,
+                0.0f,
+                0.10f);
+        };
+
+        segment(
+            0x01U,
+            centerX,
+            centerY -
+                yOffset * 2.0f,
+            horizontalHalfWidth,
+            horizontalHalfHeight);
+
+        segment(
+            0x02U,
+            centerX +
+                xOffset,
+            centerY -
+                yOffset,
+            verticalHalfWidth,
+            verticalHalfHeight);
+
+        segment(
+            0x04U,
+            centerX +
+                xOffset,
+            centerY +
+                yOffset,
+            verticalHalfWidth,
+            verticalHalfHeight);
+
+        segment(
+            0x08U,
+            centerX,
+            centerY +
+                yOffset * 2.0f,
+            horizontalHalfWidth,
+            horizontalHalfHeight);
+
+        segment(
+            0x10U,
+            centerX -
+                xOffset,
+            centerY +
+                yOffset,
+            verticalHalfWidth,
+            verticalHalfHeight);
+
+        segment(
+            0x20U,
+            centerX -
+                xOffset,
+            centerY -
+                yOffset,
+            verticalHalfWidth,
+            verticalHalfHeight);
+
+        segment(
+            0x40U,
+            centerX,
+            centerY,
+            horizontalHalfWidth,
+            horizontalHalfHeight);
+    };
+
     const float rainIntensity =
         std::clamp(
             environment.rainIntensity,
@@ -3065,6 +3209,74 @@ bool VulkanClearRenderer::recordDrawCommand(
             lightningOverlay,
             0.0f,
             0.10f);
+    }
+
+    std::array<int, 6> scoreDigits{};
+    std::uint64_t scoreValue =
+        hud.scoreTotal %
+        1000000ULL;
+
+    for (std::size_t reverseIndex = 0;
+         reverseIndex <
+             scoreDigits.size();
+         ++reverseIndex) {
+        const std::size_t index =
+            scoreDigits.size() -
+            1U -
+            reverseIndex;
+
+        scoreDigits[index] =
+            static_cast<int>(
+                scoreValue %
+                10ULL);
+
+        scoreValue /= 10ULL;
+    }
+
+    std::size_t firstVisibleDigit =
+        scoreDigits.size() - 1U;
+
+    for (std::size_t i = 0;
+         i + 1U <
+             scoreDigits.size();
+         ++i) {
+        if (scoreDigits[i] != 0) {
+            firstVisibleDigit = i;
+            break;
+        }
+    }
+
+    const float scorePulse =
+        std::clamp(
+            hud.scorePulseAlpha,
+            0.0f,
+            1.0f);
+
+    const float scoreScale =
+        1.0f +
+        scorePulse *
+            0.10f;
+
+    const float scoreAlpha =
+        0.72f +
+        scorePulse *
+            0.26f;
+
+    float scoreX = 0.055f;
+
+    for (std::size_t i = firstVisibleDigit;
+         i < scoreDigits.size();
+         ++i) {
+        drawSevenSegmentDigit(
+            scoreDigits[i],
+            scoreX,
+            0.095f,
+            scoreScale,
+            scoreAlpha);
+
+        scoreX +=
+            0.022f *
+            scoreScale;
     }
 
     const float moveAnchorX =
