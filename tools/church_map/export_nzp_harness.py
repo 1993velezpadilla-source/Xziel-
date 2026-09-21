@@ -35,23 +35,33 @@ def kv(k,v):
     return f'"{quote(k)}" "{quote(v)}"\n'
 
 def brush_box(mn,mx,texture="null"):
-    x1,y1,z1=mn; x2,y2,z2=mx
+    x1,y1,z1=map(int,mn); x2,y2,z2=map(int,mx)
     if x2<=x1: x2=x1+1
     if y2<=y1: y2=y1+1
     if z2<=z1: z2=z1+1
-    # Axis-aligned Valve 220 brush; point winding matches common Hammer output.
+
+    # Exact six-plane winding pattern used by NZ:P's official template.map.
+    # Valve/GoldSrc MAP brushes are intersections of oriented half-spaces;
+    # reversing these point orders turns finite boxes into effectively
+    # infinite brushes, which HLCsg reports near +/-80000.
     planes=[
-      ((x1,y1,z1),(x1,y1,z2),(x1,y2,z1),texture,"[ 0 -1 0 0 ]","[ 0 0 -1 0 ]"),
-      ((x2,y1,z1),(x2,y2,z1),(x2,y1,z2),texture,"[ 0 1 0 0 ]","[ 0 0 -1 0 ]"),
-      ((x1,y1,z1),(x2,y1,z1),(x1,y1,z2),texture,"[ 1 0 0 0 ]","[ 0 0 -1 0 ]"),
-      ((x1,y2,z1),(x1,y2,z2),(x2,y2,z1),texture,"[ -1 0 0 0 ]","[ 0 0 -1 0 ]"),
-      ((x1,y1,z1),(x1,y2,z1),(x2,y1,z1),texture,"[ 1 0 0 0 ]","[ 0 -1 0 0 ]"),
-      ((x1,y1,z2),(x2,y1,z2),(x1,y2,z2),texture,"[ 1 0 0 0 ]","[ 0 -1 0 0 ]"),
+      # low X (+X normal)
+      ((x1,y1,z1),(x1,y1+1,z1),(x1,y1,z1+1),texture,"[ 0 -1 0 0 ]","[ 0 0 -1 0 ]"),
+      # low Y (+Y normal)
+      ((x1,y1,z1),(x1,y1,z1+1),(x1+1,y1,z1),texture,"[ 1 0 0 0 ]","[ 0 0 -1 0 ]"),
+      # low Z (+Z normal)
+      ((x1,y1,z1),(x1+1,y1,z1),(x1,y1+1,z1),texture,"[ -1 0 0 0 ]","[ 0 -1 0 0 ]"),
+      # high Z (-Z normal)
+      ((x2,y2,z2),(x2,y2+1,z2),(x2+1,y2,z2),texture,"[ 1 0 0 0 ]","[ 0 -1 0 0 ]"),
+      # high Y (-Y normal)
+      ((x2,y2,z2),(x2+1,y2,z2),(x2,y2,z2+1),texture,"[ -1 0 0 0 ]","[ 0 0 -1 0 ]"),
+      # high X (-X normal)
+      ((x2,y2,z2),(x2,y2,z2+1),(x2,y2+1,z2),texture,"[ 0 1 0 0 ]","[ 0 0 -1 0 ]"),
     ]
-    s="{\n"
-    for a,b,c,t,u,v in planes:
-        s+=f"( {a[0]} {a[1]} {a[2]} ) ( {b[0]} {b[1]} {b[2]} ) ( {c[0]} {c[1]} {c[2]} ) {t} {u} {v} 0 1 1\n"
-    return s+"}\n"
+    out="{\n"
+    for p1,p2,p3,t,u,v in planes:
+        out+=f"( {p1[0]} {p1[1]} {p1[2]} ) ( {p2[0]} {p2[1]} {p2[2]} ) ( {p3[0]} {p3[1]} {p3[2]} ) {t} {u} {v} 0 1 1\n"
+    return out+"}\n"
 
 def point_entity(classname, origin, props=None):
     s="{\n"+kv("classname",classname)
