@@ -71,8 +71,14 @@ static qboolean Xziel_NachtEnhanced_ShouldReplaceZombie(model_t *source)
         return false;
 
     // Crawlers retain stock segmented geometry until a purpose-built
-    // crawl/death replacement is ready.
-    return !strcmp(source->name, "models/ai/zb%.mdl");
+    // crawl/death replacement is ready. Likewise, once NZ:P has detached a
+    // head or arm, fall back to the stock segmented renderer so Enhanced
+    // never "grows back" a limb just because the replacement body is whole.
+    if (strcmp(source->name, "models/ai/zb%.mdl"))
+        return false;
+    if (!currententity->z_head || !currententity->z_larm || !currententity->z_rarm)
+        return false;
+    return true;
 }
 
 '''
