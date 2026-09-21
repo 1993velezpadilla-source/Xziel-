@@ -3280,11 +3280,29 @@ bool VulkanClearRenderer::recordDrawCommand(
             push.cameraX = camera.x - 2.0f * signedCameraDistance * planeNx;
             push.cameraY = camera.y - 2.0f * signedCameraDistance * planeNy;
             push.cameraZ = camera.z - 2.0f * signedCameraDistance * planeNz;
-            push.cameraYawRadians = camera.yawRadians;
-            push.cameraPitchRadians =
-                std::fabs(planeNy) > 0.999f
-                ? -camera.pitchRadians
-                : camera.pitchRadians;
+            // Reflect the camera forward vector across the authored plane,
+            // then recover the yaw/pitch convention used by xziel_first.vert.
+            // This handles horizontal water, vertical mirrors, and oblique
+            // planar surfaces instead of only flipping pitch for floors.
+            const float safeYaw = std::isfinite(camera.yawRadians)
+                ? camera.yawRadians : 0.0f;
+            const float safePitch = std::isfinite(camera.pitchRadians)
+                ? camera.pitchRadians : 0.0f;
+            const float cosPitch = std::cos(safePitch);
+            float forwardX = std::sin(safeYaw) * cosPitch;
+            float forwardY = -std::sin(safePitch);
+            float forwardZ = std::cos(safeYaw) * cosPitch;
+            const float forwardDotPlane =
+                forwardX * planeNx +
+                forwardY * planeNy +
+                forwardZ * planeNz;
+            forwardX -= 2.0f * forwardDotPlane * planeNx;
+            forwardY -= 2.0f * forwardDotPlane * planeNy;
+            forwardZ -= 2.0f * forwardDotPlane * planeNz;
+            const float horizontalForward =
+                std::sqrt(forwardX * forwardX + forwardZ * forwardZ);
+            push.cameraYawRadians = std::atan2(forwardX, forwardZ);
+            push.cameraPitchRadians = std::atan2(-forwardY, horizontalForward);
             push.verticalFovDegrees =
                 std::clamp(camera.verticalFovDegrees, 50.0f, 110.0f);
             push.fogDensity =
