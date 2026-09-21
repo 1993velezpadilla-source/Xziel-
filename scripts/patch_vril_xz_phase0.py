@@ -61,6 +61,8 @@ for name in (
     "xz_pass_inputs.c",
     "xz_visibility.h",
     "xz_visibility.c",
+    "xz_material_lighting.h",
+    "xz_material_lighting.c",
 ):
     src = modules / name
     if not src.is_file():
@@ -185,4 +187,4 @@ for label, needle in checks.items():
             f"Phase-0 integration check failed for {label}: {count} occurrences"
         )
 
-print("Injected Xziel Xz runtime through Phase 13 (geometry visibility).")
+print("Injected Xziel Xz runtime through Phase 14 (materials + lighting).")
