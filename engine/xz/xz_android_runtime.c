@@ -7,6 +7,7 @@
 #include "xz_rhi.h"
 #include "xz_gles3_probe.h"
 #include "xz_render_graph.h"
+#include "xz_gles3_shadow.h"
 
 #include <SDL.h>
 
@@ -34,6 +35,7 @@ typedef struct {
     XzGles3ProbeResult gles3_probe;
     XzRenderGraph render_graph;
     XzRenderGraphCompiled render_graph_compiled;
+    XzGles3ShadowState gles3_shadow;
     int initialized;
     int cpu_cores;
     int system_ram_mb;
@@ -308,6 +310,8 @@ static void XzLogSnapshot(double now_seconds)
         &xz_runtime.render_plan;
     const XzRhiState *rhi =
         &xz_runtime.rhi;
+    const XzGles3ShadowState *g3 =
+        &xz_runtime.gles3_shadow;
     const uint64_t present_generation =
         present ? present->generation : 0u;
     const unsigned int present_entities =
@@ -336,6 +340,9 @@ static void XzLogSnapshot(double now_seconds)
         " anim=%u shadow=%u vfx=%u light=%u/%u)"
         " plan(gen=%" PRIu64 " packets=%u lod=%u/%u/%u anim=%u shadow=%u vfx=%u hash=%08x)"
         " rhi(active=%s shadow=%d submitted=%" PRIu64 " rejected=%" PRIu64 ")"
+        " g3shadow(submitted=%" PRIu64 " packets=%" PRIu64
+        " draws=%" PRIu64 " fail=%" PRIu64 " readback=%" PRIu64
+        " restoreFail=%" PRIu64 " restore=%d glerr=0x%x hash=%08x)"
         " advice(render=%.2f anim=%.2f shadow=%.2f vfx=%.2f light=%.2f stream=%.2f)",
         xz_runtime.frame.total_frames,
         xz_runtime.frame.last_ms,
@@ -380,6 +387,15 @@ static void XzLogSnapshot(double now_seconds)
         rhi->shadow_mode,
         rhi->submitted_frames,
         rhi->rejected_plans,
+        g3->submitted_frames,
+        g3->submitted_packets,
+        g3->draw_calls,
+        g3->failures,
+        g3->readback_failures,
+        g3->restore_failures,
+        g3->restore_ok,
+        g3->last_gl_error,
+        g3->last_plan_hash,
         rec->render_scale,
         rec->animation_rate_scale,
         rec->shadow_budget_scale,
@@ -562,6 +578,30 @@ void XzAndroidRuntime_Init(size_t engine_heap_bytes)
             xz_runtime.display_width,
             xz_runtime.display_height);
     }
+
+    XzGles3Shadow_InitState(&xz_runtime.gles3_shadow);
+    if (xz_runtime.caps.allow_gles3 &&
+        xz_runtime.gles3_probe.status ==
+            XZ_GLES3_PROBE_SHADER_OK) {
+        int shadow_ok = XzGles3Shadow_Init(
+            &xz_runtime.gles3_shadow,
+            8u);
+
+        XzAndroidLog(
+            shadow_ok ? ANDROID_LOG_INFO : ANDROID_LOG_WARN,
+            "phase6 gles3shadow init=%s available=%d shader=%d"
+            " restore=%d stride=%u",
+            shadow_ok ? "PASS" : "FAIL",
+            xz_runtime.gles3_shadow.available,
+            xz_runtime.gles3_shadow.shader_ok,
+            xz_runtime.gles3_shadow.restore_ok,
+            xz_runtime.gles3_shadow.submit_stride);
+    } else {
+        XzAndroidLog(
+            ANDROID_LOG_INFO,
+            "phase6 gles3shadow init=SKIP available=0 shader=0"
+            " restore=1 stride=0");
+    }
 }
 
 void XzAndroidRuntime_BeginFrame(double now_seconds)
@@ -613,6 +653,11 @@ void XzAndroidRuntime_EndFrame(double now_seconds)
         &xz_runtime.render_plan);
     XzRhi_EndFrame(&xz_runtime.rhi);
 
+    if (xz_runtime.gles3_shadow.available)
+        XzGles3Shadow_Submit(
+            &xz_runtime.gles3_shadow,
+            &xz_runtime.render_plan);
+
     if (xz_runtime.last_log_seconds == 0.0 ||
         now_seconds - xz_runtime.last_log_seconds >= 5.0)
         XzLogSnapshot(now_seconds);
@@ -624,6 +669,7 @@ void XzAndroidRuntime_Shutdown(void)
         return;
 
     XzLogSnapshot(xz_runtime.last_log_seconds + 5.0);
+    XzGles3Shadow_Shutdown(&xz_runtime.gles3_shadow);
     XzRhi_Shutdown(&xz_runtime.rhi);
     XzAndroidLog(
         ANDROID_LOG_INFO,
