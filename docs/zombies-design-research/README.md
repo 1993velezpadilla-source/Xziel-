@@ -9,7 +9,11 @@ This is **design research, not an asset-ripping plan**. We study progression, pa
 ## Files
 
 - `cod-zombies-main-quest-compendium.md` — game-by-game/map-by-map quest catalog and normalized completion routes.
-- `modern-exact-walkthroughs.md` — dependency-accurate BO6/BO7 quest orders, randomized-input rules, retries and boss logic.
+- `classic-exact-walkthroughs.md` — dependency-accurate Treyarch quest structures from Black Ops through Black Ops 4, including historical player-count and RNG constraints.
+- `non-treyarch-exact-walkthroughs.md` — exact Exo Zombies, Infinite Warfare Zombies and WWII quest structures.
+- `cold-war-vanguard-mwz-exact.md` — exact Cold War/Vanguard progression plus MWZ's multi-deployment Acts, Dark Aether relics, portals and persistence model.
+- `bo6-bo7-launch-exact.md` — exact Liberty Falls, Terminus, Citadelle des Morts, The Tomb and Ashes of the Damned dependency chains.
+- `modern-exact-walkthroughs.md` — exact later BO6/BO7 quest orders, randomized-input rules, retries and boss logic.
 - `map-side-content-index.md` — map-by-map index of optional systems, hidden rewards, minigames and replay mechanics.
 - `side-quest-mechanic-library.md` — reusable side-quest and minigame primitives extracted from successful maps.
 - `super-ee-meta-progression.md` — cross-map completion, persistent rewards, Director's Cut/Pact-style lessons and an original Xziel Super Quest model.
