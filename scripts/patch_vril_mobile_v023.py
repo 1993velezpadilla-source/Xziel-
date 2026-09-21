@@ -89,7 +89,13 @@ action_glyph = r'''static qboolean Xziel_DrawActionGlyph(int cx, int cy, int rad
 		size, size, 255,255,255,alpha);
 	return true;
 }'''
-text = replace_function(text, "static qboolean Xziel_DrawActionGlyph(", action_glyph)
+action_sig = "static qboolean Xziel_DrawActionGlyph("
+action_pos = text.rfind(action_sig)
+if action_pos < 0:
+    raise SystemExit("Could not find final Xziel_DrawActionGlyph implementation")
+text = text[:action_pos] + replace_function(
+    text[action_pos:], action_sig, action_glyph
+)
 
 touch_button = r'''static void Xziel_DrawTouchButton(float nx, float ny, float radius_h,
 	const char *label1, const char *label2, qboolean pressed, qboolean editor)
