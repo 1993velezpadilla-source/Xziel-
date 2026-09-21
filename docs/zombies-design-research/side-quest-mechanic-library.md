@@ -346,3 +346,123 @@ The best optional Easter eggs do at least one of three things:
 3. **Give the player a story to tell.**
 
 If a secret does none of those, it is probably clutter.
+
+## 24. Challenge-board reward ladder
+
+Origins' Rituals of the Ancients board is a useful early example: normal play feeds visible challenges, and completion pays out escalating utility such as Double Tap, Pack-a-Punched weapon rewards, Max Ammo and the One Inch Punch.
+
+Xziel pattern:
+- show 3–4 challenges at match start;
+- use different categories: movement, accuracy, economy, special enemy;
+- claim rewards physically at a board/shrine;
+- each completed tier visually transforms the board;
+- final tier may unlock one additional perk slot rather than a flat damage bonus.
+
+## 25. Perk-slot expansion as side progression
+
+Origins combines Golden Shovel progression, Zombie Blood and hidden dig spots to award Empty Perk Bottles, letting experienced players exceed the normal perk cap.
+
+Xziel lesson:
+A side quest can expand a **system limit** rather than give an item.
+
+Possible rewards:
+- +1 perk slot;
+- +1 equipment reserve;
+- +1 relic slot for current match;
+- additional armor repair capacity;
+- companion upgrade slot.
+
+Cap these rewards so a completed side quest feels strong but does not erase resource decisions.
+
+## 26. World-state modifier as reward
+
+Shangri-La's Focusing Stone and Moon's completed Grand Scheme can leave players with all perks for the rest of the match. The important design idea is that finishing a major quest can visibly change the continued-survival state.
+
+Xziel option:
+After a Main Quest, offer:
+- end match and play ending;
+- or continue in "Aftermath Survival."
+
+Aftermath can alter:
+- sky/weather;
+- enemy composition;
+- perk cap;
+- music;
+- ambient dialogue;
+- special round;
+- boss roaming behavior.
+
+That turns completion into the start of a second survival phase.
+
+## 27. Utility-disruption elite
+
+Mob of the Dead's Brutus can disable perk machines, Mystery Box, workbenches and traps until dealt with.
+
+Xziel pattern:
+Create an elite that attacks **player infrastructure**, not just player HP.
+
+Targets:
+- perk machine;
+- ammo crate;
+- trap switch;
+- generator;
+- crafting bench;
+- fast-travel anchor.
+
+Counterplay:
+- clear audio cue when a utility is targeted;
+- visible sabotage animation;
+- repair cost or short repair minigame;
+- weak point that rewards learning the enemy.
+
+This creates strategic urgency without simply increasing enemy health.
+
+## 28. Masks / wearable run modifiers
+
+Revelations uses earned masks/hats tied to enemy interactions; Gorod Krovi uses helmets/wings for resistances and travel benefits; Rex Infernus extends the idea with a wearable mask whose passive can affect nearby enemies.
+
+Xziel should support a single in-match wearable slot:
+- mask;
+- helmet;
+- charm;
+- cursed crown;
+- goggles;
+- amulet.
+
+Wearables can modify one narrow behavior:
+- fire resistance;
+- explosive resistance;
+- faster trap recharge;
+- special-enemy damage resistance;
+- movement bonus;
+- occasional defensive proc.
+
+Avoid stacking many passive wearables at once.
+
+## 29. Free-perk ritual with narrative flavor
+
+IX's Viking funeral gives a free perk after the player reconstructs a burial with themed objects. It is a strong example of a side reward that feels like a story instead of a vending-machine rebate.
+
+Xziel pattern:
+- discover a dead NPC / shrine / memorial;
+- gather 2–4 contextually meaningful items;
+- place them in understandable locations;
+- trigger a short environmental payoff;
+- award a perk or temporary blessing.
+
+This is ideal for horror storytelling because the side quest can explain who lived/died in the space.
+
+## 30. "First Easter Egg" lesson — low reward can still matter
+
+Der Riese's Fly Trap in World at War is historically important because the reward itself was small: hidden toys, dialogue, achievement. What made it memorable was discovery.
+
+Xziel should preserve some secrets with **no combat advantage at all**:
+- ghost apparition;
+- developer room;
+- alternate radio;
+- scary hallucination;
+- hidden credits;
+- map-history scene;
+- joke interaction.
+
+Not every secret needs currency or a gun. Mystery itself is part of the reward.
