@@ -85,6 +85,7 @@ bool VulkanClearRenderer::initialize(
         !createSwapchain() ||
         !createRenderPass() ||
         !createGraphicsPipeline() ||
+        !createUiPipeline() ||
         !createImageViews() ||
         !createDepthResources() ||
         !createFramebuffers() ||
@@ -189,7 +190,8 @@ void VulkanClearRenderer::shutdown() noexcept {
 
 bool VulkanClearRenderer::drawFrame(
     float timeSeconds,
-    const VulkanCamera& camera) noexcept {
+    const VulkanCamera& camera,
+    const VulkanHudState& hud) noexcept {
     if (!initialized_ ||
         device_ == VK_NULL_HANDLE ||
         swapchain_ == VK_NULL_HANDLE) {
@@ -272,7 +274,8 @@ bool VulkanClearRenderer::drawFrame(
     if (!recordDrawCommand(
             imageIndex,
             timeSeconds,
-            camera)) {
+            camera,
+            hud)) {
         return false;
     }
 
@@ -1815,6 +1818,24 @@ void VulkanClearRenderer::destroySwapchainResources() noexcept {
 
     imageViews_.clear();
 
+    if (uiPipeline_ != VK_NULL_HANDLE) {
+        vkDestroyPipeline(
+            device_,
+            uiPipeline_,
+            nullptr);
+        uiPipeline_ =
+            VK_NULL_HANDLE;
+    }
+
+    if (uiPipelineLayout_ != VK_NULL_HANDLE) {
+        vkDestroyPipelineLayout(
+            device_,
+            uiPipelineLayout_,
+            nullptr);
+        uiPipelineLayout_ =
+            VK_NULL_HANDLE;
+    }
+
     if (graphicsPipeline_ != VK_NULL_HANDLE) {
         vkDestroyPipeline(
             device_,
@@ -1886,6 +1907,7 @@ bool VulkanClearRenderer::recreateSwapchain() noexcept {
         createSwapchain() &&
         createRenderPass() &&
         createGraphicsPipeline() &&
+        createUiPipeline() &&
         createImageViews() &&
         createDepthResources() &&
         createFramebuffers() &&
@@ -1901,7 +1923,8 @@ bool VulkanClearRenderer::recreateSwapchain() noexcept {
 bool VulkanClearRenderer::recordDrawCommand(
     std::uint32_t imageIndex,
     float timeSeconds,
-    const VulkanCamera& camera) noexcept {
+    const VulkanCamera& camera,
+    const VulkanHudState& hud) noexcept {
     if (imageIndex >= commandBuffers_.size() ||
         imageIndex >= framebuffers_.size()) {
         return false;
