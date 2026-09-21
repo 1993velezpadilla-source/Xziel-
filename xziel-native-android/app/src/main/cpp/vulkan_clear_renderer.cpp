@@ -2592,6 +2592,7 @@ void VulkanClearRenderer::destroyReflectionTarget() noexcept {
     reflectionDepthView_ = VK_NULL_HANDLE;
     reflectionExtent_ = {};
     reflectionTargetScale_ = 0.0f;
+    reflectionHasValidContents_ = false;
 }
 
 bool VulkanClearRenderer::createFramebuffers() noexcept {
@@ -3013,10 +3014,20 @@ bool VulkanClearRenderer::recordDrawCommand(
     // implementation intentionally renders a compact subset of the room with
     // a reflected camera; the target is already transitioned to shader-read
     // layout by the reflection render pass for the material sampling stage.
+    const std::uint32_t reflectionUpdateInterval =
+        std::clamp(
+            environment.planarReflectionUpdateEveryNFrames,
+            1U,
+            8U);
+    const bool reflectionDue =
+        !reflectionHasValidContents_ ||
+        reflectionFrameCounter_ % reflectionUpdateInterval == 0;
+
     if (reflectionRenderPass_ != VK_NULL_HANDLE &&
         reflectionFramebuffer_ != VK_NULL_HANDLE &&
         reflectionPipeline_ != VK_NULL_HANDLE &&
-        environment.maxPlanarReflectionPasses > 0) {
+        environment.maxPlanarReflectionPasses > 0 &&
+        reflectionDue) {
         std::array<VkClearValue, 2> reflectionClears{};
         reflectionClears[0].color.float32[0] =
             clears[0].color.float32[0] * 0.55f;
@@ -3146,7 +3157,10 @@ bool VulkanClearRenderer::recordDrawCommand(
         }
 
         vkCmdEndRenderPass(command);
+        reflectionHasValidContents_ = true;
     }
+
+    ++reflectionFrameCounter_;
 
     vkCmdBeginRenderPass(
         command,

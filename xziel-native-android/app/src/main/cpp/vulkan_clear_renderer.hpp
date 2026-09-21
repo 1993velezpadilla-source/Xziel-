@@ -96,6 +96,7 @@ struct VulkanEnvironmentState {
     bool ssrEnabled = false;
     float ssrResolutionScale = 0.0f;
     std::uint32_t ssrMaxSteps = 0;
+    std::uint32_t planarReflectionUpdateEveryNFrames = 1;
 };
 
 struct VulkanHudState {
@@ -321,6 +322,8 @@ private:
     VkImageView reflectionDepthView_ = VK_NULL_HANDLE;
     VkExtent2D reflectionExtent_{};
     float reflectionTargetScale_ = 0.0f;
+    std::uint64_t reflectionFrameCounter_ = 0;
+    bool reflectionHasValidContents_ = false;
     VkRenderPass reflectionRenderPass_ = VK_NULL_HANDLE;
     VkFramebuffer reflectionFramebuffer_ = VK_NULL_HANDLE;
     VkPipeline reflectionPipeline_ = VK_NULL_HANDLE;
