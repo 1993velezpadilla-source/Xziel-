@@ -1,0 +1,121 @@
+name: Build Church Map with Blender
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/church-map-blender.yml"
+      - "tools/church_map/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: xziel-church-map-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-church-map:
+    name: Fetch CC-BY church + Blender headless conversion
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout Xziel
+        uses: actions/checkout@v5
+
+      - name: Install 3D pipeline dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq blender python3-numpy
+          python3 -m pip install --quiet --upgrade pip
+          python3 -m pip install --quiet objaverse trimesh huggingface_hub
+
+      - name: Fetch St Giles Cripplegate from Objaverse
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p church/source church/out
+          python3 - <<'PY'
+          import json
+          import shutil
+          from pathlib import Path
+          import objaverse
+
+          uid = "b92917ff83914adc8bc93959ba8b4399"
+          out = Path("church/source")
+          out.mkdir(parents=True, exist_ok=True)
+
+          annotations = objaverse.load_annotations([uid])
+          ann = annotations.get(uid)
+          if not ann:
+              raise SystemExit("St Giles Cripplegate UID is not present in Objaverse 1.0 annotations")
+
+          print(json.dumps(ann, indent=2))
+          (out / "source_metadata.json").write_text(json.dumps(ann, indent=2), encoding="utf-8")
+
+          objects = objaverse.load_objects([uid], download_processes=1)
+          source = objects.get(uid)
+          if not source:
+              raise SystemExit("Objaverse metadata exists but the St Giles GLB could not be downloaded")
+
+          shutil.copy2(source, out / "st-giles-cripplegate.glb")
+          (out / "ATTRIBUTION.txt").write_text(
+              "St Giles Cripplegate by artfletch\n"
+              "Original Sketchfab UID: b92917ff83914adc8bc93959ba8b4399\n"
+              "Original page: https://sketchfab.com/3d-models/st-giles-cripplegate-b92917ff83914adc8bc93959ba8b4399\n"
+              "License published by creator: Creative Commons Attribution (CC BY).\n"
+              "Downloaded for this build through the public Objaverse dataset mirror.\n",
+              encoding="utf-8",
+          )
+          print("SOURCE", source)
+          print("COPIED", out / "st-giles-cripplegate.glb")
+          PY
+          ls -lh church/source
+
+      - name: Convert, inspect and render in Blender
+        shell: bash
+        env:
+          CHURCH_SOURCE: church/source/st-giles-cripplegate.glb
+          CHURCH_OUT: church/out
+          CHURCH_TARGET_TRIS: "650000"
+        run: |
+          set -euo pipefail
+          blender --background --python tools/church_map/build_church_scene.py 2>&1 | tee church/out/blender-build.log
+          cp church/source/source_metadata.json church/out/
+          cp church/source/ATTRIBUTION.txt church/out/
+          ls -lh church/out
+
+      - name: Validate outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s church/out/church_map_master.blend
+          test -s church/out/church_map_mobile_lod0.glb
+          test -s church/out/church_scene_report.json
+          test -s church/out/exterior_3q.png
+          test -s church/out/exterior_opposite.png
+          test -s church/out/top_layout.png
+          test -s church/out/entry_axis.png
+          python3 - <<'PY'
+          import json
+          r=json.load(open("church/out/church_scene_report.json", encoding="utf-8"))
+          assert r["source_triangles"] > 100000, r
+          assert r["mobile_lod0_triangles"] > 10000, r
+          print("SOURCE_TRIANGLES", r["source_triangles"])
+          print("MOBILE_LOD0_TRIANGLES", r["mobile_lod0_triangles"])
+          print("MESHES", r["source_meshes"])
+          print("BOUNDS", r["bounds_size"])
+          PY
+
+      - name: Upload church map build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xziel-St-Giles-Church-Map-Blender
+          path: church/out/
+          if-no-files-found: error
+          retention-days: 14
