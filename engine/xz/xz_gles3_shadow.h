@@ -2,6 +2,7 @@
 #define XZ_GLES3_SHADOW_H
 
 #include "xz_render_plan.h"
+#include "xz_command_stream.h"
 
 #include <stdint.h>
 
@@ -26,8 +27,17 @@ typedef struct {
     uint64_t restore_failures;
     uint64_t readback_failures;
 
+    uint64_t command_stream_submissions;
+    uint64_t commands_executed;
+    uint64_t passes_executed;
+    uint64_t resource_read_commands;
+    uint64_t resource_write_commands;
+    uint64_t draw_commands;
+    uint64_t command_failures;
+
     unsigned int last_packet_count;
     uint32_t last_plan_hash;
+    uint32_t last_command_hash;
     unsigned int last_gl_error;
     unsigned int last_error_stage;
     uint64_t preexisting_errors;
@@ -45,6 +55,11 @@ int XzGles3Shadow_Init(
 
 int XzGles3Shadow_Submit(
     XzGles3ShadowState *state,
+    const XzRenderPlan *plan);
+
+int XzGles3Shadow_SubmitCommands(
+    XzGles3ShadowState *state,
+    const XzCommandStream *commands,
     const XzRenderPlan *plan);
 
 void XzGles3Shadow_Shutdown(
