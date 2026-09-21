@@ -39,10 +39,14 @@ typedef struct {
     unsigned char priority_class;
     unsigned char lod;
     unsigned char kind;
+    unsigned char visibility_class;
 
     float origin[3];
     float angles[3];
     float distance_sq;
+    float view_forward;
+    float view_right;
+    float view_up;
 } XzRenderPacket;
 
 typedef struct {
@@ -51,8 +55,14 @@ typedef struct {
     XzDeviceTier device_tier;
 
     XzRenderPacket packets[XZ_RENDER_MAX_PACKETS];
+    unsigned int source_packet_count;
     unsigned int packet_count;
+    unsigned int culled_packets;
     unsigned int dropped_packets;
+
+    unsigned int visibility_front_count;
+    unsigned int visibility_edge_count;
+    unsigned int visibility_behind_count;
 
     unsigned int near_count;
     unsigned int mid_count;
