@@ -13,6 +13,7 @@
 #include "xz_gles3_resource_plan.h"
 #include "xz_pass_targets.h"
 #include "xz_pass_inputs.h"
+#include "xz_visibility.h"
 
 #include <SDL.h>
 
@@ -506,7 +507,8 @@ static void XzLogSnapshot(double now_seconds)
         " present=%u alias=%u brush=%u sprite=%u static=%u lights=%u dropped=%u"
         " budget(near=%u mid=%u far=%u crit=%u imp=%u bg=%u"
         " anim=%u shadow=%u vfx=%u light=%u/%u)"
-        " plan(gen=%" PRIu64 " packets=%u lod=%u/%u/%u anim=%u shadow=%u vfx=%u hash=%08x)"
+        " plan(gen=%" PRIu64 " src=%u packets=%u culled=%u vis=%u/%u/%u"
+        " lod=%u/%u/%u anim=%u shadow=%u vfx=%u hash=%08x)"
         " rhi(active=%s shadow=%d submitted=%" PRIu64
         " cmdStreams=%" PRIu64 " rejected=%" PRIu64
         " rejectedCmd=%" PRIu64 " cmdHash=%08x)"
@@ -552,7 +554,12 @@ static void XzLogSnapshot(double now_seconds)
         scene->admitted_lights,
         scene->dynamic_light_budget,
         plan->generation,
+        plan->source_packet_count,
         plan->packet_count,
+        plan->culled_packets,
+        plan->visibility_front_count,
+        plan->visibility_edge_count,
+        plan->visibility_behind_count,
         plan->near_count,
         plan->mid_count,
         plan->far_count,
@@ -607,15 +614,22 @@ static void XzLogSnapshot(double now_seconds)
      */
     XzAndroidLog(
         ANDROID_LOG_INFO,
-        "phase12 heartbeat init=%d graph=%d resources=%u mirror=%d"
-        " gles3=%d sampled=%" PRIu64 " sampleFail=%" PRIu64,
+        "phase13 heartbeat init=%d graph=%d resources=%u mirror=%d"
+        " gles3=%d sampled=%" PRIu64 " sampleFail=%" PRIu64
+        " source=%u draw=%u culled=%u front=%u edge=%u behind=%u",
         xz_runtime.initialized,
         xz_runtime.render_graph_compiled.valid,
         xz_runtime.gpu_resources.alive_count,
         xz_runtime.rhi.mirror_attached,
         xz_runtime.gles3_shadow.available,
         xz_runtime.gles3_shadow.sampled_passes,
-        xz_runtime.gles3_shadow.sampled_failures);
+        xz_runtime.gles3_shadow.sampled_failures,
+        plan->source_packet_count,
+        plan->packet_count,
+        plan->culled_packets,
+        plan->visibility_front_count,
+        plan->visibility_edge_count,
+        plan->visibility_behind_count);
 
     XzAndroidLog(
         ANDROID_LOG_INFO,
@@ -929,6 +943,15 @@ void XzAndroidRuntime_Init(size_t engine_heap_bytes)
                     : ANDROID_LOG_WARN,
                 "phase12 pass_inputs planner=%s sampledDepth=TEXTURE",
                 XzPassInputPlan_SelfTest()
+                    ? "PASS" : "FAIL");
+
+            XzAndroidLog(
+                XzVisibility_SelfTest()
+                    ? ANDROID_LOG_INFO
+                    : ANDROID_LOG_WARN,
+                "phase13 visibility selftest=%s source=VRIL_PVS camera=VPN_FOV"
+                " conservative=1",
+                XzVisibility_SelfTest()
                     ? "PASS" : "FAIL");
 
             if (!attach_ok)
