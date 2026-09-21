@@ -1400,6 +1400,14 @@ xziel::android::VulkanEnvironmentState makeEnvironmentState(
                ? 2U
                : 4U);
 
+    // Prototype water is the first real planar surface. Keep its geometry
+    // explicit at the Android boundary so future map content can replace this
+    // with the ReflectionPlanner-selected surface without changing Vulkan.
+    environment.planarPlaneNormalX = 0.0f;
+    environment.planarPlaneNormalY = 1.0f;
+    environment.planarPlaneNormalZ = 0.0f;
+    environment.planarPlaneDistance = 1.48f;
+
     // Estimate projected contribution using the actual camera heading rather
     // than distance alone. A reflection target behind the player should not
     // consume a second scene pass merely because it is geographically close.

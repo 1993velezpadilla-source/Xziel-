@@ -99,6 +99,14 @@ struct VulkanEnvironmentState {
     std::uint32_t planarReflectionUpdateEveryNFrames = 1;
     bool planarReflectionVisible = true;
     float planarReflectionScreenCoverage = 1.0f;
+
+    // Selected planar surface geometry in normalized world-space form.
+    // n.x*x + n.y*y + n.z*z + d = 0. This is carried explicitly so the
+    // backend no longer has to invent the capture plane.
+    float planarPlaneNormalX = 0.0f;
+    float planarPlaneNormalY = 1.0f;
+    float planarPlaneNormalZ = 0.0f;
+    float planarPlaneDistance = 1.48f;
 };
 
 struct VulkanHudState {
