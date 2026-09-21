@@ -100,6 +100,28 @@ text = text.replace(old_create, new_create, 1)
 
 vid.write_text(text, encoding="utf-8")
 
+# Be defensive against malformed/custom map entities reaching the collision
+# path as SOLID_BSP without MOVETYPE_PUSH. Stock Vril aborts the entire process;
+# on Android we downgrade only that invalid entity to bbox collision instead.
+world = source / "world.c"
+world_text = world.read_text(encoding="utf-8")
+old = """\tif (ent->v.solid == SOLID_BSP)
+\t{\t// explicit hulls in the BSP model
+\t\tif (ent->v.movetype != MOVETYPE_PUSH)
+\t\t\tSys_Error ("SOLID_BSP without MOVETYPE_PUSH");
+"""
+new = """\tif (ent->v.solid == SOLID_BSP && ent->v.movetype != MOVETYPE_PUSH)
+\t{
+\t\tCon_Printf ("WARNING: invalid SOLID_BSP entity %s; using bbox collision\\n", PR_GetString(ent->v.classname));
+\t\tent->v.solid = SOLID_BBOX;
+\t}
+\tif (ent->v.solid == SOLID_BSP)
+\t{\t// explicit hulls in the BSP model
+"""
+if old not in world_text:
+    raise SystemExit("Could not find Vril SOLID_BSP fatal guard")
+world.write_text(world_text.replace(old, new, 1), encoding="utf-8")
+
 print(f"Patched Vril {git_hash} for Android/GL4ES")
 
 
