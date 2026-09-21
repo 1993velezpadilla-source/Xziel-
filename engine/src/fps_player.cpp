@@ -238,6 +238,242 @@ FpsPlayerController::buildTraversalContext() const noexcept {
     traversal.wallOnRight = false;
     traversal.wallNormal = {};
 
+    const float yaw =
+        frame_.yawDegrees *
+        kDegreesToRadians;
+
+    const Vec2 forward{
+        std::sin(yaw),
+        std::cos(yaw),
+    };
+
+    const Vec2 right{
+        std::cos(yaw),
+        -std::sin(yaw),
+    };
+
+    const float playerX =
+        frame_.feetPosition.x;
+
+    const float playerZ =
+        frame_.feetPosition.z;
+
+    const float feetY =
+        frame_.feetPosition.y;
+
+    const float bodyTop =
+        feetY +
+        std::max(
+            0.1f,
+            config_.collisionHeight);
+
+    const float mantleProbe =
+        std::max(
+            0.0f,
+            config_.collisionRadius +
+                config_.mantleProbeDistance);
+
+    const float wallProbe =
+        std::max(
+            0.0f,
+            config_.collisionRadius +
+                config_.wallRunProbeDistance);
+
+    float bestWallDistance =
+        wallProbe +
+        1.0f;
+
+    for (std::size_t i = 0;
+         i < staticObstacleCount_;
+         ++i) {
+        const auto& obstacle =
+            staticObstacles_[i];
+
+        const float nearestX =
+            std::clamp(
+                playerX,
+                obstacle.minimum.x,
+                obstacle.maximum.x);
+
+        const float nearestZ =
+            std::clamp(
+                playerZ,
+                obstacle.minimum.z,
+                obstacle.maximum.z);
+
+        const float deltaX =
+            playerX -
+            nearestX;
+
+        const float deltaZ =
+            playerZ -
+            nearestZ;
+
+        const float horizontalDistance =
+            std::sqrt(
+                deltaX * deltaX +
+                deltaZ * deltaZ);
+
+        if (traversal.grounded) {
+            const float ledgeHeight =
+                obstacle.maximum.y -
+                feetY;
+
+            if (ledgeHeight >=
+                    config_.mantleMinimumHeight &&
+                ledgeHeight <=
+                    config_.mantleMaximumHeight) {
+                const float centerX =
+                    (obstacle.minimum.x +
+                     obstacle.maximum.x) *
+                    0.5f;
+
+                const float centerZ =
+                    (obstacle.minimum.z +
+                     obstacle.maximum.z) *
+                    0.5f;
+
+                const float toObstacleX =
+                    centerX -
+                    playerX;
+
+                const float toObstacleZ =
+                    centerZ -
+                    playerZ;
+
+                const float forwardDistance =
+                    toObstacleX *
+                        forward.x +
+                    toObstacleZ *
+                        forward.y;
+
+                const float sideDistance =
+                    std::fabs(
+                        toObstacleX *
+                            right.x +
+                        toObstacleZ *
+                            right.y);
+
+                const float obstacleHalfWidth =
+                    std::max(
+                        (obstacle.maximum.x -
+                         obstacle.minimum.x) *
+                            0.5f,
+                        (obstacle.maximum.z -
+                         obstacle.minimum.z) *
+                            0.5f);
+
+                if (forwardDistance > 0.0f &&
+                    forwardDistance <=
+                        mantleProbe &&
+                    sideDistance <=
+                        obstacleHalfWidth +
+                        config_.collisionRadius) {
+                    traversal.mantleAvailable =
+                        true;
+                }
+            }
+        }
+
+        const bool verticallyRunnable =
+            obstacle.maximum.y -
+                obstacle.minimum.y >=
+                    config_.
+                        wallRunMinimumWallHeight &&
+            bodyTop >
+                obstacle.minimum.y &&
+            feetY <
+                obstacle.maximum.y;
+
+        if (traversal.grounded ||
+            !verticallyRunnable ||
+            horizontalDistance >
+                wallProbe ||
+            horizontalDistance >=
+                bestWallDistance) {
+            continue;
+        }
+
+        Vec2 normal{};
+
+        if (horizontalDistance >
+            1.0e-5f) {
+            const float inverseDistance =
+                1.0f /
+                horizontalDistance;
+
+            normal = {
+                deltaX *
+                    inverseDistance,
+                deltaZ *
+                    inverseDistance,
+            };
+        } else {
+            const float leftDistance =
+                std::fabs(
+                    playerX -
+                    obstacle.minimum.x);
+
+            const float rightDistance =
+                std::fabs(
+                    obstacle.maximum.x -
+                    playerX);
+
+            const float frontDistance =
+                std::fabs(
+                    playerZ -
+                    obstacle.minimum.z);
+
+            const float backDistance =
+                std::fabs(
+                    obstacle.maximum.z -
+                    playerZ);
+
+            const float nearestSide =
+                std::min(
+                    std::min(
+                        leftDistance,
+                        rightDistance),
+                    std::min(
+                        frontDistance,
+                        backDistance));
+
+            if (nearestSide ==
+                leftDistance) {
+                normal = {-1.0f, 0.0f};
+            } else if (nearestSide ==
+                       rightDistance) {
+                normal = {1.0f, 0.0f};
+            } else if (nearestSide ==
+                       frontDistance) {
+                normal = {0.0f, -1.0f};
+            } else {
+                normal = {0.0f, 1.0f};
+            }
+        }
+
+        const float sideDot =
+            normal.x *
+                right.x +
+            normal.y *
+                right.y;
+
+        traversal.wallRunnable = true;
+        traversal.wallNormal =
+            normal;
+
+        traversal.wallOnLeft =
+            sideDot >
+            0.15f;
+
+        traversal.wallOnRight =
+            sideDot <
+            -0.15f;
+
+        bestWallDistance =
+            horizontalDistance;
+    }
+
     return traversal;
 }
 
