@@ -302,7 +302,7 @@ static int XzCreateProgramAndBuffer(void)
         GL_FLOAT,
         GL_FALSE,
         (GLsizei)(XZ_VERTEX_FLOATS * sizeof(float)),
-        (const void *)(2u * sizeof(float)));
+        (const void *)(uintptr_t)(2u * sizeof(float)));
 
     gl->BindVertexArray(0u);
     gl->BindBuffer(GL_ARRAY_BUFFER, 0u);
