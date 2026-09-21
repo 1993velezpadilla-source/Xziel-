@@ -105,10 +105,30 @@ if "\tXziel_WaWLegacyAudio_Init();\n" not in s:
             raise SystemExit("worldspawn init call anchor missing")
         s = s.replace(fallback, "\tXziel_WaWLegacyAudio_Init();\n\n" + fallback, 1)
 
+# Replace the stock splash cue at the exact initial-round presentation point.
+# This avoids starting two SOUND_TYPE_MUSIC_ROUND cues on the same frame, where
+# the stock splash could immediately stomp the optional classic laugh.
+splash_needle = r'''\t\t\tif (cvar("sv_startround") == 0) {
+\t\t\t\tstring splash_tune = "sounds/rounds/splash.wav";
+\t\t\t\tsplash_tune = Gamemode_GetSplashTune(splash_tune);
+\t\t\t\tRounds_PlayTransition(splash_tune);
+\t\t\t}'''
+splash_repl = r'''\t\t\tif (cvar("sv_startround") == 0) {
+\t\t\t\tstring splash_tune = "sounds/rounds/splash.wav";
+\t\t\t\tsplash_tune = Gamemode_GetSplashTune(splash_tune);
+\t\t\t\tif (mapname == "ndu" && cvar("xziel_nacht_enhanced") >= 0.5 && xziel_waw_round1_ready)
+\t\t\t\t\tsplash_tune = xziel_waw_round1_path;
+\t\t\t\tRounds_PlayTransition(splash_tune);
+\t\t\t}'''
+if "splash_tune = xziel_waw_round1_path;" not in s:
+    if splash_needle not in s:
+        raise SystemExit("Round-1 splash audio anchor missing")
+    s = s.replace(splash_needle, splash_repl, 1)
+
 main.write_text(s, encoding="utf-8")
 
 # ---------------------------------------------------------------------------
-# Round transitions:
+# Round transition accents: optional classic round-over and chalk sounds.
 # - exact classic Round-1 laugh can accompany the existing white->red tally.
 # - optional classic round-over and chalk accents.
 # ---------------------------------------------------------------------------
@@ -135,27 +155,6 @@ repl = '''\t} else {
 if "xziel_waw_roundover_ready" not in s:
     if needle not in s:
         raise SystemExit("EndRound audio anchor missing")
-    s = s.replace(needle, repl, 1)
-
-# Start the classic laugh exactly when the Round 1 center tally begins its
-# existing white->red transition, not several seconds later at spawn commit.
-needle = '''\tif (cvar("sv_startround") == 0) {
-\t\tround_changetime = time + 3.5;
-\t\trounds_change = 1;
-\t} else {
-\t\tNewRound();
-\t}'''
-repl = '''\tif (cvar("sv_startround") == 0) {
-\t\tround_changetime = time + 3.5;
-\t\trounds_change = 1;
-\t\tif (mapname == "ndu" && cvar("xziel_nacht_enhanced") >= 0.5 && xziel_waw_round1_ready)
-\t\t\tRounds_PlayTransition(xziel_waw_round1_path);
-\t} else {
-\t\tNewRound();
-\t}'''
-if "rounds_change = 1;\n\t\tif (mapname == \"ndu\"" not in s:
-    if needle not in s:
-        raise SystemExit("InitRounds round-1 presentation anchor missing")
     s = s.replace(needle, repl, 1)
 
 needle = "\trounds = rounds + 1;\n"
