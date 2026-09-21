@@ -457,6 +457,314 @@ static GLenum XzCaptureError(
     return error;
 }
 
+static int XzTextureFormat(
+    uint32_t logical_format,
+    GLint *internal_format,
+    GLenum *format,
+    GLenum *type)
+{
+    if (!internal_format || !format || !type)
+        return 0;
+
+    switch ((XzRgFormat)logical_format) {
+    case XZ_RG_FORMAT_RGBA16F:
+        *internal_format = GL_RGBA16F;
+        *format = GL_RGBA;
+        *type = GL_HALF_FLOAT;
+        return 1;
+
+    case XZ_RG_FORMAT_RG16F:
+        *internal_format = GL_RG16F;
+        *format = GL_RG;
+        *type = GL_HALF_FLOAT;
+        return 1;
+
+    case XZ_RG_FORMAT_RGBA8:
+    case XZ_RG_FORMAT_UNKNOWN:
+        *internal_format = GL_RGBA8;
+        *format = GL_RGBA;
+        *type = GL_UNSIGNED_BYTE;
+        return 1;
+
+    case XZ_RG_FORMAT_DEPTH16:
+    case XZ_RG_FORMAT_DEPTH24:
+    default:
+        return 0;
+    }
+}
+
+static GLenum XzDepthInternalFormat(
+    uint32_t logical_format)
+{
+    return logical_format == XZ_RG_FORMAT_DEPTH16
+        ? GL_DEPTH_COMPONENT16
+        : GL_DEPTH_COMPONENT24;
+}
+
+static void XzDestroyPhysicalResource(
+    XzGles3ShadowState *state,
+    unsigned int index)
+{
+    XzGles3PhysicalResource *resource;
+
+    if (!state || index >= XZ_GPU_MAX_RESOURCES)
+        return;
+
+    resource = &xz_shadow.physical[index];
+    if (!resource->alive)
+        return;
+
+    if (resource->object != 0u) {
+        if (resource->spec.kind ==
+            XZ_G3_RESOURCE_TEXTURE_2D) {
+            xz_shadow.gl.DeleteTextures(
+                1, &resource->object);
+        } else if (resource->spec.kind ==
+                   XZ_G3_RESOURCE_DEPTH_RENDERBUFFER) {
+            xz_shadow.gl.DeleteRenderbuffers(
+                1, &resource->object);
+        }
+
+        if (state->physical_gl_objects > 0u)
+            state->physical_gl_objects--;
+    }
+
+    if (state->physical_alive > 0u)
+        state->physical_alive--;
+
+    if (state->physical_bytes >=
+        resource->spec.physical_bytes)
+        state->physical_bytes -=
+            resource->spec.physical_bytes;
+    else
+        state->physical_bytes = 0u;
+
+    state->physical_destroys++;
+    memset(resource, 0, sizeof(*resource));
+}
+
+static int XzBindPhysicalResource(
+    XzGles3ShadowState *state,
+    XzGles3PhysicalResource *resource,
+    int for_write)
+{
+    GLenum error;
+
+    if (!state || !resource || !resource->alive)
+        return 0;
+
+    switch (resource->spec.kind) {
+    case XZ_G3_RESOURCE_TEXTURE_2D:
+        xz_shadow.gl.BindTexture(
+            GL_TEXTURE_2D,
+            resource->object);
+        break;
+
+    case XZ_G3_RESOURCE_DEPTH_RENDERBUFFER:
+        xz_shadow.gl.BindRenderbuffer(
+            GL_RENDERBUFFER,
+            resource->object);
+        break;
+
+    case XZ_G3_RESOURCE_EXTERNAL_SURFACE:
+        break;
+
+    case XZ_G3_RESOURCE_INVALID:
+    default:
+        state->physical_failures++;
+        return 0;
+    }
+
+    error = xz_shadow.gl.GetError();
+    if (error != GL_NO_ERROR) {
+        state->physical_failures++;
+        if (state->last_gl_error == 0u)
+            state->last_gl_error =
+                (unsigned int)error;
+        return 0;
+    }
+
+    if (for_write)
+        state->physical_write_binds++;
+    else
+        state->physical_read_binds++;
+
+    return 1;
+}
+
+static int XzEnsurePhysicalResource(
+    XzGles3ShadowState *state,
+    XzGpuResourcePool *pool,
+    XzGpuHandle handle,
+    int for_write)
+{
+    const XzGpuResourceDesc *desc;
+    XzGles3PhysicalResource *resource;
+    XzGles3ResourceSpec spec;
+    unsigned int index;
+    GLuint object = 0u;
+    GLenum error;
+
+    if (!state || !pool ||
+        handle == XZ_GPU_INVALID_HANDLE) {
+        if (state)
+            state->physical_failures++;
+        return 0;
+    }
+
+    index = XzGpuHandle_Index(handle);
+    if (index >= XZ_GPU_MAX_RESOURCES) {
+        state->physical_failures++;
+        return 0;
+    }
+
+    desc = XzGpuResource_Resolve(pool, handle);
+    if (!desc) {
+        state->physical_failures++;
+        return 0;
+    }
+
+    resource = &xz_shadow.physical[index];
+
+    if (resource->alive &&
+        resource->handle == handle) {
+        state->physical_reuses++;
+        return XzBindPhysicalResource(
+            state, resource, for_write);
+    }
+
+    if (resource->alive)
+        XzDestroyPhysicalResource(state, index);
+
+    if (!XzGles3ResourcePlan_Build(
+            desc,
+            XZ_G3_RESOURCE_PROXY_MAX,
+            &spec)) {
+        state->physical_failures++;
+        return 0;
+    }
+
+    if (spec.kind == XZ_G3_RESOURCE_TEXTURE_2D) {
+        GLint internal_format;
+        GLenum format;
+        GLenum type;
+
+        if (!XzTextureFormat(
+                spec.logical_format,
+                &internal_format,
+                &format,
+                &type)) {
+            state->physical_failures++;
+            return 0;
+        }
+
+        xz_shadow.gl.GenTextures(1, &object);
+        if (!object) {
+            state->physical_failures++;
+            return 0;
+        }
+
+        xz_shadow.gl.BindTexture(
+            GL_TEXTURE_2D, object);
+        xz_shadow.gl.TexParameteri(
+            GL_TEXTURE_2D,
+            GL_TEXTURE_MIN_FILTER,
+            GL_NEAREST);
+        xz_shadow.gl.TexParameteri(
+            GL_TEXTURE_2D,
+            GL_TEXTURE_MAG_FILTER,
+            GL_NEAREST);
+        xz_shadow.gl.TexParameteri(
+            GL_TEXTURE_2D,
+            GL_TEXTURE_WRAP_S,
+            GL_CLAMP_TO_EDGE);
+        xz_shadow.gl.TexParameteri(
+            GL_TEXTURE_2D,
+            GL_TEXTURE_WRAP_T,
+            GL_CLAMP_TO_EDGE);
+        xz_shadow.gl.TexImage2D(
+            GL_TEXTURE_2D,
+            0,
+            internal_format,
+            (GLsizei)spec.physical_width,
+            (GLsizei)spec.physical_height,
+            0,
+            format,
+            type,
+            NULL);
+    } else if (
+        spec.kind ==
+        XZ_G3_RESOURCE_DEPTH_RENDERBUFFER) {
+        xz_shadow.gl.GenRenderbuffers(
+            1, &object);
+        if (!object) {
+            state->physical_failures++;
+            return 0;
+        }
+
+        xz_shadow.gl.BindRenderbuffer(
+            GL_RENDERBUFFER, object);
+        xz_shadow.gl.RenderbufferStorage(
+            GL_RENDERBUFFER,
+            XzDepthInternalFormat(
+                spec.logical_format),
+            (GLsizei)spec.physical_width,
+            (GLsizei)spec.physical_height);
+    } else if (
+        spec.kind !=
+        XZ_G3_RESOURCE_EXTERNAL_SURFACE) {
+        state->physical_failures++;
+        return 0;
+    }
+
+    error = xz_shadow.gl.GetError();
+    if (error != GL_NO_ERROR) {
+        if (object != 0u) {
+            if (spec.kind ==
+                XZ_G3_RESOURCE_TEXTURE_2D)
+                xz_shadow.gl.DeleteTextures(
+                    1, &object);
+            else if (spec.kind ==
+                     XZ_G3_RESOURCE_DEPTH_RENDERBUFFER)
+                xz_shadow.gl.DeleteRenderbuffers(
+                    1, &object);
+        }
+
+        state->physical_failures++;
+        if (state->last_gl_error == 0u)
+            state->last_gl_error =
+                (unsigned int)error;
+        return 0;
+    }
+
+    memset(resource, 0, sizeof(*resource));
+    resource->handle = handle;
+    resource->spec = spec;
+    resource->object = object;
+    resource->alive = 1;
+
+    state->physical_alive++;
+    if (object != 0u)
+        state->physical_gl_objects++;
+    state->physical_creates++;
+    state->physical_bytes += spec.physical_bytes;
+
+    return XzBindPhysicalResource(
+        state, resource, for_write);
+}
+
+static void XzDestroyAllPhysicalResources(
+    XzGles3ShadowState *state)
+{
+    unsigned int i;
+
+    if (!state)
+        return;
+
+    for (i = 0u; i < XZ_GPU_MAX_RESOURCES; ++i)
+        XzDestroyPhysicalResource(state, i);
+}
+
 void XzGles3Shadow_InitState(
     XzGles3ShadowState *state)
 {
