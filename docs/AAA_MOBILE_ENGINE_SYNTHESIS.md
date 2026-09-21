@@ -10,6 +10,8 @@ Reference titles:
 - Wuthering Waves
 - Call of Duty: Warzone Mobile
 - Delta Force
+- Earth: Revival
+- LifeAfter (software-occlusion subsystem study)
 
 ## What all successful high-end mobile engines converge on
 
@@ -37,6 +39,8 @@ The exact engines differ, but the engineering patterns repeat:
 | Wuthering Waves | one-pass deferred + measured power engineering |
 | Warzone Mobile | shared high-end content with mobile-specific renderer/cook, plus streaming/product cautions |
 | Delta Force | unified source content + automatic platform recomposition + feature planning |
+| Earth: Revival | render graph + multithreaded rendering + tile-based deferred + hybrid occlusion |
+| LifeAfter | software occlusion benchmark: ~1.5 ms low-end / ~65% average draw-call reduction |
 
 ## Proposed Xziel renderer stack
 
@@ -403,16 +407,22 @@ Performance is not "FPS only."
 
 ### 3. Modern rendering foundation
 - XzRHI
+- XzRenderGraph
 - GLES3 backend
 - GPU timers
 - resource lifetime tracking
-- render-pass abstraction
+- transient render-target pool
+- render-pass/subpass abstraction
+- multithreaded render preparation
 
 ### 4. Visibility
 - room/cell layer over BSP
-- CPU occlusion
+- CPU/software occlusion with conservative occluder meshes
+- zero-false-occlusion regression path
 - static instancing
 - cluster cooker/culling
+- target <=1.5 ms SOC stress cost on representative low/mid hardware when enabled
+- target strong indoor draw-call rejection before default-on
 
 ### 5. Materials/lighting
 - linear PBR
@@ -459,4 +469,4 @@ AAA visual language
 + graceful quality degradation
 ```
 
-The strongest lesson from all seven production case studies is that mobile AAA quality comes from **removing invisible work, cooking the right representation for the target, and spending runtime budget only where the player can perceive the value**.
+The strongest lesson from the accumulated production case studies is that mobile AAA quality comes from **removing invisible work, cooking the right representation for the target, and spending runtime budget only where the player can perceive the value**.
