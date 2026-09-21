@@ -102,7 +102,7 @@ jobs:
           set -euxo pipefail
           find /tmp/mhassets -name 'middleage_caucasian_male.mhmat' -print -quit | grep .
           find /tmp/mhassets -name 'low-poly.mhclo' -print -quit | grep .
-          find /tmp/mhassets -name 'male_worksuit01.mhclo' -print -quit | grep .
+          find /tmp/mhassets -name 'male_casualsuit01.mhclo' -print -quit | grep .
 
       - name: Generate rigged MPFB zombie
         shell: bash
