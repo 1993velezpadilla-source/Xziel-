@@ -19,6 +19,7 @@
 
 typedef struct {
     XzFrameMetrics frame;
+    XzFrameMetrics stage[XZ_CPU_STAGE_COUNT];
     XzMemoryBudget memory;
     XzPerformanceGovernor governor;
     int initialized;
@@ -187,6 +188,7 @@ static void XzLogSnapshot(double now_seconds)
         " rss=%.1fMiB high=%.1fMiB state=%s passive=%d"
         " present_gen=%" PRIu64
         " present=%u alias=%u brush=%u sprite=%u static=%u lights=%u dropped=%u"
+        " stage_p95(update=%.2f render=%.2f audio=%.2f)"
         " advice(render=%.2f anim=%.2f shadow=%.2f vfx=%.2f light=%.2f stream=%.2f)",
         xz_runtime.frame.total_frames,
         xz_runtime.frame.last_ms,
@@ -207,6 +209,9 @@ static void XzLogSnapshot(double now_seconds)
         present_static,
         present_lights,
         present_dropped,
+        xz_runtime.stage[XZ_CPU_STAGE_UPDATE].p95_ms,
+        xz_runtime.stage[XZ_CPU_STAGE_RENDER].p95_ms,
+        xz_runtime.stage[XZ_CPU_STAGE_AUDIO].p95_ms,
         rec->render_scale,
         rec->animation_rate_scale,
         rec->shadow_budget_scale,
@@ -251,6 +256,9 @@ void XzAndroidRuntime_Init(size_t engine_heap_bytes)
     xz_runtime.android_api = api[0] ? atoi(api) : 0;
 
     XzFrameMetrics_Init(&xz_runtime.frame);
+    XzFrameMetrics_Init(&xz_runtime.stage[XZ_CPU_STAGE_UPDATE]);
+    XzFrameMetrics_Init(&xz_runtime.stage[XZ_CPU_STAGE_RENDER]);
+    XzFrameMetrics_Init(&xz_runtime.stage[XZ_CPU_STAGE_AUDIO]);
     XzChooseMemoryBudget(
         xz_runtime.system_ram_mb, &soft_bytes, &hard_bytes);
     XzMemoryBudget_Init(&xz_runtime.memory, soft_bytes, hard_bytes);
@@ -290,6 +298,26 @@ void XzAndroidRuntime_BeginFrame(double now_seconds)
     if (!xz_runtime.initialized)
         return;
     XzFrameMetrics_Begin(&xz_runtime.frame, now_seconds);
+}
+
+void XzAndroidRuntime_EndStage(XzCpuStage stage, double now_seconds)
+{
+    if (!xz_runtime.initialized)
+        return;
+    if (stage < 0 || stage >= XZ_CPU_STAGE_COUNT)
+        return;
+
+    XzFrameMetrics_End(&xz_runtime.stage[stage], now_seconds);
+}
+
+void XzAndroidRuntime_BeginStage(XzCpuStage stage, double now_seconds)
+{
+    if (!xz_runtime.initialized)
+        return;
+    if (stage < 0 || stage >= XZ_CPU_STAGE_COUNT)
+        return;
+
+    XzFrameMetrics_Begin(&xz_runtime.stage[stage], now_seconds);
 }
 
 void XzAndroidRuntime_EndFrame(double now_seconds)
