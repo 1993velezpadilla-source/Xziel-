@@ -119,6 +119,47 @@ if 'stock random 0..3 zombie skin index' not in zs:
         raise SystemExit("Lab zombie spawn skin anchor missing")
     zs = zs.replace(skin_anchor, skin_new, 1)
 
+hitbox_anchor = '''\tif (map_compatibility_mode == MAP_COMPAT_BETA) {
+\t\tvector_scale_hack(self.head.bbmins, self.head.scale);
+\t\tvector_scale_hack(self.head.bbmaxs, self.head.scale);
+\t\tvector_scale_hack(self.head.view_ofs, self.head.scale);
+
+\t\tvector_scale_hack(self.larm.bbmins, self.larm.scale);
+\t\tvector_scale_hack(self.larm.bbmaxs, self.larm.scale);
+\t\tvector_scale_hack(self.larm.view_ofs, self.larm.scale);
+
+\t\tvector_scale_hack(self.rarm.bbmins, self.rarm.scale);
+\t\tvector_scale_hack(self.rarm.bbmaxs, self.rarm.scale);
+\t\tvector_scale_hack(self.rarm.view_ofs, self.rarm.scale);
+\t}
+'''
+hitbox_new = hitbox_anchor + '''
+\t// XZIEL_LAB_DAMAGE_ENVELOPE: the Lab presentation mesh is intentionally
+\t// wider than NZ:P's segmented zombie. Expand only the damage proxies here;
+\t// do NOT widen szombie.mins/maxs, because that movement hull must remain
+\t// stock-sized for windows, doorways, pathing and zombie trains.
+\tif (mapname == "ndu_enchanted") {
+\t\tvector_scale_hack(self.head.bbmins, 1.85);
+\t\tvector_scale_hack(self.head.bbmaxs, 1.85);
+
+\t\tvector_scale_hack(self.larm.bbmins, 1.65);
+\t\tvector_scale_hack(self.larm.bbmaxs, 1.65);
+\t\tvector_scale_hack(self.rarm.bbmins, 1.65);
+\t\tvector_scale_hack(self.rarm.bbmaxs, 1.65);
+
+\t\t// The new rig carries its limbs a little farther from the torso than
+\t\t// the legacy segmented mesh. Mildly expand offsets without moving the
+\t\t// hitboxes so far out that center-mass shots develop holes.
+\t\tvector_scale_hack(self.head.view_ofs, 1.08);
+\t\tvector_scale_hack(self.larm.view_ofs, 1.12);
+\t\tvector_scale_hack(self.rarm.view_ofs, 1.12);
+\t}
+'''
+if 'XZIEL_LAB_DAMAGE_ENVELOPE' not in zs:
+    if hitbox_anchor not in zs:
+        raise SystemExit("Lab zombie damage-hitbox anchor missing")
+    zs = zs.replace(hitbox_anchor, hitbox_new, 1)
+
 zombie_core.write_text(zs, encoding="utf-8")
 
 s = client.read_text(encoding="utf-8")
