@@ -3,6 +3,7 @@
 #include "android_input.hpp"
 #include "vulkan_clear_renderer.hpp"
 
+#include <android/asset_manager.h>
 #include <android/log.h>
 #include <android/native_window.h>
 #include <game-activity/native_app_glue/android_native_app_glue.h>
@@ -20,6 +21,7 @@
 #include "xziel/horror.hpp"
 #include "xziel/interaction.hpp"
 #include "xziel/map_runtime.hpp"
+#include "xziel/map_format.hpp"
 #include "xziel/player_vitals.hpp"
 #include "xziel/quest_runtime.hpp"
 #include "xziel/performance.hpp"
@@ -35,6 +37,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <string>
 
 namespace {
 
@@ -232,6 +235,59 @@ struct NativeAppState {
     float memoryPressureSeconds = 0.0f;
     float thermalPollSeconds = 1.0f;
 };
+
+bool loadMapDefinitionFromAsset(
+    AAssetManager* assetManager,
+    const char* assetPath,
+    xziel::MapDefinition& destination) noexcept {
+    if (assetManager == nullptr ||
+        assetPath == nullptr) {
+        return false;
+    }
+
+    AAsset* asset =
+        AAssetManager_open(
+            assetManager,
+            assetPath,
+            AASSET_MODE_BUFFER);
+
+    if (asset == nullptr) {
+        return false;
+    }
+
+    const off_t length =
+        AAsset_getLength(
+            asset);
+
+    if (length <= 0 ||
+        length > 1024 * 1024) {
+        AAsset_close(asset);
+        return false;
+    }
+
+    std::string text(
+        static_cast<std::size_t>(length),
+        '\0');
+
+    const int read =
+        AAsset_read(
+            asset,
+            text.data(),
+            static_cast<std::size_t>(length));
+
+    AAsset_close(asset);
+
+    if (read != length) {
+        return false;
+    }
+
+    xziel::MapParseError parseError{};
+
+    return xziel::parseMapText(
+        text,
+        destination,
+        parseError);
+}
 
 void configurePrototypeMap(
     NativeAppState& state) noexcept {
@@ -2279,8 +2335,18 @@ extern "C" void android_main(
     state.runtime.onEvent(
         xziel::AndroidLifecycleEvent::Create);
 
-    configurePrototypeMap(
-        state);
+    const bool prototypeAssetLoaded =
+        app->activity != nullptr &&
+        loadMapDefinitionFromAsset(
+            app->activity->assetManager,
+            "maps/prototype.xmap",
+            state.mapDefinition);
+
+    if (!prototypeAssetLoaded) {
+        configurePrototypeMap(
+            state);
+    }
+
     configurePrototypeQuest(
         state);
 
@@ -2294,6 +2360,12 @@ extern "C" void android_main(
     if (!prototypeMapLoad.success) {
         logError(
             "Prototype map failed to load into Xziel map runtime");
+    } else if (prototypeAssetLoaded) {
+        logInfo(
+            "XZIEL_XMAP_ASSET_READY");
+    } else {
+        logInfo(
+            "XZIEL_XMAP_FALLBACK_READY");
     }
 
     xziel::WeatherConfig prototypeStorm{};
