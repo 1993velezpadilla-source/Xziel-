@@ -48,6 +48,9 @@ public:
 
     void beginFrame(float deltaSeconds) noexcept;
 
+    void setInteractAvailable(
+        bool available) noexcept;
+
     void handleLooperIdentifier(int identifier) noexcept;
 
     void consumeInputBuffer(
@@ -68,6 +71,7 @@ private:
         Fire,
         Aim,
         Reload,
+        Interact,
         Jump,
         Stance,
     };
@@ -135,6 +139,7 @@ private:
 
     float stanceHeldSeconds_ = 0.0f;
     int displayRotation_ = 0;
+    bool interactAvailable_ = false;
 };
 
 } // namespace xziel::android
