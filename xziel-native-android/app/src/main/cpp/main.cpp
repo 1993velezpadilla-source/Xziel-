@@ -1198,6 +1198,22 @@ extern "C" void android_main(
     state.runtime.onEvent(
         xziel::AndroidLifecycleEvent::Create);
 
+    const xziel::Aabb prototypeCenterObstacle{
+        .minimum = {
+            -0.58f,
+            -1.60f,
+            -0.25f,
+        },
+        .maximum = {
+            0.58f,
+            0.95f,
+            0.95f,
+        },
+    };
+
+    (void) state.player.addStaticObstacle(
+        prototypeCenterObstacle);
+
     xziel::WeatherConfig prototypeStorm{};
     prototypeStorm.rainIntensity = 0.78f;
     prototypeStorm.windMetersPerSecond = {
