@@ -33,7 +33,7 @@ typedef struct {
     uint64_t value64;
 } XzCommand;
 
-typedef struct {
+typedef struct XzCommandStream {
     XzCommand commands[XZ_COMMAND_MAX];
     unsigned int count;
     unsigned int overflow_count;
