@@ -222,3 +222,221 @@ Rule for future extraction: only set `min_players=4` when map source or authorit
 - zone activation/deactivation tied to traversal
 - platform-specific fail behavior that must be tested independently
 
+
+## Research expansion — 2026-09-20 (community release sweep)
+
+## Shipment Survival v1.1 — Discussion #1513
+
+Source: https://github.com/nzp-team/nzportable/discussions/1513  
+Status: **SURVIVAL_ONLY_OR_NO_QUEST_FOUND**.
+
+Verified:
+- classic Shipment survival layout
+- four original World at War perks
+- mystery box
+- no Pack-a-Punch
+- no substantial quest/Easter-egg chain described in the release
+- v1.1 fixed two glitch spots and added Ray Gun Mk II to the box pool
+
+Keep as a clean survival-map baseline rather than inventing a quest classification.
+
+## Yukon Yard v1.0 — Discussion #1526
+
+Source: https://github.com/nzp-team/nzportable/discussions/1526  
+Status: **MECHANICS_VERIFIED / EXACT BUNKER STEPS NOT YET SOURCE-EXTRACTED**.
+
+Verified:
+- four classic perks plus Stamin-Up and Mule Kick
+- mystery box
+- Pack-a-Punch
+- a hidden bunker whose opening is deliberately part of discovery
+- buyable ending connected to the hidden progression
+- a player later confirmed reaching the buyable ending
+- Ray Gun Mk II can be allowed into the mystery-box pool via map box settings
+
+Reusable pattern:
+`discover hidden condition -> unlock bunker -> access PAP/finale path`.
+
+Do not invent the bunker solution until source/archive logic proves it.
+
+## Alley v1.2 — Discussion #1393
+
+Source: https://github.com/nzp-team/nzportable/discussions/1393  
+Status: **MECHANICS_VERIFIED / MINOR_EASTER_EGG**.
+
+Verified:
+- Pack-a-Punch within normal map progression
+- spawn zones
+- a "spare change" Easter egg explicitly re-balanced in v1.1
+
+Useful as an example of a lightweight side secret embedded in ordinary survival flow rather than a full main quest.
+
+## RWBY_B.A. — Discussion #1502
+
+Source: https://github.com/nzp-team/nzportable/discussions/1502  
+Status: **MAIN_EE_ADVERTISED / STEPS_UNVERIFIED**.
+
+Verified from the release author:
+- Pack-a-Punch
+- Juggernog, Stamin-Up, Quick Revive, Speed Cola and PhD
+- mystery box
+- Bowie Knife wallbuy
+- a mysterious Easter-egg wallbuy
+- author explicitly states the map contains a **main Easter egg**
+
+No exact step chain has been established from public release text yet. Keep the map in the source-extraction queue rather than fabricating the quest path.
+
+## Poop of the Dead — Discussion #1352
+
+Source: https://github.com/nzp-team/nzportable/discussions/1352  
+Status: **SOURCE_AVAILABLE / QUEST_UNVERIFIED**.
+
+Verified:
+- release explicitly publishes J.A.C.K project files
+- source archive therefore exists for direct entity/target-graph extraction
+- thread itself does not establish a complete EE chain
+
+High-priority source candidate because it can move from prose-level claims to source-level evidence once the project archive is accessible.
+
+## Haus Uberleben — Discussion #1376
+
+Source: https://github.com/nzp-team/nzportable/discussions/1376  
+Status: **MECHANICS_VERIFIED**.
+
+Verified:
+- four core perks
+- randomized perk-machine spawning
+- Free Perk Easter egg
+- unlockable Pack-a-Punch
+- buyable ending
+- community feedback explicitly references finding the hidden perk power-up
+
+Reusable patterns:
+- randomized interactable placement
+- hidden reward pickup
+- side EE reward independent from main survival economy
+- unlock PAP -> buyable finale progression
+
+Exact trigger chain remains a source/archive extraction task.
+
+## TOILETTEN — Discussion #739
+
+Source: https://github.com/nzp-team/nzportable/discussions/739  
+Status: **MECHANICS_VERIFIED / TWO-PART_EASTER_EGG**.
+
+Verified:
+- author explicitly describes a **short two-part Easter egg**
+- buyable ending
+- community comments show players progressing from first step to second
+- Pack-a-Punch is part of the hidden progression discussion
+- co-op was tested with 1–2 players
+- author says 4 players should be possible
+
+Important multiplayer classification:
+**4-player support is not a 4-player quest requirement.** No evidence establishes `min_players=4`.
+
+Reusable pattern:
+`EE step A -> EE step B -> unlock/finale state`.
+
+## Simulacra — Discussion #858
+
+Source: https://github.com/nzp-team/nzportable/discussions/858  
+Project archive: Archive.org release linked by author.  
+Status: **SOURCE_AVAILABLE / MECHANICS_PARTIAL**.
+
+Verified:
+- J.A.C.K project files are explicitly published
+- an update fixed a missing model on `func_ending`
+- an update made obtaining Double Tap II clearer
+- source/download archive exposes a dedicated J.A.C.K files package
+- Archive.org metadata identifies the map project and its reuse license separately from NZ:P engine code
+
+This is another high-priority source extraction candidate because an editable project exists and the changelog already proves hidden progression plus a global ending primitive.
+
+## BusDepot v1.0 — Discussion #1471
+
+Source: https://github.com/nzp-team/nzportable/discussions/1471  
+Status: **MECHANICS_VERIFIED / TEDDY EASTER EGG**.
+
+Verified:
+- initial release stated no Easter eggs
+- author later edited the release to say the map **now has an Easter egg**
+- buyable ending
+- community interaction confirms shooting teddies is part of the EE
+- discussion references an "EE room"
+- PSP pathfinding/performance in the EE room was identified and worked on
+
+Do not infer the exact teddy count or full chain until source/package evidence establishes it.
+
+## One Window In NZP — Discussion #997
+
+Source: https://github.com/nzp-team/nzportable/discussions/997  
+Status: **SURVIVAL_ONLY_OR_NO_QUEST_FOUND**.
+
+Verified:
+- one-window challenge
+- wall weapon
+- eight perks
+- Pack-a-Punch
+- mystery box
+- no substantive quest chain established in the reviewed release evidence
+
+## Teddy Survival — Discussion #321
+
+Source: https://github.com/nzp-team/nzportable/discussions/321  
+Status: **EASTER_EGG_ADVERTISED / CURRENT BUG REPORTS**.
+
+Verified:
+- migrated release advertises all perks, Easter egg and Pack-a-Punch
+- recent community feedback reports serious barricade/spawn behavior problems
+
+Do not use it as a "known-good quest implementation" until source/runtime behavior is validated.
+
+## Pump — Discussion #166
+
+Source: https://github.com/nzp-team/nzportable/discussions/166  
+Status: **SURVIVAL_ONLY_OR_NO_QUEST_FOUND**.
+
+Verified:
+- basic survival setup
+- no Pack-a-Punch
+- no mystery box
+- no substantial EE chain established
+
+## Old beta maps — Discussion #373
+
+Source: https://github.com/nzp-team/nzportable/discussions/373  
+Status: **ARCHIVE COLLECTION / PER-MAP EXTRACTION REQUIRED**.
+
+Verified:
+- archive of maps recovered from the older NZ:P forum ecosystem
+- community comments identify at least one lost-to-time map, "Zombie Island"
+- whole archive should be treated as a source-discovery pool, not one logical map
+
+Each map needs its own immutable source/package fingerprint and extraction status.
+
+## Alleyway — Discussion #173
+
+Source: https://github.com/nzp-team/nzportable/discussions/173  
+Status: **SURVIVAL_ONLY_OR_NO_QUEST_FOUND**.
+
+Small Left 4 Dead-inspired survival release; no substantial EE chain established in the release evidence reviewed.
+
+## Updated release-version notes
+
+The current map-release board labels:
+- **No Man's Land — update 1.6**
+- **Das Alte Haus — update 1.2**
+
+The No Man's Land discussion body currently exposes changelog detail through v1.5 in the public crawl, while the category board advertises v1.6. Keep that version difference explicit until the v1.6 delta itself is source-visible.
+
+Das Alte Haus v1.2 adds/fixes:
+- Vril fog
+- broad performance improvements, especially lower-end devices
+- Vril loading-screen music
+- teddy visibility across devices
+- backyard detail
+- Vril ambience
+- perk ambience incorrectly playing without power
+
+Community follow-up also confirms an older 3DS `killtarget`/moving-door failure was fixed by a newer game version.
