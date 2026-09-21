@@ -87,6 +87,12 @@ jobs:
           grep -q 'waw_round_start_laugh.wav' build/deps/quakec/source/server/main.qc
           grep -q 'splash_tune = xziel_waw_round1_path' build/deps/quakec/source/server/main.qc
           grep -q 'xziel_waw_gameover_ready' build/deps/quakec/source/server/damage.qc
+          grep -q 'ADS+FIRE deliberately uses the bullet-over-reticle art' build/deps/vril/source/render/r_hud.c
+          grep -q 'i==0 ? 92 : 68' build/deps/vril/source/render/r_hud.c
+          test -s build/nzp-data/nzp/gfx/xziel/fire.png
+          test -s build/nzp-data/nzp/gfx/xziel/ads.png
+          test -s build/nzp-data/nzp/gfx/xziel/reload.png
+          test -s build/nzp-data/nzp/gfx/xziel/slide.png
           grep -q 'KILLS  %d     HEADSHOTS' build/deps/quakec/source/client/hud.qc
           test -s build/nzp-data/nzp/textures/nacht_enhanced/nduwall.jpg
           test -s build/nzp-data/nzp/textures/nacht_enhanced/cons5nny3.jpg
