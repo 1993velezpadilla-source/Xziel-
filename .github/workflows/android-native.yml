@@ -169,6 +169,20 @@ jobs:
             -o /tmp/xz_pass_targets_test
           /tmp/xz_pass_targets_test
 
+      - name: Test Xz pass input planner
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_pass_inputs_test.c \
+            engine/xz/xz_pass_inputs.c \
+            engine/xz/xz_gpu_resources.c \
+            engine/xz/xz_command_stream.c \
+            engine/xz/xz_render_graph.c \
+            engine/xz/xz_render_plan.c \
+            -o /tmp/xz_pass_inputs_test
+          /tmp/xz_pass_inputs_test
+
       - name: Set up Java 17
         uses: actions/setup-java@v5
         with:
@@ -441,9 +455,21 @@ jobs:
               grep -E "XZIEL-XZ.*g3fbo\(" dist/xziel-logcat.txt | tail -n 100 || true
               exit 1
             fi
+
+            if ! grep -Eq "XZIEL-XZ.*phase12 pass_inputs planner=PASS sampledDepth=TEXTURE" dist/xziel-logcat.txt; then
+              echo "Xz Phase-12 pass input planner did not initialize."
+              grep -E "XZIEL-XZ.*phase12 pass_inputs" dist/xziel-logcat.txt | tail -n 100 || true
+              exit 1
+            fi
+
+            if ! grep -Eq "XZIEL-XZ.*g3sample\(passes=[1-9][0-9]* draws=[1-9][0-9]* inputs=[1-9][0-9]* fail=0 max=2\)" dist/xziel-logcat.txt; then
+              echo "Xz Phase-12 did not execute sampled GLES3 pass chaining."
+              grep -E "XZIEL-XZ.*g3sample\(" dist/xziel-logcat.txt | tail -n 100 || true
+              exit 1
+            fi
           fi
 
-          echo "Xziel remained alive; Phase 0-11 including real GLES3 render targets is live."
+          echo "Xziel remained alive; Phase 0-12 including sampled GLES3 pass chaining is live."
 
       - name: Upload runtime diagnostics
         if: always()
