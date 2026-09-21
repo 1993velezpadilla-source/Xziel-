@@ -105,9 +105,18 @@ jobs:
         run: |
           cc -std=c99 -O2 -Wall -Wextra -Werror \
             -Iengine/xz \
-            tests/xz_render_plan_test.c engine/xz/xz_render_plan.c \
+            tests/xz_render_plan_test.c engine/xz/xz_render_plan.c engine/xz/xz_visibility.c \
             -o /tmp/xz_render_plan_test
           /tmp/xz_render_plan_test
+
+      - name: Test Xz Visibility
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_visibility_test.c engine/xz/xz_visibility.c \
+            -o /tmp/xz_visibility_test
+          /tmp/xz_visibility_test
 
       - name: Test Xz RHI
         shell: bash
@@ -117,6 +126,7 @@ jobs:
             tests/xz_rhi_test.c \
             engine/xz/xz_rhi.c \
             engine/xz/xz_render_plan.c \
+            engine/xz/xz_visibility.c \
             engine/xz/xz_device_caps.c \
             engine/xz/xz_gpu_resources.c \
             -o /tmp/xz_rhi_test
@@ -142,6 +152,7 @@ jobs:
             engine/xz/xz_command_stream.c \
             engine/xz/xz_render_graph.c \
             engine/xz/xz_render_plan.c \
+            engine/xz/xz_visibility.c \
             -o /tmp/xz_resource_command_test
           /tmp/xz_resource_command_test
 
@@ -166,6 +177,7 @@ jobs:
             engine/xz/xz_command_stream.c \
             engine/xz/xz_render_graph.c \
             engine/xz/xz_render_plan.c \
+            engine/xz/xz_visibility.c \
             -o /tmp/xz_pass_targets_test
           /tmp/xz_pass_targets_test
 
@@ -180,6 +192,7 @@ jobs:
             engine/xz/xz_command_stream.c \
             engine/xz/xz_render_graph.c \
             engine/xz/xz_render_plan.c \
+            engine/xz/xz_visibility.c \
             -o /tmp/xz_pass_inputs_test
           /tmp/xz_pass_inputs_test
 
@@ -338,7 +351,7 @@ jobs:
           fi
 
           XZ_PHASE12_HEARTBEAT=0
-          if grep -Eq "XZIEL-XZ.*phase12 heartbeat init=1 graph=1 resources=5 mirror=1 gles3=1 sampled=[1-9][0-9]* sampleFail=0" dist/xziel-logcat.txt; then
+          if grep -Eq "XZIEL-XZ.*phase13 heartbeat init=1 graph=1 resources=5 mirror=1 gles3=1 sampled=[1-9][0-9]* sampleFail=0" dist/xziel-logcat.txt; then
             XZ_PHASE12_HEARTBEAT=1
           fi
 
@@ -474,7 +487,25 @@ jobs:
             fi
           fi
 
-          echo "Xziel remained alive; Phase 0-12 including sampled GLES3 pass chaining is live."
+          if ! grep -Eq "XZIEL-XZ.*phase13 visibility selftest=PASS source=VRIL_PVS camera=VPN_FOV conservative=1" dist/xziel-logcat.txt; then
+            echo "Xz Phase-13 visibility classifier did not initialize."
+            grep -E "XZIEL-XZ.*phase13 visibility" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*plan\(gen=[1-9][0-9]* src=[1-9][0-9]* packets=[1-9][0-9]* culled=[0-9]+ vis=[0-9]+/[0-9]+/[0-9]+" dist/xziel-logcat.txt; then
+            echo "Xz Phase-13 did not publish live visibility counts."
+            grep -E "XZIEL-XZ.*plan\(" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*phase13 heartbeat .*source=[1-9][0-9]* draw=[1-9][0-9]* culled=[0-9]+ front=[0-9]+ edge=[0-9]+ behind=[0-9]+" dist/xziel-logcat.txt; then
+            echo "Xz Phase-13 visibility heartbeat is missing."
+            grep -E "XZIEL-XZ.*phase13 heartbeat" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          echo "Xziel remained alive; Phase 0-13 including camera-space geometry visibility is live."
 
       - name: Upload runtime diagnostics
         if: always()
