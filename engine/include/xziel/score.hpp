@@ -21,9 +21,12 @@ struct ScoreConfig {
 struct ScoreFrame {
     std::uint64_t total = 0;
     std::uint32_t lastAward = 0;
+    std::uint32_t lastSpend = 0;
 
     bool changedThisTick = false;
     bool criticalAwardThisTick = false;
+    bool spentThisTick = false;
+    bool insufficientFundsThisTick = false;
 };
 
 class ScoreSystem final {
@@ -39,6 +42,9 @@ public:
 
     [[nodiscard]] ScoreFrame awardRoundClear(
         std::uint32_t completedRound) noexcept;
+
+    [[nodiscard]] bool trySpend(
+        std::uint32_t points) noexcept;
 
     [[nodiscard]] const ScoreFrame&
     frame() const noexcept;
