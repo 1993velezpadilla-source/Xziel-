@@ -33,6 +33,13 @@ public final class XzielGameActivity extends GameActivity {
         }
     }
 
+    public int getXzielDisplayRotation() {
+        if (getDisplay() == null) {
+            return 0;
+        }
+        return getDisplay().getRotation();
+    }
+
     private void enterImmersiveMode() {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
