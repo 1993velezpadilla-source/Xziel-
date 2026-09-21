@@ -108,12 +108,12 @@ if "\tXziel_WaWLegacyAudio_Init();\n" not in s:
 # Replace the stock splash cue at the exact initial-round presentation point.
 # This avoids starting two SOUND_TYPE_MUSIC_ROUND cues on the same frame, where
 # the stock splash could immediately stomp the optional classic laugh.
-splash_needle = r'''\t\t\tif (cvar("sv_startround") == 0) {
+splash_needle = '''\t\t\tif (cvar("sv_startround") == 0) {
 \t\t\t\tstring splash_tune = "sounds/rounds/splash.wav";
 \t\t\t\tsplash_tune = Gamemode_GetSplashTune(splash_tune);
 \t\t\t\tRounds_PlayTransition(splash_tune);
 \t\t\t}'''
-splash_repl = r'''\t\t\tif (cvar("sv_startround") == 0) {
+splash_repl = '''\t\t\tif (cvar("sv_startround") == 0) {
 \t\t\t\tstring splash_tune = "sounds/rounds/splash.wav";
 \t\t\t\tsplash_tune = Gamemode_GetSplashTune(splash_tune);
 \t\t\t\tif (mapname == "ndu" && cvar("xziel_nacht_enhanced") >= 0.5 && xziel_waw_round1_ready)
