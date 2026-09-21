@@ -1,6 +1,7 @@
 #include "xz_android_runtime.h"
 #include "xz_phase0.h"
 #include "xz_present_world.h"
+#include "xz_bottleneck.h"
 
 #include <SDL.h>
 
@@ -180,6 +181,12 @@ static void XzLogSnapshot(double now_seconds)
         present ? present->active_light_count : 0u;
     const unsigned int present_dropped =
         present ? present->dropped_entities : 0u;
+    const XzBottleneckAnalysis bottleneck =
+        XzBottleneck_Analyze(
+            (unsigned long long)xz_runtime.frame.total_frames,
+            xz_runtime.stage[XZ_CPU_STAGE_UPDATE].p95_ms,
+            xz_runtime.stage[XZ_CPU_STAGE_RENDER].p95_ms,
+            xz_runtime.stage[XZ_CPU_STAGE_AUDIO].p95_ms);
 
     XzAndroidLog(
         ANDROID_LOG_INFO,
@@ -189,6 +196,7 @@ static void XzLogSnapshot(double now_seconds)
         " present_gen=%" PRIu64
         " present=%u alias=%u brush=%u sprite=%u static=%u lights=%u dropped=%u"
         " stage_p95(update=%.2f render=%.2f audio=%.2f)"
+        " bottleneck=%s shares(u=%.2f r=%.2f a=%.2f) dominance=%.2f"
         " advice(render=%.2f anim=%.2f shadow=%.2f vfx=%.2f light=%.2f stream=%.2f)",
         xz_runtime.frame.total_frames,
         xz_runtime.frame.last_ms,
@@ -212,6 +220,11 @@ static void XzLogSnapshot(double now_seconds)
         xz_runtime.stage[XZ_CPU_STAGE_UPDATE].p95_ms,
         xz_runtime.stage[XZ_CPU_STAGE_RENDER].p95_ms,
         xz_runtime.stage[XZ_CPU_STAGE_AUDIO].p95_ms,
+        XzBottleneck_Name(bottleneck.kind),
+        bottleneck.update_share,
+        bottleneck.render_share,
+        bottleneck.audio_share,
+        bottleneck.dominant_ratio,
         rec->render_scale,
         rec->animation_rate_scale,
         rec->shadow_budget_scale,
