@@ -243,3 +243,102 @@ Current selected prayer treatment:
 - master target: 48 kHz stereo / 24-bit WAV.
 
 The spoken content includes Padre Nuestro, Ave Maria, Gloria and the closing Fatima prayer. The player experiences the entire sequence as one uninterrupted manifestation unless a dead-child discovery interrupts it.
+
+
+## Hidden fate gamble
+
+Every neutral manifestation now rolls one hidden fate at spawn time. The player never sees the roll.
+
+Possible hidden fates:
+- **OFFERING — 48%**
+- **HOSTILE_TEST — 52%**
+
+The player choice is only whether to interact before the prayer ends.
+
+### Seen tracking
+
+Ignoring La Llorona matters only if she actually registers the player during that manifestation.
+
+A player becomes SEEN when all of these are true:
+- within 18 m;
+- unobstructed line of sight;
+- inside an 85-degree view cone;
+- visibility is continuous for at least 0.30 s.
+
+Once SEEN is set, it remains true until that manifestation ends.
+
+If the player is never SEEN, doing nothing is always safe.
+
+### Interaction matrix
+
+If the player interacts during the prayer window:
+
+- hidden fate = OFFERING:
+  - she grants one randomized boon;
+  - no child clue is revealed;
+  - no explanation is shown;
+  - she departs without Rage.
+
+- hidden fate = HOSTILE_TEST:
+  - the interaction immediately fails;
+  - neutral audio/interaction is cancelled;
+  - she enters RAGE.
+
+If the player does not interact before the last Amen:
+
+- player never SEEN:
+  - she departs neutrally regardless of hidden fate.
+
+- player SEEN + hidden fate = OFFERING:
+  - she interprets the refusal as rejection/ingratitude;
+  - at prayer end she enters RAGE.
+
+- player SEEN + hidden fate = HOSTILE_TEST:
+  - ignoring her was unknowingly the correct choice;
+  - she departs neutrally.
+
+This creates the intended uncertainty: interaction can save the player or trigger the boss, and ignoring her can also save the player or trigger the boss.
+
+### Boon pool
+
+When OFFERING + successful interaction occurs, grant exactly one weighted random boon:
+
+- 30% — **Ammo Blessing**: refill the current weapon and part of reserve ammo.
+- 22% — **Temporary Damage**: +20% weapon damage for 45 s.
+- 20% — **Spirit Armor**: absorbs the next two ordinary zombie hits; expires after 75 s.
+- 16% — **Haste**: +10% movement and reload speed for 40 s.
+- 12% — **Mercy Points**: small points grant.
+
+The boon is identified only after it has been granted. No preview lets the player know whether interaction is worth the risk.
+
+### Dead-child priority
+
+Dead-child discovery always has higher priority than the hidden fate system.
+
+If La Llorona discovers a dead child at any point:
+- prayer stops immediately;
+- any pending boon is cancelled;
+- any neutral interaction is cancelled;
+- DISCOVERY -> RAGE occurs regardless of OFFERING/HOSTILE_TEST.
+
+A dead child does not automatically force Rage merely because it exists somewhere in the map. She still has to find it.
+
+## Audio candidate policy
+
+The previous enchanted prayer is frozen and must remain available as a rollback reference:
+
+- **V2 / llorona_prayer_enchanted_v2** — LOCKED BASELINE
+
+The new darker experiment is:
+
+- **V3 / llorona_prayer_enchanted_v3_darker** — CURRENT TEST CANDIDATE
+
+V3 keeps the lead voice readable and adds only supporting horror layers:
+- extra breath/whisper aura keyed to the spoken voice;
+- quiet low spectral shadow behind the lead;
+- longer ancient-chapel reflections;
+- selected reverse-like pre-echo swells;
+- subliminal low-frequency presence;
+- intermittent non-verbal breath texture in long pauses.
+
+Do not overwrite V2 when iterating on V3 or later versions.
