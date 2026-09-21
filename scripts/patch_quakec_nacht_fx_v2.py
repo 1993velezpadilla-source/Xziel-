@@ -46,6 +46,7 @@ globals_block = r'''
 float xziel_nacht_fx_next_fire;
 float xziel_nacht_fx_next_spark;
 float xziel_nacht_fx_next_lightning;
+float xziel_nacht_fx_next_box;
 float xziel_nacht_fx_lightning_until;
 
 '''
@@ -79,6 +80,17 @@ render = r'''void() Xziel_NachtEnhanced_Render =
 
     // Cold moon contribution at the breach.
     dynamiclight_add('687 2096 112', 76, '0.18 0.30 0.48');
+
+    // Mystery Box: cold violet supernatural pool centered on the authored box
+    // position. Keep it pulsing rather than fullbright so the bunker remains
+    // dark and the box reads as a destination from either floor.
+    float boxpulse = 0.82 + 0.18 * sin(cltime * 2.4);
+    dynamiclight_add('1080 2368 76', 128 * boxpulse, '0.36 0.12 0.62');
+
+    if (xziel_nacht_fx_next_box <= cltime) {
+        pointparticles(particleeffectnum("weapons.impact"), '1080 2368 92', '0 0 10', 1);
+        xziel_nacht_fx_next_box = cltime + 0.55 + random() * 0.35;
+    }
 
     // Real Enhanced-only particles. Use existing NZ:P effects so there are no
     // new licensing or package-size costs. Bounded to ~20 flame emissions/sec.
