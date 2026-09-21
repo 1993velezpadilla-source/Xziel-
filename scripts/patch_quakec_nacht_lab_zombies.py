@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Use the baked CC0 zombie model only on Nacht: Enchanted Lab.
 
-Gameplay remains NZ:P-authoritative. Intact standing zombies use the Lab model;
-crawlers and severed-limb states intentionally fall back to stock segmented
-models until dedicated Lab crawler/limb assets are baked.
+Gameplay remains NZ:P-authoritative. Standing zombies use animated Lab mesh
+variants whose visible head/arms follow the stock NZ:P dismemberment flags.
+Crawlers intentionally keep the proven stock crawler path for now.
 """
 from pathlib import Path
 import sys
@@ -20,8 +20,16 @@ s = main.read_text(encoding="utf-8")
 
 precache_anchor = '\tprecache_model ("models/ai/zfull.mdl");\n'
 precache = '''\tprecache_model ("models/ai/zfull.mdl");
-\tif (mapname == "ndu_enchanted")
+\tif (mapname == "ndu_enchanted") {
 \t\tprecache_model ("models/xziel_lab/zombie_basic.mdl");
+\t\tprecache_model ("models/xziel_lab/zombie_basic_nohead.mdl");
+\t\tprecache_model ("models/xziel_lab/zombie_basic_nolarm.mdl");
+\t\tprecache_model ("models/xziel_lab/zombie_basic_normarm.mdl");
+\t\tprecache_model ("models/xziel_lab/zombie_basic_nohead_nolarm.mdl");
+\t\tprecache_model ("models/xziel_lab/zombie_basic_nohead_normarm.mdl");
+\t\tprecache_model ("models/xziel_lab/zombie_basic_noarms.mdl");
+\t\tprecache_model ("models/xziel_lab/zombie_basic_nohead_noarms.mdl");
+\t}
 '''
 if 'precache_model ("models/xziel_lab/zombie_basic.mdl")' not in s:
     if precache_anchor not in s:
@@ -59,6 +67,58 @@ if 'setmodel(ent, "models/xziel_lab/zombie_basic.mdl")' not in s:
     if old not in s:
         raise SystemExit("RelinkZombies intact-model anchor missing")
     s = s.replace(old, new, 1)
+
+
+# XZIEL_LAB_VISUAL_DISMEMBERMENT: the body model is monolithic, while NZ:P's
+# damage system tracks head/arms as separate invisible entities. On every
+# relink, select a pre-baked body surface variant from those authoritative
+# deadflags. This preserves headless bleed-out, arm loss, scoring and AI while
+# making the visible mesh tell the truth.
+relink_anchor = '''#endif // FTE
+
+\t\tmakevectors (ent.angles);
+
+\t\tfor(i = 0; i < 3; i++)
+'''
+relink_new = '''#endif // FTE
+
+\t\t// XZIEL_LAB_VISUAL_DISMEMBERMENT
+\t\tif (mapname == "ndu_enchanted" && ent.crawling != 1) {
+\t\t\tlocal string lab_model;
+\t\t\tif (!ent.head.deadflag) {
+\t\t\t\tif (!ent.larm.deadflag && !ent.rarm.deadflag)
+\t\t\t\t\tlab_model = "models/xziel_lab/zombie_basic_nohead_noarms.mdl";
+\t\t\t\telse if (!ent.larm.deadflag)
+\t\t\t\t\tlab_model = "models/xziel_lab/zombie_basic_nohead_nolarm.mdl";
+\t\t\t\telse if (!ent.rarm.deadflag)
+\t\t\t\t\tlab_model = "models/xziel_lab/zombie_basic_nohead_normarm.mdl";
+\t\t\t\telse
+\t\t\t\t\tlab_model = "models/xziel_lab/zombie_basic_nohead.mdl";
+\t\t\t} else {
+\t\t\t\tif (!ent.larm.deadflag && !ent.rarm.deadflag)
+\t\t\t\t\tlab_model = "models/xziel_lab/zombie_basic_noarms.mdl";
+\t\t\t\telse if (!ent.larm.deadflag)
+\t\t\t\t\tlab_model = "models/xziel_lab/zombie_basic_nolarm.mdl";
+\t\t\t\telse if (!ent.rarm.deadflag)
+\t\t\t\t\tlab_model = "models/xziel_lab/zombie_basic_normarm.mdl";
+\t\t\t\telse
+\t\t\t\t\tlab_model = "models/xziel_lab/zombie_basic.mdl";
+\t\t\t}
+\t\t\tif (ent.model != lab_model)
+\t\t\t\tsetmodel(ent, lab_model);
+\t\t\tsetmodel(ent.head, "");
+\t\t\tsetmodel(ent.larm, "");
+\t\t\tsetmodel(ent.rarm, "");
+\t\t}
+
+\t\tmakevectors (ent.angles);
+
+\t\tfor(i = 0; i < 3; i++)
+'''
+if 'XZIEL_LAB_VISUAL_DISMEMBERMENT' not in s:
+    if relink_anchor not in s:
+        raise SystemExit("Lab visual-dismemberment relink anchor missing")
+    s = s.replace(relink_anchor, relink_new, 1)
 
 main.write_text(s, encoding="utf-8")
 
@@ -109,12 +169,10 @@ if 'if (mapname == "ndu_enchanted")\n\t\tsetmodel(szombie, "models/xziel_lab/zom
 skin_anchor = '''\tszombie.head.skin = szombie.larm.skin = szombie.rarm.skin = szombie.skin;
 '''
 skin_new = skin_anchor + '''
-\t// The baked Lab MDL currently exposes one atlas/skin. Do not inherit the
-\t// stock random 0..3 zombie skin index.
-\tif (mapname == "ndu_enchanted")
-\t\tszombie.head.skin = szombie.larm.skin = szombie.rarm.skin = szombie.skin = 0;
+\t// XZIEL_LAB_SKIN_VARIANTS: the Lab family bakes four external horror skins,
+\t// so intentionally preserve NZ:P's stock random skin index 0..3.
 '''
-if 'stock random 0..3 zombie skin index' not in zs:
+if 'XZIEL_LAB_SKIN_VARIANTS' not in zs:
     if skin_anchor not in zs:
         raise SystemExit("Lab zombie spawn skin anchor missing")
     zs = zs.replace(skin_anchor, skin_new, 1)
@@ -167,6 +225,13 @@ snap_anchor = '''    {"models/ai/zfull.mdl", [0, 0, 18], [0, 0, 35]},
 '''
 snap_new = '''    {"models/ai/zfull.mdl", [0, 0, 18], [0, 0, 35]},
     {"models/xziel_lab/zombie_basic.mdl", [0, 0, 18], [0, 0, 35]},
+    {"models/xziel_lab/zombie_basic_nohead.mdl", [0, 0, 18], [0, 0, 35]},
+    {"models/xziel_lab/zombie_basic_nolarm.mdl", [0, 0, 18], [0, 0, 35]},
+    {"models/xziel_lab/zombie_basic_normarm.mdl", [0, 0, 18], [0, 0, 35]},
+    {"models/xziel_lab/zombie_basic_nohead_nolarm.mdl", [0, 0, 18], [0, 0, 35]},
+    {"models/xziel_lab/zombie_basic_nohead_normarm.mdl", [0, 0, 18], [0, 0, 35]},
+    {"models/xziel_lab/zombie_basic_noarms.mdl", [0, 0, 18], [0, 0, 35]},
+    {"models/xziel_lab/zombie_basic_nohead_noarms.mdl", [0, 0, 18], [0, 0, 35]},
 '''
 if '"models/xziel_lab/zombie_basic.mdl", [0, 0, 18]' not in s:
     if snap_anchor not in s:
@@ -174,4 +239,4 @@ if '"models/xziel_lab/zombie_basic.mdl", [0, 0, 18]' not in s:
     s = s.replace(snap_anchor, snap_new, 1)
 
 client.write_text(s, encoding="utf-8")
-print("Bound the real animated CC0 zombie model to intact Lab zombies only.")
+print("Bound Lab zombie family with aligned hitboxes, horror skins and visible dismemberment.")
