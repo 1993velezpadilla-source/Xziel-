@@ -109,6 +109,9 @@ unzip -q "$DOWNLOADS/pc-nzp-assets.zip" -d "$ASSET_WORK"
 mkdir -p "$ASSET_WORK/nzp"
 unzip -q "$DOWNLOADS/standard-nzp-qc.zip" -d "$ASSET_WORK/nzp"
 
+echo "==> Staging separate Nacht Enchanted practice map"
+bash "$ROOT/scripts/stage_nacht_enchanted_map.sh" "$ASSET_WORK"
+
 # Xziel mobile HUD art comes from a pinned CC0 icon pack and is rasterized at
 # build time. This keeps the repository text-only while packaging professional
 # touch-control art into the APK.

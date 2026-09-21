@@ -16,6 +16,7 @@ on:
     branches:
       - main
       - feature/v022-nacht-enhanced-runtime
+      - feature/nacht-enchanted-map
     paths:
       - ".github/workflows/android-native.yml"
       - "android/**"
@@ -133,6 +134,8 @@ jobs:
           test -s build/nzp-data/nzp/textures/nacht_enhanced/cons5nny3.jpg
           test -s build/nzp-data/nzp/textures/nacht_enhanced/debris_hnf3p.jpg
           test -s build/nzp-data/nzp/textures/nacht_enhanced/ground_hb3.jpg
+          test -s build/nzp-data/nzp/maps/ndu_enchanted.bsp
+          test -s build/nzp-data/nzp/maps/ndu_enchanted.txt
           test -s build/nzp-data/nzp/licenses/XZIEL-WAW-REFERENCE-AUDIO.txt
           if find build/nzp-data/nzp/sounds/xziel/waw -type f -name '*.wav' 2>/dev/null | grep -q .; then
             echo "Unexpected copyrighted/local WaW audio entered default CI package"
@@ -155,6 +158,8 @@ jobs:
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/textures/nacht_enhanced/cons5nny3.jpg'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/textures/nacht_enhanced/debris_hnf3p.jpg'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/textures/nacht_enhanced/ground_hb3.jpg'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/maps/ndu_enchanted.bsp'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/maps/ndu_enchanted.txt'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/licenses/NACHT-ENHANCED-CC0-SOURCES.txt'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/licenses/XZIEL-WAW-REFERENCE-AUDIO.txt'
 

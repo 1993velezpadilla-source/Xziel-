@@ -140,7 +140,7 @@ public class NZPActivity extends SDLActivity {
             return new String[] {
                 "-basedir", dataRoot.getAbsolutePath(),
                 "+xziel_nacht_enhanced", "1",
-                "+map", "ndu"
+                "+map", "ndu_enchanted"
             };
         }
 
