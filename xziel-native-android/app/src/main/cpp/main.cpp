@@ -873,7 +873,11 @@ void advancePlayer(
                         state.vitals.frame().alive &&
                         input.input.fire &&
                         playerFrame.movement.canFire,
-                    .firePressed = false,
+                    .firePressed =
+                        tick == 0U &&
+                        state.vitals.frame().alive &&
+                        input.firePressed &&
+                        playerFrame.movement.canFire,
                     .reloadPressed =
                         state.vitals.frame().alive &&
                         input.input.reload &&
