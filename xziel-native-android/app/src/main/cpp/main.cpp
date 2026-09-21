@@ -1369,6 +1369,30 @@ xziel::android::VulkanEnvironmentState makeEnvironmentState(
         state.renderWorkload.
             postProcessScale;
 
+    environment.maxPlanarReflectionPasses =
+        state.renderWorkload.
+            maxPlanarReflectionPasses;
+
+    environment.planarReflectionScale =
+        state.renderWorkload.
+            planarReflectionScale;
+
+    environment.reflectionDistanceMeters =
+        state.renderWorkload.
+            reflectionDistanceMeters;
+
+    environment.ssrEnabled =
+        state.renderWorkload.
+            ssrEnabled;
+
+    environment.ssrResolutionScale =
+        state.renderWorkload.
+            ssrResolutionScale;
+
+    environment.ssrMaxSteps =
+        state.renderWorkload.
+            ssrMaxSteps;
+
     environment.waterWavePhase =
         state.waterFrame.
             wavePhase;

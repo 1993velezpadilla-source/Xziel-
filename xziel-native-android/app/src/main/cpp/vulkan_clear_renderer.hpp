@@ -86,6 +86,16 @@ struct VulkanEnvironmentState {
     float waterReflectionStrength = 0.0f;
     float waterRefractionStrength = 0.0f;
     float waterRoughness = 0.10f;
+
+    // Explicit reflection workload controls carried from PerformanceGovernor
+    // into the Vulkan backend. The renderer can now decide whether an
+    // offscreen planar pass is legal without guessing from visual quality.
+    std::uint32_t maxPlanarReflectionPasses = 0;
+    float planarReflectionScale = 0.0f;
+    float reflectionDistanceMeters = 0.0f;
+    bool ssrEnabled = false;
+    float ssrResolutionScale = 0.0f;
+    std::uint32_t ssrMaxSteps = 0;
 };
 
 struct VulkanHudState {
