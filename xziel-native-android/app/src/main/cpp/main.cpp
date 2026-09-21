@@ -779,7 +779,7 @@ void advancePlayer(
                         state,
                         xziel::HapticEvent::UiError);
                 }
-             else if (
+            } else if (
                 state.interactionFrame.targetId ==
                     kPrototypeWeaponBuyId &&
                 !state.prototypeWeaponBuyPurchased) {
