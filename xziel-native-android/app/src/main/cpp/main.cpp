@@ -1,3 +1,4 @@
+#include "android_haptics.hpp"
 #include "android_input.hpp"
 #include "vulkan_clear_renderer.hpp"
 
@@ -10,6 +11,7 @@
 #include "xziel/engine.hpp"
 #include "xziel/fps_player.hpp"
 #include "xziel/hitscan.hpp"
+#include "xziel/haptics.hpp"
 #include "xziel/horror.hpp"
 #include "xziel/player_vitals.hpp"
 #include "xziel/renderer_watchdog.hpp"
@@ -43,6 +45,8 @@ struct NativeAppState {
     xziel::HorrorDirector horror{};
     xziel::HorrorFrame horrorFrame{};
     xziel::CameraRig cameraRig{};
+    xziel::HapticsPlanner haptics{};
+    xziel::android::AndroidHapticsBridge hapticsBridge{};
     xziel::android::AndroidInputAdapter input{};
     xziel::android::VulkanClearRenderer renderer{};
 
@@ -68,6 +72,7 @@ struct NativeAppState {
     float hitMarkerSeconds = 0.0f;
     float muzzleFlashSeconds = 0.0f;
     float zombieAttackFlashSeconds = 0.0f;
+    float hapticElapsedSeconds = 1.0f;
 };
 
 void logInfo(const char* message) noexcept {
@@ -85,6 +90,22 @@ void logError(const char* message) noexcept {
         "%s",
         message);
 }
+
+void requestHaptic(
+    NativeAppState& state,
+    xziel::HapticEvent event) noexcept {
+    const auto command =
+        state.haptics.request(
+            event,
+            state.hapticsBridge.capabilities(),
+            state.hapticElapsedSeconds);
+
+    state.hapticElapsedSeconds = 0.0f;
+
+    state.hapticsBridge.play(
+        command);
+}
+
 
 int queryDisplayRotation(
     NativeAppState& state) noexcept {
@@ -365,6 +386,10 @@ void advancePlayer(
                     attackDamage)) {
             state.zombieAttackFlashSeconds =
                 0.22f;
+
+            requestHaptic(
+                state,
+                xziel::HapticEvent::PlayerHit);
         }
 
         (void) zombieFrame;
@@ -388,9 +413,33 @@ void advancePlayer(
                 },
                 fixedDelta);
 
+        if (weaponFrame.reloadCompletedThisTick) {
+            requestHaptic(
+                state,
+                xziel::HapticEvent::ReloadComplete);
+        }
+
+        if (playerFrame.movement.cue ==
+            xziel::MovementCue::MantleStart) {
+            requestHaptic(
+                state,
+                xziel::HapticEvent::MantleContact);
+        }
+
+        if (playerFrame.movement.cue ==
+            xziel::MovementCue::SlideStart) {
+            requestHaptic(
+                state,
+                xziel::HapticEvent::SlideImpact);
+        }
+
         if (weaponFrame.firedThisTick) {
             state.muzzleFlashSeconds =
                 0.055f;
+
+            requestHaptic(
+                state,
+                xziel::HapticEvent::FireLight);
 
             state.pendingRecoilPitch +=
                 weaponFrame.recoilPitchImpulse;
@@ -782,6 +831,13 @@ extern "C" void android_main(
     refreshDisplayRotation(
         state);
 
+    if (!state.hapticsBridge.initialize(
+            state.jniEnv,
+            state.javaActivity)) {
+        logInfo(
+            "Haptics unavailable; gameplay continues without vibration");
+    }
+
     logInfo("XZIEL_NATIVE_BOOT");
 
     while (!app->destroyRequested) {
@@ -843,6 +899,12 @@ extern "C" void android_main(
             computeFrameDelta(
                 state,
                 now);
+
+        state.hapticElapsedSeconds =
+            std::min(
+                state.hapticElapsedSeconds +
+                    frameDelta,
+                1.0f);
 
         state.hitMarkerSeconds =
             std::max(
@@ -916,6 +978,13 @@ extern "C" void android_main(
                 inputSnapshot,
                 frameDelta);
 
+        if (state.horrorFrame.
+                requestAudioStinger) {
+            requestHaptic(
+                state,
+                xziel::HapticEvent::HorrorStinger);
+        }
+
         const auto camera =
             makeRenderCamera(
                 state.player.frame(),
@@ -958,6 +1027,7 @@ extern "C" void android_main(
     }
 
     state.input.shutdown();
+    state.hapticsBridge.reset();
     state.renderer.shutdown();
 
     state.runtime.onEvent(
