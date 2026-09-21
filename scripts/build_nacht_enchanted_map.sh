@@ -36,6 +36,13 @@ cp "$SRC/source/maps/ndu/ndu.map" "$MAP_SRC/ndu_enchanted.map"
 # are generated from the licensed stock sky with an Enchanted storm grade.
 sed -i 's/"sky" "ndu"/"sky" "xziel_enchant"/' "$MAP_SRC/ndu_enchanted.map"
 
+# Author a distinct bunker atmosphere into the derivative BSP itself rather
+# than relying only on a post-render overlay. Visibility stays playable while
+# the exterior/far rooms become colder and denser.
+sed -i 's/"r_skycolor" "54 55 59"/"r_skycolor" "28 34 48"/' "$MAP_SRC/ndu_enchanted.map"
+sed -i 's/"fog" "240 1550 54 55 59"/"fog" "175 1225 30 36 48"/' "$MAP_SRC/ndu_enchanted.map"
+sed -i 's/"_light" "84 150 255 10"/"_light" "70 104 168 18"/' "$MAP_SRC/ndu_enchanted.map"
+
 # The base geometry/layout remains the community NZ:P Nacht map for this
 # practice derivative, but this BSP is compiled independently and receives its
 # own authored lighting entities. That means we can keep pushing the map
