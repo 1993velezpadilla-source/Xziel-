@@ -175,13 +175,57 @@ jobs:
           fi
 
           "$ADB" install -r dist/Xziel-NZP-native-universal-debug.apk
+          # Suppress Android's one-time immersive-mode tutorial so screenshots
+          # show the game instead of the system education overlay.
+          "$ADB" shell settings put secure immersive_mode_confirmations confirmed || true
           "$ADB" logcat -c
           "$ADB" shell am force-stop com.xziel.nzp || true
-          "$ADB" shell am start -W -n com.xziel.nzp/org.libsdl.app.NZPActivity             > dist/am-start.txt 2>&1 || true
+          "$ADB" shell am start -W -n com.xziel.nzp/org.libsdl.app.NZPActivity \
+            --ez xziel_ci_nacht_enhanced_preview true \
+            > dist/am-start.txt 2>&1 || true
 
-          sleep 20
+          # Data extraction + direct map load can take longer than menu boot.
+          sleep 30
 
-          "$ADB" exec-out screencap -p > dist/xziel-screen.png || true
+          "$ADB" exec-out screencap -p > dist/xziel-enhanced-a.png || true
+          sleep 3
+          "$ADB" exec-out screencap -p > dist/xziel-enhanced-b.png || true
+          cp dist/xziel-enhanced-a.png dist/xziel-screen.png || true
+
+          # Two non-flat landscape frames plus a measurable delta prove that
+          # the Enhanced map rendered and the renderer is alive, not frozen.
+          python3 -m pip install --quiet pillow==11.3.0
+          python3 - <<'PY' > dist/enhanced-visual-report.txt
+          from pathlib import Path
+          from PIL import Image, ImageChops, ImageStat
+
+          paths = [Path("dist/xziel-enhanced-a.png"), Path("dist/xziel-enhanced-b.png")]
+          images = []
+          for path in paths:
+              im = Image.open(path).convert("RGB")
+              if im.width < 1000 or im.height < 500 or im.width <= im.height:
+                  raise SystemExit(f"Enhanced preview has invalid dimensions: {path} {im.size}")
+              gray = im.convert("L")
+              stat = ImageStat.Stat(gray)
+              lo, hi = gray.getextrema()
+              if hi - lo < 24 or stat.stddev[0] < 8:
+                  raise SystemExit(
+                      f"Enhanced preview appears blank/flat: {path} extrema={(lo, hi)} std={stat.stddev[0]:.2f}"
+                  )
+              images.append(im)
+              print(
+                  f"{path.name}: size={im.size} mean={stat.mean[0]:.2f} "
+                  f"std={stat.stddev[0]:.2f} extrema={(lo, hi)}"
+              )
+
+          diff = ImageChops.difference(images[0], images[1]).convert("L")
+          dstat = ImageStat.Stat(diff)
+          print(f"frame_delta_mean={dstat.mean[0]:.3f} frame_delta_std={dstat.stddev[0]:.3f}")
+          if dstat.mean[0] < 0.01 and dstat.stddev[0] < 0.05:
+              raise SystemExit("Enhanced preview appears frozen: frames are effectively identical")
+          PY
+          cat dist/enhanced-visual-report.txt
+
           "$ADB" logcat -d -v threadtime > dist/xziel-logcat.txt || true
           "$ADB" shell dumpsys activity processes > dist/activity-processes.txt || true
 
@@ -222,6 +266,9 @@ jobs:
           path: |
             dist/xziel-logcat.txt
             dist/xziel-screen.png
+            dist/xziel-enhanced-a.png
+            dist/xziel-enhanced-b.png
+            dist/enhanced-visual-report.txt
             dist/emulator-stdout.txt
             dist/am-start.txt
             dist/activity-processes.txt
