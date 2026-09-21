@@ -52,6 +52,7 @@ python3 "$ROOT/scripts/patch_quakec_mobile_v021.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_mobile_v022.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_nacht_enhanced.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_nacht_runtime.py" "$DEPS/quakec"
+python3 "$ROOT/scripts/patch_quakec_waw_legacy_audio.py" "$DEPS/quakec"
 chmod +x "$DEPS/quakec/bin/fteqcc-cli-lin" "$DEPS/quakec/tools/qc-compiler-gnu.sh"
 (
     cd "$DEPS/quakec"
@@ -109,6 +110,7 @@ unzip -q "$DOWNLOADS/standard-nzp-qc.zip" -d "$ASSET_WORK/nzp"
 python3 "$ROOT/scripts/build_xziel_icons.py" "$ASSET_WORK/nzp/gfx/xziel"
 echo "==> Staging opt-in Nacht Enhanced CC0 texture pack"
 bash "$ROOT/scripts/fetch_nacht_enhanced_textures.sh" "$ASSET_WORK"
+bash "$ROOT/scripts/import_waw_reference_audio.sh" "$ASSET_WORK"
 
 # Replace the stock gameplay bytecode with our GPL QuakeC build. All other
 # release-side data stays from the official NZ:P package.
