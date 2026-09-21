@@ -123,6 +123,9 @@ public:
 
     void shutdown() noexcept;
 
+    void setPreferredFrameRate(
+        float framesPerSecond) noexcept;
+
     [[nodiscard]] bool drawFrame(
         float timeSeconds,
         const VulkanCamera& camera,
@@ -274,6 +277,10 @@ private:
     jobject javaActivity_ = nullptr;
 
     std::uint64_t refreshDurationNs_ = 0;
+    std::uint64_t requestedSwapIntervalNs_ = 0;
+
+    float preferredFrameRate_ = 0.0f;
+
     bool swappyInitialized_ = false;
     bool initialized_ = false;
 };
