@@ -49,6 +49,10 @@ vec3 materialBase(int material, float pulse) {
         return vec3(1.0, 0.24, 0.035);
     }
 
+    if (material == 12) {
+        return vec3(0.045, 0.050, 0.060);
+    }
+
     vec3 core = vec3(0.12, 0.015, 0.040);
     vec3 hot = vec3(0.78, 0.025, 0.22);
     return mix(core, hot, 0.30 + 0.32 * pulse);
