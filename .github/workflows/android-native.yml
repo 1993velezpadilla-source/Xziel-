@@ -100,6 +100,27 @@ jobs:
             -o /tmp/xz_scene_budget_test
           /tmp/xz_scene_budget_test
 
+      - name: Test Xz RenderPlan
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_render_plan_test.c engine/xz/xz_render_plan.c \
+            -o /tmp/xz_render_plan_test
+          /tmp/xz_render_plan_test
+
+      - name: Test Xz RHI
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_rhi_test.c \
+            engine/xz/xz_rhi.c \
+            engine/xz/xz_render_plan.c \
+            engine/xz/xz_device_caps.c \
+            -o /tmp/xz_rhi_test
+          /tmp/xz_rhi_test
+
       - name: Set up Java 17
         uses: actions/setup-java@v5
         with:
@@ -278,7 +299,19 @@ jobs:
             exit 1
           fi
 
-          echo "Xziel remained alive; Phase 0, PresentWorld and Phase 2 caps/budgets are live."
+          if ! grep -Eq "XZIEL-XZ.*phase3 renderplan=PASS rhi=PASS requested=GLES3 active=NULL shadow=1" dist/xziel-logcat.txt; then
+            echo "Xz Phase-3 RenderPlan/RHI did not initialize in shadow mode."
+            grep -E "XZIEL-XZ.*phase3" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*plan\(gen=[1-9][0-9]* packets=[1-9][0-9]* lod=[0-9]+/[0-9]+/[0-9]+.*hash=[0-9a-fA-F]{8}\).*rhi\(active=NULL shadow=1 submitted=[1-9][0-9]* rejected=0\)" dist/xziel-logcat.txt; then
+            echo "Xz Phase-3 did not publish a validated live render plan."
+            grep -E "XZIEL-XZ.*plan\(" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          echo "Xziel remained alive; Phase 0-3 telemetry, PresentWorld, RenderPlan and shadow RHI are live."
 
       - name: Upload runtime diagnostics
         if: always()
