@@ -37,6 +37,9 @@ https://www.zombiescodex.com/black-ops/ascension/
 Moon  
 https://www.zombiescodex.com/black-ops/moon/
 
+Shangri-La  
+https://www.zombiescodex.com/black-ops/shangri-la/
+
 TranZit  
 https://www.codzombiesguides.com/main-quests/black-ops-2/tranzit/
 
@@ -49,6 +52,9 @@ https://www.zombiescodex.com/black-ops-2/die-rise/
 Buried  
 https://www.zombiescodex.com/black-ops-2/buried/
 
+Origins  
+https://www.zombiescodex.com/black-ops-2/origins/
+
 Shadows of Evil  
 https://www.zombiescodex.com/black-ops-3/shadows-of-evil/
 
@@ -58,10 +64,16 @@ https://www.zombiescodex.com/black-ops-3/der-eisendrache/
 Zetsubou No Shima  
 https://www.zombiescodex.com/black-ops-3/zetsubou-no-shima/
 
-Gorod Krovi — full Love and War guide  
+Gorod Krovi  
+https://www.zombiescodex.com/black-ops-3/gorod-krovi/
+
+Gorod Krovi — alternate full Love and War guide  
 https://gameranx.com/features/id/64555/article/black-ops-3-gorod-krovi-love-and-war-full-easter-egg-guide/
 
 Revelations  
+https://www.zombiescodex.com/black-ops-3/revelations/
+
+Revelations alternate walkthrough  
 https://gameranx.com/features/id/73828/article/black-ops-3-revelations-easter-eggs-guide-step-by-step-tutorial/
 
 ### Advanced Warfare
@@ -86,6 +98,9 @@ https://www.zombiescodex.com/infinite-warfare/zombies-in-spaceland/
 Rave in the Redwoods  
 https://www.zombiescodex.com/infinite-warfare/rave-in-the-redwoods/
 
+The Beast from Beyond / Director's Cut  
+https://www.zombiescodex.com/infinite-warfare/the-beast-from-beyond/
+
 Zombies in Spaceland alternate walkthrough  
 https://gameranx.com/features/id/80563/article/infinite-warfare-zombies-in-spaceland-the-complete-easter-egg-guide/
 
@@ -100,14 +115,20 @@ https://gameranx.com/features/id/120160/article/cod-zombies-the-beast-from-beyon
 
 ### WWII
 
+The Final Reich  
+https://www.zombiescodex.com/world-war-ii/the-final-reich/
+
+The Final Reich hidden-character research  
+https://mmmrkennedy.com/games/WW2/the_final_reich/the_final_reich_guide
+
 The Final Reich hardcore quest  
 https://gameranx.com/features/id/126132/article/call-of-duty-ww2-zombies-true-easter-egg-guide-hardcore-walkthrough/
 
 The Darkest Shore  
-https://gameranx.com/features/id/136787/article/ww2-zombies-darkest-shore-dlc-the-complete-easter-egg-guide/
+https://mmmrkennedy.com/games/WW2/the_darkest_shore/the_darkest_shore_guide
 
 The Shadowed Throne  
-https://gameranx.com/features/id/146683/article/ww2-zombies-shadowed-throne-the-complete-easter-egg-guide-stadtjager-down/
+https://mmmrkennedy.com/games/WW2/the_shadowed_throne/the_shadowed_throne_guide
 
 The Tortured Path — Chapter 1 example  
 https://gameranx.com/features/id/155278/article/ww2-zombies-the-tortured-path-into-the-storm-easter-egg-guide-chapter-1-walkthrough/
@@ -115,8 +136,8 @@ https://gameranx.com/features/id/155278/article/ww2-zombies-the-tortured-path-in
 The Frozen Dawn  
 https://www.zombiescodex.com/world-war-ii/the-frozen-dawn/
 
-The Frozen Dawn alternate walkthrough  
-https://gameranx.com/features/id/160609/article/ww2-zombies-frozen-dawn-complete-easter-egg-guide-kingfall/
+The Frozen Dawn challenge research  
+https://mmmrkennedy.com/games/WW2/the_frozen_dawn/the_frozen_dawn_guide
 
 ### Black Ops 4
 
@@ -124,7 +145,7 @@ Black Ops 4 launch-map compendium
 https://gameranx.com/features/id/163882/article/call-of-duty-black-ops-4-the-complete-zombies-compendium-everything-you-need-to-know/
 
 Dead of the Night  
-https://gameranx.com/features/id/166803/article/black-ops-4-zombies-dead-of-the-night-the-complete-easter-egg-guide-step-by-step-walkthrough/
+https://www.zombiescodex.com/black-ops-4/dead-of-the-night/
 
 Alpha Omega  
 https://www.zombiescodex.com/black-ops-4/alpha-omega/
@@ -141,7 +162,13 @@ Firebase Z
 https://gameranx.com/features/id/216736/article/black-ops-cold-war-zombies-how-to-complete-the-main-easter-egg-firebase-z-guide/
 
 Mauer der Toten  
-https://gameranx.com/features/id/243440/article/black-ops-cold-war-zombies-how-to-complete-the-easter-egg-quest-mauer-der-toten/
+https://www.zombiescodex.com/black-ops-cold-war/mauer-der-toten/
+
+Forsaken  
+https://www.zombiescodex.com/black-ops-cold-war/forsaken/
+
+Cold War Super Easter Egg / The Pact  
+https://www.gamespot.com/articles/how-to-claim-super-easter-egg-rewards-in-cod-black-ops-cold-war-zombies/1100-6502787/
 
 ### Vanguard
 
@@ -176,11 +203,17 @@ https://www.callofduty.com/guides/blackops6/zombies/call-of-duty-guides-black-op
 Liberty Falls exact quest guide  
 https://www.zombiescodex.com/black-ops-6/liberty-falls/
 
-Citadelle des Morts exact quest guide  
+Terminus exact quest + side quest guide  
+https://www.zombiescodex.com/black-ops-6/terminus/
+
+Citadelle des Morts exact quest + side quest guide  
 https://www.zombiescodex.com/black-ops-6/citadelle-des-morts/
 
 The Tomb exact quest guide  
 https://www.zombiescodex.com/black-ops-6/the-tomb/
+
+Shattered Veil exact quest guide  
+https://www.zombiescodex.com/black-ops-6/shattered-veil/
 
 Reckoning exact quest guide  
 https://www.zombiescodex.com/black-ops-6/reckoning/
@@ -196,8 +229,8 @@ https://www.callofduty.com/blog/2026/01/call-of-duty-black-ops-7-warzone-zombies
 Official Season 02 Reloaded / Paradox Junction  
 https://www.callofduty.com/blog/2026/03/call-of-duty-black-ops-7-warzone-season-02-reloaded
 
-Official Season 03 content / Totenreich announcement context  
-https://www.callofduty.com/blog/2026/03/call-of-duty-black-ops-7-warzone-season-03-announcement
+Official Season 03 content / Cursed Mode context  
+https://www.callofduty.com/patchnotes/2026/04/call-of-duty-black-ops-7-season-03-patch-notes
 
 Official Season 05 content / Kowakujō + finale context  
 https://www.callofduty.com/blog/2026/07/call-of-duty-black-ops-7-warzone-season-05-announcement
@@ -208,23 +241,26 @@ https://www.callofduty.com/blog/2026/09/call-of-duty-black-ops-7-warzone-season-
 Ashes of the Damned exact quest guide  
 https://www.zombiescodex.com/black-ops-7/ashes-of-the-damned/
 
-Astra Malorum exact quest guide  
+Astra Malorum exact quest + side quest guide  
 https://www.zombiescodex.com/black-ops-7/astra-malorum/
 
-Paradox Junction exact quest guide  
+Paradox Junction exact quest + side quest guide  
 https://www.zombiescodex.com/black-ops-7/paradox-junction/
 
-Totenreich exact quest guide  
+Totenreich exact quest + side quest guide  
 https://www.zombiescodex.com/black-ops-7/totenreich/
 
-Kowakujō exact quest guide  
+Kowakujō exact quest + side quest guide  
 https://www.zombiescodex.com/black-ops-7/kowakujo/
 
-Rex Infernus exact quest guide  
+Rex Infernus exact quest + side quest guide  
 https://www.zombiescodex.com/black-ops-7/rex-infernus/
 
 Black Ops 7 Super Easter Egg tracker  
 https://www.zombiescodex.com/black-ops-7/super-easter-egg/
+
+All-main-quest and reward index  
+https://www.zombiescodex.com/guides/all-easter-eggs/
 
 ## Research policy
 
