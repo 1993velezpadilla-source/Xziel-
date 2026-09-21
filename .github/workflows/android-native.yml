@@ -143,6 +143,10 @@ jobs:
           test -s build/nzp-data/nzp/textures/nacht_enhanced/ground_hb3.jpg
           test -s build/nzp-data/nzp/maps/ndu_enchanted.bsp
           test -s build/nzp-data/nzp/maps/ndu_enchanted.txt
+          if cmp -s build/nzp-data/nzp/maps/ndu.bsp build/nzp-data/nzp/maps/ndu_enchanted.bsp; then
+            echo "ndu_enchanted.bsp must be a separately compiled derivative, not a copied stock BSP"
+            exit 1
+          fi
           test -s build/nzp-data/nzp/models/machines/mystery.mdl_0.tga
           test -s build/nzp-data/nzp/models/props/mystery_debris.mdl_0.tga
           test -s build/nzp-data/nzp/models/ai/zfull.mdl_0.tga
