@@ -218,6 +218,27 @@ if 'XZIEL_LAB_DAMAGE_ENVELOPE' not in zs:
         raise SystemExit("Lab zombie damage-hitbox anchor missing")
     zs = zs.replace(hitbox_anchor, hitbox_new, 1)
 
+# Nacht Lab uses visible mesh variants for decapitation. Make a fully depleted
+# head pop even for weapons whose legacy metadata says "no gib", while leaving
+# every other map's stock weapon-specific gib policy untouched.
+headgib_anchor = '''\t// First, is this weapon even capable?
+\tif (!WepDef_WeaponCanGibEnemy(weapon))
+\t\treturn false;
+'''
+headgib_new = '''\t// XZIEL_LAB_HEADSHOT_GIB: a depleted head must visually disappear on the
+\t// Lab model so a lethal headshot can never leave an intact face behind.
+\tif (mapname == "ndu_enchanted" && who.head.health <= 0)
+\t\treturn true;
+
+\t// First, is this weapon even capable?
+\tif (!WepDef_WeaponCanGibEnemy(weapon))
+\t\treturn false;
+'''
+if 'XZIEL_LAB_HEADSHOT_GIB' not in zs:
+    if headgib_anchor not in zs:
+        raise SystemExit("Lab head-gib policy anchor missing")
+    zs = zs.replace(headgib_anchor, headgib_new, 1)
+
 zombie_core.write_text(zs, encoding="utf-8")
 
 s = client.read_text(encoding="utf-8")
