@@ -34,7 +34,7 @@ static void test_memory_and_governor(void)
     unsigned int i;
 
     XzFrameMetrics_Init(&metrics);
-    for (i = 0; i < 45u; ++i) {
+    for (i = 0; i < 120u; ++i) {
         XzFrameMetrics_Begin(&metrics, (double)i);
         XzFrameMetrics_End(&metrics, (double)i + 0.030);
     }
