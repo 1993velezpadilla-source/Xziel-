@@ -923,7 +923,8 @@ fail:
 static int XzGles3Shadow_SubmitInternal(
     XzGles3ShadowState *state,
     const XzCommandStream *commands,
-    const XzRenderPlan *plan)
+    const XzRenderPlan *plan,
+    XzGpuResourcePool *resources)
 {
     float vertices[
         XZ_RENDER_MAX_PACKETS *
@@ -958,6 +959,13 @@ static int XzGles3Shadow_SubmitInternal(
     if (commands &&
         !XzCommandStream_Validate(commands)) {
         state->command_failures++;
+        state->failures++;
+        return 0;
+    }
+
+    if (commands && !resources) {
+        state->command_failures++;
+        state->physical_failures++;
         state->failures++;
         return 0;
     }
@@ -1087,10 +1095,28 @@ static int XzGles3Shadow_SubmitInternal(
 
             case XZ_CMD_RESOURCE_READ:
                 state->resource_read_commands++;
+                if (command->b != XzGpuHandle_Index(
+                        (XzGpuHandle)command->c) ||
+                    !XzEnsurePhysicalResource(
+                        state,
+                        resources,
+                        (XzGpuHandle)command->c,
+                        0)) {
+                    command_ok = 0;
+                }
                 break;
 
             case XZ_CMD_RESOURCE_WRITE:
                 state->resource_write_commands++;
+                if (command->b != XzGpuHandle_Index(
+                        (XzGpuHandle)command->c) ||
+                    !XzEnsurePhysicalResource(
+                        state,
+                        resources,
+                        (XzGpuHandle)command->c,
+                        1)) {
+                    command_ok = 0;
+                }
                 break;
 
             case XZ_CMD_DRAW_PACKETS:
@@ -1247,16 +1273,17 @@ int XzGles3Shadow_Submit(
     const XzRenderPlan *plan)
 {
     return XzGles3Shadow_SubmitInternal(
-        state, NULL, plan);
+        state, NULL, plan, NULL);
 }
 
 int XzGles3Shadow_SubmitCommands(
     XzGles3ShadowState *state,
     const XzCommandStream *commands,
-    const XzRenderPlan *plan)
+    const XzRenderPlan *plan,
+    XzGpuResourcePool *resources)
 {
     return XzGles3Shadow_SubmitInternal(
-        state, commands, plan);
+        state, commands, plan, resources);
 }
 
 void XzGles3Shadow_Shutdown(
@@ -1276,6 +1303,8 @@ void XzGles3Shadow_Shutdown(
             &previous_draw,
             &previous_read,
             &previous_context)) {
+        XzDestroyAllPhysicalResources(state);
+
         if (xz_shadow.gl.DeleteBuffers &&
             xz_shadow.vbo)
             xz_shadow.gl.DeleteBuffers(
