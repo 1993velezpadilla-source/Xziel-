@@ -149,5 +149,25 @@ int main() {
     assert(
         marksmanFrame.magazine == 4U);
 
+    xziel::WeaponConfig replacement{};
+    replacement.magazineSize = 40U;
+    replacement.startingReserve = 160U;
+    replacement.fireIntervalSeconds = 0.07f;
+    replacement.automatic = true;
+
+    weapon.equip(
+        replacement);
+
+    assert(
+        weapon.frame().magazine ==
+        40U);
+
+    assert(
+        weapon.frame().reserve ==
+        160U);
+
+    assert(
+        weapon.config().automatic);
+
     return 0;
 }
