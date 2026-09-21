@@ -114,10 +114,24 @@ jobs:
           grep -q 'XZIEL_LAB_SPAWN_MODEL' build/deps/quakec/source/server/ai/zombie_core.qc
           grep -q 'setmodel(szombie, "models/xziel_lab/zombie_basic.mdl")' build/deps/quakec/source/server/ai/zombie_core.qc
           grep -q 'setmodel(szombie.head, "")' build/deps/quakec/source/server/ai/zombie_core.qc
-          grep -q 'stock random 0..3 zombie skin index' build/deps/quakec/source/server/ai/zombie_core.qc
+          grep -q 'XZIEL_LAB_SKIN_VARIANTS' build/deps/quakec/source/server/ai/zombie_core.qc
+          grep -q 'XZIEL_LAB_VISUAL_DISMEMBERMENT' build/deps/quakec/source/server/main.qc
+          grep -q 'zombie_basic_nohead.mdl' build/deps/quakec/source/server/main.qc
+          grep -q 'zombie_basic_nolarm.mdl' build/deps/quakec/source/server/main.qc
+          grep -q 'zombie_basic_normarm.mdl' build/deps/quakec/source/server/main.qc
           grep -q 'models/xziel_lab/zombie_basic.mdl' build/deps/quakec/source/client/zombie.qc
           test -s build/nzp-data/nzp/models/xziel_lab/zombie_basic.mdl
+          test -s build/nzp-data/nzp/models/xziel_lab/zombie_basic_nohead.mdl
+          test -s build/nzp-data/nzp/models/xziel_lab/zombie_basic_nolarm.mdl
+          test -s build/nzp-data/nzp/models/xziel_lab/zombie_basic_normarm.mdl
+          test -s build/nzp-data/nzp/models/xziel_lab/zombie_basic_nohead_nolarm.mdl
+          test -s build/nzp-data/nzp/models/xziel_lab/zombie_basic_nohead_normarm.mdl
+          test -s build/nzp-data/nzp/models/xziel_lab/zombie_basic_noarms.mdl
+          test -s build/nzp-data/nzp/models/xziel_lab/zombie_basic_nohead_noarms.mdl
           test -s build/nzp-data/nzp/models/xziel_lab/zombie_basic.mdl_0.tga
+          test -s build/nzp-data/nzp/models/xziel_lab/zombie_basic.mdl_1.tga
+          test -s build/nzp-data/nzp/models/xziel_lab/zombie_basic.mdl_2.tga
+          test -s build/nzp-data/nzp/models/xziel_lab/zombie_basic.mdl_3.tga
           test -s build/nzp-data/nzp/models/xziel_lab/zombie_basic.json
           test -s build/nzp-data/nzp/licenses/XZIEL-QUATERNIUS-ZOMBIE-CC0.txt
           python3 - <<'PY'
@@ -132,8 +146,8 @@ jobs:
           numverts, numtris, numframes = hdr[15], hdr[16], hdr[17]
           if ident != b"IDPO" or version != 6:
               raise SystemExit(f"unexpected Lab zombie MDL signature/version: {ident!r} v{version}")
-          if numskins != 1:
-              raise SystemExit(f"unexpected Lab zombie skin count: {numskins}")
+          if numskins != 4:
+              raise SystemExit(f"Lab zombie must expose four horror skin slots, got {numskins}")
           if not (4000 <= numverts <= 8192):
               raise SystemExit(f"unexpected Lab zombie vertex count: {numverts}")
           if not (7000 <= numtris <= 8192):
@@ -143,11 +157,28 @@ jobs:
           if skinw <= 0 or skinh <= 0 or skinw > 480 or skinh > 480:
               raise SystemExit(f"MDL fallback skin exceeds Vril legacy limit: {skinw}x{skinh}")
           meta = json.loads(Path("build/nzp-data/nzp/models/xziel_lab/zombie_basic.json").read_text())
-          if meta["license"] != "CC0-1.0" or meta["frames"] != 211:
+          if meta["license"] != "CC0-1.0" or meta["frames"] != 211 or meta.get("skins") != 4:
               raise SystemExit(f"bad Lab zombie metadata: {meta}")
-          if max(meta["mdl_skin"]) > 480 or max(meta["external_skin"]) <= 480:
-              raise SystemExit(f"expected small MDL fallback + high-res external atlas: {meta}")
-          print(f"verified real Lab zombie MDL: {numverts} verts / {numtris} tris / {numframes} frames / {skinw}x{skinh}")
+          if max(meta["mdl_skin"]) > 480 or min(meta["external_skin"]) < 1024:
+              raise SystemExit(f"expected small MDL fallback + 1024px external atlas: {meta}")
+          variants = meta.get("variants", {})
+          required_variants = {
+              "zombie_basic.mdl", "zombie_basic_nohead.mdl",
+              "zombie_basic_nolarm.mdl", "zombie_basic_normarm.mdl",
+              "zombie_basic_nohead_nolarm.mdl", "zombie_basic_nohead_normarm.mdl",
+              "zombie_basic_noarms.mdl", "zombie_basic_nohead_noarms.mdl",
+          }
+          if set(variants) != required_variants:
+              raise SystemExit(f"Lab dismemberment variants incomplete: {sorted(variants)}")
+          parts = meta.get("triangle_parts", {})
+          if min(parts.get("head", 0), parts.get("larm", 0), parts.get("rarm", 0)) <= 0:
+              raise SystemExit(f"Lab mesh part classification failed: {parts}")
+          if meta.get("model_forward_scale", 1) >= 1 or meta.get("model_lateral_scale", 1) >= 1:
+              raise SystemExit(f"Lab silhouette was not tightened: {meta}")
+          print(
+              f"verified Lab zombie family: {numverts} verts / {numtris} tris / "
+              f"{numframes} frames / {numskins} skins / variants={len(variants)} / parts={parts}"
+          )
           PY
           grep -q 'sounds/ambience/wind2.wav' build/deps/quakec/source/server/main.qc
           grep -q 'invalid SOLID_BSP entity' build/deps/vril/source/world.c
@@ -289,7 +320,17 @@ jobs:
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/models/machines/mystery.mdl_0.tga'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/models/ai/zfull.mdl_0.tga'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/models/xziel_lab/zombie_basic.mdl'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/models/xziel_lab/zombie_basic_nohead.mdl'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/models/xziel_lab/zombie_basic_nolarm.mdl'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/models/xziel_lab/zombie_basic_normarm.mdl'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/models/xziel_lab/zombie_basic_nohead_nolarm.mdl'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/models/xziel_lab/zombie_basic_nohead_normarm.mdl'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/models/xziel_lab/zombie_basic_noarms.mdl'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/models/xziel_lab/zombie_basic_nohead_noarms.mdl'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/models/xziel_lab/zombie_basic.mdl_0.tga'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/models/xziel_lab/zombie_basic.mdl_1.tga'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/models/xziel_lab/zombie_basic.mdl_2.tga'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/models/xziel_lab/zombie_basic.mdl_3.tga'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/models/xziel_lab/zombie_basic.json'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/licenses/XZIEL-QUATERNIUS-ZOMBIE-CC0.txt'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/sounds/xziel/enchant/round_omen.wav'
