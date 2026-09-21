@@ -24,8 +24,13 @@
       "behavior": "Play once when Round 1 is committed while the first chalk/tally presentation changes from white toward red.",
       "source_docs": [
         "https://nextgenupdate.com/forums/call-duty-world-at-war/395635-possible-menu-dpad-3.html",
-        "https://www.myinstants.com/search/?name=Cod+zombie+round+start"
-      ]
+        "https://www.myinstants.com/search/?name=Cod+zombie+round+start",
+        "https://www.ugx-mods.com/forum/modding/13/change-background-music/12104/"
+      ],
+      "known_waw_music_state": "WAVE_1",
+      "related_public_alias": "mx_zombie_wave_1",
+      "related_public_source_path": "background_music/mx_wave_1.wav",
+      "note": "The exact laugh may be a separate cue inside the original intro/round-start presentation; WAVE_1 and mx_zombie_wave_1 are preserved as verified public modding references without claiming they are the laugh sample itself."
     },
     {
       "id": "waw_chalk",
