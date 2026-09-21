@@ -60,7 +60,8 @@ int XzGles3Shadow_Submit(
 int XzGles3Shadow_SubmitCommands(
     XzGles3ShadowState *state,
     const XzCommandStream *commands,
-    const XzRenderPlan *plan);
+    const XzRenderPlan *plan,
+    XzGpuResourcePool *resources);
 
 void XzGles3Shadow_Shutdown(
     XzGles3ShadowState *state);
