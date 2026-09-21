@@ -1,0 +1,34 @@
+{
+  "id": "lost_child",
+  "name": "The Lost Child",
+  "category": "random_encounter",
+  "style": "lost_child",
+  "height_m": 1.28,
+  "rig": "game_engine",
+  "bones": 53,
+  "triangles_estimate": 40086,
+  "animations": [
+    "idle",
+    "cry",
+    "guide",
+    "gift",
+    "lure",
+    "panic_run",
+    "vanish"
+  ],
+  "materials": [
+    "spectral_ivory",
+    "waterlogged_linen",
+    "pale_spirit",
+    "wet_black",
+    "mud_silt",
+    "tarnished_brass"
+  ],
+  "outputs": [
+    "model.glb",
+    "model.fbx",
+    "model.blend",
+    "preview.png"
+  ],
+  "production_status": "procedural production pass 1 \u2014 real rigged geometry, PBR materials, props, animation actions, damage sockets where applicable"
+}

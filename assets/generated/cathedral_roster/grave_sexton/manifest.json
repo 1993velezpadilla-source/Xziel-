@@ -1,0 +1,34 @@
+{
+  "id": "grave_sexton",
+  "name": "Grave Sexton",
+  "category": "core_enemy",
+  "style": "grave_sexton",
+  "height_m": 1.9,
+  "rig": "game_engine",
+  "bones": 53,
+  "triangles_estimate": 39156,
+  "animations": [
+    "idle",
+    "walk",
+    "heavy_attack",
+    "hit",
+    "death"
+  ],
+  "materials": [
+    "gravecoat",
+    "ash_blue",
+    "dirty_ivory",
+    "corpse_skin",
+    "rope",
+    "iron",
+    "old_wood",
+    "mud_silt"
+  ],
+  "outputs": [
+    "model.glb",
+    "model.fbx",
+    "model.blend",
+    "preview.png"
+  ],
+  "production_status": "procedural production pass 1 \u2014 real rigged geometry, PBR materials, props, animation actions, damage sockets where applicable"
+}

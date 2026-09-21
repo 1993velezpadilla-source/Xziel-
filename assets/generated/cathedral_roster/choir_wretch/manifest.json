@@ -1,0 +1,34 @@
+{
+  "id": "choir_wretch",
+  "name": "Choir Wretch",
+  "category": "core_enemy",
+  "style": "choir_wretch",
+  "height_m": 1.75,
+  "rig": "game_engine",
+  "bones": 53,
+  "triangles_estimate": 39142,
+  "animations": [
+    "idle",
+    "walk",
+    "scream",
+    "attack",
+    "hit",
+    "death"
+  ],
+  "materials": [
+    "dirty_ivory",
+    "choir_red",
+    "ash_blue",
+    "corpse_skin",
+    "bruise",
+    "rope",
+    "soot"
+  ],
+  "outputs": [
+    "model.glb",
+    "model.fbx",
+    "model.blend",
+    "preview.png"
+  ],
+  "production_status": "procedural production pass 1 \u2014 real rigged geometry, PBR materials, props, animation actions, damage sockets where applicable"
+}

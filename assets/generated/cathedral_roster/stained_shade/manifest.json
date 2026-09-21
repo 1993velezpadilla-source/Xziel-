@@ -1,0 +1,33 @@
+{
+  "id": "stained_shade",
+  "name": "Stained Shade",
+  "category": "core_enemy",
+  "style": "stained_shade",
+  "height_m": 1.85,
+  "rig": "game_engine",
+  "bones": 53,
+  "triangles_estimate": 39302,
+  "animations": [
+    "idle",
+    "float",
+    "attack",
+    "dissipate"
+  ],
+  "materials": [
+    "spectral_ivory",
+    "ash_blue",
+    "corpse_skin",
+    "glass_blue",
+    "glass_cyan",
+    "glass_magenta",
+    "amber",
+    "oxidized_metal"
+  ],
+  "outputs": [
+    "model.glb",
+    "model.fbx",
+    "model.blend",
+    "preview.png"
+  ],
+  "production_status": "procedural production pass 1 \u2014 real rigged geometry, PBR materials, props, animation actions, damage sockets where applicable"
+}

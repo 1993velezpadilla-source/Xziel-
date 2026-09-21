@@ -1,0 +1,16 @@
+{
+  "project": "Cathedral of Absolution / Cripplegate",
+  "built": [
+    "la_llorona",
+    "lost_child",
+    "waterbound_child",
+    "bell_ringer",
+    "choir_wretch",
+    "grave_sexton",
+    "penitent_deacon",
+    "stained_shade",
+    "censer_brute",
+    "reliquary_horror"
+  ],
+  "errors": {}
+}

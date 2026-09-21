@@ -1,0 +1,35 @@
+{
+  "id": "penitent_deacon",
+  "name": "Penitent Deacon",
+  "category": "core_enemy",
+  "style": "penitent_deacon",
+  "height_m": 1.85,
+  "rig": "game_engine",
+  "bones": 53,
+  "triangles_estimate": 40114,
+  "animations": [
+    "idle",
+    "walk",
+    "prayer",
+    "attack",
+    "hit",
+    "death"
+  ],
+  "materials": [
+    "dirty_ivory",
+    "burgundy",
+    "soot",
+    "corpse_skin",
+    "rope",
+    "old_wood",
+    "oxidized_metal",
+    "wax"
+  ],
+  "outputs": [
+    "model.glb",
+    "model.fbx",
+    "model.blend",
+    "preview.png"
+  ],
+  "production_status": "procedural production pass 1 \u2014 real rigged geometry, PBR materials, props, animation actions, damage sockets where applicable"
+}

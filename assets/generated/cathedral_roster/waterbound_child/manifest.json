@@ -1,0 +1,34 @@
+{
+  "id": "waterbound_child",
+  "name": "The Waterbound Child",
+  "category": "random_encounter",
+  "style": "waterbound_child",
+  "height_m": 1.3,
+  "rig": "game_engine",
+  "bones": 53,
+  "triangles_estimate": 39102,
+  "animations": [
+    "idle",
+    "sob",
+    "false_comfort",
+    "scream",
+    "lunge",
+    "crawl",
+    "vanish"
+  ],
+  "materials": [
+    "drowned_ivory",
+    "drowned_blue",
+    "pale_drowned",
+    "water_bruise",
+    "wet_black",
+    "mud_silt"
+  ],
+  "outputs": [
+    "model.glb",
+    "model.fbx",
+    "model.blend",
+    "preview.png"
+  ],
+  "production_status": "procedural production pass 1 \u2014 real rigged geometry, PBR materials, props, animation actions, damage sockets where applicable"
+}

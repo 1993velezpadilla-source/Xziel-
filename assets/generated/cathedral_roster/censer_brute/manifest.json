@@ -1,0 +1,35 @@
+{
+  "id": "censer_brute",
+  "name": "Censer Brute",
+  "category": "heavy_elite",
+  "style": "censer_brute",
+  "height_m": 2.8,
+  "rig": "game_engine",
+  "bones": 53,
+  "triangles_estimate": 40622,
+  "animations": [
+    "idle",
+    "walk",
+    "chain_swing",
+    "slam",
+    "hit",
+    "death"
+  ],
+  "materials": [
+    "soot",
+    "dirty_ivory",
+    "burgundy",
+    "corpse_skin",
+    "rope",
+    "dark_iron",
+    "oxidized_brass",
+    "wax"
+  ],
+  "outputs": [
+    "model.glb",
+    "model.fbx",
+    "model.blend",
+    "preview.png"
+  ],
+  "production_status": "procedural production pass 1 \u2014 real rigged geometry, PBR materials, props, animation actions, damage sockets where applicable"
+}

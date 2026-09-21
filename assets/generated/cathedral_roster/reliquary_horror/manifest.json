@@ -1,0 +1,36 @@
+{
+  "id": "reliquary_horror",
+  "name": "Reliquary Horror",
+  "category": "boss",
+  "style": "reliquary_horror",
+  "height_m": 4.5,
+  "rig": "game_engine",
+  "bones": 53,
+  "triangles_estimate": 40934,
+  "animations": [
+    "idle",
+    "walk",
+    "slam",
+    "summon",
+    "enraged",
+    "collapse"
+  ],
+  "materials": [
+    "burgundy",
+    "dirty_ivory",
+    "soot",
+    "corpse_skin",
+    "rope",
+    "dark_iron",
+    "oxidized_brass",
+    "old_wood",
+    "wax"
+  ],
+  "outputs": [
+    "model.glb",
+    "model.fbx",
+    "model.blend",
+    "preview.png"
+  ],
+  "production_status": "procedural production pass 1 \u2014 real rigged geometry, PBR materials, props, animation actions, damage sockets where applicable"
+}

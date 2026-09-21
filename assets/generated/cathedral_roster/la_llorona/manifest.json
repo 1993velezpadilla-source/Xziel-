@@ -1,0 +1,36 @@
+{
+  "id": "la_llorona",
+  "name": "La Llorona",
+  "category": "random_encounter",
+  "style": "llorona",
+  "height_m": 1.82,
+  "rig": "game_engine",
+  "bones": 53,
+  "triangles_estimate": 39084,
+  "animations": [
+    "idle",
+    "walk",
+    "weep",
+    "beckon",
+    "gift",
+    "warning",
+    "enraged",
+    "vanish"
+  ],
+  "materials": [
+    "spectral_ivory",
+    "waterlogged_linen",
+    "pale_corpse",
+    "bruise_blue",
+    "wet_black",
+    "tarnished_silver",
+    "mud_silt"
+  ],
+  "outputs": [
+    "model.glb",
+    "model.fbx",
+    "model.blend",
+    "preview.png"
+  ],
+  "production_status": "procedural production pass 1 \u2014 real rigged geometry, PBR materials, props, animation actions, damage sockets where applicable"
+}
