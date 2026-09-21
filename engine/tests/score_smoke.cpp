@@ -3,6 +3,26 @@
 #include <cassert>
 
 int main() {
+    {
+        xziel::ScoreConfig startingConfig{};
+        startingConfig.startingPoints = 500U;
+
+        xziel::ScoreSystem startingScore(
+            startingConfig);
+
+        assert(
+            startingScore.frame().total ==
+            500U);
+
+        assert(
+            startingScore.trySpend(
+                500U));
+
+        assert(
+            startingScore.frame().total ==
+            0U);
+    }
+
     xziel::ScoreSystem score;
 
     auto frame =
