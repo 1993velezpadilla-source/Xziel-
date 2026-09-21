@@ -20,7 +20,7 @@ jobs:
   build-church-map:
     name: Fetch CC-BY church + Blender headless conversion
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
 
     steps:
       - name: Checkout Xziel
@@ -31,9 +31,12 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          sudo apt-get install -y -qq blender python3-numpy
+          sudo apt-get install -y -qq \
+            blender python3-numpy \
+            libegl1 libgl1-mesa-dri libglx-mesa0 mesa-utils xvfb
           python3 -m pip install --quiet --upgrade pip
           python3 -m pip install --quiet objaverse trimesh huggingface_hub
+          blender --version
 
       - name: Fetch St Giles Cripplegate from Objaverse
         shell: bash
@@ -54,6 +57,8 @@ jobs:
           ann = annotations.get(uid)
           if not ann:
               raise SystemExit("St Giles Cripplegate UID is not present in Objaverse 1.0 annotations")
+          if ann.get("license") != "by":
+              raise SystemExit(f"Unexpected source license: {ann.get('license')!r}; expected CC BY")
 
           print(json.dumps(ann, indent=2))
           (out / "source_metadata.json").write_text(json.dumps(ann, indent=2), encoding="utf-8")
@@ -83,9 +88,12 @@ jobs:
           CHURCH_SOURCE: church/source/st-giles-cripplegate.glb
           CHURCH_OUT: church/out
           CHURCH_TARGET_TRIS: "650000"
+          LIBGL_ALWAYS_SOFTWARE: "1"
         run: |
           set -euo pipefail
-          blender --background --python tools/church_map/build_church_scene.py 2>&1 | tee church/out/blender-build.log
+          xvfb-run -a -s "-screen 0 1280x1024x24" \
+            blender --background --python tools/church_map/build_church_scene.py \
+            2>&1 | tee church/out/blender-build.log
           cp church/source/source_metadata.json church/out/
           cp church/source/ATTRIBUTION.txt church/out/
           ls -lh church/out
