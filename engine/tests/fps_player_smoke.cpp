@@ -63,6 +63,40 @@ int main() {
         frame.feetPosition.z <=
         3.3501f);
 
+    // Static obstacle collision blocks movement through room props while
+    // keeping the controller allocation-free.
+    player.reset();
+    player.clearStaticObstacles();
+
+    assert(
+        player.addStaticObstacle(
+            {
+                .minimum = {
+                    -0.58f,
+                    -1.60f,
+                    -0.25f,
+                },
+                .maximum = {
+                    0.58f,
+                    0.95f,
+                    0.95f,
+                },
+            }));
+
+    for (int i = 0;
+         i < 360;
+         ++i) {
+        frame =
+            player.fixedStep(
+                {0.0f, 1.0f},
+                {},
+                1.0f / 120.0f);
+    }
+
+    assert(
+        frame.feetPosition.z <
+        -0.45f);
+
     // Jump begins an airborne arc instead of being immediately clamped away.
     buttons.jumpPressed = true;
 
