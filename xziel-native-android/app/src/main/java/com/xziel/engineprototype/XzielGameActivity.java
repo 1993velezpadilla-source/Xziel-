@@ -77,6 +77,14 @@ public final class XzielGameActivity extends GameActivity {
             && manager.isPowerSaveMode();
     }
 
+    public float getXzielRefreshRate() {
+        if (getDisplay() == null) {
+            return 60.0f;
+        }
+
+        return getDisplay().getRefreshRate();
+    }
+
     @SuppressWarnings("deprecation")
     private Vibrator getXzielVibrator() {
         if (Build.VERSION.SDK_INT >= 31) {
