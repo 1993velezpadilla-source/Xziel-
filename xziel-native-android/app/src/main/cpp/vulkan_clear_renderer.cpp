@@ -1600,7 +1600,8 @@ bool VulkanClearRenderer::createGraphicsPipeline() noexcept {
 
     VkPushConstantRange pushRange{};
     pushRange.stageFlags =
-        VK_SHADER_STAGE_VERTEX_BIT;
+        VK_SHADER_STAGE_VERTEX_BIT |
+        VK_SHADER_STAGE_FRAGMENT_BIT;
     pushRange.offset = 0;
     pushRange.size =
         static_cast<std::uint32_t>(
@@ -3462,7 +3463,8 @@ bool VulkanClearRenderer::recordDrawCommand(
             vkCmdPushConstants(
                 command,
                 pipelineLayout_,
-                VK_SHADER_STAGE_VERTEX_BIT,
+                VK_SHADER_STAGE_VERTEX_BIT |
+                    VK_SHADER_STAGE_FRAGMENT_BIT,
                 0,
                 static_cast<std::uint32_t>(sizeof(PushConstants)),
                 &push);
@@ -3754,7 +3756,8 @@ bool VulkanClearRenderer::recordDrawCommand(
         vkCmdPushConstants(
             command,
             pipelineLayout_,
-            VK_SHADER_STAGE_VERTEX_BIT,
+            VK_SHADER_STAGE_VERTEX_BIT |
+                VK_SHADER_STAGE_FRAGMENT_BIT,
             0,
             static_cast<std::uint32_t>(
                 sizeof(PushConstants)),
