@@ -1400,6 +1400,29 @@ xziel::android::VulkanEnvironmentState makeEnvironmentState(
                ? 2U
                : 4U);
 
+    // The prototype water occupies a meaningful portion of the room whenever
+    // the player is within the reflection workload's distance budget. Carry a
+    // conservative coverage hint now; scene culling can replace this estimate
+    // with exact projected bounds without changing the renderer contract.
+    const float reflectionDistance =
+        std::sqrt(
+            state.camera.x * state.camera.x +
+            (state.camera.z - 1.0f) *
+                (state.camera.z - 1.0f));
+    environment.planarReflectionVisible =
+        state.renderWorkload.maxPlanarReflectionPasses > 0 &&
+        reflectionDistance <=
+            state.renderWorkload.reflectionDistanceMeters;
+    environment.planarReflectionScreenCoverage =
+        environment.planarReflectionVisible
+        ? std::clamp(
+              0.30f /
+                  (1.0f +
+                   reflectionDistance * 0.08f),
+              0.01f,
+              0.30f)
+        : 0.0f;
+
     environment.waterWavePhase =
         state.waterFrame.
             wavePhase;

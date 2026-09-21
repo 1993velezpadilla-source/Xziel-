@@ -97,6 +97,8 @@ struct VulkanEnvironmentState {
     float ssrResolutionScale = 0.0f;
     std::uint32_t ssrMaxSteps = 0;
     std::uint32_t planarReflectionUpdateEveryNFrames = 1;
+    bool planarReflectionVisible = true;
+    float planarReflectionScreenCoverage = 1.0f;
 };
 
 struct VulkanHudState {

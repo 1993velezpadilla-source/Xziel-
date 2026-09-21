@@ -254,8 +254,18 @@ bool VulkanClearRenderer::drawFrame(
     // adaptive workload. Allocation happens only when the scale changes, never
     // as per-frame churn. Failure is deliberately non-fatal: probe/shader
     // fallback remains available on memory-constrained devices.
+    const float reflectionCoverage =
+        std::clamp(
+            environment.planarReflectionScreenCoverage,
+            0.0f,
+            1.0f);
+    const bool reflectionContributes =
+        environment.planarReflectionVisible &&
+        reflectionCoverage > 0.0025f;
+
     const float requestedReflectionScale =
-        environment.maxPlanarReflectionPasses > 0
+        environment.maxPlanarReflectionPasses > 0 &&
+        reflectionContributes
         ? std::clamp(
               environment.planarReflectionScale,
               0.0f,
@@ -3014,9 +3024,16 @@ bool VulkanClearRenderer::recordDrawCommand(
     // implementation intentionally renders a compact subset of the room with
     // a reflected camera; the target is already transitioned to shader-read
     // layout by the reflection render pass for the material sampling stage.
+    // Tiny reflective surfaces can retain the previous target longer. This
+    // is deliberately quantized to avoid unstable frame-to-frame scheduling.
+    const std::uint32_t coverageIntervalMultiplier =
+        reflectionCoverage < 0.025f
+        ? 4U
+        : (reflectionCoverage < 0.08f ? 2U : 1U);
     const std::uint32_t reflectionUpdateInterval =
         std::clamp(
-            environment.planarReflectionUpdateEveryNFrames,
+            environment.planarReflectionUpdateEveryNFrames *
+                coverageIntervalMultiplier,
             1U,
             8U);
     const bool reflectionDue =
