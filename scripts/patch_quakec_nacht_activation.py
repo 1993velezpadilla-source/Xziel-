@@ -56,9 +56,13 @@ load_map = r'''void(string bsp_name) Menu_Maps_LoadMap =
 	cvar_set("sv_maxai", "24");
 	cvar_set("sv_fastrounds", "0");
 
-    // Stock Nacht remains the clean comparison/control map.
-    if (bsp_name == "ndu")
-        cvar_set("xziel_nacht_enhanced", "0");
+    // Nacht opens in the full Enchanted version by default. Classic stays
+    // one tap away in PRE-GAME, but new/returning players never have to hunt
+    // for a hidden switch just to see the rebuilt map.
+    if (bsp_name == "ndu") {
+        cvar_set("xziel_nacht_enhanced", "1");
+        cvar_set("xziel_modern_zombies", "1");
+    }
 
     // Separate derivative practice map: always enable the full Enchanted
     // presentation and smoother zombie motion.
@@ -172,16 +176,16 @@ lobby_fn = r'''void() Menu_Lobby =
     Menu_DrawTitle("PRE-GAME");
 
     float support_gamesettings = UserMapSupportsCustomGameLookup(current_selected_bsp);
-    string nacht_button = "NACHT: CLASSIC";
+    string nacht_button = "MAP VERSION: CLASSIC";
     if (cvar("xziel_nacht_enhanced") >= 0.5)
-        nacht_button = "NACHT: ENHANCED";
+        nacht_button = "MAP VERSION: ENCHANTED";
 
     if (menu_loby_countdown == 0) {
         Menu_Button(1, "lo_start", "START GAME", "Face the Horde!") ? Menu_Lobby_StartCountdown() : 0;
 
         if (current_selected_bsp == "ndu") {
             Menu_Button(2, "lo_enh", nacht_button,
-                "Toggle the Enhanced materials, lighting, atmosphere and effects layer. Classic preserves stock presentation.")
+                "ENCHANTED launches the rebuilt ndu_enchanted map. CLASSIC launches the untouched stock ndu map.")
                 ? Menu_Lobby_ToggleNachtEnhanced() : 0;
 
             if (support_gamesettings)
@@ -293,7 +297,7 @@ lobby_fn = r'''void() Menu_Lobby =
     sui_fill([80, -15], [90, 2], [0.2, 0.2, 0.2], 1, 0);
 
     if (current_selected_bsp == "ndu") {
-        sui_text([220, -40], MENU_TEXT_MEDIUM, "Nacht Visuals", [1, 1, 1], 1, 0);
+        sui_text([220, -40], MENU_TEXT_MEDIUM, "Map Version", [1, 1, 1], 1, 0);
         sui_text([220, -25], MENU_TEXT_SMALL, nacht_visuals, [1, 1, 0], 1, 0);
         sui_fill([220, -15], [90, 2], [0.2, 0.2, 0.2], 1, 0);
     }
@@ -308,7 +312,16 @@ lobby_fn = r'''void() Menu_Lobby =
             menu_loby_last = floor(lobby_delta);
         }
     } else if (lobby_delta < 0 && menu_loby_countdown != 0) {
-        localcmd(sprintf("map %s\n", current_selected_bsp));
+        string launch_bsp = current_selected_bsp;
+
+        // The map browser still exposes Nacht as one familiar entry. The
+        // PRE-GAME version selector decides which real BSP START GAME loads.
+        // This makes the full Enchanted build reachable without a hidden
+        // console command or a second obscure map-list entry.
+        if (current_selected_bsp == "ndu" && cvar("xziel_nacht_enhanced") >= 0.5)
+            launch_bsp = "ndu_enchanted";
+
+        localcmd(sprintf("map %s\n", launch_bsp));
         Menu_Lobby_StopCountdown();
         current_menu = MENU_MAIN;
     }
