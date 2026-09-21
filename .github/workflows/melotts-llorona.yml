@@ -1,0 +1,71 @@
+name: MeloTTS La Llorona Prayer
+
+on:
+  push:
+    branches:
+      - audio/llorona-elevenlabs
+    paths:
+      - "tools/audio/generate_llorona_melotts.py"
+      - ".github/workflows/melotts-llorona.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout Xziel
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install system audio dependencies
+        shell: bash
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg git
+          ffmpeg -version | head -n 1
+
+      - name: Install pinned MeloTTS
+        shell: bash
+        run: |
+          set -euxo pipefail
+          git clone https://github.com/myshell-ai/MeloTTS.git /tmp/MeloTTS
+          git -C /tmp/MeloTTS checkout 209145371cff8fc3bd60d7be902ea69cbdb7965a
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -e /tmp/MeloTTS
+          python -m unidic download
+
+      - name: Render Padre Nuestro
+        shell: bash
+        run: |
+          set -euxo pipefail
+          rm -rf dist/llorona-melotts
+          python tools/audio/generate_llorona_melotts.py
+
+      - name: Validate output
+        shell: bash
+        run: |
+          set -euxo pipefail
+          test -s dist/llorona-melotts/llorona_prayer_SELECTED_48k.wav
+          test -s dist/llorona-melotts/llorona_prayer_SELECTED_48k.ogg
+          test -s dist/llorona-melotts/manifest.json
+          ffprobe -v error -show_entries format=duration,size -of json \
+            dist/llorona-melotts/llorona_prayer_SELECTED_48k.wav
+          ls -lah dist/llorona-melotts
+
+      - name: Upload prayer audio
+        uses: actions/upload-artifact@v4
+        with:
+          name: xziel-llorona-prayer-melotts
+          path: dist/llorona-melotts/
+          if-no-files-found: error
+          retention-days: 14
