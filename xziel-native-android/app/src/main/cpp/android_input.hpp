@@ -15,6 +15,12 @@ struct AndroidInputSnapshot {
     xziel::InputState input{};
     xziel::MobileMovementButtons movementButtons{};
 
+    xziel::Vec2 moveAnchorNormalized{
+        0.17f,
+        0.78f,
+    };
+
+    bool moveActive = false;
     bool gyroAvailable = false;
 };
 
