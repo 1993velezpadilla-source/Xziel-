@@ -237,7 +237,7 @@ def eye_material():
     return mat
 
 
-def subset_shell(src_obj, name, zmin, zmax, mat, tear_seed):
+def subset_shell(src_obj, name, zmin, zmax, mat, tear_seed, xmax=None):
     dup = src_obj.copy()
     dup.data = src_obj.data.copy()
     dup.name = name
@@ -249,6 +249,9 @@ def subset_shell(src_obj, name, zmin, zmax, mat, tear_seed):
     span = max(zmax - zmin, 1e-6)
     for v in bm.verts:
         if v.co.z < zmin or v.co.z > zmax:
+            verts_to_delete.append(v)
+            continue
+        if xmax is not None and abs(v.co.x) > xmax:
             verts_to_delete.append(v)
             continue
         # Ragged hem/cuffs: deterministic holes near boundaries.
@@ -272,11 +275,13 @@ def subset_shell(src_obj, name, zmin, zmax, mat, tear_seed):
 
 
 def create_clothes(body):
-    shirt_mat = cloth_material("M_TornShirt", (0.085, 0.075, 0.060))
-    pants_mat = cloth_material("M_TornPants", (0.035, 0.040, 0.044))
-    shirt = subset_shell(body, "Zombie_TornShirt", 0.88, 1.43, shirt_mat, 31)
-    pants = subset_shell(body, "Zombie_TornPants", 0.18, 0.94, pants_mat, 47)
-    return [shirt, pants]
+    shirt_mat = cloth_material("M_TornShirt", (0.055, 0.047, 0.038))
+    shorts_mat = cloth_material("M_TornShorts", (0.028, 0.032, 0.035))
+    # Keep shells on the actual torso/hip region only. The first prototype copied
+    # the arms and lower legs too, producing disconnected floating cloth panels.
+    shirt = subset_shell(body, "Zombie_TornShirt", 0.92, 1.42, shirt_mat, 31, xmax=0.30)
+    shorts = subset_shell(body, "Zombie_TornShorts", 0.66, 0.98, shorts_mat, 47, xmax=0.31)
+    return [shirt, shorts]
 
 
 def add_uv_sphere(name, loc, scale, mat, segments=32, rings=16):
@@ -296,41 +301,69 @@ def add_uv_sphere(name, loc, scale, mat, segments=32, rings=16):
     return o
 
 
-def add_face_and_wounds():
+def front_surface_y(body, x, z, radius_x=0.045, radius_z=0.045):
+    """Estimate the MakeHuman front surface (+Y) near an X/Z point."""
+    candidates = [
+        v.co.y for v in body.data.vertices
+        if abs(v.co.x - x) <= radius_x and abs(v.co.z - z) <= radius_z
+    ]
+    if candidates:
+        return max(candidates)
+    # Expand once for sparse areas such as cheek/abdomen.
+    candidates = [
+        v.co.y for v in body.data.vertices
+        if abs(v.co.x - x) <= radius_x * 2.2 and abs(v.co.z - z) <= radius_z * 2.2
+    ]
+    if candidates:
+        return max(candidates)
+    return bounds(body)[1].y
+
+
+def add_face_and_wounds(body):
     blood = blood_material()
     eye = eye_material()
     objs = []
 
-    # Milky dead eyes. Front is treated as -Y for the normalized MakeHuman base.
-    objs.append(add_uv_sphere("Zombie_Eye_L", (-0.035, -0.105, 1.665), (0.017, 0.012, 0.017), eye, 24, 12))
-    objs.append(add_uv_sphere("Zombie_Eye_R", (0.035, -0.105, 1.665), (0.017, 0.012, 0.017), eye, 24, 12))
+    # MakeHuman's face points toward +Y after normalization. Place details on the
+    # sampled body surface rather than using a fixed depth, preventing floating gore.
+    for side, x in (("L", -0.033), ("R", 0.033)):
+        z = 1.652
+        y = front_surface_y(body, x, z, 0.025, 0.025) + 0.006
+        objs.append(add_uv_sphere(
+            f"Zombie_Eye_{side}", (x, y, z),
+            (0.015, 0.010, 0.015), eye, 24, 12
+        ))
 
     wound_specs = [
-        (-0.16, -0.145, 1.18, 0.065, 0.012, 0.045),
-        (0.18, -0.142, 1.32, 0.045, 0.010, 0.085),
-        (-0.09, -0.125, 1.57, 0.033, 0.009, 0.052),
-        (0.04, -0.130, 1.53, 0.025, 0.008, 0.040),
-        (-0.12, -0.110, 0.74, 0.040, 0.009, 0.090),
-        (0.10, -0.110, 0.52, 0.032, 0.008, 0.070),
+        (-0.145, 1.18, 0.045, 0.030),
+        (0.155, 1.31, 0.034, 0.055),
+        (-0.078, 1.575, 0.026, 0.034),
+        (0.045, 1.535, 0.020, 0.028),
+        (-0.105, 0.79, 0.030, 0.055),
+        (0.095, 0.56, 0.026, 0.045),
     ]
-    for i, (x, y, z, sx, sy, sz) in enumerate(wound_specs):
-        w = add_uv_sphere(f"Zombie_Wound_{i:02d}", (x, y, z), (sx, sy, sz), blood, 20, 10)
-        w.rotation_euler[1] = (i * 0.37) % math.pi
+    for i, (x, z, sx, sz) in enumerate(wound_specs):
+        y = front_surface_y(body, x, z, max(0.035, sx), max(0.04, sz)) + 0.004
+        w = add_uv_sphere(
+            f"Zombie_Wound_{i:02d}", (x, y, z),
+            (sx, 0.004, sz), blood, 20, 10
+        )
+        w.rotation_euler[1] = (i * 0.29) % math.pi
+        apply_all(w)
         objs.append(w)
     return objs
 
 
-def add_teeth_hint():
-    mat, nodes, links, bsdf = new_principled_material("M_Bone")
-    set_input(bsdf, ["Base Color"], (0.37, 0.32, 0.22, 1.0))
-    set_input(bsdf, ["Roughness"], 0.76)
-    bpy.ops.mesh.primitive_cube_add(location=(0.0, -0.119, 1.617), scale=(0.028, 0.006, 0.010))
-    o = bpy.context.object
-    o.name = "Zombie_ExposedTeethHint"
-    o.data.materials.append(mat)
-    bevel = o.modifiers.new("TeethBevel", "BEVEL")
-    bevel.width = 0.004
-    bevel.segments = 3
+def add_mouth_cavity(body):
+    mat, nodes, links, bsdf = new_principled_material("M_MouthRot")
+    set_input(bsdf, ["Base Color"], (0.025, 0.002, 0.003, 1.0))
+    set_input(bsdf, ["Roughness"], 0.82)
+    x, z = 0.0, 1.595
+    y = front_surface_y(body, x, z, 0.04, 0.025) + 0.004
+    o = add_uv_sphere(
+        "Zombie_MouthRot", (x, y, z),
+        (0.034, 0.004, 0.014), mat, 24, 12
+    )
     return o
 
 
@@ -367,7 +400,7 @@ def setup_preview_camera_and_lights():
 
     scene.world.color = (0.004, 0.004, 0.006)
 
-    bpy.ops.object.camera_add(location=(2.25, -3.35, 1.42))
+    bpy.ops.object.camera_add(location=(1.35, 3.35, 1.34))
     cam = bpy.context.object
     cam.name = "Preview_Camera"
     cam.data.lens = 68
@@ -385,9 +418,9 @@ def setup_preview_camera_and_lights():
         look_at(l, (0, 0, 1.0))
         return l
 
-    area("Key", (-2.2, -2.0, 2.9), 780.0, 2.2, (0.72, 0.82, 1.0))
-    area("Rim", (2.0, 0.9, 2.2), 1050.0, 1.4, (0.55, 0.08, 0.06))
-    area("Fill", (0.2, -0.8, 0.7), 280.0, 1.7, (0.35, 0.45, 0.42))
+    area("Key", (-1.9, 2.3, 2.9), 900.0, 2.0, (0.72, 0.82, 1.0))
+    area("Rim", (2.0, -1.1, 2.2), 1120.0, 1.4, (0.55, 0.08, 0.06))
+    area("Fill", (0.4, 1.1, 0.85), 240.0, 1.5, (0.32, 0.40, 0.37))
     return cam
 
 
@@ -448,14 +481,14 @@ def main():
     body.data.materials.append(skin)
 
     clothes = create_clothes(body)
-    gore = add_face_and_wounds()
-    teeth = add_teeth_hint()
+    gore = add_face_and_wounds(body)
+    mouth = add_mouth_cavity(body)
 
     lod_dir = Path(args.lod_dir)
     lod_dir.mkdir(parents=True, exist_ok=True)
 
     # Export production mesh before adding preview-only geometry.
-    production_objs = [body] + clothes + gore + [teeth]
+    production_objs = [body] + clothes + gore + [mouth]
     export_selected(args.out, production_objs)
 
     lod1 = create_lod(body, 0.52, "Zombie_LOD1_Body")
