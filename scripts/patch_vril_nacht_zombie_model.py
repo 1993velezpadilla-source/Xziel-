@@ -38,29 +38,80 @@ if extern_line not in s:
     s = s.replace(extern_anchor, extern_anchor + extern_line, 1)
 
 helper_anchor = "int doZHack;\n"
-helper = r'''static int Xziel_NachtEnhanced_MapZombieFrame(int frame)
+helper = r'''static int Xziel_NachtEnhanced_ScaleFrame(int frame, int src_first, int src_last, int dst_first, int dst_last)
 {
-    // LibreQuake zombie layout: stand 0-14, walk 15-33, run 34-51,
-    // attacks 52-90 and pain/down sequences 91-191.
-    if (frame >= 0 && frame <= 13)
-        return (frame * 14) / 13;
-    if (frame >= 37 && frame <= 82)
-        return 15 + ((frame - 37) % 19);
-    if (frame >= 83 && frame <= 101)
-        return 34 + ((frame - 83) % 18);
+    if (src_last <= src_first)
+        return dst_first;
+    return dst_first + ((frame - src_first) * (dst_last - dst_first)) / (src_last - src_first);
+}
+
+static int Xziel_NachtEnhanced_MapZombieFrame(int frame)
+{
+    // NZ:P source body (zb%.mdl) uses 211 frames. Map each *actual runtime
+    // sequence* independently so loops do not jump into the middle of the
+    // LibreQuake animation. Target ranges come from LibreQuake zombie.qc:
+    // stand 0-14, walk 15-33, run 34-51, attack A/B/C 52-90,
+    // pain A 91-102, pain E knock-down 162-191.
+    //
+    // Idle: NZ:P 0-12 -> complete 15-frame LibreQuake stand cycle.
+    if (frame >= 0 && frame <= 12)
+        return Xziel_NachtEnhanced_ScaleFrame(frame, 0, 12, 0, 14);
+
+    // Three independent NZ:P walk styles. Scale each one separately to the
+    // same complete target walk cycle; never modulo across style boundaries.
+    if (frame >= 37 && frame <= 52)
+        return Xziel_NachtEnhanced_ScaleFrame(frame, 37, 52, 15, 33);
+    if (frame >= 53 && frame <= 66)
+        return Xziel_NachtEnhanced_ScaleFrame(frame, 53, 66, 15, 33);
+    if (frame >= 67 && frame <= 82)
+        return Xziel_NachtEnhanced_ScaleFrame(frame, 67, 82, 15, 33);
+
+    // Jog and sprint are separate NZ:P loops. Both get the full run cycle so
+    // each loop closes cleanly instead of wrapping halfway through a stride.
+    if (frame >= 83 && frame <= 90)
+        return Xziel_NachtEnhanced_ScaleFrame(frame, 83, 90, 34, 51);
+    if (frame >= 92 && frame <= 101)
+        return Xziel_NachtEnhanced_ScaleFrame(frame, 92, 101, 34, 51);
+
+    // Zombie swipes. Use one complete melee sequence.
     if (frame >= 102 && frame <= 112)
-        return 65 + ((frame - 102) % 14);
+        return Xziel_NachtEnhanced_ScaleFrame(frame, 102, 112, 65, 78);
+
+    // Window hop has no exact LibreQuake equivalent. Pain-A is a bounded
+    // forward body motion and is visually safer than an unrelated attack.
     if (frame >= 113 && frame <= 122)
-        return 91 + ((frame - 113) % 12);
-    if (frame >= 123 && frame <= 148)
-        return 162 + (((frame - 123) * 29) / 25);
-    if (frame >= 149 && frame <= 159)
-        return 162 + (((frame - 149) * 29) / 10);
-    if (frame >= 181 && frame <= 210)
-        return 52 + ((frame - 181) % 39);
-    if (frame < 0)
-        return 0;
-    return frame % 250;
+        return Xziel_NachtEnhanced_ScaleFrame(frame, 113, 122, 91, 102);
+
+    // NZ:P death A/B/C. LibreQuake's pain-E is a knock-down + resurrection;
+    // use ONLY its falling/ground portion (162-172), never frames 173-191
+    // which stand the monster back up.
+    if (frame >= 123 && frame <= 133)
+        return Xziel_NachtEnhanced_ScaleFrame(frame, 123, 133, 162, 172);
+    if (frame >= 134 && frame <= 138)
+        return Xziel_NachtEnhanced_ScaleFrame(frame, 134, 138, 162, 172);
+    if (frame >= 139 && frame <= 148)
+        return Xziel_NachtEnhanced_ScaleFrame(frame, 139, 148, 162, 172);
+
+    // Falling/Wunder sequence: fall through the down section, then remain
+    // prone for landing frames instead of visually resurrecting.
+    if (frame >= 149 && frame <= 152)
+        return Xziel_NachtEnhanced_ScaleFrame(frame, 149, 152, 162, 171);
+    if (frame >= 153 && frame <= 159)
+        return 172;
+
+    // Barricade ripping and through-window attacks: map the three distinct
+    // source ranges to the three complete target attack sequences.
+    if (frame >= 181 && frame <= 191)
+        return Xziel_NachtEnhanced_ScaleFrame(frame, 181, 191, 52, 64);
+    if (frame >= 192 && frame <= 201)
+        return Xziel_NachtEnhanced_ScaleFrame(frame, 192, 201, 65, 78);
+    if (frame >= 202 && frame <= 210)
+        return Xziel_NachtEnhanced_ScaleFrame(frame, 202, 210, 79, 90);
+
+    // 13-36, 91 and 160-180 are not live body sequences in the current NZ:P
+    // zombie logic. Fail neutral instead of frame%250, which could expose a
+    // random pain/crucified pose if an unknown state ever reaches the renderer.
+    return 0;
 }
 
 static const char *Xziel_NachtEnhanced_ZombieVariant(model_t *source)
