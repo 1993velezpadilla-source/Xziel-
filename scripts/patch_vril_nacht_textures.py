@@ -3,7 +3,7 @@
 
 Stock ndu always follows Vril's normal texture path. The Lab BSP first checks
 textures/nacht_enhanced/<original texture name>, then Vril's generic external
-texture path, then the embedded WAD/BSP pixels.
+texture path, then embedded WAD/BSP pixels.
 """
 from pathlib import Path
 import sys
@@ -14,38 +14,48 @@ if len(sys.argv) != 2:
 p = Path(sys.argv[1]) / "source" / "platform" / "sdl" / "gl" / "gl_model.c"
 s = p.read_text(encoding="utf-8")
 
-old = '''\t\t\t\ttexture_mode = GL_LINEAR_MIPMAP_NEAREST;
-\t\t\t\tsprintf (texname, "textures/%s", mt->name);
-\t\t\t\ttx->gl_texturenum = Image_LoadImage (texname, IMAGE_TGA | IMAGE_PNG | IMAGE_JPG, 0, false, true);\t\t\t//Diabolickal TGA textures
-\t\t\t\ttexture_mode = GL_LINEAR;
+if 'textures/nacht_enhanced/%s' not in s:
+    first = '\t\t\t\ttexture_mode = GL_LINEAR_MIPMAP_NEAREST;\n'
+    start = s.find(first)
+    if start < 0:
+        raise SystemExit("HL texture-mode anchor not found")
 
-\t\t\t \tif (tx->gl_texturenum < 0) {
-\t\t\t\t\tdata = WAD3_LoadTexture(mt);
-'''
+    # Make sure we found the Half-Life BSP external-texture path rather than
+    # another texture-mode assignment later in the file.
+    generic = 'sprintf (texname, "textures/%s", mt->name);'
+    generic_pos = s.find(generic, start)
+    if generic_pos < 0 or generic_pos - start > 256:
+        raise SystemExit("HL generic external-texture anchor not found")
 
-new = '''\t\t\t\ttexture_mode = GL_LINEAR_MIPMAP_NEAREST;
+    wad = '\t\t\t\t\tdata = WAD3_LoadTexture(mt);\n'
+    wad_pos = s.find(wad, generic_pos)
+    if wad_pos < 0 or wad_pos - generic_pos > 768:
+        raise SystemExit("HL WAD fallback anchor not found")
+    end = wad_pos + len(wad)
+
+    replacement = '''\t\t\t\ttexture_mode = GL_LINEAR_MIPMAP_NEAREST;
 
 \t\t\t\t// Xziel Lab textures are tied to the separate BSP identity.
-\t\t\t\t// Stock maps can never inherit them from a persisted cvar.
+\t\t\t\t// Stock maps can never inherit them from a persisted setting.
 \t\t\t\ttx->gl_texturenum = -1;
 \t\t\t\tif (!strcmp(loadmodel->name, "maps/ndu_enchanted.bsp")) {
 \t\t\t\t\tsnprintf (texname, sizeof(texname), "textures/nacht_enhanced/%s", mt->name);
 \t\t\t\t\ttx->gl_texturenum = Image_LoadImage (texname, IMAGE_TGA | IMAGE_PNG | IMAGE_JPG, 0, false, true);
 \t\t\t\t}
 
-\t\t\t\t// Preserve Vril's existing generic external-texture behavior.
+\t\t\t\t// Preserve Vril's generic external-texture behavior.
 \t\t\t\tif (tx->gl_texturenum < 0) {
 \t\t\t\t\tsnprintf (texname, sizeof(texname), "textures/%s", mt->name);
 \t\t\t\t\ttx->gl_texturenum = Image_LoadImage (texname, IMAGE_TGA | IMAGE_PNG | IMAGE_JPG, 0, false, true);
 \t\t\t\t}
 \t\t\t\ttexture_mode = GL_LINEAR;
 
-\t\t\t \tif (tx->gl_texturenum < 0) {
+\t\t\t  \tif (tx->gl_texturenum < 0) {
 \t\t\t\t\tdata = WAD3_LoadTexture(mt);
 
-\t\t\t\t\t// Never hand GL_Upload32 a NULL source. A malformed/portable
-\t\t\t\t\t// package may be missing a WAD or external texture; keep the
-\t\t\t\t\t// renderer alive with a bounded diagnostic checker instead.
+\t\t\t\t\t// Never pass a NULL pixel source to GL_Upload32. Portable
+\t\t\t\t\t// packages can be missing a WAD/external texture; keep the
+\t\t\t\t\t// renderer alive with a small diagnostic checker.
 \t\t\t\t\tif (data == NULL) {
 \t\t\t\t\t\tint fallback_pixels = tx->width * tx->height;
 \t\t\t\t\t\tdata = malloc(fallback_pixels * 4);
@@ -64,15 +74,10 @@ new = '''\t\t\t\ttexture_mode = GL_LINEAR_MIPMAP_NEAREST;
 \t\t\t\t\t\tCon_Printf("Xziel: missing texture %s; using safe fallback\\n", mt->name);
 \t\t\t\t\t}
 '''
+    s = s[:start] + replacement + s[end:]
 
-if 'textures/nacht_enhanced/%s' not in s:
-    if old not in s:
-        raise SystemExit("HL external-texture block not found")
-    s = s.replace(old, new, 1)
-
-# The SDL renderer historically requested zombie atlases as PCX-only even
-# though the generic alias loader supports TGA. Keep TGA support available for
-# the Lab's future real zombie-model/skin integration while retaining PCX.
+# Keep TGA alias-skin support available while the Lab-specific character
+# namespace is being integrated. Stock PCX remains the fallback.
 rmisc = Path(sys.argv[1]) / "source" / "platform" / "sdl" / "gl" / "gl_rmisc.c"
 rs = rmisc.read_text(encoding="utf-8")
 for i in range(4):
