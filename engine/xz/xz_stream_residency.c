@@ -162,6 +162,15 @@ void XzStreamResidency_Update(
     state->last_admitted_unique = 0u;
     state->updates++;
 
+    /*
+     * Enforce a newly-lowered budget before touching this generation. At this
+     * point all previous residents are valid eviction candidates; doing the
+     * trim later could temporarily pin everything referenced by the new plan.
+     */
+    XzTrimToCapacity(
+        state,
+        plan->generation);
+
     for (i = 0u; i < plan->packet_count; ++i) {
         const XzRenderPacket *packet =
             &plan->packets[i];
