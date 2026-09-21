@@ -41,6 +41,12 @@ struct VulkanSceneState {
 
     float roundProgress = 0.0f;
     bool interRound = false;
+
+    float impactX = 0.0f;
+    float impactY = 0.0f;
+    float impactZ = 0.0f;
+    float impactAlpha = 0.0f;
+    bool impactCritical = false;
 };
 
 struct VulkanEnvironmentState {
@@ -69,6 +75,7 @@ struct VulkanHudState {
     bool gyroAvailable = false;
 
     float hitMarkerAlpha = 0.0f;
+    float criticalHitAlpha = 0.0f;
     bool targetAlive = true;
 
     float weaponAdsAlpha = 0.0f;
