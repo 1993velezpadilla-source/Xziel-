@@ -112,10 +112,10 @@ private:
         const Aabb& obstacle) const noexcept;
 
     static constexpr std::size_t
-        kMaximumStaticObstacles = 16;
+        kMaximumStaticObstacles = 64;
 
     static constexpr std::size_t
-        kMaximumDynamicObstacles = 16;
+        kMaximumDynamicObstacles = 32;
 
     FpsPlayerConfig config_{};
     MobileMovementResolver mobileResolver_{};

@@ -8,7 +8,7 @@
 
 namespace xziel {
 
-inline constexpr std::size_t kMaxInteractionTargets = 32;
+inline constexpr std::size_t kMaxInteractionTargets = 64;
 
 enum class InteractionKind : std::uint8_t {
     Use,

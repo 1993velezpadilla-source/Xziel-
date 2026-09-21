@@ -10,8 +10,8 @@
 namespace xziel {
 
 inline constexpr std::size_t kMaxHordeZombies = 16;
-inline constexpr std::size_t kMaxHordeNavigationObstacles = 8;
-inline constexpr std::size_t kMaxHordeDynamicBlockers = 8;
+inline constexpr std::size_t kMaxHordeNavigationObstacles = 64;
+inline constexpr std::size_t kMaxHordeDynamicBlockers = 32;
 
 struct HordeConfig {
     std::uint32_t startingRound = 1;
