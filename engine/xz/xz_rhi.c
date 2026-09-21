@@ -33,7 +33,8 @@ static int XzRhiSelfTestSubmit(
            submission->plan &&
            submission->plan->packet_count == 1u &&
            submission->commands &&
-           submission->commands->count == 2u;
+           submission->commands->count == 2u &&
+           submission->resources != NULL;
 }
 
 static int XzRhiSelfTestEnd(void *user)
@@ -175,7 +176,8 @@ static int XzRhiCommandsLookValid(
 int XzRhi_SubmitFrame(
     XzRhiState *state,
     const XzRenderPlan *plan,
-    const XzCommandStream *commands)
+    const XzCommandStream *commands,
+    XzGpuResourcePool *resources)
 {
     XzRhiSubmission submission;
 
@@ -194,6 +196,7 @@ int XzRhi_SubmitFrame(
 
     submission.plan = plan;
     submission.commands = commands;
+    submission.resources = resources;
 
     state->submitted_frames++;
     state->submitted_packets += plan->packet_count;
@@ -292,12 +295,14 @@ int XzRhi_SelfTest(void)
     XzRenderPlan plan;
     XzRhiState rhi;
     XzCommandStream commands;
+    XzGpuResourcePool resources;
     XzRhiMirrorDriver mirror_driver;
     XzRhiSelfTestMirror mirror_state;
 
     memset(&frame, 0, sizeof(frame));
     memset(&budget, 0, sizeof(budget));
     memset(&commands, 0, sizeof(commands));
+    XzGpuResourcePool_Init(&resources);
     memset(&mirror_driver, 0, sizeof(mirror_driver));
     memset(&mirror_state, 0, sizeof(mirror_state));
 
@@ -361,7 +366,8 @@ int XzRhi_SelfTest(void)
     if (!XzRhi_SubmitFrame(
             &rhi,
             &plan,
-            &commands))
+            &commands,
+            &resources))
         return 0;
     XzRhi_EndFrame(&rhi);
 
