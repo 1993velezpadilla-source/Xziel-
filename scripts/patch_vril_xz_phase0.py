@@ -112,7 +112,8 @@ checks = {
     "header": '#include "xz_android_runtime.h"',
     "init": "XzAndroidRuntime_Init(heap_size);",
     "begin": "XzAndroidRuntime_BeginFrame(now);",
-    "accepted-frame gate": "host_framecount != xz_frame_before",\n    "end": "XzAndroidRuntime_EndFrame(Sys_FloatTime());",
+    "accepted-frame gate": "host_framecount != xz_frame_before",
+    "end": "XzAndroidRuntime_EndFrame(Sys_FloatTime());",
     "shutdown": "XzAndroidRuntime_Shutdown();",
 }
 final = sys_sdl.read_text(encoding="utf-8")
