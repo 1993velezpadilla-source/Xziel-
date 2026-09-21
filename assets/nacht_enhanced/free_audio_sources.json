@@ -1,0 +1,36 @@
+{
+  "purpose": "Commercial-safe/reference sound sourcing for the future original Xziel map. The Quake/NZ:P practice APK currently keeps stock NZ:P audio as its default fallback; official WaW files remain local-import-only.",
+  "license_policy": "Only package sources whose license permits redistribution in the intended build. Do not ship ripped Call of Duty audio in the public original-game APK.",
+  "roles": {
+    "exterior_creaky_wind": {
+      "source": "https://freesound.org/people/Breviceps/sounds/683012/",
+      "license": "CC0",
+      "notes": "Creaky metal door + harsh spooky wind; useful around exterior breaches."
+    },
+    "wood_floor_creak": {
+      "source": "https://freesound.org/people/Rudmer_Rotteveel/sounds/502511/",
+      "license": "CC0",
+      "notes": "Single old floor/board creak for irregular building movement."
+    },
+    "slow_door_creak": {
+      "source": "https://freesound.org/people/Rudmer_Rotteveel/sounds/590950/",
+      "license": "CC0",
+      "notes": "Short slow door close/hinge accent."
+    },
+    "eerie_wind_short": {
+      "source": "https://freesound.org/people/Rvgerxini/sounds/509732/",
+      "license": "CC0",
+      "notes": "Short processed wind/whistle cue for supernatural transitions."
+    },
+    "dark_ambient_bed": {
+      "source": "https://freesound.org/people/Rvgerxini/sounds/554782/",
+      "license": "CC0",
+      "notes": "Short sinister ambient pad; candidate for an original Enchanted background layer."
+    },
+    "creepy_whoosh": {
+      "source": "https://freesound.org/people/SoundEffectsForAll/sounds/840812/",
+      "license": "CC0",
+      "notes": "Short supernatural whoosh for box/round/occult events."
+    }
+  }
+}

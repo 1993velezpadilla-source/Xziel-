@@ -88,6 +88,13 @@ jobs:
           grep -q 'flames.flame_particle' build/deps/quakec/source/client/main.qc
           grep -q 'weapons.impact' build/deps/quakec/source/client/main.qc
           grep -q 'xziel_nacht_fx_next_lightning' build/deps/quakec/source/client/main.qc
+          grep -q 'The Enchanted practice map uses the existing NZ:P dismemberment state' build/deps/quakec/source/server/weapons/weapon_core.qc
+          grep -q 'Legs-to-crawler conversion already exists in stock NZ:P' build/deps/quakec/source/server/ai/crawler_core.qc
+          test -s build/nzp-data/nzp/models/ai/zcfull.mdl
+          test -s 'build/nzp-data/nzp/models/ai/zbc%.mdl'
+          test -s 'build/nzp-data/nzp/models/ai/zh^.mdl'
+          test -s 'build/nzp-data/nzp/models/ai/zal(.mdl'
+          test -s 'build/nzp-data/nzp/models/ai/zar(.mdl'
           grep -q 'sounds/ambience/wind2.wav' build/deps/quakec/source/server/main.qc
           grep -q 'invalid SOLID_BSP entity' build/deps/vril/source/world.c
           grep -q 'xziel_waw_round1_ready' build/deps/quakec/source/server/defs/custom.qc

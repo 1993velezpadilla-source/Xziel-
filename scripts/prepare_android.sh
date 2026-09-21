@@ -57,6 +57,7 @@ python3 "$ROOT/scripts/patch_quakec_nacht_enhanced.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_nacht_activation.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_nacht_runtime.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_nacht_fx_v2.py" "$DEPS/quakec"
+python3 "$ROOT/scripts/patch_quakec_nacht_gore.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_waw_legacy_audio.py" "$DEPS/quakec"
 chmod +x "$DEPS/quakec/bin/fteqcc-cli-lin" "$DEPS/quakec/tools/qc-compiler-gnu.sh"
 (
