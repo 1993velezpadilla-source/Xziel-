@@ -92,6 +92,9 @@ struct VulkanHudState {
     float damageFlashAlpha = 0.0f;
     float deathAlpha = 0.0f;
     float horrorVignette = 0.0f;
+
+    std::uint64_t scoreTotal = 0;
+    float scorePulseAlpha = 0.0f;
 };
 
 class VulkanClearRenderer final {
