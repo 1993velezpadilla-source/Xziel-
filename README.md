@@ -14,3 +14,4 @@ This repository is being used for the real native/offline Android build: SDL2 + 
 - GitHub Actions APK builds
 
 Upstream projects and their licenses/attribution will be preserved as the port is integrated.
+\n\n<!-- Nacht Enhanced development checkpoint: Android CI validates the runtime cvar and menu overlay. -->\n
