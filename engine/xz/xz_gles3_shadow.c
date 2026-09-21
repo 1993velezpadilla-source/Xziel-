@@ -17,7 +17,7 @@
 
 #define XZ_SHADOW_WIDTH 64
 #define XZ_SHADOW_HEIGHT 64
-#define XZ_VERTEX_FLOATS 3u
+#define XZ_VERTEX_FLOATS 7u
 #define XZ_VERTICES_PER_PACKET 3u
 #define XZ_G3_RESOURCE_PROXY_MAX 128u
 
@@ -315,20 +315,21 @@ static int XzCreateProgramAndBuffer(void)
         "#version 300 es\n"
         "layout(location=0) in vec2 aPos;\n"
         "layout(location=1) in float aWeight;\n"
-        "out float vWeight;\n"
+        "layout(location=2) in vec4 aColor;\n"
+        "out vec4 vColor;\n"
         "void main(){\n"
         "  gl_Position=vec4(aPos,0.0,1.0);\n"
         "  gl_PointSize=1.0+3.0*aWeight;\n"
-        "  vWeight=aWeight;\n"
+        "  vColor=vec4(aColor.rgb*(0.85+0.15*aWeight),aColor.a);\n"
         "}\n";
 
     static const char *fs_source =
         "#version 300 es\n"
         "precision mediump float;\n"
-        "in float vWeight;\n"
+        "in vec4 vColor;\n"
         "out vec4 outColor;\n"
         "void main(){\n"
-        "  outColor=vec4(vWeight,1.0-vWeight,0.25,1.0);\n"
+        "  outColor=vColor;\n"
         "}\n";
 
     XzNativeGles3Api *gl = &xz_shadow.gl;
@@ -399,6 +400,15 @@ static int XzCreateProgramAndBuffer(void)
         GL_FALSE,
         (GLsizei)(XZ_VERTEX_FLOATS * sizeof(float)),
         (const void *)(uintptr_t)(2u * sizeof(float)));
+
+    gl->EnableVertexAttribArray(2u);
+    gl->VertexAttribPointer(
+        2u,
+        4,
+        GL_FLOAT,
+        GL_FALSE,
+        (GLsizei)(XZ_VERTEX_FLOATS * sizeof(float)),
+        (const void *)(uintptr_t)(3u * sizeof(float)));
 
     gl->BindVertexArray(0u);
     gl->BindBuffer(GL_ARRAY_BUFFER, 0u);
@@ -1421,14 +1431,32 @@ static int XzGles3Shadow_SubmitInternal(
         vertices[base + 0u] = x;
         vertices[base + 1u] = y + delta;
         vertices[base + 2u] = weight;
+        vertices[base + 3u] = packet->lit_rgba[0];
+        vertices[base + 4u] = packet->lit_rgba[1];
+        vertices[base + 5u] = packet->lit_rgba[2];
+        vertices[base + 6u] = packet->lit_rgba[3];
 
-        vertices[base + 3u] = x - delta;
-        vertices[base + 4u] = y - delta;
-        vertices[base + 5u] = weight;
+        vertices[base + 7u] = x - delta;
+        vertices[base + 8u] = y - delta;
+        vertices[base + 9u] = weight;
+        vertices[base + 10u] = packet->lit_rgba[0];
+        vertices[base + 11u] = packet->lit_rgba[1];
+        vertices[base + 12u] = packet->lit_rgba[2];
+        vertices[base + 13u] = packet->lit_rgba[3];
 
-        vertices[base + 6u] = x + delta;
-        vertices[base + 7u] = y - delta;
-        vertices[base + 8u] = weight;
+        vertices[base + 14u] = x + delta;
+        vertices[base + 15u] = y - delta;
+        vertices[base + 16u] = weight;
+        vertices[base + 17u] = packet->lit_rgba[0];
+        vertices[base + 18u] = packet->lit_rgba[1];
+        vertices[base + 19u] = packet->lit_rgba[2];
+        vertices[base + 20u] = packet->lit_rgba[3];
+
+        state->material_packets++;
+        state->material_vertices += XZ_VERTICES_PER_PACKET;
+        if (packet->contributing_lights > 0u)
+            state->material_lit_packets++;
+        state->last_material_flags = packet->material_flags;
     }
 
     XzEncodePlanColor(
