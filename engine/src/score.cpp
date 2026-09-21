@@ -20,7 +20,10 @@ ScoreFrame ScoreSystem::awardHit(
     bool killed) noexcept {
     frame_.changedThisTick = false;
     frame_.criticalAwardThisTick = false;
+    frame_.spentThisTick = false;
+    frame_.insufficientFundsThisTick = false;
     frame_.lastAward = 0;
+    frame_.lastSpend = 0;
 
     std::uint64_t points =
         hitPoints(
@@ -72,6 +75,38 @@ ScoreFrame ScoreSystem::awardRoundClear(
         false);
 
     return frame_;
+}
+
+bool ScoreSystem::trySpend(
+    std::uint32_t points) noexcept {
+    frame_.changedThisTick = false;
+    frame_.criticalAwardThisTick = false;
+    frame_.spentThisTick = false;
+    frame_.insufficientFundsThisTick = false;
+    frame_.lastAward = 0;
+    frame_.lastSpend = 0;
+
+    if (points == 0U) {
+        return true;
+    }
+
+    if (frame_.total <
+        static_cast<std::uint64_t>(
+            points)) {
+        frame_.insufficientFundsThisTick =
+            true;
+        return false;
+    }
+
+    frame_.total -=
+        static_cast<std::uint64_t>(
+            points);
+
+    frame_.lastSpend = points;
+    frame_.changedThisTick = true;
+    frame_.spentThisTick = true;
+
+    return true;
 }
 
 const ScoreFrame&
