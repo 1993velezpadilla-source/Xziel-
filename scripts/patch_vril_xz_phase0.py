@@ -31,6 +31,10 @@ for name in (
     "xz_phase0.c",
     "xz_android_runtime.h",
     "xz_android_runtime.c",
+    "xz_present_world.h",
+    "xz_present_world.c",
+    "xz_vril_bridge.h",
+    "xz_vril_bridge.c",
 ):
     src = modules / name
     if not src.is_file():
@@ -45,6 +49,7 @@ include_block = (
     '#include "sdl_local.h"\n'
     '#ifdef __ANDROID__\n'
     '#include "xz_android_runtime.h"\n'
+    '#include "xz_vril_bridge.h"\n'
     '#endif\n'
 )
 if '#include "xz_android_runtime.h"' not in text:
@@ -57,6 +62,7 @@ init_block = (
     '\tHost_Init(&parms);\n'
     '#ifdef __ANDROID__\n'
     '\tXzAndroidRuntime_Init(heap_size);\n'
+    '\tXzVrilBridge_Init();\n'
     '#endif\n'
 )
 if 'XzAndroidRuntime_Init(heap_size);' not in text:
@@ -81,8 +87,10 @@ loop_block = (
     '#ifdef __ANDROID__\n'
     '\t\t/* Host_FilterTime can reject a loop iteration. Only publish a\n'
     '\t\t * metric when Vril actually processed a frame. */\n'
-    '\t\tif (host_framecount != xz_frame_before)\n'
+    '\t\tif (host_framecount != xz_frame_before) {\n'
+    '\t\t\tXzVrilBridge_CapturePresentation(host_framecount);\n'
     '\t\t\tXzAndroidRuntime_EndFrame(Sys_FloatTime());\n'
+    '\t\t}\n'
     '#endif\n'
     '\t\toldtime = now;\n'
 )
@@ -115,6 +123,7 @@ if 'xziel_first_frame && host_framecount != xz_frame_before' not in text:
 shutdown_anchor = '\tif (host_initialized)\n\t\tHost_Shutdown();\n'
 shutdown_block = (
     '#ifdef __ANDROID__\n'
+    '\tXzVrilBridge_Shutdown();\n'
     '\tXzAndroidRuntime_Shutdown();\n'
     '#endif\n'
     '\tif (host_initialized)\n'
@@ -130,12 +139,16 @@ sys_sdl.write_text(text, encoding="utf-8")
 # Validate the expected integration exactly once. Failing here is preferable to
 # silently building an APK that is not actually collecting Phase-0 telemetry.
 checks = {
-    "header": '#include "xz_android_runtime.h"',
+    "runtime header": '#include "xz_android_runtime.h"',
+    "bridge header": '#include "xz_vril_bridge.h"',
     "init": "XzAndroidRuntime_Init(heap_size);",
+    "bridge init": "XzVrilBridge_Init();",
     "begin": "XzAndroidRuntime_BeginFrame(now);",
     "frame-counter snapshot": "int xz_frame_before = host_framecount;",
     "real first-frame gate": "xziel_first_frame && host_framecount != xz_frame_before",
+    "capture": "XzVrilBridge_CapturePresentation(host_framecount);",
     "end": "XzAndroidRuntime_EndFrame(Sys_FloatTime());",
+    "bridge shutdown": "XzVrilBridge_Shutdown();",
     "shutdown": "XzAndroidRuntime_Shutdown();",
 }
 final = sys_sdl.read_text(encoding="utf-8")
@@ -146,4 +159,4 @@ for label, needle in checks.items():
             f"Phase-0 integration check failed for {label}: {count} occurrences"
         )
 
-print("Injected Xziel Xz runtime Phase 0 (passive telemetry/governor).")
+print("Injected Xziel Xz runtime Phase 0 + PresentWorld Phase 1 bridge.")
