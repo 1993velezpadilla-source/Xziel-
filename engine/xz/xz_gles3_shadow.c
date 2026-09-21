@@ -128,6 +128,30 @@ static uint32_t XzHashBytes(
     return hash;
 }
 
+static unsigned int XzPixelSpread(
+    const unsigned char *bytes,
+    unsigned int count)
+{
+    unsigned int min_value = 255u;
+    unsigned int max_value = 0u;
+    unsigned int i;
+
+    for (i = 0u; i + 3u < count; i += 4u) {
+        unsigned int channel;
+
+        for (channel = 0u; channel < 3u; ++channel) {
+            const unsigned int value = bytes[i + channel];
+            if (value < min_value)
+                min_value = value;
+            if (value > max_value)
+                max_value = value;
+        }
+    }
+
+    return max_value >= min_value
+        ? max_value - min_value : 0u;
+}
+
 static int XzLoadNativeGl(XzNativeGl *gl)
 {
 #define XZ_GL_LOAD(field, symbol)                                  \
@@ -500,7 +524,18 @@ cleanup:
     }
 
     if (!ok) {
-        XzGles3Shadow_Shutdown(stats);
+        if (xz_shadow.context != EGL_NO_CONTEXT)
+            eglDestroyContext(
+                xz_shadow.display,
+                xz_shadow.context);
+        if (xz_shadow.surface != EGL_NO_SURFACE)
+            eglDestroySurface(
+                xz_shadow.display,
+                xz_shadow.surface);
+        XzUnloadNativeGl(&xz_shadow.gl);
+        memset(&xz_shadow, 0, sizeof(xz_shadow));
+        stats->initialized = 0;
+        stats->available = 0;
         return 0;
     }
 
@@ -583,7 +618,7 @@ int XzGles3Shadow_RenderPlan(
 
     need_readback =
         count > 0u &&
-        (stats->rendered_frames == 0u ||
+        (stats->last_pixel_hash == 0u ||
          ((stats->rendered_frames + 1u) % 60u) == 0u);
 
     if (need_readback) {
@@ -597,6 +632,9 @@ int XzGles3Shadow_RenderPlan(
         xz_shadow.gl.Finish();
 
         stats->last_pixel_hash = XzHashBytes(
+            xz_shadow.pixels,
+            XZ_SHADOW_PIXEL_BYTES);
+        stats->last_pixel_spread = XzPixelSpread(
             xz_shadow.pixels,
             XZ_SHADOW_PIXEL_BYTES);
     }
