@@ -1,0 +1,1735 @@
+{
+  "schema": "xziel.nzp.quakec-symbol-index.v1",
+  "source_repo": "nzp-team/quakec",
+  "source_commit": "dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163",
+  "part": 4,
+  "range": [
+    36,
+    47
+  ],
+  "files": [
+    {
+      "path": "source/server/gamemodes/hardcore.qc",
+      "blob": "a70e1f1da79e2d8e16b2b683ab5dc0512f123283",
+      "functions": [
+        {
+          "name": "Gamemode_Hardcore_Init",
+          "line": 28,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/gamemodes/hardcore.qc#L28"
+        },
+        {
+          "name": "Gamemode_Hardcore_Frame",
+          "line": 34,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/gamemodes/hardcore.qc#L34"
+        },
+        {
+          "name": "Gamemode_Hardcore_PlayerSpawn",
+          "line": 39,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/gamemodes/hardcore.qc#L39"
+        },
+        {
+          "name": "Gamemode_Hardcore_GetWeaponAmmo",
+          "line": 44,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/gamemodes/hardcore.qc#L44"
+        }
+      ],
+      "entity_mentions": {
+        "game_modifier_perk_purchase_limit": [
+          30
+        ],
+        "game_modifier_cost_multiplier": [
+          31
+        ]
+      },
+      "api_mentions": {}
+    },
+    {
+      "path": "source/server/gamemodes/sticks_and_stones.qc",
+      "blob": "c6c4f1110c811b776cff2e947f17aaead623ee64",
+      "functions": [
+        {
+          "name": "Gamemode_Sticks_Init",
+          "line": 32,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/gamemodes/sticks_and_stones.qc#L32"
+        },
+        {
+          "name": "Gamemode_Sticks_Frame",
+          "line": 57,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/gamemodes/sticks_and_stones.qc#L57"
+        },
+        {
+          "name": "Gamemode_Sticks_PlayerSpawn",
+          "line": 99,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/gamemodes/sticks_and_stones.qc#L99"
+        },
+        {
+          "name": "Gamemode_Sticks_DieHandler",
+          "line": 104,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/gamemodes/sticks_and_stones.qc#L104"
+        },
+        {
+          "name": "Gamemode_Sticks_DrinkPerk",
+          "line": 131,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/gamemodes/sticks_and_stones.qc#L131"
+        },
+        {
+          "name": "Gamemode_Sticks_BuyWeapon",
+          "line": 152,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/gamemodes/sticks_and_stones.qc#L152"
+        },
+        {
+          "name": "Gamemode_Sticks_LastStand",
+          "line": 160,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/gamemodes/sticks_and_stones.qc#L160"
+        }
+      ],
+      "entity_mentions": {
+        "game_modifier_powerup_max_ammo": [
+          52
+        ],
+        "game_modifier_powerup_free_perk": [
+          53
+        ],
+        "game_modifier_grenades_explode_on_contact": [
+          54
+        ]
+      },
+      "api_mentions": {}
+    },
+    {
+      "path": "source/server/gamemodes/wild_west.qc",
+      "blob": "46fdc4eed0db3bcef69fc944264fb42d61ecc657",
+      "functions": [
+        {
+          "name": "Gamemode_WW_Init",
+          "line": 34,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/gamemodes/wild_west.qc#L34"
+        },
+        {
+          "name": "Gamemode_WW_NukeDrop",
+          "line": 58,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/gamemodes/wild_west.qc#L58"
+        },
+        {
+          "name": "Gamemode_WW_AmmoDrop",
+          "line": 78,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/gamemodes/wild_west.qc#L78"
+        },
+        {
+          "name": "Gamemode_WW_UpgrDrop",
+          "line": 98,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/gamemodes/wild_west.qc#L98"
+        },
+        {
+          "name": "Gamemode_WW_PerkDrop",
+          "line": 116,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/gamemodes/wild_west.qc#L116"
+        },
+        {
+          "name": "Gamemode_WW_SpawnTools",
+          "line": 136,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/gamemodes/wild_west.qc#L136"
+        },
+        {
+          "name": "Gamemode_WW_KillAllPlayers",
+          "line": 220,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/gamemodes/wild_west.qc#L220"
+        },
+        {
+          "name": "Gamemode_WW_Frame",
+          "line": 231,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/gamemodes/wild_west.qc#L231"
+        },
+        {
+          "name": "Gamemode_WW_PlayerSpawn",
+          "line": 293,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/gamemodes/wild_west.qc#L293"
+        },
+        {
+          "name": "Gamemode_WW_GetWeaponDamage",
+          "line": 299,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/gamemodes/wild_west.qc#L299"
+        }
+      ],
+      "entity_mentions": {
+        "game_modifier_powerup_free_perk": [
+          55
+        ],
+        "info_player_5_spawn": [
+          138
+        ],
+        "info_player_6_spawn": [
+          139
+        ],
+        "info_player_7_spawn": [
+          140
+        ],
+        "info_player_8_spawn": [
+          141
+        ],
+        "perk_drop": [
+          152,
+          153,
+          154,
+          158,
+          183,
+          184,
+          186,
+          187,
+          211,
+          212,
+          217
+        ],
+        "perk_sparkle": [
+          163,
+          185,
+          187,
+          201,
+          202,
+          203
+        ],
+        "trigger_field": [
+          254,
+          255,
+          264,
+          265
+        ]
+      },
+      "api_mentions": {
+        "think": [
+          190,
+          194,
+          198,
+          202
+        ],
+        "touch": [
+          214,
+          215,
+          216,
+          217,
+          252,
+          262
+        ],
+        "use": [
+          251,
+          261
+        ]
+      }
+    },
+    {
+      "path": "source/server/main.qc",
+      "blob": "c4b4af5c702ac37276ef5496b0928172aa622708",
+      "functions": [
+        {
+          "name": "SUB_Remove",
+          "line": 34,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/main.qc#L34"
+        },
+        {
+          "name": "main",
+          "line": 43,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/main.qc#L43"
+        },
+        {
+          "name": "Way_SetBrushEntNonSolid",
+          "line": 59,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/main.qc#L59"
+        },
+        {
+          "name": "StartFrame",
+          "line": 71,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/main.qc#L71"
+        },
+        {
+          "name": "precache_model",
+          "line": 180,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/main.qc#L180"
+        },
+        {
+          "name": "precaches",
+          "line": 182,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/main.qc#L182"
+        },
+        {
+          "name": "worldspawn",
+          "line": 359,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/main.qc#L359"
+        },
+        {
+          "name": "SpectatorConnect",
+          "line": 501,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/main.qc#L501"
+        },
+        {
+          "name": "RelinkZombies",
+          "line": 507,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/main.qc#L507"
+        },
+        {
+          "name": "LinkZombiesHitbox",
+          "line": 608,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/main.qc#L608"
+        },
+        {
+          "name": "EndFrame",
+          "line": 661,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/main.qc#L661"
+        }
+      ],
+      "entity_mentions": {
+        "spawn_dog": [
+          143
+        ],
+        "game_modifier_can_melee": [
+          441
+        ],
+        "game_modifier_can_use_equipment": [
+          442
+        ],
+        "game_modifier_can_earn_misc_score": [
+          443
+        ],
+        "game_modifier_powerup_free_perk": [
+          444
+        ],
+        "game_modifier_powerup_max_ammo": [
+          445
+        ],
+        "game_modifier_powerup_weapon_upgrade": [
+          446
+        ],
+        "game_modifier_powerup_bonus_points": [
+          447
+        ],
+        "game_modifier_powerup_toast_for_all": [
+          448
+        ],
+        "game_modifier_can_packapunch": [
+          449
+        ],
+        "game_modifier_grenades_explode_on_contact": [
+          450
+        ],
+        "game_modifier_packapunch_uses_tiers": [
+          451
+        ],
+        "game_modifier_packapunch_is_instant": [
+          452
+        ],
+        "game_modifier_maxammo_fills_magazine": [
+          453
+        ],
+        "game_modifier_hellhound_fog_color": [
+          454
+        ],
+        "game_modifier_default_fog_color": [
+          455
+        ],
+        "game_modifier_perk_purchase_limit": [
+          456
+        ],
+        "game_modifier_cost_multiplier": [
+          457
+        ]
+      },
+      "api_mentions": {
+        "use": [
+          56
+        ],
+        "touch": [
+          64
+        ],
+        "targetname": [
+          89
+        ],
+        "rounds": [
+          158,
+          279,
+          280,
+          281
+        ]
+      }
+    },
+    {
+      "path": "source/server/map_rotation.qc",
+      "blob": "72bdf39db51659b4384752951f20359fd7daa1a7",
+      "functions": [
+        {
+          "name": "MapRotation_RestartMap",
+          "line": 37,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/map_rotation.qc#L37"
+        },
+        {
+          "name": "MapRotation_GetRandomMap",
+          "line": 47,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/map_rotation.qc#L47"
+        },
+        {
+          "name": "MapRotation_SelectNextMap",
+          "line": 80,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/map_rotation.qc#L80"
+        },
+        {
+          "name": "MapRotation_Decide",
+          "line": 126,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/map_rotation.qc#L126"
+        }
+      ],
+      "entity_mentions": {},
+      "api_mentions": {
+        "use": [
+          94,
+          111
+        ]
+      }
+    },
+    {
+      "path": "source/server/player/last_stand.qc",
+      "blob": "facdc6660cda17d0bcd84262b28d04a4e902e163",
+      "functions": [
+        {
+          "name": "LastStand_SoloRevive",
+          "line": 39,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/last_stand.qc#L39"
+        },
+        {
+          "name": "LastStand_InitiateSoloRevive",
+          "line": 61,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/last_stand.qc#L61"
+        },
+        {
+          "name": "LastStand_Penalize",
+          "line": 83,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/last_stand.qc#L83"
+        },
+        {
+          "name": "LastStand_AssignWeapon",
+          "line": 120,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/last_stand.qc#L120"
+        },
+        {
+          "name": "LastStand_KillPlayer",
+          "line": 219,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/last_stand.qc#L219"
+        },
+        {
+          "name": "LastStand_ReviveTriggerFollow",
+          "line": 241,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/last_stand.qc#L241"
+        },
+        {
+          "name": "LastStand_RemoveReviveTriggers",
+          "line": 265,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/last_stand.qc#L265"
+        },
+        {
+          "name": "LastStand_UnlinkRevivee",
+          "line": 283,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/last_stand.qc#L283"
+        },
+        {
+          "name": "LastStand_LinkRevivee",
+          "line": 327,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/last_stand.qc#L327"
+        },
+        {
+          "name": "LastStand_TouchReviveTrigger",
+          "line": 366,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/last_stand.qc#L366"
+        },
+        {
+          "name": "LastStand_SpawnReviveTrigger",
+          "line": 446,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/last_stand.qc#L446"
+        },
+        {
+          "name": "LastStand_Begin",
+          "line": 467,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/last_stand.qc#L467"
+        }
+      ],
+      "entity_mentions": {},
+      "api_mentions": {
+        "think": [
+          74,
+          451
+        ],
+        "player_count": [
+          197,
+          509,
+          509,
+          524,
+          546
+        ],
+        "button7": [
+          414
+        ],
+        "touch": [
+          453
+        ],
+        "rounds": [
+          473
+        ],
+        "use": [
+          542
+        ]
+      }
+    },
+    {
+      "path": "source/server/player/player_core.qc",
+      "blob": "4094f687a55cd98b631822ec9b631951e44332e5",
+      "functions": [
+        {
+          "name": "PAnim_Walk",
+          "line": 67,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L67"
+        },
+        {
+          "name": "PAnim_Walk1",
+          "line": 68,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L68"
+        },
+        {
+          "name": "PAnim_Walk2",
+          "line": 69,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L69"
+        },
+        {
+          "name": "PAnim_Walk3",
+          "line": 70,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L70"
+        },
+        {
+          "name": "PAnim_Walk4",
+          "line": 71,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L71"
+        },
+        {
+          "name": "PAnim_Walk5",
+          "line": 72,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L72"
+        },
+        {
+          "name": "PAnim_Walk6",
+          "line": 73,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L73"
+        },
+        {
+          "name": "PAnim_Walk7",
+          "line": 74,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L74"
+        },
+        {
+          "name": "PAnim_Walk8",
+          "line": 75,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L75"
+        },
+        {
+          "name": "PAnim_Sprint",
+          "line": 78,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L78"
+        },
+        {
+          "name": "PAnim_Sprint1",
+          "line": 79,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L79"
+        },
+        {
+          "name": "PAnim_Sprint2",
+          "line": 80,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L80"
+        },
+        {
+          "name": "PAnim_Sprint3",
+          "line": 81,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L81"
+        },
+        {
+          "name": "PAnim_Sprint4",
+          "line": 82,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L82"
+        },
+        {
+          "name": "PAnim_Sprint5",
+          "line": 83,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L83"
+        },
+        {
+          "name": "PAnim_Sprint6",
+          "line": 84,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L84"
+        },
+        {
+          "name": "PAnim_Reload",
+          "line": 87,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L87"
+        },
+        {
+          "name": "PAnim_Reload1",
+          "line": 88,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L88"
+        },
+        {
+          "name": "PAnim_Reload2",
+          "line": 89,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L89"
+        },
+        {
+          "name": "PAnim_Reload3",
+          "line": 90,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L90"
+        },
+        {
+          "name": "PAnim_Reload4",
+          "line": 91,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L91"
+        },
+        {
+          "name": "PAnim_Reload5",
+          "line": 92,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L92"
+        },
+        {
+          "name": "PAnim_Reload6",
+          "line": 93,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L93"
+        },
+        {
+          "name": "PAnim_Reload7",
+          "line": 94,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L94"
+        },
+        {
+          "name": "PAnim_Reload8",
+          "line": 95,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L95"
+        },
+        {
+          "name": "PAnim_Reload9",
+          "line": 96,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L96"
+        },
+        {
+          "name": "PAnim_Reload10",
+          "line": 97,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L97"
+        },
+        {
+          "name": "PAnim_Reload11",
+          "line": 98,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L98"
+        },
+        {
+          "name": "PAnim_Reload12",
+          "line": 99,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L99"
+        },
+        {
+          "name": "PAnim_Reload13",
+          "line": 100,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L100"
+        },
+        {
+          "name": "PAnim_Fire",
+          "line": 103,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L103"
+        },
+        {
+          "name": "PAnim_Fire1",
+          "line": 104,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L104"
+        },
+        {
+          "name": "PAnim_Melee",
+          "line": 107,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L107"
+        },
+        {
+          "name": "PAnim_Melee1",
+          "line": 108,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L108"
+        },
+        {
+          "name": "PAnim_Melee2",
+          "line": 109,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L109"
+        },
+        {
+          "name": "PAnim_Melee3",
+          "line": 110,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L110"
+        },
+        {
+          "name": "PAnim_Melee4",
+          "line": 111,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L111"
+        },
+        {
+          "name": "PAnim_Melee5",
+          "line": 112,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L112"
+        },
+        {
+          "name": "PAnim_Melee6",
+          "line": 113,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L113"
+        },
+        {
+          "name": "PAnim_Swap",
+          "line": 116,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L116"
+        },
+        {
+          "name": "PAnim_Swap1",
+          "line": 117,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L117"
+        },
+        {
+          "name": "PAnim_Swap2",
+          "line": 118,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L118"
+        },
+        {
+          "name": "PAnim_Swap3",
+          "line": 119,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L119"
+        },
+        {
+          "name": "PAnim_Swap4",
+          "line": 120,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L120"
+        },
+        {
+          "name": "PAnim_Swap5",
+          "line": 121,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L121"
+        },
+        {
+          "name": "PAnim_Swap6",
+          "line": 122,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L122"
+        },
+        {
+          "name": "PAnim_Swap7",
+          "line": 123,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L123"
+        },
+        {
+          "name": "PAnim_Swap8",
+          "line": 124,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L124"
+        },
+        {
+          "name": "PAnim_EnterDive",
+          "line": 127,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L127"
+        },
+        {
+          "name": "PAnim_EnterDive1",
+          "line": 128,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L128"
+        },
+        {
+          "name": "PAnim_EnterDive2",
+          "line": 129,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L129"
+        },
+        {
+          "name": "PAnim_EnterDive3",
+          "line": 130,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L130"
+        },
+        {
+          "name": "PAnim_EnterDive4",
+          "line": 131,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L131"
+        },
+        {
+          "name": "PAnim_Flop",
+          "line": 134,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L134"
+        },
+        {
+          "name": "PAnim_Flop1",
+          "line": 135,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L135"
+        },
+        {
+          "name": "PAnim_Flop2",
+          "line": 136,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L136"
+        },
+        {
+          "name": "PAnim_Flop3",
+          "line": 137,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L137"
+        },
+        {
+          "name": "PAnim_Stand",
+          "line": 140,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L140"
+        },
+        {
+          "name": "PAnim_Stand1",
+          "line": 141,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L141"
+        },
+        {
+          "name": "PAnim_Stand2",
+          "line": 142,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L142"
+        },
+        {
+          "name": "PAnim_Crouch",
+          "line": 145,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L145"
+        },
+        {
+          "name": "PAnim_Crouch1",
+          "line": 146,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L146"
+        },
+        {
+          "name": "PAnim_Crouch2",
+          "line": 147,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L147"
+        },
+        {
+          "name": "PAnim_CrouchWalk",
+          "line": 150,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L150"
+        },
+        {
+          "name": "PAnim_CrouchWalk1",
+          "line": 151,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L151"
+        },
+        {
+          "name": "PAnim_CrouchWalk2",
+          "line": 152,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L152"
+        },
+        {
+          "name": "PAnim_CrouchWalk3",
+          "line": 153,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L153"
+        },
+        {
+          "name": "PAnim_CrouchWalk4",
+          "line": 154,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L154"
+        },
+        {
+          "name": "PAnim_CrouchWalk5",
+          "line": 155,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L155"
+        },
+        {
+          "name": "PAnim_CrouchWalk6",
+          "line": 156,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L156"
+        },
+        {
+          "name": "PAnim_CrouchWalk7",
+          "line": 157,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L157"
+        },
+        {
+          "name": "PAnim_CrouchWalk8",
+          "line": 158,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L158"
+        },
+        {
+          "name": "PAnim_CrReload",
+          "line": 161,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L161"
+        },
+        {
+          "name": "PAnim_CrReload1",
+          "line": 162,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L162"
+        },
+        {
+          "name": "PAnim_CrReload2",
+          "line": 163,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L163"
+        },
+        {
+          "name": "PAnim_CrReload3",
+          "line": 164,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L164"
+        },
+        {
+          "name": "PAnim_CrReload4",
+          "line": 165,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L165"
+        },
+        {
+          "name": "PAnim_CrReload5",
+          "line": 166,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L166"
+        },
+        {
+          "name": "PAnim_CrReload6",
+          "line": 167,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L167"
+        },
+        {
+          "name": "PAnim_CrReload7",
+          "line": 168,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L168"
+        },
+        {
+          "name": "PAnim_CrReload8",
+          "line": 169,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L169"
+        },
+        {
+          "name": "PAnim_CrReload9",
+          "line": 170,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L170"
+        },
+        {
+          "name": "PAnim_CrouchFire",
+          "line": 173,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L173"
+        },
+        {
+          "name": "PAnim_CrouchFire1",
+          "line": 174,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L174"
+        },
+        {
+          "name": "PAnim_Prone",
+          "line": 177,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L177"
+        },
+        {
+          "name": "PAnim_Prone1",
+          "line": 178,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L178"
+        },
+        {
+          "name": "PAnim_Prone2",
+          "line": 179,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L179"
+        },
+        {
+          "name": "PAnim_Prone3",
+          "line": 180,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L180"
+        },
+        {
+          "name": "PAnim_Prone4",
+          "line": 181,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L181"
+        },
+        {
+          "name": "PAnim_Prone5",
+          "line": 182,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L182"
+        },
+        {
+          "name": "PAnim_Prone6",
+          "line": 183,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L183"
+        },
+        {
+          "name": "PAnim_Prone7",
+          "line": 184,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L184"
+        },
+        {
+          "name": "PAnim_Prone8",
+          "line": 185,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L185"
+        },
+        {
+          "name": "PAnim_ProneWalk",
+          "line": 188,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L188"
+        },
+        {
+          "name": "PAnim_ProneWalk1",
+          "line": 189,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L189"
+        },
+        {
+          "name": "PAnim_ProneWalk2",
+          "line": 190,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L190"
+        },
+        {
+          "name": "PAnim_ProneWalk3",
+          "line": 191,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L191"
+        },
+        {
+          "name": "PAnim_ProneWalk4",
+          "line": 192,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L192"
+        },
+        {
+          "name": "PAnim_ProneWalk5",
+          "line": 193,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L193"
+        },
+        {
+          "name": "PAnim_ProneWalk6",
+          "line": 194,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L194"
+        },
+        {
+          "name": "PAnim_ProneWalk7",
+          "line": 195,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L195"
+        },
+        {
+          "name": "PAnim_ProneWalk8",
+          "line": 196,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L196"
+        },
+        {
+          "name": "PAnim_ProneWalk9",
+          "line": 197,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L197"
+        },
+        {
+          "name": "PAnim_ProneWalk10",
+          "line": 198,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L198"
+        },
+        {
+          "name": "PAnim_ProneWalk11",
+          "line": 199,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L199"
+        },
+        {
+          "name": "PAnim_ProneWalk12",
+          "line": 200,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L200"
+        },
+        {
+          "name": "PAnim_PrReload",
+          "line": 203,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L203"
+        },
+        {
+          "name": "PAnim_PrReload1",
+          "line": 204,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L204"
+        },
+        {
+          "name": "PAnim_PrReload2",
+          "line": 205,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L205"
+        },
+        {
+          "name": "PAnim_PrReload3",
+          "line": 206,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L206"
+        },
+        {
+          "name": "PAnim_PrReload4",
+          "line": 207,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L207"
+        },
+        {
+          "name": "PAnim_PrReload5",
+          "line": 208,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L208"
+        },
+        {
+          "name": "PAnim_PrReload6",
+          "line": 209,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L209"
+        },
+        {
+          "name": "PAnim_UpCrouch",
+          "line": 212,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L212"
+        },
+        {
+          "name": "PAnim_UpCrouch1",
+          "line": 213,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L213"
+        },
+        {
+          "name": "PAnim_UpCrouch2",
+          "line": 214,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L214"
+        },
+        {
+          "name": "PAnim_UpCrouch3",
+          "line": 215,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L215"
+        },
+        {
+          "name": "PAnim_UpCrouch4",
+          "line": 216,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L216"
+        },
+        {
+          "name": "PAnim_UpCrouch5",
+          "line": 217,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L217"
+        },
+        {
+          "name": "PAnim_UpCrouch6",
+          "line": 218,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L218"
+        },
+        {
+          "name": "PAnim_UpCrouch7",
+          "line": 219,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L219"
+        },
+        {
+          "name": "PAnim_UpCrouch8",
+          "line": 220,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L220"
+        },
+        {
+          "name": "PAnim_GetDown",
+          "line": 223,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L223"
+        },
+        {
+          "name": "PAnim_GetDown1",
+          "line": 224,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L224"
+        },
+        {
+          "name": "PAnim_GetDown2",
+          "line": 225,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L225"
+        },
+        {
+          "name": "PAnim_GetDown3",
+          "line": 226,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L226"
+        },
+        {
+          "name": "PAnim_GetDown4",
+          "line": 227,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L227"
+        },
+        {
+          "name": "PAnim_GetDown5",
+          "line": 228,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L228"
+        },
+        {
+          "name": "PAnim_LastFire",
+          "line": 231,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L231"
+        },
+        {
+          "name": "PAnim_LastFire1",
+          "line": 232,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L232"
+        },
+        {
+          "name": "PAnim_GetUp",
+          "line": 235,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L235"
+        },
+        {
+          "name": "PAnim_GetUp1",
+          "line": 236,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L236"
+        },
+        {
+          "name": "PAnim_GetUp2",
+          "line": 237,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L237"
+        },
+        {
+          "name": "PAnim_GetUp3",
+          "line": 238,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L238"
+        },
+        {
+          "name": "PAnim_GetUp4",
+          "line": 239,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L239"
+        },
+        {
+          "name": "PAnim_GetUp5",
+          "line": 240,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L240"
+        },
+        {
+          "name": "PAnim_GetUp6",
+          "line": 241,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L241"
+        },
+        {
+          "name": "PAnim_GetUp7",
+          "line": 242,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L242"
+        },
+        {
+          "name": "PAnim_GetUp8",
+          "line": 243,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L243"
+        },
+        {
+          "name": "PAnim_GetUp9",
+          "line": 244,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L244"
+        },
+        {
+          "name": "checkMovement",
+          "line": 253,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L253"
+        },
+        {
+          "name": "Player_ChangeScore",
+          "line": 290,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L290"
+        },
+        {
+          "name": "Player_CanStandHere",
+          "line": 330,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L330"
+        },
+        {
+          "name": "Player_SetStance",
+          "line": 348,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L348"
+        },
+        {
+          "name": "Player_InitiateProgressBar",
+          "line": 421,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L421"
+        },
+        {
+          "name": "Player_RemoveProgressBar",
+          "line": 431,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L431"
+        },
+        {
+          "name": "Player_UpdateProgressBar",
+          "line": 440,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L440"
+        },
+        {
+          "name": "Player_UseprintWithWait",
+          "line": 458,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L458"
+        },
+        {
+          "name": "Player_UseButtonPressed",
+          "line": 479,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L479"
+        },
+        {
+          "name": "Player_GetNumPerks",
+          "line": 507,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L507"
+        },
+        {
+          "name": "PlayerJump",
+          "line": 521,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L521"
+        },
+        {
+          "name": "JumpCheck",
+          "line": 540,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L540"
+        },
+        {
+          "name": "PlayerPreThink",
+          "line": 563,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L563"
+        },
+        {
+          "name": "PlayerPostThink",
+          "line": 675,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L675"
+        },
+        {
+          "name": "ClientKill",
+          "line": 878,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L878"
+        },
+        {
+          "name": "ClientConnect",
+          "line": 881,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L881"
+        },
+        {
+          "name": "Player_PickSpawnPoint",
+          "line": 896,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L896"
+        },
+        {
+          "name": "PlayerSpawn",
+          "line": 971,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L971"
+        },
+        {
+          "name": "SpectatorSpawn",
+          "line": 1112,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L1112"
+        },
+        {
+          "name": "PutClientInServer",
+          "line": 1152,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L1152"
+        },
+        {
+          "name": "RestartDedicatedServer",
+          "line": 1190,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L1190"
+        },
+        {
+          "name": "Player_CleanupReviveOnDisconnect",
+          "line": 1201,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L1201"
+        },
+        {
+          "name": "ClientDisconnect",
+          "line": 1214,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L1214"
+        },
+        {
+          "name": "SetNewParms",
+          "line": 1253,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L1253"
+        },
+        {
+          "name": "SetChangeParms",
+          "line": 1257,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L1257"
+        },
+        {
+          "name": "SV_RunClientCommand",
+          "line": 1263,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/player_core.qc#L1263"
+        }
+      ],
+      "entity_mentions": {
+        "spawn_point": [
+          898,
+          905,
+          918,
+          920,
+          922,
+          924,
+          927,
+          929,
+          931,
+          933,
+          938,
+          954,
+          957,
+          958,
+          961,
+          961,
+          961,
+          965
+        ],
+        "info_player_1_spawn": [
+          1114
+        ],
+        "spawn_time": [
+          1172
+        ]
+      },
+      "api_mentions": {
+        "SUB_UseTargets": [
+          32,
+          966
+        ],
+        "use": [
+          476,
+          849,
+          1244
+        ],
+        "button7": [
+          483,
+          494
+        ],
+        "player_count": [
+          883,
+          1164,
+          1165,
+          1167,
+          1218,
+          1219,
+          1243
+        ],
+        "rounds": [
+          1048,
+          1057,
+          1100,
+          1101,
+          1172,
+          1183
+        ],
+        "think": [
+          1247
+        ]
+      }
+    },
+    {
+      "path": "source/server/player/spawn_points.qc",
+      "blob": "541d10e8ae8124b77a5a8726008cb7c526911f73",
+      "functions": [
+        {
+          "name": "Spawns_ConvertOldClassnames",
+          "line": 47,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/spawn_points.qc#L47"
+        },
+        {
+          "name": "Spawns_EntIsInRange",
+          "line": 67,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/spawn_points.qc#L67"
+        },
+        {
+          "name": "Spawns_SetAllNonSolid",
+          "line": 136,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/spawn_points.qc#L136"
+        },
+        {
+          "name": "Spawns_SetAllSolid",
+          "line": 157,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/spawn_points.qc#L157"
+        },
+        {
+          "name": "Spawns_FindViableSpawnSpot",
+          "line": 180,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/spawn_points.qc#L180"
+        },
+        {
+          "name": "Spawns_DropToFloor",
+          "line": 264,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/spawn_points.qc#L264"
+        },
+        {
+          "name": "Spawns_SetUpPoint",
+          "line": 288,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/spawn_points.qc#L288"
+        },
+        {
+          "name": "Spawns_FillMissing",
+          "line": 310,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/spawn_points.qc#L310"
+        },
+        {
+          "name": "Spawns_SetUpClassnames",
+          "line": 374,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/spawn_points.qc#L374"
+        },
+        {
+          "name": "Spawns_Init",
+          "line": 392,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/player/spawn_points.qc#L392"
+        }
+      ],
+      "entity_mentions": {
+        "spawn_points": [
+          2,
+          39,
+          72,
+          75,
+          112,
+          118,
+          144,
+          147,
+          148,
+          148,
+          165,
+          168,
+          169,
+          169,
+          187,
+          188,
+          316,
+          317,
+          319,
+          324,
+          325,
+          327,
+          328,
+          342,
+          348,
+          349,
+          349,
+          357,
+          358,
+          359,
+          359,
+          360,
+          361
+        ],
+        "spawn_names": [
+          40,
+          316,
+          358,
+          370,
+          376,
+          377,
+          378,
+          379,
+          380,
+          381,
+          382,
+          383
+        ],
+        "spawn_point": [
+          49,
+          51,
+          52,
+          52,
+          53,
+          54,
+          54,
+          55,
+          56,
+          56,
+          57,
+          58,
+          58
+        ],
+        "info_player_tank": [
+          51
+        ],
+        "info_player_nikolai": [
+          53
+        ],
+        "info_player_takeo": [
+          55
+        ],
+        "info_player_doctor": [
+          57
+        ],
+        "info_player_start": [
+          323,
+          324,
+          346
+        ],
+        "info_player_1_spawn": [
+          346
+        ]
+      },
+      "api_mentions": {
+        "use": [
+          134,
+          155
+        ]
+      }
+    },
+    {
+      "path": "source/server/plugins/plugin_core.qc",
+      "blob": "3d151c9b981ace73e4f06ce90af52f39d69e0dec",
+      "functions": [],
+      "entity_mentions": {},
+      "api_mentions": {}
+    },
+    {
+      "path": "source/server/plugins/plugin_mapvote.qc",
+      "blob": "94a2dfdaa2c7c304c7560388919b1e6c5db774f0",
+      "functions": [
+        {
+          "name": "ChatPlugin_MapVoteChange",
+          "line": 39,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/plugins/plugin_mapvote.qc#L39"
+        },
+        {
+          "name": "ChatPlugin_MapVotePollResults",
+          "line": 49,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/plugins/plugin_mapvote.qc#L49"
+        },
+        {
+          "name": "ChatPlugin_MapVoteClear",
+          "line": 70,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/plugins/plugin_mapvote.qc#L70"
+        },
+        {
+          "name": "ChatPlugin_MapVoteYes",
+          "line": 94,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/plugins/plugin_mapvote.qc#L94"
+        },
+        {
+          "name": "ChatPlugin_MapVoteNo",
+          "line": 119,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/plugins/plugin_mapvote.qc#L119"
+        },
+        {
+          "name": "ChatPlugin_MapVote",
+          "line": 144,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/plugins/plugin_mapvote.qc#L144"
+        }
+      ],
+      "entity_mentions": {},
+      "api_mentions": {
+        "think": [
+          57,
+          180
+        ]
+      }
+    },
+    {
+      "path": "source/server/rounds.qc",
+      "blob": "a60c948a7cd0a387c0ca46eddc22b95567c0de3d",
+      "functions": [
+        {
+          "name": "Spawn_Enemy",
+          "line": 39,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/rounds.qc#L39"
+        },
+        {
+          "name": "qc_max",
+          "line": 61,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/rounds.qc#L61"
+        },
+        {
+          "name": "getZombieTotal",
+          "line": 68,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/rounds.qc#L68"
+        },
+        {
+          "name": "Rounds_PlayTransition",
+          "line": 119,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/rounds.qc#L119"
+        },
+        {
+          "name": "updateDogRound",
+          "line": 128,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/rounds.qc#L128"
+        },
+        {
+          "name": "EndRound",
+          "line": 143,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/rounds.qc#L143"
+        },
+        {
+          "name": "NewRound",
+          "line": 211,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/rounds.qc#L211"
+        },
+        {
+          "name": "Round_Core",
+          "line": 343,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/rounds.qc#L343"
+        },
+        {
+          "name": "InitRounds",
+          "line": 387,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/rounds.qc#L387"
+        }
+      ],
+      "entity_mentions": {
+        "spawn_a_dogA": [
+          36,
+          54
+        ],
+        "zapper_cooldown": [
+          37,
+          336
+        ],
+        "spawn_a_zombieA": [
+          47
+        ],
+        "trigger_atroundent": [
+          198
+        ],
+        "trigger_atroundend": [
+          199,
+          207
+        ],
+        "spawn_time": [
+          217,
+          372
+        ],
+        "spawn_delay": [
+          298
+        ],
+        "zapper_switch": [
+          333,
+          339
+        ]
+      },
+      "api_mentions": {
+        "rounds": [
+          2,
+          74,
+          76,
+          77,
+          84,
+          86,
+          88,
+          90,
+          92,
+          96,
+          102,
+          133,
+          135,
+          137,
+          161,
+          162,
+          166,
+          181,
+          189,
+          201,
+          224,
+          226,
+          227,
+          238,
+          250,
+          254,
+          254,
+          259,
+          293,
+          303,
+          322,
+          328,
+          350
+        ],
+        "SUB_UseTargets": [
+          35,
+          204
+        ],
+        "player_count": [
+          79,
+          82,
+          97,
+          99,
+          102,
+          395,
+          396,
+          397,
+          398,
+          399
+        ],
+        "think": [
+          336
+        ]
+      }
+    },
+    {
+      "path": "source/server/tests/test_ai.qc",
+      "blob": "ab4881bab80b7904d79d89dc6c27b5a19d40c672",
+      "functions": [
+        {
+          "name": "Test_AI_HellhoundsDetected",
+          "line": 37,
+          "url": "https://github.com/nzp-team/quakec/blob/dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163/source/server/tests/test_ai.qc#L37"
+        }
+      ],
+      "entity_mentions": {
+        "spawn_dog": [
+          39
+        ]
+      },
+      "api_mentions": {
+        "rounds": [
+          34
+        ]
+      }
+    }
+  ]
+}
