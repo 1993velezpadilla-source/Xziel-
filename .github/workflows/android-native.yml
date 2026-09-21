@@ -327,7 +327,7 @@ jobs:
           collect_runtime_diagnostics
 
           PID="$("$ADB" shell pidof com.xziel.nzp 2>/dev/null | tr -d '\r' || true)"
-          RESUMED="$("$ADB" shell dumpsys activity activities 2>/dev/null | grep -m1 'mResumedActivity' || true)"
+          RESUMED="$(grep -Em1 '(^|[[:space:]])(mResumedActivity|ResumedActivity|topResumedActivity)[=:]' dist/activity-activities.txt || true)"
           echo "PID=$PID" | tee dist/runtime-state.txt
           echo "RESUMED=$RESUMED" | tee -a dist/runtime-state.txt
 
