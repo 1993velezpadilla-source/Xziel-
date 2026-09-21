@@ -489,5 +489,78 @@
     "quest_and_traps",
     "art_audio_dressing",
     "mobile_stress_and_launch_qa"
-  ]
+  ],
+  "signatureHorrorEvent": {
+    "id": "event_penitent_nun",
+    "name": "The Penitent",
+    "firstEligibleRound": 5,
+    "expectedDiscoveryWindow": [
+      6,
+      12
+    ],
+    "fullEventsPerMatch": 1,
+    "spawnAnchorTag": "penitent_anchor",
+    "excludedZones": [
+      "Z00"
+    ],
+    "preferredZones": [
+      "Z05",
+      "Z06",
+      "Z07",
+      "Z08",
+      "Z09",
+      "Z10",
+      "Z11",
+      "Z13"
+    ],
+    "prayingStateCountsTowardRound": false,
+    "spatialAudio": {
+      "content": "complete Spanish Padrenuestro",
+      "farAudibleMeters": 18,
+      "intelligibleMeters": 10,
+      "closeMeters": 3.5,
+      "personalSpaceMeters": 1.35,
+      "placeholder": {
+        "source": "Freesound",
+        "creator": "NyxLurvig",
+        "soundId": 499653,
+        "title": "Padrenuestro (Our Father prayer in Spanish)",
+        "license": "CC0",
+        "url": "https://freesound.org/people/NyxLurvig/sounds/499653/",
+        "temporary": true
+      }
+    },
+    "outcomeWeights": {
+      "mercy": 0.3,
+      "judgement": 0.45,
+      "deception": 0.25
+    },
+    "triggers": [
+      "prayer_completed",
+      "player_interacted",
+      "player_attacked",
+      "personal_space_reaction"
+    ],
+    "reward": {
+      "questItem": "black_rosary_fragment",
+      "requiredForMainQuest": false,
+      "usedFor": "FINAL TOLL optional upgrade"
+    },
+    "wrathHunt": {
+      "enabled": true,
+      "targetDurationSec": [
+        30,
+        45
+      ],
+      "guaranteedUtilityReward": true,
+      "infiniteAdds": false
+    },
+    "fairness": [
+      "no untelegraphed full-health one-shot",
+      "no in-view damaging teleport",
+      "main quest remains completable if ignored",
+      "event reward cannot duplicate"
+    ],
+    "spec": "docs/maps/ashen-vespers/THE_PENITENT_EVENT.md"
+  }
 }
