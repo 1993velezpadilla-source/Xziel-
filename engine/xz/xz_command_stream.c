@@ -391,7 +391,9 @@ int XzCommandStream_SelfTest(void)
 
     plan.generation = 7u;
     plan.source_frame = 9;
+    plan.source_packet_count = 1u;
     plan.packet_count = 1u;
+    plan.visibility_front_count = 1u;
     plan.near_count = 1u;
     plan.packets[0].kind =
         (unsigned char)XZ_PRESENT_ALIAS;
