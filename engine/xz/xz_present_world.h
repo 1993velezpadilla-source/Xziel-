@@ -8,6 +8,7 @@ extern "C" {
 #endif
 
 #define XZ_PRESENT_MAX_ENTITIES 512u
+#define XZ_PRESENT_MAX_LIGHTS 32u
 
 typedef enum {
     XZ_PRESENT_UNKNOWN = 0,
@@ -23,6 +24,8 @@ typedef struct {
     int frame;
     int skin;
     int render_mode;
+    float render_amount;
+    float render_color[3];
     unsigned char scale;
     unsigned char priority_class;
     XzPresentKind kind;
@@ -30,6 +33,15 @@ typedef struct {
     float angles[3];
     float distance_sq;
 } XzPresentEntity;
+
+typedef struct {
+    float origin[3];
+    float color[3];
+    float radius;
+    float minlight;
+    int type;
+    int dark;
+} XzPresentLight;
 
 typedef struct {
     uint64_t generation;
@@ -52,7 +64,9 @@ typedef struct {
     unsigned int unknown_count;
 
     unsigned int static_brush_count;
+    XzPresentLight lights[XZ_PRESENT_MAX_LIGHTS];
     unsigned int active_light_count;
+    unsigned int dropped_lights;
 
     float nearest_distance_sq;
     float farthest_distance_sq;
@@ -70,6 +84,7 @@ void XzPresentWorld_SetCameraBasis(
     float fov_x,
     float fov_y);
 void XzPresentWorld_SetStaticBrushCount(unsigned int count);
+int XzPresentWorld_PushLight(const XzPresentLight *light);
 void XzPresentWorld_SetActiveLightCount(unsigned int count);
 void XzPresentWorld_Commit(void);
 const XzPresentFrame *XzPresentWorld_GetReadFrame(void);
