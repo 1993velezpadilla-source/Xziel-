@@ -53,6 +53,12 @@ typedef struct {
     uint64_t framebuffer_depth_attachments;
     uint64_t target_plan_failures;
 
+    uint64_t sampled_passes;
+    uint64_t sampled_draws;
+    uint64_t sampled_input_binds;
+    uint64_t sampled_failures;
+    unsigned int sampled_max_inputs;
+
     unsigned int last_packet_count;
     uint32_t last_plan_hash;
     uint32_t last_command_hash;
