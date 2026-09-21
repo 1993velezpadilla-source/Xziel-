@@ -33,11 +33,18 @@ public final class XzielGameActivity extends GameActivity {
         }
     }
 
+    @SuppressWarnings("deprecation")
     public int getXzielDisplayRotation() {
-        if (getDisplay() == null) {
-            return 0;
+        if (Build.VERSION.SDK_INT >= 30) {
+            if (getDisplay() == null) {
+                return 0;
+            }
+            return getDisplay().getRotation();
         }
-        return getDisplay().getRotation();
+
+        return getWindowManager()
+            .getDefaultDisplay()
+            .getRotation();
     }
 
     private void enterImmersiveMode() {
