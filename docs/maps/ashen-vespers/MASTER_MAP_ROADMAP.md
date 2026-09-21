@@ -604,3 +604,22 @@ Do not call this free launch map ready until:
 ## 20. Immediate next implementation task
 
 The next Blender pass should stop using generic center-of-bounds gameplay markers and instead create **named semantic markers attached to the real room geometry** above. The generated report should include every marker and the zone it belongs to. Once those anchors exist, the map can be wired to the existing server-authoritative Zombies systems without hard-coding raw coordinates in gameplay code.
+
+
+## 21. Signature horror event — THE PENITENT
+
+Ashen Vespers has a once-per-match optional proximity-horror encounter built around a unique praying nun.
+
+- internal ID: `event_penitent_nun`
+- first eligibility: round 5+, expected discovery rounds 6–12
+- one of multiple hidden authored corner anchors is chosen from currently reachable rooms
+- she crouches/kneels facing the wall and whispers the full Padrenuestro through a 3D positional emitter
+- no HUD marker or tutorial reveals the event
+- leaving her undisturbed, interacting, approaching too closely, or attacking can produce different seeded response families
+- outcomes are intentionally uncertain between matches but never arbitrarily one-shot a healthy player
+- reward: optional **Black Rosary Fragment**, used by the FINAL TOLL side-upgrade path and not required for basic survival/main-quest completion
+- shooting her can trigger a bounded **Wrath Hunt**
+- use CC0 Spanish Padrenuestro placeholder during prototype, then replace with Christian's custom performance WAV
+
+Full behavior/state machine:
+`docs/maps/ashen-vespers/THE_PENITENT_EVENT.md`
