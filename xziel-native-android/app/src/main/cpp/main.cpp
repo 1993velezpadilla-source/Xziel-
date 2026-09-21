@@ -50,6 +50,44 @@ constexpr xziel::Vec3 kPrototypePowerSwitchPosition{
     0.45f,
 };
 
+constexpr std::uint32_t kPrototypeDoorId =
+    1002U;
+
+constexpr std::uint32_t kPrototypeDoorCost =
+    500U;
+
+constexpr xziel::Vec3 kPrototypeDoorInteractionPosition{
+    0.0f,
+    -0.45f,
+    1.34f,
+};
+
+const xziel::Aabb kPrototypeCenterObstacle{
+    .minimum = {
+        -0.58f,
+        -1.60f,
+        -0.25f,
+    },
+    .maximum = {
+        0.58f,
+        0.95f,
+        0.95f,
+    },
+};
+
+const xziel::Aabb kPrototypeDoorObstacle{
+    .minimum = {
+        -2.72f,
+        -1.60f,
+        1.46f,
+    },
+    .maximum = {
+        2.72f,
+        1.05f,
+        1.68f,
+    },
+};
+
 struct NativeAppState {
     xziel::AndroidRuntimeStateMachine runtime{};
     xziel::RendererWatchdog watchdog{};
@@ -57,7 +95,11 @@ struct NativeAppState {
     xziel::FpsPlayerController player{};
     xziel::WeaponController weapon{};
     xziel::HordeDirector horde{};
-    xziel::ScoreSystem score{};
+    xziel::ScoreSystem score{
+        xziel::ScoreConfig{
+            .startingPoints = 500U,
+        }};
+
     xziel::InteractionSystem interaction{};
     xziel::InteractionFrame interactionFrame{};
     xziel::PlayerVitals vitals{};
@@ -70,6 +112,10 @@ struct NativeAppState {
     xziel::WeatherConfig stormWeather{};
     xziel::WeatherConfig calmWeather{};
     bool stormEnabled = true;
+
+    bool prototypeDoorOpen = false;
+    float prototypeDoorOpenAlpha = 0.0f;
+    float purchaseDeniedSeconds = 0.0f;
 
     xziel::PerformanceGovernor performance{};
     xziel::RenderWorkload renderWorkload{};
@@ -126,6 +172,26 @@ struct NativeAppState {
     float memoryPressureSeconds = 0.0f;
     float thermalPollSeconds = 1.0f;
 };
+
+void rebuildPrototypeObstacles(
+    NativeAppState& state) noexcept {
+    state.player.clearStaticObstacles();
+    state.horde.clearNavigationObstacles();
+
+    (void) state.player.addStaticObstacle(
+        kPrototypeCenterObstacle);
+
+    (void) state.horde.addNavigationObstacle(
+        kPrototypeCenterObstacle);
+
+    if (!state.prototypeDoorOpen) {
+        (void) state.player.addStaticObstacle(
+            kPrototypeDoorObstacle);
+
+        (void) state.horde.addNavigationObstacle(
+            kPrototypeDoorObstacle);
+    }
+}
 
 void logInfo(const char* message) noexcept {
     __android_log_print(
@@ -641,20 +707,52 @@ void advancePlayer(
                 fixedDelta);
 
         if (state.interactionFrame.
-                activatedThisTick &&
-            state.interactionFrame.targetId ==
+                activatedThisTick) {
+            if (state.interactionFrame.targetId ==
                 kPrototypePowerSwitchId) {
-            state.stormEnabled =
-                !state.stormEnabled;
+                state.stormEnabled =
+                    !state.stormEnabled;
 
-            state.environment.setWeather(
-                state.stormEnabled
-                    ? state.stormWeather
-                    : state.calmWeather);
+                state.environment.setWeather(
+                    state.stormEnabled
+                        ? state.stormWeather
+                        : state.calmWeather);
 
-            requestHaptic(
-                state,
-                xziel::HapticEvent::UiConfirm);
+                requestHaptic(
+                    state,
+                    xziel::HapticEvent::UiConfirm);
+            } else if (
+                state.interactionFrame.targetId ==
+                    kPrototypeDoorId &&
+                !state.prototypeDoorOpen) {
+                if (state.score.trySpend(
+                        kPrototypeDoorCost)) {
+                    state.prototypeDoorOpen =
+                        true;
+
+                    (void) state.interaction.
+                        setTargetEnabled(
+                            kPrototypeDoorId,
+                            false);
+
+                    rebuildPrototypeObstacles(
+                        state);
+
+                    state.scorePulseSeconds =
+                        0.38f;
+
+                    requestHaptic(
+                        state,
+                        xziel::HapticEvent::UiConfirm);
+                } else {
+                    state.purchaseDeniedSeconds =
+                        0.42f;
+
+                    requestHaptic(
+                        state,
+                        xziel::HapticEvent::UiError);
+                }
+            }
         }
 
         const auto hordeFrame =
@@ -1057,6 +1155,23 @@ xziel::android::VulkanHudState makeHudState(
         state.interactionFrame.
             holdAlpha;
 
+    hud.interactionCost =
+        state.interactionFrame.
+            cost;
+
+    hud.interactionAffordable =
+        state.interactionFrame.cost == 0U ||
+        state.score.frame().total >=
+            static_cast<std::uint64_t>(
+                state.interactionFrame.cost);
+
+    hud.interactionDeniedAlpha =
+        std::clamp(
+            state.purchaseDeniedSeconds /
+                0.42f,
+            0.0f,
+            1.0f);
+
     hud.hitMarkerAlpha =
         std::clamp(
             state.hitMarkerSeconds /
@@ -1257,6 +1372,9 @@ xziel::android::VulkanSceneState makeSceneState(
     scene.interactionActive =
         state.stormEnabled;
 
+    scene.doorOpenAlpha =
+        state.prototypeDoorOpenAlpha;
+
     scene.impactX =
         state.impactPoint.x;
     scene.impactY =
@@ -1355,24 +1473,8 @@ extern "C" void android_main(
     state.runtime.onEvent(
         xziel::AndroidLifecycleEvent::Create);
 
-    const xziel::Aabb prototypeCenterObstacle{
-        .minimum = {
-            -0.58f,
-            -1.60f,
-            -0.25f,
-        },
-        .maximum = {
-            0.58f,
-            0.95f,
-            0.95f,
-        },
-    };
-
-    (void) state.player.addStaticObstacle(
-        prototypeCenterObstacle);
-
-    (void) state.horde.addNavigationObstacle(
-        prototypeCenterObstacle);
+    rebuildPrototypeObstacles(
+        state);
 
     (void) state.interaction.addTarget(
         {
@@ -1387,6 +1489,23 @@ extern "C" void android_main(
             .priority = 1.0f,
             .holdSeconds = 0.32f,
             .cost = 0,
+            .enabled = true,
+        });
+
+    (void) state.interaction.addTarget(
+        {
+            .id =
+                kPrototypeDoorId,
+            .kind =
+                xziel::InteractionKind::Door,
+            .position =
+                kPrototypeDoorInteractionPosition,
+            .maximumDistance = 1.75f,
+            .minimumFacingDot = 0.10f,
+            .priority = 1.35f,
+            .holdSeconds = 0.18f,
+            .cost =
+                kPrototypeDoorCost,
             .enabled = true,
         });
 
@@ -1631,6 +1750,36 @@ extern "C" void android_main(
                 0.0f,
                 state.scorePulseSeconds -
                     frameDelta);
+
+        state.purchaseDeniedSeconds =
+            std::max(
+                0.0f,
+                state.purchaseDeniedSeconds -
+                    frameDelta);
+
+        const float doorTargetAlpha =
+            state.prototypeDoorOpen
+            ? 1.0f
+            : 0.0f;
+
+        const float doorStep =
+            frameDelta *
+            1.65f;
+
+        if (state.prototypeDoorOpenAlpha <
+            doorTargetAlpha) {
+            state.prototypeDoorOpenAlpha =
+                std::min(
+                    doorTargetAlpha,
+                    state.prototypeDoorOpenAlpha +
+                        doorStep);
+        } else {
+            state.prototypeDoorOpenAlpha =
+                std::max(
+                    doorTargetAlpha,
+                    state.prototypeDoorOpenAlpha -
+                        doorStep);
+        }
 
         state.renderWorkload =
             state.performance.advance(
