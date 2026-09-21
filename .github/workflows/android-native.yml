@@ -49,20 +49,12 @@ jobs:
 
       - name: Verify SoE crash guard in native source
         run: |
-          mapfile -t WORLD_FILES < <(find build/android-project/app/jni -type f -iname 'world.c')
-          test "${#WORLD_FILES[@]}" -gt 0
-          FOUND_PATCHED=0
-          for WORLD_C in "${WORLD_FILES[@]}"; do
-            echo "Checking collision source: $WORLD_C"
-            if grep -q "invalid SOLID_BSP entity" "$WORLD_C"; then
-              FOUND_PATCHED=1
-            fi
-            if grep -q 'Sys_Error ("SOLID_BSP without MOVETYPE_PUSH")' "$WORLD_C"; then
-              echo "Fatal BSP guard still present: $WORLD_C"
-              exit 1
-            fi
-          done
-          test "$FOUND_PATCHED" -eq 1
+          grep -q "invalid SOLID_BSP entity" build/deps/vril/source/world.c
+          if grep -q 'Sys_Error ("SOLID_BSP without MOVETYPE_PUSH")' build/deps/vril/source/world.c; then
+            echo "Fatal BSP guard still present in patched Vril source"
+            exit 1
+          fi
+          grep -R -q "invalid SOLID_BSP entity" build/android-project/app/jni/src/vril
 
       - name: Build debug APK
         working-directory: build/android-project
