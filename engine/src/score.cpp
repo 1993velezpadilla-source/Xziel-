@@ -1,0 +1,125 @@
+#include "xziel/score.hpp"
+
+#include <algorithm>
+#include <limits>
+
+namespace xziel {
+
+ScoreSystem::ScoreSystem(
+    ScoreConfig config)
+    : config_(config) {
+    reset();
+}
+
+void ScoreSystem::reset() noexcept {
+    frame_ = {};
+}
+
+ScoreFrame ScoreSystem::awardHit(
+    ZombieHitRegion region,
+    bool killed) noexcept {
+    frame_.changedThisTick = false;
+    frame_.criticalAwardThisTick = false;
+    frame_.lastAward = 0;
+
+    std::uint64_t points =
+        hitPoints(
+            region);
+
+    if (killed) {
+        points +=
+            config_.killPoints;
+
+        if (region ==
+            ZombieHitRegion::Head) {
+            points +=
+                config_.headshotKillBonus;
+        }
+    }
+
+    add(
+        static_cast<std::uint32_t>(
+            std::min<std::uint64_t>(
+                points,
+                std::numeric_limits<
+                    std::uint32_t>::max())),
+        region ==
+            ZombieHitRegion::Head);
+
+    return frame_;
+}
+
+ScoreFrame ScoreSystem::awardRoundClear(
+    std::uint32_t completedRound) noexcept {
+    frame_.changedThisTick = false;
+    frame_.criticalAwardThisTick = false;
+    frame_.lastAward = 0;
+
+    const std::uint64_t points =
+        static_cast<std::uint64_t>(
+            config_.roundClearBasePoints) +
+        static_cast<std::uint64_t>(
+            completedRound) *
+        static_cast<std::uint64_t>(
+            config_.roundClearPerRound);
+
+    add(
+        static_cast<std::uint32_t>(
+            std::min<std::uint64_t>(
+                points,
+                std::numeric_limits<
+                    std::uint32_t>::max())),
+        false);
+
+    return frame_;
+}
+
+const ScoreFrame&
+ScoreSystem::frame() const noexcept {
+    return frame_;
+}
+
+std::uint32_t ScoreSystem::hitPoints(
+    ZombieHitRegion region) const noexcept {
+    switch (region) {
+        case ZombieHitRegion::Head:
+            return config_.headHitPoints;
+
+        case ZombieHitRegion::Torso:
+            return config_.torsoHitPoints;
+
+        case ZombieHitRegion::Limbs:
+            return config_.limbHitPoints;
+
+        case ZombieHitRegion::None:
+        default:
+            return 0;
+    }
+}
+
+void ScoreSystem::add(
+    std::uint32_t points,
+    bool critical) noexcept {
+    if (points == 0) {
+        return;
+    }
+
+    const std::uint64_t maximum =
+        std::numeric_limits<
+            std::uint64_t>::max();
+
+    if (maximum -
+            frame_.total <
+        points) {
+        frame_.total = maximum;
+    } else {
+        frame_.total += points;
+    }
+
+    frame_.lastAward = points;
+    frame_.changedThisTick = true;
+    frame_.criticalAwardThisTick =
+        critical;
+}
+
+} // namespace xziel
