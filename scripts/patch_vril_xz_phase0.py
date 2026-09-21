@@ -68,6 +68,8 @@ for name in (
     "xz_active_quality.c",
     "xz_stream_residency.h",
     "xz_stream_residency.c",
+    "xz_cutover.h",
+    "xz_cutover.c",
 ):
     src = modules / name
     if not src.is_file():
@@ -192,4 +194,4 @@ for label, needle in checks.items():
             f"Phase-0 integration check failed for {label}: {count} occurrences"
         )
 
-print("Injected Xziel Xz runtime through Phase 15 (active scaling + residency).")
+print("Injected Xziel Xz runtime through Phase 16 (cutover parity gate).")
