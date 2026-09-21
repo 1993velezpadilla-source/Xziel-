@@ -16,6 +16,7 @@
 #include "xziel/haptics.hpp"
 #include "xziel/horror.hpp"
 #include "xziel/player_vitals.hpp"
+#include "xziel/performance.hpp"
 #include "xziel/renderer_watchdog.hpp"
 #include "xziel/weapon.hpp"
 #include "xziel/zombie_actor.hpp"
@@ -50,6 +51,9 @@ struct NativeAppState {
 
     xziel::EnvironmentSystem environment{};
     xziel::EnvironmentFrame environmentFrame{};
+
+    xziel::PerformanceGovernor performance{};
+    xziel::RenderWorkload renderWorkload{};
 
     xziel::CameraRig cameraRig{};
     xziel::HapticsPlanner haptics{};
@@ -831,6 +835,18 @@ xziel::android::VulkanEnvironmentState makeEnvironmentState(
         state.environmentFrame.
             windMetersPerSecond.z;
 
+    environment.particleDensityScale =
+        state.renderWorkload.
+            particleDensityScale;
+
+    environment.fogQualityScale =
+        state.renderWorkload.
+            fogQualityScale;
+
+    environment.postProcessScale =
+        state.renderWorkload.
+            postProcessScale;
+
     return environment;
 }
 
@@ -1154,6 +1170,21 @@ extern "C" void android_main(
                 0.0f,
                 state.zombieAttackFlashSeconds -
                     frameDelta);
+
+        state.renderWorkload =
+            state.performance.advance(
+                {
+                    .cpuFrameMs =
+                        frameDelta * 1000.0f,
+                    .gpuFrameMs = 0.0f,
+                    .thermal =
+                        xziel::ThermalLevel::Nominal,
+                },
+                frameDelta);
+
+        state.environment.setQuality(
+            state.renderWorkload.
+                quality);
 
         state.environmentFrame =
             state.environment.advance(
