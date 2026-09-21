@@ -82,6 +82,24 @@ jobs:
             -o /tmp/xz_present_world_test
           /tmp/xz_present_world_test
 
+      - name: Test Xz DeviceCaps
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_device_caps_test.c engine/xz/xz_device_caps.c \
+            -o /tmp/xz_device_caps_test
+          /tmp/xz_device_caps_test
+
+      - name: Test Xz SceneBudget
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_scene_budget_test.c engine/xz/xz_scene_budget.c \
+            -o /tmp/xz_scene_budget_test
+          /tmp/xz_scene_budget_test
+
       - name: Set up Java 17
         uses: actions/setup-java@v5
         with:
@@ -248,7 +266,19 @@ jobs:
             exit 1
           fi
 
-          echo "Xziel remained alive, reached FIRST_FRAME_OK, and Xz Phase-0 + PresentWorld initialized."
+          if ! grep -Eq "XZIEL-XZ.*phase2 caps selftest=PASS tier=" dist/xziel-logcat.txt; then
+            echo "Xz DeviceCaps did not initialize or self-test."
+            grep -E "XZIEL-XZ.*phase2 caps" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*budget\(near=[0-9]+ mid=[0-9]+ far=[0-9]+.*anim=[0-9]+ shadow=[0-9]+ vfx=[0-9]+ light=[0-9]+/[0-9]+\)" dist/xziel-logcat.txt; then
+            echo "Xz SceneBudget did not publish a live budget."
+            grep -E "XZIEL-XZ.*budget\(" dist/xziel-logcat.txt | tail -n 100 || true
+            exit 1
+          fi
+
+          echo "Xziel remained alive; Phase 0, PresentWorld and Phase 2 caps/budgets are live."
 
       - name: Upload runtime diagnostics
         if: always()
