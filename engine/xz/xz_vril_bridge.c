@@ -44,14 +44,32 @@ static XzPresentKind XzVrilBridge_Kind(const entity_t *entity)
     }
 }
 
-static unsigned int XzVrilBridge_CountActiveLights(void)
+static unsigned int XzVrilBridge_CaptureActiveLights(void)
 {
     unsigned int count = 0u;
     int i;
 
     for (i = 0; i < MAX_DLIGHTS; ++i) {
-        const dlight_t *light = &cl_dlights[i];
-        if (light->die >= (float)cl.time && light->radius > 0.0f)
+        const dlight_t *source = &cl_dlights[i];
+        XzPresentLight light;
+
+        if (source->die < (float)cl.time ||
+            source->radius <= 0.0f)
+            continue;
+
+        memset(&light, 0, sizeof(light));
+        light.origin[0] = source->origin[0];
+        light.origin[1] = source->origin[1];
+        light.origin[2] = source->origin[2];
+        light.color[0] = source->color[0];
+        light.color[1] = source->color[1];
+        light.color[2] = source->color[2];
+        light.radius = source->radius;
+        light.minlight = source->minlight;
+        light.type = source->type;
+        light.dark = source->dark ? 1 : 0;
+
+        if (XzPresentWorld_PushLight(&light))
             count++;
     }
 
@@ -90,6 +108,10 @@ void XzVrilBridge_CapturePresentation(int source_frame)
         entity.frame = source->frame;
         entity.skin = source->skinnum;
         entity.render_mode = (int)source->rendermode;
+        entity.render_amount = source->renderamt;
+        entity.render_color[0] = source->rendercolor[0];
+        entity.render_color[1] = source->rendercolor[1];
+        entity.render_color[2] = source->rendercolor[2];
         entity.scale = source->scale;
         entity.kind = XzVrilBridge_Kind(source);
 
@@ -107,8 +129,7 @@ void XzVrilBridge_CapturePresentation(int source_frame)
     XzPresentWorld_SetStaticBrushCount(
         cl_numstaticbrushmodels > 0
             ? (unsigned int)cl_numstaticbrushmodels : 0u);
-    XzPresentWorld_SetActiveLightCount(
-        XzVrilBridge_CountActiveLights());
+    XzVrilBridge_CaptureActiveLights();
 
     XzPresentWorld_Commit();
 }
