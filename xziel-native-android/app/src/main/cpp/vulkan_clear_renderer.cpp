@@ -2578,18 +2578,6 @@ bool VulkanClearRenderer::createReflectionPassResources() noexcept {
 
 void VulkanClearRenderer::destroyReflectionPassResources() noexcept {
     if (device_ != VK_NULL_HANDLE) {
-        if (reflectionDescriptorPool_ != VK_NULL_HANDLE) {
-            vkDestroyDescriptorPool(
-                device_,
-                reflectionDescriptorPool_,
-                nullptr);
-        }
-        if (reflectionSampler_ != VK_NULL_HANDLE) {
-            vkDestroySampler(
-                device_,
-                reflectionSampler_,
-                nullptr);
-        }
         if (reflectionPipeline_ != VK_NULL_HANDLE) {
             vkDestroyPipeline(
                 device_,
@@ -2613,15 +2601,12 @@ void VulkanClearRenderer::destroyReflectionPassResources() noexcept {
     reflectionPipeline_ = VK_NULL_HANDLE;
     reflectionFramebuffer_ = VK_NULL_HANDLE;
     reflectionRenderPass_ = VK_NULL_HANDLE;
-    reflectionSampler_ = VK_NULL_HANDLE;
-    reflectionDescriptorPool_ = VK_NULL_HANDLE;
-    reflectionDescriptorSet_ = VK_NULL_HANDLE;
 }
 
 void VulkanClearRenderer::destroyReflectionTarget() noexcept {
-    // Descriptor resources currently reference the target image. Tear them
-    // down before destroying the image so no stale descriptor can survive a
-    // quality downgrade or target reallocation.
+    // Pass/framebuffer resources follow the transient target. Descriptor
+    // allocation and sampler lifetime are deliberately independent so the
+    // main pipeline can keep one stable descriptor slot across target churn.
     destroyReflectionPassResources();
 
     if (device_ != VK_NULL_HANDLE) {
@@ -2925,6 +2910,16 @@ void VulkanClearRenderer::destroySwapchainResources() noexcept {
             nullptr);
         pipelineLayout_ =
             VK_NULL_HANDLE;
+    }
+
+    if (reflectionDescriptorPool_ != VK_NULL_HANDLE) {
+        vkDestroyDescriptorPool(device_, reflectionDescriptorPool_, nullptr);
+        reflectionDescriptorPool_ = VK_NULL_HANDLE;
+        reflectionDescriptorSet_ = VK_NULL_HANDLE;
+    }
+    if (reflectionSampler_ != VK_NULL_HANDLE) {
+        vkDestroySampler(device_, reflectionSampler_, nullptr);
+        reflectionSampler_ = VK_NULL_HANDLE;
     }
 
     if (reflectionDescriptorSetLayout_ != VK_NULL_HANDLE) {
