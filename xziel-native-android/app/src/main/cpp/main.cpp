@@ -18,6 +18,7 @@
 #include "xziel/player_vitals.hpp"
 #include "xziel/performance.hpp"
 #include "xziel/renderer_watchdog.hpp"
+#include "xziel/runtime_policy.hpp"
 #include "xziel/weapon.hpp"
 #include "xziel/zombie_actor.hpp"
 #include "xziel/zombie_hit_regions.hpp"
@@ -54,6 +55,7 @@ struct NativeAppState {
 
     xziel::PerformanceGovernor performance{};
     xziel::RenderWorkload renderWorkload{};
+    xziel::RuntimePolicyPlanner runtimePolicyPlanner{};
 
     xziel::CameraRig cameraRig{};
     xziel::HapticsPlanner haptics{};
@@ -92,6 +94,13 @@ struct NativeAppState {
     xziel::ThermalLevel thermalLevel =
         xziel::ThermalLevel::Nominal;
 
+    bool batterySaver = false;
+    float displayRefreshHz = 60.0f;
+
+    xziel::MemoryPressure memoryPressure =
+        xziel::MemoryPressure::Normal;
+
+    float memoryPressureSeconds = 0.0f;
     float thermalPollSeconds = 1.0f;
 };
 
@@ -199,6 +208,115 @@ xziel::ThermalLevel queryThermalLevel(
     }
 
     return xziel::ThermalLevel::Critical;
+}
+
+bool queryPowerSaveMode(
+    NativeAppState& state) noexcept {
+    if (state.jniEnv == nullptr ||
+        state.javaActivity == nullptr) {
+        return false;
+    }
+
+    JNIEnv* env = state.jniEnv;
+    jclass activityClass =
+        env->GetObjectClass(
+            state.javaActivity);
+
+    if (activityClass == nullptr) {
+        if (env->ExceptionCheck()) {
+            env->ExceptionClear();
+        }
+        return false;
+    }
+
+    jmethodID method =
+        env->GetMethodID(
+            activityClass,
+            "isXzielPowerSaveMode",
+            "()Z");
+
+    if (method == nullptr) {
+        if (env->ExceptionCheck()) {
+            env->ExceptionClear();
+        }
+
+        env->DeleteLocalRef(
+            activityClass);
+        return false;
+    }
+
+    const jboolean value =
+        env->CallBooleanMethod(
+            state.javaActivity,
+            method);
+
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+        env->DeleteLocalRef(
+            activityClass);
+        return false;
+    }
+
+    env->DeleteLocalRef(
+        activityClass);
+
+    return value == JNI_TRUE;
+}
+
+float queryRefreshRate(
+    NativeAppState& state) noexcept {
+    if (state.jniEnv == nullptr ||
+        state.javaActivity == nullptr) {
+        return 60.0f;
+    }
+
+    JNIEnv* env = state.jniEnv;
+    jclass activityClass =
+        env->GetObjectClass(
+            state.javaActivity);
+
+    if (activityClass == nullptr) {
+        if (env->ExceptionCheck()) {
+            env->ExceptionClear();
+        }
+        return 60.0f;
+    }
+
+    jmethodID method =
+        env->GetMethodID(
+            activityClass,
+            "getXzielRefreshRate",
+            "()F");
+
+    if (method == nullptr) {
+        if (env->ExceptionCheck()) {
+            env->ExceptionClear();
+        }
+
+        env->DeleteLocalRef(
+            activityClass);
+        return 60.0f;
+    }
+
+    const jfloat value =
+        env->CallFloatMethod(
+            state.javaActivity,
+            method);
+
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+        env->DeleteLocalRef(
+            activityClass);
+        return 60.0f;
+    }
+
+    env->DeleteLocalRef(
+        activityClass);
+
+    return std::clamp(
+        static_cast<float>(value),
+        30.0f,
+        240.0f);
 }
 
 int queryDisplayRotation(
@@ -324,6 +442,13 @@ void handleCommand(
         case APP_CMD_LOW_MEMORY:
             state->runtime.onEvent(
                 xziel::AndroidLifecycleEvent::LowMemory);
+
+            state->memoryPressure =
+                xziel::MemoryPressure::Critical;
+
+            state->memoryPressureSeconds =
+                15.0f;
+
             logInfo("LOW_MEMORY");
             break;
 
@@ -1228,7 +1353,28 @@ extern "C" void android_main(
                 queryThermalLevel(
                     state);
 
+            state.batterySaver =
+                queryPowerSaveMode(
+                    state);
+
+            state.displayRefreshHz =
+                queryRefreshRate(
+                    state);
+
             state.thermalPollSeconds = 0.0f;
+        }
+
+        if (state.memoryPressureSeconds > 0.0f) {
+            state.memoryPressureSeconds =
+                std::max(
+                    0.0f,
+                    state.memoryPressureSeconds -
+                        frameDelta);
+
+            if (state.memoryPressureSeconds <= 0.0f) {
+                state.memoryPressure =
+                    xziel::MemoryPressure::Normal;
+            }
         }
 
         state.hitMarkerSeconds =
@@ -1271,6 +1417,26 @@ extern "C" void android_main(
                         state.thermalLevel,
                 },
                 frameDelta);
+
+        const auto runtimePolicy =
+            state.runtimePolicyPlanner.plan(
+                {
+                    .gameMode =
+                        xziel::UserGameMode::Standard,
+                    .memoryPressure =
+                        state.memoryPressure,
+                    .displayRefreshHz =
+                        state.displayRefreshHz,
+                    .batterySaver =
+                        state.batterySaver,
+                    .charging = false,
+                });
+
+        state.renderWorkload =
+            state.runtimePolicyPlanner.
+                applyCeiling(
+                    state.renderWorkload,
+                    runtimePolicy);
 
         state.environment.setQuality(
             state.renderWorkload.
