@@ -1,0 +1,28 @@
+{
+  "schema": "xziel.nzp.quest-reference-snapshots.v1",
+  "generated_date": "2026-09-20",
+  "upstream": {
+    "assets": {
+      "repo": "nzp-team/assets",
+      "commit": "c8135a66e00bb64577912fbf792f8fef7f47658e",
+      "official_source_maps": 20,
+      "fgd_files": 2
+    },
+    "quakec": {
+      "repo": "nzp-team/quakec",
+      "commit": "dc107a103a9a5bdb53bdef78c6d8cb18a4dd6163",
+      "server_qc_files": 78,
+      "license": "GPL-2.0"
+    }
+  },
+  "extraction": {
+    "map_entities": 5250,
+    "resolved_target_edges": 2216,
+    "unresolved_target_references": 22,
+    "fgd_classes": 90
+  },
+  "generated_files": {
+    "map_logic_parts": 5,
+    "quakec_symbol_index_parts": 7
+  }
+}
