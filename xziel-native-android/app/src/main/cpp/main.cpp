@@ -15,6 +15,7 @@
 #include "xziel/horde_director.hpp"
 #include "xziel/haptics.hpp"
 #include "xziel/horror.hpp"
+#include "xziel/interaction.hpp"
 #include "xziel/player_vitals.hpp"
 #include "xziel/performance.hpp"
 #include "xziel/renderer_watchdog.hpp"
@@ -40,6 +41,15 @@ constexpr float kPi =
 constexpr float kDegreesToRadians =
     kPi / 180.0f;
 
+constexpr std::uint32_t kPrototypePowerSwitchId =
+    1001U;
+
+constexpr xziel::Vec3 kPrototypePowerSwitchPosition{
+    -2.05f,
+    -0.60f,
+    0.45f,
+};
+
 struct NativeAppState {
     xziel::AndroidRuntimeStateMachine runtime{};
     xziel::RendererWatchdog watchdog{};
@@ -48,12 +58,18 @@ struct NativeAppState {
     xziel::WeaponController weapon{};
     xziel::HordeDirector horde{};
     xziel::ScoreSystem score{};
+    xziel::InteractionSystem interaction{};
+    xziel::InteractionFrame interactionFrame{};
     xziel::PlayerVitals vitals{};
     xziel::HorrorDirector horror{};
     xziel::HorrorFrame horrorFrame{};
 
     xziel::EnvironmentSystem environment{};
     xziel::EnvironmentFrame environmentFrame{};
+
+    xziel::WeatherConfig stormWeather{};
+    xziel::WeatherConfig calmWeather{};
+    bool stormEnabled = true;
 
     xziel::PerformanceGovernor performance{};
     xziel::RenderWorkload renderWorkload{};
@@ -579,6 +595,7 @@ void advancePlayer(
             state.player.reset();
             state.weapon.reset();
             state.horde.reset();
+            state.interaction.reset();
             state.pendingRecoilPitch = 0.0f;
             state.pendingRecoilYaw = 0.0f;
         }
@@ -599,6 +616,46 @@ void advancePlayer(
                   buttons,
                   fixedDelta)
             : state.player.frame();
+
+        const float interactionYaw =
+            playerFrame.yawDegrees *
+            kDegreesToRadians;
+
+        const xziel::Vec3 interactionView{
+            std::sin(
+                interactionYaw),
+            0.0f,
+            std::cos(
+                interactionYaw),
+        };
+
+        state.interactionFrame =
+            state.interaction.step(
+                playerFrame.cameraPosition,
+                interactionView,
+                {
+                    .held =
+                        state.vitals.frame().alive &&
+                        input.input.interact,
+                },
+                fixedDelta);
+
+        if (state.interactionFrame.
+                activatedThisTick &&
+            state.interactionFrame.targetId ==
+                kPrototypePowerSwitchId) {
+            state.stormEnabled =
+                !state.stormEnabled;
+
+            state.environment.setWeather(
+                state.stormEnabled
+                    ? state.stormWeather
+                    : state.calmWeather);
+
+            requestHaptic(
+                state,
+                xziel::HapticEvent::UiConfirm);
+        }
 
         const auto hordeFrame =
             state.horde.step(
@@ -989,6 +1046,17 @@ xziel::android::VulkanHudState makeHudState(
     hud.gyroAvailable =
         input.gyroAvailable;
 
+    hud.interactAvailable =
+        state.interactionFrame.
+            promptVisible;
+
+    hud.interactHeld =
+        input.input.interact;
+
+    hud.interactProgress =
+        state.interactionFrame.
+            holdAlpha;
+
     hud.hitMarkerAlpha =
         std::clamp(
             state.hitMarkerSeconds /
@@ -1179,6 +1247,16 @@ xziel::android::VulkanSceneState makeSceneState(
         state.horde.frame().
             interRound;
 
+    scene.interactionX =
+        kPrototypePowerSwitchPosition.x;
+    scene.interactionY =
+        kPrototypePowerSwitchPosition.y;
+    scene.interactionZ =
+        kPrototypePowerSwitchPosition.z;
+    scene.interactionVisible = true;
+    scene.interactionActive =
+        state.stormEnabled;
+
     scene.impactX =
         state.impactPoint.x;
     scene.impactY =
@@ -1296,6 +1374,22 @@ extern "C" void android_main(
     (void) state.horde.addNavigationObstacle(
         prototypeCenterObstacle);
 
+    (void) state.interaction.addTarget(
+        {
+            .id =
+                kPrototypePowerSwitchId,
+            .kind =
+                xziel::InteractionKind::Switch,
+            .position =
+                kPrototypePowerSwitchPosition,
+            .maximumDistance = 1.65f,
+            .minimumFacingDot = 0.20f,
+            .priority = 1.0f,
+            .holdSeconds = 0.32f,
+            .cost = 0,
+            .enabled = true,
+        });
+
     xziel::WeatherConfig prototypeStorm{};
     prototypeStorm.rainIntensity = 0.78f;
     prototypeStorm.windMetersPerSecond = {
@@ -1314,8 +1408,29 @@ extern "C" void android_main(
     prototypeStorm.splashParticles = true;
     prototypeStorm.wetSurfaceResponse = true;
 
+    state.stormWeather =
+        prototypeStorm;
+
+    state.calmWeather =
+        prototypeStorm;
+
+    state.calmWeather.rainIntensity =
+        0.0f;
+
+    state.calmWeather.windMetersPerSecond = {
+        0.20f,
+        0.0f,
+        0.08f,
+    };
+
+    state.calmWeather.lightningIntensity =
+        0.0f;
+
+    state.calmWeather.fogDensity =
+        0.10f;
+
     state.environment.setWeather(
-        prototypeStorm);
+        state.stormWeather);
     state.environment.setQuality(
         xziel::RenderQuality::High);
 
@@ -1561,6 +1676,12 @@ extern "C" void android_main(
 
         state.input.beginFrame(
             frameDelta);
+
+        state.input.setInteractAvailable(
+            state.interactionFrame.
+                promptVisible &&
+            state.vitals.frame().
+                alive);
 
         const int width =
             app->window != nullptr
