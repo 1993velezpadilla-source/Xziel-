@@ -81,11 +81,18 @@ public:
     [[nodiscard]] bool addDynamicBlocker(
         std::uint32_t id,
         const Aabb& obstacle,
-        bool enabled = true) noexcept;
+        bool enabled = true,
+        bool breakable = false) noexcept;
 
     [[nodiscard]] bool setDynamicBlockerEnabled(
         std::uint32_t id,
         bool enabled) noexcept;
+
+    [[nodiscard]] std::uint32_t zombieDynamicBlockerTarget(
+        std::size_t slot) const noexcept;
+
+    [[nodiscard]] std::uint32_t dynamicBlockerAttackCount(
+        std::uint32_t id) const noexcept;
 
     [[nodiscard]] HordeFrame step(
         Vec3 playerFeetPosition,
@@ -114,7 +121,8 @@ private:
 
     [[nodiscard]] Vec3 steeringTargetFor(
         const ZombieActor& actor,
-        Vec3 playerFeetPosition) const noexcept;
+        Vec3 playerFeetPosition,
+        std::uint32_t& outDynamicBlockerId) const noexcept;
 
     void applyCrowdSeparation() noexcept;
     void resolveNavigationPenetration() noexcept;
@@ -136,11 +144,15 @@ private:
         std::uint32_t id = 0;
         Aabb obstacle{};
         bool enabled = false;
+        bool breakable = false;
     };
 
     std::array<DynamicBlocker, kMaxHordeDynamicBlockers>
         dynamicBlockers_{};
     std::size_t dynamicBlockerCount_ = 0;
+
+    std::array<std::uint32_t, kMaxHordeZombies>
+        zombieDynamicBlockerTargets_{};
 
     float spawnCooldownSeconds_ = 0.0f;
     float interRoundSeconds_ = 0.0f;

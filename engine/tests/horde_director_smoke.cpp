@@ -149,5 +149,40 @@ int main() {
     assert(dynamic.setDynamicBlockerEnabled(77, false));
     assert(!dynamic.setDynamicBlockerEnabled(999, false));
 
+    // Breakable blockers are approached instead of routed around, and the
+    // director marks the zombie's attack target so gameplay can tear planks
+    // without mistaking the strike for player damage.
+    xziel::HordeConfig breakableConfig{};
+    breakableConfig.baseZombiesPerRound = 1;
+    breakableConfig.zombiesAddedPerRound = 0;
+    breakableConfig.maxActive = 1;
+    breakableConfig.spawnIntervalSeconds = 0.01f;
+    breakableConfig.baseMoveSpeed = 1.0f;
+    breakableConfig.maximumMoveSpeed = 1.0f;
+    breakableConfig.spawnPointCount = 1;
+    breakableConfig.spawnPoints[0] = {0.0f, -1.48f, 2.80f};
+
+    xziel::HordeDirector breakable(breakableConfig);
+    assert(breakable.addDynamicBlocker(
+        88,
+        {
+            .minimum = {-0.75f, -1.60f, 0.60f},
+            .maximum = { 0.75f,  0.95f, 0.85f},
+        },
+        true,
+        true));
+
+    bool attackedBarrier = false;
+    for (int i = 0; i < 1200; ++i) {
+        (void) breakable.step(
+            {0.0f, -1.48f, -2.20f},
+            1.0f / 120.0f);
+        attackedBarrier =
+            attackedBarrier ||
+            breakable.dynamicBlockerAttackCount(88) > 0U;
+    }
+    assert(attackedBarrier);
+    assert(breakable.zombieDynamicBlockerTarget(0) == 88U);
+
     return 0;
 }

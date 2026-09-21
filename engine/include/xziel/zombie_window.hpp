@@ -44,6 +44,14 @@ public:
         FpsPlayerController& player,
         ScoreSystem& score) noexcept;
 
+    [[nodiscard]] ZombieWindowFrame stepFromHorde(
+        std::uint32_t id,
+        bool playerRebuilding,
+        float deltaSeconds,
+        HordeDirector& horde,
+        FpsPlayerController& player,
+        ScoreSystem& score) noexcept;
+
     [[nodiscard]] const ZombieWindowFrame*
     frame(std::uint32_t id) const noexcept;
 

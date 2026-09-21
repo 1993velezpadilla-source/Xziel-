@@ -36,6 +36,7 @@ bool ZombieWindowSystem::addWindow(
     if (!horde.addDynamicBlocker(
             definition.id,
             definition.blocker,
+            true,
             true) ||
         !player.addDynamicObstacle(
             definition.id,
@@ -95,6 +96,23 @@ ZombieWindowFrame ZombieWindowSystem::step(
         .navigationBlocked = blocked,
     };
     return slot->frame;
+}
+
+ZombieWindowFrame ZombieWindowSystem::stepFromHorde(
+    std::uint32_t id,
+    bool playerRebuilding,
+    float deltaSeconds,
+    HordeDirector& horde,
+    FpsPlayerController& player,
+    ScoreSystem& score) noexcept {
+    return step(
+        id,
+        horde.dynamicBlockerAttackCount(id) > 0U,
+        playerRebuilding,
+        deltaSeconds,
+        horde,
+        player,
+        score);
 }
 
 const ZombieWindowFrame*

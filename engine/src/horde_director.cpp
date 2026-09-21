@@ -139,6 +139,7 @@ void HordeDirector::reset() noexcept {
     spawnCooldownSeconds_ = 0.0f;
     interRoundSeconds_ = 0.0f;
     nextSpawnPoint_ = 0;
+    zombieDynamicBlockerTargets_.fill(0U);
 }
 
 void HordeDirector::clearNavigationObstacles() noexcept {
@@ -172,7 +173,8 @@ void HordeDirector::clearDynamicBlockers() noexcept {
 bool HordeDirector::addDynamicBlocker(
     std::uint32_t id,
     const Aabb& obstacle,
-    bool enabled) noexcept {
+    bool enabled,
+    bool breakable) noexcept {
     if (id == 0 ||
         dynamicBlockerCount_ >= dynamicBlockers_.size() ||
         obstacle.minimum.x > obstacle.maximum.x ||
@@ -185,7 +187,12 @@ bool HordeDirector::addDynamicBlocker(
             return false;
         }
     }
-    dynamicBlockers_[dynamicBlockerCount_++] = {id, obstacle, enabled};
+    dynamicBlockers_[dynamicBlockerCount_++] = {
+        id,
+        obstacle,
+        enabled,
+        breakable,
+    };
     return true;
 }
 
@@ -199,6 +206,33 @@ bool HordeDirector::setDynamicBlockerEnabled(
         }
     }
     return false;
+}
+
+std::uint32_t HordeDirector::zombieDynamicBlockerTarget(
+    std::size_t slot) const noexcept {
+    if (slot >= zombieDynamicBlockerTargets_.size()) {
+        return 0U;
+    }
+    return zombieDynamicBlockerTargets_[slot];
+}
+
+std::uint32_t HordeDirector::dynamicBlockerAttackCount(
+    std::uint32_t id) const noexcept {
+    if (id == 0U) {
+        return 0U;
+    }
+
+    std::uint32_t count = 0U;
+    for (std::size_t slot = 0; slot < zombies_.size(); ++slot) {
+        if (zombieDynamicBlockerTargets_[slot] != id ||
+            !zombies_[slot].has_value() ||
+            zombies_[slot]->frame().state == ZombieState::Dead ||
+            !zombies_[slot]->frame().attackThisTick) {
+            continue;
+        }
+        ++count;
+    }
+    return count;
 }
 
 HordeFrame HordeDirector::step(
@@ -218,7 +252,10 @@ HordeFrame HordeDirector::step(
             spawnCooldownSeconds_ -
                 dt);
 
-    for (auto& zombieSlot : zombies_) {
+    for (std::size_t slot = 0; slot < zombies_.size(); ++slot) {
+        auto& zombieSlot = zombies_[slot];
+        zombieDynamicBlockerTargets_[slot] = 0U;
+
         if (!zombieSlot.has_value()) {
             continue;
         }
@@ -233,10 +270,15 @@ HordeFrame HordeDirector::step(
             continue;
         }
 
+        std::uint32_t dynamicBlockerTarget = 0U;
         const Vec3 steeringTarget =
             steeringTargetFor(
                 actor,
-                playerFeetPosition);
+                playerFeetPosition,
+                dynamicBlockerTarget);
+
+        zombieDynamicBlockerTargets_[slot] =
+            dynamicBlockerTarget;
 
         (void) actor.step(
             steeringTarget,
@@ -245,6 +287,7 @@ HordeFrame HordeDirector::step(
         if (actor.frame().state ==
             ZombieState::Dead) {
             ++frame_.killedThisRound;
+            zombieDynamicBlockerTargets_[slot] = 0U;
             zombieSlot.reset();
             continue;
         }
@@ -474,7 +517,9 @@ bool HordeDirector::spawnOne(
 
 Vec3 HordeDirector::steeringTargetFor(
     const ZombieActor& actor,
-    Vec3 playerFeetPosition) const noexcept {
+    Vec3 playerFeetPosition,
+    std::uint32_t& outDynamicBlockerId) const noexcept {
+    outDynamicBlockerId = 0U;
     if (navigationObstacleCount_ == 0) {
         return playerFeetPosition;
     }
@@ -527,6 +572,7 @@ Vec3 HordeDirector::steeringTargetFor(
          obstacleIndex < totalObstacles;
          ++obstacleIndex) {
         const Aabb* sourcePointer = nullptr;
+        const DynamicBlocker* dynamicBlocker = nullptr;
         if (obstacleIndex < navigationObstacleCount_) {
             sourcePointer = &navigationObstacles_[obstacleIndex];
         } else {
@@ -535,6 +581,7 @@ Vec3 HordeDirector::steeringTargetFor(
             if (!blocker.enabled) {
                 continue;
             }
+            dynamicBlocker = &blocker;
             sourcePointer = &blocker.obstacle;
         }
         const auto& source = *sourcePointer;
@@ -572,6 +619,22 @@ Vec3 HordeDirector::steeringTargetFor(
 
         if (!obstruction.hit) {
             continue;
+        }
+
+        if (dynamicBlocker != nullptr &&
+            dynamicBlocker->breakable) {
+            outDynamicBlockerId = dynamicBlocker->id;
+            return {
+                std::clamp(
+                    playerFeetPosition.x,
+                    expanded.minimum.x,
+                    expanded.maximum.x),
+                playerFeetPosition.y,
+                std::clamp(
+                    playerFeetPosition.z,
+                    expanded.minimum.z,
+                    expanded.maximum.z),
+            };
         }
 
         const float cornerMargin = 0.18f;
