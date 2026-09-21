@@ -9,6 +9,7 @@ add_library(xziel_engine STATIC
     src/mobile_controls.cpp
     src/fps_player.cpp
     src/weapon.cpp
+    src/hitscan.cpp
     src/environment.cpp
     src/particles.cpp
     src/performance.cpp
@@ -64,6 +65,11 @@ if(XZIEL_ENGINE_BUILD_TESTS)
     target_link_libraries(xziel_weapon_smoke PRIVATE xziel_engine)
     target_compile_features(xziel_weapon_smoke PRIVATE cxx_std_20)
     add_test(NAME xziel_weapon_smoke COMMAND xziel_weapon_smoke)
+
+    add_executable(xziel_hitscan_smoke tests/hitscan_smoke.cpp)
+    target_link_libraries(xziel_hitscan_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_hitscan_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_hitscan_smoke COMMAND xziel_hitscan_smoke)
 
     add_executable(xziel_environment_smoke tests/environment_smoke.cpp)
     target_link_libraries(xziel_environment_smoke PRIVATE xziel_engine)
