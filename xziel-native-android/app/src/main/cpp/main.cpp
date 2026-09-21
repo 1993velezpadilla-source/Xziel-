@@ -6,6 +6,7 @@
 #include <game-activity/native_app_glue/android_native_app_glue.h>
 
 #include "xziel/android_runtime.hpp"
+#include "xziel/camera_rig.hpp"
 #include "xziel/engine.hpp"
 #include "xziel/fps_player.hpp"
 #include "xziel/renderer_watchdog.hpp"
@@ -31,6 +32,7 @@ struct NativeAppState {
     xziel::RendererWatchdog watchdog{};
     xziel::Engine engine{};
     xziel::FpsPlayerController player{};
+    xziel::CameraRig cameraRig{};
     xziel::android::AndroidInputAdapter input{};
     xziel::android::VulkanClearRenderer renderer{};
 
@@ -48,6 +50,7 @@ struct NativeAppState {
         std::chrono::steady_clock::now();
 
     bool hasLastFrame = false;
+    float stridePhase = 0.0f;
 };
 
 void logInfo(const char* message) noexcept {
@@ -320,30 +323,97 @@ void advancePlayer(
     }
 }
 
+xziel::CameraRigFrame advanceCameraRig(
+    NativeAppState& state,
+    const xziel::android::AndroidInputSnapshot& input,
+    float frameDeltaSeconds) noexcept {
+    const auto& player =
+        state.player.frame();
+
+    const float horizontalSpeed =
+        std::sqrt(
+            player.movement.velocity.x *
+                player.movement.velocity.x +
+            player.movement.velocity.z *
+                player.movement.velocity.z);
+
+    const float speedNormalized =
+        std::clamp(
+            horizontalSpeed / 7.2f,
+            0.0f,
+            1.0f);
+
+    state.stridePhase =
+        std::fmod(
+            state.stridePhase +
+                speedNormalized *
+                std::max(
+                    frameDeltaSeconds,
+                    0.0f) *
+                1.85f,
+            1.0f);
+
+    xziel::HorrorFrame horror{};
+
+    return state.cameraRig.advance(
+        {
+            .moveSpeedNormalized =
+                speedNormalized,
+            .stridePhase =
+                state.stridePhase,
+            .aiming =
+                input.input.aim,
+            .reducedMotion =
+                false,
+        },
+        player.movement,
+        horror,
+        frameDeltaSeconds);
+}
+
 xziel::android::VulkanCamera makeRenderCamera(
-    const xziel::FpsPlayerFrame& player) noexcept {
+    const xziel::FpsPlayerFrame& player,
+    const xziel::CameraRigFrame& rig) noexcept {
     xziel::android::VulkanCamera camera{};
 
-    camera.x =
-        player.cameraPosition.x;
-    camera.y =
-        player.cameraPosition.y;
-    camera.z =
-        player.cameraPosition.z;
-
-    camera.yawRadians =
+    const float yawRadians =
         player.yawDegrees *
         kDegreesToRadians;
 
+    const float rightX =
+        std::cos(yawRadians);
+
+    const float rightZ =
+        -std::sin(yawRadians);
+
+    camera.x =
+        player.cameraPosition.x +
+        rightX * rig.positionBobX;
+
+    camera.y =
+        player.cameraPosition.y +
+        rig.positionBobY;
+
+    camera.z =
+        player.cameraPosition.z +
+        rightZ * rig.positionBobX;
+
+    camera.yawRadians =
+        (player.yawDegrees +
+         rig.yawDegrees) *
+        kDegreesToRadians;
+
     camera.pitchRadians =
-        player.pitchDegrees *
+        (player.pitchDegrees +
+         rig.pitchDegrees) *
         kDegreesToRadians;
 
     camera.verticalFovDegrees =
-        player.movement.mode ==
-            xziel::MovementMode::Sprinting
-        ? 76.0f
-        : 72.0f;
+        std::clamp(
+            72.0f +
+                rig.fovAddDegrees,
+            60.0f,
+            90.0f);
 
     return camera;
 }
@@ -516,9 +586,16 @@ extern "C" void android_main(
             std::chrono::duration<float>(
                 now - state.start).count();
 
+        const auto rigFrame =
+            advanceCameraRig(
+                state,
+                inputSnapshot,
+                frameDelta);
+
         const auto camera =
             makeRenderCamera(
-                state.player.frame());
+                state.player.frame(),
+                rigFrame);
 
         if (!state.renderer.drawFrame(
                 seconds,
