@@ -12,6 +12,7 @@
 #include "xz_command_stream.h"
 #include "xz_gles3_resource_plan.h"
 #include "xz_pass_targets.h"
+#include "xz_pass_inputs.h"
 
 #include <SDL.h>
 
@@ -614,6 +615,8 @@ static void XzLogSnapshot(double now_seconds)
         " fail=%" PRIu64 " external=%" PRIu64
         " color=%" PRIu64 " depth=%" PRIu64
         " targetFail=%" PRIu64 ")"
+        " g3sample(passes=%" PRIu64 " draws=%" PRIu64
+        " inputs=%" PRIu64 " fail=%" PRIu64 " max=%u)"
         " cmd(count=%u hash=%08x overflow=%u resources=%u high=%u"
         " stale=%" PRIu64 " encodeFail=%" PRIu64 ")",
         g3->physical_alive,
@@ -632,6 +635,11 @@ static void XzLogSnapshot(double now_seconds)
         g3->framebuffer_color_attachments,
         g3->framebuffer_depth_attachments,
         g3->target_plan_failures,
+        g3->sampled_passes,
+        g3->sampled_draws,
+        g3->sampled_input_binds,
+        g3->sampled_failures,
+        g3->sampled_max_inputs,
         commands->count,
         commands->content_hash,
         commands->overflow_count,
@@ -901,6 +909,14 @@ void XzAndroidRuntime_Init(size_t engine_heap_bytes)
                     : ANDROID_LOG_WARN,
                 "phase11 pass_targets planner=%s",
                 XzPassTargetPlan_SelfTest()
+                    ? "PASS" : "FAIL");
+
+            XzAndroidLog(
+                XzPassInputPlan_SelfTest()
+                    ? ANDROID_LOG_INFO
+                    : ANDROID_LOG_WARN,
+                "phase12 pass_inputs planner=%s sampledDepth=TEXTURE",
+                XzPassInputPlan_SelfTest()
                     ? "PASS" : "FAIL");
 
             if (!attach_ok)
