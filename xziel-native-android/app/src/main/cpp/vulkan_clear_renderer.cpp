@@ -2662,6 +2662,66 @@ bool VulkanClearRenderer::recordDrawCommand(
         }
     }
 
+    const float decapAlpha =
+        std::clamp(
+            scene.decapAlpha,
+            0.0f,
+            1.0f);
+
+    if (decapAlpha > 0.001f) {
+        const float progress =
+            1.0f -
+            decapAlpha;
+
+        const float ballisticRise =
+            std::sin(
+                progress *
+                3.14159265358979323846f) *
+            0.92f;
+
+        const float travel =
+            progress *
+            0.95f;
+
+        const float headX =
+            scene.decapOriginX +
+            scene.decapDirectionX *
+                travel +
+            std::sin(
+                progress *
+                11.0f) *
+                0.08f;
+
+        const float headY =
+            scene.decapOriginY +
+            ballisticRise -
+            progress *
+                0.18f;
+
+        const float headZ =
+            scene.decapOriginZ +
+            scene.decapDirectionZ *
+                travel;
+
+        drawBox(
+            headX,
+            headY,
+            headZ,
+            0.18f,
+            0.18f,
+            0.18f,
+            5.0f);
+
+        drawBox(
+            headX,
+            headY - 0.10f,
+            headZ - 0.05f,
+            0.10f,
+            0.045f,
+            0.10f,
+            6.0f);
+    }
+
     const float weaponAds =
         std::clamp(
             hud.weaponAdsAlpha,
