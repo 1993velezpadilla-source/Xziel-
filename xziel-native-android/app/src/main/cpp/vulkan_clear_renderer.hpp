@@ -346,6 +346,7 @@ private:
     float reflectionTargetPlaneD_ = 0.0f;
     bool reflectionTargetHasPlane_ = false;
     std::uint64_t reflectionFrameCounter_ = 0;
+    std::uint32_t reflectionAllocationBackoffFrames_ = 0;
     bool reflectionHasValidContents_ = false;
     std::uint32_t reflectionInvisibleFrames_ = 0;
     VkRenderPass reflectionRenderPass_ = VK_NULL_HANDLE;

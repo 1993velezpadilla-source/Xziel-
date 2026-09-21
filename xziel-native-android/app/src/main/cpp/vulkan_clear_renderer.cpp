@@ -332,9 +332,14 @@ bool VulkanClearRenderer::drawFrame(
         reflectionFrameCounter_ = 0;
     }
 
+    if (reflectionAllocationBackoffFrames_ > 0) {
+        --reflectionAllocationBackoffFrames_;
+    }
+
     const bool shouldAllocateReflectionTarget =
         targetWantedByQuality &&
         reflectionContributes &&
+        reflectionAllocationBackoffFrames_ == 0 &&
         (reflectionColorImage_ == VK_NULL_HANDLE ||
          std::abs(
              requestedReflectionScale -
@@ -344,8 +349,18 @@ bool VulkanClearRenderer::drawFrame(
         if (!ok(vkDeviceWaitIdle(device_))) {
             return false;
         }
-        (void) createReflectionTarget(
-            requestedReflectionScale);
+        const bool reflectionTargetReady =
+            createReflectionTarget(
+                requestedReflectionScale);
+        if (!reflectionTargetReady ||
+            reflectionColorImage_ == VK_NULL_HANDLE) {
+            // Allocation failure is a supported mobile fallback, not a reason
+            // to hammer vkAllocateMemory every frame. Retry after roughly two
+            // seconds at 60 Hz while the persistent fallback stays sampleable.
+            reflectionAllocationBackoffFrames_ = 120U;
+        } else {
+            reflectionAllocationBackoffFrames_ = 0U;
+        }
     } else if (!targetWantedByQuality &&
                reflectionColorImage_ != VK_NULL_HANDLE) {
         if (!ok(vkDeviceWaitIdle(device_))) {
@@ -2778,6 +2793,7 @@ void VulkanClearRenderer::destroyReflectionTarget() noexcept {
     reflectionTargetPlaneZ_ = 0.0f;
     reflectionTargetPlaneD_ = 0.0f;
     reflectionTargetHasPlane_ = false;
+    reflectionAllocationBackoffFrames_ = 0;
     reflectionHasValidContents_ = false;
     reflectionInvisibleFrames_ = 0;
 }
