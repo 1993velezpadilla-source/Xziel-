@@ -12,6 +12,7 @@
 #include "xziel/hitscan.hpp"
 #include "xziel/renderer_watchdog.hpp"
 #include "xziel/weapon.hpp"
+#include "xziel/zombie_actor.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -35,6 +36,7 @@ struct NativeAppState {
     xziel::Engine engine{};
     xziel::FpsPlayerController player{};
     xziel::WeaponController weapon{};
+    xziel::ZombieActor zombie{};
     xziel::CameraRig cameraRig{};
     xziel::android::AndroidInputAdapter input{};
     xziel::android::VulkanClearRenderer renderer{};
@@ -58,7 +60,6 @@ struct NativeAppState {
     float pendingRecoilPitch = 0.0f;
     float pendingRecoilYaw = 0.0f;
 
-    float targetHealth = 100.0f;
     float hitMarkerSeconds = 0.0f;
     float muzzleFlashSeconds = 0.0f;
 };
@@ -332,6 +333,13 @@ void advancePlayer(
                 buttons,
                 fixedDelta);
 
+        const auto zombieFrame =
+            state.zombie.step(
+                playerFrame.feetPosition,
+                fixedDelta);
+
+        (void) zombieFrame;
+
         const auto weaponFrame =
             state.weapon.step(
                 {
@@ -357,39 +365,23 @@ void advancePlayer(
             state.pendingRecoilYaw +=
                 weaponFrame.recoilYawImpulse;
 
-            if (state.targetHealth > 0.0f) {
+            if (state.zombie.frame().state !=
+                xziel::ZombieState::Dead) {
                 const auto ray =
                     xziel::makeViewRay(
                         playerFrame.cameraPosition,
                         playerFrame.yawDegrees,
                         playerFrame.pitchDegrees);
 
-                const xziel::Aabb target{
-                    .minimum = {
-                        -0.54f,
-                        -1.44f,
-                        -0.19f,
-                    },
-                    .maximum = {
-                        0.54f,
-                        0.60f,
-                        0.89f,
-                    },
-                };
-
                 const auto hit =
                     xziel::raycastAabb(
                         ray,
-                        target,
+                        state.zombie.bounds(),
                         20.0f);
 
-                if (hit.hit) {
-                    state.targetHealth =
-                        std::max(
-                            0.0f,
-                            state.targetHealth -
-                                34.0f);
-
+                if (hit.hit &&
+                    state.zombie.applyDamage(
+                        34.0f)) {
                     state.hitMarkerSeconds =
                         0.12f;
                 }
@@ -505,8 +497,8 @@ xziel::android::VulkanHudState makeHudState(
             1.0f);
 
     hud.targetAlive =
-        state.targetHealth >
-        0.0f;
+        state.zombie.frame().state !=
+        xziel::ZombieState::Dead;
 
     hud.weaponAdsAlpha =
         state.weapon.frame().adsAlpha;
@@ -530,6 +522,41 @@ xziel::android::VulkanHudState makeHudState(
                 1U));
 
     return hud;
+}
+
+xziel::android::VulkanSceneState makeSceneState(
+    const NativeAppState& state) noexcept {
+    xziel::android::VulkanSceneState scene{};
+
+    const auto& zombie =
+        state.zombie.frame();
+
+    scene.zombieX =
+        zombie.position.x;
+    scene.zombieY =
+        zombie.position.y;
+    scene.zombieZ =
+        zombie.position.z;
+
+    scene.zombieYawRadians =
+        zombie.yawDegrees *
+        kDegreesToRadians;
+
+    scene.zombieStridePhase =
+        zombie.stridePhase;
+
+    scene.zombieHealthRatio =
+        zombie.healthRatio;
+
+    scene.zombieVisible =
+        zombie.state !=
+        xziel::ZombieState::Dead;
+
+    scene.zombieStaggered =
+        zombie.state ==
+        xziel::ZombieState::Staggered;
+
+    return scene;
 }
 
 xziel::android::VulkanCamera makeRenderCamera(
@@ -775,10 +802,15 @@ extern "C" void android_main(
                 state,
                 inputSnapshot);
 
+        const auto scene =
+            makeSceneState(
+                state);
+
         if (!state.renderer.drawFrame(
                 seconds,
                 camera,
-                hud)) {
+                hud,
+                scene)) {
             const auto recovery =
                 state.watchdog.report(
                     {

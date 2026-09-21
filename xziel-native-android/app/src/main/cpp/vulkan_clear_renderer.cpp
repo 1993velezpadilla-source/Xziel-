@@ -191,7 +191,8 @@ void VulkanClearRenderer::shutdown() noexcept {
 bool VulkanClearRenderer::drawFrame(
     float timeSeconds,
     const VulkanCamera& camera,
-    const VulkanHudState& hud) noexcept {
+    const VulkanHudState& hud,
+    const VulkanSceneState& scene) noexcept {
     if (!initialized_ ||
         device_ == VK_NULL_HANDLE ||
         swapchain_ == VK_NULL_HANDLE) {
@@ -275,7 +276,8 @@ bool VulkanClearRenderer::drawFrame(
             imageIndex,
             timeSeconds,
             camera,
-            hud)) {
+            hud,
+            scene)) {
         return false;
     }
 
@@ -2186,7 +2188,8 @@ bool VulkanClearRenderer::recordDrawCommand(
     std::uint32_t imageIndex,
     float timeSeconds,
     const VulkanCamera& camera,
-    const VulkanHudState& hud) noexcept {
+    const VulkanHudState& hud,
+    const VulkanSceneState& scene) noexcept {
     if (imageIndex >= commandBuffers_.size() ||
         imageIndex >= framebuffers_.size()) {
         return false;
@@ -2383,11 +2386,102 @@ bool VulkanClearRenderer::recordDrawCommand(
         4.2f, 0.10f, 5.0f,
         2.0f);
 
-    if (hud.targetAlive) {
+    if (scene.zombieVisible) {
+        const float stride =
+            std::sin(
+                scene.zombieStridePhase *
+                6.28318530718f);
+
+        const float staggerOffset =
+            scene.zombieStaggered
+            ? std::sin(
+                  safeTime *
+                  38.0f) *
+                  0.045f
+            : 0.0f;
+
+        const float zombieX =
+            scene.zombieX +
+            staggerOffset;
+
+        const float zombieY =
+            scene.zombieY;
+
+        const float zombieZ =
+            scene.zombieZ;
+
+        // Procedural humanoid target: this is intentionally original geometry
+        // used to prove actor motion, hitboxes, damage and rendering before any
+        // external zombie mesh/animation package is introduced.
         drawBox(
-            0.0f, -0.42f, 0.35f,
-            0.72f, 1.35f, 0.72f,
-            3.0f);
+            zombieX,
+            zombieY + 1.08f,
+            zombieZ,
+            0.34f,
+            0.55f,
+            0.22f,
+            4.0f);
+
+        drawBox(
+            zombieX,
+            zombieY + 1.73f,
+            zombieZ + 0.01f,
+            0.23f,
+            0.24f,
+            0.22f,
+            5.0f);
+
+        drawBox(
+            zombieX - 0.43f,
+            zombieY + 1.08f,
+            zombieZ +
+                stride * 0.08f,
+            0.11f,
+            0.48f,
+            0.11f,
+            5.0f);
+
+        drawBox(
+            zombieX + 0.43f,
+            zombieY + 1.08f,
+            zombieZ -
+                stride * 0.08f,
+            0.11f,
+            0.48f,
+            0.11f,
+            5.0f);
+
+        drawBox(
+            zombieX - 0.17f,
+            zombieY + 0.38f,
+            zombieZ -
+                stride * 0.09f,
+            0.13f,
+            0.43f,
+            0.14f,
+            4.0f);
+
+        drawBox(
+            zombieX + 0.17f,
+            zombieY + 0.38f,
+            zombieZ +
+                stride * 0.09f,
+            0.13f,
+            0.43f,
+            0.14f,
+            4.0f);
+
+        if (scene.zombieHealthRatio <
+            0.70f) {
+            drawBox(
+                zombieX + 0.16f,
+                zombieY + 1.24f,
+                zombieZ - 0.23f,
+                0.08f,
+                0.15f,
+                0.025f,
+                6.0f);
+        }
     }
 
     const float weaponAds =

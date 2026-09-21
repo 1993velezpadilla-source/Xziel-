@@ -20,6 +20,19 @@ struct VulkanCamera {
     float verticalFovDegrees = 72.0f;
 };
 
+struct VulkanSceneState {
+    float zombieX = 0.0f;
+    float zombieY = -1.48f;
+    float zombieZ = 2.45f;
+
+    float zombieYawRadians = 0.0f;
+    float zombieStridePhase = 0.0f;
+    float zombieHealthRatio = 1.0f;
+
+    bool zombieVisible = true;
+    bool zombieStaggered = false;
+};
+
 struct VulkanHudState {
     float moveX = 0.0f;
     float moveY = 0.0f;
@@ -63,7 +76,8 @@ public:
     [[nodiscard]] bool drawFrame(
         float timeSeconds,
         const VulkanCamera& camera,
-        const VulkanHudState& hud) noexcept;
+        const VulkanHudState& hud,
+        const VulkanSceneState& scene) noexcept;
     [[nodiscard]] bool ready() const noexcept;
 
 private:
@@ -157,7 +171,8 @@ private:
         std::uint32_t imageIndex,
         float timeSeconds,
         const VulkanCamera& camera,
-        const VulkanHudState& hud) noexcept;
+        const VulkanHudState& hud,
+        const VulkanSceneState& scene) noexcept;
 
     VkInstance instance_ = VK_NULL_HANDLE;
     VkSurfaceKHR surface_ = VK_NULL_HANDLE;

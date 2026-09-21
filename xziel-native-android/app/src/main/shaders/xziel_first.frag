@@ -20,6 +20,18 @@ vec3 materialBase(int material, float pulse) {
         return vec3(0.040, 0.055, 0.065);
     }
 
+    if (material == 4) {
+        return vec3(0.055, 0.075, 0.045);
+    }
+
+    if (material == 5) {
+        return vec3(0.145, 0.105, 0.085);
+    }
+
+    if (material == 6) {
+        return vec3(0.30, 0.012, 0.018);
+    }
+
     if (material == 10) {
         return vec3(0.055, 0.065, 0.078);
     }
