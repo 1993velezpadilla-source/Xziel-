@@ -594,13 +594,13 @@ int XzGles3Shadow_RenderPlan(
             GL_RGBA,
             GL_UNSIGNED_BYTE,
             xz_shadow.pixels);
+        xz_shadow.gl.Finish();
 
         stats->last_pixel_hash = XzHashBytes(
             xz_shadow.pixels,
             XZ_SHADOW_PIXEL_BYTES);
     }
 
-    xz_shadow.gl.Finish();
     error = xz_shadow.gl.GetError();
 
     xz_shadow.gl.BindVertexArray(0u);
