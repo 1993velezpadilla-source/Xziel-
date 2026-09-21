@@ -133,7 +133,7 @@ checks = {
     "header": '#include "xz_android_runtime.h"',
     "init": "XzAndroidRuntime_Init(heap_size);",
     "begin": "XzAndroidRuntime_BeginFrame(now);",
-    "accepted-frame gate": "host_framecount != xz_frame_before",
+    "frame-counter snapshot": "int xz_frame_before = host_framecount;",
     "real first-frame gate": "xziel_first_frame && host_framecount != xz_frame_before",
     "end": "XzAndroidRuntime_EndFrame(Sys_FloatTime());",
     "shutdown": "XzAndroidRuntime_Shutdown();",
