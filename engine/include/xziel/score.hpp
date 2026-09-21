@@ -20,6 +20,9 @@ struct ScoreConfig {
 
 struct ScoreFrame {
     std::uint64_t total = 0;
+    std::uint64_t lifetimeEarned = 0;
+    std::uint64_t lifetimeSpent = 0;
+
     std::uint32_t lastAward = 0;
     std::uint32_t lastSpend = 0;
 
@@ -45,6 +48,12 @@ public:
 
     [[nodiscard]] bool trySpend(
         std::uint32_t points) noexcept;
+
+    [[nodiscard]] bool canAfford(
+        std::uint32_t cost) const noexcept;
+
+    [[nodiscard]] bool spend(
+        std::uint32_t cost) noexcept;
 
     [[nodiscard]] const ScoreFrame&
     frame() const noexcept;
