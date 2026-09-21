@@ -15,6 +15,19 @@
 #define XZ_SHADOW_WIDTH 64
 #define XZ_SHADOW_HEIGHT 64
 #define XZ_VERTEX_FLOATS 3u
+#define XZ_VERTICES_PER_PACKET 3u
+
+enum {
+    XZ_G3_STAGE_NONE = 0u,
+    XZ_G3_STAGE_READBACK = 1u,
+    XZ_G3_STAGE_USE_PROGRAM = 2u,
+    XZ_G3_STAGE_BIND_VERTEX_ARRAY = 3u,
+    XZ_G3_STAGE_BIND_BUFFER = 4u,
+    XZ_G3_STAGE_BUFFER_UPLOAD = 5u,
+    XZ_G3_STAGE_DRAW = 6u,
+    XZ_G3_STAGE_FINISH = 7u,
+    XZ_G3_STAGE_UNBIND = 8u
+};
 
 typedef GLuint (*XzGlCreateShaderFn)(GLenum);
 typedef void (*XzGlShaderSourceFn)(
@@ -281,6 +294,7 @@ static int XzCreateProgramAndBuffer(void)
         GL_ARRAY_BUFFER,
         (GLsizeiptr)(
             XZ_RENDER_MAX_PACKETS *
+            XZ_VERTICES_PER_PACKET *
             XZ_VERTEX_FLOATS *
             sizeof(float)),
         NULL,
@@ -368,6 +382,33 @@ static int XzReadbackMatches(
            XzAbsByteDiff(expected[1], actual[1]) <= 2u &&
            XzAbsByteDiff(expected[2], actual[2]) <= 2u &&
            XzAbsByteDiff(expected[3], actual[3]) <= 2u;
+}
+
+static void XzDrainErrors(
+    XzGles3ShadowState *state)
+{
+    GLenum error;
+
+    do {
+        error = xz_shadow.gl.GetError();
+        if (error != GL_NO_ERROR)
+            state->preexisting_errors++;
+    } while (error != GL_NO_ERROR);
+}
+
+static GLenum XzCaptureError(
+    XzGles3ShadowState *state,
+    unsigned int stage)
+{
+    GLenum error = xz_shadow.gl.GetError();
+
+    if (error != GL_NO_ERROR &&
+        state->last_error_stage == XZ_G3_STAGE_NONE) {
+        state->last_gl_error = (unsigned int)error;
+        state->last_error_stage = stage;
+    }
+
+    return error;
 }
 
 void XzGles3Shadow_InitState(
@@ -530,7 +571,9 @@ int XzGles3Shadow_Submit(
     const XzRenderPlan *plan)
 {
     float vertices[
-        XZ_RENDER_MAX_PACKETS * XZ_VERTEX_FLOATS];
+        XZ_RENDER_MAX_PACKETS *
+        XZ_VERTICES_PER_PACKET *
+        XZ_VERTEX_FLOATS];
     EGLDisplay previous_display;
     EGLSurface previous_draw;
     EGLSurface previous_read;
@@ -538,7 +581,8 @@ int XzGles3Shadow_Submit(
     unsigned int i;
     unsigned char expected[4];
     unsigned char readback[4] = {0u, 0u, 0u, 0u};
-    GLenum error;
+    int had_gl_error = 0;
+    int readback_ok;
     XzNativeGles3Api *gl;
 
     if (!state || !plan ||
@@ -571,6 +615,9 @@ int XzGles3Shadow_Submit(
     }
 
     gl = &xz_shadow.gl;
+    state->last_gl_error = 0u;
+    state->last_error_stage = XZ_G3_STAGE_NONE;
+    XzDrainErrors(state);
 
     for (i = 0u; i < plan->packet_count; ++i) {
         const XzRenderPacket *packet =
@@ -584,9 +631,23 @@ int XzGles3Shadow_Submit(
         const float weight =
             (float)packet->priority_class / 3.0f;
 
-        vertices[i * XZ_VERTEX_FLOATS + 0u] = x;
-        vertices[i * XZ_VERTEX_FLOATS + 1u] = y;
-        vertices[i * XZ_VERTEX_FLOATS + 2u] = weight;
+        const float delta =
+            0.004f + 0.004f * weight;
+        const unsigned int base =
+            i * XZ_VERTICES_PER_PACKET *
+            XZ_VERTEX_FLOATS;
+
+        vertices[base + 0u] = x;
+        vertices[base + 1u] = y + delta;
+        vertices[base + 2u] = weight;
+
+        vertices[base + 3u] = x - delta;
+        vertices[base + 4u] = y - delta;
+        vertices[base + 5u] = weight;
+
+        vertices[base + 6u] = x + delta;
+        vertices[base + 7u] = y - delta;
+        vertices[base + 8u] = weight;
     }
 
     XzEncodePlanColor(
@@ -611,16 +672,38 @@ int XzGles3Shadow_Submit(
         GL_UNSIGNED_BYTE,
         readback);
 
-    if (!XzReadbackMatches(expected, readback)) {
+    if (XzCaptureError(
+            state,
+            XZ_G3_STAGE_READBACK) != GL_NO_ERROR)
+        had_gl_error = 1;
+
+    readback_ok =
+        XzReadbackMatches(expected, readback);
+
+    if (!readback_ok) {
         state->readback_failures++;
         state->failures++;
     }
 
     gl->UseProgram(xz_shadow.program);
+    if (XzCaptureError(
+            state,
+            XZ_G3_STAGE_USE_PROGRAM) != GL_NO_ERROR)
+        had_gl_error = 1;
+
     gl->BindVertexArray(xz_shadow.vao);
+    if (XzCaptureError(
+            state,
+            XZ_G3_STAGE_BIND_VERTEX_ARRAY) != GL_NO_ERROR)
+        had_gl_error = 1;
+
     gl->BindBuffer(
         GL_ARRAY_BUFFER,
         xz_shadow.vbo);
+    if (XzCaptureError(
+            state,
+            XZ_G3_STAGE_BIND_BUFFER) != GL_NO_ERROR)
+        had_gl_error = 1;
 
     if (plan->packet_count > 0u) {
         gl->BufferSubData(
@@ -628,25 +711,45 @@ int XzGles3Shadow_Submit(
             0,
             (GLsizeiptr)(
                 plan->packet_count *
+                XZ_VERTICES_PER_PACKET *
                 XZ_VERTEX_FLOATS *
                 sizeof(float)),
             vertices);
 
+        if (XzCaptureError(
+                state,
+                XZ_G3_STAGE_BUFFER_UPLOAD) != GL_NO_ERROR)
+            had_gl_error = 1;
+
         gl->DrawArrays(
-            GL_POINTS,
+            GL_TRIANGLES,
             0,
-            (GLsizei)plan->packet_count);
+            (GLsizei)(
+                plan->packet_count *
+                XZ_VERTICES_PER_PACKET));
+
+        if (XzCaptureError(
+                state,
+                XZ_G3_STAGE_DRAW) != GL_NO_ERROR)
+            had_gl_error = 1;
 
         state->draw_calls++;
     }
 
     gl->Finish();
-    error = gl->GetError();
+    if (XzCaptureError(
+            state,
+            XZ_G3_STAGE_FINISH) != GL_NO_ERROR)
+        had_gl_error = 1;
 
     gl->BindVertexArray(0u);
     gl->BindBuffer(GL_ARRAY_BUFFER, 0u);
 
-    state->last_gl_error = (unsigned int)error;
+    if (XzCaptureError(
+            state,
+            XZ_G3_STAGE_UNBIND) != GL_NO_ERROR)
+        had_gl_error = 1;
+
     state->last_packet_count = plan->packet_count;
     state->last_plan_hash = plan->content_hash;
     memcpy(
@@ -658,7 +761,7 @@ int XzGles3Shadow_Submit(
         readback,
         sizeof(readback));
 
-    if (error != GL_NO_ERROR)
+    if (had_gl_error)
         state->failures++;
 
     if (!XzRestorePrevious(
@@ -676,8 +779,7 @@ int XzGles3Shadow_Submit(
     state->submitted_frames++;
     state->submitted_packets += plan->packet_count;
 
-    return error == GL_NO_ERROR &&
-           XzReadbackMatches(expected, readback);
+    return !had_gl_error && readback_ok;
 }
 
 void XzGles3Shadow_Shutdown(
