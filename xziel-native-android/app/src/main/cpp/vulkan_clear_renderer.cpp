@@ -4836,6 +4836,143 @@ bool VulkanClearRenderer::recordDrawCommand(
             scoreScale;
     }
 
+    const float shortToX =
+        minViewport /
+        viewportWidth;
+
+    const float shortToY =
+        minViewport /
+        viewportHeight;
+
+    const auto drawShortRect = [&](
+        float centerX,
+        float centerY,
+        float halfWidthShort,
+        float halfHeightShort,
+        float red,
+        float green,
+        float blue,
+        float alpha) noexcept {
+        drawUiPrimitive(
+            centerX,
+            centerY,
+            halfWidthShort * shortToX,
+            halfHeightShort * shortToY,
+            red,
+            green,
+            blue,
+            alpha,
+            0.0f,
+            0.10f);
+    };
+
+    const auto drawActionBackplate = [&](
+        float x,
+        float y,
+        float radius,
+        bool active) noexcept {
+        drawUiCircle(
+            x,
+            y,
+            radius,
+            0.015f,
+            0.020f,
+            0.028f,
+            active ? 0.42f : 0.24f,
+            false);
+        drawUiCircle(
+            x,
+            y,
+            radius,
+            0.88f,
+            0.92f,
+            0.96f,
+            active ? 0.62f : 0.30f,
+            true,
+            0.065f);
+    };
+
+    const auto drawCrosshairIcon = [&](
+        float x,
+        float y,
+        float alpha) noexcept {
+        drawUiCircle(
+            x,
+            y,
+            0.025f,
+            0.93f,
+            0.96f,
+            1.0f,
+            alpha,
+            true,
+            0.10f);
+        drawShortRect(x, y - 0.037f, 0.0022f, 0.010f, 0.93f, 0.96f, 1.0f, alpha);
+        drawShortRect(x, y + 0.037f, 0.0022f, 0.010f, 0.93f, 0.96f, 1.0f, alpha);
+        drawShortRect(x - 0.037f * shortToX / shortToY, y, 0.010f, 0.0022f, 0.93f, 0.96f, 1.0f, alpha);
+        drawShortRect(x + 0.037f * shortToX / shortToY, y, 0.010f, 0.0022f, 0.93f, 0.96f, 1.0f, alpha);
+    };
+
+    const auto drawBulletIcon = [&](
+        float x,
+        float y,
+        float alpha) noexcept {
+        drawShortRect(x, y + 0.004f, 0.0060f, 0.019f, 1.0f, 0.94f, 0.86f, alpha);
+        drawUiCircle(
+            x,
+            y - 0.018f,
+            0.0061f,
+            1.0f,
+            0.94f,
+            0.86f,
+            alpha,
+            false);
+        drawShortRect(x, y + 0.025f, 0.0075f, 0.0030f, 1.0f, 0.94f, 0.86f, alpha);
+    };
+
+    const auto drawReloadIcon = [&](
+        float x,
+        float y,
+        float alpha) noexcept {
+        drawUiCircle(
+            x,
+            y,
+            0.024f,
+            0.96f,
+            0.96f,
+            0.96f,
+            alpha,
+            true,
+            0.11f);
+        // Break a small section of the ring and add a blocky arrowhead.
+        drawShortRect(x + 0.020f * shortToX / shortToY, y - 0.018f, 0.010f, 0.007f, 0.015f, 0.020f, 0.028f, 0.98f);
+        drawShortRect(x + 0.023f * shortToX / shortToY, y - 0.018f, 0.009f, 0.0025f, 0.96f, 0.96f, 0.96f, alpha);
+        drawShortRect(x + 0.029f * shortToX / shortToY, y - 0.011f, 0.0028f, 0.008f, 0.96f, 0.96f, 0.96f, alpha);
+    };
+
+    const auto drawJumpIcon = [&](
+        float x,
+        float y,
+        float alpha) noexcept {
+        drawUiCircle(x, y - 0.023f, 0.0072f, 0.96f, 0.98f, 1.0f, alpha, false);
+        drawShortRect(x, y - 0.002f, 0.0035f, 0.013f, 0.96f, 0.98f, 1.0f, alpha);
+        drawShortRect(x, y - 0.004f, 0.015f, 0.0030f, 0.96f, 0.98f, 1.0f, alpha);
+        drawShortRect(x - 0.008f * shortToX / shortToY, y + 0.016f, 0.0032f, 0.012f, 0.96f, 0.98f, 1.0f, alpha);
+        drawShortRect(x + 0.008f * shortToX / shortToY, y + 0.016f, 0.0032f, 0.012f, 0.96f, 0.98f, 1.0f, alpha);
+        drawShortRect(x, y - 0.042f, 0.0024f, 0.007f, 0.96f, 0.98f, 1.0f, alpha * 0.85f);
+        drawShortRect(x, y - 0.050f, 0.009f, 0.0023f, 0.96f, 0.98f, 1.0f, alpha * 0.85f);
+    };
+
+    const auto drawCrouchIcon = [&](
+        float x,
+        float y,
+        float alpha) noexcept {
+        drawUiCircle(x - 0.013f * shortToX / shortToY, y - 0.016f, 0.0072f, 0.96f, 0.98f, 1.0f, alpha, false);
+        drawShortRect(x, y, 0.017f, 0.0036f, 0.96f, 0.98f, 1.0f, alpha);
+        drawShortRect(x + 0.014f * shortToX / shortToY, y + 0.012f, 0.004f, 0.012f, 0.96f, 0.98f, 1.0f, alpha);
+        drawShortRect(x + 0.027f * shortToX / shortToY, y + 0.022f, 0.015f, 0.0036f, 0.96f, 0.98f, 1.0f, alpha);
+        drawShortRect(x - 0.016f * shortToX / shortToY, y + 0.014f, 0.0035f, 0.012f, 0.96f, 0.98f, 1.0f, alpha * 0.85f);
+    };
+
     const float moveAnchorX =
         hud.moveActive
         ? std::clamp(
@@ -4852,186 +4989,114 @@ bool VulkanClearRenderer::recordDrawCommand(
               0.92f)
         : 0.78f;
 
+    // Neutral COD-style joystick: quiet enough to see through, strong enough
+    // to acquire by peripheral vision.
     drawUiCircle(
         moveAnchorX,
         moveAnchorY,
-        0.105f,
-        0.04f,
-        0.70f,
-        0.95f,
-        hud.moveActive
-            ? 0.38f
-            : 0.20f,
+        0.095f,
+        0.76f,
+        0.82f,
+        0.90f,
+        hud.moveActive ? 0.34f : 0.18f,
         true,
-        0.12f);
+        0.055f);
 
-    const float knobTravel =
-        0.060f;
-
+    const float knobTravel = 0.058f;
     drawUiCircle(
         moveAnchorX +
-            std::clamp(
-                hud.moveX,
-                -1.0f,
-                1.0f) *
-            knobTravel,
+            std::clamp(hud.moveX, -1.0f, 1.0f) *
+            knobTravel * shortToX / shortToY,
         moveAnchorY -
-            std::clamp(
-                hud.moveY,
-                -1.0f,
-                1.0f) *
+            std::clamp(hud.moveY, -1.0f, 1.0f) *
             knobTravel,
-        0.040f,
-        0.08f,
-        0.78f,
-        1.0f,
-        hud.moveActive
-            ? 0.62f
-            : 0.28f,
+        0.031f,
+        0.90f,
+        0.94f,
+        0.98f,
+        hud.moveActive ? 0.72f : 0.30f,
         false);
 
-    drawUiCircle(
-        0.90f,
-        0.47f,
-        0.082f,
-        0.98f,
-        0.05f,
-        0.24f,
-        hud.fire
-            ? 0.82f
-            : 0.30f,
-        true,
-        hud.fire
-            ? 0.24f
-            : 0.12f);
+    // FIRE: bullet silhouette, not an unlabeled neon ring.
+    drawActionBackplate(0.90f, 0.47f, 0.066f, hud.fire);
+    drawBulletIcon(0.90f, 0.47f, hud.fire ? 1.0f : 0.78f);
 
-    drawUiCircle(
-        0.73f,
-        0.54f,
-        0.070f,
-        0.10f,
-        0.72f,
-        0.96f,
-        hud.aim
-            ? 0.78f
-            : 0.27f,
-        true,
-        hud.aim
-            ? 0.22f
-            : 0.12f);
+    // ADS: proper reticle.
+    drawActionBackplate(0.73f, 0.54f, 0.059f, hud.aim);
+    drawCrosshairIcon(0.73f, 0.54f, hud.aim ? 1.0f : 0.78f);
 
-    drawUiCircle(
-        0.80f,
-        0.35f,
-        0.055f,
-        0.96f,
-        0.62f,
-        0.08f,
-        hud.reload
-            ? 0.80f
-            : 0.24f,
-        true,
-        hud.reload
-            ? 0.24f
-            : 0.11f);
+    // RELOAD: circular-arrow glyph.
+    drawActionBackplate(0.80f, 0.35f, 0.049f, hud.reload);
+    drawReloadIcon(0.80f, 0.35f, hud.reload ? 1.0f : 0.76f);
 
     if (hud.interactAvailable) {
         const float interactProgress =
-            std::clamp(
-                hud.interactProgress,
-                0.0f,
-                1.0f);
-
+            std::clamp(hud.interactProgress, 0.0f, 1.0f);
         const float denied =
-            std::clamp(
-                hud.interactionDeniedAlpha,
-                0.0f,
-                1.0f);
-
-        const bool affordable =
-            hud.interactionAffordable;
+            std::clamp(hud.interactionDeniedAlpha, 0.0f, 1.0f);
+        const bool affordable = hud.interactionAffordable;
 
         const float interactR =
-            denied > 0.001f ||
-                !affordable
-            ? 0.98f
-            : 0.12f;
-
+            denied > 0.001f || !affordable ? 0.98f : 0.78f;
         const float interactG =
-            denied > 0.001f ||
-                !affordable
-            ? 0.10f
-            : 0.82f;
-
+            denied > 0.001f || !affordable ? 0.16f : 0.92f;
         const float interactB =
-            denied > 0.001f ||
-                !affordable
-            ? 0.16f
-            : 0.92f;
+            denied > 0.001f || !affordable ? 0.16f : 1.0f;
 
         drawUiCircle(
             0.65f,
             0.73f,
-            0.058f +
-                denied *
-                    0.006f,
-            interactR,
-            interactG,
-            interactB,
-            hud.interactHeld
-                ? 0.82f
-                : 0.42f +
-                    denied *
-                        0.24f,
-            true,
-            0.16f +
-                denied *
-                    0.06f);
-
-        drawUiCircle(
-            0.65f,
-            0.73f,
-            0.016f +
-                interactProgress *
-                    0.024f,
-            interactR,
-            interactG,
-            interactB,
-            0.28f +
-                interactProgress *
-                    0.52f,
+            0.050f,
+            0.015f,
+            0.020f,
+            0.028f,
+            0.32f,
             false);
+        drawUiCircle(
+            0.65f,
+            0.73f,
+            0.050f,
+            interactR,
+            interactG,
+            interactB,
+            hud.interactHeld ? 0.82f : 0.46f,
+            true,
+            0.07f);
+        drawShortRect(0.65f, 0.73f, 0.004f, 0.020f, interactR, interactG, interactB, 0.90f);
+        drawShortRect(0.65f, 0.73f, 0.020f, 0.004f, interactR, interactG, interactB, 0.90f);
+
+        if (interactProgress > 0.01f) {
+            drawUiCircle(
+                0.65f,
+                0.73f,
+                0.038f + interactProgress * 0.008f,
+                interactR,
+                interactG,
+                interactB,
+                0.20f + interactProgress * 0.44f,
+                true,
+                0.045f);
+        }
 
         if (hud.interactionCost > 0U) {
             std::array<int, 5> costDigits{};
             std::uint32_t costValue =
-                std::min<std::uint32_t>(
-                    hud.interactionCost,
-                    99999U);
+                std::min<std::uint32_t>(hud.interactionCost, 99999U);
 
             for (std::size_t reverseIndex = 0;
-                 reverseIndex <
-                     costDigits.size();
+                 reverseIndex < costDigits.size();
                  ++reverseIndex) {
                 const std::size_t index =
-                    costDigits.size() -
-                    1U -
-                    reverseIndex;
-
+                    costDigits.size() - 1U - reverseIndex;
                 costDigits[index] =
-                    static_cast<int>(
-                        costValue %
-                        10U);
-
+                    static_cast<int>(costValue % 10U);
                 costValue /= 10U;
             }
 
             std::size_t firstCostDigit =
                 costDigits.size() - 1U;
-
             for (std::size_t i = 0;
-                 i + 1U <
-                     costDigits.size();
+                 i + 1U < costDigits.size();
                  ++i) {
                 if (costDigits[i] != 0) {
                     firstCostDigit = i;
@@ -5056,44 +5121,18 @@ bool VulkanClearRenderer::recordDrawCommand(
                     0.72f,
                     affordable
                         ? 0.78f
-                        : 0.50f +
-                            denied *
-                                0.40f);
-
+                        : 0.50f + denied * 0.40f);
                 costX += 0.017f;
             }
         }
     }
 
-    drawUiCircle(
-        0.89f,
-        0.72f,
-        0.075f,
-        0.88f,
-        0.93f,
-        1.0f,
-        hud.jump
-            ? 0.72f
-            : 0.24f,
-        true,
-        hud.jump
-            ? 0.22f
-            : 0.11f);
+    // JUMP/MANTLE and contextual STANCE get readable human silhouettes.
+    drawActionBackplate(0.89f, 0.72f, 0.061f, hud.jump);
+    drawJumpIcon(0.89f, 0.72f, hud.jump ? 1.0f : 0.80f);
 
-    drawUiCircle(
-        0.77f,
-        0.83f,
-        0.067f,
-        0.66f,
-        0.10f,
-        0.95f,
-        hud.stance
-            ? 0.76f
-            : 0.25f,
-        true,
-        hud.stance
-            ? 0.24f
-            : 0.12f);
+    drawActionBackplate(0.77f, 0.83f, 0.057f, hud.stance);
+    drawCrouchIcon(0.77f, 0.83f, hud.stance ? 1.0f : 0.80f);
 
     const float roundProgress =
         std::clamp(
