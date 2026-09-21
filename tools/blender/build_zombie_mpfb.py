@@ -107,15 +107,15 @@ def corpse_overlay(mat):
         ramp = nodes.new("ShaderNodeValToRGB")
         ramp.name = "Zombie_CorpsePalette"
         ramp.color_ramp.elements[0].position = 0.18
-        ramp.color_ramp.elements[0].color = (0.095, 0.075, 0.07, 1.0)
+        ramp.color_ramp.elements[0].color = (0.055, 0.060, 0.040, 1.0)
         ramp.color_ramp.elements[1].position = 0.83
-        ramp.color_ramp.elements[1].color = (0.58, 0.61, 0.46, 1.0)
+        ramp.color_ramp.elements[1].color = (0.42, 0.50, 0.34, 1.0)
         bruise = ramp.color_ramp.elements.new(0.48)
-        bruise.color = (0.18, 0.08, 0.105, 1.0)
+        bruise.color = (0.13, 0.035, 0.065, 1.0)
 
         mix = nodes.new("ShaderNodeMixRGB")
         mix.blend_type = "MULTIPLY"
-        mix.inputs[0].default_value = 0.73
+        mix.inputs[0].default_value = 0.88
         if old_socket:
             links.new(old_socket, mix.inputs[1])
         else:
@@ -211,16 +211,42 @@ def local_bounds(obj):
 
 
 def detect_front_sign(body):
+    # MakeHuman/MPFB canonical characters face -Y in Blender. The earlier heuristic
+    # could be fooled by helper/head extents and produced a back-facing review render.
+    return -1.0
+
+
+def corpse_deform(body, front_sign):
+    """Topology-preserving decomposition before rig fitting."""
     lo, hi = local_bounds(body)
-    h = hi.z - lo.z
-    ys = [v.co.y for v in body.data.vertices if v.co.z > lo.z + h * 0.80]
-    if not ys:
-        return -1.0
-    # Nose usually protrudes farther from the skull center than the back of the cranium.
-    center = sum(ys) / len(ys)
-    pos = max(ys) - center
-    neg = center - min(ys)
-    return 1.0 if pos >= neg else -1.0
+    h = max(hi.z - lo.z, 1e-6)
+    mid_y = (lo.y + hi.y) * 0.5
+    for v in body.data.vertices:
+        co = v.co
+        zf = (co.z - lo.z) / h
+        is_front = front_sign * (co.y - mid_y) > 0.0
+
+        # Very small global tissue irregularity: enough to break perfect CG symmetry.
+        n = (((v.index * 1103515245 + 12345) & 0xFFFF) / 65535.0) - 0.5
+        if 0.12 < zf < 0.96:
+            co.x += n * 0.0017
+
+        if not is_front:
+            continue
+
+        # Sunken right cheek and asymmetric lower face.
+        if 0.835 < zf < 0.905 and 0.015 < co.x < 0.095:
+            co.y -= front_sign * 0.010
+            co.x *= 0.985
+        if 0.800 < zf < 0.855 and -0.10 < co.x < -0.015:
+            co.y -= front_sign * 0.005
+            co.x *= 1.012
+
+        # Slightly collapsed upper chest tissue.
+        if 0.64 < zf < 0.76 and abs(co.x) < 0.18:
+            co.y -= front_sign * 0.003
+
+    body.data.update()
 
 
 def paint_damage(obj, blood, bruise, front_sign, strength=1.0):
@@ -348,12 +374,12 @@ def preview_stage(body, front_sign, out_png):
 
     lo, hi = local_bounds(body)
     h = hi.z - lo.z
-    target = (0.0, 0.0, lo.z + h * 0.56)
+    target = (0.0, 0.0, lo.z + h * 0.50)
 
-    bpy.ops.object.camera_add(location=(1.25, front_sign * 3.35, lo.z + h * 0.60))
+    bpy.ops.object.camera_add(location=(0.78, front_sign * 2.85, lo.z + h * 0.58))
     cam = bpy.context.object
     cam.name = "ZombiePreviewCamera"
-    cam.data.lens = 62
+    cam.data.lens = 58
     look_at(cam, target)
     scene.camera = cam
 
@@ -431,6 +457,8 @@ def main():
         macro_detail_dict=macro,
     )
     body.name = "Zombie_MPFBBaseline"
+    front_sign = detect_front_sign(body)
+    corpse_deform(body, front_sign)
 
     # Real MakeHuman skin, then corpse it procedurally rather than throwing away
     # all the fine albedo detail.
@@ -450,7 +478,7 @@ def main():
     for fname, atype, material_type in [
         ("low-poly.mhclo", "Eyes", "PROCEDURAL_EYES"),
         ("teeth_base.mhclo", "Teeth", "GAMEENGINE"),
-        ("male_worksuit01.mhclo", "Clothes", "GAMEENGINE"),
+        ("male_casualsuit01.mhclo", "Clothes", "GAMEENGINE"),
         ("shoes06.mhclo", "Clothes", "GAMEENGINE"),
     ]:
         p = find_asset(args.assets_root, fname)
@@ -478,7 +506,6 @@ def main():
 
     blood = blood_material()
     bruise = bruise_material()
-    front_sign = detect_front_sign(body)
     paint_damage(body, blood, bruise, front_sign, 1.0)
 
     for fname, obj in attached:
@@ -487,9 +514,11 @@ def main():
         elif "teeth" in fname:
             yellow_teeth(obj)
         else:
+            # Keep blood off whole clothing polygons; on coarse garments that reads as
+            # rectangular stickers. Grime is continuous and the integrated skin wounds
+            # remain organic on the denser basemesh.
             for mat in obj.data.materials:
                 grime_clothing(mat)
-            paint_damage(obj, blood, bruise, front_sign, 0.45)
 
     # Export a helper-free copy using MPFB's official game-export workflow.
     export_root = ExportService.create_character_copy(body, name_suffix="_export")
