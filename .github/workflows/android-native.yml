@@ -88,10 +88,15 @@ jobs:
           grep -q 'weapons.impact' build/deps/quakec/source/client/main.qc
           grep -q 'xziel_nacht_fx_next_lightning' build/deps/quakec/source/client/main.qc
           grep -q 'Xziel_NachtEnhanced_MapZombieFrame' build/deps/vril/source/platform/sdl/gl/gl_rmain.c
+          grep -q 'Xziel_NachtEnhanced_ZombieVariant' build/deps/vril/source/platform/sdl/gl/gl_rmain.c
           grep -q 'models/xziel/nacht/zombie_lq.mdl' build/deps/vril/source/platform/sdl/gl/gl_rmain.c
-          grep -q '!currententity->z_head' build/deps/vril/source/platform/sdl/gl/gl_rmain.c
+          grep -q 'models/xziel/nacht/zombie_lq_h0_l0_r0.mdl' build/deps/vril/source/platform/sdl/gl/gl_rmain.c
           test -s build/nzp-data/nzp/models/xziel/nacht/zombie_lq.mdl
           test -s build/nzp-data/nzp/models/xziel/nacht/zombie_lq.mdl_0.tga
+          for suffix in h0 l0 r0 h0_l0 h0_r0 l0_r0 h0_l0_r0; do
+            test -s "build/nzp-data/nzp/models/xziel/nacht/zombie_lq_${suffix}.mdl"
+            test -s "build/nzp-data/nzp/models/xziel/nacht/zombie_lq_${suffix}.mdl_0.tga"
+          done
           test -s build/nzp-data/nzp/licenses/LIBREQUAKE-BSD-3-CLAUSE.txt
           python3 - <<'PY'
           from pathlib import Path
@@ -175,6 +180,8 @@ jobs:
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/textures/nacht_enhanced/debris_hnf3p.jpg'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/textures/nacht_enhanced/ground_hb3.jpg'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/licenses/NACHT-ENHANCED-CC0-SOURCES.txt'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/models/xziel/nacht/zombie_lq_h0.mdl'
+          unzip -l build/apk-nzp-data.zip | grep -q 'nzp/models/xziel/nacht/zombie_lq_h0_l0_r0.mdl'
           unzip -l build/apk-nzp-data.zip | grep -q 'nzp/licenses/XZIEL-WAW-REFERENCE-AUDIO.txt'
 
       - name: Collect APK
