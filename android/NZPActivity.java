@@ -130,6 +130,20 @@ public class NZPActivity extends SDLActivity {
             throw new RuntimeException("Unable to prepare bundled NZ:P game data", e);
         }
 
+        boolean enhancedPreview = getIntent() != null
+            && getIntent().getBooleanExtra("xziel_ci_nacht_enhanced_preview", false);
+
+        if (enhancedPreview) {
+            // CI-only path: boot the real bundled Nacht map with the opt-in
+            // Enhanced presentation layer enabled. Normal user launches never
+            // receive this Intent extra and keep the standard menu startup.
+            return new String[] {
+                "-basedir", dataRoot.getAbsolutePath(),
+                "+xziel_nacht_enhanced", "1",
+                "+map", "ndu"
+            };
+        }
+
         return new String[] {
             "-basedir", dataRoot.getAbsolutePath()
         };
