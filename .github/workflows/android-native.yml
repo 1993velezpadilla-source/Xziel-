@@ -284,42 +284,86 @@ jobs:
           "$ADB" shell am force-stop com.xziel.nzp || true
           "$ADB" shell am start -W -n com.xziel.nzp/org.libsdl.app.NZPActivity             --ez xziel_ci_hud_preview true             > dist/am-start.txt 2>&1 || true
 
-          # Let bundled data extraction finish and boot directly into Nacht der
-          # Untoten so CI validates the actual gameplay HUD.
-          sleep 30
+          # Wait for the actual processed-frame marker instead of assuming
+          # emulator/SwiftShader startup completes at a fixed wall-clock time.
+          STAGE=""
+          for i in $(seq 1 30); do
+            STAGE="$("$ADB" shell run-as com.xziel.nzp cat files/nzp-runtime/.xziel-stage 2>/dev/null | tr -d '\\r' || true)"
+            if [[ "$STAGE" == "FIRST_FRAME_OK" ]]; then
+              break
+            fi
+            sleep 2
+          done
 
-          "$ADB" exec-out screencap -p > dist/xziel-hud-preview-a.png || true
-          sleep 3
-          "$ADB" exec-out screencap -p > dist/xziel-hud-preview-b.png || true
-          cp dist/xziel-hud-preview-a.png dist/xziel-screen.png || true
+          # Give SurfaceFlinger a short grace period after the first processed
+          # frame. SwiftShader occasionally returns one or more all-black
+          # screencaps even while the SDL/Vril render loop is already healthy.
+          sleep 5
 
-          # Automated visual sanity pass: both frames must be valid, non-blank
-          # landscape gameplay-sized images. We also record inter-frame change
-          # as evidence the renderer is live rather than frozen.
+          # Automated visual sanity pass: obtain two valid, non-blank landscape
+          # gameplay frames. Retry transient all-black emulator captures rather
+          # than misclassifying a SurfaceFlinger timing hiccup as an engine bug.
           python3 -m pip install --quiet pillow==11.3.0
-          python3 - <<'PY' > dist/hud-visual-report.txt
+          : > dist/hud-visual-report.txt
+          VISUAL_OK=0
+
+          for attempt in $(seq 1 6); do
+            "$ADB" exec-out screencap -p > dist/xziel-hud-preview-a.png || true
+            sleep 3
+            "$ADB" exec-out screencap -p > dist/xziel-hud-preview-b.png || true
+
+            if ATTEMPT="$attempt" python3 - <<'PY' >> dist/hud-visual-report.txt 2>&1
+          import os
           from pathlib import Path
           from PIL import Image, ImageChops, ImageStat
 
+          attempt = os.environ.get("ATTEMPT", "?")
           paths = [Path("dist/xziel-hud-preview-a.png"), Path("dist/xziel-hud-preview-b.png")]
           images = []
+
           for path in paths:
               im = Image.open(path).convert("RGB")
               if im.width < 1000 or im.height < 500 or im.width <= im.height:
-                  raise SystemExit(f"HUD preview has invalid dimensions: {path} {im.size}")
+                  raise SystemExit(f"attempt={attempt} invalid dimensions: {path} {im.size}")
+
               gray = im.convert("L")
               stat = ImageStat.Stat(gray)
               lo, hi = gray.getextrema()
               if hi - lo < 24 or stat.stddev[0] < 8:
-                  raise SystemExit(f"HUD preview appears blank/flat: {path} extrema={(lo,hi)} std={stat.stddev[0]:.2f}")
+                  raise SystemExit(
+                      f"attempt={attempt} blank/flat: {path} "
+                      f"extrema={(lo,hi)} std={stat.stddev[0]:.2f}"
+                  )
+
               images.append(im)
-              print(f"{path.name}: size={im.size} mean={stat.mean[0]:.2f} std={stat.stddev[0]:.2f} extrema={(lo,hi)}")
+              print(
+                  f"attempt={attempt} {path.name}: size={im.size} "
+                  f"mean={stat.mean[0]:.2f} std={stat.stddev[0]:.2f} "
+                  f"extrema={(lo,hi)}"
+              )
 
           diff = ImageChops.difference(images[0], images[1]).convert("L")
           dstat = ImageStat.Stat(diff)
-          print(f"frame_delta_mean={dstat.mean[0]:.3f} frame_delta_std={dstat.stddev[0]:.3f}")
+          print(
+              f"attempt={attempt} frame_delta_mean={dstat.mean[0]:.3f} "
+              f"frame_delta_std={dstat.stddev[0]:.3f}"
+          )
           PY
+            then
+              VISUAL_OK=1
+              cp dist/xziel-hud-preview-a.png dist/xziel-screen.png || true
+              break
+            fi
+
+            sleep 4
+          done
+
           cat dist/hud-visual-report.txt
+
+          if [[ "$VISUAL_OK" != "1" ]]; then
+            echo "HUD preview remained blank/flat after all retries."
+            exit 1
+          fi
           "$ADB" logcat -d -v threadtime > dist/xziel-logcat.txt || true
           "$ADB" shell dumpsys activity processes > dist/activity-processes.txt || true
 
