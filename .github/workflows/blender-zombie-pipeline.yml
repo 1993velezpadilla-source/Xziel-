@@ -29,14 +29,15 @@ jobs:
       - name: Checkout Xziel
         uses: actions/checkout@v4
 
-      - name: Install Blender and Git LFS
+      - name: Install Blender runtime
         shell: bash
         run: |
           set -euxo pipefail
           sudo apt-get update
-          sudo apt-get install -y blender git-lfs
+          sudo apt-get install -y blender git-lfs python3-numpy
           blender --version
           git lfs version
+          blender --background --python-expr "import numpy; print('BLENDER_NUMPY', numpy.__version__)"
 
       - name: Fetch MakeHuman CC0 core base mesh
         shell: bash
