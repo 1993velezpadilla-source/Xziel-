@@ -88,6 +88,11 @@ struct NativeAppState {
     float muzzleFlashSeconds = 0.0f;
     float zombieAttackFlashSeconds = 0.0f;
     float hapticElapsedSeconds = 1.0f;
+
+    xziel::ThermalLevel thermalLevel =
+        xziel::ThermalLevel::Nominal;
+
+    float thermalPollSeconds = 1.0f;
 };
 
 void logInfo(const char* message) noexcept {
@@ -121,6 +126,80 @@ void requestHaptic(
         command);
 }
 
+
+xziel::ThermalLevel queryThermalLevel(
+    NativeAppState& state) noexcept {
+    if (state.jniEnv == nullptr ||
+        state.javaActivity == nullptr) {
+        return xziel::ThermalLevel::Nominal;
+    }
+
+    JNIEnv* env = state.jniEnv;
+
+    jclass activityClass =
+        env->GetObjectClass(
+            state.javaActivity);
+
+    if (activityClass == nullptr) {
+        if (env->ExceptionCheck()) {
+            env->ExceptionClear();
+        }
+
+        return xziel::ThermalLevel::Nominal;
+    }
+
+    jmethodID method =
+        env->GetMethodID(
+            activityClass,
+            "getXzielThermalStatus",
+            "()I");
+
+    if (method == nullptr) {
+        if (env->ExceptionCheck()) {
+            env->ExceptionClear();
+        }
+
+        env->DeleteLocalRef(
+            activityClass);
+
+        return xziel::ThermalLevel::Nominal;
+    }
+
+    const jint status =
+        env->CallIntMethod(
+            state.javaActivity,
+            method);
+
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+
+        env->DeleteLocalRef(
+            activityClass);
+
+        return xziel::ThermalLevel::Nominal;
+    }
+
+    env->DeleteLocalRef(
+        activityClass);
+
+    if (status <= 0) {
+        return xziel::ThermalLevel::Nominal;
+    }
+
+    if (status == 1) {
+        return xziel::ThermalLevel::Light;
+    }
+
+    if (status == 2) {
+        return xziel::ThermalLevel::Moderate;
+    }
+
+    if (status == 3) {
+        return xziel::ThermalLevel::Severe;
+    }
+
+    return xziel::ThermalLevel::Critical;
+}
 
 int queryDisplayRotation(
     NativeAppState& state) noexcept {
@@ -1141,6 +1220,17 @@ extern "C" void android_main(
                     frameDelta,
                 1.0f);
 
+        state.thermalPollSeconds +=
+            frameDelta;
+
+        if (state.thermalPollSeconds >= 1.0f) {
+            state.thermalLevel =
+                queryThermalLevel(
+                    state);
+
+            state.thermalPollSeconds = 0.0f;
+        }
+
         state.hitMarkerSeconds =
             std::max(
                 0.0f,
@@ -1178,7 +1268,7 @@ extern "C" void android_main(
                         frameDelta * 1000.0f,
                     .gpuFrameMs = 0.0f,
                     .thermal =
-                        xziel::ThermalLevel::Nominal,
+                        state.thermalLevel,
                 },
                 frameDelta);
 
