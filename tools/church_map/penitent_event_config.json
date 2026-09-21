@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "id": "event_penitent_nun",
+  "displayName": "The Penitent",
+  "fullEventsPerMatch": 1,
+  "schedule": {
+    "firstEligibleRound": 5,
+    "preferredDiscoveryRounds": [
+      6,
+      12
+    ],
+    "eligibleRoundRoll": 0.35,
+    "guaranteeByRound": 12,
+    "deferDuring": [
+      "bishop_encounter",
+      "mandatory_main_quest_arena",
+      "last_man_revive_crisis",
+      "scripted_special_round_room_ownership"
+    ]
+  },
+  "anchorPolicy": {
+    "tag": "penitent_anchor",
+    "minSpawnPlayerDistanceMeters": 10,
+    "personalSpaceRadiusMeters": 1.35,
+    "minRetreatClearanceMeters": 2.5,
+    "preferOutsidePlayerView": true,
+    "teleportAfterPlacement": false
+  },
+  "spatialAudio": {
+    "emitterType": "world_3d_positional",
+    "farAudibleMeters": 18,
+    "intelligibleMeters": 10,
+    "clearMeters": 6,
+    "closeMeters": 3.5,
+    "occlusion": true,
+    "placeholder": {
+      "provider": "Freesound",
+      "creator": "NyxLurvig",
+      "soundId": 499653,
+      "title": "Padrenuestro (Our Father prayer in Spanish)",
+      "url": "https://freesound.org/people/NyxLurvig/sounds/499653/",
+      "license": "CC0",
+      "durationSeconds": 23.365,
+      "format": "FLAC",
+      "sampleRateHz": 44100,
+      "bitDepth": 16,
+      "channels": 2,
+      "temporary": true,
+      "replacementTarget": "Christian custom whisper prayer WAV"
+    }
+  },
+  "stateMachine": {
+    "initial": "DORMANT",
+    "states": [
+      "DORMANT",
+      "SCHEDULED",
+      "PLACED_HIDDEN",
+      "PRAYING",
+      "COMPLETED_UNDISTURBED",
+      "PLAYER_INTERACTED",
+      "PLAYER_ATTACKED",
+      "PERSONAL_SPACE_REACTION",
+      "MERCY_EXIT",
+      "JUDGEMENT_LOCKDOWN",
+      "DECEPTION_EXIT",
+      "WRATH_TRANSFORM",
+      "WRATH_HUNT",
+      "REWARD",
+      "OPTIONAL_DECEPTION_STING",
+      "DEFEATED_REWARD",
+      "COMPLETE"
+    ]
+  },
+  "seededOutcomeWeights": {
+    "mercy": 0.3,
+    "judgement": 0.45,
+    "deception": 0.25
+  },
+  "personalSpaceReaction": {
+    "continuePraying": 0.65,
+    "headTurnContinuePraying": 0.25,
+    "immediateJudgement": 0.1
+  },
+  "wrathHunt": {
+    "enabled": true,
+    "targetDurationSeconds": [
+      30,
+      45
+    ],
+    "infiniteAdds": false,
+    "damageTeleportInPlayerView": false,
+    "canOneShotFullHealthWithoutTelegraph": false
+  },
+  "reward": {
+    "questItem": "black_rosary_fragment",
+    "mainQuestRequired": false,
+    "use": "FINAL TOLL optional Bellwether upgrade",
+    "wrathTeamPointRange": [
+      1000,
+      1500
+    ],
+    "wrathGuaranteedAmmoUtility": true
+  },
+  "roundAccounting": {
+    "prayingCountsTowardRoundPopulation": false,
+    "transformedCountsAsAuthoritativeEnemy": true
+  }
+}
