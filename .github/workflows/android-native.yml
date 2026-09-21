@@ -5,11 +5,14 @@ on:
   push:
     branches:
       - main
+      - feature/v022-nacht-enhanced-runtime
     paths:
       - ".github/workflows/android-native.yml"
       - "android/**"
       - "scripts/**"
       - "README.md"
+      - "assets/nacht_enhanced/**"
+      - "docs/NACHT_ENHANCED*.md"
 
 concurrency:
   group: xziel-android-${{ github.ref }}
