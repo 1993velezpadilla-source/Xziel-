@@ -8,6 +8,13 @@ on:
       - "tools/blender/**"
       - "docs/blender-zombie-pipeline.md"
       - ".github/workflows/blender-zombie-pipeline.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "tools/blender/**"
+      - "docs/blender-zombie-pipeline.md"
+      - ".github/workflows/blender-zombie-pipeline.yml"
   workflow_dispatch:
 
 permissions:
