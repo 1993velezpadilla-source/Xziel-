@@ -2026,11 +2026,26 @@ bool VulkanClearRenderer::createReflectionTarget(
         return true;
     }
 
-    const float scale =
+    const float requestedScale =
         std::clamp(
             resolutionScale,
             0.10f,
             1.0f);
+
+    // Match ReflectionTargetPlanner exactly: one uniform cap preserves the
+    // source aspect ratio on wide/high-resolution phones instead of clamping
+    // each axis independently and stretching the reflected scene.
+    constexpr float kMaxReflectionDimension = 1536.0f;
+    const float dimensionCapScale =
+        std::min(
+            kMaxReflectionDimension /
+                static_cast<float>(swapchainExtent_.width),
+            kMaxReflectionDimension /
+                static_cast<float>(swapchainExtent_.height));
+    const float scale =
+        std::min(
+            requestedScale,
+            dimensionCapScale);
 
     const auto scaledDimension =
         [scale](std::uint32_t value) noexcept {
@@ -2041,20 +2056,18 @@ bool VulkanClearRenderer::createReflectionTarget(
                         std::floor(
                             static_cast<float>(value) *
                             scale)));
-            const auto bounded =
-                std::min(
-                    scaled,
-                    1536U);
             return std::max(
                 16U,
-                bounded & ~15U);
+                scaled & ~15U);
         };
 
     reflectionExtent_.width =
         scaledDimension(swapchainExtent_.width);
     reflectionExtent_.height =
         scaledDimension(swapchainExtent_.height);
-    reflectionTargetScale_ = scale;
+    // Keep the requested workload scale as the cache key. The effective
+    // allocation scale may be smaller solely because of the hard GPU cap.
+    reflectionTargetScale_ = requestedScale;
 
     const auto createAttachment =
         [&](VkFormat format,
@@ -2144,6 +2157,25 @@ bool VulkanClearRenderer::createReflectionTarget(
                     nullptr,
                     &view));
         };
+
+    VkFormatProperties reflectionFormatProperties{};
+    vkGetPhysicalDeviceFormatProperties(
+        physicalDevice_,
+        swapchainFormat_,
+        &reflectionFormatProperties);
+
+    const VkFormatFeatureFlags requiredColorFeatures =
+        VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT |
+        VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
+
+    if ((reflectionFormatProperties.optimalTilingFeatures &
+         requiredColorFeatures) != requiredColorFeatures) {
+        logInfo(
+            "Planar reflection format unsupported for sampled color; "
+            "falling back");
+        destroyReflectionTarget();
+        return true;
+    }
 
     const bool colorReady =
         createAttachment(
