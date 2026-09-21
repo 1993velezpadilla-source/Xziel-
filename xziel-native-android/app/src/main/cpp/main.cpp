@@ -23,6 +23,7 @@
 #include "xziel/runtime_policy.hpp"
 #include "xziel/score.hpp"
 #include "xziel/weapon.hpp"
+#include "xziel/weapon_catalog.hpp"
 #include "xziel/zombie_actor.hpp"
 #include "xziel/zombie_hit_regions.hpp"
 
@@ -63,6 +64,18 @@ constexpr xziel::Vec3 kPrototypeDoorInteractionPosition{
     1.34f,
 };
 
+constexpr std::uint32_t kPrototypeWeaponBuyId =
+    1003U;
+
+constexpr std::uint32_t kPrototypeWeaponBuyCost =
+    750U;
+
+constexpr xziel::Vec3 kPrototypeWeaponBuyPosition{
+    2.25f,
+    -0.58f,
+    -0.80f,
+};
+
 const xziel::Aabb kPrototypeCenterObstacle{
     .minimum = {
         -0.58f,
@@ -94,7 +107,14 @@ struct NativeAppState {
     xziel::RendererWatchdog watchdog{};
     xziel::Engine engine{};
     xziel::FpsPlayerController player{};
-    xziel::WeaponController weapon{};
+
+    xziel::WeaponProfile weaponProfile =
+        xziel::makeWeaponProfile(
+            xziel::WeaponArchetype::Sidearm);
+
+    xziel::WeaponController weapon{
+        weaponProfile.controller};
+
     xziel::HordeDirector horde{};
     xziel::ScoreSystem score{
         xziel::ScoreConfig{
@@ -119,6 +139,8 @@ struct NativeAppState {
     bool stormEnabled = true;
 
     bool prototypeDoorOpen = false;
+    bool prototypeWeaponBuyPurchased = false;
+
     float prototypeDoorOpenAlpha = 0.0f;
     float purchaseDeniedSeconds = 0.0f;
 
@@ -757,6 +779,43 @@ void advancePlayer(
                         state,
                         xziel::HapticEvent::UiError);
                 }
+             else if (
+                state.interactionFrame.targetId ==
+                    kPrototypeWeaponBuyId &&
+                !state.prototypeWeaponBuyPurchased) {
+                if (state.score.trySpend(
+                        kPrototypeWeaponBuyCost)) {
+                    state.weaponProfile =
+                        xziel::makeWeaponProfile(
+                            xziel::WeaponArchetype::
+                                AssaultRifle);
+
+                    state.weapon.equip(
+                        state.weaponProfile.
+                            controller);
+
+                    state.prototypeWeaponBuyPurchased =
+                        true;
+
+                    (void) state.interaction.
+                        setTargetEnabled(
+                            kPrototypeWeaponBuyId,
+                            false);
+
+                    state.scorePulseSeconds =
+                        0.38f;
+
+                    requestHaptic(
+                        state,
+                        xziel::HapticEvent::UiConfirm);
+                } else {
+                    state.purchaseDeniedSeconds =
+                        0.42f;
+
+                    requestHaptic(
+                        state,
+                        xziel::HapticEvent::UiError);
+                }
             }
         }
 
@@ -868,8 +927,15 @@ void advancePlayer(
             std::size_t nearestSlot =
                 state.horde.capacity();
 
+            const float maximumWeaponRange =
+                std::max(
+                    state.weaponProfile.
+                        maximumRangeMeters,
+                    0.1f);
+
             xziel::ZombieHitResult nearestHit{};
-            nearestHit.distance = 20.0f;
+            nearestHit.distance =
+                maximumWeaponRange;
 
             for (std::size_t slot = 0;
                  slot < state.horde.capacity();
@@ -890,7 +956,7 @@ void advancePlayer(
                         *zombie,
                         nearestHit.hit
                             ? nearestHit.distance
-                            : 20.0f);
+                            : maximumWeaponRange);
 
                 if (!hit.hit ||
                     (nearestHit.hit &&
@@ -907,7 +973,9 @@ void advancePlayer(
                     state.horde.capacity() &&
                 nearestHit.hit) {
                 const float damage =
-                    34.0f *
+                    xziel::weaponDamageAtDistance(
+                        state.weaponProfile,
+                        nearestHit.distance) *
                     nearestHit.damageMultiplier;
 
                 if (state.horde.damageZombie(
@@ -1388,14 +1456,25 @@ xziel::android::VulkanSceneState makeSceneState(
             interRound;
 
     scene.interactionX =
-        kPrototypePowerSwitchPosition.x;
+        state.interactionFrame.
+            targetPosition.x;
     scene.interactionY =
-        kPrototypePowerSwitchPosition.y;
+        state.interactionFrame.
+            targetPosition.y;
     scene.interactionZ =
-        kPrototypePowerSwitchPosition.z;
-    scene.interactionVisible = true;
+        state.interactionFrame.
+            targetPosition.z;
+
+    scene.interactionVisible =
+        state.interactionFrame.
+            promptVisible;
+
     scene.interactionActive =
-        state.stormEnabled;
+        state.interactionFrame.
+            activatedThisTick ||
+        (state.interactionFrame.targetId ==
+             kPrototypePowerSwitchId &&
+         state.stormEnabled);
 
     scene.doorOpenAlpha =
         state.prototypeDoorOpenAlpha;
@@ -1531,6 +1610,23 @@ extern "C" void android_main(
             .holdSeconds = 0.18f,
             .cost =
                 kPrototypeDoorCost,
+            .enabled = true,
+        });
+
+    (void) state.interaction.addTarget(
+        {
+            .id =
+                kPrototypeWeaponBuyId,
+            .kind =
+                xziel::InteractionKind::WeaponBuy,
+            .position =
+                kPrototypeWeaponBuyPosition,
+            .maximumDistance = 1.55f,
+            .minimumFacingDot = 0.18f,
+            .priority = 1.20f,
+            .holdSeconds = 0.20f,
+            .cost =
+                kPrototypeWeaponBuyCost,
             .enabled = true,
         });
 
