@@ -27,6 +27,7 @@ struct ZombieWindowFrame {
 
 class ZombieWindowSystem final {
 public:
+    void clear() noexcept;
     void reset() noexcept;
     void beginRound() noexcept;
 

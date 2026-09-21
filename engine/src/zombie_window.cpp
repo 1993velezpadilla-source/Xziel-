@@ -2,6 +2,11 @@
 
 namespace xziel {
 
+void ZombieWindowSystem::clear() noexcept {
+    windows_ = {};
+    count_ = 0;
+}
+
 void ZombieWindowSystem::reset() noexcept {
     for (auto& slot : windows_) {
         if (!slot.occupied) {

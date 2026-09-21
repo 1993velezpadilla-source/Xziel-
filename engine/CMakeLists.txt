@@ -20,6 +20,7 @@ add_library(xziel_engine STATIC
     src/barricade.cpp
     src/zombie_window.cpp
     src/door.cpp
+    src/map_runtime.cpp
     src/environment.cpp
     src/particles.cpp
     src/performance.cpp
@@ -131,6 +132,11 @@ if(XZIEL_ENGINE_BUILD_TESTS)
     target_link_libraries(xziel_door_smoke PRIVATE xziel_engine)
     target_compile_features(xziel_door_smoke PRIVATE cxx_std_20)
     add_test(NAME xziel_door_smoke COMMAND xziel_door_smoke)
+
+    add_executable(xziel_map_runtime_smoke tests/map_runtime_smoke.cpp)
+    target_link_libraries(xziel_map_runtime_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_map_runtime_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_map_runtime_smoke COMMAND xziel_map_runtime_smoke)
 
     add_executable(xziel_environment_smoke tests/environment_smoke.cpp)
     target_link_libraries(xziel_environment_smoke PRIVATE xziel_engine)
