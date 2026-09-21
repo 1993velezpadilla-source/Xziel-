@@ -482,6 +482,8 @@ xziel::android::VulkanHudState makeHudState(
         input.input.fire;
     hud.aim =
         input.input.aim;
+    hud.reload =
+        input.input.reload;
     hud.jump =
         input.movementButtons.jumpHeld ||
         input.movementButtons.jumpPressed;
