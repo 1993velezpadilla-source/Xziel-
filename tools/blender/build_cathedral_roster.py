@@ -435,30 +435,58 @@ def sister_boot_pair(rig,h,mats):
         cuff.scale.y=.76; apply_obj(cuff); out.append(cuff)
     return out
 
+
+def nun_coif_cap(name,h,material,rx,ry,rz,cz,phase=0.0):
+    """Closed crown with a progressively opening face aperture."""
+    seg=96
+    ring_specs=[
+        (.18,math.pi),(.38,math.pi),(.58,3.05),(.78,2.86),
+        (.98,2.66),(1.16,2.52),(1.34,2.42)
+    ]
+    vs=[(0,.008*h,(cz+rz)*h)]; fs=[]
+    rings=[]
+    for ridx,(phi,tmax) in enumerate(ring_specs):
+        base=len(vs); rings.append((base,tmax))
+        for i in range(seg):
+            u=i/(seg-1)
+            t=-tmax+2*tmax*u
+            r=math.sin(phi)
+            fold=.0018*math.sin(t*5+phase+ridx*.4)
+            x=(rx*r+fold)*h*math.sin(t)
+            y=(.008+ry*r*math.cos(t))*h
+            z=(cz+rz*math.cos(phi)+.0015*math.sin(t*4+ridx*.6))*h
+            vs.append((x,y,z))
+    # top fan
+    b0=rings[0][0]
+    for i in range(seg-1): fs.append((0,b0+i,b0+i+1))
+    # connect rings by index (opening widens smoothly lower down)
+    for r in range(len(rings)-1):
+        a0=rings[r][0]; b0=rings[r+1][0]
+        for i in range(seg-1):
+            fs.append((a0+i,a0+i+1,b0+i+1,b0+i))
+    mesh=bpy.data.meshes.new(name+"Mesh"); mesh.from_pydata(vs,[],fs); mesh.update()
+    o=bpy.data.objects.new(name,mesh); bpy.context.collection.objects.link(o); assign(o,material)
+    sol=o.modifiers.new("CoifThickness","SOLIDIFY"); sol.thickness=.0020*h; sol.offset=0
+    sub=o.modifiers.new("CoifSmooth","SUBSURF"); sub.subdivision_type="CATMULL_CLARK"; sub.levels=1; sub.render_levels=1
+    return o
+
+
+
 def priority_head_cover(body,h,style,mats):
     out=[]
     if style=="sister_of_ash":
-        # Pass 16: keep cloth off the visible face. The previous fitted shell crossed
-        # cheeks/jaw and produced white polygon fragments. Crown/back coverage stays
-        # complete while the outer veil/wimple supplies the visible framing.
-        fy=face_front_y(body,h)
-        blue=mats["ash_blue"]
-        crown=body_region_shell(body,"NunHoodCrown",blue,
-            lambda q: q.z/h>.872 and (q.y>fy+.032*h or abs(q.x/h)>.070 or q.z/h>.972),.0065*h)
-        if crown: out.append(crown)
+        ivory=mats["dirty_ivory"]; blue=mats["ash_blue"]
+        # Two continuous shells. Upper rings are closed 360°, so there is no bald crown.
+        out.append(nun_coif_cap("NunInnerCoif",h,ivory,.073,.068,.094,.915,.2))
+        out.append(nun_coif_cap("NunOuterHood",h,blue,.081,.076,.103,.917,.9))
     elif style=="stained_shade":
-        fy=face_front_y(body,h)
-        inner=mats["spectral_ivory"]
-        a=body_region_shell(body,"ShadeCoif",inner,
-            lambda q: q.z/h>.865 and (q.y>fy+.030*h or abs(q.x/h)>.070 or q.z/h>.970),.005*h)
-        if a: out.append(a)
+        out.append(nun_coif_cap("ShadeHood",h,mats["spectral_ivory"],.081,.076,.103,.917,.9))
     elif style=="la_llorona":
         fy=face_front_y(body,h)
         cap=body_region_shell(body,"HairCap",mats["wet_black"],
-            lambda q: q.z/h>.855 and (q.y>fy+.020*h or abs(q.x/h)>.050 or q.z/h>.948),.0045*h)
+            lambda q:q.z/h>.855 and (q.y>fy+.020*h or abs(q.x/h)>.050 or q.z/h>.948),.0045*h)
         if cap: out.append(cap)
     return out
-
 
 def eye_socket_rings(body,h,mats,style):
     return []
@@ -501,10 +529,10 @@ def eye_socket_discs(body,h,mats,style):
 
 
 
+
 def paint_face_regions(body,h,mats,style):
     fy=face_front_y(body,h)
-    if style!="sister_of_ash":
-        return
+    if style!="sister_of_ash": return
     def make_attr(name,fn):
         old=body.data.color_attributes.get(name)
         if old: body.data.color_attributes.remove(old)
@@ -516,12 +544,13 @@ def paint_face_regions(body,h,mats,style):
         return attr
     def g(v,cx,cz,rx,rz):
         dx=(v.x/h-cx)/rx; dz=(v.z/h-cz)/rz
-        front=max(0.0,min(1.0,1.0-(v.y-fy)/(.052*h)))
-        return math.exp(-(dx*dx+dz*dz)*1.55)*front
-    eye_attr=make_attr("SisterEyeMask",lambda v:max(g(v,-.022,.906,.032,.024),g(v,.022,.906,.032,.024),
-                                                    .55*g(v,-.045,.878,.040,.032),.55*g(v,.045,.878,.040,.032)))
-    mouth_attr=make_attr("SisterMouthMask",lambda v:.70*g(v,0,.851,.038,.018))
-    bruise=hexrgb("#51404A"); lip=hexrgb("#24171A")
+        front=max(0.0,min(1.0,1.0-(v.y-fy)/(.060*h)))
+        return math.exp(-(dx*dx+dz*dz)*1.35)*front
+    eye_attr=make_attr("SisterEyeMask",lambda v:max(
+        1.0*g(v,-.022,.906,.036,.028),1.0*g(v,.022,.906,.036,.028),
+        .72*g(v,-.048,.877,.044,.036),.72*g(v,.048,.877,.044,.036)))
+    mouth_attr=make_attr("SisterMouthMask",lambda v:.82*g(v,0,.851,.042,.020))
+    bruise=hexrgb("#3D303A"); lip=hexrgb("#1C1115")
     for m in body.data.materials:
         if not m: continue
         m.use_nodes=True; nodes=m.node_tree.nodes; links=m.node_tree.links
@@ -541,10 +570,10 @@ def paint_face_regions(body,h,mats,style):
         links.new(mouth.outputs["Color"],mix2.inputs[0]); links.new(mix1.outputs["Color"],mix2.inputs[1]); mix2.inputs[2].default_value=(*lip,1)
         links.new(mix2.outputs["Color"],base)
     vg=body.vertex_groups.get("FaceDamage") or body.vertex_groups.new(name="FaceDamage")
-    ids=[v.index for v in body.data.vertices if .825<v.co.z/h<.965 and abs(v.co.x/h)<.085 and v.co.y<fy+.050*h]
+    ids=[v.index for v in body.data.vertices if .825<v.co.z/h<.965 and abs(v.co.x/h)<.088 and v.co.y<fy+.055*h]
     if ids: vg.add(ids,1.0,"REPLACE")
-    tex=bpy.data.textures.new("T_SisterFaceDamage",type="CLOUDS"); tex.noise_scale=.018; tex.noise_depth=2
-    dis=body.modifiers.new("FaceDamage","DISPLACE"); dis.texture=tex; dis.strength=.00065*h; dis.mid_level=.5; dis.vertex_group=vg.name
+    tex=bpy.data.textures.new("T_SisterFaceDamage",type="CLOUDS"); tex.noise_scale=.017; tex.noise_depth=2
+    dis=body.modifiers.new("FaceDamage","DISPLACE"); dis.texture=tex; dis.strength=.0008*h; dis.mid_level=.5; dis.vertex_group=vg.name
 
 def mouth_cavity(body,h,mats,style):
     if style=="sister_of_ash": return []
@@ -578,26 +607,24 @@ def body_region_shell(body,name,material,keep_fn,offset=0.004):
 
 
 
+
 def fitted_priority_clothes(body,h,style,mats):
     out=[]
     if style=="sister_of_ash":
-        main=mats["ash_blue"]; ivory=mats["dirty_ivory"]
-        bod=body_region_shell(body,"FittedBodice",main,
-            lambda q:.555<q.z/h<.805 and abs(q.x/h)<.145 and q.y/h<.132,.0030*h)
+        blue=mats["ash_blue"]; ivory=mats["dirty_ivory"]; boot=mats["soot"]
+        bod=body_region_shell(body,"FittedBodice",blue,
+            lambda q:.545<q.z/h<.805 and abs(q.x/h)<.150 and q.y/h<.135,.0035*h)
         if bod: out.append(bod)
-        for name,groups in [("FittedSleeve_L",["upperarm_l","lowerarm_l"]),("FittedSleeve_R",["upperarm_r","lowerarm_r"])]:
-            o=body_group_shell(body,name,main,groups,.040,.0030*h)
-            if o: out.append(o)
         yoke=body_region_shell(body,"FittedShoulderYoke",ivory,
-            lambda q:.742<q.z/h<.825 and abs(q.x/h)<.190 and q.y/h<.135,.0035*h)
+            lambda q:.735<q.z/h<.835 and abs(q.x/h)<.205 and q.y/h<.145,.0040*h)
         if yoke: out.append(yoke)
-        # Game-ready footwear is a close shell of the actual foot/ankle. No primitive
-        # spheres or oversized proxy shoes are created in this pass.
-        bootmat=mats["soot"]
-        for side,label in [(-1,"L"),(1,"R")]:
-            o=body_region_shell(body,"NunBoot_"+label,bootmat,
-                lambda q,side=side: q.z/h<.105 and q.x*side>0,.0038*h)
-            if o: out.append(o)
+        for side,label in ((-1,"L"),(1,"R")):
+            sleeve=body_region_shell(body,"NunSleeve_"+label,blue,
+                lambda q,side=side: q.x*side>.095*h and abs(q.x/h)<.345 and .535<q.z/h<.795,.0045*h)
+            if sleeve: out.append(sleeve)
+            shoe=body_region_shell(body,"NunBoot_"+label,boot,
+                lambda q,side=side: q.x*side>0 and q.z/h<.145,.0090*h)
+            if shoe: out.append(shoe)
     elif style=="stained_shade":
         main=mats["ash_blue"]
         o=body_region_shell(body,"FittedBodice",main,lambda q:.515<q.z/h<.795 and abs(q.x/h)<.160 and q.y/h<.140,.0045*h)
@@ -607,7 +634,6 @@ def fitted_priority_clothes(body,h,style,mats):
         o=body_region_shell(body,"LloronaFittedBodice",main,lambda q:.510<q.z/h<.830 and abs(q.x/h)<.165 and q.y/h<.140,.0045*h)
         if o: out.append(o)
     return out
-
 
 def rigid_bind_mesh(obj,rig,bone):
     if not obj or obj.type!="MESH" or bone not in rig.data.bones: return
@@ -962,16 +988,8 @@ def bind_generated_to_rig(body,rig,h):
             elif n.startswith(("RopeBelt","RosaryBelt")): parent_to_bone(o,rig,"pelvis")
             continue
         if o.type!="MESH": continue
-        if n.startswith("Eye") or n.startswith(("HairLock","HairRibbon","HairFace")) or n=="HairDrape" or n in ("OuterVeil","InnerWimple","StainedHalo","NunCoif","NunHoodCrown","NunForeheadBand","NunInnerCoif","NunOuterHood") or n.startswith(("HaloGlass","HaloPane","SocketRing")):
+        if n.startswith("Eye") or n.startswith(("HairLock","HairRibbon","HairFace")) or n=="HairDrape" or n in ("OuterVeil","InnerWimple","StainedHalo","NunCoif","NunHoodCrown","NunForeheadBand","NunInnerCoif","NunOuterHood","ShadeHood") or n.startswith(("HaloGlass","HaloPane","SocketRing")):
             rigid_bind_mesh(o,rig,"head"); continue
-        if n.startswith("NunUpperSleeve_L"):
-            parent_to_bone(o,rig,"upperarm_l"); continue
-        if n.startswith(("NunLowerSleeve_L","NunCuff_L")):
-            parent_to_bone(o,rig,"lowerarm_l"); continue
-        if n.startswith("NunUpperSleeve_R"):
-            parent_to_bone(o,rig,"upperarm_r"); continue
-        if n.startswith(("NunLowerSleeve_R","NunCuff_R")):
-            parent_to_bone(o,rig,"lowerarm_r"); continue
         if n.startswith(("SleeveUpper_L","SleeveLower_L","SleeveCuff_L")):
             parent_to_bone(o,rig,"upperarm_l" if "Upper" in n else "lowerarm_l"); continue
         if n.startswith("Sleeve_L") or n.startswith("CuffRag_L"):
@@ -986,8 +1004,8 @@ def bind_generated_to_rig(body,rig,h):
             parent_to_bone(o,rig,"spine_02"); continue
         if n.startswith(("RopeBelt","RosaryBelt")):
             parent_to_bone(o,rig,"pelvis"); continue
-        if n.startswith("SisterBoot"):
-            parent_to_bone(o,rig,"foot_l" if n.endswith("_L") else "foot_r"); continue
+        if n.startswith(("NunSleeve","NunBoot")):
+            continue
         if n.startswith(("Dress","Llorona","Ivory","Blue","RepairPatch","OuterRobe","UnderRobe","Stole","ShoulderCape","WimpleBib","IvoryChestBib","SpectralCloth","GlassShard","MudHem")):
             bind_mesh_vertical(o,rig,h)
 
@@ -1421,8 +1439,6 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService,TargetServi
         priority_head_cover(body,h,style,mats)
     if style=="sister_of_ash":
         sister_mouth_pose(body,h)
-        sister_full_sleeves(rig,h,mats)
-        sister_boot_pair(rig,h,mats)
     veilmat=mats.get("spectral_ivory") or mats.get("dirty_ivory")
     if style in ("lost_child","waterbound_child","bell_ringer","choir_wretch","penitent_deacon","censer_brute","reliquary_horror"):
         veil(style,h,w,d,veilmat)
@@ -1472,7 +1488,7 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService,TargetServi
     bpy.context.view_layer.update()
     png=preview(body,folder,style)
     tri=sum(sum(max(1,len(p.vertices)-2) for p in o.data.polygons) for o in objs if o.type=="MESH")
-    manifest={"id":ch["id"],"name":ch["name"],"category":ch["category"],"style":style,"height_m":ch["height_m"],"rig":"game_engine","bones":len(rig.data.bones),"triangles_estimate":tri,"animations":ch["animations"],"materials":ch["palette"],"outputs":[glb.name,fbx.name,blend.name,png.name,"preview_side.png","preview_back.png","preview_face.png"],"production_status":"Sister of Ash pass 17 — closed coif/hood crown, full sleeves, corrected shoes, removed neck proxy, deeper corpse facial planes"}
+    manifest={"id":ch["id"],"name":ch["name"],"category":ch["category"],"style":style,"height_m":ch["height_m"],"rig":"game_engine","bones":len(rig.data.bones),"triangles_estimate":tri,"animations":ch["animations"],"materials":ch["palette"],"outputs":[glb.name,fbx.name,blend.name,png.name,"preview_side.png","preview_back.png","preview_face.png"],"production_status":"Sister of Ash pass 18 — fully closed crown coif, body-derived sleeves and boots, stronger undead eye bruising, no detached proxy geometry"}
     (folder/"manifest.json").write_text(json.dumps(manifest,indent=2),encoding="utf-8")
     return manifest
 

@@ -79,7 +79,7 @@ jobs:
           curl -fL --retry 4 https://files2.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip -o /tmp/makehuman_system_assets_cc0.zip
           unzip -q /tmp/makehuman_system_assets_cc0.zip -d /tmp/mhassets
 
-      - name: Apply Sister of Ash fidelity pass 17
+      - name: Apply Sister of Ash fidelity pass 18
         shell: bash
         run: |
           set -euxo pipefail
@@ -120,7 +120,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "No generated asset changes."
           else
-            git commit -m "art: generate Sister of Ash fidelity pass 17"
+            git commit -m "art: generate Sister of Ash fidelity pass 18"
             git pull --rebase origin art/cathedral-production-models
             git push origin HEAD:art/cathedral-production-models
           fi
@@ -128,7 +128,7 @@ jobs:
       - name: Upload full production artifact
         uses: actions/upload-artifact@v4
         with:
-          name: cathedral-sister-of-ash-pass17
+          name: cathedral-sister-of-ash-pass18
           path: assets/generated/cathedral_roster/
           if-no-files-found: error
           retention-days: 14
