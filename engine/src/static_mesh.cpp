@@ -423,7 +423,20 @@ measureStaticMeshQuality(
     };
 
     std::uint64_t vertexCount = 0U;
+    std::uint64_t indexCount = 0U;
+
+    if (asset.batches.size() >
+        std::numeric_limits<std::uint32_t>::max()) {
+        return metrics;
+    }
+
+    metrics.batchCount =
+        static_cast<std::uint32_t>(
+            asset.batches.size());
+
     for (const auto& batch : asset.batches) {
+        indexCount += batch.indices.size();
+
         for (const auto& vertex : batch.vertices) {
             const std::array<float, 3> position{
                 vertex.x,
@@ -450,12 +463,16 @@ measureStaticMeshQuality(
 
     if (vertexCount == 0U ||
         vertexCount >
+            std::numeric_limits<std::uint32_t>::max() ||
+        indexCount >
             std::numeric_limits<std::uint32_t>::max()) {
         return metrics;
     }
 
     metrics.vertexCount =
         static_cast<std::uint32_t>(vertexCount);
+    metrics.indexCount =
+        static_cast<std::uint32_t>(indexCount);
     metrics.bounds.minimum = minimum;
     metrics.bounds.maximum = maximum;
 
@@ -603,7 +620,11 @@ passesViewmodelStaticMeshSanity(
     // alternate first-person rifles while rejecting unit explosions and the
     // "one long spike + almost everything collapsed near the origin" failure
     // mode seen in rigged GLB imports.
-    return metrics.vertexCount >= 96U &&
+    return metrics.batchCount >= 1U &&
+        metrics.batchCount <= 128U &&
+        metrics.vertexCount >= 96U &&
+        metrics.vertexCount <= 600000U &&
+        metrics.indexCount <= 900000U &&
         metrics.longestExtent >= 0.30f &&
         metrics.longestExtent <= 1.50f &&
         metrics.robustAxisCoverage90 >= 0.20f &&
