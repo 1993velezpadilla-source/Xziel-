@@ -245,6 +245,19 @@ if '#include "xz_geometry_tap.h"' not in hyena:
 # Snapshot the fixed-function state at the exact legacy draw boundary. This
 # preserves Vril lightmap blending (DST_COLOR/SRC_COLOR + depth EQUAL), water
 # alpha, sprites and cutout alpha semantics for the native GLES3 replay.
+if "xz_hyena_special_kind" not in hyena:
+    static_anchor = "static vec3_t hyena_scale;\n"
+    if static_anchor not in hyena:
+        raise SystemExit("Missing Hyena special-kind static anchor")
+    hyena = hyena.replace(
+        static_anchor,
+        static_anchor +
+        "#ifdef __ANDROID__\n"
+        "static XzGeometrySpecialKind xz_hyena_special_kind = XZ_GEOMETRY_SPECIAL_NONE;\n"
+        "#endif\n",
+        1,
+    )
+
 state_helper = (
     '#ifdef __ANDROID__\n'
     'static void XzCaptureLegacyRenderState(XzGeometryRenderState *state)\n'
@@ -390,22 +403,57 @@ if "XZ_GEOMETRY_EFFECT_CAPTURE" not in hyena:
         "        glGetFloatv(GL_MODELVIEW_MATRIX, xz_mv);\n"
         "        glGetFloatv(GL_PROJECTION_MATRIX, xz_pr);\n"
         "        glGetIntegerv(GL_TEXTURE_BINDING_2D, &xz_tex);\n"
-        "        XzGeometryTap_CapturePrimitive(\n"
-        "            (const float *)vertices,\n"
-        "            (unsigned int)count,\n"
-        "            (unsigned int)(sizeof(vertex_t) / sizeof(float)),\n"
-        "            (unsigned int)(offsetof(vertex_t, xyz) / sizeof(float)),\n"
-        "            (unsigned int)(offsetof(vertex_t, uv) / sizeof(float)),\n"
-        "            xz_primitive,\n"
-        "            (int)xz_tex,\n"
-        "            &xz_state,\n"
-        "            xz_mv,\n"
-        "            xz_pr);\n"
+        "        if (xz_hyena_special_kind != XZ_GEOMETRY_SPECIAL_NONE) {\n"
+        "            XzGeometryTap_CaptureSpecialFan(\n"
+        "                (const float *)vertices,\n"
+        "                (unsigned int)count,\n"
+        "                (unsigned int)(sizeof(vertex_t) / sizeof(float)),\n"
+        "                (unsigned int)(offsetof(vertex_t, xyz) / sizeof(float)),\n"
+        "                (unsigned int)(offsetof(vertex_t, uv) / sizeof(float)),\n"
+        "                (int)xz_tex,\n"
+        "                xz_hyena_special_kind,\n"
+        "                &xz_state, xz_mv, xz_pr);\n"
+        "        } else {\n"
+        "            XzGeometryTap_CapturePrimitive(\n"
+        "                (const float *)vertices,\n"
+        "                (unsigned int)count,\n"
+        "                (unsigned int)(sizeof(vertex_t) / sizeof(float)),\n"
+        "                (unsigned int)(offsetof(vertex_t, xyz) / sizeof(float)),\n"
+        "                (unsigned int)(offsetof(vertex_t, uv) / sizeof(float)),\n"
+        "                xz_primitive,\n"
+        "                (int)xz_tex,\n"
+        "                &xz_state,\n"
+        "                xz_mv,\n"
+        "                xz_pr);\n"
+        "        }\n"
         "    }\n"
         "#endif\n"
         "    glEnableClientState(GL_VERTEX_ARRAY); glVertexPointer(3, GL_FLOAT, sizeof(*vertices), &vertices[0].xyz);\n"
     )
     hyena = hyena.replace(generic_anchor, generic_capture, 1)
+
+
+warp_special_anchor = (
+    "        Hyena_BeginVertices(HYE_TRIANGLE_FAN);\n"
+    "        Hyena_DrawVertices(vertices, count, HYE_TEXTURE_32BITFLOAT, HYE_VERTEX_32BITFLOAT);\n"
+    "        Hyena_EndVertices(); return;\n"
+)
+if "XZ_HYENA_WATER_SPECIAL" not in hyena:
+    if warp_special_anchor not in hyena:
+        raise SystemExit("Missing Hyena warped-water special anchor")
+    warp_special = (
+        "        Hyena_BeginVertices(HYE_TRIANGLE_FAN);\n"
+        "#ifdef __ANDROID__\n"
+        "        /* XZ_HYENA_WATER_SPECIAL */\n"
+        "        xz_hyena_special_kind = XZ_GEOMETRY_SPECIAL_WATER;\n"
+        "#endif\n"
+        "        Hyena_DrawVertices(vertices, count, HYE_TEXTURE_32BITFLOAT, HYE_VERTEX_32BITFLOAT);\n"
+        "#ifdef __ANDROID__\n"
+        "        xz_hyena_special_kind = XZ_GEOMETRY_SPECIAL_NONE;\n"
+        "#endif\n"
+        "        Hyena_EndVertices(); return;\n"
+    )
+    hyena = hyena.replace(warp_special_anchor, warp_special, 1)
 
 gl_hyena.write_text(hyena, encoding="utf-8")
 
