@@ -117,7 +117,7 @@ jobs:
       - name: Build collision and nav proxy pass
         shell: bash
         env:
-          CHURCH_GAMEPLAY_BLEND: church/out/dressing/sanctum_dressing_v1.blend
+          CHURCH_GAMEPLAY_BLEND: church/out/church_zombies_gameplay_v1.blend
           CHURCH_PLAN: church/out/zombies_map_plan.json
           CHURCH_OUT: church/out
           LIBGL_ALWAYS_SOFTWARE: "1"
@@ -163,7 +163,7 @@ jobs:
       - name: Export textured Vril static mesh
         shell: bash
         env:
-          CHURCH_GAMEPLAY_BLEND: church/out/church_zombies_gameplay_v1.blend
+          CHURCH_GAMEPLAY_BLEND: church/out/dressing/sanctum_dressing_v1.blend
           CHURCH_PLAN: church/out/zombies_map_plan.json
           CHURCH_OUT: church/out
           XZIEL_STATIC_TARGET_TRIS: "640000"
