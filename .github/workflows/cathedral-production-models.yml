@@ -158,7 +158,7 @@ jobs:
           if old not in s: raise SystemExit('robe_for_style call not found')
           s=s.replace(old,new,1)
 
-          s=s.replace('priority fidelity pass 13 — covered crowns, flat wet-hair ribbons, active corpse-face damage, visible eye bruising, cleaner Stained glass accents',
+          s=s.replace('priority Sister of Ash pass 14 — covered crowns, flat wet-hair ribbons, active corpse-face damage, visible eye bruising, cleaner Stained glass accents',
                       'priority fidelity pass 14 — slim silhouettes, full crown coverage, fine wet hair strands, no eye-ring goggles, enlarged stained-glass halo')
           p.write_text(s)
           PY
@@ -170,14 +170,14 @@ jobs:
         run: |
           set -euxo pipefail
           mkdir -p assets/generated/cathedral_roster
-          xvfb-run -a -s "-screen 0 1280x1024x24" /opt/blender-4.5.14/blender --background --python tools/blender/build_cathedral_roster.py -- --assets-root /tmp/mhassets --spec tools/blender/cathedral_roster.json --out-dir assets/generated/cathedral_roster --only sister_of_ash,la_llorona,stained_shade
+          xvfb-run -a -s "-screen 0 1280x1024x24" /opt/blender-4.5.14/blender --background --python tools/blender/build_cathedral_roster.py -- --assets-root /tmp/mhassets --spec tools/blender/cathedral_roster.json --out-dir assets/generated/cathedral_roster --only sister_of_ash
 
       - name: Validate production outputs
         shell: bash
         run: |
           set -euxo pipefail
           python3 -m json.tool assets/generated/cathedral_roster/roster_build_summary.json
-          for id in sister_of_ash la_llorona stained_shade; do
+          for id in sister_of_ash; do
             test -s "assets/generated/cathedral_roster/$id/model.blend"
             test -s "assets/generated/cathedral_roster/$id/model.glb"
             test -s "assets/generated/cathedral_roster/$id/model.fbx"
