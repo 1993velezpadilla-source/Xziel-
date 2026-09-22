@@ -51,8 +51,9 @@ api=client.view_api(print_info=False, return_format="dict")
 named=api.get("named_endpoints",{})
 
 def choose_endpoint():
-    # Prefer the textured path if public; otherwise shape-only still gives a real GLB.
-    for candidate in ("/generation_all","/shape_generation"):
+    # Prefer shape-only first. The public generation_all path currently trips
+    # a PyMeshLabException during face-reduction/texture postprocessing.
+    for candidate in ("/shape_generation","/generation_all"):
         if candidate in named:
             return candidate
     for name in named:
@@ -154,7 +155,8 @@ for s in walk(result):
 if not paths:
     fail(f"No downloaded GLB found in Hunyuan result: {result!r}")
 
-# Prefer the textured output when generation_all returns both white and textured meshes.
+# Shape-only returns white_mesh.glb. If a future Space version returns a textured
+# GLB too, prefer it automatically.
 src=next((p for p in paths if "textured" in p.name.lower()), paths[-1])
 dst=OUT_DIR/"llorona_hunyuan_mv_hq.glb"
 shutil.copy2(src,dst)
