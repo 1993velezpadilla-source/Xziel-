@@ -1,0 +1,16 @@
+Crawl	3	Zombie_Basic,Zombie_Chubby,Zombie_Ribcage
+Death	4	Zombie_Basic,Zombie_Chubby,Zombie_Arm,Zombie_Ribcage
+HitReact	4	Zombie_Basic,Zombie_Chubby,Zombie_Arm,Zombie_Ribcage
+Idle	4	Zombie_Basic,Zombie_Chubby,Zombie_Arm,Zombie_Ribcage
+Idle_Attack	2	Zombie_Basic,Zombie_Chubby
+Jump	4	Zombie_Basic,Zombie_Chubby,Zombie_Arm,Zombie_Ribcage
+Jump_Idle	4	Zombie_Basic,Zombie_Chubby,Zombie_Arm,Zombie_Ribcage
+Jump_Land	4	Zombie_Basic,Zombie_Chubby,Zombie_Arm,Zombie_Ribcage
+No	3	Zombie_Basic,Zombie_Chubby,Zombie_Arm
+Punch	3	Zombie_Basic,Zombie_Chubby,Zombie_Arm
+Run	4	Zombie_Basic,Zombie_Chubby,Zombie_Arm,Zombie_Ribcage
+Run_Arms	3	Zombie_Basic,Zombie_Chubby,Zombie_Arm
+Run_Attack	3	Zombie_Basic,Zombie_Chubby,Zombie_Arm
+Walk	4	Zombie_Basic,Zombie_Chubby,Zombie_Arm,Zombie_Ribcage
+Wave	3	Zombie_Basic,Zombie_Chubby,Zombie_Arm
+Yes	3	Zombie_Basic,Zombie_Chubby,Zombie_Arm

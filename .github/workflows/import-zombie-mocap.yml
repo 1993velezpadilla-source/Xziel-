@@ -1,0 +1,92 @@
+name: Import licensed zombie animation libraries
+
+on:
+  push:
+    branches:
+      - feature/zombie-mocap-library-v1
+    paths:
+      - .github/workflows/import-zombie-mocap.yml
+      - tools/zombie_mocap_manifest.tsv
+      - scripts/fetch_zombie_mocap.sh
+      - scripts/fetch_quaternius_ual2.sh
+      - scripts/fetch_quaternius_zombie_apocalypse.sh
+  workflow_dispatch:
+
+concurrency:
+  group: zombie-mocap-${{ github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TARGET_BRANCH: ${{ github.ref_name }}
+    steps:
+      - name: Checkout source branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Download CMU human optical mocap
+        shell: bash
+        run: bash scripts/fetch_zombie_mocap.sh
+
+      - name: Download Quaternius CC0 animation library
+        shell: bash
+        run: bash scripts/fetch_quaternius_ual2.sh
+
+      - name: Download Quaternius CC0 zombie character animations
+        shell: bash
+        run: bash scripts/fetch_quaternius_zombie_apocalypse.sh
+
+      - name: Validate libraries
+        shell: bash
+        run: |
+          expected=$(tail -n +2 tools/zombie_mocap_manifest.tsv | awk 'NF {n++} END {print n+0}')
+          actual=$(find assets/animations/zombie_mocap/cmu -type f -name '*.fbx' | wc -l)
+          catalog_rows=$(tail -n +2 assets/animations/zombie_mocap/catalog.csv | wc -l)
+          echo "CMU_EXPECTED=$expected"
+          echo "CMU_FBX_COUNT=$actual"
+          echo "CATALOG_ROWS=$catalog_rows"
+          test "$actual" -eq "$expected"
+          test "$catalog_rows" -eq "$expected"
+
+          test -s assets/animations/zombie_mocap/quaternius_ual2/UAL2_Standard.glb
+          test -s assets/animations/zombie_mocap/quaternius_ual2/License.txt
+          test -s assets/animations/zombie_mocap/quaternius_ual2/animation_names.txt
+          test -s assets/animations/zombie_mocap/quaternius_ual2/zombie_animation_names.txt
+
+          za_dir=assets/animations/zombie_mocap/quaternius_zombie_apocalypse
+          test "$(find "$za_dir" -maxdepth 1 -type f -name 'Zombie_*.gltf' | wc -l)" -eq 4
+          test -s "$za_dir/License.txt"
+          test -s "$za_dir/animation_catalog.csv"
+          test -s "$za_dir/animation_variants.txt"
+          za_rows=$(tail -n +2 "$za_dir/animation_catalog.csv" | wc -l)
+          echo "ZOMBIE_APOCALYPSE_ANIMATION_INCIDENCES=$za_rows"
+          test "$za_rows" -eq 55
+
+          if find assets/animations/zombie_mocap/cmu -type f -name '*.fbx' -size 0 | grep -q .; then
+            echo "Found zero-byte FBX"
+            exit 1
+          fi
+
+      - name: Commit imported animation files
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/animations/zombie_mocap
+          if git diff --cached --quiet; then
+            echo "No asset changes."
+            exit 0
+          fi
+          git commit -m "assets: import licensed human zombie animation libraries"
+          git fetch origin "${TARGET_BRANCH}"
+          git rebase "origin/${TARGET_BRANCH}"
+          git push origin "HEAD:${TARGET_BRANCH}"
