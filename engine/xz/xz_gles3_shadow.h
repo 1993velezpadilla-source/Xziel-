@@ -83,6 +83,7 @@ typedef struct {
     unsigned int last_sky_batches;
     unsigned int last_water_batches;
     int real_geometry_ready;
+    unsigned int real_scene_ready_streak;
     int real_effects_ready;
     int real_sky_ready;
     int real_water_ready;
