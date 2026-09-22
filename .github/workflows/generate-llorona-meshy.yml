@@ -1,0 +1,76 @@
+name: Generate La Llorona GLB (Meshy)
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_polycount:
+        description: Mobile triangle target
+        required: true
+        default: "60000"
+        type: string
+      texture_resolution:
+        description: PBR texture resolution
+        required: true
+        default: "4k"
+        type: choice
+        options:
+          - 2k
+          - 4k
+  push:
+    branches:
+      - art/llorona-meshy-pipeline
+    paths:
+      - assets/characters/llorona/reference/**
+      - tools/llorona_meshy_pipeline.py
+      - .github/workflows/generate-llorona-meshy.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: llorona-meshy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-llorona-glb:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      MESHY_API_KEY: ${{ secrets.MESHY_API_KEY }}
+      LLORONA_TARGET_POLYCOUNT: ${{ inputs.target_polycount || '60000' }}
+      LLORONA_TEXTURE_RESOLUTION: ${{ inputs.texture_resolution || '4k' }}
+      MESHY_TIMEOUT_SECONDS: "2700"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify Meshy API secret
+        shell: bash
+        run: |
+          if [ -z "$MESHY_API_KEY" ]; then
+            echo "::error::MESHY_API_KEY is missing. Add it under Settings > Secrets and variables > Actions, then rerun this workflow."
+            exit 78
+          fi
+
+      - name: Generate La Llorona GLBs
+        run: python3 tools/llorona_meshy_pipeline.py
+
+      - name: Validate output
+        shell: bash
+        run: |
+          test -s out/llorona/llorona_mobile_60k.glb
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('out/llorona/llorona_mobile_60k.glb')
+          assert p.read_bytes()[:4] == b'glTF'
+          print('GLB validation PASS:', p, p.stat().st_size, 'bytes')
+          PY
+
+      - name: Upload generated 3D package
+        uses: actions/upload-artifact@v4
+        with:
+          name: la-llorona-meshy-glb
+          path: out/llorona/
+          if-no-files-found: error
+          retention-days: 14
