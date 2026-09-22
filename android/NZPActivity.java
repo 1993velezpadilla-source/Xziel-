@@ -142,6 +142,7 @@ public class NZPActivity extends SDLActivity {
                 "-basedir", dataRoot.getAbsolutePath(),
                 "+map", "ndu",
                 "+fog", "96", "768", "16", "20", "24",
+                "+r_shadows", "1",
                 "++attack"
             };
         }
