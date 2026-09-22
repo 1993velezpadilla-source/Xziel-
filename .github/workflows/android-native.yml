@@ -17,6 +17,7 @@ on:
   push:
     branches:
       - main
+      - feature/xz-parity-real-textures
     paths:
       - ".github/workflows/android-native.yml"
       - "android/**"
