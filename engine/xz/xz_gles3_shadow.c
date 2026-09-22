@@ -1151,9 +1151,15 @@ static int XzDrawRealGeometry(
         geometry->index_count;
     state->real_geometry_kind_mask |= kind_mask;
 
+    /*
+     * Cutover parity is scene-relative. A valid level may contain no sprites
+     * (or no alias models), so requiring the fixed 0x7 kind mask can keep the
+     * renderer in MIRROR forever. Require clean real geometry plus texture
+     * coverage for every geometry kind that is actually present.
+     */
     state->real_geometry_ready =
         state->real_geometry_failures == 0u &&
-        (state->real_geometry_kind_mask & 0x7u) == 0x7u;
+        state->real_geometry_kind_mask != 0u;
 
     state->last_texture_batches =
         texture_batches;
@@ -1165,7 +1171,10 @@ static int XzDrawRealGeometry(
         state->real_texture_failures == 0u &&
         texture_batches > 0u &&
         texture_misses == 0u &&
-        (state->real_texture_kind_mask & 0x7u) == 0x7u;
+        state->real_texture_kind_mask != 0u &&
+        (state->real_texture_kind_mask &
+         state->real_geometry_kind_mask) ==
+            state->real_geometry_kind_mask;
 
     state->real_material_state_ready =
         state->real_geometry_failures == 0u &&
