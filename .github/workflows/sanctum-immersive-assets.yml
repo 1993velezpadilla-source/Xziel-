@@ -44,15 +44,15 @@ jobs:
       - name: Fetch verified CC0 core
         shell: bash
         env:
-          EVENT_NAME: \${{ github.event_name }}
-          REQUESTED_TIER: \${{ inputs.tier }}
-          INCLUDE_MODELS: \${{ inputs.include_models }}
+          EVENT_NAME: ${{ github.event_name }}
+          REQUESTED_TIER: ${{ inputs.tier }}
+          INCLUDE_MODELS: ${{ inputs.include_models }}
         run: |
           set -euo pipefail
-          tier="\${REQUESTED_TIER:-core}"
+          tier="${REQUESTED_TIER:-core}"
           model_flag="--include-models"
 
-          if [[ "\${EVENT_NAME}" == "workflow_dispatch" && "\${INCLUDE_MODELS}" == "false" ]]; then
+          if [[ "${EVENT_NAME}" == "workflow_dispatch" && "${INCLUDE_MODELS}" == "false" ]]; then
             model_flag=""
           fi
 
@@ -78,7 +78,7 @@ jobs:
       - name: Upload Sanctum CC0 asset pack
         uses: actions/upload-artifact@v4
         with:
-          name: xziel-sanctum-immersive-cc0-\${{ github.run_number }}
+          name: xziel-sanctum-immersive-cc0-${{ github.run_number }}
           path: dist/sanctum-immersive-assets
           if-no-files-found: error
           compression-level: 6
