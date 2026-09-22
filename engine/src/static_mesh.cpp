@@ -298,6 +298,17 @@ parseStaticMeshXzsm(
                 destination);
         }
 
+        std::array<float, 3> actualMinimum{
+            std::numeric_limits<float>::max(),
+            std::numeric_limits<float>::max(),
+            std::numeric_limits<float>::max(),
+        };
+        std::array<float, 3> actualMaximum{
+            std::numeric_limits<float>::lowest(),
+            std::numeric_limits<float>::lowest(),
+            std::numeric_limits<float>::lowest(),
+        };
+
         for (auto& vertex : batch.vertices) {
             if (!reader.readF32(vertex.x) ||
                 !reader.readF32(vertex.y) ||
@@ -354,6 +365,54 @@ parseStaticMeshXzsm(
                     vertex.rgba.size())) {
                 return failure(
                     StaticMeshParseError::Truncated,
+                    reader.offset(),
+                    destination);
+            }
+
+            const std::array<float, 3> position{
+                vertex.x,
+                vertex.y,
+                vertex.z,
+            };
+
+            for (std::size_t axis = 0U;
+                 axis < position.size();
+                 ++axis) {
+                actualMinimum[axis] =
+                    std::min(
+                        actualMinimum[axis],
+                        position[axis]);
+                actualMaximum[axis] =
+                    std::max(
+                        actualMaximum[axis],
+                        position[axis]);
+            }
+        }
+
+        // Batch bounds drive frustum culling in Vulkan. A stale/corrupt export
+        // can therefore make valid geometry vanish or pop. Verify that every
+        // decoded vertex is actually contained by the serialized bounds.
+        for (std::size_t axis = 0U;
+             axis < actualMinimum.size();
+             ++axis) {
+            const float magnitude =
+                std::max({
+                    1.0f,
+                    std::abs(bounds.minimum[axis]),
+                    std::abs(bounds.maximum[axis]),
+                    std::abs(actualMinimum[axis]),
+                    std::abs(actualMaximum[axis]),
+                });
+            const float tolerance =
+                1.0e-5f +
+                magnitude * 1.0e-4f;
+
+            if (actualMinimum[axis] <
+                    bounds.minimum[axis] - tolerance ||
+                actualMaximum[axis] >
+                    bounds.maximum[axis] + tolerance) {
+                return failure(
+                    StaticMeshParseError::InvalidBatch,
                     reader.offset(),
                     destination);
             }
