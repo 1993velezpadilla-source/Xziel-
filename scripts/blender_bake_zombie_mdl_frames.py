@@ -122,7 +122,7 @@ def export_obj(path):
             use_animation=False,
             use_mesh_modifiers=True,
             use_edges=False,
-            use_normals=True,
+            use_normals=False,
             use_uvs=True,
             use_materials=False,
             keep_vertex_order=True,
@@ -136,7 +136,7 @@ def export_obj(path):
             export_selected_objects=True,
             apply_modifiers=True,
             export_uv=True,
-            export_normals=True,
+            export_normals=False,
             export_materials=False,
             forward_axis="X",
             up_axis="Z"
