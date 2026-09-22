@@ -97,3 +97,25 @@ clip_id	category	variant_label	source_subject	notes
 03_02	walk	uneven_subject03_B	3	Walk on uneven terrain alternate
 120_19	walk	slow_subject120	120	Walk slow; same performer family as explicit Zombie
 120_20	walk	neutral_subject120	120	Neutral walk donor; same performer family as explicit Zombie
+139_19	walk	wounded_leg_139_A	139	Walk Wounded Leg; different performer
+139_20	walk	wounded_leg_139_B	139	Walk Wounded Leg alternate
+139_22	walk	wounded_leg_139_C	139	Walk Wounded Leg alternate
+139_23	walk	wounded_leg_139_D	139	Walk Wounded Leg alternate
+139_24	walk	wounded_leg_139_E	139	Walk Wounded Leg alternate
+139_29	walk	sneak_139_A	139	Sneaking; zombie-suitable donor
+139_31	walk	sneak_139_B	139	Sneaking alternate
+139_32	walk	sneak_139_C	139	Sneaking alternate
+139_33	walk	sneak_139_D	139	Sneaking alternate
+139_34	walk	sneak_139_E	139	Sneaking alternate
+142_02	walk	clumsy_142_A	142	Clumsy performance
+142_03	walk	clumsy_142_B	142	Clumsy performance alternate
+142_05	walk	depressed_142	142	Depressed performance
+142_07	walk	elderly_142	142	Elderlyman performance
+142_12	walk	painful_left_knee_142	142	Painful left knee performance
+142_15	walk	sad_142	142	Sad performance
+142_16	walk	scared_142_A	142	Scared performance
+142_17	walk	scared_142_B	142	Scared performance alternate
+142_22	walk	sneaky_142	142	Sneaky performance
+90_16	death_candidate	fall_on_face_90	90	Human-performed fall on face; death/hit reaction candidate
+90_18	death_candidate	rug_pull_fall_90	90	Human-performed rug-pull fall; death/hit reaction candidate
+90_17	death_candidate	slip_fall_90	90	Human-performed banana-peel slip; death/hit reaction candidate
