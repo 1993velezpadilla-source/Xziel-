@@ -15,7 +15,8 @@ typedef enum {
     XZ_GEOMETRY_ALIAS = 0,
     XZ_GEOMETRY_SURFACE,
     XZ_GEOMETRY_SPRITE,
-    XZ_GEOMETRY_EFFECT
+    XZ_GEOMETRY_EFFECT,
+    XZ_GEOMETRY_IMMEDIATE
 } XzGeometryKind;
 
 typedef enum {
@@ -39,6 +40,7 @@ typedef struct {
     unsigned int blend_dst;
     unsigned int depth_write;
     unsigned int depth_func;
+    unsigned int depth_test_enabled;
     unsigned int alpha_test_enabled;
     unsigned int alpha_func;
     float alpha_ref;
@@ -86,6 +88,7 @@ typedef struct {
     unsigned int surface_batches;
     unsigned int sprite_batches;
     unsigned int effect_batches;
+    unsigned int immediate_batches;
 
     unsigned int dropped_batches;
     unsigned int dropped_vertices;
@@ -129,6 +132,18 @@ int XzGeometryTap_CaptureSpriteQuad(
     const float projection[16]);
 
 int XzGeometryTap_CapturePrimitive(
+    const float *source,
+    unsigned int count,
+    unsigned int stride_floats,
+    unsigned int position_offset,
+    unsigned int texture_offset,
+    XzGeometryPrimitive primitive,
+    int texture_id,
+    const XzGeometryRenderState *state,
+    const float modelview[16],
+    const float projection[16]);
+
+int XzGeometryTap_CaptureImmediate(
     const float *source,
     unsigned int count,
     unsigned int stride_floats,
