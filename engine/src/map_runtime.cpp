@@ -42,6 +42,7 @@ void MapRuntime::clear(
     HordeDirector& horde,
     InteractionSystem& interactions) noexcept {
     interactions.clearTargets();
+    player.clearWalkableSurfaces();
     player.clearStaticObstacles();
     player.clearDynamicObstacles();
     horde.clearNavigationObstacles();
@@ -58,6 +59,7 @@ MapLoadResult MapRuntime::load(
     MapLoadResult result{};
 
     if (definition.boxCount > definition.boxes.size() ||
+        definition.floorCount > definition.floors.size() ||
         definition.doorCount > definition.doors.size() ||
         definition.windowCount > definition.windows.size() ||
         definition.interactionCount > definition.interactions.size() ||
@@ -123,6 +125,30 @@ MapLoadResult MapRuntime::load(
         }
         result.zombieSpawns =
             definition.zombieSpawnCount;
+    }
+
+    for (std::size_t i = 0;
+         i < definition.floorCount;
+         ++i) {
+        const auto& floor =
+            definition.floors[i];
+
+        if (floor.id == 0U ||
+            !finiteVec3(floor.bounds.minimum) ||
+            !finiteVec3(floor.bounds.maximum) ||
+            floor.bounds.minimum.x >
+                floor.bounds.maximum.x ||
+            floor.bounds.minimum.y >
+                floor.bounds.maximum.y ||
+            floor.bounds.minimum.z >
+                floor.bounds.maximum.z ||
+            !player.addWalkableSurface(
+                floor.bounds)) {
+            clear(player, horde, interactions);
+            return {};
+        }
+
+        ++result.walkableFloors;
     }
 
     for (std::size_t i = 0; i < definition.boxCount; ++i) {
