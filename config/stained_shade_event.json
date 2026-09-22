@@ -1,0 +1,167 @@
+{
+  "version": 1,
+  "encounter": "stained_shade",
+  "role": "church_ritual_special",
+  "earliest_round": 7,
+  "requires_church_zone_unlocked": true,
+  "manifestation": {
+    "round_start_chance": 0.04,
+    "midround_chance": 0.03,
+    "cooldown_rounds": 3,
+    "min_player_distance_m": 10,
+    "never_spawn_in_direct_player_view": true,
+    "preferred_points": [
+      "altar_side",
+      "nave_shadow",
+      "confessional",
+      "stained_window_bay",
+      "bell_tower_entry"
+    ]
+  },
+  "ritual_window": {
+    "audio_id": "stained_shade_prayer_v5_enchanted_horror",
+    "duration_s": 81.944,
+    "lifetime_follows_audio_eof": true,
+    "interaction_open_while_audio_playing": true,
+    "ignore_at_audio_end": "dissipate_neutral",
+    "attack_before_resolution": "judgment_boss"
+  },
+  "interaction": {
+    "prompt_key": "stained_shade_confess",
+    "max_distance_m": 2.2,
+    "hold_time_s": 0.65,
+    "max_uses_per_manifestation": 1,
+    "no_outcome_preview": true
+  },
+  "omen_glow": {
+    "shown_subtly_on_body_and_halo": true,
+    "player_ui_label": false,
+    "colors": {
+      "cyan": {
+        "blessing": 0.7,
+        "penance": 0.2,
+        "judgment": 0.1
+      },
+      "amber": {
+        "blessing": 0.3,
+        "penance": 0.5,
+        "judgment": 0.2
+      },
+      "magenta": {
+        "blessing": 0.15,
+        "penance": 0.3,
+        "judgment": 0.55
+      }
+    },
+    "note": "Color shifts odds but never guarantees the result; players can learn the pattern without solving it completely."
+  },
+  "outcomes": {
+    "blessing": {
+      "action": "grant_stained_grace_then_dissipate",
+      "rewards": {
+        "glass_ward": 0.38,
+        "max_ammo": 0.24,
+        "carpenter": 0.18,
+        "insta_kill": 0.12,
+        "nuke": 0.06,
+        "wonder_weapon": 0.02
+      }
+    },
+    "penance": {
+      "action": "mark_player_until_prayer_end",
+      "marked_effects": {
+        "nearby_zombie_speed_bonus": 0.1,
+        "marked_player_damage_taken_bonus": 0.08,
+        "no_second_interaction": true
+      },
+      "success_condition": "player_alive_at_audio_eof",
+      "success_reward": {
+        "max_ammo": 0.34,
+        "insta_kill": 0.24,
+        "carpenter": 0.18,
+        "nuke": 0.12,
+        "glass_ward": 0.08,
+        "wonder_weapon": 0.04
+      },
+      "failure": "shade_dissipates_no_reward"
+    },
+    "judgment": {
+      "action": "interrupt_prayer_and_enter_boss"
+    }
+  },
+  "glass_ward": {
+    "id": "glass_ward",
+    "display_name": "Glass Ward",
+    "effect": "negate_next_lethal_hit_and_leave_player_at_1_hp",
+    "expires_after_rounds": 3,
+    "max_held_per_player": 1
+  },
+  "boss": {
+    "min_health": 2200,
+    "round_zombie_health_multiplier": 6.5,
+    "player_scale": [
+      1,
+      1.5,
+      1.95,
+      2.35
+    ],
+    "attacks": {
+      "shard_volley": {
+        "damage_per_hit": 28,
+        "max_hits_per_cast": 2,
+        "cooldown_s": 4.8,
+        "telegraph_s": 0.55
+      },
+      "halo_burst": {
+        "damage": 48,
+        "radius_m": 5.5,
+        "cooldown_s": 7.5,
+        "telegraph_s": 0.85
+      },
+      "stained_beam": {
+        "damage": 42,
+        "sweep_duration_s": 1.4,
+        "cooldown_s": 8.5,
+        "blocked_by_world_geometry": true
+      }
+    },
+    "visual_damage_states": [
+      {
+        "health_fraction_max": 1,
+        "state": "intact_shade"
+      },
+      {
+        "health_fraction_max": 0.75,
+        "state": "one_arm_shattered"
+      },
+      {
+        "health_fraction_max": 0.5,
+        "state": "lower_half_fade"
+      },
+      {
+        "health_fraction_max": 0.25,
+        "state": "headless_or_torso_drift"
+      },
+      {
+        "health_fraction_max": 0,
+        "state": "broken_glass_dissipate"
+      }
+    ],
+    "death_reward": {
+      "selection": "weighted_random_one",
+      "entries": {
+        "max_ammo": 0.3,
+        "carpenter": 0.24,
+        "insta_kill": 0.2,
+        "nuke": 0.12,
+        "glass_ward": 0.09,
+        "wonder_weapon": 0.05
+      }
+    }
+  },
+  "separation_from_llorona": {
+    "prayer_belongs_to": "stained_shade",
+    "llorona_uses_prayer": false,
+    "fragmento_de_misericordia_drops_here": false
+  }
+}
