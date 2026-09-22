@@ -1,0 +1,12 @@
+SANCTUM_FREE_MODELS_READY 8 / 11
+male_city_zombie ok converted from .fbx
+mobile_ready_zombie ok converted from .fbx
+thin_zombie ok converted from .blend
+monk conversion_failed 
+old_lady conversion_failed 
+female_character ok native OBJ
+giant_mutant conversion_failed 
+lowpoly_kid ok converted from .blend
+monster ok native OBJ
+female_body ok native OBJ
+male_3d ok native OBJ

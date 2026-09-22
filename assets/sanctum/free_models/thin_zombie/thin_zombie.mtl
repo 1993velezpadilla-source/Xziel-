@@ -1,0 +1,11 @@
+# File produced by Open Asset Import Library (http://www.assimp.sf.net)
+# (assimp v5.3.0)
+
+newmtl zombie
+Kd 0.800000012 0.800000012 0.800000012
+Ka 0 0 0
+Ks 1 1 1
+Ns 50
+illum 2
+map_Kd //make_zom_new.png
+

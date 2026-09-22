@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Real free third-party base models for Sanctum character production; replace primitive generated proxies.",
+  "models": [
+    {
+      "id": "male_city_zombie",
+      "status": "ok",
+      "license": "CC0",
+      "sourcePage": "https://opengameart.org/node/111870",
+      "sourceFile": "_sanctum_extract/male_city_zombie/InfectedCityMan.fbx",
+      "conversion": "converted from .fbx",
+      "commercialUse": true,
+      "attributionRequired": false
+    },
+    {
+      "id": "mobile_ready_zombie",
+      "status": "ok",
+      "license": "CC0",
+      "sourcePage": "https://opengameart.org/content/mobile-ready-zombie",
+      "sourceFile": "_sanctum_extract/mobile_ready_zombie/Zombie.fbx",
+      "conversion": "converted from .fbx",
+      "commercialUse": true,
+      "attributionRequired": false
+    },
+    {
+      "id": "thin_zombie",
+      "status": "ok",
+      "license": "CC-BY-3.0",
+      "sourcePage": "https://opengameart.org/content/thin-zombie-awake-zombie-asset",
+      "sourceFile": "_sanctum_extract/thin_zombie/new_thin_zombie.blend",
+      "conversion": "converted from .blend",
+      "commercialUse": true,
+      "attributionRequired": true
+    },
+    {
+      "id": "monk",
+      "status": "conversion_failed",
+      "license": "CC0",
+      "sourcePage": "https://opengameart.org/content/monk",
+      "sourceFile": null,
+      "conversion": "",
+      "commercialUse": true,
+      "attributionRequired": false
+    },
+    {
+      "id": "old_lady",
+      "status": "conversion_failed",
+      "license": "CC0",
+      "sourcePage": "https://opengameart.org/content/old-lady",
+      "sourceFile": null,
+      "conversion": "",
+      "commercialUse": true,
+      "attributionRequired": false
+    },
+    {
+      "id": "female_character",
+      "status": "ok",
+      "license": "CC0",
+      "sourcePage": "https://opengameart.org/content/female-character",
+      "sourceFile": "_sanctum_extract/female_character/KzuOpenGameArt_3uhox/FemaleOpenGameArt.obj",
+      "conversion": "native OBJ",
+      "commercialUse": true,
+      "attributionRequired": false
+    },
+    {
+      "id": "giant_mutant",
+      "status": "conversion_failed",
+      "license": "CC0",
+      "sourcePage": "https://opengameart.org/content/giant-mutant",
+      "sourceFile": null,
+      "conversion": "",
+      "commercialUse": true,
+      "attributionRequired": false
+    },
+    {
+      "id": "lowpoly_kid",
+      "status": "ok",
+      "license": "CC-BY-4.0",
+      "sourcePage": "https://opengameart.org/content/lowpolykid",
+      "sourceFile": "_sanctum_extract/lowpoly_kid/Low_Poly Child-Character/Main_Char_Animation_Walk&Run_with_Lamp_Before_Baking_the_Animation.blend",
+      "conversion": "converted from .blend",
+      "commercialUse": true,
+      "attributionRequired": true
+    },
+    {
+      "id": "monster",
+      "status": "ok",
+      "license": "CC0",
+      "sourcePage": "https://opengameart.org/content/monster-3",
+      "sourceFile": "_sanctum_extract/monster/monster.obj",
+      "conversion": "native OBJ",
+      "commercialUse": true,
+      "attributionRequired": false
+    },
+    {
+      "id": "female_body",
+      "status": "ok",
+      "license": "CC0",
+      "sourcePage": "https://opengameart.org/content/female-body",
+      "sourceFile": "_sanctum_extract/female_body/female_body.obj",
+      "conversion": "native OBJ",
+      "commercialUse": true,
+      "attributionRequired": false
+    },
+    {
+      "id": "male_3d",
+      "status": "ok",
+      "license": "CC0",
+      "sourcePage": "https://opengameart.org/content/3d-male-0",
+      "sourceFile": "_sanctum_extract/male_3d/male_3d.obj",
+      "conversion": "native OBJ",
+      "commercialUse": true,
+      "attributionRequired": false
+    }
+  ]
+}

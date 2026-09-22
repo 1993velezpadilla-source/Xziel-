@@ -1,0 +1,29 @@
+# File produced by Open Asset Import Library (http://www.assimp.sf.net)
+# (assimp v5.3.0)
+
+newmtl City_Man_Infected_Outfit1
+Kd 0.400000006 0.400000006 0.400000006
+Ka 0 0 0
+Ks 0.5 0.5 0.5
+Ke 0 0 0
+Tf 0 0 0
+d 1
+Ns 20
+illum 2
+
+newmtl City_Infected_Man_Body1
+Kd 0.400000006 0.400000006 0.400000006
+Ka 0 0 0
+Ks 0.5 0.5 0.5
+Ke 0 0 0
+Tf 0 0 0
+d 1
+Ns 20
+illum 2
+
+newmtl defaultPolygonShader1
+Kd 0.400000006 0.400000006 0.400000006
+Ka 0 0 0
+d 1
+illum 1
+
