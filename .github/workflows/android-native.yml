@@ -23,6 +23,7 @@ on:
       - feature/xz-fog-renderstate-parity
       - feature/xz-effects-geometry-parity
       - feature/xz-sky-water-parity
+      - feature/xz-final-legacy-parity
     paths:
       - ".github/workflows/android-native.yml"
       - "android/**"
@@ -729,15 +730,21 @@ jobs:
             exit 1
           fi
 
-          if ! grep -Eq "XZIEL-XZ.*parity specials current=[1-9][0-9]* sky=[1-9][0-9]* water=[0-9]+ skySeen=1 waterSeen=[01]" dist/xziel-logcat.txt; then
+          if ! grep -Eq "XZIEL-XZ.*parity specials current=[1-9][0-9]* sky=[1-9][0-9]* water=[0-9]+ shadow=[0-9]+ polyblend=[0-9]+ skySeen=1 waterSeen=[01] shadowSeen=[01] polyblendSeen=[01] clear=[^ ]+" dist/xziel-logcat.txt; then
             echo "Xz sky parity did not capture/replay a live layered/flat/skybox path."
             grep -E "XZIEL-XZ.*parity specials|XZIEL-XZ.*parity geometry" dist/xziel-logcat.txt | tail -n 220 || true
             exit 1
           fi
 
-          if ! grep -Eq "XZIEL-XZ.*parity specials current=[1-9][0-9]* sky=[0-9]+ water=[1-9][0-9]* skySeen=[01] waterSeen=1" dist/xziel-logcat.txt; then
+          if ! grep -Eq "XZIEL-XZ.*parity specials current=[1-9][0-9]* sky=[0-9]+ water=[1-9][0-9]* shadow=[0-9]+ polyblend=[0-9]+ skySeen=[01] waterSeen=1 shadowSeen=[01] polyblendSeen=[01] clear=[^ ]+" dist/xziel-logcat.txt; then
             echo "Xz water parity did not capture/replay live Dung3on water geometry."
             grep -E "XZIEL-XZ.*parity specials|XZIEL-XZ.*parity geometry" dist/xziel-logcat.txt | tail -n 220 || true
+            exit 1
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*parity specials .*shadowSeen=1 polyblendSeen=1 clear=-?[0-9]+\.[0-9]+/-?[0-9]+\.[0-9]+/-?[0-9]+\.[0-9]+/1\.000" dist/xziel-logcat.txt; then
+            echo "Xz final legacy parity did not replay alias shadows + damage/bonus polyblend with captured clear color."
+            grep -E "XZIEL-XZ.*parity specials|XZIEL-XZ.*parity geometry|XZIEL-XZ.*parity present" dist/xziel-logcat.txt | tail -n 260 || true
             exit 1
           fi
 
@@ -765,7 +772,7 @@ jobs:
             exit 1
           fi
 
-          echo "Xziel remained alive; REAL_GEOMETRY + REAL_TEXTURES + MATERIAL_LIGHTMAP + FOG_RASTER + EFFECTS + SKY_WATER + VISIBLE_PRESENT parity are live and MODERN is active."
+          echo "Xziel remained alive; REAL_GEOMETRY + REAL_TEXTURES + MATERIAL_LIGHTMAP + FOG_RASTER + EFFECTS + SKY_WATER + SHADOW_POLYBLEND_CLEAR + VISIBLE_PRESENT parity are live and MODERN is active."
 
       - name: Upload runtime diagnostics
         if: always()
