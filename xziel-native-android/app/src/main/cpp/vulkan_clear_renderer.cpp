@@ -4321,7 +4321,19 @@ bool VulkanClearRenderer::recordDrawCommand(
                 zombieState.stridePhase *
                 6.28318530718f);
 
-        const float staggerOffset =
+        const float zombieYaw =
+            zombieState.yawRadians;
+
+        const float forwardX =
+            std::sin(zombieYaw);
+        const float forwardZ =
+            std::cos(zombieYaw);
+        const float rightX =
+            std::cos(zombieYaw);
+        const float rightZ =
+            -std::sin(zombieYaw);
+
+        const float staggerSide =
             zombieState.staggered
             ? std::sin(
                   safeTime *
@@ -4333,125 +4345,291 @@ bool VulkanClearRenderer::recordDrawCommand(
 
         const float attackLunge =
             zombieState.attack
-            ? 0.18f
+            ? 0.16f
             : 0.0f;
 
+        // Apply all presentation offsets in the actor's local basis. The old
+        // proxy placed limbs on global +/-X and lunged toward global -Z, so a
+        // zombie could move toward the player while its body read backwards.
         const float zombieX =
             zombieState.x +
-            staggerOffset;
+            rightX * staggerSide +
+            forwardX * attackLunge;
 
         const float zombieY =
             zombieState.y;
 
         const float zombieZ =
-            zombieState.z -
-            attackLunge;
+            zombieState.z +
+            rightZ * staggerSide +
+            forwardZ * attackLunge;
 
-        // Rounded low-poly humanoid proxy. This remains generated geometry,
-        // but it deliberately avoids the old stack-of-cubes look while the
-        // external skinned-mesh importer is being integrated.
+        const auto anchor = [&](
+            float side,
+            float up,
+            float forward) noexcept {
+            return std::array<float, 3>{
+                zombieX +
+                    rightX * side +
+                    forwardX * forward,
+                zombieY + up,
+                zombieZ +
+                    rightZ * side +
+                    forwardZ * forward,
+            };
+        };
+
+        // Ground contact follows each zombie's actual navigation-floor Y.
         drawBox(
             zombieX,
-            -1.472f,
+            zombieY + 0.012f,
             zombieZ,
-            0.38f,
-            0.010f,
-            0.26f,
+            0.34f,
+            0.008f,
+            0.24f,
             7.0f);
 
-        const float zombieYaw =
-            zombieState.yawRadians;
+        const float lean =
+            zombieState.staggered
+            ? staggerSide * 4.0f
+            : (zombieState.attack ? -0.10f : 0.035f);
+
+        // Tattered torso + hips.
+        drawRounded(
+            zombieX,
+            zombieY + 1.02f,
+            zombieZ,
+            0.30f,
+            0.48f,
+            0.20f,
+            18.0f,
+            zombieYaw,
+            lean);
+
+        drawRounded(
+            zombieX,
+            zombieY + 0.66f,
+            zombieZ - 0.01f,
+            0.27f,
+            0.20f,
+            0.21f,
+            18.0f,
+            zombieYaw,
+            lean * 0.55f);
+
+        // Neck and head. A small forward jaw plus eye sockets make facing
+        // direction readable even though this is still generated geometry.
+        const auto neck =
+            anchor(
+                0.0f,
+                1.46f,
+                0.0f);
+
+        drawCylinder(
+            neck[0],
+            neck[1],
+            neck[2],
+            0.085f,
+            0.085f,
+            0.12f,
+            17.0f,
+            zombieYaw,
+            1.570796327f);
+
+        const auto head =
+            anchor(
+                0.0f,
+                1.68f,
+                0.015f);
+
+        drawRounded(
+            head[0],
+            head[1],
+            head[2],
+            0.18f,
+            0.225f,
+            0.17f,
+            17.0f,
+            zombieYaw,
+            zombieState.attack
+                ? -0.10f
+                : 0.045f);
+
+        const auto jaw =
+            anchor(
+                0.0f,
+                1.58f,
+                0.155f);
+
+        drawRounded(
+            jaw[0],
+            jaw[1],
+            jaw[2],
+            0.115f,
+            0.075f,
+            0.075f,
+            17.0f,
+            zombieYaw,
+            -0.08f);
+
+        for (float eyeSide : {-0.060f, 0.060f}) {
+            const auto eye =
+                anchor(
+                    eyeSide,
+                    1.72f,
+                    0.165f);
+
+            drawRounded(
+                eye[0],
+                eye[1],
+                eye[2],
+                0.030f,
+                0.028f,
+                0.025f,
+                7.0f,
+                zombieYaw,
+                0.0f);
+        }
 
         const float legSwing =
-            stride * 0.46f;
+            stride * 0.42f;
 
         const float armSwing =
             zombieState.attack
-            ? -1.10f
-            : -legSwing * 0.78f;
+            ? 0.0f
+            : -legSwing * 0.72f;
 
-        drawRounded(
-            zombieX,
-            zombieY + 1.06f,
-            zombieZ,
-            0.36f,
-            0.58f,
-            0.24f,
-            4.0f,
-            zombieYaw,
-            zombieState.staggered
-                ? staggerOffset * 3.5f
-                : 0.0f);
+        // Arms anchor in local right/forward space, not global X/Z.
+        for (int sideSign : {-1, 1}) {
+            const float side =
+                static_cast<float>(
+                    sideSign);
 
-        drawRounded(
-            zombieX,
-            zombieY + 1.73f,
-            zombieZ + 0.005f,
-            0.235f,
-            0.255f,
-            0.225f,
-            5.0f,
-            zombieYaw,
-            zombieState.attack
-                ? -0.12f
-                : 0.04f);
+            const float shoulderSide =
+                side * 0.315f;
 
-        drawRounded(
-            zombieX - 0.39f,
-            zombieY + 1.08f,
-            zombieZ -
-                attackLunge * 0.48f,
-            0.115f,
-            0.47f,
-            0.115f,
-            5.0f,
-            zombieYaw,
-            armSwing);
+            const float armForward =
+                zombieState.attack
+                ? 0.27f
+                : side * stride * 0.025f;
 
-        drawRounded(
-            zombieX + 0.39f,
-            zombieY + 1.08f,
-            zombieZ -
-                attackLunge * 0.48f,
-            0.115f,
-            0.47f,
-            0.115f,
-            5.0f,
-            zombieYaw,
-            -armSwing);
+            const float armUp =
+                zombieState.attack
+                ? 1.23f
+                : 1.08f;
 
-        drawRounded(
-            zombieX - 0.16f,
-            zombieY + 0.38f,
-            zombieZ,
-            0.135f,
-            0.45f,
-            0.145f,
-            4.0f,
-            zombieYaw,
-            legSwing);
+            const auto arm =
+                anchor(
+                    shoulderSide,
+                    armUp,
+                    armForward);
 
-        drawRounded(
-            zombieX + 0.16f,
-            zombieY + 0.38f,
-            zombieZ,
-            0.135f,
-            0.45f,
-            0.145f,
-            4.0f,
-            zombieYaw,
-            -legSwing);
+            const float attackSpread =
+                side * 0.08f;
+
+            drawCylinder(
+                arm[0],
+                arm[1],
+                arm[2],
+                0.100f,
+                0.095f,
+                0.36f,
+                17.0f,
+                zombieYaw + attackSpread,
+                zombieState.attack
+                    ? 0.18f
+                    : 1.48f +
+                        side *
+                        armSwing *
+                        0.52f);
+
+            const auto sleeve =
+                anchor(
+                    side * 0.285f,
+                    zombieState.attack
+                        ? 1.17f
+                        : 1.21f,
+                    zombieState.attack
+                        ? 0.04f
+                        : 0.0f);
+
+            drawRounded(
+                sleeve[0],
+                sleeve[1],
+                sleeve[2],
+                0.135f,
+                0.19f,
+                0.13f,
+                18.0f,
+                zombieYaw,
+                side * armSwing * 0.25f);
+        }
+
+        // Legs and feet use the same actor-local basis, so stride remains
+        // visually aligned with the direction the zombie is actually moving.
+        for (int sideSign : {-1, 1}) {
+            const float side =
+                static_cast<float>(
+                    sideSign);
+
+            const float step =
+                side * legSwing;
+
+            const auto leg =
+                anchor(
+                    side * 0.145f,
+                    0.39f,
+                    step * 0.055f);
+
+            drawCylinder(
+                leg[0],
+                leg[1],
+                leg[2],
+                0.115f,
+                0.105f,
+                0.37f,
+                18.0f,
+                zombieYaw,
+                1.570796327f +
+                    step * 0.52f);
+
+            const auto foot =
+                anchor(
+                    side * 0.145f,
+                    0.095f,
+                    0.11f +
+                        step * 0.095f);
+
+            drawRounded(
+                foot[0],
+                foot[1],
+                foot[2],
+                0.135f,
+                0.080f,
+                0.21f,
+                18.0f,
+                zombieYaw,
+                0.04f);
+        }
 
         if (zombieState.healthRatio <
             0.70f) {
-            drawBox(
-                zombieX + 0.16f,
-                zombieY + 1.24f,
-                zombieZ - 0.23f,
-                0.08f,
+            const auto wound =
+                anchor(
+                    0.14f,
+                    1.22f,
+                    0.205f);
+
+            drawRounded(
+                wound[0],
+                wound[1],
+                wound[2],
+                0.085f,
                 0.15f,
-                0.025f,
-                6.0f);
+                0.032f,
+                6.0f,
+                zombieYaw,
+                0.0f);
         }
     }
 
