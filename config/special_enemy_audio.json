@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "sample_rate_target_hz": 48000,
+  "map_intro": {
+    "id": "map_intro_creepy_ambient",
+    "source": "Creepy HD Audio [WARNING _ REALLY CREEPY].mp3",
+    "duration_s": 113.806,
+    "play_once_on_map_intro": true,
+    "duck_under_dialogue_db": -5
+  },
+  "shared": {
+    "far_rage_scream": {
+      "id": "shared_far_rage_scream",
+      "source": "SCARY WOMAN SCREAM FROM A FAR DISTANCE [SKEcrib8Y1Y] (1).mp3",
+      "allowed_for": [
+        "la_llorona",
+        "stained_shade"
+      ]
+    },
+    "hit_reactions": {
+      "ids": [
+        "shared_female_hit_01",
+        "shared_female_hit_02",
+        "shared_female_hit_03_dark"
+      ],
+      "source": "Woman Screaming in Pain Sound Effect.mp3",
+      "randomize": true,
+      "anti_repeat": true
+    }
+  },
+  "la_llorona": {
+    "main_voice": {
+      "id": "llorona_main_user_selected_v1",
+      "source": "Audio la Llorona (1).mp3",
+      "duration_s": 83.987
+    },
+    "child_found": {
+      "id": "llorona_child_found_scream_dark",
+      "source": "Woman Screaming in Pain Sound Effect.mp3",
+      "duration_s": 12.507
+    }
+  },
+  "stained_shade": {
+    "prayer": {
+      "id": "stained_shade_prayer_v6_with_llorona_bed",
+      "base": "Stained_Shade_PRAYER_V5_ENCHANTED_HORROR_MASTER.wav",
+      "ambience_bed": "La llorona sounds.mp3",
+      "ambience_bed_mix": "very_low",
+      "duration_s": 81.944
+    },
+    "judgment_laugh": {
+      "id": "stained_shade_evil_laugh_rage",
+      "source": "Evil Woman Laughter _SOUND EFFECT_ [bRuNyLFdAlY] (1).mp3"
+    },
+    "hurt_laugh": {
+      "ids": [
+        "stained_shade_hurt_laugh_01",
+        "stained_shade_hurt_laugh_02",
+        "stained_shade_hurt_laugh_03"
+      ],
+      "source": "GIRL EVIL LAUGH SOUND [cNktmGPsWNg] (1).mp3"
+    },
+    "chase_scream": {
+      "id": "stained_shade_chase_scream",
+      "source": "🎵Free No Copyright Female Girl Screaming sound effect fx [8sXNXpdQaew].mp3"
+    }
+  },
+  "online_reference_candidate": {
+    "purpose": "optional future dedicated female hit/hurt reaction",
+    "name": "Female Horror Pain Sound (Vol 003)",
+    "creator": "AlesiaDavina",
+    "source_site": "Pixabay",
+    "license_note": "Pixabay Content License; verify current license before shipping"
+  }
+}
