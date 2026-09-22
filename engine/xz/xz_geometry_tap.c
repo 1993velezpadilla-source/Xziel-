@@ -46,6 +46,21 @@ static void XzCopyRenderState(
     dst->alpha_func = 0x0204u;      /* GL_GREATER */
     dst->alpha_ref = 0.666f;
     dst->texture_env_mode = 0x2100u;/* GL_MODULATE */
+    dst->fog_enabled = 0u;
+    dst->fog_start = 0.0f;
+    dst->fog_end = -1.0f;
+    dst->fog_color[0] = 0.5f;
+    dst->fog_color[1] = 0.5f;
+    dst->fog_color[2] = 0.5f;
+    dst->fog_color[3] = 1.0f;
+    dst->depth_range[0] = 0.0f;
+    dst->depth_range[1] = 1.0f;
+    dst->cull_enabled = 0u;
+    dst->cull_face = 0x0404u;       /* GL_FRONT */
+    dst->front_face = 0x0901u;       /* GL_CCW */
+    dst->polygon_offset_enabled = 0u;
+    dst->polygon_offset_factor = 0.0f;
+    dst->polygon_offset_units = 0.0f;
 }
 
 static XzGeometryFrame *XzWriteFrame(void)
@@ -398,7 +413,12 @@ int XzGeometryTap_SelfTest(void)
     if (frame->batches[0].state.color[0] != 1.0f ||
         frame->batches[0].state.depth_write != 1u ||
         frame->batches[0].state.depth_func != 0x0203u ||
-        frame->batches[0].state.texture_env_mode != 0x2100u)
+        frame->batches[0].state.texture_env_mode != 0x2100u ||
+        frame->batches[0].state.fog_enabled != 0u ||
+        frame->batches[0].state.depth_range[0] != 0.0f ||
+        frame->batches[0].state.depth_range[1] != 1.0f ||
+        frame->batches[0].state.cull_face != 0x0404u ||
+        frame->batches[0].state.front_face != 0x0901u)
         return 0;
 
     return 1;

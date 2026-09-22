@@ -132,6 +132,18 @@ public class NZPActivity extends SDLActivity {
 
         boolean hudPreview = getIntent() != null
             && getIntent().getBooleanExtra("xziel_ci_hud_preview", false);
+        boolean fogPreview = getIntent() != null
+            && getIntent().getBooleanExtra("xziel_ci_fog_preview", false);
+
+        if (hudPreview && fogPreview) {
+            // CI parity probe: map first, then apply a deterministic linear fog
+            // so GLES3 must reproduce live legacy FOG_START/END/COLOR state.
+            return new String[] {
+                "-basedir", dataRoot.getAbsolutePath(),
+                "+map", "ndu",
+                "+fog", "96", "768", "16", "20", "24"
+            };
+        }
 
         if (hudPreview) {
             // CI-only visual validation path. "ndu" is the bundled Nacht der

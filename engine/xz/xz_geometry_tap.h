@@ -36,6 +36,20 @@ typedef struct {
     unsigned int alpha_func;
     float alpha_ref;
     unsigned int texture_env_mode;
+
+    unsigned int fog_enabled;
+    float fog_start;
+    float fog_end;
+    float fog_color[4];
+
+    float depth_range[2];
+    unsigned int cull_enabled;
+    unsigned int cull_face;
+    unsigned int front_face;
+
+    unsigned int polygon_offset_enabled;
+    float polygon_offset_factor;
+    float polygon_offset_units;
 } XzGeometryRenderState;
 
 typedef struct {

@@ -20,6 +20,7 @@ on:
       - feature/xz-parity-real-textures
       - feature/xz-parity-visible-present
       - feature/xz-material-lightmap-parity
+      - feature/xz-fog-renderstate-parity
     paths:
       - ".github/workflows/android-native.yml"
       - "android/**"
@@ -354,7 +355,7 @@ jobs:
           "$ADB" shell settings put secure immersive_mode_confirmations confirmed || true
           "$ADB" logcat -c
           "$ADB" shell am force-stop com.xziel.nzp || true
-          "$ADB" shell am start -W -n com.xziel.nzp/org.libsdl.app.NZPActivity             --ez xziel_ci_hud_preview true             > dist/am-start.txt 2>&1 || true
+          "$ADB" shell am start -W -n com.xziel.nzp/org.libsdl.app.NZPActivity             --ez xziel_ci_hud_preview true             --ez xziel_ci_fog_preview true             > dist/am-start.txt 2>&1 || true
 
           # Wait for the actual processed-frame marker instead of assuming
           # emulator/SwiftShader startup completes at a fixed wall-clock time.
@@ -699,6 +700,12 @@ jobs:
             exit 1
           fi
 
+          if ! grep -Eq "XZIEL-XZ.*parity raster fog=[1-9][0-9]* cull=[1-9][0-9]* depthRange=[1-9][0-9]* offset=[0-9]+ ready=1" dist/xziel-logcat.txt; then
+            echo "Xz fog/raster parity did not replay deterministic fog, culling and viewmodel depth-range state."
+            grep -E "XZIEL-XZ.*parity raster|XZIEL-XZ.*parity material|XZIEL-XZ.*phase16 heartbeat" dist/xziel-logcat.txt | tail -n 180 || true
+            exit 1
+          fi
+
           if ! grep -Eq "XZIEL-XZ.*parity present context=1 attempts=[1-9][0-9]* success=[1-9][0-9]* fail=0 draws=[1-9][0-9]* streak=[1-9][0-9]* render=[1-9][0-9]*x[1-9][0-9]* surface=[1-9][0-9]*x[1-9][0-9]* ready=1" dist/xziel-logcat.txt; then
             echo "Xz visible-present parity did not sustain a clean GLES3 pre-HUD composite."
             grep -E "XZIEL-XZ.*parity present|XZIEL-XZ.*phase16 heartbeat" dist/xziel-logcat.txt | tail -n 180 || true
@@ -711,7 +718,7 @@ jobs:
             exit 1
           fi
 
-          echo "Xziel remained alive; REAL_GEOMETRY + REAL_TEXTURES + MATERIAL_LIGHTMAP + VISIBLE_PRESENT parity are live and MODERN is active."
+          echo "Xziel remained alive; REAL_GEOMETRY + REAL_TEXTURES + MATERIAL_LIGHTMAP + FOG_RASTER + VISIBLE_PRESENT parity are live and MODERN is active."
 
       - name: Upload runtime diagnostics
         if: always()
