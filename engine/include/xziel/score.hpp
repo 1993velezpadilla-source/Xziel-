@@ -60,6 +60,11 @@ public:
     [[nodiscard]] bool spend(
         std::uint32_t cost) noexcept;
 
+    void setAwardMultiplier(
+        float multiplier) noexcept;
+
+    [[nodiscard]] float awardMultiplier() const noexcept;
+
     [[nodiscard]] const ScoreFrame&
     frame() const noexcept;
 
@@ -74,6 +79,7 @@ private:
 
     ScoreConfig config_{};
     ScoreFrame frame_{};
+    float awardMultiplier_ = 1.0f;
 };
 
 } // namespace xziel
