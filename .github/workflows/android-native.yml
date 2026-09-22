@@ -444,7 +444,9 @@ jobs:
           cat dist/hud-visual-report.txt
 
           if [[ "$VISUAL_OK" != "1" ]]; then
+            "$ADB" logcat -d -v threadtime > dist/xziel-logcat-nacht.txt || true
             echo "HUD preview remained blank/flat after all retries."
+            grep -E "XZIEL-XZ.*parity geometry|XZIEL-XZ.*parity texture|XZIEL-XZ.*parity present|XZIEL-XZ.*phase16 heartbeat" dist/xziel-logcat-nacht.txt | tail -n 220 || true
             exit 1
           fi
 
