@@ -297,4 +297,32 @@ if "sole architectural visual authority" not in text:
     text = text.replace(old, new, 1)
 
 rmain.write_text(text, encoding="utf-8")
+
+# When the native XZ renderer wins visible-present ownership, it composites the
+# modern world immediately before the HUD and then restores GL4ES. The Sanctum
+# XZSM bridge is intentionally separate from Vril's brush/alias geometry tap,
+# so redraw only the HQ church after a successful modern composite. The legacy
+# depth buffer still contains the same camera/world occlusion, preserving depth
+# relationships while keeping the historical scan visible.
+screen_path = source / "render" / "r_screen.c"
+if screen_path.is_file():
+    screen = screen_path.read_text(encoding="utf-8")
+    marker = "\t\tXzAndroidRuntime_CompositeVisibleWorld();\n"
+    if marker in screen and "XZSM_MODERN_REDRAW" not in screen:
+        include_anchor = '#include "../nzportable_def.h"\n'
+        proto = "extern void Xziel_StaticMesh_Draw(void);\n"
+        if proto not in screen:
+            if include_anchor not in screen:
+                raise SystemExit("Could not find r_screen include anchor for XZSM modern redraw")
+            screen = screen.replace(include_anchor, include_anchor + proto, 1)
+        replacement = (
+            "\t\t/* XZSM_MODERN_REDRAW: preserve HQ Sanctum after native composite. */\n"
+            "\t\tif (XzAndroidRuntime_CompositeVisibleWorld())\n"
+            "\t\t\tXziel_StaticMesh_Draw();\n"
+        )
+        screen = screen.replace(marker, replacement, 1)
+        screen_path.write_text(screen, encoding="utf-8")
+        if screen.count("XZSM_MODERN_REDRAW") != 1:
+            raise SystemExit("XZSM modern redraw injection count mismatch")
+
 print("Patched Vril SDL renderer with XZSM Sanctum static-mesh bridge.")

@@ -6,10 +6,13 @@ on:
     workflows: ["Build Church Map with Blender"]
     types: [completed]
   push:
-    branches: [main]
+    branches: [main, integration/sanctum-modern-xz]
     paths:
       - ".github/workflows/church-map-android-test.yml"
       - "scripts/prepare_android.sh"
+      - "scripts/patch_vril_xz_phase0.py"
+      - "scripts/patch_vril_sanctum_staticmesh.py"
+      - "engine/xz/**"
       - "android/NZPActivity.java"
 
 permissions:
