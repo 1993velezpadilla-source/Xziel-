@@ -19,8 +19,29 @@ for p in REFS:
 
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 token = os.environ.get("HF_TOKEN", "").strip() or None
-print(f"Connecting to public TRELLIS Space: {SPACE} (authenticated={bool(token)})")
-client = Client(SPACE, hf_token=token, verbose=True) if token else Client(SPACE, verbose=True)
+space_url = os.environ.get("TRELLIS_URL", "https://trellis-community-trellis.hf.space")
+print(f"Connecting to public TRELLIS Space: {space_url} (authenticated={bool(token)})")
+
+# ZeroGPU can be slow to wake. The default httpx timeout is too short for /config.
+# Use the direct Space URL and retry instead of failing the whole GitHub job.
+import time
+last_err = None
+client = None
+for attempt in range(1, 6):
+    try:
+        kwargs = dict(verbose=True, httpx_kwargs={"timeout": 120.0})
+        if token:
+            kwargs["token"] = token
+        client = Client(space_url, **kwargs)
+        print(f"TRELLIS client connected on attempt {attempt}")
+        break
+    except Exception as e:
+        last_err = e
+        print(f"::warning::TRELLIS connect attempt {attempt}/5 failed: {type(e).__name__}: {e}")
+        if attempt < 5:
+            time.sleep(15 * attempt)
+if client is None:
+    fail(f"Unable to connect to TRELLIS after retries: {last_err}")
 
 api = client.view_api(print_info=False, return_format="dict")
 (OUT_DIR/"api-info.json").write_text(json.dumps(api, indent=2), encoding="utf-8")
