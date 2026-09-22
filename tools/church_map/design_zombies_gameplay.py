@@ -178,13 +178,62 @@ roof = zc("roof_chamber", clock)
 top = zc("tower_top", roof)
 exterior = zc("exterior", overall_center)
 
-# Use the lower of the corresponding zone center / bounding floor for interactives.
+# Estimate the dominant playable floor plane from real church geometry instead
+# of trusting bbox min.z. Photogrammetry zones can contain basement fragments,
+# gutters or disconnected shards far below the actual walkable room.
+floor_lod_col = bpy.data.collections.get("GAME_CHURCH_LOD0")
+floor_source_objs = list(floor_lod_col.objects) if floor_lod_col else source_objs
+floor_zone_objs = {}
+for _obj in floor_source_objs:
+    floor_zone_objs.setdefault(classify(_obj), []).append(_obj)
+
+floor_levels = {}
+def dominant_floor_z(zone_name):
+    if zone_name in floor_levels:
+        return floor_levels[zone_name]
+    info = zone_info.get(zone_name)
+    if not info:
+        return 0.0
+
+    buckets = {}
+    for obj in floor_zone_objs.get(zone_name, []):
+        if obj.type != "MESH":
+            continue
+        mesh = obj.data
+        if not mesh.polygons:
+            continue
+        # Cap sampling cost on dense photogrammetry while preserving area trends.
+        stride = max(1, len(mesh.polygons) // 25000)
+        world = obj.matrix_world
+        normal_matrix = world.to_3x3().inverted().transposed()
+        for i in range(0, len(mesh.polygons), stride):
+            poly = mesh.polygons[i]
+            n = normal_matrix @ poly.normal
+            if n.length <= 1e-8:
+                continue
+            n.normalize()
+            if n.z < 0.58:
+                continue
+            p = world @ poly.center
+            zbin = round(float(p.z) * 4.0) / 4.0
+            buckets[zbin] = buckets.get(zbin, 0.0) + float(poly.area) * stride
+
+    if buckets:
+        # Prefer the largest upward-facing horizontal surface band. This rejects
+        # tiny low scan fragments and usually selects the nave/room floor.
+        z = max(buckets.items(), key=lambda kv: kv[1])[0]
+    else:
+        z = float(info["min"].z)
+    floor_levels[zone_name] = z
+    print("FLOOR_LEVEL", zone_name, z)
+    return z
+
 def floorish(zone_name, point, lift=0.45):
     info = zone_info.get(zone_name)
     if not info:
         return point
     p = point.copy()
-    p.z = info["min"].z + lift
+    p.z = dominant_floor_z(zone_name) + lift
     return p
 
 # Long axis of main church becomes entrance -> altar progression.
@@ -395,6 +444,7 @@ plan = {
     "working_title": "SANCTUM OF ASH",
     "source_building": "St Giles-without-Cripplegate scan by artfletch (CC BY)",
     "design_pass": "gameplay-blockout-v1",
+    "floor_levels": {k: dominant_floor_z(k) for k in zone_info if k != "other"},
     "zones": {
         k: {
             "center": list(v["center"]),
