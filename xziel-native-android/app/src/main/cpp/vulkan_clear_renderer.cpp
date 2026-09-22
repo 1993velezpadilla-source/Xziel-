@@ -98,6 +98,19 @@ bool VulkanClearRenderer::initialize(
         return false;
     }
 
+    // The HQ Sanctum asset is optional for the generic engine prototype.
+    // A Sanctum build packages this file and immediately promotes it to world
+    // visual authority without requiring BSP/Vril/GL4ES.
+    (void) sanctumMesh_.initialize(
+        physicalDevice_,
+        device_,
+        graphicsQueue_,
+        graphicsQueueFamily_,
+        commandPool_,
+        renderPass_,
+        assetManager_,
+        "models/xziel/sanctum/sanctum.xzsm");
+
     initialized_ = true;
     logInfo("XZIEL_VULKAN_3D_READY");
     return true;
@@ -109,6 +122,10 @@ void VulkanClearRenderer::shutdown() noexcept {
     if (device_ != VK_NULL_HANDLE) {
         vkDeviceWaitIdle(device_);
     }
+
+    // Destroy native world resources while the device/render pass/command
+    // pool they were created from are still alive.
+    sanctumMesh_.shutdown();
 
     for (auto& frame : frames_) {
         if (frame.imageAvailable != VK_NULL_HANDLE &&
@@ -3550,6 +3567,41 @@ bool VulkanClearRenderer::recordDrawCommand(
         return false;
     }
 
+    if (sanctumMesh_.ready()) {
+        const float sanctumAspect =
+            swapchainExtent_.height > 0U
+            ? static_cast<float>(
+                  swapchainExtent_.width) /
+              static_cast<float>(
+                  swapchainExtent_.height)
+            : 1.0f;
+
+        StaticMeshCameraState sanctumCamera{};
+        sanctumCamera.x = camera.x;
+        sanctumCamera.y = camera.y;
+        sanctumCamera.z = camera.z;
+        sanctumCamera.yawRadians =
+            camera.yawRadians;
+        sanctumCamera.pitchRadians =
+            camera.pitchRadians;
+        sanctumCamera.verticalFovDegrees =
+            camera.verticalFovDegrees;
+        sanctumCamera.aspect =
+            sanctumAspect;
+
+        StaticMeshEnvironmentState sanctumEnvironment{};
+        sanctumEnvironment.fogDensity =
+            environment.fogDensity;
+        sanctumEnvironment.lightningFlash =
+            environment.lightningFlash;
+
+        sanctumMesh_.record(
+            command,
+            swapchainExtent_,
+            sanctumCamera,
+            sanctumEnvironment);
+    }
+
     vkCmdBindPipeline(
         command,
         VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -3847,9 +3899,11 @@ bool VulkanClearRenderer::recordDrawCommand(
     // being duplicated inside the renderer. Map authors can change geometry
     // without touching Vulkan command recording.
     const std::size_t visibleMapBoxCount =
-        std::min(
-            scene.mapBoxCount,
-            scene.mapBoxes.size());
+        sanctumMesh_.ready()
+        ? 0U
+        : std::min(
+              scene.mapBoxCount,
+              scene.mapBoxes.size());
 
     for (std::size_t i = 0;
          i < visibleMapBoxCount;
@@ -3871,9 +3925,11 @@ bool VulkanClearRenderer::recordDrawCommand(
     }
 
     const std::size_t visibleWindowCount =
-        std::min(
-            scene.windowCount,
-            scene.windows.size());
+        sanctumMesh_.ready()
+        ? 0U
+        : std::min(
+              scene.windowCount,
+              scene.windows.size());
 
     for (std::size_t windowIndex = 0;
          windowIndex < visibleWindowCount;
