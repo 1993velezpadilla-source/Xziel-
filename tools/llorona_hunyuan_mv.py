@@ -3,6 +3,7 @@ from __future__ import annotations
 import json, os, shutil, sys, time
 from pathlib import Path
 from gradio_client import Client, handle_file
+from PIL import Image, ImageFile
 
 SPACE = os.environ.get("HUNYUAN_SPACE", "tencent/Hunyuan3D-2mv")
 SPACE_URL = os.environ.get("HUNYUAN_URL", "https://tencent-hunyuan3d-2mv.hf.space")
@@ -68,7 +69,26 @@ params=spec.get("parameters",[])
 print("Using endpoint",endpoint)
 print("Parameters",[p.get("parameter_name") for p in params])
 
-files={k:handle_file(str(p)) for k,p in REFS.items()}
+# Normalize every reference into a fresh PNG. Some of the early JPEG blobs in this
+# branch were visually readable but had truncated streams; PIL can recover them and
+# writing PNG gives Hunyuan a strict, clean input.
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+clean_dir = OUT_DIR / "clean_inputs"
+clean_dir.mkdir(parents=True, exist_ok=True)
+clean = {}
+for name, src in REFS.items():
+    dst = clean_dir / f"{name}.png"
+    im = Image.open(src)
+    im.load()
+    im = im.convert("RGBA")
+    im.save(dst, "PNG", optimize=True)
+    # Re-open strictly to verify the newly written stream.
+    check = Image.open(dst)
+    check.verify()
+    clean[name] = dst
+    print("CLEAN_REF_PASS", name, dst, dst.stat().st_size)
+
+files={k:handle_file(str(p)) for k,p in clean.items()}
 overrides={
     "caption":"",
     "image":None,

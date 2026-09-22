@@ -37,7 +37,7 @@ jobs:
       - name: Install Gradio client
         run: |
           python3 -m pip install --upgrade pip
-          python3 -m pip install "gradio_client>=1.10,<2"
+          python3 -m pip install "gradio_client>=1.10,<2" pillow
 
       - name: Generate HQ multi-view GLB
         env:
