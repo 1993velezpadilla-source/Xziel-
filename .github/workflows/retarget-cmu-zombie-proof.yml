@@ -10,7 +10,7 @@ on:
       - "scripts/blender_retarget_cmu_to_nzp.py"
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: zombie-retarget-proof-${{ github.ref }}
@@ -101,3 +101,76 @@ jobs:
             build/cmu-retarget/${{ matrix.name }}/retarget_report.json
             build/cmu-retarget/${{ matrix.name }}/${{ matrix.name }}.blend
           retention-days: 14
+
+
+  publish:
+    needs: retarget
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Download validated retarget artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: cmu-retarget-*
+          path: /tmp/cmu-retarget-artifacts
+
+      - name: Stage runtime zombie variants
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEST="assets/runtime/zombie_variants"
+          MODELS="$DEST/models/ai/xziel_zombies"
+          META="$DEST/metadata"
+          rm -rf "$DEST/models" "$META"
+          mkdir -p "$MODELS" "$META"
+
+          cat > "$DEST/manifest.tsv" <<'EOF'
+          variant_id	clip_id	label	body	head	larm	rarm	full
+          z10441	104_41	zombie_walk	models/ai/xziel_zombies/z10441b.mdl	models/ai/xziel_zombies/z10441h.mdl	models/ai/xziel_zombies/z10441l.mdl	models/ai/xziel_zombies/z10441r.mdl	models/ai/xziel_zombies/z10441f.mdl
+          z2008	20_08	zombie_march	models/ai/xziel_zombies/z2008b.mdl	models/ai/xziel_zombies/z2008h.mdl	models/ai/xziel_zombies/z2008l.mdl	models/ai/xziel_zombies/z2008r.mdl	models/ai/xziel_zombies/z2008f.mdl
+          z10516	105_16	limp	models/ai/xziel_zombies/z10516b.mdl	models/ai/xziel_zombies/z10516h.mdl	models/ai/xziel_zombies/z10516l.mdl	models/ai/xziel_zombies/z10516r.mdl	models/ai/xziel_zombies/z10516f.mdl
+          EOF
+          sed -i 's/^          //' "$DEST/manifest.tsv"
+
+          stage_variant() {
+            local artifact="$1"
+            local source_name="$2"
+            local id="$3"
+            local dir="/tmp/cmu-retarget-artifacts/$artifact"
+            test -d "$dir"
+            cp "$dir/${source_name}_body.mdl" "$MODELS/${id}b.mdl"
+            cp "$dir/${source_name}_head.mdl" "$MODELS/${id}h.mdl"
+            cp "$dir/${source_name}_larm.mdl" "$MODELS/${id}l.mdl"
+            cp "$dir/${source_name}_rarm.mdl" "$MODELS/${id}r.mdl"
+            cp "$dir/${source_name}_full.mdl" "$MODELS/${id}f.mdl"
+            cp "$dir/retarget_report.json" "$META/${id}.json"
+          }
+
+          stage_variant cmu-retarget-zombie_walk_104_41 zombie_walk_104_41 z10441
+          stage_variant cmu-retarget-zombie_march_20_08 zombie_march_20_08 z2008
+          stage_variant cmu-retarget-limp_105_16 limp_105_16 z10516
+
+          find "$MODELS" -type f -name '*.mdl' -size 0 -print -quit | grep -q . && exit 1 || true
+          test "$(find "$MODELS" -type f -name '*.mdl' | wc -l)" -eq 15
+          du -h "$MODELS"/*.mdl
+
+      - name: Commit validated runtime variants
+        shell: bash
+        env:
+          TARGET_BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/runtime/zombie_variants
+          if git diff --cached --quiet; then
+            echo "Runtime variants already current."
+            exit 0
+          fi
+          git commit -m "assets: publish validated CMU zombie runtime variants"
+          git fetch origin "$TARGET_BRANCH"
+          git rebase "origin/$TARGET_BRANCH"
+          git push origin "HEAD:$TARGET_BRANCH"
