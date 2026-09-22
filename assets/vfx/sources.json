@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "policy": {
+    "release_build_requires_verified_license": true,
+    "release_build_requires_locked_hash": true,
+    "notes": "Only sources with explicit redistribution/modification permission are candidates for the public Xziel asset pipeline."
+  },
+  "sources": [
+    {
+      "id": "kenney-particle-pack",
+      "name": "Kenney Particle Pack",
+      "kind": ["particle-sprites", "light-cookies", "vfx"],
+      "license": "CC0-1.0",
+      "source_page": "https://kenney.nl/assets/particle-pack",
+      "download_url": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+      "locked_sha256": null,
+      "status": "candidate-unlocked"
+    },
+    {
+      "id": "kenney-smoke-particles",
+      "name": "Kenney Smoke Particles",
+      "kind": ["smoke", "fog", "mist", "explosion"],
+      "license": "CC0-1.0",
+      "source_page": "https://kenney.nl/assets/smoke-particles",
+      "download_url": "https://opengameart.org/sites/default/files/smokeParticleAssets.zip",
+      "locked_sha256": null,
+      "status": "candidate-unlocked"
+    },
+    {
+      "id": "kenney-splat-pack",
+      "name": "Kenney Splat Pack",
+      "kind": ["splash-mask", "decal", "blood-splat", "mud-splat"],
+      "license": "CC0-1.0",
+      "source_page": "https://kenney.nl/assets/splat-pack",
+      "download_url": "https://opengameart.org/sites/default/files/kenney_splatpack.zip",
+      "locked_sha256": null,
+      "status": "candidate-unlocked"
+    },
+    {
+      "id": "oga-hdst-lightning",
+      "name": "hdst Lightning",
+      "kind": ["lightning-sprite"],
+      "license": "CC0-1.0",
+      "source_page": "https://opengameart.org/content/lightnings",
+      "download_url": "https://opengameart.org/sites/default/files/lighting_0.png",
+      "locked_sha256": null,
+      "status": "candidate-unlocked"
+    },
+    {
+      "id": "poly-haven-api",
+      "name": "Poly Haven CC0 library",
+      "kind": ["pbr-textures", "models", "hdri"],
+      "license": "CC0-1.0",
+      "source_page": "https://polyhaven.com/license",
+      "api": "https://api.polyhaven.com/assets",
+      "status": "catalog"
+    }
+  ]
+}

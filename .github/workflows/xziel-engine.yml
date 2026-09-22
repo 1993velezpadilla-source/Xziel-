@@ -1,0 +1,36 @@
+name: Xziel Engine Foundation
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/xziel-engine-foundation
+    paths:
+      - "engine/**"
+      - "docs/xziel-engine-research.md"
+      - ".github/workflows/xziel-engine.yml"
+  pull_request:
+    paths:
+      - "engine/**"
+      - "docs/xziel-engine-research.md"
+      - ".github/workflows/xziel-engine.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  host-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Configure
+        run: cmake -S engine -B build/xziel-engine -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build/xziel-engine --parallel
+
+      - name: Test
+        run: ctest --test-dir build/xziel-engine --output-on-failure

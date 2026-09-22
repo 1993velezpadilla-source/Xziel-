@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - feature/xziel-engine-foundation
     paths:
       - ".github/workflows/zombie-asset-probe.yml"
 
@@ -24,7 +25,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          sudo apt-get install -y -qq p7zip-full
+          sudo apt-get install -y -qq p7zip-full assimp-utils
           mkdir -p probe/source probe/out
           curl -fL --retry 5 --retry-delay 2             "https://opengameart.org/sites/default/files/Male%20City%20Zombie.7z"             -o probe/source/male-city-zombie.7z
           7z l probe/source/male-city-zombie.7z | tee probe/out/archive-list.txt
@@ -37,6 +38,16 @@ jobs:
             echo "Retrieved: $(date -u +%FT%TZ)"
             sha256sum probe/source/male-city-zombie.7z
           } | tee probe/out/provenance.txt
+
+      - name: Convert base CC0 zombie for Xziel importer
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p probe/converted
+          assimp export             "probe/extracted/InfectedCityMan.fbx"             "probe/converted/InfectedCityMan.obj"             -f objnomtl
+          assimp export             "probe/extracted/InfectedCityMan.fbx"             "probe/converted/InfectedCityMan.gltf"             -f gltf2 || true
+          cp probe/extracted/*BaseColor.png probe/converted/
+          find probe/converted -type f -printf '%P\t%s bytes\n' | sort | tee probe/out/converted-files.txt
 
       - name: Inspect FBX animation metadata
         shell: bash
@@ -72,3 +83,17 @@ jobs:
           name: cc0-zombie-pack-probe
           path: probe/out
           retention-days: 14
+
+      - name: Upload CC0 source pack for importer work
+        uses: actions/upload-artifact@v4
+        with:
+          name: cc0-zombie-source
+          path: probe/extracted
+          retention-days: 2
+
+      - name: Upload converted CC0 zombie
+        uses: actions/upload-artifact@v4
+        with:
+          name: cc0-zombie-converted
+          path: probe/converted
+          retention-days: 2
