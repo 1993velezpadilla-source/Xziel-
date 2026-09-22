@@ -267,10 +267,10 @@ ZONE_TINT = {
 # real-world shading; this pass adds readable nighttime shape, not fake neon.
 warm_lights = []
 for zone_name, radius, strength in [
-    ("main_church", 13.0, 0.22),
-    ("office", 6.0, 0.16),
-    ("boiler", 7.0, 0.20),
-    ("ringing_chamber", 6.0, 0.18),
+    ("main_church", 13.0, 0.28),
+    ("office", 6.0, 0.21),
+    ("boiler", 7.0, 0.26),
+    ("ringing_chamber", 6.0, 0.23),
 ]:
     info = plan["zones"].get(zone_name)
     if info:
@@ -282,13 +282,16 @@ def baked_vertex_rgba(obj, world_pos, world_normal):
     ndl = max(0.0, float(world_normal.dot(MOON_DIR)))
     upward = max(0.0, float(world_normal.z))
 
-    # Dark base + moon shaping. Never overbrighten the scanned albedo.
-    level = 0.54 + 0.24 * ndl + 0.06 * upward
+    # Mobile SDR readability pass. The scan albedo already contains baked
+    # real-world shadowing, so multiplying it by the old 0.34 floor crushed
+    # large interior regions to near-black in the Android harness. Keep the
+    # night mood and directional shaping, but preserve midtone information.
+    level = 0.68 + 0.20 * ndl + 0.08 * upward
     for light_pos, radius, strength in warm_lights:
         d = (world_pos - light_pos).length
         if d < radius:
             level += strength * (1.0 - d / radius)
-    level = max(0.34, min(1.0, level))
+    level = max(0.52, min(1.0, level))
 
     rgb = [max(0, min(255, int(round(255.0 * level * tint[i])))) for i in range(3)]
     return (rgb[0], rgb[1], rgb[2], 255)
