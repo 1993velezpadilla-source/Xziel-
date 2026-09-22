@@ -1,0 +1,108 @@
+#pragma once
+
+#include "xziel/acoustics.hpp"
+#include "xziel/audio_scene.hpp"
+
+#include <array>
+#include <cstddef>
+#include <cstdint>
+
+namespace xziel {
+
+enum class SanctumZone : std::uint32_t {
+    Unknown = 0,
+    Courtyard = 1,
+    Nave = 2,
+    Office = 3,
+    OfficeCorridor = 4,
+    BoilerRoom = 5,
+    TowerStairs = 6,
+    RingingChamber = 7,
+    ClockChamber = 8,
+    RoofChamber = 9,
+    TowerTop = 10,
+};
+
+enum class SanctumPresenceKind : std::uint8_t {
+    Llorona = 0,
+    Nun = 1,
+};
+
+enum class SanctumPassiveCue : std::uint8_t {
+    LloronaDistantCry,
+    LloronaBreath,
+    NunPrayer,
+    NunWhisper,
+};
+
+struct SanctumPoint {
+    float x = 0.0f;
+    float y = 0.0f;
+    float z = 0.0f;
+};
+
+struct SanctumListener {
+    SanctumPoint position{};
+    SanctumZone zone = SanctumZone::Unknown;
+};
+
+struct SanctumPresence {
+    std::uint64_t id = 0;
+    SanctumPresenceKind kind = SanctumPresenceKind::Llorona;
+    SanctumPoint position{};
+    SanctumZone zone = SanctumZone::Unknown;
+    float intensity = 0.0f;
+    bool active = false;
+    bool hostile = false;
+};
+
+struct SanctumPassiveCueEvent {
+    std::uint64_t sourceId = 0;
+    SanctumPresenceKind presence =
+        SanctumPresenceKind::Llorona;
+    SanctumPassiveCue cue =
+        SanctumPassiveCue::LloronaDistantCry;
+
+    float distanceMeters = 0.0f;
+    float gain = 0.0f;
+    float lowPassHz = 20000.0f;
+    float reverbSend = 0.0f;
+};
+
+struct SanctumAtmosphereFrame {
+    std::array<AudioSource, 4> passiveBeds{};
+    std::size_t passiveBedCount = 0;
+
+    std::array<SanctumPassiveCueEvent, 4> cueEvents{};
+    std::size_t cueEventCount = 0;
+};
+
+class SanctumAtmosphere final {
+public:
+    void reset(std::uint32_t seed = 0x53A7C7U) noexcept;
+
+    [[nodiscard]] static bool configureAcoustics(
+        AcousticGraph& graph) noexcept;
+
+    [[nodiscard]] SanctumAtmosphereFrame advance(
+        float deltaSeconds,
+        const SanctumListener& listener,
+        const SanctumPresence* presences,
+        std::size_t presenceCount,
+        const AcousticGraph& acoustics) noexcept;
+
+private:
+    [[nodiscard]] float random01() noexcept;
+    [[nodiscard]] float nextDelay(
+        SanctumPresenceKind kind,
+        bool hostile) noexcept;
+
+    std::array<float, 2> cueCountdown_{};
+    std::uint32_t randomState_ = 0x53A7C7U;
+    bool initialized_ = false;
+};
+
+[[nodiscard]] const char* sanctumZoneName(
+    SanctumZone zone) noexcept;
+
+} // namespace xziel
