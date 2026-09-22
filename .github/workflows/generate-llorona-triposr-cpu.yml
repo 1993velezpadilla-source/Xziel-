@@ -61,6 +61,7 @@ jobs:
           set -euxo pipefail
           grep -v '^git+https://github.com/tatsy/torchmcubes.git$' /tmp/TripoSR/requirements.txt > /tmp/triposr-requirements-no-torchmcubes.txt
           python -m pip install -r /tmp/triposr-requirements-no-torchmcubes.txt
+          python -m pip install onnxruntime
           python -m pip install "scikit-build-core>=1.0" "pybind11>=2.10"
           python -m pip install --no-build-isolation git+https://github.com/tatsy/torchmcubes.git
 
