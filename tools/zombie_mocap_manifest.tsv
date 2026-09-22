@@ -93,8 +93,8 @@ clip_id	category	variant_label	source_subject	notes
 16_33	walk	slow_stop_subject16_A	16	Slow walk then stop
 16_34	walk	slow_stop_subject16_B	16	Slow walk then stop alternate
 37_01	walk	slow_subject37	37	Slow walk; different performer
-03_01	walk	uneven_subject03_A	3	Walk on uneven terrain
-03_02	walk	uneven_subject03_B	3	Walk on uneven terrain alternate
+104_28	walk	stern_104_A	104	SternWalk; zombie-suitable donor
+104_29	walk	stern_104_B	104	SternWalk alternate; zombie-suitable donor
 120_19	walk	slow_subject120	120	Walk slow; same performer family as explicit Zombie
 120_20	walk	neutral_subject120	120	Neutral walk donor; same performer family as explicit Zombie
 139_19	walk	wounded_leg_139_A	139	Walk Wounded Leg; different performer
