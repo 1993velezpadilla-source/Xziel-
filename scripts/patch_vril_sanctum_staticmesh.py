@@ -46,6 +46,7 @@ static xzsm_batch_t *xzsm_batches = NULL;
 static uint32_t xzsm_batch_count = 0;
 static qboolean xzsm_loaded = false;
 static qboolean xzsm_attempted = false;
+static qboolean xzsm_authority_reported = false;
 
 extern cvar_t gl_cull;
 extern qboolean R_CullBox(vec3_t mins, vec3_t maxs);
@@ -64,6 +65,7 @@ static void XZSM_Free(void)
     xzsm_batch_count = 0;
     xzsm_loaded = false;
     xzsm_attempted = false;
+    xzsm_authority_reported = false;
 }
 
 static int XZSM_ReadExact(FILE *f, void *dst, size_t size)
@@ -202,6 +204,11 @@ qboolean Xziel_StaticMesh_Prepare(void)
 
     if (!xzsm_loaded && !xzsm_attempted)
         XZSM_LoadSanctum();
+
+    if (xzsm_loaded && !xzsm_authority_reported) {
+        Con_Printf("XZSM: HQ visual authority active; BSP render suppressed\n");
+        xzsm_authority_reported = true;
+    }
 
     return xzsm_loaded;
 }
