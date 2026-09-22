@@ -398,6 +398,18 @@ jobs:
           print("PACKAGE_PREFLIGHT", q)
           PY
 
+      - name: Upload native Sanctum HQ runtime bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xziel-Sanctum-Native-HQ
+          path: |
+            church/out/xziel_native_static/
+            church/out/xziel_native_static_mesh_report.json
+            church/out/xziel_native_map/
+          if-no-files-found: error
+          compression-level: 1
+          retention-days: 14
+
       - name: Upload Sanctum of Ash development build
         uses: actions/upload-artifact@v4
         with:
