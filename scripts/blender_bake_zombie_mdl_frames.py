@@ -115,7 +115,7 @@ def export_obj(path):
     bpy.context.view_layer.objects.active=meshes[0]
 
     # Blender <=3.x ships export_scene.obj; Blender 4.x moved OBJ export to wm.obj_export.
-    if hasattr(bpy.ops.export_scene, "obj"):
+    if bpy.app.version < (4, 0, 0):
         bpy.ops.export_scene.obj(
             filepath=str(path),
             use_selection=True,
