@@ -2,6 +2,7 @@
 #include "xz_gles3_resource_plan.h"
 #include "xz_pass_targets.h"
 #include "xz_pass_inputs.h"
+#include "xz_texture_tap.h"
 
 #include <EGL/egl.h>
 #include <GLES3/gl3.h>
@@ -161,6 +162,15 @@ typedef struct {
 } XzGles3PhysicalResource;
 
 typedef struct {
+    unsigned int legacy_id;
+    unsigned int width;
+    unsigned int height;
+    uint64_t revision;
+    GLuint object;
+    int alive;
+} XzGles3RealTexture;
+
+typedef struct {
     int ready;
 
     EGLDisplay display;
@@ -177,9 +187,12 @@ typedef struct {
     GLuint real_program;
     GLint real_modelview_loc;
     GLint real_projection_loc;
+    GLint real_texture_loc;
     GLuint real_vbo;
     GLuint real_ibo;
     GLuint real_vao;
+    GLuint real_fallback_texture;
+    XzGles3RealTexture real_textures[XZ_TEXTURE_MAX_ENTRIES];
 
     GLuint scratch_fbo;
 
@@ -454,10 +467,10 @@ static int XzCreateRealGeometryProgram(void)
         "#version 300 es\n"
         "precision mediump float;\n"
         "in vec2 vUV;\n"
+        "uniform sampler2D uTexture;\n"
         "out vec4 outColor;\n"
         "void main(){\n"
-        "  vec2 uv=fract(abs(vUV));\n"
-        "  outColor=vec4(0.25+0.65*uv.x,0.25+0.65*uv.y,0.72,1.0);\n"
+        "  outColor=texture(uTexture,vUV);\n"
         "}\n";
 
     XzNativeGles3Api *gl = &xz_shadow.gl;
@@ -504,10 +517,19 @@ static int XzCreateRealGeometryProgram(void)
         gl->GetUniformLocation(
             xz_shadow.real_program,
             "uProjection");
+    xz_shadow.real_texture_loc =
+        gl->GetUniformLocation(
+            xz_shadow.real_program,
+            "uTexture");
 
     if (xz_shadow.real_modelview_loc < 0 ||
-        xz_shadow.real_projection_loc < 0)
+        xz_shadow.real_projection_loc < 0 ||
+        xz_shadow.real_texture_loc < 0)
         return 0;
+
+    gl->UseProgram(xz_shadow.real_program);
+    gl->Uniform1i(xz_shadow.real_texture_loc, 0);
+    gl->UseProgram(0u);
 
     gl->GenVertexArrays(1, &xz_shadow.real_vao);
     gl->BindVertexArray(xz_shadow.real_vao);
@@ -559,7 +581,209 @@ static int XzCreateRealGeometryProgram(void)
     gl->BindBuffer(GL_ARRAY_BUFFER, 0u);
     gl->BindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0u);
 
+    {
+        static const unsigned char fallback_rgba[4] = {
+            255u, 0u, 255u, 255u
+        };
+
+        gl->GenTextures(
+            1, &xz_shadow.real_fallback_texture);
+        if (!xz_shadow.real_fallback_texture)
+            return 0;
+
+        gl->ActiveTexture(GL_TEXTURE0);
+        gl->BindTexture(
+            GL_TEXTURE_2D,
+            xz_shadow.real_fallback_texture);
+        gl->TexParameteri(
+            GL_TEXTURE_2D,
+            GL_TEXTURE_MIN_FILTER,
+            GL_NEAREST);
+        gl->TexParameteri(
+            GL_TEXTURE_2D,
+            GL_TEXTURE_MAG_FILTER,
+            GL_NEAREST);
+        gl->TexParameteri(
+            GL_TEXTURE_2D,
+            GL_TEXTURE_WRAP_S,
+            GL_REPEAT);
+        gl->TexParameteri(
+            GL_TEXTURE_2D,
+            GL_TEXTURE_WRAP_T,
+            GL_REPEAT);
+        gl->TexImage2D(
+            GL_TEXTURE_2D,
+            0,
+            GL_RGBA,
+            1,
+            1,
+            0,
+            GL_RGBA,
+            GL_UNSIGNED_BYTE,
+            fallback_rgba);
+        gl->BindTexture(GL_TEXTURE_2D, 0u);
+    }
+
     return gl->GetError() == GL_NO_ERROR;
+}
+
+static XzGles3RealTexture *XzFindRealTexture(
+    unsigned int legacy_id)
+{
+    unsigned int i;
+
+    for (i = 0u; i < XZ_TEXTURE_MAX_ENTRIES; ++i) {
+        if (xz_shadow.real_textures[i].alive &&
+            xz_shadow.real_textures[i].legacy_id ==
+                legacy_id)
+            return &xz_shadow.real_textures[i];
+    }
+
+    return NULL;
+}
+
+static XzGles3RealTexture *XzFindFreeRealTexture(void)
+{
+    unsigned int i;
+
+    for (i = 0u; i < XZ_TEXTURE_MAX_ENTRIES; ++i) {
+        if (!xz_shadow.real_textures[i].alive)
+            return &xz_shadow.real_textures[i];
+    }
+
+    return NULL;
+}
+
+static int XzBindRealTexture(
+    XzGles3ShadowState *state,
+    int legacy_texture_id,
+    int *has_real_texture)
+{
+    XzNativeGles3Api *gl = &xz_shadow.gl;
+    XzTextureSnapshot snapshot;
+    XzGles3RealTexture *cached;
+    GLenum error;
+    int created = 0;
+
+    if (has_real_texture)
+        *has_real_texture = 0;
+
+    gl->ActiveTexture(GL_TEXTURE0);
+
+    if (legacy_texture_id <= 0 ||
+        !XzTextureTap_Resolve(
+            (unsigned int)legacy_texture_id,
+            &snapshot)) {
+        state->real_texture_misses++;
+        gl->BindTexture(
+            GL_TEXTURE_2D,
+            xz_shadow.real_fallback_texture);
+        return gl->GetError() == GL_NO_ERROR;
+    }
+
+    cached = XzFindRealTexture(snapshot.legacy_id);
+    if (!cached) {
+        cached = XzFindFreeRealTexture();
+        if (!cached) {
+            state->real_texture_failures++;
+            return 0;
+        }
+
+        memset(cached, 0, sizeof(*cached));
+        gl->GenTextures(1, &cached->object);
+        if (!cached->object) {
+            state->real_texture_failures++;
+            return 0;
+        }
+
+        cached->legacy_id = snapshot.legacy_id;
+        cached->alive = 1;
+        created = 1;
+    }
+
+    gl->BindTexture(GL_TEXTURE_2D, cached->object);
+
+    if (created ||
+        cached->revision != snapshot.revision ||
+        cached->width != snapshot.width ||
+        cached->height != snapshot.height) {
+        gl->TexParameteri(
+            GL_TEXTURE_2D,
+            GL_TEXTURE_MIN_FILTER,
+            GL_LINEAR);
+        gl->TexParameteri(
+            GL_TEXTURE_2D,
+            GL_TEXTURE_MAG_FILTER,
+            GL_LINEAR);
+        gl->TexParameteri(
+            GL_TEXTURE_2D,
+            GL_TEXTURE_WRAP_S,
+            GL_REPEAT);
+        gl->TexParameteri(
+            GL_TEXTURE_2D,
+            GL_TEXTURE_WRAP_T,
+            GL_REPEAT);
+        gl->TexImage2D(
+            GL_TEXTURE_2D,
+            0,
+            GL_RGBA,
+            (GLsizei)snapshot.width,
+            (GLsizei)snapshot.height,
+            0,
+            GL_RGBA,
+            GL_UNSIGNED_BYTE,
+            snapshot.rgba);
+
+        error = gl->GetError();
+        if (error != GL_NO_ERROR) {
+            state->real_texture_failures++;
+            if (created) {
+                gl->DeleteTextures(
+                    1, &cached->object);
+                memset(cached, 0, sizeof(*cached));
+            }
+            if (state->last_gl_error == 0u)
+                state->last_gl_error =
+                    (unsigned int)error;
+            return 0;
+        }
+
+        cached->width = snapshot.width;
+        cached->height = snapshot.height;
+        cached->revision = snapshot.revision;
+
+        state->real_texture_uploads++;
+        state->real_texture_bytes +=
+            (uint64_t)snapshot.bytes;
+    }
+
+    state->real_texture_binds++;
+    if (has_real_texture)
+        *has_real_texture = 1;
+
+    return 1;
+}
+
+static void XzDestroyRealTextures(void)
+{
+    XzNativeGles3Api *gl = &xz_shadow.gl;
+    unsigned int i;
+
+    for (i = 0u; i < XZ_TEXTURE_MAX_ENTRIES; ++i) {
+        XzGles3RealTexture *cached =
+            &xz_shadow.real_textures[i];
+
+        if (cached->alive && cached->object)
+            gl->DeleteTextures(1, &cached->object);
+
+        memset(cached, 0, sizeof(*cached));
+    }
+
+    if (xz_shadow.real_fallback_texture) {
+        gl->DeleteTextures(
+            1, &xz_shadow.real_fallback_texture);
+        xz_shadow.real_fallback_texture = 0u;
+    }
 }
 
 static int XzDrawRealGeometry(
@@ -569,6 +793,9 @@ static int XzDrawRealGeometry(
     XzNativeGles3Api *gl = &xz_shadow.gl;
     unsigned int i;
     unsigned int kind_mask = 0u;
+    unsigned int texture_kind_mask = 0u;
+    unsigned int texture_misses = 0u;
+    unsigned int texture_batches = 0u;
     unsigned int drops;
 
     if (!state || !geometry ||
@@ -607,7 +834,11 @@ static int XzDrawRealGeometry(
         return 0;
     }
 
+    state->last_texture_batches = 0u;
+    state->last_texture_misses = 0u;
+
     gl->UseProgram(xz_shadow.real_program);
+    gl->Uniform1i(xz_shadow.real_texture_loc, 0);
     gl->BindVertexArray(xz_shadow.real_vao);
 
     gl->BindBuffer(
@@ -666,6 +897,32 @@ static int XzDrawRealGeometry(
             GL_FALSE,
             batch->projection);
 
+        {
+            int has_real_texture = 0;
+
+            texture_batches++;
+            if (!XzBindRealTexture(
+                    state,
+                    batch->texture_id,
+                    &has_real_texture)) {
+                state->real_geometry_failures++;
+                state->real_geometry_ready = 0;
+                state->real_textures_ready = 0;
+                return 0;
+            }
+
+            if (has_real_texture) {
+                if (batch->kind == XZ_GEOMETRY_ALIAS)
+                    texture_kind_mask |= 1u;
+                else if (batch->kind == XZ_GEOMETRY_SURFACE)
+                    texture_kind_mask |= 2u;
+                else if (batch->kind == XZ_GEOMETRY_SPRITE)
+                    texture_kind_mask |= 4u;
+            } else {
+                texture_misses++;
+            }
+        }
+
         gl->DrawElements(
             GL_TRIANGLES,
             (GLsizei)batch->index_count,
@@ -700,6 +957,18 @@ static int XzDrawRealGeometry(
     state->real_geometry_ready =
         state->real_geometry_failures == 0u &&
         (state->real_geometry_kind_mask & 0x7u) == 0x7u;
+
+    state->last_texture_batches =
+        texture_batches;
+    state->last_texture_misses =
+        texture_misses;
+    state->real_texture_kind_mask |=
+        texture_kind_mask;
+    state->real_textures_ready =
+        state->real_texture_failures == 0u &&
+        texture_batches > 0u &&
+        texture_misses == 0u &&
+        (state->real_texture_kind_mask & 0x7u) == 0x7u;
 
     return 1;
 }
@@ -2156,6 +2425,7 @@ void XzGles3Shadow_Shutdown(
             &previous_read,
             &previous_context)) {
         XzDestroyAllPhysicalResources(state);
+        XzDestroyRealTextures();
 
         if (xz_shadow.gl.DeleteFramebuffers &&
             xz_shadow.scratch_fbo)
