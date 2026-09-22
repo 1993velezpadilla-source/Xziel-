@@ -6,7 +6,7 @@
   "height_m": 1.85,
   "rig": "game_engine",
   "bones": 53,
-  "triangles_estimate": 42112,
+  "triangles_estimate": 45460,
   "animations": [
     "idle",
     "float",
