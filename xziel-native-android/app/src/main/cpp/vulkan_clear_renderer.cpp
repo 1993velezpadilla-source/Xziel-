@@ -4117,33 +4117,44 @@ bool VulkanClearRenderer::recordDrawCommand(
             window.halfWidth <= window.halfDepth;
 
         if (sanctumMesh_.ready()) {
-            // The photogrammetry scan has real open/missing pixels behind a
-            // subset of the Gothic windows. A shallow native recess masks the
-            // bright void without changing collision or destructively filling
-            // source scan geometry. Barricade planks render on top and remain
-            // fully gameplay-authoritative.
-            constexpr float recessHalfThickness = 0.045f;
-            constexpr float recessOffset = 0.055f;
+            // The scan has genuine missing pixels around parts of the Gothic
+            // tracery. Window blockers are fitted to gameplay openings, but
+            // their thin axis does not encode which side of the original wall
+            // is visually exposed. Draw two slightly oversized, shallow dark
+            // backplanes on opposite sides of that axis. The scan itself still
+            // wins depth on intact stone, while any real hole sees a dark
+            // recess instead of the clear-color void. This remains render-only:
+            // collision and barricade state are untouched.
+            constexpr float recessHalfThickness = 0.035f;
+            constexpr float recessOffset = 0.12f;
+            constexpr float recessExtentScale = 1.24f;
 
-            const float recessX =
-                window.x +
-                (thinX ? recessOffset : 0.0f);
-            const float recessZ =
-                window.z +
-                (thinX ? 0.0f : recessOffset);
+            for (float recessSide : {-1.0f, 1.0f}) {
+                const float recessX =
+                    window.x +
+                    (thinX
+                        ? recessSide * recessOffset
+                        : 0.0f);
+                const float recessZ =
+                    window.z +
+                    (thinX
+                        ? 0.0f
+                        : recessSide * recessOffset);
 
-            drawBox(
-                recessX,
-                window.y,
-                recessZ,
-                thinX
-                    ? recessHalfThickness / 0.75f
-                    : window.halfWidth / 0.75f,
-                window.halfHeight / 0.75f,
-                thinX
-                    ? window.halfDepth / 0.75f
-                    : recessHalfThickness / 0.75f,
-                7.0f);
+                drawBox(
+                    recessX,
+                    window.y +
+                        window.halfHeight * 0.035f,
+                    recessZ,
+                    thinX
+                        ? recessHalfThickness / 0.75f
+                        : (window.halfWidth * recessExtentScale) / 0.75f,
+                    (window.halfHeight * recessExtentScale) / 0.75f,
+                    thinX
+                        ? (window.halfDepth * recessExtentScale) / 0.75f
+                        : recessHalfThickness / 0.75f,
+                    7.0f);
+            }
         }
 
         for (std::uint32_t plankIndex = 0U;
@@ -4828,29 +4839,29 @@ bool VulkanClearRenderer::recordDrawCommand(
             3.14159265358979323846f);
 
     const float weaponX =
-        0.72f *
+        0.66f *
             (1.0f - weaponAds) +
-        0.05f *
+        0.035f *
             weaponAds +
-        0.11f *
+        0.10f *
             viewmodelLowering;
 
     const float weaponY =
-        -0.72f +
-        0.16f *
+        -0.78f +
+        0.18f *
             weaponAds -
         0.30f *
             reloadArc -
-        0.46f *
+        0.44f *
             viewmodelLowering;
 
     const float weaponZ =
-        1.22f -
-        0.12f *
+        1.34f -
+        0.18f *
             weaponAds +
         0.10f *
             reloadArc +
-        0.08f *
+        0.10f *
             viewmodelLowering;
 
     // Native first-person rifle blockout. Keep this renderer-owned until a

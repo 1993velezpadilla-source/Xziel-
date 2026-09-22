@@ -69,7 +69,7 @@ vec3 materialBase(int material, float pulse) {
 
     if (material == 15) {
         // Warm, worn furniture/wood tone for the native rifle viewmodel.
-        return vec3(0.19, 0.075, 0.026);
+        return vec3(0.085, 0.032, 0.014);
     }
 
     if (material == 16) {
