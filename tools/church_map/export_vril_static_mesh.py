@@ -55,7 +55,23 @@ church_source_objects = [o for o in lod_col.objects if o.type == "MESH"]
 if not church_source_objects:
     raise RuntimeError(f"{source_collection_name} contains no meshes")
 dressing_col = bpy.data.collections.get("SANCTUM_DRESSING_V1")
-dressing_source_objects = [o for o in dressing_col.objects if o.type == "MESH"] if dressing_col else []
+all_dressing_source_objects = [o for o in dressing_col.objects if o.type == "MESH"] if dressing_col else []
+
+# Barricade planks/nails are gameplay state, not static dressing. They are
+# rendered natively from ZombieWindowFrame::intactPlanks so breaking/rebuilding
+# changes the visible world. Threshold rubble/candles/etc remain baked dressing.
+def is_dynamic_barricade_object(obj):
+    name = (obj.name or "").upper()
+    return name.startswith("BAR_") or name.startswith("NAIL_")
+
+dynamic_barricade_source_objects = [
+    o for o in all_dressing_source_objects
+    if is_dynamic_barricade_object(o)
+]
+dressing_source_objects = [
+    o for o in all_dressing_source_objects
+    if not is_dynamic_barricade_object(o)
+]
 source_objects = church_source_objects
 
 # Match the exact origin transform used by export_nzp_harness.py.
@@ -582,6 +598,8 @@ report = {
     "dressingTriangles":dressing_tris,
     "runtimeTotalTriangles":runtime_tris + dressing_tris,
     "dressingObjectCount":len(dressing_runtime_objects),
+    "dynamicBarricadeObjectsExcluded":len(dynamic_barricade_source_objects),
+    "dynamicBarricadeObjectNames":[o.name for o in dynamic_barricade_source_objects],
     "dressingClusters":len({dressing_cluster_name(o) for o in dressing_runtime_objects}),
     "targetTriangles":TARGET_TRIS,
     "textureMaxDimension":TEXTURE_MAX,
@@ -623,6 +641,7 @@ print("XZSM_EXPORT_OK", json.dumps({
     "dressingTriangles":dressing_tris,
     "runtimeTotalTriangles":runtime_tris + dressing_tris,
     "dressingObjectCount":len(dressing_runtime_objects),
+    "dynamicBarricadeObjectsExcluded":len(dynamic_barricade_source_objects),
     "dressingClusters":len({dressing_cluster_name(o) for o in dressing_runtime_objects}),
     "batchCount":len(batches),
     "textureCount":len(texture_records),
