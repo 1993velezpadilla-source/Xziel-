@@ -319,10 +319,10 @@ def baked_vertex_rgba(obj, world_pos, world_normal):
     rgb = [max(0, min(255, int(round(255.0 * level * tint[i])))) for i in range(3)]
     return (rgb[0], rgb[1], rgb[2], 255)
 
-def linked_image_from_socket(sock, visited=None):
+def linked_image_node_from_socket(sock, visited=None):
     # Follow the Base Color graph instead of assuming Image Texture is wired
-    # directly into Principled BSDF. Imported GLB/Sketchfab materials often
-    # contain mapping, color-mix or conversion nodes in between.
+    # directly into Principled BSDF. Return the node, not just the image, so
+    # the exporter can also resolve the UV-map chain feeding that texture.
     if not sock or not getattr(sock, "is_linked", False):
         return None
     if visited is None:
@@ -333,32 +333,67 @@ def linked_image_from_socket(sock, visited=None):
             continue
         visited.add(node.as_pointer())
         if getattr(node, "type", "") == "TEX_IMAGE" and node.image:
-            return node.image
+            return node
         for inp in getattr(node, "inputs", []):
-            img = linked_image_from_socket(inp, visited)
-            if img:
-                return img
+            image_node = linked_image_node_from_socket(inp, visited)
+            if image_node:
+                return image_node
     return None
 
-def material_image(mat):
+def material_image_node(mat):
     if not mat or not mat.use_nodes or not mat.node_tree:
         return None
     bsdf = mat.node_tree.nodes.get("Principled BSDF")
     if bsdf:
-        img = linked_image_from_socket(bsdf.inputs.get("Base Color"))
-        if img:
-            return img
+        image_node = linked_image_node_from_socket(bsdf.inputs.get("Base Color"))
+        if image_node:
+            return image_node
+
     # Last resort for imported materials whose shader graph is unconventional:
-    # prefer a color/albedo-looking image, then any image at all.
+    # prefer a color/albedo-looking image node, then any image node at all.
     candidates = [
-        node.image for node in mat.node_tree.nodes
+        node for node in mat.node_tree.nodes
         if getattr(node, "type", "") == "TEX_IMAGE" and node.image
     ]
-    for img in candidates:
-        n = (img.name or "").lower()
+    for node in candidates:
+        n = (node.image.name or "").lower()
         if any(tag in n for tag in ("basecolor", "base_color", "albedo", "diffuse", "color")):
-            return img
+            return node
     return candidates[0] if candidates else None
+
+def material_image(mat):
+    node = material_image_node(mat)
+    return node.image if node and node.image else None
+
+def linked_uv_map_name(sock, visited=None):
+    # Resolve an explicit UV Map node through Mapping/VectorMath/etc. If the
+    # image ultimately uses Texture Coordinate -> UV, return a sentinel telling
+    # the caller to use Blender's render-active UV layer for that mesh.
+    if not sock or not getattr(sock, "is_linked", False):
+        return None
+    if visited is None:
+        visited = set()
+    for link in sock.links:
+        node = link.from_node
+        if not node or node.as_pointer() in visited:
+            continue
+        visited.add(node.as_pointer())
+
+        node_type = getattr(node, "type", "")
+        if node_type == "UVMAP":
+            name = (getattr(node, "uv_map", "") or "").strip()
+            return name or "__ACTIVE_RENDER__"
+
+        if node_type == "TEX_COORD":
+            socket_name = (getattr(link.from_socket, "name", "") or "").strip().lower()
+            if socket_name == "uv":
+                return "__ACTIVE_RENDER__"
+
+        for inp in getattr(node, "inputs", []):
+            uv_name = linked_uv_map_name(inp, visited)
+            if uv_name:
+                return uv_name
+    return None
 
 def material_color(mat):
     if mat and mat.use_nodes and mat.node_tree:
@@ -380,6 +415,64 @@ church_material_names = {
 }
 fallback_materials = set()
 missing_uv_objects = set()
+missing_explicit_uv_bindings = set()
+uv_binding_records = {}
+uv_binding_cache = {}
+
+def resolve_material_uv_layer(obj, mat):
+    mesh = obj.data
+    mat_key = mat.as_pointer() if mat else 0
+    cache_key = (mesh.as_pointer(), mat_key)
+    cached = uv_binding_cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    requested = None
+    image_node = material_image_node(mat)
+    if image_node:
+        requested = linked_uv_map_name(image_node.inputs.get("Vector"))
+
+    layer = None
+    source = "none"
+
+    if requested and requested != "__ACTIVE_RENDER__":
+        layer = mesh.uv_layers.get(requested)
+        source = "material_uvmap"
+        if layer is None:
+            missing_explicit_uv_bindings.add(
+                f"{obj.name}:{mat.name if mat else '__fallback__'}->{requested}"
+            )
+    else:
+        # Blender materials that use Texture Coordinate -> UV (or leave the
+        # Image Texture Vector unlinked) consume the render-active UV set, not
+        # necessarily mesh.uv_layers.active. The two can diverge after imports
+        # or Blender editing, which previously sent XZSM triangles to unrelated
+        # parts of the atlas.
+        render_layer = next(
+            (candidate for candidate in mesh.uv_layers
+             if getattr(candidate, "active_render", False)),
+            None,
+        )
+        if render_layer is not None:
+            layer = render_layer
+            source = "active_render"
+        elif mesh.uv_layers.active is not None:
+            layer = mesh.uv_layers.active
+            source = "active"
+        elif len(mesh.uv_layers):
+            layer = mesh.uv_layers[0]
+            source = "first"
+
+    record_key = f"{obj.name}:{mat.name if mat else '__fallback__'}"
+    uv_binding_records[record_key] = {
+        "requested": requested,
+        "resolved": layer.name if layer else None,
+        "source": source,
+    }
+
+    result = (layer.data if layer else None, layer.name if layer else None, source)
+    uv_binding_cache[cache_key] = result
+    return result
 
 def save_material_texture(mat):
     key = mat.name if mat else "__fallback__"
@@ -450,14 +543,13 @@ bounds_max = Vector((-1e30,-1e30,-1e30))
 for obj in all_runtime_objects:
     mesh = obj.data
     mesh.calc_loop_triangles()
-    active_uv = mesh.uv_layers.active if mesh.uv_layers.active else (mesh.uv_layers[0] if len(mesh.uv_layers) else None)
-    uv_layer = active_uv.data if active_uv else None
     world = obj.matrix_world
     normal_matrix = world.to_3x3().inverted().transposed()
     for tri in mesh.loop_triangles:
         poly = mesh.polygons[tri.polygon_index]
         mat = obj.material_slots[poly.material_index].material if poly.material_index < len(obj.material_slots) else None
         mat_img = material_image(mat)
+        uv_layer, uv_layer_name, uv_layer_source = resolve_material_uv_layer(obj, mat)
         if mat_img and uv_layer is None and not obj.name.startswith("XZSM_DRESS_"):
             missing_uv_objects.add(obj.name)
         tex = save_material_texture(mat)
@@ -496,6 +588,14 @@ for obj in all_runtime_objects:
                 uv = uv_layer[loop_index].uv
                 u = float(uv.x)
                 v = 1.0 - float(uv.y)
+
+                # Architectural scan textures are atlases, never tiling
+                # materials. Clamp tiny import/decimation overshoot so the
+                # runtime sampler cannot wrap a window edge into an unrelated
+                # part of the atlas. Dressing keeps authored repeat behavior.
+                if not obj.name.startswith("XZSM_DRESS_"):
+                    u = max(0.0, min(1.0, u))
+                    v = max(0.0, min(1.0, v))
             else:
                 u = v = 0.0
 
@@ -563,6 +663,11 @@ if missing_uv_objects:
         "Sanctum textured architecture is missing UVs: " +
         ", ".join(sorted(missing_uv_objects))
     )
+if missing_explicit_uv_bindings:
+    raise RuntimeError(
+        "Sanctum material references missing UV maps: " +
+        ", ".join(sorted(missing_explicit_uv_bindings))
+    )
 
 model_path = MODEL_DIR / "sanctum.xzsm"
 with model_path.open("wb") as f:
@@ -614,6 +719,8 @@ report = {
     "fallbackMaterials":sorted(fallback_materials),
     "churchFallbackMaterials":church_fallbacks,
     "missingUvObjects":sorted(missing_uv_objects),
+    "missingExplicitUvBindings":sorted(missing_explicit_uv_bindings),
+    "uvBindings":uv_binding_records,
     "totalVertices":sum(len(b["vertices"]) for b in batches),
     "totalIndices":sum(len(b["indices"]) for b in batches),
     "rawTriangleVertices":raw_vertex_count,
