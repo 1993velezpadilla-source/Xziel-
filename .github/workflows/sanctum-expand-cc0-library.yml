@@ -1,0 +1,244 @@
+name: Expand Sanctum CC0 Character Library
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/sanctum-native-xziel-v1
+    paths:
+      - ".github/workflows/sanctum-expand-cc0-library.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  expand:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: feature/sanctum-native-xziel-v1
+          fetch-depth: 0
+
+      - name: Install tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq unzip assimp-utils file python3-pil
+
+      - name: Download CC0 packs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _cc0
+          curl -fL --retry 5 --retry-delay 2             "https://opengameart.org/sites/default/files/vividcharacters.zip"             -o _cc0/nightmare_monsters.zip
+
+          curl -fL --retry 5 --retry-delay 2             "https://opengameart.org/sites/default/files/glance_fbx_unity.zip"             -o _cc0/glance.zip
+
+          curl -fL --retry 5 --retry-delay 2             "https://opengameart.org/sites/default/files/universal_animation_library_2standard.zip"             -o _cc0/universal_animation_library_2.zip
+
+          curl -fL --retry 5 --retry-delay 2             "https://opengameart.org/sites/default/files/ultimate_animated_character_pack_by_quaternius.zip"             -o _cc0/animated_characters_pack.zip
+
+          sha256sum _cc0/* > _cc0/SHA256SUMS.txt
+
+      - name: Extract packs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _cc0/x/nightmare_monsters _cc0/x/glance _cc0/x/animations _cc0/x/characters
+          unzip -q -o _cc0/nightmare_monsters.zip -d _cc0/x/nightmare_monsters
+          unzip -q -o _cc0/glance.zip -d _cc0/x/glance
+          unzip -q -o _cc0/universal_animation_library_2.zip -d _cc0/x/animations
+          unzip -q -o _cc0/animated_characters_pack.zip -d _cc0/x/characters
+          find _cc0/x -type f -printf '%P\t%s bytes\n' | sort > _cc0/FILES.txt
+
+      - name: Select model assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=assets/sanctum/free_models_expanded
+          rm -rf "$OUT"
+          mkdir -p "$OUT/nightmare_monsters" "$OUT/glance" "$OUT/animated_characters" "$OUT/animation_library"
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import shutil, subprocess, json
+
+          def collect(root, suffixes):
+              out=[]
+              for s in suffixes:
+                  out.extend(root.rglob("*"+s))
+              return sorted(set(out), key=lambda p:p.stat().st_size, reverse=True)
+
+          out=Path("assets/sanctum/free_models_expanded")
+
+          # Nightmare Monsters: preserve all FBX and nearby textures.
+          root=Path("_cc0/x/nightmare_monsters")
+          fbx=collect(root,[".fbx",".FBX"])
+          for i,p in enumerate(fbx):
+              dst=out/"nightmare_monsters"/f"nightmare_{i:02d}.fbx"
+              shutil.copy2(p,dst)
+              obj=dst.with_suffix(".obj")
+              subprocess.run(["assimp","export",str(dst),str(obj),"-f","objnomtl"],
+                             stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True)
+          for p in collect(root,[".png",".jpg",".jpeg",".tga"]):
+              if p.stat().st_size < 10_000_000:
+                  shutil.copy2(p,out/"nightmare_monsters"/p.name)
+
+          # Glance: keep largest FBX and convert.
+          root=Path("_cc0/x/glance")
+          fs=collect(root,[".fbx",".FBX"])
+          if fs:
+              p=fs[0]
+              dst=out/"glance"/"glance.fbx"
+              shutil.copy2(p,dst)
+              subprocess.run(["assimp","export",str(dst),str(out/"glance"/"glance.obj"),"-f","objnomtl"],
+                             stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True)
+          for p in collect(root,[".png",".jpg",".jpeg",".tga"]):
+              if p.stat().st_size < 10_000_000:
+                  shutil.copy2(p,out/"glance"/p.name)
+
+          # Animated Characters pack: keep useful FBX/OBJ source files but cap repo size.
+          root=Path("_cc0/x/characters")
+          objs=collect(root,[".obj"])
+          fbx=collect(root,[".fbx",".FBX"])
+          chosen=objs[:30] if objs else []
+          for i,p in enumerate(chosen):
+              shutil.copy2(p,out/"animated_characters"/f"character_{i:02d}.obj")
+          # Retain a small representative FBX set for rigs.
+          for i,p in enumerate(fbx[:12]):
+              shutil.copy2(p,out/"animated_characters"/f"character_rig_{i:02d}.fbx")
+
+          # Universal animation library: animation FBX only; no conversion to static OBJ.
+          root=Path("_cc0/x/animations")
+          afbx=collect(root,[".fbx",".FBX"])
+          # Keep all if modest; hard cap 200 files.
+          for i,p in enumerate(afbx[:200]):
+              # preserve readable names when possible
+              safe=p.stem.replace(" ","_").replace("/","_")
+              dest=out/"animation_library"/f"{i:03d}_{safe}.fbx"
+              shutil.copy2(p,dest)
+
+          meta={
+            "schemaVersion":1,
+            "sources":[
+              {"id":"nightmare_monsters","license":"CC0","sourcePage":"https://opengameart.org/content/nightmare-monsters","fbxCount":len(fbx)},
+              {"id":"glance","license":"CC0","sourcePage":"https://opengameart.org/content/glance"},
+              {"id":"animated_characters_pack","license":"CC0","sourcePage":"https://opengameart.org/content/animated-characters-pack"},
+              {"id":"universal_animation_library_2","license":"CC0","sourcePage":"https://opengameart.org/content/universal-animation-library-2","animationCount":min(len(afbx),200)}
+            ]
+          }
+          (out/"MANIFEST.json").write_text(json.dumps(meta,indent=2),encoding="utf-8")
+          print("NIGHTMARE_FBX",len(collect(Path("_cc0/x/nightmare_monsters"),[".fbx",".FBX"])))
+          print("GLANCE_FBX",len(collect(Path("_cc0/x/glance"),[".fbx",".FBX"])))
+          print("CHARACTER_OBJS",len(chosen))
+          print("ANIMATION_FBX",min(len(afbx),200))
+          PY
+
+      - name: Generate quick OBJ previews
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/preview_expanded.py <<'PY'
+          from pathlib import Path
+          from PIL import Image,ImageDraw,ImageFont
+          import math
+
+          root=Path("assets/sanctum/free_models_expanded")
+          objs=list(root.rglob("*.obj"))[:40]
+          cols=5; pw=400; ph=490
+          rows=max(1,math.ceil(len(objs)/cols))
+          im=Image.new("RGB",(30+cols*(pw+15),100+rows*(ph+15)),(14,14,17))
+          d=ImageDraw.Draw(im)
+          try:
+              ft=ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",34)
+              fn=ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",16)
+          except: ft=fn=None
+          d.text((25,20),"SANCTUM — EXPANDED CC0 MODELS",font=ft,fill=(240,240,244))
+
+          for k,p in enumerate(objs):
+              vs=[];fs=[]
+              for line in p.read_text(errors="ignore").splitlines():
+                  if line.startswith("v "):
+                      try:
+                          q=line.split(); vs.append(tuple(map(float,q[1:4])))
+                      except: pass
+                  elif line.startswith("f "):
+                      ids=[]
+                      for t in line.split()[1:]:
+                          try:
+                              i=int(t.split("/")[0]); ids.append(i-1 if i>0 else len(vs)+i)
+                          except: pass
+                      if len(ids)>=2: fs.append(ids)
+              r,c=divmod(k,cols)
+              x0=20+c*(pw+15);y0=80+r*(ph+15);x1=x0+pw;y1=y0+ph
+              d.rectangle((x0,y0,x1,y1),fill=(24,24,28),outline=(70,70,80))
+              d.text((x0+10,y0+10),f"{p.parent.name}/{p.stem}",font=fn,fill=(225,225,230))
+              if not vs: continue
+              yaw=-0.55;cy,sy=math.cos(yaw),math.sin(yaw)
+              P=[(x*cy-y*sy,z,x*sy+y*cy) for x,y,z in vs]
+              xs=[a for a,b,c3 in P];zs=[b for a,b,c3 in P]
+              mnx,mxx=min(xs),max(xs);mnz,mxz=min(zs),max(zs)
+              sc=min(350/max(mxx-mnx,1e-9),390/max(mxz-mnz,1e-9))
+              cx=(x0+x1)/2;base=y1-35
+              step=max(1,len(fs)//2500)
+              for face in fs[::step]:
+                  pts=[]
+                  for idx in face[:12]:
+                      if 0<=idx<len(P):
+                          a,b,_=P[idx]
+                          pts.append((cx+(a-(mnx+mxx)/2)*sc,base-(b-mnz)*sc))
+                  if len(pts)>=2:
+                      if len(pts)>2:pts.append(pts[0])
+                      d.line(pts,fill=(175,178,187),width=1)
+          im.save(root/"PREVIEW.png")
+          PY
+          python3 /tmp/preview_expanded.py
+
+      - name: Add provenance README
+        shell: bash
+        run: |
+          cat > assets/sanctum/free_models_expanded/README.md <<'EOF'
+          # Expanded Sanctum CC0 model/animation library
+
+          This folder contains selected CC0 third-party assets used as legal production starting points and animation sources.
+
+          Important:
+          - Base meshes are not final Sanctum art.
+          - Keep source provenance.
+          - Do not ship a downloaded model unchanged as a named Sanctum hero character.
+          - Universal Animation Library 2 is used for retargetable locomotion/combat/zombie motion.
+          - Nightmare Monsters and Glance are especially useful as horror silhouettes/material/rig references.
+          EOF
+          cp _cc0/SHA256SUMS.txt assets/sanctum/free_models_expanded/SOURCE_SHA256SUMS.txt
+
+      - name: Validate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s assets/sanctum/free_models_expanded/MANIFEST.json
+          test -s assets/sanctum/free_models_expanded/PREVIEW.png
+          test "$(find assets/sanctum/free_models_expanded/nightmare_monsters -name '*.fbx' | wc -l)" -ge 1
+          test "$(find assets/sanctum/free_models_expanded/animation_library -name '*.fbx' | wc -l)" -ge 20
+          echo "SANCTUM_EXPANDED_CC0_LIBRARY_OK"
+
+      - name: Commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/sanctum/free_models_expanded
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "assets: expand Sanctum CC0 model and animation library"
+          git push origin HEAD:feature/sanctum-native-xziel-v1
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sanctum-expanded-cc0-library
+          path: assets/sanctum/free_models_expanded
+          retention-days: 14
