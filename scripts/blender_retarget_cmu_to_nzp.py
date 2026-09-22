@@ -162,23 +162,69 @@ for label,obj_name in parts.items():
     (frames_root/label).mkdir(parents=True,exist_ok=True)
 
 def export_selected(obj,path):
-    bpy.ops.object.select_all(action="DESELECT")
-    obj.hide_set(False)
-    obj.hide_render=False
-    obj.select_set(True)
-    bpy.context.view_layer.objects.active=obj
-    if bpy.app.version < (4,0,0):
-        bpy.ops.export_scene.obj(
-            filepath=str(path),use_selection=True,use_animation=False,
-            use_mesh_modifiers=True,use_edges=False,use_normals=False,use_uvs=True,
-            use_materials=False,keep_vertex_order=True,axis_forward="X",axis_up="Z"
-        )
-    else:
-        bpy.ops.wm.obj_export(
-            filepath=str(path),export_animation=False,export_selected_objects=True,
-            apply_modifiers=True,export_uv=True,export_normals=False,
-            export_materials=False,forward_axis="X",up_axis="Z"
-        )
+    """Write a stable OBJ without Blender's animation-dependent normal splitting.
+
+    Every face references:
+      - the original mesh vertex index for position,
+      - a stable UV-table index derived from the authored UV coordinate,
+      - the same mesh vertex index for its animated vertex normal.
+
+    quake-export unifies those three OBJ indices. Because their *indices* are
+    stable across frames, the MDL topology stays stable while positions and
+    normal vectors are free to animate.
+    """
+    depsgraph=bpy.context.evaluated_depsgraph_get()
+    eval_obj=obj.evaluated_get(depsgraph)
+    mesh=eval_obj.to_mesh(preserve_all_data_layers=True,depsgraph=depsgraph)
+    try:
+        mesh.calc_loop_triangles()
+        uv_layer=mesh.uv_layers.active
+        if uv_layer is None:
+            raise RuntimeError("mesh has no active UV layer: "+obj.name)
+
+        # Stable UV table: UV data is authored/static even while the armature
+        # deforms positions. Rounding only normalizes floating serialization.
+        uv_to_index={}
+        uv_values=[]
+        loop_uv_index={}
+        for li,loop in enumerate(mesh.loops):
+            uv=uv_layer.data[li].uv
+            key=(round(float(uv.x),8),round(float(uv.y),8))
+            if key not in uv_to_index:
+                uv_to_index[key]=len(uv_values)+1
+                uv_values.append(key)
+            loop_uv_index[li]=uv_to_index[key]
+
+        # Match the previous Quake-oriented exporter: Blender -Y forward ->
+        # Quake +X forward, Blender +X right -> Quake +Y.
+        def axis(v):
+            return (-float(v.y),float(v.x),float(v.z))
+
+        normal_matrix=eval_obj.matrix_world.to_3x3().inverted().transposed()
+        world_matrix=eval_obj.matrix_world
+
+        with open(path,"w",encoding="ascii",newline="\n") as fh:
+            fh.write("g xziel_zombie\n")
+            for v in mesh.vertices:
+                p=world_matrix@v.co
+                x,y,z=axis(p)
+                fh.write(f"v {x:.9f} {y:.9f} {z:.9f}\n")
+            for u,v in uv_values:
+                fh.write(f"vt {u:.9f} {v:.9f}\n")
+            for vert in mesh.vertices:
+                n=(normal_matrix@vert.normal).normalized()
+                x,y,z=axis(n)
+                fh.write(f"vn {x:.9f} {y:.9f} {z:.9f}\n")
+            for tri in mesh.loop_triangles:
+                corners=[]
+                for vi,li in zip(tri.vertices,tri.loops):
+                    pidx=int(vi)+1
+                    tidx=loop_uv_index[int(li)]
+                    nidx=pidx
+                    corners.append(f"{pidx}/{tidx}/{nidx}")
+                fh.write("f "+" ".join(corners)+"\n")
+    finally:
+        eval_obj.to_mesh_clear()
 
 for quake_index in range(211):
     scene.frame_set(quake_index+1)
