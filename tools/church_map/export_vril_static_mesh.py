@@ -11,7 +11,7 @@ from mathutils import Vector
 MASTER = os.environ.get("CHURCH_GAMEPLAY_BLEND", "church/out/church_zombies_gameplay_v1.blend")
 PLAN_PATH = Path(os.environ.get("CHURCH_PLAN", "church/out/zombies_map_plan.json"))
 OUTDIR = Path(os.environ.get("CHURCH_OUT", "church/out"))
-RUNTIME_ROOT = OUTDIR / "vril_static"
+RUNTIME_ROOT = Path(os.environ.get("XZIEL_STATIC_RUNTIME_ROOT", str(OUTDIR / "vril_static")))
 MODEL_DIR = RUNTIME_ROOT / "models" / "xziel" / "sanctum"
 TEXTURE_DIR = RUNTIME_ROOT / "textures" / "xziel" / "sanctum"
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
@@ -21,6 +21,10 @@ TARGET_TRIS = int(os.environ.get("XZIEL_STATIC_TARGET_TRIS", "600000"))
 TEXTURE_MAX = int(os.environ.get("XZIEL_STATIC_TEXTURE_MAX", "2048"))
 MAX_TRIS_PER_BATCH = 18000
 QUAKE_SCALE = 39.3700787402
+EXPORT_SPACE = os.environ.get("XZIEL_STATIC_SPACE", "quake").strip().lower()
+if EXPORT_SPACE not in {"quake", "native"}:
+    raise RuntimeError(f"Unsupported XZIEL_STATIC_SPACE={EXPORT_SPACE!r}")
+WORLD_SCALE = float(os.environ.get("XZIEL_STATIC_WORLD_SCALE", "1.0")) if EXPORT_SPACE == "native" else QUAKE_SCALE
 XZSM_VERSION = 2
 
 # XZSM v2 keeps the photogrammetry albedo intact but adds a compact baked
@@ -41,12 +45,13 @@ bpy.ops.wm.open_mainfile(filepath=MASTER)
 scene = bpy.context.scene
 plan = json.loads(PLAN_PATH.read_text(encoding="utf-8"))
 
-lod_col = bpy.data.collections.get("GAME_CHURCH_LOD0")
+source_collection_name = "SOURCE_CHURCH_FULL" if EXPORT_SPACE == "native" else "GAME_CHURCH_LOD0"
+lod_col = bpy.data.collections.get(source_collection_name)
 if not lod_col:
-    raise RuntimeError("GAME_CHURCH_LOD0 missing")
+    raise RuntimeError(f"{source_collection_name} missing")
 church_source_objects = [o for o in lod_col.objects if o.type == "MESH"]
 if not church_source_objects:
-    raise RuntimeError("GAME_CHURCH_LOD0 contains no meshes")
+    raise RuntimeError(f"{source_collection_name} contains no meshes")
 dressing_col = bpy.data.collections.get("SANCTUM_DRESSING_V1")
 dressing_source_objects = [o for o in dressing_col.objects if o.type == "MESH"] if dressing_col else []
 source_objects = church_source_objects
@@ -451,7 +456,14 @@ for obj in all_runtime_objects:
             else:
                 n_world = Vector((0.0, 0.0, 1.0))
             rgba = baked_vertex_rgba(obj, p_world, n_world)
-            p = (p_world - center) * QUAKE_SCALE
+            delta = p_world - center
+            if EXPORT_SPACE == "native":
+                # Blender is Z-up; Xziel gameplay/rendering is Y-up. Keep the
+                # church in meters and rotate axes once at export instead of
+                # inheriting the old Quake inches transform.
+                p = Vector((delta.x, delta.z, -delta.y)) * WORLD_SCALE
+            else:
+                p = delta * WORLD_SCALE
             if uv_layer:
                 uv = uv_layer[loop_index].uv
                 u = float(uv.x)
@@ -537,6 +549,9 @@ with model_path.open("wb") as f:
 report = {
     "format":"XZSM",
     "version":XZSM_VERSION,
+    "coordinateSpace":EXPORT_SPACE,
+    "sourceCollection":source_collection_name,
+    "worldScale":WORLD_SCALE,
     "sourceTriangles":source_tris,
     "cleanedTriangles":cleaned_tris,
     "runtimeTriangles":runtime_tris,
