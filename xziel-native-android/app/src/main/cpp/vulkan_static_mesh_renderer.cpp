@@ -575,7 +575,7 @@ bool VulkanStaticMeshRenderer::createPipeline(
 
     const std::array<
         VkVertexInputAttributeDescription,
-        3> attributes{{
+        4> attributes{{
             {
                 0U,
                 0U,
@@ -588,6 +588,15 @@ bool VulkanStaticMeshRenderer::createPipeline(
             {
                 1U,
                 0U,
+                VK_FORMAT_R32G32B32_SFLOAT,
+                static_cast<std::uint32_t>(
+                    offsetof(
+                        StaticMeshVertex,
+                        nx)),
+            },
+            {
+                2U,
+                0U,
                 VK_FORMAT_R32G32_SFLOAT,
                 static_cast<std::uint32_t>(
                     offsetof(
@@ -595,7 +604,7 @@ bool VulkanStaticMeshRenderer::createPipeline(
                         u)),
             },
             {
-                2U,
+                3U,
                 0U,
                 VK_FORMAT_R8G8B8A8_UNORM,
                 static_cast<std::uint32_t>(
