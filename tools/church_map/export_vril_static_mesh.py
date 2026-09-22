@@ -44,9 +44,12 @@ plan = json.loads(PLAN_PATH.read_text(encoding="utf-8"))
 lod_col = bpy.data.collections.get("GAME_CHURCH_LOD0")
 if not lod_col:
     raise RuntimeError("GAME_CHURCH_LOD0 missing")
-source_objects = [o for o in lod_col.objects if o.type == "MESH"]
-if not source_objects:
+church_source_objects = [o for o in lod_col.objects if o.type == "MESH"]
+if not church_source_objects:
     raise RuntimeError("GAME_CHURCH_LOD0 contains no meshes")
+dressing_col = bpy.data.collections.get("SANCTUM_DRESSING_V1")
+dressing_source_objects = [o for o in dressing_col.objects if o.type == "MESH"] if dressing_col else []
+source_objects = church_source_objects
 
 # Match the exact origin transform used by export_nzp_harness.py.
 zones = [v for k,v in plan["zones"].items() if k != "other"]
@@ -208,11 +211,30 @@ if runtime_tris < runtime_floor:
         f"floor={runtime_floor} source={source_tris} target={TARGET_TRIS}"
     )
 
+# Dressing is additive visual geometry. It is never counted against the 640k
+# church quality floor and is not decimated with the photogrammetry mesh.
+dressing_runtime_objects = []
+for src in dressing_source_objects:
+    dup = src.copy()
+    dup.data = src.data.copy()
+    dup.name = "XZSM_DRESS_" + src.name
+    runtime_col.objects.link(dup)
+    dressing_runtime_objects.append(dup)
+dressing_tris = sum(mesh_triangles(o) for o in dressing_runtime_objects)
+all_runtime_objects = runtime_objects + dressing_runtime_objects
+
 def safe_name(s):
     s = re.sub(r"[^A-Za-z0-9_-]+", "_", s or "material")
     return s[:40] or "material"
 
 def visual_zone(obj):
+    # Dressing objects span multiple zones but use shared materials. Derive a
+    # reasonable lighting zone from the nearest authored zone center.
+    if obj.name.startswith("XZSM_DRESS_"):
+        p = obj.matrix_world.translation
+        candidates = [(name, Vector(info["center"])) for name, info in plan["zones"].items() if name != "other"]
+        if candidates:
+            return min(candidates, key=lambda it:(p-it[1]).length_squared)[0]
     mats = " ".join(m.name.lower() for m in obj.data.materials if m)
     name = obj.name.lower()
     s = name + " " + mats
@@ -352,7 +374,7 @@ groups = {}
 bounds_min = Vector((1e30,1e30,1e30))
 bounds_max = Vector((-1e30,-1e30,-1e30))
 
-for obj in runtime_objects:
+for obj in all_runtime_objects:
     mesh = obj.data
     mesh.calc_loop_triangles()
     uv_layer = mesh.uv_layers.active.data if mesh.uv_layers.active else None
@@ -362,7 +384,7 @@ for obj in runtime_objects:
         poly = mesh.polygons[tri.polygon_index]
         mat = obj.material_slots[poly.material_index].material if poly.material_index < len(obj.material_slots) else None
         tex = save_material_texture(mat)
-        group_key = (obj.name, tex)
+        group_key = (("DRESSING" if obj.name.startswith("XZSM_DRESS_") else obj.name), tex)
         group = groups.setdefault(group_key, [])
         verts = []
         for loop_index in tri.loops:
@@ -448,6 +470,9 @@ report = {
     "sourceTriangles":source_tris,
     "cleanedTriangles":cleaned_tris,
     "runtimeTriangles":runtime_tris,
+    "dressingTriangles":dressing_tris,
+    "runtimeTotalTriangles":runtime_tris + dressing_tris,
+    "dressingObjectCount":len(dressing_runtime_objects),
     "targetTriangles":TARGET_TRIS,
     "textureMaxDimension":TEXTURE_MAX,
     "decimateRatio":ratio,
@@ -481,6 +506,9 @@ report = {
 print("XZSM_EXPORT_OK", json.dumps({
     "sourceTriangles":source_tris,
     "runtimeTriangles":runtime_tris,
+    "dressingTriangles":dressing_tris,
+    "runtimeTotalTriangles":runtime_tris + dressing_tris,
+    "dressingObjectCount":len(dressing_runtime_objects),
     "batchCount":len(batches),
     "textureCount":len(texture_records),
     "modelBytes":model_path.stat().st_size,
