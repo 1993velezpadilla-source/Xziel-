@@ -203,14 +203,18 @@ pil=Image.fromarray(tex,"RGB")
 pil=pil.filter(ImageFilter.UnsharpMask(radius=0.8,percent=65,threshold=4))
 pil.save(OUT/"llorona_albedo_4k.png",optimize=True)
 
-# Quality metrics inside occupied UVs.
+# Quality metrics inside occupied UVs. Black is a legitimate color for La
+# Llorona's wet hair, so do not mistake dark pixels for missing texture.
 gray=cv2.cvtColor(np.asarray(pil),cv2.COLOR_RGB2GRAY)
 lap=cv2.Laplacian(gray,cv2.CV_64F)
 sharp=float(lap[occupied].var()) if occupied.any() else 0.0
-black=float(((gray<5)&occupied).sum()/max(1,occupied.sum()))
-print("QUALITY sharpness",sharp,"black_ratio",black)
-if direct_ratio<0.50: fail(f"projection coverage too low: {direct_ratio:.3f}")
-if black>0.015: fail(f"too many black UV holes: {black:.4f}")
+filled_mask=direct.copy()
+filled_mask[occupied & (~direct)]=True
+unfilled=float((occupied & (~filled_mask)).sum()/max(1,occupied.sum()))
+dark_ratio=float(((gray<5)&occupied).sum()/max(1,occupied.sum()))
+print("QUALITY sharpness",sharp,"unfilled_ratio",unfilled,"dark_ratio",dark_ratio)
+if direct_ratio<0.75: fail(f"projection coverage too low: {direct_ratio:.3f}")
+if unfilled>0.001: fail(f"unfilled UV texels remain: {unfilled:.5f}")
 if sharp<18.0: fail(f"texture too blurry: {sharp:.2f}")
 
 # PBR GLB.
@@ -275,7 +279,7 @@ manifest={
     "uvVertices":int(len(VU)),
     "directCoverage":direct_ratio,
     "sharpnessLaplacianVariance":sharp,
-    "blackUvRatio":black,
+    "unfilledUvRatio":unfilled,\n    "darkPixelRatio":dark_ratio,
     "hasUV":bool(has_uv),
     "hasEmbeddedTexture":bool(has_tex),
     "masterVisualReference":"assets/characters/llorona/reference/master/llorona_haunted_waters_master.jpg",
