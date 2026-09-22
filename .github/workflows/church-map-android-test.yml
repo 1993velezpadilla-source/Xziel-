@@ -1,16 +1,10 @@
-name: Sanctum Android Harness APK
+name: Legacy Sanctum NZ:P Compatibility Harness
 
 on:
+  # Manual-only legacy compatibility smoke test.
+  # Final Sanctum visual approval belongs to the modern Xziel renderer path,
+  # not the NZ:P/Vril host.
   workflow_dispatch:
-  workflow_run:
-    workflows: ["Build Church Map with Blender"]
-    types: [completed]
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/church-map-android-test.yml"
-      - "scripts/prepare_android.sh"
-      - "android/NZPActivity.java"
 
 permissions:
   contents: read
