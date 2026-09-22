@@ -3,6 +3,7 @@
 
 #include "xz_render_plan.h"
 #include "xz_command_stream.h"
+#include "xz_geometry_tap.h"
 
 #include <stdint.h>
 
@@ -67,6 +68,18 @@ typedef struct {
     uint64_t material_vertices;
     unsigned int last_material_flags;
 
+    uint64_t real_geometry_submissions;
+    uint64_t real_geometry_draw_calls;
+    uint64_t real_geometry_vertices;
+    uint64_t real_geometry_indices;
+    uint64_t real_geometry_failures;
+    unsigned int real_geometry_kind_mask;
+    unsigned int last_geometry_batches;
+    unsigned int last_geometry_vertices;
+    unsigned int last_geometry_indices;
+    unsigned int last_geometry_drops;
+    int real_geometry_ready;
+
     unsigned int last_packet_count;
     uint32_t last_plan_hash;
     uint32_t last_command_hash;
@@ -97,7 +110,8 @@ int XzGles3Shadow_SubmitCommands(
     XzGles3ShadowState *state,
     const XzCommandStream *commands,
     const XzRenderPlan *plan,
-    XzGpuResourcePool *resources);
+    XzGpuResourcePool *resources,
+    const XzGeometryFrame *geometry);
 
 void XzGles3Shadow_Shutdown(
     XzGles3ShadowState *state);
