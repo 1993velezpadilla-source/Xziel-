@@ -8,7 +8,19 @@ extern "C" {
 #endif
 
 void XzAndroidRuntime_Init(size_t engine_heap_bytes);
+typedef enum {
+    XZ_LEGACY_DRAW_ALIAS = 0,
+    XZ_LEGACY_DRAW_SURFACE,
+    XZ_LEGACY_DRAW_SPRITE,
+    XZ_LEGACY_DRAW_EFFECT,
+    XZ_LEGACY_DRAW_SPECIAL,
+    XZ_LEGACY_DRAW_SHADOW,
+    XZ_LEGACY_DRAW_COUNT
+} XzLegacyWorldDrawKind;
+
 void XzAndroidRuntime_BeginFrame(double now_seconds);
+int XzAndroidRuntime_ShouldSuppressLegacyWorldDraw(
+    XzLegacyWorldDrawKind kind);
 int XzAndroidRuntime_CompositeVisibleWorld(void);
 void XzAndroidRuntime_EndFrame(double now_seconds);
 void XzAndroidRuntime_Shutdown(void);

@@ -67,6 +67,10 @@ typedef struct {
     int packed_gles_version;
     size_t engine_heap_bytes;
     uint64_t last_memory_sample_frame;
+    uint64_t legacy_draws_suppressed_total;
+    uint64_t legacy_draws_passthrough_total;
+    unsigned int legacy_draws_suppressed_frame[XZ_LEGACY_DRAW_COUNT];
+    unsigned int legacy_draws_passthrough_frame[XZ_LEGACY_DRAW_COUNT];
     double last_log_seconds;
     char board_platform[PROP_VALUE_MAX];
     char egl_driver[PROP_VALUE_MAX];
@@ -847,6 +851,23 @@ static void XzLogSnapshot(double now_seconds)
 
     XzAndroidLog(
         ANDROID_LOG_INFO,
+        "legacy3d suppress total=%" PRIu64 " pass=%" PRIu64
+        " frame(alias=%u sprite=%u effect=%u)"
+        " passFrame(alias=%u surface=%u sprite=%u effect=%u special=%u shadow=%u)",
+        xz_runtime.legacy_draws_suppressed_total,
+        xz_runtime.legacy_draws_passthrough_total,
+        xz_runtime.legacy_draws_suppressed_frame[XZ_LEGACY_DRAW_ALIAS],
+        xz_runtime.legacy_draws_suppressed_frame[XZ_LEGACY_DRAW_SPRITE],
+        xz_runtime.legacy_draws_suppressed_frame[XZ_LEGACY_DRAW_EFFECT],
+        xz_runtime.legacy_draws_passthrough_frame[XZ_LEGACY_DRAW_ALIAS],
+        xz_runtime.legacy_draws_passthrough_frame[XZ_LEGACY_DRAW_SURFACE],
+        xz_runtime.legacy_draws_passthrough_frame[XZ_LEGACY_DRAW_SPRITE],
+        xz_runtime.legacy_draws_passthrough_frame[XZ_LEGACY_DRAW_EFFECT],
+        xz_runtime.legacy_draws_passthrough_frame[XZ_LEGACY_DRAW_SPECIAL],
+        xz_runtime.legacy_draws_passthrough_frame[XZ_LEGACY_DRAW_SHADOW]);
+
+    XzAndroidLog(
+        ANDROID_LOG_INFO,
         "parity effects current=%u seen=%d",
         g3->last_effect_batches,
         g3->real_effects_ready);
@@ -1314,7 +1335,64 @@ void XzAndroidRuntime_BeginFrame(double now_seconds)
 {
     if (!xz_runtime.initialized)
         return;
+
+    memset(
+        xz_runtime.legacy_draws_suppressed_frame,
+        0,
+        sizeof(xz_runtime.legacy_draws_suppressed_frame));
+    memset(
+        xz_runtime.legacy_draws_passthrough_frame,
+        0,
+        sizeof(xz_runtime.legacy_draws_passthrough_frame));
+
     XzFrameMetrics_Begin(&xz_runtime.frame, now_seconds);
+}
+
+int XzAndroidRuntime_ShouldSuppressLegacyWorldDraw(
+    XzLegacyWorldDrawKind kind)
+{
+    const XzGeometryFrame *current;
+    int suppress = 0;
+
+    if (!xz_runtime.initialized ||
+        kind < XZ_LEGACY_DRAW_ALIAS ||
+        kind >= XZ_LEGACY_DRAW_COUNT)
+        return 0;
+
+    current = XzGeometryTap_GetWriteFrame();
+
+    /*
+     * Phase 1 retires only entity/effect raster. Keep BSP/special geometry
+     * legacy-visible as an immediate fallback while suppression is proven.
+     * Current-frame core evidence prevents a stale MODERN state from
+     * suppressing the first draws after a map/scene transition.
+     */
+    if (kind == XZ_LEGACY_DRAW_ALIAS ||
+        kind == XZ_LEGACY_DRAW_SPRITE ||
+        kind == XZ_LEGACY_DRAW_EFFECT) {
+        suppress =
+            xz_runtime.cutover.active_mode ==
+                XZ_CUTOVER_MODE_MODERN &&
+            xz_runtime.gles3_shadow.visible_present_ready &&
+            xz_runtime.gles3_shadow.real_scene_ready_streak >= 4u &&
+            current &&
+            current->surface_batches >= 32u &&
+            current->alias_batches >= 1u &&
+            current->batch_count >= 48u &&
+            current->dropped_batches == 0u &&
+            current->dropped_vertices == 0u &&
+            current->dropped_indices == 0u;
+    }
+
+    if (suppress) {
+        xz_runtime.legacy_draws_suppressed_total++;
+        xz_runtime.legacy_draws_suppressed_frame[kind]++;
+        return 1;
+    }
+
+    xz_runtime.legacy_draws_passthrough_total++;
+    xz_runtime.legacy_draws_passthrough_frame[kind]++;
+    return 0;
 }
 
 int XzAndroidRuntime_CompositeVisibleWorld(void)
