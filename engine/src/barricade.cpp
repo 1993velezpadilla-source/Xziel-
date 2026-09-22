@@ -26,6 +26,26 @@ void BarricadeSystem::beginRound() noexcept {
     rebuildPointsThisRound_ = 0;
 }
 
+void BarricadeSystem::forceFullRebuild() noexcept {
+    const bool changed =
+        frame_.intactPlanks <
+        config_.maximumPlanks;
+
+    frame_.intactPlanks =
+        config_.maximumPlanks;
+    frame_.blocksZombieTraversal = true;
+    frame_.plankRemovedThisTick = false;
+    frame_.plankRebuiltThisTick = changed;
+    frame_.breachedThisTick = false;
+    frame_.fullyRebuiltThisTick = changed;
+    frame_.pointsAwardedThisTick = 0U;
+    frame_.zombieTearAlpha = 0.0f;
+    frame_.rebuildAlpha = 0.0f;
+
+    zombieTearSeconds_ = 0.0f;
+    rebuildSeconds_ = 0.0f;
+}
+
 BarricadeFrame BarricadeSystem::step(
     bool zombieTearing,
     bool playerRebuilding,
