@@ -220,6 +220,7 @@ typedef struct {
     GLint real_modelview_loc;
     GLint real_projection_loc;
     GLint real_texture_loc;
+    GLint real_texture_enabled_loc;
     GLint real_color_loc;
     GLint real_texenv_modulate_loc;
     GLint real_alpha_test_loc;
@@ -603,6 +604,7 @@ static int XzCreateRealGeometryProgram(void)
         "precision mediump float;\n"
         "in vec2 vUV;\n"
         "uniform sampler2D uTexture;\n"
+        "uniform int uTextureEnabled;\n"
         "uniform vec4 uColor;\n"
         "uniform int uTexEnvModulate;\n"
         "uniform int uAlphaTest;\n"
@@ -615,8 +617,8 @@ static int XzCreateRealGeometryProgram(void)
         "in float vFogCoord;\n"
         "out vec4 outColor;\n"
         "void main(){\n"
-        "  vec4 texel=texture(uTexture,vUV);\n"
-        "  vec4 c=(uTexEnvModulate!=0)?texel*uColor:texel;\n"
+        "  vec4 texel=(uTextureEnabled!=0)?texture(uTexture,vUV):vec4(1.0);\n"
+        "  vec4 c=(uTextureEnabled!=0)?((uTexEnvModulate!=0)?texel*uColor:texel):uColor;\n"
         "  if(uAlphaTest!=0){\n"
         "    bool pass=true;\n"
         "    if(uAlphaFunc==0) pass=false;\n"
@@ -683,6 +685,10 @@ static int XzCreateRealGeometryProgram(void)
         gl->GetUniformLocation(
             xz_shadow.real_program,
             "uTexture");
+    xz_shadow.real_texture_enabled_loc =
+        gl->GetUniformLocation(
+            xz_shadow.real_program,
+            "uTextureEnabled");
     xz_shadow.real_color_loc =
         gl->GetUniformLocation(
             xz_shadow.real_program,
@@ -723,6 +729,7 @@ static int XzCreateRealGeometryProgram(void)
     if (xz_shadow.real_modelview_loc < 0 ||
         xz_shadow.real_projection_loc < 0 ||
         xz_shadow.real_texture_loc < 0 ||
+        xz_shadow.real_texture_enabled_loc < 0 ||
         xz_shadow.real_color_loc < 0 ||
         xz_shadow.real_texenv_modulate_loc < 0 ||
         xz_shadow.real_alpha_test_loc < 0 ||
@@ -1023,6 +1030,7 @@ static int XzDrawRealGeometry(
     state->last_geometry_indices =
         geometry->index_count;
     state->last_geometry_drops = drops;
+    state->last_effect_batches = geometry->effect_batches;
 
     if (drops != 0u) {
         state->real_geometry_failures++;
@@ -1119,6 +1127,9 @@ static int XzDrawRealGeometry(
             1,
             GL_FALSE,
             batch->projection);
+        gl->Uniform1i(
+            xz_shadow.real_texture_enabled_loc,
+            batch->state.texture_enabled ? 1 : 0);
         gl->Uniform4fv(
             xz_shadow.real_color_loc,
             1,
@@ -1152,26 +1163,33 @@ static int XzDrawRealGeometry(
         {
             int has_real_texture = 0;
 
-            texture_batches++;
-            if (!XzBindRealTexture(
-                    state,
-                    batch->texture_id,
-                    &has_real_texture)) {
-                state->real_geometry_failures++;
-                state->real_geometry_ready = 0;
-                state->real_textures_ready = 0;
-                return 0;
-            }
+            if (batch->state.texture_enabled) {
+                texture_batches++;
+                if (!XzBindRealTexture(
+                        state,
+                        batch->texture_id,
+                        &has_real_texture)) {
+                    state->real_geometry_failures++;
+                    state->real_geometry_ready = 0;
+                    state->real_textures_ready = 0;
+                    return 0;
+                }
 
-            if (has_real_texture) {
-                if (batch->kind == XZ_GEOMETRY_ALIAS)
-                    texture_kind_mask |= 1u;
-                else if (batch->kind == XZ_GEOMETRY_SURFACE)
-                    texture_kind_mask |= 2u;
-                else if (batch->kind == XZ_GEOMETRY_SPRITE)
-                    texture_kind_mask |= 4u;
+                if (has_real_texture) {
+                    if (batch->kind == XZ_GEOMETRY_ALIAS)
+                        texture_kind_mask |= 1u;
+                    else if (batch->kind == XZ_GEOMETRY_SURFACE)
+                        texture_kind_mask |= 2u;
+                    else if (batch->kind == XZ_GEOMETRY_SPRITE)
+                        texture_kind_mask |= 4u;
+                } else {
+                    texture_misses++;
+                }
             } else {
-                texture_misses++;
+                gl->ActiveTexture(GL_TEXTURE0);
+                gl->BindTexture(
+                    GL_TEXTURE_2D,
+                    xz_shadow.real_fallback_texture);
             }
         }
 
@@ -1256,6 +1274,8 @@ static int XzDrawRealGeometry(
             kind_mask |= 2u;
         else if (batch->kind == XZ_GEOMETRY_SPRITE)
             kind_mask |= 4u;
+        else if (batch->kind == XZ_GEOMETRY_EFFECT)
+            kind_mask |= 8u;
 
         state->real_geometry_draw_calls++;
     }
@@ -1277,7 +1297,13 @@ static int XzDrawRealGeometry(
 
     state->real_geometry_ready =
         state->real_geometry_failures == 0u &&
-        (state->real_geometry_kind_mask & 0x7u) == 0x7u;
+        (state->real_geometry_kind_mask & 0x7u) == 0x7u &&
+        (geometry->effect_batches == 0u ||
+         (kind_mask & 0x8u) == 0x8u);
+    if (geometry->effect_batches > 0u &&
+        state->real_geometry_failures == 0u &&
+        (kind_mask & 0x8u) == 0x8u)
+        state->real_effects_ready = 1;
 
     state->last_texture_batches =
         texture_batches;

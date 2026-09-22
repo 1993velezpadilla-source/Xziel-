@@ -46,6 +46,7 @@ static void XzCopyRenderState(
     dst->alpha_func = 0x0204u;      /* GL_GREATER */
     dst->alpha_ref = 0.666f;
     dst->texture_env_mode = 0x2100u;/* GL_MODULATE */
+    dst->texture_enabled = 1u;
     dst->fog_enabled = 0u;
     dst->fog_start = 0.0f;
     dst->fog_end = -1.0f;
@@ -130,6 +131,8 @@ static XzGeometryBatch *XzBeginBatch(
         frame->surface_batches++;
     else if (kind == XZ_GEOMETRY_SPRITE)
         frame->sprite_batches++;
+    else if (kind == XZ_GEOMETRY_EFFECT)
+        frame->effect_batches++;
 
     return batch;
 }
@@ -155,6 +158,7 @@ void XzGeometryTap_BeginFrame(uint64_t generation)
     frame->alias_batches = 0u;
     frame->surface_batches = 0u;
     frame->sprite_batches = 0u;
+    frame->effect_batches = 0u;
     frame->dropped_batches = 0u;
     frame->dropped_vertices = 0u;
     frame->dropped_indices = 0u;
@@ -352,6 +356,107 @@ int XzGeometryTap_CaptureSpriteQuad(
     return 1;
 }
 
+int XzGeometryTap_CapturePrimitive(
+    const float *source,
+    unsigned int count,
+    unsigned int stride_floats,
+    unsigned int position_offset,
+    unsigned int texture_offset,
+    XzGeometryPrimitive primitive,
+    int texture_id,
+    const XzGeometryRenderState *state,
+    const float modelview[16],
+    const float projection[16])
+{
+    XzGeometryFrame *frame = XzWriteFrame();
+    XzGeometryBatch *batch;
+    unsigned int index_count;
+    unsigned int i;
+    unsigned int out_index;
+
+    if (!source || count < 3u ||
+        stride_floats < 3u ||
+        position_offset + 2u >= stride_floats)
+        return 0;
+
+    if (primitive == XZ_GEOMETRY_TRIANGLES) {
+        index_count = (count / 3u) * 3u;
+        if (index_count == 0u)
+            return 0;
+    } else if (primitive == XZ_GEOMETRY_TRIANGLE_FAN ||
+               primitive == XZ_GEOMETRY_TRIANGLE_STRIP) {
+        index_count = (count - 2u) * 3u;
+    } else {
+        return 0;
+    }
+
+    batch = XzBeginBatch(
+        frame,
+        XZ_GEOMETRY_EFFECT,
+        count,
+        index_count,
+        texture_id,
+        state,
+        modelview,
+        projection);
+    if (!batch)
+        return 0;
+
+    for (i = 0u; i < count; ++i) {
+        const float *in = source + i * stride_floats;
+        XzGeometryVertex *out =
+            &frame->vertices[frame->vertex_count + i];
+
+        out->position[0] = in[position_offset + 0u];
+        out->position[1] = in[position_offset + 1u];
+        out->position[2] = in[position_offset + 2u];
+
+        if (texture_offset + 1u < stride_floats) {
+            out->uv[0] = in[texture_offset + 0u];
+            out->uv[1] = in[texture_offset + 1u];
+        } else {
+            out->uv[0] = 0.0f;
+            out->uv[1] = 0.0f;
+        }
+    }
+
+    out_index = frame->index_count;
+    if (primitive == XZ_GEOMETRY_TRIANGLES) {
+        for (i = 0u; i < index_count; ++i)
+            frame->indices[out_index++] =
+                (uint32_t)(batch->first_vertex + i);
+    } else if (primitive == XZ_GEOMETRY_TRIANGLE_FAN) {
+        for (i = 0u; i + 2u < count; ++i) {
+            frame->indices[out_index++] =
+                (uint32_t)batch->first_vertex;
+            frame->indices[out_index++] =
+                (uint32_t)(batch->first_vertex + i + 1u);
+            frame->indices[out_index++] =
+                (uint32_t)(batch->first_vertex + i + 2u);
+        }
+    } else {
+        for (i = 0u; i + 2u < count; ++i) {
+            uint32_t a = (uint32_t)(batch->first_vertex + i);
+            uint32_t b = (uint32_t)(batch->first_vertex + i + 1u);
+            uint32_t c = (uint32_t)(batch->first_vertex + i + 2u);
+
+            if (i & 1u) {
+                uint32_t temp = a;
+                a = b;
+                b = temp;
+            }
+
+            frame->indices[out_index++] = a;
+            frame->indices[out_index++] = b;
+            frame->indices[out_index++] = c;
+        }
+    }
+
+    frame->vertex_count += count;
+    frame->index_count += index_count;
+    return 1;
+}
+
 int XzGeometryTap_SelfTest(void)
 {
     static const struct {
@@ -393,15 +498,22 @@ int XzGeometryTap_SelfTest(void)
             fan, 4u, 5u, 0u, 3u, 8, NULL, NULL, NULL))
         return 0;
 
+    if (!XzGeometryTap_CapturePrimitive(
+            fan, 4u, 5u, 0u, 3u,
+            XZ_GEOMETRY_TRIANGLE_STRIP,
+            9, NULL, NULL, NULL))
+        return 0;
+
     XzGeometryTap_CommitFrame();
     frame = XzGeometryTap_GetReadFrame();
 
     if (frame->generation != 7u ||
-        frame->batch_count != 2u ||
-        frame->vertex_count != 7u ||
-        frame->index_count != 9u ||
+        frame->batch_count != 3u ||
+        frame->vertex_count != 11u ||
+        frame->index_count != 15u ||
         frame->alias_batches != 1u ||
         frame->surface_batches != 1u ||
+        frame->effect_batches != 1u ||
         frame->dropped_batches != 0u ||
         frame->dropped_vertices != 0u ||
         frame->dropped_indices != 0u)
@@ -414,6 +526,7 @@ int XzGeometryTap_SelfTest(void)
         frame->batches[0].state.depth_write != 1u ||
         frame->batches[0].state.depth_func != 0x0203u ||
         frame->batches[0].state.texture_env_mode != 0x2100u ||
+        frame->batches[0].state.texture_enabled != 1u ||
         frame->batches[0].state.fog_enabled != 0u ||
         frame->batches[0].state.depth_range[0] != 0.0f ||
         frame->batches[0].state.depth_range[1] != 1.0f ||

@@ -268,6 +268,7 @@ state_helper = (
     '    glGetFloatv(GL_ALPHA_TEST_REF, &state->alpha_ref);\n'
     '    glGetTexEnviv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, &value);\n'
     '    state->texture_env_mode = (unsigned int)value;\n'
+    '    state->texture_enabled = glIsEnabled(GL_TEXTURE_2D) ? 1u : 0u;\n'
     '    state->fog_enabled = glIsEnabled(GL_FOG) ? 1u : 0u;\n'
     '    glGetFloatv(GL_FOG_START, &state->fog_start);\n'
     '    glGetFloatv(GL_FOG_END, &state->fog_end);\n'
@@ -327,41 +328,8 @@ if "XzGeometryTap_CaptureAlias(" not in hyena:
     )
     hyena = hyena.replace(alias_anchor, alias_capture, 1)
 
-warp_anchor = (
-    "        for (i = 0; i < count; ++i) {\n"
-    "            const float *in = source + i * stride;\n"
-    "            Hyena_2DTextureCoord(&vertices[i], in[texture_offset], in[texture_offset + 1]);\n"
-    "            Hyena_VertexXYZ(&vertices[i], in[0] + 8*sinf(in[1]*0.05f+(float)time)*sinf(in[2]*0.05f+(float)time), in[1] + 8*sinf(in[0]*0.05f+(float)time)*sinf(in[2]*0.05f+(float)time), in[2]);\n"
-    "        }\n"
-)
-if "XZ_GEOMETRY_WARP_CAPTURE" not in hyena:
-    if warp_anchor not in hyena:
-        raise SystemExit("Missing warped surface capture anchor")
-    warp_capture = warp_anchor + (
-        "#ifdef __ANDROID__\n"
-        "        /* XZ_GEOMETRY_WARP_CAPTURE */\n"
-        "        {\n"
-        "            float xz_mv[16], xz_pr[16];\n"
-        "            GLint xz_tex = 0;\n"
-        "            XzGeometryRenderState xz_state;\n"
-        "            XzCaptureLegacyRenderState(&xz_state);\n"
-        "            glGetFloatv(GL_MODELVIEW_MATRIX, xz_mv);\n"
-        "            glGetFloatv(GL_PROJECTION_MATRIX, xz_pr);\n"
-        "            glGetIntegerv(GL_TEXTURE_BINDING_2D, &xz_tex);\n"
-        "            XzGeometryTap_CaptureSurfaceFan(\n"
-        "                (const float *)vertices,\n"
-        "                (unsigned int)count,\n"
-        "                (unsigned int)(sizeof(vertex_t) / sizeof(float)),\n"
-        "                (unsigned int)(offsetof(vertex_t, xyz) / sizeof(float)),\n"
-        "                (unsigned int)(offsetof(vertex_t, uv) / sizeof(float)),\n"
-        "                (int)xz_tex,\n"
-        "                &xz_state,\n"
-        "                xz_mv,\n"
-        "                xz_pr);\n"
-        "        }\n"
-        "#endif\n"
-    )
-    hyena = hyena.replace(warp_anchor, warp_capture, 1)
+# Warped surface fans flow through Hyena_DrawVertices and are captured by the
+# generic effects path below; do not duplicate them here.
 
 surface_anchor = (
     "    glEnableClientState(GL_VERTEX_ARRAY); glEnableClientState(GL_TEXTURE_COORD_ARRAY);\n"
@@ -395,6 +363,48 @@ if "XZ_GEOMETRY_SURFACE_CAPTURE" not in hyena:
         "#endif\n"
     ) + surface_anchor
     hyena = hyena.replace(surface_anchor, surface_capture, 1)
+
+
+generic_anchor = (
+    "    for (i = 0; i < count; ++i) { vertices[i].xyz.x = vertices[i].xyz.x * hyena_scale[0] + hyena_translation[0]; vertices[i].xyz.y = vertices[i].xyz.y * hyena_scale[1] + hyena_translation[1]; vertices[i].xyz.z = vertices[i].xyz.z * hyena_scale[2] + hyena_translation[2]; }\n"
+    "    glEnableClientState(GL_VERTEX_ARRAY); glVertexPointer(3, GL_FLOAT, sizeof(*vertices), &vertices[0].xyz);\n"
+)
+if "XZ_GEOMETRY_EFFECT_CAPTURE" not in hyena:
+    if generic_anchor not in hyena:
+        raise SystemExit("Missing generic Hyena geometry capture anchor")
+    generic_capture = (
+        "    for (i = 0; i < count; ++i) { vertices[i].xyz.x = vertices[i].xyz.x * hyena_scale[0] + hyena_translation[0]; vertices[i].xyz.y = vertices[i].xyz.y * hyena_scale[1] + hyena_translation[1]; vertices[i].xyz.z = vertices[i].xyz.z * hyena_scale[2] + hyena_translation[2]; }\n"
+        "#ifdef __ANDROID__\n"
+        "    /* XZ_GEOMETRY_EFFECT_CAPTURE: particles, decals, beams and warped fans. */\n"
+        "    {\n"
+        "        float xz_mv[16], xz_pr[16];\n"
+        "        GLint xz_tex = 0;\n"
+        "        XzGeometryRenderState xz_state;\n"
+        "        XzGeometryPrimitive xz_primitive = XZ_GEOMETRY_TRIANGLE_FAN;\n"
+        "        XzCaptureLegacyRenderState(&xz_state);\n"
+        "        if (hyena_vertex_mode == HYE_TRIANGLES)\n"
+        "            xz_primitive = XZ_GEOMETRY_TRIANGLES;\n"
+        "        else if (hyena_vertex_mode == HYE_TRIANGLE_STRIP)\n"
+        "            xz_primitive = XZ_GEOMETRY_TRIANGLE_STRIP;\n"
+        "        glGetFloatv(GL_MODELVIEW_MATRIX, xz_mv);\n"
+        "        glGetFloatv(GL_PROJECTION_MATRIX, xz_pr);\n"
+        "        glGetIntegerv(GL_TEXTURE_BINDING_2D, &xz_tex);\n"
+        "        XzGeometryTap_CapturePrimitive(\n"
+        "            (const float *)vertices,\n"
+        "            (unsigned int)count,\n"
+        "            (unsigned int)(sizeof(vertex_t) / sizeof(float)),\n"
+        "            (unsigned int)(offsetof(vertex_t, xyz) / sizeof(float)),\n"
+        "            (unsigned int)(offsetof(vertex_t, uv) / sizeof(float)),\n"
+        "            xz_primitive,\n"
+        "            (int)xz_tex,\n"
+        "            &xz_state,\n"
+        "            xz_mv,\n"
+        "            xz_pr);\n"
+        "    }\n"
+        "#endif\n"
+        "    glEnableClientState(GL_VERTEX_ARRAY); glVertexPointer(3, GL_FLOAT, sizeof(*vertices), &vertices[0].xyz);\n"
+    )
+    hyena = hyena.replace(generic_anchor, generic_capture, 1)
 
 gl_hyena.write_text(hyena, encoding="utf-8")
 
@@ -489,6 +499,7 @@ sprite_state_helper = (
     '    glGetFloatv(GL_ALPHA_TEST_REF, &state->alpha_ref);\n'
     '    glGetTexEnviv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, &value);\n'
     '    state->texture_env_mode = (unsigned int)value;\n'
+    '    state->texture_enabled = glIsEnabled(GL_TEXTURE_2D) ? 1u : 0u;\n'
     '    state->fog_enabled = glIsEnabled(GL_FOG) ? 1u : 0u;\n'
     '    glGetFloatv(GL_FOG_START, &state->fog_start);\n'
     '    glGetFloatv(GL_FOG_END, &state->fog_end);\n'
