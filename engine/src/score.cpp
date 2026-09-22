@@ -1,6 +1,7 @@
 #include "xziel/score.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <limits>
 
 namespace xziel {
@@ -15,6 +16,7 @@ void ScoreSystem::reset() noexcept {
     frame_ = {};
     frame_.total =
         config_.startingPoints;
+    awardMultiplier_ = 1.0f;
 }
 
 ScoreFrame ScoreSystem::awardHit(
@@ -151,6 +153,21 @@ bool ScoreSystem::spend(
     return true;
 }
 
+void ScoreSystem::setAwardMultiplier(
+    float multiplier) noexcept {
+    awardMultiplier_ =
+        std::clamp(
+            std::isfinite(multiplier)
+                ? multiplier
+                : 1.0f,
+            0.0f,
+            16.0f);
+}
+
+float ScoreSystem::awardMultiplier() const noexcept {
+    return awardMultiplier_;
+}
+
 const ScoreFrame&
 ScoreSystem::frame() const noexcept {
     return frame_;
@@ -177,7 +194,24 @@ std::uint32_t ScoreSystem::hitPoints(
 void ScoreSystem::add(
     std::uint32_t points,
     bool critical) noexcept {
-    if (points == 0) {
+    if (points == 0U ||
+        awardMultiplier_ <= 0.0f) {
+        return;
+    }
+
+    const double scaled =
+        static_cast<double>(points) *
+        static_cast<double>(awardMultiplier_);
+
+    const std::uint32_t awarded =
+        static_cast<std::uint32_t>(
+            std::min<double>(
+                std::floor(scaled + 0.5),
+                static_cast<double>(
+                    std::numeric_limits<
+                        std::uint32_t>::max())));
+
+    if (awarded == 0U) {
         return;
     }
 
@@ -187,23 +221,23 @@ void ScoreSystem::add(
 
     if (maximum -
             frame_.total <
-        points) {
+        awarded) {
         frame_.total = maximum;
     } else {
-        frame_.total += points;
+        frame_.total += awarded;
     }
 
     if (maximum -
             frame_.lifetimeEarned <
-        points) {
+        awarded) {
         frame_.lifetimeEarned =
             maximum;
     } else {
         frame_.lifetimeEarned +=
-            points;
+            awarded;
     }
 
-    frame_.lastAward = points;
+    frame_.lastAward = awarded;
     frame_.changedThisTick = true;
     frame_.criticalAwardThisTick =
         critical;
