@@ -192,19 +192,25 @@ static qboolean XZSM_LoadSanctum(void)
     return true;
 }
 
-void Xziel_StaticMesh_Draw(void)
+qboolean Xziel_StaticMesh_Prepare(void)
 {
-    uint32_t i;
-
     if (!XZSM_IsSanctum()) {
         if (xzsm_loaded || xzsm_attempted)
             XZSM_Free();
-        return;
+        return false;
     }
 
     if (!xzsm_loaded && !xzsm_attempted)
         XZSM_LoadSanctum();
-    if (!xzsm_loaded)
+
+    return xzsm_loaded;
+}
+
+void Xziel_StaticMesh_Draw(void)
+{
+    uint32_t i;
+
+    if (!Xziel_StaticMesh_Prepare())
         return;
 
     glEnable(GL_TEXTURE_2D);
@@ -241,16 +247,36 @@ void Xziel_StaticMesh_Draw(void)
 rmain = gl_dir / "gl_rmain.c"
 text = rmain.read_text(encoding="utf-8")
 
-proto = "void Xziel_StaticMesh_Draw(void);\n"
+protos = (
+    "qboolean Xziel_StaticMesh_Prepare(void);\n"
+    "void Xziel_StaticMesh_Draw(void);\n"
+)
 include_anchor = '#include "../../../nzportable_def.h"\n'
-if proto not in text:
+if "qboolean Xziel_StaticMesh_Prepare(void);" not in text:
     if include_anchor not in text:
         raise SystemExit("Could not find gl_rmain include anchor")
-    text = text.replace(include_anchor, include_anchor + "\n" + proto, 1)
+    text = text.replace(include_anchor, include_anchor + "\n" + protos, 1)
 
 old = "\tR_DrawWorld ();\t\t// adds static entities to the list\n"
-new = old + "\tXziel_StaticMesh_Draw();\t// Xziel textured Sanctum visual layer\n"
-if "Xziel textured Sanctum visual layer" not in text:
+new = (
+    "\tif (Xziel_StaticMesh_Prepare())\n"
+    "\t{\n"
+    "\t\t// Sanctum: BSP remains the gameplay/visibility harness but is not\n"
+    "\t\t// allowed to contribute color or depth. The HQ XZSM mesh is the\n"
+    "\t\t// sole architectural visual authority.\n"
+    "\t\tglColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);\n"
+    "\t\tglDepthMask(GL_FALSE);\n"
+    "\t\tR_DrawWorld ();\t\t// still adds static entities to the list\n"
+    "\t\tglColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);\n"
+    "\t\tglDepthMask(GL_TRUE);\n"
+    "\t\tXziel_StaticMesh_Draw();\n"
+    "\t}\n"
+    "\telse\n"
+    "\t{\n"
+    "\t\tR_DrawWorld ();\t\t// normal NZ:P path\n"
+    "\t}\n"
+)
+if "sole architectural visual authority" not in text:
     if old not in text:
         raise SystemExit("Could not find R_DrawWorld hook")
     text = text.replace(old, new, 1)
