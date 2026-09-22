@@ -1,0 +1,116 @@
+name: Audit Horror Audio Semantics
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "assets/audio/cc0_horror_library/**"
+      - ".github/workflows/audit-horror-audio-semantics.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Install audio inspection tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+
+      - name: Build semantic quarantine and safe runtime catalog
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import csv, json, re, subprocess
+
+          root=Path("assets/audio/cc0_horror_library")
+          out=Path("assets/audio/runtime_catalog")
+          out.mkdir(parents=True, exist_ok=True)
+          exts={".wav",".ogg",".mp3",".flac",".aif",".aiff",".opus"}
+
+          # Conservative policy: a file enters an action bank ONLY when its
+          # source filename itself carries that semantic. Generic zombie/creature
+          # vocals are NEVER silently promoted to attack/pain/death.
+          rules=[
+            ("zombie_attack", re.compile(r"(zomb|undead|creature).*(attack|bite|lunge|swipe)|(?:attack|bite|lunge|swipe).*(zomb|undead|creature)",re.I)),
+            ("zombie_pain", re.compile(r"(zomb|undead|creature).*(pain|hurt|hit|injur)|(?:pain|hurt|injur).*(zomb|undead|creature)",re.I)),
+            ("zombie_death", re.compile(r"(zomb|undead|creature).*(death|die|dying)|(?:death|die|dying).*(zomb|undead|creature)",re.I)),
+            ("zombie_idle", re.compile(r"(zomb|undead).*(idle|moan|groan|breath)|(?:idle|moan|groan|breath).*(zomb|undead)",re.I)),
+            ("crawler", re.compile(r"crawler|crawl",re.I)),
+            ("wood_break", re.compile(r"wood.*(break|snap|crack)|(break|snap|crack).*wood",re.I)),
+            ("glass_break", re.compile(r"glass.*break|break.*glass",re.I)),
+            ("door", re.compile(r"door",re.I)),
+            ("footstep", re.compile(r"foot|step|walk",re.I)),
+            ("rain", re.compile(r"rain",re.I)),
+            ("thunder", re.compile(r"thunder",re.I)),
+            ("horror_stinger", re.compile(r"horror.*hit|stinger",re.I)),
+          ]
+
+          rows=[]
+          safe={k:[] for k,_ in rules}
+          quarantine=[]
+          for p in sorted(root.rglob("*")):
+            if not p.is_file() or p.suffix.lower() not in exts: continue
+            rel=p.relative_to(root).as_posix()
+            low=rel.lower()
+            duration=None
+            try:
+              q=subprocess.run(["ffprobe","-v","error","-show_entries","format=duration","-of","default=nw=1:nk=1",str(p)],capture_output=True,text=True,timeout=10)
+              duration=round(float(q.stdout.strip()),3) if q.returncode==0 and q.stdout.strip() else None
+            except Exception: pass
+            matches=[name for name,rx in rules if rx.search(low)]
+            category=matches[0] if len(matches)==1 else "UNVERIFIED"
+            reason="filename-semantic-match" if len(matches)==1 else ("ambiguous-multiple-matches" if len(matches)>1 else "generic-or-unlabeled-source")
+            # Critical guard requested for zombie behavior.
+            # Numbered/generic zombie clips remain unverified until listened to.
+            if re.search(r"/zombie-\d+\.(wav|ogg|mp3|flac|opus)$", low):
+              category="UNVERIFIED"; reason="generic-numbered-zombie-vocal-requires-listening"
+            rows.append({"path":rel,"duration_s":duration,"category":category,"reason":reason})
+            if category=="UNVERIFIED": quarantine.append(rel)
+            else: safe[category].append(rel)
+
+          (out/"semantic_audit.json").write_text(json.dumps(rows,indent=2)+"\n")
+          (out/"runtime_banks.json").write_text(json.dumps(safe,indent=2,sort_keys=True)+"\n")
+          (out/"QUARANTINE.txt").write_text("\n".join(quarantine)+"\n")
+          with (out/"semantic_audit.tsv").open("w",newline="",encoding="utf-8") as f:
+            w=csv.DictWriter(f,fieldnames=["path","duration_s","category","reason"],delimiter="\t")
+            w.writeheader(); w.writerows(rows)
+
+          policy={
+            "version":1,
+            "default":"DENY_UNVERIFIED",
+            "rule":"Runtime events may select only from an explicitly verified matching bank.",
+            "zombie":{
+              "idle":["zombie_idle"],
+              "attack":["zombie_attack"],
+              "pain":["zombie_pain"],
+              "death":["zombie_death"],
+              "crawler":["crawler"]
+            },
+            "fallback":"silence",
+            "forbidden_fallback":"Never substitute another zombie action category."
+          }
+          (out/"runtime_event_policy.json").write_text(json.dumps(policy,indent=2)+"\n")
+          print("audited",len(rows),"audio files; quarantined",len(quarantine))
+          PY
+
+      - name: Commit audit catalog
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/audio/runtime_catalog
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "audio: quarantine unverified SFX and enforce semantic banks"
+          git pull --rebase origin main
+          git push origin HEAD:main
