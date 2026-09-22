@@ -724,11 +724,18 @@ bool VulkanStaticMeshRenderer::loadModel(
                 ANDROID_LOG_ERROR,
                 kTag,
                 "XZIEL_WEAPON_VIEWMODEL_REJECTED "
-                "extent=%.3f coverage90=%.3f vertices=%u",
+                "extent=%.3f coverage90=%.3f "
+                "robust=%.3f/%.3f/%.3f vertices=%u",
                 static_cast<double>(
                     metrics.longestExtent),
                 static_cast<double>(
                     metrics.robustAxisCoverage90),
+                static_cast<double>(
+                    metrics.robustLongestExtent90),
+                static_cast<double>(
+                    metrics.robustSecondExtent90),
+                static_cast<double>(
+                    metrics.robustThirdExtent90),
                 metrics.vertexCount);
 
             out = {};
@@ -739,11 +746,18 @@ bool VulkanStaticMeshRenderer::loadModel(
             ANDROID_LOG_INFO,
             kTag,
             "XZIEL_WEAPON_VIEWMODEL_SANITY_OK "
-            "extent=%.3f coverage90=%.3f vertices=%u",
+            "extent=%.3f coverage90=%.3f "
+            "robust=%.3f/%.3f/%.3f vertices=%u",
             static_cast<double>(
                 metrics.longestExtent),
             static_cast<double>(
                 metrics.robustAxisCoverage90),
+            static_cast<double>(
+                metrics.robustLongestExtent90),
+            static_cast<double>(
+                metrics.robustSecondExtent90),
+            static_cast<double>(
+                metrics.robustThirdExtent90),
             metrics.vertexCount);
     }
 
