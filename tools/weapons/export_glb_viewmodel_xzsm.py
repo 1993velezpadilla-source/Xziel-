@@ -250,6 +250,22 @@ for source_obj in mesh_objects:
 if source_triangles < 1000:
     raise RuntimeError(f"weapon mesh unexpectedly small: {source_triangles} triangles")
 
+raw_dimensions = raw_max - raw_min
+raw_longest = max(
+    float(raw_dimensions.x),
+    float(raw_dimensions.y),
+    float(raw_dimensions.z),
+    1e-6,
+)
+
+# Some Sketchfab/Objaverse FPS assets are authored in centimetres even when
+# their glTF scene metadata does not expose an explicit unit scale. Normalize
+# the complete ready-pose bounds to a real rifle-sized envelope instead of
+# trusting source units. This keeps the static checkpoint deterministic and
+# prevents a 50-metre viewmodel from entering the APK.
+TARGET_LONGEST_METERS = 0.90
+model_scale = TARGET_LONGEST_METERS / raw_longest
+
 anchor = Vector((
     (raw_min.x + raw_max.x) * 0.5,
     (raw_min.y + raw_max.y) * 0.5,
@@ -288,9 +304,11 @@ for eval_obj, mesh, world in evaluated:
 
         for loop_index in tri.loops:
             vertex_index = mesh.loops[loop_index].vertex_index
-            p = to_xziel(
-                world @ mesh.vertices[vertex_index].co
-            ) - anchor
+            p = (
+                to_xziel(
+                    world @ mesh.vertices[vertex_index].co
+                ) - anchor
+            ) * model_scale
             n = to_xziel(
                 normal_matrix @ mesh.vertices[vertex_index].normal
             )
@@ -419,6 +437,9 @@ report = {
     "boundsMin": list(bounds_min),
     "boundsMax": list(bounds_max),
     "dimensionsMeters": list(dimensions),
+    "sourceBoundsDimensions": list(raw_dimensions),
+    "unitNormalizationScale": model_scale,
+    "targetLongestDimensionMeters": TARGET_LONGEST_METERS,
     "animations": animations,
     "materials": material_records,
     "uvBindings": uv_records,
@@ -436,6 +457,7 @@ print("XZIEL_WEAPON_XZSM_READY", json.dumps({
     "texturedMaterials": textured_material_count,
     "maximumTextureDimension": max_texture_dimension,
     "dimensionsMeters": list(dimensions),
+    "unitNormalizationScale": model_scale,
     "animations": animations,
     "readyPose": pose_action.name if pose_action else None,
     "modelBytes": model_path.stat().st_size,
