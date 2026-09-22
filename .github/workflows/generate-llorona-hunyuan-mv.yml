@@ -1,0 +1,66 @@
+name: Generate La Llorona GLB (Hunyuan3D MultiView)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - art/llorona-meshy-pipeline
+    paths:
+      - assets/characters/llorona/reference/**
+      - tools/llorona_hunyuan_mv.py
+      - .github/workflows/generate-llorona-hunyuan-mv.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: llorona-hunyuan-mv-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify four reference views
+        run: |
+          set -euxo pipefail
+          for f in front back left right; do
+            test -s "assets/characters/llorona/reference/${f}.jpg"
+            file "assets/characters/llorona/reference/${f}.jpg"
+          done
+          ls -lh assets/characters/llorona/reference/
+
+      - name: Install Gradio client
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install "gradio_client>=1.10,<2"
+
+      - name: Generate HQ multi-view GLB
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python3 tools/llorona_hunyuan_mv.py
+
+      - name: Validate HQ GLB
+        run: |
+          set -euxo pipefail
+          test -s out/llorona-hunyuan-mv/llorona_hunyuan_mv_hq.glb
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("out/llorona-hunyuan-mv/llorona_hunyuan_mv_hq.glb")
+          b=p.read_bytes()
+          assert b[:4] == b"glTF"
+          assert len(b) > 1024
+          print("HUNYUAN_MV_GLB_PASS",len(b))
+          PY
+
+      - name: Upload HQ multi-view package
+        uses: actions/upload-artifact@v4
+        with:
+          name: la-llorona-hunyuan-mv-hq
+          path: out/llorona-hunyuan-mv/
+          if-no-files-found: error
+          retention-days: 14
