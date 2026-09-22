@@ -475,18 +475,27 @@ def nun_coif_cap(name,h,material,rx,ry,rz,cz,phase=0.0):
 def priority_head_cover(body,h,style,mats):
     out=[]
     if style=="sister_of_ash":
-        ivory=mats["dirty_ivory"]; blue=mats["ash_blue"]
-        # Two continuous shells. Upper rings are closed 360°, so there is no bald crown.
-        out.append(nun_coif_cap("NunInnerCoif",h,ivory,.073,.068,.094,.915,.2))
-        out.append(nun_coif_cap("NunOuterHood",h,blue,.081,.076,.103,.917,.9))
+        # Pass 16: keep cloth off the visible face. The previous fitted shell crossed
+        # cheeks/jaw and produced white polygon fragments. Crown/back coverage stays
+        # complete while the outer veil/wimple supplies the visible framing.
+        fy=face_front_y(body,h)
+        blue=mats["ash_blue"]
+        crown=body_region_shell(body,"NunHoodCrown",blue,
+            lambda q: q.z/h>.872 and (q.y>fy+.032*h or abs(q.x/h)>.070 or q.z/h>.972),.0065*h)
+        if crown: out.append(crown)
     elif style=="stained_shade":
-        out.append(nun_coif_cap("ShadeHood",h,mats["spectral_ivory"],.081,.076,.103,.917,.9))
+        fy=face_front_y(body,h)
+        inner=mats["spectral_ivory"]
+        a=body_region_shell(body,"ShadeCoif",inner,
+            lambda q: q.z/h>.865 and (q.y>fy+.030*h or abs(q.x/h)>.070 or q.z/h>.970),.005*h)
+        if a: out.append(a)
     elif style=="la_llorona":
         fy=face_front_y(body,h)
         cap=body_region_shell(body,"HairCap",mats["wet_black"],
-            lambda q:q.z/h>.855 and (q.y>fy+.020*h or abs(q.x/h)>.050 or q.z/h>.948),.0045*h)
+            lambda q: q.z/h>.855 and (q.y>fy+.020*h or abs(q.x/h)>.050 or q.z/h>.948),.0045*h)
         if cap: out.append(cap)
     return out
+
 
 def eye_socket_rings(body,h,mats,style):
     return []
@@ -611,20 +620,23 @@ def body_region_shell(body,name,material,keep_fn,offset=0.004):
 def fitted_priority_clothes(body,h,style,mats):
     out=[]
     if style=="sister_of_ash":
-        blue=mats["ash_blue"]; ivory=mats["dirty_ivory"]; boot=mats["soot"]
-        bod=body_region_shell(body,"FittedBodice",blue,
-            lambda q:.545<q.z/h<.805 and abs(q.x/h)<.150 and q.y/h<.135,.0035*h)
+        main=mats["ash_blue"]; ivory=mats["dirty_ivory"]
+        bod=body_region_shell(body,"FittedBodice",main,
+            lambda q:.555<q.z/h<.805 and abs(q.x/h)<.145 and q.y/h<.132,.0030*h)
         if bod: out.append(bod)
+        for name,groups in [("FittedSleeve_L",["upperarm_l","lowerarm_l"]),("FittedSleeve_R",["upperarm_r","lowerarm_r"])]:
+            o=body_group_shell(body,name,main,groups,.040,.0030*h)
+            if o: out.append(o)
         yoke=body_region_shell(body,"FittedShoulderYoke",ivory,
-            lambda q:.735<q.z/h<.835 and abs(q.x/h)<.205 and q.y/h<.145,.0040*h)
+            lambda q:.742<q.z/h<.825 and abs(q.x/h)<.190 and q.y/h<.135,.0035*h)
         if yoke: out.append(yoke)
-        for side,label in ((-1,"L"),(1,"R")):
-            sleeve=body_region_shell(body,"NunSleeve_"+label,blue,
-                lambda q,side=side: q.x*side>.095*h and abs(q.x/h)<.345 and .535<q.z/h<.795,.0045*h)
-            if sleeve: out.append(sleeve)
-            shoe=body_region_shell(body,"NunBoot_"+label,boot,
-                lambda q,side=side: q.x*side>0 and q.z/h<.145,.0090*h)
-            if shoe: out.append(shoe)
+        # Game-ready footwear is a close shell of the actual foot/ankle. No primitive
+        # spheres or oversized proxy shoes are created in this pass.
+        bootmat=mats["soot"]
+        for side,label in [(-1,"L"),(1,"R")]:
+            o=body_region_shell(body,"NunBoot_"+label,bootmat,
+                lambda q,side=side: q.z/h<.105 and q.x*side>0,.0038*h)
+            if o: out.append(o)
     elif style=="stained_shade":
         main=mats["ash_blue"]
         o=body_region_shell(body,"FittedBodice",main,lambda q:.515<q.z/h<.795 and abs(q.x/h)<.160 and q.y/h<.140,.0045*h)
@@ -634,6 +646,7 @@ def fitted_priority_clothes(body,h,style,mats):
         o=body_region_shell(body,"LloronaFittedBodice",main,lambda q:.510<q.z/h<.830 and abs(q.x/h)<.165 and q.y/h<.140,.0045*h)
         if o: out.append(o)
     return out
+
 
 def rigid_bind_mesh(obj,rig,bone):
     if not obj or obj.type!="MESH" or bone not in rig.data.bones: return
