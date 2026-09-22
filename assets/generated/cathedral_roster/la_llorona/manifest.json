@@ -30,7 +30,9 @@
     "model.glb",
     "model.fbx",
     "model.blend",
-    "preview.png"
+    "preview.png",
+    "preview_side.png",
+    "preview_back.png"
   ],
-  "production_status": "priority fidelity pass 7 \u2014 remove proxy geometry and restore character silhouette \u2014 MPFB rigged base, fitted body parts, layered church clothing, PBR materials, animation actions, modular damage sockets where applicable"
+  "production_status": "priority fidelity pass 8 \u2014 organic garment shells, bone-fitted sleeves, milky eyes, gaunt face sculpt, dense Llorona hair, multi-angle autonomous QA"
 }
