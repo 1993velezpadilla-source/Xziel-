@@ -60,11 +60,70 @@ MapLoadResult MapRuntime::load(
     if (definition.boxCount > definition.boxes.size() ||
         definition.doorCount > definition.doors.size() ||
         definition.windowCount > definition.windows.size() ||
-        definition.interactionCount > definition.interactions.size()) {
+        definition.interactionCount > definition.interactions.size() ||
+        definition.zombieSpawnCount > definition.zombieSpawns.size()) {
         return result;
     }
 
+    if (definition.hasPlayerSpawn &&
+        !finiteVec3(definition.playerSpawnFeet)) {
+        return result;
+    }
+
+    if (definition.hasArenaBounds &&
+        (!std::isfinite(definition.arenaMinimumX) ||
+         !std::isfinite(definition.arenaMaximumX) ||
+         !std::isfinite(definition.arenaMinimumZ) ||
+         !std::isfinite(definition.arenaMaximumZ) ||
+         definition.arenaMinimumX >= definition.arenaMaximumX ||
+         definition.arenaMinimumZ >= definition.arenaMaximumZ)) {
+        return result;
+    }
+
+    for (std::size_t i = 0;
+         i < definition.zombieSpawnCount;
+         ++i) {
+        if (!finiteVec3(definition.zombieSpawns[i])) {
+            return result;
+        }
+    }
+
     clear(player, horde, interactions);
+
+    if (definition.hasArenaBounds) {
+        if (!player.setHorizontalBounds(
+                definition.arenaMinimumX,
+                definition.arenaMaximumX,
+                definition.arenaMinimumZ,
+                definition.arenaMaximumZ) ||
+            !horde.setArenaBounds(
+                definition.arenaMinimumX,
+                definition.arenaMaximumX,
+                definition.arenaMinimumZ,
+                definition.arenaMaximumZ)) {
+            clear(player, horde, interactions);
+            return {};
+        }
+        result.arenaBoundsApplied = true;
+    }
+
+    if (definition.hasPlayerSpawn) {
+        player.setSpawn(
+            definition.playerSpawnFeet,
+            definition.playerSpawnYawDegrees);
+        result.playerSpawnApplied = true;
+    }
+
+    if (definition.zombieSpawnCount > 0U) {
+        if (!horde.setSpawnPoints(
+                definition.zombieSpawns.data(),
+                definition.zombieSpawnCount)) {
+            clear(player, horde, interactions);
+            return {};
+        }
+        result.zombieSpawns =
+            definition.zombieSpawnCount;
+    }
 
     for (std::size_t i = 0; i < definition.boxCount; ++i) {
         const auto& box = definition.boxes[i];
