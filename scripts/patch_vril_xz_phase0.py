@@ -676,12 +676,25 @@ if "XZ_ALIAS_SHADOW_CAPTURE" not in rmain:
         "\t\t\tglBegin (GL_TRIANGLE_STRIP);\n"
         "\t\t}\n"
         "#ifdef __ANDROID__\n"
-        "\t\txz_shadow_capture_count = count;\n"
+        "\t\txz_shadow_capture_count = (xz_shadow_capture && count <= paliashdr->poseverts) ? count : 0;\n"
         "\t\txz_shadow_capture_index = 0;\n"
-        "\t\txz_shadow_capture = (float *)malloc((size_t)count * 5u * sizeof(float));\n"
         "#endif\n"
     )
     shadow = shadow.replace(fan_anchor, fan_block, 1)
+
+    shadow_height_anchor = "\theight = -lheight + 1.0f;\n"
+    if shadow_height_anchor not in shadow:
+        raise SystemExit("Missing alias-shadow scratch allocation anchor")
+    shadow = shadow.replace(
+        shadow_height_anchor,
+        shadow_height_anchor +
+        "#ifdef __ANDROID__\n"
+        "\t/* One scratch allocation per shadowed model, reused by every strip/fan. */\n"
+        "\tif (paliashdr->poseverts > 0)\n"
+        "\t\txz_shadow_capture = (float *)malloc((size_t)paliashdr->poseverts * 5u * sizeof(float));\n"
+        "#endif\n",
+        1,
+    )
 
     vertex_anchor = (
         "\t\t\tpoint[2] = height;\n"
@@ -729,11 +742,23 @@ if "XZ_ALIAS_SHADOW_CAPTURE" not in rmain:
         "\t\t\t\txz_shadow_primitive,\n"
         "\t\t\t\t&xz_state, xz_mv, xz_pr);\n"
         "\t\t}\n"
-        "\t\tif (xz_shadow_capture) free(xz_shadow_capture);\n"
-        "\t\txz_shadow_capture = NULL;\n"
         "#endif\n"
     )
     shadow = shadow.replace(end_anchor, end_block, 1)
+
+    shadow_tail_anchor = "\t}\t\n}\n"
+    if shadow_tail_anchor not in shadow:
+        raise SystemExit("Missing alias-shadow scratch free anchor")
+    shadow = shadow.replace(
+        shadow_tail_anchor,
+        "\t}\t\n"
+        "#ifdef __ANDROID__\n"
+        "\tif (xz_shadow_capture) free(xz_shadow_capture);\n"
+        "#endif\n"
+        "}\n",
+        1,
+    )
+
     rmain = rmain[:shadow_begin] + shadow + rmain[shadow_end:]
 
 if rmain.count("XZ_ALIAS_SHADOW_CAPTURE") != 1:
