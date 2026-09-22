@@ -378,6 +378,8 @@ if "XZ_GEOMETRY_SURFACE_CAPTURE" not in hyena:
         "            xz_mv,\n"
         "            xz_pr);\n"
         "    }\n"
+        "    if (XzAndroidRuntime_ShouldSuppressLegacyWorldDraw(XZ_LEGACY_DRAW_SURFACE))\n"
+        "        return;\n"
         "#endif\n"
     ) + surface_anchor
     hyena = hyena.replace(surface_anchor, surface_capture, 1)
