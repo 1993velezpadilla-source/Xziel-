@@ -727,36 +727,138 @@ measureStaticMeshQuality(
     return metrics;
 }
 
+ViewmodelStaticMeshQualityResult
+evaluateViewmodelStaticMesh(
+    const StaticMeshAsset& asset) noexcept {
+    ViewmodelStaticMeshQualityResult result{};
+    result.metrics =
+        measureStaticMeshQuality(asset);
+
+    const auto& metrics =
+        result.metrics;
+
+    if (metrics.batchCount == 0U) {
+        result.rejection =
+            ViewmodelStaticMeshRejection::NoBatches;
+        return result;
+    }
+
+    if (metrics.batchCount > 128U) {
+        result.rejection =
+            ViewmodelStaticMeshRejection::
+                TooManyBatches;
+        return result;
+    }
+
+    if (metrics.vertexCount < 96U) {
+        result.rejection =
+            ViewmodelStaticMeshRejection::
+                TooFewVertices;
+        return result;
+    }
+
+    if (metrics.vertexCount > 600000U) {
+        result.rejection =
+            ViewmodelStaticMeshRejection::
+                TooManyVertices;
+        return result;
+    }
+
+    if (metrics.indexCount < 96U) {
+        result.rejection =
+            ViewmodelStaticMeshRejection::
+                TooFewIndices;
+        return result;
+    }
+
+    if (metrics.indexCount > 900000U) {
+        result.rejection =
+            ViewmodelStaticMeshRejection::
+                TooManyIndices;
+        return result;
+    }
+
+    if ((metrics.indexCount % 3U) != 0U) {
+        result.rejection =
+            ViewmodelStaticMeshRejection::
+                NonTriangleIndexCount;
+        return result;
+    }
+
+    if (metrics.longestExtent < 0.30f ||
+        metrics.longestExtent > 1.50f) {
+        result.rejection =
+            ViewmodelStaticMeshRejection::
+                InvalidEnvelope;
+        return result;
+    }
+
+    if (metrics.peakVoxelOccupancyRatio > 0.75f ||
+        metrics.robustAxisCoverage90 < 0.20f) {
+        result.rejection =
+            ViewmodelStaticMeshRejection::
+                CollapsedVertexCloud;
+        return result;
+    }
+
+    if (metrics.robustLongestExtent90 < 0.25f ||
+        metrics.robustSecondExtent90 < 0.035f ||
+        metrics.robustThirdExtent90 < 0.012f) {
+        result.rejection =
+            ViewmodelStaticMeshRejection::
+                NeedleThin;
+        return result;
+    }
+
+    result.success = true;
+    result.rejection =
+        ViewmodelStaticMeshRejection::None;
+    return result;
+}
+
+const char*
+viewmodelStaticMeshRejectionName(
+    ViewmodelStaticMeshRejection rejection) noexcept {
+    switch (rejection) {
+    case ViewmodelStaticMeshRejection::None:
+        return "none";
+    case ViewmodelStaticMeshRejection::NoBatches:
+        return "no_batches";
+    case ViewmodelStaticMeshRejection::TooManyBatches:
+        return "too_many_batches";
+    case ViewmodelStaticMeshRejection::TooFewVertices:
+        return "too_few_vertices";
+    case ViewmodelStaticMeshRejection::TooManyVertices:
+        return "too_many_vertices";
+    case ViewmodelStaticMeshRejection::TooFewIndices:
+        return "too_few_indices";
+    case ViewmodelStaticMeshRejection::TooManyIndices:
+        return "too_many_indices";
+    case ViewmodelStaticMeshRejection::NonTriangleIndexCount:
+        return "non_triangle_index_count";
+    case ViewmodelStaticMeshRejection::InvalidEnvelope:
+        return "invalid_envelope";
+    case ViewmodelStaticMeshRejection::CollapsedVertexCloud:
+        return "collapsed_vertex_cloud";
+    case ViewmodelStaticMeshRejection::NeedleThin:
+        return "needle_thin";
+    }
+
+    return "unknown";
+}
+
 bool
 passesViewmodelStaticMeshSanity(
     const StaticMeshAsset& asset,
     StaticMeshQualityMetrics* metricsOut) noexcept {
-    const auto metrics =
-        measureStaticMeshQuality(asset);
+    const auto result =
+        evaluateViewmodelStaticMesh(asset);
 
     if (metricsOut != nullptr) {
-        *metricsOut = metrics;
+        *metricsOut = result.metrics;
     }
 
-    // This is intentionally a broad geometry sanity gate, not an art-style
-    // gate. The normal rifle target is about 0.90 m long. Keep enough room for
-    // alternate first-person rifles while rejecting unit explosions and the
-    // "one long spike + almost everything collapsed near the origin" failure
-    // mode seen in rigged GLB imports.
-    return metrics.batchCount >= 1U &&
-        metrics.batchCount <= 128U &&
-        metrics.vertexCount >= 96U &&
-        metrics.vertexCount <= 600000U &&
-        metrics.indexCount >= 96U &&
-        metrics.indexCount <= 900000U &&
-        (metrics.indexCount % 3U) == 0U &&
-        metrics.peakVoxelOccupancyRatio <= 0.75f &&
-        metrics.longestExtent >= 0.30f &&
-        metrics.longestExtent <= 1.50f &&
-        metrics.robustAxisCoverage90 >= 0.20f &&
-        metrics.robustLongestExtent90 >= 0.25f &&
-        metrics.robustSecondExtent90 >= 0.035f &&
-        metrics.robustThirdExtent90 >= 0.012f;
+    return result.success;
 }
 
 } // namespace xziel
