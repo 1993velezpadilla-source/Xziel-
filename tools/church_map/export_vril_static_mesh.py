@@ -12,6 +12,7 @@ MASTER = os.environ.get("CHURCH_GAMEPLAY_BLEND", "church/out/church_zombies_game
 PLAN_PATH = Path(os.environ.get("CHURCH_PLAN", "church/out/zombies_map_plan.json"))
 OUTDIR = Path(os.environ.get("CHURCH_OUT", "church/out"))
 RUNTIME_ROOT = Path(os.environ.get("XZIEL_STATIC_RUNTIME_ROOT", str(OUTDIR / "vril_static")))
+REPORT_PATH = Path(os.environ.get("XZIEL_STATIC_REPORT", str(OUTDIR / "vril_static_mesh_report.json")))
 MODEL_DIR = RUNTIME_ROOT / "models" / "xziel" / "sanctum"
 TEXTURE_DIR = RUNTIME_ROOT / "textures" / "xziel" / "sanctum"
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
@@ -585,7 +586,7 @@ report = {
     "centerMeters":list(center),
     "textures":texture_records,
 }
-(OUTDIR/"vril_static_mesh_report.json").write_text(json.dumps(report,indent=2),encoding="utf-8")
+REPORT_PATH.write_text(json.dumps(report,indent=2),encoding="utf-8")
 (RUNTIME_ROOT/"ATTRIBUTION.txt").write_text(
     "SANCTUM OF ASH development visual mesh\n"
     "St Giles Cripplegate scan by artfletch — Creative Commons Attribution (CC BY).\n"
