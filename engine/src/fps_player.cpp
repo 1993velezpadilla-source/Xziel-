@@ -334,8 +334,14 @@ FpsPlayerFrame FpsPlayerController::fixedStep(
     resolveWalkableSupport(
         previousFeetPosition);
 
-    if (frame_.feetPosition.y <
-        config_.floorY) {
+    // Legacy single-floor maps still use config_.floorY as a safety plane.
+    // Multi-level authored maps install walkable surfaces; in that mode a
+    // single global floor would incorrectly prevent descending into lower
+    // rooms such as Sanctum's nave/boiler and would mark mid-air positions
+    // below the spawn floor as grounded.
+    if (walkableSurfaceCount_ == 0U &&
+        frame_.feetPosition.y <
+            config_.floorY) {
         frame_.feetPosition.y =
             config_.floorY;
     }
@@ -370,9 +376,13 @@ FpsPlayerController::buildTraversalContext() const noexcept {
             frame_.feetPosition.y -
             supportY) <= 0.065f;
 
-    const bool atFloor =
+    const bool atFallbackFloor =
+        walkableSurfaceCount_ == 0U &&
         frame_.feetPosition.y <=
-            config_.floorY + 0.002f ||
+            config_.floorY + 0.002f;
+
+    const bool atFloor =
+        atFallbackFloor ||
         onWalkableSurface;
 
     const bool movingUp =
