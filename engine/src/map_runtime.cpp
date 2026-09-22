@@ -45,6 +45,7 @@ void MapRuntime::clear(
     player.clearWalkableSurfaces();
     player.clearStaticObstacles();
     player.clearDynamicObstacles();
+    horde.clearNavigationFloors();
     horde.clearNavigationObstacles();
     horde.clearDynamicBlockers();
     doors_.clear();
@@ -143,6 +144,8 @@ MapLoadResult MapRuntime::load(
             floor.bounds.minimum.z >
                 floor.bounds.maximum.z ||
             !player.addWalkableSurface(
+                floor.bounds) ||
+            !horde.addNavigationFloor(
                 floor.bounds)) {
             clear(player, horde, interactions);
             return {};
