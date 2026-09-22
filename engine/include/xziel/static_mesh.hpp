@@ -79,7 +79,9 @@ struct StaticMeshQualityMetrics {
     float robustLongestExtent90 = 0.0f;
     float robustSecondExtent90 = 0.0f;
     float robustThirdExtent90 = 0.0f;
+    std::uint32_t batchCount = 0U;
     std::uint32_t vertexCount = 0U;
+    std::uint32_t indexCount = 0U;
 };
 
 [[nodiscard]] StaticMeshQualityMetrics
