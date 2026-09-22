@@ -852,13 +852,14 @@ static void XzLogSnapshot(double now_seconds)
     XzAndroidLog(
         ANDROID_LOG_INFO,
         "legacy3d suppress total=%" PRIu64 " pass=%" PRIu64
-        " frame(alias=%u sprite=%u effect=%u)"
+        " frame(alias=%u sprite=%u effect=%u shadow=%u)"
         " passFrame(alias=%u surface=%u sprite=%u effect=%u special=%u shadow=%u)",
         xz_runtime.legacy_draws_suppressed_total,
         xz_runtime.legacy_draws_passthrough_total,
         xz_runtime.legacy_draws_suppressed_frame[XZ_LEGACY_DRAW_ALIAS],
         xz_runtime.legacy_draws_suppressed_frame[XZ_LEGACY_DRAW_SPRITE],
         xz_runtime.legacy_draws_suppressed_frame[XZ_LEGACY_DRAW_EFFECT],
+        xz_runtime.legacy_draws_suppressed_frame[XZ_LEGACY_DRAW_SHADOW],
         xz_runtime.legacy_draws_passthrough_frame[XZ_LEGACY_DRAW_ALIAS],
         xz_runtime.legacy_draws_passthrough_frame[XZ_LEGACY_DRAW_SURFACE],
         xz_runtime.legacy_draws_passthrough_frame[XZ_LEGACY_DRAW_SPRITE],
@@ -1362,14 +1363,16 @@ int XzAndroidRuntime_ShouldSuppressLegacyWorldDraw(
     current = XzGeometryTap_GetWriteFrame();
 
     /*
-     * Phase 1 retires only entity/effect raster. Keep BSP/special geometry
-     * legacy-visible as an immediate fallback while suppression is proven.
+     * Phase 2 retires entity/effect raster plus alias-model blob shadows.
+     * BSP surfaces and sky/water specials remain legacy-visible as an
+     * immediate fallback while the broader retirement is proven.
      * Current-frame core evidence prevents a stale MODERN state from
      * suppressing the first draws after a map/scene transition.
      */
     if (kind == XZ_LEGACY_DRAW_ALIAS ||
         kind == XZ_LEGACY_DRAW_SPRITE ||
-        kind == XZ_LEGACY_DRAW_EFFECT) {
+        kind == XZ_LEGACY_DRAW_EFFECT ||
+        kind == XZ_LEGACY_DRAW_SHADOW) {
         suppress =
             xz_runtime.cutover.active_mode ==
                 XZ_CUTOVER_MODE_MODERN &&
