@@ -2,7 +2,10 @@
 
 #include "xziel/gameplay_events.hpp"
 #include "xziel/interaction.hpp"
+#include "xziel/player_vitals.hpp"
 #include "xziel/score.hpp"
+#include "xziel/weapon.hpp"
+#include "xziel/zombie_window.hpp"
 
 #include <array>
 #include <cstddef>
@@ -195,6 +198,30 @@ struct SurvivalFrame {
     SurvivalPowerUpKind lastPowerUp =
         SurvivalPowerUpKind::FullAmmo;
 };
+
+struct SurvivalImmediateTargets {
+    ScoreSystem* score = nullptr;
+    WeaponController* weapons = nullptr;
+    std::size_t weaponCount = 0;
+    PlayerVitals* vitals = nullptr;
+    ZombieWindowSystem* windows = nullptr;
+    HordeDirector* horde = nullptr;
+    FpsPlayerController* player = nullptr;
+    bool refillMagazines = false;
+};
+
+struct SurvivalImmediateResult {
+    std::size_t weaponsRefilled = 0;
+    std::size_t zombiesEliminated = 0;
+    std::size_t windowsRepaired = 0;
+    bool healthRestored = false;
+    bool scoreMultiplierApplied = false;
+};
+
+[[nodiscard]] SurvivalImmediateResult
+applySurvivalImmediateEffects(
+    const SurvivalFrame& frame,
+    const SurvivalImmediateTargets& targets) noexcept;
 
 class SurvivalRuntime final {
 public:
