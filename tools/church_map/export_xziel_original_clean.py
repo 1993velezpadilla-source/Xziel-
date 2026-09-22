@@ -5,8 +5,11 @@ import re
 import shutil
 import struct
 import tempfile
+import hashlib
+import io
 from pathlib import Path
 from mathutils import Vector
+from PIL import Image
 
 SOURCE = Path(os.environ.get("CHURCH_SOURCE", "church/source/st-giles-cripplegate.glb"))
 PLAN_PATH = Path(os.environ.get("CHURCH_PLAN", "church/seed/zombies_map_plan.json"))
@@ -26,6 +29,78 @@ if not SOURCE.is_file():
     raise RuntimeError(f"missing original church GLB: {SOURCE}")
 if not PLAN_PATH.is_file():
     raise RuntimeError(f"missing validated gameplay plan: {PLAN_PATH}")
+
+# Parse the original GLB texture payload before Blender touches it.
+# Material -> embedded base-color image mapping comes from glTF JSON, not from
+# Blender node names. Runtime pixels are decoded directly from the source GLB.
+glb_bytes = SOURCE.read_bytes()
+if glb_bytes[:4] != b"glTF":
+    raise RuntimeError("source is not a GLB")
+_, glb_version, glb_length = struct.unpack_from("<4sII", glb_bytes, 0)
+if glb_version != 2 or glb_length != len(glb_bytes):
+    raise RuntimeError("unexpected GLB header")
+
+cursor = 12
+glb_json = None
+glb_bin = None
+while cursor + 8 <= len(glb_bytes):
+    chunk_length, chunk_type = struct.unpack_from("<II", glb_bytes, cursor)
+    cursor += 8
+    payload = glb_bytes[cursor:cursor + chunk_length]
+    cursor += chunk_length
+    if chunk_type == 0x4E4F534A:
+        glb_json = payload.rstrip(b"\x00 \t\r\n")
+    elif chunk_type == 0x004E4942:
+        glb_bin = payload
+
+if glb_json is None or glb_bin is None:
+    raise RuntimeError("GLB missing JSON/BIN chunks")
+
+glb_doc = json.loads(glb_json.decode("utf-8"))
+glb_views = glb_doc.get("bufferViews", [])
+glb_images = glb_doc.get("images", [])
+glb_textures = glb_doc.get("textures", [])
+glb_materials = glb_doc.get("materials", [])
+
+embedded_by_material = {}
+embedded_records = {}
+
+for material_index, material in enumerate(glb_materials):
+    pbr = material.get("pbrMetallicRoughness", {})
+    texture_index = pbr.get("baseColorTexture", {}).get("index")
+    if texture_index is None or texture_index >= len(glb_textures):
+        continue
+    image_index = glb_textures[texture_index].get("source")
+    if image_index is None or image_index >= len(glb_images):
+        continue
+    image_info = glb_images[image_index]
+    view_index = image_info.get("bufferView")
+    if view_index is None or view_index >= len(glb_views):
+        continue
+    view = glb_views[view_index]
+    offset = int(view.get("byteOffset", 0))
+    size = int(view["byteLength"])
+    encoded = glb_bin[offset:offset + size]
+    if len(encoded) != size:
+        raise RuntimeError(f"truncated embedded image {image_index}")
+
+    with Image.open(io.BytesIO(encoded)) as decoded:
+        rgba = decoded.convert("RGBA")
+        raw = rgba.tobytes()
+        record = {
+            "imageIndex": image_index,
+            "materialIndex": material_index,
+            "materialName": material.get("name"),
+            "imageName": image_info.get("name"),
+            "mimeType": image_info.get("mimeType"),
+            "dimensions": [rgba.width, rgba.height],
+            "decodedSha256": hashlib.sha256(raw).hexdigest(),
+            "encodedSha256": hashlib.sha256(encoded).hexdigest(),
+            "rgba": rgba.copy(),
+        }
+    embedded_records[material_index] = record
+    if material.get("name"):
+        embedded_by_material[material["name"]] = record
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=str(SOURCE))
@@ -154,34 +229,87 @@ def save_material_texture(mat):
     dst = TEXTURE_DIR / f"{stem}.png"
     rel = f"textures/xziel/sanctum/{stem}"
 
-    node = base_color_node(mat)
-    image = node.image if node is not None else None
+    # Source-of-truth path: decoded pixels come directly from the embedded GLB
+    # baseColor image selected by the original glTF material. Blender is used
+    # only for mesh/UV access and cannot color-manage/re-save these pixels.
+    record = embedded_by_material.get(key)
+
+    # Blender can suffix duplicate datablock names. Match exact original
+    # material prefixes before ever falling back to Blender image nodes.
+    if record is None:
+        for original_name, candidate in embedded_by_material.items():
+            if key == original_name or key.startswith(original_name + "."):
+                record = candidate
+                break
+
     source_name = None
     source_size = [8, 8]
+    decoded_sha = None
+    source_mode = "fallback"
 
-    if image is not None and image.size[0] > 0 and image.size[1] > 0:
-        source_name = image.name
-        source_size = [int(image.size[0]), int(image.size[1])]
-        max_texture_dimension = max(max_texture_dimension, source_size[0], source_size[1])
-        copy = image.copy()
-        copy.file_format = "PNG"
-        copy.filepath_raw = str(dst)
-        try:
-            copy.save()
-        except Exception:
-            copy.save_render(filepath=str(dst), scene=scene)
-        bpy.data.images.remove(copy)
+    if record is not None:
+        rgba = record["rgba"]
+        source_name = record.get("imageName")
+        source_size = list(record["dimensions"])
+        decoded_sha = record["decodedSha256"]
+        max_texture_dimension = max(
+            max_texture_dimension,
+            source_size[0],
+            source_size[1],
+        )
+        rgba.save(dst, format="PNG")
+        source_mode = "original_glb_embedded_pixels"
     else:
-        fallback_materials.add(key)
-        rgba = (0.5, 0.5, 0.5, 1.0)
-        if mat is not None:
-            rgba = tuple(float(v) for v in mat.diffuse_color)
-        image = bpy.data.images.new(stem, width=8, height=8, alpha=True, float_buffer=False)
-        image.pixels = list(rgba) * 64
-        image.file_format = "PNG"
-        image.filepath_raw = str(dst)
-        image.save()
-        bpy.data.images.remove(image)
+        node = base_color_node(mat)
+        image = node.image if node is not None else None
+        if image is not None and image.size[0] > 0 and image.size[1] > 0:
+            # Diagnostic fallback only. A clean build must not hit this path.
+            source_name = image.name
+            source_size = [int(image.size[0]), int(image.size[1])]
+            max_texture_dimension = max(
+                max_texture_dimension,
+                source_size[0],
+                source_size[1],
+            )
+            copy = image.copy()
+            copy.file_format = "PNG"
+            copy.filepath_raw = str(dst)
+            try:
+                copy.save()
+            except Exception:
+                copy.save_render(filepath=str(dst), scene=scene)
+            bpy.data.images.remove(copy)
+            source_mode = "blender_fallback"
+        else:
+            fallback_materials.add(key)
+            rgba = (0.5, 0.5, 0.5, 1.0)
+            if mat is not None:
+                rgba = tuple(float(v) for v in mat.diffuse_color)
+            image = bpy.data.images.new(
+                stem,
+                width=8,
+                height=8,
+                alpha=True,
+                float_buffer=False,
+            )
+            image.pixels = list(rgba) * 64
+            image.file_format = "PNG"
+            image.filepath_raw = str(dst)
+            image.save()
+            bpy.data.images.remove(image)
+
+    # Verify the PNG we will package decodes to the exact source GLB pixels.
+    runtime_sha = None
+    if dst.is_file():
+        with Image.open(dst) as runtime_image:
+            runtime_rgba = runtime_image.convert("RGBA")
+            runtime_sha = hashlib.sha256(runtime_rgba.tobytes()).hexdigest()
+
+    if decoded_sha is not None and runtime_sha != decoded_sha:
+        raise RuntimeError(
+            f"source pixel fidelity lost for material {key}: "
+            f"source={decoded_sha} runtime={runtime_sha}"
+        )
 
     bsdf = principled(mat)
     pbr = {}
@@ -195,6 +323,12 @@ def save_material_texture(mat):
         "texturePath": rel + ".png",
         "sourceImage": source_name,
         "sourceSize": source_size,
+        "sourceMode": source_mode,
+        "sourceDecodedSha256": decoded_sha,
+        "runtimeDecodedSha256": runtime_sha,
+        "exactSourcePixels": (
+            decoded_sha is not None and runtime_sha == decoded_sha
+        ),
         "bytes": dst.stat().st_size,
         "linkedPbrImages": pbr,
     }
@@ -391,7 +525,11 @@ report = {
     "decimateRatio": 1.0,
     "scanCleanup": "disabled",
     "vertexLighting": "identity_white",
-    "textureSourceMode": "original_glb_basecolor_no_upscale",
+    "textureSourceMode": "original_glb_embedded_pixels",
+    "exactSourcePixelTextures": sum(
+        1 for value in material_report.values()
+        if value.get("exactSourcePixels")
+    ),
     "textureCount": len(material_paths),
     "originalMaxTextureDimension": max_texture_dimension,
     "fallbackMaterials": sorted(fallback_materials),
