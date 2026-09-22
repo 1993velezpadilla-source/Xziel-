@@ -371,10 +371,29 @@ jobs:
             sleep 2
           done
 
-          # Give SurfaceFlinger a short grace period after the first processed
-          # frame. SwiftShader occasionally returns one or more all-black
-          # screencaps even while the SDL/Vril render loop is already healthy.
-          sleep 5
+          # Wait for the native visible path itself, not merely FIRST_FRAME_OK.
+          # Shadow-heavy parity probes can advance slowly under SwiftShader; taking
+          # screenshots before MODERN owns the backbuffer creates false black-frame
+          # failures even though the renderer reaches a clean takeover moments later.
+          MODERN_VISUAL_READY=0
+          for i in $(seq 1 60); do
+            "$ADB" logcat -d -v threadtime > dist/xziel-logcat-previsual.txt || true
+            if grep -Eq "XZIEL-XZ.*parity present context=1 attempts=[1-9][0-9]* success=[1-9][0-9]* fail=0 draws=[1-9][0-9]* streak=[2-9][0-9]*|XZIEL-XZ.*parity present context=1 attempts=[1-9][0-9]* success=[1-9][0-9]* fail=0 draws=[1-9][0-9]* streak=[2-9]" dist/xziel-logcat-previsual.txt \
+              && grep -Eq "XZIEL-XZ.*phase16 heartbeat requested=MODERN active=MODERN candidate=1 allowed=1 caps=0xff blockers=0x0 .*legacyVisible=0" dist/xziel-logcat-previsual.txt; then
+              MODERN_VISUAL_READY=1
+              break
+            fi
+            sleep 2
+          done
+
+          if [[ "$MODERN_VISUAL_READY" != "1" ]]; then
+            echo "Native visible renderer did not reach stable MODERN ownership before visual capture."
+            grep -E "XZIEL-XZ.*parity geometry|XZIEL-XZ.*parity shadows|XZIEL-XZ.*parity present|XZIEL-XZ.*phase16 heartbeat" dist/xziel-logcat-previsual.txt | tail -n 260 || true
+            exit 1
+          fi
+
+          # Give SurfaceFlinger a short grace period after native takeover.
+          sleep 3
 
           # Automated visual sanity pass: obtain two valid, non-blank landscape
           # gameplay frames. Retry transient all-black emulator captures rather
