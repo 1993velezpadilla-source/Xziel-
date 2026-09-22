@@ -369,6 +369,59 @@ def add_eyes(z,front_y,eye_mat):
     return [uv_sphere("Eye_L",(-.032,front_y,z),(.014,.010,.014),eye_mat),
             uv_sphere("Eye_R",(.032,front_y,z),(.014,.010,.014),eye_mat)]
 
+
+def face_front_y(body,h):
+    ys=[]
+    for v in body.data.vertices:
+        z=v.co.z/max(h,1e-6)
+        if .84 < z < .95:
+            ys.append(v.co.y)
+    return min(ys) if ys else -.055*h
+
+def add_face_details(body,h,mats,style):
+    fy=face_front_y(body,h)
+    bruise=mats.get("bruise") or mats.get("bruise_blue") or mats.get("water_bruise") or mats.get("corpse_skin")
+    dark=mats.get("soot") or mats.get("wet_black") or bruise
+    for side in (-1,1):
+        sock=uv_sphere("EyeSocket_"+("L" if side<0 else "R"),(side*.020*h,fy-.004*h,.902*h),(.024*h,.0035*h,.018*h),bruise)
+        sock.scale.z=.72
+    if style=="stained_shade":
+        eye_col="#A9C7D8"; emit="#7DA6C4"
+    elif style=="la_llorona":
+        eye_col="#8E8A86"; emit=None
+    else:
+        eye_col="#C5C8C3"; emit=None
+    eye_mat=mat("M_FaceEyes_"+style,eye_col,.30,0,emission=emit,noise=False)
+    for side in (-1,1):
+        uv_sphere("Eye_"+("L" if side<0 else "R"),(side*.019*h,fy-.009*h,.903*h),(.0095*h,.0045*h,.0095*h),eye_mat)
+    uv_sphere("MouthShadow",(0,fy-.005*h,.852*h),(.021*h,.003*h,.007*h),dark)
+    uv_sphere("CheekDecay",(-.038*h,fy-.003*h,.872*h),(.025*h,.003*h,.022*h),bruise)
+    return fy
+
+def llorona_hair(h,mats):
+    m=mats["wet_black"]; out=[]
+    out.append(open_veil("HairCap",h,m,False))
+    for i in range(34):
+        side=-1 if i%2==0 else 1
+        band=(i%17)/16
+        x=side*(.028+.040*band)*h
+        front=(i%5 in (0,1))
+        y=(-.060 if front else .045)*h + .010*h*math.sin(i*.9)
+        z0=(.955-.018*(i%4))*h
+        length=(.40+.16*((i*7)%11)/10)*h
+        pts=[(x,y,z0),(x*1.05,y+.010*h,z0-.13*h),(x*1.25,y+.020*h,z0-length)]
+        out.append(curve_chain("HairClump_%02d"%i,pts,m,.0038*h))
+    return out
+
+def llorona_rosary(h,mats):
+    metal=mats.get("tarnished_silver") or mats.get("oxidized_metal")
+    rope=mats.get("rope") or metal
+    out=[]
+    pts=[(-.015*h,-.136*h,.655*h),(.018*h,-.139*h,.585*h),(-.005*h,-.141*h,.515*h),(0,-.143*h,.455*h)]
+    out.append(curve_chain("RosaryChain",pts,rope,.004*h))
+    out.extend(cross_prop("RosaryCross",(0,-.145*h,.430*h),.032*h,metal))
+    return out
+
 def add_damage_sockets(h):
     coll=bpy.data.collections.get("DAMAGE_SOCKETS") or bpy.data.collections.new("DAMAGE_SOCKETS")
     if coll.name not in bpy.context.scene.collection.children: bpy.context.scene.collection.children.link(coll)
@@ -542,12 +595,31 @@ def export_files(folder,objs):
 def look_at(o,target):
     o.rotation_euler=(Vector(target)-o.location).to_track_quat("-Z","Y").to_euler()
 
+
+def pose_review(rig,style):
+    def rot(n,xyz):
+        pb=rig.pose.bones.get(n)
+        if not pb: return
+        pb.rotation_mode="XYZ"; pb.rotation_euler=tuple(math.radians(v) for v in xyz)
+    if style=="la_llorona":
+        rot("spine_03",(8,0,-3)); rot("head",(-6,0,7))
+        rot("upperarm_l",(-22,-4,24)); rot("lowerarm_l",(-18,0,5))
+        rot("upperarm_r",(-34,5,-18)); rot("lowerarm_r",(-18,0,-5))
+    elif style=="stained_shade":
+        rot("spine_03",(4,0,2)); rot("head",(-8,0,-8))
+        rot("upperarm_l",(-20,0,18)); rot("upperarm_r",(-24,0,-18))
+    else:
+        rot("spine_03",(10,0,3)); rot("neck_01",(-5,0,-4)); rot("head",(-8,0,8))
+        rot("upperarm_l",(-28,-4,20)); rot("lowerarm_l",(-18,0,4))
+        rot("upperarm_r",(-22,4,-15)); rot("lowerarm_r",(-16,0,-4))
+    bpy.context.view_layer.update()
+
 def preview(body,folder,style):
     scene=bpy.context.scene
     scene.render.engine="BLENDER_EEVEE_NEXT"
     scene.render.resolution_x=720; scene.render.resolution_y=900; scene.render.resolution_percentage=100
     scene.render.image_settings.file_format="PNG"; scene.world.color=(.006,.007,.009)
-    try: scene.view_settings.exposure=-1.35
+    try: scene.view_settings.exposure=-0.45
     except Exception: pass
     lo,hi=local_bounds(body); h=hi.z-lo.z; target=(0,0,lo.z+h*.52)
     dist=max(2.75,h*1.72)
@@ -601,10 +673,11 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService,TargetServi
     veilmat=mats.get("spectral_ivory") or mats.get("dirty_ivory")
     if style in ("lost_child","waterbound_child","bell_ringer","choir_wretch","penitent_deacon","censer_brute","reliquary_horror"):
         veil(style,h,w,d,veilmat)
-    if style in ("la_llorona","lost_child","waterbound_child"):
-        hair_strands(.97*h,h,mats["wet_black"],46 if style=="la_llorona" else 22,.62 if style=="la_llorona" else .28)
-    eye_m=mat("M_"+ch["id"]+"_Eye","#C9CED0",.28,0,emission=("#7FA7C4" if style=="stained_shade" else None),noise=False)
-    add_eyes(.89*h,-.105*d,eye_m)
+    if style=="la_llorona":
+        llorona_hair(h,mats)
+    elif style in ("lost_child","waterbound_child"):
+        hair_strands(.97*h,h,mats["wet_black"],22,.28)
+    add_face_details(body,h,mats,style)
     if style=="bell_ringer": bell_prop(h,mats["tarnished_brass"],mats["rope"])
     if style=="grave_sexton": shovel_prop(h,mats.get("iron",mats["dark_iron"]),mats["old_wood"])
     if style=="penitent_deacon": lantern_prop(h,mats["oxidized_metal"],mats["wax"])
@@ -613,6 +686,8 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService,TargetServi
         censer_prop(h,mats.get("oxidized_brass",mats["tarnished_brass"]),mats["rope"]); shrine_back(h,mats["old_wood"],mats["dark_iron"],mats["wax"])
     if style=="stained_shade":
         glass_shards(h,mats); stained_halo(h,mats)
+    if style=="la_llorona":
+        llorona_rosary(h,mats)
     if style in ("la_llorona","lost_child"):
         cross_prop("RosaryCross",(0,-.12*d,.53*h),.035*h,mats.get("tarnished_silver",mats["oxidized_metal"]))
     if style=="lost_child":
@@ -626,6 +701,7 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService,TargetServi
     blend=folder/"model.blend"
     try: bpy.ops.wm.save_as_mainfile(filepath=str(blend),compress=True)
     except Exception: bpy.ops.wm.save_as_mainfile(filepath=str(blend))
+    pose_review(rig,style)
     png=preview(body,folder,style)
     tri=sum(sum(max(1,len(p.vertices)-2) for p in o.data.polygons) for o in objs if o.type=="MESH")
     manifest={"id":ch["id"],"name":ch["name"],"category":ch["category"],"style":style,"height_m":ch["height_m"],"rig":"game_engine","bones":len(rig.data.bones),"triangles_estimate":tri,"animations":ch["animations"],"materials":ch["palette"],"outputs":[glb.name,fbx.name,blend.name,png.name],"production_status":"procedural production pass 1 — real rigged geometry, PBR materials, props, animation actions, damage sockets where applicable"}
