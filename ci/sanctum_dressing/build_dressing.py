@@ -100,22 +100,33 @@ for bi,b in enumerate(fit.get("barricades",[])):
         rp.z-=random.uniform(.65,.95)
         created.append(rubble_piece(f"RUBBLE_BAR_{bi:02d}_{k}",rp,random.uniform(.18,.38)))
 
-# Altar candles and rubble cluster from plan geometry.
+# Altar candles and rubble cluster use the gameplay anchor that has already
+# been snapped to the dominant real nave floor. Never derive art placement from
+# zone bbox min.z: photogrammetry can contain low basement/shard geometry.
 plan_path=Path(os.environ["SANCTUM_PLAN"])
 plan=json.loads(plan_path.read_text(encoding="utf-8"))
 main=plan["zones"]["main_church"]
 mc=Vector(main["center"]); ms=Vector(main["size"])
 axis=Vector((1,0,0)) if ms.x>=ms.y else Vector((0,1,0))
-altar=mc+axis*max(ms.x,ms.y)*0.27
-altar.z=main["min"][2]+0.35
 side=Vector((-axis.y,axis.x,0))
+upgrade=next((x for x in plan.get("interactives",[]) if x.get("name")=="UPGRADE_ALTAR"),None)
+if upgrade:
+    altar=Vector(upgrade["location"])
+    altar_floor_z=altar.z-0.70
+else:
+    altar=mc+axis*max(ms.x,ms.y)*0.27
+    altar_floor_z=float(plan.get("floor_levels",{}).get("main_church",main["min"][2]))
+    altar.z=altar_floor_z+0.70
+
 for i in range(14):
+    h=random.uniform(.22,.55)
     p=altar+side*random.uniform(-2.2,2.2)-axis*random.uniform(-1.2,1.1)
-    bpy.ops.mesh.primitive_cylinder_add(vertices=20,radius=random.uniform(.035,.065),depth=random.uniform(.22,.55),location=p+Vector((0,0,.25)))
+    p.z=altar_floor_z+h*0.5
+    bpy.ops.mesh.primitive_cylinder_add(vertices=20,radius=random.uniform(.035,.065),depth=h,location=p)
     o=bpy.context.object; o.name=f"ALTAR_CANDLE_{i:02d}"; move(o); o.data.materials.append(wax); created.append(o)
 for i in range(22):
     p=altar+side*random.uniform(-3.0,3.0)+axis*random.uniform(-1.0,2.0)
-    p.z=main["min"][2]+random.uniform(.05,.16)
+    p.z=altar_floor_z+random.uniform(.05,.16)
     created.append(rubble_piece(f"ALTAR_RUBBLE_{i:02d}",p,random.uniform(.16,.42)))
 
 
@@ -190,9 +201,9 @@ if fit.get("barricades"):
     bpy.ops.render.render(write_still=True)
 
 # Altar dressing.
-cam.location=altar-axis*7+side*3+Vector((0,0,2.0))
+cam.location=Vector((altar.x,altar.y,altar_floor_z))+(-axis*7)+(side*3)+Vector((0,0,1.8))
 cam.data.lens=36
-look_at(cam,altar+Vector((0,0,1.0)))
+look_at(cam,Vector((altar.x,altar.y,altar_floor_z+1.0)))
 add_preview_light("ALTAR_KEY",altar-axis*1.5+Vector((0,0,4.5)),altar,(1.0,0.22,0.06),780,4.0)
 scene.render.filepath=str(OUT/"dressing_altar_preview.png")
 bpy.ops.render.render(write_still=True)
