@@ -73,8 +73,12 @@ struct StaticMeshParseResult {
 
 struct StaticMeshQualityMetrics {
     StaticMeshBounds bounds{};
+    std::array<float, 3> robustExtents90{};
     float longestExtent = 0.0f;
     float robustAxisCoverage90 = 0.0f;
+    float robustLongestExtent90 = 0.0f;
+    float robustSecondExtent90 = 0.0f;
+    float robustThirdExtent90 = 0.0f;
     std::uint32_t vertexCount = 0U;
 };
 
