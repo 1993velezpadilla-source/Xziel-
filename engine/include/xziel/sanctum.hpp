@@ -6,6 +6,7 @@
 #include "xziel/horror.hpp"
 #include "xziel/player_vitals.hpp"
 #include "xziel/score.hpp"
+#include "xziel/survival_systems.hpp"
 
 #include <array>
 #include <cstddef>
@@ -17,6 +18,7 @@ struct SanctumGameplayProfile {
     PlayerVitalsConfig vitals{};
     HordeConfig horde{};
     ScoreConfig score{};
+    SurvivalRules survival{};
     HorrorConfig horror{};
 
     // Content/UI rules are explicit so future Android presentation does not

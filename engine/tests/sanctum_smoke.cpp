@@ -12,6 +12,11 @@ int main() {
     assert(!profile.vitals.autoRespawn);
     assert(profile.horde.interRoundDelaySeconds >= 5.0f);
     assert(profile.score.startingPoints == 500U);
+    assert(profile.survival.perkLimit == 4U);
+    assert(profile.survival.randomWeaponBaseCost == 950U);
+    assert(profile.survival.weaponUpgradeBaseCost == 5000U);
+    assert(profile.survival.maxWeaponUpgradeTier == 3U);
+    assert(profile.survival.powerUpLifetimeSeconds == 12.0f);
     assert(profile.horror.stingerCooldownSeconds >= 18.0f);
     assert(!profile.showQuestChecklistHud);
     assert(!profile.showPassivePresenceMarkers);

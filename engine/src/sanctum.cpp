@@ -44,6 +44,20 @@ makeSanctumGameplayProfile() noexcept {
     profile.score.roundClearBasePoints = 100U;
     profile.score.roundClearPerRound = 15U;
 
+    // Shared survival-economy rules: recognizable risk/reward pacing, but
+    // content, presentation and naming remain original to Xziel/Sanctum.
+    profile.survival.perkLimit = 4U;
+    profile.survival.randomWeaponBaseCost = 950U;
+    profile.survival.weaponUpgradeBaseCost = 5000U;
+    profile.survival.weaponUpgradeCostMultiplier = 2.0f;
+    profile.survival.consumableDrawCostStep = 500U;
+    profile.survival.maxWeaponUpgradeTier = 3U;
+    profile.survival.powerUpLifetimeSeconds = 12.0f;
+    profile.survival.timedPowerUpSeconds = 30.0f;
+    profile.survival.dropBaseChance = 0.035f;
+    profile.survival.dropPityKills = 28U;
+    profile.survival.dropCooldownSeconds = 8.0f;
+
     // Horror supports gameplay tension rather than shouting over it.
     profile.horror.tensionAttackPerSecond = 1.05f;
     profile.horror.tensionReleasePerSecond = 0.24f;

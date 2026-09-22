@@ -16,6 +16,7 @@ add_library(xziel_engine STATIC
     src/horde_director.cpp
     src/zombie_hit_regions.cpp
     src/score.cpp
+    src/survival_systems.cpp
     src/interaction.cpp
     src/barricade.cpp
     src/zombie_window.cpp
@@ -107,6 +108,11 @@ if(XZIEL_ENGINE_BUILD_TESTS)
     target_link_libraries(xziel_score_smoke PRIVATE xziel_engine)
     target_compile_features(xziel_score_smoke PRIVATE cxx_std_20)
     add_test(NAME xziel_score_smoke COMMAND xziel_score_smoke)
+
+    add_executable(xziel_survival_systems_smoke tests/survival_systems_smoke.cpp)
+    target_link_libraries(xziel_survival_systems_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_survival_systems_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_survival_systems_smoke COMMAND xziel_survival_systems_smoke)
 
     add_executable(xziel_player_vitals_smoke tests/player_vitals_smoke.cpp)
     target_link_libraries(xziel_player_vitals_smoke PRIVATE xziel_engine)
