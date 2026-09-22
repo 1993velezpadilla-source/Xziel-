@@ -331,6 +331,21 @@ void VulkanStaticMeshRenderer::record(
         return;
     }
 
+    // Do not let a bad gameplay/animation value poison clip-space math.
+    // A NaN/Inf transform can turn otherwise valid viewmodel triangles into
+    // full-screen streaks on some drivers.
+    if (!std::isfinite(state.x) ||
+        !std::isfinite(state.y) ||
+        !std::isfinite(state.z) ||
+        !std::isfinite(state.scale) ||
+        !std::isfinite(state.yawRadians) ||
+        !std::isfinite(state.pitchRadians) ||
+        !std::isfinite(state.rollRadians) ||
+        !std::isfinite(state.verticalFovDegrees) ||
+        !std::isfinite(state.aspect)) {
+        return;
+    }
+
     vkCmdBindPipeline(
         command,
         VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -589,9 +604,20 @@ void VulkanStaticMeshRenderer::recordViewmodel(
             state.scale,
             0.05f,
             8.0f);
-    push.modelYaw = state.yawRadians;
-    push.modelPitch = state.pitchRadians;
-    push.modelRoll = state.rollRadians;
+    constexpr float kTwoPi =
+        6.28318530717958647692f;
+    push.modelYaw =
+        std::remainder(
+            state.yawRadians,
+            kTwoPi);
+    push.modelPitch =
+        std::remainder(
+            state.pitchRadians,
+            kTwoPi);
+    push.modelRoll =
+        std::remainder(
+            state.rollRadians,
+            kTwoPi);
     push.viewmodelMode = 1.0f;
 
     vkCmdPushConstants(
