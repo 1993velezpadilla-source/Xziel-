@@ -447,6 +447,61 @@ if "XZ_GEOMETRY_SPRITE_CAPTURE" not in rmain:
 gl_rmain.write_text(rmain, encoding="utf-8")
 
 
+# Replace only the visible 3D world before Vril switches to its 2D HUD pass.
+# The native GLES3 compositor renders into the same EGL window backbuffer and
+# restores the legacy GL4ES context before GL_Set2D, so menus/touch HUD remain
+# intact and the existing SDL swap remains the final presentation primitive.
+r_screen = source / "render" / "r_screen.c"
+screen = r_screen.read_text(encoding="utf-8")
+
+if '#include "../xz_android_runtime.h"' not in screen:
+    anchor = '#include "../nzportable_def.h"\n'
+    if anchor not in screen:
+        raise SystemExit("Missing r_screen include anchor")
+    screen = screen.replace(
+        anchor,
+        anchor +
+        '#ifdef __ANDROID__\n'
+        '#include "../xz_android_runtime.h"\n'
+        '#endif\n',
+        1,
+    )
+
+visible_anchor = (
+    "\tif (!LoadingScreen_IsWaiting()) {\n"
+    "\t\tSCR_SetUpToDrawConsole ();\n"
+    "\t\tV_RenderView ();\n"
+    "\t}\n\n"
+    "\tGL_Set2D ();\n"
+)
+if "XZ_VISIBLE_PRESENT_COMPOSITE" not in screen:
+    if visible_anchor not in screen:
+        raise SystemExit("Missing pre-HUD visible present anchor")
+    visible_block = (
+        "\tif (!LoadingScreen_IsWaiting()) {\n"
+        "\t\tSCR_SetUpToDrawConsole ();\n"
+        "\t\tV_RenderView ();\n"
+        "#ifdef __ANDROID__\n"
+        "\t\t/* XZ_VISIBLE_PRESENT_COMPOSITE */\n"
+        "\t\tXzAndroidRuntime_CompositeVisibleWorld();\n"
+        "#endif\n"
+        "\t}\n\n"
+        "\tGL_Set2D ();\n"
+    )
+    screen = screen.replace(
+        visible_anchor,
+        visible_block,
+        1,
+    )
+
+r_screen.write_text(screen, encoding="utf-8")
+
+if screen.count('#include "../xz_android_runtime.h"') != 1:
+    raise SystemExit("Visible present header injection count mismatch")
+if screen.count("XZ_VISIBLE_PRESENT_COMPOSITE") != 1:
+    raise SystemExit("Visible present composite injection count mismatch")
+
+
 # Validate the expected integration exactly once. Failing here is preferable to
 # silently building an APK that is not actually collecting Phase-0 telemetry.
 checks = {
@@ -473,4 +528,4 @@ for label, needle in checks.items():
             f"Phase-0 integration check failed for {label}: {count} occurrences"
         )
 
-print("Injected Xziel Xz runtime through Phase 16 + real geometry + texture parity taps.")
+print("Injected Xziel Xz runtime through Phase 16 + real geometry/texture/visible-present parity.")
