@@ -667,27 +667,23 @@ def sister_fitted_face_wimple(body,h,mats):
     return out
 
 def sister_closed_shoes(body,h,mats):
-    """Pass 28: low-profile closed leather shoes. Fixed human-scale proportions avoid bbox inflation."""
-    leather=mat("M_SisterClosedShoes","#171516",.80,0,noise=True)
-    sole_mat=mat("M_SisterSole","#0D0C0D",.88,0,noise=True)
+    """Pass 30: fitted low-profile closed shoes, no sphere/toe proxies."""
+    leather=mat("M_SisterClosedShoes","#171516",.82,0,noise=True)
+    sole_mat=mat("M_SisterSole","#0D0C0D",.90,0,noise=True)
     out=[]
-    # MPFB feet are already planted at z=0. Keep the shoe upper close to that anatomy.
     for sign,label in ((-1,"L"),(1,"R")):
-        foot=[v.co.copy() for v in body.data.vertices
-              if v.co.z/h < .075 and v.co.x*sign > .010*h]
-        if foot:
-            cx=sum(p.x for p in foot)/len(foot)
-            cy=sum(p.y for p in foot)/len(foot)
-        else:
-            cx=sign*.047*h; cy=-.018*h
-        # Anatomical closed upper: narrow across X, longer along Y, shallow in Z.
-        upper=uv_sphere("SisterClosedShoe_"+label,
-            (cx,cy-.010*h,.027*h),(.036*h,.066*h,.024*h),leather)
-        upper.rotation_euler.x=math.radians(3)
-        out.append(upper)
-        sole=cube("SisterClosedSole_"+label,
-            (cx,cy-.012*h,.010*h),(.038*h,.069*h,.0065*h),sole_mat,.003*h)
-        out.append(sole)
+        # Build a shallow closed upper from the actual foot surface so scale follows anatomy.
+        upper=body_region_shell(body,"SisterShoeUpper_"+label,leather,
+            lambda q,sign=sign: q.x*sign>.012*h and q.z/h<.075,.0045*h)
+        if upper: out.append(upper)
+        pts=[v.co for v in body.data.vertices if v.co.x*sign>.012*h and v.co.z/h<.075]
+        if pts:
+            minx,maxx=min(q.x for q in pts),max(q.x for q in pts)
+            miny,maxy=min(q.y for q in pts),max(q.y for q in pts)
+            minz=min(q.z for q in pts)
+            sole=cube("SisterSole_"+label,((minx+maxx)/2,(miny+maxy)/2,minz+.004*h),
+                ((maxx-minx)*.54,(maxy-miny)*.54,.005*h),sole_mat,.002*h)
+            out.append(sole)
     return out
 
 def sister_face_scars(body,h,mats):
@@ -740,17 +736,15 @@ def priority_head_cover(body,h,style,mats):
     out=[]
     if style=="sister_of_ash":
         ivory=mats["dirty_ivory"]; blue=mats["ash_blue"]
-        out.append(nun_coif_cap("NunInnerCoif",h,ivory,.069,.059,.106,.900,.10))
-        out.append(nun_coif_cap("NunOuterHood",h,blue,.077,.066,.116,.899,.56))
-        fitted=sister_wimple_fitted(body,h,ivory)
-        if fitted: out.append(fitted)
-        throat=body_region_shell(body,"NunThroatWrap",ivory,
-            lambda q:.742<q.z/h<.826 and abs(q.x/h)<.118 and q.y/h<.135,.0032*h)
-        if throat: out.append(throat)
+        # Closed crown + fitted open-face hood. Crown coverage is mandatory.
+        out.append(nun_coif_cap("NunInnerCoif",h,ivory,.070,.060,.109,.898,.11))
+        out.append(nun_coif_cap("NunOuterHood",h,blue,.079,.068,.120,.897,.63))
+        # Remove the forehead patch look: a narrow continuous frame hugs the face perimeter.
+        out.append(sister_wimple_frame(body,h,ivory))
         out.append(drape_open("NunBackVeil",h,blue,[
-            (.946,.064,.054),(.918,.071,.060),(.886,.079,.066),(.852,.088,.073),
-            (.818,.098,.080),(.784,.109,.088),(.752,.121,.096),(.722,.132,.103)
-        ],segments=108,theta_max=2.58,tatter=.105,phase=.72,subdiv=1))
+            (.946,.066,.056),(.916,.073,.062),(.882,.081,.068),(.846,.090,.075),
+            (.810,.101,.083),(.776,.113,.091),(.744,.126,.099),(.714,.137,.106)
+        ],segments=112,theta_max=2.58,tatter=.055,phase=.64,subdiv=2))
     elif style=="stained_shade":
         out.append(nun_coif_cap("ShadeHood",h,mats["spectral_ivory"],.080,.070,.120,.894,.55))
     elif style=="la_llorona":
@@ -1766,7 +1760,7 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService,TargetServi
     if style=="sister_of_ash":
         sister_mouth_pose(body,h)
         sister_mouth_slit(body,h,mats)
-        sister_face_scars(body,h,mats)
+        # Pass 30: scars stay in skin shading/displacement; no floating curve marks.
         sister_paint_footwear(body,h)
         sister_closed_shoes(body,h,mats)
     veilmat=mats.get("spectral_ivory") or mats.get("dirty_ivory")
