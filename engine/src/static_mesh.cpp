@@ -166,7 +166,8 @@ parseStaticMeshXzsm(
             destination);
     }
 
-    if (version != kStaticMeshFormatVersion) {
+    if (version != kStaticMeshLegacyVersion &&
+        version != kStaticMeshFormatVersion) {
         return failure(
             StaticMeshParseError::UnsupportedVersion,
             4U,
@@ -300,8 +301,53 @@ parseStaticMeshXzsm(
         for (auto& vertex : batch.vertices) {
             if (!reader.readF32(vertex.x) ||
                 !reader.readF32(vertex.y) ||
-                !reader.readF32(vertex.z) ||
-                !reader.readF32(vertex.u) ||
+                !reader.readF32(vertex.z)) {
+                return failure(
+                    StaticMeshParseError::Truncated,
+                    reader.offset(),
+                    destination);
+            }
+
+            if (version >= kStaticMeshFormatVersion) {
+                if (!reader.readF32(vertex.nx) ||
+                    !reader.readF32(vertex.ny) ||
+                    !reader.readF32(vertex.nz)) {
+                    return failure(
+                        StaticMeshParseError::Truncated,
+                        reader.offset(),
+                        destination);
+                }
+
+                const float normalLengthSquared =
+                    vertex.nx * vertex.nx +
+                    vertex.ny * vertex.ny +
+                    vertex.nz * vertex.nz;
+
+                if (!std::isfinite(normalLengthSquared) ||
+                    normalLengthSquared < 1.0e-8f) {
+                    return failure(
+                        StaticMeshParseError::InvalidBatch,
+                        reader.offset(),
+                        destination);
+                }
+
+                const float inverseLength =
+                    1.0f /
+                    std::sqrt(
+                        normalLengthSquared);
+
+                vertex.nx *= inverseLength;
+                vertex.ny *= inverseLength;
+                vertex.nz *= inverseLength;
+            } else {
+                // v2 assets predate stored normals. Keep them readable for
+                // compatibility, but native Sanctum exports use v3.
+                vertex.nx = 0.0f;
+                vertex.ny = 1.0f;
+                vertex.nz = 0.0f;
+            }
+
+            if (!reader.readF32(vertex.u) ||
                 !reader.readF32(vertex.v) ||
                 !reader.readBytes(
                     vertex.rgba.data(),
