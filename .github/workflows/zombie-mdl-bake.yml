@@ -1,0 +1,77 @@
+name: Bake Zombie MDL Compatibility Prototype
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/zombie-mocap-library-v1
+    paths:
+      - ".github/workflows/zombie-mdl-bake.yml"
+      - "scripts/blender_bake_zombie_mdl_frames.py"
+      - "assets/animations/zombie_runtime/stock_zombie_frame_contract.json"
+      - "assets/animations/zombie_mocap/quaternius_zombie_apocalypse/**"
+
+permissions:
+  contents: read
+
+jobs:
+  bake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        model:
+          - Zombie_Basic
+          - Zombie_Chubby
+          - Zombie_Arm
+          - Zombie_Ribcage
+
+    steps:
+      - name: Checkout Xziel
+        uses: actions/checkout@v5
+
+      - name: Install Blender and build tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq blender cmake ninja-build build-essential
+
+      - name: Build pinned quake-export
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --recursive https://github.com/cmdrf/quake-export.git /tmp/quake-export
+          git -C /tmp/quake-export checkout 13711f953cbe20132b36b863974f6a6c495aec61
+          git -C /tmp/quake-export submodule update --init --recursive
+          cmake -S /tmp/quake-export -B /tmp/quake-export/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build /tmp/quake-export/build --target quake-mdl-export quake-mdl-info
+
+      - name: Bake ${{ matrix.model }} to stock-compatible vertex frames
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "build/zombie-mdl/${{ matrix.model }}"
+          blender -b             --python scripts/blender_bake_zombie_mdl_frames.py --             --input "assets/animations/zombie_mocap/quaternius_zombie_apocalypse/${{ matrix.model }}.gltf"             --contract assets/animations/zombie_runtime/stock_zombie_frame_contract.json             --output "build/zombie-mdl/${{ matrix.model }}"
+
+      - name: Convert OBJ sequence to Quake MDL
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "build/zombie-mdl/${{ matrix.model }}"
+          /tmp/quake-export/build/mdl-export/quake-mdl-export model.json "${{ matrix.model }}_compat.mdl"
+          /tmp/quake-export/build/mdl-info/quake-mdl-info "${{ matrix.model }}_compat.mdl" | tee mdl-info.txt
+          test -s "${{ matrix.model }}_compat.mdl"
+          test "$(find frames -name '*.obj' | wc -l)" -eq 211
+          ls -lh "${{ matrix.model }}_compat.mdl"
+
+      - name: Upload compatibility prototype
+        uses: actions/upload-artifact@v4
+        with:
+          name: zombie-mdl-${{ matrix.model }}
+          path: |
+            build/zombie-mdl/${{ matrix.model }}/${{ matrix.model }}_compat.mdl
+            build/zombie-mdl/${{ matrix.model }}/bake_report.json
+            build/zombie-mdl/${{ matrix.model }}/mdl-info.txt
+          retention-days: 14
