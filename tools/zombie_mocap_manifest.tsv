@@ -64,3 +64,36 @@ clip_id	category	variant_label	source_subject	notes
 104_57	run_transition	run_stop_B	104	RunStop alternate
 111_12	death_candidate	lay_down	111	Lay down; candidate death/fall base
 111_21	death_candidate	roll_over	111	Roll over; candidate grounded reaction
+77_19	walk	limp_hurt_R_A	77	Limping; hurt right leg
+77_20	walk	limp_hurt_R_B	77	Limping; hurt right leg alternate
+77_22	walk	limp_hurt_R_C	77	Limping; hurt right leg alternate
+77_23	walk	limp_hurt_R_D	77	Limping; hurt right leg alternate
+77_24	walk	limp_hurt_R_E	77	Limping; hurt right leg alternate
+77_29	walk	creeping_C	77	Creeping walk
+77_30	walk	creeping_D	77	Creeping walk alternate
+77_31	walk	silent_creep	77	Silent walk
+77_32	walk	creeping_E	77	Creeping walk alternate
+77_33	walk	creeping_limp	77	Creeping with limp
+77_34	walk	creep_pause	77	Creep and pause repeat
+132_48	walk	slow_subject132_A	132	Slow walk; different performer
+132_49	walk	slow_subject132_B	132	Slow walk alternate; different performer
+132_50	walk	slow_subject132_C	132	Slow walk alternate; different performer
+132_53	walk	legs_apart	132	Walk with legs apart; zombie-suitable donor
+132_54	walk	wild_arms	132	Walk with wild arms; zombie-suitable donor
+132_55	walk	wild_legs_A	132	Walk with wild legs; zombie-suitable donor
+132_56	walk	wild_legs_B	132	Walk with wild legs alternate
+137_16	walk	drunk_subject137	137	Drunk Walk; different performer
+137_20	walk	gangly_subject137	137	Gangly Teen Walk; different body language
+137_33	walk	old_man_subject137	137	Old Man Walk; different body language
+07_04	walk	slow_subject07_A	7	Slow walk; different performer
+07_05	walk	slow_subject07_B	7	Slow walk alternate
+08_04	walk	slow_subject08_A	8	Slow walk; different performer
+08_07	walk	exaggerated_stride_subject08	8	Exaggerated stride
+08_11	walk	slow_stride_subject08	8	Slow walk/stride
+16_33	walk	slow_stop_subject16_A	16	Slow walk then stop
+16_34	walk	slow_stop_subject16_B	16	Slow walk then stop alternate
+37_01	walk	slow_subject37	37	Slow walk; different performer
+03_01	walk	uneven_subject03_A	3	Walk on uneven terrain
+03_02	walk	uneven_subject03_B	3	Walk on uneven terrain alternate
+120_19	walk	slow_subject120	120	Walk slow; same performer family as explicit Zombie
+120_20	walk	neutral_subject120	120	Neutral walk donor; same performer family as explicit Zombie
