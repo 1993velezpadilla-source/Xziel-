@@ -835,6 +835,16 @@ static void XzLogSnapshot(double now_seconds)
             g3->real_textures_ready);
     }
 
+    {
+        const XzGeometryFrame *geometry =
+            XzGeometryTap_GetReadFrame();
+
+        XzAndroidLog(
+            ANDROID_LOG_INFO,
+            "parity shadows current=%u",
+            geometry ? geometry->shadow_batches : 0u);
+    }
+
     XzAndroidLog(
         ANDROID_LOG_INFO,
         "parity effects current=%u seen=%d",
