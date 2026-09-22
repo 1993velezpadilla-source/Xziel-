@@ -6,7 +6,7 @@
   "height_m": 1.85,
   "rig": "game_engine",
   "bones": 53,
-  "triangles_estimate": 72552,
+  "triangles_estimate": 67250,
   "animations": [
     "idle",
     "float",
@@ -31,5 +31,5 @@
     "preview_side.png",
     "preview_back.png"
   ],
-  "production_status": "priority fidelity pass 10 \u2014 neutral QA pose, fitted collars, no duplicate Llorona hair, reduced proxy panels"
+  "production_status": "priority fidelity pass 11 \u2014 group-fitted sleeves, long wet hair, corpse skin detailing, rope belt tails, shorter veil, non-bar spectral accents"
 }
