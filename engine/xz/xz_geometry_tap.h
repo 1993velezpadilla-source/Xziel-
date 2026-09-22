@@ -95,6 +95,7 @@ typedef struct {
     unsigned int surface_batches;
     unsigned int sprite_batches;
     unsigned int effect_batches;
+    unsigned int shadow_batches;
     unsigned int special_batches;
     unsigned int sky_batches;
     unsigned int water_batches;
@@ -148,6 +149,17 @@ int XzGeometryTap_CapturePrimitive(
     unsigned int texture_offset,
     XzGeometryPrimitive primitive,
     int texture_id,
+    const XzGeometryRenderState *state,
+    const float modelview[16],
+    const float projection[16]);
+
+int XzGeometryTap_CaptureShadowPrimitive(
+    const float *source,
+    unsigned int count,
+    unsigned int stride_floats,
+    unsigned int position_offset,
+    unsigned int texture_offset,
+    XzGeometryPrimitive primitive,
     const XzGeometryRenderState *state,
     const float modelview[16],
     const float projection[16]);
