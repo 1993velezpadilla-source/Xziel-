@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - integration/sanctum-modern-xz
     paths:
       - ".github/workflows/church-map-blender.yml"
       - "tools/church_map/**"
