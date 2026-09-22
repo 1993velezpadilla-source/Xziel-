@@ -1,14 +1,15 @@
 {
-  "version": 3,
+  "version": 4,
   "encounter": "la_llorona",
   "earliest_child_round": 6,
   "child_spawn_chance_per_eligible_round": 0.06,
   "max_children_per_round": 1,
   "manifestations": {
-    "penitent_round_start_chance": 0.06,
-    "wailing_midround_chance": 0.05,
+    "search_wail_round_start_chance": 0.06,
+    "search_wail_midround_chance": 0.05,
     "cooldown_rounds": 2,
-    "min_spawn_distance_m": 12
+    "min_spawn_distance_m": 12,
+    "never_spawn_in_direct_player_view": true
   },
   "discovery": {
     "corpse_los_distance_m": 6,
@@ -45,60 +46,34 @@
     "display_time_s": 4.25,
     "localization_key": "llorona_child_corpse_hint"
   },
-  "prayer_window": {
-    "audio_id": "llorona_prayer_enchanted_v4_horror",
-    "duration_s": 81.944,
-    "manifestation_lifetime_follows_audio": true,
-    "interaction_open_while_audio_playing": true,
-    "interaction_closes_on_audio_end": true,
-    "disappear_on_audio_end_if_no_child_discovery": true,
-    "interrupt_audio_on_child_discovery": true,
-    "child_discovery_overrides_timer": true,
-    "no_dead_children_behavior": "neutral_penitent_window_only"
-  },
   "neutral_manifestation": {
     "requires_dead_child": false,
     "available_before_any_child_spawn": true,
     "one_behavior_roll_per_manifestation": true,
     "behavior_weights": {
-      "prayer_only": 0.35,
+      "searching_cry_only": 0.35,
       "proximity_reaction": 0.25,
       "optional_use_interaction": 0.25,
-      "silent_head_turn": 0.15
+      "silent_stare": 0.15
     },
     "optional_use_interaction": {
       "max_distance_m": 2.4,
-      "prompt_only_during_prayer": true,
+      "prompt_only_during_search_audio": true,
       "max_uses_per_manifestation": 1,
-      "does_not_reveal_easter_egg_solution": true
+      "does_not_reveal_child_state": true
     }
   },
   "audio_candidates": {
-    "baseline_locked": {
-      "id": "llorona_prayer_enchanted_v2",
-      "role": "rollback_baseline",
-      "duration_s": 81.944,
-      "status": "locked"
-    },
-    "previous_candidate": {
-      "id": "llorona_prayer_enchanted_v3_darker",
-      "role": "rollback_candidate",
-      "duration_s": 81.944,
-      "status": "preserved"
+    "legacy_prayer_moved_to_stained_shade": {
+      "id": "llorona_prayer_enchanted_v4_horror",
+      "status": "retired_from_llorona",
+      "new_owner": "stained_shade"
     },
     "current_candidate": {
-      "id": "llorona_prayer_enchanted_v4_horror",
+      "id": "llorona_mis_hijos_search_loop",
       "role": "active_candidate",
-      "duration_s": 81.944,
-      "status": "test",
-      "changes": [
-        "denoise_v3_hiss_before_fx",
-        "no_generated_white_noise",
-        "voice_derived_whisper_layers",
-        "reverse_pre_echo",
-        "deeper_chapel_tail",
-        "subtle_low_spectral_shadow"
-      ]
+      "status": "rendering",
+      "duration_source": "actual_audio_eof"
     }
   },
   "hidden_fate": {
@@ -118,22 +93,23 @@
     },
     "interact": {
       "max_distance_m": 2.4,
-      "only_during_prayer_window": true,
+      "only_during_prayer_window": false,
       "once_per_manifestation": true,
       "outcomes": {
         "offering": "grant_random_boon_then_depart",
         "hostile_test": "immediate_rage"
-      }
-    },
-    "ignore_until_prayer_end": {
-      "if_not_seen": "depart_neutral",
-      "if_seen_and_offering": "rage_ungrateful",
-      "if_seen_and_hostile_test": "depart_neutral"
+      },
+      "only_during_search_window": true
     },
     "dead_child_override": {
       "corpse_discovery_always_rage": true,
       "priority_over_hidden_fate": true,
       "cancels_pending_boon": true
+    },
+    "ignore_until_search_end": {
+      "if_not_seen": "depart_neutral",
+      "if_seen_and_offering": "rage_ungrateful",
+      "if_seen_and_hostile_test": "depart_neutral"
     }
   },
   "boon_pool": {
@@ -272,5 +248,15 @@
     "independent_same_round_probability_if_both_rolls_are_eligible": 0.0036,
     "display_to_player": false,
     "note": "Independent 6% x 6% rolls naturally create a 0.36% same-round coincidence; no forced 6% collision."
+  },
+  "search_window": {
+    "audio_id": "llorona_mis_hijos_search_loop",
+    "lifetime_follows_audio_eof": true,
+    "interaction_open_while_audio_playing": true,
+    "interaction_closes_on_audio_end": true,
+    "disappear_on_audio_end_if_no_rage": true,
+    "interrupt_audio_on_child_discovery": true,
+    "child_discovery_overrides_audio_window": true,
+    "if_no_dead_child": "wander_between_hidden_search_points"
   }
 }
