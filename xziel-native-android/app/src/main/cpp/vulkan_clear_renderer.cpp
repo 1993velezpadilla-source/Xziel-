@@ -4005,6 +4005,8 @@ bool VulkanClearRenderer::recordDrawCommand(
                 door.z - std::sin(angle) * door.halfX;
         }
 
+        // Dark timber leaf. Keep it independent of the HQ scan so the same
+        // authored blocker drives collision and visible motion.
         drawPrimitive(
             centerX,
             door.y,
@@ -4012,11 +4014,45 @@ bool VulkanClearRenderer::recordDrawCommand(
             door.halfX / 0.75f,
             door.halfY / 0.75f,
             door.halfZ / 0.75f,
-            8.0f,
+            5.0f,
             0.0f,
             angle,
             0.0f,
             36U);
+
+        // Small metal handle follows the free edge of the swinging leaf.
+        float handleX = centerX;
+        float handleZ = centerZ;
+        if (thinX) {
+            const float local =
+                door.halfZ * 0.68f;
+            handleX =
+                centerX +
+                std::sin(angle) * local;
+            handleZ =
+                centerZ +
+                std::cos(angle) * local;
+        } else {
+            const float local =
+                door.halfX * 0.68f;
+            handleX =
+                centerX +
+                std::cos(angle) * local;
+            handleZ =
+                centerZ -
+                std::sin(angle) * local;
+        }
+
+        drawRounded(
+            handleX,
+            door.y + door.halfY * 0.05f,
+            handleZ,
+            0.055f,
+            0.065f,
+            0.055f,
+            10.0f,
+            angle,
+            0.0f);
     }
 
     const std::size_t visibleWindowCount =
