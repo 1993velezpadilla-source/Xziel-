@@ -182,6 +182,7 @@ int XzGeometryTap_CaptureSurfaceFan(
     const float *source,
     unsigned int count,
     unsigned int stride_floats,
+    unsigned int position_offset,
     unsigned int texture_offset,
     int texture_id,
     const float modelview[16],
@@ -195,6 +196,7 @@ int XzGeometryTap_CaptureSurfaceFan(
 
     if (!source || count < 3u ||
         stride_floats < 3u ||
+        position_offset + 2u >= stride_floats ||
         texture_offset + 1u >= stride_floats)
         return 0;
 
@@ -216,9 +218,9 @@ int XzGeometryTap_CaptureSurfaceFan(
         XzGeometryVertex *out =
             &frame->vertices[frame->vertex_count + i];
 
-        out->position[0] = in[0];
-        out->position[1] = in[1];
-        out->position[2] = in[2];
+        out->position[0] = in[position_offset + 0u];
+        out->position[1] = in[position_offset + 1u];
+        out->position[2] = in[position_offset + 2u];
         out->uv[0] = in[texture_offset];
         out->uv[1] = in[texture_offset + 1u];
     }
@@ -324,7 +326,7 @@ int XzGeometryTap_SelfTest(void)
         return 0;
 
     if (!XzGeometryTap_CaptureSurfaceFan(
-            fan, 4u, 5u, 3u, 8, NULL, NULL))
+            fan, 4u, 5u, 0u, 3u, 8, NULL, NULL))
         return 0;
 
     XzGeometryTap_CommitFrame();
