@@ -98,6 +98,8 @@ jobs:
             test -s "assets/generated/cathedral_roster/$id/model.glb"
             test -s "assets/generated/cathedral_roster/$id/model.fbx"
             test -s "assets/generated/cathedral_roster/$id/preview.png"
+            test -s "assets/generated/cathedral_roster/$id/preview_side.png"
+            test -s "assets/generated/cathedral_roster/$id/preview_back.png"
             test -s "assets/generated/cathedral_roster/$id/manifest.json"
           done
           du -sh assets/generated/cathedral_roster
@@ -113,7 +115,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "No generated asset changes."
           else
-            git commit -m "art: generate Cathedral priority roster fidelity pass"
+            git commit -m "art: generate Cathedral priority roster fidelity pass 8"
             git pull --rebase origin art/cathedral-production-models
             git push origin HEAD:art/cathedral-production-models
           fi
@@ -121,7 +123,7 @@ jobs:
       - name: Upload full production artifact
         uses: actions/upload-artifact@v4
         with:
-          name: cathedral-priority-models-pass2
+          name: cathedral-priority-models-pass8
           path: assets/generated/cathedral_roster/
           if-no-files-found: error
           retention-days: 14
