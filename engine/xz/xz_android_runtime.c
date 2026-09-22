@@ -852,7 +852,7 @@ static void XzLogSnapshot(double now_seconds)
     XzAndroidLog(
         ANDROID_LOG_INFO,
         "legacy3d suppress total=%" PRIu64 " pass=%" PRIu64
-        " frame(alias=%u surface=%u sprite=%u effect=%u shadow=%u)"
+        " frame(alias=%u surface=%u sprite=%u effect=%u special=%u shadow=%u)"
         " passFrame(alias=%u surface=%u sprite=%u effect=%u special=%u shadow=%u)",
         xz_runtime.legacy_draws_suppressed_total,
         xz_runtime.legacy_draws_passthrough_total,
@@ -860,6 +860,7 @@ static void XzLogSnapshot(double now_seconds)
         xz_runtime.legacy_draws_suppressed_frame[XZ_LEGACY_DRAW_SURFACE],
         xz_runtime.legacy_draws_suppressed_frame[XZ_LEGACY_DRAW_SPRITE],
         xz_runtime.legacy_draws_suppressed_frame[XZ_LEGACY_DRAW_EFFECT],
+        xz_runtime.legacy_draws_suppressed_frame[XZ_LEGACY_DRAW_SPECIAL],
         xz_runtime.legacy_draws_suppressed_frame[XZ_LEGACY_DRAW_SHADOW],
         xz_runtime.legacy_draws_passthrough_frame[XZ_LEGACY_DRAW_ALIAS],
         xz_runtime.legacy_draws_passthrough_frame[XZ_LEGACY_DRAW_SURFACE],
@@ -1370,7 +1371,8 @@ int XzAndroidRuntime_ShouldSuppressLegacyWorldDraw(
      * Current-frame core evidence prevents a stale MODERN state from
      * suppressing the first draws after a map/scene transition.
      */
-    if (kind == XZ_LEGACY_DRAW_SURFACE) {
+    if (kind == XZ_LEGACY_DRAW_SURFACE ||
+        kind == XZ_LEGACY_DRAW_SPECIAL) {
         /*
          * BSP fans are submitted before entity alias batches in Vril.
          * Requiring current-frame alias evidence here makes surface
