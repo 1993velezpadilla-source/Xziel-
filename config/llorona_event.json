@@ -1,5 +1,5 @@
 {
-  "version": 5,
+  "version": 6,
   "encounter": "la_llorona",
   "earliest_child_round": 6,
   "child_spawn_chance_per_eligible_round": 0.06,
@@ -70,12 +70,17 @@
       "new_owner": "stained_shade"
     },
     "current_candidate": {
-      "id": "llorona_main_user_selected_v1",
+      "id": "llorona_main_v2_dark_horror",
       "role": "active_candidate",
-      "status": "selected_by_user",
+      "status": "test",
       "duration_s": 83.987,
-      "source": "Audio la Llorona (1).mp3",
-      "replaces": "llorona_mis_hijos_search_loop"
+      "source": "Audio la Llorona (1).mp3"
+    },
+    "previous_candidate": {
+      "id": "llorona_main_user_selected_v1",
+      "role": "rollback_baseline",
+      "status": "preserved",
+      "duration_s": 83.987
     }
   },
   "hidden_fate": {
@@ -252,7 +257,7 @@
     "note": "Independent 6% x 6% rolls naturally create a 0.36% same-round coincidence; no forced 6% collision."
   },
   "search_window": {
-    "audio_id": "llorona_main_user_selected_v1",
+    "audio_id": "llorona_main_v2_dark_horror",
     "lifetime_follows_audio_eof": true,
     "interaction_open_while_audio_playing": true,
     "interaction_closes_on_audio_end": true,
