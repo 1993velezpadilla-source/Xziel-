@@ -366,10 +366,18 @@ def save_material_texture(mat):
     }
     return rel_no_ext
 
-# Gather triangles by (object, material) instead of by material globally.
-# This keeps batch bounds spatially local so Vril frustum culling can reject
-# entire church rooms/tower sections that are not visible, while preserving
-# the high-detail mobile mesh.
+# Gather triangles by spatial object/material group. Dressing is clustered
+# per fitted barricade (plus one altar cluster), so frustum culling does not
+# keep all 708 props alive just because one distant prop is visible.
+def dressing_cluster_name(obj):
+    n = obj.name
+    m = re.search(r"(?:BAR|NAIL|RUBBLE_BAR)_(\\d{2})", n)
+    if m:
+        return "DRESS_BARRICADE_" + m.group(1)
+    if "ALTAR_" in n:
+        return "DRESS_ALTAR"
+    return "DRESS_MISC_" + safe_name(n)
+
 groups = {}
 bounds_min = Vector((1e30,1e30,1e30))
 bounds_max = Vector((-1e30,-1e30,-1e30))
@@ -384,7 +392,8 @@ for obj in all_runtime_objects:
         poly = mesh.polygons[tri.polygon_index]
         mat = obj.material_slots[poly.material_index].material if poly.material_index < len(obj.material_slots) else None
         tex = save_material_texture(mat)
-        group_key = (("DRESSING" if obj.name.startswith("XZSM_DRESS_") else obj.name), tex)
+        group_name = dressing_cluster_name(obj) if obj.name.startswith("XZSM_DRESS_") else obj.name
+        group_key = (group_name, tex)
         group = groups.setdefault(group_key, [])
         verts = []
         for loop_index in tri.loops:
@@ -473,6 +482,7 @@ report = {
     "dressingTriangles":dressing_tris,
     "runtimeTotalTriangles":runtime_tris + dressing_tris,
     "dressingObjectCount":len(dressing_runtime_objects),
+    "dressingClusters":len({dressing_cluster_name(o) for o in dressing_runtime_objects}),
     "targetTriangles":TARGET_TRIS,
     "textureMaxDimension":TEXTURE_MAX,
     "decimateRatio":ratio,
@@ -509,6 +519,7 @@ print("XZSM_EXPORT_OK", json.dumps({
     "dressingTriangles":dressing_tris,
     "runtimeTotalTriangles":runtime_tris + dressing_tris,
     "dressingObjectCount":len(dressing_runtime_objects),
+    "dressingClusters":len({dressing_cluster_name(o) for o in dressing_runtime_objects}),
     "batchCount":len(batches),
     "textureCount":len(texture_records),
     "modelBytes":model_path.stat().st_size,
