@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace {
@@ -327,10 +328,17 @@ int main() {
     xziel::StaticMeshQualityMetrics
         collapsedMetrics{};
 
+    const auto collapsedQuality =
+        xziel::evaluateViewmodelStaticMesh(
+            collapsedViewmodel);
+    collapsedMetrics =
+        collapsedQuality.metrics;
+
+    assert(!collapsedQuality.success);
     assert(
-        !xziel::passesViewmodelStaticMeshSanity(
-            collapsedViewmodel,
-            &collapsedMetrics));
+        collapsedQuality.rejection ==
+        xziel::ViewmodelStaticMeshRejection::
+            CollapsedVertexCloud);
     assert(
         collapsedMetrics.longestExtent >
         0.89f);
@@ -374,10 +382,17 @@ int main() {
     xziel::StaticMeshQualityMetrics
         flatMetrics{};
 
+    const auto flatQuality =
+        xziel::evaluateViewmodelStaticMesh(
+            flatSpikeViewmodel);
+    flatMetrics =
+        flatQuality.metrics;
+
+    assert(!flatQuality.success);
     assert(
-        !xziel::passesViewmodelStaticMeshSanity(
-            flatSpikeViewmodel,
-            &flatMetrics));
+        flatQuality.rejection ==
+        xziel::ViewmodelStaticMeshRejection::
+            NeedleThin);
     assert(
         flatMetrics.robustAxisCoverage90 >
         0.80f);
@@ -428,10 +443,17 @@ int main() {
     xziel::StaticMeshQualityMetrics
         mixedMetrics{};
 
+    const auto mixedQuality =
+        xziel::evaluateViewmodelStaticMesh(
+            mixedCollapse);
+    mixedMetrics =
+        mixedQuality.metrics;
+
+    assert(!mixedQuality.success);
     assert(
-        !xziel::passesViewmodelStaticMeshSanity(
-            mixedCollapse,
-            &mixedMetrics));
+        mixedQuality.rejection ==
+        xziel::ViewmodelStaticMeshRejection::
+            CollapsedVertexCloud);
     assert(
         mixedMetrics.peakVoxelOccupancyRatio >
         0.75f);
@@ -452,11 +474,23 @@ int main() {
     xziel::StaticMeshQualityMetrics
         fragmentedMetrics{};
 
+    const auto fragmentedQuality =
+        xziel::evaluateViewmodelStaticMesh(
+            fragmentedViewmodel);
+    fragmentedMetrics =
+        fragmentedQuality.metrics;
+
+    assert(!fragmentedQuality.success);
     assert(
-        !xziel::passesViewmodelStaticMeshSanity(
-            fragmentedViewmodel,
-            &fragmentedMetrics));
+        fragmentedQuality.rejection ==
+        xziel::ViewmodelStaticMeshRejection::
+            TooManyBatches);
     assert(fragmentedMetrics.batchCount == 129U);
+    assert(
+        std::string(
+            xziel::viewmodelStaticMeshRejectionName(
+                fragmentedQuality.rejection)) ==
+        "too_many_batches");
 
     return 0;
 }
