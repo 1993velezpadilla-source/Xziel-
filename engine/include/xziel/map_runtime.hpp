@@ -10,7 +10,8 @@
 
 namespace xziel {
 
-inline constexpr std::size_t kMaxMapBoxes = 128;
+inline constexpr std::size_t kMaxMapBoxes = 256;
+inline constexpr std::size_t kMaxMapFloors = 256;
 inline constexpr std::size_t kMaxMapDoors = 16;
 inline constexpr std::size_t kMaxMapWindows = 32;
 inline constexpr std::size_t kMaxMapGenericInteractions = 16;
@@ -26,6 +27,11 @@ struct MapBoxDefinition {
     bool blocksZombies = true;
 };
 
+struct MapFloorDefinition {
+    std::uint32_t id = 0;
+    Aabb bounds{};
+};
+
 struct MapDoorEntity {
     DoorDefinition door{};
     InteractionTarget interaction{};
@@ -39,6 +45,9 @@ struct MapWindowEntity {
 struct MapDefinition {
     std::array<MapBoxDefinition, kMaxMapBoxes> boxes{};
     std::size_t boxCount = 0;
+
+    std::array<MapFloorDefinition, kMaxMapFloors> floors{};
+    std::size_t floorCount = 0;
 
     Vec3 playerSpawnFeet{};
     float playerSpawnYawDegrees = 0.0f;
@@ -69,6 +78,7 @@ struct MapLoadResult {
     std::size_t visibleBoxes = 0;
     std::size_t playerColliders = 0;
     std::size_t zombieColliders = 0;
+    std::size_t walkableFloors = 0;
     std::size_t doors = 0;
     std::size_t windows = 0;
     std::size_t interactions = 0;
