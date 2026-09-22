@@ -1,6 +1,6 @@
 {
   "project": "Cathedral of Absolution / Cripplegate",
-  "version": 1,
+  "version": 2,
   "shared": {
     "rig": "game_engine",
     "unit_scale": "meters",
@@ -31,6 +31,37 @@
     ]
   },
   "characters": [
+    {
+      "id": "sister_of_ash",
+      "name": "Sister of Ash",
+      "category": "core_enemy",
+      "height_m": 1.8,
+      "gender": 0.96,
+      "age": 0.68,
+      "weight": 0.34,
+      "muscle": 0.24,
+      "style": "sister_of_ash",
+      "palette": [
+        "ash_blue",
+        "dirty_ivory",
+        "corpse_skin",
+        "bruise",
+        "rope",
+        "old_wood",
+        "oxidized_metal",
+        "soot"
+      ],
+      "animations": [
+        "idle",
+        "walk",
+        "attack",
+        "hit",
+        "death",
+        "headless_walk",
+        "crawler",
+        "lower_half_kicker"
+      ]
+    },
     {
       "id": "la_llorona",
       "name": "La Llorona",
