@@ -40,7 +40,7 @@ void appendF32(
             value));
 }
 
-std::vector<std::byte> makeTriangle() {
+std::vector<std::byte> makeTriangle(std::uint32_t version) {
     std::vector<std::byte> bytes;
 
     for (char c : std::array<char, 4>{
@@ -51,7 +51,7 @@ std::vector<std::byte> makeTriangle() {
 
     appendU32(
         bytes,
-        xziel::kStaticMeshFormatVersion);
+        version);
     appendU32(bytes, 1U);
     appendU32(bytes, 3U);
     appendU32(bytes, 3U);
@@ -88,9 +88,19 @@ std::vector<std::byte> makeTriangle() {
         }};
 
     for (const auto& vertex : vertices) {
-        for (float value : vertex) {
-            appendF32(bytes, value);
+        appendF32(bytes, vertex[0]);
+        appendF32(bytes, vertex[1]);
+        appendF32(bytes, vertex[2]);
+
+        if (version >=
+            xziel::kStaticMeshFormatVersion) {
+            appendF32(bytes, 0.0f);
+            appendF32(bytes, 0.0f);
+            appendF32(bytes, 1.0f);
         }
+
+        appendF32(bytes, vertex[3]);
+        appendF32(bytes, vertex[4]);
 
         for (std::uint8_t value :
              std::array<std::uint8_t, 4>{
@@ -111,7 +121,8 @@ std::vector<std::byte> makeTriangle() {
 
 int main() {
     const auto encoded =
-        makeTriangle();
+        makeTriangle(
+            xziel::kStaticMeshFormatVersion);
 
     xziel::StaticMeshAsset asset;
     const auto parsed =
@@ -135,6 +146,24 @@ int main() {
     assert(
         asset.batches[0].indices[2] ==
         2U);
+    assert(
+        asset.batches[0].vertices[0].nz >
+        0.99f);
+
+    const auto legacyEncoded =
+        makeTriangle(
+            xziel::kStaticMeshLegacyVersion);
+
+    xziel::StaticMeshAsset legacyAsset;
+    const auto legacyParsed =
+        xziel::parseStaticMeshXzsm(
+            legacyEncoded,
+            legacyAsset);
+
+    assert(legacyParsed.success);
+    assert(
+        legacyAsset.batches[0].vertices[0].ny >
+        0.99f);
 
     auto invalidIndex =
         encoded;
