@@ -1,0 +1,193 @@
+name: Sanctum Clean Original Source
+
+on:
+  push:
+    branches:
+      - feature/sanctum-native-clean-v2
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: sanctum-clean-source-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-clean-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GAMEPLAY_SEED_RUN_ID: "35785664048"
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install clean-source dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq blender python3-numpy libegl1 libgl1-mesa-dri libglx-mesa0 xvfb
+          python3 -m pip install --quiet --upgrade pip
+          python3 -m pip install --quiet objaverse
+          blender --version
+
+      - name: Recover validated Xziel gameplay only
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p church/seed/dev church/seed/hq church/out/clean
+
+          ARTIFACTS="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${GAMEPLAY_SEED_RUN_ID}/artifacts")"
+          DEV_ID="$(jq -r '.artifacts[] | select(.name == "Xziel-Sanctum-of-Ash-Runtime-Blockout") | .id' <<<"$ARTIFACTS" | head -n1)"
+          HQ_ID="$(jq -r '.artifacts[] | select(.name == "Xziel-Sanctum-Native-HQ") | .id' <<<"$ARTIFACTS" | head -n1)"
+          test -n "$DEV_ID"
+          test -n "$HQ_ID"
+
+          gh api "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${DEV_ID}/zip" > church/seed/dev.zip
+          gh api "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${HQ_ID}/zip" > church/seed/hq.zip
+          unzip -q church/seed/dev.zip -d church/seed/dev
+          unzip -q church/seed/hq.zip -d church/seed/hq
+
+          PLAN="$(find church/seed/dev -name zombies_map_plan.json -print -quit)"
+          XMAP="$(find church/seed/hq -path '*/xziel_native_map/sanctum.xmap' -print -quit)"
+          XMAP_REPORT="$(find church/seed/hq -path '*/xziel_native_map/sanctum_native_map_report.json' -print -quit)"
+          test -s "$PLAN"
+          test -s "$XMAP"
+          test -s "$XMAP_REPORT"
+
+          cp "$PLAN" church/seed/zombies_map_plan.json
+          mkdir -p church/out/clean/xziel_native_map
+          cp "$XMAP" church/out/clean/xziel_native_map/sanctum.xmap
+          cp "$XMAP_REPORT" church/out/clean/xziel_native_map/sanctum_native_map_report.json
+
+          WEAPON_MODEL="$(find church/seed/hq -path '*/xziel_native_static/models/xziel/weapons/standard_rifle.xzsm' -print -quit)"
+          WEAPON_TEXTURES="$(find church/seed/hq -type d -path '*/xziel_native_static/textures/xziel/weapons/standard_rifle' -print -quit)"
+          WEAPON_AUDIO="$(find church/seed/hq -type d -path '*/xziel_native_static/audio/xziel/weapons' -print -quit)"
+          WEAPON_LICENSE="$(find church/seed/hq -path '*/xziel_native_static/licenses/standard_rifle_assets.txt' -print -quit)"
+
+          mkdir -p church/out/clean/xziel_native_static/models/xziel/weapons
+          mkdir -p church/out/clean/xziel_native_static/textures/xziel/weapons/standard_rifle
+          mkdir -p church/out/clean/xziel_native_static/audio/xziel/weapons
+          mkdir -p church/out/clean/xziel_native_static/licenses
+
+          cp "$WEAPON_MODEL" church/out/clean/xziel_native_static/models/xziel/weapons/standard_rifle.xzsm
+          cp -a "$WEAPON_TEXTURES"/. church/out/clean/xziel_native_static/textures/xziel/weapons/standard_rifle/
+          cp -a "$WEAPON_AUDIO"/. church/out/clean/xziel_native_static/audio/xziel/weapons/
+          cp "$WEAPON_LICENSE" church/out/clean/xziel_native_static/licenses/standard_rifle_assets.txt
+
+      - name: Fetch untouched original St Giles GLB
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p church/source
+          python3 - <<'PY'
+          import json
+          import shutil
+          from pathlib import Path
+          import objaverse
+
+          uid = "b92917ff83914adc8bc93959ba8b4399"
+          annotations = objaverse.load_annotations([uid])
+          ann = annotations.get(uid)
+          if not ann:
+              raise SystemExit("original St Giles source is missing from Objaverse")
+          if ann.get("license") != "by":
+              raise SystemExit(f"unexpected source license {ann.get('license')!r}")
+
+          objects = objaverse.load_objects([uid], download_processes=1)
+          source = objects.get(uid)
+          if not source:
+              raise SystemExit("original St Giles GLB download failed")
+
+          out = Path("church/source")
+          shutil.copy2(source, out / "st-giles-cripplegate.glb")
+          (out / "source_metadata.json").write_text(
+              json.dumps(ann, indent=2),
+              encoding="utf-8",
+          )
+          print("ORIGINAL_SOURCE", source)
+          PY
+
+      - name: Direct-export original GLB to Xziel
+        shell: bash
+        env:
+          CHURCH_SOURCE: church/source/st-giles-cripplegate.glb
+          CHURCH_PLAN: church/seed/zombies_map_plan.json
+          XZIEL_STATIC_RUNTIME_ROOT: church/out/clean/xziel_native_static
+          XZIEL_STATIC_REPORT: church/out/clean/xziel_native_static_mesh_report.json
+          XZIEL_STATIC_NATIVE_FLOOR_Y: "-1.58"
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          xvfb-run -a -s "-screen 0 1280x720x24"             blender --background             --python tools/church_map/export_xziel_original_clean.py             2>&1 | tee church/out/clean/clean-source-export.log
+
+      - name: Validate clean visual lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          R=church/out/clean/xziel_native_static_mesh_report.json
+          M=church/out/clean/xziel_native_static/models/xziel/sanctum/sanctum.xzsm
+          X=church/out/clean/xziel_native_map/sanctum.xmap
+          XR=church/out/clean/xziel_native_map/sanctum_native_map_report.json
+
+          test -s "$R"
+          test -s "$M"
+          test -s "$X"
+          test -s "$XR"
+
+          jq -e '.pipeline == "original_glb_direct"' "$R"
+          jq -e '.sourceUid == "b92917ff83914adc8bc93959ba8b4399"' "$R"
+          jq -e '.sourceCollection == "DIRECT_ORIGINAL_GLB"' "$R"
+          jq -e '.sourceTriangles >= 2700000' "$R"
+          jq -e '.runtimeTriangles == .sourceTriangles' "$R"
+          jq -e '.dressingTriangles == 0' "$R"
+          jq -e '.decimateRatio == 1' "$R"
+          jq -e '.scanCleanup == "disabled"' "$R"
+          jq -e '.vertexLighting == "identity_white"' "$R"
+          jq -e '.textureSourceMode == "original_glb_basecolor_no_upscale"' "$R"
+          jq -e '.textureCount > 0' "$R"
+          jq -e '.fallbackMaterials | length == 0' "$R"
+
+          jq -e '.schemaVersion == 2' "$XR"
+          jq -e '.floorCount == 216' "$XR"
+          jq -e '.doorCount == 7' "$XR"
+          jq -e '.windowCount == 28' "$XR"
+          jq -e '.zombieSpawnCount == 28' "$XR"
+
+          if find church/out/clean -type f | grep -Eiq '(\.bsp$|\.pak$|sanctum_harness|/nzp/|/id1/)'; then
+            echo "ERROR: legacy Quake/NZP visual payload leaked into clean source"
+            exit 1
+          fi
+
+          jq '{
+            pipeline,
+            sourceTriangles,
+            runtimeTriangles,
+            dressingTriangles,
+            decimateRatio,
+            vertexLighting,
+            textureCount,
+            originalMaxTextureDimension,
+            pbrLinkedMaterialCounts,
+            batchCount,
+            modelBytes,
+            boundsMin,
+            boundsMax
+          }' "$R"
+
+      - name: Upload clean original-source runtime
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xziel-Sanctum-Clean-Source
+          path: |
+            church/out/clean/xziel_native_static/
+            church/out/clean/xziel_native_static_mesh_report.json
+            church/out/clean/xziel_native_map/
+            church/source/source_metadata.json
+          if-no-files-found: error
+          compression-level: 1
+          retention-days: 14
