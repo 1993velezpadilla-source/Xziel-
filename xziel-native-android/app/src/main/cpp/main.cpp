@@ -28,6 +28,7 @@
 #include "xziel/render_features.hpp"
 #include "xziel/renderer_watchdog.hpp"
 #include "xziel/runtime_policy.hpp"
+#include "xziel/sanctum.hpp"
 #include "xziel/score.hpp"
 #include "xziel/weapon.hpp"
 #include "xziel/weapon_catalog.hpp"
@@ -2361,6 +2362,38 @@ extern "C" void android_main(
 
     state.sanctumMapLoaded =
         sanctumAssetLoaded;
+
+    if (sanctumAssetLoaded) {
+        const auto sanctumProfile =
+            xziel::makeSanctumGameplayProfile();
+
+        state.horde =
+            xziel::HordeDirector{
+                sanctumProfile.horde};
+
+        state.score =
+            xziel::ScoreSystem{
+                sanctumProfile.score};
+
+        state.vitals =
+            xziel::PlayerVitals{
+                sanctumProfile.vitals};
+
+        state.horror =
+            xziel::HorrorDirector{
+                sanctumProfile.horror};
+
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_SANCTUM_PROFILE_READY hp=%.0f spawnInterval=%.2f interRound=%.1f baseZombies=%u maxActive=%u points=%u",
+            sanctumProfile.vitals.maxHealth,
+            sanctumProfile.horde.spawnIntervalSeconds,
+            sanctumProfile.horde.interRoundDelaySeconds,
+            sanctumProfile.horde.baseZombiesPerRound,
+            sanctumProfile.horde.maxActive,
+            sanctumProfile.score.startingPoints);
+    }
 
     bool prototypeAssetLoaded = false;
     if (!sanctumAssetLoaded) {
