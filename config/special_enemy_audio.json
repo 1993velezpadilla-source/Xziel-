@@ -61,8 +61,18 @@
       "source": "GIRL EVIL LAUGH SOUND [cNktmGPsWNg] (1).mp3"
     },
     "chase_scream": {
-      "id": "stained_shade_chase_scream",
-      "source": "🎵Free No Copyright Female Girl Screaming sound effect fx [8sXNXpdQaew].mp3"
+      "id": "stained_shade_chase_scream_v2_dark_horror",
+      "source_base": "🎵Free No Copyright Female Girl Screaming sound effect fx [8sXNXpdQaew].mp3",
+      "previous_clean_candidate": "stained_shade_chase_scream",
+      "role": "active_candidate",
+      "processing": [
+        "pre_echo_before_attack",
+        "low_demonic_shadow",
+        "mid_pitch_shadow",
+        "dark_chapel_tail",
+        "high_breath_air_layer",
+        "audio_only_no_cover_art"
+      ]
     }
   },
   "online_reference_candidate": {
