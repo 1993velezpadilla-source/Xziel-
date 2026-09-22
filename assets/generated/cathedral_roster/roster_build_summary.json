@@ -1,9 +1,7 @@
 {
   "project": "Cathedral of Absolution / Cripplegate",
   "built": [
-    "sister_of_ash",
-    "la_llorona",
-    "stained_shade"
+    "sister_of_ash"
   ],
   "errors": {}
 }

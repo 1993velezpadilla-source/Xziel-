@@ -342,37 +342,26 @@ def rope_belt_with_tails(h,rope_mat,metal_mat,name="RopeBelt"):
 
 def priority_head_cover(body,h,style,mats):
     out=[]
-    if style=="sister_of_ash":
-        ivory=mats["dirty_ivory"]; blue=mats["ash_blue"]
-        # Inner linen coif: fully covers crown/back/sides, leaves central face open.
-        a=body_region_shell(body,"NunCoif",ivory,
-            lambda p: p.z/h>.835 and (p.y/h>-.018 or abs(p.x/h)>.050 or p.z/h>.945),.0048*h)
+    if style in ("sister_of_ash","stained_shade"):
+        inner=mats["spectral_ivory"] if style=="stained_shade" else mats["dirty_ivory"]
+        outer=mats["spectral_ivory"] if style=="stained_shade" else mats["ash_blue"]
+        a=body_region_shell(body,"HeadCoif",inner,
+            lambda p: p.z/h>.890 and (p.y/h>-.052 or p.z/h>.940) and abs(p.x/h)<.105,.0075*h)
         if a: out.append(a)
-        # Outer blue hood sits above coif and guarantees no bald scalp.
-        b=body_region_shell(body,"NunHoodCrown",blue,
-            lambda p: p.z/h>.875 and (p.y/h>-.010 or abs(p.x/h)>.057 or p.z/h>.952),.0090*h)
-        if b: out.append(b)
-        # Forehead band similar to reference wimple.
-        fy=face_front_y(body,h)
-        band=curved_panel("NunForeheadBand",h,ivory,.936,.973,.062,.060,fy/h-.008,5,18,True)
-        out.append(band)
-    elif style=="stained_shade":
-        inner=mats["spectral_ivory"]; outer=mats["spectral_ivory"]
-        a=body_region_shell(body,"ShadeCoif",inner,
-            lambda p: p.z/h>.835 and (p.y/h>-.018 or abs(p.x/h)>.050 or p.z/h>.945),.0048*h)
-        if a: out.append(a)
-        b=body_region_shell(body,"ShadeHoodCrown",outer,
-            lambda p: p.z/h>.875 and (p.y/h>-.010 or abs(p.x/h)>.057 or p.z/h>.952),.0090*h)
+        b=body_region_shell(body,"HoodCrown",outer,
+            lambda p: p.z/h>.915 and (p.y/h>-.040 or p.z/h>.955) and abs(p.x/h)<.112,.0120*h)
         if b: out.append(b)
     elif style=="la_llorona":
         cap=body_region_shell(body,"HairCap",mats["wet_black"],
-            lambda p: p.z/h>.875 and (p.y/h>-.020 or abs(p.x/h)>.050 or p.z/h>.945),.0050*h)
+            lambda p: p.z/h>.885 and (p.y/h>-.055 or p.z/h>.940) and abs(p.x/h)<.108,.0060*h)
         if cap: out.append(cap)
     return out
 
 
 def eye_socket_rings(body,h,mats,style):
+    # Pass 13 QA: torus rings read as goggles. Keep bruising painted into the face instead.
     return []
+
 
 def stained_cloth_accents(h,mats):
     cols=[mats["glass_blue"],mats["glass_cyan"],mats["glass_magenta"],mats["amber"]]
@@ -620,21 +609,22 @@ def hair_lock(name,h,material,x0,z0,z1,y=-.076,width=.018,wave=.010,phase=0.0):
 
 def llorona_hair_mesh(h,mats):
     m=mats["wet_black"]; out=[]
+    # Dense rear mass plus many fine curved wet strands; no flat barcode curtains.
     out.append(drape_open("HairDrape",h,m,[
-        (.988,.062,.056),(.955,.068,.060),(.915,.076,.066),(.865,.087,.073),
-        (.800,.101,.081),(.725,.116,.089),(.640,.132,.097),(.545,.146,.104),(.470,.154,.108)
-    ],segments=88,theta_max=2.70,tatter=.070,phase=.7,subdiv=1))
-    idx=0
-    for side in (-1,1):
-        for j in range(12):
-            x0=side*(.028+.006*j)
-            z1=.42+.022*((j*3)%7)
-            out.append(hair_lock("HairRibbon_%02d"%idx,h,m,x0,.980-.004*(j%4),z1,-.104,.009+.0012*(j%4),.005+.0008*j,phase=.48*j+(.25 if side>0 else 0)))
-            idx+=1
-    for j,(x0,z1) in enumerate([(-.028,.62),(.030,.60),(-.040,.55),(.042,.57),(-.052,.50),(.054,.52)]):
-        out.append(hair_lock("HairFace_%02d"%j,h,m,x0,.978,z1,-.112,.0075,.0045,phase=.8*j))
+        (.995,.067,.061),(.965,.074,.067),(.925,.083,.074),(.875,.095,.082),
+        (.810,.109,.091),(.730,.126,.101),(.640,.143,.111),(.535,.158,.120),(.430,.166,.126)
+    ],segments=96,theta_max=2.78,tatter=.085,phase=.7,subdiv=1))
+    for i in range(58):
+        side=-1 if i%2==0 else 1
+        band=(i%29)/28.0
+        x=side*(.022+.070*band)*h
+        z0=(.988-.0025*(i%7))*h
+        z1=(.39+.20*((i*11)%17)/16.0)*h
+        y=(-.082-.008*math.sin(i*.63))*h
+        wave=.010*h*math.sin(i*.91)
+        pts=[(x,y,z0),(x*1.02+wave,y-.006*h,z0-.16*h),(x*1.08-wave,y+.004*h,z0-.36*h),(x*1.14+wave*.5,y+.012*h,z1)]
+        out.append(curve_chain("HairStrand_%02d"%i,pts,m,.00125*h))
     return out
-
 
 
 def sculpt_priority_face(body,h,style):
@@ -736,21 +726,22 @@ def llorona_outfit(h,mats):
 
 def stained_halo(h,mats):
     metal=mats["oxidized_metal"]; out=[]
-    y=.105*h; cz=.905*h; ro=.105*h; ri=.042*h
-    out.append(torus("StainedHalo",(0,y,cz),ro,.0048*h,metal,rot=(math.radians(90),0,0)))
+    y=.118*h; cz=.905*h; ro=.155*h; ri=.046*h
+    out.append(torus("StainedHalo",(0,y,cz),ro,.0060*h,metal,rot=(math.radians(90),0,0)))
     cols=[mats["glass_blue"],mats["glass_cyan"],mats["glass_magenta"],mats["amber"]]
-    seg=10
+    seg=14
     for i in range(seg):
         a0=2*math.pi*i/seg; a1=2*math.pi*(i+1)/seg
-        vs=[
-            (ri*math.cos(a0),y,cz+ri*math.sin(a0)),
-            (ro*.88*math.cos(a0),y,cz+ro*.88*math.sin(a0)),
-            (ro*.88*math.cos(a1),y,cz+ro*.88*math.sin(a1)),
-            (ri*math.cos(a1),y,cz+ri*math.sin(a1))
-        ]
+        mid=(a0+a1)*.5
+        outer=ro*(.91+.055*math.sin(i*2.31))
+        vs=[(ri*math.cos(a0),y,cz+ri*math.sin(a0)),
+            (outer*math.cos(a0),y,cz+outer*math.sin(a0)),
+            (outer*math.cos(a1),y,cz+outer*math.sin(a1)),
+            (ri*math.cos(a1),y,cz+ri*math.sin(a1))]
         mesh=bpy.data.meshes.new(f"HaloPane{i:02}Mesh"); mesh.from_pydata(vs,[],[(0,1,2,3)]); mesh.update()
         o=bpy.data.objects.new(f"HaloPane{i:02}",mesh); bpy.context.collection.objects.link(o); assign(o,cols[i%4]); out.append(o)
     return out
+
 
 def parent_to_bone(obj,rig,bone):
     if bone not in rig.data.bones: return
@@ -1230,7 +1221,12 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService,TargetServi
     if style in ("sister_of_ash","la_llorona","stained_shade"):
         sculpt_priority_face(body,h,style)
         force_priority_eyes(parts,style)
-    robe_for_style(style,h,w,d,mats)
+    robe_objs=robe_for_style(style,h,w,d,mats)
+    if style in ("sister_of_ash","la_llorona","stained_shade"):
+        for _o in robe_objs or []:
+            if _o and hasattr(_o,"scale"):
+                _o.scale.x *= .82
+                _o.scale.y *= .90
     if style in ("sister_of_ash","stained_shade","la_llorona"):
         fitted_priority_clothes(body,h,style,mats)
         priority_head_cover(body,h,style,mats)
