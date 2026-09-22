@@ -10,6 +10,7 @@ on:
     paths:
       - ".github/workflows/church-map-android-test.yml"
       - "scripts/prepare_android.sh"
+      - "scripts/patch_vril_sanctum_staticmesh.py"
       - "android/NZPActivity.java"
 
 permissions:
