@@ -1,7 +1,7 @@
 {
   "project": "Cathedral of Absolution / Cripplegate",
-  "built": [
-    "sister_of_ash"
-  ],
-  "errors": {}
+  "built": [],
+  "errors": {
+    "sister_of_ash": "NameError(\"name 'cloth_keys' is not defined\")"
+  }
 }
