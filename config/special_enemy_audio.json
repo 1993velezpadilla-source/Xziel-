@@ -30,9 +30,21 @@
   },
   "la_llorona": {
     "main_voice": {
-      "id": "llorona_main_user_selected_v1",
-      "source": "Audio la Llorona (1).mp3",
-      "duration_s": 83.987
+      "id": "llorona_main_v2_dark_horror",
+      "previous_candidate": "llorona_main_user_selected_v1",
+      "source_base": "Audio la Llorona (1).mp3",
+      "duration_s": 83.987,
+      "role": "active_candidate",
+      "processing": [
+        "light_denoise",
+        "low_demonic_shadow",
+        "mid_pitch_shadow",
+        "reverse_pre_echo",
+        "far_church_reflections",
+        "high_breath_layer",
+        "late_cry_shadow",
+        "no_generated_white_noise"
+      ]
     },
     "child_found": {
       "id": "llorona_child_found_scream_dark",
