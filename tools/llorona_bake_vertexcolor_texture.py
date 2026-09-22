@@ -36,15 +36,45 @@ if not scene.geometry:
     fail("Hunyuan GLB has no geometry")
 src=max(scene.geometry.values(), key=lambda g: len(g.faces)).copy()
 src.remove_unreferenced_vertices()
-print("SOURCE",len(src.vertices),len(src.faces),src.bounds.tolist())
+raw_vertices=len(src.vertices)
+raw_faces=len(src.faces)
+print("SOURCE_RAW",raw_vertices,raw_faces,src.bounds.tolist())
 
-# Keep Hunyuan silhouette but reduce the extremely dense generated surface to a
-# practical game-asset master before UV unwrapping.
+# Hunyuan's exported white mesh can contain duplicate/degenerate triangle records.
+# Simplifying before removing them caused fast-simplification to collapse the body
+# to a tiny vertex set while leaving repeated faces behind. Clean topology first.
+keep=np.asarray(src.unique_faces(),dtype=bool) & np.asarray(src.nondegenerate_faces(),dtype=bool)
+src.update_faces(keep)
+src.remove_unreferenced_vertices()
+clean_vertices=len(src.vertices)
+clean_faces=len(src.faces)
+clean_components=len(src.split(only_watertight=False))
+print("SOURCE_CLEAN",clean_vertices,clean_faces,"components",clean_components)
+
+clean_master=src.copy()
+
+# Keep Hunyuan silhouette but reduce the valid surface to a practical game-asset
+# master. If simplification ever produces pathological topology, fall back to the
+# cleaned 239k-ish mesh rather than silently shipping corruption.
 if len(src.faces) > TARGET_FACES:
     print("DECIMATE",len(src.faces),"->",TARGET_FACES)
-    src=src.simplify_quadric_decimation(face_count=TARGET_FACES, aggression=5)
-    src.remove_unreferenced_vertices()
-print("DECIMATED",len(src.vertices),len(src.faces))
+    candidate=src.simplify_quadric_decimation(face_count=TARGET_FACES, aggression=5)
+    candidate.remove_unreferenced_vertices()
+    ckeep=np.asarray(candidate.unique_faces(),dtype=bool) & np.asarray(candidate.nondegenerate_faces(),dtype=bool)
+    candidate.update_faces(ckeep)
+    candidate.remove_unreferenced_vertices()
+    print("DECIMATE_CANDIDATE",len(candidate.vertices),len(candidate.faces))
+    sane=(len(candidate.vertices) >= 10000 and
+          len(candidate.faces) >= min(60000,int(TARGET_FACES*0.60)) and
+          len(candidate.faces) <= clean_faces)
+    if sane:
+        src=candidate
+    else:
+        print("::warning::Simplifier produced pathological topology; using cleaned HQ mesh")
+        src=clean_master
+print("RUNTIME_TOPOLOGY",len(src.vertices),len(src.faces))
+if len(src.vertices) < 10000 or len(src.faces) < 60000:
+    fail(f"Runtime mesh collapsed: vertices={len(src.vertices)} faces={len(src.faces)}")
 
 V=np.asarray(src.vertices,dtype=np.float64)
 F=np.asarray(src.faces,dtype=np.uint32)
@@ -211,9 +241,14 @@ manifest={
     "asset":"La Llorona",
     "pipeline":"Hunyuan3D multiview geometry -> Xziel CPU 4-view color projection -> xatlas -> 2K PBR bake",
     "sourceRunId":35772555593,
-    "sourceVertices":int(len(scene.geometry[max(scene.geometry,key=lambda k:len(scene.geometry[k].faces))].vertices)) if scene.geometry else None,
-    "sourceFaces":int(sum(len(x.faces) for x in scene.geometry.values())),
-    "runtimeVertices":int(len(Vuv)),
+    "sourceVerticesRaw":int(raw_vertices),
+    "sourceFacesRaw":int(raw_faces),
+    "sourceVerticesClean":int(clean_vertices),
+    "sourceFacesClean":int(clean_faces),
+    "sourceComponentsClean":int(clean_components),
+    "runtimeBaseVertices":int(len(V)),
+    "runtimeBaseFaces":int(len(F)),
+    "runtimeUvVertices":int(len(Vuv)),
     "runtimeFaces":int(len(Fuv)),
     "targetFaces":TARGET_FACES,
     "heightMeters":TARGET_HEIGHT_M,
