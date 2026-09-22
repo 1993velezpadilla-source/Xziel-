@@ -5,12 +5,15 @@ from pathlib import Path
 PACKAGE = Path(os.environ.get("CHURCH_PACKAGE", "church/out/SanctumOfAsh"))
 PLAN = Path(os.environ.get("CHURCH_PLAN", "church/out/zombies_map_plan.json"))
 OUT = Path(os.environ.get("NZP_MAP_OUT", "church/out/nzp_harness/sanctum_harness.map"))
+FITTED = Path(os.environ.get("CHURCH_FITTED", "church/out/church_runtime_fitted_v2.json"))
 OUT.parent.mkdir(parents=True, exist_ok=True)
 
 zones_doc=json.loads((PACKAGE/"zones.json").read_text())
 entities=json.loads((PACKAGE/"entities.json").read_text())["entities"]
 spawns=json.loads((PACKAGE/"spawns.json").read_text())["spawns"]
 plan=json.loads(PLAN.read_text())
+fitted_doc=json.loads(FITTED.read_text()) if FITTED.exists() else {"barricades":[]}
+fitted_by_spawn={x["spawn"]:x for x in fitted_doc.get("barricades",[])}
 
 SCALE=39.3700787402  # Blender meters -> Quake/Hammer-ish units
 zone_raw=plan["zones"]
@@ -127,8 +130,17 @@ for zi,(z,items) in enumerate(sorted(zone_spawn_groups.items())):
         dx=base[0]-p[0]; dy=base[1]-p[1]
         length=max(math.hypot(dx,dy),1.0)
         ux,uy=dx/length,dy/length
-        path=(int(p[0]+ux*48),int(p[1]+uy*48),p[2]+32)
-        win=(int(p[0]+ux*96),int(p[1]+uy*96),p[2]+32)
+        fit=fitted_by_spawn.get(s.get("name",""))
+        if fit:
+            inside=qv(fit["inside"])
+            win=qv(fit["location"])
+            path=inside
+            normal=fit.get("normal",[ux,uy,0])
+            angle=str(int(round(math.degrees(math.atan2(normal[1],normal[0]))))%360)
+        else:
+            path=(int(p[0]+ux*48),int(p[1]+uy*48),p[2]+32)
+            win=(int(p[0]+ux*96),int(p[1]+uy*96),p[2]+32)
+            angle=str(int(round(math.degrees(math.atan2(uy,ux))))%360)
         sid=f"{group}_{i+1}"
         pathid=f"path_{z}_{i+1}"[:31]
         winid=f"win_{z}_{i+1}"[:31]
@@ -143,7 +155,7 @@ for zi,(z,items) in enumerate(sorted(zone_spawn_groups.items())):
             "oldmodel":"sounds/misc/barricade.wav",
             "aistatus":"sounds/misc/barricade_destroy.wav",
             "spawnflags":"0","targetname":winid,
-            "angle":str(int(round(math.degrees(math.atan2(uy,ux))))%360),
+            "angle":angle,
         }))
 
 # Spawn zones as trigger brushes.
