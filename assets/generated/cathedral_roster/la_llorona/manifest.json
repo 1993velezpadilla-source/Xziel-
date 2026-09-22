@@ -2,11 +2,11 @@
   "id": "la_llorona",
   "name": "La Llorona",
   "category": "random_encounter",
-  "style": "llorona",
+  "style": "la_llorona",
   "height_m": 1.82,
   "rig": "game_engine",
   "bones": 53,
-  "triangles_estimate": 44456,
+  "triangles_estimate": 68528,
   "animations": [
     "idle",
     "walk",
@@ -34,5 +34,5 @@
     "preview_side.png",
     "preview_back.png"
   ],
-  "production_status": "priority fidelity pass 8 \u2014 organic garment shells, bone-fitted sleeves, milky eyes, gaunt face sculpt, dense Llorona hair, multi-angle autonomous QA"
+  "production_status": "priority fidelity pass 9 \u2014 fitted body-topology garments, correct Llorona style dispatch, fixed sleeves/hair rigging, reduced proxy panels"
 }
