@@ -292,7 +292,21 @@ jobs:
 
           timeout 8 "$ADB" shell am start             -n com.xziel.engineprototype/.XzielGameActivity             > dist/sanctum-hq-am-start.txt 2>&1 || true
 
-          sleep 4
+          # Do not inject any input while the HQ mesh/textures are still
+          # uploading on the GameActivity thread. The old unconditional ENTER
+          # fallback could create its own 5s input-dispatch ANR on a loaded CI
+          # emulator even though the native runtime completed successfully.
+          READY=0
+          for i in $(seq 1 45); do
+            STARTUP_LOG="$("$ADB" logcat -d -v brief -s XzielNative:I XzielVulkan:I XzielSanctumMesh:I '*:S' 2>/dev/null || true)"
+            if grep -q "XZIEL_VULKAN_READY" <<<"$STARTUP_LOG" && \
+               grep -q "XZIEL_SANCTUM_MESH_READY" <<<"$STARTUP_LOG"; then
+              READY=1
+              break
+            fi
+            sleep 1
+          done
+          test "$READY" = "1"
 
           timeout 8 "$ADB" shell uiautomator dump /sdcard/xziel-sanctum-window.xml             >/dev/null 2>&1 || true
           timeout 8 "$ADB" exec-out cat /sdcard/xziel-sanctum-window.xml             > dist/sanctum-hq-window.xml 2>/dev/null || true
@@ -326,13 +340,12 @@ jobs:
           if [[ -s dist/sanctum-hq-dismiss-tap.txt ]]; then
             read -r DISMISS_X DISMISS_Y < dist/sanctum-hq-dismiss-tap.txt
             "$ADB" shell input tap "$DISMISS_X" "$DISMISS_Y" || true
-          else
-            # Harmless if nothing is focused; useful when the system dialog
-            # exposes its default button but not a complete accessibility tree.
-            "$ADB" shell input keyevent 66 || true
           fi
 
-          sleep 16
+          # Readiness above already proves the heavy synchronous startup phase
+          # is complete. Give presentation a short settling window before the
+          # screenshot/touch tour instead of a blind 16-second delay.
+          sleep 4
 
           timeout 8 "$ADB" logcat -d -v threadtime             > dist/sanctum-hq-logcat.txt || true
 
