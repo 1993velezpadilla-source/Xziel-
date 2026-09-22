@@ -1,6 +1,6 @@
 {
   "project": "Cathedral of Absolution / Cripplegate",
-  "version": 16,
+  "version": 17,
   "shared": {
     "rig": "game_engine",
     "unit_scale": "meters",
