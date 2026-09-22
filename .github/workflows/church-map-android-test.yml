@@ -1,4 +1,4 @@
-name: Sanctum Android Harness APK
+name: Sanctum Modern XZ Renderer APK
 
 on:
   workflow_dispatch:
@@ -13,6 +13,7 @@ on:
       - "scripts/patch_vril_xz_phase0.py"
       - "scripts/patch_vril_sanctum_staticmesh.py"
       - "engine/xz/**"
+      - "tools/church_map/**"
       - "android/NZPActivity.java"
 
 permissions:
@@ -92,6 +93,9 @@ jobs:
           assert r["runtimeTriangles"] >= 620000, r
           assert r.get("runtimeTotalTriangles", r["runtimeTriangles"]) >= 700000, r
           assert r["textureMaxDimension"] >= 2048, r
+          assert r.get("textureSourceMode") == "raw_albedo_preserve", r
+          assert not r.get("churchFallbackMaterials"), r
+          assert not r.get("missingUvObjects"), r
           assert r["batchCount"] <= 512, r
           assert r["totalVertices"] <= 3000000, r
           assert r["totalIndices"] <= 3500000, r
@@ -102,6 +106,9 @@ jobs:
               "totalVertices":r["totalVertices"],
               "totalIndices":r["totalIndices"],
               "textureMaxDimension":r["textureMaxDimension"],
+              "textureSourceMode":r.get("textureSourceMode"),
+              "churchFallbackMaterials":r.get("churchFallbackMaterials"),
+              "missingUvObjects":r.get("missingUvObjects"),
               "batchCount":r["batchCount"],
               "scanCleanup":r.get("scanCleanup"),
           })
@@ -131,7 +138,7 @@ jobs:
             "emulator" \
             "system-images;android-35;google_apis;x86_64"
 
-      - name: Prepare Android project with Sanctum harness
+      - name: Prepare Android project with Sanctum in Modern XZ host
         shell: bash
         env:
           XZIEL_EXTRA_MAP_NAME: sanctum_harness
@@ -152,7 +159,7 @@ jobs:
           unzip -l build/android-project/app/src/main/assets/nzp-data.zip | \
             grep 'nzp/textures/xziel/sanctum/' | head -n 5
 
-      - name: Build Sanctum debug APK
+      - name: Build Sanctum Modern XZ debug APK
         working-directory: build/android-project
         shell: bash
         run: ./gradlew --no-daemon assembleDebug --stacktrace
@@ -163,8 +170,8 @@ jobs:
           set -euo pipefail
           mkdir -p dist
           cp build/android-project/app/build/outputs/apk/debug/app-debug.apk \
-            dist/Xziel-Sanctum-of-Ash-Harness-debug.apk
-          ls -lh dist/Xziel-Sanctum-of-Ash-Harness-debug.apk
+            dist/Xziel-Sanctum-Modern-XZ-debug.apk
+          ls -lh dist/Xziel-Sanctum-Modern-XZ-debug.apk
 
       - name: Boot Sanctum on Android emulator
         id: smoke
@@ -208,7 +215,7 @@ jobs:
           done
           test "$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1"
 
-          "$ADB" install -r dist/Xziel-Sanctum-of-Ash-Harness-debug.apk
+          "$ADB" install -r dist/Xziel-Sanctum-Modern-XZ-debug.apk
           "$ADB" shell settings put secure immersive_mode_confirmations confirmed || true
           "$ADB" logcat -c
           "$ADB" shell am force-stop com.xziel.nzp || true
@@ -240,8 +247,14 @@ jobs:
               lo,hi=gray.getextrema()
               if hi-lo < 20 or stat.stddev[0] < 6:
                   raise SystemExit(f"screenshot appears blank/flat: {p} extrema={(lo,hi)} std={stat.stddev[0]:.2f}")
+              # Prevent another technically-rendering but visually crushed
+              # Sanctum frame. The previous build had ~68-70% of pixels under
+              # luma 8 in the nave, hiding most architectural texture detail.
+              black_fraction = sum(1 for px in gray.getdata() if px < 8) / float(im.width * im.height)
+              if black_fraction > 0.58:
+                  raise SystemExit(f"screenshot is excessively crushed: {p} black_fraction={black_fraction:.3f}")
               images.append(im)
-              print(p.name, im.size, "mean",stat.mean[0],"std",stat.stddev[0],"extrema",(lo,hi))
+              print(p.name, im.size, "mean",stat.mean[0],"std",stat.stddev[0],"extrema",(lo,hi),"black_fraction",black_fraction)
           diff=ImageChops.difference(images[0],images[1]).convert("L")
           ds=ImageStat.Stat(diff)
           print("frame_delta_mean",ds.mean[0],"frame_delta_std",ds.stddev[0])
@@ -272,9 +285,9 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Xziel-Sanctum-of-Ash-Harness-APK
+          name: Xziel-Sanctum-Modern-XZ-APK
           path: |
-            dist/Xziel-Sanctum-of-Ash-Harness-debug.apk
+            dist/Xziel-Sanctum-Modern-XZ-debug.apk
             dist/sanctum-harness-a.png
             dist/sanctum-harness-b.png
             dist/sanctum-visual-report.txt
