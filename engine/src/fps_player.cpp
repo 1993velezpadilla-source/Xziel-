@@ -65,10 +65,6 @@ void FpsPlayerController::setSpawn(
         : 0.0f;
     frame_.pitchDegrees = 0.0f;
 
-    // The authored player spawn establishes the base floor for this map.
-    // Higher floors remain represented by collision/traversal geometry.
-    config_.floorY = feetPosition.y;
-
     frame_.feetPosition.x =
         std::clamp(
             frame_.feetPosition.x,
@@ -114,6 +110,32 @@ bool FpsPlayerController::setHorizontalBounds(
             config_.maxZ);
 
     updateCameraPosition();
+    return true;
+}
+
+void FpsPlayerController::clearWalkableSurfaces() noexcept {
+    walkableSurfaceCount_ = 0;
+}
+
+bool FpsPlayerController::addWalkableSurface(
+    const Aabb& surface) noexcept {
+    if (walkableSurfaceCount_ >=
+            walkableSurfaces_.size() ||
+        surface.minimum.x > surface.maximum.x ||
+        surface.minimum.y > surface.maximum.y ||
+        surface.minimum.z > surface.maximum.z ||
+        !std::isfinite(surface.minimum.x) ||
+        !std::isfinite(surface.minimum.y) ||
+        !std::isfinite(surface.minimum.z) ||
+        !std::isfinite(surface.maximum.x) ||
+        !std::isfinite(surface.maximum.y) ||
+        !std::isfinite(surface.maximum.z)) {
+        return false;
+    }
+
+    walkableSurfaces_[
+        walkableSurfaceCount_++] =
+        surface;
     return true;
 }
 
@@ -309,6 +331,9 @@ FpsPlayerFrame FpsPlayerController::fixedStep(
     resolveStaticCollision(
         previousFeetPosition);
 
+    resolveWalkableSupport(
+        previousFeetPosition);
+
     if (frame_.feetPosition.y <
         config_.floorY) {
         frame_.feetPosition.y =
@@ -332,9 +357,23 @@ FpsPlayerController::buildTraversalContext() const noexcept {
     const auto& movementFrame =
         movement_.frame();
 
+    float supportY = 0.0f;
+    const bool onWalkableSurface =
+        findWalkableSupport(
+            frame_.feetPosition.x,
+            frame_.feetPosition.z,
+            frame_.feetPosition.y,
+            0.065f,
+            0.065f,
+            supportY) &&
+        std::fabs(
+            frame_.feetPosition.y -
+            supportY) <= 0.065f;
+
     const bool atFloor =
         frame_.feetPosition.y <=
-        config_.floorY + 0.002f;
+            config_.floorY + 0.002f ||
+        onWalkableSurface;
 
     const bool movingUp =
         movementFrame.velocity.y >
@@ -640,6 +679,118 @@ Vec2 FpsPlayerController::localToWorldMove(
         right.y * local.x +
             forward.y * local.y,
     };
+}
+
+bool FpsPlayerController::findWalkableSupport(
+    float x,
+    float z,
+    float referenceFeetY,
+    float maximumStepUp,
+    float maximumStepDown,
+    float& supportY) const noexcept {
+    bool found = false;
+    float best = -INFINITY;
+
+    for (std::size_t i = 0;
+         i < walkableSurfaceCount_;
+         ++i) {
+        const auto& surface =
+            walkableSurfaces_[i];
+
+        if (x < surface.minimum.x ||
+            x > surface.maximum.x ||
+            z < surface.minimum.z ||
+            z > surface.maximum.z) {
+            continue;
+        }
+
+        const float top =
+            surface.maximum.y;
+
+        if (top >
+                referenceFeetY +
+                    maximumStepUp ||
+            top <
+                referenceFeetY -
+                    maximumStepDown) {
+            continue;
+        }
+
+        if (!found || top > best) {
+            best = top;
+            found = true;
+        }
+    }
+
+    if (found) {
+        supportY = best;
+    }
+    return found;
+}
+
+void FpsPlayerController::resolveWalkableSupport(
+    const Vec3& previousFeetPosition) noexcept {
+    if (walkableSurfaceCount_ == 0U ||
+        frame_.movement.velocity.y > 0.001f) {
+        return;
+    }
+
+    constexpr float kMaximumStepUp = 0.34f;
+    constexpr float kMaximumStepDown = 0.34f;
+
+    float supportY = 0.0f;
+    if (findWalkableSupport(
+            frame_.feetPosition.x,
+            frame_.feetPosition.z,
+            previousFeetPosition.y,
+            kMaximumStepUp,
+            kMaximumStepDown,
+            supportY)) {
+        frame_.feetPosition.y =
+            supportY;
+        frame_.movement.velocity.y =
+            0.0f;
+        return;
+    }
+
+    // Falling can cross a floor by much more than a normal walking step.
+    // Choose the highest authored surface crossed this tick.
+    bool landed = false;
+    float landingY = -INFINITY;
+    for (std::size_t i = 0;
+         i < walkableSurfaceCount_;
+         ++i) {
+        const auto& surface =
+            walkableSurfaces_[i];
+
+        if (frame_.feetPosition.x <
+                surface.minimum.x ||
+            frame_.feetPosition.x >
+                surface.maximum.x ||
+            frame_.feetPosition.z <
+                surface.minimum.z ||
+            frame_.feetPosition.z >
+                surface.maximum.z) {
+            continue;
+        }
+
+        const float top =
+            surface.maximum.y;
+
+        if (previousFeetPosition.y + 0.002f >= top &&
+            frame_.feetPosition.y <= top &&
+            (!landed || top > landingY)) {
+            landingY = top;
+            landed = true;
+        }
+    }
+
+    if (landed) {
+        frame_.feetPosition.y =
+            landingY;
+        frame_.movement.velocity.y =
+            0.0f;
+    }
 }
 
 bool FpsPlayerController::overlapsObstacle(
