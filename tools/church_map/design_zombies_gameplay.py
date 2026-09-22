@@ -201,9 +201,47 @@ nave_entry = floorish("main_church", main - axis * half)
 nave_mid = floorish("main_church", main)
 altar = floorish("main_church", main + axis * half)
 
+# Pick a clean exterior spawn instead of using the center of the exterior scan.
+# The old center point could land the camera inside photogrammetry walls/roof.
+def choose_clear_exterior_spawn():
+    main_i = zone_info.get("main_church")
+    ext_i = zone_info.get("exterior")
+    if not main_i or not ext_i:
+        return floorish("exterior", exterior, 1.1)
+
+    mmn, mmx = main_i["min"], main_i["max"]
+    emn, emx = ext_i["min"], ext_i["max"]
+    mc = main_i["center"]
+    sides = [
+        ("west",  max(0.0, mmn.x-emn.x), Vector((-1,0,0)), Vector((mmn.x,mc.y,0))),
+        ("east",  max(0.0, emx.x-mmx.x), Vector(( 1,0,0)), Vector((mmx.x,mc.y,0))),
+        ("south", max(0.0, mmn.y-emn.y), Vector((0,-1,0)), Vector((mc.x,mmn.y,0))),
+        ("north", max(0.0, emx.y-mmx.y), Vector((0, 1,0)), Vector((mc.x,mmx.y,0))),
+    ]
+    side, clearance, outward, edge = max(sides, key=lambda x:x[1])
+    distance = min(10.0, max(4.5, clearance*0.45))
+    p = edge + outward*distance
+
+    # Keep a safe margin inside the captured exterior bounds.
+    p.x = min(max(p.x, emn.x+1.0), emx.x-1.0)
+    p.y = min(max(p.y, emn.y+1.0), emx.y-1.0)
+
+    # Ray down from a few metres above the expected ground so roofs/tree tops
+    # cannot become the player floor. Fall back to the scan floor if necessary.
+    deps = bpy.context.evaluated_depsgraph_get()
+    expected_floor = max(emn.z, mmn.z)
+    origin = Vector((p.x,p.y,expected_floor+4.0))
+    hit, loc, normal, face, obj, matrix = scene.ray_cast(
+        deps, origin, Vector((0,0,-1)), distance=12.0
+    )
+    p.z = (loc.z+1.05) if hit else (expected_floor+1.05)
+    return p
+
+player_start = choose_clear_exterior_spawn()
+
 # Spawn and interactives.
-add_proxy("P1_START_COURTYARD", "player_spawn", floorish("exterior", exterior), 1.35, "cylinder",
-          {"zone":"courtyard", "phase":"start"})
+add_proxy("P1_START_COURTYARD", "player_spawn", player_start, 1.35, "cylinder",
+          {"zone":"courtyard", "phase":"start", "look_at":"main_church"})
 add_proxy("POWER_BOILER", "power", floorish("boiler", boiler), 1.4, "cube",
           {"zone":"boiler", "requires":"fuse_a+fuse_b"})
 add_proxy("UPGRADE_ALTAR", "pap", altar + Vector((0,0,0.25)), 1.5, "cube",
@@ -213,7 +251,7 @@ add_proxy("MYSTERY_RELIQUARY", "box", nave_mid + Vector((0,0,0.25)), 1.25, "cube
 
 # Doors / progression edges use midpoints between real zone centers.
 door_edges = [
-    ("DOOR_COURTYARD_NAVE", exterior, nave_entry, 750),
+    ("DOOR_COURTYARD_NAVE", player_start, nave_entry, 750),
     ("DOOR_NAVE_OFFICE", nave_mid, corridor, 1000),
     ("DOOR_OFFICE_BOILER", corridor, boiler, 1000),
     ("DOOR_NAVE_TOWER", nave_mid, stairs, 1250),
