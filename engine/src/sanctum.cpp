@@ -5,6 +5,67 @@
 
 namespace xziel {
 
+SanctumGameplayProfile
+makeSanctumGameplayProfile() noexcept {
+    SanctumGameplayProfile profile{};
+
+    // Early-game danger: two default 34-damage zombie hits can down an
+    // unupgraded player. Regeneration still exists, but only after a real
+    // escape window; later upgrades may deliberately change this contract.
+    profile.vitals.maxHealth = 68.0f;
+    profile.vitals.regenerationDelaySeconds = 5.0f;
+    profile.vitals.regenerationPerSecond = 24.0f;
+    profile.vitals.respawnDelaySeconds = 3.0f;
+    profile.vitals.respawnInvulnerabilitySeconds = 0.75f;
+    profile.vitals.autoRespawn = false;
+
+    // Rounds should breathe. A longer inter-round gap restores the
+    // silence -> anticipation -> chaos -> relief rhythm instead of making the
+    // director feel like a continuous objective arena.
+    profile.horde.startingRound = 1U;
+    profile.horde.baseZombiesPerRound = 5U;
+    profile.horde.zombiesAddedPerRound = 2U;
+    profile.horde.maxActive = 10U;
+    profile.horde.spawnIntervalSeconds = 0.88f;
+    profile.horde.interRoundDelaySeconds = 5.5f;
+    profile.horde.baseHealth = 100.0f;
+    profile.horde.healthAddedPerRound = 18.0f;
+    profile.horde.baseMoveSpeed = 0.68f;
+    profile.horde.moveSpeedAddedPerRound = 0.035f;
+    profile.horde.maximumMoveSpeed = 1.45f;
+
+    // Start poor enough that wall buys/doors matter immediately.
+    profile.score.startingPoints = 500U;
+    profile.score.limbHitPoints = 5U;
+    profile.score.torsoHitPoints = 10U;
+    profile.score.headHitPoints = 20U;
+    profile.score.killPoints = 60U;
+    profile.score.headshotKillBonus = 40U;
+    profile.score.roundClearBasePoints = 100U;
+    profile.score.roundClearPerRound = 15U;
+
+    // Horror supports gameplay tension rather than shouting over it.
+    profile.horror.tensionAttackPerSecond = 1.05f;
+    profile.horror.tensionReleasePerSecond = 0.24f;
+    profile.horror.adrenalineAttackPerSecond = 1.90f;
+    profile.horror.adrenalineReleasePerSecond = 0.62f;
+    profile.horror.stingerThreshold = 0.82f;
+    profile.horror.stingerCooldownSeconds = 18.0f;
+    profile.horror.minimumScareGapSeconds = 8.0f;
+    profile.horror.maxVignette = 0.20f;
+    profile.horror.maxExposureDropEv = 0.34f;
+    profile.horror.maxCameraBreathing = 0.10f;
+    profile.horror.maxLightFlicker = 0.14f;
+    profile.horror.maxFogBoost = 0.16f;
+    profile.horror.maxFlickerHz = 2.2f;
+
+    profile.showQuestChecklistHud = false;
+    profile.showPassivePresenceMarkers = false;
+    profile.autoRevealSecrets = false;
+
+    return profile;
+}
+
 namespace {
 
 constexpr std::size_t presenceIndex(
