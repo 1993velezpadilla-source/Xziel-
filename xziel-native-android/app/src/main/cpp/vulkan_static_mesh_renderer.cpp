@@ -1263,14 +1263,11 @@ bool VulkanStaticMeshRenderer::createTexture(
         VK_SAMPLER_ADDRESS_MODE_REPEAT;
     samplerInfo.addressModeW =
         VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.anisotropyEnable =
-        properties.limits.maxSamplerAnisotropy > 1.0f
-        ? VK_TRUE
-        : VK_FALSE;
-    samplerInfo.maxAnisotropy =
-        std::min(
-            8.0f,
-            properties.limits.maxSamplerAnisotropy);
+    // Keep sampler creation valid on every Vulkan 1.0 Android device.
+    // Anisotropy is promoted later only when the logical-device feature is
+    // explicitly enabled.
+    samplerInfo.anisotropyEnable = VK_FALSE;
+    samplerInfo.maxAnisotropy = 1.0f;
     samplerInfo.borderColor =
         VK_BORDER_COLOR_INT_OPAQUE_BLACK;
     samplerInfo.unnormalizedCoordinates =
