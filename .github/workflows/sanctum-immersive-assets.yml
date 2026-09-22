@@ -27,7 +27,7 @@ on:
       - ".github/workflows/sanctum-immersive-assets.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   package:
@@ -83,3 +83,24 @@ jobs:
           if-no-files-found: error
           compression-level: 6
           retention-days: 30
+
+
+      - name: Publish persistent CC0 source pack
+        if: github.event_name == 'push'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          archive="dist/xziel-sanctum-immersive-cc0.zip"
+          (
+            cd dist
+            zip -q -r "xziel-sanctum-immersive-cc0.zip" "sanctum-immersive-assets"
+          )
+
+          tag="sanctum-immersive-assets-v1"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "$archive" --clobber
+          else
+            gh release create "$tag" "$archive"               --target "$GITHUB_SHA"               --title "Xziel Sanctum Immersive CC0 Asset Pack"               --notes "Curated redistributable CC0 source pack for Sanctum/Xziel. Includes ASSET_LOCK.json with SHA-256 hashes and source/license metadata. Raw third-party libraries with restrictive redistribution terms are deliberately excluded."
+          fi
