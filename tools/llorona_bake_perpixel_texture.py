@@ -8,7 +8,7 @@ from pathlib import Path
 
 import cv2
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFile
 from scipy import ndimage
 import trimesh
 import xatlas
@@ -86,7 +86,12 @@ def find_detail(stem: str) -> Path | None:
 
 
 def load_rgb(path: Path) -> np.ndarray:
-    return np.asarray(Image.open(path).convert("RGB"), dtype=np.float32)
+    # Older repo JPEG refs can have recoverable truncated streams. Normalize them
+    # exactly like the successful Hunyuan input pipeline instead of rejecting them.
+    ImageFile.LOAD_TRUNCATED_IMAGES = True
+    im = Image.open(path)
+    im.load()
+    return np.asarray(im.convert("RGB"), dtype=np.float32)
 
 
 def bilinear(im: np.ndarray, u: np.ndarray, v: np.ndarray) -> np.ndarray:
