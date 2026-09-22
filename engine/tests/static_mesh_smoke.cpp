@@ -40,6 +40,26 @@ void appendF32(
             value));
 }
 
+void writeF32(
+    std::vector<std::byte>& bytes,
+    std::size_t offset,
+    float value) {
+    const auto bits =
+        std::bit_cast<std::uint32_t>(
+            value);
+
+    assert(offset + 4U <= bytes.size());
+
+    for (unsigned int byte = 0U;
+         byte < 4U;
+         ++byte) {
+        bytes[offset + byte] =
+            static_cast<std::byte>(
+                (bits >> (byte * 8U)) &
+                0xFFU);
+    }
+}
+
 std::vector<std::byte> makeTriangle(std::uint32_t version) {
     std::vector<std::byte> bytes;
 
@@ -199,6 +219,27 @@ int main() {
         truncatedResult.error ==
         xziel::StaticMeshParseError::
             Truncated);
+
+    auto badBounds =
+        encoded;
+
+    // XZSM header = 20 bytes, batch counts = 8, texture name = 96.
+    // maxX is the fourth serialized bound float.
+    writeF32(
+        badBounds,
+        20U + 8U + 96U + 3U * 4U,
+        0.25f);
+
+    const auto badBoundsResult =
+        xziel::parseStaticMeshXzsm(
+            badBounds,
+            rejected);
+
+    assert(!badBoundsResult.success);
+    assert(
+        badBoundsResult.error ==
+        xziel::StaticMeshParseError::
+            InvalidBatch);
 
     xziel::StaticMeshAsset goodViewmodel{};
     xziel::StaticMeshBatch goodBatch{};
