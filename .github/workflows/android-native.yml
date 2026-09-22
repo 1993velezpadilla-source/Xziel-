@@ -331,6 +331,11 @@ jobs:
           fi
 
           "$ADB" install -r dist/Xziel-NZP-native-universal-debug.apk
+          # Keep emulator orientation deterministic. SwiftShader/API-35 can
+          # occasionally expose the physical screencap in portrait even though
+          # SDL has already entered landscape.
+          "$ADB" shell settings put system accelerometer_rotation 0 || true
+          "$ADB" shell settings put system user_rotation 1 || true
           # Suppress Android's one-time "Viewing full screen" tutorial so the
           # automated HUD screenshots contain only the game UI.
           "$ADB" shell settings put secure immersive_mode_confirmations confirmed || true
@@ -377,6 +382,14 @@ jobs:
 
           for path in paths:
               im = Image.open(path).convert("RGB")
+
+              # Some emulator builds report the physical framebuffer portrait
+              # even while the landscape SDL surface is healthy. Normalize
+              # orientation for visual analysis; still require gameplay-sized
+              # non-flat content after normalization.
+              if im.height > im.width:
+                  im = im.transpose(Image.Transpose.ROTATE_90)
+
               if im.width < 1000 or im.height < 500 or im.width <= im.height:
                   raise SystemExit(f"attempt={attempt} invalid dimensions: {path} {im.size}")
 
