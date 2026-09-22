@@ -226,8 +226,18 @@ manifest = {
     "dependencies":[],
     "assetPacks":["st_giles_ccby_scan"],
     "entryScene":"geometry/church_map_mobile_lod0.glb",
+    "visualAuthority":"geometry/church_map_mobile_lod0.glb",
+    "compatibilityBspRole":"gameplay_collision_harness_only",
+    "renderPolicy":{
+        "allowBspAsFinalVisual":False,
+        "preservePhotogrammetryMaster":True,
+        "mobileHighTargetTriangles":640000,
+        "mobileHighTextureMax":2048,
+        "spatialCullingRequired":True,
+        "customEngineMayUseHigherSourceLods":True,
+    },
     "commercialUseAllowed":True,
-    "notes":"Development blockout. Final public release should use the fictionalized geometry pass described in SANCTUM_OF_ASH_MAP_BIBLE.md.",
+    "notes":"Development blockout. BSP is never the final visual source. Final public release should use the fictionalized geometry pass described in SANCTUM_OF_ASH_MAP_BIBLE.md.",
 }
 
 assets = {
