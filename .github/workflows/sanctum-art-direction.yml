@@ -1,0 +1,102 @@
+name: Sanctum Art Direction Preview
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/sanctum-art-direction.yml"
+      - "ci/sanctum_art/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: sanctum-art-direction
+  cancel-in-progress: true
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Resolve latest successful Sanctum build
+        id: source
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          RUN_ID="$(python3 - <<'PY'
+          import json, os, urllib.request
+          repo=os.environ["REPO"]
+          req=urllib.request.Request(
+              f"https://api.github.com/repos/{repo}/actions/workflows/church-map-blender.yml/runs?status=success&per_page=20",
+              headers={
+                  "Authorization":f"Bearer {os.environ['GH_TOKEN']}",
+                  "Accept":"application/vnd.github+json",
+                  "X-GitHub-Api-Version":"2022-11-28",
+              },
+          )
+          data=json.load(urllib.request.urlopen(req))
+          runs=data.get("workflow_runs",[])
+          if not runs: raise SystemExit("No successful Sanctum build found")
+          print(runs[0]["id"])
+          PY
+          )"
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "Using Sanctum build $RUN_ID"
+
+      - name: Download Sanctum artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: Xziel-Sanctum-of-Ash-Runtime-Blockout
+          path: sanctum
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.source.outputs.run_id }}
+
+      - name: Install Blender
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq blender libegl1 libgl1-mesa-dri libglx-mesa0 xvfb
+          blender --version
+
+      - name: Render clean horror preview
+        shell: bash
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          BLEND="$(find sanctum -type f -name church_zombies_gameplay_v1.blend | head -n 1)"
+          PLAN="$(find sanctum -type f -name zombies_map_plan.json | head -n 1)"
+          test -s "$BLEND"
+          test -s "$PLAN"
+          mkdir -p art_out
+          SANCTUM_BLEND="$BLEND" \
+          SANCTUM_PLAN="$PLAN" \
+          SANCTUM_ART_OUT=art_out \
+          xvfb-run -a -s "-screen 0 1920x1080x24" \
+            blender --background --python ci/sanctum_art/art_direct_sanctum.py \
+            2>&1 | tee art_out/art-direction.log
+          test -s art_out/sanctum_exterior_night.png
+          test -s art_out/sanctum_nave_night.png
+          test -s art_out/sanctum_altar_night.png
+          test -s art_out/sanctum_tower_night.png
+          test -s art_out/sanctum_art_direction_v1.json
+          ls -lh art_out
+
+      - name: Upload art-direction preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sanctum-Art-Direction-Preview
+          path: art_out/
+          if-no-files-found: error
+          retention-days: 14
