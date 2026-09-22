@@ -86,14 +86,7 @@ jobs:
         run: |
           set -euxo pipefail
           mkdir -p assets/generated/cathedral_roster
-          xvfb-run -a -s "-screen 0 1280x1024x24" \
-            /opt/blender-4.5.14/blender --background \
-            --python tools/blender/build_cathedral_roster.py \
-            -- \
-            --assets-root /tmp/mhassets \
-            --spec tools/blender/cathedral_roster.json \
-            --out-dir assets/generated/cathedral_roster \
-            --only sister_of_ash,la_llorona,stained_shade
+          xvfb-run -a -s "-screen 0 1280x1024x24" /opt/blender-4.5.14/blender --background --python tools/blender/build_cathedral_roster.py -- --assets-root /tmp/mhassets --spec tools/blender/cathedral_roster.json --out-dir assets/generated/cathedral_roster --only sister_of_ash,la_llorona,stained_shade
 
       - name: Validate production outputs
         shell: bash
