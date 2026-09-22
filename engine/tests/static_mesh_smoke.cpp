@@ -200,5 +200,75 @@ int main() {
         xziel::StaticMeshParseError::
             Truncated);
 
+    xziel::StaticMeshAsset goodViewmodel{};
+    xziel::StaticMeshBatch goodBatch{};
+    goodBatch.textureName =
+        "textures/xziel/weapons/test";
+
+    for (std::uint32_t i = 0U;
+         i < 128U;
+         ++i) {
+        xziel::StaticMeshVertex vertex{};
+        vertex.x =
+            0.90f *
+            static_cast<float>(i) /
+            127.0f;
+        vertex.y =
+            (i % 7U) * 0.003f;
+        vertex.z =
+            (i % 5U) * 0.004f;
+        goodBatch.vertices.push_back(vertex);
+    }
+
+    goodViewmodel.totalVertices =
+        static_cast<std::uint32_t>(
+            goodBatch.vertices.size());
+    goodViewmodel.batches.push_back(
+        goodBatch);
+
+    xziel::StaticMeshQualityMetrics
+        goodMetrics{};
+
+    assert(
+        xziel::passesViewmodelStaticMeshSanity(
+            goodViewmodel,
+            &goodMetrics));
+    assert(goodMetrics.longestExtent > 0.89f);
+    assert(
+        goodMetrics.robustAxisCoverage90 >
+        0.80f);
+
+    xziel::StaticMeshAsset collapsedViewmodel =
+        goodViewmodel;
+
+    auto& collapsedVertices =
+        collapsedViewmodel.batches[0].vertices;
+
+    for (std::size_t i = 0U;
+         i + 1U < collapsedVertices.size();
+         ++i) {
+        collapsedVertices[i].x =
+            0.02f *
+            static_cast<float>(i) /
+            static_cast<float>(
+                collapsedVertices.size() - 2U);
+    }
+
+    collapsedVertices.back().x = 0.90f;
+
+    xziel::StaticMeshQualityMetrics
+        collapsedMetrics{};
+
+    assert(
+        !xziel::passesViewmodelStaticMeshSanity(
+            collapsedViewmodel,
+            &collapsedMetrics));
+    assert(
+        collapsedMetrics.longestExtent >
+        0.89f);
+    assert(
+        collapsedMetrics.robustAxisCoverage90 <
+        0.20f);
+
     return 0;
 }
