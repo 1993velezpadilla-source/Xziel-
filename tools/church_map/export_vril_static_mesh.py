@@ -411,7 +411,7 @@ for (object_name, tex), tris in groups.items():
                         )
                     vertex_map[vtx] = idx
                     vertices.append(vtx)
-                    x,y,z,u,v = vtx
+                    x,y,z,u,v = vtx[:5]
                     mn.x=min(mn.x,x); mn.y=min(mn.y,y); mn.z=min(mn.z,z)
                     mx.x=max(mx.x,x); mx.y=max(mx.y,y); mx.z=max(mx.z,z)
                 indices.append(idx)
