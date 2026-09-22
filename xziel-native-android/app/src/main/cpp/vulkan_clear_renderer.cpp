@@ -111,15 +111,24 @@ bool VulkanClearRenderer::initialize(
         assetManager_,
         "models/xziel/sanctum/sanctum.xzsm");
 
-    (void) weaponMesh_.initialize(
-        physicalDevice_,
-        device_,
-        graphicsQueue_,
-        graphicsQueueFamily_,
-        commandPool_,
-        renderPass_,
-        assetManager_,
-        "models/xziel/weapons/standard_rifle.xzsm");
+    const bool weaponViewmodelReady =
+        weaponMesh_.initialize(
+            physicalDevice_,
+            device_,
+            graphicsQueue_,
+            graphicsQueueFamily_,
+            commandPool_,
+            renderPass_,
+            assetManager_,
+            "models/xziel/weapons/standard_rifle.xzsm");
+
+    if (!weaponViewmodelReady) {
+        // Gameplay and the church stay live. A rejected/missing imported
+        // viewmodel falls through to the bounded native rifle blockout rather
+        // than drawing corrupt geometry or failing the whole Vulkan renderer.
+        logInfo(
+            "XZIEL_WEAPON_VIEWMODEL_FALLBACK_BLOCKOUT");
+    }
 
     initialized_ = true;
     logInfo("XZIEL_VULKAN_3D_READY");
