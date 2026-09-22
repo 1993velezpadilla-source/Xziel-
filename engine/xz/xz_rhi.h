@@ -4,6 +4,7 @@
 #include "xz_device_caps.h"
 #include "xz_render_plan.h"
 #include "xz_gpu_resources.h"
+#include "xz_geometry_tap.h"
 
 #include <stdint.h>
 
@@ -24,6 +25,7 @@ typedef struct {
     const XzRenderPlan *plan;
     const XzCommandStream *commands;
     XzGpuResourcePool *resources;
+    const XzGeometryFrame *geometry;
 } XzRhiSubmission;
 
 typedef int (*XzRhiMirrorBeginFn)(
@@ -96,7 +98,8 @@ int XzRhi_SubmitFrame(
     XzRhiState *state,
     const XzRenderPlan *plan,
     const XzCommandStream *commands,
-    XzGpuResourcePool *resources);
+    XzGpuResourcePool *resources,
+    const XzGeometryFrame *geometry);
 
 int XzRhi_SubmitPlan(
     XzRhiState *state,
