@@ -224,9 +224,15 @@ int main() {
         goodBatch.vertices.push_back(vertex);
     }
 
+    goodBatch.indices.resize(
+        126U,
+        0U);
     goodViewmodel.totalVertices =
         static_cast<std::uint32_t>(
             goodBatch.vertices.size());
+    goodViewmodel.totalIndices =
+        static_cast<std::uint32_t>(
+            goodBatch.indices.size());
     goodViewmodel.batches.push_back(
         goodBatch);
 
@@ -331,6 +337,28 @@ int main() {
     assert(
         flatMetrics.robustSecondExtent90 <
         0.035f);
+
+    xziel::StaticMeshAsset fragmentedViewmodel{};
+    fragmentedViewmodel.batches.resize(
+        129U,
+        goodBatch);
+    fragmentedViewmodel.totalVertices =
+        129U *
+        static_cast<std::uint32_t>(
+            goodBatch.vertices.size());
+    fragmentedViewmodel.totalIndices =
+        129U *
+        static_cast<std::uint32_t>(
+            goodBatch.indices.size());
+
+    xziel::StaticMeshQualityMetrics
+        fragmentedMetrics{};
+
+    assert(
+        !xziel::passesViewmodelStaticMeshSanity(
+            fragmentedViewmodel,
+            &fragmentedMetrics));
+    assert(fragmentedMetrics.batchCount == 129U);
 
     return 0;
 }
