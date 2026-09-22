@@ -28,6 +28,7 @@ on:
       - feature/xz-shadow-raster-suppress
       - feature/xz-bsp-special-raster-suppress
       - feature/xz-special-raster-suppress
+      - feature/xz-full-world-raster-retirement
     paths:
       - ".github/workflows/android-native.yml"
       - "android/**"
@@ -854,15 +855,15 @@ jobs:
             exit 1
           fi
 
-          if ! grep -Eq "XZIEL-XZ.*legacy3d suppress total=[1-9][0-9]* pass=[0-9]+ frame\(alias=[0-9]+ surface=[1-9][0-9]* sprite=[0-9]+ effect=[0-9]+ special=[0-9]+ shadow=[1-9][0-9]*\)" dist/xziel-logcat.txt; then
-            echo "Xz did not retire duplicate legacy BSP + entity/effect/shadow raster after MODERN stabilized."
-            grep -E "XZIEL-XZ.*legacy3d suppress|XZIEL-XZ.*parity shadows|XZIEL-XZ.*phase16 heartbeat|XZIEL-XZ.*parity present" dist/xziel-logcat.txt | tail -n 260 || true
+          if ! grep -Eq "XZIEL-XZ.*legacy3d suppress total=[1-9][0-9]* pass=[0-9]+ armed=1 transitions=[0-9]+ frame\(alias=[1-9][0-9]* surface=[1-9][0-9]* sprite=[1-9][0-9]* effect=[1-9][0-9]* special=[1-9][0-9]* shadow=[1-9][0-9]*\) passFrame\(alias=0 surface=0 sprite=0 effect=0 special=0 shadow=0\)" dist/xziel-logcat-nacht.txt; then
+            echo "Nacht never reached a zero-legacy-3D stable frame."
+            grep -E "XZIEL-XZ.*legacy3d suppress|XZIEL-XZ.*phase16 heartbeat|XZIEL-XZ.*parity present" dist/xziel-logcat-nacht.txt | tail -n 300 || true
             exit 1
           fi
 
-          if ! grep -Eq "XZIEL-XZ.*legacy3d suppress total=[1-9][0-9]* pass=[0-9]+ frame\(alias=[0-9]+ surface=[0-9]+ sprite=[0-9]+ effect=[0-9]+ special=[1-9][0-9]* shadow=[0-9]+\)" dist/xziel-logcat.txt; then
-            echo "Xz did not retire any raw/warped sky-water legacy raster after MODERN stabilized."
-            grep -E "XZIEL-XZ.*legacy3d suppress|XZIEL-XZ.*parity specials|XZIEL-XZ.*phase16 heartbeat|XZIEL-XZ.*parity present" dist/xziel-logcat.txt | tail -n 280 || true
+          if ! grep -Eq "XZIEL-XZ.*legacy3d suppress total=[1-9][0-9]* pass=[0-9]+ armed=1 transitions=[0-9]+ frame\(alias=[1-9][0-9]* surface=[1-9][0-9]* sprite=0 effect=0 special=[1-9][0-9]* shadow=[1-9][0-9]*\) passFrame\(alias=0 surface=0 sprite=0 effect=0 special=0 shadow=0\)" dist/xziel-logcat-water.txt; then
+            echo "Dung3on never reached a zero-legacy-3D stable frame."
+            grep -E "XZIEL-XZ.*legacy3d suppress|XZIEL-XZ.*phase16 heartbeat|XZIEL-XZ.*parity specials|XZIEL-XZ.*parity present" dist/xziel-logcat-water.txt | tail -n 300 || true
             exit 1
           fi
 
@@ -902,7 +903,7 @@ jobs:
             exit 1
           fi
 
-          echo "Xziel remained alive; GLES3 owns the visible 3D world while GL4ES remains for HUD/menu/touch fallback UI."
+          echo "Xziel remained alive; stable MODERN frames execute zero legacy 3D raster, while GL4ES remains available for HUD/menu/touch and map-transition fallback."
 
       - name: Upload runtime diagnostics
         if: always()
