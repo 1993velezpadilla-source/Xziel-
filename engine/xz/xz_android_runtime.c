@@ -547,7 +547,9 @@ static void XzEvaluateCutover(void)
         xz_runtime.gles3_shadow.real_textures_ready &&
         xz_runtime.gles3_shadow.real_texture_failures == 0u &&
         xz_runtime.gles3_shadow.last_texture_misses == 0u;
-    evidence.visible_present_ready = 0;
+    evidence.visible_present_ready =
+        xz_runtime.gles3_shadow.visible_context_ready &&
+        xz_runtime.gles3_shadow.visible_present_ready;
 
     evidence.healthy_frames =
         xz_runtime.frame.total_frames;
@@ -828,6 +830,24 @@ static void XzLogSnapshot(double now_seconds)
             g3->last_texture_misses,
             g3->real_textures_ready);
     }
+
+    XzAndroidLog(
+        ANDROID_LOG_INFO,
+        "parity present context=%d attempts=%" PRIu64
+        " success=%" PRIu64 " fail=%" PRIu64
+        " draws=%" PRIu64 " streak=%u"
+        " render=%ux%u surface=%ux%u ready=%d",
+        g3->visible_context_ready,
+        g3->visible_present_attempts,
+        g3->visible_present_successes,
+        g3->visible_present_failures,
+        g3->visible_present_draw_calls,
+        g3->visible_present_streak,
+        g3->visible_render_width,
+        g3->visible_render_height,
+        g3->visible_surface_width,
+        g3->visible_surface_height,
+        g3->visible_present_ready);
 
     XzAndroidLog(
         ANDROID_LOG_INFO,
@@ -1225,7 +1245,7 @@ void XzAndroidRuntime_Init(size_t engine_heap_bytes)
                     ? ANDROID_LOG_INFO
                     : ANDROID_LOG_WARN,
                 "phase16 cutover selftest=%s requested=MODERN safety=STRICT"
-                " geometry=REAL textures=RGBA_TAP visible=GL4ES",
+                " geometry=REAL textures=RGBA_TAP visible=GLES3_PREHUD_GL4ES_UI",
                 XzCutover_SelfTest()
                     ? "PASS" : "FAIL");
 
@@ -1246,6 +1266,22 @@ void XzAndroidRuntime_BeginFrame(double now_seconds)
     if (!xz_runtime.initialized)
         return;
     XzFrameMetrics_Begin(&xz_runtime.frame, now_seconds);
+}
+
+int XzAndroidRuntime_CompositeVisibleWorld(void)
+{
+    if (!xz_runtime.initialized ||
+        !xz_runtime.cutover.candidate_ready ||
+        !xz_runtime.gles3_shadow.real_geometry_ready ||
+        !xz_runtime.gles3_shadow.real_textures_ready ||
+        !xz_runtime.gles3_shadow.visible_context_ready)
+        return 0;
+
+    return XzGles3Shadow_CompositeVisibleWorld(
+        &xz_runtime.gles3_shadow,
+        XzGeometryTap_GetWriteFrame(),
+        xz_runtime.active_quality.width,
+        xz_runtime.active_quality.height);
 }
 
 void XzAndroidRuntime_EndFrame(double now_seconds)
