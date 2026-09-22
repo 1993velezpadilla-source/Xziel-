@@ -1031,6 +1031,9 @@ static int XzDrawRealGeometry(
         geometry->index_count;
     state->last_geometry_drops = drops;
     state->last_effect_batches = geometry->effect_batches;
+    state->last_special_batches = geometry->special_batches;
+    state->last_sky_batches = geometry->sky_batches;
+    state->last_water_batches = geometry->water_batches;
 
     if (drops != 0u) {
         state->real_geometry_failures++;
@@ -1276,6 +1279,8 @@ static int XzDrawRealGeometry(
             kind_mask |= 4u;
         else if (batch->kind == XZ_GEOMETRY_EFFECT)
             kind_mask |= 8u;
+        else if (batch->kind == XZ_GEOMETRY_SPECIAL)
+            kind_mask |= 16u;
 
         state->real_geometry_draw_calls++;
     }
@@ -1299,11 +1304,21 @@ static int XzDrawRealGeometry(
         state->real_geometry_failures == 0u &&
         (state->real_geometry_kind_mask & 0x7u) == 0x7u &&
         (geometry->effect_batches == 0u ||
-         (kind_mask & 0x8u) == 0x8u);
+         (kind_mask & 0x8u) == 0x8u) &&
+        (geometry->special_batches == 0u ||
+         (kind_mask & 0x10u) == 0x10u);
     if (geometry->effect_batches > 0u &&
         state->real_geometry_failures == 0u &&
         (kind_mask & 0x8u) == 0x8u)
         state->real_effects_ready = 1;
+    if (geometry->sky_batches > 0u &&
+        state->real_geometry_failures == 0u &&
+        (kind_mask & 0x10u) == 0x10u)
+        state->real_sky_ready = 1;
+    if (geometry->water_batches > 0u &&
+        state->real_geometry_failures == 0u &&
+        (kind_mask & 0x10u) == 0x10u)
+        state->real_water_ready = 1;
 
     state->last_texture_batches =
         texture_batches;
