@@ -1,6 +1,6 @@
 {
   "project": "Cathedral of Absolution / Cripplegate",
-  "version": 4,
+  "version": 5,
   "shared": {
     "rig": "game_engine",
     "unit_scale": "meters",
@@ -71,7 +71,7 @@
       "age": 0.76,
       "weight": 0.24,
       "muscle": 0.16,
-      "style": "llorona",
+      "style": "la_llorona",
       "palette": [
         "spectral_ivory",
         "waterlogged_linen",
