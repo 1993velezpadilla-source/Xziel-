@@ -99,11 +99,32 @@ parts.append(brush_box((wx1,wy1-wall,wz1),(wx2,wy1,wz2),"facility_wall_l"))
 parts.append(brush_box((wx1,wy2,wz1),(wx2,wy2+wall,wz2),"facility_wall_l"))
 
 # Platforms under actual zone floors.
+# The scan has irregular/crumbled visual edges. The old collision deck ended
+# exactly at the zone AABB, so a player could step onto visible photogrammetry
+# just outside that box and drop beneath the map. Give every playable zone a
+# generous invisible safety margin while keeping the visual authority in XZSM.
+floor_pad=max(48,int(1.75*SCALE))
+floor_thickness=16
+floor_count=0
 for z,info in zone_raw.items():
     if z=="other": continue
     mn=qv(info["min"]); mx=qv(info["max"])
     floorz=mn[2]
-    parts.append(brush_box((mn[0],mn[1],floorz-8),(mx[0],mx[1],floorz),"tiles_me"))
+    parts.append(brush_box(
+        (mn[0]-floor_pad,mn[1]-floor_pad,floorz-floor_thickness),
+        (mx[0]+floor_pad,mx[1]+floor_pad,floorz),
+        "null"
+    ))
+    floor_count += 1
+
+# Last-resort catch deck beneath the lowest playable floor. This is invisible
+# and exists only so malformed scan edges can never turn into an endless fall.
+catch_drop=max(96,int(2.5*SCALE))
+parts.append(brush_box(
+    (wx1,wy1,wz1-catch_drop-floor_thickness),
+    (wx2,wy2,wz1-catch_drop),
+    "null"
+))
 parts.append("}\n")
 
 # Player spawns: preserve exact scan-derived start but make 4 nearby co-op slots.
@@ -216,7 +237,8 @@ OUT.write_text("".join(parts),encoding="utf-8")
 summary={
  "map":str(OUT),"scale":SCALE,"bounds":{"min":[wx1,wy1,wz1],"max":[wx2,wy2,wz2]},
  "zones":len([z for z in zone_docs if z!="other"]),"spawns":len(spawns),
- "players":4,"entities":len(entities)
+ "players":4,"entities":len(entities),
+ "collisionSafety":{"zoneFloorDecks":floor_count,"floorPadUnits":floor_pad,"catchDeckDropUnits":catch_drop}
 }
 (OUT.parent/"sanctum_harness_export.json").write_text(json.dumps(summary,indent=2),encoding="utf-8")
 print(json.dumps(summary,indent=2))
