@@ -105,6 +105,25 @@ for material_index, material in enumerate(glb_materials):
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=str(SOURCE))
 scene = bpy.context.scene
+
+# glTF import preserves material declaration order. Bind the imported Blender
+# material datablocks to original glTF material indices once, so texture
+# identity never depends on rewritten/suffixed material names.
+blender_materials = list(bpy.data.materials)
+if len(blender_materials) != len(glb_materials):
+    raise RuntimeError(
+        f"material count changed during import: glTF={len(glb_materials)} "
+        f"Blender={len(blender_materials)}"
+    )
+
+embedded_by_blender_pointer = {}
+for material_index, blender_material in enumerate(blender_materials):
+    record = embedded_records.get(material_index)
+    if record is not None:
+        embedded_by_blender_pointer[
+            blender_material.as_pointer()
+        ] = record
+
 objects = [obj for obj in scene.objects if obj.type == "MESH"]
 if not objects:
     raise RuntimeError("original church GLB imported no mesh objects")
@@ -232,10 +251,16 @@ def save_material_texture(mat):
     # Source-of-truth path: decoded pixels come directly from the embedded GLB
     # baseColor image selected by the original glTF material. Blender is used
     # only for mesh/UV access and cannot color-manage/re-save these pixels.
-    record = embedded_by_material.get(key)
+    record = (
+        embedded_by_blender_pointer.get(mat.as_pointer())
+        if mat is not None
+        else None
+    )
 
-    # Blender can suffix duplicate datablock names. Match exact original
-    # material prefixes before ever falling back to Blender image nodes.
+    # Name matching remains diagnostic fallback only. The authoritative path
+    # above is Blender-material pointer -> original glTF material index.
+    if record is None:
+        record = embedded_by_material.get(key)
     if record is None:
         for original_name, candidate in embedded_by_material.items():
             if key == original_name or key.startswith(original_name + "."):
