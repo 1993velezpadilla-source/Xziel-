@@ -142,6 +142,60 @@ void HordeDirector::reset() noexcept {
     zombieDynamicBlockerTargets_.fill(0U);
 }
 
+bool HordeDirector::setSpawnPoints(
+    const Vec3* points,
+    std::size_t count) noexcept {
+    if (points == nullptr ||
+        count == 0 ||
+        count > config_.spawnPoints.size()) {
+        return false;
+    }
+
+    for (std::size_t i = 0; i < count; ++i) {
+        if (!std::isfinite(points[i].x) ||
+            !std::isfinite(points[i].y) ||
+            !std::isfinite(points[i].z)) {
+            return false;
+        }
+    }
+
+    for (std::size_t i = 0;
+         i < config_.spawnPoints.size();
+         ++i) {
+        config_.spawnPoints[i] =
+            i < count
+            ? points[i]
+            : Vec3{};
+    }
+
+    config_.spawnPointCount =
+        static_cast<std::uint32_t>(
+            count);
+    nextSpawnPoint_ = 0U;
+    return true;
+}
+
+bool HordeDirector::setArenaBounds(
+    float minimumX,
+    float maximumX,
+    float minimumZ,
+    float maximumZ) noexcept {
+    if (!std::isfinite(minimumX) ||
+        !std::isfinite(maximumX) ||
+        !std::isfinite(minimumZ) ||
+        !std::isfinite(maximumZ) ||
+        minimumX >= maximumX ||
+        minimumZ >= maximumZ) {
+        return false;
+    }
+
+    config_.arenaMinimumX = minimumX;
+    config_.arenaMaximumX = maximumX;
+    config_.arenaMinimumZ = minimumZ;
+    config_.arenaMaximumZ = maximumZ;
+    return true;
+}
+
 void HordeDirector::clearNavigationObstacles() noexcept {
     navigationObstacleCount_ = 0;
 }
