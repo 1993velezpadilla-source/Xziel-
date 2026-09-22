@@ -118,6 +118,85 @@ for i in range(22):
     p.z=main["min"][2]+random.uniform(.05,.16)
     created.append(rubble_piece(f"ALTAR_RUBBLE_{i:02d}",p,random.uniform(.16,.42)))
 
+
+# Clean preview renders with the real church visible behind the dressing.
+for name in ["ZOMBIES_GAMEPLAY_V1","ZOMBIES_LABELS_V1","RUNTIME_COLLISION_V1","RUNTIME_NAV_V1",
+             "RUNTIME_COLLISION_FITTED_V2","BARRICADES_FITTED_V2","NAV_FITTED_V2"]:
+    cc=bpy.data.collections.get(name)
+    if cc:
+        cc.hide_render=True
+        cc.hide_viewport=True
+lod=bpy.data.collections.get("GAME_CHURCH_LOD0")
+if lod:
+    lod.hide_render=False
+    lod.hide_viewport=False
+src=bpy.data.collections.get("SOURCE_CHURCH_FULL")
+if src:
+    src.hide_render=True
+    src.hide_viewport=True
+
+scene=bpy.context.scene
+scene.world.use_nodes=True
+bg=scene.world.node_tree.nodes.get("Background")
+if bg:
+    bg.inputs["Color"].default_value=(0.006,0.01,0.022,1)
+    bg.inputs["Strength"].default_value=0.05
+try:
+    scene.render.engine="BLENDER_EEVEE_NEXT"
+except Exception:
+    try: scene.render.engine="BLENDER_EEVEE"
+    except Exception: pass
+scene.render.resolution_x=1600
+scene.render.resolution_y=900
+scene.render.resolution_percentage=100
+scene.render.image_settings.file_format="PNG"
+
+cam=scene.camera
+if not cam:
+    bpy.ops.object.camera_add()
+    cam=bpy.context.object
+    scene.camera=cam
+cam.data.clip_end=5000
+
+def look_at(o,t):
+    d=Vector(t)-o.location
+    o.rotation_euler=d.to_track_quat("-Z","Y").to_euler()
+
+def add_preview_light(name,loc,target,color,energy,size):
+    bpy.ops.object.light_add(type="AREA",location=loc)
+    l=bpy.context.object
+    l.name=name
+    l.data.energy=energy
+    l.data.color=color
+    l.data.shape="DISK"
+    l.data.size=size
+    look_at(l,target)
+    return l
+
+# Barricade close-up.
+if fit.get("barricades"):
+    b0=fit["barricades"][0]
+    bloc=Vector(b0["location"])
+    bn=Vector(b0["normal"])
+    if bn.length<0.01: bn=Vector((1,0,0))
+    bn.normalize()
+    tangent=Vector((-bn.y,bn.x,0))
+    cam.location=bloc+bn*4.7+tangent*1.4+Vector((0,0,1.4))
+    cam.data.lens=42
+    look_at(cam,bloc+Vector((0,0,0.25)))
+    add_preview_light("DRESS_KEY",bloc+bn*2.5+Vector((0,0,3.0)),bloc,(0.28,0.42,0.85),850,3.0)
+    add_preview_light("DRESS_WARM",bloc-bn*1.5+Vector((0,0,2.0)),bloc,(1.0,0.26,0.08),500,2.0)
+    scene.render.filepath=str(OUT/"dressing_barricade_preview.png")
+    bpy.ops.render.render(write_still=True)
+
+# Altar dressing.
+cam.location=altar-axis*7+side*3+Vector((0,0,2.0))
+cam.data.lens=36
+look_at(cam,altar+Vector((0,0,1.0)))
+add_preview_light("ALTAR_KEY",altar-axis*1.5+Vector((0,0,4.5)),altar,(1.0,0.22,0.06),780,4.0)
+scene.render.filepath=str(OUT/"dressing_altar_preview.png")
+bpy.ops.render.render(write_still=True)
+
 # Export only dressing.
 bpy.ops.object.select_all(action="DESELECT")
 meshes=[o for o in col.objects if o.type=="MESH"]
