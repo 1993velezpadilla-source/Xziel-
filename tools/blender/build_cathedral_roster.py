@@ -149,6 +149,177 @@ def cross_prop(name,loc,size,material):
     b=cube(name+"_H",(loc[0],loc[1],loc[2]+size*.22),(size*.58,size*.08,size*.14),material,size*.03)
     return [a,b]
 
+
+def cone_between(name,p0,p1,r0,r1,material,verts=28):
+    p0,p1=Vector(p0),Vector(p1)
+    axis=p1-p0
+    if axis.length < 1e-6:
+        return None
+    n=axis.normalized()
+    helper=Vector((0,0,1)) if abs(n.z)<0.9 else Vector((0,1,0))
+    u=n.cross(helper).normalized()
+    v=n.cross(u).normalized()
+    vs=[]; fs=[]
+    for center,r in ((p0,r0),(p1,r1)):
+        for i in range(verts):
+            a=2*math.pi*i/verts
+            q=center+r*(u*math.cos(a)+v*math.sin(a))
+            vs.append(tuple(q))
+    for i in range(verts):
+        j=(i+1)%verts
+        fs.append((i,j,verts+j,verts+i))
+    mesh=bpy.data.meshes.new(name+"Mesh"); mesh.from_pydata(vs,[],fs); mesh.update()
+    o=bpy.data.objects.new(name,mesh); bpy.context.collection.objects.link(o); assign(o,material)
+    sol=o.modifiers.new("ClothThickness","SOLIDIFY"); sol.thickness=.004; sol.offset=0
+    return o
+
+def open_veil(name,h,material,outer=True,translucent=False):
+    seg=34
+    rx=(.145 if outer else .105)*h
+    ry=(.105 if outer else .075)*h
+    ztop=(.985 if outer else .965)*h
+    zbot=(.565 if outer else .735)*h
+    vs=[]; fs=[]
+    for ring,z in enumerate((ztop,zbot)):
+        for i in range(seg):
+            a=-2.12 + 4.24*i/(seg-1)
+            x=rx*math.sin(a); y=ry*math.cos(a)
+            zz=z
+            if ring==1:
+                zz -= (.018 if outer else .008)*h*(.25+.75*abs(math.sin(i*1.91)))
+            vs.append((x,y,zz))
+    for i in range(seg-1):
+        fs.append((i,i+1,seg+i+1,seg+i))
+    mesh=bpy.data.meshes.new(name+"Mesh"); mesh.from_pydata(vs,[],fs); mesh.update()
+    o=bpy.data.objects.new(name,mesh); bpy.context.collection.objects.link(o); assign(o,material)
+    sol=o.modifiers.new("VeilThickness","SOLIDIFY"); sol.thickness=.0035; sol.offset=0
+    return o
+
+def belt_loop(name,h,material,z=.555,scale_y=.72):
+    o=torus(name,(0,0,z*h),.094*h,.0065*h,material)
+    o.scale.y=scale_y; apply_obj(o)
+    return o
+
+def cloth_patches(prefix,h,material,count=8):
+    out=[]
+    for i in range(count):
+        side=-1 if i%2==0 else 1
+        x=side*(.055+.018*(i%3))*h
+        z=(.31+.052*i)*h
+        y=-.105*h
+        p=cube(f"{prefix}_{i:02}",(x,y,z),(.025*h,.003*h,.030*h),material,.002*h)
+        p.rotation_euler.z=math.radians((-8,5,11,-5)[i%4])
+        out.append(p)
+    return out
+
+def sleeve_pair(h,material,ragged=False):
+    out=[]
+    for side,label in ((-1,"L"),(1,"R")):
+        p0=(side*.19*h,0,.765*h); p1=(side*.335*h,-.006*h,.555*h)
+        o=cone_between(f"Sleeve_{label}",p0,p1,.070*h,.048*h,material,32)
+        if o: out.append(o)
+        if ragged and o:
+            cuff=torus(f"CuffRag_{label}",p1,.049*h,.004*h,material,rot=(math.radians(90),0,0))
+            cuff.scale.z=.55; apply_obj(cuff); out.append(cuff)
+    return out
+
+def nun_outfit(h,mats,stained=False):
+    ivory=mats["spectral_ivory"] if stained else mats["dirty_ivory"]
+    blue=mats["ash_blue"]
+    rope=mats["rope"]
+    metal=mats.get("oxidized_metal",mats.get("old_wood"))
+    out=[]
+    out.append(frustum("IvoryUnderSkirt",.035*h,.48*h,.145*h,.105*h,.112*h,.090*h,ivory,64,.035*h,.3))
+    out.append(frustum("BlueOuterSkirt",.17*h,.69*h,.165*h,.118*h,.120*h,.096*h,blue,64,.045*h,1.1))
+    out.append(frustum("BlueBodice",.55*h,.805*h,.120*h,.093*h,.145*h,.102*h,blue,56,.012*h,.6))
+    out.append(frustum("IvoryShoulderCape",.665*h,.825*h,.172*h,.120*h,.135*h,.100*h,ivory,56,.030*h,.2))
+    out.extend(sleeve_pair(h,blue,True))
+    out.append(open_veil("OuterVeil",h,ivory if stained else blue,True))
+    out.append(open_veil("InnerWimple",h,ivory,False))
+    out.append(belt_loop("RopeBelt",h,rope))
+    out.extend(cross_prop("NunCross",(0,-.093*h,.485*h),.045*h,metal))
+    if not stained:
+        out.extend(cloth_patches("RepairPatch",h,ivory,9))
+    return out
+
+def llorona_outfit(h,mats):
+    ivory=mats["spectral_ivory"]; linen=mats.get("waterlogged_linen",ivory); rope=mats["rope"]
+    out=[]
+    out.append(frustum("LloronaUnderDress",.025*h,.57*h,.160*h,.112*h,.108*h,.088*h,linen,64,.050*h,.1))
+    out.append(frustum("LloronaLayerA",.08*h,.73*h,.175*h,.122*h,.120*h,.096*h,ivory,64,.055*h,.8))
+    out.append(frustum("LloronaLayerB",.20*h,.80*h,.158*h,.112*h,.128*h,.098*h,linen,56,.040*h,1.7))
+    out.append(frustum("LloronaBodice",.56*h,.845*h,.125*h,.095*h,.142*h,.102*h,ivory,56,.018*h,.4))
+    out.extend(sleeve_pair(h,ivory,True))
+    out.append(belt_loop("RosaryBelt",h,rope,.565,.74))
+    return out
+
+def stained_halo(h,mats):
+    metal=mats["oxidized_metal"]
+    out=[]
+    halo=torus("StainedHalo",(0,.075*h,.895*h),.128*h,.006*h,metal,rot=(math.radians(90),0,0))
+    out.append(halo)
+    cols=[mats["glass_blue"],mats["glass_cyan"],mats["glass_magenta"],mats["amber"]]
+    for i in range(16):
+        a=2*math.pi*i/16
+        x=.128*h*math.cos(a); z=.895*h+.128*h*math.sin(a); y=.070*h
+        shard=cube(f"HaloGlass_{i:02}",(x,y,z),(.020*h,.003*h,.035*h),cols[i%4],.002*h)
+        shard.rotation_euler.y=-a
+        out.append(shard)
+    return out
+
+def parent_to_bone(obj,rig,bone):
+    if bone not in rig.data.bones: return
+    mw=obj.matrix_world.copy()
+    obj.parent=rig; obj.parent_type="BONE"; obj.parent_bone=bone
+    obj.matrix_world=mw
+
+def bind_mesh_vertical(obj,rig,h):
+    if obj.type!="MESH": return
+    for g in ("pelvis","spine_01","spine_02","spine_03"):
+        if g not in obj.vertex_groups: obj.vertex_groups.new(name=g)
+    for v in obj.data.vertices:
+        z=(obj.matrix_world @ v.co).z/max(h,1e-6)
+        if z < .46: bone="pelvis"
+        elif z < .59: bone="spine_01"
+        elif z < .72: bone="spine_02"
+        else: bone="spine_03"
+        obj.vertex_groups[bone].add([v.index],1.0,"REPLACE")
+    mod=obj.modifiers.new("GameRig","ARMATURE"); mod.object=rig
+    obj.parent=rig
+
+def bind_sleeve(obj,rig,h,left=True):
+    if obj.type!="MESH": return
+    a="upperarm_l" if left else "upperarm_r"; b="lowerarm_l" if left else "lowerarm_r"
+    ga=obj.vertex_groups.get(a) or obj.vertex_groups.new(name=a)
+    gb=obj.vertex_groups.get(b) or obj.vertex_groups.new(name=b)
+    for v in obj.data.vertices:
+        z=(obj.matrix_world @ v.co).z/max(h,1e-6)
+        t=max(0,min(1,(.765-z)/.22))
+        ga.add([v.index],1-t,"REPLACE"); gb.add([v.index],t,"REPLACE")
+    mod=obj.modifiers.new("GameRig","ARMATURE"); mod.object=rig
+    obj.parent=rig
+
+def bind_generated_to_rig(body,rig,h):
+    for o in list(bpy.context.scene.objects):
+        if o==body or o==rig: continue
+        n=o.name
+        if o.type=="CURVE":
+            if n.startswith("Hair"): parent_to_bone(o,rig,"head")
+            continue
+        if o.type!="MESH": continue
+        if n.startswith("Eye") or n in ("OuterVeil","InnerWimple","StainedHalo") or n.startswith("HaloGlass"):
+            parent_to_bone(o,rig,"head"); continue
+        if n.startswith("Sleeve_L") or n.startswith("CuffRag_L"):
+            bind_sleeve(o,rig,h,True); continue
+        if n.startswith("Sleeve_R") or n.startswith("CuffRag_R"):
+            bind_sleeve(o,rig,h,False); continue
+        if n.startswith(("NunCross","RosaryCross")):
+            parent_to_bone(o,rig,"spine_02"); continue
+        if n.startswith(("RopeBelt","RosaryBelt")):
+            parent_to_bone(o,rig,"pelvis"); continue
+        if n.startswith(("Dress","Llorona","Ivory","Blue","RepairPatch","OuterRobe","UnderRobe","Stole","ShoulderCape","GlassShard")):
+            bind_mesh_vertical(o,rig,h)
+
 def curve_chain(name,pts,material,bevel=.008):
     c=bpy.data.curves.new(name+"Curve","CURVE"); c.dimensions="3D"; c.bevel_depth=bevel; c.bevel_resolution=2
     sp=c.splines.new("BEZIER"); sp.bezier_points.add(len(pts)-1)
@@ -184,12 +355,18 @@ def add_damage_sockets(h):
         coll.objects.link(e)
 
 def robe_for_style(style,h,w,d,mats):
+    if style=="sister_of_ash":
+        return nun_outfit(h,mats,False)
+    if style=="stained_shade":
+        return nun_outfit(h,mats,True)
+    if style=="la_llorona":
+        return llorona_outfit(h,mats)
     objs=[]
     ivory=mats.get("dirty_ivory") or mats.get("spectral_ivory") or next(iter(mats.values()))
     blue=mats.get("ash_blue") or mats.get("drowned_blue") or ivory
     burg=mats.get("burgundy") or mats.get("choir_red") or blue
     soot=mats.get("soot") or mats.get("gravecoat") or blue
-    if style in ("la_llorona","lost_child","waterbound_child"):
+    if style in ("lost_child","waterbound_child"):
         outer=mats.get("spectral_ivory") or mats.get("drowned_ivory") or ivory
         objs.append(frustum("DressOuter",.08*h,.73*h,.30*w,.24*d,.18*w,.20*d,outer,56,.035*h,.4))
         objs.append(frustum("DressUpper",.58*h,.86*h,.19*w,.18*d,.18*w,.17*d,outer,48,.012*h,.9))
@@ -206,7 +383,7 @@ def robe_for_style(style,h,w,d,mats):
         objs.append(frustum("BossBurgundy",.10*h,.86*h,.16*w,.30*d,.11*w,.24*d,burg,40,.035*h,.2))
     else:
         objs.append(frustum("UnderRobe",.06*h,.70*h,.29*w,.24*d,.18*w,.18*d,ivory,48,.030*h,.3))
-        objs.append(frustum("OuterRobe",.12*h,.84*h,.30*w,.26*d,.20*w,.20*d,blue if style in ("bell_ringer","stained_shade") else burg,48,.040*h,.9))
+        objs.append(frustum("OuterRobe",.12*h,.84*h,.30*w,.26*d,.20*w,.20*d,blue if style in ("bell_ringer",) else burg,48,.040*h,.9))
         if style in ("choir_wretch","penitent_deacon"):
             objs.append(frustum("Stole",.16*h,.84*h,.09*w,.265*d,.07*w,.21*d,burg,28,.025*h,.5))
     return objs
@@ -341,17 +518,24 @@ def look_at(o,target):
     o.rotation_euler=(Vector(target)-o.location).to_track_quat("-Z","Y").to_euler()
 
 def preview(body,folder,style):
-    scene=bpy.context.scene; scene.render.engine="BLENDER_EEVEE_NEXT"; scene.render.resolution_x=640; scene.render.resolution_y=800; scene.render.resolution_percentage=100
-    scene.render.image_settings.file_format="PNG"; scene.world.color=(.004,.004,.006)
+    scene=bpy.context.scene
+    scene.render.engine="BLENDER_EEVEE_NEXT"
+    scene.render.resolution_x=720; scene.render.resolution_y=900; scene.render.resolution_percentage=100
+    scene.render.image_settings.file_format="PNG"; scene.world.color=(.006,.007,.009)
+    try: scene.view_settings.exposure=-1.35
+    except Exception: pass
     lo,hi=local_bounds(body); h=hi.z-lo.z; target=(0,0,lo.z+h*.52)
-    bpy.ops.object.camera_add(location=(.72,-2.65,lo.z+h*.57)); cam=bpy.context.object; cam.data.lens=58; look_at(cam,target); scene.camera=cam
+    dist=max(2.75,h*1.72)
+    bpy.ops.object.camera_add(location=(.22*dist,-dist,lo.z+h*.55))
+    cam=bpy.context.object; cam.name="PreviewCamera"; cam.data.lens=62; look_at(cam,target); scene.camera=cam
     for name,loc,en,size,col in [
-      ("Key",(-1.8,-1.8,lo.z+h*.82),1050,2.0,(.58,.67,.80)),
-      ("Rim",(1.8,1.0,lo.z+h*.70),1300,1.4,(.70,.13,.05)),
-      ("Fill",(.2,-.8,lo.z+h*.35),250,1.3,(.28,.32,.28))]:
-        bpy.ops.object.light_add(type="AREA",location=loc); L=bpy.context.object; L.name=name; L.data.energy=en; L.data.size=size; L.data.color=col; look_at(L,target)
+      ("Key",(-.55*dist,-.62*dist,lo.z+h*.80),300,1.8,(.55,.64,.78)),
+      ("Rim",(.58*dist,.30*dist,lo.z+h*.68),430,1.35,(.68,.17,.08)),
+      ("Fill",(.05*dist,-.30*dist,lo.z+h*.35),90,1.5,(.28,.31,.34))]:
+        bpy.ops.object.light_add(type="AREA",location=loc); L=bpy.context.object
+        L.name=name; L.data.energy=en; L.data.size=size; L.data.color=col; look_at(L,target)
     bpy.ops.mesh.primitive_plane_add(size=max(8,h*4),location=(0,0,lo.z-.01)); g=bpy.context.object
-    assign(g,mat("M_PreviewGround","#101216",.82,0,noise=False))
+    assign(g,mat("M_PreviewGround","#0C0E12",.86,0,noise=False))
     out=folder/"preview.png"; scene.render.filepath=str(out); bpy.ops.render.render(write_still=True)
     return out
 
@@ -390,11 +574,11 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService,TargetServi
     style=ch["style"]
     robe_for_style(style,h,w,d,mats)
     veilmat=mats.get("spectral_ivory") or mats.get("dirty_ivory")
-    if style in ("la_llorona","lost_child","waterbound_child","bell_ringer","choir_wretch","penitent_deacon","stained_shade","censer_brute","reliquary_horror"):
+    if style in ("lost_child","waterbound_child","bell_ringer","choir_wretch","penitent_deacon","censer_brute","reliquary_horror"):
         veil(style,h,w,d,veilmat)
     if style in ("la_llorona","lost_child","waterbound_child"):
-        hair_strands(.96*h,h,mats["wet_black"],34 if style=="la_llorona" else 22,.55 if style=="la_llorona" else .28)
-    eye_m=mat("M_"+ch["id"]+"_Eye","#D8DDE0",.18,0,emission="#AAB5B5",noise=False)
+        hair_strands(.97*h,h,mats["wet_black"],46 if style=="la_llorona" else 22,.62 if style=="la_llorona" else .28)
+    eye_m=mat("M_"+ch["id"]+"_Eye","#C9CED0",.28,0,emission=("#7FA7C4" if style=="stained_shade" else None),noise=False)
     add_eyes(.89*h,-.105*d,eye_m)
     if style=="bell_ringer": bell_prop(h,mats["tarnished_brass"],mats["rope"])
     if style=="grave_sexton": shovel_prop(h,mats.get("iron",mats["dark_iron"]),mats["old_wood"])
@@ -402,12 +586,14 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService,TargetServi
     if style=="censer_brute": censer_prop(h,mats.get("oxidized_brass",mats["tarnished_brass"]),mats["rope"])
     if style=="reliquary_horror":
         censer_prop(h,mats.get("oxidized_brass",mats["tarnished_brass"]),mats["rope"]); shrine_back(h,mats["old_wood"],mats["dark_iron"],mats["wax"])
-    if style=="stained_shade": glass_shards(h,mats)
+    if style=="stained_shade":
+        glass_shards(h,mats); stained_halo(h,mats)
     if style in ("la_llorona","lost_child"):
         cross_prop("RosaryCross",(0,-.12*d,.53*h),.035*h,mats.get("tarnished_silver",mats["oxidized_metal"]))
     if style=="lost_child":
         uv_sphere("ClothDoll",(0.16,-.04,.34*h),(.05*h,.035*h,.09*h),mats["dirty_ivory"])
     add_damage_sockets(h) if ch["category"] not in ("random_encounter",) else None
+    bind_generated_to_rig(body,rig,h)
     create_actions(rig,ch["animations"])
     folder=outroot/ch["id"]; folder.mkdir(parents=True,exist_ok=True)
     objs=collect_character_objects()

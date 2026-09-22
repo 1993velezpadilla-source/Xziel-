@@ -81,7 +81,6 @@ jobs:
           LIBGL_ALWAYS_SOFTWARE: "1"
         run: |
           set -euxo pipefail
-          rm -rf assets/generated/cathedral_roster
           mkdir -p assets/generated/cathedral_roster
           xvfb-run -a -s "-screen 0 1280x1024x24" \
             /opt/blender-4.5.14/blender --background \
@@ -89,14 +88,15 @@ jobs:
             -- \
             --assets-root /tmp/mhassets \
             --spec tools/blender/cathedral_roster.json \
-            --out-dir assets/generated/cathedral_roster
+            --out-dir assets/generated/cathedral_roster \\
+            --only sister_of_ash,la_llorona,stained_shade
 
       - name: Validate production outputs
         shell: bash
         run: |
           set -euxo pipefail
           python3 -m json.tool assets/generated/cathedral_roster/roster_build_summary.json
-          for id in la_llorona lost_child waterbound_child bell_ringer choir_wretch grave_sexton penitent_deacon stained_shade censer_brute reliquary_horror; do
+          for id in sister_of_ash la_llorona stained_shade; do
             test -s "assets/generated/cathedral_roster/$id/model.blend"
             test -s "assets/generated/cathedral_roster/$id/model.glb"
             test -s "assets/generated/cathedral_roster/$id/model.fbx"
@@ -123,7 +123,7 @@ jobs:
       - name: Upload full production artifact
         uses: actions/upload-artifact@v4
         with:
-          name: cathedral-production-roster-pass1
+          name: cathedral-priority-models-pass2
           path: assets/generated/cathedral_roster/
           if-no-files-found: error
           retention-days: 14
