@@ -2666,6 +2666,212 @@ int XzGles3Shadow_SubmitCommands(
         state, commands, plan, resources, geometry);
 }
 
+int XzGles3Shadow_CompositeVisibleWorld(
+    XzGles3ShadowState *state,
+    const XzGeometryFrame *geometry,
+    unsigned int render_width,
+    unsigned int render_height)
+{
+    XzNativeGles3Api *gl = &xz_shadow.gl;
+    EGLDisplay previous_display;
+    EGLSurface previous_draw;
+    EGLSurface previous_read;
+    EGLContext previous_context;
+    EGLint surface_width = 0;
+    EGLint surface_height = 0;
+    GLenum error = GL_NO_ERROR;
+    int shadow_current = 0;
+    int visible_current = 0;
+    int restored = 0;
+    int draw_ok = 0;
+
+    if (!state || !geometry ||
+        !state->initialized ||
+        !state->available ||
+        !xz_shadow.ready ||
+        !state->visible_context_ready ||
+        xz_shadow.visible_context == EGL_NO_CONTEXT ||
+        !state->real_geometry_ready ||
+        !state->real_textures_ready)
+        return 0;
+
+    if (render_width < 64u)
+        render_width = 64u;
+    if (render_height < 64u)
+        render_height = 64u;
+
+    state->visible_present_attempts++;
+
+    if (!XzMakeShadowCurrent(
+            &previous_display,
+            &previous_draw,
+            &previous_read,
+            &previous_context)) {
+        state->visible_present_failures++;
+        state->visible_present_streak = 0u;
+        state->visible_present_ready = 0;
+        return 0;
+    }
+    shadow_current = 1;
+
+    if (previous_display == EGL_NO_DISPLAY ||
+        previous_draw == EGL_NO_SURFACE ||
+        previous_context == EGL_NO_CONTEXT)
+        goto fail;
+
+    XzDrainErrors(state);
+
+    if (!XzEnsureVisibleTargets(
+            render_width,
+            render_height))
+        goto fail;
+
+    gl->BindFramebuffer(
+        GL_FRAMEBUFFER,
+        xz_shadow.visible_fbo);
+    gl->Viewport(
+        0,
+        0,
+        (GLsizei)render_width,
+        (GLsizei)render_height);
+    gl->ClearColor(
+        0.010f, 0.015f, 0.020f, 1.0f);
+    gl->Clear(
+        GL_COLOR_BUFFER_BIT |
+        GL_DEPTH_BUFFER_BIT);
+
+    if (gl->GetError() != GL_NO_ERROR)
+        goto fail;
+
+    if (!XzDrawRealGeometry(
+            state,
+            geometry) ||
+        state->last_geometry_drops != 0u ||
+        state->last_texture_misses != 0u)
+        goto fail;
+
+    gl->Finish();
+    error = gl->GetError();
+    if (error != GL_NO_ERROR)
+        goto fail;
+
+    if (!eglMakeCurrent(
+            xz_shadow.display,
+            previous_draw,
+            previous_read,
+            xz_shadow.visible_context))
+        goto fail;
+    visible_current = 1;
+    shadow_current = 0;
+
+    if (!eglQuerySurface(
+            xz_shadow.display,
+            previous_draw,
+            EGL_WIDTH,
+            &surface_width) ||
+        !eglQuerySurface(
+            xz_shadow.display,
+            previous_draw,
+            EGL_HEIGHT,
+            &surface_height) ||
+        surface_width <= 0 ||
+        surface_height <= 0) {
+        surface_width = (EGLint)render_width;
+        surface_height = (EGLint)render_height;
+    }
+
+    gl->BindFramebuffer(GL_FRAMEBUFFER, 0u);
+    gl->Viewport(
+        0, 0,
+        (GLsizei)surface_width,
+        (GLsizei)surface_height);
+    gl->Disable(GL_DEPTH_TEST);
+    gl->Disable(GL_BLEND);
+    gl->DepthMask(GL_TRUE);
+    gl->UseProgram(
+        xz_shadow.fullscreen_program);
+    gl->Uniform1i(
+        xz_shadow.fullscreen_input_count_loc,
+        1);
+    gl->ActiveTexture(GL_TEXTURE0);
+    gl->BindTexture(
+        GL_TEXTURE_2D,
+        xz_shadow.visible_color);
+    gl->BindVertexArray(
+        xz_shadow.visible_vao);
+    gl->DrawArrays(
+        GL_TRIANGLES, 0, 3);
+    gl->Finish();
+
+    error = gl->GetError();
+    if (error == GL_NO_ERROR)
+        draw_ok = 1;
+
+    gl->BindVertexArray(0u);
+    gl->BindTexture(GL_TEXTURE_2D, 0u);
+    gl->UseProgram(0u);
+
+    restored = XzRestorePrevious(
+        previous_display,
+        previous_draw,
+        previous_read,
+        previous_context);
+    visible_current = 0;
+
+    if (!restored) {
+        state->restore_failures++;
+        state->restore_ok = 0;
+        draw_ok = 0;
+    } else {
+        state->restore_ok = 1;
+    }
+
+    if (!draw_ok)
+        goto fail_after_restore;
+
+    state->visible_render_width = render_width;
+    state->visible_render_height = render_height;
+    state->visible_surface_width =
+        (unsigned int)surface_width;
+    state->visible_surface_height =
+        (unsigned int)surface_height;
+    state->visible_present_draw_calls++;
+    state->visible_present_successes++;
+    state->visible_present_streak++;
+
+    state->visible_present_ready =
+        state->visible_present_streak >= 2u &&
+        state->last_texture_misses == 0u &&
+        state->last_geometry_drops == 0u;
+
+    return 1;
+
+fail:
+    if (visible_current || shadow_current) {
+        if (!XzRestorePrevious(
+                previous_display,
+                previous_draw,
+                previous_read,
+                previous_context)) {
+            state->restore_failures++;
+            state->restore_ok = 0;
+        } else {
+            state->restore_ok = 1;
+        }
+    }
+
+fail_after_restore:
+    if (error != GL_NO_ERROR &&
+        state->last_gl_error == 0u)
+        state->last_gl_error =
+            (unsigned int)error;
+
+    state->visible_present_failures++;
+    state->visible_present_streak = 0u;
+    state->visible_present_ready = 0;
+    return 0;
+}
+
 void XzGles3Shadow_Shutdown(
     XzGles3ShadowState *state)
 {
