@@ -80,6 +80,7 @@ jobs:
           LLORONA_TEXTURE_SIZE: ${{ github.event_name == 'workflow_dispatch' && inputs.texture_size || '1024' }}
           LLORONA_HEIGHT_M: "1.72"
           LLORONA_REQUIRE_DETAILS: ${{ github.event_name == 'workflow_dispatch' && inputs.require_details && '1' || '0' }}
+          LLORONA_STRICT_QA: ${{ github.event_name == 'workflow_dispatch' && '1' || '0' }}
           LLORONA_QA_FACE_RATIO_MIN: ${{ github.event_name == 'workflow_dispatch' && '0.12' || '0' }}
           LLORONA_QA_FACE_LAP_MIN: ${{ github.event_name == 'workflow_dispatch' && '14' || '0' }}
           LLORONA_QA_ROSARY_RATIO_MIN: ${{ github.event_name == 'workflow_dispatch' && '0.10' || '0' }}
