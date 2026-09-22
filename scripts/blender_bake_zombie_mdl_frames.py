@@ -113,19 +113,34 @@ def export_obj(path):
     bpy.ops.object.select_all(action="DESELECT")
     for obj in meshes: obj.select_set(True)
     bpy.context.view_layer.objects.active=meshes[0]
-    bpy.ops.export_scene.obj(
-        filepath=str(path),
-        use_selection=True,
-        use_animation=False,
-        use_mesh_modifiers=True,
-        use_edges=False,
-        use_normals=True,
-        use_uvs=True,
-        use_materials=False,
-        keep_vertex_order=True,
-        axis_forward="X",
-        axis_up="Z"
-    )
+
+    # Blender <=3.x ships export_scene.obj; Blender 4.x moved OBJ export to wm.obj_export.
+    if hasattr(bpy.ops.export_scene, "obj"):
+        bpy.ops.export_scene.obj(
+            filepath=str(path),
+            use_selection=True,
+            use_animation=False,
+            use_mesh_modifiers=True,
+            use_edges=False,
+            use_normals=True,
+            use_uvs=True,
+            use_materials=False,
+            keep_vertex_order=True,
+            axis_forward="X",
+            axis_up="Z"
+        )
+    else:
+        bpy.ops.wm.obj_export(
+            filepath=str(path),
+            export_animation=False,
+            export_selected_objects=True,
+            apply_modifiers=True,
+            export_uv=True,
+            export_normals=True,
+            export_materials=False,
+            forward_axis="X",
+            up_axis="Z"
+        )
 
 groups=[None]*contract["frame_count"]
 for g in contract["groups"]:
