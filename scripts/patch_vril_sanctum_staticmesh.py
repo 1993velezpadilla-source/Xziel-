@@ -17,6 +17,8 @@ c_path.write_text(r'''// Xziel textured static-mesh bridge for Android/SDL.
 // by the headless Blender church pipeline. BSP remains gameplay/collision.
 
 #include "../../../nzportable_def.h"
+#include "../../../xz_geometry_tap.h"
+#include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -217,12 +219,65 @@ qboolean Xziel_StaticMesh_Prepare(void)
     return xzsm_loaded;
 }
 
+static void XZSM_CaptureBatch(
+    const xzsm_batch_t *b,
+    const float modelview[16],
+    const float projection[16])
+{
+    XzGeometryRenderState state;
+    uint64_t sr = 0, sg = 0, sb = 0, sa = 0;
+    uint32_t i;
+
+    if (!b || b->texture < 0 || !b->vertex_count || !b->index_count)
+        return;
+
+    memset(&state, 0, sizeof(state));
+    for (i = 0; i < b->vertex_count; ++i) {
+        sr += b->vertices[i].r;
+        sg += b->vertices[i].g;
+        sb += b->vertices[i].b;
+        sa += b->vertices[i].a;
+    }
+
+    state.color[0] = (float)sr / (255.0f * (float)b->vertex_count);
+    state.color[1] = (float)sg / (255.0f * (float)b->vertex_count);
+    state.color[2] = (float)sb / (255.0f * (float)b->vertex_count);
+    state.color[3] = (float)sa / (255.0f * (float)b->vertex_count);
+    state.blend_enabled = 0u;
+    state.blend_src = GL_SRC_ALPHA;
+    state.blend_dst = GL_ONE_MINUS_SRC_ALPHA;
+    state.depth_write = 1u;
+    state.depth_func = GL_LEQUAL;
+    state.alpha_test_enabled = 0u;
+    state.alpha_func = GL_GREATER;
+    state.alpha_ref = 0.0f;
+    state.texture_env_mode = GL_MODULATE;
+
+    XzGeometryTap_CaptureIndexedFloat(
+        b->vertices,
+        b->vertex_count,
+        sizeof(xzsm_vertex_t),
+        offsetof(xzsm_vertex_t, x),
+        offsetof(xzsm_vertex_t, u),
+        b->indices,
+        b->index_count,
+        b->texture,
+        &state,
+        modelview,
+        projection);
+}
+
 void Xziel_StaticMesh_Draw(void)
 {
     uint32_t i;
+    float xz_mv[16];
+    float xz_pr[16];
 
     if (!Xziel_StaticMesh_Prepare())
         return;
+
+    glGetFloatv(GL_MODELVIEW_MATRIX, xz_mv);
+    glGetFloatv(GL_PROJECTION_MATRIX, xz_pr);
 
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_DEPTH_TEST);
@@ -243,6 +298,7 @@ void Xziel_StaticMesh_Draw(void)
             continue;
         if (b->texture >= 0)
             GL_Bind(b->texture);
+        XZSM_CaptureBatch(b, xz_mv, xz_pr);
         glVertexPointer(3, GL_FLOAT, sizeof(xzsm_vertex_t), &b->vertices[0].x);
         glTexCoordPointer(2, GL_FLOAT, sizeof(xzsm_vertex_t), &b->vertices[0].u);
         glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(xzsm_vertex_t), &b->vertices[0].r);
@@ -265,6 +321,7 @@ text = rmain.read_text(encoding="utf-8")
 protos = (
     "qboolean Xziel_StaticMesh_Prepare(void);\n"
     "void Xziel_StaticMesh_Draw(void);\n"
+    "void XzGeometryTap_SetCaptureEnabled(int enabled);\n"
 )
 include_anchor = '#include "../../../nzportable_def.h"\n'
 if "qboolean Xziel_StaticMesh_Prepare(void);" not in text:
@@ -279,11 +336,13 @@ new = (
     "\t\t// Sanctum: BSP remains the gameplay/visibility harness but is not\n"
     "\t\t// allowed to contribute color or depth. The HQ XZSM mesh is the\n"
     "\t\t// sole architectural visual authority.\n"
+    "\t\tXzGeometryTap_SetCaptureEnabled(0);\n"
     "\t\tglColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);\n"
     "\t\tglDepthMask(GL_FALSE);\n"
-    "\t\tR_DrawWorld ();\t\t// still adds static entities to the list\n"
+    "\t\tR_DrawWorld ();\t\t// gameplay/PVS only; do not mirror BSP geometry\n"
     "\t\tglColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);\n"
     "\t\tglDepthMask(GL_TRUE);\n"
+    "\t\tXzGeometryTap_SetCaptureEnabled(1);\n"
     "\t\tXziel_StaticMesh_Draw();\n"
     "\t}\n"
     "\telse\n"
@@ -298,31 +357,7 @@ if "sole architectural visual authority" not in text:
 
 rmain.write_text(text, encoding="utf-8")
 
-# When the native XZ renderer wins visible-present ownership, it composites the
-# modern world immediately before the HUD and then restores GL4ES. The Sanctum
-# XZSM bridge is intentionally separate from Vril's brush/alias geometry tap,
-# so redraw only the HQ church after a successful modern composite. The legacy
-# depth buffer still contains the same camera/world occlusion, preserving depth
-# relationships while keeping the historical scan visible.
-screen_path = source / "render" / "r_screen.c"
-if screen_path.is_file():
-    screen = screen_path.read_text(encoding="utf-8")
-    marker = "\t\tXzAndroidRuntime_CompositeVisibleWorld();\n"
-    if marker in screen and "XZSM_MODERN_REDRAW" not in screen:
-        include_anchor = '#include "../nzportable_def.h"\n'
-        proto = "extern void Xziel_StaticMesh_Draw(void);\n"
-        if proto not in screen:
-            if include_anchor not in screen:
-                raise SystemExit("Could not find r_screen include anchor for XZSM modern redraw")
-            screen = screen.replace(include_anchor, include_anchor + proto, 1)
-        replacement = (
-            "\t\t/* XZSM_MODERN_REDRAW: preserve HQ Sanctum after native composite. */\n"
-            "\t\tif (XzAndroidRuntime_CompositeVisibleWorld())\n"
-            "\t\t\tXziel_StaticMesh_Draw();\n"
-        )
-        screen = screen.replace(marker, replacement, 1)
-        screen_path.write_text(screen, encoding="utf-8")
-        if screen.count("XZSM_MODERN_REDRAW") != 1:
-            raise SystemExit("XZSM modern redraw injection count mismatch")
-
+# XZSM is captured into the native geometry stream during the normal world
+# render. Do not switch back to GL4ES after the native pre-HUD composite:
+# doing so can make SDL present the stale legacy backbuffer instead.
 print("Patched Vril SDL renderer with XZSM Sanctum static-mesh bridge.")

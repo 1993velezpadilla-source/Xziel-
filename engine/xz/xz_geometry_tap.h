@@ -8,8 +8,8 @@ extern "C" {
 #endif
 
 #define XZ_GEOMETRY_MAX_BATCHES 2048u
-#define XZ_GEOMETRY_MAX_VERTICES 131072u
-#define XZ_GEOMETRY_MAX_INDICES 262144u
+#define XZ_GEOMETRY_MAX_VERTICES 1048576u
+#define XZ_GEOMETRY_MAX_INDICES 3145728u
 
 typedef enum {
     XZ_GEOMETRY_ALIAS = 0,
@@ -72,8 +72,22 @@ typedef struct {
 void XzGeometryTap_Init(void);
 void XzGeometryTap_BeginFrame(uint64_t generation);
 void XzGeometryTap_CommitFrame(void);
+void XzGeometryTap_SetCaptureEnabled(int enabled);
 
 int XzGeometryTap_CaptureAlias(
+    const void *vertices,
+    unsigned int vertex_count,
+    unsigned int vertex_stride,
+    unsigned int xyz_offset,
+    unsigned int uv_offset,
+    const uint16_t *indices,
+    unsigned int index_count,
+    int texture_id,
+    const XzGeometryRenderState *state,
+    const float modelview[16],
+    const float projection[16]);
+
+int XzGeometryTap_CaptureIndexedFloat(
     const void *vertices,
     unsigned int vertex_count,
     unsigned int vertex_stride,

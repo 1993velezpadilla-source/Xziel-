@@ -9,6 +9,7 @@ typedef struct {
 } XzGeometryTapState;
 
 static XzGeometryTapState xz_geometry;
+static int xz_geometry_capture_enabled = 1;
 
 static void XzCopyMatrix(float dst[16], const float src[16])
 {
@@ -93,6 +94,9 @@ static XzGeometryBatch *XzBeginBatch(
 {
     XzGeometryBatch *batch;
 
+    if (!xz_geometry_capture_enabled)
+        return NULL;
+
     if (!XzReserve(frame, vertices, indices))
         return NULL;
 
@@ -150,6 +154,11 @@ void XzGeometryTap_CommitFrame(void)
     unsigned int published = xz_geometry.write_index;
     xz_geometry.read_index = published;
     xz_geometry.write_index = published ^ 1u;
+}
+
+void XzGeometryTap_SetCaptureEnabled(int enabled)
+{
+    xz_geometry_capture_enabled = enabled ? 1 : 0;
 }
 
 const XzGeometryFrame *XzGeometryTap_GetReadFrame(void)
@@ -211,6 +220,68 @@ int XzGeometryTap_CaptureAlias(
         out->position[0] = (float)xyz[0] / 128.0f;
         out->position[1] = (float)xyz[1] / 128.0f;
         out->position[2] = (float)xyz[2] / 128.0f;
+        out->uv[0] = uv[0];
+        out->uv[1] = uv[1];
+    }
+
+    for (i = 0u; i < index_count; ++i)
+        frame->indices[frame->index_count + i] =
+            (uint32_t)indices[i] + batch->first_vertex;
+
+    frame->vertex_count += vertex_count;
+    frame->index_count += index_count;
+    return 1;
+}
+
+int XzGeometryTap_CaptureIndexedFloat(
+    const void *vertices,
+    unsigned int vertex_count,
+    unsigned int vertex_stride,
+    unsigned int xyz_offset,
+    unsigned int uv_offset,
+    const uint16_t *indices,
+    unsigned int index_count,
+    int texture_id,
+    const XzGeometryRenderState *state,
+    const float modelview[16],
+    const float projection[16])
+{
+    XzGeometryFrame *frame = XzWriteFrame();
+    XzGeometryBatch *batch;
+    unsigned int i;
+
+    if (!vertices || !indices ||
+        vertex_stride == 0u ||
+        vertex_count == 0u ||
+        index_count == 0u)
+        return 0;
+
+    batch = XzBeginBatch(
+        frame,
+        XZ_GEOMETRY_SURFACE,
+        vertex_count,
+        index_count,
+        texture_id,
+        state,
+        modelview,
+        projection);
+    if (!batch)
+        return 0;
+
+    for (i = 0u; i < vertex_count; ++i) {
+        const unsigned char *base =
+            (const unsigned char *)vertices +
+            (size_t)i * vertex_stride;
+        const float *xyz =
+            (const float *)(const void *)(base + xyz_offset);
+        const float *uv =
+            (const float *)(const void *)(base + uv_offset);
+        XzGeometryVertex *out =
+            &frame->vertices[frame->vertex_count + i];
+
+        out->position[0] = xyz[0];
+        out->position[1] = xyz[1];
+        out->position[2] = xyz[2];
         out->uv[0] = uv[0];
         out->uv[1] = uv[1];
     }
