@@ -49,7 +49,7 @@ jobs:
           INCLUDE_MODELS: ${{ inputs.include_models }}
         run: |
           set -euo pipefail
-          tier="${REQUESTED_TIER:-core}"
+          tier="${REQUESTED_TIER:-all}"
           model_flag="--include-models"
 
           if [[ "${EVENT_NAME}" == "workflow_dispatch" && "${INCLUDE_MODELS}" == "false" ]]; then
