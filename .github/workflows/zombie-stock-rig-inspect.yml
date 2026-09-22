@@ -1,0 +1,105 @@
+name: Inspect Official NZP Zombie Source Rig
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/zombie-mocap-library-v1
+    paths:
+      - ".github/workflows/zombie-stock-rig-inspect.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Xziel
+        uses: actions/checkout@v5
+
+      - name: Install Blender
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq blender
+
+      - name: Download official NZP zombie source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p stock-zombie
+          curl -fL --retry 5 --retry-delay 2             https://raw.githubusercontent.com/nzp-team/assets/main/source/models/ai/zfull/mesh.blend             -o stock-zombie/mesh.blend
+          for n in 0 1 2 3; do
+            curl -fL --retry 5 --retry-delay 2               "https://raw.githubusercontent.com/nzp-team/assets/main/source/models/ai/zfull/texture_${n}.png"               -o "stock-zombie/texture_${n}.png"
+          done
+          sha256sum stock-zombie/*
+
+      - name: Inspect rig, meshes, actions and collections
+        shell: bash
+        run: |
+          cat > stock-zombie/inspect.py <<'PY'
+          import bpy, json
+          from pathlib import Path
+
+          report={
+            "blender_version":bpy.app.version_string,
+            "scene_frame_range":[bpy.context.scene.frame_start,bpy.context.scene.frame_end],
+            "objects":[],
+            "armatures":[],
+            "actions":[],
+            "collections":[],
+          }
+          for o in bpy.data.objects:
+            row={"name":o.name,"type":o.type,"parent":o.parent.name if o.parent else None}
+            if o.type=="MESH":
+              row.update({
+                "vertices":len(o.data.vertices),
+                "polygons":len(o.data.polygons),
+                "uv_layers":[u.name for u in o.data.uv_layers],
+                "materials":[m.name for m in o.data.materials if m],
+                "vertex_groups":[g.name for g in o.vertex_groups],
+                "modifiers":[{"name":m.name,"type":m.type,"object":getattr(getattr(m,"object",None),"name",None)} for m in o.modifiers],
+              })
+            report["objects"].append(row)
+
+          for o in bpy.data.objects:
+            if o.type=="ARMATURE":
+              report["armatures"].append({
+                "name":o.name,
+                "bones":[{"name":b.name,"parent":b.parent.name if b.parent else None} for b in o.data.bones],
+                "pose_bones":[p.name for p in o.pose.bones],
+                "active_action":o.animation_data.action.name if o.animation_data and o.animation_data.action else None,
+                "nla_tracks":[
+                  {"name":t.name,"strips":[{"name":s.name,"action":s.action.name if s.action else None,"start":s.frame_start,"end":s.frame_end} for s in t.strips]}
+                  for t in (o.animation_data.nla_tracks if o.animation_data else [])
+                ],
+              })
+
+          for a in bpy.data.actions:
+            report["actions"].append({
+              "name":a.name,
+              "frame_range":[float(a.frame_range[0]),float(a.frame_range[1])],
+              "fcurves":len(a.fcurves),
+              "groups":[g.name for g in a.groups],
+            })
+
+          for c in bpy.data.collections:
+            report["collections"].append({"name":c.name,"objects":[o.name for o in c.objects]})
+
+          Path("stock-zombie/rig-report.json").write_text(json.dumps(report,indent=2))
+          print("XZIEL_STOCK_RIG_REPORT_BEGIN")
+          print(json.dumps(report,indent=2))
+          print("XZIEL_STOCK_RIG_REPORT_END")
+          PY
+          blender -b stock-zombie/mesh.blend --python stock-zombie/inspect.py | tee stock-zombie/blender-log.txt
+
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: nzp-stock-zombie-rig-report
+          path: |
+            stock-zombie/rig-report.json
+            stock-zombie/blender-log.txt
+          retention-days: 14
