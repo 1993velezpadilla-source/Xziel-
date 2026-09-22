@@ -6,7 +6,7 @@
   "height_m": 1.8,
   "rig": "game_engine",
   "bones": 53,
-  "triangles_estimate": 63482,
+  "triangles_estimate": 66273,
   "animations": [
     "idle",
     "walk",
@@ -36,5 +36,5 @@
     "preview_back.png",
     "preview_face.png"
   ],
-  "production_status": "priority fidelity pass 12 \u2014 corrected bodice/sleeves, open-mouth corpse face, face closeup QA, side-lock Llorona hair, stained-glass halo panes"
+  "production_status": "priority fidelity pass 13 \u2014 covered crowns, flat wet-hair ribbons, active corpse-face damage, visible eye bruising, cleaner Stained glass accents"
 }
