@@ -675,6 +675,7 @@ if "XZ_ALIAS_SHADOW_CAPTURE" not in rmain:
         "\tfloat\t\t*xz_shadow_capture = NULL;\n"
         "\tint\t\txz_shadow_capture_count = 0;\n"
         "\tint\t\txz_shadow_capture_index = 0;\n"
+        "\tint\t\txz_shadow_suppress = 0;\n"
         "\tXzGeometryPrimitive xz_shadow_primitive = XZ_GEOMETRY_TRIANGLE_STRIP;\n"
         "#endif\n",
         1,
@@ -698,12 +699,16 @@ if "XZ_ALIAS_SHADOW_CAPTURE" not in rmain:
         "#ifdef __ANDROID__\n"
         "\t\t\txz_shadow_primitive = XZ_GEOMETRY_TRIANGLE_FAN;\n"
         "#endif\n"
+        "#ifdef __ANDROID__\n"
+        "\t\t\tif (!xz_shadow_suppress)\n"
+        "#endif\n"
         "\t\t\tglBegin (GL_TRIANGLE_FAN);\n"
         "\t\t}\n"
         "\t\telse\n"
         "\t\t{\n"
         "#ifdef __ANDROID__\n"
         "\t\t\txz_shadow_primitive = XZ_GEOMETRY_TRIANGLE_STRIP;\n"
+        "\t\t\tif (!xz_shadow_suppress)\n"
         "#endif\n"
         "\t\t\tglBegin (GL_TRIANGLE_STRIP);\n"
         "\t\t}\n"
@@ -724,6 +729,7 @@ if "XZ_ALIAS_SHADOW_CAPTURE" not in rmain:
         "\t/* One scratch allocation per shadowed model, reused by every strip/fan. */\n"
         "\tif (paliashdr->poseverts > 0)\n"
         "\t\txz_shadow_capture = (float *)malloc((size_t)paliashdr->poseverts * 5u * sizeof(float));\n"
+        "\txz_shadow_suppress = XzAndroidRuntime_ShouldSuppressLegacyWorldDraw(XZ_LEGACY_DRAW_SHADOW);\n"
         "#endif\n",
         1,
     )
@@ -749,6 +755,9 @@ if "XZ_ALIAS_SHADOW_CAPTURE" not in rmain:
         "\t\t\t\txz_shadow_capture_index++;\n"
         "\t\t\t}\n"
         "#endif\n"
+        "#ifdef __ANDROID__\n"
+        "\t\t\tif (!xz_shadow_suppress)\n"
+        "#endif\n"
         "\t\t\tglVertex3fv (point);\n"
     )
     shadow = shadow.replace(vertex_anchor, vertex_block, 1)
@@ -757,6 +766,9 @@ if "XZ_ALIAS_SHADOW_CAPTURE" not in rmain:
     if end_anchor not in shadow:
         raise SystemExit("Missing alias-shadow end anchor")
     end_block = (
+        "#ifdef __ANDROID__\n"
+        "\t\tif (!xz_shadow_suppress)\n"
+        "#endif\n"
         "\t\tglEnd ();\n"
         "#ifdef __ANDROID__\n"
         "\t\tif (xz_shadow_capture && xz_shadow_capture_index == xz_shadow_capture_count) {\n"
