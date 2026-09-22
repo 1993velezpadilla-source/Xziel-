@@ -3663,7 +3663,16 @@ bool VulkanClearRenderer::recordDrawCommand(
             sanctumEnvironment);
     }
 
-    if (weaponMesh_.ready()) {
+    // The current AKM source imports correctly as textured geometry, but its
+    // baked rig transforms are not yet trustworthy in the static XZSM
+    // viewmodel path. Keep it packaged/tested, but do not draw a malformed
+    // streak across the player's screen. The procedural blockout also stays
+    // suppressed because a clean no-viewmodel checkpoint is preferable to
+    // regressing to the toy-looking placeholder.
+    constexpr bool kImportedWeaponViewmodelEnabled = false;
+
+    if (kImportedWeaponViewmodelEnabled &&
+        weaponMesh_.ready()) {
         const float viewAspect =
             swapchainExtent_.height > 0U
             ? static_cast<float>(
@@ -4226,9 +4235,9 @@ bool VulkanClearRenderer::recordDrawCommand(
             // wins depth on intact stone, while any real hole sees a dark
             // recess instead of the clear-color void. This remains render-only:
             // collision and barricade state are untouched.
-            constexpr float recessHalfThickness = 0.035f;
-            constexpr float recessOffset = 0.12f;
-            constexpr float recessExtentScale = 1.24f;
+            constexpr float recessHalfThickness = 0.055f;
+            constexpr float recessOffset = 0.18f;
+            constexpr float recessExtentScale = 1.58f;
 
             for (float recessSide : {-1.0f, 1.0f}) {
                 const float recessX =
@@ -4244,8 +4253,7 @@ bool VulkanClearRenderer::recordDrawCommand(
 
                 drawBox(
                     recessX,
-                    window.y +
-                        window.halfHeight * 0.035f,
+                    window.y,
                     recessZ,
                     thinX
                         ? recessHalfThickness / 0.75f

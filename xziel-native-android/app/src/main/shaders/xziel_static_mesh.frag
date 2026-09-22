@@ -19,6 +19,32 @@ void main() {
             uAlbedo,
             vUv);
 
+    // The photogrammetry source is naturally low-contrast and becomes even
+    // flatter under cold night lighting. Apply a conservative presentation
+    // grade in the native shader: slightly deeper shadows and a touch more
+    // chroma, without inventing texture detail or altering the source files.
+    vec3 sceneAlbedo =
+        clamp(
+            (albedo.rgb - vec3(0.50)) *
+                1.12 +
+            vec3(0.50),
+            0.0,
+            1.0);
+
+    float sceneLuma =
+        dot(
+            sceneAlbedo,
+            vec3(0.2126, 0.7152, 0.0722));
+
+    sceneAlbedo =
+        clamp(
+            mix(
+                vec3(sceneLuma),
+                sceneAlbedo,
+                1.08),
+            0.0,
+            1.0);
+
     vec3 baked =
         max(
             vColor.rgb,
@@ -58,19 +84,19 @@ void main() {
             2.0);
 
     vec3 dynamicLight =
-        vec3(0.32) +
+        vec3(0.235) +
         vec3(
-            0.34,
-            0.40,
+            0.38,
+            0.43,
             0.52) *
             moon *
-            0.72 +
+            0.92 +
         vec3(
-            0.18,
-            0.10,
-            0.08) *
+            0.20,
+            0.105,
+            0.075) *
             fill *
-            0.18;
+            0.20;
 
     vec3 lit;
 
@@ -104,7 +130,7 @@ void main() {
              rim * 0.10);
     } else {
         lit =
-            albedo.rgb *
+            sceneAlbedo *
             baked *
             dynamicLight;
     }
