@@ -436,6 +436,274 @@ static int XzCreateProgramAndBuffer(void)
     return gl->GetError() == GL_NO_ERROR;
 }
 
+static int XzCreateRealGeometryProgram(void)
+{
+    static const char *vs_source =
+        "#version 300 es\n"
+        "layout(location=0) in vec3 aPos;\n"
+        "layout(location=1) in vec2 aUV;\n"
+        "uniform mat4 uModelView;\n"
+        "uniform mat4 uProjection;\n"
+        "out vec2 vUV;\n"
+        "void main(){\n"
+        "  gl_Position=uProjection*uModelView*vec4(aPos,1.0);\n"
+        "  vUV=aUV;\n"
+        "}\n";
+
+    static const char *fs_source =
+        "#version 300 es\n"
+        "precision mediump float;\n"
+        "in vec2 vUV;\n"
+        "out vec4 outColor;\n"
+        "void main(){\n"
+        "  vec2 uv=fract(abs(vUV));\n"
+        "  outColor=vec4(0.25+0.65*uv.x,0.25+0.65*uv.y,0.72,1.0);\n"
+        "}\n";
+
+    XzNativeGles3Api *gl = &xz_shadow.gl;
+    GLuint vs = 0u;
+    GLuint fs = 0u;
+    GLint linked = 0;
+
+    if (!XzCompileShader(
+            gl, GL_VERTEX_SHADER, vs_source, &vs))
+        return 0;
+
+    if (!XzCompileShader(
+            gl, GL_FRAGMENT_SHADER, fs_source, &fs)) {
+        gl->DeleteShader(vs);
+        return 0;
+    }
+
+    xz_shadow.real_program = gl->CreateProgram();
+    if (!xz_shadow.real_program) {
+        gl->DeleteShader(vs);
+        gl->DeleteShader(fs);
+        return 0;
+    }
+
+    gl->AttachShader(xz_shadow.real_program, vs);
+    gl->AttachShader(xz_shadow.real_program, fs);
+    gl->LinkProgram(xz_shadow.real_program);
+    gl->GetProgramiv(
+        xz_shadow.real_program,
+        GL_LINK_STATUS,
+        &linked);
+
+    gl->DeleteShader(vs);
+    gl->DeleteShader(fs);
+
+    if (!linked)
+        return 0;
+
+    xz_shadow.real_modelview_loc =
+        gl->GetUniformLocation(
+            xz_shadow.real_program,
+            "uModelView");
+    xz_shadow.real_projection_loc =
+        gl->GetUniformLocation(
+            xz_shadow.real_program,
+            "uProjection");
+
+    if (xz_shadow.real_modelview_loc < 0 ||
+        xz_shadow.real_projection_loc < 0)
+        return 0;
+
+    gl->GenVertexArrays(1, &xz_shadow.real_vao);
+    gl->BindVertexArray(xz_shadow.real_vao);
+
+    gl->GenBuffers(1, &xz_shadow.real_vbo);
+    gl->BindBuffer(
+        GL_ARRAY_BUFFER,
+        xz_shadow.real_vbo);
+    gl->BufferData(
+        GL_ARRAY_BUFFER,
+        (GLsizeiptr)(
+            XZ_GEOMETRY_MAX_VERTICES *
+            sizeof(XzGeometryVertex)),
+        NULL,
+        GL_STREAM_DRAW);
+
+    gl->GenBuffers(1, &xz_shadow.real_ibo);
+    gl->BindBuffer(
+        GL_ELEMENT_ARRAY_BUFFER,
+        xz_shadow.real_ibo);
+    gl->BufferData(
+        GL_ELEMENT_ARRAY_BUFFER,
+        (GLsizeiptr)(
+            XZ_GEOMETRY_MAX_INDICES *
+            sizeof(uint32_t)),
+        NULL,
+        GL_STREAM_DRAW);
+
+    gl->EnableVertexAttribArray(0u);
+    gl->VertexAttribPointer(
+        0u,
+        3,
+        GL_FLOAT,
+        GL_FALSE,
+        (GLsizei)sizeof(XzGeometryVertex),
+        (const void *)0);
+
+    gl->EnableVertexAttribArray(1u);
+    gl->VertexAttribPointer(
+        1u,
+        2,
+        GL_FLOAT,
+        GL_FALSE,
+        (GLsizei)sizeof(XzGeometryVertex),
+        (const void *)(uintptr_t)(
+            3u * sizeof(float)));
+
+    gl->BindVertexArray(0u);
+    gl->BindBuffer(GL_ARRAY_BUFFER, 0u);
+    gl->BindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0u);
+
+    return gl->GetError() == GL_NO_ERROR;
+}
+
+static int XzDrawRealGeometry(
+    XzGles3ShadowState *state,
+    const XzGeometryFrame *geometry)
+{
+    XzNativeGles3Api *gl = &xz_shadow.gl;
+    unsigned int i;
+    unsigned int kind_mask = 0u;
+    unsigned int drops;
+
+    if (!state || !geometry ||
+        geometry->batch_count == 0u ||
+        geometry->vertex_count == 0u ||
+        geometry->index_count == 0u)
+        return 0;
+
+    drops =
+        geometry->dropped_batches +
+        geometry->dropped_vertices +
+        geometry->dropped_indices;
+
+    state->last_geometry_batches =
+        geometry->batch_count;
+    state->last_geometry_vertices =
+        geometry->vertex_count;
+    state->last_geometry_indices =
+        geometry->index_count;
+    state->last_geometry_drops = drops;
+
+    if (drops != 0u) {
+        state->real_geometry_failures++;
+        state->real_geometry_ready = 0;
+        return 0;
+    }
+
+    if (geometry->vertex_count >
+            XZ_GEOMETRY_MAX_VERTICES ||
+        geometry->index_count >
+            XZ_GEOMETRY_MAX_INDICES ||
+        geometry->batch_count >
+            XZ_GEOMETRY_MAX_BATCHES) {
+        state->real_geometry_failures++;
+        state->real_geometry_ready = 0;
+        return 0;
+    }
+
+    gl->UseProgram(xz_shadow.real_program);
+    gl->BindVertexArray(xz_shadow.real_vao);
+
+    gl->BindBuffer(
+        GL_ARRAY_BUFFER,
+        xz_shadow.real_vbo);
+    gl->BufferSubData(
+        GL_ARRAY_BUFFER,
+        0,
+        (GLsizeiptr)(
+            geometry->vertex_count *
+            sizeof(XzGeometryVertex)),
+        geometry->vertices);
+
+    gl->BindBuffer(
+        GL_ELEMENT_ARRAY_BUFFER,
+        xz_shadow.real_ibo);
+    gl->BufferSubData(
+        GL_ELEMENT_ARRAY_BUFFER,
+        0,
+        (GLsizeiptr)(
+            geometry->index_count *
+            sizeof(uint32_t)),
+        geometry->indices);
+
+    if (gl->GetError() != GL_NO_ERROR) {
+        state->real_geometry_failures++;
+        state->real_geometry_ready = 0;
+        return 0;
+    }
+
+    for (i = 0u; i < geometry->batch_count; ++i) {
+        const XzGeometryBatch *batch =
+            &geometry->batches[i];
+
+        if (batch->vertex_count == 0u ||
+            batch->index_count == 0u ||
+            batch->first_vertex +
+                batch->vertex_count >
+                geometry->vertex_count ||
+            batch->first_index +
+                batch->index_count >
+                geometry->index_count) {
+            state->real_geometry_failures++;
+            state->real_geometry_ready = 0;
+            return 0;
+        }
+
+        gl->UniformMatrix4fv(
+            xz_shadow.real_modelview_loc,
+            1,
+            GL_FALSE,
+            batch->modelview);
+        gl->UniformMatrix4fv(
+            xz_shadow.real_projection_loc,
+            1,
+            GL_FALSE,
+            batch->projection);
+
+        gl->DrawElements(
+            GL_TRIANGLES,
+            (GLsizei)batch->index_count,
+            GL_UNSIGNED_INT,
+            (const void *)(uintptr_t)(
+                batch->first_index *
+                sizeof(uint32_t)));
+
+        if (gl->GetError() != GL_NO_ERROR) {
+            state->real_geometry_failures++;
+            state->real_geometry_ready = 0;
+            return 0;
+        }
+
+        if (batch->kind == XZ_GEOMETRY_ALIAS)
+            kind_mask |= 1u;
+        else if (batch->kind == XZ_GEOMETRY_SURFACE)
+            kind_mask |= 2u;
+        else if (batch->kind == XZ_GEOMETRY_SPRITE)
+            kind_mask |= 4u;
+
+        state->real_geometry_draw_calls++;
+    }
+
+    state->real_geometry_submissions++;
+    state->real_geometry_vertices +=
+        geometry->vertex_count;
+    state->real_geometry_indices +=
+        geometry->index_count;
+    state->real_geometry_kind_mask |= kind_mask;
+
+    state->real_geometry_ready =
+        state->real_geometry_failures == 0u &&
+        (state->real_geometry_kind_mask & 0x7u) == 0x7u;
+
+    return 1;
+}
+
 static int XzCreateFullscreenProgram(void)
 {
     static const char *vs_source =
@@ -1312,6 +1580,9 @@ int XzGles3Shadow_Init(
         goto fail_current;
 
     if (!XzCreateProgramAndBuffer())
+        goto fail_current;
+
+    if (!XzCreateRealGeometryProgram())
         goto fail_current;
 
     if (!XzCreateFullscreenProgram())
