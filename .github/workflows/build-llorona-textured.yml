@@ -1,0 +1,78 @@
+name: Build La Llorona Textured GLB
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - art/llorona-meshy-pipeline
+    paths:
+      - tools/llorona_bake_vertexcolor_texture.py
+      - .github/workflows/build-llorona-textured.yml
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  bake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout pipeline
+        uses: actions/checkout@v4
+
+      - name: Download successful Hunyuan MultiView geometry
+        uses: actions/download-artifact@v4
+        with:
+          name: la-llorona-hunyuan-mv-hq
+          path: in/hunyuan
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: 35772555593
+
+      - name: Verify Hunyuan inputs
+        run: |
+          set -euxo pipefail
+          find in/hunyuan -maxdepth 4 -type f -print
+          test -s in/hunyuan/llorona_hunyuan_mv_hq.glb
+          test -s in/hunyuan/clean_inputs/front.png
+          test -s in/hunyuan/clean_inputs/back.png
+          test -s in/hunyuan/clean_inputs/left.png
+          test -s in/hunyuan/clean_inputs/right.png
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install CPU mesh bake stack
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy pillow scipy opencv-python-headless trimesh xatlas fast-simplification
+
+      - name: Bake 4-view PBR texture
+        env:
+          LLORONA_HUNYUAN_DIR: in/hunyuan
+          LLORONA_BAKE_OUT: out/llorona-baked
+          LLORONA_TARGET_FACES: "120000"
+          LLORONA_TEXTURE_SIZE: "2048"
+          LLORONA_HEIGHT_M: "1.72"
+        run: python tools/llorona_bake_vertexcolor_texture.py
+
+      - name: Hard validate deliverables
+        run: |
+          set -euxo pipefail
+          test -s out/llorona-baked/llorona_hq_textured.glb
+          test -s out/llorona-baked/llorona_hunyuan_vertexcolor.glb
+          test -s out/llorona-baked/llorona_albedo_2k.png
+          test -s out/llorona-baked/preview_front.png
+          python -m json.tool out/llorona-baked/manifest.json
+          ls -lah out/llorona-baked
+
+      - name: Upload game-ready package
+        uses: actions/upload-artifact@v4
+        with:
+          name: la-llorona-hq-textured-glb
+          path: out/llorona-baked/
+          if-no-files-found: error
+          retention-days: 14
