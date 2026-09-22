@@ -63,6 +63,16 @@ public:
 
     void reset() noexcept;
 
+    void setSpawn(
+        Vec3 feetPosition,
+        float yawDegrees) noexcept;
+
+    [[nodiscard]] bool setHorizontalBounds(
+        float minimumX,
+        float maximumX,
+        float minimumZ,
+        float maximumZ) noexcept;
+
     void clearStaticObstacles() noexcept;
 
     [[nodiscard]] bool addStaticObstacle(
@@ -112,7 +122,7 @@ private:
         const Aabb& obstacle) const noexcept;
 
     static constexpr std::size_t
-        kMaximumStaticObstacles = 64;
+        kMaximumStaticObstacles = 192;
 
     static constexpr std::size_t
         kMaximumDynamicObstacles = 32;
