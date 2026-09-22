@@ -13,6 +13,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: cathedral-production-models
+  cancel-in-progress: true
+
 jobs:
   build-production-roster:
     runs-on: ubuntu-latest
@@ -23,7 +27,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: art/cathedral-production-models
+          ref: ${{ github.sha }}
 
       - name: Install Linux render dependencies
         shell: bash
@@ -116,7 +120,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "No generated asset changes."
           else
-            git commit -m "art: generate Cathedral production roster pass 1"
+            git commit -m "art: generate Cathedral priority roster fidelity pass"
+            git pull --rebase origin art/cathedral-production-models
             git push origin HEAD:art/cathedral-production-models
           fi
 

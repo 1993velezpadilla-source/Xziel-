@@ -378,7 +378,7 @@ def face_front_y(body,h):
             ys.append(v.co.y)
     return min(ys) if ys else -.055*h
 
-def :
+def add_face_details(body,h,mats,style):
     fy=face_front_y(body,h)
     bruise=mats.get("bruise") or mats.get("bruise_blue") or mats.get("water_bruise") or mats.get("corpse_skin")
     dark=mats.get("soot") or mats.get("wet_black") or bruise
@@ -566,12 +566,14 @@ def tint_asset(obj,hex_color,rough=.55,emission=None):
 def equip_priority_parts(body,style,assets_root,HumanService):
     made={}
     eye_path=find_asset(assets_root,"low-poly.mhclo")
+    print("EYE_ASSET",eye_path)
     if eye_path:
         try:
             made["eyes"]=HumanService.add_mhclo_asset(eye_path,body,asset_type="Eyes",material_type="PROCEDURAL_EYES",subdiv_levels=1)
             tint_asset(made["eyes"],"#C8CAC5",.24,"#A9C3CC" if style=="stained_shade" else None)
         except Exception as exc: print("eye asset warning",repr(exc))
     teeth_path=find_asset(assets_root,"teeth_base.mhclo")
+    print("TEETH_ASSET",teeth_path)
     if teeth_path:
         try:
             made["teeth"]=HumanService.add_mhclo_asset(teeth_path,body,asset_type="Teeth",material_type="GAMEENGINE",subdiv_levels=0)
@@ -579,6 +581,7 @@ def equip_priority_parts(body,style,assets_root,HumanService):
         except Exception as exc: print("teeth asset warning",repr(exc))
     if style=="la_llorona":
         hair_path=find_asset(assets_root,"long01.mhclo")
+        print("HAIR_ASSET",hair_path)
         if hair_path:
             try:
                 made["hair"]=HumanService.add_mhclo_asset(hair_path,body,asset_type="Hair",material_type="GAMEENGINE",subdiv_levels=1)
@@ -717,7 +720,8 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService,TargetServi
     rig=HumanService.add_builtin_rig(body,"game_engine")
     if rig is None: raise RuntimeError("MPFB game_engine rig creation failed")
     rig.name=ch["id"]+"_Rig"
-    equip_priority_parts(body,ch["style"],assets_root,HumanService)
+    parts=equip_priority_parts(body,ch["style"],assets_root,HumanService)
+    print("MPFB_PARTS",ch["id"],sorted(parts.keys()))
     # Bounds after rig fitting.
     lo,hi=local_bounds(body); h=hi.z-lo.z; w=hi.x-lo.x; d=hi.y-lo.y
 
@@ -736,9 +740,11 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService,TargetServi
     veilmat=mats.get("spectral_ivory") or mats.get("dirty_ivory")
     if style in ("lost_child","waterbound_child","bell_ringer","choir_wretch","penitent_deacon","censer_brute","reliquary_horror"):
         veil(style,h,w,d,veilmat)
-    if style in ("lost_child","waterbound_child"):
+    if style=="la_llorona" and not parts.get("hair"):
+        print("LA_LLORONA_HAIR_FALLBACK")
+        hair_strands(.97*h,h,mats["wet_black"],44,.60)
+    elif style in ("lost_child","waterbound_child"):
         hair_strands(.97*h,h,mats["wet_black"],22,.28)
-    add_face_details(body,h,mats,style)
     if style=="bell_ringer": bell_prop(h,mats["tarnished_brass"],mats["rope"])
     if style=="grave_sexton": shovel_prop(h,mats.get("iron",mats["dark_iron"]),mats["old_wood"])
     if style=="penitent_deacon": lantern_prop(h,mats["oxidized_metal"],mats["wax"])
@@ -749,7 +755,7 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService,TargetServi
         glass_shards(h,mats); stained_halo(h,mats)
     if style=="la_llorona":
         llorona_rosary(h,mats)
-    if style in ("la_llorona","lost_child"):
+    if style=="lost_child":
         cross_prop("RosaryCross",(0,-.12*d,.53*h),.035*h,mats.get("tarnished_silver",mats["oxidized_metal"]))
     if style=="lost_child":
         uv_sphere("ClothDoll",(0.16,-.04,.34*h),(.05*h,.035*h,.09*h),mats["dirty_ivory"])
@@ -764,7 +770,7 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService,TargetServi
     except Exception: bpy.ops.wm.save_as_mainfile(filepath=str(blend))
     png=preview(body,folder,style)
     tri=sum(sum(max(1,len(p.vertices)-2) for p in o.data.polygons) for o in objs if o.type=="MESH")
-    manifest={"id":ch["id"],"name":ch["name"],"category":ch["category"],"style":style,"height_m":ch["height_m"],"rig":"game_engine","bones":len(rig.data.bones),"triangles_estimate":tri,"animations":ch["animations"],"materials":ch["palette"],"outputs":[glb.name,fbx.name,blend.name,png.name],"production_status":"procedural production pass 1 — real rigged geometry, PBR materials, props, animation actions, damage sockets where applicable"}
+    manifest={"id":ch["id"],"name":ch["name"],"category":ch["category"],"style":style,"height_m":ch["height_m"],"rig":"game_engine","bones":len(rig.data.bones),"triangles_estimate":tri,"animations":ch["animations"],"materials":ch["palette"],"outputs":[glb.name,fbx.name,blend.name,png.name],"production_status":"priority fidelity pass 5 — MPFB rigged base, fitted body parts, layered church clothing, PBR materials, animation actions, modular damage sockets where applicable"}
     (folder/"manifest.json").write_text(json.dumps(manifest,indent=2),encoding="utf-8")
     return manifest
 
