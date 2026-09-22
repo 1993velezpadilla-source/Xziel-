@@ -448,12 +448,15 @@ jobs:
             exit 1
           fi
 
+          # Preserve the Nacht proof separately, then clear logcat so the
+          # Dung3on gates cannot accidentally pass on Nacht evidence.
+          "$ADB" logcat -d -v threadtime > dist/xziel-logcat-nacht.txt || true
+
           # Second real-scene parity probe. Dung3on is an official NZ:P map
-          # whose source explicitly contains knee-high water; keep logcat
-          # cumulative so the final gates can prove both Nacht sky/effects and
-          # Dung3on water in one workflow run.
+          # whose source explicitly contains knee-high water.
           "$ADB" shell am force-stop com.xziel.nzp || true
           "$ADB" shell run-as com.xziel.nzp rm -f files/nzp-runtime/.xziel-stage files/nzp-runtime/.xziel-last-error || true
+          "$ADB" logcat -c
           "$ADB" shell am start -W -n com.xziel.nzp/org.libsdl.app.NZPActivity             --ez xziel_ci_hud_preview true             --ez xziel_ci_fog_preview true             --es xziel_ci_map dung3on             > dist/am-start-water.txt 2>&1 || true
 
           WATER_STAGE=""
@@ -471,10 +474,70 @@ jobs:
             exit 1
           fi
 
-          sleep 8
-          "$ADB" exec-out screencap -p > dist/xziel-water-preview.png || true
+          # Do not call water visible until this process itself has switched to
+          # the native GLES3 visible path with live water batches.
+          WATER_MODERN_OK=0
+          for i in $(seq 1 30); do
+            "$ADB" logcat -d -v threadtime > dist/xziel-logcat-water-live.txt || true
+            if grep -Eq "XZIEL-XZ.*parity specials current=[1-9][0-9]* sky=[0-9]+ water=[1-9][0-9]* skySeen=[01] waterSeen=1" dist/xziel-logcat-water-live.txt \
+              && grep -Eq "XZIEL-XZ.*phase16 heartbeat requested=MODERN active=MODERN candidate=1 allowed=1 caps=0xff blockers=0x0 .*legacyVisible=0" dist/xziel-logcat-water-live.txt; then
+              WATER_MODERN_OK=1
+              break
+            fi
+            sleep 2
+          done
 
-          "$ADB" logcat -d -v threadtime > dist/xziel-logcat.txt || true
+          if [[ "$WATER_MODERN_OK" != "1" ]]; then
+            echo "Dung3on produced water but never reached visible MODERN cutover."
+            grep -E "XZIEL-XZ.*parity specials|XZIEL-XZ.*parity geometry|XZIEL-XZ.*parity texture|XZIEL-XZ.*phase16 heartbeat" dist/xziel-logcat-water-live.txt | tail -n 220 || true
+            exit 1
+          fi
+
+          : > dist/water-visual-report.txt
+          WATER_VISUAL_OK=0
+          for attempt in $(seq 1 8); do
+            "$ADB" exec-out screencap -p > dist/xziel-water-preview.png || true
+            if ATTEMPT="$attempt" python3 - <<'PY' >> dist/water-visual-report.txt 2>&1
+          import os
+          from pathlib import Path
+          from PIL import Image, ImageStat
+
+          attempt = os.environ.get("ATTEMPT", "?")
+          path = Path("dist/xziel-water-preview.png")
+          im = Image.open(path).convert("RGB")
+          if im.height > im.width:
+              im = im.transpose(Image.Transpose.ROTATE_90)
+          if im.width < 1000 or im.height < 500 or im.width <= im.height:
+              raise SystemExit(f"attempt={attempt} invalid dimensions: {im.size}")
+          gray = im.convert("L")
+          stat = ImageStat.Stat(gray)
+          lo, hi = gray.getextrema()
+          if hi - lo < 24 or stat.stddev[0] < 8:
+              raise SystemExit(
+                  f"attempt={attempt} blank/flat: extrema={(lo,hi)} "
+                  f"mean={stat.mean[0]:.2f} std={stat.stddev[0]:.2f}"
+              )
+          print(
+              f"attempt={attempt} water-frame size={im.size} "
+              f"mean={stat.mean[0]:.2f} std={stat.stddev[0]:.2f} "
+              f"extrema={(lo,hi)}"
+          )
+          PY
+            then
+              WATER_VISUAL_OK=1
+              break
+            fi
+            sleep 4
+          done
+
+          cat dist/water-visual-report.txt
+          if [[ "$WATER_VISUAL_OK" != "1" ]]; then
+            echo "Dung3on visible water probe remained blank/flat after all retries."
+            exit 1
+          fi
+
+          "$ADB" logcat -d -v threadtime > dist/xziel-logcat-water.txt || true
+          cat dist/xziel-logcat-nacht.txt dist/xziel-logcat-water.txt > dist/xziel-logcat.txt
           "$ADB" shell dumpsys activity processes > dist/activity-processes.txt || true
 
           PID="$("$ADB" shell pidof com.xziel.nzp 2>/dev/null | tr -d '\\r' || true)"
@@ -501,6 +564,36 @@ jobs:
           STAGE="$("$ADB" shell run-as com.xziel.nzp cat files/nzp-runtime/.xziel-stage 2>/dev/null | tr -d '\\r' || true)"
           if [[ "$STAGE" != "FIRST_FRAME_OK" ]]; then
             echo "Xziel is alive but did not reach FIRST_FRAME_OK (stage=$STAGE)."
+            exit 1
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*parity specials current=[1-9][0-9]* sky=[0-9]+ water=[1-9][0-9]* skySeen=[01] waterSeen=1" dist/xziel-logcat-water.txt; then
+            echo "Dung3on did not publish live water special geometry."
+            grep -E "XZIEL-XZ.*parity specials|XZIEL-XZ.*parity geometry" dist/xziel-logcat-water.txt | tail -n 180 || true
+            exit 1
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*parity geometry generation=[1-9][0-9]* batches=[1-9][0-9]* vertices=[1-9][0-9]* indices=[1-9][0-9]* kinds=[0-9]+/[1-9][0-9]*/[0-9]+/[0-9]+/[1-9][0-9]* drops=0/0/0 .*g3fail=0 .*ready=1" dist/xziel-logcat-water.txt; then
+            echo "Dung3on special geometry was not scene-ready in GLES3."
+            grep -E "XZIEL-XZ.*parity geometry" dist/xziel-logcat-water.txt | tail -n 180 || true
+            exit 1
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*parity texture .*g3fail=0 .*lastMiss=0 ready=1" dist/xziel-logcat-water.txt; then
+            echo "Dung3on textures were not scene-ready in GLES3."
+            grep -E "XZIEL-XZ.*parity texture" dist/xziel-logcat-water.txt | tail -n 180 || true
+            exit 1
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*parity present context=1 attempts=[1-9][0-9]* success=[1-9][0-9]* fail=0 draws=[1-9][0-9]* streak=[1-9][0-9]* .*ready=1" dist/xziel-logcat-water.txt; then
+            echo "Dung3on never produced a clean visible GLES3 present."
+            grep -E "XZIEL-XZ.*parity present" dist/xziel-logcat-water.txt | tail -n 180 || true
+            exit 1
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*phase16 heartbeat requested=MODERN active=MODERN candidate=1 allowed=1 caps=0xff blockers=0x0 .*legacyVisible=0" dist/xziel-logcat-water.txt; then
+            echo "Dung3on water probe never completed visible MODERN cutover."
+            grep -E "XZIEL-XZ.*phase16 heartbeat" dist/xziel-logcat-water.txt | tail -n 180 || true
             exit 1
           fi
 
@@ -774,11 +867,15 @@ jobs:
           name: Xziel-runtime-diagnostics
           path: |
             dist/xziel-logcat.txt
+            dist/xziel-logcat-nacht.txt
+            dist/xziel-logcat-water.txt
+            dist/xziel-logcat-water-live.txt
             dist/xziel-screen.png
             dist/xziel-hud-preview-a.png
             dist/xziel-hud-preview-b.png
             dist/xziel-water-preview.png
             dist/hud-visual-report.txt
+            dist/water-visual-report.txt
             dist/emulator-stdout.txt
             dist/am-start.txt
             dist/am-start-water.txt
