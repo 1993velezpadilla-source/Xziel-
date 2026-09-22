@@ -337,6 +337,8 @@ jobs:
           assert s["vertexLighting"] == "night_moon_plus_zone_practicals_v1", s
           assert native["coordinateSpace"] == "native", native
           assert native["sourceCollection"] == "SOURCE_CHURCH_FULL", native
+          assert native["version"] == 3, native
+          assert native["vertexStrideBytes"] == 36, native
           assert native["runtimeTriangles"] >= 1045000, native
           assert native["textureMaxDimension"] >= 4096, native
           assert native["worldScale"] == 1.0, native
@@ -359,7 +361,7 @@ jobs:
           print("NZP_HARNESS", h)
           print("FITTED_RUNTIME", f["counts"])
           print("VRIL_STATIC", {k:s[k] for k in ["version","runtimeTriangles","dressingTriangles","runtimeTotalTriangles","dressingObjectCount","batchCount","textureCount","modelBytes","vertexStrideBytes","vertexLighting"]})
-          print("XZIEL_NATIVE_HQ", {k:native[k] for k in ["coordinateSpace","sourceCollection","worldScale","runtimeTriangles","dressingTriangles","runtimeTotalTriangles","batchCount","textureCount","textureMaxDimension","modelBytes"]})
+          print("XZIEL_NATIVE_HQ", {k:native[k] for k in ["version","vertexStrideBytes","coordinateSpace","sourceCollection","worldScale","nativeFloorY","runtimeTriangles","dressingTriangles","runtimeTotalTriangles","batchCount","textureCount","textureMaxDimension","modelBytes"]})
           print("PACKAGE_PREFLIGHT", q)
           PY
 
