@@ -90,6 +90,13 @@ typedef struct {
     unsigned int last_texture_misses;
     int real_textures_ready;
 
+    unsigned int last_material_state_batches;
+    unsigned int last_blended_batches;
+    unsigned int last_lightmap_batches;
+    unsigned int last_alpha_test_batches;
+    unsigned int last_modulate_batches;
+    int real_material_state_ready;
+
     uint64_t visible_present_attempts;
     uint64_t visible_present_successes;
     uint64_t visible_present_failures;

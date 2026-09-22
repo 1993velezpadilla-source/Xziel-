@@ -22,6 +22,22 @@ typedef struct {
     float uv[2];
 } XzGeometryVertex;
 
+/* Exact legacy fixed-function state at the corresponding Vril draw call.
+ * Numeric enum values are preserved verbatim so the GLES3 replay can map
+ * blend/depth/alpha semantics without linking the tap core to GL headers. */
+typedef struct {
+    float color[4];
+    unsigned int blend_enabled;
+    unsigned int blend_src;
+    unsigned int blend_dst;
+    unsigned int depth_write;
+    unsigned int depth_func;
+    unsigned int alpha_test_enabled;
+    unsigned int alpha_func;
+    float alpha_ref;
+    unsigned int texture_env_mode;
+} XzGeometryRenderState;
+
 typedef struct {
     unsigned int first_vertex;
     unsigned int vertex_count;
@@ -29,6 +45,7 @@ typedef struct {
     unsigned int index_count;
     XzGeometryKind kind;
     int texture_id;
+    XzGeometryRenderState state;
     float modelview[16];
     float projection[16];
 } XzGeometryBatch;
@@ -65,6 +82,7 @@ int XzGeometryTap_CaptureAlias(
     const uint16_t *indices,
     unsigned int index_count,
     int texture_id,
+    const XzGeometryRenderState *state,
     const float modelview[16],
     const float projection[16]);
 
@@ -75,6 +93,7 @@ int XzGeometryTap_CaptureSurfaceFan(
     unsigned int position_offset,
     unsigned int texture_offset,
     int texture_id,
+    const XzGeometryRenderState *state,
     const float modelview[16],
     const float projection[16]);
 
@@ -82,6 +101,7 @@ int XzGeometryTap_CaptureSpriteQuad(
     const float positions[12],
     const float uvs[8],
     int texture_id,
+    const XzGeometryRenderState *state,
     const float modelview[16],
     const float projection[16]);
 

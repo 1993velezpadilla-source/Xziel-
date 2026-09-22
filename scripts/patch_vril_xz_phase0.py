@@ -237,9 +237,47 @@ if '#include "xz_geometry_tap.h"' not in hyena:
         '#ifdef __ANDROID__\n'
         '#include "xz_geometry_tap.h"\n'
         '#include <stddef.h>\n'
+        '#include <string.h>\n'
         '#endif\n',
         1,
     )
+
+# Snapshot the fixed-function state at the exact legacy draw boundary. This
+# preserves Vril lightmap blending (DST_COLOR/SRC_COLOR + depth EQUAL), water
+# alpha, sprites and cutout alpha semantics for the native GLES3 replay.
+state_helper = (
+    '#ifdef __ANDROID__\n'
+    'static void XzCaptureLegacyRenderState(XzGeometryRenderState *state)\n'
+    '{\n'
+    '    GLboolean depth_write = GL_TRUE;\n'
+    '    GLint value = 0;\n'
+    '    memset(state, 0, sizeof(*state));\n'
+    '    glGetFloatv(GL_CURRENT_COLOR, state->color);\n'
+    '    state->blend_enabled = glIsEnabled(GL_BLEND) ? 1u : 0u;\n'
+    '    state->alpha_test_enabled = glIsEnabled(GL_ALPHA_TEST) ? 1u : 0u;\n'
+    '    glGetBooleanv(GL_DEPTH_WRITEMASK, &depth_write);\n'
+    '    state->depth_write = depth_write ? 1u : 0u;\n'
+    '    glGetIntegerv(GL_BLEND_SRC, &value);\n'
+    '    state->blend_src = (unsigned int)value;\n'
+    '    glGetIntegerv(GL_BLEND_DST, &value);\n'
+    '    state->blend_dst = (unsigned int)value;\n'
+    '    glGetIntegerv(GL_DEPTH_FUNC, &value);\n'
+    '    state->depth_func = (unsigned int)value;\n'
+    '    glGetIntegerv(GL_ALPHA_TEST_FUNC, &value);\n'
+    '    state->alpha_func = (unsigned int)value;\n'
+    '    glGetFloatv(GL_ALPHA_TEST_REF, &state->alpha_ref);\n'
+    '    glGetTexEnviv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, &value);\n'
+    '    state->texture_env_mode = (unsigned int)value;\n'
+    '}\n'
+    '#endif\n'
+)
+if 'static void XzCaptureLegacyRenderState' not in hyena:
+    include_end = '#endif\n'
+    include_pos = hyena.find(include_end, hyena.find('#include "xz_geometry_tap.h"'))
+    if include_pos < 0:
+        raise SystemExit("Missing geometry state helper insertion point")
+    include_pos += len(include_end)
+    hyena = hyena[:include_pos] + '\n' + state_helper + hyena[include_pos:]
 
 alias_anchor = (
     "void Hyena_DrawAliasBatch(const alias_batch_t *batch)\n"
@@ -254,6 +292,8 @@ if "XzGeometryTap_CaptureAlias(" not in hyena:
         "    {\n"
         "        float xz_mv[16], xz_pr[16];\n"
         "        GLint xz_tex = 0;\n"
+        "        XzGeometryRenderState xz_state;\n"
+        "        XzCaptureLegacyRenderState(&xz_state);\n"
         "        glGetFloatv(GL_MODELVIEW_MATRIX, xz_mv);\n"
         "        glGetFloatv(GL_PROJECTION_MATRIX, xz_pr);\n"
         "        glGetIntegerv(GL_TEXTURE_BINDING_2D, &xz_tex);\n"
@@ -266,6 +306,7 @@ if "XzGeometryTap_CaptureAlias(" not in hyena:
         "            batch->indices,\n"
         "            (unsigned int)batch->num_indices,\n"
         "            (int)xz_tex,\n"
+        "            &xz_state,\n"
         "            xz_mv,\n"
         "            xz_pr);\n"
         "    }\n"
@@ -289,6 +330,8 @@ if "XZ_GEOMETRY_WARP_CAPTURE" not in hyena:
         "        {\n"
         "            float xz_mv[16], xz_pr[16];\n"
         "            GLint xz_tex = 0;\n"
+        "            XzGeometryRenderState xz_state;\n"
+        "            XzCaptureLegacyRenderState(&xz_state);\n"
         "            glGetFloatv(GL_MODELVIEW_MATRIX, xz_mv);\n"
         "            glGetFloatv(GL_PROJECTION_MATRIX, xz_pr);\n"
         "            glGetIntegerv(GL_TEXTURE_BINDING_2D, &xz_tex);\n"
@@ -299,6 +342,7 @@ if "XZ_GEOMETRY_WARP_CAPTURE" not in hyena:
         "                (unsigned int)(offsetof(vertex_t, xyz) / sizeof(float)),\n"
         "                (unsigned int)(offsetof(vertex_t, uv) / sizeof(float)),\n"
         "                (int)xz_tex,\n"
+        "                &xz_state,\n"
         "                xz_mv,\n"
         "                xz_pr);\n"
         "        }\n"
@@ -319,6 +363,8 @@ if "XZ_GEOMETRY_SURFACE_CAPTURE" not in hyena:
         "    {\n"
         "        float xz_mv[16], xz_pr[16];\n"
         "        GLint xz_tex = 0;\n"
+        "        XzGeometryRenderState xz_state;\n"
+        "        XzCaptureLegacyRenderState(&xz_state);\n"
         "        glGetFloatv(GL_MODELVIEW_MATRIX, xz_mv);\n"
         "        glGetFloatv(GL_PROJECTION_MATRIX, xz_pr);\n"
         "        glGetIntegerv(GL_TEXTURE_BINDING_2D, &xz_tex);\n"
@@ -329,6 +375,7 @@ if "XZ_GEOMETRY_SURFACE_CAPTURE" not in hyena:
         "            0u,\n"
         "            (unsigned int)texture_offset,\n"
         "            (int)xz_tex,\n"
+        "            &xz_state,\n"
         "            xz_mv,\n"
         "            xz_pr);\n"
         "    }\n"
@@ -401,23 +448,64 @@ if '#include "xz_geometry_tap.h"' not in rmain:
         anchor +
         '#ifdef __ANDROID__\n'
         '#include "xz_geometry_tap.h"\n'
+        '#include <string.h>\n'
         '#endif\n',
         1,
     )
 
-sprite_anchor = "GL_Bind(frame->gl_texturenum);"
+sprite_state_helper = (
+    '#ifdef __ANDROID__\n'
+    'static void XzCaptureLegacySpriteState(XzGeometryRenderState *state)\n'
+    '{\n'
+    '    GLboolean depth_write = GL_TRUE;\n'
+    '    GLint value = 0;\n'
+    '    memset(state, 0, sizeof(*state));\n'
+    '    glGetFloatv(GL_CURRENT_COLOR, state->color);\n'
+    '    state->blend_enabled = glIsEnabled(GL_BLEND) ? 1u : 0u;\n'
+    '    state->alpha_test_enabled = glIsEnabled(GL_ALPHA_TEST) ? 1u : 0u;\n'
+    '    glGetBooleanv(GL_DEPTH_WRITEMASK, &depth_write);\n'
+    '    state->depth_write = depth_write ? 1u : 0u;\n'
+    '    glGetIntegerv(GL_BLEND_SRC, &value);\n'
+    '    state->blend_src = (unsigned int)value;\n'
+    '    glGetIntegerv(GL_BLEND_DST, &value);\n'
+    '    state->blend_dst = (unsigned int)value;\n'
+    '    glGetIntegerv(GL_DEPTH_FUNC, &value);\n'
+    '    state->depth_func = (unsigned int)value;\n'
+    '    glGetIntegerv(GL_ALPHA_TEST_FUNC, &value);\n'
+    '    state->alpha_func = (unsigned int)value;\n'
+    '    glGetFloatv(GL_ALPHA_TEST_REF, &state->alpha_ref);\n'
+    '    glGetTexEnviv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, &value);\n'
+    '    state->texture_env_mode = (unsigned int)value;\n'
+    '}\n'
+    '#endif\n'
+)
+if 'static void XzCaptureLegacySpriteState' not in rmain:
+    include_end = '#endif\n'
+    include_pos = rmain.find(include_end, rmain.find('#include "xz_geometry_tap.h"'))
+    if include_pos < 0:
+        raise SystemExit("Missing sprite state helper insertion point")
+    include_pos += len(include_end)
+    rmain = rmain[:include_pos] + '\n' + sprite_state_helper + rmain[include_pos:]
+
+sprite_anchor = (
+    "\tglBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);\n"
+    "\tglBegin (GL_QUADS);\n"
+)
 if "XZ_GEOMETRY_SPRITE_CAPTURE" not in rmain:
     if sprite_anchor not in rmain:
-        raise SystemExit("Missing sprite geometry capture anchor")
-    sprite_capture = sprite_anchor + (
-        "\n#ifdef __ANDROID__\n"
-        "\t/* XZ_GEOMETRY_SPRITE_CAPTURE */\n"
+        raise SystemExit("Missing post-state sprite geometry capture anchor")
+    sprite_capture = (
+        "\tglBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);\n"
+        "#ifdef __ANDROID__\n"
+        "\t/* XZ_GEOMETRY_SPRITE_CAPTURE: after sprite blend/depth setup. */\n"
         "\t{\n"
         "\t\tfloat xz_positions[12];\n"
         "\t\tconst float xz_uvs[8] = {0,1, 0,0, 1,0, 1,1};\n"
         "\t\tfloat xz_mv[16], xz_pr[16];\n"
         "\t\tGLint xz_tex = 0;\n"
+        "\t\tXzGeometryRenderState xz_state;\n"
         "\t\tvec3_t xz_point;\n"
+        "\t\tXzCaptureLegacySpriteState(&xz_state);\n"
         "\t\tVectorMA (e->origin, frame->down * scale, up, xz_point);\n"
         "\t\tVectorMA (xz_point, frame->left * scale, right, xz_point);\n"
         "\t\tmemcpy(&xz_positions[0], xz_point, sizeof(vec3_t));\n"
@@ -437,10 +525,12 @@ if "XZ_GEOMETRY_SPRITE_CAPTURE" not in rmain:
         "\t\t\txz_positions,\n"
         "\t\t\txz_uvs,\n"
         "\t\t\t(int)xz_tex,\n"
+        "\t\t\t&xz_state,\n"
         "\t\t\txz_mv,\n"
         "\t\t\txz_pr);\n"
         "\t}\n"
-        "#endif"
+        "#endif\n"
+        "\tglBegin (GL_QUADS);\n"
     )
     rmain = rmain.replace(sprite_anchor, sprite_capture, 1)
 
