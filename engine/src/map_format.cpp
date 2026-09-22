@@ -193,6 +193,42 @@ bool parseMapText(
             continue;
         }
 
+        if (type == "floor") {
+            if (mapVersion < 2U ||
+                destination.floorCount >=
+                    destination.floors.size()) {
+                error = {
+                    mapVersion < 2U
+                        ? MapParseErrorCode::MalformedRecord
+                        : MapParseErrorCode::CapacityExceeded,
+                    lineNumber,
+                };
+                return false;
+            }
+
+            MapFloorDefinition floor{};
+            if (!(record >>
+                  floor.id >>
+                  floor.bounds.minimum.x >>
+                  floor.bounds.minimum.y >>
+                  floor.bounds.minimum.z >>
+                  floor.bounds.maximum.x >>
+                  floor.bounds.maximum.y >>
+                  floor.bounds.maximum.z) ||
+                !onlyWhitespaceRemaining(record)) {
+                error = {
+                    MapParseErrorCode::MalformedRecord,
+                    lineNumber,
+                };
+                return false;
+            }
+
+            destination.floors[
+                destination.floorCount++] =
+                floor;
+            continue;
+        }
+
         if (type == "box") {
             if (destination.boxCount >=
                 destination.boxes.size()) {
