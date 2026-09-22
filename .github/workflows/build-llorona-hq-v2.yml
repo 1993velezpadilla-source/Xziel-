@@ -1,0 +1,75 @@
+name: Build La Llorona HQ v2
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - art/llorona-meshy-pipeline
+    paths:
+      - tools/llorona_bake_direct_v2.py
+      - .github/workflows/build-llorona-hq-v2.yml
+      - assets/characters/llorona/reference/master/**
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  bake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download successful Hunyuan geometry and clean inputs
+        uses: actions/download-artifact@v4
+        with:
+          name: la-llorona-hunyuan-mv-hq
+          path: in/hunyuan
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: 35772555593
+
+      - name: Verify sources
+        run: |
+          set -euxo pipefail
+          test -s in/hunyuan/llorona_hunyuan_mv_hq.glb
+          for v in front back left right; do test -s "in/hunyuan/clean_inputs/${v}.png"; done
+          test -s assets/characters/llorona/reference/master/llorona_haunted_waters_master.jpg
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install HQ CPU bake stack
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy pillow scipy opencv-python-headless trimesh xatlas fast-simplification
+
+      - name: Bake HQ v2
+        env:
+          LLORONA_HUNYUAN_DIR: in/hunyuan
+          LLORONA_V2_OUT: out/llorona-hq-v2
+          LLORONA_TEXTURE_SIZE: "4096"
+          LLORONA_TARGET_FACES: "120000"
+          LLORONA_HEIGHT_M: "1.72"
+        run: python tools/llorona_bake_direct_v2.py
+
+      - name: Hard validate
+        run: |
+          set -euxo pipefail
+          test -s out/llorona-hq-v2/llorona_hq_v2.glb
+          test -s out/llorona-hq-v2/llorona_albedo_4k.png
+          test -s out/llorona-hq-v2/preview_front.png
+          test -s out/llorona-hq-v2/preview_three_quarter.png
+          test -s out/llorona-hq-v2/preview_side.png
+          test -s out/llorona-hq-v2/preview_back.png
+          python -m json.tool out/llorona-hq-v2/manifest.json
+          ls -lah out/llorona-hq-v2
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: la-llorona-hq-v2
+          path: out/llorona-hq-v2/
+          if-no-files-found: error
+          retention-days: 14
