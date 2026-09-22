@@ -134,13 +134,19 @@ public class NZPActivity extends SDLActivity {
             && getIntent().getBooleanExtra("xziel_ci_hud_preview", false);
         boolean fogPreview = getIntent() != null
             && getIntent().getBooleanExtra("xziel_ci_fog_preview", false);
+        String ciMap = getIntent() != null
+            ? getIntent().getStringExtra("xziel_ci_map")
+            : null;
+        if (ciMap == null || ciMap.isEmpty()) {
+            ciMap = "ndu";
+        }
 
         if (hudPreview && fogPreview) {
-            // CI parity probe: map first, then apply a deterministic linear fog
-            // so GLES3 must reproduce live legacy FOG_START/END/COLOR state.
+            // CI parity probe: selectable real maps let the workflow exercise
+            // both exposed sky and actual water geometry in separate boots.
             return new String[] {
                 "-basedir", dataRoot.getAbsolutePath(),
-                "+map", "ndu",
+                "+map", ciMap,
                 "+fog", "96", "768", "16", "20", "24",
                 "++attack"
             };
