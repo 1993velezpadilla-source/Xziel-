@@ -188,6 +188,7 @@ typedef struct {
 
     EGLConfig visible_config;
     EGLContext visible_context;
+    int visible_context_owned;
     GLuint visible_vao;
     GLuint visible_fbo;
     GLuint visible_color;
@@ -1167,64 +1168,98 @@ static int XzCreateVisibleContext(
         legacy_context == EGL_NO_CONTEXT)
         return 0;
 
-    if (!eglQueryContext(
+    xz_shadow.visible_context = EGL_NO_CONTEXT;
+    xz_shadow.visible_context_owned = 0;
+    xz_shadow.visible_vao = 0u;
+
+    if (eglQueryContext(
             xz_shadow.display,
             legacy_context,
             EGL_CONFIG_ID,
-            &config_id))
-        return 0;
+            &config_id)) {
+        config_attribs[0] = EGL_CONFIG_ID;
+        config_attribs[1] = config_id;
+        config_attribs[2] = EGL_NONE;
 
-    config_attribs[0] = EGL_CONFIG_ID;
-    config_attribs[1] = config_id;
-    config_attribs[2] = EGL_NONE;
+        if (eglChooseConfig(
+                xz_shadow.display,
+                config_attribs,
+                &xz_shadow.visible_config,
+                1,
+                &count) &&
+            count >= 1) {
+            xz_shadow.visible_context = eglCreateContext(
+                xz_shadow.display,
+                xz_shadow.visible_config,
+                xz_shadow.context,
+                context_attribs);
+        }
+    }
 
-    if (!eglChooseConfig(
+    if (xz_shadow.visible_context != EGL_NO_CONTEXT) {
+        xz_shadow.visible_context_owned = 1;
+
+        if (eglMakeCurrent(
+                xz_shadow.display,
+                window_draw,
+                window_read,
+                xz_shadow.visible_context)) {
+            xz_shadow.gl.GenVertexArrays(
+                1, &xz_shadow.visible_vao);
+
+            if (xz_shadow.visible_vao &&
+                eglMakeCurrent(
+                    xz_shadow.display,
+                    xz_shadow.surface,
+                    xz_shadow.surface,
+                    xz_shadow.context))
+                return 1;
+        }
+
+        eglMakeCurrent(
             xz_shadow.display,
-            config_attribs,
-            &xz_shadow.visible_config,
-            1,
-            &count) ||
-        count < 1)
-        return 0;
+            xz_shadow.surface,
+            xz_shadow.surface,
+            xz_shadow.context);
+        eglDestroyContext(
+            xz_shadow.display,
+            xz_shadow.visible_context);
+        xz_shadow.visible_context = EGL_NO_CONTEXT;
+        xz_shadow.visible_context_owned = 0;
+        xz_shadow.visible_vao = 0u;
+    }
 
-    xz_shadow.visible_context = eglCreateContext(
-        xz_shadow.display,
-        xz_shadow.visible_config,
-        xz_shadow.context,
-        context_attribs);
-    if (xz_shadow.visible_context == EGL_NO_CONTEXT)
-        return 0;
-
-    if (!eglMakeCurrent(
+    /*
+     * Some Android EGL stacks reject context sharing across configs even
+     * though the ES3 pbuffer context itself is window-surface compatible.
+     * Test that path explicitly before giving up.
+     */
+    if (eglMakeCurrent(
             xz_shadow.display,
             window_draw,
             window_read,
-            xz_shadow.visible_context)) {
-        eglDestroyContext(
-            xz_shadow.display,
-            xz_shadow.visible_context);
-        xz_shadow.visible_context = EGL_NO_CONTEXT;
-        return 0;
+            xz_shadow.context)) {
+        xz_shadow.visible_context =
+            xz_shadow.context;
+        xz_shadow.visible_context_owned = 0;
+        xz_shadow.visible_vao = xz_shadow.vao;
+
+        if (eglMakeCurrent(
+                xz_shadow.display,
+                xz_shadow.surface,
+                xz_shadow.surface,
+                xz_shadow.context))
+            return 1;
     }
 
-    xz_shadow.gl.GenVertexArrays(
-        1, &xz_shadow.visible_vao);
-
-    if (!eglMakeCurrent(
-            xz_shadow.display,
-            xz_shadow.surface,
-            xz_shadow.surface,
-            xz_shadow.context) ||
-        !xz_shadow.visible_vao) {
-        eglDestroyContext(
-            xz_shadow.display,
-            xz_shadow.visible_context);
-        xz_shadow.visible_context = EGL_NO_CONTEXT;
-        xz_shadow.visible_vao = 0u;
-        return 0;
-    }
-
-    return 1;
+    xz_shadow.visible_context = EGL_NO_CONTEXT;
+    xz_shadow.visible_vao = 0u;
+    eglMakeCurrent(
+        xz_shadow.display,
+        xz_shadow.surface,
+        xz_shadow.surface,
+        xz_shadow.context);
+    return 0;
 }
 
 static void XzDestroyVisibleTargets(void)
@@ -2147,7 +2182,8 @@ fail_restore:
     }
 
 fail:
-    if (xz_shadow.visible_context != EGL_NO_CONTEXT)
+    if (xz_shadow.visible_context_owned &&
+        xz_shadow.visible_context != EGL_NO_CONTEXT)
         eglDestroyContext(
             xz_shadow.display,
             xz_shadow.visible_context);
@@ -2944,7 +2980,8 @@ void XzGles3Shadow_Shutdown(
 
     XzUnloadApi(&xz_shadow.gl);
 
-    if (xz_shadow.visible_context != EGL_NO_CONTEXT)
+    if (xz_shadow.visible_context_owned &&
+        xz_shadow.visible_context != EGL_NO_CONTEXT)
         eglDestroyContext(
             xz_shadow.display,
             xz_shadow.visible_context);
