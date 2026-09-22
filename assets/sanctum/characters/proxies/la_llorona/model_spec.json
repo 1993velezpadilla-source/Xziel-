@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "la_llorona",
+  "displayName": "La Llorona",
+  "heightM": 1.7,
+  "profile": "hero_dress",
+  "units": "meters",
+  "upAxis": "Z",
+  "forwardAxis": "-Y",
+  "groups": [
+    "GEO_torso",
+    "GEO_head",
+    "GEO_arm_L",
+    "GEO_arm_R",
+    "GEO_leg_L",
+    "GEO_leg_R",
+    "GEO_robe"
+  ],
+  "props": [
+    "rosary_cross",
+    "mist_vfx"
+  ],
+  "requiredSockets": [
+    "socket_head",
+    "socket_hand_l",
+    "socket_hand_r",
+    "socket_foot_l",
+    "socket_foot_r",
+    "socket_audio",
+    "socket_vfx"
+  ],
+  "productionRule": "Replace proxy meshes while preserving root scale, group semantics and socket names."
+}
