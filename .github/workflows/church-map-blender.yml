@@ -179,6 +179,29 @@ jobs:
           test -d church/out/vril_static/textures/xziel/sanctum
           test -s church/out/vril_static_mesh_report.json
 
+      - name: Export native Xziel HQ static mesh
+        shell: bash
+        env:
+          CHURCH_GAMEPLAY_BLEND: church/out/dressing/sanctum_dressing_v1.blend
+          CHURCH_PLAN: church/out/zombies_map_plan.json
+          CHURCH_OUT: church/out
+          XZIEL_STATIC_SPACE: "native"
+          XZIEL_STATIC_RUNTIME_ROOT: church/out/xziel_native_static
+          XZIEL_STATIC_REPORT: church/out/xziel_native_static_mesh_report.json
+          XZIEL_STATIC_TARGET_TRIS: "1100000"
+          XZIEL_STATIC_TEXTURE_MAX: "4096"
+          XZIEL_STATIC_WORLD_SCALE: "1.0"
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          xvfb-run -a -s "-screen 0 1600x1000x24" \
+            blender --background \
+            --python tools/church_map/export_vril_static_mesh.py \
+            2>&1 | tee church/out/xziel-native-static-export.log
+          test -s church/out/xziel_native_static/models/xziel/sanctum/sanctum.xzsm
+          test -d church/out/xziel_native_static/textures/xziel/sanctum
+          test -s church/out/xziel_native_static_mesh_report.json
+
       - name: Export portable map package
         shell: bash
         env:
@@ -262,6 +285,8 @@ jobs:
             church/out/dressing/sanctum_dressing_v1.json \
             church/out/vril_static/models/xziel/sanctum/sanctum.xzsm \
             church/out/vril_static_mesh_report.json \
+            church/out/xziel_native_static/models/xziel/sanctum/sanctum.xzsm \
+            church/out/xziel_native_static_mesh_report.json \
             church/out/SANCTUM_OF_ASH_MAP_BIBLE.md \
             church/out/SanctumOfAsh/map.json \
             church/out/SanctumOfAsh/entities.json \
@@ -291,6 +316,7 @@ jobs:
           h=json.load(open("church/out/nzp_harness/sanctum_harness_export.json", encoding="utf-8"))
           f=json.load(open("church/out/church_runtime_fitted_v2.json", encoding="utf-8"))
           s=json.load(open("church/out/vril_static_mesh_report.json", encoding="utf-8"))
+          native=json.load(open("church/out/xziel_native_static_mesh_report.json", encoding="utf-8"))
           assert r["source_triangles"] >= 2700000, r
           assert r["mobile_lod0_triangles"] >= 640000, r
           assert p["working_title"] == "SANCTUM OF ASH"
@@ -308,6 +334,12 @@ jobs:
           assert s["version"] >= 2, s
           assert s["vertexStrideBytes"] == 24, s
           assert s["vertexLighting"] == "night_moon_plus_zone_practicals_v1", s
+          assert native["coordinateSpace"] == "native", native
+          assert native["sourceCollection"] == "SOURCE_CHURCH_FULL", native
+          assert native["runtimeTriangles"] >= 1045000, native
+          assert native["textureMaxDimension"] >= 4096, native
+          assert native["worldScale"] == 1.0, native
+          assert native["textureCount"] > 0, native
           assert f["counts"]["barricades"] >= 8, f
           assert f["counts"]["raycastFitted"] > 0, f
           assert f["counts"]["collisionMeshes"] >= 4, f
@@ -326,6 +358,7 @@ jobs:
           print("NZP_HARNESS", h)
           print("FITTED_RUNTIME", f["counts"])
           print("VRIL_STATIC", {k:s[k] for k in ["version","runtimeTriangles","dressingTriangles","runtimeTotalTriangles","dressingObjectCount","batchCount","textureCount","modelBytes","vertexStrideBytes","vertexLighting"]})
+          print("XZIEL_NATIVE_HQ", {k:native[k] for k in ["coordinateSpace","sourceCollection","worldScale","runtimeTriangles","dressingTriangles","runtimeTotalTriangles","batchCount","textureCount","textureMaxDimension","modelBytes"]})
           print("PACKAGE_PREFLIGHT", q)
           PY
 
