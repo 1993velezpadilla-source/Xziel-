@@ -41,6 +41,7 @@ static void XzCopyRenderState(
     dst->color[3] = 1.0f;
     dst->blend_src = 0x0302u;       /* GL_SRC_ALPHA */
     dst->blend_dst = 0x0303u;       /* GL_ONE_MINUS_SRC_ALPHA */
+    dst->depth_test_enabled = 1u;
     dst->depth_write = 1u;
     dst->depth_func = 0x0203u;      /* GL_LEQUAL */
     dst->alpha_func = 0x0204u;      /* GL_GREATER */
@@ -614,6 +615,7 @@ int XzGeometryTap_SelfTest(void)
         return 0;
 
     if (frame->batches[0].state.color[0] != 1.0f ||
+        frame->batches[0].state.depth_test_enabled != 1u ||
         frame->batches[0].state.depth_write != 1u ||
         frame->batches[0].state.depth_func != 0x0203u ||
         frame->batches[0].state.texture_env_mode != 0x2100u ||
