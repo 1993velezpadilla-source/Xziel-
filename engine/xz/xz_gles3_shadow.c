@@ -892,6 +892,11 @@ static int XzDrawRealGeometry(
         return 0;
     }
 
+    gl->Enable(GL_DEPTH_TEST);
+    gl->Disable(GL_BLEND);
+    gl->BlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    gl->DepthMask(GL_TRUE);
+
     for (i = 0u; i < geometry->batch_count; ++i) {
         const XzGeometryBatch *batch =
             &geometry->batches[i];
@@ -946,6 +951,14 @@ static int XzDrawRealGeometry(
             }
         }
 
+        if (batch->kind == XZ_GEOMETRY_SPRITE) {
+            gl->Enable(GL_BLEND);
+            gl->DepthMask(GL_FALSE);
+        } else {
+            gl->Disable(GL_BLEND);
+            gl->DepthMask(GL_TRUE);
+        }
+
         gl->DrawElements(
             GL_TRIANGLES,
             (GLsizei)batch->index_count,
@@ -969,6 +982,10 @@ static int XzDrawRealGeometry(
 
         state->real_geometry_draw_calls++;
     }
+
+    gl->DepthMask(GL_TRUE);
+    gl->Disable(GL_BLEND);
+    gl->Disable(GL_DEPTH_TEST);
 
     state->real_geometry_submissions++;
     state->real_geometry_vertices +=
