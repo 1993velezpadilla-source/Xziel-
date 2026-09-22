@@ -368,6 +368,7 @@ jobs:
           assert native["textureMaxDimension"] >= 4096, native
           assert native["worldScale"] == 1.0, native
           assert native["textureCount"] > 0, native
+          assert native["dynamicBarricadeObjectsExcluded"] >= native_map["windowCount"] * 5, (native, native_map)
           assert native_map["schemaVersion"] == 2, native_map
           assert native_map["boxCount"] >= 20, native_map
           assert native_map["floorCount"] >= 10, native_map
@@ -393,7 +394,7 @@ jobs:
           print("NZP_HARNESS", h)
           print("FITTED_RUNTIME", f["counts"])
           print("VRIL_STATIC", {k:s[k] for k in ["version","runtimeTriangles","dressingTriangles","runtimeTotalTriangles","dressingObjectCount","batchCount","textureCount","modelBytes","vertexStrideBytes","vertexLighting"]})
-          print("XZIEL_NATIVE_HQ", {k:native[k] for k in ["version","vertexStrideBytes","coordinateSpace","sourceCollection","worldScale","nativeFloorY","runtimeTriangles","dressingTriangles","runtimeTotalTriangles","batchCount","textureCount","textureMaxDimension","modelBytes"]})
+          print("XZIEL_NATIVE_HQ", {k:native[k] for k in ["version","vertexStrideBytes","coordinateSpace","sourceCollection","worldScale","nativeFloorY","runtimeTriangles","dressingTriangles","runtimeTotalTriangles","dressingObjectCount","dynamicBarricadeObjectsExcluded","batchCount","textureCount","textureMaxDimension","modelBytes"]})
           print("XZIEL_NATIVE_MAP", native_map)
           print("PACKAGE_PREFLIGHT", q)
           PY
