@@ -3093,7 +3093,7 @@ int XzGles3Shadow_CompositeVisibleWorld(
         xz_shadow.visible_context == EGL_NO_CONTEXT ||
         !state->real_geometry_ready ||
         !state->real_textures_ready ||
-        state->real_scene_ready_streak < 3u ||
+        state->real_scene_ready_streak < 4u ||
         geometry->surface_batches == 0u ||
         geometry->batch_count < 8u ||
         geometry->vertex_count == 0u ||
