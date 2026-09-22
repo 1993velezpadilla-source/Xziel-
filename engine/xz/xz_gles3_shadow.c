@@ -1150,6 +1150,219 @@ static int XzRestorePrevious(
         EGL_NO_CONTEXT) ? 1 : 0;
 }
 
+static int XzCreateVisibleContext(
+    EGLSurface window_draw,
+    EGLSurface window_read,
+    EGLContext legacy_context)
+{
+    EGLint config_id = 0;
+    EGLint count = 0;
+    const EGLint context_attribs[] = {
+        EGL_CONTEXT_CLIENT_VERSION, 3,
+        EGL_NONE
+    };
+    EGLint config_attribs[3];
+
+    if (window_draw == EGL_NO_SURFACE ||
+        legacy_context == EGL_NO_CONTEXT)
+        return 0;
+
+    if (!eglQueryContext(
+            xz_shadow.display,
+            legacy_context,
+            EGL_CONFIG_ID,
+            &config_id))
+        return 0;
+
+    config_attribs[0] = EGL_CONFIG_ID;
+    config_attribs[1] = config_id;
+    config_attribs[2] = EGL_NONE;
+
+    if (!eglChooseConfig(
+            xz_shadow.display,
+            config_attribs,
+            &xz_shadow.visible_config,
+            1,
+            &count) ||
+        count < 1)
+        return 0;
+
+    xz_shadow.visible_context = eglCreateContext(
+        xz_shadow.display,
+        xz_shadow.visible_config,
+        xz_shadow.context,
+        context_attribs);
+    if (xz_shadow.visible_context == EGL_NO_CONTEXT)
+        return 0;
+
+    if (!eglMakeCurrent(
+            xz_shadow.display,
+            window_draw,
+            window_read,
+            xz_shadow.visible_context)) {
+        eglDestroyContext(
+            xz_shadow.display,
+            xz_shadow.visible_context);
+        xz_shadow.visible_context = EGL_NO_CONTEXT;
+        return 0;
+    }
+
+    xz_shadow.gl.GenVertexArrays(
+        1, &xz_shadow.visible_vao);
+
+    if (!eglMakeCurrent(
+            xz_shadow.display,
+            xz_shadow.surface,
+            xz_shadow.surface,
+            xz_shadow.context) ||
+        !xz_shadow.visible_vao) {
+        eglDestroyContext(
+            xz_shadow.display,
+            xz_shadow.visible_context);
+        xz_shadow.visible_context = EGL_NO_CONTEXT;
+        xz_shadow.visible_vao = 0u;
+        return 0;
+    }
+
+    return 1;
+}
+
+static void XzDestroyVisibleTargets(void)
+{
+    XzNativeGles3Api *gl = &xz_shadow.gl;
+
+    if (xz_shadow.visible_fbo)
+        gl->DeleteFramebuffers(
+            1, &xz_shadow.visible_fbo);
+    if (xz_shadow.visible_color)
+        gl->DeleteTextures(
+            1, &xz_shadow.visible_color);
+    if (xz_shadow.visible_depth)
+        gl->DeleteTextures(
+            1, &xz_shadow.visible_depth);
+
+    xz_shadow.visible_fbo = 0u;
+    xz_shadow.visible_color = 0u;
+    xz_shadow.visible_depth = 0u;
+    xz_shadow.visible_width = 0u;
+    xz_shadow.visible_height = 0u;
+}
+
+static int XzEnsureVisibleTargets(
+    unsigned int width,
+    unsigned int height)
+{
+    XzNativeGles3Api *gl = &xz_shadow.gl;
+    GLenum status;
+
+    if (width == 0u || height == 0u)
+        return 0;
+
+    if (xz_shadow.visible_fbo &&
+        xz_shadow.visible_color &&
+        xz_shadow.visible_depth &&
+        xz_shadow.visible_width == width &&
+        xz_shadow.visible_height == height)
+        return 1;
+
+    XzDestroyVisibleTargets();
+
+    gl->GenTextures(1, &xz_shadow.visible_color);
+    gl->BindTexture(
+        GL_TEXTURE_2D,
+        xz_shadow.visible_color);
+    gl->TexParameteri(
+        GL_TEXTURE_2D,
+        GL_TEXTURE_MIN_FILTER,
+        GL_LINEAR);
+    gl->TexParameteri(
+        GL_TEXTURE_2D,
+        GL_TEXTURE_MAG_FILTER,
+        GL_LINEAR);
+    gl->TexParameteri(
+        GL_TEXTURE_2D,
+        GL_TEXTURE_WRAP_S,
+        GL_CLAMP_TO_EDGE);
+    gl->TexParameteri(
+        GL_TEXTURE_2D,
+        GL_TEXTURE_WRAP_T,
+        GL_CLAMP_TO_EDGE);
+    gl->TexImage2D(
+        GL_TEXTURE_2D,
+        0,
+        GL_RGBA8,
+        (GLsizei)width,
+        (GLsizei)height,
+        0,
+        GL_RGBA,
+        GL_UNSIGNED_BYTE,
+        NULL);
+
+    gl->GenTextures(1, &xz_shadow.visible_depth);
+    gl->BindTexture(
+        GL_TEXTURE_2D,
+        xz_shadow.visible_depth);
+    gl->TexParameteri(
+        GL_TEXTURE_2D,
+        GL_TEXTURE_MIN_FILTER,
+        GL_NEAREST);
+    gl->TexParameteri(
+        GL_TEXTURE_2D,
+        GL_TEXTURE_MAG_FILTER,
+        GL_NEAREST);
+    gl->TexParameteri(
+        GL_TEXTURE_2D,
+        GL_TEXTURE_WRAP_S,
+        GL_CLAMP_TO_EDGE);
+    gl->TexParameteri(
+        GL_TEXTURE_2D,
+        GL_TEXTURE_WRAP_T,
+        GL_CLAMP_TO_EDGE);
+    gl->TexImage2D(
+        GL_TEXTURE_2D,
+        0,
+        GL_DEPTH_COMPONENT24,
+        (GLsizei)width,
+        (GLsizei)height,
+        0,
+        GL_DEPTH_COMPONENT,
+        GL_UNSIGNED_INT,
+        NULL);
+
+    gl->GenFramebuffers(
+        1, &xz_shadow.visible_fbo);
+    gl->BindFramebuffer(
+        GL_FRAMEBUFFER,
+        xz_shadow.visible_fbo);
+    gl->FramebufferTexture2D(
+        GL_FRAMEBUFFER,
+        GL_COLOR_ATTACHMENT0,
+        GL_TEXTURE_2D,
+        xz_shadow.visible_color,
+        0);
+    gl->FramebufferTexture2D(
+        GL_FRAMEBUFFER,
+        GL_DEPTH_ATTACHMENT,
+        GL_TEXTURE_2D,
+        xz_shadow.visible_depth,
+        0);
+
+    status = gl->CheckFramebufferStatus(
+        GL_FRAMEBUFFER);
+    gl->BindFramebuffer(GL_FRAMEBUFFER, 0u);
+    gl->BindTexture(GL_TEXTURE_2D, 0u);
+
+    if (status != GL_FRAMEBUFFER_COMPLETE ||
+        gl->GetError() != GL_NO_ERROR) {
+        XzDestroyVisibleTargets();
+        return 0;
+    }
+
+    xz_shadow.visible_width = width;
+    xz_shadow.visible_height = height;
+    return 1;
+}
+
 static void XzEncodePlanColor(
     uint32_t hash,
     unsigned char rgba[4])
@@ -1896,6 +2109,12 @@ int XzGles3Shadow_Init(
 
     if (!XzCreateFullscreenProgram())
         goto fail_current;
+
+    state->visible_context_ready =
+        XzCreateVisibleContext(
+            previous_draw,
+            previous_read,
+            previous_context);
 
     xz_shadow.gl.Viewport(
         0, 0, XZ_SHADOW_WIDTH, XZ_SHADOW_HEIGHT);
