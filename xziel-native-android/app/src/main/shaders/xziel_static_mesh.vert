@@ -7,14 +7,16 @@ layout(push_constant) uniform PushConstants {
 } pc;
 
 layout(location = 0) in vec3 inPosition;
-layout(location = 1) in vec2 inUv;
-layout(location = 2) in vec4 inColor;
+layout(location = 1) in vec3 inNormal;
+layout(location = 2) in vec2 inUv;
+layout(location = 3) in vec4 inColor;
 
 layout(location = 0) out vec2 vUv;
-layout(location = 1) out vec4 vColor;
-layout(location = 2) out float vDistance;
-layout(location = 3) out float vFogDensity;
-layout(location = 4) out float vLightning;
+layout(location = 1) out vec3 vNormal;
+layout(location = 2) out vec4 vColor;
+layout(location = 3) out float vDistance;
+layout(location = 4) out float vFogDensity;
+layout(location = 5) out float vLightning;
 
 vec3 worldToView(vec3 world) {
     vec3 relative =
@@ -85,6 +87,7 @@ void main() {
     gl_Position = clip;
 
     vUv = inUv;
+    vNormal = normalize(inNormal);
     vColor = inColor;
     vDistance = max(view.z, 0.0);
     vFogDensity =
