@@ -21,7 +21,7 @@ c_path.write_text(r'''// Xziel textured static-mesh bridge for Android/SDL.
 #include <stdlib.h>
 #include <string.h>
 
-#define XZSM_VERSION 1u
+#define XZSM_VERSION 2u
 #define XZSM_MAX_BATCHES 512u
 #define XZSM_MAX_VERTICES 2000000u
 #define XZSM_MAX_INDICES  3000000u
@@ -29,6 +29,7 @@ c_path.write_text(r'''// Xziel textured static-mesh bridge for Android/SDL.
 typedef struct {
     float x, y, z;
     float u, v;
+    uint8_t r, g, b, a;
 } xzsm_vertex_t;
 
 typedef struct {
@@ -206,7 +207,7 @@ qboolean Xziel_StaticMesh_Prepare(void)
         XZSM_LoadSanctum();
 
     if (xzsm_loaded && !xzsm_authority_reported) {
-        Con_Printf("XZSM: HQ visual authority active; BSP render suppressed\n");
+        Con_Printf("XZSM: HQ visual authority active; BSP render suppressed; vertex lighting v2\n");
         xzsm_authority_reported = true;
     }
 
@@ -227,10 +228,11 @@ void Xziel_StaticMesh_Draw(void)
     glDisable(GL_ALPHA_TEST);
     glDisable(GL_CULL_FACE);
     glColor4f(1, 1, 1, 1);
-    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    glEnableClientState(GL_COLOR_ARRAY);
 
     for (i = 0; i < xzsm_batch_count; ++i) {
         xzsm_batch_t *b = &xzsm_batches[i];
@@ -240,13 +242,16 @@ void Xziel_StaticMesh_Draw(void)
             GL_Bind(b->texture);
         glVertexPointer(3, GL_FLOAT, sizeof(xzsm_vertex_t), &b->vertices[0].x);
         glTexCoordPointer(2, GL_FLOAT, sizeof(xzsm_vertex_t), &b->vertices[0].u);
+        glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(xzsm_vertex_t), &b->vertices[0].r);
         glDrawElements(GL_TRIANGLES, b->index_count, GL_UNSIGNED_SHORT, b->indices);
     }
 
+    glDisableClientState(GL_COLOR_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     glDisableClientState(GL_VERTEX_ARRAY);
     if (gl_cull.value)
         glEnable(GL_CULL_FACE);
+    glColor4f(1, 1, 1, 1);
     glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 }
 ''', encoding="utf-8")
