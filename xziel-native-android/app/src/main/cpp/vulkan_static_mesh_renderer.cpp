@@ -751,7 +751,7 @@ bool VulkanStaticMeshRenderer::loadModel(
                 kTag,
                 "XZIEL_WEAPON_VIEWMODEL_REJECTED "
                 "extent=%.3f coverage90=%.3f "
-                "robust=%.3f/%.3f/%.3f "
+                "robust=%.3f/%.3f/%.3f peakVoxel=%.3f "
                 "batches=%u vertices=%u indices=%u",
                 static_cast<double>(
                     metrics.longestExtent),
@@ -763,6 +763,8 @@ bool VulkanStaticMeshRenderer::loadModel(
                     metrics.robustSecondExtent90),
                 static_cast<double>(
                     metrics.robustThirdExtent90),
+                static_cast<double>(
+                    metrics.peakVoxelOccupancyRatio),
                 metrics.batchCount,
                 metrics.vertexCount,
                 metrics.indexCount);
@@ -776,7 +778,7 @@ bool VulkanStaticMeshRenderer::loadModel(
             kTag,
             "XZIEL_WEAPON_VIEWMODEL_SANITY_OK "
             "extent=%.3f coverage90=%.3f "
-            "robust=%.3f/%.3f/%.3f "
+            "robust=%.3f/%.3f/%.3f peakVoxel=%.3f "
             "batches=%u vertices=%u indices=%u",
             static_cast<double>(
                 metrics.longestExtent),
@@ -788,6 +790,8 @@ bool VulkanStaticMeshRenderer::loadModel(
                 metrics.robustSecondExtent90),
             static_cast<double>(
                 metrics.robustThirdExtent90),
+            static_cast<double>(
+                metrics.peakVoxelOccupancyRatio),
             metrics.batchCount,
             metrics.vertexCount,
             metrics.indexCount);
