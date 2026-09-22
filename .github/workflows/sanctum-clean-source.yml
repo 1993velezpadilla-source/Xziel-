@@ -32,7 +32,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq blender python3-numpy libegl1 libgl1-mesa-dri libglx-mesa0 xvfb
           python3 -m pip install --quiet --upgrade pip
-          python3 -m pip install --quiet objaverse
+          python3 -m pip install --quiet objaverse pillow
           blender --version
 
       - name: Recover validated Xziel gameplay only
@@ -112,6 +112,132 @@ jobs:
           print("ORIGINAL_SOURCE", source)
           PY
 
+      - name: Audit original embedded texture fidelity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import io
+          import json
+          import struct
+          from pathlib import Path
+
+          from PIL import Image
+
+          glb = Path("church/source/st-giles-cripplegate.glb")
+          data = glb.read_bytes()
+          if data[:4] != b"glTF":
+              raise SystemExit("not a GLB")
+
+          _, version, total_length = struct.unpack_from("<4sII", data, 0)
+          if version != 2 or total_length != len(data):
+              raise SystemExit(f"unexpected GLB header version={version} total={total_length} actual={len(data)}")
+
+          cursor = 12
+          json_chunk = None
+          bin_chunk = None
+          while cursor + 8 <= len(data):
+              length, kind = struct.unpack_from("<II", data, cursor)
+              cursor += 8
+              payload = data[cursor:cursor+length]
+              cursor += length
+              if kind == 0x4E4F534A:
+                  json_chunk = payload.rstrip(b"\x00 \t\r\n")
+              elif kind == 0x004E4942:
+                  bin_chunk = payload
+
+          if json_chunk is None or bin_chunk is None:
+              raise SystemExit("GLB missing JSON/BIN chunk")
+
+          doc = json.loads(json_chunk.decode("utf-8"))
+          buffer_views = doc.get("bufferViews", [])
+          images = doc.get("images", [])
+          textures = doc.get("textures", [])
+          materials = doc.get("materials", [])
+
+          out_dir = Path("church/out/clean/original_embedded_textures")
+          out_dir.mkdir(parents=True, exist_ok=True)
+
+          records = []
+          decoded_hash_to_indices = {}
+
+          for index, image in enumerate(images):
+              view_index = image.get("bufferView")
+              if view_index is None:
+                  continue
+              view = buffer_views[view_index]
+              offset = int(view.get("byteOffset", 0))
+              size = int(view["byteLength"])
+              payload = bin_chunk[offset:offset+size]
+              if len(payload) != size:
+                  raise SystemExit(f"truncated image bufferView {view_index}")
+
+              with Image.open(io.BytesIO(payload)) as im:
+                  rgba = im.convert("RGBA")
+                  pixel_bytes = rgba.tobytes()
+                  pixel_hash = hashlib.sha256(pixel_bytes).hexdigest()
+                  dimensions = [rgba.width, rgba.height]
+                  rgba.save(out_dir / f"source_{index:02d}.png")
+
+              record = {
+                  "imageIndex": index,
+                  "name": image.get("name"),
+                  "mimeType": image.get("mimeType"),
+                  "encodedBytes": size,
+                  "encodedSha256": hashlib.sha256(payload).hexdigest(),
+                  "decodedRgbaSha256": pixel_hash,
+                  "dimensions": dimensions,
+              }
+              records.append(record)
+              decoded_hash_to_indices.setdefault(pixel_hash, []).append(index)
+
+          material_usage = []
+          for mi, material in enumerate(materials):
+              pbr = material.get("pbrMetallicRoughness", {})
+              base = pbr.get("baseColorTexture", {}).get("index")
+              mr = pbr.get("metallicRoughnessTexture", {}).get("index")
+              normal = material.get("normalTexture", {}).get("index")
+              occlusion = material.get("occlusionTexture", {}).get("index")
+
+              def image_index(texture_index):
+                  if texture_index is None or texture_index >= len(textures):
+                      return None
+                  return textures[texture_index].get("source")
+
+              material_usage.append({
+                  "materialIndex": mi,
+                  "name": material.get("name"),
+                  "baseColorImage": image_index(base),
+                  "metallicRoughnessImage": image_index(mr),
+                  "normalImage": image_index(normal),
+                  "occlusionImage": image_index(occlusion),
+              })
+
+          report = {
+              "glbVersion": version,
+              "glbBytes": len(data),
+              "imageCount": len(images),
+              "embeddedImageCount": len(records),
+              "textureCount": len(textures),
+              "materialCount": len(materials),
+              "images": records,
+              "materials": material_usage,
+              "uniqueDecodedImageCount": len(decoded_hash_to_indices),
+          }
+
+          Path("church/out/clean/original_texture_audit.json").write_text(
+              json.dumps(report, indent=2),
+              encoding="utf-8",
+          )
+          print("ORIGINAL_TEXTURE_AUDIT", json.dumps({
+              "images": len(records),
+              "uniqueDecoded": len(decoded_hash_to_indices),
+              "sizes": sorted({tuple(r["dimensions"]) for r in records}),
+              "materialUsage": material_usage,
+          }))
+          PY
+
       - name: Direct-export original GLB to Xziel
         shell: bash
         env:
@@ -152,6 +278,11 @@ jobs:
           jq -e '.textureCount > 0' "$R"
           jq -e '.fallbackMaterials | length == 0' "$R"
 
+          A=church/out/clean/original_texture_audit.json
+          test -s "$A"
+          jq -e '.embeddedImageCount > 0' "$A"
+          jq -e '.images | all(.dimensions[0] == 1024 and .dimensions[1] == 1024)' "$A"
+
           jq -e '.schemaVersion == 2' "$XR"
           jq -e '.floorCount == 216' "$XR"
           jq -e '.doorCount == 7' "$XR"
@@ -187,6 +318,8 @@ jobs:
             church/out/clean/xziel_native_static/
             church/out/clean/xziel_native_static_mesh_report.json
             church/out/clean/xziel_native_map/
+            church/out/clean/original_texture_audit.json
+            church/out/clean/original_embedded_textures/
             church/source/source_metadata.json
           if-no-files-found: error
           compression-level: 1
