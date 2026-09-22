@@ -238,6 +238,7 @@ if '#include "xz_geometry_tap.h"' not in hyena:
         '#include "xz_geometry_tap.h"\n'
         '#include <stddef.h>\n'
         '#include <string.h>\n'
+        '#include <stdlib.h>\n'
         '#endif\n',
         1,
     )
@@ -620,6 +621,148 @@ if "XZ_GEOMETRY_SPRITE_CAPTURE" not in rmain:
         "\tglBegin (GL_QUADS);\n"
     )
     rmain = rmain.replace(sprite_anchor, sprite_capture, 1)
+
+
+# Alias/model blob shadows bypass Hyena and are emitted as immediate-mode
+# triangle fans/strips. Capture the projected vertices and the exact untextured
+# blend state so the GLES3 world remains complete before legacy 3D retirement.
+if "XZ_ALIAS_SHADOW_CAPTURE" not in rmain:
+    shadow_begin = rmain.find("void GL_DrawAliasShadow (aliashdr_t *paliashdr, int posenum)")
+    shadow_end = rmain.find("/*\n=================\nR_SetupAliasFrame", shadow_begin)
+    if shadow_begin < 0 or shadow_end < 0:
+        raise SystemExit("Missing alias-shadow function bounds")
+    shadow = rmain[shadow_begin:shadow_end]
+
+    shadow_local_anchor = "\tint\t\tcount;\n"
+    if shadow_local_anchor not in shadow:
+        raise SystemExit("Missing alias-shadow local anchor")
+    shadow = shadow.replace(
+        shadow_local_anchor,
+        shadow_local_anchor +
+        "#ifdef __ANDROID__\n"
+        "\tfloat\t\t*xz_shadow_capture = NULL;\n"
+        "\tint\t\txz_shadow_capture_count = 0;\n"
+        "\tint\t\txz_shadow_capture_index = 0;\n"
+        "\tXzGeometryPrimitive xz_shadow_primitive = XZ_GEOMETRY_TRIANGLE_STRIP;\n"
+        "#endif\n",
+        1,
+    )
+
+    fan_anchor = (
+        "\t\tif (count < 0)\n"
+        "\t\t{\n"
+        "\t\t\tcount = -count;\n"
+        "\t\t\tglBegin (GL_TRIANGLE_FAN);\n"
+        "\t\t}\n"
+        "\t\telse\n"
+        "\t\t\tglBegin (GL_TRIANGLE_STRIP);\n"
+    )
+    if fan_anchor not in shadow:
+        raise SystemExit("Missing alias-shadow primitive anchor")
+    fan_block = (
+        "\t\tif (count < 0)\n"
+        "\t\t{\n"
+        "\t\t\tcount = -count;\n"
+        "#ifdef __ANDROID__\n"
+        "\t\t\txz_shadow_primitive = XZ_GEOMETRY_TRIANGLE_FAN;\n"
+        "#endif\n"
+        "\t\t\tglBegin (GL_TRIANGLE_FAN);\n"
+        "\t\t}\n"
+        "\t\telse\n"
+        "\t\t{\n"
+        "#ifdef __ANDROID__\n"
+        "\t\t\txz_shadow_primitive = XZ_GEOMETRY_TRIANGLE_STRIP;\n"
+        "#endif\n"
+        "\t\t\tglBegin (GL_TRIANGLE_STRIP);\n"
+        "\t\t}\n"
+        "#ifdef __ANDROID__\n"
+        "\t\txz_shadow_capture_count = (xz_shadow_capture && count <= paliashdr->poseverts) ? count : 0;\n"
+        "\t\txz_shadow_capture_index = 0;\n"
+        "#endif\n"
+    )
+    shadow = shadow.replace(fan_anchor, fan_block, 1)
+
+    shadow_height_anchor = "\theight = -lheight + 1.0f;\n"
+    if shadow_height_anchor not in shadow:
+        raise SystemExit("Missing alias-shadow scratch allocation anchor")
+    shadow = shadow.replace(
+        shadow_height_anchor,
+        shadow_height_anchor +
+        "#ifdef __ANDROID__\n"
+        "\t/* One scratch allocation per shadowed model, reused by every strip/fan. */\n"
+        "\tif (paliashdr->poseverts > 0)\n"
+        "\t\txz_shadow_capture = (float *)malloc((size_t)paliashdr->poseverts * 5u * sizeof(float));\n"
+        "#endif\n",
+        1,
+    )
+
+    vertex_anchor = (
+        "\t\t\tpoint[2] = height;\n"
+        "//\t\t\theight -= 0.001;\n"
+        "\t\t\tglVertex3fv (point);\n"
+    )
+    if vertex_anchor not in shadow:
+        raise SystemExit("Missing alias-shadow vertex anchor")
+    vertex_block = (
+        "\t\t\tpoint[2] = height;\n"
+        "//\t\t\theight -= 0.001;\n"
+        "#ifdef __ANDROID__\n"
+        "\t\t\tif (xz_shadow_capture && xz_shadow_capture_index < xz_shadow_capture_count) {\n"
+        "\t\t\t\tfloat *xz_out = xz_shadow_capture + xz_shadow_capture_index * 5;\n"
+        "\t\t\t\txz_out[0] = point[0];\n"
+        "\t\t\t\txz_out[1] = point[1];\n"
+        "\t\t\t\txz_out[2] = point[2];\n"
+        "\t\t\t\txz_out[3] = 0.0f;\n"
+        "\t\t\t\txz_out[4] = 0.0f;\n"
+        "\t\t\t\txz_shadow_capture_index++;\n"
+        "\t\t\t}\n"
+        "#endif\n"
+        "\t\t\tglVertex3fv (point);\n"
+    )
+    shadow = shadow.replace(vertex_anchor, vertex_block, 1)
+
+    end_anchor = "\t\tglEnd ();\n"
+    if end_anchor not in shadow:
+        raise SystemExit("Missing alias-shadow end anchor")
+    end_block = (
+        "\t\tglEnd ();\n"
+        "#ifdef __ANDROID__\n"
+        "\t\tif (xz_shadow_capture && xz_shadow_capture_index == xz_shadow_capture_count) {\n"
+        "\t\t\tfloat xz_mv[16], xz_pr[16];\n"
+        "\t\t\tXzGeometryRenderState xz_state;\n"
+        "\t\t\tXzCaptureLegacySpriteState(&xz_state);\n"
+        "\t\t\txz_state.texture_enabled = 0u;\n"
+        "\t\t\tglGetFloatv(GL_MODELVIEW_MATRIX, xz_mv);\n"
+        "\t\t\tglGetFloatv(GL_PROJECTION_MATRIX, xz_pr);\n"
+        "\t\t\t/* XZ_ALIAS_SHADOW_CAPTURE */\n"
+        "\t\t\tXzGeometryTap_CaptureShadowPrimitive(\n"
+        "\t\t\t\txz_shadow_capture,\n"
+        "\t\t\t\t(unsigned int)xz_shadow_capture_count,\n"
+        "\t\t\t\t5u, 0u, 5u,\n"
+        "\t\t\t\txz_shadow_primitive,\n"
+        "\t\t\t\t&xz_state, xz_mv, xz_pr);\n"
+        "\t\t}\n"
+        "#endif\n"
+    )
+    shadow = shadow.replace(end_anchor, end_block, 1)
+
+    shadow_tail_anchor = "\t}\t\n}\n"
+    if shadow_tail_anchor not in shadow:
+        raise SystemExit("Missing alias-shadow scratch free anchor")
+    shadow = shadow.replace(
+        shadow_tail_anchor,
+        "\t}\t\n"
+        "#ifdef __ANDROID__\n"
+        "\tif (xz_shadow_capture) free(xz_shadow_capture);\n"
+        "#endif\n"
+        "}\n",
+        1,
+    )
+
+    rmain = rmain[:shadow_begin] + shadow + rmain[shadow_end:]
+
+if rmain.count("XZ_ALIAS_SHADOW_CAPTURE") != 1:
+    raise SystemExit("Alias-shadow geometry capture injection count mismatch")
 
 gl_rmain.write_text(rmain, encoding="utf-8")
 

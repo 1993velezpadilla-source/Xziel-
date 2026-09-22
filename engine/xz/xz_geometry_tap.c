@@ -163,6 +163,7 @@ void XzGeometryTap_BeginFrame(uint64_t generation)
     frame->surface_batches = 0u;
     frame->sprite_batches = 0u;
     frame->effect_batches = 0u;
+    frame->shadow_batches = 0u;
     frame->special_batches = 0u;
     frame->sky_batches = 0u;
     frame->water_batches = 0u;
@@ -464,6 +465,36 @@ int XzGeometryTap_CapturePrimitive(
     return 1;
 }
 
+int XzGeometryTap_CaptureShadowPrimitive(
+    const float *source,
+    unsigned int count,
+    unsigned int stride_floats,
+    unsigned int position_offset,
+    unsigned int texture_offset,
+    XzGeometryPrimitive primitive,
+    const XzGeometryRenderState *state,
+    const float modelview[16],
+    const float projection[16])
+{
+    XzGeometryFrame *frame = XzWriteFrame();
+
+    if (!XzGeometryTap_CapturePrimitive(
+            source,
+            count,
+            stride_floats,
+            position_offset,
+            texture_offset,
+            primitive,
+            0,
+            state,
+            modelview,
+            projection))
+        return 0;
+
+    frame->shadow_batches++;
+    return 1;
+}
+
 int XzGeometryTap_CaptureSpecialFan(
     const float *source,
     unsigned int count,
@@ -593,16 +624,23 @@ int XzGeometryTap_SelfTest(void)
             NULL, NULL, NULL))
         return 0;
 
+    if (!XzGeometryTap_CaptureShadowPrimitive(
+            fan, 4u, 5u, 0u, 5u,
+            XZ_GEOMETRY_TRIANGLE_FAN,
+            NULL, NULL, NULL))
+        return 0;
+
     XzGeometryTap_CommitFrame();
     frame = XzGeometryTap_GetReadFrame();
 
     if (frame->generation != 7u ||
-        frame->batch_count != 4u ||
-        frame->vertex_count != 15u ||
-        frame->index_count != 21u ||
+        frame->batch_count != 5u ||
+        frame->vertex_count != 19u ||
+        frame->index_count != 27u ||
         frame->alias_batches != 1u ||
         frame->surface_batches != 1u ||
-        frame->effect_batches != 1u ||
+        frame->effect_batches != 2u ||
+        frame->shadow_batches != 1u ||
         frame->special_batches != 1u ||
         frame->sky_batches != 1u ||
         frame->water_batches != 0u ||
