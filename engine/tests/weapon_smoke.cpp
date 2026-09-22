@@ -169,5 +169,34 @@ int main() {
     assert(
         weapon.config().automatic);
 
+    xziel::WeaponConfig ammoConfig{};
+    ammoConfig.magazineSize = 2U;
+    ammoConfig.startingReserve = 4U;
+    ammoConfig.fireIntervalSeconds = 0.01f;
+    ammoConfig.reloadSeconds = 0.05f;
+    ammoConfig.automatic = false;
+
+    xziel::WeaponController ammoWeapon(ammoConfig);
+    for (int shot = 0; shot < 2; ++shot) {
+        (void) ammoWeapon.step(
+            {.firePressed = true},
+            0.02f);
+        (void) ammoWeapon.step({}, 0.02f);
+    }
+    assert(ammoWeapon.frame().magazine == 0U);
+
+    (void) ammoWeapon.step(
+        {.reloadPressed = true},
+        0.01f);
+    for (int i = 0; i < 8; ++i) {
+        (void) ammoWeapon.step({}, 0.01f);
+    }
+    assert(ammoWeapon.frame().magazine == 2U);
+    assert(ammoWeapon.frame().reserve == 2U);
+
+    ammoWeapon.refillAmmo(false);
+    assert(ammoWeapon.frame().magazine == 2U);
+    assert(ammoWeapon.frame().reserve == 4U);
+
     return 0;
 }
