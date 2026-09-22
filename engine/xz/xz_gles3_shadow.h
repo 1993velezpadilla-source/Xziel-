@@ -80,6 +80,16 @@ typedef struct {
     unsigned int last_geometry_drops;
     int real_geometry_ready;
 
+    uint64_t real_texture_uploads;
+    uint64_t real_texture_binds;
+    uint64_t real_texture_bytes;
+    uint64_t real_texture_misses;
+    uint64_t real_texture_failures;
+    unsigned int real_texture_kind_mask;
+    unsigned int last_texture_batches;
+    unsigned int last_texture_misses;
+    int real_textures_ready;
+
     unsigned int last_packet_count;
     uint32_t last_plan_hash;
     uint32_t last_command_hash;
