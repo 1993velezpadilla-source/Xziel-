@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "fallback_language": "en",
+  "strings": {
+    "stained_shade_confess": {
+      "es": "CONFESAR",
+      "en": "CONFESS",
+      "pt": "CONFESSAR",
+      "fr": "SE CONFESSER",
+      "de": "BEICHTEN",
+      "it": "CONFESSA"
+    },
+    "stained_shade_glass_ward": {
+      "es": "Amparo de Vidrio",
+      "en": "Glass Ward",
+      "pt": "Proteção de Vidro",
+      "fr": "Égide de Verre",
+      "de": "Glaswacht",
+      "it": "Protezione di Vetro"
+    }
+  }
+}
