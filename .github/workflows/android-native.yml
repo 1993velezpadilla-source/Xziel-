@@ -23,6 +23,7 @@ on:
       - feature/xz-fog-renderstate-parity
       - feature/xz-effects-geometry-parity
       - feature/xz-sky-water-parity
+      - feature/xz-legacy-world-retirement
     paths:
       - ".github/workflows/android-native.yml"
       - "android/**"
@@ -824,6 +825,12 @@ jobs:
             exit 1
           fi
 
+          if ! grep -Eq "XZIEL-XZ.*parity shadows current=[1-9][0-9]*" dist/xziel-logcat.txt; then
+            echo "Xz alias-shadow parity did not capture/replay a live model shadow."
+            grep -E "XZIEL-XZ.*parity shadows|XZIEL-XZ.*parity geometry|XZIEL-XZ.*parity material" dist/xziel-logcat.txt | tail -n 180 || true
+            exit 1
+          fi
+
           if ! grep -Eq "XZIEL-XZ.*parity specials current=[1-9][0-9]* sky=[1-9][0-9]* water=[0-9]+ skySeen=1 waterSeen=[01]" dist/xziel-logcat.txt; then
             echo "Xz sky parity did not capture/replay a live layered/flat/skybox path."
             grep -E "XZIEL-XZ.*parity specials|XZIEL-XZ.*parity geometry" dist/xziel-logcat.txt | tail -n 220 || true
@@ -860,7 +867,7 @@ jobs:
             exit 1
           fi
 
-          echo "Xziel remained alive; REAL_GEOMETRY + REAL_TEXTURES + MATERIAL_LIGHTMAP + FOG_RASTER + EFFECTS + SKY_WATER + VISIBLE_PRESENT parity are live and MODERN is active."
+          echo "Xziel remained alive; REAL_GEOMETRY + REAL_TEXTURES + MATERIAL_LIGHTMAP + FOG_RASTER + EFFECTS + ALIAS_SHADOWS + SKY_WATER + VISIBLE_PRESENT parity are live and MODERN is active."
 
       - name: Upload runtime diagnostics
         if: always()
