@@ -732,6 +732,108 @@ if "XZ_GEOMETRY_SPRITE_CAPTURE" not in rmain:
     )
     rmain = rmain.replace(sprite_anchor, sprite_capture, 1)
 
+
+# Capture projected alias shadows, which are still emitted as raw GL fan/strip
+# primitives outside the alias batcher.
+if "XZ_IMMEDIATE_ALIAS_SHADOW_CAPTURE" not in rmain:
+    decl_anchor = (
+        "\tfloat\theight, lheight;\n"
+        "\tint\t\tcount;\n"
+    )
+    if decl_anchor not in rmain:
+        raise SystemExit("Missing alias-shadow declaration anchor")
+    rmain = rmain.replace(
+        decl_anchor,
+        decl_anchor +
+        "#ifdef __ANDROID__\n"
+        "\tfloat xz_shadow_vertices[MAXALIASVERTS][5];\n"
+        "#endif\n",
+        1,
+    )
+
+    primitive_anchor = (
+        "\t\tcount = *order++;\n"
+        "\t\tif (!count)\n"
+        "\t\t\tbreak;\t\t// done\n"
+        "\t\tif (count < 0)\n"
+    )
+    if primitive_anchor not in rmain:
+        raise SystemExit("Missing alias-shadow primitive anchor")
+    rmain = rmain.replace(
+        primitive_anchor,
+        "\t\tcount = *order++;\n"
+        "\t\tif (!count)\n"
+        "\t\t\tbreak;\t\t// done\n"
+        "#ifdef __ANDROID__\n"
+        "\t\tXzGeometryPrimitive xz_shadow_primitive =\n"
+        "\t\t\tcount < 0 ? XZ_GEOMETRY_TRIANGLE_FAN : XZ_GEOMETRY_TRIANGLE_STRIP;\n"
+        "\t\tint xz_shadow_count = 0;\n"
+        "#endif\n"
+        "\t\tif (count < 0)\n",
+        1,
+    )
+
+    vertex_anchor = (
+        "\t\t\tpoint[1] -= shadevector[1]*(point[2]+lheight);\n"
+        "\t\t\tpoint[2] = height;\n"
+        "//\t\t\theight -= 0.001;\n"
+        "\t\t\tglVertex3fv (point);\n"
+    )
+    if vertex_anchor not in rmain:
+        raise SystemExit("Missing alias-shadow vertex anchor")
+    rmain = rmain.replace(
+        vertex_anchor,
+        "\t\t\tpoint[1] -= shadevector[1]*(point[2]+lheight);\n"
+        "\t\t\tpoint[2] = height;\n"
+        "//\t\t\theight -= 0.001;\n"
+        "#ifdef __ANDROID__\n"
+        "\t\t\tif (xz_shadow_count < MAXALIASVERTS) {\n"
+        "\t\t\t\txz_shadow_vertices[xz_shadow_count][0] = point[0];\n"
+        "\t\t\t\txz_shadow_vertices[xz_shadow_count][1] = point[1];\n"
+        "\t\t\t\txz_shadow_vertices[xz_shadow_count][2] = point[2];\n"
+        "\t\t\t\txz_shadow_vertices[xz_shadow_count][3] = 0.0f;\n"
+        "\t\t\t\txz_shadow_vertices[xz_shadow_count][4] = 0.0f;\n"
+        "\t\t\t\txz_shadow_count++;\n"
+        "\t\t\t}\n"
+        "#endif\n"
+        "\t\t\tglVertex3fv (point);\n",
+        1,
+    )
+
+    end_anchor = (
+        "\t\tglEnd ();\n"
+        "\t}\t\n"
+        "}\n"
+    )
+    if end_anchor not in rmain:
+        raise SystemExit("Missing alias-shadow end anchor")
+    rmain = rmain.replace(
+        end_anchor,
+        "\t\tglEnd ();\n"
+        "#ifdef __ANDROID__\n"
+        "\t\t/* XZ_IMMEDIATE_ALIAS_SHADOW_CAPTURE */\n"
+        "\t\tif (xz_shadow_count >= 3) {\n"
+        "\t\t\tfloat xz_mv[16], xz_pr[16];\n"
+        "\t\t\tGLint xz_tex = 0;\n"
+        "\t\t\tXzGeometryRenderState xz_state;\n"
+        "\t\t\tXzCaptureLegacySpriteState(&xz_state);\n"
+        "\t\t\tglGetFloatv(GL_MODELVIEW_MATRIX, xz_mv);\n"
+        "\t\t\tglGetFloatv(GL_PROJECTION_MATRIX, xz_pr);\n"
+        "\t\t\tglGetIntegerv(GL_TEXTURE_BINDING_2D, &xz_tex);\n"
+        "\t\t\tXzGeometryTap_CaptureImmediate(\n"
+        "\t\t\t\t&xz_shadow_vertices[0][0],\n"
+        "\t\t\t\t(unsigned int)xz_shadow_count,\n"
+        "\t\t\t\t5u, 0u, 3u,\n"
+        "\t\t\t\txz_shadow_primitive,\n"
+        "\t\t\t\t(int)xz_tex,\n"
+        "\t\t\t\t&xz_state, xz_mv, xz_pr);\n"
+        "\t\t}\n"
+        "#endif\n"
+        "\t}\t\n"
+        "}\n",
+        1,
+    )
+
 gl_rmain.write_text(rmain, encoding="utf-8")
 
 
