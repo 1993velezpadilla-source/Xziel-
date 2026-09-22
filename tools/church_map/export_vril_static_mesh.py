@@ -1,4 +1,5 @@
 import bpy
+import bmesh
 import json
 import math
 import os
@@ -61,6 +62,59 @@ if runtime_col:
 runtime_col = bpy.data.collections.new("VRIL_STATIC_RUNTIME")
 scene.collection.children.link(runtime_col)
 
+cleanup_stats = {"removedIslands":0, "removedFaces":0}
+
+def remove_tiny_scan_islands(obj):
+    # Photogrammetry often contains tiny disconnected shards/floating patches.
+    # Remove only the tail of very small islands while preserving the largest
+    # structural components and all surviving UV/material data.
+    mesh = obj.data
+    if len(mesh.polygons) < 300:
+        return
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    bm.faces.ensure_lookup_table()
+    unseen = set(bm.faces)
+    components = []
+    while unseen:
+        seed = unseen.pop()
+        comp = [seed]
+        stack = [seed]
+        while stack:
+            face = stack.pop()
+            for edge in face.edges:
+                for other in edge.link_faces:
+                    if other in unseen:
+                        unseen.remove(other)
+                        stack.append(other)
+                        comp.append(other)
+        components.append(comp)
+
+    if len(components) <= 1:
+        bm.free()
+        return
+
+    components.sort(key=len, reverse=True)
+    min_faces = max(48, int(len(bm.faces) * 0.0015))
+    to_delete = []
+    # Always preserve the 16 largest islands; only delete small tail debris.
+    for idx, comp in enumerate(components):
+        if idx < 16 or len(comp) >= min_faces:
+            continue
+        to_delete.extend(comp)
+
+    if to_delete:
+        removed = len(to_delete)
+        bmesh.ops.delete(bm, geom=to_delete, context="FACES")
+        bm.to_mesh(mesh)
+        mesh.update()
+        cleanup_stats["removedIslands"] += sum(
+            1 for idx,comp in enumerate(components)
+            if idx >= 16 and len(comp) < min_faces
+        )
+        cleanup_stats["removedFaces"] += removed
+    bm.free()
+
 runtime_objects = []
 for src in source_objects:
     dup = src.copy()
@@ -78,6 +132,7 @@ for src in source_objects:
         except Exception as exc:
             print("WARN decimate", dup.name, exc)
         dup.select_set(False)
+    remove_tiny_scan_islands(dup)
     runtime_objects.append(dup)
 
 runtime_tris = sum(mesh_triangles(o) for o in runtime_objects)
@@ -241,6 +296,7 @@ report = {
     "textureMaxDimension":TEXTURE_MAX,
     "decimateRatio":ratio,
     "batching":"object_material_spatial",
+    "scanCleanup":cleanup_stats,
     "batchCount":len(batches),
     "textureCount":len(texture_records),
     "totalVertices":sum(len(b["vertices"]) for b in batches),
@@ -267,4 +323,5 @@ print("XZSM_EXPORT_OK", json.dumps({
     "textureCount":len(texture_records),
     "modelBytes":model_path.stat().st_size,
     "textureMaxDimension":TEXTURE_MAX,
+    "scanCleanup":cleanup_stats,
 }))
