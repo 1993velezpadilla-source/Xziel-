@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 80
     env:
-      SANCTUM_ASSET_SHA: e8c73542e94de740347c3534d7bea3093bb58ccd
+      SANCTUM_ASSET_SHA: 47c7de40b9e9c92eff0db10b48eb770efe5d2a2b
       GH_TOKEN: ${{ github.token }}
 
     steps:
@@ -87,9 +87,15 @@ jobs:
 
           REPORT="$(find build/sanctum-artifact             -name 'xziel_native_static_mesh_report.json'             -print -quit)"
 
+          NATIVE_MAP="$(find build/sanctum-artifact             -path '*/xziel_native_map/sanctum.xmap'             -print -quit)"
+
+          NATIVE_MAP_REPORT="$(find build/sanctum-artifact             -path '*/xziel_native_map/sanctum_native_map_report.json'             -print -quit)"
+
           test -s "$MODEL"
           test -d "$TEXTURE_DIR"
           test -s "$REPORT"
+          test -s "$NATIVE_MAP"
+          test -s "$NATIVE_MAP_REPORT"
 
           jq '{
             coordinateSpace,
@@ -114,9 +120,30 @@ jobs:
           jq -e '.runtimeTriangles >= 1045000' "$REPORT"
           jq -e '.textureMaxDimension >= 4096' "$REPORT"
 
-          mkdir -p             xziel-native-android/app/src/main/assets/models/xziel/sanctum             xziel-native-android/app/src/main/assets/textures/xziel/sanctum
+          jq '{
+            schemaVersion,
+            boxCount,
+            doorCount,
+            windowCount,
+            zombieSpawnCount,
+            playerSpawn,
+            playerYawDegrees,
+            arena,
+            nativeFloorY,
+            worldScale
+          }' "$NATIVE_MAP_REPORT" | tee build/sanctum-native-map-report.json
+
+          jq -e '.schemaVersion == 2' "$NATIVE_MAP_REPORT"
+          jq -e '.boxCount >= 20' "$NATIVE_MAP_REPORT"
+          jq -e '.doorCount >= 7' "$NATIVE_MAP_REPORT"
+          jq -e '.windowCount >= 8' "$NATIVE_MAP_REPORT"
+          jq -e '.zombieSpawnCount >= 8' "$NATIVE_MAP_REPORT"
+
+          mkdir -p             xziel-native-android/app/src/main/assets/models/xziel/sanctum             xziel-native-android/app/src/main/assets/textures/xziel/sanctum             xziel-native-android/app/src/main/assets/maps
 
           cp "$MODEL"             xziel-native-android/app/src/main/assets/models/xziel/sanctum/sanctum.xzsm
+
+          cp "$NATIVE_MAP"             xziel-native-android/app/src/main/assets/maps/sanctum.xmap
 
           cp -a "$TEXTURE_DIR"/.             xziel-native-android/app/src/main/assets/textures/xziel/sanctum/
 
@@ -187,6 +214,8 @@ jobs:
           unzip -l "$APK" | tee build/sanctum-hq-apk-contents.txt
 
           grep -q             "assets/models/xziel/sanctum/sanctum.xzsm"             build/sanctum-hq-apk-contents.txt
+
+          grep -q             "assets/maps/sanctum.xmap"             build/sanctum-hq-apk-contents.txt
 
           grep -q             "assets/textures/xziel/sanctum/.*\.png"             build/sanctum-hq-apk-contents.txt
 
@@ -263,7 +292,9 @@ jobs:
 
           grep -q "XZIEL_SANCTUM_MESH_READY"             dist/sanctum-hq-logcat.txt
 
-          echo "SANCTUM_NATIVE_HQ_TAKEOVER_OK"
+          grep -Eq             "XZIEL_SANCTUM_GAMEPLAY_READY boxes=([2-9][0-9]|[1-9][0-9]{2,}) doors=([7-9]|[1-9][0-9]+) windows=([8-9]|[1-9][0-9]+) spawns=([8-9]|[1-9][0-9]+) playerSpawn=1 arena=1"             dist/sanctum-hq-logcat.txt
+
+          echo "SANCTUM_NATIVE_HQ_GAMEPLAY_TAKEOVER_OK"
 
       - name: Upload Sanctum HQ APK
         uses: actions/upload-artifact@v4
@@ -280,6 +311,7 @@ jobs:
           name: Xziel-Sanctum-Native-HQ-runtime
           path: |
             build/sanctum-native-hq-report.json
+            build/sanctum-native-map-report.json
             build/sanctum-hq-apk-contents.txt
             dist/sanctum-hq-logcat.txt
             dist/sanctum-hq-first-frame.png
