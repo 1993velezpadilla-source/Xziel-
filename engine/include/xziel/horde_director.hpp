@@ -13,7 +13,7 @@ inline constexpr std::size_t kMaxHordeZombies = 16;
 inline constexpr std::size_t kMaxHordeNavigationObstacles = 256;
 inline constexpr std::size_t kMaxHordeNavigationFloors = 256;
 inline constexpr std::size_t kMaxHordeDynamicBlockers = 64;
-inline constexpr std::size_t kMaxHordeNavigationLinksPerFloor = 24;
+inline constexpr std::size_t kMaxHordeNavigationLinksPerFloor = 96;
 
 struct HordeConfig {
     std::uint32_t startingRound = 1;
