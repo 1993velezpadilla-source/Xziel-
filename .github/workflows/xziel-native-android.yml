@@ -58,12 +58,18 @@ jobs:
 
           "$GLSLC"             -O             -fshader-stage=frag             app/src/main/shaders/xziel_first.frag             -o app/src/main/assets/shaders/xziel_first.frag.spv
 
+          "$GLSLC"             -O             -fshader-stage=vert             app/src/main/shaders/xziel_static_mesh.vert             -o app/src/main/assets/shaders/xziel_static_mesh.vert.spv
+
+          "$GLSLC"             -O             -fshader-stage=frag             app/src/main/shaders/xziel_static_mesh.frag             -o app/src/main/assets/shaders/xziel_static_mesh.frag.spv
+
           "$GLSLC"             -O             -fshader-stage=vert             app/src/main/shaders/xziel_ui.vert             -o app/src/main/assets/shaders/xziel_ui.vert.spv
 
           "$GLSLC"             -O             -fshader-stage=frag             app/src/main/shaders/xziel_ui.frag             -o app/src/main/assets/shaders/xziel_ui.frag.spv
 
           test -s app/src/main/assets/shaders/xziel_first.vert.spv
           test -s app/src/main/assets/shaders/xziel_first.frag.spv
+          test -s app/src/main/assets/shaders/xziel_static_mesh.vert.spv
+          test -s app/src/main/assets/shaders/xziel_static_mesh.frag.spv
           test -s app/src/main/assets/shaders/xziel_ui.vert.spv
           test -s app/src/main/assets/shaders/xziel_ui.frag.spv
 
@@ -71,6 +77,8 @@ jobs:
           if [[ -n "$SPIRV_VAL" ]]; then
             "$SPIRV_VAL" app/src/main/assets/shaders/xziel_first.vert.spv
             "$SPIRV_VAL" app/src/main/assets/shaders/xziel_first.frag.spv
+            "$SPIRV_VAL" app/src/main/assets/shaders/xziel_static_mesh.vert.spv
+            "$SPIRV_VAL" app/src/main/assets/shaders/xziel_static_mesh.frag.spv
             "$SPIRV_VAL" app/src/main/assets/shaders/xziel_ui.vert.spv
             "$SPIRV_VAL" app/src/main/assets/shaders/xziel_ui.frag.spv
           fi
@@ -92,6 +100,8 @@ jobs:
           grep -q "lib/x86_64/libxziel-native.so" xziel-native-apk-contents.txt
           grep -q "assets/shaders/xziel_first.vert.spv" xziel-native-apk-contents.txt
           grep -q "assets/shaders/xziel_first.frag.spv" xziel-native-apk-contents.txt
+          grep -q "assets/shaders/xziel_static_mesh.vert.spv" xziel-native-apk-contents.txt
+          grep -q "assets/shaders/xziel_static_mesh.frag.spv" xziel-native-apk-contents.txt
           grep -q "assets/shaders/xziel_ui.vert.spv" xziel-native-apk-contents.txt
           grep -q "assets/shaders/xziel_ui.frag.spv" xziel-native-apk-contents.txt
           grep -q "assets/maps/prototype.xmap" xziel-native-apk-contents.txt
