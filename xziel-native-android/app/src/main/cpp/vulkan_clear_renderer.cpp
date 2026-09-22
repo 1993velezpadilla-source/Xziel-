@@ -3963,6 +3963,62 @@ bool VulkanClearRenderer::recordDrawCommand(
             box.materialId);
     }
 
+    const std::size_t visibleDoorCount =
+        std::min(
+            scene.doorCount,
+            scene.doors.size());
+
+    for (std::size_t doorIndex = 0;
+         doorIndex < visibleDoorCount;
+         ++doorIndex) {
+        const auto& door = scene.doors[doorIndex];
+
+        if (!door.visible) {
+            continue;
+        }
+
+        const float rawProgress =
+            std::clamp(door.openProgress, 0.0f, 1.0f);
+        const float eased =
+            rawProgress * rawProgress *
+            (3.0f - 2.0f * rawProgress);
+        const float swingSign =
+            (door.id & 1U) != 0U ? -1.0f : 1.0f;
+        const float angle =
+            swingSign * eased * 1.658062789f;
+
+        const bool thinX = door.halfX <= door.halfZ;
+        float centerX = door.x;
+        float centerZ = door.z;
+
+        if (thinX) {
+            const float hingeZ = door.z - door.halfZ;
+            centerX =
+                door.x + std::sin(angle) * door.halfZ;
+            centerZ =
+                hingeZ + std::cos(angle) * door.halfZ;
+        } else {
+            const float hingeX = door.x - door.halfX;
+            centerX =
+                hingeX + std::cos(angle) * door.halfX;
+            centerZ =
+                door.z - std::sin(angle) * door.halfX;
+        }
+
+        drawPrimitive(
+            centerX,
+            door.y,
+            centerZ,
+            door.halfX / 0.75f,
+            door.halfY / 0.75f,
+            door.halfZ / 0.75f,
+            8.0f,
+            0.0f,
+            angle,
+            0.0f,
+            36U);
+    }
+
     const std::size_t visibleWindowCount =
         sanctumMesh_.ready()
         ? 0U
@@ -4009,54 +4065,54 @@ bool VulkanClearRenderer::recordDrawCommand(
         }
     }
 
-    const float prototypeDoorOpen =
-        std::clamp(
-            scene.doorOpenAlpha,
-            0.0f,
+    if (!sanctumMesh_.ready()) {
+        const float prototypeDoorOpen =
+            std::clamp(
+                scene.doorOpenAlpha,
+                0.0f,
+                1.0f);
+
+        drawBox(
+            -2.88f,
+            -0.12f,
+            1.57f,
+            0.12f,
+            1.52f,
+            0.20f,
             1.0f);
 
-    // The single authoritative purchasable door proves that contextual
-    // interactions alter collision, zombie navigation and visible world state.
-    drawBox(
-        -2.88f,
-        -0.12f,
-        1.57f,
-        0.12f,
-        1.52f,
-        0.20f,
-        1.0f);
+        drawBox(
+            2.88f,
+            -0.12f,
+            1.57f,
+            0.12f,
+            1.52f,
+            0.20f,
+            1.0f);
 
-    drawBox(
-        2.88f,
-        -0.12f,
-        1.57f,
-        0.12f,
-        1.52f,
-        0.20f,
-        1.0f);
+        drawBox(
+            0.0f,
+            1.34f,
+            1.57f,
+            3.0f,
+            0.10f,
+            0.20f,
+            1.0f);
 
-    drawBox(
-        0.0f,
-        1.34f,
-        1.57f,
-        3.0f,
-        0.10f,
-        0.20f,
-        1.0f);
-
-    drawBox(
-        0.0f,
-        -0.18f +
-            prototypeDoorOpen *
-                3.05f,
-        1.57f,
-        2.72f,
-        1.32f,
-        0.10f,
-        prototypeDoorOpen >
-            0.01f
-            ? 7.0f
-            : 8.0f);
+        drawBox(
+            0.0f,
+            -0.18f +
+                prototypeDoorOpen *
+                    3.05f,
+            1.57f,
+            2.72f,
+            1.32f,
+            0.10f,
+            prototypeDoorOpen >
+                0.01f
+                ? 7.0f
+                : 8.0f);
+    }
 
     if (scene.interactionVisible) {
         drawBox(

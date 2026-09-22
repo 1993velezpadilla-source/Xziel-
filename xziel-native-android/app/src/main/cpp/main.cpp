@@ -1160,6 +1160,11 @@ void advancePlayer(
             }
         }
 
+        state.mapRuntime.stepDoors(
+            fixedDelta,
+            state.player,
+            state.horde);
+
         const auto hordeFrame =
             state.horde.step(
                 playerFrame.feetPosition,
@@ -2118,6 +2123,49 @@ xziel::android::VulkanSceneState makeSceneState(
     }
 
     for (std::size_t index = 0;
+         index < state.mapDefinition.doorCount &&
+         scene.doorCount < scene.doors.size();
+         ++index) {
+        const auto& authored =
+            state.mapDefinition.doors[index].door;
+
+        const auto* runtimeDoor =
+            state.mapRuntime.doors().frame(authored.id);
+
+        if (runtimeDoor == nullptr) {
+            continue;
+        }
+
+        auto& door =
+            scene.doors[scene.doorCount++];
+
+        door.id = authored.id;
+        door.x =
+            (authored.blocker.minimum.x +
+             authored.blocker.maximum.x) * 0.5f;
+        door.y =
+            (authored.blocker.minimum.y +
+             authored.blocker.maximum.y) * 0.5f;
+        door.z =
+            (authored.blocker.minimum.z +
+             authored.blocker.maximum.z) * 0.5f;
+        door.halfX = std::max(
+            (authored.blocker.maximum.x -
+             authored.blocker.minimum.x) * 0.5f,
+            0.01f);
+        door.halfY = std::max(
+            (authored.blocker.maximum.y -
+             authored.blocker.minimum.y) * 0.5f,
+            0.01f);
+        door.halfZ = std::max(
+            (authored.blocker.maximum.z -
+             authored.blocker.minimum.z) * 0.5f,
+            0.01f);
+        door.openProgress = runtimeDoor->openProgress;
+        door.visible = true;
+    }
+
+    for (std::size_t index = 0;
          index < state.mapDefinition.windowCount &&
          scene.windowCount < scene.windows.size();
          ++index) {
@@ -2715,30 +2763,10 @@ extern "C" void android_main(
             state.mapRuntime.doors().frame(
                 kPrototypeDoorId);
 
-        const float doorTargetAlpha =
-            prototypeDoor != nullptr &&
-                    prototypeDoor->open
-            ? 1.0f
+        state.prototypeDoorOpenAlpha =
+            prototypeDoor != nullptr
+            ? prototypeDoor->openProgress
             : 0.0f;
-
-        const float doorStep =
-            frameDelta *
-            1.65f;
-
-        if (state.prototypeDoorOpenAlpha <
-            doorTargetAlpha) {
-            state.prototypeDoorOpenAlpha =
-                std::min(
-                    doorTargetAlpha,
-                    state.prototypeDoorOpenAlpha +
-                        doorStep);
-        } else {
-            state.prototypeDoorOpenAlpha =
-                std::max(
-                    doorTargetAlpha,
-                    state.prototypeDoorOpenAlpha -
-                        doorStep);
-        }
 
         state.renderWorkload =
             state.performance.advance(

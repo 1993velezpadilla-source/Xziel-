@@ -36,6 +36,18 @@ struct VulkanMapBoxState {
     bool visible = false;
 };
 
+struct VulkanDoorState {
+    std::uint32_t id = 0;
+    float x = 0.0f;
+    float y = 0.0f;
+    float z = 0.0f;
+    float halfX = 0.08f;
+    float halfY = 1.0f;
+    float halfZ = 0.55f;
+    float openProgress = 0.0f;
+    bool visible = false;
+};
+
 struct VulkanWindowState {
     float x = 0.0f;
     float y = 0.0f;
@@ -67,6 +79,9 @@ struct VulkanZombieState {
 struct VulkanSceneState {
     std::array<VulkanMapBoxState, 128> mapBoxes{};
     std::size_t mapBoxCount = 0;
+
+    std::array<VulkanDoorState, 16> doors{};
+    std::size_t doorCount = 0;
 
     std::array<VulkanWindowState, 32> windows{};
     std::size_t windowCount = 0;
