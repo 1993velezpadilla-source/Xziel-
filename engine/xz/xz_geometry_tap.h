@@ -72,6 +72,7 @@ int XzGeometryTap_CaptureSurfaceFan(
     const float *source,
     unsigned int count,
     unsigned int stride_floats,
+    unsigned int position_offset,
     unsigned int texture_offset,
     int texture_id,
     const float modelview[16],
