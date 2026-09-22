@@ -170,13 +170,13 @@ def export_selected(obj,path):
     if bpy.app.version < (4,0,0):
         bpy.ops.export_scene.obj(
             filepath=str(path),use_selection=True,use_animation=False,
-            use_mesh_modifiers=True,use_edges=False,use_normals=True,use_uvs=True,
+            use_mesh_modifiers=True,use_edges=False,use_normals=False,use_uvs=True,
             use_materials=False,keep_vertex_order=True,axis_forward="X",axis_up="Z"
         )
     else:
         bpy.ops.wm.obj_export(
             filepath=str(path),export_animation=False,export_selected_objects=True,
-            apply_modifiers=True,export_uv=True,export_normals=True,
+            apply_modifiers=True,export_uv=True,export_normals=False,
             export_materials=False,forward_axis="X",up_axis="Z"
         )
 
