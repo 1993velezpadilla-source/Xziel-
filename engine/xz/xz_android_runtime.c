@@ -69,6 +69,8 @@ typedef struct {
     uint64_t last_memory_sample_frame;
     uint64_t legacy_draws_suppressed_total;
     uint64_t legacy_draws_passthrough_total;
+    uint64_t legacy_world_transitions;
+    int legacy_world_suppression_armed;
     unsigned int legacy_draws_suppressed_frame[XZ_LEGACY_DRAW_COUNT];
     unsigned int legacy_draws_passthrough_frame[XZ_LEGACY_DRAW_COUNT];
     double last_log_seconds;
@@ -852,10 +854,13 @@ static void XzLogSnapshot(double now_seconds)
     XzAndroidLog(
         ANDROID_LOG_INFO,
         "legacy3d suppress total=%" PRIu64 " pass=%" PRIu64
+        " armed=%d transitions=%" PRIu64
         " frame(alias=%u surface=%u sprite=%u effect=%u special=%u shadow=%u)"
         " passFrame(alias=%u surface=%u sprite=%u effect=%u special=%u shadow=%u)",
         xz_runtime.legacy_draws_suppressed_total,
         xz_runtime.legacy_draws_passthrough_total,
+        xz_runtime.legacy_world_suppression_armed,
+        xz_runtime.legacy_world_transitions,
         xz_runtime.legacy_draws_suppressed_frame[XZ_LEGACY_DRAW_ALIAS],
         xz_runtime.legacy_draws_suppressed_frame[XZ_LEGACY_DRAW_SURFACE],
         xz_runtime.legacy_draws_suppressed_frame[XZ_LEGACY_DRAW_SPRITE],
@@ -1351,6 +1356,20 @@ void XzAndroidRuntime_BeginFrame(double now_seconds)
     XzFrameMetrics_Begin(&xz_runtime.frame, now_seconds);
 }
 
+void XzAndroidRuntime_NotifyWorldTransition(void)
+{
+    if (!xz_runtime.initialized)
+        return;
+
+    xz_runtime.legacy_world_suppression_armed = 0;
+    xz_runtime.legacy_world_transitions++;
+
+    XzAndroidLog(
+        ANDROID_LOG_INFO,
+        "legacy3d worldTransition count=%" PRIu64 " armed=0",
+        xz_runtime.legacy_world_transitions);
+}
+
 int XzAndroidRuntime_ShouldSuppressLegacyWorldDraw(
     XzLegacyWorldDrawKind kind)
 {
@@ -1365,20 +1384,20 @@ int XzAndroidRuntime_ShouldSuppressLegacyWorldDraw(
     current = XzGeometryTap_GetWriteFrame();
 
     /*
-     * Phase 2 retires entity/effect raster plus alias-model blob shadows.
-     * BSP surfaces and sky/water specials remain legacy-visible as an
-     * immediate fallback while the broader retirement is proven.
-     * Current-frame core evidence prevents a stale MODERN state from
-     * suppressing the first draws after a map/scene transition.
+     * Once a world has completed a clean MODERN takeover, suppression stays
+     * armed across subsequent frames of that same map. R_NewMap explicitly
+     * disarms it before any geometry from the next world can be submitted.
+     * This removes the old early-frame legacy guard-band while preserving
+     * immediate GL4ES fallback across map transitions.
      */
-    if (kind == XZ_LEGACY_DRAW_SURFACE ||
-        kind == XZ_LEGACY_DRAW_SPECIAL) {
-        /*
-         * BSP fans are submitted before entity alias batches in Vril.
-         * Requiring current-frame alias evidence here makes surface
-         * retirement impossible. Thirty-two clean current-frame surfaces
-         * are enough to prove the world pass is actually underway.
-         */
+    if (xz_runtime.legacy_world_suppression_armed) {
+        suppress =
+            xz_runtime.cutover.active_mode ==
+                XZ_CUTOVER_MODE_MODERN &&
+            xz_runtime.gles3_shadow.visible_present_ready &&
+            xz_runtime.gles3_shadow.real_scene_ready_streak >= 4u;
+    } else if (kind == XZ_LEGACY_DRAW_SURFACE ||
+               kind == XZ_LEGACY_DRAW_SPECIAL) {
         suppress =
             xz_runtime.cutover.active_mode ==
                 XZ_CUTOVER_MODE_MODERN &&
@@ -1516,6 +1535,29 @@ void XzAndroidRuntime_EndFrame(double now_seconds)
     XzRhi_EndFrame(&xz_runtime.rhi);
 
     XzEvaluateCutover();
+
+    {
+        const XzGeometryFrame *completed =
+            XzGeometryTap_GetReadFrame();
+        const int can_arm =
+            xz_runtime.cutover.active_mode ==
+                XZ_CUTOVER_MODE_MODERN &&
+            xz_runtime.gles3_shadow.visible_present_ready &&
+            xz_runtime.gles3_shadow.real_scene_ready_streak >= 4u &&
+            completed &&
+            completed->surface_batches >= 32u &&
+            completed->batch_count >= 32u &&
+            completed->dropped_batches == 0u &&
+            completed->dropped_vertices == 0u &&
+            completed->dropped_indices == 0u;
+
+        if (can_arm)
+            xz_runtime.legacy_world_suppression_armed = 1;
+        else if (xz_runtime.cutover.active_mode !=
+                     XZ_CUTOVER_MODE_MODERN ||
+                 !xz_runtime.gles3_shadow.visible_present_ready)
+            xz_runtime.legacy_world_suppression_armed = 0;
+    }
 
     if (xz_runtime.last_log_seconds == 0.0 ||
         now_seconds - xz_runtime.last_log_seconds >= 5.0)

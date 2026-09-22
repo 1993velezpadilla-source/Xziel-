@@ -19,6 +19,7 @@ typedef enum {
 } XzLegacyWorldDrawKind;
 
 void XzAndroidRuntime_BeginFrame(double now_seconds);
+void XzAndroidRuntime_NotifyWorldTransition(void);
 int XzAndroidRuntime_ShouldSuppressLegacyWorldDraw(
     XzLegacyWorldDrawKind kind);
 int XzAndroidRuntime_CompositeVisibleWorld(void);
