@@ -89,9 +89,30 @@ def as_uploadable(value):
         return value
     return value
 
+# Repair/re-encode all refs before upload. Some early GitHub blobs were valid enough
+# for previewing but contained truncated JPEG scan data that rembg/Pillow inside TRELLIS rejects.
+from PIL import Image, ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+PREP_DIR = OUT_DIR / "prepared_refs"
+PREP_DIR.mkdir(parents=True, exist_ok=True)
+prepared_refs = []
+for src in REFS:
+    dst = PREP_DIR / (src.stem + ".png")
+    with Image.open(src) as im:
+        im.load()
+        im = im.convert("RGB")
+        # TRELLIS examples normalize views to 512px height; keep aspect ratio.
+        w, h = im.size
+        nh = 512
+        nw = max(1, round(w * nh / h))
+        im = im.resize((nw, nh), Image.Resampling.LANCZOS)
+        im.save(dst, "PNG", optimize=True)
+    print("XZIEL_TRELLIS_REF_REPAIRED", src.name, "->", dst.name, dst.stat().st_size)
+    prepared_refs.append(dst)
+
 print("Preprocessing four orthographic views individually...")
 processed = []
-for p in REFS:
+for p in prepared_refs:
     try:
         out = client.predict(handle_file(str(p)), api_name="/preprocess_image")
         print(f"preprocessed {p.name}: {type(out).__name__}")
