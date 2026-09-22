@@ -4056,11 +4056,22 @@ bool VulkanClearRenderer::recordDrawCommand(
     }
 
     const std::size_t visibleWindowCount =
-        sanctumMesh_.ready()
-        ? 0U
-        : std::min(
-              scene.windowCount,
-              scene.windows.size());
+        std::min(
+            scene.windowCount,
+            scene.windows.size());
+
+    if (sanctumMesh_.ready() &&
+        visibleWindowCount > 0U) {
+        static bool loggedDynamicBarricades = false;
+        if (!loggedDynamicBarricades) {
+            __android_log_print(
+                ANDROID_LOG_INFO,
+                kTag,
+                "XZIEL_SANCTUM_DYNAMIC_BARRICADES_READY windows=%zu",
+                visibleWindowCount);
+            loggedDynamicBarricades = true;
+        }
+    }
 
     for (std::size_t windowIndex = 0;
          windowIndex < visibleWindowCount;
@@ -4078,6 +4089,9 @@ bool VulkanClearRenderer::recordDrawCommand(
                 window.intactPlanks,
                 window.maximumPlanks);
 
+        const bool thinX =
+            window.halfWidth <= window.halfDepth;
+
         for (std::uint32_t plankIndex = 0U;
              plankIndex < plankCount;
              ++plankIndex) {
@@ -4085,11 +4099,20 @@ bool VulkanClearRenderer::recordDrawCommand(
                 (static_cast<float>(plankIndex) + 0.5f) /
                 static_cast<float>(window.maximumPlanks);
 
+            const int staggerIndex =
+                static_cast<int>(
+                    (windowIndex * 11U +
+                     plankIndex * 7U) % 5U) - 2;
+
             const float plankY =
                 window.y -
                 window.halfHeight +
-                alpha * window.halfHeight * 2.0f;
+                alpha * window.halfHeight * 2.0f +
+                static_cast<float>(staggerIndex) * 0.025f;
 
+            // Gameplay-authoritative dark wood plank. Rendering from
+            // intactPlanks means tearing/rebuilding immediately changes the
+            // visible barricade rather than leaving baked dressing behind.
             drawBox(
                 window.x,
                 plankY,
@@ -4098,6 +4121,36 @@ bool VulkanClearRenderer::recordDrawCommand(
                 0.075f,
                 window.halfDepth / 0.75f,
                 5.0f);
+
+            // Two small metal fasteners make the native board read as an
+            // actual nailed barricade without adding static mesh state.
+            for (int nailSide : {-1, 1}) {
+                float nailX = window.x;
+                float nailZ = window.z;
+
+                if (thinX) {
+                    nailX += 0.055f;
+                    nailZ +=
+                        static_cast<float>(nailSide) *
+                        window.halfDepth * 0.58f;
+                } else {
+                    nailX +=
+                        static_cast<float>(nailSide) *
+                        window.halfWidth * 0.58f;
+                    nailZ += 0.055f;
+                }
+
+                drawRounded(
+                    nailX,
+                    plankY,
+                    nailZ,
+                    0.035f,
+                    0.035f,
+                    0.035f,
+                    10.0f,
+                    0.0f,
+                    0.0f);
+            }
         }
     }
 
