@@ -1034,6 +1034,14 @@ static int XzDrawRealGeometry(
     state->last_special_batches = geometry->special_batches;
     state->last_sky_batches = geometry->sky_batches;
     state->last_water_batches = geometry->water_batches;
+    state->last_shadow_batches = geometry->shadow_batches;
+    state->last_polyblend_batches = geometry->polyblend_batches;
+    if (geometry->batch_count > 0u) {
+        memcpy(
+            state->last_clear_color,
+            geometry->batches[0].state.clear_color,
+            sizeof(state->last_clear_color));
+    }
 
     if (drops != 0u) {
         state->real_geometry_failures++;
@@ -1324,6 +1332,14 @@ static int XzDrawRealGeometry(
         state->real_geometry_failures == 0u &&
         (kind_mask & 0x10u) == 0x10u)
         state->real_water_ready = 1;
+    if (geometry->shadow_batches > 0u &&
+        state->real_geometry_failures == 0u &&
+        (kind_mask & 0x10u) == 0x10u)
+        state->real_shadow_ready = 1;
+    if (geometry->polyblend_batches > 0u &&
+        state->real_geometry_failures == 0u &&
+        (kind_mask & 0x10u) == 0x10u)
+        state->real_polyblend_ready = 1;
 
     state->last_texture_batches =
         texture_batches;
@@ -3109,8 +3125,14 @@ int XzGles3Shadow_CompositeVisibleWorld(
         0,
         (GLsizei)render_width,
         (GLsizei)render_height);
-    gl->ClearColor(
-        0.010f, 0.015f, 0.020f, 1.0f);
+    if (geometry->batch_count > 0u) {
+        const float *clear =
+            geometry->batches[0].state.clear_color;
+        gl->ClearColor(
+            clear[0], clear[1], clear[2], clear[3]);
+    } else {
+        gl->ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    }
     gl->Clear(
         GL_COLOR_BUFFER_BIT |
         GL_DEPTH_BUFFER_BIT);
