@@ -1,0 +1,90 @@
+name: Retarget CMU Walks To Official NZP Zombie
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/zombie-mocap-library-v1
+    paths:
+      - ".github/workflows/retarget-cmu-zombie-proof.yml"
+      - "scripts/blender_retarget_cmu_to_nzp.py"
+
+permissions:
+  contents: read
+
+jobs:
+  retarget:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: zombie_walk_104_41
+            file: assets/animations/zombie_mocap/cmu/walk/zombie_walk__104_41.fbx
+          - name: zombie_march_20_08
+            file: assets/animations/zombie_mocap/cmu/walk/zombie_march_A__20_08.fbx
+          - name: limp_105_16
+            file: assets/animations/zombie_mocap/cmu/walk/limp__105_16.fbx
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Blender and build tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq blender python3-numpy cmake ninja-build build-essential
+
+      - name: Download pinned official NZP zombie source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p stock-zombie
+          BASE="https://raw.githubusercontent.com/nzp-team/assets/c8135a66e00bb64577912fbf792f8fef7f47658e/source/models/ai/zfull"
+          curl -fL --retry 5 "$BASE/mesh.blend" -o stock-zombie/mesh.blend
+          for n in 0 1 2 3; do
+            curl -fL --retry 5 "$BASE/texture_${n}.png" -o "stock-zombie/texture_${n}.png"
+          done
+
+      - name: Build pinned quake-export
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --recursive https://github.com/cmdrf/quake-export.git /tmp/quake-export
+          git -C /tmp/quake-export checkout 13711f953cbe20132b36b863974f6a6c495aec61
+          git -C /tmp/quake-export submodule update --init --recursive
+          cmake -S /tmp/quake-export -B /tmp/quake-export/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build /tmp/quake-export/build --target quake-mdl-export quake-mdl-info
+
+      - name: Retarget ${{ matrix.name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="build/cmu-retarget/${{ matrix.name }}"
+          blender -b stock-zombie/mesh.blend             --python scripts/blender_retarget_cmu_to_nzp.py --             --mocap "${{ matrix.file }}"             --name "${{ matrix.name }}"             --skin-dir stock-zombie             --output "$OUT"
+          test -s "$OUT/retarget_report.json"
+          test -s "$OUT/body.json"
+          test "$(find "$OUT/frames/body" -name '*.obj' | wc -l)" -eq 211
+
+      - name: Build segmented runtime MDLs
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="build/cmu-retarget/${{ matrix.name }}"
+          cd "$OUT"
+          for part in body head larm rarm full; do
+            /tmp/quake-export/build/mdl-export/quake-mdl-export "${part}.json" "${{ matrix.name }}_${part}.mdl"
+            /tmp/quake-export/build/mdl-info/quake-mdl-info "${{ matrix.name }}_${part}.mdl" | tee "${part}-mdl-info.txt"
+            test -s "${{ matrix.name }}_${part}.mdl"
+          done
+
+      - name: Upload retarget proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: cmu-retarget-${{ matrix.name }}
+          path: |
+            build/cmu-retarget/${{ matrix.name }}/*.mdl
+            build/cmu-retarget/${{ matrix.name }}/*-mdl-info.txt
+            build/cmu-retarget/${{ matrix.name }}/retarget_report.json
+            build/cmu-retarget/${{ matrix.name }}/${{ matrix.name }}.blend
+          retention-days: 14
