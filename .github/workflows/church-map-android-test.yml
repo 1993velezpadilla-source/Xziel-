@@ -80,7 +80,12 @@ jobs:
           set -euo pipefail
           test -s church-artifact/nzp_harness/sanctum_harness.bsp
           test -s church-artifact/nzp_harness/sanctum_harness.nsz
+          test -s church-artifact/vril_static/models/xziel/sanctum/sanctum.xzsm
+          test -d church-artifact/vril_static/textures/xziel/sanctum
+          test -s church-artifact/vril_static_mesh_report.json
           ls -lh church-artifact/nzp_harness/
+          ls -lh church-artifact/vril_static/models/xziel/sanctum/
+          find church-artifact/vril_static/textures/xziel/sanctum -maxdepth 1 -type f | head -n 10
 
       - name: Set up Java 17
         uses: actions/setup-java@v5
@@ -109,6 +114,7 @@ jobs:
           XZIEL_EXTRA_MAP_NAME: sanctum_harness
           XZIEL_EXTRA_MAP_BSP: ${{ github.workspace }}/church-artifact/nzp_harness/sanctum_harness.bsp
           XZIEL_EXTRA_MAP_NSZ: ${{ github.workspace }}/church-artifact/nzp_harness/sanctum_harness.nsz
+          XZIEL_EXTRA_ASSET_DIR: ${{ github.workspace }}/church-artifact/vril_static
         run: |
           set -euo pipefail
           bash scripts/prepare_android.sh
@@ -118,6 +124,10 @@ jobs:
             grep 'nzp/maps/sanctum_harness.bsp'
           unzip -l build/android-project/app/src/main/assets/nzp-data.zip | \
             grep 'nzp/maps/sanctum_harness.nsz'
+          unzip -l build/android-project/app/src/main/assets/nzp-data.zip | \
+            grep 'nzp/models/xziel/sanctum/sanctum.xzsm'
+          unzip -l build/android-project/app/src/main/assets/nzp-data.zip | \
+            grep 'nzp/textures/xziel/sanctum/' | head -n 5
 
       - name: Build Sanctum debug APK
         working-directory: build/android-project
@@ -221,8 +231,8 @@ jobs:
           "$ADB" shell run-as com.xziel.nzp ls -l files/nzp-runtime/nzp/maps/ 2>/dev/null | \
             tee dist/runtime-map-files.txt || true
 
-          grep -Ei "sanctum_harness|SANCTUM OF ASH|Host_Map|maps/" dist/sanctum-logcat.txt | \
-            tail -n 300 > dist/sanctum-map-log-highlights.txt || true
+          grep -Ei "sanctum_harness|SANCTUM OF ASH|Host_Map|maps/|XZSM:" dist/sanctum-logcat.txt | \
+            tail -n 500 > dist/sanctum-map-log-highlights.txt || true
 
           if grep -Eq "Fatal signal|FATAL EXCEPTION|EGL_BAD_CONTEXT|stage=SYS_ERROR" dist/sanctum-logcat.txt; then
             echo "Detected game/runtime crash."
@@ -230,6 +240,7 @@ jobs:
           fi
           test -n "$PID"
           test "$STAGE" = "FIRST_FRAME_OK"
+          grep -q "XZSM: Sanctum loaded" dist/sanctum-logcat.txt
 
       - name: Upload Sanctum APK and diagnostics
         if: always()
