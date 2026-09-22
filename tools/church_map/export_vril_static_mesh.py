@@ -371,7 +371,7 @@ def save_material_texture(mat):
 # keep all 708 props alive just because one distant prop is visible.
 def dressing_cluster_name(obj):
     n = obj.name
-    m = re.search(r"(?:BAR|NAIL|RUBBLE_BAR)_(\\d{2})", n)
+    m = re.search(r"(?:BAR|NAIL|RUBBLE_BAR)_(\d{2})", n)
     if m:
         return "DRESS_BARRICADE_" + m.group(1)
     if "ALTAR_" in n:
