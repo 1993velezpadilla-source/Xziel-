@@ -1,0 +1,125 @@
+name: Build La Llorona HQ Per-Pixel Texture
+
+on:
+  workflow_dispatch:
+    inputs:
+      texture_size:
+        description: HQ albedo resolution
+        required: true
+        default: "4096"
+        type: choice
+        options:
+          - "2048"
+          - "4096"
+      require_details:
+        description: Require face, rosary, and dress close-up refs
+        required: true
+        default: true
+        type: boolean
+  push:
+    branches:
+      - art/llorona-perpixel-rebake
+    paths:
+      - tools/llorona_bake_perpixel_texture.py
+      - .github/workflows/build-llorona-perpixel.yml
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: llorona-hq-perpixel-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rebake-hq:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout parallel texture branch
+        uses: actions/checkout@v4
+
+      - name: Download locked Hunyuan HQ geometry
+        uses: actions/download-artifact@v4
+        with:
+          name: la-llorona-hunyuan-mv-hq
+          path: in/hunyuan
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: 35772555593
+
+      - name: Verify locked geometry and base refs
+        shell: bash
+        run: |
+          set -euxo pipefail
+          test -s in/hunyuan/llorona_hunyuan_mv_hq.glb
+          for view in front back left right; do
+            test -s "assets/characters/llorona/reference/${view}.jpg" || \
+            test -s "assets/characters/llorona/reference/${view}.png" || \
+            test -s "in/hunyuan/clean_inputs/${view}.png"
+          done
+          find assets/characters/llorona/reference -maxdepth 2 -type f -print | sort
+          ls -lh in/hunyuan/llorona_hunyuan_mv_hq.glb
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install CPU per-pixel bake stack
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy pillow scipy opencv-python-headless trimesh xatlas fast-simplification
+
+      - name: Rebake HQ texture per texel
+        env:
+          LLORONA_HUNYUAN_DIR: in/hunyuan
+          LLORONA_REF_DIR: assets/characters/llorona/reference
+          LLORONA_BAKE_OUT: out/llorona-perpixel
+          LLORONA_TARGET_FACES: "0"
+          LLORONA_TEXTURE_SIZE: ${{ github.event_name == 'workflow_dispatch' && inputs.texture_size || '1024' }}
+          LLORONA_HEIGHT_M: "1.72"
+          LLORONA_REQUIRE_DETAILS: ${{ github.event_name == 'workflow_dispatch' && inputs.require_details && '1' || '0' }}
+          LLORONA_STRICT_QA: ${{ github.event_name == 'workflow_dispatch' && '1' || '0' }}
+          LLORONA_QA_FACE_RATIO_MIN: ${{ github.event_name == 'workflow_dispatch' && '0.12' || '0' }}
+          LLORONA_QA_FACE_LAP_MIN: ${{ github.event_name == 'workflow_dispatch' && '14' || '0' }}
+          LLORONA_QA_ROSARY_RATIO_MIN: ${{ github.event_name == 'workflow_dispatch' && '0.10' || '0' }}
+          LLORONA_QA_ROSARY_LAP_MIN: ${{ github.event_name == 'workflow_dispatch' && '9' || '0' }}
+          LLORONA_QA_DRESS_RATIO_MIN: ${{ github.event_name == 'workflow_dispatch' && '0.10' || '0' }}
+          LLORONA_QA_DRESS_LAP_MIN: ${{ github.event_name == 'workflow_dispatch' && '8' || '0' }}
+          LLORONA_QA_DRESS_STD_RATIO_MIN: ${{ github.event_name == 'workflow_dispatch' && '0.16' || '0' }}
+          LLORONA_QA_SEAM_MEAN_MAX: ${{ github.event_name == 'workflow_dispatch' && '16' || '999' }}
+          LLORONA_QA_SEAM_P95_MAX: ${{ github.event_name == 'workflow_dispatch' && '48' || '999' }}
+        run: python tools/llorona_bake_perpixel_texture.py
+
+      - name: Hard validate deliverables and manifest
+        shell: bash
+        run: |
+          set -euxo pipefail
+          test -s out/llorona-perpixel/llorona_hq_perpixel_textured.glb
+          test -s out/llorona-perpixel/llorona_albedo_hq.png
+          test -s out/llorona-perpixel/preview_front.png
+          test -s out/llorona-perpixel/qa_face_crop.png
+          test -s out/llorona-perpixel/qa_rosary_crop.png
+          test -s out/llorona-perpixel/qa_dress_crop.png
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          data=json.loads(Path("out/llorona-perpixel/manifest.json").read_text())
+          assert data["sourceRunId"] == 35772555593
+          assert data["topologyMode"] == "clean-only"
+          assert data["hasUV"] is True
+          assert data["hasEmbeddedBaseColorTexture"] is True
+          assert data["qaPassed"] is True, data["qaFailures"]
+          print("XZIEL_LLORONA_HQ_PERPIXEL_MANIFEST_PASS")
+          print(json.dumps(data["qa"], indent=2))
+          PY
+          ls -lah out/llorona-perpixel
+
+      - name: Upload per-pixel package
+        uses: actions/upload-artifact@v4
+        with:
+          name: la-llorona-perpixel-${{ github.event_name }}-${{ github.run_number }}
+          path: out/llorona-perpixel/
+          if-no-files-found: error
+          retention-days: 14
