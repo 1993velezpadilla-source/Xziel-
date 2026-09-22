@@ -401,15 +401,15 @@ def sister_mouth_pose(body,h):
             v.co.y+=.0010*h
     body.data.update()
 
-def sister_mouth_slit(body,h,mats):
-    """Thin cavity behind the lips. It only reads through the sculpted mouth opening."""
-    fy=face_front_y(body,h)
-    dark=mat("M_SisterMouthSlit","#0A0708",.98,0,noise=False)
-    teeth=mat("M_SisterTeethHint","#675E50",.82,0,noise=False)
-    slit=cube("SisterMouthSlit",(0,fy+.010*h,.851*h),(.018*h,.0012*h,.0047*h),dark,.0003*h)
-    tooth=cube("SisterTeethHint",(0,fy+.008*h,.856*h),(.010*h,.0010*h,.0012*h),teeth,.0002*h)
-    return [slit,tooth]
 
+def sister_mouth_slit(body,h,mats):
+    """Visible undead mouth opening placed on the facial surface, not hidden behind it."""
+    fy=face_front_y(body,h)
+    dark=mat("M_SisterMouthSlit","#080506",.98,0,noise=False)
+    teeth=mat("M_SisterTeethHint","#675E50",.82,0,noise=False)
+    slit=uv_sphere("SisterMouthSlit",(0,fy-.0022*h,.850*h),(.018*h,.0010*h,.0055*h),dark)
+    tooth=cube("SisterTeethHint",(0,fy-.0026*h,.855*h),(.009*h,.0008*h,.0011*h),teeth,.0002*h)
+    return [slit,tooth]
 
 def sister_cloth_distress(mats):
     for key,dirt_hex,fac in (("ash_blue","#252A34",.24),("dirty_ivory","#57493E",.20)):
@@ -521,23 +521,51 @@ def sister_shoe_from_body(body,h,side,label,material):
 
 
 
-def sister_boot_pair(rig,h,mats):
-    leather=mat("M_SisterBootLeather","#171516",.78,0,noise=True)
-    sole=mat("M_SisterBootSole","#0F0E0F",.84,0,noise=True)
+
+def sister_extremity_decay(body,h):
+    """Corpse mottling for the exposed hands; avoids clean mannequin hands."""
+    hand=mat("M_SisterHandDecay","#776E72",.86,0,noise=True)
+    idx=len(body.data.materials); body.data.materials.append(hand)
+    for p in body.data.polygons:
+        c=p.center
+        if abs(c.x/h)>.225 and .455<c.z/h<.640:
+            p.material_index=idx
+
+def sister_face_scars(body,h,mats):
+    fy=face_front_y(body,h)
+    scar=mat("M_SisterScar","#4B2630",.82,0,noise=False)
     out=[]
-    for side,label in (("l","L"),("r","R")):
-        p0,p1=bone_points(rig,"foot_"+side)
-        if p0 is None or p1 is None: continue
-        axis=p1-p0
-        if axis.length<1e-6: continue
-        n=axis.normalized()
-        center=(p0+p1)*.5+n*.030*h+Vector((0,-.010*h,.022*h))
-        shoe=sister_shoe_box("SisterShoe_"+label,center,n,h,leather); out.append(shoe)
-        sole_center=center+Vector((0,0,-.024*h))
-        sol=sister_shoe_box("SisterSole_"+label,sole_center,n,h,sole)
-        sol.scale.z=.28; apply_obj(sol); out.append(sol)
-        shaft=cone_between("SisterAnkle_"+label,p0+Vector((0,0,.010*h)),p0+Vector((0,0,.082*h)),.043*h,.038*h,leather,44)
-        if shaft: out.append(shaft)
+    lines=[
+      [(-.045*h,fy-.0018*h,.900*h),(-.030*h,fy-.0022*h,.886*h),(-.015*h,fy-.0018*h,.877*h)],
+      [(.030*h,fy-.0018*h,.925*h),(.043*h,fy-.0022*h,.910*h),(.051*h,fy-.0018*h,.892*h)],
+      [(-.052*h,fy-.0015*h,.850*h),(-.040*h,fy-.0018*h,.842*h)]
+    ]
+    for i,pts in enumerate(lines):
+        out.append(curve_chain(f"SisterScar_{i:02}",pts,scar,.00055*h))
+    return out
+
+
+
+def sister_boot_pair(body,rig,h,mats):
+    """Closed low shoes generated from the actual foot bounds, guaranteeing toe coverage."""
+    leather=mat("M_SisterBootLeather","#171516",.78,0,noise=True)
+    sole=mat("M_SisterBootSole","#0E0D0E",.86,0,noise=True)
+    out=[]
+    for sign,label,bone in ((-1,"L","foot_l"),(1,"R","foot_r")):
+        pts=[v.co for v in body.data.vertices if v.co.z/h<.135 and v.co.x*sign>0]
+        if not pts: continue
+        minx=min(p.x for p in pts); maxx=max(p.x for p in pts)
+        miny=min(p.y for p in pts); maxy=max(p.y for p in pts)
+        minz=min(p.z for p in pts); maxz=max(p.z for p in pts)
+        cx=(minx+maxx)*.5; cy=(miny+maxy)*.5-.006*h
+        sx=max(.040*h,(maxx-minx)*.60)
+        sy=max(.072*h,(maxy-miny)*.62+.012*h)
+        upper=cube("SisterShoe_"+label,(cx,cy,minz+.032*h),(sx,sy,.030*h),leather,.011*h)
+        out.append(upper)
+        toe=uv_sphere("SisterToeCap_"+label,(cx,miny-.010*h,minz+.030*h),(sx*.95,.038*h,.029*h),leather)
+        out.append(toe)
+        sol=cube("SisterSole_"+label,(cx,cy,minz+.008*h),(sx*1.02,sy*1.02,.008*h),sole,.005*h)
+        out.append(sol)
     return out
 
 def nun_coif_cap(name,h,material,rx,ry,rz,cz,phase=0.0):
@@ -610,20 +638,31 @@ def wimple_face_frame(body,h,material):
 
 
 
+
 def sister_wimple_frame(body,h,material):
-    """Fitted fabric wimple cut directly from the facial surface; no floating oval ring."""
+    """Thin oval fabric rim around the face, sized to the actual face instead of a giant ring."""
     fy=face_front_y(body,h)
-    def keep(q):
-        xn=(q.x/h)/.053
-        zn=(q.z/h-.895)/.074
-        e=xn*xn+zn*zn
-        front=q.y < fy+.032*h
-        # narrow elliptical perimeter around the face, open enough to preserve brows/cheeks
-        return front and .72 < e < 1.18 and .815 < q.z/h < .977
-    o=body_region_shell(body,"SisterWimpleFrame",material,keep,.0032*h)
-    if o:
-        sol=o.modifiers.get("GarmentThickness")
-        if sol: sol.thickness=.0016*h
+    seg=96; cz=.895*h; y=fy-.0020*h
+    inner_rx=.043*h; inner_rz=.064*h
+    outer_rx=.050*h; outer_rz=.073*h
+    vs=[]; fs=[]
+    for rx,rz in ((outer_rx,outer_rz),(inner_rx,inner_rz)):
+        for i in range(seg):
+            a=2*math.pi*i/seg
+            # slight irregularity keeps the cloth from reading as a perfect plastic ring
+            wob=1.0+.020*math.sin(a*5.0)+.009*math.sin(a*9.0)
+            x=rx*wob*math.cos(a)
+            z=cz+rz*wob*math.sin(a)
+            yy=y-.0010*h*math.cos(a*2.0)
+            vs.append((x,yy,z))
+    for i in range(seg):
+        j=(i+1)%seg
+        fs.append((i,j,seg+j,seg+i))
+    mesh=bpy.data.meshes.new("SisterWimpleFrameMesh"); mesh.from_pydata(vs,[],fs); mesh.update()
+    o=bpy.data.objects.new("SisterWimpleFrame",mesh); bpy.context.collection.objects.link(o); assign(o,material)
+    sol=o.modifiers.new("WimpleThickness","SOLIDIFY"); sol.thickness=.0014*h; sol.offset=0
+    bev=o.modifiers.new("WimpleSoft","BEVEL"); bev.width=.0008*h; bev.segments=2
+    sub=o.modifiers.new("WimpleSmooth","SUBSURF"); sub.subdivision_type="CATMULL_CLARK"; sub.levels=1; sub.render_levels=1
     return o
 
 def sister_mouth_slit(body,h,mats):
@@ -633,19 +672,20 @@ def sister_mouth_slit(body,h,mats):
     return curve_chain("SisterMouthSlit",pts,dark,.00115*h)
 
 
+
 def sister_layered_hem(h,mats):
     ivory=mats["dirty_ivory"]; blue=mats["ash_blue"]; out=[]
     a=garment_shell("IvoryRagLayerA",h,ivory,[
-        (.015,.131,.089,0),(.085,.141,.095,0),(.170,.141,.095,0),(.255,.135,.092,0),(.335,.126,.088,0),(.405,.117,.083,0)
-    ],112,.150,.75,1)
+        (.035,.132,.089,0),(.085,.141,.095,0),(.150,.143,.096,0),(.220,.139,.094,0),(.300,.132,.090,0),(.390,.118,.083,0)
+    ],116,.095,.78,1)
     b=garment_shell("IvoryRagLayerB",h,ivory,[
-        (.050,.136,.092,0),(.115,.145,.097,0),(.185,.144,.096,0),(.250,.138,.093,0),(.310,.130,.089,0)
-    ],112,.135,1.55,1)
+        (.070,.137,.093,0),(.120,.145,.097,0),(.180,.145,.096,0),(.240,.140,.094,0),(.300,.130,.089,0)
+    ],116,.085,1.62,1)
     out.extend([a,b])
-    punch_cloth_holes(a,h,[(-.060,.215,.018,.030,True),(.074,.320,.018,.028,False)])
-    punch_cloth_holes(b,h,[(.045,.160,.016,.025,True),(-.082,.275,.015,.024,False)])
-    for i,(x,z,wid,hh,ph) in enumerate([(-.082,.315,.014,.048,.3),(-.030,.292,.012,.042,1.1),(.036,.328,.014,.052,2.0),(.088,.286,.012,.044,2.9)]):
-        out.append(irregular_patch(f"BlueRagTab_{i:02}",h,blue,x,z,wid,hh,-.106,ph))
+    punch_cloth_holes(a,h,[(-.060,.205,.017,.028,True),(.074,.300,.017,.026,False)])
+    punch_cloth_holes(b,h,[(.045,.145,.015,.023,True),(-.082,.255,.014,.022,False)])
+    for i,(x,z,wid,hh,ph) in enumerate([(-.082,.320,.012,.042,.3),(-.030,.300,.011,.038,1.1),(.036,.330,.012,.045,2.0),(.088,.292,.011,.040,2.9)]):
+        out.append(irregular_patch(f"BlueRagTab_{i:02}",h,blue,x,z,wid,hh,-.104,ph))
     return out
 
 def sister_fitted_face_wimple(body,h,mats):
@@ -732,19 +772,22 @@ def sister_shoe_box(name,center,axis,h,material):
 
 
 
+
 def priority_head_cover(body,h,style,mats):
     out=[]
     if style=="sister_of_ash":
         ivory=mats["dirty_ivory"]; blue=mats["ash_blue"]
-        # Closed crown + fitted open-face hood. Crown coverage is mandatory.
-        out.append(nun_coif_cap("NunInnerCoif",h,ivory,.070,.060,.109,.898,.11))
-        out.append(nun_coif_cap("NunOuterHood",h,blue,.079,.068,.120,.897,.63))
-        # Remove the forehead patch look: a narrow continuous frame hugs the face perimeter.
+        out.append(nun_coif_cap("NunInnerCoif",h,ivory,.069,.059,.108,.899,.10))
+        out.append(nun_coif_cap("NunOuterHood",h,blue,.078,.067,.119,.898,.60))
         out.append(sister_wimple_frame(body,h,ivory))
+        # soft neck cloth closes the throat transition without a flat bib
+        neck=body_region_shell(body,"NunNeckWimple",ivory,
+            lambda q:.742<q.z/h<.835 and abs(q.x/h)<.120 and q.y/h<.145,.0030*h)
+        if neck: out.append(neck)
         out.append(drape_open("NunBackVeil",h,blue,[
-            (.946,.066,.056),(.916,.073,.062),(.882,.081,.068),(.846,.090,.075),
-            (.810,.101,.083),(.776,.113,.091),(.744,.126,.099),(.714,.137,.106)
-        ],segments=112,theta_max=2.58,tatter=.055,phase=.64,subdiv=2))
+            (.946,.064,.055),(.916,.071,.061),(.882,.079,.067),(.846,.088,.074),
+            (.812,.098,.081),(.780,.110,.089),(.750,.122,.097),(.722,.134,.104)
+        ],segments=112,theta_max=2.56,tatter=.070,phase=.66,subdiv=2))
     elif style=="stained_shade":
         out.append(nun_coif_cap("ShadeHood",h,mats["spectral_ivory"],.080,.070,.120,.894,.55))
     elif style=="la_llorona":
@@ -1095,24 +1138,25 @@ def llorona_hair_mesh(h,mats):
 
 
 
+
 def sculpt_priority_face(body,h,style):
     fy=face_front_y(body,h)
-    strength=1.46 if style=="sister_of_ash" else (1.05 if style=="la_llorona" else 1.10)
+    strength=1.52 if style=="sister_of_ash" else (1.05 if style=="la_llorona" else 1.10)
     for v in body.data.vertices:
-        z=v.co.z/h; x=v.co.x/h; y=v.co.y
-        if z<.80: continue
-        ax=abs(x)
-        if .805<z<.870: v.co.x*=1.0-.195*strength
-        elif .930<z<.985: v.co.x*=1.0-.070*strength
-        if y < fy + .065*h:
-            if .888<z<.936 and .007<ax<.052: v.co.y += .0118*h*strength
-            if .846<z<.901 and .022<ax<.076: v.co.y += .0110*h*strength
-            if .872<z<.925 and ax<.030: v.co.x*=.88
-            if .830<z<.868 and ax<.041: v.co.y += .0050*h*strength
-            if .805<z<.835 and ax<.050:
-                v.co.y -= .0015*h
-                v.co.x*=.978
-            if x<0 and .850<z<.915: v.co.z -= .0014*h
+        z=v.co.z/h; x=v.co.x/h; y=v.co.y; ax=abs(x)
+        if z<.79: continue
+        # narrow jaw/chin and temples for a starved corpse silhouette
+        if .800<z<.870: v.co.x*=1.0-.205*strength
+        elif .930<z<.985: v.co.x*=1.0-.075*strength
+        if y < fy + .068*h:
+            if .888<z<.937 and .006<ax<.053: v.co.y += .0128*h*strength
+            if .844<z<.902 and .020<ax<.078: v.co.y += .0120*h*strength
+            if .871<z<.926 and ax<.028: v.co.x*=.85
+            if .828<z<.868 and ax<.042: v.co.y += .0055*h*strength
+            if .800<z<.840 and ax<.055:
+                v.co.y -= .0018*h
+                v.co.x*=.970
+            if x<0 and .848<z<.916: v.co.z -= .0016*h
     body.data.update()
 
 def force_priority_eyes(parts,style):
@@ -1191,35 +1235,38 @@ def sister_skin_shader(body,h,style):
         bump=nodes.new("ShaderNodeBump"); bump.inputs["Strength"].default_value=.075; bump.inputs["Distance"].default_value=.00055
         links.new(micro.outputs["Fac"],bump.inputs["Height"]); links.new(bump.outputs["Normal"],bsdf.inputs["Normal"])
 
+
 def nun_outfit(h,mats,stained=False):
     ivory=mats["spectral_ivory"] if stained else mats["dirty_ivory"]
     blue=mats["ash_blue"]; rope=mats["rope"]; metal=mats.get("oxidized_metal",mats.get("old_wood"))
     out=[]
+    # Raise the under-habit off the floor so its torn ankle hem and closed shoes remain visible.
     under=garment_shell("IvoryUnderSkirt",h,ivory,[
-        (.010,.126,.086,0),(.070,.136,.092,0),(.150,.139,.094,0),(.245,.136,.092,0),
-        (.345,.130,.089,0),(.455,.118,.084,0),(.570,.107,.079,0),(.700,.098,.074,0)
-    ],120,.155,.34,1)
+        (.050,.125,.085,0),(.105,.135,.091,0),(.180,.138,.093,0),(.270,.135,.092,0),
+        (.370,.128,.089,0),(.475,.117,.084,0),(.580,.107,.079,0),(.700,.098,.074,0)
+    ],124,.085,.40,1)
     out.append(under)
-    punch_cloth_holes(under,h,[(-.055,.160,.020,.032,True),(.070,.235,.018,.028,True),(-.080,.310,.016,.030,False)])
+    punch_cloth_holes(under,h,[(-.055,.165,.019,.030,True),(.070,.240,.017,.027,True),(-.080,.315,.015,.027,False)])
     outer=garment_shell("BlueOuterSkirt",h,blue,[
-        (.300,.118,.085,-.002),(.350,.124,.089,-.002),(.410,.126,.090,-.003),
-        (.475,.123,.088,-.003),(.540,.116,.084,-.004),(.605,.108,.080,-.004),
-        (.665,.100,.075,-.004),(.720,.096,.072,-.004)
-    ],120,.150,1.50,1)
+        (.305,.114,.083,-.002),(.350,.121,.087,-.002),(.410,.124,.089,-.003),
+        (.475,.121,.087,-.003),(.540,.114,.083,-.004),(.605,.106,.079,-.004),
+        (.665,.099,.074,-.004),(.720,.095,.071,-.004)
+    ],124,.125,1.55,1)
     out.append(outer)
-    punch_cloth_holes(outer,h,[(-.070,.410,.018,.030,True),(.060,.485,.016,.025,True),(.090,.355,.015,.026,False)])
+    punch_cloth_holes(outer,h,[(-.070,.420,.017,.028,True),(.060,.495,.015,.023,True),(.090,.365,.014,.024,False)])
     out.extend(sister_layered_hem(h,mats))
+    # Broad dirty-ivory shoulder mantle like the reference, with layered torn edge.
     out.append(drape_open("ShoulderCape",h,ivory,[
-        (.834,.075,.062),(.814,.086,.068),(.792,.097,.075),(.770,.109,.082),
-        (.748,.121,.090),(.726,.134,.098)
-    ],108,2.42,.120,1.55,1))
+        (.838,.086,.070),(.814,.099,.078),(.788,.113,.087),(.762,.128,.097),
+        (.736,.143,.107),(.710,.158,.117),(.690,.170,.124)
+    ],112,2.46,.080,1.55,1))
     out.append(drape_open("ShoulderCapeLower",h,ivory,[
-        (.800,.080,.064),(.780,.092,.071),(.758,.104,.078),(.736,.118,.087),(.716,.131,.096)
-    ],104,2.34,.110,2.25,1))
+        (.805,.091,.072),(.782,.105,.080),(.758,.120,.089),(.734,.135,.099),(.712,.150,.108)
+    ],108,2.38,.070,2.20,1))
     out.append(drape_open("OuterVeil",h,blue,[
-        (.966,.050,.045),(.940,.055,.049),(.910,.061,.053),(.878,.068,.058),
-        (.844,.077,.065),(.812,.087,.072),(.782,.098,.080),(.754,.109,.087),(.730,.120,.094)
-    ],112,2.54,.120,.90,1))
+        (.965,.048,.044),(.940,.053,.048),(.910,.059,.052),(.878,.066,.057),
+        (.844,.075,.064),(.812,.085,.071),(.782,.096,.079),(.754,.107,.086),(.730,.118,.093)
+    ],116,2.52,.100,.92,1))
     out.extend(rope_belt_with_tails(h,rope,metal,"RopeBelt"))
     return out
 
