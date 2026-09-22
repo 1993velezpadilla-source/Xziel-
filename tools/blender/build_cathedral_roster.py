@@ -50,11 +50,11 @@ def hexrgb(s):
     return tuple(c/12.92 if c<=0.04045 else ((c+0.055)/1.055)**2.4 for c in raw)
 
 PALETTE={
- "spectral_ivory":"#E8E2D6","waterlogged_linen":"#C7C1B3","pale_corpse":"#D6D8E1",
+ "spectral_ivory":"#BDB6AA","waterlogged_linen":"#9E978B","pale_corpse":"#96969A",
  "pale_spirit":"#E8E6E2","pale_drowned":"#C9D6E0","bruise_blue":"#4A5A6B",
  "water_bruise":"#6E7A8F","wet_black":"#0B0B0C","tarnished_silver":"#7A7A7F",
  "mud_silt":"#4B463B","drowned_ivory":"#D8D5C9","drowned_blue":"#5B6B7A",
- "ash_blue":"#5F6772","dirty_ivory":"#C8BDAE","corpse_skin":"#B6A89D",
+ "ash_blue":"#46515F","dirty_ivory":"#9D9282","corpse_skin":"#8C8580",
  "bruise":"#6A5966","rope":"#6F5843","tarnished_brass":"#7A664A","soot":"#2E2A28",
  "choir_red":"#7A4B45","gravecoat":"#2E2A28","iron":"#3B3C40","dark_iron":"#3B3C40",
  "old_wood":"#4F392D","burgundy":"#6A3B3A","oxidized_metal":"#5E6A57",
@@ -249,6 +249,54 @@ def shoulder_bib(h,material,name="ShoulderBib",front_y=-.112):
         out.append(o)
     return out
 
+
+def front_panel(name,h,material,z0,z1,half_bottom,half_top,y=-.118,ragged=False):
+    pts=[(-half_bottom*h,y*h,z0*h),(half_bottom*h,y*h,z0*h),(half_top*h,y*h,z1*h),(-half_top*h,y*h,z1*h)]
+    if ragged:
+        pts=[(-half_bottom*h,y*h,(z0+.016)*h),(-.045*h,y*h,(z0-.010)*h),(0,y*h,(z0+.005)*h),(.050*h,y*h,(z0-.012)*h),(half_bottom*h,y*h,(z0+.014)*h),(half_top*h,y*h,z1*h),(-half_top*h,y*h,z1*h)]
+    mesh=bpy.data.meshes.new(name+"Mesh"); mesh.from_pydata(pts,[],[tuple(range(len(pts)))]); mesh.update()
+    o=bpy.data.objects.new(name,mesh); bpy.context.collection.objects.link(o); assign(o,material)
+    sol=o.modifiers.new("PanelThickness","SOLIDIFY"); sol.thickness=.0035; sol.offset=0
+    bev=o.modifiers.new("PanelEdgeSoft","BEVEL"); bev.width=.0018*h; bev.segments=2
+    return o
+
+def head_wimple(body,h,mats,style):
+    ivory=mats["spectral_ivory"] if style=="stained_shade" else mats["dirty_ivory"]
+    fy=face_front_y(body,h)-.004*h
+    out=[]
+    out.append(cube("WimpleForehead",(0,fy,.955*h),(.066*h,.003*h,.014*h),ivory,.002*h))
+    for side in (-1,1):
+        strip=cube("WimpleSide_"+("L" if side<0 else "R"),(side*.060*h,fy,.905*h),(.012*h,.003*h,.052*h),ivory,.002*h)
+        strip.rotation_euler.y=math.radians(side*5); out.append(strip)
+    out.append(front_panel("WimpleChest",h,ivory,.742,.842,.135,.105,fy/h+.003,True))
+    return out
+
+def shoe_pair(h,material):
+    out=[]
+    for side,label in ((-1,"L"),(1,"R")):
+        o=uv_sphere("Shoe_"+label,(side*.055*h,-.020*h,.040*h),(.070*h,.110*h,.038*h),material)
+        o.rotation_euler.x=math.radians(4); out.append(o)
+    return out
+
+def llorona_tears(body,h,mats):
+    fy=face_front_y(body,h)-.010*h
+    dark=mats["wet_black"]; out=[]
+    for side in (-1,1):
+        x=side*.020*h
+        pts=[(x,fy,.905*h),(x+side*.004*h,fy-.001*h,.885*h),(x+side*.007*h,fy-.001*h,.865*h)]
+        out.append(curve_chain("TearTrail_"+("L" if side<0 else "R"),pts,dark,.0018*h))
+    return out
+
+def spectral_tatters(h,mats):
+    out=[]; matl=mats["spectral_ivory"]
+    for i in range(10):
+        side=-1 if i%2==0 else 1
+        x=side*(.11+.012*(i%3))*h
+        z0=(.25+.045*i)*h
+        pts=[(x,-.080*h,z0),(x+side*.018*h,-.075*h,z0-.10*h),(x+side*.028*h,-.068*h,z0-.17*h)]
+        out.append(curve_chain("SpectralTatter_%02d"%i,pts,matl,.003*h))
+    return out
+
 def nun_outfit(h,mats,stained=False):
     ivory=mats["spectral_ivory"] if stained else mats["dirty_ivory"]
     blue=mats["ash_blue"]; rope=mats["rope"]
@@ -257,7 +305,9 @@ def nun_outfit(h,mats,stained=False):
     out.append(frustum("IvoryUnderSkirt",.025*h,.505*h,.150*h,.108*h,.108*h,.085*h,ivory,72,.040*h,.3))
     out.append(frustum("BlueOuterSkirt",.165*h,.695*h,.160*h,.114*h,.112*h,.088*h,blue,72,.052*h,1.1))
     out.append(frustum("BlueBodice",.545*h,.802*h,.108*h,.084*h,.128*h,.093*h,blue,64,.010*h,.6))
-    out.append(frustum("IvoryShoulderCape",.690*h,.805*h,.140*h,.086*h,.105*h,.074*h,ivory,56,.020*h,.35))
+    out.append(frustum("IvoryShoulderCape",.690*h,.805*h,.140*h,.105*h,.105*h,.090*h,ivory,56,.020*h,.35))
+    out.extend(shoulder_bib(h,ivory,"TornShoulderBib",-0.128))
+    out.append(front_panel("BlueFrontBodice",h,blue,.545,.805,.112,.132,-.128,False))
     out.extend(sleeve_pair(h,blue,True,ivory))
     out.append(open_veil("OuterVeil",h,ivory if stained else blue,True))
     out.append(open_veil("InnerWimple",h,ivory,False))
@@ -273,7 +323,9 @@ def llorona_outfit(h,mats):
     out.append(frustum("LloronaUnderDress",.020*h,.585*h,.155*h,.108*h,.105*h,.083*h,linen,72,.055*h,.1))
     out.append(frustum("LloronaLayerA",.075*h,.730*h,.170*h,.116*h,.112*h,.088*h,ivory,72,.060*h,.8))
     out.append(frustum("LloronaLayerB",.205*h,.795*h,.151*h,.105*h,.118*h,.090*h,linen,64,.045*h,1.7))
-    out.append(frustum("LloronaBodice",.555*h,.842*h,.108*h,.082*h,.124*h,.091*h,ivory,64,.012*h,.4))
+    out.append(frustum("LloronaBodice",.545*h,.850*h,.132*h,.112*h,.145*h,.118*h,ivory,64,.012*h,.4))
+    out.append(front_panel("LloronaFrontBodice",h,ivory,.545,.850,.136,.148,-.132,False))
+    out.extend(shoulder_bib(h,linen,"LloronaLaceCape",-0.134))
     out.extend(sleeve_pair(h,ivory,True,linen))
     out.append(belt_loop("RosaryBelt",h,rope,.566,.70))
     mud=mats.get("mud_silt")
@@ -340,11 +392,13 @@ def bind_generated_to_rig(body,rig,h):
             bind_sleeve(o,rig,h,True); continue
         if n.startswith("Sleeve_R") or n.startswith("CuffRag_R"):
             bind_sleeve(o,rig,h,False); continue
+        if n.startswith(("WimpleForehead","WimpleSide","EyeSocket","MouthShadow","CheekDecay","TearTrail")):
+            parent_to_bone(o,rig,"head"); continue
         if n.startswith(("NunCross","RosaryCross")):
             parent_to_bone(o,rig,"spine_02"); continue
         if n.startswith(("RopeBelt","RosaryBelt")):
             parent_to_bone(o,rig,"pelvis"); continue
-        if n.startswith(("Dress","Llorona","Ivory","Blue","RepairPatch","OuterRobe","UnderRobe","Stole","ShoulderCape","GlassShard")):
+        if n.startswith(("Dress","Llorona","Ivory","Blue","RepairPatch","OuterRobe","UnderRobe","Stole","ShoulderCape","TornShoulderBib","WimpleChest","SpectralTatter","GlassShard")):
             bind_mesh_vertical(o,rig,h)
 
 def curve_chain(name,pts,material,bevel=.008):
@@ -684,16 +738,16 @@ def preview(body,folder,style):
     scene.render.engine="BLENDER_EEVEE_NEXT"
     scene.render.resolution_x=720; scene.render.resolution_y=900; scene.render.resolution_percentage=100
     scene.render.image_settings.file_format="PNG"; scene.world.color=(.006,.007,.009)
-    try: scene.view_settings.exposure=0.0
+    try: scene.view_settings.exposure=-0.85
     except Exception: pass
     lo,hi=local_bounds(body); h=hi.z-lo.z; target=(0,0,lo.z+h*.52)
     dist=max(2.75,h*1.72)
     bpy.ops.object.camera_add(location=(.22*dist,-dist,lo.z+h*.55))
     cam=bpy.context.object; cam.name="PreviewCamera"; cam.data.lens=62; look_at(cam,target); scene.camera=cam
     for name,loc,en,size,col in [
-      ("Key",(-.55*dist,-.62*dist,lo.z+h*.80),520,1.8,(.78,.83,.92)),
-      ("Rim",(.58*dist,.30*dist,lo.z+h*.68),230,1.35,(.72,.27,.12)),
-      ("Fill",(.05*dist,-.30*dist,lo.z+h*.35),150,1.5,(.48,.52,.58))]:
+      ("Key",(-.55*dist,-.62*dist,lo.z+h*.80),300,1.8,(.72,.78,.88)),
+      ("Rim",(.58*dist,.30*dist,lo.z+h*.68),190,1.35,(.68,.20,.10)),
+      ("Fill",(.05*dist,-.30*dist,lo.z+h*.35),95,1.5,(.38,.42,.48))]:
         bpy.ops.object.light_add(type="AREA",location=loc); L=bpy.context.object
         L.name=name; L.data.energy=en; L.data.size=size; L.data.color=col; look_at(L,target)
     bpy.ops.mesh.primitive_plane_add(size=max(8,h*4),location=(0,0,lo.z-.01)); g=bpy.context.object
@@ -742,7 +796,7 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService,TargetServi
         veil(style,h,w,d,veilmat)
     if style=="la_llorona" and not parts.get("hair"):
         print("LA_LLORONA_HAIR_FALLBACK")
-        hair_strands(.97*h,h,mats["wet_black"],44,.60)
+        llorona_hair(h,mats)
     elif style in ("lost_child","waterbound_child"):
         hair_strands(.97*h,h,mats["wet_black"],22,.28)
     if style=="bell_ringer": bell_prop(h,mats["tarnished_brass"],mats["rope"])
@@ -752,13 +806,17 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService,TargetServi
     if style=="reliquary_horror":
         censer_prop(h,mats.get("oxidized_brass",mats["tarnished_brass"]),mats["rope"]); shrine_back(h,mats["old_wood"],mats["dark_iron"],mats["wax"])
     if style=="stained_shade":
-        glass_shards(h,mats); stained_halo(h,mats)
+        glass_shards(h,mats); stained_halo(h,mats); spectral_tatters(h,mats)
+    if style in ("sister_of_ash","stained_shade"):
+        head_wimple(body,h,mats,style)
+        shoe_pair(h,mats["soot"])
     if style=="la_llorona":
-        llorona_rosary(h,mats)
+        llorona_rosary(h,mats); llorona_tears(body,h,mats)
     if style=="lost_child":
         cross_prop("RosaryCross",(0,-.12*d,.53*h),.035*h,mats.get("tarnished_silver",mats["oxidized_metal"]))
     if style=="lost_child":
         uv_sphere("ClothDoll",(0.16,-.04,.34*h),(.05*h,.035*h,.09*h),mats["dirty_ivory"])
+    add_face_details(body,h,mats,style)
     add_damage_sockets(h) if ch["category"] not in ("random_encounter",) else None
     bind_generated_to_rig(body,rig,h)
     create_actions(rig,ch["animations"])
@@ -768,9 +826,10 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService,TargetServi
     blend=folder/"model.blend"
     try: bpy.ops.wm.save_as_mainfile(filepath=str(blend),compress=True)
     except Exception: bpy.ops.wm.save_as_mainfile(filepath=str(blend))
+    pose_review(rig,style)
     png=preview(body,folder,style)
     tri=sum(sum(max(1,len(p.vertices)-2) for p in o.data.polygons) for o in objs if o.type=="MESH")
-    manifest={"id":ch["id"],"name":ch["name"],"category":ch["category"],"style":style,"height_m":ch["height_m"],"rig":"game_engine","bones":len(rig.data.bones),"triangles_estimate":tri,"animations":ch["animations"],"materials":ch["palette"],"outputs":[glb.name,fbx.name,blend.name,png.name],"production_status":"priority fidelity pass 5 — MPFB rigged base, fitted body parts, layered church clothing, PBR materials, animation actions, modular damage sockets where applicable"}
+    manifest={"id":ch["id"],"name":ch["name"],"category":ch["category"],"style":style,"height_m":ch["height_m"],"rig":"game_engine","bones":len(rig.data.bones),"triangles_estimate":tri,"animations":ch["animations"],"materials":ch["palette"],"outputs":[glb.name,fbx.name,blend.name,png.name],"production_status":"priority fidelity pass 6 — autonomous reference correction — MPFB rigged base, fitted body parts, layered church clothing, PBR materials, animation actions, modular damage sockets where applicable"}
     (folder/"manifest.json").write_text(json.dumps(manifest,indent=2),encoding="utf-8")
     return manifest
 

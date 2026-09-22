@@ -1,6 +1,6 @@
 {
   "project": "Cathedral of Absolution / Cripplegate",
-  "version": 2,
+  "version": 3,
   "shared": {
     "rig": "game_engine",
     "unit_scale": "meters",
@@ -37,9 +37,9 @@
       "category": "core_enemy",
       "height_m": 1.8,
       "gender": 0.96,
-      "age": 0.68,
-      "weight": 0.34,
-      "muscle": 0.24,
+      "age": 0.82,
+      "weight": 0.26,
+      "muscle": 0.2,
       "style": "sister_of_ash",
       "palette": [
         "ash_blue",
@@ -68,9 +68,9 @@
       "category": "random_encounter",
       "height_m": 1.82,
       "gender": 0.92,
-      "age": 0.62,
-      "weight": 0.34,
-      "muscle": 0.24,
+      "age": 0.7,
+      "weight": 0.27,
+      "muscle": 0.18,
       "style": "llorona",
       "palette": [
         "spectral_ivory",
@@ -267,9 +267,9 @@
       "category": "core_enemy",
       "height_m": 1.85,
       "gender": 0.88,
-      "age": 0.58,
-      "weight": 0.3,
-      "muscle": 0.22,
+      "age": 0.72,
+      "weight": 0.25,
+      "muscle": 0.16,
       "style": "stained_shade",
       "palette": [
         "spectral_ivory",
