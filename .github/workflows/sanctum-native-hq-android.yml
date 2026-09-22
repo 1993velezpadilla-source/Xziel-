@@ -307,6 +307,8 @@ jobs:
 
           grep -q "XZIEL_SANCTUM_MESH_READY"             dist/sanctum-hq-logcat.txt
 
+          grep -Eq             "XZIEL_SANCTUM_PROFILE_READY hp=68 spawnInterval=0\.88 interRound=5\.5 baseZombies=5 maxActive=10 points=500"             dist/sanctum-hq-logcat.txt
+
           grep -Eq             "XZIEL_SANCTUM_GAMEPLAY_READY boxes=([2-9][0-9]|[1-9][0-9]{2,}) floors=([1-9][0-9]|[1-9][0-9]{2,}) doors=([7-9]|[1-9][0-9]+) windows=([8-9]|[1-9][0-9]+) spawns=([8-9]|[1-9][0-9]+) playerSpawn=1 arena=1"             dist/sanctum-hq-logcat.txt
 
           echo "SANCTUM_NATIVE_HQ_GAMEPLAY_TAKEOVER_OK"
