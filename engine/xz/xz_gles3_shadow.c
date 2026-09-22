@@ -1638,7 +1638,8 @@ static int XzGles3Shadow_SubmitInternal(
     XzGles3ShadowState *state,
     const XzCommandStream *commands,
     const XzRenderPlan *plan,
-    XzGpuResourcePool *resources)
+    XzGpuResourcePool *resources,
+    const XzGeometryFrame *geometry)
 {
     float vertices[
         XZ_RENDER_MAX_PACKETS *
@@ -1926,7 +1927,22 @@ static int XzGles3Shadow_SubmitInternal(
 
                 saw_draw = 1;
 
-                if (plan->packet_count > 0u) {
+                if (geometry &&
+                    geometry->batch_count > 0u) {
+                    if (!XzDrawRealGeometry(
+                            state,
+                            geometry)) {
+                        command_ok = 0;
+                        break;
+                    }
+                    state->draw_calls++;
+                } else if (plan->packet_count > 0u) {
+                    gl->UseProgram(xz_shadow.program);
+                    gl->BindVertexArray(xz_shadow.vao);
+                    gl->BindBuffer(
+                        GL_ARRAY_BUFFER,
+                        xz_shadow.vbo);
+
                     gl->BufferSubData(
                         GL_ARRAY_BUFFER,
                         0,
@@ -2108,17 +2124,18 @@ int XzGles3Shadow_Submit(
     const XzRenderPlan *plan)
 {
     return XzGles3Shadow_SubmitInternal(
-        state, NULL, plan, NULL);
+        state, NULL, plan, NULL, NULL);
 }
 
 int XzGles3Shadow_SubmitCommands(
     XzGles3ShadowState *state,
     const XzCommandStream *commands,
     const XzRenderPlan *plan,
-    XzGpuResourcePool *resources)
+    XzGpuResourcePool *resources,
+    const XzGeometryFrame *geometry)
 {
     return XzGles3Shadow_SubmitInternal(
-        state, commands, plan, resources);
+        state, commands, plan, resources, geometry);
 }
 
 void XzGles3Shadow_Shutdown(
@@ -2149,14 +2166,30 @@ void XzGles3Shadow_Shutdown(
             xz_shadow.vbo)
             xz_shadow.gl.DeleteBuffers(
                 1, &xz_shadow.vbo);
+        if (xz_shadow.gl.DeleteBuffers &&
+            xz_shadow.real_vbo)
+            xz_shadow.gl.DeleteBuffers(
+                1, &xz_shadow.real_vbo);
+        if (xz_shadow.gl.DeleteBuffers &&
+            xz_shadow.real_ibo)
+            xz_shadow.gl.DeleteBuffers(
+                1, &xz_shadow.real_ibo);
         if (xz_shadow.gl.DeleteVertexArrays &&
             xz_shadow.vao)
             xz_shadow.gl.DeleteVertexArrays(
                 1, &xz_shadow.vao);
+        if (xz_shadow.gl.DeleteVertexArrays &&
+            xz_shadow.real_vao)
+            xz_shadow.gl.DeleteVertexArrays(
+                1, &xz_shadow.real_vao);
         if (xz_shadow.gl.DeleteProgram &&
             xz_shadow.program)
             xz_shadow.gl.DeleteProgram(
                 xz_shadow.program);
+        if (xz_shadow.gl.DeleteProgram &&
+            xz_shadow.real_program)
+            xz_shadow.gl.DeleteProgram(
+                xz_shadow.real_program);
         if (xz_shadow.gl.DeleteProgram &&
             xz_shadow.fullscreen_program)
             xz_shadow.gl.DeleteProgram(
