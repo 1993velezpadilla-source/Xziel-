@@ -37,8 +37,25 @@ def find_endpoint(fragment: str):
             return ("fn_index", int(idx))
     return None
 
-gallery = [{"image": handle_file(str(p)), "caption": None} for p in REFS]
-front = handle_file(str(REFS[0]))
+repo = os.environ.get("GITHUB_REPOSITORY", "1993velezpadilla-source/config-old-3")
+sha = os.environ.get("GITHUB_SHA", "").strip()
+if not sha:
+    fail("GITHUB_SHA is missing")
+raw_base = f"https://raw.githubusercontent.com/{repo}/{sha}/assets/characters/llorona/reference"
+ref_urls = [f"{raw_base}/{p.name}" for p in REFS]
+
+def image_data(url, name):
+    return {
+        "path": url,
+        "url": url,
+        "orig_name": name,
+        "mime_type": "image/jpeg",
+        "is_stream": False,
+        "meta": {"_type": "gradio.FileData"},
+    }
+
+gallery = [{"image": image_data(url, p.name), "caption": None} for p, url in zip(REFS, ref_urls)]
+front = image_data(ref_urls[0], REFS[0].name)
 
 pre = find_endpoint("preprocess_images")
 if pre:
