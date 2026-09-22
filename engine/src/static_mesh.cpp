@@ -743,35 +743,35 @@ evaluateViewmodelStaticMesh(
         return result;
     }
 
-    if (metrics.batchCount > 128U) {
+    if (metrics.batchCount > kViewmodelMaxBatches) {
         result.rejection =
             ViewmodelStaticMeshRejection::
                 TooManyBatches;
         return result;
     }
 
-    if (metrics.vertexCount < 96U) {
+    if (metrics.vertexCount < kViewmodelMinVertices) {
         result.rejection =
             ViewmodelStaticMeshRejection::
                 TooFewVertices;
         return result;
     }
 
-    if (metrics.vertexCount > 600000U) {
+    if (metrics.vertexCount > kViewmodelMaxVertices) {
         result.rejection =
             ViewmodelStaticMeshRejection::
                 TooManyVertices;
         return result;
     }
 
-    if (metrics.indexCount < 96U) {
+    if (metrics.indexCount < kViewmodelMinIndices) {
         result.rejection =
             ViewmodelStaticMeshRejection::
                 TooFewIndices;
         return result;
     }
 
-    if (metrics.indexCount > 900000U) {
+    if (metrics.indexCount > kViewmodelMaxIndices) {
         result.rejection =
             ViewmodelStaticMeshRejection::
                 TooManyIndices;
@@ -785,25 +785,30 @@ evaluateViewmodelStaticMesh(
         return result;
     }
 
-    if (metrics.longestExtent < 0.30f ||
-        metrics.longestExtent > 1.50f) {
+    if (metrics.longestExtent < kViewmodelMinExtentMeters ||
+        metrics.longestExtent > kViewmodelMaxExtentMeters) {
         result.rejection =
             ViewmodelStaticMeshRejection::
                 InvalidEnvelope;
         return result;
     }
 
-    if (metrics.peakVoxelOccupancyRatio > 0.75f ||
-        metrics.robustAxisCoverage90 < 0.20f) {
+    if (metrics.peakVoxelOccupancyRatio >
+            kViewmodelMaxPeakVoxelOccupancy ||
+        metrics.robustAxisCoverage90 <
+            kViewmodelMinAxisCoverage90) {
         result.rejection =
             ViewmodelStaticMeshRejection::
                 CollapsedVertexCloud;
         return result;
     }
 
-    if (metrics.robustLongestExtent90 < 0.25f ||
-        metrics.robustSecondExtent90 < 0.035f ||
-        metrics.robustThirdExtent90 < 0.012f) {
+    if (metrics.robustLongestExtent90 <
+            kViewmodelMinRobustExtent90 ||
+        metrics.robustSecondExtent90 <
+            kViewmodelMinRobustSecondExtent90 ||
+        metrics.robustThirdExtent90 <
+            kViewmodelMinRobustThirdExtent90) {
         result.rejection =
             ViewmodelStaticMeshRejection::
                 NeedleThin;
