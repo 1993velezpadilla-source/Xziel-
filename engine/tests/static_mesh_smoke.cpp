@@ -294,6 +294,9 @@ int main() {
     assert(
         goodMetrics.robustThirdExtent90 >
         0.08f);
+    assert(
+        goodMetrics.peakVoxelOccupancyRatio <
+        0.20f);
 
     xziel::StaticMeshAsset collapsedViewmodel =
         goodViewmodel;
@@ -340,6 +343,9 @@ int main() {
     assert(
         collapsedMetrics.robustThirdExtent90 <
         0.012f);
+    assert(
+        collapsedMetrics.peakVoxelOccupancyRatio >
+        0.75f);
 
     // Also reject a long but nearly flat needle. This catches the variant
     // where enough outlier vertices span the expected 0.9 m length that a
@@ -378,6 +384,57 @@ int main() {
     assert(
         flatMetrics.robustSecondExtent90 <
         0.035f);
+
+    // 80% of vertices collapsed into one small 3D cell plus a legitimate
+    // looking 20% sub-mesh spread across the full envelope. Axis coverage can
+    // be fooled by that minority mesh; voxel concentration must still reject.
+    xziel::StaticMeshAsset mixedCollapse =
+        goodViewmodel;
+    auto& mixedVertices =
+        mixedCollapse.batches[0].vertices;
+    const std::size_t collapsedCount =
+        mixedVertices.size() * 4U / 5U;
+
+    for (std::size_t i = 0U;
+         i < collapsedCount;
+         ++i) {
+        mixedVertices[i].x =
+            static_cast<float>(i % 3U) *
+            0.002f;
+        mixedVertices[i].y =
+            static_cast<float>(i % 5U) *
+            0.002f;
+        mixedVertices[i].z =
+            static_cast<float>(i % 7U) *
+            0.002f;
+    }
+
+    for (std::size_t i = collapsedCount;
+         i < mixedVertices.size();
+         ++i) {
+        const float t =
+            static_cast<float>(
+                i - collapsedCount) /
+            static_cast<float>(
+                mixedVertices.size() -
+                collapsedCount - 1U);
+        mixedVertices[i].x = 0.90f * t;
+        mixedVertices[i].y =
+            -0.08f + 0.16f * t;
+        mixedVertices[i].z =
+            -0.12f + 0.24f * t;
+    }
+
+    xziel::StaticMeshQualityMetrics
+        mixedMetrics{};
+
+    assert(
+        !xziel::passesViewmodelStaticMeshSanity(
+            mixedCollapse,
+            &mixedMetrics));
+    assert(
+        mixedMetrics.peakVoxelOccupancyRatio >
+        0.75f);
 
     xziel::StaticMeshAsset fragmentedViewmodel{};
     fragmentedViewmodel.batches.resize(
