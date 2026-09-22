@@ -158,6 +158,16 @@ jobs:
             -o /tmp/xz_cutover_test
           /tmp/xz_cutover_test
 
+      - name: Test Xz GeometryTap
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_geometry_tap_test.c \
+            engine/xz/xz_geometry_tap.c \
+            -o /tmp/xz_geometry_tap_test
+          /tmp/xz_geometry_tap_test
+
       - name: Test Xz RHI
         shell: bash
         run: |
@@ -645,19 +655,25 @@ jobs:
             exit 1
           fi
 
-          if ! grep -Eq "XZIEL-XZ.*phase16 heartbeat requested=MODERN active=MIRROR candidate=1 allowed=0 caps=0x1f blockers=0xe0 eval=[1-9][0-9]* blocked=[1-9][0-9]* legacyVisible=1" dist/xziel-logcat.txt; then
-            echo "Xz Phase-16 did not enforce the expected content-parity cutover block."
-            grep -E "XZIEL-XZ.*phase16 heartbeat" dist/xziel-logcat.txt | tail -n 120 || true
+          if ! grep -Eq "XZIEL-XZ.*parity geometry generation=[1-9][0-9]* batches=[1-9][0-9]* vertices=[1-9][0-9]* indices=[1-9][0-9]* kinds=[1-9][0-9]*/[1-9][0-9]*/[1-9][0-9]* drops=0/0/0 g3sub=[1-9][0-9]* g3draw=[1-9][0-9]* g3verts=[1-9][0-9]* g3indices=[1-9][0-9]* g3fail=0 kindMask=0x7 ready=1" dist/xziel-logcat.txt; then
+            echo "Xz real-geometry parity did not capture and render all Vril geometry classes cleanly."
+            grep -E "XZIEL-XZ.*parity geometry" dist/xziel-logcat.txt | tail -n 120 || true
+            exit 1
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*phase16 heartbeat requested=MODERN active=MIRROR candidate=1 allowed=0 caps=0x3f blockers=0xc0 eval=[1-9][0-9]* blocked=[1-9][0-9]* legacyVisible=1" dist/xziel-logcat.txt; then
+            echo "Xz cutover did not clear only the REAL_GEOMETRY blocker."
+            grep -E "XZIEL-XZ.*phase16 heartbeat|XZIEL-XZ.*parity geometry" dist/xziel-logcat.txt | tail -n 160 || true
             exit 1
           fi
 
           if grep -Eq "XZIEL-XZ.*phase16 heartbeat .*active=MODERN" dist/xziel-logcat.txt; then
-            echo "Xz Phase-16 performed an unsafe visible modern cutover before content parity."
+            echo "Xz performed an unsafe visible modern cutover before texture/present parity."
             grep -E "XZIEL-XZ.*phase16 heartbeat" dist/xziel-logcat.txt | tail -n 120 || true
             exit 1
           fi
 
-          echo "Xziel remained alive; Phase 0-16 cutover parity gate is live and unsafe modern takeover remains blocked."
+          echo "Xziel remained alive; REAL_GEOMETRY parity is live and texture/present blockers remain enforced."
 
       - name: Upload runtime diagnostics
         if: always()
