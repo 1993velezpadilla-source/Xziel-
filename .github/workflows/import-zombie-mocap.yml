@@ -9,15 +9,11 @@ on:
       - tools/zombie_mocap_manifest.tsv
       - scripts/fetch_zombie_mocap.sh
       - scripts/fetch_quaternius_ual2.sh
-  pull_request:
-    branches:
-      - integration/sanctum-modern-xz
-    paths:
-      - .github/workflows/import-zombie-mocap.yml
-      - tools/zombie_mocap_manifest.tsv
-      - scripts/fetch_zombie_mocap.sh
-      - scripts/fetch_quaternius_ual2.sh
   workflow_dispatch:
+
+concurrency:
+  group: zombie-mocap-${{ github.ref_name }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -27,12 +23,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      TARGET_BRANCH: ${{ github.head_ref || github.ref_name }}
+      TARGET_BRANCH: ${{ github.ref_name }}
     steps:
       - name: Checkout source branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref || github.ref_name }}
+          ref: ${{ github.ref_name }}
           fetch-depth: 0
           persist-credentials: true
 
@@ -51,13 +47,18 @@ jobs:
       - name: Validate libraries
         shell: bash
         run: |
-          count=$(find assets/animations/zombie_mocap/cmu -type f -name '*.fbx' | wc -l)
-          echo "CMU_FBX_COUNT=$count"
-          test "$count" -ge 65
-          test -s assets/animations/zombie_mocap/catalog.csv
+          expected=$(tail -n +2 tools/zombie_mocap_manifest.tsv | awk 'NF {n++} END {print n+0}')
+          actual=$(find assets/animations/zombie_mocap/cmu -type f -name '*.fbx' | wc -l)
+          catalog_rows=$(tail -n +2 assets/animations/zombie_mocap/catalog.csv | wc -l)
+          echo "CMU_EXPECTED=$expected"
+          echo "CMU_FBX_COUNT=$actual"
+          echo "CATALOG_ROWS=$catalog_rows"
+          test "$actual" -eq "$expected"
+          test "$catalog_rows" -eq "$expected"
           test -s assets/animations/zombie_mocap/quaternius_ual2/UAL2_Standard.glb
           test -s assets/animations/zombie_mocap/quaternius_ual2/License.txt
           test -s assets/animations/zombie_mocap/quaternius_ual2/animation_names.txt
+          test -s assets/animations/zombie_mocap/quaternius_ual2/zombie_animation_names.txt
           if find assets/animations/zombie_mocap/cmu -type f -name '*.fbx' -size 0 | grep -q .; then
             echo "Found zero-byte FBX"
             exit 1
