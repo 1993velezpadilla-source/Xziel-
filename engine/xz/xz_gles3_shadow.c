@@ -82,6 +82,8 @@ typedef void (*XzGlUseProgramFn)(GLuint);
 typedef void (*XzGlActiveTextureFn)(GLenum);
 typedef GLint (*XzGlGetUniformLocationFn)(GLuint, const GLchar *);
 typedef void (*XzGlUniform1iFn)(GLint, GLint);
+typedef void (*XzGlUniform1fFn)(GLint, GLfloat);
+typedef void (*XzGlUniform4fvFn)(GLint, GLsizei, const GLfloat *);
 typedef void (*XzGlUniformMatrix4fvFn)(
     GLint, GLsizei, GLboolean, const GLfloat *);
 typedef void (*XzGlViewportFn)(GLint, GLint, GLsizei, GLsizei);
@@ -91,6 +93,7 @@ typedef void (*XzGlEnableFn)(GLenum);
 typedef void (*XzGlDisableFn)(GLenum);
 typedef void (*XzGlBlendFuncFn)(GLenum, GLenum);
 typedef void (*XzGlDepthMaskFn)(GLboolean);
+typedef void (*XzGlDepthFuncFn)(GLenum);
 typedef void (*XzGlDrawArraysFn)(GLenum, GLint, GLsizei);
 typedef void (*XzGlDrawElementsFn)(
     GLenum, GLsizei, GLenum, const void *);
@@ -147,6 +150,8 @@ typedef struct {
     XzGlActiveTextureFn ActiveTexture;
     XzGlGetUniformLocationFn GetUniformLocation;
     XzGlUniform1iFn Uniform1i;
+    XzGlUniform1fFn Uniform1f;
+    XzGlUniform4fvFn Uniform4fv;
     XzGlUniformMatrix4fvFn UniformMatrix4fv;
     XzGlViewportFn Viewport;
     XzGlClearColorFn ClearColor;
@@ -155,6 +160,7 @@ typedef struct {
     XzGlDisableFn Disable;
     XzGlBlendFuncFn BlendFunc;
     XzGlDepthMaskFn DepthMask;
+    XzGlDepthFuncFn DepthFunc;
     XzGlDrawArraysFn DrawArrays;
     XzGlDrawElementsFn DrawElements;
     XzGlReadPixelsFn ReadPixels;
@@ -206,6 +212,11 @@ typedef struct {
     GLint real_modelview_loc;
     GLint real_projection_loc;
     GLint real_texture_loc;
+    GLint real_color_loc;
+    GLint real_texenv_modulate_loc;
+    GLint real_alpha_test_loc;
+    GLint real_alpha_func_loc;
+    GLint real_alpha_ref_loc;
     GLuint real_vbo;
     GLuint real_ibo;
     GLuint real_vao;
@@ -234,6 +245,62 @@ static unsigned int XzAbsByteDiff(
     return a > b
         ? (unsigned int)(a - b)
         : (unsigned int)(b - a);
+}
+
+static GLenum XzSafeBlendFactor(unsigned int value, GLenum fallback)
+{
+    switch ((GLenum)value) {
+    case GL_ZERO:
+    case GL_ONE:
+    case GL_SRC_COLOR:
+    case GL_ONE_MINUS_SRC_COLOR:
+    case GL_DST_COLOR:
+    case GL_ONE_MINUS_DST_COLOR:
+    case GL_SRC_ALPHA:
+    case GL_ONE_MINUS_SRC_ALPHA:
+    case GL_DST_ALPHA:
+    case GL_ONE_MINUS_DST_ALPHA:
+    case GL_CONSTANT_COLOR:
+    case GL_ONE_MINUS_CONSTANT_COLOR:
+    case GL_CONSTANT_ALPHA:
+    case GL_ONE_MINUS_CONSTANT_ALPHA:
+    case GL_SRC_ALPHA_SATURATE:
+        return (GLenum)value;
+    default:
+        return fallback;
+    }
+}
+
+static GLenum XzSafeDepthFunc(unsigned int value)
+{
+    switch ((GLenum)value) {
+    case GL_NEVER:
+    case GL_LESS:
+    case GL_EQUAL:
+    case GL_LEQUAL:
+    case GL_GREATER:
+    case GL_NOTEQUAL:
+    case GL_GEQUAL:
+    case GL_ALWAYS:
+        return (GLenum)value;
+    default:
+        return GL_LEQUAL;
+    }
+}
+
+static int XzAlphaFuncCode(unsigned int value)
+{
+    switch ((GLenum)value) {
+    case GL_NEVER: return 0;
+    case GL_LESS: return 1;
+    case GL_EQUAL: return 2;
+    case GL_LEQUAL: return 3;
+    case GL_GREATER: return 4;
+    case GL_NOTEQUAL: return 5;
+    case GL_GEQUAL: return 6;
+    case GL_ALWAYS: return 7;
+    default: return 7;
+    }
 }
 
 static int XzLoadApi(XzNativeGles3Api *api)
@@ -302,6 +369,8 @@ static int XzLoadApi(XzNativeGles3Api *api)
     XZ_GL_LOAD(ActiveTexture, "glActiveTexture");
     XZ_GL_LOAD(GetUniformLocation, "glGetUniformLocation");
     XZ_GL_LOAD(Uniform1i, "glUniform1i");
+    XZ_GL_LOAD(Uniform1f, "glUniform1f");
+    XZ_GL_LOAD(Uniform4fv, "glUniform4fv");
     XZ_GL_LOAD(UniformMatrix4fv, "glUniformMatrix4fv");
     XZ_GL_LOAD(Viewport, "glViewport");
     XZ_GL_LOAD(ClearColor, "glClearColor");
@@ -310,6 +379,7 @@ static int XzLoadApi(XzNativeGles3Api *api)
     XZ_GL_LOAD(Disable, "glDisable");
     XZ_GL_LOAD(BlendFunc, "glBlendFunc");
     XZ_GL_LOAD(DepthMask, "glDepthMask");
+    XZ_GL_LOAD(DepthFunc, "glDepthFunc");
     XZ_GL_LOAD(DrawArrays, "glDrawArrays");
     XZ_GL_LOAD(DrawElements, "glDrawElements");
     XZ_GL_LOAD(ReadPixels, "glReadPixels");
@@ -490,11 +560,27 @@ static int XzCreateRealGeometryProgram(void)
         "precision mediump float;\n"
         "in vec2 vUV;\n"
         "uniform sampler2D uTexture;\n"
+        "uniform vec4 uColor;\n"
+        "uniform int uTexEnvModulate;\n"
+        "uniform int uAlphaTest;\n"
+        "uniform int uAlphaFunc;\n"
+        "uniform float uAlphaRef;\n"
         "out vec4 outColor;\n"
         "void main(){\n"
         "  vec4 texel=texture(uTexture,vUV);\n"
-        "  if(texel.a<0.08) discard;\n"
-        "  outColor=texel;\n"
+        "  vec4 c=(uTexEnvModulate!=0)?texel*uColor:texel;\n"
+        "  if(uAlphaTest!=0){\n"
+        "    bool pass=true;\n"
+        "    if(uAlphaFunc==0) pass=false;\n"
+        "    else if(uAlphaFunc==1) pass=c.a<uAlphaRef;\n"
+        "    else if(uAlphaFunc==2) pass=abs(c.a-uAlphaRef)<0.0001;\n"
+        "    else if(uAlphaFunc==3) pass=c.a<=uAlphaRef;\n"
+        "    else if(uAlphaFunc==4) pass=c.a>uAlphaRef;\n"
+        "    else if(uAlphaFunc==5) pass=abs(c.a-uAlphaRef)>=0.0001;\n"
+        "    else if(uAlphaFunc==6) pass=c.a>=uAlphaRef;\n"
+        "    if(!pass) discard;\n"
+        "  }\n"
+        "  outColor=c;\n"
         "}\n";
 
     XzNativeGles3Api *gl = &xz_shadow.gl;
@@ -545,10 +631,35 @@ static int XzCreateRealGeometryProgram(void)
         gl->GetUniformLocation(
             xz_shadow.real_program,
             "uTexture");
+    xz_shadow.real_color_loc =
+        gl->GetUniformLocation(
+            xz_shadow.real_program,
+            "uColor");
+    xz_shadow.real_texenv_modulate_loc =
+        gl->GetUniformLocation(
+            xz_shadow.real_program,
+            "uTexEnvModulate");
+    xz_shadow.real_alpha_test_loc =
+        gl->GetUniformLocation(
+            xz_shadow.real_program,
+            "uAlphaTest");
+    xz_shadow.real_alpha_func_loc =
+        gl->GetUniformLocation(
+            xz_shadow.real_program,
+            "uAlphaFunc");
+    xz_shadow.real_alpha_ref_loc =
+        gl->GetUniformLocation(
+            xz_shadow.real_program,
+            "uAlphaRef");
 
     if (xz_shadow.real_modelview_loc < 0 ||
         xz_shadow.real_projection_loc < 0 ||
-        xz_shadow.real_texture_loc < 0)
+        xz_shadow.real_texture_loc < 0 ||
+        xz_shadow.real_color_loc < 0 ||
+        xz_shadow.real_texenv_modulate_loc < 0 ||
+        xz_shadow.real_alpha_test_loc < 0 ||
+        xz_shadow.real_alpha_func_loc < 0 ||
+        xz_shadow.real_alpha_ref_loc < 0)
         return 0;
 
     gl->UseProgram(xz_shadow.real_program);
@@ -860,6 +971,12 @@ static int XzDrawRealGeometry(
 
     state->last_texture_batches = 0u;
     state->last_texture_misses = 0u;
+    state->last_material_state_batches = 0u;
+    state->last_blended_batches = 0u;
+    state->last_lightmap_batches = 0u;
+    state->last_alpha_test_batches = 0u;
+    state->last_modulate_batches = 0u;
+    state->real_material_state_ready = 0;
 
     gl->UseProgram(xz_shadow.real_program);
     gl->Uniform1i(xz_shadow.real_texture_loc, 0);
@@ -895,8 +1012,8 @@ static int XzDrawRealGeometry(
 
     gl->Enable(GL_DEPTH_TEST);
     gl->Disable(GL_BLEND);
-    gl->BlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     gl->DepthMask(GL_TRUE);
+    gl->DepthFunc(GL_LEQUAL);
 
     for (i = 0u; i < geometry->batch_count; ++i) {
         const XzGeometryBatch *batch =
@@ -925,6 +1042,22 @@ static int XzDrawRealGeometry(
             1,
             GL_FALSE,
             batch->projection);
+        gl->Uniform4fv(
+            xz_shadow.real_color_loc,
+            1,
+            batch->state.color);
+        gl->Uniform1i(
+            xz_shadow.real_texenv_modulate_loc,
+            batch->state.texture_env_mode == 0x2100u ? 1 : 0);
+        gl->Uniform1i(
+            xz_shadow.real_alpha_test_loc,
+            batch->state.alpha_test_enabled ? 1 : 0);
+        gl->Uniform1i(
+            xz_shadow.real_alpha_func_loc,
+            XzAlphaFuncCode(batch->state.alpha_func));
+        gl->Uniform1f(
+            xz_shadow.real_alpha_ref_loc,
+            batch->state.alpha_ref);
 
         {
             int has_real_texture = 0;
@@ -952,13 +1085,35 @@ static int XzDrawRealGeometry(
             }
         }
 
-        if (batch->kind == XZ_GEOMETRY_SPRITE) {
+        if (batch->state.blend_enabled) {
             gl->Enable(GL_BLEND);
-            gl->DepthMask(GL_FALSE);
+            gl->BlendFunc(
+                XzSafeBlendFactor(
+                    batch->state.blend_src,
+                    GL_SRC_ALPHA),
+                XzSafeBlendFactor(
+                    batch->state.blend_dst,
+                    GL_ONE_MINUS_SRC_ALPHA));
+            state->last_blended_batches++;
         } else {
             gl->Disable(GL_BLEND);
-            gl->DepthMask(GL_TRUE);
         }
+
+        gl->DepthMask(
+            batch->state.depth_write ? GL_TRUE : GL_FALSE);
+        gl->DepthFunc(
+            XzSafeDepthFunc(batch->state.depth_func));
+
+        state->last_material_state_batches++;
+        if (batch->state.alpha_test_enabled)
+            state->last_alpha_test_batches++;
+        if (batch->state.texture_env_mode == 0x2100u)
+            state->last_modulate_batches++;
+        if (batch->state.blend_enabled &&
+            batch->state.blend_src == (unsigned int)GL_DST_COLOR &&
+            batch->state.blend_dst == (unsigned int)GL_SRC_COLOR &&
+            batch->state.depth_func == (unsigned int)GL_EQUAL)
+            state->last_lightmap_batches++;
 
         gl->DrawElements(
             GL_TRIANGLES,
@@ -985,6 +1140,7 @@ static int XzDrawRealGeometry(
     }
 
     gl->DepthMask(GL_TRUE);
+    gl->DepthFunc(GL_LEQUAL);
     gl->Disable(GL_BLEND);
     gl->Disable(GL_DEPTH_TEST);
 
@@ -1010,6 +1166,11 @@ static int XzDrawRealGeometry(
         texture_batches > 0u &&
         texture_misses == 0u &&
         (state->real_texture_kind_mask & 0x7u) == 0x7u;
+
+    state->real_material_state_ready =
+        state->real_geometry_failures == 0u &&
+        state->last_material_state_batches == geometry->batch_count &&
+        state->last_lightmap_batches > 0u;
 
     return 1;
 }
