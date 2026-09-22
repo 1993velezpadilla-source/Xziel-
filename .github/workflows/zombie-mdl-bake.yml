@@ -36,7 +36,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          sudo apt-get install -y -qq blender cmake ninja-build build-essential
+          sudo apt-get install -y -qq blender python3-numpy cmake ninja-build build-essential
 
       - name: Build pinned quake-export
         shell: bash
@@ -54,6 +54,8 @@ jobs:
           set -euo pipefail
           rm -rf "build/zombie-mdl/${{ matrix.model }}"
           blender -b             --python scripts/blender_bake_zombie_mdl_frames.py --             --input "assets/animations/zombie_mocap/quaternius_zombie_apocalypse/${{ matrix.model }}.gltf"             --contract assets/animations/zombie_runtime/stock_zombie_frame_contract.json             --output "build/zombie-mdl/${{ matrix.model }}"
+          test -s "build/zombie-mdl/${{ matrix.model }}/model.json"
+          test "$(find "build/zombie-mdl/${{ matrix.model }}/frames" -name '*.obj' | wc -l)" -eq 211
 
       - name: Convert OBJ sequence to Quake MDL
         shell: bash
