@@ -82,10 +82,15 @@ typedef struct {
     unsigned int last_special_batches;
     unsigned int last_sky_batches;
     unsigned int last_water_batches;
+    unsigned int last_shadow_batches;
+    unsigned int last_polyblend_batches;
+    float last_clear_color[4];
     int real_geometry_ready;
     int real_effects_ready;
     int real_sky_ready;
     int real_water_ready;
+    int real_shadow_ready;
+    int real_polyblend_ready;
 
     uint64_t real_texture_uploads;
     uint64_t real_texture_binds;
