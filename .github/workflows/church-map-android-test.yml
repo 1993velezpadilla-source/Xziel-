@@ -87,10 +87,17 @@ jobs:
           import json
           r=json.load(open("church-artifact/vril_static_mesh_report.json", encoding="utf-8"))
           assert r["runtimeTriangles"] >= 620000, r
+          assert r.get("runtimeTotalTriangles", r["runtimeTriangles"]) >= 700000, r
           assert r["textureMaxDimension"] >= 2048, r
           assert r["batchCount"] <= 512, r
+          assert r["totalVertices"] <= 3000000, r
+          assert r["totalIndices"] <= 3500000, r
           print("SANCTUM_VISUAL_PROFILE_OK", {
               "runtimeTriangles":r["runtimeTriangles"],
+              "runtimeTotalTriangles":r.get("runtimeTotalTriangles"),
+              "dressingTriangles":r.get("dressingTriangles"),
+              "totalVertices":r["totalVertices"],
+              "totalIndices":r["totalIndices"],
               "textureMaxDimension":r["textureMaxDimension"],
               "batchCount":r["batchCount"],
               "scanCleanup":r.get("scanCleanup"),
