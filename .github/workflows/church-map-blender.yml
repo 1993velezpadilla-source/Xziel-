@@ -222,6 +222,26 @@ jobs:
           cp church/out/ATTRIBUTION.txt church/out/SanctumOfAsh/
           cp church/out/SANCTUM_OF_ASH_MAP_BIBLE.md church/out/SanctumOfAsh/
 
+      - name: Export native Xziel collision and spawn map
+        shell: bash
+        env:
+          CHURCH_PLAN: church/out/zombies_map_plan.json
+          CHURCH_FITTED: church/out/church_runtime_fitted_v2.json
+          XZIEL_NATIVE_MAP_OUT: church/out/xziel_native_map/sanctum.xmap
+          XZIEL_STATIC_NATIVE_FLOOR_Y: "-1.58"
+          XZIEL_STATIC_WORLD_SCALE: "1.0"
+        run: |
+          set -euo pipefail
+          python3 tools/church_map/export_xziel_native_map.py \
+            | tee church/out/xziel-native-map-export.log
+          test -s church/out/xziel_native_map/sanctum.xmap
+          test -s church/out/xziel_native_map/sanctum_native_map_report.json
+          jq -e '.schemaVersion == 2' church/out/xziel_native_map/sanctum_native_map_report.json
+          jq -e '.boxCount >= 20' church/out/xziel_native_map/sanctum_native_map_report.json
+          jq -e '.doorCount >= 7' church/out/xziel_native_map/sanctum_native_map_report.json
+          jq -e '.windowCount >= 8' church/out/xziel_native_map/sanctum_native_map_report.json
+          jq -e '.zombieSpawnCount >= 8' church/out/xziel_native_map/sanctum_native_map_report.json
+
       - name: Export NZP compatibility harness
         shell: bash
         env:
@@ -288,6 +308,8 @@ jobs:
             church/out/vril_static_mesh_report.json \
             church/out/xziel_native_static/models/xziel/sanctum/sanctum.xzsm \
             church/out/xziel_native_static_mesh_report.json \
+            church/out/xziel_native_map/sanctum.xmap \
+            church/out/xziel_native_map/sanctum_native_map_report.json \
             church/out/SANCTUM_OF_ASH_MAP_BIBLE.md \
             church/out/SanctumOfAsh/map.json \
             church/out/SanctumOfAsh/entities.json \
@@ -318,6 +340,7 @@ jobs:
           f=json.load(open("church/out/church_runtime_fitted_v2.json", encoding="utf-8"))
           s=json.load(open("church/out/vril_static_mesh_report.json", encoding="utf-8"))
           native=json.load(open("church/out/xziel_native_static_mesh_report.json", encoding="utf-8"))
+          native_map=json.load(open("church/out/xziel_native_map/sanctum_native_map_report.json", encoding="utf-8"))
           assert r["source_triangles"] >= 2700000, r
           assert r["mobile_lod0_triangles"] >= 640000, r
           assert p["working_title"] == "SANCTUM OF ASH"
@@ -343,6 +366,11 @@ jobs:
           assert native["textureMaxDimension"] >= 4096, native
           assert native["worldScale"] == 1.0, native
           assert native["textureCount"] > 0, native
+          assert native_map["schemaVersion"] == 2, native_map
+          assert native_map["boxCount"] >= 20, native_map
+          assert native_map["doorCount"] >= 7, native_map
+          assert native_map["windowCount"] >= 8, native_map
+          assert native_map["zombieSpawnCount"] >= 8, native_map
           assert f["counts"]["barricades"] >= 8, f
           assert f["counts"]["raycastFitted"] > 0, f
           assert f["counts"]["collisionMeshes"] >= 4, f
@@ -362,6 +390,7 @@ jobs:
           print("FITTED_RUNTIME", f["counts"])
           print("VRIL_STATIC", {k:s[k] for k in ["version","runtimeTriangles","dressingTriangles","runtimeTotalTriangles","dressingObjectCount","batchCount","textureCount","modelBytes","vertexStrideBytes","vertexLighting"]})
           print("XZIEL_NATIVE_HQ", {k:native[k] for k in ["version","vertexStrideBytes","coordinateSpace","sourceCollection","worldScale","nativeFloorY","runtimeTriangles","dressingTriangles","runtimeTotalTriangles","batchCount","textureCount","textureMaxDimension","modelBytes"]})
+          print("XZIEL_NATIVE_MAP", native_map)
           print("PACKAGE_PREFLIGHT", q)
           PY
 
