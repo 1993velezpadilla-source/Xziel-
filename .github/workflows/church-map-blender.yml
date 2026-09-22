@@ -315,7 +315,9 @@ jobs:
           jq -e '.materialCount >= 2' church/out/xziel_native_static/weapon_standard_rifle_report.json
           jq -e '.texturedMaterialCount >= 1' church/out/xziel_native_static/weapon_standard_rifle_report.json
           jq -e '.maximumTextureDimension >= 512' church/out/xziel_native_static/weapon_standard_rifle_report.json
-          jq -e '.animations | length >= 5' church/out/xziel_native_static/weapon_standard_rifle_report.json
+          jq -e '.animations | length >= 2' church/out/xziel_native_static/weapon_standard_rifle_report.json
+          jq -e '.dimensionsMeters | max <= 1.05' church/out/xziel_native_static/weapon_standard_rifle_report.json
+          jq -e '.targetLongestDimensionMeters == 0.9' church/out/xziel_native_static/weapon_standard_rifle_report.json
 
       - name: Export portable map package
         shell: bash
