@@ -1031,6 +1031,7 @@ static int XzDrawRealGeometry(
         geometry->index_count;
     state->last_geometry_drops = drops;
     state->last_effect_batches = geometry->effect_batches;
+    state->last_immediate_batches = geometry->immediate_batches;
 
     if (drops != 0u) {
         state->real_geometry_failures++;
@@ -1061,6 +1062,7 @@ static int XzDrawRealGeometry(
     state->last_cull_batches = 0u;
     state->last_depth_range_batches = 0u;
     state->last_polygon_offset_batches = 0u;
+    state->last_depth_test_disabled_batches = 0u;
     state->real_raster_state_ready = 0;
 
     gl->UseProgram(xz_shadow.real_program);
@@ -1207,6 +1209,13 @@ static int XzDrawRealGeometry(
             gl->Disable(GL_BLEND);
         }
 
+        if (batch->state.depth_test_enabled) {
+            gl->Enable(GL_DEPTH_TEST);
+        } else {
+            gl->Disable(GL_DEPTH_TEST);
+            state->last_depth_test_disabled_batches++;
+        }
+
         gl->DepthMask(
             batch->state.depth_write ? GL_TRUE : GL_FALSE);
         gl->DepthFunc(
@@ -1276,6 +1285,8 @@ static int XzDrawRealGeometry(
             kind_mask |= 4u;
         else if (batch->kind == XZ_GEOMETRY_EFFECT)
             kind_mask |= 8u;
+        else if (batch->kind == XZ_GEOMETRY_IMMEDIATE)
+            kind_mask |= 16u;
 
         state->real_geometry_draw_calls++;
     }
@@ -1299,11 +1310,17 @@ static int XzDrawRealGeometry(
         state->real_geometry_failures == 0u &&
         (state->real_geometry_kind_mask & 0x7u) == 0x7u &&
         (geometry->effect_batches == 0u ||
-         (kind_mask & 0x8u) == 0x8u);
+         (kind_mask & 0x8u) == 0x8u) &&
+        (geometry->immediate_batches == 0u ||
+         (kind_mask & 0x10u) == 0x10u);
     if (geometry->effect_batches > 0u &&
         state->real_geometry_failures == 0u &&
         (kind_mask & 0x8u) == 0x8u)
         state->real_effects_ready = 1;
+    if (geometry->immediate_batches > 0u &&
+        state->real_geometry_failures == 0u &&
+        (kind_mask & 0x10u) == 0x10u)
+        state->real_immediate_ready = 1;
 
     state->last_texture_batches =
         texture_batches;
