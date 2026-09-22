@@ -38,8 +38,8 @@
       "height_m": 1.8,
       "gender": 0.96,
       "age": 0.99,
-      "weight": 0.06,
-      "muscle": 0.07,
+      "weight": 0.045,
+      "muscle": 0.055,
       "style": "sister_of_ash",
       "palette": [
         "ash_blue",

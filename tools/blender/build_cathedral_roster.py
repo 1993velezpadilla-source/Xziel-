@@ -328,45 +328,44 @@ def irregular_patch(name,h,material,x,z,w=.030,hh=.030,y=-.124,phase=0.0):
     sol=o.modifiers.new("PatchThickness","SOLIDIFY"); sol.thickness=.0015*h; sol.offset=0
     return o
 
+
 def rope_belt_with_tails(h,rope_mat,metal_mat,name="RopeBelt"):
     out=[]
-    belt=torus(name,(0,0,.557*h),.112*h,.008*h,rope_mat); belt.scale.y=.72; apply_obj(belt); out.append(belt)
-    knot=uv_sphere(name+"_Knot",(.042*h,-.105*h,.548*h),(.016*h,.010*h,.016*h),rope_mat); out.append(knot)
-    out.append(curve_chain(name+"_TailA",[(.042*h,-.105*h,.548*h),(.052*h,-.112*h,.455*h),(.046*h,-.116*h,.365*h)],rope_mat,.006*h))
-    out.append(curve_chain(name+"_TailB",[(.030*h,-.105*h,.548*h),(.018*h,-.114*h,.475*h),(.026*h,-.118*h,.405*h)],rope_mat,.0055*h))
-    out.extend(cross_prop(name+"_Cross",(.048*h,-.120*h,.335*h),.030*h,metal_mat))
+    belt=torus(name,(0,-.005*h,.557*h),.087*h,.0047*h,rope_mat)
+    belt.scale.y=.72; apply_obj(belt); out.append(belt)
+    knot=uv_sphere(name+"_Knot",(.038*h,-.078*h,.550*h),(.011*h,.008*h,.011*h),rope_mat); out.append(knot)
+    out.append(curve_chain(name+"_TailA",[(.038*h,-.078*h,.550*h),(.046*h,-.083*h,.465*h),(.042*h,-.087*h,.390*h)],rope_mat,.0042*h))
+    out.append(curve_chain(name+"_TailB",[(.026*h,-.078*h,.550*h),(.018*h,-.085*h,.486*h),(.024*h,-.088*h,.425*h)],rope_mat,.0038*h))
+    out.extend(cross_prop(name+"_Cross",(.044*h,-.091*h,.362*h),.026*h,metal_mat))
     return out
-
-
-
-
 
 def priority_head_cover(body,h,style,mats):
     out=[]
     if style=="sister_of_ash":
-        ivory=mats["dirty_ivory"]; blue=mats["ash_blue"]
+        ivory=mats["dirty_ivory"]; blue=mats["ash_blue"]; fy=face_front_y(body,h)
         coif=body_region_shell(body,"NunCoif",ivory,
-            lambda p: p.z/h>.840 and (p.y/h>-.020 or abs(p.x/h)>.047 or p.z/h>.942),.0045*h)
+            lambda p: p.z/h>.820 and (p.y>fy+.020*h or abs(p.x/h)>.048 or p.z/h>.942),.0042*h)
         if coif: out.append(coif)
-        hood=body_region_shell(body,"NunHoodCrown",blue,
-            lambda p: p.z/h>.885 and (p.y/h>-.012 or abs(p.x/h)>.055 or p.z/h>.952),.0080*h)
-        if hood: out.append(hood)
-        fy=face_front_y(body,h)
-        out.append(curved_panel("NunForeheadBand",h,ivory,.940,.972,.060,.057,fy/h-.006,6,24,False))
+        crown=body_region_shell(body,"NunHoodCrown",blue,
+            lambda p: p.z/h>.865 and (p.y>fy+.030*h or abs(p.x/h)>.055 or p.z/h>.958),.0080*h)
+        if crown: out.append(crown)
+        brow=body_region_shell(body,"NunForeheadWimple",ivory,
+            lambda p: .930<p.z/h<.976 and p.y<fy+.030*h and abs(p.x/h)<.068,.0055*h)
+        if brow: out.append(brow)
+        neck=body_region_shell(body,"NunNeckWimple",ivory,
+            lambda p: .745<p.z/h<.855 and abs(p.x/h)<.145,.0048*h)
+        if neck: out.append(neck)
     elif style=="stained_shade":
-        inner=mats["spectral_ivory"]
+        inner=mats["spectral_ivory"]; fy=face_front_y(body,h)
         a=body_region_shell(body,"ShadeCoif",inner,
-            lambda p: p.z/h>.835 and (p.y/h>-.018 or abs(p.x/h)>.050 or p.z/h>.945),.0048*h)
+            lambda p: p.z/h>.820 and (p.y>fy+.020*h or abs(p.x/h)>.048 or p.z/h>.942),.005*h)
         if a: out.append(a)
-        b=body_region_shell(body,"ShadeHoodCrown",inner,
-            lambda p: p.z/h>.875 and (p.y/h>-.010 or abs(p.x/h)>.057 or p.z/h>.952),.0090*h)
-        if b: out.append(b)
     elif style=="la_llorona":
+        fy=face_front_y(body,h)
         cap=body_region_shell(body,"HairCap",mats["wet_black"],
-            lambda p: p.z/h>.875 and (p.y/h>-.020 or abs(p.x/h)>.050 or p.z/h>.945),.0050*h)
+            lambda p: p.z/h>.860 and (p.y>fy+.018*h or abs(p.x/h)>.045 or p.z/h>.945),.0045*h)
         if cap: out.append(cap)
     return out
-
 
 def eye_socket_rings(body,h,mats,style):
     return []
@@ -407,20 +406,52 @@ def eye_socket_discs(body,h,mats,style):
 
 
 
-def paint_face_regions(body,h,mats,style):
-    if style=="sister_of_ash":
-        return
-    bruise_hex="#51444C" if style!="stained_shade" else "#4B5565"
-    mouth_hex="#21171A" if style!="la_llorona" else "#281D21"
-    bruise=mat("M_"+style+"_FaceBruise",bruise_hex,.82,0,noise=True)
-    mouth=mat("M_"+style+"_MouthDark",mouth_hex,.88,0,noise=False)
-    bi=len(body.data.materials); body.data.materials.append(bruise)
-    mi=len(body.data.materials); body.data.materials.append(mouth)
-    for p in body.data.polygons:
-        c=p.center; z=c.z/h; x=abs(c.x/h)
-        if (.892<z<.925 and .006<x<.048) or (.858<z<.892 and .028<x<.068): p.material_index=bi
-        elif .840<z<.861 and x<.036: p.material_index=mi
 
+def paint_face_regions(body,h,mats,style):
+    fy=face_front_y(body,h)
+    def make_attr(name,fn):
+        old=body.data.color_attributes.get(name)
+        if old: body.data.color_attributes.remove(old)
+        attr=body.data.color_attributes.new(name=name,type='FLOAT_COLOR',domain='CORNER')
+        for poly in body.data.polygons:
+            for li in poly.loop_indices:
+                v=body.data.vertices[body.data.loops[li].vertex_index].co
+                a=max(0.0,min(1.0,fn(v)))
+                attr.data[li].color=(a,a,a,1)
+        return attr
+    def gauss(v,cx,cz,rx,rz):
+        dx=(v.x/h-cx)/rx; dz=(v.z/h-cz)/rz
+        front=max(0.0,min(1.0,1.0-(v.y-fy)/(.060*h)))
+        return math.exp(-(dx*dx+dz*dz)*1.7)*front
+    eye_attr=make_attr("UndeadEyeMask",lambda v:max(
+        gauss(v,-.022,.905,.035,.028),gauss(v,.022,.905,.035,.028),
+        .60*gauss(v,-.048,.875,.040,.035),.60*gauss(v,.048,.875,.040,.035)))
+    mouth_attr=make_attr("UndeadMouthMask",lambda v:gauss(v,0,.850,.045,.020))
+    bruise=hexrgb("#55444F" if style!="stained_shade" else "#465767")
+    lip=hexrgb("#24181B")
+    for m in body.data.materials:
+        if not m: continue
+        m.use_nodes=True; nodes=m.node_tree.nodes; links=m.node_tree.links
+        bsdf=nodes.get("Principled BSDF")
+        if not bsdf: continue
+        base=bsdf.inputs.get("Base Color")
+        if not base: continue
+        if base.is_linked and base.links:
+            prev=base.links[0].from_socket; links.remove(base.links[0])
+        else:
+            rgb=base.default_value; prev_node=nodes.new("ShaderNodeRGB"); prev_node.outputs[0].default_value=rgb; prev=prev_node.outputs[0]
+        eye=nodes.new("ShaderNodeVertexColor"); eye.layer_name=eye_attr.name
+        mix1=nodes.new("ShaderNodeMixRGB"); mix1.blend_type="MIX"
+        links.new(eye.outputs["Color"],mix1.inputs["Fac"]); links.new(prev,mix1.inputs[1]); mix1.inputs[2].default_value=(*bruise,1)
+        mouth=nodes.new("ShaderNodeVertexColor"); mouth.layer_name=mouth_attr.name
+        mix2=nodes.new("ShaderNodeMixRGB"); mix2.blend_type="MIX"
+        links.new(mouth.outputs["Color"],mix2.inputs["Fac"]); links.new(mix1.outputs["Color"],mix2.inputs[1]); mix2.inputs[2].default_value=(*lip,1)
+        links.new(mix2.outputs["Color"],base)
+    vg=body.vertex_groups.get("FaceDamage") or body.vertex_groups.new(name="FaceDamage")
+    ids=[v.index for v in body.data.vertices if .825<v.co.z/h<.965 and abs(v.co.x/h)<.085 and v.co.y<fy+.055*h]
+    if ids: vg.add(ids,1.0,"REPLACE")
+    tex=bpy.data.textures.new("T_"+style+"_FaceDamage",type="CLOUDS"); tex.noise_scale=.020; tex.noise_depth=2
+    dis=body.modifiers.new("FaceDamage","DISPLACE"); dis.texture=tex; dis.strength=.00075*h; dis.mid_level=.5; dis.vertex_group=vg.name
 
 def mouth_cavity(body,h,mats,style):
     if style=="sister_of_ash": return []
@@ -452,32 +483,29 @@ def body_region_shell(body,name,material,keep_fn,offset=0.004):
 
 
 
+
 def fitted_priority_clothes(body,h,style,mats):
     out=[]
     if style=="sister_of_ash":
         main=mats["ash_blue"]; ivory=mats["dirty_ivory"]
-        for name,groups in [("FittedSleeve_L",["upperarm_l","lowerarm_l"]),("FittedSleeve_R",["upperarm_r","lowerarm_r"])]:
-            o=body_group_shell(body,name,main,groups,.050,.0035*h)
-            if o: out.append(o)
-        chest=body_region_shell(body,"FittedNeckWimple",ivory,
-            lambda p: .755 < p.z/h < .845 and abs(p.x/h)<.095 and p.y/h < .115,.0040*h)
-        if chest: out.append(chest)
-    elif style=="stained_shade":
-        main=mats["ash_blue"]; ivory=mats["spectral_ivory"]
         out.append(body_region_shell(body,"FittedBodice",main,
-            lambda p: .515 < p.z/h < .795 and abs(p.x/h)<.160 and p.y/h < .140,.0045*h))
+            lambda p: .545<p.z/h<.805 and abs(p.x/h)<.150 and p.y/h<.135,.0035*h))
         for name,groups in [("FittedSleeve_L",["upperarm_l","lowerarm_l"]),("FittedSleeve_R",["upperarm_r","lowerarm_r"])]:
-            o=body_group_shell(body,name,main,groups,.06,.0040*h)
+            o=body_group_shell(body,name,main,groups,.045,.0032*h)
             if o: out.append(o)
-        out.append(body_region_shell(body,"FittedWimpleChest",ivory,
-            lambda p: .735 < p.z/h < .825 and abs(p.x/h)<.115 and p.y/h < .130,.0050*h))
+        out.append(body_region_shell(body,"FittedShoulderYoke",ivory,
+            lambda p: .735<p.z/h<.845 and abs(p.x/h)<.205 and p.y/h<.145,.0040*h))
+        bootmat=mats["soot"]
+        l=body_region_shell(body,"NunBoot_L",bootmat,lambda p:p.x<0 and p.z/h<.125,.0050*h)
+        r=body_region_shell(body,"NunBoot_R",bootmat,lambda p:p.x>0 and p.z/h<.125,.0050*h)
+        if l: out.append(l)
+        if r: out.append(r)
+    elif style=="stained_shade":
+        main=mats["ash_blue"]
+        out.append(body_region_shell(body,"FittedBodice",main,lambda p:.515<p.z/h<.795 and abs(p.x/h)<.160 and p.y/h<.140,.0045*h))
     elif style=="la_llorona":
         main=mats["spectral_ivory"]
-        out.append(body_region_shell(body,"LloronaFittedBodice",main,
-            lambda p: .510 < p.z/h < .830 and abs(p.x/h)<.165 and p.y/h < .140,.0045*h))
-        for name,groups in [("LloronaSleeve_L",["upperarm_l","lowerarm_l"]),("LloronaSleeve_R",["upperarm_r","lowerarm_r"])]:
-            o=body_group_shell(body,name,main,groups,.06,.0040*h)
-            if o: out.append(o)
+        out.append(body_region_shell(body,"LloronaFittedBodice",main,lambda p:.510<p.z/h<.830 and abs(p.x/h)<.165 and p.y/h<.140,.0045*h))
     return out
 
 def rigid_bind_mesh(obj,rig,bone):
@@ -519,18 +547,21 @@ def garment_shell(name,h,material,profile,segments=72,tatter=0.0,phase=0.0,subdi
         sub=o.modifiers.new("ClothSmooth","SUBSURF"); sub.subdivision_type="SIMPLE"; sub.levels=subdiv; sub.render_levels=subdiv
     return o
 
+
 def drape_open(name,h,material,profile,segments=64,theta_max=2.42,tatter=0.0,phase=0.0,subdiv=1):
-    """Open-front drape used for veils and shoulder capes. profile entries: (z, rx, ry)."""
     vs=[]; fs=[]; rings=len(profile)
+    clothy=("Veil" in name or "Cape" in name or "Drape" in name)
     for r,(zf,rxf,ryf) in enumerate(profile):
         for i in range(segments):
             t=-theta_max + (2.0*theta_max)*i/(segments-1)
-            wob=1.0+.015*math.sin(i*.53+r*.91+phase)
-            x=rxf*h*wob*math.sin(t)
-            y=ryf*h*math.cos(t)
+            fold=(.0045*math.sin(t*5.0+phase+r*.37)+.0022*math.sin(t*9.0+r*.71)) if clothy else 0.0
+            x=(rxf+fold)*h*math.sin(t)
+            y=(ryf+.55*fold)*h*math.cos(t)
             z=zf*h
+            if clothy:
+                z += .0025*h*math.sin(t*4.0+r*.8)
             if r==rings-1 and tatter:
-                z -= tatter*h*(.20+.80*abs(math.sin(i*1.31+phase)))
+                z -= tatter*h*(.16+.84*abs(math.sin(i*1.31+phase)))*(0.72+.28*abs(math.sin(i*.51)))
             vs.append((x,y,z))
     for r in range(rings-1):
         for i in range(segments-1):
@@ -538,10 +569,10 @@ def drape_open(name,h,material,profile,segments=64,theta_max=2.42,tatter=0.0,pha
             fs.append((a,b,c,d))
     mesh=bpy.data.meshes.new(name+"Mesh"); mesh.from_pydata(vs,[],fs); mesh.update()
     o=bpy.data.objects.new(name,mesh); bpy.context.collection.objects.link(o); assign(o,material)
-    sol=o.modifiers.new("DrapeThickness","SOLIDIFY"); sol.thickness=.0028*h; sol.offset=0
-    bev=o.modifiers.new("DrapeEdgeSoft","BEVEL"); bev.width=.0015*h; bev.segments=2
+    sol=o.modifiers.new("DrapeThickness","SOLIDIFY"); sol.thickness=.0023*h; sol.offset=0
+    bev=o.modifiers.new("DrapeEdgeSoft","BEVEL"); bev.width=.0012*h; bev.segments=2
     if subdiv:
-        sub=o.modifiers.new("DrapeSmooth","SUBSURF"); sub.subdivision_type="SIMPLE"; sub.levels=subdiv; sub.render_levels=subdiv
+        sub=o.modifiers.new("DrapeSmooth","SUBSURF"); sub.subdivision_type="CATMULL_CLARK"; sub.levels=subdiv; sub.render_levels=subdiv
     return o
 
 def curved_panel(name,h,material,z0,z1,w0,w1,yfront=-.125,rows=7,cols=18,ragged=False):
@@ -746,50 +777,37 @@ def sister_skin_shader(body,h,style):
 
 
 
+
 def nun_outfit(h,mats,stained=False):
     ivory=mats["spectral_ivory"] if stained else mats["dirty_ivory"]
-    blue=mats["ash_blue"]; rope=mats["rope"]
-    metal=mats.get("oxidized_metal",mats.get("old_wood")); out=[]
-
-    # Slim dirty-ivory foundation.
+    blue=mats["ash_blue"]; rope=mats["rope"]; metal=mats.get("oxidized_metal",mats.get("old_wood"))
+    out=[]
     out.append(garment_shell("IvoryUnderSkirt",h,ivory,[
-        (.022,.125,.087,0),(.095,.132,.090,0),(.205,.133,.091,0),(.325,.129,.089,0),
-        (.445,.119,.085,0),(.540,.108,.080,0),(.605,.104,.078,0)
-    ],96,.090,.35,1))
-
-    # Long blue-gray outer habit with a cinched waist and less cylinder volume.
-    out.append(garment_shell("BlueOuterHabit",h,blue,[
-        (.165,.119,.086,-.002),(.260,.124,.089,-.003),(.365,.123,.088,-.003),
-        (.465,.113,.083,-.004),(.535,.099,.075,-.004),(.600,.098,.074,-.004),
-        (.675,.109,.079,-.003),(.745,.122,.087,-.002)
-    ],96,.110,1.10,1))
-
-    # Ivory chest/wimple under the veil.
-    out.append(curved_panel("IvoryChestBib",h,ivory,.675,.825,.100,.075,-.112,10,26,True))
-
-    # Ragged shoulder mantle.
+        (.018,.132,.090,0),(.085,.142,.095,0),(.185,.145,.097,0),(.300,.140,.095,0),
+        (.420,.128,.090,0),(.535,.112,.081,0),(.625,.103,.076,0),(.675,.102,.075,0)
+    ],96,.105,.30,1))
+    out.append(garment_shell("BlueOuterSkirt",h,blue,[
+        (.160,.126,.089,-.002),(.255,.133,.093,-.003),(.360,.132,.092,-.003),
+        (.465,.124,.089,-.004),(.555,.112,.082,-.004),(.630,.104,.077,-.004),(.700,.103,.076,-.004)
+    ],96,.115,1.15,1))
     out.append(drape_open("ShoulderCape",h,ivory,[
-        (.835,.082,.067),(.812,.093,.073),(.785,.106,.081),(.755,.121,.090),(.722,.138,.100)
-    ],92,2.54,.075,1.55,1))
-
-    # Outer veil: crown is handled by fitted coif/hood; this provides the long side/back drape.
+        (.842,.085,.069),(.818,.096,.076),(.792,.109,.084),(.764,.124,.094),(.734,.141,.104),(.706,.156,.112)
+    ],92,2.54,.080,1.45,1))
     out.append(drape_open("OuterVeil",h,blue,[
-        (.968,.058,.052),(.938,.064,.056),(.902,.071,.061),(.862,.079,.066),
-        (.818,.089,.073),(.774,.101,.081),(.730,.114,.090),(.690,.128,.099)
-    ],92,2.68,.075,.65,1))
+        (.986,.058,.052),(.954,.064,.056),(.918,.071,.061),(.878,.079,.067),
+        (.834,.088,.074),(.790,.099,.082),(.750,.112,.090),(.714,.126,.098),(.680,.138,.104)
+    ],96,2.72,.075,.62,1))
     out.append(drape_open("InnerWimple",h,ivory,[
-        (.958,.049,.044),(.932,.053,.047),(.903,.058,.050),(.872,.064,.054),
-        (.840,.071,.059),(.808,.078,.064),(.778,.087,.070)
-    ],80,2.55,.038,1.0,1))
-
+        (.960,.049,.043),(.932,.053,.046),(.902,.058,.050),(.870,.064,.054),
+        (.838,.071,.059),(.806,.079,.064),(.776,.088,.070),(.748,.098,.076)
+    ],82,2.58,.045,1.0,1))
     out.extend(rope_belt_with_tails(h,rope,metal,"RopeBelt"))
-
-    # Flat sewn repairs, kept close to the fabric surface.
-    for i,(x,z,wid,hh,ph,matl) in enumerate([
-        (-.070,.430,.012,.019,.3,ivory),(.066,.500,.011,.017,1.5,ivory),
-        (-.087,.350,.010,.017,2.4,blue),(.084,.265,.010,.016,3.0,ivory)
-    ]):
-        out.append(irregular_patch(f"RepairPatch_{i:02}",h,matl,x,z,wid,hh,-.096,ph))
+    if not stained:
+        for i,(x,z,wid,hh,ph,matl) in enumerate([
+            (-.078,.460,.011,.018,.2,ivory),(.073,.540,.010,.016,1.4,ivory),
+            (-.090,.350,.010,.017,2.2,blue),(.085,.285,.009,.015,3.1,ivory)
+        ]):
+            out.append(irregular_patch(f"RepairPatch_{i:02}",h,matl,x,z,wid,hh,-.106,ph))
     return out
 
 def llorona_outfit(h,mats):
