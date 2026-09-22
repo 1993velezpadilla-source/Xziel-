@@ -39,6 +39,10 @@ static void XzCopyRenderState(
     dst->color[1] = 1.0f;
     dst->color[2] = 1.0f;
     dst->color[3] = 1.0f;
+    dst->clear_color[0] = 0.0f;
+    dst->clear_color[1] = 0.0f;
+    dst->clear_color[2] = 0.0f;
+    dst->clear_color[3] = 1.0f;
     dst->blend_src = 0x0302u;       /* GL_SRC_ALPHA */
     dst->blend_dst = 0x0303u;       /* GL_ONE_MINUS_SRC_ALPHA */
     dst->depth_test_enabled = 1u;
@@ -166,6 +170,8 @@ void XzGeometryTap_BeginFrame(uint64_t generation)
     frame->special_batches = 0u;
     frame->sky_batches = 0u;
     frame->water_batches = 0u;
+    frame->shadow_batches = 0u;
+    frame->polyblend_batches = 0u;
     frame->dropped_batches = 0u;
     frame->dropped_vertices = 0u;
     frame->dropped_indices = 0u;
@@ -506,6 +512,10 @@ int XzGeometryTap_CaptureSpecialFan(
         frame->sky_batches++;
     else if (special_kind == XZ_GEOMETRY_SPECIAL_WATER)
         frame->water_batches++;
+    else if (special_kind == XZ_GEOMETRY_SPECIAL_SHADOW)
+        frame->shadow_batches++;
+    else if (special_kind == XZ_GEOMETRY_SPECIAL_POLYBLEND)
+        frame->polyblend_batches++;
 
     for (i = 0u; i < count; ++i) {
         const float *in = source + i * stride_floats;
@@ -533,6 +543,116 @@ int XzGeometryTap_CaptureSpecialFan(
             (uint32_t)(batch->first_vertex + i + 1u);
         frame->indices[out_index++] =
             (uint32_t)(batch->first_vertex + i + 2u);
+    }
+
+    frame->vertex_count += count;
+    frame->index_count += index_count;
+    return 1;
+}
+
+int XzGeometryTap_CaptureSpecialPrimitive(
+    const float *source,
+    unsigned int count,
+    unsigned int stride_floats,
+    unsigned int position_offset,
+    unsigned int texture_offset,
+    XzGeometryPrimitive primitive,
+    int texture_id,
+    XzGeometrySpecialKind special_kind,
+    const XzGeometryRenderState *state,
+    const float modelview[16],
+    const float projection[16])
+{
+    XzGeometryFrame *frame = XzWriteFrame();
+    XzGeometryBatch *batch;
+    unsigned int index_count;
+    unsigned int i;
+    unsigned int out_index;
+
+    if (!source || count < 3u ||
+        stride_floats < 3u ||
+        position_offset + 2u >= stride_floats ||
+        special_kind == XZ_GEOMETRY_SPECIAL_NONE)
+        return 0;
+
+    if (primitive == XZ_GEOMETRY_TRIANGLES) {
+        index_count = (count / 3u) * 3u;
+        if (index_count == 0u)
+            return 0;
+    } else if (primitive == XZ_GEOMETRY_TRIANGLE_FAN ||
+               primitive == XZ_GEOMETRY_TRIANGLE_STRIP) {
+        index_count = (count - 2u) * 3u;
+    } else {
+        return 0;
+    }
+
+    batch = XzBeginBatch(
+        frame,
+        XZ_GEOMETRY_SPECIAL,
+        count,
+        index_count,
+        texture_id,
+        state,
+        modelview,
+        projection);
+    if (!batch)
+        return 0;
+
+    batch->special_kind = special_kind;
+    if (special_kind == XZ_GEOMETRY_SPECIAL_SKY)
+        frame->sky_batches++;
+    else if (special_kind == XZ_GEOMETRY_SPECIAL_WATER)
+        frame->water_batches++;
+    else if (special_kind == XZ_GEOMETRY_SPECIAL_SHADOW)
+        frame->shadow_batches++;
+    else if (special_kind == XZ_GEOMETRY_SPECIAL_POLYBLEND)
+        frame->polyblend_batches++;
+
+    for (i = 0u; i < count; ++i) {
+        const float *in = source + i * stride_floats;
+        XzGeometryVertex *out =
+            &frame->vertices[frame->vertex_count + i];
+
+        out->position[0] = in[position_offset + 0u];
+        out->position[1] = in[position_offset + 1u];
+        out->position[2] = in[position_offset + 2u];
+        if (texture_offset + 1u < stride_floats) {
+            out->uv[0] = in[texture_offset + 0u];
+            out->uv[1] = in[texture_offset + 1u];
+        } else {
+            out->uv[0] = 0.0f;
+            out->uv[1] = 0.0f;
+        }
+    }
+
+    out_index = frame->index_count;
+    if (primitive == XZ_GEOMETRY_TRIANGLES) {
+        for (i = 0u; i < index_count; ++i)
+            frame->indices[out_index++] =
+                (uint32_t)(batch->first_vertex + i);
+    } else if (primitive == XZ_GEOMETRY_TRIANGLE_FAN) {
+        for (i = 0u; i + 2u < count; ++i) {
+            frame->indices[out_index++] =
+                (uint32_t)batch->first_vertex;
+            frame->indices[out_index++] =
+                (uint32_t)(batch->first_vertex + i + 1u);
+            frame->indices[out_index++] =
+                (uint32_t)(batch->first_vertex + i + 2u);
+        }
+    } else {
+        for (i = 0u; i + 2u < count; ++i) {
+            uint32_t a = (uint32_t)(batch->first_vertex + i);
+            uint32_t b = (uint32_t)(batch->first_vertex + i + 1u);
+            uint32_t c = (uint32_t)(batch->first_vertex + i + 2u);
+            if (i & 1u) {
+                uint32_t temp = a;
+                a = b;
+                b = temp;
+            }
+            frame->indices[out_index++] = a;
+            frame->indices[out_index++] = b;
+            frame->indices[out_index++] = c;
+        }
     }
 
     frame->vertex_count += count;
@@ -593,19 +713,28 @@ int XzGeometryTap_SelfTest(void)
             NULL, NULL, NULL))
         return 0;
 
+    if (!XzGeometryTap_CaptureSpecialPrimitive(
+            fan, 4u, 5u, 0u, 5u,
+            XZ_GEOMETRY_TRIANGLE_FAN,
+            0, XZ_GEOMETRY_SPECIAL_POLYBLEND,
+            NULL, NULL, NULL))
+        return 0;
+
     XzGeometryTap_CommitFrame();
     frame = XzGeometryTap_GetReadFrame();
 
     if (frame->generation != 7u ||
-        frame->batch_count != 4u ||
-        frame->vertex_count != 15u ||
-        frame->index_count != 21u ||
+        frame->batch_count != 5u ||
+        frame->vertex_count != 19u ||
+        frame->index_count != 27u ||
         frame->alias_batches != 1u ||
         frame->surface_batches != 1u ||
         frame->effect_batches != 1u ||
-        frame->special_batches != 1u ||
+        frame->special_batches != 2u ||
         frame->sky_batches != 1u ||
         frame->water_batches != 0u ||
+        frame->shadow_batches != 0u ||
+        frame->polyblend_batches != 1u ||
         frame->dropped_batches != 0u ||
         frame->dropped_vertices != 0u ||
         frame->dropped_indices != 0u)
@@ -615,6 +744,7 @@ int XzGeometryTap_SelfTest(void)
         return 0;
 
     if (frame->batches[0].state.color[0] != 1.0f ||
+        frame->batches[0].state.clear_color[3] != 1.0f ||
         frame->batches[0].state.depth_test_enabled != 1u ||
         frame->batches[0].state.depth_write != 1u ||
         frame->batches[0].state.depth_func != 0x0203u ||
