@@ -116,8 +116,14 @@ jobs:
 
           GIANT_BLEND="$(find _recover/giant_mutant/extracted -type f -iname '*.blend' -print -quit)"
           GIANT_FBX="$(find _recover/giant_mutant/extracted -type f -iname '*.fbx' -print -quit)"
+          GIANT_GLB="$(find _recover/giant_mutant/extracted -type f -iname '*.glb' -print -quit)"
           if [ -n "$GIANT_BLEND" ]; then
             export_one "$GIANT_BLEND" "giant_mutant"
+          elif [ -n "$GIANT_GLB" ]; then
+            OUT="assets/sanctum/free_models/giant_mutant"
+            mkdir -p "$OUT"
+            cp "$GIANT_GLB" "$OUT/giant_mutant.glb"
+            assimp export "$GIANT_GLB" "$OUT/giant_mutant.obj" -f objnomtl
           elif [ -n "$GIANT_FBX" ]; then
             OUT="assets/sanctum/free_models/giant_mutant"
             mkdir -p "$OUT"
@@ -125,7 +131,7 @@ jobs:
             cp "$GIANT_FBX" "$OUT/giant_mutant.fbx"
             assimp export "$GIANT_FBX" "$OUT/giant_mutant.gltf" -f gltf2 || true
           else
-            echo "No Blender or FBX Giant Mutant source found"
+            echo "No Blender, GLB or FBX Giant Mutant source found"
             find _recover/giant_mutant/extracted -type f -maxdepth 5 -print
             exit 1
           fi
