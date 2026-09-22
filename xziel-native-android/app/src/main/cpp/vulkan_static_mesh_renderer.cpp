@@ -1167,14 +1167,12 @@ bool VulkanStaticMeshRenderer::createTexture(
     }
 
     AImageDecoder* decoder = nullptr;
-
     const int createResult =
         AImageDecoder_createFromAAsset(
             asset,
             &decoder);
 
-    if (createResult !=
-            ANDROID_IMAGE_DECODER_SUCCESS ||
+    if (createResult != ANDROID_IMAGE_DECODER_SUCCESS ||
         decoder == nullptr) {
         AAsset_close(asset);
         return false;
@@ -1185,37 +1183,27 @@ bool VulkanStaticMeshRenderer::createTexture(
         ANDROID_BITMAP_FORMAT_RGBA_8888);
 
     const AImageDecoderHeaderInfo* header =
-        AImageDecoder_getHeaderInfo(
-            decoder);
+        AImageDecoder_getHeaderInfo(decoder);
 
     const int32_t width =
-        AImageDecoderHeaderInfo_getWidth(
-            header);
-
+        AImageDecoderHeaderInfo_getWidth(header);
     const int32_t height =
-        AImageDecoderHeaderInfo_getHeight(
-            header);
-
+        AImageDecoderHeaderInfo_getHeight(header);
     const std::size_t stride =
-        AImageDecoder_getMinimumStride(
-            decoder);
+        AImageDecoder_getMinimumStride(decoder);
 
     if (width <= 0 ||
         height <= 0 ||
-        stride <
-            static_cast<std::size_t>(width) * 4U) {
+        stride < static_cast<std::size_t>(width) * 4U) {
         AImageDecoder_delete(decoder);
         AAsset_close(asset);
         return false;
     }
 
     const std::size_t pixelBytes =
-        stride *
-        static_cast<std::size_t>(
-            height);
+        stride * static_cast<std::size_t>(height);
 
     std::vector<std::byte> pixels;
-
     try {
         pixels.resize(pixelBytes);
     } catch (...) {
@@ -1234,10 +1222,36 @@ bool VulkanStaticMeshRenderer::createTexture(
     AImageDecoder_delete(decoder);
     AAsset_close(asset);
 
-    if (decodeResult !=
-        ANDROID_IMAGE_DECODER_SUCCESS) {
+    if (decodeResult != ANDROID_IMAGE_DECODER_SUCCESS) {
         return false;
     }
+
+    constexpr VkFormat textureFormat =
+        VK_FORMAT_R8G8B8A8_SRGB;
+
+    VkFormatProperties formatProperties{};
+    vkGetPhysicalDeviceFormatProperties(
+        physicalDevice_,
+        textureFormat,
+        &formatProperties);
+
+    const bool linearBlitSupported =
+        (formatProperties.optimalTilingFeatures &
+         VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT) != 0U;
+
+    const std::uint32_t maxDimension =
+        static_cast<std::uint32_t>(
+            std::max(width, height));
+
+    const std::uint32_t mipLevels =
+        linearBlitSupported
+        ? 1U +
+              static_cast<std::uint32_t>(
+                  std::floor(
+                      std::log2(
+                          static_cast<double>(
+                              std::max(maxDimension, 1U)))))
+        : 1U;
 
     VkBuffer staging = VK_NULL_HANDLE;
     VkDeviceMemory stagingMemory =
@@ -1254,7 +1268,6 @@ bool VulkanStaticMeshRenderer::createTexture(
     }
 
     void* mapped = nullptr;
-
     if (!ok(
             vkMapMemory(
                 device_,
@@ -1274,7 +1287,6 @@ bool VulkanStaticMeshRenderer::createTexture(
         mapped,
         pixels.data(),
         pixelBytes);
-
     vkUnmapMemory(
         device_,
         stagingMemory);
@@ -1282,24 +1294,24 @@ bool VulkanStaticMeshRenderer::createTexture(
     VkImageCreateInfo imageInfo{
         VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO
     };
-    imageInfo.imageType =
-        VK_IMAGE_TYPE_2D;
+    imageInfo.imageType = VK_IMAGE_TYPE_2D;
     imageInfo.extent.width =
         static_cast<std::uint32_t>(width);
     imageInfo.extent.height =
         static_cast<std::uint32_t>(height);
     imageInfo.extent.depth = 1U;
-    imageInfo.mipLevels = 1U;
+    imageInfo.mipLevels = mipLevels;
     imageInfo.arrayLayers = 1U;
-    imageInfo.format =
-        VK_FORMAT_R8G8B8A8_SRGB;
-    imageInfo.tiling =
-        VK_IMAGE_TILING_OPTIMAL;
+    imageInfo.format = textureFormat;
+    imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
     imageInfo.initialLayout =
         VK_IMAGE_LAYOUT_UNDEFINED;
     imageInfo.usage =
         VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-        VK_IMAGE_USAGE_SAMPLED_BIT;
+        VK_IMAGE_USAGE_SAMPLED_BIT |
+        (mipLevels > 1U
+            ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT
+            : 0U);
     imageInfo.samples =
         VK_SAMPLE_COUNT_1_BIT;
     imageInfo.sharingMode =
@@ -1325,7 +1337,6 @@ bool VulkanStaticMeshRenderer::createTexture(
         &requirements);
 
     std::uint32_t memoryType = 0U;
-
     if (!findMemoryType(
             requirements.memoryTypeBits,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
@@ -1341,10 +1352,8 @@ bool VulkanStaticMeshRenderer::createTexture(
     VkMemoryAllocateInfo allocation{
         VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO
     };
-    allocation.allocationSize =
-        requirements.size;
-    allocation.memoryTypeIndex =
-        memoryType;
+    allocation.allocationSize = requirements.size;
+    allocation.memoryTypeIndex = memoryType;
 
     if (!ok(
             vkAllocateMemory(
@@ -1378,26 +1387,27 @@ bool VulkanStaticMeshRenderer::createTexture(
         return false;
     }
 
-    VkImageMemoryBarrier toTransfer{
+    VkImageMemoryBarrier initialBarrier{
         VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER
     };
-    toTransfer.oldLayout =
+    initialBarrier.oldLayout =
         VK_IMAGE_LAYOUT_UNDEFINED;
-    toTransfer.newLayout =
+    initialBarrier.newLayout =
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    toTransfer.srcQueueFamilyIndex =
+    initialBarrier.srcQueueFamilyIndex =
         VK_QUEUE_FAMILY_IGNORED;
-    toTransfer.dstQueueFamilyIndex =
+    initialBarrier.dstQueueFamilyIndex =
         VK_QUEUE_FAMILY_IGNORED;
-    toTransfer.image = out.image;
-    toTransfer.subresourceRange.aspectMask =
+    initialBarrier.image = out.image;
+    initialBarrier.subresourceRange.aspectMask =
         VK_IMAGE_ASPECT_COLOR_BIT;
-    toTransfer.subresourceRange.baseMipLevel = 0U;
-    toTransfer.subresourceRange.levelCount = 1U;
-    toTransfer.subresourceRange.baseArrayLayer = 0U;
-    toTransfer.subresourceRange.layerCount = 1U;
-    toTransfer.srcAccessMask = 0U;
-    toTransfer.dstAccessMask =
+    initialBarrier.subresourceRange.baseMipLevel = 0U;
+    initialBarrier.subresourceRange.levelCount =
+        mipLevels;
+    initialBarrier.subresourceRange.baseArrayLayer = 0U;
+    initialBarrier.subresourceRange.layerCount = 1U;
+    initialBarrier.srcAccessMask = 0U;
+    initialBarrier.dstAccessMask =
         VK_ACCESS_TRANSFER_WRITE_BIT;
 
     vkCmdPipelineBarrier(
@@ -1405,12 +1415,9 @@ bool VulkanStaticMeshRenderer::createTexture(
         VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
         VK_PIPELINE_STAGE_TRANSFER_BIT,
         0U,
-        0U,
-        nullptr,
-        0U,
-        nullptr,
-        1U,
-        &toTransfer);
+        0U, nullptr,
+        0U, nullptr,
+        1U, &initialBarrier);
 
     VkBufferImageCopy copy{};
     copy.bufferOffset = 0U;
@@ -1418,8 +1425,7 @@ bool VulkanStaticMeshRenderer::createTexture(
         static_cast<std::uint32_t>(
             stride / 4U);
     copy.bufferImageHeight =
-        static_cast<std::uint32_t>(
-            height);
+        static_cast<std::uint32_t>(height);
     copy.imageSubresource.aspectMask =
         VK_IMAGE_ASPECT_COLOR_BIT;
     copy.imageSubresource.mipLevel = 0U;
@@ -1439,15 +1445,144 @@ bool VulkanStaticMeshRenderer::createTexture(
         1U,
         &copy);
 
-    VkImageMemoryBarrier toShader =
-        toTransfer;
-    toShader.oldLayout =
+    std::int32_t mipWidth = width;
+    std::int32_t mipHeight = height;
+
+    for (std::uint32_t level = 1U;
+         level < mipLevels;
+         ++level) {
+        VkImageMemoryBarrier previousToSource{
+            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER
+        };
+        previousToSource.oldLayout =
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        previousToSource.newLayout =
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        previousToSource.srcQueueFamilyIndex =
+            VK_QUEUE_FAMILY_IGNORED;
+        previousToSource.dstQueueFamilyIndex =
+            VK_QUEUE_FAMILY_IGNORED;
+        previousToSource.image = out.image;
+        previousToSource.subresourceRange.aspectMask =
+            VK_IMAGE_ASPECT_COLOR_BIT;
+        previousToSource.subresourceRange.baseMipLevel =
+            level - 1U;
+        previousToSource.subresourceRange.levelCount = 1U;
+        previousToSource.subresourceRange.baseArrayLayer = 0U;
+        previousToSource.subresourceRange.layerCount = 1U;
+        previousToSource.srcAccessMask =
+            VK_ACCESS_TRANSFER_WRITE_BIT;
+        previousToSource.dstAccessMask =
+            VK_ACCESS_TRANSFER_READ_BIT;
+
+        vkCmdPipelineBarrier(
+            command,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            0U,
+            0U, nullptr,
+            0U, nullptr,
+            1U, &previousToSource);
+
+        const std::int32_t nextWidth =
+            std::max(mipWidth / 2, 1);
+        const std::int32_t nextHeight =
+            std::max(mipHeight / 2, 1);
+
+        VkImageBlit blit{};
+        blit.srcOffsets[0] = {0, 0, 0};
+        blit.srcOffsets[1] = {
+            mipWidth,
+            mipHeight,
+            1,
+        };
+        blit.srcSubresource.aspectMask =
+            VK_IMAGE_ASPECT_COLOR_BIT;
+        blit.srcSubresource.mipLevel =
+            level - 1U;
+        blit.srcSubresource.baseArrayLayer = 0U;
+        blit.srcSubresource.layerCount = 1U;
+        blit.dstOffsets[0] = {0, 0, 0};
+        blit.dstOffsets[1] = {
+            nextWidth,
+            nextHeight,
+            1,
+        };
+        blit.dstSubresource.aspectMask =
+            VK_IMAGE_ASPECT_COLOR_BIT;
+        blit.dstSubresource.mipLevel = level;
+        blit.dstSubresource.baseArrayLayer = 0U;
+        blit.dstSubresource.layerCount = 1U;
+
+        vkCmdBlitImage(
+            command,
+            out.image,
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            out.image,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1U,
+            &blit,
+            VK_FILTER_LINEAR);
+
+        VkImageMemoryBarrier previousToShader{
+            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER
+        };
+        previousToShader.oldLayout =
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        previousToShader.newLayout =
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        previousToShader.srcQueueFamilyIndex =
+            VK_QUEUE_FAMILY_IGNORED;
+        previousToShader.dstQueueFamilyIndex =
+            VK_QUEUE_FAMILY_IGNORED;
+        previousToShader.image = out.image;
+        previousToShader.subresourceRange.aspectMask =
+            VK_IMAGE_ASPECT_COLOR_BIT;
+        previousToShader.subresourceRange.baseMipLevel =
+            level - 1U;
+        previousToShader.subresourceRange.levelCount = 1U;
+        previousToShader.subresourceRange.baseArrayLayer = 0U;
+        previousToShader.subresourceRange.layerCount = 1U;
+        previousToShader.srcAccessMask =
+            VK_ACCESS_TRANSFER_READ_BIT;
+        previousToShader.dstAccessMask =
+            VK_ACCESS_SHADER_READ_BIT;
+
+        vkCmdPipelineBarrier(
+            command,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+            0U,
+            0U, nullptr,
+            0U, nullptr,
+            1U, &previousToShader);
+
+        mipWidth = nextWidth;
+        mipHeight = nextHeight;
+    }
+
+    VkImageMemoryBarrier finalToShader{
+        VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER
+    };
+    finalToShader.oldLayout =
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    toShader.newLayout =
+    finalToShader.newLayout =
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    toShader.srcAccessMask =
+    finalToShader.srcQueueFamilyIndex =
+        VK_QUEUE_FAMILY_IGNORED;
+    finalToShader.dstQueueFamilyIndex =
+        VK_QUEUE_FAMILY_IGNORED;
+    finalToShader.image = out.image;
+    finalToShader.subresourceRange.aspectMask =
+        VK_IMAGE_ASPECT_COLOR_BIT;
+    finalToShader.subresourceRange.baseMipLevel =
+        mipLevels - 1U;
+    finalToShader.subresourceRange.levelCount = 1U;
+    finalToShader.subresourceRange.baseArrayLayer = 0U;
+    finalToShader.subresourceRange.layerCount = 1U;
+    finalToShader.srcAccessMask =
         VK_ACCESS_TRANSFER_WRITE_BIT;
-    toShader.dstAccessMask =
+    finalToShader.dstAccessMask =
         VK_ACCESS_SHADER_READ_BIT;
 
     vkCmdPipelineBarrier(
@@ -1455,12 +1590,9 @@ bool VulkanStaticMeshRenderer::createTexture(
         VK_PIPELINE_STAGE_TRANSFER_BIT,
         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
         0U,
-        0U,
-        nullptr,
-        0U,
-        nullptr,
-        1U,
-        &toShader);
+        0U, nullptr,
+        0U, nullptr,
+        1U, &finalToShader);
 
     const bool uploadOk =
         endUploadCommands(command);
@@ -1481,12 +1613,12 @@ bool VulkanStaticMeshRenderer::createTexture(
     viewInfo.image = out.image;
     viewInfo.viewType =
         VK_IMAGE_VIEW_TYPE_2D;
-    viewInfo.format =
-        VK_FORMAT_R8G8B8A8_SRGB;
+    viewInfo.format = textureFormat;
     viewInfo.subresourceRange.aspectMask =
         VK_IMAGE_ASPECT_COLOR_BIT;
     viewInfo.subresourceRange.baseMipLevel = 0U;
-    viewInfo.subresourceRange.levelCount = 1U;
+    viewInfo.subresourceRange.levelCount =
+        mipLevels;
     viewInfo.subresourceRange.baseArrayLayer = 0U;
     viewInfo.subresourceRange.layerCount = 1U;
 
@@ -1503,12 +1635,10 @@ bool VulkanStaticMeshRenderer::createTexture(
     VkSamplerCreateInfo samplerInfo{
         VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO
     };
-    samplerInfo.magFilter =
-        VK_FILTER_LINEAR;
-    samplerInfo.minFilter =
-        VK_FILTER_LINEAR;
-    // The church and viewmodel both use atlas/non-tiling UVs. CLAMP prevents
-    // bilinear samples on U/V edges from wrapping into unrelated atlas pixels.
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.mipmapMode =
+        VK_SAMPLER_MIPMAP_MODE_LINEAR;
     samplerInfo.addressModeU =
         VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     samplerInfo.addressModeV =
@@ -1525,10 +1655,11 @@ bool VulkanStaticMeshRenderer::createTexture(
         VK_BORDER_COLOR_INT_OPAQUE_BLACK;
     samplerInfo.unnormalizedCoordinates =
         VK_FALSE;
-    samplerInfo.mipmapMode =
-        VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    samplerInfo.mipLodBias = 0.0f;
     samplerInfo.minLod = 0.0f;
-    samplerInfo.maxLod = 0.0f;
+    samplerInfo.maxLod =
+        static_cast<float>(
+            mipLevels - 1U);
 
     if (!ok(
             vkCreateSampler(
@@ -1569,8 +1700,7 @@ bool VulkanStaticMeshRenderer::createTexture(
     VkWriteDescriptorSet write{
         VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET
     };
-    write.dstSet =
-        out.descriptorSet;
+    write.dstSet = out.descriptorSet;
     write.dstBinding = 0U;
     write.descriptorCount = 1U;
     write.descriptorType =
@@ -1585,14 +1715,11 @@ bool VulkanStaticMeshRenderer::createTexture(
         0U,
         nullptr);
 
-    out.assetPath =
-        assetPath;
+    out.assetPath = assetPath;
     out.width =
-        static_cast<std::uint32_t>(
-            width);
+        static_cast<std::uint32_t>(width);
     out.height =
-        static_cast<std::uint32_t>(
-            height);
+        static_cast<std::uint32_t>(height);
 
     return true;
 }
