@@ -1,0 +1,64 @@
+name: Generate La Llorona GLB (Free TRELLIS)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - art/llorona-meshy-pipeline
+    paths:
+      - assets/characters/llorona/reference/**
+      - tools/llorona_trellis_pipeline.py
+      - .github/workflows/generate-llorona-trellis.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: llorona-trellis-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify reference views
+        run: |
+          set -euxo pipefail
+          test -s assets/characters/llorona/reference/front.jpg
+          test -s assets/characters/llorona/reference/back.jpg
+          test -s assets/characters/llorona/reference/left.jpg
+          test -s assets/characters/llorona/reference/right.jpg
+          ls -lh assets/characters/llorona/reference/
+
+      - name: Install Gradio client
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install "gradio_client>=1.10,<2"
+
+      - name: Generate multi-view GLB on public TRELLIS ZeroGPU
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python3 tools/llorona_trellis_pipeline.py
+
+      - name: Validate GLB
+        run: |
+          set -euxo pipefail
+          test -s out/llorona-trellis/llorona_trellis_multiview.glb
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("out/llorona-trellis/llorona_trellis_multiview.glb")
+          assert p.read_bytes()[:4] == b"glTF"
+          print("GLB PASS", p.stat().st_size, "bytes")
+          PY
+
+      - name: Upload La Llorona TRELLIS package
+        uses: actions/upload-artifact@v4
+        with:
+          name: la-llorona-trellis-glb
+          path: out/llorona-trellis/
+          if-no-files-found: error
+          retention-days: 14
