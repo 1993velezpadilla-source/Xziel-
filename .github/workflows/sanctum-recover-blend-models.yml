@@ -1,0 +1,327 @@
+name: Recover Sanctum Blender Source Models
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/sanctum-native-xziel-v1
+    paths:
+      - ".github/workflows/sanctum-recover-blend-models.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: feature/sanctum-native-xziel-v1
+          fetch-depth: 0
+
+      - name: Install Blender and tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq blender unzip file
+          blender --version | head -n 2
+
+      - name: Download missing Blender source models
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _recover/monk _recover/old_lady _recover/giant_mutant
+
+          curl -fL --retry 5 --retry-delay 2             "https://opengameart.org/sites/default/files/MONK_1.blend"             -o _recover/monk/monk.blend
+
+          curl -fL --retry 5 --retry-delay 2             "https://opengameart.org/sites/default/files/oldlady-v2.blend"             -o _recover/old_lady/old_lady.blend
+
+          curl -fL --retry 5 --retry-delay 2             "https://opengameart.org/sites/default/files/giant_mutant.zip"             -o _recover/giant_mutant/giant_mutant.zip
+
+          unzip -q -o _recover/giant_mutant/giant_mutant.zip -d _recover/giant_mutant/extracted
+          find _recover -type f -printf '%P\t%s bytes\n' | sort | tee _recover/files.txt
+
+      - name: Export OBJ and GLB with Blender headless
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/export_model.py <<'PY'
+          import bpy, sys
+          from pathlib import Path
+
+          argv=sys.argv
+          argv=argv[argv.index("--")+1:] if "--" in argv else []
+          if len(argv) < 2:
+              raise SystemExit("usage: export_model.py OUT_OBJ OUT_GLB")
+          out_obj=Path(argv[0]).resolve()
+          out_glb=Path(argv[1]).resolve()
+          out_obj.parent.mkdir(parents=True,exist_ok=True)
+
+          # Remove hidden/non-render mesh junk only when obviously excluded.
+          for o in bpy.context.scene.objects:
+              o.hide_set(False)
+
+          # Normalize only object transforms; do not destroy armature animation.
+          for o in bpy.context.scene.objects:
+              if o.type == 'MESH':
+                  o.select_set(True)
+
+          # Export OBJ across Blender API versions.
+          try:
+              bpy.ops.wm.obj_export(
+                  filepath=str(out_obj),
+                  export_materials=True,
+                  export_selected_objects=False,
+                  apply_modifiers=True
+              )
+          except Exception:
+              try:
+                  bpy.ops.export_scene.obj(
+                      filepath=str(out_obj),
+                      use_selection=False,
+                      use_materials=True,
+                      use_mesh_modifiers=True
+                  )
+              except Exception as e:
+                  print("OBJ_EXPORT_FAILED",repr(e))
+
+          # GLB preserves more structure/rigging when present.
+          try:
+              bpy.ops.export_scene.gltf(
+                  filepath=str(out_glb),
+                  export_format='GLB',
+                  export_animations=True,
+                  export_skins=True
+              )
+          except Exception as e:
+              print("GLB_EXPORT_FAILED",repr(e))
+
+          print("EXPORT_DONE",out_obj.exists(),out_glb.exists(),out_obj,out_glb)
+          PY
+
+          export_one () {
+            SRC="$1"
+            ID="$2"
+            OUT="assets/sanctum/free_models/$ID"
+            mkdir -p "$OUT"
+            blender -b "$SRC" -P /tmp/export_model.py --               "$OUT/$ID.obj"               "$OUT/$ID.glb"
+          }
+
+          export_one "_recover/monk/monk.blend" "monk"
+          export_one "_recover/old_lady/old_lady.blend" "old_lady"
+
+          GIANT_BLEND="$(find _recover/giant_mutant/extracted -type f -iname '*.blend' | head -n 1)"
+          test -n "$GIANT_BLEND"
+          export_one "$GIANT_BLEND" "giant_mutant"
+
+      - name: Write recovered source metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > assets/sanctum/free_models/monk/SOURCE.json <<'EOF'
+          {
+            "id": "monk",
+            "status": "ok",
+            "license": "CC0",
+            "sourcePage": "https://opengameart.org/content/monk",
+            "sourceFile": "MONK_1.blend",
+            "conversion": "Blender headless -> OBJ + GLB",
+            "commercialUse": true,
+            "attributionRequired": false
+          }
+          EOF
+          cat > assets/sanctum/free_models/old_lady/SOURCE.json <<'EOF'
+          {
+            "id": "old_lady",
+            "status": "ok",
+            "license": "CC0",
+            "sourcePage": "https://opengameart.org/content/old-lady",
+            "sourceFile": "oldlady-v2.blend",
+            "conversion": "Blender headless -> OBJ + GLB",
+            "commercialUse": true,
+            "attributionRequired": false
+          }
+          EOF
+          cat > assets/sanctum/free_models/giant_mutant/SOURCE.json <<'EOF'
+          {
+            "id": "giant_mutant",
+            "status": "ok",
+            "license": "CC0",
+            "sourcePage": "https://opengameart.org/content/giant-mutant",
+            "sourceFile": "giant_mutant.zip",
+            "conversion": "Blender headless -> OBJ + GLB",
+            "commercialUse": true,
+            "attributionRequired": false
+          }
+          EOF
+
+      - name: Build Sanctum target staging folders
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, shutil
+
+          assign=json.loads(Path("assets/sanctum/characters/base_assignment.json").read_text())
+          srcroot=Path("assets/sanctum/free_models")
+          dstroot=Path("assets/sanctum/character_bases")
+          dstroot.mkdir(parents=True,exist_ok=True)
+
+          report=[]
+          for item in assign["targets"]:
+              target=item["target"]
+              dst=dstroot/target
+              dst.mkdir(parents=True,exist_ok=True)
+              primary=[]
+              for sid in item["primary"]:
+                  sdir=srcroot/sid
+                  objs=list(sdir.glob("*.obj"))
+                  glbs=list(sdir.glob("*.glb"))
+                  if objs:
+                      shutil.copy2(objs[0],dst/f"BASE_{sid}.obj")
+                      primary.append(sid)
+                  if glbs:
+                      shutil.copy2(glbs[0],dst/f"BASE_{sid}.glb")
+              meta={
+                  "target":target,
+                  "primarySources":item["primary"],
+                  "copiedSources":primary,
+                  "reason":item["reason"],
+                  "rule":"These are starting meshes, not final Sanctum character art."
+              }
+              (dst/"BASES.json").write_text(json.dumps(meta,indent=2),encoding="utf-8")
+              report.append(meta)
+
+          (dstroot/"STAGING_REPORT.json").write_text(json.dumps(report,indent=2),encoding="utf-8")
+          print("STAGING_TARGETS",len(report))
+          PY
+
+      - name: Generate source-model and target-base previews
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get install -y -qq python3-pil
+          cat > /tmp/preview.py <<'PY'
+          from pathlib import Path
+          from PIL import Image,ImageDraw,ImageFont
+          import math
+
+          def load(path):
+              vs=[];fs=[]
+              for line in path.read_text(errors="ignore").splitlines():
+                  if line.startswith("v "):
+                      p=line.split()
+                      if len(p)>=4:
+                          try: vs.append(tuple(map(float,p[1:4])))
+                          except: pass
+                  elif line.startswith("f "):
+                      ids=[]
+                      for t in line.split()[1:]:
+                          try:
+                              i=int(t.split("/")[0])
+                              ids.append(i-1 if i>0 else len(vs)+i)
+                          except: pass
+                      if len(ids)>=2: fs.append(ids)
+              return vs,fs
+
+          def render(paths,title,out):
+              entries=[]
+              for p in paths:
+                  vs,fs=load(p)
+                  if vs: entries.append((p,vs,fs))
+              cols=4
+              pw,ph=500,600
+              rows=max(1,math.ceil(len(entries)/cols))
+              im=Image.new("RGB",(40+cols*(pw+20),120+rows*(ph+20)),(15,15,18))
+              d=ImageDraw.Draw(im)
+              try:
+                  ft=ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",38)
+                  fn=ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",22)
+                  fsml=ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",16)
+              except:
+                  ft=fn=fsml=None
+              d.text((30,25),title,font=ft,fill=(240,240,245))
+              for k,(p,vs,faces) in enumerate(entries):
+                  r,c=divmod(k,cols)
+                  x0=30+c*(pw+20); y0=95+r*(ph+20)
+                  x1=x0+pw; y1=y0+ph
+                  d.rounded_rectangle((x0,y0,x1,y1),10,fill=(24,24,28),outline=(80,80,88),width=2)
+                  d.text((x0+14,y0+12),p.parent.name.replace("_"," ").upper(),font=fn,fill=(235,235,240))
+                  # Try all axis pairs and choose largest vertical span after a simple isometric transform.
+                  P=[]
+                  yaw=-0.55
+                  cy,sy=math.cos(yaw),math.sin(yaw)
+                  for x,y,z in vs:
+                      xx=x*cy-y*sy; yy=x*sy+y*cy
+                      P.append((xx,z,yy))
+                  xs=[a for a,b,c3 in P]; zs=[b for a,b,c3 in P]
+                  mnx,mxx=min(xs),max(xs); mnz,mxz=min(zs),max(zs)
+                  dx=max(mxx-mnx,1e-9); dz=max(mxz-mnz,1e-9)
+                  scale=min(430/dx,480/dz)
+                  cx=(x0+x1)/2; base=y1-40
+                  step=max(1,len(faces)//4500)
+                  for face in faces[::step]:
+                      pts=[]
+                      for idx in face[:16]:
+                          if 0<=idx<len(P):
+                              a,b,_=P[idx]
+                              pts.append((cx+(a-(mnx+mxx)/2)*scale,base-(b-mnz)*scale))
+                      if len(pts)>=2:
+                          if len(pts)>2: pts.append(pts[0])
+                          d.line(pts,fill=(185,188,196),width=1)
+                  d.text((x0+14,y1-26),f"{len(vs):,} verts / {len(faces):,} faces",font=fsml,fill=(150,150,160))
+              im.save(out)
+
+          source=list(Path("assets/sanctum/free_models").glob("*/*.obj"))
+          render(source,"SANCTUM — REAL DOWNLOADED BASE MODELS","assets/sanctum/free_models/PREVIEW_V2.png")
+
+          # one preferred base per target for quick review
+          targets=[]
+          for d in sorted(Path("assets/sanctum/character_bases").iterdir()):
+              if d.is_dir():
+                  o=sorted(d.glob("BASE_*.obj"))
+                  if o: targets.append(o[0])
+          render(targets,"SANCTUM — CHARACTER BASE ASSIGNMENTS","assets/sanctum/character_bases/PREVIEW.png")
+          PY
+          python3 /tmp/preview.py
+
+      - name: Validate recovered assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          for id in monk old_lady giant_mutant; do
+            test -s "assets/sanctum/free_models/$id/$id.obj"
+            test -s "assets/sanctum/free_models/$id/$id.glb"
+          done
+          test -s assets/sanctum/free_models/PREVIEW_V2.png
+          test -s assets/sanctum/character_bases/PREVIEW.png
+          echo "SANCTUM_REAL_BASES_RECOVERED_OK"
+
+      - name: Commit recovered and staged assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/sanctum/free_models assets/sanctum/character_bases
+          if git diff --cached --quiet; then
+            echo "No changes"
+            exit 0
+          fi
+          git commit -m "assets: recover Blender models and stage Sanctum character bases"
+          git push origin HEAD:feature/sanctum-native-xziel-v1
+
+      - name: Upload review pack
+        uses: actions/upload-artifact@v4
+        with:
+          name: sanctum-real-character-bases
+          path: |
+            assets/sanctum/free_models/PREVIEW_V2.png
+            assets/sanctum/character_bases/PREVIEW.png
+            assets/sanctum/character_bases
+          retention-days: 14
