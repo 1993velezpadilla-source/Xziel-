@@ -279,6 +279,9 @@ jobs:
           assert s["runtimeTriangles"] >= 620000, s
           assert s["textureMaxDimension"] >= 2048, s
           assert s["batchCount"] <= 512, s
+          assert s["version"] >= 2, s
+          assert s["vertexStrideBytes"] == 24, s
+          assert s["vertexLighting"] == "night_moon_plus_zone_practicals_v1", s
           assert f["counts"]["barricades"] >= 8, f
           assert f["counts"]["raycastFitted"] > 0, f
           assert f["counts"]["collisionMeshes"] >= 4, f
@@ -296,7 +299,7 @@ jobs:
           print("WINDOW_CANDIDATES", len(n["windowCandidates"]))
           print("NZP_HARNESS", h)
           print("FITTED_RUNTIME", f["counts"])
-          print("VRIL_STATIC", {k:s[k] for k in ["runtimeTriangles","batchCount","textureCount","modelBytes"]})
+          print("VRIL_STATIC", {k:s[k] for k in ["version","runtimeTriangles","batchCount","textureCount","modelBytes","vertexStrideBytes","vertexLighting"]})
           print("PACKAGE_PREFLIGHT", q)
           PY
 
