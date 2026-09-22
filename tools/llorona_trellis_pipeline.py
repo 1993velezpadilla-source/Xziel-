@@ -79,10 +79,11 @@ print(f"Calling TRELLIS generator via {gen[0]}={gen[1]}")
 args = [
     front,
     gallery,
-    True,       # multi-image mode
     1993,       # deterministic seed
-    7.5, 12,    # sparse guidance / steps
-    3.0, 12,    # structured guidance / steps
+    7.5,        # sparse-structure guidance
+    12,         # sparse-structure sampling steps
+    3.0,        # structured-latent guidance
+    12,         # structured-latent sampling steps
     "stochastic",
     0.95,       # simplify
     2048,       # texture size
