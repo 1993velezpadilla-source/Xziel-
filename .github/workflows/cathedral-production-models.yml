@@ -79,6 +79,14 @@ jobs:
           curl -fL --retry 4 https://files2.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip -o /tmp/makehuman_system_assets_cc0.zip
           unzip -q /tmp/makehuman_system_assets_cc0.zip -d /tmp/mhassets
 
+      - name: Discover candidate MakeHuman assets
+        shell: bash
+        run: |
+          echo "=== HAIR CANDIDATES ==="
+          find /tmp/mhassets -type f -name '*.mhclo' | grep -Ei '/hair/|hair|long|wet|straight|wave' | head -120 || true
+          echo "=== CLOTHING CANDIDATES ==="
+          find /tmp/mhassets -type f -name '*.mhclo' | grep -Ei 'dress|robe|gown|skirt|hood|veil|coat|shirt|boot' | head -180 || true
+
       - name: Build all real production characters
         shell: bash
         env:
@@ -115,7 +123,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "No generated asset changes."
           else
-            git commit -m "art: generate Cathedral priority roster fidelity pass 10"
+            git commit -m "art: generate Cathedral priority roster fidelity pass 11"
             git pull --rebase origin art/cathedral-production-models
             git push origin HEAD:art/cathedral-production-models
           fi
@@ -123,7 +131,7 @@ jobs:
       - name: Upload full production artifact
         uses: actions/upload-artifact@v4
         with:
-          name: cathedral-priority-models-pass10
+          name: cathedral-priority-models-pass11
           path: assets/generated/cathedral_roster/
           if-no-files-found: error
           retention-days: 14
