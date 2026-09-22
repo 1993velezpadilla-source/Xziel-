@@ -171,7 +171,7 @@ int XzGeometryTap_CaptureAlias(
 
     for (i = 0u; i < index_count; ++i)
         frame->indices[frame->index_count + i] =
-            (uint16_t)(indices[i] + batch->first_vertex);
+            (uint32_t)indices[i] + batch->first_vertex;
 
     frame->vertex_count += vertex_count;
     frame->index_count += index_count;
@@ -228,11 +228,11 @@ int XzGeometryTap_CaptureSurfaceFan(
     out_index = frame->index_count;
     for (i = 0u; i + 2u < count; ++i) {
         frame->indices[out_index++] =
-            (uint16_t)(batch->first_vertex);
+            (uint32_t)batch->first_vertex;
         frame->indices[out_index++] =
-            (uint16_t)(batch->first_vertex + i + 1u);
+            (uint32_t)(batch->first_vertex + i + 1u);
         frame->indices[out_index++] =
-            (uint16_t)(batch->first_vertex + i + 2u);
+            (uint32_t)(batch->first_vertex + i + 2u);
     }
 
     frame->vertex_count += count;
@@ -247,7 +247,7 @@ int XzGeometryTap_CaptureSpriteQuad(
     const float modelview[16],
     const float projection[16])
 {
-    static const uint16_t local_indices[6] = {
+    static const uint32_t local_indices[6] = {
         0u, 1u, 2u, 0u, 2u, 3u
     };
     XzGeometryFrame *frame = XzWriteFrame();
@@ -280,9 +280,7 @@ int XzGeometryTap_CaptureSpriteQuad(
 
     for (i = 0u; i < 6u; ++i)
         frame->indices[frame->index_count + i] =
-            (uint16_t)(
-                batch->first_vertex +
-                local_indices[i]);
+            (uint32_t)(batch->first_vertex + local_indices[i]);
 
     frame->vertex_count += 4u;
     frame->index_count += 6u;
