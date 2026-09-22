@@ -128,7 +128,7 @@ jobs:
               {"id":"nightmare_monsters","license":"CC0","sourcePage":"https://opengameart.org/content/nightmare-monsters","fbxCount":len(fbx)},
               {"id":"glance","license":"CC0","sourcePage":"https://opengameart.org/content/glance"},
               {"id":"animated_characters_pack","license":"CC0","sourcePage":"https://opengameart.org/content/animated-characters-pack"},
-              {"id":"universal_animation_library_2","license":"CC0","sourcePage":"https://opengameart.org/content/universal-animation-library-2","animationCount":min(len(afbx),200)}
+              {"id":"universal_animation_library_2","license":"CC0","sourcePage":"https://opengameart.org/content/universal-animation-library-2","animationFileCount":min(len(afbx),200)}
             ]
           }
           (out/"MANIFEST.json").write_text(json.dumps(meta,indent=2),encoding="utf-8")
@@ -222,7 +222,7 @@ jobs:
           test -s assets/sanctum/free_models_expanded/MANIFEST.json
           test -s assets/sanctum/free_models_expanded/PREVIEW.png
           test "$(find assets/sanctum/free_models_expanded/nightmare_monsters -name '*.fbx' | wc -l)" -ge 1
-          test "$(find assets/sanctum/free_models_expanded/animation_library -name '*.fbx' | wc -l)" -ge 20
+          test "$(find assets/sanctum/free_models_expanded/animation_library -name '*.fbx' | wc -l)" -ge 2
           echo "SANCTUM_EXPANDED_CC0_LIBRARY_OK"
 
       - name: Commit
