@@ -1,0 +1,13 @@
+{
+  "target": "choir_wretch",
+  "primarySources": [
+    "monk",
+    "thin_zombie"
+  ],
+  "copiedSources": [
+    "monk",
+    "thin_zombie"
+  ],
+  "reason": "robe/clergy silhouette plus undead body/face",
+  "rule": "These are starting meshes, not final Sanctum character art."
+}

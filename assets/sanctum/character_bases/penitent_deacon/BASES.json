@@ -1,0 +1,13 @@
+{
+  "target": "penitent_deacon",
+  "primarySources": [
+    "monk",
+    "male_3d"
+  ],
+  "copiedSources": [
+    "monk",
+    "male_3d"
+  ],
+  "reason": "clergy body and robe; add stole, lantern, rope and crosses",
+  "rule": "These are starting meshes, not final Sanctum character art."
+}

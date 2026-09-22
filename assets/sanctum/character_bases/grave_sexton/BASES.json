@@ -1,0 +1,13 @@
+{
+  "target": "grave_sexton",
+  "primarySources": [
+    "male_city_zombie",
+    "male_3d"
+  ],
+  "copiedSources": [
+    "male_city_zombie",
+    "male_3d"
+  ],
+  "reason": "human undead worker base; add shovel/keyring/coat",
+  "rule": "These are starting meshes, not final Sanctum character art."
+}

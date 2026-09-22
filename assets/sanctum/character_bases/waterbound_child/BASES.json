@@ -1,0 +1,11 @@
+{
+  "target": "waterbound_child",
+  "primarySources": [
+    "lowpoly_kid"
+  ],
+  "copiedSources": [
+    "lowpoly_kid"
+  ],
+  "reason": "child skeleton/body; add wet dress/hair/mist",
+  "rule": "These are starting meshes, not final Sanctum character art."
+}

@@ -1,10 +1,10 @@
 {
   "id": "giant_mutant",
-  "status": "conversion_failed",
+  "status": "ok",
   "license": "CC0",
   "sourcePage": "https://opengameart.org/content/giant-mutant",
-  "sourceFile": null,
-  "conversion": "",
+  "sourceFile": "giant_mutant.zip",
+  "conversion": "Blender headless -> OBJ + GLB",
   "commercialUse": true,
   "attributionRequired": false
 }

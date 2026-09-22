@@ -1,0 +1,13 @@
+{
+  "target": "censer_brute",
+  "primarySources": [
+    "giant_mutant",
+    "monk"
+  ],
+  "copiedSources": [
+    "giant_mutant",
+    "monk"
+  ],
+  "reason": "large heavy body with church robe/censer kitbash",
+  "rule": "These are starting meshes, not final Sanctum character art."
+}

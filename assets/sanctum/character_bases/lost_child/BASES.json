@@ -1,0 +1,11 @@
+{
+  "target": "lost_child",
+  "primarySources": [
+    "lowpoly_kid"
+  ],
+  "copiedSources": [
+    "lowpoly_kid"
+  ],
+  "reason": "child skeleton/body; add dress, doll and rosary",
+  "rule": "These are starting meshes, not final Sanctum character art."
+}

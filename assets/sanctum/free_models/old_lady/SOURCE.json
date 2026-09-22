@@ -1,10 +1,10 @@
 {
   "id": "old_lady",
-  "status": "conversion_failed",
+  "status": "ok",
   "license": "CC0",
   "sourcePage": "https://opengameart.org/content/old-lady",
-  "sourceFile": null,
-  "conversion": "",
+  "sourceFile": "oldlady-v2.blend",
+  "conversion": "Blender headless -> OBJ + GLB",
   "commercialUse": true,
   "attributionRequired": false
 }
