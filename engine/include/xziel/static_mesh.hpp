@@ -10,7 +10,7 @@
 namespace xziel {
 
 inline constexpr std::uint32_t kStaticMeshFormatVersion = 2U;
-inline constexpr std::size_t kMaxStaticMeshBatches = 512U;
+inline constexpr std::size_t kMaxStaticMeshBatches = 2048U;
 inline constexpr std::uint32_t kMaxStaticMeshVertices = 8000000U;
 inline constexpr std::uint32_t kMaxStaticMeshIndices = 12000000U;
 
