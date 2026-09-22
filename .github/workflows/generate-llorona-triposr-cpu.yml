@@ -1,0 +1,129 @@
+name: Generate La Llorona GLB (CPU TripoSR)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - art/llorona-meshy-pipeline
+    paths:
+      - assets/characters/llorona/reference/**
+      - .github/workflows/generate-llorona-triposr-cpu.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: llorona-triposr-cpu-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout Xziel refs
+        uses: actions/checkout@v4
+
+      - name: Verify La Llorona front reference
+        run: |
+          set -euxo pipefail
+          test -s assets/characters/llorona/reference/front.jpg
+          file assets/characters/llorona/reference/front.jpg
+          ls -lh assets/characters/llorona/reference/
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install native CPU dependencies
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y git build-essential cmake ninja-build \
+            libgl1 libegl1 libglib2.0-0 libgl1-mesa-dev libegl1-mesa-dev
+
+      - name: Install CPU PyTorch
+        run: |
+          set -euxo pipefail
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Checkout official TripoSR
+        run: |
+          set -euxo pipefail
+          rm -rf /tmp/TripoSR
+          git clone https://github.com/VAST-AI-Research/TripoSR.git /tmp/TripoSR
+          git -C /tmp/TripoSR checkout 107cefdc244c39106fa830359024f6a2f1c78871
+
+      - name: Install TripoSR requirements
+        run: |
+          set -euxo pipefail
+          python -m pip install -r /tmp/TripoSR/requirements.txt
+
+      - name: Cache Hugging Face model downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: triposr-hf-model-v1
+
+      - name: Generate La Llorona GLB on CPU
+        env:
+          PYTHONUNBUFFERED: "1"
+          OMP_NUM_THREADS: "2"
+          MKL_NUM_THREADS: "2"
+        run: |
+          set -euxo pipefail
+          rm -rf out/llorona-triposr
+          mkdir -p out/llorona-triposr
+          python /tmp/TripoSR/run.py \
+            assets/characters/llorona/reference/front.jpg \
+            --device cpu \
+            --chunk-size 2048 \
+            --mc-resolution 192 \
+            --foreground-ratio 0.90 \
+            --output-dir out/llorona-triposr/raw \
+            --model-save-format glb
+          test -s out/llorona-triposr/raw/0/mesh.glb
+          cp out/llorona-triposr/raw/0/mesh.glb \
+             out/llorona-triposr/llorona_triposr_cpu.glb
+          cp out/llorona-triposr/raw/0/input.png \
+             out/llorona-triposr/input_preprocessed.png || true
+
+      - name: Validate generated GLB
+        run: |
+          set -euxo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          p = Path("out/llorona-triposr/llorona_triposr_cpu.glb")
+          data = p.read_bytes()
+          assert data[:4] == b"glTF", data[:16]
+          assert len(data) > 1024, len(data)
+          manifest = {
+              "asset": "La Llorona",
+              "generator": "VAST-AI-Research/TripoSR",
+              "device": "GitHub Actions CPU",
+              "source": "front.jpg",
+              "mc_resolution": 192,
+              "chunk_size": 2048,
+              "format": "GLB",
+              "bytes": len(data),
+              "glb_magic": "glTF",
+          }
+          Path("out/llorona-triposr/manifest.json").write_text(
+              json.dumps(manifest, indent=2), encoding="utf-8"
+          )
+          print("XZIEL_LLORONA_TRIPOSR_GLB_READY")
+          print(json.dumps(manifest, indent=2))
+          PY
+          ls -lah out/llorona-triposr/
+
+      - name: Upload La Llorona CPU GLB
+        uses: actions/upload-artifact@v4
+        with:
+          name: la-llorona-triposr-cpu-glb
+          path: out/llorona-triposr/
+          if-no-files-found: error
+          retention-days: 14
