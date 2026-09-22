@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - feature/xziel-engine-foundation
+      - automation/zombie-real-model-probe
     paths:
       - ".github/workflows/zombie-asset-probe.yml"
 
