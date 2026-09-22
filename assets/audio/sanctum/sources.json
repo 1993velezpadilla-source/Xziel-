@@ -213,6 +213,127 @@
         "HorrorStinger"
       ],
       "notes": "11 source tracks; ideal for spatial whispers. OGG pack chosen to keep CI artifact size sensible."
+    },
+    {
+      "id": "oga_rubberduck_100_sfx_1",
+      "tier": "extended",
+      "category": [
+        "door",
+        "door_squeak",
+        "glass",
+        "wood",
+        "splash",
+        "explosion"
+      ],
+      "sourcePage": "https://opengameart.org/content/100-cc0-sfx",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "fileContains": "100-CC0-SFX.zip",
+      "qualityRank": "A-",
+      "recommendedFor": [
+        "DoorWoodOpenStart",
+        "DoorWoodCreak",
+        "DoorWoodOpenStop",
+        "GlassBreak",
+        "GrenadeExplosion"
+      ],
+      "notes": "100 additional CC0 variants including door squeaks/closes/open, glass, splash, wood and explosion."
+    },
+    {
+      "id": "oga_glass_break_tinyworlds",
+      "tier": "core",
+      "category": [
+        "glass",
+        "break",
+        "shards"
+      ],
+      "sourcePage": "https://opengameart.org/content/glass-break",
+      "author": "Till Behrend / TinyWorlds",
+      "license": "CC0-1.0",
+      "fileContains": "glass_breaking.wav",
+      "qualityRank": "A",
+      "recommendedFor": [
+        "GlassBreak"
+      ],
+      "notes": "Dedicated game-ready glass break one-shot."
+    },
+    {
+      "id": "oga_short_wind",
+      "tier": "core",
+      "category": [
+        "wind",
+        "gust"
+      ],
+      "sourcePage": "https://opengameart.org/content/short-wind-sound",
+      "author": "remaxim",
+      "license": "CC0-1.0",
+      "fileContains": "short wind sound.wav",
+      "qualityRank": "B+",
+      "recommendedFor": [
+        "WindGust"
+      ],
+      "notes": "Short gust useful as a transient over the continuous wind loop."
+    },
+    {
+      "id": "oga_mild_wind_background",
+      "tier": "extended",
+      "category": [
+        "wind",
+        "background",
+        "gust"
+      ],
+      "sourcePage": "https://opengameart.org/content/mild-wind-background-noise",
+      "author": "Bashar3A",
+      "license": "CC0-1.0",
+      "fileContains": "wind background noise 2.wav",
+      "qualityRank": "B+",
+      "recommendedFor": [
+        "WindLoop",
+        "WindGust",
+        "WindowRattle"
+      ],
+      "notes": "Longer evolving wind bed; optional because it is larger than the core loop."
+    },
+    {
+      "id": "oga_misc_sfx_pack",
+      "tier": "extended",
+      "category": [
+        "ghost",
+        "holy",
+        "ambience",
+        "spooky"
+      ],
+      "sourcePage": "https://opengameart.org/content/misc-sfx-pack",
+      "author": "Timopy",
+      "license": "CC0-1.0",
+      "fileContains": "SFX.7z",
+      "qualityRank": "B+",
+      "recommendedFor": [
+        "SoulWhisper",
+        "HorrorStinger"
+      ],
+      "notes": "52 CC0 miscellaneous effects; archived as 7z and retained for offline curation."
+    },
+    {
+      "id": "oga_wood_cracks_35",
+      "tier": "extended",
+      "category": [
+        "wood_break",
+        "crack",
+        "impact",
+        "destruction"
+      ],
+      "sourcePage": "https://opengameart.org/content/35-wooden-crackshitsdestructions",
+      "author": "Independent.nu / qubodup",
+      "license": "CC0-1.0",
+      "fileContains": "independent_nu_ljudbank-wood_crack_hit_destruction.7z",
+      "qualityRank": "A",
+      "recommendedFor": [
+        "BarricadeWoodStrain",
+        "BarricadePlankRip",
+        "BarricadeBreach"
+      ],
+      "notes": "35 extra wood crack/hit/destruction variations; strong candidate for anti-repetition layering."
     }
   ]
 }
