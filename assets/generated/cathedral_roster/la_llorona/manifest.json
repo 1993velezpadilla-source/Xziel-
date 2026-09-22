@@ -6,7 +6,7 @@
   "height_m": 1.82,
   "rig": "game_engine",
   "bones": 53,
-  "triangles_estimate": 44456,
+  "triangles_estimate": 50216,
   "animations": [
     "idle",
     "walk",
@@ -32,5 +32,5 @@
     "model.blend",
     "preview.png"
   ],
-  "production_status": "priority fidelity pass 5 \u2014 MPFB rigged base, fitted body parts, layered church clothing, PBR materials, animation actions, modular damage sockets where applicable"
+  "production_status": "priority fidelity pass 6 \u2014 autonomous reference correction \u2014 MPFB rigged base, fitted body parts, layered church clothing, PBR materials, animation actions, modular damage sockets where applicable"
 }
