@@ -127,8 +127,23 @@ int main() {
         interactions,
         score);
     assert(door.openedThisTick);
-    assert(door.open);
+    assert(door.opening);
+    assert(!door.open);
     assert(score.frame().total == 250);
+
+    for (int i = 0; i < 120; ++i) {
+        runtime.stepDoors(
+            1.0f / 120.0f,
+            player,
+            horde);
+    }
+
+    const auto* openedDoor =
+        runtime.doors().frame(100);
+    assert(openedDoor != nullptr);
+    assert(openedDoor->open);
+    assert(openedDoor->collisionReleased);
+    assert(openedDoor->openProgress == 1.0f);
 
     runtime.beginRound();
 

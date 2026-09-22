@@ -102,6 +102,11 @@ public:
 
     void beginRound() noexcept;
 
+    void stepDoors(
+        float deltaSeconds,
+        FpsPlayerController& player,
+        HordeDirector& horde) noexcept;
+
     [[nodiscard]] DoorFrame activateDoor(
         std::uint32_t id,
         FpsPlayerController& player,

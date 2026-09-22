@@ -227,6 +227,13 @@ void MapRuntime::beginRound() noexcept {
     windows_.beginRound();
 }
 
+void MapRuntime::stepDoors(
+    float deltaSeconds,
+    FpsPlayerController& player,
+    HordeDirector& horde) noexcept {
+    doors_.step(deltaSeconds, horde, player);
+}
+
 DoorFrame MapRuntime::activateDoor(
     std::uint32_t id,
     FpsPlayerController& player,
