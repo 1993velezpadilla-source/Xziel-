@@ -1,27 +1,31 @@
 {
-  "id": "stained_shade",
-  "name": "Stained Shade",
+  "id": "sister_of_ash",
+  "name": "Sister of Ash",
   "category": "core_enemy",
-  "style": "stained_shade",
-  "height_m": 1.85,
+  "style": "sister_of_ash",
+  "height_m": 1.8,
   "rig": "game_engine",
   "bones": 53,
-  "triangles_estimate": 42112,
+  "triangles_estimate": 41300,
   "animations": [
     "idle",
-    "float",
+    "walk",
     "attack",
-    "dissipate"
+    "hit",
+    "death",
+    "headless_walk",
+    "crawler",
+    "lower_half_kicker"
   ],
   "materials": [
-    "spectral_ivory",
     "ash_blue",
+    "dirty_ivory",
     "corpse_skin",
-    "glass_blue",
-    "glass_cyan",
-    "glass_magenta",
-    "amber",
-    "oxidized_metal"
+    "bruise",
+    "rope",
+    "old_wood",
+    "oxidized_metal",
+    "soot"
   ],
   "outputs": [
     "model.glb",
