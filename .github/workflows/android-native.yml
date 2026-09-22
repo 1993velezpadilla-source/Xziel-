@@ -22,6 +22,7 @@ on:
       - feature/xz-material-lightmap-parity
       - feature/xz-fog-renderstate-parity
       - feature/xz-effects-geometry-parity
+      - feature/xz-sky-water-parity
     paths:
       - ".github/workflows/android-native.yml"
       - "android/**"
@@ -446,6 +447,33 @@ jobs:
             echo "HUD preview remained blank/flat after all retries."
             exit 1
           fi
+
+          # Second real-scene parity probe. Dung3on is an official NZ:P map
+          # whose source explicitly contains knee-high water; keep logcat
+          # cumulative so the final gates can prove both Nacht sky/effects and
+          # Dung3on water in one workflow run.
+          "$ADB" shell am force-stop com.xziel.nzp || true
+          "$ADB" shell run-as com.xziel.nzp rm -f files/nzp-runtime/.xziel-stage files/nzp-runtime/.xziel-last-error || true
+          "$ADB" shell am start -W -n com.xziel.nzp/org.libsdl.app.NZPActivity             --ez xziel_ci_hud_preview true             --ez xziel_ci_fog_preview true             --es xziel_ci_map dung3on             > dist/am-start-water.txt 2>&1 || true
+
+          WATER_STAGE=""
+          for i in $(seq 1 45); do
+            WATER_STAGE="$("$ADB" shell run-as com.xziel.nzp cat files/nzp-runtime/.xziel-stage 2>/dev/null | tr -d '\r' || true)"
+            if [[ "$WATER_STAGE" == "FIRST_FRAME_OK" ]]; then
+              break
+            fi
+            sleep 2
+          done
+
+          if [[ "$WATER_STAGE" != "FIRST_FRAME_OK" ]]; then
+            echo "Dung3on water parity probe did not reach FIRST_FRAME_OK (stage=$WATER_STAGE)."
+            cat dist/am-start-water.txt || true
+            exit 1
+          fi
+
+          sleep 8
+          "$ADB" exec-out screencap -p > dist/xziel-water-preview.png || true
+
           "$ADB" logcat -d -v threadtime > dist/xziel-logcat.txt || true
           "$ADB" shell dumpsys activity processes > dist/activity-processes.txt || true
 
@@ -683,7 +711,7 @@ jobs:
             exit 1
           fi
 
-          if ! grep -Eq "XZIEL-XZ.*parity geometry generation=[1-9][0-9]* batches=[1-9][0-9]* vertices=[1-9][0-9]* indices=[1-9][0-9]* kinds=[1-9][0-9]*/[1-9][0-9]*/[1-9][0-9]*/[0-9]+ drops=0/0/0 g3sub=[1-9][0-9]* g3draw=[1-9][0-9]* g3verts=[1-9][0-9]* g3indices=[1-9][0-9]* g3fail=0 kindMask=0x[7fF] ready=1" dist/xziel-logcat.txt; then
+          if ! grep -Eq "XZIEL-XZ.*parity geometry generation=[1-9][0-9]* batches=[1-9][0-9]* vertices=[1-9][0-9]* indices=[1-9][0-9]* kinds=[1-9][0-9]*/[1-9][0-9]*/[1-9][0-9]*/[0-9]+/[1-9][0-9]* drops=0/0/0 g3sub=[1-9][0-9]* g3draw=[1-9][0-9]* g3verts=[1-9][0-9]* g3indices=[1-9][0-9]* g3fail=0 kindMask=0x1f ready=1" dist/xziel-logcat.txt; then
             echo "Xz real-geometry parity did not capture and render all Vril geometry classes cleanly."
             grep -E "XZIEL-XZ.*parity geometry" dist/xziel-logcat.txt | tail -n 120 || true
             exit 1
@@ -698,6 +726,18 @@ jobs:
           if ! grep -Eq "XZIEL-XZ.*parity effects current=[1-9][0-9]* seen=1" dist/xziel-logcat.txt; then
             echo "Xz effects parity did not capture/replay live Hyena particles, decals or beams."
             grep -E "XZIEL-XZ.*parity effects|XZIEL-XZ.*parity geometry|XZIEL-XZ.*parity texture" dist/xziel-logcat.txt | tail -n 180 || true
+            exit 1
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*parity specials current=[1-9][0-9]* sky=[1-9][0-9]* water=[0-9]+ skySeen=1 waterSeen=[01]" dist/xziel-logcat.txt; then
+            echo "Xz sky parity did not capture/replay a live layered/flat/skybox path."
+            grep -E "XZIEL-XZ.*parity specials|XZIEL-XZ.*parity geometry" dist/xziel-logcat.txt | tail -n 220 || true
+            exit 1
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*parity specials current=[1-9][0-9]* sky=[0-9]+ water=[1-9][0-9]* skySeen=[01] waterSeen=1" dist/xziel-logcat.txt; then
+            echo "Xz water parity did not capture/replay live Dung3on water geometry."
+            grep -E "XZIEL-XZ.*parity specials|XZIEL-XZ.*parity geometry" dist/xziel-logcat.txt | tail -n 220 || true
             exit 1
           fi
 
@@ -725,7 +765,7 @@ jobs:
             exit 1
           fi
 
-          echo "Xziel remained alive; REAL_GEOMETRY + REAL_TEXTURES + MATERIAL_LIGHTMAP + FOG_RASTER + EFFECTS + VISIBLE_PRESENT parity are live and MODERN is active."
+          echo "Xziel remained alive; REAL_GEOMETRY + REAL_TEXTURES + MATERIAL_LIGHTMAP + FOG_RASTER + EFFECTS + SKY_WATER + VISIBLE_PRESENT parity are live and MODERN is active."
 
       - name: Upload runtime diagnostics
         if: always()
@@ -737,9 +777,11 @@ jobs:
             dist/xziel-screen.png
             dist/xziel-hud-preview-a.png
             dist/xziel-hud-preview-b.png
+            dist/xziel-water-preview.png
             dist/hud-visual-report.txt
             dist/emulator-stdout.txt
             dist/am-start.txt
+            dist/am-start-water.txt
             dist/activity-processes.txt
           if-no-files-found: warn
           retention-days: 14
