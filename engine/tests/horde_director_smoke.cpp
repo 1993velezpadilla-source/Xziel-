@@ -184,5 +184,41 @@ int main() {
     assert(attackedBarrier);
     assert(breakable.zombieDynamicBlockerTarget(0) == 88U);
 
+    // Multi-level floor following: zombies keep their feet on authored route
+    // surfaces while moving horizontally toward a player on the next level.
+    xziel::HordeConfig floorConfig{};
+    floorConfig.baseZombiesPerRound = 1;
+    floorConfig.zombiesAddedPerRound = 0;
+    floorConfig.maxActive = 1;
+    floorConfig.spawnIntervalSeconds = 0.01f;
+    floorConfig.baseMoveSpeed = 1.0f;
+    floorConfig.maximumMoveSpeed = 1.0f;
+    floorConfig.spawnPointCount = 1;
+    floorConfig.spawnPoints[0] = {0.0f, -1.48f, -2.0f};
+
+    xziel::HordeDirector floors(floorConfig);
+    assert(floors.addNavigationFloor(
+        {
+            .minimum = {-2.0f, -1.68f, -3.0f},
+            .maximum = { 2.0f, -1.48f, -0.80f},
+        }));
+    assert(floors.addNavigationFloor(
+        {
+            .minimum = {-2.0f, -1.40f, -1.10f},
+            .maximum = { 2.0f, -1.20f,  3.00f},
+        }));
+
+    for (int i = 0; i < 520; ++i) {
+        (void) floors.step(
+            {0.0f, -1.20f, 2.0f},
+            1.0f / 120.0f);
+    }
+
+    const auto* climbed = floors.zombie(0);
+    assert(climbed != nullptr);
+    assert(climbed->frame().position.z > -1.0f);
+    assert(climbed->frame().position.y > -1.25f);
+    assert(climbed->frame().position.y < -1.15f);
+
     return 0;
 }
