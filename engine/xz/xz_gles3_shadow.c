@@ -94,6 +94,10 @@ typedef void (*XzGlDisableFn)(GLenum);
 typedef void (*XzGlBlendFuncFn)(GLenum, GLenum);
 typedef void (*XzGlDepthMaskFn)(GLboolean);
 typedef void (*XzGlDepthFuncFn)(GLenum);
+typedef void (*XzGlDepthRangefFn)(GLfloat, GLfloat);
+typedef void (*XzGlCullFaceFn)(GLenum);
+typedef void (*XzGlFrontFaceFn)(GLenum);
+typedef void (*XzGlPolygonOffsetFn)(GLfloat, GLfloat);
 typedef void (*XzGlDrawArraysFn)(GLenum, GLint, GLsizei);
 typedef void (*XzGlDrawElementsFn)(
     GLenum, GLsizei, GLenum, const void *);
@@ -161,6 +165,10 @@ typedef struct {
     XzGlBlendFuncFn BlendFunc;
     XzGlDepthMaskFn DepthMask;
     XzGlDepthFuncFn DepthFunc;
+    XzGlDepthRangefFn DepthRangef;
+    XzGlCullFaceFn CullFace;
+    XzGlFrontFaceFn FrontFace;
+    XzGlPolygonOffsetFn PolygonOffset;
     XzGlDrawArraysFn DrawArrays;
     XzGlDrawElementsFn DrawElements;
     XzGlReadPixelsFn ReadPixels;
@@ -217,6 +225,10 @@ typedef struct {
     GLint real_alpha_test_loc;
     GLint real_alpha_func_loc;
     GLint real_alpha_ref_loc;
+    GLint real_fog_enabled_loc;
+    GLint real_fog_start_loc;
+    GLint real_fog_end_loc;
+    GLint real_fog_color_loc;
     GLuint real_vbo;
     GLuint real_ibo;
     GLuint real_vao;
@@ -303,6 +315,30 @@ static int XzAlphaFuncCode(unsigned int value)
     }
 }
 
+static GLenum XzSafeCullFace(unsigned int value)
+{
+    switch ((GLenum)value) {
+    case GL_FRONT:
+    case GL_BACK:
+    case GL_FRONT_AND_BACK:
+        return (GLenum)value;
+    default:
+        return GL_BACK;
+    }
+}
+
+static GLenum XzSafeFrontFace(unsigned int value)
+{
+    return value == (unsigned int)GL_CW ? GL_CW : GL_CCW;
+}
+
+static float XzClamp01(float value)
+{
+    if (value < 0.0f) return 0.0f;
+    if (value > 1.0f) return 1.0f;
+    return value;
+}
+
 static int XzLoadApi(XzNativeGles3Api *api)
 {
 #define XZ_GL_LOAD(field, symbol)                                      \
@@ -380,6 +416,10 @@ static int XzLoadApi(XzNativeGles3Api *api)
     XZ_GL_LOAD(BlendFunc, "glBlendFunc");
     XZ_GL_LOAD(DepthMask, "glDepthMask");
     XZ_GL_LOAD(DepthFunc, "glDepthFunc");
+    XZ_GL_LOAD(DepthRangef, "glDepthRangef");
+    XZ_GL_LOAD(CullFace, "glCullFace");
+    XZ_GL_LOAD(FrontFace, "glFrontFace");
+    XZ_GL_LOAD(PolygonOffset, "glPolygonOffset");
     XZ_GL_LOAD(DrawArrays, "glDrawArrays");
     XZ_GL_LOAD(DrawElements, "glDrawElements");
     XZ_GL_LOAD(ReadPixels, "glReadPixels");
@@ -550,9 +590,12 @@ static int XzCreateRealGeometryProgram(void)
         "uniform mat4 uModelView;\n"
         "uniform mat4 uProjection;\n"
         "out vec2 vUV;\n"
+        "out float vFogCoord;\n"
         "void main(){\n"
-        "  gl_Position=uProjection*uModelView*vec4(aPos,1.0);\n"
+        "  vec4 eye=uModelView*vec4(aPos,1.0);\n"
+        "  gl_Position=uProjection*eye;\n"
         "  vUV=aUV;\n"
+        "  vFogCoord=abs(eye.z);\n"
         "}\n";
 
     static const char *fs_source =
@@ -565,6 +608,11 @@ static int XzCreateRealGeometryProgram(void)
         "uniform int uAlphaTest;\n"
         "uniform int uAlphaFunc;\n"
         "uniform float uAlphaRef;\n"
+        "uniform int uFogEnabled;\n"
+        "uniform float uFogStart;\n"
+        "uniform float uFogEnd;\n"
+        "uniform vec4 uFogColor;\n"
+        "in float vFogCoord;\n"
         "out vec4 outColor;\n"
         "void main(){\n"
         "  vec4 texel=texture(uTexture,vUV);\n"
@@ -579,6 +627,10 @@ static int XzCreateRealGeometryProgram(void)
         "    else if(uAlphaFunc==5) pass=abs(c.a-uAlphaRef)>=0.0001;\n"
         "    else if(uAlphaFunc==6) pass=c.a>=uAlphaRef;\n"
         "    if(!pass) discard;\n"
+        "  }\n"
+        "  if(uFogEnabled!=0 && uFogEnd>uFogStart){\n"
+        "    float f=clamp((uFogEnd-vFogCoord)/(uFogEnd-uFogStart),0.0,1.0);\n"
+        "    c.rgb=mix(uFogColor.rgb,c.rgb,f);\n"
         "  }\n"
         "  outColor=c;\n"
         "}\n";
@@ -651,6 +703,22 @@ static int XzCreateRealGeometryProgram(void)
         gl->GetUniformLocation(
             xz_shadow.real_program,
             "uAlphaRef");
+    xz_shadow.real_fog_enabled_loc =
+        gl->GetUniformLocation(
+            xz_shadow.real_program,
+            "uFogEnabled");
+    xz_shadow.real_fog_start_loc =
+        gl->GetUniformLocation(
+            xz_shadow.real_program,
+            "uFogStart");
+    xz_shadow.real_fog_end_loc =
+        gl->GetUniformLocation(
+            xz_shadow.real_program,
+            "uFogEnd");
+    xz_shadow.real_fog_color_loc =
+        gl->GetUniformLocation(
+            xz_shadow.real_program,
+            "uFogColor");
 
     if (xz_shadow.real_modelview_loc < 0 ||
         xz_shadow.real_projection_loc < 0 ||
@@ -659,7 +727,11 @@ static int XzCreateRealGeometryProgram(void)
         xz_shadow.real_texenv_modulate_loc < 0 ||
         xz_shadow.real_alpha_test_loc < 0 ||
         xz_shadow.real_alpha_func_loc < 0 ||
-        xz_shadow.real_alpha_ref_loc < 0)
+        xz_shadow.real_alpha_ref_loc < 0 ||
+        xz_shadow.real_fog_enabled_loc < 0 ||
+        xz_shadow.real_fog_start_loc < 0 ||
+        xz_shadow.real_fog_end_loc < 0 ||
+        xz_shadow.real_fog_color_loc < 0)
         return 0;
 
     gl->UseProgram(xz_shadow.real_program);
@@ -977,6 +1049,11 @@ static int XzDrawRealGeometry(
     state->last_alpha_test_batches = 0u;
     state->last_modulate_batches = 0u;
     state->real_material_state_ready = 0;
+    state->last_fog_batches = 0u;
+    state->last_cull_batches = 0u;
+    state->last_depth_range_batches = 0u;
+    state->last_polygon_offset_batches = 0u;
+    state->real_raster_state_ready = 0;
 
     gl->UseProgram(xz_shadow.real_program);
     gl->Uniform1i(xz_shadow.real_texture_loc, 0);
@@ -1058,6 +1135,19 @@ static int XzDrawRealGeometry(
         gl->Uniform1f(
             xz_shadow.real_alpha_ref_loc,
             batch->state.alpha_ref);
+        gl->Uniform1i(
+            xz_shadow.real_fog_enabled_loc,
+            batch->state.fog_enabled ? 1 : 0);
+        gl->Uniform1f(
+            xz_shadow.real_fog_start_loc,
+            batch->state.fog_start);
+        gl->Uniform1f(
+            xz_shadow.real_fog_end_loc,
+            batch->state.fog_end);
+        gl->Uniform4fv(
+            xz_shadow.real_fog_color_loc,
+            1,
+            batch->state.fog_color);
 
         {
             int has_real_texture = 0;
@@ -1103,6 +1193,37 @@ static int XzDrawRealGeometry(
             batch->state.depth_write ? GL_TRUE : GL_FALSE);
         gl->DepthFunc(
             XzSafeDepthFunc(batch->state.depth_func));
+        gl->DepthRangef(
+            XzClamp01(batch->state.depth_range[0]),
+            XzClamp01(batch->state.depth_range[1]));
+
+        if (batch->state.cull_enabled) {
+            gl->Enable(GL_CULL_FACE);
+            gl->CullFace(
+                XzSafeCullFace(batch->state.cull_face));
+            gl->FrontFace(
+                XzSafeFrontFace(batch->state.front_face));
+            state->last_cull_batches++;
+        } else {
+            gl->Disable(GL_CULL_FACE);
+        }
+
+        if (batch->state.polygon_offset_enabled) {
+            gl->Enable(GL_POLYGON_OFFSET_FILL);
+            gl->PolygonOffset(
+                batch->state.polygon_offset_factor,
+                batch->state.polygon_offset_units);
+            state->last_polygon_offset_batches++;
+        } else {
+            gl->Disable(GL_POLYGON_OFFSET_FILL);
+        }
+
+        if (batch->state.fog_enabled &&
+            batch->state.fog_end > batch->state.fog_start)
+            state->last_fog_batches++;
+        if (XzAbsFloat(batch->state.depth_range[0]) > 0.0001f ||
+            XzAbsFloat(batch->state.depth_range[1] - 1.0f) > 0.0001f)
+            state->last_depth_range_batches++;
 
         state->last_material_state_batches++;
         if (batch->state.alpha_test_enabled)
@@ -1141,7 +1262,10 @@ static int XzDrawRealGeometry(
 
     gl->DepthMask(GL_TRUE);
     gl->DepthFunc(GL_LEQUAL);
+    gl->DepthRangef(0.0f, 1.0f);
     gl->Disable(GL_BLEND);
+    gl->Disable(GL_CULL_FACE);
+    gl->Disable(GL_POLYGON_OFFSET_FILL);
     gl->Disable(GL_DEPTH_TEST);
 
     state->real_geometry_submissions++;
@@ -1171,6 +1295,10 @@ static int XzDrawRealGeometry(
         state->real_geometry_failures == 0u &&
         state->last_material_state_batches == geometry->batch_count &&
         state->last_lightmap_batches > 0u;
+
+    state->real_raster_state_ready =
+        state->real_geometry_failures == 0u &&
+        state->last_material_state_batches == geometry->batch_count;
 
     return 1;
 }
