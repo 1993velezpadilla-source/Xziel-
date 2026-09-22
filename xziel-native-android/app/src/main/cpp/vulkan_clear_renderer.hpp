@@ -5,6 +5,8 @@
 #include <jni.h>
 #include <vulkan/vulkan.h>
 
+#include "vulkan_static_mesh_renderer.hpp"
+
 #include <array>
 #include <cstdint>
 #include <vector>
@@ -361,6 +363,8 @@ private:
     VkPipeline uiPipeline_ = VK_NULL_HANDLE;
 
     VkCommandPool commandPool_ = VK_NULL_HANDLE;
+
+    VulkanStaticMeshRenderer sanctumMesh_{};
 
     std::vector<VkImage> swapchainImages_;
     std::vector<VkImageView> imageViews_;
