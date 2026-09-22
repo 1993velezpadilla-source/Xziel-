@@ -7,6 +7,7 @@ on:
     paths:
       - "tools/blender/build_cathedral_roster.py"
       - "tools/blender/cathedral_roster.json"
+      - "tools/blender/apply_sister_pass30.py"
       - ".github/workflows/cathedral-production-models.yml"
   workflow_dispatch:
 
@@ -78,6 +79,11 @@ jobs:
           curl -fL --retry 4 https://files2.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip -o /tmp/makehuman_system_assets_cc0.zip
           unzip -q /tmp/makehuman_system_assets_cc0.zip -d /tmp/mhassets
 
+      - name: Apply Sister of Ash pass 30 corrections
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python3 tools/blender/apply_sister_pass30.py
 
       - name: Build Sister of Ash
         shell: bash
@@ -98,8 +104,7 @@ jobs:
           python3 - <<'PY'
           import json
           from pathlib import Path
-          p=Path("assets/generated/cathedral_roster/roster_build_summary.json")
-          d=json.loads(p.read_text())
+          d=json.loads(Path("assets/generated/cathedral_roster/roster_build_summary.json").read_text())
           if d.get("errors"):
               raise SystemExit(f"Blender character build errors: {d['errors']}")
           if "sister_of_ash" not in d.get("built",[]):
@@ -127,7 +132,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "No generated asset changes."
           else
-            git commit -m "art: generate Sister of Ash fidelity pass 29"
+            git commit -m "art: generate Sister of Ash fidelity pass 30"
             git pull --rebase origin art/cathedral-production-models
             git push origin HEAD:art/cathedral-production-models
           fi
@@ -135,7 +140,7 @@ jobs:
       - name: Upload full production artifact
         uses: actions/upload-artifact@v4
         with:
-          name: cathedral-sister-of-ash-pass29
+          name: cathedral-sister-of-ash-pass30
           path: assets/generated/cathedral_roster/
           if-no-files-found: error
           retention-days: 14
