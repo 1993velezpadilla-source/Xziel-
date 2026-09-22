@@ -1210,6 +1210,11 @@ static int XzDrawRealGeometry(
             gl->Disable(GL_BLEND);
         }
 
+        if (batch->state.depth_test_enabled)
+            gl->Enable(GL_DEPTH_TEST);
+        else
+            gl->Disable(GL_DEPTH_TEST);
+
         gl->DepthMask(
             batch->state.depth_write ? GL_TRUE : GL_FALSE);
         gl->DepthFunc(
