@@ -16,7 +16,8 @@ TEXTURE_DIR = RUNTIME_ROOT / "textures" / "xziel" / "sanctum"
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
 TEXTURE_DIR.mkdir(parents=True, exist_ok=True)
 
-TARGET_TRIS = int(os.environ.get("XZIEL_STATIC_TARGET_TRIS", "240000"))
+TARGET_TRIS = int(os.environ.get("XZIEL_STATIC_TARGET_TRIS", "600000"))
+TEXTURE_MAX = int(os.environ.get("XZIEL_STATIC_TEXTURE_MAX", "2048"))
 MAX_TRIS_PER_BATCH = 18000
 QUAKE_SCALE = 39.3700787402
 
@@ -126,7 +127,7 @@ def save_material_texture(mat):
     img = material_image(mat)
     if img and img.size[0] > 0 and img.size[1] > 0:
         copy = img.copy()
-        max_dim = 1024
+        max_dim = TEXTURE_MAX
         w, h = int(copy.size[0]), int(copy.size[1])
         if max(w,h) > max_dim:
             s = max_dim / float(max(w,h))
@@ -158,8 +159,10 @@ def save_material_texture(mat):
     }
     return rel_no_ext
 
-# Gather triangles by material path. Each exported vertex is per-loop, which
-# preserves UV seams exactly and keeps the runtime format simple.
+# Gather triangles by (object, material) instead of by material globally.
+# This keeps batch bounds spatially local so Vril frustum culling can reject
+# entire church rooms/tower sections that are not visible, while preserving
+# the high-detail mobile mesh.
 groups = {}
 bounds_min = Vector((1e30,1e30,1e30))
 bounds_max = Vector((-1e30,-1e30,-1e30))
@@ -173,7 +176,8 @@ for obj in runtime_objects:
         poly = mesh.polygons[tri.polygon_index]
         mat = obj.material_slots[poly.material_index].material if poly.material_index < len(obj.material_slots) else None
         tex = save_material_texture(mat)
-        group = groups.setdefault(tex, [])
+        group_key = (obj.name, tex)
+        group = groups.setdefault(group_key, [])
         verts = []
         for loop_index in tri.loops:
             vi = mesh.loops[loop_index].vertex_index
@@ -192,7 +196,7 @@ for obj in runtime_objects:
 
 # Split each texture group into <= 54k vertices so uint16 indices are safe.
 batches = []
-for tex, tris in groups.items():
+for (object_name, tex), tris in groups.items():
     for start in range(0, len(tris), MAX_TRIS_PER_BATCH):
         chunk = tris[start:start+MAX_TRIS_PER_BATCH]
         vertices = [v for tri in chunk for v in tri]
@@ -202,6 +206,7 @@ for tex, tris in groups.items():
             mn.x=min(mn.x,x); mn.y=min(mn.y,y); mn.z=min(mn.z,z)
             mx.x=max(mx.x,x); mx.y=max(mx.y,y); mx.z=max(mx.z,z)
         batches.append({
+            "object": object_name,
             "texture": tex,
             "vertices": vertices,
             "indices": indices,
@@ -233,7 +238,9 @@ report = {
     "sourceTriangles":source_tris,
     "runtimeTriangles":runtime_tris,
     "targetTriangles":TARGET_TRIS,
+    "textureMaxDimension":TEXTURE_MAX,
     "decimateRatio":ratio,
+    "batching":"object_material_spatial",
     "batchCount":len(batches),
     "textureCount":len(texture_records),
     "totalVertices":sum(len(b["vertices"]) for b in batches),
@@ -259,4 +266,5 @@ print("XZSM_EXPORT_OK", json.dumps({
     "batchCount":len(batches),
     "textureCount":len(texture_records),
     "modelBytes":model_path.stat().st_size,
+    "textureMaxDimension":TEXTURE_MAX,
 }))
