@@ -1,0 +1,29 @@
+# File produced by Open Asset Import Library (http://www.assimp.sf.net)
+# (assimp v5.3.0)
+
+newmtl skin
+Kd 0.110745311 0.378825188 0.639282227
+Ka 0 0 0
+Ks 1 1 1
+Ke 0 0 0
+Tf 0 0 0
+d 1
+Ns 9.6078434
+illum 2
+map_Kd C:\Unity\vrchat sdk\Assets\abridged\1\whale\gydedmeny\skin_c_coor.png
+bump C:\Unity\vrchat sdk\Assets\abridged\1\whale\gydedmeny\skin_n.png
+map_bump C:\Unity\vrchat sdk\Assets\abridged\1\whale\gydedmeny\skin_n.png
+
+newmtl guts
+Kd 0.155893609 0.014514585 0.640000045
+Ka 0 0 0
+Ks 1 1 1
+Ke 0 0 0
+Tf 0 0 0
+d 1
+Ns 9.6078434
+illum 2
+map_Kd C:\Unity\vrchat sdk\Assets\abridged\1\whale\gydedmeny\guts_c.png
+bump C:\Unity\vrchat sdk\Assets\abridged\1\whale\gydedmeny\guts_n.png
+map_bump C:\Unity\vrchat sdk\Assets\abridged\1\whale\gydedmeny\guts_n.png
+
