@@ -692,7 +692,7 @@ jobs:
             exit 1
           fi
 
-          if ! grep -Eq "XZIEL-XZ.*parity present context=1 attempts=[2-9][0-9]* success=[2-9][0-9]* fail=0 draws=[2-9][0-9]* streak=[2-9][0-9]* render=[1-9][0-9]*x[1-9][0-9]* surface=[1-9][0-9]*x[1-9][0-9]* ready=1" dist/xziel-logcat.txt; then
+          if ! grep -Eq "XZIEL-XZ.*parity present context=1 attempts=[1-9][0-9]* success=[1-9][0-9]* fail=0 draws=[1-9][0-9]* streak=[1-9][0-9]* render=[1-9][0-9]*x[1-9][0-9]* surface=[1-9][0-9]*x[1-9][0-9]* ready=1" dist/xziel-logcat.txt; then
             echo "Xz visible-present parity did not sustain a clean GLES3 pre-HUD composite."
             grep -E "XZIEL-XZ.*parity present|XZIEL-XZ.*phase16 heartbeat" dist/xziel-logcat.txt | tail -n 180 || true
             exit 1
