@@ -196,6 +196,32 @@ bool HordeDirector::setArenaBounds(
     return true;
 }
 
+void HordeDirector::clearNavigationFloors() noexcept {
+    navigationFloorCount_ = 0;
+}
+
+bool HordeDirector::addNavigationFloor(
+    const Aabb& floor) noexcept {
+    if (navigationFloorCount_ >=
+            navigationFloors_.size() ||
+        floor.minimum.x > floor.maximum.x ||
+        floor.minimum.y > floor.maximum.y ||
+        floor.minimum.z > floor.maximum.z ||
+        !std::isfinite(floor.minimum.x) ||
+        !std::isfinite(floor.minimum.y) ||
+        !std::isfinite(floor.minimum.z) ||
+        !std::isfinite(floor.maximum.x) ||
+        !std::isfinite(floor.maximum.y) ||
+        !std::isfinite(floor.maximum.z)) {
+        return false;
+    }
+
+    navigationFloors_[
+        navigationFloorCount_++] =
+        floor;
+    return true;
+}
+
 void HordeDirector::clearNavigationObstacles() noexcept {
     navigationObstacleCount_ = 0;
 }
@@ -349,6 +375,7 @@ HordeFrame HordeDirector::step(
         ++frame_.alive;
     }
 
+    resolveNavigationFloors();
     applyCrowdSeparation();
     resolveNavigationPenetration();
     constrainToArena();
@@ -894,6 +921,62 @@ void HordeDirector::applyCrowdSeparation() noexcept {
                 translateHorizontal(
                     -pushX,
                     -pushZ);
+        }
+    }
+}
+
+void HordeDirector::resolveNavigationFloors() noexcept {
+    if (navigationFloorCount_ == 0U) {
+        return;
+    }
+
+    constexpr float kMaximumStep = 0.38f;
+
+    for (auto& zombieSlot : zombies_) {
+        if (!zombieSlot.has_value() ||
+            zombieSlot->frame().state ==
+                ZombieState::Dead) {
+            continue;
+        }
+
+        const auto position =
+            zombieSlot->frame().position;
+
+        bool found = false;
+        float bestY = -std::numeric_limits<float>::infinity();
+
+        for (std::size_t i = 0;
+             i < navigationFloorCount_;
+             ++i) {
+            const auto& floor =
+                navigationFloors_[i];
+
+            if (position.x < floor.minimum.x ||
+                position.x > floor.maximum.x ||
+                position.z < floor.minimum.z ||
+                position.z > floor.maximum.z) {
+                continue;
+            }
+
+            const float top =
+                floor.maximum.y;
+
+            if (std::fabs(
+                    top -
+                    position.y) >
+                kMaximumStep) {
+                continue;
+            }
+
+            if (!found || top > bestY) {
+                bestY = top;
+                found = true;
+            }
+        }
+
+        if (found) {
+            zombieSlot->setFeetY(
+                bestY);
         }
     }
 }
