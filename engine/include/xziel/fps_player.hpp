@@ -125,7 +125,7 @@ private:
         kMaximumStaticObstacles = 192;
 
     static constexpr std::size_t
-        kMaximumDynamicObstacles = 32;
+        kMaximumDynamicObstacles = 64;
 
     FpsPlayerConfig config_{};
     MobileMovementResolver mobileResolver_{};
