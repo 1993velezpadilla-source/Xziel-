@@ -649,25 +649,26 @@ def sister_fitted_face_wimple(body,h,mats):
     return out
 
 def sister_closed_shoes(body,h,mats):
-    leather=mat("M_SisterClosedShoes","#171516",.76,0,noise=True)
+    """Pass 28: low-profile closed leather shoes. Fixed human-scale proportions avoid bbox inflation."""
+    leather=mat("M_SisterClosedShoes","#171516",.80,0,noise=True)
+    sole_mat=mat("M_SisterSole","#0D0C0D",.88,0,noise=True)
     out=[]
+    # MPFB feet are already planted at z=0. Keep the shoe upper close to that anatomy.
     for sign,label in ((-1,"L"),(1,"R")):
-        pts=[v.co.copy() for v in body.data.vertices if v.co.z/h<.130 and v.co.x*sign>0]
-        if not pts: continue
-        lo=Vector((min(p.x for p in pts),min(p.y for p in pts),min(p.z for p in pts)))
-        hi=Vector((max(p.x for p in pts),max(p.y for p in pts),max(p.z for p in pts)))
-        center=(lo+hi)*.5
-        # Rounded closed shoe upper enclosing toes completely.
-        shoe=uv_sphere("SisterClosedShoe_"+label,
-            (center.x,center.y-.012*h,center.z+.016*h),
-            ((hi.x-lo.x)*.64+.014*h,(hi.y-lo.y)*.62+.026*h,(hi.z-lo.z)*.44+.018*h),
-            leather)
-        out.append(shoe)
-        # Thin sole below foot.
+        foot=[v.co.copy() for v in body.data.vertices
+              if v.co.z/h < .075 and v.co.x*sign > .010*h]
+        if foot:
+            cx=sum(p.x for p in foot)/len(foot)
+            cy=sum(p.y for p in foot)/len(foot)
+        else:
+            cx=sign*.047*h; cy=-.018*h
+        # Anatomical closed upper: narrow across X, longer along Y, shallow in Z.
+        upper=uv_sphere("SisterClosedShoe_"+label,
+            (cx,cy-.010*h,.027*h),(.036*h,.066*h,.024*h),leather)
+        upper.rotation_euler.x=math.radians(3)
+        out.append(upper)
         sole=cube("SisterClosedSole_"+label,
-            (center.x,center.y-.010*h,lo.z+.010*h),
-            ((hi.x-lo.x)*.58+.012*h,(hi.y-lo.y)*.60+.024*h,.010*h),
-            leather,.006*h)
+            (cx,cy-.012*h,.010*h),(.038*h,.069*h,.0065*h),sole_mat,.003*h)
         out.append(sole)
     return out
 
@@ -691,10 +692,12 @@ def priority_head_cover(body,h,style,mats):
         ivory=mats["dirty_ivory"]; blue=mats["ash_blue"]
         out.append(nun_coif_cap("NunInnerCoif",h,ivory,.070,.060,.109,.898,.11))
         out.append(nun_coif_cap("NunOuterHood",h,blue,.079,.068,.120,.897,.63))
-        out.extend(sister_fitted_face_wimple(body,h,mats))
-        neck=body_region_shell(body,"NunNeckWimple",ivory,
-            lambda q:.728<q.z/h<.842 and abs(q.x/h)<.130 and q.y/h<.145,.0033*h)
-        if neck: out.append(neck)
+        # Pass 28: one continuous fitted wimple frame instead of disconnected copied body islands.
+        out.append(sister_wimple_frame(body,h,ivory))
+        # Continuous shoulder/chest wimple layer; no floating neck-shell fragments.
+        out.append(garment_shell("NunShoulderWimple",h,ivory,[
+            (.735,.132,.092,0),(.770,.124,.087,0),(.805,.110,.080,0),(.835,.092,.073,0)
+        ],96,.018,.35,1))
         out.append(drape_open("NunBackVeil",h,blue,[
             (.946,.066,.056),(.916,.073,.062),(.882,.081,.068),(.846,.090,.075),
             (.810,.101,.083),(.776,.113,.091),(.744,.126,.099),(.714,.137,.106)
@@ -1754,7 +1757,7 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService,TargetServi
     bpy.context.view_layer.update()
     png=preview(body,folder,style)
     tri=sum(sum(max(1,len(p.vertices)-2) for p in o.data.polygons) for o in objs if o.type=="MESH")
-    manifest={"id":ch["id"],"name":ch["name"],"category":ch["category"],"style":style,"height_m":ch["height_m"],"rig":"game_engine","bones":len(rig.data.bones),"triangles_estimate":tri,"animations":ch["animations"],"materials":ch["palette"],"outputs":[glb.name,fbx.name,blend.name,png.name,"preview_side.png","preview_back.png","preview_face.png"],"production_status":"Sister of Ash pass 27 — fitted non-ring wimple, guaranteed full sleeves, bbox closed shoes, stronger cloth folds, facial scars and deeper corpse mouth"}
+    manifest={"id":ch["id"],"name":ch["name"],"category":ch["category"],"style":style,"height_m":ch["height_m"],"rig":"game_engine","bones":len(rig.data.bones),"triangles_estimate":tri,"animations":ch["animations"],"materials":ch["palette"],"outputs":[glb.name,fbx.name,blend.name,png.name,"preview_side.png","preview_back.png","preview_face.png"],"production_status":"Sister of Ash pass 28 — human-scale closed shoes, continuous fitted wimple/shoulder cloth, full crown coverage, sleeves and corpse face retained"}
     (folder/"manifest.json").write_text(json.dumps(manifest,indent=2),encoding="utf-8")
     return manifest
 
