@@ -2396,8 +2396,9 @@ extern "C" void android_main(
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_SANCTUM_GAMEPLAY_READY boxes=%zu doors=%zu windows=%zu spawns=%zu playerSpawn=%d arena=%d",
+            "XZIEL_SANCTUM_GAMEPLAY_READY boxes=%zu floors=%zu doors=%zu windows=%zu spawns=%zu playerSpawn=%d arena=%d",
             nativeMapLoad.playerColliders,
+            nativeMapLoad.walkableFloors,
             nativeMapLoad.doors,
             nativeMapLoad.windows,
             nativeMapLoad.zombieSpawns,
