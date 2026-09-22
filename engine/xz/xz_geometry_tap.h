@@ -37,7 +37,7 @@ typedef struct {
     uint64_t generation;
     XzGeometryBatch batches[XZ_GEOMETRY_MAX_BATCHES];
     XzGeometryVertex vertices[XZ_GEOMETRY_MAX_VERTICES];
-    uint16_t indices[XZ_GEOMETRY_MAX_INDICES];
+    uint32_t indices[XZ_GEOMETRY_MAX_INDICES];
 
     unsigned int batch_count;
     unsigned int vertex_count;
