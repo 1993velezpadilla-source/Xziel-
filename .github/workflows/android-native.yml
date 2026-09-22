@@ -22,6 +22,7 @@ on:
       - feature/xz-material-lightmap-parity
       - feature/xz-fog-renderstate-parity
       - feature/xz-effects-geometry-parity
+      - feature/xz-immediate-geometry-parity
     paths:
       - ".github/workflows/android-native.yml"
       - "android/**"
@@ -683,7 +684,7 @@ jobs:
             exit 1
           fi
 
-          if ! grep -Eq "XZIEL-XZ.*parity geometry generation=[1-9][0-9]* batches=[1-9][0-9]* vertices=[1-9][0-9]* indices=[1-9][0-9]* kinds=[1-9][0-9]*/[1-9][0-9]*/[1-9][0-9]*/[0-9]+ drops=0/0/0 g3sub=[1-9][0-9]* g3draw=[1-9][0-9]* g3verts=[1-9][0-9]* g3indices=[1-9][0-9]* g3fail=0 kindMask=0x[7fF] ready=1" dist/xziel-logcat.txt; then
+          if ! grep -Eq "XZIEL-XZ.*parity geometry generation=[1-9][0-9]* batches=[1-9][0-9]* vertices=[1-9][0-9]* indices=[1-9][0-9]* kinds=[1-9][0-9]*/[1-9][0-9]*/[1-9][0-9]*/[0-9]+/[0-9]+ drops=0/0/0 g3sub=[1-9][0-9]* g3draw=[1-9][0-9]* g3verts=[1-9][0-9]* g3indices=[1-9][0-9]* g3fail=0 kindMask=0x[0-9a-fA-F]+ ready=1" dist/xziel-logcat.txt; then
             echo "Xz real-geometry parity did not capture and render all Vril geometry classes cleanly."
             grep -E "XZIEL-XZ.*parity geometry" dist/xziel-logcat.txt | tail -n 120 || true
             exit 1
@@ -701,13 +702,19 @@ jobs:
             exit 1
           fi
 
+          if ! grep -Eq "XZIEL-XZ.*parity immediate current=[1-9][0-9]* seen=1 depthOff=[0-9]+" dist/xziel-logcat.txt; then
+            echo "Xz immediate-mode parity did not capture/replay sky, water or projected shadow geometry."
+            grep -E "XZIEL-XZ.*parity immediate|XZIEL-XZ.*parity geometry|XZIEL-XZ.*parity effects|XZIEL-XZ.*phase16 heartbeat" dist/xziel-logcat.txt | tail -n 200 || true
+            exit 1
+          fi
+
           if ! grep -Eq "XZIEL-XZ.*parity material state=[1-9][0-9]* blend=[1-9][0-9]* lightmap=[1-9][0-9]* alpha=[0-9]+ modulate=[1-9][0-9]* ready=1" dist/xziel-logcat.txt; then
             echo "Xz material/lightmap parity did not replay the captured Vril fixed-function state cleanly."
             grep -E "XZIEL-XZ.*parity material|XZIEL-XZ.*parity geometry|XZIEL-XZ.*parity texture" dist/xziel-logcat.txt | tail -n 180 || true
             exit 1
           fi
 
-          if ! grep -Eq "XZIEL-XZ.*parity raster fog=[1-9][0-9]* cull=[1-9][0-9]* depthRange=[1-9][0-9]* offset=[0-9]+ ready=1" dist/xziel-logcat.txt; then
+          if ! grep -Eq "XZIEL-XZ.*parity raster fog=[1-9][0-9]* cull=[1-9][0-9]* depthRange=[1-9][0-9]* offset=[0-9]+ depthOff=[0-9]+ ready=1" dist/xziel-logcat.txt; then
             echo "Xz fog/raster parity did not replay deterministic fog, culling and viewmodel depth-range state."
             grep -E "XZIEL-XZ.*parity raster|XZIEL-XZ.*parity material|XZIEL-XZ.*phase16 heartbeat" dist/xziel-logcat.txt | tail -n 180 || true
             exit 1
@@ -725,7 +732,7 @@ jobs:
             exit 1
           fi
 
-          echo "Xziel remained alive; REAL_GEOMETRY + REAL_TEXTURES + MATERIAL_LIGHTMAP + FOG_RASTER + EFFECTS + VISIBLE_PRESENT parity are live and MODERN is active."
+          echo "Xziel remained alive; REAL_GEOMETRY + REAL_TEXTURES + MATERIAL_LIGHTMAP + FOG_RASTER + EFFECTS + IMMEDIATE_3D + VISIBLE_PRESENT parity are live and MODERN is active."
 
       - name: Upload runtime diagnostics
         if: always()
