@@ -1007,9 +1007,12 @@ static int XzDrawRealGeometry(
     XzNativeGles3Api *gl = &xz_shadow.gl;
     unsigned int i;
     unsigned int kind_mask = 0u;
-    unsigned int required_kind_mask = 0u;
+    /* A visible gameplay world is not eligible for takeover until both
+     * alias geometry (view/world models) and BSP surfaces are live. Optional
+     * classes are required only when the current frame actually contains them. */
+    unsigned int required_kind_mask = 0x3u;
     unsigned int texture_kind_mask = 0u;
-    unsigned int required_texture_kind_mask = 0u;
+    unsigned int required_texture_kind_mask = 0x3u;
     unsigned int texture_misses = 0u;
     unsigned int texture_batches = 0u;
     unsigned int drops;
@@ -1109,11 +1112,7 @@ static int XzDrawRealGeometry(
         const XzGeometryBatch *batch =
             &geometry->batches[i];
 
-        if (batch->kind == XZ_GEOMETRY_ALIAS)
-            required_kind_mask |= 1u;
-        else if (batch->kind == XZ_GEOMETRY_SURFACE)
-            required_kind_mask |= 2u;
-        else if (batch->kind == XZ_GEOMETRY_SPRITE)
+        if (batch->kind == XZ_GEOMETRY_SPRITE)
             required_kind_mask |= 4u;
         else if (batch->kind == XZ_GEOMETRY_EFFECT)
             required_kind_mask |= 8u;
@@ -1181,11 +1180,7 @@ static int XzDrawRealGeometry(
 
             if (batch->state.texture_enabled) {
                 texture_batches++;
-                if (batch->kind == XZ_GEOMETRY_ALIAS)
-                    required_texture_kind_mask |= 1u;
-                else if (batch->kind == XZ_GEOMETRY_SURFACE)
-                    required_texture_kind_mask |= 2u;
-                else if (batch->kind == XZ_GEOMETRY_SPRITE)
+                if (batch->kind == XZ_GEOMETRY_SPRITE)
                     required_texture_kind_mask |= 4u;
 
                 if (!XzBindRealTexture(
@@ -1327,7 +1322,6 @@ static int XzDrawRealGeometry(
 
     state->real_geometry_ready =
         state->real_geometry_failures == 0u &&
-        required_kind_mask != 0u &&
         (kind_mask & required_kind_mask) == required_kind_mask;
     if (geometry->effect_batches > 0u &&
         state->real_geometry_failures == 0u &&
