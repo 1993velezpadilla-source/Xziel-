@@ -33,12 +33,14 @@ if target.animation_data is None:
     target.animation_data_create()
 
 # Import CMU FBX into the official source scene.
-before=set(o.name for o in bpy.data.objects if o.type=="ARMATURE")
+before_objects=set(o.name for o in bpy.data.objects)
+before_armatures=set(o.name for o in bpy.data.objects if o.type=="ARMATURE")
 bpy.ops.import_scene.fbx(filepath=str(Path(args.mocap).resolve()))
-sources=[o for o in bpy.data.objects if o.type=="ARMATURE" and o.name not in before and o!=target]
+sources=[o for o in bpy.data.objects if o.type=="ARMATURE" and o.name not in before_armatures and o!=target]
 if len(sources)!=1:
     raise SystemExit("expected exactly one imported CMU armature, got "+repr([o.name for o in sources]))
 source=sources[0]
+source_name=source.name
 if source.animation_data is None or source.animation_data.action is None:
     # FBX importer can leave the action datablock present but detached.
     candidates=[a for a in bpy.data.actions if a!=base and source.name.lower() in a.name.lower()]
@@ -129,7 +131,7 @@ for start,end,phase in walk_groups:
 
 # Remove imported CMU objects before exporting the NZ:P model.
 for obj in list(bpy.data.objects):
-    if obj==source or obj.name not in before and obj!=target and obj.type in {"MESH","ARMATURE","EMPTY"}:
+    if obj.name not in before_objects and obj!=target and obj.type in {"MESH","ARMATURE","EMPTY"}:
         try: bpy.data.objects.remove(obj,do_unlink=True)
         except Exception: pass
 
@@ -196,7 +198,7 @@ for label in parts:
 report={
     "name":args.name,
     "mocap":args.mocap,
-    "source_armature":source.name,
+    "source_armature":source_name,
     "source_action":src_action.name,
     "source_frame_range":[src_start,src_end],
     "target_action":variant.name,
