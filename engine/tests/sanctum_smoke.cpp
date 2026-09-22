@@ -5,6 +5,30 @@
 #include <cassert>
 
 int main() {
+    const auto profile =
+        xziel::makeSanctumGameplayProfile();
+
+    assert(profile.vitals.maxHealth == 68.0f);
+    assert(!profile.vitals.autoRespawn);
+    assert(profile.horde.interRoundDelaySeconds >= 5.0f);
+    assert(profile.score.startingPoints == 500U);
+    assert(profile.horror.stingerCooldownSeconds >= 18.0f);
+    assert(!profile.showQuestChecklistHud);
+    assert(!profile.showPassivePresenceMarkers);
+    assert(!profile.autoRevealSecrets);
+
+    xziel::PlayerVitals vulnerablePlayer{
+        profile.vitals};
+
+    assert(
+        vulnerablePlayer.applyDamage(
+            xziel::ZombieConfig{}.attackDamage));
+    assert(vulnerablePlayer.frame().alive);
+    assert(
+        vulnerablePlayer.applyDamage(
+            xziel::ZombieConfig{}.attackDamage));
+    assert(!vulnerablePlayer.frame().alive);
+
     xziel::AcousticGraph acoustics;
     assert(
         xziel::SanctumAtmosphere::
