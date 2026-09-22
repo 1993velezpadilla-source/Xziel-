@@ -1359,6 +1359,18 @@ static int XzDrawRealGeometry(
         state->real_geometry_failures == 0u &&
         state->last_material_state_batches == geometry->batch_count;
 
+    if (state->real_geometry_ready &&
+        state->real_textures_ready &&
+        state->real_material_state_ready &&
+        state->real_raster_state_ready &&
+        geometry->surface_batches > 0u &&
+        geometry->batch_count >= 8u) {
+        if (state->real_scene_ready_streak < 1000000u)
+            state->real_scene_ready_streak++;
+    } else {
+        state->real_scene_ready_streak = 0u;
+    }
+
     return 1;
 }
 
@@ -3080,7 +3092,15 @@ int XzGles3Shadow_CompositeVisibleWorld(
         !state->visible_context_ready ||
         xz_shadow.visible_context == EGL_NO_CONTEXT ||
         !state->real_geometry_ready ||
-        !state->real_textures_ready)
+        !state->real_textures_ready ||
+        state->real_scene_ready_streak < 4u ||
+        geometry->surface_batches == 0u ||
+        geometry->batch_count < 8u ||
+        geometry->vertex_count == 0u ||
+        geometry->index_count == 0u ||
+        geometry->dropped_batches != 0u ||
+        geometry->dropped_vertices != 0u ||
+        geometry->dropped_indices != 0u)
         return 0;
 
     if (render_width < 64u)
