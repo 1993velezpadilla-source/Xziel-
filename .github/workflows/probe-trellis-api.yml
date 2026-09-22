@@ -1,0 +1,27 @@
+name: Probe TRELLIS API
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - art/llorona-meshy-pipeline
+    paths:
+      - .github/workflows/probe-trellis-api.yml
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install client
+        run: python3 -m pip install "gradio_client==1.14.0"
+      - name: Print TRELLIS API contract
+        run: |
+          python3 - <<'PY'
+          import json
+          from gradio_client import Client
+          c = Client("trellis-community/TRELLIS", verbose=False)
+          info = c.view_api(print_info=False, return_format="dict")
+          print(json.dumps(info, indent=2, default=str))
+          PY
