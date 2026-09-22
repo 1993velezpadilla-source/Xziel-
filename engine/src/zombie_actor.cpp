@@ -268,6 +268,12 @@ void ZombieActor::translateHorizontal(
     }
 }
 
+void ZombieActor::setFeetY(float y) noexcept {
+    if (std::isfinite(y)) {
+        frame_.position.y = y;
+    }
+}
+
 Aabb ZombieActor::bounds() const noexcept {
     return {
         .minimum = {

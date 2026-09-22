@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "nightmare_monsters",
+      "license": "CC0",
+      "sourcePage": "https://opengameart.org/content/nightmare-monsters",
+      "fbxCount": 52
+    },
+    {
+      "id": "glance",
+      "license": "CC0",
+      "sourcePage": "https://opengameart.org/content/glance"
+    },
+    {
+      "id": "animated_characters_pack",
+      "license": "CC0",
+      "sourcePage": "https://opengameart.org/content/animated-characters-pack"
+    },
+    {
+      "id": "universal_animation_library_2",
+      "license": "CC0",
+      "sourcePage": "https://opengameart.org/content/universal-animation-library-2",
+      "animationFileCount": 2
+    }
+  ]
+}

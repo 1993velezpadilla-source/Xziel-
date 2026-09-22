@@ -1,0 +1,15 @@
+{
+  "target": "la_llorona",
+  "primarySources": [
+    "old_lady",
+    "female_character",
+    "female_body"
+  ],
+  "copiedSources": [
+    "old_lady",
+    "female_character",
+    "female_body"
+  ],
+  "reason": "adult female apparition; long wet hair, layered dress and rosary",
+  "rule": "These are starting meshes, not final Sanctum character art."
+}

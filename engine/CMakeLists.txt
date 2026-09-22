@@ -16,6 +16,7 @@ add_library(xziel_engine STATIC
     src/horde_director.cpp
     src/zombie_hit_regions.cpp
     src/score.cpp
+    src/survival_systems.cpp
     src/interaction.cpp
     src/barricade.cpp
     src/zombie_window.cpp
@@ -45,6 +46,8 @@ add_library(xziel_engine STATIC
     src/gpu_scene.cpp
     src/acoustics.cpp
     src/asset_provenance.cpp
+    src/sanctum.cpp
+    src/static_mesh.cpp
 )
 
 target_include_directories(xziel_engine
@@ -105,6 +108,11 @@ if(XZIEL_ENGINE_BUILD_TESTS)
     target_link_libraries(xziel_score_smoke PRIVATE xziel_engine)
     target_compile_features(xziel_score_smoke PRIVATE cxx_std_20)
     add_test(NAME xziel_score_smoke COMMAND xziel_score_smoke)
+
+    add_executable(xziel_survival_systems_smoke tests/survival_systems_smoke.cpp)
+    target_link_libraries(xziel_survival_systems_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_survival_systems_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_survival_systems_smoke COMMAND xziel_survival_systems_smoke)
 
     add_executable(xziel_player_vitals_smoke tests/player_vitals_smoke.cpp)
     target_link_libraries(xziel_player_vitals_smoke PRIVATE xziel_engine)
@@ -260,6 +268,16 @@ if(XZIEL_ENGINE_BUILD_TESTS)
     target_link_libraries(xziel_acoustics_smoke PRIVATE xziel_engine)
     target_compile_features(xziel_acoustics_smoke PRIVATE cxx_std_20)
     add_test(NAME xziel_acoustics_smoke COMMAND xziel_acoustics_smoke)
+
+    add_executable(xziel_sanctum_smoke tests/sanctum_smoke.cpp)
+    target_link_libraries(xziel_sanctum_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_sanctum_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_sanctum_smoke COMMAND xziel_sanctum_smoke)
+
+    add_executable(xziel_static_mesh_smoke tests/static_mesh_smoke.cpp)
+    target_link_libraries(xziel_static_mesh_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_static_mesh_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_static_mesh_smoke COMMAND xziel_static_mesh_smoke)
 
     add_executable(xziel_asset_provenance_smoke tests/asset_provenance_smoke.cpp)
     target_link_libraries(xziel_asset_provenance_smoke PRIVATE xziel_engine)

@@ -1,0 +1,13 @@
+{
+  "target": "reliquary_horror",
+  "primarySources": [
+    "giant_mutant",
+    "monster"
+  ],
+  "copiedSources": [
+    "giant_mutant",
+    "monster"
+  ],
+  "reason": "boss-scale creature base plus custom shrine/back structure",
+  "rule": "These are starting meshes, not final Sanctum character art."
+}

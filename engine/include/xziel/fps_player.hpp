@@ -63,6 +63,21 @@ public:
 
     void reset() noexcept;
 
+    void setSpawn(
+        Vec3 feetPosition,
+        float yawDegrees) noexcept;
+
+    [[nodiscard]] bool setHorizontalBounds(
+        float minimumX,
+        float maximumX,
+        float minimumZ,
+        float maximumZ) noexcept;
+
+    void clearWalkableSurfaces() noexcept;
+
+    [[nodiscard]] bool addWalkableSurface(
+        const Aabb& surface) noexcept;
+
     void clearStaticObstacles() noexcept;
 
     [[nodiscard]] bool addStaticObstacle(
@@ -106,16 +121,30 @@ private:
     void resolveStaticCollision(
         const Vec3& previousFeetPosition) noexcept;
 
+    void resolveWalkableSupport(
+        const Vec3& previousFeetPosition) noexcept;
+
+    [[nodiscard]] bool findWalkableSupport(
+        float x,
+        float z,
+        float referenceFeetY,
+        float maximumStepUp,
+        float maximumStepDown,
+        float& supportY) const noexcept;
+
     [[nodiscard]] bool overlapsObstacle(
         float x,
         float z,
         const Aabb& obstacle) const noexcept;
 
     static constexpr std::size_t
-        kMaximumStaticObstacles = 64;
+        kMaximumStaticObstacles = 256;
 
     static constexpr std::size_t
-        kMaximumDynamicObstacles = 32;
+        kMaximumWalkableSurfaces = 256;
+
+    static constexpr std::size_t
+        kMaximumDynamicObstacles = 64;
 
     FpsPlayerConfig config_{};
     MobileMovementResolver mobileResolver_{};
@@ -126,6 +155,11 @@ private:
         staticObstacles_{};
 
     std::size_t staticObstacleCount_ = 0;
+
+    std::array<Aabb, kMaximumWalkableSurfaces>
+        walkableSurfaces_{};
+
+    std::size_t walkableSurfaceCount_ = 0;
 
     struct DynamicObstacle {
         std::uint32_t id = 0;

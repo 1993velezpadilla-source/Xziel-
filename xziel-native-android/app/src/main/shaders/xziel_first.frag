@@ -67,6 +67,28 @@ vec3 materialBase(int material, float pulse) {
         return vec3(0.095, 0.115, 0.135);
     }
 
+    if (material == 15) {
+        // Warm, worn furniture/wood tone for the native rifle viewmodel.
+        return vec3(0.085, 0.032, 0.014);
+    }
+
+    if (material == 16) {
+        // Matte black polymer/rubber. Kept almost neutral so moonlight does
+        // not turn the first-person weapon into a bright cyan prototype.
+        return vec3(0.018, 0.022, 0.026);
+    }
+
+    if (material == 17) {
+        // Desaturated dead flesh. Keep it organic without the bright green
+        // proxy tone that made zombies read like debug mannequins.
+        return vec3(0.105, 0.078, 0.058);
+    }
+
+    if (material == 18) {
+        // Torn, rain-darkened clothing.
+        return vec3(0.026, 0.032, 0.028);
+    }
+
     vec3 core = vec3(0.12, 0.015, 0.040);
     vec3 hot = vec3(0.78, 0.025, 0.22);
     return mix(core, hot, 0.30 + 0.32 * pulse);
@@ -85,11 +107,27 @@ void main() {
 
     vec3 base = materialBase(vMaterial, pulse);
 
+    bool viewmodelMaterial =
+        (vMaterial >= 10 &&
+         vMaterial <= 12) ||
+        (vMaterial >= 15 &&
+         vMaterial <= 16);
+
     float floorCold =
         smoothstep(-1.55, -0.6, -vWorldPosition.y);
 
     vec3 coldBounce = vec3(0.015, 0.08, 0.12) * floorCold;
-    vec3 magentaRim = vec3(0.60, 0.02, 0.18) * rim * (0.10 + 0.18 * pulse);
+
+    float horrorRimScale =
+        (vMaterial == 17 ||
+         vMaterial == 18)
+        ? 0.022
+        : (0.10 + 0.18 * pulse);
+
+    vec3 magentaRim =
+        vec3(0.60, 0.02, 0.18) *
+        rim *
+        horrorRimScale;
 
     float wetness =
         clamp(
@@ -102,6 +140,79 @@ void main() {
             vEnvironment.y,
             0.0,
             2.0);
+
+    if (viewmodelMaterial) {
+        // Viewmodel coordinates are camera-local, not world-space. The old
+        // path applied floor/cold-bounce lighting to those coordinates and
+        // made the gun read as a large cyan block. Give first-person parts a
+        // dedicated neutral key/fill response instead.
+        vec3 viewKeyDirection =
+            normalize(
+                vec3(
+                    -0.42,
+                     0.62,
+                    -0.66));
+        vec3 viewSpecDirection =
+            normalize(
+                vec3(
+                     0.30,
+                     0.46,
+                    -0.84));
+
+        float viewKey =
+            max(
+                dot(
+                    normal,
+                    viewKeyDirection),
+                0.0);
+        float viewSpec =
+            pow(
+                max(
+                    dot(
+                        normal,
+                        viewSpecDirection),
+                    0.0),
+                12.0);
+
+        float metalResponse =
+            vMaterial == 10
+            ? 0.34
+            : (vMaterial == 16 ? 0.10 : 0.05);
+
+        vec3 viewLit =
+            base *
+                (0.46 +
+                 viewKey * 0.94)
+            + vec3(
+                  0.030,
+                  0.027,
+                  0.024)
+            + vec3(0.42) *
+                viewSpec *
+                metalResponse
+            + vec3(
+                  0.40,
+                  0.48,
+                  0.66) *
+                lightning *
+                0.18;
+
+        if (vMaterial == 11) {
+            viewLit +=
+                vec3(
+                    1.0,
+                    0.12,
+                    0.015) *
+                (0.60 +
+                 pulse * 0.85);
+        }
+
+        outColor =
+            vec4(
+                viewLit,
+                1.0);
+        return;
+    }
 
     float rainIntensity =
         clamp(
@@ -510,13 +621,8 @@ void main() {
                 (0.22 + glossy * 0.18);
     }
 
-    if (vMaterial >= 10) {
-        if (vMaterial == 11) {
-            lit +=
-                vec3(1.0, 0.15, 0.02) *
-                (0.35 + pulse * 0.55);
-        }
-
+    if (vMaterial == 13 ||
+        vMaterial == 14) {
         outColor =
             vec4(
                 lit,

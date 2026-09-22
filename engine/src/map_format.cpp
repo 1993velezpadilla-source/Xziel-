@@ -69,6 +69,7 @@ bool parseMapText(
 
     std::string line;
     std::size_t lineNumber = 0;
+    std::uint32_t mapVersion = 0;
     bool headerSeen = false;
 
     while (std::getline(source, line)) {
@@ -98,8 +99,7 @@ bool parseMapText(
                 return false;
             }
 
-            std::uint32_t version = 0;
-            if (!(record >> version) ||
+            if (!(record >> mapVersion) ||
                 !onlyWhitespaceRemaining(record)) {
                 error = {
                     MapParseErrorCode::MalformedRecord,
@@ -108,7 +108,8 @@ bool parseMapText(
                 return false;
             }
 
-            if (version != 1U) {
+            if (mapVersion != 1U &&
+                mapVersion != 2U) {
                 error = {
                     MapParseErrorCode::UnsupportedVersion,
                     lineNumber,
@@ -117,6 +118,114 @@ bool parseMapText(
             }
 
             headerSeen = true;
+            continue;
+        }
+
+        if (type == "player_spawn") {
+            if (mapVersion < 2U ||
+                destination.hasPlayerSpawn ||
+                !(record >>
+                  destination.playerSpawnFeet.x >>
+                  destination.playerSpawnFeet.y >>
+                  destination.playerSpawnFeet.z >>
+                  destination.playerSpawnYawDegrees) ||
+                !onlyWhitespaceRemaining(record)) {
+                error = {
+                    MapParseErrorCode::MalformedRecord,
+                    lineNumber,
+                };
+                return false;
+            }
+
+            destination.hasPlayerSpawn = true;
+            continue;
+        }
+
+        if (type == "zombie_spawn") {
+            if (mapVersion < 2U ||
+                destination.zombieSpawnCount >=
+                    destination.zombieSpawns.size()) {
+                error = {
+                    mapVersion < 2U
+                        ? MapParseErrorCode::MalformedRecord
+                        : MapParseErrorCode::CapacityExceeded,
+                    lineNumber,
+                };
+                return false;
+            }
+
+            Vec3 spawn{};
+            if (!(record >>
+                  spawn.x >>
+                  spawn.y >>
+                  spawn.z) ||
+                !onlyWhitespaceRemaining(record)) {
+                error = {
+                    MapParseErrorCode::MalformedRecord,
+                    lineNumber,
+                };
+                return false;
+            }
+
+            destination.zombieSpawns[
+                destination.zombieSpawnCount++] =
+                spawn;
+            continue;
+        }
+
+        if (type == "arena") {
+            if (mapVersion < 2U ||
+                destination.hasArenaBounds ||
+                !(record >>
+                  destination.arenaMinimumX >>
+                  destination.arenaMaximumX >>
+                  destination.arenaMinimumZ >>
+                  destination.arenaMaximumZ) ||
+                !onlyWhitespaceRemaining(record)) {
+                error = {
+                    MapParseErrorCode::MalformedRecord,
+                    lineNumber,
+                };
+                return false;
+            }
+
+            destination.hasArenaBounds = true;
+            continue;
+        }
+
+        if (type == "floor") {
+            if (mapVersion < 2U ||
+                destination.floorCount >=
+                    destination.floors.size()) {
+                error = {
+                    mapVersion < 2U
+                        ? MapParseErrorCode::MalformedRecord
+                        : MapParseErrorCode::CapacityExceeded,
+                    lineNumber,
+                };
+                return false;
+            }
+
+            MapFloorDefinition floor{};
+            if (!(record >>
+                  floor.id >>
+                  floor.bounds.minimum.x >>
+                  floor.bounds.minimum.y >>
+                  floor.bounds.minimum.z >>
+                  floor.bounds.maximum.x >>
+                  floor.bounds.maximum.y >>
+                  floor.bounds.maximum.z) ||
+                !onlyWhitespaceRemaining(record)) {
+                error = {
+                    MapParseErrorCode::MalformedRecord,
+                    lineNumber,
+                };
+                return false;
+            }
+
+            destination.floors[
+                destination.floorCount++] =
+                floor;
             continue;
         }
 

@@ -1,0 +1,492 @@
+name: Sanctum Native HQ Android
+
+on:
+  push:
+    branches:
+      - feature/sanctum-native-xziel-v1
+    paths:
+      - ".github/workflows/sanctum-native-hq-android.yml"
+      - "engine/**"
+      - "xziel-native-android/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: sanctum-native-hq-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-sanctum-native-hq:
+    runs-on: ubuntu-latest
+    timeout-minutes: 80
+    env:
+      SANCTUM_ASSET_SHA: eb122ddbe4cbb1250ba152d13fbd95109443226c
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Wait for HQ church asset export
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          RUN_ID=""
+          for i in $(seq 1 120); do
+            RESPONSE="$(gh api               "/repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${SANCTUM_ASSET_SHA}&per_page=20")"
+
+            RUN_ID="$(jq -r '
+              .workflow_runs[]
+              | select(.name == "Build Church Map with Blender")
+              | .id
+            ' <<<"$RESPONSE" | head -n 1)"
+
+            if [[ -n "$RUN_ID" && "$RUN_ID" != "null" ]]; then
+              STATUS="$(gh api                 "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}"                 --jq '.status')"
+              CONCLUSION="$(gh api                 "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}"                 --jq '.conclusion // ""')"
+
+              echo "Sanctum HQ asset run ${RUN_ID}: ${STATUS} ${CONCLUSION}"
+
+              if [[ "$STATUS" == "completed" ]]; then
+                test "$CONCLUSION" = "success"
+                echo "SANCTUM_ASSET_RUN_ID=${RUN_ID}" >> "$GITHUB_ENV"
+                exit 0
+              fi
+            else
+              echo "Waiting for asset run for ${SANCTUM_ASSET_SHA}"
+            fi
+
+            sleep 30
+          done
+
+          echo "Timed out waiting for Sanctum HQ asset export"
+          exit 1
+
+      - name: Download native HQ Sanctum assets
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ARTIFACT_ID="$(gh api             "/repos/${GITHUB_REPOSITORY}/actions/runs/${SANCTUM_ASSET_RUN_ID}/artifacts"             --jq '.artifacts[]
+              | select(.name == "Xziel-Sanctum-Native-HQ")
+              | .id'             | head -n 1)"
+
+          test -n "$ARTIFACT_ID"
+
+          mkdir -p build/sanctum-artifact
+          gh api             "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip"             > build/sanctum-artifact.zip
+
+          unzip -q build/sanctum-artifact.zip             -d build/sanctum-artifact
+
+          MODEL="$(find build/sanctum-artifact             -path '*/xziel_native_static/models/xziel/sanctum/sanctum.xzsm'             -print -quit)"
+
+          TEXTURE_DIR="$(find build/sanctum-artifact             -type d             -path '*/xziel_native_static/textures/xziel/sanctum'             -print -quit)"
+
+          REPORT="$(find build/sanctum-artifact             -name 'xziel_native_static_mesh_report.json'             -print -quit)"
+
+          NATIVE_MAP="$(find build/sanctum-artifact             -path '*/xziel_native_map/sanctum.xmap'             -print -quit)"
+
+          NATIVE_MAP_REPORT="$(find build/sanctum-artifact             -path '*/xziel_native_map/sanctum_native_map_report.json'             -print -quit)"
+
+          WEAPON_MODEL="$(find build/sanctum-artifact             -path '*/xziel_native_static/models/xziel/weapons/standard_rifle.xzsm'             -print -quit)"
+          WEAPON_TEXTURE_DIR="$(find build/sanctum-artifact             -type d             -path '*/xziel_native_static/textures/xziel/weapons/standard_rifle'             -print -quit)"
+          WEAPON_AUDIO_DIR="$(find build/sanctum-artifact             -type d             -path '*/xziel_native_static/audio/xziel/weapons'             -print -quit)"
+          WEAPON_LICENSE="$(find build/sanctum-artifact             -path '*/xziel_native_static/licenses/standard_rifle_assets.txt'             -print -quit)"
+
+          test -s "$MODEL"
+          test -d "$TEXTURE_DIR"
+          test -s "$REPORT"
+          test -s "$NATIVE_MAP"
+          test -s "$NATIVE_MAP_REPORT"
+          test -s "$WEAPON_MODEL"
+          test -d "$WEAPON_TEXTURE_DIR"
+          test -d "$WEAPON_AUDIO_DIR"
+          test -s "$WEAPON_LICENSE"
+
+          jq '{
+            coordinateSpace,
+            sourceCollection,
+            worldScale,
+            sourceTriangles,
+            runtimeTriangles,
+            dressingTriangles,
+            runtimeTotalTriangles,
+            dynamicBarricadeObjectsExcluded,
+            textureMaxDimension,
+            batchCount,
+            textureCount,
+            modelBytes,
+            boundsMin,
+            boundsMax
+          }' "$REPORT" | tee build/sanctum-native-hq-report.json
+
+          jq -e '.coordinateSpace == "native"' "$REPORT"
+          jq -e '.sourceCollection == "SOURCE_CHURCH_FULL"' "$REPORT"
+          jq -e '.version == 3' "$REPORT"
+          jq -e '.vertexStrideBytes == 36' "$REPORT"
+          jq -e '.runtimeTriangles >= 1045000' "$REPORT"
+          jq -e '.textureMaxDimension >= 4096' "$REPORT"
+          jq -e '.dynamicBarricadeObjectsExcluded >= 140' "$REPORT"
+
+          jq '{
+            schemaVersion,
+            boxCount,
+            floorCount,
+            routeStepCount,
+            doorCount,
+            windowCount,
+            zombieSpawnCount,
+            playerSpawn,
+            playerYawDegrees,
+            arena,
+            nativeFloorY,
+            worldScale
+          }' "$NATIVE_MAP_REPORT" | tee build/sanctum-native-map-report.json
+
+          jq -e '.schemaVersion == 2' "$NATIVE_MAP_REPORT"
+          jq -e '.boxCount >= 20' "$NATIVE_MAP_REPORT"
+          jq -e '.floorCount >= 10' "$NATIVE_MAP_REPORT"
+          jq -e '.routeStepCount > 0' "$NATIVE_MAP_REPORT"
+          jq -e '.doorCount >= 7' "$NATIVE_MAP_REPORT"
+          jq -e '.windowCount >= 8' "$NATIVE_MAP_REPORT"
+          jq -e '.zombieSpawnCount >= 8' "$NATIVE_MAP_REPORT"
+
+          mkdir -p             xziel-native-android/app/src/main/assets/models/xziel/sanctum             xziel-native-android/app/src/main/assets/textures/xziel/sanctum             xziel-native-android/app/src/main/assets/models/xziel/weapons             xziel-native-android/app/src/main/assets/textures/xziel/weapons/standard_rifle             xziel-native-android/app/src/main/assets/audio/xziel/weapons             xziel-native-android/app/src/main/assets/licenses             xziel-native-android/app/src/main/assets/maps
+
+          cp "$MODEL"             xziel-native-android/app/src/main/assets/models/xziel/sanctum/sanctum.xzsm
+
+          cp "$NATIVE_MAP"             xziel-native-android/app/src/main/assets/maps/sanctum.xmap
+
+          cp -a "$TEXTURE_DIR"/.             xziel-native-android/app/src/main/assets/textures/xziel/sanctum/
+          cp "$WEAPON_MODEL"             xziel-native-android/app/src/main/assets/models/xziel/weapons/standard_rifle.xzsm
+          cp -a "$WEAPON_TEXTURE_DIR"/.             xziel-native-android/app/src/main/assets/textures/xziel/weapons/standard_rifle/
+          cp -a "$WEAPON_AUDIO_DIR"/.             xziel-native-android/app/src/main/assets/audio/xziel/weapons/
+          cp "$WEAPON_LICENSE"             xziel-native-android/app/src/main/assets/licenses/standard_rifle_assets.txt
+
+          test -s             xziel-native-android/app/src/main/assets/models/xziel/sanctum/sanctum.xzsm
+
+          TEXTURE_COUNT="$(find             xziel-native-android/app/src/main/assets/textures/xziel/sanctum             -type f -name '*.png' | wc -l)"
+
+          test "$TEXTURE_COUNT" -gt 0
+
+          echo "Staged ${TEXTURE_COUNT} native Sanctum albedo textures"
+          du -sh             xziel-native-android/app/src/main/assets/models/xziel/sanctum             xziel-native-android/app/src/main/assets/textures/xziel/sanctum
+
+      - name: Build and test native Xziel core
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S engine -B build/xziel-core \
+            -DXZIEL_ENGINE_BUILD_TESTS=ON \
+            -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/xziel-core --parallel 2
+          ctest --test-dir build/xziel-core \
+            --output-on-failure
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle 9.6
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.6.0"
+
+      - name: Install Android SDK, NDK and CMake
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$(find "${ANDROID_HOME}/cmdline-tools"             -type f -name sdkmanager | sort | tail -n 1)"
+          test -n "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER"             "platform-tools"             "platforms;android-36.1"             "build-tools;36.0.0"             "ndk;28.2.13676358"             "cmake;3.22.1"             "emulator"             "system-images;android-35;google_apis;x86_64"
+
+      - name: Compile native Vulkan shaders
+        working-directory: xziel-native-android
+        shell: bash
+        run: |
+          set -euo pipefail
+          GLSLC="$(find             "${ANDROID_HOME}/ndk/28.2.13676358"             -type f -name glslc -perm -111 -print -quit)"
+          test -n "$GLSLC"
+
+          mkdir -p app/src/main/assets/shaders
+
+          "$GLSLC" -O -fshader-stage=vert             app/src/main/shaders/xziel_first.vert             -o app/src/main/assets/shaders/xziel_first.vert.spv
+
+          "$GLSLC" -O -fshader-stage=frag             app/src/main/shaders/xziel_first.frag             -o app/src/main/assets/shaders/xziel_first.frag.spv
+
+          "$GLSLC" -O -fshader-stage=vert             app/src/main/shaders/xziel_static_mesh.vert             -o app/src/main/assets/shaders/xziel_static_mesh.vert.spv
+
+          "$GLSLC" -O -fshader-stage=frag             app/src/main/shaders/xziel_static_mesh.frag             -o app/src/main/assets/shaders/xziel_static_mesh.frag.spv
+
+          "$GLSLC" -O -fshader-stage=vert             app/src/main/shaders/xziel_ui.vert             -o app/src/main/assets/shaders/xziel_ui.vert.spv
+
+          "$GLSLC" -O -fshader-stage=frag             app/src/main/shaders/xziel_ui.frag             -o app/src/main/assets/shaders/xziel_ui.frag.spv
+
+      - name: Build Sanctum HQ Vulkan APK
+        working-directory: xziel-native-android
+        shell: bash
+        run: gradle --no-daemon :app:assembleDebug --stacktrace
+
+      - name: Verify HQ APK payload
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          APK="xziel-native-android/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+
+          unzip -l "$APK" | tee build/sanctum-hq-apk-contents.txt
+
+          grep -q             "assets/models/xziel/sanctum/sanctum.xzsm"             build/sanctum-hq-apk-contents.txt
+
+          grep -q             "assets/maps/sanctum.xmap"             build/sanctum-hq-apk-contents.txt
+
+          grep -q             "assets/models/xziel/weapons/standard_rifle.xzsm"             build/sanctum-hq-apk-contents.txt
+          grep -q             "assets/textures/xziel/weapons/standard_rifle/.*\.png"             build/sanctum-hq-apk-contents.txt
+          grep -q             "assets/audio/xziel/weapons/standard_rifle_fire.wav"             build/sanctum-hq-apk-contents.txt
+          grep -q             "assets/audio/xziel/weapons/standard_rifle_reload.wav"             build/sanctum-hq-apk-contents.txt
+
+          grep -q             "assets/textures/xziel/sanctum/.*\.png"             build/sanctum-hq-apk-contents.txt
+
+          grep -q             "assets/shaders/xziel_static_mesh.vert.spv"             build/sanctum-hq-apk-contents.txt
+
+          grep -q             "assets/shaders/xziel_static_mesh.frag.spv"             build/sanctum-hq-apk-contents.txt
+
+          # Shipping Sanctum is native Xziel only. The legacy NZP/Quake
+          # harness may still exist as development evidence in other workflow
+          # artifacts, but it must never leak into the Android game package.
+          if grep -Eiq             'assets/.*(sanctum_harness|\.bsp($|[[:space:]])|/nzp/|/id1/|\.pak($|[[:space:]]))'             build/sanctum-hq-apk-contents.txt; then
+            echo "ERROR: legacy Quake/NZP payload found in native Sanctum APK"
+            grep -Ei             'assets/.*(sanctum_harness|\.bsp($|[[:space:]])|/nzp/|/id1/|\.pak($|[[:space:]]))'             build/sanctum-hq-apk-contents.txt || true
+            exit 1
+          fi
+          echo "XZIEL_NATIVE_ONLY_PAYLOAD_OK"
+
+          ZIPALIGN="${ANDROID_HOME}/build-tools/36.0.0/zipalign"
+          "$ZIPALIGN" -c -P 16 -v 4 "$APK"
+
+          mkdir -p dist
+          cp "$APK" dist/Xziel-Sanctum-Native-HQ-debug.apk
+          ls -lh dist/Xziel-Sanctum-Native-HQ-debug.apk
+
+      - name: Boot HQ Sanctum and verify native mesh takeover
+        shell: bash
+        env:
+          ANDROID_AVD_HOME: ${{ runner.temp }}/xziel-sanctum-hq-avd
+        run: |
+          set -euo pipefail
+
+          mkdir -p "$ANDROID_AVD_HOME" dist
+
+          ADB="${ANDROID_HOME}/platform-tools/adb"
+          EMULATOR="${ANDROID_HOME}/emulator/emulator"
+          AVDMANAGER="$(find             "${ANDROID_HOME}/cmdline-tools"             -type f -name avdmanager | sort | tail -n 1)"
+
+          printf 'no\n' | "$AVDMANAGER" create avd             --force             --name xziel-sanctum-hq             --package "system-images;android-35;google_apis;x86_64"             --device "pixel_6"
+
+          if [[ -e /dev/kvm ]]; then
+            sudo chmod 666 /dev/kvm || true
+          fi
+
+          nohup "$EMULATOR"             @xziel-sanctum-hq             -no-window             -no-audio             -no-boot-anim             -no-snapshot             -gpu software             -feature VulkanNativeSwapchain             -memory 4096             > dist/sanctum-hq-emulator.txt 2>&1 &
+
+          timeout 150 "$ADB" wait-for-device
+
+          BOOTED=0
+          for i in $(seq 1 75); do
+            if [[ "$("$ADB" shell getprop sys.boot_completed               2>/dev/null | tr -d '\r')" == "1" ]]; then
+              BOOTED=1
+              break
+            fi
+            sleep 2
+          done
+          test "$BOOTED" = "1"
+
+          APK="xziel-native-android/app/build/outputs/apk/debug/app-debug.apk"
+          "$ADB" install -r "$APK"
+
+          "$ADB" logcat -c
+          "$ADB" shell am force-stop             com.xziel.engineprototype || true
+
+          # Android's immersive-mode education bubble covered the real in-game
+          # screenshot on clean emulator boots. Pre-confirm it before launch,
+          # then still keep a UIAutomator fallback below for API/image variants
+          # that ignore the secure setting.
+          "$ADB" shell settings put secure immersive_mode_confirmations confirmed || true
+
+          timeout 8 "$ADB" shell am start             -n com.xziel.engineprototype/.XzielGameActivity             > dist/sanctum-hq-am-start.txt 2>&1 || true
+
+          # Do not inject any input while the HQ mesh/textures are still
+          # uploading on the GameActivity thread. The old unconditional ENTER
+          # fallback could create its own 5s input-dispatch ANR on a loaded CI
+          # emulator even though the native runtime completed successfully.
+          READY=0
+          for i in $(seq 1 45); do
+            STARTUP_LOG="$("$ADB" logcat -d -v brief -s XzielNative:I XzielVulkan:I XzielSanctumMesh:I '*:S' 2>/dev/null || true)"
+            if grep -q "XZIEL_VULKAN_READY" <<<"$STARTUP_LOG" && \
+               grep -q "XZIEL_SANCTUM_MESH_READY" <<<"$STARTUP_LOG"; then
+              READY=1
+              break
+            fi
+            sleep 1
+          done
+          test "$READY" = "1"
+
+          timeout 8 "$ADB" shell uiautomator dump /sdcard/xziel-sanctum-window.xml             >/dev/null 2>&1 || true
+          timeout 8 "$ADB" exec-out cat /sdcard/xziel-sanctum-window.xml             > dist/sanctum-hq-window.xml 2>/dev/null || true
+
+          python3 - <<'PY'
+          import re
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          source = Path("dist/sanctum-hq-window.xml")
+          target = Path("dist/sanctum-hq-dismiss-tap.txt")
+          target.unlink(missing_ok=True)
+
+          if source.exists() and source.stat().st_size:
+              try:
+                  root = ET.fromstring(source.read_text(errors="ignore"))
+                  for node in root.iter():
+                      text = (node.attrib.get("text") or "").strip().lower()
+                      desc = (node.attrib.get("content-desc") or "").strip().lower()
+                      if text in {"got it", "ok"} or desc in {"got it", "ok"}:
+                          bounds = node.attrib.get("bounds", "")
+                          match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
+                          if match:
+                              x1, y1, x2, y2 = map(int, match.groups())
+                              target.write_text(f"{(x1+x2)//2} {(y1+y2)//2}\n")
+                              break
+              except ET.ParseError:
+                  pass
+          PY
+
+          if [[ -s dist/sanctum-hq-dismiss-tap.txt ]]; then
+            read -r DISMISS_X DISMISS_Y < dist/sanctum-hq-dismiss-tap.txt
+            "$ADB" shell input tap "$DISMISS_X" "$DISMISS_Y" || true
+          fi
+
+          # Readiness above already proves the heavy synchronous startup phase
+          # is complete. Give presentation a short settling window before the
+          # screenshot/touch tour instead of a blind 16-second delay.
+          sleep 4
+
+          timeout 8 "$ADB" logcat -d -v threadtime             > dist/sanctum-hq-logcat.txt || true
+
+          capture_png() {
+            local target="$1"
+            local remote="/sdcard/$(basename "$target")"
+
+            for attempt in 1 2 3; do
+              rm -f "$target"
+
+              timeout 12 "$ADB" shell screencap -p "$remote"                 >/dev/null 2>&1 || true
+              timeout 12 "$ADB" pull "$remote" "$target"                 >/dev/null 2>&1 || true
+
+              if python3 - "$target" <<'PY'
+          from pathlib import Path
+          import sys
+
+          path = Path(sys.argv[1])
+          if not path.exists() or path.stat().st_size < 16384:
+              raise SystemExit(1)
+
+          data = path.read_bytes()
+          png_signature = b"\x89PNG\r\n\x1a\n"
+          png_iend = b"\x00\x00\x00\x00IEND\xaeB\x60\x82"
+          if not data.startswith(png_signature) or not data.endswith(png_iend):
+              raise SystemExit(1)
+          PY
+              then
+                "$ADB" shell rm -f "$remote" >/dev/null 2>&1 || true
+                return 0
+              fi
+
+              echo "Retrying incomplete screenshot $target (attempt $attempt)" >&2
+              sleep 1
+            done
+
+            echo "Failed to capture a complete PNG: $target" >&2
+            return 1
+          }
+
+          # Keep the legacy filename for downstream checks, but now require a
+          # complete PNG rather than accepting an adb stream killed mid-IEND.
+          capture_png dist/sanctum-hq-first-frame.png
+          cp dist/sanctum-hq-first-frame.png             dist/sanctum-hq-tour-01-entry.png
+
+          # CI-only touch tour. Pixel 6 AVD is 2400x1080 landscape here.
+          # Right side is free-look; left side is the movement joystick.
+          "$ADB" shell input swipe 1700 330 1180 330 700 || true
+          sleep 1
+          capture_png dist/sanctum-hq-tour-02-look.png
+
+          "$ADB" shell input swipe 420 840 420 560 1800 || true
+          sleep 1
+          capture_png dist/sanctum-hq-tour-03-forward.png
+
+          "$ADB" shell input swipe 1500 360 1880 250 650 || true
+          sleep 1
+          capture_png dist/sanctum-hq-tour-04-look-up.png
+
+          PID="$(timeout 5 "$ADB" shell pidof             com.xziel.engineprototype 2>/dev/null             | tr -d '\r' || true)"
+
+          test -n "$PID"
+
+          if grep -Eq             "FATAL EXCEPTION|Fatal signal|ANR in com\.xziel\.engineprototype|>>> com\.xziel\.engineprototype <<<"             dist/sanctum-hq-logcat.txt; then
+            echo "Sanctum HQ native runtime crashed or ANRed"
+            exit 1
+          fi
+
+          grep -q "XZIEL_NATIVE_BOOT"             dist/sanctum-hq-logcat.txt
+
+          grep -q "XZIEL_VULKAN_READY"             dist/sanctum-hq-logcat.txt
+
+          grep -q "XZIEL_VULKAN_SURFACE_ROTATION"             dist/sanctum-hq-logcat.txt
+
+          grep -q "XZIEL_SANCTUM_MESH_READY"             dist/sanctum-hq-logcat.txt
+          grep -q "XZIEL_WEAPON_VIEWMODEL_READY"             dist/sanctum-hq-logcat.txt
+          grep -q "XZIEL_WEAPON_AUDIO_READY fire=1 reload=1"             dist/sanctum-hq-logcat.txt
+
+          grep -Eq             "XZIEL_SANCTUM_DYNAMIC_BARRICADES_READY windows=28"             dist/sanctum-hq-logcat.txt
+
+          grep -Eq             "XZIEL_SANCTUM_PROFILE_READY hp=68 spawnInterval=0\.88 interRound=5\.5 baseZombies=5 maxActive=10 points=500"             dist/sanctum-hq-logcat.txt
+
+          grep -Eq             "XZIEL_SANCTUM_GAMEPLAY_READY boxes=([2-9][0-9]|[1-9][0-9]{2,}) floors=([1-9][0-9]|[1-9][0-9]{2,}) doors=([7-9]|[1-9][0-9]+) windows=([8-9]|[1-9][0-9]+) spawns=([8-9]|[1-9][0-9]+) playerSpawn=1 arena=1"             dist/sanctum-hq-logcat.txt
+
+          echo "SANCTUM_NATIVE_HQ_GAMEPLAY_TAKEOVER_OK"
+
+      - name: Upload Sanctum HQ APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xziel-Sanctum-Native-HQ-debug
+          path: dist/Xziel-Sanctum-Native-HQ-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload Sanctum HQ diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xziel-Sanctum-Native-HQ-runtime
+          path: |
+            build/sanctum-native-hq-report.json
+            build/sanctum-native-map-report.json
+            build/sanctum-hq-apk-contents.txt
+            dist/sanctum-hq-logcat.txt
+            dist/sanctum-hq-first-frame.png
+            dist/sanctum-hq-tour-01-entry.png
+            dist/sanctum-hq-tour-02-look.png
+            dist/sanctum-hq-tour-03-forward.png
+            dist/sanctum-hq-tour-04-look-up.png
+            dist/sanctum-hq-window.xml
+            dist/sanctum-hq-emulator.txt
+            dist/sanctum-hq-am-start.txt
+          if-no-files-found: warn
+          retention-days: 14

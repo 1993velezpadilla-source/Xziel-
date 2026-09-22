@@ -30,6 +30,7 @@ public:
 
     void reset() noexcept;
     void beginRound() noexcept;
+    void forceFullRebuild() noexcept;
 
     [[nodiscard]] BarricadeFrame step(
         bool zombieTearing,

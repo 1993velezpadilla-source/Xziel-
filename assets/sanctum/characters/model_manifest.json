@@ -1,0 +1,287 @@
+{
+  "schemaVersion": 1,
+  "project": "SANCTUM OF ASH",
+  "coordinateUnits": "meters",
+  "sourceReferenceCount": 13,
+  "uniqueConceptCount": 10,
+  "references": [
+    {
+      "id": "ref_choir_wretch",
+      "source": "1000238815.png",
+      "kind": "build_sheet",
+      "concept": "choir_wretch"
+    },
+    {
+      "id": "ref_bell_ringer",
+      "source": "1000238816.png",
+      "kind": "build_sheet",
+      "concept": "bell_ringer"
+    },
+    {
+      "id": "ref_censer_brute",
+      "source": "1000238817.png",
+      "kind": "build_sheet",
+      "concept": "censer_brute"
+    },
+    {
+      "id": "ref_reliquary_horror",
+      "source": "1000238818.png",
+      "kind": "build_sheet",
+      "concept": "reliquary_horror"
+    },
+    {
+      "id": "ref_grave_sexton",
+      "source": "1000238821.png",
+      "kind": "build_sheet",
+      "concept": "grave_sexton"
+    },
+    {
+      "id": "ref_penitent_deacon",
+      "source": "1000238820.png",
+      "kind": "build_sheet",
+      "concept": "penitent_deacon"
+    },
+    {
+      "id": "ref_stained_shade",
+      "source": "1000238819.png",
+      "kind": "build_sheet",
+      "concept": "stained_shade"
+    },
+    {
+      "id": "ref_waterbound_child",
+      "source": "1000238806.png",
+      "kind": "build_sheet",
+      "concept": "waterbound_child"
+    },
+    {
+      "id": "ref_llorona_encounter",
+      "source": "1000238807.png",
+      "kind": "gameplay_blueprint",
+      "concept": "la_llorona"
+    },
+    {
+      "id": "ref_lost_child",
+      "source": "1000238808.png",
+      "kind": "build_sheet",
+      "concept": "lost_child"
+    },
+    {
+      "id": "ref_la_llorona",
+      "source": "1000238809.png",
+      "kind": "build_sheet",
+      "concept": "la_llorona"
+    },
+    {
+      "id": "ref_lost_child_phone",
+      "source": "1000238805.png",
+      "kind": "phone_view_duplicate",
+      "concept": "lost_child"
+    },
+    {
+      "id": "ref_la_llorona_phone",
+      "source": "1000238804.png",
+      "kind": "phone_view_duplicate",
+      "concept": "la_llorona"
+    }
+  ],
+  "models": [
+    {
+      "id": "choir_wretch",
+      "displayName": "Choir Wretch",
+      "heightM": 1.75,
+      "family": "adult_church_humanoid",
+      "proxyProfile": "slender_robed",
+      "props": [
+        "crosses",
+        "rope_belt"
+      ],
+      "damage": [
+        "jaw",
+        "head",
+        "arm_l",
+        "arm_r",
+        "leg_l",
+        "crawler",
+        "torso"
+      ]
+    },
+    {
+      "id": "bell_ringer",
+      "displayName": "Bell Ringer",
+      "heightM": 1.8,
+      "family": "adult_church_humanoid",
+      "proxyProfile": "slender_robed",
+      "props": [
+        "bell",
+        "rope"
+      ],
+      "damage": [
+        "head",
+        "arm_l",
+        "arm_r",
+        "leg_l",
+        "leg_r",
+        "foot",
+        "crawler",
+        "lower_half",
+        "torso"
+      ]
+    },
+    {
+      "id": "censer_brute",
+      "displayName": "Censer Brute",
+      "heightM": 2.8,
+      "family": "heavy_humanoid",
+      "proxyProfile": "heavy_robed",
+      "props": [
+        "censer",
+        "chain",
+        "crosses"
+      ],
+      "damage": [
+        "head",
+        "weapon_arm",
+        "off_arm",
+        "leg_l",
+        "leg_r",
+        "foot",
+        "kneel",
+        "lower_half",
+        "torso"
+      ]
+    },
+    {
+      "id": "reliquary_horror",
+      "displayName": "Reliquary Horror",
+      "heightM": 4.5,
+      "family": "boss_unique",
+      "proxyProfile": "boss_shrine",
+      "props": [
+        "shrine_back",
+        "chains",
+        "censers",
+        "candles",
+        "relics"
+      ],
+      "damage": [
+        "arm_l",
+        "arm_r",
+        "shrine",
+        "torso",
+        "lower_half",
+        "crawl",
+        "death"
+      ]
+    },
+    {
+      "id": "grave_sexton",
+      "displayName": "Grave Sexton",
+      "heightM": 1.9,
+      "family": "adult_church_humanoid",
+      "proxyProfile": "heavy_worker",
+      "props": [
+        "shovel",
+        "grave_hook",
+        "key_ring",
+        "pouch"
+      ],
+      "damage": [
+        "head",
+        "weapon_arm",
+        "off_arm",
+        "arms",
+        "legs",
+        "crawler",
+        "torso"
+      ]
+    },
+    {
+      "id": "penitent_deacon",
+      "displayName": "Penitent Deacon",
+      "heightM": 1.85,
+      "family": "adult_church_humanoid",
+      "proxyProfile": "robed_lantern",
+      "props": [
+        "lantern",
+        "chain",
+        "rope",
+        "crosses"
+      ],
+      "damage": [
+        "head",
+        "arms",
+        "legs",
+        "crawler",
+        "lower_half",
+        "torso"
+      ]
+    },
+    {
+      "id": "stained_shade",
+      "displayName": "Stained Shade",
+      "heightM": 1.85,
+      "family": "spectral_humanoid",
+      "proxyProfile": "spectral_robed",
+      "props": [
+        "stained_glass_accents",
+        "crucifix",
+        "rope"
+      ],
+      "damage": [
+        "head",
+        "arm_l",
+        "arm_r",
+        "lower_fade",
+        "crawler",
+        "torso_drift",
+        "dissipate"
+      ]
+    },
+    {
+      "id": "waterbound_child",
+      "displayName": "Waterbound Child",
+      "heightM": 1.1,
+      "family": "child_apparition",
+      "proxyProfile": "child_dress",
+      "props": [
+        "mist_vfx"
+      ],
+      "damage": []
+    },
+    {
+      "id": "lost_child",
+      "displayName": "Lost Child",
+      "heightM": 1.1,
+      "family": "child_apparition",
+      "proxyProfile": "child_dress",
+      "props": [
+        "cloth_doll",
+        "rosary"
+      ],
+      "lodTriangles": [
+        6500,
+        3200,
+        1200
+      ],
+      "damage": []
+    },
+    {
+      "id": "la_llorona",
+      "displayName": "La Llorona",
+      "heightM": 1.7,
+      "family": "hero_apparition",
+      "proxyProfile": "hero_dress",
+      "props": [
+        "rosary_cross",
+        "mist_vfx"
+      ],
+      "lodTriangles": [
+        32000,
+        16000,
+        8000,
+        4000
+      ],
+      "damage": []
+    }
+  ]
+}

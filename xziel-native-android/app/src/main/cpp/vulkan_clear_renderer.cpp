@@ -98,6 +98,29 @@ bool VulkanClearRenderer::initialize(
         return false;
     }
 
+    // The HQ Sanctum asset is optional for the generic engine prototype.
+    // A Sanctum build packages this file and immediately promotes it to world
+    // visual authority without requiring BSP/Vril/GL4ES.
+    (void) sanctumMesh_.initialize(
+        physicalDevice_,
+        device_,
+        graphicsQueue_,
+        graphicsQueueFamily_,
+        commandPool_,
+        renderPass_,
+        assetManager_,
+        "models/xziel/sanctum/sanctum.xzsm");
+
+    (void) weaponMesh_.initialize(
+        physicalDevice_,
+        device_,
+        graphicsQueue_,
+        graphicsQueueFamily_,
+        commandPool_,
+        renderPass_,
+        assetManager_,
+        "models/xziel/weapons/standard_rifle.xzsm");
+
     initialized_ = true;
     logInfo("XZIEL_VULKAN_3D_READY");
     return true;
@@ -109,6 +132,11 @@ void VulkanClearRenderer::shutdown() noexcept {
     if (device_ != VK_NULL_HANDLE) {
         vkDeviceWaitIdle(device_);
     }
+
+    // Destroy native world/viewmodel resources while the device/render pass/
+    // command pool they were created from are still alive.
+    weaponMesh_.shutdown();
+    sanctumMesh_.shutdown();
 
     for (auto& frame : frames_) {
         if (frame.imageAvailable != VK_NULL_HANDLE &&
@@ -889,6 +917,15 @@ bool VulkanClearRenderer::createDevice() noexcept {
         }
     }
 
+    VkPhysicalDeviceFeatures availableFeatures{};
+    vkGetPhysicalDeviceFeatures(
+        physicalDevice_,
+        &availableFeatures);
+
+    VkPhysicalDeviceFeatures enabledFeatures{};
+    enabledFeatures.samplerAnisotropy =
+        availableFeatures.samplerAnisotropy;
+
     VkDeviceCreateInfo createInfo{
         VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO
     };
@@ -900,6 +937,8 @@ bool VulkanClearRenderer::createDevice() noexcept {
             enabledExtensions.size());
     createInfo.ppEnabledExtensionNames =
         enabledExtensions.data();
+    createInfo.pEnabledFeatures =
+        &enabledFeatures;
 
     const VkResult result =
         vkCreateDevice(
@@ -1065,21 +1104,26 @@ bool VulkanClearRenderer::createSwapchain() noexcept {
         return false;
     }
 
+    const int nativeWindowWidth =
+        std::max(
+            1,
+            ANativeWindow_getWidth(window_));
+    const int nativeWindowHeight =
+        std::max(
+            1,
+            ANativeWindow_getHeight(window_));
+
     VkExtent2D extent = caps.currentExtent;
 
     if (extent.width ==
         std::numeric_limits<std::uint32_t>::max()) {
         const auto width =
             static_cast<std::uint32_t>(
-                std::max(
-                    1,
-                    ANativeWindow_getWidth(window_)));
+                nativeWindowWidth);
 
         const auto height =
             static_cast<std::uint32_t>(
-                std::max(
-                    1,
-                    ANativeWindow_getHeight(window_)));
+                nativeWindowHeight);
 
         extent.width =
             std::clamp(
@@ -1119,14 +1163,48 @@ bool VulkanClearRenderer::createSwapchain() noexcept {
         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     createInfo.imageSharingMode =
         VK_SHARING_MODE_EXCLUSIVE;
-    createInfo.preTransform =
+
+    // Xziel currently renders world + HUD in the surface's logical
+    // orientation and does not pre-rotate clip space for Android's
+    // VkSurfaceTransformKHR. Advertising currentTransform here told SurfaceFlinger
+    // the rotation was already baked into the image, producing a 90-degree
+    // sideways frame on landscape devices whose natural orientation is
+    // portrait. Prefer IDENTITY so Android owns the final display rotation.
+    // If a rare surface cannot accept identity, keep the platform transform
+    // rather than creating an invalid swapchain; the log below makes that
+    // fallback explicit for follow-up shader pre-rotation support.
+    VkSurfaceTransformFlagBitsKHR chosenPreTransform =
         caps.currentTransform;
+
+    if ((caps.supportedTransforms &
+         VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) != 0U) {
+        chosenPreTransform =
+            VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+    }
+
+    createInfo.preTransform =
+        chosenPreTransform;
     createInfo.compositeAlpha =
         chooseCompositeAlpha(
             caps.supportedCompositeAlpha);
     createInfo.presentMode =
         VK_PRESENT_MODE_FIFO_KHR;
     createInfo.clipped = VK_TRUE;
+
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
+        "XZIEL_VULKAN_SURFACE_ROTATION current=%u supported=0x%x chosen=%u extent=%ux%u window=%dx%d",
+        static_cast<unsigned int>(
+            caps.currentTransform),
+        static_cast<unsigned int>(
+            caps.supportedTransforms),
+        static_cast<unsigned int>(
+            chosenPreTransform),
+        extent.width,
+        extent.height,
+        nativeWindowWidth,
+        nativeWindowHeight);
 
     const VkResult result =
         vkCreateSwapchainKHR(
@@ -3550,6 +3628,129 @@ bool VulkanClearRenderer::recordDrawCommand(
         return false;
     }
 
+    if (sanctumMesh_.ready()) {
+        const float sanctumAspect =
+            swapchainExtent_.height > 0U
+            ? static_cast<float>(
+                  swapchainExtent_.width) /
+              static_cast<float>(
+                  swapchainExtent_.height)
+            : 1.0f;
+
+        StaticMeshCameraState sanctumCamera{};
+        sanctumCamera.x = camera.x;
+        sanctumCamera.y = camera.y;
+        sanctumCamera.z = camera.z;
+        sanctumCamera.yawRadians =
+            camera.yawRadians;
+        sanctumCamera.pitchRadians =
+            camera.pitchRadians;
+        sanctumCamera.verticalFovDegrees =
+            camera.verticalFovDegrees;
+        sanctumCamera.aspect =
+            sanctumAspect;
+
+        StaticMeshEnvironmentState sanctumEnvironment{};
+        sanctumEnvironment.fogDensity =
+            environment.fogDensity;
+        sanctumEnvironment.lightningFlash =
+            environment.lightningFlash;
+
+        sanctumMesh_.record(
+            command,
+            swapchainExtent_,
+            sanctumCamera,
+            sanctumEnvironment);
+    }
+
+    // The current AKM source imports correctly as textured geometry, but its
+    // baked rig transforms are not yet trustworthy in the static XZSM
+    // viewmodel path. Keep it packaged/tested, but do not draw a malformed
+    // streak across the player's screen. The procedural blockout also stays
+    // suppressed because a clean no-viewmodel checkpoint is preferable to
+    // regressing to the toy-looking placeholder.
+    constexpr bool kImportedWeaponViewmodelEnabled = false;
+
+    if (kImportedWeaponViewmodelEnabled &&
+        weaponMesh_.ready()) {
+        const float viewAspect =
+            swapchainExtent_.height > 0U
+            ? static_cast<float>(
+                  swapchainExtent_.width) /
+              static_cast<float>(
+                  swapchainExtent_.height)
+            : 1.0f;
+
+        const float ads =
+            std::clamp(
+                hud.weaponAdsAlpha,
+                0.0f,
+                1.0f);
+
+        const float reload =
+            std::clamp(
+                hud.weaponReloadAlpha,
+                0.0f,
+                1.0f);
+
+        const float reloadArc =
+            std::sin(
+                reload *
+                3.14159265358979323846f);
+
+        const float fire =
+            std::clamp(
+                hud.weaponFireAlpha,
+                0.0f,
+                1.0f);
+
+        const float lowering =
+            std::clamp(
+                hud.viewmodelLowering,
+                0.0f,
+                1.0f);
+
+        StaticMeshViewmodelState weaponState{};
+        weaponState.x =
+            0.235f * (1.0f - ads) +
+            0.004f * ads +
+            0.055f * lowering;
+        weaponState.y =
+            -0.205f +
+            0.105f * ads -
+            0.155f * reloadArc -
+            0.31f * lowering -
+            0.018f * fire;
+        weaponState.z =
+            0.175f +
+            0.025f * ads +
+            0.045f * reloadArc -
+            0.070f * fire +
+            0.06f * lowering;
+        weaponState.scale = 1.0f;
+        weaponState.yawRadians =
+            -0.025f +
+            0.08f * reloadArc;
+        weaponState.pitchRadians =
+            -0.035f -
+            0.16f * reloadArc;
+        weaponState.rollRadians =
+            -0.055f -
+            0.42f * reloadArc;
+        weaponState.verticalFovDegrees =
+            std::clamp(
+                camera.verticalFovDegrees,
+                60.0f,
+                90.0f);
+        weaponState.aspect =
+            viewAspect;
+
+        weaponMesh_.recordViewmodel(
+            command,
+            swapchainExtent_,
+            weaponState);
+    }
+
     vkCmdBindPipeline(
         command,
         VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -3843,13 +4044,39 @@ bool VulkanClearRenderer::recordDrawCommand(
             288U);
     };
 
+    const auto drawCylinder = [&](
+        float tx,
+        float ty,
+        float tz,
+        float sx,
+        float sy,
+        float sz,
+        float materialId,
+        float yawRadians,
+        float pitchRadians) noexcept {
+        drawPrimitive(
+            tx,
+            ty,
+            tz,
+            sx,
+            sy,
+            sz,
+            materialId,
+            2.0f,
+            yawRadians,
+            pitchRadians,
+            144U);
+    };
+
     // Main world geometry is now submitted from MapDefinition rather than
     // being duplicated inside the renderer. Map authors can change geometry
     // without touching Vulkan command recording.
     const std::size_t visibleMapBoxCount =
-        std::min(
-            scene.mapBoxCount,
-            scene.mapBoxes.size());
+        sanctumMesh_.ready()
+        ? 0U
+        : std::min(
+              scene.mapBoxCount,
+              scene.mapBoxes.size());
 
     for (std::size_t i = 0;
          i < visibleMapBoxCount;
@@ -3870,10 +4097,115 @@ bool VulkanClearRenderer::recordDrawCommand(
             box.materialId);
     }
 
+    const std::size_t visibleDoorCount =
+        std::min(
+            scene.doorCount,
+            scene.doors.size());
+
+    for (std::size_t doorIndex = 0;
+         doorIndex < visibleDoorCount;
+         ++doorIndex) {
+        const auto& door = scene.doors[doorIndex];
+
+        if (!door.visible) {
+            continue;
+        }
+
+        const float rawProgress =
+            std::clamp(door.openProgress, 0.0f, 1.0f);
+        const float eased =
+            rawProgress * rawProgress *
+            (3.0f - 2.0f * rawProgress);
+        const float swingSign =
+            (door.id & 1U) != 0U ? -1.0f : 1.0f;
+        const float angle =
+            swingSign * eased * 1.658062789f;
+
+        const bool thinX = door.halfX <= door.halfZ;
+        float centerX = door.x;
+        float centerZ = door.z;
+
+        if (thinX) {
+            const float hingeZ = door.z - door.halfZ;
+            centerX =
+                door.x + std::sin(angle) * door.halfZ;
+            centerZ =
+                hingeZ + std::cos(angle) * door.halfZ;
+        } else {
+            const float hingeX = door.x - door.halfX;
+            centerX =
+                hingeX + std::cos(angle) * door.halfX;
+            centerZ =
+                door.z - std::sin(angle) * door.halfX;
+        }
+
+        // Dark timber leaf. Keep it independent of the HQ scan so the same
+        // authored blocker drives collision and visible motion.
+        drawPrimitive(
+            centerX,
+            door.y,
+            centerZ,
+            door.halfX / 0.75f,
+            door.halfY / 0.75f,
+            door.halfZ / 0.75f,
+            5.0f,
+            0.0f,
+            angle,
+            0.0f,
+            36U);
+
+        // Small metal handle follows the free edge of the swinging leaf.
+        float handleX = centerX;
+        float handleZ = centerZ;
+        if (thinX) {
+            const float local =
+                door.halfZ * 0.68f;
+            handleX =
+                centerX +
+                std::sin(angle) * local;
+            handleZ =
+                centerZ +
+                std::cos(angle) * local;
+        } else {
+            const float local =
+                door.halfX * 0.68f;
+            handleX =
+                centerX +
+                std::cos(angle) * local;
+            handleZ =
+                centerZ -
+                std::sin(angle) * local;
+        }
+
+        drawRounded(
+            handleX,
+            door.y + door.halfY * 0.05f,
+            handleZ,
+            0.055f,
+            0.065f,
+            0.055f,
+            10.0f,
+            angle,
+            0.0f);
+    }
+
     const std::size_t visibleWindowCount =
         std::min(
             scene.windowCount,
             scene.windows.size());
+
+    if (sanctumMesh_.ready() &&
+        visibleWindowCount > 0U) {
+        static bool loggedDynamicBarricades = false;
+        if (!loggedDynamicBarricades) {
+            __android_log_print(
+                ANDROID_LOG_INFO,
+                kTag,
+                "XZIEL_SANCTUM_DYNAMIC_BARRICADES_READY windows=%zu",
+                visibleWindowCount);
+            loggedDynamicBarricades = true;
+        }
+    }
 
     for (std::size_t windowIndex = 0;
          windowIndex < visibleWindowCount;
@@ -3891,6 +4223,49 @@ bool VulkanClearRenderer::recordDrawCommand(
                 window.intactPlanks,
                 window.maximumPlanks);
 
+        const bool thinX =
+            window.halfWidth <= window.halfDepth;
+
+        if (sanctumMesh_.ready()) {
+            // The scan has genuine missing pixels around parts of the Gothic
+            // tracery. Window blockers are fitted to gameplay openings, but
+            // their thin axis does not encode which side of the original wall
+            // is visually exposed. Draw two slightly oversized, shallow dark
+            // backplanes on opposite sides of that axis. The scan itself still
+            // wins depth on intact stone, while any real hole sees a dark
+            // recess instead of the clear-color void. This remains render-only:
+            // collision and barricade state are untouched.
+            constexpr float recessHalfThickness = 0.055f;
+            constexpr float recessOffset = 0.18f;
+            constexpr float recessExtentScale = 1.58f;
+
+            for (float recessSide : {-1.0f, 1.0f}) {
+                const float recessX =
+                    window.x +
+                    (thinX
+                        ? recessSide * recessOffset
+                        : 0.0f);
+                const float recessZ =
+                    window.z +
+                    (thinX
+                        ? 0.0f
+                        : recessSide * recessOffset);
+
+                drawBox(
+                    recessX,
+                    window.y,
+                    recessZ,
+                    thinX
+                        ? recessHalfThickness / 0.75f
+                        : (window.halfWidth * recessExtentScale) / 0.75f,
+                    (window.halfHeight * recessExtentScale) / 0.75f,
+                    thinX
+                        ? (window.halfDepth * recessExtentScale) / 0.75f
+                        : recessHalfThickness / 0.75f,
+                    7.0f);
+            }
+        }
+
         for (std::uint32_t plankIndex = 0U;
              plankIndex < plankCount;
              ++plankIndex) {
@@ -3898,11 +4273,20 @@ bool VulkanClearRenderer::recordDrawCommand(
                 (static_cast<float>(plankIndex) + 0.5f) /
                 static_cast<float>(window.maximumPlanks);
 
+            const int staggerIndex =
+                static_cast<int>(
+                    (windowIndex * 11U +
+                     plankIndex * 7U) % 5U) - 2;
+
             const float plankY =
                 window.y -
                 window.halfHeight +
-                alpha * window.halfHeight * 2.0f;
+                alpha * window.halfHeight * 2.0f +
+                static_cast<float>(staggerIndex) * 0.025f;
 
+            // Gameplay-authoritative dark wood plank. Rendering from
+            // intactPlanks means tearing/rebuilding immediately changes the
+            // visible barricade rather than leaving baked dressing behind.
             drawBox(
                 window.x,
                 plankY,
@@ -3911,57 +4295,106 @@ bool VulkanClearRenderer::recordDrawCommand(
                 0.075f,
                 window.halfDepth / 0.75f,
                 5.0f);
+
+        }
+
+        // Keep fastener detail bounded on mobile: two visible metal caps per
+        // barricade instead of two extra draws for every plank. The wood state
+        // remains fully gameplay-authoritative while worst-case procedural
+        // window draws stay near 224 rather than ~504.
+        if (plankCount > 0U) {
+            const std::uint32_t fastenerPlank =
+                std::min(
+                    plankCount - 1U,
+                    window.maximumPlanks / 2U);
+
+            const float fastenerAlpha =
+                (static_cast<float>(fastenerPlank) + 0.5f) /
+                static_cast<float>(window.maximumPlanks);
+
+            const float fastenerY =
+                window.y -
+                window.halfHeight +
+                fastenerAlpha * window.halfHeight * 2.0f;
+
+            for (int nailSide : {-1, 1}) {
+                float nailX = window.x;
+                float nailZ = window.z;
+
+                if (thinX) {
+                    nailX += 0.055f;
+                    nailZ +=
+                        static_cast<float>(nailSide) *
+                        window.halfDepth * 0.58f;
+                } else {
+                    nailX +=
+                        static_cast<float>(nailSide) *
+                        window.halfWidth * 0.58f;
+                    nailZ += 0.055f;
+                }
+
+                drawRounded(
+                    nailX,
+                    fastenerY,
+                    nailZ,
+                    0.035f,
+                    0.035f,
+                    0.035f,
+                    10.0f,
+                    0.0f,
+                    0.0f);
+            }
         }
     }
 
-    const float prototypeDoorOpen =
-        std::clamp(
-            scene.doorOpenAlpha,
-            0.0f,
+    if (!sanctumMesh_.ready()) {
+        const float prototypeDoorOpen =
+            std::clamp(
+                scene.doorOpenAlpha,
+                0.0f,
+                1.0f);
+
+        drawBox(
+            -2.88f,
+            -0.12f,
+            1.57f,
+            0.12f,
+            1.52f,
+            0.20f,
             1.0f);
 
-    // The single authoritative purchasable door proves that contextual
-    // interactions alter collision, zombie navigation and visible world state.
-    drawBox(
-        -2.88f,
-        -0.12f,
-        1.57f,
-        0.12f,
-        1.52f,
-        0.20f,
-        1.0f);
+        drawBox(
+            2.88f,
+            -0.12f,
+            1.57f,
+            0.12f,
+            1.52f,
+            0.20f,
+            1.0f);
 
-    drawBox(
-        2.88f,
-        -0.12f,
-        1.57f,
-        0.12f,
-        1.52f,
-        0.20f,
-        1.0f);
+        drawBox(
+            0.0f,
+            1.34f,
+            1.57f,
+            3.0f,
+            0.10f,
+            0.20f,
+            1.0f);
 
-    drawBox(
-        0.0f,
-        1.34f,
-        1.57f,
-        3.0f,
-        0.10f,
-        0.20f,
-        1.0f);
-
-    drawBox(
-        0.0f,
-        -0.18f +
-            prototypeDoorOpen *
-                3.05f,
-        1.57f,
-        2.72f,
-        1.32f,
-        0.10f,
-        prototypeDoorOpen >
-            0.01f
-            ? 7.0f
-            : 8.0f);
+        drawBox(
+            0.0f,
+            -0.18f +
+                prototypeDoorOpen *
+                    3.05f,
+            1.57f,
+            2.72f,
+            1.32f,
+            0.10f,
+            prototypeDoorOpen >
+                0.01f
+                ? 7.0f
+                : 8.0f);
+    }
 
     if (scene.interactionVisible) {
         drawBox(
@@ -4008,7 +4441,19 @@ bool VulkanClearRenderer::recordDrawCommand(
                 zombieState.stridePhase *
                 6.28318530718f);
 
-        const float staggerOffset =
+        const float zombieYaw =
+            zombieState.yawRadians;
+
+        const float forwardX =
+            std::sin(zombieYaw);
+        const float forwardZ =
+            std::cos(zombieYaw);
+        const float rightX =
+            std::cos(zombieYaw);
+        const float rightZ =
+            -std::sin(zombieYaw);
+
+        const float staggerSide =
             zombieState.staggered
             ? std::sin(
                   safeTime *
@@ -4020,125 +4465,291 @@ bool VulkanClearRenderer::recordDrawCommand(
 
         const float attackLunge =
             zombieState.attack
-            ? 0.18f
+            ? 0.16f
             : 0.0f;
 
+        // Apply all presentation offsets in the actor's local basis. The old
+        // proxy placed limbs on global +/-X and lunged toward global -Z, so a
+        // zombie could move toward the player while its body read backwards.
         const float zombieX =
             zombieState.x +
-            staggerOffset;
+            rightX * staggerSide +
+            forwardX * attackLunge;
 
         const float zombieY =
             zombieState.y;
 
         const float zombieZ =
-            zombieState.z -
-            attackLunge;
+            zombieState.z +
+            rightZ * staggerSide +
+            forwardZ * attackLunge;
 
-        // Rounded low-poly humanoid proxy. This remains generated geometry,
-        // but it deliberately avoids the old stack-of-cubes look while the
-        // external skinned-mesh importer is being integrated.
+        const auto anchor = [&](
+            float side,
+            float up,
+            float forward) noexcept {
+            return std::array<float, 3>{
+                zombieX +
+                    rightX * side +
+                    forwardX * forward,
+                zombieY + up,
+                zombieZ +
+                    rightZ * side +
+                    forwardZ * forward,
+            };
+        };
+
+        // Ground contact follows each zombie's actual navigation-floor Y.
         drawBox(
             zombieX,
-            -1.472f,
+            zombieY + 0.012f,
             zombieZ,
-            0.38f,
-            0.010f,
-            0.26f,
+            0.34f,
+            0.008f,
+            0.24f,
             7.0f);
 
-        const float zombieYaw =
-            zombieState.yawRadians;
+        const float lean =
+            zombieState.staggered
+            ? staggerSide * 4.0f
+            : (zombieState.attack ? -0.10f : 0.035f);
+
+        // Tattered torso + hips.
+        drawRounded(
+            zombieX,
+            zombieY + 1.02f,
+            zombieZ,
+            0.30f,
+            0.48f,
+            0.20f,
+            18.0f,
+            zombieYaw,
+            lean);
+
+        drawRounded(
+            zombieX,
+            zombieY + 0.66f,
+            zombieZ - 0.01f,
+            0.27f,
+            0.20f,
+            0.21f,
+            18.0f,
+            zombieYaw,
+            lean * 0.55f);
+
+        // Neck and head. A small forward jaw plus eye sockets make facing
+        // direction readable even though this is still generated geometry.
+        const auto neck =
+            anchor(
+                0.0f,
+                1.46f,
+                0.0f);
+
+        drawCylinder(
+            neck[0],
+            neck[1],
+            neck[2],
+            0.085f,
+            0.085f,
+            0.12f,
+            17.0f,
+            zombieYaw,
+            1.570796327f);
+
+        const auto head =
+            anchor(
+                0.0f,
+                1.68f,
+                0.015f);
+
+        drawRounded(
+            head[0],
+            head[1],
+            head[2],
+            0.18f,
+            0.225f,
+            0.17f,
+            17.0f,
+            zombieYaw,
+            zombieState.attack
+                ? -0.10f
+                : 0.045f);
+
+        const auto jaw =
+            anchor(
+                0.0f,
+                1.58f,
+                0.155f);
+
+        drawRounded(
+            jaw[0],
+            jaw[1],
+            jaw[2],
+            0.115f,
+            0.075f,
+            0.075f,
+            17.0f,
+            zombieYaw,
+            -0.08f);
+
+        for (float eyeSide : {-0.060f, 0.060f}) {
+            const auto eye =
+                anchor(
+                    eyeSide,
+                    1.72f,
+                    0.165f);
+
+            drawRounded(
+                eye[0],
+                eye[1],
+                eye[2],
+                0.030f,
+                0.028f,
+                0.025f,
+                7.0f,
+                zombieYaw,
+                0.0f);
+        }
 
         const float legSwing =
-            stride * 0.46f;
+            stride * 0.42f;
 
         const float armSwing =
             zombieState.attack
-            ? -1.10f
-            : -legSwing * 0.78f;
+            ? 0.0f
+            : -legSwing * 0.72f;
 
-        drawRounded(
-            zombieX,
-            zombieY + 1.06f,
-            zombieZ,
-            0.36f,
-            0.58f,
-            0.24f,
-            4.0f,
-            zombieYaw,
-            zombieState.staggered
-                ? staggerOffset * 3.5f
-                : 0.0f);
+        // Arms anchor in local right/forward space, not global X/Z.
+        for (int sideSign : {-1, 1}) {
+            const float side =
+                static_cast<float>(
+                    sideSign);
 
-        drawRounded(
-            zombieX,
-            zombieY + 1.73f,
-            zombieZ + 0.005f,
-            0.235f,
-            0.255f,
-            0.225f,
-            5.0f,
-            zombieYaw,
-            zombieState.attack
-                ? -0.12f
-                : 0.04f);
+            const float shoulderSide =
+                side * 0.315f;
 
-        drawRounded(
-            zombieX - 0.39f,
-            zombieY + 1.08f,
-            zombieZ -
-                attackLunge * 0.48f,
-            0.115f,
-            0.47f,
-            0.115f,
-            5.0f,
-            zombieYaw,
-            armSwing);
+            const float armForward =
+                zombieState.attack
+                ? 0.27f
+                : side * stride * 0.025f;
 
-        drawRounded(
-            zombieX + 0.39f,
-            zombieY + 1.08f,
-            zombieZ -
-                attackLunge * 0.48f,
-            0.115f,
-            0.47f,
-            0.115f,
-            5.0f,
-            zombieYaw,
-            -armSwing);
+            const float armUp =
+                zombieState.attack
+                ? 1.23f
+                : 1.08f;
 
-        drawRounded(
-            zombieX - 0.16f,
-            zombieY + 0.38f,
-            zombieZ,
-            0.135f,
-            0.45f,
-            0.145f,
-            4.0f,
-            zombieYaw,
-            legSwing);
+            const auto arm =
+                anchor(
+                    shoulderSide,
+                    armUp,
+                    armForward);
 
-        drawRounded(
-            zombieX + 0.16f,
-            zombieY + 0.38f,
-            zombieZ,
-            0.135f,
-            0.45f,
-            0.145f,
-            4.0f,
-            zombieYaw,
-            -legSwing);
+            const float attackSpread =
+                side * 0.08f;
+
+            drawCylinder(
+                arm[0],
+                arm[1],
+                arm[2],
+                0.100f,
+                0.095f,
+                0.36f,
+                17.0f,
+                zombieYaw + attackSpread,
+                zombieState.attack
+                    ? 0.18f
+                    : 1.48f +
+                        side *
+                        armSwing *
+                        0.52f);
+
+            const auto sleeve =
+                anchor(
+                    side * 0.285f,
+                    zombieState.attack
+                        ? 1.17f
+                        : 1.21f,
+                    zombieState.attack
+                        ? 0.04f
+                        : 0.0f);
+
+            drawRounded(
+                sleeve[0],
+                sleeve[1],
+                sleeve[2],
+                0.135f,
+                0.19f,
+                0.13f,
+                18.0f,
+                zombieYaw,
+                side * armSwing * 0.25f);
+        }
+
+        // Legs and feet use the same actor-local basis, so stride remains
+        // visually aligned with the direction the zombie is actually moving.
+        for (int sideSign : {-1, 1}) {
+            const float side =
+                static_cast<float>(
+                    sideSign);
+
+            const float step =
+                side * legSwing;
+
+            const auto leg =
+                anchor(
+                    side * 0.145f,
+                    0.39f,
+                    step * 0.055f);
+
+            drawCylinder(
+                leg[0],
+                leg[1],
+                leg[2],
+                0.115f,
+                0.105f,
+                0.37f,
+                18.0f,
+                zombieYaw,
+                1.570796327f +
+                    step * 0.52f);
+
+            const auto foot =
+                anchor(
+                    side * 0.145f,
+                    0.095f,
+                    0.11f +
+                        step * 0.095f);
+
+            drawRounded(
+                foot[0],
+                foot[1],
+                foot[2],
+                0.135f,
+                0.080f,
+                0.21f,
+                18.0f,
+                zombieYaw,
+                0.04f);
+        }
 
         if (zombieState.healthRatio <
             0.70f) {
-            drawBox(
-                zombieX + 0.16f,
-                zombieY + 1.24f,
-                zombieZ - 0.23f,
-                0.08f,
+            const auto wound =
+                anchor(
+                    0.14f,
+                    1.22f,
+                    0.205f);
+
+            drawRounded(
+                wound[0],
+                wound[1],
+                wound[2],
+                0.085f,
                 0.15f,
-                0.025f,
-                6.0f);
+                0.032f,
+                6.0f,
+                zombieYaw,
+                0.0f);
         }
     }
 
@@ -4307,139 +4918,301 @@ bool VulkanClearRenderer::recordDrawCommand(
             6.0f);
     }
 
-    const float weaponAds =
-        std::clamp(
-            hud.weaponAdsAlpha,
+    if (!weaponMesh_.ready()) {
+        const float weaponAds =
+            std::clamp(
+                hud.weaponAdsAlpha,
+                0.0f,
+                1.0f);
+    
+        const float weaponReload =
+            std::clamp(
+                hud.weaponReloadAlpha,
+                0.0f,
+                1.0f);
+    
+        const float weaponFire =
+            std::clamp(
+                hud.weaponFireAlpha,
+                0.0f,
+                1.0f);
+    
+        const float viewmodelLowering =
+            std::clamp(
+                hud.viewmodelLowering,
+                0.0f,
+                1.0f);
+    
+        const float reloadArc =
+            std::sin(
+                weaponReload *
+                3.14159265358979323846f);
+    
+        const float weaponX =
+            0.66f *
+                (1.0f - weaponAds) +
+            0.035f *
+                weaponAds +
+            0.10f *
+                viewmodelLowering;
+    
+        const float weaponY =
+            -0.78f +
+            0.18f *
+                weaponAds -
+            0.30f *
+                reloadArc -
+            0.44f *
+                viewmodelLowering;
+    
+        const float weaponZ =
+            1.34f -
+            0.18f *
+                weaponAds +
+            0.10f *
+                reloadArc +
+            0.10f *
+                viewmodelLowering;
+    
+        // Native first-person rifle blockout. Keep this renderer-owned until a
+        // skinned GLB viewmodel path is production-ready, but make the current
+        // Android build read like a real firearm instead of one oversized cube.
+        // Materials 10/15/16 are gunmetal, worn furniture and matte polymer.
+        const float fireKick =
+            weaponFire * 0.11f;
+    
+        const float rifleY =
+            weaponY -
+            weaponFire * 0.025f;
+    
+        const float rifleZ =
+            weaponZ -
+            fireKick;
+    
+        // Buttstock + receiver.
+        drawPrimitive(
+            weaponX + 0.015f,
+            rifleY - 0.005f,
+            rifleZ - 0.54f,
+            0.27f,
+            0.17f,
+            0.44f,
+            15.0f,
             0.0f,
-            1.0f);
-
-    const float weaponReload =
-        std::clamp(
-            hud.weaponReloadAlpha,
             0.0f,
-            1.0f);
-
-    const float weaponFire =
-        std::clamp(
-            hud.weaponFireAlpha,
-            0.0f,
-            1.0f);
-
-    const float viewmodelLowering =
-        std::clamp(
-            hud.viewmodelLowering,
-            0.0f,
-            1.0f);
-
-    const float reloadArc =
-        std::sin(
-            weaponReload *
-            3.14159265358979323846f);
-
-    const float weaponX =
-        0.72f *
-            (1.0f - weaponAds) +
-        0.05f *
-            weaponAds +
-        0.11f *
-            viewmodelLowering;
-
-    const float weaponY =
-        -0.72f +
-        0.16f *
-            weaponAds -
-        0.30f *
-            reloadArc -
-        0.46f *
-            viewmodelLowering;
-
-    const float weaponZ =
-        1.22f -
-        0.12f *
-            weaponAds +
-        0.10f *
-            reloadArc +
-        0.08f *
-            viewmodelLowering;
-
-    // First procedural viewmodel: receiver, barrel and sight. This deliberately
-    // uses the same cube primitive as the room so the weapon path is proven
-    // before importing any external mesh asset.
-    drawBox(
-        weaponX,
-        weaponY,
-        weaponZ,
-        0.38f,
-        0.22f,
-        0.72f,
-        10.0f);
-
-    drawBox(
-        weaponX + 0.02f,
-        weaponY + 0.015f,
-        weaponZ + 0.72f,
-        0.15f,
-        0.12f,
-        0.78f,
-        10.0f);
-
-    drawBox(
-        weaponX,
-        weaponY + 0.20f,
-        weaponZ - 0.02f,
-        0.085f,
-        0.09f,
-        0.18f,
-        10.0f);
-
-    // Procedural gloved hands make slide/dive/reload motion visible in
-    // first-person before a final skinned viewmodel is imported.
-    drawBox(
-        weaponX + 0.22f,
-        weaponY - 0.10f -
-            reloadArc * 0.05f,
-        weaponZ - 0.18f +
-            reloadArc * 0.10f,
-        0.11f,
-        0.13f,
-        0.28f,
-        12.0f);
-
-    drawBox(
-        weaponX - 0.18f -
-            reloadArc * 0.10f,
-        weaponY - 0.04f -
-            reloadArc * 0.12f,
-        weaponZ + 0.35f,
-        0.10f,
-        0.12f,
-        0.23f,
-        12.0f);
-
-    drawBox(
-        weaponX + 0.31f,
-        weaponY - 0.20f,
-        weaponZ - 0.34f,
-        0.13f,
-        0.10f,
-        0.32f,
-        12.0f);
-
-    if (weaponFire > 0.01f) {
+            -0.05f,
+            36U);
+    
         drawBox(
-            weaponX + 0.02f,
-            weaponY + 0.015f,
-            weaponZ + 1.34f,
-            0.13f +
-                0.05f *
-                weaponFire,
-            0.13f +
-                0.05f *
-                weaponFire,
-            0.16f +
-                0.10f *
-                weaponFire,
-            11.0f);
+            weaponX,
+            rifleY,
+            rifleZ - 0.05f,
+            0.255f,
+            0.165f,
+            0.39f,
+            10.0f);
+    
+        drawBox(
+            weaponX,
+            rifleY + 0.125f,
+            rifleZ - 0.02f,
+            0.205f,
+            0.075f,
+            0.31f,
+            16.0f);
+    
+        // Forward furniture and true round barrel remove the old rectangular
+        // silhouette that dominated the bottom-right of the screen.
+        drawBox(
+            weaponX + 0.004f,
+            rifleY - 0.005f,
+            rifleZ + 0.43f,
+            0.22f,
+            0.135f,
+            0.34f,
+            15.0f);
+    
+        drawCylinder(
+            weaponX + 0.004f,
+            rifleY + 0.035f,
+            rifleZ + 0.94f,
+            0.055f,
+            0.055f,
+            0.54f,
+            10.0f,
+            0.0f,
+            0.0f);
+    
+        drawCylinder(
+            weaponX + 0.004f,
+            rifleY + 0.035f,
+            rifleZ + 1.38f,
+            0.078f,
+            0.078f,
+            0.13f,
+            16.0f,
+            0.0f,
+            0.0f);
+    
+        // Magazine and pistol grip are independently tilted visual pieces.
+        drawCylinder(
+            weaponX - 0.010f,
+            rifleY - 0.245f -
+                reloadArc * 0.10f,
+            rifleZ + 0.04f +
+                reloadArc * 0.10f,
+            0.125f,
+            0.082f,
+            0.30f,
+            16.0f,
+            0.0f,
+            -1.00f +
+                reloadArc * 0.30f);
+    
+        drawCylinder(
+            weaponX + 0.015f,
+            rifleY - 0.225f,
+            rifleZ - 0.27f,
+            0.090f,
+            0.078f,
+            0.22f,
+            16.0f,
+            0.0f,
+            -0.88f);
+    
+        // Rear rail plus front/rear iron sights. These small layers are cheap but
+        // give ADS a readable centerline instead of a featureless slab.
+        drawBox(
+            weaponX,
+            rifleY + 0.205f,
+            rifleZ - 0.04f,
+            0.13f,
+            0.025f,
+            0.28f,
+            10.0f);
+    
+        drawCylinder(
+            weaponX,
+            rifleY + 0.265f,
+            rifleZ - 0.19f,
+            0.032f,
+            0.032f,
+            0.075f,
+            10.0f,
+            0.0f,
+            1.570796327f);
+    
+        drawCylinder(
+            weaponX + 0.004f,
+            rifleY + 0.205f,
+            rifleZ + 0.75f,
+            0.028f,
+            0.028f,
+            0.095f,
+            10.0f,
+            0.0f,
+            1.570796327f);
+    
+        // Rounded gloves/forearms retain the existing reload motion but stop
+        // reading as rigid cubes.
+        drawRounded(
+            weaponX + 0.215f,
+            rifleY - 0.115f -
+                reloadArc * 0.045f,
+            rifleZ - 0.17f +
+                reloadArc * 0.10f,
+            0.14f,
+            0.12f,
+            0.24f,
+            12.0f,
+            -0.12f,
+            0.30f);
+    
+        drawCylinder(
+            weaponX + 0.30f,
+            rifleY - 0.245f,
+            rifleZ - 0.40f,
+            0.12f,
+            0.105f,
+            0.32f,
+            12.0f,
+            0.0f,
+            -0.48f);
+    
+        drawRounded(
+            weaponX - 0.18f -
+                reloadArc * 0.10f,
+            rifleY - 0.055f -
+                reloadArc * 0.12f,
+            rifleZ + 0.35f,
+            0.13f,
+            0.11f,
+            0.21f,
+            12.0f,
+            0.10f,
+            -0.18f);
+    
+        drawCylinder(
+            weaponX - 0.27f -
+                reloadArc * 0.10f,
+            rifleY - 0.18f -
+                reloadArc * 0.10f,
+            rifleZ + 0.16f,
+            0.105f,
+            0.095f,
+            0.28f,
+            12.0f,
+            0.0f,
+            -0.55f);
+    
+        if (weaponFire > 0.01f) {
+            drawRounded(
+                weaponX + 0.004f,
+                rifleY + 0.035f,
+                rifleZ + 1.53f,
+                0.12f +
+                    0.07f *
+                    weaponFire,
+                0.12f +
+                    0.07f *
+                    weaponFire,
+                0.18f +
+                    0.12f *
+                    weaponFire,
+                11.0f,
+                0.0f,
+                0.0f);
+        }
+    
+    
+    } else {
+        const float fire =
+            std::clamp(
+                hud.weaponFireAlpha,
+                0.0f,
+                1.0f);
+
+        if (fire > 0.01f) {
+            const float ads =
+                std::clamp(
+                    hud.weaponAdsAlpha,
+                    0.0f,
+                    1.0f);
+
+            drawRounded(
+                0.235f * (1.0f - ads) +
+                    0.004f * ads,
+                -0.095f +
+                    0.08f * ads,
+                1.02f -
+                    0.07f * fire,
+                0.10f + 0.06f * fire,
+                0.10f + 0.06f * fire,
+                0.17f + 0.10f * fire,
+                11.0f,
+                0.0f,
+                0.0f);
+        }
     }
 
     if (uiPipeline_ == VK_NULL_HANDLE ||

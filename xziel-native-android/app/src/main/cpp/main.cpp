@@ -28,6 +28,7 @@
 #include "xziel/render_features.hpp"
 #include "xziel/renderer_watchdog.hpp"
 #include "xziel/runtime_policy.hpp"
+#include "xziel/sanctum.hpp"
 #include "xziel/score.hpp"
 #include "xziel/weapon.hpp"
 #include "xziel/weapon_catalog.hpp"
@@ -173,6 +174,7 @@ struct NativeAppState {
     bool stormEnabled = true;
 
     bool prototypeWeaponBuyPurchased = false;
+    bool sanctumMapLoaded = false;
 
     float prototypeDoorOpenAlpha = 0.0f;
     float purchaseDeniedSeconds = 0.0f;
@@ -956,6 +958,11 @@ void advancePlayer(
 
         if (vitalsFrame.respawnedThisTick) {
             state.player.reset();
+            if (state.mapDefinition.hasPlayerSpawn) {
+                state.player.setSpawn(
+                    state.mapDefinition.playerSpawnFeet,
+                    state.mapDefinition.playerSpawnYawDegrees);
+            }
             state.weapon.reset();
             state.horde.reset();
             state.interaction.reset();
@@ -1039,11 +1046,14 @@ void advancePlayer(
                     state,
                     xziel::HapticEvent::UiConfirm);
             } else if (
-                state.interactionFrame.targetId ==
-                    kPrototypeDoorId) {
+                state.interactionFrame.kind ==
+                    xziel::InteractionKind::Door) {
+                const std::uint32_t doorId =
+                    state.interactionFrame.targetId;
+
                 const auto doorFrame =
                     state.mapRuntime.activateDoor(
-                        kPrototypeDoorId,
+                        doorId,
                         state.player,
                         state.horde,
                         state.interaction,
@@ -1052,7 +1062,7 @@ void advancePlayer(
                 if (doorFrame.openedThisTick) {
                     (void) state.interaction.
                         setTargetEnabled(
-                            kPrototypeDoorId,
+                            doorId,
                             false);
 
                     state.scorePulseSeconds =
@@ -1064,7 +1074,7 @@ void advancePlayer(
                                 xziel::GameplayEventType::
                                     DoorOpened,
                             .subjectId =
-                                kPrototypeDoorId,
+                                doorId,
                             .amount = 1U,
                             .simulationTick =
                                 state.engine.simulationTick(),
@@ -1150,89 +1160,102 @@ void advancePlayer(
             }
         }
 
+        state.mapRuntime.stepDoors(
+            fixedDelta,
+            state.player,
+            state.horde);
+
         const auto hordeFrame =
             state.horde.step(
                 playerFrame.feetPosition,
                 fixedDelta);
 
-        const bool rebuildingPrototypeWindow =
-            state.vitals.frame().alive &&
-            state.interactionFrame.promptVisible &&
-            state.interactionFrame.targetId ==
-                kPrototypeWindowId &&
-            input.input.interact;
+        for (std::size_t windowIndex = 0;
+             windowIndex < state.mapDefinition.windowCount;
+             ++windowIndex) {
+            const std::uint32_t windowId =
+                state.mapDefinition.windows[
+                    windowIndex].window.id;
 
-        const auto prototypeWindowFrame =
-            state.mapRuntime.stepWindow(
-                kPrototypeWindowId,
-                rebuildingPrototypeWindow,
-                fixedDelta,
-                state.player,
-                state.horde,
-                state.score);
+            const bool rebuildingWindow =
+                state.vitals.frame().alive &&
+                state.interactionFrame.promptVisible &&
+                state.interactionFrame.targetId ==
+                    windowId &&
+                input.input.interact;
 
-        if (prototypeWindowFrame.
-                barricade.pointsAwardedThisTick > 0U) {
-            state.scorePulseSeconds = 0.24f;
+            const auto windowFrame =
+                state.mapRuntime.stepWindow(
+                    windowId,
+                    rebuildingWindow,
+                    fixedDelta,
+                    state.player,
+                    state.horde,
+                    state.score);
 
-            state.audio.play(
-                xziel::android::AndroidAudioCue::
-                    BarricadeRebuild,
-                0.70f);
+            if (windowFrame.
+                    barricade.pointsAwardedThisTick > 0U) {
+                state.scorePulseSeconds = 0.24f;
 
-            (void) state.gameplayEvents.push(
-                {
-                    .type =
-                        xziel::GameplayEventType::
-                            PlankRebuilt,
-                    .subjectId =
-                        kPrototypeWindowId,
-                    .amount = 1U,
-                    .value =
-                        static_cast<float>(
-                            prototypeWindowFrame.
-                                barricade.intactPlanks),
-                    .simulationTick =
-                        state.engine.simulationTick(),
-                });
-        }
+                state.audio.play(
+                    xziel::android::AndroidAudioCue::
+                        BarricadeRebuild,
+                    0.70f);
 
-        if (prototypeWindowFrame.
-                barricade.plankRemovedThisTick) {
-            state.audio.play(
-                xziel::android::AndroidAudioCue::
-                    BarricadeBreak,
-                0.76f);
-        }
+                (void) state.gameplayEvents.push(
+                    {
+                        .type =
+                            xziel::GameplayEventType::
+                                PlankRebuilt,
+                        .subjectId =
+                            windowId,
+                        .amount = 1U,
+                        .value =
+                            static_cast<float>(
+                                windowFrame.
+                                    barricade.intactPlanks),
+                        .simulationTick =
+                            state.engine.simulationTick(),
+                    });
+            }
 
-        if (prototypeWindowFrame.
-                barricade.breachedThisTick) {
-            (void) state.gameplayEvents.push(
-                {
-                    .type =
-                        xziel::GameplayEventType::
-                            WindowBreached,
-                    .subjectId =
-                        kPrototypeWindowId,
-                    .amount = 1U,
-                    .simulationTick =
-                        state.engine.simulationTick(),
-                });
-        }
+            if (windowFrame.
+                    barricade.plankRemovedThisTick) {
+                state.audio.play(
+                    xziel::android::AndroidAudioCue::
+                        BarricadeBreak,
+                    0.76f);
+            }
 
-        if (prototypeWindowFrame.
-                barricade.fullyRebuiltThisTick) {
-            (void) state.gameplayEvents.push(
-                {
-                    .type =
-                        xziel::GameplayEventType::
-                            WindowFullyRebuilt,
-                    .subjectId =
-                        kPrototypeWindowId,
-                    .amount = 1U,
-                    .simulationTick =
-                        state.engine.simulationTick(),
-                });
+            if (windowFrame.
+                    barricade.breachedThisTick) {
+                (void) state.gameplayEvents.push(
+                    {
+                        .type =
+                            xziel::GameplayEventType::
+                                WindowBreached,
+                        .subjectId =
+                            windowId,
+                        .amount = 1U,
+                        .simulationTick =
+                            state.engine.simulationTick(),
+                    });
+            }
+
+            if (windowFrame.
+                    barricade.fullyRebuiltThisTick) {
+                (void) state.gameplayEvents.push(
+                    {
+                        .type =
+                            xziel::GameplayEventType::
+                                WindowFullyRebuilt,
+                        .subjectId =
+                            windowId,
+                        .amount = 1U,
+                        .simulationTick =
+                            state.engine.simulationTick(),
+                    });
+            }
         }
 
         if (hordeFrame.roundStartedThisTick) {
@@ -1355,11 +1378,13 @@ void advancePlayer(
                 },
                 fixedDelta);
 
-        if (weaponFrame.reloadCompletedThisTick) {
+        if (weaponFrame.reloadStartedThisTick) {
             state.audio.play(
                 xziel::android::AndroidAudioCue::Reload,
-                0.68f);
+                0.78f);
+        }
 
+        if (weaponFrame.reloadCompletedThisTick) {
             requestHaptic(
                 state,
                 xziel::HapticEvent::ReloadComplete);
@@ -2100,6 +2125,49 @@ xziel::android::VulkanSceneState makeSceneState(
     }
 
     for (std::size_t index = 0;
+         index < state.mapDefinition.doorCount &&
+         scene.doorCount < scene.doors.size();
+         ++index) {
+        const auto& authored =
+            state.mapDefinition.doors[index].door;
+
+        const auto* runtimeDoor =
+            state.mapRuntime.doors().frame(authored.id);
+
+        if (runtimeDoor == nullptr) {
+            continue;
+        }
+
+        auto& door =
+            scene.doors[scene.doorCount++];
+
+        door.id = authored.id;
+        door.x =
+            (authored.blocker.minimum.x +
+             authored.blocker.maximum.x) * 0.5f;
+        door.y =
+            (authored.blocker.minimum.y +
+             authored.blocker.maximum.y) * 0.5f;
+        door.z =
+            (authored.blocker.minimum.z +
+             authored.blocker.maximum.z) * 0.5f;
+        door.halfX = std::max(
+            (authored.blocker.maximum.x -
+             authored.blocker.minimum.x) * 0.5f,
+            0.01f);
+        door.halfY = std::max(
+            (authored.blocker.maximum.y -
+             authored.blocker.minimum.y) * 0.5f,
+            0.01f);
+        door.halfZ = std::max(
+            (authored.blocker.maximum.z -
+             authored.blocker.minimum.z) * 0.5f,
+            0.01f);
+        door.openProgress = runtimeDoor->openProgress;
+        door.visible = true;
+    }
+
+    for (std::size_t index = 0;
          index < state.mapDefinition.windowCount &&
          scene.windowCount < scene.windows.size();
          ++index) {
@@ -2335,31 +2403,90 @@ extern "C" void android_main(
     state.runtime.onEvent(
         xziel::AndroidLifecycleEvent::Create);
 
-    const bool prototypeAssetLoaded =
+    const bool sanctumAssetLoaded =
         app->activity != nullptr &&
         loadMapDefinitionFromAsset(
             app->activity->assetManager,
-            "maps/prototype.xmap",
+            "maps/sanctum.xmap",
             state.mapDefinition);
 
-    if (!prototypeAssetLoaded) {
-        configurePrototypeMap(
+    state.sanctumMapLoaded =
+        sanctumAssetLoaded;
+
+    if (sanctumAssetLoaded) {
+        const auto sanctumProfile =
+            xziel::makeSanctumGameplayProfile();
+
+        state.horde =
+            xziel::HordeDirector{
+                sanctumProfile.horde};
+
+        state.score =
+            xziel::ScoreSystem{
+                sanctumProfile.score};
+
+        state.vitals =
+            xziel::PlayerVitals{
+                sanctumProfile.vitals};
+
+        state.horror =
+            xziel::HorrorDirector{
+                sanctumProfile.horror};
+
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_SANCTUM_PROFILE_READY hp=%.0f spawnInterval=%.2f interRound=%.1f baseZombies=%u maxActive=%u points=%u",
+            sanctumProfile.vitals.maxHealth,
+            sanctumProfile.horde.spawnIntervalSeconds,
+            sanctumProfile.horde.interRoundDelaySeconds,
+            sanctumProfile.horde.baseZombiesPerRound,
+            sanctumProfile.horde.maxActive,
+            sanctumProfile.score.startingPoints);
+    }
+
+    bool prototypeAssetLoaded = false;
+    if (!sanctumAssetLoaded) {
+        prototypeAssetLoaded =
+            app->activity != nullptr &&
+            loadMapDefinitionFromAsset(
+                app->activity->assetManager,
+                "maps/prototype.xmap",
+                state.mapDefinition);
+
+        if (!prototypeAssetLoaded) {
+            configurePrototypeMap(
+                state);
+        }
+
+        configurePrototypeQuest(
             state);
     }
 
-    configurePrototypeQuest(
-        state);
-
-    const auto prototypeMapLoad =
+    const auto nativeMapLoad =
         state.mapRuntime.load(
             state.mapDefinition,
             state.player,
             state.horde,
             state.interaction);
 
-    if (!prototypeMapLoad.success) {
+    if (!nativeMapLoad.success) {
         logError(
-            "Prototype map failed to load into Xziel map runtime");
+            sanctumAssetLoaded
+            ? "Sanctum native map failed to load into Xziel map runtime"
+            : "Prototype map failed to load into Xziel map runtime");
+    } else if (sanctumAssetLoaded) {
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_SANCTUM_GAMEPLAY_READY boxes=%zu floors=%zu doors=%zu windows=%zu spawns=%zu playerSpawn=%d arena=%d",
+            nativeMapLoad.playerColliders,
+            nativeMapLoad.walkableFloors,
+            nativeMapLoad.doors,
+            nativeMapLoad.windows,
+            nativeMapLoad.zombieSpawns,
+            nativeMapLoad.playerSpawnApplied ? 1 : 0,
+            nativeMapLoad.arenaBoundsApplied ? 1 : 0);
     } else if (prototypeAssetLoaded) {
         logInfo(
             "XZIEL_XMAP_ASSET_READY");
@@ -2468,9 +2595,18 @@ extern "C" void android_main(
             "Haptics unavailable; gameplay continues without vibration");
     }
 
-    if (!state.audio.initialize()) {
+    if (!state.audio.initialize(
+            app->activity != nullptr
+                ? app->activity->assetManager
+                : nullptr)) {
         logInfo(
             "AAudio unavailable; gameplay continues with silent fallback");
+    } else if (state.audio.realWeaponSamplesReady()) {
+        logInfo(
+            "XZIEL_WEAPON_AUDIO_READY fire=1 reload=1");
+    } else {
+        logInfo(
+            "Weapon WAV assets unavailable; procedural audio fallback active");
     }
 
     logInfo("XZIEL_NATIVE_BOOT");
@@ -2638,30 +2774,10 @@ extern "C" void android_main(
             state.mapRuntime.doors().frame(
                 kPrototypeDoorId);
 
-        const float doorTargetAlpha =
-            prototypeDoor != nullptr &&
-                    prototypeDoor->open
-            ? 1.0f
+        state.prototypeDoorOpenAlpha =
+            prototypeDoor != nullptr
+            ? prototypeDoor->openProgress
             : 0.0f;
-
-        const float doorStep =
-            frameDelta *
-            1.65f;
-
-        if (state.prototypeDoorOpenAlpha <
-            doorTargetAlpha) {
-            state.prototypeDoorOpenAlpha =
-                std::min(
-                    doorTargetAlpha,
-                    state.prototypeDoorOpenAlpha +
-                        doorStep);
-        } else {
-            state.prototypeDoorOpenAlpha =
-                std::max(
-                    doorTargetAlpha,
-                    state.prototypeDoorOpenAlpha -
-                        doorStep);
-        }
 
         state.renderWorkload =
             state.performance.advance(

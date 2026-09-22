@@ -10,10 +10,12 @@
 
 namespace xziel {
 
-inline constexpr std::size_t kMaxMapBoxes = 128;
+inline constexpr std::size_t kMaxMapBoxes = 256;
+inline constexpr std::size_t kMaxMapFloors = 256;
 inline constexpr std::size_t kMaxMapDoors = 16;
-inline constexpr std::size_t kMaxMapWindows = 8;
+inline constexpr std::size_t kMaxMapWindows = 32;
 inline constexpr std::size_t kMaxMapGenericInteractions = 16;
+inline constexpr std::size_t kMaxMapZombieSpawns = 32;
 
 struct MapBoxDefinition {
     std::uint32_t id = 0;
@@ -23,6 +25,11 @@ struct MapBoxDefinition {
     bool visible = true;
     bool blocksPlayer = true;
     bool blocksZombies = true;
+};
+
+struct MapFloorDefinition {
+    std::uint32_t id = 0;
+    Aabb bounds{};
 };
 
 struct MapDoorEntity {
@@ -38,6 +45,22 @@ struct MapWindowEntity {
 struct MapDefinition {
     std::array<MapBoxDefinition, kMaxMapBoxes> boxes{};
     std::size_t boxCount = 0;
+
+    std::array<MapFloorDefinition, kMaxMapFloors> floors{};
+    std::size_t floorCount = 0;
+
+    Vec3 playerSpawnFeet{};
+    float playerSpawnYawDegrees = 0.0f;
+    bool hasPlayerSpawn = false;
+
+    std::array<Vec3, kMaxMapZombieSpawns> zombieSpawns{};
+    std::size_t zombieSpawnCount = 0;
+
+    float arenaMinimumX = 0.0f;
+    float arenaMaximumX = 0.0f;
+    float arenaMinimumZ = 0.0f;
+    float arenaMaximumZ = 0.0f;
+    bool hasArenaBounds = false;
 
     std::array<MapDoorEntity, kMaxMapDoors> doors{};
     std::size_t doorCount = 0;
@@ -55,9 +78,13 @@ struct MapLoadResult {
     std::size_t visibleBoxes = 0;
     std::size_t playerColliders = 0;
     std::size_t zombieColliders = 0;
+    std::size_t walkableFloors = 0;
     std::size_t doors = 0;
     std::size_t windows = 0;
     std::size_t interactions = 0;
+    std::size_t zombieSpawns = 0;
+    bool playerSpawnApplied = false;
+    bool arenaBoundsApplied = false;
 };
 
 class MapRuntime final {
@@ -74,6 +101,11 @@ public:
         InteractionSystem& interactions) noexcept;
 
     void beginRound() noexcept;
+
+    void stepDoors(
+        float deltaSeconds,
+        FpsPlayerController& player,
+        HordeDirector& horde) noexcept;
 
     [[nodiscard]] DoorFrame activateDoor(
         std::uint32_t id,

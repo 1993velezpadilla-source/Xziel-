@@ -1,0 +1,10 @@
+{
+  "id": "monster",
+  "status": "ok",
+  "license": "CC0",
+  "sourcePage": "https://opengameart.org/content/monster-3",
+  "sourceFile": "_sanctum_extract/monster/monster.obj",
+  "conversion": "native OBJ",
+  "commercialUse": true,
+  "attributionRequired": false
+}

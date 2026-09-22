@@ -20,6 +20,7 @@ add_library(xziel-native SHARED
     android_haptics.cpp
     android_audio.cpp
     vulkan_clear_renderer.cpp
+    vulkan_static_mesh_renderer.cpp
 )
 
 target_include_directories(xziel-native
@@ -45,6 +46,7 @@ target_link_libraries(xziel-native
         game-activity::game-activity_static
         games-frame-pacing::swappy_static
         android
+        jnigraphics
         aaudio
         log
         vulkan

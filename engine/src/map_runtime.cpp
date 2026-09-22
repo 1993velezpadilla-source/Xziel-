@@ -42,8 +42,10 @@ void MapRuntime::clear(
     HordeDirector& horde,
     InteractionSystem& interactions) noexcept {
     interactions.clearTargets();
+    player.clearWalkableSurfaces();
     player.clearStaticObstacles();
     player.clearDynamicObstacles();
+    horde.clearNavigationFloors();
     horde.clearNavigationObstacles();
     horde.clearDynamicBlockers();
     doors_.clear();
@@ -58,13 +60,99 @@ MapLoadResult MapRuntime::load(
     MapLoadResult result{};
 
     if (definition.boxCount > definition.boxes.size() ||
+        definition.floorCount > definition.floors.size() ||
         definition.doorCount > definition.doors.size() ||
         definition.windowCount > definition.windows.size() ||
-        definition.interactionCount > definition.interactions.size()) {
+        definition.interactionCount > definition.interactions.size() ||
+        definition.zombieSpawnCount > definition.zombieSpawns.size()) {
         return result;
     }
 
+    if (definition.hasPlayerSpawn &&
+        !finiteVec3(definition.playerSpawnFeet)) {
+        return result;
+    }
+
+    if (definition.hasArenaBounds &&
+        (!std::isfinite(definition.arenaMinimumX) ||
+         !std::isfinite(definition.arenaMaximumX) ||
+         !std::isfinite(definition.arenaMinimumZ) ||
+         !std::isfinite(definition.arenaMaximumZ) ||
+         definition.arenaMinimumX >= definition.arenaMaximumX ||
+         definition.arenaMinimumZ >= definition.arenaMaximumZ)) {
+        return result;
+    }
+
+    for (std::size_t i = 0;
+         i < definition.zombieSpawnCount;
+         ++i) {
+        if (!finiteVec3(definition.zombieSpawns[i])) {
+            return result;
+        }
+    }
+
     clear(player, horde, interactions);
+
+    if (definition.hasArenaBounds) {
+        if (!player.setHorizontalBounds(
+                definition.arenaMinimumX,
+                definition.arenaMaximumX,
+                definition.arenaMinimumZ,
+                definition.arenaMaximumZ) ||
+            !horde.setArenaBounds(
+                definition.arenaMinimumX,
+                definition.arenaMaximumX,
+                definition.arenaMinimumZ,
+                definition.arenaMaximumZ)) {
+            clear(player, horde, interactions);
+            return {};
+        }
+        result.arenaBoundsApplied = true;
+    }
+
+    if (definition.hasPlayerSpawn) {
+        player.setSpawn(
+            definition.playerSpawnFeet,
+            definition.playerSpawnYawDegrees);
+        result.playerSpawnApplied = true;
+    }
+
+    if (definition.zombieSpawnCount > 0U) {
+        if (!horde.setSpawnPoints(
+                definition.zombieSpawns.data(),
+                definition.zombieSpawnCount)) {
+            clear(player, horde, interactions);
+            return {};
+        }
+        result.zombieSpawns =
+            definition.zombieSpawnCount;
+    }
+
+    for (std::size_t i = 0;
+         i < definition.floorCount;
+         ++i) {
+        const auto& floor =
+            definition.floors[i];
+
+        if (floor.id == 0U ||
+            !finiteVec3(floor.bounds.minimum) ||
+            !finiteVec3(floor.bounds.maximum) ||
+            floor.bounds.minimum.x >
+                floor.bounds.maximum.x ||
+            floor.bounds.minimum.y >
+                floor.bounds.maximum.y ||
+            floor.bounds.minimum.z >
+                floor.bounds.maximum.z ||
+            !player.addWalkableSurface(
+                floor.bounds) ||
+            !horde.addNavigationFloor(
+                floor.bounds)) {
+            clear(player, horde, interactions);
+            return {};
+        }
+
+        ++result.walkableFloors;
+    }
 
     for (std::size_t i = 0; i < definition.boxCount; ++i) {
         const auto& box = definition.boxes[i];
@@ -137,6 +225,13 @@ MapLoadResult MapRuntime::load(
 
 void MapRuntime::beginRound() noexcept {
     windows_.beginRound();
+}
+
+void MapRuntime::stepDoors(
+    float deltaSeconds,
+    FpsPlayerController& player,
+    HordeDirector& horde) noexcept {
+    doors_.step(deltaSeconds, horde, player);
 }
 
 DoorFrame MapRuntime::activateDoor(

@@ -1,0 +1,13 @@
+{
+  "target": "stained_shade",
+  "primarySources": [
+    "old_lady",
+    "female_character"
+  ],
+  "copiedSources": [
+    "old_lady",
+    "female_character"
+  ],
+  "reason": "female apparition base; replace materials with translucent/stained-glass layers",
+  "rule": "These are starting meshes, not final Sanctum character art."
+}

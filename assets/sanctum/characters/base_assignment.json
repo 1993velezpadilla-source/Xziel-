@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "project": "SANCTUM OF ASH",
+  "policy": "Use real downloaded/free meshes as production bases. Primitive generated proxies are fallback scale guides only.",
+  "targets": [
+    {
+      "target": "choir_wretch",
+      "primary": [
+        "monk",
+        "thin_zombie"
+      ],
+      "fallback": [
+        "male_city_zombie",
+        "male_3d"
+      ],
+      "reason": "robe/clergy silhouette plus undead body/face"
+    },
+    {
+      "target": "bell_ringer",
+      "primary": [
+        "monk",
+        "male_3d"
+      ],
+      "fallback": [
+        "thin_zombie"
+      ],
+      "reason": "robed church servant; add bell and rope props"
+    },
+    {
+      "target": "censer_brute",
+      "primary": [
+        "giant_mutant",
+        "monk"
+      ],
+      "fallback": [
+        "monster"
+      ],
+      "reason": "large heavy body with church robe/censer kitbash"
+    },
+    {
+      "target": "reliquary_horror",
+      "primary": [
+        "giant_mutant",
+        "monster"
+      ],
+      "fallback": [
+        "male_city_zombie"
+      ],
+      "reason": "boss-scale creature base plus custom shrine/back structure"
+    },
+    {
+      "target": "grave_sexton",
+      "primary": [
+        "male_city_zombie",
+        "male_3d"
+      ],
+      "fallback": [
+        "thin_zombie"
+      ],
+      "reason": "human undead worker base; add shovel/keyring/coat"
+    },
+    {
+      "target": "penitent_deacon",
+      "primary": [
+        "monk",
+        "male_3d"
+      ],
+      "fallback": [
+        "thin_zombie"
+      ],
+      "reason": "clergy body and robe; add stole, lantern, rope and crosses"
+    },
+    {
+      "target": "stained_shade",
+      "primary": [
+        "old_lady",
+        "female_character"
+      ],
+      "fallback": [
+        "female_body"
+      ],
+      "reason": "female apparition base; replace materials with translucent/stained-glass layers"
+    },
+    {
+      "target": "waterbound_child",
+      "primary": [
+        "lowpoly_kid"
+      ],
+      "fallback": [],
+      "reason": "child skeleton/body; add wet dress/hair/mist"
+    },
+    {
+      "target": "lost_child",
+      "primary": [
+        "lowpoly_kid"
+      ],
+      "fallback": [],
+      "reason": "child skeleton/body; add dress, doll and rosary"
+    },
+    {
+      "target": "la_llorona",
+      "primary": [
+        "old_lady",
+        "female_character",
+        "female_body"
+      ],
+      "fallback": [],
+      "reason": "adult female apparition; long wet hair, layered dress and rosary"
+    }
+  ]
+}

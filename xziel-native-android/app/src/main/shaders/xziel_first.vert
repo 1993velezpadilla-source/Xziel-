@@ -212,6 +212,94 @@ void main() {
 
         unitPosition =
             unitNormal * 0.75;
+    } else if (shape == 2) {
+        // Compact procedural cylinder for barrels, magazines and grips.
+        // The cylinder's long axis is local Z; object scale/rotation turns
+        // it into viewmodel parts without allocating another vertex buffer.
+        const int segments = 12;
+        const float pi = 3.14159265358979323846;
+        int triangleIndex = gl_VertexIndex / 3;
+        int triangleCorner = gl_VertexIndex % 3;
+
+        if (triangleIndex < segments * 2) {
+            int segment = triangleIndex / 2;
+            int triangleInQuad = triangleIndex % 2;
+            int segmentCorner;
+            float localZ;
+
+            if (triangleInQuad == 0) {
+                segmentCorner =
+                    triangleCorner == 0
+                    ? segment
+                    : segment + 1;
+                localZ =
+                    triangleCorner == 2
+                    ? 0.75
+                    : -0.75;
+            } else {
+                segmentCorner =
+                    triangleCorner == 2
+                    ? segment
+                    : segment + 1;
+                localZ =
+                    triangleCorner == 0
+                    ? -0.75
+                    : 0.75;
+            }
+
+            float theta =
+                2.0 * pi *
+                float(segmentCorner) /
+                float(segments);
+            vec2 radial =
+                vec2(cos(theta), sin(theta));
+
+            unitPosition =
+                vec3(
+                    radial * 0.75,
+                    localZ);
+            unitNormal =
+                vec3(
+                    radial,
+                    0.0);
+        } else {
+            int capTriangle =
+                triangleIndex -
+                segments * 2;
+            bool front =
+                capTriangle >= segments;
+            int segment =
+                capTriangle % segments;
+            float localZ =
+                front ? 0.75 : -0.75;
+            float normalZ =
+                front ? 1.0 : -1.0;
+
+            if (triangleCorner == 0) {
+                unitPosition =
+                    vec3(0.0, 0.0, localZ);
+            } else {
+                int segmentCorner =
+                    triangleCorner == 1
+                    ? segment
+                    : segment + 1;
+                float theta =
+                    2.0 * pi *
+                    float(segmentCorner) /
+                    float(segments);
+                unitPosition =
+                    vec3(
+                        cos(theta) * 0.75,
+                        sin(theta) * 0.75,
+                        localZ);
+            }
+
+            unitNormal =
+                vec3(
+                    0.0,
+                    0.0,
+                    normalZ);
+        }
     } else {
         unitPosition =
             kPositions[gl_VertexIndex];
@@ -237,8 +325,10 @@ void main() {
             scaledNormal);
 
     bool viewmodelMaterial =
-        material >= 10 &&
-        material <= 12;
+        (material >= 10 &&
+         material <= 12) ||
+        (material >= 15 &&
+         material <= 16);
 
     vec3 camera =
         viewmodelMaterial

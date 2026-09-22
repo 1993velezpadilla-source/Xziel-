@@ -1,0 +1,13 @@
+{
+  "target": "bell_ringer",
+  "primarySources": [
+    "monk",
+    "male_3d"
+  ],
+  "copiedSources": [
+    "monk",
+    "male_3d"
+  ],
+  "reason": "robed church servant; add bell and rope props",
+  "rule": "These are starting meshes, not final Sanctum character art."
+}

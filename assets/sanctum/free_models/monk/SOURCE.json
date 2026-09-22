@@ -1,0 +1,10 @@
+{
+  "id": "monk",
+  "status": "ok",
+  "license": "CC0",
+  "sourcePage": "https://opengameart.org/content/monk",
+  "sourceFile": "MONK_1.blend",
+  "conversion": "Blender headless -> OBJ + GLB",
+  "commercialUse": true,
+  "attributionRequired": false
+}

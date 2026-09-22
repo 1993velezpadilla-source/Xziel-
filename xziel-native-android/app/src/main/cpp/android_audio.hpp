@@ -1,12 +1,14 @@
 #pragma once
 
 #include <aaudio/AAudio.h>
+#include <android/asset_manager.h>
 
 #include "xziel/spsc_queue.hpp"
 
 #include <array>
 #include <atomic>
 #include <cstdint>
+#include <vector>
 
 namespace xziel::android {
 
@@ -35,7 +37,8 @@ public:
     AndroidAudioEngine(const AndroidAudioEngine&) = delete;
     AndroidAudioEngine& operator=(const AndroidAudioEngine&) = delete;
 
-    [[nodiscard]] bool initialize() noexcept;
+    [[nodiscard]] bool initialize(
+        AAssetManager* assetManager) noexcept;
     void shutdown() noexcept;
 
     // Called from the Android/game thread. This never blocks on the audio
@@ -50,6 +53,7 @@ public:
 
     [[nodiscard]] bool ready() const noexcept;
     [[nodiscard]] std::uint64_t droppedCueCount() const noexcept;
+    [[nodiscard]] bool realWeaponSamplesReady() const noexcept;
 
 private:
     struct Command {
@@ -65,8 +69,22 @@ private:
         float gain = 0.0f;
         float ageSeconds = 0.0f;
         float durationSeconds = 0.0f;
+        float samplePosition = 0.0f;
         std::uint32_t noiseState = 1U;
+        bool sampled = false;
     };
+
+    struct SampleBuffer {
+        std::vector<float> mono{};
+        std::uint32_t sampleRate = 0U;
+    };
+
+    [[nodiscard]] bool loadPcm16Wav(
+        AAssetManager* assetManager,
+        const char* assetPath,
+        SampleBuffer& out) noexcept;
+    [[nodiscard]] const SampleBuffer* sampleFor(
+        AndroidAudioCue cue) const noexcept;
 
     [[nodiscard]] bool openStream() noexcept;
     void startVoice(const Command& command) noexcept;
@@ -91,6 +109,8 @@ private:
 
     xziel::SpscQueue<Command, 64> commands_{};
     std::array<Voice, 24> voices_{};
+    SampleBuffer fireSample_{};
+    SampleBuffer reloadSample_{};
 
     AAudioStream* stream_ = nullptr;
     float sampleRate_ = 48000.0f;

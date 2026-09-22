@@ -29,6 +29,42 @@ void ZombieWindowSystem::beginRound() noexcept {
     }
 }
 
+std::size_t ZombieWindowSystem::repairAll(
+    HordeDirector& horde,
+    FpsPlayerController& player) noexcept {
+    std::size_t repaired = 0U;
+
+    for (auto& slot : windows_) {
+        if (!slot.occupied) {
+            continue;
+        }
+
+        const bool changed =
+            slot.barricade.frame().intactPlanks <
+            slot.barricade.config().maximumPlanks;
+
+        slot.barricade.forceFullRebuild();
+        slot.frame = {
+            .id = slot.id,
+            .barricade = slot.barricade.frame(),
+            .navigationBlocked = true,
+        };
+
+        (void) horde.setDynamicBlockerEnabled(
+            slot.id,
+            true);
+        (void) player.setDynamicObstacleEnabled(
+            slot.id,
+            true);
+
+        if (changed) {
+            ++repaired;
+        }
+    }
+
+    return repaired;
+}
+
 bool ZombieWindowSystem::addWindow(
     const ZombieWindowDefinition& definition,
     HordeDirector& horde,
@@ -56,6 +92,7 @@ bool ZombieWindowSystem::addWindow(
         }
         slot.id = definition.id;
         slot.barricade = BarricadeSystem(definition.barricade);
+        slot.visual = definition.visual;
         slot.frame = {
             .id = definition.id,
             .barricade = slot.barricade.frame(),
@@ -124,6 +161,12 @@ const ZombieWindowFrame*
 ZombieWindowSystem::frame(std::uint32_t id) const noexcept {
     const auto* slot = find(id);
     return slot != nullptr ? &slot->frame : nullptr;
+}
+
+const ZombieWindowVisualDefinition*
+ZombieWindowSystem::visual(std::uint32_t id) const noexcept {
+    const auto* slot = find(id);
+    return slot != nullptr ? &slot->visual : nullptr;
 }
 
 std::size_t ZombieWindowSystem::count() const noexcept {

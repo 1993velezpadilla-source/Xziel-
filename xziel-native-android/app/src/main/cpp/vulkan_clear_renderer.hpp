@@ -5,6 +5,8 @@
 #include <jni.h>
 #include <vulkan/vulkan.h>
 
+#include "vulkan_static_mesh_renderer.hpp"
+
 #include <array>
 #include <cstdint>
 #include <vector>
@@ -31,6 +33,18 @@ struct VulkanMapBoxState {
     float scaleZ = 1.0f;
 
     float materialId = 0.0f;
+    bool visible = false;
+};
+
+struct VulkanDoorState {
+    std::uint32_t id = 0;
+    float x = 0.0f;
+    float y = 0.0f;
+    float z = 0.0f;
+    float halfX = 0.08f;
+    float halfY = 1.0f;
+    float halfZ = 0.55f;
+    float openProgress = 0.0f;
     bool visible = false;
 };
 
@@ -66,7 +80,10 @@ struct VulkanSceneState {
     std::array<VulkanMapBoxState, 128> mapBoxes{};
     std::size_t mapBoxCount = 0;
 
-    std::array<VulkanWindowState, 8> windows{};
+    std::array<VulkanDoorState, 16> doors{};
+    std::size_t doorCount = 0;
+
+    std::array<VulkanWindowState, 32> windows{};
     std::size_t windowCount = 0;
 
     std::array<VulkanZombieState, 8> zombies{};
@@ -361,6 +378,9 @@ private:
     VkPipeline uiPipeline_ = VK_NULL_HANDLE;
 
     VkCommandPool commandPool_ = VK_NULL_HANDLE;
+
+    VulkanStaticMeshRenderer sanctumMesh_{};
+    VulkanStaticMeshRenderer weaponMesh_{};
 
     std::vector<VkImage> swapchainImages_;
     std::vector<VkImageView> imageViews_;

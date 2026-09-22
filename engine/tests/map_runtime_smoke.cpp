@@ -10,6 +10,27 @@ int main() {
     xziel::MapRuntime runtime;
 
     xziel::MapDefinition map{};
+    map.hasPlayerSpawn = true;
+    map.playerSpawnFeet = {12.0f, -1.58f, -9.0f};
+    map.playerSpawnYawDegrees = 42.0f;
+    map.hasArenaBounds = true;
+    map.arenaMinimumX = -40.0f;
+    map.arenaMaximumX = 40.0f;
+    map.arenaMinimumZ = -35.0f;
+    map.arenaMaximumZ = 45.0f;
+    map.zombieSpawns[0] = {-12.0f, -1.58f, 8.0f};
+    map.zombieSpawns[1] = { 14.0f, -1.58f, 9.0f};
+    map.zombieSpawnCount = 2;
+
+    map.floors[0] = {
+        .id = 1000U,
+        .bounds = {
+            .minimum = {-20.0f, -1.78f, -20.0f},
+            .maximum = { 20.0f, -1.58f,  20.0f},
+        },
+    };
+    map.floorCount = 1;
+
     map.boxes[0] = {
         .id = 1,
         .center = {0.0f, -0.30f, 0.0f},
@@ -84,9 +105,20 @@ int main() {
     assert(loaded.visibleBoxes == 1);
     assert(loaded.playerColliders == 1);
     assert(loaded.zombieColliders == 1);
+    assert(loaded.walkableFloors == 1);
     assert(loaded.doors == 1);
     assert(loaded.windows == 1);
     assert(loaded.interactions == 3);
+    assert(loaded.playerSpawnApplied);
+    assert(loaded.arenaBoundsApplied);
+    assert(loaded.zombieSpawns == 2);
+    assert(player.frame().feetPosition.x == 12.0f);
+    assert(player.frame().feetPosition.z == -9.0f);
+    assert(player.frame().yawDegrees == 42.0f);
+    assert(horde.config().spawnPointCount == 2);
+    assert(horde.config().spawnPoints[0].x == -12.0f);
+    assert(horde.config().arenaMinimumX == -40.0f);
+    assert(horde.config().arenaMaximumZ == 45.0f);
 
     const auto door = runtime.activateDoor(
         100,
@@ -95,10 +127,113 @@ int main() {
         interactions,
         score);
     assert(door.openedThisTick);
-    assert(door.open);
+    assert(door.opening);
+    assert(!door.open);
     assert(score.frame().total == 250);
 
+    for (int i = 0; i < 120; ++i) {
+        runtime.stepDoors(
+            1.0f / 120.0f,
+            player,
+            horde);
+    }
+
+    const auto* openedDoor =
+        runtime.doors().frame(100);
+    assert(openedDoor != nullptr);
+    assert(openedDoor->open);
+    assert(openedDoor->collisionReleased);
+    assert(openedDoor->openProgress == 1.0f);
+
     runtime.beginRound();
+
+    // Sanctum-sized capacity proof: progression doors + fitted barricades must
+    // coexist in the same native map without exhausting dynamic blocker pools.
+    {
+        xziel::FpsPlayerController sanctumPlayer;
+        xziel::HordeDirector sanctumHorde;
+        xziel::InteractionSystem sanctumInteractions;
+        xziel::MapRuntime sanctumRuntime;
+        xziel::MapDefinition sanctum{};
+
+        for (std::size_t i = 0; i < 7; ++i) {
+            const std::uint32_t id =
+                2000U + static_cast<std::uint32_t>(i);
+            sanctum.doors[i].door = {
+                .id = id,
+                .blocker = {
+                    .minimum = {
+                        -0.2f + static_cast<float>(i),
+                        -1.58f,
+                        0.0f,
+                    },
+                    .maximum = {
+                        0.2f + static_cast<float>(i),
+                        1.0f,
+                        0.2f,
+                    },
+                },
+                .cost = 750U,
+            };
+            sanctum.doors[i].interaction = {
+                .id = id,
+                .kind = xziel::InteractionKind::Door,
+                .position = {
+                    static_cast<float>(i),
+                    -0.40f,
+                    0.0f,
+                },
+            };
+        }
+        sanctum.doorCount = 7;
+
+        for (std::size_t i = 0; i < 28; ++i) {
+            const std::uint32_t id =
+                3000U + static_cast<std::uint32_t>(i);
+            sanctum.windows[i].window = {
+                .id = id,
+                .blocker = {
+                    .minimum = {
+                        -0.8f,
+                        -1.58f,
+                        1.0f + static_cast<float>(i),
+                    },
+                    .maximum = {
+                        0.8f,
+                        1.0f,
+                        1.2f + static_cast<float>(i),
+                    },
+                },
+                .barricade = {
+                    .maximumPlanks = 6,
+                },
+            };
+            sanctum.windows[i].interaction = {
+                .id = id,
+                .kind = xziel::InteractionKind::Use,
+                .position = {
+                    0.0f,
+                    -0.30f,
+                    0.9f + static_cast<float>(i),
+                },
+            };
+        }
+        sanctum.windowCount = 28;
+
+        const auto loadedSanctum =
+            sanctumRuntime.load(
+                sanctum,
+                sanctumPlayer,
+                sanctumHorde,
+                sanctumInteractions);
+
+        assert(loadedSanctum.success);
+        assert(loadedSanctum.doors == 7);
+        assert(loadedSanctum.windows == 28);
+        assert(loadedSanctum.interactions == 35);
+        assert(sanctumRuntime.doors().count() == 7);
+        assert(sanctumRuntime.windows().count() == 28);
+    }
 
     return 0;
 }

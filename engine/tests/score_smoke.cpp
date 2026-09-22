@@ -96,5 +96,15 @@ int main() {
     assert(utility.changedThisTick);
     assert(!utility.criticalAwardThisTick);
 
+    score.setAwardMultiplier(2.0f);
+    assert(score.awardMultiplier() == 2.0f);
+    const auto beforeDouble = score.frame().total;
+    utility = score.awardUtility(25U);
+    assert(utility.total == beforeDouble + 50U);
+    assert(utility.lastAward == 50U);
+
+    score.setAwardMultiplier(1.0f);
+    assert(score.awardMultiplier() == 1.0f);
+
     return 0;
 }

@@ -10,8 +10,10 @@
 namespace xziel {
 
 inline constexpr std::size_t kMaxHordeZombies = 16;
-inline constexpr std::size_t kMaxHordeNavigationObstacles = 64;
-inline constexpr std::size_t kMaxHordeDynamicBlockers = 32;
+inline constexpr std::size_t kMaxHordeNavigationObstacles = 256;
+inline constexpr std::size_t kMaxHordeNavigationFloors = 256;
+inline constexpr std::size_t kMaxHordeDynamicBlockers = 64;
+inline constexpr std::size_t kMaxHordeNavigationLinksPerFloor = 96;
 
 struct HordeConfig {
     std::uint32_t startingRound = 1;
@@ -38,7 +40,7 @@ struct HordeConfig {
     float arenaMinimumZ = -3.25f;
     float arenaMaximumZ = 3.45f;
 
-    std::array<Vec3, 8> spawnPoints{{
+    std::array<Vec3, 32> spawnPoints{{
         {-2.35f, -1.48f,  3.15f},
         { 2.35f, -1.48f,  3.15f},
         {-2.55f, -1.48f,  1.55f},
@@ -71,6 +73,21 @@ public:
 
     void reset() noexcept;
 
+    [[nodiscard]] bool setSpawnPoints(
+        const Vec3* points,
+        std::size_t count) noexcept;
+
+    [[nodiscard]] bool setArenaBounds(
+        float minimumX,
+        float maximumX,
+        float minimumZ,
+        float maximumZ) noexcept;
+
+    void clearNavigationFloors() noexcept;
+
+    [[nodiscard]] bool addNavigationFloor(
+        const Aabb& floor) noexcept;
+
     void clearNavigationObstacles() noexcept;
 
     [[nodiscard]] bool addNavigationObstacle(
@@ -94,6 +111,9 @@ public:
     [[nodiscard]] std::uint32_t dynamicBlockerAttackCount(
         std::uint32_t id) const noexcept;
 
+    [[nodiscard]] std::size_t navigationFloorCount() const noexcept;
+    [[nodiscard]] std::size_t navigationLinkCount() const noexcept;
+
     [[nodiscard]] HordeFrame step(
         Vec3 playerFeetPosition,
         float deltaSeconds) noexcept;
@@ -101,6 +121,8 @@ public:
     [[nodiscard]] bool damageZombie(
         std::size_t slot,
         float damage) noexcept;
+
+    [[nodiscard]] std::size_t eliminateAllActive() noexcept;
 
     [[nodiscard]] const ZombieActor*
     zombie(std::size_t slot) const noexcept;
@@ -124,7 +146,23 @@ private:
         Vec3 playerFeetPosition,
         std::uint32_t& outDynamicBlockerId) const noexcept;
 
+    [[nodiscard]] std::size_t navigationFloorFor(
+        Vec3 position) const noexcept;
+
+    [[nodiscard]] bool navigationEdgeBlocked(
+        std::size_t from,
+        std::size_t to) const noexcept;
+
+    [[nodiscard]] bool nextNavigationFloor(
+        std::size_t start,
+        std::size_t goal,
+        std::size_t& outNext) const noexcept;
+
+    [[nodiscard]] Vec3 navigationWaypoint(
+        std::size_t floorIndex) const noexcept;
+
     void applyCrowdSeparation() noexcept;
+    void resolveNavigationFloors() noexcept;
     void resolveNavigationPenetration() noexcept;
     void constrainToArena() noexcept;
     void beginNextRound() noexcept;
@@ -139,6 +177,20 @@ private:
         navigationObstacles_{};
 
     std::size_t navigationObstacleCount_ = 0;
+
+    std::array<Aabb, kMaxHordeNavigationFloors>
+        navigationFloors_{};
+
+    std::size_t navigationFloorCount_ = 0;
+
+    std::array<
+        std::array<std::uint16_t, kMaxHordeNavigationLinksPerFloor>,
+        kMaxHordeNavigationFloors> navigationNeighbors_{};
+
+    std::array<std::uint8_t, kMaxHordeNavigationFloors>
+        navigationNeighborCounts_{};
+
+    std::size_t navigationLinkCount_ = 0;
 
     struct DynamicBlocker {
         std::uint32_t id = 0;

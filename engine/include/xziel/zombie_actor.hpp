@@ -67,6 +67,8 @@ public:
         float deltaX,
         float deltaZ) noexcept;
 
+    void setFeetY(float y) noexcept;
+
     [[nodiscard]] Aabb bounds() const noexcept;
 
     [[nodiscard]] const ZombieFrame&

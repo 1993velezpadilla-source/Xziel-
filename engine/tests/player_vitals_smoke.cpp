@@ -75,5 +75,13 @@ int main() {
         !vitals.applyDamage(
             20.0f));
 
+    xziel::PlayerVitals healTarget(config);
+    assert(healTarget.applyDamage(37.0f));
+    assert(healTarget.frame().health == 63.0f);
+    assert(healTarget.restoreFullHealth());
+    assert(healTarget.frame().health == config.maxHealth);
+    assert(healTarget.frame().healthRatio == 1.0f);
+    assert(!healTarget.restoreFullHealth());
+
     return 0;
 }
