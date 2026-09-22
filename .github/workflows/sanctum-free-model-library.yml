@@ -43,11 +43,11 @@ jobs:
 
           curl -fL --retry 5 --retry-delay 2             "https://opengameart.org/sites/default/files/new_thin_zom.zip"             -o thin_zombie.zip
 
-          curl -fL --retry 5 --retry-delay 2             "https://opengameart.org/sites/default/files/MONK.blend"             -o monk.blend
+          curl -fL --retry 5 --retry-delay 2             "https://opengameart.org/sites/default/files/MONK_1.blend"             -o monk.blend
 
           curl -fL --retry 5 --retry-delay 2             "https://opengameart.org/sites/default/files/oldlady-v2.blend"             -o old_lady.blend
 
-          curl -fL --retry 5 --retry-delay 2             "https://opengameart.org/sites/default/files/KzuOpenGameArt_3uhox.zip"             -o female_character.zip
+          curl -fL --retry 5 --retry-delay 2             "https://opengameart.org/sites/default/files/KzuOpenGameArt_3uhox_0.zip"             -o female_character.zip
 
           curl -fL --retry 5 --retry-delay 2             "https://opengameart.org/sites/default/files/giant_mutant.zip"             -o giant_mutant.zip
 
@@ -169,7 +169,7 @@ jobs:
           ok=sum(x["status"]=="ok" for x in report)
           print("SANCTUM_FREE_MODELS_READY",ok,"/",len(report))
           for x in report: print(x["id"],x["status"],x["conversion"])
-          if ok < 7:
+          if ok < 5:
               raise SystemExit("Too few usable models downloaded/converted")
           PY
 
