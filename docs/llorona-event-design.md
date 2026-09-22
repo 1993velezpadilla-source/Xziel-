@@ -518,3 +518,23 @@ V4 specifically addresses the audible static/white-noise buildup heard in V3:
 
 Reproduction script:
 `tools/audio/process_llorona_v4_horror.sh`
+
+
+## Identity split — prayer moved to Stained Shade
+
+The long Padre Nuestro / Ave Maria / Gloria ritual no longer belongs to La Llorona.
+
+New ownership:
+- **Stained Shade** owns the full church prayer and its 81.944 s ritual window.
+- **La Llorona** owns the "mis hijos / donde estan mis hijos" searching lament.
+
+La Llorona's manifestation lifetime now follows the actual EOF of `llorona_mis_hijos_search_loop`.
+
+During the search loop:
+- she wanders between hidden search points;
+- if no child has spawned or died, she still behaves like she is searching;
+- OFFERING/HOSTILE_TEST interaction remains available while the lament is active;
+- if the player never triggers Rage, she disappears when the audio ends;
+- if she discovers a dead child, the lament cuts immediately and DISCOVERY -> RAGE takes priority.
+
+The search audio uses repeated variations rather than one identical hard loop so she can sound nearer, farther, left/right, and more desperate across one manifestation.
