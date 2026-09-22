@@ -46,5 +46,17 @@ int main() {
     }
     assert(frame.pointsAwardedThisTick == 10);
 
+    for (int tick = 0; tick < 2; ++tick) {
+        frame = barricade.step(true, false, 0.05f);
+    }
+    assert(frame.intactPlanks == 2U);
+
+    barricade.forceFullRebuild();
+    frame = barricade.frame();
+    assert(frame.intactPlanks == 3U);
+    assert(frame.blocksZombieTraversal);
+    assert(frame.fullyRebuiltThisTick);
+    assert(frame.pointsAwardedThisTick == 0U);
+
     return 0;
 }

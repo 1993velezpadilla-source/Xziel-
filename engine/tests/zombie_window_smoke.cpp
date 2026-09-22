@@ -22,10 +22,23 @@ int main() {
                 .rebuildPointsPerPlank = 10,
                 .maximumRebuildPointsPerRound = 10,
             },
+            .visual = {
+                .plankMaterialId = 41U,
+                .debrisMaterialId = 42U,
+                .plankMeshSetId = 7U,
+                .visualSeed = 123456U,
+            },
         },
         horde,
         player));
     assert(!windows.addWindow({.id = 101}, horde, player));
+
+    const auto* visual = windows.visual(101U);
+    assert(visual != nullptr);
+    assert(visual->plankMaterialId == 41U);
+    assert(visual->debrisMaterialId == 42U);
+    assert(visual->plankMeshSetId == 7U);
+    assert(visual->visualSeed == 123456U);
 
     xziel::ZombieWindowFrame frame{};
     for (int plank = 0; plank < 2; ++plank) {
@@ -57,6 +70,27 @@ int main() {
         frame = windows.step(101, false, true, 0.05f, horde, player, score);
     }
     assert(score.frame().total == 20);
+
+    for (int plank = 0; plank < 2; ++plank) {
+        for (int tick = 0; tick < 2; ++tick) {
+            frame = windows.step(
+                101,
+                true,
+                false,
+                0.05f,
+                horde,
+                player,
+                score);
+        }
+    }
+    assert(!frame.navigationBlocked);
+
+    const auto beforeRepairScore = score.frame().total;
+    assert(windows.repairAll(horde, player) == 1U);
+    frame = *windows.frame(101U);
+    assert(frame.navigationBlocked);
+    assert(frame.barricade.intactPlanks == 2U);
+    assert(score.frame().total == beforeRepairScore);
 
     return 0;
 }

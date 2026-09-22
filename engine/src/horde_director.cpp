@@ -581,6 +581,31 @@ bool HordeDirector::damageZombie(
             damage);
 }
 
+std::size_t HordeDirector::eliminateAllActive() noexcept {
+    std::size_t eliminated = 0U;
+
+    for (auto& zombieSlot : zombies_) {
+        if (!zombieSlot.has_value() ||
+            zombieSlot->frame().state ==
+                ZombieState::Dead) {
+            continue;
+        }
+
+        if (zombieSlot->applyDamage(
+                std::numeric_limits<float>::max())) {
+            ++eliminated;
+        }
+    }
+
+    frame_.alive =
+        frame_.alive > eliminated
+        ? frame_.alive -
+            static_cast<std::uint32_t>(eliminated)
+        : 0U;
+
+    return eliminated;
+}
+
 const ZombieActor*
 HordeDirector::zombie(
     std::size_t slot) const noexcept {

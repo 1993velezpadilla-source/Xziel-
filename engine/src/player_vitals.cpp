@@ -75,6 +75,24 @@ void PlayerVitals::reset() noexcept {
     invulnerabilitySeconds_ = 0.0f;
 }
 
+bool PlayerVitals::restoreFullHealth() noexcept {
+    if (!frame_.alive) {
+        return false;
+    }
+
+    const bool changed =
+        frame_.health <
+        config_.maxHealth;
+
+    frame_.health =
+        config_.maxHealth;
+    frame_.healthRatio = 1.0f;
+    frame_.damageFlash = 0.0f;
+    secondsSinceDamage_ = 9999.0f;
+
+    return changed;
+}
+
 bool PlayerVitals::applyDamage(
     float damage) noexcept {
     frame_.damagedThisTick = false;

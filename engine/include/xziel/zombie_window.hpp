@@ -13,10 +13,21 @@ namespace xziel {
 
 inline constexpr std::size_t kMaxZombieWindows = 32;
 
+struct ZombieWindowVisualDefinition {
+    // Authored by each map. Zero means use the renderer fallback.
+    // Keeping these IDs next to the gameplay window gives every map control
+    // over PBR wood, debris and mesh variation without changing gameplay.
+    std::uint32_t plankMaterialId = 0;
+    std::uint32_t debrisMaterialId = 0;
+    std::uint32_t plankMeshSetId = 0;
+    std::uint32_t visualSeed = 0;
+};
+
 struct ZombieWindowDefinition {
     std::uint32_t id = 0;
     Aabb blocker{};
     BarricadeConfig barricade{};
+    ZombieWindowVisualDefinition visual{};
 };
 
 struct ZombieWindowFrame {
@@ -30,6 +41,10 @@ public:
     void clear() noexcept;
     void reset() noexcept;
     void beginRound() noexcept;
+
+    [[nodiscard]] std::size_t repairAll(
+        HordeDirector& horde,
+        FpsPlayerController& player) noexcept;
 
     [[nodiscard]] bool addWindow(
         const ZombieWindowDefinition& definition,
@@ -56,12 +71,16 @@ public:
     [[nodiscard]] const ZombieWindowFrame*
     frame(std::uint32_t id) const noexcept;
 
+    [[nodiscard]] const ZombieWindowVisualDefinition*
+    visual(std::uint32_t id) const noexcept;
+
     [[nodiscard]] std::size_t count() const noexcept;
 
 private:
     struct Slot {
         std::uint32_t id = 0;
         BarricadeSystem barricade{};
+        ZombieWindowVisualDefinition visual{};
         ZombieWindowFrame frame{};
         bool occupied = false;
     };

@@ -122,6 +122,8 @@ public:
         std::size_t slot,
         float damage) noexcept;
 
+    [[nodiscard]] std::size_t eliminateAllActive() noexcept;
+
     [[nodiscard]] const ZombieActor*
     zombie(std::size_t slot) const noexcept;
 

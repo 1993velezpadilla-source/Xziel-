@@ -51,6 +51,58 @@ InteractionKind interactionKindFor(
 
 } // namespace
 
+SurvivalImmediateResult
+applySurvivalImmediateEffects(
+    const SurvivalFrame& frame,
+    const SurvivalImmediateTargets& targets) noexcept {
+    SurvivalImmediateResult result{};
+
+    if (targets.score != nullptr) {
+        targets.score->setAwardMultiplier(
+            frame.scoreMultiplier);
+        result.scoreMultiplierApplied = true;
+    }
+
+    if (frame.refillAmmoThisTick &&
+        targets.weapons != nullptr) {
+        constexpr std::size_t kMaxCarriedWeaponBridge = 8U;
+        const std::size_t count =
+            std::min(
+                targets.weaponCount,
+                kMaxCarriedWeaponBridge);
+
+        for (std::size_t i = 0; i < count; ++i) {
+            targets.weapons[i].refillAmmo(
+                targets.refillMagazines);
+            ++result.weaponsRefilled;
+        }
+    }
+
+    if (frame.fullHealThisTick &&
+        targets.vitals != nullptr) {
+        result.healthRestored =
+            targets.vitals->restoreFullHealth();
+    }
+
+    if (frame.clearWaveThisTick &&
+        targets.horde != nullptr) {
+        result.zombiesEliminated =
+            targets.horde->eliminateAllActive();
+    }
+
+    if (frame.repairAllThisTick &&
+        targets.windows != nullptr &&
+        targets.horde != nullptr &&
+        targets.player != nullptr) {
+        result.windowsRepaired =
+            targets.windows->repairAll(
+                *targets.horde,
+                *targets.player);
+    }
+
+    return result;
+}
+
 bool SurvivalRuntime::load(
     const SurvivalContentDefinition& definition) noexcept {
     if (definition.perkCount > definition.perks.size() ||

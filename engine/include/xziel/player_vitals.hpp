@@ -40,6 +40,8 @@ public:
     [[nodiscard]] bool applyDamage(
         float damage) noexcept;
 
+    [[nodiscard]] bool restoreFullHealth() noexcept;
+
     [[nodiscard]] PlayerVitalsFrame step(
         float deltaSeconds) noexcept;
 
