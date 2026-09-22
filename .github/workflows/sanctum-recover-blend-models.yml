@@ -27,7 +27,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          sudo apt-get install -y -qq blender unzip file python3-numpy
+          sudo apt-get install -y -qq blender unzip file python3-numpy assimp-utils
           blender --version | head -n 2
 
       - name: Download missing Blender source models
@@ -115,8 +115,20 @@ jobs:
           export_one "_recover/old_lady/old_lady.blend" "old_lady"
 
           GIANT_BLEND="$(find _recover/giant_mutant/extracted -type f -iname '*.blend' -print -quit)"
-          test -n "$GIANT_BLEND"
-          export_one "$GIANT_BLEND" "giant_mutant"
+          GIANT_FBX="$(find _recover/giant_mutant/extracted -type f -iname '*.fbx' -print -quit)"
+          if [ -n "$GIANT_BLEND" ]; then
+            export_one "$GIANT_BLEND" "giant_mutant"
+          elif [ -n "$GIANT_FBX" ]; then
+            OUT="assets/sanctum/free_models/giant_mutant"
+            mkdir -p "$OUT"
+            assimp export "$GIANT_FBX" "$OUT/giant_mutant.obj" -f objnomtl
+            cp "$GIANT_FBX" "$OUT/giant_mutant.fbx"
+            assimp export "$GIANT_FBX" "$OUT/giant_mutant.gltf" -f gltf2 || true
+          else
+            echo "No Blender or FBX Giant Mutant source found"
+            find _recover/giant_mutant/extracted -type f -maxdepth 5 -print
+            exit 1
+          fi
 
       - name: Write recovered source metadata
         shell: bash
@@ -296,8 +308,10 @@ jobs:
           set -euo pipefail
           for id in monk old_lady giant_mutant; do
             test -s "assets/sanctum/free_models/$id/$id.obj"
-            test -s "assets/sanctum/free_models/$id/$id.glb"
           done
+          test -s assets/sanctum/free_models/monk/monk.glb
+          test -s assets/sanctum/free_models/old_lady/old_lady.glb
+          test -s assets/sanctum/free_models/giant_mutant/giant_mutant.fbx || test -s assets/sanctum/free_models/giant_mutant/giant_mutant.glb
           test -s assets/sanctum/free_models/PREVIEW_V2.png
           test -s assets/sanctum/character_bases/PREVIEW.png
           echo "SANCTUM_REAL_BASES_RECOVERED_OK"
