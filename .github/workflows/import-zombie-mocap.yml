@@ -1,4 +1,4 @@
-name: Import licensed zombie mocap
+name: Import licensed zombie animation libraries
 
 on:
   push:
@@ -8,6 +8,15 @@ on:
       - .github/workflows/import-zombie-mocap.yml
       - tools/zombie_mocap_manifest.tsv
       - scripts/fetch_zombie_mocap.sh
+      - scripts/fetch_quaternius_ual2.sh
+  pull_request:
+    branches:
+      - integration/sanctum-modern-xz
+    paths:
+      - .github/workflows/import-zombie-mocap.yml
+      - tools/zombie_mocap_manifest.tsv
+      - scripts/fetch_zombie_mocap.sh
+      - scripts/fetch_quaternius_ual2.sh
   workflow_dispatch:
 
 permissions:
@@ -17,26 +26,38 @@ jobs:
   import:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      TARGET_BRANCH: ${{ github.head_ref || github.ref_name }}
     steps:
-      - name: Checkout
+      - name: Checkout source branch
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.head_ref || github.ref_name }}
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Download redistributable human mocap
+      - name: Download CMU human optical mocap
         shell: bash
         run: |
           chmod +x scripts/fetch_zombie_mocap.sh
           scripts/fetch_zombie_mocap.sh
 
-      - name: Validate library
+      - name: Download Quaternius CC0 animation library
+        shell: bash
+        run: |
+          chmod +x scripts/fetch_quaternius_ual2.sh
+          scripts/fetch_quaternius_ual2.sh
+
+      - name: Validate libraries
         shell: bash
         run: |
           count=$(find assets/animations/zombie_mocap/cmu -type f -name '*.fbx' | wc -l)
-          echo "FBX_COUNT=$count"
+          echo "CMU_FBX_COUNT=$count"
           test "$count" -ge 65
           test -s assets/animations/zombie_mocap/catalog.csv
+          test -s assets/animations/zombie_mocap/quaternius_ual2/UAL2_Standard.glb
+          test -s assets/animations/zombie_mocap/quaternius_ual2/License.txt
+          test -s assets/animations/zombie_mocap/quaternius_ual2/animation_names.txt
           if find assets/animations/zombie_mocap/cmu -type f -name '*.fbx' -size 0 | grep -q .; then
             echo "Found zero-byte FBX"
             exit 1
@@ -52,5 +73,5 @@ jobs:
             echo "No asset changes."
             exit 0
           fi
-          git commit -m "assets: import licensed human zombie mocap library"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          git commit -m "assets: import licensed human zombie animation libraries"
+          git push origin "HEAD:${TARGET_BRANCH}"
