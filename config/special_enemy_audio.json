@@ -93,5 +93,78 @@
     "creator": "AlesiaDavina",
     "source_site": "Pixabay",
     "license_note": "Pixabay Content License; verify current license before shipping"
+  },
+  "proximity_audio": {
+    "enabled": true,
+    "applies_to": [
+      "la_llorona",
+      "stained_shade"
+    ],
+    "applies_to_all_event_audio": true,
+    "spatialized_3d": true,
+    "follow_entity_position": true,
+    "occlusion_by_world_geometry": true,
+    "doppler": false,
+    "distance_model": "custom_horror_proximity",
+    "ranges_m": {
+      "intimate_max": 4,
+      "near_max": 10,
+      "mid_max": 22,
+      "far_max": 40,
+      "inaudible_after": 48
+    },
+    "zones": {
+      "intimate": {
+        "direct_gain_db": 0,
+        "lowpass_hz": 9500,
+        "reverb_send": 0.18,
+        "stereo_width": 0.9,
+        "description": "voice/body detail is clear and frighteningly close"
+      },
+      "near": {
+        "direct_gain_db": -3,
+        "lowpass_hz": 8200,
+        "reverb_send": 0.3,
+        "stereo_width": 1,
+        "description": "clear positional source with growing room reflections"
+      },
+      "mid": {
+        "direct_gain_db": -8,
+        "lowpass_hz": 6200,
+        "reverb_send": 0.48,
+        "stereo_width": 1.08,
+        "description": "less direct voice, stronger haunted-space reflections"
+      },
+      "far": {
+        "direct_gain_db": -15,
+        "lowpass_hz": 3900,
+        "highpass_hz": 120,
+        "reverb_send": 0.66,
+        "stereo_width": 1.15,
+        "description": "distant spectral source; reflections dominate"
+      },
+      "beyond_far": {
+        "direct_gain_db": -24,
+        "lowpass_hz": 2600,
+        "highpass_hz": 170,
+        "reverb_send": 0.78,
+        "stereo_width": 1.18,
+        "description": "barely audible ghost presence before full cutoff"
+      }
+    },
+    "smoothing": {
+      "distance_gain_ms": 120,
+      "filter_ms": 180,
+      "reverb_send_ms": 220
+    },
+    "priority_rules": {
+      "discovery_or_judgment_sting": "bypass_distance_mute_but_keep_spatialization",
+      "far_rage_scream": "force_far_profile_even_if_source_is_nearer_than_far_minimum",
+      "chase_scream": "normal_proximity_profile",
+      "hit_reactions": "normal_proximity_profile",
+      "laughs": "normal_proximity_profile",
+      "prayer_or_search_voice": "normal_proximity_profile",
+      "map_intro_ambient": "non_positional_exception"
+    }
   }
 }
