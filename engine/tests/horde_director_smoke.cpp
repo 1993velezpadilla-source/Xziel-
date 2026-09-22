@@ -208,6 +208,9 @@ int main() {
             .maximum = { 2.0f, -1.20f,  3.00f},
         }));
 
+    assert(floors.navigationFloorCount() == 2U);
+    assert(floors.navigationLinkCount() == 1U);
+
     for (int i = 0; i < 520; ++i) {
         (void) floors.step(
             {0.0f, -1.20f, 2.0f},
@@ -219,6 +222,75 @@ int main() {
     assert(climbed->frame().position.z > -1.0f);
     assert(climbed->frame().position.y > -1.25f);
     assert(climbed->frame().position.y < -1.15f);
+
+    // Connected floor routing must follow the authored multi-level corridor
+    // instead of taking a diagonal shortcut through empty space between rooms.
+    xziel::HordeConfig routeConfig{};
+    routeConfig.baseZombiesPerRound = 1;
+    routeConfig.zombiesAddedPerRound = 0;
+    routeConfig.maxActive = 1;
+    routeConfig.spawnIntervalSeconds = 0.01f;
+    routeConfig.baseMoveSpeed = 1.0f;
+    routeConfig.maximumMoveSpeed = 1.0f;
+    routeConfig.spawnPointCount = 1;
+    routeConfig.spawnPoints[0] = {0.0f, -1.48f, 3.0f};
+
+    xziel::HordeDirector route(routeConfig);
+
+    assert(route.addNavigationFloor(
+        {
+            .minimum = {-1.0f, -1.68f,  2.0f},
+            .maximum = { 1.0f, -1.48f,  4.0f},
+        }));
+
+    assert(route.addNavigationFloor(
+        {
+            .minimum = { 0.8f, -1.68f,  2.0f},
+            .maximum = { 3.0f, -1.48f,  4.0f},
+        }));
+
+    assert(route.addNavigationFloor(
+        {
+            .minimum = { 2.8f, -1.50f,  0.8f},
+            .maximum = { 4.8f, -1.30f,  2.2f},
+        }));
+
+    assert(route.addNavigationFloor(
+        {
+            .minimum = { 2.8f, -1.32f, -1.2f},
+            .maximum = { 4.8f, -1.12f,  1.0f},
+        }));
+
+    assert(route.navigationFloorCount() == 4U);
+    assert(route.navigationLinkCount() == 3U);
+
+    for (int i = 0; i < 120; ++i) {
+        (void) route.step(
+            {4.0f, -1.12f, -0.5f},
+            1.0f / 120.0f);
+    }
+
+    const auto* corridorZombie =
+        route.zombie(0);
+
+    assert(corridorZombie != nullptr);
+
+    // During the first corridor leg it should still be moving east through
+    // the upper aisle, not cutting diagonally straight at the player.
+    assert(
+        corridorZombie->frame().position.z >
+        2.55f);
+
+    for (int i = 0; i < 1400; ++i) {
+        (void) route.step(
+            {4.0f, -1.12f, -0.5f},
+            1.0f / 120.0f);
+    }
+
+    corridorZombie = route.zombie(0);
+    assert(corridorZombie != nullptr);
+    assert(corridorZombie->frame().position.z < 0.8f);
+    assert(corridorZombie->frame().position.y > -1.20f);
 
     return 0;
 }
