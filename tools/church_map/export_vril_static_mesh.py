@@ -313,17 +313,35 @@ for obj in runtime_objects:
             bounds_max.x=max(bounds_max.x,p.x); bounds_max.y=max(bounds_max.y,p.y); bounds_max.z=max(bounds_max.z,p.z)
         group.append(verts)
 
-# Split each texture group into <= 54k vertices so uint16 indices are safe.
+# Split each object/material group into <=18k triangles so uint16 indices
+# remain safe, but deduplicate identical position/UV tuples inside each batch.
+# The old exporter emitted three brand-new vertices per triangle, which wasted
+# RAM/bandwidth at HQ without adding any visual information.
 batches = []
+raw_vertex_count = 0
 for (object_name, tex), tris in groups.items():
     for start in range(0, len(tris), MAX_TRIS_PER_BATCH):
         chunk = tris[start:start+MAX_TRIS_PER_BATCH]
-        vertices = [v for tri in chunk for v in tri]
-        indices = list(range(len(vertices)))
+        raw_vertex_count += len(chunk) * 3
+        vertices = []
+        indices = []
+        vertex_map = {}
         mn = Vector((1e30,1e30,1e30)); mx = Vector((-1e30,-1e30,-1e30))
-        for x,y,z,u,v in vertices:
-            mn.x=min(mn.x,x); mn.y=min(mn.y,y); mn.z=min(mn.z,z)
-            mx.x=max(mx.x,x); mx.y=max(mx.y,y); mx.z=max(mx.z,z)
+        for tri in chunk:
+            for vtx in tri:
+                idx = vertex_map.get(vtx)
+                if idx is None:
+                    idx = len(vertices)
+                    if idx >= 65535:
+                        raise RuntimeError(
+                            f"XZSM batch exceeded uint16 vertex limit for {object_name}"
+                        )
+                    vertex_map[vtx] = idx
+                    vertices.append(vtx)
+                    x,y,z,u,v = vtx
+                    mn.x=min(mn.x,x); mn.y=min(mn.y,y); mn.z=min(mn.z,z)
+                    mx.x=max(mx.x,x); mx.y=max(mx.y,y); mx.z=max(mx.z,z)
+                indices.append(idx)
         batches.append({
             "object": object_name,
             "texture": tex,
@@ -366,6 +384,10 @@ report = {
     "textureCount":len(texture_records),
     "totalVertices":sum(len(b["vertices"]) for b in batches),
     "totalIndices":sum(len(b["indices"]) for b in batches),
+    "rawTriangleVertices":raw_vertex_count,
+    "vertexReuseRatio":(
+        1.0 - (sum(len(b["vertices"]) for b in batches) / max(raw_vertex_count, 1))
+    ),
     "modelBytes":model_path.stat().st_size,
     "boundsMin":list(bounds_min),
     "boundsMax":list(bounds_max),
@@ -389,4 +411,7 @@ print("XZSM_EXPORT_OK", json.dumps({
     "modelBytes":model_path.stat().st_size,
     "textureMaxDimension":TEXTURE_MAX,
     "scanCleanup":cleanup_stats,
+    "vertexReuseRatio":(
+        1.0 - (sum(len(b["vertices"]) for b in batches) / max(raw_vertex_count, 1))
+    ),
 }))
