@@ -245,6 +245,19 @@ if '#include "xz_geometry_tap.h"' not in hyena:
 # Snapshot the fixed-function state at the exact legacy draw boundary. This
 # preserves Vril lightmap blending (DST_COLOR/SRC_COLOR + depth EQUAL), water
 # alpha, sprites and cutout alpha semantics for the native GLES3 replay.
+if "xz_hyena_special_kind" not in hyena:
+    static_anchor = "static vec3_t hyena_scale;\n"
+    if static_anchor not in hyena:
+        raise SystemExit("Missing Hyena special-kind static anchor")
+    hyena = hyena.replace(
+        static_anchor,
+        static_anchor +
+        "#ifdef __ANDROID__\n"
+        "static XzGeometrySpecialKind xz_hyena_special_kind = XZ_GEOMETRY_SPECIAL_NONE;\n"
+        "#endif\n",
+        1,
+    )
+
 state_helper = (
     '#ifdef __ANDROID__\n'
     'static void XzCaptureLegacyRenderState(XzGeometryRenderState *state)\n'
@@ -255,6 +268,7 @@ state_helper = (
     '    glGetFloatv(GL_CURRENT_COLOR, state->color);\n'
     '    state->blend_enabled = glIsEnabled(GL_BLEND) ? 1u : 0u;\n'
     '    state->alpha_test_enabled = glIsEnabled(GL_ALPHA_TEST) ? 1u : 0u;\n'
+    '    state->depth_test_enabled = glIsEnabled(GL_DEPTH_TEST) ? 1u : 0u;\n'
     '    glGetBooleanv(GL_DEPTH_WRITEMASK, &depth_write);\n'
     '    state->depth_write = depth_write ? 1u : 0u;\n'
     '    glGetIntegerv(GL_BLEND_SRC, &value);\n'
@@ -389,22 +403,57 @@ if "XZ_GEOMETRY_EFFECT_CAPTURE" not in hyena:
         "        glGetFloatv(GL_MODELVIEW_MATRIX, xz_mv);\n"
         "        glGetFloatv(GL_PROJECTION_MATRIX, xz_pr);\n"
         "        glGetIntegerv(GL_TEXTURE_BINDING_2D, &xz_tex);\n"
-        "        XzGeometryTap_CapturePrimitive(\n"
-        "            (const float *)vertices,\n"
-        "            (unsigned int)count,\n"
-        "            (unsigned int)(sizeof(vertex_t) / sizeof(float)),\n"
-        "            (unsigned int)(offsetof(vertex_t, xyz) / sizeof(float)),\n"
-        "            (unsigned int)(offsetof(vertex_t, uv) / sizeof(float)),\n"
-        "            xz_primitive,\n"
-        "            (int)xz_tex,\n"
-        "            &xz_state,\n"
-        "            xz_mv,\n"
-        "            xz_pr);\n"
+        "        if (xz_hyena_special_kind != XZ_GEOMETRY_SPECIAL_NONE) {\n"
+        "            XzGeometryTap_CaptureSpecialFan(\n"
+        "                (const float *)vertices,\n"
+        "                (unsigned int)count,\n"
+        "                (unsigned int)(sizeof(vertex_t) / sizeof(float)),\n"
+        "                (unsigned int)(offsetof(vertex_t, xyz) / sizeof(float)),\n"
+        "                (unsigned int)(offsetof(vertex_t, uv) / sizeof(float)),\n"
+        "                (int)xz_tex,\n"
+        "                xz_hyena_special_kind,\n"
+        "                &xz_state, xz_mv, xz_pr);\n"
+        "        } else {\n"
+        "            XzGeometryTap_CapturePrimitive(\n"
+        "                (const float *)vertices,\n"
+        "                (unsigned int)count,\n"
+        "                (unsigned int)(sizeof(vertex_t) / sizeof(float)),\n"
+        "                (unsigned int)(offsetof(vertex_t, xyz) / sizeof(float)),\n"
+        "                (unsigned int)(offsetof(vertex_t, uv) / sizeof(float)),\n"
+        "                xz_primitive,\n"
+        "                (int)xz_tex,\n"
+        "                &xz_state,\n"
+        "                xz_mv,\n"
+        "                xz_pr);\n"
+        "        }\n"
         "    }\n"
         "#endif\n"
         "    glEnableClientState(GL_VERTEX_ARRAY); glVertexPointer(3, GL_FLOAT, sizeof(*vertices), &vertices[0].xyz);\n"
     )
     hyena = hyena.replace(generic_anchor, generic_capture, 1)
+
+
+warp_special_anchor = (
+    "        Hyena_BeginVertices(HYE_TRIANGLE_FAN);\n"
+    "        Hyena_DrawVertices(vertices, count, HYE_TEXTURE_32BITFLOAT, HYE_VERTEX_32BITFLOAT);\n"
+    "        Hyena_EndVertices(); return;\n"
+)
+if "XZ_HYENA_WATER_SPECIAL" not in hyena:
+    if warp_special_anchor not in hyena:
+        raise SystemExit("Missing Hyena warped-water special anchor")
+    warp_special = (
+        "        Hyena_BeginVertices(HYE_TRIANGLE_FAN);\n"
+        "#ifdef __ANDROID__\n"
+        "        /* XZ_HYENA_WATER_SPECIAL */\n"
+        "        xz_hyena_special_kind = XZ_GEOMETRY_SPECIAL_WATER;\n"
+        "#endif\n"
+        "        Hyena_DrawVertices(vertices, count, HYE_TEXTURE_32BITFLOAT, HYE_VERTEX_32BITFLOAT);\n"
+        "#ifdef __ANDROID__\n"
+        "        xz_hyena_special_kind = XZ_GEOMETRY_SPECIAL_NONE;\n"
+        "#endif\n"
+        "        Hyena_EndVertices(); return;\n"
+    )
+    hyena = hyena.replace(warp_special_anchor, warp_special, 1)
 
 gl_hyena.write_text(hyena, encoding="utf-8")
 
@@ -486,6 +535,7 @@ sprite_state_helper = (
     '    glGetFloatv(GL_CURRENT_COLOR, state->color);\n'
     '    state->blend_enabled = glIsEnabled(GL_BLEND) ? 1u : 0u;\n'
     '    state->alpha_test_enabled = glIsEnabled(GL_ALPHA_TEST) ? 1u : 0u;\n'
+    '    state->depth_test_enabled = glIsEnabled(GL_DEPTH_TEST) ? 1u : 0u;\n'
     '    glGetBooleanv(GL_DEPTH_WRITEMASK, &depth_write);\n'
     '    state->depth_write = depth_write ? 1u : 0u;\n'
     '    glGetIntegerv(GL_BLEND_SRC, &value);\n'
@@ -572,6 +622,236 @@ if "XZ_GEOMETRY_SPRITE_CAPTURE" not in rmain:
     rmain = rmain.replace(sprite_anchor, sprite_capture, 1)
 
 gl_rmain.write_text(rmain, encoding="utf-8")
+
+
+# Capture legacy immediate-mode sky/water paths that bypass Hyena. The capture
+# is side-band only: Vril/GL4ES still executes its original draw during parity
+# validation, while Xz records the exact post-warp vertices/UVs and GL state.
+gl_warp = source / "platform" / "sdl" / "gl" / "gl_warp.c"
+warp = gl_warp.read_text(encoding="utf-8")
+
+if '#include "xz_geometry_tap.h"' not in warp:
+    anchor = '#include "../../../nzportable_def.h"\n'
+    if anchor not in warp:
+        raise SystemExit("Missing gl_warp include anchor")
+    warp = warp.replace(
+        anchor,
+        anchor +
+        '#ifdef __ANDROID__\n'
+        '#include "xz_geometry_tap.h"\n'
+        '#include <stddef.h>\n'
+        '#include <string.h>\n'
+        '#endif\n',
+        1,
+    )
+
+if 'static void XzCaptureLegacyRenderState' not in warp:
+    include_end = '#endif\n'
+    include_pos = warp.find(include_end, warp.find('#include "xz_geometry_tap.h"'))
+    if include_pos < 0:
+        raise SystemExit("Missing gl_warp state-helper insertion point")
+    include_pos += len(include_end)
+    warp = warp[:include_pos] + '\n' + state_helper + warp[include_pos:]
+
+
+def replace_scoped(text, begin, end, old, new, label):
+    b = text.find(begin)
+    e = text.find(end, b + len(begin))
+    if b < 0 or e < 0:
+        raise SystemExit("Missing " + label + " function bounds")
+    chunk = text[b:e]
+    if old not in chunk:
+        raise SystemExit("Missing " + label + " capture anchor")
+    chunk = chunk.replace(old, new, 1)
+    return text[:b] + chunk + text[e:]
+
+
+if "XZ_SPECIAL_WATER_CAPTURE" not in warp:
+    warp = replace_scoped(
+        warp,
+        "void EmitWaterPolys (msurface_t *fa)",
+        "/*\n=============\nEmitSkyPolys",
+        "\t{\n\t\tglBegin (GL_POLYGON);\n",
+        "\t{\n"
+        "#ifdef __ANDROID__\n"
+        "\t\tfloat xz_capture[64 * 5];\n"
+        "\t\tint xz_capture_count = p->numverts <= 64 ? p->numverts : 0;\n"
+        "#endif\n"
+        "\t\tglBegin (GL_POLYGON);\n",
+        "water begin",
+    )
+    warp = replace_scoped(
+        warp,
+        "void EmitWaterPolys (msurface_t *fa)",
+        "/*\n=============\nEmitSkyPolys",
+        "\t\t\tt *= (1.0f/64);\n\n\t\t\tglTexCoord2f (s, t);\n",
+        "\t\t\tt *= (1.0f/64);\n"
+        "#ifdef __ANDROID__\n"
+        "\t\t\tif (xz_capture_count) {\n"
+        "\t\t\t\txz_capture[i * 5 + 0] = v[0];\n"
+        "\t\t\t\txz_capture[i * 5 + 1] = v[1];\n"
+        "\t\t\t\txz_capture[i * 5 + 2] = v[2];\n"
+        "\t\t\t\txz_capture[i * 5 + 3] = s;\n"
+        "\t\t\t\txz_capture[i * 5 + 4] = t;\n"
+        "\t\t\t}\n"
+        "#endif\n\n"
+        "\t\t\tglTexCoord2f (s, t);\n",
+        "water vertex",
+    )
+    warp = replace_scoped(
+        warp,
+        "void EmitWaterPolys (msurface_t *fa)",
+        "/*\n=============\nEmitSkyPolys",
+        "\t\tglEnd ();\n\t}\n}\n",
+        "\t\tglEnd ();\n"
+        "#ifdef __ANDROID__\n"
+        "\t\tif (xz_capture_count) {\n"
+        "\t\t\tfloat xz_mv[16], xz_pr[16];\n"
+        "\t\t\tGLint xz_tex = 0;\n"
+        "\t\t\tXzGeometryRenderState xz_state;\n"
+        "\t\t\tXzCaptureLegacyRenderState(&xz_state);\n"
+        "\t\t\tglGetFloatv(GL_MODELVIEW_MATRIX, xz_mv);\n"
+        "\t\t\tglGetFloatv(GL_PROJECTION_MATRIX, xz_pr);\n"
+        "\t\t\tglGetIntegerv(GL_TEXTURE_BINDING_2D, &xz_tex);\n"
+        "\t\t\t/* XZ_SPECIAL_WATER_CAPTURE */\n"
+        "\t\t\tXzGeometryTap_CaptureSpecialFan(\n"
+        "\t\t\t\txz_capture, (unsigned int)xz_capture_count,\n"
+        "\t\t\t\t5u, 0u, 3u, (int)xz_tex,\n"
+        "\t\t\t\tXZ_GEOMETRY_SPECIAL_WATER,\n"
+        "\t\t\t\t&xz_state, xz_mv, xz_pr);\n"
+        "\t\t}\n"
+        "#endif\n"
+        "\t}\n}\n",
+        "water end",
+    )
+
+if "XZ_SPECIAL_SKY_LAYER_CAPTURE" not in warp:
+    warp = replace_scoped(
+        warp,
+        "void EmitSkyPolys (msurface_t *fa)",
+        "void EmitFlatSkyPolys (msurface_t *fa)",
+        "\t{\n\t\tglBegin (GL_POLYGON);\n",
+        "\t{\n"
+        "#ifdef __ANDROID__\n"
+        "\t\tfloat xz_capture[64 * 5];\n"
+        "\t\tint xz_capture_count = p->numverts <= 64 ? p->numverts : 0;\n"
+        "#endif\n"
+        "\t\tglBegin (GL_POLYGON);\n",
+        "sky-layer begin",
+    )
+    warp = replace_scoped(
+        warp,
+        "void EmitSkyPolys (msurface_t *fa)",
+        "void EmitFlatSkyPolys (msurface_t *fa)",
+        "\t\t\tt = (speedscale + dir[1]) * (1.0f/128);\n\n\t\t\tglTexCoord2f (s, t);\n",
+        "\t\t\tt = (speedscale + dir[1]) * (1.0f/128);\n"
+        "#ifdef __ANDROID__\n"
+        "\t\t\tif (xz_capture_count) {\n"
+        "\t\t\t\txz_capture[i * 5 + 0] = v[0];\n"
+        "\t\t\t\txz_capture[i * 5 + 1] = v[1];\n"
+        "\t\t\t\txz_capture[i * 5 + 2] = v[2];\n"
+        "\t\t\t\txz_capture[i * 5 + 3] = s;\n"
+        "\t\t\t\txz_capture[i * 5 + 4] = t;\n"
+        "\t\t\t}\n"
+        "#endif\n\n"
+        "\t\t\tglTexCoord2f (s, t);\n",
+        "sky-layer vertex",
+    )
+    warp = replace_scoped(
+        warp,
+        "void EmitSkyPolys (msurface_t *fa)",
+        "void EmitFlatSkyPolys (msurface_t *fa)",
+        "\t\tglEnd ();\n\t}\n}\n\n",
+        "\t\tglEnd ();\n"
+        "#ifdef __ANDROID__\n"
+        "\t\tif (xz_capture_count) {\n"
+        "\t\t\tfloat xz_mv[16], xz_pr[16];\n"
+        "\t\t\tGLint xz_tex = 0;\n"
+        "\t\t\tXzGeometryRenderState xz_state;\n"
+        "\t\t\tXzCaptureLegacyRenderState(&xz_state);\n"
+        "\t\t\tglGetFloatv(GL_MODELVIEW_MATRIX, xz_mv);\n"
+        "\t\t\tglGetFloatv(GL_PROJECTION_MATRIX, xz_pr);\n"
+        "\t\t\tglGetIntegerv(GL_TEXTURE_BINDING_2D, &xz_tex);\n"
+        "\t\t\t/* XZ_SPECIAL_SKY_LAYER_CAPTURE */\n"
+        "\t\t\tXzGeometryTap_CaptureSpecialFan(\n"
+        "\t\t\t\txz_capture, (unsigned int)xz_capture_count,\n"
+        "\t\t\t\t5u, 0u, 3u, (int)xz_tex,\n"
+        "\t\t\t\tXZ_GEOMETRY_SPECIAL_SKY,\n"
+        "\t\t\t\t&xz_state, xz_mv, xz_pr);\n"
+        "\t\t}\n"
+        "#endif\n"
+        "\t}\n}\n\n",
+        "sky-layer end",
+    )
+
+if "XZ_SPECIAL_FLAT_SKY_CAPTURE" not in warp:
+    warp = replace_scoped(
+        warp,
+        "void EmitFlatSkyPolys (msurface_t *fa)",
+        "/*\n===============\nEmitBothSkyLayers",
+        "\t\t\tglEnd();\n",
+        "\t\t\tglEnd();\n"
+        "#ifdef __ANDROID__\n"
+        "\t\t\t{\n"
+        "\t\t\t\tfloat xz_mv[16], xz_pr[16];\n"
+        "\t\t\t\tGLint xz_tex = 0;\n"
+        "\t\t\t\tXzGeometryRenderState xz_state;\n"
+        "\t\t\t\tXzCaptureLegacyRenderState(&xz_state);\n"
+        "\t\t\t\tglGetFloatv(GL_MODELVIEW_MATRIX, xz_mv);\n"
+        "\t\t\t\tglGetFloatv(GL_PROJECTION_MATRIX, xz_pr);\n"
+        "\t\t\t\tglGetIntegerv(GL_TEXTURE_BINDING_2D, &xz_tex);\n"
+        "\t\t\t\t/* XZ_SPECIAL_FLAT_SKY_CAPTURE */\n"
+        "\t\t\t\tXzGeometryTap_CaptureSpecialFan(\n"
+        "\t\t\t\t\tpoly->verts[0], (unsigned int)poly->numverts,\n"
+        "\t\t\t\t\tVERTEXSIZE, 0u, 3u, (int)xz_tex,\n"
+        "\t\t\t\t\tXZ_GEOMETRY_SPECIAL_SKY,\n"
+        "\t\t\t\t\t&xz_state, xz_mv, xz_pr);\n"
+        "\t\t\t}\n"
+        "#endif\n",
+        "flat-sky",
+    )
+
+if "XZ_SPECIAL_SKYBOX_CAPTURE" not in warp:
+    warp = replace_scoped(
+        warp,
+        "void R_DrawSkyBox (void)",
+        "//===============================================================",
+        "\t\tglEnd();\n\t}\n",
+        "\t\tglEnd();\n"
+        "#ifdef __ANDROID__\n"
+        "\t\t{\n"
+        "\t\t\tfloat xz_mv[16], xz_pr[16];\n"
+        "\t\t\tGLint xz_tex = 0;\n"
+        "\t\t\tXzGeometryRenderState xz_state;\n"
+        "\t\t\tXzCaptureLegacyRenderState(&xz_state);\n"
+        "\t\t\tglGetFloatv(GL_MODELVIEW_MATRIX, xz_mv);\n"
+        "\t\t\tglGetFloatv(GL_PROJECTION_MATRIX, xz_pr);\n"
+        "\t\t\tglGetIntegerv(GL_TEXTURE_BINDING_2D, &xz_tex);\n"
+        "\t\t\t/* XZ_SPECIAL_SKYBOX_CAPTURE */\n"
+        "\t\t\tXzGeometryTap_CaptureSpecialFan(\n"
+        "\t\t\t\t(const float *)sky_vertices, 4u,\n"
+        "\t\t\t\t(unsigned int)(sizeof(glvert_t) / sizeof(float)),\n"
+        "\t\t\t\t0u, 3u, (int)xz_tex,\n"
+        "\t\t\t\tXZ_GEOMETRY_SPECIAL_SKY,\n"
+        "\t\t\t\t&xz_state, xz_mv, xz_pr);\n"
+        "\t\t}\n"
+        "#endif\n"
+        "\t}\n",
+        "skybox",
+    )
+
+gl_warp.write_text(warp, encoding="utf-8")
+
+if warp.count('#include "xz_geometry_tap.h"') != 1:
+    raise SystemExit("Sky/water geometry tap header injection count mismatch")
+if warp.count("XZ_SPECIAL_WATER_CAPTURE") != 1:
+    raise SystemExit("Water geometry capture injection count mismatch")
+if (
+    warp.count("XZ_SPECIAL_SKY_LAYER_CAPTURE") != 1
+    or warp.count("XZ_SPECIAL_FLAT_SKY_CAPTURE") != 1
+    or warp.count("XZ_SPECIAL_SKYBOX_CAPTURE") != 1
+):
+    raise SystemExit("Sky geometry capture injection count mismatch")
 
 
 # Replace only the visible 3D world before Vril switches to its 2D HUD pass.

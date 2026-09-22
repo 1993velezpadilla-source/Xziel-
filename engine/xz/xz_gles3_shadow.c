@@ -1007,7 +1007,12 @@ static int XzDrawRealGeometry(
     XzNativeGles3Api *gl = &xz_shadow.gl;
     unsigned int i;
     unsigned int kind_mask = 0u;
+    /* A visible gameplay world is not eligible for takeover until both
+     * alias geometry (view/world models) and BSP surfaces are live. Optional
+     * classes are required only when the current frame actually contains them. */
+    unsigned int required_kind_mask = 0x3u;
     unsigned int texture_kind_mask = 0u;
+    unsigned int required_texture_kind_mask = 0x3u;
     unsigned int texture_misses = 0u;
     unsigned int texture_batches = 0u;
     unsigned int drops;
@@ -1031,6 +1036,9 @@ static int XzDrawRealGeometry(
         geometry->index_count;
     state->last_geometry_drops = drops;
     state->last_effect_batches = geometry->effect_batches;
+    state->last_special_batches = geometry->special_batches;
+    state->last_sky_batches = geometry->sky_batches;
+    state->last_water_batches = geometry->water_batches;
 
     if (drops != 0u) {
         state->real_geometry_failures++;
@@ -1104,6 +1112,13 @@ static int XzDrawRealGeometry(
         const XzGeometryBatch *batch =
             &geometry->batches[i];
 
+        if (batch->kind == XZ_GEOMETRY_SPRITE)
+            required_kind_mask |= 4u;
+        else if (batch->kind == XZ_GEOMETRY_EFFECT)
+            required_kind_mask |= 8u;
+        else if (batch->kind == XZ_GEOMETRY_SPECIAL)
+            required_kind_mask |= 16u;
+
         if (batch->vertex_count == 0u ||
             batch->index_count == 0u ||
             batch->first_vertex +
@@ -1165,6 +1180,9 @@ static int XzDrawRealGeometry(
 
             if (batch->state.texture_enabled) {
                 texture_batches++;
+                if (batch->kind == XZ_GEOMETRY_SPRITE)
+                    required_texture_kind_mask |= 4u;
+
                 if (!XzBindRealTexture(
                         state,
                         batch->texture_id,
@@ -1206,6 +1224,11 @@ static int XzDrawRealGeometry(
         } else {
             gl->Disable(GL_BLEND);
         }
+
+        if (batch->state.depth_test_enabled)
+            gl->Enable(GL_DEPTH_TEST);
+        else
+            gl->Disable(GL_DEPTH_TEST);
 
         gl->DepthMask(
             batch->state.depth_write ? GL_TRUE : GL_FALSE);
@@ -1276,6 +1299,8 @@ static int XzDrawRealGeometry(
             kind_mask |= 4u;
         else if (batch->kind == XZ_GEOMETRY_EFFECT)
             kind_mask |= 8u;
+        else if (batch->kind == XZ_GEOMETRY_SPECIAL)
+            kind_mask |= 16u;
 
         state->real_geometry_draw_calls++;
     }
@@ -1297,13 +1322,19 @@ static int XzDrawRealGeometry(
 
     state->real_geometry_ready =
         state->real_geometry_failures == 0u &&
-        (state->real_geometry_kind_mask & 0x7u) == 0x7u &&
-        (geometry->effect_batches == 0u ||
-         (kind_mask & 0x8u) == 0x8u);
+        (kind_mask & required_kind_mask) == required_kind_mask;
     if (geometry->effect_batches > 0u &&
         state->real_geometry_failures == 0u &&
         (kind_mask & 0x8u) == 0x8u)
         state->real_effects_ready = 1;
+    if (geometry->sky_batches > 0u &&
+        state->real_geometry_failures == 0u &&
+        (kind_mask & 0x10u) == 0x10u)
+        state->real_sky_ready = 1;
+    if (geometry->water_batches > 0u &&
+        state->real_geometry_failures == 0u &&
+        (kind_mask & 0x10u) == 0x10u)
+        state->real_water_ready = 1;
 
     state->last_texture_batches =
         texture_batches;
@@ -1313,9 +1344,11 @@ static int XzDrawRealGeometry(
         texture_kind_mask;
     state->real_textures_ready =
         state->real_texture_failures == 0u &&
-        texture_batches > 0u &&
         texture_misses == 0u &&
-        (state->real_texture_kind_mask & 0x7u) == 0x7u;
+        (texture_batches == 0u ||
+         required_texture_kind_mask == 0u ||
+         (texture_kind_mask & required_texture_kind_mask) ==
+            required_texture_kind_mask);
 
     state->real_material_state_ready =
         state->real_geometry_failures == 0u &&
@@ -1325,6 +1358,18 @@ static int XzDrawRealGeometry(
     state->real_raster_state_ready =
         state->real_geometry_failures == 0u &&
         state->last_material_state_batches == geometry->batch_count;
+
+    if (state->real_geometry_ready &&
+        state->real_textures_ready &&
+        state->real_material_state_ready &&
+        state->real_raster_state_ready &&
+        geometry->surface_batches > 0u &&
+        geometry->batch_count >= 8u) {
+        if (state->real_scene_ready_streak < 1000000u)
+            state->real_scene_ready_streak++;
+    } else {
+        state->real_scene_ready_streak = 0u;
+    }
 
     return 1;
 }
@@ -3047,7 +3092,15 @@ int XzGles3Shadow_CompositeVisibleWorld(
         !state->visible_context_ready ||
         xz_shadow.visible_context == EGL_NO_CONTEXT ||
         !state->real_geometry_ready ||
-        !state->real_textures_ready)
+        !state->real_textures_ready ||
+        state->real_scene_ready_streak < 4u ||
+        geometry->surface_batches == 0u ||
+        geometry->batch_count < 8u ||
+        geometry->vertex_count == 0u ||
+        geometry->index_count == 0u ||
+        geometry->dropped_batches != 0u ||
+        geometry->dropped_vertices != 0u ||
+        geometry->dropped_indices != 0u)
         return 0;
 
     if (render_width < 64u)

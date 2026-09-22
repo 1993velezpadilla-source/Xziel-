@@ -15,8 +15,15 @@ typedef enum {
     XZ_GEOMETRY_ALIAS = 0,
     XZ_GEOMETRY_SURFACE,
     XZ_GEOMETRY_SPRITE,
-    XZ_GEOMETRY_EFFECT
+    XZ_GEOMETRY_EFFECT,
+    XZ_GEOMETRY_SPECIAL
 } XzGeometryKind;
+
+typedef enum {
+    XZ_GEOMETRY_SPECIAL_NONE = 0,
+    XZ_GEOMETRY_SPECIAL_SKY,
+    XZ_GEOMETRY_SPECIAL_WATER
+} XzGeometrySpecialKind;
 
 typedef enum {
     XZ_GEOMETRY_TRIANGLES = 0,
@@ -37,6 +44,7 @@ typedef struct {
     unsigned int blend_enabled;
     unsigned int blend_src;
     unsigned int blend_dst;
+    unsigned int depth_test_enabled;
     unsigned int depth_write;
     unsigned int depth_func;
     unsigned int alpha_test_enabled;
@@ -66,6 +74,7 @@ typedef struct {
     unsigned int first_index;
     unsigned int index_count;
     XzGeometryKind kind;
+    XzGeometrySpecialKind special_kind;
     int texture_id;
     XzGeometryRenderState state;
     float modelview[16];
@@ -86,6 +95,9 @@ typedef struct {
     unsigned int surface_batches;
     unsigned int sprite_batches;
     unsigned int effect_batches;
+    unsigned int special_batches;
+    unsigned int sky_batches;
+    unsigned int water_batches;
 
     unsigned int dropped_batches;
     unsigned int dropped_vertices;
@@ -136,6 +148,18 @@ int XzGeometryTap_CapturePrimitive(
     unsigned int texture_offset,
     XzGeometryPrimitive primitive,
     int texture_id,
+    const XzGeometryRenderState *state,
+    const float modelview[16],
+    const float projection[16]);
+
+int XzGeometryTap_CaptureSpecialFan(
+    const float *source,
+    unsigned int count,
+    unsigned int stride_floats,
+    unsigned int position_offset,
+    unsigned int texture_offset,
+    int texture_id,
+    XzGeometrySpecialKind special_kind,
     const XzGeometryRenderState *state,
     const float modelview[16],
     const float projection[16]);

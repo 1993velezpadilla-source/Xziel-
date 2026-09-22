@@ -41,6 +41,7 @@ static void XzCopyRenderState(
     dst->color[3] = 1.0f;
     dst->blend_src = 0x0302u;       /* GL_SRC_ALPHA */
     dst->blend_dst = 0x0303u;       /* GL_ONE_MINUS_SRC_ALPHA */
+    dst->depth_test_enabled = 1u;
     dst->depth_write = 1u;
     dst->depth_func = 0x0203u;      /* GL_LEQUAL */
     dst->alpha_func = 0x0204u;      /* GL_GREATER */
@@ -120,6 +121,7 @@ static XzGeometryBatch *XzBeginBatch(
     batch->first_index = frame->index_count;
     batch->index_count = indices;
     batch->kind = kind;
+    batch->special_kind = XZ_GEOMETRY_SPECIAL_NONE;
     batch->texture_id = texture_id;
     XzCopyRenderState(&batch->state, state);
     XzCopyMatrix(batch->modelview, modelview);
@@ -133,6 +135,8 @@ static XzGeometryBatch *XzBeginBatch(
         frame->sprite_batches++;
     else if (kind == XZ_GEOMETRY_EFFECT)
         frame->effect_batches++;
+    else if (kind == XZ_GEOMETRY_SPECIAL)
+        frame->special_batches++;
 
     return batch;
 }
@@ -159,6 +163,9 @@ void XzGeometryTap_BeginFrame(uint64_t generation)
     frame->surface_batches = 0u;
     frame->sprite_batches = 0u;
     frame->effect_batches = 0u;
+    frame->special_batches = 0u;
+    frame->sky_batches = 0u;
+    frame->water_batches = 0u;
     frame->dropped_batches = 0u;
     frame->dropped_vertices = 0u;
     frame->dropped_indices = 0u;
@@ -457,6 +464,82 @@ int XzGeometryTap_CapturePrimitive(
     return 1;
 }
 
+int XzGeometryTap_CaptureSpecialFan(
+    const float *source,
+    unsigned int count,
+    unsigned int stride_floats,
+    unsigned int position_offset,
+    unsigned int texture_offset,
+    int texture_id,
+    XzGeometrySpecialKind special_kind,
+    const XzGeometryRenderState *state,
+    const float modelview[16],
+    const float projection[16])
+{
+    XzGeometryFrame *frame = XzWriteFrame();
+    XzGeometryBatch *batch;
+    unsigned int index_count;
+    unsigned int i;
+    unsigned int out_index;
+
+    if (!source || count < 3u ||
+        stride_floats < 3u ||
+        position_offset + 2u >= stride_floats ||
+        special_kind == XZ_GEOMETRY_SPECIAL_NONE)
+        return 0;
+
+    index_count = (count - 2u) * 3u;
+    batch = XzBeginBatch(
+        frame,
+        XZ_GEOMETRY_SPECIAL,
+        count,
+        index_count,
+        texture_id,
+        state,
+        modelview,
+        projection);
+    if (!batch)
+        return 0;
+
+    batch->special_kind = special_kind;
+    if (special_kind == XZ_GEOMETRY_SPECIAL_SKY)
+        frame->sky_batches++;
+    else if (special_kind == XZ_GEOMETRY_SPECIAL_WATER)
+        frame->water_batches++;
+
+    for (i = 0u; i < count; ++i) {
+        const float *in = source + i * stride_floats;
+        XzGeometryVertex *out =
+            &frame->vertices[frame->vertex_count + i];
+
+        out->position[0] = in[position_offset + 0u];
+        out->position[1] = in[position_offset + 1u];
+        out->position[2] = in[position_offset + 2u];
+
+        if (texture_offset + 1u < stride_floats) {
+            out->uv[0] = in[texture_offset + 0u];
+            out->uv[1] = in[texture_offset + 1u];
+        } else {
+            out->uv[0] = 0.0f;
+            out->uv[1] = 0.0f;
+        }
+    }
+
+    out_index = frame->index_count;
+    for (i = 0u; i + 2u < count; ++i) {
+        frame->indices[out_index++] =
+            (uint32_t)batch->first_vertex;
+        frame->indices[out_index++] =
+            (uint32_t)(batch->first_vertex + i + 1u);
+        frame->indices[out_index++] =
+            (uint32_t)(batch->first_vertex + i + 2u);
+    }
+
+    frame->vertex_count += count;
+    frame->index_count += index_count;
+    return 1;
+}
+
 int XzGeometryTap_SelfTest(void)
 {
     static const struct {
@@ -504,16 +587,25 @@ int XzGeometryTap_SelfTest(void)
             9, NULL, NULL, NULL))
         return 0;
 
+    if (!XzGeometryTap_CaptureSpecialFan(
+            fan, 4u, 5u, 0u, 3u,
+            10, XZ_GEOMETRY_SPECIAL_SKY,
+            NULL, NULL, NULL))
+        return 0;
+
     XzGeometryTap_CommitFrame();
     frame = XzGeometryTap_GetReadFrame();
 
     if (frame->generation != 7u ||
-        frame->batch_count != 3u ||
-        frame->vertex_count != 11u ||
-        frame->index_count != 15u ||
+        frame->batch_count != 4u ||
+        frame->vertex_count != 15u ||
+        frame->index_count != 21u ||
         frame->alias_batches != 1u ||
         frame->surface_batches != 1u ||
         frame->effect_batches != 1u ||
+        frame->special_batches != 1u ||
+        frame->sky_batches != 1u ||
+        frame->water_batches != 0u ||
         frame->dropped_batches != 0u ||
         frame->dropped_vertices != 0u ||
         frame->dropped_indices != 0u)
@@ -523,6 +615,7 @@ int XzGeometryTap_SelfTest(void)
         return 0;
 
     if (frame->batches[0].state.color[0] != 1.0f ||
+        frame->batches[0].state.depth_test_enabled != 1u ||
         frame->batches[0].state.depth_write != 1u ||
         frame->batches[0].state.depth_func != 0x0203u ||
         frame->batches[0].state.texture_env_mode != 0x2100u ||
