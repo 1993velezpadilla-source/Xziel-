@@ -380,6 +380,7 @@ private:
     VkCommandPool commandPool_ = VK_NULL_HANDLE;
 
     VulkanStaticMeshRenderer sanctumMesh_{};
+    VulkanStaticMeshRenderer weaponMesh_{};
 
     std::vector<VkImage> swapchainImages_;
     std::vector<VkImageView> imageViews_;

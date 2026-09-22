@@ -26,6 +26,20 @@ struct StaticMeshEnvironmentState {
     float lightningFlash = 0.0f;
 };
 
+struct StaticMeshViewmodelState {
+    float x = 0.0f;
+    float y = -0.18f;
+    float z = 0.18f;
+    float scale = 1.0f;
+
+    float yawRadians = 0.0f;
+    float pitchRadians = 0.0f;
+    float rollRadians = 0.0f;
+
+    float verticalFovDegrees = 72.0f;
+    float aspect = 1.0f;
+};
+
 class VulkanStaticMeshRenderer final {
 public:
     VulkanStaticMeshRenderer() = default;
@@ -58,6 +72,11 @@ public:
         VkExtent2D extent,
         const StaticMeshCameraState& camera,
         const StaticMeshEnvironmentState& environment) const noexcept;
+
+    void recordViewmodel(
+        VkCommandBuffer command,
+        VkExtent2D extent,
+        const StaticMeshViewmodelState& state) const noexcept;
 
 private:
     struct GpuTexture {
@@ -96,6 +115,16 @@ private:
         float pad0 = 0.0f;
         float pad1 = 0.0f;
         float pad2 = 0.0f;
+
+        float modelX = 0.0f;
+        float modelY = 0.0f;
+        float modelZ = 0.0f;
+        float modelScale = 1.0f;
+
+        float modelYaw = 0.0f;
+        float modelPitch = 0.0f;
+        float modelRoll = 0.0f;
+        float viewmodelMode = 0.0f;
     };
 
     [[nodiscard]] bool loadModel(
@@ -157,6 +186,8 @@ private:
 
     std::uint32_t totalVertices_ = 0U;
     std::uint32_t totalIndices_ = 0U;
+    bool samplerAnisotropyEnabled_ = false;
+    float maxSamplerAnisotropy_ = 1.0f;
     bool ready_ = false;
 };
 

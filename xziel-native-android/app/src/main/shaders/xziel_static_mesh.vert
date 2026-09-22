@@ -4,6 +4,8 @@ layout(push_constant) uniform PushConstants {
     vec4 cameraPositionYaw;
     vec4 cameraPitchFovAspectFog;
     vec4 environment;
+    vec4 modelOffsetScale;
+    vec4 modelRotationMode;
 } pc;
 
 layout(location = 0) in vec3 inPosition;
@@ -17,6 +19,7 @@ layout(location = 2) out vec4 vColor;
 layout(location = 3) out float vDistance;
 layout(location = 4) out float vFogDensity;
 layout(location = 5) out float vLightning;
+layout(location = 6) out float vViewmodel;
 
 vec3 worldToView(vec3 world) {
     vec3 relative =
@@ -47,8 +50,61 @@ vec3 worldToView(vec3 world) {
     );
 }
 
+vec3 rotateViewmodel(vec3 value) {
+    float yaw = pc.modelRotationMode.x;
+    float pitch = pc.modelRotationMode.y;
+    float roll = pc.modelRotationMode.z;
+
+    float cy = cos(yaw);
+    float sy = sin(yaw);
+    value = vec3(
+        cy * value.x + sy * value.z,
+        value.y,
+       -sy * value.x + cy * value.z
+    );
+
+    float cp = cos(pitch);
+    float sp = sin(pitch);
+    value = vec3(
+        value.x,
+        cp * value.y - sp * value.z,
+        sp * value.y + cp * value.z
+    );
+
+    float cr = cos(roll);
+    float sr = sin(roll);
+    return vec3(
+        cr * value.x - sr * value.y,
+        sr * value.x + cr * value.y,
+        value.z
+    );
+}
+
 void main() {
-    vec3 view = worldToView(inPosition);
+    float viewmodel =
+        step(
+            0.5,
+            pc.modelRotationMode.w);
+
+    vec3 view;
+    vec3 surfaceNormal;
+
+    if (viewmodel > 0.5) {
+        view =
+            rotateViewmodel(
+                inPosition *
+                pc.modelOffsetScale.w) +
+            pc.modelOffsetScale.xyz;
+
+        surfaceNormal =
+            normalize(
+                rotateViewmodel(
+                    inNormal));
+    } else {
+        view = worldToView(inPosition);
+        surfaceNormal =
+            normalize(inNormal);
+    }
 
     const float nearPlane = 0.08;
     const float farPlane = 180.0;
@@ -87,17 +143,22 @@ void main() {
     gl_Position = clip;
 
     vUv = inUv;
-    vNormal = normalize(inNormal);
+    vNormal = surfaceNormal;
     vColor = inColor;
     vDistance = max(view.z, 0.0);
     vFogDensity =
-        clamp(
-            pc.cameraPitchFovAspectFog.w,
-            0.0,
-            1.0);
+        viewmodel > 0.5
+        ? 0.0
+        : clamp(
+              pc.cameraPitchFovAspectFog.w,
+              0.0,
+              1.0);
     vLightning =
-        clamp(
-            pc.environment.x,
-            0.0,
-            2.0);
+        viewmodel > 0.5
+        ? 0.0
+        : clamp(
+              pc.environment.x,
+              0.0,
+              2.0);
+    vViewmodel = viewmodel;
 }

@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 80
     env:
-      SANCTUM_ASSET_SHA: 0834f8b1092d13839c1356b52eb858235631de30
+      SANCTUM_ASSET_SHA: 86226a3e6879f5c0ee162f4547c71c6a0c01d3b9
       GH_TOKEN: ${{ github.token }}
 
     steps:
@@ -91,11 +91,20 @@ jobs:
 
           NATIVE_MAP_REPORT="$(find build/sanctum-artifact             -path '*/xziel_native_map/sanctum_native_map_report.json'             -print -quit)"
 
+          WEAPON_MODEL="$(find build/sanctum-artifact             -path '*/xziel_native_static/models/xziel/weapons/standard_rifle.xzsm'             -print -quit)"
+          WEAPON_TEXTURE_DIR="$(find build/sanctum-artifact             -type d             -path '*/xziel_native_static/textures/xziel/weapons/standard_rifle'             -print -quit)"
+          WEAPON_AUDIO_DIR="$(find build/sanctum-artifact             -type d             -path '*/xziel_native_static/audio/xziel/weapons'             -print -quit)"
+          WEAPON_LICENSE="$(find build/sanctum-artifact             -path '*/xziel_native_static/licenses/standard_rifle_assets.txt'             -print -quit)"
+
           test -s "$MODEL"
           test -d "$TEXTURE_DIR"
           test -s "$REPORT"
           test -s "$NATIVE_MAP"
           test -s "$NATIVE_MAP_REPORT"
+          test -s "$WEAPON_MODEL"
+          test -d "$WEAPON_TEXTURE_DIR"
+          test -d "$WEAPON_AUDIO_DIR"
+          test -s "$WEAPON_LICENSE"
 
           jq '{
             coordinateSpace,
@@ -145,13 +154,17 @@ jobs:
           jq -e '.windowCount >= 8' "$NATIVE_MAP_REPORT"
           jq -e '.zombieSpawnCount >= 8' "$NATIVE_MAP_REPORT"
 
-          mkdir -p             xziel-native-android/app/src/main/assets/models/xziel/sanctum             xziel-native-android/app/src/main/assets/textures/xziel/sanctum             xziel-native-android/app/src/main/assets/maps
+          mkdir -p             xziel-native-android/app/src/main/assets/models/xziel/sanctum             xziel-native-android/app/src/main/assets/textures/xziel/sanctum             xziel-native-android/app/src/main/assets/models/xziel/weapons             xziel-native-android/app/src/main/assets/textures/xziel/weapons/standard_rifle             xziel-native-android/app/src/main/assets/audio/xziel/weapons             xziel-native-android/app/src/main/assets/licenses             xziel-native-android/app/src/main/assets/maps
 
           cp "$MODEL"             xziel-native-android/app/src/main/assets/models/xziel/sanctum/sanctum.xzsm
 
           cp "$NATIVE_MAP"             xziel-native-android/app/src/main/assets/maps/sanctum.xmap
 
           cp -a "$TEXTURE_DIR"/.             xziel-native-android/app/src/main/assets/textures/xziel/sanctum/
+          cp "$WEAPON_MODEL"             xziel-native-android/app/src/main/assets/models/xziel/weapons/standard_rifle.xzsm
+          cp -a "$WEAPON_TEXTURE_DIR"/.             xziel-native-android/app/src/main/assets/textures/xziel/weapons/standard_rifle/
+          cp -a "$WEAPON_AUDIO_DIR"/.             xziel-native-android/app/src/main/assets/audio/xziel/weapons/
+          cp "$WEAPON_LICENSE"             xziel-native-android/app/src/main/assets/licenses/standard_rifle_assets.txt
 
           test -s             xziel-native-android/app/src/main/assets/models/xziel/sanctum/sanctum.xzsm
 
@@ -233,6 +246,11 @@ jobs:
           grep -q             "assets/models/xziel/sanctum/sanctum.xzsm"             build/sanctum-hq-apk-contents.txt
 
           grep -q             "assets/maps/sanctum.xmap"             build/sanctum-hq-apk-contents.txt
+
+          grep -q             "assets/models/xziel/weapons/standard_rifle.xzsm"             build/sanctum-hq-apk-contents.txt
+          grep -q             "assets/textures/xziel/weapons/standard_rifle/.*\.png"             build/sanctum-hq-apk-contents.txt
+          grep -q             "assets/audio/xziel/weapons/standard_rifle_fire.wav"             build/sanctum-hq-apk-contents.txt
+          grep -q             "assets/audio/xziel/weapons/standard_rifle_reload.wav"             build/sanctum-hq-apk-contents.txt
 
           grep -q             "assets/textures/xziel/sanctum/.*\.png"             build/sanctum-hq-apk-contents.txt
 
@@ -423,6 +441,8 @@ jobs:
           grep -q "XZIEL_VULKAN_SURFACE_ROTATION"             dist/sanctum-hq-logcat.txt
 
           grep -q "XZIEL_SANCTUM_MESH_READY"             dist/sanctum-hq-logcat.txt
+          grep -q "XZIEL_WEAPON_VIEWMODEL_READY"             dist/sanctum-hq-logcat.txt
+          grep -q "XZIEL_WEAPON_AUDIO_READY fire=1 reload=1"             dist/sanctum-hq-logcat.txt
 
           grep -Eq             "XZIEL_SANCTUM_DYNAMIC_BARRICADES_READY windows=28"             dist/sanctum-hq-logcat.txt
 

@@ -111,6 +111,16 @@ bool VulkanClearRenderer::initialize(
         assetManager_,
         "models/xziel/sanctum/sanctum.xzsm");
 
+    (void) weaponMesh_.initialize(
+        physicalDevice_,
+        device_,
+        graphicsQueue_,
+        graphicsQueueFamily_,
+        commandPool_,
+        renderPass_,
+        assetManager_,
+        "models/xziel/weapons/standard_rifle.xzsm");
+
     initialized_ = true;
     logInfo("XZIEL_VULKAN_3D_READY");
     return true;
@@ -123,8 +133,9 @@ void VulkanClearRenderer::shutdown() noexcept {
         vkDeviceWaitIdle(device_);
     }
 
-    // Destroy native world resources while the device/render pass/command
-    // pool they were created from are still alive.
+    // Destroy native world/viewmodel resources while the device/render pass/
+    // command pool they were created from are still alive.
+    weaponMesh_.shutdown();
     sanctumMesh_.shutdown();
 
     for (auto& frame : frames_) {
@@ -906,6 +917,15 @@ bool VulkanClearRenderer::createDevice() noexcept {
         }
     }
 
+    VkPhysicalDeviceFeatures availableFeatures{};
+    vkGetPhysicalDeviceFeatures(
+        physicalDevice_,
+        &availableFeatures);
+
+    VkPhysicalDeviceFeatures enabledFeatures{};
+    enabledFeatures.samplerAnisotropy =
+        availableFeatures.samplerAnisotropy;
+
     VkDeviceCreateInfo createInfo{
         VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO
     };
@@ -917,6 +937,8 @@ bool VulkanClearRenderer::createDevice() noexcept {
             enabledExtensions.size());
     createInfo.ppEnabledExtensionNames =
         enabledExtensions.data();
+    createInfo.pEnabledFeatures =
+        &enabledFeatures;
 
     const VkResult result =
         vkCreateDevice(
@@ -3641,6 +3663,85 @@ bool VulkanClearRenderer::recordDrawCommand(
             sanctumEnvironment);
     }
 
+    if (weaponMesh_.ready()) {
+        const float viewAspect =
+            swapchainExtent_.height > 0U
+            ? static_cast<float>(
+                  swapchainExtent_.width) /
+              static_cast<float>(
+                  swapchainExtent_.height)
+            : 1.0f;
+
+        const float ads =
+            std::clamp(
+                hud.weaponAdsAlpha,
+                0.0f,
+                1.0f);
+
+        const float reload =
+            std::clamp(
+                hud.weaponReloadAlpha,
+                0.0f,
+                1.0f);
+
+        const float reloadArc =
+            std::sin(
+                reload *
+                3.14159265358979323846f);
+
+        const float fire =
+            std::clamp(
+                hud.weaponFireAlpha,
+                0.0f,
+                1.0f);
+
+        const float lowering =
+            std::clamp(
+                hud.viewmodelLowering,
+                0.0f,
+                1.0f);
+
+        StaticMeshViewmodelState weaponState{};
+        weaponState.x =
+            0.235f * (1.0f - ads) +
+            0.004f * ads +
+            0.055f * lowering;
+        weaponState.y =
+            -0.205f +
+            0.105f * ads -
+            0.155f * reloadArc -
+            0.31f * lowering -
+            0.018f * fire;
+        weaponState.z =
+            0.175f +
+            0.025f * ads +
+            0.045f * reloadArc -
+            0.070f * fire +
+            0.06f * lowering;
+        weaponState.scale = 1.0f;
+        weaponState.yawRadians =
+            -0.025f +
+            0.08f * reloadArc;
+        weaponState.pitchRadians =
+            -0.035f -
+            0.16f * reloadArc;
+        weaponState.rollRadians =
+            -0.055f -
+            0.42f * reloadArc;
+        weaponState.verticalFovDegrees =
+            std::clamp(
+                camera.verticalFovDegrees,
+                60.0f,
+                90.0f);
+        weaponState.aspect =
+            viewAspect;
+
+        weaponMesh_.recordViewmodel(
+            command,
+            swapchainExtent_,
+            weaponState);
+    }
+
     vkCmdBindPipeline(
         command,
         VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -4809,269 +4910,301 @@ bool VulkanClearRenderer::recordDrawCommand(
             6.0f);
     }
 
-    const float weaponAds =
-        std::clamp(
-            hud.weaponAdsAlpha,
+    if (!weaponMesh_.ready()) {
+        const float weaponAds =
+            std::clamp(
+                hud.weaponAdsAlpha,
+                0.0f,
+                1.0f);
+    
+        const float weaponReload =
+            std::clamp(
+                hud.weaponReloadAlpha,
+                0.0f,
+                1.0f);
+    
+        const float weaponFire =
+            std::clamp(
+                hud.weaponFireAlpha,
+                0.0f,
+                1.0f);
+    
+        const float viewmodelLowering =
+            std::clamp(
+                hud.viewmodelLowering,
+                0.0f,
+                1.0f);
+    
+        const float reloadArc =
+            std::sin(
+                weaponReload *
+                3.14159265358979323846f);
+    
+        const float weaponX =
+            0.66f *
+                (1.0f - weaponAds) +
+            0.035f *
+                weaponAds +
+            0.10f *
+                viewmodelLowering;
+    
+        const float weaponY =
+            -0.78f +
+            0.18f *
+                weaponAds -
+            0.30f *
+                reloadArc -
+            0.44f *
+                viewmodelLowering;
+    
+        const float weaponZ =
+            1.34f -
+            0.18f *
+                weaponAds +
+            0.10f *
+                reloadArc +
+            0.10f *
+                viewmodelLowering;
+    
+        // Native first-person rifle blockout. Keep this renderer-owned until a
+        // skinned GLB viewmodel path is production-ready, but make the current
+        // Android build read like a real firearm instead of one oversized cube.
+        // Materials 10/15/16 are gunmetal, worn furniture and matte polymer.
+        const float fireKick =
+            weaponFire * 0.11f;
+    
+        const float rifleY =
+            weaponY -
+            weaponFire * 0.025f;
+    
+        const float rifleZ =
+            weaponZ -
+            fireKick;
+    
+        // Buttstock + receiver.
+        drawPrimitive(
+            weaponX + 0.015f,
+            rifleY - 0.005f,
+            rifleZ - 0.54f,
+            0.27f,
+            0.17f,
+            0.44f,
+            15.0f,
             0.0f,
-            1.0f);
-
-    const float weaponReload =
-        std::clamp(
-            hud.weaponReloadAlpha,
             0.0f,
-            1.0f);
-
-    const float weaponFire =
-        std::clamp(
-            hud.weaponFireAlpha,
-            0.0f,
-            1.0f);
-
-    const float viewmodelLowering =
-        std::clamp(
-            hud.viewmodelLowering,
-            0.0f,
-            1.0f);
-
-    const float reloadArc =
-        std::sin(
-            weaponReload *
-            3.14159265358979323846f);
-
-    const float weaponX =
-        0.66f *
-            (1.0f - weaponAds) +
-        0.035f *
-            weaponAds +
-        0.10f *
-            viewmodelLowering;
-
-    const float weaponY =
-        -0.78f +
-        0.18f *
-            weaponAds -
-        0.30f *
-            reloadArc -
-        0.44f *
-            viewmodelLowering;
-
-    const float weaponZ =
-        1.34f -
-        0.18f *
-            weaponAds +
-        0.10f *
-            reloadArc +
-        0.10f *
-            viewmodelLowering;
-
-    // Native first-person rifle blockout. Keep this renderer-owned until a
-    // skinned GLB viewmodel path is production-ready, but make the current
-    // Android build read like a real firearm instead of one oversized cube.
-    // Materials 10/15/16 are gunmetal, worn furniture and matte polymer.
-    const float fireKick =
-        weaponFire * 0.11f;
-
-    const float rifleY =
-        weaponY -
-        weaponFire * 0.025f;
-
-    const float rifleZ =
-        weaponZ -
-        fireKick;
-
-    // Buttstock + receiver.
-    drawPrimitive(
-        weaponX + 0.015f,
-        rifleY - 0.005f,
-        rifleZ - 0.54f,
-        0.27f,
-        0.17f,
-        0.44f,
-        15.0f,
-        0.0f,
-        0.0f,
-        -0.05f,
-        36U);
-
-    drawBox(
-        weaponX,
-        rifleY,
-        rifleZ - 0.05f,
-        0.255f,
-        0.165f,
-        0.39f,
-        10.0f);
-
-    drawBox(
-        weaponX,
-        rifleY + 0.125f,
-        rifleZ - 0.02f,
-        0.205f,
-        0.075f,
-        0.31f,
-        16.0f);
-
-    // Forward furniture and true round barrel remove the old rectangular
-    // silhouette that dominated the bottom-right of the screen.
-    drawBox(
-        weaponX + 0.004f,
-        rifleY - 0.005f,
-        rifleZ + 0.43f,
-        0.22f,
-        0.135f,
-        0.34f,
-        15.0f);
-
-    drawCylinder(
-        weaponX + 0.004f,
-        rifleY + 0.035f,
-        rifleZ + 0.94f,
-        0.055f,
-        0.055f,
-        0.54f,
-        10.0f,
-        0.0f,
-        0.0f);
-
-    drawCylinder(
-        weaponX + 0.004f,
-        rifleY + 0.035f,
-        rifleZ + 1.38f,
-        0.078f,
-        0.078f,
-        0.13f,
-        16.0f,
-        0.0f,
-        0.0f);
-
-    // Magazine and pistol grip are independently tilted visual pieces.
-    drawCylinder(
-        weaponX - 0.010f,
-        rifleY - 0.245f -
-            reloadArc * 0.10f,
-        rifleZ + 0.04f +
-            reloadArc * 0.10f,
-        0.125f,
-        0.082f,
-        0.30f,
-        16.0f,
-        0.0f,
-        -1.00f +
-            reloadArc * 0.30f);
-
-    drawCylinder(
-        weaponX + 0.015f,
-        rifleY - 0.225f,
-        rifleZ - 0.27f,
-        0.090f,
-        0.078f,
-        0.22f,
-        16.0f,
-        0.0f,
-        -0.88f);
-
-    // Rear rail plus front/rear iron sights. These small layers are cheap but
-    // give ADS a readable centerline instead of a featureless slab.
-    drawBox(
-        weaponX,
-        rifleY + 0.205f,
-        rifleZ - 0.04f,
-        0.13f,
-        0.025f,
-        0.28f,
-        10.0f);
-
-    drawCylinder(
-        weaponX,
-        rifleY + 0.265f,
-        rifleZ - 0.19f,
-        0.032f,
-        0.032f,
-        0.075f,
-        10.0f,
-        0.0f,
-        1.570796327f);
-
-    drawCylinder(
-        weaponX + 0.004f,
-        rifleY + 0.205f,
-        rifleZ + 0.75f,
-        0.028f,
-        0.028f,
-        0.095f,
-        10.0f,
-        0.0f,
-        1.570796327f);
-
-    // Rounded gloves/forearms retain the existing reload motion but stop
-    // reading as rigid cubes.
-    drawRounded(
-        weaponX + 0.215f,
-        rifleY - 0.115f -
-            reloadArc * 0.045f,
-        rifleZ - 0.17f +
-            reloadArc * 0.10f,
-        0.14f,
-        0.12f,
-        0.24f,
-        12.0f,
-        -0.12f,
-        0.30f);
-
-    drawCylinder(
-        weaponX + 0.30f,
-        rifleY - 0.245f,
-        rifleZ - 0.40f,
-        0.12f,
-        0.105f,
-        0.32f,
-        12.0f,
-        0.0f,
-        -0.48f);
-
-    drawRounded(
-        weaponX - 0.18f -
-            reloadArc * 0.10f,
-        rifleY - 0.055f -
-            reloadArc * 0.12f,
-        rifleZ + 0.35f,
-        0.13f,
-        0.11f,
-        0.21f,
-        12.0f,
-        0.10f,
-        -0.18f);
-
-    drawCylinder(
-        weaponX - 0.27f -
-            reloadArc * 0.10f,
-        rifleY - 0.18f -
-            reloadArc * 0.10f,
-        rifleZ + 0.16f,
-        0.105f,
-        0.095f,
-        0.28f,
-        12.0f,
-        0.0f,
-        -0.55f);
-
-    if (weaponFire > 0.01f) {
-        drawRounded(
+            -0.05f,
+            36U);
+    
+        drawBox(
+            weaponX,
+            rifleY,
+            rifleZ - 0.05f,
+            0.255f,
+            0.165f,
+            0.39f,
+            10.0f);
+    
+        drawBox(
+            weaponX,
+            rifleY + 0.125f,
+            rifleZ - 0.02f,
+            0.205f,
+            0.075f,
+            0.31f,
+            16.0f);
+    
+        // Forward furniture and true round barrel remove the old rectangular
+        // silhouette that dominated the bottom-right of the screen.
+        drawBox(
+            weaponX + 0.004f,
+            rifleY - 0.005f,
+            rifleZ + 0.43f,
+            0.22f,
+            0.135f,
+            0.34f,
+            15.0f);
+    
+        drawCylinder(
             weaponX + 0.004f,
             rifleY + 0.035f,
-            rifleZ + 1.53f,
-            0.12f +
-                0.07f *
-                weaponFire,
-            0.12f +
-                0.07f *
-                weaponFire,
-            0.18f +
-                0.12f *
-                weaponFire,
-            11.0f,
+            rifleZ + 0.94f,
+            0.055f,
+            0.055f,
+            0.54f,
+            10.0f,
             0.0f,
             0.0f);
+    
+        drawCylinder(
+            weaponX + 0.004f,
+            rifleY + 0.035f,
+            rifleZ + 1.38f,
+            0.078f,
+            0.078f,
+            0.13f,
+            16.0f,
+            0.0f,
+            0.0f);
+    
+        // Magazine and pistol grip are independently tilted visual pieces.
+        drawCylinder(
+            weaponX - 0.010f,
+            rifleY - 0.245f -
+                reloadArc * 0.10f,
+            rifleZ + 0.04f +
+                reloadArc * 0.10f,
+            0.125f,
+            0.082f,
+            0.30f,
+            16.0f,
+            0.0f,
+            -1.00f +
+                reloadArc * 0.30f);
+    
+        drawCylinder(
+            weaponX + 0.015f,
+            rifleY - 0.225f,
+            rifleZ - 0.27f,
+            0.090f,
+            0.078f,
+            0.22f,
+            16.0f,
+            0.0f,
+            -0.88f);
+    
+        // Rear rail plus front/rear iron sights. These small layers are cheap but
+        // give ADS a readable centerline instead of a featureless slab.
+        drawBox(
+            weaponX,
+            rifleY + 0.205f,
+            rifleZ - 0.04f,
+            0.13f,
+            0.025f,
+            0.28f,
+            10.0f);
+    
+        drawCylinder(
+            weaponX,
+            rifleY + 0.265f,
+            rifleZ - 0.19f,
+            0.032f,
+            0.032f,
+            0.075f,
+            10.0f,
+            0.0f,
+            1.570796327f);
+    
+        drawCylinder(
+            weaponX + 0.004f,
+            rifleY + 0.205f,
+            rifleZ + 0.75f,
+            0.028f,
+            0.028f,
+            0.095f,
+            10.0f,
+            0.0f,
+            1.570796327f);
+    
+        // Rounded gloves/forearms retain the existing reload motion but stop
+        // reading as rigid cubes.
+        drawRounded(
+            weaponX + 0.215f,
+            rifleY - 0.115f -
+                reloadArc * 0.045f,
+            rifleZ - 0.17f +
+                reloadArc * 0.10f,
+            0.14f,
+            0.12f,
+            0.24f,
+            12.0f,
+            -0.12f,
+            0.30f);
+    
+        drawCylinder(
+            weaponX + 0.30f,
+            rifleY - 0.245f,
+            rifleZ - 0.40f,
+            0.12f,
+            0.105f,
+            0.32f,
+            12.0f,
+            0.0f,
+            -0.48f);
+    
+        drawRounded(
+            weaponX - 0.18f -
+                reloadArc * 0.10f,
+            rifleY - 0.055f -
+                reloadArc * 0.12f,
+            rifleZ + 0.35f,
+            0.13f,
+            0.11f,
+            0.21f,
+            12.0f,
+            0.10f,
+            -0.18f);
+    
+        drawCylinder(
+            weaponX - 0.27f -
+                reloadArc * 0.10f,
+            rifleY - 0.18f -
+                reloadArc * 0.10f,
+            rifleZ + 0.16f,
+            0.105f,
+            0.095f,
+            0.28f,
+            12.0f,
+            0.0f,
+            -0.55f);
+    
+        if (weaponFire > 0.01f) {
+            drawRounded(
+                weaponX + 0.004f,
+                rifleY + 0.035f,
+                rifleZ + 1.53f,
+                0.12f +
+                    0.07f *
+                    weaponFire,
+                0.12f +
+                    0.07f *
+                    weaponFire,
+                0.18f +
+                    0.12f *
+                    weaponFire,
+                11.0f,
+                0.0f,
+                0.0f);
+        }
+    
+    
+    } else {
+        const float fire =
+            std::clamp(
+                hud.weaponFireAlpha,
+                0.0f,
+                1.0f);
+
+        if (fire > 0.01f) {
+            const float ads =
+                std::clamp(
+                    hud.weaponAdsAlpha,
+                    0.0f,
+                    1.0f);
+
+            drawRounded(
+                0.235f * (1.0f - ads) +
+                    0.004f * ads,
+                -0.095f +
+                    0.08f * ads,
+                1.02f -
+                    0.07f * fire,
+                0.10f + 0.06f * fire,
+                0.10f + 0.06f * fire,
+                0.17f + 0.10f * fire,
+                11.0f,
+                0.0f,
+                0.0f);
+        }
     }
 
     if (uiPipeline_ == VK_NULL_HANDLE ||

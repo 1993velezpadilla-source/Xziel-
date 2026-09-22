@@ -81,6 +81,28 @@ bool VulkanStaticMeshRenderer::initialize(
 
     physicalDevice_ = physicalDevice;
     device_ = device;
+
+    VkPhysicalDeviceFeatures deviceFeatures{};
+    vkGetPhysicalDeviceFeatures(
+        physicalDevice_,
+        &deviceFeatures);
+
+    VkPhysicalDeviceProperties deviceProperties{};
+    vkGetPhysicalDeviceProperties(
+        physicalDevice_,
+        &deviceProperties);
+
+    samplerAnisotropyEnabled_ =
+        deviceFeatures.samplerAnisotropy == VK_TRUE;
+
+    maxSamplerAnisotropy_ =
+        samplerAnisotropyEnabled_
+        ? std::clamp(
+              deviceProperties.limits.maxSamplerAnisotropy,
+              1.0f,
+              8.0f)
+        : 1.0f;
+
     graphicsQueue_ = graphicsQueue;
     graphicsQueueFamily_ = graphicsQueueFamily;
     commandPool_ = commandPool;
@@ -202,7 +224,17 @@ bool VulkanStaticMeshRenderer::initialize(
         !textures_.empty();
 
     if (ready_) {
-        logInfo("XZIEL_SANCTUM_MESH_READY");
+        const std::string modelPath =
+            modelAssetPath != nullptr
+            ? modelAssetPath
+            : "";
+
+        if (modelPath.find("/weapons/") !=
+            std::string::npos) {
+            logInfo("XZIEL_WEAPON_VIEWMODEL_READY");
+        } else {
+            logInfo("XZIEL_SANCTUM_MESH_READY");
+        }
     }
 
     return ready_;
@@ -259,6 +291,8 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
 
     totalVertices_ = 0U;
     totalIndices_ = 0U;
+    samplerAnisotropyEnabled_ = false;
+    maxSamplerAnisotropy_ = 1.0f;
 
     physicalDevice_ = VK_NULL_HANDLE;
     device_ = VK_NULL_HANDLE;
@@ -347,6 +381,8 @@ void VulkanStaticMeshRenderer::record(
             environment.lightningFlash,
             0.0f,
             2.0f);
+    push.modelScale = 1.0f;
+    push.viewmodelMode = 0.0f;
 
     vkCmdPushConstants(
         command,
@@ -455,6 +491,122 @@ void VulkanStaticMeshRenderer::record(
                 halfWidth ||
             std::abs(viewY) - radius >
                 halfHeight) {
+            continue;
+        }
+
+        const auto& texture =
+            textures_[batch.textureIndex];
+
+        const VkDeviceSize offset = 0U;
+
+        vkCmdBindVertexBuffers(
+            command,
+            0U,
+            1U,
+            &batch.vertexBuffer,
+            &offset);
+
+        vkCmdBindIndexBuffer(
+            command,
+            batch.indexBuffer,
+            0U,
+            VK_INDEX_TYPE_UINT16);
+
+        vkCmdBindDescriptorSets(
+            command,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            pipelineLayout_,
+            0U,
+            1U,
+            &texture.descriptorSet,
+            0U,
+            nullptr);
+
+        vkCmdDrawIndexed(
+            command,
+            batch.indexCount,
+            1U,
+            0U,
+            0,
+            0U);
+    }
+}
+
+void VulkanStaticMeshRenderer::recordViewmodel(
+    VkCommandBuffer command,
+    VkExtent2D extent,
+    const StaticMeshViewmodelState& state) const noexcept {
+    if (!ready_ ||
+        command == VK_NULL_HANDLE ||
+        extent.width == 0U ||
+        extent.height == 0U) {
+        return;
+    }
+
+    vkCmdBindPipeline(
+        command,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        pipeline_);
+
+    VkViewport viewport{};
+    viewport.width =
+        static_cast<float>(extent.width);
+    viewport.height =
+        static_cast<float>(extent.height);
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+
+    VkRect2D scissor{};
+    scissor.extent = extent;
+
+    vkCmdSetViewport(
+        command,
+        0U,
+        1U,
+        &viewport);
+
+    vkCmdSetScissor(
+        command,
+        0U,
+        1U,
+        &scissor);
+
+    PushConstants push{};
+    push.verticalFovDegrees =
+        std::clamp(
+            state.verticalFovDegrees,
+            50.0f,
+            110.0f);
+    push.aspect =
+        std::max(
+            state.aspect,
+            0.25f);
+    push.modelX = state.x;
+    push.modelY = state.y;
+    push.modelZ = state.z;
+    push.modelScale =
+        std::clamp(
+            state.scale,
+            0.05f,
+            8.0f);
+    push.modelYaw = state.yawRadians;
+    push.modelPitch = state.pitchRadians;
+    push.modelRoll = state.rollRadians;
+    push.viewmodelMode = 1.0f;
+
+    vkCmdPushConstants(
+        command,
+        pipelineLayout_,
+        VK_SHADER_STAGE_VERTEX_BIT |
+            VK_SHADER_STAGE_FRAGMENT_BIT,
+        0U,
+        static_cast<std::uint32_t>(
+            sizeof(push)),
+        &push);
+
+    for (const auto& batch : batches_) {
+        if (batch.textureIndex >=
+            textures_.size()) {
             continue;
         }
 
@@ -1355,17 +1507,20 @@ bool VulkanStaticMeshRenderer::createTexture(
         VK_FILTER_LINEAR;
     samplerInfo.minFilter =
         VK_FILTER_LINEAR;
+    // The church and viewmodel both use atlas/non-tiling UVs. CLAMP prevents
+    // bilinear samples on U/V edges from wrapping into unrelated atlas pixels.
     samplerInfo.addressModeU =
-        VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     samplerInfo.addressModeV =
-        VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     samplerInfo.addressModeW =
-        VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    // Keep sampler creation valid on every Vulkan 1.0 Android device.
-    // Anisotropy is promoted later only when the logical-device feature is
-    // explicitly enabled.
-    samplerInfo.anisotropyEnable = VK_FALSE;
-    samplerInfo.maxAnisotropy = 1.0f;
+        VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.anisotropyEnable =
+        samplerAnisotropyEnabled_
+        ? VK_TRUE
+        : VK_FALSE;
+    samplerInfo.maxAnisotropy =
+        maxSamplerAnisotropy_;
     samplerInfo.borderColor =
         VK_BORDER_COLOR_INT_OPAQUE_BLACK;
     samplerInfo.unnormalizedCoordinates =

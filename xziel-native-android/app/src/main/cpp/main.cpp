@@ -1378,11 +1378,13 @@ void advancePlayer(
                 },
                 fixedDelta);
 
-        if (weaponFrame.reloadCompletedThisTick) {
+        if (weaponFrame.reloadStartedThisTick) {
             state.audio.play(
                 xziel::android::AndroidAudioCue::Reload,
-                0.68f);
+                0.78f);
+        }
 
+        if (weaponFrame.reloadCompletedThisTick) {
             requestHaptic(
                 state,
                 xziel::HapticEvent::ReloadComplete);
@@ -2593,9 +2595,18 @@ extern "C" void android_main(
             "Haptics unavailable; gameplay continues without vibration");
     }
 
-    if (!state.audio.initialize()) {
+    if (!state.audio.initialize(
+            app->activity != nullptr
+                ? app->activity->assetManager
+                : nullptr)) {
         logInfo(
             "AAudio unavailable; gameplay continues with silent fallback");
+    } else if (state.audio.realWeaponSamplesReady()) {
+        logInfo(
+            "XZIEL_WEAPON_AUDIO_READY fire=1 reload=1");
+    } else {
+        logInfo(
+            "Weapon WAV assets unavailable; procedural audio fallback active");
     }
 
     logInfo("XZIEL_NATIVE_BOOT");

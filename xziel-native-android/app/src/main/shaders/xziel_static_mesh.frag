@@ -9,6 +9,7 @@ layout(location = 2) in vec4 vColor;
 layout(location = 3) in float vDistance;
 layout(location = 4) in float vFogDensity;
 layout(location = 5) in float vLightning;
+layout(location = 6) in float vViewmodel;
 
 layout(location = 0) out vec4 outColor;
 
@@ -71,10 +72,42 @@ void main() {
             fill *
             0.18;
 
-    vec3 lit =
-        albedo.rgb *
-        baked *
-        dynamicLight;
+    vec3 lit;
+
+    if (vViewmodel > 0.5) {
+        vec3 viewKey =
+            normalize(
+                vec3(
+                    -0.35,
+                     0.70,
+                    -0.62));
+
+        float key =
+            max(
+                dot(
+                    normal,
+                    viewKey),
+                0.0);
+
+        float rim =
+            pow(
+                max(
+                    normal.y,
+                    0.0),
+                2.0);
+
+        lit =
+            albedo.rgb *
+            baked *
+            (0.60 +
+             key * 0.42 +
+             rim * 0.10);
+    } else {
+        lit =
+            albedo.rgb *
+            baked *
+            dynamicLight;
+    }
 
     lit +=
         vec3(
@@ -86,7 +119,9 @@ void main() {
          moon * 0.20);
 
     float fog =
-        clamp(
+        vViewmodel > 0.5
+        ? 0.0
+        : clamp(
             smoothstep(
                 28.0,
                 150.0,
