@@ -147,7 +147,8 @@ jobs:
           CHURCH_GAMEPLAY_BLEND: church/out/church_zombies_gameplay_v1.blend
           CHURCH_PLAN: church/out/zombies_map_plan.json
           CHURCH_OUT: church/out
-          XZIEL_STATIC_TARGET_TRIS: "240000"
+          XZIEL_STATIC_TARGET_TRIS: "600000"
+          XZIEL_STATIC_TEXTURE_MAX: "2048"
           LIBGL_ALWAYS_SOFTWARE: "1"
         run: |
           set -euo pipefail
@@ -275,6 +276,9 @@ jobs:
           assert len(n["nodes"]) >= 8
           assert len(n["windowCandidates"]) >= 8
           assert h["spawns"] >= 8
+          assert s["runtimeTriangles"] >= 550000, s
+          assert s["textureMaxDimension"] >= 2048, s
+          assert s["batchCount"] <= 512, s
           assert f["counts"]["barricades"] >= 8, f
           assert f["counts"]["raycastFitted"] > 0, f
           assert f["counts"]["collisionMeshes"] >= 4, f
