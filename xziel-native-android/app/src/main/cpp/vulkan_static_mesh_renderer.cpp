@@ -704,7 +704,50 @@ bool VulkanStaticMeshRenderer::loadModel(
                 bytes.size()),
             out);
 
-    return result.success;
+    if (!result.success) {
+        return false;
+    }
+
+    const std::string modelPath =
+        path != nullptr
+        ? path
+        : "";
+
+    if (modelPath.find("/weapons/") !=
+        std::string::npos) {
+        StaticMeshQualityMetrics metrics{};
+
+        if (!passesViewmodelStaticMeshSanity(
+                out,
+                &metrics)) {
+            __android_log_print(
+                ANDROID_LOG_ERROR,
+                kTag,
+                "XZIEL_WEAPON_VIEWMODEL_REJECTED "
+                "extent=%.3f coverage90=%.3f vertices=%u",
+                static_cast<double>(
+                    metrics.longestExtent),
+                static_cast<double>(
+                    metrics.robustAxisCoverage90),
+                metrics.vertexCount);
+
+            out = {};
+            return false;
+        }
+
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_WEAPON_VIEWMODEL_SANITY_OK "
+            "extent=%.3f coverage90=%.3f vertices=%u",
+            static_cast<double>(
+                metrics.longestExtent),
+            static_cast<double>(
+                metrics.robustAxisCoverage90),
+            metrics.vertexCount);
+    }
+
+    return true;
 }
 
 bool VulkanStaticMeshRenderer::createPipeline(
