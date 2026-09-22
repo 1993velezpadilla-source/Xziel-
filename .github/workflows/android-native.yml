@@ -378,7 +378,7 @@ jobs:
           MODERN_VISUAL_READY=0
           for i in $(seq 1 60); do
             "$ADB" logcat -d -v threadtime > dist/xziel-logcat-previsual.txt || true
-            if grep -Eq "XZIEL-XZ.*parity present context=1 attempts=[1-9][0-9]* success=[1-9][0-9]* fail=0 draws=[1-9][0-9]* streak=[2-9][0-9]*|XZIEL-XZ.*parity present context=1 attempts=[1-9][0-9]* success=[1-9][0-9]* fail=0 draws=[1-9][0-9]* streak=[2-9]" dist/xziel-logcat-previsual.txt \
+            if grep -Eq "XZIEL-XZ.*parity present context=1 attempts=[1-9][0-9]* success=[1-9][0-9]* fail=0 draws=[1-9][0-9]* streak=([2-9]|[1-9][0-9]+)" dist/xziel-logcat-previsual.txt \
               && grep -Eq "XZIEL-XZ.*phase16 heartbeat requested=MODERN active=MODERN candidate=1 allowed=1 caps=0xff blockers=0x0 .*legacyVisible=0" dist/xziel-logcat-previsual.txt; then
               MODERN_VISUAL_READY=1
               break
@@ -896,6 +896,7 @@ jobs:
           path: |
             dist/xziel-logcat.txt
             dist/xziel-logcat-nacht.txt
+            dist/xziel-logcat-previsual.txt
             dist/xziel-logcat-water.txt
             dist/xziel-logcat-water-live.txt
             dist/xziel-screen.png
