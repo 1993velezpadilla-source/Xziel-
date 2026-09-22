@@ -22,6 +22,15 @@ int main() {
     map.zombieSpawns[1] = { 14.0f, -1.58f, 9.0f};
     map.zombieSpawnCount = 2;
 
+    map.floors[0] = {
+        .id = 1000U,
+        .bounds = {
+            .minimum = {-20.0f, -1.78f, -20.0f},
+            .maximum = { 20.0f, -1.58f,  20.0f},
+        },
+    };
+    map.floorCount = 1;
+
     map.boxes[0] = {
         .id = 1,
         .center = {0.0f, -0.30f, 0.0f},
@@ -96,6 +105,7 @@ int main() {
     assert(loaded.visibleBoxes == 1);
     assert(loaded.playerColliders == 1);
     assert(loaded.zombieColliders == 1);
+    assert(loaded.walkableFloors == 1);
     assert(loaded.doors == 1);
     assert(loaded.windows == 1);
     assert(loaded.interactions == 3);
