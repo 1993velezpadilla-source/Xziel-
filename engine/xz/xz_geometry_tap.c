@@ -102,8 +102,19 @@ void XzGeometryTap_BeginFrame(uint64_t generation)
 {
     XzGeometryFrame *frame = XzWriteFrame();
 
-    memset(frame, 0, sizeof(*frame));
+    if (!frame)
+        return;
+
     frame->generation = generation;
+    frame->batch_count = 0u;
+    frame->vertex_count = 0u;
+    frame->index_count = 0u;
+    frame->alias_batches = 0u;
+    frame->surface_batches = 0u;
+    frame->sprite_batches = 0u;
+    frame->dropped_batches = 0u;
+    frame->dropped_vertices = 0u;
+    frame->dropped_indices = 0u;
 }
 
 void XzGeometryTap_CommitFrame(void)
