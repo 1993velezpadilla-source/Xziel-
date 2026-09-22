@@ -367,6 +367,8 @@ jobs:
 
           grep -q "XZIEL_VULKAN_READY"             dist/sanctum-hq-logcat.txt
 
+          grep -q "XZIEL_VULKAN_SURFACE_ROTATION"             dist/sanctum-hq-logcat.txt
+
           grep -q "XZIEL_SANCTUM_MESH_READY"             dist/sanctum-hq-logcat.txt
 
           grep -Eq             "XZIEL_SANCTUM_PROFILE_READY hp=68 spawnInterval=0\.88 interRound=5\.5 baseZombies=5 maxActive=10 points=500"             dist/sanctum-hq-logcat.txt
