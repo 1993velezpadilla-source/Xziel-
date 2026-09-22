@@ -1031,7 +1031,6 @@ static int XzDrawRealGeometry(
         geometry->index_count;
     state->last_geometry_drops = drops;
     state->last_effect_batches = geometry->effect_batches;
-    state->real_effects_ready = 0;
 
     if (drops != 0u) {
         state->real_geometry_failures++;
@@ -1301,10 +1300,10 @@ static int XzDrawRealGeometry(
         (state->real_geometry_kind_mask & 0x7u) == 0x7u &&
         (geometry->effect_batches == 0u ||
          (kind_mask & 0x8u) == 0x8u);
-    state->real_effects_ready =
-        geometry->effect_batches > 0u &&
+    if (geometry->effect_batches > 0u &&
         state->real_geometry_failures == 0u &&
-        (kind_mask & 0x8u) == 0x8u;
+        (kind_mask & 0x8u) == 0x8u)
+        state->real_effects_ready = 1;
 
     state->last_texture_batches =
         texture_batches;
