@@ -843,12 +843,22 @@ static void XzLogSnapshot(double now_seconds)
 
     XzAndroidLog(
         ANDROID_LOG_INFO,
-        "parity specials current=%u sky=%u water=%u skySeen=%d waterSeen=%d",
+        "parity specials current=%u sky=%u water=%u shadow=%u polyblend=%u"
+        " skySeen=%d waterSeen=%d shadowSeen=%d polyblendSeen=%d"
+        " clear=%.3f/%.3f/%.3f/%.3f",
         g3->last_special_batches,
         g3->last_sky_batches,
         g3->last_water_batches,
+        g3->last_shadow_batches,
+        g3->last_polyblend_batches,
         g3->real_sky_ready,
-        g3->real_water_ready);
+        g3->real_water_ready,
+        g3->real_shadow_ready,
+        g3->real_polyblend_ready,
+        g3->last_clear_color[0],
+        g3->last_clear_color[1],
+        g3->last_clear_color[2],
+        g3->last_clear_color[3]);
 
     XzAndroidLog(
         ANDROID_LOG_INFO,
