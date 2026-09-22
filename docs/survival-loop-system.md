@@ -47,3 +47,17 @@ The renderer/audio layer should make every pickup or purchase feel physical and 
 4. Add original machine meshes/animation/audio/VFX for Sanctum.
 5. Add a map-authored wonder-weapon recipe and one mystery-pool wonder weapon.
 6. Add save-independent progression/collection only after the in-match loop is stable.
+
+
+## Map-matched barricades
+
+Each zombie window carries an authored visual binding with a plank material ID,
+debris material ID, plank mesh-set ID and deterministic visual seed. Sanctum can
+therefore use wood from the church's own PBR material family (or a calibrated
+companion using the same texel density, roughness/specular response and
+weathering) instead of a generic plank pasted over the environment.
+
+The global repair power-up uses `ZombieWindowSystem::repairAll`. It restores
+every physical blocker immediately without awarding rebuild points, preventing
+an economy exploit while still giving presentation code a clean event to drive
+wood movement, debris cleanup, sound, particles and haptics.
