@@ -596,14 +596,30 @@ void VulkanStaticMeshRenderer::recordViewmodel(
         std::max(
             state.aspect,
             0.25f);
-    push.modelX = state.x;
-    push.modelY = state.y;
-    push.modelZ = state.z;
+    // Keep first-person transforms inside a conservative camera-local
+    // envelope. Imported assets are meter-normalized, so a rogue gameplay
+    // value should never be able to magnify or throw the weapon across the
+    // entire frame.
+    push.modelX =
+        std::clamp(
+            state.x,
+            -1.50f,
+            1.50f);
+    push.modelY =
+        std::clamp(
+            state.y,
+            -1.50f,
+            1.50f);
+    push.modelZ =
+        std::clamp(
+            state.z,
+            0.12f,
+            2.50f);
     push.modelScale =
         std::clamp(
             state.scale,
-            0.05f,
-            8.0f);
+            0.50f,
+            1.50f);
     constexpr float kTwoPi =
         6.28318530717958647692f;
     push.modelYaw =
