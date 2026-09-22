@@ -168,6 +168,16 @@ jobs:
             -o /tmp/xz_geometry_tap_test
           /tmp/xz_geometry_tap_test
 
+      - name: Test Xz TextureTap
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_texture_tap_test.c \
+            engine/xz/xz_texture_tap.c \
+            -o /tmp/xz_texture_tap_test
+          /tmp/xz_texture_tap_test
+
       - name: Test Xz RHI
         shell: bash
         run: |
@@ -662,7 +672,7 @@ jobs:
             fi
           fi
 
-          if ! grep -Eq "XZIEL-XZ.*phase16 cutover selftest=PASS requested=MODERN safety=STRICT geometry=PROXY textures=METADATA visible=GL4ES" dist/xziel-logcat.txt; then
+          if ! grep -Eq "XZIEL-XZ.*phase16 cutover selftest=PASS requested=MODERN safety=STRICT geometry=REAL textures=RGBA_TAP visible=GL4ES" dist/xziel-logcat.txt; then
             echo "Xz Phase-16 cutover parity controller did not initialize."
             grep -E "XZIEL-XZ.*phase16 cutover" dist/xziel-logcat.txt | tail -n 100 || true
             exit 1
@@ -674,8 +684,14 @@ jobs:
             exit 1
           fi
 
-          if ! grep -Eq "XZIEL-XZ.*phase16 heartbeat requested=MODERN active=MIRROR candidate=1 allowed=0 caps=0x3f blockers=0xc0 eval=[1-9][0-9]* blocked=[1-9][0-9]* legacyVisible=1" dist/xziel-logcat.txt; then
-            echo "Xz cutover did not clear only the REAL_GEOMETRY blocker."
+          if ! grep -Eq "XZIEL-XZ.*parity texture captured=[1-9][0-9]* updates=[0-9]+ resident=[1-9][0-9]* bytes=[1-9][0-9]* high=[1-9][0-9]* dropped=0 resolve=[1-9][0-9]*/[0-9]+ g3uploads=[1-9][0-9]* g3binds=[1-9][0-9]* g3bytes=[1-9][0-9]* g3miss=[0-9]+ g3fail=0 kindMask=0x7 lastBatches=[1-9][0-9]* lastMiss=0 ready=1" dist/xziel-logcat.txt; then
+            echo "Xz real-texture parity did not mirror clean Vril RGBA for all geometry classes."
+            grep -E "XZIEL-XZ.*parity texture|XZIEL-XZ.*parity geometry" dist/xziel-logcat.txt | tail -n 160 || true
+            exit 1
+          fi
+
+          if ! grep -Eq "XZIEL-XZ.*phase16 heartbeat requested=MODERN active=MIRROR candidate=1 allowed=0 caps=0x7f blockers=0x80 eval=[1-9][0-9]* blocked=[1-9][0-9]* legacyVisible=1" dist/xziel-logcat.txt; then
+            echo "Xz cutover did not clear REAL_GEOMETRY + REAL_TEXTURES while keeping VISIBLE_PRESENT blocked."
             grep -E "XZIEL-XZ.*phase16 heartbeat|XZIEL-XZ.*parity geometry" dist/xziel-logcat.txt | tail -n 160 || true
             exit 1
           fi
@@ -686,7 +702,7 @@ jobs:
             exit 1
           fi
 
-          echo "Xziel remained alive; REAL_GEOMETRY parity is live and texture/present blockers remain enforced."
+          echo "Xziel remained alive; REAL_GEOMETRY + REAL_TEXTURES parity are live and VISIBLE_PRESENT remains enforced."
 
       - name: Upload runtime diagnostics
         if: always()
