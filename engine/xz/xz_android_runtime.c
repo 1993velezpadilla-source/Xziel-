@@ -1370,11 +1370,28 @@ int XzAndroidRuntime_ShouldSuppressLegacyWorldDraw(
      * Current-frame core evidence prevents a stale MODERN state from
      * suppressing the first draws after a map/scene transition.
      */
-    if (kind == XZ_LEGACY_DRAW_ALIAS ||
-        kind == XZ_LEGACY_DRAW_SURFACE ||
-        kind == XZ_LEGACY_DRAW_SPRITE ||
-        kind == XZ_LEGACY_DRAW_EFFECT ||
-        kind == XZ_LEGACY_DRAW_SHADOW) {
+    if (kind == XZ_LEGACY_DRAW_SURFACE) {
+        /*
+         * BSP fans are submitted before entity alias batches in Vril.
+         * Requiring current-frame alias evidence here makes surface
+         * retirement impossible. Thirty-two clean current-frame surfaces
+         * are enough to prove the world pass is actually underway.
+         */
+        suppress =
+            xz_runtime.cutover.active_mode ==
+                XZ_CUTOVER_MODE_MODERN &&
+            xz_runtime.gles3_shadow.visible_present_ready &&
+            xz_runtime.gles3_shadow.real_scene_ready_streak >= 4u &&
+            current &&
+            current->surface_batches >= 32u &&
+            current->batch_count >= 32u &&
+            current->dropped_batches == 0u &&
+            current->dropped_vertices == 0u &&
+            current->dropped_indices == 0u;
+    } else if (kind == XZ_LEGACY_DRAW_ALIAS ||
+               kind == XZ_LEGACY_DRAW_SPRITE ||
+               kind == XZ_LEGACY_DRAW_EFFECT ||
+               kind == XZ_LEGACY_DRAW_SHADOW) {
         suppress =
             xz_runtime.cutover.active_mode ==
                 XZ_CUTOVER_MODE_MODERN &&
