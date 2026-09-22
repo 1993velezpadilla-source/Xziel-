@@ -97,6 +97,12 @@ typedef struct {
     unsigned int last_modulate_batches;
     int real_material_state_ready;
 
+    unsigned int last_fog_batches;
+    unsigned int last_cull_batches;
+    unsigned int last_depth_range_batches;
+    unsigned int last_polygon_offset_batches;
+    int real_raster_state_ready;
+
     uint64_t visible_present_attempts;
     uint64_t visible_present_successes;
     uint64_t visible_present_failures;
