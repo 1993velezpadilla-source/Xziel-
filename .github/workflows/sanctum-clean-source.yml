@@ -251,157 +251,6 @@ jobs:
           set -euo pipefail
           xvfb-run -a -s "-screen 0 1280x720x24"             blender --background             --python tools/church_map/export_xziel_original_clean.py             2>&1 | tee church/out/clean/clean-source-export.log
 
-      - name: Compare Blender-exported pixels to original GLB pixels
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import hashlib
-          import json
-          from pathlib import Path
-
-          import numpy as np
-          from PIL import Image
-
-          audit = json.loads(
-              Path("church/out/clean/original_texture_audit.json").read_text(encoding="utf-8")
-          )
-          export = json.loads(
-              Path("church/out/clean/xziel_native_static_mesh_report.json").read_text(encoding="utf-8")
-          )
-
-          source_dir = Path("church/out/clean/original_embedded_textures")
-          runtime_dir = Path("church/out/clean/xziel_native_static/textures/xziel/sanctum")
-
-          sources = {}
-          sources_by_hash = {}
-          for record in audit["images"]:
-              path = source_dir / f"source_{record['imageIndex']:02d}.png"
-              rgba = np.asarray(Image.open(path).convert("RGBA"), dtype=np.int16)
-              item = {
-                  "record": record,
-                  "path": path,
-                  "rgba": rgba,
-              }
-              name = record.get("name")
-              if name:
-                  sources.setdefault(name, []).append(item)
-              sources_by_hash.setdefault(record["decodedRgbaSha256"], []).append(item)
-
-          comparisons = []
-          exact = 0
-          near_lossless = 0
-          unmatched = 0
-
-          for material_name, material in export["materialReport"].items():
-              runtime_path = Path(material["texturePath"])
-              if runtime_path.parts[:3] == ("textures", "xziel", "sanctum"):
-                  runtime_path = runtime_dir / runtime_path.name
-              if not runtime_path.is_file():
-                  raise SystemExit(f"missing runtime texture {runtime_path}")
-
-              runtime_rgba = np.asarray(
-                  Image.open(runtime_path).convert("RGBA"),
-                  dtype=np.int16,
-              )
-              runtime_hash = hashlib.sha256(
-                  runtime_rgba.astype(np.uint8).tobytes()
-              ).hexdigest()
-
-              source_name = material.get("sourceImage")
-              candidates = list(sources.get(source_name, []))
-
-              if not candidates:
-                  candidates = [
-                      item for values in sources.values() for item in values
-                      if tuple(item["rgba"].shape) == tuple(runtime_rgba.shape)
-                  ]
-
-              if not candidates:
-                  unmatched += 1
-                  comparisons.append({
-                      "material": material_name,
-                      "sourceImage": source_name,
-                      "status": "no_candidate",
-                  })
-                  continue
-
-              best = None
-              for item in candidates:
-                  if item["rgba"].shape != runtime_rgba.shape:
-                      continue
-                  delta = np.abs(
-                      runtime_rgba.astype(np.int32) -
-                      item["rgba"].astype(np.int32)
-                  )
-                  mae = float(delta.mean())
-                  max_error = int(delta.max())
-                  mse = float(np.mean(delta.astype(np.float64) ** 2))
-                  psnr = 999.0 if mse == 0.0 else float(
-                      20.0 * np.log10(255.0 / np.sqrt(mse))
-                  )
-                  candidate = {
-                      "sourceIndex": item["record"]["imageIndex"],
-                      "sourceName": item["record"].get("name"),
-                      "mae": mae,
-                      "maxError": max_error,
-                      "psnrDb": psnr,
-                      "exactDecodedPixels": runtime_hash == item["record"]["decodedRgbaSha256"],
-                  }
-                  if best is None or candidate["mae"] < best["mae"]:
-                      best = candidate
-
-              if best is None:
-                  unmatched += 1
-                  status = "no_same_size_candidate"
-              elif best["exactDecodedPixels"]:
-                  exact += 1
-                  status = "exact"
-              elif best["mae"] <= 1.0 and best["psnrDb"] >= 45.0:
-                  near_lossless += 1
-                  status = "near_lossless"
-              else:
-                  status = "changed"
-
-              comparisons.append({
-                  "material": material_name,
-                  "runtime": runtime_path.name,
-                  "sourceImage": source_name,
-                  "status": status,
-                  "best": best,
-              })
-
-          report = {
-              "runtimeTextureCount": len(export["materialReport"]),
-              "sourceEmbeddedImageCount": audit["embeddedImageCount"],
-              "exactPixelMatches": exact,
-              "nearLosslessMatches": near_lossless,
-              "unmatched": unmatched,
-              "allVisuallyFaithful": (
-                  unmatched == 0 and
-                  exact + near_lossless == len(export["materialReport"])
-              ),
-              "comparisons": comparisons,
-          }
-
-          Path("church/out/clean/blender_texture_fidelity.json").write_text(
-              json.dumps(report, indent=2),
-              encoding="utf-8",
-          )
-
-          print("BLENDER_TEXTURE_FIDELITY", json.dumps({
-              key: report[key]
-              for key in (
-                  "runtimeTextureCount",
-                  "sourceEmbeddedImageCount",
-                  "exactPixelMatches",
-                  "nearLosslessMatches",
-                  "unmatched",
-                  "allVisuallyFaithful",
-              )
-          }))
-          PY
-
       - name: Validate clean visual lineage
         shell: bash
         run: |
@@ -425,17 +274,16 @@ jobs:
           jq -e '.decimateRatio == 1' "$R"
           jq -e '.scanCleanup == "disabled"' "$R"
           jq -e '.vertexLighting == "identity_white"' "$R"
-          jq -e '.textureSourceMode == "original_glb_basecolor_no_upscale"' "$R"
+          jq -e '.textureSourceMode == "original_glb_embedded_pixels"' "$R"
           jq -e '.textureCount > 0' "$R"
+          jq -e '.exactSourcePixelTextures == .textureCount' "$R"
+          jq -e '.materialReport | all(.exactSourcePixels == true)' "$R"
           jq -e '.fallbackMaterials | length == 0' "$R"
 
           A=church/out/clean/original_texture_audit.json
-          F=church/out/clean/blender_texture_fidelity.json
           test -s "$A"
-          test -s "$F"
           jq -e '.embeddedImageCount > 0' "$A"
           jq -e '.images | all(.dimensions[0] == 1024 and .dimensions[1] == 1024)' "$A"
-          jq -e '.unmatched == 0' "$F"
 
           jq -e '.schemaVersion == 2' "$XR"
           jq -e '.floorCount == 216' "$XR"
@@ -473,7 +321,6 @@ jobs:
             church/out/clean/xziel_native_static_mesh_report.json
             church/out/clean/xziel_native_map/
             church/out/clean/original_texture_audit.json
-            church/out/clean/blender_texture_fidelity.json
             church/out/clean/original_embedded_textures/
             church/source/source_metadata.json
           if-no-files-found: error
