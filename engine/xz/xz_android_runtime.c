@@ -777,7 +777,7 @@ static void XzLogSnapshot(double now_seconds)
             ANDROID_LOG_INFO,
             "parity geometry generation=%" PRIu64
             " batches=%u vertices=%u indices=%u"
-            " kinds=%u/%u/%u/%u drops=%u/%u/%u"
+            " kinds=%u/%u/%u/%u/%u drops=%u/%u/%u"
             " g3sub=%" PRIu64 " g3draw=%" PRIu64
             " g3verts=%" PRIu64 " g3indices=%" PRIu64
             " g3fail=%" PRIu64 " kindMask=0x%x ready=%d",
@@ -789,6 +789,7 @@ static void XzLogSnapshot(double now_seconds)
             geometry ? geometry->surface_batches : 0u,
             geometry ? geometry->sprite_batches : 0u,
             geometry ? geometry->effect_batches : 0u,
+            geometry ? geometry->immediate_batches : 0u,
             geometry ? geometry->dropped_batches : 0u,
             geometry ? geometry->dropped_vertices : 0u,
             geometry ? geometry->dropped_indices : 0u,
@@ -842,6 +843,13 @@ static void XzLogSnapshot(double now_seconds)
 
     XzAndroidLog(
         ANDROID_LOG_INFO,
+        "parity immediate current=%u seen=%d depthOff=%u",
+        g3->last_immediate_batches,
+        g3->real_immediate_ready,
+        g3->last_depth_test_disabled_batches);
+
+    XzAndroidLog(
+        ANDROID_LOG_INFO,
         "parity material state=%u blend=%u lightmap=%u alpha=%u"
         " modulate=%u ready=%d",
         g3->last_material_state_batches,
@@ -853,11 +861,12 @@ static void XzLogSnapshot(double now_seconds)
 
     XzAndroidLog(
         ANDROID_LOG_INFO,
-        "parity raster fog=%u cull=%u depthRange=%u offset=%u ready=%d",
+        "parity raster fog=%u cull=%u depthRange=%u offset=%u depthOff=%u ready=%d",
         g3->last_fog_batches,
         g3->last_cull_batches,
         g3->last_depth_range_batches,
         g3->last_polygon_offset_batches,
+        g3->last_depth_test_disabled_batches,
         g3->real_raster_state_ready);
 
     XzAndroidLog(
