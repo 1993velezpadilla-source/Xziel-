@@ -44,6 +44,7 @@ typedef struct {
     unsigned int blend_enabled;
     unsigned int blend_src;
     unsigned int blend_dst;
+    unsigned int depth_test_enabled;
     unsigned int depth_write;
     unsigned int depth_func;
     unsigned int alpha_test_enabled;
