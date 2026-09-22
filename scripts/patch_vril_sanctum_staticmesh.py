@@ -23,14 +23,17 @@ c_path.write_text(r'''// Xziel textured static-mesh bridge for Android/SDL.
 
 #define XZSM_VERSION 2u
 #define XZSM_MAX_BATCHES 512u
-#define XZSM_MAX_VERTICES 2000000u
-#define XZSM_MAX_INDICES  3000000u
+#define XZSM_MAX_VERTICES 2100000u
+#define XZSM_MAX_INDICES  2100000u
 
 typedef struct {
     float x, y, z;
     float u, v;
     uint8_t r, g, b, a;
 } xzsm_vertex_t;
+
+/* XZSM v2 is written by Python as <5f4B: exactly 24 bytes/vertex. */
+typedef char xzsm_vertex_stride_must_be_24[(sizeof(xzsm_vertex_t) == 24) ? 1 : -1];
 
 typedef struct {
     uint32_t vertex_count;
