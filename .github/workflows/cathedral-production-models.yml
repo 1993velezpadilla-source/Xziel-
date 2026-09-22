@@ -6,6 +6,7 @@ on:
       - art/cathedral-production-models
     paths:
       - "tools/blender/build_cathedral_roster.py"
+      - "tools/blender/apply_sister_pass34.py"
       - "tools/blender/cathedral_roster.json"
       - ".github/workflows/cathedral-production-models.yml"
   workflow_dispatch:
@@ -78,31 +79,11 @@ jobs:
           curl -fL --retry 4 https://files2.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip -o /tmp/makehuman_system_assets_cc0.zip
           unzip -q /tmp/makehuman_system_assets_cc0.zip -d /tmp/mhassets
 
-      - name: Apply Sister of Ash pass 33 fidelity source patch
+      - name: Apply Sister of Ash pass 34 fidelity source patch
         shell: bash
         run: |
           set -euxo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('tools/blender/build_cathedral_roster.py')
-          s=p.read_text()
-          # Replace toe-shaped fitted skin shells with compact closed footwear geometry.
-          s=s.replace('sx=max(.046*h,(maxx-minx)*.80)', 'sx=max(.038*h,(maxx-minx)*.58)')
-          s=s.replace('sy=max(.092*h,(maxy-miny)*.88+.025*h)', 'sy=max(.070*h,(maxy-miny)*.62+.012*h)')
-          s=s.replace('minz+.038*h),(sx,sy,.036*h)', 'minz+.027*h),(sx,sy,.025*h)')
-          s=s.replace('(sx*.98,.052*h,.033*h)', '(sx*.96,.038*h,.023*h)')
-          s=s.replace('(sx*1.04,sy*1.05,.009*h)', '(sx*1.03,sy*1.03,.006*h)')
-          s=s.replace('sister_paint_footwear(body,h)\n        sister_closed_shoes(body,h,mats)', 'sister_boot_pair(body,rig,h,mats)')
-          # Pull the segmented wimple closer to the face and soften the conspicuous forehead bar.
-          s=s.replace("z=(.956+.006*(1.0-curve*curve))*h", "z=(.951+.0035*(1.0-curve*curve))*h")
-          s=s.replace("a.append((x,y-.0020*h,z+.0060*h))", "a.append((x,y-.0012*h,z+.0040*h))")
-          s=s.replace("b.append((x,y-.0020*h,z-.0060*h))", "b.append((x,y-.0012*h,z-.0040*h))")
-          s=s.replace("x=side*(.052+.010*t)*h", "x=side*(.050+.007*t)*h")
-          s=s.replace("a.append((x-side*.0050*h,y-.0015*h,z))", "a.append((x-side*.0038*h,y-.0010*h,z))")
-          s=s.replace("b.append((x+side*.0050*h,y-.0015*h,z))", "b.append((x+side*.0038*h,y-.0010*h,z))")
-          s=s.replace('"production_status":"Sister of Ash pass 29 — fitted facial-surface wimple, body-bounded worn shoes, smaller shoulder cloth, darker asymmetric corpse face, stronger layered skirt"', '"production_status":"Sister of Ash pass 33 — compact closed shoes hiding toes, tighter fitted wimple, full crown coverage, corpse face and layered habit retained"')
-          p.write_text(s)
-          PY
+          python3 tools/blender/apply_sister_pass34.py
 
       - name: Build Sister of Ash
         shell: bash
@@ -151,7 +132,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "No generated asset changes."
           else
-            git commit -m "art: generate Sister of Ash fidelity pass 33"
+            git commit -m "art: generate Sister of Ash fidelity pass 34"
             git pull --rebase origin art/cathedral-production-models
             git push origin HEAD:art/cathedral-production-models
           fi
@@ -159,7 +140,7 @@ jobs:
       - name: Upload full production artifact
         uses: actions/upload-artifact@v4
         with:
-          name: cathedral-sister-of-ash-pass33
+          name: cathedral-sister-of-ash-pass34
           path: assets/generated/cathedral_roster/
           if-no-files-found: error
           retention-days: 14
