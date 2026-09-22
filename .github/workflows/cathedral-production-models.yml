@@ -7,8 +7,6 @@ on:
     paths:
       - "tools/blender/build_cathedral_roster.py"
       - "tools/blender/cathedral_roster.json"
-      - "tools/blender/apply_sister_pass16.py"
-      - "tools/blender/apply_sister_pass25.py"
       - ".github/workflows/cathedral-production-models.yml"
   workflow_dispatch:
 

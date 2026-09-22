@@ -55,7 +55,7 @@ PALETTE={
  "pale_spirit":"#E8E6E2","pale_drowned":"#C9D6E0","bruise_blue":"#4A5A6B",
  "water_bruise":"#6E7A8F","wet_black":"#0B0B0C","tarnished_silver":"#7A7A7F",
  "mud_silt":"#4B463B","drowned_ivory":"#D8D5C9","drowned_blue":"#5B6B7A",
- "ash_blue":"#46515F","dirty_ivory":"#9D9282","corpse_skin":"#8C8580",
+ "ash_blue":"#46515F","dirty_ivory":"#B0A392","corpse_skin":"#8C8580",
  "bruise":"#6A5966","rope":"#6F5843","tarnished_brass":"#7A664A","soot":"#2E2A28",
  "choir_red":"#7A4B45","gravecoat":"#2E2A28","iron":"#3B3C40","dark_iron":"#3B3C40",
  "old_wood":"#4F392D","burgundy":"#6A3B3A","oxidized_metal":"#5E6A57",
@@ -410,9 +410,9 @@ def sister_mouth_slit(body,h,mats):
     tooth=cube("SisterTeethHint",(0,fy+.008*h,.856*h),(.010*h,.0010*h,.0012*h),teeth,.0002*h)
     return [slit,tooth]
 
+
 def sister_cloth_distress(mats):
-    """Add layered dirt/age breakup to the two hero garment materials."""
-    for key,dirt_hex,fac in (("ash_blue","#242832",.22),("dirty_ivory","#4A4038",.18)):
+    for key,dirt_hex,fac in (("ash_blue","#252A34",.24),("dirty_ivory","#57493E",.20)):
         m=mats.get(key)
         if not m or not m.use_nodes: continue
         nodes=m.node_tree.nodes; links=m.node_tree.links
@@ -420,32 +420,38 @@ def sister_cloth_distress(mats):
         if not bsdf: continue
         base=bsdf.inputs.get("Base Color")
         if not base: continue
-        src=None
         if base.is_linked and base.links:
             lk=base.links[0]; src=lk.from_socket; links.remove(lk)
         else:
-            rgbn=nodes.new("ShaderNodeRGB"); rgbn.outputs[0].default_value=base.default_value; src=rgbn.outputs[0]
-        tex=nodes.new("ShaderNodeTexNoise")
-        tex.inputs["Scale"].default_value=18.0
-        tex.inputs["Detail"].default_value=5.0
-        tex.inputs["Roughness"].default_value=.78
-        ramp=nodes.new("ShaderNodeValToRGB")
-        ramp.color_ramp.elements[0].position=.30
-        ramp.color_ramp.elements[1].position=.74
-        ramp.color_ramp.elements[0].color=(0,0,0,1)
-        ramp.color_ramp.elements[1].color=(1,1,1,1)
-        links.new(tex.outputs["Fac"],ramp.inputs["Fac"])
+            n=nodes.new("ShaderNodeRGB"); n.outputs[0].default_value=base.default_value; src=n.outputs[0]
+        coord=nodes.new("ShaderNodeTexCoord")
+        dirttex=nodes.new("ShaderNodeTexNoise")
+        dirttex.inputs["Scale"].default_value=17.0; dirttex.inputs["Detail"].default_value=5.0; dirttex.inputs["Roughness"].default_value=.80
+        links.new(coord.outputs["Generated"],dirttex.inputs["Vector"])
+        dr=nodes.new("ShaderNodeValToRGB")
+        dr.color_ramp.elements[0].position=.28; dr.color_ramp.elements[1].position=.76
+        dr.color_ramp.elements[0].color=(0,0,0,1); dr.color_ramp.elements[1].color=(1,1,1,1)
+        links.new(dirttex.outputs["Fac"],dr.inputs["Fac"])
         dirt=nodes.new("ShaderNodeMixRGB"); dirt.blend_type="MULTIPLY"; dirt.inputs[0].default_value=fac
         links.new(src,dirt.inputs[1]); dirt.inputs[2].default_value=(*hexrgb(dirt_hex),1)
-        maskmix=nodes.new("ShaderNodeMixRGB"); maskmix.blend_type="MIX"
-        links.new(ramp.outputs["Color"],maskmix.inputs[0]); links.new(dirt.outputs["Color"],maskmix.inputs[1]); links.new(src,maskmix.inputs[2])
-        links.new(maskmix.outputs["Color"],base)
+        aged=nodes.new("ShaderNodeMixRGB"); aged.blend_type="MIX"
+        links.new(dr.outputs["Color"],aged.inputs[0]); links.new(dirt.outputs["Color"],aged.inputs[1]); links.new(src,aged.inputs[2])
+        wave=nodes.new("ShaderNodeTexWave"); wave.wave_type="BANDS"; wave.bands_direction="X"
+        if "Scale" in wave.inputs: wave.inputs["Scale"].default_value=34.0
+        if "Distortion" in wave.inputs: wave.inputs["Distortion"].default_value=6.0
+        if "Detail" in wave.inputs: wave.inputs["Detail"].default_value=4.0
+        links.new(coord.outputs["Generated"],wave.inputs["Vector"])
+        wr=nodes.new("ShaderNodeValToRGB")
+        wr.color_ramp.elements[0].color=(.78,.78,.78,1); wr.color_ramp.elements[1].color=(1.0,1.0,1.0,1)
+        links.new(wave.outputs["Color"],wr.inputs["Fac"])
+        woven=nodes.new("ShaderNodeMixRGB"); woven.blend_type="MULTIPLY"; woven.inputs[0].default_value=.10
+        links.new(aged.outputs["Color"],woven.inputs[1]); links.new(wr.outputs["Color"],woven.inputs[2])
+        links.new(woven.outputs["Color"],base)
         rough=nodes.new("ShaderNodeMapRange")
         rough.inputs["From Min"].default_value=0.0; rough.inputs["From Max"].default_value=1.0
-        rough.inputs["To Min"].default_value=.68; rough.inputs["To Max"].default_value=.92
-        links.new(tex.outputs["Fac"],rough.inputs["Value"])
-        if "Roughness" in bsdf.inputs:
-            links.new(rough.outputs["Result"],bsdf.inputs["Roughness"])
+        rough.inputs["To Min"].default_value=.70; rough.inputs["To Max"].default_value=.93
+        links.new(dirttex.outputs["Fac"],rough.inputs["Value"])
+        if "Roughness" in bsdf.inputs: links.new(rough.outputs["Result"],bsdf.inputs["Roughness"])
 
 def sister_cuff_overlays(body,h,mats):
     """Dirty ivory torn lower-sleeve overlays, fitted directly to arm topology."""
@@ -514,15 +520,23 @@ def sister_shoe_from_body(body,h,side,label,material):
 
 
 
-def sister_boot_pair(body,rig,h,mats):
+
+def sister_boot_pair(rig,h,mats):
     leather=mat("M_SisterBootLeather","#171516",.78,0,noise=True)
+    sole=mat("M_SisterBootSole","#0F0E0F",.84,0,noise=True)
     out=[]
-    out.extend(sister_shoe_from_body(body,h,-1,"L",leather))
-    out.extend(sister_shoe_from_body(body,h,1,"R",leather))
     for side,label in (("l","L"),("r","R")):
         p0,p1=bone_points(rig,"foot_"+side)
-        if p0 is None: continue
-        shaft=cone_between("SisterAnkle_"+label,p0+Vector((0,0,.006*h)),p0+Vector((0,0,.070*h)),.043*h,.037*h,leather,44)
+        if p0 is None or p1 is None: continue
+        axis=p1-p0
+        if axis.length<1e-6: continue
+        n=axis.normalized()
+        center=(p0+p1)*.5+n*.030*h+Vector((0,-.010*h,.022*h))
+        shoe=sister_shoe_box("SisterShoe_"+label,center,n,h,leather); out.append(shoe)
+        sole_center=center+Vector((0,0,-.024*h))
+        sol=sister_shoe_box("SisterSole_"+label,sole_center,n,h,sole)
+        sol.scale.z=.28; apply_obj(sol); out.append(sol)
+        shaft=cone_between("SisterAnkle_"+label,p0+Vector((0,0,.010*h)),p0+Vector((0,0,.082*h)),.043*h,.038*h,leather,44)
         if shaft: out.append(shaft)
     return out
 
@@ -618,22 +632,21 @@ def sister_mouth_slit(body,h,mats):
     pts=[(-.017*h,fy-.0010*h,.850*h),(0,fy-.0015*h,.8485*h),(.017*h,fy-.0010*h,.850*h)]
     return curve_chain("SisterMouthSlit",pts,dark,.00115*h)
 
+
 def sister_layered_hem(h,mats):
     ivory=mats["dirty_ivory"]; blue=mats["ash_blue"]; out=[]
-    # Two secondary ivory tiers create the shredded, layered lower silhouette of the reference.
-    out.append(garment_shell("IvoryRagLayerA",h,ivory,[
-        (.018,.132,.090,0),(.090,.140,.094,0),(.180,.139,.094,0),(.275,.132,.091,0),(.365,.121,.086,0),(.445,.112,.081,0)
-    ],104,.115,.62,1))
-    out.append(garment_shell("IvoryRagLayerB",h,ivory,[
-        (.060,.137,.093,0),(.130,.143,.096,0),(.205,.141,.095,0),(.280,.134,.092,0),(.345,.126,.088,0)
-    ],104,.095,1.38,1))
-    # A few narrow blue torn tabs extend from the outer habit into the ivory layers.
-    for i,(x,z,wid,hh,ph) in enumerate([(-.082,.285,.018,.055,.2),(-.025,.260,.016,.045,1.0),(.045,.295,.017,.060,2.0),(.095,.255,.014,.050,2.8)]):
-        out.append(irregular_patch(f"BlueRagTab_{i:02}",h,blue,x,z,wid,hh,-.108,ph))
+    a=garment_shell("IvoryRagLayerA",h,ivory,[
+        (.015,.131,.089,0),(.085,.141,.095,0),(.170,.141,.095,0),(.255,.135,.092,0),(.335,.126,.088,0),(.405,.117,.083,0)
+    ],112,.150,.75,1)
+    b=garment_shell("IvoryRagLayerB",h,ivory,[
+        (.050,.136,.092,0),(.115,.145,.097,0),(.185,.144,.096,0),(.250,.138,.093,0),(.310,.130,.089,0)
+    ],112,.135,1.55,1)
+    out.extend([a,b])
+    punch_cloth_holes(a,h,[(-.060,.215,.018,.030,True),(.074,.320,.018,.028,False)])
+    punch_cloth_holes(b,h,[(.045,.160,.016,.025,True),(-.082,.275,.015,.024,False)])
+    for i,(x,z,wid,hh,ph) in enumerate([(-.082,.315,.014,.048,.3),(-.030,.292,.012,.042,1.1),(.036,.328,.014,.052,2.0),(.088,.286,.012,.044,2.9)]):
+        out.append(irregular_patch(f"BlueRagTab_{i:02}",h,blue,x,z,wid,hh,-.106,ph))
     return out
-
-
-
 
 def sister_fitted_face_wimple(body,h,mats):
     ivory=mats["dirty_ivory"]; out=[]; fy=face_front_y(body,h)
@@ -691,22 +704,53 @@ def sister_face_scars(body,h,mats):
 
 
 
+
+def sister_wimple_fitted(body,h,material):
+    fy=face_front_y(body,h)
+    return body_region_shell(body,"SisterWimpleFitted",material,
+        lambda q: (
+            (.947<q.z/h<.978 and abs(q.x/h)<.070 and q.y<fy+.040*h) or
+            (.842<q.z/h<.952 and .048<abs(q.x/h)<.079 and q.y<fy+.045*h) or
+            (.812<q.z/h<.850 and abs(q.x/h)<.062 and q.y<fy+.050*h)
+        ),.0032*h)
+
+def punch_cloth_holes(obj,h,spots):
+    if not obj or obj.type!="MESH": return
+    bm=bmesh.new(); bm.from_mesh(obj.data)
+    doomed=[]
+    for f in bm.faces:
+        c=f.calc_center_median()
+        x=c.x/h; y=c.y/h; z=c.z/h
+        for sx,sz,rx,rz,front_only in spots:
+            if front_only and y>0: continue
+            if ((x-sx)/rx)**2 + ((z-sz)/rz)**2 < 1.0:
+                doomed.append(f); break
+    if doomed:
+        bmesh.ops.delete(bm,geom=doomed,context='FACES')
+    bm.to_mesh(obj.data); bm.free(); obj.data.update()
+
+def sister_shoe_box(name,center,axis,h,material):
+    o=cube(name,tuple(center),(.056*h,.092*h,.026*h),material,.012*h)
+    o.rotation_mode="QUATERNION"; o.rotation_quaternion=axis.to_track_quat("Y","Z")
+    return o
+
+
+
 def priority_head_cover(body,h,style,mats):
     out=[]
     if style=="sister_of_ash":
         ivory=mats["dirty_ivory"]; blue=mats["ash_blue"]
-        out.append(nun_coif_cap("NunInnerCoif",h,ivory,.070,.060,.109,.898,.11))
-        out.append(nun_coif_cap("NunOuterHood",h,blue,.079,.068,.120,.897,.63))
-        # Pass 28: one continuous fitted wimple frame instead of disconnected copied body islands.
-        out.append(sister_wimple_frame(body,h,ivory))
-        # Continuous shoulder/chest wimple layer; no floating neck-shell fragments.
-        out.append(garment_shell("NunShoulderWimple",h,ivory,[
-            (.735,.132,.092,0),(.770,.124,.087,0),(.805,.110,.080,0),(.835,.092,.073,0)
-        ],96,.018,.35,1))
+        out.append(nun_coif_cap("NunInnerCoif",h,ivory,.069,.059,.106,.900,.10))
+        out.append(nun_coif_cap("NunOuterHood",h,blue,.077,.066,.116,.899,.56))
+        fitted=sister_wimple_fitted(body,h,ivory)
+        if fitted: out.append(fitted)
+        throat=body_region_shell(body,"NunThroatWrap",ivory,
+            lambda q:.742<q.z/h<.826 and abs(q.x/h)<.118 and q.y/h<.135,.0032*h)
+        if throat: out.append(throat)
         out.append(drape_open("NunBackVeil",h,blue,[
-            (.946,.066,.056),(.916,.073,.062),(.882,.081,.068),(.846,.090,.075),
-            (.810,.101,.083),(.776,.113,.091),(.744,.126,.099),(.714,.137,.106)
-        ],segments=100,theta_max=2.64,tatter=.090,phase=.64,subdiv=1))
+            (.946,.064,.054),(.918,.071,.060),(.886,.079,.066),(.852,.088,.073),
+            (.818,.098,.080),(.784,.109,.088),(.752,.121,.096),(.722,.132,.103)
+        ],segments=108,theta_max=2.58,tatter=.105,phase=.72,subdiv=1))
     elif style=="stained_shade":
         out.append(nun_coif_cap("ShadeHood",h,mats["spectral_ivory"],.080,.070,.120,.894,.55))
     elif style=="la_llorona":
@@ -1056,24 +1100,25 @@ def llorona_hair_mesh(h,mats):
 
 
 
+
 def sculpt_priority_face(body,h,style):
     fy=face_front_y(body,h)
-    strength=1.48 if style=="sister_of_ash" else (1.05 if style=="la_llorona" else 1.10)
+    strength=1.46 if style=="sister_of_ash" else (1.05 if style=="la_llorona" else 1.10)
     for v in body.data.vertices:
         z=v.co.z/h; x=v.co.x/h; y=v.co.y
         if z<.80: continue
-        if .81<z<.875: v.co.x*=1.0-.185*strength
-        elif .93<z<.985: v.co.x*=1.0-.068*strength
-        if y < fy + .064*h:
-            ax=abs(x)
-            if .889<z<.936 and .007<ax<.052: v.co.y += .0115*h*strength
-            if .846<z<.902 and .021<ax<.076: v.co.y += .0108*h*strength
-            if .830<z<.868 and ax<.042: v.co.y += .0052*h*strength
-            if .808<z<.844 and ax<.054: v.co.x*=.978
-            # corpse asymmetry: left orbit/cheek sits slightly lower and deeper
-            if x<0 and .850<z<.925:
-                v.co.z -= .0016*h
-                if .024<ax<.070: v.co.y += .0018*h
+        ax=abs(x)
+        if .805<z<.870: v.co.x*=1.0-.195*strength
+        elif .930<z<.985: v.co.x*=1.0-.070*strength
+        if y < fy + .065*h:
+            if .888<z<.936 and .007<ax<.052: v.co.y += .0118*h*strength
+            if .846<z<.901 and .022<ax<.076: v.co.y += .0110*h*strength
+            if .872<z<.925 and ax<.030: v.co.x*=.88
+            if .830<z<.868 and ax<.041: v.co.y += .0050*h*strength
+            if .805<z<.835 and ax<.050:
+                v.co.y -= .0015*h
+                v.co.x*=.978
+            if x<0 and .850<z<.915: v.co.z -= .0014*h
     body.data.update()
 
 def force_priority_eyes(parts,style):
@@ -1116,9 +1161,10 @@ def sister_boots(h,mats):
 
 
 
+
 def sister_skin_shader(body,h,style):
     if style!="sister_of_ash": return
-    corpse=hexrgb("#918E8A")
+    corpse=hexrgb("#A79D98")
     for m in body.data.materials:
         if not m: continue
         m.use_nodes=True; nodes=m.node_tree.nodes; links=m.node_tree.links
@@ -1129,60 +1175,57 @@ def sister_skin_shader(body,h,style):
         original=None
         if base.is_linked and base.links:
             lk=base.links[0]; original=lk.from_socket; links.remove(lk)
-        sat=nodes.new("ShaderNodeHueSaturation"); sat.inputs["Saturation"].default_value=.22; sat.inputs["Value"].default_value=.82
+        sat=nodes.new("ShaderNodeHueSaturation"); sat.inputs["Saturation"].default_value=.26; sat.inputs["Value"].default_value=.90
         if original: links.new(original,sat.inputs["Color"])
-        else: sat.inputs["Color"].default_value=(.57,.51,.49,1)
-        tint=nodes.new("ShaderNodeMixRGB"); tint.blend_type="MIX"; tint.inputs[0].default_value=.72
+        else: sat.inputs["Color"].default_value=(.62,.54,.52,1)
+        tint=nodes.new("ShaderNodeMixRGB"); tint.blend_type="MIX"; tint.inputs[0].default_value=.70
         links.new(sat.outputs["Color"],tint.inputs[1]); tint.inputs[2].default_value=(*corpse,1)
         tex=nodes.new("ShaderNodeTexCoord")
-        noise=nodes.new("ShaderNodeTexNoise"); noise.inputs["Scale"].default_value=5.4; noise.inputs["Detail"].default_value=4.6; noise.inputs["Roughness"].default_value=.72
+        noise=nodes.new("ShaderNodeTexNoise"); noise.inputs["Scale"].default_value=5.0; noise.inputs["Detail"].default_value=5.0; noise.inputs["Roughness"].default_value=.75
         links.new(tex.outputs["Generated"],noise.inputs["Vector"])
         mott=nodes.new("ShaderNodeValToRGB")
-        mott.color_ramp.elements[0].color=(.30,.28,.30,1); mott.color_ramp.elements[1].color=(.72,.69,.67,1)
+        mott.color_ramp.elements[0].color=(.40,.33,.36,1); mott.color_ramp.elements[1].color=(.82,.76,.73,1)
         links.new(noise.outputs["Fac"],mott.inputs["Fac"])
-        skinmix=nodes.new("ShaderNodeMixRGB"); skinmix.blend_type="MULTIPLY"; skinmix.inputs[0].default_value=.20
+        skinmix=nodes.new("ShaderNodeMixRGB"); skinmix.blend_type="MULTIPLY"; skinmix.inputs[0].default_value=.16
         links.new(tint.outputs["Color"],skinmix.inputs[1]); links.new(mott.outputs["Color"],skinmix.inputs[2])
         links.new(skinmix.outputs["Color"],base)
-        if "Roughness" in bsdf.inputs: bsdf.inputs["Roughness"].default_value=.84
-        if "Subsurface Weight" in bsdf.inputs: bsdf.inputs["Subsurface Weight"].default_value=.010
-        elif "Subsurface" in bsdf.inputs: bsdf.inputs["Subsurface"].default_value=.010
-        micro=nodes.new("ShaderNodeTexNoise"); micro.inputs["Scale"].default_value=170.0; micro.inputs["Detail"].default_value=2.8; micro.inputs["Roughness"].default_value=.66
+        if "Roughness" in bsdf.inputs: bsdf.inputs["Roughness"].default_value=.82
+        if "Subsurface Weight" in bsdf.inputs: bsdf.inputs["Subsurface Weight"].default_value=.012
+        elif "Subsurface" in bsdf.inputs: bsdf.inputs["Subsurface"].default_value=.012
+        micro=nodes.new("ShaderNodeTexNoise"); micro.inputs["Scale"].default_value=190.0; micro.inputs["Detail"].default_value=3.0; micro.inputs["Roughness"].default_value=.68
         links.new(tex.outputs["Generated"],micro.inputs["Vector"])
-        bump=nodes.new("ShaderNodeBump"); bump.inputs["Strength"].default_value=.070; bump.inputs["Distance"].default_value=.00058
+        bump=nodes.new("ShaderNodeBump"); bump.inputs["Strength"].default_value=.075; bump.inputs["Distance"].default_value=.00055
         links.new(micro.outputs["Fac"],bump.inputs["Height"]); links.new(bump.outputs["Normal"],bsdf.inputs["Normal"])
-
-
 
 def nun_outfit(h,mats,stained=False):
     ivory=mats["spectral_ivory"] if stained else mats["dirty_ivory"]
     blue=mats["ash_blue"]; rope=mats["rope"]; metal=mats.get("oxidized_metal",mats.get("old_wood"))
     out=[]
-    out.append(garment_shell("IvoryUnderSkirt",h,ivory,[
-        (.010,.126,.086,0),(.070,.134,.091,0),(.150,.137,.093,0),(.245,.134,.092,0),
-        (.350,.126,.089,0),(.465,.115,.083,0),(.580,.105,.079,0),(.700,.099,.075,0)
-    ],112,.145,.35,1))
-    out.append(garment_shell("BlueOuterSkirt",h,blue,[
-        (.270,.122,.087,-.002),(.325,.127,.090,-.002),(.395,.128,.091,-.003),
-        (.475,.124,.089,-.003),(.555,.116,.084,-.004),(.625,.108,.080,-.004),
-        (.680,.102,.077,-.004),(.720,.099,.074,-.004)
-    ],116,.145,1.62,1))
+    under=garment_shell("IvoryUnderSkirt",h,ivory,[
+        (.010,.126,.086,0),(.070,.136,.092,0),(.150,.139,.094,0),(.245,.136,.092,0),
+        (.345,.130,.089,0),(.455,.118,.084,0),(.570,.107,.079,0),(.700,.098,.074,0)
+    ],120,.155,.34,1)
+    out.append(under)
+    punch_cloth_holes(under,h,[(-.055,.160,.020,.032,True),(.070,.235,.018,.028,True),(-.080,.310,.016,.030,False)])
+    outer=garment_shell("BlueOuterSkirt",h,blue,[
+        (.300,.118,.085,-.002),(.350,.124,.089,-.002),(.410,.126,.090,-.003),
+        (.475,.123,.088,-.003),(.540,.116,.084,-.004),(.605,.108,.080,-.004),
+        (.665,.100,.075,-.004),(.720,.096,.072,-.004)
+    ],120,.150,1.50,1)
+    out.append(outer)
+    punch_cloth_holes(outer,h,[(-.070,.410,.018,.030,True),(.060,.485,.016,.025,True),(.090,.355,.015,.026,False)])
     out.extend(sister_layered_hem(h,mats))
-    # smaller shoulder layers: reference has ragged cloth, but not a giant white breastplate
     out.append(drape_open("ShoulderCape",h,ivory,[
-        (.824,.071,.060),(.805,.080,.066),(.784,.090,.072),(.762,.101,.079),
-        (.741,.112,.086),(.722,.123,.093)
-    ],96,2.36,.100,1.55,1))
+        (.834,.075,.062),(.814,.086,.068),(.792,.097,.075),(.770,.109,.082),
+        (.748,.121,.090),(.726,.134,.098)
+    ],108,2.42,.120,1.55,1))
     out.append(drape_open("ShoulderCapeLower",h,ivory,[
-        (.790,.078,.063),(.772,.088,.069),(.752,.098,.076),(.732,.109,.083),(.714,.120,.090)
-    ],92,2.30,.090,2.18,1))
+        (.800,.080,.064),(.780,.092,.071),(.758,.104,.078),(.736,.118,.087),(.716,.131,.096)
+    ],104,2.34,.110,2.25,1))
     out.append(drape_open("OuterVeil",h,blue,[
-        (.970,.052,.047),(.944,.057,.051),(.914,.063,.055),(.881,.071,.061),
-        (.846,.080,.067),(.812,.090,.074),(.780,.101,.081),(.750,.112,.089),(.724,.122,.096)
-    ],108,2.60,.100,.90,1))
-    out.append(drape_open("InnerWimple",h,ivory,[
-        (.944,.041,.037),(.922,.045,.040),(.898,.049,.043),(.874,.054,.047),
-        (.850,.060,.051),(.827,.066,.056),(.805,.073,.061),(.785,.080,.066)
-    ],96,2.34,.040,1.12,1))
+        (.966,.050,.045),(.940,.055,.049),(.910,.061,.053),(.878,.068,.058),
+        (.844,.077,.065),(.812,.087,.072),(.782,.098,.080),(.754,.109,.087),(.730,.120,.094)
+    ],112,2.54,.120,.90,1))
     out.extend(rope_belt_with_tails(h,rope,metal,"RopeBelt"))
     return out
 
