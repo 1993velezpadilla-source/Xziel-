@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 80
     env:
-      SANCTUM_ASSET_SHA: 5b84a6ad5f7105e51c6330b787d3885c7e61610d
+      SANCTUM_ASSET_SHA: eb122ddbe4cbb1250ba152d13fbd95109443226c
       GH_TOKEN: ${{ github.token }}
 
     steps:
