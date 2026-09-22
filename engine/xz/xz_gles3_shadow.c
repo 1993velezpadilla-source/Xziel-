@@ -2147,6 +2147,10 @@ fail_restore:
     }
 
 fail:
+    if (xz_shadow.visible_context != EGL_NO_CONTEXT)
+        eglDestroyContext(
+            xz_shadow.display,
+            xz_shadow.visible_context);
     if (xz_shadow.context != EGL_NO_CONTEXT)
         eglDestroyContext(
             xz_shadow.display,
@@ -2891,6 +2895,7 @@ void XzGles3Shadow_Shutdown(
             &previous_context)) {
         XzDestroyAllPhysicalResources(state);
         XzDestroyRealTextures();
+        XzDestroyVisibleTargets();
 
         if (xz_shadow.gl.DeleteFramebuffers &&
             xz_shadow.scratch_fbo)
@@ -2939,6 +2944,10 @@ void XzGles3Shadow_Shutdown(
 
     XzUnloadApi(&xz_shadow.gl);
 
+    if (xz_shadow.visible_context != EGL_NO_CONTEXT)
+        eglDestroyContext(
+            xz_shadow.display,
+            xz_shadow.visible_context);
     if (xz_shadow.context != EGL_NO_CONTEXT)
         eglDestroyContext(
             xz_shadow.display,
