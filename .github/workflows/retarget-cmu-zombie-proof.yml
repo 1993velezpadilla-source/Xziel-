@@ -12,6 +12,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: zombie-retarget-proof-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   retarget:
     runs-on: ubuntu-latest
