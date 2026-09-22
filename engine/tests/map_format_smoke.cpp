@@ -39,6 +39,7 @@ interaction 301 weapon 1 -0.3 0 1.4 0.2 1 0.20 500 1
 xziel_map 2
 player_spawn 12.5 -1.58 -8.25 37.0
 arena -42.0 41.0 -38.0 44.0
+floor 1000 -5.0 -1.78 -5.0 5.0 -1.58 5.0
 zombie_spawn -12.0 -1.58 6.0
 zombie_spawn 14.0 -1.58 9.0
 box 10 0 -1.70 0 30 0.10 25 0 0 1 1
@@ -54,6 +55,9 @@ box 10 0 -1.70 0 30 0.10 25 0 0 1 1
     assert(map.playerSpawnFeet.y == -1.58f);
     assert(map.playerSpawnYawDegrees == 37.0f);
     assert(map.hasArenaBounds);
+    assert(map.floorCount == 1);
+    assert(map.floors[0].id == 1000U);
+    assert(map.floors[0].bounds.maximum.y == -1.58f);
     assert(map.arenaMinimumX == -42.0f);
     assert(map.arenaMaximumZ == 44.0f);
     assert(map.zombieSpawnCount == 2);
