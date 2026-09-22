@@ -4122,8 +4122,27 @@ bool VulkanClearRenderer::recordDrawCommand(
                 window.halfDepth / 0.75f,
                 5.0f);
 
-            // Two small metal fasteners make the native board read as an
-            // actual nailed barricade without adding static mesh state.
+        }
+
+        // Keep fastener detail bounded on mobile: two visible metal caps per
+        // barricade instead of two extra draws for every plank. The wood state
+        // remains fully gameplay-authoritative while worst-case procedural
+        // window draws stay near 224 rather than ~504.
+        if (plankCount > 0U) {
+            const std::uint32_t fastenerPlank =
+                std::min(
+                    plankCount - 1U,
+                    window.maximumPlanks / 2U);
+
+            const float fastenerAlpha =
+                (static_cast<float>(fastenerPlank) + 0.5f) /
+                static_cast<float>(window.maximumPlanks);
+
+            const float fastenerY =
+                window.y -
+                window.halfHeight +
+                fastenerAlpha * window.halfHeight * 2.0f;
+
             for (int nailSide : {-1, 1}) {
                 float nailX = window.x;
                 float nailZ = window.z;
@@ -4142,7 +4161,7 @@ bool VulkanClearRenderer::recordDrawCommand(
 
                 drawRounded(
                     nailX,
-                    plankY,
+                    fastenerY,
                     nailZ,
                     0.035f,
                     0.035f,
