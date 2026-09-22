@@ -87,6 +87,10 @@ typedef void (*XzGlUniformMatrix4fvFn)(
 typedef void (*XzGlViewportFn)(GLint, GLint, GLsizei, GLsizei);
 typedef void (*XzGlClearColorFn)(GLfloat, GLfloat, GLfloat, GLfloat);
 typedef void (*XzGlClearFn)(GLbitfield);
+typedef void (*XzGlEnableFn)(GLenum);
+typedef void (*XzGlDisableFn)(GLenum);
+typedef void (*XzGlBlendFuncFn)(GLenum, GLenum);
+typedef void (*XzGlDepthMaskFn)(GLboolean);
 typedef void (*XzGlDrawArraysFn)(GLenum, GLint, GLsizei);
 typedef void (*XzGlDrawElementsFn)(
     GLenum, GLsizei, GLenum, const void *);
@@ -147,6 +151,10 @@ typedef struct {
     XzGlViewportFn Viewport;
     XzGlClearColorFn ClearColor;
     XzGlClearFn Clear;
+    XzGlEnableFn Enable;
+    XzGlDisableFn Disable;
+    XzGlBlendFuncFn BlendFunc;
+    XzGlDepthMaskFn DepthMask;
     XzGlDrawArraysFn DrawArrays;
     XzGlDrawElementsFn DrawElements;
     XzGlReadPixelsFn ReadPixels;
@@ -177,6 +185,15 @@ typedef struct {
     EGLConfig config;
     EGLSurface surface;
     EGLContext context;
+
+    EGLConfig visible_config;
+    EGLContext visible_context;
+    GLuint visible_vao;
+    GLuint visible_fbo;
+    GLuint visible_color;
+    GLuint visible_depth;
+    unsigned int visible_width;
+    unsigned int visible_height;
 
     GLuint program;
     GLuint fullscreen_program;
@@ -288,6 +305,10 @@ static int XzLoadApi(XzNativeGles3Api *api)
     XZ_GL_LOAD(Viewport, "glViewport");
     XZ_GL_LOAD(ClearColor, "glClearColor");
     XZ_GL_LOAD(Clear, "glClear");
+    XZ_GL_LOAD(Enable, "glEnable");
+    XZ_GL_LOAD(Disable, "glDisable");
+    XZ_GL_LOAD(BlendFunc, "glBlendFunc");
+    XZ_GL_LOAD(DepthMask, "glDepthMask");
     XZ_GL_LOAD(DrawArrays, "glDrawArrays");
     XZ_GL_LOAD(DrawElements, "glDrawElements");
     XZ_GL_LOAD(ReadPixels, "glReadPixels");
@@ -470,7 +491,9 @@ static int XzCreateRealGeometryProgram(void)
         "uniform sampler2D uTexture;\n"
         "out vec4 outColor;\n"
         "void main(){\n"
-        "  outColor=texture(uTexture,vUV);\n"
+        "  vec4 texel=texture(uTexture,vUV);\n"
+        "  if(texel.a<0.08) discard;\n"
+        "  outColor=texel;\n"
         "}\n";
 
     XzNativeGles3Api *gl = &xz_shadow.gl;
