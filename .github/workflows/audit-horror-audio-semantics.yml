@@ -87,7 +87,7 @@ jobs:
             w.writeheader(); w.writerows(rows)
 
           policy={
-            "version":1,
+            "version":2,\n            "map_context":"Sanctum old church",
             "default":"DENY_UNVERIFIED",
             "rule":"Runtime events may select only from an explicitly verified matching bank.",
             "zombie":{
@@ -98,7 +98,7 @@ jobs:
               "crawler":["crawler"]
             },
             "fallback":"silence",
-            "forbidden_fallback":"Never substitute another zombie action category."
+            "forbidden_fallback":"Never substitute another zombie action category.",\n            "context_rule":"Never use Foley whose physical source/material conflicts with Sanctum."
           }
           (out/"runtime_event_policy.json").write_text(json.dumps(policy,indent=2)+"\n")
           print("audited",len(rows),"audio files; quarantined",len(quarantine))
