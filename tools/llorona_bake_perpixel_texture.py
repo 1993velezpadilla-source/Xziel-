@@ -20,6 +20,7 @@ TARGET_FACES = int(os.environ.get("LLORONA_TARGET_FACES", "0"))
 TEX_SIZE = int(os.environ.get("LLORONA_TEXTURE_SIZE", "2048"))
 TARGET_HEIGHT_M = float(os.environ.get("LLORONA_HEIGHT_M", "1.72"))
 REQUIRE_DETAILS = os.environ.get("LLORONA_REQUIRE_DETAILS", "1").lower() not in {"0", "false", "no"}
+STRICT_QA = os.environ.get("LLORONA_STRICT_QA", "1").lower() not in {"0", "false", "no"}
 CHUNK_TEXELS = int(os.environ.get("LLORONA_CHUNK_TEXELS", "180000"))
 
 QA_FACE_RATIO_MIN = float(os.environ.get("LLORONA_QA_FACE_RATIO_MIN", "0.12"))
@@ -167,6 +168,27 @@ extent = maxs - mins
 
 images = {k: load_rgb(v) for k, v in base_paths.items()}
 detail_images = {k: load_rgb(v) for k, v in detail_paths.items() if v is not None}
+
+# Ref preflight. The old back.jpg has a recoverable JPEG stream but a large flat
+# truncated tail; a strict HQ run must reject that before spending minutes on 4K.
+reference_quality = {}
+bad_refs = []
+for name, im in images.items():
+    h = im.shape[0]
+    row_std = im.reshape(h, -1).std(axis=1)
+    tail = row_std[int(h * 0.65):]
+    flat_tail = float(np.mean(tail < 2.0)) if len(tail) else 1.0
+    reference_quality[name] = {
+        "width": int(im.shape[1]),
+        "height": int(im.shape[0]),
+        "std": float(im.std()),
+        "flatTailFraction": flat_tail,
+    }
+    if flat_tail > 0.18:
+        bad_refs.append(f"{name}: flatTailFraction={flat_tail:.3f}")
+(OUT / "reference_quality.json").write_text(json.dumps(reference_quality, indent=2), encoding="utf-8")
+if STRICT_QA and bad_refs:
+    fail("Refined base reference preflight rejected: " + " | ".join(bad_refs))
 
 view_cfg = {
     "front": (np.array([0.0, 0.0, 1.0]), "x", False),
@@ -371,7 +393,20 @@ def sample_tex(uv: np.ndarray) -> np.ndarray:
 
 # Seam QA: duplicated xatlas UV vertices representing the same source vertex should
 # agree in color. Large deltas are a reliable proxy for visible chart seams.
-uvc = sample_tex(UV)
+# Sample each UV duplicate slightly inside its own chart rather than exactly on
+# the chart border. This measures the color a bilinear sampler will actually see
+# from that chart and avoids false seam alarms caused by border-coordinate ambiguity.
+face_centroids = UV[Fuv].mean(axis=1).astype(np.float64)
+centroid_sum = np.zeros((len(UV), 2), dtype=np.float64)
+centroid_count = np.zeros(len(UV), dtype=np.float64)
+for corner in range(3):
+    np.add.at(centroid_sum, Fuv[:, corner], face_centroids)
+    np.add.at(centroid_count, Fuv[:, corner], 1.0)
+inward_target = centroid_sum / np.maximum(centroid_count[:, None], 1.0)
+direction = inward_target - UV
+direction /= np.maximum(np.linalg.norm(direction, axis=1, keepdims=True), 1e-9)
+inset_uv = np.clip(UV + direction * (2.0 / TEX_SIZE), 0.0, 1.0)
+uvc = sample_tex(inset_uv)
 order = np.argsort(vmapping)
 ids, cols = vmapping[order], uvc[order]
 errs = []
@@ -571,6 +606,8 @@ manifest = {
     "baseRefs": {k: str(v) for k, v in base_paths.items()},
     "detailRefs": {k: str(v) if v else None for k, v in detail_paths.items()},
     "detailsRequired": REQUIRE_DETAILS,
+    "strictQA": STRICT_QA,
+    "referenceQuality": reference_quality,
     "hasUV": bool(has_uv),
     "hasEmbeddedBaseColorTexture": bool(has_tex),
     "qa": metrics,
