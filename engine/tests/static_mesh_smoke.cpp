@@ -214,9 +214,13 @@ int main() {
             static_cast<float>(i) /
             127.0f;
         vertex.y =
-            (i % 7U) * 0.003f;
+            -0.08f +
+            static_cast<float>(i % 17U) *
+                0.010f;
         vertex.z =
-            (i % 5U) * 0.004f;
+            -0.13f +
+            static_cast<float>(i % 23U) *
+                0.012f;
         goodBatch.vertices.push_back(vertex);
     }
 
@@ -237,6 +241,12 @@ int main() {
     assert(
         goodMetrics.robustAxisCoverage90 >
         0.80f);
+    assert(
+        goodMetrics.robustSecondExtent90 >
+        0.10f);
+    assert(
+        goodMetrics.robustThirdExtent90 >
+        0.08f);
 
     xziel::StaticMeshAsset collapsedViewmodel =
         goodViewmodel;
@@ -252,9 +262,17 @@ int main() {
             static_cast<float>(i) /
             static_cast<float>(
                 collapsedVertices.size() - 2U);
+        collapsedVertices[i].y =
+            static_cast<float>(i % 3U) *
+            0.002f;
+        collapsedVertices[i].z =
+            static_cast<float>(i % 5U) *
+            0.002f;
     }
 
     collapsedVertices.back().x = 0.90f;
+    collapsedVertices.back().y = 0.0f;
+    collapsedVertices.back().z = 0.0f;
 
     xziel::StaticMeshQualityMetrics
         collapsedMetrics{};
@@ -269,6 +287,50 @@ int main() {
     assert(
         collapsedMetrics.robustAxisCoverage90 <
         0.20f);
+    assert(
+        collapsedMetrics.robustSecondExtent90 <
+        0.035f);
+    assert(
+        collapsedMetrics.robustThirdExtent90 <
+        0.012f);
+
+    // Also reject a long but nearly flat needle. This catches the variant
+    // where enough outlier vertices span the expected 0.9 m length that a
+    // longest-axis-only check would otherwise accept it.
+    xziel::StaticMeshAsset flatSpikeViewmodel =
+        goodViewmodel;
+    auto& flatVertices =
+        flatSpikeViewmodel.batches[0].vertices;
+
+    for (std::size_t i = 0U;
+         i < flatVertices.size();
+         ++i) {
+        const float t =
+            static_cast<float>(i) /
+            static_cast<float>(
+                flatVertices.size() - 1U);
+        flatVertices[i].x = 0.90f * t;
+        flatVertices[i].y =
+            static_cast<float>(i % 2U) *
+            0.003f;
+        flatVertices[i].z =
+            static_cast<float>(i % 3U) *
+            0.002f;
+    }
+
+    xziel::StaticMeshQualityMetrics
+        flatMetrics{};
+
+    assert(
+        !xziel::passesViewmodelStaticMeshSanity(
+            flatSpikeViewmodel,
+            &flatMetrics));
+    assert(
+        flatMetrics.robustAxisCoverage90 >
+        0.80f);
+    assert(
+        flatMetrics.robustSecondExtent90 <
+        0.035f);
 
     return 0;
 }
