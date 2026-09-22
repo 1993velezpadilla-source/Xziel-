@@ -47,6 +47,7 @@ add_library(xziel_engine STATIC
     src/acoustics.cpp
     src/asset_provenance.cpp
     src/sanctum.cpp
+    src/sanctum_immersion.cpp
     src/static_mesh.cpp
 )
 
@@ -273,6 +274,11 @@ if(XZIEL_ENGINE_BUILD_TESTS)
     target_link_libraries(xziel_sanctum_smoke PRIVATE xziel_engine)
     target_compile_features(xziel_sanctum_smoke PRIVATE cxx_std_20)
     add_test(NAME xziel_sanctum_smoke COMMAND xziel_sanctum_smoke)
+
+    add_executable(xziel_sanctum_immersion_smoke tests/sanctum_immersion_smoke.cpp)
+    target_link_libraries(xziel_sanctum_immersion_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_sanctum_immersion_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_sanctum_immersion_smoke COMMAND xziel_sanctum_immersion_smoke)
 
     add_executable(xziel_static_mesh_smoke tests/static_mesh_smoke.cpp)
     target_link_libraries(xziel_static_mesh_smoke PRIVATE xziel_engine)
