@@ -1007,7 +1007,9 @@ static int XzDrawRealGeometry(
     XzNativeGles3Api *gl = &xz_shadow.gl;
     unsigned int i;
     unsigned int kind_mask = 0u;
+    unsigned int required_kind_mask = 0u;
     unsigned int texture_kind_mask = 0u;
+    unsigned int required_texture_kind_mask = 0u;
     unsigned int texture_misses = 0u;
     unsigned int texture_batches = 0u;
     unsigned int drops;
@@ -1107,6 +1109,17 @@ static int XzDrawRealGeometry(
         const XzGeometryBatch *batch =
             &geometry->batches[i];
 
+        if (batch->kind == XZ_GEOMETRY_ALIAS)
+            required_kind_mask |= 1u;
+        else if (batch->kind == XZ_GEOMETRY_SURFACE)
+            required_kind_mask |= 2u;
+        else if (batch->kind == XZ_GEOMETRY_SPRITE)
+            required_kind_mask |= 4u;
+        else if (batch->kind == XZ_GEOMETRY_EFFECT)
+            required_kind_mask |= 8u;
+        else if (batch->kind == XZ_GEOMETRY_SPECIAL)
+            required_kind_mask |= 16u;
+
         if (batch->vertex_count == 0u ||
             batch->index_count == 0u ||
             batch->first_vertex +
@@ -1168,6 +1181,13 @@ static int XzDrawRealGeometry(
 
             if (batch->state.texture_enabled) {
                 texture_batches++;
+                if (batch->kind == XZ_GEOMETRY_ALIAS)
+                    required_texture_kind_mask |= 1u;
+                else if (batch->kind == XZ_GEOMETRY_SURFACE)
+                    required_texture_kind_mask |= 2u;
+                else if (batch->kind == XZ_GEOMETRY_SPRITE)
+                    required_texture_kind_mask |= 4u;
+
                 if (!XzBindRealTexture(
                         state,
                         batch->texture_id,
@@ -1307,11 +1327,8 @@ static int XzDrawRealGeometry(
 
     state->real_geometry_ready =
         state->real_geometry_failures == 0u &&
-        (state->real_geometry_kind_mask & 0x7u) == 0x7u &&
-        (geometry->effect_batches == 0u ||
-         (kind_mask & 0x8u) == 0x8u) &&
-        (geometry->special_batches == 0u ||
-         (kind_mask & 0x10u) == 0x10u);
+        required_kind_mask != 0u &&
+        (kind_mask & required_kind_mask) == required_kind_mask;
     if (geometry->effect_batches > 0u &&
         state->real_geometry_failures == 0u &&
         (kind_mask & 0x8u) == 0x8u)
@@ -1333,9 +1350,11 @@ static int XzDrawRealGeometry(
         texture_kind_mask;
     state->real_textures_ready =
         state->real_texture_failures == 0u &&
-        texture_batches > 0u &&
         texture_misses == 0u &&
-        (state->real_texture_kind_mask & 0x7u) == 0x7u;
+        (texture_batches == 0u ||
+         required_texture_kind_mask == 0u ||
+         (texture_kind_mask & required_texture_kind_mask) ==
+            required_texture_kind_mask);
 
     state->real_material_state_ready =
         state->real_geometry_failures == 0u &&
