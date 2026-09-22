@@ -51,9 +51,9 @@ api=client.view_api(print_info=False, return_format="dict")
 named=api.get("named_endpoints",{})
 
 def choose_endpoint():
-    # Prefer shape-only first. The public generation_all path currently trips
-    # a PyMeshLabException during face-reduction/texture postprocessing.
-    for candidate in ("/shape_generation","/generation_all"):
+    # With clean multiview inputs and Turbo defaults, try the complete textured
+    # pipeline first; shape_generation remains the fallback endpoint.
+    for candidate in ("/generation_all","/shape_generation"):
         if candidate in named:
             return candidate
     for name in named:
