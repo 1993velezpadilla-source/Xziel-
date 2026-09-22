@@ -1,0 +1,56 @@
+name: Import licensed zombie mocap
+
+on:
+  push:
+    branches:
+      - feature/zombie-mocap-library-v1
+    paths:
+      - .github/workflows/import-zombie-mocap.yml
+      - tools/zombie_mocap_manifest.tsv
+      - scripts/fetch_zombie_mocap.sh
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Download redistributable human mocap
+        shell: bash
+        run: |
+          chmod +x scripts/fetch_zombie_mocap.sh
+          scripts/fetch_zombie_mocap.sh
+
+      - name: Validate library
+        shell: bash
+        run: |
+          count=$(find assets/animations/zombie_mocap/cmu -type f -name '*.fbx' | wc -l)
+          echo "FBX_COUNT=$count"
+          test "$count" -ge 65
+          test -s assets/animations/zombie_mocap/catalog.csv
+          if find assets/animations/zombie_mocap/cmu -type f -name '*.fbx' -size 0 | grep -q .; then
+            echo "Found zero-byte FBX"
+            exit 1
+          fi
+
+      - name: Commit imported animation files
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/animations/zombie_mocap
+          if git diff --cached --quiet; then
+            echo "No asset changes."
+            exit 0
+          fi
+          git commit -m "assets: import licensed human zombie mocap library"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
