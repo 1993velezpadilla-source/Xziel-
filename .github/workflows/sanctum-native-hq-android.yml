@@ -138,8 +138,10 @@ jobs:
           jq -e '.decimateRatio == 1' "$REPORT"
           jq -e '.scanCleanup == "disabled"' "$REPORT"
           jq -e '.vertexLighting == "identity_white"' "$REPORT"
-          jq -e '.textureSourceMode == "original_glb_basecolor_no_upscale"' "$REPORT"
+          jq -e '.textureSourceMode == "original_glb_embedded_pixels"' "$REPORT"
           jq -e '.textureCount > 0' "$REPORT"
+          jq -e '.exactSourcePixelTextures == .textureCount' "$REPORT"
+          jq -e '.materialReport | all(.exactSourcePixels == true)' "$REPORT"
 
           jq '{
             schemaVersion,
