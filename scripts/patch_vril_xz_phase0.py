@@ -236,6 +236,7 @@ if '#include "xz_geometry_tap.h"' not in hyena:
         anchor +
         '#ifdef __ANDROID__\n'
         '#include "xz_geometry_tap.h"\n'
+        '#include "xz_android_runtime.h"\n'
         '#include <stddef.h>\n'
         '#include <string.h>\n'
         '#include <stdlib.h>\n'
@@ -339,6 +340,8 @@ if "XzGeometryTap_CaptureAlias(" not in hyena:
         "            xz_mv,\n"
         "            xz_pr);\n"
         "    }\n"
+        "    if (XzAndroidRuntime_ShouldSuppressLegacyWorldDraw(XZ_LEGACY_DRAW_ALIAS))\n"
+        "        return;\n"
         "#endif\n"
     )
     hyena = hyena.replace(alias_anchor, alias_capture, 1)
@@ -427,6 +430,11 @@ if "XZ_GEOMETRY_EFFECT_CAPTURE" not in hyena:
         "                xz_mv,\n"
         "                xz_pr);\n"
         "        }\n"
+        "    }\n"
+        "    if (xz_hyena_special_kind == XZ_GEOMETRY_SPECIAL_NONE &&\n"
+        "        XzAndroidRuntime_ShouldSuppressLegacyWorldDraw(XZ_LEGACY_DRAW_EFFECT)) {\n"
+        "        free(vertices);\n"
+        "        return;\n"
         "    }\n"
         "#endif\n"
         "    glEnableClientState(GL_VERTEX_ARRAY); glVertexPointer(3, GL_FLOAT, sizeof(*vertices), &vertices[0].xyz);\n"
@@ -521,7 +529,9 @@ if '#include "xz_geometry_tap.h"' not in rmain:
         anchor +
         '#ifdef __ANDROID__\n'
         '#include "xz_geometry_tap.h"\n'
+        '#include "xz_android_runtime.h"\n'
         '#include <string.h>\n'
+        '#include <stdlib.h>\n'
         '#endif\n',
         1,
     )
@@ -617,11 +627,33 @@ if "XZ_GEOMETRY_SPRITE_CAPTURE" not in rmain:
         "\t\t\txz_mv,\n"
         "\t\t\txz_pr);\n"
         "\t}\n"
+        "\tif (!XzAndroidRuntime_ShouldSuppressLegacyWorldDraw(XZ_LEGACY_DRAW_SPRITE)) {\n"
         "#endif\n"
         "\tglBegin (GL_QUADS);\n"
     )
     rmain = rmain.replace(sprite_anchor, sprite_capture, 1)
 
+
+
+if "XZ_LEGACY_SPRITE_SUPPRESS_END" not in rmain:
+    sprite_begin = rmain.find("void R_DrawSpriteModel (entity_t *e)")
+    sprite_end = rmain.find("/*\n=============================================================\n\n  ALIAS MODELS", sprite_begin)
+    if sprite_begin < 0 or sprite_end < 0:
+        raise SystemExit("Missing sprite function bounds for suppression")
+    sprite_chunk = rmain[sprite_begin:sprite_end]
+    sprite_end_anchor = "\tglEnd ();\n\tglDepthMask(GL_TRUE);\n"
+    if sprite_end_anchor not in sprite_chunk:
+        raise SystemExit("Missing sprite suppression end anchor")
+    sprite_chunk = sprite_chunk.replace(
+        sprite_end_anchor,
+        "\tglEnd ();\n"
+        "#ifdef __ANDROID__\n"
+        "\t} /* XZ_LEGACY_SPRITE_SUPPRESS_END */\n"
+        "#endif\n"
+        "\tglDepthMask(GL_TRUE);\n",
+        1,
+    )
+    rmain = rmain[:sprite_begin] + sprite_chunk + rmain[sprite_end:]
 
 # Alias/model blob shadows bypass Hyena and are emitted as immediate-mode
 # triangle fans/strips. Capture the projected vertices and the exact untextured
