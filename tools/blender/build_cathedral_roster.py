@@ -338,6 +338,45 @@ def rope_belt_with_tails(h,rope_mat,metal_mat,name="RopeBelt"):
     return out
 
 
+
+def priority_head_cover(body,h,style,mats):
+    out=[]
+    if style in ("sister_of_ash","stained_shade"):
+        inner=mats["spectral_ivory"] if style=="stained_shade" else mats["dirty_ivory"]
+        outer=mats["spectral_ivory"] if style=="stained_shade" else mats["ash_blue"]
+        # Close-fitting coif covers crown/back of head while leaving the face open.
+        a=body_region_shell(body,"HeadCoif",inner,
+            lambda p: p.z/h>.908 and (p.y/h>-.030 or p.z/h>.953) and abs(p.x/h)<.090,.0050*h)
+        if a: out.append(a)
+        b=body_region_shell(body,"HoodCrown",outer,
+            lambda p: p.z/h>.930 and (p.y/h>-.022 or p.z/h>.970) and abs(p.x/h)<.095,.0090*h)
+        if b: out.append(b)
+    elif style=="la_llorona":
+        cap=body_region_shell(body,"HairCap",mats["wet_black"],
+            lambda p: p.z/h>.905 and (p.y/h>-.035 or p.z/h>.955) and abs(p.x/h)<.095,.0045*h)
+        if cap: out.append(cap)
+    return out
+
+def eye_socket_rings(body,h,mats,style):
+    fy=face_front_y(body,h)
+    col="#5A4652" if style!="stained_shade" else "#465767"
+    m=mat("M_"+style+"_EyeBruise",col,.88,0,noise=True)
+    out=[]
+    for side in (-1,1):
+        o=torus("SocketRing_"+("L" if side<0 else "R"),(side*.021*h,fy-.006*h,.905*h),.016*h,.0030*h,m,rot=(math.radians(90),0,0))
+        o.scale.x=1.08; o.scale.z=.72
+        out.append(o)
+    return out
+
+def stained_cloth_accents(h,mats):
+    cols=[mats["glass_blue"],mats["glass_cyan"],mats["glass_magenta"],mats["amber"]]
+    out=[]
+    spots=[(-.112,.66,.012,.022,.4),(.110,.61,.010,.020,1.2),(-.095,.49,.011,.019,2.0),(.100,.43,.010,.018,2.7),(-.120,.31,.009,.017,3.4)]
+    for i,(x,z,wid,hh,ph) in enumerate(spots):
+        out.append(irregular_patch(f"StainedCloth_{i:02}",h,cols[i%len(cols)],x,z,wid,hh,-.128,ph))
+    return out
+
+
 def cut_mouth_open(body,h,style):
     fy=face_front_y(body,h)
     bm=bmesh.new(); bm.from_mesh(body.data)
@@ -378,12 +417,13 @@ def paint_face_regions(body,h,mats,style):
     dis=body.modifiers.new("FaceDamage","DISPLACE"); dis.texture=tex; dis.strength=.0014*h; dis.mid_level=.5; dis.vertex_group=vg.name
 
 
+
 def mouth_cavity(body,h,mats,style):
     fy=face_front_y(body,h)
     dark=mat("M_"+style+"_Cavity","#100B0D",.94,0,noise=False)
-    teeth=mat("M_"+style+"_Teeth","#766B58",.80,0,noise=False)
-    cavity=uv_sphere("MouthCavity",(0,fy+.004*h,.850*h),(.021*h,.004*h,.010*h),dark)
-    upper=cube("TeethHint",(0,fy-.001*h,.858*h),(.013*h,.0018*h,.0020*h),teeth,.0004*h)
+    teeth=mat("M_"+style+"_Teeth","#6F6655",.82,0,noise=False)
+    cavity=uv_sphere("MouthCavity",(0,fy-.006*h,.850*h),(.019*h,.0022*h,.010*h),dark)
+    upper=cube("TeethHint",(0,fy-.009*h,.858*h),(.011*h,.0012*h,.0018*h),teeth,.0003*h)
     return [cavity,upper]
 
 def body_region_shell(body,name,material,keep_fn,offset=0.004):
@@ -560,40 +600,39 @@ def hair_lock(name,h,material,x0,z0,z1,y=-.076,width=.018,wave=.010,phase=0.0):
 
 
 
+
 def llorona_hair_mesh(h,mats):
     m=mats["wet_black"]; out=[]
     out.append(drape_open("HairDrape",h,m,[
-        (.990,.064,.057),(.960,.070,.061),(.920,.078,.067),(.870,.090,.074),(.805,.104,.082),(.730,.120,.091),(.640,.137,.100),(.535,.152,.108)
-    ],segments=88,theta_max=2.66,tatter=.060,phase=.7,subdiv=1))
+        (.988,.062,.056),(.955,.068,.060),(.915,.076,.066),(.865,.087,.073),
+        (.800,.101,.081),(.725,.116,.089),(.640,.132,.097),(.545,.146,.104),(.470,.154,.108)
+    ],segments=88,theta_max=2.70,tatter=.070,phase=.7,subdiv=1))
     idx=0
     for side in (-1,1):
-        for j in range(15):
-            x=side*(.040+.0048*j)
-            z0=(.982-.004*(j%5))*h
-            z1=(.43+.018*((j*3)%8))*h
-            y=(-.060-.004*(j%3))*h
-            pts=[(x,y,z0),(x*1.05,y-.004*h,z0-.18*h),(x*1.12,y+.002*h,z0-.38*h),(x*1.18,y+.010*h,z1)]
-            out.append(curve_chain("HairStrand_%02d"%idx,pts,m,.0033*h)); idx+=1
-    # only four face-framing locks, no curtain across the face
-    for j,(x,z1) in enumerate([(-.040,.61),(.041,.59),(-.052,.53),(.054,.55)]):
-        pts=[(x*h,-.082*h,.976*h),(x*1.02*h,-.088*h,.86*h),(x*1.10*h,-.082*h,z1*h)]
-        out.append(curve_chain("HairFace_%02d"%j,pts,m,.0037*h))
+        for j in range(12):
+            x0=side*(.028+.006*j)
+            z1=.42+.022*((j*3)%7)
+            out.append(hair_lock("HairRibbon_%02d"%idx,h,m,x0,.980-.004*(j%4),z1,-.104,.009+.0012*(j%4),.005+.0008*j,phase=.48*j+(.25 if side>0 else 0)))
+            idx+=1
+    for j,(x0,z1) in enumerate([(-.028,.62),(.030,.60),(-.040,.55),(.042,.57),(-.052,.50),(.054,.52)]):
+        out.append(hair_lock("HairFace_%02d"%j,h,m,x0,.978,z1,-.112,.0075,.0045,phase=.8*j))
     return out
 
 
 def sculpt_priority_face(body,h,style):
     fy=face_front_y(body,h)
-    strength=1.15 if style=="sister_of_ash" else (1.00 if style=="la_llorona" else 1.10)
+    strength=1.22 if style=="sister_of_ash" else (1.05 if style=="la_llorona" else 1.15)
     for v in body.data.vertices:
         z=v.co.z/h; x=v.co.x/h; y=v.co.y
         if z<.80: continue
-        if .81<z<.875: v.co.x*=1.0-.17*strength
-        elif .93<z<.985: v.co.x*=1.0-.07*strength
-        if y < fy + .055*h:
+        if .81<z<.875: v.co.x*=1.0-.19*strength
+        elif .93<z<.985: v.co.x*=1.0-.075*strength
+        if y < fy + .060*h:
             ax=abs(x)
-            if .892<z<.932 and .008<ax<.046: v.co.y += .010*h*strength
-            if .855<z<.895 and .022<ax<.072: v.co.y += .009*h*strength
-            if .835<z<.862 and ax<.038: v.co.y += .005*h*strength
+            if .892<z<.932 and .008<ax<.046: v.co.y += .011*h*strength
+            if .855<z<.895 and .022<ax<.072: v.co.y += .010*h*strength
+            if .835<z<.862 and ax<.038: v.co.y += .006*h*strength
+            if .865<z<.900 and ax>.050: v.co.x*=.985
     body.data.update()
 
 def force_priority_eyes(parts,style):
@@ -642,7 +681,10 @@ def nun_outfit(h,mats,stained=False):
         (.825,.096,.074),(.800,.112,.083),(.772,.132,.094),(.742,.154,.107),(.715,.171,.118)
     ],84,2.45,.045,1.8,1))
     out.extend(rope_belt_with_tails(h,rope,metal,"RopeBelt"))
-    if not stained: out.extend(cloth_patches("RepairPatch",h,ivory,4))
+    if not stained:
+        out.extend(cloth_patches("RepairPatch",h,ivory,5))
+        out.append(irregular_patch("RobeTearA",h,ivory,-.120,.260,.018,.042,-.127,1.1))
+        out.append(irregular_patch("RobeTearB",h,ivory,.118,.345,.015,.036,-.127,2.3))
     return out
 
 
@@ -720,9 +762,10 @@ def bind_generated_to_rig(body,rig,h):
         n=o.name
         if o.type=="CURVE":
             if n.startswith("Hair"): parent_to_bone(o,rig,"head")
+            elif n.startswith(("RopeBelt","RosaryBelt")): parent_to_bone(o,rig,"pelvis")
             continue
         if o.type!="MESH": continue
-        if n.startswith("Eye") or n.startswith("HairLock") or n.startswith("HairFace") or n=="HairDrape" or n in ("OuterVeil","InnerWimple","StainedHalo") or n.startswith("HaloGlass"):
+        if n.startswith("Eye") or n.startswith(("HairLock","HairRibbon","HairFace")) or n=="HairDrape" or n in ("OuterVeil","InnerWimple","StainedHalo") or n.startswith(("HaloGlass","HaloPane","SocketRing")):
             rigid_bind_mesh(o,rig,"head"); continue
         if n.startswith(("SleeveUpper_L","SleeveLower_L","SleeveCuff_L")):
             parent_to_bone(o,rig,"upperarm_l" if "Upper" in n else "lowerarm_l"); continue
@@ -926,14 +969,9 @@ def shrine_back(h,wood,metal,wax):
     return objs
 
 
-def glass_shards(h,materials):
-    objs=[]; cols=[materials["glass_blue"],materials["glass_cyan"],materials["glass_magenta"],materials["amber"]]
-    pts=[(-.090,.735,-12),(.082,.710,14),(-.072,.660,9),(.075,.625,-8),(-.105,.565,16),(.102,.525,-11)]
-    for i,(xf,zf,deg) in enumerate(pts):
-        o=cube(f"GlassShard{i:02}",(xf*h,-.118*h,zf*h),(.007*h,.002*h,.014*h),cols[i%4],.001*h)
-        o.rotation_euler.z=math.radians(deg); objs.append(o)
-    return objs
 
+def glass_shards(h,materials):
+    return stained_cloth_accents(h,materials)
 
 def setup_skin(body,mats,style):
     tint_hex="#77706D" if style=="sister_of_ash" else ("#85898D" if style=="la_llorona" else ("#81868E" if style=="stained_shade" else "#8B837C"))
@@ -1167,6 +1205,7 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService,TargetServi
     robe_for_style(style,h,w,d,mats)
     if style in ("sister_of_ash","stained_shade","la_llorona"):
         fitted_priority_clothes(body,h,style,mats)
+        priority_head_cover(body,h,style,mats)
     veilmat=mats.get("spectral_ivory") or mats.get("dirty_ivory")
     if style in ("lost_child","waterbound_child","bell_ringer","choir_wretch","penitent_deacon","censer_brute","reliquary_horror"):
         veil(style,h,w,d,veilmat)
@@ -1188,11 +1227,16 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService,TargetServi
     if style=="stained_shade":
         glass_shards(h,mats); stained_halo(h,mats); spectral_tatters(h,mats)
     if style=="la_llorona":
-        llorona_rosary(h,mats); llorona_tears(body,h,mats)
+        llorona_tears(body,h,mats)
     if style=="lost_child":
         cross_prop("RosaryCross",(0,-.12*d,.53*h),.035*h,mats.get("tarnished_silver",mats["oxidized_metal"]))
     if style=="lost_child":
         uv_sphere("ClothDoll",(0.16,-.04,.34*h),(.05*h,.035*h,.09*h),mats["dirty_ivory"])
+    if style in ("sister_of_ash","la_llorona","stained_shade"):
+        paint_face_regions(body,h,mats,style)
+        cut_mouth_open(body,h,style)
+        mouth_cavity(body,h,mats,style)
+        eye_socket_rings(body,h,mats,style)
     add_damage_sockets(h) if ch["category"] not in ("random_encounter",) else None
     bind_generated_to_rig(body,rig,h)
     create_actions(rig,ch["animations"])
@@ -1210,7 +1254,7 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService,TargetServi
     bpy.context.view_layer.update()
     png=preview(body,folder,style)
     tri=sum(sum(max(1,len(p.vertices)-2) for p in o.data.polygons) for o in objs if o.type=="MESH")
-    manifest={"id":ch["id"],"name":ch["name"],"category":ch["category"],"style":style,"height_m":ch["height_m"],"rig":"game_engine","bones":len(rig.data.bones),"triangles_estimate":tri,"animations":ch["animations"],"materials":ch["palette"],"outputs":[glb.name,fbx.name,blend.name,png.name,"preview_side.png","preview_back.png","preview_face.png"],"production_status":"priority fidelity pass 12 — corrected bodice/sleeves, open-mouth corpse face, face closeup QA, side-lock Llorona hair, stained-glass halo panes"}
+    manifest={"id":ch["id"],"name":ch["name"],"category":ch["category"],"style":style,"height_m":ch["height_m"],"rig":"game_engine","bones":len(rig.data.bones),"triangles_estimate":tri,"animations":ch["animations"],"materials":ch["palette"],"outputs":[glb.name,fbx.name,blend.name,png.name,"preview_side.png","preview_back.png","preview_face.png"],"production_status":"priority fidelity pass 13 — covered crowns, flat wet-hair ribbons, active corpse-face damage, visible eye bruising, cleaner Stained glass accents"}
     (folder/"manifest.json").write_text(json.dumps(manifest,indent=2),encoding="utf-8")
     return manifest
 
