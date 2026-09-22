@@ -347,10 +347,7 @@ if '#include "xz_geometry_tap.h"' not in rmain:
         1,
     )
 
-sprite_anchor = (
-    "\tglColor3f (1,1,1);\n\n"
-    " \tGL_Bind(frame->gl_texturenum);\n"
-)
+sprite_anchor = "GL_Bind(frame->gl_texturenum);"
 if "XZ_GEOMETRY_SPRITE_CAPTURE" not in rmain:
     if sprite_anchor not in rmain:
         raise SystemExit("Missing sprite geometry capture anchor")
@@ -385,7 +382,7 @@ if "XZ_GEOMETRY_SPRITE_CAPTURE" not in rmain:
         "\t\t\txz_mv,\n"
         "\t\t\txz_pr);\n"
         "\t}\n"
-        "#endif\n"
+        "#endif"
     )
     rmain = rmain.replace(sprite_anchor, sprite_capture, 1)
 
