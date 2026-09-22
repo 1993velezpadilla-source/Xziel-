@@ -1,11 +1,13 @@
-name: Sanctum Native HQ Android
+name: Sanctum Native Clean V2 Android
 
 on:
   push:
     branches:
-      - feature/sanctum-native-xziel-v1
+      - feature/sanctum-native-clean-v2
     paths:
       - ".github/workflows/sanctum-native-hq-android.yml"
+      - ".github/workflows/sanctum-clean-source.yml"
+      - "tools/church_map/export_xziel_original_clean.py"
       - "engine/**"
       - "xziel-native-android/**"
   workflow_dispatch:
@@ -23,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 80
     env:
-      SANCTUM_ASSET_SHA: eb122ddbe4cbb1250ba152d13fbd95109443226c
+      SANCTUM_ASSET_SHA: ${{ github.sha }}
       GH_TOKEN: ${{ github.token }}
 
     steps:
@@ -40,7 +42,7 @@ jobs:
 
             RUN_ID="$(jq -r '
               .workflow_runs[]
-              | select(.name == "Build Church Map with Blender")
+              | select(.name == "Sanctum Clean Original Source")
               | .id
             ' <<<"$RESPONSE" | head -n 1)"
 
@@ -71,7 +73,7 @@ jobs:
           set -euo pipefail
 
           ARTIFACT_ID="$(gh api             "/repos/${GITHUB_REPOSITORY}/actions/runs/${SANCTUM_ASSET_RUN_ID}/artifacts"             --jq '.artifacts[]
-              | select(.name == "Xziel-Sanctum-Native-HQ")
+              | select(.name == "Xziel-Sanctum-Clean-Source")
               | .id'             | head -n 1)"
 
           test -n "$ARTIFACT_ID"
@@ -115,7 +117,8 @@ jobs:
             dressingTriangles,
             runtimeTotalTriangles,
             dynamicBarricadeObjectsExcluded,
-            textureMaxDimension,
+            originalMaxTextureDimension,
+            pbrLinkedMaterialCounts,
             batchCount,
             textureCount,
             modelBytes,
@@ -123,13 +126,20 @@ jobs:
             boundsMax
           }' "$REPORT" | tee build/sanctum-native-hq-report.json
 
+          jq -e '.pipeline == "original_glb_direct"' "$REPORT"
+          jq -e '.sourceUid == "b92917ff83914adc8bc93959ba8b4399"' "$REPORT"
           jq -e '.coordinateSpace == "native"' "$REPORT"
-          jq -e '.sourceCollection == "SOURCE_CHURCH_FULL"' "$REPORT"
+          jq -e '.sourceCollection == "DIRECT_ORIGINAL_GLB"' "$REPORT"
           jq -e '.version == 3' "$REPORT"
           jq -e '.vertexStrideBytes == 36' "$REPORT"
-          jq -e '.runtimeTriangles >= 1045000' "$REPORT"
-          jq -e '.textureMaxDimension >= 4096' "$REPORT"
-          jq -e '.dynamicBarricadeObjectsExcluded >= 140' "$REPORT"
+          jq -e '.sourceTriangles >= 2700000' "$REPORT"
+          jq -e '.runtimeTriangles == .sourceTriangles' "$REPORT"
+          jq -e '.dressingTriangles == 0' "$REPORT"
+          jq -e '.decimateRatio == 1' "$REPORT"
+          jq -e '.scanCleanup == "disabled"' "$REPORT"
+          jq -e '.vertexLighting == "identity_white"' "$REPORT"
+          jq -e '.textureSourceMode == "original_glb_basecolor_no_upscale"' "$REPORT"
+          jq -e '.textureCount > 0' "$REPORT"
 
           jq '{
             schemaVersion,
