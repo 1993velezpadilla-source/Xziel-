@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - automation/zombie-real-model-probe
     paths:
       - ".github/workflows/zombie-rig-inspect.yml"
 
