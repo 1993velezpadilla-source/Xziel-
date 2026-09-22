@@ -1192,6 +1192,48 @@ if (
     raise SystemExit("Sky geometry capture injection count mismatch")
 
 
+
+# Explicitly disarm persistent world-raster suppression at every level change.
+# This lets stable frames suppress from their first 3D draw while guaranteeing
+# that a newly loaded map falls back to legacy GL4ES until MODERN is revalidated.
+gl_rmisc = source / "platform" / "sdl" / "gl" / "gl_rmisc.c"
+rmisc = gl_rmisc.read_text(encoding="utf-8")
+
+if '#include "xz_android_runtime.h"' not in rmisc:
+    anchor = '#include "../../../nzportable_def.h"\n'
+    if anchor not in rmisc:
+        raise SystemExit("Missing gl_rmisc runtime include anchor")
+    rmisc = rmisc.replace(
+        anchor,
+        anchor +
+        '#ifdef __ANDROID__\n'
+        '#include "xz_android_runtime.h"\n'
+        '#endif\n',
+        1,
+    )
+
+if "XZ_WORLD_TRANSITION_RESET" not in rmisc:
+    anchor = "void R_NewMap (void)\n{\n\tint\t\ti;\n"
+    if anchor not in rmisc:
+        raise SystemExit("Missing R_NewMap transition-reset anchor")
+    rmisc = rmisc.replace(
+        anchor,
+        "void R_NewMap (void)\n{\n\tint\t\ti;\n"
+        "#ifdef __ANDROID__\n"
+        "\t/* XZ_WORLD_TRANSITION_RESET */\n"
+        "\tXzAndroidRuntime_NotifyWorldTransition();\n"
+        "#endif\n",
+        1,
+    )
+
+gl_rmisc.write_text(rmisc, encoding="utf-8")
+
+if rmisc.count('#include "xz_android_runtime.h"') != 1:
+    raise SystemExit("World-transition runtime header injection count mismatch")
+if rmisc.count("XZ_WORLD_TRANSITION_RESET") != 1:
+    raise SystemExit("World-transition reset injection count mismatch")
+
+
 # Replace only the visible 3D world before Vril switches to its 2D HUD pass.
 # The native GLES3 compositor renders into the same EGL window backbuffer and
 # restores the legacy GL4ES context before GL_Set2D, so menus/touch HUD remain
