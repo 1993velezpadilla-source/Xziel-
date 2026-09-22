@@ -871,6 +871,8 @@ if "XZ_SPECIAL_WATER_CAPTURE" not in warp:
         "#ifdef __ANDROID__\n"
         "\t\tfloat xz_capture[64 * 5];\n"
         "\t\tint xz_capture_count = p->numverts <= 64 ? p->numverts : 0;\n"
+        "\t\tint xz_suppress_special = XzAndroidRuntime_ShouldSuppressLegacyWorldDraw(XZ_LEGACY_DRAW_SPECIAL);\n"
+        "\t\tif (!xz_suppress_special)\n"
         "#endif\n"
         "\t\tglBegin (GL_POLYGON);\n",
         "water begin",
@@ -897,7 +899,25 @@ if "XZ_SPECIAL_WATER_CAPTURE" not in warp:
         warp,
         "void EmitWaterPolys (msurface_t *fa)",
         "/*\n=============\nEmitSkyPolys",
+        "\t\t\tglTexCoord2f (s, t);\n\t\t\tglVertex3fv (v);\n",
+        "#ifdef __ANDROID__\n"
+        "\t\t\tif (!xz_suppress_special) {\n"
+        "#endif\n"
+        "\t\t\tglTexCoord2f (s, t);\n"
+        "\t\t\tglVertex3fv (v);\n"
+        "#ifdef __ANDROID__\n"
+        "\t\t\t}\n"
+        "#endif\n",
+        "water legacy draw guard",
+    )
+    warp = replace_scoped(
+        warp,
+        "void EmitWaterPolys (msurface_t *fa)",
+        "/*\n=============\nEmitSkyPolys",
         "\t\tglEnd ();\n\t}\n}\n",
+        "#ifdef __ANDROID__\n"
+        "\t\tif (!xz_suppress_special)\n"
+        "#endif\n"
         "\t\tglEnd ();\n"
         "#ifdef __ANDROID__\n"
         "\t\tif (xz_capture_count) {\n"
@@ -930,6 +950,8 @@ if "XZ_SPECIAL_SKY_LAYER_CAPTURE" not in warp:
         "#ifdef __ANDROID__\n"
         "\t\tfloat xz_capture[64 * 5];\n"
         "\t\tint xz_capture_count = p->numverts <= 64 ? p->numverts : 0;\n"
+        "\t\tint xz_suppress_special = XzAndroidRuntime_ShouldSuppressLegacyWorldDraw(XZ_LEGACY_DRAW_SPECIAL);\n"
+        "\t\tif (!xz_suppress_special)\n"
         "#endif\n"
         "\t\tglBegin (GL_POLYGON);\n",
         "sky-layer begin",
@@ -956,7 +978,25 @@ if "XZ_SPECIAL_SKY_LAYER_CAPTURE" not in warp:
         warp,
         "void EmitSkyPolys (msurface_t *fa)",
         "void EmitFlatSkyPolys (msurface_t *fa)",
+        "\t\t\tglTexCoord2f (s, t);\n\t\t\tglVertex3fv (v);\n",
+        "#ifdef __ANDROID__\n"
+        "\t\t\tif (!xz_suppress_special) {\n"
+        "#endif\n"
+        "\t\t\tglTexCoord2f (s, t);\n"
+        "\t\t\tglVertex3fv (v);\n"
+        "#ifdef __ANDROID__\n"
+        "\t\t\t}\n"
+        "#endif\n",
+        "sky-layer legacy draw guard",
+    )
+    warp = replace_scoped(
+        warp,
+        "void EmitSkyPolys (msurface_t *fa)",
+        "void EmitFlatSkyPolys (msurface_t *fa)",
         "\t\tglEnd ();\n\t}\n}\n\n",
+        "#ifdef __ANDROID__\n"
+        "\t\tif (!xz_suppress_special)\n"
+        "#endif\n"
         "\t\tglEnd ();\n"
         "#ifdef __ANDROID__\n"
         "\t\tif (xz_capture_count) {\n"
