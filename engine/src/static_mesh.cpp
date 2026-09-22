@@ -660,6 +660,70 @@ measureStaticMeshQuality(
     metrics.robustThirdExtent90 =
         sortedRobust[2];
 
+    constexpr std::size_t kVoxelAxisBins = 8U;
+    constexpr std::size_t kVoxelCount =
+        kVoxelAxisBins *
+        kVoxelAxisBins *
+        kVoxelAxisBins;
+    std::array<std::uint32_t, kVoxelCount>
+        voxelCounts{};
+    std::uint32_t peakVoxelCount = 0U;
+
+    for (const auto& batch : asset.batches) {
+        for (const auto& vertex : batch.vertices) {
+            const std::array<float, 3> position{
+                vertex.x,
+                vertex.y,
+                vertex.z,
+            };
+            std::array<std::size_t, 3> voxel{};
+
+            for (std::size_t axis = 0U;
+                 axis < position.size();
+                 ++axis) {
+                if (extents[axis] <= 1.0e-6f) {
+                    voxel[axis] = 0U;
+                    continue;
+                }
+
+                const float normalized =
+                    std::clamp(
+                        (position[axis] -
+                         minimum[axis]) /
+                            extents[axis],
+                        0.0f,
+                        1.0f);
+
+                voxel[axis] =
+                    std::min<std::size_t>(
+                        static_cast<std::size_t>(
+                            normalized *
+                            static_cast<float>(
+                                kVoxelAxisBins)),
+                        kVoxelAxisBins - 1U);
+            }
+
+            const std::size_t voxelIndex =
+                voxel[0] +
+                kVoxelAxisBins *
+                    (voxel[1] +
+                     kVoxelAxisBins *
+                         voxel[2]);
+
+            auto& count =
+                voxelCounts[voxelIndex];
+            ++count;
+            peakVoxelCount =
+                std::max(
+                    peakVoxelCount,
+                    count);
+        }
+    }
+
+    metrics.peakVoxelOccupancyRatio =
+        static_cast<float>(peakVoxelCount) /
+        static_cast<float>(vertexCount);
+
     return metrics;
 }
 
@@ -683,7 +747,10 @@ passesViewmodelStaticMeshSanity(
         metrics.batchCount <= 128U &&
         metrics.vertexCount >= 96U &&
         metrics.vertexCount <= 600000U &&
+        metrics.indexCount >= 96U &&
         metrics.indexCount <= 900000U &&
+        (metrics.indexCount % 3U) == 0U &&
+        metrics.peakVoxelOccupancyRatio <= 0.75f &&
         metrics.longestExtent >= 0.30f &&
         metrics.longestExtent <= 1.50f &&
         metrics.robustAxisCoverage90 >= 0.20f &&
