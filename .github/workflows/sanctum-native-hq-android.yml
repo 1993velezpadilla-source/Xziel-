@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 80
     env:
-      SANCTUM_ASSET_SHA: 5563953866c7003cfcea28654378a91b3658bd34
+      SANCTUM_ASSET_SHA: dfa4848bc7707175b86bd49dfc88799517d0b43b
       GH_TOKEN: ${{ github.token }}
 
     steps:
@@ -105,6 +105,7 @@ jobs:
             runtimeTriangles,
             dressingTriangles,
             runtimeTotalTriangles,
+            dynamicBarricadeObjectsExcluded,
             textureMaxDimension,
             batchCount,
             textureCount,
@@ -119,6 +120,7 @@ jobs:
           jq -e '.vertexStrideBytes == 36' "$REPORT"
           jq -e '.runtimeTriangles >= 1045000' "$REPORT"
           jq -e '.textureMaxDimension >= 4096' "$REPORT"
+          jq -e '.dynamicBarricadeObjectsExcluded >= 140' "$REPORT"
 
           jq '{
             schemaVersion,
@@ -383,6 +385,8 @@ jobs:
           grep -q "XZIEL_VULKAN_SURFACE_ROTATION"             dist/sanctum-hq-logcat.txt
 
           grep -q "XZIEL_SANCTUM_MESH_READY"             dist/sanctum-hq-logcat.txt
+
+          grep -Eq             "XZIEL_SANCTUM_DYNAMIC_BARRICADES_READY windows=28"             dist/sanctum-hq-logcat.txt
 
           grep -Eq             "XZIEL_SANCTUM_PROFILE_READY hp=68 spawnInterval=0\.88 interRound=5\.5 baseZombies=5 maxActive=10 points=500"             dist/sanctum-hq-logcat.txt
 
