@@ -86,6 +86,7 @@ int XzGeometryTap_CaptureSpriteQuad(
     const float projection[16]);
 
 const XzGeometryFrame *XzGeometryTap_GetReadFrame(void);
+const XzGeometryFrame *XzGeometryTap_GetWriteFrame(void);
 int XzGeometryTap_SelfTest(void);
 
 #ifdef __cplusplus
