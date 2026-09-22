@@ -70,6 +70,15 @@ for o in lod_objects:
     o.hide_set(False)
     o.hide_render = False
 
+# Raycasts must see only the architectural render mesh. Gameplay proxy meshes,
+# marker spheres, old collision and later-created barricades can otherwise
+# intercept the ray before it reaches the church surface.
+hidden_for_fit=[]
+for o in list(scene.objects):
+    if o.type=="MESH" and o not in lod_objects:
+        hidden_for_fit.append((o, o.hide_get()))
+        o.hide_set(True)
+
 # Build fitted collision by duplicating each zone's actual LOD mesh, then reducing.
 zone_colliders={}
 for src in lod_objects:
@@ -139,7 +148,9 @@ def find_surface(spawn, zone):
             d=Vector((math.cos(yaw),math.sin(yaw),base_dir.z))
             d.normalize()
             hit,loc,norm,face,obj,matrix = scene.ray_cast(depsgraph, origin, d, distance=40.0)
-            if hit and obj in lod_objects:
+            original=getattr(obj,"original",None) if obj else None
+            hit_name=(original.name if original else obj.name) if obj else ""
+            if hit and hit_name in {x.name for x in lod_objects}:
                 dist=(loc-origin).length
                 if best is None or dist<best["distance"]:
                     best={"location":loc.copy(),"normal":norm.copy(),"object":obj,"distance":dist}
@@ -162,6 +173,8 @@ def create_barricade(name, loc, normal, zone, source_spawn, source_obj=None, con
     o["source_spawn"]=source_spawn
     o["fit_method"]=confidence
     if source_obj: o["surface_object"]=source_obj
+    # Keep fitted barricades out of subsequent surface raycasts.
+    o.hide_set(True)
     return o
 
 def add_nav(name, loc, zone, kind, props=None):
@@ -260,9 +273,14 @@ for rec in fitted:
         edges.append({"a":zn.name,"b":"NAV_IN_"+rec["spawn"],"kind":"barricade_link"})
         edges.append({"a":"NAV_IN_"+rec["spawn"],"b":"NAV_OUT_"+rec["spawn"],"kind":"breach_link"})
 
-# Export fitted collision and barricades separately.
+# Restore scene visibility and unhide generated runtime geometry for export.
+for o,was_hidden in hidden_for_fit:
+    if o.name in bpy.data.objects:
+        o.hide_set(was_hidden)
 for c in collision_col.objects:
     c.hide_set(False)
+for b in barricade_col.objects:
+    b.hide_set(False)
 
 def export_collection(col, path):
     bpy.ops.object.select_all(action="DESELECT")
