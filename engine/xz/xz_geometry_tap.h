@@ -14,8 +14,15 @@ extern "C" {
 typedef enum {
     XZ_GEOMETRY_ALIAS = 0,
     XZ_GEOMETRY_SURFACE,
-    XZ_GEOMETRY_SPRITE
+    XZ_GEOMETRY_SPRITE,
+    XZ_GEOMETRY_EFFECT
 } XzGeometryKind;
+
+typedef enum {
+    XZ_GEOMETRY_TRIANGLES = 0,
+    XZ_GEOMETRY_TRIANGLE_FAN,
+    XZ_GEOMETRY_TRIANGLE_STRIP
+} XzGeometryPrimitive;
 
 typedef struct {
     float position[3];
@@ -36,6 +43,7 @@ typedef struct {
     unsigned int alpha_func;
     float alpha_ref;
     unsigned int texture_env_mode;
+    unsigned int texture_enabled;
 
     unsigned int fog_enabled;
     float fog_start;
@@ -77,6 +85,7 @@ typedef struct {
     unsigned int alias_batches;
     unsigned int surface_batches;
     unsigned int sprite_batches;
+    unsigned int effect_batches;
 
     unsigned int dropped_batches;
     unsigned int dropped_vertices;
@@ -114,6 +123,18 @@ int XzGeometryTap_CaptureSurfaceFan(
 int XzGeometryTap_CaptureSpriteQuad(
     const float positions[12],
     const float uvs[8],
+    int texture_id,
+    const XzGeometryRenderState *state,
+    const float modelview[16],
+    const float projection[16]);
+
+int XzGeometryTap_CapturePrimitive(
+    const float *source,
+    unsigned int count,
+    unsigned int stride_floats,
+    unsigned int position_offset,
+    unsigned int texture_offset,
+    XzGeometryPrimitive primitive,
     int texture_id,
     const XzGeometryRenderState *state,
     const float modelview[16],
