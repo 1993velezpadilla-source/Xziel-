@@ -1,6 +1,6 @@
 {
   "project": "Cathedral of Absolution / Cripplegate",
-  "version": 17,
+  "version": 18,
   "shared": {
     "rig": "game_engine",
     "unit_scale": "meters",
@@ -38,8 +38,8 @@
       "height_m": 1.8,
       "gender": 0.96,
       "age": 0.99,
-      "weight": 0.008,
-      "muscle": 0.02,
+      "weight": 0.006,
+      "muscle": 0.018,
       "style": "sister_of_ash",
       "palette": [
         "ash_blue",

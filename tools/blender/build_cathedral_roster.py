@@ -402,13 +402,15 @@ def sister_mouth_pose(body,h):
     body.data.update()
 
 
+
 def sister_mouth_slit(body,h,mats):
-    """Visible undead mouth opening placed on the facial surface, not hidden behind it."""
+    """Clearly readable but narrow undead mouth opening on the visible facial surface."""
     fy=face_front_y(body,h)
-    dark=mat("M_SisterMouthSlit","#080506",.98,0,noise=False)
-    teeth=mat("M_SisterTeethHint","#675E50",.82,0,noise=False)
-    slit=uv_sphere("SisterMouthSlit",(0,fy-.0022*h,.850*h),(.018*h,.0010*h,.0055*h),dark)
-    tooth=cube("SisterTeethHint",(0,fy-.0026*h,.855*h),(.009*h,.0008*h,.0011*h),teeth,.0002*h)
+    dark=mat("M_SisterMouthSlit","#070405",.98,0,noise=False)
+    teeth=mat("M_SisterTeethHint","#766C59",.82,0,noise=False)
+    pts=[(-.019*h,fy-.0040*h,.850*h),(0,fy-.0045*h,.847*h),(.019*h,fy-.0040*h,.850*h)]
+    slit=curve_chain("SisterMouthSlit",pts,dark,.00155*h)
+    tooth=cube("SisterTeethHint",(0,fy-.0048*h,.855*h),(.010*h,.0009*h,.0014*h),teeth,.0002*h)
     return [slit,tooth]
 
 def sister_cloth_distress(mats):
@@ -522,13 +524,13 @@ def sister_shoe_from_body(body,h,side,label,material):
 
 
 
+
 def sister_extremity_decay(body,h):
-    """Corpse mottling for the exposed hands; avoids clean mannequin hands."""
-    hand=mat("M_SisterHandDecay","#776E72",.86,0,noise=True)
+    hand=mat("M_SisterHandDecay","#8A7B7F",.88,0,noise=True)
     idx=len(body.data.materials); body.data.materials.append(hand)
     for p in body.data.polygons:
         c=p.center
-        if abs(c.x/h)>.225 and .455<c.z/h<.640:
+        if abs(c.x/h)>.225 and .445<c.z/h<.635:
             p.material_index=idx
 
 def sister_face_scars(body,h,mats):
@@ -546,25 +548,27 @@ def sister_face_scars(body,h,mats):
 
 
 
+
 def sister_boot_pair(body,rig,h,mats):
-    """Closed low shoes generated from the actual foot bounds, guaranteeing toe coverage."""
+    """Closed worn shoes expanded beyond the real foot bounds so no anatomical toes can leak."""
     leather=mat("M_SisterBootLeather","#171516",.78,0,noise=True)
-    sole=mat("M_SisterBootSole","#0E0D0E",.86,0,noise=True)
+    sole=mat("M_SisterBootSole","#0C0B0C",.88,0,noise=True)
     out=[]
     for sign,label,bone in ((-1,"L","foot_l"),(1,"R","foot_r")):
-        pts=[v.co for v in body.data.vertices if v.co.z/h<.135 and v.co.x*sign>0]
+        pts=[v.co for v in body.data.vertices if v.co.z/h<.140 and v.co.x*sign>0]
         if not pts: continue
         minx=min(p.x for p in pts); maxx=max(p.x for p in pts)
         miny=min(p.y for p in pts); maxy=max(p.y for p in pts)
-        minz=min(p.z for p in pts); maxz=max(p.z for p in pts)
-        cx=(minx+maxx)*.5; cy=(miny+maxy)*.5-.006*h
-        sx=max(.040*h,(maxx-minx)*.60)
-        sy=max(.072*h,(maxy-miny)*.62+.012*h)
-        upper=cube("SisterShoe_"+label,(cx,cy,minz+.032*h),(sx,sy,.030*h),leather,.011*h)
+        minz=min(p.z for p in pts)
+        cx=(minx+maxx)*.5
+        cy=(miny+maxy)*.5-.018*h
+        sx=max(.046*h,(maxx-minx)*.80)
+        sy=max(.092*h,(maxy-miny)*.88+.025*h)
+        upper=cube("SisterShoe_"+label,(cx,cy,minz+.038*h),(sx,sy,.036*h),leather,.014*h)
         out.append(upper)
-        toe=uv_sphere("SisterToeCap_"+label,(cx,miny-.010*h,minz+.030*h),(sx*.95,.038*h,.029*h),leather)
+        toe=uv_sphere("SisterToeCap_"+label,(cx,miny-.030*h,minz+.037*h),(sx*.98,.052*h,.033*h),leather)
         out.append(toe)
-        sol=cube("SisterSole_"+label,(cx,cy,minz+.008*h),(sx*1.02,sy*1.02,.008*h),sole,.005*h)
+        sol=cube("SisterSole_"+label,(cx,cy-.004*h,minz+.006*h),(sx*1.04,sy*1.05,.009*h),sole,.005*h)
         out.append(sol)
     return out
 
@@ -639,28 +643,41 @@ def wimple_face_frame(body,h,material):
 
 
 
+
 def sister_wimple_frame(body,h,material):
-    """Thin oval fabric rim around the face, sized to the actual face instead of a giant ring."""
+    """Three fitted cloth strips: forehead + left/right temples. Avoids an artificial oval ring."""
     fy=face_front_y(body,h)
-    seg=96; cz=.895*h; y=fy-.0020*h
-    inner_rx=.043*h; inner_rz=.064*h
-    outer_rx=.050*h; outer_rz=.073*h
     vs=[]; fs=[]
-    for rx,rz in ((outer_rx,outer_rz),(inner_rx,inner_rz)):
-        for i in range(seg):
-            a=2*math.pi*i/seg
-            # slight irregularity keeps the cloth from reading as a perfect plastic ring
-            wob=1.0+.020*math.sin(a*5.0)+.009*math.sin(a*9.0)
-            x=rx*wob*math.cos(a)
-            z=cz+rz*wob*math.sin(a)
-            yy=y-.0010*h*math.cos(a*2.0)
-            vs.append((x,yy,z))
-    for i in range(seg):
-        j=(i+1)%seg
-        fs.append((i,j,seg+j,seg+i))
+    def add_strip(points_a,points_b):
+        base=len(vs)
+        vs.extend(points_a); vs.extend(points_b)
+        n=len(points_a)
+        for i in range(n-1):
+            fs.append((base+i,base+i+1,base+n+i+1,base+n+i))
+    # Forehead strip follows the brow curvature.
+    n=26; a=[]; b=[]
+    for i in range(n):
+        t=i/(n-1); x=(-.050+.100*t)*h
+        curve=(x/(.050*h))
+        y=fy+(.004+.008*curve*curve)*h
+        z=(.956+.006*(1.0-curve*curve))*h
+        a.append((x,y-.0020*h,z+.0060*h))
+        b.append((x,y-.0020*h,z-.0060*h))
+    add_strip(a,b)
+    # Temple strips taper toward jaw.
+    for side in (-1,1):
+        a=[]; b=[]; n=24
+        for i in range(n):
+            t=i/(n-1)
+            z=(.947-.105*t)*h
+            x=side*(.052+.010*t)*h
+            y=fy+(.006+.012*t)*h
+            a.append((x-side*.0050*h,y-.0015*h,z))
+            b.append((x+side*.0050*h,y-.0015*h,z))
+        add_strip(a,b)
     mesh=bpy.data.meshes.new("SisterWimpleFrameMesh"); mesh.from_pydata(vs,[],fs); mesh.update()
     o=bpy.data.objects.new("SisterWimpleFrame",mesh); bpy.context.collection.objects.link(o); assign(o,material)
-    sol=o.modifiers.new("WimpleThickness","SOLIDIFY"); sol.thickness=.0014*h; sol.offset=0
+    sol=o.modifiers.new("WimpleThickness","SOLIDIFY"); sol.thickness=.0015*h; sol.offset=0
     bev=o.modifiers.new("WimpleSoft","BEVEL"); bev.width=.0008*h; bev.segments=2
     sub=o.modifiers.new("WimpleSmooth","SUBSURF"); sub.subdivision_type="CATMULL_CLARK"; sub.levels=1; sub.render_levels=1
     return o
@@ -673,19 +690,20 @@ def sister_mouth_slit(body,h,mats):
 
 
 
+
 def sister_layered_hem(h,mats):
     ivory=mats["dirty_ivory"]; blue=mats["ash_blue"]; out=[]
     a=garment_shell("IvoryRagLayerA",h,ivory,[
-        (.035,.132,.089,0),(.085,.141,.095,0),(.150,.143,.096,0),(.220,.139,.094,0),(.300,.132,.090,0),(.390,.118,.083,0)
-    ],116,.095,.78,1)
+        (.045,.130,.088,0),(.095,.141,.095,0),(.155,.144,.097,0),(.220,.141,.095,0),(.290,.133,.091,0),(.375,.119,.084,0)
+    ],120,.090,.82,1)
     b=garment_shell("IvoryRagLayerB",h,ivory,[
-        (.070,.137,.093,0),(.120,.145,.097,0),(.180,.145,.096,0),(.240,.140,.094,0),(.300,.130,.089,0)
-    ],116,.085,1.62,1)
+        (.075,.136,.092,0),(.120,.146,.098,0),(.175,.146,.097,0),(.230,.141,.095,0),(.285,.131,.090,0)
+    ],120,.082,1.70,1)
     out.extend([a,b])
     punch_cloth_holes(a,h,[(-.060,.205,.017,.028,True),(.074,.300,.017,.026,False)])
     punch_cloth_holes(b,h,[(.045,.145,.015,.023,True),(-.082,.255,.014,.022,False)])
-    for i,(x,z,wid,hh,ph) in enumerate([(-.082,.320,.012,.042,.3),(-.030,.300,.011,.038,1.1),(.036,.330,.012,.045,2.0),(.088,.292,.011,.040,2.9)]):
-        out.append(irregular_patch(f"BlueRagTab_{i:02}",h,blue,x,z,wid,hh,-.104,ph))
+    for i,(x,z,wid,hh,ph) in enumerate([(-.082,.320,.011,.038,.3),(-.030,.300,.010,.034,1.1),(.036,.330,.011,.040,2.0),(.088,.292,.010,.036,2.9)]):
+        out.append(irregular_patch(f"BlueRagTab_{i:02}",h,blue,x,z,wid,hh,-.103,ph))
     return out
 
 def sister_fitted_face_wimple(body,h,mats):
@@ -978,6 +996,7 @@ def rigid_bind_mesh(obj,rig,bone):
 
 
 
+
 def garment_shell(name,h,material,profile,segments=72,tatter=0.0,phase=0.0,subdiv=1):
     vs=[]; fs=[]; rings=len(profile)
     hero=name.startswith(("BlueOuterSkirt","IvoryUnderSkirt","IvoryRagLayer"))
@@ -985,17 +1004,17 @@ def garment_shell(name,h,material,profile,segments=72,tatter=0.0,phase=0.0,subdi
         for i in range(segments):
             a=2*math.pi*i/segments
             if hero:
-                fold=.040*math.sin(a*7.0+phase+r*.34)+.016*math.sin(a*13.0+phase*.63+r*.15)
-                gather=.010*math.sin(a*3.0+r*.55)
+                fold=.070*math.sin(a*7.0+phase+r*.34)+.025*math.sin(a*13.0+phase*.63+r*.15)
+                gather=.016*math.sin(a*3.0+r*.55)
             else:
-                fold=.022*math.sin(a*6.0+phase+r*.31)+.009*math.sin(a*11.0+phase*.7)
+                fold=.024*math.sin(a*6.0+phase+r*.31)+.010*math.sin(a*11.0+phase*.7)
                 gather=0.0
             wob=1.0 + fold
             x=(rxf+gather)*h*wob*math.cos(a)
             y=yoff*h + (ryf+.45*gather)*h*(1.0+.62*fold)*math.sin(a)
             z=zf*h
             if hero:
-                z += .004*h*math.sin(a*5.0+r*.8)
+                z += .005*h*math.sin(a*5.0+r*.8)
             if r==0 and tatter:
                 tear=.24+.42*abs(math.sin(a*3.2+phase))+.34*abs(math.sin(a*7.1+phase*.4))
                 if i%17 in (0,1): tear*=1.45
@@ -1349,7 +1368,7 @@ def bind_generated_to_rig(body,rig,h):
             elif n.startswith(("RopeBelt","RosaryBelt")): parent_to_bone(o,rig,"pelvis")
             continue
         if o.type!="MESH": continue
-        if n.startswith("Eye") or n.startswith(("HairLock","HairRibbon","HairFace")) or n=="HairDrape" or n in ("OuterVeil","InnerWimple","NunBackVeil","StainedHalo","NunCoif","NunHoodCrown","NunForeheadBand","NunInnerCoif","NunOuterHood","NunWimpleBrow","NunWimpleSides","NunWimpleNeck","ShadeHood","HairCap") or n.startswith(("HaloGlass","HaloPane","SocketRing")):
+        if n.startswith("Eye") or n.startswith(("HairLock","HairRibbon","HairFace")) or n=="HairDrape" or n in ("OuterVeil","InnerWimple","NunBackVeil","SisterWimpleFrame","StainedHalo","NunCoif","NunHoodCrown","NunForeheadBand","NunInnerCoif","NunOuterHood","NunWimpleBrow","NunWimpleSides","NunWimpleNeck","ShadeHood","HairCap") or n.startswith(("HaloGlass","HaloPane","SocketRing")):
             rigid_bind_mesh(o,rig,"head"); continue
         if n.startswith(("SleeveUpper_L","SleeveLower_L","SleeveCuff_L")):
             parent_to_bone(o,rig,"upperarm_l" if "Upper" in n else "lowerarm_l"); continue
