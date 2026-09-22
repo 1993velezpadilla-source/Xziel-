@@ -122,5 +122,93 @@ int main() {
 
     runtime.beginRound();
 
+    // Sanctum-sized capacity proof: progression doors + fitted barricades must
+    // coexist in the same native map without exhausting dynamic blocker pools.
+    {
+        xziel::FpsPlayerController sanctumPlayer;
+        xziel::HordeDirector sanctumHorde;
+        xziel::InteractionSystem sanctumInteractions;
+        xziel::MapRuntime sanctumRuntime;
+        xziel::MapDefinition sanctum{};
+
+        for (std::size_t i = 0; i < 7; ++i) {
+            const std::uint32_t id =
+                2000U + static_cast<std::uint32_t>(i);
+            sanctum.doors[i].door = {
+                .id = id,
+                .blocker = {
+                    .minimum = {
+                        -0.2f + static_cast<float>(i),
+                        -1.58f,
+                        0.0f,
+                    },
+                    .maximum = {
+                        0.2f + static_cast<float>(i),
+                        1.0f,
+                        0.2f,
+                    },
+                },
+                .cost = 750U,
+            };
+            sanctum.doors[i].interaction = {
+                .id = id,
+                .kind = xziel::InteractionKind::Door,
+                .position = {
+                    static_cast<float>(i),
+                    -0.40f,
+                    0.0f,
+                },
+            };
+        }
+        sanctum.doorCount = 7;
+
+        for (std::size_t i = 0; i < 28; ++i) {
+            const std::uint32_t id =
+                3000U + static_cast<std::uint32_t>(i);
+            sanctum.windows[i].window = {
+                .id = id,
+                .blocker = {
+                    .minimum = {
+                        -0.8f,
+                        -1.58f,
+                        1.0f + static_cast<float>(i),
+                    },
+                    .maximum = {
+                        0.8f,
+                        1.0f,
+                        1.2f + static_cast<float>(i),
+                    },
+                },
+                .barricade = {
+                    .maximumPlanks = 6,
+                },
+            };
+            sanctum.windows[i].interaction = {
+                .id = id,
+                .kind = xziel::InteractionKind::Use,
+                .position = {
+                    0.0f,
+                    -0.30f,
+                    0.9f + static_cast<float>(i),
+                },
+            };
+        }
+        sanctum.windowCount = 28;
+
+        const auto loadedSanctum =
+            sanctumRuntime.load(
+                sanctum,
+                sanctumPlayer,
+                sanctumHorde,
+                sanctumInteractions);
+
+        assert(loadedSanctum.success);
+        assert(loadedSanctum.doors == 7);
+        assert(loadedSanctum.windows == 28);
+        assert(loadedSanctum.interactions == 35);
+        assert(sanctumRuntime.doors().count() == 7);
+        assert(sanctumRuntime.windows().count() == 28);
+    }
+
     return 0;
 }
