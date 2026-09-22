@@ -37,7 +37,7 @@ def find_endpoint(fragment: str):
             return ("fn_index", int(idx))
     return None
 
-gallery = [(handle_file(str(p)), None) for p in REFS]
+gallery = [{"image": handle_file(str(p)), "caption": None} for p in REFS]
 front = handle_file(str(REFS[0]))
 
 pre = find_endpoint("preprocess_images")
