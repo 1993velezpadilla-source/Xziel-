@@ -6,7 +6,7 @@
   "height_m": 1.8,
   "rig": "game_engine",
   "bones": 53,
-  "triangles_estimate": 83382,
+  "triangles_estimate": 86618,
   "animations": [
     "idle",
     "walk",
@@ -36,5 +36,5 @@
     "preview_back.png",
     "preview_face.png"
   ],
-  "production_status": "Sister of Ash pass 25 \u2014 tighter hood, large ivory lower skirt, realistic closed shoes, darker corpse skin, mouth slit, stronger facial hollows"
+  "production_status": "Sister of Ash pass 26 \u2014 tight face wimple, multi-tier ragged ivory hem, closed toe caps, darker corpse face, mouth slit, reduced mannequin symmetry"
 }
