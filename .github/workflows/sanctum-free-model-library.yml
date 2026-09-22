@@ -1,0 +1,311 @@
+name: Fetch Sanctum Free Character Models
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/sanctum-native-xziel-v1
+    paths:
+      - ".github/workflows/sanctum-free-model-library.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-models:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: feature/sanctum-native-xziel-v1
+          fetch-depth: 0
+
+      - name: Install converters
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq p7zip-full assimp-utils unzip file
+          python3 -m pip install --quiet pillow
+
+      - name: Download legal free source models
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _sanctum_downloads
+          cd _sanctum_downloads
+
+          curl -fL --retry 5 --retry-delay 2             "https://opengameart.org/sites/default/files/Male%20City%20Zombie.7z"             -o male_city_zombie.7z
+
+          curl -fL --retry 5 --retry-delay 2             "https://opengameart.org/sites/default/files/Zombie.zip"             -o mobile_ready_zombie.zip
+
+          curl -fL --retry 5 --retry-delay 2             "https://opengameart.org/sites/default/files/new_thin_zom.zip"             -o thin_zombie.zip
+
+          curl -fL --retry 5 --retry-delay 2             "https://opengameart.org/sites/default/files/MONK.blend"             -o monk.blend
+
+          curl -fL --retry 5 --retry-delay 2             "https://opengameart.org/sites/default/files/oldlady-v2.blend"             -o old_lady.blend
+
+          curl -fL --retry 5 --retry-delay 2             "https://opengameart.org/sites/default/files/KzuOpenGameArt_3uhox.zip"             -o female_character.zip
+
+          curl -fL --retry 5 --retry-delay 2             "https://opengameart.org/sites/default/files/giant_mutant.zip"             -o giant_mutant.zip
+
+          curl -fL --retry 5 --retry-delay 2             "https://opengameart.org/sites/default/files/Low_Poly%20Child-Character.zip"             -o lowpoly_kid.zip
+
+          curl -fL --retry 5 --retry-delay 2             "https://opengameart.org/sites/default/files/monster.obj"             -o monster.obj
+
+          curl -fL --retry 5 --retry-delay 2             "https://opengameart.org/sites/default/files/WomanBody13.obj"             -o female_body.obj
+
+          curl -fL --retry 5 --retry-delay 2             "https://opengameart.org/sites/default/files/male_3d.obj"             -o male_3d.obj
+
+          sha256sum * > SHA256SUMS.txt
+
+      - name: Extract archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _sanctum_extract
+          7z x -y _sanctum_downloads/male_city_zombie.7z -o_sanctum_extract/male_city_zombie >/dev/null
+          unzip -q -o _sanctum_downloads/mobile_ready_zombie.zip -d _sanctum_extract/mobile_ready_zombie
+          unzip -q -o _sanctum_downloads/thin_zombie.zip -d _sanctum_extract/thin_zombie
+          unzip -q -o _sanctum_downloads/female_character.zip -d _sanctum_extract/female_character
+          unzip -q -o _sanctum_downloads/giant_mutant.zip -d _sanctum_extract/giant_mutant
+          unzip -q -o _sanctum_downloads/lowpoly_kid.zip -d _sanctum_extract/lowpoly_kid
+
+          mkdir -p _sanctum_extract/monk _sanctum_extract/old_lady _sanctum_extract/monster _sanctum_extract/female_body _sanctum_extract/male_3d
+          cp _sanctum_downloads/monk.blend _sanctum_extract/monk/
+          cp _sanctum_downloads/old_lady.blend _sanctum_extract/old_lady/
+          cp _sanctum_downloads/monster.obj _sanctum_extract/monster/
+          cp _sanctum_downloads/female_body.obj _sanctum_extract/female_body/
+          cp _sanctum_downloads/male_3d.obj _sanctum_extract/male_3d/
+
+          find _sanctum_extract -type f -printf '%P\t%s bytes\n' | sort > _sanctum_extract/FILES.txt
+
+      - name: Select or convert best OBJ from each pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="assets/sanctum/free_models"
+          rm -rf "$OUT"
+          mkdir -p "$OUT"
+
+          cat > /tmp/select_model.py <<'PY'
+          from pathlib import Path
+          import subprocess, shutil, json, os, sys
+
+          sources = [
+            ("male_city_zombie", "CC0", "https://opengameart.org/node/111870"),
+            ("mobile_ready_zombie", "CC0", "https://opengameart.org/content/mobile-ready-zombie"),
+            ("thin_zombie", "CC-BY-3.0", "https://opengameart.org/content/thin-zombie-awake-zombie-asset"),
+            ("monk", "CC0", "https://opengameart.org/content/monk"),
+            ("old_lady", "CC0", "https://opengameart.org/content/old-lady"),
+            ("female_character", "CC0", "https://opengameart.org/content/female-character"),
+            ("giant_mutant", "CC0", "https://opengameart.org/content/giant-mutant"),
+            ("lowpoly_kid", "CC-BY-4.0", "https://opengameart.org/content/lowpolykid"),
+            ("monster", "CC0", "https://opengameart.org/content/monster-3"),
+            ("female_body", "CC0", "https://opengameart.org/content/female-body"),
+            ("male_3d", "CC0", "https://opengameart.org/content/3d-male-0"),
+          ]
+
+          root=Path("_sanctum_extract")
+          out=Path("assets/sanctum/free_models")
+          report=[]
+
+          def candidates(folder, ext):
+              return sorted(folder.rglob("*"+ext), key=lambda p:p.stat().st_size, reverse=True)
+
+          for sid,license_id,page in sources:
+              src=root/sid
+              dst=out/sid
+              dst.mkdir(parents=True,exist_ok=True)
+              chosen=None
+              note=""
+
+              objs=candidates(src,".obj")
+              if objs:
+                  chosen=objs[0]
+                  shutil.copy2(chosen,dst/(sid+".obj"))
+                  note="native OBJ"
+              else:
+                  for ext in (".fbx",".dae",".blend"):
+                      cs=candidates(src,ext)
+                      if not cs: continue
+                      candidate=cs[0]
+                      target=dst/(sid+".obj")
+                      r=subprocess.run(["assimp","export",str(candidate),str(target),"-f","objnomtl"],
+                                       stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True)
+                      if r.returncode==0 and target.exists() and target.stat().st_size>100:
+                          chosen=candidate
+                          note=f"converted from {ext}"
+                          break
+
+              status="ok" if (dst/(sid+".obj")).exists() else "conversion_failed"
+              # Copy nearby small textures when available.
+              if chosen is not None:
+                  for p in chosen.parent.iterdir():
+                      if p.is_file() and p.suffix.lower() in {".png",".jpg",".jpeg",".tga",".bmp"} and p.stat().st_size <= 8_000_000:
+                          shutil.copy2(p,dst/p.name)
+
+              meta={
+                "id":sid,
+                "status":status,
+                "license":license_id,
+                "sourcePage":page,
+                "sourceFile":str(chosen) if chosen else None,
+                "conversion":note,
+                "commercialUse":True,
+                "attributionRequired":license_id.startswith("CC-BY"),
+              }
+              (dst/"SOURCE.json").write_text(json.dumps(meta,indent=2),encoding="utf-8")
+              report.append(meta)
+
+          (out/"library_manifest.json").write_text(json.dumps({
+            "schemaVersion":1,
+            "purpose":"Real free third-party base models for Sanctum character production; replace primitive generated proxies.",
+            "models":report,
+          },indent=2),encoding="utf-8")
+
+          ok=sum(x["status"]=="ok" for x in report)
+          print("SANCTUM_FREE_MODELS_READY",ok,"/",len(report))
+          for x in report: print(x["id"],x["status"],x["conversion"])
+          if ok < 7:
+              raise SystemExit("Too few usable models downloaded/converted")
+          PY
+
+          python3 /tmp/select_model.py | tee "$OUT/build-report.txt"
+
+      - name: Generate real OBJ contact sheet
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/render_objs.py <<'PY'
+          from pathlib import Path
+          from PIL import Image, ImageDraw, ImageFont
+          import math, json
+
+          root=Path("assets/sanctum/free_models")
+          objs=sorted(root.glob("*/*.obj"))
+          W=2200
+          cols=4
+          panel_w=520
+          panel_h=620
+          rows=max(1,math.ceil(len(objs)/cols))
+          H=130+rows*panel_h+50
+          im=Image.new("RGB",(W,H),(15,15,18))
+          d=ImageDraw.Draw(im)
+          try:
+              title=ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",46)
+              namef=ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",25)
+              small=ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",18)
+          except:
+              title=namef=small=None
+          d.text((45,28),"SANCTUM — DOWNLOADED FREE MODELS",font=title,fill=(240,240,244))
+          d.text((48,83),"Actual third-party OBJ geometry downloaded by GitHub Actions",font=small,fill=(170,170,178))
+
+          def load_obj(path):
+              vs=[]; fs=[]
+              for line in path.read_text(errors="ignore").splitlines():
+                  if line.startswith("v "):
+                      try:
+                          _,x,y,z,*_=line.split()
+                          vs.append((float(x),float(y),float(z)))
+                      except: pass
+                  elif line.startswith("f "):
+                      idx=[]
+                      for t in line.split()[1:]:
+                          try: idx.append(int(t.split('/')[0])-1)
+                          except: pass
+                      if len(idx)>=3: fs.append(idx)
+              return vs,fs
+
+          def proj(p):
+              x,y,z=p
+              yaw=-0.55
+              cy,sy=math.cos(yaw),math.sin(yaw)
+              xx=x*cy-y*sy
+              yy=x*sy+y*cy
+              return xx,z,yy
+
+          for i,path in enumerate(objs):
+              r=i//cols; c=i%cols
+              x0=45+c*540; y0=125+r*panel_h
+              x1=x0+500; y1=y0+575
+              d.rounded_rectangle((x0,y0,x1,y1),10,fill=(24,24,28),outline=(75,75,84),width=2)
+              label=path.parent.name.replace("_"," ").upper()
+              d.text((x0+16,y0+14),label,font=namef,fill=(235,235,240))
+              vs,fs=load_obj(path)
+              if not vs:
+                  d.text((x0+16,y0+60),"OBJ parse failed",font=small,fill=(210,110,110))
+                  continue
+              P=[proj(v) for v in vs]
+              xs=[p[0] for p in P]; zs=[p[1] for p in P]
+              minx,maxx=min(xs),max(xs); minz,maxz=min(zs),max(zs)
+              dx=max(maxx-minx,1e-6); dz=max(maxz-minz,1e-6)
+              scale=min(440/dx,455/dz)
+              cx=(x0+x1)/2
+              base=y1-40
+              # sampled wireframe for speed
+              step=max(1,len(fs)//3500)
+              for face in fs[::step]:
+                  pts=[]
+                  for idx in face[:12]:
+                      if 0 <= idx < len(P):
+                          px,pz,_=P[idx]
+                          pts.append((cx+(px-(minx+maxx)/2)*scale,base-(pz-minz)*scale))
+                  if len(pts)>=3:
+                      pts.append(pts[0])
+                      d.line(pts,fill=(170,174,182),width=1)
+              d.text((x0+16,y1-29),f"{len(vs):,} verts / {len(fs):,} faces",font=small,fill=(145,145,154))
+
+          im.save(root/"PREVIEW.png")
+          PY
+          python3 /tmp/render_objs.py
+
+      - name: Add provenance readme
+        shell: bash
+        run: |
+          cat > assets/sanctum/free_models/README.md <<'EOF'
+          # Sanctum free model library
+
+          These are real third-party models downloaded from OpenGameArt and converted/copy-selected into OBJ for DCC-independent work.
+
+          Rules:
+          - Prefer CC0 assets for production bases.
+          - CC-BY assets require attribution in shipped credits.
+          - Do not treat a base model as final art; rework clothing/materials/silhouette to match Sanctum references.
+          - Keep SOURCE.json beside every model.
+          - Do not import assets with personal-use-only or unclear licenses.
+
+          Current intended uses:
+          - Male City Zombie / Mobile Ready Zombie / Thin Zombie: undead body and animation references.
+          - Monk: clergy/robe base.
+          - Old Lady / Female Character / Female Body: La Llorona, nun, and female apparition bases.
+          - Giant Mutant / Monster: Censer Brute and Reliquary Horror proportion/creature bases.
+          - Lowpoly Kid: Lost Child / Waterbound Child base.
+          - Male 3D: clean male anatomy/base for Grave Sexton, Bell Ringer, Penitent Deacon.
+          EOF
+          cp _sanctum_downloads/SHA256SUMS.txt assets/sanctum/free_models/SOURCE_SHA256SUMS.txt
+
+      - name: Commit selected free models to branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/sanctum/free_models
+          if git diff --cached --quiet; then
+            echo "No model changes to commit"
+            exit 0
+          fi
+          git commit -m "assets: add real free Sanctum character base models"
+          git push origin HEAD:feature/sanctum-native-xziel-v1
+
+      - name: Upload full model library artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sanctum-free-model-library
+          path: |
+            assets/sanctum/free_models
+            _sanctum_extract/FILES.txt
+          retention-days: 14
