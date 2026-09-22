@@ -72,8 +72,10 @@
     "current_candidate": {
       "id": "llorona_mis_hijos_search_loop",
       "role": "active_candidate",
-      "status": "rendering",
-      "duration_source": "actual_audio_eof"
+      "status": "active_candidate",
+      "duration_source": "actual_audio_eof",
+      "duration_s": 73.462563,
+      "generated_by": "tools/audio/generate_llorona_search_melotts.py"
     }
   },
   "hidden_fate": {
@@ -257,6 +259,7 @@
     "disappear_on_audio_end_if_no_rage": true,
     "interrupt_audio_on_child_discovery": true,
     "child_discovery_overrides_audio_window": true,
-    "if_no_dead_child": "wander_between_hidden_search_points"
+    "if_no_dead_child": "wander_between_hidden_search_points",
+    "duration_s": 73.462563
   }
 }
