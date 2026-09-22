@@ -1082,21 +1082,26 @@ bool VulkanClearRenderer::createSwapchain() noexcept {
         return false;
     }
 
+    const int nativeWindowWidth =
+        std::max(
+            1,
+            ANativeWindow_getWidth(window_));
+    const int nativeWindowHeight =
+        std::max(
+            1,
+            ANativeWindow_getHeight(window_));
+
     VkExtent2D extent = caps.currentExtent;
 
     if (extent.width ==
         std::numeric_limits<std::uint32_t>::max()) {
         const auto width =
             static_cast<std::uint32_t>(
-                std::max(
-                    1,
-                    ANativeWindow_getWidth(window_)));
+                nativeWindowWidth);
 
         const auto height =
             static_cast<std::uint32_t>(
-                std::max(
-                    1,
-                    ANativeWindow_getHeight(window_)));
+                nativeWindowHeight);
 
         extent.width =
             std::clamp(
@@ -1136,14 +1141,48 @@ bool VulkanClearRenderer::createSwapchain() noexcept {
         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     createInfo.imageSharingMode =
         VK_SHARING_MODE_EXCLUSIVE;
-    createInfo.preTransform =
+
+    // Xziel currently renders world + HUD in the surface's logical
+    // orientation and does not pre-rotate clip space for Android's
+    // VkSurfaceTransformKHR. Advertising currentTransform here told SurfaceFlinger
+    // the rotation was already baked into the image, producing a 90-degree
+    // sideways frame on landscape devices whose natural orientation is
+    // portrait. Prefer IDENTITY so Android owns the final display rotation.
+    // If a rare surface cannot accept identity, keep the platform transform
+    // rather than creating an invalid swapchain; the log below makes that
+    // fallback explicit for follow-up shader pre-rotation support.
+    VkSurfaceTransformFlagBitsKHR chosenPreTransform =
         caps.currentTransform;
+
+    if ((caps.supportedTransforms &
+         VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) != 0U) {
+        chosenPreTransform =
+            VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+    }
+
+    createInfo.preTransform =
+        chosenPreTransform;
     createInfo.compositeAlpha =
         chooseCompositeAlpha(
             caps.supportedCompositeAlpha);
     createInfo.presentMode =
         VK_PRESENT_MODE_FIFO_KHR;
     createInfo.clipped = VK_TRUE;
+
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
+        "XZIEL_VULKAN_SURFACE_ROTATION current=%u supported=0x%x chosen=%u extent=%ux%u window=%dx%d",
+        static_cast<unsigned int>(
+            caps.currentTransform),
+        static_cast<unsigned int>(
+            caps.supportedTransforms),
+        static_cast<unsigned int>(
+            chosenPreTransform),
+        extent.width,
+        extent.height,
+        nativeWindowWidth,
+        nativeWindowHeight);
 
     const VkResult result =
         vkCreateSwapchainKHR(
