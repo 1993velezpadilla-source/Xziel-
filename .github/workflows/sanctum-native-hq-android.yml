@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 80
     env:
-      SANCTUM_ASSET_SHA: da377437f461a198de0fa1d2a49d433d5dca8a75
+      SANCTUM_ASSET_SHA: e8c73542e94de740347c3534d7bea3093bb58ccd
       GH_TOKEN: ${{ github.token }}
 
     steps:
@@ -109,6 +109,8 @@ jobs:
 
           jq -e '.coordinateSpace == "native"' "$REPORT"
           jq -e '.sourceCollection == "SOURCE_CHURCH_FULL"' "$REPORT"
+          jq -e '.version == 3' "$REPORT"
+          jq -e '.vertexStrideBytes == 36' "$REPORT"
           jq -e '.runtimeTriangles >= 1045000' "$REPORT"
           jq -e '.textureMaxDimension >= 4096' "$REPORT"
 
