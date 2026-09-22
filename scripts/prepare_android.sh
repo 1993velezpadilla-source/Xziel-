@@ -41,6 +41,7 @@ python3 "$ROOT/scripts/patch_vril_animation_feel.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_mobile_v021.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_mobile_v022.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_mobile_v024.py" "$DEPS/vril"
+python3 "$ROOT/scripts/patch_vril_sanctum_staticmesh.py" "$DEPS/vril"
 
 echo "==> Patching and compiling Xziel mobile QuakeC"
 python3 -m pip install --quiet colorama==0.4.6 fastcrc==0.3.0 pandas==2.1.4 cairosvg==2.8.2
@@ -128,6 +129,15 @@ if [[ -n "${XZIEL_EXTRA_MAP_BSP:-}" ]]; then
         cp "$XZIEL_EXTRA_MAP_NSZ" "$ASSET_WORK/nzp/maps/${EXTRA_MAP_NAME}.nsz"
         echo "==> Bundled development spawn zones: ${EXTRA_MAP_NAME}.nsz"
     fi
+fi
+
+# Optional development asset overlay for map-specific visual/runtime files.
+# The supplied directory is expected to mirror the NZ:P data root
+# (e.g. models/... and textures/...). Normal builds leave this unset.
+if [[ -n "${XZIEL_EXTRA_ASSET_DIR:-}" ]]; then
+    test -d "$XZIEL_EXTRA_ASSET_DIR"
+    cp -a "$XZIEL_EXTRA_ASSET_DIR"/. "$ASSET_WORK/nzp/"
+    echo "==> Bundled development asset overlay: $XZIEL_EXTRA_ASSET_DIR"
 fi
 
 (
