@@ -6,7 +6,7 @@
   "height_m": 1.85,
   "rig": "game_engine",
   "bones": 53,
-  "triangles_estimate": 67250,
+  "triangles_estimate": 63894,
   "animations": [
     "idle",
     "float",
@@ -29,7 +29,8 @@
     "model.blend",
     "preview.png",
     "preview_side.png",
-    "preview_back.png"
+    "preview_back.png",
+    "preview_face.png"
   ],
-  "production_status": "priority fidelity pass 11 \u2014 group-fitted sleeves, long wet hair, corpse skin detailing, rope belt tails, shorter veil, non-bar spectral accents"
+  "production_status": "priority fidelity pass 12 \u2014 corrected bodice/sleeves, open-mouth corpse face, face closeup QA, side-lock Llorona hair, stained-glass halo panes"
 }
