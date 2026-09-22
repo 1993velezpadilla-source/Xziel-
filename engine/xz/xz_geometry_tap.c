@@ -129,6 +129,11 @@ const XzGeometryFrame *XzGeometryTap_GetReadFrame(void)
     return &xz_geometry.frames[xz_geometry.read_index];
 }
 
+const XzGeometryFrame *XzGeometryTap_GetWriteFrame(void)
+{
+    return &xz_geometry.frames[xz_geometry.write_index];
+}
+
 int XzGeometryTap_CaptureAlias(
     const void *vertices,
     unsigned int vertex_count,
