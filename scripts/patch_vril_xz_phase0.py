@@ -72,6 +72,8 @@ for name in (
     "xz_cutover.c",
     "xz_geometry_tap.h",
     "xz_geometry_tap.c",
+    "xz_texture_tap.h",
+    "xz_texture_tap.c",
 ):
     src = modules / name
     if not src.is_file():
@@ -87,6 +89,7 @@ include_block = (
     '#ifdef __ANDROID__\n'
     '#include "xz_android_runtime.h"\n'
     '#include "xz_vril_bridge.h"\n'
+    '#include "xz_texture_tap.h"\n'
     '#endif\n'
 )
 if '#include "xz_android_runtime.h"' not in text:
@@ -106,6 +109,10 @@ if '#include "xz_geometry_tap.h"' not in text:
 
 init_anchor = '\tHost_Init(&parms);\n'
 init_block = (
+    '#ifdef __ANDROID__\n'
+    '\t/* Capture renderer uploads performed during Host_Init. */\n'
+    '\tXzTextureTap_Init();\n'
+    '#endif\n'
     '\tHost_Init(&parms);\n'
     '#ifdef __ANDROID__\n'
     '\tXzAndroidRuntime_Init(heap_size);\n'
@@ -331,6 +338,57 @@ if "XZ_GEOMETRY_SURFACE_CAPTURE" not in hyena:
 
 gl_hyena.write_text(hyena, encoding="utf-8")
 
+
+# Capture the exact level-0 RGBA texels that Vril uploads to legacy GL4ES.
+# GL_Upload32 mutates its scratch buffer while generating mip levels, so the
+# tap must run immediately after the level-0 upload and before that loop.
+gl_draw = source / "platform" / "sdl" / "gl" / "gl_draw.c"
+draw = gl_draw.read_text(encoding="utf-8")
+
+if '#include "xz_texture_tap.h"' not in draw:
+    anchor = '#include "../../../nzportable_def.h"\n'
+    if anchor not in draw:
+        raise SystemExit("Missing gl_draw texture-tap include anchor")
+    draw = draw.replace(
+        anchor,
+        anchor +
+        '#ifdef __ANDROID__\n'
+        '#include "xz_texture_tap.h"\n'
+        '#endif\n',
+        1,
+    )
+
+texture_upload_anchor = (
+    "    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, scaled_width, "
+    "scaled_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, scaled);\n"
+)
+if "XZ_TEXTURE_RGBA_CAPTURE" not in draw:
+    if texture_upload_anchor not in draw:
+        raise SystemExit("Missing GL_Upload32 level-0 texture anchor")
+    texture_capture = texture_upload_anchor + (
+        "#ifdef __ANDROID__\n"
+        "    /* XZ_TEXTURE_RGBA_CAPTURE: before scaled is mip-mutated. */\n"
+        "    XzTextureTap_CaptureRgba(\n"
+        "        (unsigned int)gl_id,\n"
+        "        scaled,\n"
+        "        (unsigned int)scaled_width,\n"
+        "        (unsigned int)scaled_height);\n"
+        "#endif\n"
+    )
+    draw = draw.replace(
+        texture_upload_anchor,
+        texture_capture,
+        1,
+    )
+
+gl_draw.write_text(draw, encoding="utf-8")
+
+if draw.count('#include "xz_texture_tap.h"') != 1:
+    raise SystemExit("Texture tap header injection count mismatch")
+if draw.count("XZ_TEXTURE_RGBA_CAPTURE") != 1:
+    raise SystemExit("Texture RGBA capture injection count mismatch")
+
+
 gl_rmain = source / "platform" / "sdl" / "gl" / "gl_rmain.c"
 rmain = gl_rmain.read_text(encoding="utf-8")
 
@@ -395,6 +453,7 @@ checks = {
     "runtime header": '#include "xz_android_runtime.h"',
     "bridge header": '#include "xz_vril_bridge.h"',
     "init": "XzAndroidRuntime_Init(heap_size);",
+    "texture init": "XzTextureTap_Init();",
     "bridge init": "XzVrilBridge_Init();",
     "begin": "XzAndroidRuntime_BeginFrame(now);",
     "frame-counter snapshot": "int xz_frame_before = host_framecount;",
@@ -414,4 +473,4 @@ for label, needle in checks.items():
             f"Phase-0 integration check failed for {label}: {count} occurrences"
         )
 
-print("Injected Xziel Xz runtime through Phase 16 + real geometry parity tap.")
+print("Injected Xziel Xz runtime through Phase 16 + real geometry + texture parity taps.")
