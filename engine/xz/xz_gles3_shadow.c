@@ -81,10 +81,14 @@ typedef void (*XzGlUseProgramFn)(GLuint);
 typedef void (*XzGlActiveTextureFn)(GLenum);
 typedef GLint (*XzGlGetUniformLocationFn)(GLuint, const GLchar *);
 typedef void (*XzGlUniform1iFn)(GLint, GLint);
+typedef void (*XzGlUniformMatrix4fvFn)(
+    GLint, GLsizei, GLboolean, const GLfloat *);
 typedef void (*XzGlViewportFn)(GLint, GLint, GLsizei, GLsizei);
 typedef void (*XzGlClearColorFn)(GLfloat, GLfloat, GLfloat, GLfloat);
 typedef void (*XzGlClearFn)(GLbitfield);
 typedef void (*XzGlDrawArraysFn)(GLenum, GLint, GLsizei);
+typedef void (*XzGlDrawElementsFn)(
+    GLenum, GLsizei, GLenum, const void *);
 typedef void (*XzGlReadPixelsFn)(
     GLint, GLint, GLsizei, GLsizei, GLenum, GLenum, void *);
 typedef void (*XzGlFinishFn)(void);
@@ -138,10 +142,12 @@ typedef struct {
     XzGlActiveTextureFn ActiveTexture;
     XzGlGetUniformLocationFn GetUniformLocation;
     XzGlUniform1iFn Uniform1i;
+    XzGlUniformMatrix4fvFn UniformMatrix4fv;
     XzGlViewportFn Viewport;
     XzGlClearColorFn ClearColor;
     XzGlClearFn Clear;
     XzGlDrawArraysFn DrawArrays;
+    XzGlDrawElementsFn DrawElements;
     XzGlReadPixelsFn ReadPixels;
     XzGlFinishFn Finish;
     XzGlGetErrorFn GetError;
@@ -167,6 +173,14 @@ typedef struct {
     GLint fullscreen_input_count_loc;
     GLuint vbo;
     GLuint vao;
+
+    GLuint real_program;
+    GLint real_modelview_loc;
+    GLint real_projection_loc;
+    GLuint real_vbo;
+    GLuint real_ibo;
+    GLuint real_vao;
+
     GLuint scratch_fbo;
 
     XzGles3PhysicalResource
@@ -257,10 +271,12 @@ static int XzLoadApi(XzNativeGles3Api *api)
     XZ_GL_LOAD(ActiveTexture, "glActiveTexture");
     XZ_GL_LOAD(GetUniformLocation, "glGetUniformLocation");
     XZ_GL_LOAD(Uniform1i, "glUniform1i");
+    XZ_GL_LOAD(UniformMatrix4fv, "glUniformMatrix4fv");
     XZ_GL_LOAD(Viewport, "glViewport");
     XZ_GL_LOAD(ClearColor, "glClearColor");
     XZ_GL_LOAD(Clear, "glClear");
     XZ_GL_LOAD(DrawArrays, "glDrawArrays");
+    XZ_GL_LOAD(DrawElements, "glDrawElements");
     XZ_GL_LOAD(ReadPixels, "glReadPixels");
     XZ_GL_LOAD(Finish, "glFinish");
     XZ_GL_LOAD(GetError, "glGetError");
