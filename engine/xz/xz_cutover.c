@@ -167,6 +167,18 @@ int XzCutover_SelfTest(void)
 
     evidence.real_geometry_ready = 1;
     evidence.real_textures_ready = 1;
+
+    XzCutover_Evaluate(
+        &state,
+        &evidence);
+
+    if (state.cutover_allowed ||
+        state.active_mode !=
+            XZ_CUTOVER_MODE_MIRROR ||
+        state.blocker_mask !=
+            XZ_CUTOVER_CAP_VISIBLE_PRESENT)
+        return 0;
+
     evidence.visible_present_ready = 1;
 
     XzCutover_Evaluate(
