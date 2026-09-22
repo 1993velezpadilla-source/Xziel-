@@ -70,6 +70,8 @@ for name in (
     "xz_stream_residency.c",
     "xz_cutover.h",
     "xz_cutover.c",
+    "xz_geometry_tap.h",
+    "xz_geometry_tap.c",
 ):
     src = modules / name
     if not src.is_file():
@@ -92,6 +94,16 @@ if '#include "xz_android_runtime.h"' not in text:
         raise SystemExit("Missing sys_sdl include anchor")
     text = text.replace(include_anchor, include_block, 1)
 
+if '#include "xz_geometry_tap.h"' not in text:
+    anchor = '#include "xz_vril_bridge.h"\n'
+    if anchor not in text:
+        raise SystemExit("Missing geometry-tap include anchor")
+    text = text.replace(
+        anchor,
+        anchor + '#include "xz_geometry_tap.h"\n',
+        1,
+    )
+
 init_anchor = '\tHost_Init(&parms);\n'
 init_block = (
     '\tHost_Init(&parms);\n'
@@ -104,6 +116,16 @@ if 'XzAndroidRuntime_Init(heap_size);' not in text:
     if init_anchor not in text:
         raise SystemExit("Missing Host_Init Phase-0 anchor")
     text = text.replace(init_anchor, init_block, 1)
+
+if "XzGeometryTap_Init();" not in text:
+    anchor = "\tXzVrilBridge_Init();\n"
+    if anchor not in text:
+        raise SystemExit("Missing geometry-tap init anchor")
+    text = text.replace(
+        anchor,
+        anchor + "\tXzGeometryTap_Init();\n",
+        1,
+    )
 
 loop_anchor = (
     '\t\tdouble now = Sys_FloatTime();\n'
@@ -133,6 +155,27 @@ if 'XzAndroidRuntime_BeginFrame(now);' not in text:
     if loop_anchor not in text:
         raise SystemExit("Missing SDL frame-loop Phase-0 anchor")
     text = text.replace(loop_anchor, loop_block, 1)
+
+if "XzGeometryTap_BeginFrame" not in text:
+    begin_anchor = "\t\tXzAndroidRuntime_BeginFrame(now);\n"
+    if begin_anchor not in text:
+        raise SystemExit("Missing geometry-tap begin anchor")
+    text = text.replace(
+        begin_anchor,
+        begin_anchor +
+        "\t\tXzGeometryTap_BeginFrame((uint64_t)(xz_frame_before + 1));\n",
+        1,
+    )
+
+if "XzGeometryTap_CommitFrame();" not in text:
+    commit_anchor = "\t\t\tXzVrilBridge_CapturePresentation(host_framecount);\n"
+    if commit_anchor not in text:
+        raise SystemExit("Missing geometry-tap commit anchor")
+    text = text.replace(
+        commit_anchor,
+        "\t\t\tXzGeometryTap_CommitFrame();\n" + commit_anchor,
+        1,
+    )
 
 first_frame_old = (
     '#ifdef __ANDROID__\n'
@@ -171,6 +214,182 @@ if 'XzAndroidRuntime_Shutdown();' not in text:
 
 sys_sdl.write_text(text, encoding="utf-8")
 
+
+# Capture the actual SDL/GL geometry batches that legacy Vril submits. Xz uses
+# these only for parity validation; the legacy GL4ES draw calls remain intact.
+gl_hyena = source / "platform" / "sdl" / "gl" / "gl_hyena.c"
+hyena = gl_hyena.read_text(encoding="utf-8")
+
+if '#include "xz_geometry_tap.h"' not in hyena:
+    anchor = '#include "../../../nzportable_def.h"\n'
+    if anchor not in hyena:
+        raise SystemExit("Missing gl_hyena include anchor")
+    hyena = hyena.replace(
+        anchor,
+        anchor +
+        '#ifdef __ANDROID__\n'
+        '#include "xz_geometry_tap.h"\n'
+        '#include <stddef.h>\n'
+        '#endif\n',
+        1,
+    )
+
+alias_anchor = (
+    "void Hyena_DrawAliasBatch(const alias_batch_t *batch)\n"
+    "{\n"
+    "    if (!batch->num_indices) return;\n"
+)
+if "XzGeometryTap_CaptureAlias(" not in hyena:
+    if alias_anchor not in hyena:
+        raise SystemExit("Missing alias geometry capture anchor")
+    alias_capture = alias_anchor + (
+        "#ifdef __ANDROID__\n"
+        "    {\n"
+        "        float xz_mv[16], xz_pr[16];\n"
+        "        GLint xz_tex = 0;\n"
+        "        glGetFloatv(GL_MODELVIEW_MATRIX, xz_mv);\n"
+        "        glGetFloatv(GL_PROJECTION_MATRIX, xz_pr);\n"
+        "        glGetIntegerv(GL_TEXTURE_BINDING_2D, &xz_tex);\n"
+        "        XzGeometryTap_CaptureAlias(\n"
+        "            batch->vertices,\n"
+        "            (unsigned int)batch->num_vertices,\n"
+        "            (unsigned int)sizeof(alias_vertex_t),\n"
+        "            (unsigned int)offsetof(alias_vertex_t, xyz),\n"
+        "            (unsigned int)offsetof(alias_vertex_t, uv),\n"
+        "            batch->indices,\n"
+        "            (unsigned int)batch->num_indices,\n"
+        "            (int)xz_tex,\n"
+        "            xz_mv,\n"
+        "            xz_pr);\n"
+        "    }\n"
+        "#endif\n"
+    )
+    hyena = hyena.replace(alias_anchor, alias_capture, 1)
+
+warp_anchor = (
+    "        for (i = 0; i < count; ++i) {\n"
+    "            const float *in = source + i * stride;\n"
+    "            Hyena_2DTextureCoord(&vertices[i], in[texture_offset], in[texture_offset + 1]);\n"
+    "            Hyena_VertexXYZ(&vertices[i], in[0] + 8*sinf(in[1]*0.05f+(float)time)*sinf(in[2]*0.05f+(float)time), in[1] + 8*sinf(in[0]*0.05f+(float)time)*sinf(in[2]*0.05f+(float)time), in[2]);\n"
+    "        }\n"
+)
+if "XZ_GEOMETRY_WARP_CAPTURE" not in hyena:
+    if warp_anchor not in hyena:
+        raise SystemExit("Missing warped surface capture anchor")
+    warp_capture = warp_anchor + (
+        "#ifdef __ANDROID__\n"
+        "        /* XZ_GEOMETRY_WARP_CAPTURE */\n"
+        "        {\n"
+        "            float xz_mv[16], xz_pr[16];\n"
+        "            GLint xz_tex = 0;\n"
+        "            glGetFloatv(GL_MODELVIEW_MATRIX, xz_mv);\n"
+        "            glGetFloatv(GL_PROJECTION_MATRIX, xz_pr);\n"
+        "            glGetIntegerv(GL_TEXTURE_BINDING_2D, &xz_tex);\n"
+        "            XzGeometryTap_CaptureSurfaceFan(\n"
+        "                (const float *)vertices,\n"
+        "                (unsigned int)count,\n"
+        "                (unsigned int)(sizeof(vertex_t) / sizeof(float)),\n"
+        "                (unsigned int)(offsetof(vertex_t, xyz) / sizeof(float)),\n"
+        "                (unsigned int)(offsetof(vertex_t, uv) / sizeof(float)),\n"
+        "                (int)xz_tex,\n"
+        "                xz_mv,\n"
+        "                xz_pr);\n"
+        "        }\n"
+        "#endif\n"
+    )
+    hyena = hyena.replace(warp_anchor, warp_capture, 1)
+
+surface_anchor = (
+    "    glEnableClientState(GL_VERTEX_ARRAY); glEnableClientState(GL_TEXTURE_COORD_ARRAY);\n"
+    "    glVertexPointer(3, GL_FLOAT, stride * sizeof(float), source);\n"
+)
+if "XZ_GEOMETRY_SURFACE_CAPTURE" not in hyena:
+    if surface_anchor not in hyena:
+        raise SystemExit("Missing surface geometry capture anchor")
+    surface_capture = (
+        "#ifdef __ANDROID__\n"
+        "    /* XZ_GEOMETRY_SURFACE_CAPTURE */\n"
+        "    {\n"
+        "        float xz_mv[16], xz_pr[16];\n"
+        "        GLint xz_tex = 0;\n"
+        "        glGetFloatv(GL_MODELVIEW_MATRIX, xz_mv);\n"
+        "        glGetFloatv(GL_PROJECTION_MATRIX, xz_pr);\n"
+        "        glGetIntegerv(GL_TEXTURE_BINDING_2D, &xz_tex);\n"
+        "        XzGeometryTap_CaptureSurfaceFan(\n"
+        "            source,\n"
+        "            (unsigned int)count,\n"
+        "            (unsigned int)stride,\n"
+        "            0u,\n"
+        "            (unsigned int)texture_offset,\n"
+        "            (int)xz_tex,\n"
+        "            xz_mv,\n"
+        "            xz_pr);\n"
+        "    }\n"
+        "#endif\n"
+    ) + surface_anchor
+    hyena = hyena.replace(surface_anchor, surface_capture, 1)
+
+gl_hyena.write_text(hyena, encoding="utf-8")
+
+gl_rmain = source / "platform" / "sdl" / "gl" / "gl_rmain.c"
+rmain = gl_rmain.read_text(encoding="utf-8")
+
+if '#include "xz_geometry_tap.h"' not in rmain:
+    anchor = '#include "../../../nzportable_def.h"\n'
+    if anchor not in rmain:
+        raise SystemExit("Missing gl_rmain include anchor")
+    rmain = rmain.replace(
+        anchor,
+        anchor +
+        '#ifdef __ANDROID__\n'
+        '#include "xz_geometry_tap.h"\n'
+        '#endif\n',
+        1,
+    )
+
+sprite_anchor = (
+    "\tglColor3f (1,1,1);\n\n"
+    " \tGL_Bind(frame->gl_texturenum);\n"
+)
+if "XZ_GEOMETRY_SPRITE_CAPTURE" not in rmain:
+    if sprite_anchor not in rmain:
+        raise SystemExit("Missing sprite geometry capture anchor")
+    sprite_capture = sprite_anchor + (
+        "\n#ifdef __ANDROID__\n"
+        "\t/* XZ_GEOMETRY_SPRITE_CAPTURE */\n"
+        "\t{\n"
+        "\t\tfloat xz_positions[12];\n"
+        "\t\tconst float xz_uvs[8] = {0,1, 0,0, 1,0, 1,1};\n"
+        "\t\tfloat xz_mv[16], xz_pr[16];\n"
+        "\t\tvec3_t xz_point;\n"
+        "\t\tVectorMA (e->origin, frame->down * scale, up, xz_point);\n"
+        "\t\tVectorMA (xz_point, frame->left * scale, right, xz_point);\n"
+        "\t\tmemcpy(&xz_positions[0], xz_point, sizeof(vec3_t));\n"
+        "\t\tVectorMA (e->origin, frame->up * scale, up, xz_point);\n"
+        "\t\tVectorMA (xz_point, frame->left * scale, right, xz_point);\n"
+        "\t\tmemcpy(&xz_positions[3], xz_point, sizeof(vec3_t));\n"
+        "\t\tVectorMA (e->origin, frame->up * scale, up, xz_point);\n"
+        "\t\tVectorMA (xz_point, frame->right * scale, right, xz_point);\n"
+        "\t\tmemcpy(&xz_positions[6], xz_point, sizeof(vec3_t));\n"
+        "\t\tVectorMA (e->origin, frame->down * scale, up, xz_point);\n"
+        "\t\tVectorMA (xz_point, frame->right * scale, right, xz_point);\n"
+        "\t\tmemcpy(&xz_positions[9], xz_point, sizeof(vec3_t));\n"
+        "\t\tglGetFloatv(GL_MODELVIEW_MATRIX, xz_mv);\n"
+        "\t\tglGetFloatv(GL_PROJECTION_MATRIX, xz_pr);\n"
+        "\t\tXzGeometryTap_CaptureSpriteQuad(\n"
+        "\t\t\txz_positions,\n"
+        "\t\t\txz_uvs,\n"
+        "\t\t\tframe->gl_texturenum,\n"
+        "\t\t\txz_mv,\n"
+        "\t\t\txz_pr);\n"
+        "\t}\n"
+        "#endif\n"
+    )
+    rmain = rmain.replace(sprite_anchor, sprite_capture, 1)
+
+gl_rmain.write_text(rmain, encoding="utf-8")
+
+
 # Validate the expected integration exactly once. Failing here is preferable to
 # silently building an APK that is not actually collecting Phase-0 telemetry.
 checks = {
@@ -183,6 +402,8 @@ checks = {
     "real first-frame gate": "xziel_first_frame && host_framecount != xz_frame_before",
     "capture": "XzVrilBridge_CapturePresentation(host_framecount);",
     "end": "XzAndroidRuntime_EndFrame(Sys_FloatTime());",
+    "geometry begin": "XzGeometryTap_BeginFrame",
+    "geometry commit": "XzGeometryTap_CommitFrame();",
     "bridge shutdown": "XzVrilBridge_Shutdown();",
     "shutdown": "XzAndroidRuntime_Shutdown();",
 }
@@ -194,4 +415,4 @@ for label, needle in checks.items():
             f"Phase-0 integration check failed for {label}: {count} occurrences"
         )
 
-print("Injected Xziel Xz runtime through Phase 16 (cutover parity gate).")
+print("Injected Xziel Xz runtime through Phase 16 + real geometry parity tap.")
