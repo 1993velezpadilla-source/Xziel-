@@ -47,6 +47,76 @@ void FpsPlayerController::reset() noexcept {
     updateCameraPosition();
 }
 
+void FpsPlayerController::setSpawn(
+    Vec3 feetPosition,
+    float yawDegrees) noexcept {
+    if (!std::isfinite(feetPosition.x) ||
+        !std::isfinite(feetPosition.y) ||
+        !std::isfinite(feetPosition.z)) {
+        return;
+    }
+
+    movement_.reset();
+    frame_.movement = movement_.frame();
+    frame_.feetPosition = feetPosition;
+    frame_.yawDegrees =
+        std::isfinite(yawDegrees)
+        ? std::remainder(yawDegrees, 360.0f)
+        : 0.0f;
+    frame_.pitchDegrees = 0.0f;
+
+    // The authored player spawn establishes the base floor for this map.
+    // Higher floors remain represented by collision/traversal geometry.
+    config_.floorY = feetPosition.y;
+
+    frame_.feetPosition.x =
+        std::clamp(
+            frame_.feetPosition.x,
+            config_.minX,
+            config_.maxX);
+    frame_.feetPosition.z =
+        std::clamp(
+            frame_.feetPosition.z,
+            config_.minZ,
+            config_.maxZ);
+
+    updateCameraPosition();
+}
+
+bool FpsPlayerController::setHorizontalBounds(
+    float minimumX,
+    float maximumX,
+    float minimumZ,
+    float maximumZ) noexcept {
+    if (!std::isfinite(minimumX) ||
+        !std::isfinite(maximumX) ||
+        !std::isfinite(minimumZ) ||
+        !std::isfinite(maximumZ) ||
+        minimumX >= maximumX ||
+        minimumZ >= maximumZ) {
+        return false;
+    }
+
+    config_.minX = minimumX;
+    config_.maxX = maximumX;
+    config_.minZ = minimumZ;
+    config_.maxZ = maximumZ;
+
+    frame_.feetPosition.x =
+        std::clamp(
+            frame_.feetPosition.x,
+            config_.minX,
+            config_.maxX);
+    frame_.feetPosition.z =
+        std::clamp(
+            frame_.feetPosition.z,
+            config_.minZ,
+            config_.maxZ);
+
+    updateCameraPosition();
+    return true;
+}
+
 void FpsPlayerController::clearStaticObstacles() noexcept {
     staticObstacleCount_ = 0;
 }
