@@ -234,6 +234,7 @@ jobs:
           git add assets/sanctum/free_models_expanded
           if git diff --cached --quiet; then exit 0; fi
           git commit -m "assets: expand Sanctum CC0 model and animation library"
+          git pull --rebase origin feature/sanctum-native-xziel-v1
           git push origin HEAD:feature/sanctum-native-xziel-v1
 
       - name: Upload artifact
