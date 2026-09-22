@@ -80,7 +80,19 @@ jobs:
           set -euxo pipefail
           rm -rf out/llorona-triposr
           mkdir -p out/llorona-triposr
-          python /tmp/TripoSR/run.py assets/characters/llorona/reference/front.jpg --device cpu --chunk-size 2048 --mc-resolution 192 --foreground-ratio 0.90 --output-dir out/llorona-triposr/raw --model-save-format glb
+          python - <<'PY'
+          from PIL import Image, ImageFile
+          from pathlib import Path
+          ImageFile.LOAD_TRUNCATED_IMAGES = True
+          src = Path("assets/characters/llorona/reference/front.jpg")
+          dst = Path("out/llorona-triposr/front_repaired.png")
+          im = Image.open(src)
+          im.load()
+          im = im.convert("RGB")
+          im.save(dst, "PNG", optimize=True)
+          print("XZIEL_LLORONA_REFERENCE_REPAIRED", im.size, dst.stat().st_size)
+          PY
+          python /tmp/TripoSR/run.py out/llorona-triposr/front_repaired.png --device cpu --chunk-size 2048 --mc-resolution 192 --foreground-ratio 0.90 --output-dir out/llorona-triposr/raw --model-save-format glb
           test -s out/llorona-triposr/raw/0/mesh.glb
           cp out/llorona-triposr/raw/0/mesh.glb out/llorona-triposr/llorona_triposr_cpu.glb
           if [ -s out/llorona-triposr/raw/0/input.png ]; then cp out/llorona-triposr/raw/0/input.png out/llorona-triposr/input_preprocessed.png; fi
@@ -99,7 +111,7 @@ jobs:
               "asset": "La Llorona",
               "generator": "VAST-AI-Research/TripoSR",
               "device": "GitHub Actions CPU",
-              "source": "front.jpg",
+              "source": "front_repaired.png",
               "mc_resolution": 192,
               "chunk_size": 2048,
               "format": "GLB",
