@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "encounter": "stained_shade",
   "role": "church_ritual_special",
   "earliest_round": 7,
@@ -19,7 +19,7 @@
     ]
   },
   "ritual_window": {
-    "audio_id": "stained_shade_prayer_v5_enchanted_horror",
+    "audio_id": "stained_shade_prayer_v6_with_llorona_bed",
     "duration_s": 81.944,
     "lifetime_follows_audio_eof": true,
     "interaction_open_while_audio_playing": true,
@@ -163,5 +163,30 @@
     "prayer_belongs_to": "stained_shade",
     "llorona_uses_prayer": false,
     "fragmento_de_misericordia_drops_here": false
+  },
+  "audio_events": {
+    "prayer": "stained_shade_prayer_v6_with_llorona_bed",
+    "judgment_laugh": "stained_shade_evil_laugh_rage",
+    "hurt_laugh_variants": [
+      "stained_shade_hurt_laugh_01",
+      "stained_shade_hurt_laugh_02",
+      "stained_shade_hurt_laugh_03"
+    ],
+    "chase_scream": "stained_shade_chase_scream",
+    "far_rage_scream": "shared_far_rage_scream",
+    "hit_reactions": [
+      "shared_female_hit_01",
+      "shared_female_hit_02",
+      "shared_female_hit_03_dark"
+    ],
+    "rules": {
+      "judgment_laugh_on_first_hostile_transition": true,
+      "hurt_laugh_chance_per_valid_damage_event": 0.18,
+      "hurt_laugh_min_cooldown_s": 5.5,
+      "chase_scream_chance_per_chase_window": 0.22,
+      "chase_scream_min_cooldown_s": 8,
+      "far_rage_scream_min_distance_m": 16,
+      "far_rage_scream_cooldown_s": 9
+    }
   }
 }
