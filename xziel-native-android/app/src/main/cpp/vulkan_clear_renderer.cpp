@@ -4116,6 +4116,36 @@ bool VulkanClearRenderer::recordDrawCommand(
         const bool thinX =
             window.halfWidth <= window.halfDepth;
 
+        if (sanctumMesh_.ready()) {
+            // The photogrammetry scan has real open/missing pixels behind a
+            // subset of the Gothic windows. A shallow native recess masks the
+            // bright void without changing collision or destructively filling
+            // source scan geometry. Barricade planks render on top and remain
+            // fully gameplay-authoritative.
+            constexpr float recessHalfThickness = 0.045f;
+            constexpr float recessOffset = 0.055f;
+
+            const float recessX =
+                window.x +
+                (thinX ? recessOffset : 0.0f);
+            const float recessZ =
+                window.z +
+                (thinX ? 0.0f : recessOffset);
+
+            drawBox(
+                recessX,
+                window.y,
+                recessZ,
+                thinX
+                    ? recessHalfThickness / 0.75f
+                    : window.halfWidth / 0.75f,
+                window.halfHeight / 0.75f,
+                thinX
+                    ? window.halfDepth / 0.75f
+                    : recessHalfThickness / 0.75f,
+                7.0f);
+        }
+
         for (std::uint32_t plankIndex = 0U;
              plankIndex < plankCount;
              ++plankIndex) {
