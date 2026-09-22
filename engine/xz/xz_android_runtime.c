@@ -19,6 +19,7 @@
 #include "xz_stream_residency.h"
 #include "xz_cutover.h"
 #include "xz_geometry_tap.h"
+#include "xz_texture_tap.h"
 
 #include <SDL.h>
 
@@ -542,7 +543,10 @@ static void XzEvaluateCutover(void)
         xz_runtime.gles3_shadow.real_geometry_ready &&
         xz_runtime.gles3_shadow.real_geometry_failures == 0u &&
         xz_runtime.gles3_shadow.last_geometry_drops == 0u;
-    evidence.real_textures_ready = 0;
+    evidence.real_textures_ready =
+        xz_runtime.gles3_shadow.real_textures_ready &&
+        xz_runtime.gles3_shadow.real_texture_failures == 0u &&
+        xz_runtime.gles3_shadow.last_texture_misses == 0u;
     evidence.visible_present_ready = 0;
 
     evidence.healthy_frames =
@@ -790,6 +794,39 @@ static void XzLogSnapshot(double now_seconds)
             g3->real_geometry_failures,
             g3->real_geometry_kind_mask,
             g3->real_geometry_ready);
+    }
+
+    {
+        XzTextureTapStats texture_stats;
+
+        XzTextureTap_GetStats(&texture_stats);
+        XzAndroidLog(
+            ANDROID_LOG_INFO,
+            "parity texture captured=%" PRIu64
+            " updates=%" PRIu64
+            " resident=%u bytes=%zu high=%zu dropped=%" PRIu64
+            " resolve=%" PRIu64 "/%" PRIu64
+            " g3uploads=%" PRIu64 " g3binds=%" PRIu64
+            " g3bytes=%" PRIu64 " g3miss=%" PRIu64
+            " g3fail=%" PRIu64 " kindMask=0x%x"
+            " lastBatches=%u lastMiss=%u ready=%d",
+            texture_stats.captures,
+            texture_stats.updates,
+            texture_stats.resident_count,
+            texture_stats.resident_bytes,
+            texture_stats.high_water_bytes,
+            texture_stats.dropped,
+            texture_stats.resolve_hits,
+            texture_stats.resolve_misses,
+            g3->real_texture_uploads,
+            g3->real_texture_binds,
+            g3->real_texture_bytes,
+            g3->real_texture_misses,
+            g3->real_texture_failures,
+            g3->real_texture_kind_mask,
+            g3->last_texture_batches,
+            g3->last_texture_misses,
+            g3->real_textures_ready);
     }
 
     XzAndroidLog(
@@ -1188,7 +1225,7 @@ void XzAndroidRuntime_Init(size_t engine_heap_bytes)
                     ? ANDROID_LOG_INFO
                     : ANDROID_LOG_WARN,
                 "phase16 cutover selftest=%s requested=MODERN safety=STRICT"
-                " geometry=PROXY textures=METADATA visible=GL4ES",
+                " geometry=REAL textures=RGBA_TAP visible=GL4ES",
                 XzCutover_SelfTest()
                     ? "PASS" : "FAIL");
 
@@ -1306,6 +1343,7 @@ void XzAndroidRuntime_Shutdown(void)
     XzLogSnapshot(xz_runtime.last_log_seconds + 5.0);
     XzRhi_Shutdown(&xz_runtime.rhi);
     XzDestroyGraphResourceHandles();
+    XzTextureTap_Shutdown();
     XzAndroidLog(
         ANDROID_LOG_INFO,
         "phase0 shutdown processed_frames=%" PRIu64
