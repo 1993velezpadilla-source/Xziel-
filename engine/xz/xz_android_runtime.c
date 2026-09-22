@@ -549,6 +549,8 @@ static void XzEvaluateCutover(void)
         xz_runtime.gles3_shadow.last_texture_misses == 0u;
     evidence.visible_present_ready =
         xz_runtime.gles3_shadow.visible_context_ready &&
+        xz_runtime.gles3_shadow.real_material_state_ready &&
+        xz_runtime.gles3_shadow.real_raster_state_ready &&
         xz_runtime.gles3_shadow.visible_present_ready;
 
     evidence.healthy_frames =
@@ -841,6 +843,15 @@ static void XzLogSnapshot(double now_seconds)
         g3->last_alpha_test_batches,
         g3->last_modulate_batches,
         g3->real_material_state_ready);
+
+    XzAndroidLog(
+        ANDROID_LOG_INFO,
+        "parity raster fog=%u cull=%u depthRange=%u offset=%u ready=%d",
+        g3->last_fog_batches,
+        g3->last_cull_batches,
+        g3->last_depth_range_batches,
+        g3->last_polygon_offset_batches,
+        g3->real_raster_state_ready);
 
     XzAndroidLog(
         ANDROID_LOG_INFO,
