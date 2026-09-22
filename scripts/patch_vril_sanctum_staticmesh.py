@@ -23,8 +23,8 @@ c_path.write_text(r'''// Xziel textured static-mesh bridge for Android/SDL.
 
 #define XZSM_VERSION 2u
 #define XZSM_MAX_BATCHES 512u
-#define XZSM_MAX_VERTICES 2100000u
-#define XZSM_MAX_INDICES  2100000u
+#define XZSM_MAX_VERTICES 3000000u
+#define XZSM_MAX_INDICES  3500000u
 
 typedef struct {
     float x, y, z;
