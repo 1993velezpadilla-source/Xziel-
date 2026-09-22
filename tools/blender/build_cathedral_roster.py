@@ -329,6 +329,9 @@ def fitted_priority_clothes(body,h,style,mats):
             lambda p: -.345 < p.x/h < -.120 and .535 < p.z/h < .805,.0040*h))
         out.append(body_region_shell(body,"FittedSleeve_R",main,
             lambda p: .120 < p.x/h < .345 and .535 < p.z/h < .805,.0040*h))
+        ivory=mats["spectral_ivory"] if style=="stained_shade" else mats["dirty_ivory"]
+        out.append(body_region_shell(body,"FittedCollar",ivory,
+            lambda p: .705 < p.z/h < .835 and abs(p.x/h) < .180 and p.y/h < .120,.0050*h))
         shoe=mats["soot"]
         out.append(body_region_shell(body,"FittedShoe_L",shoe,
             lambda p: p.x < 0 and p.z/h < .085,.0035*h))
@@ -342,6 +345,9 @@ def fitted_priority_clothes(body,h,style,mats):
             lambda p: -.355 < p.x/h < -.115 and .525 < p.z/h < .810,.0040*h))
         out.append(body_region_shell(body,"LloronaSleeve_R",main,
             lambda p: .115 < p.x/h < .355 and .525 < p.z/h < .810,.0040*h))
+        lace=mats.get("waterlogged_linen",main)
+        out.append(body_region_shell(body,"LloronaCollar",lace,
+            lambda p: .720 < p.z/h < .850 and abs(p.x/h) < .180 and p.y/h < .125,.0045*h))
     return out
 
 def rigid_bind_mesh(obj,rig,bone):
@@ -545,10 +551,6 @@ def nun_outfit(h,mats,stained=False):
     out.append(garment_shell("BlueOuterSkirt",h,blue,[
         (.165,.158,.112,-.003),(.285,.160,.113,-.003),(.430,.147,.101,-.004),(.555,.118,.086,-.005),(.605,.116,.085,-.005)
     ],72,.047,1.1,1))
-    out.append(drape_open("ShoulderCape",h,ivory,[
-        (.825,.103,.082),(.792,.119,.094),(.755,.138,.106),(.716,.158,.118)
-    ],64,2.50,.027,.6,1))
-    out.append(curved_panel("WimpleBib",h,ivory,.735,.835,.105,.070,-.145,8,20,True))
     out.append(drape_open("OuterVeil",h,blue if not stained else ivory,[
         (.992,.069,.061),(.955,.075,.066),(.900,.086,.073),(.835,.099,.082),
         (.765,.117,.094),(.700,.136,.105),(.646,.154,.114)
@@ -843,10 +845,10 @@ def shrine_back(h,wood,metal,wax):
 
 def glass_shards(h,materials):
     objs=[]; cols=[materials["glass_blue"],materials["glass_cyan"],materials["glass_magenta"],materials["amber"]]
-    pts=[(-.115,.31),(.108,.37),(-.105,.44),(.118,.50),(-.120,.57),(.110,.64),(-.095,.70),(.092,.75),(-.145,.53),(.142,.59)]
-    for i,(xf,zf) in enumerate(pts):
-        o=cube(f"GlassShard{i:02}",(xf*h,-.116*h,zf*h),(.006*h,.002*h,.020*h),cols[i%4],.0015*h)
-        o.rotation_euler.z=math.radians((-14,10,-6,18)[i%4]); objs.append(o)
+    pts=[(-.090,.735,-12),(.082,.710,14),(-.072,.660,9),(.075,.625,-8),(-.105,.565,16),(.102,.525,-11)]
+    for i,(xf,zf,deg) in enumerate(pts):
+        o=cube(f"GlassShard{i:02}",(xf*h,-.118*h,zf*h),(.007*h,.002*h,.014*h),cols[i%4],.001*h)
+        o.rotation_euler.z=math.radians(deg); objs.append(o)
     return objs
 
 def setup_skin(body,mats,style):
@@ -1082,8 +1084,8 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService,TargetServi
     veilmat=mats.get("spectral_ivory") or mats.get("dirty_ivory")
     if style in ("lost_child","waterbound_child","bell_ringer","choir_wretch","penitent_deacon","censer_brute","reliquary_horror"):
         veil(style,h,w,d,veilmat)
-    if style=="la_llorona":
-        if not parts.get("hair"): print("LA_LLORONA_HAIR_FALLBACK")
+    if style=="la_llorona" and not parts.get("hair"):
+        print("LA_LLORONA_HAIR_FALLBACK")
         llorona_hair_mesh(h,mats)
     elif style in ("lost_child","waterbound_child"):
         hair_strands(.97*h,h,mats["wet_black"],22,.28)
@@ -1110,10 +1112,15 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService,TargetServi
     blend=folder/"model.blend"
     try: bpy.ops.wm.save_as_mainfile(filepath=str(blend),compress=True)
     except Exception: bpy.ops.wm.save_as_mainfile(filepath=str(blend))
-    pose_review(rig,style)
+    for pb in rig.pose.bones:
+        pb.rotation_mode="QUATERNION"
+        pb.rotation_quaternion=(1.0,0.0,0.0,0.0)
+        pb.location=(0.0,0.0,0.0)
+        pb.scale=(1.0,1.0,1.0)
+    bpy.context.view_layer.update()
     png=preview(body,folder,style)
     tri=sum(sum(max(1,len(p.vertices)-2) for p in o.data.polygons) for o in objs if o.type=="MESH")
-    manifest={"id":ch["id"],"name":ch["name"],"category":ch["category"],"style":style,"height_m":ch["height_m"],"rig":"game_engine","bones":len(rig.data.bones),"triangles_estimate":tri,"animations":ch["animations"],"materials":ch["palette"],"outputs":[glb.name,fbx.name,blend.name,png.name,"preview_side.png","preview_back.png"],"production_status":"priority fidelity pass 9 — fitted body-topology garments, correct Llorona style dispatch, fixed sleeves/hair rigging, reduced proxy panels"}
+    manifest={"id":ch["id"],"name":ch["name"],"category":ch["category"],"style":style,"height_m":ch["height_m"],"rig":"game_engine","bones":len(rig.data.bones),"triangles_estimate":tri,"animations":ch["animations"],"materials":ch["palette"],"outputs":[glb.name,fbx.name,blend.name,png.name,"preview_side.png","preview_back.png"],"production_status":"priority fidelity pass 10 — neutral QA pose, fitted collars, no duplicate Llorona hair, reduced proxy panels"}
     (folder/"manifest.json").write_text(json.dumps(manifest,indent=2),encoding="utf-8")
     return manifest
 
