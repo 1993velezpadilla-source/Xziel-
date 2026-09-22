@@ -11,7 +11,7 @@
 
 namespace xziel {
 
-inline constexpr std::size_t kMaxZombieWindows = 8;
+inline constexpr std::size_t kMaxZombieWindows = 32;
 
 struct ZombieWindowDefinition {
     std::uint32_t id = 0;
