@@ -433,6 +433,11 @@ if "XZ_GEOMETRY_EFFECT_CAPTURE" not in hyena:
         "                xz_pr);\n"
         "        }\n"
         "    }\n"
+        "    if (xz_hyena_special_kind != XZ_GEOMETRY_SPECIAL_NONE &&\n"
+        "        XzAndroidRuntime_ShouldSuppressLegacyWorldDraw(XZ_LEGACY_DRAW_SPECIAL)) {\n"
+        "        free(vertices);\n"
+        "        return;\n"
+        "    }\n"
         "    if (xz_hyena_special_kind == XZ_GEOMETRY_SPECIAL_NONE &&\n"
         "        XzAndroidRuntime_ShouldSuppressLegacyWorldDraw(XZ_LEGACY_DRAW_EFFECT)) {\n"
         "        free(vertices);\n"
@@ -828,6 +833,7 @@ if '#include "xz_geometry_tap.h"' not in warp:
         anchor +
         '#ifdef __ANDROID__\n'
         '#include "xz_geometry_tap.h"\n'
+        '#include "xz_android_runtime.h"\n'
         '#include <stddef.h>\n'
         '#include <string.h>\n'
         '#endif\n',
