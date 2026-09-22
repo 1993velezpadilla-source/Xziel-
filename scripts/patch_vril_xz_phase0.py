@@ -460,6 +460,165 @@ if draw.count("XZ_TEXTURE_RGBA_CAPTURE") != 1:
     raise SystemExit("Texture RGBA capture injection count mismatch")
 
 
+
+# Capture the remaining raw immediate-mode 3D paths that bypass Hyena:
+# turbulent water, layered/flat sky and skybox quads.
+gl_warp = source / "platform" / "sdl" / "gl" / "gl_warp.c"
+warp = gl_warp.read_text(encoding="utf-8")
+
+if '#include "xz_geometry_tap.h"' not in warp:
+    anchor = '#include "../../../nzportable_def.h"\n'
+    if anchor not in warp:
+        raise SystemExit("Missing gl_warp include anchor")
+    warp = warp.replace(
+        anchor,
+        anchor +
+        '#ifdef __ANDROID__\n'
+        '#include "xz_geometry_tap.h"\n'
+        '#include <string.h>\n'
+        '#endif\n',
+        1,
+    )
+
+warp_state_helper = state_helper.replace(
+    "XzCaptureLegacyRenderState",
+    "XzCaptureLegacyWarpState",
+)
+warp_capture_helper = (
+    '#ifdef __ANDROID__\n'
+    'static void XzCaptureImmediateFan(const float *source, unsigned int count, unsigned int stride, unsigned int pos, unsigned int uv)\n'
+    '{\n'
+    '    float xz_mv[16], xz_pr[16];\n'
+    '    GLint xz_tex = 0;\n'
+    '    XzGeometryRenderState xz_state;\n'
+    '    XzCaptureLegacyWarpState(&xz_state);\n'
+    '    glGetFloatv(GL_MODELVIEW_MATRIX, xz_mv);\n'
+    '    glGetFloatv(GL_PROJECTION_MATRIX, xz_pr);\n'
+    '    glGetIntegerv(GL_TEXTURE_BINDING_2D, &xz_tex);\n'
+    '    XzGeometryTap_CaptureImmediate(source, count, stride, pos, uv,\n'
+    '        XZ_GEOMETRY_TRIANGLE_FAN, (int)xz_tex, &xz_state, xz_mv, xz_pr);\n'
+    '}\n'
+    '#endif\n'
+)
+if 'static void XzCaptureLegacyWarpState' not in warp:
+    include_end = '#endif\n'
+    include_pos = warp.find(include_end, warp.find('#include "xz_geometry_tap.h"'))
+    if include_pos < 0:
+        raise SystemExit("Missing gl_warp state helper insertion point")
+    include_pos += len(include_end)
+    warp = warp[:include_pos] + '\n' + warp_state_helper + '\n' + warp_capture_helper + warp[include_pos:]
+
+water_anchor = (
+    "\tfor (p=fa->polys ; p ; p=p->next)\n"
+    "\t{\n"
+    "\t\tglBegin (GL_POLYGON);\n"
+)
+if "XZ_IMMEDIATE_WATER_CAPTURE" not in warp:
+    if water_anchor not in warp:
+        raise SystemExit("Missing water immediate capture anchor")
+    water_capture = (
+        "\tfor (p=fa->polys ; p ; p=p->next)\n"
+        "\t{\n"
+        "#ifdef __ANDROID__\n"
+        "\t\t/* XZ_IMMEDIATE_WATER_CAPTURE */\n"
+        "\t\tif (p->numverts <= 64) {\n"
+        "\t\t\tfloat xz_vertices[64][5];\n"
+        "\t\t\tfloat *xz_v;\n"
+        "\t\t\tint xz_i;\n"
+        "\t\t\tfor (xz_i=0, xz_v=p->verts[0]; xz_i<p->numverts; ++xz_i, xz_v+=VERTEXSIZE) {\n"
+        "\t\t\t\tfloat xz_os=xz_v[3], xz_ot=xz_v[4];\n"
+        "\t\t\t\tfloat xz_s=xz_os + turbsin[(int)((xz_ot*0.125f+(float)realtime)*(float)TURBSCALE)&255];\n"
+        "\t\t\t\tfloat xz_t=xz_ot + turbsin[(int)((xz_os*0.125f+(float)realtime)*(float)TURBSCALE)&255];\n"
+        "\t\t\t\txz_vertices[xz_i][0]=xz_v[0]; xz_vertices[xz_i][1]=xz_v[1]; xz_vertices[xz_i][2]=xz_v[2];\n"
+        "\t\t\t\txz_vertices[xz_i][3]=xz_s*(1.0f/64); xz_vertices[xz_i][4]=xz_t*(1.0f/64);\n"
+        "\t\t\t}\n"
+        "\t\t\tXzCaptureImmediateFan(&xz_vertices[0][0], (unsigned int)p->numverts, 5u, 0u, 3u);\n"
+        "\t\t}\n"
+        "#endif\n"
+        "\t\tglBegin (GL_POLYGON);\n"
+    )
+    warp = warp.replace(water_anchor, water_capture, 1)
+
+sky_anchor = (
+    "\tfor (p=fa->polys ; p ; p=p->next)\n"
+    "\t{\n"
+    "\t\tglBegin (GL_POLYGON);\n"
+)
+# The first matching block is water and has already been replaced, so the
+# remaining exact block is EmitSkyPolys.
+if "XZ_IMMEDIATE_SKY_LAYER_CAPTURE" not in warp:
+    if sky_anchor not in warp:
+        raise SystemExit("Missing layered-sky immediate capture anchor")
+    sky_capture = (
+        "\tfor (p=fa->polys ; p ; p=p->next)\n"
+        "\t{\n"
+        "#ifdef __ANDROID__\n"
+        "\t\t/* XZ_IMMEDIATE_SKY_LAYER_CAPTURE */\n"
+        "\t\tif (p->numverts <= 64) {\n"
+        "\t\t\tfloat xz_vertices[64][5];\n"
+        "\t\t\tfloat *xz_v;\n"
+        "\t\t\tint xz_i;\n"
+        "\t\t\tfor (xz_i=0, xz_v=p->verts[0]; xz_i<p->numverts; ++xz_i, xz_v+=VERTEXSIZE) {\n"
+        "\t\t\t\tvec3_t xz_dir;\n"
+        "\t\t\t\tfloat xz_len, xz_s, xz_t;\n"
+        "\t\t\t\tVectorSubtract(xz_v, r_origin, xz_dir);\n"
+        "\t\t\t\txz_dir[2] *= 3;\n"
+        "\t\t\t\txz_len = sqrtf(xz_dir[0]*xz_dir[0] + xz_dir[1]*xz_dir[1] + xz_dir[2]*xz_dir[2]);\n"
+        "\t\t\t\txz_len = 6*63/xz_len;\n"
+        "\t\t\t\txz_dir[0] *= xz_len; xz_dir[1] *= xz_len;\n"
+        "\t\t\t\txz_s=(speedscale+xz_dir[0])*(1.0f/128); xz_t=(speedscale+xz_dir[1])*(1.0f/128);\n"
+        "\t\t\t\txz_vertices[xz_i][0]=xz_v[0]; xz_vertices[xz_i][1]=xz_v[1]; xz_vertices[xz_i][2]=xz_v[2];\n"
+        "\t\t\t\txz_vertices[xz_i][3]=xz_s; xz_vertices[xz_i][4]=xz_t;\n"
+        "\t\t\t}\n"
+        "\t\t\tXzCaptureImmediateFan(&xz_vertices[0][0], (unsigned int)p->numverts, 5u, 0u, 3u);\n"
+        "\t\t}\n"
+        "#endif\n"
+        "\t\tglBegin (GL_POLYGON);\n"
+    )
+    warp = warp.replace(sky_anchor, sky_capture, 1)
+
+flat_anchor = (
+    "\t\tfor (poly = surface->polys; poly; poly = poly->next)\n"
+    "\t\t{\n"
+    "\t\t\tglBegin(GL_POLYGON);\n"
+)
+if "XZ_IMMEDIATE_FLAT_SKY_CAPTURE" not in warp:
+    if flat_anchor not in warp:
+        raise SystemExit("Missing flat-sky immediate capture anchor")
+    flat_capture = (
+        "\t\tfor (poly = surface->polys; poly; poly = poly->next)\n"
+        "\t\t{\n"
+        "#ifdef __ANDROID__\n"
+        "\t\t\t/* XZ_IMMEDIATE_FLAT_SKY_CAPTURE */\n"
+        "\t\t\tXzCaptureImmediateFan(poly->verts[0], (unsigned int)poly->numverts,\n"
+        "\t\t\t\t(unsigned int)VERTEXSIZE, 0u, (unsigned int)VERTEXSIZE);\n"
+        "#endif\n"
+        "\t\t\tglBegin(GL_POLYGON);\n"
+    )
+    warp = warp.replace(flat_anchor, flat_capture, 1)
+
+skybox_anchor = (
+    "\t\tglTexCoord2f (sky_vertices[3].s, sky_vertices[3].t);\n"
+    "\t\tglVertex3fv (v);\n\n"
+    "\t\tglEnd();\n"
+)
+if "XZ_IMMEDIATE_SKYBOX_CAPTURE" not in warp:
+    if skybox_anchor not in warp:
+        raise SystemExit("Missing skybox immediate capture anchor")
+    skybox_capture = (
+        "\t\tglTexCoord2f (sky_vertices[3].s, sky_vertices[3].t);\n"
+        "\t\tglVertex3fv (v);\n"
+        "#ifdef __ANDROID__\n"
+        "\t\t/* XZ_IMMEDIATE_SKYBOX_CAPTURE */\n"
+        "\t\tXzCaptureImmediateFan((const float *)sky_vertices, 4u,\n"
+        "\t\t\t(unsigned int)(sizeof(glvert_t)/sizeof(float)), 0u, 3u);\n"
+        "#endif\n\n"
+        "\t\tglEnd();\n"
+    )
+    warp = warp.replace(skybox_anchor, skybox_capture, 1)
+
+gl_warp.write_text(warp, encoding="utf-8")
+
 gl_rmain = source / "platform" / "sdl" / "gl" / "gl_rmain.c"
 rmain = gl_rmain.read_text(encoding="utf-8")
 
