@@ -284,13 +284,75 @@ jobs:
           "$ADB" logcat -c
           "$ADB" shell am force-stop             com.xziel.engineprototype || true
 
+          # Android's immersive-mode education bubble covered the real in-game
+          # screenshot on clean emulator boots. Pre-confirm it before launch,
+          # then still keep a UIAutomator fallback below for API/image variants
+          # that ignore the secure setting.
+          "$ADB" shell settings put secure immersive_mode_confirmations confirmed || true
+
           timeout 8 "$ADB" shell am start             -n com.xziel.engineprototype/.XzielGameActivity             > dist/sanctum-hq-am-start.txt 2>&1 || true
 
-          sleep 20
+          sleep 4
+
+          timeout 8 "$ADB" shell uiautomator dump /sdcard/xziel-sanctum-window.xml             >/dev/null 2>&1 || true
+          timeout 8 "$ADB" exec-out cat /sdcard/xziel-sanctum-window.xml             > dist/sanctum-hq-window.xml 2>/dev/null || true
+
+          python3 - <<'PY'
+          import re
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          source = Path("dist/sanctum-hq-window.xml")
+          target = Path("dist/sanctum-hq-dismiss-tap.txt")
+          target.unlink(missing_ok=True)
+
+          if source.exists() and source.stat().st_size:
+              try:
+                  root = ET.fromstring(source.read_text(errors="ignore"))
+                  for node in root.iter():
+                      text = (node.attrib.get("text") or "").strip().lower()
+                      desc = (node.attrib.get("content-desc") or "").strip().lower()
+                      if text in {"got it", "ok"} or desc in {"got it", "ok"}:
+                          bounds = node.attrib.get("bounds", "")
+                          match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
+                          if match:
+                              x1, y1, x2, y2 = map(int, match.groups())
+                              target.write_text(f"{(x1+x2)//2} {(y1+y2)//2}\n")
+                              break
+              except ET.ParseError:
+                  pass
+          PY
+
+          if [[ -s dist/sanctum-hq-dismiss-tap.txt ]]; then
+            read -r DISMISS_X DISMISS_Y < dist/sanctum-hq-dismiss-tap.txt
+            "$ADB" shell input tap "$DISMISS_X" "$DISMISS_Y" || true
+          else
+            # Harmless if nothing is focused; useful when the system dialog
+            # exposes its default button but not a complete accessibility tree.
+            "$ADB" shell input keyevent 66 || true
+          fi
+
+          sleep 16
 
           timeout 8 "$ADB" logcat -d -v threadtime             > dist/sanctum-hq-logcat.txt || true
 
+          # Keep the legacy filename for downstream checks, but make it clean.
           timeout 8 "$ADB" exec-out screencap -p             > dist/sanctum-hq-first-frame.png || true
+          cp dist/sanctum-hq-first-frame.png             dist/sanctum-hq-tour-01-entry.png || true
+
+          # CI-only touch tour. Pixel 6 AVD is 2400x1080 landscape here.
+          # Right side is free-look; left side is the movement joystick.
+          "$ADB" shell input swipe 1700 330 1180 330 700 || true
+          sleep 1
+          timeout 8 "$ADB" exec-out screencap -p             > dist/sanctum-hq-tour-02-look.png || true
+
+          "$ADB" shell input swipe 420 840 420 560 1800 || true
+          sleep 1
+          timeout 8 "$ADB" exec-out screencap -p             > dist/sanctum-hq-tour-03-forward.png || true
+
+          "$ADB" shell input swipe 1500 360 1880 250 650 || true
+          sleep 1
+          timeout 8 "$ADB" exec-out screencap -p             > dist/sanctum-hq-tour-04-look-up.png || true
 
           PID="$(timeout 5 "$ADB" shell pidof             com.xziel.engineprototype 2>/dev/null             | tr -d '\r' || true)"
 
@@ -332,6 +394,11 @@ jobs:
             build/sanctum-hq-apk-contents.txt
             dist/sanctum-hq-logcat.txt
             dist/sanctum-hq-first-frame.png
+            dist/sanctum-hq-tour-01-entry.png
+            dist/sanctum-hq-tour-02-look.png
+            dist/sanctum-hq-tour-03-forward.png
+            dist/sanctum-hq-tour-04-look-up.png
+            dist/sanctum-hq-window.xml
             dist/sanctum-hq-emulator.txt
             dist/sanctum-hq-am-start.txt
           if-no-files-found: warn
