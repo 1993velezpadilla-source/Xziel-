@@ -20,7 +20,7 @@ for p in REFS:
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 token = os.environ.get("HF_TOKEN", "").strip() or None
 print(f"Connecting to public TRELLIS Space: {SPACE} (authenticated={bool(token)})")
-client = Client(SPACE, token=token, verbose=True)
+client = Client(SPACE, hf_token=token, verbose=True) if token else Client(SPACE, verbose=True)
 
 api = client.view_api(print_info=False, return_format="dict")
 (OUT_DIR/"api-info.json").write_text(json.dumps(api, indent=2), encoding="utf-8")
