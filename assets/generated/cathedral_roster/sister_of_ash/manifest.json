@@ -6,7 +6,7 @@
   "height_m": 1.8,
   "rig": "game_engine",
   "bones": 53,
-  "triangles_estimate": 77012,
+  "triangles_estimate": 92580,
   "animations": [
     "idle",
     "walk",
@@ -36,5 +36,5 @@
     "preview_back.png",
     "preview_face.png"
   ],
-  "production_status": "Sister of Ash pass 19 \u2014 authoritative source, closed double coif/hood, full sleeves, real shoes, stronger corpse face"
+  "production_status": "Sister of Ash pass 21 \u2014 clean rebuild validation, full wimple face frame, shoulder-complete sleeves, covered shoes, layered torn habit, darker corpse face"
 }
