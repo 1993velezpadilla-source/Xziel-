@@ -252,5 +252,39 @@ int main() {
         assert(blocked.feetPosition.z > 0.95f);
     }
 
+    // Authored walkable surfaces support real multi-level maps. Crossing a
+    // <=34 cm overlap step raises the player without changing the global
+    // emergency floor or treating the slab as a horizontal wall.
+    {
+        xziel::FpsPlayerController stairPlayer;
+        stairPlayer.clearWalkableSurfaces();
+        assert(stairPlayer.addWalkableSurface(
+            {
+                .minimum = {-2.0f, -1.68f, -3.0f},
+                .maximum = { 2.0f, -1.48f, -0.80f},
+            }));
+        assert(stairPlayer.addWalkableSurface(
+            {
+                .minimum = {-2.0f, -1.40f, -1.10f},
+                .maximum = { 2.0f, -1.20f,  2.50f},
+            }));
+        stairPlayer.setSpawn(
+            {0.0f, -1.48f, -2.0f},
+            0.0f);
+
+        xziel::FpsPlayerFrame stairFrame{};
+        for (int i = 0; i < 120; ++i) {
+            stairFrame =
+                stairPlayer.fixedStep(
+                    {0.0f, 1.0f},
+                    {},
+                    1.0f / 120.0f);
+        }
+
+        assert(stairFrame.feetPosition.z > -1.0f);
+        assert(stairFrame.feetPosition.y > -1.25f);
+        assert(stairFrame.feetPosition.y < -1.15f);
+    }
+
     return 0;
 }
