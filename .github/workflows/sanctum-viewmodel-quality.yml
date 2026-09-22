@@ -1,0 +1,44 @@
+name: Sanctum Viewmodel Quality Gate
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/sanctum-viewmodel-quality-gate
+    paths:
+      - "engine/include/xziel/static_mesh.hpp"
+      - "engine/src/static_mesh.cpp"
+      - "engine/tests/static_mesh_smoke.cpp"
+      - "xziel-native-android/app/src/main/cpp/vulkan_static_mesh_renderer.cpp"
+      - "xziel-native-android/app/src/main/cpp/vulkan_clear_renderer.cpp"
+      - ".github/workflows/sanctum-viewmodel-quality.yml"
+  pull_request:
+    paths:
+      - "engine/include/xziel/static_mesh.hpp"
+      - "engine/src/static_mesh.cpp"
+      - "engine/tests/static_mesh_smoke.cpp"
+      - "xziel-native-android/app/src/main/cpp/vulkan_static_mesh_renderer.cpp"
+      - "xziel-native-android/app/src/main/cpp/vulkan_clear_renderer.cpp"
+      - ".github/workflows/sanctum-viewmodel-quality.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  host-quality-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Configure Xziel tests
+        run: cmake -S engine -B build/xziel-viewmodel -DXZIEL_ENGINE_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build Xziel tests
+        run: cmake --build build/xziel-viewmodel --parallel 2
+
+      - name: Run static mesh smoke test
+        run: ctest --test-dir build/xziel-viewmodel --output-on-failure -R static_mesh
+
+      - name: Run full native core smoke suite
+        run: ctest --test-dir build/xziel-viewmodel --output-on-failure
