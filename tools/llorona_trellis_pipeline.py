@@ -37,26 +37,14 @@ def find_endpoint(fragment: str):
             return ("fn_index", int(idx))
     return None
 
-repo = os.environ.get("GITHUB_REPOSITORY", "1993velezpadilla-source/config-old-3")
-sha = os.environ.get("GITHUB_SHA", "").strip()
-if not sha:
-    fail("GITHUB_SHA is missing")
-raw_base = f"https://raw.githubusercontent.com/{repo}/{sha}/assets/characters/llorona/reference"
-ref_urls = [f"{raw_base}/{p.name}" for p in REFS]
+# Use local files so gradio_client uploads them exactly as Gallery/Image inputs expect.
+# The old URL-shaped payload bypassed Gradio's upload preprocessing and caused the Space
+# to receive invalid Gallery items.
+front = handle_file(str(REFS[0]))
+gallery = [{"image": handle_file(str(p)), "caption": None} for p in REFS]
 
-def image_data(url, name):
-    return {
-        "path": url,
-        "url": url,
-        "orig_name": name,
-        "mime_type": "image/jpeg",
-        "is_stream": False,
-        "meta": {"_type": "gradio.FileData"},
-    }
-
-gallery = [{"image": image_data(url, p.name), "caption": None} for p, url in zip(REFS, ref_urls)]
-front = image_data(ref_urls[0], REFS[0].name)
-
+# First try the Space's own background-removal/centering pass. If that endpoint is
+# unavailable, generation still gets the original views rather than aborting.
 pre = find_endpoint("preprocess_images")
 if pre:
     print("Preprocessing multi-view references via TRELLIS...")
@@ -65,30 +53,58 @@ if pre:
             processed = client.predict(gallery, api_name=pre[1])
         else:
             processed = client.predict(gallery, fn_index=pre[1])
+        print("preprocess result:", repr(processed)[:2000])
         if processed:
             gallery = processed
+            # Give the required single-image parameter a valid image even though
+            # generate_and_extract_glb ignores it while is_multiimage=True.
+            first = gallery[0]
+            if isinstance(first, dict) and "image" in first:
+                front = first["image"]
+            elif isinstance(first, dict) and ("path" in first or "url" in first):
+                front = first
+            elif isinstance(first, str):
+                front = handle_file(first)
     except Exception as e:
-        print(f"::warning::TRELLIS preprocess endpoint failed; continuing with original refs: {e}")
+        print(f"::warning::TRELLIS preprocess endpoint failed; continuing with uploaded refs: {e}")
 
 gen = find_endpoint("generate_and_extract_glb")
 if not gen:
-    # Current public Space normally exposes this endpoint; keep a direct fallback.
     gen = ("api_name", "/generate_and_extract_glb")
 
-print(f"Calling TRELLIS generator via {gen[0]}={gen[1]}")
-args = [
-    front,
-    gallery,
-    1993,       # deterministic seed
-    7.5,        # sparse-structure guidance
-    12,         # sparse-structure sampling steps
-    3.0,        # structured-latent guidance
-    12,         # structured-latent sampling steps
-    "stochastic",
-    0.95,       # simplify
-    2048,       # texture size
-]
+# Build arguments by the current live API parameter names. The community Space added
+# is_multiimage to this endpoint; omitting it shifted every later argument by one.
+named = api.get("named_endpoints", {}).get("/generate_and_extract_glb", {})
+param_names = [p.get("parameter_name") for p in named.get("parameters", [])]
+print("TRELLIS generate parameters:", param_names)
 
+values = {
+    "image": front,
+    "multiimages": gallery,
+    "is_multiimage": True,
+    "seed": 1993,
+    "ss_guidance_strength": 7.5,
+    "ss_sampling_steps": 12,
+    "slat_guidance_strength": 3.0,
+    "slat_sampling_steps": 12,
+    "multiimage_algo": "multidiffusion",
+    "mesh_simplify": 0.95,
+    "texture_size": 2048,
+}
+
+if param_names:
+    missing = [p for p in param_names if p not in values]
+    if missing:
+        fail(f"Unhandled TRELLIS API parameters: {missing}")
+    args = [values[p] for p in param_names]
+else:
+    # Current Space contract as of this pipeline.
+    args = [
+        front, gallery, True, 1993, 7.5, 12, 3.0, 12,
+        "multidiffusion", 0.95, 2048,
+    ]
+
+print(f"Calling TRELLIS generator via {gen[0]}={gen[1]} with {len(args)} args")
 try:
     if gen[0] == "api_name":
         result = client.predict(*args, api_name=gen[1])
