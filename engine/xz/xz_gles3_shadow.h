@@ -79,8 +79,10 @@ typedef struct {
     unsigned int last_geometry_indices;
     unsigned int last_geometry_drops;
     unsigned int last_effect_batches;
+    unsigned int last_immediate_batches;
     int real_geometry_ready;
     int real_effects_ready;
+    int real_immediate_ready;
 
     uint64_t real_texture_uploads;
     uint64_t real_texture_binds;
@@ -103,6 +105,7 @@ typedef struct {
     unsigned int last_cull_batches;
     unsigned int last_depth_range_batches;
     unsigned int last_polygon_offset_batches;
+    unsigned int last_depth_test_disabled_batches;
     int real_raster_state_ready;
 
     uint64_t visible_present_attempts;
