@@ -9,6 +9,7 @@ on:
     paths:
       - ".github/workflows/church-map-blender.yml"
       - "tools/church_map/**"
+      - "tools/weapons/**"
       - "ci/sanctum_dressing/build_dressing.py"
       - "docs/SANCTUM_OF_ASH_MAP_BIBLE.md"
 
@@ -35,7 +36,7 @@ jobs:
           set -euo pipefail
           sudo apt-get update -qq
           sudo apt-get install -y -qq \
-            blender python3-numpy \
+            blender python3-numpy ffmpeg \
             libegl1 libgl1-mesa-dri libglx-mesa0 mesa-utils xvfb \
             git wget curl unzip zip libicu-dev
           python3 -m pip install --quiet --upgrade pip
@@ -203,6 +204,73 @@ jobs:
           test -d church/out/xziel_native_static/textures/xziel/sanctum
           test -s church/out/xziel_native_static_mesh_report.json
 
+      - name: Build CC0 first-person rifle and real weapon audio
+        shell: bash
+        env:
+          WEAPON_SOURCE: church/source/weapons/standard_rifle.glb
+          XZIEL_STATIC_RUNTIME_ROOT: church/out/xziel_native_static
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          mkdir -p \
+            church/source/weapons \
+            church/out/xziel_native_static/audio/xziel/weapons \
+            church/out/xziel_native_static/licenses
+
+          curl --fail --location --retry 3 \
+            "https://cdn.3dassets.dev/assets/33318/v1/model.glb" \
+            --output church/source/weapons/standard_rifle.glb
+
+          curl --fail --location --retry 3 \
+            "https://raw.githubusercontent.com/buddingmonkey/FreeFirearmsSFXLibrary/main/Prepared%20SFX/AR-15/D_24P.wav" \
+            --output church/source/weapons/ar15-fire-source.wav
+
+          curl --fail --location --retry 3 \
+            "https://opengameart.org/sites/default/files/assaultriflereload1_0.wav" \
+            --output church/source/weapons/assault-reload-source.wav
+
+          xvfb-run -a -s "-screen 0 1280x1024x24" \
+            blender --background \
+            --python tools/weapons/export_glb_viewmodel_xzsm.py \
+            2>&1 | tee church/out/xziel-weapon-export.log
+
+          ffmpeg -hide_banner -loglevel error -y \
+            -i church/source/weapons/ar15-fire-source.wav \
+            -af "silenceremove=start_periods=1:start_duration=0.005:start_threshold=-50dB,atrim=duration=0.85,afade=t=out:st=0.70:d=0.15,volume=-2dB" \
+            -ac 1 -ar 48000 -c:a pcm_s16le \
+            church/out/xziel_native_static/audio/xziel/weapons/standard_rifle_fire.wav
+
+          ffmpeg -hide_banner -loglevel error -y \
+            -i church/source/weapons/assault-reload-source.wav \
+            -af "silenceremove=start_periods=1:start_duration=0.005:start_threshold=-50dB,atrim=duration=1.82,volume=-2dB" \
+            -ac 1 -ar 48000 -c:a pcm_s16le \
+            church/out/xziel_native_static/audio/xziel/weapons/standard_rifle_reload.wav
+
+          cat > church/out/xziel_native_static/licenses/standard_rifle_assets.txt <<'EOF'
+          Standard Assault Rifle model
+          Source: https://3dassets.dev/assets/mega-weapon-pack-standard-rifle-94762172
+          Direct source used by CI: https://cdn.3dassets.dev/assets/33318/v1/model.glb
+          License: Creative Commons Zero v1.0 Universal (CC0-1.0)
+
+          AR-15 firearm recording
+          Source: https://github.com/buddingmonkey/FreeFirearmsSFXLibrary
+          File: Prepared SFX/AR-15/D_24P.wav
+          License: Creative Commons Zero v1.0 Universal (CC0-1.0)
+
+          Assault-rifle reload recording
+          Source: https://opengameart.org/content/gun-reload-sounds
+          File: assaultriflereload1_0.wav
+          License: Creative Commons Zero (CC0)
+          EOF
+
+          test -s church/out/xziel_native_static/models/xziel/weapons/standard_rifle.xzsm
+          test -s church/out/xziel_native_static/weapon_standard_rifle_report.json
+          test -s church/out/xziel_native_static/audio/xziel/weapons/standard_rifle_fire.wav
+          test -s church/out/xziel_native_static/audio/xziel/weapons/standard_rifle_reload.wav
+          jq -e '.sourceTriangles >= 30000' church/out/xziel_native_static/weapon_standard_rifle_report.json
+          jq -e '.materialCount >= 4' church/out/xziel_native_static/weapon_standard_rifle_report.json
+          jq -e '.animations | length >= 4' church/out/xziel_native_static/weapon_standard_rifle_report.json
+
       - name: Export portable map package
         shell: bash
         env:
@@ -310,6 +378,10 @@ jobs:
             church/out/vril_static_mesh_report.json \
             church/out/xziel_native_static/models/xziel/sanctum/sanctum.xzsm \
             church/out/xziel_native_static_mesh_report.json \
+            church/out/xziel_native_static/models/xziel/weapons/standard_rifle.xzsm \
+            church/out/xziel_native_static/weapon_standard_rifle_report.json \
+            church/out/xziel_native_static/audio/xziel/weapons/standard_rifle_fire.wav \
+            church/out/xziel_native_static/audio/xziel/weapons/standard_rifle_reload.wav \
             church/out/xziel_native_map/sanctum.xmap \
             church/out/xziel_native_map/sanctum_native_map_report.json \
             church/out/SANCTUM_OF_ASH_MAP_BIBLE.md \
