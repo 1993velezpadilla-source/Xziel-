@@ -1,0 +1,288 @@
+name: Ingest CC0 Horror Audio Library
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/ingest-cc0-horror-audio.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: xziel-cc0-horror-audio
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Install archive tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq p7zip-full unzip
+
+      - name: Download and unpack verified CC0 audio
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ROOT="assets/audio/cc0_horror_library"
+          CACHE="_cc0_audio_downloads"
+          mkdir -p "$ROOT" "$CACHE"
+
+          download_any() {
+            local out="$1"; shift
+            local ok=0
+            for url in "$@"; do
+              echo "TRY $url"
+              if curl -fL --retry 5 --retry-delay 2 --connect-timeout 20 \
+                  -A "Xziel-Asset-Ingest/1.0" "$url" -o "$out"; then
+                ok=1
+                break
+              fi
+            done
+            if [ "$ok" -ne 1 ]; then
+              echo "::error::All candidate URLs failed for $out"
+              return 1
+            fi
+          }
+
+          provenance() {
+            local dir="$1"
+            local title="$2"
+            local creator="$3"
+            local page="$4"
+            local archive="$5"
+            {
+              echo "Title: $title"
+              echo "Creator: $creator"
+              echo "License: CC0 / Public Domain dedication (as declared on source page)"
+              echo "Source: $page"
+              echo "Retrieved UTC: $(date -u +%FT%TZ)"
+              echo "Archive SHA256:"
+              sha256sum "$archive"
+            } > "$dir/SOURCE.txt"
+          }
+
+          ingest_zip() {
+            local slug="$1"; local title="$2"; local creator="$3"; local page="$4"
+            shift 4
+            local archive="$CACHE/$slug.zip"
+            local dir="$ROOT/$slug"
+            rm -rf "$dir"
+            mkdir -p "$dir"
+            download_any "$archive" "$@"
+            unzip -q -o "$archive" -d "$dir"
+            provenance "$dir" "$title" "$creator" "$page" "$archive"
+          }
+
+          ingest_7z() {
+            local slug="$1"; local title="$2"; local creator="$3"; local page="$4"
+            shift 4
+            local archive="$CACHE/$slug.7z"
+            local dir="$ROOT/$slug"
+            rm -rf "$dir"
+            mkdir -p "$dir"
+            download_any "$archive" "$@"
+            7z x -y "$archive" "-o$dir" >/dev/null
+            provenance "$dir" "$title" "$creator" "$page" "$archive"
+          }
+
+          ingest_optional_file() {
+            local slug="$1"; local title="$2"; local creator="$3"; local page="$4"; local filename="$5"
+            shift 5
+            local dir="$ROOT/$slug"
+            mkdir -p "$dir"
+            if download_any "$dir/$filename" "$@"; then
+              {
+                echo "Title: $title"
+                echo "Creator: $creator"
+                echo "License: CC0 / Public Domain dedication (as declared on source page)"
+                echo "Source: $page"
+                echo "Retrieved UTC: $(date -u +%FT%TZ)"
+                echo "File SHA256:"
+                sha256sum "$dir/$filename"
+              } > "$dir/SOURCE.txt"
+            else
+              echo "::warning::Optional source failed: $title"
+              rm -f "$dir/$filename"
+              rmdir "$dir" 2>/dev/null || true
+            fi
+          }
+
+          OGA="https://opengameart.org/sites/default/files"
+
+          ingest_zip "zombies_artisticdude" \
+            "Zombies Sound Pack" "artisticdude" \
+            "https://opengameart.org/content/zombies-sound-pack" \
+            "$OGA/zombies.zip"
+
+          ingest_zip "creature_rubberduck_01" \
+            "80 CC0 creature SFX" "rubberduck" \
+            "https://opengameart.org/content/80-cc0-creature-sfx" \
+            "$OGA/80-CC0-creature-SFX_0.zip" \
+            "$OGA/80-CC0-creature-SFX.zip"
+
+          ingest_zip "creature_rubberduck_02" \
+            "80 CC0 creature SFX #2" "rubberduck" \
+            "https://opengameart.org/content/80-cc0-creture-sfx-2" \
+            "$OGA/80-CC0-creature-sfx-2.zip" \
+            "$OGA/80-CC0-creature-sfx-2_0.zip"
+
+          ingest_zip "rpg_sfx_rubberduck" \
+            "80 CC0 RPG SFX" "rubberduck" \
+            "https://opengameart.org/node/86018" \
+            "$OGA/80-CC0-RPG-SFX.zip" \
+            "$OGA/80-CC0-RPG-SFX_0.zip"
+
+          ingest_zip "wood_metal_rubberduck" \
+            "100 CC0 metal and wood SFX" "rubberduck" \
+            "https://opengameart.org/content/100-cc0-metal-and-wood-sfx" \
+            "$OGA/100-CC0-wood-metal-SFX.zip"
+
+          ingest_zip "general_sfx_rubberduck_01" \
+            "100 CC0 SFX" "rubberduck" \
+            "https://opengameart.org/content/100-cc0-sfx" \
+            "$OGA/100-CC0-SFX_0.zip" \
+            "$OGA/100-CC0-SFX.zip"
+
+          ingest_zip "general_sfx_rubberduck_02" \
+            "100 CC0 SFX #2" "rubberduck" \
+            "https://opengameart.org/content/100-cc0-sfx-2" \
+            "$OGA/sfx_100_v2.zip"
+
+          ingest_zip "breaking_falling_hits" \
+            "75 CC0 breaking / falling / hit sfx" "rubberduck" \
+            "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx" \
+            "$OGA/sfx_breaking_and_falling.zip"
+
+          ingest_zip "ambient_loops_rubberduck" \
+            "30 CC0 SFX loops" "rubberduck" \
+            "https://opengameart.org/content/30-cc0-sfx-loops" \
+            "$OGA/sfx_loops.zip"
+
+          ingest_zip "water_splash_slime" \
+            "40 CC0 water / splash / slime SFX" "rubberduck" \
+            "https://opengameart.org/content/40-cc0-water-splash-slime-sfx" \
+            "$OGA/water-splash-slime-sfx.zip"
+
+          ingest_zip "weird_horror_sources" \
+            "30 weird CC0 SFX" "rubberduck" \
+            "https://opengameart.org/content/30-weird-cc0-sfx" \
+            "$OGA/30-cc0-weird-sfx.zip"
+
+          ingest_zip "horror_hits_psychhead" \
+            "Horror Hit Soundpack 1" "psychhead_" \
+            "https://opengameart.org/content/horror-hit-soundpack-1" \
+            "$OGA/horror_hit_soundpack_1.zip" \
+            "$OGA/horror_hit_soundpack_1_0.zip"
+
+          ingest_zip "household_foley_owlishmedia" \
+            "202 More Sound Effects" "OwlishMedia" \
+            "https://opengameart.org/content/202-more-sound-effects" \
+            "$OGA/MoreSounds.zip"
+
+          ingest_7z "footsteps_snow_gravel" \
+            "42 Snow and Gravel Footsteps" "Corsica_S / qubodup" \
+            "https://opengameart.org/content/42-snow-and-gravel-footsteps" \
+            "$OGA/corsica_s-walking_in_snow.7z" \
+            "$OGA/corsica_s-walking_in_snow_0.7z"
+
+          ingest_7z "footsteps_snow_shoes" \
+            "41 snow shoe steps" "Corsica_S / qubodup" \
+            "https://opengameart.org/content/41-snow-shoe-steps" \
+            "$OGA/corsica_s-snow_shoes.7z" \
+            "$OGA/corsica_s-snow_shoes_0.7z"
+
+          # Extra CC0 ambience / undead sources. These are optional so one renamed
+          # upstream attachment cannot block the main >1000-sound ingest.
+          ingest_optional_file "ambient_horror_techiew" \
+            "Ambient horror" "techiew" \
+            "https://opengameart.org/content/ambient-horror" \
+            "ambient_horror.ogg" \
+            "$OGA/ambient_horror.ogg" || true
+
+          ingest_optional_file "rain_thunder_kindland" \
+            "rain and thunders" "kindland" \
+            "https://opengameart.org/content/rain-and-thunders" \
+            "dark_rainy_night.ogg" \
+            "$OGA/Dark_Rainy_Night%28ambience%29.ogg" || true
+
+          ingest_optional_file "zombie_moans_darsycho" \
+            "Zombie moans" "Darsycho" \
+            "https://opengameart.org/content/zombie-moans" \
+            "zombie_moans.ogg" \
+            "$OGA/darsycho__zombie-moans.ogg" || true
+
+          find "$ROOT" -type f | sort > "$ROOT/FILES.txt"
+
+      - name: Build deterministic inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          import json
+          from collections import Counter
+
+          root = Path("assets/audio/cc0_horror_library")
+          audio_exts = {".wav", ".ogg", ".mp3", ".flac", ".aif", ".aiff", ".opus"}
+          rows = []
+          counts = Counter()
+
+          for p in sorted(root.rglob("*")):
+              if not p.is_file() or p.name in {"INDEX.tsv", "SUMMARY.json"}:
+                  continue
+              rel = p.relative_to(root).as_posix()
+              ext = p.suffix.lower()
+              if ext in audio_exts:
+                  data = p.read_bytes()
+                  rows.append((rel, len(data), ext, hashlib.sha256(data).hexdigest()))
+                  counts[p.parts[len(root.parts)]] += 1
+
+          with (root / "INDEX.tsv").open("w", encoding="utf-8", newline="") as f:
+              f.write("path\tbytes\text\tsha256\n")
+              for rel, size, ext, digest in rows:
+                  f.write(f"{rel}\t{size}\t{ext}\t{digest}\n")
+
+          summary = {
+              "audio_file_count": len(rows),
+              "total_audio_bytes": sum(r[1] for r in rows),
+              "packs": dict(sorted(counts.items())),
+              "policy": "CC0/public-domain raw source pool; no COD/Treyarch rips"
+          }
+          (root / "SUMMARY.json").write_text(
+              json.dumps(summary, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8"
+          )
+          print(json.dumps(summary, indent=2, sort_keys=True))
+          if len(rows) < 1000:
+              raise SystemExit(f"expected at least 1000 audio files, got {len(rows)}")
+          PY
+
+      - name: Commit imported library
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/audio/cc0_horror_library
+          if git diff --cached --quiet; then
+            echo "No audio changes to commit."
+            exit 0
+          fi
+          git commit -m "assets: ingest CC0 horror and undead audio library"
+          git pull --rebase origin main
+          git push origin HEAD:main
