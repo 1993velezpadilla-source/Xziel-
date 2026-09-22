@@ -61,7 +61,6 @@ links = [
     ("ringing_chamber", "clock_chamber"),
     ("clock_chamber", "roof_chamber"),
     ("roof_chamber", "tower_top"),
-    ("tower_top", "turret"),
 ]
 
 open_sides = {z: set() for z in zones}
@@ -82,6 +81,9 @@ for a, b in links:
 lines = ["xziel_map 2"]
 box_id = 1
 box_count = 0
+floor_id = 1000
+floor_count = 0
+route_step_count = 0
 wall_height = 3.2
 wall_thickness = 0.18
 floor_thickness = 0.20
@@ -108,6 +110,28 @@ def emit_box(src_center, src_dims):
     box_id += 1
     box_count += 1
 
+def emit_floor(src_center, src_dims, route_step=False):
+    global floor_id, floor_count, route_step_count
+    mn = [
+        src_center[0] - src_dims[0] * 0.5,
+        src_center[1] - src_dims[1] * 0.5,
+        src_center[2] - src_dims[2] * 0.5,
+    ]
+    mx = [
+        src_center[0] + src_dims[0] * 0.5,
+        src_center[1] + src_dims[1] * 0.5,
+        src_center[2] + src_dims[2] * 0.5,
+    ]
+    nmin, nmax = native_aabb(mn, mx)
+    lines.append(
+        "floor %d %.6f %.6f %.6f %.6f %.6f %.6f"
+        % (floor_id, *nmin, *nmax)
+    )
+    floor_id += 1
+    floor_count += 1
+    if route_step:
+        route_step_count += 1
+
 # Conservative floor slabs + perimeter walls. Sides that connect to another
 # authored zone are omitted; the progression door below becomes the blocker.
 for zone, info in zones.items():
@@ -119,7 +143,10 @@ for zone, info in zones.items():
     cx = (mn[0] + mx[0]) * 0.5
     cy = (mn[1] + mx[1]) * 0.5
 
-    emit_box((cx, cy, floor_z - floor_thickness * 0.5), (sx, sy, floor_thickness))
+    emit_floor(
+        (cx, cy, floor_z - floor_thickness * 0.5),
+        (sx, sy, floor_thickness)
+    )
 
     wall_z = floor_z + wall_height * 0.5
     for side, c, d in (
@@ -130,6 +157,38 @@ for zone, info in zones.items():
     ):
         if side not in open_sides.get(zone, set()):
             emit_box(c, d)
+
+# Multi-level traversal: generate overlapping invisible support steps only for
+# authored links with meaningful elevation changes. Each rise is <= 0.28 m,
+# below the player's 0.34 m auto-step threshold.
+for a, b in links:
+    if a not in zones or b not in zones:
+        continue
+    floor_a = float(plan["floor_levels"].get(a, zones[a]["min"][2]))
+    floor_b = float(plan["floor_levels"].get(b, zones[b]["min"][2]))
+    dz = floor_b - floor_a
+    if abs(dz) <= 0.35:
+        continue
+
+    ca = [float(x) for x in zones[a]["center"]]
+    cb = [float(x) for x in zones[b]["center"]]
+    horizontal = math.hypot(cb[0] - ca[0], cb[1] - ca[1])
+    segments = max(
+        2,
+        int(math.ceil(horizontal / 0.65)),
+        int(math.ceil(abs(dz) / 0.28)),
+    )
+
+    for i in range(1, segments):
+        t = i / segments
+        x = ca[0] + (cb[0] - ca[0]) * t
+        y = ca[1] + (cb[1] - ca[1]) * t
+        top_z = floor_a + dz * t
+        emit_floor(
+            (x, y, top_z - floor_thickness * 0.5),
+            (1.30, 1.30, floor_thickness),
+            route_step=True,
+        )
 
 # Player spawn: use the authored exterior XY but snap feet to the actual
 # detected exterior floor, not to the marker cylinder center.
@@ -211,7 +270,15 @@ for rec in fitted.get("barricades", []):
     )
     outside = rec.get("outside")
     if outside:
-        sp = native_point(outside)
+        spawn_src = [float(x) for x in outside]
+        zone = norm_zone(rec.get("zone", "main_church"))
+        spawn_src[2] = float(
+            plan["floor_levels"].get(
+                zone,
+                spawn_src[2],
+            )
+        )
+        sp = native_point(spawn_src)
         lines.append("zombie_spawn %.6f %.6f %.6f" % sp)
     window_id += 1
 
@@ -223,6 +290,8 @@ report = {
     "sourcePlan": str(PLAN),
     "sourceFitted": str(FITTED),
     "boxCount": box_count,
+    "floorCount": floor_count,
+    "routeStepCount": route_step_count,
     "doorCount": door_id - 2000,
     "windowCount": window_id - 3000,
     "zombieSpawnCount": sum(1 for x in lines if x.startswith("zombie_spawn ")),
