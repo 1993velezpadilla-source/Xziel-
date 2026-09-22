@@ -78,7 +78,9 @@ typedef struct {
     unsigned int last_geometry_vertices;
     unsigned int last_geometry_indices;
     unsigned int last_geometry_drops;
+    unsigned int last_effect_batches;
     int real_geometry_ready;
+    int real_effects_ready;
 
     uint64_t real_texture_uploads;
     uint64_t real_texture_binds;
