@@ -46,7 +46,8 @@ def find_asset(root, basename):
 
 def hexrgb(s):
     s=s.lstrip("#")
-    return tuple(int(s[i:i+2],16)/255.0 for i in (0,2,4))
+    raw=[int(s[i:i+2],16)/255.0 for i in (0,2,4)]
+    return tuple(c/12.92 if c<=0.04045 else ((c+0.055)/1.055)**2.4 for c in raw)
 
 PALETTE={
  "spectral_ivory":"#E8E2D6","waterlogged_linen":"#C7C1B3","pale_corpse":"#D6D8E1",
@@ -173,86 +174,112 @@ def cone_between(name,p0,p1,r0,r1,material,verts=28):
     sol=o.modifiers.new("ClothThickness","SOLIDIFY"); sol.thickness=.004; sol.offset=0
     return o
 
+
 def open_veil(name,h,material,outer=True,translucent=False):
-    seg=34
-    rx=(.145 if outer else .105)*h
-    ry=(.105 if outer else .075)*h
-    ztop=(.985 if outer else .965)*h
-    zbot=(.565 if outer else .735)*h
+    seg=42
+    rings=5
+    zs=[.985,.925,.835,.705,.585] if outer else [.968,.935,.885,.815,.755]
+    rxs=[.090,.102,.118,.145,.175] if outer else [.076,.083,.092,.105,.118]
+    rys=[.075,.083,.092,.104,.112] if outer else [.062,.066,.070,.076,.080]
     vs=[]; fs=[]
-    for ring,z in enumerate((ztop,zbot)):
+    for r in range(rings):
+        z=zs[r]*h
         for i in range(seg):
-            a=-2.12 + 4.24*i/(seg-1)
-            x=rx*math.sin(a); y=ry*math.cos(a)
+            a=-2.03 + 4.06*i/(seg-1)
+            x=rxs[r]*h*math.sin(a)
+            y=rys[r]*h*math.cos(a)
             zz=z
-            if ring==1:
-                zz -= (.018 if outer else .008)*h*(.25+.75*abs(math.sin(i*1.91)))
+            if r==rings-1:
+                zz -= (.022 if outer else .009)*h*(.2+.8*abs(math.sin(i*1.73+0.4)))
             vs.append((x,y,zz))
-    for i in range(seg-1):
-        fs.append((i,i+1,seg+i+1,seg+i))
+    for r in range(rings-1):
+        for i in range(seg-1):
+            a=r*seg+i; b=a+1; c=(r+1)*seg+i+1; d=(r+1)*seg+i
+            fs.append((a,b,c,d))
     mesh=bpy.data.meshes.new(name+"Mesh"); mesh.from_pydata(vs,[],fs); mesh.update()
     o=bpy.data.objects.new(name,mesh); bpy.context.collection.objects.link(o); assign(o,material)
-    sol=o.modifiers.new("VeilThickness","SOLIDIFY"); sol.thickness=.0035; sol.offset=0
+    sol=o.modifiers.new("VeilThickness","SOLIDIFY"); sol.thickness=.0028; sol.offset=0
+    sub=o.modifiers.new("VeilSmooth","SUBSURF"); sub.subdivision_type="SIMPLE"; sub.levels=1; sub.render_levels=1
     return o
-
 def belt_loop(name,h,material,z=.555,scale_y=.72):
     o=torus(name,(0,0,z*h),.094*h,.0065*h,material)
     o.scale.y=scale_y; apply_obj(o)
     return o
 
-def cloth_patches(prefix,h,material,count=8):
+
+def cloth_patches(prefix,h,material,count=5):
     out=[]
-    for i in range(count):
-        side=-1 if i%2==0 else 1
-        x=side*(.055+.018*(i%3))*h
-        z=(.31+.052*i)*h
-        y=-.105*h
-        p=cube(f"{prefix}_{i:02}",(x,y,z),(.025*h,.003*h,.030*h),material,.002*h)
-        p.rotation_euler.z=math.radians((-8,5,11,-5)[i%4])
+    placements=[(-.075,.385,8),(.075,.445,-6),(-.052,.515,-3),(.062,.575,7),(-.078,.635,4)]
+    for i,(xf,zf,deg) in enumerate(placements[:count]):
+        p=cube(f"{prefix}_{i:02}",(xf*h,-.119*h,zf*h),(.012*h,.002*h,.017*h),material,.0015*h)
+        p.rotation_euler.z=math.radians(deg)
         out.append(p)
     return out
 
-def sleeve_pair(h,material,ragged=False):
+def sleeve_pair(h,material,ragged=False,cuff_material=None):
     out=[]
     for side,label in ((-1,"L"),(1,"R")):
-        p0=(side*.19*h,0,.765*h); p1=(side*.335*h,-.006*h,.555*h)
-        o=cone_between(f"Sleeve_{label}",p0,p1,.070*h,.048*h,material,32)
+        p0=(side*.175*h,-.006*h,.755*h)
+        p1=(side*.315*h,-.018*h,.565*h)
+        o=cone_between(f"Sleeve_{label}",p0,p1,.046*h,.031*h,material,36)
         if o: out.append(o)
         if ragged and o:
-            cuff=torus(f"CuffRag_{label}",p1,.049*h,.004*h,material,rot=(math.radians(90),0,0))
-            cuff.scale.z=.55; apply_obj(cuff); out.append(cuff)
+            cuffmat=cuff_material or material
+            p2=(side*.333*h,-.020*h,.540*h)
+            c=cone_between(f"CuffRag_{label}",p1,p2,.034*h,.040*h,cuffmat,30)
+            if c: out.append(c)
+    return out
+
+def shoulder_bib(h,material,name="ShoulderBib",front_y=-.112):
+    out=[]
+    for front in (True,False):
+        y=(front_y if front else .088)*h
+        pts=[]
+        for i in range(9):
+            t=i/8; x=(-.16+.32*t)*h
+            pts.append((x,y,.805*h))
+        for i in reversed(range(9)):
+            t=i/8; x=(-.18+.36*t)*h
+            pts.append((x,y,(.695-.010*(i%2))*h))
+        mesh=bpy.data.meshes.new(f"{name}{'Front' if front else 'Back'}Mesh")
+        mesh.from_pydata(pts,[],[tuple(range(len(pts)))]); mesh.update()
+        o=bpy.data.objects.new(f"{name}{'Front' if front else 'Back'}",mesh)
+        bpy.context.collection.objects.link(o); assign(o,material)
+        sol=o.modifiers.new("BibThickness","SOLIDIFY"); sol.thickness=.003; sol.offset=0
+        out.append(o)
     return out
 
 def nun_outfit(h,mats,stained=False):
     ivory=mats["spectral_ivory"] if stained else mats["dirty_ivory"]
-    blue=mats["ash_blue"]
-    rope=mats["rope"]
+    blue=mats["ash_blue"]; rope=mats["rope"]
     metal=mats.get("oxidized_metal",mats.get("old_wood"))
     out=[]
-    out.append(frustum("IvoryUnderSkirt",.035*h,.48*h,.145*h,.105*h,.112*h,.090*h,ivory,64,.035*h,.3))
-    out.append(frustum("BlueOuterSkirt",.17*h,.69*h,.165*h,.118*h,.120*h,.096*h,blue,64,.045*h,1.1))
-    out.append(frustum("BlueBodice",.55*h,.805*h,.120*h,.093*h,.145*h,.102*h,blue,56,.012*h,.6))
-    out.append(frustum("IvoryShoulderCape",.665*h,.825*h,.172*h,.120*h,.135*h,.100*h,ivory,56,.030*h,.2))
-    out.extend(sleeve_pair(h,blue,True))
+    out.append(frustum("IvoryUnderSkirt",.025*h,.505*h,.150*h,.108*h,.108*h,.085*h,ivory,72,.040*h,.3))
+    out.append(frustum("BlueOuterSkirt",.165*h,.695*h,.160*h,.114*h,.112*h,.088*h,blue,72,.052*h,1.1))
+    out.append(frustum("BlueBodice",.545*h,.802*h,.108*h,.084*h,.128*h,.093*h,blue,64,.010*h,.6))
+    out.extend(shoulder_bib(h,ivory,"IvoryShoulderBib",-0.105))
+    out.extend(sleeve_pair(h,blue,True,ivory))
     out.append(open_veil("OuterVeil",h,ivory if stained else blue,True))
     out.append(open_veil("InnerWimple",h,ivory,False))
-    out.append(belt_loop("RopeBelt",h,rope))
-    out.extend(cross_prop("NunCross",(0,-.093*h,.485*h),.045*h,metal))
+    out.append(belt_loop("RopeBelt",h,rope,.557,.70))
+    out.extend(cross_prop("NunCross",(0,-.132*h,.487*h),.039*h,metal))
     if not stained:
-        out.extend(cloth_patches("RepairPatch",h,ivory,9))
+        out.extend(cloth_patches("RepairPatch",h,ivory,5))
     return out
 
 def llorona_outfit(h,mats):
     ivory=mats["spectral_ivory"]; linen=mats.get("waterlogged_linen",ivory); rope=mats["rope"]
     out=[]
-    out.append(frustum("LloronaUnderDress",.025*h,.57*h,.160*h,.112*h,.108*h,.088*h,linen,64,.050*h,.1))
-    out.append(frustum("LloronaLayerA",.08*h,.73*h,.175*h,.122*h,.120*h,.096*h,ivory,64,.055*h,.8))
-    out.append(frustum("LloronaLayerB",.20*h,.80*h,.158*h,.112*h,.128*h,.098*h,linen,56,.040*h,1.7))
-    out.append(frustum("LloronaBodice",.56*h,.845*h,.125*h,.095*h,.142*h,.102*h,ivory,56,.018*h,.4))
-    out.extend(sleeve_pair(h,ivory,True))
-    out.append(belt_loop("RosaryBelt",h,rope,.565,.74))
+    out.append(frustum("LloronaUnderDress",.020*h,.585*h,.155*h,.108*h,.105*h,.083*h,linen,72,.055*h,.1))
+    out.append(frustum("LloronaLayerA",.075*h,.730*h,.170*h,.116*h,.112*h,.088*h,ivory,72,.060*h,.8))
+    out.append(frustum("LloronaLayerB",.205*h,.795*h,.151*h,.105*h,.118*h,.090*h,linen,64,.045*h,1.7))
+    out.append(frustum("LloronaBodice",.555*h,.842*h,.108*h,.082*h,.124*h,.091*h,ivory,64,.012*h,.4))
+    out.extend(sleeve_pair(h,ivory,True,linen))
+    out.append(belt_loop("RosaryBelt",h,rope,.566,.70))
+    mud=mats.get("mud_silt")
+    if mud:
+        out.append(frustum("MudHem",.022*h,.205*h,.174*h,.118*h,.165*h,.112*h,mud,72,.030*h,.5))
     return out
-
 def stained_halo(h,mats):
     metal=mats["oxidized_metal"]
     out=[]
@@ -431,16 +458,14 @@ def shrine_back(h,wood,metal,wax):
         candle=cyl(f"Candle{i}",(x,.12*h,.98*h+(i%2)*.05*h),.012*h,.06*h,wax,16); objs.append(candle)
     return objs
 
+
 def glass_shards(h,materials):
     objs=[]; cols=[materials["glass_blue"],materials["glass_cyan"],materials["glass_magenta"],materials["amber"]]
-    for i in range(18):
-        a=2*math.pi*i/18
-        z=(.25+.035*i)*h
-        x=.18*h*math.cos(a); y=.10*h*math.sin(a)
-        o=cube(f"GlassShard{i:02}",(x,y,z),(.012*h,.003*h,.035*h),cols[i%4],.003*h)
-        o.rotation_euler=(random.random()*.8,random.random()*.5,a); objs.append(o)
+    pts=[(-.115,.31),(.108,.37),(-.105,.44),(.118,.50),(-.120,.57),(.110,.64),(-.095,.70),(.092,.75),(-.145,.53),(.142,.59)]
+    for i,(xf,zf) in enumerate(pts):
+        o=cube(f"GlassShard{i:02}",(xf*h,-.116*h,zf*h),(.006*h,.002*h,.020*h),cols[i%4],.0015*h)
+        o.rotation_euler.z=math.radians((-14,10,-6,18)[i%4]); objs.append(o)
     return objs
-
 def setup_skin(body, mats, style):
     sm=mats.get("pale_corpse") or mats.get("corpse_skin") or mats.get("pale_spirit") or mats.get("pale_drowned")
     if sm:
