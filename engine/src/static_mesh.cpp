@@ -483,7 +483,9 @@ measureStaticMeshQuality(
     }
 
     constexpr std::size_t kBinCount = 32U;
-    std::array<std::uint64_t, kBinCount> bins{};
+    std::array<
+        std::array<std::uint64_t, kBinCount>,
+        3> bins{};
 
     for (const auto& batch : asset.batches) {
         for (const auto& vertex : batch.vertices) {
@@ -493,57 +495,94 @@ measureStaticMeshQuality(
                 vertex.z,
             };
 
-            const float normalized =
-                std::clamp(
-                    (position[longestAxis] -
-                     minimum[longestAxis]) /
-                        metrics.longestExtent,
-                    0.0f,
-                    1.0f);
+            for (std::size_t axis = 0U;
+                 axis < position.size();
+                 ++axis) {
+                if (extents[axis] <= 1.0e-6f) {
+                    ++bins[axis][0U];
+                    continue;
+                }
 
-            const std::size_t bin =
-                std::min<std::size_t>(
-                    static_cast<std::size_t>(
-                        normalized *
-                        static_cast<float>(
-                            kBinCount)),
-                    kBinCount - 1U);
+                const float normalized =
+                    std::clamp(
+                        (position[axis] -
+                         minimum[axis]) /
+                            extents[axis],
+                        0.0f,
+                        1.0f);
 
-            ++bins[bin];
+                const std::size_t bin =
+                    std::min<std::size_t>(
+                        static_cast<std::size_t>(
+                            normalized *
+                            static_cast<float>(
+                                kBinCount)),
+                        kBinCount - 1U);
+
+                ++bins[axis][bin];
+            }
         }
     }
 
     const std::uint64_t required =
         (vertexCount * 9U + 9U) / 10U;
 
-    std::size_t bestWidth =
-        kBinCount + 1U;
+    for (std::size_t axis = 0U;
+         axis < extents.size();
+         ++axis) {
+        std::size_t bestWidth =
+            kBinCount + 1U;
 
-    for (std::size_t first = 0U;
-         first < kBinCount;
-         ++first) {
-        std::uint64_t count = 0U;
+        for (std::size_t first = 0U;
+             first < kBinCount;
+             ++first) {
+            std::uint64_t count = 0U;
 
-        for (std::size_t last = first;
-             last < kBinCount;
-             ++last) {
-            count += bins[last];
+            for (std::size_t last = first;
+                 last < kBinCount;
+                 ++last) {
+                count += bins[axis][last];
 
-            if (count >= required) {
-                bestWidth =
-                    std::min(
-                        bestWidth,
-                        last - first + 1U);
-                break;
+                if (count >= required) {
+                    bestWidth =
+                        std::min(
+                            bestWidth,
+                            last - first + 1U);
+                    break;
+                }
             }
+        }
+
+        if (bestWidth <= kBinCount) {
+            metrics.robustExtents90[axis] =
+                extents[axis] *
+                static_cast<float>(bestWidth) /
+                static_cast<float>(kBinCount);
         }
     }
 
-    if (bestWidth <= kBinCount) {
+    if (extents[longestAxis] > 1.0e-6f) {
         metrics.robustAxisCoverage90 =
-            static_cast<float>(bestWidth) /
-            static_cast<float>(kBinCount);
+            metrics.robustExtents90[longestAxis] /
+            extents[longestAxis];
     }
+
+    auto sortedRobust =
+        metrics.robustExtents90;
+
+    std::sort(
+        sortedRobust.begin(),
+        sortedRobust.end(),
+        [](float lhs, float rhs) noexcept {
+            return lhs > rhs;
+        });
+
+    metrics.robustLongestExtent90 =
+        sortedRobust[0];
+    metrics.robustSecondExtent90 =
+        sortedRobust[1];
+    metrics.robustThirdExtent90 =
+        sortedRobust[2];
 
     return metrics;
 }
@@ -567,7 +606,10 @@ passesViewmodelStaticMeshSanity(
     return metrics.vertexCount >= 96U &&
         metrics.longestExtent >= 0.30f &&
         metrics.longestExtent <= 1.50f &&
-        metrics.robustAxisCoverage90 >= 0.20f;
+        metrics.robustAxisCoverage90 >= 0.20f &&
+        metrics.robustLongestExtent90 >= 0.25f &&
+        metrics.robustSecondExtent90 >= 0.035f &&
+        metrics.robustThirdExtent90 >= 0.012f;
 }
 
 } // namespace xziel
