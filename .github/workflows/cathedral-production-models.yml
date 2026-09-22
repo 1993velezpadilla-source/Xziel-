@@ -129,7 +129,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "No generated asset changes."
           else
-            git commit -m "art: generate Sister of Ash fidelity pass 27"
+            git commit -m "art: generate Sister of Ash fidelity pass 28"
             git pull --rebase origin art/cathedral-production-models
             git push origin HEAD:art/cathedral-production-models
           fi
@@ -137,7 +137,7 @@ jobs:
       - name: Upload full production artifact
         uses: actions/upload-artifact@v4
         with:
-          name: cathedral-sister-of-ash-pass27
+          name: cathedral-sister-of-ash-pass28
           path: assets/generated/cathedral_roster/
           if-no-files-found: error
           retention-days: 14
