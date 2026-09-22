@@ -313,10 +313,14 @@ bool HordeDirector::addNavigationFloor(
             continue;
         }
 
+        // Dense authored floor segmentation can legitimately create
+        // more local adjacencies than the bounded graph stores. Do not reject
+        // the whole map in that case: retain a bounded subset and let later
+        // floors connect through neighbors that still have capacity.
         if (connectedCount >= connected.size() ||
             navigationNeighborCounts_[i] >=
                 kMaxHordeNavigationLinksPerFloor) {
-            return false;
+            continue;
         }
 
         connected[connectedCount++] =
