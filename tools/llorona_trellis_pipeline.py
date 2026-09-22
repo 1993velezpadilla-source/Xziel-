@@ -58,51 +58,63 @@ def find_endpoint(fragment: str):
             return ("fn_index", int(idx))
     return None
 
-# Use local files so gradio_client uploads them exactly as Gallery/Image inputs expect.
-# The old URL-shaped payload bypassed Gradio's upload preprocessing and caused the Space
-# to receive invalid Gallery items.
-front = handle_file(str(REFS[0]))
-gallery = [{"image": handle_file(str(p)), "caption": None} for p in REFS]
+# Reproduce the Gradio UI sequence exactly:
+# 1) demo.load -> start_session (creates tmp/<session_hash>)
+# 2) select Multiple Images tab -> /lambda_1 (sets hidden gr.State True)
+# 3) preprocess each view as an Image input
+# 4) call generate_and_extract_glb; Gradio injects the hidden state automatically.
+print("Starting TRELLIS session...")
+try:
+    client.predict(api_name="/start_session")
+except Exception as e:
+    print(f"::warning::start_session returned {type(e).__name__}: {e}")
 
-# First try the Space's own background-removal/centering pass. If that endpoint is
-# unavailable, generation still gets the original views rather than aborting.
-pre = find_endpoint("preprocess_images")
-if pre:
-    print("Preprocessing multi-view references via TRELLIS...")
+print("Selecting TRELLIS Multiple Images mode...")
+try:
+    client.predict(api_name="/lambda_1")
+    print("TRELLIS_MULTIIMAGE_STATE_ENABLED")
+except Exception as e:
+    fail(f"Could not enable TRELLIS multi-image state: {type(e).__name__}: {e}")
+
+def as_uploadable(value):
+    # gradio_client outputs may be a local downloaded filepath, a FileData-like dict,
+    # or (less commonly) a raw string path. Normalize to something accepted as input.
+    if isinstance(value, str):
+        p = Path(value)
+        return handle_file(str(p)) if p.exists() else value
+    if isinstance(value, dict):
+        p = value.get("path")
+        if isinstance(p, str) and Path(p).exists():
+            return handle_file(p)
+        return value
+    return value
+
+print("Preprocessing four orthographic views individually...")
+processed = []
+for p in REFS:
     try:
-        if pre[0] == "api_name":
-            processed = client.predict(gallery, api_name=pre[1])
-        else:
-            processed = client.predict(gallery, fn_index=pre[1])
-        print("preprocess result:", repr(processed)[:2000])
-        if processed:
-            gallery = processed
-            # Give the required single-image parameter a valid image even though
-            # generate_and_extract_glb ignores it while is_multiimage=True.
-            first = gallery[0]
-            if isinstance(first, dict) and "image" in first:
-                front = first["image"]
-            elif isinstance(first, dict) and ("path" in first or "url" in first):
-                front = first
-            elif isinstance(first, str):
-                front = handle_file(first)
+        out = client.predict(handle_file(str(p)), api_name="/preprocess_image")
+        print(f"preprocessed {p.name}: {type(out).__name__}")
+        processed.append(as_uploadable(out))
     except Exception as e:
-        print(f"::warning::TRELLIS preprocess endpoint failed; continuing with uploaded refs: {e}")
+        fail(f"TRELLIS preprocess_image failed for {p.name}: {type(e).__name__}: {e}")
+
+front = processed[0]
+gallery = [{"image": item, "caption": None} for item in processed]
 
 gen = find_endpoint("generate_and_extract_glb")
 if not gen:
     gen = ("api_name", "/generate_and_extract_glb")
 
-# Build arguments by the current live API parameter names. The community Space added
-# is_multiimage to this endpoint; omitting it shifted every later argument by one.
 named = api.get("named_endpoints", {}).get("/generate_and_extract_glb", {})
 param_names = [p.get("parameter_name") for p in named.get("parameters", [])]
-print("TRELLIS generate parameters:", param_names)
+print("TRELLIS public generate parameters:", param_names)
 
+# is_multiimage is intentionally absent here because it is a gr.State, not a public
+# parameter. /lambda_1 above set that hidden state to True in this Client session.
 values = {
     "image": front,
     "multiimages": gallery,
-    "is_multiimage": True,
     "seed": 1993,
     "ss_guidance_strength": 7.5,
     "ss_sampling_steps": 12,
@@ -119,13 +131,12 @@ if param_names:
         fail(f"Unhandled TRELLIS API parameters: {missing}")
     args = [values[p] for p in param_names]
 else:
-    # Current Space contract as of this pipeline.
     args = [
-        front, gallery, True, 1993, 7.5, 12, 3.0, 12,
+        front, gallery, 1993, 7.5, 12, 3.0, 12,
         "multidiffusion", 0.95, 2048,
     ]
 
-print(f"Calling TRELLIS generator via {gen[0]}={gen[1]} with {len(args)} args")
+print(f"Calling TRELLIS generator via {gen[0]}={gen[1]} with hidden multi-image state=True")
 try:
     if gen[0] == "api_name":
         result = client.predict(*args, api_name=gen[1])
