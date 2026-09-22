@@ -351,23 +351,61 @@ jobs:
 
           timeout 8 "$ADB" logcat -d -v threadtime             > dist/sanctum-hq-logcat.txt || true
 
-          # Keep the legacy filename for downstream checks, but make it clean.
-          timeout 8 "$ADB" exec-out screencap -p             > dist/sanctum-hq-first-frame.png || true
-          cp dist/sanctum-hq-first-frame.png             dist/sanctum-hq-tour-01-entry.png || true
+          capture_png() {
+            local target="$1"
+            local remote="/sdcard/$(basename "$target")"
+
+            for attempt in 1 2 3; do
+              rm -f "$target"
+
+              timeout 12 "$ADB" shell screencap -p "$remote"                 >/dev/null 2>&1 || true
+              timeout 12 "$ADB" pull "$remote" "$target"                 >/dev/null 2>&1 || true
+
+              if python3 - "$target" <<'PY'
+          from pathlib import Path
+          import sys
+
+          path = Path(sys.argv[1])
+          if not path.exists() or path.stat().st_size < 16384:
+              raise SystemExit(1)
+
+          data = path.read_bytes()
+          png_signature = b"\x89PNG\r\n\x1a\n"
+          png_iend = b"\x00\x00\x00\x00IEND\xaeB\x60\x82"
+          if not data.startswith(png_signature) or not data.endswith(png_iend):
+              raise SystemExit(1)
+          PY
+              then
+                "$ADB" shell rm -f "$remote" >/dev/null 2>&1 || true
+                return 0
+              fi
+
+              echo "Retrying incomplete screenshot $target (attempt $attempt)" >&2
+              sleep 1
+            done
+
+            echo "Failed to capture a complete PNG: $target" >&2
+            return 1
+          }
+
+          # Keep the legacy filename for downstream checks, but now require a
+          # complete PNG rather than accepting an adb stream killed mid-IEND.
+          capture_png dist/sanctum-hq-first-frame.png
+          cp dist/sanctum-hq-first-frame.png             dist/sanctum-hq-tour-01-entry.png
 
           # CI-only touch tour. Pixel 6 AVD is 2400x1080 landscape here.
           # Right side is free-look; left side is the movement joystick.
           "$ADB" shell input swipe 1700 330 1180 330 700 || true
           sleep 1
-          timeout 8 "$ADB" exec-out screencap -p             > dist/sanctum-hq-tour-02-look.png || true
+          capture_png dist/sanctum-hq-tour-02-look.png
 
           "$ADB" shell input swipe 420 840 420 560 1800 || true
           sleep 1
-          timeout 8 "$ADB" exec-out screencap -p             > dist/sanctum-hq-tour-03-forward.png || true
+          capture_png dist/sanctum-hq-tour-03-forward.png
 
           "$ADB" shell input swipe 1500 360 1880 250 650 || true
           sleep 1
-          timeout 8 "$ADB" exec-out screencap -p             > dist/sanctum-hq-tour-04-look-up.png || true
+          capture_png dist/sanctum-hq-tour-04-look-up.png
 
           PID="$(timeout 5 "$ADB" shell pidof             com.xziel.engineprototype 2>/dev/null             | tr -d '\r' || true)"
 
