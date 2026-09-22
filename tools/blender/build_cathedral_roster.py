@@ -178,9 +178,9 @@ def cone_between(name,p0,p1,r0,r1,material,verts=28):
 def open_veil(name,h,material,outer=True,translucent=False):
     seg=42
     rings=5
-    zs=[.985,.925,.835,.705,.585] if outer else [.968,.935,.885,.815,.755]
-    rxs=[.090,.102,.118,.145,.175] if outer else [.076,.083,.092,.105,.118]
-    rys=[.075,.083,.092,.104,.112] if outer else [.062,.066,.070,.076,.080]
+    zs=[.982,.930,.855,.745,.645] if outer else [.968,.938,.895,.840,.785]
+    rxs=[.076,.086,.100,.118,.137] if outer else [.067,.073,.080,.090,.100]
+    rys=[.066,.072,.079,.086,.092] if outer else [.056,.060,.064,.068,.072]
     vs=[]; fs=[]
     for r in range(rings):
         z=zs[r]*h
@@ -257,14 +257,14 @@ def nun_outfit(h,mats,stained=False):
     out.append(frustum("IvoryUnderSkirt",.025*h,.505*h,.150*h,.108*h,.108*h,.085*h,ivory,72,.040*h,.3))
     out.append(frustum("BlueOuterSkirt",.165*h,.695*h,.160*h,.114*h,.112*h,.088*h,blue,72,.052*h,1.1))
     out.append(frustum("BlueBodice",.545*h,.802*h,.108*h,.084*h,.128*h,.093*h,blue,64,.010*h,.6))
-    out.extend(shoulder_bib(h,ivory,"IvoryShoulderBib",-0.105))
+    out.append(frustum("IvoryShoulderCape",.690*h,.805*h,.140*h,.086*h,.105*h,.074*h,ivory,56,.020*h,.35))
     out.extend(sleeve_pair(h,blue,True,ivory))
     out.append(open_veil("OuterVeil",h,ivory if stained else blue,True))
     out.append(open_veil("InnerWimple",h,ivory,False))
     out.append(belt_loop("RopeBelt",h,rope,.557,.70))
     out.extend(cross_prop("NunCross",(0,-.132*h,.487*h),.039*h,metal))
     if not stained:
-        out.extend(cloth_patches("RepairPatch",h,ivory,5))
+        out.extend(cloth_patches("RepairPatch",h,ivory,3))
     return out
 
 def llorona_outfit(h,mats):
@@ -378,7 +378,7 @@ def face_front_y(body,h):
             ys.append(v.co.y)
     return min(ys) if ys else -.055*h
 
-def add_face_details(body,h,mats,style):
+def :
     fy=face_front_y(body,h)
     bruise=mats.get("bruise") or mats.get("bruise_blue") or mats.get("water_bruise") or mats.get("corpse_skin")
     dark=mats.get("soot") or mats.get("wet_black") or bruise
@@ -519,10 +519,72 @@ def glass_shards(h,materials):
         o=cube(f"GlassShard{i:02}",(xf*h,-.116*h,zf*h),(.006*h,.002*h,.020*h),cols[i%4],.0015*h)
         o.rotation_euler.z=math.radians((-14,10,-6,18)[i%4]); objs.append(o)
     return objs
-def setup_skin(body, mats, style):
-    sm=mats.get("pale_corpse") or mats.get("corpse_skin") or mats.get("pale_spirit") or mats.get("pale_drowned")
-    if sm:
-        body.data.materials.clear(); body.data.materials.append(sm)
+
+def setup_skin(body,mats,style):
+    tint_hex = "#8B8680" if style=="sister_of_ash" else ("#9CA2A7" if style=="la_llorona" else ("#9B9CA0" if style=="stained_shade" else "#9A928A"))
+    tint=hexrgb(tint_hex)
+    for m in body.data.materials:
+        if not m: continue
+        m.use_nodes=True
+        bsdf=m.node_tree.nodes.get("Principled BSDF")
+        if not bsdf: continue
+        base=bsdf.inputs.get("Base Color")
+        if base:
+            if base.is_linked and base.links:
+                old=base.links[0]; src=old.from_socket; m.node_tree.links.remove(old)
+                mix=m.node_tree.nodes.new("ShaderNodeMixRGB"); mix.blend_type="MULTIPLY"; mix.inputs[0].default_value=.48
+                m.node_tree.links.new(src,mix.inputs[1]); mix.inputs[2].default_value=(*tint,1)
+                m.node_tree.links.new(mix.outputs["Color"],base)
+            else:
+                base.default_value=(*tint,1)
+        if "Roughness" in bsdf.inputs: bsdf.inputs["Roughness"].default_value=.68
+        if "Specular IOR Level" in bsdf.inputs: bsdf.inputs["Specular IOR Level"].default_value=.22
+        elif "Specular" in bsdf.inputs: bsdf.inputs["Specular"].default_value=.22
+
+def tint_asset(obj,hex_color,rough=.55,emission=None):
+    if not obj or obj.type!="MESH": return
+    tint=hexrgb(hex_color)
+    for m in obj.data.materials:
+        if not m: continue
+        m.use_nodes=True
+        bsdf=m.node_tree.nodes.get("Principled BSDF")
+        if not bsdf: continue
+        base=bsdf.inputs.get("Base Color")
+        if base:
+            if base.is_linked and base.links:
+                old=base.links[0]; src=old.from_socket; m.node_tree.links.remove(old)
+                mix=m.node_tree.nodes.new("ShaderNodeMixRGB"); mix.blend_type="MULTIPLY"; mix.inputs[0].default_value=.72
+                m.node_tree.links.new(src,mix.inputs[1]); mix.inputs[2].default_value=(*tint,1)
+                m.node_tree.links.new(mix.outputs["Color"],base)
+            else: base.default_value=(*tint,1)
+        if "Roughness" in bsdf.inputs: bsdf.inputs["Roughness"].default_value=rough
+        if emission:
+            ec=hexrgb(emission)
+            if "Emission Color" in bsdf.inputs: bsdf.inputs["Emission Color"].default_value=(*ec,1)
+            if "Emission Strength" in bsdf.inputs: bsdf.inputs["Emission Strength"].default_value=.45
+
+def equip_priority_parts(body,style,assets_root,HumanService):
+    made={}
+    eye_path=find_asset(assets_root,"low-poly.mhclo")
+    if eye_path:
+        try:
+            made["eyes"]=HumanService.add_mhclo_asset(eye_path,body,asset_type="Eyes",material_type="PROCEDURAL_EYES",subdiv_levels=1)
+            tint_asset(made["eyes"],"#C8CAC5",.24,"#A9C3CC" if style=="stained_shade" else None)
+        except Exception as exc: print("eye asset warning",repr(exc))
+    teeth_path=find_asset(assets_root,"teeth_base.mhclo")
+    if teeth_path:
+        try:
+            made["teeth"]=HumanService.add_mhclo_asset(teeth_path,body,asset_type="Teeth",material_type="GAMEENGINE",subdiv_levels=0)
+            tint_asset(made["teeth"],"#9B8E6D",.70)
+        except Exception as exc: print("teeth asset warning",repr(exc))
+    if style=="la_llorona":
+        hair_path=find_asset(assets_root,"long01.mhclo")
+        if hair_path:
+            try:
+                made["hair"]=HumanService.add_mhclo_asset(hair_path,body,asset_type="Hair",material_type="GAMEENGINE",subdiv_levels=1)
+                tint_asset(made["hair"],"#08090A",.28)
+            except Exception as exc: print("hair asset warning",repr(exc))
+    return made
 
 def create_actions(rig,names):
     def bone(name):
@@ -619,16 +681,16 @@ def preview(body,folder,style):
     scene.render.engine="BLENDER_EEVEE_NEXT"
     scene.render.resolution_x=720; scene.render.resolution_y=900; scene.render.resolution_percentage=100
     scene.render.image_settings.file_format="PNG"; scene.world.color=(.006,.007,.009)
-    try: scene.view_settings.exposure=-0.45
+    try: scene.view_settings.exposure=0.0
     except Exception: pass
     lo,hi=local_bounds(body); h=hi.z-lo.z; target=(0,0,lo.z+h*.52)
     dist=max(2.75,h*1.72)
     bpy.ops.object.camera_add(location=(.22*dist,-dist,lo.z+h*.55))
     cam=bpy.context.object; cam.name="PreviewCamera"; cam.data.lens=62; look_at(cam,target); scene.camera=cam
     for name,loc,en,size,col in [
-      ("Key",(-.55*dist,-.62*dist,lo.z+h*.80),300,1.8,(.55,.64,.78)),
-      ("Rim",(.58*dist,.30*dist,lo.z+h*.68),430,1.35,(.68,.17,.08)),
-      ("Fill",(.05*dist,-.30*dist,lo.z+h*.35),90,1.5,(.28,.31,.34))]:
+      ("Key",(-.55*dist,-.62*dist,lo.z+h*.80),520,1.8,(.78,.83,.92)),
+      ("Rim",(.58*dist,.30*dist,lo.z+h*.68),230,1.35,(.72,.27,.12)),
+      ("Fill",(.05*dist,-.30*dist,lo.z+h*.35),150,1.5,(.48,.52,.58))]:
         bpy.ops.object.light_add(type="AREA",location=loc); L=bpy.context.object
         L.name=name; L.data.energy=en; L.data.size=size; L.data.color=col; look_at(L,target)
     bpy.ops.mesh.primitive_plane_add(size=max(8,h*4),location=(0,0,lo.z-.01)); g=bpy.context.object
@@ -648,13 +710,14 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService,TargetServi
     body.name=ch["id"]+"_Body"
     exact_height(body,float(ch["height_m"]))
     # Apply a skin preset before our art-directed material.
-    skin=find_asset(assets_root,"middleage_caucasian_male.mhmat") or find_asset(assets_root,"young_caucasian_male.mhmat")
+    skin=(find_asset(assets_root,"young_caucasian_female.mhmat") if float(ch.get("gender",0.5))>=0.5 else find_asset(assets_root,"middleage_caucasian_male.mhmat")) or find_asset(assets_root,"young_caucasian_male.mhmat")
     if skin:
         try: HumanService.set_character_skin(skin,body,skin_type="GAMEENGINE")
         except Exception: pass
     rig=HumanService.add_builtin_rig(body,"game_engine")
     if rig is None: raise RuntimeError("MPFB game_engine rig creation failed")
     rig.name=ch["id"]+"_Rig"
+    equip_priority_parts(body,ch["style"],assets_root,HumanService)
     # Bounds after rig fitting.
     lo,hi=local_bounds(body); h=hi.z-lo.z; w=hi.x-lo.x; d=hi.y-lo.y
 
@@ -673,9 +736,7 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService,TargetServi
     veilmat=mats.get("spectral_ivory") or mats.get("dirty_ivory")
     if style in ("lost_child","waterbound_child","bell_ringer","choir_wretch","penitent_deacon","censer_brute","reliquary_horror"):
         veil(style,h,w,d,veilmat)
-    if style=="la_llorona":
-        llorona_hair(h,mats)
-    elif style in ("lost_child","waterbound_child"):
+    if style in ("lost_child","waterbound_child"):
         hair_strands(.97*h,h,mats["wet_black"],22,.28)
     add_face_details(body,h,mats,style)
     if style=="bell_ringer": bell_prop(h,mats["tarnished_brass"],mats["rope"])
@@ -701,7 +762,6 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService,TargetServi
     blend=folder/"model.blend"
     try: bpy.ops.wm.save_as_mainfile(filepath=str(blend),compress=True)
     except Exception: bpy.ops.wm.save_as_mainfile(filepath=str(blend))
-    pose_review(rig,style)
     png=preview(body,folder,style)
     tri=sum(sum(max(1,len(p.vertices)-2) for p in o.data.polygons) for o in objs if o.type=="MESH")
     manifest={"id":ch["id"],"name":ch["name"],"category":ch["category"],"style":style,"height_m":ch["height_m"],"rig":"game_engine","bones":len(rig.data.bones),"triangles_estimate":tri,"animations":ch["animations"],"materials":ch["palette"],"outputs":[glb.name,fbx.name,blend.name,png.name],"production_status":"procedural production pass 1 — real rigged geometry, PBR materials, props, animation actions, damage sockets where applicable"}
