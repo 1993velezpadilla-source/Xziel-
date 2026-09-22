@@ -85,9 +85,38 @@ struct StaticMeshQualityMetrics {
     std::uint32_t indexCount = 0U;
 };
 
+enum class ViewmodelStaticMeshRejection : std::uint8_t {
+    None,
+    NoBatches,
+    TooManyBatches,
+    TooFewVertices,
+    TooManyVertices,
+    TooFewIndices,
+    TooManyIndices,
+    NonTriangleIndexCount,
+    InvalidEnvelope,
+    CollapsedVertexCloud,
+    NeedleThin,
+};
+
+struct ViewmodelStaticMeshQualityResult {
+    bool success = false;
+    ViewmodelStaticMeshRejection rejection =
+        ViewmodelStaticMeshRejection::None;
+    StaticMeshQualityMetrics metrics{};
+};
+
 [[nodiscard]] StaticMeshQualityMetrics
 measureStaticMeshQuality(
     const StaticMeshAsset& asset) noexcept;
+
+[[nodiscard]] ViewmodelStaticMeshQualityResult
+evaluateViewmodelStaticMesh(
+    const StaticMeshAsset& asset) noexcept;
+
+[[nodiscard]] const char*
+viewmodelStaticMeshRejectionName(
+    ViewmodelStaticMeshRejection rejection) noexcept;
 
 [[nodiscard]] bool
 passesViewmodelStaticMeshSanity(
