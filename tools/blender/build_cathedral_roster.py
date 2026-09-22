@@ -438,28 +438,27 @@ def sister_boot_pair(rig,h,mats):
 def priority_head_cover(body,h,style,mats):
     out=[]
     if style=="sister_of_ash":
-        ivory=mats["dirty_ivory"]; blue=mats["ash_blue"]
-        # Inner linen coif covers the whole crown/back while preserving an oval face opening.
-        out.append(hood_shell("NunInnerCoif",h,ivory,[
-            (.986,.061,.055),(.952,.066,.059),(.910,.072,.064),
-            (.865,.079,.069),(.820,.087,.075),(.782,.096,.081)
-        ],theta_max=2.46,segments=96,phase=.35,tatter=.018))
-        # Outer habit hood adds the blue-gray silhouette from the reference.
-        out.append(hood_shell("NunOuterHood",h,blue,[
-            (.998,.067,.061),(.963,.073,.065),(.920,.081,.071),
-            (.872,.091,.078),(.822,.103,.086),(.775,.116,.095),(.735,.130,.103)
-        ],theta_max=2.54,segments=104,phase=.9,tatter=.035))
+        # Pass 16: keep cloth off the visible face. The previous fitted shell crossed
+        # cheeks/jaw and produced white polygon fragments. Crown/back coverage stays
+        # complete while the outer veil/wimple supplies the visible framing.
+        fy=face_front_y(body,h)
+        blue=mats["ash_blue"]
+        crown=body_region_shell(body,"NunHoodCrown",blue,
+            lambda q: q.z/h>.872 and (q.y>fy+.032*h or abs(q.x/h)>.070 or q.z/h>.972),.0065*h)
+        if crown: out.append(crown)
     elif style=="stained_shade":
-        out.append(hood_shell("ShadeHood",h,mats["spectral_ivory"],[
-            (.998,.067,.061),(.963,.073,.065),(.920,.081,.071),
-            (.872,.091,.078),(.822,.103,.086),(.775,.116,.095),(.735,.130,.103)
-        ],theta_max=2.54,segments=104,phase=.9,tatter=.035))
+        fy=face_front_y(body,h)
+        inner=mats["spectral_ivory"]
+        a=body_region_shell(body,"ShadeCoif",inner,
+            lambda q: q.z/h>.865 and (q.y>fy+.030*h or abs(q.x/h)>.070 or q.z/h>.970),.005*h)
+        if a: out.append(a)
     elif style=="la_llorona":
         fy=face_front_y(body,h)
         cap=body_region_shell(body,"HairCap",mats["wet_black"],
-            lambda q:q.z/h>.855 and (q.y>fy+.020*h or abs(q.x/h)>.050 or q.z/h>.948),.0045*h)
+            lambda q: q.z/h>.855 and (q.y>fy+.020*h or abs(q.x/h)>.050 or q.z/h>.948),.0045*h)
         if cap: out.append(cap)
     return out
+
 
 def eye_socket_rings(body,h,mats,style):
     return []
@@ -592,7 +591,13 @@ def fitted_priority_clothes(body,h,style,mats):
         yoke=body_region_shell(body,"FittedShoulderYoke",ivory,
             lambda q:.742<q.z/h<.825 and abs(q.x/h)<.190 and q.y/h<.135,.0035*h)
         if yoke: out.append(yoke)
-        # Footwear is built after rig creation from the actual foot bones.
+        # Game-ready footwear is a close shell of the actual foot/ankle. No primitive
+        # spheres or oversized proxy shoes are created in this pass.
+        bootmat=mats["soot"]
+        for side,label in [(-1,"L"),(1,"R")]:
+            o=body_region_shell(body,"NunBoot_"+label,bootmat,
+                lambda q,side=side: q.z/h<.105 and q.x*side>0,.0038*h)
+            if o: out.append(o)
     elif style=="stained_shade":
         main=mats["ash_blue"]
         o=body_region_shell(body,"FittedBodice",main,lambda q:.515<q.z/h<.795 and abs(q.x/h)<.160 and q.y/h<.140,.0045*h)
