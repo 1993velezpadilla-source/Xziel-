@@ -433,6 +433,11 @@ if "XZ_GEOMETRY_EFFECT_CAPTURE" not in hyena:
         "                xz_pr);\n"
         "        }\n"
         "    }\n"
+        "    if (xz_hyena_special_kind != XZ_GEOMETRY_SPECIAL_NONE &&\n"
+        "        XzAndroidRuntime_ShouldSuppressLegacyWorldDraw(XZ_LEGACY_DRAW_SPECIAL)) {\n"
+        "        free(vertices);\n"
+        "        return;\n"
+        "    }\n"
         "    if (xz_hyena_special_kind == XZ_GEOMETRY_SPECIAL_NONE &&\n"
         "        XzAndroidRuntime_ShouldSuppressLegacyWorldDraw(XZ_LEGACY_DRAW_EFFECT)) {\n"
         "        free(vertices);\n"
@@ -828,6 +833,7 @@ if '#include "xz_geometry_tap.h"' not in warp:
         anchor +
         '#ifdef __ANDROID__\n'
         '#include "xz_geometry_tap.h"\n'
+        '#include "xz_android_runtime.h"\n'
         '#include <stddef.h>\n'
         '#include <string.h>\n'
         '#endif\n',
@@ -865,6 +871,8 @@ if "XZ_SPECIAL_WATER_CAPTURE" not in warp:
         "#ifdef __ANDROID__\n"
         "\t\tfloat xz_capture[64 * 5];\n"
         "\t\tint xz_capture_count = p->numverts <= 64 ? p->numverts : 0;\n"
+        "\t\tint xz_suppress_special = XzAndroidRuntime_ShouldSuppressLegacyWorldDraw(XZ_LEGACY_DRAW_SPECIAL);\n"
+        "\t\tif (!xz_suppress_special)\n"
         "#endif\n"
         "\t\tglBegin (GL_POLYGON);\n",
         "water begin",
@@ -891,7 +899,25 @@ if "XZ_SPECIAL_WATER_CAPTURE" not in warp:
         warp,
         "void EmitWaterPolys (msurface_t *fa)",
         "/*\n=============\nEmitSkyPolys",
+        "\t\t\tglTexCoord2f (s, t);\n\t\t\tglVertex3fv (v);\n",
+        "#ifdef __ANDROID__\n"
+        "\t\t\tif (!xz_suppress_special) {\n"
+        "#endif\n"
+        "\t\t\tglTexCoord2f (s, t);\n"
+        "\t\t\tglVertex3fv (v);\n"
+        "#ifdef __ANDROID__\n"
+        "\t\t\t}\n"
+        "#endif\n",
+        "water legacy draw guard",
+    )
+    warp = replace_scoped(
+        warp,
+        "void EmitWaterPolys (msurface_t *fa)",
+        "/*\n=============\nEmitSkyPolys",
         "\t\tglEnd ();\n\t}\n}\n",
+        "#ifdef __ANDROID__\n"
+        "\t\tif (!xz_suppress_special)\n"
+        "#endif\n"
         "\t\tglEnd ();\n"
         "#ifdef __ANDROID__\n"
         "\t\tif (xz_capture_count) {\n"
@@ -924,6 +950,8 @@ if "XZ_SPECIAL_SKY_LAYER_CAPTURE" not in warp:
         "#ifdef __ANDROID__\n"
         "\t\tfloat xz_capture[64 * 5];\n"
         "\t\tint xz_capture_count = p->numverts <= 64 ? p->numverts : 0;\n"
+        "\t\tint xz_suppress_special = XzAndroidRuntime_ShouldSuppressLegacyWorldDraw(XZ_LEGACY_DRAW_SPECIAL);\n"
+        "\t\tif (!xz_suppress_special)\n"
         "#endif\n"
         "\t\tglBegin (GL_POLYGON);\n",
         "sky-layer begin",
@@ -950,7 +978,25 @@ if "XZ_SPECIAL_SKY_LAYER_CAPTURE" not in warp:
         warp,
         "void EmitSkyPolys (msurface_t *fa)",
         "void EmitFlatSkyPolys (msurface_t *fa)",
+        "\t\t\tglTexCoord2f (s, t);\n\t\t\tglVertex3fv (v);\n",
+        "#ifdef __ANDROID__\n"
+        "\t\t\tif (!xz_suppress_special) {\n"
+        "#endif\n"
+        "\t\t\tglTexCoord2f (s, t);\n"
+        "\t\t\tglVertex3fv (v);\n"
+        "#ifdef __ANDROID__\n"
+        "\t\t\t}\n"
+        "#endif\n",
+        "sky-layer legacy draw guard",
+    )
+    warp = replace_scoped(
+        warp,
+        "void EmitSkyPolys (msurface_t *fa)",
+        "void EmitFlatSkyPolys (msurface_t *fa)",
         "\t\tglEnd ();\n\t}\n}\n\n",
+        "#ifdef __ANDROID__\n"
+        "\t\tif (!xz_suppress_special)\n"
+        "#endif\n"
         "\t\tglEnd ();\n"
         "#ifdef __ANDROID__\n"
         "\t\tif (xz_capture_count) {\n"
@@ -978,7 +1024,35 @@ if "XZ_SPECIAL_FLAT_SKY_CAPTURE" not in warp:
         warp,
         "void EmitFlatSkyPolys (msurface_t *fa)",
         "/*\n===============\nEmitBothSkyLayers",
+        "\t\t{\n\t\t\tglBegin(GL_POLYGON);\n",
+        "\t\t{\n"
+        "#ifdef __ANDROID__\n"
+        "\t\t\tint xz_suppress_special = XzAndroidRuntime_ShouldSuppressLegacyWorldDraw(XZ_LEGACY_DRAW_SPECIAL);\n"
+        "\t\t\tif (!xz_suppress_special)\n"
+        "#endif\n"
+        "\t\t\tglBegin(GL_POLYGON);\n",
+        "flat-sky begin guard",
+    )
+    warp = replace_scoped(
+        warp,
+        "void EmitFlatSkyPolys (msurface_t *fa)",
+        "/*\n===============\nEmitBothSkyLayers",
+        "\t\t\tfor (int i = 0; i < poly->numverts; i++)\n\t\t\t\tglVertex3fv(poly->verts[i]);\n",
+        "\t\t\tfor (int i = 0; i < poly->numverts; i++)\n"
+        "#ifdef __ANDROID__\n"
+        "\t\t\t\tif (!xz_suppress_special)\n"
+        "#endif\n"
+        "\t\t\t\tglVertex3fv(poly->verts[i]);\n",
+        "flat-sky vertex guard",
+    )
+    warp = replace_scoped(
+        warp,
+        "void EmitFlatSkyPolys (msurface_t *fa)",
+        "/*\n===============\nEmitBothSkyLayers",
         "\t\t\tglEnd();\n",
+        "#ifdef __ANDROID__\n"
+        "\t\t\tif (!xz_suppress_special)\n"
+        "#endif\n"
         "\t\t\tglEnd();\n"
         "#ifdef __ANDROID__\n"
         "\t\t\t{\n"
@@ -1005,7 +1079,82 @@ if "XZ_SPECIAL_SKYBOX_CAPTURE" not in warp:
         warp,
         "void R_DrawSkyBox (void)",
         "//===============================================================",
+        "\t\tglBegin(GL_QUADS);\n",
+        "#ifdef __ANDROID__\n"
+        "\t\tint xz_suppress_special = XzAndroidRuntime_ShouldSuppressLegacyWorldDraw(XZ_LEGACY_DRAW_SPECIAL);\n"
+        "\t\tif (!xz_suppress_special)\n"
+        "#endif\n"
+        "\t\tglBegin(GL_QUADS);\n",
+        "skybox begin guard",
+    )
+    warp = replace_scoped(
+        warp,
+        "void R_DrawSkyBox (void)",
+        "//===============================================================",
+        "\t\tglTexCoord2f (sky_vertices[0].s, sky_vertices[0].t);\n\t\tglVertex3fv (v);\n",
+        "#ifdef __ANDROID__\n"
+        "\t\tif (!xz_suppress_special) {\n"
+        "#endif\n"
+        "\t\tglTexCoord2f (sky_vertices[0].s, sky_vertices[0].t);\n"
+        "\t\tglVertex3fv (v);\n"
+        "#ifdef __ANDROID__\n"
+        "\t\t}\n"
+        "#endif\n",
+        "skybox vertex 0 guard",
+    )
+    warp = replace_scoped(
+        warp,
+        "void R_DrawSkyBox (void)",
+        "//===============================================================",
+        "\t\tglTexCoord2f (sky_vertices[1].s, sky_vertices[1].t);\n\t\tglVertex3fv (v);\n",
+        "#ifdef __ANDROID__\n"
+        "\t\tif (!xz_suppress_special) {\n"
+        "#endif\n"
+        "\t\tglTexCoord2f (sky_vertices[1].s, sky_vertices[1].t);\n"
+        "\t\tglVertex3fv (v);\n"
+        "#ifdef __ANDROID__\n"
+        "\t\t}\n"
+        "#endif\n",
+        "skybox vertex 1 guard",
+    )
+    warp = replace_scoped(
+        warp,
+        "void R_DrawSkyBox (void)",
+        "//===============================================================",
+        "\t\tglTexCoord2f (sky_vertices[2].s, sky_vertices[2].t);\n\t\tglVertex3fv (v);\n",
+        "#ifdef __ANDROID__\n"
+        "\t\tif (!xz_suppress_special) {\n"
+        "#endif\n"
+        "\t\tglTexCoord2f (sky_vertices[2].s, sky_vertices[2].t);\n"
+        "\t\tglVertex3fv (v);\n"
+        "#ifdef __ANDROID__\n"
+        "\t\t}\n"
+        "#endif\n",
+        "skybox vertex 2 guard",
+    )
+    warp = replace_scoped(
+        warp,
+        "void R_DrawSkyBox (void)",
+        "//===============================================================",
+        "\t\tglTexCoord2f (sky_vertices[3].s, sky_vertices[3].t);\n\t\tglVertex3fv (v);\n",
+        "#ifdef __ANDROID__\n"
+        "\t\tif (!xz_suppress_special) {\n"
+        "#endif\n"
+        "\t\tglTexCoord2f (sky_vertices[3].s, sky_vertices[3].t);\n"
+        "\t\tglVertex3fv (v);\n"
+        "#ifdef __ANDROID__\n"
+        "\t\t}\n"
+        "#endif\n",
+        "skybox vertex 3 guard",
+    )
+    warp = replace_scoped(
+        warp,
+        "void R_DrawSkyBox (void)",
+        "//===============================================================",
         "\t\tglEnd();\n\t}\n",
+        "#ifdef __ANDROID__\n"
+        "\t\tif (!xz_suppress_special)\n"
+        "#endif\n"
         "\t\tglEnd();\n"
         "#ifdef __ANDROID__\n"
         "\t\t{\n"
