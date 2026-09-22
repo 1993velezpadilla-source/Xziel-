@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "encounter": "la_llorona",
   "earliest_child_round": 6,
   "child_spawn_chance_per_eligible_round": 0.06,
@@ -70,12 +70,12 @@
       "new_owner": "stained_shade"
     },
     "current_candidate": {
-      "id": "llorona_mis_hijos_search_loop",
+      "id": "llorona_main_user_selected_v1",
       "role": "active_candidate",
-      "status": "active_candidate",
-      "duration_source": "actual_audio_eof",
-      "duration_s": 73.462563,
-      "generated_by": "tools/audio/generate_llorona_search_melotts.py"
+      "status": "selected_by_user",
+      "duration_s": 83.987,
+      "source": "Audio la Llorona (1).mp3",
+      "replaces": "llorona_mis_hijos_search_loop"
     }
   },
   "hidden_fate": {
@@ -252,7 +252,7 @@
     "note": "Independent 6% x 6% rolls naturally create a 0.36% same-round coincidence; no forced 6% collision."
   },
   "search_window": {
-    "audio_id": "llorona_mis_hijos_search_loop",
+    "audio_id": "llorona_main_user_selected_v1",
     "lifetime_follows_audio_eof": true,
     "interaction_open_while_audio_playing": true,
     "interaction_closes_on_audio_end": true,
@@ -260,6 +260,27 @@
     "interrupt_audio_on_child_discovery": true,
     "child_discovery_overrides_audio_window": true,
     "if_no_dead_child": "wander_between_hidden_search_points",
-    "duration_s": 73.462563
+    "duration_s": 83.987
+  },
+  "audio_events": {
+    "far_rage_scream": "shared_far_rage_scream",
+    "child_discovery_scream": "llorona_child_found_scream_dark",
+    "hit_reactions": [
+      "shared_female_hit_01",
+      "shared_female_hit_02",
+      "shared_female_hit_03_dark"
+    ],
+    "far_rage_scream_rules": {
+      "only_when_rage": true,
+      "min_distance_m": 16,
+      "cooldown_s": 9,
+      "spatialized": true,
+      "max_simultaneous": 1
+    },
+    "child_discovery_rules": {
+      "stop_search_voice_immediately": true,
+      "play_discovery_scream": true,
+      "enter_discovery_then_rage": true
+    }
   }
 }
