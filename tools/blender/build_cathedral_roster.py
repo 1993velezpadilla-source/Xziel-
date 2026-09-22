@@ -425,29 +425,27 @@ def sister_boot_pair(rig,h,mats):
 def priority_head_cover(body,h,style,mats):
     out=[]
     if style=="sister_of_ash":
-        ivory=mats["dirty_ivory"]; blue=mats["ash_blue"]; fy=face_front_y(body,h)
-        out.append(hood_shell("NunInnerCoif",h,ivory,[
-            (.982,.048,.043),(.952,.054,.047),(.915,.061,.052),(.875,.069,.058),
-            (.835,.078,.064),(.795,.088,.071),(.758,.098,.078)
-        ],theta_max=2.48,segments=84,phase=.4,tatter=.018))
-        out.append(hood_shell("NunOuterHood",h,blue,[
-            (.990,.056,.050),(.958,.063,.055),(.920,.071,.061),(.878,.080,.068),
-            (.833,.090,.075),(.788,.102,.083),(.748,.115,.091),(.712,.128,.099)
-        ],theta_max=2.62,segments=88,phase=.9,tatter=.035))
-        # Smooth forehead band and neck wimple from cloth surfaces, avoiding cut body-shell triangles.
-        out.append(curved_panel("NunForeheadWimple",h,ivory,.936,.972,.058,.055,fy/h-.005,6,22,True))
-        out.append(garment_shell("NunNeckWimple",h,ivory,[
-            (.742,.079,.060,0),(.785,.080,.061,0),(.825,.073,.057,0),(.855,.067,.053,0)
-        ],64,.015,.4,1))
+        # Pass 16: keep cloth off the visible face. The previous fitted shell crossed
+        # cheeks/jaw and produced white polygon fragments. Crown/back coverage stays
+        # complete while the outer veil/wimple supplies the visible framing.
+        fy=face_front_y(body,h)
+        blue=mats["ash_blue"]
+        crown=body_region_shell(body,"NunHoodCrown",blue,
+            lambda q: q.z/h>.872 and (q.y>fy+.032*h or abs(q.x/h)>.070 or q.z/h>.972),.0065*h)
+        if crown: out.append(crown)
     elif style=="stained_shade":
-        out.append(hood_shell("ShadeHood",h,mats["spectral_ivory"],[
-            (.988,.056,.050),(.950,.064,.056),(.905,.074,.063),(.855,.086,.071),(.800,.101,.082),(.750,.118,.093)
-        ],theta_max=2.60,segments=84,phase=.5,tatter=.04))
+        fy=face_front_y(body,h)
+        inner=mats["spectral_ivory"]
+        a=body_region_shell(body,"ShadeCoif",inner,
+            lambda q: q.z/h>.865 and (q.y>fy+.030*h or abs(q.x/h)>.070 or q.z/h>.970),.005*h)
+        if a: out.append(a)
     elif style=="la_llorona":
-        out.append(hood_shell("HairCap",h,mats["wet_black"],[
-            (.990,.057,.051),(.955,.065,.057),(.915,.075,.064),(.865,.087,.072)
-        ],theta_max=2.70,segments=84,phase=.3,tatter=.0))
+        fy=face_front_y(body,h)
+        cap=body_region_shell(body,"HairCap",mats["wet_black"],
+            lambda q: q.z/h>.855 and (q.y>fy+.020*h or abs(q.x/h)>.050 or q.z/h>.948),.0045*h)
+        if cap: out.append(cap)
     return out
+
 
 def eye_socket_rings(body,h,mats,style):
     return []
@@ -571,22 +569,32 @@ def fitted_priority_clothes(body,h,style,mats):
     out=[]
     if style=="sister_of_ash":
         main=mats["ash_blue"]; ivory=mats["dirty_ivory"]
-        out.append(body_region_shell(body,"FittedBodice",main,
-            lambda p:.535<p.z/h<.800 and abs(p.x/h)<.145 and p.y/h<.132,.0032*h))
-        # Coordinate-fit full sleeves; this avoids the bare upper-arm gap from incomplete bone groups.
-        out.append(body_region_shell(body,"NunSleeve_L",main,
-            lambda p:p.x/h<-.075 and .515<p.z/h<.815,.0030*h))
-        out.append(body_region_shell(body,"NunSleeve_R",main,
-            lambda p:p.x/h>.075 and .515<p.z/h<.815,.0030*h))
-        out.append(body_region_shell(body,"FittedShoulderYoke",ivory,
-            lambda p:.755<p.z/h<.842 and abs(p.x/h)<.150 and p.y/h<.138,.0036*h))
+        bod=body_region_shell(body,"FittedBodice",main,
+            lambda q:.555<q.z/h<.805 and abs(q.x/h)<.145 and q.y/h<.132,.0030*h)
+        if bod: out.append(bod)
+        for name,groups in [("FittedSleeve_L",["upperarm_l","lowerarm_l"]),("FittedSleeve_R",["upperarm_r","lowerarm_r"])]:
+            o=body_group_shell(body,name,main,groups,.040,.0030*h)
+            if o: out.append(o)
+        yoke=body_region_shell(body,"FittedShoulderYoke",ivory,
+            lambda q:.742<q.z/h<.825 and abs(q.x/h)<.190 and q.y/h<.135,.0035*h)
+        if yoke: out.append(yoke)
+        # Game-ready footwear is a close shell of the actual foot/ankle. No primitive
+        # spheres or oversized proxy shoes are created in this pass.
+        bootmat=mats["soot"]
+        for side,label in [(-1,"L"),(1,"R")]:
+            o=body_region_shell(body,"NunBoot_"+label,bootmat,
+                lambda q,side=side: q.z/h<.105 and q.x*side>0,.0038*h)
+            if o: out.append(o)
     elif style=="stained_shade":
         main=mats["ash_blue"]
-        out.append(body_region_shell(body,"FittedBodice",main,lambda p:.515<p.z/h<.795 and abs(p.x/h)<.160 and p.y/h<.140,.0045*h))
+        o=body_region_shell(body,"FittedBodice",main,lambda q:.515<q.z/h<.795 and abs(q.x/h)<.160 and q.y/h<.140,.0045*h)
+        if o: out.append(o)
     elif style=="la_llorona":
         main=mats["spectral_ivory"]
-        out.append(body_region_shell(body,"LloronaFittedBodice",main,lambda p:.510<p.z/h<.830 and abs(p.x/h)<.165 and p.y/h<.140,.0045*h))
+        o=body_region_shell(body,"LloronaFittedBodice",main,lambda q:.510<q.z/h<.830 and abs(q.x/h)<.165 and q.y/h<.140,.0045*h)
+        if o: out.append(o)
     return out
+
 
 def rigid_bind_mesh(obj,rig,bone):
     if not obj or obj.type!="MESH" or bone not in rig.data.bones: return
