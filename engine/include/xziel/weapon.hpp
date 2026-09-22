@@ -68,6 +68,9 @@ public:
     void equip(
         WeaponConfig config) noexcept;
 
+    void refillAmmo(
+        bool includeMagazine = false) noexcept;
+
     [[nodiscard]] WeaponFrame step(
         const WeaponInput& input,
         float deltaSeconds) noexcept;
