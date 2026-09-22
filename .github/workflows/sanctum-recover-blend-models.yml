@@ -328,6 +328,7 @@ jobs:
             exit 0
           fi
           git commit -m "assets: recover Blender models and stage Sanctum character bases"
+          git pull --rebase origin feature/sanctum-native-xziel-v1
           git push origin HEAD:feature/sanctum-native-xziel-v1
 
       - name: Upload review pack
