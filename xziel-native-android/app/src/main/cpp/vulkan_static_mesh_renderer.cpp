@@ -358,9 +358,103 @@ void VulkanStaticMeshRenderer::record(
             sizeof(push)),
         &push);
 
+    const float yawCos =
+        std::cos(camera.yawRadians);
+    const float yawSin =
+        std::sin(camera.yawRadians);
+    const float pitchCos =
+        std::cos(camera.pitchRadians);
+    const float pitchSin =
+        std::sin(camera.pitchRadians);
+    const float halfFovRadians =
+        std::clamp(
+            camera.verticalFovDegrees,
+            50.0f,
+            110.0f) *
+        0.5f *
+        0.01745329251994329577f;
+    const float tanHalfFov =
+        std::tan(halfFovRadians);
+    constexpr float nearPlane = 0.08f;
+    constexpr float farPlane = 180.0f;
+
     for (const auto& batch : batches_) {
         if (batch.textureIndex >=
             textures_.size()) {
+            continue;
+        }
+
+        const float centerX =
+            (batch.bounds.minimum[0] +
+             batch.bounds.maximum[0]) *
+            0.5f;
+        const float centerY =
+            (batch.bounds.minimum[1] +
+             batch.bounds.maximum[1]) *
+            0.5f;
+        const float centerZ =
+            (batch.bounds.minimum[2] +
+             batch.bounds.maximum[2]) *
+            0.5f;
+
+        const float extentX =
+            (batch.bounds.maximum[0] -
+             batch.bounds.minimum[0]) *
+            0.5f;
+        const float extentY =
+            (batch.bounds.maximum[1] -
+             batch.bounds.minimum[1]) *
+            0.5f;
+        const float extentZ =
+            (batch.bounds.maximum[2] -
+             batch.bounds.minimum[2]) *
+            0.5f;
+
+        const float radius =
+            std::sqrt(
+                extentX * extentX +
+                extentY * extentY +
+                extentZ * extentZ);
+
+        const float relativeX =
+            centerX - camera.x;
+        const float relativeY =
+            centerY - camera.y;
+        const float relativeZ =
+            centerZ - camera.z;
+
+        const float yawViewX =
+            yawCos * relativeX -
+            yawSin * relativeZ;
+        const float yawViewZ =
+            yawSin * relativeX +
+            yawCos * relativeZ;
+
+        const float viewY =
+            pitchCos * relativeY +
+            pitchSin * yawViewZ;
+        const float viewZ =
+            -pitchSin * relativeY +
+            pitchCos * yawViewZ;
+
+        if (viewZ + radius < nearPlane ||
+            viewZ - radius > farPlane) {
+            continue;
+        }
+
+        const float projectedDepth =
+            std::max(viewZ, nearPlane);
+        const float halfHeight =
+            projectedDepth *
+            tanHalfFov;
+        const float halfWidth =
+            halfHeight *
+            std::max(camera.aspect, 0.25f);
+
+        if (std::abs(yawViewX) - radius >
+                halfWidth ||
+            std::abs(viewY) - radius >
+                halfHeight) {
             continue;
         }
 
@@ -1253,11 +1347,6 @@ bool VulkanStaticMeshRenderer::createTexture(
         destroyTexture(out);
         return false;
     }
-
-    VkPhysicalDeviceProperties properties{};
-    vkGetPhysicalDeviceProperties(
-        physicalDevice_,
-        &properties);
 
     VkSamplerCreateInfo samplerInfo{
         VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO
