@@ -110,10 +110,16 @@ parts.append("}\n")
 p_ent=next(e for e in entities if e["type"]=="player_spawn")
 pp=list(p_ent["transform"]["position"].values())
 base=qv(pp)
+main_target=qv(plan["zones"]["main_church"]["center"])
+look_dx=main_target[0]-base[0]
+look_dy=main_target[1]-base[1]
+spawn_angle=str(int(round(math.degrees(math.atan2(look_dy,look_dx))))%360)
 offsets=[(-24,-24,40),(24,-24,40),(-24,24,40),(24,24,40)]
 for i,off in enumerate(offsets,1):
     p=(base[0]+off[0],base[1]+off[1],base[2]+off[2])
-    parts.append(point_entity(f"info_player_{i}_spawn",p,{"weapon":"0","currentmag":"0","currentammo":"0"}))
+    parts.append(point_entity(f"info_player_{i}_spawn",p,{
+        "weapon":"0","currentmag":"0","currentammo":"0","angle":spawn_angle
+    }))
 
 # Group spawns by zone target name.
 zone_spawn_groups={}
