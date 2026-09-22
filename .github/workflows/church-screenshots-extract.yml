@@ -1,0 +1,43 @@
+name: Extract Sanctum HQ Screenshots
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/church-screenshots-extract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download HQ Sanctum artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: Xziel-Sanctum-of-Ash-Runtime-Blockout
+          path: artifact
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: 35676043378
+
+      - name: Collect screenshots only
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p screenshots
+          find artifact -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' \) -print
+          find artifact -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' \) -exec cp {} screenshots/ \;
+          ls -lh screenshots
+          test "$(find screenshots -type f | wc -l)" -gt 0
+
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sanctum-HQ-Screenshots
+          path: screenshots/
+          if-no-files-found: error
+          retention-days: 14
