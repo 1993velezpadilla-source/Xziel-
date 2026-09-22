@@ -51,18 +51,14 @@ api=client.view_api(print_info=False, return_format="dict")
 named=api.get("named_endpoints",{})
 
 def choose_endpoint():
-    # With clean multiview inputs and Turbo defaults, try the complete textured
-    # pipeline first; shape_generation remains the fallback endpoint.
-    for candidate in ("/generation_all","/shape_generation"):
-        if candidate in named:
-            return candidate
+    # Require the full Hunyuan pipeline. A white shape-only mesh is no longer
+    # considered a successful La Llorona asset.
+    if "/generation_all" in named:
+        return "/generation_all"
     for name in named:
         if "generation_all" in name:
             return name
-    for name in named:
-        if "shape_generation" in name:
-            return name
-    fail(f"No Hunyuan generation endpoint found. endpoints={list(named)}")
+    fail(f"Hunyuan textured /generation_all endpoint is unavailable. endpoints={list(named)}")
 
 endpoint=choose_endpoint()
 spec=named[endpoint]
@@ -120,6 +116,7 @@ for p in params:
     args.append(v); used[n]=v if n not in files else "<file>"
 (OUT_DIR/"request.json").write_text(json.dumps({
     "endpoint":endpoint,
+    "textured_required":True,
     "parameters":{k:("<file>" if hasattr(v,"get") and isinstance(v,dict) and "path" in v else v) for k,v in used.items()},
     "source_views":[str(p) for p in REFS.values()],
 },indent=2,default=str),encoding="utf-8")
@@ -157,7 +154,9 @@ if not paths:
 
 # Shape-only returns white_mesh.glb. If a future Space version returns a textured
 # GLB too, prefer it automatically.
-src=next((p for p in paths if "textured" in p.name.lower()), paths[-1])
+src=next((p for p in paths if "textured" in p.name.lower()), None)
+if src is None:
+    fail(f"Full Hunyuan run returned no textured GLB. paths={paths}")
 dst=OUT_DIR/"llorona_hunyuan_mv_hq.glb"
 shutil.copy2(src,dst)
 
