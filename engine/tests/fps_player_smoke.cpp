@@ -243,6 +243,41 @@ int main() {
             xziel::MovementMode::Airborne);
     }
 
+    // Authored floor edges are safety boundaries when there is no authored
+    // floor anywhere below the candidate X/Z. This prevents falling out of the
+    // native map while still allowing intentional drops to lower levels.
+    {
+        xziel::FpsPlayerController edgePlayer;
+        edgePlayer.clearWalkableSurfaces();
+
+        assert(
+            edgePlayer.addWalkableSurface(
+                {
+                    .minimum = {-1.0f, -0.10f, -1.0f},
+                    .maximum = { 1.0f,  0.00f,  1.0f},
+                }));
+
+        edgePlayer.setSpawn(
+            {0.72f, 0.0f, 0.0f},
+            0.0f);
+
+        xziel::FpsPlayerFrame edgeFrame{};
+        for (int i = 0; i < 240; ++i) {
+            edgeFrame =
+                edgePlayer.fixedStep(
+                    {1.0f, 0.0f},
+                    {},
+                    1.0f / 120.0f);
+        }
+
+        assert(edgeFrame.feetPosition.x <= 1.001f);
+        assert(edgeFrame.feetPosition.x >= 0.70f);
+        assert(std::fabs(edgeFrame.feetPosition.y) < 0.01f);
+        assert(
+            edgeFrame.movement.mode !=
+            xziel::MovementMode::Airborne);
+    }
+
     // Pitch is hard bounded even under absurd input.
     view.look = {0.0f, 100.0f};
 

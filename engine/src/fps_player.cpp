@@ -334,6 +334,64 @@ FpsPlayerFrame FpsPlayerController::fixedStep(
     resolveWalkableSupport(
         previousFeetPosition);
 
+    // Authored multi-level maps deliberately allow drops to lower native
+    // floors, but ordinary grounded movement must never walk into un-authored
+    // void. A lower floor at the candidate X/Z is considered valid at any
+    // depth, so nave/boiler/tower descents remain intact. Only a destination
+    // with no authored floor below it is rejected.
+    if (walkableSurfaceCount_ > 0U &&
+        frame_.movement.velocity.y <= 0.001f) {
+        float previousSupportY = 0.0f;
+        const bool previousWasSupported =
+            findWalkableSupport(
+                previousFeetPosition.x,
+                previousFeetPosition.z,
+                previousFeetPosition.y,
+                0.065f,
+                0.065f,
+                previousSupportY) &&
+            std::fabs(
+                previousFeetPosition.y -
+                previousSupportY) <= 0.065f;
+
+        bool destinationHasFloorBelow = false;
+        for (std::size_t i = 0;
+             i < walkableSurfaceCount_;
+             ++i) {
+            const auto& surface =
+                walkableSurfaces_[i];
+
+            if (frame_.feetPosition.x <
+                    surface.minimum.x ||
+                frame_.feetPosition.x >
+                    surface.maximum.x ||
+                frame_.feetPosition.z <
+                    surface.minimum.z ||
+                frame_.feetPosition.z >
+                    surface.maximum.z) {
+                continue;
+            }
+
+            if (surface.maximum.y <=
+                previousFeetPosition.y + 0.34f) {
+                destinationHasFloorBelow = true;
+                break;
+            }
+        }
+
+        if (previousWasSupported &&
+            !destinationHasFloorBelow) {
+            frame_.feetPosition.x =
+                previousFeetPosition.x;
+            frame_.feetPosition.y =
+                previousSupportY;
+            frame_.feetPosition.z =
+                previousFeetPosition.z;
+
+            frame_.movement.velocity = {};
+        }
+    }
+
     // Legacy single-floor maps still use config_.floorY as a safety plane.
     // Multi-level authored maps install walkable surfaces; in that mode a
     // single global floor would incorrectly prevent descending into lower
