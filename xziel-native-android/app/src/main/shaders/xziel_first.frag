@@ -78,6 +78,17 @@ vec3 materialBase(int material, float pulse) {
         return vec3(0.018, 0.022, 0.026);
     }
 
+    if (material == 17) {
+        // Desaturated dead flesh. Keep it organic without the bright green
+        // proxy tone that made zombies read like debug mannequins.
+        return vec3(0.105, 0.078, 0.058);
+    }
+
+    if (material == 18) {
+        // Torn, rain-darkened clothing.
+        return vec3(0.026, 0.032, 0.028);
+    }
+
     vec3 core = vec3(0.12, 0.015, 0.040);
     vec3 hot = vec3(0.78, 0.025, 0.22);
     return mix(core, hot, 0.30 + 0.32 * pulse);
@@ -106,7 +117,17 @@ void main() {
         smoothstep(-1.55, -0.6, -vWorldPosition.y);
 
     vec3 coldBounce = vec3(0.015, 0.08, 0.12) * floorCold;
-    vec3 magentaRim = vec3(0.60, 0.02, 0.18) * rim * (0.10 + 0.18 * pulse);
+
+    float horrorRimScale =
+        (vMaterial == 17 ||
+         vMaterial == 18)
+        ? 0.022
+        : (0.10 + 0.18 * pulse);
+
+    vec3 magentaRim =
+        vec3(0.60, 0.02, 0.18) *
+        rim *
+        horrorRimScale;
 
     float wetness =
         clamp(
