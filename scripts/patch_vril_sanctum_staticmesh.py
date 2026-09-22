@@ -239,10 +239,12 @@ static void XZSM_CaptureBatch(
         sa += b->vertices[i].a;
     }
 
-    state.color[0] = (float)sr / (255.0f * (float)b->vertex_count);
-    state.color[1] = (float)sg / (255.0f * (float)b->vertex_count);
-    state.color[2] = (float)sb / (255.0f * (float)b->vertex_count);
-    state.color[3] = (float)sa / (255.0f * (float)b->vertex_count);
+    /* Sanctum's atlas is photogrammetry albedo. Do not bake darkness into the
+     * material state again; Modern XZ lighting owns scene illumination. */
+    state.color[0] = 1.0f;
+    state.color[1] = 1.0f;
+    state.color[2] = 1.0f;
+    state.color[3] = 1.0f;
     state.blend_enabled = 0u;
     state.blend_src = GL_SRC_ALPHA;
     state.blend_dst = GL_ONE_MINUS_SRC_ALPHA;
@@ -251,7 +253,7 @@ static void XZSM_CaptureBatch(
     state.alpha_test_enabled = 0u;
     state.alpha_func = GL_GREATER;
     state.alpha_ref = 0.0f;
-    state.texture_env_mode = GL_MODULATE;
+    state.texture_env_mode = GL_REPLACE;
 
     XzGeometryTap_CaptureIndexedFloat(
         b->vertices,
@@ -286,11 +288,10 @@ void Xziel_StaticMesh_Draw(void)
     glDisable(GL_ALPHA_TEST);
     glDisable(GL_CULL_FACE);
     glColor4f(1, 1, 1, 1);
-    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    glEnableClientState(GL_COLOR_ARRAY);
 
     for (i = 0; i < xzsm_batch_count; ++i) {
         xzsm_batch_t *b = &xzsm_batches[i];
@@ -301,11 +302,9 @@ void Xziel_StaticMesh_Draw(void)
         XZSM_CaptureBatch(b, xz_mv, xz_pr);
         glVertexPointer(3, GL_FLOAT, sizeof(xzsm_vertex_t), &b->vertices[0].x);
         glTexCoordPointer(2, GL_FLOAT, sizeof(xzsm_vertex_t), &b->vertices[0].u);
-        glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(xzsm_vertex_t), &b->vertices[0].r);
         glDrawElements(GL_TRIANGLES, b->index_count, GL_UNSIGNED_SHORT, b->indices);
     }
 
-    glDisableClientState(GL_COLOR_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     glDisableClientState(GL_VERTEX_ARRAY);
     if (gl_cull.value)
