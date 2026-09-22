@@ -10,6 +10,18 @@ int main() {
     xziel::MapRuntime runtime;
 
     xziel::MapDefinition map{};
+    map.hasPlayerSpawn = true;
+    map.playerSpawnFeet = {12.0f, -1.58f, -9.0f};
+    map.playerSpawnYawDegrees = 42.0f;
+    map.hasArenaBounds = true;
+    map.arenaMinimumX = -40.0f;
+    map.arenaMaximumX = 40.0f;
+    map.arenaMinimumZ = -35.0f;
+    map.arenaMaximumZ = 45.0f;
+    map.zombieSpawns[0] = {-12.0f, -1.58f, 8.0f};
+    map.zombieSpawns[1] = { 14.0f, -1.58f, 9.0f};
+    map.zombieSpawnCount = 2;
+
     map.boxes[0] = {
         .id = 1,
         .center = {0.0f, -0.30f, 0.0f},
@@ -87,6 +99,16 @@ int main() {
     assert(loaded.doors == 1);
     assert(loaded.windows == 1);
     assert(loaded.interactions == 3);
+    assert(loaded.playerSpawnApplied);
+    assert(loaded.arenaBoundsApplied);
+    assert(loaded.zombieSpawns == 2);
+    assert(player.frame().feetPosition.x == 12.0f);
+    assert(player.frame().feetPosition.z == -9.0f);
+    assert(player.frame().yawDegrees == 42.0f);
+    assert(horde.config().spawnPointCount == 2);
+    assert(horde.config().spawnPoints[0].x == -12.0f);
+    assert(horde.config().arenaMinimumX == -40.0f);
+    assert(horde.config().arenaMaximumZ == 45.0f);
 
     const auto door = runtime.activateDoor(
         100,
