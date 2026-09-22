@@ -27,7 +27,7 @@ if EXPORT_SPACE not in {"quake", "native"}:
     raise RuntimeError(f"Unsupported XZIEL_STATIC_SPACE={EXPORT_SPACE!r}")
 WORLD_SCALE = float(os.environ.get("XZIEL_STATIC_WORLD_SCALE", "1.0")) if EXPORT_SPACE == "native" else QUAKE_SCALE
 NATIVE_FLOOR_Y = float(os.environ.get("XZIEL_STATIC_NATIVE_FLOOR_Y", "-1.58"))
-XZSM_VERSION = 2
+XZSM_VERSION = 3 if EXPORT_SPACE == "native" else 2
 
 # XZSM v2 keeps the photogrammetry albedo intact but adds a compact baked
 # per-vertex light/tint term. Vril multiplies this with the texture, giving
@@ -468,15 +468,29 @@ for obj in all_runtime_objects:
                     (p_world.z - global_min.z) * WORLD_SCALE + NATIVE_FLOOR_Y,
                     -delta.y * WORLD_SCALE,
                 ))
+                n = Vector((n_world.x, n_world.z, -n_world.y))
+                if n.length > 1e-8:
+                    n.normalize()
+                else:
+                    n = Vector((0.0, 1.0, 0.0))
             else:
                 p = delta * WORLD_SCALE
+                n = None
             if uv_layer:
                 uv = uv_layer[loop_index].uv
                 u = float(uv.x)
                 v = 1.0 - float(uv.y)
             else:
                 u = v = 0.0
-            verts.append((float(p.x), float(p.y), float(p.z), u, v, *rgba))
+
+            if XZSM_VERSION >= 3:
+                verts.append((
+                    float(p.x), float(p.y), float(p.z),
+                    float(n.x), float(n.y), float(n.z),
+                    u, v, *rgba,
+                ))
+            else:
+                verts.append((float(p.x), float(p.y), float(p.z), u, v, *rgba))
             bounds_min.x=min(bounds_min.x,p.x); bounds_min.y=min(bounds_min.y,p.y); bounds_min.z=min(bounds_min.z,p.z)
             bounds_max.x=max(bounds_max.x,p.x); bounds_max.y=max(bounds_max.y,p.y); bounds_max.z=max(bounds_max.z,p.z)
         group.append(verts)
@@ -549,7 +563,10 @@ with model_path.open("wb") as f:
             b["maxs"].x,b["maxs"].y,b["maxs"].z,
         ))
         for vert in b["vertices"]:
-            f.write(struct.pack("<5f4B", *vert))
+            if XZSM_VERSION >= 3:
+                f.write(struct.pack("<8f4B", *vert))
+            else:
+                f.write(struct.pack("<5f4B", *vert))
         f.write(struct.pack("<" + "H"*len(b["indices"]), *b["indices"]))
 
 report = {
@@ -571,7 +588,7 @@ report = {
     "decimateRatio":ratio,
     "batching":"object_material_spatial",
     "vertexLighting":"night_moon_plus_zone_practicals_v1",
-    "vertexStrideBytes":24,
+    "vertexStrideBytes":36 if XZSM_VERSION >= 3 else 24,
     "scanCleanup":cleanup_stats,
     "batchCount":len(batches),
     "textureCount":len(texture_records),
