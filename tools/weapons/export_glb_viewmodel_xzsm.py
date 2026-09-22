@@ -75,8 +75,12 @@ def save_material_texture(mat):
     }
     return rel
 
-# First pass: world-space bounds from the imported GLB. 3dassets.dev models are
-# +Y up and +Z muzzle-forward, matching Xziel's camera-local convention.
+# Blender imports glTF's +Y-up coordinate system into Blender's +Z-up space.
+# Convert every position/normal back to Xziel's +Y-up, +Z-forward convention:
+# Blender +Z -> Xziel +Y, Blender -Y -> Xziel +Z.
+def to_xziel(value):
+    return Vector((value.x, value.z, -value.y))
+
 raw_min = Vector((1e30, 1e30, 1e30))
 raw_max = Vector((-1e30, -1e30, -1e30))
 source_triangles = 0
@@ -86,7 +90,7 @@ for obj in mesh_objects:
     source_triangles += len(mesh.loop_triangles)
     world = obj.matrix_world
     for vertex in mesh.vertices:
-        p = world @ vertex.co
+        p = to_xziel(world @ vertex.co)
         raw_min.x = min(raw_min.x, p.x)
         raw_min.y = min(raw_min.y, p.y)
         raw_min.z = min(raw_min.z, p.z)
@@ -124,8 +128,12 @@ for obj in mesh_objects:
 
         for loop_index in tri.loops:
             vertex_index = mesh.loops[loop_index].vertex_index
-            p = (world @ mesh.vertices[vertex_index].co) - anchor
-            n = normal_matrix @ mesh.vertices[vertex_index].normal
+            p = to_xziel(
+                world @ mesh.vertices[vertex_index].co
+            ) - anchor
+            n = to_xziel(
+                normal_matrix @ mesh.vertices[vertex_index].normal
+            )
             if n.length > 1e-8:
                 n.normalize()
             else:
