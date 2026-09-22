@@ -258,6 +258,16 @@ jobs:
 
           grep -q             "assets/shaders/xziel_static_mesh.frag.spv"             build/sanctum-hq-apk-contents.txt
 
+          # Shipping Sanctum is native Xziel only. The legacy NZP/Quake
+          # harness may still exist as development evidence in other workflow
+          # artifacts, but it must never leak into the Android game package.
+          if grep -Eiq             'assets/.*(sanctum_harness|\.bsp($|[[:space:]])|/nzp/|/id1/|\.pak($|[[:space:]]))'             build/sanctum-hq-apk-contents.txt; then
+            echo "ERROR: legacy Quake/NZP payload found in native Sanctum APK"
+            grep -Ei             'assets/.*(sanctum_harness|\.bsp($|[[:space:]])|/nzp/|/id1/|\.pak($|[[:space:]]))'             build/sanctum-hq-apk-contents.txt || true
+            exit 1
+          fi
+          echo "XZIEL_NATIVE_ONLY_PAYLOAD_OK"
+
           ZIPALIGN="${ANDROID_HOME}/build-tools/36.0.0/zipalign"
           "$ZIPALIGN" -c -P 16 -v 4 "$APK"
 
