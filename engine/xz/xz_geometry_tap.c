@@ -22,6 +22,32 @@ static void XzCopyMatrix(float dst[16], const float src[16])
     }
 }
 
+static void XzCopyRenderState(
+    XzGeometryRenderState *dst,
+    const XzGeometryRenderState *src)
+{
+    if (!dst)
+        return;
+
+    if (src) {
+        *dst = *src;
+        return;
+    }
+
+    memset(dst, 0, sizeof(*dst));
+    dst->color[0] = 1.0f;
+    dst->color[1] = 1.0f;
+    dst->color[2] = 1.0f;
+    dst->color[3] = 1.0f;
+    dst->blend_src = 0x0302u;       /* GL_SRC_ALPHA */
+    dst->blend_dst = 0x0303u;       /* GL_ONE_MINUS_SRC_ALPHA */
+    dst->depth_write = 1u;
+    dst->depth_func = 0x0203u;      /* GL_LEQUAL */
+    dst->alpha_func = 0x0204u;      /* GL_GREATER */
+    dst->alpha_ref = 0.666f;
+    dst->texture_env_mode = 0x2100u;/* GL_MODULATE */
+}
+
 static XzGeometryFrame *XzWriteFrame(void)
 {
     return &xz_geometry.frames[xz_geometry.write_index];
@@ -61,6 +87,7 @@ static XzGeometryBatch *XzBeginBatch(
     unsigned int vertices,
     unsigned int indices,
     int texture_id,
+    const XzGeometryRenderState *state,
     const float modelview[16],
     const float projection[16])
 {
@@ -78,6 +105,7 @@ static XzGeometryBatch *XzBeginBatch(
     batch->index_count = indices;
     batch->kind = kind;
     batch->texture_id = texture_id;
+    XzCopyRenderState(&batch->state, state);
     XzCopyMatrix(batch->modelview, modelview);
     XzCopyMatrix(batch->projection, projection);
 
@@ -143,6 +171,7 @@ int XzGeometryTap_CaptureAlias(
     const uint16_t *indices,
     unsigned int index_count,
     int texture_id,
+    const XzGeometryRenderState *state,
     const float modelview[16],
     const float projection[16])
 {
@@ -162,6 +191,7 @@ int XzGeometryTap_CaptureAlias(
         vertex_count,
         index_count,
         texture_id,
+        state,
         modelview,
         projection);
     if (!batch)
@@ -201,6 +231,7 @@ int XzGeometryTap_CaptureSurfaceFan(
     unsigned int position_offset,
     unsigned int texture_offset,
     int texture_id,
+    const XzGeometryRenderState *state,
     const float modelview[16],
     const float projection[16])
 {
@@ -223,6 +254,7 @@ int XzGeometryTap_CaptureSurfaceFan(
         count,
         index_count,
         texture_id,
+        state,
         modelview,
         projection);
     if (!batch)
@@ -260,6 +292,7 @@ int XzGeometryTap_CaptureSpriteQuad(
     const float positions[12],
     const float uvs[8],
     int texture_id,
+    const XzGeometryRenderState *state,
     const float modelview[16],
     const float projection[16])
 {
@@ -279,6 +312,7 @@ int XzGeometryTap_CaptureSpriteQuad(
         4u,
         6u,
         texture_id,
+        state,
         modelview,
         projection);
     if (!batch)
@@ -336,11 +370,12 @@ int XzGeometryTap_SelfTest(void)
             3u,
             4,
             NULL,
+            NULL,
             NULL))
         return 0;
 
     if (!XzGeometryTap_CaptureSurfaceFan(
-            fan, 4u, 5u, 0u, 3u, 8, NULL, NULL))
+            fan, 4u, 5u, 0u, 3u, 8, NULL, NULL, NULL))
         return 0;
 
     XzGeometryTap_CommitFrame();
@@ -358,6 +393,12 @@ int XzGeometryTap_SelfTest(void)
         return 0;
 
     if (frame->vertices[0].position[0] != 1.0f)
+        return 0;
+
+    if (frame->batches[0].state.color[0] != 1.0f ||
+        frame->batches[0].state.depth_write != 1u ||
+        frame->batches[0].state.depth_func != 0x0203u ||
+        frame->batches[0].state.texture_env_mode != 0x2100u)
         return 0;
 
     return 1;
