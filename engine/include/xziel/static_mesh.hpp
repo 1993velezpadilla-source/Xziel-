@@ -15,6 +15,19 @@ inline constexpr std::size_t kMaxStaticMeshBatches = 2048U;
 inline constexpr std::uint32_t kMaxStaticMeshVertices = 8000000U;
 inline constexpr std::uint32_t kMaxStaticMeshIndices = 12000000U;
 
+inline constexpr std::uint32_t kViewmodelMaxBatches = 128U;
+inline constexpr std::uint32_t kViewmodelMinVertices = 96U;
+inline constexpr std::uint32_t kViewmodelMaxVertices = 600000U;
+inline constexpr std::uint32_t kViewmodelMinIndices = 96U;
+inline constexpr std::uint32_t kViewmodelMaxIndices = 900000U;
+inline constexpr float kViewmodelMinExtentMeters = 0.30f;
+inline constexpr float kViewmodelMaxExtentMeters = 1.50f;
+inline constexpr float kViewmodelMinAxisCoverage90 = 0.20f;
+inline constexpr float kViewmodelMinRobustExtent90 = 0.25f;
+inline constexpr float kViewmodelMinRobustSecondExtent90 = 0.035f;
+inline constexpr float kViewmodelMinRobustThirdExtent90 = 0.012f;
+inline constexpr float kViewmodelMaxPeakVoxelOccupancy = 0.75f;
+
 struct StaticMeshVertex {
     float x = 0.0f;
     float y = 0.0f;
