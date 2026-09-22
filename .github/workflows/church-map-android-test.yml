@@ -86,7 +86,7 @@ jobs:
           python3 - <<'PY'
           import json
           r=json.load(open("church-artifact/vril_static_mesh_report.json", encoding="utf-8"))
-          assert r["runtimeTriangles"] >= 550000, r
+          assert r["runtimeTriangles"] >= 580000, r
           assert r["textureMaxDimension"] >= 2048, r
           assert r["batchCount"] <= 512, r
           print("SANCTUM_VISUAL_PROFILE_OK", {
