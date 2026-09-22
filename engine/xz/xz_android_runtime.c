@@ -18,6 +18,7 @@
 #include "xz_active_quality.h"
 #include "xz_stream_residency.h"
 #include "xz_cutover.h"
+#include "xz_geometry_tap.h"
 
 #include <SDL.h>
 
@@ -94,7 +95,8 @@ static int XzGles3MirrorSubmit(
         (XzGles3ShadowState *)user,
         submission->commands,
         submission->plan,
-        submission->resources);
+        submission->resources,
+        submission->geometry);
 }
 
 static int XzGles3MirrorEnd(void *user)
@@ -531,13 +533,15 @@ static void XzEvaluateCutover(void)
         xz_runtime.graph_rebuild_failures == 0u;
 
     /*
-     * These remain intentionally false in Phase 16. The modern validation
-     * path still renders proxy geometry/material colors into an offscreen
-     * target, and GL4ES still owns the visible swapchain. Claiming parity
-     * before real meshes, asset textures and visible presentation exist would
-     * make cutover unsafe.
+     * Real geometry becomes a cutover capability only after the GLES3 mirror
+     * has consumed the captured alias/surface/sprite batches with no geometry
+     * failures or capture overflow. Textures and visible presentation remain
+     * explicit blockers until their own parity work is complete.
      */
-    evidence.real_geometry_ready = 0;
+    evidence.real_geometry_ready =
+        xz_runtime.gles3_shadow.real_geometry_ready &&
+        xz_runtime.gles3_shadow.real_geometry_failures == 0u &&
+        xz_runtime.gles3_shadow.last_geometry_drops == 0u;
     evidence.real_textures_ready = 0;
     evidence.visible_present_ready = 0;
 
@@ -756,6 +760,37 @@ static void XzLogSnapshot(double now_seconds)
         xz_runtime.stream_residency.last_admitted_unique,
         xz_runtime.stream_residency.last_requested_unique,
         xz_runtime.stream_residency.last_aggression);
+
+    {
+        const XzGeometryFrame *geometry =
+            XzGeometryTap_GetReadFrame();
+
+        XzAndroidLog(
+            ANDROID_LOG_INFO,
+            "parity geometry generation=%" PRIu64
+            " batches=%u vertices=%u indices=%u"
+            " kinds=%u/%u/%u drops=%u/%u/%u"
+            " g3sub=%" PRIu64 " g3draw=%" PRIu64
+            " g3verts=%" PRIu64 " g3indices=%" PRIu64
+            " g3fail=%" PRIu64 " kindMask=0x%x ready=%d",
+            geometry ? geometry->generation : 0u,
+            geometry ? geometry->batch_count : 0u,
+            geometry ? geometry->vertex_count : 0u,
+            geometry ? geometry->index_count : 0u,
+            geometry ? geometry->alias_batches : 0u,
+            geometry ? geometry->surface_batches : 0u,
+            geometry ? geometry->sprite_batches : 0u,
+            geometry ? geometry->dropped_batches : 0u,
+            geometry ? geometry->dropped_vertices : 0u,
+            geometry ? geometry->dropped_indices : 0u,
+            g3->real_geometry_submissions,
+            g3->real_geometry_draw_calls,
+            g3->real_geometry_vertices,
+            g3->real_geometry_indices,
+            g3->real_geometry_failures,
+            g3->real_geometry_kind_mask,
+            g3->real_geometry_ready);
+    }
 
     XzAndroidLog(
         ANDROID_LOG_INFO,
@@ -1252,7 +1287,8 @@ void XzAndroidRuntime_EndFrame(double now_seconds)
         &xz_runtime.rhi,
         &xz_runtime.render_plan,
         &xz_runtime.command_stream,
-        &xz_runtime.gpu_resources);
+        &xz_runtime.gpu_resources,
+        XzGeometryTap_GetReadFrame());
     XzRhi_EndFrame(&xz_runtime.rhi);
 
     XzEvaluateCutover();
