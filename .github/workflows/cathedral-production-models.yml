@@ -21,7 +21,6 @@ jobs:
   build-production-roster:
     runs-on: ubuntu-latest
     timeout-minutes: 55
-
     steps:
       - name: Checkout production branch
         uses: actions/checkout@v4
@@ -79,13 +78,90 @@ jobs:
           curl -fL --retry 4 https://files2.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip -o /tmp/makehuman_system_assets_cc0.zip
           unzip -q /tmp/makehuman_system_assets_cc0.zip -d /tmp/mhassets
 
-      - name: Discover candidate MakeHuman assets
+      - name: Apply fidelity pass 14 source corrections
         shell: bash
         run: |
-          echo "=== HAIR CANDIDATES ==="
-          find /tmp/mhassets -type f -name '*.mhclo' | grep -Ei '/hair/|hair|long|wet|straight|wave' | head -120 || true
-          echo "=== CLOTHING CANDIDATES ==="
-          find /tmp/mhassets -type f -name '*.mhclo' | grep -Ei 'dress|robe|gown|skirt|hood|veil|coat|shirt|boot' | head -180 || true
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('tools/blender/build_cathedral_roster.py')
+          s=p.read_text()
+
+          def replace_func(name, body):
+              global s
+              pat=rf'def {name}\(.*?(?=\ndef [A-Za-z_][A-Za-z0-9_]*\()'
+              n=re.subn(pat, body.rstrip()+'\n\n', s, count=1, flags=re.S)
+              if n[1]!=1: raise SystemExit(f'failed replacing {name}: {n[1]}')
+              s=n[0]
+
+          replace_func('eye_socket_rings', '''def eye_socket_rings(body,h,mats,style):
+              # Pass 13 QA: torus rings read as goggles. Keep bruising painted into the face instead.
+              return []''')
+
+          replace_func('priority_head_cover', '''def priority_head_cover(body,h,style,mats):
+              out=[]
+              if style in ("sister_of_ash","stained_shade"):
+                  inner=mats["spectral_ivory"] if style=="stained_shade" else mats["dirty_ivory"]
+                  outer=mats["spectral_ivory"] if style=="stained_shade" else mats["ash_blue"]
+                  a=body_region_shell(body,"HeadCoif",inner,
+                      lambda p: p.z/h>.890 and (p.y/h>-.052 or p.z/h>.940) and abs(p.x/h)<.105,.0075*h)
+                  if a: out.append(a)
+                  b=body_region_shell(body,"HoodCrown",outer,
+                      lambda p: p.z/h>.915 and (p.y/h>-.040 or p.z/h>.955) and abs(p.x/h)<.112,.0120*h)
+                  if b: out.append(b)
+              elif style=="la_llorona":
+                  cap=body_region_shell(body,"HairCap",mats["wet_black"],
+                      lambda p: p.z/h>.885 and (p.y/h>-.055 or p.z/h>.940) and abs(p.x/h)<.108,.0060*h)
+                  if cap: out.append(cap)
+              return out''')
+
+          replace_func('llorona_hair_mesh', '''def llorona_hair_mesh(h,mats):
+              m=mats["wet_black"]; out=[]
+              # Dense rear mass plus many fine curved wet strands; no flat barcode curtains.
+              out.append(drape_open("HairDrape",h,m,[
+                  (.995,.067,.061),(.965,.074,.067),(.925,.083,.074),(.875,.095,.082),
+                  (.810,.109,.091),(.730,.126,.101),(.640,.143,.111),(.535,.158,.120),(.430,.166,.126)
+              ],segments=96,theta_max=2.78,tatter=.085,phase=.7,subdiv=1))
+              for i in range(58):
+                  side=-1 if i%2==0 else 1
+                  band=(i%29)/28.0
+                  x=side*(.022+.070*band)*h
+                  z0=(.988-.0025*(i%7))*h
+                  z1=(.39+.20*((i*11)%17)/16.0)*h
+                  y=(-.082-.008*math.sin(i*.63))*h
+                  wave=.010*h*math.sin(i*.91)
+                  pts=[(x,y,z0),(x*1.02+wave,y-.006*h,z0-.16*h),(x*1.08-wave,y+.004*h,z0-.36*h),(x*1.14+wave*.5,y+.012*h,z1)]
+                  out.append(curve_chain("HairStrand_%02d"%i,pts,m,.00125*h))
+              return out''')
+
+          replace_func('stained_halo', '''def stained_halo(h,mats):
+              metal=mats["oxidized_metal"]; out=[]
+              y=.118*h; cz=.905*h; ro=.155*h; ri=.046*h
+              out.append(torus("StainedHalo",(0,y,cz),ro,.0060*h,metal,rot=(math.radians(90),0,0)))
+              cols=[mats["glass_blue"],mats["glass_cyan"],mats["glass_magenta"],mats["amber"]]
+              seg=14
+              for i in range(seg):
+                  a0=2*math.pi*i/seg; a1=2*math.pi*(i+1)/seg
+                  mid=(a0+a1)*.5
+                  outer=ro*(.91+.055*math.sin(i*2.31))
+                  vs=[(ri*math.cos(a0),y,cz+ri*math.sin(a0)),
+                      (outer*math.cos(a0),y,cz+outer*math.sin(a0)),
+                      (outer*math.cos(a1),y,cz+outer*math.sin(a1)),
+                      (ri*math.cos(a1),y,cz+ri*math.sin(a1))]
+                  mesh=bpy.data.meshes.new(f"HaloPane{i:02}Mesh"); mesh.from_pydata(vs,[],[(0,1,2,3)]); mesh.update()
+                  o=bpy.data.objects.new(f"HaloPane{i:02}",mesh); bpy.context.collection.objects.link(o); assign(o,cols[i%4]); out.append(o)
+              return out''')
+
+          # Slim garment silhouette after construction, especially the cylindrical skirts flagged in QA.
+          old='''    robe_for_style(style,h,w,d,mats)'''
+          new='''    robe_objs=robe_for_style(style,h,w,d,mats)\n    if style in ("sister_of_ash","la_llorona","stained_shade"):\n        for _o in robe_objs or []:\n            if _o and hasattr(_o,"scale"):\n                _o.scale.x *= .82\n                _o.scale.y *= .90'''
+          if old not in s: raise SystemExit('robe_for_style call not found')
+          s=s.replace(old,new,1)
+
+          s=s.replace('priority fidelity pass 13 — covered crowns, flat wet-hair ribbons, active corpse-face damage, visible eye bruising, cleaner Stained glass accents',
+                      'priority fidelity pass 14 — slim silhouettes, full crown coverage, fine wet hair strands, no eye-ring goggles, enlarged stained-glass halo')
+          p.write_text(s)
+          PY
 
       - name: Build all real production characters
         shell: bash
@@ -111,20 +187,18 @@ jobs:
             test -s "assets/generated/cathedral_roster/$id/preview_face.png"
             test -s "assets/generated/cathedral_roster/$id/manifest.json"
           done
-          du -sh assets/generated/cathedral_roster
-          find assets/generated/cathedral_roster -maxdepth 2 -type f -printf '%p %k KB\n' | sort
 
-      - name: Commit generated Blender assets to GitHub
+      - name: Commit generated Blender assets and pass source to GitHub
         shell: bash
         run: |
           set -euxo pipefail
           git config user.name "cathedral-blender-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add -f assets/generated/cathedral_roster
+          git add -f assets/generated/cathedral_roster tools/blender/build_cathedral_roster.py
           if git diff --cached --quiet; then
             echo "No generated asset changes."
           else
-            git commit -m "art: generate Cathedral priority roster fidelity pass 13"
+            git commit -m "art: generate Cathedral priority roster fidelity pass 14"
             git pull --rebase origin art/cathedral-production-models
             git push origin HEAD:art/cathedral-production-models
           fi
@@ -132,7 +206,7 @@ jobs:
       - name: Upload full production artifact
         uses: actions/upload-artifact@v4
         with:
-          name: cathedral-priority-models-pass13
+          name: cathedral-priority-models-pass14
           path: assets/generated/cathedral_roster/
           if-no-files-found: error
           retention-days: 14
