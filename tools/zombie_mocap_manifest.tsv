@@ -1,0 +1,66 @@
+clip_id	category	variant_label	source_subject	notes
+20_08	walk	zombie_march_A	20	Explicit zombie march; two-person capture subject A
+21_08	walk	zombie_march_B	21	Explicit zombie march; two-person capture subject B
+104_41	walk	zombie_walk	104	Explicit ZombieWalk
+104_42	walk	zombie_walk_figure8	104	Explicit ZombieWalk8
+104_43	walk	zombie_walk_turns	104	Explicit ZombieWalkRightAngleTurns
+120_22	walk	zombie_style	120	Explicit Zombie
+104_03	walk	frankenstein	104	Frankenstein male walk
+104_13	walk	stumble	104	StumbleWalk
+104_16	walk	spastic	104	SpasticWalk
+104_35	walk	slow	104	SlowWalk
+105_05	walk	mummy	105	mummyWalk
+105_09	walk	drunk	105	DrunkWalk
+105_13	walk	sad	105	SadWalk
+105_14	walk	depressed	105	DepressedWalk
+105_15	walk	clumsy	105	ClumsyWalk
+105_16	walk	limp	105	Limp
+105_18	walk	careful_lookaround	105	CarefulWalk LookingAround
+105_21	walk	achey	105	acheyWalk
+105_24	walk	hurt_leg	105	HurtLegWalk
+105_25	walk	drag_bad_leg	105	DragBadLegWalk
+105_26	walk	hurt_stomach	105	HurtStomachWalk
+105_27	walk	slow_alt	105	SlowWalk
+105_32	walk	scared	105	ScaredWalk
+91_05	walk	mummy_alt	91	Mummy Walk
+91_09	walk	drunk_alt	91	DrunkWalk
+91_13	walk	sad_alt	91	SadWalk
+91_14	walk	depressed_alt	91	DepressedWalk
+91_15	walk	clumsy_alt	91	ClumsyWalk
+91_16	walk	limp_alt	91	Limp
+91_18	walk	careful_lookaround_alt	91	CarefulWalk LookingAround
+91_21	walk	achey_alt	91	acheyWalk
+91_24	walk	hurt_leg_alt	91	HurtLegWalk
+91_25	walk	drag_bad_leg_alt	91	DragBadLegWalk
+91_26	walk	hurt_stomach_alt	91	HurtStomachWalk
+91_27	walk	slow_alt2	91	SlowWalk
+91_32	walk	scared_alt	91	ScaredWalk
+74_01	walk	stiff_A	74	Stiff walk
+74_02	walk	stiff_B	74	Stiff walk alternate
+74_20	walk	stiff_C	74	Stiff walk alternate
+77_14	walk	creeping_A	77	Careful creeping walk
+77_15	walk	creeping_B	77	Careful creeping walk alternate
+111_03	crawl	crawl_A	111	Crawling
+133_01	crawl	walk_crawl_A	133	Walk Crawl
+133_02	crawl	walk_crawl_B	133	Walk Crawl alternate
+140_01	getup	face_down_A	140	Get Up Face Down
+140_02	getup	face_down_B	140	Get Up Face Down alternate
+140_03	getup	side_A	140	Get Up Laying on Side
+140_04	getup	side_B	140	Get Up Laying on Side alternate
+140_08	getup	back_A	140	Get Up From Ground Laying on Back
+140_09	getup	back_B	140	Get Up From Ground Laying on Back alternate
+140_06	idle	idle_A	140	Idle
+140_07	idle	idle_B	140	Idle alternate
+02_05	attack	strike_A	2	Punch/strike; candidate zombie swipe
+76_01	attack	backstep_strike	76	Walk backwards then attack with punch
+76_02	attack	feint_attack	76	Walk backwards, feign attacks, then attack
+111_19	attack	punch_kick	111	Punch Kick; candidate frenzy attack
+15_06	reach	reach_A	15	Lean forward, reach for
+15_07	reach	reach_B	15	Lean forward, tiptoe, reach for
+104_53	run_transition	start_run_A	104	StartRun
+104_54	run_transition	start_run_B	104	StartRun alternate
+104_55	run_transition	start_run_C	104	StartRun alternate
+104_56	run_transition	run_stop_A	104	RunStop
+104_57	run_transition	run_stop_B	104	RunStop alternate
+111_12	death_candidate	lay_down	111	Lay down; candidate death/fall base
+111_21	death_candidate	roll_over	111	Roll over; candidate grounded reaction
