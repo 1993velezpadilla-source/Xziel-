@@ -82,6 +82,8 @@ jobs:
           test -s dressing_out/sanctum_dressing_v1.glb
           test -s dressing_out/sanctum_dressing_v1.blend
           test -s dressing_out/sanctum_dressing_v1.json
+          test -s dressing_out/dressing_barricade_preview.png
+          test -s dressing_out/dressing_altar_preview.png
           ls -lh dressing_out
 
       - name: Upload dressing
