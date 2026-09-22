@@ -6,7 +6,7 @@
   "height_m": 1.8,
   "rig": "game_engine",
   "bones": 53,
-  "triangles_estimate": 86372,
+  "triangles_estimate": 74328,
   "animations": [
     "idle",
     "walk",
@@ -36,5 +36,5 @@
     "preview_back.png",
     "preview_face.png"
   ],
-  "production_status": "Sister of Ash pass 15 \u2014 continuous slim habit, full coif/hood, shader-based corpse bruising, covered boots, no face proxy blocks"
+  "production_status": "Sister of Ash pass 16 \u2014 clean face opening, crown-safe hood, reduced skin noise, close-fit footwear, slimmer upper habit"
 }
