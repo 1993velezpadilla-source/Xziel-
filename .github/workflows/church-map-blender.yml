@@ -268,15 +268,15 @@ jobs:
           h=json.load(open("church/out/nzp_harness/sanctum_harness_export.json", encoding="utf-8"))
           f=json.load(open("church/out/church_runtime_fitted_v2.json", encoding="utf-8"))
           s=json.load(open("church/out/vril_static_mesh_report.json", encoding="utf-8"))
-          assert r["source_triangles"] > 100000
-          assert r["mobile_lod0_triangles"] > 10000
+          assert r["source_triangles"] >= 2700000, r
+          assert r["mobile_lod0_triangles"] >= 640000, r
           assert p["working_title"] == "SANCTUM OF ASH"
           assert len(p["interactives"]) >= 30
           assert q["ok"], q
           assert len(n["nodes"]) >= 8
           assert len(n["windowCandidates"]) >= 8
           assert h["spawns"] >= 8
-          assert s["runtimeTriangles"] >= 580000, s
+          assert s["runtimeTriangles"] >= 620000, s
           assert s["textureMaxDimension"] >= 2048, s
           assert s["batchCount"] <= 512, s
           assert f["counts"]["barricades"] >= 8, f
