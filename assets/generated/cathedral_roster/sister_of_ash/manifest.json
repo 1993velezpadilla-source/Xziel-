@@ -6,7 +6,7 @@
   "height_m": 1.8,
   "rig": "game_engine",
   "bones": 53,
-  "triangles_estimate": 76454,
+  "triangles_estimate": 75718,
   "animations": [
     "idle",
     "walk",
@@ -36,5 +36,5 @@
     "preview_back.png",
     "preview_face.png"
   ],
-  "production_status": "Sister of Ash pass 22 \u2014 closed wimple face frame, neck bib, floor-length blue habit, full sleeves, toe-covering shoes"
+  "production_status": "Sister of Ash pass 23 \u2014 no giant face ring/bib, fitted neck wimple, covered leather feet, darker corpse face, slimmer layered habit"
 }
