@@ -296,20 +296,46 @@ def baked_vertex_rgba(obj, world_pos, world_normal):
     rgb = [max(0, min(255, int(round(255.0 * level * tint[i])))) for i in range(3)]
     return (rgb[0], rgb[1], rgb[2], 255)
 
+def linked_image_from_socket(sock, visited=None):
+    # Follow the Base Color graph instead of assuming Image Texture is wired
+    # directly into Principled BSDF. Imported GLB/Sketchfab materials often
+    # contain mapping, color-mix or conversion nodes in between.
+    if not sock or not getattr(sock, "is_linked", False):
+        return None
+    if visited is None:
+        visited = set()
+    for link in sock.links:
+        node = link.from_node
+        if not node or node.as_pointer() in visited:
+            continue
+        visited.add(node.as_pointer())
+        if getattr(node, "type", "") == "TEX_IMAGE" and node.image:
+            return node.image
+        for inp in getattr(node, "inputs", []):
+            img = linked_image_from_socket(inp, visited)
+            if img:
+                return img
+    return None
+
 def material_image(mat):
     if not mat or not mat.use_nodes or not mat.node_tree:
         return None
     bsdf = mat.node_tree.nodes.get("Principled BSDF")
     if bsdf:
-        sock = bsdf.inputs.get("Base Color")
-        if sock and sock.is_linked:
-            node = sock.links[0].from_node
-            if getattr(node, "type", "") == "TEX_IMAGE" and node.image:
-                return node.image
-    for node in mat.node_tree.nodes:
-        if getattr(node, "type", "") == "TEX_IMAGE" and node.image:
-            return node.image
-    return None
+        img = linked_image_from_socket(bsdf.inputs.get("Base Color"))
+        if img:
+            return img
+    # Last resort for imported materials whose shader graph is unconventional:
+    # prefer a color/albedo-looking image, then any image at all.
+    candidates = [
+        node.image for node in mat.node_tree.nodes
+        if getattr(node, "type", "") == "TEX_IMAGE" and node.image
+    ]
+    for img in candidates:
+        n = (img.name or "").lower()
+        if any(tag in n for tag in ("basecolor", "base_color", "albedo", "diffuse", "color")):
+            return img
+    return candidates[0] if candidates else None
 
 def material_color(mat):
     if mat and mat.use_nodes and mat.node_tree:
@@ -323,6 +349,14 @@ def material_color(mat):
 
 texture_records = {}
 texture_paths = {}
+church_material_names = {
+    m.name
+    for o in runtime_objects
+    for m in o.data.materials
+    if m
+}
+fallback_materials = set()
+missing_uv_objects = set()
 
 def save_material_texture(mat):
     key = mat.name if mat else "__fallback__"
@@ -343,23 +377,28 @@ def save_material_texture(mat):
             s = max_dim / float(max(w,h))
             copy.scale(max(1,int(round(w*s))), max(1,int(round(h*s))))
         copy.file_format = "PNG"
+        # Preserve source albedo. save_render() applies scene/view transforms
+        # and was darkening already-shadowed photogrammetry on Android.
         try:
-            copy.save_render(filepath=str(dst), scene=scene)
-        except Exception:
             copy.filepath_raw = str(dst)
             copy.save()
+        except Exception:
+            copy.save_render(filepath=str(dst), scene=scene)
         bpy.data.images.remove(copy)
         source_desc = img.name
     else:
-        # Blender-generated 8x8 flat-color fallback, still saved through the
-        # same PNG path expected by Vril.
         rgba = material_color(mat)
         gen = bpy.data.images.new(stem, width=8, height=8, alpha=True, float_buffer=False)
         gen.pixels = list(rgba) * 64
         gen.file_format = "PNG"
-        gen.save_render(filepath=str(dst), scene=scene)
+        gen.filepath_raw = str(dst)
+        try:
+            gen.save()
+        except Exception:
+            gen.save_render(filepath=str(dst), scene=scene)
         bpy.data.images.remove(gen)
         source_desc = "generated_base_color"
+        fallback_materials.add(key)
 
     texture_paths[key] = rel_no_ext
     texture_records[key] = {
@@ -388,12 +427,16 @@ bounds_max = Vector((-1e30,-1e30,-1e30))
 for obj in all_runtime_objects:
     mesh = obj.data
     mesh.calc_loop_triangles()
-    uv_layer = mesh.uv_layers.active.data if mesh.uv_layers.active else None
+    active_uv = mesh.uv_layers.active if mesh.uv_layers.active else (mesh.uv_layers[0] if len(mesh.uv_layers) else None)
+    uv_layer = active_uv.data if active_uv else None
     world = obj.matrix_world
     normal_matrix = world.to_3x3().inverted().transposed()
     for tri in mesh.loop_triangles:
         poly = mesh.polygons[tri.polygon_index]
         mat = obj.material_slots[poly.material_index].material if poly.material_index < len(obj.material_slots) else None
+        mat_img = material_image(mat)
+        if mat_img and uv_layer is None and not obj.name.startswith("XZSM_DRESS_"):
+            missing_uv_objects.add(obj.name)
         tex = save_material_texture(mat)
         group_name = dressing_cluster_name(obj) if obj.name.startswith("XZSM_DRESS_") else obj.name
         group_key = (group_name, tex)
@@ -458,6 +501,21 @@ for (object_name, tex), tris in groups.items():
             "maxs": mx,
         })
 
+# Architectural photogrammetry must never silently degrade to a flat material
+# or a single sampled texel. Dressing intentionally uses generated materials,
+# so only source-church materials are fatal here.
+church_fallbacks = sorted(m for m in fallback_materials if m in church_material_names)
+if church_fallbacks:
+    raise RuntimeError(
+        "Sanctum architectural materials lost their source texture: " +
+        ", ".join(church_fallbacks)
+    )
+if missing_uv_objects:
+    raise RuntimeError(
+        "Sanctum textured architecture is missing UVs: " +
+        ", ".join(sorted(missing_uv_objects))
+    )
+
 model_path = MODEL_DIR / "sanctum.xzsm"
 with model_path.open("wb") as f:
     f.write(struct.pack("<4sIIII", b"XZSM", XZSM_VERSION, len(batches),
@@ -495,6 +553,10 @@ report = {
     "scanCleanup":cleanup_stats,
     "batchCount":len(batches),
     "textureCount":len(texture_records),
+    "textureSourceMode":"raw_albedo_preserve",
+    "fallbackMaterials":sorted(fallback_materials),
+    "churchFallbackMaterials":church_fallbacks,
+    "missingUvObjects":sorted(missing_uv_objects),
     "totalVertices":sum(len(b["vertices"]) for b in batches),
     "totalIndices":sum(len(b["indices"]) for b in batches),
     "rawTriangleVertices":raw_vertex_count,
