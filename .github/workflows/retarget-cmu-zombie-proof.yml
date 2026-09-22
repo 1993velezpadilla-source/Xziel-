@@ -66,6 +66,15 @@ jobs:
           test -s "$OUT/body.json"
           test "$(find "$OUT/frames/body" -name '*.obj' | wc -l)" -eq 211
 
+      - name: Validate stable MDL topology
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="build/cmu-retarget/${{ matrix.name }}"
+          for part in body head larm rarm full; do
+            python3 scripts/validate_zombie_obj_sequence.py "$OUT/frames/${part}" --frames 211
+          done
+
       - name: Build segmented runtime MDLs
         shell: bash
         run: |
