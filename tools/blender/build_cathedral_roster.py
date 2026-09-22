@@ -562,13 +562,13 @@ def sister_boot_pair(body,rig,h,mats):
         minz=min(p.z for p in pts)
         cx=(minx+maxx)*.5
         cy=(miny+maxy)*.5-.018*h
-        sx=max(.046*h,(maxx-minx)*.80)
-        sy=max(.092*h,(maxy-miny)*.88+.025*h)
-        upper=cube("SisterShoe_"+label,(cx,cy,minz+.038*h),(sx,sy,.036*h),leather,.014*h)
+        sx=max(.038*h,(maxx-minx)*.58)
+        sy=max(.070*h,(maxy-miny)*.62+.012*h)
+        upper=cube("SisterShoe_"+label,(cx,cy,minz+.027*h),(sx,sy,.025*h),leather,.014*h)
         out.append(upper)
-        toe=uv_sphere("SisterToeCap_"+label,(cx,miny-.030*h,minz+.037*h),(sx*.98,.052*h,.033*h),leather)
+        toe=uv_sphere("SisterToeCap_"+label,(cx,miny-.030*h,minz+.037*h),(sx*.96,.038*h,.023*h),leather)
         out.append(toe)
-        sol=cube("SisterSole_"+label,(cx,cy-.004*h,minz+.006*h),(sx*1.04,sy*1.05,.009*h),sole,.005*h)
+        sol=cube("SisterSole_"+label,(cx,cy-.004*h,minz+.006*h),(sx*1.03,sy*1.03,.006*h),sole,.005*h)
         out.append(sol)
     return out
 
@@ -660,9 +660,9 @@ def sister_wimple_frame(body,h,material):
         t=i/(n-1); x=(-.050+.100*t)*h
         curve=(x/(.050*h))
         y=fy+(.004+.008*curve*curve)*h
-        z=(.956+.006*(1.0-curve*curve))*h
-        a.append((x,y-.0020*h,z+.0060*h))
-        b.append((x,y-.0020*h,z-.0060*h))
+        z=(.951+.0035*(1.0-curve*curve))*h
+        a.append((x,y-.0012*h,z+.0040*h))
+        b.append((x,y-.0012*h,z-.0040*h))
     add_strip(a,b)
     # Temple strips taper toward jaw.
     for side in (-1,1):
@@ -670,10 +670,10 @@ def sister_wimple_frame(body,h,material):
         for i in range(n):
             t=i/(n-1)
             z=(.947-.105*t)*h
-            x=side*(.052+.010*t)*h
+            x=side*(.050+.007*t)*h
             y=fy+(.006+.012*t)*h
-            a.append((x-side*.0050*h,y-.0015*h,z))
-            b.append((x+side*.0050*h,y-.0015*h,z))
+            a.append((x-side*.0038*h,y-.0010*h,z))
+            b.append((x+side*.0038*h,y-.0010*h,z))
         add_strip(a,b)
     mesh=bpy.data.meshes.new("SisterWimpleFrameMesh"); mesh.from_pydata(vs,[],fs); mesh.update()
     o=bpy.data.objects.new("SisterWimpleFrame",mesh); bpy.context.collection.objects.link(o); assign(o,material)
@@ -1827,8 +1827,7 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService,TargetServi
         sister_mouth_pose(body,h)
         sister_mouth_slit(body,h,mats)
         # Pass 30: scars stay in skin shading/displacement; no floating curve marks.
-        sister_paint_footwear(body,h)
-        sister_closed_shoes(body,h,mats)
+        sister_boot_pair(body,rig,h,mats)
     veilmat=mats.get("spectral_ivory") or mats.get("dirty_ivory")
     if style in ("lost_child","waterbound_child","bell_ringer","choir_wretch","penitent_deacon","censer_brute","reliquary_horror"):
         veil(style,h,w,d,veilmat)
@@ -1878,7 +1877,7 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService,TargetServi
     bpy.context.view_layer.update()
     png=preview(body,folder,style)
     tri=sum(sum(max(1,len(p.vertices)-2) for p in o.data.polygons) for o in objs if o.type=="MESH")
-    manifest={"id":ch["id"],"name":ch["name"],"category":ch["category"],"style":style,"height_m":ch["height_m"],"rig":"game_engine","bones":len(rig.data.bones),"triangles_estimate":tri,"animations":ch["animations"],"materials":ch["palette"],"outputs":[glb.name,fbx.name,blend.name,png.name,"preview_side.png","preview_back.png","preview_face.png"],"production_status":"Sister of Ash pass 29 — fitted facial-surface wimple, body-bounded worn shoes, smaller shoulder cloth, darker asymmetric corpse face, stronger layered skirt"}
+    manifest={"id":ch["id"],"name":ch["name"],"category":ch["category"],"style":style,"height_m":ch["height_m"],"rig":"game_engine","bones":len(rig.data.bones),"triangles_estimate":tri,"animations":ch["animations"],"materials":ch["palette"],"outputs":[glb.name,fbx.name,blend.name,png.name,"preview_side.png","preview_back.png","preview_face.png"],"production_status":"Sister of Ash pass 33 — compact closed shoes hiding toes, tighter fitted wimple, full crown coverage, corpse face and layered habit retained"}
     (folder/"manifest.json").write_text(json.dumps(manifest,indent=2),encoding="utf-8")
     return manifest
 
