@@ -22,6 +22,14 @@ TEXTURE_MAX = int(os.environ.get("XZIEL_STATIC_TEXTURE_MAX", "2048"))
 MAX_TRIS_PER_BATCH = 18000
 QUAKE_SCALE = 39.3700787402
 
+# Cleanup is deliberately conservative. The scan is the visual authority, so
+# disconnected photogrammetry is not assumed to be junk merely because it is
+# small in face count. Only centimeter-scale micro-shards may be removed, and
+# even those are subject to a hard global face budget.
+TINY_ISLAND_MAX_FACES = int(os.environ.get("XZIEL_SCAN_TINY_MAX_FACES", "4"))
+TINY_ISLAND_MAX_DIAGONAL_M = float(os.environ.get("XZIEL_SCAN_TINY_MAX_DIAGONAL_M", "0.03"))
+MAX_CLEANUP_FRACTION = float(os.environ.get("XZIEL_SCAN_MAX_CLEANUP_FRACTION", "0.0025"))
+
 bpy.ops.wm.open_mainfile(filepath=MASTER)
 scene = bpy.context.scene
 plan = json.loads(PLAN_PATH.read_text(encoding="utf-8"))
@@ -52,7 +60,6 @@ def mesh_triangles(obj):
     return len(obj.data.loop_triangles)
 
 source_tris = sum(mesh_triangles(o) for o in source_objects)
-ratio = min(1.0, TARGET_TRIS / max(source_tris, 1))
 
 runtime_col = bpy.data.collections.get("VRIL_STATIC_RUNTIME")
 if runtime_col:
@@ -62,18 +69,49 @@ if runtime_col:
 runtime_col = bpy.data.collections.new("VRIL_STATIC_RUNTIME")
 scene.collection.children.link(runtime_col)
 
-cleanup_stats = {"removedIslands":0, "removedFaces":0}
+cleanup_face_budget = max(32, int(source_tris * MAX_CLEANUP_FRACTION))
+cleanup_stats = {
+    "removedIslands": 0,
+    "removedFaces": 0,
+    "candidateIslands": 0,
+    "faceBudget": cleanup_face_budget,
+    "maxFacesPerIsland": TINY_ISLAND_MAX_FACES,
+    "maxDiagonalMeters": TINY_ISLAND_MAX_DIAGONAL_M,
+}
+
+def component_world_diagonal(obj, comp):
+    mn = Vector((1e30, 1e30, 1e30))
+    mx = Vector((-1e30, -1e30, -1e30))
+    seen = set()
+    for face in comp:
+        for vert in face.verts:
+            if vert.index in seen:
+                continue
+            seen.add(vert.index)
+            p = obj.matrix_world @ vert.co
+            mn.x = min(mn.x, p.x); mn.y = min(mn.y, p.y); mn.z = min(mn.z, p.z)
+            mx.x = max(mx.x, p.x); mx.y = max(mx.y, p.y); mx.z = max(mx.z, p.z)
+    return (mx - mn).length if seen else 0.0
 
 def remove_tiny_scan_islands(obj):
-    # Photogrammetry often contains tiny disconnected shards/floating patches.
-    # Remove only the tail of very small islands while preserving the largest
-    # structural components and all surviving UV/material data.
+    # The photogrammetry scan is authoritative visual geometry. Never classify
+    # a component as debris solely from a percentage-of-object threshold: that
+    # deleted real architecture on fragmented scans. A removable shard must be
+    # BOTH <= a few faces AND centimeter-scale in world space, with a hard
+    # global cap on total deleted faces.
+    remaining_budget = cleanup_face_budget - cleanup_stats["removedFaces"]
+    if remaining_budget <= 0:
+        return
+
     mesh = obj.data
     if len(mesh.polygons) < 300:
         return
+
     bm = bmesh.new()
     bm.from_mesh(mesh)
     bm.faces.ensure_lookup_table()
+    bm.verts.ensure_lookup_table()
+
     unseen = set(bm.faces)
     components = []
     while unseen:
@@ -94,34 +132,56 @@ def remove_tiny_scan_islands(obj):
         bm.free()
         return
 
-    components.sort(key=len, reverse=True)
-    min_faces = max(48, int(len(bm.faces) * 0.0015))
+    # Examine the smallest connected components first. Large but disconnected
+    # architectural pieces (stairs, trim, roof/tower fragments) are untouched.
+    components.sort(key=len)
     to_delete = []
-    # Always preserve the 16 largest islands; only delete small tail debris.
-    for idx, comp in enumerate(components):
-        if idx < 16 or len(comp) >= min_faces:
+    removed_islands = 0
+    for comp in components:
+        if len(comp) > TINY_ISLAND_MAX_FACES:
+            break
+        if len(to_delete) + len(comp) > remaining_budget:
+            break
+        if component_world_diagonal(obj, comp) > TINY_ISLAND_MAX_DIAGONAL_M:
             continue
+        cleanup_stats["candidateIslands"] += 1
         to_delete.extend(comp)
+        removed_islands += 1
 
     if to_delete:
-        removed = len(to_delete)
         bmesh.ops.delete(bm, geom=to_delete, context="FACES")
         bm.to_mesh(mesh)
         mesh.update()
-        cleanup_stats["removedIslands"] += sum(
-            1 for idx,comp in enumerate(components)
-            if idx >= 16 and len(comp) < min_faces
-        )
-        cleanup_stats["removedFaces"] += removed
+        cleanup_stats["removedIslands"] += removed_islands
+        cleanup_stats["removedFaces"] += len(to_delete)
     bm.free()
 
+# Work only on derived copies; the GAME_CHURCH_LOD0 source and Blender master
+# are never modified by runtime cleanup/decimation.
 runtime_objects = []
 for src in source_objects:
     dup = src.copy()
     dup.data = src.data.copy()
     dup.name = "XZSM_" + src.name
     runtime_col.objects.link(dup)
-    if ratio < 0.995 and mesh_triangles(dup) > 500:
+    remove_tiny_scan_islands(dup)
+    runtime_objects.append(dup)
+
+cleaned_tris = sum(mesh_triangles(o) for o in runtime_objects)
+if source_tris >= TARGET_TRIS and cleaned_tris < TARGET_TRIS:
+    raise RuntimeError(
+        f"Sanctum cleanup removed authoritative geometry below target: "
+        f"source={source_tris} cleaned={cleaned_tris} target={TARGET_TRIS} "
+        f"cleanup={cleanup_stats}"
+    )
+
+# Decimation is calculated AFTER cleanup. The old order used the pre-cleanup
+# ratio and then applied it to an already-reduced mesh, compounding the loss.
+ratio = min(1.0, TARGET_TRIS / max(cleaned_tris, 1))
+if ratio < 0.995:
+    for dup in runtime_objects:
+        if mesh_triangles(dup) <= 500:
+            continue
         mod = dup.modifiers.new("XZSM_MOBILE_DECIMATE", "DECIMATE")
         mod.ratio = max(0.025, ratio)
         mod.use_collapse_triangulate = True
@@ -132,10 +192,14 @@ for src in source_objects:
         except Exception as exc:
             print("WARN decimate", dup.name, exc)
         dup.select_set(False)
-    remove_tiny_scan_islands(dup)
-    runtime_objects.append(dup)
 
 runtime_tris = sum(mesh_triangles(o) for o in runtime_objects)
+runtime_floor = min(source_tris, int(TARGET_TRIS * 0.95))
+if runtime_tris < runtime_floor:
+    raise RuntimeError(
+        f"Sanctum runtime geometry regressed: runtime={runtime_tris} "
+        f"floor={runtime_floor} source={source_tris} target={TARGET_TRIS}"
+    )
 
 def safe_name(s):
     s = re.sub(r"[^A-Za-z0-9_-]+", "_", s or "material")
@@ -291,6 +355,7 @@ report = {
     "format":"XZSM",
     "version":1,
     "sourceTriangles":source_tris,
+    "cleanedTriangles":cleaned_tris,
     "runtimeTriangles":runtime_tris,
     "targetTriangles":TARGET_TRIS,
     "textureMaxDimension":TEXTURE_MAX,
