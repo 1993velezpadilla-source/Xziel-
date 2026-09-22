@@ -43,6 +43,7 @@ static void XzCopyRenderState(
     dst->blend_dst = 0x0303u;       /* GL_ONE_MINUS_SRC_ALPHA */
     dst->depth_write = 1u;
     dst->depth_func = 0x0203u;      /* GL_LEQUAL */
+    dst->depth_test_enabled = 1u;
     dst->alpha_func = 0x0204u;      /* GL_GREATER */
     dst->alpha_ref = 0.666f;
     dst->texture_env_mode = 0x2100u;/* GL_MODULATE */
@@ -133,6 +134,8 @@ static XzGeometryBatch *XzBeginBatch(
         frame->sprite_batches++;
     else if (kind == XZ_GEOMETRY_EFFECT)
         frame->effect_batches++;
+    else if (kind == XZ_GEOMETRY_IMMEDIATE)
+        frame->immediate_batches++;
 
     return batch;
 }
@@ -159,6 +162,7 @@ void XzGeometryTap_BeginFrame(uint64_t generation)
     frame->surface_batches = 0u;
     frame->sprite_batches = 0u;
     frame->effect_batches = 0u;
+    frame->immediate_batches = 0u;
     frame->dropped_batches = 0u;
     frame->dropped_vertices = 0u;
     frame->dropped_indices = 0u;
@@ -356,7 +360,8 @@ int XzGeometryTap_CaptureSpriteQuad(
     return 1;
 }
 
-int XzGeometryTap_CapturePrimitive(
+static int XzGeometryTap_CapturePrimitiveKind(
+    XzGeometryKind kind,
     const float *source,
     unsigned int count,
     unsigned int stride_floats,
@@ -392,7 +397,7 @@ int XzGeometryTap_CapturePrimitive(
 
     batch = XzBeginBatch(
         frame,
-        XZ_GEOMETRY_EFFECT,
+        kind,
         count,
         index_count,
         texture_id,
@@ -457,6 +462,58 @@ int XzGeometryTap_CapturePrimitive(
     return 1;
 }
 
+int XzGeometryTap_CapturePrimitive(
+    const float *source,
+    unsigned int count,
+    unsigned int stride_floats,
+    unsigned int position_offset,
+    unsigned int texture_offset,
+    XzGeometryPrimitive primitive,
+    int texture_id,
+    const XzGeometryRenderState *state,
+    const float modelview[16],
+    const float projection[16])
+{
+    return XzGeometryTap_CapturePrimitiveKind(
+        XZ_GEOMETRY_EFFECT,
+        source,
+        count,
+        stride_floats,
+        position_offset,
+        texture_offset,
+        primitive,
+        texture_id,
+        state,
+        modelview,
+        projection);
+}
+
+int XzGeometryTap_CaptureImmediate(
+    const float *source,
+    unsigned int count,
+    unsigned int stride_floats,
+    unsigned int position_offset,
+    unsigned int texture_offset,
+    XzGeometryPrimitive primitive,
+    int texture_id,
+    const XzGeometryRenderState *state,
+    const float modelview[16],
+    const float projection[16])
+{
+    return XzGeometryTap_CapturePrimitiveKind(
+        XZ_GEOMETRY_IMMEDIATE,
+        source,
+        count,
+        stride_floats,
+        position_offset,
+        texture_offset,
+        primitive,
+        texture_id,
+        state,
+        modelview,
+        projection);
+}
+
 int XzGeometryTap_SelfTest(void)
 {
     static const struct {
@@ -504,16 +561,23 @@ int XzGeometryTap_SelfTest(void)
             9, NULL, NULL, NULL))
         return 0;
 
+    if (!XzGeometryTap_CaptureImmediate(
+            fan, 4u, 5u, 0u, 3u,
+            XZ_GEOMETRY_TRIANGLE_FAN,
+            10, NULL, NULL, NULL))
+        return 0;
+
     XzGeometryTap_CommitFrame();
     frame = XzGeometryTap_GetReadFrame();
 
     if (frame->generation != 7u ||
-        frame->batch_count != 3u ||
-        frame->vertex_count != 11u ||
-        frame->index_count != 15u ||
+        frame->batch_count != 4u ||
+        frame->vertex_count != 15u ||
+        frame->index_count != 21u ||
         frame->alias_batches != 1u ||
         frame->surface_batches != 1u ||
         frame->effect_batches != 1u ||
+        frame->immediate_batches != 1u ||
         frame->dropped_batches != 0u ||
         frame->dropped_vertices != 0u ||
         frame->dropped_indices != 0u)
@@ -525,6 +589,7 @@ int XzGeometryTap_SelfTest(void)
     if (frame->batches[0].state.color[0] != 1.0f ||
         frame->batches[0].state.depth_write != 1u ||
         frame->batches[0].state.depth_func != 0x0203u ||
+        frame->batches[0].state.depth_test_enabled != 1u ||
         frame->batches[0].state.texture_env_mode != 0x2100u ||
         frame->batches[0].state.texture_enabled != 1u ||
         frame->batches[0].state.fog_enabled != 0u ||
