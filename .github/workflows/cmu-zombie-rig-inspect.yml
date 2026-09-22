@@ -1,0 +1,56 @@
+name: Inspect CMU Mocap Skeleton
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/zombie-mocap-library-v1
+    paths:
+      - ".github/workflows/cmu-zombie-rig-inspect.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        clip:
+          - assets/animations/zombie_mocap/cmu/walk/zombie_walk__104_41.fbx
+          - assets/animations/zombie_mocap/cmu/walk/zombie_march_A__20_08.fbx
+          - assets/animations/zombie_mocap/cmu/walk/limp__105_16.fbx
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Blender
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq blender python3-numpy
+      - name: Inspect mocap skeleton
+        shell: bash
+        run: |
+          cat > /tmp/inspect_cmu.py <<'PY'
+          import bpy, json, sys
+          path=sys.argv[sys.argv.index("--")+1]
+          bpy.ops.wm.read_factory_settings(use_empty=True)
+          bpy.ops.import_scene.fbx(filepath=path)
+          report={"file":path,"armatures":[],"actions":[]}
+          for o in bpy.data.objects:
+            if o.type=="ARMATURE":
+              report["armatures"].append({
+                "name":o.name,
+                "bones":[{"name":b.name,"parent":b.parent.name if b.parent else None} for b in o.data.bones]
+              })
+          for a in bpy.data.actions:
+            report["actions"].append({
+              "name":a.name,
+              "frame_range":[float(a.frame_range[0]),float(a.frame_range[1])],
+              "groups":[g.name for g in a.groups]
+            })
+          print("XZIEL_CMU_REPORT_BEGIN")
+          print(json.dumps(report,indent=2))
+          print("XZIEL_CMU_REPORT_END")
+          PY
+          blender -b --python /tmp/inspect_cmu.py -- "${{ matrix.clip }}" | tee /tmp/cmu-rig.txt
+          grep -q XZIEL_CMU_REPORT_END /tmp/cmu-rig.txt
