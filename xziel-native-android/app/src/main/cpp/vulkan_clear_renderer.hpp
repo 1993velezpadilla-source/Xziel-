@@ -68,7 +68,7 @@ struct VulkanSceneState {
     std::array<VulkanMapBoxState, 128> mapBoxes{};
     std::size_t mapBoxCount = 0;
 
-    std::array<VulkanWindowState, 8> windows{};
+    std::array<VulkanWindowState, 32> windows{};
     std::size_t windowCount = 0;
 
     std::array<VulkanZombieState, 8> zombies{};
