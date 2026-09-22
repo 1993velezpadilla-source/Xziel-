@@ -777,7 +777,7 @@ static void XzLogSnapshot(double now_seconds)
             ANDROID_LOG_INFO,
             "parity geometry generation=%" PRIu64
             " batches=%u vertices=%u indices=%u"
-            " kinds=%u/%u/%u drops=%u/%u/%u"
+            " kinds=%u/%u/%u/%u drops=%u/%u/%u"
             " g3sub=%" PRIu64 " g3draw=%" PRIu64
             " g3verts=%" PRIu64 " g3indices=%" PRIu64
             " g3fail=%" PRIu64 " kindMask=0x%x ready=%d",
@@ -788,6 +788,7 @@ static void XzLogSnapshot(double now_seconds)
             geometry ? geometry->alias_batches : 0u,
             geometry ? geometry->surface_batches : 0u,
             geometry ? geometry->sprite_batches : 0u,
+            geometry ? geometry->effect_batches : 0u,
             geometry ? geometry->dropped_batches : 0u,
             geometry ? geometry->dropped_vertices : 0u,
             geometry ? geometry->dropped_indices : 0u,
@@ -832,6 +833,12 @@ static void XzLogSnapshot(double now_seconds)
             g3->last_texture_misses,
             g3->real_textures_ready);
     }
+
+    XzAndroidLog(
+        ANDROID_LOG_INFO,
+        "parity effects current=%u seen=%d",
+        g3->last_effect_batches,
+        g3->real_effects_ready);
 
     XzAndroidLog(
         ANDROID_LOG_INFO,
