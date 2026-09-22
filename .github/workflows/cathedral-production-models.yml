@@ -87,6 +87,8 @@ jobs:
         run: |
           set -euxo pipefail
           mkdir -p assets/generated/cathedral_roster
+          rm -rf assets/generated/cathedral_roster/sister_of_ash
+          rm -f assets/generated/cathedral_roster/roster_build_summary.json
           xvfb-run -a -s "-screen 0 1280x1024x24" /opt/blender-4.5.14/blender --background --python tools/blender/build_cathedral_roster.py -- --assets-root /tmp/mhassets --spec tools/blender/cathedral_roster.json --out-dir assets/generated/cathedral_roster --only sister_of_ash
 
       - name: Validate production outputs
@@ -94,6 +96,17 @@ jobs:
         run: |
           set -euxo pipefail
           python3 -m json.tool assets/generated/cathedral_roster/roster_build_summary.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("assets/generated/cathedral_roster/roster_build_summary.json")
+          d=json.loads(p.read_text())
+          if d.get("errors"):
+              raise SystemExit(f"Blender character build errors: {d['errors']}")
+          if "sister_of_ash" not in d.get("built",[]):
+              raise SystemExit(f"Sister of Ash missing from built list: {d}")
+          print("SISTER_OF_ASH_CLEAN_BUILD_OK")
+          PY
           for id in sister_of_ash; do
             test -s "assets/generated/cathedral_roster/$id/model.blend"
             test -s "assets/generated/cathedral_roster/$id/model.glb"
@@ -115,7 +128,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "No generated asset changes."
           else
-            git commit -m "art: generate Sister of Ash fidelity pass 20"
+            git commit -m "art: generate Sister of Ash fidelity pass 21"
             git pull --rebase origin art/cathedral-production-models
             git push origin HEAD:art/cathedral-production-models
           fi
@@ -123,7 +136,7 @@ jobs:
       - name: Upload full production artifact
         uses: actions/upload-artifact@v4
         with:
-          name: cathedral-sister-of-ash-pass20
+          name: cathedral-sister-of-ash-pass21
           path: assets/generated/cathedral_roster/
           if-no-files-found: error
           retention-days: 14

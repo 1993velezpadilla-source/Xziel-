@@ -97,9 +97,9 @@ def mat(name, color, rough=0.72, metal=0.0, emission=None, alpha=1.0, noise=True
         else:
             c0=tuple(max(0,c*.72) for c in rgb)+(1,); c1=tuple(min(1,c*1.06) for c in rgb)+(1,)
         ramp.color_ramp.elements[0].color=c0; ramp.color_ramp.elements[1].color=c1
-        if any(k in lname for k in cloth_keys):
-            tex.inputs["Scale"].default_value=72.0
-            bump.inputs["Strength"].default_value=.28 if 'blue' in lname or 'ivory' in lname else .22
+        if cloth:
+            macro.inputs["Scale"].default_value=9.0
+            macro.inputs["Detail"].default_value=4.0
         links.new(macro.outputs["Fac"],ramp.inputs["Fac"]); links.new(ramp.outputs["Color"],bsdf.inputs["Base Color"])
         # Separate micro-normal: this is intentionally much finer and shallower than prior passes.
         micro=nodes.new("ShaderNodeTexNoise")
@@ -107,8 +107,8 @@ def mat(name, color, rough=0.72, metal=0.0, emission=None, alpha=1.0, noise=True
         micro.inputs["Detail"].default_value=3.0
         micro.inputs["Roughness"].default_value=.64
         bump=nodes.new("ShaderNodeBump")
-        bump.inputs["Strength"].default_value=.08 if cloth else (.06 if skin else .10)
-        bump.inputs["Distance"].default_value=.0012 if cloth else (.00065 if skin else .0018)
+        bump.inputs["Strength"].default_value=.12 if cloth else (.055 if skin else .10)
+        bump.inputs["Distance"].default_value=.0010 if cloth else (.00060 if skin else .0018)
         links.new(micro.outputs["Fac"],bump.inputs["Height"]); links.new(bump.outputs["Normal"],bsdf.inputs["Normal"])
     return m
 
@@ -1551,7 +1551,7 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService,TargetServi
     bpy.context.view_layer.update()
     png=preview(body,folder,style)
     tri=sum(sum(max(1,len(p.vertices)-2) for p in o.data.polygons) for o in objs if o.type=="MESH")
-    manifest={"id":ch["id"],"name":ch["name"],"category":ch["category"],"style":style,"height_m":ch["height_m"],"rig":"game_engine","bones":len(rig.data.bones),"triangles_estimate":tri,"animations":ch["animations"],"materials":ch["palette"],"outputs":[glb.name,fbx.name,blend.name,png.name,"preview_side.png","preview_back.png","preview_face.png"],"production_status":"Sister of Ash pass 20 — full wimple face frame, shoulder-complete sleeves, covered shoes, layered torn habit, darker mouth cavity"}
+    manifest={"id":ch["id"],"name":ch["name"],"category":ch["category"],"style":style,"height_m":ch["height_m"],"rig":"game_engine","bones":len(rig.data.bones),"triangles_estimate":tri,"animations":ch["animations"],"materials":ch["palette"],"outputs":[glb.name,fbx.name,blend.name,png.name,"preview_side.png","preview_back.png","preview_face.png"],"production_status":"Sister of Ash pass 21 — clean rebuild validation, full wimple face frame, shoulder-complete sleeves, covered shoes, layered torn habit, darker corpse face"}
     (folder/"manifest.json").write_text(json.dumps(manifest,indent=2),encoding="utf-8")
     return manifest
 
