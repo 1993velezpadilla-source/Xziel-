@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "id": "grave_sexton",
+  "displayName": "Grave Sexton",
+  "heightM": 1.9,
+  "profile": "heavy_worker",
+  "units": "meters",
+  "upAxis": "Z",
+  "forwardAxis": "-Y",
+  "groups": [
+    "GEO_torso",
+    "GEO_head",
+    "GEO_arm_L",
+    "GEO_arm_R",
+    "GEO_leg_L",
+    "GEO_leg_R",
+    "GEO_robe"
+  ],
+  "props": [
+    "shovel",
+    "grave_hook",
+    "key_ring"
+  ],
+  "requiredSockets": [
+    "socket_head",
+    "socket_hand_l",
+    "socket_hand_r",
+    "socket_foot_l",
+    "socket_foot_r",
+    "socket_audio",
+    "socket_vfx"
+  ],
+  "productionRule": "Replace proxy meshes while preserving root scale, group semantics and socket names."
+}
