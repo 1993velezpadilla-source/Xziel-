@@ -126,6 +126,22 @@ void WeaponController::reset() noexcept {
     triggerBufferRemaining_ = 0.0f;
 }
 
+void WeaponController::refillAmmo(
+    bool includeMagazine) noexcept {
+    frame_.reserve =
+        config_.startingReserve;
+
+    if (includeMagazine) {
+        frame_.magazine =
+            config_.magazineSize;
+        frame_.phase =
+            WeaponPhase::Ready;
+        frame_.reloadAlpha = 0.0f;
+        reloadElapsedSeconds_ = 0.0f;
+        triggerBufferRemaining_ = 0.0f;
+    }
+}
+
 WeaponFrame WeaponController::step(
     const WeaponInput& input,
     float deltaSeconds) noexcept {
