@@ -406,4 +406,168 @@ parseStaticMeshXzsm(
     };
 }
 
+StaticMeshQualityMetrics
+measureStaticMeshQuality(
+    const StaticMeshAsset& asset) noexcept {
+    StaticMeshQualityMetrics metrics{};
+
+    std::array<float, 3> minimum{
+        std::numeric_limits<float>::max(),
+        std::numeric_limits<float>::max(),
+        std::numeric_limits<float>::max(),
+    };
+    std::array<float, 3> maximum{
+        std::numeric_limits<float>::lowest(),
+        std::numeric_limits<float>::lowest(),
+        std::numeric_limits<float>::lowest(),
+    };
+
+    std::uint64_t vertexCount = 0U;
+    for (const auto& batch : asset.batches) {
+        for (const auto& vertex : batch.vertices) {
+            const std::array<float, 3> position{
+                vertex.x,
+                vertex.y,
+                vertex.z,
+            };
+
+            for (std::size_t axis = 0U;
+                 axis < position.size();
+                 ++axis) {
+                minimum[axis] =
+                    std::min(
+                        minimum[axis],
+                        position[axis]);
+                maximum[axis] =
+                    std::max(
+                        maximum[axis],
+                        position[axis]);
+            }
+
+            ++vertexCount;
+        }
+    }
+
+    if (vertexCount == 0U ||
+        vertexCount >
+            std::numeric_limits<std::uint32_t>::max()) {
+        return metrics;
+    }
+
+    metrics.vertexCount =
+        static_cast<std::uint32_t>(vertexCount);
+    metrics.bounds.minimum = minimum;
+    metrics.bounds.maximum = maximum;
+
+    std::size_t longestAxis = 0U;
+    std::array<float, 3> extents{};
+    for (std::size_t axis = 0U;
+         axis < extents.size();
+         ++axis) {
+        extents[axis] =
+            maximum[axis] - minimum[axis];
+
+        if (extents[axis] >
+            extents[longestAxis]) {
+            longestAxis = axis;
+        }
+    }
+
+    metrics.longestExtent =
+        extents[longestAxis];
+
+    if (!std::isfinite(metrics.longestExtent) ||
+        metrics.longestExtent <= 1.0e-6f) {
+        metrics.longestExtent = 0.0f;
+        return metrics;
+    }
+
+    constexpr std::size_t kBinCount = 32U;
+    std::array<std::uint64_t, kBinCount> bins{};
+
+    for (const auto& batch : asset.batches) {
+        for (const auto& vertex : batch.vertices) {
+            const std::array<float, 3> position{
+                vertex.x,
+                vertex.y,
+                vertex.z,
+            };
+
+            const float normalized =
+                std::clamp(
+                    (position[longestAxis] -
+                     minimum[longestAxis]) /
+                        metrics.longestExtent,
+                    0.0f,
+                    1.0f);
+
+            const std::size_t bin =
+                std::min<std::size_t>(
+                    static_cast<std::size_t>(
+                        normalized *
+                        static_cast<float>(
+                            kBinCount)),
+                    kBinCount - 1U);
+
+            ++bins[bin];
+        }
+    }
+
+    const std::uint64_t required =
+        (vertexCount * 9U + 9U) / 10U;
+
+    std::size_t bestWidth =
+        kBinCount + 1U;
+
+    for (std::size_t first = 0U;
+         first < kBinCount;
+         ++first) {
+        std::uint64_t count = 0U;
+
+        for (std::size_t last = first;
+             last < kBinCount;
+             ++last) {
+            count += bins[last];
+
+            if (count >= required) {
+                bestWidth =
+                    std::min(
+                        bestWidth,
+                        last - first + 1U);
+                break;
+            }
+        }
+    }
+
+    if (bestWidth <= kBinCount) {
+        metrics.robustAxisCoverage90 =
+            static_cast<float>(bestWidth) /
+            static_cast<float>(kBinCount);
+    }
+
+    return metrics;
+}
+
+bool
+passesViewmodelStaticMeshSanity(
+    const StaticMeshAsset& asset,
+    StaticMeshQualityMetrics* metricsOut) noexcept {
+    const auto metrics =
+        measureStaticMeshQuality(asset);
+
+    if (metricsOut != nullptr) {
+        *metricsOut = metrics;
+    }
+
+    // This is intentionally a broad geometry sanity gate, not an art-style
+    // gate. The normal rifle target is about 0.90 m long. Keep enough room for
+    // alternate first-person rifles while rejecting unit explosions and the
+    // "one long spike + almost everything collapsed near the origin" failure
+    // mode seen in rigged GLB imports.
+    return metrics.vertexCount >= 96U &&
+        metrics.longestExtent >= 0.30f &&
+        metrics.longestExtent <= 1.50f &&
+        metrics.robustAxisCoverage90 >= 0.20f;
+}
+
 } // namespace xziel
