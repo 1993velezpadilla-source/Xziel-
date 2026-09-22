@@ -833,6 +833,17 @@ static void XzLogSnapshot(double now_seconds)
 
     XzAndroidLog(
         ANDROID_LOG_INFO,
+        "parity material state=%u blend=%u lightmap=%u alpha=%u"
+        " modulate=%u ready=%d",
+        g3->last_material_state_batches,
+        g3->last_blended_batches,
+        g3->last_lightmap_batches,
+        g3->last_alpha_test_batches,
+        g3->last_modulate_batches,
+        g3->real_material_state_ready);
+
+    XzAndroidLog(
+        ANDROID_LOG_INFO,
         "parity present context=%d attempts=%" PRIu64
         " success=%" PRIu64 " fail=%" PRIu64
         " draws=%" PRIu64 " streak=%u"
