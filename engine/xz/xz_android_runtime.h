@@ -9,6 +9,7 @@ extern "C" {
 
 void XzAndroidRuntime_Init(size_t engine_heap_bytes);
 void XzAndroidRuntime_BeginFrame(double now_seconds);
+int XzAndroidRuntime_CompositeVisibleWorld(void);
 void XzAndroidRuntime_EndFrame(double now_seconds);
 void XzAndroidRuntime_Shutdown(void);
 
