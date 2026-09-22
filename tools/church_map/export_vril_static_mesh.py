@@ -26,6 +26,7 @@ EXPORT_SPACE = os.environ.get("XZIEL_STATIC_SPACE", "quake").strip().lower()
 if EXPORT_SPACE not in {"quake", "native"}:
     raise RuntimeError(f"Unsupported XZIEL_STATIC_SPACE={EXPORT_SPACE!r}")
 WORLD_SCALE = float(os.environ.get("XZIEL_STATIC_WORLD_SCALE", "1.0")) if EXPORT_SPACE == "native" else QUAKE_SCALE
+NATIVE_FLOOR_Y = float(os.environ.get("XZIEL_STATIC_NATIVE_FLOOR_Y", "-1.58"))
 XZSM_VERSION = 2
 
 # XZSM v2 keeps the photogrammetry albedo intact but adds a compact baked
@@ -462,7 +463,11 @@ for obj in all_runtime_objects:
                 # Blender is Z-up; Xziel gameplay/rendering is Y-up. Keep the
                 # church in meters and rotate axes once at export instead of
                 # inheriting the old Quake inches transform.
-                p = Vector((delta.x, delta.z, -delta.y)) * WORLD_SCALE
+                p = Vector((
+                    delta.x * WORLD_SCALE,
+                    (p_world.z - global_min.z) * WORLD_SCALE + NATIVE_FLOOR_Y,
+                    -delta.y * WORLD_SCALE,
+                ))
             else:
                 p = delta * WORLD_SCALE
             if uv_layer:
@@ -553,6 +558,7 @@ report = {
     "coordinateSpace":EXPORT_SPACE,
     "sourceCollection":source_collection_name,
     "worldScale":WORLD_SCALE,
+    "nativeFloorY":NATIVE_FLOOR_Y if EXPORT_SPACE == "native" else None,
     "sourceTriangles":source_tris,
     "cleanedTriangles":cleaned_tris,
     "runtimeTriangles":runtime_tris,
