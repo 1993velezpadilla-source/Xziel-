@@ -34,7 +34,9 @@ static int XzRhiSelfTestSubmit(
            submission->plan->packet_count == 1u &&
            submission->commands &&
            submission->commands->count == 2u &&
-           submission->resources != NULL;
+           submission->resources != NULL &&
+           submission->geometry != NULL &&
+           submission->geometry->generation == 1u;
 }
 
 static int XzRhiSelfTestEnd(void *user)
@@ -177,7 +179,8 @@ int XzRhi_SubmitFrame(
     XzRhiState *state,
     const XzRenderPlan *plan,
     const XzCommandStream *commands,
-    XzGpuResourcePool *resources)
+    XzGpuResourcePool *resources,
+    const XzGeometryFrame *geometry)
 {
     XzRhiSubmission submission;
 
@@ -197,6 +200,7 @@ int XzRhi_SubmitFrame(
     submission.plan = plan;
     submission.commands = commands;
     submission.resources = resources;
+    submission.geometry = geometry;
 
     state->submitted_frames++;
     state->submitted_packets += plan->packet_count;
@@ -296,6 +300,7 @@ int XzRhi_SelfTest(void)
     XzRhiState rhi;
     XzCommandStream commands;
     XzGpuResourcePool resources;
+    XzGeometryFrame geometry;
     XzRhiMirrorDriver mirror_driver;
     XzRhiSelfTestMirror mirror_state;
 
@@ -303,6 +308,8 @@ int XzRhi_SelfTest(void)
     memset(&budget, 0, sizeof(budget));
     memset(&commands, 0, sizeof(commands));
     XzGpuResourcePool_Init(&resources);
+    memset(&geometry, 0, sizeof(geometry));
+    geometry.generation = 1u;
     memset(&mirror_driver, 0, sizeof(mirror_driver));
     memset(&mirror_state, 0, sizeof(mirror_state));
 
@@ -367,7 +374,8 @@ int XzRhi_SelfTest(void)
             &rhi,
             &plan,
             &commands,
-            &resources))
+            &resources,
+            &geometry))
         return 0;
     XzRhi_EndFrame(&rhi);
 
