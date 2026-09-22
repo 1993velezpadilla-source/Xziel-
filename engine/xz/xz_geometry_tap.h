@@ -22,7 +22,9 @@ typedef enum {
 typedef enum {
     XZ_GEOMETRY_SPECIAL_NONE = 0,
     XZ_GEOMETRY_SPECIAL_SKY,
-    XZ_GEOMETRY_SPECIAL_WATER
+    XZ_GEOMETRY_SPECIAL_WATER,
+    XZ_GEOMETRY_SPECIAL_SHADOW,
+    XZ_GEOMETRY_SPECIAL_POLYBLEND
 } XzGeometrySpecialKind;
 
 typedef enum {
@@ -41,6 +43,7 @@ typedef struct {
  * blend/depth/alpha semantics without linking the tap core to GL headers. */
 typedef struct {
     float color[4];
+    float clear_color[4];
     unsigned int blend_enabled;
     unsigned int blend_src;
     unsigned int blend_dst;
@@ -98,6 +101,8 @@ typedef struct {
     unsigned int special_batches;
     unsigned int sky_batches;
     unsigned int water_batches;
+    unsigned int shadow_batches;
+    unsigned int polyblend_batches;
 
     unsigned int dropped_batches;
     unsigned int dropped_vertices;
@@ -160,6 +165,33 @@ int XzGeometryTap_CaptureSpecialFan(
     unsigned int texture_offset,
     int texture_id,
     XzGeometrySpecialKind special_kind,
+    const XzGeometryRenderState *state,
+    const float modelview[16],
+    const float projection[16]);
+
+int XzGeometryTap_CaptureSpecialPrimitive(
+    const float *source,
+    unsigned int count,
+    unsigned int stride_floats,
+    unsigned int position_offset,
+    unsigned int texture_offset,
+    XzGeometryPrimitive primitive,
+    int texture_id,
+    XzGeometrySpecialKind special_kind,
+    const XzGeometryRenderState *state,
+    const float modelview[16],
+    const float projection[16]);
+
+int XzGeometryTap_CaptureAliasShadow(
+    const unsigned char *vertices,
+    unsigned int vertex_stride,
+    unsigned int xyz_offset,
+    const int *commands,
+    const float scale[3],
+    const float scale_origin[3],
+    const float shadevector[3],
+    float lheight,
+    float height,
     const XzGeometryRenderState *state,
     const float modelview[16],
     const float projection[16]);
