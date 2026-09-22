@@ -71,6 +71,22 @@ struct StaticMeshParseResult {
     std::size_t offset = 0U;
 };
 
+struct StaticMeshQualityMetrics {
+    StaticMeshBounds bounds{};
+    float longestExtent = 0.0f;
+    float robustAxisCoverage90 = 0.0f;
+    std::uint32_t vertexCount = 0U;
+};
+
+[[nodiscard]] StaticMeshQualityMetrics
+measureStaticMeshQuality(
+    const StaticMeshAsset& asset) noexcept;
+
+[[nodiscard]] bool
+passesViewmodelStaticMeshSanity(
+    const StaticMeshAsset& asset,
+    StaticMeshQualityMetrics* metrics = nullptr) noexcept;
+
 [[nodiscard]] StaticMeshParseResult
 parseStaticMeshXzsm(
     std::span<const std::byte> bytes,
