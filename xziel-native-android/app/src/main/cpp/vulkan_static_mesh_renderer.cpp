@@ -741,18 +741,21 @@ bool VulkanStaticMeshRenderer::loadModel(
 
     if (modelPath.find("/weapons/") !=
         std::string::npos) {
-        StaticMeshQualityMetrics metrics{};
+        const auto quality =
+            evaluateViewmodelStaticMesh(out);
+        const auto& metrics =
+            quality.metrics;
 
-        if (!passesViewmodelStaticMeshSanity(
-                out,
-                &metrics)) {
+        if (!quality.success) {
             __android_log_print(
                 ANDROID_LOG_ERROR,
                 kTag,
                 "XZIEL_WEAPON_VIEWMODEL_REJECTED "
-                "extent=%.3f coverage90=%.3f "
+                "reason=%s extent=%.3f coverage90=%.3f "
                 "robust=%.3f/%.3f/%.3f peakVoxel=%.3f "
                 "batches=%u vertices=%u indices=%u",
+                viewmodelStaticMeshRejectionName(
+                    quality.rejection),
                 static_cast<double>(
                     metrics.longestExtent),
                 static_cast<double>(
