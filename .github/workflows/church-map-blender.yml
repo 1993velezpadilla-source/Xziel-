@@ -8,6 +8,7 @@ on:
     paths:
       - ".github/workflows/church-map-blender.yml"
       - "tools/church_map/**"
+      - "ci/sanctum_dressing/build_dressing.py"
       - "docs/SANCTUM_OF_ASH_MAP_BIBLE.md"
 
 permissions:
@@ -116,7 +117,7 @@ jobs:
       - name: Build collision and nav proxy pass
         shell: bash
         env:
-          CHURCH_GAMEPLAY_BLEND: church/out/church_zombies_gameplay_v1.blend
+          CHURCH_GAMEPLAY_BLEND: church/out/dressing/sanctum_dressing_v1.blend
           CHURCH_PLAN: church/out/zombies_map_plan.json
           CHURCH_OUT: church/out
           LIBGL_ALWAYS_SOFTWARE: "1"
@@ -140,6 +141,24 @@ jobs:
             blender --background \
             --python tools/church_map/fit_runtime_geometry_v2.py \
             2>&1 | tee church/out/runtime-fitted-v2.log
+
+      - name: Build runtime horror dressing overlay
+        shell: bash
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          mkdir -p church/out/dressing
+          SANCTUM_BLEND=church/out/church_zombies_gameplay_v1.blend \
+          SANCTUM_PLAN=church/out/zombies_map_plan.json \
+          SANCTUM_FITTED=church/out/church_runtime_fitted_v2.json \
+          SANCTUM_DRESS_OUT=church/out/dressing \
+          xvfb-run -a -s "-screen 0 1600x1000x24" \
+            blender --background --python ci/sanctum_dressing/build_dressing.py \
+            2>&1 | tee church/out/dressing-build.log
+          test -s church/out/dressing/sanctum_dressing_v1.blend
+          test -s church/out/dressing/sanctum_dressing_v1.glb
+          test -s church/out/dressing/sanctum_dressing_v1.json
 
       - name: Export textured Vril static mesh
         shell: bash
@@ -173,6 +192,7 @@ jobs:
           cp church/out/church_collision_proxy_v1.glb church/out/SanctumOfAsh/geometry/
           cp church/out/church_collision_fitted_v2.glb church/out/SanctumOfAsh/geometry/
           cp church/out/church_barricades_fitted_v2.glb church/out/SanctumOfAsh/geometry/
+          cp church/out/dressing/sanctum_dressing_v1.glb church/out/SanctumOfAsh/geometry/
           cp church/out/church_nav_proxy_v1.json church/out/SanctumOfAsh/nav/
           cp church/out/church_runtime_fitted_v2.json church/out/SanctumOfAsh/nav/
           cp church/out/ATTRIBUTION.txt church/out/SanctumOfAsh/
@@ -237,6 +257,9 @@ jobs:
             church/out/church_collision_fitted_v2.glb \
             church/out/church_barricades_fitted_v2.glb \
             church/out/church_runtime_fitted_v2.json \
+            church/out/dressing/sanctum_dressing_v1.blend \
+            church/out/dressing/sanctum_dressing_v1.glb \
+            church/out/dressing/sanctum_dressing_v1.json \
             church/out/vril_static/models/xziel/sanctum/sanctum.xzsm \
             church/out/vril_static_mesh_report.json \
             church/out/SANCTUM_OF_ASH_MAP_BIBLE.md \
@@ -277,6 +300,9 @@ jobs:
           assert len(n["windowCandidates"]) >= 8
           assert h["spawns"] >= 8
           assert s["runtimeTriangles"] >= 620000, s
+          assert s["dressingTriangles"] > 0, s
+          assert s["dressingObjectCount"] > 0, s
+          assert s["runtimeTotalTriangles"] > s["runtimeTriangles"], s
           assert s["textureMaxDimension"] >= 2048, s
           assert s["batchCount"] <= 512, s
           assert s["version"] >= 2, s
@@ -299,7 +325,7 @@ jobs:
           print("WINDOW_CANDIDATES", len(n["windowCandidates"]))
           print("NZP_HARNESS", h)
           print("FITTED_RUNTIME", f["counts"])
-          print("VRIL_STATIC", {k:s[k] for k in ["version","runtimeTriangles","batchCount","textureCount","modelBytes","vertexStrideBytes","vertexLighting"]})
+          print("VRIL_STATIC", {k:s[k] for k in ["version","runtimeTriangles","dressingTriangles","runtimeTotalTriangles","dressingObjectCount","batchCount","textureCount","modelBytes","vertexStrideBytes","vertexLighting"]})
           print("PACKAGE_PREFLIGHT", q)
           PY
 
