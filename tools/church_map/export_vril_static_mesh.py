@@ -21,6 +21,13 @@ TARGET_TRIS = int(os.environ.get("XZIEL_STATIC_TARGET_TRIS", "600000"))
 TEXTURE_MAX = int(os.environ.get("XZIEL_STATIC_TEXTURE_MAX", "2048"))
 MAX_TRIS_PER_BATCH = 18000
 QUAKE_SCALE = 39.3700787402
+XZSM_VERSION = 2
+
+# XZSM v2 keeps the photogrammetry albedo intact but adds a compact baked
+# per-vertex light/tint term. Vril multiplies this with the texture, giving
+# Sanctum depth/mood without converting the church to BSP visuals or requiring
+# heavyweight realtime PBR on the current Android harness.
+MOON_DIR = Vector((-0.32, 0.18, 0.93)).normalized()
 
 # Cleanup is deliberately conservative. The scan is the visual authority, so
 # disconnected photogrammetry is not assumed to be junk merely because it is
@@ -205,6 +212,65 @@ def safe_name(s):
     s = re.sub(r"[^A-Za-z0-9_-]+", "_", s or "material")
     return s[:40] or "material"
 
+def visual_zone(obj):
+    mats = " ".join(m.name.lower() for m in obj.data.materials if m)
+    name = obj.name.lower()
+    s = name + " " + mats
+    if "boiler" in s: return "boiler"
+    if "clockchamber" in s or "clock_chamber" in s: return "clock_chamber"
+    if "officecorridor" in s or "office_corridor" in s: return "office_corridor"
+    if "office" in s: return "office"
+    if "ringingchamber" in s or "ringing_chamber" in s: return "ringing_chamber"
+    if "roofchamber" in s or "roof_chamber" in s: return "roof_chamber"
+    if "towerstairs" in s or "tower_stairs" in s: return "tower_stairs"
+    if "towertop" in s or "tower_top" in s or "turret" in s: return "tower_top"
+    if "exterior" in s: return "exterior"
+    return "main_church"
+
+ZONE_TINT = {
+    "exterior": (0.68, 0.78, 1.00),
+    "main_church": (1.00, 0.86, 0.72),
+    "office": (0.92, 0.83, 0.72),
+    "office_corridor": (0.88, 0.82, 0.76),
+    "boiler": (1.00, 0.72, 0.56),
+    "tower_stairs": (0.78, 0.82, 0.92),
+    "ringing_chamber": (0.92, 0.82, 0.70),
+    "clock_chamber": (0.78, 0.84, 0.96),
+    "roof_chamber": (0.70, 0.80, 1.00),
+    "tower_top": (0.66, 0.78, 1.00),
+}
+
+# Warm practical-light centers are derived from real scan zones. The term is
+# deliberately subtle because the photogrammetry textures already contain
+# real-world shading; this pass adds readable nighttime shape, not fake neon.
+warm_lights = []
+for zone_name, radius, strength in [
+    ("main_church", 13.0, 0.22),
+    ("office", 6.0, 0.16),
+    ("boiler", 7.0, 0.20),
+    ("ringing_chamber", 6.0, 0.18),
+]:
+    info = plan["zones"].get(zone_name)
+    if info:
+        warm_lights.append((Vector(info["center"]), radius, strength))
+
+def baked_vertex_rgba(obj, world_pos, world_normal):
+    zone = visual_zone(obj)
+    tint = ZONE_TINT.get(zone, (0.86, 0.86, 0.88))
+    ndl = max(0.0, float(world_normal.dot(MOON_DIR)))
+    upward = max(0.0, float(world_normal.z))
+
+    # Dark base + moon shaping. Never overbrighten the scanned albedo.
+    level = 0.54 + 0.24 * ndl + 0.06 * upward
+    for light_pos, radius, strength in warm_lights:
+        d = (world_pos - light_pos).length
+        if d < radius:
+            level += strength * (1.0 - d / radius)
+    level = max(0.34, min(1.0, level))
+
+    rgb = [max(0, min(255, int(round(255.0 * level * tint[i])))) for i in range(3)]
+    return (rgb[0], rgb[1], rgb[2], 255)
+
 def material_image(mat):
     if not mat or not mat.use_nodes or not mat.node_tree:
         return None
@@ -291,6 +357,7 @@ for obj in runtime_objects:
     mesh.calc_loop_triangles()
     uv_layer = mesh.uv_layers.active.data if mesh.uv_layers.active else None
     world = obj.matrix_world
+    normal_matrix = world.to_3x3().inverted().transposed()
     for tri in mesh.loop_triangles:
         poly = mesh.polygons[tri.polygon_index]
         mat = obj.material_slots[poly.material_index].material if poly.material_index < len(obj.material_slots) else None
@@ -300,15 +367,21 @@ for obj in runtime_objects:
         verts = []
         for loop_index in tri.loops:
             vi = mesh.loops[loop_index].vertex_index
-            p = world @ mesh.vertices[vi].co
-            p = (p - center) * QUAKE_SCALE
+            p_world = world @ mesh.vertices[vi].co
+            n_world = normal_matrix @ mesh.vertices[vi].normal
+            if n_world.length > 1e-8:
+                n_world.normalize()
+            else:
+                n_world = Vector((0.0, 0.0, 1.0))
+            rgba = baked_vertex_rgba(obj, p_world, n_world)
+            p = (p_world - center) * QUAKE_SCALE
             if uv_layer:
                 uv = uv_layer[loop_index].uv
                 u = float(uv.x)
                 v = 1.0 - float(uv.y)
             else:
                 u = v = 0.0
-            verts.append((float(p.x), float(p.y), float(p.z), u, v))
+            verts.append((float(p.x), float(p.y), float(p.z), u, v, *rgba))
             bounds_min.x=min(bounds_min.x,p.x); bounds_min.y=min(bounds_min.y,p.y); bounds_min.z=min(bounds_min.z,p.z)
             bounds_max.x=max(bounds_max.x,p.x); bounds_max.y=max(bounds_max.y,p.y); bounds_max.z=max(bounds_max.z,p.z)
         group.append(verts)
@@ -353,7 +426,7 @@ for (object_name, tex), tris in groups.items():
 
 model_path = MODEL_DIR / "sanctum.xzsm"
 with model_path.open("wb") as f:
-    f.write(struct.pack("<4sIIII", b"XZSM", 1, len(batches),
+    f.write(struct.pack("<4sIIII", b"XZSM", XZSM_VERSION, len(batches),
                         sum(len(b["vertices"]) for b in batches),
                         sum(len(b["indices"]) for b in batches)))
     for b in batches:
@@ -366,12 +439,12 @@ with model_path.open("wb") as f:
             b["maxs"].x,b["maxs"].y,b["maxs"].z,
         ))
         for vert in b["vertices"]:
-            f.write(struct.pack("<5f", *vert))
+            f.write(struct.pack("<5f4B", *vert))
         f.write(struct.pack("<" + "H"*len(b["indices"]), *b["indices"]))
 
 report = {
     "format":"XZSM",
-    "version":1,
+    "version":XZSM_VERSION,
     "sourceTriangles":source_tris,
     "cleanedTriangles":cleaned_tris,
     "runtimeTriangles":runtime_tris,
@@ -379,6 +452,8 @@ report = {
     "textureMaxDimension":TEXTURE_MAX,
     "decimateRatio":ratio,
     "batching":"object_material_spatial",
+    "vertexLighting":"night_moon_plus_zone_practicals_v1",
+    "vertexStrideBytes":24,
     "scanCleanup":cleanup_stats,
     "batchCount":len(batches),
     "textureCount":len(texture_records),
