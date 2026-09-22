@@ -182,20 +182,6 @@ int XzGeometryTap_CaptureSpecialPrimitive(
     const float modelview[16],
     const float projection[16]);
 
-int XzGeometryTap_CaptureAliasShadow(
-    const unsigned char *vertices,
-    unsigned int vertex_stride,
-    unsigned int xyz_offset,
-    const int *commands,
-    const float scale[3],
-    const float scale_origin[3],
-    const float shadevector[3],
-    float lheight,
-    float height,
-    const XzGeometryRenderState *state,
-    const float modelview[16],
-    const float projection[16]);
-
 const XzGeometryFrame *XzGeometryTap_GetReadFrame(void);
 const XzGeometryFrame *XzGeometryTap_GetWriteFrame(void);
 int XzGeometryTap_SelfTest(void);
