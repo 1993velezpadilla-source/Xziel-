@@ -111,6 +111,20 @@ bool VulkanClearRenderer::initialize(
         assetManager_,
         "models/xziel/sanctum/sanctum.xzsm");
 
+    // Optional special-actor visual. Gameplay remains owned by HordeDirector;
+    // this is a native Vulkan presentation replacement for one authoritative
+    // actor, not a Quake/MDL dependency.
+    (void) lloronaMesh_.initialize(
+        physicalDevice_,
+        device_,
+        graphicsQueue_,
+        graphicsQueueFamily_,
+        commandPool_,
+        renderPass_,
+        assetManager_,
+        "models/xziel/characters/llorona/llorona.xzsm");
+
+    lloronaActorReported_ = false;
     initialized_ = true;
     logInfo("XZIEL_VULKAN_3D_READY");
     return true;
@@ -123,9 +137,11 @@ void VulkanClearRenderer::shutdown() noexcept {
         vkDeviceWaitIdle(device_);
     }
 
-    // Destroy native world resources while the device/render pass/command
+    // Destroy native mesh resources while the device/render pass/command
     // pool they were created from are still alive.
+    lloronaMesh_.shutdown();
     sanctumMesh_.shutdown();
+    lloronaActorReported_ = false;
 
     for (auto& frame : frames_) {
         if (frame.imageAvailable != VK_NULL_HANDLE &&
@@ -3639,6 +3655,60 @@ bool VulkanClearRenderer::recordDrawCommand(
             swapchainExtent_,
             sanctumCamera,
             sanctumEnvironment);
+    }
+
+    if (lloronaMesh_.ready() &&
+        scene.llorona.visible) {
+        const float actorAspect =
+            swapchainExtent_.height > 0U
+            ? static_cast<float>(
+                  swapchainExtent_.width) /
+              static_cast<float>(
+                  swapchainExtent_.height)
+            : 1.0f;
+
+        StaticMeshCameraState actorCamera{};
+        actorCamera.x = camera.x;
+        actorCamera.y = camera.y;
+        actorCamera.z = camera.z;
+        actorCamera.yawRadians =
+            camera.yawRadians;
+        actorCamera.pitchRadians =
+            camera.pitchRadians;
+        actorCamera.verticalFovDegrees =
+            camera.verticalFovDegrees;
+        actorCamera.aspect = actorAspect;
+
+        StaticMeshEnvironmentState actorEnvironment{};
+        actorEnvironment.fogDensity =
+            environment.fogDensity;
+        actorEnvironment.lightningFlash =
+            environment.lightningFlash;
+
+        StaticMeshInstanceState actorInstance{};
+        actorInstance.x = scene.llorona.x;
+        actorInstance.y =
+            scene.llorona.y +
+            std::sin(
+                scene.llorona.stridePhase *
+                6.28318530718f) *
+                0.018f;
+        actorInstance.z = scene.llorona.z;
+        actorInstance.yawRadians =
+            scene.llorona.yawRadians;
+        actorInstance.scale = 1.0f;
+
+        lloronaMesh_.record(
+            command,
+            swapchainExtent_,
+            actorCamera,
+            actorEnvironment,
+            actorInstance);
+
+        if (!lloronaActorReported_) {
+            logInfo("XZIEL_LLORONA_ACTOR_VISIBLE");
+            lloronaActorReported_ = true;
+        }
     }
 
     vkCmdBindPipeline(

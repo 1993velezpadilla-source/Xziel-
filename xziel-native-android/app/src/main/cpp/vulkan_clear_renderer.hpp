@@ -62,6 +62,16 @@ struct VulkanWindowState {
     bool visible = false;
 };
 
+struct VulkanSpecialActorState {
+    float x = 0.0f;
+    float y = 0.0f;
+    float z = 0.0f;
+    float yawRadians = 0.0f;
+    float stridePhase = 0.0f;
+    float healthRatio = 1.0f;
+    bool visible = false;
+};
+
 struct VulkanZombieState {
     float x = 0.0f;
     float y = -1.48f;
@@ -88,6 +98,8 @@ struct VulkanSceneState {
 
     std::array<VulkanZombieState, 8> zombies{};
     std::size_t zombieCount = 0;
+
+    VulkanSpecialActorState llorona{};
 
     float roundProgress = 0.0f;
     bool interRound = false;
@@ -380,6 +392,8 @@ private:
     VkCommandPool commandPool_ = VK_NULL_HANDLE;
 
     VulkanStaticMeshRenderer sanctumMesh_{};
+    VulkanStaticMeshRenderer lloronaMesh_{};
+    bool lloronaActorReported_ = false;
 
     std::vector<VkImage> swapchainImages_;
     std::vector<VkImageView> imageViews_;

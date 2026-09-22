@@ -2262,6 +2262,31 @@ xziel::android::VulkanSceneState makeSceneState(
 
         zombie.attack =
             frame.attackThisTick;
+
+        // First live Sanctum actor is presented as La Llorona by the native
+        // renderer. HordeDirector remains authoritative for movement, yaw,
+        // damage, attack cadence and hit bounds, so this visual swap cannot
+        // desynchronize gameplay.
+        if (state.sanctumMapLoaded &&
+            !scene.llorona.visible) {
+            scene.llorona.x =
+                frame.position.x;
+            scene.llorona.y =
+                frame.position.y;
+            scene.llorona.z =
+                frame.position.z;
+            scene.llorona.yawRadians =
+                frame.yawDegrees *
+                kDegreesToRadians;
+            scene.llorona.stridePhase =
+                frame.stridePhase;
+            scene.llorona.healthRatio =
+                frame.healthRatio;
+            scene.llorona.visible = true;
+
+            // Suppress only the old procedural presentation for this actor.
+            zombie.visible = false;
+        }
     }
 
     scene.roundProgress =

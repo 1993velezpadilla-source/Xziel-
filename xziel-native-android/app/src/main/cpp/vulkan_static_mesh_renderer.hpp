@@ -26,6 +26,14 @@ struct StaticMeshEnvironmentState {
     float lightningFlash = 0.0f;
 };
 
+struct StaticMeshInstanceState {
+    float x = 0.0f;
+    float y = 0.0f;
+    float z = 0.0f;
+    float yawRadians = 0.0f;
+    float scale = 1.0f;
+};
+
 class VulkanStaticMeshRenderer final {
 public:
     VulkanStaticMeshRenderer() = default;
@@ -57,7 +65,8 @@ public:
         VkCommandBuffer command,
         VkExtent2D extent,
         const StaticMeshCameraState& camera,
-        const StaticMeshEnvironmentState& environment) const noexcept;
+        const StaticMeshEnvironmentState& environment,
+        const StaticMeshInstanceState& instance = {}) const noexcept;
 
 private:
     struct GpuTexture {
@@ -96,6 +105,16 @@ private:
         float pad0 = 0.0f;
         float pad1 = 0.0f;
         float pad2 = 0.0f;
+
+        float modelX = 0.0f;
+        float modelY = 0.0f;
+        float modelZ = 0.0f;
+        float modelYaw = 0.0f;
+
+        float modelScale = 1.0f;
+        float modelPad0 = 0.0f;
+        float modelPad1 = 0.0f;
+        float modelPad2 = 0.0f;
     };
 
     [[nodiscard]] bool loadModel(

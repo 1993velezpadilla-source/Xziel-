@@ -202,7 +202,13 @@ bool VulkanStaticMeshRenderer::initialize(
         !textures_.empty();
 
     if (ready_) {
-        logInfo("XZIEL_SANCTUM_MESH_READY");
+        if (std::strstr(
+                modelAssetPath,
+                "llorona") != nullptr) {
+            logInfo("XZIEL_LLORONA_MESH_READY");
+        } else {
+            logInfo("XZIEL_SANCTUM_MESH_READY");
+        }
     }
 
     return ready_;
@@ -289,7 +295,8 @@ void VulkanStaticMeshRenderer::record(
     VkCommandBuffer command,
     VkExtent2D extent,
     const StaticMeshCameraState& camera,
-    const StaticMeshEnvironmentState& environment) const noexcept {
+    const StaticMeshEnvironmentState& environment,
+    const StaticMeshInstanceState& instance) const noexcept {
     if (!ready_ ||
         command == VK_NULL_HANDLE ||
         extent.width == 0U ||
@@ -348,6 +355,30 @@ void VulkanStaticMeshRenderer::record(
             0.0f,
             2.0f);
 
+    push.modelX =
+        std::isfinite(instance.x)
+        ? instance.x
+        : 0.0f;
+    push.modelY =
+        std::isfinite(instance.y)
+        ? instance.y
+        : 0.0f;
+    push.modelZ =
+        std::isfinite(instance.z)
+        ? instance.z
+        : 0.0f;
+    push.modelYaw =
+        std::isfinite(instance.yawRadians)
+        ? instance.yawRadians
+        : 0.0f;
+    push.modelScale =
+        std::clamp(
+            std::isfinite(instance.scale)
+                ? instance.scale
+                : 1.0f,
+            0.01f,
+            100.0f);
+
     vkCmdPushConstants(
         command,
         pipelineLayout_,
@@ -384,15 +415,15 @@ void VulkanStaticMeshRenderer::record(
             continue;
         }
 
-        const float centerX =
+        const float localCenterX =
             (batch.bounds.minimum[0] +
              batch.bounds.maximum[0]) *
             0.5f;
-        const float centerY =
+        const float localCenterY =
             (batch.bounds.minimum[1] +
              batch.bounds.maximum[1]) *
             0.5f;
-        const float centerZ =
+        const float localCenterZ =
             (batch.bounds.minimum[2] +
              batch.bounds.maximum[2]) *
             0.5f;
@@ -410,11 +441,39 @@ void VulkanStaticMeshRenderer::record(
              batch.bounds.minimum[2]) *
             0.5f;
 
+        const float modelCos =
+            std::cos(push.modelYaw);
+        const float modelSin =
+            std::sin(push.modelYaw);
+
+        const float scaledCenterX =
+            localCenterX *
+            push.modelScale;
+        const float scaledCenterY =
+            localCenterY *
+            push.modelScale;
+        const float scaledCenterZ =
+            localCenterZ *
+            push.modelScale;
+
+        const float centerX =
+            push.modelX +
+            modelCos * scaledCenterX +
+            modelSin * scaledCenterZ;
+        const float centerY =
+            push.modelY +
+            scaledCenterY;
+        const float centerZ =
+            push.modelZ -
+            modelSin * scaledCenterX +
+            modelCos * scaledCenterZ;
+
         const float radius =
             std::sqrt(
                 extentX * extentX +
                 extentY * extentY +
-                extentZ * extentZ);
+                extentZ * extentZ) *
+            push.modelScale;
 
         const float relativeX =
             centerX - camera.x;

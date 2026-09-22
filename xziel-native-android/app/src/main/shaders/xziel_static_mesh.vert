@@ -4,6 +4,8 @@ layout(push_constant) uniform PushConstants {
     vec4 cameraPositionYaw;
     vec4 cameraPitchFovAspectFog;
     vec4 environment;
+    vec4 modelTranslationYaw;
+    vec4 modelScale;
 } pc;
 
 layout(location = 0) in vec3 inPosition;
@@ -48,7 +50,32 @@ vec3 worldToView(vec3 world) {
 }
 
 void main() {
-    vec3 view = worldToView(inPosition);
+    float modelYaw = pc.modelTranslationYaw.w;
+    float cy = cos(modelYaw);
+    float sy = sin(modelYaw);
+    float scale = max(pc.modelScale.x, 0.01);
+
+    vec3 local = inPosition * scale;
+    vec3 worldPosition = vec3(
+        pc.modelTranslationYaw.x +
+            cy * local.x +
+            sy * local.z,
+        pc.modelTranslationYaw.y +
+            local.y,
+        pc.modelTranslationYaw.z -
+            sy * local.x +
+            cy * local.z
+    );
+
+    vec3 normal = normalize(vec3(
+        cy * inNormal.x +
+            sy * inNormal.z,
+        inNormal.y,
+       -sy * inNormal.x +
+            cy * inNormal.z
+    ));
+
+    vec3 view = worldToView(worldPosition);
 
     const float nearPlane = 0.08;
     const float farPlane = 180.0;
@@ -87,7 +114,7 @@ void main() {
     gl_Position = clip;
 
     vUv = inUv;
-    vNormal = normalize(inNormal);
+    vNormal = normal;
     vColor = inColor;
     vDistance = max(view.z, 0.0);
     vFogDensity =
