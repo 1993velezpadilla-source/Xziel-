@@ -90,6 +90,18 @@ typedef struct {
     unsigned int last_texture_misses;
     int real_textures_ready;
 
+    uint64_t visible_present_attempts;
+    uint64_t visible_present_successes;
+    uint64_t visible_present_failures;
+    uint64_t visible_present_draw_calls;
+    unsigned int visible_render_width;
+    unsigned int visible_render_height;
+    unsigned int visible_surface_width;
+    unsigned int visible_surface_height;
+    unsigned int visible_present_streak;
+    int visible_context_ready;
+    int visible_present_ready;
+
     unsigned int last_packet_count;
     uint32_t last_plan_hash;
     uint32_t last_command_hash;
@@ -122,6 +134,12 @@ int XzGles3Shadow_SubmitCommands(
     const XzRenderPlan *plan,
     XzGpuResourcePool *resources,
     const XzGeometryFrame *geometry);
+
+int XzGles3Shadow_CompositeVisibleWorld(
+    XzGles3ShadowState *state,
+    const XzGeometryFrame *geometry,
+    unsigned int render_width,
+    unsigned int render_height);
 
 void XzGles3Shadow_Shutdown(
     XzGles3ShadowState *state);
