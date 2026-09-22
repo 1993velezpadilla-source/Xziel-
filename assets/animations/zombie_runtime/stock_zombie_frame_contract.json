@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "runtime": "NZ:P/Vril Quake MDL body-frame contract",
+  "frame_count": 211,
+  "notes": [
+    "Frame indices are kept compatible with source/server/ai/zombie_core.qc.",
+    "Frames 160-180 are not currently assigned by the standing-zombie body state machine and are deliberately filled with a safe idle pose.",
+    "Crawler models use a separate contract and are not replaced by this file."
+  ],
+  "groups": [
+    {"name":"idle","start":0,"end":12,"action":"Idle","sampling":"loop"},
+    {"name":"rise","start":13,"end":36,"action":"Death","sampling":"reverse"},
+    {"name":"walk_a","start":37,"end":52,"action":"Walk","sampling":"loop","phase":0.00},
+    {"name":"walk_b","start":53,"end":66,"action":"Walk","sampling":"loop","phase":0.33},
+    {"name":"walk_c","start":67,"end":82,"action":"Walk","sampling":"loop","phase":0.66},
+    {"name":"jog","start":83,"end":90,"action":"Run","sampling":"loop"},
+    {"name":"transition_pad","start":91,"end":91,"action":"Run","sampling":"hold_start"},
+    {"name":"run","start":92,"end":101,"action":"Run","sampling":"loop"},
+    {"name":"attack_right","start":102,"end":106,"action":"Punch","fallback_action":"Idle_Attack","sampling":"once"},
+    {"name":"attack_left","start":107,"end":112,"action":"Idle_Attack","fallback_action":"Punch","sampling":"once"},
+    {"name":"hop_takeoff","start":113,"end":115,"action":"Jump","sampling":"once"},
+    {"name":"hop_air","start":116,"end":119,"action":"Jump_Idle","fallback_action":"Jump","sampling":"loop"},
+    {"name":"hop_land","start":120,"end":122,"action":"Jump_Land","fallback_action":"Jump","sampling":"once"},
+    {"name":"death_a","start":123,"end":133,"action":"Death","sampling":"once"},
+    {"name":"death_b","start":134,"end":138,"action":"Death","sampling":"once","phase":0.18},
+    {"name":"death_c","start":139,"end":148,"action":"Death","sampling":"once","phase":0.35},
+    {"name":"fall","start":149,"end":152,"action":"Jump_Idle","fallback_action":"HitReact","sampling":"loop"},
+    {"name":"land","start":153,"end":159,"action":"Jump_Land","fallback_action":"HitReact","sampling":"once"},
+    {"name":"reserved","start":160,"end":180,"action":"Idle","sampling":"hold_start"},
+    {"name":"ripboard_a","start":181,"end":191,"action":"Punch","fallback_action":"Idle_Attack","sampling":"once"},
+    {"name":"ripboard_b","start":192,"end":201,"action":"Idle_Attack","fallback_action":"Punch","sampling":"once"},
+    {"name":"window_attack","start":202,"end":210,"action":"Punch","fallback_action":"Idle_Attack","sampling":"once"}
+  ]
+}
