@@ -550,25 +550,20 @@ def sister_face_scars(body,h,mats):
 
 
 def sister_boot_pair(body,rig,h,mats):
-    """Closed worn shoes expanded beyond the real foot bounds so no anatomical toes can leak."""
-    leather=mat("M_SisterBootLeather","#171516",.78,0,noise=True)
-    sole=mat("M_SisterBootSole","#0C0B0C",.88,0,noise=True)
+    """Pass 34: compact closed low shoes; one upper + thin sole, no spherical toe proxies."""
+    leather=mat('M_SisterBootLeather','#171516',.80,0,noise=True)
+    sole_mat=mat('M_SisterBootSole','#0C0B0C',.90,0,noise=True)
     out=[]
-    for sign,label,bone in ((-1,"L","foot_l"),(1,"R","foot_r")):
-        pts=[v.co for v in body.data.vertices if v.co.z/h<.140 and v.co.x*sign>0]
-        if not pts: continue
-        minx=min(p.x for p in pts); maxx=max(p.x for p in pts)
-        miny=min(p.y for p in pts); maxy=max(p.y for p in pts)
-        minz=min(p.z for p in pts)
-        cx=(minx+maxx)*.5
-        cy=(miny+maxy)*.5-.018*h
-        sx=max(.038*h,(maxx-minx)*.58)
-        sy=max(.070*h,(maxy-miny)*.62+.012*h)
-        upper=cube("SisterShoe_"+label,(cx,cy,minz+.027*h),(sx,sy,.025*h),leather,.014*h)
+    for sign,label,bone in ((-1,'L','foot_l'),(1,'R','foot_r')):
+        pts=[v.co for v in body.data.vertices if v.co.z/h<.090 and v.co.x*sign>.010*h]
+        if pts:
+            cx=sum(p.x for p in pts)/len(pts); cy=sum(p.y for p in pts)/len(pts)
+        else:
+            cx=sign*.045*h; cy=-.015*h
+        # Fixed human-scale half-extents prevent body-bbox inflation and hide all toes.
+        upper=cube('SisterShoe_'+label,(cx,cy-.014*h,.026*h),(.034*h,.061*h,.022*h),leather,.011*h)
         out.append(upper)
-        toe=uv_sphere("SisterToeCap_"+label,(cx,miny-.030*h,minz+.037*h),(sx*.96,.038*h,.023*h),leather)
-        out.append(toe)
-        sol=cube("SisterSole_"+label,(cx,cy-.004*h,minz+.006*h),(sx*1.03,sy*1.03,.006*h),sole,.005*h)
+        sol=cube('SisterSole_'+label,(cx,cy-.016*h,.008*h),(.036*h,.064*h,.0055*h),sole_mat,.0035*h)
         out.append(sol)
     return out
 
@@ -645,41 +640,29 @@ def wimple_face_frame(body,h,material):
 
 
 def sister_wimple_frame(body,h,material):
-    """Three fitted cloth strips: forehead + left/right temples. Avoids an artificial oval ring."""
+    """Pass 34: one continuous fitted U-shaped cloth ribbon from jaw to jaw over the brow."""
     fy=face_front_y(body,h)
-    vs=[]; fs=[]
-    def add_strip(points_a,points_b):
-        base=len(vs)
-        vs.extend(points_a); vs.extend(points_b)
-        n=len(points_a)
-        for i in range(n-1):
-            fs.append((base+i,base+i+1,base+n+i+1,base+n+i))
-    # Forehead strip follows the brow curvature.
-    n=26; a=[]; b=[]
+    n=72; center_z=.895*h; rx=.055*h; rz=.072*h
+    inner=[]; outer=[]
+    # Front-facing upper/side arc only: left jaw -> brow -> right jaw. No floating vertical bars.
     for i in range(n):
-        t=i/(n-1); x=(-.050+.100*t)*h
-        curve=(x/(.050*h))
-        y=fy+(.004+.008*curve*curve)*h
-        z=(.951+.0035*(1.0-curve*curve))*h
-        a.append((x,y-.0012*h,z+.0040*h))
-        b.append((x,y-.0012*h,z-.0040*h))
-    add_strip(a,b)
-    # Temple strips taper toward jaw.
-    for side in (-1,1):
-        a=[]; b=[]; n=24
-        for i in range(n):
-            t=i/(n-1)
-            z=(.947-.105*t)*h
-            x=side*(.050+.007*t)*h
-            y=fy+(.006+.012*t)*h
-            a.append((x-side*.0038*h,y-.0010*h,z))
-            b.append((x+side*.0038*h,y-.0010*h,z))
-        add_strip(a,b)
-    mesh=bpy.data.meshes.new("SisterWimpleFrameMesh"); mesh.from_pydata(vs,[],fs); mesh.update()
-    o=bpy.data.objects.new("SisterWimpleFrame",mesh); bpy.context.collection.objects.link(o); assign(o,material)
-    sol=o.modifiers.new("WimpleThickness","SOLIDIFY"); sol.thickness=.0015*h; sol.offset=0
-    bev=o.modifiers.new("WimpleSoft","BEVEL"); bev.width=.0008*h; bev.segments=2
-    sub=o.modifiers.new("WimpleSmooth","SUBSURF"); sub.subdivision_type="CATMULL_CLARK"; sub.levels=1; sub.render_levels=1
+        t=i/(n-1)
+        a=math.pi*(1.08-1.16*t)  # slightly below left temple across brow to right temple
+        x=rx*math.cos(a)
+        z=center_z+rz*math.sin(a)
+        # Pull cloth close to facial surface; subtle depth/fold variation only.
+        y=fy+(.0035+.0020*math.cos(a*2.0))*h
+        nx=math.cos(a); nz=math.sin(a)
+        half=.0042*h
+        inner.append((x-half*nx,y,z-half*nz))
+        outer.append((x+half*nx,y,z+half*nz))
+    vs=inner+outer; fs=[]
+    for i in range(n-1): fs.append((i,i+1,n+i+1,n+i))
+    mesh=bpy.data.meshes.new('SisterWimpleFrameMesh'); mesh.from_pydata(vs,[],fs); mesh.update()
+    o=bpy.data.objects.new('SisterWimpleFrame',mesh); bpy.context.collection.objects.link(o); assign(o,material)
+    sol=o.modifiers.new('WimpleThickness','SOLIDIFY'); sol.thickness=.0014*h; sol.offset=0
+    bev=o.modifiers.new('WimpleSoft','BEVEL'); bev.width=.0007*h; bev.segments=3
+    sub=o.modifiers.new('WimpleSmooth','SUBSURF'); sub.subdivision_type='CATMULL_CLARK'; sub.levels=2; sub.render_levels=2
     return o
 
 def sister_mouth_slit(body,h,mats):
@@ -1877,7 +1860,7 @@ def make_character(ch,assets_root,outroot,HumanService,ObjectService,TargetServi
     bpy.context.view_layer.update()
     png=preview(body,folder,style)
     tri=sum(sum(max(1,len(p.vertices)-2) for p in o.data.polygons) for o in objs if o.type=="MESH")
-    manifest={"id":ch["id"],"name":ch["name"],"category":ch["category"],"style":style,"height_m":ch["height_m"],"rig":"game_engine","bones":len(rig.data.bones),"triangles_estimate":tri,"animations":ch["animations"],"materials":ch["palette"],"outputs":[glb.name,fbx.name,blend.name,png.name,"preview_side.png","preview_back.png","preview_face.png"],"production_status":"Sister of Ash pass 33 — compact closed shoes hiding toes, tighter fitted wimple, full crown coverage, corpse face and layered habit retained"}
+    manifest={"id":ch["id"],"name":ch["name"],"category":ch["category"],"style":style,"height_m":ch["height_m"],"rig":"game_engine","bones":len(rig.data.bones),"triangles_estimate":tri,"animations":ch["animations"],"materials":ch["palette"],"outputs":[glb.name,fbx.name,blend.name,png.name,"preview_side.png","preview_back.png","preview_face.png"],"production_status":"Sister of Ash pass 34 — continuous fitted U-wimple, compact closed shoes without toe spheres, full crown coverage and layered habit retained"}
     (folder/"manifest.json").write_text(json.dumps(manifest,indent=2),encoding="utf-8")
     return manifest
 
