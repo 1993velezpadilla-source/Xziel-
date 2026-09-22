@@ -2,12 +2,32 @@
 
 #include "xziel/acoustics.hpp"
 #include "xziel/audio_scene.hpp"
+#include "xziel/horde_director.hpp"
+#include "xziel/horror.hpp"
+#include "xziel/player_vitals.hpp"
+#include "xziel/score.hpp"
 
 #include <array>
 #include <cstddef>
 #include <cstdint>
 
 namespace xziel {
+
+struct SanctumGameplayProfile {
+    PlayerVitalsConfig vitals{};
+    HordeConfig horde{};
+    ScoreConfig score{};
+    HorrorConfig horror{};
+
+    // Content/UI rules are explicit so future Android presentation does not
+    // quietly drift back toward objective-marker or scare-spam design.
+    bool showQuestChecklistHud = false;
+    bool showPassivePresenceMarkers = false;
+    bool autoRevealSecrets = false;
+};
+
+[[nodiscard]] SanctumGameplayProfile
+makeSanctumGameplayProfile() noexcept;
 
 enum class SanctumZone : std::uint32_t {
     Unknown = 0,
