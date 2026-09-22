@@ -266,6 +266,7 @@ state_helper = (
     '    GLint value = 0;\n'
     '    memset(state, 0, sizeof(*state));\n'
     '    glGetFloatv(GL_CURRENT_COLOR, state->color);\n'
+    '    glGetFloatv(GL_COLOR_CLEAR_VALUE, state->clear_color);\n'
     '    state->blend_enabled = glIsEnabled(GL_BLEND) ? 1u : 0u;\n'
     '    state->alpha_test_enabled = glIsEnabled(GL_ALPHA_TEST) ? 1u : 0u;\n'
     '    state->depth_test_enabled = glIsEnabled(GL_DEPTH_TEST) ? 1u : 0u;\n'
@@ -533,6 +534,7 @@ sprite_state_helper = (
     '    GLint value = 0;\n'
     '    memset(state, 0, sizeof(*state));\n'
     '    glGetFloatv(GL_CURRENT_COLOR, state->color);\n'
+    '    glGetFloatv(GL_COLOR_CLEAR_VALUE, state->clear_color);\n'
     '    state->blend_enabled = glIsEnabled(GL_BLEND) ? 1u : 0u;\n'
     '    state->alpha_test_enabled = glIsEnabled(GL_ALPHA_TEST) ? 1u : 0u;\n'
     '    state->depth_test_enabled = glIsEnabled(GL_DEPTH_TEST) ? 1u : 0u;\n'
@@ -620,6 +622,183 @@ if "XZ_GEOMETRY_SPRITE_CAPTURE" not in rmain:
         "\tglBegin (GL_QUADS);\n"
     )
     rmain = rmain.replace(sprite_anchor, sprite_capture, 1)
+
+
+if "XZ_ALIAS_SHADOW_CAPTURE" not in rmain:
+    shadow_begin = rmain.find("void GL_DrawAliasShadow (aliashdr_t *paliashdr, int posenum)")
+    shadow_end = rmain.find("/*\n=================\nR_SetupAliasFrame", shadow_begin)
+    if shadow_begin < 0 or shadow_end < 0:
+        raise SystemExit("Missing GL_DrawAliasShadow function bounds")
+    shadow_replacement = r'''void GL_DrawAliasShadow (aliashdr_t *paliashdr, int posenum)
+{
+	trivertx_t	*verts;
+	int		*order;
+	vec3_t	point;
+	float	height, lheight;
+	int		count;
+
+	lheight = currententity->origin[2] - lightspot[2];
+
+	verts = (trivertx_t *)((byte *)paliashdr + paliashdr->posedata);
+	verts += posenum * paliashdr->poseverts;
+	order = (int *)((byte *)paliashdr + paliashdr->commands);
+
+	height = -lheight + 1.0f;
+
+	while (1)
+	{
+		count = *order++;
+		if (!count)
+			break;
+
+#ifdef __ANDROID__
+		/* XZ_ALIAS_SHADOW_CAPTURE: preserve projected shadow geometry. */
+		XzGeometryPrimitive xz_primitive = XZ_GEOMETRY_TRIANGLE_STRIP;
+		float xz_capture[1024 * 3];
+		int xz_capture_count = 0;
+		int xz_capture_index = 0;
+#endif
+
+		if (count < 0)
+		{
+			count = -count;
+			glBegin (GL_TRIANGLE_FAN);
+#ifdef __ANDROID__
+			xz_primitive = XZ_GEOMETRY_TRIANGLE_FAN;
+#endif
+		}
+		else
+			glBegin (GL_TRIANGLE_STRIP);
+
+#ifdef __ANDROID__
+		if (count <= 1024)
+			xz_capture_count = count;
+#endif
+
+		do
+		{
+			order += 2;
+
+			point[0] = verts->v[0] * paliashdr->scale[0] + paliashdr->scale_origin[0];
+			point[1] = verts->v[1] * paliashdr->scale[1] + paliashdr->scale_origin[1];
+			point[2] = verts->v[2] * paliashdr->scale[2] + paliashdr->scale_origin[2];
+
+			point[0] -= shadevector[0]*(point[2]+lheight);
+			point[1] -= shadevector[1]*(point[2]+lheight);
+			point[2] = height;
+
+#ifdef __ANDROID__
+			if (xz_capture_count && xz_capture_index < xz_capture_count)
+			{
+				xz_capture[xz_capture_index * 3 + 0] = point[0];
+				xz_capture[xz_capture_index * 3 + 1] = point[1];
+				xz_capture[xz_capture_index * 3 + 2] = point[2];
+				xz_capture_index++;
+			}
+#endif
+
+			glVertex3fv (point);
+			verts++;
+		} while (--count);
+
+		glEnd ();
+
+#ifdef __ANDROID__
+		if (xz_capture_count && xz_capture_index == xz_capture_count)
+		{
+			float xz_mv[16], xz_pr[16];
+			XzGeometryRenderState xz_state;
+			XzCaptureLegacySpriteState(&xz_state);
+			glGetFloatv(GL_MODELVIEW_MATRIX, xz_mv);
+			glGetFloatv(GL_PROJECTION_MATRIX, xz_pr);
+			XzGeometryTap_CaptureSpecialPrimitive(
+				xz_capture,
+				(unsigned int)xz_capture_count,
+				3u, 0u, 3u,
+				xz_primitive,
+				0,
+				XZ_GEOMETRY_SPECIAL_SHADOW,
+				&xz_state,
+				xz_mv,
+				xz_pr);
+		}
+#endif
+	}
+}
+
+
+'''
+    rmain = rmain[:shadow_begin] + shadow_replacement + rmain[shadow_end:]
+
+if "XZ_POLYBLEND_CAPTURE" not in rmain:
+    poly_begin = rmain.find("void R_PolyBlend (void)")
+    poly_end = rmain.find("\n\nint SignbitsForPlane", poly_begin)
+    if poly_begin < 0 or poly_end < 0:
+        raise SystemExit("Missing R_PolyBlend function bounds")
+    poly_replacement = r'''void R_PolyBlend (void)
+{
+	if (!gl_polyblend.value)
+		return;
+	if (!v_blend[3])
+		return;
+
+	glDisable (GL_ALPHA_TEST);
+	glEnable (GL_BLEND);
+	glDisable (GL_DEPTH_TEST);
+	glDisable (GL_TEXTURE_2D);
+
+	glLoadIdentity ();
+
+	glRotatef (-90,  1, 0, 0);
+	glRotatef (90,  0, 0, 1);
+
+	glColor4fv (v_blend);
+
+#ifdef __ANDROID__
+	{
+		static const float xz_polyblend_vertices[12] = {
+			10, 100, 100,
+			10, -100, 100,
+			10, -100, -100,
+			10, 100, -100
+		};
+		float xz_mv[16], xz_pr[16];
+		XzGeometryRenderState xz_state;
+		/* XZ_POLYBLEND_CAPTURE: damage / bonus full-screen tint. */
+		XzCaptureLegacySpriteState(&xz_state);
+		glGetFloatv(GL_MODELVIEW_MATRIX, xz_mv);
+		glGetFloatv(GL_PROJECTION_MATRIX, xz_pr);
+		XzGeometryTap_CaptureSpecialPrimitive(
+			xz_polyblend_vertices,
+			4u, 3u, 0u, 3u,
+			XZ_GEOMETRY_TRIANGLE_FAN,
+			0,
+			XZ_GEOMETRY_SPECIAL_POLYBLEND,
+			&xz_state,
+			xz_mv,
+			xz_pr);
+	}
+#endif
+
+	glBegin (GL_QUADS);
+
+	glVertex3f (10, 100, 100);
+	glVertex3f (10, -100, 100);
+	glVertex3f (10, -100, -100);
+	glVertex3f (10, 100, -100);
+	glEnd ();
+
+	glDisable (GL_BLEND);
+	glEnable (GL_TEXTURE_2D);
+	glEnable (GL_ALPHA_TEST);
+}
+'''
+    rmain = rmain[:poly_begin] + poly_replacement + rmain[poly_end:]
+
+if rmain.count("XZ_ALIAS_SHADOW_CAPTURE") != 1:
+    raise SystemExit("Alias shadow capture injection count mismatch")
+if rmain.count("XZ_POLYBLEND_CAPTURE") != 1:
+    raise SystemExit("Polyblend capture injection count mismatch")
 
 gl_rmain.write_text(rmain, encoding="utf-8")
 
