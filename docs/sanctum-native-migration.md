@@ -64,10 +64,9 @@ they physically reach the next room.
 - Separate passive vs hostile cadence.
 - Host smoke test that verifies distant audibility and anti-spam behavior.
 - No Quake/Vril dependency in this module.
+- Standalone XZSM v2 parser now lives in Xziel itself; the Blender-exported church mesh can be validated without any Quake/Vril reader.
+- Sanctum gameplay tuning profile locks the vulnerable start, longer quiet inter-round beat, restrained horror presentation, and hidden-secret/no-marker defaults.
 
 ## Next native map step
 
-Bring the validated church mesh into a native Xziel mesh container and Vulkan
-vertex/index-buffer path. Do not convert the map back into BSP. Collision and
-navigation should be authored as simplified native data per zone rather than
-using the photogrammetry mesh as gameplay collision.
+The validated church mesh format is now readable by native Xziel. The next renderer step is to upload its batches into dedicated Vulkan vertex/index buffers and bind the referenced albedo textures directly. Do not convert the map back into BSP. Collision and navigation should be authored as simplified native data per zone rather than using the photogrammetry mesh as gameplay collision.
