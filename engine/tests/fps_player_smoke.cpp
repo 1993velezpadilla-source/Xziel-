@@ -210,6 +210,39 @@ int main() {
             xziel::MovementCue::WallRunStart);
     }
 
+    // Authored multi-level maps must be able to descend below the player
+    // spawn floor. The legacy config floor must not clamp or fake grounded
+    // state once walkable surfaces are installed.
+    {
+        xziel::FpsPlayerController multiFloorPlayer;
+        multiFloorPlayer.setSpawn(
+            {0.0f, 1.0f, 0.0f},
+            0.0f);
+        multiFloorPlayer.clearWalkableSurfaces();
+
+        assert(
+            multiFloorPlayer.addWalkableSurface(
+                {
+                    .minimum = {-2.0f, -0.10f, -2.0f},
+                    .maximum = { 2.0f,  0.00f,  2.0f},
+                }));
+
+        xziel::FpsPlayerFrame lower{};
+        for (int i = 0; i < 240; ++i) {
+            lower =
+                multiFloorPlayer.fixedStep(
+                    {},
+                    {},
+                    1.0f / 120.0f);
+        }
+
+        assert(lower.feetPosition.y < 0.01f);
+        assert(lower.feetPosition.y > -0.01f);
+        assert(
+            lower.movement.mode !=
+            xziel::MovementMode::Airborne);
+    }
+
     // Pitch is hard bounded even under absurd input.
     view.look = {0.0f, 100.0f};
 
