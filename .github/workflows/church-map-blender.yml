@@ -141,6 +141,24 @@ jobs:
             --python tools/church_map/fit_runtime_geometry_v2.py \
             2>&1 | tee church/out/runtime-fitted-v2.log
 
+      - name: Export textured Vril static mesh
+        shell: bash
+        env:
+          CHURCH_GAMEPLAY_BLEND: church/out/church_zombies_gameplay_v1.blend
+          CHURCH_PLAN: church/out/zombies_map_plan.json
+          CHURCH_OUT: church/out
+          XZIEL_STATIC_TARGET_TRIS: "240000"
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          xvfb-run -a -s "-screen 0 1600x1000x24" \
+            blender --background \
+            --python tools/church_map/export_vril_static_mesh.py \
+            2>&1 | tee church/out/vril-static-export.log
+          test -s church/out/vril_static/models/xziel/sanctum/sanctum.xzsm
+          test -d church/out/vril_static/textures/xziel/sanctum
+          test -s church/out/vril_static_mesh_report.json
+
       - name: Export portable map package
         shell: bash
         env:
@@ -218,6 +236,8 @@ jobs:
             church/out/church_collision_fitted_v2.glb \
             church/out/church_barricades_fitted_v2.glb \
             church/out/church_runtime_fitted_v2.json \
+            church/out/vril_static/models/xziel/sanctum/sanctum.xzsm \
+            church/out/vril_static_mesh_report.json \
             church/out/SANCTUM_OF_ASH_MAP_BIBLE.md \
             church/out/SanctumOfAsh/map.json \
             church/out/SanctumOfAsh/entities.json \
@@ -246,6 +266,7 @@ jobs:
           n=json.load(open("church/out/church_nav_proxy_v1.json", encoding="utf-8"))
           h=json.load(open("church/out/nzp_harness/sanctum_harness_export.json", encoding="utf-8"))
           f=json.load(open("church/out/church_runtime_fitted_v2.json", encoding="utf-8"))
+          s=json.load(open("church/out/vril_static_mesh_report.json", encoding="utf-8"))
           assert r["source_triangles"] > 100000
           assert r["mobile_lod0_triangles"] > 10000
           assert p["working_title"] == "SANCTUM OF ASH"
@@ -257,6 +278,10 @@ jobs:
           assert f["counts"]["barricades"] >= 8, f
           assert f["counts"]["raycastFitted"] > 0, f
           assert f["counts"]["collisionMeshes"] >= 4, f
+          assert s["runtimeTriangles"] >= 100000, s
+          assert s["batchCount"] > 0, s
+          assert s["textureCount"] > 0, s
+          assert s["modelBytes"] > 1000000, s
           for zone in ["boiler","clock_chamber","ringing_chamber","tower_stairs"]:
               assert zone in p["zones"], zone
           print("SOURCE_TRIANGLES", r["source_triangles"])
@@ -267,6 +292,7 @@ jobs:
           print("WINDOW_CANDIDATES", len(n["windowCandidates"]))
           print("NZP_HARNESS", h)
           print("FITTED_RUNTIME", f["counts"])
+          print("VRIL_STATIC", {k:s[k] for k in ["runtimeTriangles","batchCount","textureCount","modelBytes"]})
           print("PACKAGE_PREFLIGHT", q)
           PY
 
