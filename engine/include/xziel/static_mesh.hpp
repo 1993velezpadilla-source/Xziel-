@@ -9,7 +9,8 @@
 
 namespace xziel {
 
-inline constexpr std::uint32_t kStaticMeshFormatVersion = 2U;
+inline constexpr std::uint32_t kStaticMeshLegacyVersion = 2U;
+inline constexpr std::uint32_t kStaticMeshFormatVersion = 3U;
 inline constexpr std::size_t kMaxStaticMeshBatches = 2048U;
 inline constexpr std::uint32_t kMaxStaticMeshVertices = 8000000U;
 inline constexpr std::uint32_t kMaxStaticMeshIndices = 12000000U;
@@ -18,6 +19,11 @@ struct StaticMeshVertex {
     float x = 0.0f;
     float y = 0.0f;
     float z = 0.0f;
+
+    float nx = 0.0f;
+    float ny = 1.0f;
+    float nz = 0.0f;
+
     float u = 0.0f;
     float v = 0.0f;
     std::array<std::uint8_t, 4> rgba{
@@ -25,8 +31,8 @@ struct StaticMeshVertex {
 };
 
 static_assert(
-    sizeof(StaticMeshVertex) == 24U,
-    "XZSM v2 vertex ABI must stay 24 bytes");
+    sizeof(StaticMeshVertex) == 36U,
+    "native XZSM v3 runtime vertex ABI must stay 36 bytes");
 
 struct StaticMeshBounds {
     std::array<float, 3> minimum{};
