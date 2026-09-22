@@ -231,11 +231,13 @@ void Xziel_StaticMesh_Draw(void)
     glDisable(GL_ALPHA_TEST);
     glDisable(GL_CULL_FACE);
     glColor4f(1, 1, 1, 1);
-    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+    /* Preserve the photogrammetry albedo in the compatibility path. Lighting
+     * belongs to Xziel's renderer; multiplying the scan by baked vertex color
+     * here crushed stone/wood detail into black on Android. */
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    glEnableClientState(GL_COLOR_ARRAY);
 
     for (i = 0; i < xzsm_batch_count; ++i) {
         xzsm_batch_t *b = &xzsm_batches[i];
@@ -245,11 +247,9 @@ void Xziel_StaticMesh_Draw(void)
             GL_Bind(b->texture);
         glVertexPointer(3, GL_FLOAT, sizeof(xzsm_vertex_t), &b->vertices[0].x);
         glTexCoordPointer(2, GL_FLOAT, sizeof(xzsm_vertex_t), &b->vertices[0].u);
-        glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(xzsm_vertex_t), &b->vertices[0].r);
         glDrawElements(GL_TRIANGLES, b->index_count, GL_UNSIGNED_SHORT, b->indices);
     }
 
-    glDisableClientState(GL_COLOR_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     glDisableClientState(GL_VERTEX_ARRAY);
     if (gl_cull.value)
