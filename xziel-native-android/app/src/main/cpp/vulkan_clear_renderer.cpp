@@ -4014,6 +4014,21 @@ bool VulkanClearRenderer::recordDrawCommand(
             swapchainExtent_,
             sanctumCamera,
             sanctumEnvironment);
+
+        if (performanceTelemetryFrame_ % 120U == 0U) {
+            const auto meshStats =
+                sanctumMesh_.frameStats();
+
+            __android_log_print(
+                ANDROID_LOG_INFO,
+                kTag,
+                "XZIEL_SCENE_COST visible_batches=%u culled_batches=%u draws=%u triangles=%llu",
+                meshStats.visibleBatches,
+                meshStats.culledBatches,
+                meshStats.drawCalls,
+                static_cast<unsigned long long>(
+                    meshStats.submittedTriangles));
+        }
     }
 
     // The current AKM source imports correctly as textured geometry, but its
