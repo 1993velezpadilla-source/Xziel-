@@ -1975,6 +1975,70 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureResidency(
             return;
         }
 
+        if (runtimeTextureUpload_.descriptorMask == 0U) {
+            const auto* currentDecision =
+                streamDecision(
+                    textures_[textureIndex].
+                        streamResourceId,
+                    streamDecisionCount_);
+
+            const bool probeWantsResident =
+                streamResidencyProbeEnabled_ &&
+                !streamResidencyProbeComplete_ &&
+                streamResidencyProbeTextureIndex_ ==
+                    textureIndex &&
+                runtimeTextureTransitionFrame_ >=
+                    streamResidencyProbeReloadFrame_;
+
+            const bool currentWantsResident =
+                currentDecision != nullptr &&
+                (currentDecision->desiredResident ||
+                 probeWantsResident);
+
+            const bool probePromotesMip =
+                streamResidencyProbeEnabled_ &&
+                !streamLiveMipProbeComplete_ &&
+                streamLiveMipProbeTextureIndex_ ==
+                    textureIndex &&
+                runtimeTextureTransitionFrame_ >=
+                    streamLiveMipProbePromoteFrame_;
+
+            const std::uint32_t currentDesiredBaseMip =
+                currentDecision != nullptr &&
+                        textures_[textureIndex].
+                            sourceMipLevels > 0U
+                ? (probePromotesMip
+                   ? 0U
+                   : std::min<std::uint32_t>(
+                         currentDecision->
+                             desiredMipBias,
+                         textures_[textureIndex].
+                             sourceMipLevels - 1U))
+                : runtimeTextureUpload_.
+                      targetBaseMip;
+
+            if (!currentWantsResident ||
+                currentDesiredBaseMip !=
+                    runtimeTextureUpload_.
+                        targetBaseMip) {
+                __android_log_print(
+                    ANDROID_LOG_INFO,
+                    kTag,
+                    "XZIEL_RUNTIME_TEXTURE_MIP_SWAP_CANCELLED texture=%u requested_base_mip=%u current_base_mip=%u wants_resident=%d",
+                    static_cast<unsigned int>(
+                        textureIndex),
+                    static_cast<unsigned int>(
+                        runtimeTextureUpload_.
+                            targetBaseMip),
+                    static_cast<unsigned int>(
+                        currentDesiredBaseMip),
+                    currentWantsResident ? 1 : 0);
+
+                destroyRuntimeTextureUpload();
+                return;
+            }
+        }
+
         const std::uint8_t slotBit =
             static_cast<std::uint8_t>(
                 1U << frameSlot);
