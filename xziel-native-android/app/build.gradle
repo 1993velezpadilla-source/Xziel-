@@ -4,6 +4,12 @@ def xzielMultiplayerBaseUrl =
 def xzielMultiplayerTestKey =
     System.getenv("XZIEL_MULTIPLAYER_TEST_KEY") ?: ""
 
+def xzielMultiplayerDefaultRoom =
+    System.getenv("XZIEL_MULTIPLAYER_DEFAULT_ROOM") ?: "BETA1"
+
+def xzielMultiplayerDisplayName =
+    System.getenv("XZIEL_MULTIPLAYER_DISPLAY_NAME") ?: "Player"
+
 def xzielBuildConfigString = { String value ->
     "\"" +
         value
@@ -45,6 +51,22 @@ android {
             "XZIEL_MULTIPLAYER_TEST_KEY",
             xzielBuildConfigString(
                 xzielMultiplayerTestKey
+            )
+        )
+
+        buildConfigField(
+            "String",
+            "XZIEL_MULTIPLAYER_DEFAULT_ROOM",
+            xzielBuildConfigString(
+                xzielMultiplayerDefaultRoom
+            )
+        )
+
+        buildConfigField(
+            "String",
+            "XZIEL_MULTIPLAYER_DISPLAY_NAME",
+            xzielBuildConfigString(
+                xzielMultiplayerDisplayName
             )
         )
 
