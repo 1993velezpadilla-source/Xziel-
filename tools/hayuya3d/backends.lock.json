@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_utc": "2026-09-23T04:45:00Z",
+  "updated_utc": "2026-09-23T04:55:00Z",
   "policy": {
     "default_stack": "permissive_open_source",
     "allow_restricted_by_default": false,
@@ -111,6 +111,21 @@
       "min_vram_gb": 12,
       "quality_tier": "balanced",
       "notes": "Cross-domain multiview RGB+normal generation; useful for canonical view completion and normal constraints."
+    },
+    {
+      "id": "dinov2",
+      "role": [
+        "appearance_evaluator",
+        "feature_similarity",
+        "judge_v3"
+      ],
+      "repo": "https://github.com/facebookresearch/dinov2.git",
+      "sha": "7764ea0f912e53c92e82eb78a2a1631e92725fc8",
+      "license": "Apache-2.0",
+      "enabled_by_default": true,
+      "min_vram_gb": 1,
+      "quality_tier": "evaluator",
+      "notes": "Judge v3 uses only the original DINOv2 ViT-S/14 LVD-142M path documented as Apache-2.0. Do not substitute Cell-DINO/X-Ray-DINO restricted variants."
     },
     {
       "id": "triposr",
@@ -235,6 +250,24 @@
       "notes": "Optional official Hyper3D Rodin Gen-2.5 adapter. Public API accepts 1-5 images; never scrape or bypass the authenticated web service.",
       "max_images_per_generation_call": 5,
       "hayuya_strategy": "group arbitrary Hayuya pool into 1-5 image API tasks while preserving source order"
+    }
+  ],
+  "evaluation_research": [
+    {
+      "id": "met3r",
+      "repo": "https://github.com/mohammadasim98/met3r.git",
+      "sha": "ee0e1752898559e1a3e85e2e151d3edeb9b55f73",
+      "license": "MIT code with MASt3R/DUSt3R transitive non-commercial dependencies",
+      "enabled_by_default": false,
+      "decision": "research architecture only; not a default commercial dependency"
+    },
+    {
+      "id": "vggt",
+      "repo": "https://github.com/facebookresearch/vggt.git",
+      "sha": "a288dd0f14786c93483e45524328726ab7b1b4ce",
+      "license": "VGGT custom license; commercial checkpoint has separate terms/access",
+      "enabled_by_default": false,
+      "decision": "opt-in camera/depth research only after explicit license/checkpoint review"
     }
   ]
 }
