@@ -246,6 +246,7 @@ def make_job_plan(
             "anchor_hypothesis_budget": anchor_hypothesis_budget,
             "all_geometry_sources_always_used_by_judge": True,
             "detail_sources_reserved_for_material_and_local_detail_validation": True,
+            "detail_sources_enter_judge_v3_when_appearance_is_active": True,
         },
         "candidate_backends": selected_backends,
         "judge": {
@@ -275,6 +276,8 @@ def make_job_plan(
                 "license": "Apache-2.0",
                 "candidate_render": "Hayuya deterministic CPU RGB z-buffer from matched v2 camera",
                 "weight_when_active": 0.25,
+                "whole_object_vs_detail_mix": "0.72 geometry appearance + 0.28 local-detail retrieval when detail refs exist",
+                "detail_search": "8 canonical candidate views x whole-frame + 3x3 local patches",
                 "fallback": "Judge v2 when DINOv2 is unavailable in auto mode"
             },
             "future_extension": "normal/depth agreement + calibrated camera estimation + local-detail appearance Judge",
@@ -552,6 +555,7 @@ def main() -> int:
         mode=mode,
         target_faces=profile.faces,
         source_images=geometry_inputs,
+        detail_images=detail_inputs,
         visual_weight=0.55,
         appearance_mode=args.appearance_judge,
         appearance_model_root=args.model_root,
@@ -579,7 +583,7 @@ def main() -> int:
         "notes": [
             "The reference pool has no Hayuya-level photo-count cap.",
             "All unique full-object/geometry source photos participate in Judge v2.",
-            "Detail/close-up sources remain in the reference pool for material and local-detail stages instead of being misused as whole-object silhouettes.",
+            "Detail/close-up sources stay out of whole-object silhouette scoring but enter Judge v3 through multi-view local patch retrieval when DINOv2 is active.",
             "Multi-image backends receive grouped real geometry references when one call should be bounded for VRAM/practicality.",
             "Monster/Ultra multi-anchor mode can generate TripoSG hypotheses from every source unless the user explicitly sets a budget.",
             "Judge v2 combines production mesh health with source-image silhouette agreement.",
