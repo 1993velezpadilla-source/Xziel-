@@ -17,6 +17,8 @@ class SourceViewScore:
     best_up_axis: str
     silhouette_iou: float
     boundary_f1: float
+    projection: str = "orthographic"
+    camera_distance: float | None = None
 
 
 @dataclass
@@ -156,19 +158,61 @@ def _load_mesh_arrays(path: Path, max_faces: int = 9000):
     return vertices, faces
 
 
-def render_silhouette(vertices, faces, azimuth: float, elevation: float, up_axis: str, size: int = 192):
-    np, Image, ImageDraw = _deps()
+def project_mesh_vertices(
+    vertices,
+    azimuth: float,
+    elevation: float,
+    up_axis: str,
+    *,
+    size: int,
+    projection: str = "orthographic",
+    camera_distance: float | None = None,
+):
+    np, _, _ = _deps()
     rot = _rotation_matrix(azimuth, elevation, up_axis)
     v = vertices @ rot.T
 
-    # Camera looks down the third axis after rotation. Normalize only in image plane.
-    xy = v[:, :2]
+    if projection == "perspective":
+        distance = float(camera_distance if camera_distance is not None else 2.4)
+        if distance <= 0.55:
+            raise ValueError("camera_distance must be > 0.55 for normalized Hayuya geometry")
+        denom = np.maximum(distance - v[:, 2], 0.05)
+        xy = v[:, :2] / denom[:, None]
+    elif projection == "orthographic":
+        xy = v[:, :2]
+    else:
+        raise ValueError(f"unknown projection: {projection}")
+
     min_xy = xy.min(axis=0)
     max_xy = xy.max(axis=0)
     span = np.maximum(max_xy - min_xy, 1e-7)
     uniform = float(max(span[0], span[1]))
     xy = (xy - (min_xy + max_xy) * 0.5) / uniform
     xy = xy * (size * 0.82) + size * 0.5
+    return xy.astype(np.float32), v[:, 2].astype(np.float32)
+
+
+def render_silhouette(
+    vertices,
+    faces,
+    azimuth: float,
+    elevation: float,
+    up_axis: str,
+    size: int = 192,
+    *,
+    projection: str = "orthographic",
+    camera_distance: float | None = None,
+):
+    np, Image, ImageDraw = _deps()
+    xy, _ = project_mesh_vertices(
+        vertices,
+        azimuth,
+        elevation,
+        up_axis,
+        size=size,
+        projection=projection,
+        camera_distance=camera_distance,
+    )
 
     canvas = Image.new("L", (size, size), 0)
     draw = ImageDraw.Draw(canvas)
@@ -269,6 +313,93 @@ def build_render_bank(vertices, faces, *, size: int, azimuth_step: int):
     return bank
 
 
+def refine_projection_match(
+    source_mask,
+    vertices,
+    faces,
+    base_match,
+    *,
+    size: int,
+    azimuth_step: int,
+    cache: dict,
+):
+    """
+    Refine the coarse orthographic camera locally.
+
+    The global bank stays cheap. Around the winning orientation we try +/- half an
+    azimuth step and several perspective strengths, caching renders shared by sources.
+    """
+    if base_match is None:
+        return None
+
+    score, iou, edge, up_axis, elevation, azimuth = base_match
+    best = (
+        score,
+        iou,
+        edge,
+        up_axis,
+        elevation,
+        azimuth,
+        "orthographic",
+        None,
+    )
+
+    half_step = max(5.0, azimuth_step / 2.0)
+    azimuths = [
+        float((azimuth - half_step) % 360.0),
+        float(azimuth % 360.0),
+        float((azimuth + half_step) % 360.0),
+    ]
+    projection_hypotheses = [
+        ("orthographic", None),
+        ("perspective", 1.4),
+        ("perspective", 2.4),
+        ("perspective", 4.0),
+    ]
+
+    for refined_azimuth in azimuths:
+        for projection, distance in projection_hypotheses:
+            key = (
+                up_axis,
+                float(elevation),
+                refined_azimuth,
+                projection,
+                distance,
+                size,
+            )
+            candidate_mask = cache.get(key)
+            if candidate_mask is None:
+                candidate_mask = render_silhouette(
+                    vertices,
+                    faces,
+                    refined_azimuth,
+                    elevation,
+                    up_axis,
+                    size=size,
+                    projection=projection,
+                    camera_distance=distance,
+                )
+                cache[key] = candidate_mask
+
+            candidate_score, candidate_iou, candidate_edge = score_masks(
+                source_mask,
+                candidate_mask,
+            )
+            if candidate_score > best[0]:
+                best = (
+                    candidate_score,
+                    candidate_iou,
+                    candidate_edge,
+                    up_axis,
+                    elevation,
+                    refined_azimuth,
+                    projection,
+                    distance,
+                )
+
+    return best
+
+
 def score_candidate(
     mesh_path: Path,
     source_images: list[Path],
@@ -309,6 +440,7 @@ def score_candidate(
             anchor_key = (anchor_best[3], anchor_best[4], anchor_best[5])
 
     views: list[SourceViewScore] = []
+    refinement_cache: dict = {}
     for idx, (source_path, source_mask) in enumerate(zip(source_images, source_masks)):
         hint = hints[idx]
         allowed = bank_keys
@@ -328,7 +460,19 @@ def score_candidate(
         if best is None:
             continue
 
-        score, iou, edge, up_axis, elevation, azimuth = best
+        refined = refine_projection_match(
+            source_mask,
+            vertices,
+            faces,
+            best,
+            size=size,
+            azimuth_step=azimuth_step,
+            cache=refinement_cache,
+        )
+        if refined is None:
+            continue
+
+        score, iou, edge, up_axis, elevation, azimuth, projection, camera_distance = refined
         views.append(
             SourceViewScore(
                 source=str(source_path),
@@ -338,6 +482,8 @@ def score_candidate(
                 best_up_axis=up_axis,
                 silhouette_iou=round(iou, 6),
                 boundary_f1=round(edge, 6),
+                projection=projection,
+                camera_distance=camera_distance,
             )
         )
 
