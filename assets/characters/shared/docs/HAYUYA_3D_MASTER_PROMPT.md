@@ -24,14 +24,15 @@ Do **not** demand a manual 8-view turnaround. If 1, 2, 5, 9, 20, or more useful 
 
 1. Lock the supplied source photo(s).
 2. Remove/normalize background and framing without changing identity.
-3. Build missing view coverage automatically.
-4. Preserve real source views as higher-confidence anchors than generated views.
+3. Build missing view coverage automatically; on one-source jobs use executable Wonder3D ViewForge when available.
+4. Preserve real source views as higher-confidence anchors than generated views; synthetic front must never replace the real anchor.
 5. Generate multiple independent 3D candidates.
-6. Judge candidates against mesh health, silhouette/source-view agreement, and — when Judge v3 is available — DINOv2 RGB appearance plus local-detail references.
+6. Judge candidates against mesh health, confidence-weighted silhouette/source-view agreement, perspective-refined cameras, DINOv2 RGB appearance, local-detail references, and low-weight synthetic normal support when available.
 7. Select the strongest valid candidate.
-8. Build/retain UV and PBR material data.
-9. Produce game-ready topology/LODs as requested.
-10. Export a final GLB plus plan, ranking and manifest.
+8. In Monster/Ultra, optionally let TripoSF challenge the geometry at 1024³; never promote it merely for having more detail.
+9. If refined geometry wins real-source evidence, use Material Bridge to restore base-color appearance and return that GLB to the full final Judge.
+10. Build/retain UV and PBR material data and eventually produce game-ready topology/LODs/collision.
+11. Export a final GLB plus plan, ranking and manifest.
 
 ## Canonical ViewForge coverage
 
@@ -98,8 +99,9 @@ Current families include:
 - TRELLIS multi-image
 - InstantMesh / Zero123++
 - TripoSR
-- Wonder3D support
-- TripoSF refinement roadmap
+- Wonder3D executable ViewForge RGB + normal expansion
+- TripoSF evidence-gated 1024³ refinement
+- Material Bridge base-color transfer
 - PSHuman character-specialist roadmap
 
 Hunyuan3D is an optional backend, not the definition of Hayuya.
@@ -111,6 +113,8 @@ Cloud services such as Tripo or Meshy may be optional official-API comparison ba
 Do not choose a model because it is the newest or has the highest polygon count.
 
 Choose the model that best preserves the supplied reference while remaining healthy and production-usable.
+
+Real photographs outrank synthetic evidence. A refinement, synthetic view, normal map, or high polygon count can help a candidate, but none of them may override contradictory real-source evidence.
 
 ## Output contract
 
