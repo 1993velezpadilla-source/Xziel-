@@ -23,6 +23,7 @@ on:
       - engine/mobile-streaming-geometry-residency-v1
       - engine/mobile-streaming-geometry-io-v2
       - engine/mobile-streaming-geometry-eviction-v1
+      - engine/mobile-streaming-geometry-prefetch-v1
     paths:
       - ".github/workflows/sanctum-native-hq-android.yml"
       - ".github/workflows/sanctum-clean-source.yml"
@@ -61,11 +62,11 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-ktx2-astc-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-mip-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-upload-batching-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-mip-residency-vulkan-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-mip-residency-vulkan-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-async-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-cull-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-descriptor-frames-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-residency-registry-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-runtime-io-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-gpu-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-mip-transition-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-index-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-io-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-eviction-v1" ]]; then
+          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-ktx2-astc-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-mip-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-upload-batching-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-mip-residency-vulkan-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-mip-residency-vulkan-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-async-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-cull-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-descriptor-frames-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-residency-registry-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-runtime-io-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-gpu-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-mip-transition-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-index-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-io-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-eviction-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-prefetch-v1" ]]; then
             ASTC_PACK_BRANCH="${GITHUB_REF_NAME}"
             if [[ "${GITHUB_REF_NAME}" == "engine/mobile-upload-batching-v1" ]]; then
               ASTC_PACK_BRANCH="engine/mobile-ktx2-astc-v1"
-            elif [[ "${GITHUB_REF_NAME}" == "engine/mobile-mip-residency-vulkan-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-mip-residency-vulkan-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-async-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-cull-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-descriptor-frames-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-residency-registry-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-runtime-io-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-gpu-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-mip-transition-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-index-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-io-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-eviction-v1" ]]; then
+            elif [[ "${GITHUB_REF_NAME}" == "engine/mobile-mip-residency-vulkan-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-mip-residency-vulkan-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-async-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-cull-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-descriptor-frames-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-residency-registry-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-runtime-io-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-gpu-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-mip-transition-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-index-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-io-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-eviction-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-prefetch-v1" ]]; then
               ASTC_PACK_BRANCH="engine/mobile-power-fidelity-v1"
             fi
             for i in $(seq 1 120); do
@@ -451,7 +452,7 @@ jobs:
             "$ADB" shell setprop debug.xziel.streaming_probe 1
           fi
 
-          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-eviction-v1" ]]; then
+          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-eviction-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-prefetch-v1" ]]; then
             "$ADB" shell setprop debug.xziel.geometry_streaming_probe 1
           fi
 
@@ -663,7 +664,7 @@ jobs:
 
               echo "XZIEL_ASTC_RUNTIME_ACTIVE textures=${KTX_LOAD_COUNT}"
 
-              if [[ "${GITHUB_REF_NAME}" == "engine/mobile-async-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-cull-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-descriptor-frames-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-residency-registry-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-runtime-io-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-gpu-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-mip-transition-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-index-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-io-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-eviction-v1" ]]; then
+              if [[ "${GITHUB_REF_NAME}" == "engine/mobile-async-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-cull-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-descriptor-frames-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-residency-registry-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-runtime-io-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-gpu-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-mip-transition-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-index-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-io-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-eviction-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-prefetch-v1" ]]; then
                 grep -Eq "XZIEL_ASYNC_ASTC_PREFETCH_READY .*queued=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
                 grep -Eq "XZIEL_ASYNC_ASTC_PREFETCH_DONE .*failed=0 .*pending=0" dist/sanctum-hq-logcat.txt
 
@@ -692,7 +693,7 @@ jobs:
           grep -Eq "XZIEL_FRAME_PACING_(READY|SKIPPED_CPU|UNAVAILABLE)"             dist/sanctum-hq-logcat.txt
           grep -q "XZIEL_PERF_TIMING "             dist/sanctum-hq-logcat.txt
 
-          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-cull-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-descriptor-frames-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-residency-registry-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-runtime-io-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-gpu-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-mip-transition-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-index-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-io-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-eviction-v1" ]]; then
+          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-cull-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-descriptor-frames-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-residency-registry-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-runtime-io-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-gpu-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-mip-transition-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-index-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-io-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-eviction-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-prefetch-v1" ]]; then
             grep -Eq "XZIEL_WORLD_STREAMING_PLAN current_cell=[1-9][0-9]* .*hot_resources=[1-9][0-9]* .*cold_batches=[1-9][0-9]* .*evictable_mb=[0-9]+\.[0-9]+" dist/sanctum-hq-logcat.txt
             STREAM_CELL="$(grep "XZIEL_WORLD_STREAMING_PLAN" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* current_cell=\([0-9][0-9]*\).*/\1/p')"
             STREAM_COLD_BATCHES="$(grep "XZIEL_WORLD_STREAMING_PLAN" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* cold_batches=\([0-9][0-9]*\).*/\1/p')"
@@ -703,7 +704,7 @@ jobs:
             echo "XZIEL_WORLD_STREAMING_RUNTIME_ACTIVE cell=${STREAM_CELL} cold_batches=${STREAM_COLD_BATCHES}"
           fi
 
-          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-cull-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-descriptor-frames-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-residency-registry-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-runtime-io-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-gpu-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-mip-transition-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-index-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-io-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-eviction-v1" ]]; then
+          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-cull-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-descriptor-frames-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-residency-registry-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-runtime-io-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-gpu-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-mip-transition-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-index-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-io-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-eviction-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-prefetch-v1" ]]; then
             grep -Eq "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=[1-9][0-9]* .*culled_batches=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
             STREAM_CULLED="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* culled_batches=\([0-9][0-9]*\).*/\1/p')"
             STREAM_DRAWS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* draws=\([0-9][0-9]*\).*/\1/p')"
@@ -713,7 +714,7 @@ jobs:
             echo "XZIEL_WORLD_STREAMING_CULL_RUNTIME_ACTIVE culled=${STREAM_CULLED} draws=${STREAM_DRAWS}"
           fi
 
-          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-streaming-residency-registry-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-runtime-io-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-gpu-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-mip-transition-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-index-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-io-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-eviction-v1" ]]; then
+          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-streaming-residency-registry-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-runtime-io-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-gpu-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-mip-transition-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-index-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-io-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-eviction-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-prefetch-v1" ]]; then
             grep -Eq "XZIEL_TEXTURE_RESIDENCY_REGISTRY textures=[1-9][0-9]* " dist/sanctum-hq-logcat.txt
             REGISTRY_TEXTURES="$(grep "XZIEL_TEXTURE_RESIDENCY_REGISTRY" dist/sanctum-hq-logcat.txt | sed -n 's/.* textures=\([0-9][0-9]*\).*/\1/p' | awk '{s+=$1} END {print s+0}')"
             test "${REGISTRY_TEXTURES}" -gt 0
@@ -721,12 +722,12 @@ jobs:
             echo "XZIEL_TEXTURE_RESIDENCY_REGISTRY_ACTIVE textures=${REGISTRY_TEXTURES} astc=${KTX_LOAD_COUNT}"
           fi
 
-          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-streaming-runtime-io-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-gpu-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-mip-transition-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-index-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-io-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-eviction-v1" ]]; then
+          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-streaming-runtime-io-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-gpu-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-mip-transition-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-index-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-io-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-eviction-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-prefetch-v1" ]]; then
             grep -q "XZIEL_RUNTIME_ASSET_STREAMER_READY .*persistent=1" dist/sanctum-hq-logcat.txt
             echo "XZIEL_RUNTIME_ASSET_STREAMER_ACTIVE"
           fi
 
-          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-io-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-eviction-v1" ]]; then
+          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-io-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-eviction-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-prefetch-v1" ]]; then
             grep -q "XZIEL_STREAM_GEOMETRY_CELLS_READY cells=" dist/sanctum-hq-logcat.txt
             GEOMETRY_CELLS="$(grep "XZIEL_STREAM_GEOMETRY_CELLS_READY" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* cells=\([0-9][0-9]*\).*/\1/p')"
             GEOMETRY_BUFFERS="$(grep "XZIEL_STREAM_GEOMETRY_CELLS_READY" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* buffers=\([0-9][0-9]*\).*/\1/p')"
@@ -735,7 +736,7 @@ jobs:
             echo "XZIEL_STREAM_GEOMETRY_CELL_RESIDENCY_ACTIVE cells=${GEOMETRY_CELLS} buffers=${GEOMETRY_BUFFERS}"
           fi
 
-          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-eviction-v1" ]]; then
+          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-eviction-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-prefetch-v1" ]]; then
             grep -q "XZIEL_RUNTIME_GEOMETRY_RELOAD_PROBE_ENABLED" dist/sanctum-hq-logcat.txt
             grep -Eq "XZIEL_RUNTIME_GEOMETRY_EVICTED cell=[1-9][0-9]* .*freed_mb=[0-9]+\.[0-9]+" dist/sanctum-hq-logcat.txt
             grep -Eq "XZIEL_RUNTIME_GEOMETRY_RELOAD_PROBE_ARMED cell=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
@@ -747,6 +748,17 @@ jobs:
             test "${GEOMETRY_EVICTIONS}" -gt 0
             test "${GEOMETRY_RELOADS}" -gt 0
             echo "XZIEL_RUNTIME_GEOMETRY_STREAMING_ACTIVE evictions=${GEOMETRY_EVICTIONS} reloads=${GEOMETRY_RELOADS}"
+
+            if [[ "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-prefetch-v1" ]]; then
+              grep -Eq "XZIEL_RUNTIME_GEOMETRY_RELOAD_COMPLETE cell=[1-9][0-9]* .*peak_pending=[2-4] .*elapsed_frames=[0-9]+" dist/sanctum-hq-logcat.txt
+              GEOMETRY_PREFETCH_PEAK="$(grep "XZIEL_RUNTIME_GEOMETRY_RELOAD_COMPLETE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* peak_pending=\([0-9][0-9]*\).*/\1/p')"
+              GEOMETRY_PREFETCH_FRAMES="$(grep "XZIEL_RUNTIME_GEOMETRY_RELOAD_COMPLETE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* elapsed_frames=\([0-9][0-9]*\).*/\1/p')"
+              test -n "${GEOMETRY_PREFETCH_PEAK}"
+              test "${GEOMETRY_PREFETCH_PEAK}" -ge 2
+              test "${GEOMETRY_PREFETCH_PEAK}" -le 4
+              test -n "${GEOMETRY_PREFETCH_FRAMES}"
+              echo "XZIEL_RUNTIME_GEOMETRY_PREFETCH_ACTIVE peak=${GEOMETRY_PREFETCH_PEAK} elapsed_frames=${GEOMETRY_PREFETCH_FRAMES}"
+            fi
           fi
 
           if [[ "${GITHUB_REF_NAME}" == "engine/mobile-streaming-gpu-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-mip-transition-v1" ]]; then
