@@ -97,7 +97,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          blender -b --python tools/hayuya3d/blender_autorig.py --             --target "hayuya/models/${{ steps.recipe.outputs.job_id }}/model.glb"             --donor hayuya/rig_library/quaternius-human-rigged/model.glb             --output out/character-package/rigged.glb             --report out/character-package/autorig-report.json
+          blender -b --python tools/hayuya3d/blender_autorig.py --             --target "hayuya/models/${{ steps.recipe.outputs.job_id }}/model.glb"             --donor hayuya/animation_library/quaternius-uam2/library.glb             --output out/character-package/rigged.glb             --report out/character-package/autorig-report.json
           python tools/hayuya3d/rig_gate.py             out/character-package/rigged.glb             --json out/character-package/rig-gate.json
           python - <<'PY'
           import json
