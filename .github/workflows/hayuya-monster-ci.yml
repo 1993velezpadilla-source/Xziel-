@@ -54,6 +54,11 @@ jobs:
             --size 128 \
             --azimuth-step 45 | tee /tmp/hayuya-known-good-visual.json
 
+      - name: Measure texture clarity on known Hayuya models
+        run: |
+          python tools/hayuya3d/texture_gate.py             hayuya/models/zombie-iglesia-001/model.glb             --json /tmp/zombie-iglesia-texture.json
+          python tools/hayuya3d/texture_gate.py             hayuya/models/candy-zombie-001/model.glb             --json /tmp/candy-zombie-texture.json
+
       - name: Inspect character rig readiness
         run: |
           python tools/hayuya3d/rig_gate.py \
