@@ -32,6 +32,7 @@ add_library(xziel_engine STATIC
     src/render_features.cpp
     src/renderer_capabilities.cpp
     src/streaming.cpp
+    src/world_streaming.cpp
     src/scene_fx.cpp
     src/audio_scene.cpp
     src/frame_graph.cpp
@@ -199,6 +200,11 @@ if(XZIEL_ENGINE_BUILD_TESTS)
     target_link_libraries(xziel_streaming_smoke PRIVATE xziel_engine)
     target_compile_features(xziel_streaming_smoke PRIVATE cxx_std_20)
     add_test(NAME xziel_streaming_smoke COMMAND xziel_streaming_smoke)
+
+    add_executable(xziel_world_streaming_smoke tests/world_streaming_smoke.cpp)
+    target_link_libraries(xziel_world_streaming_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_world_streaming_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_world_streaming_smoke COMMAND xziel_world_streaming_smoke)
 
     add_executable(xziel_scene_fx_smoke tests/scene_fx_smoke.cpp)
     target_link_libraries(xziel_scene_fx_smoke PRIVATE xziel_engine)
