@@ -167,6 +167,7 @@ parseStaticMeshXzsm(
     }
 
     if (version != kStaticMeshLegacyVersion &&
+        version != kStaticMeshNormalsVersion &&
         version != kStaticMeshFormatVersion) {
         return failure(
             StaticMeshParseError::UnsupportedVersion,
@@ -205,6 +206,8 @@ parseStaticMeshXzsm(
         std::uint32_t indexCount = 0U;
         std::array<char, 96> texture{};
         StaticMeshBounds bounds{};
+        std::uint32_t flags =
+            StaticMeshBatchFlagDoubleSided;
 
         if (!reader.readU32(vertexCount) ||
             !reader.readU32(indexCount) ||
@@ -215,6 +218,25 @@ parseStaticMeshXzsm(
                 StaticMeshParseError::Truncated,
                 reader.offset(),
                 destination);
+        }
+
+        if (version >= kStaticMeshFormatVersion) {
+            if (!reader.readU32(flags)) {
+                return failure(
+                    StaticMeshParseError::Truncated,
+                    reader.offset(),
+                    destination);
+            }
+
+            constexpr std::uint32_t kKnownFlags =
+                StaticMeshBatchFlagDoubleSided;
+
+            if ((flags & ~kKnownFlags) != 0U) {
+                return failure(
+                    StaticMeshParseError::InvalidBatch,
+                    reader.offset(),
+                    destination);
+            }
         }
 
         for (float& value : bounds.minimum) {
@@ -280,6 +302,7 @@ parseStaticMeshXzsm(
             texture.begin(),
             nul);
         batch.bounds = bounds;
+        batch.flags = flags;
 
         if (batch.textureName.empty()) {
             return failure(
@@ -308,7 +331,7 @@ parseStaticMeshXzsm(
                     destination);
             }
 
-            if (version >= kStaticMeshFormatVersion) {
+            if (version >= kStaticMeshNormalsVersion) {
                 if (!reader.readF32(vertex.nx) ||
                     !reader.readF32(vertex.ny) ||
                     !reader.readF32(vertex.nz)) {
