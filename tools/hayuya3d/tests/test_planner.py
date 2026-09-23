@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -131,6 +132,28 @@ class HayuyaPlannerTests(unittest.TestCase):
         self.assertNotIn("trellis2", selected)
         self.assertNotIn("trellis", selected)
         self.assertNotIn("instantmesh", selected)
+
+    def test_asset_mode_detects_llorona_character_path(self):
+        self.assertEqual(
+            hayuya.infer_asset_mode(
+                Path("/tmp/assets/characters/llorona/v2/hayuya/individual/llorona_front.png")
+            ),
+            "character",
+        )
+        self.assertEqual(
+            hayuya.infer_asset_mode(Path("/tmp/assets/architecture/church/front.png")),
+            "architecture",
+        )
+        self.assertEqual(
+            hayuya.infer_asset_mode(Path("/tmp/assets/props/chair/front.png")),
+            "prop",
+        )
+
+    def test_pshuman_is_not_permissive_default(self):
+        lock = hayuya.load_lock()
+        meta = hayuya.backend_meta(lock)
+        self.assertFalse(meta["pshuman"]["enabled_by_default"])
+        self.assertNotIn(meta["pshuman"]["license"], {"MIT", "Apache-2.0"})
 
     def test_hunyuan_is_not_default(self):
         lock = hayuya.load_lock()
