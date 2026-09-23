@@ -2166,6 +2166,8 @@ bool VulkanClearRenderer::createDepthResources() noexcept {
         count,
         VK_NULL_HANDLE);
 
+    bool usedLazyTransientMemory = false;
+
     for (std::size_t i = 0;
          i < count;
          ++i) {
@@ -2187,8 +2189,12 @@ bool VulkanClearRenderer::createDepthResources() noexcept {
             VK_SAMPLE_COUNT_1_BIT;
         imageInfo.tiling =
             VK_IMAGE_TILING_OPTIMAL;
+        // Depth is cleared every frame and discarded at the end of the
+        // render pass. Mark it transient so tile-based mobile GPUs can keep
+        // it on-chip instead of round-tripping it through external memory.
         imageInfo.usage =
-            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
+            VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
         imageInfo.sharingMode =
             VK_SHARING_MODE_EXCLUSIVE;
         imageInfo.initialLayout =
@@ -2213,13 +2219,24 @@ bool VulkanClearRenderer::createDepthResources() noexcept {
 
         std::uint32_t memoryType = 0;
 
-        if (!findMemoryType(
+        const bool lazyMemory =
+            findMemoryType(
+                requirements.memoryTypeBits,
+                VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT,
+                memoryType);
+
+        if (!lazyMemory &&
+            !findMemoryType(
                 requirements.memoryTypeBits,
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                 memoryType)) {
-            logError("No device-local memory for depth image");
+            logError("No suitable memory for transient depth image");
             return false;
         }
+
+        usedLazyTransientMemory =
+            usedLazyTransientMemory ||
+            lazyMemory;
 
         VkMemoryAllocateInfo allocation{
             VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO
@@ -2275,6 +2292,11 @@ bool VulkanClearRenderer::createDepthResources() noexcept {
             return false;
         }
     }
+
+    logInfo(
+        usedLazyTransientMemory
+            ? "XZIEL_TRANSIENT_DEPTH_LAZY"
+            : "XZIEL_TRANSIENT_DEPTH_DEVICE_LOCAL");
 
     return true;
 }
