@@ -26,7 +26,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 80
     env:
-      SANCTUM_ASSET_SHA: ${{ github.sha }}
+      # Frozen visual/gameplay payload. Engine-only commits consume this
+      # validated source instead of re-running Blender's 2.82M-triangle export.
+      # Bump only after a source workflow run passes visual + structural gates.
+      SANCTUM_ASSET_SHA: "0f720e15c158da5d2061a2d4245075c54f501743"
       GH_TOKEN: ${{ github.token }}
 
     steps:
