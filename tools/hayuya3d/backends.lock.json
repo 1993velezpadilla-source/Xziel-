@@ -150,11 +150,11 @@
       ],
       "repo": "https://github.com/pengHTYX/PSHuman.git",
       "sha": "f2a635126dca3bf0526b4a08723cb84a79b57cab",
-      "license": "MIT",
+      "license": "MIT repo + third-party SMPL/SMPL-X/ECON components requiring separate rights/review",
       "enabled_by_default": false,
       "min_vram_gb": 40,
       "quality_tier": "character_ultra",
-      "notes": "Single-image clothed-human reconstruction; only activate for humanoid/character jobs with adequate GPU."
+      "notes": "Human specialist. Top-level repo is MIT, but pinned source includes third-party proprietary-license notices and requires external SMPL/SMPL-X/PIXIE assets. Never auto-enable in the commercial-safe core; explicit --allow-restricted opt-in only."
     },
     {
       "id": "spar3d",
