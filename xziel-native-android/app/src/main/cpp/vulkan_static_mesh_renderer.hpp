@@ -5,6 +5,7 @@
 
 #include "android_asset_streamer.hpp"
 #include "xziel/static_mesh.hpp"
+#include "xziel/world_streaming.hpp"
 
 #include <cstdint>
 #include <string>
@@ -25,6 +26,8 @@ struct StaticMeshCameraState {
 struct StaticMeshEnvironmentState {
     float fogDensity = 0.0f;
     float lightningFlash = 0.0f;
+    MemoryPressure memoryPressure =
+        MemoryPressure::Normal;
 };
 
 struct StaticMeshFrameStats {
@@ -32,6 +35,12 @@ struct StaticMeshFrameStats {
     std::uint32_t culledBatches = 0U;
     std::uint32_t drawCalls = 0U;
     std::uint64_t submittedTriangles = 0U;
+
+    std::uint32_t streamingCell = 0U;
+    std::uint32_t streamingColdBatches = 0U;
+    std::uint32_t streamingHotResources = 0U;
+    std::uint32_t streamingPreloadResources = 0U;
+    std::uint64_t streamingEvictableBytes = 0U;
 };
 
 struct StaticMeshViewmodelState {
@@ -106,6 +115,7 @@ private:
     };
 
     struct GpuMaterial {
+        std::uint64_t streamResourceId = 0U;
         std::uint32_t albedoTextureIndex = 0U;
         std::uint32_t normalTextureIndex = 0U;
         std::uint32_t ormTextureIndex = 0U;
@@ -134,7 +144,15 @@ private:
         VkDeviceSize stagingBytes = 0U;
     };
 
+    struct StreamCellBounds {
+        std::uint32_t cellId = 0U;
+        StaticMeshBounds bounds{};
+        bool valid = false;
+    };
+
     struct GpuBatch {
+        std::uint64_t streamResourceId = 0U;
+        std::uint32_t streamCellId = 0U;
         std::uint32_t firstIndex = 0U;
         std::int32_t vertexOffset = 0;
         std::uint32_t indexCount = 0U;
@@ -260,6 +278,16 @@ private:
     void destroyTexture(GpuTexture& texture) noexcept;
     void destroyGeometryResidency() noexcept;
 
+    void rebuildStreamingCellBounds() noexcept;
+
+    [[nodiscard]] std::uint32_t inferStreamingCell(
+        const StaticMeshCameraState& camera) const noexcept;
+
+    [[nodiscard]] const StreamCellResourceDecision*
+    streamDecision(
+        std::uint64_t resourceId,
+        std::size_t count) const noexcept;
+
     VkPhysicalDevice physicalDevice_ = VK_NULL_HANDLE;
     VkDevice device_ = VK_NULL_HANDLE;
     VkQueue graphicsQueue_ = VK_NULL_HANDLE;
@@ -277,6 +305,17 @@ private:
 
     AndroidAssetStreamer assetStreamer_{};
     std::uint32_t asyncPrefetchQueued_ = 0U;
+
+    StreamCellGraph streamGraph_{};
+    bool streamGraphReady_ = false;
+    std::array<StreamCellBounds, kMaxStreamCells>
+        streamCellBounds_{};
+    mutable std::array<
+        StreamCellResourceDecision,
+        kMaxStreamBindings> streamDecisions_{};
+    mutable std::size_t streamDecisionCount_ = 0U;
+    mutable std::uint64_t streamPlanFrame_ = 0U;
+    mutable std::uint32_t lastLoggedStreamCell_ = 0U;
 
     std::vector<GpuTexture> textures_{};
     std::vector<GpuMaterial> materials_{};
