@@ -39,8 +39,14 @@ jobs:
               raise SystemExit("unsafe job_id")
           anims=r.get("selected",{}).get("animations",[])
           external=r.get("selected",{}).get("real_mocap",[])
+          sources=sorted({
+              str(x.get("source")) for x in anims
+              if x.get("availability") in (None,"local") and x.get("clip") and x.get("source")
+          })
+          source=(sources[0] if len(sources)==1 else ("mixed" if len(sources)>1 else "none"))
           print(f"job_id={job}")
           print(f"needs_rig={'true' if anims else 'false'}")
+          print(f"animation_source={source}")
           print(f"has_external={'true' if external else 'false'}")
           PY
 
@@ -58,12 +64,33 @@ jobs:
           set -euo pipefail
           job="${{ steps.recipe.outputs.job_id }}"
           base="hayuya/models/$job/model.glb"
-          animated="hayuya/models/$job/animated.glb"
+          source="${{ steps.recipe.outputs.animation_source }}"
           selected="$base"
           needs_autorig="false"
+          donor="hayuya/animation_library/quaternius-uam2/library.glb"
+          bank=""
+
+          case "$source" in
+            quaternius-uam1)
+              donor="hayuya/animation_library/quaternius-uam1/library.glb"
+              bank="hayuya/models/$job/animated-uam1.glb"
+              ;;
+            quaternius-uam2)
+              donor="hayuya/animation_library/quaternius-uam2/library.glb"
+              bank="hayuya/models/$job/animated.glb"
+              ;;
+            mixed)
+              donor="hayuya/animation_library/quaternius-uam2/library.glb"
+              bank="hayuya/models/$job/animated.glb"
+              ;;
+            *)
+              donor="hayuya/animation_library/quaternius-uam2/library.glb"
+              bank="hayuya/models/$job/animated.glb"
+              ;;
+          esac
 
           if [[ "${{ steps.recipe.outputs.needs_rig }}" == "true" ]]; then
-            if [[ -f "$animated" ]] && python tools/hayuya3d/rig_gate.py "$animated" --json out/character-package/existing-rig-gate.json >/dev/null; then
+            if [[ -n "$bank" && -f "$bank" ]] && python tools/hayuya3d/rig_gate.py "$bank" --json out/character-package/existing-rig-gate.json >/dev/null; then
               if python - <<'PY'
           import json
           from pathlib import Path
@@ -72,7 +99,7 @@ jobs:
           raise SystemExit(0 if d.get("rig_ready") and d.get("animation_ready") and d.get("animation_clips") else 1)
           PY
               then
-                selected="$animated"
+                selected="$bank"
               else
                 needs_autorig="true"
               fi
@@ -82,8 +109,10 @@ jobs:
           fi
 
           echo "path=$selected" >> "$GITHUB_OUTPUT"
+          echo "donor=$donor" >> "$GITHUB_OUTPUT"
           echo "needs_autorig=$needs_autorig" >> "$GITHUB_OUTPUT"
           echo "HAYUYA_PACKAGE_MODEL=$selected"
+          echo "HAYUYA_PACKAGE_DONOR=$donor"
           echo "HAYUYA_PACKAGE_NEEDS_AUTORIG=$needs_autorig"
 
       - name: Install Blender for animation retarget
@@ -97,7 +126,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          blender -b --python tools/hayuya3d/blender_autorig.py --             --target "hayuya/models/${{ steps.recipe.outputs.job_id }}/model.glb"             --donor hayuya/animation_library/quaternius-uam2/library.glb             --output out/character-package/rigged.glb             --report out/character-package/autorig-report.json
+          blender -b --python tools/hayuya3d/blender_autorig.py --             --target "hayuya/models/${{ steps.recipe.outputs.job_id }}/model.glb"             --donor "${{ steps.model.outputs.donor }}"             --output out/character-package/rigged.glb             --report out/character-package/autorig-report.json
           python tools/hayuya3d/rig_gate.py             out/character-package/rigged.glb             --json out/character-package/rig-gate.json
           python - <<'PY'
           import json
