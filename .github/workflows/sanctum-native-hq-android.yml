@@ -437,6 +437,18 @@ jobs:
           done
 
           if [[ "$READY" != "1" ]]; then
+            # Close the poll/sleep race: a loaded software Vulkan emulator can
+            # publish both readiness markers immediately after the final
+            # one-second poll. Take one authoritative snapshot before failing.
+            FINAL_STARTUP_LOG="$("$ADB" logcat -d -v brief -s XzielNative:I XzielVulkan:I XzielSanctumMesh:I '*:S' 2>/dev/null || true)"
+            if grep -q "XZIEL_VULKAN_READY" <<<"$FINAL_STARTUP_LOG" && \
+               grep -q "XZIEL_SANCTUM_MESH_READY" <<<"$FINAL_STARTUP_LOG"; then
+              READY=1
+              echo "XZIEL_STARTUP_READY_FINAL_PROBE"
+            fi
+          fi
+
+          if [[ "$READY" != "1" ]]; then
             timeout 8 "$ADB" logcat -d -v threadtime > dist/sanctum-hq-logcat.txt || true
             echo "ERROR: startup readiness timed out before Vulkan + Sanctum mesh markers"
             grep -E "XZIEL_|VUID|VK_ERROR|Fatal signal|ANR|device lost|failed" dist/sanctum-hq-logcat.txt | tail -n 300 || true
