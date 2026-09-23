@@ -1,0 +1,140 @@
+name: HAYUYA Character Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      recipe_b64:
+        description: Base64 encoded HAYUYA editor recipe
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout Hayuya branch
+        uses: actions/checkout@v4
+        with:
+          ref: art/hayuya-monster-v1
+          fetch-depth: 1
+
+      - name: Decode recipe
+        id: recipe
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out/character-package
+          printf '%s' '${{ inputs.recipe_b64 }}' | base64 -d > out/character-package/recipe.json
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+          r=json.loads(Path("out/character-package/recipe.json").read_text())
+          job=str(r["job_id"])
+          if not job.replace("-","").replace("_","").isalnum():
+              raise SystemExit("unsafe job_id")
+          anims=r.get("selected",{}).get("animations",[])
+          external=r.get("selected",{}).get("real_mocap",[])
+          print(f"job_id={job}")
+          print(f"needs_rig={'true' if anims else 'false'}")
+          print(f"has_external={'true' if external else 'false'}")
+          PY
+
+      - name: Validate source model
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f "hayuya/models/${{ steps.recipe.outputs.job_id }}/model.glb"
+          python tools/hayuya3d/mesh_gate.py             "hayuya/models/${{ steps.recipe.outputs.job_id }}/model.glb"             --json out/character-package/source-mesh-gate.json
+
+      - name: Install Blender for animation retarget
+        if: steps.recipe.outputs.needs_rig == 'true'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq blender python3-numpy
+
+      - name: AutoRig + retarget local animation library
+        if: steps.recipe.outputs.needs_rig == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          blender -b --python tools/hayuya3d/blender_autorig.py --             --target "hayuya/models/${{ steps.recipe.outputs.job_id }}/model.glb"             --donor hayuya/rig_library/quaternius-human-rigged/model.glb             --output out/character-package/rigged.glb             --report out/character-package/autorig-report.json
+          python tools/hayuya3d/rig_gate.py             out/character-package/rigged.glb             --json out/character-package/rig-gate.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path("out/character-package/rig-gate.json").read_text())
+          assert d["rig_ready"] is True, d
+          assert d["animation_ready"] is True, d
+          assert d["animation_clips"], d
+          print("HAYUYA_PACKAGE_RIG_PASS", d["joints"], len(d["animation_clips"]))
+          PY
+
+      - name: Build ZIP package
+        shell: bash
+        run: |
+          set -euo pipefail
+          model="hayuya/models/${{ steps.recipe.outputs.job_id }}/model.glb"
+          if [[ -f out/character-package/rigged.glb ]]; then
+            model="out/character-package/rigged.glb"
+          fi
+          python tools/hayuya3d/build_character_package.py             --recipe out/character-package/recipe.json             --model "$model"             --out out/character-package/build
+
+      - name: Persist recipe and latest package to GitHub
+        shell: bash
+        run: |
+          set -euo pipefail
+          job="${{ steps.recipe.outputs.job_id }}"
+          dst="hayuya/packages/$job"
+          mkdir -p "$dst"
+          cp out/character-package/recipe.json "$dst/recipe.json"
+          cp "out/character-package/build/$job-hayuya-package.zip" "$dst/latest.zip"
+          cp "out/character-package/build/$job/BUILD.json" "$dst/BUILD.json"
+          if [[ -f out/character-package/rig-gate.json ]]; then
+            cp out/character-package/rig-gate.json "$dst/rig_gate.json"
+          fi
+          if [[ -f out/character-package/autorig-report.json ]]; then
+            cp out/character-package/autorig-report.json "$dst/autorig-report.json"
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$dst"
+          if git diff --cached --quiet; then
+            echo "No package changes to commit."
+            exit 0
+          fi
+          git commit -m "hayuya: build game-ready package for $job"
+          git pull --rebase origin art/hayuya-monster-v1
+          git push origin HEAD:art/hayuya-monster-v1
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hayuya-package-${{ steps.recipe.outputs.job_id }}
+          path: out/character-package/build/*-hayuya-package.zip
+          retention-days: 30
+
+      - name: Notify HAYUYA Hub
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          status='${{ job.status }}'
+          url='${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+          job='${{ steps.recipe.outputs.job_id }}'
+          if [[ "$status" == "success" ]]; then
+            gh issue comment 55 --repo "$GITHUB_REPOSITORY" --body "📦 **PACKAGE READY** — **HAYUYA** / `$job`
+
+          Character recipe, animation rig (when selected), audio payload and ZIP are saved under `hayuya/packages/$job/`.
+
+          [Open package build]($url)"
+          else
+            gh issue comment 55 --repo "$GITHUB_REPOSITORY" --body "❌ **PACKAGE FAILED** — **HAYUYA** / `$job`
+
+          [Open package build]($url)"
+          fi
