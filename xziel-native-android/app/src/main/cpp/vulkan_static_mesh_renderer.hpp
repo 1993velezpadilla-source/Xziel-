@@ -209,6 +209,7 @@ private:
         std::uint8_t retireMask = 0U;
         bool reloadActive = false;
         bool reloadFailed = false;
+        bool budgetBlockedLogged = false;
         std::size_t reloadScanCursor = 0U;
         std::array<
             GeometryRangeInFlight,
@@ -469,6 +470,8 @@ private:
     StaticMeshDirectory geometryDirectory_{};
     std::string geometryAssetPath_{};
     std::uint32_t geometryReloadCellSlot_ = UINT32_MAX;
+    std::uint64_t geometryResidentBudgetBytes_ =
+        96ULL * 1024ULL * 1024ULL;
     std::uint64_t geometryResidentBytes_ = 0U;
     bool geometryResidencyProbeEnabled_ = false;
     bool geometryResidencyProbeComplete_ = false;
