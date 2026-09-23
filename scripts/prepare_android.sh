@@ -83,6 +83,7 @@ cp "$ROOT/android/jni/Android.mk" "$APP/jni/Android.mk"
 cp "$ROOT/android/jni/Application.mk" "$APP/jni/Application.mk"
 mkdir -p "$APP/jni/src"
 cp "$ROOT/android/jni/src/Android.mk" "$APP/jni/src/Android.mk"
+cp "$ROOT/android/jni/src/xziel_android_bridge.c" "$APP/jni/src/xziel_android_bridge.c"
 
 cp "$ROOT/android/app-build.gradle" "$APP/build.gradle"
 cp "$ROOT/android/AndroidManifest.xml" "$APP/src/main/AndroidManifest.xml"
