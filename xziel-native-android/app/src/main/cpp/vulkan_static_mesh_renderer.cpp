@@ -243,6 +243,7 @@ bool VulkanStaticMeshRenderer::initialize(
         configureSanctumStreamingGraph(
             streamGraph_);
 
+    textureMipResidency_.reset();
     streamCellBounds_ = {};
     streamDecisionCount_ = 0U;
     streamPlanFrame_ = 0U;
@@ -415,6 +416,37 @@ bool VulkanStaticMeshRenderer::initialize(
                 return false;
             }
 
+            texture.streamResourceId =
+                streamResourceId(
+                    cacheKey);
+
+            if (texture.sourceMipLevels > 0U &&
+                texture.sourceMipLevels <=
+                    kMaxStreamedTextureMips) {
+                TextureMipChainDesc desc{};
+                desc.id =
+                    texture.streamResourceId;
+                desc.mipCount =
+                    texture.sourceMipLevels;
+                desc.mipBytes =
+                    texture.sourceMipBytes;
+                desc.residentBaseMip =
+                    std::min(
+                        texture.residentBaseMip,
+                        desc.mipCount - 1U);
+                desc.requestedBaseMip =
+                    desc.residentBaseMip;
+                desc.pinned = false;
+
+                if (!textureMipResidency_.
+                        registerTexture(
+                            desc,
+                            0U)) {
+                    destroyTexture(texture);
+                    return false;
+                }
+            }
+
             outIndex =
                 static_cast<std::uint32_t>(
                     textures_.size());
@@ -427,6 +459,52 @@ bool VulkanStaticMeshRenderer::initialize(
             return true;
         };
 
+    const auto bindStreamTexture =
+        [&](SanctumZone zone,
+            std::uint32_t textureIndex) noexcept {
+            if (!streamGraphReady_ ||
+                zone == SanctumZone::Unknown ||
+                textureIndex >= textures_.size()) {
+                return;
+            }
+
+            const auto& texture =
+                textures_[textureIndex];
+
+            std::uint64_t bytes =
+                texture.residentPayloadBytes;
+
+            if (bytes == 0U) {
+                bytes =
+                    texture.allocationBytes;
+            }
+
+            if (bytes == 0U) {
+                const std::uint64_t pixels =
+                    static_cast<std::uint64_t>(
+                        texture.width) *
+                    static_cast<std::uint64_t>(
+                        texture.height);
+
+                bytes =
+                    std::max<std::uint64_t>(
+                        1U,
+                        pixels * 4U);
+            }
+
+            (void) streamGraph_.bindResource({
+                .cellId =
+                    static_cast<std::uint32_t>(
+                        zone),
+                .resourceId =
+                    texture.streamResourceId,
+                .kind =
+                    StreamResourceKind::Texture,
+                .bytes = bytes,
+                .pinned = false,
+            });
+        };
+
     try {
         batchMaterialIndices.reserve(
             asset.batches.size());
@@ -436,9 +514,11 @@ bool VulkanStaticMeshRenderer::initialize(
         for (const auto& batch : asset.batches) {
             GpuMaterial material{};
 
-            material.streamResourceId =
-                streamResourceId(
-                    batch.textureName);
+            const auto streamZone =
+                streamGraphReady_
+                ? sanctumZoneForAssetName(
+                      batch.textureName)
+                : SanctumZone::Unknown;
 
             if (!loadTexture(
                     batch.textureName,
@@ -450,53 +530,14 @@ bool VulkanStaticMeshRenderer::initialize(
                 return false;
             }
 
-            if (streamGraphReady_) {
-                const auto zone =
-                    sanctumZoneForAssetName(
-                        batch.textureName);
+            material.streamResourceId =
+                textures_[
+                    material.albedoTextureIndex].
+                        streamResourceId;
 
-                if (zone !=
-                    SanctumZone::Unknown &&
-                    material.albedoTextureIndex <
-                        textures_.size()) {
-                    const auto& texture =
-                        textures_[
-                            material.albedoTextureIndex];
-
-                    std::uint64_t bytes =
-                        texture.residentPayloadBytes;
-
-                    if (bytes == 0U) {
-                        bytes =
-                            texture.allocationBytes;
-                    }
-
-                    if (bytes == 0U) {
-                        const std::uint64_t pixels =
-                            static_cast<std::uint64_t>(
-                                texture.width) *
-                            static_cast<std::uint64_t>(
-                                texture.height);
-
-                        bytes =
-                            std::max<std::uint64_t>(
-                                1U,
-                                pixels * 4U);
-                    }
-
-                    (void) streamGraph_.bindResource({
-                        .cellId =
-                            static_cast<std::uint32_t>(
-                                zone),
-                        .resourceId =
-                            material.streamResourceId,
-                        .kind =
-                            StreamResourceKind::Texture,
-                        .bytes = bytes,
-                        .pinned = false,
-                    });
-                }
-            }
+            bindStreamTexture(
+                streamZone,
+                material.albedoTextureIndex);
 
             material.normalTextureIndex =
                 material.albedoTextureIndex;
@@ -531,6 +572,9 @@ bool VulkanStaticMeshRenderer::initialize(
                     shutdown();
                     return false;
                 }
+                bindStreamTexture(
+                    streamZone,
+                    material.normalTextureIndex);
                 material.hasNormalTexture = true;
                 ++normalMapCount;
             }
@@ -546,6 +590,9 @@ bool VulkanStaticMeshRenderer::initialize(
                     shutdown();
                     return false;
                 }
+                bindStreamTexture(
+                    streamZone,
+                    material.ormTextureIndex);
                 material.hasOrmTexture = true;
                 ++ormMapCount;
             }
@@ -561,6 +608,9 @@ bool VulkanStaticMeshRenderer::initialize(
                     shutdown();
                     return false;
                 }
+                bindStreamTexture(
+                    streamZone,
+                    material.emissiveTextureIndex);
                 material.hasEmissiveTexture = true;
                 ++emissiveMapCount;
             }
@@ -726,6 +776,7 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     textures_.clear();
 
     streamGraph_.reset();
+    textureMipResidency_.reset();
     streamGraphReady_ = false;
     streamCellBounds_ = {};
     streamDecisionCount_ = 0U;
