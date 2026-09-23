@@ -77,6 +77,8 @@ class RetopoTests(unittest.TestCase):
             self.assertEqual(stats["triangle_count"], 1)
             self.assertEqual(stats["ngon_count"], 1)
             self.assertAlmostEqual(stats["quad_fraction"], 1 / 3)
+            # quad=2 runtime tris, tri=1, 5-gon=3
+            self.assertEqual(stats["runtime_triangle_equivalent"], 6)
 
     def test_geometry_export_applies_scene_node_transform(self):
         with tempfile.TemporaryDirectory() as tmp:
