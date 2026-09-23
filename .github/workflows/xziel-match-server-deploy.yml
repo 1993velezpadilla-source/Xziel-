@@ -15,7 +15,6 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: xziel-beta
     steps:
       - uses: actions/checkout@v5
 
@@ -41,9 +40,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -n "$CLOUDFLARE_API_TOKEN"
-          test -n "$CLOUDFLARE_ACCOUNT_ID"
-          test -n "$XZIEL_TEST_KEY"
-          printf '%s' "$XZIEL_TEST_KEY" | npx wrangler secret put XZIEL_TEST_KEY
+          if [[ -z "$CLOUDFLARE_API_TOKEN" ]]; then
+            echo "::error::Missing repository secret CLOUDFLARE_API_TOKEN"
+            exit 1
+          fi
+          if [[ -z "$CLOUDFLARE_ACCOUNT_ID" ]]; then
+            echo "::error::Missing repository secret CLOUDFLARE_ACCOUNT_ID"
+            exit 1
+          fi
+          if [[ -z "$XZIEL_TEST_KEY" ]]; then
+            echo "::error::Missing repository secret XZIEL_TEST_KEY"
+            exit 1
+          fi
+
           npx wrangler deploy
+          printf '%s' "$XZIEL_TEST_KEY" | npx wrangler secret put XZIEL_TEST_KEY
           echo "XZIEL_MATCH_SERVER_DEPLOY_OK"
