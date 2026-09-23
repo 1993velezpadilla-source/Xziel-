@@ -13,6 +13,14 @@ PerformanceGovernor::PerformanceGovernor(PerformanceConfig config)
 void PerformanceGovernor::reset() noexcept {
     qualityIndex_ = 2;
     smoothedFrameMs_ = 0.0f;
+    smoothedCpuMs_ = 0.0f;
+    smoothedGpuMs_ = 0.0f;
+    smoothedIntervalMs_ = 0.0f;
+    bottleneck_ =
+        PerformanceBottleneck::Balanced;
+    pendingBottleneck_ =
+        PerformanceBottleneck::Balanced;
+    bottleneckHoldSeconds_ = 0.0f;
     overloadSeconds_ = 0.0f;
     recoverySeconds_ = 0.0f;
     rebuildWorkload();
@@ -24,17 +32,59 @@ RenderWorkload PerformanceGovernor::advance(
     const float dt = std::clamp(deltaSeconds, 0.0f, 0.25f);
     const float frameMs = std::max(sample.cpuFrameMs, sample.gpuFrameMs);
 
+    const float alpha =
+        std::clamp(
+            config_.smoothing,
+            0.001f,
+            1.0f);
+
     if (std::isfinite(frameMs) && frameMs > 0.0f) {
         if (smoothedFrameMs_ <= 0.0f) {
             smoothedFrameMs_ = frameMs;
         } else {
-            const float alpha = std::clamp(config_.smoothing, 0.001f, 1.0f);
-            smoothedFrameMs_ += (frameMs - smoothedFrameMs_) * alpha;
+            smoothedFrameMs_ +=
+                (frameMs - smoothedFrameMs_) *
+                alpha;
         }
     }
 
+    const auto smoothMetric =
+        [alpha](
+            float value,
+            float& smoothed) noexcept {
+            if (!std::isfinite(value) ||
+                value <= 0.0f) {
+                return;
+            }
+
+            if (smoothed <= 0.0f) {
+                smoothed = value;
+            } else {
+                smoothed +=
+                    (value - smoothed) *
+                    alpha;
+            }
+        };
+
+    smoothMetric(
+        sample.cpuFrameMs,
+        smoothedCpuMs_);
+
+    smoothMetric(
+        sample.gpuFrameMs,
+        smoothedGpuMs_);
+
+    smoothMetric(
+        sample.frameIntervalMs,
+        smoothedIntervalMs_);
+
     const float targetMs =
         1000.0f / std::max(config_.targetFps, 1.0f);
+
+    classifyBottleneck(
+        sample,
+        targetMs);
+
     const bool overloaded =
         smoothedFrameMs_ > targetMs * config_.degradeThreshold;
     const bool comfortablyUnder =
@@ -74,6 +124,19 @@ float PerformanceGovernor::smoothedFrameMs() const noexcept {
     return smoothedFrameMs_;
 }
 
+float PerformanceGovernor::smoothedCpuMs() const noexcept {
+    return smoothedCpuMs_;
+}
+
+float PerformanceGovernor::smoothedGpuMs() const noexcept {
+    return smoothedGpuMs_;
+}
+
+PerformanceBottleneck
+PerformanceGovernor::bottleneck() const noexcept {
+    return bottleneck_;
+}
+
 void PerformanceGovernor::stepDown() noexcept {
     qualityIndex_ = std::max(0, qualityIndex_ - 1);
 }
@@ -97,6 +160,97 @@ void PerformanceGovernor::applyThermalCeiling(
         case ThermalLevel::Critical:
             qualityIndex_ = 0;
             break;
+    }
+}
+
+void PerformanceGovernor::classifyBottleneck(
+    const PerformanceSample& sample,
+    float targetMs) noexcept {
+    PerformanceBottleneck candidate =
+        PerformanceBottleneck::Balanced;
+
+    if (sample.thermal == ThermalLevel::Severe ||
+        sample.thermal == ThermalLevel::Critical) {
+        candidate =
+            PerformanceBottleneck::Thermal;
+    } else {
+        const bool cpuValid =
+            smoothedCpuMs_ > 0.0f;
+        const bool gpuValid =
+            smoothedGpuMs_ > 0.0f;
+        const bool intervalValid =
+            smoothedIntervalMs_ > 0.0f;
+
+        const bool cpuPressure =
+            cpuValid &&
+            smoothedCpuMs_ >
+                targetMs * 0.92f;
+
+        const bool gpuPressure =
+            gpuValid &&
+            smoothedGpuMs_ >
+                targetMs * 0.92f;
+
+        if (gpuPressure &&
+            (!cpuPressure ||
+             smoothedGpuMs_ >
+                 smoothedCpuMs_ * 1.10f)) {
+            candidate =
+                PerformanceBottleneck::Gpu;
+        } else if (
+            cpuPressure &&
+            (!gpuPressure ||
+             smoothedCpuMs_ >
+                 smoothedGpuMs_ * 1.10f)) {
+            candidate =
+                PerformanceBottleneck::Cpu;
+        } else if (
+            intervalValid &&
+            smoothedIntervalMs_ >
+                targetMs * 1.08f &&
+            (!cpuValid ||
+             smoothedCpuMs_ <
+                 targetMs * 0.82f) &&
+            (!gpuValid ||
+             smoothedGpuMs_ <
+                 targetMs * 0.82f)) {
+            // The frame is late but neither measured CPU submission nor GPU
+            // execution is saturated. Treat this as pacing/external bound so
+            // the renderer does not destroy visual quality unnecessarily.
+            candidate =
+                PerformanceBottleneck::FramePaced;
+        } else if (
+            cpuPressure &&
+            gpuPressure) {
+            // Both sides are close enough that a single "winner" would be
+            // unstable. Keep Balanced and let the quality governor respond to
+            // sustained total frame cost.
+            candidate =
+                PerformanceBottleneck::Balanced;
+        }
+    }
+
+    if (candidate ==
+        pendingBottleneck_) {
+        bottleneckHoldSeconds_ +=
+            1.0f /
+            std::max(
+                config_.targetFps,
+                1.0f);
+    } else {
+        pendingBottleneck_ =
+            candidate;
+        bottleneckHoldSeconds_ = 0.0f;
+    }
+
+    constexpr float kClassificationHoldSeconds =
+        0.20f;
+
+    if (candidate == PerformanceBottleneck::Thermal ||
+        bottleneckHoldSeconds_ >=
+            kClassificationHoldSeconds) {
+        bottleneck_ =
+            candidate;
     }
 }
 
