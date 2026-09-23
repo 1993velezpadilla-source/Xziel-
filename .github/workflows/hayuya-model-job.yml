@@ -1,6 +1,12 @@
 name: Hayuya Model Job
 
 on:
+  push:
+    branches:
+      - art/hayuya-monster-v1
+    paths:
+      - .github/workflows/hayuya-model-job.yml
+      - tools/hayuya3d/gpu_e2e.sh
   workflow_dispatch:
     inputs:
       job_id:
@@ -74,11 +80,24 @@ permissions:
 # Different model jobs never block each other at the workflow level.
 # Re-running the SAME job_id is serialized so its artifacts cannot overlap.
 concurrency:
-  group: hayuya-model-${{ inputs.job_id }}
+  group: hayuya-model-${{ github.event_name == 'workflow_dispatch' && inputs.job_id || github.run_id }}
   cancel-in-progress: false
 
 jobs:
+  validate:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate multi-job harness
+        run: |
+          bash -n tools/hayuya3d/gpu_e2e.sh
+          grep -q "concurrency:" .github/workflows/hayuya-model-job.yml
+          grep -q "inputs.job_id" .github/workflows/hayuya-model-job.yml
+
   generate:
+    if: github.event_name == 'workflow_dispatch'
     name: ${{ inputs.owner }} / ${{ inputs.job_id }}
     runs-on: [self-hosted, linux, x64, hayuya-gpu]
     timeout-minutes: 360
