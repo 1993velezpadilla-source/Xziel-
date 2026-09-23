@@ -9,6 +9,7 @@ from pathlib import Path
 
 from gameprep import GamePrepResult, build_gameprep
 from mobile_portability import build_portability_plan
+from portable_textures import detect_toolchain, transcode_glb_to_ktx2
 from visual_judge import SourceViewScore
 
 TIERS = ("flagship", "high", "balanced", "compatibility")
@@ -20,6 +21,7 @@ class PortableTierArtifact:
     directory: str
     portability_plan: dict
     gameprep: dict
+    texture_delivery: dict
 
 
 @dataclass
@@ -51,6 +53,7 @@ def build_portable_pack(
     anchor_view: SourceViewScore | None = None,
     material_samples: int = 180_000,
     tiers: tuple[str, ...] = TIERS,
+    texture_delivery_mode: str = "auto",
 ) -> PortablePackResult:
     hero_glb = hero_glb.resolve()
     if not hero_glb.is_file():
@@ -62,11 +65,20 @@ def build_portable_pack(
     hero_out = hero_dir / "master.glb"
     shutil.copy2(hero_glb, hero_out)
 
+    if texture_delivery_mode not in {"off", "auto", "required"}:
+        raise ValueError("texture_delivery_mode must be off, auto or required")
+
+    texture_toolchain = detect_toolchain() if texture_delivery_mode != "off" else None
+    if texture_delivery_mode == "required" and (texture_toolchain is None or not texture_toolchain.ready):
+        reasons = [] if texture_toolchain is None else texture_toolchain.reasons
+        raise RuntimeError("portable texture delivery required but unavailable: " + "; ".join(reasons))
+
     artifacts: list[PortableTierArtifact] = []
     complete_lod_chain = True
     notes: list[str] = [
         "HeroMaster/master.glb is an exact preserved copy and is never capped by a mobile runtime tier.",
         "Each runtime tier is independently derived from HeroMaster rather than from a lower-quality tier.",
+        "When the pinned KTX toolchain is available, each runtime LOD is physically transcoded to KTX2/Basis Universal inside a sibling ktx2/ GLB using KHR_texture_basisu.",
     ]
 
     for tier in tiers:
@@ -91,10 +103,35 @@ def build_portable_pack(
         if len(result.lods) < 4:
             complete_lod_chain = False
 
+        texture_delivery = {
+            "mode": texture_delivery_mode,
+            "format": "KTX2 + Basis Universal / KHR_texture_basisu",
+            "status": "off" if texture_delivery_mode == "off" else "skipped_unavailable",
+            "toolchain": asdict(texture_toolchain) if texture_toolchain is not None else None,
+            "artifacts": [],
+            "native_gpu_note": "KTX2 Basis Universal is physically embedded in the GLB and may transcode at runtime to GPU-native formats such as ASTC or ETC2. Native ASTC/ETC2 app packages remain engine/build-system responsibilities.",
+        }
+        if texture_delivery_mode != "off" and texture_toolchain is not None and texture_toolchain.ready:
+            texture_delivery["status"] = "ready"
+            ktx_dir = tier_dir / "ktx2"
+            for lod in result.lods:
+                source_lod = Path(lod.path)
+                output_lod = ktx_dir / f"{lod.name}.glb"
+                artifact = transcode_glb_to_ktx2(
+                    source_lod,
+                    output_lod,
+                    max_texture_size=max_texture_size,
+                    toolchain=texture_toolchain,
+                )
+                texture_delivery["artifacts"].append(asdict(artifact))
+        elif texture_delivery_mode == "required":
+            raise RuntimeError("portable texture delivery required but toolchain is unavailable")
+
         tier_manifest = {
             "tier": tier,
             "portability_plan": plan,
             "gameprep": asdict(result),
+            "texture_delivery": texture_delivery,
         }
         (tier_dir / "tier_manifest.json").write_text(
             json.dumps(tier_manifest, indent=2) + "\n",
@@ -106,6 +143,7 @@ def build_portable_pack(
                 directory=str(tier_dir),
                 portability_plan=plan,
                 gameprep=asdict(result),
+                texture_delivery=texture_delivery,
             )
         )
 
@@ -142,6 +180,12 @@ def main() -> int:
         default="ultra",
     )
     parser.add_argument("--material-samples", type=int, default=180000)
+    parser.add_argument(
+        "--texture-delivery",
+        choices=["off", "auto", "required"],
+        default="auto",
+        help="physically embed KTX2/Basis Universal textures in runtime GLBs when the pinned toolchain is available",
+    )
     args = parser.parse_args()
 
     result = build_portable_pack(
@@ -150,6 +194,7 @@ def main() -> int:
         mode=args.mode,
         profile_name=args.profile,
         material_samples=args.material_samples,
+        texture_delivery_mode=args.texture_delivery,
     )
     print(json.dumps(asdict(result), indent=2))
     return 0
