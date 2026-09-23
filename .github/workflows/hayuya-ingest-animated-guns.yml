@@ -125,5 +125,13 @@ jobs:
             exit 0
           fi
           git commit -m "hayuya: ingest CC0 animated gun library"
-          git pull --rebase origin art/hayuya-monster-v1
-          git push origin HEAD:art/hayuya-monster-v1
+          for attempt in 1 2 3 4 5; do
+            git pull --rebase origin art/hayuya-monster-v1
+            if git push origin HEAD:art/hayuya-monster-v1; then
+              exit 0
+            fi
+            echo "Concurrent HAYUYA update detected; retrying push $attempt/5"
+            sleep $((attempt*2))
+          done
+          echo "::error::Could not persist weapon library after concurrent branch updates"
+          exit 1
