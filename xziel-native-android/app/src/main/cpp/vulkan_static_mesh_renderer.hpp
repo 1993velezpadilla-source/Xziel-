@@ -3,6 +3,7 @@
 #include <android/asset_manager.h>
 #include <vulkan/vulkan.h>
 
+#include "android_asset_streamer.hpp"
 #include "xziel/static_mesh.hpp"
 
 #include <cstdint>
@@ -273,6 +274,9 @@ private:
     VkPipelineLayout pipelineLayout_ = VK_NULL_HANDLE;
     VkPipeline pipeline_ = VK_NULL_HANDLE;
     VkPipeline pipelineDoubleSided_ = VK_NULL_HANDLE;
+
+    AndroidAssetStreamer assetStreamer_{};
+    std::uint32_t asyncPrefetchQueued_ = 0U;
 
     std::vector<GpuTexture> textures_{};
     std::vector<GpuMaterial> materials_{};
