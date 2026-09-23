@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <cstring>
 #include <limits>
@@ -90,6 +91,7 @@ bool VulkanClearRenderer::initialize(
         !createImageViews() ||
         !createDepthResources() ||
         !createCommandResources() ||
+        !createPerformanceQueries() ||
         !createReflectionFallbackResources() ||
         !createFramebuffers() ||
         !createSyncObjects()) {
@@ -166,6 +168,7 @@ void VulkanClearRenderer::shutdown() noexcept {
         frame = {};
     }
 
+    destroyPerformanceQueries();
     destroySwapchainResources();
 
     if (commandPool_ != VK_NULL_HANDLE &&
@@ -216,6 +219,11 @@ void VulkanClearRenderer::shutdown() noexcept {
     swappyInitialized_ = false;
     depthFormat_ = VK_FORMAT_UNDEFINED;
     frameIndex_ = 0;
+    timestampValidBits_ = 0;
+    timestampPeriodNs_ = 0.0f;
+    lastCpuRenderMs_ = 0.0f;
+    lastGpuFrameMs_ = 0.0f;
+    performanceTelemetryFrame_ = 0;
 }
 
 void VulkanClearRenderer::setPreferredFrameRate(
@@ -428,8 +436,11 @@ bool VulkanClearRenderer::drawFrame(
         destroyReflectionTarget();
     }
 
+    const std::uint32_t frameSlot =
+        frameIndex_ % kFramesInFlight;
+
     auto& frame =
-        frames_[frameIndex_ % kFramesInFlight];
+        frames_[frameSlot];
 
     VkResult result =
         vkWaitForFences(
@@ -446,6 +457,12 @@ bool VulkanClearRenderer::drawFrame(
         logError("vkWaitForFences failed");
         return false;
     }
+
+    // The fence guarantees this frame slot's previous timestamp pair is
+    // complete. Reading here avoids VK_QUERY_RESULT_WAIT_BIT and therefore
+    // does not create a measurement-induced GPU stall.
+    resolvePerformanceQueries(
+        frameSlot);
 
     std::uint32_t imageIndex = 0;
 
@@ -513,8 +530,12 @@ bool VulkanClearRenderer::drawFrame(
         return false;
     }
 
+    const auto cpuRenderStart =
+        std::chrono::steady_clock::now();
+
     if (!recordDrawCommand(
             imageIndex,
+            frameSlot,
             timeSeconds,
             camera,
             hud,
@@ -547,6 +568,14 @@ bool VulkanClearRenderer::drawFrame(
             1,
             &submit,
             frame.inFlight);
+
+    const auto cpuRenderEnd =
+        std::chrono::steady_clock::now();
+
+    lastCpuRenderMs_ =
+        std::chrono::duration<float, std::milli>(
+            cpuRenderEnd -
+            cpuRenderStart).count();
 
     if (!ok(result)) {
         if (result == VK_ERROR_DEVICE_LOST) {
@@ -592,6 +621,17 @@ bool VulkanClearRenderer::drawFrame(
     }
 
     ++frameIndex_;
+    ++performanceTelemetryFrame_;
+
+    if (performanceTelemetryFrame_ % 120U == 0U) {
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_PERF_TIMING cpu_render_ms=%.3f gpu_frame_ms=%.3f",
+            static_cast<double>(lastCpuRenderMs_),
+            static_cast<double>(lastGpuFrameMs_));
+    }
+
     return true;
 }
 
@@ -601,6 +641,14 @@ bool VulkanClearRenderer::ready() const noexcept {
 
 bool VulkanClearRenderer::deviceLost() const noexcept {
     return deviceLost_;
+}
+
+float VulkanClearRenderer::lastCpuRenderMs() const noexcept {
+    return lastCpuRenderMs_;
+}
+
+float VulkanClearRenderer::lastGpuFrameMs() const noexcept {
+    return lastGpuFrameMs_;
 }
 
 bool VulkanClearRenderer::createInstance() noexcept {
@@ -787,6 +835,14 @@ bool VulkanClearRenderer::selectPhysicalDevice() noexcept {
             if (graphics && present == VK_TRUE) {
                 physicalDevice_ = candidate;
                 graphicsQueueFamily_ = i;
+
+                // Timestamp support is a queue-family property. Keep the
+                // selected queue's valid-bit count and physical-device period
+                // so the performance governor can consume real GPU duration.
+                timestampValidBits_ =
+                    queues[i].timestampValidBits;
+                timestampPeriodNs_ =
+                    properties.limits.timestampPeriod;
                 return true;
             }
         }
@@ -3063,6 +3119,119 @@ bool VulkanClearRenderer::createSyncObjects() noexcept {
     return true;
 }
 
+bool VulkanClearRenderer::createPerformanceQueries() noexcept {
+    destroyPerformanceQueries();
+
+    if (device_ == VK_NULL_HANDLE ||
+        timestampValidBits_ == 0U ||
+        !std::isfinite(timestampPeriodNs_) ||
+        timestampPeriodNs_ <= 0.0f) {
+        logInfo("XZIEL_GPU_TIMESTAMPS_UNAVAILABLE");
+        return true;
+    }
+
+    VkQueryPoolCreateInfo info{
+        VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO
+    };
+    info.queryType =
+        VK_QUERY_TYPE_TIMESTAMP;
+    info.queryCount =
+        kFramesInFlight * 2U;
+
+    const VkResult result =
+        vkCreateQueryPool(
+            device_,
+            &info,
+            nullptr,
+            &gpuTimestampQueryPool_);
+
+    if (!ok(result)) {
+        gpuTimestampQueryPool_ =
+            VK_NULL_HANDLE;
+        logInfo("XZIEL_GPU_TIMESTAMPS_UNAVAILABLE");
+        return true;
+    }
+
+    gpuTimestampValid_.fill(false);
+    lastGpuFrameMs_ = 0.0f;
+    logInfo("XZIEL_GPU_TIMESTAMPS_READY");
+    return true;
+}
+
+void VulkanClearRenderer::destroyPerformanceQueries() noexcept {
+    if (gpuTimestampQueryPool_ != VK_NULL_HANDLE &&
+        device_ != VK_NULL_HANDLE) {
+        vkDestroyQueryPool(
+            device_,
+            gpuTimestampQueryPool_,
+            nullptr);
+    }
+
+    gpuTimestampQueryPool_ =
+        VK_NULL_HANDLE;
+    gpuTimestampValid_.fill(false);
+    lastGpuFrameMs_ = 0.0f;
+}
+
+void VulkanClearRenderer::resolvePerformanceQueries(
+    std::uint32_t frameSlot) noexcept {
+    if (gpuTimestampQueryPool_ == VK_NULL_HANDLE ||
+        device_ == VK_NULL_HANDLE ||
+        frameSlot >= kFramesInFlight ||
+        !gpuTimestampValid_[frameSlot]) {
+        return;
+    }
+
+    std::array<std::uint64_t, 2> timestamps{};
+
+    const VkResult result =
+        vkGetQueryPoolResults(
+            device_,
+            gpuTimestampQueryPool_,
+            frameSlot * 2U,
+            2U,
+            sizeof(timestamps),
+            timestamps.data(),
+            sizeof(std::uint64_t),
+            VK_QUERY_RESULT_64_BIT);
+
+    gpuTimestampValid_[frameSlot] = false;
+
+    if (!ok(result)) {
+        return;
+    }
+
+    std::uint64_t deltaTicks = 0U;
+
+    if (timestampValidBits_ >= 64U) {
+        deltaTicks =
+            timestamps[1] -
+            timestamps[0];
+    } else {
+        const std::uint64_t mask =
+            (1ULL << timestampValidBits_) -
+            1ULL;
+
+        deltaTicks =
+            (timestamps[1] -
+             timestamps[0]) &
+            mask;
+    }
+
+    const double milliseconds =
+        static_cast<double>(deltaTicks) *
+        static_cast<double>(timestampPeriodNs_) *
+        1.0e-6;
+
+    if (std::isfinite(milliseconds) &&
+        milliseconds >= 0.0 &&
+        milliseconds < 1000.0) {
+        lastGpuFrameMs_ =
+            static_cast<float>(
+                milliseconds);
+    }
+}
+
 void VulkanClearRenderer::destroySwapchainResources() noexcept {
     if (device_ == VK_NULL_HANDLE) {
         swapchainImages_.clear();
@@ -3276,6 +3445,7 @@ bool VulkanClearRenderer::recreateSwapchain() noexcept {
 
 bool VulkanClearRenderer::recordDrawCommand(
     std::uint32_t imageIndex,
+    std::uint32_t frameSlot,
     float timeSeconds,
     const VulkanCamera& camera,
     const VulkanHudState& hud,
@@ -3309,6 +3479,26 @@ bool VulkanClearRenderer::recordDrawCommand(
                 &begin))) {
         logError("vkBeginCommandBuffer failed");
         return false;
+    }
+
+    if (gpuTimestampQueryPool_ != VK_NULL_HANDLE &&
+        frameSlot < kFramesInFlight) {
+        const std::uint32_t queryBase =
+            frameSlot * 2U;
+
+        gpuTimestampValid_[frameSlot] = false;
+
+        vkCmdResetQueryPool(
+            command,
+            gpuTimestampQueryPool_,
+            queryBase,
+            2U);
+
+        vkCmdWriteTimestamp(
+            command,
+            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+            gpuTimestampQueryPool_,
+            queryBase);
     }
 
     const float pulse =
@@ -6365,6 +6555,20 @@ bool VulkanClearRenderer::recordDrawCommand(
     }
 
     vkCmdEndRenderPass(command);
+
+    if (gpuTimestampQueryPool_ != VK_NULL_HANDLE &&
+        frameSlot < kFramesInFlight) {
+        const std::uint32_t queryBase =
+            frameSlot * 2U;
+
+        vkCmdWriteTimestamp(
+            command,
+            VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+            gpuTimestampQueryPool_,
+            queryBase + 1U);
+
+        gpuTimestampValid_[frameSlot] = true;
+    }
 
     if (!ok(
             vkEndCommandBuffer(
