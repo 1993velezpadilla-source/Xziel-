@@ -351,13 +351,16 @@ bool VulkanStaticMeshRenderer::initialize(
                 1U));
 
     poolSize.descriptorCount =
-        materialCount * 4U;
+        materialCount *
+        4U *
+        kDescriptorFrames;
 
     VkDescriptorPoolCreateInfo poolInfo{
         VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO
     };
     poolInfo.maxSets =
-        materialCount;
+        materialCount *
+        kDescriptorFrames;
     poolInfo.poolSizeCount = 1U;
     poolInfo.pPoolSizes = &poolSize;
 
@@ -939,6 +942,7 @@ VulkanStaticMeshRenderer::streamDecision(
 void VulkanStaticMeshRenderer::record(
     VkCommandBuffer command,
     VkExtent2D extent,
+    std::uint32_t frameSlot,
     const StaticMeshCameraState& camera,
     const StaticMeshEnvironmentState& environment) const noexcept {
     frameStats_ = {};
@@ -1327,7 +1331,9 @@ void VulkanStaticMeshRenderer::record(
             pipelineLayout_,
             0U,
             1U,
-            &material.descriptorSet,
+            &material.descriptorSets[
+                frameSlot %
+                kDescriptorFrames],
             0U,
             nullptr);
 
@@ -1372,6 +1378,7 @@ void VulkanStaticMeshRenderer::record(
 void VulkanStaticMeshRenderer::recordViewmodel(
     VkCommandBuffer command,
     VkExtent2D extent,
+    std::uint32_t frameSlot,
     const StaticMeshViewmodelState& state) const noexcept {
     if (!ready_ ||
         command == VK_NULL_HANDLE ||
@@ -1504,7 +1511,9 @@ void VulkanStaticMeshRenderer::recordViewmodel(
             pipelineLayout_,
             0U,
             1U,
-            &material.descriptorSet,
+            &material.descriptorSets[
+                frameSlot %
+                kDescriptorFrames],
             0U,
             nullptr);
 
@@ -3417,20 +3426,30 @@ bool VulkanStaticMeshRenderer::createMaterialDescriptor(
         return false;
     }
 
+    std::array<VkDescriptorSetLayout, kDescriptorFrames>
+        layouts{};
+    layouts.fill(
+        descriptorSetLayout_);
+
     VkDescriptorSetAllocateInfo allocation{
         VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO
     };
     allocation.descriptorPool = descriptorPool_;
-    allocation.descriptorSetCount = 1U;
+    allocation.descriptorSetCount =
+        kDescriptorFrames;
     allocation.pSetLayouts =
-        &descriptorSetLayout_;
+        layouts.data();
+
+    material.descriptorSets.fill(
+        VK_NULL_HANDLE);
 
     if (!ok(
             vkAllocateDescriptorSets(
                 device_,
                 &allocation,
-                &material.descriptorSet))) {
-        material.descriptorSet = VK_NULL_HANDLE;
+                material.descriptorSets.data()))) {
+        material.descriptorSets.fill(
+            VK_NULL_HANDLE);
         return false;
     }
 
@@ -3442,7 +3461,6 @@ bool VulkanStaticMeshRenderer::createMaterialDescriptor(
     }};
 
     std::array<VkDescriptorImageInfo, 4> images{};
-    std::array<VkWriteDescriptorSet, 4> writes{};
 
     for (std::uint32_t binding = 0U;
          binding < indices.size();
@@ -3456,26 +3474,40 @@ bool VulkanStaticMeshRenderer::createMaterialDescriptor(
             texture.view;
         images[binding].imageLayout =
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-        writes[binding] = {
-            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET
-        };
-        writes[binding].dstSet =
-            material.descriptorSet;
-        writes[binding].dstBinding = binding;
-        writes[binding].descriptorCount = 1U;
-        writes[binding].descriptorType =
-            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        writes[binding].pImageInfo =
-            &images[binding];
     }
 
-    vkUpdateDescriptorSets(
-        device_,
-        static_cast<std::uint32_t>(writes.size()),
-        writes.data(),
-        0U,
-        nullptr);
+    for (std::uint32_t frame = 0U;
+         frame < kDescriptorFrames;
+         ++frame) {
+        std::array<VkWriteDescriptorSet, 4>
+            writes{};
+
+        for (std::uint32_t binding = 0U;
+             binding < indices.size();
+             ++binding) {
+            writes[binding] = {
+                VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET
+            };
+            writes[binding].dstSet =
+                material.descriptorSets[frame];
+            writes[binding].dstBinding =
+                binding;
+            writes[binding].descriptorCount =
+                1U;
+            writes[binding].descriptorType =
+                VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            writes[binding].pImageInfo =
+                &images[binding];
+        }
+
+        vkUpdateDescriptorSets(
+            device_,
+            static_cast<std::uint32_t>(
+                writes.size()),
+            writes.data(),
+            0U,
+            nullptr);
+    }
 
     return true;
 }
