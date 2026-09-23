@@ -3265,6 +3265,15 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
         return;
     }
 
+    const std::uint64_t effectiveGeometryBudget =
+        effectiveGeometryResidentBudget(
+            geometryResidentBudgetBytes_,
+            input.memoryPressure);
+
+    const bool geometryOverBudget =
+        geometryResidentBytes_ >
+        effectiveGeometryBudget;
+
     // A missing Hot/Preload cell is player-visible, so reload it before
     // spending a frame retiring unrelated Cold cells.
     for (StreamCellHeat targetHeat :
@@ -3291,6 +3300,45 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
                         std::size_t>::max()) {
                 continue;
             }
+
+            const std::uint64_t cellBytes =
+                static_cast<std::uint64_t>(
+                    cell.vertexBytes +
+                    cell.indexBytes);
+
+            if (targetHeat ==
+                    StreamCellHeat::Preload &&
+                cellBytes >
+                    effectiveGeometryBudget -
+                        std::min(
+                            effectiveGeometryBudget,
+                            geometryResidentBytes_)) {
+                if (!cell.budgetBlockedLogged) {
+                    cell.budgetBlockedLogged = true;
+
+                    __android_log_print(
+                        ANDROID_LOG_INFO,
+                        kTag,
+                        "XZIEL_GEOMETRY_PRELOAD_BUDGET_BLOCKED cell=%u bytes_mb=%.2f resident_mb=%.2f budget_mb=%.2f pressure=%u",
+                        static_cast<unsigned int>(
+                            cell.cellId),
+                        static_cast<double>(
+                            cellBytes) /
+                            (1024.0 * 1024.0),
+                        static_cast<double>(
+                            geometryResidentBytes_) /
+                            (1024.0 * 1024.0),
+                        static_cast<double>(
+                            effectiveGeometryBudget) /
+                            (1024.0 * 1024.0),
+                        static_cast<unsigned int>(
+                            input.memoryPressure));
+                }
+
+                continue;
+            }
+
+            cell.budgetBlockedLogged = false;
 
             try {
                 cell.reloadVertexBytes.assign(
@@ -3339,7 +3387,8 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
     }
 
     const std::uint32_t minimumStableFrames =
-        geometryResidencyProbeEnabled_
+        geometryResidencyProbeEnabled_ ||
+                geometryOverBudget
         ? 8U
         : input.memoryPressure ==
               MemoryPressure::Critical
@@ -3390,7 +3439,7 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_RUNTIME_GEOMETRY_EVICTED cell=%u slot=%u freed_mb=%.2f total_resident_mb=%.2f pressure=%u",
+            "XZIEL_RUNTIME_GEOMETRY_EVICTED cell=%u slot=%u freed_mb=%.2f total_resident_mb=%.2f pressure=%u budget_mb=%.2f over_budget=%u",
             static_cast<unsigned int>(
                 evictedCell),
             static_cast<unsigned int>(i),
@@ -3401,7 +3450,11 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
                 geometryResidentBytes_) /
                 (1024.0 * 1024.0),
             static_cast<unsigned int>(
-                input.memoryPressure));
+                input.memoryPressure),
+            static_cast<double>(
+                effectiveGeometryBudget) /
+                (1024.0 * 1024.0),
+            geometryOverBudget ? 1U : 0U);
 
         if (geometryResidencyProbeEnabled_ &&
             !geometryResidencyProbeComplete_ &&
