@@ -3,7 +3,10 @@ set -euo pipefail
 
 GEOMETRY_INPUT="${HAYUYA_GEOMETRY_INPUT:-assets/characters/llorona/v2/hayuya/individual/llorona_front.png}"
 DETAIL_DIR="${HAYUYA_DETAIL_DIR:-assets/characters/llorona/v2/hayuya/details}"
+REFERENCE_DIR="${HAYUYA_REFERENCE_DIR:-}"
 PROFILE="${HAYUYA_PROFILE:-monster}"
+MODE="${HAYUYA_MODE:-auto}"
+PORTABLE_TARGET="${HAYUYA_PORTABLE_TARGET:-auto}"
 GPU_VRAM="${HAYUYA_GPU_VRAM:-24}"
 BACKENDS="${HAYUYA_BACKENDS:-triposg,trellis2,trellis,instantmesh,triposr}"
 OUTPUT_ROOT="${HAYUYA_OUTPUT_ROOT:-out/gpu-e2e/jobs}"
@@ -15,6 +18,9 @@ echo "=== HAYUYA GPU E2E ==="
 echo "geometry=${GEOMETRY_INPUT}"
 echo "details=${DETAIL_DIR}"
 echo "profile=${PROFILE}"
+echo "mode=${MODE}"
+echo "portable_target=${PORTABLE_TARGET}"
+echo "reference_dir=${REFERENCE_DIR}"
 echo "gpu_vram=${GPU_VRAM}"
 echo "backends=${BACKENDS}"
 echo "job_id=${JOB_ID}"
@@ -62,6 +68,10 @@ source "${ENV_EXPORTS}"
 ARGS=(
   --input "${GEOMETRY_INPUT}"
   --profile "${PROFILE}"
+  --mode "${MODE}"
+  --portable-target "${PORTABLE_TARGET}"
+  --portable-pack required
+  --texture-delivery auto
   --gpu-vram "${GPU_VRAM}"
   --backends "${BACKENDS}"
   --model-root "${MODEL_ROOT}"
@@ -73,6 +83,10 @@ ARGS=(
   --mesh-doctor required
   --gameprep required
 )
+
+if [[ -n "${REFERENCE_DIR}" ]]; then
+  ARGS+=(--input-dir "${REFERENCE_DIR}")
+fi
 
 if [[ -n "${DETAIL_DIR}" ]]; then
   ARGS+=(--input-dir "${DETAIL_DIR}")
