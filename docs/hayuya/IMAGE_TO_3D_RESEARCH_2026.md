@@ -289,6 +289,34 @@ Hayuya Monster adopts this as a vendor-neutral pipeline rather than cloning any 
 
 Only public documentation, public behavior and open-source repositories are used as the engineering source material.
 
+## DINOv2 / VGGT evaluation decisions
+
+### DINOv2
+
+The original DINOv2 model card identifies the classic vision backbones as Apache-2.0. Hayuya pins the public repository at:
+
+`7764ea0f912e53c92e82eb78a2a1631e92725fc8`
+
+Judge v3 uses only the original `dinov2_vits14` LVD-142M path. Newer specialized Cell-DINO/X-Ray-DINO variants in the same repository have different/restricted licenses and are explicitly out of scope for the default Hayuya evaluator.
+
+### MEt3R
+
+MEt3R itself is MIT and is a useful architectural reference for feature-space multi-view consistency. Its implementation bundles/depends on MASt3R/DUSt3R-family components whose licensing is non-commercial, so Hayuya does not make the complete MEt3R stack a default commercial dependency.
+
+Pinned research SHA:
+
+`ee0e1752898559e1a3e85e2e151d3edeb9b55f73`
+
+### VGGT
+
+VGGT can infer cameras, depth, point maps and tracks across one, a few or many views and is highly relevant to future camera/depth Judge layers. Its commercial checkpoint and repository use custom terms/access rather than the permissive MIT/Apache policy of Hayuya's default core.
+
+Pinned research SHA:
+
+`a288dd0f14786c93483e45524328726ab7b1b4ce`
+
+Decision: keep VGGT camera/depth integration opt-in until the intended checkpoint/license is explicitly reviewed.
+
 ## Evaluation research: source and multi-view consistency
 
 Modern image-to-3D quality needs more than polygon counts.
