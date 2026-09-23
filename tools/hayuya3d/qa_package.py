@@ -16,6 +16,7 @@ class QAPackageResult:
     report: str
     contact_sheet: str | None
     turntable_report: str | None
+    turntable_contact_sheet: str | None
     geometry_ready: bool
     material_ready: bool
     rig_ready: bool
@@ -175,12 +176,14 @@ def build_qa_package(
 
     turntable_qa = None
     turntable_report_path = None
+    turntable_contact_path = None
     turntable_ready = expected_sources == 0
     turntable_score = None
     if expected_sources:
         if turntable and source_coverage >= expected_sources:
             try:
                 from turntable_qa import (
+                    build_turntable_comparison_sheet,
                     score_source_to_turntable,
                     write_turntable_report,
                 )
@@ -195,6 +198,10 @@ def build_qa_package(
                 turntable_report_path = write_turntable_report(
                     turntable_qa,
                     out_dir / "source_vs_turntable.json",
+                )
+                turntable_contact_path = build_turntable_comparison_sheet(
+                    turntable_qa,
+                    out_dir / "source_vs_turntable.png",
                 )
                 if not turntable_ready:
                     warnings.append(
@@ -271,6 +278,7 @@ def build_qa_package(
                 "ready": turntable_ready,
                 "score": turntable_score,
                 "report": str(turntable_report_path) if turntable_report_path else None,
+                "contact_sheet": str(turntable_contact_path) if turntable_contact_path else None,
             }
         ),
         "rig": asdict(rig),
@@ -288,6 +296,7 @@ def build_qa_package(
         },
         "warnings": list(dict.fromkeys(warnings)),
         "contact_sheet": str(contact_path) if contact_path else None,
+        "source_vs_turntable_sheet": str(turntable_contact_path) if turntable_contact_path else None,
     }
     report_path = out_dir / "qa_report.json"
     report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
@@ -296,6 +305,7 @@ def build_qa_package(
         report=str(report_path),
         contact_sheet=str(contact_path) if contact_path else None,
         turntable_report=str(turntable_report_path) if turntable_report_path else None,
+        turntable_contact_sheet=str(turntable_contact_path) if turntable_contact_path else None,
         geometry_ready=geometry_ready,
         material_ready=material_ready,
         rig_ready=rig_ready,
