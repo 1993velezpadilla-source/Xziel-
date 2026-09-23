@@ -69,6 +69,8 @@ public:
     explicit TextureMipResidencyManager(
         std::uint32_t maxTextures = 1024U);
 
+    void reset() noexcept;
+
     [[nodiscard]] bool registerTexture(
         const TextureMipChainDesc& desc,
         std::uint64_t frameIndex) noexcept;
