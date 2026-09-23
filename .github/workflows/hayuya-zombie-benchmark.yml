@@ -71,21 +71,37 @@ jobs:
           LIBGL_ALWAYS_SOFTWARE: "1"
         run: |
           set -euxo pipefail
-          FBX="$(cat benchmark/source/primary_fbx.txt)"
           cat > /tmp/render_hayuya_reference.py <<'PY'
           import bpy, math, sys
           from pathlib import Path
           from mathutils import Vector
 
           argv = sys.argv
-          fbx = Path(argv[argv.index("--") + 1]).resolve()
+          root = Path(argv[argv.index("--") + 1]).resolve()
           out = Path(argv[argv.index("--") + 2]).resolve()
 
+          candidates = []
+          for fbx in sorted(root.rglob("*.fbx")):
+              bpy.ops.wm.read_factory_settings(use_empty=True)
+              try:
+                  bpy.ops.import_scene.fbx(filepath=str(fbx), automatic_bone_orientation=False)
+              except Exception as exc:
+                  print("HAYUYA_FBX_SKIP", fbx.name, repr(exc))
+                  continue
+              meshes_now = [o for o in bpy.context.scene.objects if o.type == "MESH"]
+              poly_count = sum(len(o.data.polygons) for o in meshes_now)
+              if meshes_now and poly_count > 0:
+                  candidates.append((poly_count, fbx))
+                  print("HAYUYA_FBX_GEOMETRY_CANDIDATE", fbx.name, poly_count)
+
+          if not candidates:
+              raise RuntimeError(f"No FBX with renderable mesh found under {root}")
+
+          _, fbx = max(candidates, key=lambda item: item[0])
           bpy.ops.wm.read_factory_settings(use_empty=True)
-          bpy.ops.import_scene.fbx(filepath=str(fbx))
+          bpy.ops.import_scene.fbx(filepath=str(fbx), automatic_bone_orientation=False)
           meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
-          if not meshes:
-              raise RuntimeError(f"No mesh imported from {fbx}")
+          print("HAYUYA_CONTROL_FBX_SELECTED", fbx.name, sum(len(o.data.polygons) for o in meshes))
 
           mins = Vector((1e9, 1e9, 1e9))
           maxs = Vector((-1e9, -1e9, -1e9))
@@ -143,7 +159,7 @@ jobs:
           bpy.ops.render.render(write_still=True)
           print("HAYUYA_ZOMBIE_REFERENCE_READY", out)
           PY
-          xvfb-run -a -s "-screen 0 1280x1024x24"             /opt/blender-4.5.14/blender --background             --python /tmp/render_hayuya_reference.py --             "$FBX" benchmark/reference/zombie_front_3q.png
+          xvfb-run -a -s "-screen 0 1280x1024x24"             /opt/blender-4.5.14/blender --background             --python /tmp/render_hayuya_reference.py --             benchmark/extracted benchmark/reference/zombie_front_3q.png
           test -s benchmark/reference/zombie_front_3q.png
 
       - name: Set up Python 3.10
