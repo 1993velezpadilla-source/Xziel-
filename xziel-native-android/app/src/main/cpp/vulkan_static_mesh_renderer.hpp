@@ -106,6 +106,7 @@ private:
         std::uint32_t indexCount = 0U;
         std::uint32_t textureIndex = 0U;
         StaticMeshBounds bounds{};
+        bool doubleSided = true;
     };
 
     struct PushConstants {
@@ -188,6 +189,7 @@ private:
     VkDescriptorPool descriptorPool_ = VK_NULL_HANDLE;
     VkPipelineLayout pipelineLayout_ = VK_NULL_HANDLE;
     VkPipeline pipeline_ = VK_NULL_HANDLE;
+    VkPipeline pipelineDoubleSided_ = VK_NULL_HANDLE;
 
     std::vector<GpuTexture> textures_{};
     std::vector<GpuBatch> batches_{};
