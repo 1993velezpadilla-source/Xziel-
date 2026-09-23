@@ -4911,6 +4911,8 @@ bool VulkanClearRenderer::recordDrawCommand(
             environment.fogDensity;
         sanctumEnvironment.lightningFlash =
             environment.lightningFlash;
+        sanctumEnvironment.memoryPressure =
+            environment.memoryPressure;
 
         sanctumMesh_.record(
             command,
