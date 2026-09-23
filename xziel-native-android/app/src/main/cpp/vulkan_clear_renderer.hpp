@@ -239,6 +239,7 @@ public:
     // instead of wall-clock frame cadence / guessed GPU cost.
     [[nodiscard]] float lastCpuRenderMs() const noexcept;
     [[nodiscard]] float lastGpuFrameMs() const noexcept;
+    [[nodiscard]] bool gpuTimingAuthoritative() const noexcept;
 
 private:
     struct FrameSync {
