@@ -47,6 +47,11 @@ public:
         std::uint64_t maxBytes =
             256ULL * 1024ULL * 1024ULL) noexcept;
 
+    [[nodiscard]] bool enqueueRange(
+        const std::string& assetPath,
+        std::uint64_t offset,
+        std::uint64_t length) noexcept;
+
     // Blocks only for a path that was already scheduled. Vulkan object
     // creation remains on the render thread; workers perform APK asset I/O.
     [[nodiscard]] bool take(
@@ -60,6 +65,19 @@ public:
         std::vector<std::byte>& destination,
         bool& finished) noexcept;
 
+    [[nodiscard]] bool takeRange(
+        const std::string& assetPath,
+        std::uint64_t offset,
+        std::uint64_t length,
+        std::vector<std::byte>& destination) noexcept;
+
+    [[nodiscard]] bool tryTakeRange(
+        const std::string& assetPath,
+        std::uint64_t offset,
+        std::uint64_t length,
+        std::vector<std::byte>& destination,
+        bool& finished) noexcept;
+
     [[nodiscard]] bool running() const noexcept;
 
     [[nodiscard]] AndroidAssetStreamStats
@@ -67,7 +85,10 @@ public:
 
 private:
     struct Request {
+        std::string key{};
         std::string path{};
+        std::uint64_t offset = 0U;
+        std::uint64_t length = 0U;
         std::uint64_t maxBytes = 0U;
     };
 
@@ -75,6 +96,23 @@ private:
         std::vector<std::byte> bytes{};
         bool success = false;
     };
+
+    [[nodiscard]] static std::string rangeKey(
+        const std::string& assetPath,
+        std::uint64_t offset,
+        std::uint64_t length);
+
+    [[nodiscard]] bool enqueueRequest(
+        Request request) noexcept;
+
+    [[nodiscard]] bool takeKey(
+        const std::string& key,
+        std::vector<std::byte>& destination) noexcept;
+
+    [[nodiscard]] bool tryTakeKey(
+        const std::string& key,
+        std::vector<std::byte>& destination,
+        bool& finished) noexcept;
 
     void workerMain() noexcept;
 
