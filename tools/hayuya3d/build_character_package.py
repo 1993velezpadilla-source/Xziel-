@@ -43,6 +43,7 @@ def main() -> int:
     safe_copy(model_dir/"rig_gate.json",root/"asset"/"rig_gate.json")
     safe_copy(model_dir/"quality_gate.json",root/"asset"/"quality_gate.json")
     safe_copy(model_dir/"animation_gate.json",root/"asset"/"animation_gate.json")
+    safe_copy(model_dir/"auto_motion_plan.json",root/"asset"/"auto_motion_plan.json")
 
     # Keep the exact editor recipe beside the exported character.
     (root/"hayuya_recipe.json").write_text(json.dumps(recipe,indent=2)+"\n",encoding="utf-8")
@@ -125,6 +126,21 @@ def main() -> int:
         if profile["asset_profile"] not in ("auto",*(x.get("profiles") or []))
     ]
 
+    auto_plan={}
+    auto_plan_path=model_dir/"auto_motion_plan.json"
+    if profile["motion_profile"]=="hayuya_auto" and auto_plan_path.exists():
+        auto_plan=json.loads(auto_plan_path.read_text(encoding="utf-8"))
+    unresolved_auto_motion=False
+    if profile["motion_profile"]=="hayuya_auto":
+        status=str(auto_plan.get("status") or "")
+        unresolved_auto_motion=status in {
+            "",
+            "needs_family_confirmation",
+            "needs_component_fit",
+            "needs_creature_rig",
+            "needs_part_fit",
+        }
+
     build={
         "schema":1,
         "job_id":job_id,
@@ -140,12 +156,15 @@ def main() -> int:
         "unresolved_weapon_assets":unresolved_weapon,
         "unresolved_weapon_compatibility":unresolved_weapon_compat,
         "incompatible_procedural_motion":incompatible_motion,
-        "game_ready":not unresolved_audio and not mixed_animation_sources and not unresolved_animations and not unresolved_mocap and not unresolved_weapon and not unresolved_weapon_compat and not incompatible_motion,
+        "auto_motion_plan":auto_plan,
+        "unresolved_auto_motion":unresolved_auto_motion,
+        "game_ready":not unresolved_audio and not mixed_animation_sources and not unresolved_animations and not unresolved_mocap and not unresolved_weapon and not unresolved_weapon_compat and not incompatible_motion and not unresolved_auto_motion,
         "notes":[
             "External mocap is never silently bundled without an ingested/licensed local source.",
             "Gameplay state/motion mapping remains explicit in asset_profile.json.",
             "Firearm animation compatibility is fail-closed: family/mechanical proof is required before game-ready.",
-            "Foliage and mechanical motion can remain runtime metadata when shader/engine motion is superior to baked skeletal animation."
+            "Foliage and mechanical motion can remain runtime metadata when shader/engine motion is superior to baked skeletal animation.",
+            "HAYUYA Auto is fail-closed: unresolved family/part-fit/rig stages prevent GAME READY until self-evaluation finishes."
         ]
     }
     (root/"BUILD.json").write_text(json.dumps(build,indent=2)+"\n",encoding="utf-8")
@@ -170,7 +189,8 @@ def main() -> int:
         "audio_items":len(copied_audio),
         "weapon_items":len(profile["weapon_animations"]),
         "motion_fx":len(profile["procedural_motion"]),
-        "unresolved_weapon_compatibility":len(unresolved_weapon_compat)
+        "unresolved_weapon_compatibility":len(unresolved_weapon_compat),
+        "unresolved_auto_motion":unresolved_auto_motion
     },indent=2))
     return 0
 
