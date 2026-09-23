@@ -252,6 +252,73 @@ def audit_mesh(path: Path) -> MeshDoctorAudit:
     )
 
 
+def _fill_triangle_boundary_loops(mesh) -> int:
+    """
+    Deterministic fallback for the safest possible hole class: an isolated
+    3-edge boundary loop. Larger/ambiguous holes are left untouched.
+    """
+    np, _ = _deps()
+    faces = np.asarray(mesh.faces, dtype=np.int64)
+    edges, counts = _edge_counts(faces)
+    boundary = edges[counts == 1]
+    if len(boundary) < 3:
+        return 0
+
+    adjacency: dict[int, set[int]] = {}
+    for a, b in boundary:
+        a, b = int(a), int(b)
+        adjacency.setdefault(a, set()).add(b)
+        adjacency.setdefault(b, set()).add(a)
+
+    seen: set[int] = set()
+    additions: list[list[int]] = []
+    vertices = np.asarray(mesh.vertices, dtype=np.float64)
+
+    for start in sorted(adjacency):
+        if start in seen:
+            continue
+        stack = [start]
+        component: set[int] = set()
+        while stack:
+            current = stack.pop()
+            if current in component:
+                continue
+            component.add(current)
+            stack.extend(adjacency.get(current, ()))
+        seen.update(component)
+
+        if len(component) != 3:
+            continue
+        if any(len(adjacency[v] & component) != 2 for v in component):
+            continue
+
+        ordered = [min(component)]
+        prev = None
+        current = ordered[0]
+        for _ in range(2):
+            options = sorted(
+                v for v in (adjacency[current] & component)
+                if v != prev and v not in ordered
+            )
+            if not options:
+                break
+            nxt = options[0]
+            ordered.append(nxt)
+            prev, current = current, nxt
+        if len(ordered) != 3:
+            continue
+
+        a, b, d = vertices[ordered]
+        area2 = float(np.linalg.norm(np.cross(b - a, d - a)))
+        if not math.isfinite(area2) or area2 <= 1e-12:
+            continue
+        additions.append(ordered)
+
+    if additions:
+        mesh.faces = np.vstack([faces, np.asarray(additions, dtype=np.int64)])
+    return len(additions)
+
+
 def _safe_repair_geometry(source: Path, output: Path, *, mode: str):
     np, trimesh = _deps()
     meshes = _scene_meshes(source)
@@ -288,12 +355,18 @@ def _safe_repair_geometry(source: Path, output: Path, *, mode: str):
         # hole filler handles local simple holes; characters/cloth remain open.
         if mode in {"prop", "architecture"} and not mesh.is_watertight:
             try:
-                # Use the explicit repair API. On recent Trimesh releases the
-                # convenience mesh.fill_holes() path can be a no-op for geometry
-                # imported through glTF/scene wrappers.
                 trimesh.repair.fill_holes(mesh)
             except Exception:
                 pass
+
+            if not mesh.is_watertight:
+                _fill_triangle_boundary_loops(mesh)
+
+            # Re-orient after any inserted face. Do not attempt larger holes here.
+            try:
+                mesh.fix_normals(multibody=True)
+            except TypeError:
+                mesh.fix_normals()
 
         mesh.remove_unreferenced_vertices()
         repaired.append(mesh)
