@@ -1,8 +1,8 @@
 # HAYUYA MONSTER — Image-to-3D Architecture
 
-**Status:** v1 foundation  
+**Status:** v2 multi-reference foundation  
 **Branch:** `art/hayuya-monster-v1`  
-**Primary contract:** give Hayuya **one or two photos** and receive a production-oriented 3D asset package.
+**Primary contract:** give Hayuya **one or more photos** of the same asset and receive a production-oriented 3D asset package. Hayuya itself imposes no photo-count ceiling.
 
 Hayuya is no longer defined as a thin alias for Hunyuan3D. It is an orchestration engine that can use multiple image-to-3D systems, compare their outputs, and produce a reproducible final GLB.
 
@@ -10,7 +10,7 @@ Hayuya is no longer defined as a thin alias for Hunyuan3D. It is an orchestratio
 
 For future zombie models, creatures, props, architecture pieces, map dressing, statues, weapons, furniture, ritual objects, signs, machinery and similar assets:
 
-1. Accept 1–2 source photos.
+1. Accept an arbitrary pool of 1→N source photos.
 2. Preserve identity, silhouette and important asymmetry.
 3. Synthesize missing view coverage when needed.
 4. Generate several independent geometry hypotheses.
@@ -28,8 +28,11 @@ For future zombie models, creatures, props, architecture pieces, map dressing, s
 Inputs are immutable anchors.
 
 - 1 photo: primary identity anchor.
-- 2 photos: both are authoritative; the second is not treated as a decorative reference.
+- 2+ photos: every unique real source is authoritative evidence.
+- No Hayuya-level maximum reference count.
+- Duplicate file paths are de-duplicated so one image cannot accidentally overweight the Judge.
 - Accepted source formats: PNG/JPEG/WebP.
+- Source order is preserved; the first reference is the continuity/primary anchor.
 - Seed is explicit and saved.
 
 ### 1. ViewForge
@@ -47,9 +50,9 @@ Hayuya plans an 8-angle canonical coverage set:
 
 With one image, the missing coverage is inferred with sparse/multiview priors such as InstantMesh/Zero123++ and Wonder3D RGB+normal generation.
 
-With two images, both originals are retained as anchors and only missing coverage should be synthesized.
+With multiple images, all originals remain authoritative. If a backend cannot efficiently consume the entire pool in one call, Hayuya creates deterministic anchor groups: the primary reference appears in every group and the remaining real sources are distributed across groups so none are dropped.
 
-**Important:** synthetic views are evidence helpers, not permission to overwrite the identity in the source image.
+**Important:** synthetic views are evidence helpers, not permission to overwrite identity or replace a real source image.
 
 ### 2. Shape Arena
 
@@ -59,7 +62,7 @@ Current executable v1 adapters:
 
 - **TripoSG** — high-fidelity rectified-flow shape candidate.
 - **TRELLIS.2** — ultra/high-resolution O-Voxel candidate with full PBR.
-- **TRELLIS** — native multi-image candidate; uses both source photos when two are supplied.
+- **TRELLIS** — native multi-image candidate; Hayuya can create multiple bounded TRELLIS groups from an arbitrary reference pool.
 - **InstantMesh** — Zero123++ six-view + LRM/FlexiCubes candidate.
 - **TripoSR** — fast baseline/sanity candidate.
 
@@ -71,16 +74,19 @@ Pinned but not yet executable in the v1 orchestrator:
 
 Optional cloud adapters are allowed later, but Hayuya must remain functional without them.
 
-### 3. Dual-anchor mode
+### 3. Multi-anchor / Reference Pool mode
 
-For `game`, `monster`, and `ultra` profiles with two photos:
+For `game`, `monster`, and `ultra` profiles with multiple real references:
 
-- TRELLIS receives **both** photos in `run_multi_image(..., mode="multidiffusion")`.
-- TripoSG also generates an independent hypothesis from the second image using a different seed.
-- The first-photo candidates still run.
-- All hypotheses enter the same judge.
+- the complete reference pool is retained
+- TRELLIS receives deterministic bounded groups through `run_multi_image(..., mode="multidiffusion")`
+- the first/primary source is repeated in every bounded group for identity continuity
+- every non-primary source appears in at least one native multi-image group
+- TripoSG can generate an independent geometry hypothesis from **every** real source by default
+- `--anchor-hypothesis-budget N` is available only as an explicit compute-cost control; `0` means all references
+- all candidates are judged against the **entire** real reference pool, not only the photos that produced that candidate
 
-This prevents the second photo from being ignored.
+This makes backend-specific image limits or VRAM limits an implementation detail rather than a Hayuya input limit.
 
 ### 4. Hayuya Judge
 
@@ -123,7 +129,7 @@ Final candidate score:
 
 `0.55 * source_visual + 0.45 * production_mesh_score`
 
-This means a model cannot win merely by having more polygons, UVs or a larger texture. With two photos, a candidate that matches one anchor but badly misses the second is intentionally pushed down.
+This means a model cannot win merely by having more polygons, UVs or a larger texture. With many references, a candidate that matches a few views but badly misses the weakest real anchor is intentionally pushed down.
 
 #### Judge v3 target
 
@@ -219,14 +225,19 @@ python tools/hayuya3d/hayuya.py \
   --profile monster
 ```
 
-### Plan only — two photos
+### Plan only — many photos
 
 ```bash
 python tools/hayuya3d/hayuya.py \
   --input front.png \
+  --input front_45.png \
+  --input right.png \
   --input back.png \
+  --input detail_left.png \
   --profile monster
 ```
+
+If a native multi-image backend needs bounded calls, Hayuya groups the references automatically. The total reference pool is still preserved.
 
 ### Execute installed backends
 
@@ -279,4 +290,4 @@ Cloud vendors such as Tripo or Meshy are optional adapters through their officia
 
 The architectural rule is simple:
 
-> **One photo should be enough to start. A second photo should make Hayuya materially stronger. More references should improve fidelity, never become a mandatory chore.**
+> **One photo should be enough to start. Every additional useful real reference should strengthen Hayuya. Backend per-call limits must never become a global Hayuya reference limit.**
