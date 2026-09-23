@@ -8,6 +8,7 @@ from PIL import Image, ImageFile
 from gradio_client import Client, handle_file
 from mesh_gate import inspect as inspect_mesh_gate
 from rig_gate import inspect as inspect_rig_gate
+from texture_gate import inspect as inspect_texture_gate
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -329,6 +330,16 @@ print("HAYUYA_MESH_GATE", json.dumps(gate_payload, separators=(",",":")))
 if not gate.passed:
     fail("HAYUYA mesh quality gate rejected output: " + "; ".join(gate.reasons))
 
+# Texture gate prevents the old failure mode where a geometrically valid model
+# reaches DONE with no usable embedded texture or only a tiny texture. Blur is
+# reported as telemetry first; fidelity refinement owns the stricter judgment.
+texture_gate=inspect_texture_gate(dst, min_edge=1024)
+texture_payload=asdict(texture_gate)
+(OUT/"texture_gate.json").write_text(json.dumps(texture_payload,indent=2),encoding="utf-8")
+print("HAYUYA_TEXTURE_GATE", json.dumps(texture_payload,separators=(",",":")))
+if not texture_gate.passed:
+    fail("HAYUYA texture gate rejected output: " + "; ".join(texture_gate.warnings))
+
 # Animation readiness is profile-specific. Humanoids use skeletal rig QA;
 # weapons/vehicles/mechanical props require part/pivot mechanics; foliage uses
 # runtime wind/vertex motion. Never force a humanoid skeleton onto arbitrary
@@ -400,6 +411,7 @@ manifest={
     "source_had_alpha":source_had_alpha,
     "alpha_preserved":True,
     "quality_gate":gate_payload,
+    "texture_gate":texture_payload,
     "asset":asset_payload,
 }
 if character_payload is not None:
