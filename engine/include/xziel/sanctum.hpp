@@ -7,6 +7,7 @@
 #include "xziel/player_vitals.hpp"
 #include "xziel/score.hpp"
 #include "xziel/survival_systems.hpp"
+#include "xziel/world_streaming.hpp"
 
 #include <array>
 #include <cstddef>
@@ -30,6 +31,9 @@ struct SanctumGameplayProfile {
 
 [[nodiscard]] SanctumGameplayProfile
 makeSanctumGameplayProfile() noexcept;
+
+[[nodiscard]] bool configureSanctumStreamingGraph(
+    StreamCellGraph& graph) noexcept;
 
 enum class SanctumZone : std::uint32_t {
     Unknown = 0,
