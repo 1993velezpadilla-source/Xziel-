@@ -273,6 +273,10 @@ bool VulkanStaticMeshRenderer::initialize(
     streamResidencyProbeTextureIndex_ =
         UINT32_MAX;
     streamResidencyProbeReloadFrame_ = 0U;
+    streamLiveMipProbeComplete_ = false;
+    streamLiveMipProbeTextureIndex_ =
+        UINT32_MAX;
+    streamLiveMipProbePromoteFrame_ = 0U;
 
     if (streamResidencyProbeEnabled_) {
         logInfo(
@@ -870,6 +874,10 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     streamResidencyProbeTextureIndex_ =
         UINT32_MAX;
     streamResidencyProbeReloadFrame_ = 0U;
+    streamLiveMipProbeComplete_ = false;
+    streamLiveMipProbeTextureIndex_ =
+        UINT32_MAX;
+    streamLiveMipProbePromoteFrame_ = 0U;
     streamCellBounds_ = {};
     streamDecisionCount_ = 0U;
     streamPlanFrame_ = 0U;
