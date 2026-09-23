@@ -11,7 +11,8 @@ namespace xziel {
 
 inline constexpr std::uint32_t kStaticMeshLegacyVersion = 2U;
 inline constexpr std::uint32_t kStaticMeshNormalsVersion = 3U;
-inline constexpr std::uint32_t kStaticMeshFormatVersion = 4U;
+inline constexpr std::uint32_t kStaticMeshMaterialFlagsVersion = 4U;
+inline constexpr std::uint32_t kStaticMeshFormatVersion = 5U;
 inline constexpr std::size_t kMaxStaticMeshBatches = 2048U;
 inline constexpr std::uint32_t kMaxStaticMeshVertices = 8000000U;
 inline constexpr std::uint32_t kMaxStaticMeshIndices = 12000000U;
@@ -45,8 +46,27 @@ enum StaticMeshBatchFlags : std::uint32_t {
     StaticMeshBatchFlagDoubleSided = 1U << 0U,
 };
 
+struct StaticMeshPbrMaterial {
+    std::string normalTextureName{};
+    std::string ormTextureName{};
+    std::string emissiveTextureName{};
+
+    std::array<float, 4> baseColorFactor{
+        1.0f, 1.0f, 1.0f, 1.0f};
+    float metallicFactor = 0.0f;
+    float roughnessFactor = 1.0f;
+    std::array<float, 3> emissiveFactor{
+        0.0f, 0.0f, 0.0f};
+    float normalScale = 1.0f;
+    float occlusionStrength = 1.0f;
+};
+
 struct StaticMeshBatch {
+    // Base-color texture stays in the legacy field so v2-v4 runtime code and
+    // staged v5 rollouts can continue drawing before the full PBR bind set is
+    // enabled.
     std::string textureName{};
+    StaticMeshPbrMaterial pbr{};
     StaticMeshBounds bounds{};
     std::uint32_t flags =
         StaticMeshBatchFlagDoubleSided;

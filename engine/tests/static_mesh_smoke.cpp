@@ -40,6 +40,24 @@ void appendF32(
             value));
 }
 
+void appendFixed96(
+    std::vector<std::byte>& bytes,
+    const char* text) {
+    std::array<char, 96> field{};
+    if (text != nullptr) {
+        for (std::size_t i = 0U;
+             i + 1U < field.size() &&
+             text[i] != '\0';
+             ++i) {
+            field[i] = text[i];
+        }
+    }
+    for (const char c : field) {
+        bytes.push_back(
+            static_cast<std::byte>(c));
+    }
+}
+
 std::vector<std::byte> makeTriangle(std::uint32_t version) {
     std::vector<std::byte> bytes;
 
@@ -74,10 +92,40 @@ std::vector<std::byte> makeTriangle(std::uint32_t version) {
     }
 
     if (version >=
-        xziel::kStaticMeshFormatVersion) {
+        xziel::kStaticMeshMaterialFlagsVersion) {
         appendU32(
             bytes,
             xziel::StaticMeshBatchFlagNone);
+    }
+
+    if (version >=
+        xziel::kStaticMeshFormatVersion) {
+        appendFixed96(
+            bytes,
+            "textures/xziel/sanctum/test_n");
+        appendFixed96(
+            bytes,
+            "textures/xziel/sanctum/test_orm");
+        appendFixed96(
+            bytes,
+            "textures/xziel/sanctum/test_e");
+
+        for (float value :
+             std::array<float, 4>{
+                 0.90f, 0.80f, 0.70f, 1.0f}) {
+            appendF32(bytes, value);
+        }
+        appendF32(bytes, 0.25f);
+        appendF32(bytes, 0.65f);
+
+        for (float value :
+             std::array<float, 3>{
+                 0.10f, 0.05f, 0.02f}) {
+            appendF32(bytes, value);
+        }
+
+        appendF32(bytes, 0.75f);
+        appendF32(bytes, 0.85f);
     }
 
     for (float value :
@@ -158,6 +206,41 @@ int main() {
         0.99f);
     assert(
         !asset.batches[0].doubleSided());
+    assert(
+        asset.batches[0].pbr.normalTextureName ==
+        "textures/xziel/sanctum/test_n");
+    assert(
+        asset.batches[0].pbr.ormTextureName ==
+        "textures/xziel/sanctum/test_orm");
+    assert(
+        asset.batches[0].pbr.emissiveTextureName ==
+        "textures/xziel/sanctum/test_e");
+    assert(
+        asset.batches[0].pbr.metallicFactor >
+        0.24f &&
+        asset.batches[0].pbr.metallicFactor <
+        0.26f);
+    assert(
+        asset.batches[0].pbr.roughnessFactor >
+        0.64f &&
+        asset.batches[0].pbr.roughnessFactor <
+        0.66f);
+
+    const auto v4Encoded =
+        makeTriangle(
+            xziel::kStaticMeshMaterialFlagsVersion);
+
+    xziel::StaticMeshAsset v4Asset;
+    const auto v4Parsed =
+        xziel::parseStaticMeshXzsm(
+            v4Encoded,
+            v4Asset);
+
+    assert(v4Parsed.success);
+    assert(!v4Asset.batches[0].doubleSided());
+    assert(v4Asset.batches[0].pbr.normalTextureName.empty());
+    assert(v4Asset.batches[0].pbr.metallicFactor == 0.0f);
+    assert(v4Asset.batches[0].pbr.roughnessFactor == 1.0f);
 
     const auto v3Encoded =
         makeTriangle(

@@ -168,6 +168,7 @@ parseStaticMeshXzsm(
 
     if (version != kStaticMeshLegacyVersion &&
         version != kStaticMeshNormalsVersion &&
+        version != kStaticMeshMaterialFlagsVersion &&
         version != kStaticMeshFormatVersion) {
         return failure(
             StaticMeshParseError::UnsupportedVersion,
@@ -205,6 +206,10 @@ parseStaticMeshXzsm(
         std::uint32_t vertexCount = 0U;
         std::uint32_t indexCount = 0U;
         std::array<char, 96> texture{};
+        std::array<char, 96> normalTexture{};
+        std::array<char, 96> ormTexture{};
+        std::array<char, 96> emissiveTexture{};
+        StaticMeshPbrMaterial pbr{};
         StaticMeshBounds bounds{};
         std::uint32_t flags =
             StaticMeshBatchFlagDoubleSided;
@@ -220,7 +225,7 @@ parseStaticMeshXzsm(
                 destination);
         }
 
-        if (version >= kStaticMeshFormatVersion) {
+        if (version >= kStaticMeshMaterialFlagsVersion) {
             if (!reader.readU32(flags)) {
                 return failure(
                     StaticMeshParseError::Truncated,
@@ -232,6 +237,82 @@ parseStaticMeshXzsm(
                 StaticMeshBatchFlagDoubleSided;
 
             if ((flags & ~kKnownFlags) != 0U) {
+                return failure(
+                    StaticMeshParseError::InvalidBatch,
+                    reader.offset(),
+                    destination);
+            }
+        }
+
+        if (version >= kStaticMeshFormatVersion) {
+            if (!reader.readBytes(
+                    normalTexture.data(),
+                    normalTexture.size()) ||
+                !reader.readBytes(
+                    ormTexture.data(),
+                    ormTexture.size()) ||
+                !reader.readBytes(
+                    emissiveTexture.data(),
+                    emissiveTexture.size())) {
+                return failure(
+                    StaticMeshParseError::Truncated,
+                    reader.offset(),
+                    destination);
+            }
+
+            for (float& value : pbr.baseColorFactor) {
+                if (!reader.readF32(value)) {
+                    return failure(
+                        StaticMeshParseError::InvalidBatch,
+                        reader.offset(),
+                        destination);
+                }
+            }
+
+            if (!reader.readF32(pbr.metallicFactor) ||
+                !reader.readF32(pbr.roughnessFactor)) {
+                return failure(
+                    StaticMeshParseError::InvalidBatch,
+                    reader.offset(),
+                    destination);
+            }
+
+            for (float& value : pbr.emissiveFactor) {
+                if (!reader.readF32(value)) {
+                    return failure(
+                        StaticMeshParseError::InvalidBatch,
+                        reader.offset(),
+                        destination);
+                }
+            }
+
+            if (!reader.readF32(pbr.normalScale) ||
+                !reader.readF32(pbr.occlusionStrength)) {
+                return failure(
+                    StaticMeshParseError::InvalidBatch,
+                    reader.offset(),
+                    destination);
+            }
+
+            const auto unitRange =
+                [](float value) noexcept {
+                    return value >= 0.0f && value <= 1.0f;
+                };
+
+            if (!std::all_of(
+                    pbr.baseColorFactor.begin(),
+                    pbr.baseColorFactor.end(),
+                    unitRange) ||
+                !unitRange(pbr.metallicFactor) ||
+                !unitRange(pbr.roughnessFactor) ||
+                !unitRange(pbr.occlusionStrength) ||
+                pbr.normalScale < 0.0f ||
+                !std::all_of(
+                    pbr.emissiveFactor.begin(),
+                    pbr.emissiveFactor.end(),
+                    [](float value) noexcept {
+                        return value >= 0.0f;
+                    })) {
                 return failure(
                     StaticMeshParseError::InvalidBatch,
                     reader.offset(),
@@ -301,6 +382,29 @@ parseStaticMeshXzsm(
         batch.textureName.assign(
             texture.begin(),
             nul);
+
+        if (version >= kStaticMeshFormatVersion) {
+            const auto assignOptionalTexture =
+                [](const std::array<char, 96>& field) {
+                    const auto end =
+                        std::find(
+                            field.begin(),
+                            field.end(),
+                            '\0');
+                    return std::string(
+                        field.begin(),
+                        end);
+                };
+
+            pbr.normalTextureName =
+                assignOptionalTexture(normalTexture);
+            pbr.ormTextureName =
+                assignOptionalTexture(ormTexture);
+            pbr.emissiveTextureName =
+                assignOptionalTexture(emissiveTexture);
+            batch.pbr = std::move(pbr);
+        }
+
         batch.bounds = bounds;
         batch.flags = flags;
 
