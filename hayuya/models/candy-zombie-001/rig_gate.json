@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "skeleton_type": "hayuya_humanoid_v1",
+  "valid_glb": true,
+  "skins": 1,
+  "joints": 41,
+  "required_groups_found": 17,
+  "required_groups_total": 18,
+  "required_group_fraction": 0.944444,
+  "missing_required_groups": [
+    "root"
+  ],
+  "animation_clips": [
+    "Human Armature|ArmatureAction.002",
+    "Human Armature|Death",
+    "Human Armature|Idle",
+    "Human Armature|Jump",
+    "Human Armature|Punch",
+    "Human Armature|Run",
+    "Human Armature|Walk",
+    "Human Armature|Working"
+  ],
+  "rig_ready": true,
+  "animation_ready": true,
+  "preview_animation_ready": true,
+  "facial": {
+    "jaw": false,
+    "eye_l": false,
+    "eye_r": false,
+    "blink_l": false,
+    "blink_r": false,
+    "morph_targets": []
+  },
+  "secondary_motion": {
+    "hair_nodes": [],
+    "cloth_nodes": [],
+    "hair_ready": false,
+    "cloth_ready": false
+  },
+  "warnings": [
+    "no_jaw_control",
+    "no_blink_controls"
+  ]
+}

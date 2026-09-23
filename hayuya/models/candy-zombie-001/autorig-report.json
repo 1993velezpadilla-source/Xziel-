@@ -1,0 +1,103 @@
+{
+  "schema": 1,
+  "target": "hayuya/models/candy-zombie-001/model.glb",
+  "donor": "hayuya/rig_library/quaternius-human-rigged/model.glb",
+  "output": "out/autorig/candy-zombie-001-rigged.glb",
+  "target_meshes": [
+    "geometry_0"
+  ],
+  "target_bounds": {
+    "min": [
+      -0.24627718329429626,
+      -0.22394579648971558,
+      -0.49990028142929077
+    ],
+    "max": [
+      0.2478727102279663,
+      0.22555121779441833,
+      0.4993121922016144
+    ],
+    "height": 0.9992125034332275,
+    "axis": 2
+  },
+  "donor_bounds": {
+    "min": [
+      -1.1019213199615479,
+      -1.9352071285247803,
+      -1.0
+    ],
+    "max": [
+      1.1172140836715698,
+      1.7603987455368042,
+      5.299046516418457
+    ],
+    "height": 6.299046516418457,
+    "axis": 2
+  },
+  "scale": 0.15862916726028,
+  "armature": "HAYUYA_Armature",
+  "bones": [
+    "Hips",
+    "Spine",
+    "Spine1",
+    "Spine2",
+    "Neck",
+    "Head",
+    "HeadTop_End",
+    "LeftShoulder",
+    "LeftArm",
+    "LeftForeArm",
+    "LeftHand",
+    "LeftHandThumb1",
+    "LeftHandThumb2",
+    "LeftHandThumb3",
+    "LeftHandThumb4",
+    "LeftHandIndex1",
+    "LeftHandIndex2",
+    "LeftHandIndex3",
+    "LeftHandIndex4",
+    "RightShoulder",
+    "RightArm",
+    "RightForeArm",
+    "RightHand",
+    "RightHandThumb1",
+    "RightHandThumb2",
+    "RightHandThumb3",
+    "RightHandThumb4",
+    "RightHandIndex1",
+    "RightHandIndex2",
+    "RightHandIndex3",
+    "RightHandIndex4",
+    "LeftUpLeg",
+    "LeftLeg",
+    "LeftFoot",
+    "LeftToeBase",
+    "LeftToe_End",
+    "RightUpLeg",
+    "RightLeg",
+    "RightFoot",
+    "RightToeBase",
+    "RightToe_End"
+  ],
+  "actions": [
+    "Human Armature|ArmatureAction.002_Human Armature",
+    "Human Armature|Death_Human Armature",
+    "Human Armature|Idle_Human Armature",
+    "Human Armature|Jump_Human Armature",
+    "Human Armature|Punch_Human Armature",
+    "Human Armature|Run_Human Armature",
+    "Human Armature|Walk_Human Armature",
+    "Human Armature|Working_Human Armature"
+  ],
+  "bind_results": [
+    {
+      "mesh": "geometry_0",
+      "ok": true,
+      "groups": 8,
+      "spatial_weight_vertices": 16328,
+      "fallback_weighted_vertices": 0,
+      "donor_samples": 4733
+    }
+  ],
+  "output_bytes": 8566944
+}

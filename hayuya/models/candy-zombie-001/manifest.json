@@ -47,10 +47,20 @@
   "schema": 2,
   "character": {
     "skeleton_type": "hayuya_humanoid_v1",
-    "rig_ready": false,
-    "animation_ready": false,
-    "preview_animation_ready": false,
-    "animation_clips": [],
+    "preview_pack": "hayuya_preview_pack_v1",
+    "rig_ready": true,
+    "animation_ready": true,
+    "preview_animation_ready": true,
+    "animation_clips": [
+      "Human Armature|ArmatureAction.002",
+      "Human Armature|Death",
+      "Human Armature|Idle",
+      "Human Armature|Jump",
+      "Human Armature|Punch",
+      "Human Armature|Run",
+      "Human Armature|Walk",
+      "Human Armature|Working"
+    ],
     "facial": {
       "jaw": false,
       "eye_l": false,
@@ -66,9 +76,9 @@
       "cloth_ready": false
     },
     "warnings": [
-      "static_trellis_mesh",
-      "autorig_pending",
-      "no_embedded_animation_clips"
+      "no_jaw_control",
+      "no_blink_controls"
     ]
-  }
+  },
+  "preview_model": "animated.glb"
 }
