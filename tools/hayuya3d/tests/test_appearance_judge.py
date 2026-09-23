@@ -19,6 +19,7 @@ from appearance_judge import (
     make_detail_patches,
     rasterize_rgb,
     _encode_dinov2_batch,
+    select_detail_candidate_indices,
 )
 
 
@@ -62,6 +63,36 @@ class AppearanceJudgeTests(unittest.TestCase):
         good = aggregate_appearance_scores([91, 90, 92, 89, 90])
         mixed = aggregate_appearance_scores([95, 94, 93, 92, 30])
         self.assertGreater(good, mixed)
+
+    def test_detail_view_hint_locks_asymmetric_side(self):
+        patch_meta = [
+            (0.0, "whole"),
+            (45.0, "whole"),
+            (90.0, "whole"),
+            (135.0, "whole"),
+            (180.0, "whole"),
+            (225.0, "whole"),
+            (270.0, "whole"),
+            (315.0, "whole"),
+        ]
+        allowed, expected = select_detail_candidate_indices(
+            patch_meta,
+            Path("llorona_left_side_detail.png"),
+            orientation_offset=0.0,
+        )
+        self.assertEqual(expected, 270.0)
+        self.assertEqual({patch_meta[i][0] for i in allowed}, {225.0, 270.0, 315.0})
+        self.assertNotIn(90.0, {patch_meta[i][0] for i in allowed})
+
+    def test_generic_detail_can_search_all_sides(self):
+        patch_meta = [(0.0, "a"), (90.0, "b"), (180.0, "c"), (270.0, "d")]
+        allowed, expected = select_detail_candidate_indices(
+            patch_meta,
+            Path("rosary_closeup.png"),
+            orientation_offset=35.0,
+        )
+        self.assertIsNone(expected)
+        self.assertEqual(allowed, list(range(len(patch_meta))))
 
     def test_detail_aggregation_keeps_weak_reference_relevant(self):
         strong = aggregate_detail_scores([90, 91, 89])
