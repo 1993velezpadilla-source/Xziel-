@@ -153,6 +153,8 @@ jobs:
           scene.render.resolution_percentage = 100
           scene.render.image_settings.file_format = "PNG"
           scene.render.film_transparent = False
+          if scene.world is None:
+              scene.world = bpy.data.worlds.new("HAYUYA_World")
           scene.world.color = (0.055, 0.055, 0.065)
           scene.render.filepath = str(out)
           scene.render.image_settings.color_mode = "RGBA"
