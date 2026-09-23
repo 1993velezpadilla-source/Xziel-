@@ -206,9 +206,9 @@ try {
 } finally {
   for (const ws of sockets) {
     try {
-      ws.close(1000, "ci_done");
+      ws.terminate();
     } catch {
-      // Best-effort cleanup.
+      // Best-effort cleanup. CI must not keep the Node event loop alive.
     }
   }
 }
