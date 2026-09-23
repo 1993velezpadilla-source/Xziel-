@@ -8,6 +8,7 @@ on:
       - engine/mobile-pbr-materials-v1
       - engine/mobile-ktx2-astc-v1
       - engine/mobile-mip-streaming-v1
+      - engine/mobile-upload-batching-v1
     paths:
       - ".github/workflows/sanctum-native-hq-android.yml"
       - ".github/workflows/sanctum-clean-source.yml"
@@ -46,9 +47,13 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-ktx2-astc-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-mip-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" ]]; then
+          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-ktx2-astc-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-mip-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-upload-batching-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" ]]; then
+            ASTC_PACK_BRANCH="${GITHUB_REF_NAME}"
+            if [[ "${GITHUB_REF_NAME}" == "engine/mobile-upload-batching-v1" ]]; then
+              ASTC_PACK_BRANCH="engine/mobile-ktx2-astc-v1"
+            fi
             for i in $(seq 1 120); do
-              RESPONSE="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs?branch=${GITHUB_REF_NAME}&per_page=30")"
+              RESPONSE="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs?branch=${ASTC_PACK_BRANCH}&per_page=30")"
               RUN_ID="$(jq -r '.workflow_runs[] | select(.name == "Sanctum ASTC Texture Pack" and .status == "completed" and .conclusion == "success") | .id' <<<"${RESPONSE}" | head -n 1)"
 
               if [[ -n "${RUN_ID}" && "${RUN_ID}" != "null" ]]; then
