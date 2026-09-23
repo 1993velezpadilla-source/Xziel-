@@ -86,6 +86,10 @@ public:
     [[nodiscard]] std::uint32_t totalIndices() const noexcept;
     [[nodiscard]] StaticMeshFrameStats frameStats() const noexcept;
 
+    void setStreamingPortalOpen(
+        std::uint32_t portalId,
+        bool open) noexcept;
+
     void record(
         VkCommandBuffer command,
         VkExtent2D extent,
