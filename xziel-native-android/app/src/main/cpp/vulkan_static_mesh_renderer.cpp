@@ -247,6 +247,7 @@ bool VulkanStaticMeshRenderer::initialize(
     streamDecisionCount_ = 0U;
     streamPlanFrame_ = 0U;
     lastLoggedStreamCell_ = 0U;
+    streamCriticalCullLogged_ = false;
 
     // Read KTX2 payloads on bounded worker threads while the render thread
     // creates pipelines/descriptors. Vulkan object creation and queue submits
@@ -1168,6 +1169,24 @@ void VulkanStaticMeshRenderer::record(
             continue;
         }
 
+        if (environment.memoryPressure ==
+                MemoryPressure::Critical &&
+            batch.streamCellId != 0U) {
+            const auto* stream =
+                streamDecision(
+                    batch.streamResourceId,
+                    streamDecisionCount_);
+
+            if (stream != nullptr &&
+                stream->evictable &&
+                !stream->pinned) {
+                ++frameStats_.culledBatches;
+                ++frameStats_.
+                    streamingSuppressedBatches;
+                continue;
+            }
+        }
+
         const float centerX =
             (batch.bounds.minimum[0] +
              batch.bounds.maximum[0]) *
@@ -1292,6 +1311,33 @@ void VulkanStaticMeshRenderer::record(
         frameStats_.submittedTriangles +=
             static_cast<std::uint64_t>(
                 batch.indexCount / 3U);
+    }
+
+    if (environment.memoryPressure ==
+            MemoryPressure::Critical) {
+        if (!streamCriticalCullLogged_ &&
+            frameStats_.
+                streamingSuppressedBatches > 0U) {
+            streamCriticalCullLogged_ = true;
+
+            __android_log_print(
+                ANDROID_LOG_INFO,
+                kTag,
+                "XZIEL_WORLD_STREAMING_PRESSURE_CULL current_cell=%u suppressed_batches=%u remaining_draws=%u evictable_mb=%.2f",
+                static_cast<unsigned int>(
+                    frameStats_.streamingCell),
+                static_cast<unsigned int>(
+                    frameStats_.
+                        streamingSuppressedBatches),
+                static_cast<unsigned int>(
+                    frameStats_.drawCalls),
+                static_cast<double>(
+                    frameStats_.
+                        streamingEvictableBytes) /
+                    (1024.0 * 1024.0));
+        }
+    } else {
+        streamCriticalCullLogged_ = false;
     }
 }
 
