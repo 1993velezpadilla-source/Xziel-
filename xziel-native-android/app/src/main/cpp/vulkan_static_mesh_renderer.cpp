@@ -137,6 +137,78 @@ chooseTextureResidentBudget(
         kMaximum);
 }
 
+[[nodiscard]] std::uint64_t
+chooseGeometryResidentBudget(
+    VkPhysicalDevice physicalDevice,
+    VkPhysicalDeviceType deviceType) noexcept {
+    constexpr std::uint64_t kMiB =
+        1024ULL * 1024ULL;
+    constexpr std::uint64_t kMinimum =
+        64ULL * kMiB;
+    constexpr std::uint64_t kMaximum =
+        160ULL * kMiB;
+
+    if (deviceType ==
+        VK_PHYSICAL_DEVICE_TYPE_CPU) {
+        return 96ULL * kMiB;
+    }
+
+    VkPhysicalDeviceMemoryProperties memory{};
+    vkGetPhysicalDeviceMemoryProperties(
+        physicalDevice,
+        &memory);
+
+    std::uint64_t largestDeviceLocalHeap = 0U;
+
+    for (std::uint32_t i = 0U;
+         i < memory.memoryHeapCount;
+         ++i) {
+        if ((memory.memoryHeaps[i].flags &
+             VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) == 0U) {
+            continue;
+        }
+
+        largestDeviceLocalHeap =
+            std::max<std::uint64_t>(
+                largestDeviceLocalHeap,
+                static_cast<std::uint64_t>(
+                    memory.memoryHeaps[i].size));
+    }
+
+    if (largestDeviceLocalHeap == 0U) {
+        return 96ULL * kMiB;
+    }
+
+    return std::clamp<std::uint64_t>(
+        largestDeviceLocalHeap / 16U,
+        kMinimum,
+        kMaximum);
+}
+
+[[nodiscard]] std::uint64_t
+effectiveGeometryResidentBudget(
+    std::uint64_t baseBudget,
+    MemoryPressure pressure) noexcept {
+    constexpr std::uint64_t kMiB =
+        1024ULL * 1024ULL;
+
+    switch (pressure) {
+    case MemoryPressure::Critical:
+        return std::max<std::uint64_t>(
+            32ULL * kMiB,
+            baseBudget / 2U);
+
+    case MemoryPressure::Elevated:
+        return std::max<std::uint64_t>(
+            48ULL * kMiB,
+            (baseBudget * 3U) / 4U);
+
+    case MemoryPressure::Normal:
+    default:
+        return baseBudget;
+    }
+}
+
 [[nodiscard]] bool assetExists(
     AAssetManager* assetManager,
     const std::string& path) noexcept {
@@ -231,6 +303,12 @@ bool VulkanStaticMeshRenderer::initialize(
     textureResidentBytes_ = 0U;
     textureDegradedCount_ = 0U;
 
+    geometryResidentBudgetBytes_ =
+        chooseGeometryResidentBudget(
+            physicalDevice_,
+            deviceProperties.deviceType);
+    geometryResidentBytes_ = 0U;
+
     __android_log_print(
         ANDROID_LOG_INFO,
         kTag,
@@ -242,6 +320,14 @@ bool VulkanStaticMeshRenderer::initialize(
             uploadBatchCommandLimit_),
         static_cast<double>(
             textureResidentBudgetBytes_) /
+            (1024.0 * 1024.0));
+
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
+        "XZIEL_GEOMETRY_BUDGET_READY budget_mb=%.2f",
+        static_cast<double>(
+            geometryResidentBudgetBytes_) /
             (1024.0 * 1024.0));
 
     graphicsQueue_ = graphicsQueue;
@@ -942,6 +1028,10 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
         128ULL * 1024ULL * 1024ULL;
     textureResidentBytes_ = 0U;
     textureDegradedCount_ = 0U;
+
+    geometryResidentBudgetBytes_ =
+        96ULL * 1024ULL * 1024ULL;
+    geometryResidentBytes_ = 0U;
 
     physicalDevice_ = VK_NULL_HANDLE;
     device_ = VK_NULL_HANDLE;
