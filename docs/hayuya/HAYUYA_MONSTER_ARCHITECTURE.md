@@ -379,6 +379,25 @@ Implemented in code/orchestration:
 
 Additional validated production stage:
 
+### Source-vs-turntable final QA — implemented
+
+HAYUYA now validates the **final rendered package** against every real geometry reference after the winner, material bridge, retopology and GamePrep stages.
+
+Policy:
+
+- each real reference uses the camera orientation recovered by Judge v2/v3
+- the expected turntable offset is derived from that recovered orientation; the scorer does **not** search arbitrary opposite-side frames
+- the closest 45° GamePrep frame is selected deterministically
+- comparison uses normalized silhouette IoU, tolerant boundary F1 and a light foreground color-histogram term
+- high-confidence references can raise a catastrophic mismatch on severe shape/orientation failure
+- uncertain masks retain lower authority through the existing confidence weighting
+- `source_vs_turntable.json` records per-source scores, expected/selected angle and mismatch state
+- `source_vs_turntable.png` places each real source beside its matched final turntable frame for fast human audit
+- the gate is deliberately catastrophic-output focused rather than a subjective beauty score
+- when real geometry references exist, `production_ready` now requires this turntable QA to pass
+
+CI covers correct orientation mapping, exact/matching pass cases, high-confidence incompatible silhouettes, color-histogram behavior and comparison-sheet export.
+
 ### Native smart retopology — implemented and CI-proven
 
 HAYUYA now integrates pinned **Instant Meshes** as an optional deterministic field-aligned retopology challenger.
@@ -414,7 +433,7 @@ Remaining major stages:
 - semantic mesh segmentation/repair
 - humanoid/zombie specialist mode completion
 - skin-weight-preserving rigged retopology/transfer
-- automated source-vs-turntable comparison report
+- source-vs-turntable comparison report — implemented and production-gating
 - actual GPU E2E PASS artifact on a provisioned `hayuya-gpu` runner
 
 The architectural rule is simple:
