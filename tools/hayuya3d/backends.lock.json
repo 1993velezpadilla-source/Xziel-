@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_utc": "2026-09-23T04:20:00Z",
+  "updated_utc": "2026-09-23T04:32:00Z",
   "policy": {
     "default_stack": "permissive_open_source",
     "allow_restricted_by_default": false,
@@ -129,6 +129,36 @@
       "notes": "Single-image clothed-human reconstruction; only activate for humanoid/character jobs with adequate GPU."
     },
     {
+      "id": "spar3d",
+      "role": [
+        "single_image_shape",
+        "backside_reconstruction",
+        "point_cloud_candidate"
+      ],
+      "repo": "https://github.com/Stability-AI/stable-point-aware-3d.git",
+      "sha": "fdc311b16809e6a8adc2f5a3407ebb3db1a95bd1",
+      "license": "Stability AI Community License",
+      "enabled_by_default": false,
+      "min_vram_gb": 7,
+      "quality_tier": "high",
+      "notes": "Point-cloud-conditioned single-image reconstruction aimed at stronger unseen/backside geometry. Opt-in because the Stability AI Community License has registration/revenue/use obligations."
+    },
+    {
+      "id": "stable_fast_3d",
+      "role": [
+        "fast_shape",
+        "uv_candidate",
+        "material_candidate"
+      ],
+      "repo": "https://github.com/Stability-AI/stable-fast-3d.git",
+      "sha": "ff21fc491b4dc5314bf6734c7c0dabd86b5f5bb2",
+      "license": "Stability AI Community License",
+      "enabled_by_default": false,
+      "min_vram_gb": 6,
+      "quality_tier": "fast",
+      "notes": "Fast single-image reconstruction with UV unwrapping and illumination disentanglement. Opt-in for license reasons."
+    },
+    {
       "id": "hunyuan3d_2_1",
       "role": [
         "optional_shape",
@@ -172,6 +202,20 @@
         "rig"
       ],
       "notes": "Optional paid/cloud adapter; never required for the open-source Hayuya path."
+    },
+    {
+      "id": "rodin_api",
+      "enabled_by_default": false,
+      "env_key": "RODIN_API_KEY",
+      "capabilities": [
+        "image_to_model",
+        "multi_image_to_model",
+        "pbr",
+        "quad_or_raw_mesh",
+        "high_detail_master",
+        "texture"
+      ],
+      "notes": "Optional official Hyper3D Rodin Gen-2.5 adapter. Public API accepts 1-5 images; never scrape or bypass the authenticated web service."
     }
   ]
 }
