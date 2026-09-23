@@ -29,6 +29,8 @@ class MeshScore:
     degenerate_ratio: float = 1.0
     has_uv: bool = False
     textured: bool = False
+    pbr_channels: list[str] | None = None
+    material_score: float = 0.0
     bbox: list[float] | None = None
     notes: list[str] | None = None
 
@@ -40,6 +42,42 @@ def _import_trimesh():
         return np, trimesh
     except Exception:
         return None, None
+
+
+def _material_channels(material) -> set[str]:
+    channels: set[str] = set()
+    if material is None:
+        return channels
+
+    if (
+        getattr(material, "baseColorTexture", None) is not None
+        or getattr(material, "image", None) is not None
+        or getattr(material, "baseColorFactor", None) is not None
+        or getattr(material, "diffuse", None) is not None
+    ):
+        channels.add("baseColor")
+
+    if (
+        getattr(material, "metallicRoughnessTexture", None) is not None
+        or getattr(material, "metallicFactor", None) is not None
+    ):
+        channels.add("metallic")
+    if (
+        getattr(material, "metallicRoughnessTexture", None) is not None
+        or getattr(material, "roughnessFactor", None) is not None
+        or getattr(material, "glossiness", None) is not None
+    ):
+        channels.add("roughness")
+    if getattr(material, "normalTexture", None) is not None:
+        channels.add("normal")
+    if getattr(material, "occlusionTexture", None) is not None:
+        channels.add("occlusion")
+    if (
+        getattr(material, "emissiveTexture", None) is not None
+        or getattr(material, "emissiveFactor", None) is not None
+    ):
+        channels.add("emissive")
+    return channels
 
 
 def _basic_valid(path: Path) -> tuple[bool, list[str]]:
@@ -112,6 +150,7 @@ def inspect_mesh(
 
         has_uv = False
         textured = False
+        pbr_channels: set[str] = set()
         for g in meshes:
             visual = getattr(g, "visual", None)
             uv = getattr(visual, "uv", None)
@@ -121,8 +160,10 @@ def inspect_mesh(
             material = getattr(visual, "material", None)
             if "texture" in kind or material is not None:
                 textured = True
+            pbr_channels.update(_material_channels(material))
         result.has_uv = has_uv
         result.textured = textured
+        result.pbr_channels = sorted(pbr_channels)
 
         if result.faces < 50:
             result.notes.append("extremely low face count")
@@ -150,11 +191,30 @@ def inspect_mesh(
         elif result.watertight:
             health = min(1.0, health + 0.03)
 
+        # Material readiness is channel-aware. This remains only 18% of
+        # production score, so PBR completeness can improve a close call but cannot
+        # override contradictory real-source visual evidence.
         material = 0.0
+        channels = set(result.pbr_channels or [])
         if result.has_uv:
+            material += 0.25
+        if "baseColor" in channels:
             material += 0.45
-        if result.textured:
-            material += 0.55
+        elif result.textured:
+            # Unknown/legacy texture still gets partial credit.
+            material += 0.30
+        if "normal" in channels:
+            material += 0.10
+        if "roughness" in channels:
+            material += 0.10
+        if "metallic" in channels:
+            material += 0.05
+        if "occlusion" in channels:
+            material += 0.05
+        material = min(1.0, material)
+        result.material_score = round(material * 100.0, 3)
+        if channels:
+            result.notes.append("material channels: " + ",".join(sorted(channels)))
 
         bbox_health = 1.0
         if result.bbox:
