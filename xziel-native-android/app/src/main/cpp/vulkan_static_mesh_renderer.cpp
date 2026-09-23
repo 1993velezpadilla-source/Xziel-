@@ -2189,7 +2189,7 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureResidency(
             1U << frameSlot);
 
     const std::uint32_t minimumStableFrames =
-        geometryResidencyProbeEnabled_
+        streamResidencyProbeEnabled_
         ? 8U
         : memoryPressure ==
               MemoryPressure::Critical
