@@ -377,13 +377,43 @@ Implemented in code/orchestration:
 - GPU doctor + one-photo end-to-end proof harness
 - evidence-gated return of refined material-bridged geometry to the final arena
 
+Additional validated production stage:
+
+### Native smart retopology — implemented and CI-proven
+
+HAYUYA now integrates pinned **Instant Meshes** as an optional deterministic field-aligned retopology challenger.
+
+Policy:
+
+- props/architecture prefer pure-quad output
+- unrigged characters use quad-dominant output
+- rigged/skinned glTF assets are skipped until skin-weight-preserving transfer exists
+- source geometry is exported in resolved scene/object space
+- Material Bridge v2 restores the strongest transferable material evidence after topology changes
+- the retopologized GLB re-enters the complete Judge and never overwrites the source candidate blindly
+- `retopo_manifest.json` records editable OBJ topology, quad fraction, triangle-equivalent runtime budget, target error and material transfer
+
+Native Linux CI compiles the exact pinned Instant Meshes source with Clang/libc++ and runs a real retopology round-trip.
+
+Validated CI evidence:
+
+- 1,200 target runtime triangles
+- 1,240 actual triangle-equivalent: **3.33% target error**
+- 627 native polygons
+- 587 quads
+- 27 triangles
+- 13 n-gons
+- **93.62% quad fraction**
+- max extent drift: **0.667%**
+- centroid drift: **0.000108 object units**
+- base-color fixture preserved exactly through Material Bridge
+
 Remaining major stages:
 
 - seam/tangent-aware high-quality PBR rebake for topology changes
 - semantic mesh segmentation/repair
-- smart retopology/quad option
-- humanoid/zombie specialist mode
-- rig/skin validation
+- humanoid/zombie specialist mode completion
+- skin-weight-preserving rigged retopology/transfer
 - automated source-vs-turntable comparison report
 - actual GPU E2E PASS artifact on a provisioned `hayuya-gpu` runner
 
