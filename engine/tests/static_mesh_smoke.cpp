@@ -227,6 +227,45 @@ int main() {
         asset.batches[0].pbr.roughnessFactor <
         0.66f);
 
+    xziel::StaticMeshDirectory directory;
+    const auto directoryParsed =
+        xziel::parseStaticMeshXzsmDirectory(
+            encoded,
+            directory);
+
+    assert(directoryParsed.success);
+    assert(
+        directoryParsed.error ==
+        xziel::StaticMeshParseError::None);
+    assert(
+        directory.version ==
+        xziel::kStaticMeshFormatVersion);
+    assert(directory.batches.size() == 1U);
+    assert(directory.totalVertices == 3U);
+    assert(directory.totalIndices == 3U);
+    assert(directory.fileBytes == encoded.size());
+
+    const auto& directoryBatch =
+        directory.batches[0];
+
+    assert(
+        directoryBatch.textureName ==
+        "textures/xziel/sanctum/test");
+    assert(directoryBatch.vertexCount == 3U);
+    assert(directoryBatch.indexCount == 3U);
+    assert(
+        directoryBatch.vertexDataOffset <
+        directoryBatch.indexDataOffset);
+    assert(
+        directoryBatch.indexDataOffset +
+            3U * sizeof(std::uint16_t) ==
+        encoded.size());
+    assert(
+        directoryBatch.payloadBytes ==
+        encoded.size() -
+            directoryBatch.vertexDataOffset);
+    assert(!directoryBatch.doubleSided());
+
     const auto v4Encoded =
         makeTriangle(
             xziel::kStaticMeshMaterialFlagsVersion);
@@ -238,6 +277,22 @@ int main() {
             v4Asset);
 
     assert(v4Parsed.success);
+
+    xziel::StaticMeshDirectory v4Directory;
+    const auto v4DirectoryParsed =
+        xziel::parseStaticMeshXzsmDirectory(
+            v4Encoded,
+            v4Directory);
+    assert(v4DirectoryParsed.success);
+    assert(
+        v4Directory.version ==
+        xziel::kStaticMeshMaterialFlagsVersion);
+    assert(v4Directory.batches.size() == 1U);
+    assert(
+        v4Directory.batches[0].indexDataOffset +
+            3U * sizeof(std::uint16_t) ==
+        v4Encoded.size());
+
     assert(!v4Asset.batches[0].doubleSided());
     assert(!v4Asset.batches[0].pbrEnabled());
     assert(v4Asset.batches[0].pbr.normalTextureName.empty());
@@ -308,6 +363,18 @@ int main() {
         truncatedResult.error ==
         xziel::StaticMeshParseError::
             Truncated);
+
+    xziel::StaticMeshDirectory truncatedDirectory;
+    const auto truncatedDirectoryResult =
+        xziel::parseStaticMeshXzsmDirectory(
+            truncated,
+            truncatedDirectory);
+    assert(!truncatedDirectoryResult.success);
+    assert(
+        truncatedDirectoryResult.error ==
+        xziel::StaticMeshParseError::
+            Truncated);
+    assert(truncatedDirectory.batches.empty());
 
     return 0;
 }
