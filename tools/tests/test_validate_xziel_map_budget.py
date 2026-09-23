@@ -1,6 +1,7 @@
 import importlib.util
 import json
 import struct
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -14,6 +15,7 @@ spec = importlib.util.spec_from_file_location(
     SCRIPT,
 )
 validator = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = validator
 assert spec.loader is not None
 spec.loader.exec_module(validator)
 
