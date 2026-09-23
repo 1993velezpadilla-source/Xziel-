@@ -63,8 +63,46 @@ box 10 0 -1.70 0 30 0.10 25 0 0 1 1
     assert(map.zombieSpawnCount == 2);
     assert(map.zombieSpawns[1].x == 14.0f);
 
-    constexpr std::string_view invalid = R"MAP(
+    constexpr std::string_view multiplayerMap = R"MAP(
 xziel_map 3
+player_spawn 0 -1.5 -1.58 -2.5 0.0
+player_spawn 1  1.5 -1.58 -2.5 0.0
+player_spawn 2 -1.5 -1.58 -0.8 0.0
+player_spawn 3  1.5 -1.58 -0.8 0.0
+arena -42.0 41.0 -38.0 44.0
+zombie_spawn -12.0 -1.58 6.0
+)MAP";
+
+    assert(
+        xziel::parseMapText(
+            multiplayerMap,
+            map,
+            error));
+    assert(map.playerSpawnCount == 4U);
+    assert(map.hasPlayerSpawn);
+    assert(map.playerSpawns[0].valid);
+    assert(map.playerSpawns[3].valid);
+    assert(map.playerSpawns[0].feet.x == -1.5f);
+    assert(map.playerSpawns[3].feet.x == 1.5f);
+    assert(map.playerSpawnFeet.x == -1.5f);
+
+    constexpr std::string_view duplicateSpawn = R"MAP(
+xziel_map 3
+player_spawn 0 0 -1.58 0 0
+player_spawn 0 1 -1.58 0 0
+)MAP";
+
+    assert(
+        !xziel::parseMapText(
+            duplicateSpawn,
+            map,
+            error));
+    assert(
+        error.code ==
+        xziel::MapParseErrorCode::MalformedRecord);
+
+    constexpr std::string_view invalid = R"MAP(
+xziel_map 4
 )MAP";
 
     assert(
