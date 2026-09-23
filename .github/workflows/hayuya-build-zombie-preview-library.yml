@@ -8,6 +8,8 @@ on:
     paths:
       - hayuya/source_archives/quaternius_animated_characters.zip
       - hayuya/source_archives/quaternius_animated_monsters.zip
+      - tools/hayuya3d/build_zombie_preview_library.py
+      - tools/hayuya3d/blender_asset_inspector.py
       - .github/workflows/hayuya-build-zombie-preview-library.yml
 
 permissions:
@@ -28,81 +30,12 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq blender libegl1 libgl1 python3-numpy
 
-      - name: Extract selected CC0 character sources
-        shell: bash
+      - name: Build local zombie previews
         run: |
-          set -euo pipefail
-          rm -rf /tmp/chars /tmp/monsters
-          mkdir -p /tmp/chars /tmp/monsters
-          unzip -oq hayuya/source_archives/quaternius_animated_characters.zip -d /tmp/chars
-          unzip -oq hayuya/source_archives/quaternius_animated_monsters.zip -d /tmp/monsters
-
-          out="hayuya/animation_library/zombie-preview-models"
-          rm -rf "$out"
-          mkdir -p "$out"/{models,reports}
-
-          find /tmp/chars -type f \( -iname 'Zombie_Male.blend' -o -iname 'Zombie_Female.blend' \) -print0 |
-          while IFS= read -r -d '' file; do
-            base="$(basename "$file" .blend)"
-            blender -b "$file" --python-expr "
-import bpy, pathlib
-out=pathlib.Path('$out/models/${base}.glb').resolve()
-bpy.ops.export_scene.gltf(filepath=str(out),export_format='GLB',export_animations=True,export_skins=True,export_nla_strips=True,export_yup=True)
-print('HAYUYA_ZOMBIE_PREVIEW',out)
-"
-          done
-
-          find /tmp/monsters -type f -iname 'Skeleton.blend' -print0 |
-          while IFS= read -r -d '' file; do
-            blender -b "$file" --python-expr "
-import bpy, pathlib
-out=pathlib.Path('$out/models/Skeleton.glb').resolve()
-bpy.ops.export_scene.gltf(filepath=str(out),export_format='GLB',export_animations=True,export_skins=True,export_nla_strips=True,export_yup=True)
-print('HAYUYA_MONSTER_PREVIEW',out)
-"
-          done
-
-      - name: Inspect preview actions
-        shell: bash
-        run: |
-          set -euo pipefail
-          out="hayuya/animation_library/zombie-preview-models"
-          shopt -s nullglob
-          for file in "$out"/models/*.glb; do
-            base="$(basename "$file" .glb)"
-            blender -b --python tools/hayuya3d/blender_asset_inspector.py --               --input "$file"               --json "$out/reports/${base}.json"
-          done
-
-      - name: Build zombie preview inventory
-        shell: bash
-        run: |
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          root=Path("hayuya/animation_library/zombie-preview-models")
-          assets=[]
-          for p in sorted((root/"reports").glob("*.json")):
-              d=json.loads(p.read_text())
-              source=Path(d["input"])
-              assets.append({
-                  "id":source.stem.lower(),
-                  "label":source.stem.replace("_"," "),
-                  "preview_model":str(source).replace("\\","/"),
-                  "actions":d.get("actions",[]),
-                  "action_count":d.get("action_count",0),
-                  "armature_count":d.get("armature_count",0),
-                  "animation_capable":d.get("animation_capable",False),
-                  "license":"CC0",
-                  "availability":"local",
-                  "source_pack":"quaternius_animated_characters" if "Zombie" in source.stem else "quaternius_animated_monsters",
-              })
-          if len(assets)<2:
-              raise SystemExit(f"expected at least 2 zombie previews, got {len(assets)}")
-          inv={"schema":1,"id":"hayuya_zombie_preview_models_v1","assets":assets}
-          (root/"inventory.json").write_text(json.dumps(inv,indent=2)+"\n")
-          print("HAYUYA_ZOMBIE_PREVIEW_COUNT",len(assets))
-          print(json.dumps(inv,indent=2))
-          PY
+          python tools/hayuya3d/build_zombie_preview_library.py \
+            --characters hayuya/source_archives/quaternius_animated_characters.zip \
+            --monsters hayuya/source_archives/quaternius_animated_monsters.zip \
+            --out hayuya/animation_library/zombie-preview-models
 
       - name: Commit preview models
         shell: bash
@@ -111,7 +44,10 @@ print('HAYUYA_MONSTER_PREVIEW',out)
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add hayuya/animation_library/zombie-preview-models
-          if git diff --cached --quiet; then exit 0; fi
+          if git diff --cached --quiet; then
+            echo "No preview changes."
+            exit 0
+          fi
           git commit -m "hayuya: build local animated zombie preview models"
           for attempt in 1 2 3 4 5; do
             git pull --rebase origin art/hayuya-monster-v1
