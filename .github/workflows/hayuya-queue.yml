@@ -236,6 +236,9 @@ jobs:
               cp "$HAYUYA_OUTPUT_ROOT/$qa" "$model_dir/$qa"
             fi
           done
+          if [ -f "$HAYUYA_EVIDENCE_ROOT/internet_research.json" ]; then
+            cp "$HAYUYA_EVIDENCE_ROOT/internet_research.json" "$model_dir/internet_research.json"
+          fi
           rm -rf "$model_dir/prepared_views" "$model_dir/prepared_details"
           if [ -d "$HAYUYA_OUTPUT_ROOT/prepared_views" ]; then
             cp -R "$HAYUYA_OUTPUT_ROOT/prepared_views" "$model_dir/prepared_views"
