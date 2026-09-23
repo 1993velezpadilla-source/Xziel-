@@ -95,8 +95,12 @@ class MaterialBridgeTests(unittest.TestCase):
             )
 
             self.assertFalse(result.fallback_used)
-            for channel in ("baseColor", "metallic", "roughness", "normal", "occlusion", "emissive"):
+            for channel in ("baseColor", "metallic", "roughness", "emissive"):
                 self.assertIn(channel, result.channels)
+            self.assertNotIn("normal", result.channels)
+            self.assertNotIn("occlusion", result.channels)
+            self.assertEqual(set(result.dropped_channels or []), {"normal", "occlusion"})
+            self.assertEqual(set(result.rebake_required or []), {"normal", "occlusion"})
 
             loaded = trimesh.load(output_path, force="scene", process=False)
             mesh = list(loaded.geometry.values())[0]
@@ -106,8 +110,8 @@ class MaterialBridgeTests(unittest.TestCase):
             pbr = mesh.visual.material
             self.assertIsNotNone(getattr(pbr, "baseColorTexture", None))
             self.assertIsNotNone(getattr(pbr, "metallicRoughnessTexture", None))
-            self.assertIsNotNone(getattr(pbr, "normalTexture", None))
-            self.assertIsNotNone(getattr(pbr, "occlusionTexture", None))
+            self.assertIsNone(getattr(pbr, "normalTexture", None))
+            self.assertIsNone(getattr(pbr, "occlusionTexture", None))
             self.assertIsNotNone(getattr(pbr, "emissiveTexture", None))
 
             inspected = inspect_mesh(
@@ -124,6 +128,31 @@ class MaterialBridgeTests(unittest.TestCase):
             )
             for channel in ("baseColor", "metallic", "roughness", "normal", "occlusion"):
                 self.assertIn(channel, inspected.pbr_channels)
+
+    def test_topology_safe_bridge_does_not_claim_stale_normal_or_ao(self):
+        from PIL import Image
+        from material_bridge import sanitize_topology_changed_material
+
+        normal = Image.fromarray(
+            np.full((4, 4, 3), [128, 128, 255], dtype=np.uint8),
+            mode="RGB",
+        )
+        ao = Image.fromarray(
+            np.full((4, 4), 200, dtype=np.uint8),
+            mode="L",
+        )
+        material = trimesh.visual.material.PBRMaterial(
+            baseColorFactor=[200, 160, 120, 255],
+            metallicFactor=0.2,
+            roughnessFactor=0.7,
+            normalTexture=normal,
+            occlusionTexture=ao,
+        )
+        safe, dropped = sanitize_topology_changed_material(material)
+        self.assertEqual(set(dropped), {"normal", "occlusion"})
+        self.assertIsNone(getattr(safe, "normalTexture", None))
+        self.assertIsNone(getattr(safe, "occlusionTexture", None))
+        self.assertIsNotNone(getattr(safe, "baseColorFactor", None))
 
     def test_uniform_source_color_transfers_to_refined_mesh(self):
         with tempfile.TemporaryDirectory() as tmp:
