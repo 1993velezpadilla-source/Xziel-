@@ -141,9 +141,10 @@ ASSET_PROFILE_IDS = {
 
 
 def infer_asset_profile(primary: Path, mode: str = "auto") -> str:
-    parts = {part.lower() for part in primary.parts}
-    stem_tokens = set(primary.stem.lower().replace("-", "_").split("_"))
-    tokens = parts | stem_tokens
+    raw_parts = [part.lower() for part in primary.parts]
+    tokens = set(raw_parts)
+    for part in [*raw_parts, primary.stem.lower()]:
+        tokens.update(part.replace("-", "_").replace(".", "_").split("_"))
 
     if tokens & {"pistol","handgun","revolver","shotgun","rifle","smg","lmg","gun","firearm","sniper","launcher","p90"}:
         return "weapon.firearm"
