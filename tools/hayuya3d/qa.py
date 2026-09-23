@@ -130,7 +130,19 @@ def inspect_mesh(
             result.notes.append("no triangle mesh geometry")
             return result
 
-        mesh = trimesh.util.concatenate(meshes)
+        # Build a geometry-only aggregate for topology metrics. Concatenating
+        # textured/PBR visuals can invoke visual/material conversion paths and make
+        # mesh health depend on material implementation details. Material evidence
+        # is inspected separately on the original geometries below.
+        metric_meshes = [
+            trimesh.Trimesh(
+                vertices=np.asarray(g.vertices),
+                faces=np.asarray(g.faces),
+                process=False,
+            )
+            for g in meshes
+        ]
+        mesh = trimesh.util.concatenate(metric_meshes)
         result.vertices = int(len(mesh.vertices))
         result.faces = int(len(mesh.faces))
         result.components = len(mesh.split(only_watertight=False))
