@@ -172,8 +172,9 @@ def build_gameprep(
     else:
         ratios = [1.0, 0.55, 0.28, 0.12]
         lod_policy = (
-            "unrigged source: quadric LODs with shared Material Bridge v2 "
-            "PBR/base-color transfer context"
+            "unrigged source: every runtime LOD, including LOD0, is derived through "
+            "the tier texture ceiling with shared Material Bridge v2 PBR/base-color "
+            "transfer; Hero Master remains exact and untouched"
         )
         # One source/material transfer context is shared across all simplified LODs.
         transfer_context = prepare_material_transfer(
@@ -189,14 +190,10 @@ def build_gameprep(
         final_path = out_dir / f"{name}.glb"
 
         transfer_result = None
-        if has_skin or (index == 0 and source_faces <= lod0_target):
+        if has_skin:
             shutil.copy2(master_glb, final_path)
             actual = source_faces
-            material_policy = (
-                "exact rig/skin/material preservation"
-                if has_skin
-                else "original master materials preserved"
-            )
+            material_policy = "exact rig/skin/material preservation"
         else:
             simplified = simplify_to_faces(master_mesh, target)
             raw_path = out_dir / "_raw" / f"{name}_geometry.glb"
