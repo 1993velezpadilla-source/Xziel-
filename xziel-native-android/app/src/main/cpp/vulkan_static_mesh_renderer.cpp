@@ -249,6 +249,7 @@ bool VulkanStaticMeshRenderer::initialize(
     streamPlanFrame_ = 0U;
     lastLoggedStreamCell_ = 0U;
     runtimeTextureTransition_ = {};
+    runtimeTextureCooldownFrames_ = 0U;
     streamCellCandidate_ = 0U;
     streamCellStableFrames_ = 0U;
     streamCullingActive_ = false;
@@ -1273,12 +1274,135 @@ bool VulkanStaticMeshRenderer::updateTextureDescriptorFrame(
     return true;
 }
 
+void VulkanStaticMeshRenderer::scheduleRuntimeMipPromotion() noexcept {
+    auto& transition =
+        runtimeTextureTransition_;
+
+    if (transition.stage !=
+            RuntimeTextureStage::Idle ||
+        runtimeTextureCooldownFrames_ > 0U ||
+        !streamGraphReady_ ||
+        !assetStreamer_.running()) {
+        return;
+    }
+
+    const std::size_t decisionCount =
+        std::min(
+            streamDecisionCount_,
+            streamDecisions_.size());
+
+    const std::array<StreamCellHeat, 2>
+        promotionOrder{{
+            StreamCellHeat::Hot,
+            StreamCellHeat::Preload,
+        }};
+
+    for (const auto desiredHeat :
+         promotionOrder) {
+        for (std::size_t decisionIndex = 0U;
+             decisionIndex < decisionCount;
+             ++decisionIndex) {
+            const auto& decision =
+                streamDecisions_[
+                    decisionIndex];
+
+            if (decision.resourceId == 0U ||
+                decision.heat !=
+                    desiredHeat ||
+                !decision.desiredResident) {
+                continue;
+            }
+
+            for (std::uint32_t textureIndex = 0U;
+                 textureIndex <
+                     textures_.size();
+                 ++textureIndex) {
+                const auto& texture =
+                    textures_[textureIndex];
+
+                if (texture.streamResourceId !=
+                        decision.resourceId ||
+                    texture.residentBaseMip == 0U ||
+                    decision.desiredMipBias >=
+                        texture.residentBaseMip ||
+                    texture.sourceMipLevels == 0U ||
+                    !texture.assetPath.ends_with(
+                        ".ktx2")) {
+                    continue;
+                }
+
+                const std::uint32_t targetBaseMip =
+                    std::max<std::uint32_t>(
+                        decision.desiredMipBias,
+                        texture.residentBaseMip -
+                            1U);
+
+                if (targetBaseMip >=
+                    texture.residentBaseMip) {
+                    continue;
+                }
+
+                const std::uint64_t addedBytes =
+                    targetBaseMip <
+                            texture.sourceMipLevels
+                    ? texture.sourceMipBytes[
+                          targetBaseMip]
+                    : 0U;
+
+                if (addedBytes == 0U ||
+                    addedBytes >
+                        textureResidentBudgetBytes_ -
+                            std::min(
+                                textureResidentBytes_,
+                                textureResidentBudgetBytes_)) {
+                    continue;
+                }
+
+                if (!assetStreamer_.enqueue(
+                        texture.assetPath)) {
+                    return;
+                }
+
+                transition = {};
+                transition.stage =
+                    RuntimeTextureStage::Reading;
+                transition.direction =
+                    RuntimeTextureDirection::
+                        Promote;
+                transition.textureIndex =
+                    textureIndex;
+                transition.targetBaseMip =
+                    targetBaseMip;
+                transition.assetPath =
+                    texture.assetPath;
+
+                __android_log_print(
+                    ANDROID_LOG_INFO,
+                    kTag,
+                    "XZIEL_RUNTIME_MIP_PROMOTION_REQUEST path=%s old_base=%u target_base=%u resource=%llu added_payload_bytes=%llu",
+                    texture.assetPath.c_str(),
+                    static_cast<unsigned int>(
+                        texture.residentBaseMip),
+                    static_cast<unsigned int>(
+                        targetBaseMip),
+                    static_cast<unsigned long long>(
+                        texture.streamResourceId),
+                    static_cast<unsigned long long>(
+                        addedBytes));
+
+                return;
+            }
+        }
+    }
+}
+
 void VulkanStaticMeshRenderer::scheduleRuntimeMipDemotion() noexcept {
     auto& transition =
         runtimeTextureTransition_;
 
     if (transition.stage !=
             RuntimeTextureStage::Idle ||
+        runtimeTextureCooldownFrames_ > 0U ||
         !streamGraphReady_ ||
         !streamCullingActive_ ||
         !assetStreamer_.running()) {
@@ -1348,6 +1472,9 @@ void VulkanStaticMeshRenderer::scheduleRuntimeMipDemotion() noexcept {
             transition = {};
             transition.stage =
                 RuntimeTextureStage::Reading;
+            transition.direction =
+                RuntimeTextureDirection::
+                    Demote;
             transition.textureIndex =
                 textureIndex;
             transition.targetBaseMip =
@@ -1382,6 +1509,15 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureTransition(
         return;
     }
 
+    const bool promotion =
+        transition.direction ==
+        RuntimeTextureDirection::Promote;
+
+    const char* directionText =
+        promotion
+        ? "promotion"
+        : "demotion";
+
     if (transition.stage ==
         RuntimeTextureStage::Reading) {
         std::vector<std::byte> bytes;
@@ -1403,7 +1539,8 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureTransition(
             __android_log_print(
                 ANDROID_LOG_WARN,
                 kTag,
-                "XZIEL_RUNTIME_MIP_DEMOTION_READ_FAILED path=%s",
+                "XZIEL_RUNTIME_MIP_TRANSITION_READ_FAILED direction=%s path=%s",
+                directionText,
                 transition.assetPath.c_str());
 
             resetRuntimeTextureTransition(
@@ -1427,7 +1564,8 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureTransition(
             __android_log_print(
                 ANDROID_LOG_WARN,
                 kTag,
-                "XZIEL_RUNTIME_MIP_DEMOTION_PREPARE_FAILED path=%s target_base=%u",
+                "XZIEL_RUNTIME_MIP_TRANSITION_PREPARE_FAILED direction=%s path=%s target_base=%u",
+                directionText,
                 transition.assetPath.c_str(),
                 static_cast<unsigned int>(
                     transition.targetBaseMip));
@@ -1448,7 +1586,8 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureTransition(
             __android_log_print(
                 ANDROID_LOG_WARN,
                 kTag,
-                "XZIEL_RUNTIME_MIP_DEMOTION_SUBMIT_FAILED path=%s target_base=%u",
+                "XZIEL_RUNTIME_MIP_TRANSITION_SUBMIT_FAILED direction=%s path=%s target_base=%u",
+                directionText,
                 transition.assetPath.c_str(),
                 static_cast<unsigned int>(
                     transition.targetBaseMip));
@@ -1461,7 +1600,8 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureTransition(
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_RUNTIME_MIP_UPLOAD_SUBMITTED path=%s target_base=%u staging_kb=%.1f",
+            "XZIEL_RUNTIME_MIP_UPLOAD_SUBMITTED direction=%s path=%s target_base=%u staging_kb=%.1f",
+            directionText,
             transition.assetPath.c_str(),
             static_cast<unsigned int>(
                 transition.targetBaseMip),
@@ -1494,7 +1634,8 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureTransition(
             __android_log_print(
                 ANDROID_LOG_WARN,
                 kTag,
-                "XZIEL_RUNTIME_MIP_UPLOAD_FENCE_ERROR path=%s result=%d",
+                "XZIEL_RUNTIME_MIP_UPLOAD_FENCE_ERROR direction=%s path=%s result=%d",
+                directionText,
                 transition.assetPath.c_str(),
                 static_cast<int>(status));
             return;
@@ -1519,15 +1660,26 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureTransition(
                 current.streamResourceId,
                 streamDecisionCount_);
 
-        if (latestDecision == nullptr ||
-            latestDecision->heat !=
-                StreamCellHeat::Cold ||
-            latestDecision->desiredMipBias <=
-                current.residentBaseMip) {
+        const bool stale =
+            latestDecision == nullptr ||
+            (promotion
+                ? (!latestDecision->
+                       desiredResident ||
+                   latestDecision->
+                       desiredMipBias >=
+                       current.residentBaseMip)
+                : (latestDecision->heat !=
+                       StreamCellHeat::Cold ||
+                   latestDecision->
+                       desiredMipBias <=
+                       current.residentBaseMip));
+
+        if (stale) {
             __android_log_print(
                 ANDROID_LOG_INFO,
                 kTag,
-                "XZIEL_RUNTIME_MIP_DEMOTION_CANCELLED path=%s reason=became_warm",
+                "XZIEL_RUNTIME_MIP_TRANSITION_CANCELLED direction=%s path=%s reason=policy_changed",
+                directionText,
                 transition.assetPath.c_str());
 
             resetRuntimeTextureTransition(
@@ -1541,7 +1693,8 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureTransition(
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_RUNTIME_MIP_UPLOAD_READY path=%s target_base=%u",
+            "XZIEL_RUNTIME_MIP_UPLOAD_READY direction=%s path=%s target_base=%u",
+            directionText,
             transition.assetPath.c_str(),
             static_cast<unsigned int>(
                 transition.targetBaseMip));
@@ -1567,7 +1720,8 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureTransition(
             __android_log_print(
                 ANDROID_LOG_WARN,
                 kTag,
-                "XZIEL_RUNTIME_MIP_DESCRIPTOR_UPDATE_FAILED path=%s slot=%u",
+                "XZIEL_RUNTIME_MIP_DESCRIPTOR_UPDATE_FAILED direction=%s path=%s slot=%u",
+                directionText,
                 transition.assetPath.c_str(),
                 static_cast<unsigned int>(
                     slot));
@@ -1647,27 +1801,55 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureTransition(
             current.residentPayloadBytes
         : 0U;
 
-    __android_log_print(
-        ANDROID_LOG_INFO,
-        kTag,
-        "XZIEL_RUNTIME_MIP_DEMOTION_COMMIT path=%s old_base=%u new_base=%u freed_payload_bytes=%llu resident_total_mb=%.2f degraded=%u",
-        current.assetPath.c_str(),
-        static_cast<unsigned int>(
-            oldBaseMip),
-        static_cast<unsigned int>(
-            current.residentBaseMip),
-        static_cast<unsigned long long>(
-            freedBytes),
-        static_cast<double>(
-            textureResidentBytes_) /
-            (1024.0 * 1024.0),
-        static_cast<unsigned int>(
-            textureDegradedCount_));
+    const std::uint64_t addedBytes =
+        current.residentPayloadBytes >
+            oldPayload
+        ? current.residentPayloadBytes -
+            oldPayload
+        : 0U;
+
+    if (promotion) {
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_RUNTIME_MIP_PROMOTION_COMMIT path=%s old_base=%u new_base=%u added_payload_bytes=%llu resident_total_mb=%.2f degraded=%u",
+            current.assetPath.c_str(),
+            static_cast<unsigned int>(
+                oldBaseMip),
+            static_cast<unsigned int>(
+                current.residentBaseMip),
+            static_cast<unsigned long long>(
+                addedBytes),
+            static_cast<double>(
+                textureResidentBytes_) /
+                (1024.0 * 1024.0),
+            static_cast<unsigned int>(
+                textureDegradedCount_));
+    } else {
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_RUNTIME_MIP_DEMOTION_COMMIT path=%s old_base=%u new_base=%u freed_payload_bytes=%llu resident_total_mb=%.2f degraded=%u",
+            current.assetPath.c_str(),
+            static_cast<unsigned int>(
+                oldBaseMip),
+            static_cast<unsigned int>(
+                current.residentBaseMip),
+            static_cast<unsigned long long>(
+                freedBytes),
+            static_cast<double>(
+                textureResidentBytes_) /
+                (1024.0 * 1024.0),
+            static_cast<unsigned int>(
+                textureDegradedCount_));
+    }
 
     destroyTexture(
         old);
 
     transition = {};
+    runtimeTextureCooldownFrames_ =
+        8U;
 }
 
 void VulkanStaticMeshRenderer::record(
@@ -1815,6 +1997,11 @@ void VulkanStaticMeshRenderer::record(
         }
     }
 
+    if (runtimeTextureCooldownFrames_ > 0U) {
+        --runtimeTextureCooldownFrames_;
+    }
+
+    scheduleRuntimeMipPromotion();
     scheduleRuntimeMipDemotion();
 
     VkPipeline boundPipeline =
