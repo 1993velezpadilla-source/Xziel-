@@ -5990,6 +5990,46 @@ void VulkanStaticMeshRenderer::destroyGeometryResidency() noexcept {
     batches_.clear();
 
     if (device_ != VK_NULL_HANDLE) {
+        for (std::size_t i = 0U;
+             i < geometryCellCount_;
+             ++i) {
+            auto& cell =
+                geometryCells_[i];
+
+            if (cell.indexBuffer !=
+                VK_NULL_HANDLE) {
+                vkDestroyBuffer(
+                    device_,
+                    cell.indexBuffer,
+                    nullptr);
+            }
+
+            if (cell.indexMemory !=
+                VK_NULL_HANDLE) {
+                vkFreeMemory(
+                    device_,
+                    cell.indexMemory,
+                    nullptr);
+            }
+
+            if (cell.vertexBuffer !=
+                VK_NULL_HANDLE) {
+                vkDestroyBuffer(
+                    device_,
+                    cell.vertexBuffer,
+                    nullptr);
+            }
+
+            if (cell.vertexMemory !=
+                VK_NULL_HANDLE) {
+                vkFreeMemory(
+                    device_,
+                    cell.vertexMemory,
+                    nullptr);
+            }
+        }
+
+        if (geometryIndexBuffer_ != VK_NULL_HANDLE) {
         if (geometryIndexBuffer_ != VK_NULL_HANDLE) {
             vkDestroyBuffer(
                 device_,
@@ -6018,6 +6058,11 @@ void VulkanStaticMeshRenderer::destroyGeometryResidency() noexcept {
                 nullptr);
         }
     }
+
+    geometryCells_ = {};
+    geometryCellCount_ = 0U;
+    geometryCellVertexBytes_ = 0U;
+    geometryCellIndexBytes_ = 0U;
 
     geometryVertexBuffer_ =
         VK_NULL_HANDLE;
