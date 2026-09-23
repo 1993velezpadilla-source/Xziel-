@@ -242,6 +242,9 @@ struct NativeAppState {
 
     float memoryPressureSeconds = 0.0f;
     float thermalPollSeconds = 1.0f;
+
+    xziel::PerformanceBottleneck lastLoggedBottleneck =
+        xziel::PerformanceBottleneck::Balanced;
 };
 
 bool loadMapDefinitionFromAsset(
@@ -3057,10 +3060,36 @@ extern "C" void android_main(
                         : frameDelta * 1000.0f,
                     .gpuFrameMs =
                         governorGpuFrameMs,
+                    .frameIntervalMs =
+                        frameDelta * 1000.0f,
                     .thermal =
                         state.thermalLevel,
                 },
                 frameDelta);
+
+        const auto bottleneck =
+            state.performance.bottleneck();
+
+        if (bottleneck !=
+            state.lastLoggedBottleneck) {
+            __android_log_print(
+                ANDROID_LOG_INFO,
+                kTag,
+                "XZIEL_BOTTLENECK class=%d cpu_ms=%.3f gpu_ms=%.3f frame_ms=%.3f gpu_authoritative=%d",
+                static_cast<int>(bottleneck),
+                static_cast<double>(
+                    state.performance.smoothedCpuMs()),
+                static_cast<double>(
+                    state.performance.smoothedGpuMs()),
+                static_cast<double>(
+                    frameDelta * 1000.0f),
+                state.renderer.gpuTimingAuthoritative()
+                    ? 1
+                    : 0);
+
+            state.lastLoggedBottleneck =
+                bottleneck;
+        }
 
         const auto runtimePolicy =
             state.runtimePolicyPlanner.plan(
