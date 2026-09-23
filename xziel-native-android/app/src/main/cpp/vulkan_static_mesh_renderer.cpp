@@ -2778,6 +2778,8 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
         frameSlot >= kDescriptorFrames ||
         geometryCellCount_ == 0U ||
         geometryAssetPath_.empty() ||
+        geometryDirectory_.version <
+            kStaticMeshNormalsVersion ||
         geometryDirectory_.batches.size() !=
             batches_.size()) {
         return;
