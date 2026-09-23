@@ -22,6 +22,20 @@ const xziel::StreamCellResourceDecision* findDecision(
 } // namespace
 
 int main() {
+    const auto assetA =
+        xziel::streamResourceId(
+            "textures/xziel/sanctum/nave.ktx2");
+    const auto assetAAgain =
+        xziel::streamResourceId(
+            "textures/xziel/sanctum/nave.ktx2");
+    const auto assetB =
+        xziel::streamResourceId(
+            "textures/xziel/sanctum/office.ktx2");
+
+    assert(assetA != 0U);
+    assert(assetA == assetAAgain);
+    assert(assetA != assetB);
+
     xziel::StreamCellGraph graph;
 
     assert(graph.addCell({.id = 1U}));
