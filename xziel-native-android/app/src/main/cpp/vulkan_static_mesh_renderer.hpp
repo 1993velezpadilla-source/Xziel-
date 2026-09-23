@@ -169,9 +169,16 @@ private:
         Migrating,
     };
 
+    enum class RuntimeTextureDirection : std::uint8_t {
+        Demote,
+        Promote,
+    };
+
     struct RuntimeTextureTransition {
         RuntimeTextureStage stage =
             RuntimeTextureStage::Idle;
+        RuntimeTextureDirection direction =
+            RuntimeTextureDirection::Demote;
         std::uint32_t textureIndex =
             UINT32_MAX;
         std::uint32_t targetBaseMip = 0U;
@@ -339,6 +346,7 @@ private:
     void serviceRuntimeTextureTransition(
         std::uint32_t frameSlot) noexcept;
 
+    void scheduleRuntimeMipPromotion() noexcept;
     void scheduleRuntimeMipDemotion() noexcept;
 
     [[nodiscard]] bool submitRuntimeTextureUpload(
@@ -392,6 +400,8 @@ private:
 
     RuntimeTextureTransition
         runtimeTextureTransition_{};
+    std::uint32_t
+        runtimeTextureCooldownFrames_ = 0U;
 
     std::vector<GpuTexture> textures_{};
     std::vector<GpuMaterial> materials_{};
