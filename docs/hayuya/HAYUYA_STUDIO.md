@@ -64,7 +64,7 @@ This v1 does not expose Studio to the public internet and does not include cloud
 
 ## 3D viewer
 
-The first Studio UI pins Google `model-viewer` 4.3.1 from jsDelivr. The rest of Studio is served locally by Hayuya. A future offline-vendor step can cache/bundle the viewer so the phone does not need internet access for that JavaScript dependency.
+Studio pins Google `model-viewer` 4.3.1. The Hayuya host machine downloads and caches that viewer under `.hayuya/studio-vendor/`, then serves it over the same LAN at `/vendor/model-viewer.min.js`. After the host cache exists, the phone does not need its own internet connection to load the 3D viewer.
 
 ## Paths
 
