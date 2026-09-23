@@ -44,6 +44,18 @@ jobs:
             --size 128 \
             --azimuth-step 45 | tee /tmp/hayuya-known-good-visual.json
 
+      - name: Calibrate against historical bad Candyland billboard output
+        run: |
+          set -euo pipefail
+          git fetch --depth=1 origin b69c3bd96a97f8f63695dce6193a31d763252aba
+          git show b69c3bd96a97f8f63695dce6193a31d763252aba:hayuya/models/candy-zombie-001/model.glb > /tmp/candy-bad.glb
+          python tools/hayuya3d/mesh_gate.py /tmp/candy-bad.glb --json /tmp/candy-bad-mesh-gate.json || true
+          python tools/hayuya3d/visual_judge.py \
+            /tmp/candy-bad.glb \
+            --source hayuya/assets/candy-zombie-001/geometry/candy-zombie-user-reference.jpg \
+            --size 128 \
+            --azimuth-step 45 | tee /tmp/candy-bad-visual.json
+
       - name: Dry-run one-photo planner
         run: |
           python - <<'PY'
