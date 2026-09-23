@@ -13,6 +13,7 @@ import numpy as np
 import trimesh
 
 from material_bridge import transfer_base_color, transfer_best_material
+from qa import inspect_mesh
 
 
 class MaterialBridgeTests(unittest.TestCase):
@@ -108,6 +109,16 @@ class MaterialBridgeTests(unittest.TestCase):
             self.assertIsNotNone(getattr(pbr, "normalTexture", None))
             self.assertIsNotNone(getattr(pbr, "occlusionTexture", None))
             self.assertIsNotNone(getattr(pbr, "emissiveTexture", None))
+
+            inspected = inspect_mesh(
+                output_path,
+                backend="pbr_bridge_test",
+                mode="prop",
+                target_faces=8,
+            )
+            self.assertGreaterEqual(inspected.material_score, 95.0)
+            for channel in ("baseColor", "metallic", "roughness", "normal", "occlusion"):
+                self.assertIn(channel, inspected.pbr_channels)
 
     def test_uniform_source_color_transfers_to_refined_mesh(self):
         with tempfile.TemporaryDirectory() as tmp:
