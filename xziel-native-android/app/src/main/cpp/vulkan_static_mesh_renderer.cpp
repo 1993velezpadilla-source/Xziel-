@@ -2519,6 +2519,683 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureResidency(
     }
 }
 
+void VulkanStaticMeshRenderer::releaseGeometryCellGpuResidency(
+    GeometryCellResidency& cell) noexcept {
+    if (device_ != VK_NULL_HANDLE) {
+        if (cell.indexBuffer != VK_NULL_HANDLE) {
+            vkDestroyBuffer(
+                device_,
+                cell.indexBuffer,
+                nullptr);
+        }
+
+        if (cell.indexMemory != VK_NULL_HANDLE) {
+            vkFreeMemory(
+                device_,
+                cell.indexMemory,
+                nullptr);
+        }
+
+        if (cell.vertexBuffer != VK_NULL_HANDLE) {
+            vkDestroyBuffer(
+                device_,
+                cell.vertexBuffer,
+                nullptr);
+        }
+
+        if (cell.vertexMemory != VK_NULL_HANDLE) {
+            vkFreeMemory(
+                device_,
+                cell.vertexMemory,
+                nullptr);
+        }
+    }
+
+    const std::uint64_t bytes =
+        static_cast<std::uint64_t>(
+            cell.vertexBytes +
+            cell.indexBytes);
+
+    if (cell.physicallyResident) {
+        geometryResidentBytes_ =
+            bytes <= geometryResidentBytes_
+            ? geometryResidentBytes_ - bytes
+            : 0U;
+    }
+
+    cell.vertexBuffer = VK_NULL_HANDLE;
+    cell.vertexMemory = VK_NULL_HANDLE;
+    cell.indexBuffer = VK_NULL_HANDLE;
+    cell.indexMemory = VK_NULL_HANDLE;
+    cell.deviceLocalHostVisible = false;
+    cell.physicallyResident = false;
+    cell.retireMask = 0U;
+}
+
+bool VulkanStaticMeshRenderer::restoreGeometryCellGpuResidency(
+    GeometryCellResidency& cell) noexcept {
+    if (device_ == VK_NULL_HANDLE ||
+        cell.physicallyResident ||
+        cell.vertexBytes == 0U ||
+        cell.indexBytes == 0U ||
+        cell.reloadVertexBytes.size() !=
+            static_cast<std::size_t>(
+                cell.vertexBytes) ||
+        cell.reloadIndexBytes.size() !=
+            static_cast<std::size_t>(
+                cell.indexBytes)) {
+        return false;
+    }
+
+    const VkMemoryPropertyFlags hostFlags =
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    const VkMemoryPropertyFlags preferredFlags =
+        hostFlags |
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+
+    const auto destroyPartial =
+        [&]() noexcept {
+            if (cell.indexBuffer != VK_NULL_HANDLE) {
+                vkDestroyBuffer(
+                    device_,
+                    cell.indexBuffer,
+                    nullptr);
+                cell.indexBuffer =
+                    VK_NULL_HANDLE;
+            }
+
+            if (cell.indexMemory != VK_NULL_HANDLE) {
+                vkFreeMemory(
+                    device_,
+                    cell.indexMemory,
+                    nullptr);
+                cell.indexMemory =
+                    VK_NULL_HANDLE;
+            }
+
+            if (cell.vertexBuffer != VK_NULL_HANDLE) {
+                vkDestroyBuffer(
+                    device_,
+                    cell.vertexBuffer,
+                    nullptr);
+                cell.vertexBuffer =
+                    VK_NULL_HANDLE;
+            }
+
+            if (cell.vertexMemory != VK_NULL_HANDLE) {
+                vkFreeMemory(
+                    device_,
+                    cell.vertexMemory,
+                    nullptr);
+                cell.vertexMemory =
+                    VK_NULL_HANDLE;
+            }
+        };
+
+    const auto createPair =
+        [&](VkMemoryPropertyFlags flags) noexcept {
+            if (!createBuffer(
+                    cell.vertexBytes,
+                    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                        VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                    flags,
+                    cell.vertexBuffer,
+                    cell.vertexMemory)) {
+                return false;
+            }
+
+            if (!createBuffer(
+                    cell.indexBytes,
+                    VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+                        VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                    flags,
+                    cell.indexBuffer,
+                    cell.indexMemory)) {
+                destroyPartial();
+                return false;
+            }
+
+            return true;
+        };
+
+    cell.deviceLocalHostVisible =
+        createPair(preferredFlags);
+
+    if (!cell.deviceLocalHostVisible &&
+        !createPair(hostFlags)) {
+        return false;
+    }
+
+    void* mappedVertices = nullptr;
+    void* mappedIndices = nullptr;
+
+    if (!ok(
+            vkMapMemory(
+                device_,
+                cell.vertexMemory,
+                0U,
+                cell.vertexBytes,
+                0U,
+                &mappedVertices)) ||
+        !ok(
+            vkMapMemory(
+                device_,
+                cell.indexMemory,
+                0U,
+                cell.indexBytes,
+                0U,
+                &mappedIndices))) {
+        if (mappedVertices != nullptr) {
+            vkUnmapMemory(
+                device_,
+                cell.vertexMemory);
+        }
+        destroyPartial();
+        return false;
+    }
+
+    std::memcpy(
+        mappedVertices,
+        cell.reloadVertexBytes.data(),
+        cell.reloadVertexBytes.size());
+
+    std::memcpy(
+        mappedIndices,
+        cell.reloadIndexBytes.data(),
+        cell.reloadIndexBytes.size());
+
+    vkUnmapMemory(
+        device_,
+        cell.indexMemory);
+    vkUnmapMemory(
+        device_,
+        cell.vertexMemory);
+
+    cell.physicallyResident = true;
+    cell.retireMask = 0U;
+    cell.reloadActive = false;
+    cell.reloadScanCursor = 0U;
+    cell.reloadPendingBatch = UINT32_MAX;
+    cell.reloadPendingKey.clear();
+    cell.reloadVertexBytes.clear();
+    cell.reloadIndexBytes.clear();
+
+    const std::uint64_t bytes =
+        static_cast<std::uint64_t>(
+            cell.vertexBytes +
+            cell.indexBytes);
+
+    if (bytes <=
+        std::numeric_limits<std::uint64_t>::max() -
+            geometryResidentBytes_) {
+        geometryResidentBytes_ +=
+            bytes;
+    }
+
+    return true;
+}
+
+std::string VulkanStaticMeshRenderer::geometryRangeRequestKey(
+    std::uint32_t cellSlot,
+    std::uint32_t batchIndex) const {
+    return
+        "geometry:" +
+        std::to_string(cellSlot) +
+        ":" +
+        std::to_string(batchIndex);
+}
+
+void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
+    std::uint32_t frameSlot,
+    const StreamCellPlanInput& input) noexcept {
+    if (!streamGraphReady_ ||
+        frameSlot >= kDescriptorFrames ||
+        geometryCellCount_ == 0U ||
+        geometryAssetPath_.empty() ||
+        geometryDirectory_.batches.size() !=
+            batches_.size()) {
+        return;
+    }
+
+    const std::uint8_t slotBit =
+        static_cast<std::uint8_t>(
+            1U << frameSlot);
+    const std::uint8_t fullMask =
+        static_cast<std::uint8_t>(
+            (1U << kDescriptorFrames) - 1U);
+
+    for (std::size_t i = 0U;
+         i < geometryCellCount_;
+         ++i) {
+        auto& cell =
+            geometryCells_[i];
+
+        if (cell.pinned) {
+            cell.heat =
+                StreamCellHeat::Hot;
+            continue;
+        }
+
+        cell.heat =
+            streamGraph_.cellHeat(
+                input,
+                cell.cellId);
+
+        if (streamResidencyProbeEnabled_ &&
+            !geometryResidencyProbeComplete_ &&
+            geometryResidencyProbeCellSlot_ ==
+                i &&
+            runtimeTextureTransitionFrame_ >=
+                geometryResidencyProbeReloadFrame_) {
+            cell.heat =
+                StreamCellHeat::Preload;
+        }
+    }
+
+    if (geometryReloadCellSlot_ !=
+        UINT32_MAX) {
+        if (geometryReloadCellSlot_ >=
+            geometryCellCount_) {
+            geometryReloadCellSlot_ =
+                UINT32_MAX;
+            return;
+        }
+
+        auto& cell =
+            geometryCells_[
+                geometryReloadCellSlot_];
+
+        if (!cell.reloadActive) {
+            geometryReloadCellSlot_ =
+                UINT32_MAX;
+            return;
+        }
+
+        if (cell.reloadPendingBatch !=
+            UINT32_MAX) {
+            const std::uint32_t batchIndex =
+                cell.reloadPendingBatch;
+            bool finished = false;
+            std::vector<std::byte> bytes;
+
+            const bool success =
+                assetStreamer_.tryTake(
+                    cell.reloadPendingKey,
+                    bytes,
+                    finished);
+
+            if (!finished) {
+                return;
+            }
+
+            cell.reloadPendingBatch =
+                UINT32_MAX;
+            cell.reloadPendingKey.clear();
+
+            if (!success ||
+                batchIndex >= batches_.size()) {
+                cell.reloadActive = false;
+                cell.reloadVertexBytes.clear();
+                cell.reloadIndexBytes.clear();
+                geometryReloadCellSlot_ =
+                    UINT32_MAX;
+                return;
+            }
+
+            const auto& batch =
+                batches_[batchIndex];
+
+            if (batch.sourceBatchIndex >=
+                    geometryDirectory_.
+                        batches.size() ||
+                batch.geometryCellSlot !=
+                    geometryReloadCellSlot_) {
+                cell.reloadActive = false;
+                cell.reloadVertexBytes.clear();
+                cell.reloadIndexBytes.clear();
+                geometryReloadCellSlot_ =
+                    UINT32_MAX;
+                return;
+            }
+
+            const auto& entry =
+                geometryDirectory_.batches[
+                    batch.sourceBatchIndex];
+
+            if (entry.indexDataOffset <
+                    entry.vertexDataOffset ||
+                entry.payloadBytes <
+                    entry.indexDataOffset -
+                        entry.vertexDataOffset ||
+                entry.payloadBytes >
+                    std::numeric_limits<
+                        std::size_t>::max() ||
+                bytes.size() !=
+                    static_cast<std::size_t>(
+                        entry.payloadBytes)) {
+                cell.reloadActive = false;
+                cell.reloadVertexBytes.clear();
+                cell.reloadIndexBytes.clear();
+                geometryReloadCellSlot_ =
+                    UINT32_MAX;
+                return;
+            }
+
+            const std::uint64_t vertexBytes =
+                entry.indexDataOffset -
+                entry.vertexDataOffset;
+            const std::uint64_t indexBytes =
+                entry.payloadBytes -
+                vertexBytes;
+
+            const std::uint64_t vertexDst =
+                static_cast<std::uint64_t>(
+                    batch.vertexOffset) *
+                sizeof(StaticMeshVertex);
+            const std::uint64_t indexDst =
+                static_cast<std::uint64_t>(
+                    batch.firstIndex) *
+                sizeof(std::uint16_t);
+
+            if (vertexDst >
+                    cell.reloadVertexBytes.size() ||
+                vertexBytes >
+                    cell.reloadVertexBytes.size() -
+                        vertexDst ||
+                indexDst >
+                    cell.reloadIndexBytes.size() ||
+                indexBytes >
+                    cell.reloadIndexBytes.size() -
+                        indexDst) {
+                cell.reloadActive = false;
+                cell.reloadVertexBytes.clear();
+                cell.reloadIndexBytes.clear();
+                geometryReloadCellSlot_ =
+                    UINT32_MAX;
+                return;
+            }
+
+            std::memcpy(
+                cell.reloadVertexBytes.data() +
+                    static_cast<std::size_t>(
+                        vertexDst),
+                bytes.data(),
+                static_cast<std::size_t>(
+                    vertexBytes));
+
+            std::memcpy(
+                cell.reloadIndexBytes.data() +
+                    static_cast<std::size_t>(
+                        indexDst),
+                bytes.data() +
+                    static_cast<std::size_t>(
+                        vertexBytes),
+                static_cast<std::size_t>(
+                    indexBytes));
+        }
+
+        for (std::size_t i =
+                 cell.reloadScanCursor;
+             i < batches_.size();
+             ++i) {
+            const auto& batch =
+                batches_[i];
+
+            if (batch.geometryCellSlot !=
+                geometryReloadCellSlot_) {
+                continue;
+            }
+
+            if (batch.sourceBatchIndex >=
+                geometryDirectory_.batches.size()) {
+                cell.reloadActive = false;
+                cell.reloadVertexBytes.clear();
+                cell.reloadIndexBytes.clear();
+                geometryReloadCellSlot_ =
+                    UINT32_MAX;
+                return;
+            }
+
+            const auto& entry =
+                geometryDirectory_.batches[
+                    batch.sourceBatchIndex];
+
+            const std::string key =
+                geometryRangeRequestKey(
+                    geometryReloadCellSlot_,
+                    static_cast<std::uint32_t>(
+                        i));
+
+            if (!assetStreamer_.enqueueRange(
+                    geometryAssetPath_,
+                    entry.vertexDataOffset,
+                    entry.payloadBytes,
+                    key)) {
+                cell.reloadActive = false;
+                cell.reloadVertexBytes.clear();
+                cell.reloadIndexBytes.clear();
+                geometryReloadCellSlot_ =
+                    UINT32_MAX;
+                return;
+            }
+
+            cell.reloadPendingBatch =
+                static_cast<std::uint32_t>(i);
+            cell.reloadPendingKey =
+                key;
+            cell.reloadScanCursor =
+                i + 1U;
+
+            return;
+        }
+
+        const std::uint32_t completedSlot =
+            geometryReloadCellSlot_;
+        const std::uint32_t completedCell =
+            cell.cellId;
+        const std::uint64_t bytes =
+            static_cast<std::uint64_t>(
+                cell.vertexBytes +
+                cell.indexBytes);
+
+        if (!restoreGeometryCellGpuResidency(
+                cell)) {
+            cell.reloadActive = false;
+            cell.reloadVertexBytes.clear();
+            cell.reloadIndexBytes.clear();
+            geometryReloadCellSlot_ =
+                UINT32_MAX;
+            return;
+        }
+
+        geometryReloadCellSlot_ =
+            UINT32_MAX;
+
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_RUNTIME_GEOMETRY_RELOAD_COMPLETE cell=%u slot=%u resident_mb=%.2f total_resident_mb=%.2f",
+            static_cast<unsigned int>(
+                completedCell),
+            static_cast<unsigned int>(
+                completedSlot),
+            static_cast<double>(
+                bytes) /
+                (1024.0 * 1024.0),
+            static_cast<double>(
+                geometryResidentBytes_) /
+                (1024.0 * 1024.0));
+
+        if (streamResidencyProbeEnabled_ &&
+            geometryResidencyProbeCellSlot_ ==
+                completedSlot) {
+            geometryResidencyProbeComplete_ =
+                true;
+        }
+
+        return;
+    }
+
+    const std::uint32_t minimumStableFrames =
+        streamResidencyProbeEnabled_
+        ? 8U
+        : input.memoryPressure ==
+              MemoryPressure::Critical
+          ? 8U
+          : input.memoryPressure ==
+                MemoryPressure::Elevated
+            ? 30U
+            : 120U;
+
+    for (std::size_t i = 0U;
+         i < geometryCellCount_;
+         ++i) {
+        auto& cell =
+            geometryCells_[i];
+
+        if (cell.pinned ||
+            !cell.physicallyResident) {
+            continue;
+        }
+
+        if (cell.heat !=
+                StreamCellHeat::Cold ||
+            !streamCullingActive_ ||
+            streamCellStableFrames_ <
+                minimumStableFrames) {
+            cell.retireMask = 0U;
+            continue;
+        }
+
+        cell.retireMask |=
+            slotBit;
+
+        if (cell.retireMask !=
+            fullMask) {
+            return;
+        }
+
+        const std::uint64_t freedBytes =
+            static_cast<std::uint64_t>(
+                cell.vertexBytes +
+                cell.indexBytes);
+        const std::uint32_t evictedCell =
+            cell.cellId;
+
+        releaseGeometryCellGpuResidency(
+            cell);
+
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_RUNTIME_GEOMETRY_EVICTED cell=%u slot=%u freed_mb=%.2f total_resident_mb=%.2f pressure=%u",
+            static_cast<unsigned int>(
+                evictedCell),
+            static_cast<unsigned int>(i),
+            static_cast<double>(
+                freedBytes) /
+                (1024.0 * 1024.0),
+            static_cast<double>(
+                geometryResidentBytes_) /
+                (1024.0 * 1024.0),
+            static_cast<unsigned int>(
+                input.memoryPressure));
+
+        if (streamResidencyProbeEnabled_ &&
+            !geometryResidencyProbeComplete_ &&
+            geometryResidencyProbeCellSlot_ ==
+                UINT32_MAX) {
+            geometryResidencyProbeCellSlot_ =
+                static_cast<std::uint32_t>(
+                    i);
+            geometryResidencyProbeReloadFrame_ =
+                runtimeTextureTransitionFrame_ +
+                12U;
+
+            __android_log_print(
+                ANDROID_LOG_INFO,
+                kTag,
+                "XZIEL_RUNTIME_GEOMETRY_RELOAD_PROBE_ARMED cell=%u slot=%u reload_frame=%llu",
+                static_cast<unsigned int>(
+                    evictedCell),
+                static_cast<unsigned int>(i),
+                static_cast<unsigned long long>(
+                    geometryResidencyProbeReloadFrame_));
+        }
+
+        return;
+    }
+
+    for (StreamCellHeat targetHeat :
+         {StreamCellHeat::Hot,
+          StreamCellHeat::Preload}) {
+        for (std::size_t i = 0U;
+             i < geometryCellCount_;
+             ++i) {
+            auto& cell =
+                geometryCells_[i];
+
+            if (cell.pinned ||
+                cell.physicallyResident ||
+                cell.reloadActive ||
+                cell.heat != targetHeat) {
+                continue;
+            }
+
+            if (cell.vertexBytes >
+                    std::numeric_limits<
+                        std::size_t>::max() ||
+                cell.indexBytes >
+                    std::numeric_limits<
+                        std::size_t>::max()) {
+                continue;
+            }
+
+            try {
+                cell.reloadVertexBytes.assign(
+                    static_cast<std::size_t>(
+                        cell.vertexBytes),
+                    std::byte{0});
+                cell.reloadIndexBytes.assign(
+                    static_cast<std::size_t>(
+                        cell.indexBytes),
+                    std::byte{0});
+            } catch (...) {
+                cell.reloadVertexBytes.clear();
+                cell.reloadIndexBytes.clear();
+                continue;
+            }
+
+            cell.reloadActive = true;
+            cell.reloadScanCursor = 0U;
+            cell.reloadPendingBatch =
+                UINT32_MAX;
+            cell.reloadPendingKey.clear();
+            geometryReloadCellSlot_ =
+                static_cast<std::uint32_t>(
+                    i);
+
+            __android_log_print(
+                ANDROID_LOG_INFO,
+                kTag,
+                "XZIEL_RUNTIME_GEOMETRY_RELOAD_QUEUED cell=%u slot=%u bytes_mb=%.2f heat=%u",
+                static_cast<unsigned int>(
+                    cell.cellId),
+                static_cast<unsigned int>(i),
+                static_cast<double>(
+                    static_cast<std::uint64_t>(
+                        cell.vertexBytes +
+                        cell.indexBytes)) /
+                    (1024.0 * 1024.0),
+                static_cast<unsigned int>(
+                    cell.heat));
+
+            return;
+        }
+    }
+}
+
 void VulkanStaticMeshRenderer::record(
     VkCommandBuffer command,
     VkExtent2D extent,
