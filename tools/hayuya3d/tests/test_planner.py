@@ -155,6 +155,30 @@ class HayuyaPlannerTests(unittest.TestCase):
         self.assertFalse(meta["pshuman"]["enabled_by_default"])
         self.assertNotIn(meta["pshuman"]["license"], {"MIT", "Apache-2.0"})
 
+    def test_instant_meshes_retopo_is_optional_permissive_cpu_tool(self):
+        lock = hayuya.load_lock()
+        meta = hayuya.backend_meta(lock)
+        tool = meta["instant_meshes_retopo"]
+        self.assertFalse(tool["enabled_by_default"])
+        self.assertEqual(tool["license"], "BSD-3-Clause")
+        self.assertEqual(tool["min_vram_gb"], 0)
+        self.assertTrue(tool["submodules"])
+
+    def test_job_plan_records_retopology_as_challenger(self):
+        refs = [Path("/tmp/zombie_front.png")]
+        plan = hayuya.make_job_plan(
+            refs,
+            profile_name="monster",
+            mode="character",
+            seed=1993,
+            selected_backends=["triposg"],
+            model_root=Path("/tmp/models"),
+            retopo_mode="auto",
+        )
+        self.assertEqual(plan["retopology"]["mode"], "auto")
+        self.assertIn("Judge", plan["retopology"]["policy"])
+        self.assertIn("skip", plan["retopology"]["rig_policy"])
+
     def test_hunyuan_is_not_default(self):
         lock = hayuya.load_lock()
         meta = hayuya.backend_meta(lock)
