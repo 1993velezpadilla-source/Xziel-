@@ -19,7 +19,7 @@ def choose_weapon_family(explicit:str,research:dict)->tuple[str,str,float]:
         return fam,"internet_research",conf
     return "auto","unresolved",conf
 
-def plan(profile:str,animation_requested:bool,motion_profile:str,weapon_family:str,research:dict)->dict:
+def plan(profile:str,animation_requested:bool,motion_profile:str,weapon_family:str,research:dict,learned:dict|None=None)->dict:
     result={
         "schema":1,
         "engine":"HAYUYA Auto",
@@ -38,6 +38,8 @@ def plan(profile:str,animation_requested:bool,motion_profile:str,weapon_family:s
         "warnings":[],
         "research_sources":research.get("sources",[]),
         "editor_override_allowed":True,
+        "motion_strategy":None,
+        "learned_examples":[],
     }
     if not result["enabled"]:
         result["warnings"].append("auto_motion_not_requested")
@@ -125,6 +127,22 @@ def plan(profile:str,animation_requested:bool,motion_profile:str,weapon_family:s
         result["preview_set"]=rules["preview"]
         result["required_components"]=rules["parts"]
         result["synthesis_operations"]=rules["ops"]
+
+        learned=learned or {}
+        examples=[]
+        for asset in learned.get("assets",[]) or []:
+            if asset.get("family")==fam:
+                examples.append({
+                    "source_file":asset.get("source_file"),
+                    "actions":[x.get("name") for x in asset.get("actions",[]) if x.get("name")],
+                    "moving_parts":sorted({
+                        bone
+                        for action in asset.get("actions",[])
+                        for bone in action.get("animated_bones",[])
+                    })
+                })
+        result["learned_examples"]=examples
+        result["motion_strategy"]="retarget_learned_then_synthesize_missing" if examples else "synthesize_from_semantic_recipe"
         result["status"]="needs_component_fit"
         return result
 
@@ -193,10 +211,12 @@ def main()->int:
     p.add_argument("--motion-profile",default="hayuya_auto")
     p.add_argument("--animation-requested",default="true")
     p.add_argument("--research",type=Path)
+    p.add_argument("--learned-motion",type=Path,default=Path("hayuya/weapon_library/quaternius-animated-guns/learned_motion.json"))
     p.add_argument("--json",type=Path,required=True)
     a=p.parse_args()
     requested=str(a.animation_requested).lower() in {"1","true","yes","on"}
-    out=plan(a.asset_profile,requested,a.motion_profile,a.weapon_family,load(a.research))
+    learned=load(a.learned_motion) if a.learned_motion and a.learned_motion.exists() else {}
+    out=plan(a.asset_profile,requested,a.motion_profile,a.weapon_family,load(a.research),learned)
     a.json.parent.mkdir(parents=True,exist_ok=True)
     a.json.write_text(json.dumps(out,indent=2)+"\n",encoding="utf-8")
     print("HAYUYA_AUTO_MOTION",json.dumps({
