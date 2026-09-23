@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import os
 import sys
+import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -15,10 +18,37 @@ from appearance_judge import (
     cosine_similarity,
     make_detail_patches,
     rasterize_rgb,
+    _encode_dinov2_batch,
 )
 
 
 class AppearanceJudgeTests(unittest.TestCase):
+    def test_external_dino_worker_path_does_not_require_main_torch(self):
+        from PIL import Image
+
+        image = Image.new("RGB", (32, 32), (120, 80, 40))
+
+        def fake_run(cmd, check):
+            output = Path(cmd[cmd.index("--output") + 1])
+            np.save(output, np.array([[1.0, 0.0, 0.0]], dtype=np.float32))
+            return None
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "dinov2"
+            repo.mkdir()
+            with mock.patch.dict(os.environ, {"HAYUYA_DINOV2_PYTHON": sys.executable}):
+                with mock.patch("appearance_judge.subprocess.run", side_effect=fake_run) as run_mock:
+                    features = _encode_dinov2_batch(
+                        [image],
+                        repo_path=repo,
+                        device_name="auto",
+                        batch_size=4,
+                    )
+
+            self.assertEqual(features.shape, (1, 3))
+            self.assertAlmostEqual(float(features[0, 0]), 1.0, places=6)
+            self.assertTrue(run_mock.called)
+
     def test_cosine_identity(self):
         a = np.array([1.0, 2.0, 3.0], dtype=np.float32)
         self.assertAlmostEqual(cosine_similarity(a, a), 1.0, places=6)
