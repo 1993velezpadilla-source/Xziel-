@@ -189,6 +189,25 @@ Automatic tier mapping is:
 
 An explicit `--portable-target` may override that mapping without changing the Hero Master.
 
+## Physical mobile texture delivery
+
+Portable Pack may physically transcode runtime LOD GLBs to **KTX2 + Basis Universal** using the pinned toolchain:
+
+- @gltf-transform/cli 4.5.0
+- Khronos KTX-Software 4.4.2
+
+Policy:
+
+- resize runtime textures to the selected tier ceiling before compression;
+- encode normal / occlusion / metallic-roughness maps with UASTC for higher fidelity;
+- encode remaining compatible maps with ETC1S;
+- generate mipmaps;
+- require and verify KHR_texture_basisu in the resulting GLB;
+- verify every runtime image became image/ktx2;
+- preserve the ordinary GLB sibling as a compatibility fallback;
+- never call a Basis Universal payload native ASTC or native ETC2. Those are GPU-native delivery formats selected by the engine/runtime/build system after or instead of universal BasisU delivery.
+
+Use --texture-delivery required when a job must fail rather than silently skip physical KTX2 generation.
 ## Portable Pack contract
 
 For game/mobile/monster/ultra execution, Portable Pack should derive the following sibling packages directly from the accepted Hero Master:
