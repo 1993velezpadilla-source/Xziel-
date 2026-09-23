@@ -53,6 +53,15 @@ public:
         const std::string& assetPath,
         std::vector<std::byte>& destination) noexcept;
 
+    // Non-blocking runtime poll. "finished" distinguishes a pending request
+    // from a completed failure. Returns true only when bytes were consumed.
+    [[nodiscard]] bool tryTake(
+        const std::string& assetPath,
+        std::vector<std::byte>& destination,
+        bool& finished) noexcept;
+
+    [[nodiscard]] bool running() const noexcept;
+
     [[nodiscard]] AndroidAssetStreamStats
     stats() const noexcept;
 
