@@ -10,6 +10,9 @@ PROFILES = {"preview", "mobile", "game", "monster", "ultra"}
 MODES = {"auto", "prop", "character", "architecture"}
 TIERS = {"auto", "compatibility", "balanced", "high", "flagship"}
 JOB_RE = re.compile(r"^[A-Za-z0-9._-]+$")
+ALLOWED_EXTERNAL_REPOS = {
+    "1993velezpadilla-source/legacy-cache-staging-03",
+}
 
 
 def load_request(path: Path, repo_root: Path) -> dict:
@@ -33,26 +36,38 @@ def load_request(path: Path, repo_root: Path) -> dict:
     if data["portable_target"] not in TIERS:
         raise ValueError(f"invalid portable_target: {data['portable_target']}")
 
-    geometry = (repo_root / str(data["geometry_input"])).resolve()
-    try:
-        geometry.relative_to(repo_root.resolve())
-    except ValueError as exc:
-        raise ValueError("geometry_input escapes repository") from exc
-    if not geometry.is_file():
-        raise FileNotFoundError(f"geometry_input missing: {data['geometry_input']}")
-
-    for key in ("reference_dir", "detail_dir"):
-        value = str(data.get(key, "") or "").strip()
-        if not value:
-            data[key] = ""
-            continue
-        target = (repo_root / value).resolve()
+    source_repo = str(data.get("source_repo", "") or "").strip()
+    source_ref = str(data.get("source_ref", "main") or "main").strip()
+    if source_repo:
+        if source_repo not in ALLOWED_EXTERNAL_REPOS:
+            raise ValueError(f"external source_repo not allowed: {source_repo}")
+        if not JOB_RE.fullmatch(source_ref.replace("/", "-")):
+            raise ValueError("invalid external source_ref")
+        data["source_repo"] = source_repo
+        data["source_ref"] = source_ref
+    else:
+        geometry = (repo_root / str(data["geometry_input"])).resolve()
         try:
-            target.relative_to(repo_root.resolve())
+            geometry.relative_to(repo_root.resolve())
         except ValueError as exc:
-            raise ValueError(f"{key} escapes repository") from exc
-        if not target.is_dir():
-            raise FileNotFoundError(f"{key} missing: {value}")
+            raise ValueError("geometry_input escapes repository") from exc
+        if not geometry.is_file():
+            raise FileNotFoundError(f"geometry_input missing: {data['geometry_input']}")
+
+        for key in ("reference_dir", "detail_dir"):
+            value = str(data.get(key, "") or "").strip()
+            if not value:
+                data[key] = ""
+                continue
+            target = (repo_root / value).resolve()
+            try:
+                target.relative_to(repo_root.resolve())
+            except ValueError as exc:
+                raise ValueError(f"{key} escapes repository") from exc
+            if not target.is_dir():
+                raise FileNotFoundError(f"{key} missing: {value}")
+        data["source_repo"] = ""
+        data["source_ref"] = ""
 
     data["gpu_vram"] = int(data.get("gpu_vram", 24))
     data["backends"] = str(
@@ -77,7 +92,8 @@ def main() -> int:
         with args.github_output.open("a", encoding="utf-8") as f:
             for key in (
                 "job_id", "owner", "title", "geometry_input", "reference_dir",
-                "detail_dir", "profile", "mode", "portable_target", "gpu_vram", "backends"
+                "detail_dir", "profile", "mode", "portable_target", "gpu_vram", "backends",
+                "source_repo", "source_ref"
             ):
                 value = str(data.get(key, ""))
                 if "\n" in value or "\r" in value:
