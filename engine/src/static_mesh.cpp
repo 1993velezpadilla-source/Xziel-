@@ -42,6 +42,16 @@ public:
         return true;
     }
 
+    [[nodiscard]] bool skip(
+        std::size_t size) noexcept {
+        if (size > remaining()) {
+            return false;
+        }
+
+        offset_ += size;
+        return true;
+    }
+
     [[nodiscard]] bool readU16(
         std::uint16_t& value) noexcept {
         std::array<std::uint8_t, 2> raw{};
@@ -533,6 +543,349 @@ parseStaticMeshXzsm(
         .error = StaticMeshParseError::None,
         .offset = reader.offset(),
     };
+
+StaticMeshParseResult
+parseStaticMeshXzsmDirectory(
+    std::span<const std::byte> bytes,
+    StaticMeshDirectory& destination) noexcept {
+    destination = {};
+
+    Reader reader(bytes);
+
+    std::array<char, 4> magic{};
+    std::uint32_t version = 0U;
+    std::uint32_t batchCount = 0U;
+    std::uint32_t declaredVertices = 0U;
+    std::uint32_t declaredIndices = 0U;
+
+    if (!reader.readBytes(
+            magic.data(),
+            magic.size()) ||
+        !reader.readU32(version) ||
+        !reader.readU32(batchCount) ||
+        !reader.readU32(declaredVertices) ||
+        !reader.readU32(declaredIndices)) {
+        return {
+            .success = false,
+            .error = StaticMeshParseError::Truncated,
+            .offset = reader.offset(),
+        };
+    }
+
+    if (magic !=
+        std::array<char, 4>{'X', 'Z', 'S', 'M'}) {
+        return {
+            .success = false,
+            .error = StaticMeshParseError::InvalidMagic,
+            .offset = 0U,
+        };
+    }
+
+    if (version != kStaticMeshLegacyVersion &&
+        version != kStaticMeshNormalsVersion &&
+        version != kStaticMeshMaterialFlagsVersion &&
+        version != kStaticMeshFormatVersion) {
+        return {
+            .success = false,
+            .error = StaticMeshParseError::UnsupportedVersion,
+            .offset = 4U,
+        };
+    }
+
+    if (batchCount == 0U ||
+        batchCount > kMaxStaticMeshBatches ||
+        declaredVertices == 0U ||
+        declaredVertices > kMaxStaticMeshVertices ||
+        declaredIndices == 0U ||
+        declaredIndices > kMaxStaticMeshIndices) {
+        return {
+            .success = false,
+            .error = StaticMeshParseError::CapacityExceeded,
+            .offset = reader.offset(),
+        };
+    }
+
+    try {
+        destination.batches.reserve(batchCount);
+    } catch (...) {
+        destination = {};
+        return {
+            .success = false,
+            .error = StaticMeshParseError::CapacityExceeded,
+            .offset = reader.offset(),
+        };
+    }
+
+    std::uint64_t seenVertices = 0U;
+    std::uint64_t seenIndices = 0U;
+
+    constexpr std::size_t kLegacyVertexStride =
+        sizeof(float) * 5U +
+        sizeof(std::uint8_t) * 4U;
+
+    for (std::uint32_t batchIndex = 0U;
+         batchIndex < batchCount;
+         ++batchIndex) {
+        std::uint32_t vertexCount = 0U;
+        std::uint32_t indexCount = 0U;
+        std::array<char, 96> texture{};
+        std::uint32_t flags =
+            StaticMeshBatchFlagDoubleSided;
+        StaticMeshBounds bounds{};
+
+        if (!reader.readU32(vertexCount) ||
+            !reader.readU32(indexCount) ||
+            !reader.readBytes(
+                texture.data(),
+                texture.size())) {
+            destination = {};
+            return {
+                .success = false,
+                .error = StaticMeshParseError::Truncated,
+                .offset = reader.offset(),
+            };
+        }
+
+        if (version >=
+            kStaticMeshMaterialFlagsVersion) {
+            if (!reader.readU32(flags)) {
+                destination = {};
+                return {
+                    .success = false,
+                    .error = StaticMeshParseError::Truncated,
+                    .offset = reader.offset(),
+                };
+            }
+
+            constexpr std::uint32_t kKnownFlags =
+                StaticMeshBatchFlagDoubleSided;
+
+            if ((flags & ~kKnownFlags) != 0U) {
+                destination = {};
+                return {
+                    .success = false,
+                    .error = StaticMeshParseError::InvalidBatch,
+                    .offset = reader.offset(),
+                };
+            }
+        }
+
+        if (version >=
+            kStaticMeshFormatVersion) {
+            constexpr std::size_t kPbrTextureFields =
+                96U * 3U;
+            constexpr std::size_t kPbrScalarBytes =
+                sizeof(float) *
+                (4U + 2U + 3U + 2U);
+
+            if (!reader.skip(
+                    kPbrTextureFields +
+                    kPbrScalarBytes)) {
+                destination = {};
+                return {
+                    .success = false,
+                    .error = StaticMeshParseError::Truncated,
+                    .offset = reader.offset(),
+                };
+            }
+        }
+
+        for (float& value : bounds.minimum) {
+            if (!reader.readF32(value)) {
+                destination = {};
+                return {
+                    .success = false,
+                    .error = StaticMeshParseError::InvalidBatch,
+                    .offset = reader.offset(),
+                };
+            }
+        }
+
+        for (float& value : bounds.maximum) {
+            if (!reader.readF32(value)) {
+                destination = {};
+                return {
+                    .success = false,
+                    .error = StaticMeshParseError::InvalidBatch,
+                    .offset = reader.offset(),
+                };
+            }
+        }
+
+        if (!safeBatchStorage(
+                vertexCount,
+                indexCount)) {
+            destination = {};
+            return {
+                .success = false,
+                .error = StaticMeshParseError::InvalidBatch,
+                .offset = reader.offset(),
+            };
+        }
+
+        for (std::size_t axis = 0U;
+             axis < 3U;
+             ++axis) {
+            if (bounds.minimum[axis] >
+                bounds.maximum[axis]) {
+                destination = {};
+                return {
+                    .success = false,
+                    .error = StaticMeshParseError::InvalidBatch,
+                    .offset = reader.offset(),
+                };
+            }
+        }
+
+        const std::size_t vertexStride =
+            version >= kStaticMeshNormalsVersion
+            ? sizeof(StaticMeshVertex)
+            : kLegacyVertexStride;
+
+        const std::uint64_t vertexBytes =
+            static_cast<std::uint64_t>(
+                vertexCount) *
+            static_cast<std::uint64_t>(
+                vertexStride);
+        const std::uint64_t indexBytes =
+            static_cast<std::uint64_t>(
+                indexCount) *
+            sizeof(std::uint16_t);
+
+        if (vertexBytes >
+                std::numeric_limits<std::size_t>::max() ||
+            indexBytes >
+                std::numeric_limits<std::size_t>::max() ||
+            vertexBytes >
+                std::numeric_limits<std::uint64_t>::max() -
+                indexBytes) {
+            destination = {};
+            return {
+                .success = false,
+                .error = StaticMeshParseError::CapacityExceeded,
+                .offset = reader.offset(),
+            };
+        }
+
+        const std::uint64_t payloadBytes =
+            vertexBytes + indexBytes;
+
+        if (payloadBytes >
+            reader.remaining()) {
+            destination = {};
+            return {
+                .success = false,
+                .error = StaticMeshParseError::Truncated,
+                .offset = reader.offset(),
+            };
+        }
+
+        const auto nul =
+            std::find(
+                texture.begin(),
+                texture.end(),
+                '\0');
+
+        if (nul == texture.begin()) {
+            destination = {};
+            return {
+                .success = false,
+                .error = StaticMeshParseError::InvalidBatch,
+                .offset = reader.offset(),
+            };
+        }
+
+        StaticMeshBatchDirectoryEntry entry{};
+        entry.textureName.assign(
+            texture.begin(),
+            nul);
+        entry.bounds = bounds;
+        entry.flags = flags;
+        entry.vertexCount = vertexCount;
+        entry.indexCount = indexCount;
+        entry.vertexDataOffset =
+            static_cast<std::uint64_t>(
+                reader.offset());
+        entry.indexDataOffset =
+            entry.vertexDataOffset +
+            vertexBytes;
+        entry.payloadBytes =
+            payloadBytes;
+
+        try {
+            destination.batches.emplace_back(
+                std::move(entry));
+        } catch (...) {
+            destination = {};
+            return {
+                .success = false,
+                .error = StaticMeshParseError::CapacityExceeded,
+                .offset = reader.offset(),
+            };
+        }
+
+        if (!reader.skip(
+                static_cast<std::size_t>(
+                    payloadBytes))) {
+            destination = {};
+            return {
+                .success = false,
+                .error = StaticMeshParseError::Truncated,
+                .offset = reader.offset(),
+            };
+        }
+
+        seenVertices += vertexCount;
+        seenIndices += indexCount;
+
+        if (seenVertices > declaredVertices ||
+            seenIndices > declaredIndices ||
+            seenVertices > kMaxStaticMeshVertices ||
+            seenIndices > kMaxStaticMeshIndices) {
+            destination = {};
+            return {
+                .success = false,
+                .error = StaticMeshParseError::TotalMismatch,
+                .offset = reader.offset(),
+            };
+        }
+    }
+
+    if (seenVertices != declaredVertices ||
+        seenIndices != declaredIndices) {
+        destination = {};
+        return {
+            .success = false,
+            .error = StaticMeshParseError::TotalMismatch,
+            .offset = reader.offset(),
+        };
+    }
+
+    if (reader.remaining() != 0U) {
+        destination = {};
+        return {
+            .success = false,
+            .error = StaticMeshParseError::TrailingData,
+            .offset = reader.offset(),
+        };
+    }
+
+    destination.version = version;
+    destination.totalVertices =
+        declaredVertices;
+    destination.totalIndices =
+        declaredIndices;
+    destination.fileBytes =
+        static_cast<std::uint64_t>(
+            bytes.size());
+
+    return {
+        .success = true,
+        .error = StaticMeshParseError::None,
+        .offset = reader.offset(),
+    };
+}
+
 }
 
 } // namespace xziel
