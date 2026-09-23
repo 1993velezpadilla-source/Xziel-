@@ -19,6 +19,51 @@ from visual_judge import SourceViewScore
 
 
 class QAPackageTests(unittest.TestCase):
+    def test_structural_defects_block_geometry_readiness(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            final_glb = root / "broken_prop.glb"
+
+            vertices = np.array([
+                [0.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.0, 0.0, 1.0],
+            ], dtype=np.float64)
+            faces = np.array([
+                [0, 1, 2],
+                [0, 1, 2],  # duplicate
+                [0, 0, 3],  # degenerate
+            ], dtype=np.int64)
+            mesh = trimesh.Trimesh(vertices=vertices, faces=faces, process=False)
+            rgba = np.tile(
+                np.array([[100, 140, 180, 255]], dtype=np.uint8),
+                (len(mesh.vertices), 1),
+            )
+            mesh.visual = trimesh.visual.ColorVisuals(mesh, vertex_colors=rgba)
+            final_glb.write_bytes(
+                trimesh.exchange.gltf.export_glb(trimesh.Scene(mesh))
+            )
+
+            result = build_qa_package(
+                final_glb,
+                root / "qa",
+                champion={"backend": "broken", "visual_views": []},
+                mode="prop",
+                profile="game",
+                source_images=[],
+                detail_images=[],
+                gameprep=None,
+                target_faces=500,
+            )
+
+            self.assertFalse(result.geometry_ready)
+            self.assertFalse(result.production_ready)
+            self.assertTrue(
+                any("structural defects" in warning for warning in result.warnings),
+                result.warnings,
+            )
+
     def test_character_without_skin_is_not_production_ready(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
