@@ -1086,16 +1086,24 @@ bool VulkanStaticMeshRenderer::updateTextureDescriptorForFrame(
     std::uint32_t textureIndex,
     std::uint32_t frameSlot,
     std::uint32_t replacementTextureIndex) noexcept {
-    if (frameSlot >= kDescriptorFrames ||
-        textureIndex >= textures_.size() ||
-        replacementTextureIndex >= textures_.size()) {
+    if (replacementTextureIndex >=
+        textures_.size()) {
         return false;
     }
 
-    const auto& replacement =
-        textures_[replacementTextureIndex];
+    return updateTextureDescriptorForFrame(
+        textureIndex,
+        frameSlot,
+        textures_[replacementTextureIndex]);
+}
 
-    if (!replacement.physicallyResident ||
+bool VulkanStaticMeshRenderer::updateTextureDescriptorForFrame(
+    std::uint32_t textureIndex,
+    std::uint32_t frameSlot,
+    const GpuTexture& replacement) noexcept {
+    if (frameSlot >= kDescriptorFrames ||
+        textureIndex >= textures_.size() ||
+        !replacement.physicallyResident ||
         replacement.view == VK_NULL_HANDLE ||
         replacement.sampler == VK_NULL_HANDLE) {
         return false;
@@ -1157,6 +1165,39 @@ bool VulkanStaticMeshRenderer::updateTextureDescriptorForFrame(
     }
 
     return updatedAny;
+}
+
+std::uint64_t VulkanStaticMeshRenderer::texturePayloadFromMip(
+    const GpuTexture& texture,
+    std::uint32_t baseMip) const noexcept {
+    if (texture.sourceMipLevels == 0U) {
+        return 0U;
+    }
+
+    baseMip =
+        std::min<std::uint32_t>(
+            baseMip,
+            texture.sourceMipLevels - 1U);
+
+    std::uint64_t total = 0U;
+
+    for (std::uint32_t mip = baseMip;
+         mip < texture.sourceMipLevels;
+         ++mip) {
+        const std::uint64_t value =
+            texture.sourceMipBytes[mip];
+
+        if (value >
+            std::numeric_limits<std::uint64_t>::max() -
+                total) {
+            return
+                std::numeric_limits<std::uint64_t>::max();
+        }
+
+        total += value;
+    }
+
+    return total;
 }
 
 bool VulkanStaticMeshRenderer::materialStreamingReady(
