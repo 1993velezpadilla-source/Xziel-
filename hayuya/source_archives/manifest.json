@@ -25,13 +25,14 @@
     },
     {
       "id": "quaternius_animated_guns_source",
-      "url": "https://opengameart.org/sites/default/files/FPS%20Pack.zip",
+      "url": "https://opengameart.org/sites/default/files/FPS%20Pack_0.zip",
       "page": "https://opengameart.org/content/low-poly-animated-guns",
       "license": "CC0",
       "catalog": "weapon",
-      "resolved_url": "https://opengameart.org/sites/default/files/FPS%20Pack.zip",
-      "status": "unresolved",
-      "reason": "HTTPError:HTTP Error 404: Not Found"
+      "resolved_url": "https://opengameart.org/sites/default/files/FPS%20Pack_0.zip",
+      "status": "downloaded",
+      "bytes": 1098036,
+      "archive": "hayuya/source_archives/quaternius_animated_guns_source.zip"
     },
     {
       "id": "quaternius_uam1_source",
