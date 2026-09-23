@@ -156,8 +156,12 @@ bool VulkanStaticMeshRenderer::initialize(
     std::unordered_map<std::string, std::uint32_t>
         textureIndices;
 
+    std::vector<std::uint32_t>
+        batchTextureIndices;
+
     try {
-        batches_.reserve(asset.batches.size());
+        batchTextureIndices.reserve(
+            asset.batches.size());
 
         for (const auto& batch : asset.batches) {
             const std::string path =
@@ -196,24 +200,21 @@ bool VulkanStaticMeshRenderer::initialize(
                 textureIndex = found->second;
             }
 
-            GpuBatch gpuBatch{};
-
-            if (!uploadBatch(
-                    batch,
-                    textureIndex,
-                    gpuBatch)) {
-                logError(
-                    "Sanctum geometry upload failed");
-                shutdown();
-                return false;
-            }
-
-            batches_.emplace_back(
-                std::move(gpuBatch));
+            batchTextureIndices.push_back(
+                textureIndex);
         }
     } catch (...) {
         logError(
             "Sanctum GPU resource allocation failed");
+        shutdown();
+        return false;
+    }
+
+    if (!createGeometryResidency(
+            asset,
+            batchTextureIndices)) {
+        logError(
+            "Sanctum consolidated geometry upload failed");
         shutdown();
         return false;
     }
@@ -247,9 +248,7 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     ready_ = false;
 
     if (device_ != VK_NULL_HANDLE) {
-        for (auto& batch : batches_) {
-            destroyBatch(batch);
-        }
+        destroyGeometryResidency();
 
         for (auto& texture : textures_) {
             destroyTexture(texture);
@@ -411,6 +410,26 @@ void VulkanStaticMeshRenderer::record(
             sizeof(push)),
         &push);
 
+    if (geometryVertexBuffer_ == VK_NULL_HANDLE ||
+        geometryIndexBuffer_ == VK_NULL_HANDLE) {
+        return;
+    }
+
+    const VkDeviceSize geometryOffset = 0U;
+
+    vkCmdBindVertexBuffers(
+        command,
+        0U,
+        1U,
+        &geometryVertexBuffer_,
+        &geometryOffset);
+
+    vkCmdBindIndexBuffer(
+        command,
+        geometryIndexBuffer_,
+        0U,
+        VK_INDEX_TYPE_UINT16);
+
     const float yawCos =
         std::cos(camera.yawRadians);
     const float yawSin =
@@ -537,21 +556,6 @@ void VulkanStaticMeshRenderer::record(
         const auto& texture =
             textures_[batch.textureIndex];
 
-        const VkDeviceSize offset = 0U;
-
-        vkCmdBindVertexBuffers(
-            command,
-            0U,
-            1U,
-            &batch.vertexBuffer,
-            &offset);
-
-        vkCmdBindIndexBuffer(
-            command,
-            batch.indexBuffer,
-            0U,
-            VK_INDEX_TYPE_UINT16);
-
         vkCmdBindDescriptorSets(
             command,
             VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -566,8 +570,8 @@ void VulkanStaticMeshRenderer::record(
             command,
             batch.indexCount,
             1U,
-            0U,
-            0,
+            batch.firstIndex,
+            batch.vertexOffset,
             0U);
 
         ++frameStats_.drawCalls;
@@ -651,6 +655,26 @@ void VulkanStaticMeshRenderer::recordViewmodel(
             sizeof(push)),
         &push);
 
+    if (geometryVertexBuffer_ == VK_NULL_HANDLE ||
+        geometryIndexBuffer_ == VK_NULL_HANDLE) {
+        return;
+    }
+
+    const VkDeviceSize geometryOffset = 0U;
+
+    vkCmdBindVertexBuffers(
+        command,
+        0U,
+        1U,
+        &geometryVertexBuffer_,
+        &geometryOffset);
+
+    vkCmdBindIndexBuffer(
+        command,
+        geometryIndexBuffer_,
+        0U,
+        VK_INDEX_TYPE_UINT16);
+
     for (const auto& batch : batches_) {
         if (batch.textureIndex >=
             textures_.size()) {
@@ -659,21 +683,6 @@ void VulkanStaticMeshRenderer::recordViewmodel(
 
         const auto& texture =
             textures_[batch.textureIndex];
-
-        const VkDeviceSize offset = 0U;
-
-        vkCmdBindVertexBuffers(
-            command,
-            0U,
-            1U,
-            &batch.vertexBuffer,
-            &offset);
-
-        vkCmdBindIndexBuffer(
-            command,
-            batch.indexBuffer,
-            0U,
-            VK_INDEX_TYPE_UINT16);
 
         vkCmdBindDescriptorSets(
             command,
@@ -689,8 +698,8 @@ void VulkanStaticMeshRenderer::recordViewmodel(
             command,
             batch.indexCount,
             1U,
-            0U,
-            0,
+            batch.firstIndex,
+            batch.vertexOffset,
             0U);
     }
 }
@@ -1126,100 +1135,273 @@ bool VulkanStaticMeshRenderer::createBuffer(
     return true;
 }
 
-bool VulkanStaticMeshRenderer::uploadBatch(
-    const StaticMeshBatch& batch,
-    std::uint32_t textureIndex,
-    GpuBatch& out) noexcept {
-    if (batch.vertices.empty() ||
-        batch.indices.empty()) {
+bool VulkanStaticMeshRenderer::createGeometryResidency(
+    const StaticMeshAsset& asset,
+    const std::vector<std::uint32_t>& textureIndices) noexcept {
+    destroyGeometryResidency();
+
+    if (asset.batches.empty() ||
+        textureIndices.size() !=
+            asset.batches.size() ||
+        asset.totalVertices == 0U ||
+        asset.totalIndices == 0U ||
+        asset.totalVertices >
+            static_cast<std::uint32_t>(
+                std::numeric_limits<std::int32_t>::max())) {
         return false;
     }
 
-    const VkDeviceSize vertexBytes =
-        batch.vertices.size() *
+    geometryVertexBytes_ =
+        static_cast<VkDeviceSize>(
+            asset.totalVertices) *
         sizeof(StaticMeshVertex);
 
-    const VkDeviceSize indexBytes =
-        batch.indices.size() *
+    geometryIndexBytes_ =
+        static_cast<VkDeviceSize>(
+            asset.totalIndices) *
         sizeof(std::uint16_t);
 
-    const auto hostFlags =
+    const VkMemoryPropertyFlags hostFlags =
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
-    if (!createBuffer(
-            vertexBytes,
-            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-            hostFlags,
-            out.vertexBuffer,
-            out.vertexMemory) ||
-        !createBuffer(
-            indexBytes,
-            VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-            hostFlags,
-            out.indexBuffer,
-            out.indexMemory)) {
-        destroyBatch(out);
+    const VkMemoryPropertyFlags preferredFlags =
+        hostFlags |
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+
+    const auto destroyPartial =
+        [&]() noexcept {
+            if (geometryIndexBuffer_ != VK_NULL_HANDLE) {
+                vkDestroyBuffer(
+                    device_,
+                    geometryIndexBuffer_,
+                    nullptr);
+                geometryIndexBuffer_ =
+                    VK_NULL_HANDLE;
+            }
+
+            if (geometryIndexMemory_ != VK_NULL_HANDLE) {
+                vkFreeMemory(
+                    device_,
+                    geometryIndexMemory_,
+                    nullptr);
+                geometryIndexMemory_ =
+                    VK_NULL_HANDLE;
+            }
+
+            if (geometryVertexBuffer_ != VK_NULL_HANDLE) {
+                vkDestroyBuffer(
+                    device_,
+                    geometryVertexBuffer_,
+                    nullptr);
+                geometryVertexBuffer_ =
+                    VK_NULL_HANDLE;
+            }
+
+            if (geometryVertexMemory_ != VK_NULL_HANDLE) {
+                vkFreeMemory(
+                    device_,
+                    geometryVertexMemory_,
+                    nullptr);
+                geometryVertexMemory_ =
+                    VK_NULL_HANDLE;
+            }
+        };
+
+    auto createPair =
+        [&](VkMemoryPropertyFlags flags) noexcept {
+            if (!createBuffer(
+                    geometryVertexBytes_,
+                    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                        VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                    flags,
+                    geometryVertexBuffer_,
+                    geometryVertexMemory_)) {
+                return false;
+            }
+
+            if (!createBuffer(
+                    geometryIndexBytes_,
+                    VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+                        VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                    flags,
+                    geometryIndexBuffer_,
+                    geometryIndexMemory_)) {
+                destroyPartial();
+                return false;
+            }
+
+            return true;
+        };
+
+    geometryDeviceLocalHostVisible_ =
+        createPair(preferredFlags);
+
+    if (!geometryDeviceLocalHostVisible_ &&
+        !createPair(hostFlags)) {
+        geometryVertexBytes_ = 0U;
+        geometryIndexBytes_ = 0U;
         return false;
     }
 
-    void* mapped = nullptr;
+    void* mappedVertices = nullptr;
+    void* mappedIndices = nullptr;
 
     if (!ok(
             vkMapMemory(
                 device_,
-                out.vertexMemory,
+                geometryVertexMemory_,
                 0U,
-                vertexBytes,
+                geometryVertexBytes_,
                 0U,
-                &mapped))) {
-        destroyBatch(out);
-        return false;
-    }
-
-    std::memcpy(
-        mapped,
-        batch.vertices.data(),
-        static_cast<std::size_t>(
-            vertexBytes));
-
-    vkUnmapMemory(
-        device_,
-        out.vertexMemory);
-
-    mapped = nullptr;
-
-    if (!ok(
+                &mappedVertices)) ||
+        !ok(
             vkMapMemory(
                 device_,
-                out.indexMemory,
+                geometryIndexMemory_,
                 0U,
-                indexBytes,
+                geometryIndexBytes_,
                 0U,
-                &mapped))) {
-        destroyBatch(out);
+                &mappedIndices))) {
+        if (mappedVertices != nullptr) {
+            vkUnmapMemory(
+                device_,
+                geometryVertexMemory_);
+        }
+        destroyGeometryResidency();
         return false;
     }
 
-    std::memcpy(
-        mapped,
-        batch.indices.data(),
-        static_cast<std::size_t>(
-            indexBytes));
+    auto* vertexBytes =
+        static_cast<std::byte*>(
+            mappedVertices);
+
+    auto* indexBytes =
+        static_cast<std::byte*>(
+            mappedIndices);
+
+    std::uint64_t vertexCursor = 0U;
+    std::uint64_t indexCursor = 0U;
+
+    try {
+        batches_.clear();
+        batches_.reserve(
+            asset.batches.size());
+
+        for (std::size_t batchIndex = 0U;
+             batchIndex < asset.batches.size();
+             ++batchIndex) {
+            const auto& batch =
+                asset.batches[batchIndex];
+
+            if (batch.vertices.empty() ||
+                batch.indices.empty() ||
+                vertexCursor +
+                        batch.vertices.size() >
+                    asset.totalVertices ||
+                indexCursor +
+                        batch.indices.size() >
+                    asset.totalIndices) {
+                vkUnmapMemory(
+                    device_,
+                    geometryIndexMemory_);
+                vkUnmapMemory(
+                    device_,
+                    geometryVertexMemory_);
+                destroyGeometryResidency();
+                return false;
+            }
+
+            const VkDeviceSize vertexOffsetBytes =
+                static_cast<VkDeviceSize>(
+                    vertexCursor) *
+                sizeof(StaticMeshVertex);
+
+            const VkDeviceSize indexOffsetBytes =
+                static_cast<VkDeviceSize>(
+                    indexCursor) *
+                sizeof(std::uint16_t);
+
+            std::memcpy(
+                vertexBytes +
+                    vertexOffsetBytes,
+                batch.vertices.data(),
+                batch.vertices.size() *
+                    sizeof(StaticMeshVertex));
+
+            std::memcpy(
+                indexBytes +
+                    indexOffsetBytes,
+                batch.indices.data(),
+                batch.indices.size() *
+                    sizeof(std::uint16_t));
+
+            GpuBatch gpuBatch{};
+            gpuBatch.firstIndex =
+                static_cast<std::uint32_t>(
+                    indexCursor);
+            gpuBatch.vertexOffset =
+                static_cast<std::int32_t>(
+                    vertexCursor);
+            gpuBatch.indexCount =
+                static_cast<std::uint32_t>(
+                    batch.indices.size());
+            gpuBatch.textureIndex =
+                textureIndices[batchIndex];
+            gpuBatch.bounds =
+                batch.bounds;
+            gpuBatch.doubleSided =
+                batch.doubleSided();
+
+            batches_.emplace_back(
+                gpuBatch);
+
+            vertexCursor +=
+                batch.vertices.size();
+
+            indexCursor +=
+                batch.indices.size();
+        }
+    } catch (...) {
+        vkUnmapMemory(
+            device_,
+            geometryIndexMemory_);
+        vkUnmapMemory(
+            device_,
+            geometryVertexMemory_);
+        destroyGeometryResidency();
+        return false;
+    }
 
     vkUnmapMemory(
         device_,
-        out.indexMemory);
+        geometryIndexMemory_);
 
-    out.indexCount =
-        static_cast<std::uint32_t>(
-            batch.indices.size());
-    out.textureIndex =
-        textureIndex;
-    out.bounds =
-        batch.bounds;
-    out.doubleSided =
-        batch.doubleSided();
+    vkUnmapMemory(
+        device_,
+        geometryVertexMemory_);
+
+    if (vertexCursor != asset.totalVertices ||
+        indexCursor != asset.totalIndices) {
+        destroyGeometryResidency();
+        return false;
+    }
+
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
+        "XZIEL_STATIC_GEOMETRY_RESIDENCY buffers=2 batches=%u vertex_mb=%.2f index_mb=%.2f device_local_host_visible=%d",
+        static_cast<unsigned int>(
+            batches_.size()),
+        static_cast<double>(
+            geometryVertexBytes_) /
+            (1024.0 * 1024.0),
+        static_cast<double>(
+            geometryIndexBytes_) /
+            (1024.0 * 1024.0),
+        geometryDeviceLocalHostVisible_
+            ? 1
+            : 0);
 
     return true;
 }
@@ -2013,42 +2195,50 @@ void VulkanStaticMeshRenderer::destroyTexture(
     texture = {};
 }
 
-void VulkanStaticMeshRenderer::destroyBatch(
-    GpuBatch& batch) noexcept {
-    if (device_ == VK_NULL_HANDLE) {
-        batch = {};
-        return;
+void VulkanStaticMeshRenderer::destroyGeometryResidency() noexcept {
+    batches_.clear();
+
+    if (device_ != VK_NULL_HANDLE) {
+        if (geometryIndexBuffer_ != VK_NULL_HANDLE) {
+            vkDestroyBuffer(
+                device_,
+                geometryIndexBuffer_,
+                nullptr);
+        }
+
+        if (geometryIndexMemory_ != VK_NULL_HANDLE) {
+            vkFreeMemory(
+                device_,
+                geometryIndexMemory_,
+                nullptr);
+        }
+
+        if (geometryVertexBuffer_ != VK_NULL_HANDLE) {
+            vkDestroyBuffer(
+                device_,
+                geometryVertexBuffer_,
+                nullptr);
+        }
+
+        if (geometryVertexMemory_ != VK_NULL_HANDLE) {
+            vkFreeMemory(
+                device_,
+                geometryVertexMemory_,
+                nullptr);
+        }
     }
 
-    if (batch.indexBuffer != VK_NULL_HANDLE) {
-        vkDestroyBuffer(
-            device_,
-            batch.indexBuffer,
-            nullptr);
-    }
-
-    if (batch.indexMemory != VK_NULL_HANDLE) {
-        vkFreeMemory(
-            device_,
-            batch.indexMemory,
-            nullptr);
-    }
-
-    if (batch.vertexBuffer != VK_NULL_HANDLE) {
-        vkDestroyBuffer(
-            device_,
-            batch.vertexBuffer,
-            nullptr);
-    }
-
-    if (batch.vertexMemory != VK_NULL_HANDLE) {
-        vkFreeMemory(
-            device_,
-            batch.vertexMemory,
-            nullptr);
-    }
-
-    batch = {};
+    geometryVertexBuffer_ =
+        VK_NULL_HANDLE;
+    geometryVertexMemory_ =
+        VK_NULL_HANDLE;
+    geometryIndexBuffer_ =
+        VK_NULL_HANDLE;
+    geometryIndexMemory_ =
+        VK_NULL_HANDLE;
+    geometryDeviceLocalHostVisible_ = false;
+    geometryVertexBytes_ = 0U;
+    geometryIndexBytes_ = 0U;
 }
 
 } // namespace xziel::android
