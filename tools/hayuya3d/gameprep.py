@@ -32,6 +32,9 @@ class GamePrepResult:
     manifest: str
     source_faces: int
     target_lod0_faces: int
+    rig_audit: dict
+    rig_audit_path: str
+    lod_policy: str
 
 
 def _deps():
@@ -120,6 +123,19 @@ def build_turntable(
     return frames
 
 
+def _audit_master(master_glb: Path, out_dir: Path):
+    from gltf_audit import audit_glb
+
+    audit = audit_glb(master_glb)
+    audit_path = out_dir / "rig_audit.json"
+    audit_path.parent.mkdir(parents=True, exist_ok=True)
+    audit_path.write_text(
+        json.dumps(asdict(audit), indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return audit, audit_path
+
+
 def build_gameprep(
     master_glb: Path,
     out_dir: Path,
@@ -137,16 +153,30 @@ def build_gameprep(
     master_mesh = load_combined_mesh(master_glb)
     source_faces = int(len(master_mesh.faces))
     lod0_target = min(source_faces, max(4, int(target_faces)))
-    ratios = [1.0, 0.55, 0.28, 0.12]
 
-    # One surface/material transfer context is shared across all simplified LODs.
-    # PBR/UV is preserved when possible; otherwise Material Bridge falls back to
-    # base-color vertex projection.
-    transfer_context = prepare_material_transfer(
-        master_glb,
-        total_samples=material_samples,
-        max_texture_size=2048,
-    )
+    rig_audit, rig_audit_path = _audit_master(master_glb, out_dir)
+    has_skin = rig_audit.skin_count > 0
+    if has_skin:
+        # Trimesh simplification does not preserve glTF JOINTS/WEIGHTS/skin
+        # structures. Never silently turn a rigged character into an unrigged LOD.
+        ratios = [1.0]
+        lod_policy = (
+            "rigged source preserved: LOD0 is exact master; LOD1-LOD3 deferred "
+            "until skin-weight-preserving simplification is implemented"
+        )
+        transfer_context = None
+    else:
+        ratios = [1.0, 0.55, 0.28, 0.12]
+        lod_policy = (
+            "unrigged source: quadric LODs with shared Material Bridge v2 "
+            "PBR/base-color transfer context"
+        )
+        # One source/material transfer context is shared across all simplified LODs.
+        transfer_context = prepare_material_transfer(
+            master_glb,
+            total_samples=material_samples,
+            max_texture_size=2048,
+        )
 
     lods: list[LODArtifact] = []
     for index, ratio in enumerate(ratios):
@@ -154,10 +184,14 @@ def build_gameprep(
         target = max(4, min(source_faces, int(round(lod0_target * ratio))))
         final_path = out_dir / f"{name}.glb"
 
-        if index == 0 and source_faces <= lod0_target:
+        if has_skin or (index == 0 and source_faces <= lod0_target):
             shutil.copy2(master_glb, final_path)
             actual = source_faces
-            material_policy = "original master materials preserved"
+            material_policy = (
+                "exact rig/skin/material preservation"
+                if has_skin
+                else "original master materials preserved"
+            )
         else:
             simplified = simplify_to_faces(master_mesh, target)
             raw_path = out_dir / "_raw" / f"{name}_geometry.glb"
@@ -210,6 +244,9 @@ def build_gameprep(
         manifest=str(manifest_path),
         source_faces=source_faces,
         target_lod0_faces=lod0_target,
+        rig_audit=asdict(rig_audit),
+        rig_audit_path=str(rig_audit_path),
+        lod_policy=lod_policy,
     )
     manifest_path.write_text(
         json.dumps(asdict(result), indent=2) + "\n",
