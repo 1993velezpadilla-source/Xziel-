@@ -22,8 +22,9 @@ class ViewForgeTests(unittest.TestCase):
             masked.mkdir(parents=True)
             normals_raw.mkdir(parents=True)
 
-            source = root / "source_real.png"
-            source.write_bytes(b"real-source")
+            from PIL import Image
+            source = root / "source_real.jpg"
+            Image.new("RGB", (32, 48), (120, 80, 40)).save(source, format="JPEG")
 
             for view in WONDER3D_VIEWS:
                 (masked / f"rgb_000_{view}.png").write_bytes(f"rgb-{view}".encode())
@@ -37,6 +38,9 @@ class ViewForgeTests(unittest.TestCase):
             self.assertEqual(len(result.synthetic_reconstruction_views), 5)
             self.assertNotIn(result.rgb_views["front"], result.synthetic_reconstruction_views)
             self.assertTrue(Path(result.manifest_path).is_file())
+            anchor = root / "stable" / "anchors" / "source_real.png"
+            self.assertTrue(anchor.is_file())
+            self.assertEqual(anchor.read_bytes()[:8], b"\\x89PNG\\r\\n\\x1a\\n")
             for path in result.synthetic_reconstruction_views:
                 self.assertTrue(Path(path).is_file())
 
