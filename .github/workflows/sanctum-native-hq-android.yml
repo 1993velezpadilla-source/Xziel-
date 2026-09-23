@@ -13,6 +13,7 @@ on:
       - engine/mobile-mip-residency-vulkan-v2
       - engine/mobile-async-streaming-v1
       - engine/mobile-world-streaming-v1
+      - engine/mobile-world-culling-v1
     paths:
       - ".github/workflows/sanctum-native-hq-android.yml"
       - ".github/workflows/sanctum-clean-source.yml"
@@ -51,11 +52,11 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-ktx2-astc-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-mip-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-upload-batching-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-mip-residency-vulkan-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-mip-residency-vulkan-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-async-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-v1" ]]; then
+          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-ktx2-astc-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-mip-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-upload-batching-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-mip-residency-vulkan-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-mip-residency-vulkan-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-async-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-culling-v1" ]]; then
             ASTC_PACK_BRANCH="${GITHUB_REF_NAME}"
             if [[ "${GITHUB_REF_NAME}" == "engine/mobile-upload-batching-v1" ]]; then
               ASTC_PACK_BRANCH="engine/mobile-ktx2-astc-v1"
-            elif [[ "${GITHUB_REF_NAME}" == "engine/mobile-mip-residency-vulkan-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-mip-residency-vulkan-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-async-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-v1" ]]; then
+            elif [[ "${GITHUB_REF_NAME}" == "engine/mobile-mip-residency-vulkan-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-mip-residency-vulkan-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-async-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-culling-v1" ]]; then
               ASTC_PACK_BRANCH="engine/mobile-power-fidelity-v1"
             fi
             for i in $(seq 1 120); do
@@ -467,6 +468,15 @@ jobs:
           timeout 8 "$ADB" logcat -d -v threadtime \
             > dist/sanctum-hq-startup-logcat.txt || true
 
+          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-world-culling-v1" ]]; then
+            # Exercise Android's real trim-memory path instead of a debug-only
+            # renderer flag. GameActivity/native glue should surface this as
+            # APP_CMD_LOW_MEMORY, which Xziel converts to Critical pressure.
+            "$ADB" shell am send-trim-memory \
+              com.xziel.engineprototype RUNNING_CRITICAL || true
+            sleep 2
+          fi
+
           timeout 8 "$ADB" shell uiautomator dump /sdcard/xziel-sanctum-window.xml             >/dev/null 2>&1 || true
           timeout 8 "$ADB" exec-out cat /sdcard/xziel-sanctum-window.xml             > dist/sanctum-hq-window.xml 2>/dev/null || true
 
@@ -620,7 +630,7 @@ jobs:
 
               echo "XZIEL_ASTC_RUNTIME_ACTIVE textures=${KTX_LOAD_COUNT}"
 
-              if [[ "${GITHUB_REF_NAME}" == "engine/mobile-async-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-v1" ]]; then
+              if [[ "${GITHUB_REF_NAME}" == "engine/mobile-async-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-culling-v1" ]]; then
                 grep -Eq "XZIEL_ASYNC_ASTC_PREFETCH_READY .*queued=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
                 grep -Eq "XZIEL_ASYNC_ASTC_PREFETCH_DONE .*failed=0 .*pending=0" dist/sanctum-hq-logcat.txt
 
@@ -649,7 +659,7 @@ jobs:
           grep -Eq "XZIEL_FRAME_PACING_(READY|SKIPPED_CPU|UNAVAILABLE)"             dist/sanctum-hq-logcat.txt
           grep -q "XZIEL_PERF_TIMING "             dist/sanctum-hq-logcat.txt
 
-          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-v1" ]]; then
+          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-culling-v1" ]]; then
             grep -Eq "XZIEL_WORLD_STREAMING_PLAN current_cell=[1-9][0-9]* .*hot_resources=[1-9][0-9]* .*cold_batches=[1-9][0-9]* .*evictable_mb=[0-9]+\.[0-9]+" dist/sanctum-hq-logcat.txt
             STREAM_CELL="$(grep "XZIEL_WORLD_STREAMING_PLAN" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* current_cell=\([0-9][0-9]*\).*/\1/p')"
             STREAM_COLD_BATCHES="$(grep "XZIEL_WORLD_STREAMING_PLAN" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* cold_batches=\([0-9][0-9]*\).*/\1/p')"
@@ -658,6 +668,15 @@ jobs:
             test -n "${STREAM_COLD_BATCHES}"
             test "${STREAM_COLD_BATCHES}" -gt 0
             echo "XZIEL_WORLD_STREAMING_RUNTIME_ACTIVE cell=${STREAM_CELL} cold_batches=${STREAM_COLD_BATCHES}"
+          fi
+
+          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-world-culling-v1" ]]; then
+            grep -q "LOW_MEMORY" dist/sanctum-hq-logcat.txt
+            grep -Eq "XZIEL_WORLD_STREAMING_PRESSURE_CULL current_cell=[1-9][0-9]* suppressed_batches=[1-9][0-9]* remaining_draws=[0-9]+ evictable_mb=[0-9]+\.[0-9]+" dist/sanctum-hq-logcat.txt
+            CULL_COUNT="$(grep "XZIEL_WORLD_STREAMING_PRESSURE_CULL" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* suppressed_batches=\([0-9][0-9]*\).*/\1/p')"
+            test -n "${CULL_COUNT}"
+            test "${CULL_COUNT}" -gt 0
+            echo "XZIEL_WORLD_STREAMING_PRESSURE_CULL_ACTIVE suppressed_batches=${CULL_COUNT}"
           fi
 
           PIPELINE_READY_COUNT="$(grep -c "XZIEL_3D_PIPELINE_READY" dist/sanctum-hq-logcat.txt || true)"
