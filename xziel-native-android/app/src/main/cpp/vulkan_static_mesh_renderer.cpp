@@ -1962,13 +1962,15 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureResidency(
             1U << frameSlot);
 
     const std::uint32_t minimumStableFrames =
-        memoryPressure ==
-            MemoryPressure::Critical
+        streamResidencyProbeEnabled_
         ? 8U
         : memoryPressure ==
-              MemoryPressure::Elevated
-          ? 30U
-          : 120U;
+              MemoryPressure::Critical
+          ? 8U
+          : memoryPressure ==
+                MemoryPressure::Elevated
+            ? 30U
+            : 120U;
 
     for (std::uint32_t textureIndex = 0U;
          textureIndex < textures_.size();
