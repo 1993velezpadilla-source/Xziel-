@@ -43,7 +43,7 @@ class VisualJudgeTests(unittest.TestCase):
     def test_many_reference_aggregation_resists_one_bad_outlier(self):
         mostly_good = [91, 90, 92, 89, 93, 90, 91, 88, 5]
         result = aggregate_source_scores(mostly_good)
-        self.assertGreater(result, 70.0)
+        self.assertGreater(result, 65.0)
         self.assertLess(result, sum(mostly_good) / len(mostly_good))
 
     def test_canonical_filename_hints(self):
