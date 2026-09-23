@@ -1,0 +1,339 @@
+{
+  "schemaVersion": 1,
+  "policy": {
+    "commercialDistribution": true,
+    "preferredLicense": "CC0-1.0",
+    "rawRedistributionAllowed": true,
+    "notes": "Only entries explicitly verified CC0 are auto-fetched. Restricted free libraries are catalogued in docs but are not mirrored as raw files."
+  },
+  "entries": [
+    {
+      "id": "oga_rubberduck_100_sfx_2",
+      "tier": "core",
+      "category": [
+        "door",
+        "footstep",
+        "glass",
+        "thunder",
+        "wood",
+        "water",
+        "ambient"
+      ],
+      "sourcePage": "https://opengameart.org/content/100-cc0-sfx-2",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "fileContains": "sfx_100_v2.zip",
+      "qualityRank": "A",
+      "recommendedFor": [
+        "DoorWoodCreak",
+        "FootstepWood",
+        "GlassBreak",
+        "ThunderMid",
+        "BarricadePlankRip"
+      ],
+      "notes": "Broad utility pack; excellent first-pass coverage and tiny download."
+    },
+    {
+      "id": "oga_rubberduck_breaking_75",
+      "tier": "core",
+      "category": [
+        "wood_break",
+        "glass_break",
+        "debris",
+        "impact"
+      ],
+      "sourcePage": "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "fileContains": "sfx_breaking_and_falling.zip",
+      "qualityRank": "A",
+      "recommendedFor": [
+        "BarricadePlankRip",
+        "BarricadeBreach",
+        "GlassCrack",
+        "GlassBreak"
+      ],
+      "notes": "Best CC0 destruction pack in the first curated pass."
+    },
+    {
+      "id": "oga_different_steps",
+      "tier": "core",
+      "category": [
+        "footstep",
+        "wood",
+        "stone",
+        "mud",
+        "gravel"
+      ],
+      "sourcePage": "https://opengameart.org/node/5701",
+      "author": "TinyWorlds",
+      "license": "CC0-1.0",
+      "fileContains": "DifferentSteps.zip",
+      "qualityRank": "A-",
+      "recommendedFor": [
+        "FootstepWood",
+        "FootstepStone",
+        "FootstepWetStone"
+      ],
+      "notes": "Recorded surface variety; use randomized variants to avoid repetition."
+    },
+    {
+      "id": "oga_rain_thunders",
+      "tier": "core",
+      "category": [
+        "rain",
+        "storm",
+        "thunder",
+        "ambience"
+      ],
+      "sourcePage": "https://opengameart.org/content/rain-and-thunders",
+      "author": "kindland",
+      "license": "CC0-1.0",
+      "fileContains": "Dark_Rainy_Night",
+      "qualityRank": "A",
+      "recommendedFor": [
+        "RainExteriorLoop",
+        "RainInteriorLoop",
+        "ThunderFar"
+      ],
+      "notes": "Strong dark-rain ambience bed. Keep thunder one-shots layered separately for gameplay timing."
+    },
+    {
+      "id": "oga_wind_whoosh_loop",
+      "tier": "core",
+      "category": [
+        "wind",
+        "loop",
+        "whoosh"
+      ],
+      "sourcePage": "https://opengameart.org/content/wind-whoosh-loop",
+      "author": "SketchMan3",
+      "license": "CC0-1.0",
+      "fileContains": "wind woosh loop.ogg",
+      "qualityRank": "A-",
+      "recommendedFor": [
+        "WindLoop",
+        "WindGust",
+        "WindowRattle"
+      ],
+      "notes": "Small loop suited to low-cost continuous exterior wind."
+    },
+    {
+      "id": "oga_ambient_horror",
+      "tier": "core",
+      "category": [
+        "horror",
+        "ambience",
+        "choir",
+        "monster"
+      ],
+      "sourcePage": "https://opengameart.org/content/ambient-horror",
+      "author": "techiew",
+      "license": "CC0-1.0",
+      "fileContains": "ambient_horror.ogg",
+      "qualityRank": "B+",
+      "recommendedFor": [
+        "HorrorStinger",
+        "SoulWhisper"
+      ],
+      "notes": "Use sparsely; Xziel HorrorDirector should control intensity so ambience never becomes constant noise."
+    },
+    {
+      "id": "oga_ghost_moans",
+      "tier": "core",
+      "category": [
+        "ghost",
+        "soul",
+        "moan",
+        "growl"
+      ],
+      "sourcePage": "https://opengameart.org/content/ghost-monster-voice-moaning-growling",
+      "author": "qubodup",
+      "license": "CC0-1.0",
+      "fileContains": "GhostMoans.zip",
+      "qualityRank": "A-",
+      "recommendedFor": [
+        "SoulWhisper",
+        "HorrorStinger"
+      ],
+      "notes": "Useful for distant soul/ghost layers after filtering and pitch randomization."
+    },
+    {
+      "id": "oga_muffled_distant_explosion",
+      "tier": "core",
+      "category": [
+        "explosion",
+        "distant",
+        "boom"
+      ],
+      "sourcePage": "https://opengameart.org/content/muffled-distant-explosion",
+      "author": "NenadSimic",
+      "license": "CC0-1.0",
+      "fileContains": "Muffled Distant Explosion.wav",
+      "qualityRank": "A-",
+      "recommendedFor": [
+        "GrenadeExplosion",
+        "ThunderFar"
+      ],
+      "notes": "Good low-frequency tail layer; combine with a short near transient for grenades."
+    },
+    {
+      "id": "oga_dynamite",
+      "tier": "extended",
+      "category": [
+        "explosion",
+        "bomb"
+      ],
+      "sourcePage": "https://opengameart.org/content/dynamite-sound-effect",
+      "author": "Listener",
+      "license": "CC0-1.0",
+      "fileContains": "Dynamite with sensor.wav",
+      "qualityRank": "C",
+      "recommendedFor": [
+        "GrenadeExplosion"
+      ],
+      "notes": "Not a top pick: page comments report a stereo-channel issue near the tail. Keep only as optional layer/reference."
+    },
+    {
+      "id": "oga_voices_of_madness",
+      "tier": "extended",
+      "category": [
+        "whisper",
+        "voice",
+        "horror",
+        "soul"
+      ],
+      "sourcePage": "https://opengameart.org/content/voices-of-madness",
+      "author": "eugeneloza",
+      "license": "CC0-1.0",
+      "fileContains": "sounds-of-madness-ogg.zip",
+      "qualityRank": "A",
+      "recommendedFor": [
+        "SoulWhisper",
+        "HorrorStinger"
+      ],
+      "notes": "11 source tracks; ideal for spatial whispers. OGG pack chosen to keep CI artifact size sensible."
+    },
+    {
+      "id": "oga_rubberduck_100_sfx_1",
+      "tier": "extended",
+      "category": [
+        "door",
+        "door_squeak",
+        "glass",
+        "wood",
+        "splash",
+        "explosion"
+      ],
+      "sourcePage": "https://opengameart.org/content/100-cc0-sfx",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "fileContains": "100-CC0-SFX.zip",
+      "qualityRank": "A-",
+      "recommendedFor": [
+        "DoorWoodOpenStart",
+        "DoorWoodCreak",
+        "DoorWoodOpenStop",
+        "GlassBreak",
+        "GrenadeExplosion"
+      ],
+      "notes": "100 additional CC0 variants including door squeaks/closes/open, glass, splash, wood and explosion."
+    },
+    {
+      "id": "oga_glass_break_tinyworlds",
+      "tier": "core",
+      "category": [
+        "glass",
+        "break",
+        "shards"
+      ],
+      "sourcePage": "https://opengameart.org/content/glass-break",
+      "author": "Till Behrend / TinyWorlds",
+      "license": "CC0-1.0",
+      "fileContains": "glass_breaking.wav",
+      "qualityRank": "A",
+      "recommendedFor": [
+        "GlassBreak"
+      ],
+      "notes": "Dedicated game-ready glass break one-shot."
+    },
+    {
+      "id": "oga_short_wind",
+      "tier": "core",
+      "category": [
+        "wind",
+        "gust"
+      ],
+      "sourcePage": "https://opengameart.org/content/short-wind-sound",
+      "author": "remaxim",
+      "license": "CC0-1.0",
+      "fileContains": "short wind sound.wav",
+      "qualityRank": "B+",
+      "recommendedFor": [
+        "WindGust"
+      ],
+      "notes": "Short gust useful as a transient over the continuous wind loop."
+    },
+    {
+      "id": "oga_mild_wind_background",
+      "tier": "extended",
+      "category": [
+        "wind",
+        "background",
+        "gust"
+      ],
+      "sourcePage": "https://opengameart.org/content/mild-wind-background-noise",
+      "author": "Bashar3A",
+      "license": "CC0-1.0",
+      "fileContains": "wind background noise 2.wav",
+      "qualityRank": "B+",
+      "recommendedFor": [
+        "WindLoop",
+        "WindGust",
+        "WindowRattle"
+      ],
+      "notes": "Longer evolving wind bed; optional because it is larger than the core loop."
+    },
+    {
+      "id": "oga_misc_sfx_pack",
+      "tier": "extended",
+      "category": [
+        "ghost",
+        "holy",
+        "ambience",
+        "spooky"
+      ],
+      "sourcePage": "https://opengameart.org/content/misc-sfx-pack",
+      "author": "Timopy",
+      "license": "CC0-1.0",
+      "fileContains": "SFX.7z",
+      "qualityRank": "B+",
+      "recommendedFor": [
+        "SoulWhisper",
+        "HorrorStinger"
+      ],
+      "notes": "52 CC0 miscellaneous effects; archived as 7z and retained for offline curation."
+    },
+    {
+      "id": "oga_wood_cracks_35",
+      "tier": "extended",
+      "category": [
+        "wood_break",
+        "crack",
+        "impact",
+        "destruction"
+      ],
+      "sourcePage": "https://opengameart.org/content/35-wooden-crackshitsdestructions",
+      "author": "Independent.nu / qubodup",
+      "license": "CC0-1.0",
+      "fileContains": "independent_nu_ljudbank-wood_crack_hit_destruction.7z",
+      "qualityRank": "A",
+      "recommendedFor": [
+        "BarricadeWoodStrain",
+        "BarricadePlankRip",
+        "BarricadeBreach"
+      ],
+      "notes": "35 extra wood crack/hit/destruction variations; strong candidate for anti-repetition layering."
+    }
+  ]
+}

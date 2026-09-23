@@ -1,0 +1,106 @@
+name: Sanctum Immersive Assets
+
+on:
+  workflow_dispatch:
+    inputs:
+      tier:
+        description: CC0 asset tier to package
+        required: true
+        default: core
+        type: choice
+        options:
+          - core
+          - extended
+          - all
+      include_models:
+        description: Include redistributable CC0 3D models
+        required: true
+        default: true
+        type: boolean
+  push:
+    branches:
+      - feature/sanctum-immersive-audio-vfx-v1
+    paths:
+      - "assets/audio/sanctum/**"
+      - "assets/models/sanctum_atmosphere/**"
+      - "scripts/fetch_sanctum_immersive_assets.py"
+      - ".github/workflows/sanctum-immersive-assets.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch verified CC0 core
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REQUESTED_TIER: ${{ inputs.tier }}
+          INCLUDE_MODELS: ${{ inputs.include_models }}
+        run: |
+          set -euo pipefail
+          tier="${REQUESTED_TIER:-all}"
+          model_flag="--include-models"
+
+          if [[ "${EVENT_NAME}" == "workflow_dispatch" && "${INCLUDE_MODELS}" == "false" ]]; then
+            model_flag=""
+          fi
+
+          python3 scripts/fetch_sanctum_immersive_assets.py \
+            --tier "$tier" \
+            $model_flag \
+            --output dist/sanctum-immersive-assets
+
+          test -s dist/sanctum-immersive-assets/ASSET_LOCK.json
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          p = Path("dist/sanctum-immersive-assets/ASSET_LOCK.json")
+          data = json.loads(p.read_text())
+          assert data["files"], "asset pack unexpectedly empty"
+          for item in data["files"]:
+              assert item["license"] == "CC0-1.0"
+          print("CC0_PACKAGE_OK", len(data["files"]))
+          PY
+
+      - name: Upload Sanctum CC0 asset pack
+        uses: actions/upload-artifact@v4
+        with:
+          name: xziel-sanctum-immersive-cc0-${{ github.run_number }}
+          path: dist/sanctum-immersive-assets
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 30
+
+
+      - name: Publish persistent CC0 source pack
+        if: github.event_name == 'push'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          archive="dist/xziel-sanctum-immersive-cc0.zip"
+          (
+            cd dist
+            zip -q -r "xziel-sanctum-immersive-cc0.zip" "sanctum-immersive-assets"
+          )
+
+          tag="sanctum-immersive-assets-v1"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "$archive" --clobber
+          else
+            gh release create "$tag" "$archive"               --target "$GITHUB_SHA"               --title "Xziel Sanctum Immersive CC0 Asset Pack"               --notes "Curated redistributable CC0 source pack for Sanctum/Xziel. Includes ASSET_LOCK.json with SHA-256 hashes and source/license metadata. Raw third-party libraries with restrictive redistribution terms are deliberately excluded."
+          fi

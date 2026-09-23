@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "id": "large_castle_door",
+      "provider": "Poly Haven",
+      "tier": "core",
+      "type": "model",
+      "license": "CC0-1.0",
+      "sourcePage": "https://polyhaven.com/a/large_castle_door",
+      "apiAssetId": "large_castle_door",
+      "qualityRank": "S",
+      "runtimeRole": "hero_old_wood_church_door",
+      "notes": "Weathered arched double wooden door, iron straps/rivets/ring handles; ~13K tris. Animate leaves around authored hinge pivots with DoorFrame.openProgress instead of requiring a pre-baked animation."
+    },
+    {
+      "id": "oga_low_poly_doors",
+      "provider": "OpenGameArt",
+      "tier": "extended",
+      "type": "model",
+      "license": "CC0-1.0",
+      "sourcePage": "https://opengameart.org/content/low-poly-doors-asset",
+      "fileContains": "doorasset_fbx_gltf_blend_godot.zip",
+      "qualityRank": "B",
+      "runtimeRole": "background_doors_and_windows",
+      "notes": "17 doors and 5 windows, 1K textures, GLTF/FBX/Blend. Use as fallback/background, not the hero church entrance."
+    },
+    {
+      "id": "oga_wooden_door",
+      "provider": "OpenGameArt",
+      "tier": "extended",
+      "type": "model",
+      "license": "CC0-1.0",
+      "sourcePage": "https://opengameart.org/content/wooden-door-0",
+      "fileContains": "Wooden Door.zip",
+      "qualityRank": "B+",
+      "runtimeRole": "secondary_old_wood_door",
+      "notes": "1200 tris with 1024 diffuse/normal/specular. Good mobile secondary door."
+    }
+  ],
+  "lightingReferences": [
+    {
+      "id": "graaff_reinet_groote_kerk",
+      "provider": "Poly Haven",
+      "license": "CC0-1.0",
+      "sourcePage": "https://polyhaven.com/a/graaff_reinet_groote_kerk",
+      "use": "Church interior lighting/stained-glass reference; do not ship the HDRI by default."
+    },
+    {
+      "id": "bell_tower",
+      "provider": "Poly Haven",
+      "license": "CC0-1.0",
+      "sourcePage": "https://polyhaven.com/a/bell_tower",
+      "use": "Bell-tower stained-glass, wooden-floor and morning-light reference."
+    }
+  ]
+}
