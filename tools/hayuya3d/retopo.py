@@ -278,9 +278,9 @@ def run_retopology(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="HAYUYA Instant Meshes retopology challenger.")
-    parser.add_argument("--input", type=Path, required=True)
-    parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--target-faces", type=int, required=True)
+    parser.add_argument("--input", type=Path)
+    parser.add_argument("--output", type=Path)
+    parser.add_argument("--target-faces", type=int)
     parser.add_argument("--texture-size", type=int, default=2048)
     parser.add_argument("--style", choices=["pure_quad", "quad_dominant"], default="quad_dominant")
     parser.add_argument("--model-root", type=Path, default=DEFAULT_MODEL_ROOT)
@@ -291,6 +291,9 @@ def main() -> int:
         binary = build_instant_meshes(args.model_root)
         print(f"HAYUYA_RETOPO_BINARY_READY {binary}")
         return 0
+
+    if args.input is None or args.output is None or args.target_faces is None:
+        parser.error("--input, --output and --target-faces are required unless --build is used")
 
     result = run_retopology(
         args.input,
