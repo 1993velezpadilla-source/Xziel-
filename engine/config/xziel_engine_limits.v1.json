@@ -7,7 +7,12 @@
       "max_batches": 2048,
       "max_vertices": 8000000,
       "max_indices": 12000000,
-      "supported_xzsm_versions": [2, 3, 4, 5]
+      "supported_xzsm_versions": [
+        2,
+        3,
+        4,
+        5
+      ]
     },
     "world_streaming": {
       "max_cells": 64,
@@ -20,7 +25,11 @@
       "max_doors": 16,
       "max_windows": 32,
       "max_generic_interactions": 16,
-      "max_zombie_spawns": 32
+      "max_zombie_spawns": 32,
+      "supported_xmap_versions": [
+        1,
+        2
+      ]
     },
     "horde": {
       "max_active_zombies": 16,
@@ -31,7 +40,8 @@
     },
     "multiplayer_prepared": {
       "max_players": 4,
-      "status": "prepared_on_engine_online_4p_foundation_v1_not_yet_shipping_main"
+      "status": "prepared_on_engine_online_4p_foundation_v1_not_yet_shipping_main",
+      "xmap_version": 3
     }
   },
   "runtime_budgets": {
