@@ -40,7 +40,10 @@
     "dynamic_quality_scaling_required_for_long_mobile_sessions": true,
     "thermal_validation_minimum_minutes": 15,
     "validate_on_real_low_mid_high_devices": true,
-    "profile_cpu_gpu_memory_and_thermal_separately": true
+    "profile_cpu_gpu_memory_and_thermal_separately": true,
+    "profile_multiple_gpu_vendors": true,
+    "no_universal_per_asset_triangle_limit": true,
+    "no_universal_draw_call_limit": true
   },
   "hayuya_house_runtime_tiers": {
     "compatibility": {
@@ -507,6 +510,31 @@
       ],
       "public_numeric_guidance": [],
       "asset_implication": "HAYUYA should export neutral meshes/textures and metadata rather than depend on engine-side automatic optimization."
+    },
+    {
+      "id": "android-native-vulkan-custom",
+      "class": "custom-native-engine",
+      "renderer": "Developer-owned native renderer",
+      "graphics_apis": [
+        "Vulkan primary",
+        "OpenGL ES compatibility/legacy"
+      ],
+      "portable_features": [
+        "full control of render passes",
+        "frame pacing",
+        "ADPF",
+        "Memory Advice",
+        "Game Mode",
+        "custom streaming/LOD/material systems"
+      ],
+      "notable_mobile_limits": [
+        "no engine safety net; developer owns CPU/GPU synchronization, draw submission, resource lifetime, memory, thermal adaptation and device compatibility",
+        "vendor/generation bottlenecks vary substantially"
+      ],
+      "public_numeric_guidance": [
+        "Vulkan lowers driver/draw-call overhead versus OpenGL ES in draw-heavy scenes; no universal draw-call/triangle ceiling"
+      ],
+      "asset_implication": "HAYUYA output must be explicit and auditable: LOD chain, texture tiers, material count, collision, scale/orientation, compression plan and runtime budget metadata."
     }
   ],
   "public_large_game_case_studies": [
@@ -592,6 +620,33 @@
     "common_tile_gpu": {
       "rule": "Keep transient/deferred data on-chip when engine/API supports it; avoid unnecessary stores/loads and render passes.",
       "why": "External memory bandwidth costs performance and power on tile-based mobile GPUs."
+    },
+    "powervr": {
+      "architecture": "Tile-Based Deferred Rendering (TBDR)",
+      "rules": [
+        "Keep opaque work friendly to hidden-surface removal.",
+        "Avoid unnecessary system-memory stores/loads for transient attachments.",
+        "Treat discard/alpha-test and layered transparency as architecture-sensitive costs.",
+        "Keep temporary deferred data on-chip where the renderer/API permits."
+      ],
+      "why": "PowerVR documentation describes bandwidth/power savings from tile memory and hidden-surface removal; mobile efficiency depends strongly on minimizing system-memory traffic."
+    },
+    "cross_vendor_android": {
+      "vendors": [
+        "Adreno",
+        "Mali",
+        "PowerVR and other Vulkan/OpenGL ES implementations"
+      ],
+      "rule": "Never infer one GPU's bottleneck from another. Profile CPU and GPU frame time on real vendor hardware; vendor and generation differences can materially change bottlenecks.",
+      "tools": [
+        "Android GPU Inspector",
+        "RenderDoc",
+        "Arm Performance Studio where applicable",
+        "Android Performance Analyzer"
+      ],
+      "geometry": "Use LOD, culling and mesh simplification when geometry is the actual bottleneck.",
+      "shaders": "Use the lowest adequate precision and avoid needless passes/attachments.",
+      "textures": "Use GPU compression and mipmaps; ASTC primary on modern Android with fallback packaging."
     }
   },
   "zombie_game_asset_rules": {
@@ -675,6 +730,14 @@
       "https://developer.apple.com/documentation/Metal/rendering-a-scene-with-deferred-lighting-in-swift",
       "https://www.khronos.org/gltf/",
       "https://www.khronos.org/ktx/"
+    ],
+    "android_native_and_gpu": [
+      "https://developer.android.com/games/optimize/optimization-tips",
+      "https://developer.android.com/games/optimize/power",
+      "https://developer.android.com/games/develop/vulkan/native-engine-support",
+      "https://developer.android.com/android-performance-analyzer/analyze/frame-times",
+      "https://docs.imgtec.com/starter-guides/powervr-architecture/html/topics/tile-based-deferred-rendering-index.html",
+      "https://docs.imgtec.com/starter-guides/powervr-architecture/html/topics/rules/do-use-on-chip-memory-efficiently-for-deferred-rendering.html"
     ]
   }
 }
