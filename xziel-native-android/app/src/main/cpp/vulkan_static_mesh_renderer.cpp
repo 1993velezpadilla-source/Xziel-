@@ -247,6 +247,14 @@ bool VulkanStaticMeshRenderer::initialize(
     streamDecisionCount_ = 0U;
     streamPlanFrame_ = 0U;
     lastLoggedStreamCell_ = 0U;
+    streamCellCandidate_ = 0U;
+    streamCellStableFrames_ = 0U;
+    streamCullingActive_ = false;
+    streamCullLogged_ = false;
+    streamCellCandidate_ = 0U;
+    streamCellStableFrames_ = 0U;
+    streamCullingActive_ = false;
+    streamCullLogged_ = false;
 
     // Read KTX2 payloads on bounded worker threads while the render thread
     // creates pipelines/descriptors. Vulkan object creation and queue submits
@@ -947,6 +955,28 @@ void VulkanStaticMeshRenderer::record(
             inferStreamingCell(camera);
 
         if (currentCell != 0U) {
+            if (currentCell !=
+                streamCellCandidate_) {
+                streamCellCandidate_ =
+                    currentCell;
+                streamCellStableFrames_ =
+                    1U;
+                streamCullingActive_ =
+                    false;
+                streamCullLogged_ =
+                    false;
+            } else {
+                streamCellStableFrames_ =
+                    std::min<std::uint32_t>(
+                        streamCellStableFrames_ + 1U,
+                        1000000U);
+
+                if (streamCellStableFrames_ >= 8U) {
+                    streamCullingActive_ =
+                        true;
+                }
+            }
+
             const auto streamStats =
                 streamGraph_.plan(
                     {
@@ -1022,6 +1052,12 @@ void VulkanStaticMeshRenderer::record(
                         environment.
                             memoryPressure));
             }
+        } else {
+            streamCellCandidate_ = 0U;
+            streamCellStableFrames_ = 0U;
+            streamCullingActive_ = false;
+            streamCullLogged_ = false;
+            streamDecisionCount_ = 0U;
         }
     }
 
@@ -1168,6 +1204,21 @@ void VulkanStaticMeshRenderer::record(
             continue;
         }
 
+        if (streamCullingActive_) {
+            const auto* decision =
+                streamDecision(
+                    batch.streamResourceId,
+                    streamDecisionCount_);
+
+            if (decision != nullptr &&
+                !decision->desiredResident) {
+                ++frameStats_.culledBatches;
+                ++frameStats_.
+                    streamingCulledBatches;
+                continue;
+            }
+        }
+
         const float centerX =
             (batch.bounds.minimum[0] +
              batch.bounds.maximum[0]) *
@@ -1292,6 +1343,29 @@ void VulkanStaticMeshRenderer::record(
         frameStats_.submittedTriangles +=
             static_cast<std::uint64_t>(
                 batch.indexCount / 3U);
+    }
+
+    if (streamCullingActive_ &&
+        !streamCullLogged_ &&
+        frameStats_.streamingCell != 0U) {
+        streamCullLogged_ = true;
+
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u",
+            static_cast<unsigned int>(
+                frameStats_.streamingCell),
+            static_cast<unsigned int>(
+                streamCellStableFrames_),
+            static_cast<unsigned int>(
+                frameStats_.
+                    streamingColdBatches),
+            static_cast<unsigned int>(
+                frameStats_.
+                    streamingCulledBatches),
+            static_cast<unsigned int>(
+                frameStats_.drawCalls));
     }
 }
 
