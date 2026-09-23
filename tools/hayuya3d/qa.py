@@ -18,6 +18,8 @@ class MeshScore:
     production_score: float | None = None
     visual_score: float | None = None
     visual_views: list[dict] | None = None
+    appearance_score: float | None = None
+    appearance_views: list[dict] | None = None
     vertices: int = 0
     faces: int = 0
     components: int = 0
@@ -186,6 +188,10 @@ def rank_candidates(
     target_faces: int,
     source_images: list[Path] | None = None,
     visual_weight: float = 0.55,
+    appearance_mode: str = "off",
+    appearance_model_root: Path | None = None,
+    appearance_render_root: Path | None = None,
+    appearance_weight: float = 0.25,
 ) -> list[MeshScore]:
     scores = [
         inspect_mesh(path, backend=backend, mode=mode, target_faces=target_faces)
@@ -218,10 +224,66 @@ def rank_candidates(
                         f"Judge v2 combined production={item.production_score:.3f} "
                         f"visual={item.visual_score:.3f} visual_weight={visual_weight:.2f}"
                     )
+
+                    should_try_appearance = appearance_mode in {"auto", "required"}
+                    if should_try_appearance:
+                        model_root = appearance_model_root
+                        dino_ready = bool(model_root and (model_root / "dinov2").is_dir())
+                        if not dino_ready and appearance_mode == "required":
+                            raise RuntimeError(
+                                "Judge v3 required but DINOv2 is not bootstrapped under model_root"
+                            )
+                        if dino_ready:
+                            try:
+                                from appearance_judge import score_candidate_appearance
+                                render_dir = (
+                                    appearance_render_root / item.backend
+                                    if appearance_render_root is not None
+                                    else None
+                                )
+                                appearance = score_candidate_appearance(
+                                    Path(item.path),
+                                    source_images,
+                                    visual.views,
+                                    model_root=model_root,
+                                    render_dir=render_dir,
+                                )
+                                item.appearance_score = appearance.score
+                                item.appearance_views = [_asdict(v) for v in appearance.views]
+
+                                # Preserve the proven v2 production:silhouette ratio inside
+                                # the non-appearance share, then add DINO appearance evidence.
+                                remaining = 1.0 - appearance_weight
+                                production_w = (1.0 - visual_weight) * remaining
+                                silhouette_w = visual_weight * remaining
+                                item.score = round(
+                                    item.production_score * production_w
+                                    + item.visual_score * silhouette_w
+                                    + item.appearance_score * appearance_weight,
+                                    3,
+                                )
+                                item.notes.append(
+                                    f"Judge v3 combined production={item.production_score:.3f} "
+                                    f"silhouette={item.visual_score:.3f} "
+                                    f"appearance={item.appearance_score:.3f} "
+                                    f"weights={production_w:.4f}/{silhouette_w:.4f}/{appearance_weight:.4f}"
+                                )
+                            except Exception as exc:
+                                item.notes.append(
+                                    f"Judge v3 appearance unavailable: {type(exc).__name__}: {exc}"
+                                )
+                                if appearance_mode == "required":
+                                    raise
+                        else:
+                            item.notes.append(
+                                "Judge v3 auto skipped: DINOv2 evaluator not bootstrapped"
+                            )
                 except Exception as exc:
                     item.notes.append(
-                        f"Judge v2 visual score unavailable: {type(exc).__name__}: {exc}"
+                        f"Judge v2/v3 score unavailable: {type(exc).__name__}: {exc}"
                     )
+                    if appearance_mode == "required":
+                        raise
 
     return sorted(scores, key=lambda x: (x.valid, x.score), reverse=True)
 
@@ -252,6 +314,10 @@ def main() -> int:
     parser.add_argument("--target-faces", type=int, default=100000)
     parser.add_argument("--source", type=Path, action="append", help="real source image; repeatable")
     parser.add_argument("--visual-weight", type=float, default=0.55)
+    parser.add_argument("--appearance-mode", choices=["off", "auto", "required"], default="off")
+    parser.add_argument("--appearance-model-root", type=Path)
+    parser.add_argument("--appearance-render-root", type=Path)
+    parser.add_argument("--appearance-weight", type=float, default=0.25)
     parser.add_argument("--json", type=Path)
     args = parser.parse_args()
 
@@ -261,6 +327,10 @@ def main() -> int:
         target_faces=args.target_faces,
         source_images=args.source,
         visual_weight=args.visual_weight,
+        appearance_mode=args.appearance_mode,
+        appearance_model_root=args.appearance_model_root,
+        appearance_render_root=args.appearance_render_root,
+        appearance_weight=args.appearance_weight,
     )
     data = [asdict(x) for x in ranked]
     print(json.dumps(data, indent=2))
