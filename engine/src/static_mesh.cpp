@@ -298,6 +298,17 @@ parseStaticMeshXzsm(
                 destination);
         }
 
+        std::array<float, 3> actualMinimum{
+            std::numeric_limits<float>::max(),
+            std::numeric_limits<float>::max(),
+            std::numeric_limits<float>::max(),
+        };
+        std::array<float, 3> actualMaximum{
+            std::numeric_limits<float>::lowest(),
+            std::numeric_limits<float>::lowest(),
+            std::numeric_limits<float>::lowest(),
+        };
+
         for (auto& vertex : batch.vertices) {
             if (!reader.readF32(vertex.x) ||
                 !reader.readF32(vertex.y) ||
@@ -357,6 +368,54 @@ parseStaticMeshXzsm(
                     reader.offset(),
                     destination);
             }
+
+            const std::array<float, 3> position{
+                vertex.x,
+                vertex.y,
+                vertex.z,
+            };
+
+            for (std::size_t axis = 0U;
+                 axis < position.size();
+                 ++axis) {
+                actualMinimum[axis] =
+                    std::min(
+                        actualMinimum[axis],
+                        position[axis]);
+                actualMaximum[axis] =
+                    std::max(
+                        actualMaximum[axis],
+                        position[axis]);
+            }
+        }
+
+        // Batch bounds drive frustum culling in Vulkan. A stale/corrupt export
+        // can therefore make valid geometry vanish or pop. Verify that every
+        // decoded vertex is actually contained by the serialized bounds.
+        for (std::size_t axis = 0U;
+             axis < actualMinimum.size();
+             ++axis) {
+            const float magnitude =
+                std::max({
+                    1.0f,
+                    std::abs(bounds.minimum[axis]),
+                    std::abs(bounds.maximum[axis]),
+                    std::abs(actualMinimum[axis]),
+                    std::abs(actualMaximum[axis]),
+                });
+            const float tolerance =
+                1.0e-5f +
+                magnitude * 1.0e-4f;
+
+            if (actualMinimum[axis] <
+                    bounds.minimum[axis] - tolerance ||
+                actualMaximum[axis] >
+                    bounds.maximum[axis] + tolerance) {
+                return failure(
+                    StaticMeshParseError::InvalidBatch,
+                    reader.offset(),
+                    destination);
+            }
         }
 
         for (auto& index : batch.indices) {
@@ -404,6 +463,407 @@ parseStaticMeshXzsm(
         .error = StaticMeshParseError::None,
         .offset = reader.offset(),
     };
+}
+
+StaticMeshQualityMetrics
+measureStaticMeshQuality(
+    const StaticMeshAsset& asset) noexcept {
+    StaticMeshQualityMetrics metrics{};
+
+    std::array<float, 3> minimum{
+        std::numeric_limits<float>::max(),
+        std::numeric_limits<float>::max(),
+        std::numeric_limits<float>::max(),
+    };
+    std::array<float, 3> maximum{
+        std::numeric_limits<float>::lowest(),
+        std::numeric_limits<float>::lowest(),
+        std::numeric_limits<float>::lowest(),
+    };
+
+    std::uint64_t vertexCount = 0U;
+    std::uint64_t indexCount = 0U;
+
+    if (asset.batches.size() >
+        std::numeric_limits<std::uint32_t>::max()) {
+        return metrics;
+    }
+
+    metrics.batchCount =
+        static_cast<std::uint32_t>(
+            asset.batches.size());
+
+    for (const auto& batch : asset.batches) {
+        indexCount += batch.indices.size();
+
+        for (const auto& vertex : batch.vertices) {
+            const std::array<float, 3> position{
+                vertex.x,
+                vertex.y,
+                vertex.z,
+            };
+
+            for (std::size_t axis = 0U;
+                 axis < position.size();
+                 ++axis) {
+                minimum[axis] =
+                    std::min(
+                        minimum[axis],
+                        position[axis]);
+                maximum[axis] =
+                    std::max(
+                        maximum[axis],
+                        position[axis]);
+            }
+
+            ++vertexCount;
+        }
+    }
+
+    if (vertexCount == 0U ||
+        vertexCount >
+            std::numeric_limits<std::uint32_t>::max() ||
+        indexCount >
+            std::numeric_limits<std::uint32_t>::max()) {
+        return metrics;
+    }
+
+    metrics.vertexCount =
+        static_cast<std::uint32_t>(vertexCount);
+    metrics.indexCount =
+        static_cast<std::uint32_t>(indexCount);
+    metrics.bounds.minimum = minimum;
+    metrics.bounds.maximum = maximum;
+
+    std::size_t longestAxis = 0U;
+    std::array<float, 3> extents{};
+    for (std::size_t axis = 0U;
+         axis < extents.size();
+         ++axis) {
+        extents[axis] =
+            maximum[axis] - minimum[axis];
+
+        if (extents[axis] >
+            extents[longestAxis]) {
+            longestAxis = axis;
+        }
+    }
+
+    metrics.longestExtent =
+        extents[longestAxis];
+
+    if (!std::isfinite(metrics.longestExtent) ||
+        metrics.longestExtent <= 1.0e-6f) {
+        metrics.longestExtent = 0.0f;
+        return metrics;
+    }
+
+    constexpr std::size_t kBinCount = 32U;
+    std::array<
+        std::array<std::uint64_t, kBinCount>,
+        3> bins{};
+
+    for (const auto& batch : asset.batches) {
+        for (const auto& vertex : batch.vertices) {
+            const std::array<float, 3> position{
+                vertex.x,
+                vertex.y,
+                vertex.z,
+            };
+
+            for (std::size_t axis = 0U;
+                 axis < position.size();
+                 ++axis) {
+                if (extents[axis] <= 1.0e-6f) {
+                    ++bins[axis][0U];
+                    continue;
+                }
+
+                const float normalized =
+                    std::clamp(
+                        (position[axis] -
+                         minimum[axis]) /
+                            extents[axis],
+                        0.0f,
+                        1.0f);
+
+                const std::size_t bin =
+                    std::min<std::size_t>(
+                        static_cast<std::size_t>(
+                            normalized *
+                            static_cast<float>(
+                                kBinCount)),
+                        kBinCount - 1U);
+
+                ++bins[axis][bin];
+            }
+        }
+    }
+
+    const std::uint64_t required =
+        (vertexCount * 9U + 9U) / 10U;
+
+    for (std::size_t axis = 0U;
+         axis < extents.size();
+         ++axis) {
+        std::size_t bestWidth =
+            kBinCount + 1U;
+
+        for (std::size_t first = 0U;
+             first < kBinCount;
+             ++first) {
+            std::uint64_t count = 0U;
+
+            for (std::size_t last = first;
+                 last < kBinCount;
+                 ++last) {
+                count += bins[axis][last];
+
+                if (count >= required) {
+                    bestWidth =
+                        std::min(
+                            bestWidth,
+                            last - first + 1U);
+                    break;
+                }
+            }
+        }
+
+        if (bestWidth <= kBinCount) {
+            metrics.robustExtents90[axis] =
+                extents[axis] *
+                static_cast<float>(bestWidth) /
+                static_cast<float>(kBinCount);
+        }
+    }
+
+    if (extents[longestAxis] > 1.0e-6f) {
+        metrics.robustAxisCoverage90 =
+            metrics.robustExtents90[longestAxis] /
+            extents[longestAxis];
+    }
+
+    auto sortedRobust =
+        metrics.robustExtents90;
+
+    std::sort(
+        sortedRobust.begin(),
+        sortedRobust.end(),
+        [](float lhs, float rhs) noexcept {
+            return lhs > rhs;
+        });
+
+    metrics.robustLongestExtent90 =
+        sortedRobust[0];
+    metrics.robustSecondExtent90 =
+        sortedRobust[1];
+    metrics.robustThirdExtent90 =
+        sortedRobust[2];
+
+    constexpr std::size_t kVoxelAxisBins = 8U;
+    constexpr std::size_t kVoxelCount =
+        kVoxelAxisBins *
+        kVoxelAxisBins *
+        kVoxelAxisBins;
+    std::array<std::uint32_t, kVoxelCount>
+        voxelCounts{};
+    std::uint32_t peakVoxelCount = 0U;
+
+    for (const auto& batch : asset.batches) {
+        for (const auto& vertex : batch.vertices) {
+            const std::array<float, 3> position{
+                vertex.x,
+                vertex.y,
+                vertex.z,
+            };
+            std::array<std::size_t, 3> voxel{};
+
+            for (std::size_t axis = 0U;
+                 axis < position.size();
+                 ++axis) {
+                if (extents[axis] <= 1.0e-6f) {
+                    voxel[axis] = 0U;
+                    continue;
+                }
+
+                const float normalized =
+                    std::clamp(
+                        (position[axis] -
+                         minimum[axis]) /
+                            extents[axis],
+                        0.0f,
+                        1.0f);
+
+                voxel[axis] =
+                    std::min<std::size_t>(
+                        static_cast<std::size_t>(
+                            normalized *
+                            static_cast<float>(
+                                kVoxelAxisBins)),
+                        kVoxelAxisBins - 1U);
+            }
+
+            const std::size_t voxelIndex =
+                voxel[0] +
+                kVoxelAxisBins *
+                    (voxel[1] +
+                     kVoxelAxisBins *
+                         voxel[2]);
+
+            auto& count =
+                voxelCounts[voxelIndex];
+            ++count;
+            peakVoxelCount =
+                std::max(
+                    peakVoxelCount,
+                    count);
+        }
+    }
+
+    metrics.peakVoxelOccupancyRatio =
+        static_cast<float>(peakVoxelCount) /
+        static_cast<float>(vertexCount);
+
+    return metrics;
+}
+
+ViewmodelStaticMeshQualityResult
+evaluateViewmodelStaticMesh(
+    const StaticMeshAsset& asset) noexcept {
+    ViewmodelStaticMeshQualityResult result{};
+    result.metrics =
+        measureStaticMeshQuality(asset);
+
+    const auto& metrics =
+        result.metrics;
+
+    if (metrics.batchCount == 0U) {
+        result.rejection =
+            ViewmodelStaticMeshRejection::NoBatches;
+        return result;
+    }
+
+    if (metrics.batchCount > kViewmodelMaxBatches) {
+        result.rejection =
+            ViewmodelStaticMeshRejection::
+                TooManyBatches;
+        return result;
+    }
+
+    if (metrics.vertexCount < kViewmodelMinVertices) {
+        result.rejection =
+            ViewmodelStaticMeshRejection::
+                TooFewVertices;
+        return result;
+    }
+
+    if (metrics.vertexCount > kViewmodelMaxVertices) {
+        result.rejection =
+            ViewmodelStaticMeshRejection::
+                TooManyVertices;
+        return result;
+    }
+
+    if (metrics.indexCount < kViewmodelMinIndices) {
+        result.rejection =
+            ViewmodelStaticMeshRejection::
+                TooFewIndices;
+        return result;
+    }
+
+    if (metrics.indexCount > kViewmodelMaxIndices) {
+        result.rejection =
+            ViewmodelStaticMeshRejection::
+                TooManyIndices;
+        return result;
+    }
+
+    if ((metrics.indexCount % 3U) != 0U) {
+        result.rejection =
+            ViewmodelStaticMeshRejection::
+                NonTriangleIndexCount;
+        return result;
+    }
+
+    if (metrics.longestExtent < kViewmodelMinExtentMeters ||
+        metrics.longestExtent > kViewmodelMaxExtentMeters) {
+        result.rejection =
+            ViewmodelStaticMeshRejection::
+                InvalidEnvelope;
+        return result;
+    }
+
+    if (metrics.peakVoxelOccupancyRatio >
+            kViewmodelMaxPeakVoxelOccupancy ||
+        metrics.robustAxisCoverage90 <
+            kViewmodelMinAxisCoverage90) {
+        result.rejection =
+            ViewmodelStaticMeshRejection::
+                CollapsedVertexCloud;
+        return result;
+    }
+
+    if (metrics.robustLongestExtent90 <
+            kViewmodelMinRobustExtent90 ||
+        metrics.robustSecondExtent90 <
+            kViewmodelMinRobustSecondExtent90 ||
+        metrics.robustThirdExtent90 <
+            kViewmodelMinRobustThirdExtent90) {
+        result.rejection =
+            ViewmodelStaticMeshRejection::
+                NeedleThin;
+        return result;
+    }
+
+    result.success = true;
+    result.rejection =
+        ViewmodelStaticMeshRejection::None;
+    return result;
+}
+
+const char*
+viewmodelStaticMeshRejectionName(
+    ViewmodelStaticMeshRejection rejection) noexcept {
+    switch (rejection) {
+    case ViewmodelStaticMeshRejection::None:
+        return "none";
+    case ViewmodelStaticMeshRejection::NoBatches:
+        return "no_batches";
+    case ViewmodelStaticMeshRejection::TooManyBatches:
+        return "too_many_batches";
+    case ViewmodelStaticMeshRejection::TooFewVertices:
+        return "too_few_vertices";
+    case ViewmodelStaticMeshRejection::TooManyVertices:
+        return "too_many_vertices";
+    case ViewmodelStaticMeshRejection::TooFewIndices:
+        return "too_few_indices";
+    case ViewmodelStaticMeshRejection::TooManyIndices:
+        return "too_many_indices";
+    case ViewmodelStaticMeshRejection::NonTriangleIndexCount:
+        return "non_triangle_index_count";
+    case ViewmodelStaticMeshRejection::InvalidEnvelope:
+        return "invalid_envelope";
+    case ViewmodelStaticMeshRejection::CollapsedVertexCloud:
+        return "collapsed_vertex_cloud";
+    case ViewmodelStaticMeshRejection::NeedleThin:
+        return "needle_thin";
+    }
+
+    return "unknown";
+}
+
+bool
+passesViewmodelStaticMeshSanity(
+    const StaticMeshAsset& asset,
+    StaticMeshQualityMetrics* metricsOut) noexcept {
+    const auto result =
+        evaluateViewmodelStaticMesh(asset);
+
+    if (metricsOut != nullptr) {
+        *metricsOut = result.metrics;
+    }
+
+    return result.success;
 }
 
 } // namespace xziel

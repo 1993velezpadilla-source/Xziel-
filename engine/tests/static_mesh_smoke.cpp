@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace {
@@ -38,6 +39,26 @@ void appendF32(
         bytes,
         std::bit_cast<std::uint32_t>(
             value));
+}
+
+void writeF32(
+    std::vector<std::byte>& bytes,
+    std::size_t offset,
+    float value) {
+    const auto bits =
+        std::bit_cast<std::uint32_t>(
+            value);
+
+    assert(offset + 4U <= bytes.size());
+
+    for (unsigned int byte = 0U;
+         byte < 4U;
+         ++byte) {
+        bytes[offset + byte] =
+            static_cast<std::byte>(
+                (bits >> (byte * 8U)) &
+                0xFFU);
+    }
 }
 
 std::vector<std::byte> makeTriangle(std::uint32_t version) {
@@ -199,6 +220,277 @@ int main() {
         truncatedResult.error ==
         xziel::StaticMeshParseError::
             Truncated);
+
+    auto badBounds =
+        encoded;
+
+    // XZSM header = 20 bytes, batch counts = 8, texture name = 96.
+    // maxX is the fourth serialized bound float.
+    writeF32(
+        badBounds,
+        20U + 8U + 96U + 3U * 4U,
+        0.25f);
+
+    const auto badBoundsResult =
+        xziel::parseStaticMeshXzsm(
+            badBounds,
+            rejected);
+
+    assert(!badBoundsResult.success);
+    assert(
+        badBoundsResult.error ==
+        xziel::StaticMeshParseError::
+            InvalidBatch);
+
+    xziel::StaticMeshAsset goodViewmodel{};
+    xziel::StaticMeshBatch goodBatch{};
+    goodBatch.textureName =
+        "textures/xziel/weapons/test";
+
+    for (std::uint32_t i = 0U;
+         i < 128U;
+         ++i) {
+        xziel::StaticMeshVertex vertex{};
+        vertex.x =
+            0.90f *
+            static_cast<float>(i) /
+            127.0f;
+        vertex.y =
+            -0.08f +
+            static_cast<float>(i % 17U) *
+                0.010f;
+        vertex.z =
+            -0.13f +
+            static_cast<float>(i % 23U) *
+                0.012f;
+        goodBatch.vertices.push_back(vertex);
+    }
+
+    goodBatch.indices.resize(
+        126U,
+        0U);
+    goodViewmodel.totalVertices =
+        static_cast<std::uint32_t>(
+            goodBatch.vertices.size());
+    goodViewmodel.totalIndices =
+        static_cast<std::uint32_t>(
+            goodBatch.indices.size());
+    goodViewmodel.batches.push_back(
+        goodBatch);
+
+    xziel::StaticMeshQualityMetrics
+        goodMetrics{};
+
+    assert(
+        xziel::passesViewmodelStaticMeshSanity(
+            goodViewmodel,
+            &goodMetrics));
+    assert(goodMetrics.longestExtent > 0.89f);
+    assert(
+        goodMetrics.robustAxisCoverage90 >
+        0.80f);
+    assert(
+        goodMetrics.robustSecondExtent90 >
+        0.10f);
+    assert(
+        goodMetrics.robustThirdExtent90 >
+        0.08f);
+    assert(
+        goodMetrics.peakVoxelOccupancyRatio <
+        0.20f);
+
+    xziel::StaticMeshAsset collapsedViewmodel =
+        goodViewmodel;
+
+    auto& collapsedVertices =
+        collapsedViewmodel.batches[0].vertices;
+
+    for (std::size_t i = 0U;
+         i + 1U < collapsedVertices.size();
+         ++i) {
+        collapsedVertices[i].x =
+            0.02f *
+            static_cast<float>(i) /
+            static_cast<float>(
+                collapsedVertices.size() - 2U);
+        collapsedVertices[i].y =
+            static_cast<float>(i % 3U) *
+            0.002f;
+        collapsedVertices[i].z =
+            static_cast<float>(i % 5U) *
+            0.002f;
+    }
+
+    collapsedVertices.back().x = 0.90f;
+    collapsedVertices.back().y = 0.0f;
+    collapsedVertices.back().z = 0.0f;
+
+    xziel::StaticMeshQualityMetrics
+        collapsedMetrics{};
+
+    const auto collapsedQuality =
+        xziel::evaluateViewmodelStaticMesh(
+            collapsedViewmodel);
+    collapsedMetrics =
+        collapsedQuality.metrics;
+
+    assert(!collapsedQuality.success);
+    assert(
+        collapsedQuality.rejection ==
+        xziel::ViewmodelStaticMeshRejection::
+            CollapsedVertexCloud);
+    assert(
+        collapsedMetrics.longestExtent >
+        0.89f);
+    assert(
+        collapsedMetrics.robustAxisCoverage90 <
+        0.20f);
+    assert(
+        collapsedMetrics.robustSecondExtent90 <
+        0.035f);
+    assert(
+        collapsedMetrics.robustThirdExtent90 <
+        0.012f);
+    assert(
+        collapsedMetrics.peakVoxelOccupancyRatio >
+        0.75f);
+
+    // Also reject a long but nearly flat needle. This catches the variant
+    // where enough outlier vertices span the expected 0.9 m length that a
+    // longest-axis-only check would otherwise accept it.
+    xziel::StaticMeshAsset flatSpikeViewmodel =
+        goodViewmodel;
+    auto& flatVertices =
+        flatSpikeViewmodel.batches[0].vertices;
+
+    for (std::size_t i = 0U;
+         i < flatVertices.size();
+         ++i) {
+        const float t =
+            static_cast<float>(i) /
+            static_cast<float>(
+                flatVertices.size() - 1U);
+        flatVertices[i].x = 0.90f * t;
+        flatVertices[i].y =
+            static_cast<float>(i % 2U) *
+            0.003f;
+        flatVertices[i].z =
+            static_cast<float>(i % 3U) *
+            0.002f;
+    }
+
+    xziel::StaticMeshQualityMetrics
+        flatMetrics{};
+
+    const auto flatQuality =
+        xziel::evaluateViewmodelStaticMesh(
+            flatSpikeViewmodel);
+    flatMetrics =
+        flatQuality.metrics;
+
+    assert(!flatQuality.success);
+    assert(
+        flatQuality.rejection ==
+        xziel::ViewmodelStaticMeshRejection::
+            NeedleThin);
+    assert(
+        flatMetrics.robustAxisCoverage90 >
+        0.80f);
+    assert(
+        flatMetrics.robustSecondExtent90 <
+        0.035f);
+
+    // 80% of vertices collapsed into one small 3D cell plus a legitimate
+    // looking 20% sub-mesh spread across the full envelope. Axis coverage can
+    // be fooled by that minority mesh; voxel concentration must still reject.
+    xziel::StaticMeshAsset mixedCollapse =
+        goodViewmodel;
+    auto& mixedVertices =
+        mixedCollapse.batches[0].vertices;
+    const std::size_t collapsedCount =
+        mixedVertices.size() * 4U / 5U;
+
+    for (std::size_t i = 0U;
+         i < collapsedCount;
+         ++i) {
+        mixedVertices[i].x =
+            static_cast<float>(i % 3U) *
+            0.002f;
+        mixedVertices[i].y =
+            static_cast<float>(i % 5U) *
+            0.002f;
+        mixedVertices[i].z =
+            static_cast<float>(i % 7U) *
+            0.002f;
+    }
+
+    for (std::size_t i = collapsedCount;
+         i < mixedVertices.size();
+         ++i) {
+        const float t =
+            static_cast<float>(
+                i - collapsedCount) /
+            static_cast<float>(
+                mixedVertices.size() -
+                collapsedCount - 1U);
+        mixedVertices[i].x = 0.90f * t;
+        mixedVertices[i].y =
+            -0.08f + 0.16f * t;
+        mixedVertices[i].z =
+            -0.12f + 0.24f * t;
+    }
+
+    xziel::StaticMeshQualityMetrics
+        mixedMetrics{};
+
+    const auto mixedQuality =
+        xziel::evaluateViewmodelStaticMesh(
+            mixedCollapse);
+    mixedMetrics =
+        mixedQuality.metrics;
+
+    assert(!mixedQuality.success);
+    assert(
+        mixedQuality.rejection ==
+        xziel::ViewmodelStaticMeshRejection::
+            CollapsedVertexCloud);
+    assert(
+        mixedMetrics.peakVoxelOccupancyRatio >
+        0.75f);
+
+    xziel::StaticMeshAsset fragmentedViewmodel{};
+    fragmentedViewmodel.batches.resize(
+        129U,
+        goodBatch);
+    fragmentedViewmodel.totalVertices =
+        129U *
+        static_cast<std::uint32_t>(
+            goodBatch.vertices.size());
+    fragmentedViewmodel.totalIndices =
+        129U *
+        static_cast<std::uint32_t>(
+            goodBatch.indices.size());
+
+    xziel::StaticMeshQualityMetrics
+        fragmentedMetrics{};
+
+    const auto fragmentedQuality =
+        xziel::evaluateViewmodelStaticMesh(
+            fragmentedViewmodel);
+    fragmentedMetrics =
+        fragmentedQuality.metrics;
+
+    assert(!fragmentedQuality.success);
+    assert(
+        fragmentedQuality.rejection ==
+        xziel::ViewmodelStaticMeshRejection::
+            TooManyBatches);
+    assert(fragmentedMetrics.batchCount == 129U);
+    assert(
+        std::string(
+            xziel::viewmodelStaticMeshRejectionName(
+                fragmentedQuality.rejection)) ==
+        "too_many_batches");
 
     return 0;
 }

@@ -331,6 +331,21 @@ void VulkanStaticMeshRenderer::record(
         return;
     }
 
+    // Do not let a bad gameplay/animation value poison clip-space math.
+    // A NaN/Inf transform can turn otherwise valid viewmodel triangles into
+    // full-screen streaks on some drivers.
+    if (!std::isfinite(state.x) ||
+        !std::isfinite(state.y) ||
+        !std::isfinite(state.z) ||
+        !std::isfinite(state.scale) ||
+        !std::isfinite(state.yawRadians) ||
+        !std::isfinite(state.pitchRadians) ||
+        !std::isfinite(state.rollRadians) ||
+        !std::isfinite(state.verticalFovDegrees) ||
+        !std::isfinite(state.aspect)) {
+        return;
+    }
+
     vkCmdBindPipeline(
         command,
         VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -581,17 +596,44 @@ void VulkanStaticMeshRenderer::recordViewmodel(
         std::max(
             state.aspect,
             0.25f);
-    push.modelX = state.x;
-    push.modelY = state.y;
-    push.modelZ = state.z;
+    // Keep first-person transforms inside a conservative camera-local
+    // envelope. Imported assets are meter-normalized, so a rogue gameplay
+    // value should never be able to magnify or throw the weapon across the
+    // entire frame.
+    push.modelX =
+        std::clamp(
+            state.x,
+            -1.50f,
+            1.50f);
+    push.modelY =
+        std::clamp(
+            state.y,
+            -1.50f,
+            1.50f);
+    push.modelZ =
+        std::clamp(
+            state.z,
+            0.12f,
+            2.50f);
     push.modelScale =
         std::clamp(
             state.scale,
-            0.05f,
-            8.0f);
-    push.modelYaw = state.yawRadians;
-    push.modelPitch = state.pitchRadians;
-    push.modelRoll = state.rollRadians;
+            0.50f,
+            1.50f);
+    constexpr float kTwoPi =
+        6.28318530717958647692f;
+    push.modelYaw =
+        std::remainder(
+            state.yawRadians,
+            kTwoPi);
+    push.modelPitch =
+        std::remainder(
+            state.pitchRadians,
+            kTwoPi);
+    push.modelRoll =
+        std::remainder(
+            state.rollRadians,
+            kTwoPi);
     push.viewmodelMode = 1.0f;
 
     vkCmdPushConstants(
@@ -704,7 +746,77 @@ bool VulkanStaticMeshRenderer::loadModel(
                 bytes.size()),
             out);
 
-    return result.success;
+    if (!result.success) {
+        return false;
+    }
+
+    const std::string modelPath =
+        path != nullptr
+        ? path
+        : "";
+
+    if (modelPath.find("/weapons/") !=
+        std::string::npos) {
+        const auto quality =
+            evaluateViewmodelStaticMesh(out);
+        const auto& metrics =
+            quality.metrics;
+
+        if (!quality.success) {
+            __android_log_print(
+                ANDROID_LOG_ERROR,
+                kTag,
+                "XZIEL_WEAPON_VIEWMODEL_REJECTED "
+                "reason=%s extent=%.3f coverage90=%.3f "
+                "robust=%.3f/%.3f/%.3f peakVoxel=%.3f "
+                "batches=%u vertices=%u indices=%u",
+                viewmodelStaticMeshRejectionName(
+                    quality.rejection),
+                static_cast<double>(
+                    metrics.longestExtent),
+                static_cast<double>(
+                    metrics.robustAxisCoverage90),
+                static_cast<double>(
+                    metrics.robustLongestExtent90),
+                static_cast<double>(
+                    metrics.robustSecondExtent90),
+                static_cast<double>(
+                    metrics.robustThirdExtent90),
+                static_cast<double>(
+                    metrics.peakVoxelOccupancyRatio),
+                metrics.batchCount,
+                metrics.vertexCount,
+                metrics.indexCount);
+
+            out = {};
+            return false;
+        }
+
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_WEAPON_VIEWMODEL_SANITY_OK "
+            "extent=%.3f coverage90=%.3f "
+            "robust=%.3f/%.3f/%.3f peakVoxel=%.3f "
+            "batches=%u vertices=%u indices=%u",
+            static_cast<double>(
+                metrics.longestExtent),
+            static_cast<double>(
+                metrics.robustAxisCoverage90),
+            static_cast<double>(
+                metrics.robustLongestExtent90),
+            static_cast<double>(
+                metrics.robustSecondExtent90),
+            static_cast<double>(
+                metrics.robustThirdExtent90),
+            static_cast<double>(
+                metrics.peakVoxelOccupancyRatio),
+            metrics.batchCount,
+            metrics.vertexCount,
+            metrics.indexCount);
+    }
+
+    return true;
 }
 
 bool VulkanStaticMeshRenderer::createPipeline(
