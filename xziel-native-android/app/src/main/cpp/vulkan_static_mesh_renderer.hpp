@@ -281,6 +281,8 @@ private:
         std::uint32_t mipLevels,
         GpuTexture& out) noexcept;
 
+    [[nodiscard]] bool createStreamingFallbackTexture() noexcept;
+
     [[nodiscard]] bool createMaterialDescriptor(
         GpuMaterial& material) noexcept;
 
@@ -383,7 +385,7 @@ private:
     mutable std::uint32_t streamCellStableFrames_ = 0U;
     mutable bool streamCullingActive_ = false;
     mutable bool streamCullLogged_ = false;
-    std::uint32_t streamFallbackTextureIndex_ = UINT32_MAX;
+    GpuTexture streamFallbackTexture_{};
     RuntimeTextureUpload runtimeTextureUpload_{};
     std::uint64_t runtimeTextureTransitionFrame_ = 0U;
     bool streamResidencyProbeEnabled_ = false;
