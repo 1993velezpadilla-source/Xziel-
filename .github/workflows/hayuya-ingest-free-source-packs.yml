@@ -107,6 +107,7 @@ jobs:
                   if absolute.startswith("mailto:"):continue
                   if score>0:candidates.append((score,absolute,text))
               candidates.sort(reverse=True)
+              print("DOWNLOAD_CANDIDATES",page,json.dumps(candidates[:30]))
               for _,url,_ in candidates:
                   try:
                       with get(url) as r:
