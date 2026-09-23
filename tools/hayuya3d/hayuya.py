@@ -359,6 +359,11 @@ def choose_backends(
     for backend in requested:
         if backend not in meta:
             raise ValueError(f"unknown backend: {backend}")
+        if backend == "pshuman":
+            raise ValueError(
+                "PSHuman is a gated character specialist; use "
+                "--character-specialist auto|required with --allow-restricted"
+            )
         entry = meta[backend]
         permissive = entry["license"] in {"MIT", "Apache-2.0"}
         if not permissive and not allow_restricted:
