@@ -289,6 +289,12 @@ def make_job_plan(
                 "detail_search": "8 canonical candidate views x whole-frame + 3x3 local patches",
                 "fallback": "Judge v2 when DINOv2 is unavailable in auto mode"
             },
+            "synthetic_normal_support": {
+                "source": "Wonder3D ViewForge normals when available",
+                "coordinate_system": "front-view OpenGL normal system from pinned Wonder3D",
+                "weight": 0.06,
+                "evidence_class": "synthetic support only; never equivalent to a real reference"
+            },
             "future_extension": "normal/depth agreement + calibrated camera estimation + local-detail appearance Judge",
         },
         "model_root": str(model_root.resolve()),
@@ -639,6 +645,12 @@ def main() -> int:
         appearance_model_root=args.model_root,
         appearance_render_root=job_dir / "judge_v3_renders",
         appearance_weight=0.25,
+        normal_support_images=(
+            {name: Path(path) for name, path in viewforge_result.normal_views.items()}
+            if viewforge_result is not None
+            else None
+        ),
+        normal_support_weight=0.06,
     )
     ranking_data = [asdict(x) for x in ranked]
     (job_dir / "ranking.json").write_text(json.dumps(ranking_data, indent=2) + "\n", encoding="utf-8")
@@ -666,7 +678,8 @@ def main() -> int:
             "Detail/close-up sources stay out of whole-object silhouette scoring but enter Judge v3 through multi-view local patch retrieval when DINOv2 is active.",
             "Multi-image backends receive grouped real geometry references when one call should be bounded for VRAM/practicality.",
             "Monster/Ultra multi-anchor mode can generate TripoSG hypotheses from every source unless the user explicitly sets a budget.",
-            "A one-photo job can add a TRELLIS fusion candidate from the real anchor plus Wonder3D RGB/normal ViewForge coverage; synthetic views never enter the real-source Judge.",
+            "A one-photo job can add a TRELLIS fusion candidate from the real anchor plus Wonder3D RGB/normal ViewForge coverage; synthetic RGB views never enter the real-source Judge.",
+            "Wonder3D normal maps may contribute a deliberately small 6% synthetic-support score using the pinned front-view normal coordinate convention.",
             "Judge v2 combines production mesh health with source-image silhouette agreement.",
             "Judge v3 auto adds DINOv2 appearance similarity when the pinned evaluator is bootstrapped; otherwise it falls back to v2.",
             "Next judge stage adds normal/depth agreement, calibrated camera estimation and local-detail matching.",
