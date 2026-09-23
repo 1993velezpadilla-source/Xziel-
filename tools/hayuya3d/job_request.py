@@ -10,10 +10,72 @@ PROFILES = {"preview", "mobile", "game", "monster", "ultra"}
 MODES = {"auto", "prop", "character", "architecture"}
 TIERS = {"auto", "compatibility", "balanced", "high", "flagship"}
 ASSET_PROFILES = {"auto", "character.humanoid", "character.creature", "weapon.firearm", "weapon.melee", "prop.mechanical", "vehicle", "foliage.grass", "foliage.tree", "prop.static", "environment.modular"}
+WEAPON_FAMILIES = {"auto","handgun_semiauto","revolver","shotgun_pump_tube","shotgun_semiauto_tube","shotgun_break_open","rifle_magazine","rifle_bolt_action","lmg_beltfed","launcher"}
 JOB_RE = re.compile(r"^[A-Za-z0-9._-]+$")
 ALLOWED_EXTERNAL_REPOS = {
     "1993velezpadilla-source/legacy-cache-staging-03",
 }
+
+
+def _tokens(*values: str) -> set[str]:
+    text=" ".join(str(x or "") for x in values).lower()
+    return {x for x in re.split(r"[^a-z0-9]+",text) if x}
+
+
+def infer_asset_profile(data: dict) -> str:
+    explicit=str(data.get("asset_profile") or "").strip()
+    if explicit and explicit!="auto":
+        return explicit
+    t=_tokens(data.get("title",""),data.get("geometry_input",""),data.get("job_id",""))
+    if t & {"pistol","handgun","revolver","shotgun","rifle","smg","lmg","gun","firearm","sniper","launcher","p90"}:
+        return "weapon.firearm"
+    if t & {"sword","knife","machete","axe","bat","club","melee"}:
+        return "weapon.melee"
+    if t & {"grass","turf"}:
+        return "foliage.grass"
+    if t & {"tree","trees","bush","bushes","plant","plants","foliage"}:
+        return "foliage.tree"
+    if t & {"car","truck","vehicle","van","motorcycle","bike"}:
+        return "vehicle"
+    if t & {"door","fan","gear","machine","mechanical","elevator"}:
+        return "prop.mechanical"
+    if t & {"creature","animal","quadruped"}:
+        return "character.creature"
+    if t & {"zombie","zombies","human","humanoid","character","npc","llorona"}:
+        return "character.humanoid"
+    return {
+        "character":"character.humanoid",
+        "prop":"prop.static",
+        "architecture":"environment.modular",
+    }.get(str(data.get("mode","auto")),"auto")
+
+
+def infer_weapon_family(data: dict) -> str:
+    explicit=str(data.get("weapon_family") or "auto").strip()
+    if explicit!="auto":
+        return explicit
+    t=_tokens(data.get("title",""),data.get("geometry_input",""),data.get("job_id",""))
+    if "revolver" in t:
+        return "revolver"
+    if "pistol" in t or "handgun" in t or "p90" in t:
+        return "handgun_semiauto" if "p90" not in t else "rifle_magazine"
+    if "shotgun" in t:
+        if t & {"pump","pumpaction","pump-action"}: return "shotgun_pump_tube"
+        if t & {"double","break","breakaction"}: return "shotgun_break_open"
+        if t & {"semi","semiauto","automatic"}: return "shotgun_semiauto_tube"
+        return "auto"
+    if t & {"smg","carbine","assaultrifle"}:
+        return "rifle_magazine"
+    if "rifle" in t:
+        if "bolt" in t or "boltaction" in t: return "rifle_bolt_action"
+        return "rifle_magazine"
+    if "sniper" in t and "bolt" in t:
+        return "rifle_bolt_action"
+    if "lmg" in t and ("belt" in t or "beltfed" in t):
+        return "lmg_beltfed"
+    if "launcher" in t:
+        return "launcher"
+    return "auto"
 
 
 def load_request(path: Path, repo_root: Path) -> dict:
@@ -37,14 +99,12 @@ def load_request(path: Path, repo_root: Path) -> dict:
     if data["portable_target"] not in TIERS:
         raise ValueError(f"invalid portable_target: {data['portable_target']}")
 
-    inferred = {
-        "character": "character.humanoid",
-        "prop": "prop.static",
-        "architecture": "environment.modular",
-    }.get(data["mode"], "auto")
-    data["asset_profile"] = str(data.get("asset_profile") or inferred)
+    data["asset_profile"] = infer_asset_profile(data)
     if data["asset_profile"] not in ASSET_PROFILES:
         raise ValueError(f"invalid asset_profile: {data['asset_profile']}")
+    data["weapon_family"] = infer_weapon_family(data) if data["asset_profile"]=="weapon.firearm" else "auto"
+    if data["weapon_family"] not in WEAPON_FAMILIES:
+        raise ValueError(f"invalid weapon_family: {data['weapon_family']}")
     data["animation_requested"] = bool(data.get(
         "animation_requested",
         data["asset_profile"] in {"character.humanoid", "character.creature"}
@@ -109,7 +169,7 @@ def main() -> int:
             for key in (
                 "job_id", "owner", "title", "geometry_input", "reference_dir",
                 "detail_dir", "profile", "mode", "portable_target", "gpu_vram", "backends",
-                "source_repo", "source_ref", "asset_profile", "animation_requested", "motion_profile", "texture_quality"
+                "source_repo", "source_ref", "asset_profile", "weapon_family", "animation_requested", "motion_profile", "texture_quality"
             ):
                 value = str(data.get(key, ""))
                 if "\n" in value or "\r" in value:
