@@ -1,0 +1,110 @@
+name: Hayuya Retopo Native CI
+
+on:
+  push:
+    branches:
+      - art/hayuya-monster-v1
+    paths:
+      - .github/workflows/hayuya-retopo-ci.yml
+      - tools/hayuya3d/retopo.py
+      - tools/hayuya3d/material_bridge.py
+      - tools/hayuya3d/bootstrap.py
+      - tools/hayuya3d/backends.lock.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-retopo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout Hayuya
+        uses: actions/checkout@v4
+
+      - name: Install native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install CPU mesh dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy pillow trimesh scipy fast-simplification
+
+      - name: Bootstrap pinned Instant Meshes source and submodules
+        run: python tools/hayuya3d/bootstrap.py --backend instant_meshes_retopo
+
+      - name: Build pinned Instant Meshes
+        run: |
+          python tools/hayuya3d/retopo.py --build
+          test -x ".hayuya/models/instant_meshes_retopo/build/Instant Meshes"
+
+      - name: Create colored source GLB
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import numpy as np
+          import trimesh
+          root = Path('out/native-retopo')
+          root.mkdir(parents=True, exist_ok=True)
+          mesh = trimesh.creation.icosphere(subdivisions=3, radius=0.5)
+          rgba = np.tile(np.array([[40, 170, 210, 255]], dtype=np.uint8), (len(mesh.vertices), 1))
+          mesh.visual = trimesh.visual.ColorVisuals(mesh, vertex_colors=rgba)
+          source = root / 'source.glb'
+          source.write_bytes(trimesh.exchange.gltf.export_glb(trimesh.Scene(mesh)))
+          print(source)
+          PY
+
+      - name: Run native retopo plus Material Bridge
+        run: |
+          python tools/hayuya3d/retopo.py \
+            --input out/native-retopo/source.glb \
+            --output out/native-retopo/result \
+            --target-faces 1200 \
+            --texture-size 256 \
+            --style quad_dominant
+
+      - name: Verify native retopo artifact
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          obj = Path('out/native-retopo/result/retopo_master.obj')
+          glb = Path('out/native-retopo/result/retopo_material_bridge.glb')
+          assert obj.is_file() and obj.stat().st_size > 128
+          assert glb.is_file() and glb.read_bytes()[:4] == b'glTF'
+          counts = {'faces': 0, 'quads': 0, 'tris': 0, 'ngons': 0}
+          for raw in obj.read_text(errors='ignore').splitlines():
+              if not raw.lstrip().startswith('f '):
+                  continue
+              n = len(raw.split()) - 1
+              counts['faces'] += 1
+              if n == 4:
+                  counts['quads'] += 1
+              elif n == 3:
+                  counts['tris'] += 1
+              elif n > 4:
+                  counts['ngons'] += 1
+          counts['quad_fraction'] = counts['quads'] / counts['faces'] if counts['faces'] else 0.0
+          assert counts['faces'] > 0
+          assert counts['quad_fraction'] >= 0.50, counts
+          report = Path('out/native-retopo/NATIVE_RETOPO_PASS.json')
+          report.write_text(json.dumps(counts, indent=2) + '\n')
+          print(json.dumps(counts, indent=2))
+          PY
+
+      - name: Upload native retopo evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hayuya-native-retopo-${{ github.run_id }}
+          path: out/native-retopo/**
+          if-no-files-found: warn
+          retention-days: 14
