@@ -395,6 +395,10 @@ def repair_candidate(
 
     meaningful_improvement = bool(
         after.defect_score + 1e-6 < before.defect_score
+        or after.duplicate_faces < before.duplicate_faces
+        or after.degenerate_faces < before.degenerate_faces
+        or after.nonmanifold_edges < before.nonmanifold_edges
+        or after.boundary_edges < before.boundary_edges
         or (not before.winding_consistent and after.winding_consistent)
         or (not before.watertight and after.watertight and mode in {"prop", "architecture"})
     )
