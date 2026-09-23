@@ -14,7 +14,9 @@ Use this instruction whenever Christian, Félix, Volnox, or another teammate say
 
 Hayuya must be able to start from **one photo**, but there is no Hayuya-level upper limit on useful real references.
 
-Every additional photo of the same asset is authoritative evidence and must materially improve reconstruction or validation; never silently ignore extra references.
+Every additional photo of the same asset is authoritative evidence and must materially improve reconstruction, material/detail recovery, or validation; never silently ignore extra references.
+
+Whole-object views and detail close-ups have different jobs. Hayuya should keep them in the same master reference pool while routing full-object views to geometry/Judge and detail/close-up images to material/local-detail stages.
 
 Do **not** demand a manual 8-view turnaround. If 1, 2, 5, 9, 20, or more useful real references exist, ingest the complete reference pool.
 
@@ -73,6 +75,8 @@ Never use blind mirroring when it corrupts asymmetric details.
 When multiple photos are supplied:
 
 - preserve **every unique real photo** in the reference pool
+- accept complete folders recursively, not only individually enumerated files
+- recognize explicit `details/`, `textures/`, `materials/`, `closeups/` folders as local-detail evidence
 - use all real photos as Judge evidence
 - prefer native multi-image reconstruction for at least one candidate family
 - when a backend has a per-call image/VRAM limit, split references into deterministic overlapping anchor groups rather than discarding extras
