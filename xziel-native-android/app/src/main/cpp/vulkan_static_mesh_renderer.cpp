@@ -3997,6 +3997,9 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
                     cellId;
                 gpuBatch.geometryCellSlot =
                     slot;
+                gpuBatch.sourceBatchIndex =
+                    static_cast<std::uint32_t>(
+                        batchIndex);
                 gpuBatch.firstIndex =
                     static_cast<std::uint32_t>(
                         indexCursor[slot]);
@@ -4059,6 +4062,11 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
                 ? 1U
                 : 0U;
         }
+
+        geometryResidentBytes_ =
+            static_cast<std::uint64_t>(
+                geometryCellVertexBytes_ +
+                geometryCellIndexBytes_);
 
         __android_log_print(
             ANDROID_LOG_INFO,
@@ -6144,6 +6152,8 @@ void VulkanStaticMeshRenderer::destroyGeometryResidency() noexcept {
     geometryCellCount_ = 0U;
     geometryCellVertexBytes_ = 0U;
     geometryCellIndexBytes_ = 0U;
+    geometryResidentBytes_ = 0U;
+    geometryReloadCellSlot_ = UINT32_MAX;
 
     geometryVertexBuffer_ =
         VK_NULL_HANDLE;
