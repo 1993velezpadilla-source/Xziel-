@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+from typing import Any
 from pathlib import Path
 
 
@@ -14,7 +15,19 @@ class MaterialBridgeResult:
     refined_vertices: int
     method: str = "surface-sample nearest-color projection"
     preserves: str = "base color via vertex colors"
-    future: str = "UV/PBR rebake for normal/roughness/metallic/AO"
+    channels: list[str] | None = None
+    fallback_used: bool = False
+    future: str = "PBR seam-aware refinement and optional texture rebake"
+
+
+@dataclass
+class MaterialTransferContext:
+    mode: str
+    points: Any
+    values: Any
+    material: Any = None
+    channels: list[str] | None = None
+    max_texture_size: int = 2048
 
 
 def _deps():
@@ -129,6 +142,247 @@ def _surface_samples_with_color(mesh, count: int):
     return np.asarray(points, dtype=np.float32), np.asarray(colors, dtype=np.float32)
 
 
+def _material_channels(material) -> list[str]:
+    channels = []
+    if material is None:
+        return channels
+    if getattr(material, "baseColorTexture", None) is not None or getattr(material, "image", None) is not None:
+        channels.append("baseColor")
+    elif getattr(material, "baseColorFactor", None) is not None or getattr(material, "diffuse", None) is not None:
+        channels.append("baseColor")
+    if getattr(material, "metallicRoughnessTexture", None) is not None:
+        channels.extend(["metallic", "roughness"])
+    elif getattr(material, "metallicFactor", None) is not None or getattr(material, "roughnessFactor", None) is not None:
+        channels.extend(["metallic", "roughness"])
+    if getattr(material, "normalTexture", None) is not None:
+        channels.append("normal")
+    if getattr(material, "occlusionTexture", None) is not None:
+        channels.append("occlusion")
+    if getattr(material, "emissiveTexture", None) is not None or getattr(material, "emissiveFactor", None) is not None:
+        channels.append("emissive")
+    return sorted(set(channels))
+
+
+def _constant_material_from_mesh(mesh):
+    np, trimesh = _deps()
+    visual = getattr(mesh, "visual", None)
+    color = np.array([190, 190, 190, 255], dtype=np.uint8)
+    if visual is not None:
+        direct = getattr(visual, "vertex_colors", None)
+        if direct is not None and len(direct):
+            arr = np.asarray(direct, dtype=np.float32)
+            color = np.clip(np.mean(arr, axis=0), 0, 255).astype(np.uint8)
+        else:
+            try:
+                main = getattr(getattr(visual, "material", None), "main_color", None)
+                if main is not None:
+                    color = np.asarray(main, dtype=np.uint8).reshape(-1)[:4]
+                    if len(color) == 3:
+                        color = np.concatenate([color, [255]]).astype(np.uint8)
+            except Exception:
+                pass
+    return trimesh.visual.material.SimpleMaterial(diffuse=color)
+
+
+def build_source_pbr_uv_cloud(
+    source_mesh: Path,
+    *,
+    total_samples: int = 250_000,
+    max_texture_size: int = 2048,
+):
+    """
+    Pack source materials into one atlas, sample the source surface, and retain
+    packed UV coordinates at those samples. Reprojecting these UVs to new topology
+    lets the refined mesh reuse the same packed PBR textures without CPU rebaking.
+    """
+    np, trimesh = _deps()
+    meshes = _scene_meshes(source_mesh)
+
+    materials = []
+    uv_sets = []
+    vertices_parts = []
+    faces_parts = []
+    offset = 0
+    any_real_uv = False
+    any_pbr_signal = False
+
+    for mesh in meshes:
+        visual = getattr(mesh, "visual", None)
+        uv = getattr(visual, "uv", None) if visual is not None else None
+        material = getattr(visual, "material", None) if visual is not None else None
+
+        if uv is not None and len(uv) == len(mesh.vertices):
+            uv_arr = np.asarray(uv, dtype=np.float64)
+            any_real_uv = True
+        else:
+            # Constant fallback UV is valid only for non-textured/constant material.
+            uv_arr = np.full((len(mesh.vertices), 2), 0.5, dtype=np.float64)
+
+        if material is None:
+            material = _constant_material_from_mesh(mesh)
+
+        channels = _material_channels(material)
+        if any(name in channels for name in ("metallic", "roughness", "normal", "occlusion", "emissive")):
+            any_pbr_signal = True
+        if "baseColor" in channels and uv is not None:
+            any_pbr_signal = True
+
+        materials.append(material)
+        uv_sets.append(uv_arr)
+        vertices_parts.append(np.asarray(mesh.vertices, dtype=np.float64))
+        faces_parts.append(np.asarray(mesh.faces, dtype=np.int64) + offset)
+        offset += len(mesh.vertices)
+
+    if not any_real_uv or not any_pbr_signal:
+        raise ValueError("source has no transferable UV/PBR material evidence")
+
+    packed_material, packed_uv = trimesh.visual.material.pack(
+        materials,
+        uv_sets,
+        deduplicate=False,
+        max_tex_size_individual=max_texture_size,
+        max_tex_size_fused=max_texture_size,
+    )
+    packed_uv = np.asarray(packed_uv, dtype=np.float64)
+    vertices = np.concatenate(vertices_parts, axis=0)
+    faces = np.concatenate(faces_parts, axis=0)
+
+    packed_mesh = trimesh.Trimesh(
+        vertices=vertices,
+        faces=faces,
+        process=False,
+        visual=trimesh.visual.TextureVisuals(
+            uv=packed_uv,
+            material=packed_material,
+        ),
+    )
+
+    points, face_ids = trimesh.sample.sample_surface(packed_mesh, total_samples)
+    face_ids = np.asarray(face_ids, dtype=np.int64)
+    triangles = np.asarray(packed_mesh.triangles[face_ids], dtype=np.float64)
+    bary = trimesh.triangles.points_to_barycentric(
+        triangles,
+        np.asarray(points, dtype=np.float64),
+    )
+    uv_tri = packed_uv[np.asarray(packed_mesh.faces, dtype=np.int64)[face_ids]]
+    sample_uv = np.sum(uv_tri * bary[..., None], axis=1).astype(np.float32)
+
+    channels = _material_channels(packed_material)
+    if "baseColor" not in channels:
+        channels.insert(0, "baseColor")
+
+    return (
+        np.asarray(points, dtype=np.float32),
+        sample_uv,
+        packed_material,
+        channels,
+    )
+
+
+def prepare_material_transfer(
+    source_mesh: Path,
+    *,
+    total_samples: int = 250_000,
+    max_texture_size: int = 2048,
+) -> MaterialTransferContext:
+    try:
+        points, uvs, material, channels = build_source_pbr_uv_cloud(
+            source_mesh,
+            total_samples=total_samples,
+            max_texture_size=max_texture_size,
+        )
+        return MaterialTransferContext(
+            mode="pbr_uv",
+            points=points,
+            values=uvs,
+            material=material,
+            channels=channels,
+            max_texture_size=max_texture_size,
+        )
+    except Exception:
+        points, colors = build_source_color_cloud(
+            source_mesh,
+            total_samples=total_samples,
+        )
+        return MaterialTransferContext(
+            mode="base_color",
+            points=points,
+            values=colors,
+            material=None,
+            channels=["baseColor"],
+            max_texture_size=max_texture_size,
+        )
+
+
+def transfer_material_from_context(
+    source_mesh: Path,
+    context: MaterialTransferContext,
+    refined_mesh: Path,
+    output_glb: Path,
+) -> MaterialBridgeResult:
+    np, trimesh = _deps()
+    from scipy.spatial import cKDTree
+
+    points = np.asarray(context.points, dtype=np.float32)
+    values = np.asarray(context.values)
+    if len(points) == 0 or len(points) != len(values):
+        raise ValueError("invalid Material Bridge transfer context")
+
+    tree = cKDTree(points)
+    refined_meshes = _scene_meshes(refined_mesh)
+    refined = trimesh.util.concatenate(refined_meshes)
+    vertices = np.asarray(refined.vertices, dtype=np.float32)
+
+    projected_ids = np.empty(len(vertices), dtype=np.int64)
+    chunk = 200_000
+    for start in range(0, len(vertices), chunk):
+        end = min(len(vertices), start + chunk)
+        _, ids = tree.query(vertices[start:end], k=1, workers=-1)
+        projected_ids[start:end] = ids
+
+    if context.mode == "pbr_uv":
+        projected_uv = np.asarray(values[projected_ids], dtype=np.float64)
+        refined.visual = trimesh.visual.TextureVisuals(
+            uv=projected_uv,
+            material=context.material.copy() if hasattr(context.material, "copy") else context.material,
+        )
+        method = "surface-sample nearest-UV PBR atlas projection"
+        preserves = "packed glTF PBR textures/factors through reprojected UVs"
+        fallback = False
+    elif context.mode == "base_color":
+        projected = np.clip(values[projected_ids], 0, 255).astype(np.uint8)
+        alpha = np.full((len(vertices), 1), 255, dtype=np.uint8)
+        rgba = np.concatenate([projected, alpha], axis=1)
+        refined.visual = trimesh.visual.ColorVisuals(
+            refined,
+            vertex_colors=rgba,
+        )
+        method = "surface-sample nearest-color projection"
+        preserves = "base color via vertex colors"
+        fallback = True
+    else:
+        raise ValueError(f"unknown Material Bridge context mode: {context.mode}")
+
+    output_glb.parent.mkdir(parents=True, exist_ok=True)
+    output_glb.write_bytes(
+        trimesh.exchange.gltf.export_glb(trimesh.Scene(refined))
+    )
+    if output_glb.read_bytes()[:4] != b"glTF":
+        raise RuntimeError("Material Bridge produced invalid GLB")
+
+    return MaterialBridgeResult(
+        source_mesh=str(source_mesh),
+        refined_mesh=str(refined_mesh),
+        output_glb=str(output_glb),
+        sample_count=len(points),
+        refined_vertices=len(vertices),
+        method=method,
+        preserves=preserves,
+        channels=list(context.channels or []),
+        fallback_used=fallback,
+    )
+
+
 def build_source_color_cloud(source_mesh: Path, total_samples: int = 250_000):
     np, _ = _deps()
     meshes = _scene_meshes(source_mesh)
@@ -201,6 +455,27 @@ def transfer_base_color_from_cloud(
     )
 
 
+def transfer_best_material(
+    source_mesh: Path,
+    refined_mesh: Path,
+    output_glb: Path,
+    *,
+    total_samples: int = 250_000,
+    max_texture_size: int = 2048,
+) -> MaterialBridgeResult:
+    context = prepare_material_transfer(
+        source_mesh,
+        total_samples=total_samples,
+        max_texture_size=max_texture_size,
+    )
+    return transfer_material_from_context(
+        source_mesh,
+        context,
+        refined_mesh,
+        output_glb,
+    )
+
+
 def transfer_base_color(
     source_mesh: Path,
     refined_mesh: Path,
@@ -225,19 +500,30 @@ def main() -> int:
     import argparse
     import json
 
-    parser = argparse.ArgumentParser(description="HAYUYA Material Bridge v1 base-color transfer.")
+    parser = argparse.ArgumentParser(description="HAYUYA Material Bridge v2 PBR/UV transfer with v1 fallback.")
     parser.add_argument("--source", type=Path, required=True)
     parser.add_argument("--refined", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--samples", type=int, default=250000)
+    parser.add_argument("--texture-size", type=int, default=2048)
+    parser.add_argument("--base-color-only", action="store_true")
     args = parser.parse_args()
 
-    result = transfer_base_color(
-        args.source,
-        args.refined,
-        args.output,
-        total_samples=args.samples,
-    )
+    if args.base_color_only:
+        result = transfer_base_color(
+            args.source,
+            args.refined,
+            args.output,
+            total_samples=args.samples,
+        )
+    else:
+        result = transfer_best_material(
+            args.source,
+            args.refined,
+            args.output,
+            total_samples=args.samples,
+            max_texture_size=args.texture_size,
+        )
     print(json.dumps(asdict(result), indent=2))
     return 0
 
