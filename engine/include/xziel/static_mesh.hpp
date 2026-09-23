@@ -91,6 +91,33 @@ struct StaticMeshAsset {
     std::uint32_t totalIndices = 0U;
 };
 
+struct StaticMeshBatchDirectoryEntry {
+    std::string textureName{};
+    StaticMeshBounds bounds{};
+    std::uint32_t flags =
+        StaticMeshBatchFlagDoubleSided;
+    std::uint32_t vertexCount = 0U;
+    std::uint32_t indexCount = 0U;
+    std::uint64_t vertexDataOffset = 0U;
+    std::uint64_t indexDataOffset = 0U;
+    std::uint64_t payloadBytes = 0U;
+
+    [[nodiscard]] bool doubleSided() const noexcept {
+        return
+            (flags &
+             StaticMeshBatchFlagDoubleSided) != 0U;
+    }
+};
+
+struct StaticMeshDirectory {
+    std::vector<StaticMeshBatchDirectoryEntry>
+        batches{};
+    std::uint32_t version = 0U;
+    std::uint32_t totalVertices = 0U;
+    std::uint32_t totalIndices = 0U;
+    std::uint64_t fileBytes = 0U;
+};
+
 enum class StaticMeshParseError : std::uint8_t {
     None,
     Truncated,
@@ -114,5 +141,10 @@ struct StaticMeshParseResult {
 parseStaticMeshXzsm(
     std::span<const std::byte> bytes,
     StaticMeshAsset& destination) noexcept;
+
+[[nodiscard]] StaticMeshParseResult
+parseStaticMeshXzsmDirectory(
+    std::span<const std::byte> bytes,
+    StaticMeshDirectory& destination) noexcept;
 
 } // namespace xziel
