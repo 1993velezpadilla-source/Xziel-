@@ -10,13 +10,13 @@ Use this instruction whenever Christian, Félix, Volnox, or another teammate say
 - "prepare it for Hayuya 3D"
 - "turn this zombie/prop/building into a model"
 
-## Normal input: 1 or 2 photos
+## Normal input: 1 or more photos
 
-Hayuya must be able to start from **one photo**.
+Hayuya must be able to start from **one photo**, but there is no Hayuya-level upper limit on useful real references.
 
-A second photo is an additional authoritative anchor and must materially improve the reconstruction; never ignore it.
+Every additional photo of the same asset is authoritative evidence and must materially improve reconstruction or validation; never silently ignore extra references.
 
-Do **not** demand a manual 8-view turnaround when only one or two good references exist.
+Do **not** demand a manual 8-view turnaround. If 1, 2, 5, 9, 20, or more useful real references exist, ingest the complete reference pool.
 
 ## Automatic pipeline
 
@@ -68,14 +68,18 @@ Across every candidate and synthesized view preserve:
 
 Never use blind mirroring when it corrupts asymmetric details.
 
-## Two-photo rule
+## Multi-reference rule
 
-When two photos are supplied:
+When multiple photos are supplied:
 
-- use both as reconstruction evidence
-- prefer a native multi-image backend for at least one candidate
-- generate at least one independent hypothesis from the second anchor in Monster/Ultra workflows
-- do not replace either real photo with an invented synthetic view
+- preserve **every unique real photo** in the reference pool
+- use all real photos as Judge evidence
+- prefer native multi-image reconstruction for at least one candidate family
+- when a backend has a per-call image/VRAM limit, split references into deterministic overlapping anchor groups rather than discarding extras
+- keep the primary source in every bounded group for identity continuity
+- in Monster/Ultra workflows, allow independent single-image geometry hypotheses from every real source unless an explicit compute budget is requested
+- never replace a real photo with an invented synthetic view
+- synthetic views fill missing coverage only
 
 ## Hayuya Monster backends
 
@@ -124,4 +128,4 @@ For the full engine architecture see:
 - `docs/hayuya/HAYUYA_MONSTER_ARCHITECTURE.md`
 - `docs/hayuya/IMAGE_TO_3D_RESEARCH_2026.md`
 
-Interpret **"use Hayuya"** as: take the available visual evidence, expand it intelligently, run the strongest permitted 3D pipeline, judge the results, and return the best production-ready asset.
+Interpret **"use Hayuya"** as: ingest the complete real reference pool, expand only missing visual coverage, run the strongest permitted 3D pipeline, judge every candidate against all available real evidence, and return the best production-ready asset.
