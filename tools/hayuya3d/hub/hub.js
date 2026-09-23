@@ -58,7 +58,7 @@ async function load(){
     if(!res.ok) throw new Error(`GitHub API ${res.status}`);
     const data=await res.json();
     jobs=(data.workflow_runs||[])
-      .filter(r=>r.event==="push"||r.event==="workflow_dispatch")
+      .filter(r=>(r.event==="push"||r.event==="workflow_dispatch") && /HAYUYA_JOB/i.test(r.display_title||""))
       .map(r=>{
         const meta=parseTitle(r);
         return {...meta,state:stateOf(r),url:r.html_url,runNumber:r.run_number,createdAt:r.created_at};
