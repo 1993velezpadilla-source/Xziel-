@@ -4933,6 +4933,10 @@ bool VulkanClearRenderer::recordDrawCommand(
             environment.lightningFlash;
         sanctumEnvironment.memoryPressure =
             environment.memoryPressure;
+        sanctumEnvironment.textureBudgetScale =
+            environment.textureBudgetScale;
+        sanctumEnvironment.meshBudgetScale =
+            environment.meshBudgetScale;
 
         sanctumMesh_.record(
             command,
