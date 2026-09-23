@@ -175,6 +175,13 @@ int main() {
         assert(mipChanges[i].id != 102U);
     }
 
+    mipManager.reset();
+    mipStats = mipManager.stats();
+    assert(mipStats.textureCount == 0U);
+    assert(mipStats.residentBytes == 0U);
+    assert(mipStats.requestedBytes == 0U);
+    assert(mipStats.degradedTextureCount == 0U);
+
     xziel::TextureMipChainDesc invalid{};
     invalid.id = 999U;
     invalid.mipCount = 2U;
