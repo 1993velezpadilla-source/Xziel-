@@ -19,6 +19,8 @@ class SourceViewScore:
     boundary_f1: float
     projection: str = "orthographic"
     camera_distance: float | None = None
+    mask_confidence: float = 1.0
+    mask_method: str = "unknown"
 
 
 @dataclass
@@ -66,16 +68,58 @@ def _normalize_mask(mask, size: int = 192, margin: int = 10):
     return np.asarray(canvas) > 127
 
 
-def extract_source_mask(path: Path, size: int = 192):
+def _mask_quality(mask, corners, *, fallback: bool) -> float:
+    np, _, _ = _deps()
+    occupancy = float(mask.mean())
+    if occupancy <= 0.0:
+        return 0.05
+
+    # Healthy whole-object masks are usually neither tiny nor nearly full-frame.
+    if 0.06 <= occupancy <= 0.82:
+        occupancy_score = 1.0
+    elif occupancy < 0.06:
+        occupancy_score = max(0.0, occupancy / 0.06)
+    else:
+        occupancy_score = max(0.0, (0.98 - occupancy) / 0.16)
+
+    h, w = mask.shape
+    band = max(1, min(h, w) // 50)
+    border = np.concatenate([
+        mask[:band, :].reshape(-1),
+        mask[-band:, :].reshape(-1),
+        mask[:, :band].reshape(-1),
+        mask[:, -band:].reshape(-1),
+    ])
+    border_fg = float(border.mean())
+    border_score = max(0.0, 1.0 - border_fg / 0.45)
+
+    corner_luma = corners.mean(axis=1)
+    corner_std = float(np.std(corner_luma))
+    bg_uniformity = 1.0 / (1.0 + corner_std / 28.0)
+
+    confidence = (
+        0.42
+        + 0.30 * occupancy_score
+        + 0.18 * border_score
+        + 0.10 * bg_uniformity
+    )
+    if fallback:
+        confidence *= 0.72
+    return max(0.10, min(1.0, confidence))
+
+
+def extract_source_mask_evidence(path: Path, size: int = 192):
     np, Image, _ = _deps()
     im = Image.open(path).convert("RGBA")
     arr = np.asarray(im)
     alpha = arr[:, :, 3]
 
-    # Best case: user supplied a transparent cutout.
+    # Best case: real transparency is explicit foreground evidence.
     if int(alpha.min()) < 245:
         mask = alpha > 20
-        return _normalize_mask(mask, size=size)
+        occupancy = float(mask.mean())
+        confidence = 1.0 if 0.02 < occupancy < 0.98 else 0.82
+        return _normalize_mask(mask, size=size), confidence, "alpha"
 
     rgb = arr[:, :, :3].astype(np.float32)
     h, w, _ = rgb.shape
@@ -92,15 +136,23 @@ def extract_source_mask(path: Path, size: int = 192):
     dist = np.linalg.norm(rgb - bg, axis=2)
     mask = dist > threshold
 
-    # If corner-background segmentation is implausible, use luminance contrast.
     occupancy = float(mask.mean())
-    if occupancy < 0.03 or occupancy > 0.92:
+    fallback = occupancy < 0.03 or occupancy > 0.92
+    method = "corner_background"
+    if fallback:
         lum = rgb.mean(axis=2)
         bg_lum = float(bg.mean())
         lum_threshold = max(18.0, float(np.std(corners.mean(axis=1))) * 3.0 + 8.0)
         mask = np.abs(lum - bg_lum) > lum_threshold
+        method = "luminance_fallback"
 
-    return _normalize_mask(mask, size=size)
+    confidence = _mask_quality(mask, corners, fallback=fallback)
+    return _normalize_mask(mask, size=size), confidence, method
+
+
+def extract_source_mask(path: Path, size: int = 192):
+    mask, _, _ = extract_source_mask_evidence(path, size=size)
+    return mask
 
 
 def _rotation_matrix(azimuth_deg: float, elevation_deg: float, up_axis: str):
@@ -296,6 +348,33 @@ def aggregate_source_scores(values: list[float]) -> float:
     return 0.65 * mean + 0.25 * lower_quartile_mean + 0.10 * ordered[0]
 
 
+def aggregate_source_scores_weighted(
+    values: list[float],
+    confidences: list[float],
+) -> float:
+    if not values:
+        return 0.0
+    if len(values) != len(confidences):
+        raise ValueError("values/confidences length mismatch")
+
+    weights = [max(0.05, min(1.0, float(w))) for w in confidences]
+    weighted_mean = sum(v * w for v, w in zip(values, weights)) / sum(weights)
+
+    # Pull uncertain references toward the weighted consensus before computing the
+    # weak-tail penalty. A bad low-confidence mask can still matter, but not dominate.
+    adjusted = [
+        weighted_mean + w * (float(v) - weighted_mean)
+        for v, w in zip(values, weights)
+    ]
+    ordered = sorted(adjusted)
+    if len(ordered) <= 2:
+        return 0.72 * weighted_mean + 0.28 * ordered[0]
+
+    q_count = max(1, math.ceil(len(ordered) * 0.25))
+    low = sum(ordered[:q_count]) / q_count
+    return 0.68 * weighted_mean + 0.23 * low + 0.09 * ordered[0]
+
+
 def circular_distance(a: float, b: float) -> float:
     d = abs((a - b) % 360.0)
     return min(d, 360.0 - d)
@@ -408,7 +487,13 @@ def score_candidate(
     azimuth_step: int = 30,
 ) -> VisualScore:
     vertices, faces = _load_mesh_arrays(mesh_path)
-    source_masks = [extract_source_mask(p, size=size) for p in source_images]
+    source_evidence = [
+        extract_source_mask_evidence(p, size=size)
+        for p in source_images
+    ]
+    source_masks = [item[0] for item in source_evidence]
+    source_confidences = [item[1] for item in source_evidence]
+    source_mask_methods = [item[2] for item in source_evidence]
 
     # Render candidate geometry once. N source photos reuse the same camera bank.
     bank = build_render_bank(
@@ -484,11 +569,14 @@ def score_candidate(
                 boundary_f1=round(edge, 6),
                 projection=projection,
                 camera_distance=camera_distance,
+                mask_confidence=round(float(source_confidences[idx]), 4),
+                mask_method=source_mask_methods[idx],
             )
         )
 
     vals = [x.best_score for x in views]
-    final = aggregate_source_scores(vals)
+    confs = [x.mask_confidence for x in views]
+    final = aggregate_source_scores_weighted(vals, confs)
     return VisualScore(score=round(final, 3), views=views)
 
 
