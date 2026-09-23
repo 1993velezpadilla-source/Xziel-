@@ -336,6 +336,76 @@ Sources:
 
 ---
 
+## 15. NetEase NeoX / Messiah
+
+NetEase's 2025 SEC filing says NeoX was adapted to iOS and Android and that **Messiah was specifically designed as a 3D mobile engine**. NetEase describes the stack as supporting high-quality lighting, audio, special effects, physics and animation.
+
+A separate public GDC session from NetEase's ACE Racer team documents **high-quality realistic mobile graphics at 90 FPS**, with the trade-off managed through rendering-pipeline and scene optimization.
+
+This is useful evidence that high-end mobile should not be defined as a low-poly art target. It is also a warning not to invent proprietary internals: NetEase does not publish a universal Messiah triangle/draw-call ceiling.
+
+HAYUYA implication:
+
+- high-fidelity 60/90 FPS mobile is a legitimate flagship target;
+- retain fallback tiers because those results depend on tightly tuned content/device combinations;
+- do not label inferred proprietary internals as fact.
+
+Sources:
+- https://www.sec.gov/Archives/edgar/data/1110646/000110465926043468/ntes-20251231x20f.htm
+- https://www.gdcvault.com/play/1028909/Achieving-High-Quality-90fps-Realism
+
+## 16. GameMaker mobile — secondary compatibility reference
+
+GameMaker is not the main authority for a 3D zombie game's high-end ceiling, but its Android documentation is useful for texture-memory discipline.
+
+Its official docs explain that texture groups/pages affect texture swaps, RAM/VRAM residency and loading behavior. Its Android build guidance notes that 24-bit color can cost performance and that projects using surfaces, 3D graphics or large resolutions such as 1080p should generally target devices with a dedicated GPU. It also recommends a conservative 1024x1024 texture-page size when uncertain because Android hardware is fragmented.
+
+HAYUYA implication: keep authoring resolution separate from runtime texture pages and provide smaller/compressed derivatives.
+
+Sources:
+- https://manual.gamemaker.io/lts/en/Settings/Texture_Groups.htm
+- https://gamemaker.io/en/help/articles/android-compiling-your-app
+
+## 17. Construct 3 / WebGPU / WebGL mobile
+
+Construct 3 now has substantial 3D-model work and WebGPU support, making it useful as a browser-mobile stress reference rather than as our main AAA renderer target.
+
+Its documentation calls out the CPU/GPU trade in WebGPU multitexturing: fewer CPU texture changes can increase per-pixel GPU work, and Construct disables multitexturing by default on mobile in Auto mode because mobile GPUs tend to be more fill-rate constrained. Its performance docs emphasize that fill rate becomes a bottleneck when pixel writes exceed memory bandwidth.
+
+HAYUYA implication:
+
+- minimize unnecessary full-screen transparent/effect layers;
+- avoid excessive unique texture switching;
+- web-mobile derivatives need stricter material/effect budgets than native flagship builds.
+
+Sources:
+- https://www.construct.net/en/make-games/manuals/construct-3/project-primitives/projects
+- https://www.construct.net/en/make-games/manuals/construct-3/tips-and-guides/performance-tips
+
+## 18. libGDX / lower-level mobile framework
+
+libGDX is a framework rather than a full automatic scalability engine. Its current documentation uses OpenGL ES 2.0 by default and can enable ES 3.0 on Android; WebGL 2 maps to its GL3-style path on the web.
+
+Because a lower-level framework leaves batching, LOD, streaming, materials and quality scaling to the game developer, it reinforces HAYUYA's engine-neutral rule: portable output cannot depend on an engine automatically fixing expensive content.
+
+Sources:
+- https://libgdx.com/wiki/graphics/opengl-es-support
+- https://libgdx.com/features/
+
+## 19. Frameworks vs engines
+
+MonoGame and similar lower-level frameworks are intentionally tracked as a separate class. They can render 3D on mobile, but they do not provide a single authoritative content ceiling. The developer owns most rendering policy.
+
+For HAYUYA that means the portable artifact must carry enough neutral structure to survive without engine magic:
+
+- clean mesh hierarchy
+- GLB/glTF representation where supported by the target toolchain
+- LOD metadata/assets
+- simple collision
+- PBR maps plus cheaper material variants
+- texture-size/compression tiers
+- explicit scale and orientation
+
 # LARGE PRODUCTION GAME / PROPRIETARY ENGINE LESSONS
 
 ## 15. Call of Duty Mobile — TiMi / Unity / Samsung
