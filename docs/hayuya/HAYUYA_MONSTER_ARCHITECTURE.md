@@ -372,9 +372,9 @@ Implemented in code/orchestration:
 - low-weight Wonder3D normal support
 - TripoSF 1024³ geometry challenger
 - Material Bridge v2 PBR UV/material transfer with automatic v1 fallback
-- PBR-aware LOD material preservation
-- isolated DINOv2 evaluator environment support
-- GPU doctor + one-photo end-to-end proof harness
+- topology-safe PBR-aware LOD material preservation
+- isolated backend Python/Torch/CUDA environment contracts
+- strict GPU doctor + one-photo end-to-end proof harness
 - evidence-gated return of refined material-bridged geometry to the final arena
 
 Additional validated production stage:
@@ -397,6 +397,44 @@ Policy:
 - when real geometry references exist, `production_ready` now requires this turntable QA to pass
 
 CI covers correct orientation mapping, exact/matching pass cases, high-confidence incompatible silhouettes, color-histogram behavior and comparison-sheet export.
+
+### Backend environment isolation — implemented
+
+HAYUYA does not assume that modern image-to-3D backends can safely share one Python/Torch/CUDA environment.
+
+Pinned runtime contracts are stored in `tools/hayuya3d/backend_envs.lock.json` and built/planned by `backend_envs.py`.
+
+Examples:
+
+- Wonder3D: Python 3.8 / Torch 1.13.1 / CUDA 11.7 family
+- DINOv2 classic evaluator: Python 3.9 / Torch 2.0 / CUDA 11.7 family
+- InstantMesh: Python 3.10 / Torch 2.1 / CUDA 12.1 family
+- TRELLIS: Python 3.10 / Torch 2.4 / isolated CUDA 12.x contract
+- TRELLIS.2: Python 3.10 / Torch 2.6 / CUDA 12.4 family
+
+The environment builder writes per-backend `hayuya-python` wrappers and a shell exports file containing `HAYUYA_<BACKEND>_PYTHON` variables. Native-extension backends can also receive backend-specific `CUDA_HOME`.
+
+`gpu_doctor.py` now checks repo SHA, Python version, Torch version, CUDA family, CUDA visibility and backend readiness before a GPU proof can start. A generic "CUDA is available" result is not sufficient.
+
+The push-side **HAYUYA GPU E2E** workflow is only a harness validator. An actual model-generation proof still requires `workflow_dispatch` on a self-hosted runner labeled `hayuya-gpu`.
+
+### Topology-safe PBR transfer policy
+
+Material Bridge preserves only channels that remain semantically valid after arbitrary topology/UV reprojection.
+
+Safe to carry through projected UV/material evidence:
+
+- base color
+- metallic
+- roughness
+- emissive
+
+Not copied blindly after topology change:
+
+- tangent-space normal maps
+- baked ambient occlusion
+
+Normal maps depend on the new tangent basis; AO depends on the new geometry. Material Bridge strips those channels, records them in `dropped_channels` / `rebake_required`, and refuses to award material-quality credit for stale maps. Retopo and GamePrep manifests propagate these requirements per derived asset.
 
 ### Native smart retopology — implemented and CI-proven
 
@@ -429,7 +467,7 @@ Validated CI evidence:
 
 Remaining major stages:
 
-- seam/tangent-aware high-quality PBR rebake for topology changes
+- tangent-space normal + geometry-dependent AO rebake for topology changes
 - semantic mesh segmentation/repair
 - humanoid/zombie specialist mode completion
 - skin-weight-preserving rigged retopology/transfer
