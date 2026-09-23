@@ -182,6 +182,7 @@ def make_job_plan(
     model_root: Path,
     multiview_group_size: int | None = None,
     anchor_hypothesis_budget: int | None = None,
+    appearance_mode: str = "auto",
 ) -> dict:
     profile = PROFILES[profile_name]
     roles = split_reference_roles(inputs)
@@ -248,7 +249,7 @@ def make_job_plan(
         },
         "candidate_backends": selected_backends,
         "judge": {
-            "version": "v2",
+            "version": "v3-auto" if appearance_mode != "off" else "v2",
             "production_subscore": {
                 "geometry_capacity_weight": 0.42,
                 "topology_health_weight": 0.33,
@@ -268,7 +269,15 @@ def make_job_plan(
                 "multi_source_aggregation": "<=2: 0.70 mean + 0.30 min; >=3: 0.65 mean + 0.25 lower-quartile mean + 0.10 min",
                 "evaluate_every_geometry_source": True,
             },
-            "future_extension": "DINO/MEt3R feature consistency + RGB/normal/depth rerender scoring",
+            "appearance": {
+                "mode": appearance_mode,
+                "backend": "DINOv2 ViT-S/14 LVD-142M",
+                "license": "Apache-2.0",
+                "candidate_render": "Hayuya deterministic CPU RGB z-buffer from matched v2 camera",
+                "weight_when_active": 0.25,
+                "fallback": "Judge v2 when DINOv2 is unavailable in auto mode"
+            },
+            "future_extension": "normal/depth agreement + calibrated camera estimation + local-detail appearance Judge",
         },
         "model_root": str(model_root.resolve()),
         "output": "hayuya_final.glb",
@@ -398,6 +407,12 @@ def main() -> int:
     parser.add_argument("--execute", action="store_true", help="actually run installed backends")
     parser.add_argument("--require-all", action="store_true", help="fail if any selected backend candidate fails")
     parser.add_argument("--allow-restricted", action="store_true", help="allow explicitly opt-in non-permissive backends")
+    parser.add_argument(
+        "--appearance-judge",
+        choices=["off", "auto", "required"],
+        default="auto",
+        help="Judge v3 DINOv2 appearance scoring policy; auto falls back to v2 if evaluator is not bootstrapped",
+    )
     args = parser.parse_args()
 
     raw_inputs = list(args.input)
@@ -461,6 +476,7 @@ def main() -> int:
         model_root=args.model_root,
         multiview_group_size=group_size,
         anchor_hypothesis_budget=args.anchor_hypothesis_budget,
+        appearance_mode=args.appearance_judge,
     )
     (job_dir / "plan.json").write_text(json.dumps(plan, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(plan, indent=2))
@@ -537,6 +553,10 @@ def main() -> int:
         target_faces=profile.faces,
         source_images=geometry_inputs,
         visual_weight=0.55,
+        appearance_mode=args.appearance_judge,
+        appearance_model_root=args.model_root,
+        appearance_render_root=job_dir / "judge_v3_renders",
+        appearance_weight=0.25,
     )
     ranking_data = [asdict(x) for x in ranked]
     (job_dir / "ranking.json").write_text(json.dumps(ranking_data, indent=2) + "\n", encoding="utf-8")
@@ -563,7 +583,8 @@ def main() -> int:
             "Multi-image backends receive grouped real geometry references when one call should be bounded for VRAM/practicality.",
             "Monster/Ultra multi-anchor mode can generate TripoSG hypotheses from every source unless the user explicitly sets a budget.",
             "Judge v2 combines production mesh health with source-image silhouette agreement.",
-            "Next judge stage adds DINO/MEt3R RGB feature consistency plus normal/depth agreement.",
+            "Judge v3 auto adds DINOv2 appearance similarity when the pinned evaluator is bootstrapped; otherwise it falls back to v2.",
+            "Next judge stage adds normal/depth agreement, calibrated camera estimation and local-detail matching.",
         ],
     }
     (job_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
