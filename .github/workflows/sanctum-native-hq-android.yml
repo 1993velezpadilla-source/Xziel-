@@ -12,6 +12,7 @@ on:
       - engine/mobile-mip-residency-vulkan-v1
       - engine/mobile-mip-residency-vulkan-v2
       - engine/mobile-async-streaming-v1
+      - engine/mobile-world-streaming-v1
     paths:
       - ".github/workflows/sanctum-native-hq-android.yml"
       - ".github/workflows/sanctum-clean-source.yml"
