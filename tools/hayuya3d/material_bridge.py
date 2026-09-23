@@ -151,22 +151,22 @@ def build_source_color_cloud(source_mesh: Path, total_samples: int = 250_000):
     return np.concatenate(points_all, axis=0), np.concatenate(colors_all, axis=0)
 
 
-def transfer_base_color(
+def transfer_base_color_from_cloud(
     source_mesh: Path,
+    points,
+    colors,
     refined_mesh: Path,
     output_glb: Path,
-    *,
-    total_samples: int = 250_000,
 ) -> MaterialBridgeResult:
     np, trimesh = _deps()
     from scipy.spatial import cKDTree
 
-    points, colors = build_source_color_cloud(
-        source_mesh,
-        total_samples=total_samples,
-    )
-    tree = cKDTree(points)
+    points = np.asarray(points, dtype=np.float32)
+    colors = np.asarray(colors, dtype=np.float32)
+    if len(points) == 0 or len(points) != len(colors):
+        raise ValueError("invalid Material Bridge color cloud")
 
+    tree = cKDTree(points)
     refined_meshes = _scene_meshes(refined_mesh)
     refined = trimesh.util.concatenate(refined_meshes)
     vertices = np.asarray(refined.vertices, dtype=np.float32)
@@ -198,6 +198,26 @@ def transfer_base_color(
         output_glb=str(output_glb),
         sample_count=len(points),
         refined_vertices=len(vertices),
+    )
+
+
+def transfer_base_color(
+    source_mesh: Path,
+    refined_mesh: Path,
+    output_glb: Path,
+    *,
+    total_samples: int = 250_000,
+) -> MaterialBridgeResult:
+    points, colors = build_source_color_cloud(
+        source_mesh,
+        total_samples=total_samples,
+    )
+    return transfer_base_color_from_cloud(
+        source_mesh,
+        points,
+        colors,
+        refined_mesh,
+        output_glb,
     )
 
 
