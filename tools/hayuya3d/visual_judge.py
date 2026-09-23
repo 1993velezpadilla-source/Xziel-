@@ -231,9 +231,63 @@ def score_masks(source_mask, candidate_mask) -> tuple[float, float, float]:
 
 
 def aggregate_source_scores(values: list[float]) -> float:
+    """
+    Robust N-view aggregation.
+
+    Every source contributes through the mean. Small pools keep a strong weakest-anchor
+    penalty. Larger pools use a lower-quartile term plus a smaller absolute-minimum term
+    so one damaged/poorly segmented photo cannot dominate dozens of good references.
+    """
     if not values:
         return 0.0
-    return 0.70 * (sum(values) / len(values)) + 0.30 * min(values)
+    ordered = sorted(float(v) for v in values)
+    mean = sum(ordered) / len(ordered)
+    if len(ordered) <= 2:
+        return 0.70 * mean + 0.30 * ordered[0]
+
+    q_count = max(1, math.ceil(len(ordered) * 0.25))
+    lower_quartile_mean = sum(ordered[:q_count]) / q_count
+    return 0.65 * mean + 0.25 * lower_quartile_mean + 0.10 * ordered[0]
+
+
+def infer_view_hint(path: Path) -> float | None:
+    """
+    Infer a canonical azimuth hint from Hayuya-style filenames.
+    Returns degrees where front=0, right=90, back=180, left=270.
+    Unknown/user filenames remain unconstrained.
+    """
+    name = path.stem.lower().replace("-", "_").replace(" ", "_")
+    rules = [
+        (("front_45_right", "front45right", "front_right_45"), 45.0),
+        (("back_45_right", "back45right", "back_right_45"), 135.0),
+        (("back_45_left", "back45left", "back_left_45"), 225.0),
+        (("front_45_left", "front45left", "front_left_45"), 315.0),
+        (("right_side", "_right", "right_"), 90.0),
+        (("left_side", "_left", "left_"), 270.0),
+        (("back", "rear"), 180.0),
+        (("front",), 0.0),
+    ]
+    for needles, angle in rules:
+        if any(n in name for n in needles):
+            return angle
+    return None
+
+
+def circular_distance(a: float, b: float) -> float:
+    d = abs((a - b) % 360.0)
+    return min(d, 360.0 - d)
+
+
+def build_render_bank(vertices, faces, *, size: int, azimuth_step: int):
+    bank = {}
+    for up_axis in ("y", "z"):
+        for elevation in (-15.0, 0.0, 15.0):
+            for azimuth in range(0, 360, azimuth_step):
+                key = (up_axis, elevation, float(azimuth))
+                bank[key] = render_silhouette(
+                    vertices, faces, float(azimuth), elevation, up_axis, size=size
+                )
+    return bank
 
 
 def score_candidate(
@@ -246,31 +300,69 @@ def score_candidate(
     vertices, faces = _load_mesh_arrays(mesh_path)
     source_masks = [extract_source_mask(p, size=size) for p in source_images]
 
-    views: list[SourceViewScore] = []
-    for source_path, source_mask in zip(source_images, source_masks):
+    # Render candidate geometry once. N source photos reuse the same camera bank.
+    bank = build_render_bank(
+        vertices,
+        faces,
+        size=size,
+        azimuth_step=azimuth_step,
+    )
+    bank_keys = list(bank)
+
+    hints = [infer_view_hint(p) for p in source_images]
+    anchor_index = next((i for i, hint in enumerate(hints) if hint is not None), None)
+    anchor_hint = hints[anchor_index] if anchor_index is not None else None
+    anchor_key = None
+
+    def best_match(source_mask, allowed_keys):
         best = None
-        for up_axis in ("y", "z"):
-            for elevation in (-15.0, 0.0, 15.0):
-                for azimuth in range(0, 360, azimuth_step):
-                    candidate_mask = render_silhouette(
-                        vertices, faces, float(azimuth), elevation, up_axis, size=size
-                    )
-                    score, iou, edge = score_masks(source_mask, candidate_mask)
-                    if best is None or score > best.best_score:
-                        best = SourceViewScore(
-                            source=str(source_path),
-                            best_score=round(score, 3),
-                            best_azimuth=float(azimuth),
-                            best_elevation=elevation,
-                            best_up_axis=up_axis,
-                            silhouette_iou=round(iou, 6),
-                            boundary_f1=round(edge, 6),
-                        )
-        assert best is not None
-        views.append(best)
+        for up_axis, elevation, azimuth in allowed_keys:
+            candidate_mask = bank[(up_axis, elevation, azimuth)]
+            score, iou, edge = score_masks(source_mask, candidate_mask)
+            if best is None or score > best[0]:
+                best = (score, iou, edge, up_axis, elevation, azimuth)
+        return best
+
+    # Establish one global orientation offset when canonical filenames are available.
+    if anchor_index is not None:
+        anchor_best = best_match(source_masks[anchor_index], bank_keys)
+        if anchor_best is not None:
+            anchor_key = (anchor_best[3], anchor_best[4], anchor_best[5])
+
+    views: list[SourceViewScore] = []
+    for idx, (source_path, source_mask) in enumerate(zip(source_images, source_masks)):
+        hint = hints[idx]
+        allowed = bank_keys
+
+        if anchor_key is not None and anchor_hint is not None and hint is not None:
+            anchor_axis, _, anchor_azimuth = anchor_key
+            expected = (anchor_azimuth + (hint - anchor_hint)) % 360.0
+            constrained = [
+                key for key in bank_keys
+                if key[0] == anchor_axis
+                and circular_distance(key[2], expected) <= max(azimuth_step, 30)
+            ]
+            if constrained:
+                allowed = constrained
+
+        best = best_match(source_mask, allowed)
+        if best is None:
+            continue
+
+        score, iou, edge, up_axis, elevation, azimuth = best
+        views.append(
+            SourceViewScore(
+                source=str(source_path),
+                best_score=round(score, 3),
+                best_azimuth=float(azimuth),
+                best_elevation=float(elevation),
+                best_up_axis=up_axis,
+                silhouette_iou=round(iou, 6),
+                boundary_f1=round(edge, 6),
+            )
+        )
 
     vals = [x.best_score for x in views]
-    # Every real source matters: weak agreement with either anchor drags the score down.
     final = aggregate_source_scores(vals)
     return VisualScore(score=round(final, 3), views=views)
 
