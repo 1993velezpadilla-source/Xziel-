@@ -47,7 +47,15 @@ public:
         std::uint64_t maxBytes =
             256ULL * 1024ULL * 1024ULL) noexcept;
 
-    // Blocks only for a path that was already scheduled. Vulkan object
+    // Range requests use an independent key so multiple non-overlapping
+    // payloads from the same STORED APK asset may be in flight at once.
+    [[nodiscard]] bool enqueueRange(
+        const std::string& assetPath,
+        std::uint64_t offset,
+        std::uint64_t size,
+        const std::string& requestKey) noexcept;
+
+    // Blocks only for a path/request key that was already scheduled. Vulkan object
     // creation remains on the render thread; workers perform APK asset I/O.
     [[nodiscard]] bool take(
         const std::string& assetPath,
@@ -67,8 +75,12 @@ public:
 
 private:
     struct Request {
+        std::string key{};
         std::string path{};
+        std::uint64_t offset = 0U;
+        std::uint64_t size = 0U;
         std::uint64_t maxBytes = 0U;
+        bool range = false;
     };
 
     struct Result {
