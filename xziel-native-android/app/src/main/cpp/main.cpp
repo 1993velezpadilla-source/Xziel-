@@ -3070,6 +3070,54 @@ extern "C" void android_main(
             "Haptics unavailable; gameplay continues without vibration");
     }
 
+    if (state.realtime.initialize(
+            state.jniEnv,
+            state.javaActivity)) {
+        const std::string baseUrl =
+            state.realtime.configuredBaseUrl();
+
+        if (!baseUrl.empty()) {
+            const std::string room =
+                state.realtime.configuredDefaultRoom();
+            const std::string displayName =
+                state.realtime.configuredDisplayName();
+            const std::string testKey =
+                state.realtime.configuredTestKey();
+
+            state.online.beginConnect();
+
+            state.realtimeConfigured =
+                state.realtime.connect(
+                    baseUrl,
+                    room.empty()
+                        ? "BETA1"
+                        : room,
+                    displayName.empty()
+                        ? "Player"
+                        : displayName,
+                    testKey);
+
+            __android_log_print(
+                state.realtimeConfigured
+                    ? ANDROID_LOG_INFO
+                    : ANDROID_LOG_WARN,
+                kTag,
+                "XZIEL_ONLINE_AUTOJOIN configured=%d room=%s",
+                state.realtimeConfigured
+                    ? 1
+                    : 0,
+                room.empty()
+                    ? "BETA1"
+                    : room.c_str());
+        } else {
+            logInfo(
+                "XZIEL_ONLINE_OFFLINE_MODE endpoint_not_configured");
+        }
+    } else {
+        logInfo(
+            "XZIEL_ONLINE_OFFLINE_MODE bridge_unavailable");
+    }
+
     if (!state.audio.initialize(
             app->activity != nullptr
                 ? app->activity->assetManager
@@ -3420,6 +3468,11 @@ extern "C" void android_main(
         const auto inputSnapshot =
             state.input.snapshot();
 
+        serviceOnlineSession(
+            state,
+            inputSnapshot,
+            frameDelta);
+
         if (latest.canSimulate) {
             state.engine.submitInput(
                 inputSnapshot.input);
@@ -3538,6 +3591,12 @@ extern "C" void android_main(
         }
     }
 
+    if (state.realtimeConfigured) {
+        state.realtime.disconnect();
+    }
+
+    state.online.reset();
+    state.realtime.reset();
     state.input.shutdown();
     state.audio.shutdown();
     state.hapticsBridge.reset();
