@@ -131,6 +131,29 @@ Choose the model that best preserves the supplied reference while remaining heal
 
 Real photographs outrank synthetic evidence. A refinement, synthetic view, normal map, or high polygon count can help a candidate, but none of them may override contradictory real-source evidence.
 
+## Quality tiers: mobile is a derivative, never the ceiling
+
+Hayuya must compete in two different output classes and must never confuse them:
+
+1. **Hero / high-quality master** — preserve the strongest available geometry and material evidence for close-up, cinematic, desktop/console, portfolio, offline render, and future rebakes. Do not decimate this asset merely to satisfy a mobile/runtime budget.
+2. **Real-time derivatives** — build optimized game/mobile meshes, LODs, collision and texture variants *from the accepted high-quality master*.
+
+The existence of 35k/80k/250k/500k face targets in current profiles is an execution/packaging policy, not a statement that Hayuya should stop there. When a backend can produce materially better source-faithful geometry above the requested runtime budget, preserve that high-detail source as an auditable master before retopology/LOD generation.
+
+High-quality parity work must explicitly target:
+
+- source-faithful high-density geometry without artificial low/medium-poly ceilings
+- 4K PBR as the current minimum high-quality baseline and an **8K PBR parity path** where source/backend quality justifies it
+- baseColor/albedo, normal, roughness, metallic and AO/occlusion preservation; emissive/opacity when present
+- high-frequency detail retention through geometry, normals/displacement or rebaked maps instead of simply deleting detail
+- clean UVs and a production-usable topology path
+- close-up face/material/accessory fidelity for characters and monsters
+- scale/orientation consistency and clean export to Unreal/Unity/Blender-class workflows
+- high-quality master retained separately from LOD0-LOD3 and mobile derivatives
+- Judge/QA comparisons against the original references at close and normal viewing distances
+
+**Competitive rule:** Hayuya is not considered toe-to-toe with major image-to-3D web platforms merely because it can emit a GLB. It must be benchmarked against current Tripo, Meshy, Hyper3D/Rodin, 3D AI Studio and Kaedim-class workflows across fidelity, PBR/material quality, topology/retopo, reference handling, production readiness, and real-time derivation. High-quality/hero results are part of the core benchmark, not an optional future category.
+
 ## Output contract
 
 A completed Hayuya job should converge on:
