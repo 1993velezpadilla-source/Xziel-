@@ -256,19 +256,25 @@ StreamCellPlanStats StreamCellGraph::plan(
             const auto bi =
                 static_cast<std::size_t>(b);
 
-            const bool aWarm =
-                cellHeat[ai] !=
-                    StreamCellHeat::Cold;
-            const bool bWarm =
-                cellHeat[bi] !=
-                    StreamCellHeat::Cold;
+            // Closed-door preloading is exactly one boundary deep.
+            // Only cells reached through the open graph may seed it; a cell
+            // that became warm only because of another closed door may not
+            // cascade preload through the rest of the map.
+            const bool aReachable =
+                distance[ai] != kUnreached;
+            const bool bReachable =
+                distance[bi] != kUnreached;
 
-            if (aWarm && !bWarm) {
+            if (aReachable &&
+                cellHeat[bi] ==
+                    StreamCellHeat::Cold) {
                 cellHeat[bi] =
                     StreamCellHeat::Preload;
                 ++stats.preloadCells;
             } else if (
-                bWarm && !aWarm) {
+                bReachable &&
+                cellHeat[ai] ==
+                    StreamCellHeat::Cold) {
                 cellHeat[ai] =
                     StreamCellHeat::Preload;
                 ++stats.preloadCells;
