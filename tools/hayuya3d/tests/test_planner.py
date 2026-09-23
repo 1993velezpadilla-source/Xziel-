@@ -26,18 +26,38 @@ class HayuyaPlannerTests(unittest.TestCase):
         self.assertIn("triposg", p.backends)
         self.assertIn("trellis", p.backends)
 
-    def test_two_photo_plan_enables_dual_anchor(self):
+    def test_multi_photo_plan_has_no_logical_limit(self):
+        refs = [Path(f"/tmp/view-{i}.png") for i in range(9)]
         plan = hayuya.make_job_plan(
-            [Path("/tmp/front.png"), Path("/tmp/back.png")],
+            refs,
             profile_name="monster",
             mode="character",
             seed=1993,
             selected_backends=["trellis2", "triposg", "trellis"],
             model_root=Path("/tmp/models"),
         )
-        self.assertEqual(plan["input_count"], 2)
-        self.assertTrue(plan["dual_anchor"])
-        self.assertIn("two-photo anchor fusion", plan["viewforge"]["strategy"])
+        self.assertEqual(plan["input_count"], 9)
+        self.assertIsNone(plan["reference_pool"]["logical_limit"])
+        self.assertTrue(plan["multi_reference"]["enabled"])
+        self.assertTrue(plan["multi_reference"]["all_sources_always_used_by_judge"])
+        self.assertIn("reference-pool fusion", plan["viewforge"]["strategy"])
+
+    def test_reference_groups_cover_every_source(self):
+        refs = [Path(f"/tmp/view-{i}.png") for i in range(14)]
+        groups = hayuya.make_reference_groups(refs, 6)
+        self.assertGreater(len(groups), 1)
+        self.assertTrue(all(group[0] == refs[0] for group in groups))
+        covered = {p for group in groups for p in group}
+        self.assertEqual(covered, set(refs))
+        self.assertTrue(all(len(group) <= 6 for group in groups))
+
+    def test_anchor_budget_zero_means_all_sources(self):
+        refs = [Path(f"/tmp/view-{i}.png") for i in range(11)]
+        self.assertEqual(hayuya.limit_anchor_refs(refs, 0), refs)
+        limited = hayuya.limit_anchor_refs(refs, 4)
+        self.assertEqual(len(limited), 4)
+        self.assertEqual(limited[0], refs[0])
+        self.assertEqual(limited[-1], refs[-1])
 
     def test_default_stack_is_permissive(self):
         lock = hayuya.load_lock()
