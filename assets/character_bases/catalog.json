@@ -4,10 +4,10 @@
     {
       "animation_count": 8,
       "author": "Quaternius; prepared mirror by UMRAM-Bilkent",
-      "default_world_dimensions": {
-        "depth_m": 1.86387,
-        "height_m": 1.75,
-        "width_m": 0.331864
+      "coordinate_extents_default_world_m": {
+        "x_extent_m": 0.331864,
+        "y_extent_m": 1.75,
+        "z_extent_m": 1.86387
       },
       "display_name": "Quaternius Human \u2014 rigged",
       "front_template": "quaternius-human-rigged/measurement_front.svg",
@@ -17,7 +17,18 @@
       "measurements": "quaternius-human-rigged/measurements.json",
       "model": "quaternius-human-rigged/model.glb",
       "model_sha256": "ce4d543e82e455d5a1253798c9759f12b9eec74929ddbca464447eeaa3a42c5d",
+      "orientation": {
+        "forward_depth_axis": "x",
+        "front_horizontal_axis": "z",
+        "inference": "larger horizontal rest-pose extent is treated as visual front/arm-span axis",
+        "up_axis": "y"
+      },
       "preview": "quaternius-human-rigged/preview.png",
+      "semantic_envelope_default_world_m": {
+        "depth_m": 0.331864,
+        "front_width_or_arm_span_m": 1.86387,
+        "height_m": 1.75
+      },
       "side_template": "quaternius-human-rigged/measurement_side.svg",
       "tags": [
         "humanoid",
@@ -32,10 +43,10 @@
     {
       "animation_count": 32,
       "author": "Kenney",
-      "default_world_dimensions": {
-        "depth_m": 0.886307,
-        "height_m": 1.75,
-        "width_m": 1.999843
+      "coordinate_extents_default_world_m": {
+        "x_extent_m": 1.999843,
+        "y_extent_m": 1.75,
+        "z_extent_m": 0.886307
       },
       "display_name": "Kenney Mini Character Male A",
       "front_template": "kenney-mini-male-a/measurement_front.svg",
@@ -45,7 +56,18 @@
       "measurements": "kenney-mini-male-a/measurements.json",
       "model": "kenney-mini-male-a/model.glb",
       "model_sha256": "77572792bfe2773b715b8cd8e18644b52b3e1f155fe10450254b50f9c364382a",
+      "orientation": {
+        "forward_depth_axis": "z",
+        "front_horizontal_axis": "x",
+        "inference": "larger horizontal rest-pose extent is treated as visual front/arm-span axis",
+        "up_axis": "y"
+      },
       "preview": "kenney-mini-male-a/preview.png",
+      "semantic_envelope_default_world_m": {
+        "depth_m": 0.886307,
+        "front_width_or_arm_span_m": 1.999843,
+        "height_m": 1.75
+      },
       "side_template": "kenney-mini-male-a/measurement_side.svg",
       "tags": [
         "humanoid",
@@ -60,10 +82,10 @@
     {
       "animation_count": 32,
       "author": "Kenney",
-      "default_world_dimensions": {
-        "depth_m": 1.030622,
-        "height_m": 1.75,
-        "width_m": 2.030083
+      "coordinate_extents_default_world_m": {
+        "x_extent_m": 2.030083,
+        "y_extent_m": 1.75,
+        "z_extent_m": 1.030622
       },
       "display_name": "Kenney Mini Character Male B",
       "front_template": "kenney-mini-male-b/measurement_front.svg",
@@ -73,7 +95,18 @@
       "measurements": "kenney-mini-male-b/measurements.json",
       "model": "kenney-mini-male-b/model.glb",
       "model_sha256": "791fc0c203924c175c0a3d5b60d030daf36797b039506689cf7cd01ef5253b3c",
+      "orientation": {
+        "forward_depth_axis": "z",
+        "front_horizontal_axis": "x",
+        "inference": "larger horizontal rest-pose extent is treated as visual front/arm-span axis",
+        "up_axis": "y"
+      },
       "preview": "kenney-mini-male-b/preview.png",
+      "semantic_envelope_default_world_m": {
+        "depth_m": 1.030622,
+        "front_width_or_arm_span_m": 2.030083,
+        "height_m": 1.75
+      },
       "side_template": "kenney-mini-male-b/measurement_side.svg",
       "tags": [
         "humanoid",
@@ -88,10 +121,10 @@
     {
       "animation_count": 32,
       "author": "Kenney",
-      "default_world_dimensions": {
-        "depth_m": 1.016851,
-        "height_m": 1.75,
-        "width_m": 1.69344
+      "coordinate_extents_default_world_m": {
+        "x_extent_m": 1.69344,
+        "y_extent_m": 1.75,
+        "z_extent_m": 1.016851
       },
       "display_name": "Kenney Mini Character Male C",
       "front_template": "kenney-mini-male-c/measurement_front.svg",
@@ -101,7 +134,18 @@
       "measurements": "kenney-mini-male-c/measurements.json",
       "model": "kenney-mini-male-c/model.glb",
       "model_sha256": "672a6506f7475bbd655da1d7ff712c1729a430f134c62385a4e5d3c1378acb40",
+      "orientation": {
+        "forward_depth_axis": "z",
+        "front_horizontal_axis": "x",
+        "inference": "larger horizontal rest-pose extent is treated as visual front/arm-span axis",
+        "up_axis": "y"
+      },
       "preview": "kenney-mini-male-c/preview.png",
+      "semantic_envelope_default_world_m": {
+        "depth_m": 1.016851,
+        "front_width_or_arm_span_m": 1.69344,
+        "height_m": 1.75
+      },
       "side_template": "kenney-mini-male-c/measurement_side.svg",
       "tags": [
         "humanoid",
@@ -116,10 +160,10 @@
     {
       "animation_count": 32,
       "author": "Kenney",
-      "default_world_dimensions": {
-        "depth_m": 0.824372,
-        "height_m": 1.75,
-        "width_m": 1.860095
+      "coordinate_extents_default_world_m": {
+        "x_extent_m": 1.860095,
+        "y_extent_m": 1.75,
+        "z_extent_m": 0.824372
       },
       "display_name": "Kenney Mini Character Male D",
       "front_template": "kenney-mini-male-d/measurement_front.svg",
@@ -129,7 +173,18 @@
       "measurements": "kenney-mini-male-d/measurements.json",
       "model": "kenney-mini-male-d/model.glb",
       "model_sha256": "dd12b2e75ffb1cdb45aaec3916c3d6e732929ccb4a8b89b946f69baaabfa64da",
+      "orientation": {
+        "forward_depth_axis": "z",
+        "front_horizontal_axis": "x",
+        "inference": "larger horizontal rest-pose extent is treated as visual front/arm-span axis",
+        "up_axis": "y"
+      },
       "preview": "kenney-mini-male-d/preview.png",
+      "semantic_envelope_default_world_m": {
+        "depth_m": 0.824372,
+        "front_width_or_arm_span_m": 1.860095,
+        "height_m": 1.75
+      },
       "side_template": "kenney-mini-male-d/measurement_side.svg",
       "tags": [
         "humanoid",
@@ -144,10 +199,10 @@
     {
       "animation_count": 32,
       "author": "Kenney",
-      "default_world_dimensions": {
-        "depth_m": 0.885312,
-        "height_m": 1.75,
-        "width_m": 1.986111
+      "coordinate_extents_default_world_m": {
+        "x_extent_m": 1.986111,
+        "y_extent_m": 1.75,
+        "z_extent_m": 0.885312
       },
       "display_name": "Kenney Mini Character Male E",
       "front_template": "kenney-mini-male-e/measurement_front.svg",
@@ -157,7 +212,18 @@
       "measurements": "kenney-mini-male-e/measurements.json",
       "model": "kenney-mini-male-e/model.glb",
       "model_sha256": "cd76681090ce29861b055b0f8b2bdcf84bfccc4ca816f428df42a9bb76d6e1b6",
+      "orientation": {
+        "forward_depth_axis": "z",
+        "front_horizontal_axis": "x",
+        "inference": "larger horizontal rest-pose extent is treated as visual front/arm-span axis",
+        "up_axis": "y"
+      },
       "preview": "kenney-mini-male-e/preview.png",
+      "semantic_envelope_default_world_m": {
+        "depth_m": 0.885312,
+        "front_width_or_arm_span_m": 1.986111,
+        "height_m": 1.75
+      },
       "side_template": "kenney-mini-male-e/measurement_side.svg",
       "tags": [
         "humanoid",
@@ -172,10 +238,10 @@
     {
       "animation_count": 32,
       "author": "Kenney",
-      "default_world_dimensions": {
-        "depth_m": 0.886307,
-        "height_m": 1.75,
-        "width_m": 1.999843
+      "coordinate_extents_default_world_m": {
+        "x_extent_m": 1.999843,
+        "y_extent_m": 1.75,
+        "z_extent_m": 0.886307
       },
       "display_name": "Kenney Mini Character Male F",
       "front_template": "kenney-mini-male-f/measurement_front.svg",
@@ -185,7 +251,18 @@
       "measurements": "kenney-mini-male-f/measurements.json",
       "model": "kenney-mini-male-f/model.glb",
       "model_sha256": "ed151fc47c5cd6be9693c524e92f045170c965819f4f81b28ed66dcc3c1085bf",
+      "orientation": {
+        "forward_depth_axis": "z",
+        "front_horizontal_axis": "x",
+        "inference": "larger horizontal rest-pose extent is treated as visual front/arm-span axis",
+        "up_axis": "y"
+      },
       "preview": "kenney-mini-male-f/preview.png",
+      "semantic_envelope_default_world_m": {
+        "depth_m": 0.886307,
+        "front_width_or_arm_span_m": 1.999843,
+        "height_m": 1.75
+      },
       "side_template": "kenney-mini-male-f/measurement_side.svg",
       "tags": [
         "humanoid",
@@ -200,10 +277,10 @@
     {
       "animation_count": 32,
       "author": "Kenney",
-      "default_world_dimensions": {
-        "depth_m": 1.127203,
-        "height_m": 1.75,
-        "width_m": 2.479442
+      "coordinate_extents_default_world_m": {
+        "x_extent_m": 2.479442,
+        "y_extent_m": 1.75,
+        "z_extent_m": 1.127203
       },
       "display_name": "Kenney Mini Character Female A",
       "front_template": "kenney-mini-female-a/measurement_front.svg",
@@ -213,7 +290,18 @@
       "measurements": "kenney-mini-female-a/measurements.json",
       "model": "kenney-mini-female-a/model.glb",
       "model_sha256": "8cfcff43460da8b421f2a7fdfb43ec177321cad2746db9497cbf128d5806e2a8",
+      "orientation": {
+        "forward_depth_axis": "z",
+        "front_horizontal_axis": "x",
+        "inference": "larger horizontal rest-pose extent is treated as visual front/arm-span axis",
+        "up_axis": "y"
+      },
       "preview": "kenney-mini-female-a/preview.png",
+      "semantic_envelope_default_world_m": {
+        "depth_m": 1.127203,
+        "front_width_or_arm_span_m": 2.479442,
+        "height_m": 1.75
+      },
       "side_template": "kenney-mini-female-a/measurement_side.svg",
       "tags": [
         "humanoid",
@@ -228,10 +316,10 @@
     {
       "animation_count": 32,
       "author": "Kenney",
-      "default_world_dimensions": {
-        "depth_m": 1.012526,
-        "height_m": 1.75,
-        "width_m": 1.856001
+      "coordinate_extents_default_world_m": {
+        "x_extent_m": 1.856001,
+        "y_extent_m": 1.75,
+        "z_extent_m": 1.012526
       },
       "display_name": "Kenney Mini Character Female B",
       "front_template": "kenney-mini-female-b/measurement_front.svg",
@@ -241,7 +329,18 @@
       "measurements": "kenney-mini-female-b/measurements.json",
       "model": "kenney-mini-female-b/model.glb",
       "model_sha256": "2288438e7baf9acc91a870c82dc00d66710bb486592cfc3474ef8ed93a03863a",
+      "orientation": {
+        "forward_depth_axis": "z",
+        "front_horizontal_axis": "x",
+        "inference": "larger horizontal rest-pose extent is treated as visual front/arm-span axis",
+        "up_axis": "y"
+      },
       "preview": "kenney-mini-female-b/preview.png",
+      "semantic_envelope_default_world_m": {
+        "depth_m": 1.012526,
+        "front_width_or_arm_span_m": 1.856001,
+        "height_m": 1.75
+      },
       "side_template": "kenney-mini-female-b/measurement_side.svg",
       "tags": [
         "humanoid",
@@ -256,10 +355,10 @@
     {
       "animation_count": 32,
       "author": "Kenney",
-      "default_world_dimensions": {
-        "depth_m": 1.127203,
-        "height_m": 1.75,
-        "width_m": 1.731135
+      "coordinate_extents_default_world_m": {
+        "x_extent_m": 1.731135,
+        "y_extent_m": 1.75,
+        "z_extent_m": 1.127203
       },
       "display_name": "Kenney Mini Character Female C",
       "front_template": "kenney-mini-female-c/measurement_front.svg",
@@ -269,7 +368,18 @@
       "measurements": "kenney-mini-female-c/measurements.json",
       "model": "kenney-mini-female-c/model.glb",
       "model_sha256": "3cd9e1b5d6409fce0ba1af617d9e008c3069493185a4c100f49fb99a2626a055",
+      "orientation": {
+        "forward_depth_axis": "z",
+        "front_horizontal_axis": "x",
+        "inference": "larger horizontal rest-pose extent is treated as visual front/arm-span axis",
+        "up_axis": "y"
+      },
       "preview": "kenney-mini-female-c/preview.png",
+      "semantic_envelope_default_world_m": {
+        "depth_m": 1.127203,
+        "front_width_or_arm_span_m": 1.731135,
+        "height_m": 1.75
+      },
       "side_template": "kenney-mini-female-c/measurement_side.svg",
       "tags": [
         "humanoid",
@@ -284,10 +394,10 @@
     {
       "animation_count": 32,
       "author": "Kenney",
-      "default_world_dimensions": {
-        "depth_m": 1.127203,
-        "height_m": 1.75,
-        "width_m": 1.731135
+      "coordinate_extents_default_world_m": {
+        "x_extent_m": 1.731135,
+        "y_extent_m": 1.75,
+        "z_extent_m": 1.127203
       },
       "display_name": "Kenney Mini Character Female D",
       "front_template": "kenney-mini-female-d/measurement_front.svg",
@@ -297,7 +407,18 @@
       "measurements": "kenney-mini-female-d/measurements.json",
       "model": "kenney-mini-female-d/model.glb",
       "model_sha256": "67f61708743bd34f91a4c2ba8160b61bf2e7d4ec2ca6647dfe99873422561410",
+      "orientation": {
+        "forward_depth_axis": "z",
+        "front_horizontal_axis": "x",
+        "inference": "larger horizontal rest-pose extent is treated as visual front/arm-span axis",
+        "up_axis": "y"
+      },
       "preview": "kenney-mini-female-d/preview.png",
+      "semantic_envelope_default_world_m": {
+        "depth_m": 1.127203,
+        "front_width_or_arm_span_m": 1.731135,
+        "height_m": 1.75
+      },
       "side_template": "kenney-mini-female-d/measurement_side.svg",
       "tags": [
         "humanoid",
@@ -312,10 +433,10 @@
     {
       "animation_count": 32,
       "author": "Kenney",
-      "default_world_dimensions": {
-        "depth_m": 1.287355,
-        "height_m": 1.75,
-        "width_m": 1.873818
+      "coordinate_extents_default_world_m": {
+        "x_extent_m": 1.873818,
+        "y_extent_m": 1.75,
+        "z_extent_m": 1.287355
       },
       "display_name": "Kenney Mini Character Female E",
       "front_template": "kenney-mini-female-e/measurement_front.svg",
@@ -325,7 +446,18 @@
       "measurements": "kenney-mini-female-e/measurements.json",
       "model": "kenney-mini-female-e/model.glb",
       "model_sha256": "3ee3939f80d718945fcb9199f909a92c39669e38aeec7f544536b5dce6e79f98",
+      "orientation": {
+        "forward_depth_axis": "z",
+        "front_horizontal_axis": "x",
+        "inference": "larger horizontal rest-pose extent is treated as visual front/arm-span axis",
+        "up_axis": "y"
+      },
       "preview": "kenney-mini-female-e/preview.png",
+      "semantic_envelope_default_world_m": {
+        "depth_m": 1.287355,
+        "front_width_or_arm_span_m": 1.873818,
+        "height_m": 1.75
+      },
       "side_template": "kenney-mini-female-e/measurement_side.svg",
       "tags": [
         "humanoid",
@@ -340,10 +472,10 @@
     {
       "animation_count": 32,
       "author": "Kenney",
-      "default_world_dimensions": {
-        "depth_m": 1.149885,
-        "height_m": 1.75,
-        "width_m": 1.999843
+      "coordinate_extents_default_world_m": {
+        "x_extent_m": 1.999843,
+        "y_extent_m": 1.75,
+        "z_extent_m": 1.149885
       },
       "display_name": "Kenney Mini Character Female F",
       "front_template": "kenney-mini-female-f/measurement_front.svg",
@@ -353,7 +485,18 @@
       "measurements": "kenney-mini-female-f/measurements.json",
       "model": "kenney-mini-female-f/model.glb",
       "model_sha256": "2ff4311897bfaf99be80d2fa13918db30f506607da0291640b2609d82b70e0ca",
+      "orientation": {
+        "forward_depth_axis": "z",
+        "front_horizontal_axis": "x",
+        "inference": "larger horizontal rest-pose extent is treated as visual front/arm-span axis",
+        "up_axis": "y"
+      },
       "preview": "kenney-mini-female-f/preview.png",
+      "semantic_envelope_default_world_m": {
+        "depth_m": 1.149885,
+        "front_width_or_arm_span_m": 1.999843,
+        "height_m": 1.75
+      },
       "side_template": "kenney-mini-female-f/measurement_side.svg",
       "tags": [
         "humanoid",

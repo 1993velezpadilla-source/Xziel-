@@ -195,10 +195,10 @@
     }
   ],
   "author": "Kenney",
-  "default_world_dimensions": {
-    "depth_m": 1.127203,
-    "height_m": 1.75,
-    "width_m": 1.731135
+  "coordinate_extents_default_world_m": {
+    "x_extent_m": 1.731135,
+    "y_extent_m": 1.75,
+    "z_extent_m": 1.127203
   },
   "default_world_height_m": 1.75,
   "display_name": "Kenney Mini Character Female C",
@@ -387,7 +387,8 @@
     "Native GLB coordinates and geometry are the dimensional authority.",
     "Default world metres are a convenience scale derived from the configured default height.",
     "Future creature concepts must preserve the selected base model's normalized ratios unless an explicit deformation is requested.",
-    "Joint segment measurements are rest-pose distances. Mesh bounds are exact geometry bounds in the stored GLB rest pose."
+    "Joint segment measurements are rest-pose distances. Mesh bounds are exact geometry bounds in the stored GLB rest pose.",
+    "X/Y/Z coordinate extents are preserved separately; visual front and side axes are inferred from the neutral-pose horizontal extents."
   ],
   "mesh_count": 2,
   "meshes": [
@@ -475,7 +476,18 @@
     "height": 1.0,
     "width": 0.98922014
   },
+  "orientation": {
+    "forward_depth_axis": "z",
+    "front_horizontal_axis": "x",
+    "inference": "larger horizontal rest-pose extent is treated as visual front/arm-span axis",
+    "up_axis": "y"
+  },
   "preview_sha256": "f982772bd9d3c096b7d1eced50afd9e69b9e2941ab2e06299829069ba36db31f",
+  "semantic_envelope_default_world_m": {
+    "depth_m": 1.127203,
+    "front_width_or_arm_span_m": 1.731135,
+    "height_m": 1.75
+  },
   "semantic_segment_totals": {
     "arms_hands": {
       "sum_segment_lengths_native": 0.30029228,

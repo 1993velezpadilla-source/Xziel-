@@ -12,5 +12,5 @@
 <line x1="204.88" y1="1530" x2="995.12" y2="1530" stroke="#111" stroke-width="2"/>
 <line x1="204.88" y1="1515" x2="204.88" y2="1545" stroke="#111" stroke-width="2"/>
 <line x1="995.12" y1="1515" x2="995.12" y2="1545" stroke="#111" stroke-width="2"/>
-<text x="600.00" y="1572" text-anchor="middle" font-family="sans-serif" font-size="22">Z / depth: 1.017 m default</text>
+<text x="600.00" y="1572" text-anchor="middle" font-family="sans-serif" font-size="22">Z / visual side depth: 1.017 m default</text>
 </svg>

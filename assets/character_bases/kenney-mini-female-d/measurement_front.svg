@@ -12,5 +12,5 @@
 <line x1="120.00" y1="1530" x2="1080.00" y2="1530" stroke="#111" stroke-width="2"/>
 <line x1="120.00" y1="1515" x2="120.00" y2="1545" stroke="#111" stroke-width="2"/>
 <line x1="1080.00" y1="1515" x2="1080.00" y2="1545" stroke="#111" stroke-width="2"/>
-<text x="600.00" y="1572" text-anchor="middle" font-family="sans-serif" font-size="22">X / width: 1.731 m default</text>
+<text x="600.00" y="1572" text-anchor="middle" font-family="sans-serif" font-size="22">X / visual front width: 1.731 m default</text>
 </svg>
