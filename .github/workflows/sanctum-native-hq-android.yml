@@ -422,7 +422,11 @@ jobs:
           # fallback could create its own 5s input-dispatch ANR on a loaded CI
           # emulator even though the native runtime completed successfully.
           READY=0
-          for i in $(seq 1 45); do
+          # ASTC is CPU-emulated under the CI software Vulkan stack and can
+          # vary substantially with shared-runner load. Batching is gated
+          # separately below; allow enough time to distinguish slow startup
+          # from a real hang/crash.
+          for i in $(seq 1 75); do
             STARTUP_LOG="$("$ADB" logcat -d -v brief -s XzielNative:I XzielVulkan:I XzielSanctumMesh:I '*:S' 2>/dev/null || true)"
             if grep -q "XZIEL_VULKAN_READY" <<<"$STARTUP_LOG" && \
                grep -q "XZIEL_SANCTUM_MESH_READY" <<<"$STARTUP_LOG"; then
