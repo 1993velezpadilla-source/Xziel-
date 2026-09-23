@@ -2847,6 +2847,21 @@ bool VulkanStaticMeshRenderer::createKtx2Texture(
         residentRange.mipCount;
     out.residentBaseMip =
         residentBaseMip;
+    out.sourceMipLevels =
+        static_cast<std::uint32_t>(
+            std::min<std::size_t>(
+                texture.levels.size(),
+                kMaxStreamedTextureMips));
+    out.sourceMipBytes.fill(0U);
+
+    for (std::uint32_t mip = 0U;
+         mip < out.sourceMipLevels;
+         ++mip) {
+        out.sourceMipBytes[mip] =
+            texture.levels[mip].
+                byteLength;
+    }
+
     out.residentPayloadBytes =
         residentRange.payloadBytes;
     out.allocationBytes =
@@ -3456,6 +3471,40 @@ bool VulkanStaticMeshRenderer::createPngTexture(
     out.residentHeight = out.height;
     out.mipLevels = mipLevels;
     out.residentBaseMip = 0U;
+    out.sourceMipLevels =
+        std::min<std::uint32_t>(
+            mipLevels,
+            static_cast<std::uint32_t>(
+                kMaxStreamedTextureMips));
+    out.sourceMipBytes.fill(0U);
+
+    std::uint32_t mipWidth =
+        out.width;
+    std::uint32_t mipHeight =
+        out.height;
+
+    for (std::uint32_t mip = 0U;
+         mip < out.sourceMipLevels;
+         ++mip) {
+        out.sourceMipBytes[mip] =
+            std::max<std::uint64_t>(
+                1U,
+                static_cast<std::uint64_t>(
+                    mipWidth) *
+                static_cast<std::uint64_t>(
+                    mipHeight) *
+                4U);
+
+        mipWidth =
+            std::max<std::uint32_t>(
+                1U,
+                mipWidth / 2U);
+        mipHeight =
+            std::max<std::uint32_t>(
+                1U,
+                mipHeight / 2U);
+    }
+
     out.residentPayloadBytes =
         static_cast<std::uint64_t>(
             pixelBytes);
