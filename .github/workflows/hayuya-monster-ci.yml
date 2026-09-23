@@ -54,7 +54,7 @@ jobs:
           from pathlib import Path
           for i in range(9):
               p=Path(f"/tmp/hayuya-view-{i}.png")
-              p.write_bytes(b"\x89PNG\r\n\x1a\n" + b"x"*2048)
+              p.write_bytes(b"\x89PNG\r\n\x1a\n" + bytes([65+i])*(2048+i))
           PY
           python tools/hayuya3d/hayuya.py \
             --input /tmp/hayuya-view-0.png \
