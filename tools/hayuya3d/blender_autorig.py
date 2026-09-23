@@ -134,13 +134,6 @@ def main():
     arm.location += offset
     bpy.context.view_layer.update()
 
-    # Delete every donor scene object except the armature. Imported donor
-    # helper empties can confuse Blender's glTF exporter after the original
-    # donor skin is removed, producing neutral-bone nodes with no Skin object.
-    for obj in list(donor_objs):
-        if obj != arm and obj.name in bpy.data.objects:
-            bpy.data.objects.remove(obj,do_unlink=True)
-
     arm.name="HAYUYA_Armature"
 
     # Build a spatial weight donor from the already-rigged CC0 human.
