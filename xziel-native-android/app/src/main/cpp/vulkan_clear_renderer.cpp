@@ -89,6 +89,7 @@ bool VulkanClearRenderer::initialize(
         !createGraphicsPipeline() ||
         !createUiPipeline() ||
         !createImageViews() ||
+        !createSceneColorResources() ||
         !createDepthResources() ||
         !createCommandResources() ||
         !createPerformanceQueries() ||
@@ -110,6 +111,7 @@ bool VulkanClearRenderer::initialize(
         graphicsQueueFamily_,
         commandPool_,
         renderPass_,
+        preferredSceneMsaa_,
         assetManager_,
         "models/xziel/sanctum/sanctum.xzsm");
 
@@ -120,6 +122,7 @@ bool VulkanClearRenderer::initialize(
         graphicsQueueFamily_,
         commandPool_,
         renderPass_,
+        preferredSceneMsaa_,
         assetManager_,
         "models/xziel/weapons/standard_rifle.xzsm");
 
@@ -931,11 +934,16 @@ bool VulkanClearRenderer::selectPhysicalDevice() noexcept {
                     properties.limits.framebufferDepthSampleCounts;
 
                 preferredSceneMsaa_ =
-                    (commonSamples & VK_SAMPLE_COUNT_4_BIT) != 0U
-                    ? VK_SAMPLE_COUNT_4_BIT
-                    : ((commonSamples & VK_SAMPLE_COUNT_2_BIT) != 0U
-                        ? VK_SAMPLE_COUNT_2_BIT
-                        : VK_SAMPLE_COUNT_1_BIT);
+                    physicalDeviceType_ ==
+                        VK_PHYSICAL_DEVICE_TYPE_CPU
+                    ? VK_SAMPLE_COUNT_1_BIT
+                    : ((commonSamples &
+                        VK_SAMPLE_COUNT_4_BIT) != 0U
+                        ? VK_SAMPLE_COUNT_4_BIT
+                        : ((commonSamples &
+                            VK_SAMPLE_COUNT_2_BIT) != 0U
+                            ? VK_SAMPLE_COUNT_2_BIT
+                            : VK_SAMPLE_COUNT_1_BIT));
 
                 VkPhysicalDeviceMemoryProperties memory{};
                 vkGetPhysicalDeviceMemoryProperties(
@@ -1524,14 +1532,22 @@ bool VulkanClearRenderer::createRenderPass() noexcept {
         return false;
     }
 
+    const bool useMsaa =
+        preferredSceneMsaa_ !=
+        VK_SAMPLE_COUNT_1_BIT;
+
     VkAttachmentDescription color{};
     color.format = swapchainFormat_;
     color.samples =
-        VK_SAMPLE_COUNT_1_BIT;
+        useMsaa
+        ? preferredSceneMsaa_
+        : VK_SAMPLE_COUNT_1_BIT;
     color.loadOp =
         VK_ATTACHMENT_LOAD_OP_CLEAR;
     color.storeOp =
-        VK_ATTACHMENT_STORE_OP_STORE;
+        useMsaa
+        ? VK_ATTACHMENT_STORE_OP_DONT_CARE
+        : VK_ATTACHMENT_STORE_OP_STORE;
     color.stencilLoadOp =
         VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     color.stencilStoreOp =
@@ -1539,12 +1555,14 @@ bool VulkanClearRenderer::createRenderPass() noexcept {
     color.initialLayout =
         VK_IMAGE_LAYOUT_UNDEFINED;
     color.finalLayout =
-        VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        useMsaa
+        ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+        : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
     VkAttachmentDescription depth{};
     depth.format = depthFormat_;
     depth.samples =
-        VK_SAMPLE_COUNT_1_BIT;
+        preferredSceneMsaa_;
     depth.loadOp =
         VK_ATTACHMENT_LOAD_OP_CLEAR;
     depth.storeOp =
@@ -1558,39 +1576,65 @@ bool VulkanClearRenderer::createRenderPass() noexcept {
     depth.finalLayout =
         VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-    const std::array<VkAttachmentDescription, 2>
-        attachments{color, depth};
+    VkAttachmentDescription resolve{};
+    resolve.format = swapchainFormat_;
+    resolve.samples =
+        VK_SAMPLE_COUNT_1_BIT;
+    resolve.loadOp =
+        VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    resolve.storeOp =
+        VK_ATTACHMENT_STORE_OP_STORE;
+    resolve.stencilLoadOp =
+        VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    resolve.stencilStoreOp =
+        VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    resolve.initialLayout =
+        VK_IMAGE_LAYOUT_UNDEFINED;
+    resolve.finalLayout =
+        VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    const std::array<VkAttachmentDescription, 3>
+        attachments{color, depth, resolve};
 
     VkAttachmentReference colorReference{};
-    colorReference.attachment = 0;
+    colorReference.attachment = 0U;
     colorReference.layout =
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     VkAttachmentReference depthReference{};
-    depthReference.attachment = 1;
+    depthReference.attachment = 1U;
     depthReference.layout =
         VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    VkAttachmentReference resolveReference{};
+    resolveReference.attachment = 2U;
+    resolveReference.layout =
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     VkSubpassDescription subpass{};
     subpass.pipelineBindPoint =
         VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
+    subpass.colorAttachmentCount = 1U;
     subpass.pColorAttachments =
         &colorReference;
     subpass.pDepthStencilAttachment =
         &depthReference;
+    subpass.pResolveAttachments =
+        useMsaa
+        ? &resolveReference
+        : nullptr;
 
     VkSubpassDependency dependency{};
     dependency.srcSubpass =
         VK_SUBPASS_EXTERNAL;
-    dependency.dstSubpass = 0;
+    dependency.dstSubpass = 0U;
     dependency.srcStageMask =
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
         VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
     dependency.dstStageMask =
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
         VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    dependency.srcAccessMask = 0;
+    dependency.srcAccessMask = 0U;
     dependency.dstAccessMask =
         VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
         VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
@@ -1599,14 +1643,15 @@ bool VulkanClearRenderer::createRenderPass() noexcept {
         VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO
     };
     createInfo.attachmentCount =
-        static_cast<std::uint32_t>(
-            attachments.size());
+        useMsaa
+        ? 3U
+        : 2U;
     createInfo.pAttachments =
         attachments.data();
-    createInfo.subpassCount = 1;
+    createInfo.subpassCount = 1U;
     createInfo.pSubpasses =
         &subpass;
-    createInfo.dependencyCount = 1;
+    createInfo.dependencyCount = 1U;
     createInfo.pDependencies =
         &dependency;
 
@@ -1622,8 +1667,16 @@ bool VulkanClearRenderer::createRenderPass() noexcept {
         return false;
     }
 
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
+        "XZIEL_SCENE_MSAA samples=%u",
+        static_cast<unsigned int>(
+            preferredSceneMsaa_));
+
     return true;
 }
+
 
 bool VulkanClearRenderer::createShaderModuleFromAsset(
     const char* assetPath,
@@ -1809,7 +1862,7 @@ bool VulkanClearRenderer::createGraphicsPipeline() noexcept {
         VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO
     };
     multisample.rasterizationSamples =
-        VK_SAMPLE_COUNT_1_BIT;
+        preferredSceneMsaa_;
     multisample.sampleShadingEnable =
         VK_FALSE;
 
@@ -2088,7 +2141,7 @@ bool VulkanClearRenderer::createUiPipeline() noexcept {
         VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO
     };
     multisample.rasterizationSamples =
-        VK_SAMPLE_COUNT_1_BIT;
+        preferredSceneMsaa_;
     multisample.sampleShadingEnable =
         VK_FALSE;
 
@@ -2283,6 +2336,159 @@ bool VulkanClearRenderer::createImageViews() noexcept {
     return true;
 }
 
+bool VulkanClearRenderer::createSceneColorResources() noexcept {
+    sceneColorImages_.clear();
+    sceneColorMemory_.clear();
+    sceneColorViews_.clear();
+
+    if (preferredSceneMsaa_ ==
+        VK_SAMPLE_COUNT_1_BIT) {
+        return true;
+    }
+
+    const std::size_t count =
+        swapchainImages_.size();
+
+    sceneColorImages_.assign(
+        count,
+        VK_NULL_HANDLE);
+    sceneColorMemory_.assign(
+        count,
+        VK_NULL_HANDLE);
+    sceneColorViews_.assign(
+        count,
+        VK_NULL_HANDLE);
+
+    bool usedLazyTransientMemory = false;
+
+    for (std::size_t i = 0U;
+         i < count;
+         ++i) {
+        VkImageCreateInfo imageInfo{
+            VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO
+        };
+        imageInfo.imageType =
+            VK_IMAGE_TYPE_2D;
+        imageInfo.format =
+            swapchainFormat_;
+        imageInfo.extent = {
+            swapchainExtent_.width,
+            swapchainExtent_.height,
+            1U,
+        };
+        imageInfo.mipLevels = 1U;
+        imageInfo.arrayLayers = 1U;
+        imageInfo.samples =
+            preferredSceneMsaa_;
+        imageInfo.tiling =
+            VK_IMAGE_TILING_OPTIMAL;
+        imageInfo.usage =
+            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+            VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
+        imageInfo.sharingMode =
+            VK_SHARING_MODE_EXCLUSIVE;
+        imageInfo.initialLayout =
+            VK_IMAGE_LAYOUT_UNDEFINED;
+
+        if (!ok(
+                vkCreateImage(
+                    device_,
+                    &imageInfo,
+                    nullptr,
+                    &sceneColorImages_[i]))) {
+            logError(
+                "vkCreateImage transient scene color failed");
+            return false;
+        }
+
+        VkMemoryRequirements requirements{};
+        vkGetImageMemoryRequirements(
+            device_,
+            sceneColorImages_[i],
+            &requirements);
+
+        std::uint32_t memoryType = 0U;
+        const bool lazyMemory =
+            findMemoryType(
+                requirements.memoryTypeBits,
+                VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT,
+                memoryType);
+
+        if (!lazyMemory &&
+            !findMemoryType(
+                requirements.memoryTypeBits,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                memoryType)) {
+            logError(
+                "No suitable memory for transient scene color");
+            return false;
+        }
+
+        usedLazyTransientMemory =
+            usedLazyTransientMemory ||
+            lazyMemory;
+
+        VkMemoryAllocateInfo allocation{
+            VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO
+        };
+        allocation.allocationSize =
+            requirements.size;
+        allocation.memoryTypeIndex =
+            memoryType;
+
+        if (!ok(
+                vkAllocateMemory(
+                    device_,
+                    &allocation,
+                    nullptr,
+                    &sceneColorMemory_[i])) ||
+            !ok(
+                vkBindImageMemory(
+                    device_,
+                    sceneColorImages_[i],
+                    sceneColorMemory_[i],
+                    0U))) {
+            logError(
+                "transient scene color allocation failed");
+            return false;
+        }
+
+        VkImageViewCreateInfo view{
+            VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO
+        };
+        view.image =
+            sceneColorImages_[i];
+        view.viewType =
+            VK_IMAGE_VIEW_TYPE_2D;
+        view.format =
+            swapchainFormat_;
+        view.subresourceRange.aspectMask =
+            VK_IMAGE_ASPECT_COLOR_BIT;
+        view.subresourceRange.baseMipLevel = 0U;
+        view.subresourceRange.levelCount = 1U;
+        view.subresourceRange.baseArrayLayer = 0U;
+        view.subresourceRange.layerCount = 1U;
+
+        if (!ok(
+                vkCreateImageView(
+                    device_,
+                    &view,
+                    nullptr,
+                    &sceneColorViews_[i]))) {
+            logError(
+                "transient scene color view failed");
+            return false;
+        }
+    }
+
+    logInfo(
+        usedLazyTransientMemory
+            ? "XZIEL_TRANSIENT_MSAA_COLOR_LAZY"
+            : "XZIEL_TRANSIENT_MSAA_COLOR_DEVICE_LOCAL");
+
+    return true;
+}
+
 bool VulkanClearRenderer::createDepthResources() noexcept {
     const std::size_t count =
         swapchainImages_.size();
@@ -2317,7 +2523,7 @@ bool VulkanClearRenderer::createDepthResources() noexcept {
         imageInfo.mipLevels = 1;
         imageInfo.arrayLayers = 1;
         imageInfo.samples =
-            VK_SAMPLE_COUNT_1_BIT;
+            preferredSceneMsaa_;
         imageInfo.tiling =
             VK_IMAGE_TILING_OPTIMAL;
         // Depth is cleared every frame and discarded at the end of the
@@ -3143,18 +3349,42 @@ bool VulkanClearRenderer::createFramebuffers() noexcept {
         return false;
     }
 
+    const bool useMsaa =
+        preferredSceneMsaa_ !=
+        VK_SAMPLE_COUNT_1_BIT;
+
+    if (useMsaa &&
+        sceneColorViews_.size() !=
+            imageViews_.size()) {
+        return false;
+    }
+
     framebuffers_.assign(
         imageViews_.size(),
         VK_NULL_HANDLE);
 
-    for (std::size_t i = 0;
+    for (std::size_t i = 0U;
          i < framebuffers_.size();
          ++i) {
-        const std::array<VkImageView, 2>
-            attachments{
-                imageViews_[i],
+        std::array<VkImageView, 3>
+            attachments{};
+
+        std::uint32_t attachmentCount = 0U;
+
+        if (useMsaa) {
+            attachments = {
+                sceneColorViews_[i],
                 depthViews_[i],
+                imageViews_[i],
             };
+            attachmentCount = 3U;
+        } else {
+            attachments[0] =
+                imageViews_[i];
+            attachments[1] =
+                depthViews_[i];
+            attachmentCount = 2U;
+        }
 
         VkFramebufferCreateInfo framebuffer{
             VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO
@@ -3162,15 +3392,14 @@ bool VulkanClearRenderer::createFramebuffers() noexcept {
         framebuffer.renderPass =
             renderPass_;
         framebuffer.attachmentCount =
-            static_cast<std::uint32_t>(
-                attachments.size());
+            attachmentCount;
         framebuffer.pAttachments =
             attachments.data();
         framebuffer.width =
             swapchainExtent_.width;
         framebuffer.height =
             swapchainExtent_.height;
-        framebuffer.layers = 1;
+        framebuffer.layers = 1U;
 
         if (!ok(
                 vkCreateFramebuffer(
@@ -3399,6 +3628,9 @@ void VulkanClearRenderer::destroySwapchainResources() noexcept {
     if (device_ == VK_NULL_HANDLE) {
         swapchainImages_.clear();
         imageViews_.clear();
+        sceneColorImages_.clear();
+        sceneColorMemory_.clear();
+        sceneColorViews_.clear();
         depthImages_.clear();
         depthMemory_.clear();
         depthViews_.clear();
@@ -3432,6 +3664,39 @@ void VulkanClearRenderer::destroySwapchainResources() noexcept {
     }
 
     framebuffers_.clear();
+
+    for (const auto view :
+         sceneColorViews_) {
+        if (view != VK_NULL_HANDLE) {
+            vkDestroyImageView(
+                device_,
+                view,
+                nullptr);
+        }
+    }
+    sceneColorViews_.clear();
+
+    for (const auto image :
+         sceneColorImages_) {
+        if (image != VK_NULL_HANDLE) {
+            vkDestroyImage(
+                device_,
+                image,
+                nullptr);
+        }
+    }
+    sceneColorImages_.clear();
+
+    for (const auto memory :
+         sceneColorMemory_) {
+        if (memory != VK_NULL_HANDLE) {
+            vkFreeMemory(
+                device_,
+                memory,
+                nullptr);
+        }
+    }
+    sceneColorMemory_.clear();
 
     for (const auto view : depthViews_) {
         if (view != VK_NULL_HANDLE) {
@@ -3594,6 +3859,7 @@ bool VulkanClearRenderer::recreateSwapchain() noexcept {
         createGraphicsPipeline() &&
         createUiPipeline() &&
         createImageViews() &&
+        createSceneColorResources() &&
         createDepthResources() &&
         createCommandResources() &&
         createReflectionFallbackResources() &&
