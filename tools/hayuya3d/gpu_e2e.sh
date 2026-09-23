@@ -2,7 +2,7 @@
 set -euo pipefail
 
 GEOMETRY_INPUT="${HAYUYA_GEOMETRY_INPUT:-assets/characters/llorona/v2/hayuya/individual/llorona_front.png}"
-DETAIL_DIR="${HAYUYA_DETAIL_DIR:-assets/characters/llorona/v2/hayuya/details}"
+DETAIL_DIR="${HAYUYA_DETAIL_DIR:-}"
 REFERENCE_DIR="${HAYUYA_REFERENCE_DIR:-}"
 PROFILE="${HAYUYA_PROFILE:-monster}"
 MODE="${HAYUYA_MODE:-auto}"
