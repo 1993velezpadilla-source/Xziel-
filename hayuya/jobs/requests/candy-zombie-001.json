@@ -3,7 +3,7 @@
   "job_id": "candy-zombie-001",
   "owner": "Christian",
   "title": "Candyland Zombie — single image challenge",
-  "geometry_input": "hayuya/assets/candy-zombie-001/geometry/candy-zombie-single-reference.png",
+  "geometry_input": "hayuya/assets/candy-zombie-001/geometry/candy-zombie-user-reference.jpg",
   "reference_dir": "",
   "detail_dir": "",
   "profile": "monster",
@@ -13,6 +13,6 @@
   "backends": "triposg,trellis2,trellis,instantmesh,triposr",
   "execution": "phone_cloud",
   "compute": "github-hosted + public ZeroGPU",
-  "note": "Retry after fixing palette/tRNS alpha preservation in the Hayuya single-image path. The previous run converted a transparent palette PNG to RGB and reconstructed the fill as geometry.",
-  "retry_token": "candy-zombie-alpha-fix-v2"
+  "note": "Immediate retry using the verified clean Candyland source. Reject DONE unless the new mesh quality gate passes.",
+  "retry_token": "candy-zombie-now-v3"
 }
