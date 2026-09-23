@@ -543,6 +543,7 @@ parseStaticMeshXzsm(
         .error = StaticMeshParseError::None,
         .offset = reader.offset(),
     };
+}
 
 StaticMeshParseResult
 parseStaticMeshXzsmDirectory(
@@ -884,8 +885,6 @@ parseStaticMeshXzsmDirectory(
         .error = StaticMeshParseError::None,
         .offset = reader.offset(),
     };
-}
-
 }
 
 } // namespace xziel
