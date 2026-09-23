@@ -189,6 +189,68 @@ bool AndroidAssetStreamer::take(
     return success;
 }
 
+bool AndroidAssetStreamer::tryTake(
+    const std::string& assetPath,
+    std::vector<std::byte>& destination,
+    bool& finished) noexcept {
+    destination.clear();
+    finished = false;
+
+    std::unique_lock lock(mutex_);
+
+    const auto found =
+        results_.find(assetPath);
+
+    if (found == results_.end()) {
+        if (!scheduled_.contains(assetPath) ||
+            !running_) {
+            finished = true;
+        }
+        return false;
+    }
+
+    finished = true;
+    const bool success =
+        found->second.success;
+
+    if (success) {
+        const std::uint64_t resultBytes =
+            static_cast<std::uint64_t>(
+                found->second.bytes.size());
+
+        destination =
+            std::move(found->second.bytes);
+
+        bufferedBytes_ =
+            resultBytes <= bufferedBytes_
+            ? bufferedBytes_ - resultBytes
+            : 0U;
+
+        ++stats_.consumed;
+    }
+
+    results_.erase(found);
+    scheduled_.erase(assetPath);
+
+    stats_.bufferedBytes =
+        bufferedBytes_;
+    stats_.pending =
+        static_cast<std::uint32_t>(
+            std::min<std::size_t>(
+                requests_.size(),
+                std::numeric_limits<std::uint32_t>::max()));
+
+    lock.unlock();
+    resultCv_.notify_all();
+
+    return success;
+}
+
+bool AndroidAssetStreamer::running() const noexcept {
+    std::lock_guard lock(mutex_);
+    return running_;
+}
+
 AndroidAssetStreamStats
 AndroidAssetStreamer::stats() const noexcept {
     std::lock_guard lock(mutex_);
