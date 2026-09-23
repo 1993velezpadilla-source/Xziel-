@@ -5,6 +5,91 @@
 
 namespace xziel {
 
+bool configureSanctumStreamingGraph(
+    StreamCellGraph& graph) noexcept {
+    graph.reset();
+
+    constexpr std::array<SanctumZone, 10> zones{{
+        SanctumZone::Courtyard,
+        SanctumZone::Nave,
+        SanctumZone::Office,
+        SanctumZone::OfficeCorridor,
+        SanctumZone::BoilerRoom,
+        SanctumZone::TowerStairs,
+        SanctumZone::RingingChamber,
+        SanctumZone::ClockChamber,
+        SanctumZone::RoofChamber,
+        SanctumZone::TowerTop,
+    }};
+
+    for (const auto zone : zones) {
+        if (!graph.addCell({
+                .id = static_cast<std::uint32_t>(zone),
+            })) {
+            graph.reset();
+            return false;
+        }
+    }
+
+    const auto addClosedPortal =
+        [&](std::uint32_t id,
+            SanctumZone a,
+            SanctumZone b) noexcept {
+            return graph.addPortal({
+                .id = id,
+                .cellA = static_cast<std::uint32_t>(a),
+                .cellB = static_cast<std::uint32_t>(b),
+                .open = false,
+                .preloadAcrossClosed = true,
+            });
+        };
+
+    const bool portalsReady =
+        addClosedPortal(
+            1001U,
+            SanctumZone::Courtyard,
+            SanctumZone::Nave) &&
+        addClosedPortal(
+            1002U,
+            SanctumZone::Nave,
+            SanctumZone::Office) &&
+        addClosedPortal(
+            1003U,
+            SanctumZone::Office,
+            SanctumZone::OfficeCorridor) &&
+        addClosedPortal(
+            1004U,
+            SanctumZone::OfficeCorridor,
+            SanctumZone::BoilerRoom) &&
+        addClosedPortal(
+            1005U,
+            SanctumZone::Nave,
+            SanctumZone::TowerStairs) &&
+        addClosedPortal(
+            1006U,
+            SanctumZone::TowerStairs,
+            SanctumZone::RingingChamber) &&
+        addClosedPortal(
+            1007U,
+            SanctumZone::RingingChamber,
+            SanctumZone::ClockChamber) &&
+        addClosedPortal(
+            1008U,
+            SanctumZone::ClockChamber,
+            SanctumZone::RoofChamber) &&
+        addClosedPortal(
+            1009U,
+            SanctumZone::RoofChamber,
+            SanctumZone::TowerTop);
+
+    if (!portalsReady) {
+        graph.reset();
+        return false;
+    }
+
+    return true;
+}
+
 SanctumGameplayProfile
 makeSanctumGameplayProfile() noexcept {
     SanctumGameplayProfile profile{};
