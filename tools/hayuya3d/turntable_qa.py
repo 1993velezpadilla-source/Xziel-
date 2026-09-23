@@ -299,6 +299,64 @@ def score_source_to_turntable(
     )
 
 
+def build_turntable_comparison_sheet(
+    result: TurntableQAResult,
+    output: Path,
+    *,
+    cell_size: tuple[int, int] = (280, 280),
+) -> Path | None:
+    from PIL import Image, ImageDraw, ImageOps
+
+    if not result.views:
+        return None
+
+    width = cell_size[0] * 2
+    row_height = cell_size[1] + 54
+    sheet = Image.new(
+        "RGB",
+        (width, row_height * len(result.views)),
+        (20, 20, 20),
+    )
+    draw = ImageDraw.Draw(sheet)
+
+    for row, item in enumerate(result.views):
+        y = row * row_height
+        source = ImageOps.fit(
+            Image.open(item.source).convert("RGB"),
+            cell_size,
+            method=Image.Resampling.LANCZOS,
+        )
+        frame = ImageOps.fit(
+            Image.open(item.selected_frame).convert("RGB"),
+            cell_size,
+            method=Image.Resampling.LANCZOS,
+        )
+        sheet.paste(source, (0, y + 54))
+        sheet.paste(frame, (cell_size[0], y + 54))
+
+        status = "FAIL" if item.catastrophic_mismatch else "PASS"
+        draw.text(
+            (8, y + 6),
+            (
+                f"{status}  score={item.combined_score:.1f}  "
+                f"expected={item.expected_offset:.0f} deg  "
+                f"frame={item.selected_offset:.0f} deg  "
+                f"angular_err={item.angular_error:.1f}"
+            ),
+            fill=(240, 240, 240),
+        )
+        draw.text((8, y + 28), "REAL SOURCE", fill=(190, 190, 190))
+        draw.text(
+            (cell_size[0] + 8, y + 28),
+            "FINAL TURNTABLE",
+            fill=(190, 190, 190),
+        )
+
+    output.parent.mkdir(parents=True, exist_ok=True)
+    sheet.save(output, format="PNG")
+    return output
+
+
 def write_turntable_report(
     result: TurntableQAResult,
     path: Path,
