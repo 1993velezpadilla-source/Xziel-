@@ -80,6 +80,38 @@ def _material_channels(material) -> set[str]:
     return channels
 
 
+def _component_count(faces) -> int:
+    """Count vertex-connected triangle components without networkx/scipy."""
+    import numpy as np
+
+    faces = np.asarray(faces, dtype=np.int64)
+    if faces.size == 0:
+        return 0
+    used = np.unique(faces.reshape(-1))
+    parent = {int(v): int(v) for v in used}
+
+    def find(x: int) -> int:
+        root = x
+        while parent[root] != root:
+            root = parent[root]
+        while parent[x] != x:
+            nxt = parent[x]
+            parent[x] = root
+            x = nxt
+        return root
+
+    def union(a: int, b: int) -> None:
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[rb] = ra
+
+    for a, b, d in faces:
+        union(int(a), int(b))
+        union(int(a), int(d))
+
+    return len({find(int(v)) for v in used})
+
+
 def _basic_valid(path: Path) -> tuple[bool, list[str]]:
     notes: list[str] = []
     if not path.is_file():
@@ -145,7 +177,7 @@ def inspect_mesh(
         mesh = trimesh.util.concatenate(metric_meshes)
         result.vertices = int(len(mesh.vertices))
         result.faces = int(len(mesh.faces))
-        result.components = len(mesh.split(only_watertight=False))
+        result.components = _component_count(mesh.faces)
         result.watertight = bool(mesh.is_watertight)
 
         areas = np.asarray(mesh.area_faces)
