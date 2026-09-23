@@ -93,7 +93,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 tools/church_map/rank_sanctum_material_candidates.py             --atlas research/source/st_giles_exterior_atlas.png             --photo research/source/st_giles_2025_reference.jpg             --candidates research/candidates             --out research/result
-          jq '.winner, .ranking[] | {name,score,vs_real_photo,vs_original_atlas}'             research/result/ranking.json
+          jq '{winner, ranking: [.ranking[] | {name,score,vs_real_photo,vs_original_atlas}]}'             research/result/ranking.json
 
       - name: Upload comparison evidence
         uses: actions/upload-artifact@v4
