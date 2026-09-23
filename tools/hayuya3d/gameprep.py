@@ -8,8 +8,8 @@ from pathlib import Path
 
 from material_bridge import (
     _scene_meshes,
-    build_source_color_cloud,
-    transfer_base_color_from_cloud,
+    prepare_material_transfer,
+    transfer_material_from_context,
 )
 from visual_judge import SourceViewScore
 
@@ -139,10 +139,13 @@ def build_gameprep(
     lod0_target = min(source_faces, max(4, int(target_faces)))
     ratios = [1.0, 0.55, 0.28, 0.12]
 
-    # One source color cloud is shared across all simplified LODs.
-    color_points, color_values = build_source_color_cloud(
+    # One surface/material transfer context is shared across all simplified LODs.
+    # PBR/UV is preserved when possible; otherwise Material Bridge falls back to
+    # base-color vertex projection.
+    transfer_context = prepare_material_transfer(
         master_glb,
         total_samples=material_samples,
+        max_texture_size=2048,
     )
 
     lods: list[LODArtifact] = []
@@ -159,16 +162,19 @@ def build_gameprep(
             simplified = simplify_to_faces(master_mesh, target)
             raw_path = out_dir / "_raw" / f"{name}_geometry.glb"
             export_glb(simplified, raw_path)
-            transfer_base_color_from_cloud(
+            transfer_result = transfer_material_from_context(
                 master_glb,
-                color_points,
-                color_values,
+                transfer_context,
                 raw_path,
                 final_path,
             )
             reloaded = load_combined_mesh(final_path)
             actual = int(len(reloaded.faces))
-            material_policy = "Material Bridge v1 base-color vertex projection"
+            material_policy = (
+                "Material Bridge v2 PBR UV projection"
+                if transfer_result.method.startswith("surface-sample nearest-UV")
+                else "Material Bridge v1 base-color vertex projection fallback"
+            )
 
         lods.append(
             LODArtifact(
@@ -215,7 +221,7 @@ def build_gameprep(
 def main() -> int:
     import argparse
 
-    parser = argparse.ArgumentParser(description="HAYUYA GamePrep v1.")
+    parser = argparse.ArgumentParser(description="HAYUYA GamePrep v2 with PBR-aware LOD transfer.")
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--target-faces", type=int, required=True)
