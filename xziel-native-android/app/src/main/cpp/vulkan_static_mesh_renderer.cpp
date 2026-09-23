@@ -2088,6 +2088,47 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureResidency(
                     descriptorResidentMask));
 
         if (streamResidencyProbeEnabled_ &&
+            !streamLiveMipProbeComplete_) {
+            if (streamLiveMipProbeTextureIndex_ ==
+                    UINT32_MAX &&
+                oldBaseMip == 0U &&
+                textures_[textureIndex].
+                    residentBaseMip == 1U) {
+                streamLiveMipProbeTextureIndex_ =
+                    textureIndex;
+                streamLiveMipProbePromoteFrame_ =
+                    runtimeTextureTransitionFrame_ +
+                    12U;
+
+                __android_log_print(
+                    ANDROID_LOG_INFO,
+                    kTag,
+                    "XZIEL_RUNTIME_TEXTURE_MIP_PROMOTION_PROBE_ARMED texture=%u promote_frame=%llu",
+                    static_cast<unsigned int>(
+                        textureIndex),
+                    static_cast<unsigned long long>(
+                        streamLiveMipProbePromoteFrame_));
+            } else if (
+                streamLiveMipProbeTextureIndex_ ==
+                    textureIndex &&
+                oldBaseMip == 1U &&
+                textures_[textureIndex].
+                    residentBaseMip == 0U) {
+                streamLiveMipProbeComplete_ = true;
+
+                __android_log_print(
+                    ANDROID_LOG_INFO,
+                    kTag,
+                    "XZIEL_RUNTIME_TEXTURE_MIP_PROMOTION_PROBE_COMPLETE texture=%u mask=%u",
+                    static_cast<unsigned int>(
+                        textureIndex),
+                    static_cast<unsigned int>(
+                        textures_[textureIndex].
+                            descriptorResidentMask));
+            }
+        }
+
+        if (streamResidencyProbeEnabled_ &&
             !streamResidencyProbeComplete_ &&
             streamResidencyProbeTextureIndex_ ==
                 textureIndex) {
@@ -2215,12 +2256,22 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureResidency(
                 return;
             }
 
+            const bool probePromotesMip =
+                streamResidencyProbeEnabled_ &&
+                !streamLiveMipProbeComplete_ &&
+                streamLiveMipProbeTextureIndex_ ==
+                    textureIndex &&
+                runtimeTextureTransitionFrame_ >=
+                    streamLiveMipProbePromoteFrame_;
+
             const std::uint32_t desiredBaseMip =
-                texture.sourceMipLevels > 0U
-                ? std::min<std::uint32_t>(
-                      decision->desiredMipBias,
-                      texture.sourceMipLevels - 1U)
-                : texture.residentBaseMip;
+                probePromotesMip
+                ? 0U
+                : texture.sourceMipLevels > 0U
+                  ? std::min<std::uint32_t>(
+                        decision->desiredMipBias,
+                        texture.sourceMipLevels - 1U)
+                  : texture.residentBaseMip;
 
             const bool wantsMipTransition =
                 texture.sourceMipLevels > 0U &&
