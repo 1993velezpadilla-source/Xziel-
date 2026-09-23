@@ -52,5 +52,51 @@ int main() {
     assert(workload.ssrEnabled);
     assert(workload.ssrMaxSteps == 40);
 
+    governor.reset();
+
+    // GPU-bound classification is stable only after a short hold window.
+    for (int i = 0; i < 20; ++i) {
+        (void) governor.advance(
+            {
+                .cpuFrameMs = 5.0f,
+                .gpuFrameMs = 17.0f,
+                .frameIntervalMs = 17.0f,
+            },
+            1.0f / 60.0f);
+    }
+    assert(
+        governor.bottleneck() ==
+        xziel::PerformanceBottleneck::Gpu);
+
+    governor.reset();
+
+    for (int i = 0; i < 20; ++i) {
+        (void) governor.advance(
+            {
+                .cpuFrameMs = 17.0f,
+                .gpuFrameMs = 5.0f,
+                .frameIntervalMs = 17.0f,
+            },
+            1.0f / 60.0f);
+    }
+    assert(
+        governor.bottleneck() ==
+        xziel::PerformanceBottleneck::Cpu);
+
+    governor.reset();
+
+    for (int i = 0; i < 20; ++i) {
+        (void) governor.advance(
+            {
+                .cpuFrameMs = 4.0f,
+                .gpuFrameMs = 4.0f,
+                .frameIntervalMs = 22.0f,
+            },
+            1.0f / 60.0f);
+    }
+    assert(
+        governor.bottleneck() ==
+        xziel::PerformanceBottleneck::FramePaced);
+
     return 0;
 }
