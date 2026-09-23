@@ -448,6 +448,154 @@ StreamCellPlanStats StreamCellGraph::plan(
     return stats;
 }
 
+StreamCellHeat StreamCellGraph::cellHeat(
+    const StreamCellPlanInput& input,
+    std::uint32_t cellId) const noexcept {
+    const int start =
+        cellIndex(input.currentCell);
+    const int target =
+        cellIndex(cellId);
+
+    if (start < 0 || target < 0) {
+        return StreamCellHeat::Cold;
+    }
+
+    constexpr std::uint8_t kUnreached =
+        std::numeric_limits<std::uint8_t>::max();
+
+    std::array<std::uint8_t, kMaxStreamCells>
+        distance{};
+    distance.fill(kUnreached);
+
+    std::array<std::size_t, kMaxStreamCells>
+        queue{};
+
+    std::size_t queueRead = 0U;
+    std::size_t queueWrite = 0U;
+
+    distance[static_cast<std::size_t>(start)] = 0U;
+    queue[queueWrite++] =
+        static_cast<std::size_t>(start);
+
+    const std::uint8_t maxHops =
+        input.memoryPressure ==
+            MemoryPressure::Critical
+        ? 0U
+        : input.preloadPortalHops;
+
+    while (queueRead < queueWrite) {
+        const std::size_t currentIndex =
+            queue[queueRead++];
+        const std::uint8_t currentDistance =
+            distance[currentIndex];
+
+        if (currentDistance >= maxHops) {
+            continue;
+        }
+
+        const std::uint32_t currentId =
+            cells_[currentIndex].id;
+
+        for (std::size_t p = 0U;
+             p < portalCount_;
+             ++p) {
+            const auto& portal =
+                portals_[p];
+
+            if (!portal.open) {
+                continue;
+            }
+
+            std::uint32_t nextId = 0U;
+
+            if (portal.cellA == currentId) {
+                nextId = portal.cellB;
+            } else if (
+                portal.cellB == currentId) {
+                nextId = portal.cellA;
+            } else {
+                continue;
+            }
+
+            const int nextIndex =
+                cellIndex(nextId);
+
+            if (nextIndex < 0) {
+                continue;
+            }
+
+            const auto next =
+                static_cast<std::size_t>(
+                    nextIndex);
+
+            if (distance[next] !=
+                kUnreached) {
+                continue;
+            }
+
+            distance[next] =
+                static_cast<std::uint8_t>(
+                    currentDistance + 1U);
+
+            if (queueWrite < queue.size()) {
+                queue[queueWrite++] = next;
+            }
+        }
+    }
+
+    const auto targetIndex =
+        static_cast<std::size_t>(target);
+
+    if (distance[targetIndex] == 0U) {
+        return StreamCellHeat::Hot;
+    }
+
+    if (distance[targetIndex] != kUnreached) {
+        return StreamCellHeat::Preload;
+    }
+
+    if (input.memoryPressure ==
+        MemoryPressure::Critical) {
+        return StreamCellHeat::Cold;
+    }
+
+    for (std::size_t p = 0U;
+         p < portalCount_;
+         ++p) {
+        const auto& portal =
+            portals_[p];
+
+        if (portal.open ||
+            !portal.preloadAcrossClosed) {
+            continue;
+        }
+
+        std::uint32_t otherId = 0U;
+
+        if (portal.cellA == cellId) {
+            otherId = portal.cellB;
+        } else if (
+            portal.cellB == cellId) {
+            otherId = portal.cellA;
+        } else {
+            continue;
+        }
+
+        const int otherIndex =
+            cellIndex(otherId);
+
+        if (otherIndex >= 0 &&
+            distance[
+                static_cast<std::size_t>(
+                    otherIndex)] !=
+                kUnreached) {
+            return StreamCellHeat::Preload;
+        }
+    }
+
+    return StreamCellHeat::Cold;
+}
+
 std::size_t StreamCellGraph::cellCount() const noexcept {
     return cellCount_;
 }
