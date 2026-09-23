@@ -2133,6 +2133,9 @@ xziel::android::VulkanEnvironmentState makeEnvironmentState(
         state.renderWorkload.
             postProcessScale;
 
+    environment.memoryPressure =
+        state.memoryPressure;
+
     environment.maxPlanarReflectionPasses =
         state.renderWorkload.
             maxPlanarReflectionPasses;
