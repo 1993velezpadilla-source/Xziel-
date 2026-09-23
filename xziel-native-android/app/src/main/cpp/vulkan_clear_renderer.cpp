@@ -221,6 +221,11 @@ void VulkanClearRenderer::shutdown() noexcept {
     frameIndex_ = 0;
     timestampValidBits_ = 0;
     timestampPeriodNs_ = 0.0f;
+    astcLdrSupported_ = false;
+    preferredSceneMsaa_ = VK_SAMPLE_COUNT_1_BIT;
+    maxImageDimension2D_ = 0U;
+    deviceMaxSamplerAnisotropy_ = 1.0f;
+    deviceLocalMemoryBytes_ = 0U;
     lastCpuRenderMs_ = 0.0f;
     lastGpuFrameMs_ = 0.0f;
     performanceTelemetryFrame_ = 0;
@@ -843,6 +848,71 @@ bool VulkanClearRenderer::selectPhysicalDevice() noexcept {
                     queues[i].timestampValidBits;
                 timestampPeriodNs_ =
                     properties.limits.timestampPeriod;
+
+                VkPhysicalDeviceFeatures features{};
+                vkGetPhysicalDeviceFeatures(
+                    candidate,
+                    &features);
+
+                astcLdrSupported_ =
+                    features.textureCompressionASTC_LDR ==
+                    VK_TRUE;
+
+                maxImageDimension2D_ =
+                    properties.limits.maxImageDimension2D;
+
+                deviceMaxSamplerAnisotropy_ =
+                    features.samplerAnisotropy == VK_TRUE
+                    ? properties.limits.maxSamplerAnisotropy
+                    : 1.0f;
+
+                const VkSampleCountFlags commonSamples =
+                    properties.limits.framebufferColorSampleCounts &
+                    properties.limits.framebufferDepthSampleCounts;
+
+                preferredSceneMsaa_ =
+                    (commonSamples & VK_SAMPLE_COUNT_4_BIT) != 0U
+                    ? VK_SAMPLE_COUNT_4_BIT
+                    : ((commonSamples & VK_SAMPLE_COUNT_2_BIT) != 0U
+                        ? VK_SAMPLE_COUNT_2_BIT
+                        : VK_SAMPLE_COUNT_1_BIT);
+
+                VkPhysicalDeviceMemoryProperties memory{};
+                vkGetPhysicalDeviceMemoryProperties(
+                    candidate,
+                    &memory);
+
+                deviceLocalMemoryBytes_ = 0U;
+                for (std::uint32_t heapIndex = 0U;
+                     heapIndex < memory.memoryHeapCount;
+                     ++heapIndex) {
+                    if ((memory.memoryHeaps[heapIndex].flags &
+                         VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) != 0U) {
+                        deviceLocalMemoryBytes_ +=
+                            memory.memoryHeaps[heapIndex].size;
+                    }
+                }
+
+                __android_log_print(
+                    ANDROID_LOG_INFO,
+                    kTag,
+                    "XZIEL_GPU_CAPS name=%s vendor=0x%x device=0x%x api=%u.%u.%u astc=%d msaa=%u max_tex=%u aniso=%.1f local_mb=%llu timestamp_bits=%u timestamp_ns=%.3f",
+                    properties.deviceName,
+                    properties.vendorID,
+                    properties.deviceID,
+                    VK_API_VERSION_MAJOR(properties.apiVersion),
+                    VK_API_VERSION_MINOR(properties.apiVersion),
+                    VK_API_VERSION_PATCH(properties.apiVersion),
+                    astcLdrSupported_ ? 1 : 0,
+                    static_cast<unsigned int>(preferredSceneMsaa_),
+                    maxImageDimension2D_,
+                    static_cast<double>(deviceMaxSamplerAnisotropy_),
+                    static_cast<unsigned long long>(
+                        deviceLocalMemoryBytes_ /
+                        (1024ULL * 1024ULL)),
+                    timestampValidBits_,
+                    static_cast<double>(timestampPeriodNs_));
+
                 return true;
             }
         }
