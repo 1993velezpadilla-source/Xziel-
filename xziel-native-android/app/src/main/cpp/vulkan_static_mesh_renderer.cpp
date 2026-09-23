@@ -2762,9 +2762,12 @@ bool VulkanStaticMeshRenderer::restoreGeometryCellGpuResidency(
     cell.physicallyResident = true;
     cell.retireMask = 0U;
     cell.reloadActive = false;
+    cell.reloadFailed = false;
     cell.reloadScanCursor = 0U;
-    cell.reloadPendingBatch = UINT32_MAX;
-    cell.reloadPendingKey.clear();
+    cell.reloadRanges = {};
+    cell.reloadPendingCount = 0U;
+    cell.reloadPeakPendingCount = 0U;
+    cell.reloadStartFrame = 0U;
     cell.reloadVertexBytes.clear();
     cell.reloadIndexBytes.clear();
 
@@ -2861,149 +2864,211 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
             return;
         }
 
-        if (cell.reloadPendingBatch !=
-            UINT32_MAX) {
-            const std::uint32_t batchIndex =
-                cell.reloadPendingBatch;
+        const auto abortReload =
+            [&]() noexcept {
+                cell.reloadActive = false;
+                cell.reloadFailed = false;
+                cell.reloadScanCursor = 0U;
+                cell.reloadRanges = {};
+                cell.reloadPendingCount = 0U;
+                cell.reloadPeakPendingCount = 0U;
+                cell.reloadStartFrame = 0U;
+                cell.reloadVertexBytes.clear();
+                cell.reloadIndexBytes.clear();
+                geometryReloadCellSlot_ =
+                    UINT32_MAX;
+            };
+
+        const auto copyCompletedRange =
+            [&](std::uint32_t batchIndex,
+                const std::vector<std::byte>& bytes)
+                noexcept -> bool {
+                if (batchIndex >= batches_.size()) {
+                    return false;
+                }
+
+                const auto& batch =
+                    batches_[batchIndex];
+
+                if (batch.sourceBatchIndex >=
+                        geometryDirectory_.
+                            batches.size() ||
+                    batch.geometryCellSlot !=
+                        geometryReloadCellSlot_) {
+                    return false;
+                }
+
+                const auto& entry =
+                    geometryDirectory_.batches[
+                        batch.sourceBatchIndex];
+
+                if (entry.indexDataOffset <
+                        entry.vertexDataOffset ||
+                    entry.payloadBytes <
+                        entry.indexDataOffset -
+                            entry.vertexDataOffset ||
+                    entry.payloadBytes >
+                        std::numeric_limits<
+                            std::size_t>::max() ||
+                    bytes.size() !=
+                        static_cast<std::size_t>(
+                            entry.payloadBytes)) {
+                    return false;
+                }
+
+                const std::uint64_t vertexBytes =
+                    entry.indexDataOffset -
+                    entry.vertexDataOffset;
+                const std::uint64_t indexBytes =
+                    entry.payloadBytes -
+                    vertexBytes;
+
+                const std::uint64_t vertexDst =
+                    static_cast<std::uint64_t>(
+                        batch.vertexOffset) *
+                    sizeof(StaticMeshVertex);
+                const std::uint64_t indexDst =
+                    static_cast<std::uint64_t>(
+                        batch.firstIndex) *
+                    sizeof(std::uint16_t);
+
+                if (vertexDst >
+                        cell.reloadVertexBytes.size() ||
+                    vertexBytes >
+                        cell.reloadVertexBytes.size() -
+                            vertexDst ||
+                    indexDst >
+                        cell.reloadIndexBytes.size() ||
+                    indexBytes >
+                        cell.reloadIndexBytes.size() -
+                            indexDst) {
+                    return false;
+                }
+
+                std::memcpy(
+                    cell.reloadVertexBytes.data() +
+                        static_cast<std::size_t>(
+                            vertexDst),
+                    bytes.data(),
+                    static_cast<std::size_t>(
+                        vertexBytes));
+
+                std::memcpy(
+                    cell.reloadIndexBytes.data() +
+                        static_cast<std::size_t>(
+                            indexDst),
+                    bytes.data() +
+                        static_cast<std::size_t>(
+                            vertexBytes),
+                    static_cast<std::size_t>(
+                        indexBytes));
+
+                return true;
+            };
+
+        // Drain every range that completed this frame. A failed range marks
+        // the reload failed, but we keep draining already-scheduled requests
+        // so their buffered results cannot leak inside the persistent
+        // AndroidAssetStreamer.
+        for (auto& range :
+             cell.reloadRanges) {
+            if (!range.active) {
+                continue;
+            }
+
             bool finished = false;
             std::vector<std::byte> bytes;
 
             const bool success =
                 assetStreamer_.tryTake(
-                    cell.reloadPendingKey,
+                    range.key,
                     bytes,
                     finished);
 
             if (!finished) {
-                return;
+                continue;
             }
 
-            cell.reloadPendingBatch =
-                UINT32_MAX;
-            cell.reloadPendingKey.clear();
+            const std::uint32_t batchIndex =
+                range.batchIndex;
+
+            range = {};
+
+            if (cell.reloadPendingCount > 0U) {
+                --cell.reloadPendingCount;
+            }
 
             if (!success ||
-                batchIndex >= batches_.size()) {
-                cell.reloadActive = false;
-                cell.reloadVertexBytes.clear();
-                cell.reloadIndexBytes.clear();
-                geometryReloadCellSlot_ =
-                    UINT32_MAX;
-                return;
+                !copyCompletedRange(
+                    batchIndex,
+                    bytes)) {
+                cell.reloadFailed = true;
+            }
+        }
+
+        if (cell.reloadFailed) {
+            if (cell.reloadPendingCount == 0U) {
+                __android_log_print(
+                    ANDROID_LOG_WARN,
+                    kTag,
+                    "XZIEL_RUNTIME_GEOMETRY_RELOAD_FAILED cell=%u slot=%u",
+                    static_cast<unsigned int>(
+                        cell.cellId),
+                    static_cast<unsigned int>(
+                        geometryReloadCellSlot_));
+
+                abortReload();
+            }
+
+            return;
+        }
+
+        // Keep a small bounded window full. Four independent range requests
+        // allow two worker threads to overlap APK reads without allowing one
+        // cell to monopolize the shared streaming budget.
+        while (cell.reloadPendingCount <
+                   kGeometryReloadWindow &&
+               cell.reloadScanCursor <
+                   batches_.size()) {
+            std::size_t batchIndex =
+                cell.reloadScanCursor;
+
+            while (batchIndex <
+                       batches_.size() &&
+                   batches_[batchIndex].
+                           geometryCellSlot !=
+                       geometryReloadCellSlot_) {
+                ++batchIndex;
+            }
+
+            if (batchIndex >= batches_.size()) {
+                cell.reloadScanCursor =
+                    batches_.size();
+                break;
             }
 
             const auto& batch =
                 batches_[batchIndex];
 
             if (batch.sourceBatchIndex >=
-                    geometryDirectory_.
-                        batches.size() ||
-                batch.geometryCellSlot !=
-                    geometryReloadCellSlot_) {
-                cell.reloadActive = false;
-                cell.reloadVertexBytes.clear();
-                cell.reloadIndexBytes.clear();
-                geometryReloadCellSlot_ =
-                    UINT32_MAX;
-                return;
-            }
-
-            const auto& entry =
-                geometryDirectory_.batches[
-                    batch.sourceBatchIndex];
-
-            if (entry.indexDataOffset <
-                    entry.vertexDataOffset ||
-                entry.payloadBytes <
-                    entry.indexDataOffset -
-                        entry.vertexDataOffset ||
-                entry.payloadBytes >
-                    std::numeric_limits<
-                        std::size_t>::max() ||
-                bytes.size() !=
-                    static_cast<std::size_t>(
-                        entry.payloadBytes)) {
-                cell.reloadActive = false;
-                cell.reloadVertexBytes.clear();
-                cell.reloadIndexBytes.clear();
-                geometryReloadCellSlot_ =
-                    UINT32_MAX;
-                return;
-            }
-
-            const std::uint64_t vertexBytes =
-                entry.indexDataOffset -
-                entry.vertexDataOffset;
-            const std::uint64_t indexBytes =
-                entry.payloadBytes -
-                vertexBytes;
-
-            const std::uint64_t vertexDst =
-                static_cast<std::uint64_t>(
-                    batch.vertexOffset) *
-                sizeof(StaticMeshVertex);
-            const std::uint64_t indexDst =
-                static_cast<std::uint64_t>(
-                    batch.firstIndex) *
-                sizeof(std::uint16_t);
-
-            if (vertexDst >
-                    cell.reloadVertexBytes.size() ||
-                vertexBytes >
-                    cell.reloadVertexBytes.size() -
-                        vertexDst ||
-                indexDst >
-                    cell.reloadIndexBytes.size() ||
-                indexBytes >
-                    cell.reloadIndexBytes.size() -
-                        indexDst) {
-                cell.reloadActive = false;
-                cell.reloadVertexBytes.clear();
-                cell.reloadIndexBytes.clear();
-                geometryReloadCellSlot_ =
-                    UINT32_MAX;
-                return;
-            }
-
-            std::memcpy(
-                cell.reloadVertexBytes.data() +
-                    static_cast<std::size_t>(
-                        vertexDst),
-                bytes.data(),
-                static_cast<std::size_t>(
-                    vertexBytes));
-
-            std::memcpy(
-                cell.reloadIndexBytes.data() +
-                    static_cast<std::size_t>(
-                        indexDst),
-                bytes.data() +
-                    static_cast<std::size_t>(
-                        vertexBytes),
-                static_cast<std::size_t>(
-                    indexBytes));
-        }
-
-        for (std::size_t i =
-                 cell.reloadScanCursor;
-             i < batches_.size();
-             ++i) {
-            const auto& batch =
-                batches_[i];
-
-            if (batch.geometryCellSlot !=
-                geometryReloadCellSlot_) {
-                continue;
-            }
-
-            if (batch.sourceBatchIndex >=
                 geometryDirectory_.batches.size()) {
-                cell.reloadActive = false;
-                cell.reloadVertexBytes.clear();
-                cell.reloadIndexBytes.clear();
-                geometryReloadCellSlot_ =
-                    UINT32_MAX;
-                return;
+                cell.reloadFailed = true;
+                break;
+            }
+
+            GeometryRangeInFlight* freeRange =
+                nullptr;
+
+            for (auto& range :
+                 cell.reloadRanges) {
+                if (!range.active) {
+                    freeRange = &range;
+                    break;
+                }
+            }
+
+            if (freeRange == nullptr) {
+                break;
             }
 
             const auto& entry =
@@ -3014,28 +3079,44 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
                 geometryRangeRequestKey(
                     geometryReloadCellSlot_,
                     static_cast<std::uint32_t>(
-                        i));
+                        batchIndex));
 
             if (!assetStreamer_.enqueueRange(
                     geometryAssetPath_,
                     entry.vertexDataOffset,
                     entry.payloadBytes,
                     key)) {
-                cell.reloadActive = false;
-                cell.reloadVertexBytes.clear();
-                cell.reloadIndexBytes.clear();
-                geometryReloadCellSlot_ =
-                    UINT32_MAX;
-                return;
+                cell.reloadFailed = true;
+                break;
             }
 
-            cell.reloadPendingBatch =
-                static_cast<std::uint32_t>(i);
-            cell.reloadPendingKey =
-                key;
-            cell.reloadScanCursor =
-                i + 1U;
+            freeRange->batchIndex =
+                static_cast<std::uint32_t>(
+                    batchIndex);
+            freeRange->key = key;
+            freeRange->active = true;
 
+            ++cell.reloadPendingCount;
+
+            cell.reloadPeakPendingCount =
+                std::max(
+                    cell.reloadPeakPendingCount,
+                    cell.reloadPendingCount);
+
+            cell.reloadScanCursor =
+                batchIndex + 1U;
+        }
+
+        if (cell.reloadFailed) {
+            if (cell.reloadPendingCount == 0U) {
+                abortReload();
+            }
+            return;
+        }
+
+        if (cell.reloadScanCursor <
+                batches_.size() ||
+            cell.reloadPendingCount != 0U) {
             return;
         }
 
@@ -3047,14 +3128,18 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
             static_cast<std::uint64_t>(
                 cell.vertexBytes +
                 cell.indexBytes);
+        const std::uint64_t elapsedFrames =
+            runtimeTextureTransitionFrame_ >=
+                    cell.reloadStartFrame
+            ? runtimeTextureTransitionFrame_ -
+                  cell.reloadStartFrame
+            : 0U;
+        const std::uint32_t peakPending =
+            cell.reloadPeakPendingCount;
 
         if (!restoreGeometryCellGpuResidency(
                 cell)) {
-            cell.reloadActive = false;
-            cell.reloadVertexBytes.clear();
-            cell.reloadIndexBytes.clear();
-            geometryReloadCellSlot_ =
-                UINT32_MAX;
+            abortReload();
             return;
         }
 
@@ -3064,7 +3149,7 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_RUNTIME_GEOMETRY_RELOAD_COMPLETE cell=%u slot=%u resident_mb=%.2f total_resident_mb=%.2f",
+            "XZIEL_RUNTIME_GEOMETRY_RELOAD_COMPLETE cell=%u slot=%u resident_mb=%.2f total_resident_mb=%.2f peak_pending=%u elapsed_frames=%llu",
             static_cast<unsigned int>(
                 completedCell),
             static_cast<unsigned int>(
@@ -3074,7 +3159,11 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
                 (1024.0 * 1024.0),
             static_cast<double>(
                 geometryResidentBytes_) /
-                (1024.0 * 1024.0));
+                (1024.0 * 1024.0),
+            static_cast<unsigned int>(
+                peakPending),
+            static_cast<unsigned long long>(
+                elapsedFrames));
 
         if (geometryResidencyProbeEnabled_ &&
             geometryResidencyProbeCellSlot_ ==
@@ -3129,10 +3218,13 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
             }
 
             cell.reloadActive = true;
+            cell.reloadFailed = false;
             cell.reloadScanCursor = 0U;
-            cell.reloadPendingBatch =
-                UINT32_MAX;
-            cell.reloadPendingKey.clear();
+            cell.reloadRanges = {};
+            cell.reloadPendingCount = 0U;
+            cell.reloadPeakPendingCount = 0U;
+            cell.reloadStartFrame =
+                runtimeTextureTransitionFrame_;
             geometryReloadCellSlot_ =
                 static_cast<std::uint32_t>(
                     i);
