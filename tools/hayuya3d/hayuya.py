@@ -967,67 +967,83 @@ def main() -> int:
                 mesh_doctor_failure = "provisional champion failed Mesh Doctor audit"
                 if args.mesh_doctor == "required":
                     raise RuntimeError(mesh_doctor_failure)
-            elif not mesh_doctor_audit.repair_recommended:
-                mesh_doctor_status = "clean"
-                print(
-                    "HAYUYA_MESH_DOCTOR_CLEAN "
-                    f"defect_score={mesh_doctor_audit.defect_score:.3f}"
-                )
             else:
-                rigged = False
-                if provisional_path.suffix.lower() == ".glb":
-                    try:
-                        from gltf_audit import audit_glb
-                        provisional_rig = audit_glb(provisional_path)
-                        rigged = provisional_rig.skin_count > 0
-                    except Exception:
-                        rigged = False
+                boundary_repair_needed = bool(
+                    mode in {"prop", "architecture"}
+                    and mesh_doctor_audit.boundary_edges > 0
+                    and not mesh_doctor_audit.watertight
+                )
+                repair_needed = bool(
+                    mesh_doctor_audit.repair_recommended
+                    or boundary_repair_needed
+                )
 
-                if rigged:
-                    mesh_doctor_status = "skipped_rigged"
-                    mesh_doctor_failure = (
-                        "structural repair needed but provisional champion is skinned; "
-                        "topology-changing repair would invalidate JOINTS/WEIGHTS"
-                    )
+                if not repair_needed:
+                    mesh_doctor_status = "clean"
                     print(
-                        f"HAYUYA_MESH_DOCTOR_SKIPPED {mesh_doctor_failure}",
-                        file=sys.stderr,
+                        "HAYUYA_MESH_DOCTOR_CLEAN "
+                        f"defect_score={mesh_doctor_audit.defect_score:.3f}"
                     )
-                    if args.mesh_doctor == "required":
-                        raise RuntimeError(mesh_doctor_failure)
+                    rigged = None
                 else:
-                    mesh_doctor_result = repair_candidate(
-                        provisional_path,
-                        job_dir / "mesh_doctor",
-                        mode=mode,
-                        texture_size=profile.texture_size,
-                    )
-                    if mesh_doctor_result.safe_for_arena:
-                        candidates.append(
-                            ("mesh_doctor_repair", Path(mesh_doctor_result.bridged_glb))
+                    rigged = False
+
+                if rigged is None:
+                    pass
+                else:
+                    if provisional_path.suffix.lower() == ".glb":
+                        try:
+                            from gltf_audit import audit_glb
+                            provisional_rig = audit_glb(provisional_path)
+                            rigged = provisional_rig.skin_count > 0
+                        except Exception:
+                            rigged = False
+
+                    if rigged:
+                        mesh_doctor_status = "skipped_rigged"
+                        mesh_doctor_failure = (
+                            "structural repair needed but provisional champion is skinned; "
+                            "topology-changing repair would invalidate JOINTS/WEIGHTS"
                         )
-                        mesh_doctor_status = "candidate_ready"
                         print(
-                            "HAYUYA_MESH_DOCTOR_READY "
-                            f"defects={mesh_doctor_result.before.defect_score:.3f}->"
-                            f"{mesh_doctor_result.after.defect_score:.3f} "
-                            f"drift={mesh_doctor_result.vertex_surface_drift_normalized:.6f}"
-                        )
-                        ranked = run_full_ranking()
-                        valid = [x for x in ranked if x.valid]
-                        if not valid:
-                            raise RuntimeError(
-                                "Mesh Doctor re-ranking produced no valid candidates"
-                            )
-                    else:
-                        mesh_doctor_status = "rejected_unsafe"
-                        mesh_doctor_failure = "; ".join(mesh_doctor_result.reasons)
-                        print(
-                            f"HAYUYA_MESH_DOCTOR_REJECTED {mesh_doctor_failure}",
+                            f"HAYUYA_MESH_DOCTOR_SKIPPED {mesh_doctor_failure}",
                             file=sys.stderr,
                         )
                         if args.mesh_doctor == "required":
                             raise RuntimeError(mesh_doctor_failure)
+                    else:
+                        mesh_doctor_result = repair_candidate(
+                            provisional_path,
+                            job_dir / "mesh_doctor",
+                            mode=mode,
+                            texture_size=profile.texture_size,
+                        )
+                        if mesh_doctor_result.safe_for_arena:
+                            candidates.append(
+                                ("mesh_doctor_repair", Path(mesh_doctor_result.bridged_glb))
+                            )
+                            mesh_doctor_status = "candidate_ready"
+                            print(
+                                "HAYUYA_MESH_DOCTOR_READY "
+                                f"defects={mesh_doctor_result.before.defect_score:.3f}->"
+                                f"{mesh_doctor_result.after.defect_score:.3f} "
+                                f"drift={mesh_doctor_result.vertex_surface_drift_normalized:.6f}"
+                            )
+                            ranked = run_full_ranking()
+                            valid = [x for x in ranked if x.valid]
+                            if not valid:
+                                raise RuntimeError(
+                                    "Mesh Doctor re-ranking produced no valid candidates"
+                                )
+                        else:
+                            mesh_doctor_status = "rejected_unsafe"
+                            mesh_doctor_failure = "; ".join(mesh_doctor_result.reasons)
+                            print(
+                                f"HAYUYA_MESH_DOCTOR_REJECTED {mesh_doctor_failure}",
+                                file=sys.stderr,
+                            )
+                            if args.mesh_doctor == "required":
+                                raise RuntimeError(mesh_doctor_failure)
         except Exception as exc:
             if mesh_doctor_status not in {"skipped_rigged", "rejected_unsafe", "audit_invalid"}:
                 mesh_doctor_status = "failed"
