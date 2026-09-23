@@ -110,6 +110,7 @@ private:
 
     struct GpuTexture {
         std::string assetPath{};
+        std::uint64_t streamResourceId = 0U;
         VkImage image = VK_NULL_HANDLE;
         VkDeviceMemory memory = VK_NULL_HANDLE;
         VkImageView view = VK_NULL_HANDLE;
@@ -120,6 +121,9 @@ private:
         std::uint32_t residentHeight = 0U;
         std::uint32_t mipLevels = 0U;
         std::uint32_t residentBaseMip = 0U;
+        std::uint32_t sourceMipLevels = 0U;
+        std::array<std::uint64_t, kMaxStreamedTextureMips>
+            sourceMipBytes{};
         std::uint64_t residentPayloadBytes = 0U;
         std::uint64_t allocationBytes = 0U;
     };
@@ -319,6 +323,8 @@ private:
     std::uint32_t asyncPrefetchQueued_ = 0U;
 
     StreamCellGraph streamGraph_{};
+    TextureMipResidencyManager textureMipResidency_{
+        1024U};
     bool streamGraphReady_ = false;
     std::array<StreamCellBounds, kMaxStreamCells>
         streamCellBounds_{};
