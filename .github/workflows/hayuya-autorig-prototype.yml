@@ -12,7 +12,7 @@ on:
       - .github/workflows/hayuya-autorig-prototype.yml
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   candy-autorig:
@@ -46,6 +46,45 @@ jobs:
           assert data["animation_clips"], data
           print("HAYUYA_AUTORIG_RIG_GATE_PASS", data["joints"], data["animation_clips"])
           PY
+
+      - name: Persist animated Candyland preview model
+        shell: bash
+        run: |
+          set -euo pipefail
+          dst="hayuya/models/candy-zombie-001"
+          mkdir -p "$dst"
+          cp out/autorig/candy-zombie-001-rigged.glb "$dst/animated.glb"
+          cp out/autorig/rig-gate.json "$dst/rig_gate.json"
+          cp out/autorig/autorig-report.json "$dst/autorig-report.json"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path("hayuya/models/candy-zombie-001")
+          manifest=json.loads((root/"manifest.json").read_text())
+          rig=json.loads((root/"rig_gate.json").read_text())
+          manifest["schema"]=2
+          manifest["preview_model"]="animated.glb"
+          manifest["character"]={
+              "skeleton_type":rig.get("skeleton_type","hayuya_humanoid_v1"),
+              "preview_pack":"hayuya_preview_pack_v1",
+              "rig_ready":bool(rig.get("rig_ready")),
+              "animation_ready":bool(rig.get("animation_ready")),
+              "preview_animation_ready":bool(rig.get("preview_animation_ready")),
+              "animation_clips":rig.get("animation_clips",[]),
+              "facial":rig.get("facial",{}),
+              "secondary_motion":rig.get("secondary_motion",{}),
+              "warnings":rig.get("warnings",[])
+          }
+          (root/"manifest.json").write_text(json.dumps(manifest,indent=2)+"\n")
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$dst/animated.glb" "$dst/rig_gate.json" "$dst/autorig-report.json" "$dst/manifest.json"
+          if ! git diff --cached --quiet; then
+            git commit -m "hayuya: persist animated Candyland character preview"
+            git pull --rebase origin art/hayuya-monster-v1
+            git push origin HEAD:art/hayuya-monster-v1
+          fi
 
       - name: Upload AutoRig prototype
         uses: actions/upload-artifact@v4
