@@ -7,6 +7,8 @@
 
 #include "vulkan_static_mesh_renderer.hpp"
 
+#include "xziel/runtime_policy.hpp"
+
 #include <array>
 #include <cstdint>
 #include <vector>
@@ -228,6 +230,10 @@ public:
     void setPreferredFrameRate(
         float framesPerSecond) noexcept;
 
+    void setTextureResidencyPolicy(
+        float budgetScale,
+        xziel::MemoryPressure pressure) noexcept;
+
     [[nodiscard]] bool drawFrame(
         float timeSeconds,
         const VulkanCamera& camera,
@@ -370,6 +376,8 @@ private:
     void resolvePerformanceQueries(
         std::uint32_t frameSlot) noexcept;
 
+    [[nodiscard]] bool allFrameFencesSignaled() const noexcept;
+
     void destroySwapchainResources() noexcept;
 
     [[nodiscard]] bool recreateSwapchain() noexcept;
@@ -508,6 +516,9 @@ private:
     std::uint64_t requestedSwapIntervalNs_ = 0;
 
     float preferredFrameRate_ = 0.0f;
+    float textureResidencyBudgetScale_ = 1.0f;
+    xziel::MemoryPressure textureMemoryPressure_ =
+        xziel::MemoryPressure::Normal;
 
     bool framePacingAttempted_ = false;
     bool swappyInitialized_ = false;

@@ -242,6 +242,9 @@ void VulkanClearRenderer::shutdown() noexcept {
     performanceTimingReadyLogged_ = false;
     suboptimalFrameCount_ = 0;
     framePacingAttempted_ = false;
+    textureResidencyBudgetScale_ = 1.0f;
+    textureMemoryPressure_ =
+        xziel::MemoryPressure::Normal;
 }
 
 void VulkanClearRenderer::setPreferredFrameRate(
@@ -292,6 +295,21 @@ void VulkanClearRenderer::setPreferredFrameRate(
 
     requestedSwapIntervalNs_ =
         intervalNs;
+}
+
+void VulkanClearRenderer::setTextureResidencyPolicy(
+    float budgetScale,
+    xziel::MemoryPressure pressure) noexcept {
+    textureResidencyBudgetScale_ =
+        std::isfinite(budgetScale)
+        ? std::clamp(
+              budgetScale,
+              0.20f,
+              1.0f)
+        : 1.0f;
+
+    textureMemoryPressure_ =
+        pressure;
 }
 
 bool VulkanClearRenderer::drawFrame(
@@ -490,6 +508,34 @@ bool VulkanClearRenderer::drawFrame(
         logError("vkWaitForFences failed");
         return false;
     }
+
+    // Runtime texture residency never updates ordinary descriptor sets while
+    // a command buffer that may reference them is in flight. We only swap a
+    // completed replacement when both frame fences are naturally signaled;
+    // otherwise this frame simply keeps using the old texture.
+    StaticMeshTexturePressure texturePressure =
+        StaticMeshTexturePressure::Normal;
+
+    if (textureMemoryPressure_ ==
+        xziel::MemoryPressure::Critical) {
+        texturePressure =
+            StaticMeshTexturePressure::Critical;
+    } else if (
+        textureMemoryPressure_ ==
+        xziel::MemoryPressure::Elevated) {
+        texturePressure =
+            StaticMeshTexturePressure::Elevated;
+    }
+
+    sanctumMesh_.
+        setRuntimeTextureResidencyPolicy(
+            textureResidencyBudgetScale_,
+            texturePressure);
+
+    sanctumMesh_.
+        serviceRuntimeTextureResidency(
+            allFrameFencesSignaled(),
+            frameIndex_);
 
     // The fence guarantees this frame slot's previous timestamp pair is
     // complete. Reading here avoids VK_QUERY_RESULT_WAIT_BIT and therefore
@@ -735,6 +781,34 @@ bool VulkanClearRenderer::gpuTimingAuthoritative() const noexcept {
         gpuTimestampQueryPool_ != VK_NULL_HANDLE &&
         timestampValidBits_ > 0U &&
         timestampPeriodNs_ > 0.0f;
+}
+
+bool VulkanClearRenderer::allFrameFencesSignaled() const noexcept {
+    if (device_ == VK_NULL_HANDLE) {
+        return false;
+    }
+
+    for (const auto& frame : frames_) {
+        if (frame.inFlight ==
+            VK_NULL_HANDLE) {
+            continue;
+        }
+
+        const VkResult status =
+            vkGetFenceStatus(
+                device_,
+                frame.inFlight);
+
+        if (status == VK_NOT_READY) {
+            return false;
+        }
+
+        if (!ok(status)) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 bool VulkanClearRenderer::createInstance() noexcept {

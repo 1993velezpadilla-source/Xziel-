@@ -3124,6 +3124,10 @@ extern "C" void android_main(
         state.renderer.setPreferredFrameRate(
             runtimePolicy.preferredFps);
 
+        state.renderer.setTextureResidencyPolicy(
+            runtimePolicy.textureBudgetScale,
+            state.memoryPressure);
+
         state.environment.setQuality(
             state.renderWorkload.
                 quality);
