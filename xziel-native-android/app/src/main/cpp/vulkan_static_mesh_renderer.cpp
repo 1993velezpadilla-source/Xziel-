@@ -7,6 +7,7 @@
 #include <android/bitmap.h>
 #include <android/imagedecoder.h>
 #include <android/log.h>
+#include <sys/system_properties.h>
 
 #include <algorithm>
 #include <array>
@@ -43,6 +44,19 @@ void logError(const char* message) noexcept {
 
 [[nodiscard]] bool ok(VkResult result) noexcept {
     return result == VK_SUCCESS;
+}
+
+[[nodiscard]] bool runtimeStreamingProbeEnabled() noexcept {
+    char value[PROP_VALUE_MAX]{};
+
+    const int length =
+        __system_property_get(
+            "debug.xziel.streaming_probe",
+            value);
+
+    return
+        length > 0 &&
+        std::strcmp(value, "1") == 0;
 }
 
 std::string textureAssetPath(
@@ -252,10 +266,13 @@ bool VulkanStaticMeshRenderer::initialize(
     streamCellStableFrames_ = 0U;
     streamCullingActive_ = false;
     streamCullLogged_ = false;
-    streamCellCandidate_ = 0U;
-    streamCellStableFrames_ = 0U;
-    streamCullingActive_ = false;
-    streamCullLogged_ = false;
+    streamResidencyProbeEnabled_ =
+        streamGraphReady_ &&
+        runtimeStreamingProbeEnabled();
+    streamResidencyProbeComplete_ = false;
+    streamResidencyProbeTextureIndex_ =
+        UINT32_MAX;
+    streamResidencyProbeReloadFrame_ = 0U;
 
     // Read KTX2 payloads on bounded worker threads while the render thread
     // creates pipelines/descriptors. Vulkan object creation and queue submits
@@ -843,6 +860,11 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     streamFallbackTextureIndex_ = UINT32_MAX;
     runtimeTextureUpload_ = {};
     runtimeTextureTransitionFrame_ = 0U;
+    streamResidencyProbeEnabled_ = false;
+    streamResidencyProbeComplete_ = false;
+    streamResidencyProbeTextureIndex_ =
+        UINT32_MAX;
+    streamResidencyProbeReloadFrame_ = 0U;
     streamCellBounds_ = {};
     streamDecisionCount_ = 0U;
     streamPlanFrame_ = 0U;
