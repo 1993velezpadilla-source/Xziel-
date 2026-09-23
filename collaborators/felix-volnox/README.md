@@ -39,3 +39,10 @@ Those areas are reference/read-only for Felix / Volnox unless the owner explicit
 Nothing in this workspace becomes part of the main project automatically. Promotion requires owner review and approval through a Pull Request/diff.
 
 See `CHATGPT_ENTRY.md` before AI-assisted work and `WORK_RULES.md` for isolation rules.
+
+## Verified collaborator handshake
+
+Felix / Volnox handshake is recorded in `GITHUB_HANDSHAKE.md`.
+Current GitHub account string: `XRP007`.
+Current repository permission: `read`.
+Direct writes remain disabled until the owner explicitly grants GitHub write access.
