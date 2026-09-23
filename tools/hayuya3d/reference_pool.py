@@ -5,6 +5,20 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
+DETAIL_DIR_TOKENS = {
+    "detail",
+    "details",
+    "closeup",
+    "closeups",
+    "macro",
+    "texture",
+    "textures",
+    "material",
+    "materials",
+    "surface",
+    "surfaces",
+}
+
 DETAIL_TOKENS = (
     "detail",
     "closeup",
@@ -44,6 +58,12 @@ def classify_reference(path: Path) -> str:
     would be worse than keeping it. Explicit Hayuya detail naming is recognized.
     """
     name = path.stem.lower().replace("-", "_").replace(" ", "_")
+    parent_parts = {
+        part.lower().replace("-", "_").replace(" ", "_")
+        for part in path.parts[:-1]
+    }
+    if parent_parts & DETAIL_DIR_TOKENS:
+        return "detail"
     if any(token in name for token in DETAIL_TOKENS):
         return "detail"
     return "geometry"
