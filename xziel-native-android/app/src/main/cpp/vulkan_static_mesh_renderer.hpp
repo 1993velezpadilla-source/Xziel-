@@ -196,12 +196,20 @@ private:
         bool deviceLocalHostVisible = false;
         bool pinned = false;
         bool physicallyResident = false;
+        std::uint8_t retireMask = 0U;
+        bool reloadActive = false;
+        std::size_t reloadScanCursor = 0U;
+        std::uint32_t reloadPendingBatch = UINT32_MAX;
+        std::string reloadPendingKey{};
+        std::vector<std::byte> reloadVertexBytes{};
+        std::vector<std::byte> reloadIndexBytes{};
     };
 
     struct GpuBatch {
         std::uint64_t streamResourceId = 0U;
         std::uint32_t streamCellId = 0U;
         std::uint32_t geometryCellSlot = UINT32_MAX;
+        std::uint32_t sourceBatchIndex = UINT32_MAX;
         std::uint32_t firstIndex = 0U;
         std::int32_t vertexOffset = 0;
         std::uint32_t indexCount = 0U;
@@ -369,6 +377,20 @@ private:
         std::uint32_t frameSlot,
         MemoryPressure memoryPressure) noexcept;
 
+    void releaseGeometryCellGpuResidency(
+        GeometryCellResidency& cell) noexcept;
+
+    [[nodiscard]] bool restoreGeometryCellGpuResidency(
+        GeometryCellResidency& cell) noexcept;
+
+    void serviceRuntimeGeometryResidency(
+        std::uint32_t frameSlot,
+        const StreamCellPlanInput& input) noexcept;
+
+    [[nodiscard]] std::string geometryRangeRequestKey(
+        std::uint32_t cellSlot,
+        std::uint32_t batchIndex) const;
+
     VkPhysicalDevice physicalDevice_ = VK_NULL_HANDLE;
     VkDevice device_ = VK_NULL_HANDLE;
     VkQueue graphicsQueue_ = VK_NULL_HANDLE;
@@ -429,6 +451,10 @@ private:
     std::size_t geometryCellCount_ = 0U;
     VkDeviceSize geometryCellVertexBytes_ = 0U;
     VkDeviceSize geometryCellIndexBytes_ = 0U;
+    StaticMeshDirectory geometryDirectory_{};
+    std::string geometryAssetPath_{};
+    std::uint32_t geometryReloadCellSlot_ = UINT32_MAX;
+    std::uint64_t geometryResidentBytes_ = 0U;
 
     VkBuffer geometryVertexBuffer_ = VK_NULL_HANDLE;
     VkDeviceMemory geometryVertexMemory_ = VK_NULL_HANDLE;
