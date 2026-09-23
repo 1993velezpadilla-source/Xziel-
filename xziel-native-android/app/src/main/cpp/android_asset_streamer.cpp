@@ -1,6 +1,7 @@
 #include "android_asset_streamer.hpp"
 
 #include <algorithm>
+#include <cstdio>
 #include <limits>
 #include <utility>
 
@@ -107,8 +108,62 @@ bool AndroidAssetStreamer::enqueue(
         scheduled_.insert(assetPath);
         requests_.push_back(
             Request{
+                .key = assetPath,
                 .path = assetPath,
+                .offset = 0U,
+                .size = 0U,
                 .maxBytes = maxBytes,
+                .range = false,
+            });
+
+        ++stats_.queued;
+        stats_.pending =
+            static_cast<std::uint32_t>(
+                std::min<std::size_t>(
+                    requests_.size(),
+                    std::numeric_limits<std::uint32_t>::max()));
+    } catch (...) {
+        return false;
+    }
+
+    workCv_.notify_one();
+    return true;
+}
+
+bool AndroidAssetStreamer::enqueueRange(
+    const std::string& assetPath,
+    std::uint64_t offset,
+    std::uint64_t size,
+    const std::string& requestKey) noexcept {
+    if (assetPath.empty() ||
+        requestKey.empty() ||
+        size == 0U ||
+        size >
+            256ULL * 1024ULL * 1024ULL ||
+        offset >
+            std::numeric_limits<std::uint64_t>::max() -
+                size) {
+        return false;
+    }
+
+    try {
+        std::lock_guard lock(mutex_);
+
+        if (!running_ ||
+            assetManager_ == nullptr ||
+            scheduled_.contains(requestKey)) {
+            return false;
+        }
+
+        scheduled_.insert(requestKey);
+        requests_.push_back(
+            Request{
+                .key = requestKey,
+                .path = assetPath,
+                .offset = offset,
+                .size = size,
+                .maxBytes = size,
+                .range = true,
             });
 
         ++stats_.queued;
@@ -306,33 +361,87 @@ void AndroidAssetStreamer::workerMain() noexcept {
             AAssetManager_open(
                 assetManager_,
                 request.path.c_str(),
-                AASSET_MODE_BUFFER);
+                AASSET_MODE_RANDOM);
 
         if (asset != nullptr) {
-            const off_t length =
-                AAsset_getLength(asset);
+            const off64_t length =
+                AAsset_getLength64(asset);
 
-            if (length > 0 &&
-                static_cast<std::uint64_t>(length) <=
-                    request.maxBytes &&
-                static_cast<std::uint64_t>(length) <=
+            std::uint64_t readOffset = 0U;
+            std::uint64_t readBytes = 0U;
+
+            if (length > 0) {
+                const std::uint64_t assetBytes =
+                    static_cast<std::uint64_t>(
+                        length);
+
+                if (request.range) {
+                    if (request.offset <= assetBytes &&
+                        request.size <=
+                            assetBytes - request.offset) {
+                        readOffset =
+                            request.offset;
+                        readBytes =
+                            request.size;
+                    }
+                } else if (
+                    assetBytes <= request.maxBytes) {
+                    readBytes =
+                        assetBytes;
+                }
+            }
+
+            if (readBytes > 0U &&
+                readBytes <= request.maxBytes &&
+                readBytes <=
                     static_cast<std::uint64_t>(
                         std::numeric_limits<std::size_t>::max())) {
                 try {
-                    result.bytes.resize(
-                        static_cast<std::size_t>(
-                            length));
+                    if (request.range) {
+                        const off64_t seekResult =
+                            AAsset_seek64(
+                                asset,
+                                static_cast<off64_t>(
+                                    readOffset),
+                                SEEK_SET);
 
-                    const int read =
-                        AAsset_read(
-                            asset,
-                            result.bytes.data(),
-                            result.bytes.size());
+                        if (seekResult !=
+                            static_cast<off64_t>(
+                                readOffset)) {
+                            readBytes = 0U;
+                        }
+                    }
 
-                    result.success =
-                        read >= 0 &&
-                        static_cast<std::size_t>(read) ==
+                    if (readBytes > 0U) {
+                        result.bytes.resize(
+                            static_cast<std::size_t>(
+                                readBytes));
+
+                        std::size_t totalRead = 0U;
+
+                        while (totalRead <
+                               result.bytes.size()) {
+                            const int read =
+                                AAsset_read(
+                                    asset,
+                                    result.bytes.data() +
+                                        totalRead,
+                                    result.bytes.size() -
+                                        totalRead);
+
+                            if (read <= 0) {
+                                break;
+                            }
+
+                            totalRead +=
+                                static_cast<std::size_t>(
+                                    read);
+                        }
+
+                        result.success =
+                            totalRead ==
                             result.bytes.size();
+                    }
                 } catch (...) {
                     result.bytes.clear();
                     result.success = false;
@@ -385,14 +494,14 @@ void AndroidAssetStreamer::workerMain() noexcept {
 
         try {
             results_.insert_or_assign(
-                request.path,
+                request.key,
                 std::move(result));
         } catch (...) {
             if (resultBytes <= bufferedBytes_) {
                 bufferedBytes_ -= resultBytes;
             }
             ++stats_.failed;
-            scheduled_.erase(request.path);
+            scheduled_.erase(request.key);
         }
 
         stats_.bufferedBytes =
