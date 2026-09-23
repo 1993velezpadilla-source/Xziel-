@@ -210,6 +210,7 @@ def make_job_plan(
     mesh_doctor_mode: str = "auto",
     retopo_mode: str = "auto",
     portable_target: str = "auto",
+    portable_pack_mode: str = "auto",
 ) -> dict:
     profile = PROFILES[profile_name]
     portability_plan = build_portability_plan(
@@ -248,6 +249,11 @@ def make_job_plan(
         "mode": mode,
         "profile": profile_name,
         "mobile_portability": portability_plan,
+        "portable_pack": {
+            "mode": portable_pack_mode,
+            "tiers": ["flagship", "high", "balanced", "compatibility"],
+            "policy": "derive every runtime tier independently from the preserved Hero Master; never cascade quality loss from one tier into the next",
+        },
         "seed": seed,
         "targets": {
             "faces": profile.faces,
@@ -546,7 +552,13 @@ def main() -> int:
         "--gameprep",
         choices=["off", "auto", "required"],
         default="auto",
-        help="build master/LOD/collision/turntable pack after the final champion",
+        help="build selected-tier master/LOD/collision/turntable pack after the final champion",
+    )
+    parser.add_argument(
+        "--portable-pack",
+        choices=["off", "auto", "required"],
+        default="auto",
+        help="derive Flagship/High/Balanced/Compatibility runtime packs independently from the preserved Hero Master",
     )
     parser.add_argument(
         "--appearance-judge",
@@ -629,6 +641,7 @@ def main() -> int:
         mesh_doctor_mode=args.mesh_doctor,
         retopo_mode=args.retopo,
         portable_target=args.portable_target,
+        portable_pack_mode=args.portable_pack,
     )
     portable_runtime = plan["mobile_portability"]["runtime_target"]
     portable_lod0_ceiling = int(portable_runtime["lod0_triangles"][1])
@@ -1218,6 +1231,49 @@ def main() -> int:
             if args.gameprep == "required":
                 raise
 
+    portable_pack_result = None
+    portable_pack_failure = None
+    should_try_portable_pack = (
+        args.portable_pack in {"auto", "required"}
+        and args.profile in {"mobile", "game", "monster", "ultra"}
+    )
+    if should_try_portable_pack:
+        try:
+            from portable_pack import build_portable_pack
+            from visual_judge import SourceViewScore
+
+            portable_anchor = None
+            if champion.visual_views:
+                portable_anchor = SourceViewScore(**champion.visual_views[0])
+
+            portable_pack_result = build_portable_pack(
+                final_glb,
+                job_dir / "portable",
+                mode=mode,
+                profile_name=args.profile,
+                anchor_view=portable_anchor,
+                material_samples=(
+                    80000 if args.profile == "mobile"
+                    else 120000 if args.profile == "game"
+                    else 180000
+                ),
+            )
+            print(
+                "HAYUYA_PORTABLE_PACK_READY "
+                f"tiers={len(portable_pack_result.tiers)} "
+                f"complete_lods={portable_pack_result.complete_lod_chain} "
+                f"manifest={portable_pack_result.manifest}"
+            )
+        except Exception as exc:
+            portable_pack_failure = f"{type(exc).__name__}: {exc}"
+            print(
+                f"HAYUYA_PORTABLE_PACK_FAILED {portable_pack_failure}",
+                file=sys.stderr,
+            )
+            traceback.print_exc()
+            if args.portable_pack == "required":
+                raise
+
     qa_package_result = None
     qa_package_failure = None
     try:
@@ -1277,6 +1333,8 @@ def main() -> int:
         "final_glb": str(final_glb),
         "gameprep": asdict(gameprep_result) if gameprep_result is not None else None,
         "gameprep_failure": gameprep_failure,
+        "portable_pack": asdict(portable_pack_result) if portable_pack_result is not None else None,
+        "portable_pack_failure": portable_pack_failure,
         "qa_package": asdict(qa_package_result) if qa_package_result is not None else None,
         "qa_package_failure": qa_package_failure,
         "notes": [
@@ -1294,6 +1352,7 @@ def main() -> int:
             "GamePrep audits glTF rig/skin state first; skinned assets skip destructive retopology/LOD simplification and preserve exact master/LOD0 until skin-weight transfer exists.",
             "QA Package v1 records geometry/material/reference/rig/GamePrep readiness and creates a source-vs-turntable contact sheet.",
             "Mobile portability is resolved from the versioned HAYUYA knowledge base; the source-faithful Hero Master is preserved while GamePrep derives tier-budget LODs and texture ceilings.",
+            "Portable Pack derives Flagship, High, Balanced and Compatibility independently from the same Hero Master; lower tiers never become the source for higher tiers.",
             "Judge v2 combines production mesh health with source-image silhouette agreement.",
             "Judge v3 auto adds DINOv2 appearance similarity when the pinned evaluator is bootstrapped; otherwise it falls back to v2.",
             "Next judge stage adds normal/depth agreement, calibrated camera estimation and local-detail matching.",
