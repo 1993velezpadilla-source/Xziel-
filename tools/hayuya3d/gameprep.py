@@ -146,6 +146,7 @@ def build_gameprep(
     target_faces: int,
     anchor_view: SourceViewScore | None = None,
     material_samples: int = 180_000,
+    max_texture_size: int = 2048,
 ) -> GamePrepResult:
     trimesh = _deps()
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -178,7 +179,7 @@ def build_gameprep(
         transfer_context = prepare_material_transfer(
             master_glb,
             total_samples=material_samples,
-            max_texture_size=2048,
+            max_texture_size=max_texture_size,
         )
 
     lods: list[LODArtifact] = []
@@ -281,12 +282,14 @@ def main() -> int:
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--target-faces", type=int, required=True)
+    parser.add_argument("--max-texture-size", type=int, default=2048)
     args = parser.parse_args()
 
     result = build_gameprep(
         args.input,
         args.output,
         target_faces=args.target_faces,
+        max_texture_size=args.max_texture_size,
     )
     print(json.dumps(asdict(result), indent=2))
     return 0
