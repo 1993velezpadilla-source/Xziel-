@@ -405,6 +405,108 @@
       ],
       "public_numeric_guidance": [],
       "asset_implication": "Track for compatibility knowledge only, not for modern default budgets."
+    },
+    {
+      "id": "netease-neox-messiah",
+      "class": "large-proprietary-mobile",
+      "renderer": "Proprietary NetEase game-engine stack",
+      "graphics_apis": [
+        "platform-specific; public filing does not expose a stable API contract"
+      ],
+      "portable_features": [
+        "NeoX adapted to iOS/Android",
+        "Messiah designed specifically for mobile 3D",
+        "high-quality lighting/audio/VFX/physics/animation"
+      ],
+      "notable_mobile_limits": [
+        "no public universal per-asset polygon/draw-call ceiling",
+        "production limits remain game/device specific"
+      ],
+      "public_numeric_guidance": [
+        "Ace Racer public GDC production talk: high-quality realistic graphics at 90fps"
+      ],
+      "asset_implication": "Treat 90fps/high-fidelity mobile as possible on tuned content, but keep all Hayuya fallback tiers; do not infer proprietary engine internals that NetEase has not published."
+    },
+    {
+      "id": "gamemaker-mobile",
+      "class": "secondary-cross-platform",
+      "renderer": "GameMaker renderer; primarily 2D but supports surfaces/3D graphics and Android GPU targeting",
+      "graphics_apis": [
+        "platform-managed"
+      ],
+      "portable_features": [
+        "texture groups/pages",
+        "VRAM prefetch/flush controls",
+        "Android dedicated-GPU targeting"
+      ],
+      "notable_mobile_limits": [
+        "texture swaps and texture-page VRAM matter",
+        "24-bit screen color can cost performance",
+        "large-resolution/3D projects should target GPU-capable devices"
+      ],
+      "public_numeric_guidance": [
+        "official Android guidance suggests 1024x1024 texture pages when uncertain because of Android fragmentation"
+      ],
+      "asset_implication": "Useful compatibility reference for texture-page/VRAM discipline, not a high-end 3D quality authority."
+    },
+    {
+      "id": "construct-3-web-mobile",
+      "class": "secondary-web-mobile-3d",
+      "renderer": "WebGPU/WebGL browser renderer with growing 3D model support",
+      "graphics_apis": [
+        "WebGPU",
+        "WebGL"
+      ],
+      "portable_features": [
+        "3D models",
+        "WebGPU renderer",
+        "multitexturing",
+        "browser/mobile export"
+      ],
+      "notable_mobile_limits": [
+        "fill rate can dominate on mobile",
+        "multitexturing trades CPU texture-switch cost for per-pixel GPU work",
+        "browser/mobile GPU capability varies"
+      ],
+      "public_numeric_guidance": [],
+      "asset_implication": "Keep fill-rate, texture switching, effects and screen coverage conservative for browser-mobile variants."
+    },
+    {
+      "id": "libgdx",
+      "class": "framework",
+      "renderer": "OpenGL ES-oriented cross-platform Java framework",
+      "graphics_apis": [
+        "OpenGL ES 2.0 Android",
+        "OpenGL ES 3.0 Android",
+        "WebGL 2 optional web path"
+      ],
+      "portable_features": [
+        "custom rendering architecture",
+        "cross-platform Android/iOS/Web/Desktop"
+      ],
+      "notable_mobile_limits": [
+        "developer owns most batching/material/LOD policy",
+        "API feature floor changes between GLES2 and GLES3",
+        "iOS OpenGL ES path is legacy/experimental in its current docs"
+      ],
+      "public_numeric_guidance": [],
+      "asset_implication": "Use conservative GLB/PBR-derived content and explicit low-feature variants; do not assume an engine-managed scalability system."
+    },
+    {
+      "id": "monogame",
+      "class": "framework",
+      "renderer": "Cross-platform C# framework rather than a full content-scalability engine",
+      "graphics_apis": [
+        "platform-dependent"
+      ],
+      "portable_features": [
+        "custom 2D/3D rendering"
+      ],
+      "notable_mobile_limits": [
+        "developer is responsible for draw batching, LOD, material complexity, streaming and quality tiers"
+      ],
+      "public_numeric_guidance": [],
+      "asset_implication": "HAYUYA should export neutral meshes/textures and metadata rather than depend on engine-side automatic optimization."
     }
   ],
   "public_large_game_case_studies": [
@@ -508,5 +610,71 @@
     "public_technical_talks_and_postmortems_allowed": true,
     "stale_guidance_must_be_labeled": true,
     "real_device_profiling_overrides_house_budgets": true
+  },
+  "coverage": {
+    "scope": "Major current 3D-capable mobile engines, mobile-first runtimes, web-mobile 3D stacks, large proprietary production engines with public evidence, and mobile GPU/platform constraints.",
+    "living_knowledge_base": true,
+    "literal_every_engine_claim": false,
+    "rationale": "There are thousands of niche, internal and abandoned engines. Hayuya tracks engines that materially change a 3D mobile asset contract, plus large-company internal engines when credible public technical evidence exists."
+  },
+  "research_sources": {
+    "android_engine_overview": [
+      "https://developer.android.com/games/engines/engines-overview",
+      "https://developer.android.com/games/guides/basics",
+      "https://developer.android.com/games/optimize/adpf/game-engine-support"
+    ],
+    "unreal": [
+      "https://dev.epicgames.com/documentation/unreal-engine/rendering-features-reference",
+      "https://dev.epicgames.com/documentation/unreal-engine/mobile-rendering-and-shading-modes-for-unreal-engine",
+      "https://dev.epicgames.com/documentation/unreal-engine/performance-guidelines-for-mobile-devices-in-unreal-engine",
+      "https://dev.epicgames.com/documentation/unreal-engine/optimization-and-development-best-practices-for-mobile-projects-in-unreal-engine"
+    ],
+    "unity": [
+      "https://docs.unity.com/en-us/engine/6000.7/manual/render-pipelines/universal-render-pipeline/introduction/urp-concepts/rendering-paths/comparison",
+      "https://docs.unity.com/en-us/engine/6000.7/manual/render-pipelines/universal-render-pipeline/customizing-urp/render-graph/introduction",
+      "https://docs.unity3d.com/Manual/optimizing-draw-calls-choose-method.html"
+    ],
+    "godot": [
+      "https://docs.godotengine.org/en/latest/tutorials/performance/optimizing_3d_performance.html",
+      "https://docs.godotengine.org/en/latest/tutorials/performance/using_multimesh.html",
+      "https://docs.godotengine.org/en/latest/tutorials/rendering/renderers.html"
+    ],
+    "cocos": [
+      "https://docs.cocos.com/creator/3.8/manual/en/engine/renderable/model-component.html",
+      "https://docs.cocos.com/creator/3.8/manual/en/asset/compress-texture.html"
+    ],
+    "defold": [
+      "https://defold.com/manuals/performance/",
+      "https://defold.com/manuals/model/",
+      "https://defold.com/manuals/texture-profiles/"
+    ],
+    "playcanvas": [
+      "https://developer.playcanvas.com/user-manual/optimization/guidelines/",
+      "https://developer.playcanvas.com/user-manual/graphics/advanced-rendering/instancing/"
+    ],
+    "netease": [
+      "https://www.sec.gov/Archives/edgar/data/1110646/000110465926043468/ntes-20251231x20f.htm",
+      "https://www.gdcvault.com/play/1028909/Achieving-High-Quality-90fps-Realism"
+    ],
+    "gamemaker": [
+      "https://manual.gamemaker.io/lts/en/Settings/Texture_Groups.htm",
+      "https://gamemaker.io/en/help/articles/android-compiling-your-app"
+    ],
+    "construct": [
+      "https://www.construct.net/en/make-games/manuals/construct-3/tips-and-guides/performance-tips",
+      "https://www.construct.net/en/make-games/manuals/construct-3/project-primitives/projects"
+    ],
+    "libgdx": [
+      "https://libgdx.com/wiki/graphics/opengl-es-support",
+      "https://libgdx.com/features/"
+    ],
+    "mobile_platform": [
+      "https://developer.android.com/games/optimize/adpf",
+      "https://developer.android.com/games/optimize/adpf/thermal",
+      "https://developer.android.com/games/optimize/textures",
+      "https://developer.apple.com/documentation/Metal/rendering-a-scene-with-deferred-lighting-in-swift",
+      "https://www.khronos.org/gltf/",
+      "https://www.khronos.org/ktx/"
+    ]
   }
 }
