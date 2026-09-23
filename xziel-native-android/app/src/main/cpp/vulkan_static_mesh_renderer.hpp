@@ -183,9 +183,25 @@ private:
         bool valid = false;
     };
 
+    struct GeometryCellResidency {
+        std::uint32_t cellId = 0U;
+        VkBuffer vertexBuffer = VK_NULL_HANDLE;
+        VkDeviceMemory vertexMemory = VK_NULL_HANDLE;
+        VkBuffer indexBuffer = VK_NULL_HANDLE;
+        VkDeviceMemory indexMemory = VK_NULL_HANDLE;
+        VkDeviceSize vertexBytes = 0U;
+        VkDeviceSize indexBytes = 0U;
+        std::uint32_t vertexCount = 0U;
+        std::uint32_t indexCount = 0U;
+        bool deviceLocalHostVisible = false;
+        bool pinned = false;
+        bool physicallyResident = false;
+    };
+
     struct GpuBatch {
         std::uint64_t streamResourceId = 0U;
         std::uint32_t streamCellId = 0U;
+        std::uint32_t geometryCellSlot = UINT32_MAX;
         std::uint32_t firstIndex = 0U;
         std::int32_t vertexOffset = 0;
         std::uint32_t indexCount = 0U;
@@ -406,6 +422,13 @@ private:
         128ULL * 1024ULL * 1024ULL;
     std::uint64_t textureResidentBytes_ = 0U;
     std::uint32_t textureDegradedCount_ = 0U;
+
+    std::array<
+        GeometryCellResidency,
+        kMaxStreamCells + 1U> geometryCells_{};
+    std::size_t geometryCellCount_ = 0U;
+    VkDeviceSize geometryCellVertexBytes_ = 0U;
+    VkDeviceSize geometryCellIndexBytes_ = 0U;
 
     VkBuffer geometryVertexBuffer_ = VK_NULL_HANDLE;
     VkDeviceMemory geometryVertexMemory_ = VK_NULL_HANDLE;
