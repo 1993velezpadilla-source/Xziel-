@@ -134,11 +134,26 @@ def make_job_plan(
         "candidate_backends": selected_backends,
         "dual_anchor": bool(profile.dual_anchor and len(inputs) == 2),
         "judge": {
-            "geometry_capacity_weight": 0.42,
-            "topology_health_weight": 0.33,
-            "material_readiness_weight": 0.18,
-            "bbox_health_weight": 0.07,
-            "future_extension": "source-view rerender similarity / normals / silhouette consistency",
+            "version": "v2",
+            "production_subscore": {
+                "geometry_capacity_weight": 0.42,
+                "topology_health_weight": 0.33,
+                "material_readiness_weight": 0.18,
+                "bbox_health_weight": 0.07
+            },
+            "final_mix": {
+                "source_visual_weight": 0.55,
+                "production_weight": 0.45
+            },
+            "source_visual": {
+                "method": "software silhouette camera search",
+                "azimuth_step_degrees": 30,
+                "elevations_degrees": [-15, 0, 15],
+                "up_axis_hypotheses": ["y", "z"],
+                "per_source_metric": "0.72 silhouette IoU + 0.28 boundary F1",
+                "multi_source_aggregation": "0.70 mean + 0.30 minimum"
+            },
+            "future_extension": "DINO/MEt3R feature consistency + RGB/normal/depth rerender scoring"
         },
         "model_root": str(model_root.resolve()),
         "output": "hayuya_final.glb",
@@ -342,6 +357,8 @@ def main() -> int:
         candidates,
         mode=mode,
         target_faces=profile.faces,
+        source_images=inputs,
+        visual_weight=0.55,
     )
     ranking_data = [asdict(x) for x in ranked]
     (job_dir / "ranking.json").write_text(json.dumps(ranking_data, indent=2) + "\n", encoding="utf-8")
@@ -362,8 +379,9 @@ def main() -> int:
         "champion": asdict(champion),
         "final_glb": str(final_glb),
         "notes": [
-            "The v1 judge is geometry/material-health based.",
-            "Next judge stage adds calibrated rerender similarity against every source/synthesized view.",
+            "Judge v2 combines production mesh health with source-image silhouette agreement.",
+            "Every real source photo contributes to the visual score; the weakest anchor explicitly drags the final score down.",
+            "Next judge stage adds DINO/MEt3R RGB feature consistency plus normal/depth agreement.",
             "Two-photo jobs already use both anchors natively through TRELLIS multi-image and an independent secondary TripoSG hypothesis.",
         ],
     }
