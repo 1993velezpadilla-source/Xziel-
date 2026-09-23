@@ -133,9 +133,12 @@ def main():
     arm.location += offset
     bpy.context.view_layer.update()
 
-    # Delete donor visible meshes; keep armature/actions as the motion source.
-    for obj in donor_meshes:
-        bpy.data.objects.remove(obj,do_unlink=True)
+    # Delete every donor scene object except the armature. Imported donor
+    # helper empties can confuse Blender's glTF exporter after the original
+    # donor skin is removed, producing neutral-bone nodes with no Skin object.
+    for obj in list(donor_objs):
+        if obj != arm and obj.name in bpy.data.objects:
+            bpy.data.objects.remove(obj,do_unlink=True)
 
     arm.name="HAYUYA_Armature"
 
@@ -163,10 +166,13 @@ def main():
         arm.animation_data.action=idle
 
     args.output.unlink(missing_ok=True)
+    # Export only the new target skin + donor armature. This deliberately
+    # excludes source helper nodes/empties from both imported GLBs.
+    select_only(*target_meshes,arm)
     bpy.ops.export_scene.gltf(
         filepath=str(args.output.resolve()),
         export_format="GLB",
-        use_selection=False,
+        use_selection=True,
         export_animations=True,
         export_skins=True,
         export_all_influences=True,
