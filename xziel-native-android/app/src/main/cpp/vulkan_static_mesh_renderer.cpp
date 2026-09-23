@@ -64,6 +64,7 @@ bool VulkanStaticMeshRenderer::initialize(
     std::uint32_t graphicsQueueFamily,
     VkCommandPool commandPool,
     VkRenderPass renderPass,
+    VkSampleCountFlagBits sampleCount,
     AAssetManager* assetManager,
     const char* modelAssetPath) noexcept {
     shutdown();
@@ -74,6 +75,7 @@ bool VulkanStaticMeshRenderer::initialize(
         graphicsQueueFamily == UINT32_MAX ||
         commandPool == VK_NULL_HANDLE ||
         renderPass == VK_NULL_HANDLE ||
+        sampleCount == 0U ||
         assetManager == nullptr ||
         modelAssetPath == nullptr) {
         return false;
@@ -107,6 +109,7 @@ bool VulkanStaticMeshRenderer::initialize(
     graphicsQueueFamily_ = graphicsQueueFamily;
     commandPool_ = commandPool;
     renderPass_ = renderPass;
+    sampleCount_ = sampleCount;
 
     StaticMeshAsset asset{};
     if (!loadModel(
@@ -308,6 +311,7 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     graphicsQueueFamily_ = UINT32_MAX;
     commandPool_ = VK_NULL_HANDLE;
     renderPass_ = VK_NULL_HANDLE;
+    sampleCount_ = VK_SAMPLE_COUNT_1_BIT;
 }
 
 bool VulkanStaticMeshRenderer::ready() const noexcept {
@@ -942,7 +946,7 @@ bool VulkanStaticMeshRenderer::createPipeline(
         VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO
     };
     multisample.rasterizationSamples =
-        VK_SAMPLE_COUNT_1_BIT;
+        sampleCount_;
 
     VkPipelineDepthStencilStateCreateInfo depthStencil{
         VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO
