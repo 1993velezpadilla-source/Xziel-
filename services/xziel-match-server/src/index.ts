@@ -1,3 +1,5 @@
+import { DurableObject } from "cloudflare:workers";
+
 import {
   MAX_PLAYERS,
   SNAPSHOT_INTERVAL_MS,
