@@ -1,0 +1,55 @@
+name: HAYUYA AutoRig Prototype
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - art/hayuya-monster-v1
+    paths:
+      - tools/hayuya3d/blender_autorig.py
+      - tools/hayuya3d/rig_gate.py
+      - hayuya/standards/hayuya_humanoid_v1.json
+      - .github/workflows/hayuya-autorig-prototype.yml
+
+permissions:
+  contents: read
+
+jobs:
+  candy-autorig:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Blender
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq blender
+
+      - name: Rig Candyland zombie with CC0 donor
+        run: |
+          mkdir -p out/autorig
+          blender -b --python tools/hayuya3d/blender_autorig.py --             --target hayuya/models/candy-zombie-001/model.glb             --donor hayuya/rig_library/quaternius-human-rigged/model.glb             --output out/autorig/candy-zombie-001-rigged.glb             --report out/autorig/autorig-report.json
+
+      - name: Validate exported rig and animations
+        run: |
+          python tools/hayuya3d/rig_gate.py             out/autorig/candy-zombie-001-rigged.glb             --json out/autorig/rig-gate.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          data=json.loads(Path("out/autorig/rig-gate.json").read_text())
+          assert data["valid_glb"] is True, data
+          assert data["rig_ready"] is True, data
+          assert data["animation_ready"] is True, data
+          assert data["preview_animation_ready"] is True, data
+          assert data["animation_clips"], data
+          print("HAYUYA_AUTORIG_RIG_GATE_PASS", data["joints"], data["animation_clips"])
+          PY
+
+      - name: Upload AutoRig prototype
+        uses: actions/upload-artifact@v4
+        with:
+          name: hayuya-autorig-candy-zombie-001
+          path: out/autorig/**
+          retention-days: 14
