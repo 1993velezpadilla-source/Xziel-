@@ -185,6 +185,7 @@ def make_job_plan(
     appearance_mode: str = "auto",
     viewforge_mode: str = "auto",
     geometry_refine_mode: str = "auto",
+    gameprep_mode: str = "auto",
 ) -> dict:
     profile = PROFILES[profile_name]
     roles = split_reference_roles(inputs)
@@ -263,6 +264,12 @@ def make_job_plan(
             "policy": "refined topology is a challenger; real-source geometry evidence must improve before it is marked preferred",
             "asset_promotion": "when refined geometry wins, Material Bridge v1 transfers base color and the bridged GLB must win the full final Judge",
             "material_bridge_v1": "dense source-surface color samples -> nearest projection to refined vertices; future PBR UV rebake remains separate"
+        },
+        "gameprep": {
+            "mode": gameprep_mode,
+            "activation": "auto for mobile/game/monster/ultra after final champion",
+            "outputs": ["master.glb", "LOD0.glb", "LOD1.glb", "LOD2.glb", "LOD3.glb", "collision_convex.glb", "8-frame turntable", "gameprep_manifest.json"],
+            "lod_material_policy": "master keeps original materials; simplified LODs use Material Bridge v1 base-color projection"
         },
         "judge": {
             "version": "v3-auto" if appearance_mode != "off" else "v2",
@@ -447,6 +454,12 @@ def main() -> int:
         help="TripoSF SparseFlex geometry challenger policy for monster/ultra execution",
     )
     parser.add_argument(
+        "--gameprep",
+        choices=["off", "auto", "required"],
+        default="auto",
+        help="build master/LOD/collision/turntable pack after the final champion",
+    )
+    parser.add_argument(
         "--appearance-judge",
         choices=["off", "auto", "required"],
         default="auto",
@@ -518,6 +531,7 @@ def main() -> int:
         appearance_mode=args.appearance_judge,
         viewforge_mode=args.viewforge,
         geometry_refine_mode=args.geometry_refine,
+        gameprep_mode=args.gameprep,
     )
     (job_dir / "plan.json").write_text(json.dumps(plan, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(plan, indent=2))
@@ -803,6 +817,48 @@ def main() -> int:
     source = Path(champion.path)
     final_glb = export_glb(source, job_dir / "hayuya_final.glb")
 
+    gameprep_result = None
+    gameprep_failure = None
+    should_try_gameprep = (
+        args.gameprep in {"auto", "required"}
+        and args.profile in {"mobile", "game", "monster", "ultra"}
+    )
+    if should_try_gameprep:
+        try:
+            from gameprep import build_gameprep
+            from visual_judge import SourceViewScore
+
+            anchor_view = None
+            if champion.visual_views:
+                anchor_view = SourceViewScore(**champion.visual_views[0])
+
+            gameprep_result = build_gameprep(
+                final_glb,
+                job_dir / "gameprep",
+                target_faces=profile.faces,
+                anchor_view=anchor_view,
+                material_samples=(
+                    80000 if args.profile == "mobile"
+                    else 120000 if args.profile == "game"
+                    else 180000
+                ),
+            )
+            print(
+                "HAYUYA_GAMEPREP_READY "
+                f"lods={len(gameprep_result.lods)} "
+                f"collision={bool(gameprep_result.collision)} "
+                f"turntable={len(gameprep_result.turntable_frames)}"
+            )
+        except Exception as exc:
+            gameprep_failure = f"{type(exc).__name__}: {exc}"
+            print(
+                f"HAYUYA_GAMEPREP_FAILED {gameprep_failure}",
+                file=sys.stderr,
+            )
+            traceback.print_exc()
+            if args.gameprep == "required":
+                raise
+
     manifest = {
         **plan,
         "status": "success",
@@ -816,6 +872,8 @@ def main() -> int:
         "ranking": ranking_data,
         "champion": asdict(champion),
         "final_glb": str(final_glb),
+        "gameprep": asdict(gameprep_result) if gameprep_result is not None else None,
+        "gameprep_failure": gameprep_failure,
         "notes": [
             "The reference pool has no Hayuya-level photo-count cap.",
             "All unique full-object/geometry source photos participate in Judge v2.",
@@ -826,6 +884,7 @@ def main() -> int:
             "Wonder3D normal maps may contribute a deliberately small 6% synthetic-support score using the pinned front-view normal coordinate convention.",
             "TripoSF can challenge the best geometry seed at 1024^3 in Monster/Ultra; it must pass real-source geometry evidence.",
             "If TripoSF wins geometry, Material Bridge v1 projects source base-color to the refined topology and the bridged GLB re-enters the final Judge rather than being auto-promoted.",
+            "GamePrep v1 can emit master + LOD0-LOD3 + convex collision + an 8-frame turntable after the final winner is selected.",
             "Judge v2 combines production mesh health with source-image silhouette agreement.",
             "Judge v3 auto adds DINOv2 appearance similarity when the pinned evaluator is bootstrapped; otherwise it falls back to v2.",
             "Next judge stage adds normal/depth agreement, calibrated camera estimation and local-detail matching.",
