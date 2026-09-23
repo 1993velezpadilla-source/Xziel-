@@ -13,6 +13,7 @@ sys.path.insert(0, str(HAYUYA_DIR))
 spec = importlib.util.spec_from_file_location("hayuya_main", HAYUYA_DIR / "hayuya.py")
 hayuya = importlib.util.module_from_spec(spec)
 assert spec.loader
+sys.modules[spec.name] = hayuya
 spec.loader.exec_module(hayuya)
 
 
