@@ -15,10 +15,13 @@ from qa import inspect_mesh
 class QAPackageResult:
     report: str
     contact_sheet: str | None
+    turntable_report: str | None
     geometry_ready: bool
     material_ready: bool
     rig_ready: bool
     animation_ready: bool
+    turntable_ready: bool
+    turntable_score: float | None
     production_ready: bool
     warnings: list[str]
 
@@ -170,6 +173,45 @@ def build_qa_package(
             f"Judge source coverage {source_coverage}/{expected_sources}; not every geometry reference has a recorded visual view"
         )
 
+    turntable_qa = None
+    turntable_report_path = None
+    turntable_ready = expected_sources == 0
+    turntable_score = None
+    if expected_sources:
+        if turntable and source_coverage >= expected_sources:
+            try:
+                from turntable_qa import (
+                    score_source_to_turntable,
+                    write_turntable_report,
+                )
+
+                turntable_qa = score_source_to_turntable(
+                    source_images,
+                    judged_views[:expected_sources],
+                    turntable,
+                )
+                turntable_ready = bool(turntable_qa.ready)
+                turntable_score = float(turntable_qa.score)
+                turntable_report_path = write_turntable_report(
+                    turntable_qa,
+                    out_dir / "source_vs_turntable.json",
+                )
+                if not turntable_ready:
+                    warnings.append(
+                        f"source-vs-turntable QA failed: score={turntable_qa.score:.3f}, "
+                        f"catastrophic_mismatches={turntable_qa.catastrophic_mismatches}"
+                    )
+            except Exception as exc:
+                turntable_ready = False
+                warnings.append(
+                    f"source-vs-turntable QA unavailable: {type(exc).__name__}: {exc}"
+                )
+        else:
+            turntable_ready = False
+            warnings.append(
+                "source-vs-turntable QA unavailable: turntable or complete Judge orientation evidence missing"
+            )
+
     gameprep_ready = bool(gameprep_data and lods)
     if not gameprep_ready:
         warnings.append("GamePrep package missing")
@@ -181,6 +223,7 @@ def build_qa_package(
         and material_ready
         and source_coverage >= expected_sources
         and gameprep_ready
+        and turntable_ready
         and (rig_ready if rig_required else True)
     )
 
@@ -221,6 +264,15 @@ def build_qa_package(
             "judge_visual_view_count": source_coverage,
             "all_geometry_sources_judged": source_coverage >= expected_sources,
         },
+        "source_vs_turntable": (
+            asdict(turntable_qa)
+            if turntable_qa is not None
+            else {
+                "ready": turntable_ready,
+                "score": turntable_score,
+                "report": str(turntable_report_path) if turntable_report_path else None,
+            }
+        ),
         "rig": asdict(rig),
         "gameprep": gameprep_data,
         "readiness": {
@@ -230,6 +282,8 @@ def build_qa_package(
             "rig_ready": rig_ready,
             "animation_ready": animation_ready,
             "gameprep_ready": gameprep_ready,
+            "turntable_ready": turntable_ready,
+            "turntable_score": turntable_score,
             "production_ready": production_ready,
         },
         "warnings": list(dict.fromkeys(warnings)),
@@ -241,10 +295,13 @@ def build_qa_package(
     return QAPackageResult(
         report=str(report_path),
         contact_sheet=str(contact_path) if contact_path else None,
+        turntable_report=str(turntable_report_path) if turntable_report_path else None,
         geometry_ready=geometry_ready,
         material_ready=material_ready,
         rig_ready=rig_ready,
         animation_ready=animation_ready,
+        turntable_ready=turntable_ready,
+        turntable_score=turntable_score,
         production_ready=production_ready,
         warnings=report["warnings"],
     )
