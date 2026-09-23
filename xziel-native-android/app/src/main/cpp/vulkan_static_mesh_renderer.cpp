@@ -59,6 +59,19 @@ void logError(const char* message) noexcept {
         std::strcmp(value, "1") == 0;
 }
 
+[[nodiscard]] bool runtimeGeometryStreamingProbeEnabled() noexcept {
+    char value[PROP_VALUE_MAX]{};
+
+    const int length =
+        __system_property_get(
+            "debug.xziel.geometry_streaming_probe",
+            value);
+
+    return
+        length > 0 &&
+        std::strcmp(value, "1") == 0;
+}
+
 std::string textureAssetPath(
     const std::string& exportedName,
     const char* extension) {
@@ -274,6 +287,10 @@ bool VulkanStaticMeshRenderer::initialize(
     streamResidencyProbeTextureIndex_ =
         UINT32_MAX;
     streamResidencyProbeReloadFrame_ = 0U;
+    geometryResidencyProbeEnabled_ =
+        streamGraphReady_ &&
+        runtimeGeometryStreamingProbeEnabled();
+    geometryResidencyProbeEnabled_ = false;
     geometryResidencyProbeComplete_ = false;
     geometryResidencyProbeCellSlot_ = UINT32_MAX;
     geometryResidencyProbeReloadFrame_ = 0U;
@@ -281,6 +298,11 @@ bool VulkanStaticMeshRenderer::initialize(
     if (streamResidencyProbeEnabled_) {
         logInfo(
             "XZIEL_RUNTIME_TEXTURE_RELOAD_PROBE_ENABLED");
+    }
+
+    if (geometryResidencyProbeEnabled_) {
+        logInfo(
+            "XZIEL_RUNTIME_GEOMETRY_RELOAD_PROBE_ENABLED");
     }
 
     // Read KTX2 payloads on bounded worker threads while the render thread
@@ -2167,7 +2189,7 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureResidency(
             1U << frameSlot);
 
     const std::uint32_t minimumStableFrames =
-        streamResidencyProbeEnabled_
+        geometryResidencyProbeEnabled_
         ? 8U
         : memoryPressure ==
               MemoryPressure::Critical
@@ -2809,7 +2831,7 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
                 input,
                 cell.cellId);
 
-        if (streamResidencyProbeEnabled_ &&
+        if (geometryResidencyProbeEnabled_ &&
             !geometryResidencyProbeComplete_ &&
             geometryResidencyProbeCellSlot_ ==
                 i &&
@@ -3135,7 +3157,7 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
     }
 
     const std::uint32_t minimumStableFrames =
-        streamResidencyProbeEnabled_
+        geometryResidencyProbeEnabled_
         ? 8U
         : input.memoryPressure ==
               MemoryPressure::Critical
@@ -3199,7 +3221,7 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
             static_cast<unsigned int>(
                 input.memoryPressure));
 
-        if (streamResidencyProbeEnabled_ &&
+        if (geometryResidencyProbeEnabled_ &&
             !geometryResidencyProbeComplete_ &&
             geometryResidencyProbeCellSlot_ ==
                 UINT32_MAX) {
