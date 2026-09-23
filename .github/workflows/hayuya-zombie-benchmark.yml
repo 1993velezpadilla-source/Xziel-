@@ -1,0 +1,213 @@
+name: Hayuya Zombie Benchmark v1
+
+on:
+  push:
+    branches:
+      - art/hayuya-zombie-test-v1
+    paths:
+      - ".github/workflows/hayuya-zombie-benchmark.yml"
+      - "tools/hayuya3d/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hayuya-zombie-benchmark-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-reconstruct:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout Hayuya branch
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        shell: bash
+        run: |
+          set -euxo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq             p7zip-full curl xz-utils libegl1 libgl1-mesa-dri libglx-mesa0             libglib2.0-0 libgl1-mesa-dev libegl1-mesa-dev xvfb build-essential             cmake ninja-build git
+
+      - name: Cache Blender 4.5.14 LTS
+        id: cache-blender
+        uses: actions/cache@v4
+        with:
+          path: /opt/blender-4.5.14
+          key: blender-linux-x64-4.5.14
+
+      - name: Install Blender 4.5.14 LTS
+        if: steps.cache-blender.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euxo pipefail
+          curl -fL --retry 4             https://download.blender.org/release/Blender4.5/blender-4.5.14-linux-x64.tar.xz             -o /tmp/blender.tar.xz
+          sudo mkdir -p /opt/blender-4.5.14
+          sudo tar -xJf /tmp/blender.tar.xz --strip-components=1 -C /opt/blender-4.5.14
+
+      - name: Put Blender on PATH
+        shell: bash
+        run: |
+          echo "/opt/blender-4.5.14" >> "$GITHUB_PATH"
+          /opt/blender-4.5.14/blender --version
+
+      - name: Download CC0 zombie control asset
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p benchmark/source benchmark/extracted benchmark/reference
+          curl -fL --retry 5 --retry-delay 2             "https://opengameart.org/sites/default/files/Male%20City%20Zombie.7z"             -o benchmark/source/male-city-zombie.7z
+          7z x -y benchmark/source/male-city-zombie.7z -obenchmark/extracted >/dev/null
+          find benchmark/extracted -type f -printf '%P\n' | sort | tee benchmark/source/files.txt
+          find benchmark/extracted -type f -iname '*.fbx' -print -quit | tee benchmark/source/primary_fbx.txt
+          test -s benchmark/source/primary_fbx.txt
+
+      - name: Render deterministic Hayuya reference from control FBX
+        shell: bash
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euxo pipefail
+          FBX="$(cat benchmark/source/primary_fbx.txt)"
+          cat > /tmp/render_hayuya_reference.py <<'PY'
+          import bpy, math, sys
+          from pathlib import Path
+          from mathutils import Vector
+
+          argv = sys.argv
+          fbx = Path(argv[argv.index("--") + 1]).resolve()
+          out = Path(argv[argv.index("--") + 2]).resolve()
+
+          bpy.ops.wm.read_factory_settings(use_empty=True)
+          bpy.ops.import_scene.fbx(filepath=str(fbx))
+          meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
+          if not meshes:
+              raise RuntimeError(f"No mesh imported from {fbx}")
+
+          mins = Vector((1e9, 1e9, 1e9))
+          maxs = Vector((-1e9, -1e9, -1e9))
+          for obj in meshes:
+              for corner in obj.bound_box:
+                  p = obj.matrix_world @ Vector(corner)
+                  mins.x, mins.y, mins.z = min(mins.x,p.x), min(mins.y,p.y), min(mins.z,p.z)
+                  maxs.x, maxs.y, maxs.z = max(maxs.x,p.x), max(maxs.y,p.y), max(maxs.z,p.z)
+          center = (mins + maxs) * 0.5
+          size = max((maxs - mins).x, (maxs - mins).y, (maxs - mins).z)
+
+          cam_data = bpy.data.cameras.new("Camera")
+          cam = bpy.data.objects.new("Camera", cam_data)
+          bpy.context.collection.objects.link(cam)
+          bpy.context.scene.camera = cam
+          cam.location = center + Vector((size * 1.45, -size * 2.6, size * 0.25))
+
+          direction = center - cam.location
+          cam.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
+          cam.data.type = "PERSPECTIVE"
+          cam.data.lens = 58
+
+          key_data = bpy.data.lights.new("Key", type="AREA")
+          key_data.energy = 1100
+          key_data.shape = "DISK"
+          key_data.size = size * 1.5
+          key = bpy.data.objects.new("Key", key_data)
+          bpy.context.collection.objects.link(key)
+          key.location = center + Vector((size * 1.8, -size * 1.2, size * 1.6))
+
+          fill_data = bpy.data.lights.new("Fill", type="AREA")
+          fill_data.energy = 650
+          fill_data.size = size * 1.3
+          fill = bpy.data.objects.new("Fill", fill_data)
+          bpy.context.collection.objects.link(fill)
+          fill.location = center + Vector((-size * 1.5, -size * 0.4, size * 0.8))
+
+          rim_data = bpy.data.lights.new("Rim", type="AREA")
+          rim_data.energy = 900
+          rim_data.size = size * 1.0
+          rim = bpy.data.objects.new("Rim", rim_data)
+          bpy.context.collection.objects.link(rim)
+          rim.location = center + Vector((0, size * 1.4, size * 1.5))
+
+          scene = bpy.context.scene
+          scene.render.engine = "BLENDER_EEVEE_NEXT"
+          scene.render.resolution_x = 1024
+          scene.render.resolution_y = 1024
+          scene.render.resolution_percentage = 100
+          scene.render.image_settings.file_format = "PNG"
+          scene.render.film_transparent = False
+          scene.world.color = (0.055, 0.055, 0.065)
+          scene.render.filepath = str(out)
+          scene.render.image_settings.color_mode = "RGBA"
+          bpy.ops.render.render(write_still=True)
+          print("HAYUYA_ZOMBIE_REFERENCE_READY", out)
+          PY
+          xvfb-run -a -s "-screen 0 1280x1024x24"             /opt/blender-4.5.14/blender --background             --python /tmp/render_hayuya_reference.py --             "$FBX" benchmark/reference/zombie_front_3q.png
+          test -s benchmark/reference/zombie_front_3q.png
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install Hayuya + TripoSR CPU dependencies
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          python tools/hayuya3d/bootstrap.py --backend triposr
+          grep -v '^git+https://github.com/tatsy/torchmcubes.git$'             .hayuya/models/triposr/requirements.txt > /tmp/triposr-req.txt
+          python -m pip install -r /tmp/triposr-req.txt
+          python -m pip install onnxruntime "scikit-build-core>=1.0" "pybind11>=2.10"
+          python -m pip install --no-build-isolation git+https://github.com/tatsy/torchmcubes.git
+          python -m pip install numpy pillow trimesh scipy fast-simplification pygltflib
+
+      - name: Cache Hugging Face model downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hayuya-triposr-hf-v1
+
+      - name: Run HAYUYA MONSTER zombie reconstruction
+        shell: bash
+        env:
+          PYTHONUNBUFFERED: "1"
+          OMP_NUM_THREADS: "2"
+          MKL_NUM_THREADS: "2"
+        run: |
+          set -euxo pipefail
+          rm -rf out/hayuya-zombie-benchmark
+          mkdir -p out/hayuya-zombie-benchmark
+          python tools/hayuya3d/hayuya.py             --input benchmark/reference/zombie_front_3q.png             --profile monster             --portable-target high             --mode character             --backends triposr             --execute             --viewforge off             --geometry-refine off             --retopo off             --appearance-judge off             --mesh-doctor auto             --gameprep auto             --output-root out/hayuya-zombie-benchmark
+
+      - name: Collect benchmark evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p benchmark/report
+          cp benchmark/reference/zombie_front_3q.png benchmark/report/ || true
+          find out/hayuya-zombie-benchmark -type f -printf '%P\t%s bytes\n'             | sort | tee benchmark/report/hayuya-output-files.txt || true
+          find out/hayuya-zombie-benchmark -type f \( -name '*.glb' -o -name 'manifest.json' -o -name 'plan.json' \)             -print | tee benchmark/report/key-outputs.txt || true
+          {
+            echo "Control source: OpenGameArt Male City Zombie"
+            echo "Control license: CC0"
+            echo "Hayuya profile: monster"
+            echo "Portable target: high"
+            echo "Backend exercised: triposr baseline through Hayuya orchestrator"
+            echo "Run ref: ${GITHUB_REF}"
+            echo "Commit: ${GITHUB_SHA}"
+          } > benchmark/report/benchmark-manifest.txt
+
+      - name: Upload HAYUYA zombie benchmark
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hayuya-zombie-benchmark-v1
+          path: |
+            benchmark/report/
+            out/hayuya-zombie-benchmark/
+          if-no-files-found: warn
+          retention-days: 14
