@@ -183,6 +183,15 @@ private:
         bool valid = false;
     };
 
+    static constexpr std::size_t
+        kGeometryReloadWindow = 4U;
+
+    struct GeometryRangeInFlight {
+        std::uint32_t batchIndex = UINT32_MAX;
+        std::string key{};
+        bool active = false;
+    };
+
     struct GeometryCellResidency {
         std::uint32_t cellId = 0U;
         VkBuffer vertexBuffer = VK_NULL_HANDLE;
@@ -199,9 +208,12 @@ private:
         StreamCellHeat heat = StreamCellHeat::Cold;
         std::uint8_t retireMask = 0U;
         bool reloadActive = false;
+        bool reloadFailed = false;
         std::size_t reloadScanCursor = 0U;
-        std::uint32_t reloadPendingBatch = UINT32_MAX;
-        std::string reloadPendingKey{};
+        std::array<
+            GeometryRangeInFlight,
+            kGeometryReloadWindow> reloadRanges{};
+        std::uint32_t reloadPendingCount = 0U;
         std::vector<std::byte> reloadVertexBytes{};
         std::vector<std::byte> reloadIndexBytes{};
     };
