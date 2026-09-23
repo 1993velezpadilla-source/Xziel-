@@ -739,5 +739,31 @@
       "https://docs.imgtec.com/starter-guides/powervr-architecture/html/topics/tile-based-deferred-rendering-index.html",
       "https://docs.imgtec.com/starter-guides/powervr-architecture/html/topics/rules/do-use-on-chip-memory-efficiently-for-deferred-rendering.html"
     ]
+  },
+  "texture_delivery": {
+    "strategy": "Physical KTX2/Basis Universal embedded in runtime GLBs with KHR_texture_basisu; engine build systems may transcode to native ASTC/ETC2 as appropriate.",
+    "toolchain": {
+      "gltf_transform": {
+        "package": "@gltf-transform/cli",
+        "version": "4.5.0",
+        "license": "MIT"
+      },
+      "ktx_software": {
+        "project": "KhronosGroup/KTX-Software",
+        "version": "4.4.2"
+      }
+    },
+    "codec_policy": {
+      "high_fidelity_linear_maps": "UASTC for normalTexture, occlusionTexture and metallicRoughnessTexture",
+      "color_and_remaining_maps": "ETC1S after UASTC pass",
+      "mipmaps": true,
+      "require_khr_texture_basisu": true,
+      "verify_all_images_ktx2": true
+    },
+    "native_gpu_formats": {
+      "android_preferred": "ASTC where supported",
+      "android_fallback": "ETC2",
+      "note": "Do not mislabel Basis Universal payloads as pre-transcoded ASTC/ETC2. Native GPU format selection may happen at runtime or during engine-specific build packaging."
+    }
   }
 }
