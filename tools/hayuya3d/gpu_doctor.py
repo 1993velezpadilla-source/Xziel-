@@ -32,6 +32,13 @@ def load_lock() -> dict:
     return json.loads((HERE / "backends.lock.json").read_text(encoding="utf-8"))
 
 
+def load_env_lock() -> dict:
+    path = HERE / "backend_envs.lock.json"
+    if not path.is_file():
+        return {"backends": {}}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def env_key(backend: str) -> str:
     return f"HAYUYA_{backend.upper().replace('-', '_')}_PYTHON"
 
@@ -102,7 +109,7 @@ def python_cuda_probe(executable: str) -> dict:
     return data
 
 
-def backend_probe(entry: dict, model_root: Path) -> dict:
+def backend_probe(entry: dict, model_root: Path, env_spec: dict | None = None) -> dict:
     backend = entry["id"]
     repo = model_root / backend
     executable, python_exists = resolve_python(backend)
@@ -142,11 +149,45 @@ def backend_probe(entry: dict, model_root: Path) -> dict:
     required_vram = float(entry.get("min_vram_gb") or 0)
     cuda = result["cuda_probe"]
     result["cuda_ready"] = bool(cuda.get("cuda_available")) or required_vram <= 0
+
+    result["env_contract"] = None
+    result["python_version_matches"] = True
+    result["torch_version_matches"] = True
+    result["cuda_family_matches"] = True
+    if env_spec:
+        expected_python = str(env_spec.get("python", ""))
+        torch_spec = env_spec.get("torch", {})
+        expected_torch = str(torch_spec.get("version", ""))
+        expected_cuda = str(torch_spec.get("cuda_family", ""))
+
+        actual_python = str(result.get("python_version") or "")
+        actual_torch = str(cuda.get("torch") or "")
+        actual_cuda = str(cuda.get("torch_cuda") or "")
+
+        result["env_contract"] = {
+            "expected_python": expected_python,
+            "expected_torch": expected_torch,
+            "expected_cuda_family": expected_cuda,
+        }
+        if expected_python:
+            result["python_version_matches"] = actual_python.startswith(
+                f"Python {expected_python}"
+            )
+        if expected_torch:
+            result["torch_version_matches"] = (
+                actual_torch.split("+", 1)[0] == expected_torch
+            )
+        if expected_cuda:
+            result["cuda_family_matches"] = actual_cuda.startswith(expected_cuda)
+
     result["ready"] = bool(
         result["repo_exists"]
         and result["repo_sha_matches"]
         and result["python_exists"]
         and result["cuda_ready"]
+        and result["python_version_matches"]
+        and result["torch_version_matches"]
+        and result["cuda_family_matches"]
     )
     return result
 
@@ -162,7 +203,9 @@ def main() -> int:
     args = parser.parse_args()
 
     lock = load_lock()
+    env_lock = load_env_lock()
     meta = {entry["id"]: entry for entry in lock["backends"]}
+    env_meta = env_lock.get("backends", {})
 
     requested = list(args.backend)
     if args.backends:
@@ -187,7 +230,14 @@ def main() -> int:
             ordered.append(backend)
 
     gpu = gpu_inventory()
-    probes = [backend_probe(meta[backend], args.model_root) for backend in ordered]
+    probes = [
+        backend_probe(
+            meta[backend],
+            args.model_root,
+            env_meta.get(backend),
+        )
+        for backend in ordered
+    ]
 
     report = {
         "engine": "HAYUYA GPU DOCTOR",
