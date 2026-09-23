@@ -3514,9 +3514,9 @@ bool VulkanStaticMeshRenderer::createPngTexture(
                 kMaxStreamedTextureMips));
     out.sourceMipBytes.fill(0U);
 
-    std::uint32_t mipWidth =
+    std::uint32_t registryMipWidth =
         out.width;
-    std::uint32_t mipHeight =
+    std::uint32_t registryMipHeight =
         out.height;
 
     for (std::uint32_t mip = 0U;
@@ -3526,19 +3526,19 @@ bool VulkanStaticMeshRenderer::createPngTexture(
             std::max<std::uint64_t>(
                 1U,
                 static_cast<std::uint64_t>(
-                    mipWidth) *
+                    registryMipWidth) *
                 static_cast<std::uint64_t>(
-                    mipHeight) *
+                    registryMipHeight) *
                 4U);
 
-        mipWidth =
+        registryMipWidth =
             std::max<std::uint32_t>(
                 1U,
-                mipWidth / 2U);
-        mipHeight =
+                registryMipWidth / 2U);
+        registryMipHeight =
             std::max<std::uint32_t>(
                 1U,
-                mipHeight / 2U);
+                registryMipHeight / 2U);
     }
 
     out.residentPayloadBytes =
