@@ -149,6 +149,10 @@ function handleEvent(event) {
   if (event.kind === "log") appendLog(event.line);
   if (event.kind === "stage") setProgress(event.stage, event.progress, event.status);
   if (event.kind === "candidate") refreshJob();
+  if (event.kind === "judge_score") {
+    appendLog(`Judge #${event.rank}: ${event.label} = ${event.score.toFixed(2)}`);
+    refreshJob();
+  }
   if (event.kind === "champion") {
     appendLog(`👑 Champion: ${event.label} score=${event.score}`);
     refreshJob();
