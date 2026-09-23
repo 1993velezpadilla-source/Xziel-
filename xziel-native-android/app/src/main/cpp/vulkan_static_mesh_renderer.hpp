@@ -38,6 +38,7 @@ struct StaticMeshFrameStats {
 
     std::uint32_t streamingCell = 0U;
     std::uint32_t streamingColdBatches = 0U;
+    std::uint32_t streamingCulledBatches = 0U;
     std::uint32_t streamingHotResources = 0U;
     std::uint32_t streamingPreloadResources = 0U;
     std::uint64_t streamingEvictableBytes = 0U;
@@ -320,6 +321,9 @@ private:
     mutable std::size_t streamDecisionCount_ = 0U;
     mutable std::uint64_t streamPlanFrame_ = 0U;
     mutable std::uint32_t lastLoggedStreamCell_ = 0U;
+    mutable std::uint32_t streamCellCandidate_ = 0U;
+    mutable std::uint32_t streamCellStableFrames_ = 0U;
+    mutable bool streamCullingActive_ = false;
 
     std::vector<GpuTexture> textures_{};
     std::vector<GpuMaterial> materials_{};
