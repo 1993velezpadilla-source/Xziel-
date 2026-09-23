@@ -280,7 +280,7 @@ def make_job_plan(
         "character_specialist": {
             "mode": character_specialist_mode,
             "backend": "PSHuman 768 6-view",
-            "activation": "character mode + complete PSHuman auxiliary assets + >=40GB VRAM",
+            "activation": "explicit non-off opt-in + --allow-restricted + character mode + complete PSHuman auxiliary assets + >=40GB VRAM",
             "policy": "specialist is one additional candidate and must win the same real-source Judge; never auto-promoted",
             "auxiliary_asset_gate": "smpl_related + PIXIE/SMPLX assets must exist; Hayuya does not auto-download separately licensed body-model data"
         },
@@ -490,8 +490,8 @@ def main() -> int:
     parser.add_argument(
         "--character-specialist",
         choices=["off", "auto", "required"],
-        default="auto",
-        help="PSHuman 40GB+ humanoid reconstruction challenger; auto activates only for character mode when fully provisioned",
+        default="off",
+        help="PSHuman 40GB+ humanoid challenger. Mixed third-party licensing: requires explicit non-off selection plus --allow-restricted.",
     )
     parser.add_argument(
         "--gameprep",
@@ -542,6 +542,8 @@ def main() -> int:
     mode = args.mode
     if mode == "auto":
         mode = infer_asset_mode(geometry_inputs[0])
+    if args.character_specialist != "off" and not args.allow_restricted:
+        parser.error("--character-specialist requires --allow-restricted because PSHuman includes separately licensed third-party human-model components")
     if args.character_specialist == "required" and mode != "character":
         parser.error("--character-specialist required needs --mode character or a character-path input")
 
