@@ -228,6 +228,12 @@ struct NativeAppState {
     xziel::ThermalLevel thermalLevel =
         xziel::ThermalLevel::Nominal;
 
+    float thermalHeadroom = -1.0f;
+    float cpuHeadroomPercent = -1.0f;
+    float gpuHeadroomPercent = -1.0f;
+    xziel::UserGameMode userGameMode =
+        xziel::UserGameMode::Standard;
+
     bool batterySaver = false;
     float displayRefreshHz = 60.0f;
 
@@ -596,6 +602,125 @@ xziel::ThermalLevel queryThermalLevel(
     }
 
     return xziel::ThermalLevel::Critical;
+}
+
+float queryCachedFloat(
+    NativeAppState& state,
+    const char* methodName) noexcept {
+    if (state.jniEnv == nullptr ||
+        state.javaActivity == nullptr ||
+        methodName == nullptr) {
+        return -1.0f;
+    }
+
+    JNIEnv* env = state.jniEnv;
+    jclass activityClass =
+        env->GetObjectClass(
+            state.javaActivity);
+
+    if (activityClass == nullptr) {
+        if (env->ExceptionCheck()) {
+            env->ExceptionClear();
+        }
+        return -1.0f;
+    }
+
+    jmethodID method =
+        env->GetMethodID(
+            activityClass,
+            methodName,
+            "()F");
+
+    if (method == nullptr) {
+        if (env->ExceptionCheck()) {
+            env->ExceptionClear();
+        }
+        env->DeleteLocalRef(
+            activityClass);
+        return -1.0f;
+    }
+
+    const jfloat value =
+        env->CallFloatMethod(
+            state.javaActivity,
+            method);
+
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+        env->DeleteLocalRef(
+            activityClass);
+        return -1.0f;
+    }
+
+    env->DeleteLocalRef(
+        activityClass);
+
+    const float result =
+        static_cast<float>(value);
+
+    return std::isfinite(result)
+        ? result
+        : -1.0f;
+}
+
+xziel::UserGameMode queryUserGameMode(
+    NativeAppState& state) noexcept {
+    if (state.jniEnv == nullptr ||
+        state.javaActivity == nullptr) {
+        return xziel::UserGameMode::Standard;
+    }
+
+    JNIEnv* env = state.jniEnv;
+    jclass activityClass =
+        env->GetObjectClass(
+            state.javaActivity);
+
+    if (activityClass == nullptr) {
+        if (env->ExceptionCheck()) {
+            env->ExceptionClear();
+        }
+        return xziel::UserGameMode::Standard;
+    }
+
+    jmethodID method =
+        env->GetMethodID(
+            activityClass,
+            "getXzielGameMode",
+            "()I");
+
+    if (method == nullptr) {
+        if (env->ExceptionCheck()) {
+            env->ExceptionClear();
+        }
+        env->DeleteLocalRef(
+            activityClass);
+        return xziel::UserGameMode::Standard;
+    }
+
+    const jint mode =
+        env->CallIntMethod(
+            state.javaActivity,
+            method);
+
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+        env->DeleteLocalRef(
+            activityClass);
+        return xziel::UserGameMode::Standard;
+    }
+
+    env->DeleteLocalRef(
+        activityClass);
+
+    if (mode == 2) {
+        return xziel::UserGameMode::Performance;
+    }
+
+    if (mode == 3) {
+        return xziel::UserGameMode::Battery;
+    }
+
+    return xziel::UserGameMode::Standard;
 }
 
 bool queryPowerSaveMode(
@@ -2716,6 +2841,25 @@ extern "C" void android_main(
                 queryThermalLevel(
                     state);
 
+            state.thermalHeadroom =
+                queryCachedFloat(
+                    state,
+                    "getXzielThermalHeadroom");
+
+            state.cpuHeadroomPercent =
+                queryCachedFloat(
+                    state,
+                    "getXzielCpuHeadroom");
+
+            state.gpuHeadroomPercent =
+                queryCachedFloat(
+                    state,
+                    "getXzielGpuHeadroom");
+
+            state.userGameMode =
+                queryUserGameMode(
+                    state);
+
             state.batterySaver =
                 queryPowerSaveMode(
                     state);
@@ -2723,6 +2867,18 @@ extern "C" void android_main(
             state.displayRefreshHz =
                 queryRefreshRate(
                     state);
+
+            __android_log_print(
+                ANDROID_LOG_INFO,
+                kTag,
+                "XZIEL_ADPF thermal=%d thermal_headroom=%.3f cpu_headroom=%.1f gpu_headroom=%.1f game_mode=%d refresh_hz=%.1f saver=%d",
+                static_cast<int>(state.thermalLevel),
+                static_cast<double>(state.thermalHeadroom),
+                static_cast<double>(state.cpuHeadroomPercent),
+                static_cast<double>(state.gpuHeadroomPercent),
+                static_cast<int>(state.userGameMode),
+                static_cast<double>(state.displayRefreshHz),
+                state.batterySaver ? 1 : 0);
 
             state.thermalPollSeconds = 0.0f;
         }
@@ -2821,7 +2977,7 @@ extern "C" void android_main(
             state.runtimePolicyPlanner.plan(
                 {
                     .gameMode =
-                        xziel::UserGameMode::Standard,
+                        state.userGameMode,
                     .memoryPressure =
                         state.memoryPressure,
                     .displayRefreshHz =
@@ -2829,6 +2985,12 @@ extern "C" void android_main(
                     .batterySaver =
                         state.batterySaver,
                     .charging = false,
+                    .thermalHeadroom =
+                        state.thermalHeadroom,
+                    .cpuHeadroomPercent =
+                        state.cpuHeadroomPercent,
+                    .gpuHeadroomPercent =
+                        state.gpuHeadroomPercent,
                 });
 
         state.renderWorkload =
