@@ -56,7 +56,7 @@ android {
     androidResources {
         // KTX2 is already GPU block-compressed. Keep it STORED in the APK so
         // future mip streaming can range-read the asset without ZIP inflate.
-        noCompress += ["ktx2"]
+        noCompress += ["ktx2", "xzsm"]
     }
 
     packaging {
