@@ -142,6 +142,22 @@
       "notes": "Fast single-image LRM; GLB output and texture baking make it ideal as a baseline candidate."
     },
     {
+      "id": "instant_meshes_retopo",
+      "role": [
+        "retopology",
+        "quad_remesh",
+        "cpu_gameprep"
+      ],
+      "repo": "https://github.com/wjakob/instant-meshes.git",
+      "sha": "7b3160864a2e1025af498c84cfed91cbfb613698",
+      "license": "BSD-3-Clause",
+      "enabled_by_default": false,
+      "min_vram_gb": 0,
+      "quality_tier": "production_topology",
+      "submodules": true,
+      "notes": "CPU field-aligned retopology. Batch CLI supports deterministic pure-quad or quad-dominant output. Optional because it requires a native C++ build; no GPU required."
+    },
+    {
       "id": "pshuman",
       "role": [
         "character_specialist",
