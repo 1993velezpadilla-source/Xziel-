@@ -258,6 +258,41 @@ def generate_spar3d(
     )
 
 
+def refine_triposf(
+    mesh_path: Path,
+    out_dir: Path,
+    *,
+    model_root: Path = DEFAULT_MODEL_ROOT,
+) -> Candidate:
+    repo = require_backend("triposf", model_root)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    config = repo / "configs" / "TripoSFVAE_1024.yaml"
+    cmd = [
+        backend_python("triposf"),
+        "inference.py",
+        "--mesh-path",
+        str(mesh_path.resolve()),
+        "--output-dir",
+        str(out_dir.resolve()),
+        "--config",
+        str(config.resolve()),
+    ]
+    run_checked(cmd, cwd=repo)
+    reconstructed = out_dir / f"{mesh_path.stem}_reconstruction.obj"
+    if not reconstructed.is_file():
+        raise RuntimeError(f"TripoSF did not create {reconstructed}")
+    return Candidate(
+        "triposf_refine",
+        reconstructed,
+        notes="SparseFlex 1024^3 geometry refinement challenger; materials require later bridge",
+    )
+
+
+REFINERS = {
+    "triposf": refine_triposf,
+}
+
+
 GENERATORS = {
     "triposg": generate_triposg,
     "triposr": generate_triposr,
