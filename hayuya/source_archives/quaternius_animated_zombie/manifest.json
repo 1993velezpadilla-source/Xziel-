@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "id": "quaternius_animated_zombie",
+  "license": "CC0",
+  "source_page": "https://quaternius.com/packs/animatedzombie.html",
+  "drive_folder": "https://drive.google.com/drive/folders/1AfOPRgr5Gl8gll9KfGDEUSYq_Ag7yPJG",
+  "source_file_count": 11,
+  "parts": [
+    {
+      "path": "hayuya/source_archives/quaternius_animated_zombie/parts/quaternius_animated_zombie.tar.gz.part-000",
+      "bytes": 9992756
+    }
+  ]
+}
