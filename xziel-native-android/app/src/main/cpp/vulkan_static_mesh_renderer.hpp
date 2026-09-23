@@ -140,6 +140,9 @@ private:
         VkBuffer stagingBuffer = VK_NULL_HANDLE;
         VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
         VkFence fence = VK_NULL_HANDLE;
+        std::uint8_t descriptorSwapMask = 0U;
+        bool preserveOldTexture = false;
+        bool uploadReady = false;
         bool active = false;
     };
 
@@ -324,6 +327,11 @@ private:
         std::uint32_t frameSlot,
         std::uint32_t replacementTextureIndex) noexcept;
 
+    [[nodiscard]] bool updateTextureDescriptorForFrame(
+        std::uint32_t textureIndex,
+        std::uint32_t frameSlot,
+        const GpuTexture& replacement) noexcept;
+
     [[nodiscard]] bool materialStreamingReady(
         const GpuMaterial& material,
         std::uint32_t frameSlot) const noexcept;
@@ -336,7 +344,8 @@ private:
     [[nodiscard]] bool beginRuntimeKtx2Upload(
         std::uint32_t textureIndex,
         std::uint32_t targetBaseMip,
-        std::vector<std::byte>&& bytes) noexcept;
+        std::vector<std::byte>&& bytes,
+        bool preserveOldTexture = false) noexcept;
 
     void serviceRuntimeTextureResidency(
         std::uint32_t frameSlot,
