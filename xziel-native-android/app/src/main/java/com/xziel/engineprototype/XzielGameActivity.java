@@ -42,6 +42,9 @@ public final class XzielGameActivity extends GameActivity {
     private volatile float cachedGpuHeadroom = Float.NaN;
     private volatile int cachedGameMode = 1;
 
+    private final XzielRealtimeBridge realtimeBridge =
+        new XzielRealtimeBridge();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -58,7 +61,46 @@ public final class XzielGameActivity extends GameActivity {
     protected void onDestroy() {
         performanceSamplerActive = false;
         performanceSampler.shutdownNow();
+        realtimeBridge.disconnect();
         super.onDestroy();
+    }
+
+    public String getXzielMultiplayerBaseUrl() {
+        return BuildConfig.XZIEL_MULTIPLAYER_BASE_URL;
+    }
+
+    public String getXzielMultiplayerTestKey() {
+        return BuildConfig.XZIEL_MULTIPLAYER_TEST_KEY;
+    }
+
+    public boolean connectXzielRealtime(
+        String baseUrl,
+        String roomCode,
+        String displayName,
+        String testKey
+    ) {
+        return realtimeBridge.connect(
+            baseUrl,
+            roomCode,
+            displayName,
+            testKey
+        );
+    }
+
+    public void disconnectXzielRealtime() {
+        realtimeBridge.disconnect();
+    }
+
+    public boolean sendXzielRealtime(byte[] payload) {
+        return realtimeBridge.send(payload);
+    }
+
+    public byte[] pollXzielRealtime() {
+        return realtimeBridge.poll();
+    }
+
+    public int getXzielRealtimeState() {
+        return realtimeBridge.state();
     }
 
     @Override
