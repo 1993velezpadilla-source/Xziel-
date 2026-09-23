@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 import json, os, shutil, sys, time
+from collections import Counter
 from pathlib import Path
 from PIL import Image, ImageFile
 from gradio_client import Client, handle_file
@@ -98,6 +99,23 @@ with Image.open(GEOMETRY) as source:
         "palette_transparency="+str("transparency" in source_info),
         "useful_alpha="+str(source_had_alpha)
     )
+
+    # Reject a known catastrophic input class before spending GPU quota:
+    # palette+tRNS files where one almost-opaque fill color dominates the
+    # visible image. This is what produced the Candyland "cross of planes".
+    if source_mode == "P" and "transparency" in source_info:
+        probe=source_rgba.resize((min(256,w), max(1,round(h*min(256,w)/w))), Image.Resampling.NEAREST)
+        visible=[px for px in probe.getdata() if px[3] > 16]
+        if visible:
+            rgba_count, rgba_n = Counter(visible).most_common(1)[0]
+            dominant_ratio = rgba_n / len(visible)
+            print("HAYUYA_PALETTE_DIAGNOSTIC", "dominant_ratio="+f"{dominant_ratio:.4f}", "rgba="+str(rgba_count))
+            if dominant_ratio > 0.35:
+                fail(
+                    "Rejected corrupt/suspicious palette+tRNS source before GPU generation: "
+                    f"one visible RGBA value occupies {dominant_ratio:.1%} of the foreground. "
+                    "Replace the source with the original RGB/RGBA reference."
+                )
 
     if w >= int(h*1.25):
         # Legacy/reference-sheet path: recover the four body panels from the left
