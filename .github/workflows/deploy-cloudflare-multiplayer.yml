@@ -1,0 +1,33 @@
+name: Deploy Cloudflare Multiplayer
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "multiplayer/cloudflare/**"
+      - ".github/workflows/deploy-cloudflare-multiplayer.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: multiplayer/cloudflare
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - run: npm install
+      - run: npm run check
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: multiplayer/cloudflare
+          command: deploy
