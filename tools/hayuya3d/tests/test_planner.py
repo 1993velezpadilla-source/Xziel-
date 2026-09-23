@@ -53,6 +53,24 @@ class HayuyaPlannerTests(unittest.TestCase):
         self.assertEqual(covered, set(refs))
         self.assertTrue(all(len(group) <= 6 for group in groups))
 
+    def test_multiview_groups_prioritize_angle_diversity(self):
+        refs = [
+            Path("/tmp/zombie_front.png"),
+            Path("/tmp/zombie_front_45_left.png"),
+            Path("/tmp/zombie_back_45_left.png"),
+            Path("/tmp/zombie_left_side.png"),
+            Path("/tmp/zombie_back.png"),
+            Path("/tmp/zombie_right_side.png"),
+            Path("/tmp/zombie_front_45_right.png"),
+            Path("/tmp/zombie_back_45_right.png"),
+        ]
+        groups = hayuya.make_reference_groups(refs, 4)
+        self.assertEqual(groups[0][0], refs[0])
+        self.assertEqual(
+            {p.name for p in groups[0][1:]},
+            {"zombie_right_side.png", "zombie_back.png", "zombie_left_side.png"},
+        )
+
     def test_anchor_budget_zero_means_all_sources(self):
         refs = [Path(f"/tmp/view-{i}.png") for i in range(11)]
         self.assertEqual(hayuya.limit_anchor_refs(refs, 0), refs)
