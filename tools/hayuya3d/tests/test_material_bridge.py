@@ -121,9 +121,10 @@ class MaterialBridgeTests(unittest.TestCase):
                 target_faces=8,
             )
             self.assertTrue(inspected.valid, f"inspect failed: {inspected.notes}")
-            self.assertGreaterEqual(
+            self.assertEqual(
                 inspected.material_score,
-                95.0,
+                85.0,
+                f"topology-safe bridge must not receive credit for stripped normal/AO: "
                 f"material_score={inspected.material_score} channels={inspected.pbr_channels} notes={inspected.notes}",
             )
             for channel in ("baseColor", "metallic", "roughness", "normal", "occlusion"):
