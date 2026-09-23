@@ -1,0 +1,83 @@
+name: Generate La Llorona V2 GLB (Hunyuan3D MultiView)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - art/llorona-v2-hayuya-rebuild
+    paths:
+      - assets/characters/llorona/v2/hayuya/**
+      - tools/llorona_v2_hunyuan_mv.py
+      - .github/workflows/generate-llorona-v2-hunyuan.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: llorona-v2-hunyuan-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify complete V2 Hayuya reference pack
+        run: |
+          set -euxo pipefail
+          root="assets/characters/llorona/v2/hayuya"
+          for f in             llorona_front.png             llorona_back.png             llorona_left_side.png             llorona_right_side.png             llorona_front_45_left.png             llorona_front_45_right.png             llorona_back_45_left.png             llorona_back_45_right.png; do
+            test -s "$root/individual/$f"
+          done
+          for f in             llorona_face_closeup.png             llorona_hair_detail.png             llorona_torso_detail.png             llorona_rosary_cross.png             llorona_dress_detail.png             llorona_hem_detail.png             llorona_hand_detail.png; do
+            test -s "$root/details/$f"
+          done
+          python3 - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          root=Path("assets/characters/llorona/v2/hayuya")
+          files=list((root/"individual").glob("*.png"))+list((root/"details").glob("*.png"))
+          assert len(list((root/"individual").glob("*.png"))) == 8
+          assert len(list((root/"details").glob("*.png"))) == 7
+          for p in files:
+              im=Image.open(p)
+              im.verify()
+              print("REF_OK", p, p.stat().st_size)
+          print("LLORONA_V2_REFERENCE_PACK_PASS")
+          PY
+
+      - name: Install Hunyuan client
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install "gradio_client>=1.10,<2" pillow
+
+      - name: Generate new V2 Hunyuan model
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python3 tools/llorona_v2_hunyuan_mv.py
+
+      - name: Validate V2 GLB
+        run: |
+          set -euxo pipefail
+          p="out/llorona-v2-hunyuan/llorona_v2_hunyuan_hq.glb"
+          test -s "$p"
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("out/llorona-v2-hunyuan/llorona_v2_hunyuan_hq.glb")
+          b=p.read_bytes()
+          assert b[:4] == b"glTF", b[:16]
+          assert len(b) > 1024, len(b)
+          print("LLORONA_V2_GLB_PASS", len(b))
+          PY
+
+      - name: Upload V2 model package
+        uses: actions/upload-artifact@v4
+        with:
+          name: la-llorona-v2-hunyuan-hq
+          path: out/llorona-v2-hunyuan/
+          if-no-files-found: error
+          retention-days: 14
