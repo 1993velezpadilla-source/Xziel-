@@ -691,9 +691,10 @@ jobs:
 
           if [[ "${GITHUB_REF_NAME}" == "engine/mobile-runtime-mip-demotion-v1" ]]; then
             grep -Eq "XZIEL_RUNTIME_MIP_DEMOTION_COMMIT .*old_base=[0-9]+ new_base=[1-9][0-9]* .*freed_payload_bytes=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
-            MIP_OLD="$(grep "XZIEL_RUNTIME_MIP_DEMOTION_COMMIT" dist/sanctum-hq-logcat.txt | head -n 1 | sed -n 's/.* old_base=\([0-9][0-9]*\).*/\1/p')"
-            MIP_NEW="$(grep "XZIEL_RUNTIME_MIP_DEMOTION_COMMIT" dist/sanctum-hq-logcat.txt | head -n 1 | sed -n 's/.* new_base=\([0-9][0-9]*\).*/\1/p')"
-            MIP_FREED="$(grep "XZIEL_RUNTIME_MIP_DEMOTION_COMMIT" dist/sanctum-hq-logcat.txt | head -n 1 | sed -n 's/.* freed_payload_bytes=\([0-9][0-9]*\).*/\1/p')"
+            FIRST_MIP_COMMIT="$(grep -m 1 "XZIEL_RUNTIME_MIP_DEMOTION_COMMIT" dist/sanctum-hq-logcat.txt)"
+            MIP_OLD="$(sed -n 's/.* old_base=\([0-9][0-9]*\).*/\1/p' <<<"${FIRST_MIP_COMMIT}")"
+            MIP_NEW="$(sed -n 's/.* new_base=\([0-9][0-9]*\).*/\1/p' <<<"${FIRST_MIP_COMMIT}")"
+            MIP_FREED="$(sed -n 's/.* freed_payload_bytes=\([0-9][0-9]*\).*/\1/p' <<<"${FIRST_MIP_COMMIT}")"
             test -n "${MIP_OLD}"
             test -n "${MIP_NEW}"
             test -n "${MIP_FREED}"
