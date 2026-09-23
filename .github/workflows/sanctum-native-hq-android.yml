@@ -248,6 +248,10 @@ jobs:
 
           "$GLSLC" -O -fshader-stage=frag             app/src/main/shaders/xziel_static_mesh.frag             -o app/src/main/assets/shaders/xziel_static_mesh.frag.spv
 
+          "$GLSLC" -O -fshader-stage=vert             app/src/main/shaders/xziel_scene_composite.vert             -o app/src/main/assets/shaders/xziel_scene_composite.vert.spv
+
+          "$GLSLC" -O -fshader-stage=frag             app/src/main/shaders/xziel_scene_composite.frag             -o app/src/main/assets/shaders/xziel_scene_composite.frag.spv
+
           "$GLSLC" -O -fshader-stage=vert             app/src/main/shaders/xziel_ui.vert             -o app/src/main/assets/shaders/xziel_ui.vert.spv
 
           "$GLSLC" -O -fshader-stage=frag             app/src/main/shaders/xziel_ui.frag             -o app/src/main/assets/shaders/xziel_ui.frag.spv

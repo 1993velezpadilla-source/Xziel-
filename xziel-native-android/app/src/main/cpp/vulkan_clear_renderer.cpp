@@ -86,15 +86,20 @@ bool VulkanClearRenderer::initialize(
         !createDevice() ||
         !createSwapchain() ||
         !createRenderPass() ||
+        !createUiRenderPass() ||
         !createGraphicsPipeline() ||
+        !createSceneCompositePipeline() ||
         !createUiPipeline() ||
         !createImageViews() ||
         !createSceneColorResources() ||
+        !createSceneResolveResources() ||
         !createDepthResources() ||
         !createCommandResources() ||
         !createPerformanceQueries() ||
         !createReflectionFallbackResources() ||
         !createFramebuffers() ||
+        !createUiFramebuffers() ||
+        !createSceneCompositeDescriptors() ||
         !createSyncObjects()) {
         logError("Vulkan initialization failed");
         shutdown();
@@ -312,6 +317,21 @@ bool VulkanClearRenderer::drawFrame(
 
         return ok(idleResult);
     };
+
+    const float requestedRenderScale =
+        std::isfinite(environment.renderScale)
+        ? std::clamp(environment.renderScale, 0.50f, 1.0f)
+        : 1.0f;
+
+    if (std::abs(
+            requestedRenderScale -
+            activeRenderScale_) > 0.015f) {
+        if (!waitForDeviceIdle() ||
+            !recreateSceneTargets(
+                requestedRenderScale)) {
+            return false;
+        }
+    }
 
     // Keep one reusable offscreen reflection target synchronized with the
     // adaptive workload. Allocation happens only when the scale changes, never
@@ -1416,6 +1436,8 @@ bool VulkanClearRenderer::createSwapchain() noexcept {
         surfaceFormat.format;
     swapchainExtent_ =
         extent;
+    updateSceneExtent(
+        activeRenderScale_);
 
     std::uint32_t actualCount = 0;
 
@@ -1542,102 +1564,93 @@ bool VulkanClearRenderer::createRenderPass() noexcept {
         useMsaa
         ? preferredSceneMsaa_
         : VK_SAMPLE_COUNT_1_BIT;
-    color.loadOp =
-        VK_ATTACHMENT_LOAD_OP_CLEAR;
+    color.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     color.storeOp =
         useMsaa
         ? VK_ATTACHMENT_STORE_OP_DONT_CARE
         : VK_ATTACHMENT_STORE_OP_STORE;
-    color.stencilLoadOp =
-        VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    color.stencilStoreOp =
-        VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    color.initialLayout =
-        VK_IMAGE_LAYOUT_UNDEFINED;
+    color.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    color.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    color.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     color.finalLayout =
         useMsaa
         ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-        : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
     VkAttachmentDescription depth{};
     depth.format = depthFormat_;
-    depth.samples =
-        preferredSceneMsaa_;
-    depth.loadOp =
-        VK_ATTACHMENT_LOAD_OP_CLEAR;
-    depth.storeOp =
-        VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depth.stencilLoadOp =
-        VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    depth.stencilStoreOp =
-        VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depth.initialLayout =
-        VK_IMAGE_LAYOUT_UNDEFINED;
-    depth.finalLayout =
-        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    depth.samples = preferredSceneMsaa_;
+    depth.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depth.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depth.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    depth.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depth.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    depth.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
     VkAttachmentDescription resolve{};
     resolve.format = swapchainFormat_;
-    resolve.samples =
-        VK_SAMPLE_COUNT_1_BIT;
-    resolve.loadOp =
-        VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    resolve.storeOp =
-        VK_ATTACHMENT_STORE_OP_STORE;
-    resolve.stencilLoadOp =
-        VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    resolve.stencilStoreOp =
-        VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    resolve.initialLayout =
-        VK_IMAGE_LAYOUT_UNDEFINED;
-    resolve.finalLayout =
-        VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    resolve.samples = VK_SAMPLE_COUNT_1_BIT;
+    resolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    resolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    resolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    resolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    resolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    resolve.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-    const std::array<VkAttachmentDescription, 3>
-        attachments{color, depth, resolve};
+    const std::array<VkAttachmentDescription, 3> attachments{
+        color,
+        depth,
+        resolve,
+    };
 
     VkAttachmentReference colorReference{};
     colorReference.attachment = 0U;
-    colorReference.layout =
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     VkAttachmentReference depthReference{};
     depthReference.attachment = 1U;
-    depthReference.layout =
-        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
     VkAttachmentReference resolveReference{};
     resolveReference.attachment = 2U;
-    resolveReference.layout =
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    resolveReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     VkSubpassDescription subpass{};
-    subpass.pipelineBindPoint =
-        VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass.colorAttachmentCount = 1U;
-    subpass.pColorAttachments =
-        &colorReference;
-    subpass.pDepthStencilAttachment =
-        &depthReference;
+    subpass.pColorAttachments = &colorReference;
+    subpass.pDepthStencilAttachment = &depthReference;
     subpass.pResolveAttachments =
         useMsaa
         ? &resolveReference
         : nullptr;
 
-    VkSubpassDependency dependency{};
-    dependency.srcSubpass =
-        VK_SUBPASS_EXTERNAL;
-    dependency.dstSubpass = 0U;
-    dependency.srcStageMask =
+    std::array<VkSubpassDependency, 2> dependencies{};
+
+    dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependencies[0].dstSubpass = 0U;
+    dependencies[0].srcStageMask =
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
         VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    dependency.dstStageMask =
+    dependencies[0].dstStageMask =
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
         VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    dependency.srcAccessMask = 0U;
-    dependency.dstAccessMask =
+    dependencies[0].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    dependencies[0].dstAccessMask =
         VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
         VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+    dependencies[1].srcSubpass = 0U;
+    dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+    dependencies[1].srcStageMask =
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependencies[1].dstStageMask =
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    dependencies[1].srcAccessMask =
+        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    dependencies[1].dstAccessMask =
+        VK_ACCESS_SHADER_READ_BIT;
 
     VkRenderPassCreateInfo createInfo{
         VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO
@@ -1646,14 +1659,12 @@ bool VulkanClearRenderer::createRenderPass() noexcept {
         useMsaa
         ? 3U
         : 2U;
-    createInfo.pAttachments =
-        attachments.data();
+    createInfo.pAttachments = attachments.data();
     createInfo.subpassCount = 1U;
-    createInfo.pSubpasses =
-        &subpass;
-    createInfo.dependencyCount = 1U;
-    createInfo.pDependencies =
-        &dependency;
+    createInfo.pSubpasses = &subpass;
+    createInfo.dependencyCount =
+        static_cast<std::uint32_t>(dependencies.size());
+    createInfo.pDependencies = dependencies.data();
 
     const VkResult result =
         vkCreateRenderPass(
@@ -1663,7 +1674,7 @@ bool VulkanClearRenderer::createRenderPass() noexcept {
             &renderPass_);
 
     if (!ok(result)) {
-        logError("vkCreateRenderPass failed");
+        logError("vkCreateRenderPass world failed");
         return false;
     }
 
@@ -1677,6 +1688,59 @@ bool VulkanClearRenderer::createRenderPass() noexcept {
     return true;
 }
 
+bool VulkanClearRenderer::createUiRenderPass() noexcept {
+    VkAttachmentDescription color{};
+    color.format = swapchainFormat_;
+    color.samples = VK_SAMPLE_COUNT_1_BIT;
+    color.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    color.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    color.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    color.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    color.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    color.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    VkAttachmentReference colorReference{};
+    colorReference.attachment = 0U;
+    colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    VkSubpassDescription subpass{};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1U;
+    subpass.pColorAttachments = &colorReference;
+
+    VkSubpassDependency dependency{};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0U;
+    dependency.srcStageMask =
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstStageMask =
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.srcAccessMask = 0U;
+    dependency.dstAccessMask =
+        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+    VkRenderPassCreateInfo info{
+        VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO
+    };
+    info.attachmentCount = 1U;
+    info.pAttachments = &color;
+    info.subpassCount = 1U;
+    info.pSubpasses = &subpass;
+    info.dependencyCount = 1U;
+    info.pDependencies = &dependency;
+
+    if (!ok(
+            vkCreateRenderPass(
+                device_,
+                &info,
+                nullptr,
+                &uiRenderPass_))) {
+        logError("vkCreateRenderPass native UI failed");
+        return false;
+    }
+
+    return true;
+}
 
 bool VulkanClearRenderer::createShaderModuleFromAsset(
     const char* assetPath,
@@ -1963,6 +2027,18 @@ bool VulkanClearRenderer::createGraphicsPipeline() noexcept {
         return false;
     }
 
+    constexpr std::array<VkDynamicState, 2> dynamicStates{{
+        VK_DYNAMIC_STATE_VIEWPORT,
+        VK_DYNAMIC_STATE_SCISSOR,
+    }};
+
+    VkPipelineDynamicStateCreateInfo dynamicState{
+        VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO
+    };
+    dynamicState.dynamicStateCount =
+        static_cast<std::uint32_t>(dynamicStates.size());
+    dynamicState.pDynamicStates = dynamicStates.data();
+
     VkGraphicsPipelineCreateInfo pipelineInfo{
         VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO
     };
@@ -1985,6 +2061,8 @@ bool VulkanClearRenderer::createGraphicsPipeline() noexcept {
         &depthStencil;
     pipelineInfo.pColorBlendState =
         &colorBlend;
+    pipelineInfo.pDynamicState =
+        &dynamicState;
     pipelineInfo.layout =
         pipelineLayout_;
     pipelineInfo.renderPass =
@@ -2027,6 +2105,205 @@ bool VulkanClearRenderer::createGraphicsPipeline() noexcept {
     }
 
     logInfo("XZIEL_3D_PIPELINE_READY");
+    return true;
+}
+
+bool VulkanClearRenderer::createSceneCompositePipeline() noexcept {
+    VkShaderModule vertex = VK_NULL_HANDLE;
+    VkShaderModule fragment = VK_NULL_HANDLE;
+
+    if (!createShaderModuleFromAsset(
+            "shaders/xziel_scene_composite.vert.spv",
+            vertex) ||
+        !createShaderModuleFromAsset(
+            "shaders/xziel_scene_composite.frag.spv",
+            fragment)) {
+        if (vertex != VK_NULL_HANDLE) {
+            vkDestroyShaderModule(device_, vertex, nullptr);
+        }
+        if (fragment != VK_NULL_HANDLE) {
+            vkDestroyShaderModule(device_, fragment, nullptr);
+        }
+        return false;
+    }
+
+    VkDescriptorSetLayoutBinding sceneBinding{};
+    sceneBinding.binding = 0U;
+    sceneBinding.descriptorType =
+        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    sceneBinding.descriptorCount = 1U;
+    sceneBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    VkDescriptorSetLayoutCreateInfo descriptorInfo{
+        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO
+    };
+    descriptorInfo.bindingCount = 1U;
+    descriptorInfo.pBindings = &sceneBinding;
+
+    if (!ok(
+            vkCreateDescriptorSetLayout(
+                device_,
+                &descriptorInfo,
+                nullptr,
+                &sceneCompositeDescriptorSetLayout_))) {
+        vkDestroyShaderModule(device_, fragment, nullptr);
+        vkDestroyShaderModule(device_, vertex, nullptr);
+        logError("scene composite descriptor layout failed");
+        return false;
+    }
+
+    VkSamplerCreateInfo samplerInfo{
+        VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO
+    };
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.minLod = 0.0f;
+    samplerInfo.maxLod = 0.0f;
+
+    if (!ok(
+            vkCreateSampler(
+                device_,
+                &samplerInfo,
+                nullptr,
+                &sceneCompositeSampler_))) {
+        vkDestroyShaderModule(device_, fragment, nullptr);
+        vkDestroyShaderModule(device_, vertex, nullptr);
+        logError("scene composite sampler failed");
+        return false;
+    }
+
+    VkPipelineLayoutCreateInfo layoutInfo{
+        VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO
+    };
+    layoutInfo.setLayoutCount = 1U;
+    layoutInfo.pSetLayouts =
+        &sceneCompositeDescriptorSetLayout_;
+
+    if (!ok(
+            vkCreatePipelineLayout(
+                device_,
+                &layoutInfo,
+                nullptr,
+                &sceneCompositePipelineLayout_))) {
+        vkDestroyShaderModule(device_, fragment, nullptr);
+        vkDestroyShaderModule(device_, vertex, nullptr);
+        logError("scene composite pipeline layout failed");
+        return false;
+    }
+
+    const std::array<VkPipelineShaderStageCreateInfo, 2> stages{{
+        {
+            VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            VK_SHADER_STAGE_VERTEX_BIT,
+            vertex,
+            "main",
+            nullptr,
+        },
+        {
+            VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            VK_SHADER_STAGE_FRAGMENT_BIT,
+            fragment,
+            "main",
+            nullptr,
+        },
+    }};
+
+    VkPipelineVertexInputStateCreateInfo vertexInput{
+        VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO
+    };
+
+    VkPipelineInputAssemblyStateCreateInfo inputAssembly{
+        VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO
+    };
+    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+    VkViewport viewport{};
+    viewport.width =
+        static_cast<float>(swapchainExtent_.width);
+    viewport.height =
+        static_cast<float>(swapchainExtent_.height);
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+
+    VkRect2D scissor{};
+    scissor.extent = swapchainExtent_;
+
+    VkPipelineViewportStateCreateInfo viewportState{
+        VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO
+    };
+    viewportState.viewportCount = 1U;
+    viewportState.pViewports = &viewport;
+    viewportState.scissorCount = 1U;
+    viewportState.pScissors = &scissor;
+
+    VkPipelineRasterizationStateCreateInfo raster{
+        VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO
+    };
+    raster.polygonMode = VK_POLYGON_MODE_FILL;
+    raster.cullMode = VK_CULL_MODE_NONE;
+    raster.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    raster.lineWidth = 1.0f;
+
+    VkPipelineMultisampleStateCreateInfo multisample{
+        VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO
+    };
+    multisample.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+    VkPipelineColorBlendAttachmentState colorAttachment{};
+    colorAttachment.colorWriteMask =
+        VK_COLOR_COMPONENT_R_BIT |
+        VK_COLOR_COMPONENT_G_BIT |
+        VK_COLOR_COMPONENT_B_BIT |
+        VK_COLOR_COMPONENT_A_BIT;
+
+    VkPipelineColorBlendStateCreateInfo colorBlend{
+        VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO
+    };
+    colorBlend.attachmentCount = 1U;
+    colorBlend.pAttachments = &colorAttachment;
+
+    VkGraphicsPipelineCreateInfo pipelineInfo{
+        VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO
+    };
+    pipelineInfo.stageCount =
+        static_cast<std::uint32_t>(stages.size());
+    pipelineInfo.pStages = stages.data();
+    pipelineInfo.pVertexInputState = &vertexInput;
+    pipelineInfo.pInputAssemblyState = &inputAssembly;
+    pipelineInfo.pViewportState = &viewportState;
+    pipelineInfo.pRasterizationState = &raster;
+    pipelineInfo.pMultisampleState = &multisample;
+    pipelineInfo.pColorBlendState = &colorBlend;
+    pipelineInfo.layout = sceneCompositePipelineLayout_;
+    pipelineInfo.renderPass = uiRenderPass_;
+    pipelineInfo.subpass = 0U;
+
+    const VkResult result =
+        vkCreateGraphicsPipelines(
+            device_,
+            VK_NULL_HANDLE,
+            1U,
+            &pipelineInfo,
+            nullptr,
+            &sceneCompositePipeline_);
+
+    vkDestroyShaderModule(device_, fragment, nullptr);
+    vkDestroyShaderModule(device_, vertex, nullptr);
+
+    if (!ok(result)) {
+        logError("scene composite graphics pipeline failed");
+        return false;
+    }
+
+    logInfo("XZIEL_SCENE_COMPOSITE_READY");
     return true;
 }
 
@@ -2141,7 +2418,7 @@ bool VulkanClearRenderer::createUiPipeline() noexcept {
         VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO
     };
     multisample.rasterizationSamples =
-        preferredSceneMsaa_;
+        VK_SAMPLE_COUNT_1_BIT;
     multisample.sampleShadingEnable =
         VK_FALSE;
 
@@ -2250,7 +2527,7 @@ bool VulkanClearRenderer::createUiPipeline() noexcept {
     pipelineInfo.layout =
         uiPipelineLayout_;
     pipelineInfo.renderPass =
-        renderPass_;
+        uiRenderPass_;
     pipelineInfo.subpass = 0;
 
     result =
@@ -2372,8 +2649,8 @@ bool VulkanClearRenderer::createSceneColorResources() noexcept {
         imageInfo.format =
             swapchainFormat_;
         imageInfo.extent = {
-            swapchainExtent_.width,
-            swapchainExtent_.height,
+            sceneExtent_.width,
+            sceneExtent_.height,
             1U,
         };
         imageInfo.mipLevels = 1U;
@@ -2489,6 +2766,109 @@ bool VulkanClearRenderer::createSceneColorResources() noexcept {
     return true;
 }
 
+bool VulkanClearRenderer::createSceneResolveResources() noexcept {
+    sceneResolveImages_.clear();
+    sceneResolveMemory_.clear();
+    sceneResolveViews_.clear();
+
+    const std::size_t count = swapchainImages_.size();
+
+    sceneResolveImages_.assign(count, VK_NULL_HANDLE);
+    sceneResolveMemory_.assign(count, VK_NULL_HANDLE);
+    sceneResolveViews_.assign(count, VK_NULL_HANDLE);
+
+    for (std::size_t i = 0U; i < count; ++i) {
+        VkImageCreateInfo imageInfo{
+            VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO
+        };
+        imageInfo.imageType = VK_IMAGE_TYPE_2D;
+        imageInfo.format = swapchainFormat_;
+        imageInfo.extent = {
+            sceneExtent_.width,
+            sceneExtent_.height,
+            1U,
+        };
+        imageInfo.mipLevels = 1U;
+        imageInfo.arrayLayers = 1U;
+        imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+        imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+        imageInfo.usage =
+            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+            VK_IMAGE_USAGE_SAMPLED_BIT;
+        imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+        if (!ok(
+                vkCreateImage(
+                    device_,
+                    &imageInfo,
+                    nullptr,
+                    &sceneResolveImages_[i]))) {
+            logError("scene resolve image creation failed");
+            return false;
+        }
+
+        VkMemoryRequirements requirements{};
+        vkGetImageMemoryRequirements(
+            device_,
+            sceneResolveImages_[i],
+            &requirements);
+
+        std::uint32_t memoryType = 0U;
+        if (!findMemoryType(
+                requirements.memoryTypeBits,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                memoryType)) {
+            logError("no device-local memory for scene resolve");
+            return false;
+        }
+
+        VkMemoryAllocateInfo allocation{
+            VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO
+        };
+        allocation.allocationSize = requirements.size;
+        allocation.memoryTypeIndex = memoryType;
+
+        if (!ok(
+                vkAllocateMemory(
+                    device_,
+                    &allocation,
+                    nullptr,
+                    &sceneResolveMemory_[i])) ||
+            !ok(
+                vkBindImageMemory(
+                    device_,
+                    sceneResolveImages_[i],
+                    sceneResolveMemory_[i],
+                    0U))) {
+            logError("scene resolve allocation failed");
+            return false;
+        }
+
+        VkImageViewCreateInfo view{
+            VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO
+        };
+        view.image = sceneResolveImages_[i];
+        view.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        view.format = swapchainFormat_;
+        view.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        view.subresourceRange.levelCount = 1U;
+        view.subresourceRange.layerCount = 1U;
+
+        if (!ok(
+                vkCreateImageView(
+                    device_,
+                    &view,
+                    nullptr,
+                    &sceneResolveViews_[i]))) {
+            logError("scene resolve view creation failed");
+            return false;
+        }
+    }
+
+    return true;
+}
+
 bool VulkanClearRenderer::createDepthResources() noexcept {
     const std::size_t count =
         swapchainImages_.size();
@@ -2516,8 +2896,8 @@ bool VulkanClearRenderer::createDepthResources() noexcept {
         imageInfo.format =
             depthFormat_;
         imageInfo.extent = {
-            swapchainExtent_.width,
-            swapchainExtent_.height,
+            sceneExtent_.width,
+            sceneExtent_.height,
             1,
         };
         imageInfo.mipLevels = 1;
@@ -2634,6 +3014,99 @@ bool VulkanClearRenderer::createDepthResources() noexcept {
         usedLazyTransientMemory
             ? "XZIEL_TRANSIENT_DEPTH_LAZY"
             : "XZIEL_TRANSIENT_DEPTH_DEVICE_LOCAL");
+
+    return true;
+}
+
+bool VulkanClearRenderer::createSceneCompositeDescriptors() noexcept {
+    if (sceneCompositeSampler_ == VK_NULL_HANDLE ||
+        sceneCompositeDescriptorSetLayout_ == VK_NULL_HANDLE ||
+        sceneResolveViews_.empty()) {
+        return false;
+    }
+
+    if (sceneCompositeDescriptorPool_ != VK_NULL_HANDLE) {
+        vkDestroyDescriptorPool(
+            device_,
+            sceneCompositeDescriptorPool_,
+            nullptr);
+        sceneCompositeDescriptorPool_ = VK_NULL_HANDLE;
+    }
+    sceneCompositeDescriptorSets_.clear();
+
+    VkDescriptorPoolSize poolSize{};
+    poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    poolSize.descriptorCount =
+        static_cast<std::uint32_t>(sceneResolveViews_.size());
+
+    VkDescriptorPoolCreateInfo poolInfo{
+        VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO
+    };
+    poolInfo.maxSets =
+        static_cast<std::uint32_t>(sceneResolveViews_.size());
+    poolInfo.poolSizeCount = 1U;
+    poolInfo.pPoolSizes = &poolSize;
+
+    if (!ok(
+            vkCreateDescriptorPool(
+                device_,
+                &poolInfo,
+                nullptr,
+                &sceneCompositeDescriptorPool_))) {
+        logError("scene composite descriptor pool failed");
+        return false;
+    }
+
+    std::vector<VkDescriptorSetLayout> layouts(
+        sceneResolveViews_.size(),
+        sceneCompositeDescriptorSetLayout_);
+
+    sceneCompositeDescriptorSets_.assign(
+        sceneResolveViews_.size(),
+        VK_NULL_HANDLE);
+
+    VkDescriptorSetAllocateInfo allocation{
+        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO
+    };
+    allocation.descriptorPool = sceneCompositeDescriptorPool_;
+    allocation.descriptorSetCount =
+        static_cast<std::uint32_t>(layouts.size());
+    allocation.pSetLayouts = layouts.data();
+
+    if (!ok(
+            vkAllocateDescriptorSets(
+                device_,
+                &allocation,
+                sceneCompositeDescriptorSets_.data()))) {
+        logError("scene composite descriptor allocation failed");
+        return false;
+    }
+
+    for (std::size_t i = 0U;
+         i < sceneCompositeDescriptorSets_.size();
+         ++i) {
+        VkDescriptorImageInfo image{};
+        image.sampler = sceneCompositeSampler_;
+        image.imageView = sceneResolveViews_[i];
+        image.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+        VkWriteDescriptorSet write{
+            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET
+        };
+        write.dstSet = sceneCompositeDescriptorSets_[i];
+        write.dstBinding = 0U;
+        write.descriptorCount = 1U;
+        write.descriptorType =
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        write.pImageInfo = &image;
+
+        vkUpdateDescriptorSets(
+            device_,
+            1U,
+            &write,
+            0U,
+            nullptr);
+    }
 
     return true;
 }
@@ -3345,60 +3818,48 @@ void VulkanClearRenderer::destroyReflectionTarget() noexcept {
 }
 
 bool VulkanClearRenderer::createFramebuffers() noexcept {
-    if (imageViews_.size() != depthViews_.size()) {
+    if (sceneResolveViews_.size() != depthViews_.size() ||
+        sceneResolveViews_.size() != swapchainImages_.size()) {
         return false;
     }
 
     const bool useMsaa =
-        preferredSceneMsaa_ !=
-        VK_SAMPLE_COUNT_1_BIT;
+        preferredSceneMsaa_ != VK_SAMPLE_COUNT_1_BIT;
 
     if (useMsaa &&
-        sceneColorViews_.size() !=
-            imageViews_.size()) {
+        sceneColorViews_.size() != sceneResolveViews_.size()) {
         return false;
     }
 
     framebuffers_.assign(
-        imageViews_.size(),
+        sceneResolveViews_.size(),
         VK_NULL_HANDLE);
 
-    for (std::size_t i = 0U;
-         i < framebuffers_.size();
-         ++i) {
-        std::array<VkImageView, 3>
-            attachments{};
-
+    for (std::size_t i = 0U; i < framebuffers_.size(); ++i) {
+        std::array<VkImageView, 3> attachments{};
         std::uint32_t attachmentCount = 0U;
 
         if (useMsaa) {
             attachments = {
                 sceneColorViews_[i],
                 depthViews_[i],
-                imageViews_[i],
+                sceneResolveViews_[i],
             };
             attachmentCount = 3U;
         } else {
-            attachments[0] =
-                imageViews_[i];
-            attachments[1] =
-                depthViews_[i];
+            attachments[0] = sceneResolveViews_[i];
+            attachments[1] = depthViews_[i];
             attachmentCount = 2U;
         }
 
         VkFramebufferCreateInfo framebuffer{
             VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO
         };
-        framebuffer.renderPass =
-            renderPass_;
-        framebuffer.attachmentCount =
-            attachmentCount;
-        framebuffer.pAttachments =
-            attachments.data();
-        framebuffer.width =
-            swapchainExtent_.width;
-        framebuffer.height =
-            swapchainExtent_.height;
+        framebuffer.renderPass = renderPass_;
+        framebuffer.attachmentCount = attachmentCount;
+        framebuffer.pAttachments = attachments.data();
+        framebuffer.width = sceneExtent_.width;
+        framebuffer.height = sceneExtent_.height;
         framebuffer.layers = 1U;
 
         if (!ok(
@@ -3407,7 +3868,44 @@ bool VulkanClearRenderer::createFramebuffers() noexcept {
                     &framebuffer,
                     nullptr,
                     &framebuffers_[i]))) {
-            logError("vkCreateFramebuffer failed");
+            logError("world framebuffer creation failed");
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool VulkanClearRenderer::createUiFramebuffers() noexcept {
+    if (uiRenderPass_ == VK_NULL_HANDLE ||
+        imageViews_.empty()) {
+        return false;
+    }
+
+    uiFramebuffers_.assign(
+        imageViews_.size(),
+        VK_NULL_HANDLE);
+
+    for (std::size_t i = 0U; i < uiFramebuffers_.size(); ++i) {
+        const VkImageView attachment = imageViews_[i];
+
+        VkFramebufferCreateInfo framebuffer{
+            VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO
+        };
+        framebuffer.renderPass = uiRenderPass_;
+        framebuffer.attachmentCount = 1U;
+        framebuffer.pAttachments = &attachment;
+        framebuffer.width = swapchainExtent_.width;
+        framebuffer.height = swapchainExtent_.height;
+        framebuffer.layers = 1U;
+
+        if (!ok(
+                vkCreateFramebuffer(
+                    device_,
+                    &framebuffer,
+                    nullptr,
+                    &uiFramebuffers_[i]))) {
+            logError("native UI framebuffer creation failed");
             return false;
         }
     }
@@ -3624,17 +4122,166 @@ void VulkanClearRenderer::resolvePerformanceQueries(
     }
 }
 
+void VulkanClearRenderer::updateSceneExtent(
+    float renderScale) noexcept {
+    const float safeScale =
+        std::isfinite(renderScale)
+        ? std::clamp(renderScale, 0.50f, 1.0f)
+        : 1.0f;
+
+    const auto scaledDimension =
+        [safeScale](std::uint32_t value) noexcept {
+            if (value <= 8U) {
+                return std::max(value, 1U);
+            }
+
+            std::uint32_t scaled =
+                static_cast<std::uint32_t>(
+                    std::max(
+                        1.0f,
+                        std::floor(
+                            static_cast<float>(value) *
+                            safeScale)));
+
+            scaled = std::min(scaled, value);
+            if (scaled >= 16U) {
+                scaled &= ~7U;
+            }
+            return std::max(scaled, 8U);
+        };
+
+    sceneExtent_.width =
+        scaledDimension(swapchainExtent_.width);
+    sceneExtent_.height =
+        scaledDimension(swapchainExtent_.height);
+    activeRenderScale_ = safeScale;
+}
+
+void VulkanClearRenderer::destroySceneTargets() noexcept {
+    if (device_ == VK_NULL_HANDLE) {
+        framebuffers_.clear();
+        sceneColorImages_.clear();
+        sceneColorMemory_.clear();
+        sceneColorViews_.clear();
+        sceneResolveImages_.clear();
+        sceneResolveMemory_.clear();
+        sceneResolveViews_.clear();
+        sceneCompositeDescriptorSets_.clear();
+        depthImages_.clear();
+        depthMemory_.clear();
+        depthViews_.clear();
+        return;
+    }
+
+    if (sceneCompositeDescriptorPool_ != VK_NULL_HANDLE) {
+        vkDestroyDescriptorPool(
+            device_,
+            sceneCompositeDescriptorPool_,
+            nullptr);
+        sceneCompositeDescriptorPool_ = VK_NULL_HANDLE;
+    }
+    sceneCompositeDescriptorSets_.clear();
+
+    for (const auto framebuffer : framebuffers_) {
+        if (framebuffer != VK_NULL_HANDLE) {
+            vkDestroyFramebuffer(device_, framebuffer, nullptr);
+        }
+    }
+    framebuffers_.clear();
+
+    const auto destroyViews =
+        [this](std::vector<VkImageView>& views) noexcept {
+            for (const auto view : views) {
+                if (view != VK_NULL_HANDLE) {
+                    vkDestroyImageView(device_, view, nullptr);
+                }
+            }
+            views.clear();
+        };
+
+    const auto destroyImages =
+        [this](std::vector<VkImage>& images) noexcept {
+            for (const auto image : images) {
+                if (image != VK_NULL_HANDLE) {
+                    vkDestroyImage(device_, image, nullptr);
+                }
+            }
+            images.clear();
+        };
+
+    const auto freeMemory =
+        [this](std::vector<VkDeviceMemory>& memory) noexcept {
+            for (const auto allocation : memory) {
+                if (allocation != VK_NULL_HANDLE) {
+                    vkFreeMemory(device_, allocation, nullptr);
+                }
+            }
+            memory.clear();
+        };
+
+    destroyViews(sceneColorViews_);
+    destroyImages(sceneColorImages_);
+    freeMemory(sceneColorMemory_);
+
+    destroyViews(sceneResolveViews_);
+    destroyImages(sceneResolveImages_);
+    freeMemory(sceneResolveMemory_);
+
+    destroyViews(depthViews_);
+    destroyImages(depthImages_);
+    freeMemory(depthMemory_);
+}
+
+bool VulkanClearRenderer::recreateSceneTargets(
+    float renderScale) noexcept {
+    const float requested =
+        std::isfinite(renderScale)
+        ? std::clamp(renderScale, 0.50f, 1.0f)
+        : 1.0f;
+
+    const auto createTargets = [this]() noexcept {
+        return
+            createSceneColorResources() &&
+            createSceneResolveResources() &&
+            createDepthResources() &&
+            createFramebuffers() &&
+            createSceneCompositeDescriptors();
+    };
+
+    destroySceneTargets();
+    updateSceneExtent(requested);
+
+    if (!createTargets()) {
+        logError("scaled scene target creation failed; retrying native scale");
+        destroySceneTargets();
+        updateSceneExtent(1.0f);
+
+        if (!createTargets()) {
+            logError("native-scale scene target fallback failed");
+            destroySceneTargets();
+            return false;
+        }
+    }
+
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
+        "XZIEL_DYNAMIC_RESOLUTION scale=%.2f scene=%ux%u native=%ux%u",
+        static_cast<double>(activeRenderScale_),
+        sceneExtent_.width,
+        sceneExtent_.height,
+        swapchainExtent_.width,
+        swapchainExtent_.height);
+
+    return true;
+}
+
 void VulkanClearRenderer::destroySwapchainResources() noexcept {
     if (device_ == VK_NULL_HANDLE) {
         swapchainImages_.clear();
         imageViews_.clear();
-        sceneColorImages_.clear();
-        sceneColorMemory_.clear();
-        sceneColorViews_.clear();
-        depthImages_.clear();
-        depthMemory_.clear();
-        depthViews_.clear();
-        framebuffers_.clear();
+        uiFramebuffers_.clear();
+        destroySceneTargets();
         commandBuffers_.clear();
         imageFences_.clear();
         return;
@@ -3647,14 +4294,14 @@ void VulkanClearRenderer::destroySwapchainResources() noexcept {
         vkFreeCommandBuffers(
             device_,
             commandPool_,
-            static_cast<std::uint32_t>(
-                commandBuffers_.size()),
+            static_cast<std::uint32_t>(commandBuffers_.size()),
             commandBuffers_.data());
     }
-
     commandBuffers_.clear();
 
-    for (const auto framebuffer : framebuffers_) {
+    destroySceneTargets();
+
+    for (const auto framebuffer : uiFramebuffers_) {
         if (framebuffer != VK_NULL_HANDLE) {
             vkDestroyFramebuffer(
                 device_,
@@ -3662,74 +4309,7 @@ void VulkanClearRenderer::destroySwapchainResources() noexcept {
                 nullptr);
         }
     }
-
-    framebuffers_.clear();
-
-    for (const auto view :
-         sceneColorViews_) {
-        if (view != VK_NULL_HANDLE) {
-            vkDestroyImageView(
-                device_,
-                view,
-                nullptr);
-        }
-    }
-    sceneColorViews_.clear();
-
-    for (const auto image :
-         sceneColorImages_) {
-        if (image != VK_NULL_HANDLE) {
-            vkDestroyImage(
-                device_,
-                image,
-                nullptr);
-        }
-    }
-    sceneColorImages_.clear();
-
-    for (const auto memory :
-         sceneColorMemory_) {
-        if (memory != VK_NULL_HANDLE) {
-            vkFreeMemory(
-                device_,
-                memory,
-                nullptr);
-        }
-    }
-    sceneColorMemory_.clear();
-
-    for (const auto view : depthViews_) {
-        if (view != VK_NULL_HANDLE) {
-            vkDestroyImageView(
-                device_,
-                view,
-                nullptr);
-        }
-    }
-
-    depthViews_.clear();
-
-    for (const auto image : depthImages_) {
-        if (image != VK_NULL_HANDLE) {
-            vkDestroyImage(
-                device_,
-                image,
-                nullptr);
-        }
-    }
-
-    depthImages_.clear();
-
-    for (const auto memory : depthMemory_) {
-        if (memory != VK_NULL_HANDLE) {
-            vkFreeMemory(
-                device_,
-                memory,
-                nullptr);
-        }
-    }
-
-    depthMemory_.clear();
+    uiFramebuffers_.clear();
 
     for (const auto view : imageViews_) {
         if (view != VK_NULL_HANDLE) {
@@ -3739,49 +4319,59 @@ void VulkanClearRenderer::destroySwapchainResources() noexcept {
                 nullptr);
         }
     }
-
     imageViews_.clear();
 
     if (uiPipeline_ != VK_NULL_HANDLE) {
-        vkDestroyPipeline(
-            device_,
-            uiPipeline_,
-            nullptr);
-        uiPipeline_ =
-            VK_NULL_HANDLE;
+        vkDestroyPipeline(device_, uiPipeline_, nullptr);
+        uiPipeline_ = VK_NULL_HANDLE;
+    }
+    if (uiPipelineLayout_ != VK_NULL_HANDLE) {
+        vkDestroyPipelineLayout(device_, uiPipelineLayout_, nullptr);
+        uiPipelineLayout_ = VK_NULL_HANDLE;
     }
 
-    if (uiPipelineLayout_ != VK_NULL_HANDLE) {
+    if (sceneCompositePipeline_ != VK_NULL_HANDLE) {
+        vkDestroyPipeline(device_, sceneCompositePipeline_, nullptr);
+        sceneCompositePipeline_ = VK_NULL_HANDLE;
+    }
+    if (sceneCompositePipelineLayout_ != VK_NULL_HANDLE) {
         vkDestroyPipelineLayout(
             device_,
-            uiPipelineLayout_,
+            sceneCompositePipelineLayout_,
             nullptr);
-        uiPipelineLayout_ =
-            VK_NULL_HANDLE;
+        sceneCompositePipelineLayout_ = VK_NULL_HANDLE;
+    }
+    if (sceneCompositeSampler_ != VK_NULL_HANDLE) {
+        vkDestroySampler(
+            device_,
+            sceneCompositeSampler_,
+            nullptr);
+        sceneCompositeSampler_ = VK_NULL_HANDLE;
+    }
+    if (sceneCompositeDescriptorSetLayout_ != VK_NULL_HANDLE) {
+        vkDestroyDescriptorSetLayout(
+            device_,
+            sceneCompositeDescriptorSetLayout_,
+            nullptr);
+        sceneCompositeDescriptorSetLayout_ = VK_NULL_HANDLE;
     }
 
     if (graphicsPipeline_ != VK_NULL_HANDLE) {
-        vkDestroyPipeline(
-            device_,
-            graphicsPipeline_,
-            nullptr);
-        graphicsPipeline_ =
-            VK_NULL_HANDLE;
+        vkDestroyPipeline(device_, graphicsPipeline_, nullptr);
+        graphicsPipeline_ = VK_NULL_HANDLE;
     }
-
     if (pipelineLayout_ != VK_NULL_HANDLE) {
-        vkDestroyPipelineLayout(
-            device_,
-            pipelineLayout_,
-            nullptr);
-        pipelineLayout_ =
-            VK_NULL_HANDLE;
+        vkDestroyPipelineLayout(device_, pipelineLayout_, nullptr);
+        pipelineLayout_ = VK_NULL_HANDLE;
     }
 
     destroyReflectionFallbackResources();
 
     if (reflectionDescriptorPool_ != VK_NULL_HANDLE) {
-        vkDestroyDescriptorPool(device_, reflectionDescriptorPool_, nullptr);
+        vkDestroyDescriptorPool(
+            device_,
+            reflectionDescriptorPool_,
+            nullptr);
         reflectionDescriptorPool_ = VK_NULL_HANDLE;
         reflectionDescriptorSet_ = VK_NULL_HANDLE;
     }
@@ -3789,30 +4379,26 @@ void VulkanClearRenderer::destroySwapchainResources() noexcept {
         vkDestroySampler(device_, reflectionSampler_, nullptr);
         reflectionSampler_ = VK_NULL_HANDLE;
     }
-
     if (reflectionDescriptorSetLayout_ != VK_NULL_HANDLE) {
         vkDestroyDescriptorSetLayout(
             device_,
             reflectionDescriptorSetLayout_,
             nullptr);
-        reflectionDescriptorSetLayout_ =
-            VK_NULL_HANDLE;
+        reflectionDescriptorSetLayout_ = VK_NULL_HANDLE;
     }
 
+    if (uiRenderPass_ != VK_NULL_HANDLE) {
+        vkDestroyRenderPass(device_, uiRenderPass_, nullptr);
+        uiRenderPass_ = VK_NULL_HANDLE;
+    }
     if (renderPass_ != VK_NULL_HANDLE) {
-        vkDestroyRenderPass(
-            device_,
-            renderPass_,
-            nullptr);
-        renderPass_ =
-            VK_NULL_HANDLE;
+        vkDestroyRenderPass(device_, renderPass_, nullptr);
+        renderPass_ = VK_NULL_HANDLE;
     }
 
     if (swapchain_ != VK_NULL_HANDLE) {
         if (swappyInitialized_) {
-            SwappyVk_destroySwapchain(
-                device_,
-                swapchain_);
+            SwappyVk_destroySwapchain(device_, swapchain_);
             swappyInitialized_ = false;
             refreshDurationNs_ = 0;
         }
@@ -3821,8 +4407,7 @@ void VulkanClearRenderer::destroySwapchainResources() noexcept {
             device_,
             swapchain_,
             nullptr);
-        swapchain_ =
-            VK_NULL_HANDLE;
+        swapchain_ = VK_NULL_HANDLE;
     }
 
     swapchainImages_.clear();
@@ -3841,8 +4426,7 @@ bool VulkanClearRenderer::recreateSwapchain() noexcept {
     }
 
     const VkResult idleResult =
-        vkDeviceWaitIdle(
-            device_);
+        vkDeviceWaitIdle(device_);
 
     if (!ok(idleResult)) {
         if (idleResult == VK_ERROR_DEVICE_LOST) {
@@ -3851,25 +4435,56 @@ bool VulkanClearRenderer::recreateSwapchain() noexcept {
         return false;
     }
 
+    weaponMesh_.shutdown();
+    sanctumMesh_.shutdown();
+
     destroySwapchainResources();
 
     const bool success =
         createSwapchain() &&
         createRenderPass() &&
+        createUiRenderPass() &&
         createGraphicsPipeline() &&
+        createSceneCompositePipeline() &&
         createUiPipeline() &&
         createImageViews() &&
         createSceneColorResources() &&
+        createSceneResolveResources() &&
         createDepthResources() &&
         createCommandResources() &&
         createReflectionFallbackResources() &&
-        createFramebuffers();
+        createFramebuffers() &&
+        createUiFramebuffers() &&
+        createSceneCompositeDescriptors();
 
     if (!success) {
         logError("Swapchain recreation failed");
+        return false;
     }
 
-    return success;
+    (void) sanctumMesh_.initialize(
+        physicalDevice_,
+        device_,
+        graphicsQueue_,
+        graphicsQueueFamily_,
+        commandPool_,
+        renderPass_,
+        preferredSceneMsaa_,
+        assetManager_,
+        "models/xziel/sanctum/sanctum.xzsm");
+
+    (void) weaponMesh_.initialize(
+        physicalDevice_,
+        device_,
+        graphicsQueue_,
+        graphicsQueueFamily_,
+        commandPool_,
+        renderPass_,
+        preferredSceneMsaa_,
+        assetManager_,
+        "models/xziel/weapons/standard_rifle.xzsm");
+
+    return true;
 }
 
 bool VulkanClearRenderer::recordDrawCommand(
@@ -3974,7 +4589,7 @@ bool VulkanClearRenderer::recordDrawCommand(
     render.renderArea.offset =
         {0, 0};
     render.renderArea.extent =
-        swapchainExtent_;
+        sceneExtent_;
     render.clearValueCount =
         static_cast<std::uint32_t>(
             clears.size());
@@ -4240,6 +4855,28 @@ bool VulkanClearRenderer::recordDrawCommand(
         &render,
         VK_SUBPASS_CONTENTS_INLINE);
 
+    VkViewport worldViewport{};
+    worldViewport.width =
+        static_cast<float>(sceneExtent_.width);
+    worldViewport.height =
+        static_cast<float>(sceneExtent_.height);
+    worldViewport.minDepth = 0.0f;
+    worldViewport.maxDepth = 1.0f;
+
+    VkRect2D worldScissor{};
+    worldScissor.extent = sceneExtent_;
+
+    vkCmdSetViewport(
+        command,
+        0U,
+        1U,
+        &worldViewport);
+    vkCmdSetScissor(
+        command,
+        0U,
+        1U,
+        &worldScissor);
+
     if (graphicsPipeline_ == VK_NULL_HANDLE ||
         pipelineLayout_ == VK_NULL_HANDLE) {
         vkCmdEndRenderPass(command);
@@ -4249,11 +4886,11 @@ bool VulkanClearRenderer::recordDrawCommand(
 
     if (sanctumMesh_.ready()) {
         const float sanctumAspect =
-            swapchainExtent_.height > 0U
+            sceneExtent_.height > 0U
             ? static_cast<float>(
-                  swapchainExtent_.width) /
+                  sceneExtent_.width) /
               static_cast<float>(
-                  swapchainExtent_.height)
+                  sceneExtent_.height)
             : 1.0f;
 
         StaticMeshCameraState sanctumCamera{};
@@ -4277,7 +4914,7 @@ bool VulkanClearRenderer::recordDrawCommand(
 
         sanctumMesh_.record(
             command,
-            swapchainExtent_,
+            sceneExtent_,
             sanctumCamera,
             sanctumEnvironment);
 
@@ -4308,11 +4945,11 @@ bool VulkanClearRenderer::recordDrawCommand(
     if (kImportedWeaponViewmodelEnabled &&
         weaponMesh_.ready()) {
         const float viewAspect =
-            swapchainExtent_.height > 0U
+            sceneExtent_.height > 0U
             ? static_cast<float>(
-                  swapchainExtent_.width) /
+                  sceneExtent_.width) /
               static_cast<float>(
-                  swapchainExtent_.height)
+                  sceneExtent_.height)
             : 1.0f;
 
         const float ads =
@@ -4381,7 +5018,7 @@ bool VulkanClearRenderer::recordDrawCommand(
 
         weaponMesh_.recordViewmodel(
             command,
-            swapchainExtent_,
+            sceneExtent_,
             weaponState);
     }
 
@@ -4417,11 +5054,11 @@ bool VulkanClearRenderer::recordDrawCommand(
         : 0.0f;
 
     const float aspect =
-        swapchainExtent_.height > 0
+        sceneExtent_.height > 0
         ? static_cast<float>(
-              swapchainExtent_.width) /
+              sceneExtent_.width) /
           static_cast<float>(
-              swapchainExtent_.height)
+              sceneExtent_.height)
         : 1.0f;
 
     const auto drawPrimitive = [&](
@@ -5849,12 +6486,58 @@ bool VulkanClearRenderer::recordDrawCommand(
         }
     }
 
+    vkCmdEndRenderPass(command);
+
     if (uiPipeline_ == VK_NULL_HANDLE ||
-        uiPipelineLayout_ == VK_NULL_HANDLE) {
-        vkCmdEndRenderPass(command);
-        logError("UI pipeline missing");
+        uiPipelineLayout_ == VK_NULL_HANDLE ||
+        sceneCompositePipeline_ == VK_NULL_HANDLE ||
+        sceneCompositePipelineLayout_ == VK_NULL_HANDLE ||
+        uiRenderPass_ == VK_NULL_HANDLE ||
+        imageIndex >= uiFramebuffers_.size() ||
+        imageIndex >= sceneCompositeDescriptorSets_.size()) {
+        logError("native UI/composite pipeline missing");
         return false;
     }
+
+    VkClearValue uiClear{};
+    uiClear.color.float32[0] = 0.0f;
+    uiClear.color.float32[1] = 0.0f;
+    uiClear.color.float32[2] = 0.0f;
+    uiClear.color.float32[3] = 1.0f;
+
+    VkRenderPassBeginInfo uiRender{
+        VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO
+    };
+    uiRender.renderPass = uiRenderPass_;
+    uiRender.framebuffer = uiFramebuffers_[imageIndex];
+    uiRender.renderArea.extent = swapchainExtent_;
+    uiRender.clearValueCount = 1U;
+    uiRender.pClearValues = &uiClear;
+
+    vkCmdBeginRenderPass(
+        command,
+        &uiRender,
+        VK_SUBPASS_CONTENTS_INLINE);
+
+    vkCmdBindPipeline(
+        command,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        sceneCompositePipeline_);
+    vkCmdBindDescriptorSets(
+        command,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        sceneCompositePipelineLayout_,
+        0U,
+        1U,
+        &sceneCompositeDescriptorSets_[imageIndex],
+        0U,
+        nullptr);
+    vkCmdDraw(
+        command,
+        3U,
+        1U,
+        0U,
+        0U);
 
     vkCmdBindPipeline(
         command,
