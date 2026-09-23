@@ -305,6 +305,10 @@ def _shape_drift(source: Path, repaired: Path) -> tuple[float, float, float]:
 
     src = _combine(source)
     dst = _combine(repaired)
+    # Unreferenced vertices are not part of the visible surface and may sit at
+    # arbitrary coordinates. Remove them before measuring geometry drift.
+    src.remove_unreferenced_vertices()
+    dst.remove_unreferenced_vertices()
 
     src_extent = np.asarray(src.extents, dtype=float)
     dst_extent = np.asarray(dst.extents, dtype=float)
