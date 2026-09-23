@@ -8,7 +8,7 @@ import subprocess
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-from material_bridge import transfer_best_material
+from material_bridge import _scene_meshes, transfer_best_material
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
@@ -108,27 +108,17 @@ def build_instant_meshes(
 def _geometry_only_obj(source_mesh: Path, output: Path) -> Path:
     import trimesh
 
-    loaded = trimesh.load(source_mesh, force="scene", process=False)
-    if hasattr(loaded, "geometry"):
-        meshes = [
-            g.copy()
-            for g in loaded.geometry.values()
-            if hasattr(g, "faces") and len(g.faces)
-        ]
-    else:
-        meshes = [loaded]
-    if not meshes:
-        raise ValueError(f"no triangle geometry in {source_mesh}")
-
-    geometry_only = []
-    for mesh in meshes:
-        geometry_only.append(
-            trimesh.Trimesh(
-                vertices=mesh.vertices.copy(),
-                faces=mesh.faces.copy(),
-                process=False,
-            )
+    # _scene_meshes applies glTF scene-node transforms before returning copies.
+    # Retopology must operate in the same world/object space used by Material Bridge.
+    meshes = _scene_meshes(source_mesh)
+    geometry_only = [
+        trimesh.Trimesh(
+            vertices=mesh.vertices.copy(),
+            faces=mesh.faces.copy(),
+            process=False,
         )
+        for mesh in meshes
+    ]
     merged = trimesh.util.concatenate(geometry_only)
     output.parent.mkdir(parents=True, exist_ok=True)
     merged.export(output)
