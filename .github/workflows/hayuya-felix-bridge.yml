@@ -1,0 +1,139 @@
+name: Hayuya Felix Bridge
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: hayuya-felix-bridge
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      matrix: ${{ steps.scan.outputs.matrix }}
+      count: ${{ steps.scan.outputs.count }}
+    steps:
+      - name: Checkout HAYUYA core
+        uses: actions/checkout@v4
+        with:
+          ref: art/hayuya-monster-v1
+          path: core
+          fetch-depth: 1
+
+      - name: Checkout Felix request workspace
+        run: git clone --depth 1 https://github.com/1993velezpadilla-source/legacy-cache-staging-03.git external/felix
+
+      - name: Find new Felix requests
+        id: scan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          workspace = Path('.').resolve()
+          core = workspace / 'core'
+          felix = workspace / 'external' / 'felix'
+          sys.path.insert(0, str(core / 'tools' / 'hayuya3d'))
+          from job_request import load_request
+
+          requests = felix / 'hayuya' / 'jobs' / 'requests'
+          include = []
+          if requests.is_dir():
+              for path in sorted(requests.glob('*.json')):
+                  data = load_request(path, felix)
+                  artifact = f"hayuya-job-{data['job_id']}"
+                  proc = subprocess.run(
+                      ['gh', 'api', f"/repos/{os.environ['GITHUB_REPOSITORY']}/actions/artifacts?name={artifact}&per_page=1"],
+                      check=True, text=True, stdout=subprocess.PIPE
+                  )
+                  existing = json.loads(proc.stdout).get('total_count', 0)
+                  if existing:
+                      print(f"SKIP already processed: {data['job_id']}")
+                      continue
+                  def pref(value):
+                      value = str(value or '').strip()
+                      return f"external/felix/{value}" if value else ''
+                  include.append({
+                      'request': str(path.relative_to(felix)),
+                      'job_id': data['job_id'],
+                      'owner': data['owner'],
+                      'title': data['title'],
+                      'geometry_input': pref(data['geometry_input']),
+                      'reference_dir': pref(data.get('reference_dir', '')),
+                      'detail_dir': pref(data.get('detail_dir', '')),
+                      'profile': data['profile'],
+                      'mode': data['mode'],
+                      'portable_target': data['portable_target'],
+                      'gpu_vram': str(data.get('gpu_vram', 24)),
+                      'backends': data.get('backends', 'triposg,trellis2,trellis,instantmesh,triposr'),
+                  })
+
+          matrix = json.dumps({'include': include}, separators=(',', ':'))
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as f:
+              f.write(f"matrix={matrix}\n")
+              f.write(f"count={len(include)}\n")
+          print(json.dumps(include, indent=2))
+          PY
+
+  generate:
+    needs: prepare
+    if: needs.prepare.outputs.count != '0'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    name: Felix / ${{ matrix.job_id }}
+    runs-on: [self-hosted, linux, x64, hayuya-gpu]
+    timeout-minutes: 360
+    concurrency:
+      group: hayuya-felix-${{ matrix.job_id }}
+      cancel-in-progress: false
+    env:
+      HAYUYA_JOB_ID: ${{ matrix.job_id }}
+      HAYUYA_GEOMETRY_INPUT: ${{ matrix.geometry_input }}
+      HAYUYA_REFERENCE_DIR: ${{ matrix.reference_dir }}
+      HAYUYA_DETAIL_DIR: ${{ matrix.detail_dir }}
+      HAYUYA_PROFILE: ${{ matrix.profile }}
+      HAYUYA_MODE: ${{ matrix.mode }}
+      HAYUYA_PORTABLE_TARGET: ${{ matrix.portable_target }}
+      HAYUYA_GPU_VRAM: ${{ matrix.gpu_vram }}
+      HAYUYA_BACKENDS: ${{ matrix.backends }}
+      HAYUYA_OUTPUT_ROOT: out/hayuya-jobs/${{ matrix.job_id }}/outputs
+      HAYUYA_EVIDENCE_ROOT: out/hayuya-jobs/${{ matrix.job_id }}/evidence
+
+    steps:
+      - name: Checkout HAYUYA core
+        uses: actions/checkout@v4
+        with:
+          ref: art/hayuya-monster-v1
+          fetch-depth: 1
+          lfs: true
+
+      - name: Checkout Felix assets
+        run: git clone --depth 1 https://github.com/1993velezpadilla-source/legacy-cache-staging-03.git external/felix
+
+      - name: Run Felix HAYUYA job
+        run: bash tools/hayuya3d/gpu_e2e.sh
+
+      - name: Upload isolated Felix result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hayuya-job-${{ matrix.job_id }}
+          path: out/hayuya-jobs/${{ matrix.job_id }}/**
+          if-no-files-found: warn
+          retention-days: 14
