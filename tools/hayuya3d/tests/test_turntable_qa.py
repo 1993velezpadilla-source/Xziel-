@@ -12,6 +12,7 @@ sys.path.insert(0, str(HAYUYA_DIR))
 from PIL import Image, ImageDraw
 
 from turntable_qa import (
+    build_turntable_comparison_sheet,
     color_histogram_similarity,
     score_source_to_turntable,
     select_frame,
@@ -47,6 +48,36 @@ class TurntableQATests(unittest.TestCase):
             self.assertIsNotNone(selected)
             self.assertEqual(selected[0], 90.0)
             self.assertLessEqual(selected[2], 1.0)
+
+    def test_comparison_sheet_is_written(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "source_front.png"
+            make_shape(source, kind="tall")
+            frames = []
+            for index, offset in enumerate(range(0, 360, 45)):
+                path = root / f"{index:02d}_{offset:03d}.png"
+                make_shape(path, kind="tall")
+                frames.append(path)
+
+            view = SourceViewScore(
+                source=str(source),
+                best_score=100.0,
+                best_azimuth=0.0,
+                best_elevation=0.0,
+                best_up_axis="y",
+                silhouette_iou=1.0,
+                boundary_f1=1.0,
+                mask_confidence=1.0,
+                mask_method="alpha",
+            )
+            result = score_source_to_turntable([source], [view], frames)
+            sheet = build_turntable_comparison_sheet(
+                result,
+                root / "comparison.png",
+            )
+            self.assertTrue(sheet and sheet.is_file())
+            self.assertGreater(sheet.stat().st_size, 100)
 
     def test_matching_source_and_turntable_pass(self):
         with tempfile.TemporaryDirectory() as tmp:
