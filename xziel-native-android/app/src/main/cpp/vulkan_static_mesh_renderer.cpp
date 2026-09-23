@@ -2208,39 +2208,157 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureResidency(
                         static_cast<unsigned int>(
                             texture.
                                 descriptorResidentMask));
-
-                    const std::uint8_t fullMask =
-                        static_cast<std::uint8_t>(
-                            (1U <<
-                                 kDescriptorFrames) -
-                            1U);
-
-                    if (streamResidencyProbeEnabled_ &&
-                        !streamResidencyProbeComplete_ &&
-                        streamResidencyProbeTextureIndex_ ==
-                            textureIndex &&
-                        texture.descriptorResidentMask ==
-                            fullMask) {
-                        streamResidencyProbeComplete_ =
-                            true;
-
-                        __android_log_print(
-                            ANDROID_LOG_INFO,
-                            kTag,
-                            "XZIEL_RUNTIME_TEXTURE_RELOAD_COMPLETE texture=%u base_mip=%u mask=%u",
-                            static_cast<unsigned int>(
-                                textureIndex),
-                            static_cast<unsigned int>(
-                                texture.residentBaseMip),
-                            static_cast<unsigned int>(
-                                texture.
-                                    descriptorResidentMask));
-                    }
                 }
                 return;
             }
 
-            continue;
+            if (texture.sourceMipLevels == 0U ||
+                texture.assetPath.size() < 5U ||
+                texture.assetPath.substr(
+                    texture.assetPath.size() - 5U) !=
+                    ".ktx2") {
+                continue;
+            }
+
+            std::uint32_t targetBaseMip =
+                std::min<std::uint32_t>(
+                    decision->desiredMipBias,
+                    texture.sourceMipLevels - 1U);
+
+            if (streamResidencyProbeEnabled_ &&
+                streamResidencyProbeReloadComplete_ &&
+                !streamResidencyProbeComplete_ &&
+                streamResidencyProbeTextureIndex_ ==
+                    textureIndex) {
+                targetBaseMip = 0U;
+            }
+
+            // Promotions must fit the steady-state texture budget after the
+            // old image retires. If full hot quality does not fit, choose the
+            // highest-quality mip tail that does instead of overcommitting.
+            if (targetBaseMip <
+                texture.residentBaseMip) {
+                const std::uint64_t currentPayload =
+                    texture.residentPayloadBytes;
+
+                while (targetBaseMip <
+                       texture.residentBaseMip) {
+                    const std::uint64_t targetPayload =
+                        texturePayloadFromMip(
+                            texture,
+                            targetBaseMip);
+
+                    const std::uint64_t steadyBytes =
+                        currentPayload <=
+                                textureResidentBytes_
+                        ? textureResidentBytes_ -
+                              currentPayload
+                        : 0U;
+
+                    if (targetPayload <=
+                        textureResidentBudgetBytes_ -
+                            std::min(
+                                textureResidentBudgetBytes_,
+                                steadyBytes)) {
+                        break;
+                    }
+
+                    ++targetBaseMip;
+                }
+            }
+
+            if (targetBaseMip ==
+                texture.residentBaseMip) {
+                continue;
+            }
+
+            const bool promotion =
+                targetBaseMip <
+                texture.residentBaseMip;
+
+            const std::uint32_t mipStableFrames =
+                streamResidencyProbeEnabled_
+                ? 8U
+                : promotion
+                  ? 8U
+                  : memoryPressure ==
+                        MemoryPressure::Critical
+                    ? 8U
+                    : memoryPressure ==
+                          MemoryPressure::Elevated
+                      ? 24U
+                      : 45U;
+
+            if (!streamCullingActive_ ||
+                streamCellStableFrames_ <
+                    mipStableFrames) {
+                continue;
+            }
+
+            if (!texture.runtimeLoadQueued) {
+                if (assetStreamer_.enqueue(
+                        texture.assetPath)) {
+                    texture.runtimeLoadQueued =
+                        true;
+
+                    __android_log_print(
+                        ANDROID_LOG_INFO,
+                        kTag,
+                        "XZIEL_RUNTIME_TEXTURE_MIP_CHANGE_QUEUED texture=%u old_base_mip=%u new_base_mip=%u direction=%s path=%s",
+                        static_cast<unsigned int>(
+                            textureIndex),
+                        static_cast<unsigned int>(
+                            texture.residentBaseMip),
+                        static_cast<unsigned int>(
+                            targetBaseMip),
+                        promotion
+                            ? "promote"
+                            : "demote",
+                        texture.assetPath.c_str());
+                }
+                return;
+            }
+
+            bool finished = false;
+            std::vector<std::byte> bytes;
+
+            const bool success =
+                assetStreamer_.tryTake(
+                    texture.assetPath,
+                    bytes,
+                    finished);
+
+            if (!finished) {
+                return;
+            }
+
+            texture.runtimeLoadQueued =
+                false;
+
+            if (!success) {
+                return;
+            }
+
+            if (beginRuntimeKtx2Upload(
+                    textureIndex,
+                    targetBaseMip,
+                    std::move(bytes))) {
+                __android_log_print(
+                    ANDROID_LOG_INFO,
+                    kTag,
+                    "XZIEL_RUNTIME_TEXTURE_MIP_CHANGE_SUBMITTED texture=%u old_base_mip=%u new_base_mip=%u direction=%s",
+                    static_cast<unsigned int>(
+                        textureIndex),
+                    static_cast<unsigned int>(
+                        texture.residentBaseMip),
+                    static_cast<unsigned int>(
+                        targetBaseMip),
+                    promotion
+                        ? "promote"
+                        : "demote");
+            }
+
+            return;
         }
 
         if (texture.physicallyResident &&
