@@ -10,6 +10,7 @@ on:
       - tools/hayuya3d/rig_gate.py
       - tools/hayuya3d/blender_animation_gate.py
       - hayuya/standards/hayuya_humanoid_v1.json
+      - hayuya/animation_library/quaternius-uam2/library.glb
       - .github/workflows/hayuya-autorig-prototype.yml
 
 permissions:
@@ -28,10 +29,10 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq blender python3-numpy
 
-      - name: Rig Candyland zombie with CC0 donor
+      - name: Rig Candyland zombie with canonical CC0 animation library
         run: |
           mkdir -p out/autorig
-          blender -b --python tools/hayuya3d/blender_autorig.py --             --target hayuya/models/candy-zombie-001/model.glb             --donor hayuya/rig_library/quaternius-human-rigged/model.glb             --output out/autorig/candy-zombie-001-rigged.glb             --report out/autorig/autorig-report.json
+          blender -b --python tools/hayuya3d/blender_autorig.py --             --target hayuya/models/candy-zombie-001/model.glb             --donor hayuya/animation_library/quaternius-uam2/library.glb             --output out/autorig/candy-zombie-001-rigged.glb             --report out/autorig/autorig-report.json
 
       - name: Validate exported rig and animations
         run: |
