@@ -10,6 +10,7 @@ on:
     paths:
       - ".github/workflows/sanctum-native-hq-android.yml"
       - ".github/workflows/sanctum-clean-source.yml"
+      - ".github/workflows/sanctum-astc-texture-pack.yml"
       - "tools/church_map/export_xziel_original_clean.py"
       - "tools/church_map/apply_exterior_microdetail.py"
       - "engine/**"
@@ -38,30 +39,46 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Wait for HQ church asset export
+      - name: Select validated Sanctum asset pack
         shell: bash
         run: |
           set -euo pipefail
 
-          RUN_ID=""
+          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-ktx2-astc-v1" ]]; then
+            for i in $(seq 1 120); do
+              RESPONSE="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs?branch=engine/mobile-ktx2-astc-v1&per_page=30")"
+              RUN_ID="$(jq -r '.workflow_runs[] | select(.name == "Sanctum ASTC Texture Pack" and .status == "completed" and .conclusion == "success") | .id' <<<"${RESPONSE}" | head -n 1)"
+
+              if [[ -n "${RUN_ID}" && "${RUN_ID}" != "null" ]]; then
+                echo "SANCTUM_ASSET_RUN_ID=${RUN_ID}" >> "$GITHUB_ENV"
+                echo "SANCTUM_ASSET_NAME=Xziel-Sanctum-Clean-Source-ASTC" >> "$GITHUB_ENV"
+                echo "SANCTUM_ASSET_KIND=astc" >> "$GITHUB_ENV"
+                echo "Using validated ASTC asset pack run ${RUN_ID}"
+                exit 0
+              fi
+
+              echo "Waiting for first validated ASTC pack on ${GITHUB_REF_NAME}"
+              sleep 20
+            done
+
+            echo "Timed out waiting for validated ASTC texture pack"
+            exit 1
+          fi
+
           for i in $(seq 1 120); do
-            RESPONSE="$(gh api               "/repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${SANCTUM_ASSET_SHA}&per_page=20")"
+            RESPONSE="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${SANCTUM_ASSET_SHA}&per_page=20")"
+            RUN_ID="$(jq -r '.workflow_runs[] | select(.name == "Sanctum Exterior Detail A-B Source") | .id' <<<"${RESPONSE}" | head -n 1)"
 
-            RUN_ID="$(jq -r '
-              .workflow_runs[]
-              | select(.name == "Sanctum Exterior Detail A-B Source")
-              | .id
-            ' <<<"$RESPONSE" | head -n 1)"
-
-            if [[ -n "$RUN_ID" && "$RUN_ID" != "null" ]]; then
-              STATUS="$(gh api                 "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}"                 --jq '.status')"
-              CONCLUSION="$(gh api                 "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}"                 --jq '.conclusion // ""')"
-
+            if [[ -n "${RUN_ID}" && "${RUN_ID}" != "null" ]]; then
+              STATUS="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}" --jq '.status')"
+              CONCLUSION="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}" --jq '.conclusion // ""')"
               echo "Sanctum HQ asset run ${RUN_ID}: ${STATUS} ${CONCLUSION}"
 
-              if [[ "$STATUS" == "completed" ]]; then
-                test "$CONCLUSION" = "success"
+              if [[ "${STATUS}" == "completed" ]]; then
+                test "${CONCLUSION}" = "success"
                 echo "SANCTUM_ASSET_RUN_ID=${RUN_ID}" >> "$GITHUB_ENV"
+                echo "SANCTUM_ASSET_NAME=Xziel-Sanctum-Clean-Source" >> "$GITHUB_ENV"
+                echo "SANCTUM_ASSET_KIND=png" >> "$GITHUB_ENV"
                 exit 0
               fi
             else
@@ -79,11 +96,11 @@ jobs:
         run: |
           set -euo pipefail
 
-          ARTIFACT_ID="$(gh api             "/repos/${GITHUB_REPOSITORY}/actions/runs/${SANCTUM_ASSET_RUN_ID}/artifacts"             --jq '.artifacts[]
-              | select(.name == "Xziel-Sanctum-Clean-Source")
-              | .id'             | head -n 1)"
+          ARTIFACTS="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${SANCTUM_ASSET_RUN_ID}/artifacts")"
+          ARTIFACT_ID="$(jq -r --arg NAME "${SANCTUM_ASSET_NAME}" '.artifacts[] | select(.name == $NAME and .expired == false) | .id' <<<"${ARTIFACTS}" | head -n 1)"
 
-          test -n "$ARTIFACT_ID"
+          test -n "${ARTIFACT_ID}"
+          test "${ARTIFACT_ID}" != "null"
 
           mkdir -p build/sanctum-artifact
           gh api             "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip"             > build/sanctum-artifact.zip
@@ -194,11 +211,21 @@ jobs:
 
           test -s             xziel-native-android/app/src/main/assets/models/xziel/sanctum/sanctum.xzsm
 
-          TEXTURE_COUNT="$(find             xziel-native-android/app/src/main/assets/textures/xziel/sanctum             -type f -name '*.png' | wc -l)"
+          TEXTURE_COUNT="$(find xziel-native-android/app/src/main/assets/textures/xziel/sanctum -type f -name '*.png' | wc -l)"
+          KTX2_COUNT="$(find xziel-native-android/app/src/main/assets/textures -type f -name '*.ktx2' | wc -l)"
 
-          test "$TEXTURE_COUNT" -gt 0
+          test "${TEXTURE_COUNT}" -gt 0
 
-          echo "Staged ${TEXTURE_COUNT} native Sanctum albedo textures"
+          if [[ "${SANCTUM_ASSET_KIND}" == "astc" ]]; then
+            test "${KTX2_COUNT}" -gt 0
+            ASTC_REPORT="$(find build/sanctum-artifact -name 'xziel_astc_texture_report.json' -print -quit)"
+            test -s "${ASTC_REPORT}"
+            jq -e '.codec == "ASTC_LDR"' "${ASTC_REPORT}"
+            jq -e '.pngCount == .ktx2Count and .ktx2Count > 0' "${ASTC_REPORT}"
+            cp "${ASTC_REPORT}" build/xziel-astc-texture-report.json
+          fi
+
+          echo "Staged ${TEXTURE_COUNT} PNG fallback textures and ${KTX2_COUNT} KTX2 textures"
           du -sh             xziel-native-android/app/src/main/assets/models/xziel/sanctum             xziel-native-android/app/src/main/assets/textures/xziel/sanctum
 
       - name: Build and test native Xziel core
@@ -283,6 +310,34 @@ jobs:
           grep -q             "assets/audio/xziel/weapons/standard_rifle_reload.wav"             build/sanctum-hq-apk-contents.txt
 
           grep -q             "assets/textures/xziel/sanctum/.*\.png"             build/sanctum-hq-apk-contents.txt
+
+          if [[ "${SANCTUM_ASSET_KIND}" == "astc" ]]; then
+            grep -q             "assets/textures/xziel/sanctum/.*\.ktx2"             build/sanctum-hq-apk-contents.txt
+
+            python3 - "${APK}" <<'PY'
+          import sys
+          import zipfile
+
+          apk = sys.argv[1]
+          with zipfile.ZipFile(apk) as archive:
+              entries = [
+                  info for info in archive.infolist()
+                  if info.filename.endswith(".ktx2")
+              ]
+              if not entries:
+                  raise SystemExit("no KTX2 assets in APK")
+              compressed = [
+                  info.filename for info in entries
+                  if info.compress_type != zipfile.ZIP_STORED
+              ]
+              if compressed:
+                  raise SystemExit(
+                      "KTX2 assets were ZIP-compressed: " +
+                      ", ".join(compressed[:8])
+                  )
+              print(f"XZIEL_KTX2_APK_STORED count={len(entries)}")
+          PY
+          fi
 
           grep -q             "assets/shaders/xziel_static_mesh.vert.spv"             build/sanctum-hq-apk-contents.txt
 
