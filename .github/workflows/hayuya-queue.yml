@@ -189,9 +189,12 @@ jobs:
           if [ -f "$HAYUYA_OUTPUT_ROOT/manifest.json" ]; then
             cp "$HAYUYA_OUTPUT_ROOT/manifest.json" "$model_dir/manifest.json"
           fi
-          rm -rf "$model_dir/prepared_views"
+          rm -rf "$model_dir/prepared_views" "$model_dir/prepared_details"
           if [ -d "$HAYUYA_OUTPUT_ROOT/prepared_views" ]; then
             cp -R "$HAYUYA_OUTPUT_ROOT/prepared_views" "$model_dir/prepared_views"
+          fi
+          if [ -d "$HAYUYA_OUTPUT_ROOT/prepared_details" ]; then
+            cp -R "$HAYUYA_OUTPUT_ROOT/prepared_details" "$model_dir/prepared_details"
           fi
 
           git config user.name "github-actions[bot]"
