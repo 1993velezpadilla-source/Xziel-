@@ -1,0 +1,13 @@
+ID: kenney-mini-male-a
+Display name: Kenney Mini Character Male A
+Author: Kenney
+License: CC0-1.0
+Source page: https://kenney.nl/assets/mini-characters
+Mirror page: https://github.com/Mathis-14/mantra-raise-hackathon
+Model URL: https://raw.githubusercontent.com/Mathis-14/mantra-raise-hackathon/main/game/assets/models/mini-characters/Models/GLB%20format/character-male-a.glb
+Preview URL: https://raw.githubusercontent.com/Mathis-14/mantra-raise-hackathon/main/game/assets/models/mini-characters/Previews/character-male-a.png
+License URL: https://raw.githubusercontent.com/Mathis-14/mantra-raise-hackathon/main/game/assets/models/mini-characters/License.txt
+model.glb SHA256: 77572792bfe2773b715b8cd8e18644b52b3e1f155fe10450254b50f9c364382a
+preview.png SHA256: 150c2758ac470cc9b4e257999a66511beac6fe798ad6fcd84c911d81f56a97ab
+
+Policy: the downloaded GLB is the dimensional authority for all future texture/reference generation.

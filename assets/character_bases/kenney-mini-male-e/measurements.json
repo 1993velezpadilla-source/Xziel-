@@ -1,0 +1,508 @@
+{
+  "animation_count": 32,
+  "animations": [
+    {
+      "channels": 21,
+      "duration_seconds": 0.1,
+      "index": 0,
+      "name": "static"
+    },
+    {
+      "channels": 4,
+      "duration_seconds": 1.333333,
+      "index": 1,
+      "name": "idle"
+    },
+    {
+      "channels": 7,
+      "duration_seconds": 0.666667,
+      "index": 2,
+      "name": "walk"
+    },
+    {
+      "channels": 7,
+      "duration_seconds": 0.5,
+      "index": 3,
+      "name": "sprint"
+    },
+    {
+      "channels": 7,
+      "duration_seconds": 0.5,
+      "index": 4,
+      "name": "jump"
+    },
+    {
+      "channels": 5,
+      "duration_seconds": 0.333333,
+      "index": 5,
+      "name": "fall"
+    },
+    {
+      "channels": 8,
+      "duration_seconds": 0.166667,
+      "index": 6,
+      "name": "crouch"
+    },
+    {
+      "channels": 5,
+      "duration_seconds": 0.166667,
+      "index": 7,
+      "name": "sit"
+    },
+    {
+      "channels": 5,
+      "duration_seconds": 0.166667,
+      "index": 8,
+      "name": "drive"
+    },
+    {
+      "channels": 8,
+      "duration_seconds": 0.333333,
+      "index": 9,
+      "name": "die"
+    },
+    {
+      "channels": 4,
+      "duration_seconds": 0.333333,
+      "index": 10,
+      "name": "pick-up"
+    },
+    {
+      "channels": 4,
+      "duration_seconds": 0.666667,
+      "index": 11,
+      "name": "emote-yes"
+    },
+    {
+      "channels": 4,
+      "duration_seconds": 0.666667,
+      "index": 12,
+      "name": "emote-no"
+    },
+    {
+      "channels": 2,
+      "duration_seconds": 0.166667,
+      "index": 13,
+      "name": "holding-right"
+    },
+    {
+      "channels": 2,
+      "duration_seconds": 0.166667,
+      "index": 14,
+      "name": "holding-left"
+    },
+    {
+      "channels": 2,
+      "duration_seconds": 0.166667,
+      "index": 15,
+      "name": "holding-both"
+    },
+    {
+      "channels": 4,
+      "duration_seconds": 0.2,
+      "index": 16,
+      "name": "holding-right-shoot"
+    },
+    {
+      "channels": 4,
+      "duration_seconds": 0.2,
+      "index": 17,
+      "name": "holding-left-shoot"
+    },
+    {
+      "channels": 4,
+      "duration_seconds": 0.2,
+      "index": 18,
+      "name": "holding-both-shoot"
+    },
+    {
+      "channels": 7,
+      "duration_seconds": 0.416667,
+      "index": 19,
+      "name": "attack-melee-right"
+    },
+    {
+      "channels": 7,
+      "duration_seconds": 0.416667,
+      "index": 20,
+      "name": "attack-melee-left"
+    },
+    {
+      "channels": 7,
+      "duration_seconds": 0.533333,
+      "index": 21,
+      "name": "attack-kick-right"
+    },
+    {
+      "channels": 7,
+      "duration_seconds": 0.533333,
+      "index": 22,
+      "name": "attack-kick-left"
+    },
+    {
+      "channels": 4,
+      "duration_seconds": 0.666667,
+      "index": 23,
+      "name": "interact-right"
+    },
+    {
+      "channels": 4,
+      "duration_seconds": 0.666667,
+      "index": 24,
+      "name": "interact-left"
+    },
+    {
+      "channels": 7,
+      "duration_seconds": 0.166667,
+      "index": 25,
+      "name": "wheelchair-sit"
+    },
+    {
+      "channels": 9,
+      "duration_seconds": 0.333333,
+      "index": 26,
+      "name": "wheelchair-look-left"
+    },
+    {
+      "channels": 9,
+      "duration_seconds": 0.333333,
+      "index": 27,
+      "name": "wheelchair-look-right"
+    },
+    {
+      "channels": 9,
+      "duration_seconds": 0.5,
+      "index": 28,
+      "name": "wheelchair-move-forward"
+    },
+    {
+      "channels": 9,
+      "duration_seconds": 0.5,
+      "index": 29,
+      "name": "wheelchair-move-back"
+    },
+    {
+      "channels": 9,
+      "duration_seconds": 0.5,
+      "index": 30,
+      "name": "wheelchair-move-left"
+    },
+    {
+      "channels": 9,
+      "duration_seconds": 0.5,
+      "index": 31,
+      "name": "wheelchair-move-right"
+    }
+  ],
+  "author": "Kenney",
+  "default_world_dimensions": {
+    "depth_m": 0.885312,
+    "height_m": 1.75,
+    "width_m": 1.986111
+  },
+  "default_world_height_m": 1.75,
+  "display_name": "Kenney Mini Character Male E",
+  "format": "glTF 2.0 / GLB",
+  "generator": "UnityGLTF",
+  "head_bounds_default_world_m": {
+    "depth_m": 0.885312,
+    "height_m": 0.861366,
+    "width_m": 1.174064
+  },
+  "head_bounds_native": {
+    "depth_z": 0.34196646,
+    "height_y": 0.33271676,
+    "max": [
+      0.22675087,
+      0.67596656,
+      0.16960528
+    ],
+    "min": [
+      -0.22675087,
+      0.3432498,
+      -0.17236118
+    ],
+    "size_xyz": [
+      0.45350174,
+      0.33271676,
+      0.34196646
+    ],
+    "width_x": 0.45350174
+  },
+  "id": "kenney-mini-male-e",
+  "joint_count": 7,
+  "joint_segments": [
+    {
+      "child_index": 2,
+      "child_name": "leg-left",
+      "length_native": 0.19716676,
+      "length_world_m": 0.510442,
+      "parent_index": 1,
+      "parent_name": "root"
+    },
+    {
+      "child_index": 3,
+      "child_name": "leg-right",
+      "length_native": 0.19716676,
+      "length_world_m": 0.510442,
+      "parent_index": 1,
+      "parent_name": "root"
+    },
+    {
+      "child_index": 4,
+      "child_name": "torso",
+      "length_native": 0.17857946,
+      "length_world_m": 0.462322,
+      "parent_index": 1,
+      "parent_name": "root"
+    },
+    {
+      "child_index": 5,
+      "child_name": "arm-left",
+      "length_native": 0.15014614,
+      "length_world_m": 0.388711,
+      "parent_index": 4,
+      "parent_name": "torso"
+    },
+    {
+      "child_index": 6,
+      "child_name": "arm-right",
+      "length_native": 0.15014614,
+      "length_world_m": 0.388711,
+      "parent_index": 4,
+      "parent_name": "torso"
+    },
+    {
+      "child_index": 7,
+      "child_name": "head",
+      "length_native": 0.16907208,
+      "length_world_m": 0.437708,
+      "parent_index": 4,
+      "parent_name": "torso"
+    }
+  ],
+  "joints": [
+    {
+      "index": 1,
+      "name": "root",
+      "rest_position_native": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rest_position_world_m": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "index": 2,
+      "name": "leg-left",
+      "rest_position_native": [
+        0.08357096,
+        0.17625,
+        -0.02875
+      ],
+      "rest_position_world_m": [
+        0.216356,
+        0.456291,
+        -0.07443
+      ]
+    },
+    {
+      "index": 3,
+      "name": "leg-right",
+      "rest_position_native": [
+        -0.08357096,
+        0.17625,
+        -0.02875
+      ],
+      "rest_position_world_m": [
+        -0.216356,
+        0.456291,
+        -0.07443
+      ]
+    },
+    {
+      "index": 4,
+      "name": "torso",
+      "rest_position_native": [
+        -0.0,
+        0.17625,
+        -0.02875
+      ],
+      "rest_position_world_m": [
+        -0.0,
+        0.456291,
+        -0.07443
+      ]
+    },
+    {
+      "index": 5,
+      "name": "arm-left",
+      "rest_position_native": [
+        0.09989677,
+        0.28775,
+        -0.01725
+      ],
+      "rest_position_world_m": [
+        0.258621,
+        0.744952,
+        -0.044658
+      ]
+    },
+    {
+      "index": 6,
+      "name": "arm-right",
+      "rest_position_native": [
+        -0.09989677,
+        0.28775,
+        -0.01725
+      ],
+      "rest_position_world_m": [
+        -0.258621,
+        0.744952,
+        -0.044658
+      ]
+    },
+    {
+      "index": 7,
+      "name": "head",
+      "rest_position_native": [
+        0.0,
+        0.34325,
+        -0.00236122
+      ],
+      "rest_position_world_m": [
+        0.0,
+        0.888635,
+        -0.006113
+      ]
+    }
+  ],
+  "license": "CC0-1.0",
+  "material_count": 1,
+  "measurement_notes": [
+    "Native GLB coordinates and geometry are the dimensional authority.",
+    "Default world metres are a convenience scale derived from the configured default height.",
+    "Future creature concepts must preserve the selected base model's normalized ratios unless an explicit deformation is requested.",
+    "Joint segment measurements are rest-pose distances. Mesh bounds are exact geometry bounds in the stored GLB rest pose."
+  ],
+  "mesh_count": 2,
+  "meshes": [
+    {
+      "bounds_native": {
+        "depth_z": 0.26985331,
+        "height_y": 0.36824991,
+        "max": [
+          0.38358414,
+          0.36825001,
+          0.10699207
+        ],
+        "min": [
+          -0.38358414,
+          1e-07,
+          -0.16286124
+        ],
+        "size_xyz": [
+          0.76716828,
+          0.36824991,
+          0.26985331
+        ],
+        "width_x": 0.76716828
+      },
+      "mesh_index": 0,
+      "mesh_name": "body-mesh",
+      "node_index": 8,
+      "node_name": "body-mesh",
+      "triangle_count": 422,
+      "vertex_count": 728
+    },
+    {
+      "bounds_native": {
+        "depth_z": 0.34196647,
+        "height_y": 0.33271676,
+        "max": [
+          0.22675087,
+          0.67596656,
+          0.16960528
+        ],
+        "min": [
+          -0.22675087,
+          0.3432498,
+          -0.17236118
+        ],
+        "size_xyz": [
+          0.45350173,
+          0.33271676,
+          0.34196647
+        ],
+        "width_x": 0.45350173
+      },
+      "mesh_index": 1,
+      "mesh_name": "head-mesh",
+      "node_index": 9,
+      "node_name": "head-mesh",
+      "triangle_count": 288,
+      "vertex_count": 480
+    }
+  ],
+  "model_sha256": "cd76681090ce29861b055b0f8b2bdcf84bfccc4ca816f428df42a9bb76d6e1b6",
+  "native_scene_bounds": {
+    "depth_z": 0.34196647,
+    "height_y": 0.67596646,
+    "max": [
+      0.38358414,
+      0.67596656,
+      0.16960528
+    ],
+    "min": [
+      -0.38358414,
+      1e-07,
+      -0.17236118
+    ],
+    "size_xyz": [
+      0.76716828,
+      0.67596646,
+      0.34196647
+    ],
+    "width_x": 0.76716828
+  },
+  "native_to_default_world_scale": 2.588885845,
+  "normalized_dimensions_height_1": {
+    "depth": 0.50589266,
+    "height": 1.0,
+    "width": 1.13492063
+  },
+  "preview_sha256": "e211d5bce7e8e0bb76943b64198c9819c3115b4a40a18e4cf751fa814b3341e1",
+  "semantic_segment_totals": {
+    "arms_hands": {
+      "sum_segment_lengths_native": 0.30029228,
+      "sum_segment_lengths_world_m": 0.777422
+    },
+    "head_neck": {
+      "sum_segment_lengths_native": 0.16907208,
+      "sum_segment_lengths_world_m": 0.437708
+    },
+    "legs_feet": {
+      "sum_segment_lengths_native": 0.39433352,
+      "sum_segment_lengths_world_m": 1.020884
+    },
+    "torso_spine": {
+      "sum_segment_lengths_native": 0.64794382,
+      "sum_segment_lengths_world_m": 1.677453
+    }
+  },
+  "skin_count": 2,
+  "tags": [
+    "humanoid",
+    "stylized",
+    "rigged",
+    "animated",
+    "cc0",
+    "kenney"
+  ],
+  "triangle_count": 710,
+  "vertex_count": 1208
+}

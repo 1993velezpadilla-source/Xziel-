@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1600" viewBox="0 0 1200 1600">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="60" y="64" font-family="sans-serif" font-size="34" font-weight="700">Kenney Mini Character Male C — SIDE</text>
+<text x="60" y="104" font-family="sans-serif" font-size="19">Exact rest-pose proportions from model.glb · side projection</text>
+<rect x="204.88" y="120.00" width="790.24" height="1360.00" fill="none" stroke="#777" stroke-width="2" stroke-dasharray="8 8"/>
+<line x1="527.42" y1="1480.00" x2="478.10" y2="1177.65" stroke="#111" stroke-width="5" stroke-linecap="round"/><line x1="527.42" y1="1480.00" x2="478.10" y2="1177.65" stroke="#111" stroke-width="5" stroke-linecap="round"/><line x1="527.42" y1="1480.00" x2="478.10" y2="1177.65" stroke="#111" stroke-width="5" stroke-linecap="round"/><line x1="478.10" y1="1177.65" x2="497.83" y2="986.38" stroke="#111" stroke-width="5" stroke-linecap="round"/><line x1="478.10" y1="1177.65" x2="497.83" y2="986.38" stroke="#111" stroke-width="5" stroke-linecap="round"/><line x1="478.10" y1="1177.65" x2="523.37" y2="891.17" stroke="#111" stroke-width="5" stroke-linecap="round"/>
+<circle cx="527.42" cy="1480.00" r="6" fill="#fff" stroke="#111" stroke-width="3"/><circle cx="478.10" cy="1177.65" r="6" fill="#fff" stroke="#111" stroke-width="3"/><circle cx="478.10" cy="1177.65" r="6" fill="#fff" stroke="#111" stroke-width="3"/><circle cx="478.10" cy="1177.65" r="6" fill="#fff" stroke="#111" stroke-width="3"/><circle cx="497.83" cy="986.38" r="6" fill="#fff" stroke="#111" stroke-width="3"/><circle cx="497.83" cy="986.38" r="6" fill="#fff" stroke="#111" stroke-width="3"/><circle cx="523.37" cy="891.17" r="6" fill="#fff" stroke="#111" stroke-width="3"/>
+<line x1="70" y1="120.00" x2="70" y2="1480.00" stroke="#111" stroke-width="2"/>
+<line x1="55" y1="120.00" x2="85" y2="120.00" stroke="#111" stroke-width="2"/>
+<line x1="55" y1="1480.00" x2="85" y2="1480.00" stroke="#111" stroke-width="2"/>
+<text x="92" y="800.00" font-family="sans-serif" font-size="22">height 1.750 m default</text>
+<line x1="204.88" y1="1530" x2="995.12" y2="1530" stroke="#111" stroke-width="2"/>
+<line x1="204.88" y1="1515" x2="204.88" y2="1545" stroke="#111" stroke-width="2"/>
+<line x1="995.12" y1="1515" x2="995.12" y2="1545" stroke="#111" stroke-width="2"/>
+<text x="600.00" y="1572" text-anchor="middle" font-family="sans-serif" font-size="22">Z / depth: 1.017 m default</text>
+</svg>

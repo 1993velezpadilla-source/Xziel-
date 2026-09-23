@@ -1,0 +1,13 @@
+ID: kenney-mini-female-e
+Display name: Kenney Mini Character Female E
+Author: Kenney
+License: CC0-1.0
+Source page: https://kenney.nl/assets/mini-characters
+Mirror page: https://github.com/Mathis-14/mantra-raise-hackathon
+Model URL: https://raw.githubusercontent.com/Mathis-14/mantra-raise-hackathon/main/game/assets/models/mini-characters/Models/GLB%20format/character-female-e.glb
+Preview URL: https://raw.githubusercontent.com/Mathis-14/mantra-raise-hackathon/main/game/assets/models/mini-characters/Previews/character-female-e.png
+License URL: https://raw.githubusercontent.com/Mathis-14/mantra-raise-hackathon/main/game/assets/models/mini-characters/License.txt
+model.glb SHA256: 3ee3939f80d718945fcb9199f909a92c39669e38aeec7f544536b5dce6e79f98
+preview.png SHA256: e9ff966e8bed184f78e194d0fde0f881cb1155803accc498079ac9b51c58f8c3
+
+Policy: the downloaded GLB is the dimensional authority for all future texture/reference generation.

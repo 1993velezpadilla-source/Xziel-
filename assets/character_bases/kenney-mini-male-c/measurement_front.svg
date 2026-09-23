@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1600" viewBox="0 0 1200 1600">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="60" y="64" font-family="sans-serif" font-size="34" font-weight="700">Kenney Mini Character Male C — FRONT</text>
+<text x="60" y="104" font-family="sans-serif" font-size="19">Exact rest-pose proportions from model.glb · front projection</text>
+<rect x="120.00" y="303.97" width="960.00" height="992.06" fill="none" stroke="#777" stroke-width="2" stroke-dasharray="8 8"/>
+<line x1="600.00" y1="1296.03" x2="704.58" y2="1075.48" stroke="#111" stroke-width="5" stroke-linecap="round"/><line x1="600.00" y1="1296.03" x2="495.42" y2="1075.48" stroke="#111" stroke-width="5" stroke-linecap="round"/><line x1="600.00" y1="1296.03" x2="600.00" y2="1075.48" stroke="#111" stroke-width="5" stroke-linecap="round"/><line x1="600.00" y1="1075.48" x2="725.01" y2="935.95" stroke="#111" stroke-width="5" stroke-linecap="round"/><line x1="600.00" y1="1075.48" x2="474.99" y2="935.95" stroke="#111" stroke-width="5" stroke-linecap="round"/><line x1="600.00" y1="1075.48" x2="600.00" y2="866.50" stroke="#111" stroke-width="5" stroke-linecap="round"/>
+<circle cx="600.00" cy="1296.03" r="6" fill="#fff" stroke="#111" stroke-width="3"/><circle cx="704.58" cy="1075.48" r="6" fill="#fff" stroke="#111" stroke-width="3"/><circle cx="495.42" cy="1075.48" r="6" fill="#fff" stroke="#111" stroke-width="3"/><circle cx="600.00" cy="1075.48" r="6" fill="#fff" stroke="#111" stroke-width="3"/><circle cx="725.01" cy="935.95" r="6" fill="#fff" stroke="#111" stroke-width="3"/><circle cx="474.99" cy="935.95" r="6" fill="#fff" stroke="#111" stroke-width="3"/><circle cx="600.00" cy="866.50" r="6" fill="#fff" stroke="#111" stroke-width="3"/>
+<line x1="70" y1="303.97" x2="70" y2="1296.03" stroke="#111" stroke-width="2"/>
+<line x1="55" y1="303.97" x2="85" y2="303.97" stroke="#111" stroke-width="2"/>
+<line x1="55" y1="1296.03" x2="85" y2="1296.03" stroke="#111" stroke-width="2"/>
+<text x="92" y="800.00" font-family="sans-serif" font-size="22">height 1.750 m default</text>
+<line x1="120.00" y1="1530" x2="1080.00" y2="1530" stroke="#111" stroke-width="2"/>
+<line x1="120.00" y1="1515" x2="120.00" y2="1545" stroke="#111" stroke-width="2"/>
+<line x1="1080.00" y1="1515" x2="1080.00" y2="1545" stroke="#111" stroke-width="2"/>
+<text x="600.00" y="1572" text-anchor="middle" font-family="sans-serif" font-size="22">X / width: 1.693 m default</text>
+</svg>

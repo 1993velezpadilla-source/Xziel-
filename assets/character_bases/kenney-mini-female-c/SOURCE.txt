@@ -1,0 +1,13 @@
+ID: kenney-mini-female-c
+Display name: Kenney Mini Character Female C
+Author: Kenney
+License: CC0-1.0
+Source page: https://kenney.nl/assets/mini-characters
+Mirror page: https://github.com/Mathis-14/mantra-raise-hackathon
+Model URL: https://raw.githubusercontent.com/Mathis-14/mantra-raise-hackathon/main/game/assets/models/mini-characters/Models/GLB%20format/character-female-c.glb
+Preview URL: https://raw.githubusercontent.com/Mathis-14/mantra-raise-hackathon/main/game/assets/models/mini-characters/Previews/character-female-c.png
+License URL: https://raw.githubusercontent.com/Mathis-14/mantra-raise-hackathon/main/game/assets/models/mini-characters/License.txt
+model.glb SHA256: 3cd9e1b5d6409fce0ba1af617d9e008c3069493185a4c100f49fb99a2626a055
+preview.png SHA256: f982772bd9d3c096b7d1eced50afd9e69b9e2941ab2e06299829069ba36db31f
+
+Policy: the downloaded GLB is the dimensional authority for all future texture/reference generation.
