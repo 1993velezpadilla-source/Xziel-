@@ -97,21 +97,48 @@ The current v1 judge scores:
 
 The score is reproducible and stored in `ranking.json`.
 
-#### Judge v2 target
+#### Judge v2 — implemented
 
-Add calibrated source-view validation:
+Judge v2 now performs source-aware software silhouette validation without needing OpenGL or a neural evaluator.
 
-1. render every candidate from estimated source cameras
-2. silhouette IoU
-3. edge/chamfer agreement
-4. DINO/CLIP semantic identity agreement
-5. normal-map agreement
-6. depth-order agreement
-7. multi-view consistency
-8. asymmetric-detail preservation
-9. face/hands/accessory specialist checks for characters
+For every real source photo:
 
-The final judge should prefer a mesh that agrees with the photos, not merely the mesh with the most polygons.
+1. extract/normalize a foreground mask
+2. render mesh silhouettes in software
+3. search camera hypotheses across azimuth, elevation and Y-up/Z-up conventions
+4. compute silhouette IoU
+5. compute tolerant boundary F1
+6. score each real source independently
+7. combine multiple source scores with an explicit weakest-anchor penalty
+
+Per-view score:
+
+`0.72 * silhouette_IoU + 0.28 * boundary_F1`
+
+Multiple real sources:
+
+`0.70 * mean(source_scores) + 0.30 * min(source_scores)`
+
+Final candidate score:
+
+`0.55 * source_visual + 0.45 * production_mesh_score`
+
+This means a model cannot win merely by having more polygons, UVs or a larger texture. With two photos, a candidate that matches one anchor but badly misses the second is intentionally pushed down.
+
+#### Judge v3 target
+
+Add feature and geometry-aware validation on top of v2:
+
+1. DINO/CLIP semantic identity agreement
+2. MEt3R-style multi-view feature consistency
+3. RGB rerender similarity
+4. normal-map agreement
+5. depth-order agreement
+6. camera/focal estimation
+7. asymmetric-detail preservation
+8. face/hands/accessory specialist checks for characters
+
+Judge v2 is the dependency-light guardrail; v3 will add learned perceptual evidence.
 
 ### 5. Material Forge
 
