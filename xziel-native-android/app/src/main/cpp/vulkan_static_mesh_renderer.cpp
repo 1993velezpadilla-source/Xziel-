@@ -622,6 +622,49 @@ void VulkanStaticMeshRenderer::record(
         return;
     }
 
+    const std::uint64_t residencyFrame =
+        ++residencyFrameIndex_;
+
+    const auto touchTexture =
+        [&](std::uint32_t textureIndex) noexcept {
+            if (textureIndex >=
+                textures_.size()) {
+                return;
+            }
+
+            const auto& texture =
+                textures_[textureIndex];
+
+            if (!texture.streamableKtx2 ||
+                texture.residencyId == 0U) {
+                return;
+            }
+
+            mipResidency_.touch(
+                texture.residencyId,
+                0U,
+                residencyFrame);
+        };
+
+    const auto touchMaterial =
+        [&](const GpuMaterial& material) noexcept {
+            touchTexture(
+                material.albedoTextureIndex);
+
+            if (material.hasNormalTexture) {
+                touchTexture(
+                    material.normalTextureIndex);
+            }
+            if (material.hasOrmTexture) {
+                touchTexture(
+                    material.ormTextureIndex);
+            }
+            if (material.hasEmissiveTexture) {
+                touchTexture(
+                    material.emissiveTextureIndex);
+            }
+        };
+
     VkPipeline boundPipeline =
         VK_NULL_HANDLE;
 
@@ -865,6 +908,7 @@ void VulkanStaticMeshRenderer::record(
         const auto& material =
             materials_[batch.materialIndex];
 
+        touchMaterial(material);
         applyMaterial(material);
 
         vkCmdBindDescriptorSets(
@@ -1010,6 +1054,28 @@ void VulkanStaticMeshRenderer::recordViewmodel(
         0U,
         VK_INDEX_TYPE_UINT16);
 
+    const std::uint64_t residencyFrame =
+        ++residencyFrameIndex_;
+
+    const auto touchTexture =
+        [&](std::uint32_t textureIndex) noexcept {
+            if (textureIndex >=
+                textures_.size()) {
+                return;
+            }
+
+            const auto& texture =
+                textures_[textureIndex];
+
+            if (texture.streamableKtx2 &&
+                texture.residencyId != 0U) {
+                mipResidency_.touch(
+                    texture.residencyId,
+                    0U,
+                    residencyFrame);
+            }
+        };
+
     for (const auto& batch : batches_) {
         if (batch.materialIndex >=
             materials_.size()) {
@@ -1018,6 +1084,21 @@ void VulkanStaticMeshRenderer::recordViewmodel(
 
         const auto& material =
             materials_[batch.materialIndex];
+
+        touchTexture(
+            material.albedoTextureIndex);
+        if (material.hasNormalTexture) {
+            touchTexture(
+                material.normalTextureIndex);
+        }
+        if (material.hasOrmTexture) {
+            touchTexture(
+                material.ormTextureIndex);
+        }
+        if (material.hasEmissiveTexture) {
+            touchTexture(
+                material.emissiveTextureIndex);
+        }
 
         applyMaterial(material);
 
