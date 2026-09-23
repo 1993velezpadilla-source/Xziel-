@@ -34,8 +34,14 @@ def main() -> int:
         raise SystemExit("GamePrep required but missing from manifest")
 
     lods = gameprep.get("lods", [])
-    if len(lods) != 4:
-        raise SystemExit(f"expected 4 LODs, found {len(lods)}")
+    rig_audit = gameprep.get("rig_audit") or {}
+    has_skin = int(rig_audit.get("skin_count", 0)) > 0
+    expected_lods = 1 if has_skin else 4
+    if len(lods) != expected_lods:
+        raise SystemExit(
+            f"expected {expected_lods} LOD entries for "
+            f"{'skinned' if has_skin else 'unrigged'} asset, found {len(lods)}"
+        )
     for lod in lods:
         validate_glb(Path(lod["path"]))
 
@@ -53,6 +59,9 @@ def main() -> int:
         "geometry_refinement": data.get("geometry_refinement"),
         "material_bridge": data.get("material_bridge"),
         "gameprep_lods": len(lods),
+        "rig_ready": bool(rig_audit.get("rig_ready")),
+        "skin_count": int(rig_audit.get("skin_count", 0)),
+        "lod_policy": gameprep.get("lod_policy"),
         "turntable_frames": len(frames),
     }
 
