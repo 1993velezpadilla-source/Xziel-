@@ -1,0 +1,28 @@
+{
+  "pipeline": "Hayuya 3D",
+  "canonical_name": "Hunyuan3D",
+  "character": "La Llorona",
+  "status": "approved_reference_set",
+  "required_views": [
+    {"angle_deg":0,"name":"front","path":"assets/characters/llorona/hayuya3d/individual/llorona_front.png"},
+    {"angle_deg":45,"name":"front_45_right","path":"assets/characters/llorona/hayuya3d/individual/llorona_front_45_right.png"},
+    {"angle_deg":90,"name":"right_side","path":"assets/characters/llorona/hayuya3d/individual/llorona_right_side.png"},
+    {"angle_deg":135,"name":"back_45_right","path":"assets/characters/llorona/hayuya3d/individual/llorona_back_45_right.png"},
+    {"angle_deg":180,"name":"back","path":"assets/characters/llorona/hayuya3d/individual/llorona_back.png"},
+    {"angle_deg":225,"name":"back_45_left","path":"assets/characters/llorona/hayuya3d/individual/llorona_back_45_left.png"},
+    {"angle_deg":270,"name":"left_side","path":"assets/characters/llorona/hayuya3d/individual/llorona_left_side.png"},
+    {"angle_deg":315,"name":"front_45_left","path":"assets/characters/llorona/hayuya3d/individual/llorona_front_45_left.png"}
+  ],
+  "preview_path":"assets/characters/llorona/hayuya3d/preview/llorona_hayuya3d_preview_turnaround.png",
+  "design_sheet_path":"assets/characters/llorona/hayuya3d/preview/llorona_hayuya3d_design_sheet.png",
+  "validation_rules":{
+    "preview_before_individuals":true,
+    "human_approval_required":true,
+    "full_body_required":true,
+    "same_identity_required":true,
+    "opposite_sides_must_be_unique":true,
+    "mirrored_duplicate_not_accepted_as_missing_view":true,
+    "required_view_count":8
+  },
+  "known_error_prevented":"Do not repeat one side or one 45-degree view in place of its opposite orientation."
+}
