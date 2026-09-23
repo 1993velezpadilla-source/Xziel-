@@ -676,6 +676,27 @@ bool VulkanStaticMeshRenderer::initialize(
         return false;
     }
 
+    const auto mipRegistryStats =
+        textureMipResidency_.stats();
+
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
+        "XZIEL_TEXTURE_RESIDENCY_REGISTRY textures=%u degraded=%u resident_mb=%.2f requested_mb=%.2f",
+        static_cast<unsigned int>(
+            mipRegistryStats.textureCount),
+        static_cast<unsigned int>(
+            mipRegistryStats.
+                degradedTextureCount),
+        static_cast<double>(
+            mipRegistryStats.
+                residentBytes) /
+            (1024.0 * 1024.0),
+        static_cast<double>(
+            mipRegistryStats.
+                requestedBytes) /
+            (1024.0 * 1024.0));
+
     __android_log_print(
         ANDROID_LOG_INFO,
         kTag,
@@ -2220,9 +2241,17 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
                     sizeof(std::uint16_t));
 
             GpuBatch gpuBatch{};
-            gpuBatch.streamResourceId =
-                streamResourceId(
-                    batch.textureName);
+            gpuBatch.materialIndex =
+                materialIndices[batchIndex];
+
+            if (gpuBatch.materialIndex <
+                materials_.size()) {
+                gpuBatch.streamResourceId =
+                    materials_[
+                        gpuBatch.materialIndex].
+                            streamResourceId;
+            }
+
             gpuBatch.streamCellId =
                 static_cast<std::uint32_t>(
                     sanctumZoneForAssetName(
@@ -2236,8 +2265,6 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
             gpuBatch.indexCount =
                 static_cast<std::uint32_t>(
                     batch.indices.size());
-            gpuBatch.materialIndex =
-                materialIndices[batchIndex];
             gpuBatch.bounds =
                 batch.bounds;
             gpuBatch.doubleSided =
