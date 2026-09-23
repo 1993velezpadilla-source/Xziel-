@@ -194,6 +194,48 @@ Public reference:
 
 - https://github.com/Tencent-Hunyuan/Hunyuan3D-2.1
 
+## Hyper3D Rodin Gen-2.5
+
+Rodin's current public v2 API is another useful production reference.
+
+Public behavior:
+
+- image-to-3D accepts 1-5 ordered images
+- the first image is used for material generation
+- tiers separate speed/detail from downstream mesh/material controls
+- PBR output is explicit
+- raw/quad-style mesh controls exist across Rodin families
+- Gen-2.5 Extreme-High can return an additional mesh up to roughly 10M faces
+- texture generation is a separate endpoint and supports 2K/4K PBR outputs
+- older Rodin 1/1.5 docs expose useful multi-image semantics: `concat` for views of one object and `fuse` for combining features
+
+### Hayuya lesson
+
+Multi-image input should preserve ordering and confidence. A high-resolution master should be an optional independent artifact, while texture generation should stay separable from geometry.
+
+Public references:
+
+- https://docs.hyper3d.ai/en/api-specification/rodin-gen2-5
+- https://docs.hyper3d.ai/en/api-specification/rodin-gen1-1-5
+- https://docs.hyper3d.ai/en/api-specification/generate-texture
+
+## Stability AI SPAR3D / Stable Fast 3D
+
+SPAR3D extends Stable Fast 3D with a point-cloud-conditioned reconstruction path intended to improve unseen/backside geometry from a single image. Its public CLI can also return the generated point cloud, bake textures and optionally remesh when the extra remesh dependencies are installed.
+
+Stable Fast 3D remains useful as a fast UV/material-aware baseline.
+
+Both currently use the Stability AI Community License rather than MIT/Apache. That license includes commercial registration/revenue conditions and restrictions on using model outputs to create or improve other foundational generative AI models.
+
+### Hayuya decision
+
+Pin both for optional comparison, but keep them disabled by default. SPAR3D gets an executable opt-in adapter because backside recovery is directly relevant to the one-photo goal.
+
+Public references:
+
+- https://github.com/Stability-AI/stable-point-aware-3d
+- https://github.com/Stability-AI/stable-fast-3d
+
 ## Architecture extracted from the market
 
 The recurring winning pattern across modern tools is:
