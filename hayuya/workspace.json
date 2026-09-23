@@ -10,10 +10,13 @@
   "preferred_gui": {
     "provider": "vercel",
     "url": "",
-    "status": "one_click_deploy_required",
-    "deploy_url": "https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2F1993velezpadilla-source%2Fconfig-old-3%2Ftree%2Fart%2Fhayuya-monster-v1%2Ftools%2Fhayuya3d%2Fhub&repository-name=hayuya-studio",
+    "status": "one_click_deploy_ready",
+    "deploy_url": "https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2F1993velezpadilla-source%2Fconfig-old-3%2Ftree%2Fhayuya-studio-deploy%2Ftools%2Fhayuya3d%2Fhub&repository-name=hayuya-studio",
     "project_name": "hayuya-studio",
-    "note": "Vercel connector is connected but currently exposes no project-creation/deploy mutation and lists zero existing projects. One Vercel Deploy Button click creates the project; after that agents should resolve the live project URL through Vercel and update this file."
+    "note": "Use the slash-free deployment branch so Vercel parses branch and subdirectory correctly. The Deploy Button should create the separate hayuya-studio repository/project.",
+    "source_repo": "1993velezpadilla-source/config-old-3",
+    "source_branch": "hayuya-studio-deploy",
+    "source_directory": "tools/hayuya3d/hub"
   },
   "prepared_static_source": "tools/hayuya3d/hub",
   "github_pages": {
