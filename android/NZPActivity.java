@@ -129,6 +129,10 @@ public class NZPActivity extends SDLActivity {
         if (multiplayer != null) multiplayer.toggleVoiceMode();
     }
 
+    public boolean xzielVoiceInRoom() {
+        return multiplayer != null && multiplayer.isInRoom();
+    }
+
     public boolean xzielVoiceMicMuted() {
         return multiplayer == null || multiplayer.isMicMuted();
     }
