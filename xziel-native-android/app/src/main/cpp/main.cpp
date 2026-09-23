@@ -2779,12 +2779,21 @@ extern "C" void android_main(
             ? prototypeDoor->openProgress
             : 0.0f;
 
+        const float measuredCpuRenderMs =
+            state.renderer.lastCpuRenderMs();
+
+        const float measuredGpuFrameMs =
+            state.renderer.lastGpuFrameMs();
+
         state.renderWorkload =
             state.performance.advance(
                 {
                     .cpuFrameMs =
-                        frameDelta * 1000.0f,
-                    .gpuFrameMs = 0.0f,
+                        measuredCpuRenderMs > 0.0f
+                        ? measuredCpuRenderMs
+                        : frameDelta * 1000.0f,
+                    .gpuFrameMs =
+                        measuredGpuFrameMs,
                     .thermal =
                         state.thermalLevel,
                 },
