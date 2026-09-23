@@ -292,6 +292,8 @@ jobs:
           jq -e '.sourceCollection == "DIRECT_ORIGINAL_GLB"' "$R"
           jq -e '.sourceTriangles >= 2700000' "$R"
           jq -e '.runtimeTriangles == .sourceTriangles' "$R"
+          jq -e '(.doubleSidedBatchCount + .backfaceCulledBatchCount) == .batchCount' "$R"
+          jq -e '.backfaceCulledBatchCount > 0' "$R"
           jq -e '.dressingTriangles == 0' "$R"
           jq -e '.decimateRatio == 1' "$R"
           jq -e '.scanCleanup == "disabled"' "$R"
