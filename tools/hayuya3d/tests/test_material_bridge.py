@@ -127,8 +127,10 @@ class MaterialBridgeTests(unittest.TestCase):
                 f"topology-safe bridge must not receive credit for stripped normal/AO: "
                 f"material_score={inspected.material_score} channels={inspected.pbr_channels} notes={inspected.notes}",
             )
-            for channel in ("baseColor", "metallic", "roughness", "normal", "occlusion"):
+            for channel in ("baseColor", "metallic", "roughness", "emissive"):
                 self.assertIn(channel, inspected.pbr_channels)
+            self.assertNotIn("normal", inspected.pbr_channels)
+            self.assertNotIn("occlusion", inspected.pbr_channels)
 
     def test_topology_safe_bridge_does_not_claim_stale_normal_or_ao(self):
         from PIL import Image
