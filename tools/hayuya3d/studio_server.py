@@ -12,6 +12,7 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.request
 from dataclasses import asdict, dataclass, field
 from email.parser import BytesHeaderParser
 from pathlib import Path
@@ -22,6 +23,10 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 STATIC = HERE / "studio"
 DEFAULT_JOBS_ROOT = ROOT / "out" / "hayuya3d" / "studio-jobs"
+VENDOR_ROOT = ROOT / ".hayuya" / "studio-vendor"
+MODEL_VIEWER_VERSION = "4.3.1"
+MODEL_VIEWER_URL = f"https://cdn.jsdelivr.net/npm/@google/model-viewer@{MODEL_VIEWER_VERSION}/dist/model-viewer.min.js"
+MODEL_VIEWER_FILE = VENDOR_ROOT / f"model-viewer-{MODEL_VIEWER_VERSION}.min.js"
 
 ALLOWED_PROFILES = {"preview", "mobile", "game", "monster", "ultra"}
 ALLOWED_MODES = {"auto", "prop", "character", "architecture"}
@@ -306,6 +311,27 @@ def parse_multipart(body: bytes, content_type: str) -> tuple[dict[str, str], lis
     return fields, files
 
 
+def ensure_model_viewer() -> tuple[Path | None, str | None]:
+    if MODEL_VIEWER_FILE.is_file() and MODEL_VIEWER_FILE.stat().st_size > 100_000:
+        return MODEL_VIEWER_FILE, None
+    VENDOR_ROOT.mkdir(parents=True, exist_ok=True)
+    temp = MODEL_VIEWER_FILE.with_suffix(".tmp")
+    try:
+        with urllib.request.urlopen(MODEL_VIEWER_URL, timeout=25) as response:
+            data = response.read()
+        if len(data) < 100_000:
+            raise RuntimeError(f"download unexpectedly small: {len(data)} bytes")
+        temp.write_bytes(data)
+        temp.replace(MODEL_VIEWER_FILE)
+        return MODEL_VIEWER_FILE, None
+    except Exception as exc:
+        try:
+            temp.unlink(missing_ok=True)
+        except Exception:
+            pass
+        return None, f"{type(exc).__name__}: {exc}"
+
+
 def local_addresses(port: int) -> list[str]:
     found = {"127.0.0.1"}
     try:
@@ -382,12 +408,29 @@ class StudioHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         path = parsed.path
 
+        if path == "/vendor/model-viewer.min.js":
+            vendor, error = ensure_model_viewer()
+            if vendor is None:
+                self._json({
+                    "error": "model-viewer vendor unavailable",
+                    "detail": error,
+                    "fallback": MODEL_VIEWER_URL,
+                }, 503)
+                return
+            self._serve_file(vendor)
+            return
+
         if path == "/api/info":
             self._json({
                 "name": "HAYUYA Studio",
                 "version": 1,
                 "addresses": local_addresses(self.server.server_port),
                 "mobile_ready": True,
+                "viewer_dependency": {
+                    "name": "@google/model-viewer",
+                    "version": MODEL_VIEWER_VERSION,
+                    "served_locally": MODEL_VIEWER_FILE.is_file(),
+                },
             })
             return
 
@@ -571,9 +614,14 @@ def main() -> int:
 
     host = "0.0.0.0" if args.lan else args.host
     args.jobs_root.mkdir(parents=True, exist_ok=True)
+    vendor, vendor_error = ensure_model_viewer()
     server = StudioHTTPServer((host, args.port), StudioHandler, args.jobs_root.resolve())
 
     print("HAYUYA_STUDIO_READY")
+    if vendor is not None:
+        print(f"  viewer: cached {vendor}")
+    else:
+        print(f"  viewer warning: {vendor_error}")
     for url in local_addresses(args.port):
         if args.lan or "127.0.0.1" in url:
             print(f"  {url}")
