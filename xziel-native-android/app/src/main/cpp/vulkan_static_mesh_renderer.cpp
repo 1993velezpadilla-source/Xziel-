@@ -2746,25 +2746,37 @@ void VulkanStaticMeshRenderer::record(
                 &materialPush);
         };
 
-    if (geometryVertexBuffer_ == VK_NULL_HANDLE ||
-        geometryIndexBuffer_ == VK_NULL_HANDLE) {
-        return;
+    const bool cellGeometry =
+        streamGraphReady_;
+
+    if (cellGeometry) {
+        if (geometryCellCount_ == 0U) {
+            return;
+        }
+    } else {
+        if (geometryVertexBuffer_ == VK_NULL_HANDLE ||
+            geometryIndexBuffer_ == VK_NULL_HANDLE) {
+            return;
+        }
+
+        const VkDeviceSize geometryOffset = 0U;
+
+        vkCmdBindVertexBuffers(
+            command,
+            0U,
+            1U,
+            &geometryVertexBuffer_,
+            &geometryOffset);
+
+        vkCmdBindIndexBuffer(
+            command,
+            geometryIndexBuffer_,
+            0U,
+            VK_INDEX_TYPE_UINT16);
     }
 
-    const VkDeviceSize geometryOffset = 0U;
-
-    vkCmdBindVertexBuffers(
-        command,
-        0U,
-        1U,
-        &geometryVertexBuffer_,
-        &geometryOffset);
-
-    vkCmdBindIndexBuffer(
-        command,
-        geometryIndexBuffer_,
-        0U,
-        VK_INDEX_TYPE_UINT16);
+    std::uint32_t boundGeometryCell =
+        UINT32_MAX;
 
     const float yawCos =
         std::cos(camera.yawRadians);
@@ -2894,6 +2906,49 @@ void VulkanStaticMeshRenderer::record(
         }
 
         ++frameStats_.visibleBatches;
+
+        if (cellGeometry) {
+            if (batch.geometryCellSlot >=
+                geometryCellCount_) {
+                ++frameStats_.culledBatches;
+                continue;
+            }
+
+            const auto& geometryCell =
+                geometryCells_[
+                    batch.geometryCellSlot];
+
+            if (!geometryCell.physicallyResident ||
+                geometryCell.vertexBuffer ==
+                    VK_NULL_HANDLE ||
+                geometryCell.indexBuffer ==
+                    VK_NULL_HANDLE) {
+                ++frameStats_.culledBatches;
+                continue;
+            }
+
+            if (boundGeometryCell !=
+                batch.geometryCellSlot) {
+                const VkDeviceSize geometryOffset =
+                    0U;
+
+                vkCmdBindVertexBuffers(
+                    command,
+                    0U,
+                    1U,
+                    &geometryCell.vertexBuffer,
+                    &geometryOffset);
+
+                vkCmdBindIndexBuffer(
+                    command,
+                    geometryCell.indexBuffer,
+                    0U,
+                    VK_INDEX_TYPE_UINT16);
+
+                boundGeometryCell =
+                    batch.geometryCellSlot;
+            }
+        }
 
         const VkPipeline desiredPipeline =
             batch.doubleSided
