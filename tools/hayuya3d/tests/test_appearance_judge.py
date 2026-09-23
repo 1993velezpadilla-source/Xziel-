@@ -75,7 +75,7 @@ class AppearanceJudgeTests(unittest.TestCase):
             (270.0, "whole"),
             (315.0, "whole"),
         ]
-        allowed, expected = select_detail_candidate_indices(
+        allowed, expected, region = select_detail_candidate_indices(
             patch_meta,
             Path("llorona_left_side_detail.png"),
             orientation_offset=0.0,
@@ -83,16 +83,61 @@ class AppearanceJudgeTests(unittest.TestCase):
         self.assertEqual(expected, 270.0)
         self.assertEqual({patch_meta[i][0] for i in allowed}, {225.0, 270.0, 315.0})
         self.assertNotIn(90.0, {patch_meta[i][0] for i in allowed})
+        self.assertIsNone(region)
 
     def test_generic_detail_can_search_all_sides(self):
         patch_meta = [(0.0, "a"), (90.0, "b"), (180.0, "c"), (270.0, "d")]
-        allowed, expected = select_detail_candidate_indices(
+        allowed, expected, region = select_detail_candidate_indices(
             patch_meta,
             Path("rosary_closeup.png"),
             orientation_offset=35.0,
         )
         self.assertIsNone(expected)
+        self.assertEqual(region, "local")
         self.assertEqual(allowed, list(range(len(patch_meta))))
+
+    def test_face_detail_is_locked_to_upper_patch_row(self):
+        patch_meta = [
+            (0.0, "whole"),
+            (0.0, "grid_0_0"),
+            (0.0, "grid_0_1"),
+            (0.0, "grid_0_2"),
+            (0.0, "grid_1_0"),
+            (0.0, "grid_1_1"),
+            (0.0, "grid_2_1"),
+        ]
+        allowed, expected, region = select_detail_candidate_indices(
+            patch_meta,
+            Path("llorona_face_detail.png"),
+            orientation_offset=0.0,
+        )
+        self.assertIsNone(expected)
+        self.assertEqual(region, "head")
+        self.assertEqual(
+            {patch_meta[i][1] for i in allowed},
+            {"grid_0_0", "grid_0_1", "grid_0_2"},
+        )
+
+    def test_hem_detail_is_locked_to_lower_patch_row(self):
+        patch_meta = [
+            (180.0, "whole"),
+            (180.0, "grid_0_1"),
+            (180.0, "grid_1_1"),
+            (180.0, "grid_2_0"),
+            (180.0, "grid_2_1"),
+            (180.0, "grid_2_2"),
+        ]
+        allowed, expected, region = select_detail_candidate_indices(
+            patch_meta,
+            Path("llorona_back_hem_detail.png"),
+            orientation_offset=0.0,
+        )
+        self.assertEqual(expected, 180.0)
+        self.assertEqual(region, "lower")
+        self.assertEqual(
+            {patch_meta[i][1] for i in allowed},
+            {"grid_2_0", "grid_2_1", "grid_2_2"},
+        )
 
     def test_detail_aggregation_keeps_weak_reference_relevant(self):
         strong = aggregate_detail_scores([90, 91, 89])
