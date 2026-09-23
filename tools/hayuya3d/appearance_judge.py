@@ -8,7 +8,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from reference_pool import infer_view_hint
-from visual_judge import SourceViewScore, _rotation_matrix, extract_source_mask
+from visual_judge import SourceViewScore, extract_source_mask, project_mesh_vertices
 
 
 @dataclass
@@ -46,21 +46,25 @@ def _deps():
     return np, Image
 
 
-def project_vertices(vertices, azimuth: float, elevation: float, up_axis: str, size: int):
-    np, _ = _deps()
-    rot = _rotation_matrix(azimuth, elevation, up_axis)
-    v = vertices @ rot.T
-    xy = v[:, :2]
-    min_xy = xy.min(axis=0)
-    max_xy = xy.max(axis=0)
-    span = np.maximum(max_xy - min_xy, 1e-7)
-    uniform = float(max(span[0], span[1]))
-    xy = (xy - (min_xy + max_xy) * 0.5) / uniform
-    xy = xy * (size * 0.82) + size * 0.5
-
-    # Positive depth wins. Camera convention only needs to be internally consistent.
-    z = v[:, 2].astype(np.float32)
-    return xy.astype(np.float32), z
+def project_vertices(
+    vertices,
+    azimuth: float,
+    elevation: float,
+    up_axis: str,
+    size: int,
+    *,
+    projection: str = "orthographic",
+    camera_distance: float | None = None,
+):
+    return project_mesh_vertices(
+        vertices,
+        azimuth,
+        elevation,
+        up_axis,
+        size=size,
+        projection=projection,
+        camera_distance=camera_distance,
+    )
 
 
 def rasterize_rgb(
@@ -295,6 +299,8 @@ def render_candidate_rgb_arrays(
         view.best_elevation,
         view.best_up_axis,
         size,
+        projection=view.projection,
+        camera_distance=view.camera_distance,
     )
     return rasterize_rgb(
         xy,
