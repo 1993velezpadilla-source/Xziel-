@@ -7,6 +7,7 @@ from pathlib import Path
 from PIL import Image, ImageFile
 from gradio_client import Client, handle_file
 from mesh_gate import inspect as inspect_mesh_gate
+from rig_gate import inspect as inspect_rig_gate
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -269,7 +270,16 @@ print("HAYUYA_MESH_GATE", json.dumps(gate_payload, separators=(",",":")))
 if not gate.passed:
     fail("HAYUYA mesh quality gate rejected output: " + "; ".join(gate.reasons))
 
+# Rig/animation readiness is reported separately from geometry QA. TRELLIS
+# currently produces a static mesh; future autorig stages can flip these fields
+# without changing the Hub contract.
+rig=inspect_rig_gate(dst, Path("hayuya/standards/hayuya_humanoid_v1.json"))
+rig_payload=asdict(rig)
+(OUT/"rig_gate.json").write_text(json.dumps(rig_payload,indent=2),encoding="utf-8")
+print("HAYUYA_RIG_GATE", json.dumps(rig_payload, separators=(",",":")))
+
 manifest={
+    "schema":2,
     "engine":"HAYUYA PHONE CLOUD",
     "job_id":JOB,
     "compute":"GitHub-hosted CPU controller + public TRELLIS ZeroGPU",
@@ -286,6 +296,16 @@ manifest={
     "source_had_alpha":source_had_alpha,
     "alpha_preserved":True,
     "quality_gate":gate_payload,
+    "character":{
+        "skeleton_type":rig_payload["skeleton_type"],
+        "rig_ready":rig_payload["rig_ready"],
+        "animation_ready":rig_payload["animation_ready"],
+        "preview_animation_ready":rig_payload["preview_animation_ready"],
+        "animation_clips":rig_payload["animation_clips"],
+        "facial":rig_payload["facial"],
+        "secondary_motion":rig_payload["secondary_motion"],
+        "warnings":rig_payload["warnings"],
+    },
 }
 (OUT/"manifest.json").write_text(json.dumps(manifest,indent=2),encoding="utf-8")
 print("HAYUYA_PHONE_CLOUD_PASS")
