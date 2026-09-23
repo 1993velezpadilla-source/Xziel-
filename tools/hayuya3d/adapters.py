@@ -258,6 +258,96 @@ def generate_spar3d(
     )
 
 
+PSHUMAN_REQUIRED_ASSETS = (
+    "smpl_related/smpl_data/smplx_faces.npy",
+    "smpl_related/smpl_data/smplx_verts.npy",
+    "smpl_related/smpl_data/smpl_verts.npy",
+    "smpl_related/smpl_data/smpl_faces.npy",
+    "smpl_related/smpl_data/smplx_to_smpl.pkl",
+    "smpl_related/HPS/pixie_data/pixie_model.tar",
+    "smpl_related/HPS/pixie_data/SMPLX_NEUTRAL_2020.npz",
+)
+
+
+def pshuman_readiness(model_root: Path = DEFAULT_MODEL_ROOT) -> tuple[bool, list[str]]:
+    repo = model_root / "pshuman"
+    missing: list[str] = []
+    if not repo.is_dir():
+        return False, [f"backend repo missing: {repo}"]
+    for rel in PSHUMAN_REQUIRED_ASSETS:
+        if not (repo / rel).is_file():
+            missing.append(rel)
+    # PIXIE and SMPLX reconstruction also need the model directory supplied by
+    # the PSHuman/ECON auxiliary bundle.
+    if not (repo / "smpl_related" / "models").is_dir():
+        missing.append("smpl_related/models/")
+    return not missing, missing
+
+
+def generate_pshuman(
+    image: Path,
+    out_dir: Path,
+    *,
+    seed: int,
+    model_root: Path = DEFAULT_MODEL_ROOT,
+) -> Candidate:
+    repo = require_backend("pshuman", model_root)
+    ready, missing = pshuman_readiness(model_root)
+    if not ready:
+        raise RuntimeError(
+            "PSHuman auxiliary human-model assets are incomplete; missing: "
+            + ", ".join(missing)
+        )
+
+    from viewforge import _native_foreground_rgba
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    input_dir = out_dir / "input"
+    result_dir = out_dir / "results"
+    mv_dir = out_dir / "multiview"
+    input_dir.mkdir(parents=True, exist_ok=True)
+
+    staged = input_dir / "source.png"
+    _native_foreground_rgba(image).save(staged, format="PNG")
+
+    cmd = [
+        backend_python("pshuman"),
+        "inference.py",
+        "--config",
+        "configs/inference-768-6view.yaml",
+        "pretrained_model_name_or_path=pengHTYX/PSHuman_Unclip_768_6views",
+        "validation_dataset.crop_size=740",
+        "with_smpl=false",
+        f"validation_dataset.root_dir={input_dir.resolve()}",
+        f"save_dir={mv_dir.resolve()}",
+        f"recon_opt.res_path={result_dir.resolve()}",
+        f"seed={seed}",
+        "num_views=7",
+        "save_mode=rgb",
+    ]
+    run_checked(cmd, cwd=repo)
+
+    case_dir = result_dir / "source"
+    model_path = case_dir / "result_clr_scale4_source.obj"
+    preview_path = case_dir / "result_clr_scale4_source.mp4"
+    if not model_path.is_file():
+        # Keep this deterministic but tolerate upstream scale changes.
+        matches = sorted(case_dir.glob("result_clr_scale*_source.obj"))
+        if len(matches) == 1:
+            model_path = matches[0]
+        else:
+            raise RuntimeError(
+                f"PSHuman did not create expected textured mesh under {case_dir}"
+            )
+
+    return Candidate(
+        "pshuman",
+        model_path,
+        preview_path if preview_path.is_file() else None,
+        "40GB+ human-specialist challenger; SMPL-free multiview model with gated PIXIE/SMPLX reconstruction assets",
+    )
+
+
 def refine_triposf(
     mesh_path: Path,
     out_dir: Path,
@@ -300,4 +390,5 @@ GENERATORS = {
     "trellis2": generate_trellis2,
     "trellis": generate_trellis,
     "spar3d": generate_spar3d,
+    "pshuman": generate_pshuman,
 }
