@@ -964,6 +964,33 @@ def main() -> int:
             if args.gameprep == "required":
                 raise
 
+    qa_package_result = None
+    qa_package_failure = None
+    try:
+        from qa_package import build_qa_package
+
+        qa_package_result = build_qa_package(
+            final_glb,
+            job_dir / "qa",
+            champion=champion,
+            mode=mode,
+            profile=args.profile,
+            source_images=geometry_inputs,
+            detail_images=detail_inputs,
+            gameprep=gameprep_result,
+            target_faces=profile.faces,
+        )
+        print(
+            "HAYUYA_QA_READY "
+            f"production_ready={qa_package_result.production_ready} "
+            f"rig_ready={qa_package_result.rig_ready} "
+            f"report={qa_package_result.report}"
+        )
+    except Exception as exc:
+        qa_package_failure = f"{type(exc).__name__}: {exc}"
+        print(f"HAYUYA_QA_FAILED {qa_package_failure}", file=sys.stderr)
+        traceback.print_exc()
+
     manifest = {
         **plan,
         "status": "success",
@@ -983,6 +1010,8 @@ def main() -> int:
         "final_glb": str(final_glb),
         "gameprep": asdict(gameprep_result) if gameprep_result is not None else None,
         "gameprep_failure": gameprep_failure,
+        "qa_package": asdict(qa_package_result) if qa_package_result is not None else None,
+        "qa_package_failure": qa_package_failure,
         "notes": [
             "The reference pool has no Hayuya-level photo-count cap.",
             "All unique full-object/geometry source photos participate in Judge v2.",
@@ -993,7 +1022,8 @@ def main() -> int:
             "Wonder3D normal maps may contribute a deliberately small 6% synthetic-support score using the pinned front-view normal coordinate convention.",
             "TripoSF can challenge the best geometry seed at 1024^3 in Monster/Ultra; it must pass real-source geometry evidence.",
             "If TripoSF wins geometry, Material Bridge v2 reprojects packed PBR UV/material evidence when available (base-color fallback otherwise) and the bridged GLB re-enters the final Judge rather than being auto-promoted.",
-            "GamePrep v1 can emit master + LOD0-LOD3 + convex collision + an 8-frame turntable after the final winner is selected.",
+            "GamePrep audits glTF rig/skin state first; skinned assets preserve exact master/LOD0 and defer destructive simplified LODs until skin-weight transfer exists.",
+            "QA Package v1 records geometry/material/reference/rig/GamePrep readiness and creates a source-vs-turntable contact sheet.",
             "Judge v2 combines production mesh health with source-image silhouette agreement.",
             "Judge v3 auto adds DINOv2 appearance similarity when the pinned evaluator is bootstrapped; otherwise it falls back to v2.",
             "Next judge stage adds normal/depth agreement, calibrated camera estimation and local-detail matching.",
