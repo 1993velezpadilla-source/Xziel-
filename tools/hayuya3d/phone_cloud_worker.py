@@ -2,9 +2,11 @@
 from __future__ import annotations
 import json, os, shutil, sys, time
 from collections import Counter
+from dataclasses import asdict
 from pathlib import Path
 from PIL import Image, ImageFile
 from gradio_client import Client, handle_file
+from mesh_gate import inspect as inspect_mesh_gate
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -18,6 +20,10 @@ PREP = OUT / "prepared_views"
 PREP.mkdir(parents=True, exist_ok=True)
 
 def fail(msg):
+    try:
+        (OUT/"failure_reason.txt").write_text(str(msg).strip()+"\n", encoding="utf-8")
+    except Exception:
+        pass
     print(f"::error::{msg}")
     raise SystemExit(1)
 
@@ -253,6 +259,16 @@ data=dst.read_bytes()
 if data[:4] != b"glTF" or len(data)<1024:
     fail("Invalid GLB output")
 
+# Catastrophic geometry gate: a backend returning a syntactically valid GLB is
+# not enough. Reject billboard crosses, fragmented texture planes, collapsed
+# bounds, and other obvious non-model outputs before the Hub ever says DONE.
+gate=inspect_mesh_gate(dst)
+gate_payload=asdict(gate)
+(OUT/"quality_gate.json").write_text(json.dumps(gate_payload,indent=2),encoding="utf-8")
+print("HAYUYA_MESH_GATE", json.dumps(gate_payload, separators=(",",":")))
+if not gate.passed:
+    fail("HAYUYA mesh quality gate rejected output: " + "; ".join(gate.reasons))
+
 manifest={
     "engine":"HAYUYA PHONE CLOUD",
     "job_id":JOB,
@@ -269,6 +285,7 @@ manifest={
     "source_mode":source_mode,
     "source_had_alpha":source_had_alpha,
     "alpha_preserved":True,
+    "quality_gate":gate_payload,
 }
 (OUT/"manifest.json").write_text(json.dumps(manifest,indent=2),encoding="utf-8")
 print("HAYUYA_PHONE_CLOUD_PASS")
