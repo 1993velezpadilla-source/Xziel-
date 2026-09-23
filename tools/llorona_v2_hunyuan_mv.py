@@ -109,7 +109,7 @@ overrides = {
     "caption": "",
     "image": None,
     "mv_image_front": files["front"],
-    "mv_image_back": files["back"],
+    "mv_image_back": None,  # Hunyuan3D-2mv back slot is currently broken (PyMeshLabException).
     "mv_image_left": files["left"],
     "mv_image_right": files["right"],
     "steps": 5,
@@ -139,7 +139,8 @@ for p in params:
 request = {
     "endpoint": endpoint,
     "parameters": used,
-    "geometry_views": list(PRIMARY.keys()),
+    "geometry_views": ["front", "left", "right"],
+    "back_reference_reserved_for_texture": str(PRIMARY["back"]),
     "all_reference_views": [p.name for p in ALL_VIEWS],
     "detail_refs": [p.name for p in DETAILS],
     "seed": 1993,
@@ -201,7 +202,8 @@ manifest = {
     "asset": "La Llorona V2",
     "generator": "Tencent Hunyuan3D-2mv",
     "endpoint": endpoint,
-    "geometry_input_views": ["front", "back", "left", "right"],
+    "geometry_input_views": ["front", "left", "right"],
+    "back_reference_reserved_for_texture": PRIMARY["back"].name,
     "reference_pack_views": [p.name for p in ALL_VIEWS],
     "reference_pack_details": [p.name for p in DETAILS],
     "seed": 1993,
