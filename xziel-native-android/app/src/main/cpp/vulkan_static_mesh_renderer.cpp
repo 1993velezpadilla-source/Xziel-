@@ -3590,6 +3590,472 @@ void VulkanStaticMeshRenderer::discardPendingUploads() noexcept {
     pendingUploadBytes_ = 0U;
 }
 
+void VulkanStaticMeshRenderer::releaseUploadResources(
+    PendingUpload& upload) noexcept {
+    if (device_ == VK_NULL_HANDLE) {
+        upload = {};
+        return;
+    }
+
+    if (upload.command != VK_NULL_HANDLE) {
+        vkFreeCommandBuffers(
+            device_,
+            commandPool_,
+            1U,
+            &upload.command);
+    }
+
+    if (upload.stagingBuffer != VK_NULL_HANDLE) {
+        vkDestroyBuffer(
+            device_,
+            upload.stagingBuffer,
+            nullptr);
+    }
+
+    if (upload.stagingMemory != VK_NULL_HANDLE) {
+        vkFreeMemory(
+            device_,
+            upload.stagingMemory,
+            nullptr);
+    }
+
+    upload = {};
+}
+
+bool VulkanStaticMeshRenderer::beginRuntimeMipTransition(
+    std::uint32_t textureIndex,
+    std::uint32_t targetBaseMip,
+    std::uint64_t frameIndex) noexcept {
+    if (runtimeMipTransition_.active ||
+        assetManager_ == nullptr ||
+        device_ == VK_NULL_HANDLE ||
+        graphicsQueue_ == VK_NULL_HANDLE ||
+        textureIndex >= textures_.size() ||
+        !pendingUploads_.empty()) {
+        return false;
+    }
+
+    const auto& current =
+        textures_[textureIndex];
+
+    if (!current.astc ||
+        current.sourceMipCount <= 1U ||
+        targetBaseMip >=
+            current.sourceMipCount ||
+        targetBaseMip ==
+            current.residentBaseMip) {
+        return false;
+    }
+
+    // Runtime pressure may trade at most two top mips. This keeps emergency
+    // reclamation bounded and prevents a transient Android trim signal from
+    // collapsing world textures to tiny tails.
+    targetBaseMip =
+        std::min<std::uint32_t>(
+            targetBaseMip,
+            std::min<std::uint32_t>(
+                2U,
+                current.sourceMipCount -
+                    1U));
+
+    if (targetBaseMip ==
+        current.residentBaseMip) {
+        return false;
+    }
+
+    GpuTexture replacement{};
+
+    if (!createKtx2TextureInternal(
+            assetManager_,
+            current.assetPath,
+            current.srgb,
+            targetBaseMip,
+            false,
+            replacement)) {
+        discardPendingUploads();
+        destroyTexture(
+            replacement);
+        return false;
+    }
+
+    if (pendingUploads_.size() != 1U) {
+        discardPendingUploads();
+        destroyTexture(
+            replacement);
+        return false;
+    }
+
+    VkFenceCreateInfo fenceInfo{
+        VK_STRUCTURE_TYPE_FENCE_CREATE_INFO
+    };
+
+    VkFence fence = VK_NULL_HANDLE;
+    if (!ok(
+            vkCreateFence(
+                device_,
+                &fenceInfo,
+                nullptr,
+                &fence))) {
+        discardPendingUploads();
+        destroyTexture(
+            replacement);
+        return false;
+    }
+
+    PendingUpload upload =
+        pendingUploads_.front();
+
+    pendingUploads_.clear();
+    pendingUploadBytes_ = 0U;
+
+    VkSubmitInfo submit{
+        VK_STRUCTURE_TYPE_SUBMIT_INFO
+    };
+    submit.commandBufferCount = 1U;
+    submit.pCommandBuffers =
+        &upload.command;
+
+    const VkResult submitResult =
+        vkQueueSubmit(
+            graphicsQueue_,
+            1U,
+            &submit,
+            fence);
+
+    if (!ok(submitResult)) {
+        vkDestroyFence(
+            device_,
+            fence,
+            nullptr);
+        releaseUploadResources(
+            upload);
+        destroyTexture(
+            replacement);
+        return false;
+    }
+
+    runtimeMipTransition_.active = true;
+    runtimeMipTransition_.uploadComplete =
+        false;
+    runtimeMipTransition_.textureIndex =
+        textureIndex;
+    runtimeMipTransition_.targetBaseMip =
+        targetBaseMip;
+    runtimeMipTransition_.replacement =
+        std::move(replacement);
+    runtimeMipTransition_.upload =
+        upload;
+    runtimeMipTransition_.fence =
+        fence;
+
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
+        "XZIEL_RUNTIME_MIP_UPLOAD_BEGIN texture=%u from=%u to=%u staging_mb=%.2f frame=%llu",
+        static_cast<unsigned int>(
+            textureIndex),
+        static_cast<unsigned int>(
+            current.residentBaseMip),
+        static_cast<unsigned int>(
+            targetBaseMip),
+        static_cast<double>(
+            upload.stagingBytes) /
+            (1024.0 * 1024.0),
+        static_cast<unsigned long long>(
+            frameIndex));
+
+    return true;
+}
+
+bool VulkanStaticMeshRenderer::updateMaterialDescriptorsForTexture(
+    std::uint32_t textureIndex,
+    const GpuTexture& replacement) noexcept {
+    if (device_ == VK_NULL_HANDLE ||
+        replacement.view == VK_NULL_HANDLE ||
+        replacement.sampler == VK_NULL_HANDLE ||
+        textureIndex >= textures_.size()) {
+        return false;
+    }
+
+    for (auto& material : materials_) {
+        if (material.descriptorSet ==
+            VK_NULL_HANDLE) {
+            return false;
+        }
+
+        const std::array<std::uint32_t, 4>
+            indices{{
+                material.albedoTextureIndex,
+                material.normalTextureIndex,
+                material.ormTextureIndex,
+                material.emissiveTextureIndex,
+            }};
+
+        std::array<VkDescriptorImageInfo, 4>
+            images{};
+        std::array<VkWriteDescriptorSet, 4>
+            writes{};
+        std::uint32_t writeCount = 0U;
+
+        for (std::uint32_t binding = 0U;
+             binding < indices.size();
+             ++binding) {
+            if (indices[binding] !=
+                textureIndex) {
+                continue;
+            }
+
+            auto& image =
+                images[writeCount];
+
+            image.sampler =
+                replacement.sampler;
+            image.imageView =
+                replacement.view;
+            image.imageLayout =
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+            auto& write =
+                writes[writeCount];
+
+            write = {
+                VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET
+            };
+            write.dstSet =
+                material.descriptorSet;
+            write.dstBinding =
+                binding;
+            write.descriptorCount = 1U;
+            write.descriptorType =
+                VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            write.pImageInfo =
+                &image;
+
+            ++writeCount;
+        }
+
+        if (writeCount > 0U) {
+            vkUpdateDescriptorSets(
+                device_,
+                writeCount,
+                writes.data(),
+                0U,
+                nullptr);
+        }
+    }
+
+    return true;
+}
+
+void VulkanStaticMeshRenderer::cancelRuntimeMipTransition(
+    bool waitForUpload) noexcept {
+    if (!runtimeMipTransition_.active) {
+        runtimeMipTransition_ = {};
+        return;
+    }
+
+    if (device_ != VK_NULL_HANDLE &&
+        runtimeMipTransition_.fence !=
+            VK_NULL_HANDLE &&
+        !runtimeMipTransition_.
+            uploadComplete) {
+        if (waitForUpload) {
+            (void) vkWaitForFences(
+                device_,
+                1U,
+                &runtimeMipTransition_.fence,
+                VK_TRUE,
+                UINT64_MAX);
+        } else {
+            const VkResult status =
+                vkGetFenceStatus(
+                    device_,
+                    runtimeMipTransition_.fence);
+
+            if (status == VK_NOT_READY) {
+                // Normal code never cancels an in-flight healthy upload.
+                // Keep ownership intact until shutdown or the fence signals.
+                return;
+            }
+        }
+    }
+
+    releaseUploadResources(
+        runtimeMipTransition_.upload);
+
+    if (device_ != VK_NULL_HANDLE &&
+        runtimeMipTransition_.fence !=
+            VK_NULL_HANDLE) {
+        vkDestroyFence(
+            device_,
+            runtimeMipTransition_.fence,
+            nullptr);
+    }
+
+    destroyTexture(
+        runtimeMipTransition_.replacement);
+
+    runtimeMipTransition_ = {};
+}
+
+bool VulkanStaticMeshRenderer::planRuntimeMipChange(
+    std::uint64_t frameIndex,
+    TextureMipChange& outChange) const noexcept {
+    outChange = {};
+
+    if (textures_.empty()) {
+        return false;
+    }
+
+    try {
+        TextureMipResidencyManager planner(
+            static_cast<std::uint32_t>(
+                std::max<std::size_t>(
+                    textures_.size(),
+                    1U)));
+
+        for (std::size_t index = 0U;
+             index < textures_.size();
+             ++index) {
+            const auto& texture =
+                textures_[index];
+
+            if (!texture.astc ||
+                texture.sourceMipCount == 0U ||
+                texture.sourceMipCount >
+                    kMaxStreamedTextureMips) {
+                continue;
+            }
+
+            TextureMipChainDesc desc{};
+            desc.id =
+                static_cast<std::uint64_t>(
+                    index + 1U);
+            desc.mipCount =
+                texture.sourceMipCount;
+            desc.mipBytes =
+                texture.sourceMipBytes;
+            desc.residentBaseMip =
+                texture.residentBaseMip;
+            desc.requestedBaseMip = 0U;
+
+            // Never let the automatic runtime controller go below base mip 2.
+            // Mark already-capped textures ineligible for further demotion.
+            desc.pinned =
+                texture.residentBaseMip >=
+                    std::min<std::uint32_t>(
+                        2U,
+                        texture.sourceMipCount -
+                            1U);
+
+            if (!planner.registerTexture(
+                    desc,
+                    frameIndex)) {
+                return false;
+            }
+        }
+
+        const auto stats =
+            planner.stats();
+
+        if (stats.textureCount == 0U ||
+            stats.residentBytes == 0U) {
+            return false;
+        }
+
+        const std::uint64_t scaledBudget =
+            static_cast<std::uint64_t>(
+                static_cast<long double>(
+                    textureResidentBudgetBytes_) *
+                static_cast<long double>(
+                    runtimeTextureBudgetScale_));
+
+        std::uint64_t targetBytesToFree =
+            stats.residentBytes >
+                    scaledBudget
+            ? stats.residentBytes -
+                scaledBudget
+            : 0U;
+
+        if (runtimeTexturePressure_ ==
+            StaticMeshTexturePressure::Elevated) {
+            targetBytesToFree =
+                std::max<std::uint64_t>(
+                    targetBytesToFree,
+                    stats.residentBytes /
+                        8U);
+        } else if (
+            runtimeTexturePressure_ ==
+            StaticMeshTexturePressure::Critical) {
+            targetBytesToFree =
+                std::max<std::uint64_t>(
+                    targetBytesToFree,
+                    stats.residentBytes /
+                        3U);
+        }
+
+        if (targetBytesToFree > 0U) {
+            if (planner.planDemotions(
+                    targetBytesToFree,
+                    frameIndex,
+                    0U,
+                    &outChange,
+                    1U) != 1U) {
+                return false;
+            }
+
+            const std::uint32_t textureIndex =
+                static_cast<std::uint32_t>(
+                    outChange.id - 1U);
+
+            if (textureIndex >=
+                textures_.size()) {
+                return false;
+            }
+
+            const auto& texture =
+                textures_[textureIndex];
+
+            outChange.newBaseMip =
+                std::min<std::uint32_t>(
+                    outChange.oldBaseMip +
+                        1U,
+                    std::min<std::uint32_t>(
+                        2U,
+                        texture.sourceMipCount -
+                            1U));
+
+            return
+                outChange.newBaseMip !=
+                outChange.oldBaseMip;
+        }
+
+        if (runtimeTexturePressure_ !=
+                StaticMeshTexturePressure::Normal ||
+            stats.degradedTextureCount ==
+                0U ||
+            scaledBudget <=
+                stats.residentBytes) {
+            return false;
+        }
+
+        const std::uint64_t availableBytes =
+            scaledBudget -
+            stats.residentBytes;
+
+        return planner.planPromotions(
+                   availableBytes,
+                   frameIndex,
+                   std::numeric_limits<
+                       std::uint64_t>::max(),
+                   &outChange,
+                   1U) == 1U;
+    } catch (...) {
+        outChange = {};
+        return false;
+    }
+}
+
 void VulkanStaticMeshRenderer::destroyTexture(
     GpuTexture& texture) noexcept {
     if (device_ == VK_NULL_HANDLE) {
