@@ -198,7 +198,7 @@ jobs:
           set -euxo pipefail
           rm -rf out/hayuya-zombie-benchmark
           mkdir -p out/hayuya-zombie-benchmark
-          python tools/hayuya3d/hayuya.py             --input benchmark/reference/zombie_front_3q.png             --profile monster             --portable-target high             --mode character             --backends triposr             --execute             --viewforge off             --geometry-refine off             --retopo off             --appearance-judge off             --mesh-doctor auto             --gameprep auto             --output-root out/hayuya-zombie-benchmark
+          xvfb-run -a -s "-screen 0 1280x1024x24" python tools/hayuya3d/hayuya.py             --input benchmark/reference/zombie_front_3q.png             --profile monster             --portable-target high             --mode character             --backends triposr             --execute             --viewforge off             --geometry-refine off             --retopo off             --appearance-judge off             --mesh-doctor auto             --gameprep auto             --output-root out/hayuya-zombie-benchmark
 
       - name: Collect benchmark evidence
         if: always()
