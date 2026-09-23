@@ -205,7 +205,8 @@ def make_job_plan(
     viewforge_mode: str = "auto",
     geometry_refine_mode: str = "auto",
     gameprep_mode: str = "auto",
-    character_specialist_mode: str = "auto",
+    character_specialist_mode: str = "off",
+    retopo_mode: str = "auto",
 ) -> dict:
     profile = PROFILES[profile_name]
     roles = split_reference_roles(inputs)
@@ -283,6 +284,14 @@ def make_job_plan(
             "activation": "explicit non-off opt-in + --allow-restricted + character mode + complete PSHuman auxiliary assets + >=40GB VRAM",
             "policy": "specialist is one additional candidate and must win the same real-source Judge; never auto-promoted",
             "auxiliary_asset_gate": "smpl_related + PIXIE/SMPLX assets must exist; Hayuya does not auto-download separately licensed body-model data"
+        },
+        "retopology": {
+            "mode": retopo_mode,
+            "backend": "Instant Meshes field-aligned retopology",
+            "activation": "unrigged provisional champion + bootstrapped/built Instant Meshes binary",
+            "style": "pure_quad for prop/architecture; quad_dominant for unrigged character",
+            "policy": "preserve retopo_master.obj as editable topology, restore PBR through Material Bridge v2, then re-enter the complete real-source Judge; never overwrite the source candidate blindly",
+            "rig_policy": "skip any glTF with skins until skin-weight-preserving retopology transfer exists"
         },
         "geometry_refinement": {
             "mode": geometry_refine_mode,
@@ -493,6 +502,12 @@ def main() -> int:
         help="TripoSF SparseFlex geometry challenger policy for monster/ultra execution",
     )
     parser.add_argument(
+        "--retopo",
+        choices=["off", "auto", "required"],
+        default="auto",
+        help="Instant Meshes deterministic quad retopology challenger; auto runs only when the optional native binary is ready and the provisional champion is unrigged",
+    )
+    parser.add_argument(
         "--character-specialist",
         choices=["off", "auto", "required"],
         default="off",
@@ -582,6 +597,7 @@ def main() -> int:
         geometry_refine_mode=args.geometry_refine,
         gameprep_mode=args.gameprep,
         character_specialist_mode=args.character_specialist,
+        retopo_mode=args.retopo,
     )
     (job_dir / "plan.json").write_text(json.dumps(plan, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(plan, indent=2))
@@ -897,26 +913,123 @@ def main() -> int:
                 if args.geometry_refine == "required":
                     raise
 
-    ranked = rank_candidates(
-        candidates,
-        mode=mode,
-        target_faces=profile.faces,
-        source_images=geometry_inputs,
-        detail_images=detail_inputs,
-        visual_weight=0.55,
-        appearance_mode=args.appearance_judge,
-        appearance_model_root=args.model_root,
-        appearance_render_root=job_dir / "judge_v3_renders",
-        appearance_weight=0.25,
-        normal_support_images=normal_support_images,
-        normal_support_weight=0.06,
-    )
-    ranking_data = [asdict(x) for x in ranked]
-    (job_dir / "ranking.json").write_text(json.dumps(ranking_data, indent=2) + "\n", encoding="utf-8")
+    def run_full_ranking():
+        return rank_candidates(
+            candidates,
+            mode=mode,
+            target_faces=profile.faces,
+            source_images=geometry_inputs,
+            detail_images=detail_inputs,
+            visual_weight=0.55,
+            appearance_mode=args.appearance_judge,
+            appearance_model_root=args.model_root,
+            appearance_render_root=job_dir / "judge_v3_renders",
+            appearance_weight=0.25,
+            normal_support_images=normal_support_images,
+            normal_support_weight=0.06,
+        )
 
+    ranked = run_full_ranking()
     valid = [x for x in ranked if x.valid]
     if not valid:
         raise SystemExit("Candidates were produced but none passed Hayuya Judge")
+
+    retopo_result = None
+    retopo_failure = None
+    retopo_status = "off" if args.retopo == "off" else "checking"
+
+    if args.retopo in {"auto", "required"}:
+        provisional = valid[0]
+        provisional_path = Path(provisional.path)
+        rigged = False
+        rig_reason = None
+
+        if provisional_path.suffix.lower() == ".glb":
+            try:
+                from gltf_audit import audit_glb
+                provisional_rig = audit_glb(provisional_path)
+                rigged = provisional_rig.skin_count > 0
+                if rigged:
+                    rig_reason = (
+                        f"provisional champion has {provisional_rig.skin_count} glTF skin(s); "
+                        "retopology would destroy JOINTS/WEIGHTS"
+                    )
+            except Exception as exc:
+                rig_reason = f"rig audit unavailable: {type(exc).__name__}: {exc}"
+
+        if rigged:
+            retopo_status = "skipped_rigged"
+            retopo_failure = rig_reason
+            print(f"HAYUYA_RETOPO_SKIPPED {rig_reason}", file=sys.stderr)
+            if args.retopo == "required":
+                raise RuntimeError(rig_reason)
+        else:
+            try:
+                from retopo import retopo_readiness, run_retopology
+
+                ready, missing = retopo_readiness(args.model_root)
+                if not ready:
+                    retopo_status = "skipped_unavailable"
+                    retopo_failure = "; ".join(missing)
+                    print(
+                        f"HAYUYA_RETOPO_SKIPPED {retopo_failure}",
+                        file=sys.stderr,
+                    )
+                    if args.retopo == "required":
+                        raise RuntimeError(retopo_failure)
+                else:
+                    source_faces = int(provisional.faces or profile.faces)
+                    target_runtime_faces = max(
+                        200,
+                        min(profile.faces, source_faces),
+                    )
+                    style = (
+                        "quad_dominant"
+                        if mode == "character"
+                        else "pure_quad"
+                    )
+                    retopo_result = run_retopology(
+                        provisional_path,
+                        job_dir / "retopo",
+                        target_triangle_faces=target_runtime_faces,
+                        style=style,
+                        texture_size=profile.texture_size,
+                        model_root=args.model_root,
+                    )
+                    candidates.append(
+                        ("instant_meshes_retopo", Path(retopo_result.bridged_glb))
+                    )
+                    retopo_status = "candidate_ready"
+                    print(
+                        "HAYUYA_RETOPO_READY "
+                        f"style={retopo_result.style} "
+                        f"quad_fraction={retopo_result.quad_fraction:.4f} "
+                        f"obj={retopo_result.retopo_obj}"
+                    )
+
+                    # The retopologized/PBR-restored asset earns nothing for merely
+                    # existing. Re-run exactly the same real-source Judge arena.
+                    ranked = run_full_ranking()
+                    valid = [x for x in ranked if x.valid]
+                    if not valid:
+                        raise RuntimeError("retopo re-ranking produced no valid candidates")
+            except Exception as exc:
+                if retopo_status != "skipped_unavailable":
+                    retopo_status = "failed"
+                    retopo_failure = f"{type(exc).__name__}: {exc}"
+                    print(
+                        f"HAYUYA_RETOPO_FAILED {retopo_failure}",
+                        file=sys.stderr,
+                    )
+                    traceback.print_exc()
+                if args.retopo == "required":
+                    raise
+
+    ranking_data = [asdict(x) for x in ranked]
+    (job_dir / "ranking.json").write_text(
+        json.dumps(ranking_data, indent=2) + "\n",
+        encoding="utf-8",
+    )
 
     champion = valid[0]
     source = Path(champion.path)
@@ -1001,6 +1114,12 @@ def main() -> int:
             "status": character_specialist_status,
             "failure": character_specialist_failure,
         },
+        "retopology": {
+            "status": retopo_status,
+            "result": asdict(retopo_result) if retopo_result is not None else None,
+            "failure": retopo_failure,
+            "won_final_arena": champion.backend == "instant_meshes_retopo",
+        },
         "geometry_refinement": asdict(refinement_decision) if refinement_decision is not None else None,
         "geometry_refinement_failure": refinement_failure,
         "material_bridge": asdict(material_bridge_result) if material_bridge_result is not None else None,
@@ -1022,7 +1141,8 @@ def main() -> int:
             "Wonder3D normal maps may contribute a deliberately small 6% synthetic-support score using the pinned front-view normal coordinate convention.",
             "TripoSF can challenge the best geometry seed at 1024^3 in Monster/Ultra; it must pass real-source geometry evidence.",
             "If TripoSF wins geometry, Material Bridge v2 reprojects packed PBR UV/material evidence when available (base-color fallback otherwise) and the bridged GLB re-enters the final Judge rather than being auto-promoted.",
-            "GamePrep audits glTF rig/skin state first; skinned assets preserve exact master/LOD0 and defer destructive simplified LODs until skin-weight transfer exists.",
+            "Instant Meshes retopology is an optional deterministic challenger: editable quad/quad-dominant OBJ is preserved, Material Bridge v2 restores runtime material evidence, and the bridged GLB must win the same Judge.",
+            "GamePrep audits glTF rig/skin state first; skinned assets skip destructive retopology/LOD simplification and preserve exact master/LOD0 until skin-weight transfer exists.",
             "QA Package v1 records geometry/material/reference/rig/GamePrep readiness and creates a source-vs-turntable contact sheet.",
             "Judge v2 combines production mesh health with source-image silhouette agreement.",
             "Judge v3 auto adds DINOv2 appearance similarity when the pinned evaluator is bootstrapped; otherwise it falls back to v2.",
