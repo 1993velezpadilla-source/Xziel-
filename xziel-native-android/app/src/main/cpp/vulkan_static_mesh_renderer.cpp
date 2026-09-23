@@ -1975,8 +1975,20 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureResidency(
             continue;
         }
 
+        const bool probeWantsResident =
+            streamResidencyProbeEnabled_ &&
+            !streamResidencyProbeComplete_ &&
+            streamResidencyProbeTextureIndex_ ==
+                textureIndex &&
+            runtimeTextureTransitionFrame_ >=
+                streamResidencyProbeReloadFrame_;
+
+        const bool wantsResident =
+            decision->desiredResident ||
+            probeWantsResident;
+
         if (texture.physicallyResident &&
-            decision->desiredResident) {
+            wantsResident) {
             if ((texture.
                      descriptorResidentMask &
                  slotBit) == 0U) {
@@ -1999,6 +2011,34 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureResidency(
                         static_cast<unsigned int>(
                             texture.
                                 descriptorResidentMask));
+
+                    const std::uint8_t fullMask =
+                        static_cast<std::uint8_t>(
+                            (1U <<
+                                 kDescriptorFrames) -
+                            1U);
+
+                    if (streamResidencyProbeEnabled_ &&
+                        !streamResidencyProbeComplete_ &&
+                        streamResidencyProbeTextureIndex_ ==
+                            textureIndex &&
+                        texture.descriptorResidentMask ==
+                            fullMask) {
+                        streamResidencyProbeComplete_ =
+                            true;
+
+                        __android_log_print(
+                            ANDROID_LOG_INFO,
+                            kTag,
+                            "XZIEL_RUNTIME_TEXTURE_RELOAD_COMPLETE texture=%u base_mip=%u mask=%u",
+                            static_cast<unsigned int>(
+                                textureIndex),
+                            static_cast<unsigned int>(
+                                texture.residentBaseMip),
+                            static_cast<unsigned int>(
+                                texture.
+                                    descriptorResidentMask));
+                    }
                 }
                 return;
             }
@@ -2007,7 +2047,7 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureResidency(
         }
 
         if (texture.physicallyResident &&
-            !decision->desiredResident &&
+            !wantsResident &&
             streamCullingActive_ &&
             streamCellStableFrames_ >=
                 minimumStableFrames) {
@@ -2050,6 +2090,27 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureResidency(
                         1024.0,
                     static_cast<unsigned int>(
                         memoryPressure));
+
+                if (streamResidencyProbeEnabled_ &&
+                    !streamResidencyProbeComplete_ &&
+                    streamResidencyProbeTextureIndex_ ==
+                        UINT32_MAX) {
+                    streamResidencyProbeTextureIndex_ =
+                        textureIndex;
+                    streamResidencyProbeReloadFrame_ =
+                        runtimeTextureTransitionFrame_ +
+                        12U;
+
+                    __android_log_print(
+                        ANDROID_LOG_INFO,
+                        kTag,
+                        "XZIEL_RUNTIME_TEXTURE_RELOAD_PROBE_ARMED texture=%u reload_frame=%llu",
+                        static_cast<unsigned int>(
+                            textureIndex),
+                        static_cast<unsigned long long>(
+                            streamResidencyProbeReloadFrame_));
+                }
+
                 return;
             }
 
@@ -2057,7 +2118,7 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureResidency(
         }
 
         if (!texture.physicallyResident &&
-            decision->desiredResident) {
+            wantsResident) {
             if (texture.assetPath.size() <
                     5U ||
                 texture.assetPath.substr(
