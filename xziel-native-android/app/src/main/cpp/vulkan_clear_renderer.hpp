@@ -339,6 +339,7 @@ private:
         VkShaderModule& outModule) noexcept;
 
     [[nodiscard]] bool createImageViews() noexcept;
+    [[nodiscard]] bool createSceneColorResources() noexcept;
     [[nodiscard]] bool createDepthResources() noexcept;
     [[nodiscard]] bool createReflectionFallbackResources() noexcept;
     void destroyReflectionFallbackResources() noexcept;
@@ -405,6 +406,12 @@ private:
 
     std::vector<VkImage> swapchainImages_;
     std::vector<VkImageView> imageViews_;
+
+    // Main-scene MSAA color is transient and resolves directly into the
+    // swapchain inside the render pass. It is empty on 1x devices/CI.
+    std::vector<VkImage> sceneColorImages_;
+    std::vector<VkDeviceMemory> sceneColorMemory_;
+    std::vector<VkImageView> sceneColorViews_;
 
     std::vector<VkImage> depthImages_;
     std::vector<VkDeviceMemory> depthMemory_;
