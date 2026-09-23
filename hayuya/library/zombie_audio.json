@@ -48,6 +48,28 @@
           "files": [
             "assets/audio/cc0_horror_library/zombie_moans_darsycho/zombie_moans.ogg"
           ]
+        },
+        {
+          "id": "saturn91_calls",
+          "label": "Human-performed zombie calls",
+          "source": "saturn91 — Zomby sfx pack",
+          "license": "CC0",
+          "directory": "assets/audio/cc0_horror_library/zomby_sfx_saturn91",
+          "notes": "Creator states the calls were recorded with their own voice and microphone."
+        },
+        {
+          "id": "ianzazz_noises_moans",
+          "label": "Zombie noises / moans / alert",
+          "source": "ianzazz — Zombie noises and moans",
+          "license": "CC0",
+          "directory": "assets/audio/cc0_horror_library/zombie_noises_ianzazz"
+        },
+        {
+          "id": "emopreben_moans",
+          "label": "Zombie Moans 01",
+          "source": "EmoPreben",
+          "license": "CC0",
+          "directory": "assets/audio/cc0_horror_library/zombie_moans_emopreben"
         }
       ]
     },
@@ -192,21 +214,21 @@
       "label": "Zomby SFX Pack — saturn91",
       "license": "CC0",
       "source_url": "https://opengameart.org/content/zomby-sfx-pack",
-      "status": "research_only"
+      "status": "ingested_local"
     },
     {
       "id": "oga_zombie_noises_moans",
       "label": "Zombie noises and moans — ianzazz",
       "license": "CC0",
       "source_url": "https://opengameart.org/content/zombie-noises-and-moans",
-      "status": "research_only"
+      "status": "ingested_local"
     },
     {
       "id": "oga_zombie_moans_emopreben",
       "label": "Zombie Moans 01 — EmoPreben",
       "license": "CC0",
       "source_url": "https://opengameart.org/content/zombie-moans-01-by-emopreben",
-      "status": "research_only"
+      "status": "ingested_local"
     }
   ]
 }
