@@ -20,6 +20,8 @@ class MeshScore:
     visual_views: list[dict] | None = None
     appearance_score: float | None = None
     appearance_views: list[dict] | None = None
+    normal_support_score: float | None = None
+    normal_support_views: list[dict] | None = None
     vertices: int = 0
     faces: int = 0
     components: int = 0
@@ -193,6 +195,8 @@ def rank_candidates(
     appearance_model_root: Path | None = None,
     appearance_render_root: Path | None = None,
     appearance_weight: float = 0.25,
+    normal_support_images: dict[str, Path] | None = None,
+    normal_support_weight: float = 0.06,
 ) -> list[MeshScore]:
     scores = [
         inspect_mesh(path, backend=backend, mode=mode, target_faces=target_faces)
@@ -287,6 +291,38 @@ def rank_candidates(
                     if appearance_mode == "required":
                         raise
 
+                # Wonder3D normals are synthetic support evidence only. They never
+                # replace real-source silhouette/appearance evidence and carry a
+                # deliberately small final weight.
+                if normal_support_images and item.valid and item.visual_views:
+                    try:
+                        from normal_judge import score_candidate_normals
+                        from visual_judge import SourceViewScore
+
+                        first = item.visual_views[0]
+                        anchor = SourceViewScore(**first)
+                        normal_support = score_candidate_normals(
+                            Path(item.path),
+                            normal_support_images,
+                            anchor,
+                        )
+                        item.normal_support_score = normal_support.score
+                        item.normal_support_views = [_asdict(v) for v in normal_support.views]
+                        prior = item.score
+                        item.score = round(
+                            prior * (1.0 - normal_support_weight)
+                            + item.normal_support_score * normal_support_weight,
+                            3,
+                        )
+                        item.notes.append(
+                            f"synthetic normal support={item.normal_support_score:.3f} "
+                            f"weight={normal_support_weight:.3f}"
+                        )
+                    except Exception as exc:
+                        item.notes.append(
+                            f"synthetic normal support unavailable: {type(exc).__name__}: {exc}"
+                        )
+
     return sorted(scores, key=lambda x: (x.valid, x.score), reverse=True)
 
 
@@ -321,8 +357,15 @@ def main() -> int:
     parser.add_argument("--appearance-model-root", type=Path)
     parser.add_argument("--appearance-render-root", type=Path)
     parser.add_argument("--appearance-weight", type=float, default=0.25)
+    parser.add_argument("--normal-support", type=Path, action="append", default=[], help="view=path")
+    parser.add_argument("--normal-support-weight", type=float, default=0.06)
     parser.add_argument("--json", type=Path)
     args = parser.parse_args()
+
+    normal_support_images = {}
+    for item in args.normal_support:
+        view, raw = str(item).split("=", 1)
+        normal_support_images[view] = Path(raw)
 
     ranked = rank_candidates(
         [(p.stem, p) for p in args.mesh],
@@ -335,6 +378,8 @@ def main() -> int:
         appearance_model_root=args.appearance_model_root,
         appearance_render_root=args.appearance_render_root,
         appearance_weight=args.appearance_weight,
+        normal_support_images=normal_support_images or None,
+        normal_support_weight=args.normal_support_weight,
     )
     data = [asdict(x) for x in ranked]
     print(json.dumps(data, indent=2))
