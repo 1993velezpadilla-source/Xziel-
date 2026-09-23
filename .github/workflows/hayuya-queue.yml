@@ -140,7 +140,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: hayuya-${{ matrix.owner }}-${{ matrix.job_id }}
+          name: hayuya-job-${{ matrix.job_id }}
           path: out/hayuya-jobs/${{ matrix.job_id }}/**
           if-no-files-found: warn
           retention-days: 14
