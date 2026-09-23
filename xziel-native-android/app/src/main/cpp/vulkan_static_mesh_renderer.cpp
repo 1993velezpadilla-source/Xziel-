@@ -186,27 +186,32 @@ chooseGeometryResidentBudget(
 }
 
 [[nodiscard]] std::uint64_t
-effectiveGeometryResidentBudget(
+scaledResidentBudget(
     std::uint64_t baseBudget,
-    MemoryPressure pressure) noexcept {
-    constexpr std::uint64_t kMiB =
-        1024ULL * 1024ULL;
+    float scale,
+    std::uint64_t minimumBytes) noexcept {
+    const float safeScale =
+        std::isfinite(scale)
+        ? std::clamp(scale, 0.20f, 1.0f)
+        : 1.0f;
 
-    switch (pressure) {
-    case MemoryPressure::Critical:
-        return std::max<std::uint64_t>(
-            32ULL * kMiB,
-            baseBudget / 2U);
+    const double scaled =
+        static_cast<double>(baseBudget) *
+        static_cast<double>(safeScale);
 
-    case MemoryPressure::Elevated:
-        return std::max<std::uint64_t>(
-            48ULL * kMiB,
-            (baseBudget * 3U) / 4U);
+    const std::uint64_t scaledBytes =
+        scaled >=
+                static_cast<double>(
+                    std::numeric_limits<
+                        std::uint64_t>::max())
+        ? std::numeric_limits<
+              std::uint64_t>::max()
+        : static_cast<std::uint64_t>(
+              scaled);
 
-    case MemoryPressure::Normal:
-    default:
-        return baseBudget;
-    }
+    return std::max(
+        minimumBytes,
+        scaledBytes);
 }
 
 [[nodiscard]] bool assetExists(
@@ -2012,12 +2017,55 @@ bool VulkanStaticMeshRenderer::beginRuntimeKtx2Upload(
 
 void VulkanStaticMeshRenderer::serviceRuntimeTextureResidency(
     std::uint32_t frameSlot,
-    MemoryPressure memoryPressure) noexcept {
+    MemoryPressure memoryPressure,
+    float textureBudgetScale) noexcept {
     if (!streamGraphReady_ ||
         frameSlot >= kDescriptorFrames ||
         streamFallbackTextureIndex_ >=
             textures_.size()) {
         return;
+    }
+
+    constexpr std::uint64_t kMinimumRuntimeTextureBudget =
+        32ULL * 1024ULL * 1024ULL;
+
+    const std::uint64_t effectiveTextureBudget =
+        scaledResidentBudget(
+            textureResidentBudgetBytes_,
+            textureBudgetScale,
+            kMinimumRuntimeTextureBudget);
+
+    const bool textureOverBudget =
+        textureResidentBytes_ >
+        effectiveTextureBudget;
+
+    const float safeTextureScale =
+        std::isfinite(textureBudgetScale)
+        ? std::clamp(
+              textureBudgetScale,
+              0.20f,
+              1.0f)
+        : 1.0f;
+
+    if (std::abs(
+            safeTextureScale -
+            lastAppliedTextureBudgetScale_) >
+        0.001f) {
+        lastAppliedTextureBudgetScale_ =
+            safeTextureScale;
+
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_RUNTIME_TEXTURE_POLICY scale=%.3f budget_mb=%.2f resident_mb=%.2f",
+            static_cast<double>(
+                safeTextureScale),
+            static_cast<double>(
+                effectiveTextureBudget) /
+                (1024.0 * 1024.0),
+            static_cast<double>(
+                textureResidentBytes_) /
+                (1024.0 * 1024.0));
     }
 
     ++runtimeTextureTransitionFrame_;
@@ -2279,7 +2327,8 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureResidency(
             1U << frameSlot);
 
     const std::uint32_t minimumStableFrames =
-        geometryResidencyProbeEnabled_
+        streamResidencyProbeEnabled_ ||
+                textureOverBudget
         ? 8U
         : memoryPressure ==
               MemoryPressure::Critical
@@ -2393,9 +2442,9 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureResidency(
                         : 0U;
 
                     if (targetPayload <=
-                        textureResidentBudgetBytes_ -
+                        effectiveTextureBudget -
                             std::min(
-                                textureResidentBudgetBytes_,
+                                effectiveTextureBudget,
                                 steadyBytes)) {
                         break;
                     }
@@ -2571,6 +2620,36 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureResidency(
 
         if (!texture.physicallyResident &&
             wantsResident) {
+            const std::uint32_t budgetTargetBaseMip =
+                std::min<std::uint32_t>(
+                    decision->desiredMipBias,
+                    texture.sourceMipLevels >
+                            0U
+                        ? texture.
+                              sourceMipLevels -
+                              1U
+                        : 0U);
+
+            if (decision->heat ==
+                    StreamCellHeat::Preload &&
+                !probeWantsResident &&
+                texture.sourceMipLevels > 0U) {
+                const std::uint64_t targetPayload =
+                    texturePayloadFromMip(
+                        texture,
+                        budgetTargetBaseMip);
+
+                const std::uint64_t remaining =
+                    effectiveTextureBudget -
+                    std::min(
+                        effectiveTextureBudget,
+                        textureResidentBytes_);
+
+                if (targetPayload > remaining) {
+                    continue;
+                }
+            }
+
             if (texture.assetPath.size() <
                     5U ||
                 texture.assetPath.substr(
@@ -2888,7 +2967,8 @@ std::string VulkanStaticMeshRenderer::geometryRangeRequestKey(
 
 void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
     std::uint32_t frameSlot,
-    const StreamCellPlanInput& input) noexcept {
+    const StreamCellPlanInput& input,
+    float meshBudgetScale) noexcept {
     if (!streamGraphReady_ ||
         frameSlot >= kDescriptorFrames ||
         geometryCellCount_ == 0U ||
@@ -3265,10 +3345,43 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
         return;
     }
 
+    constexpr std::uint64_t kMinimumRuntimeGeometryBudget =
+        32ULL * 1024ULL * 1024ULL;
+
     const std::uint64_t effectiveGeometryBudget =
-        effectiveGeometryResidentBudget(
+        scaledResidentBudget(
             geometryResidentBudgetBytes_,
-            input.memoryPressure);
+            meshBudgetScale,
+            kMinimumRuntimeGeometryBudget);
+
+    const float safeMeshScale =
+        std::isfinite(meshBudgetScale)
+        ? std::clamp(
+              meshBudgetScale,
+              0.20f,
+              1.0f)
+        : 1.0f;
+
+    if (std::abs(
+            safeMeshScale -
+            lastAppliedMeshBudgetScale_) >
+        0.001f) {
+        lastAppliedMeshBudgetScale_ =
+            safeMeshScale;
+
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_RUNTIME_MESH_POLICY scale=%.3f budget_mb=%.2f resident_mb=%.2f",
+            static_cast<double>(
+                safeMeshScale),
+            static_cast<double>(
+                effectiveGeometryBudget) /
+                (1024.0 * 1024.0),
+            static_cast<double>(
+                geometryResidentBytes_) /
+                (1024.0 * 1024.0));
+    }
 
     const bool geometryOverBudget =
         geometryResidentBytes_ >
@@ -3610,7 +3723,8 @@ void VulkanStaticMeshRenderer::record(
 
     serviceRuntimeTextureResidency(
         frameSlot,
-        environment.memoryPressure);
+        environment.memoryPressure,
+        environment.textureBudgetScale);
 
     if (streamGraphReady_ &&
         frameStats_.streamingCell != 0U) {
@@ -3622,7 +3736,8 @@ void VulkanStaticMeshRenderer::record(
                 .preloadPortalHops = 1U,
                 .memoryPressure =
                     environment.memoryPressure,
-            });
+            },
+            environment.meshBudgetScale);
     }
 
     VkPipeline boundPipeline =
@@ -7152,6 +7267,8 @@ void VulkanStaticMeshRenderer::destroyGeometryResidency() noexcept {
     geometryCellIndexBytes_ = 0U;
     geometryResidentBytes_ = 0U;
     geometryReloadCellSlot_ = UINT32_MAX;
+    lastAppliedTextureBudgetScale_ = -1.0f;
+    lastAppliedMeshBudgetScale_ = -1.0f;
 
     geometryVertexBuffer_ =
         VK_NULL_HANDLE;
