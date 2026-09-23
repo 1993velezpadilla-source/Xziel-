@@ -189,6 +189,11 @@ jobs:
           if [ -f "$HAYUYA_OUTPUT_ROOT/manifest.json" ]; then
             cp "$HAYUYA_OUTPUT_ROOT/manifest.json" "$model_dir/manifest.json"
           fi
+          for qa in quality_gate.json texture_gate.json rig_gate.json failure_reason.txt; do
+            if [ -f "$HAYUYA_OUTPUT_ROOT/$qa" ]; then
+              cp "$HAYUYA_OUTPUT_ROOT/$qa" "$model_dir/$qa"
+            fi
+          done
           rm -rf "$model_dir/prepared_views" "$model_dir/prepared_details"
           if [ -d "$HAYUYA_OUTPUT_ROOT/prepared_views" ]; then
             cp -R "$HAYUYA_OUTPUT_ROOT/prepared_views" "$model_dir/prepared_views"
