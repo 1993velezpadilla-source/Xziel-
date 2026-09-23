@@ -274,13 +274,50 @@ print("HAYUYA_MESH_GATE", json.dumps(gate_payload, separators=(",",":")))
 if not gate.passed:
     fail("HAYUYA mesh quality gate rejected output: " + "; ".join(gate.reasons))
 
-# Rig/animation readiness is reported separately from geometry QA. TRELLIS
-# currently produces a static mesh; future autorig stages can flip these fields
-# without changing the Hub contract.
-rig=inspect_rig_gate(dst, Path("hayuya/standards/hayuya_humanoid_v1.json"))
-rig_payload=asdict(rig)
-(OUT/"rig_gate.json").write_text(json.dumps(rig_payload,indent=2),encoding="utf-8")
-print("HAYUYA_RIG_GATE", json.dumps(rig_payload, separators=(",",":")))
+# Animation readiness is profile-specific. Humanoids use skeletal rig QA;
+# weapons/vehicles/mechanical props require part/pivot mechanics; foliage uses
+# runtime wind/vertex motion. Never force a humanoid skeleton onto arbitrary
+# assets just to make the "animation ready" badge turn green.
+character_payload=None
+if ASSET_PROFILE in {"auto","character.humanoid","character.creature"}:
+    rig=inspect_rig_gate(dst, Path("hayuya/standards/hayuya_humanoid_v1.json"))
+    rig_payload=asdict(rig)
+    (OUT/"rig_gate.json").write_text(json.dumps(rig_payload,indent=2),encoding="utf-8")
+    print("HAYUYA_RIG_GATE", json.dumps(rig_payload, separators=(",",":")))
+    character_payload={
+        "skeleton_type":rig_payload["skeleton_type"],
+        "preview_pack":"hayuya_preview_pack_v1",
+        "rig_ready":rig_payload["rig_ready"],
+        "animation_ready":rig_payload["animation_ready"],
+        "preview_animation_ready":rig_payload["preview_animation_ready"],
+        "animation_clips":rig_payload["animation_clips"],
+        "facial":rig_payload["facial"],
+        "secondary_motion":rig_payload["secondary_motion"],
+        "warnings":rig_payload["warnings"],
+    }
+
+profile_systems={
+    "character.humanoid":["skeletal","morph_targets","secondary_motion"],
+    "character.creature":["skeletal","morph_targets","secondary_motion"],
+    "weapon.firearm":["mechanical_skeleton","transform_channels"],
+    "weapon.melee":["transform_channels","optional_skeletal"],
+    "prop.mechanical":["mechanical_skeleton","transform_channels"],
+    "vehicle":["mechanical_skeleton","transform_channels","suspension_rig"],
+    "foliage.grass":["vertex_wind","transform_channels"],
+    "foliage.tree":["vertex_wind","skeletal_foliage"],
+    "prop.static":["optional_transform_channels","optional_morph_targets"],
+    "environment.modular":["optional_transform_channels","optional_vertex_animation"],
+    "auto":[],
+}
+asset_payload={
+    "profile":ASSET_PROFILE,
+    "animation_requested":ANIMATION_REQUESTED,
+    "motion_profile":MOTION_PROFILE,
+    "animation_systems":profile_systems.get(ASSET_PROFILE,[]),
+    "mechanical_rig_ready":False,
+    "procedural_motion_ready":ASSET_PROFILE in {"foliage.grass","foliage.tree"},
+    "requires_profile_postprocess":ASSET_PROFILE not in {"auto","character.humanoid","character.creature","prop.static"},
+}
 
 manifest={
     "schema":2,
@@ -304,18 +341,10 @@ manifest={
     "source_had_alpha":source_had_alpha,
     "alpha_preserved":True,
     "quality_gate":gate_payload,
-    "character":{
-        "skeleton_type":rig_payload["skeleton_type"],
-        "preview_pack":"hayuya_preview_pack_v1",
-        "rig_ready":rig_payload["rig_ready"],
-        "animation_ready":rig_payload["animation_ready"],
-        "preview_animation_ready":rig_payload["preview_animation_ready"],
-        "animation_clips":rig_payload["animation_clips"],
-        "facial":rig_payload["facial"],
-        "secondary_motion":rig_payload["secondary_motion"],
-        "warnings":rig_payload["warnings"],
-    },
+    "asset":asset_payload,
 }
+if character_payload is not None:
+    manifest["character"]=character_payload
 (OUT/"manifest.json").write_text(json.dumps(manifest,indent=2),encoding="utf-8")
 print("HAYUYA_PHONE_CLOUD_PASS")
 print(json.dumps(manifest,indent=2))
