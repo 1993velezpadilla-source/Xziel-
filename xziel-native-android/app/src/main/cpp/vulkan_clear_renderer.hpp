@@ -234,6 +234,12 @@ public:
     [[nodiscard]] bool ready() const noexcept;
     [[nodiscard]] bool deviceLost() const noexcept;
 
+    // Measured on the previous completed frame. These are deliberately
+    // renderer-owned so the PerformanceGovernor receives real workload data
+    // instead of wall-clock frame cadence / guessed GPU cost.
+    [[nodiscard]] float lastCpuRenderMs() const noexcept;
+    [[nodiscard]] float lastGpuFrameMs() const noexcept;
+
 private:
     struct FrameSync {
         VkSemaphore imageAvailable = VK_NULL_HANDLE;
@@ -344,6 +350,10 @@ private:
     [[nodiscard]] bool createFramebuffers() noexcept;
     [[nodiscard]] bool createCommandResources() noexcept;
     [[nodiscard]] bool createSyncObjects() noexcept;
+    [[nodiscard]] bool createPerformanceQueries() noexcept;
+    void destroyPerformanceQueries() noexcept;
+    void resolvePerformanceQueries(
+        std::uint32_t frameSlot) noexcept;
 
     void destroySwapchainResources() noexcept;
 
@@ -351,6 +361,7 @@ private:
 
     [[nodiscard]] bool recordDrawCommand(
         std::uint32_t imageIndex,
+        std::uint32_t frameSlot,
         float timeSeconds,
         const VulkanCamera& camera,
         const VulkanHudState& hud,
@@ -426,6 +437,17 @@ private:
     static constexpr std::uint32_t kFramesInFlight = 2;
     FrameSync frames_[kFramesInFlight]{};
     std::uint32_t frameIndex_ = 0;
+
+    // Two timestamp queries per in-flight frame: GPU begin/end. Query results
+    // are read only after that frame slot's fence signals, so no CPU stall is
+    // introduced just to measure GPU time.
+    VkQueryPool gpuTimestampQueryPool_ = VK_NULL_HANDLE;
+    std::array<bool, kFramesInFlight> gpuTimestampValid_{};
+    std::uint32_t timestampValidBits_ = 0;
+    float timestampPeriodNs_ = 0.0f;
+    float lastCpuRenderMs_ = 0.0f;
+    float lastGpuFrameMs_ = 0.0f;
+    std::uint64_t performanceTelemetryFrame_ = 0;
 
     ANativeWindow* window_ = nullptr;
     AAssetManager* assetManager_ = nullptr;
