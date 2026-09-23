@@ -19,6 +19,7 @@ add_library(xziel-native SHARED
     android_input.cpp
     android_haptics.cpp
     android_audio.cpp
+    android_asset_streamer.cpp
     vulkan_clear_renderer.cpp
     vulkan_static_mesh_renderer.cpp
 )
