@@ -290,7 +290,6 @@ bool VulkanStaticMeshRenderer::initialize(
     geometryResidencyProbeEnabled_ =
         streamGraphReady_ &&
         runtimeGeometryStreamingProbeEnabled();
-    geometryResidencyProbeEnabled_ = false;
     geometryResidencyProbeComplete_ = false;
     geometryResidencyProbeCellSlot_ = UINT32_MAX;
     geometryResidencyProbeReloadFrame_ = 0U;
@@ -914,6 +913,7 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     streamResidencyProbeTextureIndex_ =
         UINT32_MAX;
     streamResidencyProbeReloadFrame_ = 0U;
+    geometryResidencyProbeEnabled_ = false;
     geometryResidencyProbeComplete_ = false;
     geometryResidencyProbeCellSlot_ = UINT32_MAX;
     geometryResidencyProbeReloadFrame_ = 0U;
@@ -3076,7 +3076,7 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
                 geometryResidentBytes_) /
                 (1024.0 * 1024.0));
 
-        if (streamResidencyProbeEnabled_ &&
+        if (geometryResidencyProbeEnabled_ &&
             geometryResidencyProbeCellSlot_ ==
                 completedSlot) {
             geometryResidencyProbeComplete_ =
