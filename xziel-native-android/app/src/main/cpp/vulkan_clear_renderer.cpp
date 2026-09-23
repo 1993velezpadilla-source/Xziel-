@@ -680,9 +680,10 @@ bool VulkanClearRenderer::drawFrame(
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_PERF_TIMING cpu_render_ms=%.3f gpu_frame_ms=%.3f",
+            "XZIEL_PERF_TIMING cpu_render_ms=%.3f gpu_frame_ms=%.3f gpu_authoritative=%d",
             static_cast<double>(lastCpuRenderMs_),
-            static_cast<double>(lastGpuFrameMs_));
+            static_cast<double>(lastGpuFrameMs_),
+            gpuTimingAuthoritative() ? 1 : 0);
     }
 
     return true;
@@ -702,6 +703,15 @@ float VulkanClearRenderer::lastCpuRenderMs() const noexcept {
 
 float VulkanClearRenderer::lastGpuFrameMs() const noexcept {
     return lastGpuFrameMs_;
+}
+
+bool VulkanClearRenderer::gpuTimingAuthoritative() const noexcept {
+    return
+        physicalDevice_ != VK_NULL_HANDLE &&
+        physicalDeviceType_ != VK_PHYSICAL_DEVICE_TYPE_CPU &&
+        gpuTimestampQueryPool_ != VK_NULL_HANDLE &&
+        timestampValidBits_ > 0U &&
+        timestampPeriodNs_ > 0.0f;
 }
 
 bool VulkanClearRenderer::createInstance() noexcept {
