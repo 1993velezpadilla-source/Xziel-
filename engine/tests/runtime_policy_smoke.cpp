@@ -49,5 +49,37 @@ int main() {
     assert(!limited.ssrEnabled);
     assert(limited.shadowMapResolution <= 512);
 
+    const auto thermalGuard = planner.plan({
+        .gameMode = xziel::UserGameMode::Performance,
+        .memoryPressure = xziel::MemoryPressure::Normal,
+        .displayRefreshHz = 120.0f,
+        .batterySaver = false,
+        .charging = true,
+        .thermalHeadroom = 0.99f,
+        .cpuHeadroomPercent = 55.0f,
+        .gpuHeadroomPercent = 48.0f,
+    });
+
+    assert(thermalGuard.preferredFps <= 60.0f);
+    assert(thermalGuard.maximumQuality == xziel::RenderQuality::Low);
+    assert(!thermalGuard.requestHighRefreshRate);
+    assert(!thermalGuard.allowRayQueryExperimental);
+
+    const auto gpuGuard = planner.plan({
+        .gameMode = xziel::UserGameMode::Performance,
+        .memoryPressure = xziel::MemoryPressure::Normal,
+        .displayRefreshHz = 120.0f,
+        .batterySaver = false,
+        .charging = true,
+        .thermalHeadroom = 0.40f,
+        .cpuHeadroomPercent = 60.0f,
+        .gpuHeadroomPercent = 4.0f,
+    });
+
+    assert(
+        gpuGuard.maximumQuality ==
+        xziel::RenderQuality::Medium);
+    assert(!gpuGuard.requestHighRefreshRate);
+
     return 0;
 }
