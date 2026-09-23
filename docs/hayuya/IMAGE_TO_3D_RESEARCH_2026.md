@@ -289,6 +289,38 @@ Hayuya Monster adopts this as a vendor-neutral pipeline rather than cloning any 
 
 Only public documentation, public behavior and open-source repositories are used as the engineering source material.
 
+## Evaluation research: source and multi-view consistency
+
+Modern image-to-3D quality needs more than polygon counts.
+
+### MEt3R
+
+MEt3R (2025) measures multi-view consistency by using DUSt3R to obtain dense pairwise 3D correspondences, warping one view into another, and comparing learned image features in aligned regions.
+
+Hayuya does not need the full method for its dependency-light v2 judge, but the architecture is directly relevant to Judge v3:
+
+- infer correspondence between candidate renders and source/synthetic views
+- warp into a common frame
+- compare learned features instead of raw pixels
+- tolerate view-dependent appearance changes
+
+### Differentiable ray/view consistency
+
+Earlier reconstruction work formalized consistency between 3D geometry and 2D observations using ray consistency over masks, depth, color and semantic evidence.
+
+Hayuya Judge v2 applies the same core product principle in a lightweight form: a generated 3D candidate must explain the actual 2D evidence.
+
+### Hayuya evaluation ladder
+
+1. **Judge v1** — topology/material/production health.
+2. **Judge v2** — implemented software silhouette camera search against every real source photo.
+3. **Judge v3** — DINO/MEt3R-style feature consistency, normal/depth agreement and calibrated camera estimation.
+
+References:
+
+- https://arxiv.org/abs/2501.06336
+- https://arxiv.org/abs/1704.06254
+
 ## Priority after v1
 
 1. ViewForge executable Wonder3D/normal stage.
