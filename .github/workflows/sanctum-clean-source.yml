@@ -3,7 +3,7 @@ name: Sanctum Exterior Detail A-B Source
 on:
   push:
     branches:
-      - research/sanctum-exterior-detail-ab-v1
+      - engine/mobile-power-fidelity-v1
   workflow_dispatch:
 
 permissions:
