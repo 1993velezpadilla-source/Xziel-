@@ -15,6 +15,9 @@ class MeshScore:
     backend: str
     score: float
     valid: bool
+    production_score: float | None = None
+    visual_score: float | None = None
+    visual_views: list[dict] | None = None
     vertices: int = 0
     faces: int = 0
     components: int = 0
@@ -168,6 +171,7 @@ def inspect_mesh(
             + bbox_health * 0.07
         )
         result.score = round(max(0.0, min(100.0, raw * 100.0)), 3)
+        result.production_score = result.score
         return result
     except Exception as exc:
         result.valid = False
@@ -180,11 +184,45 @@ def rank_candidates(
     *,
     mode: str,
     target_faces: int,
+    source_images: list[Path] | None = None,
+    visual_weight: float = 0.55,
 ) -> list[MeshScore]:
     scores = [
         inspect_mesh(path, backend=backend, mode=mode, target_faces=target_faces)
         for backend, path in candidates
     ]
+
+    if source_images:
+        try:
+            from visual_judge import score_candidate as score_visual
+            from dataclasses import asdict as _asdict
+        except Exception:
+            score_visual = None
+            _asdict = None
+
+        if score_visual is not None:
+            for item in scores:
+                if not item.valid:
+                    continue
+                try:
+                    visual = score_visual(Path(item.path), source_images)
+                    item.production_score = item.production_score if item.production_score is not None else item.score
+                    item.visual_score = visual.score
+                    item.visual_views = [_asdict(v) for v in visual.views]
+                    item.score = round(
+                        item.production_score * (1.0 - visual_weight)
+                        + item.visual_score * visual_weight,
+                        3,
+                    )
+                    item.notes.append(
+                        f"Judge v2 combined production={item.production_score:.3f} "
+                        f"visual={item.visual_score:.3f} visual_weight={visual_weight:.2f}"
+                    )
+                except Exception as exc:
+                    item.notes.append(
+                        f"Judge v2 visual score unavailable: {type(exc).__name__}: {exc}"
+                    )
+
     return sorted(scores, key=lambda x: (x.valid, x.score), reverse=True)
 
 
@@ -212,6 +250,8 @@ def main() -> int:
     parser.add_argument("mesh", type=Path, nargs="+")
     parser.add_argument("--mode", choices=["auto", "prop", "character", "architecture"], default="prop")
     parser.add_argument("--target-faces", type=int, default=100000)
+    parser.add_argument("--source", type=Path, action="append", help="real source image; repeatable")
+    parser.add_argument("--visual-weight", type=float, default=0.55)
     parser.add_argument("--json", type=Path)
     args = parser.parse_args()
 
@@ -219,6 +259,8 @@ def main() -> int:
         [(p.stem, p) for p in args.mesh],
         mode="prop" if args.mode == "auto" else args.mode,
         target_faces=args.target_faces,
+        source_images=args.source,
+        visual_weight=args.visual_weight,
     )
     data = [asdict(x) for x in ranked]
     print(json.dumps(data, indent=2))
