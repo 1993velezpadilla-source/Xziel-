@@ -48,23 +48,21 @@ jobs:
             --profile monster \
             --gpu-vram 8
 
-      - name: Dry-run nine-photo reference pool
+      - name: Dry-run twelve-photo folder reference pool
         run: |
           python - <<'PY'
           from pathlib import Path
+          root=Path("/tmp/hayuya-pool")
+          (root/"individual").mkdir(parents=True, exist_ok=True)
+          (root/"details").mkdir(parents=True, exist_ok=True)
           for i in range(9):
-              p=Path(f"/tmp/hayuya-view-{i}.png")
+              p=root/"individual"/f"view-{i}.png"
               p.write_bytes(b"\x89PNG\r\n\x1a\n" + bytes([65+i])*(2048+i))
+          for i in range(3):
+              p=root/"details"/f"detail-{i}.png"
+              p.write_bytes(b"\x89PNG\r\n\x1a\n" + bytes([80+i])*(2200+i))
           PY
           python tools/hayuya3d/hayuya.py \
-            --input /tmp/hayuya-view-0.png \
-            --input /tmp/hayuya-view-1.png \
-            --input /tmp/hayuya-view-2.png \
-            --input /tmp/hayuya-view-3.png \
-            --input /tmp/hayuya-view-4.png \
-            --input /tmp/hayuya-view-5.png \
-            --input /tmp/hayuya-view-6.png \
-            --input /tmp/hayuya-view-7.png \
-            --input /tmp/hayuya-view-8.png \
+            --input-dir /tmp/hayuya-pool \
             --profile monster \
             --gpu-vram 8
