@@ -59,6 +59,25 @@ std::string textureAssetPath(
     return path;
 }
 
+[[nodiscard]] std::uint64_t textureResidencyId(
+    const std::string& path,
+    bool srgb) noexcept {
+    std::uint64_t hash =
+        14695981039346656037ULL;
+
+    for (const unsigned char value : path) {
+        hash ^= static_cast<std::uint64_t>(value);
+        hash *= 1099511628211ULL;
+    }
+
+    hash ^= srgb ? 1ULL : 0ULL;
+    hash *= 1099511628211ULL;
+
+    return hash != 0U
+        ? hash
+        : 1U;
+}
+
 [[nodiscard]] bool assetExists(
     AAssetManager* assetManager,
     const std::string& path) noexcept {
@@ -253,6 +272,30 @@ bool VulkanStaticMeshRenderer::initialize(
 
             textures_.emplace_back(
                 std::move(texture));
+
+            const auto& storedTexture =
+                textures_.back();
+
+            if (storedTexture.streamableKtx2) {
+                TextureMipChainDesc desc{};
+                desc.id =
+                    storedTexture.residencyId;
+                desc.mipCount =
+                    storedTexture.mipCount;
+                desc.mipBytes =
+                    storedTexture.mipBytes;
+                desc.residentBaseMip =
+                    storedTexture.residentBaseMip;
+                desc.requestedBaseMip = 0U;
+                desc.pinned = false;
+
+                if (!mipResidency_.registerTexture(
+                        desc,
+                        0U)) {
+                    return false;
+                }
+            }
+
             textureIndices.emplace(
                 cacheKey,
                 outIndex);
@@ -380,6 +423,24 @@ bool VulkanStaticMeshRenderer::initialize(
         return false;
     }
 
+    const auto initialMipStats =
+        mipResidency_.stats();
+
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
+        "XZIEL_MIP_RESIDENCY_READY streamable=%u degraded=%u resident_mb=%.2f requested_mb=%.2f",
+        static_cast<unsigned int>(
+            initialMipStats.textureCount),
+        static_cast<unsigned int>(
+            initialMipStats.degradedTextureCount),
+        static_cast<double>(
+            initialMipStats.residentBytes) /
+            (1024.0 * 1024.0),
+        static_cast<double>(
+            initialMipStats.requestedBytes) /
+            (1024.0 * 1024.0));
+
     __android_log_print(
         ANDROID_LOG_INFO,
         kTag,
@@ -480,6 +541,9 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     batches_.clear();
     materials_.clear();
     textures_.clear();
+    mipResidency_ =
+        TextureMipResidencyManager{512U};
+    residencyFrameIndex_ = 0U;
     pendingUploads_.clear();
     pendingUploadBytes_ = 0U;
 
@@ -525,6 +589,23 @@ std::uint32_t VulkanStaticMeshRenderer::totalIndices() const noexcept {
 StaticMeshFrameStats
 VulkanStaticMeshRenderer::frameStats() const noexcept {
     return frameStats_;
+}
+
+StaticMeshTextureResidencyStats
+VulkanStaticMeshRenderer::textureResidencyStats() const noexcept {
+    const auto stats =
+        mipResidency_.stats();
+
+    return {
+        .streamableTextures =
+            stats.textureCount,
+        .degradedTextures =
+            stats.degradedTextureCount,
+        .logicalResidentBytes =
+            stats.residentBytes,
+        .logicalRequestedBytes =
+            stats.requestedBytes,
+    };
 }
 
 void VulkanStaticMeshRenderer::record(
@@ -2113,6 +2194,26 @@ bool VulkanStaticMeshRenderer::createKtx2Texture(
     out.assetPath = assetPath;
     out.width = texture.width;
     out.height = texture.height;
+    out.residencyId =
+        textureResidencyId(
+            assetPath,
+            srgb);
+    out.mipCount =
+        static_cast<std::uint32_t>(
+            texture.levels.size());
+    out.residentBaseMip = 0U;
+    out.streamableKtx2 =
+        out.mipCount <=
+            kMaxStreamedTextureMips;
+
+    if (out.streamableKtx2) {
+        for (std::size_t mip = 0U;
+             mip < texture.levels.size();
+             ++mip) {
+            out.mipBytes[mip] =
+                texture.levels[mip].byteLength;
+        }
+    }
 
     __android_log_print(
         ANDROID_LOG_INFO,
@@ -2667,6 +2768,9 @@ bool VulkanStaticMeshRenderer::createPngTexture(
         static_cast<std::uint32_t>(width);
     out.height =
         static_cast<std::uint32_t>(height);
+    out.mipCount = mipLevels;
+    out.residentBaseMip = 0U;
+    out.streamableKtx2 = false;
 
     return true;
 }
