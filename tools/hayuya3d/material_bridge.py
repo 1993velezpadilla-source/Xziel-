@@ -16,8 +16,10 @@ class MaterialBridgeResult:
     method: str = "surface-sample nearest-color projection"
     preserves: str = "base color via vertex colors"
     channels: list[str] | None = None
+    dropped_channels: list[str] | None = None
+    rebake_required: list[str] | None = None
     fallback_used: bool = False
-    future: str = "PBR seam-aware refinement and optional texture rebake"
+    future: str = "tangent-space normal + geometry-dependent AO rebake"
 
 
 @dataclass
@@ -27,6 +29,7 @@ class MaterialTransferContext:
     values: Any
     material: Any = None
     channels: list[str] | None = None
+    dropped_channels: list[str] | None = None
     max_texture_size: int = 2048
 
 
@@ -163,6 +166,38 @@ def _material_channels(material) -> list[str]:
     return sorted(set(channels))
 
 
+def sanitize_topology_changed_material(material):
+    """
+    Return a copy safe for a mesh whose topology/tangent basis has changed.
+
+    Tangent-space normal maps are invalid after arbitrary UV/topology reprojection.
+    Baked AO is geometry-dependent and can also become stale after refinement/retopo.
+    Preserve appearance/material channels that remain meaningful under UV reprojection,
+    but require normal/AO rebake against the new geometry.
+    """
+    if material is None:
+        return None, []
+
+    copied = material.copy() if hasattr(material, "copy") else material
+    dropped: list[str] = []
+
+    if getattr(copied, "normalTexture", None) is not None:
+        try:
+            copied.normalTexture = None
+            dropped.append("normal")
+        except Exception:
+            pass
+
+    if getattr(copied, "occlusionTexture", None) is not None:
+        try:
+            copied.occlusionTexture = None
+            dropped.append("occlusion")
+        except Exception:
+            pass
+
+    return copied, sorted(set(dropped))
+
+
 def _constant_material_from_mesh(mesh):
     np, trimesh = _deps()
     visual = getattr(mesh, "visual", None)
@@ -291,12 +326,15 @@ def prepare_material_transfer(
             total_samples=total_samples,
             max_texture_size=max_texture_size,
         )
+        safe_material, dropped = sanitize_topology_changed_material(material)
+        safe_channels = [channel for channel in channels if channel not in set(dropped)]
         return MaterialTransferContext(
             mode="pbr_uv",
             points=points,
             values=uvs,
-            material=material,
-            channels=channels,
+            material=safe_material,
+            channels=safe_channels,
+            dropped_channels=dropped,
             max_texture_size=max_texture_size,
         )
     except Exception:
@@ -310,6 +348,7 @@ def prepare_material_transfer(
             values=colors,
             material=None,
             channels=["baseColor"],
+            dropped_channels=[],
             max_texture_size=max_texture_size,
         )
 
@@ -346,8 +385,8 @@ def transfer_material_from_context(
             uv=projected_uv,
             material=context.material.copy() if hasattr(context.material, "copy") else context.material,
         )
-        method = "surface-sample nearest-UV PBR atlas projection"
-        preserves = "packed glTF PBR textures/factors through reprojected UVs"
+        method = "surface-sample nearest-UV topology-safe PBR atlas projection"
+        preserves = "baseColor/metallic/roughness/emissive PBR evidence through reprojected UVs; topology-dependent channels are stripped"
         fallback = False
     elif context.mode == "base_color":
         projected = np.clip(values[projected_ids], 0, 255).astype(np.uint8)
@@ -379,6 +418,8 @@ def transfer_material_from_context(
         method=method,
         preserves=preserves,
         channels=list(context.channels or []),
+        dropped_channels=list(context.dropped_channels or []),
+        rebake_required=list(context.dropped_channels or []),
         fallback_used=fallback,
     )
 
@@ -452,6 +493,10 @@ def transfer_base_color_from_cloud(
         output_glb=str(output_glb),
         sample_count=len(points),
         refined_vertices=len(vertices),
+        channels=["baseColor"],
+        dropped_channels=[],
+        rebake_required=[],
+        fallback_used=True,
     )
 
 
