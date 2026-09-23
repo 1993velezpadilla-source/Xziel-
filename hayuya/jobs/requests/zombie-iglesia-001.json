@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "job_id": "zombie-iglesia-001",
+  "owner": "Christian",
+  "title": "Zombie Iglesia",
+  "geometry_input": "hayuya/assets/zombie-iglesia/geometry/zombie-iglesia-reference-sheet.png",
+  "reference_dir": "hayuya/assets/zombie-iglesia/references",
+  "detail_dir": "",
+  "profile": "monster",
+  "mode": "character",
+  "portable_target": "high",
+  "gpu_vram": 24,
+  "backends": "triposg,trellis2,trellis,instantmesh,triposr"
+}
