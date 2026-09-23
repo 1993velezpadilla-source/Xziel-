@@ -14,6 +14,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   prepare:
@@ -23,6 +24,12 @@ jobs:
       matrix: ${{ steps.requests.outputs.matrix }}
       count: ${{ steps.requests.outputs.count }}
     steps:
+      - name: Notify HAYUYA Hub running
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment 55 --repo "$GITHUB_REPOSITORY" --body "🟢 **RUNNING** — **${{ matrix.owner }}** / \`${{ matrix.job_id }}\` — ${{ matrix.title }}"
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -86,6 +93,22 @@ jobs:
       - name: Queue summary
         run: |
           echo "Validated ${{ steps.requests.outputs.count }} HAYUYA request(s)." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Notify HAYUYA Hub waiting
+        if: steps.requests.outputs.count != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MATRIX_JSON: ${{ steps.requests.outputs.matrix }}
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os, subprocess
+          data=json.loads(os.environ['MATRIX_JSON'])
+          for item in data.get('include', []):
+              body=(f"🟡 **WAITING** — **{item['owner']}** / `{item['job_id']}` — {item['title']}\n\n"
+                    f"Profile: `{item['profile']}` · Mode: `{item['mode']}`")
+              subprocess.run(['gh','issue','comment','55','--repo',os.environ['GITHUB_REPOSITORY'],'--body',body],check=True)
+          PY
 
   generate:
     needs: prepare
@@ -156,3 +179,19 @@ jobs:
           path: out/hayuya-jobs/${{ matrix.job_id }}/**
           if-no-files-found: warn
           retention-days: 14
+      - name: Notify HAYUYA Hub result
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          status='${{ job.status }}'
+          if [[ "$status" == "success" ]]; then
+            badge='✅ **DONE**'
+          else
+            badge='❌ **FAILED**'
+          fi
+          url='${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+          gh issue comment 55 --repo "$GITHUB_REPOSITORY" --body "$badge — **${{ matrix.owner }}** / \`${{ matrix.job_id }}\` — ${{ matrix.title }}
+
+          [Open run / result]($url)"
