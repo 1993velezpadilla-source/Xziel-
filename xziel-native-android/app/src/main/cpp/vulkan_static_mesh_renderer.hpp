@@ -26,6 +26,13 @@ struct StaticMeshEnvironmentState {
     float lightningFlash = 0.0f;
 };
 
+struct StaticMeshFrameStats {
+    std::uint32_t visibleBatches = 0U;
+    std::uint32_t culledBatches = 0U;
+    std::uint32_t drawCalls = 0U;
+    std::uint64_t submittedTriangles = 0U;
+};
+
 struct StaticMeshViewmodelState {
     float x = 0.0f;
     float y = -0.18f;
@@ -66,6 +73,7 @@ public:
     [[nodiscard]] std::uint32_t batchCount() const noexcept;
     [[nodiscard]] std::uint32_t totalVertices() const noexcept;
     [[nodiscard]] std::uint32_t totalIndices() const noexcept;
+    [[nodiscard]] StaticMeshFrameStats frameStats() const noexcept;
 
     void record(
         VkCommandBuffer command,
@@ -188,6 +196,7 @@ private:
     std::uint32_t totalIndices_ = 0U;
     bool samplerAnisotropyEnabled_ = false;
     float maxSamplerAnisotropy_ = 1.0f;
+    mutable StaticMeshFrameStats frameStats_{};
     bool ready_ = false;
 };
 
