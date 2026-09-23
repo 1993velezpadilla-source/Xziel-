@@ -2601,6 +2601,227 @@ xziel::android::VulkanSceneState makeSceneState(
     return scene;
 }
 
+std::int16_t quantizeNetAxis(
+    float value) noexcept {
+    const float clamped =
+        std::clamp(
+            std::isfinite(value)
+                ? value
+                : 0.0f,
+            -1.0f,
+            1.0f);
+
+    return static_cast<std::int16_t>(
+        std::lround(
+            clamped * 32767.0f));
+}
+
+std::int16_t quantizeNetAngle(
+    float degrees) noexcept {
+    if (!std::isfinite(degrees)) {
+        return 0;
+    }
+
+    float wrapped =
+        std::fmod(
+            degrees,
+            360.0f);
+
+    if (wrapped > 180.0f) {
+        wrapped -= 360.0f;
+    } else if (wrapped < -180.0f) {
+        wrapped += 360.0f;
+    }
+
+    return static_cast<std::int16_t>(
+        std::lround(
+            std::clamp(
+                wrapped * 100.0f,
+                -18000.0f,
+                18000.0f)));
+}
+
+std::uint16_t makeNetInputButtons(
+    const xziel::android::AndroidInputSnapshot& input) noexcept {
+    std::uint16_t buttons = 0U;
+
+    if (input.input.fire) {
+        buttons |=
+            xziel::NetInputFire;
+    }
+
+    if (input.input.aim) {
+        buttons |=
+            xziel::NetInputAim;
+    }
+
+    if (input.input.reload) {
+        buttons |=
+            xziel::NetInputReload;
+    }
+
+    if (input.input.interact) {
+        buttons |=
+            xziel::NetInputInteract;
+    }
+
+    if (input.input.jump) {
+        buttons |=
+            xziel::NetInputJump;
+    }
+
+    if (input.input.sprint) {
+        buttons |=
+            xziel::NetInputSprint;
+    }
+
+    if (input.input.crouch) {
+        buttons |=
+            xziel::NetInputCrouch;
+    }
+
+    return buttons;
+}
+
+void serviceOnlineSession(
+    NativeAppState& state,
+    const xziel::android::AndroidInputSnapshot& input,
+    float frameDeltaSeconds) noexcept {
+    if (!state.realtimeConfigured) {
+        return;
+    }
+
+    const int transportState =
+        state.realtime.state();
+
+    state.online.setTransportState(
+        transportState);
+
+    if (transportState !=
+        state.lastRealtimeTransportState) {
+        state.lastRealtimeTransportState =
+            transportState;
+
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_ONLINE_TRANSPORT state=%d",
+            transportState);
+    }
+
+    for (std::uint32_t i = 0U;
+         i < 16U;
+         ++i) {
+        std::size_t received = 0U;
+
+        if (!state.realtime.poll(
+                state.netReceiveBuffer,
+                received)) {
+            break;
+        }
+
+        const bool wasReady =
+            state.online.ready();
+
+        if (!state.online.consumePacket(
+                std::span<const std::byte>(
+                    state.netReceiveBuffer.data(),
+                    received))) {
+            continue;
+        }
+
+        if (!wasReady &&
+            state.online.ready()) {
+            __android_log_print(
+                ANDROID_LOG_INFO,
+                kTag,
+                "XZIEL_ONLINE_READY player_id=%u max_players=%u",
+                static_cast<unsigned int>(
+                    state.online.localPlayerId()),
+                static_cast<unsigned int>(
+                    xziel::kOnlineMaxPlayers));
+        }
+    }
+
+    if (!state.online.ready()) {
+        return;
+    }
+
+    state.netInputAccumulatorSeconds +=
+        std::max(
+            0.0f,
+            frameDeltaSeconds);
+
+    constexpr float kInputInterval =
+        1.0f /
+        static_cast<float>(
+            xziel::kNetClientInputHz);
+
+    if (state.netInputAccumulatorSeconds <
+        kInputInterval) {
+        return;
+    }
+
+    state.netInputAccumulatorSeconds =
+        std::fmod(
+            state.netInputAccumulatorSeconds,
+            kInputInterval);
+
+    if (input.firePressed) {
+        ++state.netFireSequence;
+
+        if (state.netFireSequence == 0U) {
+            state.netFireSequence = 1U;
+        }
+    }
+
+    const auto& player =
+        state.player.frame();
+
+    xziel::NetPlayerInput packetInput{};
+    packetInput.clientTick =
+        static_cast<std::uint32_t>(
+            state.engine.simulationTick() &
+            0xFFFFFFFFULL);
+    packetInput.buttons =
+        makeNetInputButtons(input);
+    packetInput.moveX =
+        quantizeNetAxis(
+            input.input.move.x);
+    packetInput.moveY =
+        quantizeNetAxis(
+            input.input.move.y);
+    packetInput.yawCentidegrees =
+        quantizeNetAngle(
+            player.yawDegrees);
+    packetInput.pitchCentidegrees =
+        quantizeNetAngle(
+            player.pitchDegrees);
+    packetInput.fireSequence =
+        state.netFireSequence;
+    packetInput.interactId =
+        input.input.interact &&
+            state.interactionFrame.targetId <=
+                0xFFFFU
+        ? static_cast<std::uint16_t>(
+              state.interactionFrame.targetId)
+        : 0U;
+
+    std::size_t written = 0U;
+
+    if (!state.online.buildInputPacket(
+            packetInput,
+            state.netSendBuffer,
+            written)) {
+        return;
+    }
+
+    (void) state.realtime.send(
+        std::span<const std::byte>(
+            state.netSendBuffer.data(),
+            written));
+}
+
 xziel::android::VulkanCamera makeRenderCamera(
     const xziel::FpsPlayerFrame& player,
     const xziel::CameraRigFrame& rig) noexcept {
