@@ -74,6 +74,7 @@ jobs:
                   'mode': data['mode'],
                   'portable_target': data['portable_target'],
                   'asset_profile': data.get('asset_profile', 'auto'),
+                  'weapon_family': data.get('weapon_family', 'auto'),
                   'animation_requested': 'true' if data.get('animation_requested') else 'false',
                   'motion_profile': data.get('motion_profile', 'auto'),
                   'texture_quality': data.get('texture_quality', 'standard'),
@@ -130,6 +131,7 @@ jobs:
       HAYUYA_MODE: ${{ matrix.mode }}
       HAYUYA_PORTABLE_TARGET: ${{ matrix.portable_target }}
       HAYUYA_ASSET_PROFILE: ${{ matrix.asset_profile }}
+      HAYUYA_WEAPON_FAMILY: ${{ matrix.weapon_family }}
       HAYUYA_ANIMATION_REQUESTED: ${{ matrix.animation_requested }}
       HAYUYA_MOTION_PROFILE: ${{ matrix.motion_profile }}
       HAYUYA_TEXTURE_QUALITY: ${{ matrix.texture_quality }}
