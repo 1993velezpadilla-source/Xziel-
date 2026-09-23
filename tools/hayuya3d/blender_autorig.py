@@ -26,6 +26,7 @@ from pathlib import Path
 
 import bpy
 from mathutils import Vector
+from mathutils.kdtree import KDTree
 
 
 def parse_args():
@@ -142,54 +143,78 @@ def main():
 
     arm.name="HAYUYA_Armature"
 
+    # Build a spatial weight donor from the already-rigged CC0 human.
+    # This is much more robust for TRELLIS meshes than Blender's Bone Heat
+    # solver, because generated characters often contain hundreds of disconnected
+    # clothing/hair/candy islands that make ARMATURE_AUTO fail.
+    arm_bones={b.name for b in arm.data.bones}
+    samples=[]
+    for donor in donor_meshes:
+        for v in donor.data.vertices:
+            weights=[]
+            for g in v.groups:
+                if g.group < len(donor.vertex_groups):
+                    name=donor.vertex_groups[g.group].name
+                    if name in arm_bones and g.weight > 1e-8:
+                        weights.append((name,float(g.weight)))
+            if not weights:
+                continue
+            weights.sort(key=lambda x:x[1],reverse=True)
+            samples.append((donor.matrix_world @ v.co,weights[:4]))
+    if not samples:
+        raise RuntimeError("donor rig has no transferable vertex weights")
+
+    kd=KDTree(len(samples))
+    for i,(co,_) in enumerate(samples):
+        kd.insert(co,i)
+    kd.balance()
+
     bind_results=[]
     for mesh in target_meshes:
-        # Remove stale armature modifiers/parenting if any.
+        # Remove stale skin state.
         for mod in list(mesh.modifiers):
             if mod.type=="ARMATURE":
                 mesh.modifiers.remove(mod)
         mesh.parent=None
-        select_only(mesh,arm)
-        try:
-            bpy.ops.object.parent_set(type="ARMATURE_AUTO")
+        mesh.vertex_groups.clear()
 
-            # Blender's heat solver may succeed while leaving isolated vertices
-            # without any deform weight (common on TRELLIS disconnected islands).
-            # The glTF exporter then tries to synthesize a neutral_bone and older
-            # Blender exporters can crash. Guarantee every vertex has a valid
-            # fallback influence; pelvis/Hips is the least-destructive default.
-            fallback=None
-            for candidate in ("Hips","hips","Pelvis","pelvis","Spine","spine"):
-                fallback=mesh.vertex_groups.get(candidate)
-                if fallback:
-                    break
-            if fallback is None:
-                fallback=mesh.vertex_groups.new(name="Hips")
+        transferred=0
+        fallback_count=0
+        group_cache={}
+        for v in mesh.data.vertices:
+            world=mesh.matrix_world @ v.co
+            _,idx,_=kd.find(world)
+            weights=samples[idx][1] if idx is not None else []
+            total=sum(w for _,w in weights)
+            if total <= 1e-8:
+                weights=[("Hips",1.0)]
+                total=1.0
+                fallback_count += 1
+            for name,weight in weights:
+                group=group_cache.get(name)
+                if group is None:
+                    group=mesh.vertex_groups.new(name=name)
+                    group_cache[name]=group
+                group.add([v.index],float(weight/total),"REPLACE")
+            transferred += 1
 
-            unweighted=[]
-            for v in mesh.data.vertices:
-                has_weight=False
-                for g in v.groups:
-                    try:
-                        if g.weight > 1e-8:
-                            has_weight=True
-                            break
-                    except Exception:
-                        pass
-                if not has_weight:
-                    unweighted.append(v.index)
-            if unweighted:
-                fallback.add(unweighted,1.0,"REPLACE")
+        mesh.parent=arm
+        mod=mesh.modifiers.new(name="HAYUYA_Armature",type="ARMATURE")
+        mod.object=arm
+        mod.use_vertex_groups=True
+        bind_results.append({
+            "mesh":mesh.name,
+            "ok":True,
+            "groups":len(mesh.vertex_groups),
+            "spatial_weight_vertices":transferred,
+            "fallback_weighted_vertices":fallback_count,
+            "donor_samples":len(samples)
+        })
 
-            bind_results.append({
-                "mesh":mesh.name,
-                "ok":True,
-                "groups":len(mesh.vertex_groups),
-                "fallback_weighted_vertices":len(unweighted)
-            })
-        except Exception as exc:
-            bind_results.append({"mesh":mesh.name,"ok":False,"error":repr(exc)})
-            raise
+    # Donor meshes are no longer needed after the spatial weight transfer.
+    for obj in list(donor_objs):
+        if obj != arm and obj.name in bpy.data.objects:
+            bpy.data.objects.remove(obj,do_unlink=True)
 
     # Make a sensible default preview action if imported animations exist.
     actions=sorted(bpy.data.actions,key=lambda a:a.name.lower())
