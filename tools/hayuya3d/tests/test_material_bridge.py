@@ -116,7 +116,12 @@ class MaterialBridgeTests(unittest.TestCase):
                 mode="prop",
                 target_faces=8,
             )
-            self.assertGreaterEqual(inspected.material_score, 95.0)
+            self.assertTrue(inspected.valid, f"inspect failed: {inspected.notes}")
+            self.assertGreaterEqual(
+                inspected.material_score,
+                95.0,
+                f"material_score={inspected.material_score} channels={inspected.pbr_channels} notes={inspected.notes}",
+            )
             for channel in ("baseColor", "metallic", "roughness", "normal", "occlusion"):
                 self.assertIn(channel, inspected.pbr_channels)
 
