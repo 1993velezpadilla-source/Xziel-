@@ -771,6 +771,19 @@ VulkanStaticMeshRenderer::frameStats() const noexcept {
     return frameStats_;
 }
 
+void VulkanStaticMeshRenderer::setStreamingPortalOpen(
+    std::uint32_t portalId,
+    bool open) noexcept {
+    if (!streamGraphReady_ ||
+        portalId == 0U) {
+        return;
+    }
+
+    (void) streamGraph_.setPortalOpen(
+        portalId,
+        open);
+}
+
 void VulkanStaticMeshRenderer::rebuildStreamingCellBounds() noexcept {
     streamCellBounds_ = {};
 
