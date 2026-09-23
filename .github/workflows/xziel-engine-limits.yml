@@ -1,0 +1,78 @@
+name: Xziel Engine Limits Contract
+
+on:
+  push:
+    branches:
+      - engine/universal-map-budgets-v1
+      - engine/mobile-power-fidelity-v1
+    paths:
+      - ".github/workflows/xziel-engine-limits.yml"
+      - "engine/config/xziel_engine_limits.v1.json"
+      - "engine/include/xziel/static_mesh.hpp"
+      - "engine/include/xziel/world_streaming.hpp"
+      - "engine/include/xziel/map_runtime.hpp"
+      - "engine/include/xziel/horde_director.hpp"
+      - "tools/validate_xziel_map_budget.py"
+      - "tools/tests/test_validate_xziel_map_budget.py"
+      - "docs/XZIEL_ENGINE_LIMITS.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Verify manifest matches engine constants
+        run: |
+          set -euo pipefail
+          python3 tools/validate_xziel_map_budget.py             --verify-engine-source
+
+      - name: Run budget validator tests
+        run: |
+          set -euo pipefail
+          python3 tools/tests/test_validate_xziel_map_budget.py
+
+      - name: Validate representative stream stats
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/xziel-stream-stats.json <<'JSON'
+          {
+            "cells": 10,
+            "portals": 9,
+            "resource_bindings": 24
+          }
+          JSON
+
+          python3 tools/validate_xziel_map_budget.py             --stream-stats /tmp/xziel-stream-stats.json
+
+      - name: Prove hard-limit overflow is rejected
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import struct
+
+          with open("/tmp/over-limit.xzsm", "wb") as handle:
+              handle.write(
+                  struct.pack(
+                      "<4sIIII",
+                      b"XZSM",
+                      5,
+                      2049,
+                      100,
+                      100,
+                  )
+              )
+          PY
+
+          if python3 tools/validate_xziel_map_budget.py             --xzsm /tmp/over-limit.xzsm; then
+            echo "::error::validator accepted an XZSM above hard batch capacity"
+            exit 1
+          fi
+
+          echo "XZIEL_ENGINE_LIMIT_CONTRACT_OK"
