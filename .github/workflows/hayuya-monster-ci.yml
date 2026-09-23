@@ -7,6 +7,10 @@ on:
       - art/hayuya-monster-v1
     paths:
       - tools/hayuya3d/**
+      - hayuya/library/**
+      - hayuya/animation_library/**
+      - hayuya/standards/**
+      - assets/audio/cc0_horror_library/**
       - assets/characters/shared/docs/HAYUYA_3D_MASTER_PROMPT.md
       - .github/workflows/hayuya-monster-ci.yml
 
@@ -59,22 +63,28 @@ jobs:
             hayuya/models/candy-zombie-001/model.glb \
             --json /tmp/candy-zombie-rig.json
 
-      - name: Validate animated donor contract
+      - name: Validate canonical animated donor contract
         run: |
           python tools/hayuya3d/rig_gate.py \
-            hayuya/rig_library/quaternius-human-rigged/model.glb \
-            --json /tmp/quaternius-rig.json
+            hayuya/animation_library/quaternius-uam2/library.glb \
+            --json /tmp/quaternius-uam2-rig.json
           python - <<'PY'
           import json
           from pathlib import Path
-          data=json.loads(Path("/tmp/quaternius-rig.json").read_text())
+          data=json.loads(Path("/tmp/quaternius-uam2-rig.json").read_text())
           assert data["valid_glb"] is True
           assert data["rig_ready"] is True, data
           assert data["animation_ready"] is True, data
           assert data["preview_animation_ready"] is True, data
-          assert len(data["animation_clips"]) >= 3, data
-          print("HAYUYA_RIG_DONOR_PASS", data["joints"], data["animation_clips"])
+          assert len(data["animation_clips"]) >= 40, data
+          assert "Zombie_Idle_Loop" in data["animation_clips"], data
+          assert "Zombie_Walk_Fwd_Loop" in data["animation_clips"], data
+          assert "Zombie_Scratch" in data["animation_clips"], data
+          print("HAYUYA_CANONICAL_RIG_DONOR_PASS", data["joints"], len(data["animation_clips"]))
           PY
+
+      - name: Validate character editor catalogs
+        run: python tools/hayuya3d/validate_editor_catalog.py
 
       - name: Calibrate against historical bad Candyland billboard output
         run: |
