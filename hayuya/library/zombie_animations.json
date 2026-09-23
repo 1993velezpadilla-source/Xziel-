@@ -969,7 +969,7 @@
               "source_url": "https://quaternius.com/packs/universalanimationlibrary2.html",
               "availability": "local",
               "local_path": "hayuya/animation_library/quaternius-uam2/library.glb",
-              "one_tap_ready": true
+              "one_tap_ready": false
             },
             {
               "id": "quaternius_animated_zombie",
