@@ -9,6 +9,7 @@ from pathlib import Path
 PROFILES = {"preview", "mobile", "game", "monster", "ultra"}
 MODES = {"auto", "prop", "character", "architecture"}
 TIERS = {"auto", "compatibility", "balanced", "high", "flagship"}
+ASSET_PROFILES = {"auto", "character.humanoid", "character.creature", "weapon.firearm", "weapon.melee", "prop.mechanical", "vehicle", "foliage.grass", "foliage.tree", "prop.static", "environment.modular"}
 JOB_RE = re.compile(r"^[A-Za-z0-9._-]+$")
 ALLOWED_EXTERNAL_REPOS = {
     "1993velezpadilla-source/legacy-cache-staging-03",
@@ -17,7 +18,7 @@ ALLOWED_EXTERNAL_REPOS = {
 
 def load_request(path: Path, repo_root: Path) -> dict:
     data = json.loads(path.read_text(encoding="utf-8"))
-    if data.get("schema") != 1:
+    if data.get("schema") not in (1, 2):
         raise ValueError("unsupported job request schema")
 
     required = ["job_id", "owner", "title", "geometry_input", "profile", "mode", "portable_target"]
@@ -35,6 +36,21 @@ def load_request(path: Path, repo_root: Path) -> dict:
         raise ValueError(f"invalid mode: {data['mode']}")
     if data["portable_target"] not in TIERS:
         raise ValueError(f"invalid portable_target: {data['portable_target']}")
+
+    inferred = {
+        "character": "character.humanoid",
+        "prop": "prop.static",
+        "architecture": "environment.modular",
+    }.get(data["mode"], "auto")
+    data["asset_profile"] = str(data.get("asset_profile") or inferred)
+    if data["asset_profile"] not in ASSET_PROFILES:
+        raise ValueError(f"invalid asset_profile: {data['asset_profile']}")
+    data["animation_requested"] = bool(data.get(
+        "animation_requested",
+        data["asset_profile"] in {"character.humanoid", "character.creature"}
+    ))
+    data["motion_profile"] = str(data.get("motion_profile") or "auto")
+    data["texture_quality"] = str(data.get("texture_quality") or "standard")
 
     source_repo = str(data.get("source_repo", "") or "").strip()
     source_ref = str(data.get("source_ref", "main") or "main").strip()
@@ -93,7 +109,7 @@ def main() -> int:
             for key in (
                 "job_id", "owner", "title", "geometry_input", "reference_dir",
                 "detail_dir", "profile", "mode", "portable_target", "gpu_vram", "backends",
-                "source_repo", "source_ref"
+                "source_repo", "source_ref", "asset_profile", "animation_requested", "motion_profile", "texture_quality"
             ):
                 value = str(data.get(key, ""))
                 if "\n" in value or "\r" in value:
