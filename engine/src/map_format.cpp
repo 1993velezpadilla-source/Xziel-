@@ -109,7 +109,8 @@ bool parseMapText(
             }
 
             if (mapVersion != 1U &&
-                mapVersion != 2U) {
+                mapVersion != 2U &&
+                mapVersion != 3U) {
                 error = {
                     MapParseErrorCode::UnsupportedVersion,
                     lineNumber,
@@ -122,14 +123,7 @@ bool parseMapText(
         }
 
         if (type == "player_spawn") {
-            if (mapVersion < 2U ||
-                destination.hasPlayerSpawn ||
-                !(record >>
-                  destination.playerSpawnFeet.x >>
-                  destination.playerSpawnFeet.y >>
-                  destination.playerSpawnFeet.z >>
-                  destination.playerSpawnYawDegrees) ||
-                !onlyWhitespaceRemaining(record)) {
+            if (mapVersion < 2U) {
                 error = {
                     MapParseErrorCode::MalformedRecord,
                     lineNumber,
@@ -137,7 +131,68 @@ bool parseMapText(
                 return false;
             }
 
-            destination.hasPlayerSpawn = true;
+            std::size_t slot = 0U;
+            MapPlayerSpawn spawn{};
+
+            if (mapVersion >= 3U) {
+                unsigned int parsedSlot = 0U;
+
+                if (!(record >>
+                      parsedSlot >>
+                      spawn.feet.x >>
+                      spawn.feet.y >>
+                      spawn.feet.z >>
+                      spawn.yawDegrees) ||
+                    parsedSlot >=
+                        kMaxMapPlayerSpawns ||
+                    !onlyWhitespaceRemaining(record)) {
+                    error = {
+                        MapParseErrorCode::MalformedRecord,
+                        lineNumber,
+                    };
+                    return false;
+                }
+
+                slot =
+                    static_cast<std::size_t>(
+                        parsedSlot);
+            } else {
+                if (destination.hasPlayerSpawn ||
+                    !(record >>
+                      spawn.feet.x >>
+                      spawn.feet.y >>
+                      spawn.feet.z >>
+                      spawn.yawDegrees) ||
+                    !onlyWhitespaceRemaining(record)) {
+                    error = {
+                        MapParseErrorCode::MalformedRecord,
+                        lineNumber,
+                    };
+                    return false;
+                }
+            }
+
+            if (destination.playerSpawns[slot].valid) {
+                error = {
+                    MapParseErrorCode::MalformedRecord,
+                    lineNumber,
+                };
+                return false;
+            }
+
+            spawn.valid = true;
+            destination.playerSpawns[slot] =
+                spawn;
+            ++destination.playerSpawnCount;
+
+            if (slot == 0U) {
+                destination.playerSpawnFeet =
+                    spawn.feet;
+                destination.playerSpawnYawDegrees =
+                    spawn.yawDegrees;
+                destination.hasPlayerSpawn = true;
+            }
+
             continue;
         }
 
