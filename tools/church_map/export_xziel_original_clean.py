@@ -413,9 +413,17 @@ with tempfile.TemporaryDirectory(prefix="xziel-clean-") as tmp:
             else {}
         )
 
-        double_sided = bool(
+        gltf_double_sided = bool(
             gltf_material.get("doubleSided", False)
         )
+
+        # This source is an open photogrammetry shell, not a watertight game
+        # mesh. Its glTF material flags are not sufficient to guarantee that
+        # interior-facing triangles have matching front faces. Runtime
+        # backface culling visibly removes walls/floors when the player walks
+        # inside the church. Keep this legacy scan two-sided while retaining
+        # XZSM v4 material flags for future authored/watertight assets.
+        double_sided = True
 
         # XZSM v4 batch flag bit 0 == double-sided.
         batch_flags = 1 if double_sided else 0
@@ -476,6 +484,7 @@ with tempfile.TemporaryDirectory(prefix="xziel-clean-") as tmp:
             "texture": texture,
             "uvLayer": uv_name,
             "uvSource": uv_source,
+            "gltfDoubleSided": gltf_double_sided,
             "doubleSided": double_sided,
             "flags": batch_flags,
             "vertexCount": len(vertices),
@@ -579,6 +588,7 @@ report = {
         if not batch["doubleSided"]
     ),
     "sourceCollection": "DIRECT_ORIGINAL_GLB",
+    "legacyPhotogrammetryDoubleSided": True,
     "sourceTriangles": source_triangles,
     "runtimeTriangles": source_triangles,
     "dressingTriangles": 0,
