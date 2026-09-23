@@ -230,6 +230,12 @@ def score_masks(source_mask, candidate_mask) -> tuple[float, float, float]:
     return score, iou, edge
 
 
+def aggregate_source_scores(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    return 0.70 * (sum(values) / len(values)) + 0.30 * min(values)
+
+
 def score_candidate(
     mesh_path: Path,
     source_images: list[Path],
@@ -265,7 +271,7 @@ def score_candidate(
 
     vals = [x.best_score for x in views]
     # Every real source matters: weak agreement with either anchor drags the score down.
-    final = 0.70 * (sum(vals) / len(vals)) + 0.30 * min(vals)
+    final = aggregate_source_scores(vals)
     return VisualScore(score=round(final, 3), views=views)
 
 
