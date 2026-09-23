@@ -37,6 +37,14 @@ class StudioServerTests(unittest.TestCase):
 
             parse_pipeline_line(
                 job,
+                "HAYUYA_JUDGE_SCORE backend=trellis2 score=88.75 valid=true rank=1 pass=1",
+            )
+            self.assertEqual(job.stage, "judge")
+            self.assertEqual(job.candidates["trellis2"].score, 88.75)
+            self.assertEqual(job.events[-1]["kind"], "judge_score")
+
+            parse_pipeline_line(
+                job,
                 "HAYUYA_CHAMPION backend=trellis2 score=91.25 references=4",
             )
             self.assertEqual(job.champion, "trellis2")
