@@ -247,6 +247,17 @@ jobs:
             badge='❌ **FAILED**'
           fi
           url='${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-          gh issue comment 55 --repo "$GITHUB_REPOSITORY" --body "$badge — **${{ matrix.owner }}** / \`${{ matrix.job_id }}\` — ${{ matrix.title }}
+          reason=''
+          if [[ "$status" != "success" && -s "$HAYUYA_OUTPUT_ROOT/failure_reason.txt" ]]; then
+            reason="$(head -c 700 "$HAYUYA_OUTPUT_ROOT/failure_reason.txt" | tr '\n' ' ')"
+          fi
+          body="$badge — **${{ matrix.owner }}** / \`${{ matrix.job_id }}\` — ${{ matrix.title }}"
+          if [[ -n "$reason" ]]; then
+            body="$body
+
+          Reason: $reason"
+          fi
+          body="$body
 
           [Open run / result]($url)"
+          gh issue comment 55 --repo "$GITHUB_REPOSITORY" --body "$body"
