@@ -3043,6 +3043,11 @@ extern "C" void android_main(
         const float measuredGpuFrameMs =
             state.renderer.lastGpuFrameMs();
 
+        const float governorGpuFrameMs =
+            state.renderer.gpuTimingAuthoritative()
+            ? measuredGpuFrameMs
+            : 0.0f;
+
         state.renderWorkload =
             state.performance.advance(
                 {
@@ -3051,7 +3056,7 @@ extern "C" void android_main(
                         ? measuredCpuRenderMs
                         : frameDelta * 1000.0f,
                     .gpuFrameMs =
-                        measuredGpuFrameMs,
+                        governorGpuFrameMs,
                     .thermal =
                         state.thermalLevel,
                 },
