@@ -73,6 +73,13 @@ std::vector<std::byte> makeTriangle(std::uint32_t version) {
             static_cast<std::byte>(c));
     }
 
+    if (version >=
+        xziel::kStaticMeshFormatVersion) {
+        appendU32(
+            bytes,
+            xziel::StaticMeshBatchFlagNone);
+    }
+
     for (float value :
          std::array<float, 6>{
              -1.0f, -1.0f, 0.0f,
@@ -93,7 +100,7 @@ std::vector<std::byte> makeTriangle(std::uint32_t version) {
         appendF32(bytes, vertex[2]);
 
         if (version >=
-            xziel::kStaticMeshFormatVersion) {
+            xziel::kStaticMeshNormalsVersion) {
             appendF32(bytes, 0.0f);
             appendF32(bytes, 0.0f);
             appendF32(bytes, 1.0f);
@@ -149,6 +156,23 @@ int main() {
     assert(
         asset.batches[0].vertices[0].nz >
         0.99f);
+    assert(
+        !asset.batches[0].doubleSided());
+
+    const auto v3Encoded =
+        makeTriangle(
+            xziel::kStaticMeshNormalsVersion);
+
+    xziel::StaticMeshAsset v3Asset;
+    const auto v3Parsed =
+        xziel::parseStaticMeshXzsm(
+            v3Encoded,
+            v3Asset);
+
+    assert(v3Parsed.success);
+    // v3 had no material-side metadata; preserve the old renderer behavior.
+    assert(v3Asset.batches[0].doubleSided());
+    assert(v3Asset.batches[0].vertices[0].nz > 0.99f);
 
     const auto legacyEncoded =
         makeTriangle(
