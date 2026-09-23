@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import inspect
 import json
 import math
 from pathlib import Path
@@ -78,13 +79,18 @@ def main()->int:
             text=". ".join(query_list)+"."
             inputs=gd_proc(images=image,text=text,return_tensors="pt").to(dev)
             outputs=gd_model(**inputs)
-            detections=gd_proc.post_process_grounded_object_detection(
-                outputs,
-                inputs.input_ids,
-                box_threshold=a.box_threshold,
-                text_threshold=a.text_threshold,
-                target_sizes=[(h,w)],
-            )[0]
+            post=gd_proc.post_process_grounded_object_detection
+            params=inspect.signature(post).parameters
+            kwargs={"target_sizes":[(h,w)]}
+            if "box_threshold" in params:
+                kwargs["box_threshold"]=a.box_threshold
+            elif "threshold" in params:
+                kwargs["threshold"]=a.box_threshold
+            if "text_threshold" in params:
+                kwargs["text_threshold"]=a.text_threshold
+            elif "text_score_threshold" in params:
+                kwargs["text_score_threshold"]=a.text_threshold
+            detections=post(outputs,inputs.input_ids,**kwargs)[0]
 
             boxes=detections.get("boxes")
             scores=detections.get("scores")
