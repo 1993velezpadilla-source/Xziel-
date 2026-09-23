@@ -131,6 +131,10 @@ Choose the model that best preserves the supplied reference while remaining heal
 
 Real photographs outrank synthetic evidence. A refinement, synthetic view, normal map, or high polygon count can help a candidate, but none of them may override contradictory real-source evidence.
 
+Backend runtime environments are isolated. Never "fix" a backend by silently installing its Torch/CUDA stack into Hayuya's controller environment. Use the pinned backend environment plan and `HAYUYA_<BACKEND>_PYTHON` wrappers.
+
+After any topology change, do not blindly preserve tangent-space normal maps or baked AO. Carry safe PBR channels, mark normal/AO as requiring rebake, and expose that state in manifests.
+
 ## Quality tiers: mobile is a derivative, never the ceiling
 
 Hayuya must compete in two different output classes and must never confuse them:
