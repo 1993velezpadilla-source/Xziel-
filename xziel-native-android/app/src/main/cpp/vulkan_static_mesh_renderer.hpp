@@ -390,6 +390,9 @@ private:
     bool streamResidencyProbeComplete_ = false;
     std::uint32_t streamResidencyProbeTextureIndex_ = UINT32_MAX;
     std::uint64_t streamResidencyProbeReloadFrame_ = 0U;
+    bool streamLiveMipProbeComplete_ = false;
+    std::uint32_t streamLiveMipProbeTextureIndex_ = UINT32_MAX;
+    std::uint64_t streamLiveMipProbePromoteFrame_ = 0U;
 
     std::vector<GpuTexture> textures_{};
     std::vector<GpuMaterial> materials_{};
