@@ -12,6 +12,10 @@ from rig_gate import inspect as inspect_rig_gate
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 GEOMETRY = Path(os.environ["HAYUYA_GEOMETRY_INPUT"])
+REFERENCE_DIR_RAW = os.environ.get("HAYUYA_REFERENCE_DIR","").strip()
+DETAIL_DIR_RAW = os.environ.get("HAYUYA_DETAIL_DIR","").strip()
+REFERENCE_DIR = Path(REFERENCE_DIR_RAW) if REFERENCE_DIR_RAW else None
+DETAIL_DIR = Path(DETAIL_DIR_RAW) if DETAIL_DIR_RAW else None
 OUT = Path(os.environ.get("HAYUYA_OUTPUT_ROOT","out/hayuya-phone-cloud"))
 JOB = os.environ.get("HAYUYA_JOB_ID","hayuya-phone")
 ASSET_PROFILE = os.environ.get("HAYUYA_ASSET_PROFILE","auto").strip() or "auto"
@@ -23,6 +27,12 @@ SPACE_URL = os.environ.get("TRELLIS_URL","https://trellis-community-trellis.hf.s
 OUT.mkdir(parents=True, exist_ok=True)
 PREP = OUT / "prepared_views"
 PREP.mkdir(parents=True, exist_ok=True)
+DETAIL_PREP = OUT / "prepared_details"
+DETAIL_PREP.mkdir(parents=True, exist_ok=True)
+
+QUALITY_TARGETS={"preview":768,"standard":1024,"high":1536,"ultra":2048}
+PREP_TARGET=QUALITY_TARGETS.get(TEXTURE_QUALITY,1024)
+IMAGE_EXTS={".png",".jpg",".jpeg",".webp",".bmp"}
 
 def fail(msg):
     try:
@@ -145,13 +155,56 @@ with Image.open(GEOMETRY) as source:
             a=max(x0,a-pad); b=min(x1,b+pad)
             crop=source_rgba.crop((a,y0,b,y1))
             dst=PREP/f"{name}.png"
-            crops.append(prepare_view(crop,dst,target=1024))
+            crops.append(prepare_view(crop,dst,target=PREP_TARGET))
     else:
         dst=PREP/"front.png"
-        crops=[prepare_view(source_rgba,dst,target=1024)]
+        crops=[prepare_view(source_rgba,dst,target=PREP_TARGET)]
+
+# Native multi-image mode: a user/project may provide independent views instead
+# of baking them into one contact sheet. Keep the primary geometry reference
+# first, then add up to seven extra views. This preserves perspective evidence
+# far better than asking a single image to invent the unseen side/back.
+if REFERENCE_DIR and REFERENCE_DIR.is_dir():
+    extras=[]
+    for p in sorted(REFERENCE_DIR.iterdir()):
+        if not p.is_file() or p.suffix.lower() not in IMAGE_EXTS:
+            continue
+        try:
+            with Image.open(p) as im:
+                im.load()
+                dst=PREP/f"view_{len(extras)+2:02d}.png"
+                extras.append(prepare_view(im,dst,target=PREP_TARGET))
+        except Exception as exc:
+            print(f"::warning::Skipping reference {p}: {type(exc).__name__}: {exc}")
+        if len(extras)>=7:
+            break
+    crops.extend(extras)
+
+# Detail/face/material crops are intentionally NOT mixed into geometry views:
+# closeups have incompatible camera scale and can warp the reconstructed body.
+# We still normalize/preserve them for the subsequent texture/detail refinement
+# stage and expose them in the manifest.
+detail_views=[]
+if DETAIL_DIR and DETAIL_DIR.is_dir():
+    for p in sorted(DETAIL_DIR.iterdir()):
+        if not p.is_file() or p.suffix.lower() not in IMAGE_EXTS:
+            continue
+        try:
+            with Image.open(p) as im:
+                im.load()
+                dst=DETAIL_PREP/f"detail_{len(detail_views)+1:02d}.png"
+                detail_views.append(prepare_view(im,dst,target=PREP_TARGET))
+        except Exception as exc:
+            print(f"::warning::Skipping detail reference {p}: {type(exc).__name__}: {exc}")
+        if len(detail_views)>=12:
+            break
 
 # If only one view exists, TRELLIS runs its true single-image path.
 multi=len(crops) >= 2
+print("HAYUYA_REFERENCE_SET",
+      "geometry_views="+str(len(crops)),
+      "detail_views="+str(len(detail_views)),
+      "prep_target="+str(PREP_TARGET))
 
 last=None
 client=None
@@ -226,6 +279,8 @@ values={
     "multiimage_algo":"multidiffusion",
     "mesh_simplify":0.92,
     "texture_size":2048,
+    "requested_texture_target":{"preview":1024,"standard":2048,"high":4096,"ultra":8192}.get(TEXTURE_QUALITY,2048),
+    "texture_refinement_pending":TEXTURE_QUALITY in {"high","ultra"} or bool(detail_views),
 }
 missing=[p for p in params if p not in values]
 if missing:
@@ -331,6 +386,10 @@ manifest={
     "phone_only":True,
     "source":str(GEOMETRY),
     "prepared_views":[p.name for p in crops],
+    "prepared_detail_views":[p.name for p in detail_views],
+    "reference_dir":str(REFERENCE_DIR) if REFERENCE_DIR else "",
+    "detail_dir":str(DETAIL_DIR) if DETAIL_DIR else "",
+    "prep_target":PREP_TARGET,
     "multi_image":multi,
     "generator":"trellis-community/TRELLIS",
     "texture_size":2048,
