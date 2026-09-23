@@ -4,28 +4,10 @@
   "valid_glb": true,
   "skins": 1,
   "joints": 53,
-  "required_groups_found": 1,
+  "required_groups_found": 18,
   "required_groups_total": 18,
-  "required_group_fraction": 0.055556,
-  "missing_required_groups": [
-    "pelvis",
-    "spine",
-    "chest",
-    "neck",
-    "head",
-    "upperarm_l",
-    "lowerarm_l",
-    "hand_l",
-    "upperarm_r",
-    "lowerarm_r",
-    "hand_r",
-    "thigh_l",
-    "calf_l",
-    "foot_l",
-    "thigh_r",
-    "calf_r",
-    "foot_r"
-  ],
+  "required_group_fraction": 1.0,
+  "missing_required_groups": [],
   "animation_clips": [
     "A_TPose",
     "Crouch_Fwd_Loop",
@@ -74,9 +56,9 @@
     "Walk_Formal_Loop",
     "Walk_Loop"
   ],
-  "rig_ready": false,
-  "animation_ready": false,
-  "preview_animation_ready": false,
+  "rig_ready": true,
+  "animation_ready": true,
+  "preview_animation_ready": true,
   "facial": {
     "jaw": false,
     "eye_l": false,
@@ -92,7 +74,6 @@
     "cloth_ready": false
   },
   "warnings": [
-    "missing_core_bones:1/18",
     "no_jaw_control",
     "no_blink_controls"
   ]
