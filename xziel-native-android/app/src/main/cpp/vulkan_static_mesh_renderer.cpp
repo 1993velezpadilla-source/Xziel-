@@ -319,11 +319,18 @@ std::uint32_t VulkanStaticMeshRenderer::totalIndices() const noexcept {
     return totalIndices_;
 }
 
+StaticMeshFrameStats
+VulkanStaticMeshRenderer::frameStats() const noexcept {
+    return frameStats_;
+}
+
 void VulkanStaticMeshRenderer::record(
     VkCommandBuffer command,
     VkExtent2D extent,
     const StaticMeshCameraState& camera,
     const StaticMeshEnvironmentState& environment) const noexcept {
+    frameStats_ = {};
+
     if (!ready_ ||
         command == VK_NULL_HANDLE ||
         extent.width == 0U ||
@@ -475,6 +482,7 @@ void VulkanStaticMeshRenderer::record(
 
         if (viewZ + radius < nearPlane ||
             viewZ - radius > farPlane) {
+            ++frameStats_.culledBatches;
             continue;
         }
 
@@ -491,8 +499,11 @@ void VulkanStaticMeshRenderer::record(
                 halfWidth ||
             std::abs(viewY) - radius >
                 halfHeight) {
+            ++frameStats_.culledBatches;
             continue;
         }
+
+        ++frameStats_.visibleBatches;
 
         const auto& texture =
             textures_[batch.textureIndex];
@@ -529,6 +540,11 @@ void VulkanStaticMeshRenderer::record(
             0U,
             0,
             0U);
+
+        ++frameStats_.drawCalls;
+        frameStats_.submittedTriangles +=
+            static_cast<std::uint64_t>(
+                batch.indexCount / 3U);
     }
 }
 
