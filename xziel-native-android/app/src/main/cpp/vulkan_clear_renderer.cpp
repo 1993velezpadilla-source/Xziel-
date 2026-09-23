@@ -4885,6 +4885,26 @@ bool VulkanClearRenderer::recordDrawCommand(
     }
 
     if (sanctumMesh_.ready()) {
+        const std::size_t streamDoorCount =
+            std::min(
+                scene.doorCount,
+                scene.doors.size());
+
+        for (std::size_t doorIndex = 0U;
+             doorIndex < streamDoorCount;
+             ++doorIndex) {
+            const auto& door =
+                scene.doors[doorIndex];
+
+            if (door.id == 0U) {
+                continue;
+            }
+
+            sanctumMesh_.setStreamingPortalOpen(
+                door.id,
+                door.openProgress >= 0.95f);
+        }
+
         const float sanctumAspect =
             sceneExtent_.height > 0U
             ? static_cast<float>(
