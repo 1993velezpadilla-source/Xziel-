@@ -1086,14 +1086,24 @@ bool VulkanStaticMeshRenderer::updateTextureDescriptorForFrame(
     std::uint32_t textureIndex,
     std::uint32_t frameSlot,
     std::uint32_t replacementTextureIndex) noexcept {
-    if (frameSlot >= kDescriptorFrames ||
-        textureIndex >= textures_.size() ||
-        replacementTextureIndex >= textures_.size()) {
+    if (replacementTextureIndex >= textures_.size()) {
         return false;
     }
 
-    const auto& replacement =
-        textures_[replacementTextureIndex];
+    return updateTextureDescriptorForFrame(
+        textureIndex,
+        frameSlot,
+        textures_[replacementTextureIndex]);
+}
+
+bool VulkanStaticMeshRenderer::updateTextureDescriptorForFrame(
+    std::uint32_t textureIndex,
+    std::uint32_t frameSlot,
+    const GpuTexture& replacement) noexcept {
+    if (frameSlot >= kDescriptorFrames ||
+        textureIndex >= textures_.size()) {
+        return false;
+    }
 
     if (!replacement.physicallyResident ||
         replacement.view == VK_NULL_HANDLE ||
@@ -1186,6 +1196,18 @@ bool VulkanStaticMeshRenderer::materialStreamingReady(
 
         const auto& texture =
             textures_[textureIndex];
+
+        const bool pendingReplacementReady =
+            runtimeTextureUpload_.active &&
+            runtimeTextureUpload_.uploadReady &&
+            runtimeTextureUpload_.textureIndex ==
+                textureIndex &&
+            (runtimeTextureUpload_.descriptorMask &
+             slotBit) != 0U;
+
+        if (pendingReplacementReady) {
+            continue;
+        }
 
         if (!texture.physicallyResident ||
             (texture.descriptorResidentMask &
