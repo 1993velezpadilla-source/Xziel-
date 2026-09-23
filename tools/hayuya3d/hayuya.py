@@ -226,6 +226,14 @@ def run_backend(
             seed=seed,
             model_root=model_root,
         )
+    if backend == "spar3d":
+        return GENERATORS[backend](
+            inputs[0],
+            out_dir,
+            texture_size=profile.texture_size,
+            faces=profile.faces,
+            model_root=model_root,
+        )
     raise ValueError(f"unsupported executable backend: {backend}")
 
 
