@@ -28,6 +28,9 @@ struct StaticMeshEnvironmentState {
     float lightningFlash = 0.0f;
     MemoryPressure memoryPressure =
         MemoryPressure::Normal;
+
+    float textureBudgetScale = 1.0f;
+    float meshBudgetScale = 1.0f;
 };
 
 struct StaticMeshFrameStats {
@@ -391,7 +394,8 @@ private:
 
     void serviceRuntimeTextureResidency(
         std::uint32_t frameSlot,
-        MemoryPressure memoryPressure) noexcept;
+        MemoryPressure memoryPressure,
+        float textureBudgetScale) noexcept;
 
     void releaseGeometryCellGpuResidency(
         GeometryCellResidency& cell) noexcept;
@@ -401,7 +405,8 @@ private:
 
     void serviceRuntimeGeometryResidency(
         std::uint32_t frameSlot,
-        const StreamCellPlanInput& input) noexcept;
+        const StreamCellPlanInput& input,
+        float meshBudgetScale) noexcept;
 
     [[nodiscard]] std::string geometryRangeRequestKey(
         std::uint32_t cellSlot,
@@ -473,6 +478,8 @@ private:
     std::uint64_t geometryResidentBudgetBytes_ =
         96ULL * 1024ULL * 1024ULL;
     std::uint64_t geometryResidentBytes_ = 0U;
+    float lastAppliedTextureBudgetScale_ = -1.0f;
+    float lastAppliedMeshBudgetScale_ = -1.0f;
     bool geometryResidencyProbeEnabled_ = false;
     bool geometryResidencyProbeComplete_ = false;
     std::uint32_t geometryResidencyProbeCellSlot_ = UINT32_MAX;
