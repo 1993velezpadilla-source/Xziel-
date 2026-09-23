@@ -100,10 +100,8 @@ private:
     };
 
     struct GpuBatch {
-        VkBuffer vertexBuffer = VK_NULL_HANDLE;
-        VkDeviceMemory vertexMemory = VK_NULL_HANDLE;
-        VkBuffer indexBuffer = VK_NULL_HANDLE;
-        VkDeviceMemory indexMemory = VK_NULL_HANDLE;
+        std::uint32_t firstIndex = 0U;
+        std::int32_t vertexOffset = 0;
         std::uint32_t indexCount = 0U;
         std::uint32_t textureIndex = 0U;
         StaticMeshBounds bounds{};
@@ -152,10 +150,9 @@ private:
         VkBuffer& buffer,
         VkDeviceMemory& memory) noexcept;
 
-    [[nodiscard]] bool uploadBatch(
-        const StaticMeshBatch& batch,
-        std::uint32_t textureIndex,
-        GpuBatch& out) noexcept;
+    [[nodiscard]] bool createGeometryResidency(
+        const StaticMeshAsset& asset,
+        const std::vector<std::uint32_t>& textureIndices) noexcept;
 
     [[nodiscard]] bool createTexture(
         AAssetManager* assetManager,
@@ -177,7 +174,7 @@ private:
         VkCommandBuffer command) noexcept;
 
     void destroyTexture(GpuTexture& texture) noexcept;
-    void destroyBatch(GpuBatch& batch) noexcept;
+    void destroyGeometryResidency() noexcept;
 
     VkPhysicalDevice physicalDevice_ = VK_NULL_HANDLE;
     VkDevice device_ = VK_NULL_HANDLE;
@@ -196,6 +193,14 @@ private:
 
     std::vector<GpuTexture> textures_{};
     std::vector<GpuBatch> batches_{};
+
+    VkBuffer geometryVertexBuffer_ = VK_NULL_HANDLE;
+    VkDeviceMemory geometryVertexMemory_ = VK_NULL_HANDLE;
+    VkBuffer geometryIndexBuffer_ = VK_NULL_HANDLE;
+    VkDeviceMemory geometryIndexMemory_ = VK_NULL_HANDLE;
+    bool geometryDeviceLocalHostVisible_ = false;
+    VkDeviceSize geometryVertexBytes_ = 0U;
+    VkDeviceSize geometryIndexBytes_ = 0U;
 
     std::uint32_t totalVertices_ = 0U;
     std::uint32_t totalIndices_ = 0U;
