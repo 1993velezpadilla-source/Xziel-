@@ -9,7 +9,7 @@ HAYUYA_DIR = ROOT / "tools" / "hayuya3d"
 sys.path.insert(0, str(HAYUYA_DIR))
 
 import numpy as np
-from visual_judge import score_masks
+from visual_judge import aggregate_source_scores, score_masks
 
 
 class VisualJudgeTests(unittest.TestCase):
@@ -33,6 +33,12 @@ class VisualJudgeTests(unittest.TestCase):
         wrong, _, _ = score_masks(a, b)
         self.assertGreater(same, wrong)
         self.assertLess(wrong, 95.0)
+
+    def test_second_photo_can_drag_down_bad_candidate(self):
+        strong_both = aggregate_source_scores([92.0, 90.0])
+        one_bad = aggregate_source_scores([99.0, 30.0])
+        self.assertGreater(strong_both, one_bad)
+        self.assertLess(one_bad, 70.0)
 
     def test_partial_overlap_is_not_rewarded_as_identity(self):
         a = np.zeros((64, 64), dtype=bool)
