@@ -431,7 +431,13 @@ jobs:
             fi
             sleep 1
           done
-          test "$READY" = "1"
+
+          if [[ "$READY" != "1" ]]; then
+            timeout 8 "$ADB" logcat -d -v threadtime > dist/sanctum-hq-logcat.txt || true
+            echo "ERROR: startup readiness timed out before Vulkan + Sanctum mesh markers"
+            grep -E "XZIEL_|VUID|VK_ERROR|Fatal signal|ANR|device lost|failed" dist/sanctum-hq-logcat.txt | tail -n 300 || true
+            exit 1
+          fi
 
           timeout 8 "$ADB" shell uiautomator dump /sdcard/xziel-sanctum-window.xml             >/dev/null 2>&1 || true
           timeout 8 "$ADB" exec-out cat /sdcard/xziel-sanctum-window.xml             > dist/sanctum-hq-window.xml 2>/dev/null || true

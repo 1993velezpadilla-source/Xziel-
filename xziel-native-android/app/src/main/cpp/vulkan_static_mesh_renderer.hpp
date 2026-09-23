@@ -273,6 +273,7 @@ private:
     std::vector<GpuBatch> batches_{};
     std::vector<PendingUpload> pendingUploads_{};
     VkDeviceSize pendingUploadBytes_ = 0U;
+    std::uint32_t uploadBatchCommandLimit_ = 16U;
 
     VkBuffer geometryVertexBuffer_ = VK_NULL_HANDLE;
     VkDeviceMemory geometryVertexMemory_ = VK_NULL_HANDLE;

@@ -137,13 +137,24 @@ bool VulkanStaticMeshRenderer::initialize(
               8.0f)
         : 1.0f;
 
+    // CPU Vulkan implementations such as CI llvmpipe emulate ASTC decode.
+    // Huge all-at-once submits can serialize badly there. Real mobile GPUs
+    // keep a much larger batch to minimize queue waits during startup.
+    uploadBatchCommandLimit_ =
+        deviceProperties.deviceType ==
+            VK_PHYSICAL_DEVICE_TYPE_CPU
+        ? 2U
+        : 16U;
+
     __android_log_print(
         ANDROID_LOG_INFO,
         kTag,
-        "XZIEL_STATIC_TEXTURE_CAPS astc=%d aniso=%.1f",
+        "XZIEL_STATIC_TEXTURE_CAPS astc=%d aniso=%.1f upload_batch_commands=%u",
         astcLdrSupported_ ? 1 : 0,
         static_cast<double>(
-            maxSamplerAnisotropy_));
+            maxSamplerAnisotropy_),
+        static_cast<unsigned int>(
+            uploadBatchCommandLimit_));
 
     graphicsQueue_ = graphicsQueue;
     graphicsQueueFamily_ = graphicsQueueFamily;
@@ -483,6 +494,7 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     samplerAnisotropyEnabled_ = false;
     astcLdrSupported_ = false;
     maxSamplerAnisotropy_ = 1.0f;
+    uploadBatchCommandLimit_ = 16U;
 
     physicalDevice_ = VK_NULL_HANDLE;
     device_ = VK_NULL_HANDLE;
@@ -2908,7 +2920,11 @@ bool VulkanStaticMeshRenderer::queueUploadCommands(
     }
 
     if (!pendingUploads_.empty() &&
-        (pendingUploadBytes_ >
+        (pendingUploads_.size() >=
+             std::max<std::uint32_t>(
+                 uploadBatchCommandLimit_,
+                 1U) ||
+         pendingUploadBytes_ >
              kSoftBatchLimit ||
          stagingBytes >
              kSoftBatchLimit -
@@ -3048,9 +3064,11 @@ bool VulkanStaticMeshRenderer::flushPendingUploads() noexcept {
     __android_log_print(
         ANDROID_LOG_INFO,
         kTag,
-        "XZIEL_TEXTURE_UPLOAD_BATCH commands=%u staging_mb=%.2f",
+        "XZIEL_TEXTURE_UPLOAD_BATCH commands=%u limit=%u staging_mb=%.2f",
         static_cast<unsigned int>(
             commandCount),
+        static_cast<unsigned int>(
+            uploadBatchCommandLimit_),
         static_cast<double>(
             batchBytes) /
             (1024.0 * 1024.0));
