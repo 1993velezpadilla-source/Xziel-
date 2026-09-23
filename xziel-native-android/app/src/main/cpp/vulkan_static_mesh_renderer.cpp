@@ -259,6 +259,13 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
                 nullptr);
         }
 
+        if (pipelineDoubleSided_ != VK_NULL_HANDLE) {
+            vkDestroyPipeline(
+                device_,
+                pipelineDoubleSided_,
+                nullptr);
+        }
+
         if (pipelineLayout_ != VK_NULL_HANDLE) {
             vkDestroyPipelineLayout(
                 device_,
@@ -285,6 +292,7 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     textures_.clear();
 
     pipeline_ = VK_NULL_HANDLE;
+    pipelineDoubleSided_ = VK_NULL_HANDLE;
     pipelineLayout_ = VK_NULL_HANDLE;
     descriptorPool_ = VK_NULL_HANDLE;
     descriptorSetLayout_ = VK_NULL_HANDLE;
@@ -338,10 +346,8 @@ void VulkanStaticMeshRenderer::record(
         return;
     }
 
-    vkCmdBindPipeline(
-        command,
-        VK_PIPELINE_BIND_POINT_GRAPHICS,
-        pipeline_);
+    VkPipeline boundPipeline =
+        VK_NULL_HANDLE;
 
     VkViewport viewport{};
     viewport.x = 0.0f;
@@ -505,6 +511,25 @@ void VulkanStaticMeshRenderer::record(
 
         ++frameStats_.visibleBatches;
 
+        const VkPipeline desiredPipeline =
+            batch.doubleSided
+            ? pipelineDoubleSided_
+            : pipeline_;
+
+        if (desiredPipeline == VK_NULL_HANDLE) {
+            ++frameStats_.culledBatches;
+            continue;
+        }
+
+        if (boundPipeline != desiredPipeline) {
+            vkCmdBindPipeline(
+                command,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                desiredPipeline);
+            boundPipeline =
+                desiredPipeline;
+        }
+
         const auto& texture =
             textures_[batch.textureIndex];
 
@@ -562,7 +587,9 @@ void VulkanStaticMeshRenderer::recordViewmodel(
     vkCmdBindPipeline(
         command,
         VK_PIPELINE_BIND_POINT_GRAPHICS,
-        pipeline_);
+        pipelineDoubleSided_ != VK_NULL_HANDLE
+            ? pipelineDoubleSided_
+            : pipeline_);
 
     VkViewport viewport{};
     viewport.width =
@@ -972,7 +999,11 @@ bool VulkanStaticMeshRenderer::createPipeline(
     info.renderPass = renderPass_;
     info.subpass = 0U;
 
-    const VkResult result =
+    // glTF's default is single-sided: back-face culling enabled.
+    raster.cullMode =
+        VK_CULL_MODE_BACK_BIT;
+
+    const VkResult culledResult =
         vkCreateGraphicsPipelines(
             device_,
             VK_NULL_HANDLE,
@@ -981,12 +1012,31 @@ bool VulkanStaticMeshRenderer::createPipeline(
             nullptr,
             &pipeline_);
 
+    VkResult doubleSidedResult =
+        VK_ERROR_INITIALIZATION_FAILED;
+
+    if (ok(culledResult)) {
+        raster.cullMode =
+            VK_CULL_MODE_NONE;
+
+        doubleSidedResult =
+            vkCreateGraphicsPipelines(
+                device_,
+                VK_NULL_HANDLE,
+                1U,
+                &info,
+                nullptr,
+                &pipelineDoubleSided_);
+    }
+
     vkDestroyShaderModule(
         device_, fragment, nullptr);
     vkDestroyShaderModule(
         device_, vertex, nullptr);
 
-    return ok(result);
+    return
+        ok(culledResult) &&
+        ok(doubleSidedResult);
 }
 
 bool VulkanStaticMeshRenderer::createBuffer(
@@ -1164,6 +1214,8 @@ bool VulkanStaticMeshRenderer::uploadBatch(
         textureIndex;
     out.bounds =
         batch.bounds;
+    out.doubleSided =
+        batch.doubleSided();
 
     return true;
 }
