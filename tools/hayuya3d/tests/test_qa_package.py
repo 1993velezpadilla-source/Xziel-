@@ -1,0 +1,96 @@
+from __future__ import annotations
+
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[3]
+HAYUYA_DIR = ROOT / "tools" / "hayuya3d"
+sys.path.insert(0, str(HAYUYA_DIR))
+
+import numpy as np
+import trimesh
+from PIL import Image
+
+from gameprep import build_gameprep
+from qa_package import build_qa_package
+from visual_judge import SourceViewScore
+
+
+class QAPackageTests(unittest.TestCase):
+    def test_character_without_skin_is_not_production_ready(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            final_glb = root / "character.glb"
+            source_img = root / "character_front.png"
+
+            mesh = trimesh.creation.icosphere(subdivisions=2, radius=0.5)
+            rgba = np.tile(
+                np.array([[120, 80, 60, 255]], dtype=np.uint8),
+                (len(mesh.vertices), 1),
+            )
+            mesh.visual = trimesh.visual.ColorVisuals(mesh, vertex_colors=rgba)
+            final_glb.write_bytes(
+                trimesh.exchange.gltf.export_glb(trimesh.Scene(mesh))
+            )
+            Image.new("RGB", (128, 256), (120, 80, 60)).save(source_img)
+
+            anchor = SourceViewScore(
+                source=str(source_img),
+                best_score=90.0,
+                best_azimuth=0.0,
+                best_elevation=0.0,
+                best_up_axis="y",
+                silhouette_iou=0.9,
+                boundary_f1=0.9,
+            )
+            gameprep = build_gameprep(
+                final_glb,
+                root / "gameprep",
+                target_faces=500,
+                anchor_view=anchor,
+                material_samples=3000,
+            )
+
+            champion = {
+                "backend": "test",
+                "score": 90.0,
+                "visual_views": [{
+                    "source": str(source_img),
+                    "best_score": 90.0,
+                    "best_azimuth": 0.0,
+                    "best_elevation": 0.0,
+                    "best_up_axis": "y",
+                    "silhouette_iou": 0.9,
+                    "boundary_f1": 0.9,
+                    "projection": "orthographic",
+                    "camera_distance": None,
+                    "mask_confidence": 1.0,
+                    "mask_method": "alpha",
+                }],
+            }
+
+            result = build_qa_package(
+                final_glb,
+                root / "qa",
+                champion=champion,
+                mode="character",
+                profile="game",
+                source_images=[source_img],
+                detail_images=[],
+                gameprep=gameprep,
+                target_faces=500,
+            )
+
+            self.assertTrue(Path(result.report).is_file())
+            self.assertTrue(result.contact_sheet and Path(result.contact_sheet).is_file())
+            self.assertTrue(result.geometry_ready)
+            self.assertFalse(result.rig_ready)
+            self.assertFalse(result.animation_ready)
+            self.assertFalse(result.production_ready)
+            self.assertTrue(any("unrigged" in warning for warning in result.warnings))
+
+
+if __name__ == "__main__":
+    unittest.main()
