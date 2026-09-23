@@ -1,0 +1,60 @@
+name: Hayuya Monster CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - art/hayuya-monster-v1
+    paths:
+      - tools/hayuya3d/**
+      - assets/characters/shared/docs/HAYUYA_3D_MASTER_PROMPT.md
+      - .github/workflows/hayuya-monster-ci.yml
+
+permissions:
+  contents: read
+
+jobs:
+  planner-ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compile Hayuya Python
+        run: python -m py_compile tools/hayuya3d/*.py
+
+      - name: Run Hayuya unit tests
+        run: python -m unittest discover -s tools/hayuya3d/tests -v
+
+      - name: Dry-run one-photo planner
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path("/tmp/hayuya-front.png")
+          p.write_bytes(b"\x89PNG\r\n\x1a\n" + b"x"*2048)
+          PY
+          python tools/hayuya3d/hayuya.py \
+            --input /tmp/hayuya-front.png \
+            --profile monster \
+            --gpu-vram 8
+
+      - name: Dry-run two-photo planner
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          for name in ("front","back"):
+              p=Path(f"/tmp/hayuya-{name}.png")
+              p.write_bytes(b"\x89PNG\r\n\x1a\n" + b"x"*2048)
+          PY
+          python tools/hayuya3d/hayuya.py \
+            --input /tmp/hayuya-front.png \
+            --input /tmp/hayuya-back.png \
+            --profile monster \
+            --gpu-vram 8
