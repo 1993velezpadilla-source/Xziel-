@@ -666,7 +666,16 @@ bool VulkanStaticMeshRenderer::initialize(
                 streamStats.pending));
     }
 
-    assetStreamer_.stop();
+    if (streamGraphReady_ &&
+        assetStreamer_.running()) {
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_RUNTIME_ASSET_STREAMER_READY workers=1+ persistent=1");
+    } else {
+        assetStreamer_.stop();
+    }
+
     asyncPrefetchQueued_ = 0U;
 
     if (!flushPendingUploads()) {
