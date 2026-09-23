@@ -231,12 +231,23 @@ export class MatchRoom extends DurableObject<Env> {
     socket.close(1011, "socket_error");
   }
 
+  async alarm(): Promise<void> {
+    this.broadcastSnapshot(Date.now(), true);
+  }
+
   private serverTick(nowMs: number): number {
     return Math.floor(nowMs / SNAPSHOT_INTERVAL_MS) >>> 0;
   }
 
   private broadcastSnapshot(now: number, force: boolean): void {
     if (!force && now - this.lastBroadcastMs < SNAPSHOT_INTERVAL_MS) {
+      const due =
+        Math.max(
+          Date.now() + 1,
+          this.lastBroadcastMs + SNAPSHOT_INTERVAL_MS,
+        );
+
+      void this.ctx.storage.setAlarm(due);
       return;
     }
 
