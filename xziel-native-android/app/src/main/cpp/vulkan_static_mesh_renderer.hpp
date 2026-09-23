@@ -260,6 +260,14 @@ private:
         bool srgb,
         GpuTexture& out) noexcept;
 
+    [[nodiscard]] bool prepareKtx2TextureUpload(
+        std::span<const std::byte> bytes,
+        const std::string& assetPath,
+        bool srgb,
+        std::uint32_t residentBaseMip,
+        GpuTexture& out,
+        PendingUpload& upload) noexcept;
+
     [[nodiscard]] bool createTextureSampler(
         std::uint32_t mipLevels,
         GpuTexture& out) noexcept;
