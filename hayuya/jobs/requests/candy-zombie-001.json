@@ -13,6 +13,6 @@
   "backends": "triposg,trellis2,trellis,instantmesh,triposr",
   "execution": "phone_cloud",
   "compute": "github-hosted + public ZeroGPU",
-  "note": "Single-PNG Hayuya challenge using the isolated Candyland zombie only.",
-  "retry_token": "candy-zombie-single-v1"
+  "note": "Retry after fixing palette/tRNS alpha preservation in the Hayuya single-image path. The previous run converted a transparent palette PNG to RGB and reconstructed the fill as geometry.",
+  "retry_token": "candy-zombie-alpha-fix-v2"
 }
