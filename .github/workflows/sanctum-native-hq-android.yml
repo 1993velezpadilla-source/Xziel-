@@ -14,6 +14,7 @@ on:
       - ".github/workflows/sanctum-astc-texture-pack.yml"
       - "tools/church_map/export_xziel_original_clean.py"
       - "tools/church_map/apply_exterior_microdetail.py"
+      - "tools/texture_pack/**"
       - "engine/**"
       - "xziel-native-android/**"
   workflow_dispatch:
@@ -45,9 +46,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-ktx2-astc-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-mip-streaming-v1" ]]; then
+          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-ktx2-astc-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-mip-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" ]]; then
             for i in $(seq 1 120); do
-              RESPONSE="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs?branch=engine/mobile-ktx2-astc-v1&per_page=30")"
+              RESPONSE="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs?branch=${GITHUB_REF_NAME}&per_page=30")"
               RUN_ID="$(jq -r '.workflow_runs[] | select(.name == "Sanctum ASTC Texture Pack" and .status == "completed" and .conclusion == "success") | .id' <<<"${RESPONSE}" | head -n 1)"
 
               if [[ -n "${RUN_ID}" && "${RUN_ID}" != "null" ]]; then
@@ -543,6 +544,22 @@ jobs:
 
           grep -q "XZIEL_VULKAN_SURFACE_ROTATION"             dist/sanctum-hq-logcat.txt
           grep -q "XZIEL_GPU_CAPS"             dist/sanctum-hq-logcat.txt
+
+          if [[ "${SANCTUM_ASSET_KIND}" == "astc" ]]; then
+            if grep -Eq "XZIEL_GPU_CAPS .*astc=1" dist/sanctum-hq-logcat.txt; then
+              KTX_LOAD_COUNT="$(grep -c "XZIEL_KTX2_ASTC_TEXTURE" dist/sanctum-hq-logcat.txt || true)"
+              test "${KTX_LOAD_COUNT}" -gt 0
+
+              if grep -q "ASTC KTX2 texture exists but failed validation/upload" dist/sanctum-hq-logcat.txt; then
+                echo "ERROR: ASTC-capable runtime fell back after KTX2 upload failure"
+                exit 1
+              fi
+
+              echo "XZIEL_ASTC_RUNTIME_ACTIVE textures=${KTX_LOAD_COUNT}"
+            else
+              echo "XZIEL_ASTC_RUNTIME_FALLBACK device_has_no_astc"
+            fi
+          fi
           grep -Eq "XZIEL_GPU_TIMESTAMPS_(READY|UNAVAILABLE)"             dist/sanctum-hq-logcat.txt
           grep -q "XZIEL_TRANSIENT_DEPTH_"             dist/sanctum-hq-logcat.txt
           grep -q "XZIEL_SCENE_COMPOSITE_READY"             dist/sanctum-hq-logcat.txt
