@@ -280,84 +280,142 @@ bool VulkanStaticMeshRenderer::initialize(
             "XZIEL_RUNTIME_TEXTURE_RELOAD_PROBE_ENABLED");
     }
 
-    // Read KTX2 payloads on bounded worker threads while the render thread
-    // creates pipelines/descriptors. Vulkan object creation and queue submits
-    // stay on this thread; only APK asset I/O moves off-thread.
+    // World geometry range I/O and KTX2 prefetch share the same bounded
+    // workers. Geometry streaming must remain available even on devices that
+    // fall back from ASTC to PNG.
     asyncPrefetchQueued_ = 0U;
 
-    if (astcLdrSupported_) {
-        constexpr std::uint64_t kMiB =
-            1024ULL * 1024ULL;
+    constexpr std::uint64_t kMiB =
+        1024ULL * 1024ULL;
 
-        const std::uint64_t prefetchBudget =
-            std::clamp<std::uint64_t>(
-                textureResidentBudgetBytes_ / 4U,
-                16ULL * kMiB,
-                96ULL * kMiB);
+    const std::uint64_t streamBufferBudget =
+        std::clamp<std::uint64_t>(
+            textureResidentBudgetBytes_ / 4U,
+            16ULL * kMiB,
+            96ULL * kMiB);
 
-        const std::uint32_t workerCount =
-            deviceProperties.deviceType ==
-                VK_PHYSICAL_DEVICE_TYPE_CPU
-            ? 1U
-            : 2U;
+    const std::uint32_t workerCount =
+        deviceProperties.deviceType ==
+            VK_PHYSICAL_DEVICE_TYPE_CPU
+        ? 1U
+        : 2U;
 
-        if (assetStreamer_.start(
-                assetManager,
-                workerCount,
-                prefetchBudget)) {
-            std::unordered_set<std::string>
-                queuedPaths;
+    const bool needsAssetWorkers =
+        streamGraphReady_ ||
+        astcLdrSupported_;
 
-            const auto queueTexture =
-                [&](const std::string& exportedName) {
-                    if (exportedName.empty()) {
-                        return;
-                    }
+    const bool assetWorkersReady =
+        needsAssetWorkers &&
+        assetStreamer_.start(
+            assetManager,
+            workerCount,
+            streamBufferBudget);
 
-                    const std::string path =
-                        textureAssetPath(
-                            exportedName,
-                            ".ktx2");
+    if (streamGraphReady_ &&
+        assetWorkersReady &&
+        modelPath.size() > 0U) {
+        constexpr std::uint64_t kXzsmHeaderBytes =
+            20U;
 
-                    if (!assetExists(
-                            assetManager,
-                            path) ||
-                        !queuedPaths.insert(path).second) {
-                        return;
-                    }
+        if (assetStreamer_.enqueueRange(
+                modelPath,
+                0U,
+                kXzsmHeaderBytes)) {
+            std::vector<std::byte> headerBytes;
 
-                    if (assetStreamer_.enqueue(path)) {
-                        ++asyncPrefetchQueued_;
-                    }
-                };
+            const bool rangeReady =
+                assetStreamer_.takeRange(
+                    modelPath,
+                    0U,
+                    kXzsmHeaderBytes,
+                    headerBytes);
 
-            for (const auto& batch : asset.batches) {
-                queueTexture(batch.textureName);
+            const bool validMagic =
+                rangeReady &&
+                headerBytes.size() ==
+                    kXzsmHeaderBytes &&
+                headerBytes[0] ==
+                    std::byte{'X'} &&
+                headerBytes[1] ==
+                    std::byte{'Z'} &&
+                headerBytes[2] ==
+                    std::byte{'S'} &&
+                headerBytes[3] ==
+                    std::byte{'M'};
 
-                if (!batch.pbrEnabled()) {
-                    continue;
+            if (validMagic) {
+                __android_log_print(
+                    ANDROID_LOG_INFO,
+                    kTag,
+                    "XZIEL_XZSM_RANGE_IO_READY bytes=%llu workers=%u buffer_mb=%.1f",
+                    static_cast<unsigned long long>(
+                        kXzsmHeaderBytes),
+                    static_cast<unsigned int>(
+                        workerCount),
+                    static_cast<double>(
+                        streamBufferBudget) /
+                        (1024.0 * 1024.0));
+            } else {
+                logError(
+                    "XZSM range I/O probe failed");
+            }
+        }
+    }
+
+    if (astcLdrSupported_ &&
+        assetWorkersReady) {
+        std::unordered_set<std::string>
+            queuedPaths;
+
+        const auto queueTexture =
+            [&](const std::string& exportedName) {
+                if (exportedName.empty()) {
+                    return;
                 }
 
-                queueTexture(
-                    batch.pbr.normalTextureName);
-                queueTexture(
-                    batch.pbr.ormTextureName);
-                queueTexture(
-                    batch.pbr.emissiveTextureName);
+                const std::string path =
+                    textureAssetPath(
+                        exportedName,
+                        ".ktx2");
+
+                if (!assetExists(
+                        assetManager,
+                        path) ||
+                    !queuedPaths.insert(path).second) {
+                    return;
+                }
+
+                if (assetStreamer_.enqueue(path)) {
+                    ++asyncPrefetchQueued_;
+                }
+            };
+
+        for (const auto& batch : asset.batches) {
+            queueTexture(batch.textureName);
+
+            if (!batch.pbrEnabled()) {
+                continue;
             }
 
-            __android_log_print(
-                ANDROID_LOG_INFO,
-                kTag,
-                "XZIEL_ASYNC_ASTC_PREFETCH_READY workers=%u queued=%u buffer_mb=%.1f",
-                static_cast<unsigned int>(
-                    workerCount),
-                static_cast<unsigned int>(
-                    asyncPrefetchQueued_),
-                static_cast<double>(
-                    prefetchBudget) /
-                    (1024.0 * 1024.0));
+            queueTexture(
+                batch.pbr.normalTextureName);
+            queueTexture(
+                batch.pbr.ormTextureName);
+            queueTexture(
+                batch.pbr.emissiveTextureName);
         }
+
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_ASYNC_ASTC_PREFETCH_READY workers=%u queued=%u buffer_mb=%.1f",
+            static_cast<unsigned int>(
+                workerCount),
+            static_cast<unsigned int>(
+                asyncPrefetchQueued_),
+            static_cast<double>(
+                streamBufferBudget) /
+                (1024.0 * 1024.0));
     }
 
     if (!createPipeline(assetManager)) {
