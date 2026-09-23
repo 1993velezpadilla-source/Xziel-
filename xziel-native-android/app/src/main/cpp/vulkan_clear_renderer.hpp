@@ -376,6 +376,13 @@ private:
     std::uint32_t graphicsQueueFamily_ = UINT32_MAX;
     VkQueue graphicsQueue_ = VK_NULL_HANDLE;
 
+    bool astcLdrSupported_ = false;
+    VkSampleCountFlagBits preferredSceneMsaa_ =
+        VK_SAMPLE_COUNT_1_BIT;
+    std::uint32_t maxImageDimension2D_ = 0U;
+    float deviceMaxSamplerAnisotropy_ = 1.0f;
+    std::uint64_t deviceLocalMemoryBytes_ = 0U;
+
     VkSwapchainKHR swapchain_ = VK_NULL_HANDLE;
     VkFormat swapchainFormat_ = VK_FORMAT_UNDEFINED;
     VkFormat depthFormat_ = VK_FORMAT_UNDEFINED;
