@@ -23,14 +23,85 @@ def fail(msg):
 if not GEOMETRY.is_file():
     fail(f"Missing primary reference: {GEOMETRY}")
 
-# HAYUYA phone/cloud mode accepts a single concept/reference sheet.
-# For a wide character sheet like Zombie Iglesia, recover the four full-body panels
-# from the left ~76% of the sheet. This keeps the right-side closeups out of geometry.
-with Image.open(GEOMETRY) as im:
-    im.load()
-    im = im.convert("RGB")
-    w,h = im.size
+# HAYUYA phone/cloud mode accepts a single image or a wide multi-view sheet.
+# IMPORTANT: preserve alpha. Some generated PNGs are palette images (P mode) with
+# tRNS transparency; converting those directly to RGB turns the transparent area
+# into a solid palette color and TRELLIS reconstructs that background as geometry.
+def has_useful_alpha(image):
+    if image.mode != "RGBA":
+        image = image.convert("RGBA")
+    lo, hi = image.getchannel("A").getextrema()
+    return lo < 250 and hi > 0
+
+def prepare_view(image, dst, *, target=1024):
+    rgba = image.convert("RGBA")
+    useful_alpha = has_useful_alpha(rgba)
+
+    if useful_alpha:
+        alpha = rgba.getchannel("A")
+        mask = alpha.point(lambda v: 255 if v > 8 else 0)
+        bbox = mask.getbbox()
+        if bbox:
+            l, t, r, b = bbox
+            span = max(r-l, b-t)
+            pad = max(8, round(span * 0.06))
+            l=max(0,l-pad); t=max(0,t-pad)
+            r=min(rgba.width,r+pad); b=min(rgba.height,b+pad)
+            rgba = rgba.crop((l,t,r,b))
+
+        # Give the object breathing room and center it on transparent canvas.
+        side=max(rgba.width,rgba.height)
+        margin=max(8,round(side*0.08))
+        canvas=Image.new("RGBA",(side+margin*2,side+margin*2),(0,0,0,0))
+        x=(canvas.width-rgba.width)//2
+        y=(canvas.height-rgba.height)//2
+        canvas.alpha_composite(rgba,(x,y))
+        rgba=canvas.resize((target,target),Image.Resampling.LANCZOS)
+        rgba.save(dst,"PNG",optimize=True)
+    else:
+        # No reliable alpha: keep RGB and let TRELLIS/rembg do its own removal.
+        rgb=rgba.convert("RGB")
+        scale=min(1.0,target/max(rgb.width,rgb.height))
+        if scale < 1.0:
+            rgb=rgb.resize((max(1,round(rgb.width*scale)),max(1,round(rgb.height*scale))),Image.Resampling.LANCZOS)
+        rgb.save(dst,"PNG",optimize=True)
+
+    with Image.open(dst) as check:
+        check.load()
+        alpha_fraction=None
+        if check.mode=="RGBA":
+            a=check.getchannel("A")
+            hist=a.histogram()
+            alpha_fraction=1.0-(hist[255]/float(check.width*check.height))
+        print(
+            "HAYUYA_VIEW_READY",
+            dst.stem,
+            dst,
+            check.size,
+            "mode="+check.mode,
+            "alpha_fraction="+("none" if alpha_fraction is None else f"{alpha_fraction:.4f}")
+        )
+    return dst
+
+with Image.open(GEOMETRY) as source:
+    source.load()
+    source_mode=source.mode
+    source_info=dict(source.info)
+    source_rgba=source.convert("RGBA")
+    source_had_alpha=has_useful_alpha(source_rgba)
+    w,h=source_rgba.size
+    print(
+        "HAYUYA_SOURCE",
+        GEOMETRY,
+        "mode="+source_mode,
+        "size="+f"{w}x{h}",
+        "palette_transparency="+str("transparency" in source_info),
+        "useful_alpha="+str(source_had_alpha)
+    )
+
     if w >= int(h*1.25):
+        # Legacy/reference-sheet path: recover the four body panels from the left
+        # ~76% of the sheet and preserve transparency inside each crop.
         x0=0
         x1=int(w*0.76)
         y0=int(h*0.08)
@@ -43,19 +114,14 @@ with Image.open(GEOMETRY) as im:
             b=x0+int(span*(i+1)/4)
             pad=int(span*0.025)
             a=max(x0,a-pad); b=min(x1,b+pad)
-            crop=im.crop((a,y0,b,y1))
-            nw=max(1,round(crop.width*768/crop.height))
-            crop=crop.resize((nw,768),Image.Resampling.LANCZOS)
+            crop=source_rgba.crop((a,y0,b,y1))
             dst=PREP/f"{name}.png"
-            crop.save(dst,"PNG",optimize=True)
-            crops.append(dst)
-            print("HAYUYA_VIEW_READY",name,dst,crop.size)
+            crops.append(prepare_view(crop,dst,target=1024))
     else:
         dst=PREP/"front.png"
-        im.save(dst,"PNG",optimize=True)
-        crops=[dst]
+        crops=[prepare_view(source_rgba,dst,target=1024)]
 
-# If only one view exists, TRELLIS can still run single-image.
+# If only one view exists, TRELLIS runs its true single-image path.
 multi=len(crops) >= 2
 
 last=None
@@ -182,6 +248,9 @@ manifest={
     "glb":dst.name,
     "glb_bytes":len(data),
     "authenticated_hf":bool(TOKEN),
+    "source_mode":source_mode,
+    "source_had_alpha":source_had_alpha,
+    "alpha_preserved":True,
 }
 (OUT/"manifest.json").write_text(json.dumps(manifest,indent=2),encoding="utf-8")
 print("HAYUYA_PHONE_CLOUD_PASS")
