@@ -1,0 +1,228 @@
+{
+  "schemaVersion": 1,
+  "system": "xziel_diegetic_ads",
+  "mapId": "sanctum_of_ash",
+  "status": "semantic_candidates_geometry_fit_pending",
+  "sourceAuthority": {
+    "visual": "current native Sanctum/XZ asset",
+    "gameplay": ".xmap",
+    "note": "Do not derive final placement from legacy BSP."
+  },
+  "defaults": {
+    "gameplayRequired": false,
+    "networkRequired": false,
+    "fallbackRequired": true,
+    "executableCreativeAllowed": false,
+    "clickoutEnabledByDefault": false,
+    "audioGlobalBusAllowed": false,
+    "contextualTargetingPreferred": true
+  },
+  "frequencyCaps": {
+    "sameAudioCreativePerMatch": 1,
+    "paidAudioCreativesPerPlayerPerMatch": 2,
+    "activeMovingVideoSurfacesPerRoom": 1
+  },
+  "slots": [
+    {
+      "id": "sanctum_a01_courtyard_noticeboard",
+      "zone": "exterior",
+      "type": "SURFACE_STATIC",
+      "priority": "A",
+      "host": "broken_parish_notice_board",
+      "placement": {
+        "status": "semantic_candidate",
+        "requiresGeometryFit": true,
+        "avoidCombatLane": true
+      },
+      "creative": {
+        "preferredAspectRatios": [
+          "4:3",
+          "3:4",
+          "16:9"
+        ],
+        "motionAllowed": false
+      },
+      "fallback": "lore/parish_notice_board"
+    },
+    {
+      "id": "sanctum_a02_office_radio",
+      "zone": "office",
+      "type": "SPATIAL_AUDIO",
+      "priority": "A",
+      "host": "physical_radio_or_tape_recorder",
+      "placement": {
+        "status": "semantic_candidate",
+        "requiresGeometryFit": true
+      },
+      "audio": {
+        "minAudibleRadiusMeters": 2,
+        "targetMaxAudibleRadiusMeters": 9,
+        "targetCreativeSeconds": [
+          6,
+          15
+        ],
+        "fadeSeconds": [
+          0.25,
+          0.5
+        ],
+        "obeyOcclusion": true,
+        "obeyRoomReverb": true,
+        "globalBusPlayback": false,
+        "doNotRetriggerAfterCompletion": true,
+        "suppressDuringCriticalNarrativeAudio": true
+      },
+      "fallback": "lore/radio_static_or_survivor_transmission"
+    },
+    {
+      "id": "sanctum_a03_office_projector",
+      "zone": "office",
+      "type": "SURFACE_VIDEO",
+      "priority": "A",
+      "host": "projector_slide_surface",
+      "placement": {
+        "status": "semantic_candidate",
+        "requiresGeometryFit": true
+      },
+      "creative": {
+        "preferredAspectRatios": [
+          "4:3"
+        ],
+        "audioAllowed": false,
+        "motionAllowed": true
+      },
+      "fallback": "lore/parish_archive_slides"
+    },
+    {
+      "id": "sanctum_a04_nave_community_frame",
+      "zone": "main_church",
+      "type": "SURFACE_STATIC",
+      "priority": "B",
+      "host": "secondary_wall_frame_or_notice_surface",
+      "placement": {
+        "status": "semantic_candidate",
+        "requiresGeometryFit": true,
+        "exclusions": [
+          "altar_axis",
+          "ash_sigil",
+          "confession_horror_focal",
+          "wall_buy_read_zone",
+          "stained_glass_hero_surface"
+        ]
+      },
+      "creative": {
+        "preferredAspectRatios": [
+          "3:4",
+          "4:3"
+        ],
+        "motionAllowed": false
+      },
+      "fallback": "lore/community_notice"
+    },
+    {
+      "id": "sanctum_a05_boiler_service_placard",
+      "zone": "boiler",
+      "type": "PROP_BRANDING",
+      "priority": "B",
+      "host": "service_wall_or_equipment_plate",
+      "placement": {
+        "status": "semantic_candidate",
+        "requiresGeometryFit": true,
+        "mustNotResembleQuestInstruction": true
+      },
+      "creative": {
+        "preferredAspectRatios": [
+          "2:1",
+          "1:1"
+        ],
+        "motionAllowed": false
+      },
+      "fallback": "lore/maintenance_service_plate"
+    },
+    {
+      "id": "sanctum_a06_tower_maintenance_sign",
+      "zone": "tower_stairs",
+      "type": "SURFACE_STATIC",
+      "priority": "B",
+      "host": "maintenance_wall_landing",
+      "placement": {
+        "status": "semantic_candidate",
+        "requiresGeometryFit": true,
+        "mustNotActAsNavigationMarker": true
+      },
+      "creative": {
+        "preferredAspectRatios": [
+          "3:4",
+          "4:3"
+        ],
+        "motionAllowed": false
+      },
+      "fallback": "lore/tower_maintenance_notice"
+    },
+    {
+      "id": "sanctum_a07_clock_maker_plate",
+      "zone": "clock_chamber",
+      "type": "ENVIRONMENT_TEXT",
+      "priority": "B",
+      "host": "clock_or_maintenance_maker_plate",
+      "placement": {
+        "status": "semantic_candidate",
+        "requiresGeometryFit": true,
+        "bannedCreativeFeatures": [
+          "time_readouts",
+          "03:17",
+          "quest_like_numbers",
+          "instructional_arrows"
+        ]
+      },
+      "creative": {
+        "preferredAspectRatios": [
+          "3:1",
+          "2:1"
+        ],
+        "motionAllowed": false
+      },
+      "fallback": "lore/clockmaker_plate"
+    },
+    {
+      "id": "sanctum_a08_roof_weathered_banner",
+      "zone": "roof_chamber",
+      "type": "FLAG_BANNER",
+      "priority": "C",
+      "optional": true,
+      "host": "non_navigation_exterior_anchor",
+      "placement": {
+        "status": "semantic_candidate",
+        "requiresGeometryFit": true,
+        "mustPreserveTowerSilhouette": true
+      },
+      "creative": {
+        "preferredAspectRatios": [
+          "2:1",
+          "3:1"
+        ],
+        "motionAllowed": true,
+        "authoredMotionOnly": true
+      },
+      "fallback": "lore/weathered_parish_banner"
+    }
+  ],
+  "hardExclusions": [
+    "altar",
+    "altar_forge",
+    "ash_sigil",
+    "bell_warden_focal",
+    "grave_markers",
+    "corpses",
+    "gore",
+    "stained_glass_hero_art",
+    "seven_bells_controls",
+    "clock_0317_clues",
+    "perk_prompts",
+    "wall_buy_prompts",
+    "doors",
+    "barricade_interaction_surfaces",
+    "zombie_spawn_windows",
+    "player_spawn_primary_look_target",
+    "navigation_critical_surfaces"
+  ]
+}
