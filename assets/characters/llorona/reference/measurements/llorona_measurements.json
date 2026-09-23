@@ -1,0 +1,67 @@
+{
+  "asset": "La Llorona",
+  "version": "canonical-v1",
+  "scale": "real-world 1:1",
+  "units": "cm",
+  "pose": "relaxed T-pose / arms slightly down",
+  "model": {
+    "overall_height": 172,
+    "max_overall_width": 98.8,
+    "max_overall_depth": 80.3,
+    "mesh_faces": 120000,
+    "uv_vertices": 85038
+  },
+  "head_face_neck": {
+    "head_height": 27.5,
+    "head_width": 24.6,
+    "head_depth": 29.4,
+    "crown_width": 20,
+    "face_height": 18.6,
+    "face_width": 14.2,
+    "neck_width": 10.8
+  },
+  "hair": {
+    "front_hair_drop": 120,
+    "back_hair_drop": 128,
+    "hair_curtain_width": 27.2
+  },
+  "torso_garment": {
+    "shoulder_width": 44.9,
+    "chest_width": 60.6,
+    "waist_drape_width": 84.5,
+    "shoulder_to_hem_drop": 137.6,
+    "back_drape_width": 67,
+    "lower_hem_spread": 64,
+    "floor_spread_width": 98.8,
+    "floor_spread_depth": 80.3
+  },
+  "sleeves_arms": {
+    "front_sleeve_span": 52.9,
+    "sleeve_drape_drop": 61
+  },
+  "rosary_cross": {
+    "rosary_total_length": 70,
+    "cross_drop_from_collar_line": 60,
+    "cross_pendant_height": 14.8,
+    "cross_pendant_width": 7.2
+  },
+  "hands_fingers": {
+    "hand_length": 18.6,
+    "palm_width": 8.6,
+    "thumb_length": 5.8,
+    "index_finger_length": 7,
+    "middle_finger_length": 7.6,
+    "ring_finger_length": 7.2,
+    "pinky_length": 5.6
+  },
+  "nails": {
+    "thumbnail_length": 1.4,
+    "other_fingernail_length": 1.2
+  },
+  "production_notes": [
+    "Overall envelope is tied to the current 1.72 m GLB scale.",
+    "Garment, hair, accessory and micro-detail values are canonical production references derived from the current GLB silhouette and technical measurement sheets.",
+    "Use this JSON as source of truth for future orthographic PNG generation, texture projection and model-fit work.",
+    "Do not OCR measurements from blueprint artwork when this file is available."
+  ]
+}
