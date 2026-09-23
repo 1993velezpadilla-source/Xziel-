@@ -456,6 +456,7 @@ private:
     std::string geometryAssetPath_{};
     std::uint32_t geometryReloadCellSlot_ = UINT32_MAX;
     std::uint64_t geometryResidentBytes_ = 0U;
+    bool geometryResidencyProbeEnabled_ = false;
     bool geometryResidencyProbeComplete_ = false;
     std::uint32_t geometryResidencyProbeCellSlot_ = UINT32_MAX;
     std::uint64_t geometryResidencyProbeReloadFrame_ = 0U;
