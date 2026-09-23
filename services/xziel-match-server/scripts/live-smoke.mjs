@@ -187,6 +187,12 @@ try {
     waitForFourPlayerSnapshot(ws),
   );
 
+  // The fourth join itself emits a snapshot before these listeners exist.
+  // Cross one authoritative 20 Hz boundary, then send fresh input so the
+  // test validates a newly generated four-player snapshot instead of racing
+  // the join broadcast.
+  await new Promise((resolve) => setTimeout(resolve, 75));
+
   sockets.forEach((ws, index) => {
     ws.send(
       makeInput(
