@@ -12,6 +12,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <string_view>
 
 namespace xziel {
 
@@ -48,6 +49,9 @@ enum class SanctumZone : std::uint32_t {
     RoofChamber = 9,
     TowerTop = 10,
 };
+
+[[nodiscard]] SanctumZone sanctumZoneForAssetName(
+    std::string_view assetName) noexcept;
 
 enum class SanctumPresenceKind : std::uint8_t {
     Llorona = 0,
