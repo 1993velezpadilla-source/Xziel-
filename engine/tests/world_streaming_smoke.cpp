@@ -36,6 +36,23 @@ int main() {
     assert(assetA == assetAAgain);
     assert(assetA != assetB);
 
+    assert(
+        xziel::sanctumZoneForAssetName(
+            "mat_05_StGilesCripplegateOfficeCorridor02.ktx2") ==
+        xziel::SanctumZone::OfficeCorridor);
+    assert(
+        xziel::sanctumZoneForAssetName(
+            "mat_04_StGilesCripplegateOffice02.ktx2") ==
+        xziel::SanctumZone::Office);
+    assert(
+        xziel::sanctumZoneForAssetName(
+            "mat_03_StGilesCripplegateExterior04.ktx2") ==
+        xziel::SanctumZone::Courtyard);
+    assert(
+        xziel::sanctumZoneForAssetName(
+            "mat_09_StGilesCripplegateTowerTop06.ktx2") ==
+        xziel::SanctumZone::TowerTop);
+
     xziel::StreamCellGraph graph;
 
     assert(graph.addCell({.id = 1U}));
