@@ -675,29 +675,21 @@ bool VulkanStaticMeshRenderer::initialize(
         return false;
     }
 
-    if (streamGraphReady_ &&
-        !textures_.empty()) {
-        streamFallbackTextureIndex_ = 0U;
-        auto& fallback =
-            textures_[streamFallbackTextureIndex_];
-
-        if (fallback.streamResourceId != 0U) {
-            textureMipResidency_.setPinned(
-                fallback.streamResourceId,
-                true);
+    if (streamGraphReady_) {
+        if (!createStreamingFallbackTexture()) {
+            logError(
+                "streaming fallback texture creation failed");
+            shutdown();
+            return false;
         }
 
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_STREAMING_FALLBACK_READY texture_index=%u resource_id=%llu",
-            static_cast<unsigned int>(
-                streamFallbackTextureIndex_),
+            "XZIEL_STREAMING_FALLBACK_READY dedicated=1 source=1x1 gpu_bytes=%llu",
             static_cast<unsigned long long>(
-                fallback.streamResourceId));
-    } else {
-        streamFallbackTextureIndex_ =
-            UINT32_MAX;
+                streamFallbackTexture_.
+                    allocationBytes));
     }
 
     if (asyncPrefetchQueued_ > 0U) {
@@ -823,6 +815,9 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
             destroyTexture(texture);
         }
 
+        destroyTexture(
+            streamFallbackTexture_);
+
         if (pipeline_ != VK_NULL_HANDLE) {
             vkDestroyPipeline(
                 device_,
@@ -866,7 +861,7 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     streamGraph_.reset();
     textureMipResidency_.reset();
     streamGraphReady_ = false;
-    streamFallbackTextureIndex_ = UINT32_MAX;
+    streamFallbackTexture_ = {};
     runtimeTextureUpload_ = {};
     runtimeTextureTransitionFrame_ = 0U;
     streamResidencyProbeEnabled_ = false;
@@ -4553,6 +4548,332 @@ bool VulkanStaticMeshRenderer::createKtx2Texture(
             residentRange.payloadBytes),
         static_cast<unsigned long long>(
             requirements.size));
+
+    return true;
+}
+
+bool VulkanStaticMeshRenderer::createStreamingFallbackTexture() noexcept {
+    destroyTexture(
+        streamFallbackTexture_);
+
+    constexpr std::array<std::byte, 4> pixel{{
+        std::byte{0xFF},
+        std::byte{0xFF},
+        std::byte{0xFF},
+        std::byte{0xFF},
+    }};
+
+    VkBuffer staging =
+        VK_NULL_HANDLE;
+    VkDeviceMemory stagingMemory =
+        VK_NULL_HANDLE;
+
+    if (!createBuffer(
+            pixel.size(),
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            staging,
+            stagingMemory)) {
+        return false;
+    }
+
+    void* mapped = nullptr;
+
+    if (!ok(
+            vkMapMemory(
+                device_,
+                stagingMemory,
+                0U,
+                pixel.size(),
+                0U,
+                &mapped))) {
+        vkDestroyBuffer(
+            device_,
+            staging,
+            nullptr);
+        vkFreeMemory(
+            device_,
+            stagingMemory,
+            nullptr);
+        return false;
+    }
+
+    std::memcpy(
+        mapped,
+        pixel.data(),
+        pixel.size());
+
+    vkUnmapMemory(
+        device_,
+        stagingMemory);
+
+    VkImageCreateInfo imageInfo{
+        VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO
+    };
+    imageInfo.imageType =
+        VK_IMAGE_TYPE_2D;
+    imageInfo.extent = {1U, 1U, 1U};
+    imageInfo.mipLevels = 1U;
+    imageInfo.arrayLayers = 1U;
+    imageInfo.format =
+        VK_FORMAT_R8G8B8A8_UNORM;
+    imageInfo.tiling =
+        VK_IMAGE_TILING_OPTIMAL;
+    imageInfo.initialLayout =
+        VK_IMAGE_LAYOUT_UNDEFINED;
+    imageInfo.usage =
+        VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+        VK_IMAGE_USAGE_SAMPLED_BIT;
+    imageInfo.samples =
+        VK_SAMPLE_COUNT_1_BIT;
+    imageInfo.sharingMode =
+        VK_SHARING_MODE_EXCLUSIVE;
+
+    if (!ok(
+            vkCreateImage(
+                device_,
+                &imageInfo,
+                nullptr,
+                &streamFallbackTexture_.image))) {
+        vkDestroyBuffer(
+            device_,
+            staging,
+            nullptr);
+        vkFreeMemory(
+            device_,
+            stagingMemory,
+            nullptr);
+        return false;
+    }
+
+    VkMemoryRequirements requirements{};
+    vkGetImageMemoryRequirements(
+        device_,
+        streamFallbackTexture_.image,
+        &requirements);
+
+    std::uint32_t memoryType = 0U;
+
+    if (!findMemoryType(
+            requirements.memoryTypeBits,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            memoryType)) {
+        vkDestroyBuffer(
+            device_,
+            staging,
+            nullptr);
+        vkFreeMemory(
+            device_,
+            stagingMemory,
+            nullptr);
+        destroyTexture(
+            streamFallbackTexture_);
+        return false;
+    }
+
+    VkMemoryAllocateInfo allocation{
+        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO
+    };
+    allocation.allocationSize =
+        requirements.size;
+    allocation.memoryTypeIndex =
+        memoryType;
+
+    if (!ok(
+            vkAllocateMemory(
+                device_,
+                &allocation,
+                nullptr,
+                &streamFallbackTexture_.memory)) ||
+        !ok(
+            vkBindImageMemory(
+                device_,
+                streamFallbackTexture_.image,
+                streamFallbackTexture_.memory,
+                0U))) {
+        vkDestroyBuffer(
+            device_,
+            staging,
+            nullptr);
+        vkFreeMemory(
+            device_,
+            stagingMemory,
+            nullptr);
+        destroyTexture(
+            streamFallbackTexture_);
+        return false;
+    }
+
+    VkCommandBuffer command =
+        beginUploadCommands();
+
+    if (command == VK_NULL_HANDLE) {
+        vkDestroyBuffer(
+            device_,
+            staging,
+            nullptr);
+        vkFreeMemory(
+            device_,
+            stagingMemory,
+            nullptr);
+        destroyTexture(
+            streamFallbackTexture_);
+        return false;
+    }
+
+    VkImageMemoryBarrier toTransfer{
+        VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER
+    };
+    toTransfer.oldLayout =
+        VK_IMAGE_LAYOUT_UNDEFINED;
+    toTransfer.newLayout =
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    toTransfer.srcQueueFamilyIndex =
+        VK_QUEUE_FAMILY_IGNORED;
+    toTransfer.dstQueueFamilyIndex =
+        VK_QUEUE_FAMILY_IGNORED;
+    toTransfer.image =
+        streamFallbackTexture_.image;
+    toTransfer.subresourceRange.aspectMask =
+        VK_IMAGE_ASPECT_COLOR_BIT;
+    toTransfer.subresourceRange.levelCount =
+        1U;
+    toTransfer.subresourceRange.layerCount =
+        1U;
+    toTransfer.dstAccessMask =
+        VK_ACCESS_TRANSFER_WRITE_BIT;
+
+    vkCmdPipelineBarrier(
+        command,
+        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        0U,
+        0U, nullptr,
+        0U, nullptr,
+        1U,
+        &toTransfer);
+
+    VkBufferImageCopy copy{};
+    copy.imageSubresource.aspectMask =
+        VK_IMAGE_ASPECT_COLOR_BIT;
+    copy.imageSubresource.layerCount =
+        1U;
+    copy.imageExtent = {1U, 1U, 1U};
+
+    vkCmdCopyBufferToImage(
+        command,
+        staging,
+        streamFallbackTexture_.image,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        1U,
+        &copy);
+
+    VkImageMemoryBarrier toShader{
+        VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER
+    };
+    toShader.oldLayout =
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    toShader.newLayout =
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    toShader.srcQueueFamilyIndex =
+        VK_QUEUE_FAMILY_IGNORED;
+    toShader.dstQueueFamilyIndex =
+        VK_QUEUE_FAMILY_IGNORED;
+    toShader.image =
+        streamFallbackTexture_.image;
+    toShader.subresourceRange.aspectMask =
+        VK_IMAGE_ASPECT_COLOR_BIT;
+    toShader.subresourceRange.levelCount =
+        1U;
+    toShader.subresourceRange.layerCount =
+        1U;
+    toShader.srcAccessMask =
+        VK_ACCESS_TRANSFER_WRITE_BIT;
+    toShader.dstAccessMask =
+        VK_ACCESS_SHADER_READ_BIT;
+
+    vkCmdPipelineBarrier(
+        command,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        0U,
+        0U, nullptr,
+        0U, nullptr,
+        1U,
+        &toShader);
+
+    if (!queueUploadCommands(
+            command,
+            staging,
+            stagingMemory,
+            pixel.size())) {
+        destroyTexture(
+            streamFallbackTexture_);
+        return false;
+    }
+
+    VkImageViewCreateInfo viewInfo{
+        VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO
+    };
+    viewInfo.image =
+        streamFallbackTexture_.image;
+    viewInfo.viewType =
+        VK_IMAGE_VIEW_TYPE_2D;
+    viewInfo.format =
+        VK_FORMAT_R8G8B8A8_UNORM;
+    viewInfo.subresourceRange.aspectMask =
+        VK_IMAGE_ASPECT_COLOR_BIT;
+    viewInfo.subresourceRange.levelCount =
+        1U;
+    viewInfo.subresourceRange.layerCount =
+        1U;
+
+    if (!ok(
+            vkCreateImageView(
+                device_,
+                &viewInfo,
+                nullptr,
+                &streamFallbackTexture_.view)) ||
+        !createTextureSampler(
+            1U,
+            streamFallbackTexture_)) {
+        discardPendingUploads();
+        destroyTexture(
+            streamFallbackTexture_);
+        return false;
+    }
+
+    streamFallbackTexture_.assetPath =
+        "__xziel_stream_fallback__";
+    streamFallbackTexture_.width = 1U;
+    streamFallbackTexture_.height = 1U;
+    streamFallbackTexture_.residentWidth =
+        1U;
+    streamFallbackTexture_.residentHeight =
+        1U;
+    streamFallbackTexture_.mipLevels = 1U;
+    streamFallbackTexture_.residentBaseMip =
+        0U;
+    streamFallbackTexture_.sourceMipLevels =
+        1U;
+    streamFallbackTexture_.
+        sourceMipBytes.fill(0U);
+    streamFallbackTexture_.
+        sourceMipBytes[0] =
+        pixel.size();
+    streamFallbackTexture_.
+        residentPayloadBytes =
+        pixel.size();
+    streamFallbackTexture_.allocationBytes =
+        static_cast<std::uint64_t>(
+            requirements.size);
+    streamFallbackTexture_.physicallyResident =
+        true;
+    streamFallbackTexture_.
+        descriptorResidentMask =
+        static_cast<std::uint8_t>(
+            (1U << kDescriptorFrames) - 1U);
 
     return true;
 }
