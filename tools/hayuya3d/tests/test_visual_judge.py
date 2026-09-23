@@ -9,7 +9,14 @@ HAYUYA_DIR = ROOT / "tools" / "hayuya3d"
 sys.path.insert(0, str(HAYUYA_DIR))
 
 import numpy as np
-from visual_judge import aggregate_source_scores, infer_view_hint, score_masks
+from visual_judge import (
+    aggregate_source_scores,
+    infer_view_hint,
+    project_mesh_vertices,
+    refine_projection_match,
+    render_silhouette,
+    score_masks,
+)
 
 
 class VisualJudgeTests(unittest.TestCase):
@@ -53,6 +60,51 @@ class VisualJudgeTests(unittest.TestCase):
         self.assertEqual(infer_view_hint(Path("zombie_back.png")), 180.0)
         self.assertEqual(infer_view_hint(Path("zombie_left_side.png")), 270.0)
         self.assertIsNone(infer_view_hint(Path("random_reference_17.png")))
+
+    def test_perspective_projection_changes_depth_dependent_shape(self):
+        vertices = np.array([
+            [-0.5, 0.0, 0.0],
+            [0.2, 0.2, 0.4],
+            [0.5, 0.0, 0.0],
+            [0.0, 0.8, -0.2],
+        ], dtype=np.float32)
+        ortho_xy, _ = project_mesh_vertices(
+            vertices, 0.0, 0.0, "y", size=192, projection="orthographic"
+        )
+        persp_xy, _ = project_mesh_vertices(
+            vertices, 0.0, 0.0, "y", size=192,
+            projection="perspective", camera_distance=1.4
+        )
+        self.assertFalse(np.allclose(ortho_xy, persp_xy))
+
+    def test_perspective_refinement_recovers_better_match(self):
+        vertices = np.array([
+            [-0.5, -0.5, -0.3],
+            [0.5, -0.5, 0.3],
+            [0.4, 0.5, 0.2],
+            [-0.4, 0.5, -0.2],
+        ], dtype=np.float32)
+        faces = np.array([[0, 1, 2], [0, 2, 3]], dtype=np.int64)
+        source = render_silhouette(
+            vertices, faces, 0.0, 0.0, "y", size=96,
+            projection="perspective", camera_distance=1.4
+        )
+        base_mask = render_silhouette(
+            vertices, faces, 0.0, 0.0, "y", size=96,
+            projection="orthographic"
+        )
+        base_score, base_iou, base_edge = score_masks(source, base_mask)
+        refined = refine_projection_match(
+            source,
+            vertices,
+            faces,
+            (base_score, base_iou, base_edge, "y", 0.0, 0.0),
+            size=96,
+            azimuth_step=30,
+            cache={},
+        )
+        self.assertIsNotNone(refined)
+        self.assertGreaterEqual(refined[0], base_score)
 
     def test_partial_overlap_is_not_rewarded_as_identity(self):
         a = np.zeros((64, 64), dtype=bool)
