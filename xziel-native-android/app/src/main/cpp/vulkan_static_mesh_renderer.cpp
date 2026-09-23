@@ -3062,6 +3062,76 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
         return;
     }
 
+    // A missing Hot/Preload cell is player-visible, so reload it before
+    // spending a frame retiring unrelated Cold cells.
+    for (StreamCellHeat targetHeat :
+         {StreamCellHeat::Hot,
+          StreamCellHeat::Preload}) {
+        for (std::size_t i = 0U;
+             i < geometryCellCount_;
+             ++i) {
+            auto& cell =
+                geometryCells_[i];
+
+            if (cell.pinned ||
+                cell.physicallyResident ||
+                cell.reloadActive ||
+                cell.heat != targetHeat) {
+                continue;
+            }
+
+            if (cell.vertexBytes >
+                    std::numeric_limits<
+                        std::size_t>::max() ||
+                cell.indexBytes >
+                    std::numeric_limits<
+                        std::size_t>::max()) {
+                continue;
+            }
+
+            try {
+                cell.reloadVertexBytes.assign(
+                    static_cast<std::size_t>(
+                        cell.vertexBytes),
+                    std::byte{0});
+                cell.reloadIndexBytes.assign(
+                    static_cast<std::size_t>(
+                        cell.indexBytes),
+                    std::byte{0});
+            } catch (...) {
+                cell.reloadVertexBytes.clear();
+                cell.reloadIndexBytes.clear();
+                continue;
+            }
+
+            cell.reloadActive = true;
+            cell.reloadScanCursor = 0U;
+            cell.reloadPendingBatch =
+                UINT32_MAX;
+            cell.reloadPendingKey.clear();
+            geometryReloadCellSlot_ =
+                static_cast<std::uint32_t>(
+                    i);
+
+            __android_log_print(
+                ANDROID_LOG_INFO,
+                kTag,
+                "XZIEL_RUNTIME_GEOMETRY_RELOAD_QUEUED cell=%u slot=%u bytes_mb=%.2f heat=%u",
+                static_cast<unsigned int>(
+                    cell.cellId),
+                static_cast<unsigned int>(i),
+                static_cast<double>(
+                    static_cast<std::uint64_t>(
+                        cell.vertexBytes +
+                        cell.indexBytes)) /
+                    (1024.0 * 1024.0),
+                static_cast<unsigned int>(
+                    cell.heat));
+
+            return;
+        }
+    }
+
     const std::uint32_t minimumStableFrames =
         streamResidencyProbeEnabled_
         ? 8U
@@ -3150,74 +3220,6 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
         }
 
         return;
-    }
-
-    for (StreamCellHeat targetHeat :
-         {StreamCellHeat::Hot,
-          StreamCellHeat::Preload}) {
-        for (std::size_t i = 0U;
-             i < geometryCellCount_;
-             ++i) {
-            auto& cell =
-                geometryCells_[i];
-
-            if (cell.pinned ||
-                cell.physicallyResident ||
-                cell.reloadActive ||
-                cell.heat != targetHeat) {
-                continue;
-            }
-
-            if (cell.vertexBytes >
-                    std::numeric_limits<
-                        std::size_t>::max() ||
-                cell.indexBytes >
-                    std::numeric_limits<
-                        std::size_t>::max()) {
-                continue;
-            }
-
-            try {
-                cell.reloadVertexBytes.assign(
-                    static_cast<std::size_t>(
-                        cell.vertexBytes),
-                    std::byte{0});
-                cell.reloadIndexBytes.assign(
-                    static_cast<std::size_t>(
-                        cell.indexBytes),
-                    std::byte{0});
-            } catch (...) {
-                cell.reloadVertexBytes.clear();
-                cell.reloadIndexBytes.clear();
-                continue;
-            }
-
-            cell.reloadActive = true;
-            cell.reloadScanCursor = 0U;
-            cell.reloadPendingBatch =
-                UINT32_MAX;
-            cell.reloadPendingKey.clear();
-            geometryReloadCellSlot_ =
-                static_cast<std::uint32_t>(
-                    i);
-
-            __android_log_print(
-                ANDROID_LOG_INFO,
-                kTag,
-                "XZIEL_RUNTIME_GEOMETRY_RELOAD_QUEUED cell=%u slot=%u bytes_mb=%.2f heat=%u",
-                static_cast<unsigned int>(
-                    cell.cellId),
-                static_cast<unsigned int>(i),
-                static_cast<double>(
-                    static_cast<std::uint64_t>(
-                        cell.vertexBytes +
-                        cell.indexBytes)) /
-                    (1024.0 * 1024.0),
-                static_cast<unsigned int>(
-                    cell.heat));
-
-            return;
-        }
     }
 }
 
