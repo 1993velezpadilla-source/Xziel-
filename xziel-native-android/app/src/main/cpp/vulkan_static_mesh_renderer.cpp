@@ -362,6 +362,13 @@ bool VulkanStaticMeshRenderer::initialize(
         return false;
     }
 
+    if (!flushPendingUploads()) {
+        logError(
+            "static mesh batched texture upload failed");
+        shutdown();
+        return false;
+    }
+
     __android_log_print(
         ANDROID_LOG_INFO,
         kTag,
@@ -413,6 +420,10 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     ready_ = false;
 
     if (device_ != VK_NULL_HANDLE) {
+        // Initialization failures can leave recorded-but-unsubmitted uploads.
+        // Drop those command/staging resources before destroying their images.
+        discardPendingUploads();
+
         destroyGeometryResidency();
 
         for (auto& texture : textures_) {
@@ -458,6 +469,8 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     batches_.clear();
     materials_.clear();
     textures_.clear();
+    pendingUploads_.clear();
+    pendingUploadBytes_ = 0U;
 
     pipeline_ = VK_NULL_HANDLE;
     pipelineDoubleSided_ = VK_NULL_HANDLE;
@@ -2045,16 +2058,11 @@ bool VulkanStaticMeshRenderer::createKtx2Texture(
         0U, nullptr,
         1U, &toShader);
 
-    const bool uploadOk =
-        endUploadCommands(
-            command);
-
-    vkFreeMemory(
-        device_, stagingMemory, nullptr);
-    vkDestroyBuffer(
-        device_, staging, nullptr);
-
-    if (!uploadOk) {
+    if (!queueUploadCommands(
+            command,
+            staging,
+            stagingMemory,
+            stagingBytes)) {
         destroyTexture(out);
         return false;
     }
@@ -2083,6 +2091,9 @@ bool VulkanStaticMeshRenderer::createKtx2Texture(
         !createTextureSampler(
             imageInfo.mipLevels,
             out)) {
+        // The upload has not been submitted yet. Drop the pending batch before
+        // invalidating an image referenced by its recorded command buffer.
+        discardPendingUploads();
         destroyTexture(out);
         return false;
     }
@@ -2596,15 +2607,11 @@ bool VulkanStaticMeshRenderer::createPngTexture(
         0U, nullptr,
         1U, &finalToShader);
 
-    const bool uploadOk =
-        endUploadCommands(command);
-
-    vkFreeMemory(
-        device_, stagingMemory, nullptr);
-    vkDestroyBuffer(
-        device_, staging, nullptr);
-
-    if (!uploadOk) {
+    if (!queueUploadCommands(
+            command,
+            staging,
+            stagingMemory,
+            imageBytes)) {
         destroyTexture(out);
         return false;
     }
@@ -2630,6 +2637,7 @@ bool VulkanStaticMeshRenderer::createPngTexture(
                 &viewInfo,
                 nullptr,
                 &out.view))) {
+        discardPendingUploads();
         destroyTexture(out);
         return false;
     }
@@ -2637,6 +2645,7 @@ bool VulkanStaticMeshRenderer::createPngTexture(
     if (!createTextureSampler(
             mipLevels,
             out)) {
+        discardPendingUploads();
         destroyTexture(out);
         return false;
     }
@@ -2859,48 +2868,227 @@ VulkanStaticMeshRenderer::beginUploadCommands() noexcept {
     return command;
 }
 
-bool VulkanStaticMeshRenderer::endUploadCommands(
-    VkCommandBuffer command) noexcept {
-    if (command == VK_NULL_HANDLE) {
+bool VulkanStaticMeshRenderer::queueUploadCommands(
+    VkCommandBuffer command,
+    VkBuffer stagingBuffer,
+    VkDeviceMemory stagingMemory,
+    VkDeviceSize stagingBytes) noexcept {
+    constexpr VkDeviceSize kSoftBatchLimit =
+        96ULL * 1024ULL * 1024ULL;
+
+    const auto releaseCurrent =
+        [&]() noexcept {
+            if (command != VK_NULL_HANDLE) {
+                vkFreeCommandBuffers(
+                    device_,
+                    commandPool_,
+                    1U,
+                    &command);
+            }
+            if (stagingBuffer != VK_NULL_HANDLE) {
+                vkDestroyBuffer(
+                    device_,
+                    stagingBuffer,
+                    nullptr);
+            }
+            if (stagingMemory != VK_NULL_HANDLE) {
+                vkFreeMemory(
+                    device_,
+                    stagingMemory,
+                    nullptr);
+            }
+        };
+
+    if (command == VK_NULL_HANDLE ||
+        stagingBuffer == VK_NULL_HANDLE ||
+        stagingMemory == VK_NULL_HANDLE ||
+        stagingBytes == 0U) {
+        releaseCurrent();
         return false;
+    }
+
+    if (!pendingUploads_.empty() &&
+        (pendingUploadBytes_ >
+             kSoftBatchLimit ||
+         stagingBytes >
+             kSoftBatchLimit -
+                 std::min(
+                     pendingUploadBytes_,
+                     kSoftBatchLimit))) {
+        if (!flushPendingUploads()) {
+            releaseCurrent();
+            return false;
+        }
     }
 
     if (!ok(
             vkEndCommandBuffer(
                 command))) {
-        vkFreeCommandBuffers(
-            device_,
-            commandPool_,
-            1U,
-            &command);
+        releaseCurrent();
+        return false;
+    }
+
+    try {
+        pendingUploads_.push_back({
+            .command = command,
+            .stagingBuffer = stagingBuffer,
+            .stagingMemory = stagingMemory,
+            .stagingBytes = stagingBytes,
+        });
+    } catch (...) {
+        releaseCurrent();
+        return false;
+    }
+
+    if (stagingBytes >
+        std::numeric_limits<VkDeviceSize>::max() -
+            pendingUploadBytes_) {
+        // The command is owned by the pending list now; discard all rather
+        // than leaving a partially-accounted batch.
+        discardPendingUploads();
+        return false;
+    }
+
+    pendingUploadBytes_ +=
+        stagingBytes;
+
+    return true;
+}
+
+bool VulkanStaticMeshRenderer::flushPendingUploads() noexcept {
+    if (pendingUploads_.empty()) {
+        pendingUploadBytes_ = 0U;
+        return true;
+    }
+
+    std::vector<VkCommandBuffer> commands;
+
+    try {
+        commands.reserve(
+            pendingUploads_.size());
+
+        for (const auto& upload :
+             pendingUploads_) {
+            commands.push_back(
+                upload.command);
+        }
+    } catch (...) {
+        discardPendingUploads();
         return false;
     }
 
     VkSubmitInfo submit{
         VK_STRUCTURE_TYPE_SUBMIT_INFO
     };
-    submit.commandBufferCount = 1U;
+    submit.commandBufferCount =
+        static_cast<std::uint32_t>(
+            commands.size());
     submit.pCommandBuffers =
-        &command;
+        commands.data();
 
-    const bool submitted =
-        ok(
-            vkQueueSubmit(
-                graphicsQueue_,
-                1U,
-                &submit,
-                VK_NULL_HANDLE)) &&
-        ok(
+    const VkResult submitResult =
+        vkQueueSubmit(
+            graphicsQueue_,
+            1U,
+            &submit,
+            VK_NULL_HANDLE);
+
+    VkResult waitResult =
+        submitResult;
+
+    if (ok(submitResult)) {
+        waitResult =
             vkQueueWaitIdle(
-                graphicsQueue_));
+                graphicsQueue_);
 
-    vkFreeCommandBuffers(
-        device_,
-        commandPool_,
-        1U,
-        &command);
+        if (!ok(waitResult)) {
+            // Initialization is still single-threaded here. Make one best
+            // effort device wait before tearing down resources referenced by
+            // a failed queue wait.
+            (void) vkDeviceWaitIdle(
+                device_);
+        }
+    }
 
-    return submitted;
+    const std::size_t commandCount =
+        pendingUploads_.size();
+    const VkDeviceSize batchBytes =
+        pendingUploadBytes_;
+
+    for (auto& upload : pendingUploads_) {
+        if (upload.command != VK_NULL_HANDLE) {
+            vkFreeCommandBuffers(
+                device_,
+                commandPool_,
+                1U,
+                &upload.command);
+        }
+        if (upload.stagingBuffer != VK_NULL_HANDLE) {
+            vkDestroyBuffer(
+                device_,
+                upload.stagingBuffer,
+                nullptr);
+        }
+        if (upload.stagingMemory != VK_NULL_HANDLE) {
+            vkFreeMemory(
+                device_,
+                upload.stagingMemory,
+                nullptr);
+        }
+    }
+
+    pendingUploads_.clear();
+    pendingUploadBytes_ = 0U;
+
+    if (!ok(submitResult) ||
+        !ok(waitResult)) {
+        return false;
+    }
+
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
+        "XZIEL_TEXTURE_UPLOAD_BATCH commands=%u staging_mb=%.2f",
+        static_cast<unsigned int>(
+            commandCount),
+        static_cast<double>(
+            batchBytes) /
+            (1024.0 * 1024.0));
+
+    return true;
+}
+
+void VulkanStaticMeshRenderer::discardPendingUploads() noexcept {
+    if (device_ == VK_NULL_HANDLE) {
+        pendingUploads_.clear();
+        pendingUploadBytes_ = 0U;
+        return;
+    }
+
+    for (auto& upload : pendingUploads_) {
+        if (upload.command != VK_NULL_HANDLE) {
+            vkFreeCommandBuffers(
+                device_,
+                commandPool_,
+                1U,
+                &upload.command);
+        }
+        if (upload.stagingBuffer != VK_NULL_HANDLE) {
+            vkDestroyBuffer(
+                device_,
+                upload.stagingBuffer,
+                nullptr);
+        }
+        if (upload.stagingMemory != VK_NULL_HANDLE) {
+            vkFreeMemory(
+                device_,
+                upload.stagingMemory,
+                nullptr);
+        }
+    }
+
+    pendingUploads_.clear();
+    pendingUploadBytes_ = 0U;
 }
 
 void VulkanStaticMeshRenderer::destroyTexture(

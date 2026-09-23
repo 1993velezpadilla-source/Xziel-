@@ -120,6 +120,13 @@ private:
         bool hasEmissiveTexture = false;
     };
 
+    struct PendingUpload {
+        VkCommandBuffer command = VK_NULL_HANDLE;
+        VkBuffer stagingBuffer = VK_NULL_HANDLE;
+        VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
+        VkDeviceSize stagingBytes = 0U;
+    };
+
     struct GpuBatch {
         std::uint32_t firstIndex = 0U;
         std::int32_t vertexOffset = 0;
@@ -230,8 +237,18 @@ private:
         std::uint32_t& outIndex) const noexcept;
 
     [[nodiscard]] VkCommandBuffer beginUploadCommands() noexcept;
-    [[nodiscard]] bool endUploadCommands(
-        VkCommandBuffer command) noexcept;
+
+    // Texture uploads are recorded independently but submitted together.
+    // queueUploadCommands takes ownership of command + staging resources on
+    // both success and failure.
+    [[nodiscard]] bool queueUploadCommands(
+        VkCommandBuffer command,
+        VkBuffer stagingBuffer,
+        VkDeviceMemory stagingMemory,
+        VkDeviceSize stagingBytes) noexcept;
+
+    [[nodiscard]] bool flushPendingUploads() noexcept;
+    void discardPendingUploads() noexcept;
 
     void destroyTexture(GpuTexture& texture) noexcept;
     void destroyGeometryResidency() noexcept;
@@ -254,6 +271,8 @@ private:
     std::vector<GpuTexture> textures_{};
     std::vector<GpuMaterial> materials_{};
     std::vector<GpuBatch> batches_{};
+    std::vector<PendingUpload> pendingUploads_{};
+    VkDeviceSize pendingUploadBytes_ = 0U;
 
     VkBuffer geometryVertexBuffer_ = VK_NULL_HANDLE;
     VkDeviceMemory geometryVertexMemory_ = VK_NULL_HANDLE;
