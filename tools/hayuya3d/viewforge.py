@@ -86,7 +86,8 @@ def collect_wonder3d_outputs(raw_root: Path, stable_root: Path, source: Path) ->
     anchor_dir.mkdir(parents=True, exist_ok=True)
 
     anchor_path = anchor_dir / "source_real.png"
-    shutil.copy2(source, anchor_path)
+    from PIL import Image
+    Image.open(source).convert("RGBA").save(anchor_path, format="PNG")
 
     rgb_views: dict[str, str] = {}
     normal_views: dict[str, str] = {}
