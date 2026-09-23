@@ -459,6 +459,12 @@ jobs:
             exit 1
           fi
 
+          # Preserve the authoritative startup window before noisy emulator
+          # services can rotate early Xziel markers out of logcat. Runtime
+          # validation later merges this snapshot with the post-tour capture.
+          timeout 8 "$ADB" logcat -d -v threadtime \
+            > dist/sanctum-hq-startup-logcat.txt || true
+
           timeout 8 "$ADB" shell uiautomator dump /sdcard/xziel-sanctum-window.xml             >/dev/null 2>&1 || true
           timeout 8 "$ADB" exec-out cat /sdcard/xziel-sanctum-window.xml             > dist/sanctum-hq-window.xml 2>/dev/null || true
 
@@ -560,6 +566,20 @@ jobs:
           # first GPU timing, ADPF and swapchain-stability markers are kept.
           timeout 8 "$ADB" logcat -d -v threadtime             > dist/sanctum-hq-logcat.txt || true
 
+          # Software-Vulkan CI can emit enough unrelated system/audio traffic
+          # to evict startup markers from the bounded logcat ring before the
+          # tour ends. Merge the preserved startup snapshot with the final
+          # capture and de-duplicate exact repeated lines. This keeps the gate
+          # strict without treating log rotation as an engine regression.
+          if [[ -s dist/sanctum-hq-startup-logcat.txt ]]; then
+            cat dist/sanctum-hq-startup-logcat.txt \
+                dist/sanctum-hq-logcat.txt \
+              | awk '!seen[$0]++' \
+              > dist/sanctum-hq-logcat-merged.txt
+            mv dist/sanctum-hq-logcat-merged.txt \
+              dist/sanctum-hq-logcat.txt
+          fi
+
           PID="$(timeout 5 "$ADB" shell pidof             com.xziel.engineprototype 2>/dev/null             | tr -d '\r' || true)"
 
           test -n "$PID"
@@ -653,6 +673,7 @@ jobs:
             build/sanctum-native-map-report.json
             build/sanctum-hq-apk-contents.txt
             dist/sanctum-hq-logcat.txt
+            dist/sanctum-hq-startup-logcat.txt
             dist/sanctum-hq-first-frame.png
             dist/sanctum-hq-tour-01-entry.png
             dist/sanctum-hq-tour-02-look.png
