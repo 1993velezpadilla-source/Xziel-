@@ -73,6 +73,14 @@ public final class XzielGameActivity extends GameActivity {
         return BuildConfig.XZIEL_MULTIPLAYER_TEST_KEY;
     }
 
+    public String getXzielMultiplayerDefaultRoom() {
+        return BuildConfig.XZIEL_MULTIPLAYER_DEFAULT_ROOM;
+    }
+
+    public String getXzielMultiplayerDisplayName() {
+        return BuildConfig.XZIEL_MULTIPLAYER_DISPLAY_NAME;
+    }
+
     public boolean connectXzielRealtime(
         String baseUrl,
         String roomCode,
