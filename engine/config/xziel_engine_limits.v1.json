@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "profile": "xziel-mobile-shipping-v1",
+  "description": "Current Xziel mobile engine hard limits and conservative shipping budgets. Hard limits mirror engine constants. Soft budgets are preflight targets for new maps and may be revised only with profiling evidence.",
+  "hard_limits": {
+    "static_mesh": {
+      "max_batches": 2048,
+      "max_vertices": 8000000,
+      "max_indices": 12000000,
+      "supported_xzsm_versions": [2, 3, 4, 5]
+    },
+    "world_streaming": {
+      "max_cells": 64,
+      "max_portals": 128,
+      "max_resource_bindings": 512
+    },
+    "map_runtime": {
+      "max_boxes": 256,
+      "max_floors": 256,
+      "max_doors": 16,
+      "max_windows": 32,
+      "max_generic_interactions": 16,
+      "max_zombie_spawns": 32
+    },
+    "horde": {
+      "max_active_zombies": 16,
+      "max_navigation_obstacles": 256,
+      "max_navigation_floors": 256,
+      "max_dynamic_blockers": 64,
+      "max_navigation_links_per_floor": 96
+    },
+    "multiplayer_prepared": {
+      "max_players": 4,
+      "status": "prepared_on_engine_online_4p_foundation_v1_not_yet_shipping_main"
+    }
+  },
+  "runtime_budgets": {
+    "texture_residency_mb": {
+      "cpu_vulkan": 128,
+      "device_min": 96,
+      "device_max": 384,
+      "device_local_heap_fraction": 0.125
+    },
+    "geometry_residency_mb": {
+      "cpu_vulkan": 96,
+      "device_min": 64,
+      "device_max": 160,
+      "device_local_heap_fraction": 0.0625,
+      "elevated_pressure_multiplier": 0.75,
+      "critical_pressure_multiplier": 0.5
+    },
+    "geometry_range_window": 4,
+    "asset_stream_workers": {
+      "cpu_vulkan": 1,
+      "mobile_gpu": 2
+    },
+    "geometry_stream_buffer_mb": 48,
+    "frames_in_flight": 2
+  },
+  "shipping_soft_budgets": {
+    "static_mesh": {
+      "max_batches": 1024,
+      "max_vertices": 5000000,
+      "max_indices": 7500000,
+      "max_xzsm_file_mb": 160
+    },
+    "world_streaming": {
+      "max_cells": 32,
+      "max_portals": 64,
+      "max_resource_bindings": 384
+    },
+    "map_runtime": {
+      "max_boxes": 192,
+      "max_floors": 192,
+      "max_doors": 12,
+      "max_windows": 24,
+      "max_generic_interactions": 12,
+      "max_zombie_spawns": 24
+    },
+    "horde": {
+      "max_active_zombies": 16,
+      "max_dynamic_blockers": 48
+    }
+  }
+}
