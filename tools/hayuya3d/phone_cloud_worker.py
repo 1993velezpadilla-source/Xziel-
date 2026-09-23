@@ -404,6 +404,8 @@ manifest={
     "multi_image":multi,
     "generator":"trellis-community/TRELLIS",
     "texture_size":2048,
+    "requested_texture_target":{"preview":1024,"standard":2048,"high":4096,"ultra":8192}.get(TEXTURE_QUALITY,2048),
+    "texture_refinement_pending":TEXTURE_QUALITY in {"high","ultra"} or bool(detail_views),
     "glb":dst.name,
     "glb_bytes":len(data),
     "authenticated_hf":bool(TOKEN),
