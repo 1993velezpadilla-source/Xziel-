@@ -98,11 +98,43 @@ def crop_foreground(path: Path, margin_frac: float = 0.025) -> tuple[np.ndarray,
     bg = np.median(border, axis=0)
     dist = np.linalg.norm(rgb - bg[None,None,:], axis=2)
     mask = (dist > 11.0).astype(np.uint8)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((7,7), np.uint8), iterations=2)
-    mask = cv2.dilate(mask, np.ones((5,5), np.uint8), iterations=1)
+
+    # The V2 refs originate from a multi-panel design sheet. Kill the thin
+    # panel frame before foreground extraction, then keep the largest central
+    # connected component (the character), not border/grid artifacts.
+    bx = max(2, int(w * 0.035))
+    by = max(2, int(h * 0.025))
+    mask[:by, :] = 0
+    mask[-by:, :] = 0
+    mask[:, :bx] = 0
+    mask[:, -bx:] = 0
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((5,5), np.uint8), iterations=1)
+
+    count, labels, stats, cents = cv2.connectedComponentsWithStats(mask, connectivity=8)
+    if count <= 1:
+        fail(f"Foreground detection failed: {path}")
+    cx0, cy0 = w * 0.5, h * 0.5
+    best_label = None
+    best_score = -1.0
+    for lab in range(1, count):
+        area = float(stats[lab, cv2.CC_STAT_AREA])
+        if area < 64:
+            continue
+        cx, cy = cents[lab]
+        center_penalty = 1.0 + 0.65 * math.hypot((cx-cx0)/max(w,1), (cy-cy0)/max(h,1))
+        score = area / center_penalty
+        if score > best_score:
+            best_score = score
+            best_label = lab
+    if best_label is None:
+        fail(f"No usable foreground component: {path}")
+
+    mask = (labels == best_label).astype(np.uint8)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((9,9), np.uint8), iterations=2)
+    mask = cv2.dilate(mask, np.ones((7,7), np.uint8), iterations=1)
     ys, xs = np.where(mask > 0)
     if len(xs) < 64:
-        fail(f"Foreground detection failed: {path}")
+        fail(f"Foreground detection failed after component cleanup: {path}")
     x0,x1,y0,y1 = int(xs.min()), int(xs.max())+1, int(ys.min()), int(ys.max())+1
     mx,my = int((x1-x0)*margin_frac), int((y1-y0)*margin_frac)
     x0,x1=max(0,x0-mx),min(w,x1+mx)
@@ -206,7 +238,8 @@ def project_color(pos: np.ndarray, nrm: np.ndarray) -> np.ndarray:
         c=bilinear_rgb(spec["image"],u,v)
         m=bilinear_mask(spec["mask"],u,v)
         facing=np.clip(nrm@spec["direction"],0.0,None)
-        w=(facing**10.0)*(0.03+0.97*(m**2.0))
+        # Background/frame pixels should not contaminate the surface.
+        w=(facing**10.0)*np.maximum(m, 0.0)**3.0
         samples.append(c); weights.append(w); dirs.append(spec["direction"])
 
     S=np.stack(samples,axis=1)
@@ -214,7 +247,7 @@ def project_color(pos: np.ndarray, nrm: np.ndarray) -> np.ndarray:
     total=W.sum(1)
     color=(W[:,:,None]*S).sum(1)/np.maximum(total[:,None],1e-8)
 
-    low=total<0.004
+    low=total<1e-6
     if np.any(low):
         D=np.stack([np.clip(nrm[low]@d,0.0,None) for d in dirs],axis=1)
         choice=np.argmax(D,axis=1)
