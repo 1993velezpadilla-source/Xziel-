@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -11,6 +12,8 @@ sys.path.insert(0, str(HAYUYA_DIR))
 import numpy as np
 from visual_judge import (
     aggregate_source_scores,
+    aggregate_source_scores_weighted,
+    extract_source_mask_evidence,
     infer_view_hint,
     project_mesh_vertices,
     refine_projection_match,
@@ -46,6 +49,30 @@ class VisualJudgeTests(unittest.TestCase):
         one_bad = aggregate_source_scores([99.0, 30.0])
         self.assertGreater(strong_both, one_bad)
         self.assertLess(one_bad, 70.0)
+
+    def test_low_confidence_outlier_has_less_power(self):
+        fully_trusted = aggregate_source_scores_weighted(
+            [92.0, 91.0, 20.0],
+            [1.0, 1.0, 1.0],
+        )
+        uncertain_outlier = aggregate_source_scores_weighted(
+            [92.0, 91.0, 20.0],
+            [1.0, 1.0, 0.15],
+        )
+        self.assertGreater(uncertain_outlier, fully_trusted)
+
+    def test_alpha_mask_is_high_confidence(self):
+        from PIL import Image
+        rgba = np.zeros((64, 64, 4), dtype=np.uint8)
+        rgba[12:52, 16:48, :3] = 180
+        rgba[12:52, 16:48, 3] = 255
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "cutout.png"
+            Image.fromarray(rgba, mode="RGBA").save(path)
+            mask, confidence, method = extract_source_mask_evidence(path, size=64)
+            self.assertEqual(method, "alpha")
+            self.assertGreaterEqual(confidence, 0.95)
+            self.assertGreater(int(mask.sum()), 0)
 
     def test_many_reference_aggregation_resists_one_bad_outlier(self):
         mostly_good = [91, 90, 92, 89, 93, 90, 91, 88, 5]
