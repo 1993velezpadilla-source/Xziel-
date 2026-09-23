@@ -51,14 +51,49 @@ jobs:
           test -f "hayuya/models/${{ steps.recipe.outputs.job_id }}/model.glb"
           python tools/hayuya3d/mesh_gate.py             "hayuya/models/${{ steps.recipe.outputs.job_id }}/model.glb"             --json out/character-package/source-mesh-gate.json
 
+      - name: Resolve best character model
+        id: model
+        shell: bash
+        run: |
+          set -euo pipefail
+          job="${{ steps.recipe.outputs.job_id }}"
+          base="hayuya/models/$job/model.glb"
+          animated="hayuya/models/$job/animated.glb"
+          selected="$base"
+          needs_autorig="false"
+
+          if [[ "${{ steps.recipe.outputs.needs_rig }}" == "true" ]]; then
+            if [[ -f "$animated" ]] && python tools/hayuya3d/rig_gate.py "$animated" --json out/character-package/existing-rig-gate.json >/dev/null; then
+              if python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("out/character-package/existing-rig-gate.json")
+          d=json.loads(p.read_text())
+          raise SystemExit(0 if d.get("rig_ready") and d.get("animation_ready") and d.get("animation_clips") else 1)
+          PY
+              then
+                selected="$animated"
+              else
+                needs_autorig="true"
+              fi
+            else
+              needs_autorig="true"
+            fi
+          fi
+
+          echo "path=$selected" >> "$GITHUB_OUTPUT"
+          echo "needs_autorig=$needs_autorig" >> "$GITHUB_OUTPUT"
+          echo "HAYUYA_PACKAGE_MODEL=$selected"
+          echo "HAYUYA_PACKAGE_NEEDS_AUTORIG=$needs_autorig"
+
       - name: Install Blender for animation retarget
-        if: steps.recipe.outputs.needs_rig == 'true'
+        if: steps.model.outputs.needs_autorig == 'true'
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq blender python3-numpy
 
       - name: AutoRig + retarget local animation library
-        if: steps.recipe.outputs.needs_rig == 'true'
+        if: steps.model.outputs.needs_autorig == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -78,7 +113,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          model="hayuya/models/${{ steps.recipe.outputs.job_id }}/model.glb"
+          model="${{ steps.model.outputs.path }}"
           if [[ -f out/character-package/rigged.glb ]]; then
             model="out/character-package/rigged.glb"
           fi
