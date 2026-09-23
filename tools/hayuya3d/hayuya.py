@@ -211,6 +211,7 @@ def make_job_plan(
     retopo_mode: str = "auto",
     portable_target: str = "auto",
     portable_pack_mode: str = "auto",
+    texture_delivery_mode: str = "auto",
 ) -> dict:
     profile = PROFILES[profile_name]
     portability_plan = build_portability_plan(
@@ -251,6 +252,7 @@ def make_job_plan(
         "mobile_portability": portability_plan,
         "portable_pack": {
             "mode": portable_pack_mode,
+            "texture_delivery_mode": texture_delivery_mode,
             "tiers": ["flagship", "high", "balanced", "compatibility"],
             "policy": "derive every runtime tier independently from the preserved Hero Master; never cascade quality loss from one tier into the next",
         },
@@ -561,6 +563,12 @@ def main() -> int:
         help="derive Flagship/High/Balanced/Compatibility runtime packs independently from the preserved Hero Master",
     )
     parser.add_argument(
+        "--texture-delivery",
+        choices=["off", "auto", "required"],
+        default="auto",
+        help="physical KTX2/BasisU delivery policy for portable runtime LOD GLBs",
+    )
+    parser.add_argument(
         "--appearance-judge",
         choices=["off", "auto", "required"],
         default="auto",
@@ -642,6 +650,7 @@ def main() -> int:
         retopo_mode=args.retopo,
         portable_target=args.portable_target,
         portable_pack_mode=args.portable_pack,
+        texture_delivery_mode=args.texture_delivery,
     )
     portable_runtime = plan["mobile_portability"]["runtime_target"]
     portable_lod0_ceiling = int(portable_runtime["lod0_triangles"][1])
@@ -1257,6 +1266,7 @@ def main() -> int:
                     else 120000 if args.profile == "game"
                     else 180000
                 ),
+                texture_delivery_mode=args.texture_delivery,
             )
             print(
                 "HAYUYA_PORTABLE_PACK_READY "
