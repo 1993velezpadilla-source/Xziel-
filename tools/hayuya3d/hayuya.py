@@ -206,6 +206,7 @@ def make_job_plan(
     geometry_refine_mode: str = "auto",
     gameprep_mode: str = "auto",
     character_specialist_mode: str = "off",
+    mesh_doctor_mode: str = "auto",
     retopo_mode: str = "auto",
 ) -> dict:
     profile = PROFILES[profile_name]
@@ -284,6 +285,14 @@ def make_job_plan(
             "activation": "explicit non-off opt-in + --allow-restricted + character mode + complete PSHuman auxiliary assets + >=40GB VRAM",
             "policy": "specialist is one additional candidate and must win the same real-source Judge; never auto-promoted",
             "auxiliary_asset_gate": "smpl_related + PIXIE/SMPLX assets must exist; Hayuya does not auto-download separately licensed body-model data"
+        },
+        "mesh_doctor": {
+            "mode": mesh_doctor_mode,
+            "activation": "audit provisional champion before retopology; safe repair challenger only when structural defects are detected",
+            "safe_repairs": ["duplicate faces", "degenerate faces", "unreferenced vertices", "winding/normals", "small simple holes for props/architecture"],
+            "audit_only": ["tiny disconnected components"],
+            "policy": "never delete tiny accessories automatically; repaired/material-restored GLB must re-enter the complete real-source Judge",
+            "rig_policy": "audit rigged glTF but skip topology-changing repair until JOINTS/WEIGHTS transfer exists"
         },
         "retopology": {
             "mode": retopo_mode,
@@ -502,6 +511,12 @@ def main() -> int:
         help="TripoSF SparseFlex geometry challenger policy for monster/ultra execution",
     )
     parser.add_argument(
+        "--mesh-doctor",
+        choices=["off", "auto", "required"],
+        default="auto",
+        help="audit provisional champion and add a conservative structural-repair challenger when safe",
+    )
+    parser.add_argument(
         "--retopo",
         choices=["off", "auto", "required"],
         default="auto",
@@ -597,6 +612,7 @@ def main() -> int:
         geometry_refine_mode=args.geometry_refine,
         gameprep_mode=args.gameprep,
         character_specialist_mode=args.character_specialist,
+        mesh_doctor_mode=args.mesh_doctor,
         retopo_mode=args.retopo,
     )
     (job_dir / "plan.json").write_text(json.dumps(plan, indent=2) + "\n", encoding="utf-8")
@@ -934,6 +950,96 @@ def main() -> int:
     if not valid:
         raise SystemExit("Candidates were produced but none passed Hayuya Judge")
 
+    mesh_doctor_audit = None
+    mesh_doctor_result = None
+    mesh_doctor_failure = None
+    mesh_doctor_status = "off" if args.mesh_doctor == "off" else "checking"
+
+    if args.mesh_doctor in {"auto", "required"}:
+        provisional = valid[0]
+        provisional_path = Path(provisional.path)
+        try:
+            from mesh_doctor import audit_mesh, repair_candidate
+
+            mesh_doctor_audit = audit_mesh(provisional_path)
+            if not mesh_doctor_audit.valid:
+                mesh_doctor_status = "audit_invalid"
+                mesh_doctor_failure = "provisional champion failed Mesh Doctor audit"
+                if args.mesh_doctor == "required":
+                    raise RuntimeError(mesh_doctor_failure)
+            elif not mesh_doctor_audit.repair_recommended:
+                mesh_doctor_status = "clean"
+                print(
+                    "HAYUYA_MESH_DOCTOR_CLEAN "
+                    f"defect_score={mesh_doctor_audit.defect_score:.3f}"
+                )
+            else:
+                rigged = False
+                if provisional_path.suffix.lower() == ".glb":
+                    try:
+                        from gltf_audit import audit_glb
+                        provisional_rig = audit_glb(provisional_path)
+                        rigged = provisional_rig.skin_count > 0
+                    except Exception:
+                        rigged = False
+
+                if rigged:
+                    mesh_doctor_status = "skipped_rigged"
+                    mesh_doctor_failure = (
+                        "structural repair needed but provisional champion is skinned; "
+                        "topology-changing repair would invalidate JOINTS/WEIGHTS"
+                    )
+                    print(
+                        f"HAYUYA_MESH_DOCTOR_SKIPPED {mesh_doctor_failure}",
+                        file=sys.stderr,
+                    )
+                    if args.mesh_doctor == "required":
+                        raise RuntimeError(mesh_doctor_failure)
+                else:
+                    mesh_doctor_result = repair_candidate(
+                        provisional_path,
+                        job_dir / "mesh_doctor",
+                        mode=mode,
+                        texture_size=profile.texture_size,
+                    )
+                    if mesh_doctor_result.safe_for_arena:
+                        candidates.append(
+                            ("mesh_doctor_repair", Path(mesh_doctor_result.bridged_glb))
+                        )
+                        mesh_doctor_status = "candidate_ready"
+                        print(
+                            "HAYUYA_MESH_DOCTOR_READY "
+                            f"defects={mesh_doctor_result.before.defect_score:.3f}->"
+                            f"{mesh_doctor_result.after.defect_score:.3f} "
+                            f"drift={mesh_doctor_result.vertex_surface_drift_normalized:.6f}"
+                        )
+                        ranked = run_full_ranking()
+                        valid = [x for x in ranked if x.valid]
+                        if not valid:
+                            raise RuntimeError(
+                                "Mesh Doctor re-ranking produced no valid candidates"
+                            )
+                    else:
+                        mesh_doctor_status = "rejected_unsafe"
+                        mesh_doctor_failure = "; ".join(mesh_doctor_result.reasons)
+                        print(
+                            f"HAYUYA_MESH_DOCTOR_REJECTED {mesh_doctor_failure}",
+                            file=sys.stderr,
+                        )
+                        if args.mesh_doctor == "required":
+                            raise RuntimeError(mesh_doctor_failure)
+        except Exception as exc:
+            if mesh_doctor_status not in {"skipped_rigged", "rejected_unsafe", "audit_invalid"}:
+                mesh_doctor_status = "failed"
+                mesh_doctor_failure = f"{type(exc).__name__}: {exc}"
+                print(
+                    f"HAYUYA_MESH_DOCTOR_FAILED {mesh_doctor_failure}",
+                    file=sys.stderr,
+                )
+                traceback.print_exc()
+            if args.mesh_doctor == "required":
+                raise
+
     retopo_result = None
     retopo_failure = None
     retopo_status = "off" if args.retopo == "off" else "checking"
@@ -1114,6 +1220,13 @@ def main() -> int:
             "status": character_specialist_status,
             "failure": character_specialist_failure,
         },
+        "mesh_doctor": {
+            "status": mesh_doctor_status,
+            "audit": asdict(mesh_doctor_audit) if mesh_doctor_audit is not None else None,
+            "result": asdict(mesh_doctor_result) if mesh_doctor_result is not None else None,
+            "failure": mesh_doctor_failure,
+            "won_final_arena": champion.backend == "mesh_doctor_repair",
+        },
         "retopology": {
             "status": retopo_status,
             "result": asdict(retopo_result) if retopo_result is not None else None,
@@ -1141,6 +1254,7 @@ def main() -> int:
             "Wonder3D normal maps may contribute a deliberately small 6% synthetic-support score using the pinned front-view normal coordinate convention.",
             "TripoSF can challenge the best geometry seed at 1024^3 in Monster/Ultra; it must pass real-source geometry evidence.",
             "If TripoSF wins geometry, Material Bridge v2 reprojects packed PBR UV/material evidence when available (base-color fallback otherwise) and the bridged GLB re-enters the final Judge rather than being auto-promoted.",
+            "Mesh Doctor audits the provisional champion before retopology; conservative structural repairs are material-restored and must win the same Judge, while tiny disconnected components are audit-only to protect intentional accessories.",
             "Instant Meshes retopology is an optional deterministic challenger: editable quad/quad-dominant OBJ is preserved, Material Bridge v2 restores runtime material evidence, and the bridged GLB must win the same Judge.",
             "GamePrep audits glTF rig/skin state first; skinned assets skip destructive retopology/LOD simplification and preserve exact master/LOD0 until skin-weight transfer exists.",
             "QA Package v1 records geometry/material/reference/rig/GamePrep readiness and creates a source-vs-turntable contact sheet.",
