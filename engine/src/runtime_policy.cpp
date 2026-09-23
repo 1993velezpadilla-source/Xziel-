@@ -90,6 +90,70 @@ RuntimePolicy RuntimePolicyPlanner::plan(
             break;
     }
 
+    const bool hasThermalHeadroom =
+        std::isfinite(input.thermalHeadroom) &&
+        input.thermalHeadroom >= 0.0f;
+
+    const bool hasCpuHeadroom =
+        std::isfinite(input.cpuHeadroomPercent) &&
+        input.cpuHeadroomPercent >= 0.0f;
+
+    const bool hasGpuHeadroom =
+        std::isfinite(input.gpuHeadroomPercent) &&
+        input.gpuHeadroomPercent >= 0.0f;
+
+    // React before severe thermal throttling instead of after clocks collapse.
+    // 1.0 is Android's documented severe-throttling threshold. The softer
+    // 0.88 guard leaves recovery margin without turning ordinary warm play
+    // into an aggressive quality downgrade.
+    if (hasThermalHeadroom &&
+        input.thermalHeadroom >= 0.98f) {
+        out.preferredFps =
+            std::min(out.preferredFps, 60.0f);
+        out.maximumQuality =
+            RenderQuality::Low;
+        out.textureBudgetScale *= 0.72f;
+        out.meshBudgetScale *= 0.72f;
+        out.audioBudgetScale *= 0.90f;
+        out.requestHighRefreshRate = false;
+        out.allowRayQueryExperimental = false;
+    } else if (hasThermalHeadroom &&
+               input.thermalHeadroom >= 0.88f) {
+        out.preferredFps =
+            std::min(out.preferredFps, 60.0f);
+        if (qualityRank(out.maximumQuality) >
+            qualityRank(RenderQuality::Medium)) {
+            out.maximumQuality =
+                RenderQuality::Medium;
+        }
+        out.textureBudgetScale *= 0.86f;
+        out.meshBudgetScale *= 0.86f;
+        out.requestHighRefreshRate = false;
+        out.allowRayQueryExperimental = false;
+    }
+
+    // Android 16 headroom reports available capacity in percent. Keep these
+    // guards deliberately conservative; the frame-time governor remains the
+    // primary controller, while headroom only prevents obviously saturated
+    // devices from requesting a higher tier.
+    if (hasGpuHeadroom &&
+        input.gpuHeadroomPercent < 8.0f) {
+        if (qualityRank(out.maximumQuality) >
+            qualityRank(RenderQuality::Medium)) {
+            out.maximumQuality =
+                RenderQuality::Medium;
+        }
+        out.requestHighRefreshRate = false;
+        out.allowRayQueryExperimental = false;
+    }
+
+    if (hasCpuHeadroom &&
+        input.cpuHeadroomPercent < 8.0f) {
+        out.preferredFps =
+            std::min(out.preferredFps, 60.0f);
+        out.requestHighRefreshRate = false;
+    }
+
     out.textureBudgetScale =
         std::clamp(out.textureBudgetScale, 0.20f, 1.0f);
     out.meshBudgetScale =
