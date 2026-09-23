@@ -1,13 +1,14 @@
-name: Sanctum Native Clean V2 Android
+name: Sanctum Exterior Detail A-B Android
 
 on:
   push:
     branches:
-      - feature/sanctum-native-clean-v2
+      - research/sanctum-exterior-detail-ab-v1
     paths:
       - ".github/workflows/sanctum-native-hq-android.yml"
       - ".github/workflows/sanctum-clean-source.yml"
       - "tools/church_map/export_xziel_original_clean.py"
+      - "tools/church_map/apply_exterior_microdetail.py"
       - "engine/**"
       - "xziel-native-android/**"
   workflow_dispatch:
@@ -42,7 +43,7 @@ jobs:
 
             RUN_ID="$(jq -r '
               .workflow_runs[]
-              | select(.name == "Sanctum Clean Original Source")
+              | select(.name == "Sanctum Exterior Detail A-B Source")
               | .id
             ' <<<"$RESPONSE" | head -n 1)"
 
@@ -138,10 +139,13 @@ jobs:
           jq -e '.decimateRatio == 1' "$REPORT"
           jq -e '.scanCleanup == "disabled"' "$REPORT"
           jq -e '.vertexLighting == "identity_white"' "$REPORT"
-          jq -e '.textureSourceMode == "original_glb_embedded_pixels"' "$REPORT"
+          jq -e '.textureSourceMode == "original_glb_embedded_pixels_plus_matched_exterior_microdetail"' "$REPORT"
           jq -e '.textureCount > 0' "$REPORT"
-          jq -e '.exactSourcePixelTextures == .textureCount' "$REPORT"
-          jq -e '.materialReport | all(.exactSourcePixels == true)' "$REPORT"
+          jq -e '.microdetailApplied == true' "$REPORT"
+          jq -e '.microdetailCandidate == "polyhaven_medieval_blocks_03"' "$REPORT"
+          jq -e '.runtimeExteriorResolution == [4096,4096]' "$REPORT"
+          jq -e '.exactSourcePixelTextures == (.textureCount - 1)' "$REPORT"
+          jq -e '[.materialReport[] | select(.exactSourcePixels == false)] | length == 1' "$REPORT"
 
           jq '{
             schemaVersion,
