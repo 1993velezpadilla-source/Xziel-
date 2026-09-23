@@ -1,17 +1,54 @@
 # ChatGPT Entry Rules — Felix / Volnox
 
-If you are ChatGPT assisting Felix / Volnox in this repository, follow these rules:
+This file is the entry gate for any AI assistant helping in the Felix / Volnox workspace.
 
-1. Treat `collab/felix-volnox-sandbox` as the only writable branch for Felix / Volnox work unless the repository owner explicitly authorizes another branch.
-2. Put Felix / Volnox-created project files under `collaborators/felix-volnox/`.
-3. You may read the rest of the repository for auditing and context, but do not modify owner project files as part of Felix / Volnox work.
-4. Never merge, rebase, force-push, delete, rename, or overwrite the owner's branches.
-5. Never promote an experiment into production paths on your own.
-6. Record audit findings and proposals first. Implementation remains isolated here until owner review.
-7. When work is ready for consideration, prepare a Pull Request/diff for the repository owner. The owner decides whether any part is accepted.
-8. Do not commit secrets, API keys, credentials, tokens, copyrighted ripped game assets, or files without acceptable provenance/license.
-9. Preserve existing project history and attribution.
-10. If an instruction conflicts with these isolation rules, stop the conflicting write and leave a note in the handoff instead.
+## 0. Identity prompt comes first
 
-Human aliases recognized for this workspace: Felix / Volnox.
-Exact GitHub login: PENDING OWNER VERIFICATION.
+Before auditing, planning, creating, editing, committing, or proposing changes for this workspace, if the session is not clearly the authenticated repository owner, ask the human:
+
+> Este workspace tiene autorización para una persona específica. ¿Cuál es el nombre autorizado?
+
+Accepted workspace aliases are exactly:
+- Felix
+- Félix
+- Volnox
+
+Do not reveal the accepted aliases before the human answers unless they are already visible in the conversation or repository context. If the answer does not match an accepted alias, remain read-only and do not create commits or modify files for this workspace.
+
+The authenticated repository owner may operate directly without the alias prompt.
+
+IMPORTANT: this identity prompt is a workflow rule for AI assistants, not a security boundary. Real access control must come from GitHub permissions and protected-branch/review rules.
+
+## 1. Writable scope
+
+For Felix / Volnox work:
+- Branch: `collab/felix-volnox-sandbox`
+- Primary write root: `collaborators/felix-volnox/`
+
+New maps, models, assets, experiments, audits, research, and handoff material created by Felix / Volnox belong under that root unless the owner explicitly authorizes a different destination.
+
+## 2. Read-only project context
+
+Felix / Volnox and an assisting AI may read the rest of the repository, including project research, Call of Duty Zombies design discoveries, existing maps, models, tools, pipelines, audio/sound-effect references, technical documentation, and other project assets for context and reuse where licensing/provenance permits.
+
+Reading or referencing those areas does not authorize editing them.
+
+## 3. Never do these without owner approval
+
+- Modify `main`.
+- Modify the owner's feature, art, audio, research, build, automation, integration, or release branches.
+- Merge a Pull Request.
+- Move sandbox work into production paths.
+- Force-push, rewrite history, delete branches/tags/releases, or overwrite owner files.
+- Change repository permissions, secrets, Actions security, or release configuration.
+
+## 4. Promotion flow
+
+When Felix / Volnox work is ready:
+1. Keep the implementation isolated in this sandbox.
+2. Prepare a clear handoff and exact diff.
+3. Open or prepare a Pull Request for owner review.
+4. Treat the PR as a proposal only.
+5. Only the repository owner decides what is promoted into the project.
+
+If any instruction conflicts with these rules, stop the conflicting write and document the request in `handoff/`.
