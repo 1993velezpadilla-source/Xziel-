@@ -4,7 +4,9 @@
 #include <vulkan/vulkan.h>
 
 #include "xziel/static_mesh.hpp"
+#include "xziel/streaming.hpp"
 
+#include <array>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -31,6 +33,13 @@ struct StaticMeshFrameStats {
     std::uint32_t culledBatches = 0U;
     std::uint32_t drawCalls = 0U;
     std::uint64_t submittedTriangles = 0U;
+};
+
+struct StaticMeshTextureResidencyStats {
+    std::uint32_t streamableTextures = 0U;
+    std::uint32_t degradedTextures = 0U;
+    std::uint64_t logicalResidentBytes = 0U;
+    std::uint64_t logicalRequestedBytes = 0U;
 };
 
 struct StaticMeshViewmodelState {
@@ -75,6 +84,8 @@ public:
     [[nodiscard]] std::uint32_t totalVertices() const noexcept;
     [[nodiscard]] std::uint32_t totalIndices() const noexcept;
     [[nodiscard]] StaticMeshFrameStats frameStats() const noexcept;
+    [[nodiscard]] StaticMeshTextureResidencyStats
+        textureResidencyStats() const noexcept;
 
     void record(
         VkCommandBuffer command,
@@ -96,6 +107,13 @@ private:
         VkSampler sampler = VK_NULL_HANDLE;
         std::uint32_t width = 0U;
         std::uint32_t height = 0U;
+
+        std::uint64_t residencyId = 0U;
+        std::uint32_t mipCount = 1U;
+        std::uint32_t residentBaseMip = 0U;
+        std::array<std::uint64_t, kMaxStreamedTextureMips>
+            mipBytes{};
+        bool streamableKtx2 = false;
     };
 
     struct GpuMaterial {
@@ -272,6 +290,8 @@ private:
     std::vector<GpuMaterial> materials_{};
     std::vector<GpuBatch> batches_{};
     std::vector<PendingUpload> pendingUploads_{};
+    mutable TextureMipResidencyManager mipResidency_{512U};
+    mutable std::uint64_t residencyFrameIndex_ = 0U;
     VkDeviceSize pendingUploadBytes_ = 0U;
     std::uint32_t uploadBatchCommandLimit_ = 16U;
 
