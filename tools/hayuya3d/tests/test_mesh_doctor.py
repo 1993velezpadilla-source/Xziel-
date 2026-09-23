@@ -114,7 +114,16 @@ class MeshDoctorTests(unittest.TestCase):
                 mode="prop",
                 texture_size=256,
             )
-            self.assertTrue(result.safe_for_arena, result.reasons)
+            geometry_audit = audit_mesh(Path(result.repaired_geometry))
+            self.assertTrue(
+                result.safe_for_arena,
+                {
+                    "reasons": result.reasons,
+                    "before": result.before,
+                    "geometry": geometry_audit,
+                    "after": result.after,
+                },
+            )
             self.assertTrue(result.after.watertight)
 
     def test_tiny_component_is_audited_not_auto_marked_for_repair(self):
