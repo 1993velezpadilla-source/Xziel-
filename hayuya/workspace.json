@@ -9,14 +9,19 @@
   ],
   "preferred_gui": {
     "provider": "vercel",
-    "url": "",
-    "status": "one_click_deploy_ready",
-    "deploy_url": "https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2F1993velezpadilla-source%2Fconfig-old-3%2Ftree%2Fhayuya-studio-deploy%2Ftools%2Fhayuya3d%2Fhub&repository-name=hayuya-studio",
+    "url": "https://hayuya-studio.vercel.app",
+    "status": "ready",
     "project_name": "hayuya-studio",
-    "note": "Use the slash-free deployment branch so Vercel parses branch and subdirectory correctly. The Deploy Button should create the separate hayuya-studio repository/project.",
-    "source_repo": "1993velezpadilla-source/config-old-3",
-    "source_branch": "hayuya-studio-deploy",
-    "source_directory": "tools/hayuya3d/hub"
+    "project_id": "prj_UgGjFrh1b1riMwHXpBLqznDOCp3L",
+    "deployment_id": "dpl_4wvjonttfNTxm8qXZFaWjcxg9e63",
+    "production_aliases": [
+      "https://hayuya-studio.vercel.app",
+      "https://hayuya-studio-xziel-zombies.vercel.app"
+    ],
+    "source_repo": "1993velezpadilla-source/hayuya-studio",
+    "source_branch": "main",
+    "source_directory": ".",
+    "note": "Production deployment verified READY on Vercel. open hayuya should return the canonical URL above."
   },
   "prepared_static_source": "tools/hayuya3d/hub",
   "github_pages": {
