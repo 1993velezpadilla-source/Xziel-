@@ -148,6 +148,9 @@ jobs:
               json.dumps(data, sort_keys=True)
           )
           PY
+
+            export XZIEL_MATCH_SERVER_WS="wss://xziel-match-server.$SUBDOMAIN.workers.dev"
+            npm run live-smoke
           else
             echo "::warning::Worker deployed and route enabled; workers.dev TLS/DNS is still propagating"
             echo "XZIEL_MATCH_SERVER_PROPAGATING"
