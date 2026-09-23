@@ -69,15 +69,18 @@ def rasterize_rgb(
     faces,
     vertex_colors,
     *,
+    uvs=None,
+    face_texture_ids=None,
+    textures=None,
     size: int = 224,
     background: tuple[int, int, int] = (127, 127, 127),
 ):
     """
     Tiny deterministic CPU z-buffer rasterizer.
 
-    It is intentionally dependency-light and uses vertex colors. Trimesh texture
-    visuals are converted to vertex colors before this stage, giving Judge v3 a
-    useful appearance signal without requiring OpenGL or PyTorch3D.
+    It is intentionally dependency-light. When UV/material textures are available
+    they are sampled per pixel; otherwise vertex colors are interpolated. This gives
+    Judge v3 real texture evidence without requiring OpenGL or PyTorch3D.
     """
     np, Image = _deps()
     image = np.empty((size, size, 3), dtype=np.float32)
@@ -85,7 +88,7 @@ def rasterize_rgb(
     depth = np.full((size, size), -np.inf, dtype=np.float32)
 
     eps = 1e-7
-    for tri in faces:
+    for face_index, tri in enumerate(faces):
         ids = np.asarray(tri, dtype=np.int64)
         pts = xy[ids]
         zs = z[ids]
@@ -125,16 +128,67 @@ def rasterize_rgb(
         if not visible.any():
             continue
 
-        rgb = (
-            w0[..., None] * cols[0]
-            + w1[..., None] * cols[1]
-            + w2[..., None] * cols[2]
-        )
+        rgb = None
+        texture_id = -1
+        if face_texture_ids is not None and textures is not None:
+            texture_id = int(face_texture_ids[face_index])
+        if (
+            texture_id >= 0
+            and texture_id < len(textures)
+            and uvs is not None
+        ):
+            uv_tri = uvs[ids].astype(np.float32)
+            uv = (
+                w0[..., None] * uv_tri[0]
+                + w1[..., None] * uv_tri[1]
+                + w2[..., None] * uv_tri[2]
+            )
+            texture = textures[texture_id]
+            th, tw = texture.shape[:2]
+            uu = np.clip(uv[..., 0], 0.0, 1.0)
+            vv = np.clip(uv[..., 1], 0.0, 1.0)
+            tx = np.clip(np.rint(uu * (tw - 1)).astype(np.int64), 0, tw - 1)
+            ty = np.clip(np.rint((1.0 - vv) * (th - 1)).astype(np.int64), 0, th - 1)
+            rgb = texture[ty, tx, :3].astype(np.float32)
+        if rgb is None:
+            rgb = (
+                w0[..., None] * cols[0]
+                + w1[..., None] * cols[1]
+                + w2[..., None] * cols[2]
+            )
         region_img = image[min_y:max_y + 1, min_x:max_x + 1]
         region_img[visible] = rgb[visible]
         region_depth[visible] = zz[visible]
 
     return Image.fromarray(np.clip(image, 0, 255).astype(np.uint8), mode="RGB")
+
+
+def _material_texture_rgb(material):
+    if material is None:
+        return None
+    np, Image = _deps()
+
+    image = getattr(material, "image", None)
+    if image is None:
+        image = getattr(material, "baseColorTexture", None)
+    if image is None:
+        return None
+
+    try:
+        if isinstance(image, Image.Image):
+            arr = np.asarray(image.convert("RGB"), dtype=np.uint8)
+        else:
+            arr = np.asarray(image)
+            if arr.ndim == 2:
+                arr = np.repeat(arr[..., None], 3, axis=2)
+            if arr.shape[-1] >= 3:
+                arr = arr[..., :3]
+            arr = np.clip(arr, 0, 255).astype(np.uint8)
+        if arr.ndim == 3 and arr.shape[2] == 3 and arr.size:
+            return arr
+    except Exception:
+        return None
+    return None
 
 
 def _mesh_rgb_arrays(mesh_path: Path, max_faces: int = 12000):
@@ -153,6 +207,9 @@ def _mesh_rgb_arrays(mesh_path: Path, max_faces: int = 12000):
     vertices_parts = []
     faces_parts = []
     colors_parts = []
+    uv_parts = []
+    face_texture_parts = []
+    textures = []
     offset = 0
 
     for mesh in geoms:
@@ -162,8 +219,20 @@ def _mesh_rgb_arrays(mesh_path: Path, max_faces: int = 12000):
         faces = np.asarray(mesh.faces, dtype=np.int64)
 
         colors = None
+        uv = np.zeros((len(vertices), 2), dtype=np.float32)
+        face_texture_ids = np.full(len(faces), -1, dtype=np.int32)
+
         visual = getattr(mesh, "visual", None)
         if visual is not None:
+            raw_uv = getattr(visual, "uv", None)
+            material = getattr(visual, "material", None)
+            texture = _material_texture_rgb(material)
+            if raw_uv is not None and len(raw_uv) == len(vertices) and texture is not None:
+                uv = np.asarray(raw_uv, dtype=np.float32)
+                texture_id = len(textures)
+                textures.append(texture)
+                face_texture_ids[:] = texture_id
+
             try:
                 converted = visual.to_color()
                 vc = getattr(converted, "vertex_colors", None)
@@ -182,6 +251,8 @@ def _mesh_rgb_arrays(mesh_path: Path, max_faces: int = 12000):
         vertices_parts.append(vertices)
         faces_parts.append(faces + offset)
         colors_parts.append(colors)
+        uv_parts.append(uv)
+        face_texture_parts.append(face_texture_ids)
         offset += len(vertices)
 
     if not vertices_parts:
@@ -190,10 +261,13 @@ def _mesh_rgb_arrays(mesh_path: Path, max_faces: int = 12000):
     vertices = np.concatenate(vertices_parts, axis=0)
     faces = np.concatenate(faces_parts, axis=0)
     colors = np.concatenate(colors_parts, axis=0)
+    uvs = np.concatenate(uv_parts, axis=0)
+    face_texture_ids = np.concatenate(face_texture_parts, axis=0)
 
     if len(faces) > max_faces:
         ids = np.linspace(0, len(faces) - 1, max_faces, dtype=np.int64)
         faces = faces[ids]
+        face_texture_ids = face_texture_ids[ids]
 
     center = (vertices.min(axis=0) + vertices.max(axis=0)) * 0.5
     vertices = vertices - center
@@ -201,7 +275,7 @@ def _mesh_rgb_arrays(mesh_path: Path, max_faces: int = 12000):
     if not math.isfinite(scale) or scale <= 1e-9:
         raise ValueError("collapsed mesh bounds")
     vertices = vertices / scale
-    return vertices, faces, colors
+    return vertices, faces, colors, uvs, face_texture_ids, textures
 
 
 def render_candidate_rgb_arrays(
@@ -210,6 +284,9 @@ def render_candidate_rgb_arrays(
     colors,
     view: SourceViewScore,
     *,
+    uvs=None,
+    face_texture_ids=None,
+    textures=None,
     size: int = 224,
 ):
     xy, z = project_vertices(
@@ -219,7 +296,16 @@ def render_candidate_rgb_arrays(
         view.best_up_axis,
         size,
     )
-    return rasterize_rgb(xy, z, faces, colors, size=size)
+    return rasterize_rgb(
+        xy,
+        z,
+        faces,
+        colors,
+        uvs=uvs,
+        face_texture_ids=face_texture_ids,
+        textures=textures,
+        size=size,
+    )
 
 
 def render_candidate_rgb(
@@ -228,8 +314,17 @@ def render_candidate_rgb(
     *,
     size: int = 224,
 ):
-    vertices, faces, colors = _mesh_rgb_arrays(mesh_path)
-    return render_candidate_rgb_arrays(vertices, faces, colors, view, size=size)
+    vertices, faces, colors, uvs, face_texture_ids, textures = _mesh_rgb_arrays(mesh_path)
+    return render_candidate_rgb_arrays(
+        vertices,
+        faces,
+        colors,
+        view,
+        uvs=uvs,
+        face_texture_ids=face_texture_ids,
+        textures=textures,
+        size=size,
+    )
 
 
 def preprocess_source_rgb(path: Path, *, size: int = 224):
@@ -451,6 +546,9 @@ def score_detail_references(
     vertices,
     faces,
     colors,
+    uvs,
+    face_texture_ids,
+    textures,
     geometry_sources: list[Path],
     matched_views: list[SourceViewScore],
     detail_images: list[Path],
@@ -476,7 +574,15 @@ def score_detail_references(
             silhouette_iou=0.0,
             boundary_f1=0.0,
         )
-        render = render_candidate_rgb_arrays(vertices, faces, colors, synthetic_view)
+        render = render_candidate_rgb_arrays(
+            vertices,
+            faces,
+            colors,
+            synthetic_view,
+            uvs=uvs,
+            face_texture_ids=face_texture_ids,
+            textures=textures,
+        )
         for patch_name, patch in make_detail_patches(render):
             patch_images.append(patch)
             patch_meta.append((azimuth, patch_name))
@@ -534,7 +640,7 @@ def score_candidate_appearance(
 
     repo_path = model_root / "dinov2"
     views: list[AppearanceViewScore] = []
-    vertices, faces, colors = _mesh_rgb_arrays(mesh_path)
+    vertices, faces, colors, uvs, face_texture_ids, textures = _mesh_rgb_arrays(mesh_path)
 
     for index, (source, matched) in enumerate(zip(source_images, matched_views)):
         candidate_rgb = render_candidate_rgb_arrays(
@@ -542,6 +648,9 @@ def score_candidate_appearance(
             faces,
             colors,
             matched,
+            uvs=uvs,
+            face_texture_ids=face_texture_ids,
+            textures=textures,
         )
 
         render_path = None
@@ -578,6 +687,9 @@ def score_candidate_appearance(
         vertices=vertices,
         faces=faces,
         colors=colors,
+        uvs=uvs,
+        face_texture_ids=face_texture_ids,
+        textures=textures,
         geometry_sources=source_images,
         matched_views=matched_views,
         detail_images=detail_images or [],
