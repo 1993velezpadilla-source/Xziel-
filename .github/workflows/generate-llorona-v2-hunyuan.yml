@@ -26,6 +26,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install Hunyuan client and image QA deps
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install "gradio_client>=1.10,<2" pillow
+
       - name: Verify complete V2 Hayuya reference pack
         run: |
           set -euxo pipefail
@@ -40,20 +45,16 @@ jobs:
           from pathlib import Path
           from PIL import Image
           root=Path("assets/characters/llorona/v2/hayuya")
-          files=list((root/"individual").glob("*.png"))+list((root/"details").glob("*.png"))
-          assert len(list((root/"individual").glob("*.png"))) == 8
-          assert len(list((root/"details").glob("*.png"))) == 7
-          for p in files:
+          views=list((root/"individual").glob("*.png"))
+          details=list((root/"details").glob("*.png"))
+          assert len(views) == 8, len(views)
+          assert len(details) == 7, len(details)
+          for p in views + details:
               im=Image.open(p)
               im.verify()
               print("REF_OK", p, p.stat().st_size)
           print("LLORONA_V2_REFERENCE_PACK_PASS")
           PY
-
-      - name: Install Hunyuan client
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install "gradio_client>=1.10,<2" pillow
 
       - name: Generate new V2 Hunyuan model
         env:
