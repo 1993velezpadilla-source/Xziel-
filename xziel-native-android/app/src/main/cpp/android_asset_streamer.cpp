@@ -409,36 +409,90 @@ void AndroidAssetStreamer::workerMain() noexcept {
             AAssetManager_open(
                 assetManager_,
                 request.path.c_str(),
-                AASSET_MODE_BUFFER);
+                AASSET_MODE_RANDOM);
 
         if (asset != nullptr) {
-            const off_t length =
-                AAsset_getLength(asset);
+            const off64_t assetLength =
+                AAsset_getLength64(asset);
 
-            if (length > 0 &&
-                static_cast<std::uint64_t>(length) <=
-                    request.maxBytes &&
-                static_cast<std::uint64_t>(length) <=
+            std::uint64_t readOffset = 0U;
+            std::uint64_t readLength = 0U;
+
+            if (assetLength > 0) {
+                const std::uint64_t totalLength =
                     static_cast<std::uint64_t>(
-                        std::numeric_limits<std::size_t>::max())) {
-                try {
-                    result.bytes.resize(
-                        static_cast<std::size_t>(
-                            length));
+                        assetLength);
 
-                    const int read =
-                        AAsset_read(
-                            asset,
-                            result.bytes.data(),
-                            result.bytes.size());
+                if (request.length == 0U) {
+                    readOffset = 0U;
+                    readLength = totalLength;
+                } else if (
+                    request.offset <= totalLength &&
+                    request.length <=
+                        totalLength - request.offset) {
+                    readOffset = request.offset;
+                    readLength = request.length;
+                }
+            }
 
-                    result.success =
-                        read >= 0 &&
-                        static_cast<std::size_t>(read) ==
+            if (readLength > 0U &&
+                readLength <= request.maxBytes &&
+                readLength <=
+                    static_cast<std::uint64_t>(
+                        std::numeric_limits<std::size_t>::max()) &&
+                readOffset <=
+                    static_cast<std::uint64_t>(
+                        std::numeric_limits<off64_t>::max())) {
+                const bool seekReady =
+                    readOffset == 0U ||
+                    AAsset_seek64(
+                        asset,
+                        static_cast<off64_t>(
+                            readOffset),
+                        SEEK_SET) >= 0;
+
+                if (seekReady) {
+                    try {
+                        result.bytes.resize(
+                            static_cast<std::size_t>(
+                                readLength));
+
+                        std::size_t totalRead = 0U;
+
+                        while (totalRead <
+                               result.bytes.size()) {
+                            const std::size_t remaining =
+                                result.bytes.size() -
+                                totalRead;
+                            const std::size_t chunk =
+                                std::min<std::size_t>(
+                                    remaining,
+                                    static_cast<std::size_t>(
+                                        std::numeric_limits<int>::max()));
+
+                            const int read =
+                                AAsset_read(
+                                    asset,
+                                    result.bytes.data() +
+                                        totalRead,
+                                    chunk);
+
+                            if (read <= 0) {
+                                break;
+                            }
+
+                            totalRead +=
+                                static_cast<std::size_t>(
+                                    read);
+                        }
+
+                        result.success =
+                            totalRead ==
                             result.bytes.size();
-                } catch (...) {
-                    result.bytes.clear();
-                    result.success = false;
+                    } catch (...) {
+                        result.bytes.clear();
+                        result.success = false;
+                    }
                 }
             }
 
@@ -488,14 +542,14 @@ void AndroidAssetStreamer::workerMain() noexcept {
 
         try {
             results_.insert_or_assign(
-                request.path,
+                request.key,
                 std::move(result));
         } catch (...) {
             if (resultBytes <= bufferedBytes_) {
                 bufferedBytes_ -= resultBytes;
             }
             ++stats_.failed;
-            scheduled_.erase(request.path);
+            scheduled_.erase(request.key);
         }
 
         stats_.bufferedBytes =
