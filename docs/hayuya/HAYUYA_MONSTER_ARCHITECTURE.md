@@ -1,6 +1,6 @@
 # HAYUYA MONSTER — Image-to-3D Architecture
 
-**Status:** v2 multi-reference foundation  
+**Status:** v3 multi-reference / evidence-gated pipeline  
 **Branch:** `art/hayuya-monster-v1`  
 **Primary contract:** give Hayuya **one or more photos** of the same asset and receive a production-oriented 3D asset package. Hayuya itself imposes no photo-count ceiling.
 
@@ -48,7 +48,7 @@ Hayuya plans an 8-angle canonical coverage set:
 - left
 - front 45 left
 
-With one image, the missing coverage is inferred with sparse/multiview priors such as InstantMesh/Zero123++ and Wonder3D RGB+normal generation.
+With one image, ViewForge can now execute the pinned Wonder3D RGB+normal pipeline. It stages a foreground RGBA input, collects six canonical RGB views plus six normal maps, preserves the real input as the authoritative anchor, and exposes only the five non-front synthetic RGB views as reconstruction support.
 
 With multiple images, all originals remain authoritative. If a backend cannot efficiently consume the entire pool in one call, Hayuya creates deterministic anchor groups: the primary reference appears in every group and the remaining real sources are distributed across groups so none are dropped.
 
@@ -66,10 +66,14 @@ Current executable v1 adapters:
 - **InstantMesh** — Zero123++ six-view + LRM/FlexiCubes candidate.
 - **TripoSR** — fast baseline/sanity candidate.
 
-Pinned but not yet executable in the v1 orchestrator:
+Additional executable support stages:
 
-- TripoSF / SparseFlex refinement.
-- Wonder3D explicit ViewForge RGB+normal pass.
+- **Wonder3D ViewForge** — one-source RGB+normal expansion; synthetic front never replaces the real anchor.
+- **TripoSF / SparseFlex** — 1024³ geometry refinement challenger for Monster/Ultra.
+- **Material Bridge v1** — projects source base color onto a preferred refined topology and returns that GLB to the final arena.
+
+Pinned specialist still not wired into normal orchestration:
+
 - PSHuman character-specialist pass.
 
 Optional cloud adapters are allowed later, but Hayuya must remain functional without them.
@@ -112,22 +116,24 @@ For every real source photo:
 1. extract/normalize a foreground mask
 2. render mesh silhouettes in software
 3. search camera hypotheses across azimuth, elevation and Y-up/Z-up conventions
-4. compute silhouette IoU
-5. compute tolerant boundary F1
-6. score each real source independently
-7. combine multiple source scores with an explicit weakest-anchor penalty
+4. locally refine the winning orientation across orthographic and perspective camera hypotheses
+5. compute silhouette IoU
+6. compute tolerant boundary F1
+7. estimate mask confidence so weak background segmentation has less authority
+8. score each real source independently
+9. combine multiple source scores with robust confidence-weighted weak-tail penalties
 
 Per-view score:
 
 `0.72 * silhouette_IoU + 0.28 * boundary_F1`
 
-Multiple real sources:
+Multiple real sources use a confidence-weighted robust aggregation. Clean alpha masks keep near-full authority; uncertain corner/luminance segmentation is pulled toward the weighted consensus before lower-tail penalties are applied.
 
-`0.70 * mean(source_scores) + 0.30 * min(source_scores)`
+The v2 production/silhouette core preserves approximately:
 
-Final candidate score:
+`55% source_visual + 45% production_mesh_score`
 
-`0.55 * source_visual + 0.45 * production_mesh_score`
+before v3 appearance/support layers are added.
 
 This means a model cannot win merely by having more polygons, UVs or a larger texture. With many references, a candidate that matches a few views but badly misses the weakest real anchor is intentionally pushed down.
 
@@ -139,7 +145,7 @@ Implemented:
 
 1. deterministic CPU RGB z-buffer renderer — no OpenGL/headless requirement
 2. candidate RGB renders use the same camera hypotheses selected by Judge v2
-3. textured/material visuals are converted to vertex-color evidence through Trimesh when available
+3. UV/base-color textures are sampled per pixel in the CPU renderer when available, with vertex-color fallback
 4. original DINOv2 ViT-S/14 LVD-142M features provide permissive Apache-2.0 appearance comparison
 5. real-source embeddings are cached across candidates
 6. candidate mesh/color arrays are loaded once per candidate
@@ -156,33 +162,57 @@ Within the appearance subscore:
 
 The raw DINO cosine is retained in reports; Hayuya does not label it as a calibrated probability.
 
+#### Judge v3 synthetic normal support — implemented
+
+When a one-photo ViewForge job produces Wonder3D normal maps, Hayuya can compare the candidate's rendered vertex normals against those six synthetic maps.
+
+Important constraints:
+
+- Wonder3D normals are treated in its pinned **front-view OpenGL normal coordinate system**.
+- Candidate normals are transformed into the matched real-anchor front frame.
+- Support views use canonical offsets: front, front-right, right, back, left, front-left.
+- Synthetic normal evidence contributes only **6%** of the final ranking.
+- It is explicitly classified as synthetic support, never equal to a real reference.
+
 #### Judge v3 next geometry layer
 
 Still to add:
 
-1. normal-map agreement
-2. depth-order agreement
-3. calibrated camera/focal estimation
-4. stronger UV-per-pixel texture rendering
-5. asymmetric-detail localization
-6. face/hands/accessory specialist checks for characters
+1. depth-order agreement
+2. stronger calibrated focal/intrinsics estimation beyond the current perspective hypothesis search
+3. asymmetric-detail localization
+4. face/hands/accessory specialist checks for characters
 
 MEt3R and VGGT remain research/opt-in references rather than default dependencies because their transitive/checkpoint licensing differs from the permissive Hayuya core.
 
-### 5. Material Forge
+### 5. Geometry Refinement + Material Forge
 
-Target material package:
+For Monster/Ultra, TripoSF can now act as a **geometry challenger** rather than an automatic overwrite.
 
-- base color / albedo
+Pipeline:
+
+1. choose a strong seed candidate using real-source silhouette evidence
+2. reconstruct it through TripoSF SparseFlex at the pinned 1024³ configuration
+3. restore the refined mesh to the original candidate's object-space bounds
+4. compare original vs refined using real-source visual evidence + mesh health + at most 5% synthetic normal support
+5. require a positive promotion margin before marking the refined geometry preferred
+6. if refined geometry wins, run Material Bridge v1
+7. return the bridged GLB to the full final Judge; it still has to beat the original asset
+
+Material Bridge v1 samples source surface/base-color evidence and projects it to refined vertices with a KD-tree, producing a color-preserving GLB rather than a gray OBJ.
+
+Current material target remains:
+
+- base color / albedo — bridge v1 implemented
 - normal
 - roughness
 - metallic
 - AO
 - opacity when required
 
-TRELLIS.2 can already supply PBR attributes directly. Other winners can later be passed through Hayuya's view-projection/PBR stage.
+TRELLIS.2 can already supply PBR attributes directly. **Material Bridge v2** will perform UV/PBR rebaking for refined or non-PBR champions.
 
-Never let a texture stage silently change geometry identity.
+Never let a texture/refinement stage silently change geometry identity.
 
 ### 6. GamePrep
 
@@ -218,6 +248,8 @@ HAYUYA_TRIPOSR_PYTHON=/envs/triposr/bin/python
 HAYUYA_INSTANTMESH_PYTHON=/envs/instantmesh/bin/python
 HAYUYA_TRELLIS_PYTHON=/envs/trellis/bin/python
 HAYUYA_TRELLIS2_PYTHON=/envs/trellis2/bin/python
+HAYUYA_WONDER3D_PYTHON=/envs/wonder3d/bin/python
+HAYUYA_TRIPOSF_PYTHON=/envs/triposf/bin/python
 ```
 
 Pinned source is installed under:
@@ -307,16 +339,28 @@ Hunyuan3D-2.1 remains listed for research/compatibility but is **not enabled by 
 
 Cloud vendors such as Tripo or Meshy are optional adapters through their official APIs and terms. Hayuya must never depend on bypassing access controls, private endpoints, leaked code, or hidden web APIs.
 
-## Definition of done for Hayuya Monster v2
+## Current v3 milestone state
 
-- real ViewForge output from one source image
-- source camera estimation
-- rendered candidate-vs-source judge
-- PBR material forge for non-PBR champions
-- TripoSF high-resolution refinement pass
-- semantic mesh segmentation
+Implemented in code/orchestration:
+
+- real Wonder3D ViewForge execution from one source image
+- source camera search with local perspective refinement
+- rendered candidate-vs-source silhouette Judge
+- DINOv2 RGB/identity appearance Judge
+- local detail-reference retrieval
+- per-pixel UV/base-color rendering
+- confidence-weighted source masks
+- low-weight Wonder3D normal support
+- TripoSF 1024³ geometry challenger
+- Material Bridge v1 base-color transfer
+- evidence-gated return of refined material-bridged geometry to the final arena
+
+Remaining major stages:
+
+- full PBR Material Bridge v2
+- semantic mesh segmentation/repair
 - smart retopology/quad option
-- automatic LOD pack
+- automatic LOD + collision pack
 - humanoid/zombie specialist mode
 - rig/skin validation
 - automated turntable comparison report
