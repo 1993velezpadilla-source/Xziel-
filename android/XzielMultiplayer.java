@@ -15,6 +15,13 @@ import android.media.audiofx.AcousticEchoCanceler;
 import android.media.audiofx.AutomaticGainControl;
 import android.media.audiofx.NoiseSuppressor;
 import android.os.Build;
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
+import android.view.Gravity;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.provider.Settings;
 import android.text.InputFilter;
 import android.view.inputmethod.InputMethodManager;
@@ -84,6 +91,10 @@ public final class XzielMultiplayer {
     private volatile WebSocket voiceSocket;
     private volatile AudioRecord recorder;
     private volatile Thread captureThread;
+    private volatile LinearLayout voiceOverlay;
+    private volatile Button micButton;
+    private volatile Button speakerButton;
+    private volatile Button modeButton;
     private volatile boolean captureRunning;
 
     private AcousticEchoCanceler echoCanceler;
@@ -242,6 +253,7 @@ public final class XzielMultiplayer {
                             return;
                         }
                         connectVoice();
+                        showVoiceOverlay();
                         toast("Joined room " + roomCode + " as Player " + localSlot);
                         activity.runOnUiThread(() -> showLobbyDialog());
                     } else if ("player_joined".equals(type)) {
@@ -321,12 +333,14 @@ public final class XzielMultiplayer {
             try { track.setVolume(muted ? 0.0f : 1.0f); } catch (Exception ignored) {}
         }
         toast(muted ? "VOICE MUTED" : "VOICE AUDIO ON");
+        refreshVoiceOverlay();
     }
 
     public void toggleVoiceMode() {
         boolean prox = !proximityMode.get();
         proximityMode.set(prox);
         toast(prox ? "VOICE: PROXIMITY" : "VOICE: GROUP");
+        refreshVoiceOverlay();
     }
 
     public void updateLocalPosition(float x, float y, float z) {
@@ -369,12 +383,102 @@ public final class XzielMultiplayer {
         remoteTracks.clear();
         roomCode = "";
         localSlot = 0;
+        hideVoiceOverlay();
     }
 
     public void shutdown() {
         leaveRoom();
         http.dispatcher().executorService().shutdown();
         http.connectionPool().evictAll();
+    }
+
+    private void showVoiceOverlay() {
+        activity.runOnUiThread(() -> {
+            if (voiceOverlay != null || !isInRoom()) {
+                refreshVoiceOverlay();
+                return;
+            }
+
+            LinearLayout row = new LinearLayout(activity);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(dp(6), dp(4), dp(6), dp(4));
+
+            GradientDrawable bg = new GradientDrawable();
+            bg.setColor(0x88000000);
+            bg.setCornerRadius(dp(12));
+            row.setBackground(bg);
+
+            micButton = makeVoiceButton();
+            speakerButton = makeVoiceButton();
+            modeButton = makeVoiceButton();
+
+            micButton.setOnClickListener(v -> toggleMic());
+            speakerButton.setOnClickListener(v -> toggleSpeaker());
+            modeButton.setOnClickListener(v -> toggleVoiceMode());
+
+            row.addView(micButton);
+            row.addView(speakerButton);
+            row.addView(modeButton);
+
+            FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+            params.gravity = Gravity.TOP | Gravity.START;
+            params.leftMargin = dp(10);
+            params.topMargin = dp(10);
+
+            activity.addContentView(row, params);
+            voiceOverlay = row;
+            refreshVoiceOverlay();
+        });
+    }
+
+    private Button makeVoiceButton() {
+        Button button = new Button(activity);
+        button.setAllCaps(false);
+        button.setTextColor(Color.WHITE);
+        button.setTextSize(11.0f);
+        button.setMinHeight(0);
+        button.setMinimumHeight(0);
+        button.setMinWidth(0);
+        button.setMinimumWidth(0);
+        button.setPadding(dp(9), dp(5), dp(9), dp(5));
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            dp(38));
+        lp.setMargins(dp(2), 0, dp(2), 0);
+        button.setLayoutParams(lp);
+        return button;
+    }
+
+    private void refreshVoiceOverlay() {
+        activity.runOnUiThread(() -> {
+            Button mic = micButton;
+            Button speaker = speakerButton;
+            Button mode = modeButton;
+            if (mic != null) mic.setText(micMuted.get() ? "MIC OFF" : "MIC ON");
+            if (speaker != null) speaker.setText(speakerMuted.get() ? "SOUND OFF" : "SOUND ON");
+            if (mode != null) mode.setText(proximityMode.get() ? "PROX" : "GROUP");
+        });
+    }
+
+    private void hideVoiceOverlay() {
+        activity.runOnUiThread(() -> {
+            LinearLayout row = voiceOverlay;
+            voiceOverlay = null;
+            micButton = null;
+            speakerButton = null;
+            modeButton = null;
+            if (row != null && row.getParent() instanceof ViewGroup) {
+                ((ViewGroup) row.getParent()).removeView(row);
+            }
+        });
+    }
+
+    private int dp(int value) {
+        return Math.round(value * activity.getResources().getDisplayMetrics().density);
     }
 
     private void showLobbyDialog() {
