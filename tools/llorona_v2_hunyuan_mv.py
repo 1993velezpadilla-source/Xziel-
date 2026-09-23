@@ -96,11 +96,11 @@ api = client.view_api(print_info=False, return_format="dict")
 (OUT_DIR / "api-info.json").write_text(json.dumps(api, indent=2), encoding="utf-8")
 named = api.get("named_endpoints", {})
 
-endpoint = "/generation_all" if "/generation_all" in named else next(
-    (n for n in named if "generation_all" in n), None
+endpoint = "/shape_generation" if "/shape_generation" in named else next(
+    (n for n in named if "shape_generation" in n), None
 )
 if not endpoint:
-    fail(f"No full generation endpoint. endpoints={list(named)}")
+    fail(f"No shape generation endpoint. endpoints={list(named)}")
 
 params = named[endpoint].get("parameters", [])
 files = {k: handle_file(str(v)) for k, v in clean.items()}
@@ -183,9 +183,9 @@ if not glbs:
 for p in glbs:
     shutil.copy2(p, OUT_DIR / f"source_{p.name}")
 
-preferred = next((p for p in glbs if "textur" in p.name.lower()), None)
-if preferred is None:
-    preferred = next((p for p in glbs if "white" not in p.name.lower()), None)
+# shape_generation is intentionally used: generation_all currently crashes
+# remotely with PyMeshLabException. The V2 texture stage is handled separately.
+preferred = next((p for p in glbs if "white_mesh" in p.name.lower()), None)
 if preferred is None:
     preferred = glbs[0]
 
@@ -200,7 +200,7 @@ if len(data) < 1024:
 
 manifest = {
     "asset": "La Llorona V2",
-    "generator": "Tencent Hunyuan3D-2mv",
+    "generator": "Tencent Hunyuan3D-2mv /shape_generation",
     "endpoint": endpoint,
     "geometry_input_views": ["front", "left", "right"],
     "back_reference_reserved_for_texture": PRIMARY["back"].name,
