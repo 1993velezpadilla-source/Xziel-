@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_utc": "2026-09-23T04:01:00Z",
+  "updated_utc": "2026-09-23T04:20:00Z",
   "policy": {
     "default_stack": "permissive_open_source",
     "allow_restricted_by_default": false,
@@ -13,7 +13,10 @@
   "backends": [
     {
       "id": "triposg",
-      "role": ["single_image_shape", "geometry_candidate"],
+      "role": [
+        "single_image_shape",
+        "geometry_candidate"
+      ],
       "repo": "https://github.com/VAST-AI-Research/TripoSG.git",
       "sha": "fc5c40990181e2a756c4e0b1c2f4d6b5202faf8c",
       "license": "MIT",
@@ -24,7 +27,10 @@
     },
     {
       "id": "triposf",
-      "role": ["geometry_refine", "high_resolution_reconstruction"],
+      "role": [
+        "geometry_refine",
+        "high_resolution_reconstruction"
+      ],
       "repo": "https://github.com/VAST-AI-Research/TripoSF.git",
       "sha": "b97b749aa5726fb64ceec359a4ef8e61e79279c7",
       "license": "MIT",
@@ -35,7 +41,11 @@
     },
     {
       "id": "trellis2",
-      "role": ["single_image_shape", "pbr_candidate", "geometry_candidate"],
+      "role": [
+        "single_image_shape",
+        "pbr_candidate",
+        "geometry_candidate"
+      ],
       "repo": "https://github.com/microsoft/TRELLIS.2.git",
       "sha": "75fbf0183001ed9876c8dbb35de6b68552ee08bd",
       "license": "MIT",
@@ -45,8 +55,27 @@
       "notes": "4B O-Voxel image-to-3D, 512^3 to 1536^3, full PBR, arbitrary/open topology."
     },
     {
+      "id": "trellis",
+      "role": [
+        "multi_image_shape",
+        "geometry_candidate",
+        "multi_view_fusion"
+      ],
+      "repo": "https://github.com/microsoft/TRELLIS.git",
+      "sha": "442aa1e1afb9014e80681d3bf604e8d728a86ee7",
+      "license": "MIT",
+      "enabled_by_default": true,
+      "min_vram_gb": 16,
+      "quality_tier": "high",
+      "notes": "Native run_multi_image() candidate using stochastic or multidiffusion fusion; activates automatically when Hayuya gets 2 photos."
+    },
+    {
       "id": "instantmesh",
-      "role": ["single_image_multiview", "geometry_candidate", "view_synthesis"],
+      "role": [
+        "single_image_multiview",
+        "geometry_candidate",
+        "view_synthesis"
+      ],
       "repo": "https://github.com/TencentARC/InstantMesh.git",
       "sha": "08822c52fdc399b93ea00e4fa9e596344ed52ccc",
       "license": "Apache-2.0",
@@ -57,7 +86,11 @@
     },
     {
       "id": "wonder3d",
-      "role": ["view_synthesis", "normal_synthesis", "geometry_support"],
+      "role": [
+        "view_synthesis",
+        "normal_synthesis",
+        "geometry_support"
+      ],
       "repo": "https://github.com/xxlong0/Wonder3D.git",
       "sha": "d894f827aa8c2917761a0dad3ab40df74c7a5b24",
       "license": "MIT",
@@ -68,7 +101,10 @@
     },
     {
       "id": "triposr",
-      "role": ["fast_shape", "sanity_candidate"],
+      "role": [
+        "fast_shape",
+        "sanity_candidate"
+      ],
       "repo": "https://github.com/VAST-AI-Research/TripoSR.git",
       "sha": "107cefdc244c39106fa830359024f6a2f1c78871",
       "license": "MIT",
@@ -79,7 +115,11 @@
     },
     {
       "id": "pshuman",
-      "role": ["character_specialist", "human_geometry", "human_multiview"],
+      "role": [
+        "character_specialist",
+        "human_geometry",
+        "human_multiview"
+      ],
       "repo": "https://github.com/pengHTYX/PSHuman.git",
       "sha": "f2a635126dca3bf0526b4a08723cb84a79b57cab",
       "license": "MIT",
@@ -90,7 +130,10 @@
     },
     {
       "id": "hunyuan3d_2_1",
-      "role": ["optional_shape", "optional_pbr"],
+      "role": [
+        "optional_shape",
+        "optional_pbr"
+      ],
       "repo": "https://github.com/Tencent-Hunyuan/Hunyuan3D-2.1.git",
       "sha": "82920d643c0dc2f7bfd7255f45f62d386edfe60c",
       "license": "Tencent Hunyuan 3D 2.1 Community License",
@@ -105,14 +148,29 @@
       "id": "tripo_api",
       "enabled_by_default": false,
       "env_key": "TRIPO_API_KEY",
-      "capabilities": ["image_to_multiview", "image_to_model", "multiview_to_model", "texture", "segment", "complete", "decimate", "rig"],
+      "capabilities": [
+        "image_to_multiview",
+        "image_to_model",
+        "multiview_to_model",
+        "texture",
+        "segment",
+        "complete",
+        "decimate",
+        "rig"
+      ],
       "notes": "Optional paid/cloud adapter; never required for the open-source Hayuya path."
     },
     {
       "id": "meshy_api",
       "enabled_by_default": false,
       "env_key": "MESHY_API_KEY",
-      "capabilities": ["image_to_model", "multi_image_to_model", "pbr", "remesh", "rig"],
+      "capabilities": [
+        "image_to_model",
+        "multi_image_to_model",
+        "pbr",
+        "remesh",
+        "rig"
+      ],
       "notes": "Optional paid/cloud adapter; never required for the open-source Hayuya path."
     }
   ]
