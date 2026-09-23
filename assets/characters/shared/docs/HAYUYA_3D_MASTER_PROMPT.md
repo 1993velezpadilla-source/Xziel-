@@ -140,6 +140,7 @@ A completed Hayuya job should converge on:
 - `ranking.json`
 - `manifest.json`
 - candidate outputs for audit
+- editable retopo OBJ + retopo manifest when smart retopology runs
 - GamePrep master + LOD0-LOD3
 - convex collision proxy when valid
 - 8-frame turntable preview
