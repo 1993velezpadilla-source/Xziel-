@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "updated": "2026-09-23",
+  "purpose": "Research matrix only. No vendor selected or endorsed.",
+  "vendors": [
+    {
+      "vendor": "Anzu",
+      "model": "intrinsic in-game advertising",
+      "observedCapabilities": [
+        "in-world intrinsic placements",
+        "publisher placement control",
+        "mobile/PC/console positioning",
+        "click-enabled intrinsic formats announced 2026",
+        "deliberate click mechanics including double-tap and tap-and-hold"
+      ],
+      "xzielTakeaways": [
+        "keep publisher control",
+        "if clicks are ever enabled, require deliberate gestures",
+        "keep performance inventory separate from basic brand-awareness slots"
+      ],
+      "sources": [
+        "https://www.anzu.io/pc-console-game-developers",
+        "https://www.anzu.io/news/anzu-redefines-in-game-advertising-with-performance-driven-player-first-intrinsic-formats"
+      ]
+    },
+    {
+      "vendor": "Frameplay",
+      "model": "intrinsic ad spaces",
+      "observedCapabilities": [
+        "fixed aspect-ratio ad spaces",
+        "placeholder materials",
+        "static/dynamic creative",
+        "quality multipliers",
+        "activation colliders",
+        "visibility/obstruction-aware impression quality",
+        "developer control over placement and brand approvals"
+      ],
+      "xzielTakeaways": [
+        "fallback placeholder must be authored",
+        "less-is-more density rule",
+        "download only relevant zone assets",
+        "scale texture quality to screen footprint",
+        "track occlusion and angle"
+      ],
+      "sources": [
+        "https://docs.frameplay.gg/guide/ad-spaces/",
+        "https://docs.frameplay.gg/guide/best-practices/",
+        "https://www.frameplay.gg/developers/"
+      ]
+    },
+    {
+      "vendor": "AdInMo",
+      "model": "InGamePlay placements",
+      "observedCapabilities": [
+        "visual and audio placements",
+        "placement keys",
+        "display/video/rich-media/audio",
+        "clickable units",
+        "pre-click visualizer",
+        "magnifier/intermediate interaction flow",
+        "documented impression-validity debugging"
+      ],
+      "xzielTakeaways": [
+        "audio can be a first-class authored slot",
+        "clickability should be per-slot and default off",
+        "debug tools must expose why an impression did/did not qualify"
+      ],
+      "sources": [
+        "https://documentation.adinmo.com/sdk-integration",
+        "https://documentation.adinmo.com/adding-placements",
+        "https://documentation.adinmo.com/creating-your-first-placement",
+        "https://documentation.adinmo.com/ad-placements-and-debugging-tools"
+      ]
+    },
+    {
+      "vendor": "Gadsme",
+      "model": "native in-game advertising",
+      "observedCapabilities": [
+        "in-world rendering",
+        "no overlays/popups positioning",
+        "mobile/PC/console",
+        "click-enabled formats",
+        "claims support for proprietary C++ engines"
+      ],
+      "xzielTakeaways": [
+        "custom C++ engine does not block intrinsic monetization",
+        "evaluate vendor SDK only behind an abstraction boundary",
+        "do not rely on vendor revenue uplift claims as forecasts"
+      ],
+      "sources": [
+        "https://www.gadsme.com/",
+        "https://www.gadsme.com/publishers"
+      ]
+    }
+  ]
+}
