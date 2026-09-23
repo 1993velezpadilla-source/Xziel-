@@ -27,7 +27,7 @@ Do **not** demand a manual 8-view turnaround. If 1, 2, 5, 9, 20, or more useful 
 3. Build missing view coverage automatically.
 4. Preserve real source views as higher-confidence anchors than generated views.
 5. Generate multiple independent 3D candidates.
-6. Judge the candidates against mesh health and, as the judge evolves, source-view agreement.
+6. Judge candidates against mesh health, silhouette/source-view agreement, and — when Judge v3 is available — DINOv2 RGB appearance plus local-detail references.
 7. Select the strongest valid candidate.
 8. Build/retain UV and PBR material data.
 9. Produce game-ready topology/LODs as requested.
@@ -77,6 +77,8 @@ When multiple photos are supplied:
 - preserve **every unique real photo** in the reference pool
 - accept complete folders recursively, not only individually enumerated files
 - recognize explicit `details/`, `textures/`, `materials/`, `closeups/` folders as local-detail evidence
+- keep detail refs out of whole-object silhouette scoring
+- when Judge v3/DINOv2 is active, search those detail refs against local patches from multiple candidate angles so face/clothing/symbol/wound/material evidence affects ranking
 - use all real photos as Judge evidence
 - prefer native multi-image reconstruction for at least one candidate family
 - when a backend has a per-call image/VRAM limit, split references into deterministic overlapping anchor groups rather than discarding extras
