@@ -1,3 +1,7 @@
+plugins {
+    id "com.android.application"
+}
+
 def xzielMultiplayerBaseUrl =
     System.getenv("XZIEL_MULTIPLAYER_WS_URL") ?: ""
 
@@ -16,10 +20,6 @@ def xzielBuildConfigString = { String value ->
             .replace("\\", "\\\\")
             .replace("\"", "\\\"") +
         "\""
-}
-
-plugins {
-    id "com.android.application"
 }
 
 android {
