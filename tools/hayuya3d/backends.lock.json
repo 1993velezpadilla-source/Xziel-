@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_utc": "2026-09-23T04:32:00Z",
+  "updated_utc": "2026-09-23T04:45:00Z",
   "policy": {
     "default_stack": "permissive_open_source",
     "allow_restricted_by_default": false,
@@ -23,7 +23,11 @@
       "enabled_by_default": true,
       "min_vram_gb": 8,
       "quality_tier": "high",
-      "notes": "1.5B rectified-flow image-to-shape model; direct GLB export and face limiting."
+      "notes": "1.5B rectified-flow image-to-shape model; direct GLB export and face limiting.",
+      "input_policy": {
+        "native_images_per_call": 1,
+        "hayuya_strategy": "spawn independent hypotheses from ordered real anchors; Judge against full pool"
+      }
     },
     {
       "id": "triposf",
@@ -52,7 +56,11 @@
       "enabled_by_default": true,
       "min_vram_gb": 24,
       "quality_tier": "ultra",
-      "notes": "4B O-Voxel image-to-3D, 512^3 to 1536^3, full PBR, arbitrary/open topology."
+      "notes": "4B O-Voxel image-to-3D, 512^3 to 1536^3, full PBR, arbitrary/open topology.",
+      "input_policy": {
+        "native_images_per_call": 1,
+        "hayuya_strategy": "primary ultra candidate; additional reference evidence enters Judge and other multi-image candidates"
+      }
     },
     {
       "id": "trellis",
@@ -67,7 +75,12 @@
       "enabled_by_default": true,
       "min_vram_gb": 16,
       "quality_tier": "high",
-      "notes": "Native run_multi_image() candidate using stochastic or multidiffusion fusion; activates automatically when Hayuya gets 2 photos."
+      "notes": "Native run_multi_image() candidate using stochastic or multidiffusion fusion; activates automatically when Hayuya gets 2 photos.",
+      "input_policy": {
+        "logical_reference_limit": null,
+        "hayuya_default_group_size": 6,
+        "grouping": "primary-anchor repeated across bounded groups"
+      }
     },
     {
       "id": "instantmesh",
@@ -188,7 +201,9 @@
         "decimate",
         "rig"
       ],
-      "notes": "Optional paid/cloud adapter; never required for the open-source Hayuya path."
+      "notes": "Optional paid/cloud adapter; never required for the open-source Hayuya path.",
+      "max_images_per_generation_call": 4,
+      "hayuya_strategy": "map canonical subsets/groups into vendor calls; never cap total Hayuya reference pool"
     },
     {
       "id": "meshy_api",
@@ -201,7 +216,9 @@
         "remesh",
         "rig"
       ],
-      "notes": "Optional paid/cloud adapter; never required for the open-source Hayuya path."
+      "notes": "Optional paid/cloud adapter; never required for the open-source Hayuya path.",
+      "max_images_per_generation_call": 4,
+      "hayuya_strategy": "group arbitrary Hayuya pool into 1-4 image API tasks; first image is primary for each group"
     },
     {
       "id": "rodin_api",
@@ -215,7 +232,9 @@
         "high_detail_master",
         "texture"
       ],
-      "notes": "Optional official Hyper3D Rodin Gen-2.5 adapter. Public API accepts 1-5 images; never scrape or bypass the authenticated web service."
+      "notes": "Optional official Hyper3D Rodin Gen-2.5 adapter. Public API accepts 1-5 images; never scrape or bypass the authenticated web service.",
+      "max_images_per_generation_call": 5,
+      "hayuya_strategy": "group arbitrary Hayuya pool into 1-5 image API tasks while preserving source order"
     }
   ]
 }
