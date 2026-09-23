@@ -87,11 +87,23 @@ void AndroidAssetStreamer::stop() noexcept {
     }
 }
 
-bool AndroidAssetStreamer::enqueue(
+std::string AndroidAssetStreamer::rangeKey(
     const std::string& assetPath,
-    std::uint64_t maxBytes) noexcept {
-    if (assetPath.empty() ||
-        maxBytes == 0U) {
+    std::uint64_t offset,
+    std::uint64_t length) {
+    return
+        assetPath +
+        "@" +
+        std::to_string(offset) +
+        ":" +
+        std::to_string(length);
+}
+
+bool AndroidAssetStreamer::enqueueRequest(
+    Request request) noexcept {
+    if (request.key.empty() ||
+        request.path.empty() ||
+        request.maxBytes == 0U) {
         return false;
     }
 
@@ -100,16 +112,13 @@ bool AndroidAssetStreamer::enqueue(
 
         if (!running_ ||
             assetManager_ == nullptr ||
-            scheduled_.contains(assetPath)) {
+            scheduled_.contains(request.key)) {
             return false;
         }
 
-        scheduled_.insert(assetPath);
+        scheduled_.insert(request.key);
         requests_.push_back(
-            Request{
-                .path = assetPath,
-                .maxBytes = maxBytes,
-            });
+            std::move(request));
 
         ++stats_.queued;
         stats_.pending =
@@ -125,14 +134,51 @@ bool AndroidAssetStreamer::enqueue(
     return true;
 }
 
-bool AndroidAssetStreamer::take(
+bool AndroidAssetStreamer::enqueue(
     const std::string& assetPath,
+    std::uint64_t maxBytes) noexcept {
+    return enqueueRequest({
+        .key = assetPath,
+        .path = assetPath,
+        .offset = 0U,
+        .length = 0U,
+        .maxBytes = maxBytes,
+    });
+}
+
+bool AndroidAssetStreamer::enqueueRange(
+    const std::string& assetPath,
+    std::uint64_t offset,
+    std::uint64_t length) noexcept {
+    if (assetPath.empty() ||
+        length == 0U) {
+        return false;
+    }
+
+    try {
+        return enqueueRequest({
+            .key = rangeKey(
+                assetPath,
+                offset,
+                length),
+            .path = assetPath,
+            .offset = offset,
+            .length = length,
+            .maxBytes = length,
+        });
+    } catch (...) {
+        return false;
+    }
+}
+
+bool AndroidAssetStreamer::takeKey(
+    const std::string& key,
     std::vector<std::byte>& destination) noexcept {
     destination.clear();
 
     std::unique_lock lock(mutex_);
 
-    if (!scheduled_.contains(assetPath)) {
+    if (!scheduled_.contains(key)) {
         return false;
     }
 
@@ -141,15 +187,15 @@ bool AndroidAssetStreamer::take(
         [&]() noexcept {
             return
                 !running_ ||
-                !scheduled_.contains(assetPath) ||
-                results_.contains(assetPath);
+                !scheduled_.contains(key) ||
+                results_.contains(key);
         });
 
     const auto found =
-        results_.find(assetPath);
+        results_.find(key);
 
     if (found == results_.end()) {
-        scheduled_.erase(assetPath);
+        scheduled_.erase(key);
         return false;
     }
 
@@ -173,7 +219,7 @@ bool AndroidAssetStreamer::take(
     }
 
     results_.erase(found);
-    scheduled_.erase(assetPath);
+    scheduled_.erase(key);
 
     stats_.bufferedBytes =
         bufferedBytes_;
@@ -189,8 +235,8 @@ bool AndroidAssetStreamer::take(
     return success;
 }
 
-bool AndroidAssetStreamer::tryTake(
-    const std::string& assetPath,
+bool AndroidAssetStreamer::tryTakeKey(
+    const std::string& key,
     std::vector<std::byte>& destination,
     bool& finished) noexcept {
     destination.clear();
@@ -199,10 +245,10 @@ bool AndroidAssetStreamer::tryTake(
     std::unique_lock lock(mutex_);
 
     const auto found =
-        results_.find(assetPath);
+        results_.find(key);
 
     if (found == results_.end()) {
-        if (!scheduled_.contains(assetPath) ||
+        if (!scheduled_.contains(key) ||
             !running_) {
             finished = true;
         }
@@ -230,7 +276,7 @@ bool AndroidAssetStreamer::tryTake(
     }
 
     results_.erase(found);
-    scheduled_.erase(assetPath);
+    scheduled_.erase(key);
 
     stats_.bufferedBytes =
         bufferedBytes_;
@@ -244,6 +290,63 @@ bool AndroidAssetStreamer::tryTake(
     resultCv_.notify_all();
 
     return success;
+}
+
+bool AndroidAssetStreamer::take(
+    const std::string& assetPath,
+    std::vector<std::byte>& destination) noexcept {
+    return takeKey(
+        assetPath,
+        destination);
+}
+
+bool AndroidAssetStreamer::tryTake(
+    const std::string& assetPath,
+    std::vector<std::byte>& destination,
+    bool& finished) noexcept {
+    return tryTakeKey(
+        assetPath,
+        destination,
+        finished);
+}
+
+bool AndroidAssetStreamer::takeRange(
+    const std::string& assetPath,
+    std::uint64_t offset,
+    std::uint64_t length,
+    std::vector<std::byte>& destination) noexcept {
+    try {
+        return takeKey(
+            rangeKey(
+                assetPath,
+                offset,
+                length),
+            destination);
+    } catch (...) {
+        destination.clear();
+        return false;
+    }
+}
+
+bool AndroidAssetStreamer::tryTakeRange(
+    const std::string& assetPath,
+    std::uint64_t offset,
+    std::uint64_t length,
+    std::vector<std::byte>& destination,
+    bool& finished) noexcept {
+    try {
+        return tryTakeKey(
+            rangeKey(
+                assetPath,
+                offset,
+                length),
+            destination,
+            finished);
+    } catch (...) {
+        destination.clear();
+        finished = true;
+        return false;
+    }
 }
 
 bool AndroidAssetStreamer::running() const noexcept {
