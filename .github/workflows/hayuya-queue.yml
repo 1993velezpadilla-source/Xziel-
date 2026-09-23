@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   issues: write
 
 jobs:
@@ -167,6 +167,48 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: python tools/hayuya3d/phone_cloud_worker.py
+
+      - name: Persist successful model for Hub preview
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          src="$HAYUYA_OUTPUT_ROOT/hayuya_final.glb"
+          test -s "$src"
+          model_dir="hayuya/models/$HAYUYA_JOB_ID"
+          mkdir -p "$model_dir"
+          cp "$src" "$model_dir/model.glb"
+          if [ -f "$HAYUYA_OUTPUT_ROOT/manifest.json" ]; then
+            cp "$HAYUYA_OUTPUT_ROOT/manifest.json" "$model_dir/manifest.json"
+          fi
+          rm -rf "$model_dir/prepared_views"
+          if [ -d "$HAYUYA_OUTPUT_ROOT/prepared_views" ]; then
+            cp -R "$HAYUYA_OUTPUT_ROOT/prepared_views" "$model_dir/prepared_views"
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$model_dir"
+          if git diff --cached --quiet; then
+            echo "HAYUYA_MODEL_ALREADY_CURRENT $HAYUYA_JOB_ID"
+            exit 0
+          fi
+          git commit -m "hayuya: persist $HAYUYA_JOB_ID for Hub preview"
+
+          for attempt in 1 2 3 4 5; do
+            git pull --rebase origin art/hayuya-monster-v1 || {
+              git rebase --abort || true
+              sleep $((attempt * 2))
+              continue
+            }
+            if git push origin HEAD:art/hayuya-monster-v1; then
+              echo "HAYUYA_MODEL_PERSISTED $HAYUYA_JOB_ID"
+              exit 0
+            fi
+            sleep $((attempt * 2))
+          done
+          echo "Could not persist $HAYUYA_JOB_ID after retries" >&2
+          exit 1
 
       - name: Job summary
         if: always()
