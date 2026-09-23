@@ -61,15 +61,21 @@ def _deps():
 def _combine(path: Path):
     np, trimesh = _deps()
     meshes = _scene_meshes(path)
-    geometry = [
-        trimesh.Trimesh(
+    geometry = []
+    for mesh in meshes:
+        if not hasattr(mesh, "faces") or not len(mesh.faces):
+            continue
+        clean = trimesh.Trimesh(
             vertices=np.asarray(mesh.vertices).copy(),
             faces=np.asarray(mesh.faces).copy(),
             process=False,
         )
-        for mesh in meshes
-        if hasattr(mesh, "faces") and len(mesh.faces)
-    ]
+        # glTF legitimately duplicates vertices at UV/normal/material seams.
+        # Weld coincident vertices inside each primitive for topology auditing so
+        # rendering seams are not misclassified as geometric holes.
+        clean.merge_vertices()
+        geometry.append(clean)
+
     if not geometry:
         raise ValueError(f"no triangle geometry in {path}")
     return trimesh.util.concatenate(geometry)
@@ -317,7 +323,11 @@ def _shape_drift(source: Path, repaired: Path) -> tuple[float, float, float]:
     max_extent_drift = float(np.max(extent_rel))
 
     scale = max(float(np.max(src_extent)), 1e-9)
-    centroid_drift = float(np.linalg.norm(np.asarray(dst.centroid) - np.asarray(src.centroid)) / scale)
+    src_center = (np.asarray(src.bounds[0]) + np.asarray(src.bounds[1])) * 0.5
+    dst_center = (np.asarray(dst.bounds[0]) + np.asarray(dst.bounds[1])) * 0.5
+    # Surface centroid changes when duplicate/degenerate faces are removed even
+    # when vertex positions do not move. Bounding-box center measures spatial drift.
+    centroid_drift = float(np.linalg.norm(dst_center - src_center) / scale)
 
     src_v = np.asarray(src.vertices, dtype=np.float32)
     dst_v = np.asarray(dst.vertices, dtype=np.float32)
