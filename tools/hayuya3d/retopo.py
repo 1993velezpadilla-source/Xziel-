@@ -35,6 +35,8 @@ class RetopoResult:
     deterministic: bool
     material_method: str
     material_channels: list[str]
+    material_dropped_channels: list[str]
+    material_rebake_required: list[str]
     material_fallback: bool
     manifest_path: str
 
@@ -314,6 +316,8 @@ def run_retopology(
         deterministic=True,
         material_method=bridge.method,
         material_channels=list(bridge.channels or []),
+        material_dropped_channels=list(bridge.dropped_channels or []),
+        material_rebake_required=list(bridge.rebake_required or []),
         material_fallback=bridge.fallback_used,
         manifest_path=str(manifest_path),
     )
