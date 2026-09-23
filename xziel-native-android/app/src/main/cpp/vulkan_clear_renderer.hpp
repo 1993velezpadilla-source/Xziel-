@@ -334,7 +334,9 @@ private:
         std::uint32_t& outIndex) const noexcept;
 
     [[nodiscard]] bool createRenderPass() noexcept;
+    [[nodiscard]] bool createUiRenderPass() noexcept;
     [[nodiscard]] bool createGraphicsPipeline() noexcept;
+    [[nodiscard]] bool createSceneCompositePipeline() noexcept;
     [[nodiscard]] bool createUiPipeline() noexcept;
 
     [[nodiscard]] bool createShaderModuleFromAsset(
@@ -343,7 +345,9 @@ private:
 
     [[nodiscard]] bool createImageViews() noexcept;
     [[nodiscard]] bool createSceneColorResources() noexcept;
+    [[nodiscard]] bool createSceneResolveResources() noexcept;
     [[nodiscard]] bool createDepthResources() noexcept;
+    [[nodiscard]] bool createSceneCompositeDescriptors() noexcept;
     [[nodiscard]] bool createReflectionFallbackResources() noexcept;
     void destroyReflectionFallbackResources() noexcept;
     void updateReflectionDescriptor(VkImageView view) noexcept;
@@ -353,7 +357,13 @@ private:
     void destroyReflectionPassResources() noexcept;
     void destroyReflectionTarget() noexcept;
     [[nodiscard]] bool createFramebuffers() noexcept;
+    [[nodiscard]] bool createUiFramebuffers() noexcept;
     [[nodiscard]] bool createCommandResources() noexcept;
+    void destroySceneTargets() noexcept;
+    [[nodiscard]] bool recreateSceneTargets(
+        float renderScale) noexcept;
+    void updateSceneExtent(
+        float renderScale) noexcept;
     [[nodiscard]] bool createSyncObjects() noexcept;
     [[nodiscard]] bool createPerformanceQueries() noexcept;
     void destroyPerformanceQueries() noexcept;
@@ -394,10 +404,19 @@ private:
     VkFormat swapchainFormat_ = VK_FORMAT_UNDEFINED;
     VkFormat depthFormat_ = VK_FORMAT_UNDEFINED;
     VkExtent2D swapchainExtent_{};
+    VkExtent2D sceneExtent_{};
+    float activeRenderScale_ = 1.0f;
 
     VkRenderPass renderPass_ = VK_NULL_HANDLE;
+    VkRenderPass uiRenderPass_ = VK_NULL_HANDLE;
     VkPipelineLayout pipelineLayout_ = VK_NULL_HANDLE;
     VkPipeline graphicsPipeline_ = VK_NULL_HANDLE;
+
+    VkPipelineLayout sceneCompositePipelineLayout_ = VK_NULL_HANDLE;
+    VkPipeline sceneCompositePipeline_ = VK_NULL_HANDLE;
+    VkDescriptorSetLayout sceneCompositeDescriptorSetLayout_ = VK_NULL_HANDLE;
+    VkDescriptorPool sceneCompositeDescriptorPool_ = VK_NULL_HANDLE;
+    VkSampler sceneCompositeSampler_ = VK_NULL_HANDLE;
 
     VkPipelineLayout uiPipelineLayout_ = VK_NULL_HANDLE;
     VkPipeline uiPipeline_ = VK_NULL_HANDLE;
@@ -415,6 +434,14 @@ private:
     std::vector<VkImage> sceneColorImages_;
     std::vector<VkDeviceMemory> sceneColorMemory_;
     std::vector<VkImageView> sceneColorViews_;
+
+    // Single-sample world color that receives the MSAA resolve (or is drawn
+    // directly on 1x devices) and is then sampled by the native-resolution
+    // composite pass.
+    std::vector<VkImage> sceneResolveImages_;
+    std::vector<VkDeviceMemory> sceneResolveMemory_;
+    std::vector<VkImageView> sceneResolveViews_;
+    std::vector<VkDescriptorSet> sceneCompositeDescriptorSets_;
 
     std::vector<VkImage> depthImages_;
     std::vector<VkDeviceMemory> depthMemory_;
@@ -451,6 +478,7 @@ private:
     VkDescriptorSet reflectionDescriptorSet_ = VK_NULL_HANDLE;
 
     std::vector<VkFramebuffer> framebuffers_;
+    std::vector<VkFramebuffer> uiFramebuffers_;
     std::vector<VkCommandBuffer> commandBuffers_;
     std::vector<VkFence> imageFences_;
 
