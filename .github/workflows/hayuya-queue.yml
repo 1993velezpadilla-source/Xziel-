@@ -1,0 +1,146 @@
+name: Hayuya Queue
+run-name: HAYUYA • ${{ github.event.head_commit.message }}
+
+on:
+  push:
+    branches:
+      - art/hayuya-monster-v1
+    paths:
+      - hayuya/jobs/requests/**.json
+      - tools/hayuya3d/job_request.py
+      - tools/hayuya3d/gpu_e2e.sh
+      - .github/workflows/hayuya-queue.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.requests.outputs.matrix }}
+      count: ${{ steps.requests.outputs.count }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Collect and validate requests
+        id: requests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          root = Path('.').resolve()
+          sys.path.insert(0, str(root / 'tools' / 'hayuya3d'))
+          from job_request import load_request
+
+          if os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch':
+              changed = sorted((root / 'hayuya' / 'jobs' / 'requests').glob('*.json')) if (root / 'hayuya' / 'jobs' / 'requests').is_dir() else []
+          else:
+              proc = subprocess.run(
+                  ['git', 'diff-tree', '--no-commit-id', '--name-only', '-r', os.environ['GITHUB_SHA']],
+                  check=True, text=True, stdout=subprocess.PIPE
+              )
+              changed = [root / line.strip() for line in proc.stdout.splitlines() if line.startswith('hayuya/jobs/requests/') and line.endswith('.json')]
+
+          include = []
+          for path in changed:
+              if not path.is_file():
+                  continue
+              data = load_request(path, root)
+              include.append({
+                  'request': str(path.relative_to(root)),
+                  'job_id': data['job_id'],
+                  'owner': data['owner'],
+                  'title': data['title'],
+                  'geometry_input': data['geometry_input'],
+                  'reference_dir': data.get('reference_dir', ''),
+                  'detail_dir': data.get('detail_dir', ''),
+                  'profile': data['profile'],
+                  'mode': data['mode'],
+                  'portable_target': data['portable_target'],
+                  'gpu_vram': str(data.get('gpu_vram', 24)),
+                  'backends': data.get('backends', 'triposg,trellis2,trellis,instantmesh,triposr'),
+              })
+
+          matrix = json.dumps({'include': include}, separators=(',', ':'))
+          out = Path(os.environ['GITHUB_OUTPUT'])
+          with out.open('a', encoding='utf-8') as f:
+              f.write(f'matrix={matrix}\n')
+              f.write(f'count={len(include)}\n')
+          print(json.dumps(include, indent=2))
+          PY
+
+      - name: Queue summary
+        run: |
+          echo "Validated ${{ steps.requests.outputs.count }} HAYUYA request(s)." >> "$GITHUB_STEP_SUMMARY"
+
+  generate:
+    needs: prepare
+    if: needs.prepare.outputs.count != '0'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    name: ${{ matrix.owner }} / ${{ matrix.job_id }}
+    runs-on: [self-hosted, linux, x64, hayuya-gpu]
+    timeout-minutes: 360
+    concurrency:
+      group: hayuya-queue-${{ matrix.job_id }}
+      cancel-in-progress: false
+    env:
+      HAYUYA_JOB_ID: ${{ matrix.job_id }}
+      HAYUYA_GEOMETRY_INPUT: ${{ matrix.geometry_input }}
+      HAYUYA_REFERENCE_DIR: ${{ matrix.reference_dir }}
+      HAYUYA_DETAIL_DIR: ${{ matrix.detail_dir }}
+      HAYUYA_PROFILE: ${{ matrix.profile }}
+      HAYUYA_MODE: ${{ matrix.mode }}
+      HAYUYA_PORTABLE_TARGET: ${{ matrix.portable_target }}
+      HAYUYA_GPU_VRAM: ${{ matrix.gpu_vram }}
+      HAYUYA_BACKENDS: ${{ matrix.backends }}
+      HAYUYA_OUTPUT_ROOT: out/hayuya-jobs/${{ matrix.job_id }}/outputs
+      HAYUYA_EVIDENCE_ROOT: out/hayuya-jobs/${{ matrix.job_id }}/evidence
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 1
+
+      - name: Run isolated Hayuya job
+        run: bash tools/hayuya3d/gpu_e2e.sh
+
+      - name: Job summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## HAYUYA model job"
+            echo ""
+            echo "- **Owner:** ${{ matrix.owner }}"
+            echo "- **Job:** ${{ matrix.job_id }}"
+            echo "- **Title:** ${{ matrix.title }}"
+            echo "- **Profile:** ${{ matrix.profile }}"
+            echo "- **Mode:** ${{ matrix.mode }}"
+            echo "- **Portable:** ${{ matrix.portable_target }}"
+            echo "- **Request:** ${{ matrix.request }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload isolated result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hayuya-${{ matrix.owner }}-${{ matrix.job_id }}
+          path: out/hayuya-jobs/${{ matrix.job_id }}/**
+          if-no-files-found: warn
+          retention-days: 14
