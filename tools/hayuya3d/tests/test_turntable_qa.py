@@ -87,7 +87,7 @@ class TurntableQATests(unittest.TestCase):
             frames = []
             for index, offset in enumerate(range(0, 360, 45)):
                 path = root / f"{index:02d}_{offset:03d}.png"
-                make_shape(path, kind="small", color=(20, 200, 80, 255))
+                make_shape(path, kind="wide", color=(20, 200, 80, 255))
                 frames.append(path)
 
             view = SourceViewScore(
