@@ -5,6 +5,57 @@
 
 namespace xziel {
 
+SanctumZone sanctumZoneForAssetName(
+    std::string_view assetName) noexcept {
+    // Exported St Giles material names already carry semantic room identity.
+    // Prefer the most specific tokens first so OfficeCorridor does not collapse
+    // into Office and tower subspaces remain independently streamable.
+    if (assetName.find("OfficeCorridor") !=
+        std::string_view::npos) {
+        return SanctumZone::OfficeCorridor;
+    }
+    if (assetName.find("Boiler") !=
+        std::string_view::npos) {
+        return SanctumZone::BoilerRoom;
+    }
+    if (assetName.find("RingingChamber") !=
+        std::string_view::npos) {
+        return SanctumZone::RingingChamber;
+    }
+    if (assetName.find("ClockChamber") !=
+        std::string_view::npos) {
+        return SanctumZone::ClockChamber;
+    }
+    if (assetName.find("RoofChamber") !=
+        std::string_view::npos) {
+        return SanctumZone::RoofChamber;
+    }
+    if (assetName.find("TowerStairs") !=
+        std::string_view::npos) {
+        return SanctumZone::TowerStairs;
+    }
+    if (assetName.find("TowerTop") !=
+            std::string_view::npos ||
+        assetName.find("Turret") !=
+            std::string_view::npos) {
+        return SanctumZone::TowerTop;
+    }
+    if (assetName.find("Office") !=
+        std::string_view::npos) {
+        return SanctumZone::Office;
+    }
+    if (assetName.find("Exterior") !=
+        std::string_view::npos) {
+        return SanctumZone::Courtyard;
+    }
+    if (assetName.find("StGilesCripplegate11") !=
+        std::string_view::npos) {
+        return SanctumZone::Nave;
+    }
+
+    return SanctumZone::Unknown;
+}
+
 bool configureSanctumStreamingGraph(
     StreamCellGraph& graph) noexcept {
     graph.reset();
