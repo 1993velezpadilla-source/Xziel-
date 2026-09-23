@@ -12,6 +12,7 @@ on:
       - tools/hayuya3d/phone_cloud_worker.py
       - tools/hayuya3d/internet_asset_research.py
       - tools/hayuya3d/auto_motion_planner.py
+      - tools/hayuya3d/part_segmentation_plan.py
       - hayuya/standards/hayuya_auto_motion_v1.json
       - hayuya/standards/hayuya_research_sources_v1.json
       - .github/workflows/hayuya-queue.yml
@@ -197,6 +198,8 @@ jobs:
 
           python tools/hayuya3d/auto_motion_planner.py             --asset-profile "$HAYUYA_ASSET_PROFILE"             --weapon-family "$HAYUYA_WEAPON_FAMILY"             --motion-profile "$HAYUYA_MOTION_PROFILE"             --animation-requested true             --research "$HAYUYA_EVIDENCE_ROOT/internet_research.json"             --json "$HAYUYA_OUTPUT_ROOT/auto_motion_plan.json"
 
+          python tools/hayuya3d/part_segmentation_plan.py             --asset-profile "$HAYUYA_ASSET_PROFILE"             --weapon-family "$HAYUYA_WEAPON_FAMILY"             --json "$HAYUYA_OUTPUT_ROOT/part_segmentation_plan.json"
+
           python - <<'PY'
           import json, os
           from pathlib import Path
@@ -231,7 +234,7 @@ jobs:
           if [ -f "$HAYUYA_OUTPUT_ROOT/manifest.json" ]; then
             cp "$HAYUYA_OUTPUT_ROOT/manifest.json" "$model_dir/manifest.json"
           fi
-          for qa in quality_gate.json texture_gate.json rig_gate.json auto_motion_plan.json failure_reason.txt; do
+          for qa in quality_gate.json texture_gate.json rig_gate.json auto_motion_plan.json part_segmentation_plan.json failure_reason.txt; do
             if [ -f "$HAYUYA_OUTPUT_ROOT/$qa" ]; then
               cp "$HAYUYA_OUTPUT_ROOT/$qa" "$model_dir/$qa"
             fi
