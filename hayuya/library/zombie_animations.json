@@ -5,7 +5,7 @@
     {
       "id": "basic",
       "label": "Zombie Animations",
-      "description": "All locally ingested HAYUYA clips, grouped by gameplay role. 43 canonical one-tap UAM2 clips plus 46 UAM1 clips waiting for skeleton mapping.",
+      "description": "Two local one-tap animation banks are installed for HAYUYA: 43 UAM2 clips and 46 UAM1 clips. Clicking a clip switches the live model to the correct animation bank automatically.",
       "categories": [
         {
           "id": "idle",
@@ -17,8 +17,8 @@
               "source": "quaternius-uam1",
               "clip": "Idle_Loop",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam2_idle_foldarms_loop",
@@ -89,8 +89,8 @@
               "source": "quaternius-uam1",
               "clip": "Idle_Talking_Loop",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam2_idle_talkingphone_loop",
@@ -107,8 +107,8 @@
               "source": "quaternius-uam1",
               "clip": "Idle_Torch_Loop",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam2_laytoidle",
@@ -134,8 +134,8 @@
               "source": "quaternius-uam1",
               "clip": "Pistol_Idle_Loop",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam1_sitting_idle_loop",
@@ -143,8 +143,8 @@
               "source": "quaternius-uam1",
               "clip": "Sitting_Idle_Loop",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam1_spell_simple_idle_loop",
@@ -152,8 +152,8 @@
               "source": "quaternius-uam1",
               "clip": "Spell_Simple_Idle_Loop",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam1_swim_idle_loop",
@@ -161,8 +161,8 @@
               "source": "quaternius-uam1",
               "clip": "Swim_Idle_Loop",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam1_sword_idle",
@@ -170,8 +170,8 @@
               "source": "quaternius-uam1",
               "clip": "Sword_Idle",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam2_zombie_idle_loop",
@@ -194,8 +194,8 @@
               "source": "quaternius-uam1",
               "clip": "Walk_Loop",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam2_walk_carry_loop",
@@ -212,8 +212,8 @@
               "source": "quaternius-uam1",
               "clip": "Walk_Formal_Loop",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam2_zombie_walk_fwd_loop",
@@ -236,8 +236,8 @@
               "source": "quaternius-uam1",
               "clip": "Jog_Fwd_Loop",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam1_sprint_loop",
@@ -245,8 +245,8 @@
               "source": "quaternius-uam1",
               "clip": "Sprint_Loop",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             }
           ]
         },
@@ -287,8 +287,8 @@
               "source": "quaternius-uam1",
               "clip": "Pistol_Shoot",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam1_punch_cross",
@@ -296,8 +296,8 @@
               "source": "quaternius-uam1",
               "clip": "Punch_Cross",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam1_punch_enter",
@@ -305,8 +305,8 @@
               "source": "quaternius-uam1",
               "clip": "Punch_Enter",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam1_punch_jab",
@@ -314,8 +314,8 @@
               "source": "quaternius-uam1",
               "clip": "Punch_Jab",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam2_shield_oneshot",
@@ -332,8 +332,8 @@
               "source": "quaternius-uam1",
               "clip": "Spell_Simple_Shoot",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam1_sword_attack",
@@ -341,8 +341,8 @@
               "source": "quaternius-uam1",
               "clip": "Sword_Attack",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam1_sword_attack_rm",
@@ -350,8 +350,8 @@
               "source": "quaternius-uam1",
               "clip": "Sword_Attack_RM",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam2_sword_block",
@@ -446,8 +446,8 @@
               "source": "quaternius-uam1",
               "clip": "Death01",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             }
           ]
         },
@@ -470,8 +470,8 @@
               "source": "quaternius-uam1",
               "clip": "A_TPose",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam2_chest_open",
@@ -506,8 +506,8 @@
               "source": "quaternius-uam1",
               "clip": "Dance_Loop",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam1_driving_loop",
@@ -515,8 +515,8 @@
               "source": "quaternius-uam1",
               "clip": "Driving_Loop",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam2_farm_harvest",
@@ -551,8 +551,8 @@
               "source": "quaternius-uam1",
               "clip": "Fixing_Kneeling",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam1_interact",
@@ -560,8 +560,8 @@
               "source": "quaternius-uam1",
               "clip": "Interact",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam1_jump_loop",
@@ -569,8 +569,8 @@
               "source": "quaternius-uam1",
               "clip": "Jump_Loop",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam1_jump_land",
@@ -578,8 +578,8 @@
               "source": "quaternius-uam1",
               "clip": "Jump_Land",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam1_jump_start",
@@ -587,8 +587,8 @@
               "source": "quaternius-uam1",
               "clip": "Jump_Start",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam2_ninjajump_land",
@@ -614,8 +614,8 @@
               "source": "quaternius-uam1",
               "clip": "PickUp_Table",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam1_pistol_aim_down",
@@ -623,8 +623,8 @@
               "source": "quaternius-uam1",
               "clip": "Pistol_Aim_Down",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam1_pistol_aim_neutral",
@@ -632,8 +632,8 @@
               "source": "quaternius-uam1",
               "clip": "Pistol_Aim_Neutral",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam1_pistol_aim_up",
@@ -641,8 +641,8 @@
               "source": "quaternius-uam1",
               "clip": "Pistol_Aim_Up",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam1_pistol_reload",
@@ -650,8 +650,8 @@
               "source": "quaternius-uam1",
               "clip": "Pistol_Reload",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam1_push_loop",
@@ -659,8 +659,8 @@
               "source": "quaternius-uam1",
               "clip": "Push_Loop",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam1_roll",
@@ -668,8 +668,8 @@
               "source": "quaternius-uam1",
               "clip": "Roll",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam1_roll_rm",
@@ -677,8 +677,8 @@
               "source": "quaternius-uam1",
               "clip": "Roll_RM",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam2_shield_dash_rm",
@@ -695,8 +695,8 @@
               "source": "quaternius-uam1",
               "clip": "Sitting_Enter",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam1_sitting_exit",
@@ -704,8 +704,8 @@
               "source": "quaternius-uam1",
               "clip": "Sitting_Exit",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam1_sitting_talking_loop",
@@ -713,8 +713,8 @@
               "source": "quaternius-uam1",
               "clip": "Sitting_Talking_Loop",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam2_slide_loop",
@@ -749,8 +749,8 @@
               "source": "quaternius-uam1",
               "clip": "Spell_Simple_Enter",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam1_spell_simple_exit",
@@ -758,8 +758,8 @@
               "source": "quaternius-uam1",
               "clip": "Spell_Simple_Exit",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam1_swim_fwd_loop",
@@ -767,8 +767,8 @@
               "source": "quaternius-uam1",
               "clip": "Swim_Fwd_Loop",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam2_treechopping_loop",
@@ -800,8 +800,8 @@
               "source": "quaternius-uam1",
               "clip": "Crouch_Fwd_Loop",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam1_crouch_idle_loop",
@@ -809,8 +809,8 @@
               "source": "quaternius-uam1",
               "clip": "Crouch_Idle_Loop",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             }
           ],
           "description": "True crawl clips go here; current UAM1 crouch clips are temporary low-profile options until dedicated crawler mocap is ingested."
@@ -825,8 +825,8 @@
               "source": "quaternius-uam1",
               "clip": "Hit_Chest",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam1_hit_head",
@@ -834,8 +834,8 @@
               "source": "quaternius-uam1",
               "clip": "Hit_Head",
               "license": "CC0",
-              "availability": "local_mapping_pending",
-              "one_tap_ready": false
+              "availability": "local",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_uam2_hit_knockback",
@@ -967,7 +967,7 @@
               ],
               "license": "CC0",
               "source_url": "https://quaternius.com/packs/universalanimationlibrary2.html",
-              "availability": "local",
+              "availability": "local_library",
               "local_path": "hayuya/animation_library/quaternius-uam2/library.glb",
               "one_tap_ready": false
             },
@@ -1003,7 +1003,7 @@
               ],
               "license": "CC0",
               "source_url": "https://quaternius.com/packs/universalanimationlibrary.html",
-              "availability": "local_mapping_pending",
+              "availability": "local_library",
               "local_path": "hayuya/animation_library/quaternius-uam1/library.glb",
               "one_tap_ready": false
             },
