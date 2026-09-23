@@ -1865,118 +1865,243 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureResidency(
     ++runtimeTextureTransitionFrame_;
 
     if (runtimeTextureUpload_.active) {
-        const VkResult status =
-            vkGetFenceStatus(
-                device_,
-                runtimeTextureUpload_.fence);
+        if (!runtimeTextureUpload_.uploadReady) {
+            const VkResult status =
+                vkGetFenceStatus(
+                    device_,
+                    runtimeTextureUpload_.fence);
 
-        if (status == VK_SUCCESS) {
-            const std::uint32_t textureIndex =
-                runtimeTextureUpload_.
-                    textureIndex;
+            if (status == VK_SUCCESS) {
+                if (runtimeTextureUpload_.command !=
+                        VK_NULL_HANDLE &&
+                    commandPool_ !=
+                        VK_NULL_HANDLE) {
+                    vkFreeCommandBuffers(
+                        device_,
+                        commandPool_,
+                        1U,
+                        &runtimeTextureUpload_.
+                            command);
+                    runtimeTextureUpload_.command =
+                        VK_NULL_HANDLE;
+                }
 
-            if (runtimeTextureUpload_.command !=
-                    VK_NULL_HANDLE &&
-                commandPool_ !=
+                if (runtimeTextureUpload_.
+                        stagingBuffer !=
                     VK_NULL_HANDLE) {
-                vkFreeCommandBuffers(
-                    device_,
-                    commandPool_,
-                    1U,
-                    &runtimeTextureUpload_.
-                        command);
-            }
-
-            if (runtimeTextureUpload_.
-                    stagingBuffer !=
-                VK_NULL_HANDLE) {
-                vkDestroyBuffer(
-                    device_,
-                    runtimeTextureUpload_.
-                        stagingBuffer,
-                    nullptr);
-            }
-
-            if (runtimeTextureUpload_.
-                    stagingMemory !=
-                VK_NULL_HANDLE) {
-                vkFreeMemory(
-                    device_,
-                    runtimeTextureUpload_.
-                        stagingMemory,
-                    nullptr);
-            }
-
-            if (runtimeTextureUpload_.fence !=
-                VK_NULL_HANDLE) {
-                vkDestroyFence(
-                    device_,
-                    runtimeTextureUpload_.fence,
-                    nullptr);
-            }
-
-            if (textureIndex <
-                textures_.size()) {
-                auto replacement =
-                    std::move(
+                    vkDestroyBuffer(
+                        device_,
                         runtimeTextureUpload_.
-                            replacement);
+                            stagingBuffer,
+                        nullptr);
+                    runtimeTextureUpload_.
+                        stagingBuffer =
+                        VK_NULL_HANDLE;
+                }
 
-                replacement.runtimeLoadQueued =
-                    false;
-                replacement.
-                    descriptorResidentMask =
-                    0U;
+                if (runtimeTextureUpload_.
+                        stagingMemory !=
+                    VK_NULL_HANDLE) {
+                    vkFreeMemory(
+                        device_,
+                        runtimeTextureUpload_.
+                            stagingMemory,
+                        nullptr);
+                    runtimeTextureUpload_.
+                        stagingMemory =
+                        VK_NULL_HANDLE;
+                }
 
-                textures_[textureIndex] =
-                    std::move(replacement);
+                if (runtimeTextureUpload_.fence !=
+                    VK_NULL_HANDLE) {
+                    vkDestroyFence(
+                        device_,
+                        runtimeTextureUpload_.fence,
+                        nullptr);
+                    runtimeTextureUpload_.fence =
+                        VK_NULL_HANDLE;
+                }
 
-                textureResidentBytes_ +=
-                    textures_[textureIndex].
-                        residentPayloadBytes;
-
-                (void) textureMipResidency_.
-                    applyResidentBaseMip(
-                        textures_[textureIndex].
-                            streamResourceId,
-                        textures_[textureIndex].
-                            residentBaseMip,
-                        runtimeTextureTransitionFrame_);
+                runtimeTextureUpload_.uploadReady =
+                    true;
 
                 __android_log_print(
                     ANDROID_LOG_INFO,
                     kTag,
                     "XZIEL_RUNTIME_TEXTURE_UPLOAD_READY texture=%u base_mip=%u payload_kb=%.1f",
                     static_cast<unsigned int>(
-                        textureIndex),
+                        runtimeTextureUpload_.
+                            textureIndex),
                     static_cast<unsigned int>(
-                        textures_[textureIndex].
-                            residentBaseMip),
+                        runtimeTextureUpload_.
+                            targetBaseMip),
                     static_cast<double>(
-                        textures_[textureIndex].
+                        runtimeTextureUpload_.
+                            replacement.
                             residentPayloadBytes) /
                         1024.0);
+            } else if (status != VK_NOT_READY) {
+                const std::uint32_t textureIndex =
+                    runtimeTextureUpload_.
+                        textureIndex;
+
+                destroyRuntimeTextureUpload();
+
+                if (textureIndex <
+                    textures_.size()) {
+                    textures_[textureIndex].
+                        runtimeLoadQueued = false;
+                }
+
+                return;
+            } else {
+                return;
             }
+        }
 
-            runtimeTextureUpload_ = {};
-        } else if (
-            status != VK_NOT_READY) {
-            const std::uint32_t textureIndex =
-                runtimeTextureUpload_.
-                    textureIndex;
+        const std::uint32_t textureIndex =
+            runtimeTextureUpload_.textureIndex;
 
+        if (textureIndex >= textures_.size()) {
             destroyRuntimeTextureUpload();
-
-            if (textureIndex <
-                textures_.size()) {
-                textures_[textureIndex].
-                    runtimeLoadQueued = false;
-            }
-
-            return;
-        } else {
             return;
         }
+
+        const std::uint8_t slotBit =
+            static_cast<std::uint8_t>(
+                1U << frameSlot);
+
+        if ((runtimeTextureUpload_.descriptorMask &
+             slotBit) == 0U) {
+            if (!updateTextureDescriptorForFrame(
+                    textureIndex,
+                    frameSlot,
+                    runtimeTextureUpload_.
+                        replacement)) {
+                return;
+            }
+
+            runtimeTextureUpload_.descriptorMask |=
+                slotBit;
+            textures_[textureIndex].
+                descriptorResidentMask &=
+                static_cast<std::uint8_t>(
+                    ~slotBit);
+
+            __android_log_print(
+                ANDROID_LOG_INFO,
+                kTag,
+                "XZIEL_RUNTIME_TEXTURE_MIP_SWAP_SLOT texture=%u frame_slot=%u new_base_mip=%u mask=%u",
+                static_cast<unsigned int>(
+                    textureIndex),
+                static_cast<unsigned int>(
+                    frameSlot),
+                static_cast<unsigned int>(
+                    runtimeTextureUpload_.
+                        targetBaseMip),
+                static_cast<unsigned int>(
+                    runtimeTextureUpload_.
+                        descriptorMask));
+        }
+
+        const std::uint8_t fullMask =
+            static_cast<std::uint8_t>(
+                (1U << kDescriptorFrames) - 1U);
+
+        if (runtimeTextureUpload_.descriptorMask !=
+            fullMask) {
+            return;
+        }
+
+        const std::uint32_t oldBaseMip =
+            textures_[textureIndex].
+                residentBaseMip;
+        const std::uint64_t oldPayloadBytes =
+            textures_[textureIndex].
+                residentPayloadBytes;
+        const std::uint64_t resourceId =
+            textures_[textureIndex].
+                streamResourceId;
+
+        auto replacement =
+            std::move(
+                runtimeTextureUpload_.
+                    replacement);
+        replacement.runtimeLoadQueued = false;
+        replacement.descriptorResidentMask =
+            fullMask;
+
+        releaseTextureGpuResidency(
+            textures_[textureIndex]);
+
+        textures_[textureIndex] =
+            std::move(replacement);
+
+        if (textures_[textureIndex].
+                residentPayloadBytes <=
+            std::numeric_limits<
+                std::uint64_t>::max() -
+                textureResidentBytes_) {
+            textureResidentBytes_ +=
+                textures_[textureIndex].
+                    residentPayloadBytes;
+        }
+
+        (void) textureMipResidency_.
+            applyResidentBaseMip(
+                resourceId,
+                textures_[textureIndex].
+                    residentBaseMip,
+                runtimeTextureTransitionFrame_);
+
+        const std::int64_t payloadDelta =
+            static_cast<std::int64_t>(
+                textures_[textureIndex].
+                    residentPayloadBytes) -
+            static_cast<std::int64_t>(
+                oldPayloadBytes);
+
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_RUNTIME_TEXTURE_MIP_SWAP_COMPLETE texture=%u old_base_mip=%u new_base_mip=%u payload_delta_kb=%.1f mask=%u",
+            static_cast<unsigned int>(
+                textureIndex),
+            static_cast<unsigned int>(
+                oldBaseMip),
+            static_cast<unsigned int>(
+                textures_[textureIndex].
+                    residentBaseMip),
+            static_cast<double>(
+                payloadDelta) /
+                1024.0,
+            static_cast<unsigned int>(
+                textures_[textureIndex].
+                    descriptorResidentMask));
+
+        if (streamResidencyProbeEnabled_ &&
+            !streamResidencyProbeComplete_ &&
+            streamResidencyProbeTextureIndex_ ==
+                textureIndex) {
+            streamResidencyProbeComplete_ =
+                true;
+
+            __android_log_print(
+                ANDROID_LOG_INFO,
+                kTag,
+                "XZIEL_RUNTIME_TEXTURE_RELOAD_COMPLETE texture=%u base_mip=%u mask=%u",
+                static_cast<unsigned int>(
+                    textureIndex),
+                static_cast<unsigned int>(
+                    textures_[textureIndex].
+                        residentBaseMip),
+                static_cast<unsigned int>(
+                    textures_[textureIndex].
+                        descriptorResidentMask));
+        }
+
+        runtimeTextureUpload_ = {};
+        return;
     }
 
     const std::uint8_t slotBit =
