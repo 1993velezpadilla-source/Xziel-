@@ -64,6 +64,7 @@ public:
         std::uint32_t graphicsQueueFamily,
         VkCommandPool commandPool,
         VkRenderPass renderPass,
+        VkSampleCountFlagBits sampleCount,
         AAssetManager* assetManager,
         const char* modelAssetPath) noexcept;
 
@@ -184,6 +185,8 @@ private:
     std::uint32_t graphicsQueueFamily_ = UINT32_MAX;
     VkCommandPool commandPool_ = VK_NULL_HANDLE;
     VkRenderPass renderPass_ = VK_NULL_HANDLE;
+    VkSampleCountFlagBits sampleCount_ =
+        VK_SAMPLE_COUNT_1_BIT;
 
     VkDescriptorSetLayout descriptorSetLayout_ = VK_NULL_HANDLE;
     VkDescriptorPool descriptorPool_ = VK_NULL_HANDLE;
