@@ -30,10 +30,11 @@ Do **not** demand a manual 8-view turnaround. If 1, 2, 5, 9, 20, or more useful 
 6. Judge candidates against mesh health, confidence-weighted silhouette/source-view agreement, perspective-refined cameras, DINOv2 RGB appearance, local-detail references, and low-weight synthetic normal support when available.
 7. Select the strongest valid candidate.
 8. In Monster/Ultra, optionally let TripoSF challenge the geometry at 1024³; never promote it merely for having more detail.
-9. If refined geometry wins real-source evidence, use Material Bridge to restore base-color appearance and return that GLB to the full final Judge.
-10. Build/retain UV and PBR material data.
-11. For game/mobile/monster/ultra assets, run GamePrep to create master, LOD0-LOD3, convex collision, turntable and GamePrep manifest unless explicitly disabled.
-12. Export the final GLB plus plan, ranking and manifests.
+9. If refined geometry wins real-source evidence, use Material Bridge v2 to transfer packed UV/PBR material evidence (baseColor, metallic/roughness, normal, AO/occlusion, emissive when available); fall back to v1 base-color projection only when no usable PBR/UV exists.
+10. Return the bridged GLB to the full final Judge; never auto-promote refinement merely because it is denser.
+11. Build/retain UV and PBR material data.
+12. For game/mobile/monster/ultra assets, run GamePrep to create master, LOD0-LOD3, convex collision, turntable and GamePrep manifest unless explicitly disabled. Preserve PBR through the shared Material Bridge v2 transfer context whenever possible.
+13. Export the final GLB plus plan, ranking and manifests.
 
 ## Canonical ViewForge coverage
 
@@ -102,12 +103,25 @@ Current families include:
 - TripoSR
 - Wonder3D executable ViewForge RGB + normal expansion
 - TripoSF evidence-gated 1024³ refinement
-- Material Bridge base-color transfer
+- Material Bridge v2 PBR UV/material transfer with v1 base-color fallback
 - PSHuman character-specialist roadmap
 
 Hunyuan3D is an optional backend, not the definition of Hayuya.
 
 Cloud services such as Tripo or Meshy may be optional official-API comparison backends, never mandatory dependencies.
+
+## GPU proof rule
+
+Do not describe a heavy backend as "GPU proven" until a real provisioned runner has executed it.
+
+The repo includes:
+
+- `tools/hayuya3d/gpu_doctor.py` — verifies NVIDIA inventory, pinned backend SHAs, backend Python executables and CUDA readiness
+- `tools/hayuya3d/gpu_e2e.sh` — one-photo La Llorona end-to-end proof runner
+- `tools/hayuya3d/gpu_verify.py` — validates final GLB + four LODs + turntable and writes `GPU_E2E_PASS.json`
+- `.github/workflows/hayuya-gpu-e2e.yml` — manual self-hosted GPU workflow
+
+DINOv2 may run in a separate environment through `HAYUYA_DINOV2_PYTHON`, just like the generation backends.
 
 ## Quality rule
 
