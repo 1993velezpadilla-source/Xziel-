@@ -19,8 +19,10 @@
             "other"
           ],
           "source_url": "https://quaternius.com/packs/animatedguns.html",
-          "availability": "external_download_required",
-          "notes": "Six animated guns; ingest and inspect clips/components before enabling one-tap."
+          "availability": "local_library",
+          "notes": "Six animated CC0 guns are local in HAYUYA with inspected actions/components; original source archive is also stored in GitHub.",
+          "local_library_path": "hayuya/weapon_library/quaternius-animated-guns",
+          "local_archive_path": "hayuya/source_archives/quaternius_animated_guns_source.zip"
         },
         {
           "id": "oga_revolver_game_asset",
