@@ -48,16 +48,23 @@ jobs:
             --profile monster \
             --gpu-vram 8
 
-      - name: Dry-run two-photo planner
+      - name: Dry-run nine-photo reference pool
         run: |
           python - <<'PY'
           from pathlib import Path
-          for name in ("front","back"):
-              p=Path(f"/tmp/hayuya-{name}.png")
+          for i in range(9):
+              p=Path(f"/tmp/hayuya-view-{i}.png")
               p.write_bytes(b"\x89PNG\r\n\x1a\n" + b"x"*2048)
           PY
           python tools/hayuya3d/hayuya.py \
-            --input /tmp/hayuya-front.png \
-            --input /tmp/hayuya-back.png \
+            --input /tmp/hayuya-view-0.png \
+            --input /tmp/hayuya-view-1.png \
+            --input /tmp/hayuya-view-2.png \
+            --input /tmp/hayuya-view-3.png \
+            --input /tmp/hayuya-view-4.png \
+            --input /tmp/hayuya-view-5.png \
+            --input /tmp/hayuya-view-6.png \
+            --input /tmp/hayuya-view-7.png \
+            --input /tmp/hayuya-view-8.png \
             --profile monster \
             --gpu-vram 8
