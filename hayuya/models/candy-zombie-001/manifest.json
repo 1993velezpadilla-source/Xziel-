@@ -78,7 +78,12 @@
     "warnings": [
       "no_jaw_control",
       "no_blink_controls"
-    ]
+    ],
+    "deformation_qa": {
+      "passed": true,
+      "action_count": 8,
+      "failures": []
+    }
   },
   "preview_model": "animated.glb"
 }
