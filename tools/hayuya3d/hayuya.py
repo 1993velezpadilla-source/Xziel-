@@ -183,6 +183,7 @@ def make_job_plan(
     multiview_group_size: int | None = None,
     anchor_hypothesis_budget: int | None = None,
     appearance_mode: str = "auto",
+    viewforge_mode: str = "auto",
 ) -> dict:
     profile = PROFILES[profile_name]
     roles = split_reference_roles(inputs)
@@ -222,6 +223,8 @@ def make_job_plan(
             "trellis2_resolution": profile.trellis2_resolution,
         },
         "viewforge": {
+            "mode": viewforge_mode,
+            "auto_activation": "one real geometry source + bootstrapped Wonder3D",
             "strategy": _viewforge_strategy(len(geometry_inputs)),
             "canonical_views": [
                 "front",
@@ -236,6 +239,9 @@ def make_job_plan(
             "normal_support": ["wonder3d"],
             "sparse_view_support": ["instantmesh/zero123++"],
             "real_sources_override_synthetic_views": True,
+            "wonder3d_rgb_normal_stage": True,
+            "single_source_trellis_fusion": "real primary anchor + up to five non-front synthetic Wonder3D RGB views",
+            "synthetic_views_never_enter_real_source_judge": True,
         },
         "multi_reference": {
             "enabled": len(geometry_inputs) > 1,
@@ -414,6 +420,12 @@ def main() -> int:
     parser.add_argument("--require-all", action="store_true", help="fail if any selected backend candidate fails")
     parser.add_argument("--allow-restricted", action="store_true", help="allow explicitly opt-in non-permissive backends")
     parser.add_argument(
+        "--viewforge",
+        choices=["off", "auto", "required"],
+        default="auto",
+        help="Wonder3D RGB+normal expansion policy; auto activates for one-source jobs when bootstrapped",
+    )
+    parser.add_argument(
         "--appearance-judge",
         choices=["off", "auto", "required"],
         default="auto",
@@ -483,6 +495,7 @@ def main() -> int:
         multiview_group_size=group_size,
         anchor_hypothesis_budget=args.anchor_hypothesis_budget,
         appearance_mode=args.appearance_judge,
+        viewforge_mode=args.viewforge,
     )
     (job_dir / "plan.json").write_text(json.dumps(plan, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(plan, indent=2))
@@ -493,6 +506,36 @@ def main() -> int:
 
     candidates: list[tuple[str, Path]] = []
     failures: dict[str, str] = {}
+
+    viewforge_result = None
+    viewforge_failure = None
+    should_try_viewforge = args.viewforge in {"auto", "required"} and len(geometry_inputs) == 1
+    if should_try_viewforge:
+        wonder_ready = (args.model_root / "wonder3d").is_dir()
+        if not wonder_ready and args.viewforge == "required":
+            raise RuntimeError(
+                "ViewForge required but Wonder3D is not bootstrapped. "
+                "Run: python tools/hayuya3d/bootstrap.py --backend wonder3d"
+            )
+        if wonder_ready:
+            try:
+                from viewforge import generate_wonder3d_views
+                viewforge_result = generate_wonder3d_views(
+                    geometry_inputs[0],
+                    job_dir / "viewforge",
+                    seed=args.seed,
+                    model_root=args.model_root,
+                )
+                print(
+                    f"HAYUYA_VIEWFORGE_READY backend={viewforge_result.backend} "
+                    f"synthetic_views={len(viewforge_result.synthetic_reconstruction_views)}"
+                )
+            except Exception as exc:
+                viewforge_failure = f"{type(exc).__name__}: {exc}"
+                print(f"HAYUYA_VIEWFORGE_FAILED {viewforge_failure}", file=sys.stderr)
+                traceback.print_exc()
+                if args.viewforge == "required":
+                    raise
 
     for backend in selected:
         if backend == "trellis":
@@ -518,6 +561,38 @@ def main() -> int:
                     traceback.print_exc()
                     if args.require_all:
                         raise
+            # One-photo jobs gain an additional native multi-image TRELLIS hypothesis
+            # from the real anchor plus ViewForge's synthetic missing coverage.
+            if viewforge_result is not None and len(geometry_inputs) == 1:
+                synthetic = [
+                    Path(p)
+                    for p in viewforge_result.synthetic_reconstruction_views
+                ][: max(0, group_size - 1)]
+                vf_inputs = [geometry_inputs[0], *synthetic]
+                if len(vf_inputs) > 1:
+                    label = "trellis_viewforge"
+                    try:
+                        candidate = GENERATORS["trellis"](
+                            vf_inputs,
+                            candidates_dir / label,
+                            seed=args.seed + 777,
+                            texture_size=profile.texture_size,
+                            model_root=args.model_root,
+                        )
+                        candidates.append((label, candidate.model_path))
+                        print(
+                            f"HAYUYA_CANDIDATE_READY {label} {candidate.model_path} "
+                            f"real_sources=1 synthetic_sources={len(synthetic)}"
+                        )
+                    except Exception as exc:
+                        failures[label] = f"{type(exc).__name__}: {exc}"
+                        print(
+                            f"HAYUYA_CANDIDATE_FAILED {label}: {failures[label]}",
+                            file=sys.stderr,
+                        )
+                        traceback.print_exc()
+                        if args.require_all:
+                            raise
             continue
 
         # Expensive single-image backends run once from the primary source.
@@ -580,6 +655,8 @@ def main() -> int:
         **plan,
         "status": "success",
         "failures": failures,
+        "viewforge": asdict(viewforge_result) if viewforge_result is not None else None,
+        "viewforge_failure": viewforge_failure,
         "ranking": ranking_data,
         "champion": asdict(champion),
         "final_glb": str(final_glb),
@@ -589,6 +666,7 @@ def main() -> int:
             "Detail/close-up sources stay out of whole-object silhouette scoring but enter Judge v3 through multi-view local patch retrieval when DINOv2 is active.",
             "Multi-image backends receive grouped real geometry references when one call should be bounded for VRAM/practicality.",
             "Monster/Ultra multi-anchor mode can generate TripoSG hypotheses from every source unless the user explicitly sets a budget.",
+            "A one-photo job can add a TRELLIS fusion candidate from the real anchor plus Wonder3D RGB/normal ViewForge coverage; synthetic views never enter the real-source Judge.",
             "Judge v2 combines production mesh health with source-image silhouette agreement.",
             "Judge v3 auto adds DINOv2 appearance similarity when the pinned evaluator is bootstrapped; otherwise it falls back to v2.",
             "Next judge stage adds normal/depth agreement, calibrated camera estimation and local-detail matching.",
