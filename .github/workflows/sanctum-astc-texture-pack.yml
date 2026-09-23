@@ -1,0 +1,88 @@
+name: Sanctum ASTC Texture Pack
+
+on:
+  push:
+    branches:
+      - engine/mobile-ktx2-astc-v1
+    paths:
+      - ".github/workflows/sanctum-astc-texture-pack.yml"
+      - "tools/texture_pack/build_astc_pack.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: sanctum-astc-texture-pack-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-astc-pack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_RUN_ID: "35820034705"
+      SOURCE_ARTIFACT: "Xziel-Sanctum-Clean-Source"
+      KTX_VERSION: "4.4.2"
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download validated Sanctum source artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARTIFACTS="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}/artifacts")"
+          ARTIFACT_ID="$(jq -r --arg NAME "${SOURCE_ARTIFACT}" '.artifacts[] | select(.name == $NAME and .expired == false) | .id' <<<"${ARTIFACTS}" | head -n 1)"
+          test -n "${ARTIFACT_ID}"
+          test "${ARTIFACT_ID}" != "null"
+          mkdir -p pack/root
+          gh api "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" > pack/source.zip
+          unzip -q pack/source.zip -d pack/root
+          STATIC_ROOT="$(find pack/root -type d -path '*/xziel_native_static' -print -quit)"
+          test -d "${STATIC_ROOT}"
+          PNG_COUNT="$(find "${STATIC_ROOT}/textures" -type f -name '*.png' | wc -l)"
+          test "${PNG_COUNT}" -gt 0
+          echo "XZIEL_ASTC_SOURCE_PNGS=${PNG_COUNT}"
+
+      - name: Install pinned Khronos KTX tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEB="KTX-Software-${KTX_VERSION}-Linux-x86_64.deb"
+          BASE="https://github.com/KhronosGroup/KTX-Software/releases/download/v${KTX_VERSION}"
+          curl --fail --location --retry 3 "${BASE}/${DEB}" -o "/tmp/${DEB}"
+          curl --fail --location --retry 3 "${BASE}/${DEB}.sha1" -o "/tmp/${DEB}.sha1"
+          (cd /tmp && sha1sum -c "${DEB}.sha1")
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq "/tmp/${DEB}"
+          ktx --version
+          ktx create --help >/dev/null
+          ktx validate --help >/dev/null
+
+      - name: Encode and validate ASTC mip chains
+        shell: bash
+        run: |
+          set -euo pipefail
+          STATIC_ROOT="$(find pack/root -type d -path '*/xziel_native_static' -print -quit)"
+          python3 tools/texture_pack/build_astc_pack.py \
+            --root "${STATIC_ROOT}/textures" \
+            --report pack/root/xziel_astc_texture_report.json \
+            --ktx ktx \
+            --quality medium
+          jq -e '.codec == "ASTC_LDR"' pack/root/xziel_astc_texture_report.json
+          jq -e '.block == "6x6"' pack/root/xziel_astc_texture_report.json
+          jq -e '.pngCount == .ktx2Count and .ktx2Count > 0' pack/root/xziel_astc_texture_report.json
+          jq -e '.textures | all(.levels > 0 and .vkFormat >= 157 and .vkFormat <= 184)' pack/root/xziel_astc_texture_report.json
+          jq '{codec, block, quality, pngCount, ktx2Count, pngBytes, ktx2Bytes, ktx2ToPngRatio}' pack/root/xziel_astc_texture_report.json
+
+      - name: Upload validated ASTC runtime pack
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xziel-Sanctum-Clean-Source-ASTC
+          path: pack/root/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 90
