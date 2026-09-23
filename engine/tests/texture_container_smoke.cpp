@@ -129,6 +129,44 @@ int main() {
     assert(texture.levels[1].width == 6U);
     assert(texture.levels[2].width == 3U);
 
+    const auto fullRange =
+        xziel::planKtx2ResidentMipRange(
+            texture,
+            0U);
+    assert(fullRange.valid);
+    assert(fullRange.baseMip == 0U);
+    assert(fullRange.width == 12U);
+    assert(fullRange.height == 12U);
+    assert(fullRange.mipCount == 3U);
+    assert(fullRange.payloadBytes == 96U);
+
+    const auto reducedRange =
+        xziel::planKtx2ResidentMipRange(
+            texture,
+            1U);
+    assert(reducedRange.valid);
+    assert(reducedRange.baseMip == 1U);
+    assert(reducedRange.width == 6U);
+    assert(reducedRange.height == 6U);
+    assert(reducedRange.mipCount == 2U);
+    assert(reducedRange.payloadBytes == 32U);
+
+    const auto tailRange =
+        xziel::planKtx2ResidentMipRange(
+            texture,
+            2U);
+    assert(tailRange.valid);
+    assert(tailRange.width == 3U);
+    assert(tailRange.height == 3U);
+    assert(tailRange.mipCount == 1U);
+    assert(tailRange.payloadBytes == 16U);
+
+    const auto invalidRange =
+        xziel::planKtx2ResidentMipRange(
+            texture,
+            3U);
+    assert(!invalidRange.valid);
+
     auto badIdentifier = encoded;
     badIdentifier[0] = std::byte{0};
     parsed =

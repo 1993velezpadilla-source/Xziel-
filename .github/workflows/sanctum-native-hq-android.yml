@@ -9,6 +9,8 @@ on:
       - engine/mobile-ktx2-astc-v1
       - engine/mobile-mip-streaming-v1
       - engine/mobile-upload-batching-v1
+      - engine/mobile-mip-residency-vulkan-v1
+      - engine/mobile-mip-residency-vulkan-v2
     paths:
       - ".github/workflows/sanctum-native-hq-android.yml"
       - ".github/workflows/sanctum-clean-source.yml"
@@ -47,10 +49,12 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-ktx2-astc-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-mip-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-upload-batching-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" ]]; then
+          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-ktx2-astc-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-mip-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-upload-batching-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-mip-residency-vulkan-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-mip-residency-vulkan-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" ]]; then
             ASTC_PACK_BRANCH="${GITHUB_REF_NAME}"
             if [[ "${GITHUB_REF_NAME}" == "engine/mobile-upload-batching-v1" ]]; then
               ASTC_PACK_BRANCH="engine/mobile-ktx2-astc-v1"
+            elif [[ "${GITHUB_REF_NAME}" == "engine/mobile-mip-residency-vulkan-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-mip-residency-vulkan-v2" ]]; then
+              ASTC_PACK_BRANCH="engine/mobile-power-fidelity-v1"
             fi
             for i in $(seq 1 120); do
               RESPONSE="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs?branch=${ASTC_PACK_BRANCH}&per_page=30")"
@@ -580,6 +584,16 @@ jobs:
               if grep -q "ASTC KTX2 texture exists but failed validation/upload" dist/sanctum-hq-logcat.txt; then
                 echo "ERROR: ASTC-capable runtime fell back after KTX2 upload failure"
                 exit 1
+              fi
+
+              grep -q "XZIEL_STATIC_TEXTURE_CAPS .*texture_budget_mb=" dist/sanctum-hq-logcat.txt
+
+              DEGRADED_COUNT="$(grep -Ec "XZIEL_KTX2_ASTC_TEXTURE .*base_mip=[1-9]" dist/sanctum-hq-logcat.txt || true)"
+              if [[ "${GITHUB_REF_NAME}" == "engine/mobile-mip-residency-vulkan-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-mip-residency-vulkan-v2" ]]; then
+                test "${DEGRADED_COUNT}" -eq 0
+                BASE_ZERO_COUNT="$(grep -Ec "XZIEL_KTX2_ASTC_TEXTURE .*base_mip=0 " dist/sanctum-hq-logcat.txt || true)"
+                test "${BASE_ZERO_COUNT}" -eq "${KTX_LOAD_COUNT}"
+                echo "XZIEL_MIP_RESIDENCY_FULL_RES textures=${BASE_ZERO_COUNT}"
               fi
 
               echo "XZIEL_ASTC_RUNTIME_ACTIVE textures=${KTX_LOAD_COUNT}"
