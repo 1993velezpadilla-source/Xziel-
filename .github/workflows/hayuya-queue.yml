@@ -63,9 +63,11 @@ jobs:
                   'job_id': data['job_id'],
                   'owner': data['owner'],
                   'title': data['title'],
-                  'geometry_input': data['geometry_input'],
-                  'reference_dir': data.get('reference_dir', ''),
-                  'detail_dir': data.get('detail_dir', ''),
+                  'source_repo': data.get('source_repo', ''),
+                  'source_ref': data.get('source_ref', ''),
+                  'geometry_input': ('external/source/' + data['geometry_input']) if data.get('source_repo') else data['geometry_input'],
+                  'reference_dir': ('external/source/' + data.get('reference_dir', '')) if data.get('source_repo') and data.get('reference_dir') else data.get('reference_dir', ''),
+                  'detail_dir': ('external/source/' + data.get('detail_dir', '')) if data.get('source_repo') and data.get('detail_dir') else data.get('detail_dir', ''),
                   'profile': data['profile'],
                   'mode': data['mode'],
                   'portable_target': data['portable_target'],
@@ -107,6 +109,8 @@ jobs:
       HAYUYA_PORTABLE_TARGET: ${{ matrix.portable_target }}
       HAYUYA_GPU_VRAM: ${{ matrix.gpu_vram }}
       HAYUYA_BACKENDS: ${{ matrix.backends }}
+      HAYUYA_SOURCE_REPO: ${{ matrix.source_repo }}
+      HAYUYA_SOURCE_REF: ${{ matrix.source_ref }}
       HAYUYA_OUTPUT_ROOT: out/hayuya-jobs/${{ matrix.job_id }}/outputs
       HAYUYA_EVIDENCE_ROOT: out/hayuya-jobs/${{ matrix.job_id }}/evidence
 
@@ -116,6 +120,14 @@ jobs:
         with:
           lfs: true
           fetch-depth: 1
+
+      - name: Checkout external source references
+        if: matrix.source_repo != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p external
+          git clone --depth 1 --branch "${HAYUYA_SOURCE_REF}" "https://github.com/${HAYUYA_SOURCE_REPO}.git" external/source
 
       - name: Run isolated Hayuya job
         run: bash tools/hayuya3d/gpu_e2e.sh
