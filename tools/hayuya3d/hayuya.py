@@ -16,6 +16,7 @@ sys.path.insert(0, str(HERE))
 from adapters import DEFAULT_MODEL_ROOT, GENERATORS, REFINERS, pshuman_readiness
 from qa import export_glb, rank_candidates
 from reference_pool import order_for_multiview_coverage, split_reference_roles
+from mobile_portability import build_portability_plan
 
 
 @dataclass(frozen=True)
@@ -208,8 +209,14 @@ def make_job_plan(
     character_specialist_mode: str = "off",
     mesh_doctor_mode: str = "auto",
     retopo_mode: str = "auto",
+    portable_target: str = "auto",
 ) -> dict:
     profile = PROFILES[profile_name]
+    portability_plan = build_portability_plan(
+        mode=mode,
+        tier=portable_target,
+        profile_name=profile_name,
+    )
     roles = split_reference_roles(inputs)
     geometry_inputs = roles.geometry
     detail_inputs = roles.detail
@@ -240,6 +247,7 @@ def make_job_plan(
         },
         "mode": mode,
         "profile": profile_name,
+        "mobile_portability": portability_plan,
         "seed": seed,
         "targets": {
             "faces": profile.faces,
@@ -478,6 +486,12 @@ def main() -> int:
         help="directory containing reference images; repeatable and recursively scanned",
     )
     parser.add_argument("--profile", choices=sorted(PROFILES), default="monster")
+    parser.add_argument(
+        "--portable-target",
+        choices=["auto", "compatibility", "balanced", "high", "flagship"],
+        default="auto",
+        help="runtime mobile portability tier; auto maps preview/mobile/game/monster/ultra to compatibility/compatibility/balanced/high/flagship",
+    )
     parser.add_argument("--mode", choices=["auto", "prop", "character", "architecture"], default="auto")
     parser.add_argument("--seed", type=int, default=1993)
     parser.add_argument("--backends", help="comma-separated override")
@@ -614,7 +628,11 @@ def main() -> int:
         character_specialist_mode=args.character_specialist,
         mesh_doctor_mode=args.mesh_doctor,
         retopo_mode=args.retopo,
+        portable_target=args.portable_target,
     )
+    portable_runtime = plan["mobile_portability"]["runtime_target"]
+    portable_lod0_ceiling = int(portable_runtime["lod0_triangles"][1])
+    portable_texture_ceiling = int(portable_runtime["exceptional_texture_edge_px"])
     (job_dir / "plan.json").write_text(json.dumps(plan, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(plan, indent=2))
 
@@ -1175,13 +1193,14 @@ def main() -> int:
             gameprep_result = build_gameprep(
                 final_glb,
                 job_dir / "gameprep",
-                target_faces=profile.faces,
+                target_faces=min(profile.faces, portable_lod0_ceiling),
                 anchor_view=anchor_view,
                 material_samples=(
                     80000 if args.profile == "mobile"
                     else 120000 if args.profile == "game"
                     else 180000
                 ),
+                max_texture_size=portable_texture_ceiling,
             )
             print(
                 "HAYUYA_GAMEPREP_READY "
@@ -1274,6 +1293,7 @@ def main() -> int:
             "Instant Meshes retopology is an optional deterministic challenger: editable quad/quad-dominant OBJ is preserved, Material Bridge v2 restores runtime material evidence, and the bridged GLB must win the same Judge.",
             "GamePrep audits glTF rig/skin state first; skinned assets skip destructive retopology/LOD simplification and preserve exact master/LOD0 until skin-weight transfer exists.",
             "QA Package v1 records geometry/material/reference/rig/GamePrep readiness and creates a source-vs-turntable contact sheet.",
+            "Mobile portability is resolved from the versioned HAYUYA knowledge base; the source-faithful Hero Master is preserved while GamePrep derives tier-budget LODs and texture ceilings.",
             "Judge v2 combines production mesh health with source-image silhouette agreement.",
             "Judge v3 auto adds DINOv2 appearance similarity when the pinned evaluator is bootstrapped; otherwise it falls back to v2.",
             "Next judge stage adds normal/depth agreement, calibrated camera estimation and local-detail matching.",
