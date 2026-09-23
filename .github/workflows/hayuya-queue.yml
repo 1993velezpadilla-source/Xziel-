@@ -24,12 +24,6 @@ jobs:
       matrix: ${{ steps.requests.outputs.matrix }}
       count: ${{ steps.requests.outputs.count }}
     steps:
-      - name: Notify HAYUYA Hub running
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh issue comment 55 --repo "$GITHUB_REPOSITORY" --body "🟢 **RUNNING** — **${{ matrix.owner }}** / \`${{ matrix.job_id }}\` — ${{ matrix.title }}"
-
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -138,6 +132,12 @@ jobs:
       HAYUYA_EVIDENCE_ROOT: out/hayuya-jobs/${{ matrix.job_id }}/evidence
 
     steps:
+      - name: Notify HAYUYA Hub running
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment 55 --repo "$GITHUB_REPOSITORY" --body "🟢 **RUNNING** — **${{ matrix.owner }}** / \`${{ matrix.job_id }}\` — ${{ matrix.title }}"
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
