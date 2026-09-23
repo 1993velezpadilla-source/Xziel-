@@ -141,6 +141,7 @@ bool AndroidAssetStreamer::take(
         [&]() noexcept {
             return
                 !running_ ||
+                !scheduled_.contains(assetPath) ||
                 results_.contains(assetPath);
         });
 
