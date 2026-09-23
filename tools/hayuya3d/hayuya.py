@@ -13,7 +13,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))
 
-from adapters import DEFAULT_MODEL_ROOT, GENERATORS
+from adapters import DEFAULT_MODEL_ROOT, GENERATORS, REFINERS
 from qa import export_glb, rank_candidates
 from reference_pool import order_for_multiview_coverage, split_reference_roles
 
@@ -184,6 +184,7 @@ def make_job_plan(
     anchor_hypothesis_budget: int | None = None,
     appearance_mode: str = "auto",
     viewforge_mode: str = "auto",
+    geometry_refine_mode: str = "auto",
 ) -> dict:
     profile = PROFILES[profile_name]
     roles = split_reference_roles(inputs)
@@ -255,6 +256,13 @@ def make_job_plan(
             "detail_sources_enter_judge_v3_when_appearance_is_active": True,
         },
         "candidate_backends": selected_backends,
+        "geometry_refinement": {
+            "mode": geometry_refine_mode,
+            "backend": "TripoSF SparseFlex 1024^3",
+            "activation": "monster/ultra execution when bootstrapped and VRAM budget >=12GB",
+            "policy": "refined topology is a challenger; real-source geometry evidence must improve before it is marked preferred",
+            "asset_promotion": "do not replace final textured asset until Material Bridge transfers appearance"
+        },
         "judge": {
             "version": "v3-auto" if appearance_mode != "off" else "v2",
             "production_subscore": {
@@ -432,6 +440,12 @@ def main() -> int:
         help="Wonder3D RGB+normal expansion policy; auto activates for one-source jobs when bootstrapped",
     )
     parser.add_argument(
+        "--geometry-refine",
+        choices=["off", "auto", "required"],
+        default="auto",
+        help="TripoSF SparseFlex geometry challenger policy for monster/ultra execution",
+    )
+    parser.add_argument(
         "--appearance-judge",
         choices=["off", "auto", "required"],
         default="auto",
@@ -502,6 +516,7 @@ def main() -> int:
         anchor_hypothesis_budget=args.anchor_hypothesis_budget,
         appearance_mode=args.appearance_judge,
         viewforge_mode=args.viewforge,
+        geometry_refine_mode=args.geometry_refine,
     )
     (job_dir / "plan.json").write_text(json.dumps(plan, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(plan, indent=2))
@@ -634,6 +649,103 @@ def main() -> int:
         (job_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
         raise SystemExit("All Hayuya candidates failed")
 
+    normal_support_images = (
+        {name: Path(path) for name, path in viewforge_result.normal_views.items()}
+        if viewforge_result is not None
+        else None
+    )
+
+    refinement_decision = None
+    refinement_failure = None
+    should_try_refinement = (
+        args.geometry_refine in {"auto", "required"}
+        and args.profile in {"monster", "ultra"}
+    )
+    if should_try_refinement:
+        triposf_ready = (args.model_root / "triposf").is_dir()
+        enough_vram = args.gpu_vram is None or args.gpu_vram >= 12
+        if args.geometry_refine == "required" and not triposf_ready:
+            raise RuntimeError(
+                "TripoSF refinement required but backend is not bootstrapped"
+            )
+        if args.geometry_refine == "required" and not enough_vram:
+            raise RuntimeError(
+                "TripoSF refinement required but VRAM budget is below 12GB"
+            )
+
+        if triposf_ready and enough_vram:
+            try:
+                preliminary = rank_candidates(
+                    candidates,
+                    mode=mode,
+                    target_faces=profile.faces,
+                    source_images=geometry_inputs,
+                    visual_weight=0.55,
+                    appearance_mode="off",
+                    normal_support_images=normal_support_images,
+                    normal_support_weight=0.06,
+                )
+                eligible = [
+                    item for item in preliminary
+                    if item.valid and item.visual_score is not None
+                ]
+                if not eligible:
+                    raise RuntimeError("no valid geometry seed candidate for TripoSF")
+                seed_candidate = max(
+                    eligible,
+                    key=lambda item: (
+                        item.visual_score or 0.0,
+                        item.production_score or 0.0,
+                    ),
+                )
+
+                refine_root = job_dir / "refinement" / "triposf"
+                refined_raw = REFINERS["triposf"](
+                    Path(seed_candidate.path),
+                    refine_root / "raw",
+                    model_root=args.model_root,
+                )
+
+                from geometry_refinement import (
+                    compare_refinement,
+                    restore_refined_bounds,
+                    write_decision,
+                )
+
+                restored = restore_refined_bounds(
+                    Path(seed_candidate.path),
+                    refined_raw.model_path,
+                    refine_root / "triposf_refined_bounds_restored.glb",
+                )
+                refinement_decision = compare_refinement(
+                    seed_candidate.backend,
+                    Path(seed_candidate.path),
+                    restored,
+                    sources=geometry_inputs,
+                    mode=mode,
+                    target_faces=profile.faces,
+                    normal_support_images=normal_support_images,
+                )
+                write_decision(
+                    refine_root / "refinement_decision.json",
+                    refinement_decision,
+                )
+                print(
+                    "HAYUYA_REFINEMENT_READY "
+                    f"source={seed_candidate.backend} "
+                    f"preferred={refinement_decision.preferred} "
+                    f"improvement={refinement_decision.improvement}"
+                )
+            except Exception as exc:
+                refinement_failure = f"{type(exc).__name__}: {exc}"
+                print(
+                    f"HAYUYA_REFINEMENT_FAILED {refinement_failure}",
+                    file=sys.stderr,
+                )
+                traceback.print_exc()
+                if args.geometry_refine == "required":
+                    raise
+
     ranked = rank_candidates(
         candidates,
         mode=mode,
@@ -645,11 +757,7 @@ def main() -> int:
         appearance_model_root=args.model_root,
         appearance_render_root=job_dir / "judge_v3_renders",
         appearance_weight=0.25,
-        normal_support_images=(
-            {name: Path(path) for name, path in viewforge_result.normal_views.items()}
-            if viewforge_result is not None
-            else None
-        ),
+        normal_support_images=normal_support_images,
         normal_support_weight=0.06,
     )
     ranking_data = [asdict(x) for x in ranked]
@@ -669,6 +777,8 @@ def main() -> int:
         "failures": failures,
         "viewforge": asdict(viewforge_result) if viewforge_result is not None else None,
         "viewforge_failure": viewforge_failure,
+        "geometry_refinement": asdict(refinement_decision) if refinement_decision is not None else None,
+        "geometry_refinement_failure": refinement_failure,
         "ranking": ranking_data,
         "champion": asdict(champion),
         "final_glb": str(final_glb),
@@ -680,6 +790,7 @@ def main() -> int:
             "Monster/Ultra multi-anchor mode can generate TripoSG hypotheses from every source unless the user explicitly sets a budget.",
             "A one-photo job can add a TRELLIS fusion candidate from the real anchor plus Wonder3D RGB/normal ViewForge coverage; synthetic RGB views never enter the real-source Judge.",
             "Wonder3D normal maps may contribute a deliberately small 6% synthetic-support score using the pinned front-view normal coordinate convention.",
+            "TripoSF can challenge the best geometry seed at 1024^3 in Monster/Ultra; it is evidence-gated and kept as a sidecar until Material Bridge can preserve/reproject appearance.",
             "Judge v2 combines production mesh health with source-image silhouette agreement.",
             "Judge v3 auto adds DINOv2 appearance similarity when the pinned evaluator is bootstrapped; otherwise it falls back to v2.",
             "Next judge stage adds normal/depth agreement, calibrated camera estimation and local-detail matching.",
