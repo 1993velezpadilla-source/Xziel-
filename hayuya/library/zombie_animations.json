@@ -12,20 +12,31 @@
           "label": "Idle / Stand",
           "items": [
             {
-              "id": "quat_idle",
-              "label": "Idle",
+              "id": "uam2_zombie_idle",
+              "label": "Zombie Idle",
+              "source": "quaternius-uam2",
+              "clip": "Zombie_Idle_Loop",
+              "license": "CC0",
+              "availability": "local",
+              "one_tap_ready": true
+            },
+            {
+              "id": "uam2_idle_no_loop",
+              "label": "Still / Tense Idle",
+              "source": "quaternius-uam2",
+              "clip": "Idle_No_Loop",
+              "license": "CC0",
+              "availability": "local",
+              "one_tap_ready": true
+            },
+            {
+              "id": "legacy_quat_idle",
+              "label": "Legacy Human Idle",
               "source": "quaternius-human-rigged",
               "clip": "Human Armature|Idle",
               "license": "CC0",
-              "availability": "local"
-            },
-            {
-              "id": "quat_working",
-              "label": "Working / restless idle",
-              "source": "quaternius-human-rigged",
-              "clip": "Human Armature|Working",
-              "license": "CC0",
-              "availability": "local"
+              "availability": "local_mapping_pending",
+              "one_tap_ready": false
             }
           ]
         },
@@ -34,12 +45,40 @@
           "label": "Walking",
           "items": [
             {
-              "id": "quat_walk",
-              "label": "Normal Walk",
-              "source": "quaternius-human-rigged",
-              "clip": "Human Armature|Walk",
+              "id": "uam2_zombie_walk",
+              "label": "Zombie Walk Forward",
+              "source": "quaternius-uam2",
+              "clip": "Zombie_Walk_Fwd_Loop",
               "license": "CC0",
-              "availability": "local"
+              "availability": "local",
+              "one_tap_ready": true
+            },
+            {
+              "id": "uam2_walk_carry",
+              "label": "Carry / Soldier Walk",
+              "source": "quaternius-uam2",
+              "clip": "Walk_Carry_Loop",
+              "license": "CC0",
+              "availability": "local",
+              "one_tap_ready": true
+            },
+            {
+              "id": "uam1_walk",
+              "label": "Normal Walk (UAM1)",
+              "source": "quaternius-uam1",
+              "clip": "Walk_Loop",
+              "license": "CC0",
+              "availability": "local_mapping_pending",
+              "one_tap_ready": false
+            },
+            {
+              "id": "uam1_walk_formal",
+              "label": "Formal / Soldier Walk (UAM1)",
+              "source": "quaternius-uam1",
+              "clip": "Walk_Formal_Loop",
+              "license": "CC0",
+              "availability": "local_mapping_pending",
+              "one_tap_ready": false
             }
           ]
         },
@@ -48,12 +87,22 @@
           "label": "Run / Chase",
           "items": [
             {
-              "id": "quat_run",
-              "label": "Normal Run",
-              "source": "quaternius-human-rigged",
-              "clip": "Human Armature|Run",
+              "id": "uam1_sprint",
+              "label": "Sprint / Chase",
+              "source": "quaternius-uam1",
+              "clip": "Sprint_Loop",
               "license": "CC0",
-              "availability": "local"
+              "availability": "local_mapping_pending",
+              "one_tap_ready": false
+            },
+            {
+              "id": "uam1_jog",
+              "label": "Jog Forward",
+              "source": "quaternius-uam1",
+              "clip": "Jog_Fwd_Loop",
+              "license": "CC0",
+              "availability": "local_mapping_pending",
+              "one_tap_ready": false
             }
           ]
         },
@@ -62,12 +111,40 @@
           "label": "Attack",
           "items": [
             {
-              "id": "quat_punch",
-              "label": "Punch / basic attack",
-              "source": "quaternius-human-rigged",
-              "clip": "Human Armature|Punch",
+              "id": "uam2_zombie_scratch",
+              "label": "Zombie Scratch",
+              "source": "quaternius-uam2",
+              "clip": "Zombie_Scratch",
               "license": "CC0",
-              "availability": "local"
+              "availability": "local",
+              "one_tap_ready": true
+            },
+            {
+              "id": "uam2_melee_hook",
+              "label": "Melee Hook",
+              "source": "quaternius-uam2",
+              "clip": "Melee_Hook",
+              "license": "CC0",
+              "availability": "local",
+              "one_tap_ready": true
+            },
+            {
+              "id": "uam2_melee_hook_recovery",
+              "label": "Melee Hook Recovery",
+              "source": "quaternius-uam2",
+              "clip": "Melee_Hook_Rec",
+              "license": "CC0",
+              "availability": "local",
+              "one_tap_ready": true
+            },
+            {
+              "id": "uam2_overhand_throw",
+              "label": "Overhand Throw",
+              "source": "quaternius-uam2",
+              "clip": "OverhandThrow",
+              "license": "CC0",
+              "availability": "local",
+              "one_tap_ready": true
             }
           ]
         },
@@ -76,12 +153,22 @@
           "label": "Death",
           "items": [
             {
-              "id": "quat_death",
-              "label": "Death",
+              "id": "uam1_death01",
+              "label": "Death 01",
+              "source": "quaternius-uam1",
+              "clip": "Death01",
+              "license": "CC0",
+              "availability": "local_mapping_pending",
+              "one_tap_ready": false
+            },
+            {
+              "id": "legacy_quat_death",
+              "label": "Legacy Death",
               "source": "quaternius-human-rigged",
               "clip": "Human Armature|Death",
               "license": "CC0",
-              "availability": "local"
+              "availability": "local_mapping_pending",
+              "one_tap_ready": false
             }
           ]
         },
@@ -90,24 +177,91 @@
           "label": "Special / Traversal",
           "items": [
             {
-              "id": "quat_jump",
-              "label": "Jump",
-              "source": "quaternius-human-rigged",
-              "clip": "Human Armature|Jump",
+              "id": "uam2_lay_to_idle",
+              "label": "Lay → Idle",
+              "source": "quaternius-uam2",
+              "clip": "LayToIdle",
               "license": "CC0",
-              "availability": "local"
+              "availability": "local",
+              "one_tap_ready": true
+            },
+            {
+              "id": "uam2_consume",
+              "label": "Consume / Feeding",
+              "source": "quaternius-uam2",
+              "clip": "Consume",
+              "license": "CC0",
+              "availability": "local",
+              "one_tap_ready": true
+            },
+            {
+              "id": "uam2_climb",
+              "label": "Climb 1m",
+              "source": "quaternius-uam2",
+              "clip": "ClimbUp_1m_RM",
+              "license": "CC0",
+              "availability": "local",
+              "one_tap_ready": true
             }
           ]
         },
         {
           "id": "crawler",
           "label": "Crawlers",
-          "items": []
+          "items": [
+            {
+              "id": "uam1_crouch_fwd",
+              "label": "Low Crouch Forward (crawler fallback)",
+              "source": "quaternius-uam1",
+              "clip": "Crouch_Fwd_Loop",
+              "license": "CC0",
+              "availability": "local_mapping_pending",
+              "one_tap_ready": false,
+              "note": "Not a true crawl; kept only as a temporary low-locomotion option."
+            }
+          ]
         },
         {
           "id": "hit",
           "label": "Hit Reactions",
-          "items": []
+          "items": [
+            {
+              "id": "uam2_hit_knockback",
+              "label": "Hit Knockback",
+              "source": "quaternius-uam2",
+              "clip": "Hit_Knockback",
+              "license": "CC0",
+              "availability": "local",
+              "one_tap_ready": true
+            },
+            {
+              "id": "uam2_hit_knockback_rm",
+              "label": "Hit Knockback Root Motion",
+              "source": "quaternius-uam2",
+              "clip": "Hit_Knockback_RM",
+              "license": "CC0",
+              "availability": "local",
+              "one_tap_ready": true
+            },
+            {
+              "id": "uam1_hit_chest",
+              "label": "Hit Chest",
+              "source": "quaternius-uam1",
+              "clip": "Hit_Chest",
+              "license": "CC0",
+              "availability": "local_mapping_pending",
+              "one_tap_ready": false
+            },
+            {
+              "id": "uam1_hit_head",
+              "label": "Hit Head",
+              "source": "quaternius-uam1",
+              "clip": "Hit_Head",
+              "license": "CC0",
+              "availability": "local_mapping_pending",
+              "one_tap_ready": false
+            }
+          ]
         },
         {
           "id": "turn",
@@ -204,24 +358,24 @@
           "items": [
             {
               "id": "quaternius_universal_anim2",
-              "label": "Universal Animation Library 2",
-              "count": "130+",
+              "label": "Universal Animation Library 2 — Standard",
+              "count": 43,
               "categories": [
+                "zombie_idle",
+                "zombie_walk",
+                "zombie_scratch",
                 "melee",
-                "armed",
-                "parkour",
-                "zombie_locomotion",
-                "other"
+                "hit",
+                "special"
               ],
               "format": [
-                "FBX",
-                "GLB",
-                "Blend"
+                "GLB"
               ],
               "license": "CC0",
               "source_url": "https://quaternius.com/packs/universalanimationlibrary2.html",
-              "availability": "external_download_required",
-              "one_tap_ready": false
+              "availability": "local",
+              "local_path": "hayuya/animation_library/quaternius-uam2/library.glb",
+              "one_tap_ready": true
             },
             {
               "id": "quaternius_animated_zombie",
@@ -235,6 +389,43 @@
               ],
               "license": "CC0",
               "source_url": "https://quaternius.com/packs/animatedzombie.html",
+              "availability": "external_download_required",
+              "one_tap_ready": false
+            },
+            {
+              "id": "quaternius_universal_anim1",
+              "label": "Universal Animation Library — Standard",
+              "count": 46,
+              "categories": [
+                "walk",
+                "sprint",
+                "death",
+                "hit",
+                "crouch",
+                "combat"
+              ],
+              "format": [
+                "GLB"
+              ],
+              "license": "CC0",
+              "source_url": "https://quaternius.com/packs/universalanimationlibrary.html",
+              "availability": "local_mapping_pending",
+              "local_path": "hayuya/animation_library/quaternius-uam1/library.glb",
+              "one_tap_ready": false
+            },
+            {
+              "id": "quaternius_zombie_apocalypse",
+              "label": "Zombie Apocalypse Kit",
+              "count": "20 animations per playable character",
+              "models": 60,
+              "format": [
+                "FBX",
+                "OBJ",
+                "glTF",
+                "Blend"
+              ],
+              "license": "CC0",
+              "source_url": "https://quaternius.com/packs/zombieapocalypsekit.html",
               "availability": "external_download_required",
               "one_tap_ready": false
             }
