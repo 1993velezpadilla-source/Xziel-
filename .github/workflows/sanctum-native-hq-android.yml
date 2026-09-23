@@ -447,8 +447,12 @@ jobs:
           APK="xziel-native-android/app/build/outputs/apk/debug/app-debug.apk"
           "$ADB" install -r "$APK"
 
-          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-streaming-gpu-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-mip-transition-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-eviction-v1" ]]; then
+          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-streaming-gpu-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-mip-transition-v1" ]]; then
             "$ADB" shell setprop debug.xziel.streaming_probe 1
+          fi
+
+          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-eviction-v1" ]]; then
+            "$ADB" shell setprop debug.xziel.geometry_streaming_probe 1
           fi
 
           "$ADB" logcat -c
@@ -732,6 +736,7 @@ jobs:
           fi
 
           if [[ "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-eviction-v1" ]]; then
+            grep -q "XZIEL_RUNTIME_GEOMETRY_RELOAD_PROBE_ENABLED" dist/sanctum-hq-logcat.txt
             grep -Eq "XZIEL_RUNTIME_GEOMETRY_EVICTED cell=[1-9][0-9]* .*freed_mb=[0-9]+\.[0-9]+" dist/sanctum-hq-logcat.txt
             grep -Eq "XZIEL_RUNTIME_GEOMETRY_RELOAD_PROBE_ARMED cell=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
             grep -Eq "XZIEL_RUNTIME_GEOMETRY_RELOAD_QUEUED cell=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
