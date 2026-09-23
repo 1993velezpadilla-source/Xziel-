@@ -103,6 +103,27 @@ def _job_url(job: JobState, path: Path) -> str | None:
     return f"/api/jobs/{job.id}/files/{quote(rel.as_posix())}"
 
 
+def _viewer_artifact(job: JobState, label: str, path: Path) -> Path | None:
+    if not path.is_file():
+        return None
+    if path.suffix.lower() in {".glb", ".gltf"}:
+        return path
+    if path.suffix.lower() not in {".obj", ".ply", ".stl"}:
+        return None
+    try:
+        from qa import export_glb
+        preview_dir = Path(job.root) / "viewer-previews"
+        preview = preview_dir / f"{_safe_name(label)}.glb"
+        export_glb(path, preview)
+        return preview
+    except Exception as exc:
+        _emit(job, "viewer_warning", {
+            "label": label,
+            "message": f"could not normalize {path.suffix} candidate for viewer: {type(exc).__name__}: {exc}",
+        })
+        return None
+
+
 def _emit(job: JobState, kind: str, payload: dict) -> None:
     event = {
         "seq": len(job.events),
@@ -135,11 +156,16 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
     elif line.startswith("HAYUYA_CANDIDATE_READY"):
         _set_stage(job, "generating")
         parts = line.split()
-        if len(parts) >= 3:
-            label = parts[1]
-            path = parts[2]
+        match = re.match(
+            r"^HAYUYA_CANDIDATE_READY\s+(\S+)\s+(.+?)(?:\s+(?:source|sources|real_sources)=|$)",
+            line,
+        )
+        if match:
+            label = match.group(1)
+            path = match.group(2).strip()
+            viewer_path = _viewer_artifact(job, label, Path(path))
             candidate = CandidateState(label=label, path=path)
-            candidate.url = _job_url(job, Path(path))
+            candidate.url = _job_url(job, viewer_path) if viewer_path is not None else None
             job.candidates[label] = candidate
             _emit(job, "candidate", asdict(candidate))
     elif line.startswith("HAYUYA_REFINEMENT"):
@@ -194,6 +220,20 @@ def _run_job(job: JobState) -> None:
                 log.write(raw)
                 parse_pipeline_line(job, raw)
             code = proc.wait()
+
+        for ranking_path in sorted(Path(job.root).glob("output/**/ranking.json")):
+            try:
+                ranking = json.loads(ranking_path.read_text(encoding="utf-8"))
+                for item in ranking:
+                    label = str(item.get("backend", ""))
+                    if label in job.candidates and item.get("score") is not None:
+                        job.candidates[label].score = float(item["score"])
+                _emit(job, "ranking", {
+                    "candidates": [asdict(x) for x in job.candidates.values()]
+                })
+            except Exception:
+                pass
+
         if code != 0:
             job.error = f"Hayuya exited with code {code}"
             _set_stage(job, "failed", status="failed")
@@ -236,7 +276,8 @@ def parse_multipart(body: bytes, content_type: str) -> tuple[dict[str, str], lis
         name, filename = _parse_content_disposition(disposition)
         if not name:
             continue
-        payload = payload.rstrip(b"\r\n")
+        if payload.endswith(b"\r\n"):
+            payload = payload[:-2]
         if filename is not None:
             files.append((name, _safe_name(filename), payload))
         else:
@@ -275,18 +316,46 @@ class StudioHandler(BaseHTTPRequestHandler):
             return
         ctype = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
         size = path.stat().st_size
-        self.send_response(200)
+        range_header = self.headers.get("Range")
+        start, end = 0, max(0, size - 1)
+
+        if range_header:
+            match = re.fullmatch(r"bytes=(\d*)-(\d*)", range_header.strip())
+            if not match:
+                self.send_error(416)
+                return
+            raw_start, raw_end = match.groups()
+            if raw_start:
+                start = int(raw_start)
+                end = int(raw_end) if raw_end else end
+            elif raw_end:
+                suffix = int(raw_end)
+                start = max(0, size - suffix)
+            end = min(end, size - 1)
+            if start < 0 or start > end or start >= size:
+                self.send_response(416)
+                self.send_header("Content-Range", f"bytes */{size}")
+                self.end_headers()
+                return
+
+        length = end - start + 1
+        self.send_response(206 if range_header else 200)
         self.send_header("Content-Type", ctype)
-        self.send_header("Content-Length", str(size))
+        self.send_header("Content-Length", str(length))
         self.send_header("Accept-Ranges", "bytes")
+        if range_header:
+            self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
         with path.open("rb") as f:
-            while True:
-                chunk = f.read(1024 * 1024)
+            f.seek(start)
+            remaining = length
+            while remaining > 0:
+                chunk = f.read(min(1024 * 1024, remaining))
                 if not chunk:
                     break
                 self.wfile.write(chunk)
+                remaining -= len(chunk)
 
     def do_GET(self):
         parsed = urlparse(self.path)
