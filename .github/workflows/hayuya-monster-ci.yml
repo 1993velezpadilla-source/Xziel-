@@ -27,6 +27,9 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install lightweight Judge v2 test deps
+        run: python -m pip install --upgrade pip numpy pillow
+
       - name: Compile Hayuya Python
         run: python -m py_compile tools/hayuya3d/*.py
 
