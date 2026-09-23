@@ -417,6 +417,10 @@ jobs:
           APK="xziel-native-android/app/build/outputs/apk/debug/app-debug.apk"
           "$ADB" install -r "$APK"
 
+          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-streaming-gpu-residency-v1" ]]; then
+            "$ADB" shell setprop debug.xziel.streaming_probe 1
+          fi
+
           "$ADB" logcat -c
           "$ADB" shell am force-stop             com.xziel.engineprototype || true
 
@@ -690,9 +694,17 @@ jobs:
 
           if [[ "${GITHUB_REF_NAME}" == "engine/mobile-streaming-gpu-residency-v1" ]]; then
             grep -Eq "XZIEL_RUNTIME_TEXTURE_EVICTED texture=[1-9][0-9]* .*freed_kb=[1-9][0-9]*\.[0-9]+" dist/sanctum-hq-logcat.txt
+            grep -Eq "XZIEL_RUNTIME_TEXTURE_RELOAD_PROBE_ARMED texture=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
+            grep -Eq "XZIEL_RUNTIME_TEXTURE_RELOAD_QUEUED texture=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
+            grep -Eq "XZIEL_RUNTIME_TEXTURE_UPLOAD_SUBMITTED texture=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
+            grep -Eq "XZIEL_RUNTIME_TEXTURE_UPLOAD_READY texture=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
+            grep -Eq "XZIEL_RUNTIME_TEXTURE_RELOAD_COMPLETE texture=[1-9][0-9]* .*mask=3" dist/sanctum-hq-logcat.txt
+
             GPU_EVICTIONS="$(grep -c "XZIEL_RUNTIME_TEXTURE_EVICTED" dist/sanctum-hq-logcat.txt || true)"
+            GPU_RELOADS="$(grep -c "XZIEL_RUNTIME_TEXTURE_RELOAD_COMPLETE" dist/sanctum-hq-logcat.txt || true)"
             test "${GPU_EVICTIONS}" -gt 0
-            echo "XZIEL_RUNTIME_GPU_EVICTION_ACTIVE evictions=${GPU_EVICTIONS}"
+            test "${GPU_RELOADS}" -gt 0
+            echo "XZIEL_RUNTIME_GPU_RESIDENCY_ACTIVE evictions=${GPU_EVICTIONS} reloads=${GPU_RELOADS}"
           fi
 
           PIPELINE_READY_COUNT="$(grep -c "XZIEL_3D_PIPELINE_READY" dist/sanctum-hq-logcat.txt || true)"
