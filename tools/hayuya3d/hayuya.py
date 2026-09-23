@@ -969,8 +969,12 @@ def main() -> int:
                 if args.geometry_refine == "required":
                     raise
 
+    ranking_pass = 0
+
     def run_full_ranking():
-        return rank_candidates(
+        nonlocal ranking_pass
+        ranking_pass += 1
+        result = rank_candidates(
             candidates,
             mode=mode,
             target_faces=profile.faces,
@@ -984,6 +988,13 @@ def main() -> int:
             normal_support_images=normal_support_images,
             normal_support_weight=0.06,
         )
+        for position, item in enumerate(result, start=1):
+            print(
+                "HAYUYA_JUDGE_SCORE "
+                f"backend={item.backend} score={item.score:.3f} "
+                f"valid={str(bool(item.valid)).lower()} rank={position} pass={ranking_pass}"
+            )
+        return result
 
     ranked = run_full_ranking()
     valid = [x for x in ranked if x.valid]
