@@ -15,6 +15,7 @@ sys.path.insert(0, str(HERE))
 
 from adapters import DEFAULT_MODEL_ROOT, GENERATORS
 from qa import export_glb, rank_candidates
+from reference_pool import split_reference_roles
 
 
 @dataclass(frozen=True)
@@ -183,9 +184,16 @@ def make_job_plan(
     anchor_hypothesis_budget: int | None = None,
 ) -> dict:
     profile = PROFILES[profile_name]
+    roles = split_reference_roles(inputs)
+    geometry_inputs = roles.geometry
+    detail_inputs = roles.detail
     group_size = multiview_group_size or profile.multiview_group_size
-    groups = make_reference_groups(inputs, group_size) if len(inputs) > 1 else [list(inputs)]
-    anchor_refs = limit_anchor_refs(inputs, anchor_hypothesis_budget) if profile.multi_anchor else [inputs[0]]
+    groups = make_reference_groups(geometry_inputs, group_size) if len(geometry_inputs) > 1 else [list(geometry_inputs)]
+    anchor_refs = (
+        limit_anchor_refs(geometry_inputs, anchor_hypothesis_budget)
+        if profile.multi_anchor
+        else [geometry_inputs[0]]
+    )
 
     return {
         "engine": "HAYUYA MONSTER",
@@ -197,7 +205,12 @@ def make_job_plan(
             "all_real_sources_are_authoritative": True,
             "duplicate_paths_are_deduplicated": True,
             "duplicate_file_content_is_deduplicated": True,
-            "ordered_primary_source": str(inputs[0]),
+            "ordered_primary_source": str(geometry_inputs[0]),
+            "geometry_sources": [str(p) for p in geometry_inputs],
+            "geometry_source_count": len(geometry_inputs),
+            "detail_sources": [str(p) for p in detail_inputs],
+            "detail_source_count": len(detail_inputs),
+            "detail_policy": "detail/close-up references are preserved for material/local-detail stages and do not distort whole-object silhouette scoring",
         },
         "mode": mode,
         "profile": profile_name,
@@ -208,7 +221,7 @@ def make_job_plan(
             "trellis2_resolution": profile.trellis2_resolution,
         },
         "viewforge": {
-            "strategy": _viewforge_strategy(len(inputs)),
+            "strategy": _viewforge_strategy(len(geometry_inputs)),
             "canonical_views": [
                 "front",
                 "front_45_right",
@@ -224,13 +237,14 @@ def make_job_plan(
             "real_sources_override_synthetic_views": True,
         },
         "multi_reference": {
-            "enabled": len(inputs) > 1,
+            "enabled": len(geometry_inputs) > 1,
             "backend_group_size": group_size,
             "group_count": len(groups),
             "groups": [[str(p) for p in group] for group in groups],
             "single_image_anchor_hypotheses": [str(p) for p in anchor_refs],
             "anchor_hypothesis_budget": anchor_hypothesis_budget,
-            "all_sources_always_used_by_judge": True,
+            "all_geometry_sources_always_used_by_judge": True,
+            "detail_sources_reserved_for_material_and_local_detail_validation": True,
         },
         "candidate_backends": selected_backends,
         "judge": {
@@ -380,6 +394,9 @@ def main() -> int:
     args = parser.parse_args()
 
     inputs = validate_inputs(args.input)
+    roles = split_reference_roles(inputs)
+    geometry_inputs = roles.geometry
+    detail_inputs = roles.detail
     profile = PROFILES[args.profile]
     group_size = args.multiview_group_size or profile.multiview_group_size
     if group_size < 2:
@@ -398,12 +415,20 @@ def main() -> int:
 
     mode = args.mode
     if mode == "auto":
-        mode = "character" if "character" in inputs[0].stem.lower() else "prop"
+        mode = "character" if "character" in geometry_inputs[0].stem.lower() else "prop"
 
-    reference_groups = make_reference_groups(inputs, group_size) if len(inputs) > 1 else [list(inputs)]
-    anchor_refs = limit_anchor_refs(inputs, args.anchor_hypothesis_budget) if profile.multi_anchor else [inputs[0]]
+    reference_groups = (
+        make_reference_groups(geometry_inputs, group_size)
+        if len(geometry_inputs) > 1
+        else [list(geometry_inputs)]
+    )
+    anchor_refs = (
+        limit_anchor_refs(geometry_inputs, args.anchor_hypothesis_budget)
+        if profile.multi_anchor
+        else [geometry_inputs[0]]
+    )
 
-    job_name = f"{inputs[0].stem}-{args.profile}-{args.seed}"
+    job_name = f"{geometry_inputs[0].stem}-{args.profile}-{args.seed}"
     job_dir = args.output_root / job_name
     candidates_dir = job_dir / "candidates"
     job_dir.mkdir(parents=True, exist_ok=True)
@@ -458,7 +483,7 @@ def main() -> int:
         # TripoSG is special in multi-anchor profiles: by default every real source
         # can produce an independent geometry hypothesis, with an explicit CLI budget
         # available when compute needs to be bounded.
-        run_refs = anchor_refs if backend == "triposg" and profile.multi_anchor else [inputs[0]]
+        run_refs = anchor_refs if backend == "triposg" and profile.multi_anchor else [geometry_inputs[0]]
         for anchor_index, image in enumerate(run_refs, start=1):
             label = backend if len(run_refs) == 1 else f"{backend}_anchor{anchor_index:03d}"
             try:
@@ -491,7 +516,7 @@ def main() -> int:
         candidates,
         mode=mode,
         target_faces=profile.faces,
-        source_images=inputs,
+        source_images=geometry_inputs,
         visual_weight=0.55,
     )
     ranking_data = [asdict(x) for x in ranked]
@@ -514,8 +539,9 @@ def main() -> int:
         "final_glb": str(final_glb),
         "notes": [
             "The reference pool has no Hayuya-level photo-count cap.",
-            "All unique real source photos participate in Judge v2.",
-            "Multi-image backends receive grouped real references when one call should be bounded for VRAM/practicality.",
+            "All unique full-object/geometry source photos participate in Judge v2.",
+            "Detail/close-up sources remain in the reference pool for material and local-detail stages instead of being misused as whole-object silhouettes.",
+            "Multi-image backends receive grouped real geometry references when one call should be bounded for VRAM/practicality.",
             "Monster/Ultra multi-anchor mode can generate TripoSG hypotheses from every source unless the user explicitly sets a budget.",
             "Judge v2 combines production mesh health with source-image silhouette agreement.",
             "Next judge stage adds DINO/MEt3R RGB feature consistency plus normal/depth agreement.",
@@ -525,7 +551,8 @@ def main() -> int:
     print(f"HAYUYA_MONSTER_READY {final_glb}")
     print(
         f"HAYUYA_CHAMPION backend={champion.backend} score={champion.score} "
-        f"references={len(inputs)} candidates={len(candidates)}"
+        f"references={len(inputs)} geometry_refs={len(geometry_inputs)} "
+        f"detail_refs={len(detail_inputs)} candidates={len(candidates)}"
     )
     return 0
 
