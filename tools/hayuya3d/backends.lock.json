@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_utc": "2026-09-23T04:55:00Z",
+  "updated_utc": "2026-09-23T20:55:00Z",
   "policy": {
     "default_stack": "permissive_open_source",
     "allow_restricted_by_default": false,
@@ -215,6 +215,36 @@
       "min_vram_gb": 21,
       "quality_tier": "high",
       "notes": "Opt-in only. License has territory/commercial/use conditions and forbids using outputs to improve other AI models. Do not silently bundle or enable."
+    },
+    {
+      "id": "sam2",
+      "role": [
+        "image_part_segmentation",
+        "foreground_mask",
+        "component_mask_support"
+      ],
+      "repo": "https://github.com/facebookresearch/sam2.git",
+      "sha": "2b90b9f5ceec907a1c18123530e92e794ad901a4",
+      "license": "Apache-2.0",
+      "enabled_by_default": false,
+      "min_vram_gb": 4,
+      "quality_tier": "segmentation",
+      "notes": "Permissive promptable segmentation support for source/reference images. Intended for component masks and editor-assisted cleanup, not as a 3D generator."
+    },
+    {
+      "id": "groundingdino",
+      "role": [
+        "open_vocabulary_detection",
+        "part_prompt_generation",
+        "component_localization"
+      ],
+      "repo": "https://github.com/IDEA-Research/GroundingDINO.git",
+      "sha": "856dde20aee659246248e20734ef9ba5214f5e44",
+      "license": "Apache-2.0",
+      "enabled_by_default": false,
+      "min_vram_gb": 4,
+      "quality_tier": "detection",
+      "notes": "Optional open-vocabulary locator for semantic parts such as magazine, slide, pump, cylinder, doors or wheels. Must be combined with SAM2 masks and downstream 3D projection; fail closed when confidence is weak."
     }
   ],
   "service_adapters": [
