@@ -112,6 +112,24 @@ Sources:
 
 ---
 
+## Cross-vendor Android GPU rule
+
+Android's own current optimization guidance is explicit that there is no universal CPU/GPU fix: profile the actual bottleneck. It recommends frame debuggers/profilers, removing unused render passes/attachments, ASTC compression, lower shader precision when sufficient, back-face culling, LOD, mesh simplification and frustum/occlusion culling. Android also warns that bottlenecks can vary substantially across GPU vendors and generations.
+
+For custom/native engines, Vulkan is Android's primary low-level graphics API. Android notes that draw-heavy OpenGL ES games can become CPU-bound in the graphics driver and may reduce CPU/power overhead by moving to Vulkan.
+
+PowerVR's public architecture documentation reinforces the same mobile rule as Apple and Mali: tile-based deferred rendering keeps work on-chip and reduces expensive system-memory bandwidth. Its guidance also warns that discard/alpha-test behavior can interfere with early visibility/depth optimizations.
+
+HAYUYA therefore must never stamp an asset "portable" from a single Adreno, Mali, Apple or PowerVR test. The portable package needs explicit LOD/material/texture alternatives and cross-vendor validation.
+
+Sources:
+- https://developer.android.com/games/optimize/optimization-tips
+- https://developer.android.com/games/optimize/power
+- https://developer.android.com/games/develop/vulkan/native-engine-support
+- https://developer.android.com/android-performance-analyzer/analyze/frame-times
+- https://docs.imgtec.com/starter-guides/powervr-architecture/html/topics/tile-based-deferred-rendering-index.html
+- https://docs.imgtec.com/starter-guides/powervr-architecture/html/topics/rules/do-use-on-chip-memory-efficiently-for-deferred-rendering.html
+
 # ENGINE RESEARCH
 
 ## 4. Unreal Engine 5.8 Mobile
