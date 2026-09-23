@@ -27,10 +27,36 @@ function openPlayer(index) {
       },
     );
 
+    let opened = false;
+    let welcome = null;
+
     const timer = setTimeout(() => {
       ws.terminate();
-      reject(new Error(`player ${index} connect timeout`));
+      reject(new Error(`player ${index} connect/welcome timeout`));
     }, 15000);
+
+    const maybeResolve = () => {
+      if (!opened || welcome === null) return;
+      clearTimeout(timer);
+      resolve({ ws, welcome });
+    };
+
+    ws.on("message", (data, isBinary) => {
+      if (!isBinary || welcome !== null) return;
+
+      const bytes = Buffer.from(data);
+      if (bytes.length < 14) return;
+      if (bytes.readUInt16LE(0) !== MAGIC) return;
+      if (bytes.readUInt8(2) !== VERSION) return;
+      if (bytes.readUInt8(3) !== WELCOME) return;
+
+      welcome = {
+        playerId: bytes.readUInt8(8),
+        maxPlayers: bytes.readUInt8(9),
+      };
+
+      maybeResolve();
+    });
 
     ws.once("error", (error) => {
       clearTimeout(timer);
@@ -38,34 +64,9 @@ function openPlayer(index) {
     });
 
     ws.once("open", () => {
-      resolve(ws);
+      opened = true;
+      maybeResolve();
     });
-  });
-}
-
-function waitForWelcome(ws) {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(new Error("welcome timeout"));
-    }, 10000);
-
-    const onMessage = (data, isBinary) => {
-      if (!isBinary) return;
-      const bytes = Buffer.from(data);
-      if (bytes.length < 14) return;
-      if (bytes.readUInt16LE(0) !== MAGIC) return;
-      if (bytes.readUInt8(2) !== VERSION) return;
-      if (bytes.readUInt8(3) !== WELCOME) return;
-
-      clearTimeout(timer);
-      ws.off("message", onMessage);
-      resolve({
-        playerId: bytes.readUInt8(8),
-        maxPlayers: bytes.readUInt8(9),
-      });
-    };
-
-    ws.on("message", onMessage);
   });
 }
 
@@ -155,13 +156,19 @@ function expectFifthRejected() {
 const sockets = [];
 
 try {
-  for (let i = 0; i < 4; ++i) {
-    const ws = await openPlayer(i);
-    sockets.push(ws);
-  }
+  const connected = await Promise.all(
+    Array.from(
+      { length: 4 },
+      (_unused, index) => openPlayer(index),
+    ),
+  );
 
-  const welcomes = await Promise.all(
-    sockets.map((ws) => waitForWelcome(ws)),
+  sockets.push(
+    ...connected.map((entry) => entry.ws),
+  );
+
+  const welcomes = connected.map(
+    (entry) => entry.welcome,
   );
 
   const ids = welcomes
