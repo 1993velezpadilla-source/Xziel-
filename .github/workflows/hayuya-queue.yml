@@ -9,6 +9,7 @@ on:
       - hayuya/jobs/requests/**.json
       - tools/hayuya3d/job_request.py
       - tools/hayuya3d/gpu_e2e.sh
+      - tools/hayuya3d/phone_cloud_worker.py
       - .github/workflows/hayuya-queue.yml
   workflow_dispatch:
 
@@ -111,7 +112,7 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
     name: ${{ matrix.owner }} / ${{ matrix.job_id }}
-    runs-on: [self-hosted, linux, x64, hayuya-gpu]
+    runs-on: ubuntu-latest
     timeout-minutes: 360
     concurrency:
       group: hayuya-queue-${{ matrix.job_id }}
@@ -152,8 +153,20 @@ jobs:
           mkdir -p external
           git clone --depth 1 --branch "${HAYUYA_SOURCE_REF}" "https://github.com/${HAYUYA_SOURCE_REPO}.git" external/source
 
-      - name: Run isolated Hayuya job
-        run: bash tools/hayuya3d/gpu_e2e.sh
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install phone/cloud controller
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "gradio_client>=1.10,<2" pillow
+
+      - name: Run phone-only Hayuya cloud job
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python tools/hayuya3d/phone_cloud_worker.py
 
       - name: Job summary
         if: always()
