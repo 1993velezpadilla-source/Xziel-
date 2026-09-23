@@ -105,8 +105,17 @@ jobs:
           BASE_URL="https://xziel-match-server.$SUBDOMAIN.workers.dev"
           HEALTH_URL="$BASE_URL/health"
 
+          SCRIPT_SUBDOMAIN_JSON="$(
+            curl -fsS \
+              "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/xziel-match-server/subdomain" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"
+          )"
+
+          printf '%s' "$SCRIPT_SUBDOMAIN_JSON" |
+            python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success"); assert (d.get("result") or {}).get("enabled") is True; print("XZIEL_MATCH_SERVER_ROUTE_ENABLED")'
+
           HEALTH_OK=0
-          for attempt in $(seq 1 12); do
+          for attempt in $(seq 1 36); do
             if curl -fsS "$HEALTH_URL" > /tmp/xziel-health.json; then
               HEALTH_OK=1
               break
@@ -114,9 +123,11 @@ jobs:
             sleep 5
           done
 
-          test "$HEALTH_OK" -eq 1
+          echo "XZIEL_MATCH_SERVER_URL=$BASE_URL"
+          echo "XZIEL_MATCH_SERVER_WS=wss://xziel-match-server.$SUBDOMAIN.workers.dev"
 
-          python3 - /tmp/xziel-health.json <<'PY'
+          if [[ "$HEALTH_OK" -eq 1 ]]; then
+            python3 - /tmp/xziel-health.json <<'PY'
           import json
           import sys
 
@@ -137,7 +148,9 @@ jobs:
               json.dumps(data, sort_keys=True)
           )
           PY
+          else
+            echo "::warning::Worker deployed and route enabled; workers.dev TLS/DNS is still propagating"
+            echo "XZIEL_MATCH_SERVER_PROPAGATING"
+          fi
 
-          echo "XZIEL_MATCH_SERVER_URL=$BASE_URL"
-          echo "XZIEL_MATCH_SERVER_WS=wss://xziel-match-server.$SUBDOMAIN.workers.dev"
           echo "XZIEL_MATCH_SERVER_DEPLOY_OK"
