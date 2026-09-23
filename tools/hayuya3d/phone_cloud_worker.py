@@ -20,6 +20,7 @@ DETAIL_DIR = Path(DETAIL_DIR_RAW) if DETAIL_DIR_RAW else None
 OUT = Path(os.environ.get("HAYUYA_OUTPUT_ROOT","out/hayuya-phone-cloud"))
 JOB = os.environ.get("HAYUYA_JOB_ID","hayuya-phone")
 ASSET_PROFILE = os.environ.get("HAYUYA_ASSET_PROFILE","auto").strip() or "auto"
+WEAPON_FAMILY = os.environ.get("HAYUYA_WEAPON_FAMILY","auto").strip() or "auto"
 ANIMATION_REQUESTED = os.environ.get("HAYUYA_ANIMATION_REQUESTED","false").strip().lower() in {"1","true","yes","on"}
 MOTION_PROFILE = os.environ.get("HAYUYA_MOTION_PROFILE","auto").strip() or "auto"
 TEXTURE_QUALITY = os.environ.get("HAYUYA_TEXTURE_QUALITY","standard").strip() or "standard"
@@ -377,6 +378,7 @@ profile_systems={
 }
 asset_payload={
     "profile":ASSET_PROFILE,
+    "weapon_family":WEAPON_FAMILY if ASSET_PROFILE=="weapon.firearm" else "auto",
     "animation_requested":ANIMATION_REQUESTED,
     "motion_profile":MOTION_PROFILE,
     "animation_systems":profile_systems.get(ASSET_PROFILE,[]),
@@ -390,6 +392,7 @@ manifest={
     "engine":"HAYUYA PHONE CLOUD",
     "job_id":JOB,
     "asset_profile":ASSET_PROFILE,
+    "weapon_family":WEAPON_FAMILY if ASSET_PROFILE=="weapon.firearm" else "auto",
     "animation_requested":ANIMATION_REQUESTED,
     "motion_profile":MOTION_PROFILE,
     "texture_quality":TEXTURE_QUALITY,
