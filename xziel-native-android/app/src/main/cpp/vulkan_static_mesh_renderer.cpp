@@ -1,6 +1,7 @@
 #include "vulkan_static_mesh_renderer.hpp"
 
 #include "xziel/texture_container.hpp"
+#include "xziel/streaming.hpp"
 
 #include <android/bitmap.h>
 #include <android/imagedecoder.h>
@@ -57,6 +58,54 @@ std::string textureAssetPath(
 
     path += extension;
     return path;
+}
+
+[[nodiscard]] std::uint64_t
+chooseTextureResidentBudget(
+    VkPhysicalDevice physicalDevice,
+    VkPhysicalDeviceType deviceType) noexcept {
+    constexpr std::uint64_t kMiB =
+        1024ULL * 1024ULL;
+    constexpr std::uint64_t kMinimum =
+        96ULL * kMiB;
+    constexpr std::uint64_t kMaximum =
+        384ULL * kMiB;
+
+    if (deviceType ==
+        VK_PHYSICAL_DEVICE_TYPE_CPU) {
+        return 128ULL * kMiB;
+    }
+
+    VkPhysicalDeviceMemoryProperties memory{};
+    vkGetPhysicalDeviceMemoryProperties(
+        physicalDevice,
+        &memory);
+
+    std::uint64_t largestDeviceLocalHeap = 0U;
+
+    for (std::uint32_t i = 0U;
+         i < memory.memoryHeapCount;
+         ++i) {
+        if ((memory.memoryHeaps[i].flags &
+             VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) == 0U) {
+            continue;
+        }
+
+        largestDeviceLocalHeap =
+            std::max<std::uint64_t>(
+                largestDeviceLocalHeap,
+                static_cast<std::uint64_t>(
+                    memory.memoryHeaps[i].size));
+    }
+
+    if (largestDeviceLocalHeap == 0U) {
+        return 128ULL * kMiB;
+    }
+
+    return std::clamp<std::uint64_t>(
+        largestDeviceLocalHeap / 8U,
+        kMinimum,
+        kMaximum);
 }
 
 [[nodiscard]] bool assetExists(
@@ -146,15 +195,25 @@ bool VulkanStaticMeshRenderer::initialize(
         ? 2U
         : 16U;
 
+    textureResidentBudgetBytes_ =
+        chooseTextureResidentBudget(
+            physicalDevice_,
+            deviceProperties.deviceType);
+    textureResidentBytes_ = 0U;
+    textureDegradedCount_ = 0U;
+
     __android_log_print(
         ANDROID_LOG_INFO,
         kTag,
-        "XZIEL_STATIC_TEXTURE_CAPS astc=%d aniso=%.1f upload_batch_commands=%u",
+        "XZIEL_STATIC_TEXTURE_CAPS astc=%d aniso=%.1f upload_batch_commands=%u texture_budget_mb=%.1f",
         astcLdrSupported_ ? 1 : 0,
         static_cast<double>(
             maxSamplerAnisotropy_),
         static_cast<unsigned int>(
-            uploadBatchCommandLimit_));
+            uploadBatchCommandLimit_),
+        static_cast<double>(
+            textureResidentBudgetBytes_) /
+            (1024.0 * 1024.0));
 
     graphicsQueue_ = graphicsQueue;
     graphicsQueueFamily_ = graphicsQueueFamily;
@@ -495,6 +554,10 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     astcLdrSupported_ = false;
     maxSamplerAnisotropy_ = 1.0f;
     uploadBatchCommandLimit_ = 16U;
+    textureResidentBudgetBytes_ =
+        128ULL * 1024ULL * 1024ULL;
+    textureResidentBytes_ = 0U;
+    textureDegradedCount_ = 0U;
 
     physicalDevice_ = VK_NULL_HANDLE;
     device_ = VK_NULL_HANDLE;
@@ -1789,6 +1852,88 @@ bool VulkanStaticMeshRenderer::createKtx2Texture(
         return false;
     }
 
+    std::uint32_t residentBaseMip = 0U;
+
+    const auto fullRange =
+        planKtx2ResidentMipRange(
+            texture,
+            0U);
+
+    if (!fullRange.valid) {
+        return false;
+    }
+
+    const std::uint64_t budgetRemaining =
+        textureResidentBytes_ <
+                textureResidentBudgetBytes_
+        ? textureResidentBudgetBytes_ -
+            textureResidentBytes_
+        : 0U;
+
+    if (fullRange.payloadBytes >
+            budgetRemaining &&
+        texture.levels.size() > 1U &&
+        texture.levels.size() <=
+            kMaxStreamedTextureMips) {
+        try {
+            TextureMipChainDesc desc{};
+            desc.id = 1U;
+            desc.mipCount =
+                static_cast<std::uint32_t>(
+                    texture.levels.size());
+
+            for (std::uint32_t mip = 0U;
+                 mip < desc.mipCount;
+                 ++mip) {
+                desc.mipBytes[mip] =
+                    texture.levels[mip].
+                        byteLength;
+            }
+
+            TextureMipResidencyManager planner(
+                1U);
+
+            if (planner.registerTexture(
+                    desc,
+                    0U)) {
+                TextureMipChange change{};
+                const std::uint64_t target =
+                    fullRange.payloadBytes -
+                    std::min(
+                        fullRange.payloadBytes,
+                        budgetRemaining);
+
+                if (planner.planDemotions(
+                        target,
+                        0U,
+                        0U,
+                        &change,
+                        1U) == 1U) {
+                    // Startup quality guard: never discard more than the top
+                    // two mips automatically. Runtime streaming can become
+                    // more aggressive later if telemetry proves it necessary.
+                    residentBaseMip =
+                        std::min<std::uint32_t>(
+                            change.newBaseMip,
+                            std::min<std::uint32_t>(
+                                2U,
+                                desc.mipCount - 1U));
+                }
+            }
+        } catch (...) {
+            residentBaseMip = 0U;
+        }
+    }
+
+    const auto residentRange =
+        planKtx2ResidentMipRange(
+            texture,
+            residentBaseMip);
+
+    if (!residentRange.valid) {
+        return false;
+    }
+
     std::vector<VkDeviceSize> stagingOffsets;
     std::vector<VkBufferImageCopy> regions;
 
@@ -1796,11 +1941,17 @@ bool VulkanStaticMeshRenderer::createKtx2Texture(
 
     try {
         stagingOffsets.reserve(
-            texture.levels.size());
+            residentRange.mipCount);
         regions.reserve(
-            texture.levels.size());
+            residentRange.mipCount);
 
-        for (const auto& level : texture.levels) {
+        for (std::size_t sourceMip =
+                 residentBaseMip;
+             sourceMip < texture.levels.size();
+             ++sourceMip) {
+            const auto& level =
+                texture.levels[sourceMip];
+
             stagingBytes =
                 (stagingBytes + 15U) &
                 ~VkDeviceSize{15U};
@@ -1858,15 +2009,19 @@ bool VulkanStaticMeshRenderer::createKtx2Texture(
     auto* destination =
         static_cast<std::byte*>(mapped);
 
-    for (std::size_t i = 0U;
-         i < texture.levels.size();
-         ++i) {
+    for (std::size_t sourceMip =
+             residentBaseMip;
+         sourceMip < texture.levels.size();
+         ++sourceMip) {
+        const std::size_t residentMip =
+            sourceMip -
+            residentBaseMip;
         const auto& level =
-            texture.levels[i];
+            texture.levels[sourceMip];
 
         std::memcpy(
             destination +
-                stagingOffsets[i],
+                stagingOffsets[residentMip],
             bytes.data() +
                 static_cast<std::size_t>(
                     level.byteOffset),
@@ -1875,13 +2030,14 @@ bool VulkanStaticMeshRenderer::createKtx2Texture(
 
         VkBufferImageCopy copy{};
         copy.bufferOffset =
-            stagingOffsets[i];
+            stagingOffsets[residentMip];
         copy.bufferRowLength = 0U;
         copy.bufferImageHeight = 0U;
         copy.imageSubresource.aspectMask =
             VK_IMAGE_ASPECT_COLOR_BIT;
         copy.imageSubresource.mipLevel =
-            static_cast<std::uint32_t>(i);
+            static_cast<std::uint32_t>(
+                residentMip);
         copy.imageSubresource.baseArrayLayer = 0U;
         copy.imageSubresource.layerCount = 1U;
         copy.imageExtent = {
@@ -1902,13 +2058,12 @@ bool VulkanStaticMeshRenderer::createKtx2Texture(
     };
     imageInfo.imageType = VK_IMAGE_TYPE_2D;
     imageInfo.extent = {
-        texture.width,
-        texture.height,
+        residentRange.width,
+        residentRange.height,
         1U,
     };
     imageInfo.mipLevels =
-        static_cast<std::uint32_t>(
-            texture.levels.size());
+        residentRange.mipCount;
     imageInfo.arrayLayers = 1U;
     imageInfo.format = textureFormat;
     imageInfo.tiling =
@@ -2113,17 +2268,76 @@ bool VulkanStaticMeshRenderer::createKtx2Texture(
     out.assetPath = assetPath;
     out.width = texture.width;
     out.height = texture.height;
+    out.residentWidth =
+        residentRange.width;
+    out.residentHeight =
+        residentRange.height;
+    out.mipLevels =
+        residentRange.mipCount;
+    out.residentBaseMip =
+        residentBaseMip;
+    out.residentPayloadBytes =
+        residentRange.payloadBytes;
+    out.allocationBytes =
+        static_cast<std::uint64_t>(
+            requirements.size);
+
+    if (residentRange.payloadBytes >
+        std::numeric_limits<std::uint64_t>::max() -
+            textureResidentBytes_) {
+        discardPendingUploads();
+        destroyTexture(out);
+        return false;
+    }
+
+    textureResidentBytes_ +=
+        residentRange.payloadBytes;
+
+    if (residentBaseMip > 0U) {
+        ++textureDegradedCount_;
+
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_TEXTURE_MIP_RESIDENCY path=%s base_mip=%u source=%ux%u resident=%ux%u saved_payload_bytes=%llu resident_total_mb=%.2f budget_mb=%.2f degraded=%u",
+            assetPath.c_str(),
+            static_cast<unsigned int>(
+                residentBaseMip),
+            texture.width,
+            texture.height,
+            residentRange.width,
+            residentRange.height,
+            static_cast<unsigned long long>(
+                fullRange.payloadBytes -
+                residentRange.payloadBytes),
+            static_cast<double>(
+                textureResidentBytes_) /
+                (1024.0 * 1024.0),
+            static_cast<double>(
+                textureResidentBudgetBytes_) /
+                (1024.0 * 1024.0),
+            static_cast<unsigned int>(
+                textureDegradedCount_));
+    }
 
     __android_log_print(
         ANDROID_LOG_INFO,
         kTag,
-        "XZIEL_KTX2_ASTC_TEXTURE path=%s format=%u size=%ux%u mips=%u gpu_bytes=%llu",
+        "XZIEL_KTX2_ASTC_TEXTURE path=%s format=%u source=%ux%u resident=%ux%u base_mip=%u mips=%u/%u payload_bytes=%llu gpu_bytes=%llu",
         assetPath.c_str(),
         static_cast<unsigned int>(
             texture.vkFormat),
         texture.width,
         texture.height,
-        imageInfo.mipLevels,
+        residentRange.width,
+        residentRange.height,
+        static_cast<unsigned int>(
+            residentBaseMip),
+        residentRange.mipCount,
+        static_cast<unsigned int>(
+            texture.levels.size()),
+        static_cast<unsigned long long>(
+            residentRange.payloadBytes),
         static_cast<unsigned long long>(
             requirements.size));
 

@@ -96,6 +96,12 @@ private:
         VkSampler sampler = VK_NULL_HANDLE;
         std::uint32_t width = 0U;
         std::uint32_t height = 0U;
+        std::uint32_t residentWidth = 0U;
+        std::uint32_t residentHeight = 0U;
+        std::uint32_t mipLevels = 0U;
+        std::uint32_t residentBaseMip = 0U;
+        std::uint64_t residentPayloadBytes = 0U;
+        std::uint64_t allocationBytes = 0U;
     };
 
     struct GpuMaterial {
@@ -274,6 +280,10 @@ private:
     std::vector<PendingUpload> pendingUploads_{};
     VkDeviceSize pendingUploadBytes_ = 0U;
     std::uint32_t uploadBatchCommandLimit_ = 16U;
+    std::uint64_t textureResidentBudgetBytes_ =
+        128ULL * 1024ULL * 1024ULL;
+    std::uint64_t textureResidentBytes_ = 0U;
+    std::uint32_t textureDegradedCount_ = 0U;
 
     VkBuffer geometryVertexBuffer_ = VK_NULL_HANDLE;
     VkDeviceMemory geometryVertexMemory_ = VK_NULL_HANDLE;

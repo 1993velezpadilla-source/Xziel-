@@ -505,4 +505,57 @@ Ktx2ParseResult parseKtx2Astc(
     };
 }
 
+Ktx2ResidentMipRange
+planKtx2ResidentMipRange(
+    const Ktx2Texture& texture,
+    std::uint32_t baseMip) noexcept {
+    Ktx2ResidentMipRange out{};
+
+    if (texture.levels.empty() ||
+        baseMip >= texture.levels.size() ||
+        texture.levels.size() >
+            std::numeric_limits<std::uint32_t>::max()) {
+        return out;
+    }
+
+    const auto& first =
+        texture.levels[baseMip];
+
+    if (first.width == 0U ||
+        first.height == 0U) {
+        return out;
+    }
+
+    std::uint64_t payloadBytes = 0U;
+
+    for (std::size_t i = baseMip;
+         i < texture.levels.size();
+         ++i) {
+        const auto& level =
+            texture.levels[i];
+
+        if (level.width == 0U ||
+            level.height == 0U ||
+            level.byteLength == 0U ||
+            level.byteLength >
+                std::numeric_limits<std::uint64_t>::max() -
+                    payloadBytes) {
+            return out;
+        }
+
+        payloadBytes += level.byteLength;
+    }
+
+    out.valid = true;
+    out.baseMip = baseMip;
+    out.width = first.width;
+    out.height = first.height;
+    out.mipCount =
+        static_cast<std::uint32_t>(
+            texture.levels.size() -
+            baseMip);
+    out.payloadBytes = payloadBytes;
+    return out;
+}
+
 } // namespace xziel

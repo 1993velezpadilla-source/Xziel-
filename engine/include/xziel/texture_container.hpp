@@ -29,6 +29,20 @@ struct Ktx2Texture {
     std::vector<Ktx2MipLevel> levels{};
 };
 
+struct Ktx2ResidentMipRange {
+    bool valid = false;
+    std::uint32_t baseMip = 0U;
+    std::uint32_t width = 0U;
+    std::uint32_t height = 0U;
+    std::uint32_t mipCount = 0U;
+    std::uint64_t payloadBytes = 0U;
+};
+
+[[nodiscard]] Ktx2ResidentMipRange
+planKtx2ResidentMipRange(
+    const Ktx2Texture& texture,
+    std::uint32_t baseMip) noexcept;
+
 enum class Ktx2ParseError : std::uint8_t {
     None,
     Truncated,
