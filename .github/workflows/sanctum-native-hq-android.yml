@@ -286,6 +286,9 @@ jobs:
 
           grep -q             "assets/shaders/xziel_static_mesh.frag.spv"             build/sanctum-hq-apk-contents.txt
 
+          grep -q             "assets/shaders/xziel_scene_composite.vert.spv"             build/sanctum-hq-apk-contents.txt
+          grep -q             "assets/shaders/xziel_scene_composite.frag.spv"             build/sanctum-hq-apk-contents.txt
+
           # Shipping Sanctum is native Xziel only. The legacy NZP/Quake
           # harness may still exist as development evidence in other workflow
           # artifacts, but it must never leak into the Android game package.
@@ -484,6 +487,8 @@ jobs:
           grep -q "XZIEL_GPU_CAPS"             dist/sanctum-hq-logcat.txt
           grep -Eq "XZIEL_GPU_TIMESTAMPS_(READY|UNAVAILABLE)"             dist/sanctum-hq-logcat.txt
           grep -q "XZIEL_TRANSIENT_DEPTH_"             dist/sanctum-hq-logcat.txt
+          grep -q "XZIEL_SCENE_COMPOSITE_READY"             dist/sanctum-hq-logcat.txt
+          grep -Eq "XZIEL_DYNAMIC_RESOLUTION scale=0\.(70|82|92) scene=[0-9]+x[0-9]+ native=[0-9]+x[0-9]+"             dist/sanctum-hq-logcat.txt
           grep -q "XZIEL_ADPF "             dist/sanctum-hq-logcat.txt
           grep -q "XZIEL_GAME_STATE loading=0 mode=1"             dist/sanctum-hq-logcat.txt
           grep -Eq "XZIEL_FRAME_PACING_(READY|SKIPPED_CPU|UNAVAILABLE)"             dist/sanctum-hq-logcat.txt
