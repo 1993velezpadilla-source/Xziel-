@@ -76,18 +76,46 @@ export class GameRoom extends DurableObject {
       return json({ error: "upgrade_required" }, 426);
     }
 
+    const expectedRoom = String((await this.ctx.storage.get("roomCode")) || "");
+    const requestedRoom = String(url.searchParams.get("room") || "");
+    if (!expectedRoom || requestedRoom !== expectedRoom) {
+      return json({ error: "room_not_found" }, 404);
+    }
+
     const kind = url.searchParams.get("kind") === "voice" ? "voice" : "game";
     const playerId = String(url.searchParams.get("playerId") || crypto.randomUUID()).slice(0, 64);
-    const slot = Math.max(1, Math.min(4, Number(url.searchParams.get("slot") || 1)));
-
     const sockets = this.ctx.getWebSockets();
-    const gamePlayers = new Set();
+
+    const gameByPlayer = new Map();
+    const usedSlots = new Set();
     for (const socket of sockets) {
       const a = socket.deserializeAttachment() || {};
-      if (a.kind === "game") gamePlayers.add(a.playerId);
+      if (a.kind === "game") {
+        gameByPlayer.set(a.playerId, a);
+        usedSlots.add(a.slot);
+      }
     }
-    if (kind === "game" && !gamePlayers.has(playerId) && gamePlayers.size >= MAX_PLAYERS) {
-      return json({ error: "room_full", maxPlayers: MAX_PLAYERS }, 409);
+
+    let slot = 0;
+    if (kind === "game") {
+      const existing = gameByPlayer.get(playerId);
+      if (existing) {
+        slot = existing.slot;
+      } else {
+        if (gameByPlayer.size >= MAX_PLAYERS) {
+          return json({ error: "room_full", maxPlayers: MAX_PLAYERS }, 409);
+        }
+        for (let candidate = 1; candidate <= MAX_PLAYERS; candidate += 1) {
+          if (!usedSlots.has(candidate)) {
+            slot = candidate;
+            break;
+          }
+        }
+      }
+    } else {
+      const game = gameByPlayer.get(playerId);
+      if (!game) return json({ error: "join_game_socket_first" }, 403);
+      slot = game.slot;
     }
 
     const pair = new WebSocketPair();
@@ -96,7 +124,26 @@ export class GameRoom extends DurableObject {
     server.serializeAttachment({ kind, playerId, slot });
 
     if (kind === "game") {
+      try {
+        server.send(JSON.stringify({
+          type: "welcome",
+          roomCode: expectedRoom,
+          playerId,
+          slot,
+          maxPlayers: MAX_PLAYERS,
+          serverTime: Date.now(),
+        }));
+      } catch {}
       this.broadcastJson({ type: "player_joined", playerId, slot }, server);
+    } else {
+      try {
+        server.send(JSON.stringify({
+          type: "voice_ready",
+          playerId,
+          slot,
+          serverTime: Date.now(),
+        }));
+      } catch {}
     }
 
     return new Response(null, { status: 101, webSocket: client });
