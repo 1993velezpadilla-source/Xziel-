@@ -168,6 +168,29 @@ int main() {
     assert(pinned->desiredResident);
     assert(!pinned->evictable);
 
+    const xziel::StreamCellPlanInput normalInput{
+        .currentCell = 1U,
+        .preloadPortalHops = 1U,
+        .memoryPressure =
+            xziel::MemoryPressure::Normal,
+    };
+
+    assert(
+        graph.cellHeat(
+            normalInput,
+            1U) ==
+        xziel::StreamCellHeat::Hot);
+    assert(
+        graph.cellHeat(
+            normalInput,
+            2U) ==
+        xziel::StreamCellHeat::Preload);
+    assert(
+        graph.cellHeat(
+            normalInput,
+            3U) ==
+        xziel::StreamCellHeat::Cold);
+
     // Opening the first portal makes cell 2 reachable. The next closed door
     // may preload exactly cell 3, which proves the one-boundary rule.
     assert(graph.setPortalOpen(100U, true));
@@ -203,6 +226,24 @@ int main() {
     assert(stats.hotCells == 1U);
     assert(stats.preloadCells == 0U);
     assert(stats.coldCells == 2U);
+
+    const xziel::StreamCellPlanInput criticalInput{
+        .currentCell = 1U,
+        .preloadPortalHops = 2U,
+        .memoryPressure =
+            xziel::MemoryPressure::Critical,
+    };
+
+    assert(
+        graph.cellHeat(
+            criticalInput,
+            1U) ==
+        xziel::StreamCellHeat::Hot);
+    assert(
+        graph.cellHeat(
+            criticalInput,
+            2U) ==
+        xziel::StreamCellHeat::Cold);
 
     const auto* coldUnderPressure =
         findDecision(decisions, written, 20U);
