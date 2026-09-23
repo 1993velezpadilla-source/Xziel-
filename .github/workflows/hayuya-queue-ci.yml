@@ -1,0 +1,48 @@
+name: Hayuya Queue CI
+
+on:
+  push:
+    branches:
+      - art/hayuya-monster-v1
+    paths:
+      - hayuya/jobs/**
+      - tools/hayuya3d/job_request.py
+      - tools/hayuya3d/hub/**
+      - .github/workflows/hayuya-queue.yml
+      - .github/workflows/hayuya-queue-ci.yml
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Compile queue code
+        run: python -m py_compile tools/hayuya3d/job_request.py
+      - name: Validate request template shape
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('hayuya/jobs/templates/model-job.json')
+          d=json.loads(p.read_text())
+          assert d['schema']==1
+          assert d['job_id']
+          assert d['owner']
+          PY
+      - name: Validate Hub JavaScript
+        run: node --check tools/hayuya3d/hub/hub.js
+      - name: Validate queue workflow markers
+        run: |
+          grep -q 'hayuya/jobs/requests/' .github/workflows/hayuya-queue.yml
+          grep -q 'matrix.job_id' .github/workflows/hayuya-queue.yml
+          grep -q 'self-hosted, linux, x64, hayuya-gpu' .github/workflows/hayuya-queue.yml
