@@ -2,6 +2,7 @@
 
 #include "xziel/texture_container.hpp"
 #include "xziel/streaming.hpp"
+#include "xziel/sanctum.hpp"
 
 #include <android/bitmap.h>
 #include <android/imagedecoder.h>
@@ -231,6 +232,22 @@ bool VulkanStaticMeshRenderer::initialize(
         return false;
     }
 
+    const std::string modelPath =
+        modelAssetPath != nullptr
+        ? modelAssetPath
+        : "";
+
+    streamGraphReady_ =
+        modelPath.find("/sanctum/") !=
+            std::string::npos &&
+        configureSanctumStreamingGraph(
+            streamGraph_);
+
+    streamCellBounds_ = {};
+    streamDecisionCount_ = 0U;
+    streamPlanFrame_ = 0U;
+    lastLoggedStreamCell_ = 0U;
+
     // Read KTX2 payloads on bounded worker threads while the render thread
     // creates pipelines/descriptors. Vulkan object creation and queue submits
     // stay on this thread; only APK asset I/O moves off-thread.
@@ -408,6 +425,10 @@ bool VulkanStaticMeshRenderer::initialize(
         for (const auto& batch : asset.batches) {
             GpuMaterial material{};
 
+            material.streamResourceId =
+                streamResourceId(
+                    batch.textureName);
+
             if (!loadTexture(
                     batch.textureName,
                     true,
@@ -416,6 +437,54 @@ bool VulkanStaticMeshRenderer::initialize(
                     "static mesh albedo texture load failed");
                 shutdown();
                 return false;
+            }
+
+            if (streamGraphReady_) {
+                const auto zone =
+                    sanctumZoneForAssetName(
+                        batch.textureName);
+
+                if (zone !=
+                    SanctumZone::Unknown &&
+                    material.albedoTextureIndex <
+                        textures_.size()) {
+                    const auto& texture =
+                        textures_[
+                            material.albedoTextureIndex];
+
+                    std::uint64_t bytes =
+                        texture.residentPayloadBytes;
+
+                    if (bytes == 0U) {
+                        bytes =
+                            texture.allocationBytes;
+                    }
+
+                    if (bytes == 0U) {
+                        const std::uint64_t pixels =
+                            static_cast<std::uint64_t>(
+                                texture.width) *
+                            static_cast<std::uint64_t>(
+                                texture.height);
+
+                        bytes =
+                            std::max<std::uint64_t>(
+                                1U,
+                                pixels * 4U);
+                    }
+
+                    (void) streamGraph_.bindResource({
+                        .cellId =
+                            static_cast<std::uint32_t>(
+                                zone),
+                        .resourceId =
+                            material.streamResourceId,
+                        .kind =
+                            StreamResourceKind::Texture,
+                        .bytes = bytes,
+                        .pinned = false,
+                    });
+                }
             }
 
             material.normalTextureIndex =
@@ -577,11 +646,6 @@ bool VulkanStaticMeshRenderer::initialize(
         !textures_.empty();
 
     if (ready_) {
-        const std::string modelPath =
-            modelAssetPath != nullptr
-            ? modelAssetPath
-            : "";
-
         if (modelPath.find("/weapons/") !=
             std::string::npos) {
             logInfo("XZIEL_WEAPON_VIEWMODEL_READY");
@@ -649,6 +713,13 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     batches_.clear();
     materials_.clear();
     textures_.clear();
+
+    streamGraph_.reset();
+    streamGraphReady_ = false;
+    streamCellBounds_ = {};
+    streamDecisionCount_ = 0U;
+    streamPlanFrame_ = 0U;
+    lastLoggedStreamCell_ = 0U;
     pendingUploads_.clear();
     pendingUploadBytes_ = 0U;
 
@@ -700,6 +771,150 @@ VulkanStaticMeshRenderer::frameStats() const noexcept {
     return frameStats_;
 }
 
+void VulkanStaticMeshRenderer::rebuildStreamingCellBounds() noexcept {
+    streamCellBounds_ = {};
+
+    for (const auto& batch : batches_) {
+        if (batch.streamCellId == 0U) {
+            continue;
+        }
+
+        StreamCellBounds* slot = nullptr;
+
+        for (auto& candidate : streamCellBounds_) {
+            if (candidate.valid &&
+                candidate.cellId ==
+                    batch.streamCellId) {
+                slot = &candidate;
+                break;
+            }
+
+            if (!candidate.valid &&
+                slot == nullptr) {
+                slot = &candidate;
+            }
+        }
+
+        if (slot == nullptr) {
+            continue;
+        }
+
+        if (!slot->valid) {
+            slot->cellId =
+                batch.streamCellId;
+            slot->bounds =
+                batch.bounds;
+            slot->valid = true;
+            continue;
+        }
+
+        for (std::size_t axis = 0U;
+             axis < 3U;
+             ++axis) {
+            slot->bounds.minimum[axis] =
+                std::min(
+                    slot->bounds.minimum[axis],
+                    batch.bounds.minimum[axis]);
+            slot->bounds.maximum[axis] =
+                std::max(
+                    slot->bounds.maximum[axis],
+                    batch.bounds.maximum[axis]);
+        }
+    }
+}
+
+std::uint32_t VulkanStaticMeshRenderer::inferStreamingCell(
+    const StaticMeshCameraState& camera) const noexcept {
+    const std::array<float, 3> point{{
+        camera.x,
+        camera.y,
+        camera.z,
+    }};
+
+    std::uint32_t bestCell = 0U;
+    float bestDistance =
+        std::numeric_limits<float>::infinity();
+    float bestVolume =
+        std::numeric_limits<float>::infinity();
+
+    for (const auto& cell :
+         streamCellBounds_) {
+        if (!cell.valid ||
+            cell.cellId == 0U) {
+            continue;
+        }
+
+        float distanceSquared = 0.0f;
+        float volume = 1.0f;
+
+        for (std::size_t axis = 0U;
+             axis < 3U;
+             ++axis) {
+            const float minimum =
+                cell.bounds.minimum[axis];
+            const float maximum =
+                cell.bounds.maximum[axis];
+
+            if (point[axis] < minimum) {
+                const float d =
+                    minimum - point[axis];
+                distanceSquared += d * d;
+            } else if (
+                point[axis] > maximum) {
+                const float d =
+                    point[axis] - maximum;
+                distanceSquared += d * d;
+            }
+
+            volume *=
+                std::max(
+                    0.001f,
+                    maximum - minimum);
+        }
+
+        if (distanceSquared <
+                bestDistance ||
+            (distanceSquared ==
+                 bestDistance &&
+             volume < bestVolume)) {
+            bestDistance =
+                distanceSquared;
+            bestVolume =
+                volume;
+            bestCell =
+                cell.cellId;
+        }
+    }
+
+    return bestCell;
+}
+
+const StreamCellResourceDecision*
+VulkanStaticMeshRenderer::streamDecision(
+    std::uint64_t resourceId,
+    std::size_t count) const noexcept {
+    if (resourceId == 0U) {
+        return nullptr;
+    }
+
+    const std::size_t limit =
+        std::min(
+            count,
+            streamDecisions_.size());
+
+    for (std::size_t i = 0U;
+         i < limit;
+         ++i) {
+        if (streamDecisions_[i].
+                resourceId ==
+            resourceId) {
+            return &streamDecisions_[i];
+        }
+    }
+
+    return nullptr;
+}
+
 void VulkanStaticMeshRenderer::record(
     VkCommandBuffer command,
     VkExtent2D extent,
@@ -712,6 +927,89 @@ void VulkanStaticMeshRenderer::record(
         extent.width == 0U ||
         extent.height == 0U) {
         return;
+    }
+
+    if (streamGraphReady_) {
+        const std::uint32_t currentCell =
+            inferStreamingCell(camera);
+
+        if (currentCell != 0U) {
+            const auto streamStats =
+                streamGraph_.plan(
+                    {
+                        .currentCell =
+                            currentCell,
+                        .preloadPortalHops = 1U,
+                        .memoryPressure =
+                            environment.
+                                memoryPressure,
+                    },
+                    streamDecisions_.data(),
+                    streamDecisions_.size(),
+                    streamDecisionCount_);
+
+            frameStats_.streamingCell =
+                currentCell;
+            frameStats_.streamingHotResources =
+                streamStats.hotResources;
+            frameStats_.
+                streamingPreloadResources =
+                streamStats.preloadResources;
+            frameStats_.
+                streamingEvictableBytes =
+                streamStats.evictableBytes;
+
+            for (const auto& batch :
+                 batches_) {
+                const auto* decision =
+                    streamDecision(
+                        batch.streamResourceId,
+                        streamDecisionCount_);
+
+                if (decision != nullptr &&
+                    !decision->desiredResident) {
+                    ++frameStats_.
+                        streamingColdBatches;
+                }
+            }
+
+            ++streamPlanFrame_;
+
+            if (currentCell !=
+                    lastLoggedStreamCell_ ||
+                (streamPlanFrame_ % 240U) ==
+                    0U) {
+                lastLoggedStreamCell_ =
+                    currentCell;
+
+                __android_log_print(
+                    ANDROID_LOG_INFO,
+                    kTag,
+                    "XZIEL_WORLD_STREAMING_PLAN current_cell=%u hot_resources=%u preload_resources=%u cold_resources=%u cold_batches=%u desired_mb=%.2f evictable_mb=%.2f pressure=%u",
+                    static_cast<unsigned int>(
+                        currentCell),
+                    static_cast<unsigned int>(
+                        streamStats.hotResources),
+                    static_cast<unsigned int>(
+                        streamStats.preloadResources),
+                    static_cast<unsigned int>(
+                        streamStats.coldResources),
+                    static_cast<unsigned int>(
+                        frameStats_.
+                            streamingColdBatches),
+                    static_cast<double>(
+                        streamStats.
+                            desiredResidentBytes) /
+                        (1024.0 * 1024.0),
+                    static_cast<double>(
+                        streamStats.
+                            evictableBytes) /
+                        (1024.0 * 1024.0),
+                    static_cast<unsigned int>(
+                        environment.
+                            memoryPressure));
+            }
+        }
     }
 
     VkPipeline boundPipeline =
@@ -1775,6 +2073,13 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
                     sizeof(std::uint16_t));
 
             GpuBatch gpuBatch{};
+            gpuBatch.streamResourceId =
+                streamResourceId(
+                    batch.textureName);
+            gpuBatch.streamCellId =
+                static_cast<std::uint32_t>(
+                    sanctumZoneForAssetName(
+                        batch.textureName));
             gpuBatch.firstIndex =
                 static_cast<std::uint32_t>(
                     indexCursor);
@@ -1824,6 +2129,8 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
         destroyGeometryResidency();
         return false;
     }
+
+    rebuildStreamingCellBounds();
 
     __android_log_print(
         ANDROID_LOG_INFO,
@@ -2998,6 +3305,16 @@ bool VulkanStaticMeshRenderer::createPngTexture(
         static_cast<std::uint32_t>(width);
     out.height =
         static_cast<std::uint32_t>(height);
+    out.residentWidth = out.width;
+    out.residentHeight = out.height;
+    out.mipLevels = mipLevels;
+    out.residentBaseMip = 0U;
+    out.residentPayloadBytes =
+        static_cast<std::uint64_t>(
+            pixelBytes);
+    out.allocationBytes =
+        static_cast<std::uint64_t>(
+            requirements.size);
 
     return true;
 }
