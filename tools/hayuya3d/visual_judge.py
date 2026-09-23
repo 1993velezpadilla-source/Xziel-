@@ -5,6 +5,8 @@ import math
 from dataclasses import dataclass
 from pathlib import Path
 
+from reference_pool import infer_view_hint
+
 
 @dataclass
 class SourceViewScore:
@@ -248,29 +250,6 @@ def aggregate_source_scores(values: list[float]) -> float:
     q_count = max(1, math.ceil(len(ordered) * 0.25))
     lower_quartile_mean = sum(ordered[:q_count]) / q_count
     return 0.65 * mean + 0.25 * lower_quartile_mean + 0.10 * ordered[0]
-
-
-def infer_view_hint(path: Path) -> float | None:
-    """
-    Infer a canonical azimuth hint from Hayuya-style filenames.
-    Returns degrees where front=0, right=90, back=180, left=270.
-    Unknown/user filenames remain unconstrained.
-    """
-    name = path.stem.lower().replace("-", "_").replace(" ", "_")
-    rules = [
-        (("front_45_right", "front45right", "front_right_45"), 45.0),
-        (("back_45_right", "back45right", "back_right_45"), 135.0),
-        (("back_45_left", "back45left", "back_left_45"), 225.0),
-        (("front_45_left", "front45left", "front_left_45"), 315.0),
-        (("right_side", "_right", "right_"), 90.0),
-        (("left_side", "_left", "left_"), 270.0),
-        (("back", "rear"), 180.0),
-        (("front",), 0.0),
-    ]
-    for needles, angle in rules:
-        if any(n in name for n in needles):
-            return angle
-    return None
 
 
 def circular_distance(a: float, b: float) -> float:
