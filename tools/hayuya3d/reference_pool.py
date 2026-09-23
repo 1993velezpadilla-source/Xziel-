@@ -57,6 +57,33 @@ VIEW_RULES = [
 COVERAGE_PRIORITY = [90.0, 180.0, 270.0, 45.0, 135.0, 225.0, 315.0, 0.0]
 
 
+DETAIL_REGION_RULES = [
+    (("face", "head", "hair", "eye", "eyes", "mouth", "teeth"), "head"),
+    (("torso", "chest", "logo", "inscription", "tattoo", "wound"), "middle"),
+    (("hem", "foot", "feet", "shoe", "shoes"), "lower"),
+    (("hand", "hands", "accessory", "rosary", "weapon", "prop"), "local"),
+]
+
+
+def infer_detail_region_hint(path: Path) -> str | None:
+    """
+    Infer only coarse image-space regions from explicit detail naming.
+
+    This is intentionally conservative: it never claims geometry semantics from an
+    unnamed image. The hint constrains local patch retrieval, not mesh generation.
+    """
+    name = path.stem.lower().replace("-", "_").replace(" ", "_")
+    parent_parts = {
+        part.lower().replace("-", "_").replace(" ", "_")
+        for part in path.parts[:-1]
+    }
+    haystack = "_".join([*sorted(parent_parts), name])
+    for tokens, region in DETAIL_REGION_RULES:
+        if any(token in haystack for token in tokens):
+            return region
+    return None
+
+
 def infer_view_hint(path: Path) -> float | None:
     name = path.stem.lower().replace("-", "_").replace(" ", "_")
     for needles, angle in VIEW_RULES:
