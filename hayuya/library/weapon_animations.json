@@ -28,24 +28,27 @@
           "license": "CC0",
           "family": "revolver",
           "source_url": "https://opengameart.org/content/revolver-game-asset",
-          "availability": "external_download_required",
-          "notes": "Includes reload and shoot animation plus ammunition."
+          "availability": "local_archive",
+          "notes": "Includes reload and shoot animation plus ammunition. Source archive is now stored locally in HAYUYA.",
+          "local_archive_path": "hayuya/source_archives/oga_revolver_game_asset.zip"
         },
         {
           "id": "oga_flat_guns_east",
           "label": "CC0 Flat Guns East",
           "license": "CC0",
           "source_url": "https://opengameart.org/content/cc0-flat-guns-east",
-          "availability": "external_download_required",
-          "notes": "Rigged weapon models with attachment bones; compatibility fixtures."
+          "availability": "local_archive",
+          "notes": "Rigged weapon models with attachment bones; compatibility fixtures. Source archive is now stored locally in HAYUYA.",
+          "local_archive_path": "hayuya/source_archives/oga_flat_guns_east.zip"
         },
         {
           "id": "oga_flat_guns_west",
           "label": "CC0 Flat Guns West",
           "license": "CC0",
           "source_url": "https://opengameart.org/content/cc0-flat-guns-west",
-          "availability": "external_download_required",
-          "notes": "Rigged weapon models with attachment bones; compatibility fixtures."
+          "availability": "local_archive",
+          "notes": "Rigged weapon models with attachment bones; compatibility fixtures. Source archive is now stored locally in HAYUYA.",
+          "local_archive_path": "hayuya/source_archives/oga_flat_guns_west.zip"
         }
       ]
     },
