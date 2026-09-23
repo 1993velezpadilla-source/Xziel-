@@ -10,7 +10,8 @@
 namespace xziel {
 
 inline constexpr std::uint32_t kStaticMeshLegacyVersion = 2U;
-inline constexpr std::uint32_t kStaticMeshFormatVersion = 3U;
+inline constexpr std::uint32_t kStaticMeshNormalsVersion = 3U;
+inline constexpr std::uint32_t kStaticMeshFormatVersion = 4U;
 inline constexpr std::size_t kMaxStaticMeshBatches = 2048U;
 inline constexpr std::uint32_t kMaxStaticMeshVertices = 8000000U;
 inline constexpr std::uint32_t kMaxStaticMeshIndices = 12000000U;
@@ -32,18 +33,31 @@ struct StaticMeshVertex {
 
 static_assert(
     sizeof(StaticMeshVertex) == 36U,
-    "native XZSM v3 runtime vertex ABI must stay 36 bytes");
+    "native XZSM runtime vertex ABI must stay 36 bytes");
 
 struct StaticMeshBounds {
     std::array<float, 3> minimum{};
     std::array<float, 3> maximum{};
 };
 
+enum StaticMeshBatchFlags : std::uint32_t {
+    StaticMeshBatchFlagNone = 0U,
+    StaticMeshBatchFlagDoubleSided = 1U << 0U,
+};
+
 struct StaticMeshBatch {
     std::string textureName{};
     StaticMeshBounds bounds{};
+    std::uint32_t flags =
+        StaticMeshBatchFlagDoubleSided;
     std::vector<StaticMeshVertex> vertices{};
     std::vector<std::uint16_t> indices{};
+
+    [[nodiscard]] bool doubleSided() const noexcept {
+        return
+            (flags &
+             StaticMeshBatchFlagDoubleSided) != 0U;
+    }
 };
 
 struct StaticMeshAsset {
