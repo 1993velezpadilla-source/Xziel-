@@ -2126,7 +2126,7 @@ void VulkanStaticMeshRenderer::record(
     VkExtent2D extent,
     std::uint32_t frameSlot,
     const StaticMeshCameraState& camera,
-    const StaticMeshEnvironmentState& environment) const noexcept {
+    const StaticMeshEnvironmentState& environment) noexcept {
     frameStats_ = {};
 
     if (!ready_ ||
@@ -2246,6 +2246,10 @@ void VulkanStaticMeshRenderer::record(
             streamDecisionCount_ = 0U;
         }
     }
+
+    serviceRuntimeTextureResidency(
+        frameSlot,
+        environment.memoryPressure);
 
     VkPipeline boundPipeline =
         VK_NULL_HANDLE;
@@ -2387,6 +2391,16 @@ void VulkanStaticMeshRenderer::record(
     for (const auto& batch : batches_) {
         if (batch.materialIndex >=
             materials_.size()) {
+            continue;
+        }
+
+        if (!materialStreamingReady(
+                materials_[
+                    batch.materialIndex],
+                frameSlot)) {
+            ++frameStats_.culledBatches;
+            ++frameStats_.
+                streamingCulledBatches;
             continue;
         }
 
