@@ -3,6 +3,9 @@ from __future__ import annotations
 
 import math
 import os
+import subprocess
+import sys
+import tempfile
 from dataclasses import asdict, dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -440,6 +443,42 @@ def _load_dinov2(repo_path: str, device_name: str):
 
 def _encode_dinov2_batch(images, *, repo_path: Path, device_name: str, batch_size: int = 24):
     import numpy as np
+
+    external_python = os.environ.get("HAYUYA_DINOV2_PYTHON")
+    if external_python:
+        worker = Path(__file__).with_name("dinov2_worker.py")
+        with tempfile.TemporaryDirectory(prefix="hayuya-dino-") as tmp_raw:
+            tmp = Path(tmp_raw)
+            inputs = []
+            for index, image in enumerate(images):
+                path = tmp / f"{index:04d}.png"
+                image.convert("RGB").save(path, format="PNG")
+                inputs.append(path)
+
+            output = tmp / "features.npy"
+            cmd = [
+                external_python,
+                str(worker.resolve()),
+                "--backend-root",
+                str(repo_path.resolve()),
+                "--output",
+                str(output),
+                "--device",
+                device_name,
+                "--batch-size",
+                str(batch_size),
+            ]
+            for path in inputs:
+                cmd.extend(["--input", str(path.resolve())])
+
+            subprocess.run(cmd, check=True)
+            features = np.load(output)
+            if len(features) != len(images):
+                raise RuntimeError(
+                    f"DINOv2 worker returned {len(features)} embeddings for {len(images)} images"
+                )
+            return np.asarray(features, dtype=np.float32)
+
     import torch
 
     model = _load_dinov2(str(repo_path.resolve()), device_name)
@@ -447,8 +486,8 @@ def _encode_dinov2_batch(images, *, repo_path: Path, device_name: str, batch_siz
     std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
 
     outputs = []
-    for start in range(0, len(images), batch_size):
-        chunk = images[start:start + batch_size]
+    for batch_start in range(0, len(images), batch_size):
+        chunk = images[batch_start:batch_start + batch_size]
         arrays = [
             np.asarray(im.convert("RGB").resize((224, 224)), dtype=np.float32) / 255.0
             for im in chunk
@@ -468,24 +507,12 @@ def _encode_dinov2_batch(images, *, repo_path: Path, device_name: str, batch_siz
 
 
 def _encode_dinov2(image, *, repo_path: Path, device_name: str):
-    import numpy as np
-    import torch
-
-    arr = np.asarray(image.convert("RGB").resize((224, 224)), dtype=np.float32) / 255.0
-    tensor = torch.from_numpy(arr).permute(2, 0, 1).unsqueeze(0)
-    mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
-    std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
-    tensor = ((tensor - mean) / std).to(device_name)
-
-    model = _load_dinov2(str(repo_path.resolve()), device_name)
-    with torch.inference_mode():
-        feature = model(tensor)
-    if isinstance(feature, dict):
-        selected = feature.get("x_norm_clstoken")
-        feature = selected if selected is not None else next(iter(feature.values()))
-    feature = feature.reshape(feature.shape[0], -1)
-    feature = torch.nn.functional.normalize(feature, dim=-1)
-    return feature[0].detach().cpu().numpy()
+    return _encode_dinov2_batch(
+        [image],
+        repo_path=repo_path,
+        device_name=device_name,
+        batch_size=1,
+    )[0]
 
 
 @lru_cache(maxsize=512)
@@ -640,7 +667,7 @@ def score_candidate_appearance(
     if len(source_images) != len(matched_views):
         raise ValueError("source_images and matched_views must have equal length")
 
-    if device == "auto":
+    if device == "auto" and not os.environ.get("HAYUYA_DINOV2_PYTHON"):
         import torch
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
