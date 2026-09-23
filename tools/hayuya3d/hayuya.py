@@ -261,7 +261,8 @@ def make_job_plan(
             "backend": "TripoSF SparseFlex 1024^3",
             "activation": "monster/ultra execution when bootstrapped and VRAM budget >=12GB",
             "policy": "refined topology is a challenger; real-source geometry evidence must improve before it is marked preferred",
-            "asset_promotion": "do not replace final textured asset until Material Bridge transfers appearance"
+            "asset_promotion": "when refined geometry wins, Material Bridge v1 transfers base color and the bridged GLB must win the full final Judge",
+            "material_bridge_v1": "dense source-surface color samples -> nearest projection to refined vertices; future PBR UV rebake remains separate"
         },
         "judge": {
             "version": "v3-auto" if appearance_mode != "off" else "v2",
@@ -657,6 +658,8 @@ def main() -> int:
 
     refinement_decision = None
     refinement_failure = None
+    material_bridge_result = None
+    material_bridge_failure = None
     should_try_refinement = (
         args.geometry_refine in {"auto", "required"}
         and args.profile in {"monster", "ultra"}
@@ -736,6 +739,35 @@ def main() -> int:
                     f"preferred={refinement_decision.preferred} "
                     f"improvement={refinement_decision.improvement}"
                 )
+
+                if refinement_decision.promote_to_final_geometry:
+                    try:
+                        from material_bridge import transfer_base_color
+                        bridged_path = (
+                            refine_root / "triposf_material_bridge.glb"
+                        )
+                        material_bridge_result = transfer_base_color(
+                            Path(seed_candidate.path),
+                            restored,
+                            bridged_path,
+                        )
+                        candidates.append(
+                            ("triposf_material_bridge", bridged_path)
+                        )
+                        print(
+                            "HAYUYA_MATERIAL_BRIDGE_READY "
+                            f"{bridged_path}"
+                        )
+                    except Exception as bridge_exc:
+                        material_bridge_failure = (
+                            f"{type(bridge_exc).__name__}: {bridge_exc}"
+                        )
+                        print(
+                            "HAYUYA_MATERIAL_BRIDGE_FAILED "
+                            f"{material_bridge_failure}",
+                            file=sys.stderr,
+                        )
+                        traceback.print_exc()
             except Exception as exc:
                 refinement_failure = f"{type(exc).__name__}: {exc}"
                 print(
@@ -779,6 +811,8 @@ def main() -> int:
         "viewforge_failure": viewforge_failure,
         "geometry_refinement": asdict(refinement_decision) if refinement_decision is not None else None,
         "geometry_refinement_failure": refinement_failure,
+        "material_bridge": asdict(material_bridge_result) if material_bridge_result is not None else None,
+        "material_bridge_failure": material_bridge_failure,
         "ranking": ranking_data,
         "champion": asdict(champion),
         "final_glb": str(final_glb),
@@ -790,7 +824,8 @@ def main() -> int:
             "Monster/Ultra multi-anchor mode can generate TripoSG hypotheses from every source unless the user explicitly sets a budget.",
             "A one-photo job can add a TRELLIS fusion candidate from the real anchor plus Wonder3D RGB/normal ViewForge coverage; synthetic RGB views never enter the real-source Judge.",
             "Wonder3D normal maps may contribute a deliberately small 6% synthetic-support score using the pinned front-view normal coordinate convention.",
-            "TripoSF can challenge the best geometry seed at 1024^3 in Monster/Ultra; it is evidence-gated and kept as a sidecar until Material Bridge can preserve/reproject appearance.",
+            "TripoSF can challenge the best geometry seed at 1024^3 in Monster/Ultra; it must pass real-source geometry evidence.",
+            "If TripoSF wins geometry, Material Bridge v1 projects source base-color to the refined topology and the bridged GLB re-enters the final Judge rather than being auto-promoted.",
             "Judge v2 combines production mesh health with source-image silhouette agreement.",
             "Judge v3 auto adds DINOv2 appearance similarity when the pinned evaluator is bootstrapped; otherwise it falls back to v2.",
             "Next judge stage adds normal/depth agreement, calibrated camera estimation and local-detail matching.",
