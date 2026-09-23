@@ -15,6 +15,7 @@
 #include <limits>
 #include <span>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace xziel::android {
@@ -230,6 +231,86 @@ bool VulkanStaticMeshRenderer::initialize(
         return false;
     }
 
+    // Read KTX2 payloads on bounded worker threads while the render thread
+    // creates pipelines/descriptors. Vulkan object creation and queue submits
+    // stay on this thread; only APK asset I/O moves off-thread.
+    asyncPrefetchQueued_ = 0U;
+
+    if (astcLdrSupported_) {
+        constexpr std::uint64_t kMiB =
+            1024ULL * 1024ULL;
+
+        const std::uint64_t prefetchBudget =
+            std::clamp<std::uint64_t>(
+                textureResidentBudgetBytes_ / 4U,
+                16ULL * kMiB,
+                96ULL * kMiB);
+
+        const std::uint32_t workerCount =
+            deviceProperties.deviceType ==
+                VK_PHYSICAL_DEVICE_TYPE_CPU
+            ? 1U
+            : 2U;
+
+        if (assetStreamer_.start(
+                assetManager,
+                workerCount,
+                prefetchBudget)) {
+            std::unordered_set<std::string>
+                queuedPaths;
+
+            const auto queueTexture =
+                [&](const std::string& exportedName) {
+                    if (exportedName.empty()) {
+                        return;
+                    }
+
+                    const std::string path =
+                        textureAssetPath(
+                            exportedName,
+                            ".ktx2");
+
+                    if (!assetExists(
+                            assetManager,
+                            path) ||
+                        !queuedPaths.insert(path).second) {
+                        return;
+                    }
+
+                    if (assetStreamer_.enqueue(path)) {
+                        ++asyncPrefetchQueued_;
+                    }
+                };
+
+            for (const auto& batch : asset.batches) {
+                queueTexture(batch.textureName);
+
+                if (!batch.pbrEnabled()) {
+                    continue;
+                }
+
+                queueTexture(
+                    batch.pbr.normalTextureName);
+                queueTexture(
+                    batch.pbr.ormTextureName);
+                queueTexture(
+                    batch.pbr.emissiveTextureName);
+            }
+
+            __android_log_print(
+                ANDROID_LOG_INFO,
+                kTag,
+                "XZIEL_ASYNC_ASTC_PREFETCH_READY workers=%u queued=%u buffer_mb=%.1f",
+                static_cast<unsigned int>(
+                    workerCount),
+                static_cast<unsigned int>(
+                    asyncPrefetchQueued_),
+                static_cast<double>(
+                    prefetchBudget) /
+                    (1024.0 * 1024.0));
+        }
+    }
+
     if (!createPipeline(assetManager)) {
         shutdown();
         return false;
@@ -432,6 +513,32 @@ bool VulkanStaticMeshRenderer::initialize(
         return false;
     }
 
+    if (asyncPrefetchQueued_ > 0U) {
+        const auto streamStats =
+            assetStreamer_.stats();
+
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_ASYNC_ASTC_PREFETCH_DONE queued=%llu completed=%llu failed=%llu consumed=%llu bytes_mb=%.2f pending=%u",
+            static_cast<unsigned long long>(
+                streamStats.queued),
+            static_cast<unsigned long long>(
+                streamStats.completed),
+            static_cast<unsigned long long>(
+                streamStats.failed),
+            static_cast<unsigned long long>(
+                streamStats.consumed),
+            static_cast<double>(
+                streamStats.bytesRead) /
+                (1024.0 * 1024.0),
+            static_cast<unsigned int>(
+                streamStats.pending));
+    }
+
+    assetStreamer_.stop();
+    asyncPrefetchQueued_ = 0U;
+
     if (!flushPendingUploads()) {
         logError(
             "static mesh batched texture upload failed");
@@ -488,6 +595,9 @@ bool VulkanStaticMeshRenderer::initialize(
 
 void VulkanStaticMeshRenderer::shutdown() noexcept {
     ready_ = false;
+
+    assetStreamer_.stop();
+    asyncPrefetchQueued_ = 0U;
 
     if (device_ != VK_NULL_HANDLE) {
         // Initialization failures can leave recorded-but-unsubmitted uploads.
@@ -1778,49 +1888,56 @@ bool VulkanStaticMeshRenderer::createKtx2Texture(
     const std::string& assetPath,
     bool srgb,
     GpuTexture& out) noexcept {
-    AAsset* asset =
-        AAssetManager_open(
-            assetManager,
-            assetPath.c_str(),
-            AASSET_MODE_BUFFER);
-
-    if (asset == nullptr) {
-        return false;
-    }
-
-    const off_t length =
-        AAsset_getLength(asset);
-
-    if (length <= 0 ||
-        static_cast<std::uint64_t>(length) >
-            256ULL * 1024ULL * 1024ULL) {
-        AAsset_close(asset);
-        return false;
-    }
-
     std::vector<std::byte> bytes;
 
-    try {
-        bytes.resize(
-            static_cast<std::size_t>(
-                length));
-    } catch (...) {
+    const bool asyncRead =
+        assetStreamer_.take(
+            assetPath,
+            bytes);
+
+    if (!asyncRead) {
+        AAsset* asset =
+            AAssetManager_open(
+                assetManager,
+                assetPath.c_str(),
+                AASSET_MODE_BUFFER);
+
+        if (asset == nullptr) {
+            return false;
+        }
+
+        const off_t length =
+            AAsset_getLength(asset);
+
+        if (length <= 0 ||
+            static_cast<std::uint64_t>(length) >
+                256ULL * 1024ULL * 1024ULL) {
+            AAsset_close(asset);
+            return false;
+        }
+
+        try {
+            bytes.resize(
+                static_cast<std::size_t>(
+                    length));
+        } catch (...) {
+            AAsset_close(asset);
+            return false;
+        }
+
+        const int read =
+            AAsset_read(
+                asset,
+                bytes.data(),
+                bytes.size());
+
         AAsset_close(asset);
-        return false;
-    }
 
-    const int read =
-        AAsset_read(
-            asset,
-            bytes.data(),
-            bytes.size());
-
-    AAsset_close(asset);
-
-    if (read < 0 ||
-        static_cast<std::size_t>(read) !=
-            bytes.size()) {
-        return false;
+        if (read < 0 ||
+            static_cast<std::size_t>(read) !=
+                bytes.size()) {
+            return false;
+        }
     }
 
     Ktx2Texture texture{};
