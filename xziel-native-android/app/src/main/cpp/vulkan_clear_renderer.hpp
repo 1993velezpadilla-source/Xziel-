@@ -137,6 +137,9 @@ struct VulkanEnvironmentState {
     MemoryPressure memoryPressure =
         MemoryPressure::Normal;
 
+    float textureBudgetScale = 1.0f;
+    float meshBudgetScale = 1.0f;
+
     float waterWavePhase = 0.0f;
     float waterFoamStrength = 0.0f;
     float waterReflectionStrength = 0.0f;
