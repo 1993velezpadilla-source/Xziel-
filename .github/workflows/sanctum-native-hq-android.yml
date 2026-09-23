@@ -567,6 +567,12 @@ jobs:
               fi
 
               echo "XZIEL_ASTC_RUNTIME_ACTIVE textures=${KTX_LOAD_COUNT}"
+
+              if grep -Eq "XZIEL_STATIC_TEXTURE_CAPS .*upload_batch_commands=2" dist/sanctum-hq-logcat.txt; then
+                grep -Eq "XZIEL_TEXTURE_UPLOAD_BATCH commands=2 limit=2" dist/sanctum-hq-logcat.txt
+                BATCH_COUNT="$(grep -c "XZIEL_TEXTURE_UPLOAD_BATCH" dist/sanctum-hq-logcat.txt || true)"
+                echo "XZIEL_TEXTURE_UPLOAD_BATCH_ACTIVE batches=${BATCH_COUNT}"
+              fi
             else
               echo "XZIEL_ASTC_RUNTIME_FALLBACK device_has_no_astc"
             fi
