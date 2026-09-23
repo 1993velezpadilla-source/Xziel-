@@ -9,7 +9,13 @@ HAYUYA_DIR = ROOT / "tools" / "hayuya3d"
 sys.path.insert(0, str(HAYUYA_DIR))
 
 import numpy as np
-from appearance_judge import aggregate_appearance_scores, cosine_similarity, rasterize_rgb
+from appearance_judge import (
+    aggregate_appearance_scores,
+    aggregate_detail_scores,
+    cosine_similarity,
+    make_detail_patches,
+    rasterize_rgb,
+)
 
 
 class AppearanceJudgeTests(unittest.TestCase):
@@ -26,6 +32,19 @@ class AppearanceJudgeTests(unittest.TestCase):
         good = aggregate_appearance_scores([91, 90, 92, 89, 90])
         mixed = aggregate_appearance_scores([95, 94, 93, 92, 30])
         self.assertGreater(good, mixed)
+
+    def test_detail_aggregation_keeps_weak_reference_relevant(self):
+        strong = aggregate_detail_scores([90, 91, 89])
+        weak_tail = aggregate_detail_scores([95, 94, 30])
+        self.assertGreater(strong, weak_tail)
+
+    def test_detail_patch_grid_has_whole_plus_nine_local_crops(self):
+        from PIL import Image
+        image = Image.new("RGB", (224, 224), (100, 120, 140))
+        patches = make_detail_patches(image)
+        self.assertEqual(len(patches), 10)
+        self.assertEqual(patches[0][0], "whole")
+        self.assertTrue(all(patch.size == (224, 224) for _, patch in patches))
 
     def test_cpu_rasterizer_draws_triangle(self):
         xy = np.array([[8, 8], [56, 8], [32, 56]], dtype=np.float32)
