@@ -419,6 +419,12 @@ bool VulkanStaticMeshRenderer::initialize(
             texture.streamResourceId =
                 streamResourceId(
                     cacheKey);
+            texture.srgb = srgb;
+            texture.physicallyResident = true;
+            texture.runtimeLoadQueued = false;
+            texture.descriptorResidentMask =
+                static_cast<std::uint8_t>(
+                    (1U << kDescriptorFrames) - 1U);
 
             if (texture.sourceMipLevels > 0U &&
                 texture.sourceMipLevels <=
@@ -643,6 +649,31 @@ bool VulkanStaticMeshRenderer::initialize(
         return false;
     }
 
+    if (streamGraphReady_ &&
+        !textures_.empty()) {
+        streamFallbackTextureIndex_ = 0U;
+        auto& fallback =
+            textures_[streamFallbackTextureIndex_];
+
+        if (fallback.streamResourceId != 0U) {
+            textureMipResidency_.setPinned(
+                fallback.streamResourceId,
+                true);
+        }
+
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_STREAMING_FALLBACK_READY texture_index=%u resource_id=%llu",
+            static_cast<unsigned int>(
+                streamFallbackTextureIndex_),
+            static_cast<unsigned long long>(
+                fallback.streamResourceId));
+    } else {
+        streamFallbackTextureIndex_ =
+            UINT32_MAX;
+    }
+
     if (asyncPrefetchQueued_ > 0U) {
         const auto streamStats =
             assetStreamer_.stats();
@@ -759,6 +790,7 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
         // Drop those command/staging resources before destroying their images.
         discardPendingUploads();
 
+        destroyRuntimeTextureUpload();
         destroyGeometryResidency();
 
         for (auto& texture : textures_) {
@@ -808,6 +840,9 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     streamGraph_.reset();
     textureMipResidency_.reset();
     streamGraphReady_ = false;
+    streamFallbackTextureIndex_ = UINT32_MAX;
+    runtimeTextureUpload_ = {};
+    runtimeTextureTransitionFrame_ = 0U;
     streamCellBounds_ = {};
     streamDecisionCount_ = 0U;
     streamPlanFrame_ = 0U;
