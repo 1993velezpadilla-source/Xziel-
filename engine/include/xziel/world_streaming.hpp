@@ -106,6 +106,10 @@ public:
         std::size_t destinationCapacity,
         std::size_t& written) const noexcept;
 
+    [[nodiscard]] StreamCellHeat cellHeat(
+        const StreamCellPlanInput& input,
+        std::uint32_t cellId) const noexcept;
+
     [[nodiscard]] std::size_t cellCount() const noexcept;
     [[nodiscard]] std::size_t portalCount() const noexcept;
     [[nodiscard]] std::size_t bindingCount() const noexcept;
