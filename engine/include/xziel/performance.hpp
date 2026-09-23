@@ -14,6 +14,14 @@ enum class ThermalLevel : std::uint8_t {
     Critical,
 };
 
+enum class PerformanceBottleneck : std::uint8_t {
+    Balanced,
+    Cpu,
+    Gpu,
+    FramePaced,
+    Thermal,
+};
+
 struct PerformanceConfig {
     float targetFps = 60.0f;
     float degradeThreshold = 1.08f;
@@ -27,6 +35,7 @@ struct PerformanceConfig {
 struct PerformanceSample {
     float cpuFrameMs = 0.0f;
     float gpuFrameMs = 0.0f;
+    float frameIntervalMs = 0.0f;
     ThermalLevel thermal = ThermalLevel::Nominal;
 };
 
@@ -68,11 +77,17 @@ public:
 
     [[nodiscard]] const RenderWorkload& workload() const noexcept;
     [[nodiscard]] float smoothedFrameMs() const noexcept;
+    [[nodiscard]] float smoothedCpuMs() const noexcept;
+    [[nodiscard]] float smoothedGpuMs() const noexcept;
+    [[nodiscard]] PerformanceBottleneck bottleneck() const noexcept;
 
 private:
     void stepDown() noexcept;
     void stepUp() noexcept;
     void applyThermalCeiling(ThermalLevel thermal) noexcept;
+    void classifyBottleneck(
+        const PerformanceSample& sample,
+        float targetMs) noexcept;
     void rebuildWorkload() noexcept;
 
     PerformanceConfig config_{};
@@ -80,6 +95,14 @@ private:
 
     int qualityIndex_ = 2;
     float smoothedFrameMs_ = 0.0f;
+    float smoothedCpuMs_ = 0.0f;
+    float smoothedGpuMs_ = 0.0f;
+    float smoothedIntervalMs_ = 0.0f;
+    PerformanceBottleneck bottleneck_ =
+        PerformanceBottleneck::Balanced;
+    PerformanceBottleneck pendingBottleneck_ =
+        PerformanceBottleneck::Balanced;
+    float bottleneckHoldSeconds_ = 0.0f;
     float overloadSeconds_ = 0.0f;
     float recoverySeconds_ = 0.0f;
 };
