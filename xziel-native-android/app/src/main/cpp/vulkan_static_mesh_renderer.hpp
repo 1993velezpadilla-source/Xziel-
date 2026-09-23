@@ -8,6 +8,7 @@
 #include "xziel/world_streaming.hpp"
 
 #include <cstdint>
+#include <span>
 #include <string>
 #include <vector>
 
