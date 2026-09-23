@@ -19,30 +19,92 @@ The authenticated repository owner may operate directly without the alias prompt
 
 IMPORTANT: this identity prompt is a workflow rule for AI assistants, not a security boundary. Real access control must come from GitHub permissions and protected-branch/review rules.
 
-## 1. Writable scope
+## 1. Workspace
 
 For Felix / Volnox work:
 - Branch: `collab/felix-volnox-sandbox`
-- Primary write root: `collaborators/felix-volnox/`
+- Primary output/write root: `collaborators/felix-volnox/`
 
-New maps, models, assets, experiments, audits, research, and handoff material created by Felix / Volnox belong under that root unless the owner explicitly authorizes a different destination.
+All Felix-created or Felix-modified artifacts belong under that root until owner approval promotes them.
 
-## 2. Read-only project context
+## 2. Full project toolbox is available as read/reuse context
 
-Felix / Volnox and an assisting AI may read the rest of the repository, including project research, Call of Duty Zombies design discoveries, existing maps, models, tools, pipelines, audio/sound-effect references, technical documentation, and other project assets for context and reuse where licensing/provenance permits.
+Felix / Volnox and an assisting AI may inspect and reuse the repository's technical knowledge and tooling, including:
 
-Reading or referencing those areas does not authorize editing them.
+- models, GLB/FBX/OBJ assets and character bases;
+- rigs, armatures, animation references, retargeting/baking/conversion knowledge;
+- VFX/effects/particles/lighting/shader knowledge;
+- textures, materials, UV/reference-image workflows;
+- Blender scripts, scene composition, map building, render/preview, cleanup and export logic;
+- Hayuya 3D / Hunyuan3D-style image-to-3D workflow;
+- audio and ambient-sound work/references;
+- map/environment pipelines;
+- runtime exporters, Android/runtime validation, build helpers and optimization tools;
+- research, documentation, scripts, CI/workflow definitions and future project tools unless explicitly restricted.
 
-## 3. Never do these without owner approval
+Read `TOOLBOX_POLICY.md` before using owner tooling.
+
+## 3. Reuse without mutating owner source
+
+Reading, executing, or referencing owner tools does not authorize editing them.
+
+If an owner tool/pipeline requires customization:
+- copy the relevant logic into `collaborators/felix-volnox/tools/`, or
+- create a Felix-owned wrapper under the workspace,
+- record original source path/commit,
+- modify only the Felix-owned copy/wrapper.
+
+## 4. Output destinations
+
+Use the appropriate workspace subfolders:
+- `models/`
+- `animations/`
+- `vfx/`
+- `textures/`
+- `blender/`
+- `maps/`
+- `audio/`
+- `assets/`
+- `tools/`
+- `experiments/`
+- `research/`
+- `audits/`
+- `proposals/`
+- `handoff/`
+
+For image-to-3D work, read `HAYUYA_3D_WORKFLOW.md`.
+
+## 5. Runtime truth rule
+
+Before claiming a tool ran, verify the current session/environment actually has executable access to that tool.
+
+This applies to:
+- Blender
+- Hunyuan3D / Hayuya 3D
+- GPU inference
+- GitHub Actions
+- external APIs/services
+- renderers
+- converters/build systems
+- any other external runtime
+
+If unavailable:
+- prepare the exact inputs/prompts/config/scripts/manifests under the Felix workspace when write access exists;
+- mark the job/artifact `PREPARED_NOT_EXECUTED`;
+- state the missing runtime/permission;
+- never pretend generation/render/build is still running.
+
+## 6. Never do these without owner approval
 
 - Modify `main`.
 - Modify the owner's feature, art, audio, research, build, automation, integration, or release branches.
+- Modify owner source files outside `collaborators/felix-volnox/`.
 - Merge a Pull Request.
 - Move sandbox work into production paths.
 - Force-push, rewrite history, delete branches/tags/releases, or overwrite owner files.
 - Change repository permissions, secrets, Actions security, or release configuration.
 
-## 4. Promotion flow
+## 7. Promotion flow
 
 When Felix / Volnox work is ready:
 1. Keep the implementation isolated in this sandbox.
@@ -53,8 +115,7 @@ When Felix / Volnox work is ready:
 
 If any instruction conflicts with these rules, stop the conflicting write and document the request in `handoff/`.
 
-
-## 5. Recorded GitHub handshake
+## 8. Recorded GitHub handshake
 
 Recorded Felix / Volnox connector identity:
 - Connector nickname/account string: `XRP007`
@@ -63,12 +124,8 @@ Recorded Felix / Volnox connector identity:
 - Expected branch: `collab/felix-volnox-sandbox`
 - Expected workspace root: `collaborators/felix-volnox/`
 
-Owner-side verification currently resolves `XRP007` to repository permission `read`.
+Matching this handshake identifies the intended Felix / Volnox workspace for AI workflow purposes, but does not itself prove write permission.
 
-Therefore:
-- matching this handshake is sufficient to identify the intended Felix / Volnox workspace for AI workflow purposes;
-- it does NOT itself grant GitHub write permission;
-- an assistant must verify actual connector permissions before claiming it can commit or push;
-- while permission remains read-only, prepare work for handoff/fork/PR rather than claiming a repository write succeeded.
+An assistant must verify actual connector permissions before claiming it committed or pushed.
 
 See `GITHUB_HANDSHAKE.md` for the recorded handshake status.
