@@ -301,3 +301,30 @@ Keep the map free even when inventory is unsold.
 7. Implement exposure measurement off-thread.
 8. Add an internal debug view that draws slot IDs, bounds, current creative and exposure state.
 9. Test a full match with ads enabled and disabled; gameplay timing must be identical.
+
+
+## Google Play policy profile — 2026-09-23
+
+Detailed research is maintained in `docs/GOOGLE_PLAY_DIEGETIC_ADS_POLICY_RESEARCH_2026-09-23.md`.
+
+Architecture decision:
+- direct diegetic sponsorship and Google/programmatic inventory are separate delivery paths
+- SPATIAL_AUDIO is direct-sponsor inventory by default; do not route arbitrary programmatic audio into world radios without explicit product-format support
+- programmatic native/display units must preserve all required ad attribution/AdChoices and must never be disguised as gameplay UI
+- contextual delivery is the default; AAID is not required for direct contextual sponsorship
+- every creative must pass content-rating, category, placement, privacy and destination checks before eligibility
+
+### Ambient sponsor audio profile
+
+The preferred XZIEL radio ad is intentionally quiet and subordinate to the game mix:
+- 6–12 seconds preferred, 15 seconds hard maximum
+- 2–3 second player dwell before first start
+- ~8–14 dB below the dominant local ambience/gameplay bed at normal pass-by distance
+- hard ceiling remains below the local gameplay reference; no make-up gain to fight gunshots/zombies
+- 1.0–1.75 s fade-in and 0.5–1.25 s fade-out
+- no gameplay ducking, no attention stingers, no head-locked playback
+- suppress/fade during combat, quest VO, boss/round events, down/revive priority audio
+- same creative once per match; maximum two paid proximity-radio messages per player per match; target at least 10 minutes between paid starts
+- player may disable sponsored world audio; fallback lore audio replaces it and no paid exposure is counted
+
+The design goal is environmental presence, not interruption: a player focused on combat should barely notice the sponsor; a player who intentionally listens near the radio can understand it.
