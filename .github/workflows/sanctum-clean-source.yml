@@ -1,9 +1,9 @@
-name: Sanctum Clean Original Source
+name: Sanctum Exterior Detail A-B Source
 
 on:
   push:
     branches:
-      - feature/sanctum-native-clean-v2
+      - research/sanctum-exterior-detail-ab-v1
   workflow_dispatch:
 
 permissions:
@@ -251,6 +251,28 @@ jobs:
           set -euo pipefail
           xvfb-run -a -s "-screen 0 1280x720x24"             blender --background             --python tools/church_map/export_xziel_original_clean.py             2>&1 | tee church/out/clean/clean-source-export.log
 
+      - name: Apply matched 4K stone micro-detail to exterior atlas
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p church/out/clean/material-ab
+          curl --fail --location --retry 3 \
+            "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/medieval_blocks_03/medieval_blocks_03_diff_4k.jpg" \
+            -o church/out/clean/material-ab/medieval_blocks_03_diff_4k.jpg
+
+          python3 tools/church_map/apply_exterior_microdetail.py \
+            --report church/out/clean/xziel_native_static_mesh_report.json \
+            --runtime-root church/out/clean/xziel_native_static \
+            --detail church/out/clean/material-ab/medieval_blocks_03_diff_4k.jpg \
+            --out-report church/out/clean/exterior_microdetail_ab_report.json
+
+          jq -e '.microdetailApplied == true' \
+            church/out/clean/xziel_native_static_mesh_report.json
+          jq -e '.microdetailCandidate == "polyhaven_medieval_blocks_03"' \
+            church/out/clean/xziel_native_static_mesh_report.json
+          jq -e '.runtimeExteriorResolution == [4096,4096]' \
+            church/out/clean/xziel_native_static_mesh_report.json
+
       - name: Validate clean visual lineage
         shell: bash
         run: |
@@ -274,10 +296,13 @@ jobs:
           jq -e '.decimateRatio == 1' "$R"
           jq -e '.scanCleanup == "disabled"' "$R"
           jq -e '.vertexLighting == "identity_white"' "$R"
-          jq -e '.textureSourceMode == "original_glb_embedded_pixels"' "$R"
+          jq -e '.textureSourceMode == "original_glb_embedded_pixels_plus_matched_exterior_microdetail"' "$R"
           jq -e '.textureCount > 0' "$R"
-          jq -e '.exactSourcePixelTextures == .textureCount' "$R"
-          jq -e '.materialReport | all(.exactSourcePixels == true)' "$R"
+          jq -e '.microdetailApplied == true' "$R"
+          jq -e '.microdetailCandidate == "polyhaven_medieval_blocks_03"' "$R"
+          jq -e '.runtimeExteriorResolution == [4096,4096]' "$R"
+          jq -e '.exactSourcePixelTextures == (.textureCount - 1)' "$R"
+          jq -e '[.materialReport[] | select(.exactSourcePixels == false)] | length == 1' "$R"
           jq -e '.fallbackMaterials | length == 0' "$R"
 
           A=church/out/clean/original_texture_audit.json
@@ -322,6 +347,7 @@ jobs:
             church/out/clean/xziel_native_map/
             church/out/clean/original_texture_audit.json
             church/out/clean/original_embedded_textures/
+            church/out/clean/exterior_microdetail_ab_report.json
             church/source/source_metadata.json
           if-no-files-found: error
           compression-level: 1
