@@ -94,15 +94,20 @@ public:
     void record(
         VkCommandBuffer command,
         VkExtent2D extent,
+        std::uint32_t frameSlot,
         const StaticMeshCameraState& camera,
         const StaticMeshEnvironmentState& environment) const noexcept;
 
     void recordViewmodel(
         VkCommandBuffer command,
         VkExtent2D extent,
+        std::uint32_t frameSlot,
         const StaticMeshViewmodelState& state) const noexcept;
 
 private:
+    static constexpr std::uint32_t
+        kDescriptorFrames = 2U;
+
     struct GpuTexture {
         std::string assetPath{};
         VkImage image = VK_NULL_HANDLE;
@@ -125,7 +130,9 @@ private:
         std::uint32_t normalTextureIndex = 0U;
         std::uint32_t ormTextureIndex = 0U;
         std::uint32_t emissiveTextureIndex = 0U;
-        VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+        std::array<VkDescriptorSet, 2> descriptorSets{
+            VK_NULL_HANDLE,
+            VK_NULL_HANDLE};
 
         std::array<float, 4> baseColorFactor{
             1.0f, 1.0f, 1.0f, 1.0f};
