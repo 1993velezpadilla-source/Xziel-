@@ -380,10 +380,28 @@ def inspect_model(data: bytes, default_world_height_m: float) -> dict[str, Any]:
             merge_bounds(head_bounds, [list(b["min"]), list(b["max"])])
 
     head_b = bounds_dict(head_bounds)
-    dims_world = {
-        "width_m": round(float(sb["width_x"]) * world_scale, 6),
-        "height_m": round(float(sb["height_y"]) * world_scale, 6),
-        "depth_m": round(float(sb["depth_z"]) * world_scale, 6),
+
+    # glTF is Y-up here, but authoring tools may export the character facing
+    # along either X or Z. In a neutral/T pose the larger horizontal extent is
+    # the visual front width/arm span; the smaller horizontal extent is depth.
+    # Keep raw axis extents too so nothing is lost or guessed away.
+    x_extent = float(sb["width_x"])
+    y_extent = float(sb["height_y"])
+    z_extent = float(sb["depth_z"])
+    front_axis = "x" if x_extent >= z_extent else "z"
+    depth_axis = "z" if front_axis == "x" else "x"
+    front_extent = x_extent if front_axis == "x" else z_extent
+    depth_extent = z_extent if depth_axis == "z" else x_extent
+
+    coordinate_extents_world = {
+        "x_extent_m": round(x_extent * world_scale, 6),
+        "y_extent_m": round(y_extent * world_scale, 6),
+        "z_extent_m": round(z_extent * world_scale, 6),
+    }
+    semantic_envelope_world = {
+        "front_width_or_arm_span_m": round(front_extent * world_scale, 6),
+        "height_m": round(y_extent * world_scale, 6),
+        "depth_m": round(depth_extent * world_scale, 6),
     }
 
     return {
@@ -397,7 +415,14 @@ def inspect_model(data: bytes, default_world_height_m: float) -> dict[str, Any]:
         },
         "default_world_height_m": default_world_height_m,
         "native_to_default_world_scale": round(world_scale, 10),
-        "default_world_dimensions": dims_world,
+        "orientation": {
+            "up_axis": "y",
+            "front_horizontal_axis": front_axis,
+            "forward_depth_axis": depth_axis,
+            "inference": "larger horizontal rest-pose extent is treated as visual front/arm-span axis",
+        },
+        "coordinate_extents_default_world_m": coordinate_extents_world,
+        "semantic_envelope_default_world_m": semantic_envelope_world,
         "head_bounds_native": head_b,
         "head_bounds_default_world_m": (
             {
@@ -425,6 +450,7 @@ def inspect_model(data: bytes, default_world_height_m: float) -> dict[str, Any]:
             "Default world metres are a convenience scale derived from the configured default height.",
             "Future creature concepts must preserve the selected base model's normalized ratios unless an explicit deformation is requested.",
             "Joint segment measurements are rest-pose distances. Mesh bounds are exact geometry bounds in the stored GLB rest pose.",
+            "X/Y/Z coordinate extents are preserved separately; visual front and side axes are inferred from the neutral-pose horizontal extents.",
         ],
     }
 
@@ -436,16 +462,16 @@ def svg_template(measurements: dict[str, Any], projection: str, title: str) -> s
     joints = measurements["joints"]
     segments = measurements["joint_segments"]
 
+    axis_index = {"x": 0, "y": 1, "z": 2}
+    orientation = measurements["orientation"]
     if projection == "front":
-        ax_h, ax_v = 0, 1
-        h_label = "X / width"
-        h_size = b["width_x"]
-        v_size = b["height_y"]
+        horizontal_axis = orientation["front_horizontal_axis"]
+        ax_h, ax_v = axis_index[horizontal_axis], 1
+        h_label = horizontal_axis.upper() + " / visual front width"
     else:
-        ax_h, ax_v = 2, 1
-        h_label = "Z / depth"
-        h_size = b["depth_z"]
-        v_size = b["height_y"]
+        horizontal_axis = orientation["forward_depth_axis"]
+        ax_h, ax_v = axis_index[horizontal_axis], 1
+        h_label = horizontal_axis.upper() + " / visual side depth"
 
     min_h, max_h = mn[ax_h], mx[ax_h]
     min_v, max_v = mn[ax_v], mx[ax_v]
@@ -485,11 +511,12 @@ def svg_template(measurements: dict[str, Any], projection: str, title: str) -> s
     left_x = W / 2 + (min_h - (min_h + max_h) / 2) * scale
     right_x = W / 2 + (max_h - (min_h + max_h) / 2) * scale
 
-    height_m = measurements["default_world_dimensions"]["height_m"]
+    semantic = measurements["semantic_envelope_default_world_m"]
+    height_m = semantic["height_m"]
     horiz_m = (
-        measurements["default_world_dimensions"]["width_m"]
+        semantic["front_width_or_arm_span_m"]
         if projection == "front"
-        else measurements["default_world_dimensions"]["depth_m"]
+        else semantic["depth_m"]
     )
 
     return f'''<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">
@@ -571,7 +598,9 @@ def sync_one(src: dict[str, Any]) -> dict[str, Any]:
         "measurements": f"{src['id']}/measurements.json",
         "front_template": f"{src['id']}/measurement_front.svg",
         "side_template": f"{src['id']}/measurement_side.svg",
-        "default_world_dimensions": measurements["default_world_dimensions"],
+        "orientation": measurements["orientation"],
+        "coordinate_extents_default_world_m": measurements["coordinate_extents_default_world_m"],
+        "semantic_envelope_default_world_m": measurements["semantic_envelope_default_world_m"],
         "joint_count": measurements["joint_count"],
         "animation_count": measurements["animation_count"],
         "triangle_count": measurements["triangle_count"],
@@ -588,7 +617,8 @@ def write_gallery(catalog: list[dict[str, Any]]) -> None:
         "",
     ]
     for item in catalog:
-        dims = item["default_world_dimensions"]
+        dims = item["semantic_envelope_default_world_m"]
+        orientation = item["orientation"]
         lines.extend([
             f"## {item['display_name']}",
             "",
@@ -597,7 +627,8 @@ def write_gallery(catalog: list[dict[str, Any]]) -> None:
             f"- ID: `{item['id']}`",
             f"- License: {item['license']}",
             f"- Stored model: `assets/character_bases/{item['model']}`",
-            f"- Default scaled envelope: {dims['width_m']:.3f} m W × {dims['height_m']:.3f} m H × {dims['depth_m']:.3f} m D",
+            f"- Default semantic envelope: {dims['front_width_or_arm_span_m']:.3f} m front width/arm span × {dims['height_m']:.3f} m H × {dims['depth_m']:.3f} m visual depth",
+            f"- Orientation: Y-up · front horizontal axis={orientation['front_horizontal_axis'].upper()} · depth axis={orientation['forward_depth_axis'].upper()}",
             f"- Rig joints: {item['joint_count']} · animations: {item['animation_count']} · triangles: {item['triangle_count']}",
             f"- Exact measurements: `assets/character_bases/{item['measurements']}`",
             f"- Visual templates: `assets/character_bases/{item['front_template']}`, `assets/character_bases/{item['side_template']}`",
