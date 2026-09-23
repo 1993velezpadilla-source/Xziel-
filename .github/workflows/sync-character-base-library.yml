@@ -1,0 +1,50 @@
+name: Sync character base library
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/sync-character-base-library.yml"
+      - "tools/character_library/sync_character_bases.py"
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Download, inspect, and build library
+        run: python tools/character_library/sync_character_bases.py
+
+      - name: Commit generated library
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "xziel-asset-bot"
+          git config user.email "xziel-asset-bot@users.noreply.github.com"
+          git add assets/character_bases docs/CHARACTER_BASE_LIBRARY.generated.md
+
+          if git diff --cached --quiet; then
+            echo "Character base library already up to date."
+            exit 0
+          fi
+
+          git commit -m "assets: sync CC0 character base library"
+
+          # Parallel agents may advance main while this job is running.
+          # Rebase once before pushing so these additive asset changes do not
+          # discard unrelated work.
+          git pull --rebase origin "$GITHUB_REF_NAME"
+          git push origin HEAD:"$GITHUB_REF_NAME"
