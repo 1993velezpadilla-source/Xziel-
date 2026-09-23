@@ -256,6 +256,20 @@ jobs:
                   "sources":research.get("sources",[]),
                   "warnings":research.get("warnings",[])
               }
+              seg_path=root/"part_segmentation_plan.json"
+              fit_path=root/"mechanical_part_fit.json"
+              part_map_path=root/"part_map.json"
+              if seg_path.exists():
+                  manifest["part_segmentation_plan"]=json.loads(seg_path.read_text())
+              if fit_path.exists():
+                  manifest["mechanical_part_fit"]=json.loads(fit_path.read_text())
+              if part_map_path.exists():
+                  part_map=json.loads(part_map_path.read_text())
+                  manifest["part_map_summary"]={
+                      "components":len(part_map.get("components",[])),
+                      "mode":part_map.get("mode"),
+                      "warnings":part_map.get("warnings",[])
+                  }
               manifest_path.write_text(json.dumps(manifest,indent=2)+"\n")
           PY
 
