@@ -31,8 +31,9 @@ Do **not** demand a manual 8-view turnaround. If 1, 2, 5, 9, 20, or more useful 
 7. Select the strongest valid candidate.
 8. In Monster/Ultra, optionally let TripoSF challenge the geometry at 1024³; never promote it merely for having more detail.
 9. If refined geometry wins real-source evidence, use Material Bridge to restore base-color appearance and return that GLB to the full final Judge.
-10. Build/retain UV and PBR material data and eventually produce game-ready topology/LODs/collision.
-11. Export a final GLB plus plan, ranking and manifest.
+10. Build/retain UV and PBR material data.
+11. For game/mobile/monster/ultra assets, run GamePrep to create master, LOD0-LOD3, convex collision, turntable and GamePrep manifest unless explicitly disabled.
+12. Export the final GLB plus plan, ranking and manifests.
 
 ## Canonical ViewForge coverage
 
@@ -125,7 +126,10 @@ A completed Hayuya job should converge on:
 - `ranking.json`
 - `manifest.json`
 - candidate outputs for audit
-- eventually LODs, collision and turntable previews
+- GamePrep master + LOD0-LOD3
+- convex collision proxy when valid
+- 8-frame turntable preview
+- GamePrep manifest
 
 ## Manual 8-view art workflow
 
