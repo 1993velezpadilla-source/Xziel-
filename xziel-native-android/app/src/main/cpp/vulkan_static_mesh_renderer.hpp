@@ -214,6 +214,8 @@ private:
             GeometryRangeInFlight,
             kGeometryReloadWindow> reloadRanges{};
         std::uint32_t reloadPendingCount = 0U;
+        std::uint32_t reloadPeakPendingCount = 0U;
+        std::uint64_t reloadStartFrame = 0U;
         std::vector<std::byte> reloadVertexBytes{};
         std::vector<std::byte> reloadIndexBytes{};
     };
