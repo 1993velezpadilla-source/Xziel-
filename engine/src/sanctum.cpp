@@ -82,7 +82,7 @@ bool configureSanctumStreamingGraph(
         }
     }
 
-    const auto addClosedPortal =
+    const auto addDoorPortal =
         [&](std::uint32_t id,
             SanctumZone a,
             SanctumZone b) noexcept {
@@ -95,41 +95,56 @@ bool configureSanctumStreamingGraph(
             });
         };
 
+    const auto addOpenPortal =
+        [&](std::uint32_t id,
+            SanctumZone a,
+            SanctumZone b) noexcept {
+            return graph.addPortal({
+                .id = id,
+                .cellA = static_cast<std::uint32_t>(a),
+                .cellB = static_cast<std::uint32_t>(b),
+                .open = true,
+                .preloadAcrossClosed = false,
+            });
+        };
+
+    // Gameplay door IDs are generated in this exact progression order by
+    // design_zombies_gameplay.py -> native XMAP export.
     const bool portalsReady =
-        addClosedPortal(
-            1001U,
+        addDoorPortal(
+            2000U,
             SanctumZone::Courtyard,
             SanctumZone::Nave) &&
-        addClosedPortal(
-            1002U,
+        addDoorPortal(
+            2001U,
             SanctumZone::Nave,
-            SanctumZone::Office) &&
-        addClosedPortal(
-            1003U,
-            SanctumZone::Office,
             SanctumZone::OfficeCorridor) &&
-        addClosedPortal(
-            1004U,
+        addOpenPortal(
+            2900U,
+            SanctumZone::OfficeCorridor,
+            SanctumZone::Office) &&
+        addDoorPortal(
+            2002U,
             SanctumZone::OfficeCorridor,
             SanctumZone::BoilerRoom) &&
-        addClosedPortal(
-            1005U,
+        addDoorPortal(
+            2003U,
             SanctumZone::Nave,
             SanctumZone::TowerStairs) &&
-        addClosedPortal(
-            1006U,
+        addDoorPortal(
+            2004U,
             SanctumZone::TowerStairs,
             SanctumZone::RingingChamber) &&
-        addClosedPortal(
-            1007U,
+        addDoorPortal(
+            2005U,
             SanctumZone::RingingChamber,
             SanctumZone::ClockChamber) &&
-        addClosedPortal(
-            1008U,
+        addDoorPortal(
+            2006U,
             SanctumZone::ClockChamber,
             SanctumZone::RoofChamber) &&
-        addClosedPortal(
-            1009U,
+        addOpenPortal(
+            2901U,
             SanctumZone::RoofChamber,
             SanctumZone::TowerTop);
 
