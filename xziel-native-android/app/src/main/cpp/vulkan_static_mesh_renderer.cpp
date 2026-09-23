@@ -1860,8 +1860,11 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureResidency(
     MemoryPressure memoryPressure) noexcept {
     if (!streamGraphReady_ ||
         frameSlot >= kDescriptorFrames ||
-        streamFallbackTextureIndex_ >=
-            textures_.size()) {
+        !streamFallbackTexture_.physicallyResident ||
+        streamFallbackTexture_.view ==
+            VK_NULL_HANDLE ||
+        streamFallbackTexture_.sampler ==
+            VK_NULL_HANDLE) {
         return;
     }
 
@@ -2230,11 +2233,6 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureResidency(
     for (std::uint32_t textureIndex = 0U;
          textureIndex < textures_.size();
          ++textureIndex) {
-        if (textureIndex ==
-                streamFallbackTextureIndex_) {
-            continue;
-        }
-
         auto& texture =
             textures_[textureIndex];
 
@@ -2445,7 +2443,7 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureResidency(
                 if (updateTextureDescriptorForFrame(
                         textureIndex,
                         frameSlot,
-                        streamFallbackTextureIndex_)) {
+                        streamFallbackTexture_)) {
                     texture.
                         descriptorResidentMask &=
                         static_cast<std::uint8_t>(
