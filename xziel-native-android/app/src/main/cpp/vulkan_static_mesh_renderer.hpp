@@ -379,6 +379,10 @@ private:
     std::uint32_t streamFallbackTextureIndex_ = UINT32_MAX;
     RuntimeTextureUpload runtimeTextureUpload_{};
     std::uint64_t runtimeTextureTransitionFrame_ = 0U;
+    bool streamResidencyProbeEnabled_ = false;
+    bool streamResidencyProbeComplete_ = false;
+    std::uint32_t streamResidencyProbeTextureIndex_ = UINT32_MAX;
+    std::uint64_t streamResidencyProbeReloadFrame_ = 0U;
 
     std::vector<GpuTexture> textures_{};
     std::vector<GpuMaterial> materials_{};
