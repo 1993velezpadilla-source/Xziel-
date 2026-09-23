@@ -10,6 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 LOCK = Path(__file__).with_name("backends.lock.json")
 DEFAULT_ROOT = ROOT / ".hayuya" / "models"
+PERMISSIVE_LICENSES = {"MIT", "Apache-2.0", "BSD-3-Clause"}
 
 
 def load_lock() -> dict:
@@ -39,6 +40,9 @@ def clone_backend(entry: dict, root: Path) -> None:
 
     run(["git", "fetch", "--depth", "1", "origin", sha], cwd=dst)
     run(["git", "checkout", "--detach", sha], cwd=dst)
+    if entry.get("submodules"):
+        run(["git", "submodule", "sync", "--recursive"], cwd=dst)
+        run(["git", "submodule", "update", "--init", "--recursive", "--depth", "1"], cwd=dst)
     actual = git_output(["rev-parse", "HEAD"], dst)
     if actual != sha:
         raise RuntimeError(f"{backend_id}: expected {sha}, got {actual}")
@@ -82,15 +86,16 @@ def main() -> int:
         selected.extend(
             x for x in backends.values()
             if x["enabled_by_default"]
-            and x["license"] in {"MIT", "Apache-2.0"}
+            and x["license"] in PERMISSIVE_LICENSES
         )
     for backend_id in args.backend:
         if backend_id not in backends:
             parser.error(f"unknown backend: {backend_id}")
         entry = backends[backend_id]
-        if not entry["enabled_by_default"] and not args.allow_restricted:
+        if entry["license"] not in PERMISSIVE_LICENSES and not args.allow_restricted:
             parser.error(
-                f"{backend_id} is opt-in. Re-run with --allow-restricted only after reviewing its license."
+                f"{backend_id} has a non-core/restricted license. "
+                "Re-run with --allow-restricted only after reviewing its terms."
             )
         selected.append(entry)
 
@@ -105,7 +110,7 @@ def main() -> int:
     if args.verify:
         targets = deduped or [
             x for x in backends.values()
-            if x["enabled_by_default"] and x["license"] in {"MIT", "Apache-2.0"}
+            if x["enabled_by_default"] and x["license"] in PERMISSIVE_LICENSES
         ]
         return 0 if all(verify_backend(x, args.root) for x in targets) else 2
 
