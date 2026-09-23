@@ -2216,6 +2216,95 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureResidency(
                 return;
             }
 
+            const std::uint32_t targetBaseMip =
+                texture.sourceMipLevels > 0U
+                ? std::min<std::uint32_t>(
+                      decision->desiredMipBias,
+                      texture.sourceMipLevels -
+                          1U)
+                : 0U;
+
+            const std::uint32_t retierStableFrames =
+                streamResidencyProbeEnabled_
+                ? 8U
+                : memoryPressure ==
+                      MemoryPressure::Normal
+                  ? 30U
+                  : 8U;
+
+            if (targetBaseMip !=
+                    texture.residentBaseMip &&
+                streamCellStableFrames_ >=
+                    retierStableFrames &&
+                texture.assetPath.size() >=
+                    5U &&
+                texture.assetPath.substr(
+                    texture.assetPath.size() -
+                        5U) == ".ktx2") {
+                if (!texture.runtimeLoadQueued) {
+                    if (assetStreamer_.enqueue(
+                            texture.assetPath)) {
+                        texture.runtimeLoadQueued =
+                            true;
+
+                        __android_log_print(
+                            ANDROID_LOG_INFO,
+                            kTag,
+                            "XZIEL_RUNTIME_TEXTURE_RETIER_QUEUED texture=%u old_base_mip=%u target_base_mip=%u path=%s",
+                            static_cast<unsigned int>(
+                                textureIndex),
+                            static_cast<unsigned int>(
+                                texture.
+                                    residentBaseMip),
+                            static_cast<unsigned int>(
+                                targetBaseMip),
+                            texture.assetPath.c_str());
+                    }
+
+                    return;
+                }
+
+                bool finished = false;
+                std::vector<std::byte> bytes;
+
+                const bool success =
+                    assetStreamer_.tryTake(
+                        texture.assetPath,
+                        bytes,
+                        finished);
+
+                if (!finished) {
+                    return;
+                }
+
+                texture.runtimeLoadQueued =
+                    false;
+
+                if (!success) {
+                    return;
+                }
+
+                if (beginRuntimeKtx2Upload(
+                        textureIndex,
+                        targetBaseMip,
+                        std::move(bytes),
+                        true)) {
+                    __android_log_print(
+                        ANDROID_LOG_INFO,
+                        kTag,
+                        "XZIEL_RUNTIME_TEXTURE_RETIER_SUBMITTED texture=%u old_base_mip=%u target_base_mip=%u",
+                        static_cast<unsigned int>(
+                            textureIndex),
+                        static_cast<unsigned int>(
+                            texture.
+                                residentBaseMip),
+                        static_cast<unsigned int>(
+                            targetBaseMip));
+                }
+
+                return;
+            }
+
             continue;
         }
 
