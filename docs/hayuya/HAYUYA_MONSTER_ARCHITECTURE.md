@@ -196,21 +196,23 @@ Pipeline:
 3. restore the refined mesh to the original candidate's object-space bounds
 4. compare original vs refined using real-source visual evidence + mesh health + at most 5% synthetic normal support
 5. require a positive promotion margin before marking the refined geometry preferred
-6. if refined geometry wins, run Material Bridge v1
+6. if refined geometry wins, run Material Bridge v2
 7. return the bridged GLB to the full final Judge; it still has to beat the original asset
 
-Material Bridge v1 samples source surface/base-color evidence and projects it to refined vertices with a KD-tree, producing a color-preserving GLB rather than a gray OBJ.
+Material Bridge v2 first attempts a PBR-aware path:
 
-Current material target remains:
+- pack source materials into one atlas
+- sample source surface position + packed UV evidence
+- project those UVs onto the refined topology with a KD-tree
+- reuse the packed glTF material on the refined mesh
+- preserve available baseColor, metallic/roughness, normal, AO/occlusion and emissive channels
+- retain material factors and texture images rather than flattening them to vertex color
 
-- base color / albedo — bridge v1 implemented
-- normal
-- roughness
-- metallic
-- AO
-- opacity when required
+If the source has no usable UV/PBR evidence, Hayuya automatically falls back to Material Bridge v1, which transfers base color through dense surface color samples and vertex colors.
 
-TRELLIS.2 can already supply PBR attributes directly. **Material Bridge v2** will perform UV/PBR rebaking for refined or non-PBR champions.
+The normal-map transfer is intentionally classified as topology-reprojected rather than mathematically rebaked tangent space; a seam/tangent-aware rebake remains a later quality upgrade.
+
+TRELLIS.2 can already supply PBR attributes directly, and Material Bridge v2 now lets refined winners and simplified LODs keep those channels instead of discarding them.
 
 Never let a texture/refinement stage silently change geometry identity.
 
@@ -227,7 +229,7 @@ For `mobile`, `game`, `monster`, and `ultra`, the final champion can now automat
 - 8-frame 45° turntable
 - `gameprep_manifest.json`
 
-LOD targets are derived from the profile face budget. Lower LODs use quadric decimation and Material Bridge v1 color projection so simplified geometry does not become an uncolored asset. The master preserves the original final asset unchanged.
+LOD targets are derived from the profile face budget. Lower LODs use quadric decimation and one shared Material Bridge v2 transfer context. PBR/UV channels survive when the master provides them; non-PBR assets fall back to v1 base-color projection. The master preserves the original final asset unchanged.
 
 The turntable reuses the winning Judge camera/up-axis as its anchor rather than assuming an arbitrary object orientation.
 
@@ -255,6 +257,7 @@ HAYUYA_TRELLIS_PYTHON=/envs/trellis/bin/python
 HAYUYA_TRELLIS2_PYTHON=/envs/trellis2/bin/python
 HAYUYA_WONDER3D_PYTHON=/envs/wonder3d/bin/python
 HAYUYA_TRIPOSF_PYTHON=/envs/triposf/bin/python
+HAYUYA_DINOV2_PYTHON=/envs/dinov2/bin/python
 ```
 
 Pinned source is installed under:
@@ -274,6 +277,17 @@ Verify exact commits:
 ```bash
 python tools/hayuya3d/bootstrap.py --verify
 ```
+
+DINOv2 can now run in its own Python/CUDA environment through an isolated embedding worker, so the Judge no longer needs to share the controller environment's torch stack.
+
+For a real GPU machine:
+
+```bash
+python tools/hayuya3d/gpu_doctor.py --backends triposg,trellis2,trellis,instantmesh,triposr --include-support --strict
+bash tools/hayuya3d/gpu_e2e.sh
+```
+
+The GPU proof defaults to the real La Llorona front image plus detail references, requires ViewForge/Judge/refinement/GamePrep, writes `gpu_doctor.json`, and emits `GPU_E2E_PASS.json` only after the final package validates.
 
 ## Usage
 
@@ -357,18 +371,21 @@ Implemented in code/orchestration:
 - confidence-weighted source masks
 - low-weight Wonder3D normal support
 - TripoSF 1024³ geometry challenger
-- Material Bridge v1 base-color transfer
+- Material Bridge v2 PBR UV/material transfer with automatic v1 fallback
+- PBR-aware LOD material preservation
+- isolated DINOv2 evaluator environment support
+- GPU doctor + one-photo end-to-end proof harness
 - evidence-gated return of refined material-bridged geometry to the final arena
 
 Remaining major stages:
 
-- full PBR Material Bridge v2
+- seam/tangent-aware high-quality PBR rebake for topology changes
 - semantic mesh segmentation/repair
 - smart retopology/quad option
-- full PBR preservation/rebake across automatic LOD + collision pack
 - humanoid/zombie specialist mode
 - rig/skin validation
-- automated turntable comparison report
+- automated source-vs-turntable comparison report
+- actual GPU E2E PASS artifact on a provisioned `hayuya-gpu` runner
 
 The architectural rule is simple:
 
