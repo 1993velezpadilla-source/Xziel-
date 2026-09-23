@@ -18,6 +18,8 @@ public:
 
     [[nodiscard]] std::string configuredBaseUrl() noexcept;
     [[nodiscard]] std::string configuredTestKey() noexcept;
+    [[nodiscard]] std::string configuredDefaultRoom() noexcept;
+    [[nodiscard]] std::string configuredDisplayName() noexcept;
 
     [[nodiscard]] bool connect(
         const std::string& baseUrl,
@@ -45,6 +47,8 @@ private:
 
     jmethodID baseUrlMethod_ = nullptr;
     jmethodID testKeyMethod_ = nullptr;
+    jmethodID defaultRoomMethod_ = nullptr;
+    jmethodID displayNameMethod_ = nullptr;
     jmethodID connectMethod_ = nullptr;
     jmethodID disconnectMethod_ = nullptr;
     jmethodID sendMethod_ = nullptr;
