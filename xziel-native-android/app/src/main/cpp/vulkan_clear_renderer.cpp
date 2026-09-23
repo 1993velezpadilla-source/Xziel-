@@ -4937,6 +4937,7 @@ bool VulkanClearRenderer::recordDrawCommand(
         sanctumMesh_.record(
             command,
             sceneExtent_,
+            frameSlot,
             sanctumCamera,
             sanctumEnvironment);
 
@@ -5041,6 +5042,7 @@ bool VulkanClearRenderer::recordDrawCommand(
         weaponMesh_.recordViewmodel(
             command,
             sceneExtent_,
+            frameSlot,
             weaponState);
     }
 
