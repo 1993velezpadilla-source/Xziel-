@@ -10,7 +10,7 @@ from dataclasses import asdict, dataclass
 from functools import lru_cache
 from pathlib import Path
 
-from reference_pool import infer_view_hint
+from reference_pool import infer_detail_region_hint, infer_view_hint
 from visual_judge import SourceViewScore, extract_source_mask, project_mesh_vertices
 
 
@@ -34,6 +34,8 @@ class DetailAppearanceScore:
     best_patch: str
     expected_azimuth: float | None = None
     view_hint_constrained: bool = False
+    region_hint: str | None = None
+    region_hint_constrained: bool = False
 
 
 @dataclass
@@ -581,33 +583,77 @@ def _circular_distance_degrees(a: float, b: float) -> float:
     return min(d, 360.0 - d)
 
 
+def _patch_matches_region(patch_name: str, region_hint: str | None) -> bool:
+    if region_hint is None:
+        return True
+    if patch_name == "whole":
+        return False
+    if not patch_name.startswith("grid_"):
+        return True
+
+    try:
+        _, row, _ = patch_name.split("_", 2)
+        row_index = int(row)
+    except Exception:
+        return True
+
+    if region_hint == "head":
+        return row_index == 0
+    if region_hint == "middle":
+        return row_index == 1
+    if region_hint == "lower":
+        return row_index == 2
+    if region_hint == "local":
+        return True
+    return True
+
+
 def select_detail_candidate_indices(
     patch_meta: list[tuple[float, str]],
     source: Path,
     orientation_offset: float,
     *,
     max_distance: float = 50.0,
-) -> tuple[list[int], float | None]:
+) -> tuple[list[int], float | None, str | None]:
     """
-    Keep asymmetric detail evidence on the side named by a canonical filename.
+    Constrain detail retrieval by both side/orientation and coarse named region.
 
-    A generic close-up has no view hint and can search all candidate patches.
-    A left/right/front/back/45° detail searches only patches near that real-world
-    orientation after applying the Judge's recovered global orientation offset.
+    Generic close-ups remain unconstrained. Explicit head/torso/lower/local names
+    search only plausible local crops, preventing a face reference from winning on
+    an unrelated torso patch with similar colors.
     """
-    hint = infer_view_hint(source)
-    if hint is None:
-        return list(range(len(patch_meta))), None
+    view_hint = infer_view_hint(source)
+    region_hint = infer_detail_region_hint(source)
 
-    expected = float((orientation_offset + hint) % 360.0)
-    allowed = [
-        index
-        for index, (azimuth, _) in enumerate(patch_meta)
-        if _circular_distance_degrees(float(azimuth), expected) <= max_distance
-    ]
+    expected = (
+        float((orientation_offset + view_hint) % 360.0)
+        if view_hint is not None
+        else None
+    )
+
+    allowed = []
+    for index, (azimuth, patch_name) in enumerate(patch_meta):
+        if expected is not None and _circular_distance_degrees(
+            float(azimuth), expected
+        ) > max_distance:
+            continue
+        if not _patch_matches_region(patch_name, region_hint):
+            continue
+        allowed.append(index)
+
     if not allowed:
-        return list(range(len(patch_meta))), expected
-    return allowed, expected
+        # Never turn a metadata hint into a hard scoring failure. Fall back to the
+        # orientation-only set first, then all patches as a last resort.
+        if expected is not None:
+            allowed = [
+                index
+                for index, (azimuth, _) in enumerate(patch_meta)
+                if _circular_distance_degrees(float(azimuth), expected) <= max_distance
+            ]
+        if not allowed:
+            allowed = list(range(len(patch_meta)))
+
+    return allowed, expected, region_hint
 
 
 def score_detail_references(
@@ -674,7 +720,7 @@ def score_detail_references(
     details: list[DetailAppearanceScore] = []
     for source, feature in zip(detail_images, detail_features):
         similarities = candidate_features @ feature
-        allowed, expected_azimuth = select_detail_candidate_indices(
+        allowed, expected_azimuth, region_hint = select_detail_candidate_indices(
             patch_meta,
             source,
             orientation_offset,
@@ -694,6 +740,8 @@ def score_detail_references(
                 best_patch=patch_name,
                 expected_azimuth=round(expected_azimuth, 3) if expected_azimuth is not None else None,
                 view_hint_constrained=expected_azimuth is not None,
+                region_hint=region_hint,
+                region_hint_constrained=region_hint is not None,
             )
         )
 
