@@ -41,7 +41,7 @@ class HayuyaPlannerTests(unittest.TestCase):
         self.assertEqual(plan["input_count"], 9)
         self.assertIsNone(plan["reference_pool"]["logical_limit"])
         self.assertTrue(plan["multi_reference"]["enabled"])
-        self.assertTrue(plan["multi_reference"]["all_sources_always_used_by_judge"])
+        self.assertTrue(plan["multi_reference"]["all_geometry_sources_always_used_by_judge"])
         self.assertIn("reference-pool fusion", plan["viewforge"]["strategy"])
 
     def test_reference_groups_cover_every_source(self):
