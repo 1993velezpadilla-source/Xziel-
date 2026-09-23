@@ -189,6 +189,23 @@ Automatic tier mapping is:
 
 An explicit `--portable-target` may override that mapping without changing the Hero Master.
 
+## Portable Pack contract
+
+For game/mobile/monster/ultra execution, Portable Pack should derive the following sibling packages directly from the accepted Hero Master:
+
+- `portable/HeroMaster/master.glb` — exact preserved champion
+- `portable/Flagship/` — tier manifest + runtime master/LOD0-LOD3/collision/turntable
+- `portable/High/` — tier manifest + runtime master/LOD0-LOD3/collision/turntable
+- `portable/Balanced/` — tier manifest + runtime master/LOD0-LOD3/collision/turntable
+- `portable/Compatibility/` — tier manifest + runtime master/LOD0-LOD3/collision/turntable
+- `portable/portable_pack_manifest.json`
+
+Every tier must derive independently from Hero Master. Never generate High from Flagship, Balanced from High, or Compatibility from Balanced, because cascading simplification compounds geometry/material loss.
+
+For unrigged assets, runtime LOD0 must pass through the tier material/texture derivation even when its geometry is already below the triangle ceiling. This prevents a low-poly Hero Master with an 8K authoring texture from being mislabeled as a Compatibility runtime asset.
+
+For skinned assets, preserving JOINTS/WEIGHTS outranks blindly emitting LOD1-LOD3. Until skin-weight-preserving simplification is proven, report the missing chain explicitly rather than silently stripping the rig.
+
 ## Output contract
 
 A completed Hayuya job should converge on:
@@ -205,6 +222,7 @@ A completed Hayuya job should converge on:
 - orientation-locked `source_vs_turntable.json`
 - paired `source_vs_turntable.png` audit sheet
 - GamePrep manifest
+- four-tier Portable Pack + per-tier manifests
 
 ## Manual 8-view art workflow
 
