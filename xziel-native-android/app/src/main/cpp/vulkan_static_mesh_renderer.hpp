@@ -196,6 +196,7 @@ private:
         bool deviceLocalHostVisible = false;
         bool pinned = false;
         bool physicallyResident = false;
+        StreamCellHeat heat = StreamCellHeat::Cold;
         std::uint8_t retireMask = 0U;
         bool reloadActive = false;
         std::size_t reloadScanCursor = 0U;
