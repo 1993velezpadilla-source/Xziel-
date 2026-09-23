@@ -1,13 +1,24 @@
-name: Generate La Llorona V2 GLB (Hunyuan3D MultiView)
+name: Generate La Llorona V2 GLB (Hunyuan3D + 8 View Bake)
 
 on:
   workflow_dispatch:
+    inputs:
+      texture_size:
+        description: V2 albedo resolution
+        required: true
+        default: "2048"
+        type: choice
+        options:
+          - "1024"
+          - "2048"
+          - "4096"
   push:
     branches:
       - art/llorona-v2-hayuya-rebuild
     paths:
       - assets/characters/llorona/v2/hayuya/**
       - tools/llorona_v2_hunyuan_mv.py
+      - tools/llorona_v2_bake_8view.py
       - .github/workflows/generate-llorona-v2-hunyuan.yml
 
 permissions:
@@ -20,16 +31,21 @@ concurrency:
 jobs:
   generate:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Hunyuan client and image QA deps
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install V2 generation and bake stack
         run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install "gradio_client>=1.10,<2" pillow
+          python -m pip install --upgrade pip
+          python -m pip install "gradio_client>=1.10,<2" pillow numpy scipy opencv-python-headless trimesh xatlas fast-simplification
 
       - name: Verify complete V2 Hayuya reference pack
         run: |
@@ -41,7 +57,7 @@ jobs:
           for f in             llorona_face_closeup.png             llorona_hair_detail.png             llorona_torso_detail.png             llorona_rosary_cross.png             llorona_dress_detail.png             llorona_hem_detail.png             llorona_hand_detail.png; do
             test -s "$root/details/$f"
           done
-          python3 - <<'PY'
+          python - <<'PY'
           from pathlib import Path
           from PIL import Image
           root=Path("assets/characters/llorona/v2/hayuya")
@@ -56,29 +72,61 @@ jobs:
           print("LLORONA_V2_REFERENCE_PACK_PASS")
           PY
 
-      - name: Generate new V2 Hunyuan model
+      - name: Generate new V2 Hunyuan geometry
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: python3 tools/llorona_v2_hunyuan_mv.py
+        run: python tools/llorona_v2_hunyuan_mv.py
 
-      - name: Validate V2 GLB
+      - name: Validate V2 geometry
         run: |
           set -euxo pipefail
           p="out/llorona-v2-hunyuan/llorona_v2_hunyuan_hq.glb"
           test -s "$p"
-          python3 - <<'PY'
+          python - <<'PY'
           from pathlib import Path
           p=Path("out/llorona-v2-hunyuan/llorona_v2_hunyuan_hq.glb")
           b=p.read_bytes()
           assert b[:4] == b"glTF", b[:16]
           assert len(b) > 1024, len(b)
-          print("LLORONA_V2_GLB_PASS", len(b))
+          print("LLORONA_V2_GEOMETRY_PASS", len(b))
           PY
 
-      - name: Upload V2 model package
+      - name: Bake all 8 angles plus 7 detail references
+        env:
+          LLORONA_V2_HUNYUAN_DIR: out/llorona-v2-hunyuan
+          LLORONA_V2_REF_DIR: assets/characters/llorona/v2/hayuya
+          LLORONA_V2_BAKE_OUT: out/llorona-v2-texture
+          LLORONA_TARGET_FACES: "240000"
+          LLORONA_TEXTURE_SIZE: ${{ github.event_name == 'workflow_dispatch' && inputs.texture_size || '1024' }}
+          LLORONA_HEIGHT_M: "1.72"
+        run: python tools/llorona_v2_bake_8view.py
+
+      - name: Validate final V2 textured GLB
+        run: |
+          set -euxo pipefail
+          test -s out/llorona-v2-texture/llorona_v2_hayuya_8view_textured.glb
+          test -s out/llorona-v2-texture/llorona_v2_albedo_8view.png
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          m=json.loads(Path("out/llorona-v2-texture/manifest.json").read_text())
+          assert len(m["viewsUsed"]) == 8, m["viewsUsed"]
+          assert len(m["detailsUsed"]) == 7, m["detailsUsed"]
+          assert m["hasUV"] is True
+          assert m["hasEmbeddedBaseColorTexture"] is True
+          assert m["atlasCoverage"] > 0.05, m["atlasCoverage"]
+          p=Path("out/llorona-v2-texture/llorona_v2_hayuya_8view_textured.glb")
+          assert p.read_bytes()[:4] == b"glTF"
+          print("XZIEL_LLORONA_V2_FINAL_PASS")
+          print(json.dumps(m, indent=2))
+          PY
+
+      - name: Upload V2 geometry plus 8-view textured package
         uses: actions/upload-artifact@v4
         with:
-          name: la-llorona-v2-hunyuan-hq
-          path: out/llorona-v2-hunyuan/
+          name: la-llorona-v2-hayuya-8view-${{ github.run_number }}
+          path: |
+            out/llorona-v2-hunyuan/
+            out/llorona-v2-texture/
           if-no-files-found: error
           retention-days: 14
