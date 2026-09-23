@@ -69,14 +69,13 @@ jobs:
       - name: Build Android multiplayer transport APK
         working-directory: xziel-native-android
         env:
-          XZIEL_MULTIPLAYER_WS_URL: "wss://xziel-match-server.xziel-875d0324.workers.dev"
-          XZIEL_MULTIPLAYER_TEST_KEY: ${{ secrets.XZIEL_TEST_KEY }}
+          XZIEL_MULTIPLAYER_WS_URL: "wss://example.invalid"
+          XZIEL_MULTIPLAYER_TEST_KEY: "ci-only"
           XZIEL_MULTIPLAYER_DEFAULT_ROOM: "BETA1"
           XZIEL_MULTIPLAYER_DISPLAY_NAME: "Player"
         shell: bash
         run: |
           set -euo pipefail
-          test -n "$XZIEL_MULTIPLAYER_TEST_KEY"
           gradle :app:assembleDebug             --no-daemon             --stacktrace
 
       - name: Verify online APK contract
@@ -87,31 +86,3 @@ jobs:
           test -s "$APK"
           unzip -l "$APK" | grep -q "lib/arm64-v8a/libxziel-native.so"
           echo "XZIEL_ONLINE_ANDROID_TRANSPORT_BUILD_OK"
-
-      - name: Package four-player beta APK
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p dist
-          cp             xziel-native-android/app/build/outputs/apk/debug/app-debug.apk             dist/xziel-online-4p-beta.apk
-          cat > dist/README.txt <<'EOF'
-          Xziel Online 4P Beta
-          Room: BETA1
-          Capacity: 4 players
-          Server: wss://xziel-match-server.xziel-875d0324.workers.dev
-
-          Install this same APK on up to four Android phones.
-          This build auto-connects to the beta room when launched.
-          EOF
-          sha256sum dist/xziel-online-4p-beta.apk | tee dist/SHA256SUMS.txt
-
-      - name: Upload four-player beta APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: xziel-online-4p-beta-apk
-          path: |
-            dist/xziel-online-4p-beta.apk
-            dist/README.txt
-            dist/SHA256SUMS.txt
-          if-no-files-found: error
-          retention-days: 14
