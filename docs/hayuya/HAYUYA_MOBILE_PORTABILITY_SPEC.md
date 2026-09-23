@@ -4,6 +4,11 @@ Research date: 2026-09-23
 
 ## Why this exists
 
+## Coverage statement
+
+This is a **living practical census**, not a dishonest claim that every hobby, abandoned, private or unreleased engine on Earth has public technical data. HAYUYA tracks every major/current 3D-mobile family that materially changes the asset contract, plus large-company proprietary engines when credible public evidence exists. Unknown private limits are recorded as unknown rather than reverse-engineered by guesswork.
+
+
 This file defines what **portable for mobile** means to HAYUYA.
 
 It is deliberately broader than "poly count." A mobile game can be limited by CPU/render-thread submission, GPU vertex work, pixel/fill work, material instructions, overdraw, render-target bandwidth, texture bandwidth, RAM, streaming, skinning/animation, dynamic lights and shadows, power draw, and thermal throttling. A model that looks cheap by triangle count can still be expensive if it has many material sections, huge uncompressed textures, alpha layers, expensive shaders, too many bones, or bad LOD/culling behavior.
@@ -408,7 +413,7 @@ For HAYUYA that means the portable artifact must carry enough neutral structure 
 
 # LARGE PRODUCTION GAME / PROPRIETARY ENGINE LESSONS
 
-## 15. Call of Duty Mobile — TiMi / Unity / Samsung
+## 20. Call of Duty Mobile — TiMi / Unity / Samsung
 
 Samsung's engineering write-up describes Call of Duty Mobile as using PBR materials and high-resolution textures with heavy CPU/GPU load.
 
@@ -428,7 +433,7 @@ Source:
 
 ---
 
-## 16. PUBG Mobile — Tencent / Unreal
+## 21. PUBG Mobile — Tencent / Unreal
 
 Epic's public development write-up for PUBG Mobile describes real problems from a huge map, dense objects, memory pressure, render-thread load and animation/vehicles.
 
@@ -451,7 +456,7 @@ Source:
 
 ---
 
-## 17. Honor of Kings — Tencent
+## 22. Honor of Kings — Tencent
 
 Tencent's GDC 2023 session states that the target hardware spans entry-level phones to the latest devices and discusses optimizations that helped ship at **1080p 60 FPS** while serving a very large audience.
 
@@ -462,7 +467,7 @@ Source:
 
 ---
 
-## 18. Tencent CROS / SmartGI / NanoMesh research
+## 23. Tencent CROS / SmartGI / NanoMesh research
 
 Tencent publicly identifies CROS as an in-house game engine and has described mobile/cross-platform work including SmartGI and NanoMesh/adaptive LOD research.
 
@@ -474,7 +479,7 @@ Sources:
 
 ---
 
-## 19. Arena Breakout — Tencent / MoreFun
+## 24. Arena Breakout — Tencent / MoreFun
 
 Tencent's GDC 2024 schedule includes public sessions titled:
 
@@ -490,7 +495,7 @@ Source:
 
 ---
 
-## 20. Lineage W — NCSoft / Unreal / Android ADPF
+## 25. Lineage W — NCSoft / Unreal / Android ADPF
 
 Google's case study is especially valuable because it demonstrates the difference between peak and sustained performance.
 
@@ -503,7 +508,7 @@ Source:
 
 ---
 
-## 21. Asphalt 9 — Gameloft
+## 26. Asphalt 9 — Gameloft
 
 Google's Game Mode case study describes different modes:
 
@@ -520,7 +525,7 @@ Source:
 
 # HAYUYA ZOMBIE-GAME RULES
 
-## 22. Zombie characters
+## 27. Zombie characters
 
 A zombie game creates a worst-case combination of:
 
@@ -563,7 +568,7 @@ The runtime ranges are stored in `mobile_portability.json`.
 
 ---
 
-## 23. Props
+## 28. Props
 
 For props, **draw/material cost is often more important than raw triangle count**.
 
@@ -579,7 +584,7 @@ Rules:
 
 ---
 
-## 24. Architecture / church / environment pieces
+## 29. Architecture / church / environment pieces
 
 Do not treat a whole map as one Hayuya object.
 
