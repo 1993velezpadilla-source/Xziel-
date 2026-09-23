@@ -55,6 +55,29 @@ class AppearanceJudgeTests(unittest.TestCase):
         self.assertGreater(int(image[:, :, 0].max()), 200)
         self.assertTrue(np.any(np.all(image != np.array([127, 127, 127]), axis=2)))
 
+    def test_uv_texture_overrides_vertex_color(self):
+        xy = np.array([[8, 8], [56, 8], [32, 56]], dtype=np.float32)
+        z = np.array([1, 1, 1], dtype=np.float32)
+        faces = np.array([[0, 1, 2]], dtype=np.int64)
+        colors = np.array([[255, 0, 0], [255, 0, 0], [255, 0, 0]], dtype=np.float32)
+        uvs = np.array([[0, 0], [1, 0], [0.5, 1]], dtype=np.float32)
+        texture = np.full((4, 4, 3), [10, 220, 30], dtype=np.uint8)
+        image = np.asarray(
+            rasterize_rgb(
+                xy,
+                z,
+                faces,
+                colors,
+                uvs=uvs,
+                face_texture_ids=np.array([0], dtype=np.int32),
+                textures=[texture],
+                size=64,
+            )
+        )
+        center = image[32, 32]
+        self.assertGreater(int(center[1]), 180)
+        self.assertLess(int(center[0]), 80)
+
     def test_zbuffer_prefers_larger_depth(self):
         xy = np.array([
             [8, 8], [56, 8], [32, 56],
