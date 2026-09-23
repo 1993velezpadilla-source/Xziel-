@@ -224,10 +224,45 @@ def generate_trellis(
     )
 
 
+def generate_spar3d(
+    image: Path,
+    out_dir: Path,
+    *,
+    texture_size: int,
+    faces: int,
+    model_root: Path = DEFAULT_MODEL_ROOT,
+) -> Candidate:
+    repo = require_backend("spar3d", model_root)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    cmd = [
+        backend_python("spar3d"),
+        "run.py",
+        str(image.resolve()),
+        "--output-dir",
+        str(out_dir.resolve()),
+        "--texture-resolution",
+        str(min(texture_size, 2048)),
+        "--low-vram-mode",
+    ]
+    # SPAR3D exposes remeshing only when optional remesh dependencies are installed,
+    # so keep the core path dependency-light and let Hayuya's later GamePrep stage
+    # handle target face budgets.
+    run_checked(cmd, cwd=repo)
+    model_path = out_dir / "0" / "mesh.glb"
+    if not model_path.is_file():
+        raise RuntimeError(f"SPAR3D did not create {model_path}")
+    return Candidate(
+        "spar3d",
+        model_path,
+        notes="Point-cloud-conditioned backside-aware single-image candidate",
+    )
+
+
 GENERATORS = {
     "triposg": generate_triposg,
     "triposr": generate_triposr,
     "instantmesh": generate_instantmesh,
     "trellis2": generate_trellis2,
     "trellis": generate_trellis,
+    "spar3d": generate_spar3d,
 }
