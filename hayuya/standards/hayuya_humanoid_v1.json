@@ -11,87 +11,105 @@
     "pelvis": [
       "hips",
       "pelvis",
-      "hip"
+      "hip",
+      "DEF-hips"
     ],
     "spine": [
       "spine",
       "spine_01",
-      "spine1"
+      "spine1",
+      "DEF-spine.001"
     ],
     "chest": [
       "chest",
       "spine_02",
       "spine2",
-      "upper_chest"
+      "upper_chest",
+      "DEF-spine.002",
+      "DEF-spine.003"
     ],
     "neck": [
       "neck",
-      "neck_01"
+      "neck_01",
+      "DEF-neck"
     ],
     "head": [
-      "head"
+      "head",
+      "DEF-head"
     ],
     "upperarm_l": [
       "upperarm_l",
       "leftarm",
       "arm_l",
-      "upper_arm_l"
+      "upper_arm_l",
+      "DEF-upper_arm.L"
     ],
     "lowerarm_l": [
       "lowerarm_l",
       "leftforearm",
       "forearm_l",
-      "lower_arm_l"
+      "lower_arm_l",
+      "DEF-forearm.L"
     ],
     "hand_l": [
       "hand_l",
-      "lefthand"
+      "lefthand",
+      "DEF-hand.L"
     ],
     "upperarm_r": [
       "upperarm_r",
       "rightarm",
       "arm_r",
-      "upper_arm_r"
+      "upper_arm_r",
+      "DEF-upper_arm.R"
     ],
     "lowerarm_r": [
       "lowerarm_r",
       "rightforearm",
       "forearm_r",
-      "lower_arm_r"
+      "lower_arm_r",
+      "DEF-forearm.R"
     ],
     "hand_r": [
       "hand_r",
-      "righthand"
+      "righthand",
+      "DEF-hand.R"
     ],
     "thigh_l": [
       "thigh_l",
       "leftupleg",
       "upperleg_l",
-      "leg_l"
+      "leg_l",
+      "DEF-thigh.L"
     ],
     "calf_l": [
       "calf_l",
       "leftleg",
-      "lowerleg_l"
+      "lowerleg_l",
+      "DEF-shin.L"
     ],
     "foot_l": [
       "foot_l",
-      "leftfoot"
+      "leftfoot",
+      "DEF-foot.L"
     ],
     "thigh_r": [
       "thigh_r",
       "rightupleg",
       "upperleg_r",
-      "leg_r"
+      "leg_r",
+      "DEF-thigh.R"
     ],
     "calf_r": [
       "calf_r",
       "rightleg",
-      "lowerleg_r"
+      "lowerleg_r",
+      "DEF-shin.R"
     ],
     "foot_r": [
       "foot_r",
-      "rightfoot"
+      "rightfoot",
+      "DEF-foot.R"
     ]
   },
   "facial_optional": {
@@ -154,5 +172,9 @@
     "require_skin": true,
     "require_all_required_groups": false,
     "ready_required_group_fraction": 0.8
+  },
+  "compatibility": {
+    "uam2": "canonical",
+    "uam1": "recognized legacy DEF skeleton; animation retarget mapping required before mixed-library one-tap export"
   }
 }
