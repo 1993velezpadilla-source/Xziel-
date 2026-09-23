@@ -24,6 +24,7 @@ add_library(xziel_engine STATIC
     src/map_runtime.cpp
     src/map_format.cpp
     src/gameplay_events.cpp
+    src/net_protocol.cpp
     src/quest_runtime.cpp
     src/environment.cpp
     src/particles.cpp
@@ -160,6 +161,11 @@ if(XZIEL_ENGINE_BUILD_TESTS)
     target_link_libraries(xziel_gameplay_events_smoke PRIVATE xziel_engine)
     target_compile_features(xziel_gameplay_events_smoke PRIVATE cxx_std_20)
     add_test(NAME xziel_gameplay_events_smoke COMMAND xziel_gameplay_events_smoke)
+
+    add_executable(xziel_net_protocol_smoke tests/net_protocol_smoke.cpp)
+    target_link_libraries(xziel_net_protocol_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_net_protocol_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_net_protocol_smoke COMMAND xziel_net_protocol_smoke)
 
     add_executable(xziel_quest_runtime_smoke tests/quest_runtime_smoke.cpp)
     target_link_libraries(xziel_quest_runtime_smoke PRIVATE xziel_engine)
