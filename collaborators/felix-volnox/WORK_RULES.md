@@ -1,24 +1,34 @@
-# Workspace Isolation Rules
+# Workspace Isolation Rules — Felix / Volnox
 
 ## Allowed
-- Read/audit repository content.
-- Write reports, notes, experiments, patches, and prototypes inside this sandbox.
-- Create commits on `collab/felix-volnox-sandbox`.
-- Open Pull Requests for owner review.
+
+- Read and audit repository content.
+- Use owner project documentation, research, sound-effect references, map research, tools, and model pipelines as reference.
+- Create new collaborator-owned maps, models, assets, audio work, experiments, patches, research, and notes under `collaborators/felix-volnox/`.
+- Commit Felix / Volnox work to `collab/felix-volnox-sandbox`.
+- Prepare Pull Requests/diffs for owner review.
 
 ## Not allowed without explicit owner approval
+
 - Direct changes to `main`.
-- Direct changes to existing owner branches.
+- Direct changes to any existing owner branch.
+- Editing owner project files outside `collaborators/felix-volnox/`.
 - Merging Pull Requests.
-- Rewriting branch history.
+- Rewriting branch history or force-pushing owner branches.
 - Deleting branches, tags, releases, assets, or project files.
 - Moving sandbox work into production paths.
-- Changing repository security, Actions secrets, access controls, or release configuration.
+- Changing repository security, access controls, Actions secrets, or release configuration.
 
 ## Owner gate
-The repository owner is the final approval gate. A Pull Request is a proposal, not authorization to merge.
+
+The repository owner is the final approval gate. A Pull Request is only a proposal. No collaborator or assisting AI should interpret an open PR, successful build, or completed map as authorization to merge.
+
+## Asset discipline
+
+Every new external asset should record source/provenance and license or usage status when known. Do not commit credentials, tokens, secrets, or content that the project is not permitted to redistribute.
 
 ## Audit discipline
+
 Every audit should include:
 - scope
 - branch/commit reviewed
