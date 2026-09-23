@@ -1,3 +1,9 @@
+## Agent command: OPEN HAYUYA
+
+`open hayuya` / `abre hayuya` is an action command for Christian and Felix/Volnox.
+
+Agents must resolve `hayuya/workspace.json`, open the preferred GUI workspace, and return the direct GUI link. Do not require LAN IPs, terminal commands, or GitHub Actions knowledge for the normal open flow. The GitHub Issue Hub is fallback only when the GUI deployment is unavailable.
+
 # HAYUYA 3D MASTER PROMPT
 
 **Hayuya 3D** now means the team's complete **image-to-3D orchestration engine**. It is not just an alias for Hunyuan3D.
