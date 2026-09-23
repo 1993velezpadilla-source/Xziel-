@@ -1,0 +1,46 @@
+name: Deploy Xziel Match Server
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - engine/online-4p-foundation-v1
+    paths:
+      - "services/xziel-match-server/**"
+      - ".github/workflows/xziel-match-server-deploy.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: xziel-beta
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install match server dependencies
+        working-directory: services/xziel-match-server
+        run: npm install --ignore-scripts
+
+      - name: Typecheck match server
+        working-directory: services/xziel-match-server
+        run: npm run typecheck
+
+      - name: Deploy Cloudflare Worker
+        working-directory: services/xziel-match-server
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          npx wrangler deploy
+          echo "XZIEL_MATCH_SERVER_DEPLOY_OK"
