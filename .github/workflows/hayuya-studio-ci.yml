@@ -46,5 +46,6 @@ jobs:
         run: |
           test -s tools/hayuya3d/studio/index.html
           test -s tools/hayuya3d/studio/styles.css
-          grep -q "model-viewer@4.3.1" tools/hayuya3d/studio/index.html
+          grep -q "/vendor/model-viewer.min.js" tools/hayuya3d/studio/index.html
+          grep -q 'MODEL_VIEWER_VERSION = "4.3.1"' tools/hayuya3d/studio_server.py
           grep -q "@media (max-width: 720px)" tools/hayuya3d/studio/styles.css
