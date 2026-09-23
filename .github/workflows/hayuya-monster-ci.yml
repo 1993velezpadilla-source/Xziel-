@@ -36,6 +36,14 @@ jobs:
       - name: Run Hayuya unit tests
         run: python -m unittest discover -s tools/hayuya3d/tests -v
 
+      - name: Measure source-fidelity score on known-good Zombie Iglesia
+        run: |
+          python tools/hayuya3d/visual_judge.py \
+            hayuya/models/zombie-iglesia-001/model.glb \
+            --source hayuya/models/zombie-iglesia/prepared_views/front.png \
+            --size 128 \
+            --azimuth-step 45 | tee /tmp/hayuya-known-good-visual.json
+
       - name: Dry-run one-photo planner
         run: |
           python - <<'PY'
