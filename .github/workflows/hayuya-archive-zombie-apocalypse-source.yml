@@ -1,0 +1,106 @@
+name: HAYUYA Archive Zombie Apocalypse Source
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - art/hayuya-monster-v1
+    paths:
+      - .github/workflows/hayuya-archive-zombie-apocalypse-source.yml
+
+permissions:
+  contents: write
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: art/hayuya-monster-v1
+          fetch-depth: 1
+
+      - name: Download public CC0 Google Drive folder
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet "gdown>=5,<6"
+          rm -rf /tmp/hayuya-zombie-apocalypse
+          mkdir -p /tmp/hayuya-zombie-apocalypse
+          gdown --folder --remaining-ok             "https://drive.google.com/drive/folders/1mWP6sCHun7OUMHQeDNZLrXTteXlzWg_t?usp=sharing"             -O /tmp/hayuya-zombie-apocalypse
+
+      - name: Validate and package source
+        shell: bash
+        run: |
+          set -euo pipefail
+          files="$(find /tmp/hayuya-zombie-apocalypse -type f | wc -l)"
+          bytes="$(du -sb /tmp/hayuya-zombie-apocalypse | cut -f1)"
+          echo "HAYUYA_ZAP_FILES=$files"
+          echo "HAYUYA_ZAP_BYTES=$bytes"
+          test "$files" -gt 5
+          test "$bytes" -gt 1000000
+          test "$bytes" -lt 1000000000
+
+          dst="hayuya/source_archives/quaternius_zombie_apocalypse"
+          rm -rf "$dst"
+          mkdir -p "$dst/parts"
+
+          (
+            cd /tmp/hayuya-zombie-apocalypse
+            find . -type f -printf '%P\n' | sort > "$GITHUB_WORKSPACE/$dst/INVENTORY.txt"
+          )
+
+          cat > "$dst/SOURCE.txt" <<'EOF'
+          Title: Zombie Apocalypse Kit
+          Creator: Quaternius
+          License on original pack page: CC0
+          Original pack page: https://quaternius.com/packs/zombieapocalypsekit.html
+          Public creator Patreon post: https://www.patreon.com/posts/zombie-kit-60-100385247
+          Public Google Drive folder: https://drive.google.com/drive/folders/1mWP6sCHun7OUMHQeDNZLrXTteXlzWg_t
+          HAYUYA storage: lossless tar.gz split into GitHub-safe chunks. Reassemble chunks in lexical order before extraction.
+          EOF
+
+          tar -C /tmp/hayuya-zombie-apocalypse -czf /tmp/quaternius_zombie_apocalypse.tar.gz .
+          sha256sum /tmp/quaternius_zombie_apocalypse.tar.gz > "$dst/SHA256.txt"
+          split -b 90M -d -a 3             /tmp/quaternius_zombie_apocalypse.tar.gz             "$dst/parts/quaternius_zombie_apocalypse.tar.gz.part-"
+
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path("hayuya/source_archives/quaternius_zombie_apocalypse")
+          parts=[]
+          for p in sorted((root/"parts").glob("*")):
+              parts.append({"path":str(p).replace("\\","/"),"bytes":p.stat().st_size})
+          inventory=(root/"INVENTORY.txt").read_text().splitlines()
+          manifest={
+              "schema":1,
+              "id":"quaternius_zombie_apocalypse",
+              "license":"CC0",
+              "source_page":"https://quaternius.com/packs/zombieapocalypsekit.html",
+              "drive_folder":"https://drive.google.com/drive/folders/1mWP6sCHun7OUMHQeDNZLrXTteXlzWg_t",
+              "source_file_count":len(inventory),
+              "parts":parts,
+          }
+          (root/"manifest.json").write_text(json.dumps(manifest,indent=2)+"\n")
+          print(json.dumps(manifest,indent=2))
+          PY
+
+      - name: Commit archived source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add hayuya/source_archives/quaternius_zombie_apocalypse
+          if git diff --cached --quiet; then
+            echo "Zombie Apocalypse source already archived."
+            exit 0
+          fi
+          git commit -m "hayuya: archive Quaternius Zombie Apocalypse CC0 source"
+          for attempt in 1 2 3 4 5; do
+            git pull --rebase origin art/hayuya-monster-v1
+            if git push origin HEAD:art/hayuya-monster-v1; then exit 0; fi
+            sleep $((attempt*2))
+          done
+          exit 1
