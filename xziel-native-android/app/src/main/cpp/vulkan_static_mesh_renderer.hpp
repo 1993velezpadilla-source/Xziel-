@@ -96,7 +96,7 @@ public:
         VkExtent2D extent,
         std::uint32_t frameSlot,
         const StaticMeshCameraState& camera,
-        const StaticMeshEnvironmentState& environment) const noexcept;
+        const StaticMeshEnvironmentState& environment) noexcept;
 
     void recordViewmodel(
         VkCommandBuffer command,
@@ -126,6 +126,7 @@ private:
             sourceMipBytes{};
         std::uint64_t residentPayloadBytes = 0U;
         std::uint64_t allocationBytes = 0U;
+        bool srgb = false;
     };
 
     struct GpuMaterial {
@@ -158,6 +159,28 @@ private:
         VkBuffer stagingBuffer = VK_NULL_HANDLE;
         VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
         VkDeviceSize stagingBytes = 0U;
+    };
+
+    enum class RuntimeTextureStage : std::uint8_t {
+        Idle,
+        Reading,
+        Uploading,
+        Migrating,
+    };
+
+    struct RuntimeTextureTransition {
+        RuntimeTextureStage stage =
+            RuntimeTextureStage::Idle;
+        std::uint32_t textureIndex =
+            UINT32_MAX;
+        std::uint32_t targetBaseMip = 0U;
+        std::string assetPath{};
+        GpuTexture replacement{};
+        PendingUpload upload{};
+        VkFence uploadFence =
+            VK_NULL_HANDLE;
+        std::array<bool, kDescriptorFrames>
+            descriptorApplied{};
     };
 
     struct StreamCellBounds {
@@ -312,6 +335,25 @@ private:
         std::uint64_t resourceId,
         std::size_t count) const noexcept;
 
+    void serviceRuntimeTextureTransition(
+        std::uint32_t frameSlot) noexcept;
+
+    void scheduleRuntimeMipDemotion() noexcept;
+
+    [[nodiscard]] bool submitRuntimeTextureUpload(
+        RuntimeTextureTransition& transition) noexcept;
+
+    [[nodiscard]] bool updateTextureDescriptorFrame(
+        std::uint32_t textureIndex,
+        const GpuTexture& texture,
+        std::uint32_t frameSlot) noexcept;
+
+    void releaseRuntimeUploadResources(
+        RuntimeTextureTransition& transition) noexcept;
+
+    void resetRuntimeTextureTransition(
+        bool waitForUpload) noexcept;
+
     VkPhysicalDevice physicalDevice_ = VK_NULL_HANDLE;
     VkDevice device_ = VK_NULL_HANDLE;
     VkQueue graphicsQueue_ = VK_NULL_HANDLE;
@@ -346,6 +388,9 @@ private:
     mutable std::uint32_t streamCellStableFrames_ = 0U;
     mutable bool streamCullingActive_ = false;
     mutable bool streamCullLogged_ = false;
+
+    RuntimeTextureTransition
+        runtimeTextureTransition_{};
 
     std::vector<GpuTexture> textures_{};
     std::vector<GpuMaterial> materials_{};
