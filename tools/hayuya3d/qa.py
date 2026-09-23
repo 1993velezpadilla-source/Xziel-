@@ -187,6 +187,7 @@ def rank_candidates(
     mode: str,
     target_faces: int,
     source_images: list[Path] | None = None,
+    detail_images: list[Path] | None = None,
     visual_weight: float = 0.55,
     appearance_mode: str = "off",
     appearance_model_root: Path | None = None,
@@ -246,6 +247,7 @@ def rank_candidates(
                                     source_images,
                                     visual.views,
                                     model_root=model_root,
+                                    detail_images=detail_images or [],
                                     render_dir=render_dir,
                                 )
                                 item.appearance_score = appearance.score
@@ -312,7 +314,8 @@ def main() -> int:
     parser.add_argument("mesh", type=Path, nargs="+")
     parser.add_argument("--mode", choices=["auto", "prop", "character", "architecture"], default="prop")
     parser.add_argument("--target-faces", type=int, default=100000)
-    parser.add_argument("--source", type=Path, action="append", help="real source image; repeatable")
+    parser.add_argument("--source", type=Path, action="append", help="real geometry source image; repeatable")
+    parser.add_argument("--detail", type=Path, action="append", help="detail/close-up reference image; repeatable")
     parser.add_argument("--visual-weight", type=float, default=0.55)
     parser.add_argument("--appearance-mode", choices=["off", "auto", "required"], default="off")
     parser.add_argument("--appearance-model-root", type=Path)
@@ -326,6 +329,7 @@ def main() -> int:
         mode="prop" if args.mode == "auto" else args.mode,
         target_faces=args.target_faces,
         source_images=args.source,
+        detail_images=args.detail,
         visual_weight=args.visual_weight,
         appearance_mode=args.appearance_mode,
         appearance_model_root=args.appearance_model_root,
