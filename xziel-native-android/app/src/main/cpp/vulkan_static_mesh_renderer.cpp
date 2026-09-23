@@ -1502,6 +1502,39 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureTransition(
 
         releaseRuntimeUploadResources(
             transition);
+
+        if (transition.textureIndex >=
+            textures_.size()) {
+            resetRuntimeTextureTransition(
+                false);
+            return;
+        }
+
+        const auto& current =
+            textures_[
+                transition.textureIndex];
+
+        const auto* latestDecision =
+            streamDecision(
+                current.streamResourceId,
+                streamDecisionCount_);
+
+        if (latestDecision == nullptr ||
+            latestDecision->heat !=
+                StreamCellHeat::Cold ||
+            latestDecision->desiredMipBias <=
+                current.residentBaseMip) {
+            __android_log_print(
+                ANDROID_LOG_INFO,
+                kTag,
+                "XZIEL_RUNTIME_MIP_DEMOTION_CANCELLED path=%s reason=became_warm",
+                transition.assetPath.c_str());
+
+            resetRuntimeTextureTransition(
+                false);
+            return;
+        }
+
         transition.stage =
             RuntimeTextureStage::Migrating;
 
