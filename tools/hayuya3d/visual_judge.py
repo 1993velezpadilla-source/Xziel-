@@ -27,12 +27,16 @@ class VisualScore:
 def _deps():
     import numpy as np
     from PIL import Image, ImageDraw
+    return np, Image, ImageDraw
+
+
+def _trimesh():
     import trimesh
-    return np, Image, ImageDraw, trimesh
+    return trimesh
 
 
 def _binary_bbox(mask):
-    np, *_ = _deps()
+    np, _, _ = _deps()
     ys, xs = np.nonzero(mask)
     if len(xs) == 0:
         return None
@@ -40,7 +44,7 @@ def _binary_bbox(mask):
 
 
 def _normalize_mask(mask, size: int = 192, margin: int = 10):
-    np, Image, *_ = _deps()
+    np, Image, _ = _deps()
     bbox = _binary_bbox(mask)
     if bbox is None:
         return np.zeros((size, size), dtype=bool)
@@ -59,7 +63,7 @@ def _normalize_mask(mask, size: int = 192, margin: int = 10):
 
 
 def extract_source_mask(path: Path, size: int = 192):
-    np, Image, *_ = _deps()
+    np, Image, _ = _deps()
     im = Image.open(path).convert("RGBA")
     arr = np.asarray(im)
     alpha = arr[:, :, 3]
@@ -96,7 +100,7 @@ def extract_source_mask(path: Path, size: int = 192):
 
 
 def _rotation_matrix(azimuth_deg: float, elevation_deg: float, up_axis: str):
-    np, *_ = _deps()
+    np, _, _ = _deps()
     a = math.radians(azimuth_deg)
     e = math.radians(elevation_deg)
 
@@ -126,7 +130,8 @@ def _rotation_matrix(azimuth_deg: float, elevation_deg: float, up_axis: str):
 
 
 def _load_mesh_arrays(path: Path, max_faces: int = 9000):
-    np, _, _, trimesh = _deps()
+    np, _, _ = _deps()
+    trimesh = _trimesh()
     loaded = trimesh.load(path, force="scene", process=False)
     geoms = list(loaded.geometry.values()) if hasattr(loaded, "geometry") else [loaded]
     meshes = [g for g in geoms if hasattr(g, "faces") and len(g.faces)]
@@ -150,7 +155,7 @@ def _load_mesh_arrays(path: Path, max_faces: int = 9000):
 
 
 def render_silhouette(vertices, faces, azimuth: float, elevation: float, up_axis: str, size: int = 192):
-    np, Image, ImageDraw, _ = _deps()
+    np, Image, ImageDraw = _deps()
     rot = _rotation_matrix(azimuth, elevation, up_axis)
     v = vertices @ rot.T
 
@@ -176,7 +181,7 @@ def render_silhouette(vertices, faces, azimuth: float, elevation: float, up_axis
 
 
 def _erode(mask):
-    np, *_ = _deps()
+    np, _, _ = _deps()
     p = np.pad(mask, 1, constant_values=False)
     out = np.ones_like(mask, dtype=bool)
     for dy in range(3):
@@ -190,14 +195,14 @@ def _boundary(mask):
 
 
 def _iou(a, b) -> float:
-    np, *_ = _deps()
+    np, _, _ = _deps()
     inter = int(np.logical_and(a, b).sum())
     union = int(np.logical_or(a, b).sum())
     return float(inter / union) if union else 0.0
 
 
 def _dilate(mask, radius: int = 2):
-    np, *_ = _deps()
+    np, _, _ = _deps()
     p = np.pad(mask, radius, constant_values=False)
     out = np.zeros_like(mask, dtype=bool)
     for dy in range(radius * 2 + 1):
@@ -207,7 +212,7 @@ def _dilate(mask, radius: int = 2):
 
 
 def _boundary_f1(a, b) -> float:
-    np, *_ = _deps()
+    np, _, _ = _deps()
     ea, eb = _boundary(a), _boundary(b)
     na, nb = int(ea.sum()), int(eb.sum())
     if na == 0 or nb == 0:
