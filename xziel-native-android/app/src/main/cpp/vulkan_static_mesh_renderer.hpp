@@ -196,8 +196,24 @@ private:
 
     [[nodiscard]] bool createTexture(
         AAssetManager* assetManager,
+        const std::string& exportedName,
+        bool srgb,
+        GpuTexture& out) noexcept;
+
+    [[nodiscard]] bool createPngTexture(
+        AAssetManager* assetManager,
         const std::string& assetPath,
         bool srgb,
+        GpuTexture& out) noexcept;
+
+    [[nodiscard]] bool createKtx2Texture(
+        AAssetManager* assetManager,
+        const std::string& assetPath,
+        bool srgb,
+        GpuTexture& out) noexcept;
+
+    [[nodiscard]] bool createTextureSampler(
+        std::uint32_t mipLevels,
         GpuTexture& out) noexcept;
 
     [[nodiscard]] bool createMaterialDescriptor(
@@ -250,6 +266,7 @@ private:
     std::uint32_t totalVertices_ = 0U;
     std::uint32_t totalIndices_ = 0U;
     bool samplerAnisotropyEnabled_ = false;
+    bool astcLdrSupported_ = false;
     float maxSamplerAnisotropy_ = 1.0f;
     mutable StaticMeshFrameStats frameStats_{};
     bool ready_ = false;
