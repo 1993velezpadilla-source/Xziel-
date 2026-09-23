@@ -7,6 +7,9 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+import numpy as np
+import trimesh
+
 ROOT = Path(__file__).resolve().parents[3]
 HAYUYA_DIR = ROOT / "tools" / "hayuya3d"
 sys.path.insert(0, str(HAYUYA_DIR))
@@ -16,6 +19,7 @@ from retopo import (
     instant_meshes_binary,
     parse_obj_topology,
     retopo_target_native_faces,
+    _geometry_only_obj,
 )
 
 
@@ -73,6 +77,23 @@ class RetopoTests(unittest.TestCase):
             self.assertEqual(stats["triangle_count"], 1)
             self.assertEqual(stats["ngon_count"], 1)
             self.assertAlmostEqual(stats["quad_fraction"], 1 / 3)
+
+    def test_geometry_export_applies_scene_node_transform(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "scene.glb"
+            output = root / "retopo_input.obj"
+
+            box = trimesh.creation.box(extents=[1.0, 1.0, 1.0])
+            scene = trimesh.Scene()
+            transform = np.eye(4)
+            transform[:3, 3] = [3.0, -2.0, 5.0]
+            scene.add_geometry(box, transform=transform)
+            source.write_bytes(trimesh.exchange.gltf.export_glb(scene))
+
+            _geometry_only_obj(source, output)
+            loaded = trimesh.load(output, force="mesh", process=False)
+            self.assertTrue(np.allclose(loaded.centroid, [3.0, -2.0, 5.0], atol=1e-4))
 
     def test_binary_environment_override(self):
         with tempfile.TemporaryDirectory() as tmp:
