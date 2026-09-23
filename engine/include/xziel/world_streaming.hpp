@@ -6,8 +6,12 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <string_view>
 
 namespace xziel {
+
+[[nodiscard]] std::uint64_t streamResourceId(
+    std::string_view assetKey) noexcept;
 
 inline constexpr std::size_t kMaxStreamCells = 64U;
 inline constexpr std::size_t kMaxStreamPortals = 128U;
