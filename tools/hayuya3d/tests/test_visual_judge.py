@@ -9,7 +9,7 @@ HAYUYA_DIR = ROOT / "tools" / "hayuya3d"
 sys.path.insert(0, str(HAYUYA_DIR))
 
 import numpy as np
-from visual_judge import aggregate_source_scores, score_masks
+from visual_judge import aggregate_source_scores, infer_view_hint, score_masks
 
 
 class VisualJudgeTests(unittest.TestCase):
@@ -39,6 +39,20 @@ class VisualJudgeTests(unittest.TestCase):
         one_bad = aggregate_source_scores([99.0, 30.0])
         self.assertGreater(strong_both, one_bad)
         self.assertLess(one_bad, 70.0)
+
+    def test_many_reference_aggregation_resists_one_bad_outlier(self):
+        mostly_good = [91, 90, 92, 89, 93, 90, 91, 88, 5]
+        result = aggregate_source_scores(mostly_good)
+        self.assertGreater(result, 70.0)
+        self.assertLess(result, sum(mostly_good) / len(mostly_good))
+
+    def test_canonical_filename_hints(self):
+        self.assertEqual(infer_view_hint(Path("zombie_front.png")), 0.0)
+        self.assertEqual(infer_view_hint(Path("zombie_front_45_right.png")), 45.0)
+        self.assertEqual(infer_view_hint(Path("zombie_right_side.png")), 90.0)
+        self.assertEqual(infer_view_hint(Path("zombie_back.png")), 180.0)
+        self.assertEqual(infer_view_hint(Path("zombie_left_side.png")), 270.0)
+        self.assertIsNone(infer_view_hint(Path("random_reference_17.png")))
 
     def test_partial_overlap_is_not_rewarded_as_identity(self):
         a = np.zeros((64, 64), dtype=bool)
