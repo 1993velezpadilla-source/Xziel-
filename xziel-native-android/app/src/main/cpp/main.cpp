@@ -184,6 +184,7 @@ struct NativeAppState {
     xziel::ReflectionPlanner reflectionPlanner{};
     std::uint64_t reflectionPlannerFrame = 0;
     xziel::RuntimePolicyPlanner runtimePolicyPlanner{};
+    xziel::RuntimePolicy runtimePolicy{};
 
     xziel::CameraRig cameraRig{};
     xziel::HapticsPlanner haptics{};
@@ -2136,6 +2137,11 @@ xziel::android::VulkanEnvironmentState makeEnvironmentState(
     environment.memoryPressure =
         state.memoryPressure;
 
+    environment.textureBudgetScale =
+        state.runtimePolicy.textureBudgetScale;
+    environment.meshBudgetScale =
+        state.runtimePolicy.meshBudgetScale;
+
     environment.maxPlanarReflectionPasses =
         state.renderWorkload.
             maxPlanarReflectionPasses;
@@ -3098,7 +3104,7 @@ extern "C" void android_main(
                 bottleneck;
         }
 
-        const auto runtimePolicy =
+        state.runtimePolicy =
             state.runtimePolicyPlanner.plan(
                 {
                     .gameMode =
@@ -3122,10 +3128,10 @@ extern "C" void android_main(
             state.runtimePolicyPlanner.
                 applyCeiling(
                     state.renderWorkload,
-                    runtimePolicy);
+                    state.runtimePolicy);
 
         state.renderer.setPreferredFrameRate(
-            runtimePolicy.preferredFps);
+            state.runtimePolicy.preferredFps);
 
         state.environment.setQuality(
             state.renderWorkload.
