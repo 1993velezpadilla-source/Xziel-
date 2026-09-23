@@ -711,8 +711,12 @@ jobs:
           if [[ "${GITHUB_REF_NAME}" == "engine/mobile-streaming-live-mips-v1" ]]; then
             grep -Eq "XZIEL_RUNTIME_TEXTURE_MIP_REQUEST texture=[1-9][0-9]* old_base_mip=0 new_base_mip=1 promotion=0" dist/sanctum-hq-logcat.txt
             grep -Eq "XZIEL_RUNTIME_TEXTURE_MIP_SWAP_COMPLETE texture=[1-9][0-9]* old_base_mip=0 new_base_mip=1 .*mask=3" dist/sanctum-hq-logcat.txt
+            grep -Eq "XZIEL_RUNTIME_TEXTURE_MIP_PROMOTION_PROBE_ARMED texture=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
+            grep -Eq "XZIEL_RUNTIME_TEXTURE_MIP_REQUEST texture=[1-9][0-9]* old_base_mip=1 new_base_mip=0 promotion=1" dist/sanctum-hq-logcat.txt
+            grep -Eq "XZIEL_RUNTIME_TEXTURE_MIP_SWAP_COMPLETE texture=[1-9][0-9]* old_base_mip=1 new_base_mip=0 .*mask=3" dist/sanctum-hq-logcat.txt
+            grep -Eq "XZIEL_RUNTIME_TEXTURE_MIP_PROMOTION_PROBE_COMPLETE texture=[1-9][0-9]* mask=3" dist/sanctum-hq-logcat.txt
             LIVE_MIP_SWAPS="$(grep -c "XZIEL_RUNTIME_TEXTURE_MIP_SWAP_COMPLETE" dist/sanctum-hq-logcat.txt || true)"
-            test "${LIVE_MIP_SWAPS}" -gt 0
+            test "${LIVE_MIP_SWAPS}" -ge 2
             echo "XZIEL_RUNTIME_LIVE_MIPS_ACTIVE swaps=${LIVE_MIP_SWAPS}"
           fi
 
