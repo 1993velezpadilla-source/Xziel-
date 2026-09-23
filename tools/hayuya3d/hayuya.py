@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 import traceback
@@ -83,13 +84,14 @@ def validate_inputs(inputs: list[Path]) -> list[Path]:
         raise ValueError("Hayuya Monster requires at least one source photo")
 
     out: list[Path] = []
-    seen: set[Path] = set()
+    seen_paths: set[Path] = set()
+    seen_content: set[str] = set()
     for p in inputs:
         p = p.resolve()
-        if p in seen:
+        if p in seen_paths:
             # Do not let accidental duplicate CLI args overweight one image in the Judge.
             continue
-        seen.add(p)
+        seen_paths.add(p)
 
         if not p.is_file():
             raise FileNotFoundError(p)
@@ -97,6 +99,12 @@ def validate_inputs(inputs: list[Path]) -> list[Path]:
             raise ValueError(f"unsupported image format: {p}")
         if p.stat().st_size < 512:
             raise ValueError(f"image is unexpectedly small: {p}")
+
+        digest = hashlib.sha256(p.read_bytes()).hexdigest()
+        if digest in seen_content:
+            # Copied/renamed duplicate files should not count as extra evidence.
+            continue
+        seen_content.add(digest)
         out.append(p)
 
     if not out:
@@ -188,6 +196,7 @@ def make_job_plan(
             "logical_limit": None,
             "all_real_sources_are_authoritative": True,
             "duplicate_paths_are_deduplicated": True,
+            "duplicate_file_content_is_deduplicated": True,
             "ordered_primary_source": str(inputs[0]),
         },
         "mode": mode,
