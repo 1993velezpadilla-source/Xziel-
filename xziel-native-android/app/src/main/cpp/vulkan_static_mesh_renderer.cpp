@@ -2207,6 +2207,96 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureResidency(
                 return;
             }
 
+            const std::uint32_t desiredBaseMip =
+                texture.sourceMipLevels > 0U
+                ? std::min<std::uint32_t>(
+                      decision->desiredMipBias,
+                      texture.sourceMipLevels - 1U)
+                : texture.residentBaseMip;
+
+            const bool wantsMipTransition =
+                texture.sourceMipLevels > 0U &&
+                texture.residentBaseMip !=
+                    desiredBaseMip &&
+                texture.assetPath.size() >= 5U &&
+                texture.assetPath.substr(
+                    texture.assetPath.size() - 5U) ==
+                    ".ktx2";
+
+            const bool promoting =
+                wantsMipTransition &&
+                desiredBaseMip <
+                    texture.residentBaseMip;
+
+            const std::uint32_t transitionStableFrames =
+                promoting
+                ? 8U
+                : minimumStableFrames;
+
+            if (wantsMipTransition &&
+                streamCellStableFrames_ >=
+                    transitionStableFrames) {
+                if (!texture.runtimeLoadQueued) {
+                    if (assetStreamer_.enqueue(
+                            texture.assetPath)) {
+                        texture.runtimeLoadQueued =
+                            true;
+
+                        __android_log_print(
+                            ANDROID_LOG_INFO,
+                            kTag,
+                            "XZIEL_RUNTIME_TEXTURE_MIP_REQUEST texture=%u old_base_mip=%u new_base_mip=%u promotion=%d path=%s",
+                            static_cast<unsigned int>(
+                                textureIndex),
+                            static_cast<unsigned int>(
+                                texture.residentBaseMip),
+                            static_cast<unsigned int>(
+                                desiredBaseMip),
+                            promoting ? 1 : 0,
+                            texture.assetPath.c_str());
+                    }
+                    return;
+                }
+
+                bool finished = false;
+                std::vector<std::byte> bytes;
+
+                const bool success =
+                    assetStreamer_.tryTake(
+                        texture.assetPath,
+                        bytes,
+                        finished);
+
+                if (!finished) {
+                    return;
+                }
+
+                texture.runtimeLoadQueued =
+                    false;
+
+                if (!success) {
+                    return;
+                }
+
+                if (beginRuntimeKtx2Upload(
+                        textureIndex,
+                        desiredBaseMip,
+                        std::move(bytes))) {
+                    __android_log_print(
+                        ANDROID_LOG_INFO,
+                        kTag,
+                        "XZIEL_RUNTIME_TEXTURE_MIP_UPLOAD_SUBMITTED texture=%u old_base_mip=%u new_base_mip=%u",
+                        static_cast<unsigned int>(
+                            textureIndex),
+                        static_cast<unsigned int>(
+                            texture.residentBaseMip),
+                        static_cast<unsigned int>(
+                            desiredBaseMip));
+                }
+
+                return;
+            }
+
             continue;
         }
 
@@ -2215,6 +2305,22 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureResidency(
             streamCullingActive_ &&
             streamCellStableFrames_ >=
                 minimumStableFrames) {
+            if (texture.runtimeLoadQueued) {
+                bool finished = false;
+                std::vector<std::byte> discard;
+
+                (void) assetStreamer_.tryTake(
+                    texture.assetPath,
+                    discard,
+                    finished);
+
+                if (!finished) {
+                    return;
+                }
+
+                texture.runtimeLoadQueued = false;
+            }
+
             if ((texture.
                      descriptorResidentMask &
                  slotBit) != 0U) {
