@@ -139,10 +139,18 @@ function expectFifthRejected() {
       const status = response.statusCode;
       response.resume();
       clearTimeout(timer);
+
+      try {
+        ws.terminate();
+      } catch {
+        // The rejected socket may already be closed.
+      }
+
       if (status !== 409) {
         reject(new Error(`unexpected fifth-player status ${status}`));
         return;
       }
+
       resolve(status);
     });
 
@@ -218,3 +226,8 @@ try {
     }
   }
 }
+
+// Force CI exit after all sockets are validated and terminated. The ws
+// package may keep internal network handles alive briefly after a rejected
+// upgrade even though the multiplayer assertions have already completed.
+process.exit(0);
