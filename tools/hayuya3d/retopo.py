@@ -28,6 +28,8 @@ class RetopoResult:
     triangle_count: int
     ngon_count: int
     quad_fraction: float
+    runtime_triangle_equivalent: int
+    triangle_target_error_fraction: float
     style: str
     deterministic: bool
     material_method: str
@@ -166,6 +168,7 @@ def parse_obj_topology(path: Path) -> dict[str, int | float]:
     quads = 0
     triangles = 0
     ngons = 0
+    runtime_triangles = 0
     with path.open("r", encoding="utf-8", errors="ignore") as handle:
         for raw in handle:
             stripped = raw.lstrip()
@@ -175,6 +178,7 @@ def parse_obj_topology(path: Path) -> dict[str, int | float]:
             if count < 3:
                 continue
             polygons += 1
+            runtime_triangles += max(1, count - 2)
             if count == 4:
                 quads += 1
             elif count == 3:
@@ -187,6 +191,7 @@ def parse_obj_topology(path: Path) -> dict[str, int | float]:
         "triangle_count": triangles,
         "ngon_count": ngons,
         "quad_fraction": float(quads / polygons) if polygons else 0.0,
+        "runtime_triangle_equivalent": runtime_triangles,
     }
 
 
@@ -273,6 +278,12 @@ def run_retopology(
             f"pure-quad retopo produced only {topo['quad_fraction']:.3f} quad fraction"
         )
 
+    runtime_triangles = int(topo["runtime_triangle_equivalent"])
+    triangle_target_error = abs(runtime_triangles - int(target_triangle_faces)) / max(
+        1,
+        int(target_triangle_faces),
+    )
+
     bridged_glb = out_dir / "retopo_material_bridge.glb"
     bridge = transfer_best_material(
         source_mesh,
@@ -294,6 +305,8 @@ def run_retopology(
         triangle_count=int(topo["triangle_count"]),
         ngon_count=int(topo["ngon_count"]),
         quad_fraction=round(float(topo["quad_fraction"]), 6),
+        runtime_triangle_equivalent=runtime_triangles,
+        triangle_target_error_fraction=round(float(triangle_target_error), 6),
         style=style,
         deterministic=True,
         material_method=bridge.method,
