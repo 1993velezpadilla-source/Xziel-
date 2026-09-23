@@ -133,6 +133,58 @@ def infer_asset_mode(primary: Path) -> str:
     return "prop"
 
 
+ASSET_PROFILE_IDS = {
+    "auto", "character.humanoid", "character.creature", "weapon.firearm",
+    "weapon.melee", "prop.mechanical", "vehicle", "foliage.grass",
+    "foliage.tree", "prop.static", "environment.modular",
+}
+
+
+def infer_asset_profile(primary: Path, mode: str = "auto") -> str:
+    parts = {part.lower() for part in primary.parts}
+    stem_tokens = set(primary.stem.lower().replace("-", "_").split("_"))
+    tokens = parts | stem_tokens
+
+    if tokens & {"pistol","handgun","revolver","shotgun","rifle","smg","lmg","gun","firearm","sniper","launcher","p90"}:
+        return "weapon.firearm"
+    if tokens & {"sword","knife","machete","axe","bat","club","melee"}:
+        return "weapon.melee"
+    if tokens & {"grass","turf"}:
+        return "foliage.grass"
+    if tokens & {"tree","trees","bush","bushes","plant","plants","foliage"}:
+        return "foliage.tree"
+    if tokens & {"car","cars","truck","vehicle","vehicles","van","bike","motorcycle"}:
+        return "vehicle"
+    if tokens & {"door","fan","gear","machine","mechanical","hinge","elevator"}:
+        return "prop.mechanical"
+    if tokens & {"monster","creature","animal","quadruped"}:
+        return "character.creature"
+    if tokens & {"character","characters","zombie","zombies","human","humans","humanoid","humanoids","npc","npcs","llorona"}:
+        return "character.humanoid"
+    if mode == "character":
+        return "character.humanoid"
+    if mode == "architecture":
+        return "environment.modular"
+    return "prop.static"
+
+
+def load_asset_profile_spec(asset_profile: str) -> dict:
+    path = ROOT / "hayuya" / "standards" / "hayuya_asset_profiles_v1.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    for profile in data.get("profiles", []):
+        if profile.get("id") == asset_profile:
+            return profile
+    if asset_profile == "auto":
+        return {
+            "id": "auto",
+            "label": "Auto",
+            "animation_systems": [],
+            "preferred_pipeline": [],
+            "required_qa": ["mesh_gate", "texture_clarity"],
+        }
+    raise ValueError(f"unknown asset profile: {asset_profile}")
+
+
 def make_reference_groups(inputs: list[Path], group_size: int) -> list[list[Path]]:
     """
     Split an arbitrary reference pool into backend-sized groups without dropping evidence.
@@ -212,8 +264,14 @@ def make_job_plan(
     portable_target: str = "auto",
     portable_pack_mode: str = "auto",
     texture_delivery_mode: str = "auto",
+    asset_profile: str | None = None,
+    animation_requested: bool = False,
 ) -> dict:
     profile = PROFILES[profile_name]
+    resolved_asset_profile = asset_profile or infer_asset_profile(inputs[0], mode)
+    if resolved_asset_profile == "auto":
+        resolved_asset_profile = infer_asset_profile(inputs[0], mode)
+    asset_spec = load_asset_profile_spec(resolved_asset_profile)
     portability_plan = build_portability_plan(
         mode=mode,
         tier=portable_target,
@@ -249,6 +307,15 @@ def make_job_plan(
         },
         "mode": mode,
         "profile": profile_name,
+        "asset_profile": resolved_asset_profile,
+        "asset_pipeline": {
+            "label": asset_spec.get("label", resolved_asset_profile),
+            "animation_requested": bool(animation_requested),
+            "animation_systems": asset_spec.get("animation_systems", []),
+            "preferred_pipeline": asset_spec.get("preferred_pipeline", []),
+            "required_qa": asset_spec.get("required_qa", []),
+            "policy": "asset-type-specific postprocess; never force humanoid rigging or incompatible mechanical animation onto unrelated geometry",
+        },
         "mobile_portability": portability_plan,
         "portable_pack": {
             "mode": portable_pack_mode,
@@ -501,6 +568,8 @@ def main() -> int:
         help="runtime mobile portability tier; auto maps preview/mobile/game/monster/ultra to compatibility/compatibility/balanced/high/flagship",
     )
     parser.add_argument("--mode", choices=["auto", "prop", "character", "architecture"], default="auto")
+    parser.add_argument("--asset-profile", choices=sorted(ASSET_PROFILE_IDS), default="auto")
+    parser.add_argument("--animation", action="store_true", help="request the profile-compatible animation/postprocess path")
     parser.add_argument("--seed", type=int, default=1993)
     parser.add_argument("--backends", help="comma-separated override")
     parser.add_argument("--gpu-vram", type=int, help="VRAM budget in GB; skips larger backends")
@@ -651,6 +720,8 @@ def main() -> int:
         portable_target=args.portable_target,
         portable_pack_mode=args.portable_pack,
         texture_delivery_mode=args.texture_delivery,
+        asset_profile=(None if args.asset_profile == "auto" else args.asset_profile),
+        animation_requested=args.animation,
     )
     portable_runtime = plan["mobile_portability"]["runtime_target"]
     portable_lod0_ceiling = int(portable_runtime["lod0_triangles"][1])
