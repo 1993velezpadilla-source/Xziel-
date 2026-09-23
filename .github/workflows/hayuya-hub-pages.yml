@@ -19,7 +19,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  validate:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate standalone Hub
+        run: |
+          test -s tools/hayuya3d/hub/index.html
+          test -s tools/hayuya3d/hub/hub.css
+          test -s tools/hayuya3d/hub/hub.js
+          test -s tools/hayuya3d/hub/hayuya-hub-standalone.html
+
   deploy:
+    if: github.event_name == 'workflow_dispatch'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -38,8 +51,6 @@ jobs:
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
