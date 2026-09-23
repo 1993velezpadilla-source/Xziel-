@@ -193,13 +193,14 @@ def _mesh_rgb_arrays(mesh_path: Path, max_faces: int = 12000):
     return vertices, faces, colors
 
 
-def render_candidate_rgb(
-    mesh_path: Path,
+def render_candidate_rgb_arrays(
+    vertices,
+    faces,
+    colors,
     view: SourceViewScore,
     *,
     size: int = 224,
 ):
-    vertices, faces, colors = _mesh_rgb_arrays(mesh_path)
     xy, z = project_vertices(
         vertices,
         view.best_azimuth,
@@ -208,6 +209,16 @@ def render_candidate_rgb(
         size,
     )
     return rasterize_rgb(xy, z, faces, colors, size=size)
+
+
+def render_candidate_rgb(
+    mesh_path: Path,
+    view: SourceViewScore,
+    *,
+    size: int = 224,
+):
+    vertices, faces, colors = _mesh_rgb_arrays(mesh_path)
+    return render_candidate_rgb_arrays(vertices, faces, colors, view, size=size)
 
 
 def preprocess_source_rgb(path: Path, *, size: int = 224):
@@ -293,10 +304,21 @@ def _encode_dinov2(image, *, repo_path: Path, device_name: str):
     with torch.inference_mode():
         feature = model(tensor)
     if isinstance(feature, dict):
-        feature = feature.get("x_norm_clstoken") or next(iter(feature.values()))
+        selected = feature.get("x_norm_clstoken")
+        feature = selected if selected is not None else next(iter(feature.values()))
     feature = feature.reshape(feature.shape[0], -1)
     feature = torch.nn.functional.normalize(feature, dim=-1)
     return feature[0].detach().cpu().numpy()
+
+
+@lru_cache(maxsize=512)
+def _source_embedding_cached(path_str: str, repo_path_str: str, device_name: str):
+    image = preprocess_source_rgb(Path(path_str))
+    return _encode_dinov2(
+        image,
+        repo_path=Path(repo_path_str),
+        device_name=device_name,
+    )
 
 
 def cosine_similarity(a, b) -> float:
@@ -342,10 +364,15 @@ def score_candidate_appearance(
 
     repo_path = model_root / "dinov2"
     views: list[AppearanceViewScore] = []
+    vertices, faces, colors = _mesh_rgb_arrays(mesh_path)
 
     for index, (source, matched) in enumerate(zip(source_images, matched_views)):
-        source_rgb = preprocess_source_rgb(source)
-        candidate_rgb = render_candidate_rgb(mesh_path, matched)
+        candidate_rgb = render_candidate_rgb_arrays(
+            vertices,
+            faces,
+            colors,
+            matched,
+        )
 
         render_path = None
         if render_dir is not None:
@@ -353,7 +380,11 @@ def score_candidate_appearance(
             render_path = render_dir / f"{index:03d}_{source.stem}.png"
             candidate_rgb.save(render_path)
 
-        source_feature = _encode_dinov2(source_rgb, repo_path=repo_path, device_name=device)
+        source_feature = _source_embedding_cached(
+            str(source.resolve()),
+            str(repo_path.resolve()),
+            device,
+        )
         candidate_feature = _encode_dinov2(candidate_rgb, repo_path=repo_path, device_name=device)
         cosine = cosine_similarity(source_feature, candidate_feature)
 
