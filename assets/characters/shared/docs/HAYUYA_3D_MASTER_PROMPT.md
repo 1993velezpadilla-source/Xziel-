@@ -144,6 +144,8 @@ A completed Hayuya job should converge on:
 - GamePrep master + LOD0-LOD3
 - convex collision proxy when valid
 - 8-frame turntable preview
+- orientation-locked `source_vs_turntable.json`
+- paired `source_vs_turntable.png` audit sheet
 - GamePrep manifest
 
 ## Manual 8-view art workflow
