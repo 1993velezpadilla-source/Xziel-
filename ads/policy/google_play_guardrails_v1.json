@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "updated": "2026-09-23",
+  "profile": "google_play_diegetic_ads",
+  "principles": {
+    "gameplayFirst": true,
+    "noForcedGameplayInterruptions": true,
+    "noFakeSystemOrGameUi": true,
+    "contentRatingGateRequired": true,
+    "fallbackRequired": true,
+    "networkMayNeverBlockMap": true,
+    "contextualTargetingPreferred": true
+  },
+  "deliveryPaths": {
+    "directDiegeticSponsor": {
+      "allowedFormats": [
+        "SURFACE_STATIC",
+        "SURFACE_VIDEO",
+        "SPATIAL_AUDIO",
+        "PROP_BRANDING",
+        "ENVIRONMENT_TEXT",
+        "FLAG_BANNER"
+      ],
+      "spatialAudioDefaultPath": true,
+      "providerSdkRequired": false,
+      "stillSubjectToPlayAndLocalLaw": true
+    },
+    "googleProgrammatic": {
+      "useOnlySupportedProviderFormats": true,
+      "requiredAttributionMustRemainVisible": true,
+      "adChoicesMustRemainVisibleWhenRequired": true,
+      "customSpatialAudioAssumedSupported": false
+    }
+  },
+  "prohibitedBehaviors": [
+    "unexpected_fullscreen_during_gameplay",
+    "ad_between_play_action_and_gameplay_start",
+    "fake_objective_or_interact_prompt",
+    "fake_system_notification",
+    "ad_covering_enemy_or_gameplay_ui",
+    "ad_gate_required_for_map_progress",
+    "accidental_click_hotspot",
+    "network_dependency_for_gameplay",
+    "audio_master_bus_injection",
+    "audio_gameplay_ducking_for_sponsor",
+    "audio_attention_stinger",
+    "audio_head_locked_sponsor_voice"
+  ],
+  "audioAmbientSponsor": {
+    "preferredSeconds": [
+      6,
+      12
+    ],
+    "hardMaxSeconds": 15,
+    "dwellBeforeStartSeconds": [
+      2,
+      3
+    ],
+    "targetDbBelowLocalAmbience": [
+      8,
+      14
+    ],
+    "minimumDbBelowLocalAmbienceCeiling": 6,
+    "fadeInSeconds": [
+      1,
+      1.75
+    ],
+    "fadeOutSeconds": [
+      0.5,
+      1.25
+    ],
+    "sameCreativePerMatchMax": 1,
+    "paidMessagesPerPlayerPerMatchMax": 2,
+    "minimumSecondsBetweenPaidStarts": 600,
+    "suppressDuringCombat": true,
+    "suppressDuringCriticalNarrative": true,
+    "userToggleRecommended": true,
+    "noExposureWhenDisabled": true
+  },
+  "familiesGate": {
+    "enabledOnlyWhenTargetAudienceRequiresIt": true,
+    "selfCertifiedSdkRequiredForSdkAdsToChildrenOrUnknownAge": true,
+    "interestBasedAdsToChildrenDenied": true,
+    "remarketingToChildrenDenied": true,
+    "neutralAgeScreenForMixedAudienceWhenNeeded": true
+  },
+  "data": {
+    "adIdRequiredForDirectContextualSponsor": false,
+    "accurateDataSafetyRequired": true,
+    "sessionScopedExposurePreferred": true,
+    "identityLinkingNotRequired": true
+  },
+  "references": [
+    "https://support.google.com/googleplay/android-developer/answer/9857753",
+    "https://support.google.com/googleplay/android-developer/answer/12271244",
+    "https://support.google.com/googleplay/android-developer/answer/9859655",
+    "https://support.google.com/googleplay/android-developer/answer/9859455",
+    "https://support.google.com/googleplay/android-developer/answer/6048248",
+    "https://support.google.com/googleplay/android-developer/answer/13323374",
+    "https://support.google.com/googleplay/android-developer/answer/9893335",
+    "https://support.google.com/googleplay/android-developer/answer/9900633",
+    "https://support.google.com/admob/answer/6239795",
+    "https://support.google.com/admanager/answer/7031536",
+    "https://www.iab.com/guidelines/creative-guidelines-and-best-practices-in-advertising-in-gaming/"
+  ]
+}
