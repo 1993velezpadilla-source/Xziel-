@@ -158,6 +158,37 @@ High-quality parity work must explicitly target:
 
 **Competitive rule:** Hayuya is not considered toe-to-toe with major image-to-3D web platforms merely because it can emit a GLB. It must be benchmarked against current Tripo, Meshy, Hyper3D/Rodin, 3D AI Studio and Kaedim-class workflows across fidelity, PBR/material quality, topology/retopo, reference handling, production readiness, and real-time derivation. High-quality/hero results are part of the core benchmark, not an optional future category.
 
+## Mobile portability authority
+
+When an asset is intended for a game/mobile/portable workflow, HAYUYA must consult:
+
+- `tools/hayuya3d/mobile_portability.json` — machine-readable engine/hardware knowledge base and HAYUYA runtime budgets
+- `docs/hayuya/HAYUYA_MOBILE_PORTABILITY_SPEC.md` — sourced research and rationale
+- `tools/hayuya3d/mobile_portability.py` — executable tier resolver
+
+Portable never means "make the master low quality."
+
+The required sequence is:
+
+1. reconstruct and preserve the strongest source-faithful **Hero Master**;
+2. classify the requested runtime tier as `compatibility`, `balanced`, `high`, or `flagship`;
+3. derive LOD0-LOD3, texture-size/compression targets and collision from that master;
+4. keep material slots, transparency/overdraw and runtime shader assumptions portable;
+5. retain Android ASTC as the preferred modern runtime texture path with ETC2 fallback, and use KTX2/Basis Universal packaging where the target runtime supports it;
+6. treat frame time, draw calls, bandwidth, RAM, animation cost and sustained thermal headroom as first-class constraints alongside triangle count;
+7. never present HAYUYA house triangle ranges as universal engine hard limits;
+8. require real-device sustained profiling before calling a shipping asset portable.
+
+Automatic tier mapping is:
+
+- `preview` -> `compatibility`
+- `mobile` -> `compatibility`
+- `game` -> `balanced`
+- `monster` -> `high`
+- `ultra` -> `flagship`
+
+An explicit `--portable-target` may override that mapping without changing the Hero Master.
+
 ## Output contract
 
 A completed Hayuya job should converge on:
