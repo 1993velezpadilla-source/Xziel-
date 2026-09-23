@@ -3225,14 +3225,41 @@ bool VulkanStaticMeshRenderer::loadModel(
         return false;
     }
 
+    const auto byteSpan =
+        std::span<const std::byte>(
+            bytes.data(),
+            bytes.size());
+
     const auto result =
         parseStaticMeshXzsm(
-            std::span<const std::byte>(
-                bytes.data(),
-                bytes.size()),
+            byteSpan,
             out);
 
-    return result.success;
+    if (!result.success) {
+        return false;
+    }
+
+    StaticMeshDirectory directory{};
+    const auto directoryResult =
+        parseStaticMeshXzsmDirectory(
+            byteSpan,
+            directory);
+
+    if (!directoryResult.success ||
+        directory.batches.size() !=
+            out.batches.size()) {
+        out = {};
+        return false;
+    }
+
+    geometryDirectory_ =
+        std::move(directory);
+    geometryAssetPath_ =
+        path != nullptr
+        ? path
+        : "";
+
+    return true;
 }
 
 bool VulkanStaticMeshRenderer::createPipeline(
