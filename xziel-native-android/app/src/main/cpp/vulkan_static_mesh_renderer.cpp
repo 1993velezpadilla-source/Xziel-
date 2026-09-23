@@ -248,6 +248,7 @@ bool VulkanStaticMeshRenderer::initialize(
     streamDecisionCount_ = 0U;
     streamPlanFrame_ = 0U;
     lastLoggedStreamCell_ = 0U;
+    runtimeTextureTransition_ = {};
     streamCellCandidate_ = 0U;
     streamCellStableFrames_ = 0U;
     streamCullingActive_ = false;
@@ -419,6 +420,8 @@ bool VulkanStaticMeshRenderer::initialize(
             texture.streamResourceId =
                 streamResourceId(
                     cacheKey);
+            texture.srgb =
+                srgb;
 
             if (texture.sourceMipLevels > 0U &&
                 texture.sourceMipLevels <=
@@ -753,6 +756,8 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
 
     assetStreamer_.stop();
     asyncPrefetchQueued_ = 0U;
+    resetRuntimeTextureTransition(
+        true);
 
     if (device_ != VK_NULL_HANDLE) {
         // Initialization failures can leave recorded-but-unsubmitted uploads.
@@ -1025,7 +1030,7 @@ void VulkanStaticMeshRenderer::record(
     VkExtent2D extent,
     std::uint32_t frameSlot,
     const StaticMeshCameraState& camera,
-    const StaticMeshEnvironmentState& environment) const noexcept {
+    const StaticMeshEnvironmentState& environment) noexcept {
     frameStats_ = {};
 
     if (!ready_ ||
@@ -1034,6 +1039,9 @@ void VulkanStaticMeshRenderer::record(
         extent.height == 0U) {
         return;
     }
+
+    serviceRuntimeTextureTransition(
+        frameSlot);
 
     if (streamGraphReady_) {
         const std::uint32_t currentCell =
@@ -1086,6 +1094,22 @@ void VulkanStaticMeshRenderer::record(
             frameStats_.
                 streamingEvictableBytes =
                 streamStats.evictableBytes;
+
+            for (std::size_t decisionIndex = 0U;
+                 decisionIndex <
+                     streamDecisionCount_;
+                 ++decisionIndex) {
+                const auto& decision =
+                    streamDecisions_[
+                        decisionIndex];
+
+                if (decision.resourceId != 0U) {
+                    textureMipResidency_.touch(
+                        decision.resourceId,
+                        decision.desiredMipBias,
+                        streamPlanFrame_);
+                }
+            }
 
             for (const auto& batch :
                  batches_) {
@@ -1145,6 +1169,8 @@ void VulkanStaticMeshRenderer::record(
             streamDecisionCount_ = 0U;
         }
     }
+
+    scheduleRuntimeMipDemotion();
 
     VkPipeline boundPipeline =
         VK_NULL_HANDLE;
@@ -3066,6 +3092,8 @@ bool VulkanStaticMeshRenderer::prepareKtx2TextureUpload(
     out.allocationBytes =
         static_cast<std::uint64_t>(
             requirements.size);
+    out.srgb =
+        srgb;
 
     upload.command =
         command;
