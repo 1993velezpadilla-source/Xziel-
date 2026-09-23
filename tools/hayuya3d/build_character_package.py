@@ -20,7 +20,7 @@ def safe_copy(src: Path, dst: Path):
 
 
 def main() -> int:
-    p=argparse.ArgumentParser(description="Build a self-contained HAYUYA character package from a saved editor recipe.")
+    p=argparse.ArgumentParser(description="Build a self-contained HAYUYA game-ready asset package from a saved editor recipe.")
     p.add_argument("--recipe",required=True,type=Path)
     p.add_argument("--model",required=True,type=Path)
     p.add_argument("--out",required=True,type=Path)
@@ -32,30 +32,38 @@ def main() -> int:
     root=args.out/job_id
     if root.exists():
         shutil.rmtree(root)
-    (root/"character").mkdir(parents=True)
+    (root/"asset").mkdir(parents=True)
     (root/"audio").mkdir(parents=True)
     (root/"docs").mkdir(parents=True)
 
-    safe_copy(args.model,root/"character"/"model.glb")
+    safe_copy(args.model,root/"asset"/"model.glb")
 
     model_dir=args.repo_root/"hayuya"/"models"/job_id
-    safe_copy(model_dir/"manifest.json",root/"character"/"manifest.json")
-    safe_copy(model_dir/"rig_gate.json",root/"character"/"rig_gate.json")
-    safe_copy(model_dir/"quality_gate.json",root/"character"/"quality_gate.json")
+    safe_copy(model_dir/"manifest.json",root/"asset"/"manifest.json")
+    safe_copy(model_dir/"rig_gate.json",root/"asset"/"rig_gate.json")
+    safe_copy(model_dir/"quality_gate.json",root/"asset"/"quality_gate.json")
+    safe_copy(model_dir/"animation_gate.json",root/"asset"/"animation_gate.json")
 
     # Keep the exact editor recipe beside the exported character.
     (root/"hayuya_recipe.json").write_text(json.dumps(recipe,indent=2)+"\n",encoding="utf-8")
 
     # Runtime-friendly profile: selected IDs are stable; labels are presentation.
+    selected=recipe.get("selected",{})
     profile={
-        "schema":1,
+        "schema":2,
         "job_id":job_id,
+        "asset_profile":recipe.get("asset_profile","auto"),
+        "motion_profile":recipe.get("motion_profile","auto"),
         "skeleton_type":recipe.get("skeleton_type","hayuya_humanoid_v1"),
-        "animations":recipe.get("selected",{}).get("animations",[]),
-        "real_mocap":recipe.get("selected",{}).get("real_mocap",[]),
-        "audio":recipe.get("selected",{}).get("audio",[]),
-        "addons":recipe.get("selected",{}).get("addons",[]),
+        "animations":selected.get("animations",[]),
+        "real_mocap":selected.get("real_mocap",[]),
+        "weapon_animations":selected.get("weapon_animations",[]),
+        "procedural_motion":selected.get("procedural_motion",[]),
+        "audio":selected.get("audio",[]),
+        "addons":selected.get("addons",[]),
     }
+    (root/"asset_profile.json").write_text(json.dumps(profile,indent=2)+"\n",encoding="utf-8")
+    # Backwards compatibility for existing Xziel character importers.
     (root/"character_profile.json").write_text(json.dumps(profile,indent=2)+"\n",encoding="utf-8")
 
     copied_audio=[]
@@ -81,6 +89,8 @@ def main() -> int:
     safe_copy(args.repo_root/"docs"/"audio"/"XZIEL_HORROR_AUDIO_SOURCES.md",root/"docs"/"XZIEL_HORROR_AUDIO_SOURCES.md")
     safe_copy(args.repo_root/"hayuya"/"standards"/"hayuya_humanoid_v1.json",root/"docs"/"hayuya_humanoid_v1.json")
     safe_copy(args.repo_root/"hayuya"/"standards"/"hayuya_preview_pack_v1.json",root/"docs"/"hayuya_preview_pack_v1.json")
+    safe_copy(args.repo_root/"hayuya"/"standards"/"hayuya_asset_profiles_v1.json",root/"docs"/"hayuya_asset_profiles_v1.json")
+    safe_copy(args.repo_root/"hayuya"/"standards"/"hayuya_weapon_animation_v1.json",root/"docs"/"hayuya_weapon_animation_v1.json")
 
     local_animation_sources=sorted({
         str(x.get("source"))
@@ -96,20 +106,46 @@ def main() -> int:
         x for x in profile["real_mocap"]
         if x.get("availability") not in (None,"local")
     ]
+
+    unresolved_weapon=[
+        x for x in profile["weapon_animations"]
+        if x.get("availability") not in (None,"local")
+    ]
+    weapon_profile=profile["asset_profile"]=="weapon.firearm"
+    weapon_items=profile["weapon_animations"]
+    # Conservative rule: firearm package cannot call itself game-ready merely
+    # because a template was selected. It must be explicitly marked compatible
+    # by the mechanical family/component gate or be absent.
+    unresolved_weapon_compat=[
+        x for x in weapon_items
+        if weapon_profile and not bool(x.get("compatibility_passed",False))
+    ]
+    incompatible_motion=[
+        x for x in profile["procedural_motion"]
+        if profile["asset_profile"] not in ("auto",*(x.get("profiles") or []))
+    ]
+
     build={
         "schema":1,
         "job_id":job_id,
         "model":str(args.model),
+        "asset_profile":profile["asset_profile"],
+        "motion_profile":profile["motion_profile"],
         "copied_audio":copied_audio,
         "unresolved_audio":unresolved_audio,
         "selected_animation_sources":local_animation_sources,
         "mixed_animation_sources":mixed_animation_sources,
         "unresolved_animation_retarget":unresolved_animations,
         "unresolved_external_mocap":unresolved_mocap,
-        "game_ready":not unresolved_audio and not mixed_animation_sources and not unresolved_animations and not unresolved_mocap,
+        "unresolved_weapon_assets":unresolved_weapon,
+        "unresolved_weapon_compatibility":unresolved_weapon_compat,
+        "incompatible_procedural_motion":incompatible_motion,
+        "game_ready":not unresolved_audio and not mixed_animation_sources and not unresolved_animations and not unresolved_mocap and not unresolved_weapon and not unresolved_weapon_compat and not incompatible_motion,
         "notes":[
             "External mocap is never silently bundled without an ingested/licensed local source.",
-            "Gameplay state mapping remains explicit in character_profile.json."
+            "Gameplay state/motion mapping remains explicit in asset_profile.json.",
+            "Firearm animation compatibility is fail-closed: family/mechanical proof is required before game-ready.",
+            "Foliage and mechanical motion can remain runtime metadata when shader/engine motion is superior to baked skeletal animation."
         ]
     }
     (root/"BUILD.json").write_text(json.dumps(build,indent=2)+"\n",encoding="utf-8")
@@ -131,7 +167,10 @@ def main() -> int:
         "mixed_animation_sources":mixed_animation_sources,
         "unresolved_animation_retarget":len(unresolved_animations),
         "unresolved_external_mocap":len(unresolved_mocap),
-        "audio_items":len(copied_audio)
+        "audio_items":len(copied_audio),
+        "weapon_items":len(profile["weapon_animations"]),
+        "motion_fx":len(profile["procedural_motion"]),
+        "unresolved_weapon_compatibility":len(unresolved_weapon_compat)
     },indent=2))
     return 0
 
