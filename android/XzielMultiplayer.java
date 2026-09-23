@@ -28,6 +28,7 @@ import java.nio.ByteOrder;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -94,7 +95,7 @@ public final class XzielMultiplayer {
         this.baseUrl = normalizeBaseUrl(endpoint);
         this.playerId = loadPlayerId();
         this.http = new OkHttpClient.Builder()
-            .pingInterval(java.time.Duration.ofSeconds(15))
+            .pingInterval(15, TimeUnit.SECONDS)
             .build();
     }
 
