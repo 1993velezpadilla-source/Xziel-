@@ -117,7 +117,12 @@ if len(blender_materials) != len(glb_materials):
     )
 
 embedded_by_blender_pointer = {}
+gltf_index_by_blender_pointer = {}
 for material_index, blender_material in enumerate(blender_materials):
+    gltf_index_by_blender_pointer[
+        blender_material.as_pointer()
+    ] = material_index
+
     record = embedded_records.get(material_index)
     if record is not None:
         embedded_by_blender_pointer[
@@ -395,6 +400,26 @@ with tempfile.TemporaryDirectory(prefix="xziel-clean-") as tmp:
             else None
         )
         texture = save_material_texture(mat)
+
+        gltf_material_index = (
+            gltf_index_by_blender_pointer.get(mat.as_pointer())
+            if mat is not None
+            else None
+        )
+
+        gltf_material = (
+            glb_materials[gltf_material_index]
+            if gltf_material_index is not None
+            else {}
+        )
+
+        double_sided = bool(
+            gltf_material.get("doubleSided", False)
+        )
+
+        # XZSM v4 batch flag bit 0 == double-sided.
+        batch_flags = 1 if double_sided else 0
+
         uv_layer, uv_name, uv_source = resolve_uv_layer(mesh, mat)
         if base_color_node(mat) is not None and uv_layer is None:
             missing_uv.add(obj.name)
@@ -451,6 +476,8 @@ with tempfile.TemporaryDirectory(prefix="xziel-clean-") as tmp:
             "texture": texture,
             "uvLayer": uv_name,
             "uvSource": uv_source,
+            "doubleSided": double_sided,
+            "flags": batch_flags,
             "vertexCount": len(vertices),
             "indexCount": len(indices),
             "mins": batch_min,
@@ -508,7 +535,7 @@ with tempfile.TemporaryDirectory(prefix="xziel-clean-") as tmp:
         out.write(struct.pack(
             "<4sIIII",
             b"XZSM",
-            3,
+            4,
             len(batch_records),
             total_vertices,
             total_indices,
@@ -517,10 +544,11 @@ with tempfile.TemporaryDirectory(prefix="xziel-clean-") as tmp:
             texture_bytes = batch["texture"].encode("utf-8")[:95]
             texture_field = texture_bytes + b"\0" * (96 - len(texture_bytes))
             out.write(struct.pack(
-                "<II96s6f",
+                "<II96sI6f",
                 batch["vertexCount"],
                 batch["indexCount"],
                 texture_field,
+                batch["flags"],
                 batch["mins"].x, batch["mins"].y, batch["mins"].z,
                 batch["maxs"].x, batch["maxs"].y, batch["maxs"].z,
             ))
@@ -540,8 +568,16 @@ report = {
     "sourceUid": SOURCE_UID,
     "sourcePath": str(SOURCE),
     "coordinateSpace": "native",
-    "version": 3,
+    "version": 4,
     "vertexStrideBytes": 36,
+    "doubleSidedBatchCount": sum(
+        1 for batch in batch_records
+        if batch["doubleSided"]
+    ),
+    "backfaceCulledBatchCount": sum(
+        1 for batch in batch_records
+        if not batch["doubleSided"]
+    ),
     "sourceCollection": "DIRECT_ORIGINAL_GLB",
     "sourceTriangles": source_triangles,
     "runtimeTriangles": source_triangles,
@@ -586,5 +622,13 @@ print("XZIEL_CLEAN_SOURCE_READY", json.dumps({
     "maxTextureDimension": max_texture_dimension,
     "pbrLinkedMaterialCounts": pbr_counts,
     "batches": len(batch_records),
+    "doubleSidedBatches": sum(
+        1 for batch in batch_records
+        if batch["doubleSided"]
+    ),
+    "culledBatches": sum(
+        1 for batch in batch_records
+        if not batch["doubleSided"]
+    ),
     "modelBytes": model_path.stat().st_size,
 }))
