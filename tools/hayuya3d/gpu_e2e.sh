@@ -26,7 +26,34 @@ python3 -m venv .hayuya/control
 .hayuya/control/bin/python tools/hayuya3d/bootstrap.py --all
 
 mkdir -p out/gpu-e2e
-.hayuya/control/bin/python tools/hayuya3d/gpu_doctor.py   --model-root "${MODEL_ROOT}"   --backends "${BACKENDS}"   --include-support   --output out/gpu-e2e/gpu_doctor.json   --strict
+
+ENV_EXPORTS=".hayuya/envs/hayuya_env.sh"
+if [[ "${HAYUYA_SETUP_BACKEND_ENVS:-1}" != "0" ]]; then
+  .hayuya/control/bin/python tools/hayuya3d/backend_envs.py \
+    --model-root "${MODEL_ROOT}" \
+    --env-root .hayuya/envs \
+    --backends "${BACKENDS}" \
+    --include-support \
+    --exports "${ENV_EXPORTS}" \
+    --json out/gpu-e2e/backend_env_plan.json \
+    --execute
+fi
+
+if [[ ! -f "${ENV_EXPORTS}" ]]; then
+  echo "Missing backend environment exports: ${ENV_EXPORTS}" >&2
+  echo "Either allow HAYUYA_SETUP_BACKEND_ENVS=1 or provide the exports file." >&2
+  exit 2
+fi
+
+# shellcheck disable=SC1090
+source "${ENV_EXPORTS}"
+
+.hayuya/control/bin/python tools/hayuya3d/gpu_doctor.py \
+  --model-root "${MODEL_ROOT}" \
+  --backends "${BACKENDS}" \
+  --include-support \
+  --output out/gpu-e2e/gpu_doctor.json \
+  --strict
 
 ARGS=(
   --input "${GEOMETRY_INPUT}"
@@ -39,6 +66,7 @@ ARGS=(
   --viewforge required
   --appearance-judge required
   --geometry-refine required
+  --mesh-doctor required
   --gameprep required
 )
 
