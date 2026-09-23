@@ -21,6 +21,9 @@ class LODArtifact:
     target_faces: int
     actual_faces: int
     material_policy: str
+    material_channels: list[str] | None = None
+    dropped_channels: list[str] | None = None
+    rebake_required: list[str] | None = None
 
 
 @dataclass
@@ -184,6 +187,7 @@ def build_gameprep(
         target = max(4, min(source_faces, int(round(lod0_target * ratio))))
         final_path = out_dir / f"{name}.glb"
 
+        transfer_result = None
         if has_skin or (index == 0 and source_faces <= lod0_target):
             shutil.copy2(master_glb, final_path)
             actual = source_faces
@@ -217,6 +221,21 @@ def build_gameprep(
                 target_faces=target,
                 actual_faces=actual,
                 material_policy=material_policy,
+                material_channels=(
+                    list(transfer_result.channels or [])
+                    if transfer_result is not None
+                    else None
+                ),
+                dropped_channels=(
+                    list(transfer_result.dropped_channels or [])
+                    if transfer_result is not None
+                    else []
+                ),
+                rebake_required=(
+                    list(transfer_result.rebake_required or [])
+                    if transfer_result is not None
+                    else []
+                ),
             )
         )
 
