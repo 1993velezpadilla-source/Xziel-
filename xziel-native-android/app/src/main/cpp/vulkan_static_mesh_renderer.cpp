@@ -161,6 +161,11 @@ bool VulkanStaticMeshRenderer::initialize(
 
     physicalDevice_ = physicalDevice;
     device_ = device;
+    assetManager_ = assetManager;
+    runtimeTextureBudgetScale_ = 1.0f;
+    runtimeTexturePressure_ =
+        StaticMeshTexturePressure::Normal;
+    runtimeMipCooldownFrames_ = 0U;
 
     VkPhysicalDeviceFeatures deviceFeatures{};
     vkGetPhysicalDeviceFeatures(
@@ -475,6 +480,21 @@ bool VulkanStaticMeshRenderer::initialize(
             ? modelAssetPath
             : "";
 
+        std::uint32_t streamableTextures = 0U;
+        for (const auto& texture : textures_) {
+            if (texture.astc &&
+                texture.sourceMipCount > 1U) {
+                ++streamableTextures;
+            }
+        }
+
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_RUNTIME_MIP_EXECUTOR_READY streamable=%u async_fence=1 safe_descriptor_swap=1",
+            static_cast<unsigned int>(
+                streamableTextures));
+
         if (modelPath.find("/weapons/") !=
             std::string::npos) {
             logInfo("XZIEL_WEAPON_VIEWMODEL_READY");
@@ -490,6 +510,11 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     ready_ = false;
 
     if (device_ != VK_NULL_HANDLE) {
+        // Parent renderer normally idles the device before teardown. A runtime
+        // residency upload owns its own fence/resources, so retire it first.
+        cancelRuntimeMipTransition(
+            true);
+
         // Initialization failures can leave recorded-but-unsubmitted uploads.
         // Drop those command/staging resources before destroying their images.
         discardPendingUploads();
@@ -558,6 +583,12 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
         128ULL * 1024ULL * 1024ULL;
     textureResidentBytes_ = 0U;
     textureDegradedCount_ = 0U;
+    assetManager_ = nullptr;
+    runtimeTextureBudgetScale_ = 1.0f;
+    runtimeTexturePressure_ =
+        StaticMeshTexturePressure::Normal;
+    runtimeMipCooldownFrames_ = 0U;
+    runtimeMipTransition_ = {};
 
     physicalDevice_ = VK_NULL_HANDLE;
     device_ = VK_NULL_HANDLE;
@@ -588,6 +619,201 @@ std::uint32_t VulkanStaticMeshRenderer::totalIndices() const noexcept {
 StaticMeshFrameStats
 VulkanStaticMeshRenderer::frameStats() const noexcept {
     return frameStats_;
+}
+
+void VulkanStaticMeshRenderer::setRuntimeTextureResidencyPolicy(
+    float budgetScale,
+    StaticMeshTexturePressure pressure) noexcept {
+    runtimeTextureBudgetScale_ =
+        std::isfinite(budgetScale)
+        ? std::clamp(
+              budgetScale,
+              0.20f,
+              1.0f)
+        : 1.0f;
+
+    runtimeTexturePressure_ =
+        pressure;
+}
+
+void VulkanStaticMeshRenderer::serviceRuntimeTextureResidency(
+    bool descriptorsSafeToUpdate,
+    std::uint64_t frameIndex) noexcept {
+    if (!ready_ ||
+        device_ == VK_NULL_HANDLE ||
+        !astcLdrSupported_) {
+        return;
+    }
+
+    if (runtimeMipTransition_.active) {
+        if (!runtimeMipTransition_.
+                uploadComplete) {
+            const VkResult status =
+                vkGetFenceStatus(
+                    device_,
+                    runtimeMipTransition_.
+                        fence);
+
+            if (status == VK_NOT_READY) {
+                return;
+            }
+
+            if (!ok(status)) {
+                logError(
+                    "runtime mip upload fence failed");
+                cancelRuntimeMipTransition(
+                    false);
+                runtimeMipCooldownFrames_ =
+                    120U;
+                return;
+            }
+
+            releaseUploadResources(
+                runtimeMipTransition_.upload);
+
+            if (runtimeMipTransition_.fence !=
+                VK_NULL_HANDLE) {
+                vkDestroyFence(
+                    device_,
+                    runtimeMipTransition_.fence,
+                    nullptr);
+                runtimeMipTransition_.fence =
+                    VK_NULL_HANDLE;
+            }
+
+            runtimeMipTransition_.
+                uploadComplete = true;
+
+            __android_log_print(
+                ANDROID_LOG_INFO,
+                kTag,
+                "XZIEL_RUNTIME_MIP_UPLOAD_READY texture=%u base_mip=%u frame=%llu",
+                static_cast<unsigned int>(
+                    runtimeMipTransition_.
+                        textureIndex),
+                static_cast<unsigned int>(
+                    runtimeMipTransition_.
+                        targetBaseMip),
+                static_cast<unsigned long long>(
+                    frameIndex));
+        }
+
+        if (!descriptorsSafeToUpdate) {
+            return;
+        }
+
+        const std::uint32_t textureIndex =
+            runtimeMipTransition_.
+                textureIndex;
+
+        if (textureIndex >=
+                textures_.size() ||
+            !updateMaterialDescriptorsForTexture(
+                textureIndex,
+                runtimeMipTransition_.
+                    replacement)) {
+            logError(
+                "runtime mip descriptor swap failed");
+            cancelRuntimeMipTransition(
+                false);
+            runtimeMipCooldownFrames_ =
+                120U;
+            return;
+        }
+
+        GpuTexture old =
+            std::move(
+                textures_[textureIndex]);
+
+        textures_[textureIndex] =
+            std::move(
+                runtimeMipTransition_.
+                    replacement);
+
+        const std::uint64_t oldBytes =
+            old.residentPayloadBytes;
+        const std::uint64_t newBytes =
+            textures_[textureIndex].
+                residentPayloadBytes;
+
+        if (oldBytes <=
+            textureResidentBytes_) {
+            textureResidentBytes_ -=
+                oldBytes;
+        } else {
+            textureResidentBytes_ = 0U;
+        }
+
+        if (newBytes <=
+            std::numeric_limits<
+                std::uint64_t>::max() -
+                textureResidentBytes_) {
+            textureResidentBytes_ +=
+                newBytes;
+        }
+
+        textureDegradedCount_ = 0U;
+        for (const auto& texture :
+             textures_) {
+            if (texture.residentBaseMip >
+                0U) {
+                ++textureDegradedCount_;
+            }
+        }
+
+        const std::uint32_t newBaseMip =
+            textures_[textureIndex].
+                residentBaseMip;
+
+        destroyTexture(
+            old);
+
+        runtimeMipTransition_ = {};
+        runtimeMipCooldownFrames_ = 30U;
+
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_RUNTIME_MIP_SWAP texture=%u base_mip=%u resident_total_mb=%.2f degraded=%u frame=%llu",
+            static_cast<unsigned int>(
+                textureIndex),
+            static_cast<unsigned int>(
+                newBaseMip),
+            static_cast<double>(
+                textureResidentBytes_) /
+                (1024.0 * 1024.0),
+            static_cast<unsigned int>(
+                textureDegradedCount_),
+            static_cast<unsigned long long>(
+                frameIndex));
+
+        return;
+    }
+
+    if (runtimeMipCooldownFrames_ > 0U) {
+        --runtimeMipCooldownFrames_;
+        return;
+    }
+
+    TextureMipChange change{};
+    if (!planRuntimeMipChange(
+            frameIndex,
+            change) ||
+        change.id == 0U) {
+        return;
+    }
+
+    const std::uint32_t textureIndex =
+        static_cast<std::uint32_t>(
+            change.id - 1U);
+
+    if (!beginRuntimeMipTransition(
+            textureIndex,
+            change.newBaseMip,
+            frameIndex)) {
+        runtimeMipCooldownFrames_ =
+            120U;
+    }
 }
 
 void VulkanStaticMeshRenderer::record(
@@ -1778,6 +2004,22 @@ bool VulkanStaticMeshRenderer::createKtx2Texture(
     const std::string& assetPath,
     bool srgb,
     GpuTexture& out) noexcept {
+    return createKtx2TextureInternal(
+        assetManager,
+        assetPath,
+        srgb,
+        UINT32_MAX,
+        true,
+        out);
+}
+
+bool VulkanStaticMeshRenderer::createKtx2TextureInternal(
+    AAssetManager* assetManager,
+    const std::string& assetPath,
+    bool srgb,
+    std::uint32_t forcedBaseMip,
+    bool accountResidency,
+    GpuTexture& out) noexcept {
     AAsset* asset =
         AAssetManager_open(
             assetManager,
@@ -1870,7 +2112,15 @@ bool VulkanStaticMeshRenderer::createKtx2Texture(
             textureResidentBytes_
         : 0U;
 
-    if (fullRange.payloadBytes >
+    if (forcedBaseMip != UINT32_MAX) {
+        residentBaseMip =
+            std::min<std::uint32_t>(
+                forcedBaseMip,
+                static_cast<std::uint32_t>(
+                    texture.levels.size() -
+                    1U));
+    } else if (
+        fullRange.payloadBytes >
             budgetRemaining &&
         texture.levels.size() > 1U &&
         texture.levels.size() <=
@@ -2281,65 +2531,82 @@ bool VulkanStaticMeshRenderer::createKtx2Texture(
     out.allocationBytes =
         static_cast<std::uint64_t>(
             requirements.size);
+    out.astc = true;
+    out.srgb = srgb;
+    out.sourceMipCount =
+        static_cast<std::uint32_t>(
+            std::min<std::size_t>(
+                texture.levels.size(),
+                kMaxStreamedTextureMips));
 
-    if (residentRange.payloadBytes >
-        std::numeric_limits<std::uint64_t>::max() -
-            textureResidentBytes_) {
-        discardPendingUploads();
-        destroyTexture(out);
-        return false;
+    for (std::uint32_t mip = 0U;
+         mip < out.sourceMipCount;
+         ++mip) {
+        out.sourceMipBytes[mip] =
+            texture.levels[mip].
+                byteLength;
     }
 
-    textureResidentBytes_ +=
-        residentRange.payloadBytes;
+    if (accountResidency) {
+        if (residentRange.payloadBytes >
+            std::numeric_limits<std::uint64_t>::max() -
+                textureResidentBytes_) {
+            discardPendingUploads();
+            destroyTexture(out);
+            return false;
+        }
 
-    if (residentBaseMip > 0U) {
-        ++textureDegradedCount_;
+        textureResidentBytes_ +=
+            residentRange.payloadBytes;
+
+        if (residentBaseMip > 0U) {
+            ++textureDegradedCount_;
+
+            __android_log_print(
+                ANDROID_LOG_INFO,
+                kTag,
+                "XZIEL_TEXTURE_MIP_RESIDENCY path=%s base_mip=%u source=%ux%u resident=%ux%u saved_payload_bytes=%llu resident_total_mb=%.2f budget_mb=%.2f degraded=%u",
+                assetPath.c_str(),
+                static_cast<unsigned int>(
+                    residentBaseMip),
+                texture.width,
+                texture.height,
+                residentRange.width,
+                residentRange.height,
+                static_cast<unsigned long long>(
+                    fullRange.payloadBytes -
+                    residentRange.payloadBytes),
+                static_cast<double>(
+                    textureResidentBytes_) /
+                    (1024.0 * 1024.0),
+                static_cast<double>(
+                    textureResidentBudgetBytes_) /
+                    (1024.0 * 1024.0),
+                static_cast<unsigned int>(
+                    textureDegradedCount_));
+        }
 
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_TEXTURE_MIP_RESIDENCY path=%s base_mip=%u source=%ux%u resident=%ux%u saved_payload_bytes=%llu resident_total_mb=%.2f budget_mb=%.2f degraded=%u",
+            "XZIEL_KTX2_ASTC_TEXTURE path=%s format=%u source=%ux%u resident=%ux%u base_mip=%u mips=%u/%u payload_bytes=%llu gpu_bytes=%llu",
             assetPath.c_str(),
             static_cast<unsigned int>(
-                residentBaseMip),
+                texture.vkFormat),
             texture.width,
             texture.height,
             residentRange.width,
             residentRange.height,
-            static_cast<unsigned long long>(
-                fullRange.payloadBytes -
-                residentRange.payloadBytes),
-            static_cast<double>(
-                textureResidentBytes_) /
-                (1024.0 * 1024.0),
-            static_cast<double>(
-                textureResidentBudgetBytes_) /
-                (1024.0 * 1024.0),
             static_cast<unsigned int>(
-                textureDegradedCount_));
+                residentBaseMip),
+            residentRange.mipCount,
+            static_cast<unsigned int>(
+                texture.levels.size()),
+            static_cast<unsigned long long>(
+                residentRange.payloadBytes),
+            static_cast<unsigned long long>(
+                requirements.size));
     }
-
-    __android_log_print(
-        ANDROID_LOG_INFO,
-        kTag,
-        "XZIEL_KTX2_ASTC_TEXTURE path=%s format=%u source=%ux%u resident=%ux%u base_mip=%u mips=%u/%u payload_bytes=%llu gpu_bytes=%llu",
-        assetPath.c_str(),
-        static_cast<unsigned int>(
-            texture.vkFormat),
-        texture.width,
-        texture.height,
-        residentRange.width,
-        residentRange.height,
-        static_cast<unsigned int>(
-            residentBaseMip),
-        residentRange.mipCount,
-        static_cast<unsigned int>(
-            texture.levels.size()),
-        static_cast<unsigned long long>(
-            residentRange.payloadBytes),
-        static_cast<unsigned long long>(
-            requirements.size));
 
     return true;
 }
