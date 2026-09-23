@@ -59,6 +59,23 @@ jobs:
             hayuya/models/candy-zombie-001/model.glb \
             --json /tmp/candy-zombie-rig.json
 
+      - name: Validate animated donor contract
+        run: |
+          python tools/hayuya3d/rig_gate.py \
+            hayuya/rig_library/quaternius-human-rigged/model.glb \
+            --json /tmp/quaternius-rig.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          data=json.loads(Path("/tmp/quaternius-rig.json").read_text())
+          assert data["valid_glb"] is True
+          assert data["rig_ready"] is True, data
+          assert data["animation_ready"] is True, data
+          assert data["preview_animation_ready"] is True, data
+          assert len(data["animation_clips"]) >= 3, data
+          print("HAYUYA_RIG_DONOR_PASS", data["joints"], data["animation_clips"])
+          PY
+
       - name: Calibrate against historical bad Candyland billboard output
         run: |
           set -euo pipefail
