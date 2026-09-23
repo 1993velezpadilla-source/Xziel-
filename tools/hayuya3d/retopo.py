@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shutil
 import subprocess
@@ -35,6 +36,7 @@ class RetopoResult:
     material_method: str
     material_channels: list[str]
     material_fallback: bool
+    manifest_path: str
 
 
 def instant_meshes_binary(model_root: Path = DEFAULT_MODEL_ROOT) -> Path | None:
@@ -293,7 +295,8 @@ def run_retopology(
         max_texture_size=texture_size,
     )
 
-    return RetopoResult(
+    manifest_path = out_dir / "retopo_manifest.json"
+    result = RetopoResult(
         backend="instant_meshes_retopo",
         source_mesh=str(source_mesh),
         retopo_obj=str(retopo_obj),
@@ -312,7 +315,13 @@ def run_retopology(
         material_method=bridge.method,
         material_channels=list(bridge.channels or []),
         material_fallback=bridge.fallback_used,
+        manifest_path=str(manifest_path),
     )
+    manifest_path.write_text(
+        json.dumps(asdict(result), indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return result
 
 
 def main() -> int:
@@ -342,7 +351,6 @@ def main() -> int:
         texture_size=args.texture_size,
         model_root=args.model_root,
     )
-    import json
     print(json.dumps(asdict(result), indent=2))
     return 0
 
