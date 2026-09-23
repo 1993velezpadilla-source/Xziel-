@@ -4,7 +4,9 @@
 #include <vulkan/vulkan.h>
 
 #include "xziel/static_mesh.hpp"
+#include "xziel/streaming.hpp"
 
+#include <array>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -31,6 +33,12 @@ struct StaticMeshFrameStats {
     std::uint32_t culledBatches = 0U;
     std::uint32_t drawCalls = 0U;
     std::uint64_t submittedTriangles = 0U;
+};
+
+enum class StaticMeshTexturePressure : std::uint8_t {
+    Normal,
+    Elevated,
+    Critical,
 };
 
 struct StaticMeshViewmodelState {
@@ -76,6 +84,14 @@ public:
     [[nodiscard]] std::uint32_t totalIndices() const noexcept;
     [[nodiscard]] StaticMeshFrameStats frameStats() const noexcept;
 
+    void setRuntimeTextureResidencyPolicy(
+        float budgetScale,
+        StaticMeshTexturePressure pressure) noexcept;
+
+    void serviceRuntimeTextureResidency(
+        bool descriptorsSafeToUpdate,
+        std::uint64_t frameIndex) noexcept;
+
     void record(
         VkCommandBuffer command,
         VkExtent2D extent,
@@ -102,6 +118,12 @@ private:
         std::uint32_t residentBaseMip = 0U;
         std::uint64_t residentPayloadBytes = 0U;
         std::uint64_t allocationBytes = 0U;
+
+        bool astc = false;
+        bool srgb = false;
+        std::uint32_t sourceMipCount = 0U;
+        std::array<std::uint64_t, kMaxStreamedTextureMips>
+            sourceMipBytes{};
     };
 
     struct GpuMaterial {
@@ -131,6 +153,16 @@ private:
         VkBuffer stagingBuffer = VK_NULL_HANDLE;
         VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
         VkDeviceSize stagingBytes = 0U;
+    };
+
+    struct RuntimeMipTransition {
+        bool active = false;
+        bool uploadComplete = false;
+        std::uint32_t textureIndex = UINT32_MAX;
+        std::uint32_t targetBaseMip = 0U;
+        GpuTexture replacement{};
+        PendingUpload upload{};
+        VkFence fence = VK_NULL_HANDLE;
     };
 
     struct GpuBatch {
@@ -225,6 +257,14 @@ private:
         bool srgb,
         GpuTexture& out) noexcept;
 
+    [[nodiscard]] bool createKtx2TextureInternal(
+        AAssetManager* assetManager,
+        const std::string& assetPath,
+        bool srgb,
+        std::uint32_t forcedBaseMip,
+        bool accountResidency,
+        GpuTexture& out) noexcept;
+
     [[nodiscard]] bool createTextureSampler(
         std::uint32_t mipLevels,
         GpuTexture& out) noexcept;
@@ -255,6 +295,24 @@ private:
 
     [[nodiscard]] bool flushPendingUploads() noexcept;
     void discardPendingUploads() noexcept;
+    void releaseUploadResources(
+        PendingUpload& upload) noexcept;
+
+    [[nodiscard]] bool beginRuntimeMipTransition(
+        std::uint32_t textureIndex,
+        std::uint32_t targetBaseMip,
+        std::uint64_t frameIndex) noexcept;
+
+    [[nodiscard]] bool updateMaterialDescriptorsForTexture(
+        std::uint32_t textureIndex,
+        const GpuTexture& replacement) noexcept;
+
+    void cancelRuntimeMipTransition(
+        bool waitForUpload) noexcept;
+
+    [[nodiscard]] bool planRuntimeMipChange(
+        std::uint64_t frameIndex,
+        TextureMipChange& outChange) const noexcept;
 
     void destroyTexture(GpuTexture& texture) noexcept;
     void destroyGeometryResidency() noexcept;
@@ -284,6 +342,13 @@ private:
         128ULL * 1024ULL * 1024ULL;
     std::uint64_t textureResidentBytes_ = 0U;
     std::uint32_t textureDegradedCount_ = 0U;
+
+    AAssetManager* assetManager_ = nullptr;
+    RuntimeMipTransition runtimeMipTransition_{};
+    float runtimeTextureBudgetScale_ = 1.0f;
+    StaticMeshTexturePressure runtimeTexturePressure_ =
+        StaticMeshTexturePressure::Normal;
+    std::uint32_t runtimeMipCooldownFrames_ = 0U;
 
     VkBuffer geometryVertexBuffer_ = VK_NULL_HANDLE;
     VkDeviceMemory geometryVertexMemory_ = VK_NULL_HANDLE;
