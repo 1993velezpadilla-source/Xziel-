@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "product": "HAYUYA Studio",
+  "open_command": [
+    "open hayuya",
+    "abre hayuya",
+    "open hayuya studio",
+    "abre hayuya studio"
+  ],
+  "preferred_gui": {
+    "provider": "vercel",
+    "url": "",
+    "status": "deployment_pending_provider_connection"
+  },
+  "prepared_static_source": "tools/hayuya3d/hub",
+  "github_pages": {
+    "prepared": true,
+    "enabled": false
+  },
+  "fallback": {
+    "kind": "github_issue_hub",
+    "url": "https://github.com/1993velezpadilla-source/config-old-3/issues/55",
+    "label": "HAYUYA HUB fallback"
+  },
+  "behavior": {
+    "return_direct_gui_link": true,
+    "never_require_lan_ip_for_normal_open": true,
+    "never_require_terminal_for_normal_open": true,
+    "shared_gui_isolated_jobs": true
+  }
+}
