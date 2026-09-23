@@ -2117,6 +2117,10 @@ xziel::android::VulkanEnvironmentState makeEnvironmentState(
         state.environmentFrame.
             windMetersPerSecond.z;
 
+    environment.renderScale =
+        state.renderWorkload.
+            renderScale;
+
     environment.particleDensityScale =
         state.renderWorkload.
             particleDensityScale;
