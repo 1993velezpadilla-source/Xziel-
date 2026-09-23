@@ -187,9 +187,47 @@ def generate_trellis2(
     return Candidate("trellis2", model_path, notes="O-Voxel full-PBR ultra candidate")
 
 
+def generate_trellis(
+    images: list[Path],
+    out_dir: Path,
+    *,
+    seed: int,
+    texture_size: int,
+    model_root: Path = DEFAULT_MODEL_ROOT,
+) -> Candidate:
+    repo = require_backend("trellis", model_root)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    model_path = out_dir / "trellis_multiview.glb"
+    cmd = [
+        backend_python("trellis"),
+        str((HERE / "trellis_adapter.py").resolve()),
+        "--backend-root",
+        str(repo.resolve()),
+        "--output",
+        str(model_path.resolve()),
+        "--seed",
+        str(seed),
+        "--texture-size",
+        str(min(texture_size, 2048)),
+        "--multiimage-mode",
+        "multidiffusion",
+    ]
+    for image in images:
+        cmd.extend(["--input", str(image.resolve())])
+    run_checked(cmd, cwd=repo)
+    if not model_path.is_file():
+        raise RuntimeError(f"TRELLIS did not create {model_path}")
+    return Candidate(
+        "trellis",
+        model_path,
+        notes=f"TRELLIS native multi-image fusion candidate ({len(images)} source views)",
+    )
+
+
 GENERATORS = {
     "triposg": generate_triposg,
     "triposr": generate_triposr,
     "instantmesh": generate_instantmesh,
     "trellis2": generate_trellis2,
+    "trellis": generate_trellis,
 }
