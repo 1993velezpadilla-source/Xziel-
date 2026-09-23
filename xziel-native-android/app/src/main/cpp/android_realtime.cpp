@@ -37,6 +37,18 @@ bool AndroidRealtimeBridge::initialize(
             "getXzielMultiplayerTestKey",
             "()Ljava/lang/String;");
 
+    defaultRoomMethod_ =
+        env->GetMethodID(
+            activityClass,
+            "getXzielMultiplayerDefaultRoom",
+            "()Ljava/lang/String;");
+
+    displayNameMethod_ =
+        env->GetMethodID(
+            activityClass,
+            "getXzielMultiplayerDisplayName",
+            "()Ljava/lang/String;");
+
     connectMethod_ =
         env->GetMethodID(
             activityClass,
@@ -77,6 +89,8 @@ bool AndroidRealtimeBridge::initialize(
 
     if (baseUrlMethod_ == nullptr ||
         testKeyMethod_ == nullptr ||
+        defaultRoomMethod_ == nullptr ||
+        displayNameMethod_ == nullptr ||
         connectMethod_ == nullptr ||
         disconnectMethod_ == nullptr ||
         sendMethod_ == nullptr ||
@@ -96,6 +110,8 @@ void AndroidRealtimeBridge::reset() noexcept {
     activity_ = nullptr;
     baseUrlMethod_ = nullptr;
     testKeyMethod_ = nullptr;
+    defaultRoomMethod_ = nullptr;
+    displayNameMethod_ = nullptr;
     connectMethod_ = nullptr;
     disconnectMethod_ = nullptr;
     sendMethod_ = nullptr;
@@ -155,6 +171,14 @@ std::string AndroidRealtimeBridge::configuredBaseUrl() noexcept {
 
 std::string AndroidRealtimeBridge::configuredTestKey() noexcept {
     return callString(testKeyMethod_);
+}
+
+std::string AndroidRealtimeBridge::configuredDefaultRoom() noexcept {
+    return callString(defaultRoomMethod_);
+}
+
+std::string AndroidRealtimeBridge::configuredDisplayName() noexcept {
+    return callString(displayNameMethod_);
 }
 
 bool AndroidRealtimeBridge::connect(
