@@ -168,6 +168,27 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
             candidate.url = _job_url(job, viewer_path) if viewer_path is not None else None
             job.candidates[label] = candidate
             _emit(job, "candidate", asdict(candidate))
+    elif line.startswith("HAYUYA_JUDGE_SCORE"):
+        _set_stage(job, "judge")
+        match = re.search(
+            r"backend=([^\s]+)\s+score=([0-9.]+)\s+valid=([^\s]+)\s+rank=(\d+)\s+pass=(\d+)",
+            line,
+        )
+        if match:
+            label = match.group(1)
+            score = float(match.group(2))
+            valid = match.group(3).lower() == "true"
+            rank = int(match.group(4))
+            ranking_pass = int(match.group(5))
+            if label in job.candidates:
+                job.candidates[label].score = score
+            _emit(job, "judge_score", {
+                "label": label,
+                "score": score,
+                "valid": valid,
+                "rank": rank,
+                "pass": ranking_pass,
+            })
     elif line.startswith("HAYUYA_REFINEMENT"):
         _set_stage(job, "refinement")
     elif line.startswith("HAYUYA_MESH_DOCTOR"):
