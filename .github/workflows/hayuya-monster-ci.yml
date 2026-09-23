@@ -28,7 +28,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install CPU Hayuya test deps
-        run: python -m pip install --upgrade pip numpy pillow trimesh scipy
+        run: python -m pip install --upgrade pip numpy pillow trimesh scipy fast-simplification
 
       - name: Compile Hayuya Python
         run: python -m py_compile tools/hayuya3d/*.py
