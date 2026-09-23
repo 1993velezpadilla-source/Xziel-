@@ -2611,7 +2611,7 @@ bool VulkanStaticMeshRenderer::createPngTexture(
             command,
             staging,
             stagingMemory,
-            imageBytes)) {
+            pixelBytes)) {
         destroyTexture(out);
         return false;
     }
