@@ -37,7 +37,7 @@ jobs:
           from pathlib import Path
           p=Path('hayuya/jobs/templates/model-job.json')
           d=json.loads(p.read_text())
-          assert d['schema']==1
+          assert d['schema'] in (1,2)
           assert d['job_id']
           assert d['owner']
           PY
