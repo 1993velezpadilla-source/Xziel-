@@ -1,0 +1,107 @@
+name: Sanctum Texture Match Research
+
+on:
+  push:
+    branches:
+      - research/sanctum-texture-match-v1
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  rank-materials:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      GH_TOKEN: ${{ github.token }}
+      CLEAN_RUN_ID: "35799013452"
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install image-analysis dependencies
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet --upgrade pip
+          python3 -m pip install --quiet pillow numpy opencv-python-headless
+
+      - name: Recover pixel-perfect St Giles exterior atlas
+        run: |
+          set -euo pipefail
+          mkdir -p research/source
+          ARTS="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${CLEAN_RUN_ID}/artifacts")"
+          ID="$(jq -r '.artifacts[] | select(.name=="Xziel-Sanctum-Clean-Source") | .id' <<<"$ARTS" | head -n1)"
+          test -n "$ID"
+          gh api "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ID}/zip" > research/source/clean.zip
+          unzip -q research/source/clean.zip -d research/source/unpacked
+          ATLAS="$(find research/source/unpacked -path '*textures/xziel/sanctum/*Exterior04*.png' -print -quit)"
+          test -s "$ATLAS"
+          cp "$ATLAS" research/source/st_giles_exterior_atlas.png
+
+      - name: Fetch real-church reference and CC0 4K candidates
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p research/candidates
+
+          curl --fail --location --retry 3             "https://upload.wikimedia.org/wikipedia/commons/3/3d/2025-01-31_St_Giles%2C_Cripplegate%2C_London_-_01.jpg"             -o research/source/st_giles_2025_reference.jpg
+
+          fetch() {
+            local name="$1"
+            local url="$2"
+            echo "candidate: $name"
+            if ! curl --fail --location --retry 3 "$url" -o "research/candidates/$name.jpg"; then
+              echo "WARN: failed candidate $name" >&2
+              rm -f "research/candidates/$name.jpg"
+            fi
+          }
+
+          fetch stone_block_wall             "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/stone_block_wall/stone_block_wall_diff_4k.jpg"
+          fetch stone_tile_wall             "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/stone_tile_wall/stone_tile_wall_diff_4k.jpg"
+          fetch medieval_blocks_03             "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/medieval_blocks_03/medieval_blocks_03_diff_4k.jpg"
+          fetch medieval_blocks_06             "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/medieval_blocks_06/medieval_blocks_06_diff_4k.jpg"
+          fetch rock_wall_08             "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/rock_wall_08/rock_wall_08_diff_4k.jpg"
+          fetch stone_wall_05             "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/stone_wall_05/stone_wall_05_diff_4k.jpg"
+          fetch castle_wall_slates             "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/castle_wall_slates/castle_wall_slates_diff_4k.jpg"
+          fetch yellow_stone_wall             "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/yellow_stone_wall/yellow_stone_wall_diff_4k.jpg"
+
+          test "$(find research/candidates -name '*.jpg' | wc -l)" -ge 5
+
+      - name: Probe free Fab original-source metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p research/fab
+          BASE="https://www.fab.com/i/listings/36c06a81-a1b8-4ebd-a734-9e2da2d2814e"
+          curl --silent --show-error --location "$BASE"             -o research/fab/listing.json || true
+          curl --silent --show-error --location "$BASE/asset-formats/additional-files"             -o research/fab/additional-files.json || true
+          curl --silent --show-error --location "$BASE/asset-formats/converted-files"             -o research/fab/converted-files.json || true
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          for p in Path("research/fab").glob("*.json"):
+              try:
+                  data=json.loads(p.read_text())
+                  print(p.name, json.dumps(data)[:3000])
+              except Exception as e:
+                  print(p.name, "non-json/blocked", e)
+          PY
+
+      - name: Rank candidates against St Giles
+        run: |
+          set -euo pipefail
+          python3 tools/church_map/rank_sanctum_material_candidates.py             --atlas research/source/st_giles_exterior_atlas.png             --photo research/source/st_giles_2025_reference.jpg             --candidates research/candidates             --out research/result
+          jq '.winner, .ranking[] | {name,score,vs_real_photo,vs_original_atlas}'             research/result/ranking.json
+
+      - name: Upload comparison evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sanctum-Texture-Match-Research
+          path: |
+            research/result/
+            research/fab/
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 14
