@@ -48,6 +48,7 @@ add_library(xziel_engine STATIC
     src/asset_provenance.cpp
     src/sanctum.cpp
     src/static_mesh.cpp
+    src/texture_container.cpp
 )
 
 target_include_directories(xziel_engine
@@ -283,4 +284,9 @@ if(XZIEL_ENGINE_BUILD_TESTS)
     target_link_libraries(xziel_asset_provenance_smoke PRIVATE xziel_engine)
     target_compile_features(xziel_asset_provenance_smoke PRIVATE cxx_std_20)
     add_test(NAME xziel_asset_provenance_smoke COMMAND xziel_asset_provenance_smoke)
+
+    add_executable(xziel_texture_container_smoke tests/texture_container_smoke.cpp)
+    target_link_libraries(xziel_texture_container_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_texture_container_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_texture_container_smoke COMMAND xziel_texture_container_smoke)
 endif()
