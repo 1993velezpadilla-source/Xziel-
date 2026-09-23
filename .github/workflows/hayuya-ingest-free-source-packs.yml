@@ -37,6 +37,41 @@ jobs:
 
           packs=[
               {
+                  "id":"quaternius_animated_characters",
+                  "url":"https://opengameart.org/sites/default/files/ultimate_animated_character_pack_by_quaternius.zip",
+                  "page":"https://opengameart.org/content/animated-characters-pack",
+                  "license":"CC0",
+                  "catalog":"character_animation",
+              },
+              {
+                  "id":"quaternius_animated_monsters",
+                  "url":"https://opengameart.org/sites/default/files/Animated%20Monster%20Pack%20by%20%40Quaternius.zip",
+                  "page":"https://opengameart.org/content/lowpoly-animated-monsters",
+                  "license":"CC0",
+                  "catalog":"creature_animation",
+              },
+              {
+                  "id":"quaternius_animated_guns_source",
+                  "url":"https://opengameart.org/sites/default/files/FPS%20Pack.zip",
+                  "page":"https://opengameart.org/content/low-poly-animated-guns",
+                  "license":"CC0",
+                  "catalog":"weapon",
+              },
+              {
+                  "id":"quaternius_uam1_source",
+                  "url":"https://opengameart.org/sites/default/files/universal_animation_librarystandard.zip",
+                  "page":"https://opengameart.org/content/universal-animation-library",
+                  "license":"CC0",
+                  "catalog":"character_animation",
+              },
+              {
+                  "id":"quaternius_uam2_source",
+                  "url":"https://opengameart.org/sites/default/files/universal_animation_library_2standard.zip",
+                  "page":"https://opengameart.org/content/universal-animation-library-2",
+                  "license":"CC0",
+                  "catalog":"character_animation",
+              },
+              {
                   "id":"oga_flat_guns_east",
                   "url":"https://opengameart.org/sites/default/files/flat_guns_east.zip",
                   "page":"https://opengameart.org/content/cc0-flat-guns-east",
