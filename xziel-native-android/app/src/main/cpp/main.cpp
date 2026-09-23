@@ -1,5 +1,6 @@
 #include "android_haptics.hpp"
 #include "android_audio.hpp"
+#include "android_realtime.hpp"
 #include "android_input.hpp"
 #include "vulkan_clear_renderer.hpp"
 
@@ -22,6 +23,8 @@
 #include "xziel/interaction.hpp"
 #include "xziel/map_runtime.hpp"
 #include "xziel/map_format.hpp"
+#include "xziel/net_protocol.hpp"
+#include "xziel/online_session.hpp"
 #include "xziel/player_vitals.hpp"
 #include "xziel/quest_runtime.hpp"
 #include "xziel/performance.hpp"
@@ -36,7 +39,9 @@
 #include "xziel/zombie_hit_regions.hpp"
 
 #include <algorithm>
+#include <array>
 #include <chrono>
+#include <cstddef>
 #include <cmath>
 #include <string>
 
@@ -189,6 +194,18 @@ struct NativeAppState {
     xziel::HapticsPlanner haptics{};
     xziel::android::AndroidHapticsBridge hapticsBridge{};
     xziel::android::AndroidAudioEngine audio{};
+    xziel::OnlineSession online{};
+    xziel::android::AndroidRealtimeBridge realtime{};
+    std::array<
+        std::byte,
+        xziel::kNetMaxPacketBytes> netReceiveBuffer{};
+    std::array<
+        std::byte,
+        xziel::kNetMaxPacketBytes> netSendBuffer{};
+    float netInputAccumulatorSeconds = 0.0f;
+    std::uint16_t netFireSequence = 0U;
+    int lastRealtimeTransportState = -1;
+    bool realtimeConfigured = false;
     xziel::android::AndroidInputAdapter input{};
     xziel::android::VulkanClearRenderer renderer{};
 
