@@ -109,11 +109,23 @@ def build_instant_meshes(
     if cxx:
         cxx_path = shutil.which(cxx) or cxx
         cmake_cmd.append(f"-DCMAKE_CXX_COMPILER={cxx_path}")
-        if cc is None and Path(str(cxx_path)).name.startswith("clang++"):
+        using_clang = Path(str(cxx_path)).name.startswith("clang++")
+        if cc is None and using_clang:
             cc = shutil.which("clang")
         if cc:
             cc_path = shutil.which(cc) or cc
             cmake_cmd.append(f"-DCMAKE_C_COMPILER={cc_path}")
+
+        # Pinned NanoGUI intentionally forces libc++ under Clang. Because it is a
+        # CMake subdirectory, its linker flag does not reliably propagate back to
+        # the parent Instant Meshes executable on modern Linux. Force the same C++
+        # standard library at the top level so static NanoGUI/TBB objects and the
+        # final executable use one ABI (std::__1) consistently.
+        if using_clang:
+            cmake_cmd.extend([
+                "-DCMAKE_CXX_FLAGS=-stdlib=libc++",
+                "-DCMAKE_EXE_LINKER_FLAGS=-stdlib=libc++",
+            ])
 
     subprocess.run(cmake_cmd, check=True)
     cmd = ["cmake", "--build", str(build), "--config", "Release"]
