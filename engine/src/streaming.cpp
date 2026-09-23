@@ -186,6 +186,12 @@ TextureMipResidencyManager::TextureMipResidencyManager(
               1U,
               maxTextures)) {}
 
+void TextureMipResidencyManager::reset() noexcept {
+    for (auto& slot : slots_) {
+        slot = {};
+    }
+}
+
 bool TextureMipResidencyManager::valid(
     const TextureMipChainDesc& desc) noexcept {
     if (desc.id == 0U ||
