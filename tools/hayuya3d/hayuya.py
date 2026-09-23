@@ -367,8 +367,15 @@ def main() -> int:
         "--input",
         type=Path,
         action="append",
-        required=True,
+        default=[],
         help="source image; repeat as many times as useful",
+    )
+    parser.add_argument(
+        "--input-dir",
+        type=Path,
+        action="append",
+        default=[],
+        help="directory containing reference images; repeatable and recursively scanned",
     )
     parser.add_argument("--profile", choices=sorted(PROFILES), default="monster")
     parser.add_argument("--mode", choices=["auto", "prop", "character", "architecture"], default="auto")
@@ -393,7 +400,19 @@ def main() -> int:
     parser.add_argument("--allow-restricted", action="store_true", help="allow explicitly opt-in non-permissive backends")
     args = parser.parse_args()
 
-    inputs = validate_inputs(args.input)
+    raw_inputs = list(args.input)
+    for root in args.input_dir:
+        root = root.resolve()
+        if not root.is_dir():
+            parser.error(f"--input-dir is not a directory: {root}")
+        raw_inputs.extend(
+            p for p in sorted(root.rglob("*"))
+            if p.is_file() and p.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}
+        )
+    if not raw_inputs:
+        parser.error("provide at least one --input or --input-dir")
+
+    inputs = validate_inputs(raw_inputs)
     roles = split_reference_roles(inputs)
     geometry_inputs = roles.geometry
     detail_inputs = roles.detail
