@@ -190,6 +190,8 @@ void VulkanClearRenderer::shutdown() noexcept {
     graphicsQueue_ = VK_NULL_HANDLE;
     physicalDevice_ = VK_NULL_HANDLE;
     graphicsQueueFamily_ = UINT32_MAX;
+    physicalDeviceType_ =
+        VK_PHYSICAL_DEVICE_TYPE_OTHER;
 
     if (surface_ != VK_NULL_HANDLE &&
         instance_ != VK_NULL_HANDLE) {
@@ -229,6 +231,9 @@ void VulkanClearRenderer::shutdown() noexcept {
     lastCpuRenderMs_ = 0.0f;
     lastGpuFrameMs_ = 0.0f;
     performanceTelemetryFrame_ = 0;
+    performanceTimingReadyLogged_ = false;
+    suboptimalFrameCount_ = 0;
+    framePacingAttempted_ = false;
 }
 
 void VulkanClearRenderer::setPreferredFrameRate(
@@ -611,22 +616,65 @@ bool VulkanClearRenderer::drawFrame(
               graphicsQueue_,
               &present);
 
-    if (result == VK_ERROR_OUT_OF_DATE_KHR ||
-        result == VK_SUBOPTIMAL_KHR ||
-        suboptimal) {
+    if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+        logInfo("XZIEL_SWAPCHAIN_RECREATE_OUT_OF_DATE");
         if (!recreateSwapchain()) {
             return false;
         }
-    } else if (!ok(result)) {
+    } else if (result != VK_SUCCESS &&
+               result != VK_SUBOPTIMAL_KHR) {
         if (result == VK_ERROR_DEVICE_LOST) {
             deviceLost_ = true;
         }
         logError("vkQueuePresentKHR failed");
         return false;
+    } else if (result == VK_SUBOPTIMAL_KHR ||
+               suboptimal) {
+        // Android can report a swapchain as permanently SUBOPTIMAL when the
+        // app intentionally uses IDENTITY pre-transform and lets
+        // SurfaceFlinger own display rotation. Recreating an unchanged
+        // 2400x1080 swapchain every frame can never fix that condition and
+        // churns render passes/pipelines. OUT_OF_DATE and lifecycle events
+        // remain authoritative for real surface changes.
+        ++suboptimalFrameCount_;
+        if (suboptimalFrameCount_ == 1U ||
+            suboptimalFrameCount_ % 120U == 0U) {
+            __android_log_print(
+                ANDROID_LOG_INFO,
+                kTag,
+                "XZIEL_SWAPCHAIN_SUBOPTIMAL_DEFERRED count=%llu extent=%ux%u",
+                static_cast<unsigned long long>(
+                    suboptimalFrameCount_),
+                swapchainExtent_.width,
+                swapchainExtent_.height);
+        }
+    } else {
+        suboptimalFrameCount_ = 0U;
     }
 
     ++frameIndex_;
     ++performanceTelemetryFrame_;
+
+    // Swappy startup is deliberately delayed until the renderer has presented
+    // healthy frames. Software/CPU Vulkan in CI skips it completely because
+    // Choreographer bootstrap there can stall the GameActivity thread.
+    if (!swappyInitialized_ &&
+        !framePacingAttempted_ &&
+        frameIndex_ >= 2U) {
+        framePacingAttempted_ = true;
+
+        if (physicalDeviceType_ ==
+            VK_PHYSICAL_DEVICE_TYPE_CPU) {
+            logInfo(
+                "XZIEL_FRAME_PACING_SKIPPED_CPU");
+        } else if (initializeFramePacing()) {
+            logInfo(
+                "XZIEL_FRAME_PACING_READY");
+        } else {
+            logInfo(
+                "XZIEL_FRAME_PACING_UNAVAILABLE");
+        }
+    }
 
     if (performanceTelemetryFrame_ % 120U == 0U) {
         __android_log_print(
@@ -840,6 +888,8 @@ bool VulkanClearRenderer::selectPhysicalDevice() noexcept {
             if (graphics && present == VK_TRUE) {
                 physicalDevice_ = candidate;
                 graphicsQueueFamily_ = i;
+                physicalDeviceType_ =
+                    properties.deviceType;
 
                 // Timestamp support is a queue-family property. Keep the
                 // selected queue's valid-bit count and physical-device period
@@ -1385,6 +1435,7 @@ bool VulkanClearRenderer::createSwapchain() noexcept {
     // baseline; frame pacing can be enabled later after first-frame health is
     // established without making startup depend on the Java choreographer.
     swappyInitialized_ = false;
+    framePacingAttempted_ = false;
     refreshDurationNs_ = 0;
     requestedSwapIntervalNs_ = 0;
 
@@ -3321,6 +3372,16 @@ void VulkanClearRenderer::resolvePerformanceQueries(
         lastGpuFrameMs_ =
             static_cast<float>(
                 milliseconds);
+
+        if (!performanceTimingReadyLogged_) {
+            __android_log_print(
+                ANDROID_LOG_INFO,
+                kTag,
+                "XZIEL_PERF_TIMING cpu_render_ms=%.3f gpu_frame_ms=%.3f",
+                static_cast<double>(lastCpuRenderMs_),
+                static_cast<double>(lastGpuFrameMs_));
+            performanceTimingReadyLogged_ = true;
+        }
     }
 }
 

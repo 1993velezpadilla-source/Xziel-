@@ -723,6 +723,70 @@ xziel::UserGameMode queryUserGameMode(
     return xziel::UserGameMode::Standard;
 }
 
+void publishAndroidGameState(
+    NativeAppState& state,
+    bool loading,
+    int nativeMode) noexcept {
+    if (state.jniEnv == nullptr ||
+        state.javaActivity == nullptr) {
+        return;
+    }
+
+    JNIEnv* env = state.jniEnv;
+    jclass activityClass =
+        env->GetObjectClass(
+            state.javaActivity);
+
+    if (activityClass == nullptr) {
+        if (env->ExceptionCheck()) {
+            env->ExceptionClear();
+        }
+        return;
+    }
+
+    jmethodID method =
+        env->GetMethodID(
+            activityClass,
+            "setXzielGameState",
+            "(ZII)V");
+
+    if (method == nullptr) {
+        if (env->ExceptionCheck()) {
+            env->ExceptionClear();
+        }
+        env->DeleteLocalRef(
+            activityClass);
+        return;
+    }
+
+    env->CallVoidMethod(
+        state.javaActivity,
+        method,
+        loading ? JNI_TRUE : JNI_FALSE,
+        static_cast<jint>(nativeMode),
+        static_cast<jint>(
+            state.renderWorkload.quality));
+
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+        env->DeleteLocalRef(
+            activityClass);
+        return;
+    }
+
+    env->DeleteLocalRef(
+        activityClass);
+
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
+        "XZIEL_GAME_STATE loading=%d mode=%d quality=%d",
+        loading ? 1 : 0,
+        nativeMode,
+        static_cast<int>(
+            state.renderWorkload.quality));
+}
+
 bool queryPowerSaveMode(
     NativeAppState& state) noexcept {
     if (state.jniEnv == nullptr ||
@@ -920,6 +984,13 @@ void handleCommand(
                 xziel::AndroidLifecycleEvent::Resume);
             refreshDisplayRotation(
                 *state);
+            if (state->hasWindow &&
+                state->renderer.ready()) {
+                publishAndroidGameState(
+                    *state,
+                    false,
+                    1);
+            }
             state->input.onResume();
             state->lastFrame =
                 std::chrono::steady_clock::now();
@@ -927,6 +998,10 @@ void handleCommand(
             break;
 
         case APP_CMD_PAUSE:
+            publishAndroidGameState(
+                *state,
+                false,
+                0);
             state->input.onPause();
             state->runtime.onEvent(
                 xziel::AndroidLifecycleEvent::Pause);
@@ -973,6 +1048,11 @@ void handleCommand(
                 refreshDisplayRotation(
                     *state);
 
+                publishAndroidGameState(
+                    *state,
+                    true,
+                    2);
+
                 state->renderer.shutdown();
 
                 if (state->renderer.initialize(
@@ -985,6 +1065,10 @@ void handleCommand(
                     state->lastFrame =
                         std::chrono::steady_clock::now();
                     state->hasLastFrame = false;
+                    publishAndroidGameState(
+                        *state,
+                        false,
+                        1);
                     logInfo("XZIEL_VULKAN_READY");
                 } else {
                     state->hasWindow = false;

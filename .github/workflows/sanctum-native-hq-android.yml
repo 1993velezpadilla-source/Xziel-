@@ -451,6 +451,10 @@ jobs:
           sleep 1
           capture_png dist/sanctum-hq-tour-04-look-up.png
 
+          # Refresh diagnostics after the tour so delayed frame-pacing,
+          # first GPU timing, ADPF and swapchain-stability markers are kept.
+          timeout 8 "$ADB" logcat -d -v threadtime             > dist/sanctum-hq-logcat.txt || true
+
           PID="$(timeout 5 "$ADB" shell pidof             com.xziel.engineprototype 2>/dev/null             | tr -d '\r' || true)"
 
           test -n "$PID"
@@ -465,6 +469,20 @@ jobs:
           grep -q "XZIEL_VULKAN_READY"             dist/sanctum-hq-logcat.txt
 
           grep -q "XZIEL_VULKAN_SURFACE_ROTATION"             dist/sanctum-hq-logcat.txt
+          grep -q "XZIEL_GPU_CAPS"             dist/sanctum-hq-logcat.txt
+          grep -Eq "XZIEL_GPU_TIMESTAMPS_(READY|UNAVAILABLE)"             dist/sanctum-hq-logcat.txt
+          grep -q "XZIEL_TRANSIENT_DEPTH_"             dist/sanctum-hq-logcat.txt
+          grep -q "XZIEL_ADPF "             dist/sanctum-hq-logcat.txt
+          grep -q "XZIEL_GAME_STATE loading=0 mode=1"             dist/sanctum-hq-logcat.txt
+          grep -Eq "XZIEL_FRAME_PACING_(READY|SKIPPED_CPU|UNAVAILABLE)"             dist/sanctum-hq-logcat.txt
+          grep -q "XZIEL_PERF_TIMING "             dist/sanctum-hq-logcat.txt
+
+          PIPELINE_READY_COUNT="$(grep -c "XZIEL_3D_PIPELINE_READY" dist/sanctum-hq-logcat.txt || true)"
+          if (( PIPELINE_READY_COUNT > 2 )); then
+            echo "ERROR: swapchain/pipeline recreation thrash detected: $PIPELINE_READY_COUNT 3D pipeline creates"
+            exit 1
+          fi
+          echo "XZIEL_SWAPCHAIN_STABLE pipelineCreates=$PIPELINE_READY_COUNT"
 
           grep -q "XZIEL_SANCTUM_MESH_READY"             dist/sanctum-hq-logcat.txt
           grep -q "XZIEL_WEAPON_VIEWMODEL_READY"             dist/sanctum-hq-logcat.txt

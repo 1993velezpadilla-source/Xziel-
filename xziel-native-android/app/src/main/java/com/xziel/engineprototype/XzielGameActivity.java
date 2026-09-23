@@ -7,6 +7,7 @@ import android.os.CpuHeadroomParams;
 import android.os.GpuHeadroomParams;
 import android.os.health.SystemHealthManager;
 import android.app.GameManager;
+import android.app.GameState;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.os.VibratorManager;
@@ -49,6 +50,7 @@ public final class XzielGameActivity extends GameActivity {
         );
         refreshGameMode();
         startPerformanceSampler();
+        setXzielGameState(true, 2, -1);
         enterImmersiveMode();
     }
 
@@ -131,6 +133,47 @@ public final class XzielGameActivity extends GameActivity {
 
     public int getXzielGameMode() {
         return cachedGameMode;
+    }
+
+    // Native modes: 0=inactive/menu, 1=active real-time gameplay,
+    // 2=content/loading. Keep the mapping in Java so native code does not
+    // depend on framework GameState integer constants.
+    public void setXzielGameState(
+        boolean loading,
+        int nativeMode,
+        int quality
+    ) {
+        if (Build.VERSION.SDK_INT < 33) {
+            return;
+        }
+
+        GameManager manager =
+            (GameManager) getSystemService(
+                Context.GAME_SERVICE
+            );
+
+        if (manager == null) {
+            return;
+        }
+
+        int mode = GameState.MODE_NONE;
+
+        if (nativeMode == 1) {
+            mode =
+                GameState.MODE_GAMEPLAY_UNINTERRUPTIBLE;
+        } else if (nativeMode == 2) {
+            mode =
+                GameState.MODE_CONTENT;
+        }
+
+        manager.setGameState(
+            new GameState(
+                loading,
+                mode,
+                0,
+                quality
+            )
+        );
     }
 
     private void refreshGameMode() {

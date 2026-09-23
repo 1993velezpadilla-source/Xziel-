@@ -375,6 +375,8 @@ private:
 
     std::uint32_t graphicsQueueFamily_ = UINT32_MAX;
     VkQueue graphicsQueue_ = VK_NULL_HANDLE;
+    VkPhysicalDeviceType physicalDeviceType_ =
+        VK_PHYSICAL_DEVICE_TYPE_OTHER;
 
     bool astcLdrSupported_ = false;
     VkSampleCountFlagBits preferredSceneMsaa_ =
@@ -455,6 +457,8 @@ private:
     float lastCpuRenderMs_ = 0.0f;
     float lastGpuFrameMs_ = 0.0f;
     std::uint64_t performanceTelemetryFrame_ = 0;
+    bool performanceTimingReadyLogged_ = false;
+    std::uint64_t suboptimalFrameCount_ = 0;
 
     ANativeWindow* window_ = nullptr;
     AAssetManager* assetManager_ = nullptr;
@@ -466,6 +470,7 @@ private:
 
     float preferredFrameRate_ = 0.0f;
 
+    bool framePacingAttempted_ = false;
     bool swappyInitialized_ = false;
     bool initialized_ = false;
     bool deviceLost_ = false;
