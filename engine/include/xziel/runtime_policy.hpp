@@ -25,6 +25,14 @@ struct RuntimePolicyInput {
     float displayRefreshHz = 60.0f;
     bool batterySaver = false;
     bool charging = false;
+
+    // Cached Android ADPF/headroom telemetry. Negative/NaN means unavailable.
+    // thermalHeadroom is PowerManager's thermal-envelope usage where 1.0 is
+    // the severe-throttling threshold. CPU/GPU headroom are Android 16
+    // percentages of currently available compute capacity.
+    float thermalHeadroom = -1.0f;
+    float cpuHeadroomPercent = -1.0f;
+    float gpuHeadroomPercent = -1.0f;
 };
 
 struct RuntimePolicy {
