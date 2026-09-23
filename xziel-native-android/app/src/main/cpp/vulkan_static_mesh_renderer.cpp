@@ -274,6 +274,9 @@ bool VulkanStaticMeshRenderer::initialize(
     streamResidencyProbeTextureIndex_ =
         UINT32_MAX;
     streamResidencyProbeReloadFrame_ = 0U;
+    geometryResidencyProbeComplete_ = false;
+    geometryResidencyProbeCellSlot_ = UINT32_MAX;
+    geometryResidencyProbeReloadFrame_ = 0U;
 
     if (streamResidencyProbeEnabled_) {
         logInfo(
@@ -721,6 +724,23 @@ bool VulkanStaticMeshRenderer::initialize(
     }
 
     if (streamGraphReady_ &&
+        !assetStreamer_.running()) {
+        constexpr std::uint64_t kGeometryStreamBudget =
+            48ULL * 1024ULL * 1024ULL;
+
+        const std::uint32_t geometryWorkerCount =
+            deviceProperties.deviceType ==
+                VK_PHYSICAL_DEVICE_TYPE_CPU
+            ? 1U
+            : 2U;
+
+        (void) assetStreamer_.start(
+            assetManager,
+            geometryWorkerCount,
+            kGeometryStreamBudget);
+    }
+
+    if (streamGraphReady_ &&
         assetStreamer_.running()) {
         __android_log_print(
             ANDROID_LOG_INFO,
@@ -872,6 +892,11 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     streamResidencyProbeTextureIndex_ =
         UINT32_MAX;
     streamResidencyProbeReloadFrame_ = 0U;
+    geometryResidencyProbeComplete_ = false;
+    geometryResidencyProbeCellSlot_ = UINT32_MAX;
+    geometryResidencyProbeReloadFrame_ = 0U;
+    geometryDirectory_ = {};
+    geometryAssetPath_.clear();
     streamCellBounds_ = {};
     streamDecisionCount_ = 0U;
     streamPlanFrame_ = 0U;
@@ -3326,6 +3351,19 @@ void VulkanStaticMeshRenderer::record(
         frameSlot,
         environment.memoryPressure);
 
+    if (streamGraphReady_ &&
+        frameStats_.streamingCell != 0U) {
+        serviceRuntimeGeometryResidency(
+            frameSlot,
+            {
+                .currentCell =
+                    frameStats_.streamingCell,
+                .preloadPortalHops = 1U,
+                .memoryPressure =
+                    environment.memoryPressure,
+            });
+    }
+
     VkPipeline boundPipeline =
         VK_NULL_HANDLE;
 
@@ -3489,6 +3527,28 @@ void VulkanStaticMeshRenderer::record(
             ++frameStats_.
                 streamingCulledBatches;
             continue;
+        }
+
+        if (cellGeometry) {
+            if (batch.geometryCellSlot >=
+                geometryCellCount_) {
+                ++frameStats_.culledBatches;
+                continue;
+            }
+
+            const auto& geometryCell =
+                geometryCells_[
+                    batch.geometryCellSlot];
+
+            if (!geometryCell.physicallyResident ||
+                (streamCullingActive_ &&
+                 geometryCell.heat ==
+                    StreamCellHeat::Cold)) {
+                ++frameStats_.culledBatches;
+                ++frameStats_.
+                    streamingCulledBatches;
+                continue;
+            }
         }
 
         if (streamCullingActive_) {
