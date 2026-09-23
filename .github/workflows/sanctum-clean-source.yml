@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - engine/mobile-power-fidelity-v1
+    paths:
+      - ".github/workflows/sanctum-clean-source.yml"
+      - "tools/church_map/export_xziel_original_clean.py"
+      - "tools/church_map/apply_exterior_microdetail.py"
   workflow_dispatch:
 
 permissions:
@@ -355,4 +359,4 @@ jobs:
             church/source/source_metadata.json
           if-no-files-found: error
           compression-level: 1
-          retention-days: 14
+          retention-days: 90
