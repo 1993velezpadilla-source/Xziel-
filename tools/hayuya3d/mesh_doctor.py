@@ -288,7 +288,10 @@ def _safe_repair_geometry(source: Path, output: Path, *, mode: str):
         # hole filler handles local simple holes; characters/cloth remain open.
         if mode in {"prop", "architecture"} and not mesh.is_watertight:
             try:
-                mesh.fill_holes()
+                # Use the explicit repair API. On recent Trimesh releases the
+                # convenience mesh.fill_holes() path can be a no-op for geometry
+                # imported through glTF/scene wrappers.
+                trimesh.repair.fill_holes(mesh)
             except Exception:
                 pass
 
