@@ -15,7 +15,7 @@ sys.path.insert(0, str(HERE))
 
 from adapters import DEFAULT_MODEL_ROOT, GENERATORS
 from qa import export_glb, rank_candidates
-from reference_pool import split_reference_roles
+from reference_pool import order_for_multiview_coverage, split_reference_roles
 
 
 @dataclass(frozen=True)
@@ -129,7 +129,7 @@ def make_reference_groups(inputs: list[Path], group_size: int) -> list[list[Path
     primary = inputs[0]
     payload = group_size - 1
     groups: list[list[Path]] = []
-    others = inputs[1:]
+    others = order_for_multiview_coverage(inputs[1:])
     for i in range(0, len(others), payload):
         groups.append([primary, *others[i:i + payload]])
     return groups
