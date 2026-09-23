@@ -324,6 +324,7 @@ private:
     mutable std::uint32_t streamCellCandidate_ = 0U;
     mutable std::uint32_t streamCellStableFrames_ = 0U;
     mutable bool streamCullingActive_ = false;
+    mutable bool streamCullLogged_ = false;
 
     std::vector<GpuTexture> textures_{};
     std::vector<GpuMaterial> materials_{};
