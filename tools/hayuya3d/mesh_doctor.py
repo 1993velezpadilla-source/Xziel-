@@ -216,6 +216,7 @@ def audit_mesh(path: Path) -> MeshDoctorAudit:
             duplicate_faces
             or degenerate_faces
             or unreferenced_vertices
+            or nonmanifold_edges
             or not winding
             or broken_faces
         )
