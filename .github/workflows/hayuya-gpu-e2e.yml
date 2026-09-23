@@ -1,0 +1,180 @@
+name: Hayuya GPU E2E
+
+on:
+  workflow_dispatch:
+    inputs:
+      geometry_input:
+        description: "Repo-relative primary real source photo"
+        required: true
+        default: "assets/characters/llorona/v2/hayuya/individual/llorona_front.png"
+        type: string
+      detail_dir:
+        description: "Optional repo-relative detail/close-up directory"
+        required: false
+        default: "assets/characters/llorona/v2/hayuya/details"
+        type: string
+      profile:
+        description: "HAYUYA quality profile"
+        required: true
+        default: "monster"
+        type: choice
+        options:
+          - mobile
+          - game
+          - monster
+          - ultra
+      gpu_vram:
+        description: "Runner VRAM budget in GB"
+        required: true
+        default: "24"
+        type: string
+      backends:
+        description: "Comma-separated Shape Arena backends"
+        required: true
+        default: "triposg,trellis2,trellis,instantmesh,triposr"
+        type: string
+      require_all:
+        description: "Fail if any Shape Arena backend fails"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hayuya-gpu-e2e
+  cancel-in-progress: false
+
+jobs:
+  e2e:
+    runs-on: [self-hosted, linux, x64, hayuya-gpu]
+    timeout-minutes: 360
+
+    env:
+      HF_HOME: ${{ runner.temp }}/hayuya-hf-cache
+      HUGGINGFACE_HUB_CACHE: ${{ runner.temp }}/hayuya-hf-cache/hub
+
+    steps:
+      - name: Checkout HAYUYA branch
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 1
+
+      - name: GPU inventory
+        run: |
+          set -euxo pipefail
+          nvidia-smi
+          python3 --version
+
+      - name: Create controller environment
+        run: |
+          set -euxo pipefail
+          python3 -m venv .hayuya/control
+          .hayuya/control/bin/python -m pip install --upgrade pip
+          .hayuya/control/bin/python -m pip install numpy pillow trimesh scipy fast-simplification
+
+      - name: Bootstrap pinned permissive sources
+        run: |
+          set -euxo pipefail
+          .hayuya/control/bin/python tools/hayuya3d/bootstrap.py --all
+
+      - name: Audit GPU backend environments
+        id: doctor
+        continue-on-error: true
+        run: |
+          set -euxo pipefail
+          mkdir -p out/gpu-e2e
+          .hayuya/control/bin/python tools/hayuya3d/gpu_doctor.py \
+            --model-root .hayuya/models \
+            --backends '${{ inputs.backends }}' \
+            --include-support \
+            --output out/gpu-e2e/gpu_doctor.json \
+            --strict
+
+      - name: Execute one-photo HAYUYA proof
+        if: steps.doctor.outcome == 'success'
+        run: |
+          set -euxo pipefail
+          ARGS=(
+            --input '${{ inputs.geometry_input }}'
+            --profile '${{ inputs.profile }}'
+            --gpu-vram '${{ inputs.gpu_vram }}'
+            --backends '${{ inputs.backends }}'
+            --model-root .hayuya/models
+            --output-root out/gpu-e2e/jobs
+            --execute
+            --viewforge required
+            --appearance-judge required
+            --geometry-refine required
+            --gameprep required
+          )
+
+          if [ -n '${{ inputs.detail_dir }}' ]; then
+            ARGS+=(--input-dir '${{ inputs.detail_dir }}')
+          fi
+
+          if [ '${{ inputs.require_all }}' = 'true' ]; then
+            ARGS+=(--require-all)
+          fi
+
+          .hayuya/control/bin/python tools/hayuya3d/hayuya.py "${ARGS[@]}"
+
+      - name: Verify final package
+        if: steps.doctor.outcome == 'success'
+        run: |
+          set -euxo pipefail
+          .hayuya/control/bin/python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("out/gpu-e2e/jobs")
+          manifests = list(root.rglob("manifest.json"))
+          if not manifests:
+              raise SystemExit("GPU E2E produced no HAYUYA manifest")
+
+          manifest_path = max(manifests, key=lambda p: p.stat().st_mtime)
+          data = json.loads(manifest_path.read_text())
+          final_glb = Path(data["final_glb"])
+          if not final_glb.is_file() or final_glb.read_bytes()[:4] != b"glTF":
+              raise SystemExit(f"invalid final GLB: {final_glb}")
+
+          gameprep = data.get("gameprep")
+          if not gameprep:
+              raise SystemExit("GamePrep required but missing from manifest")
+          for lod in gameprep.get("lods", []):
+              path = Path(lod["path"])
+              if not path.is_file() or path.read_bytes()[:4] != b"glTF":
+                  raise SystemExit(f"invalid LOD: {path}")
+
+          report = {
+              "manifest": str(manifest_path),
+              "final_glb": str(final_glb),
+              "champion": data.get("champion", {}).get("backend"),
+              "score": data.get("champion", {}).get("score"),
+              "viewforge": bool(data.get("viewforge")),
+              "geometry_refinement": data.get("geometry_refinement"),
+              "material_bridge": data.get("material_bridge"),
+              "gameprep_lods": len(gameprep.get("lods", [])),
+              "turntable_frames": len(gameprep.get("turntable_frames", [])),
+          }
+          Path("out/gpu-e2e/GPU_E2E_PASS.json").write_text(json.dumps(report, indent=2) + "\n")
+          print(json.dumps(report, indent=2))
+          PY
+
+      - name: Upload HAYUYA GPU evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hayuya-gpu-e2e-${{ github.run_id }}
+          path: |
+            out/gpu-e2e/**
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Fail if GPU doctor rejected runner
+        if: always() && steps.doctor.outcome != 'success'
+        run: |
+          echo "HAYUYA GPU Doctor rejected this runner. Inspect gpu_doctor.json artifact."
+          exit 2
