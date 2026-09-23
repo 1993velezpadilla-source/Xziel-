@@ -1,0 +1,47 @@
+{
+  "engine": "HAYUYA PHONE CLOUD",
+  "job_id": "candy-zombie-001",
+  "compute": "GitHub-hosted CPU controller + public TRELLIS ZeroGPU",
+  "phone_only": true,
+  "source": "hayuya/assets/candy-zombie-001/geometry/candy-zombie-user-reference.jpg",
+  "prepared_views": [
+    "front.png"
+  ],
+  "multi_image": false,
+  "generator": "trellis-community/TRELLIS",
+  "texture_size": 2048,
+  "glb": "hayuya_final.glb",
+  "glb_bytes": 5428208,
+  "authenticated_hf": false,
+  "source_mode": "RGB",
+  "source_had_alpha": false,
+  "alpha_preserved": true,
+  "quality_gate": {
+    "path": "out/hayuya-jobs/candy-zombie-001/outputs/hayuya_final.glb",
+    "valid": true,
+    "passed": true,
+    "vertices": 16328,
+    "faces": 19456,
+    "components": 827,
+    "largest_component_fraction": 0.015434,
+    "degenerate_ratio": 0.0,
+    "bbox_extents": [
+      0.49414989,
+      0.99921247,
+      0.44949701
+    ],
+    "bbox_aspect_ratio": 2.222957,
+    "axis_alignment_weighted": 0.840712,
+    "axis_aligned_area_98": 0.08803,
+    "dominant_normal_axis_area": [
+      0.384821,
+      0.232885,
+      0.382294
+    ],
+    "reasons": [],
+    "warnings": [
+      "fragmented_surface:components=827,largest=0.015",
+      "high_component_count:827"
+    ]
+  }
+}
