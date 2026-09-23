@@ -8,6 +8,8 @@ GPU_VRAM="${HAYUYA_GPU_VRAM:-24}"
 BACKENDS="${HAYUYA_BACKENDS:-triposg,trellis2,trellis,instantmesh,triposr}"
 OUTPUT_ROOT="${HAYUYA_OUTPUT_ROOT:-out/gpu-e2e/jobs}"
 MODEL_ROOT="${HAYUYA_MODEL_ROOT:-.hayuya/models}"
+JOB_ID="${HAYUYA_JOB_ID:-proof}"
+EVIDENCE_ROOT="${HAYUYA_EVIDENCE_ROOT:-out/gpu-e2e/${JOB_ID}}"
 
 echo "=== HAYUYA GPU E2E ==="
 echo "geometry=${GEOMETRY_INPUT}"
@@ -15,6 +17,8 @@ echo "details=${DETAIL_DIR}"
 echo "profile=${PROFILE}"
 echo "gpu_vram=${GPU_VRAM}"
 echo "backends=${BACKENDS}"
+echo "job_id=${JOB_ID}"
+echo "evidence_root=${EVIDENCE_ROOT}"
 
 nvidia-smi
 python3 --version
@@ -25,7 +29,7 @@ python3 -m venv .hayuya/control
 
 .hayuya/control/bin/python tools/hayuya3d/bootstrap.py --all
 
-mkdir -p out/gpu-e2e
+mkdir -p "${EVIDENCE_ROOT}"
 
 ENV_EXPORTS=".hayuya/envs/hayuya_env.sh"
 if [[ "${HAYUYA_SETUP_BACKEND_ENVS:-1}" != "0" ]]; then
@@ -35,7 +39,7 @@ if [[ "${HAYUYA_SETUP_BACKEND_ENVS:-1}" != "0" ]]; then
     --backends "${BACKENDS}" \
     --include-support \
     --exports "${ENV_EXPORTS}" \
-    --json out/gpu-e2e/backend_env_plan.json \
+    --json "${EVIDENCE_ROOT}/backend_env_plan.json" \
     --execute
 fi
 
@@ -52,7 +56,7 @@ source "${ENV_EXPORTS}"
   --model-root "${MODEL_ROOT}" \
   --backends "${BACKENDS}" \
   --include-support \
-  --output out/gpu-e2e/gpu_doctor.json \
+  --output "${EVIDENCE_ROOT}/gpu_doctor.json" \
   --strict
 
 ARGS=(
@@ -80,6 +84,8 @@ fi
 
 .hayuya/control/bin/python tools/hayuya3d/hayuya.py "${ARGS[@]}"
 
-.hayuya/control/bin/python tools/hayuya3d/gpu_verify.py   --root "${OUTPUT_ROOT}"   --output out/gpu-e2e/GPU_E2E_PASS.json
+.hayuya/control/bin/python tools/hayuya3d/gpu_verify.py \
+  --root "${OUTPUT_ROOT}" \
+  --output "${EVIDENCE_ROOT}/GPU_E2E_PASS.json"
 
 echo "HAYUYA_GPU_E2E_PASS"
