@@ -15,9 +15,14 @@
 
     <application
         android:allowBackup="false"
+        android:appCategory="game"
         android:hardwareAccelerated="true"
         android:label="Xziel Engine Prototype"
         android:theme="@style/AppTheme">
+
+        <meta-data
+            android:name="android.game_mode_config"
+            android:resource="@xml/game_mode_config" />
 
         <activity
             android:name=".XzielGameActivity"
