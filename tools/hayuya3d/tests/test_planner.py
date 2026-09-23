@@ -184,6 +184,43 @@ class HayuyaPlannerTests(unittest.TestCase):
         meta = hayuya.backend_meta(lock)
         self.assertFalse(meta["hunyuan3d_2_1"]["enabled_by_default"])
 
+    def test_universal_asset_profile_inference(self):
+        self.assertEqual(hayuya.infer_asset_profile(Path("/tmp/weapons/pump_shotgun/front.png")), "weapon.firearm")
+        self.assertEqual(hayuya.infer_asset_profile(Path("/tmp/foliage/grass/front.png")), "foliage.grass")
+        self.assertEqual(hayuya.infer_asset_profile(Path("/tmp/vehicles/truck/front.png")), "vehicle")
+        self.assertEqual(hayuya.infer_asset_profile(Path("/tmp/zombies/candy/front.png")), "character.humanoid")
+
+    def test_weapon_plan_uses_mechanical_pipeline(self):
+        refs=[Path("/tmp/weapons/pump_shotgun_front.png")]
+        plan=hayuya.make_job_plan(
+            refs,
+            profile_name="game",
+            mode="prop",
+            seed=1993,
+            selected_backends=["triposg"],
+            model_root=Path("/tmp/models"),
+            asset_profile="weapon.firearm",
+            animation_requested=True,
+        )
+        self.assertEqual(plan["asset_profile"], "weapon.firearm")
+        self.assertIn("mechanical_skeleton", plan["asset_pipeline"]["animation_systems"])
+        self.assertIn("weapon_compatibility_gate", plan["asset_pipeline"]["preferred_pipeline"])
+
+    def test_grass_plan_uses_vertex_wind_not_humanoid_rig(self):
+        refs=[Path("/tmp/foliage/grass_front.png")]
+        plan=hayuya.make_job_plan(
+            refs,
+            profile_name="game",
+            mode="prop",
+            seed=1993,
+            selected_backends=["triposg"],
+            model_root=Path("/tmp/models"),
+            asset_profile="foliage.grass",
+            animation_requested=True,
+        )
+        self.assertIn("vertex_wind", plan["asset_pipeline"]["animation_systems"])
+        self.assertNotIn("humanoid_autorig", plan["asset_pipeline"]["preferred_pipeline"])
+
 
 if __name__ == "__main__":
     unittest.main()
