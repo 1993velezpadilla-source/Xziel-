@@ -222,5 +222,9 @@ int main() {
     assert(sanctum.portalCount() == 9U);
     assert(sanctum.bindingCount() == 0U);
 
+    assert(sanctum.setPortalOpen(2000U, true));
+    assert(sanctum.setPortalOpen(2000U, false));
+    assert(!sanctum.setPortalOpen(1001U, true));
+
     return 0;
 }
