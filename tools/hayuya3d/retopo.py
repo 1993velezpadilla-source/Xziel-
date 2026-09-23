@@ -47,6 +47,8 @@ def instant_meshes_binary(model_root: Path = DEFAULT_MODEL_ROOT) -> Path | None:
 
     repo = model_root / "instant_meshes_retopo"
     candidates = [
+        repo / "build-hayuya" / "Instant Meshes",
+        repo / "build-hayuya" / "Instant Meshes.exe",
         repo / "build" / "Instant Meshes",
         repo / "build" / "Instant Meshes.exe",
         repo / "Instant Meshes",
@@ -86,12 +88,34 @@ def build_instant_meshes(
             "Run: python tools/hayuya3d/bootstrap.py --backend instant_meshes_retopo"
         )
 
-    build = repo / "build"
+    build = repo / "build-hayuya"
     build.mkdir(parents=True, exist_ok=True)
-    subprocess.run(
-        ["cmake", "-S", str(repo), "-B", str(build), "-DCMAKE_BUILD_TYPE=Release"],
-        check=True,
-    )
+
+    cmake_cmd = [
+        "cmake",
+        "-S",
+        str(repo),
+        "-B",
+        str(build),
+        "-DCMAKE_BUILD_TYPE=Release",
+    ]
+
+    # The pinned upstream vendors an old Intel TBB which fails to compile with
+    # modern GCC 13+ because -Wchanges-meaning is a default hard diagnostic.
+    # Clang builds the same pinned source without altering third-party code.
+    requested_cxx = os.environ.get("HAYUYA_INSTANT_MESHES_CXX")
+    cxx = requested_cxx or shutil.which("clang++")
+    cc = os.environ.get("HAYUYA_INSTANT_MESHES_CC")
+    if cxx:
+        cxx_path = shutil.which(cxx) or cxx
+        cmake_cmd.append(f"-DCMAKE_CXX_COMPILER={cxx_path}")
+        if cc is None and Path(str(cxx_path)).name.startswith("clang++"):
+            cc = shutil.which("clang")
+        if cc:
+            cc_path = shutil.which(cc) or cc
+            cmake_cmd.append(f"-DCMAKE_C_COMPILER={cc_path}")
+
+    subprocess.run(cmake_cmd, check=True)
     cmd = ["cmake", "--build", str(build), "--config", "Release"]
     if jobs:
         cmd.extend(["--parallel", str(jobs)])
