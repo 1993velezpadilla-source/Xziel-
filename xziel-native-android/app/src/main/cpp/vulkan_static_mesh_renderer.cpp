@@ -6085,7 +6085,6 @@ void VulkanStaticMeshRenderer::destroyGeometryResidency() noexcept {
         }
 
         if (geometryIndexBuffer_ != VK_NULL_HANDLE) {
-        if (geometryIndexBuffer_ != VK_NULL_HANDLE) {
             vkDestroyBuffer(
                 device_,
                 geometryIndexBuffer_,
