@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: xziel-match-server-deploy
+  group: xziel-match-server-deploy-v2
   cancel-in-progress: true
 
 jobs:
