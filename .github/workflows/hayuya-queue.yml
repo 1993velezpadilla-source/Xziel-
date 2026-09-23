@@ -10,6 +10,10 @@ on:
       - tools/hayuya3d/job_request.py
       - tools/hayuya3d/gpu_e2e.sh
       - tools/hayuya3d/phone_cloud_worker.py
+      - tools/hayuya3d/internet_asset_research.py
+      - tools/hayuya3d/auto_motion_planner.py
+      - hayuya/standards/hayuya_auto_motion_v1.json
+      - hayuya/standards/hayuya_research_sources_v1.json
       - .github/workflows/hayuya-queue.yml
   workflow_dispatch:
 
@@ -178,6 +182,42 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: python tools/hayuya3d/phone_cloud_worker.py
 
+      - name: HAYUYA Auto research and motion plan
+        if: success() && matrix.animation_requested == 'true' && (matrix.motion_profile == 'auto' || matrix.motion_profile == 'hayuya_auto')
+        env:
+          HAYUYA_TITLE: ${{ matrix.title }}
+          HAYUYA_ASSET_PROFILE: ${{ matrix.asset_profile }}
+          HAYUYA_WEAPON_FAMILY: ${{ matrix.weapon_family }}
+          HAYUYA_MOTION_PROFILE: ${{ matrix.motion_profile }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HAYUYA_EVIDENCE_ROOT"
+          python tools/hayuya3d/internet_asset_research.py             --query "$HAYUYA_TITLE"             --asset-profile "$HAYUYA_ASSET_PROFILE"             --weapon-family "$HAYUYA_WEAPON_FAMILY"             --json "$HAYUYA_EVIDENCE_ROOT/internet_research.json"
+
+          python tools/hayuya3d/auto_motion_planner.py             --asset-profile "$HAYUYA_ASSET_PROFILE"             --weapon-family "$HAYUYA_WEAPON_FAMILY"             --motion-profile "$HAYUYA_MOTION_PROFILE"             --animation-requested true             --research "$HAYUYA_EVIDENCE_ROOT/internet_research.json"             --json "$HAYUYA_OUTPUT_ROOT/auto_motion_plan.json"
+
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root=Path(os.environ["HAYUYA_OUTPUT_ROOT"])
+          manifest_path=root/"manifest.json"
+          if manifest_path.exists():
+              manifest=json.loads(manifest_path.read_text())
+              plan=json.loads((root/"auto_motion_plan.json").read_text())
+              research_path=Path(os.environ["HAYUYA_EVIDENCE_ROOT"])/"internet_research.json"
+              research=json.loads(research_path.read_text()) if research_path.exists() else {}
+              manifest["auto_motion"]=plan
+              manifest["research"]={
+                  "adapter":research.get("adapter"),
+                  "confidence":research.get("confidence",0),
+                  "inferred_weapon_family":research.get("inferred_weapon_family","auto"),
+                  "sources":research.get("sources",[]),
+                  "warnings":research.get("warnings",[])
+              }
+              manifest_path.write_text(json.dumps(manifest,indent=2)+"\n")
+          PY
+
       - name: Persist successful model for Hub preview
         if: success()
         shell: bash
@@ -191,7 +231,7 @@ jobs:
           if [ -f "$HAYUYA_OUTPUT_ROOT/manifest.json" ]; then
             cp "$HAYUYA_OUTPUT_ROOT/manifest.json" "$model_dir/manifest.json"
           fi
-          for qa in quality_gate.json texture_gate.json rig_gate.json failure_reason.txt; do
+          for qa in quality_gate.json texture_gate.json rig_gate.json auto_motion_plan.json failure_reason.txt; do
             if [ -f "$HAYUYA_OUTPUT_ROOT/$qa" ]; then
               cp "$HAYUYA_OUTPUT_ROOT/$qa" "$model_dir/$qa"
             fi
