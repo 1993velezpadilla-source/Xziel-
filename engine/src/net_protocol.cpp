@@ -234,6 +234,9 @@ bool readZombieSnapshot(
         reader.i16(value.yawCentidegrees);
 }
 
+constexpr std::size_t kWelcomeBytes =
+    1U + 1U + 4U;
+
 constexpr std::size_t kPlayerInputBytes =
     4U + 2U + 2U + 2U + 2U + 2U + 2U + 2U;
 
@@ -250,6 +253,53 @@ constexpr std::size_t kSnapshotPrefixBytes =
     4U + 2U + 2U + 1U + 1U;
 
 } // namespace
+
+std::size_t netWelcomePayloadBytes() noexcept {
+    return kWelcomeBytes;
+}
+
+NetDecodeResult decodeNetWelcome(
+    std::span<const std::byte> bytes,
+    NetPacketHeader& header,
+    NetWelcome& welcome) noexcept {
+    header = {};
+    welcome = {};
+
+    if (bytes.size() <
+        kNetHeaderBytes +
+            kWelcomeBytes) {
+        return {};
+    }
+
+    Reader reader(bytes);
+
+    if (!readHeader(reader, header) ||
+        header.type !=
+            NetMessageType::Welcome ||
+        header.payloadBytes !=
+            kWelcomeBytes ||
+        bytes.size() <
+            kNetHeaderBytes +
+                header.payloadBytes ||
+        !reader.u8(welcome.playerId) ||
+        !reader.u8(welcome.maxPlayers) ||
+        !reader.u32(welcome.serverTick) ||
+        welcome.maxPlayers == 0U ||
+        welcome.maxPlayers >
+            kOnlineMaxPlayers ||
+        welcome.playerId >=
+            welcome.maxPlayers) {
+        header = {};
+        welcome = {};
+        return {};
+    }
+
+    return {
+        .success = true,
+        .type = header.type,
+        .bytesConsumed = reader.offset(),
+    };
+}
 
 std::size_t netPlayerInputPayloadBytes() noexcept {
     return kPlayerInputBytes;
