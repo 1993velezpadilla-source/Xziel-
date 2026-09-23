@@ -1941,6 +1941,24 @@ xziel::android::VulkanEnvironmentState makeEnvironmentState(
         state.renderWorkload.
             ssrMaxSteps;
 
+    // Sanctum currently has no authored reflective-surface records. The
+    // legacy water/mirror candidates below belong to the prototype room and
+    // were silently spending an extra scene pass in the church whenever they
+    // happened to face the camera. Keep that workload disabled until the map
+    // format explicitly owns a reflective surface.
+    if (state.sanctumMapLoaded) {
+        environment.maxPlanarReflectionPasses = 0U;
+        environment.planarReflectionScale = 0.0f;
+        environment.reflectionDistanceMeters = 0.0f;
+        environment.ssrEnabled = false;
+        environment.ssrResolutionScale = 0.0f;
+        environment.ssrMaxSteps = 0U;
+        environment.planarReflectionVisible = false;
+        environment.planarReflectionScreenCoverage = 0.0f;
+        environment.planarReflectionMaterialId = 0U;
+        return environment;
+    }
+
     // Feed authored candidate surfaces through the engine ReflectionPlanner
     // instead of hardcoding Vulkan to the prototype water plane. This is the
     // Android bridge that lets mirrors/water compete for the bounded planar
