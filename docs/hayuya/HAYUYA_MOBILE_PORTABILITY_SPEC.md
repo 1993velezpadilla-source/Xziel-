@@ -644,6 +644,28 @@ This is intentionally separate from object/character image-to-3D.
 
 ---
 
+## Physical KTX2 / Basis Universal delivery
+
+HAYUYA now has an executable physical texture-delivery stage rather than only a compression recommendation.
+
+Pinned toolchain:
+
+- glTF Transform CLI 4.5.0
+- Khronos KTX-Software 4.4.2
+
+The runtime GLB path:
+
+1. resizes textures to the selected tier ceiling;
+2. uses UASTC for normal, occlusion and metallic-roughness slots;
+3. uses ETC1S for remaining compatible textures;
+4. generates mipmaps;
+5. writes KTX2 payloads into the GLB;
+6. requires KHR_texture_basisu;
+7. audits that every referenced runtime texture uses the extension and every embedded image is image/ktx2.
+
+The original Hero Master is untouched, and each tier keeps its non-KTX2 GLB sibling for runtimes that do not consume KHR_texture_basisu.
+
+Important terminology: KTX2/Basis Universal is a universal compressed delivery representation. It may be transcoded to native GPU formats such as ASTC or ETC2 at runtime or by an engine-specific build pipeline. HAYUYA must not claim that a BasisU GLB already contains native ASTC/ETC2 blocks unless a separate native-format packaging stage actually generated them.
 # PORTABILITY ACCEPTANCE TEST
 
 An asset/package cannot be called mobile-portable merely because it opens on Android/iOS.
