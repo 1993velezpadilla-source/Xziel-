@@ -270,6 +270,7 @@ bool VulkanStaticMeshRenderer::initialize(
         streamGraphReady_ &&
         runtimeStreamingProbeEnabled();
     streamResidencyProbeComplete_ = false;
+    streamResidencyProbeReloadComplete_ = false;
     streamResidencyProbeTextureIndex_ =
         UINT32_MAX;
     streamResidencyProbeReloadFrame_ = 0U;
@@ -867,6 +868,7 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     runtimeTextureTransitionFrame_ = 0U;
     streamResidencyProbeEnabled_ = false;
     streamResidencyProbeComplete_ = false;
+    streamResidencyProbeReloadComplete_ = false;
     streamResidencyProbeTextureIndex_ =
         UINT32_MAX;
     streamResidencyProbeReloadFrame_ = 0U;
