@@ -25,7 +25,7 @@ jobs:
       - name: Install Blender
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq blender
+          sudo apt-get install -y -qq blender python3-numpy
 
       - name: Rig Candyland zombie with CC0 donor
         run: |
