@@ -96,7 +96,7 @@ public:
         VkExtent2D extent,
         std::uint32_t frameSlot,
         const StaticMeshCameraState& camera,
-        const StaticMeshEnvironmentState& environment) const noexcept;
+        const StaticMeshEnvironmentState& environment) noexcept;
 
     void recordViewmodel(
         VkCommandBuffer command,
@@ -126,6 +126,21 @@ private:
             sourceMipBytes{};
         std::uint64_t residentPayloadBytes = 0U;
         std::uint64_t allocationBytes = 0U;
+        bool srgb = false;
+        bool physicallyResident = true;
+        bool runtimeLoadQueued = false;
+        std::uint8_t descriptorResidentMask = 0x3U;
+    };
+
+    struct RuntimeTextureUpload {
+        std::uint32_t textureIndex = UINT32_MAX;
+        std::uint32_t targetBaseMip = 0U;
+        GpuTexture replacement{};
+        VkCommandBuffer command = VK_NULL_HANDLE;
+        VkBuffer stagingBuffer = VK_NULL_HANDLE;
+        VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
+        VkFence fence = VK_NULL_HANDLE;
+        bool active = false;
     };
 
     struct GpuMaterial {
@@ -304,6 +319,29 @@ private:
         std::uint64_t resourceId,
         std::size_t count) const noexcept;
 
+    [[nodiscard]] bool updateTextureDescriptorForFrame(
+        std::uint32_t textureIndex,
+        std::uint32_t frameSlot,
+        std::uint32_t replacementTextureIndex) noexcept;
+
+    [[nodiscard]] bool materialStreamingReady(
+        const GpuMaterial& material,
+        std::uint32_t frameSlot) const noexcept;
+
+    void releaseTextureGpuResidency(
+        GpuTexture& texture) noexcept;
+
+    void destroyRuntimeTextureUpload() noexcept;
+
+    [[nodiscard]] bool beginRuntimeKtx2Upload(
+        std::uint32_t textureIndex,
+        std::uint32_t targetBaseMip,
+        std::vector<std::byte>&& bytes) noexcept;
+
+    void serviceRuntimeTextureResidency(
+        std::uint32_t frameSlot,
+        MemoryPressure memoryPressure) noexcept;
+
     VkPhysicalDevice physicalDevice_ = VK_NULL_HANDLE;
     VkDevice device_ = VK_NULL_HANDLE;
     VkQueue graphicsQueue_ = VK_NULL_HANDLE;
@@ -338,6 +376,9 @@ private:
     mutable std::uint32_t streamCellStableFrames_ = 0U;
     mutable bool streamCullingActive_ = false;
     mutable bool streamCullLogged_ = false;
+    std::uint32_t streamFallbackTextureIndex_ = UINT32_MAX;
+    RuntimeTextureUpload runtimeTextureUpload_{};
+    std::uint64_t runtimeTextureTransitionFrame_ = 0U;
 
     std::vector<GpuTexture> textures_{};
     std::vector<GpuMaterial> materials_{};
