@@ -16,6 +16,7 @@ inline constexpr std::size_t kMaxMapDoors = 16;
 inline constexpr std::size_t kMaxMapWindows = 32;
 inline constexpr std::size_t kMaxMapGenericInteractions = 16;
 inline constexpr std::size_t kMaxMapZombieSpawns = 32;
+inline constexpr std::size_t kMaxMapPlayerSpawns = 4;
 
 struct MapBoxDefinition {
     std::uint32_t id = 0;
@@ -42,6 +43,12 @@ struct MapWindowEntity {
     InteractionTarget interaction{};
 };
 
+struct MapPlayerSpawn {
+    Vec3 feet{};
+    float yawDegrees = 0.0f;
+    bool valid = false;
+};
+
 struct MapDefinition {
     std::array<MapBoxDefinition, kMaxMapBoxes> boxes{};
     std::size_t boxCount = 0;
@@ -49,9 +56,15 @@ struct MapDefinition {
     std::array<MapFloorDefinition, kMaxMapFloors> floors{};
     std::size_t floorCount = 0;
 
+    // Legacy/local aliases remain for v1/v2 compatibility. Slot 0 is the
+    // local fallback spawn. XMAP v3 may author all four online slots.
     Vec3 playerSpawnFeet{};
     float playerSpawnYawDegrees = 0.0f;
     bool hasPlayerSpawn = false;
+
+    std::array<MapPlayerSpawn, kMaxMapPlayerSpawns>
+        playerSpawns{};
+    std::size_t playerSpawnCount = 0U;
 
     std::array<Vec3, kMaxMapZombieSpawns> zombieSpawns{};
     std::size_t zombieSpawnCount = 0;
