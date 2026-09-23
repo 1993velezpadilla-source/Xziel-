@@ -274,6 +274,11 @@ bool VulkanStaticMeshRenderer::initialize(
         UINT32_MAX;
     streamResidencyProbeReloadFrame_ = 0U;
 
+    if (streamResidencyProbeEnabled_) {
+        logInfo(
+            "XZIEL_RUNTIME_TEXTURE_RELOAD_PROBE_ENABLED");
+    }
+
     // Read KTX2 payloads on bounded worker threads while the render thread
     // creates pipelines/descriptors. Vulkan object creation and queue submits
     // stay on this thread; only APK asset I/O moves off-thread.
@@ -1262,12 +1267,22 @@ void VulkanStaticMeshRenderer::destroyRuntimeTextureUpload() noexcept {
     if (device_ != VK_NULL_HANDLE &&
         runtimeTextureUpload_.fence !=
             VK_NULL_HANDLE) {
-        (void) vkWaitForFences(
-            device_,
-            1U,
-            &runtimeTextureUpload_.fence,
-            VK_TRUE,
-            UINT64_MAX);
+        const VkResult fenceStatus =
+            vkGetFenceStatus(
+                device_,
+                runtimeTextureUpload_.fence);
+
+        // Blocking is allowed only during shutdown. A runtime device/fence
+        // error must never turn into an infinite wait on the render thread.
+        if (fenceStatus == VK_NOT_READY &&
+            !ready_) {
+            (void) vkWaitForFences(
+                device_,
+                1U,
+                &runtimeTextureUpload_.fence,
+                VK_TRUE,
+                UINT64_MAX);
+        }
     }
 
     if (device_ != VK_NULL_HANDLE) {
