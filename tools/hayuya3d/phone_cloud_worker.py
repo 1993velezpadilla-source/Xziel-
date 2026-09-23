@@ -298,6 +298,7 @@ manifest={
     "quality_gate":gate_payload,
     "character":{
         "skeleton_type":rig_payload["skeleton_type"],
+        "preview_pack":"hayuya_preview_pack_v1",
         "rig_ready":rig_payload["rig_ready"],
         "animation_ready":rig_payload["animation_ready"],
         "preview_animation_ready":rig_payload["preview_animation_ready"],
