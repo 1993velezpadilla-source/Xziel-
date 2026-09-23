@@ -23,9 +23,20 @@ class AppearanceViewScore:
 
 
 @dataclass
+class DetailAppearanceScore:
+    source: str
+    cosine_similarity: float
+    score: float
+    best_azimuth: float
+    best_patch: str
+
+
+@dataclass
 class AppearanceScore:
     score: float
     views: list[AppearanceViewScore]
+    detail_score: float | None = None
+    details: list[DetailAppearanceScore] | None = None
     method: str = "hayuya-dinov2-rgb-v3"
 
 
@@ -269,6 +280,42 @@ def preprocess_source_rgb(path: Path, *, size: int = 224):
         return image.resize((size, size), Image.Resampling.BICUBIC)
 
 
+def preprocess_detail_rgb(path: Path, *, size: int = 224):
+    """Preserve close-up content without pretending its frame is a whole-object silhouette."""
+    np, Image = _deps()
+    image = Image.open(path).convert("RGB")
+    w, h = image.size
+    scale = min(size / max(w, 1), size / max(h, 1))
+    nw = max(1, int(round(w * scale)))
+    nh = max(1, int(round(h * scale)))
+    resized = image.resize((nw, nh), Image.Resampling.BICUBIC)
+    canvas = Image.new("RGB", (size, size), (127, 127, 127))
+    canvas.paste(resized, ((size - nw) // 2, (size - nh) // 2))
+    return canvas
+
+
+def make_detail_patches(image, *, patch_size: int = 126):
+    """Return overlapping local crops plus the whole render for detail retrieval."""
+    _, Image = _deps()
+    image = image.convert("RGB")
+    w, h = image.size
+    patches = [("whole", image)]
+    xs = [0.25, 0.50, 0.75]
+    ys = [0.25, 0.50, 0.75]
+    half = patch_size // 2
+    for yi, yf in enumerate(ys):
+        for xi, xf in enumerate(xs):
+            cx = int(round(xf * (w - 1)))
+            cy = int(round(yf * (h - 1)))
+            left = max(0, min(w - patch_size, cx - half))
+            top = max(0, min(h - patch_size, cy - half))
+            right = min(w, left + patch_size)
+            bottom = min(h, top + patch_size)
+            crop = image.crop((left, top, right, bottom)).resize((224, 224), Image.Resampling.BICUBIC)
+            patches.append((f"grid_{yi}_{xi}", crop))
+    return patches
+
+
 @lru_cache(maxsize=2)
 def _load_dinov2(repo_path: str, device_name: str):
     import torch
@@ -288,6 +335,35 @@ def _load_dinov2(repo_path: str, device_name: str):
     )
     model.eval().to(device_name)
     return model
+
+
+def _encode_dinov2_batch(images, *, repo_path: Path, device_name: str, batch_size: int = 24):
+    import numpy as np
+    import torch
+
+    model = _load_dinov2(str(repo_path.resolve()), device_name)
+    mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
+    std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
+
+    outputs = []
+    for start in range(0, len(images), batch_size):
+        chunk = images[start:start + batch_size]
+        arrays = [
+            np.asarray(im.convert("RGB").resize((224, 224)), dtype=np.float32) / 255.0
+            for im in chunk
+        ]
+        tensor = torch.from_numpy(np.stack(arrays, axis=0)).permute(0, 3, 1, 2)
+        tensor = ((tensor - mean) / std).to(device_name)
+        with torch.inference_mode():
+            feature = model(tensor)
+        if isinstance(feature, dict):
+            selected = feature.get("x_norm_clstoken")
+            feature = selected if selected is not None else next(iter(feature.values()))
+        feature = feature.reshape(feature.shape[0], -1)
+        feature = torch.nn.functional.normalize(feature, dim=-1)
+        outputs.append(feature.detach().cpu().numpy())
+
+    return np.concatenate(outputs, axis=0) if outputs else np.empty((0, 0), dtype=np.float32)
 
 
 def _encode_dinov2(image, *, repo_path: Path, device_name: str):
@@ -344,12 +420,106 @@ def aggregate_appearance_scores(values: list[float]) -> float:
     return 0.72 * mean + 0.20 * low + 0.08 * ordered[0]
 
 
+def aggregate_detail_scores(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    ordered = sorted(float(v) for v in values)
+    mean = sum(ordered) / len(ordered)
+    if len(ordered) == 1:
+        return ordered[0]
+    return 0.80 * mean + 0.20 * ordered[0]
+
+
+def _canonical_detail_azimuths(
+    source_images: list[Path],
+    matched_views: list[SourceViewScore],
+) -> tuple[str, list[float]]:
+    up_axis = matched_views[0].best_up_axis if matched_views else "y"
+    offset = 0.0
+    for source, matched in zip(source_images, matched_views):
+        hint = infer_view_hint(source)
+        if hint is not None:
+            offset = (matched.best_azimuth - hint) % 360.0
+            up_axis = matched.best_up_axis
+            break
+    azimuths = [float((offset + angle) % 360.0) for angle in range(0, 360, 45)]
+    return up_axis, azimuths
+
+
+def score_detail_references(
+    *,
+    vertices,
+    faces,
+    colors,
+    geometry_sources: list[Path],
+    matched_views: list[SourceViewScore],
+    detail_images: list[Path],
+    repo_path: Path,
+    device: str,
+) -> tuple[float | None, list[DetailAppearanceScore]]:
+    if not detail_images:
+        return None, []
+
+    import numpy as np
+
+    up_axis, azimuths = _canonical_detail_azimuths(geometry_sources, matched_views)
+    patch_images = []
+    patch_meta: list[tuple[float, str]] = []
+
+    for azimuth in azimuths:
+        synthetic_view = SourceViewScore(
+            source="detail-search",
+            best_score=0.0,
+            best_azimuth=azimuth,
+            best_elevation=0.0,
+            best_up_axis=up_axis,
+            silhouette_iou=0.0,
+            boundary_f1=0.0,
+        )
+        render = render_candidate_rgb_arrays(vertices, faces, colors, synthetic_view)
+        for patch_name, patch in make_detail_patches(render):
+            patch_images.append(patch)
+            patch_meta.append((azimuth, patch_name))
+
+    candidate_features = _encode_dinov2_batch(
+        patch_images,
+        repo_path=repo_path,
+        device_name=device,
+    )
+    detail_source_images = [preprocess_detail_rgb(path) for path in detail_images]
+    detail_features = _encode_dinov2_batch(
+        detail_source_images,
+        repo_path=repo_path,
+        device_name=device,
+    )
+
+    details: list[DetailAppearanceScore] = []
+    for source, feature in zip(detail_images, detail_features):
+        similarities = candidate_features @ feature
+        best_index = int(np.argmax(similarities))
+        cosine = float(similarities[best_index])
+        score = max(0.0, min(100.0, cosine * 100.0))
+        azimuth, patch_name = patch_meta[best_index]
+        details.append(
+            DetailAppearanceScore(
+                source=str(source),
+                cosine_similarity=round(cosine, 6),
+                score=round(score, 3),
+                best_azimuth=azimuth,
+                best_patch=patch_name,
+            )
+        )
+
+    return round(aggregate_detail_scores([d.score for d in details]), 3), details
+
+
 def score_candidate_appearance(
     mesh_path: Path,
     source_images: list[Path],
     matched_views: list[SourceViewScore],
     *,
     model_root: Path,
+    detail_images: list[Path] | None = None,
     render_dir: Path | None = None,
     device: str = "auto",
 ) -> AppearanceScore:
@@ -403,8 +573,30 @@ def score_candidate_appearance(
             )
         )
 
-    final = aggregate_appearance_scores([v.score for v in views])
-    return AppearanceScore(score=round(final, 3), views=views)
+    geometry_score = aggregate_appearance_scores([v.score for v in views])
+    detail_score, details = score_detail_references(
+        vertices=vertices,
+        faces=faces,
+        colors=colors,
+        geometry_sources=source_images,
+        matched_views=matched_views,
+        detail_images=detail_images or [],
+        repo_path=repo_path,
+        device=device,
+    )
+
+    if detail_score is None:
+        final = geometry_score
+    else:
+        # Whole-object appearance remains dominant; close-ups refine identity/material ranking.
+        final = 0.72 * geometry_score + 0.28 * detail_score
+
+    return AppearanceScore(
+        score=round(final, 3),
+        views=views,
+        detail_score=detail_score,
+        details=details,
+    )
 
 
 def main() -> int:
@@ -415,6 +607,7 @@ def main() -> int:
     parser.add_argument("mesh", type=Path)
     parser.add_argument("--source", type=Path, action="append", required=True)
     parser.add_argument("--model-root", type=Path, required=True)
+    parser.add_argument("--detail", type=Path, action="append", default=[])
     parser.add_argument("--render-dir", type=Path)
     parser.add_argument("--device", default="auto")
     args = parser.parse_args()
@@ -427,6 +620,7 @@ def main() -> int:
         args.source,
         visual.views,
         model_root=args.model_root,
+        detail_images=args.detail,
         render_dir=args.render_dir,
         device=args.device,
     )
