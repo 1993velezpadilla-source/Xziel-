@@ -1086,16 +1086,24 @@ bool VulkanStaticMeshRenderer::updateTextureDescriptorForFrame(
     std::uint32_t textureIndex,
     std::uint32_t frameSlot,
     std::uint32_t replacementTextureIndex) noexcept {
-    if (frameSlot >= kDescriptorFrames ||
-        textureIndex >= textures_.size() ||
-        replacementTextureIndex >= textures_.size()) {
+    if (replacementTextureIndex >=
+        textures_.size()) {
         return false;
     }
 
-    const auto& replacement =
-        textures_[replacementTextureIndex];
+    return updateTextureDescriptorForFrame(
+        textureIndex,
+        frameSlot,
+        textures_[replacementTextureIndex]);
+}
 
-    if (!replacement.physicallyResident ||
+bool VulkanStaticMeshRenderer::updateTextureDescriptorForFrame(
+    std::uint32_t textureIndex,
+    std::uint32_t frameSlot,
+    const GpuTexture& replacement) noexcept {
+    if (frameSlot >= kDescriptorFrames ||
+        textureIndex >= textures_.size() ||
+        !replacement.physicallyResident ||
         replacement.view == VK_NULL_HANDLE ||
         replacement.sampler == VK_NULL_HANDLE) {
         return false;
@@ -1330,7 +1338,8 @@ void VulkanStaticMeshRenderer::destroyRuntimeTextureUpload() noexcept {
 bool VulkanStaticMeshRenderer::beginRuntimeKtx2Upload(
     std::uint32_t textureIndex,
     std::uint32_t targetBaseMip,
-    std::vector<std::byte>&& bytes) noexcept {
+    std::vector<std::byte>&& bytes,
+    bool preserveOldTexture) noexcept {
     if (runtimeTextureUpload_.active ||
         textureIndex >= textures_.size() ||
         bytes.empty() ||
@@ -1439,6 +1448,10 @@ bool VulkanStaticMeshRenderer::beginRuntimeKtx2Upload(
         textureIndex;
     upload.targetBaseMip =
         targetBaseMip;
+    upload.preserveOldTexture =
+        preserveOldTexture;
+    upload.uploadReady = false;
+    upload.descriptorSwapMask = 0U;
 
     if (!createBuffer(
             stagingBytes,
