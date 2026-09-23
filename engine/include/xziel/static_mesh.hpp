@@ -70,6 +70,7 @@ struct StaticMeshBatch {
     StaticMeshBounds bounds{};
     std::uint32_t flags =
         StaticMeshBatchFlagDoubleSided;
+    bool pbrMaterial = false;
     std::vector<StaticMeshVertex> vertices{};
     std::vector<std::uint16_t> indices{};
 
@@ -77,6 +78,10 @@ struct StaticMeshBatch {
         return
             (flags &
              StaticMeshBatchFlagDoubleSided) != 0U;
+    }
+
+    [[nodiscard]] bool pbrEnabled() const noexcept {
+        return pbrMaterial;
     }
 };
 

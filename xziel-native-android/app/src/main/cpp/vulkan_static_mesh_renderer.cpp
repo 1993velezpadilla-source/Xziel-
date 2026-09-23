@@ -128,17 +128,20 @@ bool VulkanStaticMeshRenderer::initialize(
     VkDescriptorPoolSize poolSize{};
     poolSize.type =
         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSize.descriptorCount =
+    const std::uint32_t materialCount =
         static_cast<std::uint32_t>(
             std::max<std::size_t>(
                 asset.batches.size(),
                 1U));
 
+    poolSize.descriptorCount =
+        materialCount * 4U;
+
     VkDescriptorPoolCreateInfo poolInfo{
         VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO
     };
     poolInfo.maxSets =
-        poolSize.descriptorCount;
+        materialCount;
     poolInfo.poolSizeCount = 1U;
     poolInfo.pPoolSizes = &poolSize;
 
@@ -157,62 +160,186 @@ bool VulkanStaticMeshRenderer::initialize(
         textureIndices;
 
     std::vector<std::uint32_t>
-        batchTextureIndices;
+        batchMaterialIndices;
+
+    std::uint32_t pbrMaterialCount = 0U;
+    std::uint32_t normalMapCount = 0U;
+    std::uint32_t ormMapCount = 0U;
+    std::uint32_t emissiveMapCount = 0U;
+
+    const auto loadTexture =
+        [&](const std::string& exportedName,
+            bool srgb,
+            std::uint32_t& outIndex) noexcept {
+            if (exportedName.empty()) {
+                return false;
+            }
+
+            const std::string path =
+                textureAssetPath(
+                    exportedName);
+            const std::string cacheKey =
+                path +
+                (srgb ? "#srgb" : "#linear");
+
+            const auto found =
+                textureIndices.find(cacheKey);
+
+            if (found != textureIndices.end()) {
+                outIndex = found->second;
+                return true;
+            }
+
+            GpuTexture texture{};
+            if (!createTexture(
+                    assetManager,
+                    path,
+                    srgb,
+                    texture)) {
+                return false;
+            }
+
+            outIndex =
+                static_cast<std::uint32_t>(
+                    textures_.size());
+
+            textures_.emplace_back(
+                std::move(texture));
+            textureIndices.emplace(
+                cacheKey,
+                outIndex);
+            return true;
+        };
 
     try {
-        batchTextureIndices.reserve(
+        batchMaterialIndices.reserve(
+            asset.batches.size());
+        materials_.reserve(
             asset.batches.size());
 
         for (const auto& batch : asset.batches) {
-            const std::string path =
-                textureAssetPath(
-                    batch.textureName);
+            GpuMaterial material{};
 
-            auto found =
-                textureIndices.find(path);
+            if (!loadTexture(
+                    batch.textureName,
+                    true,
+                    material.albedoTextureIndex)) {
+                logError(
+                    "static mesh albedo texture load failed");
+                shutdown();
+                return false;
+            }
 
-            std::uint32_t textureIndex = 0U;
+            material.normalTextureIndex =
+                material.albedoTextureIndex;
+            material.ormTextureIndex =
+                material.albedoTextureIndex;
+            material.emissiveTextureIndex =
+                material.albedoTextureIndex;
 
-            if (found == textureIndices.end()) {
-                GpuTexture texture{};
+            material.baseColorFactor =
+                batch.pbr.baseColorFactor;
+            material.metallicFactor =
+                batch.pbr.metallicFactor;
+            material.roughnessFactor =
+                batch.pbr.roughnessFactor;
+            material.emissiveFactor =
+                batch.pbr.emissiveFactor;
+            material.normalScale =
+                batch.pbr.normalScale;
+            material.occlusionStrength =
+                batch.pbr.occlusionStrength;
+            material.pbrEnabled =
+                batch.pbrEnabled();
 
-                if (!createTexture(
-                        assetManager,
-                        path,
-                        texture)) {
+            if (material.pbrEnabled &&
+                !batch.pbr.normalTextureName.empty()) {
+                if (!loadTexture(
+                        batch.pbr.normalTextureName,
+                        false,
+                        material.normalTextureIndex)) {
                     logError(
-                        "Sanctum albedo texture load failed");
+                        "static mesh normal texture load failed");
                     shutdown();
                     return false;
                 }
-
-                textureIndex =
-                    static_cast<std::uint32_t>(
-                        textures_.size());
-
-                textures_.emplace_back(
-                    std::move(texture));
-
-                textureIndices.emplace(
-                    path,
-                    textureIndex);
-            } else {
-                textureIndex = found->second;
+                material.hasNormalTexture = true;
+                ++normalMapCount;
             }
 
-            batchTextureIndices.push_back(
-                textureIndex);
+            if (material.pbrEnabled &&
+                !batch.pbr.ormTextureName.empty()) {
+                if (!loadTexture(
+                        batch.pbr.ormTextureName,
+                        false,
+                        material.ormTextureIndex)) {
+                    logError(
+                        "static mesh ORM texture load failed");
+                    shutdown();
+                    return false;
+                }
+                material.hasOrmTexture = true;
+                ++ormMapCount;
+            }
+
+            if (material.pbrEnabled &&
+                !batch.pbr.emissiveTextureName.empty()) {
+                if (!loadTexture(
+                        batch.pbr.emissiveTextureName,
+                        true,
+                        material.emissiveTextureIndex)) {
+                    logError(
+                        "static mesh emissive texture load failed");
+                    shutdown();
+                    return false;
+                }
+                material.hasEmissiveTexture = true;
+                ++emissiveMapCount;
+            }
+
+            if (!createMaterialDescriptor(
+                    material)) {
+                logError(
+                    "static mesh PBR material descriptor failed");
+                shutdown();
+                return false;
+            }
+
+            if (material.pbrEnabled) {
+                ++pbrMaterialCount;
+            }
+
+            const std::uint32_t materialIndex =
+                static_cast<std::uint32_t>(
+                    materials_.size());
+
+            materials_.emplace_back(
+                std::move(material));
+            batchMaterialIndices.push_back(
+                materialIndex);
         }
     } catch (...) {
         logError(
-            "Sanctum GPU resource allocation failed");
+            "static mesh GPU material allocation failed");
         shutdown();
         return false;
     }
 
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
+        "XZIEL_PBR_MATERIALS_READY materials=%u pbr=%u legacy=%u normal=%u orm=%u emissive=%u textures=%u",
+        static_cast<unsigned int>(materials_.size()),
+        static_cast<unsigned int>(pbrMaterialCount),
+        static_cast<unsigned int>(materials_.size() - pbrMaterialCount),
+        static_cast<unsigned int>(normalMapCount),
+        static_cast<unsigned int>(ormMapCount),
+        static_cast<unsigned int>(emissiveMapCount),
+        static_cast<unsigned int>(textures_.size()));
+
     if (!createGeometryResidency(
             asset,
-            batchTextureIndices)) {
+            batchMaterialIndices)) {
         logError(
             "Sanctum consolidated geometry upload failed");
         shutdown();
@@ -225,6 +352,7 @@ bool VulkanStaticMeshRenderer::initialize(
         asset.totalIndices;
     ready_ =
         !batches_.empty() &&
+        !materials_.empty() &&
         !textures_.empty();
 
     if (ready_) {
@@ -291,6 +419,7 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     }
 
     batches_.clear();
+    materials_.clear();
     textures_.clear();
 
     pipeline_ = VK_NULL_HANDLE;
@@ -400,15 +529,51 @@ void VulkanStaticMeshRenderer::record(
     push.modelScale = 1.0f;
     push.viewmodelMode = 0.0f;
 
-    vkCmdPushConstants(
-        command,
-        pipelineLayout_,
-        VK_SHADER_STAGE_VERTEX_BIT |
-            VK_SHADER_STAGE_FRAGMENT_BIT,
-        0U,
-        static_cast<std::uint32_t>(
-            sizeof(push)),
-        &push);
+    const auto applyMaterial =
+        [&](const GpuMaterial& material) noexcept {
+            PushConstants materialPush = push;
+
+            materialPush.baseColorFactorR =
+                material.baseColorFactor[0];
+            materialPush.baseColorFactorG =
+                material.baseColorFactor[1];
+            materialPush.baseColorFactorB =
+                material.baseColorFactor[2];
+            materialPush.baseColorFactorA =
+                material.baseColorFactor[3];
+            materialPush.metallicFactor =
+                material.metallicFactor;
+            materialPush.roughnessFactor =
+                material.roughnessFactor;
+            materialPush.normalScale =
+                material.normalScale;
+            materialPush.occlusionStrength =
+                material.occlusionStrength;
+            materialPush.emissiveFactorR =
+                material.emissiveFactor[0];
+            materialPush.emissiveFactorG =
+                material.emissiveFactor[1];
+            materialPush.emissiveFactorB =
+                material.emissiveFactor[2];
+
+            std::uint32_t flags = 0U;
+            flags |= material.pbrEnabled ? 1U : 0U;
+            flags |= material.hasNormalTexture ? 2U : 0U;
+            flags |= material.hasOrmTexture ? 4U : 0U;
+            flags |= material.hasEmissiveTexture ? 8U : 0U;
+            materialPush.materialFlags =
+                static_cast<float>(flags);
+
+            vkCmdPushConstants(
+                command,
+                pipelineLayout_,
+                VK_SHADER_STAGE_VERTEX_BIT |
+                    VK_SHADER_STAGE_FRAGMENT_BIT,
+                0U,
+                static_cast<std::uint32_t>(
+                    sizeof(materialPush)),
+                &materialPush);
+        };
 
     if (geometryVertexBuffer_ == VK_NULL_HANDLE ||
         geometryIndexBuffer_ == VK_NULL_HANDLE) {
@@ -451,8 +616,8 @@ void VulkanStaticMeshRenderer::record(
     constexpr float farPlane = 180.0f;
 
     for (const auto& batch : batches_) {
-        if (batch.textureIndex >=
-            textures_.size()) {
+        if (batch.materialIndex >=
+            materials_.size()) {
             continue;
         }
 
@@ -553,8 +718,10 @@ void VulkanStaticMeshRenderer::record(
                 desiredPipeline;
         }
 
-        const auto& texture =
-            textures_[batch.textureIndex];
+        const auto& material =
+            materials_[batch.materialIndex];
+
+        applyMaterial(material);
 
         vkCmdBindDescriptorSets(
             command,
@@ -562,7 +729,7 @@ void VulkanStaticMeshRenderer::record(
             pipelineLayout_,
             0U,
             1U,
-            &texture.descriptorSet,
+            &material.descriptorSet,
             0U,
             nullptr);
 
@@ -645,15 +812,39 @@ void VulkanStaticMeshRenderer::recordViewmodel(
     push.modelRoll = state.rollRadians;
     push.viewmodelMode = 1.0f;
 
-    vkCmdPushConstants(
-        command,
-        pipelineLayout_,
-        VK_SHADER_STAGE_VERTEX_BIT |
-            VK_SHADER_STAGE_FRAGMENT_BIT,
-        0U,
-        static_cast<std::uint32_t>(
-            sizeof(push)),
-        &push);
+    const auto applyMaterial =
+        [&](const GpuMaterial& material) noexcept {
+            PushConstants materialPush = push;
+            materialPush.baseColorFactorR = material.baseColorFactor[0];
+            materialPush.baseColorFactorG = material.baseColorFactor[1];
+            materialPush.baseColorFactorB = material.baseColorFactor[2];
+            materialPush.baseColorFactorA = material.baseColorFactor[3];
+            materialPush.metallicFactor = material.metallicFactor;
+            materialPush.roughnessFactor = material.roughnessFactor;
+            materialPush.normalScale = material.normalScale;
+            materialPush.occlusionStrength = material.occlusionStrength;
+            materialPush.emissiveFactorR = material.emissiveFactor[0];
+            materialPush.emissiveFactorG = material.emissiveFactor[1];
+            materialPush.emissiveFactorB = material.emissiveFactor[2];
+
+            std::uint32_t flags = 0U;
+            flags |= material.pbrEnabled ? 1U : 0U;
+            flags |= material.hasNormalTexture ? 2U : 0U;
+            flags |= material.hasOrmTexture ? 4U : 0U;
+            flags |= material.hasEmissiveTexture ? 8U : 0U;
+            materialPush.materialFlags =
+                static_cast<float>(flags);
+
+            vkCmdPushConstants(
+                command,
+                pipelineLayout_,
+                VK_SHADER_STAGE_VERTEX_BIT |
+                    VK_SHADER_STAGE_FRAGMENT_BIT,
+                0U,
+                static_cast<std::uint32_t>(
+                    sizeof(materialPush)),
+                &materialPush);
+        };
 
     if (geometryVertexBuffer_ == VK_NULL_HANDLE ||
         geometryIndexBuffer_ == VK_NULL_HANDLE) {
@@ -676,13 +867,15 @@ void VulkanStaticMeshRenderer::recordViewmodel(
         VK_INDEX_TYPE_UINT16);
 
     for (const auto& batch : batches_) {
-        if (batch.textureIndex >=
-            textures_.size()) {
+        if (batch.materialIndex >=
+            materials_.size()) {
             continue;
         }
 
-        const auto& texture =
-            textures_[batch.textureIndex];
+        const auto& material =
+            materials_[batch.materialIndex];
+
+        applyMaterial(material);
 
         vkCmdBindDescriptorSets(
             command,
@@ -690,7 +883,7 @@ void VulkanStaticMeshRenderer::recordViewmodel(
             pipelineLayout_,
             0U,
             1U,
-            &texture.descriptorSet,
+            &material.descriptorSet,
             0U,
             nullptr);
 
@@ -787,19 +980,28 @@ bool VulkanStaticMeshRenderer::createPipeline(
         return false;
     }
 
-    VkDescriptorSetLayoutBinding textureBinding{};
-    textureBinding.binding = 0U;
-    textureBinding.descriptorType =
-        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    textureBinding.descriptorCount = 1U;
-    textureBinding.stageFlags =
-        VK_SHADER_STAGE_FRAGMENT_BIT;
+    std::array<VkDescriptorSetLayoutBinding, 4>
+        textureBindings{};
+
+    for (std::uint32_t binding = 0U;
+         binding < textureBindings.size();
+         ++binding) {
+        textureBindings[binding].binding = binding;
+        textureBindings[binding].descriptorType =
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        textureBindings[binding].descriptorCount = 1U;
+        textureBindings[binding].stageFlags =
+            VK_SHADER_STAGE_FRAGMENT_BIT;
+    }
 
     VkDescriptorSetLayoutCreateInfo setInfo{
         VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO
     };
-    setInfo.bindingCount = 1U;
-    setInfo.pBindings = &textureBinding;
+    setInfo.bindingCount =
+        static_cast<std::uint32_t>(
+            textureBindings.size());
+    setInfo.pBindings =
+        textureBindings.data();
 
     if (!ok(
             vkCreateDescriptorSetLayout(
@@ -1137,11 +1339,11 @@ bool VulkanStaticMeshRenderer::createBuffer(
 
 bool VulkanStaticMeshRenderer::createGeometryResidency(
     const StaticMeshAsset& asset,
-    const std::vector<std::uint32_t>& textureIndices) noexcept {
+    const std::vector<std::uint32_t>& materialIndices) noexcept {
     destroyGeometryResidency();
 
     if (asset.batches.empty() ||
-        textureIndices.size() !=
+        materialIndices.size() !=
             asset.batches.size() ||
         asset.totalVertices == 0U ||
         asset.totalIndices == 0U ||
@@ -1346,8 +1548,8 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
             gpuBatch.indexCount =
                 static_cast<std::uint32_t>(
                     batch.indices.size());
-            gpuBatch.textureIndex =
-                textureIndices[batchIndex];
+            gpuBatch.materialIndex =
+                materialIndices[batchIndex];
             gpuBatch.bounds =
                 batch.bounds;
             gpuBatch.doubleSided =
@@ -1409,6 +1611,7 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
 bool VulkanStaticMeshRenderer::createTexture(
     AAssetManager* assetManager,
     const std::string& assetPath,
+    bool srgb,
     GpuTexture& out) noexcept {
     AAsset* asset =
         AAssetManager_open(
@@ -1480,8 +1683,10 @@ bool VulkanStaticMeshRenderer::createTexture(
         return false;
     }
 
-    constexpr VkFormat textureFormat =
-        VK_FORMAT_R8G8B8A8_SRGB;
+    const VkFormat textureFormat =
+        srgb
+        ? VK_FORMAT_R8G8B8A8_SRGB
+        : VK_FORMAT_R8G8B8A8_UNORM;
 
     VkFormatProperties formatProperties{};
     vkGetPhysicalDeviceFormatProperties(
@@ -1925,55 +2130,85 @@ bool VulkanStaticMeshRenderer::createTexture(
         return false;
     }
 
-    VkDescriptorSetAllocateInfo setAllocation{
-        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO
-    };
-    setAllocation.descriptorPool =
-        descriptorPool_;
-    setAllocation.descriptorSetCount = 1U;
-    setAllocation.pSetLayouts =
-        &descriptorSetLayout_;
-
-    if (!ok(
-            vkAllocateDescriptorSets(
-                device_,
-                &setAllocation,
-                &out.descriptorSet))) {
-        destroyTexture(out);
-        return false;
-    }
-
-    VkDescriptorImageInfo imageDescriptor{};
-    imageDescriptor.sampler =
-        out.sampler;
-    imageDescriptor.imageView =
-        out.view;
-    imageDescriptor.imageLayout =
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-    VkWriteDescriptorSet write{
-        VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET
-    };
-    write.dstSet = out.descriptorSet;
-    write.dstBinding = 0U;
-    write.descriptorCount = 1U;
-    write.descriptorType =
-        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    write.pImageInfo =
-        &imageDescriptor;
-
-    vkUpdateDescriptorSets(
-        device_,
-        1U,
-        &write,
-        0U,
-        nullptr);
-
     out.assetPath = assetPath;
     out.width =
         static_cast<std::uint32_t>(width);
     out.height =
         static_cast<std::uint32_t>(height);
+
+    return true;
+}
+
+bool VulkanStaticMeshRenderer::createMaterialDescriptor(
+    GpuMaterial& material) noexcept {
+    if (descriptorPool_ == VK_NULL_HANDLE ||
+        descriptorSetLayout_ == VK_NULL_HANDLE ||
+        material.albedoTextureIndex >= textures_.size() ||
+        material.normalTextureIndex >= textures_.size() ||
+        material.ormTextureIndex >= textures_.size() ||
+        material.emissiveTextureIndex >= textures_.size()) {
+        return false;
+    }
+
+    VkDescriptorSetAllocateInfo allocation{
+        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO
+    };
+    allocation.descriptorPool = descriptorPool_;
+    allocation.descriptorSetCount = 1U;
+    allocation.pSetLayouts =
+        &descriptorSetLayout_;
+
+    if (!ok(
+            vkAllocateDescriptorSets(
+                device_,
+                &allocation,
+                &material.descriptorSet))) {
+        material.descriptorSet = VK_NULL_HANDLE;
+        return false;
+    }
+
+    const std::array<std::uint32_t, 4> indices{{
+        material.albedoTextureIndex,
+        material.normalTextureIndex,
+        material.ormTextureIndex,
+        material.emissiveTextureIndex,
+    }};
+
+    std::array<VkDescriptorImageInfo, 4> images{};
+    std::array<VkWriteDescriptorSet, 4> writes{};
+
+    for (std::uint32_t binding = 0U;
+         binding < indices.size();
+         ++binding) {
+        const auto& texture =
+            textures_[indices[binding]];
+
+        images[binding].sampler =
+            texture.sampler;
+        images[binding].imageView =
+            texture.view;
+        images[binding].imageLayout =
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+        writes[binding] = {
+            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET
+        };
+        writes[binding].dstSet =
+            material.descriptorSet;
+        writes[binding].dstBinding = binding;
+        writes[binding].descriptorCount = 1U;
+        writes[binding].descriptorType =
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        writes[binding].pImageInfo =
+            &images[binding];
+    }
+
+    vkUpdateDescriptorSets(
+        device_,
+        static_cast<std::uint32_t>(writes.size()),
+        writes.data(),
+        0U,
+        nullptr);
 
     return true;
 }

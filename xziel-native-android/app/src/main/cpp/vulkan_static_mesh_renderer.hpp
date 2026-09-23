@@ -94,16 +94,37 @@ private:
         VkDeviceMemory memory = VK_NULL_HANDLE;
         VkImageView view = VK_NULL_HANDLE;
         VkSampler sampler = VK_NULL_HANDLE;
-        VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
         std::uint32_t width = 0U;
         std::uint32_t height = 0U;
+    };
+
+    struct GpuMaterial {
+        std::uint32_t albedoTextureIndex = 0U;
+        std::uint32_t normalTextureIndex = 0U;
+        std::uint32_t ormTextureIndex = 0U;
+        std::uint32_t emissiveTextureIndex = 0U;
+        VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+
+        std::array<float, 4> baseColorFactor{
+            1.0f, 1.0f, 1.0f, 1.0f};
+        float metallicFactor = 0.0f;
+        float roughnessFactor = 1.0f;
+        std::array<float, 3> emissiveFactor{
+            0.0f, 0.0f, 0.0f};
+        float normalScale = 1.0f;
+        float occlusionStrength = 1.0f;
+
+        bool pbrEnabled = false;
+        bool hasNormalTexture = false;
+        bool hasOrmTexture = false;
+        bool hasEmissiveTexture = false;
     };
 
     struct GpuBatch {
         std::uint32_t firstIndex = 0U;
         std::int32_t vertexOffset = 0;
         std::uint32_t indexCount = 0U;
-        std::uint32_t textureIndex = 0U;
+        std::uint32_t materialIndex = 0U;
         StaticMeshBounds bounds{};
         bool doubleSided = true;
     };
@@ -133,7 +154,26 @@ private:
         float modelPitch = 0.0f;
         float modelRoll = 0.0f;
         float viewmodelMode = 0.0f;
+
+        float baseColorFactorR = 1.0f;
+        float baseColorFactorG = 1.0f;
+        float baseColorFactorB = 1.0f;
+        float baseColorFactorA = 1.0f;
+
+        float metallicFactor = 0.0f;
+        float roughnessFactor = 1.0f;
+        float normalScale = 1.0f;
+        float occlusionStrength = 1.0f;
+
+        float emissiveFactorR = 0.0f;
+        float emissiveFactorG = 0.0f;
+        float emissiveFactorB = 0.0f;
+        float materialFlags = 0.0f;
     };
+
+    static_assert(
+        sizeof(PushConstants) == 128U,
+        "static mesh push constants must fit Vulkan's guaranteed 128-byte minimum");
 
     [[nodiscard]] bool loadModel(
         AAssetManager* assetManager,
@@ -152,12 +192,16 @@ private:
 
     [[nodiscard]] bool createGeometryResidency(
         const StaticMeshAsset& asset,
-        const std::vector<std::uint32_t>& textureIndices) noexcept;
+        const std::vector<std::uint32_t>& materialIndices) noexcept;
 
     [[nodiscard]] bool createTexture(
         AAssetManager* assetManager,
         const std::string& assetPath,
+        bool srgb,
         GpuTexture& out) noexcept;
+
+    [[nodiscard]] bool createMaterialDescriptor(
+        GpuMaterial& material) noexcept;
 
     [[nodiscard]] bool createShaderModule(
         AAssetManager* assetManager,
@@ -192,6 +236,7 @@ private:
     VkPipeline pipelineDoubleSided_ = VK_NULL_HANDLE;
 
     std::vector<GpuTexture> textures_{};
+    std::vector<GpuMaterial> materials_{};
     std::vector<GpuBatch> batches_{};
 
     VkBuffer geometryVertexBuffer_ = VK_NULL_HANDLE;

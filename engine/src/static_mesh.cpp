@@ -407,6 +407,8 @@ parseStaticMeshXzsm(
 
         batch.bounds = bounds;
         batch.flags = flags;
+        batch.pbrMaterial =
+            version >= kStaticMeshFormatVersion;
 
         if (batch.textureName.empty()) {
             return failure(

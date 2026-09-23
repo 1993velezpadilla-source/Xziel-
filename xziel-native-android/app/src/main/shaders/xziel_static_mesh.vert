@@ -6,6 +6,9 @@ layout(push_constant) uniform PushConstants {
     vec4 environment;
     vec4 modelOffsetScale;
     vec4 modelRotationMode;
+    vec4 baseColorFactor;
+    vec4 metallicRoughnessNormalOcclusion;
+    vec4 emissiveFactorFlags;
 } pc;
 
 layout(location = 0) in vec3 inPosition;
@@ -20,6 +23,7 @@ layout(location = 3) out float vDistance;
 layout(location = 4) out float vFogDensity;
 layout(location = 5) out float vLightning;
 layout(location = 6) out float vViewmodel;
+layout(location = 7) out vec3 vViewPosition;
 
 vec3 worldToView(vec3 world) {
     vec3 relative =
@@ -40,6 +44,28 @@ vec3 worldToView(vec3 world) {
     float pitch =
         pc.cameraPitchFovAspectFog.x;
 
+    float cp = cos(pitch);
+    float sp = sin(pitch);
+
+    return vec3(
+        yawView.x,
+        cp * yawView.y + sp * yawView.z,
+       -sp * yawView.y + cp * yawView.z
+    );
+}
+
+vec3 worldDirectionToView(vec3 direction) {
+    float yaw = pc.cameraPositionYaw.w;
+    float cy = cos(yaw);
+    float sy = sin(yaw);
+
+    vec3 yawView = vec3(
+        cy * direction.x - sy * direction.z,
+        direction.y,
+        sy * direction.x + cy * direction.z
+    );
+
+    float pitch = pc.cameraPitchFovAspectFog.x;
     float cp = cos(pitch);
     float sp = sin(pitch);
 
@@ -103,7 +129,9 @@ void main() {
     } else {
         view = worldToView(inPosition);
         surfaceNormal =
-            normalize(inNormal);
+            normalize(
+                worldDirectionToView(
+                    inNormal));
     }
 
     const float nearPlane = 0.08;
@@ -161,4 +189,5 @@ void main() {
               0.0,
               2.0);
     vViewmodel = viewmodel;
+    vViewPosition = view;
 }

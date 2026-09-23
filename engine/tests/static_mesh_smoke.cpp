@@ -206,6 +206,7 @@ int main() {
         0.99f);
     assert(
         !asset.batches[0].doubleSided());
+    assert(asset.batches[0].pbrEnabled());
     assert(
         asset.batches[0].pbr.normalTextureName ==
         "textures/xziel/sanctum/test_n");
@@ -238,6 +239,7 @@ int main() {
 
     assert(v4Parsed.success);
     assert(!v4Asset.batches[0].doubleSided());
+    assert(!v4Asset.batches[0].pbrEnabled());
     assert(v4Asset.batches[0].pbr.normalTextureName.empty());
     assert(v4Asset.batches[0].pbr.metallicFactor == 0.0f);
     assert(v4Asset.batches[0].pbr.roughnessFactor == 1.0f);
