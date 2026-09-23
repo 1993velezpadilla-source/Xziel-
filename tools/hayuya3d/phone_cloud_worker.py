@@ -14,6 +14,10 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 GEOMETRY = Path(os.environ["HAYUYA_GEOMETRY_INPUT"])
 OUT = Path(os.environ.get("HAYUYA_OUTPUT_ROOT","out/hayuya-phone-cloud"))
 JOB = os.environ.get("HAYUYA_JOB_ID","hayuya-phone")
+ASSET_PROFILE = os.environ.get("HAYUYA_ASSET_PROFILE","auto").strip() or "auto"
+ANIMATION_REQUESTED = os.environ.get("HAYUYA_ANIMATION_REQUESTED","false").strip().lower() in {"1","true","yes","on"}
+MOTION_PROFILE = os.environ.get("HAYUYA_MOTION_PROFILE","auto").strip() or "auto"
+TEXTURE_QUALITY = os.environ.get("HAYUYA_TEXTURE_QUALITY","standard").strip() or "standard"
 TOKEN = os.environ.get("HF_TOKEN","").strip() or None
 SPACE_URL = os.environ.get("TRELLIS_URL","https://trellis-community-trellis.hf.space")
 OUT.mkdir(parents=True, exist_ok=True)
@@ -282,6 +286,10 @@ manifest={
     "schema":2,
     "engine":"HAYUYA PHONE CLOUD",
     "job_id":JOB,
+    "asset_profile":ASSET_PROFILE,
+    "animation_requested":ANIMATION_REQUESTED,
+    "motion_profile":MOTION_PROFILE,
+    "texture_quality":TEXTURE_QUALITY,
     "compute":"GitHub-hosted CPU controller + public TRELLIS ZeroGPU",
     "phone_only":True,
     "source":str(GEOMETRY),
