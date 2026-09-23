@@ -131,20 +131,43 @@ Final candidate score:
 
 This means a model cannot win merely by having more polygons, UVs or a larger texture. With many references, a candidate that matches a few views but badly misses the weakest real anchor is intentionally pushed down.
 
-#### Judge v3 target
+#### Judge v3 — appearance stage implemented
 
-Add feature and geometry-aware validation on top of v2:
+Judge v3 now adds learned appearance evidence on top of the dependency-light v2 guardrail.
 
-1. DINO/CLIP semantic identity agreement
-2. MEt3R-style multi-view feature consistency
-3. RGB rerender similarity
-4. normal-map agreement
-5. depth-order agreement
-6. camera/focal estimation
-7. asymmetric-detail preservation
-8. face/hands/accessory specialist checks for characters
+Implemented:
 
-Judge v2 is the dependency-light guardrail; v3 will add learned perceptual evidence.
+1. deterministic CPU RGB z-buffer renderer — no OpenGL/headless requirement
+2. candidate RGB renders use the same camera hypotheses selected by Judge v2
+3. textured/material visuals are converted to vertex-color evidence through Trimesh when available
+4. original DINOv2 ViT-S/14 LVD-142M features provide permissive Apache-2.0 appearance comparison
+5. real-source embeddings are cached across candidates
+6. candidate mesh/color arrays are loaded once per candidate
+7. detail/close-up references are searched against 8 candidate azimuths
+8. each candidate detail view exposes whole-frame + 3x3 local patches
+9. detail evidence refines appearance ranking without being misused as a whole-object silhouette
+10. `--appearance-judge off|auto|required` controls activation; `auto` falls back cleanly to v2
+
+When active, Judge v3 contributes 25% of the final candidate score. The remaining 75% preserves the established v2 production/silhouette ratio.
+
+Within the appearance subscore:
+- no detail refs: 100% whole-object appearance
+- detail refs present: 72% whole-object appearance + 28% local-detail retrieval
+
+The raw DINO cosine is retained in reports; Hayuya does not label it as a calibrated probability.
+
+#### Judge v3 next geometry layer
+
+Still to add:
+
+1. normal-map agreement
+2. depth-order agreement
+3. calibrated camera/focal estimation
+4. stronger UV-per-pixel texture rendering
+5. asymmetric-detail localization
+6. face/hands/accessory specialist checks for characters
+
+MEt3R and VGGT remain research/opt-in references rather than default dependencies because their transitive/checkpoint licensing differs from the permissive Hayuya core.
 
 ### 5. Material Forge
 
