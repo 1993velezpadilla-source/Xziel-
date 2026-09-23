@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from gltf_audit import audit_glb
+from mesh_doctor import audit_mesh as audit_mesh_structure
 from qa import inspect_mesh
 
 
@@ -97,6 +98,7 @@ def build_qa_package(
         target_faces=target_faces,
     )
     rig = audit_glb(final_glb)
+    structure = audit_mesh_structure(final_glb)
 
     gameprep_data = asdict(gameprep) if gameprep is not None else None
     lods = (gameprep_data or {}).get("lods", [])
@@ -108,13 +110,37 @@ def build_qa_package(
     warnings.extend(rig.warnings)
     warnings.extend(rig.errors)
 
+    unresolved_structural_defects = bool(
+        not structure.valid
+        or not structure.finite_vertices
+        or structure.duplicate_faces > 0
+        or structure.degenerate_faces > 0
+        or structure.nonmanifold_edges > 0
+        or not structure.winding_consistent
+    )
+
     geometry_ready = bool(
         mesh.valid
         and mesh.faces >= 50
         and mesh.degenerate_ratio <= 0.02
         and mesh.bbox
         and all(x > 1e-9 for x in mesh.bbox)
+        and not unresolved_structural_defects
     )
+
+    if unresolved_structural_defects:
+        warnings.append(
+            "Mesh Doctor reports unresolved structural defects; production-ready geometry is false"
+        )
+    if structure.boundary_edges > 0 and not structure.watertight:
+        warnings.append(
+            f"open boundary edges remain: {structure.boundary_edges} "
+            "(warning only; may be intentional open geometry)"
+        )
+    if structure.tiny_components > 0:
+        warnings.append(
+            f"tiny disconnected components retained intentionally: {structure.tiny_components}"
+        )
 
     material_ready = bool(
         mesh.material_score >= 55.0
@@ -179,6 +205,8 @@ def build_qa_package(
             "degenerate_ratio": mesh.degenerate_ratio,
             "bbox": mesh.bbox,
             "production_score": mesh.production_score,
+            "mesh_doctor": asdict(structure),
+            "unresolved_structural_defects": unresolved_structural_defects,
         },
         "materials": {
             "ready": material_ready,
