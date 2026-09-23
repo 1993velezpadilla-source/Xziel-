@@ -88,6 +88,9 @@ class HayuyaPlannerTests(unittest.TestCase):
         self.assertEqual(classify_reference(Path("zombie_front.png")), "geometry")
         self.assertEqual(classify_reference(Path("zombie_face_closeup.png")), "detail")
         self.assertEqual(classify_reference(Path("zombie_texture_detail.png")), "detail")
+        self.assertEqual(classify_reference(Path("refs/details/01.png")), "detail")
+        self.assertEqual(classify_reference(Path("refs/textures/albedo.png")), "detail")
+        self.assertEqual(classify_reference(Path("refs/individual/zombie_back.png")), "geometry")
         self.assertEqual(classify_reference(Path("unknown_phone_photo.png")), "geometry")
 
     def test_default_stack_is_permissive(self):
