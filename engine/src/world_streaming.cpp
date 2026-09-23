@@ -6,6 +6,26 @@
 
 namespace xziel {
 
+std::uint64_t streamResourceId(
+    std::string_view assetKey) noexcept {
+    // FNV-1a 64-bit: deterministic across cooker/runtime processes and
+    // platforms, unlike std::hash whose representation is implementation
+    // defined. Zero is reserved as "invalid" by the residency systems.
+    std::uint64_t hash =
+        14695981039346656037ULL;
+
+    for (const unsigned char value :
+         assetKey) {
+        hash ^= static_cast<std::uint64_t>(
+            value);
+        hash *= 1099511628211ULL;
+    }
+
+    return hash != 0U
+        ? hash
+        : 1U;
+}
+
 namespace {
 
 [[nodiscard]] int heatRank(
