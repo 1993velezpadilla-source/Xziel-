@@ -17,6 +17,7 @@ class QAPackageResult:
     contact_sheet: str | None
     turntable_report: str | None
     turntable_contact_sheet: str | None
+    part_map: str | None
     geometry_ready: bool
     material_ready: bool
     rig_ready: bool
@@ -105,6 +106,31 @@ def build_qa_package(
     structure = audit_mesh_structure(final_glb)
 
     gameprep_data = asdict(gameprep) if gameprep is not None else None
+
+    part_map_result = None
+    part_map_path = None
+    try:
+        from part_map import build_part_map, write_part_map
+
+        visual_views_for_axis = champion_data.get("visual_views") or []
+        recovered_up_axis = (
+            visual_views_for_axis[0].get("best_up_axis", "y")
+            if visual_views_for_axis
+            else "y"
+        )
+        part_map_result = build_part_map(
+            final_glb,
+            mode=mode,
+            up_axis=recovered_up_axis,
+        )
+        part_map_path = write_part_map(
+            part_map_result,
+            out_dir / "part_map.json",
+        )
+    except Exception as exc:
+        part_map_result = None
+        part_map_path = None
+
     lods = (gameprep_data or {}).get("lods", [])
     turntable = [Path(p) for p in (gameprep_data or {}).get("turntable_frames", [])]
     collision = (gameprep_data or {}).get("collision")
@@ -113,6 +139,11 @@ def build_qa_package(
     warnings.extend(mesh.notes or [])
     warnings.extend(rig.warnings)
     warnings.extend(rig.errors)
+    if part_map_result is not None and part_map_result.accessory_component_ids:
+        warnings.append(
+            "Part Map identified preserved accessory-candidate components: "
+            + ",".join(str(x) for x in part_map_result.accessory_component_ids)
+        )
 
     unresolved_structural_defects = bool(
         not structure.valid
@@ -281,6 +312,14 @@ def build_qa_package(
                 "contact_sheet": str(turntable_contact_path) if turntable_contact_path else None,
             }
         ),
+        "part_map": (
+            {
+                **asdict(part_map_result),
+                "report": str(part_map_path) if part_map_path else None,
+            }
+            if part_map_result is not None
+            else None
+        ),
         "rig": asdict(rig),
         "gameprep": gameprep_data,
         "readiness": {
@@ -306,6 +345,7 @@ def build_qa_package(
         contact_sheet=str(contact_path) if contact_path else None,
         turntable_report=str(turntable_report_path) if turntable_report_path else None,
         turntable_contact_sheet=str(turntable_contact_path) if turntable_contact_path else None,
+        part_map=str(part_map_path) if part_map_path else None,
         geometry_ready=geometry_ready,
         material_ready=material_ready,
         rig_ready=rig_ready,
