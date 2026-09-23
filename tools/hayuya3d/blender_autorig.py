@@ -152,7 +152,41 @@ def main():
         select_only(mesh,arm)
         try:
             bpy.ops.object.parent_set(type="ARMATURE_AUTO")
-            bind_results.append({"mesh":mesh.name,"ok":True,"groups":len(mesh.vertex_groups)})
+
+            # Blender's heat solver may succeed while leaving isolated vertices
+            # without any deform weight (common on TRELLIS disconnected islands).
+            # The glTF exporter then tries to synthesize a neutral_bone and older
+            # Blender exporters can crash. Guarantee every vertex has a valid
+            # fallback influence; pelvis/Hips is the least-destructive default.
+            fallback=None
+            for candidate in ("Hips","hips","Pelvis","pelvis","Spine","spine"):
+                fallback=mesh.vertex_groups.get(candidate)
+                if fallback:
+                    break
+            if fallback is None:
+                fallback=mesh.vertex_groups.new(name="Hips")
+
+            unweighted=[]
+            for v in mesh.data.vertices:
+                has_weight=False
+                for g in v.groups:
+                    try:
+                        if g.weight > 1e-8:
+                            has_weight=True
+                            break
+                    except Exception:
+                        pass
+                if not has_weight:
+                    unweighted.append(v.index)
+            if unweighted:
+                fallback.add(unweighted,1.0,"REPLACE")
+
+            bind_results.append({
+                "mesh":mesh.name,
+                "ok":True,
+                "groups":len(mesh.vertex_groups),
+                "fallback_weighted_vertices":len(unweighted)
+            })
         except Exception as exc:
             bind_results.append({"mesh":mesh.name,"ok":False,"error":repr(exc)})
             raise
@@ -175,6 +209,7 @@ def main():
         use_selection=True,
         export_animations=True,
         export_skins=True,
+        export_def_bones=True,
         export_all_influences=True,
         export_nla_strips=True,
         export_yup=True,
