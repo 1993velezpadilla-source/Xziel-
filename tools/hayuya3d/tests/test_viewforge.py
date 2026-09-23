@@ -40,7 +40,7 @@ class ViewForgeTests(unittest.TestCase):
             self.assertTrue(Path(result.manifest_path).is_file())
             anchor = root / "stable" / "anchors" / "source_real.png"
             self.assertTrue(anchor.is_file())
-            self.assertEqual(anchor.read_bytes()[:8], b"\\x89PNG\\r\\n\\x1a\\n")
+            self.assertEqual(anchor.read_bytes()[:8], bytes([137, 80, 78, 71, 13, 10, 26, 10]))
             for path in result.synthetic_reconstruction_views:
                 self.assertTrue(Path(path).is_file())
 
