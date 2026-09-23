@@ -12,10 +12,103 @@ sys.path.insert(0, str(HAYUYA_DIR))
 import numpy as np
 import trimesh
 
-from material_bridge import transfer_base_color
+from material_bridge import transfer_base_color, transfer_best_material
 
 
 class MaterialBridgeTests(unittest.TestCase):
+    def test_pbr_uv_material_survives_topology_transfer(self):
+        from PIL import Image
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source_path = root / "source_pbr.glb"
+            refined_path = root / "refined_plane.glb"
+            output_path = root / "bridged_pbr.glb"
+
+            vertices = np.array([
+                [-0.5, -0.5, 0.0],
+                [ 0.5, -0.5, 0.0],
+                [ 0.5,  0.5, 0.0],
+                [-0.5,  0.5, 0.0],
+            ], dtype=np.float64)
+            faces = np.array([[0, 1, 2], [0, 2, 3]], dtype=np.int64)
+            uvs = np.array([
+                [0.0, 0.0],
+                [1.0, 0.0],
+                [1.0, 1.0],
+                [0.0, 1.0],
+            ], dtype=np.float64)
+
+            base = Image.fromarray(np.full((8, 8, 4), [180, 70, 30, 255], dtype=np.uint8), mode="RGBA")
+            mr = Image.fromarray(np.full((8, 8, 3), [0, 90, 210], dtype=np.uint8), mode="RGB")
+            normal = Image.fromarray(np.full((8, 8, 3), [128, 128, 255], dtype=np.uint8), mode="RGB")
+            ao = Image.fromarray(np.full((8, 8), 220, dtype=np.uint8), mode="L")
+            emissive = Image.fromarray(np.full((8, 8, 3), [8, 12, 16], dtype=np.uint8), mode="RGB")
+
+            material = trimesh.visual.material.PBRMaterial(
+                name="hayuya_pbr_test",
+                baseColorTexture=base,
+                metallicRoughnessTexture=mr,
+                normalTexture=normal,
+                occlusionTexture=ao,
+                emissiveTexture=emissive,
+                metallicFactor=0.85,
+                roughnessFactor=0.65,
+                emissiveFactor=[1.0, 1.0, 1.0],
+                doubleSided=True,
+            )
+            source = trimesh.Trimesh(
+                vertices=vertices,
+                faces=faces,
+                process=False,
+                visual=trimesh.visual.TextureVisuals(uv=uvs, material=material),
+            )
+            source_path.write_bytes(trimesh.exchange.gltf.export_glb(trimesh.Scene(source)))
+
+            refined_vertices = np.array([
+                [-0.5, -0.5, 0.0],
+                [ 0.0, -0.5, 0.0],
+                [ 0.5, -0.5, 0.0],
+                [-0.5,  0.0, 0.0],
+                [ 0.0,  0.0, 0.0],
+                [ 0.5,  0.0, 0.0],
+                [-0.5,  0.5, 0.0],
+                [ 0.0,  0.5, 0.0],
+                [ 0.5,  0.5, 0.0],
+            ], dtype=np.float64)
+            refined_faces = np.array([
+                [0, 1, 4], [0, 4, 3],
+                [1, 2, 5], [1, 5, 4],
+                [3, 4, 7], [3, 7, 6],
+                [4, 5, 8], [4, 8, 7],
+            ], dtype=np.int64)
+            refined = trimesh.Trimesh(vertices=refined_vertices, faces=refined_faces, process=False)
+            refined_path.write_bytes(trimesh.exchange.gltf.export_glb(trimesh.Scene(refined)))
+
+            result = transfer_best_material(
+                source_path,
+                refined_path,
+                output_path,
+                total_samples=6000,
+                max_texture_size=64,
+            )
+
+            self.assertFalse(result.fallback_used)
+            for channel in ("baseColor", "metallic", "roughness", "normal", "occlusion", "emissive"):
+                self.assertIn(channel, result.channels)
+
+            loaded = trimesh.load(output_path, force="scene", process=False)
+            mesh = list(loaded.geometry.values())[0]
+            self.assertIsNotNone(getattr(mesh.visual, "uv", None))
+            self.assertEqual(len(mesh.visual.uv), len(mesh.vertices))
+
+            pbr = mesh.visual.material
+            self.assertIsNotNone(getattr(pbr, "baseColorTexture", None))
+            self.assertIsNotNone(getattr(pbr, "metallicRoughnessTexture", None))
+            self.assertIsNotNone(getattr(pbr, "normalTexture", None))
+            self.assertIsNotNone(getattr(pbr, "occlusionTexture", None))
+            self.assertIsNotNone(getattr(pbr, "emissiveTexture", None))
+
     def test_uniform_source_color_transfers_to_refined_mesh(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
