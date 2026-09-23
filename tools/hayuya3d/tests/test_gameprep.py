@@ -68,6 +68,8 @@ class GamePrepTests(unittest.TestCase):
                 path = Path(lod.path)
                 self.assertTrue(path.is_file())
                 self.assertEqual(path.read_bytes()[:4], b"glTF")
+                self.assertIsInstance(lod.dropped_channels, list)
+                self.assertIsInstance(lod.rebake_required, list)
 
             for frame in result.turntable_frames:
                 self.assertTrue(Path(frame).is_file())
