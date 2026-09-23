@@ -104,16 +104,24 @@ def _surface_samples_with_color(mesh, count: int):
         colors = sample_texture_nearest(texture, sample_uv)
 
     if colors is None and visual is not None:
-        try:
-            converted = visual.to_color()
-            vertex_colors = np.asarray(converted.vertex_colors[:, :3], dtype=np.float32)
-            if len(vertex_colors) == len(mesh.vertices):
-                color_tri = vertex_colors[
-                    np.asarray(mesh.faces, dtype=np.int64)[face_ids]
-                ]
-                colors = np.sum(color_tri * bary[..., None], axis=1)
-        except Exception:
-            colors = None
+        vertex_colors = None
+        direct = getattr(visual, "vertex_colors", None)
+        if direct is not None and len(direct) == len(mesh.vertices):
+            vertex_colors = np.asarray(direct[:, :3], dtype=np.float32)
+        else:
+            try:
+                converted = visual.to_color()
+                converted_colors = getattr(converted, "vertex_colors", None)
+                if converted_colors is not None and len(converted_colors) == len(mesh.vertices):
+                    vertex_colors = np.asarray(converted_colors[:, :3], dtype=np.float32)
+            except Exception:
+                vertex_colors = None
+
+        if vertex_colors is not None:
+            color_tri = vertex_colors[
+                np.asarray(mesh.faces, dtype=np.int64)[face_ids]
+            ]
+            colors = np.sum(color_tri * bary[..., None], axis=1)
 
     if colors is None:
         colors = np.full((len(points), 3), 190.0, dtype=np.float32)
