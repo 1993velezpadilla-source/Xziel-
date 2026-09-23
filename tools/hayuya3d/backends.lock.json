@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "updated_utc": "2026-09-23T04:01:00Z",
+  "policy": {
+    "default_stack": "permissive_open_source",
+    "allow_restricted_by_default": false,
+    "notes": [
+      "Pinned SHAs make Hayuya reproducible.",
+      "Restricted/community-license backends must never be silently enabled.",
+      "Provider outputs may be used for generation/QA only when their license and terms permit the intended use."
+    ]
+  },
+  "backends": [
+    {
+      "id": "triposg",
+      "role": ["single_image_shape", "geometry_candidate"],
+      "repo": "https://github.com/VAST-AI-Research/TripoSG.git",
+      "sha": "fc5c40990181e2a756c4e0b1c2f4d6b5202faf8c",
+      "license": "MIT",
+      "enabled_by_default": true,
+      "min_vram_gb": 8,
+      "quality_tier": "high",
+      "notes": "1.5B rectified-flow image-to-shape model; direct GLB export and face limiting."
+    },
+    {
+      "id": "triposf",
+      "role": ["geometry_refine", "high_resolution_reconstruction"],
+      "repo": "https://github.com/VAST-AI-Research/TripoSF.git",
+      "sha": "b97b749aa5726fb64ceec359a4ef8e61e79279c7",
+      "license": "MIT",
+      "enabled_by_default": true,
+      "min_vram_gb": 12,
+      "quality_tier": "ultra",
+      "notes": "SparseFlex up to 1024^3; strong fit for open surfaces, cloth, foliage and complex topology."
+    },
+    {
+      "id": "trellis2",
+      "role": ["single_image_shape", "pbr_candidate", "geometry_candidate"],
+      "repo": "https://github.com/microsoft/TRELLIS.2.git",
+      "sha": "75fbf0183001ed9876c8dbb35de6b68552ee08bd",
+      "license": "MIT",
+      "enabled_by_default": true,
+      "min_vram_gb": 24,
+      "quality_tier": "ultra",
+      "notes": "4B O-Voxel image-to-3D, 512^3 to 1536^3, full PBR, arbitrary/open topology."
+    },
+    {
+      "id": "instantmesh",
+      "role": ["single_image_multiview", "geometry_candidate", "view_synthesis"],
+      "repo": "https://github.com/TencentARC/InstantMesh.git",
+      "sha": "08822c52fdc399b93ea00e4fa9e596344ed52ccc",
+      "license": "Apache-2.0",
+      "enabled_by_default": true,
+      "min_vram_gb": 12,
+      "quality_tier": "balanced",
+      "notes": "Zero123++ sparse-view generation plus LRM/FlexiCubes reconstruction."
+    },
+    {
+      "id": "wonder3d",
+      "role": ["view_synthesis", "normal_synthesis", "geometry_support"],
+      "repo": "https://github.com/xxlong0/Wonder3D.git",
+      "sha": "d894f827aa8c2917761a0dad3ab40df74c7a5b24",
+      "license": "MIT",
+      "enabled_by_default": true,
+      "min_vram_gb": 12,
+      "quality_tier": "balanced",
+      "notes": "Cross-domain multiview RGB+normal generation; useful for canonical view completion and normal constraints."
+    },
+    {
+      "id": "triposr",
+      "role": ["fast_shape", "sanity_candidate"],
+      "repo": "https://github.com/VAST-AI-Research/TripoSR.git",
+      "sha": "107cefdc244c39106fa830359024f6a2f1c78871",
+      "license": "MIT",
+      "enabled_by_default": true,
+      "min_vram_gb": 6,
+      "quality_tier": "fast",
+      "notes": "Fast single-image LRM; GLB output and texture baking make it ideal as a baseline candidate."
+    },
+    {
+      "id": "pshuman",
+      "role": ["character_specialist", "human_geometry", "human_multiview"],
+      "repo": "https://github.com/pengHTYX/PSHuman.git",
+      "sha": "f2a635126dca3bf0526b4a08723cb84a79b57cab",
+      "license": "MIT",
+      "enabled_by_default": false,
+      "min_vram_gb": 40,
+      "quality_tier": "character_ultra",
+      "notes": "Single-image clothed-human reconstruction; only activate for humanoid/character jobs with adequate GPU."
+    },
+    {
+      "id": "hunyuan3d_2_1",
+      "role": ["optional_shape", "optional_pbr"],
+      "repo": "https://github.com/Tencent-Hunyuan/Hunyuan3D-2.1.git",
+      "sha": "82920d643c0dc2f7bfd7255f45f62d386edfe60c",
+      "license": "Tencent Hunyuan 3D 2.1 Community License",
+      "enabled_by_default": false,
+      "min_vram_gb": 21,
+      "quality_tier": "high",
+      "notes": "Opt-in only. License has territory/commercial/use conditions and forbids using outputs to improve other AI models. Do not silently bundle or enable."
+    }
+  ],
+  "service_adapters": [
+    {
+      "id": "tripo_api",
+      "enabled_by_default": false,
+      "env_key": "TRIPO_API_KEY",
+      "capabilities": ["image_to_multiview", "image_to_model", "multiview_to_model", "texture", "segment", "complete", "decimate", "rig"],
+      "notes": "Optional paid/cloud adapter; never required for the open-source Hayuya path."
+    },
+    {
+      "id": "meshy_api",
+      "enabled_by_default": false,
+      "env_key": "MESHY_API_KEY",
+      "capabilities": ["image_to_model", "multi_image_to_model", "pbr", "remesh", "rig"],
+      "notes": "Optional paid/cloud adapter; never required for the open-source Hayuya path."
+    }
+  ]
+}
