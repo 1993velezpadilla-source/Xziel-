@@ -239,6 +239,16 @@ python tools/hayuya3d/hayuya.py \
 
 If a native multi-image backend needs bounded calls, Hayuya groups the references automatically. The total reference pool is still preserved.
 
+### Plan from a complete reference folder
+
+```bash
+python tools/hayuya3d/hayuya.py \
+  --input-dir assets/my_asset/references \
+  --profile monster
+```
+
+The scan is recursive. Folder names such as `details/`, `textures/`, `materials/`, and `closeups/` are treated as detail evidence rather than whole-object silhouette references.
+
 ### Execute installed backends
 
 ```bash
