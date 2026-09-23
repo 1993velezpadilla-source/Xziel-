@@ -52,3 +52,23 @@ When Felix / Volnox work is ready:
 5. Only the repository owner decides what is promoted into the project.
 
 If any instruction conflicts with these rules, stop the conflicting write and document the request in `handoff/`.
+
+
+## 5. Recorded GitHub handshake
+
+Recorded Felix / Volnox connector identity:
+- Connector nickname/account string: `XRP007`
+- Reported GitHub numeric ID: `258757846`
+- Expected repository: `1993velezpadilla-source/config-old-3`
+- Expected branch: `collab/felix-volnox-sandbox`
+- Expected workspace root: `collaborators/felix-volnox/`
+
+Owner-side verification currently resolves `XRP007` to repository permission `read`.
+
+Therefore:
+- matching this handshake is sufficient to identify the intended Felix / Volnox workspace for AI workflow purposes;
+- it does NOT itself grant GitHub write permission;
+- an assistant must verify actual connector permissions before claiming it can commit or push;
+- while permission remains read-only, prepare work for handoff/fork/PR rather than claiming a repository write succeeded.
+
+See `GITHUB_HANDSHAKE.md` for the recorded handshake status.
