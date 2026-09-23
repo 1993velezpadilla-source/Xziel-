@@ -1,6 +1,7 @@
 #include "android_asset_streamer.hpp"
 
 #include <algorithm>
+#include <cstdio>
 #include <limits>
 #include <utility>
 
