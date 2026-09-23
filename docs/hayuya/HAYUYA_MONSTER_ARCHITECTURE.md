@@ -214,19 +214,24 @@ TRELLIS.2 can already supply PBR attributes directly. **Material Bridge v2** wil
 
 Never let a texture/refinement stage silently change geometry identity.
 
-### 6. GamePrep
+### 6. GamePrep v1 — implemented
 
-Every final asset should eventually produce:
+For `mobile`, `game`, `monster`, and `ultra`, the final champion can now automatically produce:
 
-- `master.glb`
+- `master.glb` — exact final champion
 - `LOD0.glb`
 - `LOD1.glb`
 - `LOD2.glb`
 - `LOD3.glb`
-- collision proxy when relevant
-- manifest
-- turntable preview
-- QA report
+- `collision_convex.glb`
+- 8-frame 45° turntable
+- `gameprep_manifest.json`
+
+LOD targets are derived from the profile face budget. Lower LODs use quadric decimation and Material Bridge v1 color projection so simplified geometry does not become an uncolored asset. The master preserves the original final asset unchanged.
+
+The turntable reuses the winning Judge camera/up-axis as its anchor rather than assuming an arbitrary object orientation.
+
+`--gameprep off|auto|required` controls this stage.
 
 Profile targets:
 
@@ -360,7 +365,7 @@ Remaining major stages:
 - full PBR Material Bridge v2
 - semantic mesh segmentation/repair
 - smart retopology/quad option
-- automatic LOD + collision pack
+- full PBR preservation/rebake across automatic LOD + collision pack
 - humanoid/zombie specialist mode
 - rig/skin validation
 - automated turntable comparison report
