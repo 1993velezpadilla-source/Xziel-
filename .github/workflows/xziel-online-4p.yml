@@ -1,0 +1,86 @@
+name: Xziel Online 4P
+
+on:
+  push:
+    branches:
+      - engine/online-4p-foundation-v1
+    paths:
+      - ".github/workflows/xziel-online-4p.yml"
+      - "engine/**"
+      - "services/xziel-match-server/**"
+      - "xziel-native-android/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  core-and-server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build and test Xziel network core
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S engine -B build/xziel-online-core             -DXZIEL_ENGINE_BUILD_TESTS=ON             -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/xziel-online-core --parallel 2
+          ctest --test-dir build/xziel-online-core             --output-on-failure
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install match server dependencies
+        working-directory: services/xziel-match-server
+        run: npm install --ignore-scripts
+
+      - name: Typecheck authoritative match server
+        working-directory: services/xziel-match-server
+        run: npm run typecheck
+
+  android-transport:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle 9.6
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.6.0"
+
+      - name: Install Android SDK, NDK and CMake
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$(find "${ANDROID_HOME}/cmdline-tools"             -type f -name sdkmanager | sort | tail -n 1)"
+          test -n "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER"             "platform-tools"             "platforms;android-36.1"             "build-tools;36.0.0"             "ndk;28.2.13676358"             "cmake;3.22.1"
+
+      - name: Build Android multiplayer transport APK
+        working-directory: xziel-native-android
+        env:
+          XZIEL_MULTIPLAYER_WS_URL: "wss://example.invalid"
+          XZIEL_MULTIPLAYER_TEST_KEY: "ci-only"
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle :app:assembleDebug             --no-daemon             --stacktrace
+
+      - name: Verify online APK contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="xziel-native-android/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          unzip -l "$APK" | grep -q "lib/arm64-v8a/libxziel-native.so"
+          echo "XZIEL_ONLINE_ANDROID_TRANSPORT_BUILD_OK"
