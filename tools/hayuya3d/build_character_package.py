@@ -82,6 +82,12 @@ def main() -> int:
     safe_copy(args.repo_root/"hayuya"/"standards"/"hayuya_humanoid_v1.json",root/"docs"/"hayuya_humanoid_v1.json")
     safe_copy(args.repo_root/"hayuya"/"standards"/"hayuya_preview_pack_v1.json",root/"docs"/"hayuya_preview_pack_v1.json")
 
+    local_animation_sources=sorted({
+        str(x.get("source"))
+        for x in profile["animations"]
+        if x.get("availability") in (None,"local") and x.get("clip") and x.get("source")
+    })
+    mixed_animation_sources=len(local_animation_sources)>1
     unresolved_animations=[
         x for x in profile["animations"]
         if x.get("availability") not in (None,"local")
@@ -96,9 +102,11 @@ def main() -> int:
         "model":str(args.model),
         "copied_audio":copied_audio,
         "unresolved_audio":unresolved_audio,
+        "selected_animation_sources":local_animation_sources,
+        "mixed_animation_sources":mixed_animation_sources,
         "unresolved_animation_retarget":unresolved_animations,
         "unresolved_external_mocap":unresolved_mocap,
-        "game_ready":not unresolved_audio and not unresolved_animations and not unresolved_mocap,
+        "game_ready":not unresolved_audio and not mixed_animation_sources and not unresolved_animations and not unresolved_mocap,
         "notes":[
             "External mocap is never silently bundled without an ingested/licensed local source.",
             "Gameplay state mapping remains explicit in character_profile.json."
@@ -119,6 +127,8 @@ def main() -> int:
         "zip":str(zip_path),
         "zip_bytes":zip_path.stat().st_size,
         "game_ready":build["game_ready"],
+        "animation_sources":local_animation_sources,
+        "mixed_animation_sources":mixed_animation_sources,
         "unresolved_animation_retarget":len(unresolved_animations),
         "unresolved_external_mocap":len(unresolved_mocap),
         "audio_items":len(copied_audio)
