@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "system": "xziel_diegetic_ads",
   "mapId": "sanctum_of_ash",
   "status": "semantic_candidates_geometry_fit_pending",
@@ -20,7 +20,8 @@
   "frequencyCaps": {
     "sameAudioCreativePerMatch": 1,
     "paidAudioCreativesPerPlayerPerMatch": 2,
-    "activeMovingVideoSurfacesPerRoom": 1
+    "activeMovingVideoSurfacesPerRoom": 1,
+    "minimumPaidAudioStartSpacingSeconds": 600
   },
   "slots": [
     {
@@ -62,14 +63,42 @@
           15
         ],
         "fadeSeconds": [
-          0.25,
-          0.5
+          1,
+          1.75
         ],
         "obeyOcclusion": true,
         "obeyRoomReverb": true,
         "globalBusPlayback": false,
         "doNotRetriggerAfterCompletion": true,
-        "suppressDuringCriticalNarrativeAudio": true
+        "suppressDuringCriticalNarrativeAudio": true,
+        "preferredCreativeSeconds": [
+          6,
+          12
+        ],
+        "hardMaxCreativeSeconds": 15,
+        "dwellBeforeStartSeconds": [
+          2,
+          3
+        ],
+        "fadeOutSeconds": [
+          0.5,
+          1.25
+        ],
+        "targetDbBelowLocalAmbience": [
+          8,
+          14
+        ],
+        "minimumDbBelowLocalAmbienceCeiling": 6,
+        "makeUpGainAgainstGameplayAllowed": false,
+        "gameplayDuckingAllowed": false,
+        "attentionStingerAllowed": false,
+        "headLockedPlaybackAllowed": false,
+        "combatSuppression": true,
+        "pauseOrFadeForCriticalNarrativeAudio": true,
+        "minimumSecondsBetweenPaidStarts": 600,
+        "userSponsoredWorldAudioToggleRecommended": true,
+        "directSponsorInventoryByDefault": true,
+        "programmaticProviderApprovalRequired": true
       },
       "fallback": "lore/radio_static_or_survivor_transmission"
     },
@@ -224,5 +253,14 @@
     "zombie_spawn_windows",
     "player_spawn_primary_look_target",
     "navigation_critical_surfaces"
-  ]
+  ],
+  "policyProfile": {
+    "googlePlayResearch": "docs/GOOGLE_PLAY_DIEGETIC_ADS_POLICY_RESEARCH_2026-09-23.md",
+    "directSponsorAudioOnlyByDefault": true,
+    "programmaticAudioRequiresExplicitProviderFormatApproval": true,
+    "contentRatingGateRequired": true,
+    "deceptiveUiAdsDenied": true,
+    "gameplayInterruptionDenied": true,
+    "adTelemetryMayNotBlockGameplay": true
+  }
 }
