@@ -44,6 +44,7 @@ class MeshGateReport:
     axis_aligned_area_98: float
     dominant_normal_axis_area: list[float]
     reasons: list[str]
+    warnings: list[str]
 
 def _read_glb(path: Path):
     blob = path.read_bytes()
@@ -98,6 +99,7 @@ def _cross(a, b):
 
 def inspect(path: Path) -> MeshGateReport:
     reasons = []
+    warnings = []
     try:
         doc, binary = _read_glb(path)
         vertices = []
@@ -219,12 +221,15 @@ def inspect(path: Path) -> MeshGateReport:
                 f"aligned98={aligned98:.3f},axis={','.join(f'{x:.3f}' for x in axis_fraction)}"
             )
 
+        # TRELLIS commonly emits many disconnected-but-valid surface islands
+        # (hair, clothing, candy decorations, etc.). Component count is useful
+        # telemetry but is NOT a catastrophic failure by itself.
         if components > 128 and largest_fraction < 0.45:
-            reasons.append(
+            warnings.append(
                 f"fragmented_surface:components={components},largest={largest_fraction:.3f}"
             )
         if components > 512:
-            reasons.append(f"excessive_components:{components}")
+            warnings.append(f"high_component_count:{components}")
 
         return MeshGateReport(
             path=str(path),
@@ -241,6 +246,7 @@ def inspect(path: Path) -> MeshGateReport:
             axis_aligned_area_98=round(aligned98, 6),
             dominant_normal_axis_area=[round(x, 6) for x in axis_fraction],
             reasons=reasons,
+            warnings=warnings,
         )
     except Exception as exc:
         return MeshGateReport(
@@ -258,6 +264,7 @@ def inspect(path: Path) -> MeshGateReport:
             axis_aligned_area_98=1.0,
             dominant_normal_axis_area=[],
             reasons=[f"{type(exc).__name__}:{exc}"],
+            warnings=[],
         )
 
 def main() -> int:
