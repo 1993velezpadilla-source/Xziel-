@@ -32,6 +32,8 @@ class DetailAppearanceScore:
     score: float
     best_azimuth: float
     best_patch: str
+    expected_azimuth: float | None = None
+    view_hint_constrained: bool = False
 
 
 @dataclass
@@ -561,7 +563,7 @@ def aggregate_detail_scores(values: list[float]) -> float:
 def _canonical_detail_azimuths(
     source_images: list[Path],
     matched_views: list[SourceViewScore],
-) -> tuple[str, list[float]]:
+) -> tuple[str, float, list[float]]:
     up_axis = matched_views[0].best_up_axis if matched_views else "y"
     offset = 0.0
     for source, matched in zip(source_images, matched_views):
@@ -571,7 +573,41 @@ def _canonical_detail_azimuths(
             up_axis = matched.best_up_axis
             break
     azimuths = [float((offset + angle) % 360.0) for angle in range(0, 360, 45)]
-    return up_axis, azimuths
+    return up_axis, offset, azimuths
+
+
+def _circular_distance_degrees(a: float, b: float) -> float:
+    d = abs((a - b) % 360.0)
+    return min(d, 360.0 - d)
+
+
+def select_detail_candidate_indices(
+    patch_meta: list[tuple[float, str]],
+    source: Path,
+    orientation_offset: float,
+    *,
+    max_distance: float = 50.0,
+) -> tuple[list[int], float | None]:
+    """
+    Keep asymmetric detail evidence on the side named by a canonical filename.
+
+    A generic close-up has no view hint and can search all candidate patches.
+    A left/right/front/back/45° detail searches only patches near that real-world
+    orientation after applying the Judge's recovered global orientation offset.
+    """
+    hint = infer_view_hint(source)
+    if hint is None:
+        return list(range(len(patch_meta))), None
+
+    expected = float((orientation_offset + hint) % 360.0)
+    allowed = [
+        index
+        for index, (azimuth, _) in enumerate(patch_meta)
+        if _circular_distance_degrees(float(azimuth), expected) <= max_distance
+    ]
+    if not allowed:
+        return list(range(len(patch_meta))), expected
+    return allowed, expected
 
 
 def score_detail_references(
@@ -593,7 +629,10 @@ def score_detail_references(
 
     import numpy as np
 
-    up_axis, azimuths = _canonical_detail_azimuths(geometry_sources, matched_views)
+    up_axis, orientation_offset, azimuths = _canonical_detail_azimuths(
+        geometry_sources,
+        matched_views,
+    )
     patch_images = []
     patch_meta: list[tuple[float, str]] = []
 
@@ -635,7 +674,14 @@ def score_detail_references(
     details: list[DetailAppearanceScore] = []
     for source, feature in zip(detail_images, detail_features):
         similarities = candidate_features @ feature
-        best_index = int(np.argmax(similarities))
+        allowed, expected_azimuth = select_detail_candidate_indices(
+            patch_meta,
+            source,
+            orientation_offset,
+        )
+        local = similarities[allowed]
+        best_local = int(np.argmax(local))
+        best_index = int(allowed[best_local])
         cosine = float(similarities[best_index])
         score = max(0.0, min(100.0, cosine * 100.0))
         azimuth, patch_name = patch_meta[best_index]
@@ -646,6 +692,8 @@ def score_detail_references(
                 score=round(score, 3),
                 best_azimuth=azimuth,
                 best_patch=patch_name,
+                expected_azimuth=round(expected_azimuth, 3) if expected_azimuth is not None else None,
+                view_hint_constrained=expected_azimuth is not None,
             )
         )
 
