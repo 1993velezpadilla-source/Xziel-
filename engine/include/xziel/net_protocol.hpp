@@ -50,6 +50,12 @@ struct NetPacketHeader {
     std::uint16_t payloadBytes = 0U;
 };
 
+struct NetWelcome {
+    std::uint8_t playerId = 0U;
+    std::uint8_t maxPlayers = kOnlineMaxPlayers;
+    std::uint32_t serverTick = 0U;
+};
+
 struct NetPlayerInput {
     std::uint32_t clientTick = 0U;
     std::uint16_t buttons = 0U;
@@ -102,9 +108,15 @@ struct NetDecodeResult {
     std::size_t bytesConsumed = 0U;
 };
 
+[[nodiscard]] std::size_t netWelcomePayloadBytes() noexcept;
 [[nodiscard]] std::size_t netPlayerInputPayloadBytes() noexcept;
 [[nodiscard]] std::size_t netSnapshotPayloadBytes(
     const NetWorldSnapshot& snapshot) noexcept;
+
+[[nodiscard]] NetDecodeResult decodeNetWelcome(
+    std::span<const std::byte> bytes,
+    NetPacketHeader& header,
+    NetWelcome& welcome) noexcept;
 
 [[nodiscard]] bool encodeNetPlayerInput(
     const NetPacketHeader& header,
