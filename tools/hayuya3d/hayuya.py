@@ -13,7 +13,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))
 
-from adapters import DEFAULT_MODEL_ROOT, GENERATORS, REFINERS
+from adapters import DEFAULT_MODEL_ROOT, GENERATORS, REFINERS, pshuman_readiness
 from qa import export_glb, rank_candidates
 from reference_pool import order_for_multiview_coverage, split_reference_roles
 
@@ -113,6 +113,25 @@ def validate_inputs(inputs: list[Path]) -> list[Path]:
     return out
 
 
+def infer_asset_mode(primary: Path) -> str:
+    parts = {part.lower() for part in primary.parts}
+    stem_tokens = set(primary.stem.lower().replace("-", "_").split("_"))
+    tokens = parts | stem_tokens
+
+    character_tokens = {
+        "character", "characters", "zombie", "zombies", "human", "humans",
+        "humanoid", "humanoids", "npc", "npcs", "llorona",
+    }
+    architecture_tokens = {
+        "architecture", "building", "buildings", "church", "churches", "iglesia",
+    }
+    if tokens & character_tokens:
+        return "character"
+    if tokens & architecture_tokens:
+        return "architecture"
+    return "prop"
+
+
 def make_reference_groups(inputs: list[Path], group_size: int) -> list[list[Path]]:
     """
     Split an arbitrary reference pool into backend-sized groups without dropping evidence.
@@ -186,6 +205,7 @@ def make_job_plan(
     viewforge_mode: str = "auto",
     geometry_refine_mode: str = "auto",
     gameprep_mode: str = "auto",
+    character_specialist_mode: str = "auto",
 ) -> dict:
     profile = PROFILES[profile_name]
     roles = split_reference_roles(inputs)
@@ -257,6 +277,13 @@ def make_job_plan(
             "detail_sources_enter_judge_v3_when_appearance_is_active": True,
         },
         "candidate_backends": selected_backends,
+        "character_specialist": {
+            "mode": character_specialist_mode,
+            "backend": "PSHuman 768 6-view",
+            "activation": "character mode + complete PSHuman auxiliary assets + >=40GB VRAM",
+            "policy": "specialist is one additional candidate and must win the same real-source Judge; never auto-promoted",
+            "auxiliary_asset_gate": "smpl_related + PIXIE/SMPLX assets must exist; Hayuya does not auto-download separately licensed body-model data"
+        },
         "geometry_refinement": {
             "mode": geometry_refine_mode,
             "backend": "TripoSF SparseFlex 1024^3",
@@ -391,6 +418,13 @@ def run_single_backend(
             seed=seed,
             model_root=model_root,
         )
+    if backend == "pshuman":
+        return GENERATORS[backend](
+            image,
+            out_dir,
+            seed=seed,
+            model_root=model_root,
+        )
     if backend == "spar3d":
         return GENERATORS[backend](
             image,
@@ -454,6 +488,12 @@ def main() -> int:
         help="TripoSF SparseFlex geometry challenger policy for monster/ultra execution",
     )
     parser.add_argument(
+        "--character-specialist",
+        choices=["off", "auto", "required"],
+        default="auto",
+        help="PSHuman 40GB+ humanoid reconstruction challenger; auto activates only for character mode when fully provisioned",
+    )
+    parser.add_argument(
         "--gameprep",
         choices=["off", "auto", "required"],
         default="auto",
@@ -501,7 +541,9 @@ def main() -> int:
 
     mode = args.mode
     if mode == "auto":
-        mode = "character" if "character" in geometry_inputs[0].stem.lower() else "prop"
+        mode = infer_asset_mode(geometry_inputs[0])
+    if args.character_specialist == "required" and mode != "character":
+        parser.error("--character-specialist required needs --mode character or a character-path input")
 
     reference_groups = (
         make_reference_groups(geometry_inputs, group_size)
@@ -532,6 +574,7 @@ def main() -> int:
         viewforge_mode=args.viewforge,
         geometry_refine_mode=args.geometry_refine,
         gameprep_mode=args.gameprep,
+        character_specialist_mode=args.character_specialist,
     )
     (job_dir / "plan.json").write_text(json.dumps(plan, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(plan, indent=2))
@@ -573,7 +616,61 @@ def main() -> int:
                 if args.viewforge == "required":
                     raise
 
+    character_specialist_failure = None
+    character_specialist_status = "not_applicable"
+    if mode == "character" and args.character_specialist in {"auto", "required"}:
+        character_specialist_status = "checking"
+        repo_ready = (args.model_root / "pshuman").is_dir()
+        vram_ready = args.gpu_vram is None or args.gpu_vram >= 40
+        assets_ready, missing_assets = pshuman_readiness(args.model_root) if repo_ready else (False, ["backend repo missing"])
+
+        if not repo_ready or not vram_ready or not assets_ready:
+            reasons = []
+            if not repo_ready:
+                reasons.append("PSHuman backend not bootstrapped")
+            if not vram_ready:
+                reasons.append(f"PSHuman requires >40GB VRAM; budget={args.gpu_vram}GB")
+            if repo_ready and not assets_ready:
+                reasons.append("missing auxiliary assets: " + ", ".join(missing_assets))
+            character_specialist_failure = "; ".join(reasons)
+            character_specialist_status = "skipped"
+            print(
+                f"HAYUYA_CHARACTER_SPECIALIST_SKIPPED {character_specialist_failure}",
+                file=sys.stderr,
+            )
+            if args.character_specialist == "required":
+                raise RuntimeError(character_specialist_failure)
+        else:
+            try:
+                specialist = run_single_backend(
+                    "pshuman",
+                    geometry_inputs[0],
+                    candidates_dir / "pshuman",
+                    profile=profile,
+                    seed=args.seed,
+                    model_root=args.model_root,
+                )
+                candidates.append(("pshuman", specialist.model_path))
+                character_specialist_status = "candidate_ready"
+                print(
+                    f"HAYUYA_CANDIDATE_READY pshuman {specialist.model_path} "
+                    "specialist=humanoid"
+                )
+            except Exception as exc:
+                character_specialist_failure = f"{type(exc).__name__}: {exc}"
+                character_specialist_status = "failed"
+                print(
+                    f"HAYUYA_CHARACTER_SPECIALIST_FAILED {character_specialist_failure}",
+                    file=sys.stderr,
+                )
+                traceback.print_exc()
+                if args.character_specialist == "required":
+                    raise
+
     for backend in selected:
+        if backend == "pshuman":
+            # Specialist is managed above so it cannot accidentally run twice.
+            continue
         if backend == "trellis":
             # Native multi-image backend: every source participates in at least one group.
             for group_index, group in enumerate(reference_groups, start=1):
@@ -866,6 +963,10 @@ def main() -> int:
         "failures": failures,
         "viewforge": asdict(viewforge_result) if viewforge_result is not None else None,
         "viewforge_failure": viewforge_failure,
+        "character_specialist": {
+            "status": character_specialist_status,
+            "failure": character_specialist_failure,
+        },
         "geometry_refinement": asdict(refinement_decision) if refinement_decision is not None else None,
         "geometry_refinement_failure": refinement_failure,
         "material_bridge": asdict(material_bridge_result) if material_bridge_result is not None else None,
