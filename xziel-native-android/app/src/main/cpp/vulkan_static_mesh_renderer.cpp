@@ -6549,6 +6549,38 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
                     b.sourceBatchIndex;
             });
 
+        std::array<std::uint8_t, kMaxStaticMeshBatches>
+            sourcePrimarySeen{};
+        std::uint32_t sourcePrimaryCount = 0U;
+
+        for (const auto& range : batches_) {
+            if (!range.streamSourcePrimary) {
+                continue;
+            }
+
+            if (range.sourceBatchIndex >=
+                    asset.batches.size() ||
+                range.sourceBatchIndex >=
+                    sourcePrimarySeen.size() ||
+                sourcePrimarySeen[
+                    range.sourceBatchIndex] != 0U) {
+                unmapCells();
+                destroyGeometryResidency();
+                return false;
+            }
+
+            sourcePrimarySeen[
+                range.sourceBatchIndex] = 1U;
+            ++sourcePrimaryCount;
+        }
+
+        if (sourcePrimaryCount !=
+            asset.batches.size()) {
+            unmapCells();
+            destroyGeometryResidency();
+            return false;
+        }
+
         for (std::size_t i = 0U;
              i < geometryCellCount_;
              ++i) {
@@ -6617,9 +6649,11 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_MICRO_CULL_RANGES_READY source_batches=%u render_ranges=%u max_tris_per_range=%u",
+            "XZIEL_MICRO_CULL_RANGES_READY source_batches=%u stream_primaries=%u render_ranges=%u max_tris_per_range=%u",
             static_cast<unsigned int>(
                 asset.batches.size()),
+            static_cast<unsigned int>(
+                sourcePrimaryCount),
             static_cast<unsigned int>(
                 batches_.size()),
             2048U);
