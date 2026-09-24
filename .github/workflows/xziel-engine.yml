@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - feature/xziel-engine-foundation
+      - engine/horror-lighting-v1
     paths:
       - "engine/**"
       - "docs/xziel-engine-research.md"
