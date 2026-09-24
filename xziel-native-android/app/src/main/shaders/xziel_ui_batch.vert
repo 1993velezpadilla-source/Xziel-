@@ -15,5 +15,11 @@ void main() {
     vLocal = inLocal;
     vColor = inColor;
     vShape = int(inParams.x + 0.5);
-    vRingWidth = inParams.y;
+    // Flat per-primitive value: clamp once per vertex instead of once for
+    // every covered fragment.
+    vRingWidth =
+        clamp(
+            inParams.y,
+            0.02,
+            0.90);
 }

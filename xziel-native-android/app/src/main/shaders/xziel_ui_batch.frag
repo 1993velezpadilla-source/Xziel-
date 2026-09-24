@@ -9,11 +9,7 @@ layout(location = 0) out vec4 outColor;
 
 void main() {
     int shape = vShape;
-    float ringWidth =
-        clamp(
-            vRingWidth,
-            0.02,
-            0.90);
+    float ringWidth = vRingWidth;
 
     float alpha = vColor.a;
 
@@ -37,11 +33,10 @@ void main() {
         if (shape == 1) {
             alpha *= outer;
         } else {
+            // ringWidth is already clamped to [0.02, 0.90],
+            // therefore 1-ringWidth is guaranteed to be [0.10, 0.98].
             float innerRadius =
-                clamp(
-                    1.0 - ringWidth,
-                    0.02,
-                    0.98);
+                1.0 - ringWidth;
 
             float inner =
                 smoothstep(
