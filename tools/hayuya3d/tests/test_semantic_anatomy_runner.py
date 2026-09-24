@@ -8,6 +8,7 @@ from types import SimpleNamespace
 from unittest import mock
 
 from tools.hayuya3d.semantic_anatomy_runner import (
+    frame_targets,
     infer_critical_targets,
     render_specs,
     run_semantic_anatomy,
@@ -28,6 +29,26 @@ class SemanticAnatomyRunnerTests(unittest.TestCase):
                 ("front","head"),
                 ("side","head"),
             ],
+        )
+
+    def test_head_only_targets_skip_unnecessary_full_body_views(self):
+        self.assertEqual(
+            render_specs(
+                ["eyes","teeth"],
+                ["front","side","rear"],
+            ),
+            [
+                ("front","head"),
+                ("side","head"),
+            ],
+        )
+        self.assertEqual(
+            frame_targets(["eyes","hands","teeth"],"head"),
+            ["eyes","teeth"],
+        )
+        self.assertEqual(
+            frame_targets(["eyes","hands","teeth"],"full"),
+            ["hands"],
         )
 
     def test_non_head_targets_keep_full_body_views_only(self):
@@ -94,15 +115,23 @@ class SemanticAnatomyRunnerTests(unittest.TestCase):
                     detector_dir=Path(argv[out_index])
                     detector_dir.mkdir(parents=True,exist_ok=True)
                     image=Path(argv[argv.index("--image")+1])
+                    plan_path=Path(argv[argv.index("--plan")+1])
+                    plan=json.loads(plan_path.read_text(encoding="utf-8"))
                     if image.stem=="front":
+                        self.assertEqual(plan["required"],["left_hand","right_hand"])
                         detections=[
-                            {"part":"left_eye","grounding_score":0.94,"sam_iou_score":0.9,"mask_area_ratio":0.01},
-                            {"part":"right_eye","grounding_score":0.92,"sam_iou_score":0.88,"mask_area_ratio":0.01},
                             {"part":"left_hand","grounding_score":0.91,"sam_iou_score":0.87,"mask_area_ratio":0.03},
                         ]
                     elif image.stem=="side":
+                        self.assertEqual(plan["required"],["left_hand","right_hand"])
                         detections=[
                             {"part":"right_hand","grounding_score":0.90,"sam_iou_score":0.86,"mask_area_ratio":0.03},
+                        ]
+                    elif image.stem=="front_head":
+                        self.assertEqual(plan["required"],["left_eye","right_eye"])
+                        detections=[
+                            {"part":"left_eye","grounding_score":0.94,"sam_iou_score":0.9,"mask_area_ratio":0.01},
+                            {"part":"right_eye","grounding_score":0.92,"sam_iou_score":0.88,"mask_area_ratio":0.01},
                         ]
                     else:
                         detections=[]
