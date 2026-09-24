@@ -4804,6 +4804,146 @@ void VulkanStaticMeshRenderer::record(
                 commandBytes));
     }
 
+    // Cheap depth-only pass over the already-culled/sorted static world.
+    // It reuses the same indirect command stream, so CPU visibility work is
+    // not duplicated. The PBR pass that follows can reject hidden fragments
+    // before running texture sampling, derivative normal mapping and GGX.
+    if (!drawGroups_.empty() &&
+        depthPrepassPipeline_ != VK_NULL_HANDLE &&
+        depthPrepassPipelineDoubleSided_ != VK_NULL_HANDLE) {
+        VkPipeline depthBoundPipeline =
+            VK_NULL_HANDLE;
+        std::uint32_t depthBoundGeometryCell =
+            UINT32_MAX;
+
+        vkCmdPushConstants(
+            command,
+            pipelineLayout_,
+            VK_SHADER_STAGE_VERTEX_BIT,
+            0U,
+            static_cast<std::uint32_t>(
+                sizeof(push)),
+            &push);
+
+        for (const auto& group : drawGroups_) {
+            if (group.commandCount == 0U) {
+                continue;
+            }
+
+            if (cellGeometry) {
+                if (group.geometryCellSlot >=
+                    geometryCellCount_) {
+                    continue;
+                }
+
+                const auto& geometryCell =
+                    geometryCells_[
+                        group.geometryCellSlot];
+
+                if (!geometryCell.physicallyResident ||
+                    geometryCell.vertexBuffer ==
+                        VK_NULL_HANDLE ||
+                    geometryCell.indexBuffer ==
+                        VK_NULL_HANDLE) {
+                    continue;
+                }
+
+                if (depthBoundGeometryCell !=
+                    group.geometryCellSlot) {
+                    const VkDeviceSize geometryOffset =
+                        0U;
+
+                    vkCmdBindVertexBuffers(
+                        command,
+                        0U,
+                        1U,
+                        &geometryCell.vertexBuffer,
+                        &geometryOffset);
+
+                    vkCmdBindIndexBuffer(
+                        command,
+                        geometryCell.indexBuffer,
+                        0U,
+                        VK_INDEX_TYPE_UINT16);
+
+                    depthBoundGeometryCell =
+                        group.geometryCellSlot;
+                }
+            }
+
+            const VkPipeline desiredDepthPipeline =
+                group.doubleSided
+                ? depthPrepassPipelineDoubleSided_
+                : depthPrepassPipeline_;
+
+            if (depthBoundPipeline !=
+                desiredDepthPipeline) {
+                vkCmdBindPipeline(
+                    command,
+                    VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    desiredDepthPipeline);
+                depthBoundPipeline =
+                    desiredDepthPipeline;
+            }
+
+            if (useIndirect) {
+                std::uint32_t firstCommand =
+                    group.firstCommand;
+                std::uint32_t remaining =
+                    group.commandCount;
+
+                while (remaining > 0U) {
+                    const std::uint32_t chunk =
+                        std::min<std::uint32_t>(
+                            remaining,
+                            maxDrawIndirectCount_);
+
+                    const VkDeviceSize offset =
+                        static_cast<VkDeviceSize>(
+                            firstCommand) *
+                        sizeof(VkDrawIndexedIndirectCommand);
+
+                    vkCmdDrawIndexedIndirect(
+                        command,
+                        indirectFrame.buffer,
+                        offset,
+                        chunk,
+                        sizeof(VkDrawIndexedIndirectCommand));
+
+                    ++frameStats_.depthPrepassSubmissions;
+                    frameStats_.depthPrepassDraws +=
+                        chunk;
+
+                    firstCommand += chunk;
+                    remaining -= chunk;
+                }
+            } else {
+                const std::uint32_t endCommand =
+                    group.firstCommand +
+                    group.commandCount;
+
+                for (std::uint32_t i =
+                         group.firstCommand;
+                     i < endCommand;
+                     ++i) {
+                    const auto& draw =
+                        drawCommands_[i];
+
+                    vkCmdDrawIndexed(
+                        command,
+                        draw.indexCount,
+                        draw.instanceCount,
+                        draw.firstIndex,
+                        draw.vertexOffset,
+                        draw.firstInstance);
+
+                    ++frameStats_.depthPrepassSubmissions;
+                    ++frameStats_.depthPrepassDraws;
+                }
+            }
+        }
+    }
+
     for (const auto& group : drawGroups_) {
         if (group.commandCount == 0U ||
             group.materialIndex >=
