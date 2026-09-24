@@ -375,6 +375,14 @@ bool VulkanStaticMeshRenderer::initialize(
     textureMipResidency_.reset();
     streamCellBounds_ = {};
     streamDecisionCount_ = 0U;
+    cachedStreamPlanStats_ = {};
+    cachedStreamPlanCell_ = 0U;
+    cachedStreamPlanPressure_ =
+        MemoryPressure::Normal;
+    cachedStreamColdBatches_ = 0U;
+    streamPlanBuildCount_ = 0U;
+    streamPlanCacheHitCount_ = 0U;
+    streamPlanDirty_ = true;
     streamPlanFrame_ = 0U;
     lastLoggedStreamCell_ = 0U;
     streamCellCandidate_ = 0U;
@@ -1113,6 +1121,14 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     geometryAssetPath_.clear();
     streamCellBounds_ = {};
     streamDecisionCount_ = 0U;
+    cachedStreamPlanStats_ = {};
+    cachedStreamPlanCell_ = 0U;
+    cachedStreamPlanPressure_ =
+        MemoryPressure::Normal;
+    cachedStreamColdBatches_ = 0U;
+    streamPlanBuildCount_ = 0U;
+    streamPlanCacheHitCount_ = 0U;
+    streamPlanDirty_ = true;
     streamPlanFrame_ = 0U;
     lastLoggedStreamCell_ = 0U;
     pendingUploads_.clear();
@@ -1180,9 +1196,21 @@ void VulkanStaticMeshRenderer::setStreamingPortalOpen(
         return;
     }
 
-    (void) streamGraph_.setPortalOpen(
-        portalId,
-        open);
+    bool current = false;
+
+    if (!streamGraph_.portalOpen(
+            portalId,
+            current) ||
+        current == open) {
+        return;
+    }
+
+    if (streamGraph_.setPortalOpen(
+            portalId,
+            open)) {
+        streamPlanDirty_ = true;
+        streamCullLogged_ = false;
+    }
 }
 
 void VulkanStaticMeshRenderer::cacheGpuBatchCullingSphere(
