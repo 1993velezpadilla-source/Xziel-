@@ -822,7 +822,8 @@ class AccessoryMaterialTransferTests(unittest.TestCase):
             write_skinned_base_with_normals(base)
             write_split_material_cluster_donor(donor)
 
-            import tools.hayuya3d.surface_transfer as surface_transfer
+            import importlib
+            surface_transfer = importlib.import_module("surface_transfer")
             original = surface_transfer.build_surface_transfer_index
             calls = []
 
