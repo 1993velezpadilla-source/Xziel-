@@ -21,6 +21,7 @@ class MeshScore:
     appearance_score: float | None = None
     appearance_views: list[dict] | None = None
     appearance_detail_score: float | None = None
+    appearance_face_detail_score: float | None = None
     appearance_details: list[dict] | None = None
     normal_support_score: float | None = None
     normal_support_views: list[dict] | None = None
@@ -36,6 +37,10 @@ class MeshScore:
     texture_max_edge: int = 0
     base_color_max_edge: int = 0
     texture_resolution_score: float | None = None
+    head_region_faces: int = 0
+    head_region_vertices: int = 0
+    head_region_face_fraction: float | None = None
+    head_region_median_edge_normalized: float | None = None
     bbox: list[float] | None = None
     notes: list[str] | None = None
 
@@ -197,6 +202,38 @@ def inspect_mesh(
 
         extents = np.asarray(mesh.extents, dtype=float)
         result.bbox = [round(float(x), 8) for x in extents.tolist()]
+
+        if mode == "character" and len(mesh.faces):
+            up_axis = int(np.argmax(np.abs(extents)))
+            body_min = float(np.min(mesh.vertices[:, up_axis]))
+            body_span = max(1e-12, float(extents[up_axis]))
+            face_centers = np.asarray(mesh.triangles_center)[:, up_axis]
+            head_mask = ((face_centers - body_min) / body_span) >= 0.72
+            head_face_indices = np.nonzero(head_mask)[0]
+            result.head_region_faces = int(len(head_face_indices))
+            if len(head_face_indices):
+                head_faces = np.asarray(mesh.faces)[head_face_indices]
+                head_vertices = np.unique(head_faces.reshape(-1))
+                result.head_region_vertices = int(len(head_vertices))
+                result.head_region_face_fraction = round(
+                    result.head_region_faces / max(1, result.faces),
+                    6,
+                )
+                tri = np.asarray(mesh.vertices)[head_faces]
+                edges = np.concatenate(
+                    (
+                        np.linalg.norm(tri[:,0]-tri[:,1],axis=1),
+                        np.linalg.norm(tri[:,1]-tri[:,2],axis=1),
+                        np.linalg.norm(tri[:,2]-tri[:,0],axis=1),
+                    )
+                )
+                finite_edges = edges[np.isfinite(edges) & (edges>1e-12)]
+                body_diag = max(1e-12, float(np.linalg.norm(extents)))
+                if len(finite_edges):
+                    result.head_region_median_edge_normalized = round(
+                        float(np.median(finite_edges))/body_diag,
+                        8,
+                    )
 
         has_uv = False
         textured = False
@@ -424,6 +461,23 @@ def rank_candidates(
                                     [_asdict(v) for v in (appearance.details or [])]
                                     if appearance.details is not None else None
                                 )
+                                face_detail_scores = [
+                                    float(v.score)
+                                    for v in (appearance.details or [])
+                                    if str(getattr(v,"region_hint","") or "").lower()=="head"
+                                ]
+                                if face_detail_scores:
+                                    ordered_face=sorted(face_detail_scores)
+                                    mean_face=sum(ordered_face)/len(ordered_face)
+                                    item.appearance_face_detail_score=round(
+                                        mean_face if len(ordered_face)==1
+                                        else 0.80*mean_face+0.20*ordered_face[0],
+                                        3,
+                                    )
+                                    item.notes.append(
+                                        f"face_detail_fidelity={item.appearance_face_detail_score:.3f} "
+                                        f"face_detail_refs={len(face_detail_scores)}"
+                                    )
                                 if item.appearance_detail_score is not None:
                                     item.notes.append(
                                         f"detail_fidelity={item.appearance_detail_score:.3f} "
