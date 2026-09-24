@@ -35,6 +35,21 @@ class RegionalDonor:
 
 
 @dataclass
+class DetailDonor:
+    source: str
+    region_hint: str | None
+    base_backend: str
+    donor_backend: str
+    base_score: float | None
+    donor_score: float
+    improvement: float | None
+    strategy: str
+    seam_risk: str
+    rig_risk: str
+    requires_rejudge: bool = True
+
+
+@dataclass
 class FinalistSummary:
     backend: str
     path: str
@@ -50,6 +65,7 @@ class FinalistSummary:
     head_texture_detail_score: float | None
     material_score: float | None
     texture_resolution_score: float | None
+    appearance_details: list[dict] | None = None
     up_axis: str | None = None
     accessory_components: int | None = None
 
@@ -92,6 +108,7 @@ class CompositeChampionPlan:
     finalist_backends: list[str]
     finalists: list[FinalistSummary]
     donors: list[RegionalDonor]
+    detail_donors: list[DetailDonor]
     composite_required: bool
     executable_now: list[str]
     deferred_transfers: list[str]
@@ -208,6 +225,11 @@ def _summary(item: Any) -> FinalistSummary:
         head_texture_detail_score=_finite(_get(item,"head_texture_detail_score")),
         material_score=_finite(_get(item,"material_score")),
         texture_resolution_score=_finite(_get(item,"texture_resolution_score")),
+        appearance_details=[
+            dict(detail)
+            for detail in (_get(item,"appearance_details") or [])
+            if isinstance(detail,dict)
+        ] or None,
         up_axis=up_axis,
     )
 
@@ -239,6 +261,32 @@ def _improvement(base: float | None, donor: float | None) -> float | None:
     if base is None:
         return donor
     return donor-base
+
+
+def _detail_map(summary: FinalistSummary) -> dict[str,dict]:
+    out={}
+    for detail in summary.appearance_details or []:
+        source=str(detail.get("source") or "")
+        score=_finite(detail.get("score"))
+        if not source or score is None:
+            continue
+        out[source]={
+            "score":score,
+            "region_hint":(
+                str(detail.get("region_hint"))
+                if detail.get("region_hint") is not None else None
+            ),
+        }
+    return out
+
+
+def _detail_strategy(region_hint: str | None) -> tuple[str,str,str]:
+    region=str(region_hint or "local").lower()
+    if region=="head":
+        return ("local_face_texture_projection","medium","low")
+    if region in {"middle","lower"}:
+        return ("local_body_texture_projection","medium","low")
+    return ("local_detail_surface_projection","medium","low")
 
 
 def _part_map_accessory_count(path: str, mode: str) -> int | None:
@@ -320,6 +368,64 @@ def build_composite_plan(
             destructive=False,
         ))
 
+    detail_donors: list[DetailDonor]=[]
+    detail_sources=sorted({
+        source
+        for finalist in finalists
+        for source in _detail_map(finalist)
+    })
+    base_details=_detail_map(base)
+    for source in detail_sources:
+        candidates=[]
+        for finalist in finalists:
+            item=_detail_map(finalist).get(source)
+            if item is None:
+                continue
+            candidates.append((
+                float(item["score"]),
+                finalist.global_score,
+                finalist,
+                item,
+            ))
+        if not candidates:
+            continue
+        _,_,winner,winner_item=max(
+            candidates,
+            key=lambda row:(row[0],row[1]),
+        )
+        base_item=base_details.get(source)
+        base_score=(
+            float(base_item["score"])
+            if base_item is not None else None
+        )
+        donor_score=float(winner_item["score"])
+        gain=_improvement(base_score,donor_score)
+        strategy,seam_risk,rig_risk=_detail_strategy(
+            winner_item.get("region_hint")
+        )
+        detail_donors.append(DetailDonor(
+            source=source,
+            region_hint=winner_item.get("region_hint"),
+            base_backend=base.backend,
+            donor_backend=winner.backend,
+            base_score=base_score,
+            donor_score=donor_score,
+            improvement=round(gain,3) if gain is not None else None,
+            strategy=strategy,
+            seam_risk=seam_risk,
+            rig_risk=rig_risk,
+        ))
+
+    meaningful_detail=[
+        item for item in detail_donors
+        if item.donor_backend!=base.backend
+        and (
+            item.base_score is None
+            or item.improvement is None
+            or item.improvement>=minimum_regional_gain
+        )
+    ]
+
     meaningful=[
         d for d in donors
         if d.donor_backend!=base.backend
@@ -344,6 +450,9 @@ def build_composite_plan(
     deferred=sorted({
         d.region for d in meaningful
         if d.region not in executable_now
+    } | {
+        "detail:"+item.source
+        for item in meaningful_detail
     })
 
     return CompositeChampionPlan(
@@ -354,7 +463,8 @@ def build_composite_plan(
         finalist_backends=[x.backend for x in finalists],
         finalists=finalists,
         donors=donors,
-        composite_required=bool(meaningful),
+        detail_donors=detail_donors,
+        composite_required=bool(meaningful or meaningful_detail),
         executable_now=executable_now,
         deferred_transfers=deferred,
         promotion_contract=[
@@ -371,6 +481,7 @@ def build_composite_plan(
         notes=[
             "The base finalist supplies the canonical coordinate system and continuity.",
             "Regional donors are evidence sources, not unconditional copy/paste instructions.",
+            "Every explicit local/detail reference gets its own donor winner so scars, hands, jewelry, wounds and clothing details cannot disappear inside an aggregate score.",
             "High-risk body/face geometry transfers stay deferred until wrap/seam/skin-weight proof exists.",
             "Texture/material transfers can be attempted earlier because they preserve base topology.",
             "Every fusion is atomic: rejection restores the untouched base champion.",
