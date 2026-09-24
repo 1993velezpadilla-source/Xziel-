@@ -47,7 +47,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: sanctum-native-hq-cell-frustum-v2-${{ github.ref }}
+  group: sanctum-native-hq-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -773,7 +773,7 @@ jobs:
               echo "XZIEL_MULTI_DRAW_INDIRECT_ACTIVE draws=${STREAM_DRAWS} submissions=${STREAM_DRAW_SUBMISSIONS} groups=${STREAM_SUBMISSION_GROUPS} indirect_draws=${STREAM_INDIRECT_DRAWS}"
             fi
 
-            if [[ "${GITHUB_REF_NAME}" == "engine/mobile-cell-frustum-v1" ]]; then
+            if [[ "${GITHUB_REF_NAME}" == "engine/mobile-cell-frustum-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" ]]; then
               test -n "${STREAM_CELL_FRUSTUM_TESTS}"
               test -n "${STREAM_CELL_FRUSTUM_CULLED}"
               test -n "${STREAM_CELL_RANGE_SKIPPED}"
