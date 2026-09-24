@@ -186,9 +186,10 @@ def restore_after_ao_bake(restore):
         if old_surface is not None:
             links.new(old_surface,output.inputs["Surface"])
         # Keep the image node; configure_occlusion will attach it to glTF output.
-        if ao in nodes:
+        # Blender 4 bpy_prop_collection.__contains__ accepts names, not node objects.
+        if nodes.get(ao.name) is ao:
             nodes.remove(ao)
-        if emission in nodes:
+        if nodes.get(emission.name) is emission:
             nodes.remove(emission)
 
 
