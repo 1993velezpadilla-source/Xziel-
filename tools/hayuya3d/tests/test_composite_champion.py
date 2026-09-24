@@ -495,6 +495,12 @@ class CompositeChampionPlannerTests(unittest.TestCase):
             self.assertTrue(result.fusion)
             self.assertTrue(result.fusion["component_crossing_ready"])
             self.assertTrue(result.fusion["self_intersection_ready"])
+            self.assertTrue(result.fusion["attachment_ready"])
+            self.assertEqual(result.fusion["attachment_floating_components"],0)
+            self.assertEqual(
+                result.fusion["attachment_oversized_floating_components"],
+                0,
+            )
 
     def test_character_accessory_geometry_remains_deferred_even_with_match(self):
         with tempfile.TemporaryDirectory() as tmp:
