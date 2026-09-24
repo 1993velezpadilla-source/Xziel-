@@ -250,6 +250,13 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
                 face_score = float(raw_face)
             except ValueError:
                 face_score = None
+        raw_facemesh = values.get("facemesh_score")
+        facemesh_score = None
+        if raw_facemesh and raw_facemesh.lower() != "none":
+            try:
+                facemesh_score = float(raw_facemesh)
+            except ValueError:
+                facemesh_score = None
         job.final_qa = {
             "production_ready": _bool("production_ready"),
             "material_ready": _bool("material_ready"),
@@ -258,6 +265,7 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
             "animation_ready": _bool("animation_ready"),
             "face_ready": _bool("face_ready"),
             "face_score": face_score,
+            "facemesh_score": facemesh_score,
             "report": values.get("report"),
         }
         _emit(job, "qa_ready", {"qa": dict(job.final_qa)})
