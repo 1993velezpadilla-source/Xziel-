@@ -44,6 +44,8 @@ public class MainActivity extends Activity {
     private Button codeButton;
     private Button imageButton;
     private Button mapButton;
+    private Button createButton;
+    private LinearLayout createMenu;
     private TextView status;
 
     private String sessionId;
@@ -90,7 +92,7 @@ public class MainActivity extends Activity {
         root.addView(header);
 
         status = new TextView(this);
-        status.setText("LAB v0.2.2 • independent from HAYUYA");
+        status.setText("LAB v0.2.3 • independent from HAYUYA");
         status.setTextColor(Color.rgb(155, 155, 170));
         status.setPadding(0, 0, 0, dp(6));
         root.addView(status);
@@ -120,31 +122,51 @@ public class MainActivity extends Activity {
         prompt.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
         root.addView(prompt);
 
-        LinearLayout actionsTop = new LinearLayout(this);
-        actionsTop.setGravity(Gravity.CENTER);
+        createMenu = new LinearLayout(this);
+        createMenu.setGravity(Gravity.CENTER);
+        createMenu.setVisibility(View.GONE);
+        imageButton = makeButton("Image");
+        mapButton = makeButton("Map Modeling");
+        createMenu.addView(imageButton, weight());
+        createMenu.addView(mapButton, weight());
+        root.addView(createMenu);
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setGravity(Gravity.CENTER);
         chatButton = makeButton("Chat");
         researchButton = makeButton("Research");
         codeButton = makeButton("Code");
-        actionsTop.addView(chatButton, weight());
-        actionsTop.addView(researchButton, weight());
-        actionsTop.addView(codeButton, weight());
-        root.addView(actionsTop);
+        createButton = makeButton("Create");
+        actions.addView(chatButton, weight());
+        actions.addView(researchButton, weight());
+        actions.addView(codeButton, weight());
+        actions.addView(createButton, weight());
+        root.addView(actions);
 
-        LinearLayout actionsBottom = new LinearLayout(this);
-        actionsBottom.setGravity(Gravity.CENTER);
-        imageButton = makeButton("Image");
-        mapButton = makeButton("Map Model");
-        actionsBottom.addView(imageButton, weight());
-        actionsBottom.addView(mapButton, weight());
-        root.addView(actionsBottom);
+        chatButton.setOnClickListener(v -> {
+            createMenu.setVisibility(View.GONE);
+            sendChat("general");
+        });
+        researchButton.setOnClickListener(v -> {
+            createMenu.setVisibility(View.GONE);
+            sendChat("research");
+        });
+        codeButton.setOnClickListener(v -> {
+            createMenu.setVisibility(View.GONE);
+            sendChat("coding");
+        });
+        createButton.setOnClickListener(v -> createMenu.setVisibility(
+                createMenu.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE));
+        imageButton.setOnClickListener(v -> {
+            createMenu.setVisibility(View.GONE);
+            sendImage(false);
+        });
+        mapButton.setOnClickListener(v -> {
+            createMenu.setVisibility(View.GONE);
+            sendChat("map_modeling");
+        });
 
-        chatButton.setOnClickListener(v -> sendChat("general"));
-        researchButton.setOnClickListener(v -> sendChat("research"));
-        codeButton.setOnClickListener(v -> sendChat("coding"));
-        imageButton.setOnClickListener(v -> sendImage(false));
-        mapButton.setOnClickListener(v -> sendChat("map_modeling"));
-
-        addBubble("Pichy", "Ready. Use Chat, Research, Code, Image, or Map Model. Map Model creates production-oriented 3D level/world plans while staying separate from HAYUYA.");
+        addBubble("Pichy", "Ready. Chat, Research and Code stay on the main bar. Tap Create for Image or Map Modeling.");
         return root;
     }
 
@@ -395,6 +417,8 @@ public class MainActivity extends Activity {
         codeButton.setEnabled(!busy);
         imageButton.setEnabled(!busy);
         mapButton.setEnabled(!busy);
+        createButton.setEnabled(!busy);
+        if (busy) createMenu.setVisibility(View.GONE);
         status.setText(busy ? "Working • " + mode : "Ready • session " + sessionId.substring(0, 8));
     }
 
