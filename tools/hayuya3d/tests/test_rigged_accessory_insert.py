@@ -34,6 +34,7 @@ def _align(blob: bytearray) -> int:
 def write_skinned_base(path: Path, *, morph: bool = True) -> None:
     source = trimesh.creation.icosphere(subdivisions=2, radius=1.0)
     vertices = np.asarray(source.vertices, dtype=np.float32)
+    normals = np.asarray(source.vertex_normals, dtype=np.float32)
     faces = np.asarray(source.faces, dtype=np.uint16)
     count = len(vertices)
 
@@ -48,6 +49,9 @@ def write_skinned_base(path: Path, *, morph: bool = True) -> None:
     pos_offset = _align(blob)
     pos_bytes = vertices.astype("<f4").tobytes()
     blob.extend(pos_bytes)
+    normal_offset = _align(blob)
+    normal_bytes = normals.astype("<f4").tobytes()
+    blob.extend(normal_bytes)
     joint_offset = _align(blob)
     joint_bytes = joints.tobytes()
     blob.extend(joint_bytes)
@@ -60,6 +64,7 @@ def write_skinned_base(path: Path, *, morph: bool = True) -> None:
 
     views = [
         {"buffer": 0, "byteOffset": pos_offset, "byteLength": len(pos_bytes)},
+        {"buffer": 0, "byteOffset": normal_offset, "byteLength": len(normal_bytes)},
         {"buffer": 0, "byteOffset": joint_offset, "byteLength": len(joint_bytes)},
         {"buffer": 0, "byteOffset": weight_offset, "byteLength": len(weight_bytes)},
         {"buffer": 0, "byteOffset": index_offset, "byteLength": len(index_bytes)},
@@ -75,18 +80,26 @@ def write_skinned_base(path: Path, *, morph: bool = True) -> None:
         },
         {
             "bufferView": 1,
+            "componentType": 5126,
+            "count": count,
+            "type": "VEC3",
+            "min": normals.min(axis=0).astype(float).tolist(),
+            "max": normals.max(axis=0).astype(float).tolist(),
+        },
+        {
+            "bufferView": 2,
             "componentType": 5121,
             "count": count,
             "type": "VEC4",
         },
         {
-            "bufferView": 2,
+            "bufferView": 3,
             "componentType": 5126,
             "count": count,
             "type": "VEC4",
         },
         {
-            "bufferView": 3,
+            "bufferView": 4,
             "componentType": 5123,
             "count": int(faces.size),
             "type": "SCALAR",
@@ -95,10 +108,11 @@ def write_skinned_base(path: Path, *, morph: bool = True) -> None:
     primitive = {
         "attributes": {
             "POSITION": 0,
-            "JOINTS_0": 1,
-            "WEIGHTS_0": 2,
+            "NORMAL": 1,
+            "JOINTS_0": 2,
+            "WEIGHTS_0": 3,
         },
-        "indices": 3,
+        "indices": 4,
     }
     mesh = {"primitives": [primitive]}
 
