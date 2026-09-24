@@ -21,6 +21,11 @@ class QAPackageResult:
     part_map: str | None
     geometry_ready: bool
     material_ready: bool
+    texture_resolution_ready: bool
+    texture_resolution_score: float | None
+    base_color_min_edge: int
+    base_color_max_edge: int
+    target_texture_size: int | None
     material_rebake_ready: bool
     material_rebaked_channels: list[str]
     material_rebake_pending_channels: list[str]
@@ -436,6 +441,13 @@ def build_qa_package(
         part_map=str(part_map_path) if part_map_path else None,
         geometry_ready=geometry_ready,
         material_ready=material_ready,
+        texture_resolution_ready=texture_resolution_ready,
+        texture_resolution_score=mesh.texture_resolution_score,
+        base_color_min_edge=int(mesh.base_color_min_edge or 0),
+        base_color_max_edge=int(mesh.base_color_max_edge or 0),
+        target_texture_size=(
+            int(target_texture_size) if target_texture_size is not None else None
+        ),
         material_rebake_ready=material_rebake_ready,
         material_rebaked_channels=material_rebaked_channels,
         material_rebake_pending_channels=material_rebake_pending_channels,
