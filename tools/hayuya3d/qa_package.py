@@ -68,6 +68,12 @@ class QAPackageResult:
     collision_faces: int
     collision_convexity_ratio: float | None
     collision_bbox_coverage_ready: bool
+    composite_attachment_applicable: bool
+    composite_attachment_ready: bool
+    composite_attachment_components: int
+    composite_attachment_accessories: int
+    composite_attachment_floating: int
+    composite_attachment_oversized_floating: int
     turntable_ready: bool
     turntable_score: float | None
     face_evidence_ready: bool
@@ -870,6 +876,52 @@ def build_qa_package(
             "production-ready runtime status is false"
         )
 
+    composite_attachment_audit = None
+    composite_attachment_applicable = False
+    composite_attachment_ready = False
+    composite_attachment_components = 0
+    composite_attachment_accessories = 0
+    composite_attachment_floating = 0
+    composite_attachment_oversized_floating = 0
+    try:
+        from composite_attachment_qa import audit_composite_attachments
+        composite_attachment_audit = audit_composite_attachments(
+            final_glb,
+            mode=mode,
+        )
+        composite_attachment_applicable = bool(
+            composite_attachment_audit.applicable
+        )
+        composite_attachment_ready = bool(
+            composite_attachment_audit.applicable
+            and composite_attachment_audit.ready
+        )
+        composite_attachment_components = int(
+            composite_attachment_audit.component_count
+        )
+        composite_attachment_accessories = int(
+            composite_attachment_audit.accessory_candidates
+        )
+        composite_attachment_floating = int(
+            composite_attachment_audit.floating_components
+        )
+        composite_attachment_oversized_floating = int(
+            composite_attachment_audit.oversized_floating_components
+        )
+        warnings.extend(composite_attachment_audit.warnings or [])
+        warnings.extend(composite_attachment_audit.errors or [])
+    except Exception as exc:
+        composite_attachment_ready = False
+        warnings.append(
+            "composite attachment QA unavailable: "
+            f"{type(exc).__name__}: {exc}"
+        )
+    if not composite_attachment_ready:
+        warnings.append(
+            "disconnected accessory/composite attachment QA failed; "
+            "floating props or detached donor islands block production-ready status"
+        )
+
     unresolved_rebakes = unresolved_material_rebakes(gameprep_data)
     material_rebaked_channels,material_rebake_pending_channels = (
         material_rebake_channel_summary(gameprep_data)
@@ -892,6 +944,7 @@ def build_qa_package(
         and material_rebake_ready
         and component_crossing_ready
         and self_intersection_ready
+        and composite_attachment_ready
         and uv_tangent_ready
         and (shading_basis_ready if shading_basis_required else True)
         and source_coverage >= expected_sources
@@ -958,6 +1011,19 @@ def build_qa_package(
                 "applicable": self_intersection_applicable,
                 "ready": self_intersection_ready,
                 "crossing_triangle_pairs": self_intersection_pairs,
+            }
+        ),
+        "composite_attachment": (
+            asdict(composite_attachment_audit)
+            if composite_attachment_audit is not None else {
+                "applicable": composite_attachment_applicable,
+                "ready": composite_attachment_ready,
+                "component_count": composite_attachment_components,
+                "accessory_candidates": composite_attachment_accessories,
+                "floating_components": composite_attachment_floating,
+                "oversized_floating_components": (
+                    composite_attachment_oversized_floating
+                ),
             }
         ),
         "uv_tangent": (
@@ -1143,6 +1209,14 @@ def build_qa_package(
         collision_faces=collision_faces,
         collision_convexity_ratio=collision_convexity_ratio,
         collision_bbox_coverage_ready=collision_bbox_coverage_ready,
+        composite_attachment_applicable=composite_attachment_applicable,
+        composite_attachment_ready=composite_attachment_ready,
+        composite_attachment_components=composite_attachment_components,
+        composite_attachment_accessories=composite_attachment_accessories,
+        composite_attachment_floating=composite_attachment_floating,
+        composite_attachment_oversized_floating=(
+            composite_attachment_oversized_floating
+        ),
         turntable_ready=turntable_ready,
         turntable_score=turntable_score,
         face_evidence_ready=face_evidence_ready,
