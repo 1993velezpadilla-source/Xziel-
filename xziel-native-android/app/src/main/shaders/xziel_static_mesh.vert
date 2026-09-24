@@ -22,12 +22,8 @@ layout(location = 3) in vec4 inColor;
 
 layout(location = 0) out vec2 vUv;
 layout(location = 1) out vec3 vNormal;
-layout(location = 2) out vec4 vColor;
-layout(location = 3) out float vDistance;
-layout(location = 4) out float vFogDensity;
-layout(location = 5) out float vLightning;
-layout(location = 6) out float vViewmodel;
-layout(location = 7) out vec3 vViewPosition;
+// xyz=view-space position, w=non-negative view distance.
+layout(location = 2) out vec4 vViewData;
 
 vec3 worldToView(vec3 world) {
     vec3 relative =
@@ -169,22 +165,8 @@ void main() {
 
     vUv = inUv;
     vNormal = surfaceNormal;
-    vColor = inColor;
-    vDistance = max(view.z, 0.0);
-    vFogDensity =
-        viewmodel > 0.5
-        ? 0.0
-        : clamp(
-              pc.viewRotationFog.w,
-              0.0,
-              1.0);
-    vLightning =
-        viewmodel > 0.5
-        ? 0.0
-        : clamp(
-              pc.environmentRotation.x,
-              0.0,
-              2.0);
-    vViewmodel = viewmodel;
-    vViewPosition = view;
+    vViewData =
+        vec4(
+            view,
+            max(view.z, 0.0));
 }
