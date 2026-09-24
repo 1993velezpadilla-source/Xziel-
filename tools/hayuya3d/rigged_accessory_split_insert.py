@@ -282,6 +282,9 @@ def insert_split_rigged_accessory(
         surface_transfer_method = "hayuya-surface-transfer-bvh-barycentric-exact-v2"
         surface_max_examined_triangles = 0
         surface_max_visited_bvh_nodes = 0
+        surface_ambiguous_vertices = 0
+        surface_min_gap_ratio = None
+        surface_max_skin_l1 = 0.0
 
         for group_index, group in enumerate(source.groups):
             primitive, donor_used, donor_world, donor_faces = _group_geometry(
@@ -325,6 +328,22 @@ def insert_split_rigged_accessory(
             surface_max_visited_bvh_nodes = max(
                 surface_max_visited_bvh_nodes,
                 int(surface_relation.max_visited_bvh_nodes),
+            )
+            surface_ambiguous_vertices += int(
+                surface_relation.ambiguous_skin_vertices
+            )
+            if surface_relation.surface_skin_min_gap_ratio is not None:
+                value = float(
+                    surface_relation.surface_skin_min_gap_ratio
+                )
+                surface_min_gap_ratio = (
+                    value
+                    if surface_min_gap_ratio is None
+                    else min(surface_min_gap_ratio, value)
+                )
+            surface_max_skin_l1 = max(
+                surface_max_skin_l1,
+                float(surface_relation.surface_skin_max_l1),
             )
             _require_exact_surface_relation(surface_relation)
             source_ratio = source_distance / base_diag
@@ -621,6 +640,18 @@ def insert_split_rigged_accessory(
             ),
             surface_transfer_max_visited_bvh_nodes=int(
                 surface_max_visited_bvh_nodes
+            ),
+            surface_skin_ambiguous_vertices=int(
+                surface_ambiguous_vertices
+            ),
+            surface_skin_min_gap_ratio=(
+                None
+                if surface_min_gap_ratio is None
+                else round(float(surface_min_gap_ratio), 8)
+            ),
+            surface_skin_max_l1=round(
+                float(surface_max_skin_l1),
+                8,
             ),
         )
     except Exception as exc:
