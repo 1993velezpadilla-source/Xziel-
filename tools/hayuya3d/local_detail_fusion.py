@@ -297,7 +297,7 @@ def fuse_local_basecolor(
         )
 
         h,w=pixels.shape[:2]
-        changed_mask=np.zeros((h,w),dtype=bool)
+        blend_alpha=np.zeros((h,w),dtype=np.float64)
         skipped_seams=0
         for face in faces:
             tri_h=normalized_heights[face]
@@ -358,7 +358,10 @@ def fuse_local_basecolor(
             pixels[gy,gx,:3]=np.clip(
                 np.rint(new_rgb),0,255
             ).astype(np.uint8)
-            changed_mask[gy,gx]=True
+            blend_alpha[gy,gx]=np.maximum(
+                blend_alpha[gy,gx],
+                alpha[active],
+            )
 
         actual_changed=np.any(
             pixels[:,:,:3]!=original_pixels[:,:,:3],
@@ -367,10 +370,11 @@ def fuse_local_basecolor(
         changed=int(np.count_nonzero(actual_changed))
         total=int(h*w)
         unchanged=total-changed
+        seam_support=blend_alpha>1e-4
         seam_pairs,seam_p95,seam_max=_seam_added_delta(
             original_pixels[:,:,:3],
             pixels[:,:,:3],
-            actual_changed,
+            seam_support,
         )
         seam_ready=bool(seam_p95<=12.0)
         if changed<=0:
