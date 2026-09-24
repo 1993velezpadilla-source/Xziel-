@@ -258,6 +258,14 @@ private:
         std::uint32_t indexCount = 0U;
         std::uint32_t materialIndex = 0U;
         StaticMeshBounds bounds{};
+
+        // Derived once when the XZSM is uploaded. Frustum culling touches every
+        // batch every frame, so keep its sphere out of the hot loop.
+        float cullCenterX = 0.0f;
+        float cullCenterY = 0.0f;
+        float cullCenterZ = 0.0f;
+        float cullRadius = 0.0f;
+
         bool doubleSided = true;
     };
 
@@ -377,6 +385,9 @@ private:
 
     void destroyTexture(GpuTexture& texture) noexcept;
     void destroyGeometryResidency() noexcept;
+
+    static void cacheGpuBatchCullingSphere(
+        GpuBatch& batch) noexcept;
 
     void rebuildStreamingCellBounds() noexcept;
 
