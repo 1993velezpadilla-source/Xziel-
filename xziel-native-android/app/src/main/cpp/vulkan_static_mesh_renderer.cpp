@@ -243,7 +243,7 @@ static_assert(
             VK_FORMAT_R16G16B16A16_SNORM) &&
         supportsVertexFormat(
             physicalDevice,
-            VK_FORMAT_R16G16_SFLOAT);
+            VK_FORMAT_R16G16_UNORM);
 }
 
 [[nodiscard]] std::size_t gpuStaticVertexStride(
@@ -271,89 +271,43 @@ static_assert(
             clamped * 32767.0f));
 }
 
-[[nodiscard]] std::uint16_t floatToHalfBits(
+[[nodiscard]] std::uint16_t packUnorm16(
     float value) noexcept {
     if (!std::isfinite(value)) {
-        value = 0.0f;
+        return 0U;
     }
 
-    std::uint32_t bits = 0U;
-    std::memcpy(
-        &bits,
-        &value,
-        sizeof(bits));
-
-    const std::uint32_t sign =
-        (bits >> 16U) & 0x8000U;
-    const std::uint32_t exponent =
-        (bits >> 23U) & 0xFFU;
-    std::uint32_t mantissa =
-        bits & 0x7FFFFFU;
-
-    if (exponent == 0U) {
-        return
-            static_cast<std::uint16_t>(
-                sign);
-    }
-
-    const int adjustedExponent =
-        static_cast<int>(exponent) -
-        127 +
-        15;
-
-    if (adjustedExponent <= 0) {
-        if (adjustedExponent < -10) {
-            return
-                static_cast<std::uint16_t>(
-                    sign);
-        }
-
-        mantissa |= 0x800000U;
-
-        const int shift =
-            14 - adjustedExponent;
-
-        const std::uint32_t rounding =
-            (1U << (shift - 1)) - 1U +
-            ((mantissa >> shift) & 1U);
-
-        return static_cast<std::uint16_t>(
-            sign |
-            ((mantissa + rounding) >>
-             shift));
-    }
-
-    if (adjustedExponent >= 31) {
-        return static_cast<std::uint16_t>(
-            sign | 0x7BFFU);
-    }
-
-    const std::uint32_t rounded =
-        mantissa + 0x0FFFU +
-        ((mantissa >> 13U) & 1U);
-
-    if ((rounded & 0x800000U) != 0U) {
-        const int bumpedExponent =
-            adjustedExponent + 1;
-
-        if (bumpedExponent >= 31) {
-            return static_cast<std::uint16_t>(
-                sign | 0x7BFFU);
-        }
-
-        return static_cast<std::uint16_t>(
-            sign |
-            (static_cast<std::uint32_t>(
-                 bumpedExponent)
-             << 10U));
-    }
+    const float clamped =
+        std::clamp(
+            value,
+            0.0f,
+            1.0f);
 
     return static_cast<std::uint16_t>(
-        sign |
-        (static_cast<std::uint32_t>(
-             adjustedExponent)
-         << 10U) |
-        (rounded >> 13U));
+        std::lround(
+            clamped * 65535.0f));
+}
+
+[[nodiscard]] bool assetUvFitsUnorm16(
+    const StaticMeshAsset& asset) noexcept {
+    // Blender can legally author tiled UVs outside [0,1]. Do not silently
+    // clamp those assets: use the original 36-byte layout instead.
+    constexpr float kTolerance = 1.0e-5f;
+
+    for (const auto& batch : asset.batches) {
+        for (const auto& vertex : batch.vertices) {
+            if (!std::isfinite(vertex.u) ||
+                !std::isfinite(vertex.v) ||
+                vertex.u < -kTolerance ||
+                vertex.u > 1.0f + kTolerance ||
+                vertex.v < -kTolerance ||
+                vertex.v > 1.0f + kTolerance) {
+                return false;
+            }
+        }
+    }
+
+    return true;
 }
 
 void packStaticVertex(
@@ -371,8 +325,8 @@ void packStaticVertex(
     };
 
     destination.uv = {
-        floatToHalfBits(source.u),
-        floatToHalfBits(source.v),
+        packUnorm16(source.u),
+        packUnorm16(source.v),
     };
 }
 
@@ -518,20 +472,9 @@ bool VulkanStaticMeshRenderer::initialize(
     samplerAnisotropyEnabled_ =
         deviceFeatures.samplerAnisotropy == VK_TRUE;
 
-    packedStaticVertexEnabled_ =
+    const bool packedStaticVertexFormatsSupported =
         supportsPackedStaticVertex(
             physicalDevice_);
-
-    __android_log_print(
-        ANDROID_LOG_INFO,
-        kTag,
-        "XZIEL_STATIC_VERTEX_FORMAT packed=%u gpu_stride=%u source_stride=%u color_attribute=0",
-        packedStaticVertexEnabled_ ? 1U : 0U,
-        static_cast<unsigned int>(
-            gpuStaticVertexStride(
-                packedStaticVertexEnabled_)),
-        static_cast<unsigned int>(
-            sizeof(StaticMeshVertex)));
 
     astcLdrSupported_ =
         deviceFeatures.textureCompressionASTC_LDR ==
@@ -618,6 +561,25 @@ bool VulkanStaticMeshRenderer::initialize(
         shutdown();
         return false;
     }
+
+    const bool uvFitsUnorm16 =
+        assetUvFitsUnorm16(asset);
+    packedStaticVertexEnabled_ =
+        packedStaticVertexFormatsSupported &&
+        uvFitsUnorm16;
+
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
+        "XZIEL_STATIC_VERTEX_FORMAT packed=%u gpu_stride=%u source_stride=%u color_attribute=0 uv_unorm16=%u format_supported=%u",
+        packedStaticVertexEnabled_ ? 1U : 0U,
+        static_cast<unsigned int>(
+            gpuStaticVertexStride(
+                packedStaticVertexEnabled_)),
+        static_cast<unsigned int>(
+            sizeof(StaticMeshVertex)),
+        uvFitsUnorm16 ? 1U : 0U,
+        packedStaticVertexFormatsSupported ? 1U : 0U);
 
     const std::string modelPath =
         modelAssetPath != nullptr
@@ -5784,7 +5746,7 @@ bool VulkanStaticMeshRenderer::createPipeline(
         attributes[2] = {
             2U,
             0U,
-            VK_FORMAT_R16G16_SFLOAT,
+            VK_FORMAT_R16G16_UNORM,
             static_cast<std::uint32_t>(
                 offsetof(
                     PackedStaticMeshVertex,
