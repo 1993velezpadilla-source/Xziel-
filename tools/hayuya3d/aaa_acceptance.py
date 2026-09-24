@@ -302,6 +302,24 @@ def evaluate_aaa_acceptance(
                     "wiring is malformed"
                 ),
             )
+            morph_deformation=qa_report.get("morph_deformation") or {}
+            _gate(
+                gates,"character.morph_deformation","character",
+                bool(
+                    morph_deformation.get("applicable")
+                    and morph_deformation.get("ready")
+                ),
+                (
+                    f"poses={morph_deformation.get('sampled_poses')} "
+                    f"max_disp={morph_deformation.get('max_displacement_ratio')} "
+                    f"catastrophic={morph_deformation.get('catastrophic_poses')} "
+                    f"nonfinite={morph_deformation.get('nonfinite_vertices')}"
+                ),
+                blocker=(
+                    "character blendshapes are wired but fail sampled morph "
+                    "deformation QA (explosion/collapse/non-finite/cubic overshoot)"
+                ),
+            )
         skin_weights=qa_report.get("skin_weights") or {}
         _gate(
             gates,"character.skin_weights","character",
