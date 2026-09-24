@@ -286,6 +286,18 @@ private:
         VkFence inFlight = VK_NULL_HANDLE;
     };
 
+    struct SceneCompositePushConstants {
+        float exposureScale = 1.0f;
+        float contrast = 1.0f;
+        float saturation = 1.0f;
+        float vignette = 0.0f;
+
+        float postProcessScale = 1.0f;
+        float lightningFlash = 0.0f;
+        float padding0 = 0.0f;
+        float padding1 = 0.0f;
+    };
+
     struct UiPushConstants {
         float centerX = 0.0f;
         float centerY = 0.0f;
