@@ -1109,6 +1109,7 @@ def main() -> int:
                 "material_score": item.material_score,
                 "texture_resolution_score": item.texture_resolution_score,
                 "base_color_max_edge": item.base_color_max_edge,
+                "base_color_min_edge": item.base_color_min_edge,
                 "head_region_faces": item.head_region_faces,
                 "head_region_vertices": item.head_region_vertices,
                 "head_region_face_fraction": item.head_region_face_fraction,
