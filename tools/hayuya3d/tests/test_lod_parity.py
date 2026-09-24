@@ -220,6 +220,99 @@ class LODParityTests(unittest.TestCase):
                 item.errors,
             )
 
+    def test_floating_accessory_blocks_runtime_lod(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            master=root/"master_accessory.glb"
+            lod=root/"lod_accessory.glb"
+
+            def write_asset(path:Path, accessory_x:float):
+                body=trimesh.creation.icosphere(
+                    subdivisions=2,
+                    radius=1.0,
+                )
+                charm=trimesh.creation.box(
+                    extents=[0.08,0.08,0.08]
+                )
+                charm.apply_translation(
+                    [accessory_x,0.0,0.0]
+                )
+                scene=trimesh.Scene()
+                scene.add_geometry(body)
+                scene.add_geometry(charm)
+                path.write_bytes(
+                    trimesh.exchange.gltf.export_glb(scene)
+                )
+
+            write_asset(master,1.08)
+            write_asset(lod,1.35)
+            item=compare_lod(
+                master,
+                lod,
+                name="LOD1",
+                mode="prop",
+                samples=600,
+            )
+            self.assertFalse(item.ready)
+            self.assertFalse(item.attachment_ready)
+            self.assertEqual(
+                item.attachment_floating_components,
+                1,
+            )
+            self.assertTrue(
+                any(
+                    "attachment" in error.lower()
+                    for error in item.errors
+                ),
+                item.errors,
+            )
+
+    def test_lod0_cannot_drop_hero_accessory_candidate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            master=root/"master_accessory.glb"
+            lod=root/"lod0_missing_accessory.glb"
+
+            body=trimesh.creation.icosphere(
+                subdivisions=2,
+                radius=1.0,
+            )
+            charm=trimesh.creation.box(
+                extents=[0.08,0.08,0.08]
+            )
+            charm.apply_translation([1.08,0.0,0.0])
+            scene=trimesh.Scene()
+            scene.add_geometry(body)
+            scene.add_geometry(charm)
+            master.write_bytes(
+                trimesh.exchange.gltf.export_glb(scene)
+            )
+            lod.write_bytes(
+                trimesh.exchange.gltf.export_glb(
+                    trimesh.Scene(body.copy())
+                )
+            )
+
+            item=compare_lod(
+                master,
+                lod,
+                name="LOD0",
+                mode="prop",
+                samples=600,
+            )
+            self.assertFalse(item.ready)
+            self.assertTrue(item.attachment_ready)
+            self.assertFalse(
+                item.attachment_accessory_retention_ready
+            )
+            self.assertTrue(
+                any(
+                    "lost detached accessory" in error.lower()
+                    for error in item.errors
+                ),
+                item.errors,
+            )
+
     def test_material_channel_loss_is_reported(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp)
