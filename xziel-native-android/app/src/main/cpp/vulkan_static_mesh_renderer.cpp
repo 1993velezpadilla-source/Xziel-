@@ -3986,6 +3986,7 @@ void VulkanStaticMeshRenderer::record(
     // Capacity is reserved once during initialization. clear() keeps the hot
     // render path allocation-free while rebuilding only the current frame's
     // visible draw list.
+    visibleDrawCandidates_.clear();
     drawCommands_.clear();
     drawGroups_.clear();
 
@@ -4342,6 +4343,32 @@ void VulkanStaticMeshRenderer::record(
                     halfHeight;
         };
 
+    const auto batchViewDepth =
+        [&](const GpuBatch& batch) noexcept {
+            const float relativeX =
+                batch.cullCenterX - camera.x;
+            const float relativeY =
+                batch.cullCenterY - camera.y;
+            const float relativeZ =
+                batch.cullCenterZ - camera.z;
+
+            const float yawViewZ =
+                yawSin * relativeX +
+                yawCos * relativeZ;
+
+            const float viewZ =
+                -pitchSin * relativeY +
+                pitchCos * yawViewZ;
+
+            return
+                std::max(
+                    nearPlane,
+                    viewZ -
+                        std::max(
+                            batch.cullRadius,
+                            0.0f));
+        };
+
     const auto streamBoundsForCell =
         [&](std::uint32_t cellId) noexcept
             -> const StreamCellBounds* {
@@ -4600,6 +4627,91 @@ void VulkanStaticMeshRenderer::record(
 
         ++frameStats_.visibleBatches;
 
+        VisibleDrawCandidate candidate{};
+        candidate.batchIndex =
+            static_cast<std::uint32_t>(
+                batchIndex);
+        candidate.originalOrder =
+            static_cast<std::uint32_t>(
+                visibleDrawCandidates_.size());
+        candidate.viewDepth =
+            batchViewDepth(batch);
+
+        visibleDrawCandidates_.push_back(
+            candidate);
+    }
+
+    frameStats_.frontToBackCandidates =
+        static_cast<std::uint32_t>(
+            visibleDrawCandidates_.size());
+
+    if (visibleDrawCandidates_.size() > 1U) {
+        std::sort(
+            visibleDrawCandidates_.begin(),
+            visibleDrawCandidates_.end(),
+            [&](const VisibleDrawCandidate& a,
+                const VisibleDrawCandidate& b) noexcept {
+                const auto& batchA =
+                    batches_[a.batchIndex];
+                const auto& batchB =
+                    batches_[b.batchIndex];
+
+                if (batchA.geometryCellSlot !=
+                    batchB.geometryCellSlot) {
+                    return
+                        batchA.geometryCellSlot <
+                        batchB.geometryCellSlot;
+                }
+
+                if (batchA.materialIndex !=
+                    batchB.materialIndex) {
+                    return
+                        batchA.materialIndex <
+                        batchB.materialIndex;
+                }
+
+                if (batchA.doubleSided !=
+                    batchB.doubleSided) {
+                    return
+                        batchA.doubleSided <
+                        batchB.doubleSided;
+                }
+
+                if (a.viewDepth !=
+                    b.viewDepth) {
+                    return
+                        a.viewDepth <
+                        b.viewDepth;
+                }
+
+                return
+                    batchA.sourceBatchIndex <
+                    batchB.sourceBatchIndex;
+            });
+
+        for (std::uint32_t i = 0U;
+             i <
+                 static_cast<std::uint32_t>(
+                     visibleDrawCandidates_.size());
+             ++i) {
+            if (visibleDrawCandidates_[i].
+                    originalOrder != i) {
+                ++frameStats_.
+                    frontToBackReordered;
+            }
+        }
+    }
+
+    for (const auto& candidate :
+         visibleDrawCandidates_) {
+        if (candidate.batchIndex >=
+            batches_.size()) {
+            continue;
+        }
+
+        const auto& batch =
+            batches_[candidate.batchIndex];
+
         const std::uint32_t commandIndex =
             static_cast<std::uint32_t>(
                 drawCommands_.size());
@@ -4644,7 +4756,6 @@ void VulkanStaticMeshRenderer::record(
         frameStats_.submittedTriangles +=
             static_cast<std::uint64_t>(
                 batch.indexCount / 3U);
-
     }
 
     frameStats_.submissionGroups =
@@ -4833,7 +4944,7 @@ void VulkanStaticMeshRenderer::record(
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u draw_submissions=%u indirect_draws=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u multi_draw_indirect=%u portal_tests=%u portal_culled=%u portal_skipped=%u cell_frustum_tests=%u cell_frustum_culled=%u cell_range_skipped=%u cell_frustum_skipped=%u batch_frustum_tests=%u material_visibility_tests=%u material_visibility_cache_hits=%u",
+            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u draw_submissions=%u indirect_draws=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u multi_draw_indirect=%u portal_tests=%u portal_culled=%u portal_skipped=%u cell_frustum_tests=%u cell_frustum_culled=%u cell_range_skipped=%u cell_frustum_skipped=%u batch_frustum_tests=%u material_visibility_tests=%u material_visibility_cache_hits=%u front_to_back_candidates=%u front_to_back_reordered=%u",
             static_cast<unsigned int>(
                 frameStats_.streamingCell),
             static_cast<unsigned int>(
@@ -4880,7 +4991,13 @@ void VulkanStaticMeshRenderer::record(
                 frameStats_.materialVisibilityTests),
             static_cast<unsigned int>(
                 frameStats_.
-                    materialVisibilityCacheHits));
+                    materialVisibilityCacheHits),
+            static_cast<unsigned int>(
+                frameStats_.
+                    frontToBackCandidates),
+            static_cast<unsigned int>(
+                frameStats_.
+                    frontToBackReordered));
     }
 }
 
