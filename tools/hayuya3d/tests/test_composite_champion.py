@@ -5,7 +5,14 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
-from tools.hayuya3d.composite_champion import build_composite_plan
+import numpy as np
+import trimesh
+from PIL import Image
+
+from tools.hayuya3d.composite_champion import (
+    build_composite_plan,
+    execute_safe_material_challenger,
+)
 
 
 def candidate(
@@ -136,6 +143,106 @@ class CompositeChampionPlannerTests(unittest.TestCase):
             inspect_parts=False,
         )
         self.assertFalse(plan.composite_required)
+
+    def test_material_donor_executes_as_geometry_preserving_challenger(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            base_path=root/"base.glb"
+            donor_path=root/"donor.glb"
+
+            vertices=np.array([
+                [-0.5,-0.5,0.0],
+                [ 0.5,-0.5,0.0],
+                [ 0.5, 0.5,0.0],
+                [-0.5, 0.5,0.0],
+            ],dtype=np.float64)
+            faces=np.array([[0,1,2],[0,2,3]],dtype=np.int64)
+            uv=np.array([
+                [0.0,0.0],
+                [1.0,0.0],
+                [1.0,1.0],
+                [0.0,1.0],
+            ],dtype=np.float64)
+
+            base_material=trimesh.visual.material.PBRMaterial(
+                baseColorTexture=Image.fromarray(
+                    np.full((8,8,4),[90,90,90,255],dtype=np.uint8),
+                    mode="RGBA",
+                ),
+                roughnessFactor=0.9,
+                metallicFactor=0.0,
+            )
+            donor_material=trimesh.visual.material.PBRMaterial(
+                baseColorTexture=Image.fromarray(
+                    np.full((8,8,4),[190,60,45,255],dtype=np.uint8),
+                    mode="RGBA",
+                ),
+                metallicRoughnessTexture=Image.fromarray(
+                    np.full((8,8,3),[0,80,180],dtype=np.uint8),
+                    mode="RGB",
+                ),
+                roughnessFactor=0.55,
+                metallicFactor=0.25,
+            )
+            base_mesh=trimesh.Trimesh(
+                vertices=vertices,
+                faces=faces,
+                process=False,
+                visual=trimesh.visual.TextureVisuals(
+                    uv=uv,
+                    material=base_material,
+                ),
+            )
+            donor_mesh=trimesh.Trimesh(
+                vertices=vertices,
+                faces=faces,
+                process=False,
+                visual=trimesh.visual.TextureVisuals(
+                    uv=uv,
+                    material=donor_material,
+                ),
+            )
+            base_path.write_bytes(
+                trimesh.exchange.gltf.export_glb(trimesh.Scene(base_mesh))
+            )
+            donor_path.write_bytes(
+                trimesh.exchange.gltf.export_glb(trimesh.Scene(donor_mesh))
+            )
+
+            base=candidate(
+                "base",95.0,
+                face_min=90.0,face_mesh=100.0,face_tex=100.0,face_detail=90.0,
+                visual=95.0,appearance=95.0,material=60.0,texture=100.0,
+            )
+            donor=candidate(
+                "material",80.0,
+                face_min=80.0,face_mesh=95.0,face_tex=95.0,face_detail=85.0,
+                visual=80.0,appearance=88.0,material=95.0,texture=100.0,
+            )
+            base.path=str(base_path)
+            donor.path=str(donor_path)
+            plan=build_composite_plan(
+                [base,donor],
+                mode="character",
+                inspect_parts=False,
+            )
+            self.assertIn("material_response",plan.executable_now)
+
+            result=execute_safe_material_challenger(
+                plan,
+                root/"composite",
+                texture_size=64,
+                total_samples=4000,
+            )
+            self.assertTrue(result.attempted)
+            self.assertTrue(result.ready,result.error)
+            self.assertTrue(result.geometry_preserved)
+            self.assertEqual(result.donor_backend,"material")
+            self.assertTrue(Path(result.candidate_path or "").is_file())
+            self.assertEqual(
+                Path(result.candidate_path or "").read_bytes()[:4],
+                b"glTF",
+            )
 
     def test_promotion_contract_requires_rejudge_and_atomic_fallback(self):
         base=candidate(
