@@ -54,6 +54,43 @@ class StudioServerTests(unittest.TestCase):
             parse_pipeline_line(job, f"HAYUYA_MONSTER_READY {final}")
             self.assertTrue(job.final_model_url.endswith("output/hayuya_final.glb"))
 
+    def test_live_judge_metrics_hydrate_candidate_and_emit_event(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            candidate = root / "candidate.glb"
+            candidate.write_bytes(b"glTF" + b"x" * 32)
+            job = self.make_job(root)
+            parse_pipeline_line(
+                job,
+                f"HAYUYA_CANDIDATE_READY trellis2 {candidate} source=front.png",
+            )
+            metrics = {
+                "backend": "trellis2",
+                "production_score": 89.0,
+                "visual_score": 95.0,
+                "appearance_score": 94.0,
+                "appearance_detail_score": 92.0,
+                "appearance_face_detail_score": 97.0,
+                "material_score": 90.0,
+                "texture_resolution_score": 100.0,
+                "base_color_max_edge": 4096,
+                "head_region_faces": 20000,
+                "head_region_vertices": 11000,
+                "head_region_face_fraction": 0.09,
+                "head_region_median_edge_normalized": 0.0011,
+                "pbr_channels": ["baseColor", "normal", "roughness"],
+            }
+            parse_pipeline_line(
+                job,
+                "HAYUYA_JUDGE_METRICS " + json.dumps(metrics,separators=(",",":")),
+            )
+            item = job.candidates["trellis2"]
+            self.assertEqual(item.face_detail_score, 97.0)
+            self.assertEqual(item.base_color_max_edge, 4096)
+            self.assertEqual(item.head_region_faces, 20000)
+            self.assertEqual(job.events[-1]["kind"], "judge_metrics")
+            self.assertEqual(job.events[-1]["candidate"]["face_detail_score"], 97.0)
+
     def test_ranking_hydration_keeps_face_texture_and_head_geometry_evidence(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
