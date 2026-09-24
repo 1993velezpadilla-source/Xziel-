@@ -18,6 +18,7 @@ on:
       - "tools/hayuya3d/hayuya_ads.py"
       - "tools/hayuya3d/world_reasoning.py"
       - "tools/hayuya3d/gameplay_graph_solver.py"
+      - "tools/hayuya3d/world_model_broker.py"
       - "hayuya/standards/hayuya_universal_game_design_brain_v1.json"
       - "hayuya/standards/hayuya_monetization_brain_v1.json"
       - "hayuya/standards/hayuya_world_reasoning_domains_v1.json"
@@ -117,6 +118,8 @@ jobs:
           assert p["universal_game_design_intelligence"]["generation_contract"]["solve_before_expensive_art"] is True
           assert p["universal_game_design_intelligence"]["solver_implementation"] == "tools/hayuya3d/gameplay_graph_solver.py"
           assert p["world_reasoning_intelligence"]["knowledge_scope"] == "all_domains_available"
+          assert p["world_model_broker"]["policies"]["research_is_not_execution"] is True
+          assert len(p["world_model_broker"]["stages"]["metric_geometry_arena"]) >= 2
           assert "architecture" in p["world_reasoning_intelligence"]["domains"]
           assert p["monetization_intelligence"]["policy"]["programmatic_world_space_texture_baking"] is False
           assert "INTERSTITIAL" in p["monetization_intelligence"]["delivery_paths"]["GOOGLE_ADMOB_UI"]["formats"]
@@ -156,6 +159,7 @@ jobs:
           cp tools/hayuya3d/world_reasoning.py /tmp/hayuya-map-intelligence/tools/hayuya3d/
           cp tools/hayuya3d/hayuya_ads.py /tmp/hayuya-map-intelligence/tools/hayuya3d/
           cp tools/hayuya3d/gameplay_graph_solver.py /tmp/hayuya-map-intelligence/tools/hayuya3d/
+          cp tools/hayuya3d/world_model_broker.py /tmp/hayuya-map-intelligence/tools/hayuya3d/
           cp tools/hayuya3d/world_semantics.py /tmp/hayuya-map-intelligence/tools/hayuya3d/
           cp ads/policy/google_play_guardrails_v1.json /tmp/hayuya-map-intelligence/ads/policy/
           cp ads/design/world_inventory_patterns_v1.json /tmp/hayuya-map-intelligence/ads/design/
