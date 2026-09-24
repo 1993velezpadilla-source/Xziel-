@@ -219,6 +219,24 @@ def evaluate_aaa_acceptance(
                 "(timestamps/samples/quaternions/channels)"
             ),
         )
+        deformation_qa=qa_report.get("deformation_qa") or {}
+        _gate(
+            gates,"character.deformation","character",
+            bool(
+                deformation_qa.get("applicable")
+                and deformation_qa.get("ready")
+            ),
+            (
+                f"frames={deformation_qa.get('sampled_frames')} "
+                f"max_disp={deformation_qa.get('max_displacement_ratio')} "
+                f"max_edge={deformation_qa.get('max_edge_stretch_ratio')} "
+                f"catastrophic={deformation_qa.get('catastrophic_frames')}"
+            ),
+            blocker=(
+                "character fails sampled skin-deformation QA "
+                "(explosion/collapse/non-finite/edge stretch)"
+            ),
+        )
 
     gameprep=manifest.get("gameprep") or qa_report.get("gameprep")
     lods=(gameprep or {}).get("lods") or []
