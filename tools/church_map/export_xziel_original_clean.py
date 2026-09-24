@@ -7,6 +7,8 @@ import struct
 import tempfile
 import hashlib
 import io
+import math
+import statistics
 from pathlib import Path
 from mathutils import Vector
 from PIL import Image
@@ -17,7 +19,18 @@ RUNTIME_ROOT = Path(os.environ.get("XZIEL_STATIC_RUNTIME_ROOT", "church/out/clea
 REPORT_PATH = Path(os.environ.get("XZIEL_STATIC_REPORT", "church/out/clean/xziel_native_static_mesh_report.json"))
 NATIVE_FLOOR_Y = float(os.environ.get("XZIEL_STATIC_NATIVE_FLOOR_Y", "-1.58"))
 MAX_TRIS_PER_BATCH = int(os.environ.get("XZIEL_STATIC_BATCH_TRIS", "18000"))
+SPATIAL_BATCH_GRID_METERS = float(
+    os.environ.get("XZIEL_STATIC_SPATIAL_GRID_METERS", "0.50")
+)
+MORTON_BITS = 21
+MORTON_BIAS = 1 << (MORTON_BITS - 1)
+MORTON_MAX = (1 << MORTON_BITS) - 1
 SOURCE_UID = "b92917ff83914adc8bc93959ba8b4399"
+
+if MAX_TRIS_PER_BATCH <= 0:
+    raise RuntimeError("XZIEL_STATIC_BATCH_TRIS must be positive")
+if not math.isfinite(SPATIAL_BATCH_GRID_METERS) or SPATIAL_BATCH_GRID_METERS <= 0.0:
+    raise RuntimeError("XZIEL_STATIC_SPATIAL_GRID_METERS must be positive")
 
 MODEL_DIR = RUNTIME_ROOT / "models" / "xziel" / "sanctum"
 TEXTURE_DIR = RUNTIME_ROOT / "textures" / "xziel" / "sanctum"
@@ -380,6 +393,43 @@ def transform_normal(world_normal):
         result = Vector((0.0, 1.0, 0.0))
     return result
 
+def morton_spread_3(value):
+    value = int(value)
+    result = 0
+    for bit in range(MORTON_BITS):
+        result |= ((value >> bit) & 1) << (bit * 3)
+    return result
+
+def spatial_cell_coordinate(value):
+    quantized = (
+        math.floor(value / SPATIAL_BATCH_GRID_METERS)
+        + MORTON_BIAS
+    )
+    if quantized < 0 or quantized > MORTON_MAX:
+        raise RuntimeError(
+            f"spatial batch coordinate out of Morton range: {value}"
+        )
+    return int(quantized)
+
+def triangle_spatial_key(mesh, world, tri):
+    centroid = Vector((0.0, 0.0, 0.0))
+    for loop_index in tri.loops:
+        vertex_index = mesh.loops[loop_index].vertex_index
+        centroid += transform_position(
+            world @ mesh.vertices[vertex_index].co
+        )
+    centroid *= 1.0 / 3.0
+
+    qx = spatial_cell_coordinate(float(centroid.x))
+    qy = spatial_cell_coordinate(float(centroid.y))
+    qz = spatial_cell_coordinate(float(centroid.z))
+
+    return (
+        morton_spread_3(qx)
+        | (morton_spread_3(qy) << 1)
+        | (morton_spread_3(qz) << 2)
+    )
+
 source_triangles = 0
 bounds_min = Vector((1e30, 1e30, 1e30))
 bounds_max = Vector((-1e30, -1e30, -1e30))
@@ -499,30 +549,71 @@ with tempfile.TemporaryDirectory(prefix="xziel-clean-") as tmp:
         mesh = obj.data
         mesh.calc_loop_triangles()
         source_triangles += len(mesh.loop_triangles)
+        world = obj.matrix_world
 
-        chunks = {}
+        # The legacy exporter filled each material batch in source triangle
+        # order. Photogrammetry triangle order is not spatial, so a nominal
+        # 18k-triangle batch could span most of the church and its conservative
+        # culling sphere stayed visible even when most triangles were offscreen.
+        #
+        # Bucket centroids onto a fine grid, traverse occupied cells in Morton
+        # order, then fill the exact same MAX_TRIS_PER_BATCH chunks. This keeps
+        # triangle/material fidelity and the batch-count ceiling while making
+        # each batch spatially coherent for the existing frustum culler.
+        material_bins = {}
         for tri in mesh.loop_triangles:
-            material_index = mesh.polygons[tri.polygon_index].material_index
-            chunk = chunks.setdefault(material_index, [])
-            chunk.append(tri)
-            if len(chunk) >= MAX_TRIS_PER_BATCH:
-                record = flush_batch(obj, material_index, chunk, batch_number)
-                batch_number += 1
-                batch_records.append(record)
-                total_vertices += record["vertexCount"]
-                total_indices += record["indexCount"]
-                bounds_min.x = min(bounds_min.x, record["mins"].x)
-                bounds_min.y = min(bounds_min.y, record["mins"].y)
-                bounds_min.z = min(bounds_min.z, record["mins"].z)
-                bounds_max.x = max(bounds_max.x, record["maxs"].x)
-                bounds_max.y = max(bounds_max.y, record["maxs"].y)
-                bounds_max.z = max(bounds_max.z, record["maxs"].z)
-                chunks[material_index] = []
+            material_index = mesh.polygons[
+                tri.polygon_index
+            ].material_index
+            morton_key = triangle_spatial_key(
+                mesh,
+                world,
+                tri,
+            )
+            bins = material_bins.setdefault(
+                material_index,
+                {},
+            )
+            bins.setdefault(
+                morton_key,
+                [],
+            ).append(tri)
 
-        for material_index, chunk in chunks.items():
+        for material_index, bins in material_bins.items():
+            chunk = []
+
+            for morton_key in sorted(bins):
+                for tri in bins[morton_key]:
+                    chunk.append(tri)
+
+                    if len(chunk) >= MAX_TRIS_PER_BATCH:
+                        record = flush_batch(
+                            obj,
+                            material_index,
+                            chunk,
+                            batch_number,
+                        )
+                        batch_number += 1
+                        batch_records.append(record)
+                        total_vertices += record["vertexCount"]
+                        total_indices += record["indexCount"]
+                        bounds_min.x = min(bounds_min.x, record["mins"].x)
+                        bounds_min.y = min(bounds_min.y, record["mins"].y)
+                        bounds_min.z = min(bounds_min.z, record["mins"].z)
+                        bounds_max.x = max(bounds_max.x, record["maxs"].x)
+                        bounds_max.y = max(bounds_max.y, record["maxs"].y)
+                        bounds_max.z = max(bounds_max.z, record["maxs"].z)
+                        chunk = []
+
             if not chunk:
                 continue
-            record = flush_batch(obj, material_index, chunk, batch_number)
+
+            record = flush_batch(
+                obj,
+                material_index,
+                chunk,
+                batch_number,
+            )
             batch_number += 1
             batch_records.append(record)
             total_vertices += record["vertexCount"]
@@ -563,6 +654,15 @@ with tempfile.TemporaryDirectory(prefix="xziel-clean-") as tmp:
             ))
             with batch["payload"].open("rb") as payload:
                 shutil.copyfileobj(payload, out, length=1024 * 1024)
+
+batch_diagonals = [
+    float((batch["maxs"] - batch["mins"]).length)
+    for batch in batch_records
+]
+batch_triangle_counts = [
+    int(batch["indexCount"] // 3)
+    for batch in batch_records
+]
 
 pbr_counts = {"baseColor": 0, "roughness": 0, "metallic": 0, "normal": 0}
 for record in material_report.values():
@@ -606,7 +706,26 @@ report = {
     "fallbackMaterials": sorted(fallback_materials),
     "pbrLinkedMaterialCounts": pbr_counts,
     "materialReport": material_report,
+    "spatialBatching": "morton_grid_centroid_v1",
+    "spatialBatchGridMeters": SPATIAL_BATCH_GRID_METERS,
     "batchCount": len(batch_records),
+    "maxTrianglesPerBatch": max(batch_triangle_counts),
+    "batchBoundsDiagonalMeanMeters": (
+        sum(batch_diagonals) / len(batch_diagonals)
+    ),
+    "batchBoundsDiagonalMedianMeters": statistics.median(
+        batch_diagonals
+    ),
+    "batchBoundsDiagonalMaxMeters": max(batch_diagonals),
+    "batchBoundsOver10m": sum(
+        1 for value in batch_diagonals if value > 10.0
+    ),
+    "batchBoundsOver20m": sum(
+        1 for value in batch_diagonals if value > 20.0
+    ),
+    "batchBoundsOver40m": sum(
+        1 for value in batch_diagonals if value > 40.0
+    ),
     "totalVertices": total_vertices,
     "totalIndices": total_indices,
     "modelBytes": model_path.stat().st_size,
@@ -632,6 +751,10 @@ print("XZIEL_CLEAN_SOURCE_READY", json.dumps({
     "maxTextureDimension": max_texture_dimension,
     "pbrLinkedMaterialCounts": pbr_counts,
     "batches": len(batch_records),
+    "spatialBatching": "morton_grid_centroid_v1",
+    "spatialBatchGridMeters": SPATIAL_BATCH_GRID_METERS,
+    "batchBoundsMedianMeters": statistics.median(batch_diagonals),
+    "batchBoundsMaxMeters": max(batch_diagonals),
     "doubleSidedBatches": sum(
         1 for batch in batch_records
         if batch["doubleSided"]
