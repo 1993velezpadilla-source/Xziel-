@@ -33,7 +33,13 @@ struct StaticMeshEnvironmentState {
 struct StaticMeshFrameStats {
     std::uint32_t visibleBatches = 0U;
     std::uint32_t culledBatches = 0U;
+    // Logical visible mesh draws. This stays comparable across direct and
+    // multi-draw-indirect paths.
     std::uint32_t drawCalls = 0U;
+    // Actual Vulkan draw commands recorded into the command buffer.
+    std::uint32_t drawSubmissions = 0U;
+    // Logical draws carried by vkCmdDrawIndexedIndirect submissions.
+    std::uint32_t indirectDraws = 0U;
     std::uint32_t materialBinds = 0U;
     std::uint32_t geometryBinds = 0U;
     std::uint32_t pipelineBinds = 0U;
@@ -273,6 +279,21 @@ private:
         bool doubleSided = true;
     };
 
+    struct IndirectDrawFrame {
+        VkBuffer buffer = VK_NULL_HANDLE;
+        VkDeviceMemory memory = VK_NULL_HANDLE;
+        void* mapped = nullptr;
+        VkDeviceSize bytes = 0U;
+    };
+
+    struct StaticDrawGroup {
+        std::uint32_t firstCommand = 0U;
+        std::uint32_t commandCount = 0U;
+        std::uint32_t materialIndex = UINT32_MAX;
+        std::uint32_t geometryCellSlot = UINT32_MAX;
+        bool doubleSided = true;
+    };
+
     struct PushConstants {
         float cameraX = 0.0f;
         float cameraY = 0.0f;
@@ -390,6 +411,9 @@ private:
     void destroyTexture(GpuTexture& texture) noexcept;
     void destroyGeometryResidency() noexcept;
 
+    [[nodiscard]] bool createIndirectDrawBuffers() noexcept;
+    void destroyIndirectDrawBuffers() noexcept;
+
     static void cacheGpuBatchCullingSphere(
         GpuBatch& batch) noexcept;
 
@@ -497,6 +521,10 @@ private:
     std::vector<GpuTexture> textures_{};
     std::vector<GpuMaterial> materials_{};
     std::vector<GpuBatch> batches_{};
+    std::vector<VkDrawIndexedIndirectCommand> drawCommands_{};
+    std::vector<StaticDrawGroup> drawGroups_{};
+    std::array<IndirectDrawFrame, kDescriptorFrames>
+        indirectDrawFrames_{};
     std::vector<PendingUpload> pendingUploads_{};
     VkDeviceSize pendingUploadBytes_ = 0U;
     std::uint32_t uploadBatchCommandLimit_ = 16U;
@@ -534,6 +562,7 @@ private:
     std::uint32_t totalIndices_ = 0U;
     bool samplerAnisotropyEnabled_ = false;
     bool astcLdrSupported_ = false;
+    bool multiDrawIndirectEnabled_ = false;
     float maxSamplerAnisotropy_ = 1.0f;
     mutable StaticMeshFrameStats frameStats_{};
     bool ready_ = false;
