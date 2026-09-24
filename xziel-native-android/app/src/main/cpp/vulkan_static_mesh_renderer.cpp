@@ -2974,6 +2974,7 @@ VulkanStaticMeshRenderer::restoreGeometryCellGpuResidency(
     cell.reloadRanges = {};
     cell.reloadPendingCount = 0U;
     cell.reloadPeakPendingCount = 0U;
+    cell.reloadPeakCopyBytesPerFrame = 0U;
     cell.reloadStartFrame = 0U;
     cell.reloadVertexBytes.clear();
     cell.reloadIndexBytes.clear();
@@ -3095,6 +3096,7 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
                 cell.reloadRanges = {};
                 cell.reloadPendingCount = 0U;
                 cell.reloadPeakPendingCount = 0U;
+                cell.reloadPeakCopyBytesPerFrame = 0U;
                 cell.reloadStartFrame = 0U;
                 cell.reloadVertexBytes.clear();
                 cell.reloadIndexBytes.clear();
@@ -3102,10 +3104,18 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
                     UINT32_MAX;
             };
 
-        const auto copyCompletedRange =
-            [&](std::uint32_t batchIndex,
-                const std::vector<std::byte>& bytes)
+        const auto copyReadyRange =
+            [&](GeometryRangeInFlight& range,
+                VkDeviceSize& remainingBudget)
                 noexcept -> bool {
+                if (!range.resultReady ||
+                    remainingBudget == 0U) {
+                    return true;
+                }
+
+                const std::uint32_t batchIndex =
+                    range.batchIndex;
+
                 if (batchIndex >= batches_.size()) {
                     return false;
                 }
@@ -3133,9 +3143,11 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
                     entry.payloadBytes >
                         std::numeric_limits<
                             std::size_t>::max() ||
-                    bytes.size() !=
+                    range.readyBytes.size() !=
                         static_cast<std::size_t>(
-                            entry.payloadBytes)) {
+                            entry.payloadBytes) ||
+                    range.copyCursor >
+                        range.readyBytes.size()) {
                     return false;
                 }
 
@@ -3168,66 +3180,190 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
                     return false;
                 }
 
-                std::memcpy(
-                    cell.reloadVertexBytes.data() +
-                        static_cast<std::size_t>(
-                            vertexDst),
-                    bytes.data(),
-                    static_cast<std::size_t>(
-                        vertexBytes));
+                while (
+                    remainingBudget > 0U &&
+                    range.copyCursor <
+                        range.readyBytes.size()) {
+                    const std::uint64_t payloadCursor =
+                        static_cast<std::uint64_t>(
+                            range.copyCursor);
 
-                std::memcpy(
-                    cell.reloadIndexBytes.data() +
+                    if (payloadCursor < vertexBytes) {
+                        const VkDeviceSize available =
+                            static_cast<VkDeviceSize>(
+                                vertexBytes -
+                                payloadCursor);
+                        const VkDeviceSize amount =
+                            std::min(
+                                available,
+                                remainingBudget);
+
+                        std::memcpy(
+                            cell.reloadVertexBytes.data() +
+                                static_cast<std::size_t>(
+                                    vertexDst +
+                                    payloadCursor),
+                            range.readyBytes.data() +
+                                range.copyCursor,
+                            static_cast<std::size_t>(
+                                amount));
+
+                        range.copyCursor +=
+                            static_cast<std::size_t>(
+                                amount);
+                        remainingBudget -= amount;
+                        continue;
+                    }
+
+                    const std::uint64_t indexCursor =
+                        payloadCursor -
+                        vertexBytes;
+
+                    if (indexCursor >= indexBytes) {
+                        return false;
+                    }
+
+                    const VkDeviceSize available =
+                        static_cast<VkDeviceSize>(
+                            indexBytes -
+                            indexCursor);
+                    const VkDeviceSize amount =
+                        std::min(
+                            available,
+                            remainingBudget);
+
+                    std::memcpy(
+                        cell.reloadIndexBytes.data() +
+                            static_cast<std::size_t>(
+                                indexDst +
+                                indexCursor),
+                        range.readyBytes.data() +
+                            range.copyCursor,
                         static_cast<std::size_t>(
-                            indexDst),
-                    bytes.data() +
+                            amount));
+
+                    range.copyCursor +=
                         static_cast<std::size_t>(
-                            vertexBytes),
-                    static_cast<std::size_t>(
-                        indexBytes));
+                            amount);
+                    remainingBudget -= amount;
+                }
 
                 return true;
             };
 
-        // Drain every range that completed this frame. A failed range marks
-        // the reload failed, but we keep draining already-scheduled requests
-        // so their buffered results cannot leak inside the persistent
-        // AndroidAssetStreamer.
+        // Completed APK ranges remain in their fixed in-flight slots and are
+        // assembled under the same per-frame budget as the Vulkan restore.
+        // This prevents four workers/results from turning into four large
+        // render-thread memcpy bursts in one frame.
+        const VkDeviceSize rangeCopyBudget =
+            cell.heat == StreamCellHeat::Hot
+            ? kGeometryRestoreHotBudgetBytes
+            : kGeometryRestorePreloadBudgetBytes;
+        VkDeviceSize remainingRangeCopyBudget =
+            rangeCopyBudget;
+
         for (auto& range :
              cell.reloadRanges) {
             if (!range.active) {
                 continue;
             }
 
-            bool finished = false;
-            std::vector<std::byte> bytes;
+            if (cell.reloadFailed) {
+                if (range.resultReady) {
+                    range = {};
 
-            const bool success =
-                assetStreamer_.tryTake(
+                    if (cell.reloadPendingCount > 0U) {
+                        --cell.reloadPendingCount;
+                    }
+
+                    continue;
+                }
+
+                bool finished = false;
+                std::vector<std::byte> discardBytes;
+
+                (void) assetStreamer_.tryTake(
                     range.key,
-                    bytes,
+                    discardBytes,
                     finished);
 
-            if (!finished) {
+                if (finished) {
+                    range = {};
+
+                    if (cell.reloadPendingCount > 0U) {
+                        --cell.reloadPendingCount;
+                    }
+                }
+
                 continue;
             }
 
-            const std::uint32_t batchIndex =
-                range.batchIndex;
+            if (!range.resultReady) {
+                bool finished = false;
+                std::vector<std::byte> bytes;
 
-            range = {};
+                const bool success =
+                    assetStreamer_.tryTake(
+                        range.key,
+                        bytes,
+                        finished);
 
-            if (cell.reloadPendingCount > 0U) {
-                --cell.reloadPendingCount;
+                if (!finished) {
+                    continue;
+                }
+
+                if (!success) {
+                    range = {};
+
+                    if (cell.reloadPendingCount > 0U) {
+                        --cell.reloadPendingCount;
+                    }
+
+                    cell.reloadFailed = true;
+                    continue;
+                }
+
+                range.readyBytes =
+                    std::move(bytes);
+                range.copyCursor = 0U;
+                range.resultReady = true;
             }
 
-            if (!success ||
-                !copyCompletedRange(
-                    batchIndex,
-                    bytes)) {
+            if (remainingRangeCopyBudget == 0U) {
+                continue;
+            }
+
+            if (!copyReadyRange(
+                    range,
+                    remainingRangeCopyBudget)) {
+                range = {};
+
+                if (cell.reloadPendingCount > 0U) {
+                    --cell.reloadPendingCount;
+                }
+
                 cell.reloadFailed = true;
+                continue;
+            }
+
+            if (range.copyCursor >=
+                range.readyBytes.size()) {
+                range = {};
+
+                if (cell.reloadPendingCount > 0U) {
+                    --cell.reloadPendingCount;
+                }
             }
         }
+
+        const VkDeviceSize copiedThisFrame =
+            rangeCopyBudget -
+            remainingRangeCopyBudget;
+
+        cell.reloadPeakCopyBytesPerFrame =
+            std::max(
+                cell.reloadPeakCopyBytesPerFrame,
+                copiedThisFrame);
 
         if (cell.reloadFailed) {
             if (cell.reloadPendingCount == 0U) {
@@ -3359,6 +3495,8 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
             : 0U;
         const std::uint32_t peakPending =
             cell.reloadPeakPendingCount;
+        const VkDeviceSize peakRangeCopyBytes =
+            cell.reloadPeakCopyBytesPerFrame;
 
         const VkDeviceSize restoreCopyBudget =
             cell.heat == StreamCellHeat::Hot
@@ -3387,7 +3525,7 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_RUNTIME_GEOMETRY_RELOAD_COMPLETE cell=%u slot=%u resident_mb=%.2f total_resident_mb=%.2f peak_pending=%u elapsed_frames=%llu",
+            "XZIEL_RUNTIME_GEOMETRY_RELOAD_COMPLETE cell=%u slot=%u resident_mb=%.2f total_resident_mb=%.2f peak_pending=%u peak_range_copy_kb=%.1f elapsed_frames=%llu",
             static_cast<unsigned int>(
                 completedCell),
             static_cast<unsigned int>(
@@ -3400,6 +3538,9 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
                 (1024.0 * 1024.0),
             static_cast<unsigned int>(
                 peakPending),
+            static_cast<double>(
+                peakRangeCopyBytes) /
+                1024.0,
             static_cast<unsigned long long>(
                 elapsedFrames));
 
@@ -3509,6 +3650,7 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
             cell.reloadRanges = {};
             cell.reloadPendingCount = 0U;
             cell.reloadPeakPendingCount = 0U;
+            cell.reloadPeakCopyBytesPerFrame = 0U;
             cell.reloadStartFrame =
                 runtimeTextureTransitionFrame_;
             geometryReloadCellSlot_ =
