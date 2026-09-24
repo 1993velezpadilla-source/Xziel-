@@ -97,13 +97,32 @@ jobs:
           print(json.dumps(m,indent=2))
           PY
 
+      - name: Mark downloaded pack local in animation catalog
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("hayuya/library/zombie_animations.json")
+          d=json.loads(p.read_text())
+          for g in d.get("groups",[]):
+            for cat in g.get("categories",[]):
+              for item in cat.get("items",[]):
+                if item.get("id")=="quaternius_zombie_apocalypse":
+                  item["availability"]="local_archive"
+                  item["local_archive_path"]="hayuya/source_archives/quaternius_zombie_apocalypse"
+                  item["notes"]="CC0 Zombie Apocalypse source archived locally; animation ingest/retarget can use the stored files."
+          p.write_text(json.dumps(d,indent=2)+"\n")
+          PY
+
       - name: Commit archived source
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add hayuya/source_archives/quaternius_zombie_apocalypse
+          git add hayuya/source_archives/quaternius_zombie_apocalypse hayuya/library/zombie_animations.json
           if git diff --cached --quiet; then
             echo "Zombie Apocalypse source already archived."
             exit 0
