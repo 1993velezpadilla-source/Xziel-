@@ -1279,6 +1279,17 @@ bool VulkanStaticMeshRenderer::initialize(
                 requestedBytes) /
             (1024.0 * 1024.0));
 
+    if (streamGraphReady_) {
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_STREAM_RESOURCE_DECISION_INDEX_READY bindings=%u unique=%u",
+            static_cast<unsigned int>(
+                streamGraph_.bindingCount()),
+            static_cast<unsigned int>(
+                streamGraph_.uniqueResourceCount()));
+    }
+
     __android_log_print(
         ANDROID_LOG_INFO,
         kTag,
