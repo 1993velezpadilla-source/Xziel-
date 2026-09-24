@@ -1077,6 +1077,41 @@ void VulkanStaticMeshRenderer::setStreamingPortalOpen(
         open);
 }
 
+void VulkanStaticMeshRenderer::cacheGpuBatchCullingSphere(
+    GpuBatch& batch) noexcept {
+    batch.cullCenterX =
+        (batch.bounds.minimum[0] +
+         batch.bounds.maximum[0]) *
+        0.5f;
+    batch.cullCenterY =
+        (batch.bounds.minimum[1] +
+         batch.bounds.maximum[1]) *
+        0.5f;
+    batch.cullCenterZ =
+        (batch.bounds.minimum[2] +
+         batch.bounds.maximum[2]) *
+        0.5f;
+
+    const float extentX =
+        (batch.bounds.maximum[0] -
+         batch.bounds.minimum[0]) *
+        0.5f;
+    const float extentY =
+        (batch.bounds.maximum[1] -
+         batch.bounds.minimum[1]) *
+        0.5f;
+    const float extentZ =
+        (batch.bounds.maximum[2] -
+         batch.bounds.minimum[2]) *
+        0.5f;
+
+    batch.cullRadius =
+        std::sqrt(
+            extentX * extentX +
+            extentY * extentY +
+            extentZ * extentZ);
+}
+
 void VulkanStaticMeshRenderer::rebuildStreamingCellBounds() noexcept {
     streamCellBounds_ = {};
 
@@ -4117,44 +4152,15 @@ void VulkanStaticMeshRenderer::record(
             }
         }
 
-        const float centerX =
-            (batch.bounds.minimum[0] +
-             batch.bounds.maximum[0]) *
-            0.5f;
-        const float centerY =
-            (batch.bounds.minimum[1] +
-             batch.bounds.maximum[1]) *
-            0.5f;
-        const float centerZ =
-            (batch.bounds.minimum[2] +
-             batch.bounds.maximum[2]) *
-            0.5f;
-
-        const float extentX =
-            (batch.bounds.maximum[0] -
-             batch.bounds.minimum[0]) *
-            0.5f;
-        const float extentY =
-            (batch.bounds.maximum[1] -
-             batch.bounds.minimum[1]) *
-            0.5f;
-        const float extentZ =
-            (batch.bounds.maximum[2] -
-             batch.bounds.minimum[2]) *
-            0.5f;
-
         const float radius =
-            std::sqrt(
-                extentX * extentX +
-                extentY * extentY +
-                extentZ * extentZ);
+            batch.cullRadius;
 
         const float relativeX =
-            centerX - camera.x;
+            batch.cullCenterX - camera.x;
         const float relativeY =
-            centerY - camera.y;
+            batch.cullCenterY - camera.y;
         const float relativeZ =
-            centerZ - camera.z;
+            batch.cullCenterZ - camera.z;
 
         const float yawViewX =
             yawCos * relativeX -
@@ -5299,6 +5305,8 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
                         batch.indices.size());
                 gpuBatch.bounds =
                     batch.bounds;
+                cacheGpuBatchCullingSphere(
+                    gpuBatch);
                 gpuBatch.doubleSided =
                     batch.doubleSided();
 
@@ -5333,6 +5341,13 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
         }
 
         rebuildStreamingCellBounds();
+
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_CULL_SPHERES_READY batches=%u",
+            static_cast<unsigned int>(
+                batches_.size()));
 
         std::uint32_t pinnedCells = 0U;
         std::uint32_t localCells = 0U;
@@ -5590,6 +5605,8 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
                     batch.indices.size());
             gpuBatch.bounds =
                 batch.bounds;
+            cacheGpuBatchCullingSphere(
+                gpuBatch);
             gpuBatch.doubleSided =
                 batch.doubleSided();
 
@@ -5628,6 +5645,13 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
     }
 
     rebuildStreamingCellBounds();
+
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
+        "XZIEL_CULL_SPHERES_READY batches=%u",
+        static_cast<unsigned int>(
+            batches_.size()));
 
     __android_log_print(
         ANDROID_LOG_INFO,
