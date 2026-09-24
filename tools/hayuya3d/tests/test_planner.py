@@ -103,6 +103,27 @@ class HayuyaPlannerTests(unittest.TestCase):
         self.assertEqual(plan["reference_pool"]["detail_source_count"], 2)
         self.assertEqual(plan["multi_reference"]["group_count"], 1)
 
+    def test_face_seed_tournament_is_bounded_and_face_conditioned(self):
+        face = Path("/tmp/refs/details/face_detail.png")
+        hand = Path("/tmp/refs/details/hand_detail.png")
+        self.assertEqual(hayuya.face_seed_hypothesis_count("monster", [face]), 2)
+        self.assertEqual(hayuya.face_seed_hypothesis_count("ultra", [face]), 3)
+        self.assertEqual(hayuya.face_seed_hypothesis_count("game", [face]), 1)
+        self.assertEqual(hayuya.face_seed_hypothesis_count("monster", [hand]), 1)
+        self.assertEqual(hayuya.face_seed_hypothesis_count("monster", []), 1)
+
+        refs = [Path("/tmp/zombie_front.png"), face]
+        plan = hayuya.make_job_plan(
+            refs,
+            profile_name="monster",
+            mode="character",
+            seed=1993,
+            selected_backends=["trellis2"],
+            model_root=Path("/tmp/models"),
+        )
+        self.assertTrue(plan["face_seed_tournament"]["enabled"])
+        self.assertEqual(plan["face_seed_tournament"]["trellis2_seed_count"], 2)
+
     def test_reference_role_inference_is_conservative(self):
         self.assertEqual(classify_reference(Path("zombie_front.png")), "geometry")
         self.assertEqual(classify_reference(Path("zombie_face_closeup.png")), "detail")
