@@ -330,39 +330,46 @@
       "donor_samples": 8546,
       "bone_envelope_segments": 20,
       "anatomical_neighbor_graph": {
-        "thigh_r": [
-          "calf_r",
-          "pelvis"
-        ],
-        "foot_l": [
-          "calf_l"
-        ],
-        "calf_l": [
-          "foot_l",
-          "thigh_l"
-        ],
-        "upperarm_r": [
-          "clavicle_r",
-          "lowerarm_r"
-        ],
-        "lowerarm_r": [
-          "hand_r",
-          "upperarm_r"
+        "neck_01": [
+          "Head",
+          "spine_03"
         ],
         "clavicle_r": [
           "spine_03",
           "upperarm_r"
         ],
-        "spine_02": [
-          "spine_01",
-          "spine_03"
+        "lowerarm_r": [
+          "hand_r",
+          "upperarm_r"
+        ],
+        "calf_l": [
+          "foot_l",
+          "thigh_l"
         ],
         "thigh_l": [
           "calf_l",
           "pelvis"
         ],
-        "hand_r": [
+        "spine_03": [
+          "clavicle_l",
+          "clavicle_r",
+          "neck_01",
+          "spine_02"
+        ],
+        "upperarm_r": [
+          "clavicle_r",
           "lowerarm_r"
+        ],
+        "calf_r": [
+          "foot_r",
+          "thigh_r"
+        ],
+        "hand_l": [
+          "lowerarm_l"
+        ],
+        "upperarm_l": [
+          "clavicle_l",
+          "lowerarm_l"
         ],
         "clavicle_l": [
           "spine_03",
@@ -377,21 +384,16 @@
           "pelvis",
           "spine_02"
         ],
-        "neck_01": [
-          "Head",
-          "spine_03"
-        ],
-        "upperarm_l": [
-          "clavicle_l",
-          "lowerarm_l"
-        ],
-        "calf_r": [
-          "foot_r",
-          "thigh_r"
+        "thigh_r": [
+          "calf_r",
+          "pelvis"
         ],
         "lowerarm_l": [
           "hand_l",
           "upperarm_l"
+        ],
+        "hand_r": [
+          "lowerarm_r"
         ],
         "foot_r": [
           "calf_r"
@@ -399,14 +401,12 @@
         "Head": [
           "neck_01"
         ],
-        "spine_03": [
-          "clavicle_l",
-          "clavicle_r",
-          "neck_01",
-          "spine_02"
+        "foot_l": [
+          "calf_l"
         ],
-        "hand_l": [
-          "lowerarm_l"
+        "spine_02": [
+          "spine_01",
+          "spine_03"
         ]
       },
       "blend_neighbours": 4,
@@ -429,5 +429,94 @@
       }
     }
   ],
+  "rest_pose_fit_telemetry": {
+    "schema": 1,
+    "method": "terminal_major_bone_bbox_overlap_v1",
+    "lateral_axis": 0,
+    "top1_counts": {
+      "thigh_r": 4040,
+      "Head": 2597,
+      "thigh_l": 1848,
+      "pelvis": 1497,
+      "foot_r": 1217,
+      "foot_l": 1076,
+      "calf_r": 931,
+      "calf_l": 769,
+      "spine_02": 735,
+      "spine_01": 725,
+      "clavicle_r": 321,
+      "spine_03": 257,
+      "upperarm_r": 249,
+      "clavicle_l": 63,
+      "upperarm_l": 3
+    },
+    "terminal_major_fit": [
+      {
+        "name": "hand_l",
+        "kind": "hand",
+        "top1_vertices": 0,
+        "weighted": false,
+        "lateral_range": [
+          0.399993,
+          0.426427
+        ],
+        "target_lateral_range": [
+          -0.246277,
+          0.247873
+        ],
+        "lateral_overhang": 0.178554,
+        "lateral_overhang_normalized": 0.361336
+      },
+      {
+        "name": "hand_r",
+        "kind": "hand",
+        "top1_vertices": 0,
+        "weighted": false,
+        "lateral_range": [
+          -0.424831,
+          -0.398397
+        ],
+        "target_lateral_range": [
+          -0.246277,
+          0.247873
+        ],
+        "lateral_overhang": 0.178554,
+        "lateral_overhang_normalized": 0.361335
+      },
+      {
+        "name": "foot_l",
+        "kind": "foot",
+        "top1_vertices": 1076,
+        "weighted": true,
+        "lateral_range": [
+          0.048881,
+          0.048881
+        ],
+        "target_lateral_range": [
+          -0.246277,
+          0.247873
+        ],
+        "lateral_overhang": 0.0,
+        "lateral_overhang_normalized": 0.0
+      },
+      {
+        "name": "foot_r",
+        "kind": "foot",
+        "top1_vertices": 1217,
+        "weighted": true,
+        "lateral_range": [
+          -0.047285,
+          -0.047285
+        ],
+        "target_lateral_range": [
+          -0.246277,
+          0.247873
+        ],
+        "lateral_overhang": 0.0,
+        "lateral_overhang_normalized": 0.0
+      }
+    ],
+    "suspected_rest_pose_mismatch": true
+  },
   "output_bytes": 13609564
 }
