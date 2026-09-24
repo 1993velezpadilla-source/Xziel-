@@ -9,7 +9,9 @@ on:
       - "tools/hayuya3d/hayuya_map.py"
       - "tools/hayuya3d/world_semantics.py"
       - "tools/hayuya3d/map_source_registry.py"
+      - "tools/hayuya3d/google_map_tiles.py"
       - "tools/hayuya3d/tests/test_hayuya_map_world_brain.py"
+      - "tools/hayuya3d/tests/test_google_map_tiles.py"
       - "docs/hayuya/HAYUYA_MAP_WORLD_BRAIN.md"
       - ".github/workflows/hayuya-map-world-brain-ci.yml"
   workflow_dispatch:
@@ -35,12 +37,14 @@ jobs:
           python -m py_compile \
             tools/hayuya3d/world_semantics.py \
             tools/hayuya3d/map_source_registry.py \
+            tools/hayuya3d/google_map_tiles.py \
             tools/hayuya3d/hayuya_map.py
 
       - name: Run World Brain tests
         run: |
           python -m unittest \
             tools/hayuya3d/tests/test_hayuya_map_world_brain.py \
+            tools/hayuya3d/tests/test_google_map_tiles.py \
             -v
 
       - name: Prove provider readiness is secret-safe
