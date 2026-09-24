@@ -2095,6 +2095,8 @@ def main() -> int:
                     f"changed_vertices={detail_fusion.get('changed_vertices','none')} "
                     f"inserted_vertices={detail_fusion.get('inserted_vertices','none')} "
                     f"inserted_faces={detail_fusion.get('inserted_faces','none')} "
+                    f"inserted_primitives={detail_fusion.get('inserted_primitives','none')} "
+                    f"material_groups={detail_fusion.get('material_groups','none')} "
                     f"weight_transfer_vertices={detail_fusion.get('transferred_weight_vertices','none')} "
                     f"weight_source_max={detail_fusion.get('weight_source_max_distance_ratio','none')} "
                     f"morph_targets_transferred={detail_fusion.get('morph_targets_transferred','none')} "
