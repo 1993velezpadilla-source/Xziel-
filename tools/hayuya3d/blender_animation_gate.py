@@ -159,6 +159,21 @@ def main():
 
     if arm.animation_data is None:
         arm.animation_data_create()
+
+    # glTF import stashes clips on NLA tracks so they can be re-exported.
+    # When QA assigns one action directly while those tracks remain active,
+    # Blender blends the selected action WITH the imported NLA stack. That
+    # produces fake multi-animation stretching and even corrupts the "rest"
+    # measurement. Mute every imported NLA track and test exactly one action.
+    nla_tracks=[]
+    for track in arm.animation_data.nla_tracks:
+        nla_tracks.append({
+            "name":track.name,
+            "mute_before":bool(track.mute),
+            "strips":[s.name for s in track.strips],
+        })
+        track.mute=True
+
     arm.animation_data.action=None
     bpy.context.scene.frame_set(0)
     bpy.context.view_layer.update()
@@ -281,7 +296,9 @@ def main():
         "model":str(args.model),
         "passed":passed,
         "armature":arm.name,
+        "nla_tracks_muted":nla_tracks,
         "mesh_count":len(meshes),
+        "mesh_objects":[{"name":o.name,"vertices":len(o.data.vertices),"edges":len(o.data.edges)} for o in meshes],
         "action_count":len(actions),
         "compatible_clips":compatible,
         "rejected_clip_count":len(actions)-len(compatible),
