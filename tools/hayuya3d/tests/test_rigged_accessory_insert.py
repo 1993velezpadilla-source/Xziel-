@@ -303,6 +303,24 @@ def write_donor(
     path.write_bytes(trimesh.exchange.gltf.export_glb(scene))
 
 
+def write_cluster_donor(path: Path) -> None:
+    body = trimesh.creation.icosphere(subdivisions=2, radius=1.0)
+    pieces = []
+    for y, extents in (
+        (1.06, [0.10, 0.10, 0.08]),
+        (1.17, [0.09, 0.10, 0.07]),
+        (1.28, [0.08, 0.10, 0.06]),
+    ):
+        piece = trimesh.creation.box(extents=extents)
+        piece.apply_translation([0.0, y, 0.0])
+        pieces.append(piece)
+    scene = trimesh.Scene()
+    scene.add_geometry(body, node_name="body")
+    for index, piece in enumerate(pieces):
+        scene.add_geometry(piece, node_name=f"rosary_{index}")
+    path.write_bytes(trimesh.exchange.gltf.export_glb(scene))
+
+
 def candidate(
     backend: str,
     path: Path,
@@ -474,6 +492,50 @@ class RiggedAccessoryInsertTests(unittest.TestCase):
             self.assertEqual(animation.animation_count,1)
             self.assertTrue(deformation.ready,deformation.errors)
             self.assertGreaterEqual(deformation.sampled_frames,2)
+
+    def test_multi_piece_cluster_gets_one_skin_morph_insertion(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            base=root/"base.glb"
+            donor=root/"rosary_cluster.glb"
+            output=root/"cluster_insert.glb"
+            write_skinned_base(base,morph=True)
+            write_cluster_donor(donor)
+
+            supported,reason=rigged_accessory_insert_supported(
+                base,
+                donor,
+            )
+            self.assertTrue(supported,reason)
+
+            result=insert_rigged_accessory(
+                base,
+                donor,
+                output,
+            )
+            self.assertTrue(result.ready,result.errors)
+            self.assertTrue(result.geometry_ready,result.errors)
+            self.assertFalse(result.production_ready)
+            self.assertEqual(result.spatial_label,"cluster")
+            self.assertGreater(result.inserted_vertices,8)
+            self.assertGreater(result.inserted_faces,12)
+            self.assertEqual(
+                result.transferred_weight_vertices,
+                result.inserted_vertices,
+            )
+            self.assertTrue(result.skin_weights_ready,result.errors)
+            self.assertTrue(result.morph_ready,result.errors)
+            self.assertTrue(result.morph_deformation_ready,result.errors)
+            self.assertTrue(result.attachment_ready,result.errors)
+            self.assertTrue(result.component_crossing_ready,result.errors)
+            self.assertTrue(result.self_intersection_ready,result.errors)
+            self.assertTrue(
+                any(
+                    warning.startswith("multi_piece_accessory_cluster=")
+                    for warning in result.warnings
+                ),
+                result.warnings,
+            )
 
     def test_weight_transfer_blends_neighbor_joint_influences(self):
         source_positions=np.asarray([
