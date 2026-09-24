@@ -140,10 +140,6 @@ def evaluate_gameplay_graph(
     node_set = {str(node) for node in nodes}
     if not node_set:
         raise ValueError("gameplay graph requires at least one node")
-    if len(node_set) != len(list(nodes)) if not isinstance(nodes, set) else False:
-        # Retained for callers that provide a concrete sequence with duplicates.
-        pass
-
     normalized = _normalize_edges(edges)
     tokens = {str(token) for token in available_tokens}
     required = {str(node) for node in required_nodes}
