@@ -366,6 +366,166 @@ def main():
     bpy.context.view_layer.update()
     arm_world_after=[list(row) for row in arm.matrix_world]
 
+    # POSE-AWARE ARM REST FIT.
+    #
+    # Height-only uniform fitting is correct for the animated armature basis, but
+    # a T-pose donor can still place wrists/hands far outside a generated
+    # standing character whose source pose has the arms down. Do NOT solve that
+    # by anisotropically scaling the armature (that reintroduces shear). Instead,
+    # when the target silhouette is narrow AND the fitted donor hand is clearly
+    # outside the target lateral envelope, rigidly rotate the entire arm subtree
+    # around the upper-arm head. Bone lengths, child offsets and hierarchy remain
+    # intact. Existing animation translation/scale curves are removed below, so
+    # rotation animation continues to operate on this fitted rest pose.
+    arm_rest_fit={
+        "schema":1,
+        "method":"rigid_arm_subtree_lateral_projection_v1",
+        "applied":False,
+        "target_width_height_ratio":0.0,
+        "trigger_width_height_ratio_max":0.68,
+        "trigger_hand_overhang_min_normalized":0.10,
+        "chains":[],
+    }
+    target_lateral_min=coord_axis(target_min,width_axis)
+    target_lateral_max=coord_axis(target_max,width_axis)
+    target_lateral_span=max(1e-8,target_lateral_max-target_lateral_min)
+    target_width_height_ratio=target_lateral_span/max(1e-8,target_height)
+    arm_rest_fit["target_width_height_ratio"]=float(target_width_height_ratio)
+
+    def _find_side_bone_name(side_tag,tokens,exclude=()):
+        candidates=[]
+        for bone in arm.data.bones:
+            n=bone.name.lower()
+            if explicit_side_tag(bone.name)!=side_tag:
+                continue
+            if any(x in n for x in exclude):
+                continue
+            if any(x in n for x in tokens):
+                candidates.append(bone.name)
+        if not candidates:
+            return None
+        # Prefer the shortest canonical-looking name rather than a helper copy.
+        return sorted(candidates,key=lambda x:(len(x),x.lower()))[0]
+
+    arm_chain_names=[]
+    for side_tag,side_label in ((-1,"left"),(1,"right")):
+        upper_name=_find_side_bone_name(
+            side_tag,("upper_arm","upperarm"),("twist","helper","ctrl","control","ik")
+        )
+        hand_name=_find_side_bone_name(
+            side_tag,("hand",),("finger","thumb","index","middle","pinky","ring","twist","helper","ctrl","control","ik")
+        )
+        if upper_name and hand_name:
+            arm_chain_names.append((side_tag,side_label,upper_name,hand_name))
+
+    if target_width_height_ratio<=arm_rest_fit["trigger_width_height_ratio_max"] and arm_chain_names:
+        select_only(arm)
+        bpy.context.view_layer.objects.active=arm
+        bpy.ops.object.mode_set(mode="EDIT")
+        edit_bones=arm.data.edit_bones
+        try:
+            for side_tag,side_label,upper_name,hand_name in arm_chain_names:
+                upper=edit_bones.get(upper_name)
+                hand=edit_bones.get(hand_name)
+                if upper is None or hand is None:
+                    continue
+                pivot=upper.head.copy()
+                original_endpoint=hand.tail.copy()
+                original_vector=original_endpoint-pivot
+                original_length=original_vector.length
+                if original_length<=1e-6:
+                    continue
+
+                shoulder_lateral=coord_axis(pivot,width_axis)
+                hand_lateral=coord_axis(original_endpoint,width_axis)
+                center_lateral=(target_lateral_min+target_lateral_max)*0.5
+                geometric_sign=1.0 if shoulder_lateral>=center_lateral else -1.0
+                overhang=max(
+                    0.0,
+                    hand_lateral-target_lateral_max,
+                    target_lateral_min-hand_lateral,
+                )
+                overhang_norm=overhang/target_lateral_span
+                chain_info={
+                    "side":side_label,
+                    "upper":upper_name,
+                    "hand":hand_name,
+                    "applied":False,
+                    "original_hand_lateral":float(hand_lateral),
+                    "original_hand_overhang":float(overhang),
+                    "original_hand_overhang_normalized":float(overhang_norm),
+                    "shoulder":[float(x) for x in pivot],
+                    "original_endpoint":[float(x) for x in original_endpoint],
+                }
+                if overhang_norm<=arm_rest_fit["trigger_hand_overhang_min_normalized"]:
+                    arm_rest_fit["chains"].append(chain_info)
+                    continue
+
+                # Keep the terminal hand just inside the observed character
+                # envelope. The arm keeps its original total shoulder->hand
+                # length; only its rest orientation changes.
+                inset=target_lateral_span*0.04
+                target_hand_lateral=(
+                    target_lateral_max-inset
+                    if geometric_sign>0.0
+                    else target_lateral_min+inset
+                )
+                desired_lateral=abs(target_hand_lateral-shoulder_lateral)
+                desired_lateral=max(
+                    original_length*0.15,
+                    min(original_length*0.95,desired_lateral),
+                )
+
+                depth_axis=next(
+                    axis for axis in range(3)
+                    if axis not in (target_axis,width_axis)
+                )
+                original_depth=coord_axis(original_vector,depth_axis)
+                max_depth=math.sqrt(max(0.0,original_length*original_length-desired_lateral*desired_lateral))*0.35
+                desired_depth=max(-max_depth,min(max_depth,original_depth))
+                vertical_sq=max(
+                    1e-10,
+                    original_length*original_length
+                    - desired_lateral*desired_lateral
+                    - desired_depth*desired_depth,
+                )
+                vertical_drop=math.sqrt(vertical_sq)
+                target_vector=Vector((0.0,0.0,0.0))
+                target_vector[width_axis]=geometric_sign*desired_lateral
+                target_vector[depth_axis]=desired_depth
+                target_vector[target_axis]=-vertical_drop
+
+                rotation_delta=original_vector.rotation_difference(target_vector)
+                subtree=[]
+                stack=[upper]
+                seen=set()
+                while stack:
+                    bone=stack.pop()
+                    if bone.name in seen:
+                        continue
+                    seen.add(bone.name)
+                    subtree.append(bone)
+                    stack.extend(list(bone.children))
+
+                for bone in subtree:
+                    bone.head=pivot+(rotation_delta @ (bone.head-pivot))
+                    bone.tail=pivot+(rotation_delta @ (bone.tail-pivot))
+
+                new_endpoint=pivot+target_vector
+                chain_info.update({
+                    "applied":True,
+                    "target_hand_lateral":float(target_hand_lateral),
+                    "desired_lateral_reach":float(desired_lateral),
+                    "vertical_drop":float(vertical_drop),
+                    "rotated_bone_count":len(subtree),
+                    "new_endpoint":[float(x) for x in new_endpoint],
+                })
+                arm_rest_fit["chains"].append(chain_info)
+                arm_rest_fit["applied"]=True
+        finally:
+            bpy.ops.object.mode_set(mode="OBJECT")
+            bpy.context.view_layer.update()
+
     # Retarget donor motion onto the FITTED rest skeleton. Imported glTF
     # animations frequently key local translation/scale on many bones. Once
     # the rest skeleton is resized/repositioned for a generated character,
@@ -918,9 +1078,10 @@ def main():
         "scale":scale,
         "axis_scales":axis_scales,
         "requested_axis_scales":requested_axis_scales,
-        "armature_fit_mode":"uniform_height_only_v30",
+        "armature_fit_mode":"uniform_height_plus_pose_aware_arms_v31",
         "orientation_fix":orientation_fix,
         "lateral_axis":lateral_axis_telemetry,
+        "arm_rest_fit":arm_rest_fit,
         "armature":arm.name,
         "bones":[b.name for b in arm.data.bones],
         "actions":[a.name for a in actions],
@@ -935,7 +1096,7 @@ def main():
         "animation_retarget":animation_retarget,
         "export_meshes":remaining_meshes,
         "sterile_export_scene_meshes":export_scene_meshes,
-        "binding_method":"expanded_component_coherent_semantic_head_v32",
+        "binding_method":"expanded_component_coherent_pose_aware_arms_v33",
         "bind_results":bind_results,
         "rest_pose_fit_telemetry":rest_pose_fit_telemetry,
         "output_bytes":args.output.stat().st_size if args.output.exists() else 0,
