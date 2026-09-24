@@ -18,6 +18,7 @@ from tools.hayuya3d.gltf_audit import audit_glb
 from tools.hayuya3d.morph_deformation_qa import audit_morph_deformation
 from tools.hayuya3d.rigged_accessory_insert import (
     _blend_skin_weights,
+    _require_exact_surface_relation,
     insert_rigged_accessory,
     prepare_production_rigged_accessory_insert,
     rigged_accessory_insert_supported,
@@ -584,6 +585,18 @@ class RiggedAccessoryInsertTests(unittest.TestCase):
             )
             self.assertNotIn(token,plan.executable_now)
             self.assertIn(token,plan.deferred_transfers)
+
+    def test_degenerate_surface_fallback_is_not_production_safe(self):
+        relation=SimpleNamespace(fallback_vertices=1)
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "degenerate base topology",
+        ):
+            _require_exact_surface_relation(relation)
+
+        _require_exact_surface_relation(
+            SimpleNamespace(fallback_vertices=0)
+        )
 
     def test_weight_transfer_blends_neighbor_joint_influences(self):
         source_positions=np.asarray([
