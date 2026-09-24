@@ -22,6 +22,7 @@ class PortableTierArtifact:
     portability_plan: dict
     gameprep: dict
     lod_parity: dict
+    runtime_budget: dict
     texture_delivery: dict
 
 
@@ -34,6 +35,7 @@ class PortablePackResult:
     profile_name: str
     complete_lod_chain: bool
     lod_parity_ready: bool
+    runtime_budget_ready: bool
     notes: list[str]
 
 
@@ -78,6 +80,7 @@ def build_portable_pack(
     artifacts: list[PortableTierArtifact] = []
     complete_lod_chain = True
     lod_parity_ready = True
+    runtime_budget_ready = True
     notes: list[str] = [
         "HeroMaster/master.glb is an exact preserved copy and is never capped by a mobile runtime tier.",
         "Each runtime tier is independently derived from HeroMaster rather than from a lower-quality tier.",
@@ -146,6 +149,46 @@ def build_portable_pack(
                 f"{type(exc).__name__}:{exc}"
             )
 
+        try:
+            from runtime_budget_qa import audit_runtime_tier
+            runtime_report = audit_runtime_tier(
+                [
+                    (lod.name,Path(lod.path))
+                    for lod in result.lods
+                ],
+                plan=plan,
+                mode=mode,
+            )
+            runtime_budget = asdict(runtime_report)
+            runtime_budget_path = tier_dir / "runtime_budget.json"
+            runtime_budget_path.write_text(
+                json.dumps(runtime_budget,indent=2)+"\n",
+                encoding="utf-8",
+            )
+            runtime_budget["report"] = str(runtime_budget_path)
+            if not runtime_report.ready:
+                runtime_budget_ready = False
+                notes.append(
+                    f"{tier} runtime asset budget blocked readiness: "
+                    + "; ".join(runtime_report.errors[:4])
+                )
+        except Exception as exc:
+            runtime_budget_ready = False
+            runtime_budget = {
+                "ready":False,
+                "tier":tier,
+                "mode":mode,
+                "lod_count":len(result.lods),
+                "items":[],
+                "errors":[f"{type(exc).__name__}:{exc}"],
+                "warnings":[],
+                "report":None,
+            }
+            notes.append(
+                f"{tier} runtime asset budget unavailable: "
+                f"{type(exc).__name__}:{exc}"
+            )
+
         texture_delivery = {
             "mode": texture_delivery_mode,
             "format": "KTX2 + Basis Universal / KHR_texture_basisu",
@@ -175,6 +218,7 @@ def build_portable_pack(
             "portability_plan": plan,
             "gameprep": asdict(result),
             "lod_parity": lod_parity,
+            "runtime_budget": runtime_budget,
             "texture_delivery": texture_delivery,
         }
         (tier_dir / "tier_manifest.json").write_text(
@@ -188,6 +232,7 @@ def build_portable_pack(
                 portability_plan=plan,
                 gameprep=asdict(result),
                 lod_parity=lod_parity,
+                runtime_budget=runtime_budget,
                 texture_delivery=texture_delivery,
             )
         )
@@ -207,6 +252,7 @@ def build_portable_pack(
         profile_name=profile_name,
         complete_lod_chain=complete_lod_chain,
         lod_parity_ready=lod_parity_ready,
+        runtime_budget_ready=runtime_budget_ready,
         notes=notes,
     )
     manifest.write_text(json.dumps(asdict(result), indent=2) + "\n", encoding="utf-8")
