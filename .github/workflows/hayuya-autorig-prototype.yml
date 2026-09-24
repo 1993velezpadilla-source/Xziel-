@@ -90,11 +90,11 @@ jobs:
           compatible=[str(x) for x in anim_gate.get("compatible_clips",[])]
           useful=[x for x in compatible if "tpose" not in x.lower().replace("_","")]
           manifest["schema"]=2
-          manifest["rig_quality_version"]=2
+          manifest["rig_quality_version"]=3
           manifest["preview_model"]="animated.glb"
           manifest["asset_profile"]="character.humanoid"
           manifest["character"]={
-              "rig_quality_version":2,
+              "rig_quality_version":3,
               "skeleton_type":rig.get("skeleton_type","hayuya_humanoid_v1"),
               "preview_pack":"hayuya_preview_pack_v1",
               "rig_ready":bool(rig.get("rig_ready")) and len(useful)>=3,
@@ -125,7 +125,7 @@ jobs:
                   "animation_ready":bool(rig.get("animation_ready")),
                   "quality_passed":bool(rig.get("rig_ready")) and len(useful)>=3,
                   "full_bank_passed":bool(anim_gate.get("passed")),
-                  "rig_quality_version":2
+                  "rig_quality_version":3
               }
           }
           (root/"manifest.json").write_text(json.dumps(manifest,indent=2)+"\n")
