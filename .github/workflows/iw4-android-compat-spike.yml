@@ -32,7 +32,7 @@ jobs:
       - name: Run Android launch-profile gate
         run: python3 tools/iw4_android_spike/test_build_launch_profile.py
 
-      - name: Confirm repository contains no staged proprietary runtime
+      - name: Run church IW4 bridge staging gate\n        run: python3 tools/iw4_android_spike/test_export_church_iw4_bridge.py\n\n      - name: Confirm repository contains no staged proprietary runtime
         shell: bash
         run: |
           set -euo pipefail
