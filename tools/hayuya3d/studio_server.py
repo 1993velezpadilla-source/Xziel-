@@ -66,7 +66,9 @@ class CandidateState:
     head_region_faces: int | None = None
     head_region_vertices: int | None = None
     head_region_face_fraction: float | None = None
+    global_median_edge_normalized: float | None = None
     head_region_median_edge_normalized: float | None = None
+    head_region_density_ratio: float | None = None
     pbr_channels: list[str] | None = None
     is_champion: bool = False
 
@@ -287,9 +289,17 @@ def hydrate_candidate_ranking(job: JobState, ranking: list[dict]) -> None:
             candidate.head_region_vertices = int(item["head_region_vertices"])
         if item.get("head_region_face_fraction") is not None:
             candidate.head_region_face_fraction = float(item["head_region_face_fraction"])
+        if item.get("global_median_edge_normalized") is not None:
+            candidate.global_median_edge_normalized = float(
+                item["global_median_edge_normalized"]
+            )
         if item.get("head_region_median_edge_normalized") is not None:
             candidate.head_region_median_edge_normalized = float(
                 item["head_region_median_edge_normalized"]
+            )
+        if item.get("head_region_density_ratio") is not None:
+            candidate.head_region_density_ratio = float(
+                item["head_region_density_ratio"]
             )
         channels = item.get("pbr_channels")
         if isinstance(channels, list):
