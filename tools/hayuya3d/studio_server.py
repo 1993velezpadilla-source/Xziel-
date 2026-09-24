@@ -297,6 +297,32 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
         }
         job.composite_details.append(item)
         _emit(job,"composite_detail",{"detail":dict(item)})
+    elif line.startswith("HAYUYA_COMPOSITE_DETAIL_GUARD_PASS"):
+        values = dict(re.findall(r"(\w+)=([^\s]+)", line))
+        label=values.get("label")
+        for item in reversed(job.composite_details):
+            if item.get("label")==label:
+                item["status"]="accepted"
+                break
+        _emit(job,"composite_detail_state",{
+            "label":label,
+            "status":"accepted",
+            "source":values.get("source"),
+        })
+    elif line.startswith("HAYUYA_COMPOSITE_DETAIL_REJECTED"):
+        values = dict(re.findall(r"(\w+)=([^\s]+)", line))
+        label=values.get("label")
+        for item in reversed(job.composite_details):
+            if item.get("label")==label:
+                item["status"]="rejected"
+                item["reason"]=values.get("reason")
+                break
+        _emit(job,"composite_detail_state",{
+            "label":label,
+            "status":"rejected",
+            "source":values.get("source"),
+            "reason":values.get("reason"),
+        })
     elif line.startswith("HAYUYA_GAMEPREP"):
         _set_stage(job, "gameprep")
     elif line.startswith("HAYUYA_PORTABLE_PACK"):
