@@ -15,6 +15,7 @@ sys.path.insert(0, str(HERE))
 from hayuya_ads import compile_monetization_intelligence
 from hayuya_lighting import auto_lighting_profile, compile_lighting_intelligence
 from map_design_brain import auto_design_profile, compile_design_intelligence
+from knowledge_registry import discover_knowledge_packs
 from universal_game_design import compile_universal_design_intelligence
 from world_reasoning import compile_world_reasoning_intelligence
 from world_model_broker import compile_world_model_broker
@@ -152,6 +153,7 @@ def make_plan(
     )
     world_reasoning_intelligence = compile_world_reasoning_intelligence(goal)
     world_model_broker = compile_world_model_broker()
+    knowledge_registry = discover_knowledge_packs(strict=False)
     world_graph_dict = graph.to_dict()
     monetization_intelligence = compile_monetization_intelligence(
         world_graph_dict,
@@ -176,6 +178,7 @@ def make_plan(
         "world_graph": world_graph_dict,
         "geospatial": geo,
         "providers": readiness_report(provider_ids, env=env),
+        "knowledge_registry": knowledge_registry,
         "knowledge_library": {
             "zombies_map_dna_atlas": "docs/zombies-map-dna-atlas.v1.json",
             "zombies_map_dna_coverage": "docs/zombies-map-dna-coverage.v1.json",
@@ -381,6 +384,8 @@ def main() -> int:
         "monetization_enabled": plan["monetization_intelligence"]["enabled"],
         "world_reasoning_priority_domains": plan["world_reasoning_intelligence"]["priority_domains"],
         "world_model_studied_system_count": plan["world_model_broker"]["knowledge"]["studied_system_count"],
+        "dynamic_knowledge_pack_count": plan["knowledge_registry"]["pack_count"],
+        "dynamic_knowledge_registry_errors": plan["knowledge_registry"]["errors"],
         "monetization_candidate_count": plan["monetization_intelligence"]["candidate_count"],
     }
     (intelligence_dir / "knowledge_manifest.json").write_text(
