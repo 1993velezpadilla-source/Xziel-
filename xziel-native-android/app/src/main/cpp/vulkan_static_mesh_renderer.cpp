@@ -1081,6 +1081,20 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
                 nullptr);
         }
 
+        if (legacyPipeline_ != VK_NULL_HANDLE) {
+            vkDestroyPipeline(
+                device_,
+                legacyPipeline_,
+                nullptr);
+        }
+
+        if (legacyPipelineDoubleSided_ != VK_NULL_HANDLE) {
+            vkDestroyPipeline(
+                device_,
+                legacyPipelineDoubleSided_,
+                nullptr);
+        }
+
         if (pipelineLayout_ != VK_NULL_HANDLE) {
             vkDestroyPipelineLayout(
                 device_,
@@ -1135,6 +1149,8 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
 
     pipeline_ = VK_NULL_HANDLE;
     pipelineDoubleSided_ = VK_NULL_HANDLE;
+    legacyPipeline_ = VK_NULL_HANDLE;
+    legacyPipelineDoubleSided_ = VK_NULL_HANDLE;
     pipelineLayout_ = VK_NULL_HANDLE;
     descriptorPool_ = VK_NULL_HANDLE;
     descriptorSetLayout_ = VK_NULL_HANDLE;
@@ -4615,10 +4631,17 @@ void VulkanStaticMeshRenderer::record(
             continue;
         }
 
+        const auto& batchMaterial =
+            materials_[batch.materialIndex];
+
         const VkPipeline desiredPipeline =
-            batch.doubleSided
-            ? pipelineDoubleSided_
-            : pipeline_;
+            batchMaterial.pbrEnabled
+            ? (batch.doubleSided
+                ? pipelineDoubleSided_
+                : pipeline_)
+            : (batch.doubleSided
+                ? legacyPipelineDoubleSided_
+                : legacyPipeline_);
 
         if (desiredPipeline == VK_NULL_HANDLE) {
             ++frameStats_.culledBatches;
@@ -4837,10 +4860,17 @@ void VulkanStaticMeshRenderer::record(
             }
         }
 
+        const auto& material =
+            materials_[group.materialIndex];
+
         const VkPipeline desiredPipeline =
-            group.doubleSided
-            ? pipelineDoubleSided_
-            : pipeline_;
+            material.pbrEnabled
+            ? (group.doubleSided
+                ? pipelineDoubleSided_
+                : pipeline_)
+            : (group.doubleSided
+                ? legacyPipelineDoubleSided_
+                : legacyPipeline_);
 
         if (desiredPipeline == VK_NULL_HANDLE) {
             continue;
@@ -4855,9 +4885,6 @@ void VulkanStaticMeshRenderer::record(
                 desiredPipeline;
             ++frameStats_.pipelineBinds;
         }
-
-        const auto& material =
-            materials_[group.materialIndex];
 
         if (boundMaterialIndex !=
             group.materialIndex) {
@@ -5013,12 +5040,8 @@ void VulkanStaticMeshRenderer::recordViewmodel(
         return;
     }
 
-    vkCmdBindPipeline(
-        command,
-        VK_PIPELINE_BIND_POINT_GRAPHICS,
-        pipelineDoubleSided_ != VK_NULL_HANDLE
-            ? pipelineDoubleSided_
-            : pipeline_);
+    VkPipeline boundPipeline =
+        VK_NULL_HANDLE;
 
     VkViewport viewport{};
     viewport.width =
@@ -5152,6 +5175,28 @@ void VulkanStaticMeshRenderer::recordViewmodel(
 
         const auto& material =
             materials_[batch.materialIndex];
+
+        const VkPipeline desiredPipeline =
+            material.pbrEnabled
+            ? (pipelineDoubleSided_ != VK_NULL_HANDLE
+                ? pipelineDoubleSided_
+                : pipeline_)
+            : (legacyPipelineDoubleSided_ != VK_NULL_HANDLE
+                ? legacyPipelineDoubleSided_
+                : legacyPipeline_);
+
+        if (desiredPipeline == VK_NULL_HANDLE) {
+            continue;
+        }
+
+        if (boundPipeline != desiredPipeline) {
+            vkCmdBindPipeline(
+                command,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                desiredPipeline);
+            boundPipeline =
+                desiredPipeline;
+        }
 
         applyMaterial(material);
 
@@ -5397,7 +5442,7 @@ bool VulkanStaticMeshRenderer::createPipeline(
         return false;
     }
 
-    const std::array<VkPipelineShaderStageCreateInfo, 2>
+    std::array<VkPipelineShaderStageCreateInfo, 2>
         stages{{
             {
                 VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -5593,14 +5638,79 @@ bool VulkanStaticMeshRenderer::createPipeline(
                 &pipelineDoubleSided_);
     }
 
+    // Sanctum's current world materials are legacy baked-light albedo. Give
+    // the driver a compile-time constant so it can remove normal/ORM/emissive
+    // sampling and the Cook-Torrance branch instead of carrying one giant
+    // dynamic shader through the hot path. The same descriptors/push constants
+    // remain valid, so switching material classes needs no extra resource bind.
+    const std::uint32_t forceLegacyMaterial =
+        1U;
+    const VkSpecializationMapEntry legacyMapEntry{
+        0U,
+        0U,
+        sizeof(forceLegacyMaterial),
+    };
+    const VkSpecializationInfo legacySpecialization{
+        1U,
+        &legacyMapEntry,
+        sizeof(forceLegacyMaterial),
+        &forceLegacyMaterial,
+    };
+
+    VkResult legacyCulledResult =
+        VK_ERROR_INITIALIZATION_FAILED;
+    VkResult legacyDoubleSidedResult =
+        VK_ERROR_INITIALIZATION_FAILED;
+
+    if (ok(culledResult) &&
+        ok(doubleSidedResult)) {
+        stages[1].pSpecializationInfo =
+            &legacySpecialization;
+
+        raster.cullMode =
+            VK_CULL_MODE_BACK_BIT;
+
+        legacyCulledResult =
+            vkCreateGraphicsPipelines(
+                device_,
+                VK_NULL_HANDLE,
+                1U,
+                &info,
+                nullptr,
+                &legacyPipeline_);
+
+        if (ok(legacyCulledResult)) {
+            raster.cullMode =
+                VK_CULL_MODE_NONE;
+
+            legacyDoubleSidedResult =
+                vkCreateGraphicsPipelines(
+                    device_,
+                    VK_NULL_HANDLE,
+                    1U,
+                    &info,
+                    nullptr,
+                    &legacyPipelineDoubleSided_);
+        }
+    }
+
     vkDestroyShaderModule(
         device_, fragment, nullptr);
     vkDestroyShaderModule(
         device_, vertex, nullptr);
 
-    return
+    const bool complete =
         ok(culledResult) &&
-        ok(doubleSidedResult);
+        ok(doubleSidedResult) &&
+        ok(legacyCulledResult) &&
+        ok(legacyDoubleSidedResult);
+
+    if (complete) {
+        logInfo(
+            "XZIEL_STATIC_LEGACY_PIPELINES_READY");
+    }
+
+    return complete;
 }
 
 bool VulkanStaticMeshRenderer::createBuffer(
