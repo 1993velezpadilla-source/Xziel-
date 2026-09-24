@@ -483,7 +483,14 @@ def build_composite_plan(
     executable_detail={
         "detail:"+item.source
         for item in meaningful_detail
-        if str(item.region_hint or "").lower() in {"head","middle","lower"}
+        if (
+            str(item.region_hint or "").lower() in {"head","middle","lower"}
+            or (
+                mode!="character"
+                and item.strategy=="matched_detached_accessory_swap_then_mesh_doctor"
+                and bool((item.accessory_match or {}).get("ready"))
+            )
+        )
     }
     executable_now=sorted({
         d.region for d in meaningful
@@ -534,6 +541,148 @@ def build_composite_plan(
             "Every fusion is atomic: rejection restores the untouched base champion.",
         ],
     )
+
+
+def execute_safe_accessory_challenger(
+    plan: CompositeChampionPlan,
+    out_dir: Path,
+    *,
+    detail_source: str | None=None,
+) -> LocalDetailExecutionResult:
+    if plan.mode=="character":
+        return LocalDetailExecutionResult(
+            attempted=False,
+            ready=False,
+            base_backend=plan.base_backend,
+            donor_backend=None,
+            source=detail_source,
+            region_hint="local",
+            candidate_label=None,
+            candidate_path=None,
+            fusion=None,
+            error=(
+                "character detached accessory swap remains deferred until "
+                "new-vertex skin-weight and morph transfer is implemented"
+            ),
+        )
+
+    donor=None
+    for item in plan.detail_donors:
+        token="detail:"+item.source
+        if token not in plan.executable_now:
+            continue
+        if detail_source is not None and item.source!=detail_source:
+            continue
+        if item.donor_backend==plan.base_backend:
+            continue
+        if item.strategy!="matched_detached_accessory_swap_then_mesh_doctor":
+            continue
+        if not bool((item.accessory_match or {}).get("ready")):
+            continue
+        donor=item
+        break
+
+    if donor is None:
+        return LocalDetailExecutionResult(
+            attempted=False,
+            ready=False,
+            base_backend=plan.base_backend,
+            donor_backend=None,
+            source=detail_source,
+            region_hint="local",
+            candidate_label=None,
+            candidate_path=None,
+            fusion=None,
+            error=None,
+        )
+
+    by_backend={item.backend:item for item in plan.finalists}
+    base=by_backend.get(plan.base_backend)
+    source=by_backend.get(donor.donor_backend)
+    if base is None or source is None:
+        return LocalDetailExecutionResult(
+            attempted=True,
+            ready=False,
+            base_backend=plan.base_backend,
+            donor_backend=donor.donor_backend,
+            source=donor.source,
+            region_hint="local",
+            candidate_label=None,
+            candidate_path=None,
+            fusion=None,
+            error="base or accessory donor finalist metadata missing",
+        )
+
+    try:
+        from accessory_swap import swap_detached_accessory
+        safe_backend="".join(
+            ch if ch.isalnum() or ch in {"-","_"} else "_"
+            for ch in source.backend
+        )
+        safe_source="".join(
+            ch if ch.isalnum() or ch in {"-","_"} else "_"
+            for ch in Path(donor.source).stem
+        )[:48] or "accessory"
+        out_dir.mkdir(parents=True,exist_ok=True)
+        output=out_dir/f"composite_accessory_{safe_backend}_{safe_source}.glb"
+        swap=swap_detached_accessory(
+            Path(base.path),
+            Path(source.path),
+            output,
+            mode=plan.mode,
+            base_up_axis=(
+                base.up_axis
+                if base.up_axis in {"x","y","z"} else "y"
+            ),
+            donor_up_axis=(
+                source.up_axis
+                if source.up_axis in {"x","y","z"} else None
+            ),
+        )
+        swap_data=asdict(swap)
+        if not swap.ready:
+            return LocalDetailExecutionResult(
+                attempted=True,
+                ready=False,
+                base_backend=base.backend,
+                donor_backend=source.backend,
+                source=donor.source,
+                region_hint="local",
+                candidate_label=None,
+                candidate_path=str(output) if output.exists() else None,
+                fusion=swap_data,
+                error=(
+                    ";".join(swap.errors)
+                    if swap.errors else
+                    "accessory swap is not Judge-eligible"
+                ),
+            )
+        label=f"composite_accessory_{safe_backend}_{safe_source}"
+        return LocalDetailExecutionResult(
+            attempted=True,
+            ready=True,
+            base_backend=base.backend,
+            donor_backend=source.backend,
+            source=donor.source,
+            region_hint="local",
+            candidate_label=label,
+            candidate_path=str(output),
+            fusion=swap_data,
+            error=None,
+        )
+    except Exception as exc:
+        return LocalDetailExecutionResult(
+            attempted=True,
+            ready=False,
+            base_backend=base.backend,
+            donor_backend=source.backend,
+            source=donor.source,
+            region_hint="local",
+            candidate_label=None,
+            candidate_path=None,
+            fusion=None,
+            error=f"{type(exc).__name__}:{exc}",
+        )
 
 
 def execute_safe_local_detail_challenger(
