@@ -491,18 +491,23 @@ bool VulkanStaticMeshRenderer::initialize(
         return false;
     }
 
-    VkDescriptorPoolSize poolSize{};
-    poolSize.type =
-        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     const std::uint32_t materialCount =
         static_cast<std::uint32_t>(
             std::max<std::size_t>(
                 asset.batches.size(),
                 1U));
 
-    poolSize.descriptorCount =
+    std::array<VkDescriptorPoolSize, 2> poolSizes{};
+    poolSizes[0].type =
+        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    poolSizes[0].descriptorCount =
         materialCount *
         4U *
+        kDescriptorFrames;
+    poolSizes[1].type =
+        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    poolSizes[1].descriptorCount =
+        materialCount *
         kDescriptorFrames;
 
     VkDescriptorPoolCreateInfo poolInfo{
@@ -511,8 +516,11 @@ bool VulkanStaticMeshRenderer::initialize(
     poolInfo.maxSets =
         materialCount *
         kDescriptorFrames;
-    poolInfo.poolSizeCount = 1U;
-    poolInfo.pPoolSizes = &poolSize;
+    poolInfo.poolSizeCount =
+        static_cast<std::uint32_t>(
+            poolSizes.size());
+    poolInfo.pPoolSizes =
+        poolSizes.data();
 
     if (!ok(
             vkCreateDescriptorPool(
@@ -521,6 +529,12 @@ bool VulkanStaticMeshRenderer::initialize(
                 nullptr,
                 &descriptorPool_))) {
         logError("descriptor pool creation failed");
+        shutdown();
+        return false;
+    }
+
+    if (!createLightingUniformBuffers()) {
+        logError("scene lighting uniform creation failed");
         shutdown();
         return false;
     }
@@ -1067,6 +1081,8 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
             destroyTexture(texture);
         }
 
+        destroyLightingUniformBuffers();
+
         if (pipeline_ != VK_NULL_HANDLE) {
             vkDestroyPipeline(
                 device_,
@@ -1138,6 +1154,7 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     pipelineLayout_ = VK_NULL_HANDLE;
     descriptorPool_ = VK_NULL_HANDLE;
     descriptorSetLayout_ = VK_NULL_HANDLE;
+    lightingUniformFrames_ = {};
 
     totalVertices_ = 0U;
     totalIndices_ = 0U;
@@ -3979,9 +3996,15 @@ void VulkanStaticMeshRenderer::record(
     if (!ready_ ||
         command == VK_NULL_HANDLE ||
         extent.width == 0U ||
-        extent.height == 0U) {
+        extent.height == 0U ||
+        frameSlot >= kDescriptorFrames) {
         return;
     }
+
+    updateLightingUniform(
+        frameSlot,
+        camera,
+        environment);
 
     // Capacity is reserved once during initialization. clear() keeps the hot
     // render path allocation-free while rebuilding only the current frame's
@@ -5305,6 +5328,335 @@ bool VulkanStaticMeshRenderer::loadModel(
         false);
 }
 
+bool VulkanStaticMeshRenderer::createLightingUniformBuffers() noexcept {
+    destroyLightingUniformBuffers();
+
+    constexpr VkMemoryPropertyFlags memoryFlags =
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
+    for (auto& frame : lightingUniformFrames_) {
+        if (!createBuffer(
+                sizeof(SceneLightingUniform),
+                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                memoryFlags,
+                frame.buffer,
+                frame.memory) ||
+            !ok(
+                vkMapMemory(
+                    device_,
+                    frame.memory,
+                    0U,
+                    sizeof(SceneLightingUniform),
+                    0U,
+                    &frame.mapped))) {
+            destroyLightingUniformBuffers();
+            return false;
+        }
+
+        SceneLightingUniform initial{};
+        initial.keyDirectionIntensity[1] = 1.0f;
+        initial.keyColorAmbientIntensity[0] = 1.0f;
+        initial.keyColorAmbientIntensity[1] = 0.58f;
+        initial.keyColorAmbientIntensity[2] = 0.30f;
+        initial.keyColorAmbientIntensity[3] = 0.20f;
+        initial.ambientColorExposure[0] = 0.085f;
+        initial.ambientColorExposure[1] = 0.135f;
+        initial.ambientColorExposure[2] = 0.22f;
+        initial.ambientColorExposure[3] = 0.76f;
+        initial.fogColorDensity[0] = 0.022f;
+        initial.fogColorDensity[1] = 0.034f;
+        initial.fogColorDensity[2] = 0.052f;
+        initial.post[0] = 1.10f;
+        initial.post[1] = 0.86f;
+        initial.post[2] = 0.12f;
+
+        std::memcpy(
+            frame.mapped,
+            &initial,
+            sizeof(initial));
+    }
+
+    logInfo("XZIEL_HORROR_LIGHTING_UBO_READY");
+    return true;
+}
+
+void VulkanStaticMeshRenderer::destroyLightingUniformBuffers() noexcept {
+    for (auto& frame : lightingUniformFrames_) {
+        if (device_ != VK_NULL_HANDLE &&
+            frame.mapped != nullptr &&
+            frame.memory != VK_NULL_HANDLE) {
+            vkUnmapMemory(
+                device_,
+                frame.memory);
+        }
+
+        if (device_ != VK_NULL_HANDLE &&
+            frame.buffer != VK_NULL_HANDLE) {
+            vkDestroyBuffer(
+                device_,
+                frame.buffer,
+                nullptr);
+        }
+
+        if (device_ != VK_NULL_HANDLE &&
+            frame.memory != VK_NULL_HANDLE) {
+            vkFreeMemory(
+                device_,
+                frame.memory,
+                nullptr);
+        }
+
+        frame = {};
+    }
+}
+
+void VulkanStaticMeshRenderer::updateLightingUniform(
+    std::uint32_t frameSlot,
+    const StaticMeshCameraState& camera,
+    const StaticMeshEnvironmentState& environment) noexcept {
+    if (frameSlot >= kDescriptorFrames ||
+        lightingUniformFrames_[frameSlot].mapped == nullptr) {
+        return;
+    }
+
+    const float yawCos =
+        std::cos(camera.yawRadians);
+    const float yawSin =
+        std::sin(camera.yawRadians);
+    const float pitchCos =
+        std::cos(camera.pitchRadians);
+    const float pitchSin =
+        std::sin(camera.pitchRadians);
+
+    const auto directionToView =
+        [&](float x,
+            float y,
+            float z) noexcept {
+            const float yawX =
+                yawCos * x -
+                yawSin * z;
+            const float yawZ =
+                yawSin * x +
+                yawCos * z;
+
+            std::array<float, 3> out{{
+                yawX,
+                pitchCos * y +
+                    pitchSin * yawZ,
+                -pitchSin * y +
+                    pitchCos * yawZ,
+            }};
+
+            const float length =
+                std::sqrt(
+                    out[0] * out[0] +
+                    out[1] * out[1] +
+                    out[2] * out[2]);
+
+            if (std::isfinite(length) &&
+                length > 1.0e-6f) {
+                const float inverse =
+                    1.0f / length;
+                out[0] *= inverse;
+                out[1] *= inverse;
+                out[2] *= inverse;
+            }
+
+            return out;
+        };
+
+    const auto pointToView =
+        [&](float x,
+            float y,
+            float z) noexcept {
+            const float relativeX =
+                x - camera.x;
+            const float relativeY =
+                y - camera.y;
+            const float relativeZ =
+                z - camera.z;
+
+            const float yawX =
+                yawCos * relativeX -
+                yawSin * relativeZ;
+            const float yawZ =
+                yawSin * relativeX +
+                yawCos * relativeZ;
+
+            return std::array<float, 3>{{
+                yawX,
+                pitchCos * relativeY +
+                    pitchSin * yawZ,
+                -pitchSin * relativeY +
+                    pitchCos * yawZ,
+            }};
+        };
+
+    SceneLightingUniform uniform{};
+
+    const auto keyDirection =
+        directionToView(
+            environment.keyDirectionX,
+            environment.keyDirectionY,
+            environment.keyDirectionZ);
+
+    uniform.keyDirectionIntensity[0] =
+        keyDirection[0];
+    uniform.keyDirectionIntensity[1] =
+        keyDirection[1];
+    uniform.keyDirectionIntensity[2] =
+        keyDirection[2];
+    uniform.keyDirectionIntensity[3] =
+        std::max(
+            0.0f,
+            environment.keyIntensity);
+
+    uniform.keyColorAmbientIntensity[0] =
+        std::max(
+            0.0f,
+            environment.keyColorR);
+    uniform.keyColorAmbientIntensity[1] =
+        std::max(
+            0.0f,
+            environment.keyColorG);
+    uniform.keyColorAmbientIntensity[2] =
+        std::max(
+            0.0f,
+            environment.keyColorB);
+    uniform.keyColorAmbientIntensity[3] =
+        std::max(
+            0.0f,
+            environment.ambientIntensity);
+
+    uniform.ambientColorExposure[0] =
+        std::max(
+            0.0f,
+            environment.ambientColorR);
+    uniform.ambientColorExposure[1] =
+        std::max(
+            0.0f,
+            environment.ambientColorG);
+    uniform.ambientColorExposure[2] =
+        std::max(
+            0.0f,
+            environment.ambientColorB);
+    uniform.ambientColorExposure[3] =
+        std::clamp(
+            environment.exposureScale,
+            0.10f,
+            4.0f);
+
+    uniform.fogColorDensity[0] =
+        std::max(
+            0.0f,
+            environment.fogColorR);
+    uniform.fogColorDensity[1] =
+        std::max(
+            0.0f,
+            environment.fogColorG);
+    uniform.fogColorDensity[2] =
+        std::max(
+            0.0f,
+            environment.fogColorB);
+    uniform.fogColorDensity[3] =
+        std::clamp(
+            environment.fogDensity,
+            0.0f,
+            1.0f);
+
+    uniform.post[0] =
+        std::clamp(
+            environment.contrast,
+            0.70f,
+            1.40f);
+    uniform.post[1] =
+        std::clamp(
+            environment.saturation,
+            0.50f,
+            1.20f);
+    uniform.post[2] =
+        std::clamp(
+            environment.fogHeightFalloff,
+            0.0f,
+            2.0f);
+
+    const std::uint32_t count =
+        std::min<std::uint32_t>(
+            environment.localLightCount,
+            kStaticMeshMaxLocalLights);
+
+    uniform.post[3] =
+        static_cast<float>(count);
+
+    for (std::uint32_t index = 0U;
+         index < count;
+         ++index) {
+        const auto& light =
+            environment.localLights[index];
+
+        const auto position =
+            pointToView(
+                light.x,
+                light.y,
+                light.z);
+        const auto direction =
+            directionToView(
+                light.directionX,
+                light.directionY,
+                light.directionZ);
+
+        uniform.localPositionRange[index][0] =
+            position[0];
+        uniform.localPositionRange[index][1] =
+            position[1];
+        uniform.localPositionRange[index][2] =
+            position[2];
+        uniform.localPositionRange[index][3] =
+            std::max(
+                0.05f,
+                light.rangeMeters);
+
+        uniform.localColorIntensity[index][0] =
+            std::max(
+                0.0f,
+                light.colorR);
+        uniform.localColorIntensity[index][1] =
+            std::max(
+                0.0f,
+                light.colorG);
+        uniform.localColorIntensity[index][2] =
+            std::max(
+                0.0f,
+                light.colorB);
+        uniform.localColorIntensity[index][3] =
+            std::max(
+                0.0f,
+                light.intensity);
+
+        uniform.localDirectionType[index][0] =
+            direction[0];
+        uniform.localDirectionType[index][1] =
+            direction[1];
+        uniform.localDirectionType[index][2] =
+            direction[2];
+        uniform.localDirectionType[index][3] =
+            light.type;
+
+        uniform.localConeVolumetric[index][0] =
+            light.innerConeCos;
+        uniform.localConeVolumetric[index][1] =
+            light.outerConeCos;
+        uniform.localConeVolumetric[index][2] =
+            light.volumetric;
+    }
+
+    std::memcpy(
+        lightingUniformFrames_[frameSlot].mapped,
+        &uniform,
+        sizeof(uniform));
+}
+
 bool VulkanStaticMeshRenderer::createPipeline(
     AAssetManager* assetManager) noexcept {
     VkShaderModule vertex = VK_NULL_HANDLE;
@@ -5329,28 +5681,35 @@ bool VulkanStaticMeshRenderer::createPipeline(
         return false;
     }
 
-    std::array<VkDescriptorSetLayoutBinding, 4>
-        textureBindings{};
+    std::array<VkDescriptorSetLayoutBinding, 5>
+        bindings{};
 
     for (std::uint32_t binding = 0U;
-         binding < textureBindings.size();
+         binding < 4U;
          ++binding) {
-        textureBindings[binding].binding = binding;
-        textureBindings[binding].descriptorType =
+        bindings[binding].binding = binding;
+        bindings[binding].descriptorType =
             VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        textureBindings[binding].descriptorCount = 1U;
-        textureBindings[binding].stageFlags =
+        bindings[binding].descriptorCount = 1U;
+        bindings[binding].stageFlags =
             VK_SHADER_STAGE_FRAGMENT_BIT;
     }
+
+    bindings[4].binding = 4U;
+    bindings[4].descriptorType =
+        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    bindings[4].descriptorCount = 1U;
+    bindings[4].stageFlags =
+        VK_SHADER_STAGE_FRAGMENT_BIT;
 
     VkDescriptorSetLayoutCreateInfo setInfo{
         VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO
     };
     setInfo.bindingCount =
         static_cast<std::uint32_t>(
-            textureBindings.size());
+            bindings.size());
     setInfo.pBindings =
-        textureBindings.data();
+        bindings.data();
 
     if (!ok(
             vkCreateDescriptorSetLayout(
@@ -7789,7 +8148,12 @@ bool VulkanStaticMeshRenderer::createMaterialDescriptor(
     for (std::uint32_t frame = 0U;
          frame < kDescriptorFrames;
          ++frame) {
-        std::array<VkWriteDescriptorSet, 4>
+        if (lightingUniformFrames_[frame].buffer ==
+            VK_NULL_HANDLE) {
+            return false;
+        }
+
+        std::array<VkWriteDescriptorSet, 5>
             writes{};
 
         for (std::uint32_t binding = 0U;
@@ -7809,6 +8173,25 @@ bool VulkanStaticMeshRenderer::createMaterialDescriptor(
             writes[binding].pImageInfo =
                 &images[binding];
         }
+
+        VkDescriptorBufferInfo lightingBuffer{};
+        lightingBuffer.buffer =
+            lightingUniformFrames_[frame].buffer;
+        lightingBuffer.offset = 0U;
+        lightingBuffer.range =
+            sizeof(SceneLightingUniform);
+
+        writes[4] = {
+            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET
+        };
+        writes[4].dstSet =
+            material.descriptorSets[frame];
+        writes[4].dstBinding = 4U;
+        writes[4].descriptorCount = 1U;
+        writes[4].descriptorType =
+            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        writes[4].pBufferInfo =
+            &lightingBuffer;
 
         vkUpdateDescriptorSets(
             device_,
