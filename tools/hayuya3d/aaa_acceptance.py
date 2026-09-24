@@ -113,6 +113,21 @@ def evaluate_aaa_acceptance(
         ),
     )
 
+    self_intersection=qa_report.get("self_intersection") or {}
+    _gate(
+        gates,"geometry.self_intersection","geometry",
+        bool(self_intersection.get("ready")),
+        (
+            f"applicable={self_intersection.get('applicable')} "
+            f"audited_components={self_intersection.get('audited_component_count')} "
+            f"crossing_pairs={self_intersection.get('crossing_triangle_pairs')}"
+        ),
+        blocker=(
+            "connected mesh surfaces self-intersect or "
+            "self-intersection evidence is unavailable"
+        ),
+    )
+
     source=qa_report.get("source_coverage") or {}
     source_ready=bool(
         int(source.get("judged") or 0)>=int(source.get("expected") or 0)
@@ -214,8 +229,8 @@ def evaluate_aaa_acceptance(
                 required=high_end,
                 blocker=(
                     "final high-end character lacks passing multi-view "
-                    "GroundingDINO/SAM2 proof for explicitly referenced "
-                    "critical anatomy"
+                    "semantic anatomy GroundingDINO/SAM2 proof for explicitly "
+                    "referenced critical anatomy"
                 ),
             )
 
