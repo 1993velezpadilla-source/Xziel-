@@ -718,6 +718,12 @@ function renderCompositePlan(plan, executions = []) {
     if (item.inserted_faces != null) {
       parts.push(Number(item.inserted_faces) + " new tris");
     }
+    if (item.inserted_primitives != null) {
+      parts.push(Number(item.inserted_primitives) + " prims");
+    }
+    if (item.material_groups != null) {
+      parts.push(Number(item.material_groups) + " materials");
+    }
     if (item.weight_transfer_vertices != null) {
       parts.push(Number(item.weight_transfer_vertices) + " weighted");
     }
