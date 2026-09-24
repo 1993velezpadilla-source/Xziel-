@@ -278,6 +278,12 @@ bool VulkanStaticMeshRenderer::initialize(
     astcLdrSupported_ =
         deviceFeatures.textureCompressionASTC_LDR ==
         VK_TRUE;
+    // VulkanStaticMeshRenderer only uses multi-draw when the logical device
+    // enables the corresponding core feature. VulkanClearRenderer mirrors
+    // this physical-device capability into VkDeviceCreateInfo.
+    multiDrawIndirectEnabled_ =
+        deviceFeatures.multiDrawIndirect ==
+        VK_TRUE;
 
     maxSamplerAnisotropy_ =
         samplerAnisotropyEnabled_
@@ -312,8 +318,9 @@ bool VulkanStaticMeshRenderer::initialize(
     __android_log_print(
         ANDROID_LOG_INFO,
         kTag,
-        "XZIEL_STATIC_TEXTURE_CAPS astc=%d aniso=%.1f upload_batch_commands=%u texture_budget_mb=%.1f",
+        "XZIEL_STATIC_TEXTURE_CAPS astc=%d multi_draw_indirect=%d aniso=%.1f upload_batch_commands=%u texture_budget_mb=%.1f",
         astcLdrSupported_ ? 1 : 0,
+        multiDrawIndirectEnabled_ ? 1 : 0,
         static_cast<double>(
             maxSamplerAnisotropy_),
         static_cast<unsigned int>(
@@ -991,6 +998,13 @@ bool VulkanStaticMeshRenderer::initialize(
         return false;
     }
 
+    if (!createIndirectDrawBuffers()) {
+        logError(
+            "static draw submission scratch allocation failed");
+        shutdown();
+        return false;
+    }
+
     totalVertices_ =
         asset.totalVertices;
     totalIndices_ =
@@ -1105,6 +1119,7 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     totalIndices_ = 0U;
     samplerAnisotropyEnabled_ = false;
     astcLdrSupported_ = false;
+    multiDrawIndirectEnabled_ = false;
     maxSamplerAnisotropy_ = 1.0f;
     uploadBatchCommandLimit_ = 16U;
     textureResidentBudgetBytes_ =
@@ -4284,10 +4299,6 @@ void VulkanStaticMeshRenderer::record(
             continue;
         }
 
-        ++frameStats_.visibleBatches;
-
-        bool geometryChanged = false;
-
         if (cellGeometry) {
             if (batch.geometryCellSlot >=
                 geometryCellCount_) {
@@ -4307,12 +4318,124 @@ void VulkanStaticMeshRenderer::record(
                 ++frameStats_.culledBatches;
                 continue;
             }
+        }
 
-            geometryChanged =
-                boundGeometryCell !=
-                batch.geometryCellSlot;
+        const VkPipeline desiredPipeline =
+            batch.doubleSided
+            ? pipelineDoubleSided_
+            : pipeline_;
 
-            if (geometryChanged) {
+        if (desiredPipeline == VK_NULL_HANDLE) {
+            ++frameStats_.culledBatches;
+            continue;
+        }
+
+        ++frameStats_.visibleBatches;
+
+        const std::uint32_t commandIndex =
+            static_cast<std::uint32_t>(
+                drawCommands_.size());
+
+        VkDrawIndexedIndirectCommand draw{};
+        draw.indexCount = batch.indexCount;
+        draw.instanceCount = 1U;
+        draw.firstIndex = batch.firstIndex;
+        draw.vertexOffset = batch.vertexOffset;
+        draw.firstInstance = 0U;
+
+        drawCommands_.push_back(draw);
+
+        const std::uint32_t geometryCellSlot =
+            cellGeometry
+            ? batch.geometryCellSlot
+            : UINT32_MAX;
+
+        const bool startsGroup =
+            drawGroups_.empty() ||
+            drawGroups_.back().materialIndex !=
+                batch.materialIndex ||
+            drawGroups_.back().geometryCellSlot !=
+                geometryCellSlot ||
+            drawGroups_.back().doubleSided !=
+                batch.doubleSided;
+
+        if (startsGroup) {
+            StaticDrawGroup group{};
+            group.firstCommand = commandIndex;
+            group.materialIndex =
+                batch.materialIndex;
+            group.geometryCellSlot =
+                geometryCellSlot;
+            group.doubleSided =
+                batch.doubleSided;
+            drawGroups_.push_back(group);
+        }
+
+        ++drawGroups_.back().commandCount;
+        ++frameStats_.drawCalls;
+        frameStats_.submittedTriangles +=
+            static_cast<std::uint64_t>(
+                batch.indexCount / 3U);
+
+    }
+
+    frameStats_.submissionGroups =
+        static_cast<std::uint32_t>(
+            drawGroups_.size());
+
+    const std::uint32_t indirectFrameSlot =
+        frameSlot % kDescriptorFrames;
+    auto& indirectFrame =
+        indirectDrawFrames_[
+            indirectFrameSlot];
+
+    const VkDeviceSize commandBytes =
+        static_cast<VkDeviceSize>(
+            drawCommands_.size()) *
+        sizeof(VkDrawIndexedIndirectCommand);
+
+    const bool useIndirect =
+        multiDrawIndirectEnabled_ &&
+        indirectFrame.buffer != VK_NULL_HANDLE &&
+        indirectFrame.mapped != nullptr &&
+        commandBytes <= indirectFrame.bytes;
+
+    if (useIndirect &&
+        commandBytes > 0U) {
+        std::memcpy(
+            indirectFrame.mapped,
+            drawCommands_.data(),
+            static_cast<std::size_t>(
+                commandBytes));
+    }
+
+    for (const auto& group : drawGroups_) {
+        if (group.commandCount == 0U ||
+            group.materialIndex >=
+                materials_.size()) {
+            continue;
+        }
+
+        if (cellGeometry) {
+            if (group.geometryCellSlot >=
+                geometryCellCount_) {
+                continue;
+            }
+
+            const auto& geometryCell =
+                geometryCells_[
+                    group.geometryCellSlot];
+
+            if (!geometryCell.physicallyResident ||
+                geometryCell.vertexBuffer ==
+                    VK_NULL_HANDLE ||
+                geometryCell.indexBuffer ==
+                    VK_NULL_HANDLE) {
+                continue;
+            }
+
+            if (boundGeometryCell !=
+                group.geometryCellSlot) {
                 const VkDeviceSize geometryOffset =
                     0U;
 
@@ -4330,37 +4453,21 @@ void VulkanStaticMeshRenderer::record(
                     VK_INDEX_TYPE_UINT16);
 
                 boundGeometryCell =
-                    batch.geometryCellSlot;
+                    group.geometryCellSlot;
                 ++frameStats_.geometryBinds;
             }
         }
 
         const VkPipeline desiredPipeline =
-            batch.doubleSided
+            group.doubleSided
             ? pipelineDoubleSided_
             : pipeline_;
 
         if (desiredPipeline == VK_NULL_HANDLE) {
-            ++frameStats_.culledBatches;
             continue;
         }
 
-        const bool pipelineChanged =
-            boundPipeline != desiredPipeline;
-        const bool materialChanged =
-            boundMaterialIndex !=
-                batch.materialIndex;
-        const bool groupChanged =
-            pipelineChanged ||
-            materialChanged ||
-            (cellGeometry &&
-             geometryChanged);
-
-        if (groupChanged) {
-            ++frameStats_.submissionGroups;
-        }
-
-        if (pipelineChanged) {
+        if (boundPipeline != desiredPipeline) {
             vkCmdBindPipeline(
                 command,
                 VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -4371,9 +4478,10 @@ void VulkanStaticMeshRenderer::record(
         }
 
         const auto& material =
-            materials_[batch.materialIndex];
+            materials_[group.materialIndex];
 
-        if (materialChanged) {
+        if (boundMaterialIndex !=
+            group.materialIndex) {
             applyMaterial(material);
 
             vkCmdBindDescriptorSets(
@@ -4389,22 +4497,49 @@ void VulkanStaticMeshRenderer::record(
                 nullptr);
 
             boundMaterialIndex =
-                batch.materialIndex;
+                group.materialIndex;
             ++frameStats_.materialBinds;
         }
 
-        vkCmdDrawIndexed(
-            command,
-            batch.indexCount,
-            1U,
-            batch.firstIndex,
-            batch.vertexOffset,
-            0U);
+        if (useIndirect) {
+            const VkDeviceSize offset =
+                static_cast<VkDeviceSize>(
+                    group.firstCommand) *
+                sizeof(VkDrawIndexedIndirectCommand);
 
-        ++frameStats_.drawCalls;
-        frameStats_.submittedTriangles +=
-            static_cast<std::uint64_t>(
-                batch.indexCount / 3U);
+            vkCmdDrawIndexedIndirect(
+                command,
+                indirectFrame.buffer,
+                offset,
+                group.commandCount,
+                sizeof(VkDrawIndexedIndirectCommand));
+
+            ++frameStats_.drawSubmissions;
+            frameStats_.indirectDraws +=
+                group.commandCount;
+        } else {
+            const std::uint32_t endCommand =
+                group.firstCommand +
+                group.commandCount;
+
+            for (std::uint32_t i =
+                     group.firstCommand;
+                 i < endCommand;
+                 ++i) {
+                const auto& draw =
+                    drawCommands_[i];
+
+                vkCmdDrawIndexed(
+                    command,
+                    draw.indexCount,
+                    draw.instanceCount,
+                    draw.firstIndex,
+                    draw.vertexOffset,
+                    draw.firstInstance);
+
+                ++frameStats_.drawSubmissions;
+            }
+        }
     }
 
     if (streamCullingActive_ &&
@@ -4415,7 +4550,7 @@ void VulkanStaticMeshRenderer::record(
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u",
+            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u draw_submissions=%u indirect_draws=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u multi_draw_indirect=%u",
             static_cast<unsigned int>(
                 frameStats_.streamingCell),
             static_cast<unsigned int>(
@@ -4429,13 +4564,18 @@ void VulkanStaticMeshRenderer::record(
             static_cast<unsigned int>(
                 frameStats_.drawCalls),
             static_cast<unsigned int>(
+                frameStats_.drawSubmissions),
+            static_cast<unsigned int>(
+                frameStats_.indirectDraws),
+            static_cast<unsigned int>(
                 frameStats_.materialBinds),
             static_cast<unsigned int>(
                 frameStats_.geometryBinds),
             static_cast<unsigned int>(
                 frameStats_.pipelineBinds),
             static_cast<unsigned int>(
-                frameStats_.submissionGroups));
+                frameStats_.submissionGroups),
+            useIndirect ? 1U : 0U);
     }
 }
 
@@ -7551,7 +7691,124 @@ void VulkanStaticMeshRenderer::destroyTexture(
     texture = {};
 }
 
+bool VulkanStaticMeshRenderer::createIndirectDrawBuffers() noexcept {
+    destroyIndirectDrawBuffers();
+
+    try {
+        drawCommands_.reserve(
+            batches_.size());
+        drawGroups_.reserve(
+            batches_.size());
+    } catch (...) {
+        return false;
+    }
+
+    if (!multiDrawIndirectEnabled_ ||
+        batches_.empty()) {
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_STATIC_DRAW_SUBMISSION_READY mode=direct max_draws=%u",
+            static_cast<unsigned int>(
+                batches_.size()));
+        return true;
+    }
+
+    if (batches_.size() >
+        std::numeric_limits<VkDeviceSize>::max() /
+            sizeof(VkDrawIndexedIndirectCommand)) {
+        multiDrawIndirectEnabled_ = false;
+        return true;
+    }
+
+    const VkDeviceSize bytes =
+        static_cast<VkDeviceSize>(
+            batches_.size()) *
+        sizeof(VkDrawIndexedIndirectCommand);
+
+    const VkMemoryPropertyFlags memoryFlags =
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
+    for (auto& frame : indirectDrawFrames_) {
+        if (!createBuffer(
+                bytes,
+                VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT,
+                memoryFlags,
+                frame.buffer,
+                frame.memory) ||
+            !ok(
+                vkMapMemory(
+                    device_,
+                    frame.memory,
+                    0U,
+                    bytes,
+                    0U,
+                    &frame.mapped))) {
+            destroyIndirectDrawBuffers();
+            multiDrawIndirectEnabled_ = false;
+
+            __android_log_print(
+                ANDROID_LOG_WARN,
+                kTag,
+                "XZIEL_STATIC_DRAW_SUBMISSION_FALLBACK reason=indirect_buffer_allocation");
+
+            return true;
+        }
+
+        frame.bytes = bytes;
+    }
+
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
+        "XZIEL_STATIC_DRAW_SUBMISSION_READY mode=multi_draw_indirect frames=%u max_draws=%u bytes_per_frame=%llu",
+        static_cast<unsigned int>(
+            kDescriptorFrames),
+        static_cast<unsigned int>(
+            batches_.size()),
+        static_cast<unsigned long long>(
+            bytes));
+
+    return true;
+}
+
+void VulkanStaticMeshRenderer::destroyIndirectDrawBuffers() noexcept {
+    if (device_ != VK_NULL_HANDLE) {
+        for (auto& frame : indirectDrawFrames_) {
+            if (frame.mapped != nullptr &&
+                frame.memory != VK_NULL_HANDLE) {
+                vkUnmapMemory(
+                    device_,
+                    frame.memory);
+            }
+
+            if (frame.buffer != VK_NULL_HANDLE) {
+                vkDestroyBuffer(
+                    device_,
+                    frame.buffer,
+                    nullptr);
+            }
+
+            if (frame.memory != VK_NULL_HANDLE) {
+                vkFreeMemory(
+                    device_,
+                    frame.memory,
+                    nullptr);
+            }
+
+            frame = {};
+        }
+    } else {
+        indirectDrawFrames_ = {};
+    }
+
+    drawCommands_.clear();
+    drawGroups_.clear();
+}
+
 void VulkanStaticMeshRenderer::destroyGeometryResidency() noexcept {
+    destroyIndirectDrawBuffers();
     batches_.clear();
 
     if (device_ != VK_NULL_HANDLE) {
