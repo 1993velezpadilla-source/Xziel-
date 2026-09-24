@@ -1,0 +1,417 @@
+{
+  "version": "1.0",
+  "updated": "2026-09-22",
+  "project": "Xziel / ZOMBIESSSSSSS PORTABLE",
+  "source_video": {
+    "url": "https://youtu.be/6-Mu9VXubeY",
+    "title": "The horror of Call of Duty: World at War Zombies",
+    "creator": "Doogle McDuff",
+    "role": "primary design inspiration; not a source of redistributable assets"
+  },
+  "global_rules": [
+    "Map must remain unsettling with zero zombies present.",
+    "Use silence deliberately; do not fill every second with horror audio.",
+    "Lighting must create shape, silhouettes, depth and uncertainty, not just visibility.",
+    "Every major zone gets its own lighting identity and ambient sound family.",
+    "At least one readable, one suggestive and one unresolved environmental detail per major zone.",
+    "Power changes atmosphere as well as mechanics.",
+    "Rare ambient events use cooldowns, weighting and match limits so they remain unpredictable.",
+    "Lore should be discoverable through the physical world before exposition.",
+    "Never show enemies visibly popping into existence.",
+    "Maintain mobile combat readability and accessibility.",
+    "Do not ship ripped Call of Duty/Treyarch assets."
+  ],
+  "map_identities": {
+    "nacht_der_untoten": {
+      "primary_emotion": "isolation",
+      "ingredients": [
+        "small constrained space",
+        "minimal explanation",
+        "fog and exterior emptiness",
+        "blocked windows",
+        "crude/unfinished wall writing",
+        "silhouettes beyond barricades",
+        "no sense of rescue or comfort"
+      ]
+    },
+    "verruckt": {
+      "primary_emotion": "human suffering / institutional horror",
+      "ingredients": [
+        "dark institutional corridors",
+        "medical/torture implication",
+        "human distress audio",
+        "whispers and crying tied to locations",
+        "power-driven state change",
+        "traps",
+        "panic from unusually fast enemies"
+      ]
+    },
+    "shi_no_numa": {
+      "primary_emotion": "hostile nature + strange research",
+      "ingredients": [
+        "weather and wet atmosphere",
+        "isolated outbuildings",
+        "limited exterior visibility",
+        "radios/transmissions",
+        "unexplained material/research",
+        "hanging-body / abandoned-human evidence",
+        "special-creature threat"
+      ]
+    },
+    "der_riese": {
+      "primary_emotion": "industrial experiment origin site",
+      "ingredients": [
+        "nighttime factory",
+        "machinery and experiments",
+        "radios and hidden transmissions",
+        "clocks/numbers",
+        "notes/chalkboards/corkboards",
+        "uncanny child/animal audio references",
+        "long-term progression machine",
+        "deep lore rewarded by inspection"
+      ]
+    }
+  },
+  "detail_classes": {
+    "readable": [
+      "boarded window",
+      "old blood trail",
+      "abandoned tool/weapon",
+      "broken door"
+    ],
+    "suggestive": [
+      "interrupted wall sentence",
+      "drag trail under locked door",
+      "restraints",
+      "machine running without operator"
+    ],
+    "unresolved": [
+      "distant scream",
+      "one-time silhouette",
+      "truncated radio",
+      "unexplained footsteps",
+      "bell rings with still rope",
+      "projected unknown figure"
+    ]
+  },
+  "audio": {
+    "layers": [
+      "base room tone",
+      "local mechanical/environmental",
+      "rare off-screen horror one-shots",
+      "enemy gameplay information",
+      "event stingers"
+    ],
+    "ambient_event_schema": [
+      "event_id",
+      "audio_asset_id",
+      "allowed_zones",
+      "min_distance",
+      "max_distance",
+      "rarity_weight",
+      "min_cooldown",
+      "global_cooldown_category",
+      "max_plays_per_match",
+      "round_min",
+      "round_max",
+      "power_state",
+      "quest_state",
+      "weather_state",
+      "spatial_mode",
+      "occlusion_enabled",
+      "accessibility_text",
+      "optional_visual_event_id",
+      "optional_light_event_id"
+    ],
+    "rules": [
+      "No predictable scream timer.",
+      "No immediate repetition.",
+      "Use silence windows.",
+      "Occlusion differs by material and room boundary.",
+      "Vertical audio should remain directionally understandable.",
+      "Round intensity increases density/proximity more than master loudness.",
+      "Rare sounds are not required quest clues without deterministic accessible backup."
+    ]
+  },
+  "lighting": {
+    "source_types": [
+      "hanging bulb",
+      "desk lamp",
+      "furnace",
+      "candle",
+      "lantern",
+      "emergency lamp",
+      "broken fluorescent",
+      "stained glass",
+      "lightning",
+      "electrical arc",
+      "projector",
+      "burning debris",
+      "moonlight"
+    ],
+    "event_types": [
+      "flicker_burst",
+      "fixture_fail",
+      "power_on_sequence",
+      "lightning_flash",
+      "swinging_light_projection",
+      "projector_pulse",
+      "ritual_glow",
+      "electrical_arc",
+      "candle_extinguish",
+      "emergency_light_switch"
+    ],
+    "rules": [
+      "Navigation lights are more stable than anxiety lights.",
+      "Do not flicker every source.",
+      "Use projected shadows intentionally.",
+      "Preserve enemy silhouette readability.",
+      "Avoid rapid full-screen flashing.",
+      "Critical cues need non-visual backup where appropriate."
+    ]
+  },
+  "sanctum_of_ash": {
+    "zones": {
+      "fallen_courtyard": {
+        "lighting": [
+          "cold moon/storm",
+          "warm leaking window light",
+          "wet reflections",
+          "tower lightning silhouette"
+        ],
+        "audio": [
+          "wind",
+          "rain",
+          "distant thunder",
+          "loose metal",
+          "rare far human scream",
+          "distant undead",
+          "rare pre-power bell"
+        ],
+        "story": [
+          "failed emergency barricade",
+          "blood toward nave",
+          "parish evacuation notice",
+          "unfinished warning"
+        ],
+        "unresolved": [
+          "single-match upstairs-window silhouette"
+        ]
+      },
+      "nave": {
+        "lighting": [
+          "broken stained-glass projection",
+          "candle islands",
+          "dark rafters",
+          "lightning through high windows"
+        ],
+        "audio": [
+          "building creaks",
+          "rain on roof",
+          "organ resonance",
+          "pew stress",
+          "rare confession-area whisper"
+        ],
+        "story": [
+          "improvised pew barricades",
+          "blood path",
+          "torn hymn pages",
+          "survivor marks",
+          "altered altar"
+        ],
+        "unresolved": [
+          "rare organ single note without interaction"
+        ]
+      },
+      "office_corridor": {
+        "lighting": [
+          "desk-lamp pool",
+          "archive/projector beam",
+          "warm decay surrounded by dark"
+        ],
+        "audio": [
+          "paper draft",
+          "clock",
+          "ceiling/wall movement",
+          "radio static"
+        ],
+        "story": [
+          "registry",
+          "maintenance notes",
+          "photos",
+          "incomplete incident timeline",
+          "crossed-out names"
+        ],
+        "unresolved": [
+          "recording ends with noise behind speaker"
+        ]
+      },
+      "boiler_room": {
+        "lighting": [
+          "furnace glow",
+          "deep service shadows",
+          "intermittent steam",
+          "power-state emergency lamp"
+        ],
+        "audio": [
+          "boiler rumble",
+          "pipes",
+          "pressure release",
+          "metal contraction",
+          "low-frequency resonance"
+        ],
+        "story": [
+          "temporary shelter evidence",
+          "failed repair",
+          "blood on valve/door",
+          "abandoned emergency supplies"
+        ],
+        "unresolved": [
+          "ultra-rare coughing/tapping behind inaccessible wall"
+        ]
+      },
+      "tower_stairs": {
+        "lighting": [
+          "narrow light pools",
+          "strong vertical shadow",
+          "lightning flashes",
+          "moving rope shadow"
+        ],
+        "audio": [
+          "stone/wood steps",
+          "rope tension",
+          "wind",
+          "unconfirmed footsteps above"
+        ],
+        "story": [
+          "dropped tools",
+          "broken lantern",
+          "scratched numbers",
+          "rope burns/drag marks"
+        ]
+      },
+      "ringing_chamber": {
+        "lighting": [
+          "bell silhouette",
+          "opening backlight",
+          "dust beam",
+          "minimal floor fill"
+        ],
+        "audio": [
+          "rope",
+          "bell-metal settling",
+          "low resonant room tone"
+        ],
+        "unresolved": [
+          "rare vocal-like tail in bell resonance"
+        ]
+      },
+      "clock_chamber": {
+        "lighting": [
+          "moon through mechanism",
+          "gear-shadow motion after power",
+          "small maintenance practicals"
+        ],
+        "audio": [
+          "ticking",
+          "gears",
+          "stressed wood/metal",
+          "distant bell"
+        ],
+        "story": [
+          "repeated time references",
+          "repair notebook",
+          "03:17 quest foreshadowing"
+        ]
+      },
+      "roof_tower_top": {
+        "lighting": [
+          "dominant storm",
+          "lightning reveal frames",
+          "dark distant landscape",
+          "strong silhouettes"
+        ],
+        "audio": [
+          "high wind",
+          "thunder",
+          "distant fires",
+          "bell",
+          "optional far siren/distress"
+        ],
+        "goal": "exposed and unsafe, never a comfort zone"
+      }
+    }
+  },
+  "gameplay_horror_links": {
+    "barricades": [
+      "wood strain before plank failure",
+      "hands/arms through gaps",
+      "dust",
+      "variable break look",
+      "silhouette reveal",
+      "no spawn pop"
+    ],
+    "doors": [
+      "handle/latch movement",
+      "hinge creak",
+      "deterministic collision-safe animation",
+      "sound-propagation transition",
+      "new room tone"
+    ],
+    "power": [
+      "sequential light wake-up",
+      "machine hum",
+      "clock/bell machinery",
+      "new audio emitters",
+      "mechanical danger"
+    ],
+    "special_rounds": [
+      "recognizable environmental warning",
+      "temporary soundscape change",
+      "temporary lighting-state change"
+    ],
+    "mystery_system": [
+      "supernatural/risky presence",
+      "audible/visual beacon",
+      "physically integrated but intentionally uncanny"
+    ]
+  },
+  "zombie_presentation": {
+    "movement_pool": [
+      "slow_drag",
+      "stiff_walk",
+      "injured_lean",
+      "uneven_limp",
+      "twitch_walk",
+      "head_down_wander",
+      "sudden_acceleration",
+      "panic_sprint",
+      "barricade_pressure",
+      "crawler_variants"
+    ],
+    "rules": [
+      "No synchronized clone-army presentation.",
+      "Faces do not need constant full illumination.",
+      "Sound can precede sight.",
+      "Former occupation/location should influence silhouettes.",
+      "Animation variety must not destroy readable speed classes."
+    ]
+  },
+  "acceptance_criteria": [
+    "Map is tense with no enemies.",
+    "Map can be recognized by ambience alone.",
+    "At least three rooms have unique room-tone identities.",
+    "Silence is intentional.",
+    "Rare positional events are not predictable after one match.",
+    "Lighting creates silhouettes/depth.",
+    "Power changes atmosphere and mechanics.",
+    "Environmental writing mixes useful and ambiguous material.",
+    "Lore is discoverable without exposition interruption.",
+    "At least one visual detail is easy to miss.",
+    "At least one audio detail is easy to miss.",
+    "Pre-player catastrophe timeline is coherent.",
+    "Zombie animation/vocal pool prevents cloning.",
+    "Combat remains readable on mobile.",
+    "No required content depends on copied/ripped COD assets."
+  ]
+}
