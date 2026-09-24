@@ -221,12 +221,55 @@ jobs:
                   "No animation bank passed the safe-motion minimum: "
                   f"uam2={len(useful2)} useful, uam1={len(useful1)} useful"
               )
-          manifest["preview_model"]="animated.glb" if usable2 else "animated-uam1.glb"
-          manifest["rig_quality_version"]=3
+
+          # Structural monotonicity protects capabilities that clip counts alone
+          # cannot see. Once the published preview has real weighted hands/joints,
+          # a later rerig using the same bank may not silently drop them.
+          incumbent_character=manifest.get("character") if isinstance(manifest.get("character"),dict) else {}
+          incumbent_preview=str(manifest.get("preview_model") or "")
+          selected_preview="animated.glb" if usable2 else "animated-uam1.glb"
+          selected_rig=r2 if usable2 else r1
+          incumbent_joints={
+              str(x) for x in incumbent_character.get("weighted_joint_names",[])
+              if str(x)
+          }
+          candidate_joints={
+              str(x) for x in selected_rig.get("weighted_joint_names",[])
+              if str(x)
+          }
+          missing_joints=(
+              sorted(incumbent_joints-candidate_joints)
+              if incumbent_preview==selected_preview
+              and bool(incumbent_character.get("rig_ready"))
+              else []
+          )
+          incumbent_quality=int(incumbent_character.get("rig_quality_version") or 0)
+          candidate_quality=3
+          if incumbent_quality>candidate_quality:
+              raise SystemExit(
+                  f"rig_quality_regression:{candidate_quality}<{incumbent_quality}"
+              )
+          if missing_joints:
+              raise SystemExit(
+                  "weighted_joint_regression:"+",".join(missing_joints)
+              )
+
+          manifest["preview_model"]=selected_preview
+          manifest["rig_quality_version"]=candidate_quality
           manifest["rig_promotion_policy"]={
-            "mode":"monotonic_safe_clips_v1",
+            "mode":"monotonic_safe_clips_and_structure_v2",
             "passed":True,
             "banks":promotion_guard,
+            "structure":{
+              "incumbent_preview_model":incumbent_preview,
+              "candidate_preview_model":selected_preview,
+              "same_bank":incumbent_preview==selected_preview,
+              "incumbent_weighted_joint_count":len(incumbent_joints),
+              "candidate_weighted_joint_count":len(candidate_joints),
+              "missing_incumbent_weighted_joints":missing_joints,
+              "incumbent_rig_quality_version":incumbent_quality,
+              "candidate_rig_quality_version":candidate_quality,
+            },
           }
           manifest["asset_profile"]="character.humanoid"
           asset=manifest.setdefault("asset",{})
