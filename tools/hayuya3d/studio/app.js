@@ -132,6 +132,7 @@ function renderCandidates(job) {
     const metrics = [
       ["Shape", candidate.visual_score],
       ["Look", candidate.appearance_score],
+      ["Face", candidate.face_detail_score],
       ["Detail", candidate.detail_score],
       ["Material", candidate.material_score],
       ["Texture", candidate.texture_resolution_score],
@@ -151,8 +152,14 @@ function renderCandidates(job) {
       channels.className = "pbr-channels";
       const parts = [];
       if (candidate.base_color_max_edge) parts.push(`baseColor ${candidate.base_color_max_edge}px`);
+      if (candidate.head_region_faces) {
+        parts.push(`head ${candidate.head_region_faces.toLocaleString()} tris`);
+      }
+      if (candidate.head_region_median_edge_normalized != null) {
+        parts.push(`head edge ${Number(candidate.head_region_median_edge_normalized).toFixed(5)}× diag`);
+      }
       if (candidate.pbr_channels?.length) parts.push(candidate.pbr_channels.join(" · "));
-      channels.textContent = "PBR · " + parts.join(" · ");
+      channels.textContent = "QA · " + parts.join(" · ");
       card.appendChild(channels);
     }
     if (candidate.url) {
