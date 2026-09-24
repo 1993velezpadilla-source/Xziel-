@@ -2099,6 +2099,8 @@ def main() -> int:
                     f"material_groups={detail_fusion.get('material_groups','none')} "
                     f"weight_transfer_vertices={detail_fusion.get('transferred_weight_vertices','none')} "
                     f"weight_source_max={detail_fusion.get('weight_source_max_distance_ratio','none')} "
+                    f"surface_transfer={detail_fusion.get('surface_transfer_method','none')} "
+                    f"surface_fallback_vertices={detail_fusion.get('surface_transfer_fallback_vertices','none')} "
                     f"morph_targets_transferred={detail_fusion.get('morph_targets_transferred','none')} "
                     f"geometry_ready={detail_fusion.get('geometry_ready','none')} "
                     f"material_ready={detail_fusion.get('material_ready','none')} "
