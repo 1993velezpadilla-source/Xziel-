@@ -323,14 +323,14 @@ def main():
         ao_image=new_noncolor_image(
             "HAYUYA_Rebaked_Occlusion",a.size,(1.0,1.0,1.0,1.0)
         )
-        ao_distance=diag*0.35
-        ao_restore=configure_ao_emission_bake(
-            materials,ao_image,distance=ao_distance
-        )
+        # Cycles AO bake writes into the active image node on each material.
+        # Use the runtime target itself (solid/UV'd) instead of routing an AO
+        # shader through emission, which Blender 4 can evaluate as all-zero.
+        for material in materials:
+            active_image_node(material,ao_image,"HAYUYA_AO_BAKE_TARGET")
         scene.render.bake.use_selected_to_active=False
         select_only([target],target)
-        bpy.ops.object.bake(type="EMIT")
-        restore_after_ao_bake(ao_restore)
+        bpy.ops.object.bake(type="AO")
         configure_occlusion(materials,ao_image)
         ao_stats=image_signal_stats(ao_image,0)
         ao_range=(
@@ -345,8 +345,7 @@ def main():
             "signal":ao_stats,
             "signal_range":round(ao_range,6),
             "signal_valid":ao_signal_valid,
-            "distance":ao_distance,
-            "method":"ambient_occlusion_shader_to_emit",
+            "method":"cycles_native_ao_target_only_v3",
         }
         if ao_signal_valid:
             resolved.append("occlusion")
