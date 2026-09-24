@@ -1,4 +1,5 @@
 import bpy
+import collections
 import json
 import math
 import os
@@ -8,6 +9,51 @@ from mathutils import Vector
 MASTER = os.environ.get("CHURCH_MASTER", "church/out/church_map_master.blend")
 OUTDIR = Path(os.environ.get("CHURCH_OUT", "church/out"))
 OUTDIR.mkdir(parents=True, exist_ok=True)
+
+DNA_ATLAS = Path(os.environ.get(
+    "XZIEL_ZOMBIES_DNA_ATLAS",
+    str(Path(__file__).resolve().parents[2] / "docs" / "zombies-map-dna-atlas.v1.json"),
+))
+SANCTUM_DNA_SOURCE_IDS = [
+    "waw_nacht",
+    "waw_verruckt",
+    "waw_der_riese",
+    "bo1_kino",
+    "bo2_mob",
+    "bo2_origins",
+    "bo3_shadows",
+    "wwii_final_reich",
+]
+
+def build_design_dna_profile():
+    atlas = json.loads(DNA_ATLAS.read_text(encoding="utf-8"))
+    by_id = {record["id"]: record for record in atlas["maps"]}
+    missing = [map_id for map_id in SANCTUM_DNA_SOURCE_IDS if map_id not in by_id]
+    if missing:
+        raise RuntimeError("Missing Zombies DNA maps: " + ", ".join(missing))
+
+    records = [by_id[map_id] for map_id in SANCTUM_DNA_SOURCE_IDS]
+
+    def ranked(field):
+        counts = collections.Counter(
+            value
+            for record in records
+            for value in record.get(field, [])
+        )
+        return [
+            {"value": value, "count": count}
+            for value, count in counts.most_common()
+        ]
+
+    return {
+        "atlas": str(DNA_ATLAS),
+        "source_maps": SANCTUM_DNA_SOURCE_IDS,
+        "topology": ranked("topology"),
+        "progression": ranked("progression"),
+        "pressure": ranked("pressure"),
+        "horror": ranked("horror"),
+        "guardrail": "abstract design influence only; never copy exact layouts or proprietary content",
+    }
 
 bpy.ops.wm.open_mainfile(filepath=MASTER)
 scene = bpy.context.scene
@@ -444,6 +490,7 @@ plan = {
     "working_title": "SANCTUM OF ASH",
     "source_building": "St Giles-without-Cripplegate scan by artfletch (CC BY)",
     "design_pass": "gameplay-blockout-v1",
+    "design_dna": build_design_dna_profile(),
     "floor_levels": {k: dominant_floor_z(k) for k in zone_info if k != "other"},
     "zones": {
         k: {
