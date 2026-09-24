@@ -421,13 +421,48 @@ def _donor_accessory(path: Path, *, mode: str, up_axis: str):
         mode=mode,
         up_axis=up_axis,
     )
-    if len(candidates) != 1:
+    if not candidates:
         raise RuntimeError(
-            "new-vertex insertion requires exactly one unambiguous donor "
-            f"accessory candidate; found {len(candidates)}"
+            "new-vertex insertion requires donor accessory evidence"
         )
-    selected = candidates[0]
-    if float(selected.attachment_distance_ratio) > 0.18:
+
+    selected_ids: list[int]
+    if len(candidates) == 1:
+        selected_ids = [int(candidates[0].component_id)]
+    else:
+        from accessory_cluster import inspect_accessory_clusters
+        cluster = inspect_accessory_clusters(
+            path,
+            mode=mode,
+            up_axis=up_axis,
+        )
+        if not cluster.ready or not cluster.selected_component_ids:
+            detail = ";".join(cluster.errors or [])
+            raise RuntimeError(
+                "multiple donor accessory candidates are not one proven "
+                "anchored logical cluster"
+                + (f": {detail}" if detail else "")
+            )
+        selected_ids = [
+            int(x) for x in cluster.selected_component_ids
+        ]
+        if set(selected_ids) != {
+            int(item.component_id) for item in candidates
+        }:
+            raise RuntimeError(
+                "accessory cluster proof did not account for every donor "
+                "accessory candidate"
+            )
+
+    by_id = {
+        int(item.component_id): item
+        for item in candidates
+    }
+    selected_candidates = [by_id[x] for x in selected_ids]
+    selected = selected_candidates[0]
+    if len(selected_candidates) == 1 and (
+        float(selected.attachment_distance_ratio) > 0.18
+    ):
         raise RuntimeError(
             "donor accessory is too detached from its source body for "
             "automatic insertion"
@@ -438,7 +473,7 @@ def _donor_accessory(path: Path, *, mode: str, up_axis: str):
     faces = np.asarray(mesh.faces, dtype=np.int64)
     component_ids = _component_ids(faces)
     chosen_faces = faces[
-        component_ids == int(selected.component_id)
+        np.isin(component_ids, np.asarray(selected_ids, dtype=np.int64))
     ]
     if not len(chosen_faces):
         raise RuntimeError("donor accessory component has no faces")
@@ -483,6 +518,7 @@ def _donor_accessory(path: Path, *, mode: str, up_axis: str):
         main_vertices,
         local_uv,
         material,
+        selected_ids,
     )
 
 
@@ -918,6 +954,7 @@ def insert_rigged_accessory(
             donor_main_vertices,
             donor_uv,
             donor_material,
+            donor_component_ids,
         ) = _donor_accessory(
             donor_mesh,
             mode="character",
@@ -1214,6 +1251,12 @@ def insert_rigged_accessory(
                 f"{bbox_drift:.6f}>{max_bbox_drift_fraction:.6f}"
             )
 
+        if len(donor_component_ids) > 1:
+            warnings.append(
+                "multi_piece_accessory_cluster="
+                + ",".join(str(x) for x in donor_component_ids)
+            )
+
         geometry_ready=not errors
         inserted_primitive=(
             (after_doc.get("meshes") or [])[int(base["mesh_index"])]
@@ -1309,7 +1352,11 @@ def insert_rigged_accessory(
             legacy_payload_preserved=legacy_preserved,
             material_blockers=material_blockers,
             donor_component_id=int(selected.component_id),
-            spatial_label=str(selected.spatial_label),
+            spatial_label=(
+                str(selected.spatial_label)
+                if len(donor_component_ids) == 1
+                else "cluster"
+            ),
             inserted_vertices=int(len(aligned)),
             inserted_faces=int(len(donor_faces)),
             transferred_weight_vertices=int(len(aligned)),
