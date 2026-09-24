@@ -211,6 +211,54 @@ def needs_texture_superres(
     return edge>0 and edge<int(target_edge)
 
 
+def texture_refinement_regressions(source, challenger) -> list[str]:
+    """Reject a resolution-only win when stronger fidelity evidence regresses."""
+    reasons=[]
+
+    # Image rewriting must not alter geometry/topology at all.
+    for name in ("vertices","faces","components"):
+        a=getattr(source,name,None)
+        b=getattr(challenger,name,None)
+        if a is not None and b is not None and a!=b:
+            reasons.append(f"geometry_changed:{name}:{a}->{b}")
+    a_bbox=getattr(source,"bbox",None)
+    b_bbox=getattr(challenger,"bbox",None)
+    if a_bbox is not None and b_bbox is not None and list(a_bbox)!=list(b_bbox):
+        reasons.append("geometry_changed:bbox")
+
+    source_channels=set(getattr(source,"pbr_channels",None) or [])
+    challenger_channels=set(getattr(challenger,"pbr_channels",None) or [])
+    missing_channels=sorted(source_channels-challenger_channels)
+    if missing_channels:
+        reasons.append("missing_pbr_channels:"+",".join(missing_channels))
+
+    # These metrics are monotonic evidence. Missing challenger evidence is also
+    # a regression when the incumbent had it.
+    for name in (
+        "head_texture_detail_score",
+        "visual_score",
+        "appearance_score",
+        "appearance_face_detail_score",
+    ):
+        a=getattr(source,name,None)
+        b=getattr(challenger,name,None)
+        if a is None:
+            continue
+        if b is None:
+            reasons.append(f"missing_evidence:{name}")
+            continue
+        if float(b)+1e-6<float(a):
+            reasons.append(f"regressed:{name}:{float(a):.3f}->{float(b):.3f}")
+
+    source_edge=int(getattr(source,"base_color_min_edge",0) or 0)
+    challenger_edge=int(getattr(challenger,"base_color_min_edge",0) or 0)
+    if source_edge>0 and challenger_edge<source_edge:
+        reasons.append(
+            f"basecolor_resolution_regressed:{source_edge}->{challenger_edge}"
+        )
+    return reasons
+
+
 def make_reference_groups(inputs: list[Path], group_size: int) -> list[list[Path]]:
     """
     Split an arbitrary reference pool into backend-sized groups without dropping evidence.
@@ -1428,6 +1476,50 @@ def main() -> int:
                     if not valid:
                         raise RuntimeError(
                             "texture super-resolution re-ranking produced no valid candidates"
+                        )
+
+                    source_item=next(
+                        (x for x in ranked if x.backend==provisional.backend),
+                        provisional,
+                    )
+                    sr_item=next(
+                        (x for x in ranked if x.backend==sr_label),
+                        None,
+                    )
+                    if sr_item is None:
+                        raise RuntimeError(
+                            "texture super-resolution challenger missing from re-ranking"
+                        )
+                    regressions=texture_refinement_regressions(
+                        source_item,
+                        sr_item,
+                    )
+                    if regressions:
+                        sr_item.valid=False
+                        sr_item.notes.append(
+                            "texture refinement promotion guard rejected: "
+                            + ";".join(regressions)
+                        )
+                        ranked=sorted(
+                            ranked,
+                            key=lambda x:(x.valid,x.score),
+                            reverse=True,
+                        )
+                        valid=[x for x in ranked if x.valid]
+                        texture_superres_status="rejected_regression"
+                        texture_superres_failure=";".join(regressions)
+                        print(
+                            "HAYUYA_TEXTURE_SUPERRES_REJECTED "
+                            + texture_superres_failure,
+                            file=sys.stderr,
+                        )
+                        if args.texture_superres=="required":
+                            raise RuntimeError(texture_superres_failure)
+                    else:
+                        texture_superres_status="guard_passed"
+                        print(
+                            "HAYUYA_TEXTURE_SUPERRES_GUARD_PASS "
+                            f"source={source_item.backend} candidate={sr_label}"
                         )
                 else:
                     texture_superres_failure = (
