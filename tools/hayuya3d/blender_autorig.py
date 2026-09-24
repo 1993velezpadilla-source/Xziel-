@@ -127,6 +127,21 @@ def main():
         )
 
     scale=target_height/donor_height
+    target_ext_values=(abs(target_ext.x),abs(target_ext.y),abs(target_ext.z))
+    donor_ext_values=(abs(donor_ext.x),abs(donor_ext.y),abs(donor_ext.z))
+    axis_scales=[]
+    for axis in range(3):
+        if axis==target_axis:
+            value=scale
+        else:
+            raw=target_ext_values[axis]/max(1e-8,donor_ext_values[axis])
+            # Generated clothing/hair can exaggerate one envelope axis. Fit the
+            # donor skeleton to the character's actual proportions, but clamp
+            # pathological silhouettes so a cape/weapon does not crush bones.
+            value=max(scale*0.55,min(scale*1.80,raw))
+        axis_scales.append(value)
+    fit_scale=Vector(tuple(axis_scales))
+
     donor_set=set(donor_objs)
     donor_roots=[o for o in donor_objs if o.parent not in donor_set]
     if not donor_roots:
@@ -134,7 +149,11 @@ def main():
     donor_root_names=[o.name for o in donor_roots]
 
     for root in donor_roots:
-        root.scale=Vector((root.scale.x*scale,root.scale.y*scale,root.scale.z*scale))
+        root.scale=Vector((
+            root.scale.x*fit_scale.x,
+            root.scale.y*fit_scale.y,
+            root.scale.z*fit_scale.z,
+        ))
     bpy.context.view_layer.update()
 
     dmin2,dmax2=world_bbox(donor_meshes)
@@ -356,6 +375,7 @@ def main():
         "target_bounds":{"min":list(target_min),"max":list(target_max),"height":target_height,"axis":target_axis},
         "donor_bounds":{"min":list(donor_min),"max":list(donor_max),"height":donor_height,"axis":donor_axis},
         "scale":scale,
+        "axis_scales":axis_scales,
         "armature":arm.name,
         "bones":[b.name for b in arm.data.bones],
         "actions":[a.name for a in actions],
@@ -366,7 +386,7 @@ def main():
         "armature_world_before":arm_world_before,
         "armature_world_after":arm_world_after,
         "export_meshes":remaining_meshes,
-        "binding_method":"aligned_roots_blended_kdtree_v6_baked_armature_bind_pose",
+        "binding_method":"proportion_fit_blended_kdtree_v7_baked_armature_bind_pose",
         "bind_results":bind_results,
         "output_bytes":args.output.stat().st_size if args.output.exists() else 0,
     }
