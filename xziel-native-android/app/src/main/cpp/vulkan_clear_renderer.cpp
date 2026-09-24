@@ -5048,6 +5048,26 @@ bool VulkanClearRenderer::recordDrawCommand(
             ? static_cast<float>(reflectionExtent_.width) /
               static_cast<float>(reflectionExtent_.height)
             : 1.0f;
+        constexpr float kProjectionDegreesToRadians =
+            0.01745329251994329577f;
+        const float reflectedFovDegrees =
+            std::clamp(
+                std::isfinite(camera.verticalFovDegrees)
+                    ? camera.verticalFovDegrees
+                    : 72.0f,
+                50.0f,
+                110.0f);
+        const float reflectedFocal =
+            1.0f /
+            std::tan(
+                reflectedFovDegrees *
+                0.5f *
+                kProjectionDegreesToRadians);
+        const float reflectedFocalOverAspect =
+            reflectedFocal /
+            std::max(
+                reflectedAspect,
+                0.25f);
 
         const auto drawReflectedBox = [&](
             float tx,
@@ -5060,7 +5080,11 @@ bool VulkanClearRenderer::recordDrawCommand(
             PushConstants push{};
             push.timeSeconds =
                 std::isfinite(timeSeconds) ? timeSeconds : 0.0f;
-            push.aspect = reflectedAspect;
+            // PROJECTION_TERMS_CPU_PRECOMPUTED_V1
+            // xziel_first.vert reads focal/aspect from aspect and focal from
+            // the otherwise shader-unused waterSurfaceExtra.w slot.
+            push.aspect =
+                reflectedFocalOverAspect;
             push.horrorPulse = pulse;
             push.materialId = materialId;
             push.translationX = tx;
@@ -5159,7 +5183,7 @@ bool VulkanClearRenderer::recordDrawCommand(
             push.waterParticleScale =
                 std::clamp(environment.particleDensityScale, 0.25f, 1.0f);
             push.waterFogScale =
-                std::clamp(environment.fogQualityScale, 0.35f, 1.0f);
+                reflectedFocal;
             push.reflectionPlaneX = planeNx;
             push.reflectionPlaneY = planeNy;
             push.reflectionPlaneZ = planeNz;
@@ -5482,6 +5506,26 @@ bool VulkanClearRenderer::recordDrawCommand(
           static_cast<float>(
               sceneExtent_.height)
         : 1.0f;
+    constexpr float kProjectionDegreesToRadians =
+        0.01745329251994329577f;
+    const float projectionFovDegrees =
+        std::clamp(
+            std::isfinite(camera.verticalFovDegrees)
+                ? camera.verticalFovDegrees
+                : 72.0f,
+            50.0f,
+            110.0f);
+    const float projectionFocal =
+        1.0f /
+        std::tan(
+            projectionFovDegrees *
+            0.5f *
+            kProjectionDegreesToRadians);
+    const float projectionFocalOverAspect =
+        projectionFocal /
+        std::max(
+            aspect,
+            0.25f);
 
     const auto drawPrimitive = [&](
         float tx,
@@ -5497,7 +5541,8 @@ bool VulkanClearRenderer::recordDrawCommand(
         std::uint32_t vertexCount) noexcept {
         PushConstants push{};
         push.timeSeconds = safeTime;
-        push.aspect = aspect;
+        push.aspect =
+            projectionFocalOverAspect;
         push.horrorPulse = pulse;
         push.materialId = materialId;
 
@@ -5624,10 +5669,7 @@ bool VulkanClearRenderer::recordDrawCommand(
                 1.0f);
 
         push.waterFogScale =
-            std::clamp(
-                environment.fogQualityScale,
-                0.35f,
-                1.0f);
+            projectionFocal;
 
         // Main-pass projection must use the exact plane selected by the
         // ReflectionPlanner. Keep the plane orientation consistent with the

@@ -338,28 +338,18 @@ void main() {
     const float nearPlane = 0.08;
     const float farPlane = 48.0;
 
-    float fovDegrees =
-        clamp(
-            pc.cameraPitchFov.y,
-            50.0,
-            110.0);
-
+    // PROJECTION_TERMS_CPU_PRECOMPUTED_V1
+    // CPU computes these once per frame/pass instead of evaluating tan() and
+    // division independently in every vertex invocation.
     float focal =
-        1.0 /
-        tan(
-            radians(fovDegrees) *
-            0.5);
-
-    float aspect =
-        max(
-            pc.aspect,
-            0.25);
+        pc.waterSurfaceExtra.w;
+    float focalOverAspect =
+        pc.aspect;
 
     vec4 clip;
     clip.x =
         camera.x *
-        focal /
-        aspect;
+        focalOverAspect;
     clip.y =
         -camera.y *
         focal;
@@ -450,8 +440,7 @@ void main() {
         vReflectionClip =
             vec4(
                 reflectionView.x *
-                    focal /
-                    aspect,
+                    focalOverAspect,
                 -reflectionView.y *
                     focal,
                 reflectionView.z,
