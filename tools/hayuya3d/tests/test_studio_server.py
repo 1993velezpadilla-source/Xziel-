@@ -266,8 +266,8 @@ class StudioServerTests(unittest.TestCase):
                 "HAYUYA_COMPOSITE_DETAIL_READY "
                 "label=composite_detail_head_face "
                 "base=base donor=face region=head "
-                "source=scar.png changed=0.184 "
-                "seam_p95=3.2 seam_max=7.5 "
+                "source=scar.png strategy=texture_fusion changed=0.184 "
+                "seam_p95=3.2 seam_max=7.5 accessory_confidence=none "
                 f"path={Path(tmp)/'detail.glb'}",
             )
             self.assertEqual(job.stage,"composite")
@@ -275,7 +275,9 @@ class StudioServerTests(unittest.TestCase):
             detail=job.composite_details[0]
             self.assertEqual(detail["label"],"composite_detail_head_face")
             self.assertEqual(detail["status"],"challenger")
+            self.assertEqual(detail["strategy"],"texture_fusion")
             self.assertEqual(detail["changed_fraction"],0.184)
+            self.assertIsNone(detail["accessory_confidence"])
             self.assertEqual(detail["seam_p95"],3.2)
             self.assertEqual(detail["seam_max"],7.5)
             self.assertEqual(job.events[-1]["kind"],"composite_detail")
@@ -309,6 +311,26 @@ class StudioServerTests(unittest.TestCase):
                 job.composite_details[0]["reason"],
                 "guard_failed",
             )
+
+    def test_composite_accessory_evidence_is_streamed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            job=self.make_job(Path(tmp))
+            parse_pipeline_line(
+                job,
+                "HAYUYA_COMPOSITE_DETAIL_READY "
+                "label=composite_accessory_donor_rosary "
+                "base=base donor=donor region=local "
+                "source=rosary.png strategy=accessory_swap "
+                "changed=none seam_p95=none seam_max=none "
+                "accessory_confidence=0.873 "
+                f"path={Path(tmp)/'accessory.glb'}",
+            )
+            detail=job.composite_details[-1]
+            self.assertEqual(detail["strategy"],"accessory_swap")
+            self.assertEqual(detail["accessory_confidence"],0.873)
+            self.assertIsNone(detail["changed_fraction"])
+            self.assertIsNone(detail["seam_p95"])
+            self.assertEqual(detail["region"],"local")
 
     def test_semantic_anatomy_report_is_streamed(self):
         with tempfile.TemporaryDirectory() as tmp:
