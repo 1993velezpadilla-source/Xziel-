@@ -370,6 +370,7 @@ function renderFinalQa(qa) {
     ["Rebake", qa.rebake_ready],
     ["Rig", qa.rig_ready],
     ["Surface crossings", qa.crossing_ready],
+    ["Self intersections", qa.self_intersection_ready],
     ...(Number(qa.morph_targets || 0) > 0 ? [["Morphs", qa.morph_ready]] : []),
     ["SkinWeights", qa.skin_weights_ready],
     ["Animation", qa.animation_ready],
@@ -390,7 +391,11 @@ function renderFinalQa(qa) {
     grid.appendChild(item);
   });
 
-  if (qa.morph_targets != null || qa.crossing_pairs != null) {
+  if (
+    qa.morph_targets != null
+    || qa.crossing_pairs != null
+    || qa.self_intersection_pairs != null
+  ) {
     const item = document.createElement("div");
     item.className = "qa-chip metric";
     const name = document.createElement("span");
@@ -402,6 +407,9 @@ function renderFinalQa(qa) {
     }
     if (qa.crossing_pairs != null) {
       parts.push(Number(qa.crossing_pairs) + " crossings");
+    }
+    if (qa.self_intersection_pairs != null) {
+      parts.push(Number(qa.self_intersection_pairs) + " self-crossings");
     }
     value.textContent = parts.join(" · ");
     item.append(name, value);
