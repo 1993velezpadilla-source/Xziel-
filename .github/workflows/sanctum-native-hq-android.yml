@@ -750,7 +750,7 @@ jobs:
               echo "XZIEL_DRAW_GROUP_TELEMETRY_ACTIVE draws=${STREAM_DRAWS} groups=${STREAM_SUBMISSION_GROUPS}"
             fi
 
-            if [[ "${GITHUB_REF_NAME}" == "engine/mobile-indirect-draw-v1" ]]; then
+            if [[ "${GITHUB_REF_NAME}" == "engine/mobile-indirect-draw-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" ]]; then
               grep -q "XZIEL_STATIC_DRAW_SUBMISSION_READY mode=multi_draw_indirect" dist/sanctum-hq-logcat.txt
               test -n "${STREAM_DRAW_SUBMISSIONS}"
               test -n "${STREAM_INDIRECT_DRAWS}"
