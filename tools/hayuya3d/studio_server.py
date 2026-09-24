@@ -71,6 +71,8 @@ class CandidateState:
     head_region_median_edge_normalized: float | None = None
     head_region_density_ratio: float | None = None
     head_density_score: float | None = None
+    head_texel_density_ratio: float | None = None
+    head_texel_density_score: float | None = None
     pbr_channels: list[str] | None = None
     is_champion: bool = False
 
@@ -339,6 +341,10 @@ def hydrate_candidate_ranking(job: JobState, ranking: list[dict]) -> None:
             )
         if item.get("head_density_score") is not None:
             candidate.head_density_score = float(item["head_density_score"])
+        if item.get("head_texel_density_ratio") is not None:
+            candidate.head_texel_density_ratio = float(item["head_texel_density_ratio"])
+        if item.get("head_texel_density_score") is not None:
+            candidate.head_texel_density_score = float(item["head_texel_density_score"])
         channels = item.get("pbr_channels")
         if isinstance(channels, list):
             candidate.pbr_channels = [str(x) for x in channels]
