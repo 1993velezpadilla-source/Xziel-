@@ -117,5 +117,6 @@
     "do_not_copy_proprietary_textures_or_lightmaps",
     "do_not_treat_darkness_as_total_blackness",
     "do_not_trade_gameplay_readability_for_horror"
-  ]
+  ],
+  "patternLibrary": "hayuya/knowledge/zombies_lighting_pattern_library_v1.json"
 }
