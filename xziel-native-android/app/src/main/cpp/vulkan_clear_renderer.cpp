@@ -1139,6 +1139,11 @@ bool VulkanClearRenderer::createDevice() noexcept {
     VkPhysicalDeviceFeatures enabledFeatures{};
     enabledFeatures.samplerAnisotropy =
         availableFeatures.samplerAnisotropy;
+    // Keep this optional: capable mobile GPUs can submit each compatible
+    // static draw group with one vkCmdDrawIndexedIndirect call, while older
+    // devices retain the direct-draw fallback.
+    enabledFeatures.multiDrawIndirect =
+        availableFeatures.multiDrawIndirect;
 
     VkDeviceCreateInfo createInfo{
         VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO
