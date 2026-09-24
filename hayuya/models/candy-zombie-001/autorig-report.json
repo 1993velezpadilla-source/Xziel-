@@ -330,71 +330,20 @@
       "donor_samples": 8546,
       "bone_envelope_segments": 20,
       "anatomical_neighbor_graph": {
-        "lowerarm_l": [
-          "hand_l",
-          "upperarm_l"
+        "thigh_r": [
+          "calf_r",
+          "pelvis"
         ],
-        "hand_l": [
-          "lowerarm_l"
-        ],
-        "pelvis": [
-          "spine_01",
-          "thigh_l",
-          "thigh_r"
-        ],
-        "upperarm_r": [
-          "clavicle_r",
-          "lowerarm_r"
-        ],
-        "spine_03": [
-          "clavicle_l",
-          "clavicle_r",
-          "neck_01",
-          "spine_02"
+        "foot_l": [
+          "calf_l"
         ],
         "calf_l": [
           "foot_l",
           "thigh_l"
         ],
-        "foot_l": [
-          "calf_l"
-        ],
-        "hand_r": [
+        "upperarm_r": [
+          "clavicle_r",
           "lowerarm_r"
-        ],
-        "clavicle_l": [
-          "spine_03",
-          "upperarm_l"
-        ],
-        "foot_r": [
-          "calf_r"
-        ],
-        "spine_02": [
-          "spine_01",
-          "spine_03"
-        ],
-        "upperarm_l": [
-          "clavicle_l",
-          "lowerarm_l"
-        ],
-        "neck_01": [
-          "Head",
-          "spine_03"
-        ],
-        "thigh_r": [
-          "calf_r",
-          "pelvis"
-        ],
-        "thigh_l": [
-          "calf_l",
-          "pelvis"
-        ],
-        "Head": [
-          "neck_01"
-        ],
-        "calf_r": [
-          "foot_r",
-          "thigh_r"
         ],
         "lowerarm_r": [
           "hand_r",
@@ -404,9 +353,60 @@
           "spine_03",
           "upperarm_r"
         ],
+        "spine_02": [
+          "spine_01",
+          "spine_03"
+        ],
+        "thigh_l": [
+          "calf_l",
+          "pelvis"
+        ],
+        "hand_r": [
+          "lowerarm_r"
+        ],
+        "clavicle_l": [
+          "spine_03",
+          "upperarm_l"
+        ],
+        "pelvis": [
+          "spine_01",
+          "thigh_l",
+          "thigh_r"
+        ],
         "spine_01": [
           "pelvis",
           "spine_02"
+        ],
+        "neck_01": [
+          "Head",
+          "spine_03"
+        ],
+        "upperarm_l": [
+          "clavicle_l",
+          "lowerarm_l"
+        ],
+        "calf_r": [
+          "foot_r",
+          "thigh_r"
+        ],
+        "lowerarm_l": [
+          "hand_l",
+          "upperarm_l"
+        ],
+        "foot_r": [
+          "calf_r"
+        ],
+        "Head": [
+          "neck_01"
+        ],
+        "spine_03": [
+          "clavicle_l",
+          "clavicle_r",
+          "neck_01",
+          "spine_02"
+        ],
+        "hand_l": [
+          "lowerarm_l"
         ]
       },
       "blend_neighbours": 4,

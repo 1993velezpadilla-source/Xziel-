@@ -137,7 +137,7 @@
       "schema": 2,
       "passed": true,
       "full_bank_passed": true,
-      "action_count": 86,
+      "action_count": 43,
       "compatible_clips": [
         "A_TPose",
         "Chest_Open",
@@ -183,7 +183,7 @@
         "Zombie_Scratch",
         "Zombie_Walk_Fwd_Loop"
       ],
-      "rejected_clip_count": 43,
+      "rejected_clip_count": 0,
       "reference_fidelity": {
         "reference": "hayuya/models/candy-zombie-001/model.glb",
         "bounds": {
