@@ -101,6 +101,7 @@ class JobState:
     final_model_url: str | None = None
     final_model_path: str | None = None
     composite_plan: dict | None = None
+    aaa_acceptance: dict | None = None
     final_qa: dict | None = None
     error: str | None = None
     events: list[dict] = field(default_factory=list)
@@ -274,6 +275,31 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
         _set_stage(job, "gameprep")
     elif line.startswith("HAYUYA_PORTABLE_PACK"):
         _set_stage(job, "portable")
+    elif line.startswith("HAYUYA_AAA_READY"):
+        _set_stage(job, "qa")
+        values = dict(re.findall(r"(\w+)=([^\s]+)", line))
+        report_data = None
+        report_raw = values.get("report")
+        if report_raw:
+            try:
+                report_path = Path(report_raw).resolve()
+                job_root = Path(job.root).resolve()
+                if report_path.is_file() and report_path.is_relative_to(job_root):
+                    loaded = json.loads(report_path.read_text(encoding="utf-8"))
+                    if isinstance(loaded,dict):
+                        report_data = loaded
+            except (OSError,ValueError,json.JSONDecodeError):
+                report_data = None
+        if report_data is None:
+            report_data = {
+                "ready": values.get("ready","false").lower()=="true",
+                "passed_required": int(values.get("passed") or 0),
+                "total_required": int(values.get("total") or 0),
+                "blockers": [],
+                "gates": [],
+            }
+        job.aaa_acceptance = report_data
+        _emit(job, "aaa_ready", {"aaa": dict(report_data)})
     elif line.startswith("HAYUYA_QA_READY"):
         _set_stage(job, "qa")
         values = dict(re.findall(r"(\w+)=([^\s]+)", line))
