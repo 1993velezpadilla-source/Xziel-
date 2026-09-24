@@ -252,7 +252,7 @@ void main() {
                 ORM_MAP_FADE_END_DISTANCE,
                 max(vDistance, 0.0));
 
-        // Far fragments retain the authored scalar material response while
+        // Distant fragments retain the authored scalar material response while
         // avoiding an additional texture lookup. In the transition band the
         // map fades continuously toward neutral ORM values, preventing a
         // visible mip-like pop as geometry moves through the threshold.
