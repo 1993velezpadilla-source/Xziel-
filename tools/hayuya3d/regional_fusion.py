@@ -91,6 +91,7 @@ def build_head_wrap_geometry(
     max_displacement_fraction:float=0.055,
     seam_limit_fraction:float=0.012,
     bbox_drift_limit:float=0.08,
+    up_axis:str|int|None=None,
 )->HeadWrapResult:
     """Create an unskinned head-shape challenger on the base topology.
 
@@ -110,19 +111,6 @@ def build_head_wrap_geometry(
             seam_max_displacement_normalized=None,bbox_drift_fraction=None,
             rebake_required=[],rebake_resolved=[],error=reason,
         )
-    donor_blocked,donor_reason=_rig_blocked(donor_mesh)
-    if donor_blocked:
-        return HeadWrapResult(
-            base_mesh=str(base_mesh),donor_mesh=str(donor_mesh),
-            raw_output_glb=None,output_glb=None,
-            attempted=False,geometry_ready=False,rebake_ready=False,
-            ready_for_judge=False,up_axis=None,alignment_scale=None,
-            head_vertices=0,changed_vertices=0,clamped_vertices=0,
-            mean_displacement_normalized=None,max_displacement_normalized=None,
-            seam_max_displacement_normalized=None,bbox_drift_fraction=None,
-            rebake_required=[],rebake_resolved=[],error=donor_reason,
-        )
-
     np,trimesh,cKDTree=_deps()
     try:
         base_meshes=_scene_meshes(base_mesh)
@@ -132,9 +120,19 @@ def build_head_wrap_geometry(
 
         base_lo,base_hi,base_center,base_extent=_bbox(base_vertices)
         donor_lo,donor_hi,donor_center,donor_extent=_bbox(donor_vertices)
-        up_axis=int(np.argmax(base_extent))
-        base_height=float(base_extent[up_axis])
-        donor_height=float(donor_extent[up_axis])
+        if isinstance(up_axis,str):
+            axis_map={"x":0,"y":1,"z":2}
+            if up_axis.lower() not in axis_map:
+                raise ValueError(f"invalid up_axis: {up_axis}")
+            resolved_up_axis=axis_map[up_axis.lower()]
+        elif isinstance(up_axis,int):
+            if up_axis not in (0,1,2):
+                raise ValueError(f"invalid up_axis index: {up_axis}")
+            resolved_up_axis=up_axis
+        else:
+            resolved_up_axis=int(np.argmax(base_extent))
+        base_height=float(base_extent[resolved_up_axis])
+        donor_height=float(donor_extent[resolved_up_axis])
         if base_height<=1e-9 or donor_height<=1e-9:
             raise ValueError("collapsed character bounds")
 
@@ -143,7 +141,7 @@ def build_head_wrap_geometry(
         aligned_lo,aligned_hi,_,aligned_extent=_bbox(aligned)
 
         diagonal=max(float(np.linalg.norm(base_extent)),1e-9)
-        donor_norm_h=(aligned[:,up_axis]-base_lo[up_axis])/base_height
+        donor_norm_h=(aligned[:,resolved_up_axis]-base_lo[resolved_up_axis])/base_height
         donor_head=aligned[donor_norm_h>=max(0.68,head_start-0.04)]
         if len(donor_head)<16:
             raise RuntimeError(
@@ -161,7 +159,7 @@ def build_head_wrap_geometry(
         for original in base_meshes:
             mesh=original.copy()
             vv=np.asarray(mesh.vertices,dtype=np.float64).copy()
-            normalized=(vv[:,up_axis]-base_lo[up_axis])/base_height
+            normalized=(vv[:,resolved_up_axis]-base_lo[resolved_up_axis])/base_height
             mask=normalized>=head_start
             ids=np.flatnonzero(mask)
             head_vertices+=int(len(ids))
@@ -244,7 +242,7 @@ def build_head_wrap_geometry(
             geometry_ready=geometry_ready,
             rebake_ready=False,
             ready_for_judge=False,
-            up_axis=up_axis,
+            up_axis=resolved_up_axis,
             alignment_scale=round(float(scale),8),
             head_vertices=head_vertices,
             changed_vertices=changed_vertices,
@@ -279,10 +277,13 @@ def prepare_head_wrap_challenger(
     texture_size:int,
     blender:str|Path|None=None,
     require_rebake:bool=True,
+    up_axis:str|int|None=None,
 )->HeadWrapResult:
     out_dir.mkdir(parents=True,exist_ok=True)
     raw=out_dir/"head_wrap_raw.glb"
-    result=build_head_wrap_geometry(base_mesh,donor_mesh,raw)
+    result=build_head_wrap_geometry(
+        base_mesh,donor_mesh,raw,up_axis=up_axis
+    )
     if not result.geometry_ready:
         return result
 
