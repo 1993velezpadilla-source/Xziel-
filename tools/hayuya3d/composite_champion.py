@@ -669,7 +669,7 @@ def build_composite_plan(
             "Every explicit local/detail reference gets its own donor winner so scars, hands, jewelry, wounds and clothing details cannot disappear inside an aggregate score.",
             "Detached accessory candidates are never chosen by component count alone; local accessory donors need explicit reference superiority plus non-ambiguous spatial/attachment correspondence.",
             "Multi-piece chains, rosaries, medals and loose detail may remain disconnected meshes, but their proximity graph must stay anchored to the canonical base instead of becoming floating donor islands.",
-            "Existing skinned accessory topology may be reshaped through the rig-preserving wrap path; a single unambiguous missing accessory may complete geometry/runtime skin+morph proof, but remains deferred from Composite promotion until donor UV/material transfer is proven.",
+            "Existing skinned accessory topology may be reshaped through the rig-preserving wrap path; missing accessories may be inserted as one primitive/atlas or as a proven anchored multi-piece source-group cluster, but Composite promotion requires exact barycentric skin+morph transfer plus complete donor UV/PBR/tangent and runtime QA for every inserted primitive.",
             "High-risk body/face geometry transfers stay deferred until wrap/seam/skin-weight proof exists.",
             "Texture/material transfers can be attempted earlier because they preserve base topology.",
             "Every fusion is atomic: rejection restores the untouched base champion.",
