@@ -635,7 +635,13 @@ def main():
         "output":str(args.output),
         "target_meshes":[m.name for m in target_meshes],
         "target_bounds":{"min":list(target_min),"max":list(target_max),"height":target_height,"axis":target_axis},
-        "donor_bounds":{"min":list(donor_min),"max":list(donor_max),"height":donor_height,"axis":donor_axis},
+        "donor_bounds":{
+            "min":list(donor_min),
+            "max":list(donor_max),
+            "height":donor_height,
+            "height_axis":target_axis,
+            "bbox_major_axis":height_axis(donor_ext)
+        },
         "scale":scale,
         "axis_scales":axis_scales,
         "orientation_fix":orientation_fix,
