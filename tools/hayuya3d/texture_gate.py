@@ -145,6 +145,19 @@ def base_color_resolution_ok(base_edges:list[int],required_edge:int)->bool:
     return bool(base_edges) and min(base_edges)>=required_edge
 
 
+def texture_resolution_ok(image_edges:list[int],base_edges:list[int],min_edge:int,required_base_edge:int)->bool:
+    """Production texture QA requires real visible color evidence, not just maps.
+
+    A large normal/ORM/emissive image must never let a model with no embedded
+    baseColor texture pass the resolution gate.
+    """
+    return (
+        bool(image_edges)
+        and max(image_edges)>=min_edge
+        and base_color_resolution_ok(base_edges,required_base_edge)
+    )
+
+
 def inspect(
     path:Path,
     min_edge:int=1024,
@@ -152,7 +165,8 @@ def inspect(
 )->TextureReport:
     metrics=[metric(i,m,d,roles) for i,m,d,roles in embedded_images(path)]
     warnings=[]
-    max_edge=max((max(x.width,x.height) for x in metrics),default=0)
+    image_edges=[max(x.width,x.height) for x in metrics]
+    max_edge=max(image_edges,default=0)
     max_mp=max((x.megapixels for x in metrics),default=0.0)
     mean_edge=sum(x.edge_variance for x in metrics)/len(metrics) if metrics else 0.0
 
@@ -183,9 +197,7 @@ def inspect(
     if metrics and mean_edge<25:
         warnings.append(f"low_high_frequency_detail:{mean_edge:.3f}")
 
-    passed=bool(metrics) and max_edge>=min_edge
-    if base:
-        passed=passed and base_color_resolution_ok(base_edges,required_base_edge)
+    passed=texture_resolution_ok(image_edges,base_edges,min_edge,required_base_edge)
 
     return TextureReport(
         schema=2,path=str(path),image_count=len(metrics),max_edge=max_edge,
