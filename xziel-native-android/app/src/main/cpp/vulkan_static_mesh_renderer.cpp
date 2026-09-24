@@ -3446,8 +3446,7 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
         geometryAssetPath_.empty() ||
         geometryDirectory_.version <
             kStaticMeshNormalsVersion ||
-        geometryDirectory_.batches.size() !=
-            batches_.size()) {
+        geometryDirectory_.batches.empty()) {
         return;
     }
 
