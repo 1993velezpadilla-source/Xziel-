@@ -38,6 +38,27 @@ class TextureRuntimeTests(unittest.TestCase):
             exe.write_bytes(b"stub")
             self.assertEqual(texture_runtime.executable_path(root),exe)
 
+    def test_runtime_without_model_weights_is_incomplete(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            exe=Path(tmp)/"realesrgan-ncnn-vulkan"
+            exe.write_bytes(b"stub")
+            ok,detail=texture_runtime.runtime_complete(exe)
+            self.assertFalse(ok)
+            self.assertIn("realesrgan-x4plus.param", detail or "")
+            self.assertIn("realesrgan-x4plus.bin", detail or "")
+
+    def test_runtime_with_required_model_weights_is_complete(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            exe=Path(tmp)/"realesrgan-ncnn-vulkan"
+            exe.write_bytes(b"stub")
+            model_dir=exe.parent/"models"
+            model_dir.mkdir()
+            (model_dir/"realesrgan-x4plus.param").write_bytes(b"param")
+            (model_dir/"realesrgan-x4plus.bin").write_bytes(b"bin")
+            ok,detail=texture_runtime.runtime_complete(exe)
+            self.assertTrue(ok)
+            self.assertIsNone(detail)
+
     def test_ensure_realesrgan_uses_hash_pinned_installer_only_when_requested(self):
         fake=Path("/tmp/hayuya-pinned-realesrgan")
         with mock.patch(
