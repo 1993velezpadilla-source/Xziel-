@@ -344,6 +344,8 @@ private:
     [[nodiscard]] bool createGraphicsPipeline() noexcept;
     [[nodiscard]] bool createSceneCompositePipeline() noexcept;
     [[nodiscard]] bool createUiPipeline() noexcept;
+    [[nodiscard]] bool createUiBatchResources() noexcept;
+    void destroyUiBatchResources() noexcept;
 
     [[nodiscard]] bool createShaderModuleFromAsset(
         const char* assetPath,
@@ -426,6 +428,10 @@ private:
 
     VkPipelineLayout uiPipelineLayout_ = VK_NULL_HANDLE;
     VkPipeline uiPipeline_ = VK_NULL_HANDLE;
+    VkPipeline uiBatchPipeline_ = VK_NULL_HANDLE;
+    VkBuffer uiBatchVertexBuffer_ = VK_NULL_HANDLE;
+    VkDeviceMemory uiBatchVertexMemory_ = VK_NULL_HANDLE;
+    void* uiBatchMapped_ = nullptr;
 
     VkCommandPool commandPool_ = VK_NULL_HANDLE;
 
