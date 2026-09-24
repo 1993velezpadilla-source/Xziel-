@@ -8196,6 +8196,26 @@ bool VulkanClearRenderer::recordDrawCommand(
             false);
     }
 
+    flushUiPrimitiveBatch();
+
+    if (performanceTelemetryFrame_ % 120U == 0U) {
+        const std::uint32_t totalUiSubmissions =
+            1U +
+            uiBatchSubmissions +
+            uiFallbackPrimitiveDraws +
+            uiDigitDraws;
+
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_UI_PRIMITIVE_BATCH logical_primitives=%u batch_submissions=%u fallback_primitives=%u digit_draws=%u total_submissions=%u",
+            uiLogicalPrimitiveDraws,
+            uiBatchSubmissions,
+            uiFallbackPrimitiveDraws,
+            uiDigitDraws,
+            totalUiSubmissions);
+    }
+
     vkCmdEndRenderPass(command);
 
     if (gpuTimestampQueryPool_ != VK_NULL_HANDLE &&
