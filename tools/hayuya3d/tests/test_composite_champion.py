@@ -12,6 +12,7 @@ from PIL import Image
 from tools.hayuya3d.composite_champion import (
     build_composite_plan,
     execute_safe_head_wrap_challenger,
+    execute_safe_local_detail_challenger,
     execute_safe_material_challenger,
 )
 
@@ -28,6 +29,8 @@ def candidate(
     appearance=None,
     material=None,
     texture=None,
+    appearance_details=None,
+    up_axis=None,
 ):
     return SimpleNamespace(
         backend=backend,
@@ -44,6 +47,11 @@ def candidate(
         head_texture_detail_score=face_detail,
         material_score=material,
         texture_resolution_score=texture,
+        appearance_details=appearance_details or [],
+        visual_views=(
+            [{"best_up_axis":up_axis}]
+            if up_axis in {"x","y","z"} else []
+        ),
     )
 
 
@@ -145,6 +153,147 @@ class CompositeChampionPlannerTests(unittest.TestCase):
             inspect_parts=False,
         )
         self.assertFalse(plan.composite_required)
+
+    def test_local_detail_donor_becomes_executable_challenger(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            base_path=root/"base_local.glb"
+            donor_path=root/"donor_local.glb"
+
+            vertices=np.asarray([
+                [-0.5,-1.0,0.0],
+                [ 0.5,-1.0,0.0],
+                [-0.5, 0.0,0.0],
+                [ 0.5, 0.0,0.0],
+                [-0.5, 1.0,0.0],
+                [ 0.5, 1.0,0.0],
+            ],dtype=np.float64)
+            faces=np.asarray([
+                [0,1,3],[0,3,2],
+                [2,3,5],[2,5,4],
+            ],dtype=np.int64)
+            uv=np.asarray([
+                [0.0,0.0],[1.0,0.0],
+                [0.0,0.5],[1.0,0.5],
+                [0.0,1.0],[1.0,1.0],
+            ],dtype=np.float64)
+
+            def write_mesh(path,color):
+                material=trimesh.visual.material.PBRMaterial(
+                    baseColorTexture=Image.fromarray(
+                        np.full((64,64,4),[*color,255],dtype=np.uint8),
+                        mode="RGBA",
+                    ),
+                    metallicFactor=0.0,
+                    roughnessFactor=0.7,
+                )
+                mesh=trimesh.Trimesh(
+                    vertices=vertices,
+                    faces=faces,
+                    process=False,
+                    visual=trimesh.visual.TextureVisuals(
+                        uv=uv,
+                        material=material,
+                    ),
+                )
+                path.write_bytes(
+                    trimesh.exchange.gltf.export_glb(
+                        trimesh.Scene(mesh)
+                    )
+                )
+
+            write_mesh(base_path,(90,90,90))
+            write_mesh(donor_path,(210,50,40))
+
+            source="/refs/face-scar-closeup.png"
+            base=candidate(
+                "base",99.0,
+                face_min=90.0,face_mesh=98.0,face_tex=98.0,face_detail=90.0,
+                visual=99.0,appearance=96.0,material=90.0,texture=100.0,
+                appearance_details=[{
+                    "source":source,
+                    "score":72.0,
+                    "region_hint":"head",
+                }],
+                up_axis="y",
+            )
+            donor=candidate(
+                "detail",82.0,
+                face_min=94.0,face_mesh=98.0,face_tex=98.0,face_detail=96.0,
+                visual=82.0,appearance=92.0,material=86.0,texture=100.0,
+                appearance_details=[{
+                    "source":source,
+                    "score":98.0,
+                    "region_hint":"head",
+                }],
+                up_axis="y",
+            )
+            base.path=str(base_path)
+            donor.path=str(donor_path)
+            plan=build_composite_plan(
+                [base,donor],
+                mode="character",
+                inspect_parts=False,
+            )
+            token="detail:"+source
+            self.assertIn(token,plan.executable_now)
+            self.assertNotIn(token,plan.deferred_transfers)
+            detail=next(
+                item for item in plan.detail_donors
+                if item.source==source
+            )
+            self.assertEqual(detail.donor_backend,"detail")
+            self.assertEqual(detail.region_hint,"head")
+
+            result=execute_safe_local_detail_challenger(
+                plan,
+                root/"detail-composite",
+                detail_source=source,
+                donor_samples=5000,
+            )
+            self.assertTrue(result.attempted)
+            self.assertTrue(result.ready,result.error)
+            self.assertEqual(result.donor_backend,"detail")
+            self.assertEqual(result.source,source)
+            self.assertEqual(result.region_hint,"head")
+            self.assertTrue(Path(result.candidate_path or "").is_file())
+            self.assertTrue(
+                result.fusion and result.fusion["geometry_preserved"]
+            )
+            self.assertTrue(
+                result.fusion and result.fusion["skin_payload_preserved"]
+            )
+
+    def test_unlocalized_detail_remains_deferred(self):
+        source="/refs/tiny-symbol.png"
+        base=candidate(
+            "base",95.0,
+            face_min=90.0,face_mesh=98.0,face_tex=98.0,face_detail=90.0,
+            visual=95.0,appearance=95.0,material=95.0,texture=100.0,
+            appearance_details=[{
+                "source":source,
+                "score":70.0,
+                "region_hint":"local",
+            }],
+        )
+        donor=candidate(
+            "donor",80.0,
+            face_min=90.0,face_mesh=98.0,face_tex=98.0,face_detail=90.0,
+            visual=80.0,appearance=90.0,material=90.0,texture=100.0,
+            appearance_details=[{
+                "source":source,
+                "score":99.0,
+                "region_hint":"local",
+            }],
+        )
+        plan=build_composite_plan(
+            [base,donor],
+            mode="character",
+            inspect_parts=False,
+        )
+        token="detail:"+source
+        self.assertNotIn(token,plan.executable_now)
+        self.assertIn(token,plan.deferred_transfers)
 
     def test_face_donor_executes_as_head_wrap_challenger_when_unskinned(self):
         with tempfile.TemporaryDirectory() as tmp:
