@@ -159,6 +159,7 @@ class StudioServerTests(unittest.TestCase):
             lines = [
                 ("HAYUYA_VIEWFORGE_READY backend=wonder3d synthetic_views=5", "viewforge"),
                 ("HAYUYA_REFINEMENT_READY source=x preferred=y improvement=2", "refinement"),
+                ("HAYUYA_TEXTURE_SUPERRES_READY source=trellis2 candidate=trellis2_texture_sr basecolor=2048->4096 items=1", "refinement"),
                 ("HAYUYA_MESH_DOCTOR_CLEAN defect_score=0", "mesh_doctor"),
                 ("HAYUYA_RETOPO_READY style=pure_quad quad_fraction=1 obj=x", "retopo"),
                 ("HAYUYA_GAMEPREP_READY lods=4 collision=True turntable=8", "gameprep"),
