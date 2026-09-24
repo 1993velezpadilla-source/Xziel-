@@ -17,28 +17,49 @@ def parse_args():
         argv=argv[argv.index("--")+1:]
     else:
         argv=[]
-    p=argparse.ArgumentParser(description="Sample HAYUYA character animations and reject catastrophic deformation.")
+    p=argparse.ArgumentParser(description="Sample HAYUYA animations and reject visible mesh deformation failures.")
     p.add_argument("--model",required=True,type=Path)
     p.add_argument("--json",required=True,type=Path)
     p.add_argument("--samples",type=int,default=5)
-    p.add_argument("--max-diagonal-ratio",type=float,default=3.5)
-    p.add_argument("--min-diagonal-ratio",type=float,default=0.25)
+    p.add_argument("--max-diagonal-ratio",type=float,default=2.25)
+    p.add_argument("--min-diagonal-ratio",type=float,default=0.40)
+    p.add_argument("--max-edge-ratio",type=float,default=2.50)
+    p.add_argument("--min-edge-ratio",type=float,default=0.35)
+    p.add_argument("--max-head-edge-ratio",type=float,default=1.80)
+    p.add_argument("--min-head-edge-ratio",type=float,default=0.55)
+    p.add_argument("--max-edges",type=int,default=6000)
     return p.parse_args(argv)
 
 
-def evaluated_bounds(meshes):
+def percentile(values, q):
+    if not values:
+        return None
+    vals=sorted(values)
+    pos=(len(vals)-1)*q
+    lo=int(math.floor(pos)); hi=int(math.ceil(pos))
+    if lo==hi:
+        return float(vals[lo])
+    t=pos-lo
+    return float(vals[lo]*(1-t)+vals[hi]*t)
+
+
+def evaluated_positions(meshes):
     deps=bpy.context.evaluated_depsgraph_get()
+    out={}
     pts=[]
     for obj in meshes:
         ev=obj.evaluated_get(deps)
         mesh=ev.to_mesh()
         try:
             mat=ev.matrix_world
+            arr=[]
             for v in mesh.vertices:
                 co=mat @ v.co
                 if not all(math.isfinite(x) for x in co):
                     raise RuntimeError(f"non_finite_vertex:{obj.name}")
+                arr.append(co.copy())
                 pts.append(co.copy())
+            out[obj.name]=arr
         finally:
             ev.to_mesh_clear()
     if not pts:
@@ -46,15 +67,70 @@ def evaluated_bounds(meshes):
     mn=Vector((min(p.x for p in pts),min(p.y for p in pts),min(p.z for p in pts)))
     mx=Vector((max(p.x for p in pts),max(p.y for p in pts),max(p.z for p in pts)))
     ext=mx-mn
-    diag=ext.length
-    center=(mn+mx)*0.5
-    return {
+    return out,{
         "min":[float(x) for x in mn],
         "max":[float(x) for x in mx],
         "extents":[float(x) for x in ext],
-        "diagonal":float(diag),
-        "center":[float(x) for x in center],
+        "diagonal":float(ext.length),
+        "center":[float(x) for x in (mn+mx)*0.5],
         "vertex_samples":len(pts)
+    }
+
+
+def build_edge_samples(meshes, rest_positions, rest_bounds, max_edges):
+    ext=rest_bounds["extents"]
+    up_axis=max(range(3),key=lambda i:abs(ext[i]))
+    body_min=rest_bounds["min"][up_axis]
+    body_span=max(1e-8,ext[up_axis])
+    candidates=[]
+    for obj in meshes:
+        pos=rest_positions.get(obj.name,[])
+        for e in obj.data.edges:
+            a,b=e.vertices
+            if a>=len(pos) or b>=len(pos):
+                continue
+            length=(pos[a]-pos[b]).length
+            if length<=1e-8 or not math.isfinite(length):
+                continue
+            mid=(pos[a][up_axis]+pos[b][up_axis])*0.5
+            head=((mid-body_min)/body_span)>=0.78
+            candidates.append((obj.name,int(a),int(b),float(length),bool(head)))
+    if len(candidates)>max_edges:
+        step=len(candidates)/float(max_edges)
+        sampled=[]
+        idx=0.0
+        while len(sampled)<max_edges and int(idx)<len(candidates):
+            sampled.append(candidates[int(idx)])
+            idx+=step
+        candidates=sampled
+    return candidates,up_axis
+
+
+def edge_metrics(edge_samples, positions):
+    body=[]
+    head=[]
+    missing=0
+    for name,a,b,rest_len,is_head in edge_samples:
+        arr=positions.get(name)
+        if not arr or a>=len(arr) or b>=len(arr):
+            missing+=1
+            continue
+        cur=(arr[a]-arr[b]).length
+        if rest_len<=1e-8 or not math.isfinite(cur):
+            continue
+        ratio=float(cur/rest_len)
+        body.append(ratio)
+        if is_head:
+            head.append(ratio)
+    return {
+        "sample_count":len(body),
+        "missing_edges":missing,
+        "p01":percentile(body,0.01),
+        "p50":percentile(body,0.50),
+        "p99":percentile(body,0.99),
+        "head_sample_count":len(head),
+        "head_p01":percentile(head,0.01),
+        "head_p99":percentile(head,0.99),
     }
 
 
@@ -75,14 +151,18 @@ def main():
     arm.animation_data.action=None
     bpy.context.scene.frame_set(0)
     bpy.context.view_layer.update()
-    rest=evaluated_bounds(meshes)
+    rest_positions,rest=evaluated_positions(meshes)
     if rest["diagonal"]<=1e-8:
         raise RuntimeError("rest_bounds_degenerate")
+    edge_samples,up_axis=build_edge_samples(meshes,rest_positions,rest,max(500,args.max_edges))
+    if len(edge_samples)<100:
+        raise RuntimeError(f"too_few_edge_samples:{len(edge_samples)}")
 
     actions=sorted(bpy.data.actions,key=lambda a:a.name.lower())
     failures=[]
     warnings=[]
     clips=[]
+    compatible=[]
     sample_count=max(3,args.samples)
 
     for action in actions:
@@ -93,32 +173,54 @@ def main():
             continue
         if end < start:
             start,end=end,start
-        frames=[]
         if abs(end-start)<1e-6:
             frames=[start]
         else:
-            for i in range(sample_count):
-                t=i/(sample_count-1)
-                frames.append(start+(end-start)*t)
+            frames=[start+(end-start)*(i/(sample_count-1)) for i in range(sample_count)]
 
         clip={"name":action.name,"frame_range":[float(start),float(end)],"samples":[],"passed":True,"reasons":[]}
         for fr in frames:
             bpy.context.scene.frame_set(int(round(fr)))
             bpy.context.view_layer.update()
-            b=evaluated_bounds(meshes)
+            positions,b=evaluated_positions(meshes)
             ratio=b["diagonal"]/rest["diagonal"]
-            rec={"frame":float(fr),"diagonal_ratio":float(ratio),"bounds":b}
+            em=edge_metrics(edge_samples,positions)
+            rec={"frame":float(fr),"diagonal_ratio":float(ratio),"bounds":b,"edge_deformation":em}
             clip["samples"].append(rec)
+
             if ratio > args.max_diagonal_ratio:
-                reason=f"exploded_bounds:frame={fr:.2f},ratio={ratio:.3f}"
-                clip["reasons"].append(reason)
+                clip["reasons"].append(f"exploded_bounds:frame={fr:.2f},ratio={ratio:.3f}")
             if ratio < args.min_diagonal_ratio:
-                reason=f"collapsed_bounds:frame={fr:.2f},ratio={ratio:.3f}"
-                clip["reasons"].append(reason)
+                clip["reasons"].append(f"collapsed_bounds:frame={fr:.2f},ratio={ratio:.3f}")
+
+            p99=em.get("p99")
+            p01=em.get("p01")
+            hp99=em.get("head_p99")
+            hp01=em.get("head_p01")
+            if p99 is not None and p99>args.max_edge_ratio:
+                clip["reasons"].append(f"local_edge_stretch:frame={fr:.2f},p99={p99:.3f}")
+            if p01 is not None and p01<args.min_edge_ratio:
+                clip["reasons"].append(f"local_edge_collapse:frame={fr:.2f},p01={p01:.3f}")
+            if hp99 is not None and hp99>args.max_head_edge_ratio:
+                clip["reasons"].append(f"head_face_stretch:frame={fr:.2f},p99={hp99:.3f}")
+            if hp01 is not None and hp01<args.min_head_edge_ratio:
+                clip["reasons"].append(f"head_face_collapse:frame={fr:.2f},p01={hp01:.3f}")
+
+            rest_ext=rest["extents"]
+            cur_ext=b["extents"]
+            axis_ratios=[]
+            for rv,cv in zip(rest_ext,cur_ext):
+                axis_ratios.append(float(cv/rv) if rv>1e-8 else 1.0)
+            if any(x>2.5 or x<0.25 for x in axis_ratios):
+                clip["reasons"].append(
+                    "axis_extent_failure:frame="+f"{fr:.2f},ratios="+",".join(f"{x:.3f}" for x in axis_ratios)
+                )
 
         clip["reasons"]=sorted(set(clip["reasons"]))
         clip["passed"]=not clip["reasons"]
-        if not clip["passed"]:
+        if clip["passed"]:
+            compatible.append(action.name)
+        else:
             failures.extend(f"{action.name}:{r}" for r in clip["reasons"])
         clips.append(clip)
 
@@ -127,16 +229,24 @@ def main():
 
     passed=not failures
     report={
-        "schema":1,
+        "schema":2,
         "model":str(args.model),
         "passed":passed,
         "armature":arm.name,
         "mesh_count":len(meshes),
         "action_count":len(actions),
+        "compatible_clips":compatible,
+        "rejected_clip_count":len(actions)-len(compatible),
         "rest_bounds":rest,
+        "up_axis":up_axis,
+        "edge_sample_count":len(edge_samples),
         "thresholds":{
             "min_diagonal_ratio":args.min_diagonal_ratio,
             "max_diagonal_ratio":args.max_diagonal_ratio,
+            "min_edge_ratio":args.min_edge_ratio,
+            "max_edge_ratio":args.max_edge_ratio,
+            "min_head_edge_ratio":args.min_head_edge_ratio,
+            "max_head_edge_ratio":args.max_head_edge_ratio,
             "samples_per_action":sample_count
         },
         "clips":clips,
@@ -148,6 +258,7 @@ def main():
     print("HAYUYA_ANIMATION_GATE",json.dumps({
         "passed":passed,
         "actions":len(actions),
+        "compatible":len(compatible),
         "failures":len(failures)
     },separators=(",",":")))
     print(json.dumps(report,indent=2))
