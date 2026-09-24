@@ -317,6 +317,8 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
             "animation_ready": _bool("animation_ready"),
             "face_ready": _bool("face_ready"),
             "face_score": face_score,
+            "face_expected": _int_or_none("face_expected"),
+            "face_evaluated": _int_or_none("face_evaluated"),
             "facemesh_score": facemesh_score,
             "facetex_score": facetex_score,
             "facedetail_score": facedetail_score,
