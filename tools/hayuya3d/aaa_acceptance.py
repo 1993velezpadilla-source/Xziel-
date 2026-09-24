@@ -200,7 +200,24 @@ def evaluate_aaa_acceptance(
             gates,"character.animation","character",
             bool(rig.get("animation_ready")),
             f"animations={rig.get('animations')}",
-            blocker="character has no validated animation clips",
+            blocker="character has no embedded animation clips",
+        )
+        animation_qa=qa_report.get("animation_qa") or {}
+        _gate(
+            gates,"character.animation_integrity","character",
+            bool(
+                animation_qa.get("applicable")
+                and animation_qa.get("ready")
+            ),
+            (
+                f"applicable={animation_qa.get('applicable')} "
+                f"channels={animation_qa.get('channel_count')} "
+                f"keyframes={animation_qa.get('total_keyframes')}"
+            ),
+            blocker=(
+                "character animation clips fail integrity QA "
+                "(timestamps/samples/quaternions/channels)"
+            ),
         )
 
     gameprep=manifest.get("gameprep") or qa_report.get("gameprep")
