@@ -5,7 +5,12 @@ import unittest
 
 from PIL import Image
 
-from tools.hayuya3d.texture_gate import base_color_resolution_ok, material_image_roles, metric
+from tools.hayuya3d.texture_gate import (
+    base_color_resolution_ok,
+    material_image_roles,
+    metric,
+    texture_resolution_ok,
+)
 
 
 class TextureGateRoleTests(unittest.TestCase):
@@ -46,6 +51,12 @@ class TextureGateRoleTests(unittest.TestCase):
         self.assertTrue(base_color_resolution_ok([4096, 4096], 4096))
         self.assertFalse(base_color_resolution_ok([4096, 1024], 4096))
         self.assertFalse(base_color_resolution_ok([], 4096))
+
+    def test_non_color_maps_cannot_fake_texture_quality(self):
+        # A 4K normal/ORM map alone is not visible color fidelity.
+        self.assertFalse(texture_resolution_ok([4096], [], 1024, 1024))
+        self.assertTrue(texture_resolution_ok([4096, 2048], [2048], 1024, 2048))
+        self.assertFalse(texture_resolution_ok([4096, 1024], [1024], 1024, 2048))
 
 
 if __name__ == "__main__":
