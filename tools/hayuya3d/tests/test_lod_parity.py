@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import struct
 import tempfile
 import unittest
 from pathlib import Path
@@ -7,6 +8,7 @@ from pathlib import Path
 import numpy as np
 import trimesh
 
+from tools.hayuya3d.glb_images import write_glb
 from tools.hayuya3d.lod_parity import (
     audit_lod_chain,
     compare_lod,
@@ -46,6 +48,89 @@ def write_sphere(
             trimesh.Scene(mesh)
         )
     )
+
+
+def _append(blob:bytearray,payload:bytes)->tuple[int,int]:
+    while len(blob)%4:
+        blob.append(0)
+    offset=len(blob)
+    blob.extend(payload)
+    return offset,len(payload)
+
+
+def write_triangle_with_optional_morph(
+    path:Path,
+    *,
+    morph:bool,
+)->None:
+    positions=(
+        (-0.5,0.0,0.0),
+        (0.5,0.0,0.0),
+        (0.0,1.0,0.0),
+    )
+    indices=(0,1,2)
+    morph_delta=(
+        (0.0,0.0,0.0),
+        (0.0,0.0,0.0),
+        (0.0,0.1,0.0),
+    )
+    blob=bytearray()
+    pos_off,pos_len=_append(
+        blob,b"".join(struct.pack("<3f",*row) for row in positions)
+    )
+    idx_off,idx_len=_append(
+        blob,b"".join(struct.pack("<H",value) for value in indices)
+    )
+    views=[
+        {"buffer":0,"byteOffset":pos_off,"byteLength":pos_len},
+        {"buffer":0,"byteOffset":idx_off,"byteLength":idx_len},
+    ]
+    accessors=[
+        {
+            "bufferView":0,"componentType":5126,
+            "count":3,"type":"VEC3",
+            "min":[-0.5,0.0,0.0],
+            "max":[0.5,1.0,0.0],
+        },
+        {
+            "bufferView":1,"componentType":5123,
+            "count":3,"type":"SCALAR",
+        },
+    ]
+    primitive={
+        "attributes":{"POSITION":0},
+        "indices":1,
+    }
+    mesh={"primitives":[primitive]}
+    if morph:
+        morph_off,morph_len=_append(
+            blob,
+            b"".join(struct.pack("<3f",*row) for row in morph_delta),
+        )
+        views.append({
+            "buffer":0,
+            "byteOffset":morph_off,
+            "byteLength":morph_len,
+        })
+        accessors.append({
+            "bufferView":2,
+            "componentType":5126,
+            "count":3,
+            "type":"VEC3",
+        })
+        primitive["targets"]=[{"POSITION":2}]
+        mesh["weights"]=[0.0]
+    doc={
+        "asset":{"version":"2.0"},
+        "buffers":[{"byteLength":len(blob)}],
+        "bufferViews":views,
+        "accessors":accessors,
+        "meshes":[mesh],
+        "nodes":[{"mesh":0}],
+        "scenes":[{"nodes":[0]}],
+        "scene":0,
+    }
+    write_glb(path,doc,bytes(blob))
 
 
 class LODParityTests(unittest.TestCase):
@@ -110,6 +195,29 @@ class LODParityTests(unittest.TestCase):
             self.assertTrue(
                 any("monotonically" in x for x in report.errors),
                 report.errors,
+            )
+
+    def test_morph_targets_cannot_disappear_from_lod(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            master=root/"master-morph.glb"
+            lod=root/"lod-no-morph.glb"
+            write_triangle_with_optional_morph(master,morph=True)
+            write_triangle_with_optional_morph(lod,morph=False)
+
+            item=compare_lod(
+                master,lod,
+                name="LOD1",
+                mode="prop",
+                samples=1200,
+            )
+            self.assertTrue(item.morph_required)
+            self.assertFalse(item.morph_ready)
+            self.assertEqual(item.morph_target_count,0)
+            self.assertFalse(item.ready)
+            self.assertTrue(
+                any("morph" in error.lower() for error in item.errors),
+                item.errors,
             )
 
     def test_material_channel_loss_is_reported(self):
