@@ -16,6 +16,7 @@ from hayuya_ads import compile_monetization_intelligence
 from hayuya_lighting import auto_lighting_profile, compile_lighting_intelligence
 from map_design_brain import auto_design_profile, compile_design_intelligence
 from universal_game_design import compile_universal_design_intelligence
+from world_reasoning import compile_world_reasoning_intelligence
 from map_source_registry import default_providers, readiness_report
 from world_semantics import SourceRecord, WorldGraph
 
@@ -148,6 +149,7 @@ def make_plan(
         if universal_design_mode != "off"
         else None
     )
+    world_reasoning_intelligence = compile_world_reasoning_intelligence(goal)
     world_graph_dict = graph.to_dict()
     monetization_intelligence = compile_monetization_intelligence(
         world_graph_dict,
@@ -185,9 +187,11 @@ def make_plan(
             "universal_game_design_standard": "hayuya/standards/hayuya_universal_game_design_brain_v1.json",
             "world_generation_ai_atlas": "hayuya/knowledge/world_generation_ai_atlas_v1.json",
             "monetization_standard": "hayuya/standards/hayuya_monetization_brain_v1.json",
+            "world_reasoning_domains": "hayuya/standards/hayuya_world_reasoning_domains_v1.json",
         },
         "map_design_intelligence": design_intelligence,
         "universal_game_design_intelligence": universal_design_intelligence,
+        "world_reasoning_intelligence": world_reasoning_intelligence,
         "lighting_intelligence": lighting_intelligence,
         "monetization_intelligence": monetization_intelligence,
         "stages": list(WORLD_STAGES),
@@ -229,6 +233,7 @@ def make_plan(
             "streaming_cells",
             "qa_package",
             "universal_game_design.json",
+            "world_reasoning.json",
             "monetization.json",
         ],
     }
@@ -334,6 +339,10 @@ def main() -> int:
             json.dumps(plan["universal_game_design_intelligence"], indent=2) + "\n",
             encoding="utf-8",
         )
+    (intelligence_dir / "world_reasoning.json").write_text(
+        json.dumps(plan["world_reasoning_intelligence"], indent=2) + "\n",
+        encoding="utf-8",
+    )
     if plan["monetization_intelligence"] is not None:
         (intelligence_dir / "monetization.json").write_text(
             json.dumps(plan["monetization_intelligence"], indent=2) + "\n",
@@ -361,6 +370,7 @@ def main() -> int:
             else []
         ),
         "monetization_enabled": plan["monetization_intelligence"]["enabled"],
+        "world_reasoning_priority_domains": plan["world_reasoning_intelligence"]["priority_domains"],
         "monetization_candidate_count": plan["monetization_intelligence"]["candidate_count"],
     }
     (intelligence_dir / "knowledge_manifest.json").write_text(
