@@ -4641,23 +4641,18 @@ void VulkanStaticMeshRenderer::record(
     std::uint32_t boundGeometryCell =
         UINT32_MAX;
 
+    // Reuse the camera terms already evaluated for push constants.
+    // This culling path runs every frame, so avoid duplicate trig work.
     const float yawCos =
-        std::cos(camera.yawRadians);
+        push.viewYawCos;
     const float yawSin =
-        std::sin(camera.yawRadians);
+        push.viewYawSin;
     const float pitchCos =
-        std::cos(camera.pitchRadians);
+        push.viewPitchCos;
     const float pitchSin =
-        std::sin(camera.pitchRadians);
-    const float halfFovRadians =
-        std::clamp(
-            camera.verticalFovDegrees,
-            50.0f,
-            110.0f) *
-        0.5f *
-        0.01745329251994329577f;
+        push.viewPitchSin;
     const float tanHalfFov =
-        std::tan(halfFovRadians);
+        1.0f / projectionFocal;
     constexpr float nearPlane = 0.08f;
     constexpr float farPlane = 180.0f;
 
@@ -4701,9 +4696,7 @@ void VulkanStaticMeshRenderer::record(
                 tanHalfFov;
             const float halfWidth =
                 halfHeight *
-                std::max(
-                    camera.aspect,
-                    0.25f);
+                safeAspect;
 
             return
                 std::abs(yawViewX) - radius <=
