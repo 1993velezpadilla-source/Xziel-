@@ -146,8 +146,13 @@ class PichyAgent:
         child.max_steps = max(8, min(18, self.max_steps // 2))
         return child.run(task, forced_route=role)
 
-    def run(self, task: str, forced_route: str | None = None) -> str:
-        route = forced_route or self.classify_route(task)
+    def run(self, task: Any, forced_route: str | None = None) -> str:
+        if forced_route:
+            route = forced_route
+        elif isinstance(task, str):
+            route = self.classify_route(task)
+        else:
+            route = "vision"
         self.history.append({"role": "user", "content": task})
 
         for _step in range(1, self.max_steps + 1):
