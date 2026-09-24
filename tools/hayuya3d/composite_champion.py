@@ -508,7 +508,15 @@ def build_composite_plan(
                                 "weight_morph_transfer"
                             )
                             seam_risk="low"
-                            rig_risk="low"
+                            rig_risk="medium"
+                            accessory_match_data[
+                                "rigged_insert_material_ready"
+                            ]=False
+                            accessory_match_data[
+                                "rigged_insert_production_blocker"
+                            ]=(
+                                "donor UV/material transfer is not proven"
+                            )
                     except Exception as exc:
                         accessory_match_data[
                             "rigged_insert_supported"
@@ -584,6 +592,11 @@ def build_composite_plan(
                         "rigged_insert_supported"
                     )
                 )
+                and bool(
+                    (item.accessory_match or {}).get(
+                        "rigged_insert_material_ready"
+                    )
+                )
             )
         )
     }
@@ -633,7 +646,7 @@ def build_composite_plan(
             "Every explicit local/detail reference gets its own donor winner so scars, hands, jewelry, wounds and clothing details cannot disappear inside an aggregate score.",
             "Detached accessory candidates are never chosen by component count alone; local accessory donors need explicit reference superiority plus non-ambiguous spatial/attachment correspondence.",
             "Multi-piece chains, rosaries, medals and loose detail may remain disconnected meshes, but their proximity graph must stay anchored to the canonical base instead of becoming floating donor islands.",
-            "Existing skinned accessory topology may be reshaped through the rig-preserving wrap path; a single unambiguous missing accessory may be inserted only through explicit nearest-surface skin-weight plus morph-delta transfer and the full runtime QA stack.",
+            "Existing skinned accessory topology may be reshaped through the rig-preserving wrap path; a single unambiguous missing accessory may complete geometry/runtime skin+morph proof, but remains deferred from Composite promotion until donor UV/material transfer is proven.",
             "High-risk body/face geometry transfers stay deferred until wrap/seam/skin-weight proof exists.",
             "Texture/material transfers can be attempted earlier because they preserve base topology.",
             "Every fusion is atomic: rejection restores the untouched base champion.",
@@ -683,6 +696,20 @@ def execute_safe_accessory_challenger(
             for item in plan.detail_donors:
                 if detail_source is not None and item.source!=detail_source:
                     continue
+                if (
+                    item.strategy=="new_rigged_accessory_insert_weight_morph_transfer"
+                    and bool(
+                        (item.accessory_match or {}).get(
+                            "rigged_insert_supported"
+                        )
+                    )
+                ):
+                    deferred_error=(
+                        "new-vertex character accessory has geometry/runtime "
+                        "skin+morph proof but remains deferred until donor "
+                        "UV/material transfer is proven"
+                    )
+                    break
                 if (
                     item.strategy=="matched_detached_accessory_swap_then_mesh_doctor"
                     and bool((item.accessory_match or {}).get("ready"))
@@ -786,6 +813,25 @@ def execute_safe_accessory_challenger(
                 ),
             )
         swap_data=asdict(swap)
+        if (
+            donor.strategy=="new_rigged_accessory_insert_weight_morph_transfer"
+            and not bool(getattr(swap,"production_ready",False))
+        ):
+            return LocalDetailExecutionResult(
+                attempted=True,
+                ready=False,
+                base_backend=base.backend,
+                donor_backend=source.backend,
+                source=donor.source,
+                region_hint="local",
+                candidate_label=None,
+                candidate_path=str(output) if output.exists() else None,
+                fusion=swap_data,
+                error=(
+                    "new-vertex accessory geometry/runtime proof is not "
+                    "production-ready: donor UV/material transfer unproven"
+                ),
+            )
         if not swap.ready:
             return LocalDetailExecutionResult(
                 attempted=True,
