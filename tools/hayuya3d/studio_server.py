@@ -55,6 +55,12 @@ class CandidateState:
     path: str
     url: str | None = None
     score: float | None = None
+    production_score: float | None = None
+    visual_score: float | None = None
+    appearance_score: float | None = None
+    detail_score: float | None = None
+    material_score: float | None = None
+    pbr_channels: list[str] | None = None
     is_champion: bool = False
 
 
@@ -252,8 +258,24 @@ def _run_job(job: JobState) -> None:
                 ranking = json.loads(ranking_path.read_text(encoding="utf-8"))
                 for item in ranking:
                     label = str(item.get("backend", ""))
-                    if label in job.candidates and item.get("score") is not None:
-                        job.candidates[label].score = float(item["score"])
+                    candidate = job.candidates.get(label)
+                    if candidate is None:
+                        continue
+                    if item.get("score") is not None:
+                        candidate.score = float(item["score"])
+                    if item.get("production_score") is not None:
+                        candidate.production_score = float(item["production_score"])
+                    if item.get("visual_score") is not None:
+                        candidate.visual_score = float(item["visual_score"])
+                    if item.get("appearance_score") is not None:
+                        candidate.appearance_score = float(item["appearance_score"])
+                    if item.get("appearance_detail_score") is not None:
+                        candidate.detail_score = float(item["appearance_detail_score"])
+                    if item.get("material_score") is not None:
+                        candidate.material_score = float(item["material_score"])
+                    channels = item.get("pbr_channels")
+                    if isinstance(channels, list):
+                        candidate.pbr_channels = [str(x) for x in channels]
                 _emit(job, "ranking", {
                     "candidates": [asdict(x) for x in job.candidates.values()]
                 })
