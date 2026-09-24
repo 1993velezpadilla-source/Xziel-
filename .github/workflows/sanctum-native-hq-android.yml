@@ -325,7 +325,35 @@ jobs:
           SDKMANAGER="$(find "${ANDROID_HOME}/cmdline-tools"             -type f -name sdkmanager | sort | tail -n 1)"
           test -n "$SDKMANAGER"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER"             "platform-tools"             "platforms;android-36.1"             "build-tools;36.0.0"             "ndk;28.2.13676358"             "cmake;3.22.1"             "emulator"             "system-images;android-35;google_apis;x86_64"
+
+          # Keep the large emulator system image isolated from the stable
+          # toolchain install. GitHub runners occasionally receive a truncated
+          # Google system-image ZIP; retrying after deleting the partial
+          # package prevents a transient CDN/archive failure from turning a
+          # healthy engine commit red.
+          "$SDKMANAGER"             "platform-tools"             "platforms;android-36.1"             "build-tools;36.0.0"             "ndk;28.2.13676358"             "cmake;3.22.1"             "emulator"
+
+          SYSTEM_IMAGE="system-images;android-35;google_apis;x86_64"
+          SYSTEM_IMAGE_DIR="${ANDROID_HOME}/system-images/android-35/google_apis/x86_64"
+
+          system_image_ready=0
+          for attempt in 1 2 3; do
+            echo "Installing ${SYSTEM_IMAGE} attempt ${attempt}/3"
+
+            if "$SDKMANAGER" "$SYSTEM_IMAGE"; then
+              system_image_ready=1
+              break
+            fi
+
+            echo "System-image install failed; removing partial archive/package before retry"
+            rm -rf "$SYSTEM_IMAGE_DIR"
+            rm -rf "${HOME}/.android/cache"/* 2>/dev/null || true
+            sleep $((attempt * 3))
+          done
+
+          test "$system_image_ready" -eq 1
+          test -d "$SYSTEM_IMAGE_DIR"
+          echo "XZIEL_ANDROID_SYSTEM_IMAGE_READY attempts<=3"
 
       - name: Compile native Vulkan shaders
         working-directory: xziel-native-android
