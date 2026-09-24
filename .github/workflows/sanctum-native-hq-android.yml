@@ -47,7 +47,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: sanctum-native-hq-${{ github.ref }}
+  group: sanctum-native-hq-cell-frustum-v2-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
