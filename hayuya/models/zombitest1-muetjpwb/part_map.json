@@ -2143,7 +2143,7 @@
       ],
       "main_component": false,
       "accessory_candidate": true,
-      "spatial_label": "legs_feet"
+      "spatial_label": "lower_body"
     },
     {
       "component_id": 29,
@@ -11683,7 +11683,7 @@
       ],
       "main_component": false,
       "accessory_candidate": true,
-      "spatial_label": "legs_feet"
+      "spatial_label": "lower_body"
     },
     {
       "component_id": 559,
