@@ -380,7 +380,7 @@ class StudioServerTests(unittest.TestCase):
                 "inserted_vertices=24 inserted_faces=12 "
                 "inserted_primitives=3 material_groups=3 "
                 "weight_transfer_vertices=24 weight_source_max=0.041 "
-                "surface_transfer=hayuya-surface-transfer-barycentric-exact-v1 "
+                "surface_transfer=hayuya-surface-transfer-bvh-barycentric-exact-v2 "
                 "surface_fallback_vertices=0 "
                 "surface_search_triangles=48 "
                 "morph_targets_transferred=2 "
@@ -406,7 +406,7 @@ class StudioServerTests(unittest.TestCase):
             self.assertEqual(detail["weight_source_max"],0.041)
             self.assertEqual(
                 detail["surface_transfer"],
-                "hayuya-surface-transfer-barycentric-exact-v1",
+                "hayuya-surface-transfer-bvh-barycentric-exact-v2",
             )
             self.assertEqual(detail["surface_fallback_vertices"],0)
             self.assertEqual(detail["surface_search_triangles"],48)
