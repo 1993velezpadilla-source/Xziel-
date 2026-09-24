@@ -51,6 +51,13 @@ struct StreamCellPlanInput {
         MemoryPressure::Normal;
 };
 
+struct StreamCellPlanCellState {
+    std::uint32_t cellId = 0U;
+    StreamCellHeat heat =
+        StreamCellHeat::Cold;
+    bool reachableThroughOpenPortals = false;
+};
+
 struct StreamCellResourceDecision {
     std::uint64_t resourceId = 0U;
     StreamResourceKind kind =
@@ -108,7 +115,10 @@ public:
         const StreamCellPlanInput& input,
         StreamCellResourceDecision* destination,
         std::size_t destinationCapacity,
-        std::size_t& written) const noexcept;
+        std::size_t& written,
+        StreamCellPlanCellState* cellDestination = nullptr,
+        std::size_t cellDestinationCapacity = 0U,
+        std::size_t* cellWritten = nullptr) const noexcept;
 
     [[nodiscard]] StreamCellHeat cellHeat(
         const StreamCellPlanInput& input,

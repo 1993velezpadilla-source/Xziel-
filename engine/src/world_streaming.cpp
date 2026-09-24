@@ -144,8 +144,16 @@ StreamCellPlanStats StreamCellGraph::plan(
     const StreamCellPlanInput& input,
     StreamCellResourceDecision* destination,
     std::size_t destinationCapacity,
-    std::size_t& written) const noexcept {
+    std::size_t& written,
+    StreamCellPlanCellState* cellDestination,
+    std::size_t cellDestinationCapacity,
+    std::size_t* cellWritten) const noexcept {
     written = 0U;
+
+    if (cellWritten != nullptr) {
+        *cellWritten = 0U;
+    }
+
     StreamCellPlanStats stats{};
 
     if (destination == nullptr ||
@@ -190,10 +198,6 @@ StreamCellPlanStats StreamCellGraph::plan(
 
         const std::uint8_t currentDistance =
             distance[currentIndex];
-
-        if (currentDistance >= maxHops) {
-            continue;
-        }
 
         const std::uint32_t currentId =
             cells_[currentIndex].id;
@@ -257,7 +261,8 @@ StreamCellPlanStats StreamCellGraph::plan(
                 StreamCellHeat::Hot;
             ++stats.hotCells;
         } else if (
-            distance[i] != kUnreached) {
+            distance[i] != kUnreached &&
+            distance[i] <= maxHops) {
             cellHeat[i] =
                 StreamCellHeat::Preload;
             ++stats.preloadCells;
@@ -299,9 +304,11 @@ StreamCellPlanStats StreamCellGraph::plan(
             // that became warm only because of another closed door may not
             // cascade preload through the rest of the map.
             const bool aReachable =
-                distance[ai] != kUnreached;
+                distance[ai] != kUnreached &&
+                distance[ai] <= maxHops;
             const bool bReachable =
-                distance[bi] != kUnreached;
+                distance[bi] != kUnreached &&
+                distance[bi] <= maxHops;
 
             if (aReachable &&
                 cellHeat[bi] ==
@@ -325,6 +332,30 @@ StreamCellPlanStats StreamCellGraph::plan(
             cellCount_) -
         stats.hotCells -
         stats.preloadCells;
+
+    if (cellDestination != nullptr &&
+        cellDestinationCapacity > 0U) {
+        const std::size_t cellOutputCount =
+            std::min(
+                cellCount_,
+                cellDestinationCapacity);
+
+        for (std::size_t i = 0U;
+             i < cellOutputCount;
+             ++i) {
+            cellDestination[i] = {
+                .cellId = cells_[i].id,
+                .heat = cellHeat[i],
+                .reachableThroughOpenPortals =
+                    distance[i] != kUnreached,
+            };
+        }
+
+        if (cellWritten != nullptr) {
+            *cellWritten =
+                cellOutputCount;
+        }
+    }
 
     for (std::size_t i = 0U;
          i < bindingCount_;

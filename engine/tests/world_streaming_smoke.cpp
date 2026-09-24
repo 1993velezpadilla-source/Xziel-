@@ -19,6 +19,18 @@ const xziel::StreamCellResourceDecision* findDecision(
     return nullptr;
 }
 
+const xziel::StreamCellPlanCellState* findCellState(
+    const std::array<xziel::StreamCellPlanCellState, 16>& states,
+    std::size_t count,
+    std::uint32_t id) {
+    for (std::size_t i = 0U; i < count; ++i) {
+        if (states[i].cellId == id) {
+            return &states[i];
+        }
+    }
+    return nullptr;
+}
+
 } // namespace
 
 int main() {
@@ -115,7 +127,10 @@ int main() {
 
     std::array<xziel::StreamCellResourceDecision, 16>
         decisions{};
+    std::array<xziel::StreamCellPlanCellState, 16>
+        cellStates{};
     std::size_t written = 0U;
+    std::size_t cellWritten = 0U;
 
     auto stats = graph.plan(
         {
@@ -126,9 +141,39 @@ int main() {
         },
         decisions.data(),
         decisions.size(),
-        written);
+        written,
+        cellStates.data(),
+        cellStates.size(),
+        &cellWritten);
 
     assert(written == 4U);
+    assert(cellWritten == 3U);
+
+    const auto* cell1 =
+        findCellState(
+            cellStates,
+            cellWritten,
+            1U);
+    const auto* cell2 =
+        findCellState(
+            cellStates,
+            cellWritten,
+            2U);
+    const auto* cell3 =
+        findCellState(
+            cellStates,
+            cellWritten,
+            3U);
+
+    assert(cell1 != nullptr);
+    assert(cell2 != nullptr);
+    assert(cell3 != nullptr);
+    assert(cell1->heat == xziel::StreamCellHeat::Hot);
+    assert(cell1->reachableThroughOpenPortals);
+    assert(cell2->heat == xziel::StreamCellHeat::Preload);
+    assert(!cell2->reachableThroughOpenPortals);
+    assert(cell3->heat == xziel::StreamCellHeat::Cold);
+    assert(!cell3->reachableThroughOpenPortals);
     assert(stats.hotCells == 1U);
     assert(stats.preloadCells == 1U);
     assert(stats.coldCells == 1U);
@@ -224,7 +269,28 @@ int main() {
         },
         decisions.data(),
         decisions.size(),
-        written);
+        written,
+        cellStates.data(),
+        cellStates.size(),
+        &cellWritten);
+
+    cell2 =
+        findCellState(
+            cellStates,
+            cellWritten,
+            2U);
+    cell3 =
+        findCellState(
+            cellStates,
+            cellWritten,
+            3U);
+
+    assert(cell2 != nullptr);
+    assert(cell3 != nullptr);
+    assert(cell2->reachableThroughOpenPortals);
+    assert(cell2->heat == xziel::StreamCellHeat::Preload);
+    assert(!cell3->reachableThroughOpenPortals);
+    assert(cell3->heat == xziel::StreamCellHeat::Preload);
 
     assert(stats.hotCells == 1U);
     assert(stats.preloadCells == 2U);
@@ -257,7 +323,20 @@ int main() {
         },
         decisions.data(),
         decisions.size(),
-        written);
+        written,
+        cellStates.data(),
+        cellStates.size(),
+        &cellWritten);
+
+    cell2 =
+        findCellState(
+            cellStates,
+            cellWritten,
+            2U);
+
+    assert(cell2 != nullptr);
+    assert(cell2->reachableThroughOpenPortals);
+    assert(cell2->heat == xziel::StreamCellHeat::Cold);
 
     assert(stats.hotCells == 1U);
     assert(stats.preloadCells == 0U);

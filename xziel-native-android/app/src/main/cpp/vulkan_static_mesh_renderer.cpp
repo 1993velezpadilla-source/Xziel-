@@ -4461,12 +4461,20 @@ void VulkanStaticMeshRenderer::record(
                     environment.memoryPressure;
 
             if (planRebuilt) {
+                std::array<
+                    StreamCellPlanCellState,
+                    kMaxStreamCells> plannedCells{};
+                std::size_t plannedCellCount = 0U;
+
                 cachedStreamPlanStats_ =
                     streamGraph_.plan(
                         planInput,
                         streamDecisions_.data(),
                         streamDecisions_.size(),
-                        streamDecisionCount_);
+                        streamDecisionCount_,
+                        plannedCells.data(),
+                        plannedCells.size(),
+                        &plannedCellCount);
 
                 cachedStreamPlanCell_ =
                     currentCell;
@@ -4487,24 +4495,53 @@ void VulkanStaticMeshRenderer::record(
                     cell.plannedHeat =
                         cell.pinned
                         ? StreamCellHeat::Hot
-                        : streamGraph_.cellHeat(
-                              planInput,
-                              cell.cellId);
+                        : StreamCellHeat::Cold;
+
+                    bool portalReachable =
+                        cell.pinned ||
+                        cell.cellId == 0U;
+
+                    if (!cell.pinned &&
+                        cell.cellId != 0U) {
+                        for (std::size_t stateIndex = 0U;
+                             stateIndex < plannedCellCount;
+                             ++stateIndex) {
+                            const auto& state =
+                                plannedCells[stateIndex];
+
+                            if (state.cellId !=
+                                cell.cellId) {
+                                continue;
+                            }
+
+                            cell.plannedHeat =
+                                state.heat;
+                            portalReachable =
+                                state.
+                                    reachableThroughOpenPortals;
+                            break;
+                        }
+                    }
+
                     cell.heat =
                         cell.plannedHeat;
 
                     geometryPortalReachable_[i] =
-                        (cell.pinned ||
-                         cell.cellId == 0U ||
-                         streamGraph_.
-                             cellReachableThroughOpenPortals(
-                                 currentCell,
-                                 cell.cellId))
+                        portalReachable
                         ? static_cast<std::uint8_t>(1U)
                         : static_cast<std::uint8_t>(0U);
 
                     ++streamCellHeatRefreshCount_;
                 }
+
+                __android_log_print(
+                    ANDROID_LOG_INFO,
+                    kTag,
+                    "XZIEL_STREAM_GRAPH_SINGLE_TRAVERSAL_ACTIVE cells=%u geometry_cells=%u",
+                    static_cast<unsigned int>(
+                        plannedCellCount),
+                    static_cast<unsigned int>(
+                        geometryCellCount_));
 
                 cachedPortalReachabilityCell_ =
                     currentCell;
