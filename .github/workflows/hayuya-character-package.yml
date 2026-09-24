@@ -69,40 +69,56 @@ jobs:
           needs_autorig="false"
           donor="hayuya/animation_library/quaternius-uam2/library.glb"
           bank=""
+          bank_key=""
 
           case "$source" in
             quaternius-uam1)
               donor="hayuya/animation_library/quaternius-uam1/library.glb"
               bank="hayuya/models/$job/animated-uam1.glb"
+              bank_key="quaternius-uam1"
               ;;
             quaternius-uam2)
               donor="hayuya/animation_library/quaternius-uam2/library.glb"
               bank="hayuya/models/$job/animated.glb"
+              bank_key="quaternius-uam2"
               ;;
             mixed)
               donor="hayuya/animation_library/quaternius-uam2/library.glb"
               bank="hayuya/models/$job/animated.glb"
+              bank_key="quaternius-uam2"
               ;;
             *)
               donor="hayuya/animation_library/quaternius-uam2/library.glb"
               bank="hayuya/models/$job/animated.glb"
+              bank_key="quaternius-uam2"
               ;;
           esac
 
           if [[ "${{ steps.recipe.outputs.needs_rig }}" == "true" ]]; then
-            if [[ -n "$bank" && -f "$bank" ]] && python tools/hayuya3d/rig_gate.py "$bank" --json out/character-package/existing-rig-gate.json >/dev/null; then
-              if python - <<'PY'
-          import json
+            safe_existing="false"
+            if [[ -n "$bank" && -f "$bank" && -f "hayuya/models/$job/manifest.json" ]]; then
+              SAFE_BANK_KEY="$bank_key" python - <<'PY' && safe_existing="true" || true
+          import json, os
           from pathlib import Path
-          p=Path("out/character-package/existing-rig-gate.json")
-          d=json.loads(p.read_text())
-          raise SystemExit(0 if d.get("rig_ready") and d.get("animation_ready") and d.get("animation_clips") else 1)
+          recipe=json.loads(Path("out/character-package/recipe.json").read_text())
+          manifest=json.loads((Path("hayuya/models")/recipe["job_id"]/"manifest.json").read_text())
+          bank_key=os.environ["SAFE_BANK_KEY"]
+          bank=(manifest.get("animation_banks") or {}).get(bank_key) or {}
+          if int(bank.get("rig_quality_version") or 0) < 2 or bank.get("quality_passed") is not True:
+              raise SystemExit("existing animation bank is not Rig QA v2 safe")
+          selected={
+              str(x.get("clip")) for x in (recipe.get("selected",{}).get("animations") or [])
+              if x.get("availability") in (None,"local") and x.get("clip")
+          }
+          compatible={str(x) for x in bank.get("clips") or []}
+          missing=sorted(selected-compatible)
+          if missing:
+              raise SystemExit("selected clips are not deformation-safe in existing bank: "+", ".join(missing))
+          print("HAYUYA_EXISTING_SAFE_BANK",bank_key,len(compatible))
           PY
-              then
-                selected="$bank"
-              else
-                needs_autorig="true"
-              fi
+            fi
+            if [[ "$safe_existing" == "true" ]]; then
+              selected="$bank"
             else
               needs_autorig="true"
             fi
@@ -110,6 +126,7 @@ jobs:
 
           echo "path=$selected" >> "$GITHUB_OUTPUT"
           echo "donor=$donor" >> "$GITHUB_OUTPUT"
+          echo "bank_key=$bank_key" >> "$GITHUB_OUTPUT"
           echo "needs_autorig=$needs_autorig" >> "$GITHUB_OUTPUT"
           echo "HAYUYA_PACKAGE_MODEL=$selected"
           echo "HAYUYA_PACKAGE_DONOR=$donor"
@@ -126,16 +143,38 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          blender -b --python tools/hayuya3d/blender_autorig.py --             --target "hayuya/models/${{ steps.recipe.outputs.job_id }}/model.glb"             --donor "${{ steps.model.outputs.donor }}"             --output out/character-package/rigged.glb             --report out/character-package/autorig-report.json
-          python tools/hayuya3d/rig_gate.py             out/character-package/rigged.glb             --json out/character-package/rig-gate.json
+          blender -b --python tools/hayuya3d/blender_autorig.py -- \
+            --target "hayuya/models/${{ steps.recipe.outputs.job_id }}/model.glb" \
+            --donor "${{ steps.model.outputs.donor }}" \
+            --output out/character-package/rigged.glb \
+            --report out/character-package/autorig-report.json
+          python tools/hayuya3d/rig_gate.py \
+            out/character-package/rigged.glb \
+            --json out/character-package/rig-gate.json
+          blender -b --python tools/hayuya3d/blender_animation_gate.py -- \
+            --model out/character-package/rigged.glb \
+            --json out/character-package/animation-gate.json --samples 5 || true
           python - <<'PY'
           import json
           from pathlib import Path
-          d=json.loads(Path("out/character-package/rig-gate.json").read_text())
-          assert d["rig_ready"] is True, d
-          assert d["animation_ready"] is True, d
-          assert d["animation_clips"], d
-          print("HAYUYA_PACKAGE_RIG_PASS", d["joints"], len(d["animation_clips"]))
+          rig=json.loads(Path("out/character-package/rig-gate.json").read_text())
+          gate=json.loads(Path("out/character-package/animation-gate.json").read_text())
+          recipe=json.loads(Path("out/character-package/recipe.json").read_text())
+          assert rig.get("rig_ready") is True, rig
+          assert rig.get("animation_ready") is True, rig
+          assert int(rig.get("weighted_joints") or 0) >= 12, rig
+          selected={
+              str(x.get("clip")) for x in (recipe.get("selected",{}).get("animations") or [])
+              if x.get("availability") in (None,"local") and x.get("clip")
+          }
+          compatible={str(x) for x in gate.get("compatible_clips") or []}
+          missing=sorted(selected-compatible)
+          if missing:
+              raise SystemExit("Selected animation(s) failed deformation QA: "+", ".join(missing))
+          if selected and not compatible:
+              raise SystemExit("No deformation-safe animation clips")
+          print("HAYUYA_PACKAGE_RIG_PASS",rig["joints"],rig.get("weighted_joints"),len(compatible))
+          print("HAYUYA_PACKAGE_SELECTED_CLIPS_PASS",sorted(selected))
           PY
 
       - name: Build ZIP package
@@ -146,7 +185,15 @@ jobs:
           if [[ -f out/character-package/rigged.glb ]]; then
             model="out/character-package/rigged.glb"
           fi
-          python tools/hayuya3d/build_character_package.py             --recipe out/character-package/recipe.json             --model "$model"             --out out/character-package/build
+          gate_args=()
+          if [[ -f out/character-package/animation-gate.json ]]; then
+            gate_args+=(--animation-gate out/character-package/animation-gate.json)
+          fi
+          python tools/hayuya3d/build_character_package.py \
+            --recipe out/character-package/recipe.json \
+            --model "$model" \
+            --out out/character-package/build \
+            "${gate_args[@]}"
 
       - name: Persist recipe and latest package to GitHub
         shell: bash
@@ -163,6 +210,9 @@ jobs:
           fi
           if [[ -f out/character-package/autorig-report.json ]]; then
             cp out/character-package/autorig-report.json "$dst/autorig-report.json"
+          fi
+          if [[ -f out/character-package/animation-gate.json ]]; then
+            cp out/character-package/animation-gate.json "$dst/animation_gate.json"
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
