@@ -1,0 +1,122 @@
+{
+  "schema": 1,
+  "id": "hayuya_lighting_brain_v1",
+  "purpose": "Author original cinematic horror lighting from scene semantics, gameplay readability, and abstract horror-design evidence.",
+  "sourceKnowledge": [
+    "docs/WAW_ZOMBIES_HORROR_DNA.md",
+    "docs/waw-zombies-horror-checklist.json",
+    "docs/zombies-map-dna-atlas.v1.json"
+  ],
+  "profiles": {
+    "zombies_horror": {
+      "intent": [
+        "readable_combat_floor",
+        "dark_or_uncertain_upper_volume",
+        "strong_silhouette_language",
+        "motivated_practical_sources",
+        "rare_event_lighting",
+        "power_state_transformation",
+        "zone_specific_color_temperature_and_exposure",
+        "mobile_bounded_dynamic_cost"
+      ],
+      "layers": [
+        {
+          "id": "base_visibility",
+          "role": "Keep traversable floor, interactives and enemy silhouettes readable without flattening the scene.",
+          "required": true
+        },
+        {
+          "id": "motivated_practicals",
+          "role": "Place light only when a believable source or supernatural cause exists.",
+          "examples": [
+            "bulb",
+            "lantern",
+            "candle",
+            "furnace",
+            "projector",
+            "emergency_fixture",
+            "moon_window",
+            "electrical_arc",
+            "fire"
+          ]
+        },
+        {
+          "id": "landmark_guidance",
+          "role": "Use contrast and directional lighting to make major landmarks and progression destinations readable."
+        },
+        {
+          "id": "anxiety_shadow",
+          "role": "Preserve darkness, partial reveal, projected shadow and negative space around non-critical areas."
+        },
+        {
+          "id": "event_lighting",
+          "role": "Use rare state changes such as lightning, power startup, ritual pulses or fixture failure; never constant random flicker."
+        }
+      ],
+      "states": {
+        "power_off": {
+          "rules": [
+            "keep_navigation_floor_readable",
+            "prefer_local_practicals_and_exterior_spill",
+            "leave_noncritical_depth_partially_unresolved",
+            "preserve_landmark_silhouette"
+          ]
+        },
+        "power_on": {
+          "rules": [
+            "energize_lights_in_sequence_not_all_at_once",
+            "activate_machine_emission_and_environment_audio_hooks",
+            "increase_route_readability_without_removing_all_shadow",
+            "allow_newly_active_machinery_to_create_fresh_threat_shadows"
+          ]
+        },
+        "storm_flash": {
+          "rules": [
+            "briefly_reveal_large_scene_silhouettes",
+            "do_not_destroy_player_adaptation_with_constant_frequency",
+            "use_exterior_directionality_and_window_projection"
+          ]
+        },
+        "combat_peak": {
+          "rules": [
+            "enemy_silhouettes_and_hazard_edges_take_priority",
+            "avoid_exposure_pulses_that hide gameplay cues",
+            "preserve_exit_and_bailout readability"
+          ]
+        }
+      },
+      "authoredMetrics": [
+        "critical_path_luminance_separation",
+        "enemy_silhouette_separation",
+        "landmark_contrast",
+        "darkness_reserve",
+        "practical_source_justification",
+        "state_change_visibility",
+        "dynamic_light_cost_by_device_tier"
+      ],
+      "mobilePolicy": {
+        "dynamicLights": "bounded_by_device_profile_and_visibility",
+        "shadowCasters": "prioritize_player_relevant_and_event_lights",
+        "volumetrics": "sparse_camera_relevant_or_baked_depth_cues",
+        "distantLights": "prefer_baked_emissive_or_clustered_low_cost_representation",
+        "flicker": "deterministic_bounded_and_semantically_authored"
+      }
+    }
+  },
+  "judgeGates": [
+    "critical_navigation_remains_readable",
+    "darkness_exists_outside_critical_readability",
+    "every_strong_light_has_a_source_or_authored_supernatural_cause",
+    "power_state_changes_scene_composition",
+    "event_lights_are_rare_and_intentional",
+    "landmark_is_readable_from_required_zones",
+    "mobile_dynamic_light_budget_is_bounded"
+  ],
+  "guardrails": [
+    "do_not_copy_exact_reference_light_placements",
+    "do_not_copy_proprietary_textures_or_lightmaps",
+    "do_not_treat_darkness_as_total_blackness",
+    "do_not_trade_gameplay_readability_for_horror"
+  ],
+  "patternLibrary": "hayuya/knowledge/zombies_lighting_pattern_library_v1.json"
+}

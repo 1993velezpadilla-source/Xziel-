@@ -1,0 +1,198 @@
+{
+  "schema": 1,
+  "id": "hayuya_world_reasoning_domains_v1",
+  "purpose": "Cross-disciplinary spatial knowledge for HAYUYA Map. These are reasoning constraints and QA prompts, not building-code certification or a replacement for licensed professional engineering.",
+  "domains": {
+    "architecture": [
+      "structural_grid_and_support_logic",
+      "wall_floor_roof_relationship",
+      "opening_and_lintel_plausibility",
+      "circulation_hierarchy",
+      "stairs_ramps_landings",
+      "service_spaces",
+      "entrance_sequence",
+      "room_proportion",
+      "daylight_openings",
+      "roof_and_rain_shedding"
+    ],
+    "interiors": [
+      "furniture_clearance",
+      "door_swing_or_sliding_clearance",
+      "work_surface_logic",
+      "storage_logic",
+      "human_scale",
+      "service_access",
+      "material_transition",
+      "ceiling_and_fixture_coordination"
+    ],
+    "urbanism": [
+      "road_hierarchy",
+      "intersection_logic",
+      "sidewalk_and_pedestrian_flow",
+      "service_and_delivery_access",
+      "parking_or_loading_logic",
+      "district_identity",
+      "public_private_gradient",
+      "landmark_and_vista",
+      "street_edge_continuity"
+    ],
+    "infrastructure": [
+      "electric_distribution",
+      "water_supply",
+      "storm_drainage",
+      "sanitary_routes",
+      "telecom",
+      "lighting_power",
+      "service_panels",
+      "maintenance_access",
+      "utility_conflict_detection"
+    ],
+    "terrain_and_hydrology": [
+      "slope",
+      "watershed",
+      "runoff",
+      "drainage_outlet",
+      "erosion_risk",
+      "retaining_condition",
+      "road_grade",
+      "water_accumulation",
+      "terrain_transition"
+    ],
+    "ecology_and_vegetation": [
+      "canopy_understory_groundcover",
+      "sun_and_moisture_relationship",
+      "root_clearance",
+      "disturbance_edge",
+      "succession",
+      "biome_transition",
+      "vegetation_density_for_visibility",
+      "wind_response"
+    ],
+    "materials_and_weathering": [
+      "material_identity",
+      "roughness_logic",
+      "water_staining",
+      "rust_and_oxidation",
+      "dirt_accumulation",
+      "edge_wear",
+      "sun_fading",
+      "moss_or_biological_growth",
+      "damage_directionality"
+    ],
+    "lighting_and_cinematography": [
+      "motivated_source",
+      "focal_hierarchy",
+      "foreground_midground_background",
+      "silhouette_readability",
+      "color_temperature_relationship",
+      "exposure_adaptation",
+      "negative_space",
+      "weather_and_time_state",
+      "camera_composition"
+    ],
+    "acoustics": [
+      "room_volume",
+      "surface_absorption",
+      "portal_openness",
+      "occlusion",
+      "reverb_zone",
+      "exterior_interior_transition",
+      "distance_attenuation",
+      "vertical_propagation",
+      "priority_audio"
+    ],
+    "signage_and_wayfinding": [
+      "destination_hierarchy",
+      "landmark_redundancy",
+      "text_legibility",
+      "symbol_consistency",
+      "navigation_vs_decoration_separation",
+      "diegetic_signage",
+      "emergency_or_service_signage"
+    ],
+    "accessibility_and_comfort": [
+      "route_readability",
+      "contrast",
+      "interaction_reachability",
+      "camera_motion_safety",
+      "flash_and_flicker_safety",
+      "audio_cue_redundancy",
+      "subtitle_space",
+      "color_independent_critical_cues"
+    ],
+    "environmental_storytelling": [
+      "cause_before_effect",
+      "occupant_trace",
+      "maintenance_history",
+      "damage_chronology",
+      "object_cluster_story",
+      "clean_dirty_gradient",
+      "locked_abandoned_in_use_state",
+      "foreshadowing"
+    ],
+    "ai_navigation": [
+      "agent_clearance",
+      "navmesh_connectivity",
+      "offmesh_links",
+      "cover_or_attack_positions",
+      "spawn_visibility",
+      "crowd_bottlenecks",
+      "dynamic_blocker_recovery",
+      "multi_level_pathing"
+    ],
+    "multiplayer_networking": [
+      "server_authority",
+      "replication_relevancy",
+      "interest_regions",
+      "late_join_state",
+      "deterministic_shared_events",
+      "door_and_object_authority",
+      "voice_proximity_regions",
+      "network_failure_fallback"
+    ],
+    "mobile_rendering": [
+      "streaming_cells",
+      "portal_and_frustum_culling",
+      "occluder_value",
+      "lod_hlod",
+      "texture_residency",
+      "material_count",
+      "draw_submission_budget",
+      "dynamic_light_budget",
+      "physics_budget",
+      "audio_voice_budget",
+      "thermal_and_battery_pressure"
+    ],
+    "monetization_and_policy": [
+      "natural_inventory_host",
+      "gameplay_exclusion",
+      "navigation_exclusion",
+      "narrative_exclusion",
+      "lore_fallback",
+      "provider_format_contract",
+      "ad_disclosure",
+      "frequency_cap",
+      "offline_gameplay",
+      "privacy_and_content_rating"
+    ]
+  },
+  "worldConsistencyQuestions": [
+    "What supports this structure and where does the load plausibly go?",
+    "How does a person enter, circulate, service and leave this place?",
+    "Where does rainwater go?",
+    "Where do power, water, drainage and communication systems plausibly run?",
+    "Why is this vegetation growing here and not there?",
+    "How would age, moisture, use and damage change each material?",
+    "Can a new player infer where to go without a HUD arrow?",
+    "What can the player hear through this door, floor, wall or open window?",
+    "Can enemies and co-op players actually traverse every intended route?",
+    "Can the map stream on mobile without changing the authored experience?",
+    "Does monetization disappear cleanly without changing gameplay or leaving empty holes?"
+  ],
+  "truthPolicy": {
+    "observed": "Directly supported by user/provider evidence.",
+    "inferred": "Plausible hypothesis from geometry, semantics or domain rules.",
+    "generated": "Authored creative choice.",
+    "professionalSafety": "HAYUYA spatial plausibility is for game/world creation and must not be presented as real structural, civil, electrical, fire, accessibility or life-safety certification."
+  }
+}

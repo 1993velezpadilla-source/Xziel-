@@ -1,0 +1,389 @@
+{
+  "schemaVersion": 1,
+  "updated": "2026-09-24",
+  "source": "docs/zombies-map-dna-atlas.v1.json",
+  "purpose": "Cross-map lighting translation library for HAYUYA Lighting. Rules are abstract and original, not copied light placements.",
+  "identities": {
+    "isolation": {
+      "composition": [
+        "large negative space",
+        "single readable refuge or route",
+        "distant exterior silhouettes",
+        "sparse practicals"
+      ],
+      "events": [
+        "rare exterior flash",
+        "single fixture failure",
+        "distant moving silhouette"
+      ],
+      "avoid": [
+        "uniform fill",
+        "constant effects"
+      ],
+      "sourceMaps": [
+        "waw_nacht",
+        "waw_shi_no_numa",
+        "bo1_call_of_the_dead",
+        "bo1_moon"
+      ],
+      "observedFrequency": 4
+    },
+    "institutional": {
+      "composition": [
+        "cold practical pools",
+        "long corridor falloff",
+        "localized treatment-room intensity",
+        "hard door-frame shadows"
+      ],
+      "events": [
+        "power sequencing",
+        "fixture buzz/failure",
+        "emergency-state change"
+      ],
+      "avoid": [
+        "clean office brightness",
+        "identical corridor exposure"
+      ],
+      "sourceMaps": [
+        "waw_verruckt",
+        "bo1_five",
+        "bo2_mob",
+        "bo6_terminus",
+        "bo6_shattered_veil",
+        "bo6_reckoning",
+        "aw_outbreak",
+        "aw_descent"
+      ],
+      "observedFrequency": 8
+    },
+    "industrial": {
+      "composition": [
+        "machine emissive accents",
+        "warm/cold contrast",
+        "deep overhead structure shadow",
+        "directional work lights"
+      ],
+      "events": [
+        "arc flashes",
+        "machine startup",
+        "rotating or interrupted projection"
+      ],
+      "avoid": [
+        "flat ambient light",
+        "every machine glowing equally"
+      ],
+      "sourceMaps": [
+        "waw_der_riese",
+        "bo1_ascension",
+        "bo2_die_rise",
+        "bo3_the_giant",
+        "aw_carrier"
+      ],
+      "observedFrequency": 5
+    },
+    "occult": {
+      "composition": [
+        "ritual focal contrast",
+        "non-natural motivated supernatural sources",
+        "deep peripheral shadow",
+        "symbol reveal by angle/light"
+      ],
+      "events": [
+        "ritual pulse",
+        "state-color shift",
+        "localized supernatural bloom"
+      ],
+      "avoid": [
+        "random colored lights without narrative source"
+      ],
+      "sourceMaps": [
+        "waw_der_riese",
+        "bo2_mob",
+        "bo2_origins",
+        "bo3_shadows",
+        "bo3_der_eisendrache",
+        "bo3_the_giant",
+        "bo4_ix",
+        "bo4_dead_of_the_night",
+        "bo4_ancient_evil",
+        "vg_der_anfang",
+        "vg_terra_maledicta",
+        "vg_archon",
+        "bo6_citadelle",
+        "bo6_tomb",
+        "wwii_final_reich",
+        "wwii_tortured_path",
+        "wwii_frozen_dawn"
+      ],
+      "observedFrequency": 17
+    },
+    "body_horror": {
+      "composition": [
+        "partial reveal",
+        "specular/wet material control",
+        "silhouette-first enemy reveal",
+        "clinical-to-corrupted contrast"
+      ],
+      "events": [
+        "short reveal bursts",
+        "emergency lighting",
+        "contained flicker"
+      ],
+      "avoid": [
+        "overexposed gore",
+        "loss of combat readability"
+      ],
+      "sourceMaps": [
+        "waw_verruckt",
+        "bo3_shadows",
+        "bo3_zetsubou",
+        "bo4_voyage",
+        "aw_outbreak",
+        "aw_infection",
+        "aw_carrier",
+        "aw_descent",
+        "iw_radioactive",
+        "iw_beast",
+        "wwii_final_reich",
+        "wwii_shadowed_throne",
+        "wwii_groesten_haus"
+      ],
+      "observedFrequency": 13
+    },
+    "cosmic": {
+      "composition": [
+        "strong sky/environment contrast",
+        "unfamiliar directional light",
+        "cold or spectral depth layers",
+        "large-scale silhouette"
+      ],
+      "events": [
+        "realm shift",
+        "energy surge",
+        "low-gravity/state cues"
+      ],
+      "avoid": [
+        "ordinary interior lighting in supernatural zones"
+      ],
+      "sourceMaps": [
+        "bo1_ascension",
+        "bo1_moon",
+        "bo2_origins",
+        "bo3_revelations",
+        "bo7_astra",
+        "iw_beast"
+      ],
+      "observedFrequency": 6
+    },
+    "folk_horror": {
+      "composition": [
+        "warm practical islands inside cold/dark surroundings",
+        "weather-diffused exterior",
+        "architectural landmark lighting",
+        "fire/candle hierarchy"
+      ],
+      "events": [
+        "storm flash",
+        "ritual event",
+        "wind-driven practical variation"
+      ],
+      "avoid": [
+        "modern uniform fixtures dominating old-world spaces"
+      ],
+      "sourceMaps": [
+        "waw_shi_no_numa",
+        "bo1_shangri_la",
+        "bo2_buried",
+        "bo3_zetsubou",
+        "bo4_ancient_evil",
+        "vg_shi_no_numa",
+        "bo6_citadelle",
+        "bo7_ashes",
+        "bo7_totenreich",
+        "bo7_kowakujo",
+        "iw_rave",
+        "wwii_darkest_shore",
+        "wwii_frozen_dawn"
+      ],
+      "observedFrequency": 13
+    },
+    "war_ruin": {
+      "composition": [
+        "smoke/dust depth",
+        "broken exterior spill",
+        "fire or emergency accents",
+        "damaged-building silhouette"
+      ],
+      "events": [
+        "distant flash",
+        "electrical failure",
+        "searchlight or flare-like sweep when justified"
+      ],
+      "avoid": [
+        "pristine symmetrical lighting"
+      ],
+      "sourceMaps": [
+        "waw_nacht",
+        "bo1_kino",
+        "bo2_tranzit",
+        "bo2_nuketown",
+        "bo2_origins",
+        "bo3_der_eisendrache",
+        "bo3_gorod",
+        "cw_die_maschine",
+        "cw_firebase_z",
+        "cw_mauer",
+        "bo6_liberty_falls",
+        "wwii_final_reich",
+        "wwii_darkest_shore",
+        "wwii_shadowed_throne",
+        "wwii_tortured_path",
+        "wwii_groesten_haus",
+        "mwiii_urzikstan"
+      ],
+      "observedFrequency": 17
+    },
+    "surreal": {
+      "composition": [
+        "familiar base exposure with selective impossible sources",
+        "color contrast tied to state",
+        "depth cues that preserve navigation"
+      ],
+      "events": [
+        "state transition",
+        "teleport/portal activation",
+        "environment inversion cue"
+      ],
+      "avoid": [
+        "making every surface equally strange"
+      ],
+      "sourceMaps": [
+        "bo1_kino",
+        "bo1_five",
+        "bo1_shangri_la",
+        "bo2_tranzit",
+        "bo2_nuketown",
+        "bo2_die_rise",
+        "bo2_buried",
+        "bo3_shadows",
+        "bo3_gorod",
+        "bo3_revelations",
+        "bo4_voyage",
+        "bo4_ix",
+        "bo4_blood",
+        "bo4_classified",
+        "bo4_alpha_omega",
+        "bo4_tag",
+        "cw_forsaken",
+        "bo7_paradox",
+        "bo7_rex_infernus",
+        "iw_spaceland",
+        "iw_shaolin"
+      ],
+      "observedFrequency": 21
+    },
+    "dark_aether": {
+      "composition": [
+        "readable physical route under supernatural atmosphere",
+        "emissive contamination accents",
+        "deep volumetric separation",
+        "state-specific landmark treatment"
+      ],
+      "events": [
+        "realm breach",
+        "energy surge",
+        "corruption spread"
+      ],
+      "avoid": [
+        "full-screen color wash that destroys local material identity"
+      ],
+      "sourceMaps": [
+        "cw_die_maschine",
+        "cw_firebase_z",
+        "cw_mauer",
+        "cw_forsaken",
+        "vg_der_anfang",
+        "vg_terra_maledicta",
+        "vg_archon",
+        "bo6_terminus",
+        "bo6_liberty_falls",
+        "bo6_tomb",
+        "bo6_shattered_veil",
+        "bo6_reckoning",
+        "bo7_ashes",
+        "bo7_astra",
+        "bo7_paradox",
+        "bo7_totenreich",
+        "bo7_kowakujo",
+        "bo7_rex_infernus"
+      ],
+      "observedFrequency": 18
+    },
+    "camp_horror": {
+      "composition": [
+        "bold readable thematic practicals",
+        "controlled saturated accents",
+        "strong attraction/signage landmarks",
+        "dark connective spaces"
+      ],
+      "events": [
+        "showpiece attraction activation",
+        "sign failure",
+        "localized spectacle"
+      ],
+      "avoid": [
+        "turning the entire map into one saturated color"
+      ],
+      "sourceMaps": [
+        "bo1_call_of_the_dead",
+        "bo4_dead_of_the_night",
+        "aw_infection",
+        "iw_spaceland",
+        "iw_rave",
+        "iw_shaolin",
+        "iw_radioactive"
+      ],
+      "observedFrequency": 7
+    }
+  },
+  "stateComposition": {
+    "power_off": [
+      "use sparse practical pools and exterior spill",
+      "keep critical floor and exits readable",
+      "reserve darkness in noncritical depth",
+      "preserve global landmark silhouette"
+    ],
+    "power_on": [
+      "sequence activation by electrical or narrative circuit",
+      "wake emissive machinery and audio together",
+      "increase navigation clarity but retain local threat shadows",
+      "allow newly active equipment to produce new movement/shadow cues"
+    ],
+    "special_round": [
+      "change one or two dominant cues rather than recolor everything",
+      "preserve exits, hazards and enemy silhouettes",
+      "use recognizable pre-arrival environmental warning"
+    ],
+    "boss_or_finale": [
+      "reuse previously taught hazard and lighting language",
+      "increase focal contrast at the objective",
+      "preserve player orientation under spectacle"
+    ]
+  },
+  "beautyMetrics": [
+    "depth_separation",
+    "landmark_contrast",
+    "critical_path_readability",
+    "enemy_silhouette_readability",
+    "material_response_coherence",
+    "color_temperature_relationship",
+    "darkness_reserve",
+    "event_rarity",
+    "practical_source_justification"
+  ],
+  "cleanRoomGuardrails": [
+    "No exact reference light placement.",
+    "No copied proprietary lightmaps, textures, LUTs or post-process assets.",
+    "Use only abstract composition principles and original authored results."
+  ]
+}

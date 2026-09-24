@@ -1,0 +1,164 @@
+{
+  "schema": 1,
+  "id": "hayuya_church_giant_encounters_v1",
+  "profile": "church_giants",
+  "purpose": "Original HAYUYA church-presence characters and encounter grammar for Sanctum-style horror storytelling.",
+  "settingTags": ["church", "chapel", "cathedral", "sanctum", "zombie_horror", "religious_ruin"],
+  "designIntent": [
+    "The player should fear the characters before understanding whether they are enemies.",
+    "The church itself participates in the encounter through bells, candles, doors, stained glass, confessionals, shadows and route changes.",
+    "The three characters are recurring presences with distinct identities, not interchangeable special-enemy spawns.",
+    "Some appearances are atmosphere only; some alter routes or lore; some reward observation; a minority may escalate into combat."
+  ],
+  "actors": [
+    {
+      "id": "bell_mourner",
+      "displayName": "The Bell Mourner",
+      "heightMeters": 2.25,
+      "silhouette": "very_tall_lanky_robed",
+      "storyRole": "The church's distant warning and impossible caller.",
+      "signatureProps": ["small_bells", "cross", "rope_belt"],
+      "primarySpaces": ["bell_tower_axis", "stained_glass_crossing", "far_aisle", "balcony", "side_door"],
+      "signals": ["single_bell_without_visible_source", "distant_hymn_fragment", "unexpected_silhouette", "pew_creak_after_bell"],
+      "behaviors": ["observe_from_distance", "cross_occluded_route", "stand_at_far_aisle", "withdraw_when_occluded"],
+      "storyConsequences": ["door_state_changes", "bell_left_as_evidence", "route_foreshadowing", "other_giant_event_marked"],
+      "combatPolicy": "not_default"
+    },
+    {
+      "id": "procession_warden",
+      "displayName": "The Procession Warden",
+      "heightMeters": 2.05,
+      "silhouette": "tall_ceremonial_robed_with_frame_and_lantern",
+      "storyRole": "A moving ritual route that may guide, test or misdirect the player.",
+      "signatureProps": ["processional_frame", "lantern", "bells", "ceremonial_metalwork"],
+      "primarySpaces": ["central_nave", "procession_aisle", "altar_axis", "side_chapel_connector"],
+      "signals": ["candles_ignite_in_sequence", "incense_or_fog_line", "measured_footsteps", "procession_bell_pattern"],
+      "behaviors": ["walk_authored_procession_path", "pause_at_story_anchor", "continue_if_followed", "withdraw_behind_occlusion"],
+      "storyConsequences": ["secret_route_reveal", "lore_object_reveal", "temporary_route_change", "misdirection_variant"],
+      "combatPolicy": "not_default"
+    },
+    {
+      "id": "confessional_keeper",
+      "displayName": "The Confessional Keeper",
+      "heightMeters": 1.95,
+      "silhouette": "broad_heavy_robed",
+      "storyRole": "A memory and consequence presence tied to player actions and confession spaces.",
+      "signatureProps": ["rosary", "cross", "censer", "rope"],
+      "primarySpaces": ["confessional", "side_chapel", "dark_pew_row", "altar_side"],
+      "signals": ["wood_creak", "breathing_behind_screen", "faint_repeated_phrase", "confessional_door_moves"],
+      "behaviors": ["sit_unmoving", "listen", "look_toward_player", "stand_after_occluded_transition"],
+      "storyConsequences": ["question_from_match_history", "map_state_change", "lore_reveal", "reward_or_denial", "future_event_modifier"],
+      "combatPolicy": "not_default"
+    }
+  ],
+  "encounterTemplates": [
+    {
+      "id": "bell_distant_crossing",
+      "actor": "bell_mourner",
+      "phases": ["signal", "glimpse", "afterimage"],
+      "sequence": [
+        "ring_one_bell_from_occluded_source",
+        "reserve_stained_glass_crossing_anchor",
+        "show_silhouette_crossing_only_if_player_view_is_valid",
+        "remove_actor_only_after_occlusion",
+        "leave_small_environmental_change"
+      ],
+      "defaultOutcome": "unease_only"
+    },
+    {
+      "id": "bell_returned_gaze",
+      "actor": "bell_mourner",
+      "phases": ["signal", "suspicion", "manifestation", "afterimage"],
+      "sequence": [
+        "play_near_bell_cue_behind_player",
+        "validate_forward_aisle_reveal_anchor",
+        "place_preloaded_actor_at_far_aisle",
+        "hold_still_and_look_toward_player",
+        "use_motivated_light_transition",
+        "withdraw_only_during_valid_occlusion"
+      ],
+      "defaultOutcome": "unease_plus_foreshadowing"
+    },
+    {
+      "id": "warden_procession",
+      "actor": "procession_warden",
+      "phases": ["signal", "manifestation", "interaction", "consequence"],
+      "sequence": [
+        "ignite_procession_candles_in_authored_order",
+        "reveal_warden_at_route_origin",
+        "walk_procession_spline",
+        "branch_on_player_follow_distance",
+        "resolve_to_story_anchor_or_misdirection_anchor",
+        "leave_route_evidence"
+      ],
+      "playerChoices": ["follow", "keep_distance", "leave", "cross_route"],
+      "defaultOutcome": "route_or_story_change"
+    },
+    {
+      "id": "keeper_first_presence",
+      "actor": "confessional_keeper",
+      "phases": ["signal", "suspicion", "glimpse", "afterimage"],
+      "sequence": [
+        "play_confessional_wood_and_breathing_cues",
+        "keep_actor_hidden_on_first_pass",
+        "on_later_valid_visit_show_seated_silhouette",
+        "use_occlusion_before_any_position_change",
+        "preserve_match_memory_flag"
+      ],
+      "defaultOutcome": "persistent_story_flag"
+    },
+    {
+      "id": "keeper_memory_question",
+      "actor": "confessional_keeper",
+      "phases": ["signal", "manifestation", "interaction", "consequence", "afterimage"],
+      "sequence": [
+        "select_question_from_serialized_match_history",
+        "offer_silence_or_interaction_window",
+        "resolve_world_state_without_forcing_combat",
+        "occlude_actor_before_stand_or_withdraw_transition",
+        "modify_future_encounter_weights"
+      ],
+      "defaultOutcome": "story_and_world_state_change"
+    },
+    {
+      "id": "triad_altar_tableau",
+      "actors": ["bell_mourner", "procession_warden", "confessional_keeper"],
+      "phases": ["signal", "manifestation", "afterimage"],
+      "sequence": [
+        "require_prior_contact_flags_for_each_actor",
+        "reserve_three_altar_anchors",
+        "present_all_three_as_still_silhouettes",
+        "hold_for_short_readable_window",
+        "use_authored_light_transition",
+        "clear_only_after_valid_occlusion",
+        "set_triad_seen_flag"
+      ],
+      "defaultOutcome": "major_story_payoff",
+      "rarityClass": "rare"
+    }
+  ],
+  "variantSystem": {
+    "selection": "weighted_seeded_per_match",
+    "historyAware": true,
+    "antiRepetition": true,
+    "rareVariantsDoNotBlockProgression": true,
+    "examples": [
+      "bell_pattern_changes_after_prior_warden_event",
+      "warden_route_ends_at_confessional_after_keeper_flag",
+      "keeper_question_references_prior_player_choice",
+      "triad_tableau_requires_prior_individual_contact"
+    ]
+  },
+  "worldIntegration": {
+    "requiredAnchorMetadata": ["anchor_id", "room_or_zone", "visibility_class", "occlusion_exit", "nav_clearance", "streaming_cell"],
+    "stateInputs": ["round_or_progression_state", "power_state", "quest_flags", "player_route_history", "prior_encounters", "coop_player_positions"],
+    "stateOutputs": ["door_or_route_state", "story_flags", "encounter_weights", "lore_reveal", "reward_hook", "lighting_event", "audio_event"],
+    "xzielHandoff": ["XMAP_logic_links", "actor_anchor_entities", "event_state", "animation_markers", "audio_cues", "light_group_cues"]
+  },
+  "contentPolicy": {
+    "originalCharacters": true,
+    "originalEncounterScripts": true,
+    "referenceUse": "abstract horror pacing and folklore-like presence only",
+    "copyExternalCharactersOrScenes": false
+  }
+}

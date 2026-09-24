@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "id": "hayuya_map_design_brain_v1",
+  "purpose": "Compile clean-room public design observations into original HAYUYA Map structure constraints without copying exact layouts or proprietary content.",
+  "knowledge": {
+    "atlas": "docs/zombies-map-dna-atlas.v1.json",
+    "coverage": "docs/zombies-map-dna-coverage.v1.json",
+    "profiles": {
+      "sanctum_classic": "docs/sanctum-zombies-dna-profile.v1.json"
+    },
+    "patternLibrary": "hayuya/knowledge/zombies_design_pattern_library_v1.json"
+  },
+  "principles": [
+    "Use source maps only as abstract evidence for topology, pacing, readability, progression, encounter pressure and atmosphere.",
+    "Generate original geometry, room dimensions, routes, names, quest text, art, audio and scripts.",
+    "A playable map needs topology, economy/progression, pressure and readability/horror gates independently.",
+    "Complexity may scale only when navigation support scales with it."
+  ],
+  "requiredReasoningPasses": [
+    "global_landmark_and_region_identity",
+    "early_route_fork",
+    "combat_loop_and_bailouts",
+    "door_economy_and_route_consequences",
+    "power_or_progression_state_graph",
+    "spawn_pressure_vectors",
+    "special_enemy_route_modifiers",
+    "quest_graph",
+    "transport_and_shortcut_graph",
+    "high_round_circulation",
+    "mobile_streaming_cells_and_portals"
+  ],
+  "worldJudgeGates": [
+    "at_least_one_global_landmark",
+    "major_zones_have_distinct_identity",
+    "medium_or_large_maps_have_meaningful_early_fork",
+    "at_least_one_completed_combat_loop",
+    "at_least_one_progression_shortcut",
+    "major_zones_have_multiple_enemy_pressure_vectors",
+    "normal_enemy_spawns_not_visible_pop_in",
+    "special_enemy_roles_modify_route_choice",
+    "quest_nodes_are_reusable_generic_logic",
+    "streaming_boundaries_do_not_break_gameplay_connectivity"
+  ],
+  "guardrails": [
+    "no_exact_room_dimensions_from_reference_maps",
+    "no_exact_layout_reconstruction",
+    "no_proprietary_assets",
+    "no_proprietary_scripts_or_source_code",
+    "no_copied_quest_text",
+    "no_extracted_game_data"
+  ]
+}

@@ -1,0 +1,181 @@
+{
+  "schema": 1,
+  "id": "hayuya_world_generation_ai_atlas_v1",
+  "updated": "2026-09-24",
+  "purpose": "Public clean-room research atlas of systems that reconstruct, generate, simulate, plan, or assist 3D worlds. HAYUYA copies architectural lessons, not proprietary models, layouts, assets, prompts, training data, or product internals.",
+  "systems": [
+    {
+      "id": "meta_mapanything",
+      "type": "metric_3d_reconstruction",
+      "inputs": ["images", "optional_cameras", "optional_depth", "optional_calibration"],
+      "outputs": ["camera_geometry", "depth", "metric_scene_structure"],
+      "transferableLessons": [
+        "treat camera, depth and geometry as coupled inference tasks",
+        "accept partial geometric priors instead of forcing image-only operation",
+        "keep one scene backbone capable of several metric reconstruction tasks"
+      ],
+      "integrationRole": "metric_geometry_arena_candidate",
+      "source": "https://github.com/facebookresearch/map-anything"
+    },
+    {
+      "id": "meta_vggt",
+      "type": "multi_view_geometry",
+      "inputs": ["multi_view_images"],
+      "outputs": ["camera", "depth", "point_maps", "point_tracks"],
+      "transferableLessons": [
+        "use a second independent geometry hypothesis",
+        "judge camera and point consistency rather than trusting a single reconstruction"
+      ],
+      "integrationRole": "metric_geometry_arena_challenger",
+      "source": "https://github.com/facebookresearch/vggt"
+    },
+    {
+      "id": "hy_world_2",
+      "type": "multimodal_world_model",
+      "inputs": ["multi_modal_world_evidence"],
+      "outputs": ["reconstruction", "generation", "simulation"],
+      "transferableLessons": [
+        "separate reconstruction, world generation and world simulation capabilities",
+        "treat a world model as a modular stack rather than one final mesh button",
+        "preserve editable 3D representations downstream of generative stages"
+      ],
+      "integrationRole": "research_reference_and_optional_backend_after_license_review",
+      "source": "https://github.com/Tencent-Hunyuan/HY-World-2.0"
+    },
+    {
+      "id": "hunyuanworld_voyager",
+      "type": "camera_controllable_rgbd_world_extension",
+      "inputs": ["image", "camera_path"],
+      "outputs": ["rgb_video", "aligned_depth_video", "point_cloud_sequence"],
+      "transferableLessons": [
+        "camera path can be an explicit conditioning/control signal",
+        "RGB and depth should remain aligned during world extension",
+        "long-range generation needs a persistent world cache and culling strategy"
+      ],
+      "integrationRole": "missing_space_and_long_range_world_extension_research",
+      "source": "https://github.com/Tencent-Hunyuan/HunyuanWorld-Voyager"
+    },
+    {
+      "id": "hy_worldplay",
+      "type": "interactive_world_model",
+      "inputs": ["world_state", "player_or_camera_action"],
+      "outputs": ["interactive_future_world_observation"],
+      "transferableLessons": [
+        "judge temporal consistency in addition to still-image beauty",
+        "world generation and player control must share state",
+        "interactive latency is a separate engineering target from offline quality"
+      ],
+      "integrationRole": "interactive_world_simulation_research",
+      "source": "https://github.com/Tencent-Hunyuan/HY-WorldPlay"
+    },
+    {
+      "id": "world_labs_marble",
+      "type": "commercial_multimodal_world_model",
+      "inputs": ["text", "image", "video", "coarse_3d_layout"],
+      "outputs": ["editable_explorable_3d_world"],
+      "transferableLessons": [
+        "world creation should accept heterogeneous modalities",
+        "worlds should support edit, expand and combine operations after generation",
+        "coarse layout is a valuable control input, not merely a final output"
+      ],
+      "integrationRole": "product_behavior_benchmark",
+      "source": "https://www.worldlabs.ai/blog/marble-world-model"
+    },
+    {
+      "id": "google_genie_3",
+      "type": "interactive_visual_world_model",
+      "inputs": ["text_description", "user_actions"],
+      "outputs": ["real_time_interactive_visual_environment"],
+      "transferableLessons": [
+        "interactive world simulation should be evaluated over time, not one frame",
+        "agent action consequences are part of world understanding",
+        "photorealistic visual simulation is not equivalent to editable game-engine geometry"
+      ],
+      "integrationRole": "simulation_behavior_benchmark_not_geometry_authority",
+      "source": "https://deepmind.google/models/genie/"
+    },
+    {
+      "id": "worldgen_scene_pipeline",
+      "type": "open_scene_generator",
+      "inputs": ["text", "image"],
+      "outputs": ["gaussian_scene", "mesh_scene", "free_view_exploration"],
+      "transferableLessons": [
+        "360 proxy generation plus depth can bootstrap scene-scale reconstruction",
+        "mesh and splat representations should coexist as different delivery targets",
+        "loop closure and global scale consistency need explicit QA"
+      ],
+      "integrationRole": "open_world_generation_research",
+      "source": "https://github.com/ZiYang-xie/WorldGen"
+    },
+    {
+      "id": "nvidia_edify_scene_composition",
+      "type": "llm_scene_layout_plus_asset_generation",
+      "inputs": ["text"],
+      "outputs": ["scene_layout", "generated_assets"],
+      "transferableLessons": [
+        "separate scene-layout reasoning from individual asset generation",
+        "LLMs are useful for object positions, scales and composition plans",
+        "generated assets need production topology/material stages after semantic layout"
+      ],
+      "integrationRole": "scene_planner_architecture_reference",
+      "source": "https://research.nvidia.com/labs/cosmos-lab/edify-3d/"
+    },
+    {
+      "id": "promethean_ai",
+      "type": "production_world_building_assistant",
+      "inputs": ["natural_language", "studio_asset_library", "creative_metadata"],
+      "outputs": ["asset_retrieval", "scene_configuration", "artist_assistance"],
+      "transferableLessons": [
+        "index the user's existing assets instead of regenerating everything",
+        "metadata and creative history form a reusable world-building memory",
+        "human editable scene assembly should remain first-class"
+      ],
+      "integrationRole": "asset_brain_and_editor_workflow_benchmark",
+      "source": "https://www.prometheanai.com/ai-world-building"
+    },
+    {
+      "id": "ludo_ai",
+      "type": "game_design_and_asset_assistant",
+      "inputs": ["keywords", "themes", "mechanics", "reference_titles", "filters"],
+      "outputs": ["concepts", "gdd", "art", "assets"],
+      "transferableLessons": [
+        "separate design intent filters from world generation",
+        "allow iterative variation rather than one-shot generation",
+        "feed accepted design decisions back into later generation stages"
+      ],
+      "integrationRole": "game_design_planning_benchmark",
+      "source": "https://ludo.ai/features/game-ideator"
+    },
+    {
+      "id": "unreal_pcg",
+      "type": "rule_based_procedural_world_authoring",
+      "inputs": ["artist_rules", "scene_data", "parameters"],
+      "outputs": ["procedural_scene_population"],
+      "transferableLessons": [
+        "procedural rules need live parameters and artist override",
+        "large worlds require partition-aware generation",
+        "generation graphs should be reusable at asset, biome and world scales"
+      ],
+      "integrationRole": "procedural_graph_and_streaming_reference",
+      "source": "https://www.unrealengine.com/electric-dreams-environment"
+    }
+  ],
+  "crossSystemArchitectureLessons": [
+    "Split semantic planning, spatial layout, asset creation, geometry reconstruction, simulation, optimization and runtime compilation into replaceable stages.",
+    "Use explicit scene/world graphs as the durable intermediate representation.",
+    "Generate multiple hypotheses for expensive or uncertain stages and judge them with independent evidence.",
+    "Support text, images, video, maps, depth, meshes, coarse layouts and user corrections as peer evidence sources.",
+    "Maintain persistent world state for long-range generation rather than treating every view as an isolated prompt.",
+    "Keep editability after generation: objects, regions, materials, routes and gameplay logic should remain addressable.",
+    "Use solver agents to test playability; visual beauty alone cannot certify a game level.",
+    "Separate offline hero-world quality from real-time/mobile delivery derivatives.",
+    "Treat licensing, provenance and provider terms as pipeline metadata rather than after-the-fact paperwork."
+  ],
+  "guardrails": [
+    "no_reverse_engineering_of_private_apis_or_access_controls",
+    "no_model_weight_copying_without_license",
+    "no_training_data_extraction",
+    "no_proprietary_prompt_or_layout_copy",
+    "public_docs_and_open_code_only_for_architectural_learning"
+  ]
+}

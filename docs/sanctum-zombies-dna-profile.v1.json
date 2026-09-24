@@ -1,0 +1,305 @@
+{
+  "schemaVersion": 1,
+  "id": "sanctum_classic",
+  "generatedFrom": "docs/zombies-map-dna-atlas.v1.json",
+  "sourceMaps": [
+    "waw_nacht",
+    "waw_verruckt",
+    "waw_der_riese",
+    "bo1_kino",
+    "bo2_mob",
+    "bo2_origins",
+    "bo3_shadows",
+    "wwii_final_reich"
+  ],
+  "sourceTitles": [
+    "Nacht der Untoten",
+    "Verrückt",
+    "Der Riese",
+    "Kino der Toten",
+    "Mob of the Dead",
+    "Origins",
+    "Shadows of Evil",
+    "The Final Reich"
+  ],
+  "constraints": {
+    "topology": [
+      {
+        "value": "looping_compound",
+        "count": 6
+      },
+      {
+        "value": "multi_hub",
+        "count": 5
+      },
+      {
+        "value": "vertical_stack",
+        "count": 2
+      },
+      {
+        "value": "hub_spokes",
+        "count": 1
+      },
+      {
+        "value": "single_holdout",
+        "count": 1
+      }
+    ],
+    "progression": [
+      {
+        "value": "power_gate",
+        "count": 5
+      },
+      {
+        "value": "quest_gate",
+        "count": 3
+      },
+      {
+        "value": "transport_gate",
+        "count": 3
+      },
+      {
+        "value": "doors_only",
+        "count": 1
+      },
+      {
+        "value": "generator_network",
+        "count": 1
+      },
+      {
+        "value": "ritual_gate",
+        "count": 1
+      }
+    ],
+    "pressure": [
+      {
+        "value": "tight_corridors",
+        "count": 7
+      },
+      {
+        "value": "special_enemy_interrupt",
+        "count": 5
+      },
+      {
+        "value": "hazard_floor",
+        "count": 1
+      },
+      {
+        "value": "limited_training_space",
+        "count": 1
+      },
+      {
+        "value": "long_transit",
+        "count": 1
+      },
+      {
+        "value": "split_spawn",
+        "count": 1
+      },
+      {
+        "value": "vertical_chokes",
+        "count": 1
+      }
+    ],
+    "horror": [
+      {
+        "value": "occult",
+        "count": 5
+      },
+      {
+        "value": "war_ruin",
+        "count": 4
+      },
+      {
+        "value": "body_horror",
+        "count": 3
+      },
+      {
+        "value": "institutional",
+        "count": 2
+      },
+      {
+        "value": "surreal",
+        "count": 2
+      },
+      {
+        "value": "cosmic",
+        "count": 1
+      },
+      {
+        "value": "industrial",
+        "count": 1
+      },
+      {
+        "value": "isolation",
+        "count": 1
+      }
+    ],
+    "signatureSystems": [
+      {
+        "value": "electric_traps",
+        "count": 2
+      },
+      {
+        "value": "acid_gat_build",
+        "count": 1
+      },
+      {
+        "value": "afterlife_state",
+        "count": 1
+      },
+      {
+        "value": "apothicon_progression",
+        "count": 1
+      },
+      {
+        "value": "beast_mode",
+        "count": 1
+      },
+      {
+        "value": "crawler_enemy",
+        "count": 1
+      },
+      {
+        "value": "district_rituals",
+        "count": 1
+      },
+      {
+        "value": "elemental_staff_quests",
+        "count": 1
+      },
+      {
+        "value": "fire_traps",
+        "count": 1
+      },
+      {
+        "value": "giant_robots",
+        "count": 1
+      },
+      {
+        "value": "linked_shortcuts",
+        "count": 1
+      },
+      {
+        "value": "minimal_meta_progression",
+        "count": 1
+      },
+      {
+        "value": "mud_slow",
+        "count": 1
+      },
+      {
+        "value": "mystery_box",
+        "count": 1
+      },
+      {
+        "value": "notebook_guidance",
+        "count": 1
+      },
+      {
+        "value": "pack_a_punch_unlock",
+        "count": 1
+      },
+      {
+        "value": "perk_network",
+        "count": 1
+      },
+      {
+        "value": "plane_build",
+        "count": 1
+      },
+      {
+        "value": "power_switch",
+        "count": 1
+      },
+      {
+        "value": "prison_traps",
+        "count": 1
+      },
+      {
+        "value": "sewers",
+        "count": 1
+      },
+      {
+        "value": "six_generators",
+        "count": 1
+      },
+      {
+        "value": "split_team_start",
+        "count": 1
+      },
+      {
+        "value": "stage_power",
+        "count": 1
+      },
+      {
+        "value": "teleporter",
+        "count": 1
+      },
+      {
+        "value": "teleporters",
+        "count": 1
+      },
+      {
+        "value": "tesla_weapon_path",
+        "count": 1
+      },
+      {
+        "value": "tram",
+        "count": 1
+      },
+      {
+        "value": "village_bunker",
+        "count": 1
+      },
+      {
+        "value": "window_barricades",
+        "count": 1
+      }
+    ]
+  },
+  "transferableLessons": [
+    "A tiny readable footprint can stay tense if every escape route has a cost.",
+    "Exterior silhouettes and blocked windows make spawn boundaries feel physical.",
+    "Minimal explanation strengthens environmental mystery.",
+    "Splitting players creates immediate route pressure.",
+    "A power event can transform navigation, audio, and lighting at once.",
+    "Institutional room identity makes every corridor memorable.",
+    "Long-term progression works best when it physically reconnects the map.",
+    "Industrial machinery can serve both lore and navigation.",
+    "Upgrade systems feel earned when tied to traversal actions.",
+    "A strong macro loop supports training while side rooms stay dangerous.",
+    "A landmark room can anchor orientation for the whole map.",
+    "Teleport return paths create controlled disorientation.",
+    "A secondary player state can expose hidden interactions without a separate UI.",
+    "Quest progression works when pieces live on natural traversal routes.",
+    "A strong location fantasy can unify mechanics, audio, and art.",
+    "Distributed power objectives create a natural opening route.",
+    "Large maps need strong regional landmarks and recurring traversal aids.",
+    "Quest weapons are most satisfying when each path teaches the map.",
+    "District structure scales complexity without losing orientation.",
+    "Temporary alternate interaction modes can gate traversal elegantly.",
+    "Repeating one ritual grammar across zones helps players learn a complex quest.",
+    "Guided objectives can coexist with secrets if the critical path stays diegetic.",
+    "A surface village plus buried facility creates natural horror escalation.",
+    "Body-horror enemies are stronger when foreshadowed by environment."
+  ],
+  "xzielTargets": {
+    "globalLandmark": "church_tower",
+    "requiredEarlyFork": true,
+    "requiredCompletedCombatLoop": true,
+    "requiredPostPowerShortcut": true,
+    "requiredPowerAudiovisualStateChange": true,
+    "minZombiePressureVectorsPerMajorZone": 2,
+    "minZombiePressureVectorsLargeZone": 3,
+    "specialEnemyMustModifyRoutes": true,
+    "towerProgressionNeedsBailouts": true,
+    "finaleMechanicMustBeForeshadowed": true
+  },
+  "guardrails": [
+    "Original geometry and art only.",
+    "No exact room dimensions or copied layouts.",
+    "No proprietary scripts, code, textures, audio, meshes, quest text, or extracted map data.",
+    "Source maps contribute only abstract topology, pacing, readability, progression, encounter and atmosphere principles."
+  ]
+}

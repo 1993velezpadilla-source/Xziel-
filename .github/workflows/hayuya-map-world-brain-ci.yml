@@ -1,0 +1,236 @@
+name: Hayuya Map World Brain CI
+
+on:
+  push:
+    branches:
+      - feature/hayuya-map-world-brain-v1
+      - feature/hayuya-map-zombies-dna-v1
+  pull_request:
+    paths:
+      - "tools/hayuya3d/hayuya_map.py"
+      - "tools/hayuya3d/map_design_brain.py"
+      - "tools/hayuya3d/hayuya_lighting.py"
+      - "tools/hayuya3d/world_semantics.py"
+      - "tools/hayuya3d/map_source_registry.py"
+      - "tools/hayuya3d/google_map_tiles.py"
+      - "tools/hayuya3d/geo_coordinates.py"
+      - "tools/hayuya3d/universal_game_design.py"
+      - "tools/hayuya3d/hayuya_ads.py"
+      - "tools/hayuya3d/world_reasoning.py"
+      - "tools/hayuya3d/gameplay_graph_solver.py"
+      - "tools/hayuya3d/world_model_broker.py"
+      - "tools/hayuya3d/reference_search_broker.py"
+      - "tools/hayuya3d/knowledge_registry.py"
+      - "hayuya/standards/hayuya_universal_game_design_brain_v1.json"
+      - "hayuya/standards/hayuya_monetization_brain_v1.json"
+      - "hayuya/standards/hayuya_world_reasoning_domains_v1.json"
+      - "hayuya/knowledge/world_generation_ai_atlas_v1.json"
+      - "ads/policy/google_play_guardrails_v1.json"
+      - "ads/design/world_inventory_patterns_v1.json"
+      - "tools/ads/validate_diegetic_ads.py"
+      - "tools/hayuya3d/tests/test_hayuya_map_world_brain.py"
+      - "tools/hayuya3d/tests/test_google_map_tiles.py"
+      - "tools/hayuya3d/tests/test_geo_coordinates.py"
+      - "tools/hayuya3d/tests/test_universal_design_and_ads.py"
+      - "tools/hayuya3d/tests/test_gameplay_graph_solver.py"
+      - "tools/hayuya3d/tests/test_reference_search_broker.py"
+      - "tools/hayuya3d/tests/test_knowledge_registry.py"
+      - "docs/hayuya/HAYUYA_MAP_WORLD_BRAIN.md"
+      - "docs/hayuya/HAYUYA_LIGHTING_BRAIN.md"
+      - "docs/ZOMBIES_MAP_DNA_ATLAS.md"
+      - "docs/zombies-map-dna-atlas.v1.json"
+      - "docs/zombies-map-dna-coverage.v1.json"
+      - "docs/sanctum-zombies-dna-profile.v1.json"
+      - "docs/WAW_ZOMBIES_HORROR_DNA.md"
+      - "docs/waw-zombies-horror-checklist.json"
+      - "hayuya/standards/hayuya_map_design_brain_v1.json"
+      - "hayuya/knowledge/zombies_design_pattern_library_v1.json"
+      - "hayuya/knowledge/zombies_lighting_pattern_library_v1.json"
+      - "hayuya/standards/hayuya_lighting_brain_v1.json"
+      - ".github/workflows/hayuya-map-world-brain-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  world-brain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Compile foundation
+        run: |
+          python -m py_compile \
+            tools/hayuya3d/world_semantics.py \
+            tools/hayuya3d/map_source_registry.py \
+            tools/hayuya3d/google_map_tiles.py \
+            tools/hayuya3d/geo_coordinates.py \
+            tools/hayuya3d/map_design_brain.py \
+            tools/hayuya3d/hayuya_lighting.py \
+            tools/hayuya3d/hayuya_map.py
+
+      - name: Run World Brain tests
+        run: |
+          python -m unittest \
+            tools/hayuya3d/tests/test_hayuya_map_world_brain.py \
+            tools/hayuya3d/tests/test_google_map_tiles.py \
+            tools/hayuya3d/tests/test_geo_coordinates.py \
+            tools/hayuya3d/tests/test_universal_design_and_ads.py \
+            tools/hayuya3d/tests/test_gameplay_graph_solver.py \
+            tools/hayuya3d/tests/test_reference_search_broker.py \
+            tools/hayuya3d/tests/test_knowledge_registry.py \
+            -v
+
+      - name: Prove provider readiness is secret-safe
+        run: |
+          python tools/hayuya3d/hayuya_map.py --list-providers > /tmp/providers.json
+          python - <<'PY'
+          import json
+          p=json.load(open("/tmp/providers.json", encoding="utf-8"))
+          g=p["providers"]["google_maps_platform"]
+          assert g["credential_env"] == ["GOOGLE_MAPS_API_KEY"]
+          assert g["ready"] is False
+          assert "GOOGLE_MAPS_API_KEY" in g["missing_credentials"]
+          print("HAYUYA_MAP_PROVIDER_SECRET_GATE_OK")
+          PY
+
+      - name: Build no-taxonomy-cap planning fixture
+        run: |
+          python tools/hayuya3d/hayuya_map.py \
+            --job-id ci-open-world \
+            --goal "understand arbitrary unseen world content" \
+            --source "future-unknown-reference.jpg" \
+            --provider user_capture \
+            --provider overture_maps \
+            --bounds=-66.8,18.1,-66.7,18.2 \
+            --output-root /tmp/hayuya-map
+
+          python - <<'PY'
+          import json
+          p=json.load(open("/tmp/hayuya-map/ci-open-world/plan.json", encoding="utf-8"))
+          assert p["perception_policy"]["freeform_labels"] is True
+          assert p["perception_policy"]["freeform_relations"] is True
+          assert p["perception_policy"]["unknown_is_valid"] is True
+          assert p["perception_policy"]["closed_class_detector_is_authoritative"] is False
+          assert p["delegation"]["runtime"] == "Xziel XZSM/XMAP compiler"
+          assert p["universal_game_design_intelligence"]["generation_contract"]["solve_before_expensive_art"] is True
+          assert p["universal_game_design_intelligence"]["solver_implementation"] == "tools/hayuya3d/gameplay_graph_solver.py"
+          assert p["world_reasoning_intelligence"]["knowledge_scope"] == "all_domains_available"
+          assert p["world_model_broker"]["policies"]["research_is_not_execution"] is True
+          assert len(p["world_model_broker"]["stages"]["metric_geometry_arena"]) >= 2
+          assert "architecture" in p["world_reasoning_intelligence"]["domains"]
+          assert p["monetization_intelligence"]["policy"]["programmatic_world_space_texture_baking"] is False
+          assert "INTERSTITIAL" in p["monetization_intelligence"]["delivery_paths"]["GOOGLE_ADMOB_UI"]["formats"]
+          assert p["monetization_intelligence"]["shared_xziel_ad_contract"]["inventory_pattern_count"] > 30
+          assert p["knowledge_registry"]["pack_count"] > 5
+          assert p["knowledge_registry"]["contract"]["new_pack_requires_core_code_change"] is False
+          print("HAYUYA_MAP_OPEN_WORLD_GATE_OK")
+          PY
+
+      - name: Build Zombies structure and lighting intelligence fixture
+        run: |
+          python tools/hayuya3d/hayuya_map.py \
+            --job-id ci-zombies-intelligence \
+            --goal "author an original round-based zombie horror map for Xziel" \
+            --source "original-church-reference.jpg" \
+            --provider user_capture \
+            --design-profile sanctum_classic \
+            --lighting-profile zombies_horror \
+            --output-root /tmp/hayuya-map
+
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root=Path("/tmp/hayuya-map/ci-zombies-intelligence")
+          plan=json.loads((root/"plan.json").read_text())
+          design=json.loads((root/"intelligence/map_design.json").read_text())
+          lighting=json.loads((root/"intelligence/lighting.json").read_text())
+          manifest=json.loads((root/"intelligence/knowledge_manifest.json").read_text())
+
+          assert design["knowledge"]["atlas_map_count"] >= 60
+          assert len(design["source_maps"]) == 8
+          assert design["targets"]["requiredEarlyFork"] is True
+          assert design["targets"]["requiredCompletedCombatLoop"] is True
+          assert design["generation_contract"]["copy_reference_layout"] is False
+          assert len(design["cross_map_patterns"]["archetypes"]) >= 6
+          assert "power_off" in lighting["states"]
+          assert lighting["selected_horror_identities"]
+          assert "power_off" in lighting["cross_map_state_composition"]
+          assert "power_on" in lighting["states"]
+          assert lighting["beauty_contract"]["depth_layers_required"] is True
+          assert manifest["design_profile"] == "sanctum_classic"
+          assert manifest["lighting_profile"] == "zombies_horror"
+          assert plan["map_design_intelligence"]["profile_id"] == "sanctum_classic"
+          print("HAYUYA_MAP_ZOMBIES_INTELLIGENCE_GREEN")
+          PY
+
+      - name: Build downloadable intelligence bundle
+        run: |
+          rm -rf /tmp/hayuya-map-intelligence-bundle
+          mkdir -p /tmp/hayuya-map-intelligence-bundle/docs/hayuya
+          mkdir -p /tmp/hayuya-map-intelligence-bundle/standards
+          mkdir -p /tmp/hayuya-map-intelligence-bundle/knowledge
+          mkdir -p /tmp/hayuya-map-intelligence-bundle/generated
+          mkdir -p /tmp/hayuya-map-intelligence-bundle/tools/hayuya3d
+          mkdir -p /tmp/hayuya-map-intelligence-bundle/tools/ads
+          mkdir -p /tmp/hayuya-map-intelligence-bundle/ads/policy
+          mkdir -p /tmp/hayuya-map-intelligence-bundle/ads/design
+
+          cp docs/zombies-map-dna-atlas.v1.json /tmp/hayuya-map-intelligence-bundle/docs/
+          cp docs/zombies-map-dna-coverage.v1.json /tmp/hayuya-map-intelligence-bundle/docs/
+          cp docs/sanctum-zombies-dna-profile.v1.json /tmp/hayuya-map-intelligence-bundle/docs/
+          cp docs/ZOMBIES_MAP_DNA_ATLAS.md /tmp/hayuya-map-intelligence-bundle/docs/
+          cp docs/WAW_ZOMBIES_HORROR_DNA.md /tmp/hayuya-map-intelligence-bundle/docs/
+          cp docs/waw-zombies-horror-checklist.json /tmp/hayuya-map-intelligence-bundle/docs/
+          cp docs/XZIEL_DIEGETIC_ADVERTISING_SYSTEM.md /tmp/hayuya-map-intelligence-bundle/docs/
+          cp docs/hayuya/HAYUYA_MAP_WORLD_BRAIN.md /tmp/hayuya-map-intelligence-bundle/docs/hayuya/
+          cp docs/hayuya/HAYUYA_LIGHTING_BRAIN.md /tmp/hayuya-map-intelligence-bundle/docs/hayuya/
+          cp docs/hayuya/HAYUYA_UNIVERSAL_WORLD_INTELLIGENCE.md /tmp/hayuya-map-intelligence-bundle/docs/hayuya/
+
+          cp hayuya/standards/*.json /tmp/hayuya-map-intelligence-bundle/standards/
+          cp hayuya/knowledge/*.json /tmp/hayuya-map-intelligence-bundle/knowledge/
+
+          cp tools/hayuya3d/hayuya_map.py /tmp/hayuya-map-intelligence-bundle/tools/hayuya3d/
+          cp tools/hayuya3d/map_design_brain.py /tmp/hayuya-map-intelligence-bundle/tools/hayuya3d/
+          cp tools/hayuya3d/hayuya_lighting.py /tmp/hayuya-map-intelligence-bundle/tools/hayuya3d/
+          cp tools/hayuya3d/universal_game_design.py /tmp/hayuya-map-intelligence-bundle/tools/hayuya3d/
+          cp tools/hayuya3d/world_reasoning.py /tmp/hayuya-map-intelligence-bundle/tools/hayuya3d/
+          cp tools/hayuya3d/world_model_broker.py /tmp/hayuya-map-intelligence-bundle/tools/hayuya3d/
+          cp tools/hayuya3d/reference_search_broker.py /tmp/hayuya-map-intelligence-bundle/tools/hayuya3d/
+          cp tools/hayuya3d/knowledge_registry.py /tmp/hayuya-map-intelligence-bundle/tools/hayuya3d/
+          cp tools/hayuya3d/gameplay_graph_solver.py /tmp/hayuya-map-intelligence-bundle/tools/hayuya3d/
+          cp tools/hayuya3d/hayuya_ads.py /tmp/hayuya-map-intelligence-bundle/tools/hayuya3d/
+          cp tools/hayuya3d/world_semantics.py /tmp/hayuya-map-intelligence-bundle/tools/hayuya3d/
+          cp tools/hayuya3d/map_source_registry.py /tmp/hayuya-map-intelligence-bundle/tools/hayuya3d/
+          cp tools/hayuya3d/google_map_tiles.py /tmp/hayuya-map-intelligence-bundle/tools/hayuya3d/
+          cp tools/hayuya3d/geo_coordinates.py /tmp/hayuya-map-intelligence-bundle/tools/hayuya3d/
+          cp tools/ads/validate_diegetic_ads.py /tmp/hayuya-map-intelligence-bundle/tools/ads/
+
+          cp ads/policy/google_play_guardrails_v1.json /tmp/hayuya-map-intelligence-bundle/ads/policy/
+          cp ads/design/world_inventory_patterns_v1.json /tmp/hayuya-map-intelligence-bundle/ads/design/
+
+          cp -R /tmp/hayuya-map/ci-zombies-intelligence/intelligence /tmp/hayuya-map-intelligence-bundle/generated/
+          cp /tmp/hayuya-map/ci-zombies-intelligence/plan.json /tmp/hayuya-map-intelligence-bundle/generated/
+
+          {
+            echo "HAYUYA MAP INTELLIGENCE BUNDLE"
+            echo "commit=$GITHUB_SHA"
+            echo "generated_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo
+            find /tmp/hayuya-map-intelligence-bundle -type f | sort
+          } > /tmp/hayuya-map-intelligence-bundle/BUNDLE_MANIFEST.txt
+
+      - name: Upload Hayuya Map intelligence bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: hayuya-map-intelligence-bundle
+          path: /tmp/hayuya-map-intelligence-bundle
