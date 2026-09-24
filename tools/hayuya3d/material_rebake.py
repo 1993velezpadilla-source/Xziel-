@@ -187,16 +187,20 @@ def rebake_material_channels(
                 remaining.discard(channel)
         missing=sorted(set(supported_requested)-resolved)
         if missing:
-            raise RuntimeError(
+            error=(
                 "material_rebake_output_missing_channels:"
                 + ",".join(missing)
                 + ":present="
                 + ",".join(sorted(present))
             )
-        method="blender_cycles_topology_material_rebake_v2"
+            method="blender_cycles_topology_material_rebake_partial_v2"
+        else:
+            method="blender_cycles_topology_material_rebake_v2"
     except Exception as exc:
         error=f"{type(exc).__name__}:{exc}"
-        method="normal_rebake_failed"
+        method="material_rebake_failed"
+        resolved.clear()
+        remaining=set(requested)
         if target_mesh.resolve()!=output_glb.resolve():
             shutil.copy2(target_mesh,output_glb)
 
