@@ -14,15 +14,15 @@ class TextureRuntimeTests(unittest.TestCase):
         lock=texture_runtime.load_lock()
         entry=lock["runtimes"]["realesrgan-ncnn-vulkan"]
         asset=entry["assets"]["linux-x86_64"]
-        self.assertEqual(entry["version"],"v0.2.0")
+        self.assertEqual(entry["version"],"v0.2.5.0")
         self.assertEqual(
             entry["upstream_commit"],
-            "37026f49824c5cf84062e7c6a5dd71445dcf610f",
+            "685d429c81888252bdb10f56c7754baededc3823",
         )
-        self.assertEqual(entry["license"],"MIT")
+        self.assertEqual(entry["license"],"BSD-3-Clause")
         self.assertEqual(
             asset["sha256"],
-            "d0e8e1cf954f5cde11be4745dd912cc3774bef36f71c5b1cb8f74c4112b6e919",
+            "e5aa6eb131234b87c0c51f82b89390f5e3e642b7b70f2b9bbe95b6a285a40c96",
         )
         self.assertTrue(asset["url"].startswith("https://github.com/xinntao/"))
 
@@ -32,7 +32,7 @@ class TextureRuntimeTests(unittest.TestCase):
             entry,asset=texture_runtime.runtime_spec()
             exe=(
                 root/"realesrgan-ncnn-vulkan"/entry["version"]/
-                asset["archive_root"]/asset["executable"]
+                asset["executable"]
             )
             exe.parent.mkdir(parents=True)
             exe.write_bytes(b"stub")
