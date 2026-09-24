@@ -139,14 +139,20 @@ def audit():
     blender_contract={}
     for rel in protected_workflows:
         wf=(ROOT/rel).read_text(encoding="utf-8")
-        guarded=len(re.findall(
-            r"blender --python-exit-code 1 -b --python tools/hayuya3d/(?:blender_autorig|blender_animation_gate)\\.py",
-            wf
-        ))
-        unsafe=len(re.findall(
-            r"blender -b --python tools/hayuya3d/(?:blender_autorig|blender_animation_gate)\\.py",
-            wf
-        ))
+        guarded=sum(
+            wf.count("blender --python-exit-code 1 -b --python "+script)
+            for script in (
+                "tools/hayuya3d/blender_autorig.py",
+                "tools/hayuya3d/blender_animation_gate.py",
+            )
+        )
+        unsafe=sum(
+            wf.count("blender -b --python "+script)
+            for script in (
+                "tools/hayuya3d/blender_autorig.py",
+                "tools/hayuya3d/blender_animation_gate.py",
+            )
+        )
         require(guarded>0,f"no fail-fast Blender Python calls found:{rel}",errors)
         require(unsafe==0,f"unsafe Blender Python call can hide traceback:{rel}",errors)
         blender_contract[rel]={"guarded_calls":guarded,"unsafe_calls":unsafe}
