@@ -5,7 +5,8 @@ const state = {
   job: null,
   source: null,
   logs: [],
-  currentStage: "queued"
+  currentStage: "queued",
+  currentModelUrl: null
 };
 
 function toast(message) {
@@ -93,13 +94,21 @@ function syncAnimationControls() {
 function showModel(url, label, meta="") {
   if (!url) return;
   const viewer = $("viewer");
+  const sameModel = state.currentModelUrl === url && Boolean(viewer.src);
+  $("modelLabel").textContent = label || "HAYUYA model";
+  $("modelMeta").textContent = meta || "Interactive GLB";
+  $("emptyState").style.display = "none";
+
+  // Job polling runs every 3.5 seconds. Do not replace the same GLB on every
+  // refresh: doing so resets the selected clip, playback time, camera state and
+  // can flash the viewer while the user is inspecting a model.
+  if (sameModel) return;
+
+  state.currentModelUrl = url;
   $("viewerError").hidden = true;
   $("animationControls").hidden = true;
   viewer.pause();
-  viewer.src = url + (url.includes("?") ? "&" : "?") + "v=" + Date.now();
-  $("emptyState").style.display = "none";
-  $("modelLabel").textContent = label || "HAYUYA model";
-  $("modelMeta").textContent = meta || "Interactive GLB";
+  viewer.src = url;
 }
 
 function renderCandidates(job) {
@@ -344,6 +353,7 @@ $("viewer").addEventListener("load", () => {
 $("viewer").addEventListener("error", () => {
   $("viewerError").hidden = false;
   $("animationControls").hidden = true;
+  state.currentModelUrl = null;
 });
 
 function wireDropzone(element, onFiles) {
