@@ -334,19 +334,28 @@ else:
 params=[p.get("parameter_name") for p in spec.get("parameters",[])]
 front=processed[0]
 gallery=[{"image":v,"caption":None} for v in processed]
+quality_presets={
+    "preview":{"ss_steps":10,"slat_steps":10,"mesh_simplify":0.94,"texture_size":1024},
+    "standard":{"ss_steps":12,"slat_steps":12,"mesh_simplify":0.92,"texture_size":2048},
+    # The public TRELLIS endpoint caps texture at 2048 and simplification at
+    # 0.90 minimum.  High/ultra spend extra diffusion steps and keep the
+    # maximum geometry the endpoint exposes instead of pretending to output
+    # fake 4K/8K textures.
+    "high":{"ss_steps":16,"slat_steps":16,"mesh_simplify":0.90,"texture_size":2048},
+    "ultra":{"ss_steps":18,"slat_steps":18,"mesh_simplify":0.90,"texture_size":2048},
+}
+qp=quality_presets.get(TEXTURE_QUALITY,quality_presets["standard"])
 values={
     "image":front,
     "multiimages":gallery,
     "seed":1993,
     "ss_guidance_strength":7.5,
-    "ss_sampling_steps":12,
+    "ss_sampling_steps":qp["ss_steps"],
     "slat_guidance_strength":3.0,
-    "slat_sampling_steps":12,
+    "slat_sampling_steps":qp["slat_steps"],
     "multiimage_algo":"multidiffusion",
-    "mesh_simplify":0.92,
-    "texture_size":2048,
-    "requested_texture_target":{"preview":1024,"standard":2048,"high":4096,"ultra":8192}.get(TEXTURE_QUALITY,2048),
-    "texture_refinement_pending":TEXTURE_QUALITY in {"high","ultra"} or bool(detail_views),
+    "mesh_simplify":qp["mesh_simplify"],
+    "texture_size":qp["texture_size"],
 }
 missing=[p for p in params if p not in values]
 if missing:
@@ -470,9 +479,18 @@ manifest={
     "prep_target":PREP_TARGET,
     "multi_image":multi,
     "generator":"trellis-community/TRELLIS",
-    "texture_size":2048,
-    "requested_texture_target":{"preview":1024,"standard":2048,"high":4096,"ultra":8192}.get(TEXTURE_QUALITY,2048),
-    "texture_refinement_pending":TEXTURE_QUALITY in {"high","ultra"} or bool(detail_views),
+    "texture_size":qp["texture_size"],
+    "requested_texture_target":qp["texture_size"],
+    "native_texture_target":qp["texture_size"],
+    "texture_refinement_pending":False,
+    "quality_profile":{
+        "ss_sampling_steps":qp["ss_steps"],
+        "slat_sampling_steps":qp["slat_steps"],
+        "mesh_simplify":qp["mesh_simplify"],
+        "provider_texture_cap":2048,
+        "detail_reference_count":len(detail_views),
+        "note":"High/ultra maximize the public TRELLIS endpoint honestly; no fake resolution upscaling is reported."
+    },
     "glb":dst.name,
     "glb_bytes":len(data),
     "authenticated_hf":bool(TOKEN),
