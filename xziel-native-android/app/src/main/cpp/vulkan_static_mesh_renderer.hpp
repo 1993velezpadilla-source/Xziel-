@@ -45,6 +45,9 @@ struct StaticMeshFrameStats {
     std::uint32_t pipelineBinds = 0U;
     std::uint32_t submissionGroups = 0U;
     std::uint64_t submittedTriangles = 0U;
+    std::uint32_t portalVisibilityTests = 0U;
+    std::uint32_t portalVisibilityCulled = 0U;
+    std::uint32_t portalSkippedBatches = 0U;
     std::uint32_t cellFrustumTests = 0U;
     std::uint32_t cellFrustumCulled = 0U;
     std::uint32_t cellRangeSkippedBatches = 0U;
