@@ -120,6 +120,16 @@ def main():
                 custom_shape_names.add(shape.name)
                 pbone.custom_shape=None
 
+    # Controller/custom-shape meshes are NOT body geometry. They must be
+    # excluded before calculating donor proportions and before sampling donor
+    # skin data. Including Rigify's Icosphere made the donor look ~2.83m tall
+    # and ~2m wide, compressing the fitted skeleton into the target's legs.
+    donor_meshes_all=list(donor_meshes)
+    donor_meshes=[o for o in donor_meshes if o.name not in custom_shape_names]
+    if not donor_meshes:
+        raise RuntimeError("donor_has_no_render_mesh_after_control_shape_filter")
+    excluded_donor_meshes=sorted(o.name for o in donor_meshes_all if o not in donor_meshes)
+
     donor_min,donor_max=world_bbox(donor_meshes)
     donor_ext=donor_max-donor_min
     donor_axis=height_axis(donor_ext)
@@ -593,12 +603,13 @@ def main():
         "weighted_bone_count":len(all_weighted_groups),
         "donor_root_objects":donor_root_names,
         "cleared_custom_shape_objects":sorted(custom_shape_names),
+        "excluded_donor_meshes_from_fit":excluded_donor_meshes,
         "armature_object_transform_baked":True,
         "armature_world_before":arm_world_before,
         "armature_world_after":arm_world_after,
         "export_meshes":remaining_meshes,
         "sterile_export_scene_meshes":export_scene_meshes,
-        "binding_method":"geometric_side_bone_envelope_sterile_export_v14",
+        "binding_method":"control_filtered_geometric_bone_envelope_v16",
         "bind_results":bind_results,
         "output_bytes":args.output.stat().st_size if args.output.exists() else 0,
     }
