@@ -35,6 +35,11 @@ class QAPackageResult:
     animation_integrity_ready: bool
     animation_channels: int
     animation_keyframes: int
+    deformation_applicable: bool
+    deformation_ready: bool
+    deformation_frames: int
+    deformation_max_displacement_ratio: float | None
+    deformation_max_edge_stretch_ratio: float | None
     skin_weights_applicable: bool
     skin_weights_ready: bool
     turntable_ready: bool
@@ -425,6 +430,52 @@ def build_qa_package(
             "skin-weight QA must pass before character production-ready status"
         )
 
+    deformation_audit = None
+    deformation_applicable = False
+    deformation_ready = False
+    deformation_frames = 0
+    deformation_max_displacement_ratio = None
+    deformation_max_edge_stretch_ratio = None
+    if (
+        rig_required
+        and rig_ready
+        and skin_weights_ready
+        and animation_integrity_ready
+    ):
+        try:
+            from deformation_qa import audit_deformation
+            deformation_audit = audit_deformation(final_glb)
+            deformation_applicable = bool(deformation_audit.applicable)
+            deformation_ready = bool(
+                deformation_audit.applicable
+                and deformation_audit.ready
+            )
+            deformation_frames = int(deformation_audit.sampled_frames)
+            deformation_max_displacement_ratio = float(
+                deformation_audit.max_displacement_ratio
+            )
+            deformation_max_edge_stretch_ratio = float(
+                deformation_audit.max_edge_stretch_ratio
+            )
+            warnings.extend(deformation_audit.warnings or [])
+            warnings.extend(deformation_audit.errors or [])
+        except Exception as exc:
+            warnings.append(
+                "deformation QA unavailable: "
+                f"{type(exc).__name__}: {exc}"
+            )
+    if (
+        rig_required
+        and rig_ready
+        and skin_weights_ready
+        and animation_integrity_ready
+        and not deformation_ready
+    ):
+        warnings.append(
+            "rig/weights/animation metadata are valid but sampled Deformation QA "
+            "failed; character production-ready status is false"
+        )
+
     if rig_required and not rig_ready:
         warnings.append(
             "character asset is geometrically usable but unrigged; animation/gameplay-ready status is false"
@@ -573,6 +624,7 @@ def build_qa_package(
         and (rig_ready if rig_required else True)
         and (skin_weights_ready if rig_required and rig_ready else True)
         and (animation_ready if rig_required else True)
+        and (deformation_ready if rig_required else True)
     )
 
     contact_path = build_contact_sheet(
@@ -636,6 +688,16 @@ def build_qa_package(
                 "ready": animation_integrity_ready,
                 "channel_count": animation_channels,
                 "total_keyframes": animation_keyframes,
+            }
+        ),
+        "deformation_qa": (
+            asdict(deformation_audit)
+            if deformation_audit is not None else {
+                "applicable": deformation_applicable,
+                "ready": deformation_ready,
+                "sampled_frames": deformation_frames,
+                "max_displacement_ratio": deformation_max_displacement_ratio,
+                "max_edge_stretch_ratio": deformation_max_edge_stretch_ratio,
             }
         ),
         "skin_weights": (
@@ -705,6 +767,11 @@ def build_qa_package(
         animation_integrity_ready=animation_integrity_ready,
         animation_channels=animation_channels,
         animation_keyframes=animation_keyframes,
+        deformation_applicable=deformation_applicable,
+        deformation_ready=deformation_ready,
+        deformation_frames=deformation_frames,
+        deformation_max_displacement_ratio=deformation_max_displacement_ratio,
+        deformation_max_edge_stretch_ratio=deformation_max_edge_stretch_ratio,
         skin_weights_applicable=skin_weights_applicable,
         skin_weights_ready=skin_weights_ready,
         turntable_ready=turntable_ready,
