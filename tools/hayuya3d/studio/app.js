@@ -282,6 +282,18 @@ function renderPortablePack(pack) {
       if (lod.faces != null) {
         parts.push(Number(lod.faces).toLocaleString() + " tris");
       }
+      if (lod.attachment_components != null) {
+        parts.push(Number(lod.attachment_components) + " parts");
+      }
+      if (lod.attachment_accessories != null) {
+        parts.push(Number(lod.attachment_accessories) + " accessories");
+      }
+      if (lod.attachment_ready === false) {
+        parts.push("attachment!");
+      }
+      if (lod.attachment_accessory_retention_ready === false) {
+        parts.push("accessory loss!");
+      }
       if (lod.rig_required) {
         parts.push(lod.rig_ready ? "rig" : "rig!");
         parts.push(lod.deformation_ready ? "deform" : "deform!");
