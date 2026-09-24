@@ -316,6 +316,10 @@ def main():
         resolved.append("normal")
 
     if "occlusion" in channels:
+        # AO is topology-dependent runtime shading. The high-poly/source meshes
+        # are only normal-bake evidence and must not contaminate target AO.
+        for source_obj in source_meshes:
+            source_obj.hide_render=True
         ao_image=new_noncolor_image(
             "HAYUYA_Rebaked_Occlusion",a.size,(1.0,1.0,1.0,1.0)
         )
