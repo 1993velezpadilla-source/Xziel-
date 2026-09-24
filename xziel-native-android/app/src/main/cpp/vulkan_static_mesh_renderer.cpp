@@ -4588,6 +4588,78 @@ bool VulkanStaticMeshRenderer::loadModel(
         return false;
     }
 
+    const auto parseBytes =
+        [&](std::span<const std::byte> byteSpan,
+            bool mapped) noexcept {
+            const auto result =
+                parseStaticMeshXzsm(
+                    byteSpan,
+                    out);
+
+            if (!result.success) {
+                return false;
+            }
+
+            StaticMeshDirectory directory{};
+            const auto directoryResult =
+                parseStaticMeshXzsmDirectory(
+                    byteSpan,
+                    directory);
+
+            if (!directoryResult.success ||
+                directory.batches.size() !=
+                    out.batches.size()) {
+                out = {};
+                return false;
+            }
+
+            geometryDirectory_ =
+                std::move(directory);
+            geometryAssetPath_ =
+                path != nullptr
+                ? path
+                : "";
+
+            __android_log_print(
+                ANDROID_LOG_INFO,
+                kTag,
+                "XZIEL_XZSM_PARSE_SOURCE path=%s mapped=%u bytes_mb=%.2f heap_copy_mb=%.2f",
+                path != nullptr
+                    ? path
+                    : "",
+                mapped ? 1U : 0U,
+                static_cast<double>(
+                    byteSpan.size()) /
+                    (1024.0 * 1024.0),
+                mapped
+                    ? 0.0
+                    : static_cast<double>(
+                          byteSpan.size()) /
+                          (1024.0 * 1024.0));
+
+            return true;
+        };
+
+    const void* mapped =
+        AAsset_getBuffer(asset);
+
+    if (mapped != nullptr) {
+        const auto byteSpan =
+            std::span<const std::byte>(
+                static_cast<const std::byte*>(
+                    mapped),
+                static_cast<std::size_t>(
+                    length));
+
+        const bool parsed =
+            parseBytes(
+                byteSpan,
+                true);
+
+        AAsset_close(asset);
+        return parsed;
+    }
+
     std::vector<std::byte> bytes;
 
     try {
@@ -4613,41 +4685,11 @@ bool VulkanStaticMeshRenderer::loadModel(
         return false;
     }
 
-    const auto byteSpan =
+    return parseBytes(
         std::span<const std::byte>(
             bytes.data(),
-            bytes.size());
-
-    const auto result =
-        parseStaticMeshXzsm(
-            byteSpan,
-            out);
-
-    if (!result.success) {
-        return false;
-    }
-
-    StaticMeshDirectory directory{};
-    const auto directoryResult =
-        parseStaticMeshXzsmDirectory(
-            byteSpan,
-            directory);
-
-    if (!directoryResult.success ||
-        directory.batches.size() !=
-            out.batches.size()) {
-        out = {};
-        return false;
-    }
-
-    geometryDirectory_ =
-        std::move(directory);
-    geometryAssetPath_ =
-        path != nullptr
-        ? path
-        : "";
-
-    return true;
+            bytes.size()),
+        false);
 }
 
 bool VulkanStaticMeshRenderer::createPipeline(
