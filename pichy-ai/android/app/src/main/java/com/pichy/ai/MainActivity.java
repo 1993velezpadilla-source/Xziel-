@@ -104,7 +104,7 @@ public class MainActivity extends Activity {
         root.addView(header);
 
         status = new TextView(this);
-        status.setText("LAB v0.4.0 • image reference editing");
+        status.setText("LAB v0.4.1 • Render cloud connected");
         status.setTextColor(Color.rgb(155, 155, 170));
         status.setPadding(0, 0, 0, dp(6));
         root.addView(status);
@@ -204,8 +204,10 @@ public class MainActivity extends Activity {
         box.setPadding(0, 0, 0, dp(8));
 
         endpoint = new EditText(this);
-        endpoint.setHint("Server URL, e.g. https://pichy.example.com");
-        endpoint.setText(getPreferences(MODE_PRIVATE).getString("endpoint", ""));
+        endpoint.setHint("Server URL");
+        endpoint.setText(getPreferences(MODE_PRIVATE).getString(
+                "endpoint",
+                "https://pichy-ai-lab.onrender.com"));
         endpoint.setTextColor(Color.WHITE);
         endpoint.setHintTextColor(Color.GRAY);
         endpoint.setSingleLine(true);
