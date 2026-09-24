@@ -671,10 +671,20 @@ function renderCompositePlan(plan, executions = []) {
             0
           )
         : null;
+      const insertGeometryReady = accessoryMatch.rigged_insert_supported;
+      const insertMaterialReady = accessoryMatch.rigged_insert_material_ready;
+      const insertBlocker = accessoryMatch.rigged_insert_production_blocker;
       chip.title = (item.strategy || "local detail")
         + " · " + (executable ? "executable" : "guarded")
         + " · seam " + (item.seam_risk || "?")
-        + (accessoryConfidence != null ? " · accessory match " + accessoryConfidence.toFixed(2) : "");
+        + (accessoryConfidence != null ? " · accessory match " + accessoryConfidence.toFixed(2) : "")
+        + (insertGeometryReady != null
+          ? " · geometry " + (insertGeometryReady ? "ready" : "blocked")
+          : "")
+        + (insertMaterialReady != null
+          ? " · material " + (insertMaterialReady ? "ready" : "blocked")
+          : "")
+        + (insertBlocker ? " · " + String(insertBlocker) : "");
       chip.append(name, value);
       grid.appendChild(chip);
     });
