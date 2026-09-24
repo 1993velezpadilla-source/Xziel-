@@ -257,6 +257,20 @@ def evaluate_aaa_acceptance(
         blocker="portable runtime tiers are incomplete",
         required=profile in {"mobile","game","monster","ultra"},
     )
+    lod_parity_ready=bool(pack.get("lod_parity_ready"))
+    _gate(
+        gates,"runtime.lod_parity","runtime",
+        bool(pack and tiers and lod_parity_ready),
+        (
+            f"tiers={len(tiers)} "
+            f"lod_parity_ready={lod_parity_ready}"
+        ),
+        blocker=(
+            "one or more runtime LOD tiers fail Hero Master parity "
+            "(shape/material/rig/animation/deformation)"
+        ),
+        required=profile in {"mobile","game","monster","ultra"},
+    )
 
     composite=manifest.get("composite_champion") or {}
     composite_required=bool(composite.get("composite_required"))
