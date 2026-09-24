@@ -1444,7 +1444,12 @@ def main() -> int:
         print(
             "HAYUYA_QA_READY "
             f"production_ready={qa_package_result.production_ready} "
+            f"material_ready={qa_package_result.material_ready} "
+            f"rebake_ready={qa_package_result.material_rebake_ready} "
             f"rig_ready={qa_package_result.rig_ready} "
+            f"animation_ready={qa_package_result.animation_ready} "
+            f"face_ready={qa_package_result.face_evidence_ready} "
+            f"face_score={qa_package_result.face_evidence_score if qa_package_result.face_evidence_score is not None else 'none'} "
             f"report={qa_package_result.report}"
         )
     except Exception as exc:
