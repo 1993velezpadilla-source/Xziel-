@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[3]
 HAYUYA_DIR = ROOT / "tools" / "hayuya3d"
 sys.path.insert(0, str(HAYUYA_DIR))
 
-from studio_server import JobState, parse_multipart, parse_pipeline_line
+from studio_server import JobState, hydrate_candidate_ranking, parse_multipart, parse_pipeline_line
 
 
 class StudioServerTests(unittest.TestCase):
@@ -53,6 +53,43 @@ class StudioServerTests(unittest.TestCase):
 
             parse_pipeline_line(job, f"HAYUYA_MONSTER_READY {final}")
             self.assertTrue(job.final_model_url.endswith("output/hayuya_final.glb"))
+
+    def test_ranking_hydration_keeps_face_texture_and_head_geometry_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            candidate = root / "candidate.glb"
+            candidate.write_bytes(b"glTF" + b"x" * 32)
+            job = self.make_job(root)
+            parse_pipeline_line(
+                job,
+                f"HAYUYA_CANDIDATE_READY trellis2 {candidate} source=front.png",
+            )
+
+            hydrate_candidate_ranking(job, [{
+                "backend": "trellis2",
+                "score": 93.5,
+                "production_score": 88.0,
+                "visual_score": 94.0,
+                "appearance_score": 91.0,
+                "appearance_detail_score": 90.0,
+                "appearance_face_detail_score": 96.0,
+                "material_score": 87.0,
+                "texture_resolution_score": 100.0,
+                "base_color_max_edge": 4096,
+                "head_region_faces": 18240,
+                "head_region_vertices": 10420,
+                "head_region_face_fraction": 0.082,
+                "head_region_median_edge_normalized": 0.00123,
+                "pbr_channels": ["baseColor", "normal", "roughness"],
+            }])
+
+            item = job.candidates["trellis2"]
+            self.assertEqual(item.face_detail_score, 96.0)
+            self.assertEqual(item.texture_resolution_score, 100.0)
+            self.assertEqual(item.base_color_max_edge, 4096)
+            self.assertEqual(item.head_region_faces, 18240)
+            self.assertAlmostEqual(item.head_region_median_edge_normalized, 0.00123)
+            self.assertIn("normal", item.pbr_channels or [])
 
     def test_pipeline_stage_events_are_real_stage_markers(self):
         with tempfile.TemporaryDirectory() as tmp:
