@@ -22,9 +22,8 @@ layout(push_constant) uniform PushConstants {
 
 layout(location = 0) in vec2 vUv;
 layout(location = 1) in vec3 vNormal;
-// Packed frame-varying data: x=view distance, y=lightning, z=viewmodel.
-layout(location = 2) in vec3 vFrameData;
-layout(location = 3) in vec3 vViewPosition;
+// xyz=view-space position, w=vertex-computed non-negative view distance.
+layout(location = 2) in vec4 vViewData;
 
 layout(location = 0) out vec4 outColor;
 
@@ -86,8 +85,8 @@ vec3 fresnelSchlick(
 vec3 mappedNormal(
     vec3 geometricNormal,
     float normalScale) {
-    vec3 dpdx = dFdx(vViewPosition);
-    vec3 dpdy = dFdy(vViewPosition);
+    vec3 dpdx = dFdx(vViewData.xyz);
+    vec3 dpdy = dFdy(vViewData.xyz);
     vec2 duvdx = dFdx(vUv);
     vec2 duvdy = dFdy(vUv);
 
@@ -150,6 +149,20 @@ void main() {
     bool hasEmissive =
         (flags & 8) != 0;
 
+    // These values are uniform for the entire draw. Reading the same push
+    // constants in fragment avoids carrying two redundant interpolants.
+    float viewmodel =
+        step(
+            0.5,
+            pc.modelRotationMode.w);
+    float lightning =
+        viewmodel > 0.5
+        ? 0.0
+        : clamp(
+              pc.environment.x,
+              0.0,
+              2.0);
+
     vec4 albedo =
         texture(
             uAlbedo,
@@ -157,7 +170,7 @@ void main() {
         pc.baseColorFactor;
 
     if (!pbrEnabled) {
-        if (vFrameData.z > 0.5) {
+        if (viewmodel > 0.5) {
             vec3 normal =
                 normalize(vNormal);
             vec3 keyDirection =
@@ -200,7 +213,7 @@ void main() {
             smoothstep(
                 NORMAL_MAP_FULL_DETAIL_DISTANCE,
                 NORMAL_MAP_FADE_END_DISTANCE,
-                max(vFrameData.x, 0.0));
+                max(vViewData.w, 0.0));
 
         // Most far-world fragments now skip mappedNormal() entirely. That
         // avoids four derivatives, multiple normalizations and the normal-map
@@ -271,7 +284,7 @@ void main() {
 
     vec3 viewDirection =
         normalize(
-            -vViewPosition);
+            -vViewData.xyz);
     vec3 lightDirection =
         normalize(
             vec3(
@@ -347,7 +360,7 @@ void main() {
 
     float lightningBoost =
         1.0 +
-        clamp(vFrameData.y, 0.0, 2.0) *
+        clamp(lightning, 0.0, 2.0) *
         1.8;
 
     vec3 ambient =
