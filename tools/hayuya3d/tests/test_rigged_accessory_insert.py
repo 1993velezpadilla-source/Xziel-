@@ -31,7 +31,12 @@ def _align(blob: bytearray) -> int:
     return len(blob)
 
 
-def write_skinned_base(path: Path, *, morph: bool = True) -> None:
+def write_skinned_base(
+    path: Path,
+    *,
+    morph: bool = True,
+    animated: bool = False,
+) -> None:
     source = trimesh.creation.icosphere(subdivisions=2, radius=1.0)
     vertices = np.asarray(source.vertices, dtype=np.float32)
     normals = np.asarray(source.vertex_normals, dtype=np.float32)
@@ -140,6 +145,66 @@ def write_skinned_base(path: Path, *, morph: bool = True) -> None:
         primitive["targets"] = [{"POSITION": len(accessors) - 1}]
         mesh["weights"] = [0.0]
 
+    animations=[]
+    if animated:
+        times=np.asarray([0.0,1.0],dtype=np.float32)
+        translations=np.asarray([
+            [0.0,0.0,0.0],
+            [0.08,0.0,0.0],
+        ],dtype=np.float32)
+        time_offset=_align(blob)
+        time_bytes=times.astype("<f4").tobytes()
+        blob.extend(time_bytes)
+        views.append({
+            "buffer":0,
+            "byteOffset":time_offset,
+            "byteLength":len(time_bytes),
+        })
+        time_accessor=len(accessors)
+        accessors.append({
+            "bufferView":len(views)-1,
+            "componentType":5126,
+            "count":len(times),
+            "type":"SCALAR",
+            "min":[0.0],
+            "max":[1.0],
+        })
+
+        translation_offset=_align(blob)
+        translation_bytes=translations.astype("<f4").tobytes()
+        blob.extend(translation_bytes)
+        views.append({
+            "buffer":0,
+            "byteOffset":translation_offset,
+            "byteLength":len(translation_bytes),
+        })
+        translation_accessor=len(accessors)
+        accessors.append({
+            "bufferView":len(views)-1,
+            "componentType":5126,
+            "count":len(translations),
+            "type":"VEC3",
+            "min":translations.min(axis=0).astype(float).tolist(),
+            "max":translations.max(axis=0).astype(float).tolist(),
+        })
+        animations=[{
+            "samplers":[{
+                "input":time_accessor,
+                "output":translation_accessor,
+                "interpolation":"LINEAR",
+            }],
+            "channels":[
+                {
+                    "sampler":0,
+                    "target":{"node":1,"path":"translation"},
+                },
+                {
+                    "sampler":0,
+                    "target":{"node":2,"path":"translation"},
+                },
+            ],
+        }]
+
     doc = {
         "asset": {"version": "2.0"},
         "buffers": [{"byteLength": len(blob)}],
@@ -152,6 +217,7 @@ def write_skinned_base(path: Path, *, morph: bool = True) -> None:
             {},
         ],
         "skins": [{"joints": [1, 2]}],
+        "animations":animations,
         "scenes": [{"nodes": [0, 1, 2]}],
         "scene": 0,
     }
@@ -374,6 +440,40 @@ class RiggedAccessoryInsertTests(unittest.TestCase):
             self.assertTrue(result.legacy_payload_preserved)
             self.assertIn("baseColor",result.material_channels)
             self.assertIn("normal",result.material_channels)
+
+    def test_production_insert_survives_real_skeletal_animation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            base=root/"animated_base.glb"
+            donor=root/"textured_donor.glb"
+            write_skinned_base(
+                base,
+                morph=True,
+                animated=True,
+            )
+            write_donor(donor,textured=True)
+
+            result=prepare_production_rigged_accessory_insert(
+                base,
+                donor,
+                root/"production",
+            )
+            self.assertTrue(result.ready,result.errors)
+            self.assertTrue(result.production_ready,result.material_blockers)
+            self.assertTrue(result.animation_ready,result.errors)
+            self.assertTrue(result.deformation_ready,result.errors)
+            self.assertTrue(result.skin_weights_ready,result.errors)
+            self.assertTrue(result.morph_deformation_ready,result.errors)
+            self.assertTrue(result.attachment_ready,result.errors)
+
+            from tools.hayuya3d.animation_qa import audit_animation
+            from tools.hayuya3d.deformation_qa import audit_deformation
+            animation=audit_animation(Path(result.output_glb))
+            deformation=audit_deformation(Path(result.output_glb))
+            self.assertTrue(animation.ready,animation.errors)
+            self.assertEqual(animation.animation_count,1)
+            self.assertTrue(deformation.ready,deformation.errors)
+            self.assertGreaterEqual(deformation.sampled_frames,2)
 
     def test_weight_transfer_blends_neighbor_joint_influences(self):
         source_positions=np.asarray([
