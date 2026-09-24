@@ -2045,11 +2045,18 @@ def main() -> int:
                 ),
                 None,
             )
-            is_accessory=bool(
-                detail_plan_item is not None
-                and detail_plan_item.strategy
-                    =="matched_detached_accessory_swap_then_mesh_doctor"
+            detail_strategy=(
+                str(detail_plan_item.strategy)
+                if detail_plan_item is not None else ""
             )
+            is_rigged_accessory=(
+                detail_strategy
+                =="matched_rig_preserving_accessory_wrap_then_rebake"
+            )
+            is_accessory=detail_strategy in {
+                "matched_detached_accessory_swap_then_mesh_doctor",
+                "matched_rig_preserving_accessory_wrap_then_rebake",
+            }
             if is_accessory:
                 detail_execution=execute_safe_accessory_challenger(
                     composite_plan,
@@ -2078,11 +2085,17 @@ def main() -> int:
                     f"donor={detail_execution.donor_backend} "
                     f"region={detail_execution.region_hint} "
                     f"source={Path(detail_source).name} "
-                    f"strategy={'accessory_swap' if is_accessory else 'texture_fusion'} "
+                    f"strategy={('rigged_accessory_wrap' if is_rigged_accessory else ('accessory_swap' if is_accessory else 'texture_fusion'))} "
                     f"changed={detail_fusion.get('changed_fraction','none')} "
+                    f"changed_vertices={detail_fusion.get('changed_vertices','none')} "
                     f"seam_p95={detail_fusion.get('seam_added_delta_p95','none')} "
                     f"seam_max={detail_fusion.get('seam_added_delta_max','none')} "
                     f"accessory_confidence={detail_fusion.get('confidence','none')} "
+                    f"runtime_preserved={detail_fusion.get('runtime_payload_preserved','none')} "
+                    f"rig_ready={detail_fusion.get('rig_ready','none')} "
+                    f"skin_weights_ready={detail_fusion.get('skin_weights_ready','none')} "
+                    f"morph_deformation_ready={detail_fusion.get('morph_deformation_ready','none')} "
+                    f"rebake_ready={detail_fusion.get('rebake_ready','none')} "
                     f"path={detail_execution.candidate_path}"
                 )
                 ranked=run_full_ranking()
