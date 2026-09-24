@@ -2094,6 +2094,58 @@ xziel::android::VulkanHudState makeHudState(
 
 std::array<xziel::LocalLightInput, 4> makeHorrorPracticalLights(
     const NativeAppState& state) noexcept {
+    std::array<xziel::LocalLightInput, 4> authored{};
+
+    if (state.mapDefinition.lightCount > 0U) {
+        const std::size_t count =
+            std::min<std::size_t>(
+                state.mapDefinition.lightCount,
+                authored.size());
+
+        for (std::size_t index = 0U;
+             index < count;
+             ++index) {
+            const auto& source =
+                state.mapDefinition.lights[index];
+            auto& destination =
+                authored[index];
+
+            destination.id = source.id;
+            destination.type =
+                source.type == xziel::MapLightType::Spot
+                ? xziel::LightType::Spot
+                : xziel::LightType::Point;
+            destination.position =
+                source.position;
+            destination.direction =
+                source.direction;
+            destination.colorLinear =
+                source.colorLinear;
+            destination.intensity =
+                source.intensity;
+            destination.rangeMeters =
+                source.rangeMeters;
+            destination.innerConeDegrees =
+                source.innerConeDegrees;
+            destination.outerConeDegrees =
+                source.outerConeDegrees;
+            destination.importance =
+                source.importance;
+            destination.flickerAmount =
+                source.flickerAmount;
+            destination.flickerHz =
+                source.flickerHz;
+            destination.castsShadows =
+                source.castsShadows;
+            destination.volumetric =
+                source.volumetric;
+            destination.enabled =
+                source.enabled;
+        }
+
+        return authored;
+    }
+
     float minX = -5.0f;
     float maxX = 5.0f;
     float minZ = -6.0f;
