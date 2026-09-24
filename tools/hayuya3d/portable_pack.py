@@ -21,6 +21,7 @@ class PortableTierArtifact:
     directory: str
     portability_plan: dict
     gameprep: dict
+    lod_parity: dict
     texture_delivery: dict
 
 
@@ -32,6 +33,7 @@ class PortablePackResult:
     asset_mode: str
     profile_name: str
     complete_lod_chain: bool
+    lod_parity_ready: bool
     notes: list[str]
 
 
@@ -75,6 +77,7 @@ def build_portable_pack(
 
     artifacts: list[PortableTierArtifact] = []
     complete_lod_chain = True
+    lod_parity_ready = True
     notes: list[str] = [
         "HeroMaster/master.glb is an exact preserved copy and is never capped by a mobile runtime tier.",
         "Each runtime tier is independently derived from HeroMaster rather than from a lower-quality tier.",
@@ -102,6 +105,46 @@ def build_portable_pack(
         )
         if len(result.lods) < 4:
             complete_lod_chain = False
+
+        try:
+            from lod_parity import audit_lod_chain
+            parity = audit_lod_chain(
+                hero_glb,
+                [
+                    (lod.name,Path(lod.path))
+                    for lod in result.lods
+                ],
+                mode=mode,
+                samples=1600,
+            )
+            lod_parity = asdict(parity)
+            parity_path = tier_dir / "lod_parity.json"
+            parity_path.write_text(
+                json.dumps(lod_parity,indent=2)+"\n",
+                encoding="utf-8",
+            )
+            lod_parity["report"] = str(parity_path)
+            if not parity.ready:
+                lod_parity_ready = False
+                complete_lod_chain = False
+                notes.append(
+                    f"{tier} LOD parity blocked runtime readiness: "
+                    + "; ".join(parity.errors[:4])
+                )
+        except Exception as exc:
+            lod_parity_ready = False
+            complete_lod_chain = False
+            lod_parity = {
+                "ready":False,
+                "lod_count":len(result.lods),
+                "items":[],
+                "errors":[f"{type(exc).__name__}:{exc}"],
+                "report":None,
+            }
+            notes.append(
+                f"{tier} LOD parity unavailable: "
+                f"{type(exc).__name__}:{exc}"
+            )
 
         texture_delivery = {
             "mode": texture_delivery_mode,
@@ -131,6 +174,7 @@ def build_portable_pack(
             "tier": tier,
             "portability_plan": plan,
             "gameprep": asdict(result),
+            "lod_parity": lod_parity,
             "texture_delivery": texture_delivery,
         }
         (tier_dir / "tier_manifest.json").write_text(
@@ -143,6 +187,7 @@ def build_portable_pack(
                 directory=str(tier_dir),
                 portability_plan=plan,
                 gameprep=asdict(result),
+                lod_parity=lod_parity,
                 texture_delivery=texture_delivery,
             )
         )
@@ -161,6 +206,7 @@ def build_portable_pack(
         asset_mode=mode,
         profile_name=profile_name,
         complete_lod_chain=complete_lod_chain,
+        lod_parity_ready=lod_parity_ready,
         notes=notes,
     )
     manifest.write_text(json.dumps(asdict(result), indent=2) + "\n", encoding="utf-8")
