@@ -19,6 +19,7 @@ from tools.hayuya3d.hayuya import (
 
 from tools.hayuya3d.composite_champion import (
     build_composite_plan,
+    execute_safe_accessory_challenger,
     execute_safe_head_wrap_challenger,
     execute_safe_local_detail_challenger,
     execute_safe_material_challenger,
@@ -476,15 +477,95 @@ class CompositeChampionPlannerTests(unittest.TestCase):
             )
             self.assertIsNotNone(detail.accessory_match)
             self.assertTrue(detail.accessory_match["ready"])
-            self.assertIn(
-                "detail:"+source,
-                plan.deferred_transfers,
-            )
-            self.assertNotIn(
-                "detail:"+source,
-                plan.executable_now,
-            )
+            token="detail:"+source
+            self.assertIn(token,plan.executable_now)
+            self.assertNotIn(token,plan.deferred_transfers)
             self.assertTrue(plan.composite_required)
+
+            result=execute_safe_accessory_challenger(
+                plan,
+                root/"accessory-composite",
+                detail_source=source,
+            )
+            self.assertTrue(result.attempted)
+            self.assertTrue(result.ready,result.error)
+            self.assertEqual(result.region_hint,"local")
+            self.assertTrue(Path(result.candidate_path or "").is_file())
+            self.assertTrue(result.fusion)
+            self.assertTrue(result.fusion["component_crossing_ready"])
+            self.assertTrue(result.fusion["self_intersection_ready"])
+
+    def test_character_accessory_geometry_remains_deferred_even_with_match(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+
+            def write_asset(path,center):
+                body=trimesh.creation.icosphere(subdivisions=2,radius=1.0)
+                accessory=trimesh.creation.box(
+                    extents=[0.14,0.18,0.12]
+                )
+                accessory.apply_translation(center)
+                scene=trimesh.Scene()
+                scene.add_geometry(body)
+                scene.add_geometry(accessory)
+                path.write_bytes(
+                    trimesh.exchange.gltf.export_glb(scene)
+                )
+
+            base_path=root/"base.glb"
+            donor_path=root/"donor.glb"
+            write_asset(base_path,(1.12,0.18,0.0))
+            write_asset(donor_path,(1.15,0.20,0.01))
+            source="/refs/rosary_detail.png"
+            base=candidate(
+                "base",96.0,
+                face_min=90.0,face_mesh=98.0,face_tex=98.0,face_detail=90.0,
+                visual=96.0,appearance=96.0,material=95.0,texture=100.0,
+                appearance_details=[{
+                    "source":source,
+                    "score":72.0,
+                    "region_hint":"local",
+                }],
+                up_axis="y",
+            )
+            donor=candidate(
+                "donor",84.0,
+                face_min=90.0,face_mesh=98.0,face_tex=98.0,face_detail=90.0,
+                visual=84.0,appearance=92.0,material=90.0,texture=100.0,
+                appearance_details=[{
+                    "source":source,
+                    "score":98.0,
+                    "region_hint":"local",
+                }],
+                up_axis="y",
+            )
+            base.path=str(base_path)
+            donor.path=str(donor_path)
+            plan=build_composite_plan(
+                [base,donor],
+                mode="character",
+                inspect_parts=True,
+            )
+            token="detail:"+source
+            detail=next(
+                item for item in plan.detail_donors
+                if item.source==source
+            )
+            self.assertTrue(detail.accessory_match["ready"])
+            self.assertIn(token,plan.deferred_transfers)
+            self.assertNotIn(token,plan.executable_now)
+
+            result=execute_safe_accessory_challenger(
+                plan,
+                root/"blocked",
+                detail_source=source,
+            )
+            self.assertFalse(result.attempted)
+            self.assertFalse(result.ready)
+            self.assertIn(
+                "skin-weight",
+                result.error or "",
+            )
 
     def test_unlocalized_detail_remains_deferred(self):
         source="/refs/tiny-symbol.png"
