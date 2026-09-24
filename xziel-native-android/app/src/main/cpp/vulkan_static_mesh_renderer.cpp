@@ -3658,8 +3658,27 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
                     cell.reloadPeakPendingCount,
                     cell.reloadPendingCount);
 
-            cell.reloadScanCursor =
+            const std::uint32_t scheduledSourceBatch =
+                batch.sourceBatchIndex;
+
+            std::size_t nextBatch =
                 batchIndex + 1U;
+
+            while (nextBatch < batches_.size() &&
+                   batches_[nextBatch].
+                           geometryCellSlot ==
+                       geometryReloadCellSlot_ &&
+                   batches_[nextBatch].
+                           sourceBatchIndex ==
+                       scheduledSourceBatch) {
+                ++nextBatch;
+            }
+
+            // Runtime micro-batches share one physical XZSM payload. Only the
+            // first range for each source batch performs APK I/O; the other
+            // micro-batches already point into that same restored index block.
+            cell.reloadScanCursor =
+                nextBatch;
         }
 
         if (cell.reloadFailed) {
@@ -5959,8 +5978,17 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
 
         try {
             batches_.clear();
+
+            if (asset.batches.size() >
+                std::numeric_limits<std::size_t>::max() /
+                    3U) {
+                unmapCells();
+                destroyGeometryResidency();
+                return false;
+            }
+
             batches_.reserve(
-                asset.batches.size());
+                asset.batches.size() * 3U);
 
             for (std::size_t batchIndex = 0U;
                  batchIndex < asset.batches.size();
@@ -6265,6 +6293,15 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
         }
 
         rebuildStreamingCellBounds();
+
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_RUNTIME_MICROBATCH_READY source_batches=%u runtime_batches=%u max_triangles=3000",
+            static_cast<unsigned int>(
+                asset.batches.size()),
+            static_cast<unsigned int>(
+                batches_.size()));
 
         __android_log_print(
             ANDROID_LOG_INFO,
