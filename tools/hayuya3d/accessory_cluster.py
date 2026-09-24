@@ -26,6 +26,7 @@ class AccessoryCluster:
     face_count: int
     face_fraction: float
     anchored_to_main: bool
+    direct_main_anchors: list[int]
     min_main_gap_ratio: float
     max_internal_link_gap_ratio: float
     spatial_labels: list[str]
@@ -236,7 +237,18 @@ def inspect_accessory_clusters(
                     linked_accessory_ids=linked,
                 ))
 
-            anchored = bool(min_main_gap <= max_link_gap_ratio)
+            direct_main_anchors = sorted(
+                int(component_id)
+                for component_id in members
+                if (
+                    float(
+                        geometry[component_id]["main_gap"]
+                        / main_diag
+                    )
+                    <= max_link_gap_ratio
+                )
+            )
+            anchored = bool(direct_main_anchors)
             clusters.append(AccessoryCluster(
                 cluster_id=int(cluster_index),
                 component_ids=members,
@@ -245,6 +257,7 @@ def inspect_accessory_clusters(
                     float(cluster_faces / total_faces), 8
                 ),
                 anchored_to_main=anchored,
+                direct_main_anchors=direct_main_anchors,
                 min_main_gap_ratio=round(float(min_main_gap), 8),
                 max_internal_link_gap_ratio=round(float(max_internal), 8),
                 spatial_labels=sorted(labels),
@@ -273,6 +286,16 @@ def inspect_accessory_clusters(
             )
 
         selected = anchored[0] if len(anchored) == 1 and not floating else None
+        if (
+            selected is not None
+            and len(selected.component_ids) > 1
+            and len(selected.direct_main_anchors) == len(selected.component_ids)
+        ):
+            errors.append(
+                "multi-piece candidates are all independently anchored to the "
+                "main body; automatic grouping would be ambiguous"
+            )
+            selected = None
         if selected is not None and len(selected.component_ids) == 1:
             warnings.append(
                 "single-component accessory; cluster audit remains valid "
