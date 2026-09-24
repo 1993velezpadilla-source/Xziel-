@@ -253,7 +253,12 @@ def main():
                 all_weighted_groups.add(name)
             transferred += 1
 
-        mesh.parent=arm
+        # IMPORTANT: do not parent the generated mesh object to the fitted
+        # donor armature.  The armature object carries scale/translation used
+        # to fit the skeleton; parenting would apply that transform a second
+        # time to the target mesh and was the root cause of the giant
+        # stretched/cuboid previews.  The Armature modifier is sufficient.
+        mesh.parent=None
         mod=mesh.modifiers.new(name="HAYUYA_Armature",type="ARMATURE")
         mod.object=arm
         mod.use_vertex_groups=True
@@ -321,7 +326,7 @@ def main():
         "weighted_bones":sorted(all_weighted_groups),
         "weighted_bone_count":len(all_weighted_groups),
         "donor_root_objects":[o.name for o in donor_roots],
-        "binding_method":"aligned_roots_blended_kdtree_v2",
+        "binding_method":"aligned_roots_blended_kdtree_v3_no_parent_double_transform",
         "bind_results":bind_results,
         "output_bytes":args.output.stat().st_size if args.output.exists() else 0,
     }
