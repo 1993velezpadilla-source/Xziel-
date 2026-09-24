@@ -7119,6 +7119,71 @@ bool VulkanClearRenderer::recordDrawCommand(
         ui.shape = shape;
         ui.ringWidth = ringWidth;
 
+        ++uiLogicalPrimitiveDraws;
+
+        const bool batchReady =
+            uiBatchPipeline_ != VK_NULL_HANDLE &&
+            uiBatchVertexBuffer_ != VK_NULL_HANDLE &&
+            uiBatchFrameVertices != nullptr;
+
+        if (batchReady) {
+            if (uiBatchVertexCursor +
+                    kUiBatchVerticesPerPrimitive >
+                kUiBatchVerticesPerFrame) {
+                flushUiPrimitiveBatch();
+            }
+
+            if (uiBatchVertexCursor +
+                    kUiBatchVerticesPerPrimitive <=
+                kUiBatchVerticesPerFrame) {
+                if (uiBatchPendingCount == 0U) {
+                    uiBatchPendingStart =
+                        uiBatchVertexCursor;
+                }
+
+                for (std::uint32_t vertexIndex = 0U;
+                     vertexIndex <
+                         kUiBatchVerticesPerPrimitive;
+                     ++vertexIndex) {
+                    const auto& local =
+                        kUiQuad[vertexIndex];
+
+                    UiBatchVertex& vertex =
+                        uiBatchFrameVertices[
+                            uiBatchVertexCursor +
+                            vertexIndex];
+
+                    vertex.positionX =
+                        ui.centerX +
+                        local[0] *
+                            ui.halfWidth;
+                    vertex.positionY =
+                        ui.centerY +
+                        local[1] *
+                            ui.halfHeight;
+                    vertex.localX = local[0];
+                    vertex.localY = local[1];
+                    vertex.colorR = ui.colorR;
+                    vertex.colorG = ui.colorG;
+                    vertex.colorB = ui.colorB;
+                    vertex.colorA = ui.colorA;
+                    vertex.shape = ui.shape;
+                    vertex.ringWidth =
+                        ui.ringWidth;
+                }
+
+                uiBatchVertexCursor +=
+                    kUiBatchVerticesPerPrimitive;
+                uiBatchPendingCount +=
+                    kUiBatchVerticesPerPrimitive;
+                return;
+            }
+        }
+
+        vkCmdBindPipeline(
+            command,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            uiPipeline_);
         vkCmdPushConstants(
             command,
             uiPipelineLayout_,
@@ -7135,6 +7200,7 @@ bool VulkanClearRenderer::recordDrawCommand(
             1,
             0,
             0);
+        ++uiFallbackPrimitiveDraws;
     };
 
     const auto drawUiCircle = [&](
