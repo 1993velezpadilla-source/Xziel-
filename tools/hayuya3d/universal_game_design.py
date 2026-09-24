@@ -86,6 +86,7 @@ def compile_universal_design_intelligence(
         "cross_genre_reasoning": standard["crossGenreReasoning"],
         "required_passes": standard["requiredPasses"],
         "solver_agents": standard["solverAgents"],
+        "solver_implementation": "tools/hayuya3d/gameplay_graph_solver.py",
         "judge_gates": standard["judgeGates"],
         "clean_room_guardrails": standard["cleanRoomGuardrails"],
         "ai_world_research": {
