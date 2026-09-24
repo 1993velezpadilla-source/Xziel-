@@ -107,6 +107,24 @@ bool StreamCellGraph::setPortalOpen(
     return true;
 }
 
+bool StreamCellGraph::portalOpen(
+    std::uint32_t portalId,
+    bool& open) const noexcept {
+    const int index =
+        portalIndex(portalId);
+
+    if (index < 0) {
+        return false;
+    }
+
+    open =
+        portals_[
+            static_cast<std::size_t>(index)].
+                open;
+
+    return true;
+}
+
 bool StreamCellGraph::bindResource(
     const StreamCellResourceBinding& binding) noexcept {
     if (binding.cellId == 0U ||
