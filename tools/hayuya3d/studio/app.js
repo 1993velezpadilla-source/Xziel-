@@ -745,6 +745,11 @@ function renderCompositePlan(plan, executions = []) {
         "surface search " + Number(item.surface_search_triangles) + " tris"
       );
     }
+    if (item.surface_bvh_nodes != null) {
+      parts.push(
+        "BVH " + Number(item.surface_bvh_nodes) + " nodes"
+      );
+    }
     if (item.morph_targets_transferred != null) {
       parts.push(Number(item.morph_targets_transferred) + " morph targets");
     }
