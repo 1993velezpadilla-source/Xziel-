@@ -1086,8 +1086,10 @@ jobs:
 
               grep -q "XZIEL_INTEGER_DRAW_FLAGS_READY push_bytes=128 viewmodel_offset=76 material_flags_offset=124" dist/sanctum-hq-logcat.txt
               grep -q "XZIEL_CPU_CLAMPED_MATERIAL_CONSTANTS_READY" dist/sanctum-hq-logcat.txt
+              grep -q "XZIEL_PRECOMPUTED_LIGHTNING_BOOST_READY" dist/sanctum-hq-logcat.txt
               echo "XZIEL_INTEGER_DRAW_FLAGS_ACTIVE push_bytes=128 viewmodel_offset=76 material_flags_offset=124"
               echo "XZIEL_CPU_CLAMPED_MATERIAL_CONSTANTS_ACTIVE"
+              echo "XZIEL_PRECOMPUTED_LIGHTNING_BOOST_ACTIVE"
             fi
           fi
 

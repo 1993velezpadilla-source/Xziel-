@@ -559,6 +559,11 @@ bool VulkanStaticMeshRenderer::initialize(
         kTag,
         "XZIEL_CPU_CLAMPED_MATERIAL_CONSTANTS_READY");
 
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
+        "XZIEL_PRECOMPUTED_LIGHTNING_BOOST_READY");
+
 
     __android_log_print(
         ANDROID_LOG_INFO,
@@ -4818,10 +4823,12 @@ void VulkanStaticMeshRenderer::record(
             0.0f,
             1.0f);
     push.lightningFlash =
+        1.0f +
         std::clamp(
             environment.lightningFlash,
             0.0f,
-            2.0f);
+            2.0f) *
+            1.8f;
     push.modelScale = 1.0f;
     push.viewmodelMode = 0U;
 
@@ -5863,6 +5870,7 @@ void VulkanStaticMeshRenderer::recordViewmodel(
             state.scale,
             0.05f,
             8.0f);
+    push.lightningFlash = 1.0f;
     push.viewmodelMode = 1U;
 
     const auto applyMaterial =

@@ -170,15 +170,10 @@ void main() {
     bool hasEmissive =
         (flags & 8u) != 0u;
 
-    // Viewmodel mode and lightning are uniform for the entire draw and
-    // already live in push constants. Reading them here avoids two
-    // redundant interpolants without changing the material result.
+    // Viewmodel mode is uniform for the draw. Direct-light scale is
+    // precomputed once on CPU from lightning (or fixed to 1 for viewmodels).
     bool viewmodel =
         pc.viewmodelMode != 0u;
-    float lightning =
-        viewmodel
-        ? 0.0
-        : pc.environment.x;
 
     vec4 albedo =
         texture(
@@ -408,12 +403,6 @@ void main() {
             nDotL;
     }
 
-    // lightning is already clamped (or forced to zero for the viewmodel).
-    float lightningBoost =
-        1.0 +
-        lightning *
-        1.8;
-
     vec3 ambient =
         albedo.rgb *
         (0.075 +
@@ -423,7 +412,7 @@ void main() {
 
     vec3 color =
         direct *
-            lightningBoost +
+            pc.environment.x +
         ambient +
         emissive;
 

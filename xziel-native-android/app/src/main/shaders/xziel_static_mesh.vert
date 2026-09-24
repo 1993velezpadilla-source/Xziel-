@@ -5,7 +5,7 @@ layout(push_constant) uniform PushConstants {
     vec4 cameraPositionViewYawCos;
     // viewRotationFog: x yaw sine, y pitch cosine, z pitch sine, w fog.
     vec4 viewRotationFog;
-    // environmentRotation: x lightning, y roll cosine, z roll sine.
+    // environmentRotation: x direct-light scale, y roll cosine, z roll sine.
     vec4 environmentRotation;
     vec4 modelOffsetScale;
     // Same 16-byte slot as the CPU block: two projection floats, one
