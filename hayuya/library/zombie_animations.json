@@ -13,7 +13,7 @@
           "items": [
             {
               "id": "quaternius_uam1_idle_loop",
-              "label": "Idle \u00b7 Loop",
+              "label": "Idle · Loop",
               "source": "quaternius-uam1",
               "clip": "Idle_Loop",
               "license": "CC0",
@@ -22,7 +22,7 @@
             },
             {
               "id": "quaternius_uam2_idle_foldarms_loop",
-              "label": "Idle FoldArms \u00b7 Loop",
+              "label": "Idle FoldArms · Loop",
               "source": "quaternius-uam2",
               "clip": "Idle_FoldArms_Loop",
               "license": "CC0",
@@ -31,7 +31,7 @@
             },
             {
               "id": "quaternius_uam2_idle_lantern_loop",
-              "label": "Idle Lantern \u00b7 Loop",
+              "label": "Idle Lantern · Loop",
               "source": "quaternius-uam2",
               "clip": "Idle_Lantern_Loop",
               "license": "CC0",
@@ -40,7 +40,7 @@
             },
             {
               "id": "quaternius_uam2_idle_no_loop",
-              "label": "Idle No \u00b7 Loop",
+              "label": "Idle No · Loop",
               "source": "quaternius-uam2",
               "clip": "Idle_No_Loop",
               "license": "CC0",
@@ -49,7 +49,7 @@
             },
             {
               "id": "quaternius_uam2_idle_rail_loop",
-              "label": "Idle Rail \u00b7 Loop",
+              "label": "Idle Rail · Loop",
               "source": "quaternius-uam2",
               "clip": "Idle_Rail_Loop",
               "license": "CC0",
@@ -67,7 +67,7 @@
             },
             {
               "id": "quaternius_uam2_idle_shield_loop",
-              "label": "Idle Shield \u00b7 Loop",
+              "label": "Idle Shield · Loop",
               "source": "quaternius-uam2",
               "clip": "Idle_Shield_Loop",
               "license": "CC0",
@@ -85,7 +85,7 @@
             },
             {
               "id": "quaternius_uam1_idle_talking_loop",
-              "label": "Idle Talking \u00b7 Loop",
+              "label": "Idle Talking · Loop",
               "source": "quaternius-uam1",
               "clip": "Idle_Talking_Loop",
               "license": "CC0",
@@ -94,7 +94,7 @@
             },
             {
               "id": "quaternius_uam2_idle_talkingphone_loop",
-              "label": "Idle TalkingPhone \u00b7 Loop",
+              "label": "Idle TalkingPhone · Loop",
               "source": "quaternius-uam2",
               "clip": "Idle_TalkingPhone_Loop",
               "license": "CC0",
@@ -103,7 +103,7 @@
             },
             {
               "id": "quaternius_uam1_idle_torch_loop",
-              "label": "Idle Torch \u00b7 Loop",
+              "label": "Idle Torch · Loop",
               "source": "quaternius-uam1",
               "clip": "Idle_Torch_Loop",
               "license": "CC0",
@@ -121,7 +121,7 @@
             },
             {
               "id": "quaternius_uam2_ninjajump_idle_loop",
-              "label": "NinjaJump Idle \u00b7 Loop",
+              "label": "NinjaJump Idle · Loop",
               "source": "quaternius-uam2",
               "clip": "NinjaJump_Idle_Loop",
               "license": "CC0",
@@ -130,7 +130,7 @@
             },
             {
               "id": "quaternius_uam1_pistol_idle_loop",
-              "label": "Pistol Idle \u00b7 Loop",
+              "label": "Pistol Idle · Loop",
               "source": "quaternius-uam1",
               "clip": "Pistol_Idle_Loop",
               "license": "CC0",
@@ -139,7 +139,7 @@
             },
             {
               "id": "quaternius_uam1_sitting_idle_loop",
-              "label": "Sitting Idle \u00b7 Loop",
+              "label": "Sitting Idle · Loop",
               "source": "quaternius-uam1",
               "clip": "Sitting_Idle_Loop",
               "license": "CC0",
@@ -148,7 +148,7 @@
             },
             {
               "id": "quaternius_uam1_spell_simple_idle_loop",
-              "label": "Spell Simple Idle \u00b7 Loop",
+              "label": "Spell Simple Idle · Loop",
               "source": "quaternius-uam1",
               "clip": "Spell_Simple_Idle_Loop",
               "license": "CC0",
@@ -157,7 +157,7 @@
             },
             {
               "id": "quaternius_uam1_swim_idle_loop",
-              "label": "Swim Idle \u00b7 Loop",
+              "label": "Swim Idle · Loop",
               "source": "quaternius-uam1",
               "clip": "Swim_Idle_Loop",
               "license": "CC0",
@@ -175,7 +175,7 @@
             },
             {
               "id": "quaternius_uam2_zombie_idle_loop",
-              "label": "Zombie Idle \u00b7 Loop",
+              "label": "Zombie Idle · Loop",
               "source": "quaternius-uam2",
               "clip": "Zombie_Idle_Loop",
               "license": "CC0",
@@ -190,7 +190,7 @@
           "items": [
             {
               "id": "quaternius_uam1_walk_loop",
-              "label": "Walk \u00b7 Loop",
+              "label": "Walk · Loop",
               "source": "quaternius-uam1",
               "clip": "Walk_Loop",
               "license": "CC0",
@@ -199,7 +199,7 @@
             },
             {
               "id": "quaternius_uam2_walk_carry_loop",
-              "label": "Walk Carry \u00b7 Loop",
+              "label": "Walk Carry · Loop",
               "source": "quaternius-uam2",
               "clip": "Walk_Carry_Loop",
               "license": "CC0",
@@ -208,7 +208,7 @@
             },
             {
               "id": "quaternius_uam1_walk_formal_loop",
-              "label": "Walk Formal \u00b7 Loop",
+              "label": "Walk Formal · Loop",
               "source": "quaternius-uam1",
               "clip": "Walk_Formal_Loop",
               "license": "CC0",
@@ -217,7 +217,7 @@
             },
             {
               "id": "quaternius_uam2_zombie_walk_fwd_loop",
-              "label": "Zombie Walk Fwd \u00b7 Loop",
+              "label": "Zombie Walk Fwd · Loop",
               "source": "quaternius-uam2",
               "clip": "Zombie_Walk_Fwd_Loop",
               "license": "CC0",
@@ -232,7 +232,7 @@
           "items": [
             {
               "id": "quaternius_uam1_jog_fwd_loop",
-              "label": "Jog Fwd \u00b7 Loop",
+              "label": "Jog Fwd · Loop",
               "source": "quaternius-uam1",
               "clip": "Jog_Fwd_Loop",
               "license": "CC0",
@@ -241,7 +241,7 @@
             },
             {
               "id": "quaternius_uam1_sprint_loop",
-              "label": "Sprint \u00b7 Loop",
+              "label": "Sprint · Loop",
               "source": "quaternius-uam1",
               "clip": "Sprint_Loop",
               "license": "CC0",
@@ -265,7 +265,7 @@
             },
             {
               "id": "quaternius_uam2_melee_hook_rec",
-              "label": "Melee Hook \u00b7 Recovery",
+              "label": "Melee Hook · Recovery",
               "source": "quaternius-uam2",
               "clip": "Melee_Hook_Rec",
               "license": "CC0",
@@ -346,7 +346,7 @@
             },
             {
               "id": "quaternius_uam1_sword_attack_rm",
-              "label": "Sword Attack \u00b7 Root Motion",
+              "label": "Sword Attack · Root Motion",
               "source": "quaternius-uam1",
               "clip": "Sword_Attack_RM",
               "license": "CC0",
@@ -364,7 +364,7 @@
             },
             {
               "id": "quaternius_uam2_sword_dash_rm",
-              "label": "Sword Dash \u00b7 Root Motion",
+              "label": "Sword Dash · Root Motion",
               "source": "quaternius-uam2",
               "clip": "Sword_Dash_RM",
               "license": "CC0",
@@ -382,7 +382,7 @@
             },
             {
               "id": "quaternius_uam2_sword_regular_a_rec",
-              "label": "Sword Regular A \u00b7 Recovery",
+              "label": "Sword Regular A · Recovery",
               "source": "quaternius-uam2",
               "clip": "Sword_Regular_A_Rec",
               "license": "CC0",
@@ -400,7 +400,7 @@
             },
             {
               "id": "quaternius_uam2_sword_regular_b_rec",
-              "label": "Sword Regular B \u00b7 Recovery",
+              "label": "Sword Regular B · Recovery",
               "source": "quaternius-uam2",
               "clip": "Sword_Regular_B_Rec",
               "license": "CC0",
@@ -484,7 +484,7 @@
             },
             {
               "id": "quaternius_uam2_climbup_1m_rm",
-              "label": "ClimbUp 1m \u00b7 Root Motion",
+              "label": "ClimbUp 1m · Root Motion",
               "source": "quaternius-uam2",
               "clip": "ClimbUp_1m_RM",
               "license": "CC0",
@@ -502,7 +502,7 @@
             },
             {
               "id": "quaternius_uam1_dance_loop",
-              "label": "Dance \u00b7 Loop",
+              "label": "Dance · Loop",
               "source": "quaternius-uam1",
               "clip": "Dance_Loop",
               "license": "CC0",
@@ -511,7 +511,7 @@
             },
             {
               "id": "quaternius_uam1_driving_loop",
-              "label": "Driving \u00b7 Loop",
+              "label": "Driving · Loop",
               "source": "quaternius-uam1",
               "clip": "Driving_Loop",
               "license": "CC0",
@@ -565,7 +565,7 @@
             },
             {
               "id": "quaternius_uam1_jump_loop",
-              "label": "Jump \u00b7 Loop",
+              "label": "Jump · Loop",
               "source": "quaternius-uam1",
               "clip": "Jump_Loop",
               "license": "CC0",
@@ -655,7 +655,7 @@
             },
             {
               "id": "quaternius_uam1_push_loop",
-              "label": "Push \u00b7 Loop",
+              "label": "Push · Loop",
               "source": "quaternius-uam1",
               "clip": "Push_Loop",
               "license": "CC0",
@@ -673,7 +673,7 @@
             },
             {
               "id": "quaternius_uam1_roll_rm",
-              "label": "Roll \u00b7 Root Motion",
+              "label": "Roll · Root Motion",
               "source": "quaternius-uam1",
               "clip": "Roll_RM",
               "license": "CC0",
@@ -682,7 +682,7 @@
             },
             {
               "id": "quaternius_uam2_shield_dash_rm",
-              "label": "Shield Dash \u00b7 Root Motion",
+              "label": "Shield Dash · Root Motion",
               "source": "quaternius-uam2",
               "clip": "Shield_Dash_RM",
               "license": "CC0",
@@ -709,7 +709,7 @@
             },
             {
               "id": "quaternius_uam1_sitting_talking_loop",
-              "label": "Sitting Talking \u00b7 Loop",
+              "label": "Sitting Talking · Loop",
               "source": "quaternius-uam1",
               "clip": "Sitting_Talking_Loop",
               "license": "CC0",
@@ -718,7 +718,7 @@
             },
             {
               "id": "quaternius_uam2_slide_loop",
-              "label": "Slide \u00b7 Loop",
+              "label": "Slide · Loop",
               "source": "quaternius-uam2",
               "clip": "Slide_Loop",
               "license": "CC0",
@@ -763,7 +763,7 @@
             },
             {
               "id": "quaternius_uam1_swim_fwd_loop",
-              "label": "Swim Fwd \u00b7 Loop",
+              "label": "Swim Fwd · Loop",
               "source": "quaternius-uam1",
               "clip": "Swim_Fwd_Loop",
               "license": "CC0",
@@ -772,7 +772,7 @@
             },
             {
               "id": "quaternius_uam2_treechopping_loop",
-              "label": "TreeChopping \u00b7 Loop",
+              "label": "TreeChopping · Loop",
               "source": "quaternius-uam2",
               "clip": "TreeChopping_Loop",
               "license": "CC0",
@@ -796,7 +796,7 @@
           "items": [
             {
               "id": "quaternius_uam1_crouch_fwd_loop",
-              "label": "Crouch Fwd \u00b7 Loop",
+              "label": "Crouch Fwd · Loop",
               "source": "quaternius-uam1",
               "clip": "Crouch_Fwd_Loop",
               "license": "CC0",
@@ -805,7 +805,7 @@
             },
             {
               "id": "quaternius_uam1_crouch_idle_loop",
-              "label": "Crouch Idle \u00b7 Loop",
+              "label": "Crouch Idle · Loop",
               "source": "quaternius-uam1",
               "clip": "Crouch_Idle_Loop",
               "license": "CC0",
@@ -848,7 +848,7 @@
             },
             {
               "id": "quaternius_uam2_hit_knockback_rm",
-              "label": "Hit Knockback \u00b7 Root Motion",
+              "label": "Hit Knockback · Root Motion",
               "source": "quaternius-uam2",
               "clip": "Hit_Knockback_RM",
               "license": "CC0",
@@ -875,7 +875,7 @@
           "items": [
             {
               "id": "rokoko_zombie_12",
-              "label": "Rokoko \u2014 12 Free Zombie Animations",
+              "label": "Rokoko — 12 Free Zombie Animations",
               "performer": "Sam Lazarus",
               "capture": "Rokoko Smartsuit Pro II + Smartgloves",
               "format": "FBX",
@@ -889,7 +889,7 @@
             },
             {
               "id": "mocap_online_demo",
-              "label": "MoCap Online \u2014 Free Demo Pack",
+              "label": "MoCap Online — Free Demo Pack",
               "capture": "Professional mocap sample pack; includes Zombie samples.",
               "format": "FBX and other engine formats",
               "source_url": "https://mocaponline.itch.io/mocap-online-demo",
@@ -904,7 +904,7 @@
           "items": [
             {
               "id": "mocap_online_zombie_pro",
-              "label": "MoCap Online \u2014 Zombie Pro",
+              "label": "MoCap Online — Zombie Pro",
               "count": 265,
               "categories": [
                 "attack",
@@ -952,7 +952,7 @@
           "items": [
             {
               "id": "quaternius_universal_anim2",
-              "label": "Universal Animation Library 2 \u2014 Standard",
+              "label": "Universal Animation Library 2 — Standard",
               "count": 43,
               "categories": [
                 "zombie_idle",
@@ -1000,7 +1000,7 @@
             },
             {
               "id": "quaternius_universal_anim1",
-              "label": "Universal Animation Library \u2014 Standard",
+              "label": "Universal Animation Library — Standard",
               "count": 46,
               "categories": [
                 "walk",
@@ -1032,8 +1032,10 @@
               ],
               "license": "CC0",
               "source_url": "https://quaternius.com/packs/zombieapocalypsekit.html",
-              "availability": "external_download_required",
-              "one_tap_ready": false
+              "availability": "local_archive",
+              "one_tap_ready": false,
+              "local_archive_path": "hayuya/source_archives/quaternius_zombie_apocalypse/quaternius_zombie_apocalypse.zip",
+              "notes": "CC0 source ZIP stored locally in HAYUYA; 294 source files archived."
             }
           ]
         }
