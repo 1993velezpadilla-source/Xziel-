@@ -1027,6 +1027,12 @@ jobs:
           echo "XZIEL_SWAPCHAIN_STABLE pipelineCreates=$PIPELINE_READY_COUNT"
 
           grep -q "XZIEL_SANCTUM_MESH_READY"             dist/sanctum-hq-logcat.txt
+
+          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-legacy-material-pipeline-v1" ]]; then
+            grep -q "XZIEL_STATIC_LEGACY_PIPELINES_READY" dist/sanctum-hq-logcat.txt
+            echo "XZIEL_STATIC_LEGACY_PIPELINES_ACTIVE"
+          fi
+
           grep -q "XZIEL_WEAPON_VIEWMODEL_READY"             dist/sanctum-hq-logcat.txt
           grep -q "XZIEL_WEAPON_AUDIO_READY fire=1 reload=1"             dist/sanctum-hq-logcat.txt
 
