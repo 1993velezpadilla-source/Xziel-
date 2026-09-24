@@ -13,7 +13,13 @@ ROOT = Path(__file__).resolve().parents[3]
 HAYUYA_DIR = ROOT / "tools" / "hayuya3d"
 sys.path.insert(0, str(HAYUYA_DIR))
 
-from qa import _sample_uv_luma_gradients, head_density_score_from_ratio, inspect_mesh
+from qa import (
+    MeshScore,
+    _sample_uv_luma_gradients,
+    candidate_rank_key,
+    head_density_score_from_ratio,
+    inspect_mesh,
+)
 
 
 class HeadDensityScoreTests(unittest.TestCase):
@@ -27,6 +33,64 @@ class HeadDensityScoreTests(unittest.TestCase):
     def test_equal_or_denser_head_caps_at_full_credit(self):
         self.assertEqual(head_density_score_from_ratio(1.0), 100.0)
         self.assertEqual(head_density_score_from_ratio(1.8), 100.0)
+
+    def test_character_ranking_prefers_complete_surface_evidence(self):
+        complete=MeshScore(
+            path="complete.glb",
+            backend="complete",
+            score=80.0,
+            valid=True,
+            head_density_score=98.0,
+            head_texel_density_score=97.0,
+            head_texture_detail_score=82.0,
+        )
+        incomplete=MeshScore(
+            path="incomplete.glb",
+            backend="incomplete",
+            score=99.0,
+            valid=True,
+            head_density_score=100.0,
+            head_texel_density_score=None,
+            head_texture_detail_score=100.0,
+        )
+        ranked=sorted(
+            [incomplete,complete],
+            key=lambda item:candidate_rank_key(item,mode="character"),
+            reverse=True,
+        )
+        self.assertEqual(ranked[0].backend,"complete")
+
+    def test_face_reference_ranking_requires_identity_evidence(self):
+        identity_ready=MeshScore(
+            path="identity.glb",
+            backend="identity",
+            score=80.0,
+            valid=True,
+            head_density_score=98.0,
+            head_texel_density_score=97.0,
+            head_texture_detail_score=82.0,
+            appearance_face_detail_min_score=88.0,
+        )
+        missing_identity=MeshScore(
+            path="missing.glb",
+            backend="missing",
+            score=99.0,
+            valid=True,
+            head_density_score=100.0,
+            head_texel_density_score=100.0,
+            head_texture_detail_score=100.0,
+            appearance_face_detail_min_score=None,
+        )
+        ranked=sorted(
+            [missing_identity,identity_ready],
+            key=lambda item:candidate_rank_key(
+                item,
+                mode="character",
+                identity_required=True,
+            ),
+            reverse=True,
+        )
+        self.assertEqual(ranked[0].backend,"identity")
 
     def test_face_texture_gradient_sampler_distinguishes_local_detail(self):
         uniform = Image.fromarray(
