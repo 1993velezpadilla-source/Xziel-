@@ -5461,12 +5461,10 @@ void VulkanStaticMeshRenderer::record(
         const std::uint32_t commandIndex =
             commandCount++;
 
-        VkDrawIndexedIndirectCommand draw{};
-        draw.indexCount = batch.indexCount;
-        draw.instanceCount = 1U;
-        draw.firstIndex = batch.firstIndex;
-        draw.vertexOffset = batch.vertexOffset;
-        draw.firstInstance = 0U;
+        const auto& draw =
+            batch.indirectCommand;
+        ++frameStats_.
+            precomputedIndirectCommandCopies;
 
         if (mappedDrawCommands != nullptr) {
             mappedDrawCommands[
@@ -5686,7 +5684,7 @@ void VulkanStaticMeshRenderer::record(
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u draw_submissions=%u indirect_draws=%u indirect_direct_writes=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u multi_draw_indirect=%u portal_tests=%u portal_culled=%u portal_skipped=%u cell_frustum_tests=%u cell_frustum_culled=%u cell_range_skipped=%u cell_frustum_skipped=%u cell_driven_batch_visits=%u batch_frustum_tests=%u material_visibility_tests=%u material_visibility_cache_hits=%u front_to_back_candidates=%u front_to_back_reordered=%u front_to_back_depth_reuses=%u plan_builds=%llu plan_cache_hits=%llu cell_heat_refreshes=%llu",
+            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u draw_submissions=%u indirect_draws=%u indirect_direct_writes=%u precomputed_indirect_commands=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u multi_draw_indirect=%u portal_tests=%u portal_culled=%u portal_skipped=%u cell_frustum_tests=%u cell_frustum_culled=%u cell_range_skipped=%u cell_frustum_skipped=%u cell_driven_batch_visits=%u batch_frustum_tests=%u material_visibility_tests=%u material_visibility_cache_hits=%u front_to_back_candidates=%u front_to_back_reordered=%u front_to_back_depth_reuses=%u plan_builds=%llu plan_cache_hits=%llu cell_heat_refreshes=%llu",
             static_cast<unsigned int>(
                 frameStats_.streamingCell),
             static_cast<unsigned int>(
@@ -5706,6 +5704,9 @@ void VulkanStaticMeshRenderer::record(
             static_cast<unsigned int>(
                 frameStats_.
                     indirectCommandDirectWrites),
+            static_cast<unsigned int>(
+                frameStats_.
+                    precomputedIndirectCommandCopies),
             static_cast<unsigned int>(
                 frameStats_.materialBinds),
             static_cast<unsigned int>(
@@ -6830,6 +6831,14 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
                         batch.indices.size());
                 gpuBatch.triangleCount =
                     gpuBatch.indexCount / 3U;
+                gpuBatch.indirectCommand.indexCount =
+                    gpuBatch.indexCount;
+                gpuBatch.indirectCommand.instanceCount = 1U;
+                gpuBatch.indirectCommand.firstIndex =
+                    gpuBatch.firstIndex;
+                gpuBatch.indirectCommand.vertexOffset =
+                    gpuBatch.vertexOffset;
+                gpuBatch.indirectCommand.firstInstance = 0U;
                 gpuBatch.bounds =
                     batch.bounds;
                 cacheGpuBatchCullingSphere(
@@ -7263,6 +7272,14 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
                     batch.indices.size());
             gpuBatch.triangleCount =
                 gpuBatch.indexCount / 3U;
+            gpuBatch.indirectCommand.indexCount =
+                gpuBatch.indexCount;
+            gpuBatch.indirectCommand.instanceCount = 1U;
+            gpuBatch.indirectCommand.firstIndex =
+                gpuBatch.firstIndex;
+            gpuBatch.indirectCommand.vertexOffset =
+                gpuBatch.vertexOffset;
+            gpuBatch.indirectCommand.firstInstance = 0U;
             gpuBatch.bounds =
                 batch.bounds;
             cacheGpuBatchCullingSphere(

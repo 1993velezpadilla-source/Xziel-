@@ -44,6 +44,8 @@ struct StaticMeshFrameStats {
     // Commands written straight into the persistently mapped indirect buffer,
     // avoiding the per-frame CPU staging vector + memcpy on the fast path.
     std::uint32_t indirectCommandDirectWrites = 0U;
+    // Visible draws copied from immutable commands cached with each batch.
+    std::uint32_t precomputedIndirectCommandCopies = 0U;
     std::uint32_t materialBinds = 0U;
     std::uint32_t geometryBinds = 0U;
     std::uint32_t pipelineBinds = 0U;
@@ -313,6 +315,7 @@ private:
         // integer divide for every visible draw on every frame.
         std::uint32_t triangleCount = 0U;
         std::uint32_t materialIndex = 0U;
+        VkDrawIndexedIndirectCommand indirectCommand{};
         StaticMeshBounds bounds{};
 
         // Derived once when the XZSM is uploaded. Frustum culling touches every
