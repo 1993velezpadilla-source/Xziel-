@@ -22,6 +22,7 @@ class MeshScore:
     appearance_views: list[dict] | None = None
     appearance_detail_score: float | None = None
     appearance_face_detail_score: float | None = None
+    appearance_face_detail_min_score: float | None = None
     appearance_details: list[dict] | None = None
     normal_support_score: float | None = None
     normal_support_views: list[dict] | None = None
@@ -703,6 +704,10 @@ def rank_candidates(
                                 if face_detail_scores:
                                     ordered_face=sorted(face_detail_scores)
                                     mean_face=sum(ordered_face)/len(ordered_face)
+                                    item.appearance_face_detail_min_score=round(
+                                        ordered_face[0],
+                                        3,
+                                    )
                                     item.appearance_face_detail_score=round(
                                         mean_face if len(ordered_face)==1
                                         else 0.80*mean_face+0.20*ordered_face[0],
@@ -710,6 +715,7 @@ def rank_candidates(
                                     )
                                     item.notes.append(
                                         f"face_detail_fidelity={item.appearance_face_detail_score:.3f} "
+                                        f"face_detail_min={item.appearance_face_detail_min_score:.3f} "
                                         f"face_detail_refs={len(face_detail_scores)}"
                                     )
                                 if item.appearance_detail_score is not None:
