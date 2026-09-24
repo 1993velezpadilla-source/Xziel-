@@ -49,6 +49,23 @@ compatibility stack. This proves whether the *actual* runtime can execute on the
 phone. It is not a native Android port and is not the intended Google Play
 shipping architecture.
 
+### Current probe stack
+
+First probe: **Winlator/Wine + Box86/Box64/DXVK** on Android. This is the fastest
+way to answer the runtime question because it already targets Windows games on
+Android and exposes per-game container settings.
+
+Second probe if the first path is unstable: **Hangover/Wine WoW64** with its
+x86-32-on-ARM64 emulator DLL path. Hangover is attractive for this specific
+runtime because it can run i386 Windows applications on ARM64 without requiring
+a traditional 32-bit Unix userspace.
+
+These are probe environments only. We do not fork either into the shipping game
+unless the experiment first proves IW4 itself is worth pursuing.
+
+Expected render translation for the PC runtime is Direct3D 9 -> DXVK -> Vulkan
+where the device/driver supports the required Vulkan feature set.
+
 ### Route B — church map bridge
 
 Prepare our church as an IW4-compatible usermap.
@@ -64,8 +81,25 @@ Current source authority:
 - source GLB default: `church/source/st-giles-cripplegate.glb`
 - Xziel native map/runtime output remains the authoritative Xziel path.
 
-The IW4 usermap route can use public modding/interoperability tooling, but the
-final map build may require a locally installed, legally obtained game/tool
+Public IW4 tooling can load/build a useful subset of XModel/material/weapon
+assets, but public OpenAssetTools does not currently provide disk load support
+for the full IW4 `GfxWorld`, `clipMap_t`, `GameWorld`, or `FxWorld`
+types. So a complete church map needs the established custom-map toolchain, not
+just OAT.
+
+The existing IW4x map-porting path converts maps from IW3/Call of Duty 4 into
+IW4 usermaps. For Sanctum, the practical bridge is therefore:
+
+1. keep the original church GLB untouched;
+2. create bounded static-model chunks from the same source partitioning already
+   used by Xziel;
+3. build a coarse authored collision/world shell suitable for the IW3/IW4 map
+   pipeline;
+4. place the church chunks as static models;
+5. build/port the resulting test map into IW4;
+6. launch it as `xziel_sanctum` on the compatibility runtime.
+
+The final map build may require a locally installed, legally obtained game/tool
 installation. CI must never download or cache proprietary game files.
 
 ## Why this branch exists
