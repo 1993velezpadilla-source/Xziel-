@@ -2,6 +2,13 @@ name: IW4 Android Compatibility Spike
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - "research/iw4-android-compat-spike"
+    paths:
+      - "tools/iw4_android_spike/**"
+      - "docs/engine/IW4_ANDROID_COMPAT_SPIKE.md"
+      - ".github/workflows/iw4-android-compat-spike.yml"
   pull_request:
     paths:
       - "tools/iw4_android_spike/**"
