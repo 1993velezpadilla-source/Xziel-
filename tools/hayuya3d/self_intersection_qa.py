@@ -183,7 +183,7 @@ def audit_self_intersections(
     return SelfIntersectionAudit(
         path=str(path),
         applicable=applicable,
-        ready=bool(applicable and not errors),
+        ready=not errors,
         component_count=len(unique),
         audited_component_count=len(reports),
         candidate_triangle_pairs=candidate_total,
