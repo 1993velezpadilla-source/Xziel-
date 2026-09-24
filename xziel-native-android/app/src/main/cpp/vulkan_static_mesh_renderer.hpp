@@ -563,6 +563,7 @@ private:
     bool samplerAnisotropyEnabled_ = false;
     bool astcLdrSupported_ = false;
     bool multiDrawIndirectEnabled_ = false;
+    std::uint32_t maxDrawIndirectCount_ = 1U;
     float maxSamplerAnisotropy_ = 1.0f;
     mutable StaticMeshFrameStats frameStats_{};
     bool ready_ = false;
