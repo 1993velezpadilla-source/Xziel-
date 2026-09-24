@@ -42,7 +42,11 @@ def _append(blob: bytearray, payload: bytes) -> tuple[int, int]:
     return offset, len(payload)
 
 
-def write_skinned_base_with_normals(path: Path) -> None:
+def write_skinned_base_with_normals(
+    path: Path,
+    *,
+    animated: bool = False,
+) -> None:
     source = trimesh.creation.icosphere(subdivisions=2, radius=1.0)
     vertices = np.asarray(source.vertices, dtype=np.float32)
     normals = np.asarray(source.vertex_normals, dtype=np.float32)
@@ -102,6 +106,68 @@ def write_skinned_base_with_normals(path: Path) -> None:
             "max": delta.max(axis=0).astype(float).tolist(),
         },
     ]
+
+    animations = []
+    if animated:
+        times = np.asarray([0.0, 1.0], dtype=np.float32)
+        translations = np.asarray([
+            [0.0, 0.0, 0.0],
+            [0.08, 0.0, 0.0],
+        ], dtype=np.float32)
+
+        time_offset = _align(blob)
+        time_bytes = times.astype("<f4").tobytes()
+        blob.extend(time_bytes)
+        views.append({
+            "buffer": 0,
+            "byteOffset": time_offset,
+            "byteLength": len(time_bytes),
+        })
+        time_accessor = len(accessors)
+        accessors.append({
+            "bufferView": len(views) - 1,
+            "componentType": 5126,
+            "count": len(times),
+            "type": "SCALAR",
+            "min": [0.0],
+            "max": [1.0],
+        })
+
+        translation_offset = _align(blob)
+        translation_bytes = translations.astype("<f4").tobytes()
+        blob.extend(translation_bytes)
+        views.append({
+            "buffer": 0,
+            "byteOffset": translation_offset,
+            "byteLength": len(translation_bytes),
+        })
+        translation_accessor = len(accessors)
+        accessors.append({
+            "bufferView": len(views) - 1,
+            "componentType": 5126,
+            "count": len(translations),
+            "type": "VEC3",
+            "min": translations.min(axis=0).astype(float).tolist(),
+            "max": translations.max(axis=0).astype(float).tolist(),
+        })
+        animations = [{
+            "samplers": [{
+                "input": time_accessor,
+                "output": translation_accessor,
+                "interpolation": "LINEAR",
+            }],
+            "channels": [
+                {
+                    "sampler": 0,
+                    "target": {"node": 1, "path": "translation"},
+                },
+                {
+                    "sampler": 0,
+                    "target": {"node": 2, "path": "translation"},
+                },
+            ],
+        }]
+
     doc = {
         "asset": {"version": "2.0"},
         "buffers": [{"byteLength": len(blob)}],
@@ -122,11 +188,11 @@ def write_skinned_base_with_normals(path: Path) -> None:
         }],
         "nodes": [{"mesh": 0, "skin": 0}, {}, {}],
         "skins": [{"joints": [1, 2]}],
+        "animations": animations,
         "scenes": [{"nodes": [0, 1, 2]}],
         "scene": 0,
     }
     write_glb(path, doc, bytes(blob))
-
 
 def write_textured_donor(path: Path) -> None:
     body = trimesh.creation.icosphere(subdivisions=2, radius=1.0)
@@ -393,7 +459,11 @@ def write_shared_atlas_cluster_donor(path: Path) -> None:
     write_glb(path, doc, bytes(blob))
 
 
-def write_split_material_cluster_donor(path: Path) -> None:
+def write_split_material_cluster_donor(
+    path: Path,
+    *,
+    normal_maps: bool = False,
+) -> None:
     def piece(center, color):
         vertices = np.asarray([
             [-0.045, -0.040, -0.035],
@@ -422,8 +492,18 @@ def write_split_material_cluster_donor(path: Path) -> None:
         base = np.zeros((16, 16, 4), dtype=np.uint8)
         base[:, :, :3] = np.asarray(color, dtype=np.uint8)
         base[:, :, 3] = 255
+
+        normal_texture = None
+        if normal_maps:
+            normal_pixels = np.zeros((16, 16, 3), dtype=np.uint8)
+            normal_pixels[:, :, 0] = 128
+            normal_pixels[:, :, 1] = 128
+            normal_pixels[:, :, 2] = 255
+            normal_texture = Image.fromarray(normal_pixels, "RGB")
+
         material = trimesh.visual.material.PBRMaterial(
             baseColorTexture=Image.fromarray(base, "RGBA"),
+            normalTexture=normal_texture,
             metallicFactor=0.15,
             roughnessFactor=0.5,
         )
@@ -448,7 +528,6 @@ def write_split_material_cluster_donor(path: Path) -> None:
             node_name=f"accessory_{index}",
         )
     path.write_bytes(trimesh.exchange.gltf.export_glb(scene))
-
 
 def _candidate(
     backend: str,
@@ -733,6 +812,71 @@ class AccessoryMaterialTransferTests(unittest.TestCase):
             self.assertTrue(production.skin_weights_ready)
             self.assertTrue(production.morph_deformation_ready)
             self.assertTrue(production.attachment_ready)
+
+    def test_split_material_normal_maps_survive_skeletal_animation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            base = root / "animated-base.glb"
+            donor = root / "normal-split-cluster.glb"
+            write_skinned_base_with_normals(
+                base,
+                animated=True,
+            )
+            write_split_material_cluster_donor(
+                donor,
+                normal_maps=True,
+            )
+
+            production = prepare_production_rigged_accessory_insert(
+                base,
+                donor,
+                root / "animated-production",
+            )
+            self.assertTrue(production.ready, production.errors)
+            self.assertTrue(
+                production.production_ready,
+                production.material_blockers,
+            )
+            self.assertTrue(production.animation_ready, production.errors)
+            self.assertTrue(production.deformation_ready, production.errors)
+            self.assertTrue(production.skin_weights_ready, production.errors)
+            self.assertTrue(
+                production.morph_deformation_ready,
+                production.errors,
+            )
+            self.assertTrue(production.uv_tangent_ready)
+            self.assertIn("baseColor", production.material_channels)
+            self.assertIn("normal", production.material_channels)
+
+            from tools.hayuya3d.glb_images import read_glb
+            final_doc, _ = read_glb(Path(production.output_glb))
+            skinned_node = next(
+                node
+                for node in final_doc.get("nodes") or []
+                if isinstance(node.get("mesh"), int)
+                and isinstance(node.get("skin"), int)
+            )
+            primitives = final_doc["meshes"][int(skinned_node["mesh"])][
+                "primitives"
+            ]
+            split_primitives = [
+                primitive
+                for primitive in primitives
+                if (primitive.get("extras") or {}).get(
+                    "hayuyaAccessorySplit"
+                )
+            ]
+            self.assertEqual(len(split_primitives), 3)
+            self.assertTrue(all(
+                "TANGENT" in (primitive.get("attributes") or {})
+                for primitive in split_primitives
+            ))
+            self.assertTrue(
+                audit_uv_tangents(Path(production.output_glb)).ready
+            )
+            self.assertTrue(
+                audit_shading_basis(Path(production.output_glb)).ready
+            )
 
     def test_composite_executes_split_material_cluster_end_to_end(self):
         with tempfile.TemporaryDirectory() as tmp:
