@@ -228,13 +228,25 @@ void main() {
         normal = -normal;
     }
 
-    if (hasNormal) {
+    // The vertex stage guarantees this value is non-negative. Reuse it for
+    // both material-detail gates instead of re-clamping the varying.
+    float viewDepth = vViewData.w;
+
+    if (hasNormal &&
+        viewDepth <
+            NORMAL_MAP_FADE_END_DISTANCE) {
+        // smoothstep() is identically zero before the fade band. Avoid that
+        // per-fragment cubic work for the full-detail majority, and skip the
+        // whole block once the map is fully faded.
         float normalDetail =
-            1.0 -
-            smoothstep(
-                NORMAL_MAP_FULL_DETAIL_DISTANCE,
-                NORMAL_MAP_FADE_END_DISTANCE,
-                max(vViewData.w, 0.0));
+            viewDepth <=
+                    NORMAL_MAP_FULL_DETAIL_DISTANCE
+            ? 1.0
+            : 1.0 -
+                smoothstep(
+                    NORMAL_MAP_FULL_DETAIL_DISTANCE,
+                    NORMAL_MAP_FADE_END_DISTANCE,
+                    viewDepth);
 
         // Most far-world fragments now skip mappedNormal() entirely. That
         // avoids four derivatives, multiple normalizations and the normal-map
@@ -269,13 +281,18 @@ void main() {
             1.0);
     float occlusion = 1.0;
 
-    if (hasOrm) {
+    if (hasOrm &&
+        viewDepth <
+            ORM_MAP_FADE_END_DISTANCE) {
         float ormDetail =
-            1.0 -
-            smoothstep(
-                ORM_MAP_FULL_DETAIL_DISTANCE,
-                ORM_MAP_FADE_END_DISTANCE,
-                max(vViewData.w, 0.0));
+            viewDepth <=
+                    ORM_MAP_FULL_DETAIL_DISTANCE
+            ? 1.0
+            : 1.0 -
+                smoothstep(
+                    ORM_MAP_FULL_DETAIL_DISTANCE,
+                    ORM_MAP_FADE_END_DISTANCE,
+                    viewDepth);
 
         // Fade continuously toward neutral ORM values before the far-field
         // branch skips the texture lookup. This preserves authored close/mid
@@ -406,9 +423,10 @@ void main() {
             nDotL;
     }
 
+    // lightning is already clamped (or forced to zero for the viewmodel).
     float lightningBoost =
         1.0 +
-        clamp(lightning, 0.0, 2.0) *
+        lightning *
         1.8;
 
     vec3 ambient =
