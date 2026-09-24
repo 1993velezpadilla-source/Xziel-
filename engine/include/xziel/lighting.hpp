@@ -37,7 +37,7 @@ struct LocalLightInput {
 
     bool castsShadows = false;
     bool volumetric = false;
-    bool enabled = true;
+    bool enabled = false;
 };
 
 struct RuntimeLocalLight {
