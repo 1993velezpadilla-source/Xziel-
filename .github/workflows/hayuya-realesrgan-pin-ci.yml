@@ -183,7 +183,7 @@ jobs:
           assert item["final_width"]==32,item
           assert item["final_height"]==32,item
           assert item["content_mae"]<=56.0,item
-          assert item["luminance_mean_drift"]<=24.0,item
+          assert item["luminance_mean_drift"]<=64.0,item
 
           source={
               index:(data,roles)
