@@ -19,6 +19,7 @@ from tools.hayuya3d.morph_deformation_qa import audit_morph_deformation
 from tools.hayuya3d.rigged_accessory_insert import (
     _blend_skin_weights,
     insert_rigged_accessory,
+    prepare_production_rigged_accessory_insert,
     rigged_accessory_insert_supported,
 )
 from tools.hayuya3d.skin_weight_qa import audit_skin_weights
@@ -337,8 +338,18 @@ class RiggedAccessoryInsertTests(unittest.TestCase):
             )
             self.assertTrue(supported,reason)
 
-            result=insert_rigged_accessory(
+            raw=insert_rigged_accessory(
                 base,donor,output,
+            )
+            self.assertTrue(raw.ready,raw.errors)
+            self.assertTrue(raw.geometry_ready)
+            self.assertFalse(raw.material_ready)
+            self.assertFalse(raw.production_ready)
+
+            result=prepare_production_rigged_accessory_insert(
+                base,
+                donor,
+                root/"production",
             )
             self.assertTrue(result.ready,result.errors)
             self.assertTrue(result.geometry_ready)
