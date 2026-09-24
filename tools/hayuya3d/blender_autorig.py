@@ -130,6 +130,7 @@ def main():
     donor_roots=[o for o in donor_objs if o.parent not in donor_set]
     if not donor_roots:
         donor_roots=[arm]
+    donor_root_names=[o.name for o in donor_roots]
 
     for root in donor_roots:
         root.scale=Vector((root.scale.x*scale,root.scale.y*scale,root.scale.z*scale))
@@ -253,12 +254,14 @@ def main():
                 all_weighted_groups.add(name)
             transferred += 1
 
-        # IMPORTANT: do not parent the generated mesh object to the fitted
-        # donor armature.  The armature object carries scale/translation used
-        # to fit the skeleton; parenting would apply that transform a second
-        # time to the target mesh and was the root cause of the giant
-        # stretched/cuboid previews.  The Armature modifier is sufficient.
-        mesh.parent=None
+        # glTF skin export expects the armature to be the mesh parent. Preserve
+        # the target mesh WORLD transform while parenting so the fitted
+        # armature transform is not applied twice. This gives the exporter the
+        # hierarchy it expects without moving/scaling the generated character.
+        world_before=mesh.matrix_world.copy()
+        mesh.parent=arm
+        mesh.matrix_parent_inverse=arm.matrix_world.inverted()
+        mesh.matrix_world=world_before
         mod=mesh.modifiers.new(name="HAYUYA_Armature",type="ARMATURE")
         mod.object=arm
         mod.use_vertex_groups=True
@@ -325,8 +328,8 @@ def main():
         "actions":[a.name for a in actions],
         "weighted_bones":sorted(all_weighted_groups),
         "weighted_bone_count":len(all_weighted_groups),
-        "donor_root_objects":[o.name for o in donor_roots],
-        "binding_method":"aligned_roots_blended_kdtree_v3_no_parent_double_transform",
+        "donor_root_objects":donor_root_names,
+        "binding_method":"aligned_roots_blended_kdtree_v4_parent_inverse",
         "bind_results":bind_results,
         "output_bytes":args.output.stat().st_size if args.output.exists() else 0,
     }
