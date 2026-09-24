@@ -30,6 +30,8 @@ class HeadWrapResult:
     rebake_resolved:list[str]
     skin_payload_preserved:bool|None=None
     skin_runtime_ready:bool|None=None
+    rig_preserved:bool|None=None
+    skin_weights_ready:bool|None=None
     error:str|None=None
     method:str="hayuya-head-wrap-regional-fusion-v1"
 
@@ -84,249 +86,6 @@ def _rig_blocked(path:Path)->tuple[bool,str|None]:
 
 
 
-def _skinned_head_wrap_geometry(
-    base_mesh:Path,
-    donor_mesh:Path,
-    output_glb:Path,
-    *,
-    head_start:float,
-    full_influence:float,
-    max_displacement_fraction:float,
-    seam_limit_fraction:float,
-    bbox_drift_limit:float,
-    up_axis:str|int|None,
-)->HeadWrapResult:
-    np,_,cKDTree=_deps()
-    try:
-        from gltf_audit import audit_glb,read_glb_json
-        from gltf_position_patch import (
-            mesh_nodes_identity_for_accessors,
-            mesh_position_accessors,
-            patch_position_accessors,
-            read_position_accessor,
-        )
-        from skin_weight_qa import audit_skin_weights
-
-        audit_before=audit_glb(base_mesh)
-        if not audit_before.rig_ready:
-            raise RuntimeError(
-                "skinned head wrap requires a valid base rig before deformation"
-            )
-        skin_before=audit_skin_weights(base_mesh)
-        if not skin_before.applicable or not skin_before.ready:
-            raise RuntimeError(
-                "skinned head wrap requires valid normalized skin weights"
-            )
-
-        doc=read_glb_json(base_mesh)
-        accessors=mesh_position_accessors(doc,skinned_only=False)
-        if not accessors:
-            raise RuntimeError("base GLB has no patchable POSITION accessors")
-        if not mesh_nodes_identity_for_accessors(doc,accessors):
-            raise RuntimeError(
-                "skinned head wrap requires identity mesh-node transforms"
-            )
-
-        base_sets={
-            index:np.asarray(
-                read_position_accessor(base_mesh,index),
-                dtype=np.float64,
-            )
-            for index in accessors
-        }
-        base_vertices=np.concatenate(list(base_sets.values()),axis=0)
-        donor_vertices=_all_vertices(_scene_meshes(donor_mesh))
-
-        base_lo,_,base_center,base_extent=_bbox(base_vertices)
-        _,_,donor_center,donor_extent=_bbox(donor_vertices)
-        if isinstance(up_axis,str):
-            axis_map={"x":0,"y":1,"z":2}
-            if up_axis.lower() not in axis_map:
-                raise ValueError(f"invalid up_axis: {up_axis}")
-            resolved_up_axis=axis_map[up_axis.lower()]
-        elif isinstance(up_axis,int):
-            if up_axis not in (0,1,2):
-                raise ValueError(f"invalid up_axis index: {up_axis}")
-            resolved_up_axis=up_axis
-        else:
-            resolved_up_axis=int(np.argmax(base_extent))
-
-        base_height=float(base_extent[resolved_up_axis])
-        donor_height=float(donor_extent[resolved_up_axis])
-        if base_height<=1e-9 or donor_height<=1e-9:
-            raise ValueError("collapsed character bounds")
-
-        scale=base_height/donor_height
-        aligned=(donor_vertices-donor_center)*scale+base_center
-        diagonal=max(float(np.linalg.norm(base_extent)),1e-9)
-        donor_norm_h=(
-            aligned[:,resolved_up_axis]-base_lo[resolved_up_axis]
-        )/base_height
-        donor_head=aligned[
-            donor_norm_h>=max(0.68,head_start-0.04)
-        ]
-        if len(donor_head)<16:
-            raise RuntimeError(
-                f"donor head region too sparse: {len(donor_head)} vertices"
-            )
-        tree=cKDTree(donor_head)
-
-        replacements={}
-        all_applied=[]
-        seam_applied=[]
-        head_vertices=0
-        changed_vertices=0
-        clamped_vertices=0
-
-        for index,vv0 in base_sets.items():
-            vv=vv0.copy()
-            normalized=(
-                vv[:,resolved_up_axis]-base_lo[resolved_up_axis]
-            )/base_height
-            ids=np.flatnonzero(normalized>=head_start)
-            head_vertices+=int(len(ids))
-            if len(ids):
-                _,nearest=tree.query(vv[ids],k=1,workers=-1)
-                targets=donor_head[np.asarray(nearest,dtype=np.int64)]
-                displacement=targets-vv[ids]
-                raw_norm=np.linalg.norm(displacement,axis=1)
-                max_disp=max_displacement_fraction*diagonal
-                clamp_scale=np.ones_like(raw_norm)
-                too_large=raw_norm>max_disp
-                clamp_scale[too_large]=(
-                    max_disp/np.maximum(raw_norm[too_large],1e-12)
-                )
-                clamped_vertices+=int(np.count_nonzero(too_large))
-                displacement*=clamp_scale[:,None]
-
-                t=(normalized[ids]-head_start)/max(
-                    full_influence-head_start,1e-9
-                )
-                influence=_smoothstep(t)
-                applied=displacement*influence[:,None]
-                vv[ids]+=applied
-                changed_vertices+=int(np.count_nonzero(
-                    np.linalg.norm(applied,axis=1)>1e-10
-                ))
-                all_applied.append(applied)
-
-                seam_mask=normalized[ids] < (
-                    head_start+(full_influence-head_start)*0.35
-                )
-                if np.any(seam_mask):
-                    seam_applied.append(applied[seam_mask])
-            replacements[index]=vv.tolist()
-
-        if head_vertices<=0:
-            raise RuntimeError("base mesh has no vertices inside head region")
-
-        moved=(
-            np.concatenate(all_applied,axis=0)
-            if all_applied else np.zeros((0,3))
-        )
-        seam=(
-            np.concatenate(seam_applied,axis=0)
-            if seam_applied else np.zeros((0,3))
-        )
-        moved_norm=(
-            np.linalg.norm(moved,axis=1)/diagonal
-            if len(moved) else np.zeros(0)
-        )
-        seam_norm=(
-            np.linalg.norm(seam,axis=1)/diagonal
-            if len(seam) else np.zeros(0)
-        )
-        wrapped_vertices=np.concatenate(
-            [np.asarray(replacements[i],dtype=np.float64) for i in accessors],
-            axis=0,
-        )
-        _,_,_,wrapped_extent=_bbox(wrapped_vertices)
-        bbox_drift=float(np.max(
-            np.abs(wrapped_extent-base_extent)
-            /np.maximum(base_extent,1e-9)
-        ))
-        seam_max=float(np.max(seam_norm)) if len(seam_norm) else 0.0
-        max_disp_norm=float(np.max(moved_norm)) if len(moved_norm) else 0.0
-        mean_disp_norm=float(np.mean(moved_norm)) if len(moved_norm) else 0.0
-
-        geometry_ready=bool(
-            seam_max<=seam_limit_fraction
-            and bbox_drift<=bbox_drift_limit
-            and math.isfinite(max_disp_norm)
-        )
-        reasons=[]
-        if seam_max>seam_limit_fraction:
-            reasons.append(
-                f"neck_seam_drift={seam_max:.6f}>{seam_limit_fraction:.6f}"
-            )
-        if bbox_drift>bbox_drift_limit:
-            reasons.append(
-                f"bbox_drift={bbox_drift:.6f}>{bbox_drift_limit:.6f}"
-            )
-
-        patch=patch_position_accessors(
-            base_mesh,
-            output_glb,
-            replacements,
-        )
-        if not patch.ready or not patch.skin_payload_preserved:
-            raise RuntimeError(
-                patch.error or "skin payload changed during POSITION patch"
-            )
-
-        audit_after=audit_glb(output_glb)
-        skin_after=audit_skin_weights(output_glb)
-        runtime_ready=bool(
-            audit_after.rig_ready
-            and skin_after.applicable
-            and skin_after.ready
-            and audit_after.skin_count==audit_before.skin_count
-            and audit_after.joint_count==audit_before.joint_count
-            and audit_after.animation_count==audit_before.animation_count
-        )
-        if not runtime_ready:
-            reasons.append("rig_or_skin_weight_runtime_regression")
-            geometry_ready=False
-
-        return HeadWrapResult(
-            base_mesh=str(base_mesh),
-            donor_mesh=str(donor_mesh),
-            raw_output_glb=str(output_glb),
-            output_glb=str(output_glb),
-            attempted=True,
-            geometry_ready=geometry_ready,
-            rebake_ready=False,
-            ready_for_judge=False,
-            up_axis=resolved_up_axis,
-            alignment_scale=round(float(scale),8),
-            head_vertices=head_vertices,
-            changed_vertices=changed_vertices,
-            clamped_vertices=clamped_vertices,
-            mean_displacement_normalized=round(mean_disp_norm,8),
-            max_displacement_normalized=round(max_disp_norm,8),
-            seam_max_displacement_normalized=round(seam_max,8),
-            bbox_drift_fraction=round(bbox_drift,8),
-            rebake_required=["normal","occlusion"],
-            rebake_resolved=[],
-            skin_payload_preserved=True,
-            skin_runtime_ready=runtime_ready,
-            error=";".join(reasons) if reasons else None,
-        )
-    except Exception as exc:
-        return HeadWrapResult(
-            base_mesh=str(base_mesh),donor_mesh=str(donor_mesh),
-            raw_output_glb=None,output_glb=None,
-            attempted=True,geometry_ready=False,rebake_ready=False,
-            ready_for_judge=False,up_axis=None,alignment_scale=None,
-            head_vertices=0,changed_vertices=0,clamped_vertices=0,
-            mean_displacement_normalized=None,max_displacement_normalized=None,
-            seam_max_displacement_normalized=None,bbox_drift_fraction=None,
-            rebake_required=["normal","occlusion"],rebake_resolved=[],
-            skin_payload_preserved=False,skin_runtime_ready=False,
-            error=f"{type(exc).__name__}:{exc}",
-        )
-
-
 def build_head_wrap_geometry(
     base_mesh:Path,
     donor_mesh:Path,
@@ -350,7 +109,7 @@ def build_head_wrap_geometry(
             from gltf_audit import audit_glb
             base_audit=audit_glb(base_mesh)
             if base_audit.skin_count>0 or base_audit.skinned_mesh_nodes>0:
-                return _skinned_head_wrap_geometry(
+                return build_rig_preserving_head_wrap_geometry(
                     base_mesh,
                     donor_mesh,
                     output_glb,
@@ -736,9 +495,10 @@ def build_rig_preserving_head_wrap_geometry(
             bbox_drift_fraction=round(bbox_drift,8),
             rebake_required=required,
             rebake_resolved=[],
+            skin_payload_preserved=True,
+            skin_runtime_ready=True,
             rig_preserved=True,
             skin_weights_ready=True,
-            skin_payload_preserved=True,
             error=None,
         )
     except Exception as exc:
@@ -762,9 +522,10 @@ def build_rig_preserving_head_wrap_geometry(
             bbox_drift_fraction=None,
             rebake_required=[],
             rebake_resolved=[],
+            skin_payload_preserved=False,
+            skin_runtime_ready=False,
             rig_preserved=False,
             skin_weights_ready=False,
-            skin_payload_preserved=False,
             error=f"{type(exc).__name__}:{exc}",
         )
 
