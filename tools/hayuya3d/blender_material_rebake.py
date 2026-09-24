@@ -109,11 +109,27 @@ def principled(material):
     return node
 
 
+def prepare_normal_bake(materials,image):
+    for material in materials:
+        active_image_node(material,image,"HAYUYA_NORMAL_BAKE_TARGET")
+
+
 def configure_normal(materials,image):
     for material in materials:
         nodes=material.node_tree.nodes
         links=material.node_tree.links
-        tex=active_image_node(material,image,"HAYUYA_REBAKED_NORMAL")
+        tex=next(
+            (
+                node for node in nodes
+                if node.type=="TEX_IMAGE" and node.image is image
+                and node.name=="HAYUYA_NORMAL_BAKE_TARGET"
+            ),
+            None,
+        )
+        if tex is None:
+            tex=active_image_node(material,image,"HAYUYA_NORMAL_BAKE_TARGET")
+        tex.name="HAYUYA_REBAKED_NORMAL"
+        tex.label="HAYUYA Rebaked Normal"
         normal=nodes.new("ShaderNodeNormalMap")
         normal.name="HAYUYA_REBAKED_NORMAL_MAP"
         normal.space="TANGENT"
@@ -305,11 +321,12 @@ def main():
         normal_image=new_noncolor_image(
             "HAYUYA_Rebaked_Normal",a.size,(0.5,0.5,1.0,1.0)
         )
-        configure_normal(materials,normal_image)
+        prepare_normal_bake(materials,normal_image)
         scene.render.bake.use_selected_to_active=True
         scene.render.bake.normal_space="TANGENT"
         select_only([*source_meshes,target],target)
         bpy.ops.object.bake(type="NORMAL")
+        configure_normal(materials,normal_image)
         normal_stats=image_signal_stats(normal_image,0)
         normal_image.pack()
         images["normal"]={"name":normal_image.name,"signal":normal_stats}
@@ -330,8 +347,11 @@ def main():
         for material in materials:
             active_image_node(material,ao_image,"HAYUYA_AO_BAKE_TARGET")
         scene.render.bake.use_selected_to_active=False
+        if hasattr(scene.render.bake,"target"):
+            scene.render.bake.target="IMAGE_TEXTURES"
+        scene.render.bake.use_pass_ambient_occlusion=True
         select_only([target],target)
-        bpy.ops.object.bake(type="AO")
+        bpy.ops.object.bake(type="COMBINED",pass_filter={"AO"})
         configure_occlusion(materials,ao_image)
         ao_stats=image_signal_stats(ao_image,0)
         ao_range=(
@@ -346,7 +366,7 @@ def main():
             "signal":ao_stats,
             "signal_range":round(ao_range,6),
             "signal_valid":ao_signal_valid,
-            "method":"cycles_native_ao_target_only_v3",
+            "method":"cycles_combined_ao_pass_target_only_v4",
         }
         print(
             "HAYUYA_REBAKE_SIGNAL occlusion "
