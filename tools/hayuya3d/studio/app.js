@@ -189,7 +189,8 @@ function renderPortablePack(pack) {
   section.hidden = false;
   const complete = Boolean(pack.complete_lod_chain);
   const parityReady = Boolean(pack.lod_parity_ready);
-  const ready = complete && parityReady;
+  const budgetReady = Boolean(pack.runtime_budget_ready);
+  const ready = complete && parityReady && budgetReady;
   $("portableState").textContent = ready ? "PASS" : "BLOCKED";
   $("portableState").className = ready ? "qa-state ready" : "qa-state blocked";
   const tiers = Array.isArray(pack.tiers) ? pack.tiers : [];
@@ -197,6 +198,7 @@ function renderPortablePack(pack) {
     tiers.length + " runtime tier" + (tiers.length === 1 ? "" : "s"),
     "LOD chain " + (complete ? "complete" : "incomplete"),
     "parity " + (parityReady ? "passed" : "blocked"),
+    "budget " + (budgetReady ? "passed" : "blocked"),
   ].join(" · ");
 
   grid.replaceChildren();
@@ -215,6 +217,56 @@ function renderPortablePack(pack) {
       : "Hero Master parity passed";
     item.append(name, value);
     grid.appendChild(item);
+
+    const budget = tier?.runtime_budget || {};
+    const budgetChip = document.createElement("div");
+    budgetChip.className = "qa-chip " + (budget.ready ? "pass" : "fail");
+    const budgetName = document.createElement("span");
+    budgetName.textContent = String(tier?.tier || "tier") + " budget";
+    const budgetValue = document.createElement("strong");
+    budgetValue.textContent = (budget.ready ? "PASS" : "BLOCK")
+      + " · " + Number(budget.lod_count || 0) + " LOD";
+    const budgetErrors = Array.isArray(budget.errors) ? budget.errors.filter(Boolean) : [];
+    budgetChip.title = budgetErrors.length
+      ? budgetErrors.slice(0, 4).join(" · ")
+      : "triangle/material/texture house budgets passed";
+    budgetChip.append(budgetName, budgetValue);
+    grid.appendChild(budgetChip);
+
+    const budgetItems = Array.isArray(budget.items) ? budget.items : [];
+    budgetItems.forEach((lod) => {
+      const row = document.createElement("div");
+      row.className = "qa-chip " + (lod.ready ? "pass" : "fail");
+      const label = document.createElement("span");
+      label.textContent = String(tier?.tier || "tier") + " " + String(lod.name || "LOD") + " budget";
+      const metric = document.createElement("strong");
+      const parts = [];
+      if (lod.faces != null && lod.face_budget_max != null) {
+        parts.push(
+          Number(lod.faces).toLocaleString()
+          + "/" + Number(lod.face_budget_max).toLocaleString()
+          + " tris"
+        );
+      }
+      if (lod.material_count != null && lod.material_slots_max != null) {
+        parts.push(
+          Number(lod.material_count)
+          + "/" + Number(lod.material_slots_max)
+          + " mats"
+        );
+      }
+      if (lod.texture_max_edge != null && lod.texture_edge_max != null) {
+        parts.push(
+          Number(lod.texture_max_edge)
+          + "/" + Number(lod.texture_edge_max)
+          + "px"
+        );
+      }
+      metric.textContent = parts.join(" · ") || (lod.ready ? "PASS" : "BLOCK");
+      row.title = Array.isArray(lod.errors) ? lod.errors.join(" · ") : "";
+      row.append(label, metric);
+      grid.appendChild(row);
+    });
 
     const details = Array.isArray(parity.items) ? parity.items : [];
     details.forEach((lod) => {
