@@ -224,24 +224,23 @@ def evaluate_aaa_acceptance(
     )
 
     composite=manifest.get("composite_champion") or {}
-    execution=manifest.get("composite_execution") or {}
     composite_required=bool(composite.get("composite_required"))
     deferred=list(composite.get("deferred_transfers") or [])
+    executable=list(composite.get("executable_now") or [])
     if composite_required:
-        composite_complete=bool(
-            execution.get("ready")
-            and not deferred
-            and str(manifest.get("champion",{}).get("backend","")).startswith("composite_")
-        )
         _gate(
-            gates,"composite.optimized","composite",composite_complete,
-            f"execution_ready={execution.get('ready')} deferred={deferred} champion={manifest.get('champion',{}).get('backend')}",
-            blocker="better regional donor evidence exists but Composite Champion fusion is not fully resolved",
+            gates,"composite.optimized","composite",False,
+            (
+                f"final_plan_required=true deferred={deferred} "
+                f"executable={executable} "
+                f"champion={manifest.get('champion',{}).get('backend')}"
+            ),
+            blocker="better regional donor evidence still exists after all implemented Composite Champion passes",
         )
     else:
         _gate(
             gates,"composite.optimized","composite",True,
-            "base finalist already owns strongest measured regional evidence",
+            "final Composite plan reports no stronger unresolved regional donor",
         )
 
     qa_ready=bool(qa_report.get("production_ready"))
