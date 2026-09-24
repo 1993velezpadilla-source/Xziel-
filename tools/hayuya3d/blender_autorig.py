@@ -136,52 +136,69 @@ def main():
         donor_roots=[arm]
     donor_root_names=[o.name for o in donor_roots]
 
-    donor_min,donor_max=world_bbox(donor_meshes)
-    donor_ext=donor_max-donor_min
-    donor_axis=height_axis(donor_ext)
-    donor_height=axis_value(donor_ext,donor_axis)
-    if donor_height<=1e-6:
-        raise RuntimeError("donor height is degenerate")
+    # HUMANOID ORIENTATION AUTHORITY: anatomy, never bounding-box major axis.
+    # A T-pose can be wider than it is tall, so "longest bbox axis == up" is
+    # invalid. Head - pelvis defines the anatomical up vector.
+    head_bone=next((b for b in arm.data.bones if "head" in b.name.lower()),None)
+    pelvis_bone=next((b for b in arm.data.bones if any(k in b.name.lower() for k in ("pelvis","hips"))),None)
+    if head_bone is None or pelvis_bone is None:
+        raise RuntimeError("cannot_determine_anatomical_up:missing_head_or_pelvis")
 
-    # Controller meshes used to hide that some donor bodies are X-up/Y-up.
-    # Determine the donor's anatomical up direction from head vs pelvis, rotate
-    # the entire imported donor hierarchy to the target height axis, and only
-    # then calculate scale/proportions.
-    orientation_fix={
-        "applied":False,
-        "target_axis":target_axis,
-        "donor_axis_before":donor_axis,
-        "source_up_sign":1,
-    }
-    if donor_axis != target_axis:
-        head_bone=next((b for b in arm.data.bones if "head" in b.name.lower()),None)
-        pelvis_bone=next((b for b in arm.data.bones if any(k in b.name.lower() for k in ("pelvis","hips"))),None)
-        up_sign=1
-        if head_bone is not None and pelvis_bone is not None:
-            head_world=arm.matrix_world @ ((head_bone.head_local+head_bone.tail_local)*0.5)
-            pelvis_world=arm.matrix_world @ ((pelvis_bone.head_local+pelvis_bone.tail_local)*0.5)
-            up_sign=1 if axis_value(head_world,donor_axis)>=axis_value(pelvis_world,donor_axis) else -1
-        source_up=Vector((0.0,0.0,0.0))
-        target_up=Vector((0.0,0.0,0.0))
-        source_up[donor_axis]=float(up_sign)
-        target_up[target_axis]=1.0
-        rotation=source_up.rotation_difference(target_up).to_matrix().to_4x4()
+    def bone_mid_world(bone):
+        return arm.matrix_world @ ((bone.head_local+bone.tail_local)*0.5)
+
+    head_world_before=bone_mid_world(head_bone)
+    pelvis_world_before=bone_mid_world(pelvis_bone)
+    anatomical_up=head_world_before-pelvis_world_before
+    if anatomical_up.length<=1e-6:
+        raise RuntimeError("cannot_determine_anatomical_up:degenerate_head_pelvis_vector")
+    anatomical_up.normalize()
+
+    target_up=Vector((0.0,0.0,0.0))
+    target_up[target_axis]=1.0
+    alignment_before=float(anatomical_up.dot(target_up))
+    rotation=anatomical_up.rotation_difference(target_up).to_matrix().to_4x4()
+
+    # Rotate each top-level donor root exactly once so armature and any donor
+    # render geometry keep the same spatial relationship.
+    if alignment_before < 0.999:
         for root in donor_roots:
             root.matrix_world=rotation @ root.matrix_world
         bpy.context.view_layer.update()
-        donor_min,donor_max=world_bbox(donor_meshes)
-        donor_ext=donor_max-donor_min
-        donor_axis=height_axis(donor_ext)
-        donor_height=axis_value(donor_ext,donor_axis)
-        orientation_fix.update({
-            "applied":True,
-            "source_up_sign":up_sign,
-            "donor_axis_after":donor_axis,
-        })
-        if donor_axis != target_axis:
-            raise RuntimeError(
-                f"orientation_normalization_failed:target_axis={target_axis},donor_axis={donor_axis}"
-            )
+
+    head_world_after=bone_mid_world(head_bone)
+    pelvis_world_after=bone_mid_world(pelvis_bone)
+    anatomical_after=head_world_after-pelvis_world_after
+    if anatomical_after.length<=1e-6:
+        raise RuntimeError("anatomical_up_degenerate_after_rotation")
+    anatomical_after.normalize()
+    alignment_after=float(anatomical_after.dot(target_up))
+    if alignment_after < 0.985:
+        raise RuntimeError(
+            f"anatomical_orientation_failed:alignment={alignment_after:.6f}"
+        )
+
+    donor_min,donor_max=world_bbox(donor_meshes)
+    donor_ext=donor_max-donor_min
+    # Height means extent along the TARGET anatomical up axis. It does not
+    # matter if arm span is larger than body height.
+    donor_height=axis_value(donor_ext,target_axis)
+    if donor_height<=1e-6:
+        raise RuntimeError("donor height is degenerate after anatomical orientation")
+
+    orientation_fix={
+        "method":"head_minus_pelvis",
+        "applied":alignment_before < 0.999,
+        "target_axis":target_axis,
+        "alignment_before":alignment_before,
+        "alignment_after":alignment_after,
+        "head_before":[float(x) for x in head_world_before],
+        "pelvis_before":[float(x) for x in pelvis_world_before],
+        "head_after":[float(x) for x in head_world_after],
+        "pelvis_after":[float(x) for x in pelvis_world_after],
+        "bbox_major_axis_after":height_axis(donor_ext),
+        "body_height_on_target_axis":donor_height,
+    }
 
     scale=target_height/donor_height
     target_ext_values=(abs(target_ext.x),abs(target_ext.y),abs(target_ext.z))
@@ -213,7 +230,7 @@ def main():
     # axis.  This is much safer than center-only fitting for robes, long hair
     # and other asymmetric silhouettes.
     desired_floor=axis_value(target_min,target_axis)
-    current_floor=axis_value(dmin2,donor_axis)
+    current_floor=axis_value(dmin2,target_axis)
     # Center on the two horizontal axes; on the height axis, align floors.
     if target_axis==0:
         offset.x = desired_floor-current_floor
@@ -635,7 +652,7 @@ def main():
         "armature_world_after":arm_world_after,
         "export_meshes":remaining_meshes,
         "sterile_export_scene_meshes":export_scene_meshes,
-        "binding_method":"auto_oriented_control_filtered_bone_envelope_v17",
+        "binding_method":"anatomical_head_pelvis_up_bone_envelope_v18",
         "bind_results":bind_results,
         "output_bytes":args.output.stat().st_size if args.output.exists() else 0,
     }
