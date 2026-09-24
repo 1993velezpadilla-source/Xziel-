@@ -4180,6 +4180,34 @@ void VulkanStaticMeshRenderer::record(
     std::uint32_t boundGeometryCell =
         UINT32_MAX;
 
+    auto& indirectFrame =
+        indirectFrames_[
+            frameSlot %
+            kDescriptorFrames];
+
+    const VkDeviceSize requiredIndirectBytes =
+        static_cast<VkDeviceSize>(
+            batches_.size()) *
+        sizeof(VkDrawIndexedIndirectCommand);
+
+    const bool useIndirect =
+        cellGeometry &&
+        multiDrawIndirectEnabled_ &&
+        indirectFrame.buffer != VK_NULL_HANDLE &&
+        indirectFrame.mapped != nullptr &&
+        indirectFrame.capacityBytes >=
+            requiredIndirectBytes;
+
+    auto* indirectCommands =
+        useIndirect
+        ? static_cast<
+              VkDrawIndexedIndirectCommand*>(
+              indirectFrame.mapped)
+        : nullptr;
+
+    std::uint32_t indirectCommandCount = 0U;
+    std::uint32_t indirectGroupCount = 0U;
+
     const float yawCos =
         std::cos(camera.yawRadians);
     const float yawSin =
@@ -4302,8 +4330,6 @@ void VulkanStaticMeshRenderer::record(
 
         ++frameStats_.visibleBatches;
 
-        bool geometryChanged = false;
-
         if (cellGeometry) {
             if (batch.geometryCellSlot >=
                 geometryCellCount_) {
@@ -4323,12 +4349,96 @@ void VulkanStaticMeshRenderer::record(
                 ++frameStats_.culledBatches;
                 continue;
             }
+        }
 
+        const VkPipeline desiredPipeline =
+            batch.doubleSided
+            ? pipelineDoubleSided_
+            : pipeline_;
+
+        if (desiredPipeline == VK_NULL_HANDLE) {
+            ++frameStats_.culledBatches;
+            continue;
+        }
+
+        if (useIndirect) {
+            if (indirectCommandCount >=
+                    batches_.size() ||
+                indirectGroupCount >=
+                    indirectGroupsScratch_.size()) {
+                logError(
+                    "indirect draw scratch capacity exceeded");
+                return;
+            }
+
+            auto& draw =
+                indirectCommands[
+                    indirectCommandCount];
+
+            draw.indexCount =
+                batch.indexCount;
+            draw.instanceCount = 1U;
+            draw.firstIndex =
+                batch.firstIndex;
+            draw.vertexOffset =
+                batch.vertexOffset;
+            draw.firstInstance = 0U;
+
+            const bool newGroup =
+                indirectGroupCount == 0U ||
+                indirectGroupsScratch_[
+                    indirectGroupCount - 1U].
+                        geometryCellSlot !=
+                    batch.geometryCellSlot ||
+                indirectGroupsScratch_[
+                    indirectGroupCount - 1U].
+                        materialIndex !=
+                    batch.materialIndex ||
+                indirectGroupsScratch_[
+                    indirectGroupCount - 1U].
+                        doubleSided !=
+                    batch.doubleSided;
+
+            if (newGroup) {
+                auto& group =
+                    indirectGroupsScratch_[
+                        indirectGroupCount++];
+
+                group = {};
+                group.geometryCellSlot =
+                    batch.geometryCellSlot;
+                group.materialIndex =
+                    batch.materialIndex;
+                group.doubleSided =
+                    batch.doubleSided;
+                group.firstCommand =
+                    indirectCommandCount;
+                group.commandCount = 1U;
+            } else {
+                ++indirectGroupsScratch_[
+                    indirectGroupCount - 1U].
+                        commandCount;
+            }
+
+            ++indirectCommandCount;
+            ++frameStats_.drawCalls;
+            frameStats_.submittedTriangles +=
+                static_cast<std::uint64_t>(
+                    batch.indexCount / 3U);
+            continue;
+        }
+
+        bool geometryChanged = false;
+
+        if (cellGeometry) {
             geometryChanged =
                 boundGeometryCell !=
                 batch.geometryCellSlot;
 
             if (geometryChanged) {
+                const auto& geometryCell =
+                    geometryCells_[
+                        batch.geometryCellSlot];
                 const VkDeviceSize geometryOffset =
                     0U;
 
@@ -4349,16 +4459,6 @@ void VulkanStaticMeshRenderer::record(
                     batch.geometryCellSlot;
                 ++frameStats_.geometryBinds;
             }
-        }
-
-        const VkPipeline desiredPipeline =
-            batch.doubleSided
-            ? pipelineDoubleSided_
-            : pipeline_;
-
-        if (desiredPipeline == VK_NULL_HANDLE) {
-            ++frameStats_.culledBatches;
-            continue;
         }
 
         const bool pipelineChanged =
@@ -4418,9 +4518,123 @@ void VulkanStaticMeshRenderer::record(
             0U);
 
         ++frameStats_.drawCalls;
+        ++frameStats_.drawSubmissions;
         frameStats_.submittedTriangles +=
             static_cast<std::uint64_t>(
                 batch.indexCount / 3U);
+    }
+
+    if (useIndirect &&
+        indirectCommandCount > 0U) {
+        frameStats_.submissionGroups =
+            indirectGroupCount;
+
+        boundPipeline =
+            VK_NULL_HANDLE;
+        boundMaterialIndex =
+            UINT32_MAX;
+        boundGeometryCell =
+            UINT32_MAX;
+
+        for (std::uint32_t groupIndex = 0U;
+             groupIndex < indirectGroupCount;
+             ++groupIndex) {
+            const auto& group =
+                indirectGroupsScratch_[
+                    groupIndex];
+
+            if (group.geometryCellSlot >=
+                    geometryCellCount_ ||
+                group.materialIndex >=
+                    materials_.size() ||
+                group.commandCount == 0U) {
+                continue;
+            }
+
+            const auto& geometryCell =
+                geometryCells_[
+                    group.geometryCellSlot];
+
+            if (boundGeometryCell !=
+                group.geometryCellSlot) {
+                const VkDeviceSize geometryOffset =
+                    0U;
+
+                vkCmdBindVertexBuffers(
+                    command,
+                    0U,
+                    1U,
+                    &geometryCell.vertexBuffer,
+                    &geometryOffset);
+
+                vkCmdBindIndexBuffer(
+                    command,
+                    geometryCell.indexBuffer,
+                    0U,
+                    VK_INDEX_TYPE_UINT16);
+
+                boundGeometryCell =
+                    group.geometryCellSlot;
+                ++frameStats_.geometryBinds;
+            }
+
+            const VkPipeline desiredPipeline =
+                group.doubleSided
+                ? pipelineDoubleSided_
+                : pipeline_;
+
+            if (boundPipeline !=
+                desiredPipeline) {
+                vkCmdBindPipeline(
+                    command,
+                    VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    desiredPipeline);
+                boundPipeline =
+                    desiredPipeline;
+                ++frameStats_.pipelineBinds;
+            }
+
+            const auto& material =
+                materials_[
+                    group.materialIndex];
+
+            if (boundMaterialIndex !=
+                group.materialIndex) {
+                applyMaterial(material);
+
+                vkCmdBindDescriptorSets(
+                    command,
+                    VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    pipelineLayout_,
+                    0U,
+                    1U,
+                    &material.descriptorSets[
+                        frameSlot %
+                        kDescriptorFrames],
+                    0U,
+                    nullptr);
+
+                boundMaterialIndex =
+                    group.materialIndex;
+                ++frameStats_.materialBinds;
+            }
+
+            const VkDeviceSize offset =
+                static_cast<VkDeviceSize>(
+                    group.firstCommand) *
+                sizeof(
+                    VkDrawIndexedIndirectCommand);
+
+            vkCmdDrawIndexedIndirect(
+                command,
+                indirectFrame.buffer,
+                offset,
+                group.commandCount,
+                sizeof(
+                    VkDrawIndexedIndirectCommand));
+
+            ++frameStats_.drawSubmissions;
+        }
     }
 
     if (streamCullingActive_ &&
