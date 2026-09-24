@@ -123,10 +123,12 @@ def build_realesrgan_command(
 )->list[str]:
     if scale not in (2,3,4):
         raise ValueError(f"unsupported Real-ESRGAN scale: {scale}")
+    model_dir=executable.parent/"models"
     return [
         str(executable),
         "-i",str(input_image),
         "-o",str(output_image),
+        "-m",str(model_dir),
         "-s",str(scale),
         "-t",str(max(0,int(tile_size))),
         "-n",model,
