@@ -46,6 +46,7 @@ struct StaticMeshFrameStats {
     std::uint32_t submissionGroups = 0U;
     std::uint64_t submittedTriangles = 0U;
     std::uint32_t portalVisibilityTests = 0U;
+    std::uint32_t portalVisibilityCacheHits = 0U;
     std::uint32_t portalVisibilityCulled = 0U;
     std::uint32_t portalSkippedBatches = 0U;
     std::uint32_t cellFrustumTests = 0U;
@@ -253,6 +254,7 @@ private:
             StreamCellHeat::Cold;
         StreamCellHeat heat =
             StreamCellHeat::Cold;
+        bool portalReachable = false;
         std::uint8_t retireMask = 0U;
         bool reloadActive = false;
         bool reloadFailed = false;
