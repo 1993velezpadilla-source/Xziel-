@@ -233,7 +233,7 @@ jobs:
           # Rebuild the semantic-lite part map in character mode as well. Keeping
           # the old prop-mode map after a successful humanoid rig can poison later
           # animation/add-on decisions even when the rig itself is healthy.
-          part_map=build_part_map(root/"model.glb",mode="character",up_axis="z")
+          part_map=build_part_map(root/"model.glb",mode="character",up_axis="y")
           write_part_map(part_map,root/"part_map.json")
           manifest["part_map_summary"]={
             "components":part_map.component_count,
