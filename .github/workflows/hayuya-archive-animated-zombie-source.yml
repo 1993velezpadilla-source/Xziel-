@@ -93,13 +93,32 @@ jobs:
           print(json.dumps(manifest,indent=2))
           PY
 
+      - name: Mark real ZIP local in animation catalog
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("hayuya/library/zombie_animations.json")
+          d=json.loads(p.read_text())
+          for g in d.get("groups",[]):
+            for cat in g.get("categories",[]):
+              for item in cat.get("items",[]):
+                if item.get("id")=="quaternius_animated_zombie":
+                  item["availability"]="local_archive"
+                  item["local_archive_path"]="hayuya/source_archives/quaternius_animated_zombie/quaternius_animated_zombie.zip"
+                  item["notes"]="CC0 source ZIP stored locally in HAYUYA; preview model also local."
+          p.write_text(json.dumps(d,indent=2)+"\n")
+          PY
+
       - name: Commit archived source
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add hayuya/source_archives/quaternius_animated_zombie
+          git add hayuya/source_archives/quaternius_animated_zombie hayuya/library/zombie_animations.json
           if git diff --cached --quiet; then
             echo "Animated Zombie source already archived."
             exit 0
