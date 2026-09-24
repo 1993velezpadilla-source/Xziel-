@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - engine/mobile-power-fidelity-v1
+      - engine/mobile-spatial-batching-v1
     paths:
       - ".github/workflows/sanctum-clean-source.yml"
       - "tools/church_map/export_xziel_original_clean.py"
@@ -250,6 +251,7 @@ jobs:
           XZIEL_STATIC_RUNTIME_ROOT: church/out/clean/xziel_native_static
           XZIEL_STATIC_REPORT: church/out/clean/xziel_native_static_mesh_report.json
           XZIEL_STATIC_NATIVE_FLOOR_Y: "-1.58"
+          XZIEL_STATIC_SPATIAL_GRID_METERS: "0.50"
           LIBGL_ALWAYS_SOFTWARE: "1"
         run: |
           set -euo pipefail
@@ -296,6 +298,15 @@ jobs:
           jq -e '.sourceCollection == "DIRECT_ORIGINAL_GLB"' "$R"
           jq -e '.sourceTriangles >= 2700000' "$R"
           jq -e '.runtimeTriangles == .sourceTriangles' "$R"
+          jq -e '.totalIndices == (.runtimeTriangles * 3)' "$R"
+          jq -e '.totalVertices > 0 and .totalVertices <= 8000000' "$R"
+          jq -e '.batchCount > 0 and .batchCount <= 2048' "$R"
+          jq -e '.maxTrianglesPerBatch <= 18000' "$R"
+          jq -e '.spatialBatching == "morton_grid_centroid_v1"' "$R"
+          jq -e '.spatialBatchGridMeters == 0.5' "$R"
+          jq -e '.batchBoundsDiagonalMeanMeters > 0' "$R"
+          jq -e '.batchBoundsDiagonalMedianMeters > 0' "$R"
+          jq -e '.batchBoundsDiagonalMaxMeters > 0' "$R"
           jq -e '(.doubleSidedBatchCount + .backfaceCulledBatchCount) == .batchCount' "$R"
           jq -e '.legacyPhotogrammetryDoubleSided == true' "$R"
           jq -e '.doubleSidedBatchCount == .batchCount' "$R"
@@ -339,7 +350,18 @@ jobs:
             textureCount,
             originalMaxTextureDimension,
             pbrLinkedMaterialCounts,
+            spatialBatching,
+            spatialBatchGridMeters,
             batchCount,
+            maxTrianglesPerBatch,
+            batchBoundsDiagonalMeanMeters,
+            batchBoundsDiagonalMedianMeters,
+            batchBoundsDiagonalMaxMeters,
+            batchBoundsOver10m,
+            batchBoundsOver20m,
+            batchBoundsOver40m,
+            totalVertices,
+            totalIndices,
             modelBytes,
             boundsMin,
             boundsMax
