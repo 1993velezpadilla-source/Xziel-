@@ -382,6 +382,7 @@ bool VulkanStaticMeshRenderer::initialize(
     cachedStreamColdBatches_ = 0U;
     streamPlanBuildCount_ = 0U;
     streamPlanCacheHitCount_ = 0U;
+    streamCellHeatRefreshCount_ = 0U;
     streamPlanDirty_ = true;
     streamPlanFrame_ = 0U;
     lastLoggedStreamCell_ = 0U;
@@ -1128,6 +1129,7 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     cachedStreamColdBatches_ = 0U;
     streamPlanBuildCount_ = 0U;
     streamPlanCacheHitCount_ = 0U;
+    streamCellHeatRefreshCount_ = 0U;
     streamPlanDirty_ = true;
     streamPlanFrame_ = 0U;
     lastLoggedStreamCell_ = 0U;
@@ -3259,13 +3261,7 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
         if (cell.pinned) {
             cell.heat =
                 StreamCellHeat::Hot;
-            continue;
         }
-
-        cell.heat =
-            streamGraph_.cellHeat(
-                input,
-                cell.cellId);
 
         if (geometryResidencyProbeEnabled_ &&
             !geometryResidencyProbeComplete_ &&
@@ -4059,6 +4055,22 @@ void VulkanStaticMeshRenderer::record(
                 streamPlanDirty_ = false;
                 ++streamPlanBuildCount_;
 
+                for (std::size_t i = 0U;
+                     i < geometryCellCount_;
+                     ++i) {
+                    auto& cell =
+                        geometryCells_[i];
+
+                    cell.heat =
+                        cell.pinned
+                        ? StreamCellHeat::Hot
+                        : streamGraph_.cellHeat(
+                              planInput,
+                              cell.cellId);
+
+                    ++streamCellHeatRefreshCount_;
+                }
+
                 for (const auto& batch :
                      batches_) {
                     const auto* decision =
@@ -4771,7 +4783,7 @@ void VulkanStaticMeshRenderer::record(
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u draw_submissions=%u indirect_draws=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u multi_draw_indirect=%u cell_frustum_tests=%u cell_frustum_culled=%u cell_range_skipped=%u cell_frustum_skipped=%u batch_frustum_tests=%u plan_builds=%llu plan_cache_hits=%llu",
+            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u draw_submissions=%u indirect_draws=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u multi_draw_indirect=%u cell_frustum_tests=%u cell_frustum_culled=%u cell_range_skipped=%u cell_frustum_skipped=%u batch_frustum_tests=%u plan_builds=%llu plan_cache_hits=%llu cell_heat_refreshes=%llu",
             static_cast<unsigned int>(
                 frameStats_.streamingCell),
             static_cast<unsigned int>(
@@ -4811,7 +4823,9 @@ void VulkanStaticMeshRenderer::record(
             static_cast<unsigned long long>(
                 streamPlanBuildCount_),
             static_cast<unsigned long long>(
-                streamPlanCacheHitCount_));
+                streamPlanCacheHitCount_),
+            static_cast<unsigned long long>(
+                streamCellHeatRefreshCount_));
     }
 }
 
