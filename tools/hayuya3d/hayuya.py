@@ -1117,6 +1117,8 @@ def main() -> int:
                 "head_region_median_edge_normalized": item.head_region_median_edge_normalized,
                 "head_region_density_ratio": item.head_region_density_ratio,
                 "head_density_score": item.head_density_score,
+                "head_texel_density_ratio": item.head_texel_density_ratio,
+                "head_texel_density_score": item.head_texel_density_score,
                 "pbr_channels": item.pbr_channels,
             }
             print(
