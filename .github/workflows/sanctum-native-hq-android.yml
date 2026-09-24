@@ -877,6 +877,7 @@ jobs:
             STREAM_MATERIAL_VISIBILITY_CACHE_HITS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* material_visibility_cache_hits=\([0-9][0-9]*\).*/\1/p')"
             STREAM_FRONT_TO_BACK_CANDIDATES="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* front_to_back_candidates=\([0-9][0-9]*\).*/\1/p')"
             STREAM_FRONT_TO_BACK_REORDERED="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* front_to_back_reordered=\([0-9][0-9]*\).*/\1/p')"
+            STREAM_FRONT_TO_BACK_DEPTH_REUSES="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* front_to_back_depth_reuses=\([0-9][0-9]*\).*/\1/p')"
             STREAM_PLAN_BUILDS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* plan_builds=\([0-9][0-9]*\).*/\1/p')"
             STREAM_PLAN_CACHE_HITS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* plan_cache_hits=\([0-9][0-9]*\).*/\1/p')"
             STREAM_CELL_HEAT_REFRESHES="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* cell_heat_refreshes=\([0-9][0-9]*\).*/\1/p')"
@@ -909,12 +910,14 @@ jobs:
             if [[ "${GITHUB_REF_NAME}" == "engine/mobile-front-to-back-earlyz-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-fragment-distance-lod-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" ]]; then
               test -n "${STREAM_FRONT_TO_BACK_CANDIDATES}"
               test -n "${STREAM_FRONT_TO_BACK_REORDERED}"
+              test -n "${STREAM_FRONT_TO_BACK_DEPTH_REUSES}"
               test "${STREAM_FRONT_TO_BACK_CANDIDATES}" -eq "${STREAM_DRAWS}"
               test "${STREAM_FRONT_TO_BACK_CANDIDATES}" -gt 1
               test "${STREAM_FRONT_TO_BACK_REORDERED}" -gt 0
+              test "${STREAM_FRONT_TO_BACK_DEPTH_REUSES}" -eq "${STREAM_FRONT_TO_BACK_CANDIDATES}"
               test -n "${STREAM_DRAW_SUBMISSIONS}"
               test "${STREAM_DRAW_SUBMISSIONS}" -eq 1
-              echo "XZIEL_FRONT_TO_BACK_EARLYZ_ACTIVE candidates=${STREAM_FRONT_TO_BACK_CANDIDATES} reordered=${STREAM_FRONT_TO_BACK_REORDERED} submissions=${STREAM_DRAW_SUBMISSIONS}"
+              echo "XZIEL_FRONT_TO_BACK_EARLYZ_ACTIVE candidates=${STREAM_FRONT_TO_BACK_CANDIDATES} reordered=${STREAM_FRONT_TO_BACK_REORDERED} depth_reuses=${STREAM_FRONT_TO_BACK_DEPTH_REUSES} submissions=${STREAM_DRAW_SUBMISSIONS}"
             fi
 
             if [[ "${GITHUB_REF_NAME}" == "engine/mobile-draw-submission-telemetry-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-draw-group-telemetry-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-indirect-draw-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-cell-frustum-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-portal-visibility-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-gpu-pass-timing-v1" ]]; then

@@ -57,6 +57,9 @@ struct StaticMeshFrameStats {
     std::uint32_t materialVisibilityCacheHits = 0U;
     std::uint32_t frontToBackCandidates = 0U;
     std::uint32_t frontToBackReordered = 0U;
+    // Visible batch depths produced by the same view-space transform used
+    // for frustum culling instead of recomputing the transform for early-Z.
+    std::uint32_t frontToBackDepthReuses = 0U;
 
     std::uint32_t streamingCell = 0U;
     std::uint32_t streamingColdBatches = 0U;

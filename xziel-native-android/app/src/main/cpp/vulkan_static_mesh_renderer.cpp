@@ -4673,7 +4673,8 @@ void VulkanStaticMeshRenderer::record(
         [&](float centerX,
             float centerY,
             float centerZ,
-            float radius) noexcept {
+            float radius,
+            float* visibleNearDepth) noexcept {
             const float relativeX =
                 centerX - camera.x;
             const float relativeY =
@@ -4711,37 +4712,24 @@ void VulkanStaticMeshRenderer::record(
                 halfHeight *
                 safeAspect;
 
-            return
+            const bool visible =
                 std::abs(yawViewX) - radius <=
                     halfWidth &&
                 std::abs(viewY) - radius <=
                     halfHeight;
-        };
 
-    const auto batchViewDepth =
-        [&](const GpuBatch& batch) noexcept {
-            const float relativeX =
-                batch.cullCenterX - camera.x;
-            const float relativeY =
-                batch.cullCenterY - camera.y;
-            const float relativeZ =
-                batch.cullCenterZ - camera.z;
+            if (visible &&
+                visibleNearDepth != nullptr) {
+                *visibleNearDepth =
+                    std::max(
+                        nearPlane,
+                        viewZ -
+                            std::max(
+                                radius,
+                                0.0f));
+            }
 
-            const float yawViewZ =
-                yawSin * relativeX +
-                yawCos * relativeZ;
-
-            const float viewZ =
-                -pitchSin * relativeY +
-                pitchCos * yawViewZ;
-
-            return
-                std::max(
-                    nearPlane,
-                    viewZ -
-                        std::max(
-                            batch.cullRadius,
-                            0.0f));
+            return visible;
         };
 
     const auto streamBoundsForCell =
@@ -4888,7 +4876,8 @@ void VulkanStaticMeshRenderer::record(
                             cellBounds->
                                 cullCenterZ,
                             cellBounds->
-                                cullRadius)) {
+                                cullRadius,
+                            nullptr)) {
                         ++frameStats_.
                             cellFrustumCulled;
                         frameStats_.
@@ -4997,11 +4986,14 @@ void VulkanStaticMeshRenderer::record(
 
         ++frameStats_.batchFrustumTests;
 
+        float visibleNearDepth = nearPlane;
+
         if (!sphereVisible(
                 batch.cullCenterX,
                 batch.cullCenterY,
                 batch.cullCenterZ,
-                batch.cullRadius)) {
+                batch.cullRadius,
+                &visibleNearDepth)) {
             ++frameStats_.culledBatches;
             continue;
         }
@@ -5026,7 +5018,9 @@ void VulkanStaticMeshRenderer::record(
             static_cast<std::uint32_t>(
                 visibleDrawCandidates_.size());
         candidate.viewDepth =
-            batchViewDepth(batch);
+            visibleNearDepth;
+        ++frameStats_.
+            frontToBackDepthReuses;
 
         visibleDrawCandidates_.push_back(
             candidate);
@@ -5424,7 +5418,7 @@ void VulkanStaticMeshRenderer::record(
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u draw_submissions=%u indirect_draws=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u multi_draw_indirect=%u portal_tests=%u portal_culled=%u portal_skipped=%u cell_frustum_tests=%u cell_frustum_culled=%u cell_range_skipped=%u cell_frustum_skipped=%u batch_frustum_tests=%u material_visibility_tests=%u material_visibility_cache_hits=%u front_to_back_candidates=%u front_to_back_reordered=%u plan_builds=%llu plan_cache_hits=%llu cell_heat_refreshes=%llu",
+            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u draw_submissions=%u indirect_draws=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u multi_draw_indirect=%u portal_tests=%u portal_culled=%u portal_skipped=%u cell_frustum_tests=%u cell_frustum_culled=%u cell_range_skipped=%u cell_frustum_skipped=%u batch_frustum_tests=%u material_visibility_tests=%u material_visibility_cache_hits=%u front_to_back_candidates=%u front_to_back_reordered=%u front_to_back_depth_reuses=%u plan_builds=%llu plan_cache_hits=%llu cell_heat_refreshes=%llu",
             static_cast<unsigned int>(
                 frameStats_.streamingCell),
             static_cast<unsigned int>(
@@ -5478,6 +5472,9 @@ void VulkanStaticMeshRenderer::record(
             static_cast<unsigned int>(
                 frameStats_.
                     frontToBackReordered),
+            static_cast<unsigned int>(
+                frameStats_.
+                    frontToBackDepthReuses),
             static_cast<unsigned long long>(
                 streamPlanBuildCount_),
             static_cast<unsigned long long>(
