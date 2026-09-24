@@ -11,6 +11,7 @@ from PIL import Image
 
 from tools.hayuya3d.composite_champion import (
     build_composite_plan,
+    execute_safe_head_wrap_challenger,
     execute_safe_material_challenger,
 )
 
@@ -143,6 +144,70 @@ class CompositeChampionPlannerTests(unittest.TestCase):
             inspect_parts=False,
         )
         self.assertFalse(plan.composite_required)
+
+    def test_face_donor_executes_as_head_wrap_challenger_when_unskinned(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            base_path=root/"base_face.glb"
+            donor_path=root/"donor_face.glb"
+
+            sphere=trimesh.creation.icosphere(subdivisions=3,radius=1.0)
+            base_vertices=np.asarray(sphere.vertices,dtype=np.float64).copy()
+            base_vertices[:,1]*=2.0
+            lo=float(base_vertices[:,1].min())
+            hi=float(base_vertices[:,1].max())
+            normalized=(base_vertices[:,1]-lo)/max(hi-lo,1e-9)
+            donor_vertices=base_vertices.copy()
+            head=normalized>=0.78
+            donor_vertices[head,0]*=1.12
+            donor_vertices[head,2]*=1.12
+
+            base_mesh=trimesh.Trimesh(
+                vertices=base_vertices,
+                faces=np.asarray(sphere.faces).copy(),
+                process=False,
+            )
+            donor_mesh=trimesh.Trimesh(
+                vertices=donor_vertices,
+                faces=np.asarray(sphere.faces).copy(),
+                process=False,
+            )
+            base_path.write_bytes(
+                trimesh.exchange.gltf.export_glb(trimesh.Scene(base_mesh))
+            )
+            donor_path.write_bytes(
+                trimesh.exchange.gltf.export_glb(trimesh.Scene(donor_mesh))
+            )
+
+            base=candidate(
+                "base",99.0,
+                face_min=70.0,face_mesh=98.0,face_tex=98.0,face_detail=90.0,
+                visual=99.0,appearance=96.0,material=90.0,texture=100.0,
+            )
+            donor=candidate(
+                "face",80.0,
+                face_min=98.0,face_mesh=100.0,face_tex=98.0,face_detail=96.0,
+                visual=80.0,appearance=92.0,material=85.0,texture=100.0,
+            )
+            base.path=str(base_path)
+            donor.path=str(donor_path)
+            plan=build_composite_plan(
+                [base,donor],
+                mode="character",
+                inspect_parts=False,
+            )
+            self.assertIn("face_identity",plan.executable_now)
+
+            result=execute_safe_head_wrap_challenger(
+                plan,
+                root/"head-composite",
+                texture_size=256,
+            )
+            self.assertTrue(result.attempted)
+            self.assertTrue(result.ready,result.error)
+            self.assertEqual(result.donor_backend,"face")
+            self.assertTrue(Path(result.candidate_path or "").is_file())
+            self.assertTrue(result.fusion and result.fusion["geometry_ready"])
 
     def test_material_donor_executes_as_geometry_preserving_challenger(self):
         with tempfile.TemporaryDirectory() as tmp:
