@@ -111,6 +111,73 @@ function showModel(url, label, meta="") {
   viewer.src = url;
 }
 
+function renderPortablePack(pack) {
+  const section = $("portableSection");
+  const summary = $("portableSummary");
+  const grid = $("portableTiers");
+  if (!pack) {
+    section.hidden = true;
+    summary.textContent = "";
+    grid.replaceChildren();
+    return;
+  }
+
+  section.hidden = false;
+  const complete = Boolean(pack.complete_lod_chain);
+  const parityReady = Boolean(pack.lod_parity_ready);
+  const ready = complete && parityReady;
+  $("portableState").textContent = ready ? "PASS" : "BLOCKED";
+  $("portableState").className = ready ? "qa-state ready" : "qa-state blocked";
+  const tiers = Array.isArray(pack.tiers) ? pack.tiers : [];
+  summary.textContent = [
+    tiers.length + " runtime tier" + (tiers.length === 1 ? "" : "s"),
+    "LOD chain " + (complete ? "complete" : "incomplete"),
+    "parity " + (parityReady ? "passed" : "blocked"),
+  ].join(" · ");
+
+  grid.replaceChildren();
+  tiers.forEach((tier) => {
+    const parity = tier?.lod_parity || {};
+    const item = document.createElement("div");
+    item.className = "qa-chip " + (parity.ready ? "pass" : "fail");
+    const name = document.createElement("span");
+    name.textContent = String(tier?.tier || "tier");
+    const value = document.createElement("strong");
+    const lodCount = Number(parity.lod_count || tier?.gameprep?.lods?.length || 0);
+    value.textContent = (parity.ready ? "PASS" : "BLOCK") + " · " + lodCount + " LOD";
+    const failures = Array.isArray(parity.errors) ? parity.errors.filter(Boolean) : [];
+    item.title = failures.length
+      ? failures.slice(0, 4).join(" · ")
+      : "Hero Master parity passed";
+    item.append(name, value);
+    grid.appendChild(item);
+
+    const details = Array.isArray(parity.items) ? parity.items : [];
+    details.forEach((lod) => {
+      const row = document.createElement("div");
+      row.className = "qa-chip " + (lod.ready ? "pass" : "fail");
+      const label = document.createElement("span");
+      label.textContent = String(tier?.tier || "tier") + " " + String(lod.name || "LOD");
+      const metric = document.createElement("strong");
+      const parts = [];
+      if (lod.shape_p95_distance_ratio != null) {
+        parts.push("shape " + Number(lod.shape_p95_distance_ratio).toFixed(3));
+      }
+      if (lod.faces != null) {
+        parts.push(Number(lod.faces).toLocaleString() + " tris");
+      }
+      if (lod.rig_required) {
+        parts.push(lod.rig_ready ? "rig" : "rig!");
+        parts.push(lod.deformation_ready ? "deform" : "deform!");
+      }
+      metric.textContent = parts.join(" · ") || (lod.ready ? "PASS" : "BLOCK");
+      row.title = Array.isArray(lod.errors) ? lod.errors.join(" · ") : "";
+      row.append(label, metric);
+      grid.appendChild(row);
+    });
+  });
+}
+
 function renderAAA(aaa) {
   const section = $("aaaSection");
   const summary = $("aaaSummary");
@@ -544,6 +611,7 @@ async function refreshJob() {
   setProgress(state.job.stage, state.job.progress, state.job.status);
   renderCandidates(state.job);
   renderCompositePlan(state.job.composite_plan, state.job.composite_details);
+  renderPortablePack(state.job.portable_pack);
   renderAAA(state.job.aaa_acceptance);
   renderFinalQa(state.job.final_qa);
   if (state.job.final_model_url) {
@@ -611,6 +679,14 @@ function handleEvent(event) {
   if (event.kind === "qa_ready") {
     renderFinalQa(event.qa);
   }
+  if (event.kind === "portable_pack" && event.pack) {
+    if (state.job) state.job.portable_pack = event.pack;
+    renderPortablePack(event.pack);
+    appendLog(
+      "Portable LOD parity: "
+      + (event.pack.lod_parity_ready ? "PASS" : "BLOCKED")
+    );
+  }
   if (event.kind === "aaa_ready" && event.aaa) {
     if (state.job) state.job.aaa_acceptance = event.aaa;
     renderAAA(event.aaa);
@@ -631,6 +707,9 @@ async function attachJob(jobId) {
   state.job = await res.json();
   setProgress(state.job.stage, state.job.progress, state.job.status);
   renderCandidates(state.job);
+  renderCompositePlan(state.job.composite_plan, state.job.composite_details);
+  renderPortablePack(state.job.portable_pack);
+  renderAAA(state.job.aaa_acceptance);
   renderFinalQa(state.job.final_qa);
   if (state.job.final_model_url) showModel(state.job.final_model_url, "Final Champion");
 
