@@ -188,6 +188,7 @@ function renderFinalQa(qa) {
     ["Rig", qa.rig_ready],
     ["SkinWeights", qa.skin_weights_ready],
     ["Animation", qa.animation_ready],
+    ["Animation QA", qa.animation_integrity_ready],
     ["Face refs", qa.face_ready],
     ["Face evidence", qa.face_quality_ready],
   ];
@@ -201,6 +202,19 @@ function renderFinalQa(qa) {
     item.append(name, value);
     grid.appendChild(item);
   });
+
+  if (qa.animation_channels != null || qa.animation_keyframes != null) {
+    const item = document.createElement("div");
+    item.className = "qa-chip metric";
+    const name = document.createElement("span");
+    name.textContent = "Animation data";
+    const value = document.createElement("strong");
+    const channels = Number(qa.animation_channels || 0);
+    const keyframes = Number(qa.animation_keyframes || 0);
+    value.textContent = channels + " ch · " + keyframes + " keys";
+    item.append(name, value);
+    grid.appendChild(item);
+  }
 
   const rebakeResolved = qa.rebaked_channels || [];
   const rebakePending = qa.rebake_pending_channels || [];
