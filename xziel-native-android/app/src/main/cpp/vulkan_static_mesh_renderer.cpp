@@ -1035,6 +1035,9 @@ bool VulkanStaticMeshRenderer::initialize(
         !textures_.empty();
 
     if (ready_) {
+        logInfo(
+            "XZIEL_VERTEX_TRANSFORM_PRECOMPUTE_READY");
+
         if (modelPath.find("/weapons/") !=
             std::string::npos) {
             logInfo("XZIEL_WEAPON_VIEWMODEL_READY");
@@ -4148,12 +4151,35 @@ void VulkanStaticMeshRenderer::record(
     push.cameraX = camera.x;
     push.cameraY = camera.y;
     push.cameraZ = camera.z;
-    push.cameraYaw = camera.yawRadians;
-    push.cameraPitch = camera.pitchRadians;
-    push.verticalFovDegrees =
-        camera.verticalFovDegrees;
-    push.aspect =
+    push.viewYawCos =
+        std::cos(camera.yawRadians);
+    push.viewYawSin =
+        std::sin(camera.yawRadians);
+    push.viewPitchCos =
+        std::cos(camera.pitchRadians);
+    push.viewPitchSin =
+        std::sin(camera.pitchRadians);
+
+    constexpr float kDegreesToRadians =
+        0.01745329251994329577f;
+    const float clampedFovDegrees =
+        std::clamp(
+            camera.verticalFovDegrees,
+            50.0f,
+            110.0f);
+    const float projectionFocal =
+        1.0f /
+        std::tan(
+            clampedFovDegrees *
+            0.5f *
+            kDegreesToRadians);
+    const float safeAspect =
         std::max(camera.aspect, 0.25f);
+
+    push.projectionFocal =
+        projectionFocal;
+    push.projectionFocalOverAspect =
+        projectionFocal / safeAspect;
     push.fogDensity =
         std::clamp(
             environment.fogDensity,
@@ -4901,15 +4927,42 @@ void VulkanStaticMeshRenderer::recordViewmodel(
         &scissor);
 
     PushConstants push{};
-    push.verticalFovDegrees =
+
+    push.viewYawCos =
+        std::cos(state.yawRadians);
+    push.viewYawSin =
+        std::sin(state.yawRadians);
+    push.viewPitchCos =
+        std::cos(state.pitchRadians);
+    push.viewPitchSin =
+        std::sin(state.pitchRadians);
+    push.viewRollCos =
+        std::cos(state.rollRadians);
+    push.viewRollSin =
+        std::sin(state.rollRadians);
+
+    constexpr float kDegreesToRadians =
+        0.01745329251994329577f;
+    const float clampedFovDegrees =
         std::clamp(
             state.verticalFovDegrees,
             50.0f,
             110.0f);
-    push.aspect =
+    const float projectionFocal =
+        1.0f /
+        std::tan(
+            clampedFovDegrees *
+            0.5f *
+            kDegreesToRadians);
+    const float safeAspect =
         std::max(
             state.aspect,
             0.25f);
+
+    push.projectionFocal =
+        projectionFocal;
+    push.projectionFocalOverAspect =
+        projectionFocal / safeAspect;
     push.modelX = state.x;
     push.modelY = state.y;
     push.modelZ = state.z;
@@ -4918,9 +4971,6 @@ void VulkanStaticMeshRenderer::recordViewmodel(
             state.scale,
             0.05f,
             8.0f);
-    push.modelYaw = state.yawRadians;
-    push.modelPitch = state.pitchRadians;
-    push.modelRoll = state.rollRadians;
     push.viewmodelMode = 1.0f;
 
     const auto applyMaterial =
