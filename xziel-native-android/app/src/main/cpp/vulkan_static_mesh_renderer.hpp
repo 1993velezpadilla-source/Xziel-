@@ -182,6 +182,8 @@ private:
 
     struct GpuMaterial {
         std::uint64_t streamResourceId = 0U;
+        // Mirrors the albedo streaming resource decision after plan rebuild.
+        std::uint32_t streamDecisionSlot = UINT32_MAX;
         std::uint32_t albedoTextureIndex = 0U;
         std::uint32_t normalTextureIndex = 0U;
         std::uint32_t ormTextureIndex = 0U;

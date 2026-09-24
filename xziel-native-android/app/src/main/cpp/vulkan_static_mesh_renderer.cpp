@@ -4530,23 +4530,81 @@ void VulkanStaticMeshRenderer::record(
                     }
                 }
 
+                std::uint32_t indexedMaterialDecisions = 0U;
+
+                for (auto& material : materials_) {
+                    material.streamDecisionSlot =
+                        UINT32_MAX;
+
+                    if (material.albedoTextureIndex <
+                        textures_.size()) {
+                        const auto& albedo =
+                            textures_[
+                                material.
+                                    albedoTextureIndex];
+
+                        if (albedo.streamResourceId ==
+                            material.streamResourceId) {
+                            material.streamDecisionSlot =
+                                albedo.
+                                    streamDecisionSlot;
+                        }
+                    }
+
+                    if (material.streamDecisionSlot ==
+                        UINT32_MAX) {
+                        const auto* decision =
+                            streamDecision(
+                                material.streamResourceId,
+                                streamDecisionCount_);
+
+                        if (decision != nullptr) {
+                            material.streamDecisionSlot =
+                                static_cast<std::uint32_t>(
+                                    decision -
+                                    streamDecisions_.data());
+                        }
+                    }
+
+                    if (material.streamDecisionSlot !=
+                        UINT32_MAX) {
+                        ++indexedMaterialDecisions;
+                    }
+                }
+
                 __android_log_print(
                     ANDROID_LOG_INFO,
                     kTag,
-                    "XZIEL_TEXTURE_DECISION_INDEX_READY indexed=%u textures=%u decisions=%u",
+                    "XZIEL_STREAM_DECISION_INDEX_READY textures=%u materials=%u decisions=%u",
                     static_cast<unsigned int>(
                         indexedTextureDecisions),
                     static_cast<unsigned int>(
-                        textures_.size()),
+                        indexedMaterialDecisions),
                     static_cast<unsigned int>(
                         streamDecisionCount_));
 
                 for (const auto& batch :
                      batches_) {
-                    const auto* decision =
-                        streamDecision(
-                            batch.streamResourceId,
-                            streamDecisionCount_);
+                    const StreamCellResourceDecision*
+                        decision = nullptr;
+
+                    if (batch.materialIndex <
+                        materials_.size()) {
+                        const auto& material =
+                            materials_[
+                                batch.materialIndex];
+
+                        decision =
+                            streamDecisionAt(
+                                material.streamDecisionSlot,
+                                material.streamResourceId,
+                                streamDecisionCount_);
+                    } else {
+                        decision =
+                            streamDecision(
+                                batch.streamResourceId,
+                                streamDecisionCount_);
+                    }
 
                     if (decision != nullptr &&
                         !decision->desiredResident) {
@@ -4943,11 +5001,13 @@ void VulkanStaticMeshRenderer::record(
 
                     if (materialVisible &&
                         streamCullingActive_) {
+                        const auto& material =
+                            materials_[
+                                batch.materialIndex];
                         const auto* decision =
-                            streamDecision(
-                                materials_[
-                                    batch.materialIndex].
-                                        streamResourceId,
+                            streamDecisionAt(
+                                material.streamDecisionSlot,
+                                material.streamResourceId,
                                 streamDecisionCount_);
 
                         materialVisible =
@@ -4980,9 +5040,13 @@ void VulkanStaticMeshRenderer::record(
 
                 if (materialVisible &&
                     streamCullingActive_) {
+                    const auto& material =
+                        materials_[
+                            batch.materialIndex];
                     const auto* decision =
-                        streamDecision(
-                            batch.streamResourceId,
+                        streamDecisionAt(
+                            material.streamDecisionSlot,
+                            material.streamResourceId,
                             streamDecisionCount_);
 
                     materialVisible =
