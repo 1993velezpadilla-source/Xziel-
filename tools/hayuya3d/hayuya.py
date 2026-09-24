@@ -846,6 +846,16 @@ def main() -> int:
         default="auto",
         help="Judge v3 DINOv2 appearance scoring policy; auto falls back to v2 if evaluator is not bootstrapped",
     )
+    parser.add_argument(
+        "--semantic-anatomy",
+        choices=["off","auto","required"],
+        default="auto",
+        help=(
+            "final GLB GroundingDINO+SAM2 anatomy validation; auto runs "
+            "for Monster/Ultra characters when explicit critical anatomy "
+            "references exist"
+        ),
+    )
     args = parser.parse_args()
 
     raw_inputs = list(args.input)
@@ -2067,6 +2077,52 @@ def main() -> int:
     source = Path(champion.path)
     final_glb = export_glb(source, job_dir / "hayuya_final.glb")
 
+    semantic_anatomy_result = None
+    semantic_anatomy_failure = None
+    should_try_semantic_anatomy = bool(
+        mode=="character"
+        and args.semantic_anatomy!="off"
+        and (
+            args.semantic_anatomy=="required"
+            or args.profile in {"monster","ultra"}
+        )
+    )
+    if should_try_semantic_anatomy:
+        try:
+            from semantic_anatomy_runner import run_semantic_anatomy
+            semantic_anatomy_result=run_semantic_anatomy(
+                final_glb,
+                detail_inputs,
+                job_dir / "semantic_anatomy",
+                policy=args.semantic_anatomy,
+            )
+            if semantic_anatomy_result.required:
+                print(
+                    "HAYUYA_SEMANTIC_ANATOMY_READY "
+                    f"attempted={str(bool(semantic_anatomy_result.attempted)).lower()} "
+                    f"ready={str(bool(semantic_anatomy_result.ready)).lower()} "
+                    f"targets={','.join(semantic_anatomy_result.critical_targets) if semantic_anatomy_result.critical_targets else 'none'} "
+                    f"views={len(semantic_anatomy_result.rendered_views)} "
+                    f"error={(semantic_anatomy_result.error or 'none').replace(' ','_')}"
+                )
+                if (
+                    args.semantic_anatomy=="required"
+                    and not semantic_anatomy_result.ready
+                ):
+                    raise RuntimeError(
+                        semantic_anatomy_result.error
+                        or "required semantic anatomy validation failed"
+                    )
+        except Exception as exc:
+            semantic_anatomy_failure=f"{type(exc).__name__}: {exc}"
+            print(
+                f"HAYUYA_SEMANTIC_ANATOMY_FAILED {semantic_anatomy_failure}",
+                file=sys.stderr,
+            )
+            traceback.print_exc()
+            if args.semantic_anatomy=="required":
+                raise
+
     gameprep_result = None
     gameprep_failure = None
     should_try_gameprep = (
@@ -2251,6 +2307,11 @@ def main() -> int:
             "won_final_arena": champion.backend.endswith("_texture_sr"),
             "policy": "baseColor-only GLB payload rewrite; original candidate preserved; challenger must win complete Judge",
         },
+        "semantic_anatomy": (
+            asdict(semantic_anatomy_result)
+            if semantic_anatomy_result is not None else None
+        ),
+        "semantic_anatomy_failure": semantic_anatomy_failure,
         "geometry_refinement": asdict(refinement_decision) if refinement_decision is not None else None,
         "geometry_refinement_failure": refinement_failure,
         "material_bridge": asdict(material_bridge_result) if material_bridge_result is not None else None,
