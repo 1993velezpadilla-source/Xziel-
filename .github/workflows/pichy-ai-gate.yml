@@ -9,6 +9,10 @@ on:
       - "pichy-ai/**"
       - ".github/workflows/pichy-ai-gate.yml"
 
+concurrency:
+  group: pichy-ai-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   python:
     runs-on: ubuntu-latest
