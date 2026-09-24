@@ -144,7 +144,18 @@ class StudioServerTests(unittest.TestCase):
 
     def test_pipeline_stage_events_are_real_stage_markers(self):
         with tempfile.TemporaryDirectory() as tmp:
-            job = self.make_job(Path(tmp))
+            root = Path(tmp)
+            report = root / "qa_report.json"
+            report.write_text(
+                json.dumps({
+                    "warnings": [
+                        "weakest visible baseColor resolution 2048px is below profile target 4096px",
+                        "runtime LOD material rebake is incomplete: LOD1:occlusion",
+                    ]
+                }),
+                encoding="utf-8",
+            )
+            job = self.make_job(root)
             lines = [
                 ("HAYUYA_VIEWFORGE_READY backend=wonder3d synthetic_views=5", "viewforge"),
                 ("HAYUYA_REFINEMENT_READY source=x preferred=y improvement=2", "refinement"),
@@ -152,7 +163,7 @@ class StudioServerTests(unittest.TestCase):
                 ("HAYUYA_RETOPO_READY style=pure_quad quad_fraction=1 obj=x", "retopo"),
                 ("HAYUYA_GAMEPREP_READY lods=4 collision=True turntable=8", "gameprep"),
                 ("HAYUYA_PORTABLE_PACK_READY tiers=4 complete_lods=True manifest=x", "portable"),
-                ("HAYUYA_QA_READY production_ready=True material_ready=True texture_ready=True texture_score=100.0 basecolor_min=4096 basecolor_max=4096 texture_target=4096 rebake_ready=True rebaked=normal,occlusion rebake_pending=none rig_ready=False animation_ready=False face_ready=True face_score=94.5 facemesh_score=88.0 facetex_score=91.0 report=x", "qa"),
+                (f"HAYUYA_QA_READY production_ready=True material_ready=True texture_ready=True texture_score=100.0 basecolor_min=4096 basecolor_max=4096 texture_target=4096 rebake_ready=True rebaked=normal,occlusion rebake_pending=none rig_ready=False animation_ready=False face_ready=True face_score=94.5 facemesh_score=88.0 facetex_score=91.0 report={report}", "qa"),
             ]
             last_progress = -1
             for line, expected in lines:
@@ -169,6 +180,8 @@ class StudioServerTests(unittest.TestCase):
             self.assertEqual(job.final_qa["texture_target"], 4096)
             self.assertEqual(job.final_qa["rebaked_channels"], ["normal", "occlusion"])
             self.assertEqual(job.final_qa["rebake_pending_channels"], [])
+            self.assertEqual(len(job.final_qa["warnings"]), 2)
+            self.assertIn("baseColor", job.final_qa["warnings"][0])
 
     def test_multipart_accepts_many_images_and_fields(self):
         boundary = "----hayuya-test"
