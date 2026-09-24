@@ -142,7 +142,9 @@ jobs:
           g2=json.loads((root/"animation_gate.json").read_text())
           g1=json.loads((root/"animation_gate_uam1.json").read_text())
           manifest["preview_model"]="animated.glb"
-          manifest["asset_profile"]="character.humanoid" if manifest.get("asset_profile")=="auto" else manifest.get("asset_profile","character.humanoid")
+          manifest["asset_profile"]="character.humanoid"
+          if isinstance(manifest.get("asset"),dict):
+              manifest["asset"]["profile"]="character.humanoid"
           manifest["character"]={
             "skeleton_type":r2.get("skeleton_type","hayuya_humanoid_v1"),
             "preview_pack":"hayuya_preview_pack_v1",
@@ -191,7 +193,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           if [[ "${{ job.status }}" == "success" ]]; then
-            gh issue comment 55 --repo "$GITHUB_REPOSITORY" --body "🦴 **RIG READY** — **${{ matrix.owner }}** / `${{ matrix.job_id }}` — real model now carries UAM1/UAM2 animation banks."
+            gh issue comment 55 --repo "$GITHUB_REPOSITORY" --body "🦴 **RIG READY** — **${{ matrix.owner }}** / ${{ matrix.job_id }} — real model now carries UAM1/UAM2 animation banks."
           else
-            gh issue comment 55 --repo "$GITHUB_REPOSITORY" --body "❌ **RIG FAILED** — **${{ matrix.owner }}** / `${{ matrix.job_id }}`"
+            gh issue comment 55 --repo "$GITHUB_REPOSITORY" --body "❌ **RIG FAILED** — **${{ matrix.owner }}** / ${{ matrix.job_id }}"
           fi
