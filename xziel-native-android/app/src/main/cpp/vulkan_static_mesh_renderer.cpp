@@ -4845,174 +4845,74 @@ void VulkanStaticMeshRenderer::record(
         }
     }
 
-    for (std::size_t batchIndex = 0U;
-         batchIndex < batches_.size();
-         ++batchIndex) {
-        const auto& batch =
-            batches_[batchIndex];
-
-        if (cellGeometry) {
-            if (batch.geometryCellSlot >=
-                geometryCellCount_) {
-                ++frameStats_.culledBatches;
-                continue;
+    const auto visitBatch =
+        [&](std::size_t batchIndex) noexcept {
+            if (batchIndex >= batches_.size()) {
+                return;
             }
 
-            const auto& geometryCell =
-                geometryCells_[
-                    batch.geometryCellSlot];
+            const auto& batch =
+                batches_[batchIndex];
 
-            if (batchIndex ==
-                geometryCell.firstBatch) {
-                const std::size_t cellEnd =
-                    std::min<std::size_t>(
-                        batches_.size(),
-                        static_cast<std::size_t>(
-                            geometryCell.firstBatch) +
-                            geometryCell.batchCount);
+            if (cellGeometry) {
+                ++frameStats_.
+                    cellDrivenBatchVisits;
+            }
 
-                const std::uint32_t remainingBatches =
-                    static_cast<std::uint32_t>(
-                        cellEnd - batchIndex);
+            if (batch.materialIndex >=
+                materials_.size()) {
+                return;
+            }
 
-                const bool streamCold =
-                    streamCullingActive_ &&
-                    geometryCell.heat ==
-                        StreamCellHeat::Cold;
+            bool materialVisible = true;
 
-                const bool missingGeometry =
-                    !geometryCell.physicallyResident ||
-                    geometryCell.vertexBuffer ==
-                        VK_NULL_HANDLE ||
-                    geometryCell.indexBuffer ==
-                        VK_NULL_HANDLE;
+            if (materialVisibilityCacheReady) {
+                auto& cachedState =
+                    materialVisibilityStates_[
+                        batch.materialIndex];
+                auto& cachedGeneration =
+                    materialVisibilityGenerations_[
+                        batch.materialIndex];
 
-                if (missingGeometry ||
-                    streamCold) {
-                    frameStats_.culledBatches +=
-                        remainingBatches;
-                    frameStats_.
-                        streamingCulledBatches +=
-                        remainingBatches;
-                    frameStats_.
-                        cellRangeSkippedBatches +=
-                        remainingBatches;
-
-                    if (cellEnd > batchIndex) {
-                        batchIndex =
-                            cellEnd - 1U;
-                    }
-
-                    continue;
-                }
-
-                if (streamCullingActive_ &&
-                    frameStats_.streamingCell != 0U &&
-                    geometryCell.cellId != 0U) {
-                    ++frameStats_.portalVisibilityTests;
-
-                    const bool portalReachable =
-                        portalReachabilityCacheValid_ &&
-                        cachedPortalReachabilityCell_ ==
-                            frameStats_.streamingCell &&
-                        batch.geometryCellSlot <
-                            geometryPortalReachable_.size()
-                        ? geometryPortalReachable_[
-                              batch.geometryCellSlot] != 0U
-                        : streamGraph_.
-                              cellReachableThroughOpenPortals(
-                                  frameStats_.streamingCell,
-                                  geometryCell.cellId);
-
-                    if (!portalReachable) {
-                        ++frameStats_.portalVisibilityCulled;
-                        frameStats_.culledBatches +=
-                            remainingBatches;
-                        frameStats_.
-                            cellRangeSkippedBatches +=
-                            remainingBatches;
-                        frameStats_.portalSkippedBatches +=
-                            remainingBatches;
-
-                        if (cellEnd > batchIndex) {
-                            batchIndex =
-                                cellEnd - 1U;
-                        }
-
-                        continue;
-                    }
-                }
-
-                const StreamCellBounds* cellBounds =
-                    nullptr;
-
-                if (geometryCell.streamBoundsSlot <
-                    streamCellBounds_.size()) {
-                    const auto& indexedBounds =
-                        streamCellBounds_[
-                            geometryCell.
-                                streamBoundsSlot];
-
-                    if (indexedBounds.valid) {
-                        cellBounds =
-                            &indexedBounds;
-                    }
-                }
-
-                if (cellBounds != nullptr) {
+                if (cachedGeneration !=
+                    materialVisibilityGeneration_) {
                     ++frameStats_.
-                        cellFrustumTests;
+                        materialVisibilityTests;
 
-                    if (!sphereVisible(
-                            cellBounds->
-                                cullCenterX,
-                            cellBounds->
-                                cullCenterY,
-                            cellBounds->
-                                cullCenterZ,
-                            cellBounds->
-                                cullRadius,
-                            nullptr)) {
-                        ++frameStats_.
-                            cellFrustumCulled;
-                        frameStats_.
-                            culledBatches +=
-                            remainingBatches;
-                        frameStats_.
-                            cellRangeSkippedBatches +=
-                            remainingBatches;
-                        frameStats_.
-                            cellFrustumSkippedBatches +=
-                            remainingBatches;
+                    materialVisible =
+                        materialStreamingReady(
+                            materials_[
+                                batch.materialIndex],
+                            frameSlot);
 
-                        if (cellEnd > batchIndex) {
-                            batchIndex =
-                                cellEnd - 1U;
-                        }
+                    if (materialVisible &&
+                        streamCullingActive_) {
+                        const auto* decision =
+                            streamDecision(
+                                materials_[
+                                    batch.materialIndex].
+                                        streamResourceId,
+                                streamDecisionCount_);
 
-                        continue;
+                        materialVisible =
+                            decision == nullptr ||
+                            decision->desiredResident;
                     }
+
+                    cachedState =
+                        materialVisible
+                        ? static_cast<std::uint8_t>(1U)
+                        : static_cast<std::uint8_t>(2U);
+                    cachedGeneration =
+                        materialVisibilityGeneration_;
+                } else {
+                    ++frameStats_.
+                        materialVisibilityCacheHits;
+                    materialVisible =
+                        cachedState ==
+                        static_cast<std::uint8_t>(1U);
                 }
-            }
-        }
-
-        if (batch.materialIndex >=
-            materials_.size()) {
-            continue;
-        }
-
-        bool materialVisible = true;
-
-        if (materialVisibilityCacheReady) {
-            auto& cachedState =
-                materialVisibilityStates_[
-                    batch.materialIndex];
-            auto& cachedGeneration =
-                materialVisibilityGenerations_[
-                    batch.materialIndex];
-
-            if (cachedGeneration !=
-                materialVisibilityGeneration_) {
+            } else {
                 ++frameStats_.
                     materialVisibilityTests;
 
@@ -5026,99 +4926,209 @@ void VulkanStaticMeshRenderer::record(
                     streamCullingActive_) {
                     const auto* decision =
                         streamDecision(
-                            materials_[
-                                batch.materialIndex].
-                                    streamResourceId,
+                            batch.streamResourceId,
                             streamDecisionCount_);
 
                     materialVisible =
                         decision == nullptr ||
                         decision->desiredResident;
                 }
+            }
 
-                cachedState =
-                    materialVisible
-                    ? static_cast<std::uint8_t>(1U)
-                    : static_cast<std::uint8_t>(2U);
-                cachedGeneration =
-                    materialVisibilityGeneration_;
-            } else {
+            if (!materialVisible) {
+                ++frameStats_.culledBatches;
                 ++frameStats_.
-                    materialVisibilityCacheHits;
-                materialVisible =
-                    cachedState ==
-                    static_cast<std::uint8_t>(1U);
+                    streamingCulledBatches;
+                return;
             }
-        } else {
+
+            ++frameStats_.batchFrustumTests;
+
+            float visibleNearDepth = nearPlane;
+
+            if (!sphereVisible(
+                    batch.cullCenterX,
+                    batch.cullCenterY,
+                    batch.cullCenterZ,
+                    batch.cullRadius,
+                    &visibleNearDepth)) {
+                ++frameStats_.culledBatches;
+                return;
+            }
+
+            const VkPipeline desiredPipeline =
+                batch.doubleSided
+                ? pipelineDoubleSided_
+                : pipeline_;
+
+            if (desiredPipeline == VK_NULL_HANDLE) {
+                ++frameStats_.culledBatches;
+                return;
+            }
+
+            ++frameStats_.visibleBatches;
+
+            VisibleDrawCandidate candidate{};
+            candidate.batchIndex =
+                static_cast<std::uint32_t>(
+                    batchIndex);
+            candidate.originalOrder =
+                static_cast<std::uint32_t>(
+                    visibleDrawCandidates_.size());
+            candidate.viewDepth =
+                visibleNearDepth;
             ++frameStats_.
-                materialVisibilityTests;
+                frontToBackDepthReuses;
 
-            materialVisible =
-                materialStreamingReady(
-                    materials_[
-                        batch.materialIndex],
-                    frameSlot);
+            visibleDrawCandidates_.push_back(
+                candidate);
+        };
 
-            if (materialVisible &&
-                streamCullingActive_) {
-                const auto* decision =
-                    streamDecision(
-                        batch.streamResourceId,
-                        streamDecisionCount_);
+    if (cellGeometry) {
+        // Geometry was permanently sorted by cell at upload time and every
+        // cell owns one contiguous [firstBatch, firstBatch + batchCount)
+        // range. Drive traversal from those ranges so cold/occluded cells
+        // never enter the per-batch hot loop at all.
+        for (std::size_t cellSlot = 0U;
+             cellSlot < geometryCellCount_;
+             ++cellSlot) {
+            const auto& geometryCell =
+                geometryCells_[cellSlot];
 
-                materialVisible =
-                    decision == nullptr ||
-                    decision->desiredResident;
+            if (geometryCell.firstBatch ==
+                    UINT32_MAX ||
+                geometryCell.batchCount == 0U) {
+                continue;
+            }
+
+            const std::size_t cellBegin =
+                static_cast<std::size_t>(
+                    geometryCell.firstBatch);
+            const std::size_t cellEnd =
+                std::min<std::size_t>(
+                    batches_.size(),
+                    cellBegin +
+                        static_cast<std::size_t>(
+                            geometryCell.batchCount));
+
+            if (cellBegin >= cellEnd) {
+                continue;
+            }
+
+            const std::uint32_t cellBatchCount =
+                static_cast<std::uint32_t>(
+                    cellEnd - cellBegin);
+
+            const bool streamCold =
+                streamCullingActive_ &&
+                geometryCell.heat ==
+                    StreamCellHeat::Cold;
+
+            const bool missingGeometry =
+                !geometryCell.physicallyResident ||
+                geometryCell.vertexBuffer ==
+                    VK_NULL_HANDLE ||
+                geometryCell.indexBuffer ==
+                    VK_NULL_HANDLE;
+
+            if (missingGeometry ||
+                streamCold) {
+                frameStats_.culledBatches +=
+                    cellBatchCount;
+                frameStats_.
+                    streamingCulledBatches +=
+                    cellBatchCount;
+                frameStats_.
+                    cellRangeSkippedBatches +=
+                    cellBatchCount;
+                continue;
+            }
+
+            if (streamCullingActive_ &&
+                frameStats_.streamingCell != 0U &&
+                geometryCell.cellId != 0U) {
+                ++frameStats_.portalVisibilityTests;
+
+                const bool portalReachable =
+                    portalReachabilityCacheValid_ &&
+                    cachedPortalReachabilityCell_ ==
+                        frameStats_.streamingCell &&
+                    cellSlot <
+                        geometryPortalReachable_.size()
+                    ? geometryPortalReachable_[
+                          cellSlot] != 0U
+                    : streamGraph_.
+                          cellReachableThroughOpenPortals(
+                              frameStats_.streamingCell,
+                              geometryCell.cellId);
+
+                if (!portalReachable) {
+                    ++frameStats_.portalVisibilityCulled;
+                    frameStats_.culledBatches +=
+                        cellBatchCount;
+                    frameStats_.
+                        cellRangeSkippedBatches +=
+                        cellBatchCount;
+                    frameStats_.portalSkippedBatches +=
+                        cellBatchCount;
+                    continue;
+                }
+            }
+
+            const StreamCellBounds* cellBounds =
+                nullptr;
+
+            if (geometryCell.streamBoundsSlot <
+                streamCellBounds_.size()) {
+                const auto& indexedBounds =
+                    streamCellBounds_[
+                        geometryCell.
+                            streamBoundsSlot];
+
+                if (indexedBounds.valid) {
+                    cellBounds =
+                        &indexedBounds;
+                }
+            }
+
+            if (cellBounds != nullptr) {
+                ++frameStats_.
+                    cellFrustumTests;
+
+                if (!sphereVisible(
+                        cellBounds->cullCenterX,
+                        cellBounds->cullCenterY,
+                        cellBounds->cullCenterZ,
+                        cellBounds->cullRadius,
+                        nullptr)) {
+                    ++frameStats_.
+                        cellFrustumCulled;
+                    frameStats_.
+                        culledBatches +=
+                        cellBatchCount;
+                    frameStats_.
+                        cellRangeSkippedBatches +=
+                        cellBatchCount;
+                    frameStats_.
+                        cellFrustumSkippedBatches +=
+                        cellBatchCount;
+                    continue;
+                }
+            }
+
+            for (std::size_t batchIndex =
+                     cellBegin;
+                 batchIndex < cellEnd;
+                 ++batchIndex) {
+                visitBatch(batchIndex);
             }
         }
-
-        if (!materialVisible) {
-            ++frameStats_.culledBatches;
-            ++frameStats_.
-                streamingCulledBatches;
-            continue;
+    } else {
+        for (std::size_t batchIndex = 0U;
+             batchIndex < batches_.size();
+             ++batchIndex) {
+            visitBatch(batchIndex);
         }
-
-        ++frameStats_.batchFrustumTests;
-
-        float visibleNearDepth = nearPlane;
-
-        if (!sphereVisible(
-                batch.cullCenterX,
-                batch.cullCenterY,
-                batch.cullCenterZ,
-                batch.cullRadius,
-                &visibleNearDepth)) {
-            ++frameStats_.culledBatches;
-            continue;
-        }
-
-        const VkPipeline desiredPipeline =
-            batch.doubleSided
-            ? pipelineDoubleSided_
-            : pipeline_;
-
-        if (desiredPipeline == VK_NULL_HANDLE) {
-            ++frameStats_.culledBatches;
-            continue;
-        }
-
-        ++frameStats_.visibleBatches;
-
-        VisibleDrawCandidate candidate{};
-        candidate.batchIndex =
-            static_cast<std::uint32_t>(
-                batchIndex);
-        candidate.originalOrder =
-            static_cast<std::uint32_t>(
-                visibleDrawCandidates_.size());
-        candidate.viewDepth =
-            visibleNearDepth;
-        ++frameStats_.
-            frontToBackDepthReuses;
-
-        visibleDrawCandidates_.push_back(
-            candidate);
     }
 
     frameStats_.frontToBackCandidates =
@@ -5519,7 +5529,7 @@ void VulkanStaticMeshRenderer::record(
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u draw_submissions=%u indirect_draws=%u indirect_direct_writes=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u multi_draw_indirect=%u portal_tests=%u portal_culled=%u portal_skipped=%u cell_frustum_tests=%u cell_frustum_culled=%u cell_range_skipped=%u cell_frustum_skipped=%u batch_frustum_tests=%u material_visibility_tests=%u material_visibility_cache_hits=%u front_to_back_candidates=%u front_to_back_reordered=%u front_to_back_depth_reuses=%u plan_builds=%llu plan_cache_hits=%llu cell_heat_refreshes=%llu",
+            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u draw_submissions=%u indirect_draws=%u indirect_direct_writes=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u multi_draw_indirect=%u portal_tests=%u portal_culled=%u portal_skipped=%u cell_frustum_tests=%u cell_frustum_culled=%u cell_range_skipped=%u cell_frustum_skipped=%u cell_driven_batch_visits=%u batch_frustum_tests=%u material_visibility_tests=%u material_visibility_cache_hits=%u front_to_back_candidates=%u front_to_back_reordered=%u front_to_back_depth_reuses=%u plan_builds=%llu plan_cache_hits=%llu cell_heat_refreshes=%llu",
             static_cast<unsigned int>(
                 frameStats_.streamingCell),
             static_cast<unsigned int>(
@@ -5563,6 +5573,9 @@ void VulkanStaticMeshRenderer::record(
             static_cast<unsigned int>(
                 frameStats_.
                     cellFrustumSkippedBatches),
+            static_cast<unsigned int>(
+                frameStats_.
+                    cellDrivenBatchVisits),
             static_cast<unsigned int>(
                 frameStats_.batchFrustumTests),
             static_cast<unsigned int>(

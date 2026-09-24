@@ -873,6 +873,7 @@ jobs:
             STREAM_CELL_FRUSTUM_CULLED="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* cell_frustum_culled=\([0-9][0-9]*\).*/\1/p')"
             STREAM_CELL_RANGE_SKIPPED="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* cell_range_skipped=\([0-9][0-9]*\).*/\1/p')"
             STREAM_CELL_FRUSTUM_SKIPPED="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* cell_frustum_skipped=\([0-9][0-9]*\).*/\1/p')"
+            STREAM_CELL_DRIVEN_BATCH_VISITS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* cell_driven_batch_visits=\([0-9][0-9]*\).*/\1/p')"
             STREAM_BATCH_FRUSTUM_TESTS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* batch_frustum_tests=\([0-9][0-9]*\).*/\1/p')"
             STREAM_MATERIAL_VISIBILITY_TESTS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* material_visibility_tests=\([0-9][0-9]*\).*/\1/p')"
             STREAM_MATERIAL_VISIBILITY_CACHE_HITS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* material_visibility_cache_hits=\([0-9][0-9]*\).*/\1/p')"
@@ -1001,7 +1002,15 @@ jobs:
                 test -n "${STATIC_SUBMISSION_BATCHES}"
                 test "${STATIC_SUBMISSION_GROUPS}" -gt 0
                 test "${STATIC_SUBMISSION_GROUPS}" -le "${STATIC_SUBMISSION_BATCHES}"
+                test -n "${STREAM_CELL_DRIVEN_BATCH_VISITS}"
+                test -n "${STREAM_CELL_RANGE_SKIPPED}"
+                test "${STREAM_CELL_DRIVEN_BATCH_VISITS}" -gt 0
+                test "${STREAM_CELL_RANGE_SKIPPED}" -gt 0
+                CELL_DRIVEN_COVERAGE=$((STREAM_CELL_DRIVEN_BATCH_VISITS + STREAM_CELL_RANGE_SKIPPED))
+                test "${CELL_DRIVEN_COVERAGE}" -eq "${STATIC_SUBMISSION_BATCHES}"
+                test "${STREAM_CELL_DRIVEN_BATCH_VISITS}" -lt "${STATIC_SUBMISSION_BATCHES}"
                 echo "XZIEL_STATIC_SUBMISSION_GROUPS_ACTIVE groups=${STATIC_SUBMISSION_GROUPS} batches=${STATIC_SUBMISSION_BATCHES}"
+                echo "XZIEL_CELL_DRIVEN_TRAVERSAL_ACTIVE visits=${STREAM_CELL_DRIVEN_BATCH_VISITS} skipped=${STREAM_CELL_RANGE_SKIPPED} total=${STATIC_SUBMISSION_BATCHES}"
               fi
             fi
 

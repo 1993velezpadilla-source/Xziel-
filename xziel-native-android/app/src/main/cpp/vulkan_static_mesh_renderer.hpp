@@ -56,6 +56,9 @@ struct StaticMeshFrameStats {
     std::uint32_t cellFrustumCulled = 0U;
     std::uint32_t cellRangeSkippedBatches = 0U;
     std::uint32_t cellFrustumSkippedBatches = 0U;
+    // Batches actually entered after cell-level residency/portal/frustum
+    // rejection. Cell-driven traversal avoids touching skipped batch ranges.
+    std::uint32_t cellDrivenBatchVisits = 0U;
     std::uint32_t batchFrustumTests = 0U;
     std::uint32_t materialVisibilityTests = 0U;
     std::uint32_t materialVisibilityCacheHits = 0U;
