@@ -8,11 +8,15 @@ layout(push_constant) uniform PushConstants {
     // environmentRotation: x lightning, y roll cosine, z roll sine.
     vec4 environmentRotation;
     vec4 modelOffsetScale;
-    // projectionMode: x focal, y focal/aspect, w viewmodel mode.
-    vec4 projectionMode;
+    // Same 16-byte slot as the CPU block: two projection floats, one
+    // reserved float, then an integer viewmodel flag at byte offset 76.
+    vec2 projectionFocalAspect;
+    float projectionReserved;
+    uint viewmodelMode;
     vec4 baseColorFactor;
     vec4 metallicRoughnessNormalOcclusion;
-    vec4 emissiveFactorFlags;
+    vec3 emissiveFactor;
+    uint materialFlags;
 } pc;
 
 layout(location = 0) in vec3 inPosition;
@@ -109,15 +113,13 @@ vec3 rotateViewmodel(vec3 value) {
 }
 
 void main() {
-    float viewmodel =
-        step(
-            0.5,
-            pc.projectionMode.w);
+    bool viewmodel =
+        pc.viewmodelMode != 0u;
 
     vec3 view;
     vec3 surfaceNormal;
 
-    if (viewmodel > 0.5) {
+    if (viewmodel) {
         view =
             rotateViewmodel(
                 inPosition *
@@ -140,9 +142,9 @@ void main() {
     const float farPlane = 180.0;
 
     float focal =
-        pc.projectionMode.x;
+        pc.projectionFocalAspect.x;
     float focalOverAspect =
-        pc.projectionMode.y;
+        pc.projectionFocalAspect.y;
 
     vec4 clip;
     clip.x =

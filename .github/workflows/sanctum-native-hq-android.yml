@@ -1070,6 +1070,9 @@ jobs:
               awk -v value="${GEOMETRY_VERTEX_MB}" 'BEGIN { exit !(value > 0.0 && value < 60.0) }'
               awk -v v="${GEOMETRY_VERTEX_MB}" -v i="${GEOMETRY_INDEX_MB}" 'BEGIN { exit !((v + i) < 80.0) }'
               echo "XZIEL_PACKED_STATIC_VERTEX_V3_ACTIVE vertex_mb=${GEOMETRY_VERTEX_MB} index_mb=${GEOMETRY_INDEX_MB} stride=24 color_attribute=0 uv_unorm16=1"
+
+              grep -q "XZIEL_INTEGER_DRAW_FLAGS_READY push_bytes=128 viewmodel_offset=76 material_flags_offset=124" dist/sanctum-hq-logcat.txt
+              echo "XZIEL_INTEGER_DRAW_FLAGS_ACTIVE push_bytes=128 viewmodel_offset=76 material_flags_offset=124"
             fi
           fi
 

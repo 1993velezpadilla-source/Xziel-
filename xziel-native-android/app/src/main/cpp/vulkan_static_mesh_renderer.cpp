@@ -542,6 +542,21 @@ bool VulkanStaticMeshRenderer::initialize(
     __android_log_print(
         ANDROID_LOG_INFO,
         kTag,
+        "XZIEL_INTEGER_DRAW_FLAGS_READY push_bytes=%u viewmodel_offset=%u material_flags_offset=%u",
+        static_cast<unsigned int>(
+            sizeof(PushConstants)),
+        static_cast<unsigned int>(
+            offsetof(
+                PushConstants,
+                viewmodelMode)),
+        static_cast<unsigned int>(
+            offsetof(
+                PushConstants,
+                materialFlags)));
+
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
         "XZIEL_GEOMETRY_BUDGET_READY budget_mb=%.2f",
         static_cast<double>(
             geometryResidentBudgetBytes_) /
@@ -4574,7 +4589,7 @@ void VulkanStaticMeshRenderer::record(
             0.0f,
             2.0f);
     push.modelScale = 1.0f;
-    push.viewmodelMode = 0.0f;
+    push.viewmodelMode = 0U;
 
     const auto applyMaterial =
         [&](const GpuMaterial& material) noexcept {
@@ -4609,7 +4624,7 @@ void VulkanStaticMeshRenderer::record(
             flags |= material.hasOrmTexture ? 4U : 0U;
             flags |= material.hasEmissiveTexture ? 8U : 0U;
             materialPush.materialFlags =
-                static_cast<float>(flags);
+                flags;
 
             vkCmdPushConstants(
                 command,
@@ -5580,7 +5595,7 @@ void VulkanStaticMeshRenderer::recordViewmodel(
             state.scale,
             0.05f,
             8.0f);
-    push.viewmodelMode = 1.0f;
+    push.viewmodelMode = 1U;
 
     const auto applyMaterial =
         [&](const GpuMaterial& material) noexcept {
@@ -5603,7 +5618,7 @@ void VulkanStaticMeshRenderer::recordViewmodel(
             flags |= material.hasOrmTexture ? 4U : 0U;
             flags |= material.hasEmissiveTexture ? 8U : 0U;
             materialPush.materialFlags =
-                static_cast<float>(flags);
+                flags;
 
             vkCmdPushConstants(
                 command,

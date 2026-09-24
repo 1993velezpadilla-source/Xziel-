@@ -7,6 +7,7 @@
 #include "xziel/static_mesh.hpp"
 #include "xziel/world_streaming.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -358,7 +359,7 @@ private:
         float projectionFocal = 1.0f;
         float projectionFocalOverAspect = 1.0f;
         float reserved1 = 0.0f;
-        float viewmodelMode = 0.0f;
+        std::uint32_t viewmodelMode = 0U;
 
         float baseColorFactorR = 1.0f;
         float baseColorFactorG = 1.0f;
@@ -373,12 +374,18 @@ private:
         float emissiveFactorR = 0.0f;
         float emissiveFactorG = 0.0f;
         float emissiveFactorB = 0.0f;
-        float materialFlags = 0.0f;
+        std::uint32_t materialFlags = 0U;
     };
 
     static_assert(
         sizeof(PushConstants) == 128U,
         "static mesh push constants must fit Vulkan's guaranteed 128-byte minimum");
+    static_assert(
+        offsetof(PushConstants, viewmodelMode) == 76U,
+        "viewmodelMode push-constant offset must stay shader-compatible");
+    static_assert(
+        offsetof(PushConstants, materialFlags) == 124U,
+        "materialFlags push-constant offset must stay shader-compatible");
 
     [[nodiscard]] bool loadModel(
         AAssetManager* assetManager,

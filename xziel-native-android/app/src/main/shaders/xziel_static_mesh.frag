@@ -14,10 +14,13 @@ layout(push_constant) uniform PushConstants {
     vec4 cameraPitchFovAspectFog;
     vec4 environment;
     vec4 modelOffsetScale;
-    vec4 modelRotationMode;
+    vec2 projectionFocalAspect;
+    float projectionReserved;
+    uint viewmodelMode;
     vec4 baseColorFactor;
     vec4 metallicRoughnessNormalOcclusion;
-    vec4 emissiveFactorFlags;
+    vec3 emissiveFactor;
+    uint materialFlags;
 } pc;
 
 layout(location = 0) in vec2 vUv;
@@ -155,29 +158,25 @@ vec3 mappedNormal(
 }
 
 void main() {
-    int flags =
-        int(
-            pc.emissiveFactorFlags.w +
-            0.5);
+    uint flags =
+        pc.materialFlags;
 
     bool pbrEnabled =
-        (flags & 1) != 0;
+        (flags & 1u) != 0u;
     bool hasNormal =
-        (flags & 2) != 0;
+        (flags & 2u) != 0u;
     bool hasOrm =
-        (flags & 4) != 0;
+        (flags & 4u) != 0u;
     bool hasEmissive =
-        (flags & 8) != 0;
+        (flags & 8u) != 0u;
 
     // Viewmodel mode and lightning are uniform for the entire draw and
     // already live in push constants. Reading them here avoids two
     // redundant interpolants without changing the material result.
-    float viewmodel =
-        step(
-            0.5,
-            pc.modelRotationMode.w);
+    bool viewmodel =
+        pc.viewmodelMode != 0u;
     float lightning =
-        viewmodel > 0.5
+        viewmodel
         ? 0.0
         : clamp(
               pc.environment.x,
@@ -191,7 +190,7 @@ void main() {
         pc.baseColorFactor;
 
     if (!pbrEnabled) {
-        if (viewmodel > 0.5) {
+        if (viewmodel) {
             vec3 normal =
                 normalize(vNormal);
             vec3 keyDirection =
@@ -330,7 +329,7 @@ void main() {
     }
 
     vec3 emissive =
-        pc.emissiveFactorFlags.rgb;
+        pc.emissiveFactor;
     if (hasEmissive) {
         emissive *=
             texture(
