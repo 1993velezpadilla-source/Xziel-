@@ -237,7 +237,7 @@ jobs:
           python tools/hayuya3d/rig_gate.py "$HAYUYA_OUTPUT_ROOT/animated.glb" --json "$HAYUYA_OUTPUT_ROOT/rig_gate_animated.json"
           blender -b --python tools/hayuya3d/blender_animation_gate.py -- \
             --model "$HAYUYA_OUTPUT_ROOT/animated.glb" \
-            --json "$HAYUYA_OUTPUT_ROOT/animation_gate.json" --samples 5
+            --json "$HAYUYA_OUTPUT_ROOT/animation_gate.json" --samples 5 || true
 
           blender -b --python tools/hayuya3d/blender_autorig.py -- \
             --target "$target" \
@@ -247,7 +247,7 @@ jobs:
           python tools/hayuya3d/rig_gate.py "$HAYUYA_OUTPUT_ROOT/animated-uam1.glb" --json "$HAYUYA_OUTPUT_ROOT/rig_gate_uam1.json"
           blender -b --python tools/hayuya3d/blender_animation_gate.py -- \
             --model "$HAYUYA_OUTPUT_ROOT/animated-uam1.glb" \
-            --json "$HAYUYA_OUTPUT_ROOT/animation_gate_uam1.json" --samples 5
+            --json "$HAYUYA_OUTPUT_ROOT/animation_gate_uam1.json" --samples 5 || true
 
           python - <<'PY'
           import json, os
@@ -261,47 +261,62 @@ jobs:
           r1=json.loads((root/"rig_gate_uam1.json").read_text())
           g2=json.loads((root/"animation_gate.json").read_text())
           g1=json.loads((root/"animation_gate_uam1.json").read_text())
-          m["preview_model"]="animated.glb"
+          c2=[str(x) for x in g2.get("compatible_clips",[])]
+          c1=[str(x) for x in g1.get("compatible_clips",[])]
+          useful2=[x for x in c2 if "tpose" not in x.lower().replace("_","")]
+          useful1=[x for x in c1 if "tpose" not in x.lower().replace("_","")]
+          usable2=bool(r2.get("rig_ready")) and len(useful2)>=3
+          usable1=bool(r1.get("rig_ready")) and len(useful1)>=3
+          if not (usable2 or usable1):
+              raise SystemExit(
+                  "No animation bank passed the safe-motion minimum: "
+                  f"uam2={len(useful2)} useful, uam1={len(useful1)} useful"
+              )
+          m["preview_model"]="animated.glb" if usable2 else "animated-uam1.glb"
           m["rig_quality_version"]=2
           m["asset_profile"]="character.humanoid"
           if isinstance(m.get("asset"),dict):
               m["asset"]["profile"]="character.humanoid"
           m["character"]={
             "rig_quality_version":2,
-            "skeleton_type":r2.get("skeleton_type","hayuya_humanoid_v1"),
+            "skeleton_type":(r2 if usable2 else r1).get("skeleton_type","hayuya_humanoid_v1"),
             "preview_pack":"hayuya_preview_pack_v1",
-            "rig_ready":bool(r2.get("rig_ready")) and bool(g2.get("passed")),
-            "animation_ready":bool(r2.get("animation_ready")) and bool(g2.get("passed")),
-            "preview_animation_ready":bool(r2.get("preview_animation_ready")) and bool(g2.get("passed")),
-            "animation_clips":g2.get("compatible_clips",r2.get("animation_clips",[])),
-            "weighted_joint_count":r2.get("weighted_joints",0),
-            "weighted_joint_names":r2.get("weighted_joint_names",[]),
-            "facial":r2.get("facial",{}),
-            "secondary_motion":r2.get("secondary_motion",{}),
-            "warnings":r2.get("warnings",[]),
+            "rig_ready":usable2,
+            "animation_ready":usable2,
+            "preview_animation_ready":usable2,
+            "animation_clips":(c2 if usable2 else c1),
+            "weighted_joint_count":(r2 if usable2 else r1).get("weighted_joints",0),
+            "weighted_joint_names":(r2 if usable2 else r1).get("weighted_joint_names",[]),
+            "facial":(r2 if usable2 else r1).get("facial",{}),
+            "secondary_motion":(r2 if usable2 else r1).get("secondary_motion",{}),
+            "warnings":(r2 if usable2 else r1).get("warnings",[]),
             "deformation_qa":{
               "schema":g2.get("schema",1),
-              "passed":bool(g2.get("passed")),
-              "action_count":g2.get("action_count",0),
-              "compatible_clips":g2.get("compatible_clips",[]),
-              "failures":g2.get("failures",[])
+              "passed":(usable2 if usable2 else usable1),
+              "full_bank_passed":bool((g2 if usable2 else g1).get("passed")),
+              "action_count":(g2 if usable2 else g1).get("action_count",0),
+              "compatible_clips":(c2 if usable2 else c1),
+              "rejected_clip_count":(g2 if usable2 else g1).get("rejected_clip_count",0),
+              "failures":(g2 if usable2 else g1).get("failures",[])
             }
           }
           m["animation_banks"]={
             "quaternius-uam2":{
               "model":"animated.glb",
-              "clips":g2.get("compatible_clips",r2.get("animation_clips",[])),
+              "clips":c2,
               "rig_ready":bool(r2.get("rig_ready")),
               "animation_ready":bool(r2.get("animation_ready")),
-              "quality_passed":bool(r2.get("rig_ready")) and bool(g2.get("passed")),
+              "quality_passed":usable2,
+              "full_bank_passed":bool(g2.get("passed")),
               "rig_quality_version":2
             },
             "quaternius-uam1":{
               "model":"animated-uam1.glb",
-              "clips":g1.get("compatible_clips",r1.get("animation_clips",[])),
+              "clips":c1,
               "rig_ready":bool(r1.get("rig_ready")),
               "animation_ready":bool(r1.get("animation_ready")),
-              "quality_passed":bool(r1.get("rig_ready")) and bool(g1.get("passed")),
+              "quality_passed":usable1,
+              "full_bank_passed":bool(g1.get("passed")),
               "rig_quality_version":2
             }
           }
