@@ -323,6 +323,7 @@ def main():
 
     bind_results=[]
     all_weighted_groups=set()
+    bone_top1_counts={}
     for mesh in target_meshes:
         for mod in list(mesh.modifiers):
             if mod.type=="ARMATURE":
@@ -355,6 +356,8 @@ def main():
                     score=1.0/((dist+radius*0.35)**2)
                     scored.append((score,seg["name"],dist))
             scored.sort(reverse=True,key=lambda x:x[0])
+            if scored:
+                bone_top1_counts[scored[0][1]]=bone_top1_counts.get(scored[0][1],0)+1
             # Eight candidates are blended, then the strongest four are kept.
             # This makes joint transitions smooth while preserving mobile/game
             # skinning limits.
@@ -469,8 +472,26 @@ def main():
             "weight_smoothing":smoothing,
         })
 
+    segment_debug=[
+        {
+            "name":seg["name"],
+            "a":[round(float(x),5) for x in seg["a"]],
+            "b":[round(float(x),5) for x in seg["b"]],
+            "length":round(float(seg["length"]),5),
+            "side":seg["side"],
+            "name_side":seg["name_side"],
+        }
+        for seg in bone_segments
+    ]
+    print("HAYUYA_BONE_ENVELOPE",json.dumps({
+        "target_bounds":{"min":list(target_min),"max":list(target_max)},
+        "segments":segment_debug,
+        "top1_counts":dict(sorted(bone_top1_counts.items(),key=lambda x:x[1],reverse=True)),
+        "weighted_groups":sorted(all_weighted_groups),
+    },separators=(",",":")))
+
     # A technically valid skin with only a few weighted bones is NOT a usable
-    # humanoid rig.  Fail here so the Studio keeps the clean static model rather
+    # humanoid rig. Fail here so the Studio keeps the clean static model rather
     # than publishing a melted/stretched animated preview.
     if len(all_weighted_groups) < 12:
         raise RuntimeError(
