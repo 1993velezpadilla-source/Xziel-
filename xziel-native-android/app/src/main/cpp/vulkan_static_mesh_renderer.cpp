@@ -4120,32 +4120,43 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
             return;
         }
 
+        // Geometry cells own contiguous upload-time batch ranges. Reload
+        // only walks this cell's range instead of rescanning every batch.
+        const std::size_t reloadBatchBegin =
+            cell.firstBatch;
+        const std::size_t reloadBatchEnd =
+            reloadBatchBegin <= batches_.size()
+            ? std::min<std::size_t>(
+                  batches_.size(),
+                  reloadBatchBegin +
+                      cell.batchCount)
+            : 0U;
+
+        if (reloadBatchBegin ==
+                UINT32_MAX ||
+            reloadBatchBegin >= reloadBatchEnd) {
+            cell.reloadFailed = true;
+        }
+
         // Keep a small bounded window full. Four independent range requests
         // allow two worker threads to overlap APK reads without allowing one
         // cell to monopolize the shared streaming budget.
-        while (cell.reloadPendingCount <
+        while (!cell.reloadFailed &&
+               cell.reloadPendingCount <
                    kGeometryReloadWindow &&
                cell.reloadScanCursor <
-                   batches_.size()) {
-            std::size_t batchIndex =
+                   reloadBatchEnd) {
+            const std::size_t batchIndex =
                 cell.reloadScanCursor;
-
-            while (batchIndex <
-                       batches_.size() &&
-                   batches_[batchIndex].
-                           geometryCellSlot !=
-                       geometryReloadCellSlot_) {
-                ++batchIndex;
-            }
-
-            if (batchIndex >= batches_.size()) {
-                cell.reloadScanCursor =
-                    batches_.size();
-                break;
-            }
 
             const auto& batch =
                 batches_[batchIndex];
+
+            if (batch.geometryCellSlot !=
+                geometryReloadCellSlot_) {
+                cell.reloadFailed = true;
+                break;
+            }
 
             if (batch.sourceBatchIndex >=
                 geometryDirectory_.batches.size()) {
@@ -4212,7 +4223,7 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
         }
 
         if (cell.reloadScanCursor <
-                batches_.size() ||
+                reloadBatchEnd ||
             cell.reloadPendingCount != 0U) {
             return;
         }
@@ -4384,7 +4395,8 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
 
             cell.reloadActive = true;
             cell.reloadFailed = false;
-            cell.reloadScanCursor = 0U;
+            cell.reloadScanCursor =
+                cell.firstBatch;
             cell.reloadRanges = {};
             cell.reloadPendingCount = 0U;
             cell.reloadPeakPendingCount = 0U;
@@ -4394,6 +4406,17 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
             geometryReloadCellSlot_ =
                 static_cast<std::uint32_t>(
                     i);
+
+            __android_log_print(
+                ANDROID_LOG_INFO,
+                kTag,
+                "XZIEL_RUNTIME_GEOMETRY_CELL_RANGE_RELOAD_ACTIVE cell=%u first_batch=%u batch_count=%u",
+                static_cast<unsigned int>(
+                    cell.cellId),
+                static_cast<unsigned int>(
+                    cell.firstBatch),
+                static_cast<unsigned int>(
+                    cell.batchCount));
 
             __android_log_print(
                 ANDROID_LOG_INFO,
