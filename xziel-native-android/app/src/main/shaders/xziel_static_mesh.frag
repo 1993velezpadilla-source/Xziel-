@@ -142,11 +142,13 @@ vec3 mappedNormal(
                 geometricNormal,
                 tangentRaw));
 
+    // TANGENT_BASIS_SINGLE_NORMALIZE_V2
+    // geometricNormal and tangent are unit-length and orthogonal, so their
+    // cross product is already the unit bitangent.
     vec3 bitangent =
-        normalize(
-            cross(
-                geometricNormal,
-                tangent));
+        cross(
+            geometricNormal,
+            tangent);
 
     vec3 sampled =
         texture(
@@ -156,8 +158,9 @@ vec3 mappedNormal(
         1.0;
 
     sampled.xy *= normalScale;
-    sampled = normalize(sampled);
 
+    // Orthonormal TBN preserves direction/length. Normalize once after the
+    // transform instead of once before and once after it.
     return normalize(
         mat3(
             tangent,
