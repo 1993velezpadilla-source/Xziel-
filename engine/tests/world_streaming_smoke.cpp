@@ -204,9 +204,16 @@ int main() {
             1U,
             3U));
 
+    bool portalIsOpen = true;
+    assert(graph.portalOpen(100U, portalIsOpen));
+    assert(!portalIsOpen);
+    assert(!graph.portalOpen(999U, portalIsOpen));
+
     // Opening the first portal makes cell 2 reachable. The next closed door
     // may preload exactly cell 3, which proves the one-boundary rule.
     assert(graph.setPortalOpen(100U, true));
+    assert(graph.portalOpen(100U, portalIsOpen));
+    assert(portalIsOpen);
 
     stats = graph.plan(
         {
