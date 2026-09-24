@@ -4613,7 +4613,8 @@ bool VulkanClearRenderer::recordDrawCommand(
     if (gpuTimestampQueryPool_ != VK_NULL_HANDLE &&
         frameSlot < kFramesInFlight) {
         const std::uint32_t queryBase =
-            frameSlot * 2U;
+            frameSlot *
+            kGpuTimestampQueriesPerFrame;
 
         gpuTimestampValid_[frameSlot] = false;
 
@@ -4621,7 +4622,7 @@ bool VulkanClearRenderer::recordDrawCommand(
             command,
             gpuTimestampQueryPool_,
             queryBase,
-            2U);
+            kGpuTimestampQueriesPerFrame);
 
         vkCmdWriteTimestamp(
             command,
@@ -4934,6 +4935,19 @@ bool VulkanClearRenderer::recordDrawCommand(
     }
 
     ++reflectionFrameCounter_;
+
+    if (gpuTimestampQueryPool_ != VK_NULL_HANDLE &&
+        frameSlot < kFramesInFlight) {
+        const std::uint32_t queryBase =
+            frameSlot *
+            kGpuTimestampQueriesPerFrame;
+
+        vkCmdWriteTimestamp(
+            command,
+            VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+            gpuTimestampQueryPool_,
+            queryBase + 1U);
+    }
 
     vkCmdBeginRenderPass(
         command,
@@ -6597,6 +6611,19 @@ bool VulkanClearRenderer::recordDrawCommand(
 
     vkCmdEndRenderPass(command);
 
+    if (gpuTimestampQueryPool_ != VK_NULL_HANDLE &&
+        frameSlot < kFramesInFlight) {
+        const std::uint32_t queryBase =
+            frameSlot *
+            kGpuTimestampQueriesPerFrame;
+
+        vkCmdWriteTimestamp(
+            command,
+            VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+            gpuTimestampQueryPool_,
+            queryBase + 2U);
+    }
+
     if (uiPipeline_ == VK_NULL_HANDLE ||
         uiPipelineLayout_ == VK_NULL_HANDLE ||
         sceneCompositePipeline_ == VK_NULL_HANDLE ||
@@ -7795,13 +7822,14 @@ bool VulkanClearRenderer::recordDrawCommand(
     if (gpuTimestampQueryPool_ != VK_NULL_HANDLE &&
         frameSlot < kFramesInFlight) {
         const std::uint32_t queryBase =
-            frameSlot * 2U;
+            frameSlot *
+            kGpuTimestampQueriesPerFrame;
 
         vkCmdWriteTimestamp(
             command,
             VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
             gpuTimestampQueryPool_,
-            queryBase + 1U);
+            queryBase + 3U);
 
         gpuTimestampValid_[frameSlot] = true;
     }
