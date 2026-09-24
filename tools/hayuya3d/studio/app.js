@@ -189,6 +189,7 @@ function renderFinalQa(qa) {
     ["SkinWeights", qa.skin_weights_ready],
     ["Animation", qa.animation_ready],
     ["Animation QA", qa.animation_integrity_ready],
+    ["Deformation", qa.deformation_ready],
     ["Face refs", qa.face_ready],
     ["Face evidence", qa.face_quality_ready],
   ];
@@ -212,6 +213,31 @@ function renderFinalQa(qa) {
     const channels = Number(qa.animation_channels || 0);
     const keyframes = Number(qa.animation_keyframes || 0);
     value.textContent = channels + " ch · " + keyframes + " keys";
+    item.append(name, value);
+    grid.appendChild(item);
+  }
+
+  if (
+    qa.deformation_frames != null
+    || qa.deformation_max_disp != null
+    || qa.deformation_max_edge != null
+  ) {
+    const item = document.createElement("div");
+    item.className = "qa-chip metric";
+    const name = document.createElement("span");
+    name.textContent = "Deformation data";
+    const value = document.createElement("strong");
+    const parts = [];
+    if (qa.deformation_frames != null) {
+      parts.push(Number(qa.deformation_frames) + " poses");
+    }
+    if (qa.deformation_max_disp != null) {
+      parts.push("disp " + Number(qa.deformation_max_disp).toFixed(2) + "×");
+    }
+    if (qa.deformation_max_edge != null) {
+      parts.push("edge " + Number(qa.deformation_max_edge).toFixed(2) + "×");
+    }
+    value.textContent = parts.join(" · ");
     item.append(name, value);
     grid.appendChild(item);
   }
