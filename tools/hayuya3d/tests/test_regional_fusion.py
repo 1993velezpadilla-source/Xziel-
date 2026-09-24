@@ -46,7 +46,11 @@ def _pad4(data:bytes,pad:bytes)->bytes:
     return data
 
 
-def make_skinned_character(path:Path)->None:
+def make_skinned_character(
+    path:Path,
+    *,
+    weight_pair:tuple[float,float]=(0.65,0.35),
+)->None:
     positions=[]
     for i in range(40):
         y=-2.0+4.0*(i/39.0)
@@ -58,7 +62,10 @@ def make_skinned_character(path:Path)->None:
             radius*math.sin(angle),
         ))
     joints=[(0,1,0,0) for _ in positions]
-    weights=[(0.65,0.35,0.0,0.0) for _ in positions]
+    weights=[
+        (float(weight_pair[0]),float(weight_pair[1]),0.0,0.0)
+        for _ in positions
+    ]
 
     pos_blob=b"".join(struct.pack("<3f",*row) for row in positions)
     pos_blob=_pad4(pos_blob,b"\x00")
@@ -199,30 +206,33 @@ class RegionalFusionTests(unittest.TestCase):
             self.assertEqual(result.rebake_required,[])
             self.assertTrue(Path(result.output_glb or "").is_file())
 
-    def test_skin_guard_fails_closed_before_geometry_transfer(self):
+    def test_invalid_skin_weights_fail_closed_before_head_wrap(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp)
-            base=root/"base.glb"
+            base=root/"bad-skin.glb"
             donor=root/"donor.glb"
-            make_character(base)
+            output=root/"blocked.glb"
+            make_skinned_character(
+                base,
+                weight_pair=(0.40,0.20),
+            )
             make_character(donor,head_scale=1.1)
 
-            with mock.patch(
-                "tools.hayuya3d.regional_fusion._rig_blocked",
-                side_effect=[
-                    (True,"skinned_geometry_transfer_requires_weight_transfer"),
-                ],
-            ):
-                result=build_head_wrap_geometry(
-                    base,
-                    donor,
-                    root/"blocked.glb",
-                )
-            self.assertFalse(result.attempted)
+            before=audit_skin_weights(base)
+            self.assertTrue(before.applicable)
+            self.assertFalse(before.ready)
+
+            result=build_head_wrap_geometry(
+                base,
+                donor,
+                output,
+                up_axis="y",
+            )
+            self.assertTrue(result.attempted)
             self.assertFalse(result.geometry_ready)
             self.assertFalse(result.ready_for_judge)
-            self.assertIn("weight_transfer",result.error or "")
-            self.assertFalse((root/"blocked.glb").exists())
+            self.assertIn("skin weights",result.error or "")
+            self.assertFalse(output.exists())
 
 
     def test_skinned_head_wrap_preserves_joint_weight_payload_and_runtime(self):
