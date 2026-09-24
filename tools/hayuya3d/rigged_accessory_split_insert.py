@@ -274,8 +274,9 @@ def insert_split_rigged_accessory(
         all_source_ratios = []
         transferred_semantics = set()
         surface_fallback_vertices = 0
-        surface_transfer_method = "hayuya-surface-transfer-barycentric-exact-v1"
+        surface_transfer_method = "hayuya-surface-transfer-bvh-barycentric-exact-v2"
         surface_max_examined_triangles = 0
+        surface_max_visited_bvh_nodes = 0
 
         for group_index, group in enumerate(source.groups):
             primitive, donor_used, donor_world, donor_faces = _group_geometry(
@@ -314,6 +315,10 @@ def insert_split_rigged_accessory(
             surface_max_examined_triangles = max(
                 surface_max_examined_triangles,
                 int(surface_relation.max_examined_triangles),
+            )
+            surface_max_visited_bvh_nodes = max(
+                surface_max_visited_bvh_nodes,
+                int(surface_relation.max_visited_bvh_nodes),
             )
             _require_exact_surface_relation(surface_relation)
             source_ratio = source_distance / base_diag
@@ -607,6 +612,9 @@ def insert_split_rigged_accessory(
             ),
             surface_transfer_max_examined_triangles=int(
                 surface_max_examined_triangles
+            ),
+            surface_transfer_max_visited_bvh_nodes=int(
+                surface_max_visited_bvh_nodes
             ),
         )
     except Exception as exc:
