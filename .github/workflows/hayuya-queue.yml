@@ -237,6 +237,7 @@ jobs:
           python tools/hayuya3d/rig_gate.py "$HAYUYA_OUTPUT_ROOT/animated.glb" --json "$HAYUYA_OUTPUT_ROOT/rig_gate_animated.json"
           blender -b --python tools/hayuya3d/blender_animation_gate.py -- \
             --model "$HAYUYA_OUTPUT_ROOT/animated.glb" \
+            --reference "$target" \
             --json "$HAYUYA_OUTPUT_ROOT/animation_gate.json" --samples 5 || true
 
           blender -b --python tools/hayuya3d/blender_autorig.py -- \
@@ -247,6 +248,7 @@ jobs:
           python tools/hayuya3d/rig_gate.py "$HAYUYA_OUTPUT_ROOT/animated-uam1.glb" --json "$HAYUYA_OUTPUT_ROOT/rig_gate_uam1.json"
           blender -b --python tools/hayuya3d/blender_animation_gate.py -- \
             --model "$HAYUYA_OUTPUT_ROOT/animated-uam1.glb" \
+            --reference "$target" \
             --json "$HAYUYA_OUTPUT_ROOT/animation_gate_uam1.json" --samples 5 || true
 
           python - <<'PY'
