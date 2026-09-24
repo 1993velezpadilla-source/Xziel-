@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from types import SimpleNamespace
 from pathlib import Path
 from unittest import mock
 
@@ -39,6 +40,96 @@ class HighEndTextureContractTests(unittest.TestCase):
         self.assertEqual(plan["texture_superres"]["mode"],"auto")
         self.assertIn("challenger",plan["texture_superres"]["policy"])
         self.assertEqual(plan["texture_superres"]["model"],"realesrgan-x4plus")
+
+    def test_texture_refinement_guard_rejects_fidelity_regression(self):
+        source = SimpleNamespace(
+            vertices=100,
+            faces=200,
+            components=1,
+            bbox=[1.0, 2.0, 1.0],
+            pbr_channels=["baseColor", "normal", "roughness"],
+            head_texture_detail_score=76.856,
+            visual_score=91.0,
+            appearance_score=88.0,
+            appearance_face_detail_score=86.0,
+            base_color_min_edge=2048,
+        )
+        challenger = SimpleNamespace(
+            vertices=100,
+            faces=200,
+            components=1,
+            bbox=[1.0, 2.0, 1.0],
+            pbr_channels=["baseColor", "normal", "roughness"],
+            head_texture_detail_score=90.0,
+            visual_score=91.0,
+            appearance_score=87.5,
+            appearance_face_detail_score=86.0,
+            base_color_min_edge=4096,
+        )
+        reasons = hayuya.texture_refinement_regressions(source, challenger)
+        self.assertTrue(
+            any("appearance_score" in reason for reason in reasons),
+            reasons,
+        )
+
+    def test_texture_refinement_guard_accepts_monotonic_image_only_upgrade(self):
+        source = SimpleNamespace(
+            vertices=100,
+            faces=200,
+            components=1,
+            bbox=[1.0, 2.0, 1.0],
+            pbr_channels=["baseColor", "normal", "roughness"],
+            head_texture_detail_score=76.856,
+            visual_score=91.0,
+            appearance_score=None,
+            appearance_face_detail_score=None,
+            base_color_min_edge=2048,
+        )
+        challenger = SimpleNamespace(
+            vertices=100,
+            faces=200,
+            components=1,
+            bbox=[1.0, 2.0, 1.0],
+            pbr_channels=["baseColor", "normal", "roughness"],
+            head_texture_detail_score=88.0,
+            visual_score=91.0,
+            appearance_score=None,
+            appearance_face_detail_score=None,
+            base_color_min_edge=4096,
+        )
+        self.assertEqual(
+            hayuya.texture_refinement_regressions(source, challenger),
+            [],
+        )
+
+    def test_texture_refinement_guard_rejects_geometry_or_pbr_loss(self):
+        source = SimpleNamespace(
+            vertices=100,
+            faces=200,
+            components=1,
+            bbox=[1.0, 2.0, 1.0],
+            pbr_channels=["baseColor", "normal", "occlusion"],
+            head_texture_detail_score=None,
+            visual_score=None,
+            appearance_score=None,
+            appearance_face_detail_score=None,
+            base_color_min_edge=2048,
+        )
+        challenger = SimpleNamespace(
+            vertices=99,
+            faces=200,
+            components=1,
+            bbox=[1.0, 2.0, 1.0],
+            pbr_channels=["baseColor", "normal"],
+            head_texture_detail_score=None,
+            visual_score=None,
+            appearance_score=None,
+            appearance_face_detail_score=None,
+            base_color_min_edge=4096,
+        )
+        reasons = hayuya.texture_refinement_regressions(source, challenger)
+        self.assertTrue(any("vertices" in reason for reason in reasons), reasons)
+        self.assertTrue(any("occlusion" in reason for reason in reasons), reasons)
 
     def test_trellis2_receives_profile_texture_target_without_downshift(self):
         calls = {}
