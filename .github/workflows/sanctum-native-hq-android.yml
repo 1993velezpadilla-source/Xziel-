@@ -369,6 +369,8 @@ jobs:
           grep -q "TANGENT_BASIS_SINGLE_NORMALIZE_V2" app/src/main/shaders/xziel_static_mesh.frag
           grep -q "NORMAL_MAP_FULL_DETAIL_SINGLE_NORMALIZE_V1" app/src/main/shaders/xziel_static_mesh.frag
           grep -q "WET_FLOOR_SHARED_PRIMARY_WAVE_V1" app/src/main/shaders/xziel_first.frag
+          grep -q "FIXED_INTEGER_POW_MULTIPLIES_V1" app/src/main/shaders/xziel_first.frag
+          grep -q "FIXED_INTEGER_POW_MULTIPLIES_V1" app/src/main/shaders/xziel_reflection_capture.frag
           grep -q "GEOMETRY_SMITH_SHARED_K_V1" app/src/main/shaders/xziel_static_mesh.frag
 
           mkdir -p app/src/main/assets/shaders
@@ -1123,6 +1125,7 @@ jobs:
               echo "XZIEL_NORMAL_MAP_FULL_DETAIL_SINGLE_NORMALIZE_ACTIVE"
               echo "XZIEL_GEOMETRY_SMITH_SHARED_K_ACTIVE"
               echo "XZIEL_WET_FLOOR_SHARED_PRIMARY_WAVE_ACTIVE"
+              echo "XZIEL_FIXED_INTEGER_POW_MULTIPLIES_ACTIVE"
               STREAM_PLAN_CELL_SLOTS="$(grep -E "XZIEL_STREAM_PLAN_CELL_SLOTS_READY indexed=[1-9][0-9]*" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* indexed=\([0-9][0-9]*\).*/\1/p')"
               STREAM_PLAN_CELL_DIRECT="$(grep "XZIEL_STREAM_PLAN_CELL_INDEX_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* direct=\([0-9][0-9]*\).*/\1/p')"
               STREAM_PLAN_CELL_FALLBACK="$(grep "XZIEL_STREAM_PLAN_CELL_INDEX_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* fallback=\([0-9][0-9]*\).*/\1/p')"

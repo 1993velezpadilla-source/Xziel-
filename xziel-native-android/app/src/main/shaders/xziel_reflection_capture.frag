@@ -53,7 +53,15 @@ void main() {
     vec3 rimDirection = normalize(vec3(0.72, 0.14, 0.68));
 
     float key = max(dot(normal, keyDirection), 0.0);
-    float rim = pow(max(dot(normal, rimDirection), 0.0), 3.0);
+    // FIXED_INTEGER_POW_MULTIPLIES_V1
+    float rimBase =
+        max(
+            dot(normal, rimDirection),
+            0.0);
+    float rim =
+        rimBase *
+        rimBase *
+        rimBase;
     float pulse = clamp(vPulse, 0.0, 1.0);
     float wetness = clamp(vEnvironment.z, 0.0, 1.0);
     float lightning = clamp(vEnvironment.y, 0.0, 2.0);

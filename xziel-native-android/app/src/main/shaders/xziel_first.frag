@@ -101,7 +101,15 @@ void main() {
     vec3 rimDirection = normalize(vec3(0.72, 0.14, 0.68));
 
     float key = max(dot(normal, keyDirection), 0.0);
-    float rim = pow(max(dot(normal, rimDirection), 0.0), 3.0);
+    // FIXED_INTEGER_POW_MULTIPLIES_V1
+    float rimBase =
+        max(
+            dot(normal, rimDirection),
+            0.0);
+    float rim =
+        rimBase *
+        rimBase *
+        rimBase;
 
     float pulse = clamp(vPulse, 0.0, 1.0);
 
@@ -165,14 +173,24 @@ void main() {
                     normal,
                     viewKeyDirection),
                 0.0);
+        float viewSpecBase =
+            max(
+                dot(
+                    normal,
+                    viewSpecDirection),
+                0.0);
+        float viewSpec2 =
+            viewSpecBase *
+            viewSpecBase;
+        float viewSpec4 =
+            viewSpec2 *
+            viewSpec2;
+        float viewSpec8 =
+            viewSpec4 *
+            viewSpec4;
         float viewSpec =
-            pow(
-                max(
-                    dot(
-                        normal,
-                        viewSpecDirection),
-                    0.0),
-                12.0);
+            viewSpec8 *
+            viewSpec4;
 
         float metalResponse =
             vMaterial == 10
@@ -493,14 +511,16 @@ void main() {
                     vec2(0.002),
                     vec2(0.998))).rgb;
 
+        float fresnelBase =
+            clamp(
+                1.0 -
+                abs(normal.y),
+                0.0,
+                1.0);
         float fresnel =
-            pow(
-                clamp(
-                    1.0 -
-                    abs(normal.y),
-                    0.0,
-                    1.0),
-                3.0);
+            fresnelBase *
+            fresnelBase *
+            fresnelBase;
 
         reflectedSky =
             mix(
@@ -571,14 +591,15 @@ void main() {
                             0.10,
                             -0.68))));
 
+        float glossyBase =
+            clamp(
+                1.0 -
+                facing,
+                0.0,
+                1.0);
         float glossy =
-            pow(
-                clamp(
-                    1.0 -
-                    facing,
-                    0.0,
-                    1.0),
-                2.0);
+            glossyBase *
+            glossyBase;
 
         vec3 mirrorProbe =
             mix(
