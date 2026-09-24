@@ -367,6 +367,75 @@ def local_detail_composite_regressions(
     return reasons
 
 
+def accessory_composite_regressions(
+    source,
+    challenger,
+    detail_source: str,
+) -> list[str]:
+    """Allow a proven accessory geometry replacement without sacrificing other evidence."""
+    reasons=[]
+
+    source_channels=set(getattr(source,"pbr_channels",None) or [])
+    challenger_channels=set(getattr(challenger,"pbr_channels",None) or [])
+    missing_channels=sorted(source_channels-challenger_channels)
+    if missing_channels:
+        reasons.append(
+            "missing_pbr_channels:"+",".join(missing_channels)
+        )
+
+    for name in (
+        "score",
+        "production_score",
+        "visual_score",
+        "appearance_score",
+        "material_score",
+        "texture_resolution_score",
+        "head_texture_detail_score",
+        "head_texel_density_score",
+        "appearance_face_detail_score",
+        "appearance_face_detail_min_score",
+    ):
+        before=getattr(source,name,None)
+        after=getattr(challenger,name,None)
+        if before is None:
+            continue
+        if after is None:
+            reasons.append(f"missing_evidence:{name}")
+            continue
+        if float(after)+1e-6<float(before):
+            reasons.append(
+                f"regressed:{name}:{float(before):.3f}->{float(after):.3f}"
+            )
+
+    before_edge=int(getattr(source,"base_color_min_edge",0) or 0)
+    after_edge=int(getattr(challenger,"base_color_min_edge",0) or 0)
+    if before_edge>0 and after_edge<before_edge:
+        reasons.append(
+            f"basecolor_resolution_regressed:{before_edge}->{after_edge}"
+        )
+
+    before=_appearance_detail_score(source,detail_source)
+    after=_appearance_detail_score(challenger,detail_source)
+    if before is None:
+        if after is None:
+            reasons.append(
+                "missing_target_detail_evidence:"
+                +Path(detail_source).name
+            )
+    elif after is None:
+        reasons.append(
+            "missing_target_detail_evidence:"
+            +Path(detail_source).name
+        )
+    elif after<=before+1e-6:
+        reasons.append(
+            "target_detail_not_improved:"
+            f"{Path(detail_source).name}:"
+            f"{before:.3f}->{after:.3f}"
+        )
+    return reasons
+
+
 def make_reference_groups(inputs: list[Path], group_size: int) -> list[list[Path]]:
     """
     Split an arbitrary reference pool into backend-sized groups without dropping evidence.
@@ -1683,6 +1752,7 @@ def main() -> int:
 
     from composite_champion import (
         build_composite_plan,
+        execute_safe_accessory_challenger,
         execute_safe_head_wrap_challenger,
         execute_safe_local_detail_challenger,
         execute_safe_material_challenger,
@@ -1968,11 +2038,30 @@ def main() -> int:
         detail_source=token[len("detail:"):]
         detail_execution=None
         try:
-            detail_execution=execute_safe_local_detail_challenger(
-                composite_plan,
-                job_dir / "composite" / "details",
-                detail_source=detail_source,
+            detail_plan_item=next(
+                (
+                    item for item in composite_plan.detail_donors
+                    if item.source==detail_source
+                ),
+                None,
             )
+            is_accessory=bool(
+                detail_plan_item is not None
+                and detail_plan_item.strategy
+                    =="matched_detached_accessory_swap_then_mesh_doctor"
+            )
+            if is_accessory:
+                detail_execution=execute_safe_accessory_challenger(
+                    composite_plan,
+                    job_dir / "composite" / "accessories",
+                    detail_source=detail_source,
+                )
+            else:
+                detail_execution=execute_safe_local_detail_challenger(
+                    composite_plan,
+                    job_dir / "composite" / "details",
+                    detail_source=detail_source,
+                )
             composite_local_executions.append(detail_execution)
             if detail_execution.ready:
                 label=str(detail_execution.candidate_label)
@@ -1988,9 +2077,11 @@ def main() -> int:
                     f"donor={detail_execution.donor_backend} "
                     f"region={detail_execution.region_hint} "
                     f"source={Path(detail_source).name} "
+                    f"strategy={'accessory_swap' if is_accessory else 'texture_fusion'} "
                     f"changed={detail_fusion.get('changed_fraction','none')} "
                     f"seam_p95={detail_fusion.get('seam_added_delta_p95','none')} "
                     f"seam_max={detail_fusion.get('seam_added_delta_max','none')} "
+                    f"accessory_confidence={detail_fusion.get('confidence','none')} "
                     f"path={detail_execution.candidate_path}"
                 )
                 ranked=run_full_ranking()
@@ -2013,10 +2104,18 @@ def main() -> int:
                     raise RuntimeError(
                         "composite local-detail challenger missing after re-ranking"
                     )
-                regressions=local_detail_composite_regressions(
-                    base_item,
-                    detail_item,
-                    detail_source,
+                regressions=(
+                    accessory_composite_regressions(
+                        base_item,
+                        detail_item,
+                        detail_source,
+                    )
+                    if is_accessory
+                    else local_detail_composite_regressions(
+                        base_item,
+                        detail_item,
+                        detail_source,
+                    )
                 )
                 if regressions:
                     detail_item.valid=False
