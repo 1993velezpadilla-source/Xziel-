@@ -580,8 +580,9 @@ class StudioHandler(BaseHTTPRequestHandler):
             return
 
         image_files = [item for item in files if item[0] == "images"]
+        face_files = [item for item in files if item[0] == "face_images"]
         if not image_files:
-            self._json({"error": "at least one image is required"}, 400)
+            self._json({"error": "at least one geometry image is required"}, 400)
             return
 
         profile = fields.get("profile", "monster")
@@ -594,22 +595,39 @@ class StudioHandler(BaseHTTPRequestHandler):
         job_id = f"{int(time.time())}-{secrets.token_hex(3)}"
         job_root = (self.server.jobs_root / job_id).resolve()
         inputs_dir = job_root / "inputs"
+        face_dir = inputs_dir / "details"
         output_root = job_root / "output"
         inputs_dir.mkdir(parents=True, exist_ok=True)
+        face_dir.mkdir(parents=True, exist_ok=True)
         output_root.mkdir(parents=True, exist_ok=True)
 
-        input_paths: list[Path] = []
+        geometry_paths: list[Path] = []
         for index, (_field, filename, payload) in enumerate(image_files):
             ext = Path(filename).suffix.lower()
             if ext not in {".png", ".jpg", ".jpeg", ".webp"}:
                 continue
             dst = inputs_dir / f"{index:03d}-{_safe_name(filename)}"
             dst.write_bytes(payload)
-            input_paths.append(dst)
+            geometry_paths.append(dst)
 
-        if not input_paths:
-            self._json({"error": "no supported PNG/JPG/WEBP files"}, 400)
+        face_paths: list[Path] = []
+        for index, (_field, filename, payload) in enumerate(face_files):
+            ext = Path(filename).suffix.lower()
+            if ext not in {".png", ".jpg", ".jpeg", ".webp"}:
+                continue
+            # Explicit Studio face references are persisted under a recognized
+            # detail directory and carry a semantic filename prefix so both
+            # role classification and head-region local-patch retrieval remain
+            # deterministic even for camera names like IMG_1234.jpg.
+            dst = face_dir / f"{index:03d}-face_detail-{_safe_name(filename)}"
+            dst.write_bytes(payload)
+            face_paths.append(dst)
+
+        if not geometry_paths:
+            self._json({"error": "no supported geometry PNG/JPG/WEBP files"}, 400)
             return
+
+        input_paths = [*geometry_paths, *face_paths]
 
         cmd = [
             sys.executable,
