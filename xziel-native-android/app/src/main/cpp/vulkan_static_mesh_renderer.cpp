@@ -5351,6 +5351,47 @@ bool VulkanStaticMeshRenderer::createPipeline(
     AAssetManager* assetManager) noexcept {
     VkShaderModule vertex = VK_NULL_HANDLE;
     VkShaderModule fragment = VK_NULL_HANDLE;
+    VkShaderModule legacyVertex = VK_NULL_HANDLE;
+    VkShaderModule legacyFragment = VK_NULL_HANDLE;
+
+    const auto destroyModules =
+        [&]() noexcept {
+            if (legacyFragment != VK_NULL_HANDLE) {
+                vkDestroyShaderModule(
+                    device_,
+                    legacyFragment,
+                    nullptr);
+                legacyFragment =
+                    VK_NULL_HANDLE;
+            }
+
+            if (legacyVertex != VK_NULL_HANDLE) {
+                vkDestroyShaderModule(
+                    device_,
+                    legacyVertex,
+                    nullptr);
+                legacyVertex =
+                    VK_NULL_HANDLE;
+            }
+
+            if (fragment != VK_NULL_HANDLE) {
+                vkDestroyShaderModule(
+                    device_,
+                    fragment,
+                    nullptr);
+                fragment =
+                    VK_NULL_HANDLE;
+            }
+
+            if (vertex != VK_NULL_HANDLE) {
+                vkDestroyShaderModule(
+                    device_,
+                    vertex,
+                    nullptr);
+                vertex =
+                    VK_NULL_HANDLE;
+            }
+        };
 
     if (!createShaderModule(
             assetManager,
@@ -5359,15 +5400,16 @@ bool VulkanStaticMeshRenderer::createPipeline(
         !createShaderModule(
             assetManager,
             "shaders/xziel_static_mesh.frag.spv",
-            fragment)) {
-        if (vertex != VK_NULL_HANDLE) {
-            vkDestroyShaderModule(
-                device_, vertex, nullptr);
-        }
-        if (fragment != VK_NULL_HANDLE) {
-            vkDestroyShaderModule(
-                device_, fragment, nullptr);
-        }
+            fragment) ||
+        !createShaderModule(
+            assetManager,
+            "shaders/xziel_static_legacy.vert.spv",
+            legacyVertex) ||
+        !createShaderModule(
+            assetManager,
+            "shaders/xziel_static_legacy.frag.spv",
+            legacyFragment)) {
+        destroyModules();
         return false;
     }
 
@@ -5400,10 +5442,7 @@ bool VulkanStaticMeshRenderer::createPipeline(
                 &setInfo,
                 nullptr,
                 &descriptorSetLayout_))) {
-        vkDestroyShaderModule(
-            device_, fragment, nullptr);
-        vkDestroyShaderModule(
-            device_, vertex, nullptr);
+        destroyModules();
         return false;
     }
 
@@ -5432,14 +5471,11 @@ bool VulkanStaticMeshRenderer::createPipeline(
                 &layoutInfo,
                 nullptr,
                 &pipelineLayout_))) {
-        vkDestroyShaderModule(
-            device_, fragment, nullptr);
-        vkDestroyShaderModule(
-            device_, vertex, nullptr);
+        destroyModules();
         return false;
     }
 
-    const std::array<VkPipelineShaderStageCreateInfo, 2>
+    std::array<VkPipelineShaderStageCreateInfo, 2>
         stages{{
             {
                 VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -5635,14 +5671,59 @@ bool VulkanStaticMeshRenderer::createPipeline(
                 &pipelineDoubleSided_);
     }
 
-    vkDestroyShaderModule(
-        device_, fragment, nullptr);
-    vkDestroyShaderModule(
-        device_, vertex, nullptr);
+    VkResult legacyCulledResult =
+        VK_ERROR_INITIALIZATION_FAILED;
+    VkResult legacyDoubleSidedResult =
+        VK_ERROR_INITIALIZATION_FAILED;
 
-    return
+    if (ok(culledResult) &&
+        ok(doubleSidedResult)) {
+        stages[0].module =
+            legacyVertex;
+        stages[1].module =
+            legacyFragment;
+
+        raster.cullMode =
+            VK_CULL_MODE_BACK_BIT;
+
+        legacyCulledResult =
+            vkCreateGraphicsPipelines(
+                device_,
+                VK_NULL_HANDLE,
+                1U,
+                &info,
+                nullptr,
+                &pipelineLegacy_);
+
+        if (ok(legacyCulledResult)) {
+            raster.cullMode =
+                VK_CULL_MODE_NONE;
+
+            legacyDoubleSidedResult =
+                vkCreateGraphicsPipelines(
+                    device_,
+                    VK_NULL_HANDLE,
+                    1U,
+                    &info,
+                    nullptr,
+                    &pipelineLegacyDoubleSided_);
+        }
+    }
+
+    destroyModules();
+
+    const bool ready =
         ok(culledResult) &&
-        ok(doubleSidedResult);
+        ok(doubleSidedResult) &&
+        ok(legacyCulledResult) &&
+        ok(legacyDoubleSidedResult);
+
+    if (ready) {
+        logInfo(
+            "XZIEL_LEGACY_PHOTOGRAMMETRY_PIPELINES_READY");
+    }
+
+    return ready;
 }
 
 bool VulkanStaticMeshRenderer::createBuffer(
