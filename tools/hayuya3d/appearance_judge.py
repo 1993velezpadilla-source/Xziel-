@@ -562,6 +562,29 @@ def aggregate_detail_scores(values: list[float]) -> float:
     return 0.80 * mean + 0.20 * ordered[0]
 
 
+def aggregate_region_balanced_detail_scores(
+    values: list[tuple[str | None, float]],
+) -> float:
+    """Balance local-detail evidence by semantic region before global aggregation.
+
+    Supplying many references for one region must not drown out a scarce but
+    important region such as the face. Each semantic region first earns one
+    conservative aggregate score; those region scores are then aggregated with
+    the same weak-tail-aware policy.
+    """
+    if not values:
+        return 0.0
+    groups: dict[str, list[float]] = {}
+    for region, score in values:
+        key=str(region or "local").strip().lower() or "local"
+        groups.setdefault(key,[]).append(float(score))
+    region_scores=[
+        aggregate_detail_scores(scores)
+        for _,scores in sorted(groups.items())
+    ]
+    return aggregate_detail_scores(region_scores)
+
+
 def _canonical_detail_azimuths(
     source_images: list[Path],
     matched_views: list[SourceViewScore],
@@ -754,7 +777,13 @@ def score_detail_references(
             )
         )
 
-    return round(aggregate_detail_scores([d.score for d in details]), 3), details
+    return round(
+        aggregate_region_balanced_detail_scores([
+            (d.region_hint,d.score)
+            for d in details
+        ]),
+        3,
+    ), details
 
 
 def score_candidate_appearance(
