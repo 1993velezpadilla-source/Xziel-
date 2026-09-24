@@ -121,17 +121,26 @@ vec3 mappedNormal(
         return geometricNormal;
     }
 
+    // TANGENT_BASIS_RECIPROCAL_FREE_V1
+    // normalize(raw / determinant) only depends on determinant's sign.
+    // The following Gram-Schmidt normalize cancels raw magnitude as well,
+    // so preserve handedness and skip both the reciprocal and first normalize.
+    float handedness =
+        determinant < 0.0
+        ? -1.0
+        : 1.0;
+    vec3 tangentRaw =
+        (dpdx * duvdy.y -
+         dpdy * duvdx.y) *
+        handedness;
+
     vec3 tangent =
         normalize(
-            (dpdx * duvdy.y -
-             dpdy * duvdx.y) /
-            determinant);
-
-    tangent =
-        normalize(
-            tangent -
+            tangentRaw -
             geometricNormal *
-            dot(geometricNormal, tangent));
+            dot(
+                geometricNormal,
+                tangentRaw));
 
     vec3 bitangent =
         normalize(

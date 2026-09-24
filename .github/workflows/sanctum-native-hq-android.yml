@@ -365,6 +365,7 @@ jobs:
 
           grep -q "ORM_MAP_FULL_DETAIL_DISTANCE = 48.0" app/src/main/shaders/xziel_static_mesh.frag
           grep -q "ORM_MAP_FADE_END_DISTANCE = 80.0" app/src/main/shaders/xziel_static_mesh.frag
+          grep -q "TANGENT_BASIS_RECIPROCAL_FREE_V1" app/src/main/shaders/xziel_static_mesh.frag
 
           mkdir -p app/src/main/assets/shaders
 
@@ -1090,6 +1091,7 @@ jobs:
               echo "XZIEL_INTEGER_DRAW_FLAGS_ACTIVE push_bytes=128 viewmodel_offset=76 material_flags_offset=124"
               echo "XZIEL_CPU_CLAMPED_MATERIAL_CONSTANTS_ACTIVE"
               echo "XZIEL_PRECOMPUTED_LIGHTNING_BOOST_ACTIVE"
+              echo "XZIEL_NORMAL_TANGENT_BASIS_RECIPROCAL_FREE_ACTIVE"
             fi
           fi
 
