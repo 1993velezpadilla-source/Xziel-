@@ -1081,7 +1081,9 @@ def main() -> int:
                 "head_region_faces": item.head_region_faces,
                 "head_region_vertices": item.head_region_vertices,
                 "head_region_face_fraction": item.head_region_face_fraction,
+                "global_median_edge_normalized": item.global_median_edge_normalized,
                 "head_region_median_edge_normalized": item.head_region_median_edge_normalized,
+                "head_region_density_ratio": item.head_region_density_ratio,
                 "pbr_channels": item.pbr_channels,
             }
             print(
