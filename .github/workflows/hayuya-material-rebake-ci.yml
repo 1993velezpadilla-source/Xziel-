@@ -42,86 +42,77 @@ jobs:
 
       - name: Build synthetic high and low meshes
         run: |
-          python - <<'PY'
+          cat >/tmp/hayuya-rebake-fixture.py <<'PY'
+          import bpy
           from pathlib import Path
-          import numpy as np
-          import trimesh
-          from PIL import Image
 
           root=Path("/tmp/hayuya-rebake")
           root.mkdir(parents=True,exist_ok=True)
 
+          def reset():
+              bpy.ops.object.select_all(action="SELECT")
+              bpy.ops.object.delete(use_global=False)
+              for material in list(bpy.data.materials):
+                  bpy.data.materials.remove(material)
+
           def material():
-              base=Image.fromarray(
-                  np.full((256,256,4),[145,95,75,255],dtype=np.uint8),
-                  mode="RGBA",
-              )
-              return trimesh.visual.material.PBRMaterial(
-                  baseColorTexture=base,
-                  roughnessFactor=0.68,
-                  metallicFactor=0.0,
-              )
+              m=bpy.data.materials.new("FixtureMaterial")
+              m.use_nodes=True
+              bsdf=m.node_tree.nodes.get("Principled BSDF")
+              bsdf.inputs["Base Color"].default_value=(0.55,0.24,0.15,1.0)
+              bsdf.inputs["Roughness"].default_value=0.68
+              return m
 
-          def floor_mesh(n,wavy):
-              xs=np.linspace(-1.0,1.0,n)
-              ys=np.linspace(-1.0,1.0,n)
-              verts=[]; uv=[]
-              for y in ys:
-                  for x in xs:
-                      z=0.055*np.sin(np.pi*x*2.0)*np.sin(np.pi*y*2.0) if wavy else 0.0
-                      verts.append([x,y,z])
-                      uv.append([(x+1.0)*0.36,(y+1.0)*0.5])
-              faces=[]
-              for j in range(n-1):
-                  for i in range(n-1):
-                      a=j*n+i; b=a+1; cc=a+n; d=cc+1
-                      faces.extend([[a,b,d],[a,d,cc]])
-              return trimesh.Trimesh(
-                  vertices=np.asarray(verts,float),
-                  faces=np.asarray(faces,int),
-                  process=False,
-                  visual=trimesh.visual.TextureVisuals(
-                      uv=np.asarray(uv,float),
-                      material=material(),
-                  ),
-              )
+          def cube(name,location,scale,mat,bevel=False):
+              bpy.ops.mesh.primitive_cube_add(size=1.0,location=location)
+              obj=bpy.context.object
+              obj.name=name
+              obj.scale=scale
+              bpy.ops.object.transform_apply(location=False,rotation=False,scale=True)
+              obj.data.materials.append(mat)
+              # Explicit UV projection removes dependence on primitive defaults.
+              bpy.context.view_layer.objects.active=obj
+              obj.select_set(True)
+              bpy.ops.object.mode_set(mode="EDIT")
+              bpy.ops.mesh.select_all(action="SELECT")
+              bpy.ops.uv.smart_project(angle_limit=1.15192,island_margin=0.03)
+              bpy.ops.object.mode_set(mode="OBJECT")
+              if bevel:
+                  modifier=obj.modifiers.new("SourceBevel","BEVEL")
+                  modifier.width=0.055
+                  modifier.segments=4
+                  bpy.context.view_layer.objects.active=obj
+                  bpy.ops.object.modifier_apply(modifier=modifier.name)
+              obj.select_set(False)
+              return obj
 
-          def wall_mesh(n):
-              ys=np.linspace(-1.0,1.0,n)
-              zs=np.linspace(0.0,1.4,n)
-              verts=[]; uv=[]
-              # Vertical wall at x=-0.35 creates a strong concave floor/wall corner.
-              for z in zs:
-                  for y in ys:
-                      verts.append([-0.35,y,z])
-                      uv.append([0.76+(y+1.0)*0.12,z/1.4])
-              faces=[]
-              for j in range(n-1):
-                  for i in range(n-1):
-                      a=j*n+i; b=a+1; cc=a+n; d=cc+1
-                      # Winding faces the wall toward +X (into the corner).
-                      faces.extend([[a,d,b],[a,cc,d]])
-              return trimesh.Trimesh(
-                  vertices=np.asarray(verts,float),
-                  faces=np.asarray(faces,int),
-                  process=False,
-                  visual=trimesh.visual.TextureVisuals(
-                      uv=np.asarray(uv,float),
-                      material=material(),
-                  ),
+          def build(path,high):
+              reset()
+              mat=material()
+              # Solid floor and wall form a deep concave runtime corner. The
+              # wall sits directly on the floor, guaranteeing AO near the seam.
+              floor=cube("floor",(0.0,0.0,-0.075),(2.0,2.0,0.15),mat,bevel=high)
+              wall=cube("wall",(-0.55,0.0,0.85),(0.16,2.0,1.0),mat,bevel=high)
+              # A small overhead block creates a second unmistakable occlusion
+              # region and additional normal detail on the high-poly source.
+              ledge=cube("ledge",(0.25,0.0,0.38),(0.55,0.65,0.12),mat,bevel=high)
+              bpy.ops.object.select_all(action="DESELECT")
+              for obj in (floor,wall,ledge):
+                  obj.select_set(True)
+              bpy.context.view_layer.objects.active=floor
+              bpy.ops.export_scene.gltf(
+                  filepath=str(path),
+                  export_format="GLB",
+                  use_selection=True,
+                  export_yup=True,
+                  export_materials="EXPORT",
               )
 
-          source_scene=trimesh.Scene()
-          source_scene.add_geometry(floor_mesh(40,True),node_name="source_floor")
-          source_scene.add_geometry(wall_mesh(30),node_name="source_wall")
-
-          target_scene=trimesh.Scene()
-          target_scene.add_geometry(floor_mesh(14,False),node_name="target_floor")
-          target_scene.add_geometry(wall_mesh(10),node_name="target_wall")
-
-          (root/"source.glb").write_bytes(trimesh.exchange.gltf.export_glb(source_scene))
-          (root/"target.glb").write_bytes(trimesh.exchange.gltf.export_glb(target_scene))
+          build(root/"target.glb",False)
+          build(root/"source.glb",True)
+          print("HAYUYA_REBAKE_FIXTURE_READY")
           PY
+          blender --background --factory-startup --python /tmp/hayuya-rebake-fixture.py
 
       - name: Execute real Blender normal and AO rebake
         env:
