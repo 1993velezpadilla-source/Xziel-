@@ -98,5 +98,114 @@ int main() {
         governor.bottleneck() ==
         xziel::PerformanceBottleneck::FramePaced);
 
+    governor.reset();
+
+    // A GPU-bound frame dominated by the world pass should preserve the
+    // current quality tier/render scale while trimming world-specific cost.
+    for (int i = 0; i < 20; ++i) {
+        workload = governor.advance(
+            {
+                .cpuFrameMs = 5.0f,
+                .gpuFrameMs = 17.0f,
+                .gpuPreWorldMs = 1.0f,
+                .gpuWorldMs = 13.0f,
+                .gpuCompositeUiMs = 3.0f,
+                .frameIntervalMs = 17.0f,
+                .gpuPassTimingAuthoritative = true,
+            },
+            1.0f / 60.0f);
+    }
+
+    assert(
+        governor.bottleneck() ==
+        xziel::PerformanceBottleneck::Gpu);
+    assert(
+        governor.gpuPassBottleneck() ==
+        xziel::GpuPassBottleneck::World);
+    assert(
+        workload.quality ==
+        xziel::RenderQuality::High);
+    assert(workload.renderScale > 0.91f);
+    assert(workload.shadowDistanceScale < 0.82f);
+    assert(workload.dynamicLightBudget < 16U);
+
+    governor.reset();
+
+    // Composite/UI pressure should first reduce scene/post resolution, not
+    // shadows or reflection quality.
+    for (int i = 0; i < 20; ++i) {
+        workload = governor.advance(
+            {
+                .cpuFrameMs = 5.0f,
+                .gpuFrameMs = 17.0f,
+                .gpuPreWorldMs = 1.0f,
+                .gpuWorldMs = 3.0f,
+                .gpuCompositeUiMs = 13.0f,
+                .frameIntervalMs = 17.0f,
+                .gpuPassTimingAuthoritative = true,
+            },
+            1.0f / 60.0f);
+    }
+
+    assert(
+        governor.gpuPassBottleneck() ==
+        xziel::GpuPassBottleneck::CompositeUi);
+    assert(workload.renderScale < 0.92f);
+    assert(workload.postProcessScale < 0.75f);
+    assert(workload.shadowDistanceScale > 0.81f);
+
+    governor.reset();
+
+    // Reflection/pre-world pressure trims planar reflection cost while
+    // preserving the scene render scale.
+    for (int i = 0; i < 20; ++i) {
+        workload = governor.advance(
+            {
+                .cpuFrameMs = 5.0f,
+                .gpuFrameMs = 17.0f,
+                .gpuPreWorldMs = 13.0f,
+                .gpuWorldMs = 3.0f,
+                .gpuCompositeUiMs = 1.0f,
+                .frameIntervalMs = 17.0f,
+                .gpuPassTimingAuthoritative = true,
+            },
+            1.0f / 60.0f);
+    }
+
+    assert(
+        governor.gpuPassBottleneck() ==
+        xziel::GpuPassBottleneck::PreWorld);
+    assert(workload.renderScale > 0.91f);
+    assert(workload.planarReflectionScale < 0.60f);
+    assert(workload.reflectionDistanceMeters < 35.0f);
+
+    governor.reset();
+
+    // Pass values from software/CPU Vulkan are telemetry only. They must not
+    // trigger targeted quality changes.
+    for (int i = 0; i < 20; ++i) {
+        workload = governor.advance(
+            {
+                .cpuFrameMs = 5.0f,
+                .gpuFrameMs = 17.0f,
+                .gpuPreWorldMs = 15.0f,
+                .gpuWorldMs = 1.0f,
+                .gpuCompositeUiMs = 1.0f,
+                .frameIntervalMs = 17.0f,
+                .gpuPassTimingAuthoritative = false,
+            },
+            1.0f / 60.0f);
+    }
+
+    assert(
+        governor.bottleneck() ==
+        xziel::PerformanceBottleneck::Gpu);
+    assert(
+        governor.gpuPassBottleneck() ==
+        xziel::GpuPassBottleneck::Balanced);
+    assert(workload.renderScale > 0.91f);
+    assert(workload.planarReflectionScale > 0.59f);
+    assert(workload.shadowDistanceScale > 0.81f);
+
     return 0;
 }
