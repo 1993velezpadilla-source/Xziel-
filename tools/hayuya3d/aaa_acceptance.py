@@ -183,6 +183,19 @@ def evaluate_aaa_acceptance(
             f"skins={rig.get('skins')} joints={rig.get('joint_count')}",
             blocker="character has no validated skin/rig",
         )
+        skin_weights=qa_report.get("skin_weights") or {}
+        _gate(
+            gates,"character.skin_weights","character",
+            bool(skin_weights.get("applicable") and skin_weights.get("ready")),
+            (
+                f"applicable={skin_weights.get('applicable')} "
+                f"weighted={skin_weights.get('weighted_vertices')} "
+                f"zero={skin_weights.get('zero_weight_vertices')} "
+                f"non_normalized={skin_weights.get('non_normalized_vertices')} "
+                f"invalid_joints={skin_weights.get('invalid_joint_references')}"
+            ),
+            blocker="character skin weights are missing, malformed, non-normalized, or reference invalid joints",
+        )
         _gate(
             gates,"character.animation","character",
             bool(rig.get("animation_ready")),
