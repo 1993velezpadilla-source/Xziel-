@@ -699,6 +699,26 @@ function renderCompositePlan(plan, executions = []) {
         "match " + Number(item.accessory_confidence).toFixed(2)
       );
     }
+    if (item.changed_vertices != null) {
+      parts.push(Number(item.changed_vertices) + " verts");
+    }
+    if (item.runtime_preserved != null) {
+      parts.push(item.runtime_preserved ? "runtime exact" : "runtime!");
+    }
+    if (item.rig_ready != null) {
+      parts.push(item.rig_ready ? "rig" : "rig!");
+    }
+    if (item.skin_weights_ready != null) {
+      parts.push(item.skin_weights_ready ? "skin" : "skin!");
+    }
+    if (item.morph_deformation_ready != null) {
+      parts.push(
+        item.morph_deformation_ready ? "morph" : "morph!"
+      );
+    }
+    if (item.rebake_ready != null) {
+      parts.push(item.rebake_ready ? "rebake" : "rebake!");
+    }
     if (item.changed_fraction != null) {
       parts.push((Number(item.changed_fraction) * 100).toFixed(1) + "% atlas");
     }
