@@ -122,8 +122,19 @@ def make_plan(
         if resolved_design_profile
         else None
     )
+    lighting_horror_identities = (
+        [
+            item["value"]
+            for item in design_intelligence["constraints"].get("horror", [])
+        ]
+        if design_intelligence
+        else []
+    )
     lighting_intelligence = (
-        compile_lighting_intelligence(resolved_lighting_profile)
+        compile_lighting_intelligence(
+            resolved_lighting_profile,
+            horror_identities=lighting_horror_identities,
+        )
         if resolved_lighting_profile
         else None
     )
@@ -154,6 +165,8 @@ def make_plan(
             "waw_horror_checklist": "docs/waw-zombies-horror-checklist.json",
             "map_design_standard": "hayuya/standards/hayuya_map_design_brain_v1.json",
             "lighting_standard": "hayuya/standards/hayuya_lighting_brain_v1.json",
+            "zombies_design_pattern_library": "hayuya/knowledge/zombies_design_pattern_library_v1.json",
+            "zombies_lighting_pattern_library": "hayuya/knowledge/zombies_lighting_pattern_library_v1.json",
         },
         "map_design_intelligence": design_intelligence,
         "lighting_intelligence": lighting_intelligence,
