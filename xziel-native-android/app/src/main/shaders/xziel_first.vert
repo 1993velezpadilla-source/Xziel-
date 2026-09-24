@@ -317,14 +317,28 @@ void main() {
         rotation * local +
         pc.translation.xyz;
 
-    vec3 scaledNormal =
-        unitNormal /
-        objectScale;
+    vec3 normal;
 
-    vec3 normal =
-        normalize(
+    if (shape == 0) {
+        // BOX_NORMAL_FAST_PATH_V1
+        // Cube face normals are axis-aligned and constant across each
+        // triangle. Non-uniform object scale changes only their magnitude,
+        // which the fragment-stage normalize removes anyway. Rotate the unit
+        // face normal directly and skip three divisions plus a vertex
+        // normalize for the dominant box/world primitive path.
+        normal =
             rotation *
-            scaledNormal);
+            unitNormal;
+    } else {
+        vec3 scaledNormal =
+            unitNormal /
+            objectScale;
+
+        normal =
+            normalize(
+                rotation *
+                scaledNormal);
+    }
 
     bool viewmodelMaterial =
         (material >= 10 &&
