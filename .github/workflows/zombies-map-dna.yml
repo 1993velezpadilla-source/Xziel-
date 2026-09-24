@@ -7,6 +7,7 @@ on:
       - design/zombies-map-dna-atlas-v1
     paths:
       - "docs/zombies-map-dna-atlas.v1.json"
+      - "docs/zombies-map-dna-coverage.v1.json"
       - "docs/ZOMBIES_MAP_DNA_ATLAS.md"
       - "tools/church_map/zombies_map_dna.py"
       - "tools/church_map/design_zombies_gameplay.py"
@@ -43,12 +44,21 @@ jobs:
           from pathlib import Path
 
           atlas = json.loads(Path("docs/zombies-map-dna-atlas.v1.json").read_text())
+          coverage = json.loads(Path("docs/zombies-map-dna-coverage.v1.json").read_text())
           summary = json.loads(Path("/tmp/zombies-map-dna-summary.json").read_text())
           sanctum = json.loads(Path("/tmp/sanctum-dna.json").read_text())
 
           ids = {m["id"] for m in atlas["maps"]}
           assert summary["mapCount"] >= 60, summary
           assert len(ids) == summary["mapCount"]
+
+          required = {
+              map_id
+              for group in coverage["groups"]
+              for map_id in group["ids"]
+          }
+          missing = sorted(required - ids)
+          assert not missing, f"coverage contract missing ids: {missing}"
           assert len(sanctum["sourceMaps"]) == 8
           assert "waw_nacht" in sanctum["sourceMaps"]
           assert "bo2_mob" in sanctum["sourceMaps"]
@@ -62,6 +72,7 @@ jobs:
           print(
               "XZIEL_ZOMBIES_MAP_DNA_GREEN "
               f"maps={summary['mapCount']} "
+              f"required={len(required)} "
               f"sanctum_sources={len(sanctum['sourceMaps'])}"
           )
           PY
