@@ -72,6 +72,39 @@ class HighEndTextureContractTests(unittest.TestCase):
             reasons,
         )
 
+    def test_texture_refinement_guard_rejects_weakest_face_regression(self):
+        source = SimpleNamespace(
+            vertices=100,
+            faces=200,
+            components=1,
+            bbox=[1.0, 2.0, 1.0],
+            pbr_channels=["baseColor", "normal", "roughness"],
+            head_texture_detail_score=80.0,
+            visual_score=92.0,
+            appearance_score=90.0,
+            appearance_face_detail_score=90.0,
+            appearance_face_detail_min_score=84.0,
+            base_color_min_edge=2048,
+        )
+        challenger = SimpleNamespace(
+            vertices=100,
+            faces=200,
+            components=1,
+            bbox=[1.0, 2.0, 1.0],
+            pbr_channels=["baseColor", "normal", "roughness"],
+            head_texture_detail_score=85.0,
+            visual_score=92.0,
+            appearance_score=90.0,
+            appearance_face_detail_score=90.0,
+            appearance_face_detail_min_score=70.0,
+            base_color_min_edge=4096,
+        )
+        reasons = hayuya.texture_refinement_regressions(source, challenger)
+        self.assertTrue(
+            any("appearance_face_detail_min_score" in reason for reason in reasons),
+            reasons,
+        )
+
     def test_texture_refinement_guard_accepts_monotonic_image_only_upgrade(self):
         source = SimpleNamespace(
             vertices=100,
