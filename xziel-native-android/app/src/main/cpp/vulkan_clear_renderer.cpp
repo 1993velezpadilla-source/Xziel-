@@ -6974,10 +6974,65 @@ bool VulkanClearRenderer::recordDrawCommand(
         0U,
         0U);
 
-    vkCmdBindPipeline(
-        command,
-        VK_PIPELINE_BIND_POINT_GRAPHICS,
-        uiPipeline_);
+    const VkDeviceSize uiBatchFrameBytes =
+        static_cast<VkDeviceSize>(
+            sizeof(UiBatchVertex)) *
+        kUiBatchVerticesPerFrame;
+    const VkDeviceSize uiBatchFrameOffset =
+        uiBatchFrameBytes *
+        frameSlot;
+
+    auto* uiBatchFrameVertices =
+        uiBatchMapped_ != nullptr
+        ? static_cast<UiBatchVertex*>(
+              uiBatchMapped_) +
+              static_cast<std::size_t>(
+                  frameSlot) *
+                  kUiBatchVerticesPerFrame
+        : nullptr;
+
+    std::uint32_t uiBatchVertexCursor = 0U;
+    std::uint32_t uiBatchPendingStart = 0U;
+    std::uint32_t uiBatchPendingCount = 0U;
+    std::uint32_t uiLogicalPrimitiveDraws = 0U;
+    std::uint32_t uiBatchSubmissions = 0U;
+    std::uint32_t uiFallbackPrimitiveDraws = 0U;
+    std::uint32_t uiDigitDraws = 0U;
+
+    const auto flushUiPrimitiveBatch = [&]() noexcept {
+        if (uiBatchPendingCount == 0U) {
+            return;
+        }
+
+        vkCmdBindPipeline(
+            command,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            uiBatchPipeline_);
+
+        const VkBuffer vertexBuffer =
+            uiBatchVertexBuffer_;
+        const VkDeviceSize vertexOffset =
+            uiBatchFrameOffset;
+
+        vkCmdBindVertexBuffers(
+            command,
+            0U,
+            1U,
+            &vertexBuffer,
+            &vertexOffset);
+
+        vkCmdDraw(
+            command,
+            uiBatchPendingCount,
+            1U,
+            uiBatchPendingStart,
+            0U);
+
+        ++uiBatchSubmissions;
+        uiBatchPendingCount = 0U;
+        uiBatchPendingStart =
+            uiBatchVertexCursor;
+    };
 
     const float viewportWidth =
         static_cast<float>(
