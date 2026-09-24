@@ -380,6 +380,7 @@ class StudioServerTests(unittest.TestCase):
                 "inserted_vertices=24 inserted_faces=12 "
                 "weight_transfer_vertices=24 weight_source_max=0.041 "
                 "morph_targets_transferred=2 "
+                "geometry_ready=True legacy_preserved=True "
                 "seam_p95=none seam_max=none "
                 "accessory_confidence=none "
                 "runtime_preserved=True rig_ready=True "
@@ -398,6 +399,8 @@ class StudioServerTests(unittest.TestCase):
             self.assertEqual(detail["weight_transfer_vertices"],24)
             self.assertEqual(detail["weight_source_max"],0.041)
             self.assertEqual(detail["morph_targets_transferred"],2)
+            self.assertTrue(detail["geometry_ready"])
+            self.assertTrue(detail["legacy_preserved"])
             self.assertTrue(detail["runtime_preserved"])
             self.assertTrue(detail["rig_ready"])
             self.assertTrue(detail["skin_weights_ready"])
