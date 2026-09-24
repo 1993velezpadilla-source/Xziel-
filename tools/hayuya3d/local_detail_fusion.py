@@ -312,8 +312,11 @@ def fuse_local_basecolor(
                 continue
 
             tri_xy=np.empty((3,2),dtype=np.float64)
-            tri_xy[:,0]=tri_uv[:,0]*(w-1)
-            tri_xy[:,1]=(1.0-tri_uv[:,1])*(h-1)
+            # Raster coordinates are texel-edge coordinates while samples are
+            # evaluated at pixel centers (+0.5). Mapping UV 1.0 to w/h (not
+            # w-1/h-1) prevents a one-pixel unpainted border at atlas edges.
+            tri_xy[:,0]=tri_uv[:,0]*w
+            tri_xy[:,1]=(1.0-tri_uv[:,1])*h
             min_x=max(0,int(math.floor(float(np.min(tri_xy[:,0])))))
             max_x=min(w-1,int(math.ceil(float(np.max(tri_xy[:,0])))))
             min_y=max(0,int(math.floor(float(np.min(tri_xy[:,1])))))
