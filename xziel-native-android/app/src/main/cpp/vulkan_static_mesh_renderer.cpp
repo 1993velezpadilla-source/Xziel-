@@ -998,6 +998,16 @@ bool VulkanStaticMeshRenderer::initialize(
         static_cast<unsigned int>(emissiveMapCount),
         static_cast<unsigned int>(textures_.size()));
 
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
+        "XZIEL_LEGACY_PHOTOGRAMMETRY_FASTPATH_READY legacy_materials=%u pbr_materials=%u",
+        static_cast<unsigned int>(
+            materials_.size() -
+            pbrMaterialCount),
+        static_cast<unsigned int>(
+            pbrMaterialCount));
+
     try {
         materialVisibilityStates_.assign(
             materials_.size(),
@@ -1081,6 +1091,20 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
                 nullptr);
         }
 
+        if (pipelineLegacy_ != VK_NULL_HANDLE) {
+            vkDestroyPipeline(
+                device_,
+                pipelineLegacy_,
+                nullptr);
+        }
+
+        if (pipelineLegacyDoubleSided_ != VK_NULL_HANDLE) {
+            vkDestroyPipeline(
+                device_,
+                pipelineLegacyDoubleSided_,
+                nullptr);
+        }
+
         if (pipelineLayout_ != VK_NULL_HANDLE) {
             vkDestroyPipelineLayout(
                 device_,
@@ -1135,6 +1159,8 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
 
     pipeline_ = VK_NULL_HANDLE;
     pipelineDoubleSided_ = VK_NULL_HANDLE;
+    pipelineLegacy_ = VK_NULL_HANDLE;
+    pipelineLegacyDoubleSided_ = VK_NULL_HANDLE;
     pipelineLayout_ = VK_NULL_HANDLE;
     descriptorPool_ = VK_NULL_HANDLE;
     descriptorSetLayout_ = VK_NULL_HANDLE;
@@ -4615,10 +4641,19 @@ void VulkanStaticMeshRenderer::record(
             continue;
         }
 
+        const bool legacyPhotogrammetry =
+            !materials_[
+                batch.materialIndex].
+                    pbrEnabled;
+
         const VkPipeline desiredPipeline =
-            batch.doubleSided
-            ? pipelineDoubleSided_
-            : pipeline_;
+            legacyPhotogrammetry
+            ? (batch.doubleSided
+                ? pipelineLegacyDoubleSided_
+                : pipelineLegacy_)
+            : (batch.doubleSided
+                ? pipelineDoubleSided_
+                : pipeline_);
 
         if (desiredPipeline == VK_NULL_HANDLE) {
             ++frameStats_.culledBatches;
@@ -4837,10 +4872,20 @@ void VulkanStaticMeshRenderer::record(
             }
         }
 
+        const auto& material =
+            materials_[group.materialIndex];
+
+        const bool legacyPhotogrammetry =
+            !material.pbrEnabled;
+
         const VkPipeline desiredPipeline =
-            group.doubleSided
-            ? pipelineDoubleSided_
-            : pipeline_;
+            legacyPhotogrammetry
+            ? (group.doubleSided
+                ? pipelineLegacyDoubleSided_
+                : pipelineLegacy_)
+            : (group.doubleSided
+                ? pipelineDoubleSided_
+                : pipeline_);
 
         if (desiredPipeline == VK_NULL_HANDLE) {
             continue;
@@ -4855,9 +4900,6 @@ void VulkanStaticMeshRenderer::record(
                 desiredPipeline;
             ++frameStats_.pipelineBinds;
         }
-
-        const auto& material =
-            materials_[group.materialIndex];
 
         if (boundMaterialIndex !=
             group.materialIndex) {
