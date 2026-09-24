@@ -1,0 +1,25 @@
+{
+  "workspace": "..",
+  "max_steps": 30,
+  "temperature": 0.25,
+  "routes": {
+    "general": "gpt_oss_120b",
+    "reasoning": "gpt_oss_120b",
+    "coding": "gpt_oss_120b",
+    "research": "gpt_oss_120b",
+    "vision": "gpt_oss_120b",
+    "map_modeling": "gpt_oss_120b"
+  },
+  "models": {
+    "gpt_oss_120b": {
+      "base_url": "https://api.groq.com/openai/v1",
+      "model": "openai/gpt-oss-120b",
+      "api_key_env": "GROQ_API_KEY"
+    }
+  },
+  "image": {
+    "base_url": "https://YOUR_IMAGE_ENDPOINT/v1",
+    "model": "YOUR_IMAGE_MODEL",
+    "api_key_env": "PICHY_IMAGE_API_KEY"
+  }
+}
