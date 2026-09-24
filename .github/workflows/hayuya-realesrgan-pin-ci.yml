@@ -21,6 +21,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - name: Download complete official runtime bundle
         run: |
           set -euo pipefail
@@ -88,6 +96,117 @@ jobs:
           )
           PY
 
+      - name: Prove HAYUYA GLB super-resolution end to end
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/hayuya-realesrgan-e2e
+          python - <<'PY'
+          import io
+          from pathlib import Path
+          from PIL import Image
+          from tools.hayuya3d.glb_images import write_glb
+
+          root=Path("/tmp/hayuya-realesrgan-e2e")
+
+          base=Image.new("RGB",(16,16))
+          px=base.load()
+          for y in range(16):
+              for x in range(16):
+                  px[x,y]=(
+                      min(235,55+x*9),
+                      min(220,45+y*8),
+                      min(230,75+(x+y)*4),
+                  )
+          base_buf=io.BytesIO()
+          base.save(base_buf,format="PNG")
+          base_bytes=base_buf.getvalue()
+
+          normal=Image.new("RGB",(8,8),(128,128,255))
+          normal_buf=io.BytesIO()
+          normal.save(normal_buf,format="PNG")
+          normal_bytes=normal_buf.getvalue()
+
+          blob=bytearray()
+          offsets=[]
+          for payload in (base_bytes,normal_bytes):
+              while len(blob)%4:
+                  blob.append(0)
+              offsets.append(len(blob))
+              blob.extend(payload)
+
+          doc={
+              "asset":{"version":"2.0"},
+              "buffers":[{"byteLength":len(blob)}],
+              "bufferViews":[
+                  {"buffer":0,"byteOffset":offsets[0],"byteLength":len(base_bytes)},
+                  {"buffer":0,"byteOffset":offsets[1],"byteLength":len(normal_bytes)},
+              ],
+              "images":[
+                  {"bufferView":0,"mimeType":"image/png"},
+                  {"bufferView":1,"mimeType":"image/png"},
+              ],
+              "textures":[{"source":0},{"source":1}],
+              "materials":[{
+                  "pbrMetallicRoughness":{"baseColorTexture":{"index":0}},
+                  "normalTexture":{"index":1},
+              }],
+              "scenes":[{"nodes":[]}],
+              "scene":0,
+          }
+          write_glb(root/"source.glb",doc,bytes(blob))
+          print("HAYUYA_REALESRGAN_E2E_FIXTURE_READY",root/"source.glb")
+          PY
+
+          exe="$(find /tmp/realesrgan -type f -name 'realesrgan-ncnn-vulkan' | head -n 1)"
+          python tools/hayuya3d/texture_superres.py \
+            /tmp/hayuya-realesrgan-e2e/source.glb \
+            /tmp/hayuya-realesrgan-e2e/output.glb \
+            --target-edge 32 \
+            --realesrgan "$exe" \
+            --json /tmp/hayuya-realesrgan-e2e/result.json
+
+          python - <<'PY'
+          import io,json
+          from pathlib import Path
+          from PIL import Image
+          from tools.hayuya3d.texture_gate import embedded_images
+
+          root=Path("/tmp/hayuya-realesrgan-e2e")
+          result=json.loads((root/"result.json").read_text())
+          assert result["ready"],result
+          assert result["method"]=="realesrgan_ncnn_vulkan_basecolor_v2",result
+          assert result["remaining_image_indices"]==[],result
+          assert len(result["items"])==1,result
+          item=result["items"][0]
+          assert item["generated_width"]==32,item
+          assert item["generated_height"]==32,item
+          assert item["final_width"]==32,item
+          assert item["final_height"]==32,item
+          assert item["content_mae"]<=56.0,item
+          assert item["luminance_mean_drift"]<=24.0,item
+
+          source={
+              index:(data,roles)
+              for index,mime,data,roles in embedded_images(root/"source.glb")
+          }
+          output={
+              index:(data,roles)
+              for index,mime,data,roles in embedded_images(root/"output.glb")
+          }
+          with Image.open(io.BytesIO(output[0][0])) as image:
+              assert image.size==(32,32),image.size
+          assert output[0][1]==["baseColor"],output[0][1]
+          assert output[1][1]==["normal"],output[1][1]
+          assert output[1][0]==source[1][0],"normal map changed during baseColor SR"
+          print(
+              "HAYUYA_REALESRGAN_GLB_E2E_PASS",
+              "content_mae",item["content_mae"],
+              "luma_drift",item["luminance_mean_drift"],
+              "baseColor","32x32",
+              "normal_preserved",True,
+          )
+          PY
+
       - name: Upload pin evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -97,4 +216,7 @@ jobs:
             /tmp/realesrgan-help.txt
             /tmp/realesrgan-input.png
             /tmp/realesrgan-output.png
+            /tmp/hayuya-realesrgan-e2e/source.glb
+            /tmp/hayuya-realesrgan-e2e/output.glb
+            /tmp/hayuya-realesrgan-e2e/result.json
           retention-days: 7
