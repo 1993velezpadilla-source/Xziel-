@@ -14,6 +14,7 @@ def base_manifest():
         "gameprep":{"lods":[{"name":"LOD0"},{"name":"LOD1"},{"name":"LOD2"},{"name":"LOD3"}]},
         "portable_pack":{
             "complete_lod_chain":True,
+            "lod_parity_ready":True,
             "tiers":[{"name":"flagship"},{"name":"high"},{"name":"balanced"},{"name":"compatibility"}],
         },
         "composite_champion":{
@@ -137,6 +138,16 @@ class AAAAcceptanceTests(unittest.TestCase):
         manifest["composite_execution"]=None
         report=evaluate_aaa_acceptance(manifest,base_qa())
         self.assertTrue(report.ready,report.blockers)
+
+    def test_runtime_lod_parity_failure_blocks_aaa(self):
+        manifest=base_manifest()
+        manifest["portable_pack"]["lod_parity_ready"]=False
+        report=evaluate_aaa_acceptance(manifest,base_qa())
+        self.assertFalse(report.ready)
+        self.assertTrue(
+            any("LOD" in x or "parity" in x.lower() for x in report.blockers),
+            report.blockers,
+        )
 
     def test_high_end_missing_normal_map_fails(self):
         qa=base_qa()
