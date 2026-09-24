@@ -22,9 +22,8 @@ layout(location = 3) in vec4 inColor;
 
 layout(location = 0) out vec2 vUv;
 layout(location = 1) out vec3 vNormal;
-// Packed frame-varying data: x=view distance, y=lightning, z=viewmodel.
-layout(location = 2) out vec3 vFrameData;
-layout(location = 3) out vec3 vViewPosition;
+// xyz=view-space position, w=vertex-computed non-negative view distance.
+layout(location = 2) out vec4 vViewData;
 
 vec3 worldToView(vec3 world) {
     vec3 relative =
@@ -166,14 +165,8 @@ void main() {
 
     vUv = inUv;
     vNormal = surfaceNormal;
-    vFrameData.x = max(view.z, 0.0);
-    vFrameData.y =
-        viewmodel > 0.5
-        ? 0.0
-        : clamp(
-              pc.environmentRotation.x,
-              0.0,
-              2.0);
-    vFrameData.z = viewmodel;
-    vViewPosition = view;
+    vViewData =
+        vec4(
+            view,
+            max(view.z, 0.0));
 }
