@@ -64,7 +64,7 @@ jobs:
     timeout-minutes: 30
     concurrency:
       group: hayuya-rig-${{ matrix.job_id }}
-      cancel-in-progress: false
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
         with:
