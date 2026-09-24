@@ -588,6 +588,12 @@ private:
     std::uint64_t streamPlanBuildCount_ = 0U;
     std::uint64_t streamPlanCacheHitCount_ = 0U;
     std::uint64_t streamCellHeatRefreshCount_ = 0U;
+    // Stable world FOV/aspect frames reuse projection terms and avoid tan().
+    float cachedWorldProjectionFovDegrees_ = -1.0f;
+    float cachedWorldProjectionAspect_ = -1.0f;
+    float cachedWorldProjectionFocal_ = 1.0f;
+    float cachedWorldProjectionFocalOverAspect_ = 1.0f;
+    std::uint64_t worldProjectionCacheHits_ = 0U;
     // Portal reachability changes only when the current cell or portal state
     // changes. Cache it per geometry-cell so stable frames avoid repeated BFS.
     std::array<std::uint8_t, kMaxStreamCells + 1U>

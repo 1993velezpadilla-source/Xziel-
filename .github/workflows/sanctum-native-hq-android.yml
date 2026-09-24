@@ -885,6 +885,7 @@ jobs:
             STREAM_PLAN_BUILDS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* plan_builds=\([0-9][0-9]*\).*/\1/p')"
             STREAM_PLAN_CACHE_HITS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* plan_cache_hits=\([0-9][0-9]*\).*/\1/p')"
             STREAM_CELL_HEAT_REFRESHES="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* cell_heat_refreshes=\([0-9][0-9]*\).*/\1/p')"
+            STREAM_PROJECTION_CACHE_HITS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* projection_cache_hits=\([0-9][0-9]*\).*/\1/p')"
             test -n "${STREAM_CULLED}"
             test "${STREAM_CULLED}" -gt 0
             test -n "${STREAM_DRAWS}"
@@ -897,8 +898,10 @@ jobs:
               test -n "${STREAM_PLAN_BUILDS}"
               test -n "${STREAM_PLAN_CACHE_HITS}"
               test -n "${STREAM_CELL_HEAT_REFRESHES}"
+              test -n "${STREAM_PROJECTION_CACHE_HITS}"
               test "${STREAM_PLAN_BUILDS}" -gt 0
               test "${STREAM_PLAN_CACHE_HITS}" -gt 0
+              test "${STREAM_PROJECTION_CACHE_HITS}" -gt 0
 
               STREAM_GEOMETRY_CELLS="$(grep "XZIEL_STREAM_GEOMETRY_CELLS_READY" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* cells=\([0-9][0-9]*\).*/\1/p')"
               test -n "${STREAM_GEOMETRY_CELLS}"
@@ -909,6 +912,7 @@ jobs:
               test "${STREAM_CELL_HEAT_REFRESHES}" -le "${MAX_HEAT_REFRESHES}"
 
               echo "XZIEL_STREAM_PLAN_CACHE_V2_ACTIVE builds=${STREAM_PLAN_BUILDS} hits=${STREAM_PLAN_CACHE_HITS} cell_heat_refreshes=${STREAM_CELL_HEAT_REFRESHES} geometry_cells=${STREAM_GEOMETRY_CELLS}"
+              echo "XZIEL_WORLD_PROJECTION_CACHE_ACTIVE hits=${STREAM_PROJECTION_CACHE_HITS}"
             fi
 
             if [[ "${GITHUB_REF_NAME}" == "engine/mobile-front-to-back-earlyz-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-fragment-distance-lod-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" ]]; then

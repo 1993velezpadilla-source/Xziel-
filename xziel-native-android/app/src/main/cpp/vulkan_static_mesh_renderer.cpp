@@ -4909,19 +4909,36 @@ void VulkanStaticMeshRenderer::record(
             camera.verticalFovDegrees,
             50.0f,
             110.0f);
-    const float projectionFocal =
-        1.0f /
-        std::tan(
-            clampedFovDegrees *
-            0.5f *
-            kDegreesToRadians);
     const float safeAspect =
         std::max(camera.aspect, 0.25f);
 
+    if (cachedWorldProjectionFovDegrees_ ==
+            clampedFovDegrees &&
+        cachedWorldProjectionAspect_ ==
+            safeAspect) {
+        ++worldProjectionCacheHits_;
+    } else {
+        const float projectionFocal =
+            1.0f /
+            std::tan(
+                clampedFovDegrees *
+                0.5f *
+                kDegreesToRadians);
+
+        cachedWorldProjectionFovDegrees_ =
+            clampedFovDegrees;
+        cachedWorldProjectionAspect_ =
+            safeAspect;
+        cachedWorldProjectionFocal_ =
+            projectionFocal;
+        cachedWorldProjectionFocalOverAspect_ =
+            projectionFocal / safeAspect;
+    }
+
     push.projectionFocal =
-        projectionFocal;
+        cachedWorldProjectionFocal_;
     push.projectionFocalOverAspect =
-        projectionFocal / safeAspect;
+        cachedWorldProjectionFocalOverAspect_;
     push.fogDensity =
         std::clamp(
             environment.fogDensity,
@@ -5813,7 +5830,7 @@ void VulkanStaticMeshRenderer::record(
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u draw_submissions=%u indirect_draws=%u indirect_direct_writes=%u precomputed_indirect_commands=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u multi_draw_indirect=%u portal_tests=%u portal_culled=%u portal_skipped=%u cell_frustum_tests=%u cell_frustum_culled=%u cell_range_skipped=%u cell_frustum_skipped=%u cell_driven_batch_visits=%u batch_frustum_tests=%u material_visibility_tests=%u material_visibility_cache_hits=%u front_to_back_candidates=%u front_to_back_reordered=%u front_to_back_depth_reuses=%u plan_builds=%llu plan_cache_hits=%llu cell_heat_refreshes=%llu",
+            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u draw_submissions=%u indirect_draws=%u indirect_direct_writes=%u precomputed_indirect_commands=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u multi_draw_indirect=%u portal_tests=%u portal_culled=%u portal_skipped=%u cell_frustum_tests=%u cell_frustum_culled=%u cell_range_skipped=%u cell_frustum_skipped=%u cell_driven_batch_visits=%u batch_frustum_tests=%u material_visibility_tests=%u material_visibility_cache_hits=%u front_to_back_candidates=%u front_to_back_reordered=%u front_to_back_depth_reuses=%u plan_builds=%llu plan_cache_hits=%llu cell_heat_refreshes=%llu projection_cache_hits=%llu",
             static_cast<unsigned int>(
                 frameStats_.streamingCell),
             static_cast<unsigned int>(
@@ -5884,7 +5901,9 @@ void VulkanStaticMeshRenderer::record(
             static_cast<unsigned long long>(
                 streamPlanCacheHitCount_),
             static_cast<unsigned long long>(
-                streamCellHeatRefreshCount_));
+                streamCellHeatRefreshCount_),
+            static_cast<unsigned long long>(
+                worldProjectionCacheHits_));
     }
 }
 
