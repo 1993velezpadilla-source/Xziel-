@@ -48,7 +48,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: sanctum-native-hq-plan-cache-v2-${{ github.ref }}
+  group: sanctum-native-hq-plan-cache-v3-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
