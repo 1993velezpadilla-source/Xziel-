@@ -1,0 +1,79 @@
+name: Hayuya Map World Brain CI
+
+on:
+  push:
+    branches:
+      - feature/hayuya-map-world-brain-v1
+  pull_request:
+    paths:
+      - "tools/hayuya3d/hayuya_map.py"
+      - "tools/hayuya3d/world_semantics.py"
+      - "tools/hayuya3d/map_source_registry.py"
+      - "tools/hayuya3d/tests/test_hayuya_map_world_brain.py"
+      - "docs/hayuya/HAYUYA_MAP_WORLD_BRAIN.md"
+      - ".github/workflows/hayuya-map-world-brain-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  world-brain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Compile foundation
+        run: |
+          python -m py_compile \
+            tools/hayuya3d/world_semantics.py \
+            tools/hayuya3d/map_source_registry.py \
+            tools/hayuya3d/hayuya_map.py
+
+      - name: Run World Brain tests
+        run: |
+          python -m unittest \
+            tools/hayuya3d/tests/test_hayuya_map_world_brain.py \
+            -v
+
+      - name: Prove provider readiness is secret-safe
+        run: |
+          python tools/hayuya3d/hayuya_map.py --list-providers > /tmp/providers.json
+          python - <<'PY'
+          import json
+          p=json.load(open("/tmp/providers.json", encoding="utf-8"))
+          g=p["providers"]["google_maps_platform"]
+          assert g["credential_env"] == ["GOOGLE_MAPS_API_KEY"]
+          assert g["ready"] is False
+          assert "GOOGLE_MAPS_API_KEY" in g["missing_credentials"]
+          print("HAYUYA_MAP_PROVIDER_SECRET_GATE_OK")
+          PY
+
+      - name: Build no-taxonomy-cap planning fixture
+        run: |
+          python tools/hayuya3d/hayuya_map.py \
+            --job-id ci-open-world \
+            --goal "understand arbitrary unseen world content" \
+            --source "future-unknown-reference.jpg" \
+            --provider user_capture \
+            --provider overture_maps \
+            --bounds=-66.8,18.1,-66.7,18.2 \
+            --output-root /tmp/hayuya-map
+
+          python - <<'PY'
+          import json
+          p=json.load(open("/tmp/hayuya-map/ci-open-world/plan.json", encoding="utf-8"))
+          assert p["perception_policy"]["freeform_labels"] is True
+          assert p["perception_policy"]["freeform_relations"] is True
+          assert p["perception_policy"]["unknown_is_valid"] is True
+          assert p["perception_policy"]["closed_class_detector_is_authoritative"] is False
+          assert p["delegation"]["runtime"] == "Xziel XZSM/XMAP compiler"
+          print("HAYUYA_MAP_OPEN_WORLD_GATE_OK")
+          PY
