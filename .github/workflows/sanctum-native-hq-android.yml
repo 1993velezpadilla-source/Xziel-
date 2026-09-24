@@ -822,7 +822,7 @@ jobs:
             test "${STREAM_MATERIAL_BINDS}" -le "${STREAM_DRAWS}"
             echo "XZIEL_WORLD_STREAMING_CULL_RUNTIME_ACTIVE culled=${STREAM_CULLED} draws=${STREAM_DRAWS} material_binds=${STREAM_MATERIAL_BINDS} geometry_binds=${STREAM_GEOMETRY_BINDS:-0} pipeline_binds=${STREAM_PIPELINE_BINDS:-0}"
 
-            if [[ "${GITHUB_REF_NAME}" == "engine/mobile-front-to-back-earlyz-v1" ]]; then
+            if [[ "${GITHUB_REF_NAME}" == "engine/mobile-front-to-back-earlyz-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-static-depth-prepass-v1" ]]; then
               test -n "${STREAM_FRONT_TO_BACK_CANDIDATES}"
               test -n "${STREAM_FRONT_TO_BACK_REORDERED}"
               test "${STREAM_FRONT_TO_BACK_CANDIDATES}" -eq "${STREAM_DRAWS}"
@@ -831,17 +831,17 @@ jobs:
               test -n "${STREAM_DRAW_SUBMISSIONS}"
               test "${STREAM_DRAW_SUBMISSIONS}" -eq 1
               echo "XZIEL_FRONT_TO_BACK_EARLYZ_ACTIVE candidates=${STREAM_FRONT_TO_BACK_CANDIDATES} reordered=${STREAM_FRONT_TO_BACK_REORDERED} submissions=${STREAM_DRAW_SUBMISSIONS}"
+            fi
 
-    if [[ "${GITHUB_REF_NAME}" == "engine/mobile-static-depth-prepass-v1" ]]; then
-      grep -q "XZIEL_STATIC_DEPTH_PREPASS_PIPELINES_READY" dist/sanctum-hq-logcat.txt
-      STREAM_DEPTH_PREPASS_DRAWS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* depth_prepass_draws=\([0-9][0-9]*\).*/\1/p')"
-      STREAM_DEPTH_PREPASS_SUBMISSIONS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* depth_prepass_submissions=\([0-9][0-9]*\).*/\1/p')"
-      test -n "${STREAM_DEPTH_PREPASS_DRAWS}"
-      test -n "${STREAM_DEPTH_PREPASS_SUBMISSIONS}"
-      test "${STREAM_DEPTH_PREPASS_DRAWS}" -gt 0
-      test "${STREAM_DEPTH_PREPASS_SUBMISSIONS}" -gt 0
-      echo "XZIEL_STATIC_DEPTH_PREPASS_ACTIVE draws=${STREAM_DEPTH_PREPASS_DRAWS} submissions=${STREAM_DEPTH_PREPASS_SUBMISSIONS}"
-    fi
+            if [[ "${GITHUB_REF_NAME}" == "engine/mobile-static-depth-prepass-v1" ]]; then
+              grep -q "XZIEL_STATIC_DEPTH_PREPASS_PIPELINES_READY" dist/sanctum-hq-logcat.txt
+              STREAM_DEPTH_PREPASS_DRAWS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* depth_prepass_draws=\([0-9][0-9]*\).*/\1/p')"
+              STREAM_DEPTH_PREPASS_SUBMISSIONS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* depth_prepass_submissions=\([0-9][0-9]*\).*/\1/p')"
+              test -n "${STREAM_DEPTH_PREPASS_DRAWS}"
+              test -n "${STREAM_DEPTH_PREPASS_SUBMISSIONS}"
+              test "${STREAM_DEPTH_PREPASS_DRAWS}" -gt 0
+              test "${STREAM_DEPTH_PREPASS_SUBMISSIONS}" -gt 0
+              echo "XZIEL_STATIC_DEPTH_PREPASS_ACTIVE draws=${STREAM_DEPTH_PREPASS_DRAWS} submissions=${STREAM_DEPTH_PREPASS_SUBMISSIONS}"
             fi
 
             if [[ "${GITHUB_REF_NAME}" == "engine/mobile-draw-submission-telemetry-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-draw-group-telemetry-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-indirect-draw-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-cell-frustum-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-portal-visibility-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-gpu-pass-timing-v1" ]]; then
