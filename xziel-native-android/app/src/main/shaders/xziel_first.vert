@@ -87,27 +87,44 @@ mat3 rotateX(float angle) {
     );
 }
 
-vec3 worldToView(vec3 world) {
+vec3 worldToView(
+    vec3 world,
+    bool cameraBasisCached) {
     vec3 relative =
         world - pc.cameraPositionYaw.xyz;
 
-    float yaw =
-        pc.cameraPositionYaw.w;
+    float cy;
+    float sy;
+    float cp;
+    float sp;
 
-    float cy = cos(yaw);
-    float sy = sin(yaw);
+    if (cameraBasisCached) {
+        // CAMERA_TRIG_CPU_CACHE_V1
+        // Non-reflective draws do not consume reflectionPlane. Reuse those
+        // four push-constant floats for the CPU-computed camera trig basis,
+        // removing sin/cos work from every vertex without growing the
+        // 128-byte mobile push block.
+        cy = pc.reflectionPlane.x;
+        sy = pc.reflectionPlane.y;
+        cp = pc.reflectionPlane.z;
+        sp = pc.reflectionPlane.w;
+    } else {
+        float yaw =
+            pc.cameraPositionYaw.w;
+        cy = cos(yaw);
+        sy = sin(yaw);
+
+        float pitch =
+            pc.cameraPitchFov.x;
+        cp = cos(pitch);
+        sp = sin(pitch);
+    }
 
     vec3 yawView = vec3(
         cy * relative.x - sy * relative.z,
         relative.y,
         sy * relative.x + cy * relative.z
     );
-
-    float pitch =
-        pc.cameraPitchFov.x;
-
-    float cp = cos(pitch);
-    float sp = sin(pitch);
 
     return vec3(
         yawView.x,
@@ -375,10 +392,16 @@ void main() {
         (material >= 15 &&
          material <= 16);
 
+    bool reflectionMaterial =
+        material == 13 ||
+        material == 14;
+
     vec3 camera =
         viewmodelMaterial
         ? world
-        : worldToView(world);
+        : worldToView(
+              world,
+              !reflectionMaterial);
 
     const float nearPlane = 0.08;
     const float farPlane = 48.0;

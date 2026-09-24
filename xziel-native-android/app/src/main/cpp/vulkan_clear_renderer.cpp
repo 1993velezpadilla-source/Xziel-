@@ -5183,6 +5183,14 @@ bool VulkanClearRenderer::recordDrawCommand(
             std::atan2(
                 -reflectedForwardY,
                 reflectedHorizontalForward);
+        const float reflectedCameraCosYaw =
+            std::cos(reflectedCameraYaw);
+        const float reflectedCameraSinYaw =
+            std::sin(reflectedCameraYaw);
+        const float reflectedCameraCosPitch =
+            std::cos(reflectedCameraPitch);
+        const float reflectedCameraSinPitch =
+            std::sin(reflectedCameraPitch);
 
         // REFLECTION_PUSH_BASE_CACHE_V1
         // Everything below except object transform/material is invariant for
@@ -5283,6 +5291,20 @@ bool VulkanClearRenderer::recordDrawCommand(
             push.scaleX = sx;
             push.scaleY = sy;
             push.scaleZ = sz;
+
+            const bool reflectiveMaterial =
+                materialId == 13.0f ||
+                materialId == 14.0f;
+            if (!reflectiveMaterial) {
+                push.reflectionPlaneX =
+                    reflectedCameraCosYaw;
+                push.reflectionPlaneY =
+                    reflectedCameraSinYaw;
+                push.reflectionPlaneZ =
+                    reflectedCameraCosPitch;
+                push.reflectionPlaneDistance =
+                    reflectedCameraSinPitch;
+            }
 
             vkCmdPushConstants(
                 command,
@@ -5634,6 +5656,27 @@ bool VulkanClearRenderer::recordDrawCommand(
         std::isfinite(camera.z)
         ? camera.z
         : -2.55f;
+    const float safeCameraYaw =
+        std::isfinite(camera.yawRadians)
+        ? camera.yawRadians
+        : 0.0f;
+    const float safeCameraPitch =
+        std::isfinite(camera.pitchRadians)
+        ? camera.pitchRadians
+        : 0.0f;
+
+    // CAMERA_TRIG_CPU_CACHE_V1
+    // Camera orientation is pass-invariant. Compute the four trig terms once
+    // on CPU and place them in reflectionPlane for non-reflective draws, where
+    // those push-constant slots are otherwise unused.
+    const float mainCameraCosYaw =
+        std::cos(safeCameraYaw);
+    const float mainCameraSinYaw =
+        std::sin(safeCameraYaw);
+    const float mainCameraCosPitch =
+        std::cos(safeCameraPitch);
+    const float mainCameraSinPitch =
+        std::sin(safeCameraPitch);
 
     float mainPlaneNx =
         environment.planarPlaneNormalX;
@@ -5696,13 +5739,9 @@ bool VulkanClearRenderer::recordDrawCommand(
     mainBasePush.cameraZ =
         safeCameraZ;
     mainBasePush.cameraYawRadians =
-        std::isfinite(camera.yawRadians)
-        ? camera.yawRadians
-        : 0.0f;
+        safeCameraYaw;
     mainBasePush.cameraPitchRadians =
-        std::isfinite(camera.pitchRadians)
-        ? camera.pitchRadians
-        : 0.0f;
+        safeCameraPitch;
     mainBasePush.verticalFovDegrees =
         projectionFovDegrees;
     mainBasePush.cameraPadding0 =
@@ -5807,6 +5846,20 @@ bool VulkanClearRenderer::recordDrawCommand(
             std::isfinite(objectPitchRadians)
             ? objectPitchRadians
             : 0.0f;
+
+        const bool reflectiveMaterial =
+            materialId == 13.0f ||
+            materialId == 14.0f;
+        if (!reflectiveMaterial) {
+            push.reflectionPlaneX =
+                mainCameraCosYaw;
+            push.reflectionPlaneY =
+                mainCameraSinYaw;
+            push.reflectionPlaneZ =
+                mainCameraCosPitch;
+            push.reflectionPlaneDistance =
+                mainCameraSinPitch;
+        }
 
         vkCmdPushConstants(
             command,
