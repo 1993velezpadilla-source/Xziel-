@@ -406,6 +406,11 @@ def main():
         fallback_count=0
         group_cache={}
         mesh_groups=set()
+        # Preserve the per-vertex anatomical support mask through every later
+        # smoothing pass. V24 constrained the initial solve correctly, but the
+        # adjacency smoother could re-introduce unrelated bone names from a
+        # neighboring vertex, defeating that guarantee.
+        allowed_groups_by_vertex=[set() for _ in mesh.data.vertices]
         for v in mesh.data.vertices:
             world=mesh.matrix_world @ v.co
             target_side=side_of(world,target_center_fit,width_axis)
@@ -432,6 +437,7 @@ def main():
             # skeletal neighbours. This preserves rigid facial/head surfaces
             # while retaining smooth elbow/knee/shoulder transitions.
             allowed={dominant}|bone_neighbors.get(dominant,set())
+            allowed_groups_by_vertex[v.index]=set(allowed)
             local=[]
             for score,name,dist in scored:
                 if name in allowed:
@@ -464,7 +470,13 @@ def main():
         # Smooth the transferred skin field across actual mesh adjacency without
         # context-sensitive bpy operators. This works headless in GitHub Actions
         # and prevents abrupt bone-weight jumps across face/clothing surfaces.
-        smoothing={"attempted":True,"passed":False,"groups":len(mesh.vertex_groups),"method":"adjacency_python_v1"}
+        smoothing={
+            "attempted":True,
+            "passed":False,
+            "groups":len(mesh.vertex_groups),
+            "method":"adjacency_python_anatomical_mask_v2",
+            "anatomical_mask_enforced":True,
+        }
         try:
             adjacency=[set() for _ in mesh.data.vertices]
             for edge in mesh.data.edges:
@@ -491,9 +503,14 @@ def main():
                     if not neighbors:
                         next_rows.append(dict(row))
                         continue
+                    allowed_names=allowed_groups_by_vertex[vi] or set(row)
                     names=set(row)
                     for ni in neighbors:
                         names.update(weights_by_vertex[ni])
+                    # Never let topology smoothing widen a vertex's anatomical
+                    # bone support. Neighbor weights may influence only bones
+                    # that V25's local solver already declared valid here.
+                    names.intersection_update(allowed_names)
                     merged={}
                     denom=float(len(neighbors))
                     for name in names:
@@ -504,7 +521,15 @@ def main():
                             merged[name]=value
                     ranked=sorted(merged.items(),key=lambda x:x[1],reverse=True)[:4]
                     total=sum(w for _,w in ranked)
-                    next_rows.append({name:w/total for name,w in ranked} if total>1e-8 else dict(row))
+                    if total>1e-8:
+                        next_rows.append({name:w/total for name,w in ranked})
+                    else:
+                        fallback={name:w for name,w in row.items() if name in allowed_names}
+                        fallback_total=sum(fallback.values())
+                        next_rows.append(
+                            {name:w/fallback_total for name,w in fallback.items()}
+                            if fallback_total>1e-8 else dict(row)
+                        )
                 weights_by_vertex=next_rows
 
             # Rewrite groups from the smoothed field.
@@ -685,7 +710,7 @@ def main():
         "armature_world_after":arm_world_after,
         "export_meshes":remaining_meshes,
         "sterile_export_scene_meshes":export_scene_meshes,
-        "binding_method":"local_anatomical_bone_envelope_v24",
+        "binding_method":"local_anatomical_bone_envelope_masked_smoothing_v25",
         "bind_results":bind_results,
         "output_bytes":args.output.stat().st_size if args.output.exists() else 0,
     }
