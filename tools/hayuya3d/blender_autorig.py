@@ -373,6 +373,25 @@ def main():
     if len(bone_segments)<12:
         raise RuntimeError(f"insufficient_major_bone_segments:{len(bone_segments)}<12")
 
+    segment_by_name={seg["name"]:seg for seg in bone_segments}
+    major_names=set(segment_by_name)
+    bone_neighbors={name:set() for name in major_names}
+    for bone in arm.data.bones:
+        if bone.name not in major_names:
+            continue
+        parent=bone.parent
+        while parent is not None and parent.name not in major_names:
+            parent=parent.parent
+        if parent is not None and parent.name in major_names:
+            bone_neighbors[bone.name].add(parent.name)
+            bone_neighbors[parent.name].add(bone.name)
+
+    # Some rigs insert non-deform helper chains between anatomically adjacent
+    # DEF bones. The nearest-major-ancestor pass above recovers those links.
+    # Keep support local: one dominant bone plus immediate anatomical neighbors.
+    if not any(bone_neighbors.values()):
+        raise RuntimeError("major_bone_adjacency_empty")
+
     bind_results=[]
     all_weighted_groups=set()
     bone_top1_counts={}
@@ -395,26 +414,33 @@ def main():
                 if target_side and seg["side"] and target_side!=seg["side"]:
                     continue
                 dist=point_segment_distance(world,seg["a"],seg["b"])
-                # Radius scales with bone length. The additive floor prevents
-                # tiny hand/foot bones from creating razor-thin weight spikes.
                 radius=max(target_height*0.035,seg["length"]*0.42)
                 score=1.0/((dist+radius*0.35)**2)
                 scored.append((score,seg["name"],dist))
-            if len(scored)<4:
-                scored=[]
+            if not scored:
                 for seg in bone_segments:
                     dist=point_segment_distance(world,seg["a"],seg["b"])
                     radius=max(target_height*0.035,seg["length"]*0.42)
-                    score=1.0/((dist+radius*0.35)**2)
-                    scored.append((score,seg["name"],dist))
+                    scored.append((1.0/((dist+radius*0.35)**2),seg["name"],dist))
             scored.sort(reverse=True,key=lambda x:x[0])
-            if scored:
-                bone_top1_counts[scored[0][1]]=bone_top1_counts.get(scored[0][1],0)+1
-            # Eight candidates are blended, then the strongest four are kept.
-            # This makes joint transitions smooth while preserving mobile/game
-            # skinning limits.
+            dominant=scored[0][1]
+            bone_top1_counts[dominant]=bone_top1_counts.get(dominant,0)+1
+
+            # Critical deformation rule: never mix unrelated bones merely
+            # because their envelope happens to be nearby in a robe/hair/face
+            # silhouette. Blend only the dominant bone and its immediate
+            # skeletal neighbours. This preserves rigid facial/head surfaces
+            # while retaining smooth elbow/knee/shoulder transitions.
+            allowed={dominant}|bone_neighbors.get(dominant,set())
+            local=[]
+            for score,name,dist in scored:
+                if name in allowed:
+                    local.append((score,name,dist))
+            if not local:
+                local=[scored[0]]
+
             accum={}
-            for score,name,_ in scored[:8]:
+            for score,name,_ in local[:4]:
                 accum[name]=accum.get(name,0.0)+score
             ranked=sorted(accum.items(),key=lambda x:x[1],reverse=True)[:4]
             total=sum(w for _,w in ranked)
@@ -519,7 +545,8 @@ def main():
             "fallback_weighted_vertices":fallback_count,
             "donor_samples":len(samples),
             "bone_envelope_segments":len(bone_segments),
-            "blend_neighbours":8,
+            "anatomical_neighbor_graph":{k:sorted(v) for k,v in bone_neighbors.items()},
+            "blend_neighbours":4,
             "query_space":"fitted_skeleton_bone_envelopes",
             "weight_smoothing":smoothing,
         })
@@ -658,7 +685,7 @@ def main():
         "armature_world_after":arm_world_after,
         "export_meshes":remaining_meshes,
         "sterile_export_scene_meshes":export_scene_meshes,
-        "binding_method":"anatomical_head_pelvis_up_bone_envelope_v18",
+        "binding_method":"local_anatomical_bone_envelope_v24",
         "bind_results":bind_results,
         "output_bytes":args.output.stat().st_size if args.output.exists() else 0,
     }
