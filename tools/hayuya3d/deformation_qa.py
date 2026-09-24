@@ -558,9 +558,17 @@ def audit_deformation(
                             )
 
                 merged=np.concatenate(frame_points,axis=0)
-                lo=np.nanmin(merged,axis=0)
-                hi=np.nanmax(merged,axis=0)
-                bounds_ratio=float(np.linalg.norm(hi-lo))/bind_diag
+                finite_rows=merged[
+                    np.isfinite(merged).all(axis=1)
+                ]
+                if len(finite_rows):
+                    lo=np.min(finite_rows,axis=0)
+                    hi=np.max(finite_rows,axis=0)
+                    bounds_ratio=(
+                        float(np.linalg.norm(hi-lo))/bind_diag
+                    )
+                else:
+                    bounds_ratio=float("inf")
 
                 if nonfinite:
                     frame_errors.append(
