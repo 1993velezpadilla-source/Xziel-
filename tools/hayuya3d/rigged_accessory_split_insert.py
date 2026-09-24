@@ -315,9 +315,10 @@ def insert_split_rigged_accessory(
                 int(surface_relation.max_examined_triangles),
             )
             if int(surface_relation.fallback_vertices) > 0:
-                warnings.append(
-                    "surface_transfer_fallback_vertices="
-                    + str(int(surface_relation.fallback_vertices))
+                raise RuntimeError(
+                    "barycentric surface transfer required nearest-vertex "
+                    "fallback on degenerate base topology for "
+                    f"{int(surface_relation.fallback_vertices)} accessory vertices"
                 )
             source_ratio = source_distance / base_diag
             all_source_ratios.extend(source_ratio.tolist())
