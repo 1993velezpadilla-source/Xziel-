@@ -202,6 +202,9 @@ private:
     struct GeometryRangeInFlight {
         std::uint32_t batchIndex = UINT32_MAX;
         std::string key{};
+        std::vector<std::byte> readyBytes{};
+        std::size_t copyCursor = 0U;
+        bool resultReady = false;
         bool active = false;
     };
 
@@ -229,6 +232,7 @@ private:
             kGeometryReloadWindow> reloadRanges{};
         std::uint32_t reloadPendingCount = 0U;
         std::uint32_t reloadPeakPendingCount = 0U;
+        VkDeviceSize reloadPeakCopyBytesPerFrame = 0U;
         std::uint64_t reloadStartFrame = 0U;
         std::vector<std::byte> reloadVertexBytes{};
         std::vector<std::byte> reloadIndexBytes{};
