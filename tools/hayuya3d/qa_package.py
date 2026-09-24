@@ -39,6 +39,7 @@ class QAPackageResult:
     face_evidence_expected: int
     face_evidence_evaluated: int
     face_evidence_missing: list[str]
+    face_evidence_min_score: float | None
     head_density_score: float | None
     head_texel_density_score: float | None
     head_texture_detail_score: float | None
@@ -80,7 +81,7 @@ def material_rebake_channel_summary(gameprep_data: dict | None) -> tuple[list[st
 def face_reference_evidence(
     detail_images: list[Path],
     champion_data: dict,
-) -> tuple[list[Path], int, int, list[str], float | None, bool]:
+) -> tuple[list[Path], int, int, list[str], float | None, float | None, bool]:
     """Require complete Judge coverage for every explicit face reference.
 
     This intentionally does not invent a visual-quality threshold. It only
@@ -94,7 +95,7 @@ def face_reference_evidence(
     ]
     expected=len(refs)
     if not refs:
-        return refs,0,0,[],None,True
+        return refs,0,0,[],None,None,True
 
     raw_score=champion_data.get("appearance_face_detail_score")
     aggregate_score=None
@@ -131,6 +132,7 @@ def face_reference_evidence(
     consumed=set()
     missing=[]
     evaluated=0
+    matched_scores=[]
     for ref in refs:
         ref_text=str(ref)
         match_index=None
@@ -145,13 +147,15 @@ def face_reference_evidence(
         else:
             consumed.add(match_index)
             evaluated+=1
+            matched_scores.append(float(candidates[match_index][1]))
 
+    min_score=min(matched_scores) if matched_scores else None
     ready=bool(
         aggregate_score is not None
         and evaluated==expected
         and not missing
     )
-    return refs,expected,evaluated,missing,aggregate_score,ready
+    return refs,expected,evaluated,missing,aggregate_score,min_score,ready
 
 
 def _thumbnail(path: Path, size: tuple[int, int]):
@@ -346,6 +350,7 @@ def build_qa_package(
         face_evidence_evaluated,
         face_evidence_missing,
         face_evidence_score,
+        face_evidence_min_score,
         face_evidence_ready,
     )=face_reference_evidence(detail_images,champion_data)
     face_evidence_required=bool(face_detail_refs)
@@ -517,6 +522,7 @@ def build_qa_package(
             "required": face_evidence_required,
             "references": [str(p) for p in face_detail_refs],
             "score": face_evidence_score,
+            "min_score": face_evidence_min_score,
             "expected": face_evidence_expected,
             "evaluated": face_evidence_evaluated,
             "missing_references": face_evidence_missing,
@@ -559,6 +565,10 @@ def build_qa_package(
         face_evidence_expected=face_evidence_expected,
         face_evidence_evaluated=face_evidence_evaluated,
         face_evidence_missing=list(face_evidence_missing),
+        face_evidence_min_score=(
+            float(face_evidence_min_score)
+            if face_evidence_min_score is not None else None
+        ),
         head_density_score=(
             float(mesh.head_density_score)
             if mesh.head_density_score is not None else None
