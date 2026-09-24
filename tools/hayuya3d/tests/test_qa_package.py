@@ -70,6 +70,49 @@ class QAPackageTests(unittest.TestCase):
                 result.warnings,
             )
 
+    def test_floating_accessory_is_reported_by_final_qa_package(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            final_glb = root / "floating_accessory.glb"
+
+            body = trimesh.creation.icosphere(subdivisions=2, radius=1.0)
+            charm = trimesh.creation.icosphere(subdivisions=0, radius=0.08)
+            charm.apply_translation([4.0, 0.0, 0.0])
+            scene = trimesh.Scene()
+            scene.add_geometry(body, node_name="body", geom_name="body")
+            scene.add_geometry(charm, node_name="charm", geom_name="charm")
+            final_glb.write_bytes(trimesh.exchange.gltf.export_glb(scene))
+
+            result = build_qa_package(
+                final_glb,
+                root / "qa",
+                champion={"backend": "fixture", "visual_views": []},
+                mode="prop",
+                profile="game",
+                source_images=[],
+                detail_images=[],
+                gameprep=None,
+                target_faces=500,
+            )
+
+            report = json.loads(Path(result.report).read_text(encoding="utf-8"))
+            attachment = report["composite_attachment"]
+            self.assertFalse(result.composite_attachment_ready)
+            self.assertEqual(result.composite_attachment_components, 2)
+            self.assertEqual(result.composite_attachment_accessories, 1)
+            self.assertEqual(result.composite_attachment_floating, 1)
+            self.assertEqual(result.composite_attachment_oversized_floating, 0)
+            self.assertFalse(attachment["ready"])
+            self.assertEqual(attachment["floating_components"], 1)
+            self.assertFalse(result.production_ready)
+            self.assertTrue(
+                any(
+                    "floating accessory" in warning
+                    for warning in result.warnings
+                ),
+                result.warnings,
+            )
+
     def test_face_reference_requires_face_identity_evaluation(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
