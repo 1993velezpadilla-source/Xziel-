@@ -235,6 +235,8 @@ def texture_refinement_regressions(source, challenger) -> list[str]:
     # These metrics are monotonic evidence. Missing challenger evidence is also
     # a regression when the incumbent had it.
     for name in (
+        "score",
+        "production_score",
         "head_texture_detail_score",
         "head_texel_density_score",
         "visual_score",
@@ -293,6 +295,73 @@ def head_composite_regressions(source, challenger) -> list[str]:
     if before_edge>0 and after_edge<before_edge:
         reasons.append(
             f"basecolor_resolution_regressed:{before_edge}->{after_edge}"
+        )
+    return reasons
+
+
+def _strict_metric_improvement(
+    source,
+    challenger,
+    metric: str,
+) -> list[str]:
+    before=getattr(source,metric,None)
+    after=getattr(challenger,metric,None)
+    if before is None:
+        if after is None:
+            return [f"missing_target_evidence:{metric}"]
+        return []
+    if after is None:
+        return [f"missing_target_evidence:{metric}"]
+    if float(after)<=float(before)+1e-6:
+        return [
+            f"target_not_improved:{metric}:"
+            f"{float(before):.3f}->{float(after):.3f}"
+        ]
+    return []
+
+
+def _appearance_detail_score(item, source: str) -> float | None:
+    wanted=str(source)
+    wanted_name=Path(wanted).name
+    for detail in getattr(item,"appearance_details",None) or []:
+        if not isinstance(detail,dict):
+            continue
+        actual=str(detail.get("source") or "")
+        if actual!=wanted and Path(actual).name!=wanted_name:
+            continue
+        try:
+            score=float(detail.get("score"))
+        except (TypeError,ValueError):
+            return None
+        if math.isfinite(score):
+            return score
+    return None
+
+
+def local_detail_composite_regressions(
+    source,
+    challenger,
+    detail_source: str,
+) -> list[str]:
+    reasons=texture_refinement_regressions(source,challenger)
+    before=_appearance_detail_score(source,detail_source)
+    after=_appearance_detail_score(challenger,detail_source)
+    if before is None:
+        if after is None:
+            reasons.append(
+                "missing_target_detail_evidence:"
+                +Path(detail_source).name
+            )
+    elif after is None:
+        reasons.append(
+            "missing_target_detail_evidence:"
+            +Path(detail_source).name
+        )
+    elif after<=before+1e-6:
+        reasons.append(
+            "target_detail_not_improved:"
+            f"{Path(detail_source).name}:"
+            f"{before:.3f}->{after:.3f}"
         )
     return reasons
 
