@@ -1619,7 +1619,28 @@ void VulkanStaticMeshRenderer::rebuildStreamingCellBounds() noexcept {
                 extentX * extentX +
                 extentY * extentY +
                 extentZ * extentZ);
+
+        cell.volume =
+            std::max(
+                0.001f,
+                cell.bounds.maximum[0] -
+                    cell.bounds.minimum[0]) *
+            std::max(
+                0.001f,
+                cell.bounds.maximum[1] -
+                    cell.bounds.minimum[1]) *
+            std::max(
+                0.001f,
+                cell.bounds.maximum[2] -
+                    cell.bounds.minimum[2]);
     }
+
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
+        "XZIEL_STREAM_CELL_VOLUME_CACHE_READY cells=%u",
+        static_cast<unsigned int>(
+            streamCellBoundsCount_));
 
     std::uint32_t indexedGeometryCells = 0U;
 
@@ -1695,7 +1716,6 @@ std::uint32_t VulkanStaticMeshRenderer::inferStreamingCell(
         }
 
         float distanceSquared = 0.0f;
-        float volume = 1.0f;
 
         for (std::size_t axis = 0U;
              axis < 3U;
@@ -1715,22 +1735,17 @@ std::uint32_t VulkanStaticMeshRenderer::inferStreamingCell(
                     point[axis] - maximum;
                 distanceSquared += d * d;
             }
-
-            volume *=
-                std::max(
-                    0.001f,
-                    maximum - minimum);
         }
 
         if (distanceSquared <
                 bestDistance ||
             (distanceSquared ==
                  bestDistance &&
-             volume < bestVolume)) {
+             cell.volume < bestVolume)) {
             bestDistance =
                 distanceSquared;
             bestVolume =
-                volume;
+                cell.volume;
             bestCell =
                 cell.cellId;
         }

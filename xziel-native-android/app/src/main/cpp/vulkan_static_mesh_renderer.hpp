@@ -223,6 +223,9 @@ private:
         float cullCenterY = 0.0f;
         float cullCenterZ = 0.0f;
         float cullRadius = 0.0f;
+        // Static tie-break volume used by inferStreamingCell(). Computing it
+        // once avoids rebuilding the same three-axis product every frame.
+        float volume = 0.0f;
         bool valid = false;
     };
 
