@@ -128,6 +128,26 @@ def evaluate_aaa_acceptance(
         ),
     )
 
+    attachment=qa_report.get("composite_attachment") or {}
+    _gate(
+        gates,"geometry.composite_attachment","geometry",
+        bool(
+            attachment.get("applicable")
+            and attachment.get("ready")
+        ),
+        (
+            f"components={attachment.get('component_count')} "
+            f"accessories={attachment.get('accessory_candidates')} "
+            f"anchored={attachment.get('anchored_accessories')} "
+            f"floating={attachment.get('floating_components')} "
+            f"oversized_floating={attachment.get('oversized_floating_components')}"
+        ),
+        blocker=(
+            "detached accessory or donor islands lack a coherent "
+            "attachment path to the main asset"
+        ),
+    )
+
     source=qa_report.get("source_coverage") or {}
     source_ready=bool(
         int(source.get("judged") or 0)>=int(source.get("expected") or 0)
