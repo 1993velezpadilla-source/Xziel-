@@ -276,6 +276,7 @@ def make_job_plan(
     character_specialist_mode: str = "off",
     mesh_doctor_mode: str = "auto",
     retopo_mode: str = "auto",
+    texture_superres_mode: str = "auto",
     portable_target: str = "auto",
     portable_pack_mode: str = "auto",
     texture_delivery_mode: str = "auto",
@@ -406,6 +407,13 @@ def make_job_plan(
             "style": "pure_quad for prop/architecture; quad_dominant for unrigged character",
             "policy": "preserve retopo_master.obj as editable topology, restore PBR through Material Bridge v2, then re-enter the complete real-source Judge; never overwrite the source candidate blindly",
             "rig_policy": "skip any glTF with skins until skin-weight-preserving retopology transfer exists"
+        },
+        "texture_superres": {
+            "mode": texture_superres_mode,
+            "backend": "Real-ESRGAN NCNN Vulkan",
+            "activation": "Monster/Ultra provisional champion only when weakest embedded baseColor is below the profile target and the optional executable is available",
+            "policy": "rewrite only embedded baseColor image payloads, preserve geometry/skin/animation buffers byte-for-byte, add as a separate challenger, and require the complete Judge to choose it",
+            "model": "realesrgan-x4plus"
         },
         "geometry_refinement": {
             "mode": geometry_refine_mode,
@@ -636,6 +644,12 @@ def main() -> int:
         help="Instant Meshes deterministic quad retopology challenger; auto runs only when the optional native binary is ready and the provisional champion is unrigged",
     )
     parser.add_argument(
+        "--texture-superres",
+        choices=["off", "auto", "required"],
+        default="auto",
+        help="Real-ESRGAN visible baseColor challenger; auto runs for Monster/Ultra only when the provisional champion is below the profile texture target",
+    )
+    parser.add_argument(
         "--character-specialist",
         choices=["off", "auto", "required"],
         default="off",
@@ -740,6 +754,7 @@ def main() -> int:
         character_specialist_mode=args.character_specialist,
         mesh_doctor_mode=args.mesh_doctor,
         retopo_mode=args.retopo,
+        texture_superres_mode=args.texture_superres,
         portable_target=args.portable_target,
         portable_pack_mode=args.portable_pack,
         texture_delivery_mode=args.texture_delivery,
