@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[3]
 HAYUYA_DIR = ROOT / "tools" / "hayuya3d"
 sys.path.insert(0, str(HAYUYA_DIR))
 
-from qa import head_density_score_from_ratio, inspect_mesh
+from qa import _sample_uv_luma_gradients, head_density_score_from_ratio, inspect_mesh
 
 
 class HeadDensityScoreTests(unittest.TestCase):
@@ -27,6 +27,31 @@ class HeadDensityScoreTests(unittest.TestCase):
     def test_equal_or_denser_head_caps_at_full_credit(self):
         self.assertEqual(head_density_score_from_ratio(1.0), 100.0)
         self.assertEqual(head_density_score_from_ratio(1.8), 100.0)
+
+    def test_face_texture_gradient_sampler_distinguishes_local_detail(self):
+        uniform = Image.fromarray(
+            np.full((16, 16, 3), 128, dtype=np.uint8),
+            mode="RGB",
+        )
+        striped = np.zeros((16, 16, 3), dtype=np.uint8)
+        striped[:, ::2] = 32
+        striped[:, 1::2] = 224
+        detailed = Image.fromarray(striped, mode="RGB")
+        uv_centers = np.array([
+            [0.10, 0.10],
+            [0.30, 0.30],
+            [0.50, 0.50],
+            [0.70, 0.70],
+        ], dtype=np.float64)
+        mask = np.array([True, True, True, True])
+        flat = _sample_uv_luma_gradients(
+            np, uniform, uv_centers, mask
+        )
+        sharp = _sample_uv_luma_gradients(
+            np, detailed, uv_centers, mask
+        )
+        self.assertEqual(float(np.mean(flat)), 0.0)
+        self.assertGreater(float(np.mean(sharp)), 50.0)
 
     def test_head_texel_density_detects_tiny_face_uv_budget(self):
         with tempfile.TemporaryDirectory() as tmp:
