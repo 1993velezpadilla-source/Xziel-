@@ -209,6 +209,30 @@ def evaluate_aaa_acceptance(
                 ),
             )
 
+            semantic=manifest.get("semantic_anatomy") or {}
+            aggregate=semantic.get("aggregate") or {}
+            _gate(
+                gates,"character.semantic_anatomy","character",
+                bool(
+                    semantic.get("attempted")
+                    and semantic.get("ready")
+                    and aggregate.get("ready")
+                ),
+                (
+                    f"attempted={semantic.get('attempted')} "
+                    f"targets={semantic.get('critical_targets')} "
+                    f"views={len(semantic.get('rendered_views') or [])} "
+                    f"missing={aggregate.get('missing_parts')} "
+                    f"error={semantic.get('error')}"
+                ),
+                required=high_end,
+                blocker=(
+                    "final high-end character lacks passing multi-view "
+                    "GroundingDINO/SAM2 proof for explicitly referenced "
+                    "critical anatomy"
+                ),
+            )
+
         for key in (
             "head_density_score",
             "head_texel_density_score",
