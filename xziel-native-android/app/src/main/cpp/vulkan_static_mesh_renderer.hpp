@@ -572,6 +572,7 @@ private:
     std::uint32_t totalVertices_ = 0U;
     std::uint32_t totalIndices_ = 0U;
     bool samplerAnisotropyEnabled_ = false;
+    bool packedStaticVertexEnabled_ = false;
     bool astcLdrSupported_ = false;
     bool multiDrawIndirectEnabled_ = false;
     std::uint32_t maxDrawIndirectCount_ = 1U;
