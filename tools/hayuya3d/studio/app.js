@@ -155,6 +155,7 @@ function renderCandidates(job) {
       ["Detail", candidate.detail_score],
       ["Material", candidate.material_score],
       ["Texture", candidate.texture_resolution_score],
+      ["FaceMesh", candidate.head_density_score],
     ].filter(([, value]) => value != null);
     if (metrics.length) {
       const meter = document.createElement("div");
