@@ -215,6 +215,24 @@ def main():
             return 0
         return -1 if delta < 0 else 1
 
+    def remap_target_to_donor_space(world):
+        # Map the generated target into the donor's normalized body envelope.
+        # This is deliberately independent of the donor's absolute world
+        # placement. A nearest-neighbour lookup in raw world space can collapse
+        # most target vertices onto feet/calves when a generated silhouette has
+        # very different robe/hair proportions.
+        tv=(world.x,world.y,world.z)
+        tmin=(target_min.x,target_min.y,target_min.z)
+        text=(target_ext.x,target_ext.y,target_ext.z)
+        dmin=(donor_min_fit.x,donor_min_fit.y,donor_min_fit.z)
+        dext=((donor_max_fit-donor_min_fit).x,(donor_max_fit-donor_min_fit).y,(donor_max_fit-donor_min_fit).z)
+        vals=[]
+        for axis in range(3):
+            n=(tv[axis]-tmin[axis])/max(1e-8,text[axis])
+            n=max(0.0,min(1.0,n))
+            vals.append(dmin[axis]+n*dext[axis])
+        return Vector(tuple(vals))
+
     for donor in donor_meshes:
         for v in donor.data.vertices:
             weights=[]
@@ -262,8 +280,9 @@ def main():
         mesh_groups=set()
         for v in mesh.data.vertices:
             world=mesh.matrix_world @ v.co
+            query=remap_target_to_donor_space(world)
             target_side=side_of(world,target_center_fit,width_axis)
-            neighbours=kd.find_n(world,12)
+            neighbours=kd.find_n(query,16)
             candidates=[]
             for _,idx,dist in neighbours:
                 sco,sweights,sside=samples[idx]
@@ -382,6 +401,7 @@ def main():
             "fallback_weighted_vertices":fallback_count,
             "donor_samples":len(samples),
             "blend_neighbours":8,
+            "query_space":"normalized_target_to_donor_body_envelope",
             "weight_smoothing":smoothing,
         })
 
