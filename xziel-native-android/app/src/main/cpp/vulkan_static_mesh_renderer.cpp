@@ -284,6 +284,13 @@ bool VulkanStaticMeshRenderer::initialize(
     multiDrawIndirectEnabled_ =
         deviceFeatures.multiDrawIndirect ==
         VK_TRUE;
+    maxDrawIndirectCount_ =
+        multiDrawIndirectEnabled_
+        ? std::max<std::uint32_t>(
+              1U,
+              deviceProperties.limits.
+                  maxDrawIndirectCount)
+        : 1U;
 
     maxSamplerAnisotropy_ =
         samplerAnisotropyEnabled_
@@ -318,9 +325,11 @@ bool VulkanStaticMeshRenderer::initialize(
     __android_log_print(
         ANDROID_LOG_INFO,
         kTag,
-        "XZIEL_STATIC_TEXTURE_CAPS astc=%d multi_draw_indirect=%d aniso=%.1f upload_batch_commands=%u texture_budget_mb=%.1f",
+        "XZIEL_STATIC_TEXTURE_CAPS astc=%d multi_draw_indirect=%d max_indirect_draws=%u aniso=%.1f upload_batch_commands=%u texture_budget_mb=%.1f",
         astcLdrSupported_ ? 1 : 0,
         multiDrawIndirectEnabled_ ? 1 : 0,
+        static_cast<unsigned int>(
+            maxDrawIndirectCount_),
         static_cast<double>(
             maxSamplerAnisotropy_),
         static_cast<unsigned int>(
@@ -1120,6 +1129,7 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     samplerAnisotropyEnabled_ = false;
     astcLdrSupported_ = false;
     multiDrawIndirectEnabled_ = false;
+    maxDrawIndirectCount_ = 1U;
     maxSamplerAnisotropy_ = 1.0f;
     uploadBatchCommandLimit_ = 16U;
     textureResidentBudgetBytes_ =
@@ -4508,21 +4518,36 @@ void VulkanStaticMeshRenderer::record(
         }
 
         if (useIndirect) {
-            const VkDeviceSize offset =
-                static_cast<VkDeviceSize>(
-                    group.firstCommand) *
-                sizeof(VkDrawIndexedIndirectCommand);
-
-            vkCmdDrawIndexedIndirect(
-                command,
-                indirectFrame.buffer,
-                offset,
-                group.commandCount,
-                sizeof(VkDrawIndexedIndirectCommand));
-
-            ++frameStats_.drawSubmissions;
-            frameStats_.indirectDraws +=
+            std::uint32_t firstCommand =
+                group.firstCommand;
+            std::uint32_t remaining =
                 group.commandCount;
+
+            while (remaining > 0U) {
+                const std::uint32_t chunk =
+                    std::min<std::uint32_t>(
+                        remaining,
+                        maxDrawIndirectCount_);
+
+                const VkDeviceSize offset =
+                    static_cast<VkDeviceSize>(
+                        firstCommand) *
+                    sizeof(VkDrawIndexedIndirectCommand);
+
+                vkCmdDrawIndexedIndirect(
+                    command,
+                    indirectFrame.buffer,
+                    offset,
+                    chunk,
+                    sizeof(VkDrawIndexedIndirectCommand));
+
+                ++frameStats_.drawSubmissions;
+                frameStats_.indirectDraws +=
+                    chunk;
+
+                firstCommand += chunk;
+                remaining -= chunk;
+            }
         } else {
             const std::uint32_t endCommand =
                 group.firstCommand +
