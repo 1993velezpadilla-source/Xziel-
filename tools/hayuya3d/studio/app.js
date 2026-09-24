@@ -253,6 +253,8 @@ function renderFinalQa(qa) {
     ["Texture", qa.texture_ready],
     ["Rebake", qa.rebake_ready],
     ["Rig", qa.rig_ready],
+    ["Surface crossings", qa.crossing_ready],
+    ...(Number(qa.morph_targets || 0) > 0 ? [["Morphs", qa.morph_ready]] : []),
     ["SkinWeights", qa.skin_weights_ready],
     ["Animation", qa.animation_ready],
     ["Animation QA", qa.animation_integrity_ready],
@@ -271,6 +273,24 @@ function renderFinalQa(qa) {
     item.append(name, value);
     grid.appendChild(item);
   });
+
+  if (qa.morph_targets != null || qa.crossing_pairs != null) {
+    const item = document.createElement("div");
+    item.className = "qa-chip metric";
+    const name = document.createElement("span");
+    name.textContent = "Mesh dynamics";
+    const value = document.createElement("strong");
+    const parts = [];
+    if (qa.morph_targets != null) {
+      parts.push(Number(qa.morph_targets) + " morphs");
+    }
+    if (qa.crossing_pairs != null) {
+      parts.push(Number(qa.crossing_pairs) + " crossings");
+    }
+    value.textContent = parts.join(" · ");
+    item.append(name, value);
+    grid.appendChild(item);
+  }
 
   if (qa.anatomy_expected != null || qa.anatomy_evaluated != null) {
     const item = document.createElement("div");
