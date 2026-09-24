@@ -114,9 +114,12 @@ function showModel(url, label, meta="") {
 function renderFinalQa(qa) {
   const section = $("finalQaSection");
   const grid = $("finalQa");
+  const warningsBox = $("finalQaWarnings");
   if (!qa) {
     section.hidden = true;
     grid.replaceChildren();
+    warningsBox.replaceChildren();
+    warningsBox.hidden = true;
     return;
   }
 
@@ -190,6 +193,20 @@ function renderFinalQa(qa) {
     value.textContent = Number(score).toFixed(1);
     item.append(name, value);
     grid.appendChild(item);
+  });
+
+  const warnings = Array.isArray(qa.warnings) ? qa.warnings.filter(Boolean) : [];
+  warningsBox.replaceChildren();
+  warningsBox.hidden = warnings.length === 0;
+  warnings.slice(0, 6).forEach((warning) => {
+    const row = document.createElement("div");
+    row.className = "qa-warning";
+    const marker = document.createElement("span");
+    marker.textContent = "!";
+    const text = document.createElement("p");
+    text.textContent = warning;
+    row.append(marker, text);
+    warningsBox.appendChild(row);
   });
 }
 
