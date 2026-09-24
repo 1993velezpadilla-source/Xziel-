@@ -390,6 +390,63 @@ def write_shared_atlas_cluster_donor(path: Path) -> None:
     write_glb(path, doc, bytes(blob))
 
 
+def write_split_material_cluster_donor(path: Path) -> None:
+    def piece(center, color):
+        vertices = np.asarray([
+            [-0.045, -0.040, -0.035],
+            [ 0.045, -0.040, -0.035],
+            [ 0.000,  0.050, -0.025],
+            [ 0.000,  0.000,  0.050],
+        ], dtype=np.float64)
+        vertices += np.asarray(center, dtype=np.float64)
+        faces = np.asarray([
+            [0, 2, 1],
+            [0, 1, 3],
+            [1, 2, 3],
+            [2, 0, 3],
+        ], dtype=np.int64)
+        mesh = trimesh.Trimesh(
+            vertices=vertices,
+            faces=faces,
+            process=False,
+        )
+        uv = np.asarray([
+            [0.05, 0.05],
+            [0.95, 0.05],
+            [0.10, 0.90],
+            [0.90, 0.85],
+        ], dtype=np.float64)
+        base = np.zeros((16, 16, 4), dtype=np.uint8)
+        base[:, :, :3] = np.asarray(color, dtype=np.uint8)
+        base[:, :, 3] = 255
+        material = trimesh.visual.material.PBRMaterial(
+            baseColorTexture=Image.fromarray(base, "RGBA"),
+            metallicFactor=0.15,
+            roughnessFactor=0.5,
+        )
+        mesh.visual = trimesh.visual.TextureVisuals(
+            uv=uv,
+            material=material,
+        )
+        return mesh
+
+    scene = trimesh.Scene()
+    scene.add_geometry(
+        trimesh.creation.icosphere(subdivisions=2, radius=1.0),
+        node_name="body",
+    )
+    for index, (center, color) in enumerate((
+        ((0.0, 1.06, 0.0), (180, 120, 35)),
+        ((0.0, 1.17, 0.0), (150, 85, 30)),
+        ((0.0, 1.28, 0.0), (205, 155, 60)),
+    )):
+        scene.add_geometry(
+            piece(center, color),
+            node_name=f"accessory_{index}",
+        )
+    path.write_bytes(trimesh.exchange.gltf.export_glb(scene))
+
+
 def _candidate(
     backend: str,
     path: Path,
@@ -605,6 +662,67 @@ class AccessoryMaterialTransferTests(unittest.TestCase):
             self.assertTrue(result.fusion["morph_deformation_ready"])
             self.assertTrue(result.fusion["attachment_ready"])
             self.assertIn("baseColor", result.fusion["material_channels"])
+
+    def test_split_material_cluster_preserves_piece_materials_and_runtime(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            base = root / "base.glb"
+            donor = root / "split-cluster.glb"
+            raw = root / "split-raw.glb"
+            final = root / "split-final.glb"
+            write_skinned_base_with_normals(base)
+            write_split_material_cluster_donor(donor)
+
+            supported, blocker = accessory_material_transfer_supported(
+                donor,
+                up_axis="y",
+            )
+            self.assertTrue(supported, blocker)
+
+            inserted = insert_rigged_accessory(
+                base,
+                donor,
+                raw,
+            )
+            self.assertTrue(inserted.geometry_ready, inserted.errors)
+            self.assertEqual(inserted.spatial_label, "cluster")
+            self.assertFalse(inserted.production_ready)
+
+            transfer = transfer_accessory_material(
+                donor,
+                raw,
+                final,
+                donor_up_axis="y",
+            )
+            self.assertTrue(transfer.ready, transfer.errors)
+            self.assertEqual(len(transfer.donor_component_ids), 3)
+            self.assertEqual(
+                transfer.uv_vertices,
+                inserted.inserted_vertices,
+            )
+            self.assertGreaterEqual(transfer.copied_images, 3)
+            self.assertGreaterEqual(transfer.copied_textures, 3)
+            self.assertIn("baseColor", transfer.copied_channels)
+            self.assertTrue(transfer.uv_tangent_ready)
+            self.assertTrue(transfer.shading_basis_ready)
+            self.assertTrue(audit_uv_tangents(final).ready)
+            self.assertTrue(audit_shading_basis(final).ready)
+
+            production = prepare_production_rigged_accessory_insert(
+                base,
+                donor,
+                root / "split-production",
+            )
+            self.assertTrue(production.ready, production.errors)
+            self.assertTrue(
+                production.production_ready,
+                production.material_blockers,
+            )
+            self.assertTrue(production.legacy_payload_preserved)
+            self.assertTrue(production.rig_ready)
+            self.assertTrue(production.skin_weights_ready)
+            self.assertTrue(production.morph_deformation_ready)
+            self.assertTrue(production.attachment_ready)
 
     def test_untextured_donor_material_support_fails_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
