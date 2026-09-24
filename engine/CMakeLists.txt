@@ -29,6 +29,7 @@ add_library(xziel_engine STATIC
     src/particles.cpp
     src/performance.cpp
     src/horror.cpp
+    src/lighting.cpp
     src/render_features.cpp
     src/renderer_capabilities.cpp
     src/streaming.cpp
@@ -185,6 +186,11 @@ if(XZIEL_ENGINE_BUILD_TESTS)
     target_link_libraries(xziel_horror_smoke PRIVATE xziel_engine)
     target_compile_features(xziel_horror_smoke PRIVATE cxx_std_20)
     add_test(NAME xziel_horror_smoke COMMAND xziel_horror_smoke)
+
+    add_executable(xziel_lighting_smoke tests/lighting_smoke.cpp)
+    target_link_libraries(xziel_lighting_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_lighting_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_lighting_smoke COMMAND xziel_lighting_smoke)
 
     add_executable(xziel_render_features_smoke tests/render_features_smoke.cpp)
     target_link_libraries(xziel_render_features_smoke PRIVATE xziel_engine)
