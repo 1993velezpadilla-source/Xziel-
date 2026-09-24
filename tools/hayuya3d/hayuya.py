@@ -2022,7 +2022,9 @@ def main() -> int:
                     )
                     print(
                         "HAYUYA_COMPOSITE_DETAIL_REJECTED "
-                        +detail_execution.error,
+                        f"label={label} "
+                        f"source={Path(detail_source).name} "
+                        f"reason={detail_execution.error.replace(' ','_')}",
                         file=sys.stderr,
                     )
                 else:
