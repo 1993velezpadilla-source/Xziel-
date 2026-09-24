@@ -24,6 +24,9 @@ class LODArtifact:
     material_channels: list[str] | None = None
     dropped_channels: list[str] | None = None
     rebake_required: list[str] | None = None
+    rebaked_channels: list[str] | None = None
+    rebake_method: str | None = None
+    rebake_error: str | None = None
 
 
 @dataclass
@@ -190,6 +193,9 @@ def build_gameprep(
         final_path = out_dir / f"{name}.glb"
 
         transfer_result = None
+        rebake_result = None
+        effective_channels = None
+        remaining_rebakes: list[str] = []
         if has_skin:
             shutil.copy2(master_glb, final_path)
             actual = source_faces
@@ -204,13 +210,44 @@ def build_gameprep(
                 raw_path,
                 final_path,
             )
-            reloaded = load_combined_mesh(final_path)
-            actual = int(len(reloaded.faces))
+            effective_channels = list(transfer_result.channels or [])
+            remaining_rebakes = list(transfer_result.rebake_required or [])
             material_policy = (
                 "Material Bridge v2 PBR UV projection"
                 if transfer_result.method.startswith("surface-sample nearest-UV")
                 else "Material Bridge v1 base-color vertex projection fallback"
             )
+
+            if remaining_rebakes:
+                try:
+                    from material_rebake import rebake_material_channels
+                    rebake_path = out_dir / "_rebake" / f"{name}_material.glb"
+                    rebake_result = rebake_material_channels(
+                        master_glb,
+                        final_path,
+                        rebake_path,
+                        required=remaining_rebakes,
+                        max_texture_size=max_texture_size,
+                    )
+                    if rebake_result.resolved_channels:
+                        shutil.copy2(rebake_result.output_glb, final_path)
+                        effective_channels = sorted(
+                            set(effective_channels or [])
+                            | set(rebake_result.resolved_channels or [])
+                        )
+                        material_policy += (
+                            " + verified Blender selected-to-active normal rebake"
+                        )
+                    remaining_rebakes = list(rebake_result.remaining_channels or [])
+                except Exception as exc:
+                    # Rebake is a quality upgrade, never a reason to hide a valid
+                    # inspectable LOD. Leave all requested channels unresolved so
+                    # final QA keeps production_ready false.
+                    remaining_rebakes = list(transfer_result.rebake_required or [])
+                    rebake_result = None
+
+            reloaded = load_combined_mesh(final_path)
+            actual = int(len(reloaded.faces))
 
         lods.append(
             LODArtifact(
@@ -219,20 +256,27 @@ def build_gameprep(
                 target_faces=target,
                 actual_faces=actual,
                 material_policy=material_policy,
-                material_channels=(
-                    list(transfer_result.channels or [])
-                    if transfer_result is not None
-                    else None
-                ),
+                material_channels=effective_channels,
                 dropped_channels=(
                     list(transfer_result.dropped_channels or [])
                     if transfer_result is not None
                     else []
                 ),
-                rebake_required=(
-                    list(transfer_result.rebake_required or [])
-                    if transfer_result is not None
+                rebake_required=remaining_rebakes,
+                rebaked_channels=(
+                    list(rebake_result.resolved_channels or [])
+                    if rebake_result is not None
                     else []
+                ),
+                rebake_method=(
+                    rebake_result.method
+                    if rebake_result is not None
+                    else None
+                ),
+                rebake_error=(
+                    rebake_result.error
+                    if rebake_result is not None
+                    else None
                 ),
             )
         )
