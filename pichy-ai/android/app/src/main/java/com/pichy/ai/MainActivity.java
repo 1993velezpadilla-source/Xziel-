@@ -258,11 +258,12 @@ public class MainActivity extends Activity {
             try {
                 HttpURLConnection c = open("/health", "GET");
                 String body = read(c);
-                if (c.getResponseCode() >= 200 && c.getResponseCode() < 300) {
+                int responseCode = c.getResponseCode();
+                if (responseCode >= 200 && responseCode < 300) {
                     JSONObject out = new JSONObject(body);
                     runOnUiThread(() -> status.setText("Connected • Pichy " + out.optString("version", "?")));
                 } else {
-                    runOnUiThread(() -> status.setText("Server error " + c.getResponseCode()));
+                    runOnUiThread(() -> status.setText("Server error " + responseCode));
                 }
             } catch (Exception e) {
                 runOnUiThread(() -> status.setText("Offline • " + message(e)));
