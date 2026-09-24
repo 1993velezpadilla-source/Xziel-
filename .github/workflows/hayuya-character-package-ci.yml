@@ -27,6 +27,14 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/hayuya-package-ci
+          cat > /tmp/hayuya-package-ci/animation-gate.json <<'EOF'
+          {
+            "schema":2,
+            "passed":true,
+            "compatible_clips":["Zombie_Walk_Fwd_Loop","Sprint_Loop","Death01"],
+            "rejected_clip_count":0
+          }
+          EOF
           cat > /tmp/hayuya-package-ci/uam2.json <<'EOF'
           {
             "schema":1,
@@ -45,7 +53,7 @@ jobs:
             }
           }
           EOF
-          python tools/hayuya3d/build_character_package.py             --recipe /tmp/hayuya-package-ci/uam2.json             --model hayuya/models/candy-zombie-001/animated.glb             --out /tmp/hayuya-package-ci/uam2-out
+          python tools/hayuya3d/build_character_package.py             --recipe /tmp/hayuya-package-ci/uam2.json             --model hayuya/models/candy-zombie-001/animated.glb             --out /tmp/hayuya-package-ci/uam2-out --animation-gate /tmp/hayuya-package-ci/animation-gate.json
           python - <<'PY'
           import json
           from pathlib import Path
@@ -77,7 +85,7 @@ jobs:
             }
           }
           EOF
-          python tools/hayuya3d/build_character_package.py             --recipe /tmp/hayuya-package-ci/uam1.json             --model hayuya/models/candy-zombie-001/animated-uam1.glb             --out /tmp/hayuya-package-ci/uam1-out
+          python tools/hayuya3d/build_character_package.py             --recipe /tmp/hayuya-package-ci/uam1.json             --model hayuya/models/candy-zombie-001/animated-uam1.glb             --out /tmp/hayuya-package-ci/uam1-out --animation-gate /tmp/hayuya-package-ci/animation-gate.json
           python - <<'PY'
           import json
           from pathlib import Path
@@ -109,7 +117,7 @@ jobs:
             }
           }
           EOF
-          python tools/hayuya3d/build_character_package.py             --recipe /tmp/hayuya-package-ci/mixed.json             --model hayuya/models/candy-zombie-001/animated.glb             --out /tmp/hayuya-package-ci/mixed-out
+          python tools/hayuya3d/build_character_package.py             --recipe /tmp/hayuya-package-ci/mixed.json             --model hayuya/models/candy-zombie-001/animated.glb             --out /tmp/hayuya-package-ci/mixed-out --animation-gate /tmp/hayuya-package-ci/animation-gate.json
           python - <<'PY'
           import json
           from pathlib import Path
