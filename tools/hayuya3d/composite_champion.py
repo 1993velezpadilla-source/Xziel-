@@ -509,14 +509,37 @@ def build_composite_plan(
                             )
                             seam_risk="low"
                             rig_risk="medium"
-                            accessory_match_data[
-                                "rigged_insert_material_ready"
-                            ]=False
-                            accessory_match_data[
-                                "rigged_insert_production_blocker"
-                            ]=(
+                            material_ready=False
+                            material_blocker=(
                                 "donor UV/material transfer is not proven"
                             )
+                            try:
+                                from accessory_material_transfer import (
+                                    accessory_material_transfer_supported,
+                                )
+                                (
+                                    material_ready,
+                                    material_blocker,
+                                )=accessory_material_transfer_supported(
+                                    Path(winner.path),
+                                    up_axis=(
+                                        winner.up_axis
+                                        if winner.up_axis in {"x","y","z"}
+                                        else "y"
+                                    ),
+                                )
+                            except Exception as material_exc:
+                                material_ready=False
+                                material_blocker=(
+                                    f"{type(material_exc).__name__}:"
+                                    f"{material_exc}"
+                                )
+                            accessory_match_data[
+                                "rigged_insert_material_ready"
+                            ]=bool(material_ready)
+                            accessory_match_data[
+                                "rigged_insert_production_blocker"
+                            ]=material_blocker
                     except Exception as exc:
                         accessory_match_data[
                             "rigged_insert_supported"
