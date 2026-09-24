@@ -33,6 +33,12 @@ layout(location = 0) out vec4 outColor;
 
 const float PI = 3.14159265358979323846;
 
+// Preserve full close-range material detail while avoiding derivative-heavy
+// tangent reconstruction for distant fragments where the normal map is below
+// practical screen-space visibility. The fade band prevents visible popping.
+const float NORMAL_MAP_FULL_DETAIL_DISTANCE = 32.0;
+const float NORMAL_MAP_FADE_END_DISTANCE = 56.0;
+
 float distributionGgx(
     vec3 normal,
     vec3 halfVector,
@@ -192,12 +198,32 @@ void main() {
     }
 
     if (hasNormal) {
-        normal =
-            mappedNormal(
-                normal,
-                max(
-                    pc.metallicRoughnessNormalOcclusion.z,
-                    0.0));
+        float normalDetail =
+            1.0 -
+            smoothstep(
+                NORMAL_MAP_FULL_DETAIL_DISTANCE,
+                NORMAL_MAP_FADE_END_DISTANCE,
+                max(vDistance, 0.0));
+
+        // Most far-world fragments now skip mappedNormal() entirely. That
+        // avoids four derivatives, multiple normalizations and the normal-map
+        // texture sample without changing close-range PBR shading.
+        if (normalDetail > 0.001) {
+            vec3 geometricNormal = normal;
+            vec3 detailNormal =
+                mappedNormal(
+                    geometricNormal,
+                    max(
+                        pc.metallicRoughnessNormalOcclusion.z,
+                        0.0));
+
+            normal =
+                normalize(
+                    mix(
+                        geometricNormal,
+                        detailNormal,
+                        normalDetail));
+        }
     }
 
     float metallic =
