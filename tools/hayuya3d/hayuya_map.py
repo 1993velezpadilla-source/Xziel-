@@ -12,6 +12,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))
 
+from encounter_director import auto_encounter_profile, compile_encounter_intelligence
 from hayuya_ads import compile_monetization_intelligence
 from hayuya_lighting import auto_lighting_profile, compile_lighting_intelligence
 from map_design_brain import auto_design_profile, compile_design_intelligence
@@ -34,6 +35,7 @@ WORLD_STAGES = (
     "conflict_and_uncertainty_resolution",
     "missing_space_inference",
     "world_synthesis",
+    "encounter_composition",
     "world_judge",
     "xziel_compile",
     "runtime_acceptance",
@@ -89,6 +91,7 @@ def make_plan(
     env: dict[str, str] | None = None,
     design_profile: str | None = "auto",
     lighting_profile: str | None = "auto",
+    encounter_profile: str | None = "auto",
     universal_design_mode: str = "auto",
     monetization_mode: str = "auto",
 ) -> dict:
@@ -124,6 +127,10 @@ def make_plan(
     if resolved_lighting_profile == "auto":
         resolved_lighting_profile = auto_lighting_profile(goal)
 
+    resolved_encounter_profile = encounter_profile
+    if resolved_encounter_profile == "auto":
+        resolved_encounter_profile = auto_encounter_profile(goal)
+
     design_intelligence = (
         compile_design_intelligence(resolved_design_profile)
         if resolved_design_profile
@@ -143,6 +150,11 @@ def make_plan(
             horror_identities=lighting_horror_identities,
         )
         if resolved_lighting_profile
+        else None
+    )
+    encounter_director_intelligence = (
+        compile_encounter_intelligence(resolved_encounter_profile)
+        if resolved_encounter_profile
         else None
     )
 
@@ -194,12 +206,15 @@ def make_plan(
             "world_model_research_stack": "hayuya/standards/hayuya_map_research_stack_v1.json",
             "monetization_standard": "hayuya/standards/hayuya_monetization_brain_v1.json",
             "world_reasoning_domains": "hayuya/standards/hayuya_world_reasoning_domains_v1.json",
+            "encounter_director_standard": "hayuya/standards/hayuya_encounter_director_v1.json",
+            "church_giant_encounters": "hayuya/knowledge/church_giant_encounters_v1.json",
         },
         "map_design_intelligence": design_intelligence,
         "universal_game_design_intelligence": universal_design_intelligence,
         "world_reasoning_intelligence": world_reasoning_intelligence,
         "world_model_broker": world_model_broker,
         "lighting_intelligence": lighting_intelligence,
+        "encounter_director_intelligence": encounter_director_intelligence,
         "monetization_intelligence": monetization_intelligence,
         "stages": list(WORLD_STAGES),
         "perception_policy": {
@@ -226,6 +241,7 @@ def make_plan(
         "delegation": {
             "isolated_hero_assets": "HAYUYA Monster arena",
             "large_environment_geometry": "HAYUYA Map world reconstruction pipeline",
+            "story_encounter_composition": "HAYUYA Encounter Director",
             "runtime": "Xziel XZSM/XMAP compiler",
         },
         "outputs": [
@@ -242,6 +258,7 @@ def make_plan(
             "universal_game_design.json",
             "world_reasoning.json",
             "world_model_broker.json",
+            "encounter_director.json",
             "monetization.json",
         ],
     }
@@ -274,6 +291,11 @@ def main() -> int:
         "--lighting-profile",
         default="auto",
         help="HAYUYA Lighting profile; auto enables horror lighting for zombie/horror goals",
+    )
+    parser.add_argument(
+        "--encounter-profile",
+        default="auto",
+        help="story encounter profile; auto enables church Giants for Sanctum/church horror goals",
     )
     parser.add_argument(
         "--universal-design",
@@ -319,6 +341,7 @@ def main() -> int:
             center=center,
             design_profile=args.design_profile,
             lighting_profile=args.lighting_profile,
+            encounter_profile=args.encounter_profile,
             universal_design_mode=args.universal_design,
             monetization_mode=args.monetization,
         )
@@ -340,6 +363,11 @@ def main() -> int:
     if plan["lighting_intelligence"] is not None:
         (intelligence_dir / "lighting.json").write_text(
             json.dumps(plan["lighting_intelligence"], indent=2) + "\n",
+            encoding="utf-8",
+        )
+    if plan["encounter_director_intelligence"] is not None:
+        (intelligence_dir / "encounter_director.json").write_text(
+            json.dumps(plan["encounter_director_intelligence"], indent=2) + "\n",
             encoding="utf-8",
         )
     if plan["universal_game_design_intelligence"] is not None:
@@ -373,6 +401,11 @@ def main() -> int:
         "lighting_profile": (
             plan["lighting_intelligence"]["profile_id"]
             if plan["lighting_intelligence"]
+            else None
+        ),
+        "encounter_profile": (
+            plan["encounter_director_intelligence"]["profile_id"]
+            if plan["encounter_director_intelligence"]
             else None
         ),
         "universal_design_enabled": plan["universal_game_design_intelligence"] is not None,

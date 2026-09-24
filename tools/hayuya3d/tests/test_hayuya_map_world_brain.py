@@ -9,6 +9,7 @@ HERE = Path(__file__).resolve().parent
 HAYUYA3D = HERE.parent
 sys.path.insert(0, str(HAYUYA3D))
 
+from encounter_director import compile_encounter_intelligence
 from hayuya_lighting import compile_lighting_intelligence
 from hayuya_map import make_plan, parse_bounds
 from map_design_brain import compile_design_intelligence
@@ -147,6 +148,22 @@ class WorldSemanticsTests(unittest.TestCase):
         self.assertGreaterEqual(len(intelligence["cross_map_patterns"]["archetypes"]), 6)
         self.assertTrue(intelligence["cross_map_patterns"]["global_rules"])
 
+    def test_church_giants_encounter_profile_is_data_driven_and_reproducible(self):
+        encounter = compile_encounter_intelligence("church_giants")
+        self.assertEqual(encounter["engine"], "HAYUYA Encounter Director")
+        self.assertEqual(len(encounter["actors"]), 3)
+        self.assertFalse(
+            encounter["generation_contract"]["long_bespoke_cinematic_required"]
+        )
+        self.assertFalse(
+            encounter["generation_contract"]["visible_major_presence_pop_in_allowed"]
+        )
+        self.assertTrue(
+            encounter["generation_contract"]["seed_reproducible_variants"]
+        )
+        self.assertTrue(encounter["runtime_contract"]["lateJoinStateSerializable"])
+        self.assertGreaterEqual(len(encounter["encounter_templates"]), 6)
+
     def test_hayuya_lighting_profile_preserves_horror_and_readability(self):
         lighting = compile_lighting_intelligence("zombies_horror")
         self.assertEqual(lighting["engine"], "HAYUYA Lighting")
@@ -192,6 +209,28 @@ class WorldSemanticsTests(unittest.TestCase):
             plan["lighting_intelligence"]["selected_horror_identities"]
         )
 
+    def test_church_horror_goal_auto_attaches_encounter_director(self):
+        plan = make_plan(
+            job_id="church-giants",
+            sources=["church-reference.jpg"],
+            goal="author an original Sanctum church zombie horror map for Xziel",
+            provider_ids=["user_capture"],
+            env={},
+        )
+        self.assertEqual(
+            plan["encounter_director_intelligence"]["profile_id"],
+            "church_giants",
+        )
+        self.assertIn(
+            "encounter_director_standard",
+            plan["knowledge_library"],
+        )
+        self.assertIn(
+            "church_giant_encounters",
+            plan["knowledge_library"],
+        )
+        self.assertIn("encounter_composition", plan["stages"])
+
     def test_generic_world_does_not_force_zombies_profile(self):
         plan = make_plan(
             job_id="generic-world",
@@ -202,6 +241,7 @@ class WorldSemanticsTests(unittest.TestCase):
         )
         self.assertIsNone(plan["map_design_intelligence"])
         self.assertIsNone(plan["lighting_intelligence"])
+        self.assertIsNone(plan["encounter_director_intelligence"])
 
 
 if __name__ == "__main__":
