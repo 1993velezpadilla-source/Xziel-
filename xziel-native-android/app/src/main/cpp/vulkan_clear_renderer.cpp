@@ -2199,12 +2199,23 @@ bool VulkanClearRenderer::createSceneCompositePipeline() noexcept {
         return false;
     }
 
+    VkPushConstantRange compositePushRange{};
+    compositePushRange.stageFlags =
+        VK_SHADER_STAGE_FRAGMENT_BIT;
+    compositePushRange.offset = 0U;
+    compositePushRange.size =
+        static_cast<std::uint32_t>(
+            sizeof(SceneCompositePushConstants));
+
     VkPipelineLayoutCreateInfo layoutInfo{
         VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO
     };
     layoutInfo.setLayoutCount = 1U;
     layoutInfo.pSetLayouts =
         &sceneCompositeDescriptorSetLayout_;
+    layoutInfo.pushConstantRangeCount = 1U;
+    layoutInfo.pPushConstantRanges =
+        &compositePushRange;
 
     if (!ok(
             vkCreatePipelineLayout(
@@ -6724,6 +6735,48 @@ bool VulkanClearRenderer::recordDrawCommand(
         &sceneCompositeDescriptorSets_[imageIndex],
         0U,
         nullptr);
+
+    SceneCompositePushConstants composite{};
+    composite.exposureScale =
+        std::clamp(
+            environment.exposureScale,
+            0.10f,
+            2.0f);
+    composite.contrast =
+        std::clamp(
+            environment.contrast,
+            0.70f,
+            1.40f);
+    composite.saturation =
+        std::clamp(
+            environment.saturation,
+            0.50f,
+            1.20f);
+    composite.vignette =
+        std::clamp(
+            hud.horrorVignette,
+            0.0f,
+            0.78f);
+    composite.postProcessScale =
+        std::clamp(
+            environment.postProcessScale,
+            0.35f,
+            1.0f);
+    composite.lightningFlash =
+        std::clamp(
+            environment.lightningFlash,
+            0.0f,
+            2.0f);
+
+    vkCmdPushConstants(
+        command,
+        sceneCompositePipelineLayout_,
+        VK_SHADER_STAGE_FRAGMENT_BIT,
+        0U,
+        static_cast<std::uint32_t>(
+            sizeof(SceneCompositePushConstants)),
+        &composite);
+
     vkCmdDraw(
         command,
         3U,
