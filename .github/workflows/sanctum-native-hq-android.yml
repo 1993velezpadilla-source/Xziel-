@@ -842,7 +842,7 @@ jobs:
             test "${STREAM_MATERIAL_BINDS}" -le "${STREAM_DRAWS}"
             echo "XZIEL_WORLD_STREAMING_CULL_RUNTIME_ACTIVE culled=${STREAM_CULLED} draws=${STREAM_DRAWS} material_binds=${STREAM_MATERIAL_BINDS} geometry_binds=${STREAM_GEOMETRY_BINDS:-0} pipeline_binds=${STREAM_PIPELINE_BINDS:-0}"
 
-            if [[ "${GITHUB_REF_NAME}" == "engine/mobile-front-to-back-earlyz-v1" ]]; then
+            if [[ "${GITHUB_REF_NAME}" == "engine/mobile-front-to-back-earlyz-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-spatial-batch-4500-v1" ]]; then
               test -n "${STREAM_FRONT_TO_BACK_CANDIDATES}"
               test -n "${STREAM_FRONT_TO_BACK_REORDERED}"
               test "${STREAM_FRONT_TO_BACK_CANDIDATES}" -eq "${STREAM_DRAWS}"
@@ -870,7 +870,7 @@ jobs:
               echo "XZIEL_DRAW_GROUP_TELEMETRY_ACTIVE draws=${STREAM_DRAWS} groups=${STREAM_SUBMISSION_GROUPS}"
             fi
 
-            if [[ "${GITHUB_REF_NAME}" == "engine/mobile-indirect-draw-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-range-frustum-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-cell-frustum-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-portal-visibility-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-gpu-pass-timing-v1" ]]; then
+            if [[ "${GITHUB_REF_NAME}" == "engine/mobile-indirect-draw-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-spatial-batch-4500-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-range-frustum-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-cell-frustum-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-portal-visibility-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-gpu-pass-timing-v1" ]]; then
               grep -q "XZIEL_STATIC_DRAW_SUBMISSION_READY mode=multi_draw_indirect" dist/sanctum-hq-logcat.txt
               test -n "${STREAM_DRAW_SUBMISSIONS}"
               test -n "${STREAM_INDIRECT_DRAWS}"
