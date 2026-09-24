@@ -586,6 +586,24 @@ function handleEvent(event) {
       + (event.detail.seam_p95 == null ? "—" : Number(event.detail.seam_p95).toFixed(1))
     );
   }
+  if (event.kind === "composite_detail_state") {
+    if (state.job && Array.isArray(state.job.composite_details)) {
+      const item = [...state.job.composite_details].reverse().find(
+        (entry) => entry.label === event.label
+      );
+      if (item) {
+        item.status = event.status;
+        if (event.reason) item.reason = event.reason;
+      }
+      renderCompositePlan(state.job.composite_plan, state.job.composite_details);
+    }
+    appendLog(
+      "Composite detail "
+      + (event.source || event.label || "detail")
+      + ": "
+      + (event.status || "updated")
+    );
+  }
   if (event.kind === "champion") {
     appendLog(`👑 Champion: ${event.label} score=${event.score}`);
     refreshJob();
