@@ -1715,9 +1715,7 @@ bool VulkanClearRenderer::createUiRenderPass() noexcept {
     VkAttachmentDescription color{};
     color.format = swapchainFormat_;
     color.samples = VK_SAMPLE_COUNT_1_BIT;
-    // The pass starts with an opaque fullscreen scene composite that writes
-    // every swapchain pixel, so clearing the attachment first is redundant.
-    color.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    color.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     color.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     color.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     color.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
