@@ -297,8 +297,9 @@ class AccessoryMaterialTransferTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             donor = Path(tmp) / "donor.glb"
             body = trimesh.creation.icosphere(subdivisions=2, radius=1.0)
-            charm = trimesh.creation.tetrahedron()
-            charm.apply_scale(0.1)
+            charm = trimesh.creation.box(
+                extents=[0.12, 0.12, 0.10]
+            )
             charm.apply_translation([0.0, 1.08, 0.0])
             scene = trimesh.Scene()
             scene.add_geometry(body)
