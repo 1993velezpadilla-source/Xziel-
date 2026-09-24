@@ -186,6 +186,19 @@ private:
     static constexpr std::size_t
         kGeometryReloadWindow = 4U;
 
+    static constexpr VkDeviceSize
+        kGeometryRestorePreloadBudgetBytes =
+            2ULL * 1024ULL * 1024ULL;
+    static constexpr VkDeviceSize
+        kGeometryRestoreHotBudgetBytes =
+            4ULL * 1024ULL * 1024ULL;
+
+    enum class GeometryRestoreResult : std::uint8_t {
+        InProgress,
+        Complete,
+        Failed,
+    };
+
     struct GeometryRangeInFlight {
         std::uint32_t batchIndex = UINT32_MAX;
         std::string key{};
@@ -219,6 +232,16 @@ private:
         std::uint64_t reloadStartFrame = 0U;
         std::vector<std::byte> reloadVertexBytes{};
         std::vector<std::byte> reloadIndexBytes{};
+
+        // GPU restoration is intentionally split across frames. The APK range
+        // reads may finish together, but copying an entire streamed cell into
+        // mapped Vulkan memory in one render frame can create a visible hitch.
+        void* restoreMappedVertices = nullptr;
+        void* restoreMappedIndices = nullptr;
+        VkDeviceSize restoreVertexCursor = 0U;
+        VkDeviceSize restoreIndexCursor = 0U;
+        std::uint32_t restoreCopyFrames = 0U;
+        bool restorePrepared = false;
     };
 
     struct GpuBatch {
@@ -396,8 +419,10 @@ private:
     void releaseGeometryCellGpuResidency(
         GeometryCellResidency& cell) noexcept;
 
-    [[nodiscard]] bool restoreGeometryCellGpuResidency(
-        GeometryCellResidency& cell) noexcept;
+    [[nodiscard]] GeometryRestoreResult
+    restoreGeometryCellGpuResidency(
+        GeometryCellResidency& cell,
+        VkDeviceSize copyBudgetBytes) noexcept;
 
     void serviceRuntimeGeometryResidency(
         std::uint32_t frameSlot,
