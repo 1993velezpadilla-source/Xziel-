@@ -190,15 +190,22 @@ def _surface_skin_transfer(
     source_joints,
     source_weights,
     target_positions,
+    *,
+    surface_index=None,
 ):
     from surface_transfer import (
         blend_joint_weights_from_relation,
-        build_surface_transfer_relation,
+        build_surface_transfer_index,
+        query_surface_transfer,
     )
 
-    relation = build_surface_transfer_relation(
-        source_positions,
-        source_faces,
+    if surface_index is None:
+        surface_index = build_surface_transfer_index(
+            source_positions,
+            source_faces,
+        )
+    relation = query_surface_transfer(
+        surface_index,
         target_positions,
     )
     joints, weights = blend_joint_weights_from_relation(
