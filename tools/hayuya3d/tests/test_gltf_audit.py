@@ -87,6 +87,83 @@ class GltfAuditTests(unittest.TestCase):
             for channel in ("baseColor", "metallic", "roughness", "normal", "occlusion"):
                 self.assertIn(channel, report.material_channels)
 
+    def test_valid_morph_targets_are_audited(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            doc=self._rigged_doc()
+            doc["accessors"].append(
+                {"count":4,"type":"VEC3","componentType":5126}
+            )
+            primitive=doc["meshes"][0]["primitives"][0]
+            primitive["targets"]=[{"POSITION":4}]
+            doc["meshes"][0]["weights"]=[0.0]
+            doc["nodes"][2]["weights"]=[0.0]
+            doc["animations"][0]["channels"].append({
+                "sampler":0,
+                "target":{"node":2,"path":"weights"},
+            })
+            path=Path(tmp)/"morph.glb"
+            write_json_only_glb(path,doc)
+            report=audit_glb(path)
+            self.assertTrue(report.valid_glb)
+            self.assertTrue(report.morph_ready,report.errors)
+            self.assertEqual(report.morph_mesh_count,1)
+            self.assertEqual(report.morph_primitive_count,1)
+            self.assertEqual(report.morph_target_count,1)
+
+    def test_morph_accessor_count_mismatch_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            doc=self._rigged_doc()
+            doc["accessors"].append(
+                {"count":3,"type":"VEC3","componentType":5126}
+            )
+            doc["meshes"][0]["primitives"][0]["targets"]=[
+                {"POSITION":4}
+            ]
+            doc["meshes"][0]["weights"]=[0.0]
+            path=Path(tmp)/"bad-morph-count.glb"
+            write_json_only_glb(path,doc)
+            report=audit_glb(path)
+            self.assertFalse(report.morph_ready)
+            self.assertTrue(
+                any("!= POSITION" in item for item in report.errors),
+                report.errors,
+            )
+
+    def test_mesh_morph_weight_length_mismatch_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            doc=self._rigged_doc()
+            doc["accessors"].append(
+                {"count":4,"type":"VEC3","componentType":5126}
+            )
+            doc["meshes"][0]["primitives"][0]["targets"]=[
+                {"POSITION":4}
+            ]
+            doc["meshes"][0]["weights"]=[0.0,0.0]
+            path=Path(tmp)/"bad-morph-weights.glb"
+            write_json_only_glb(path,doc)
+            report=audit_glb(path)
+            self.assertFalse(report.morph_ready)
+            self.assertTrue(
+                any("weights length" in item for item in report.errors),
+                report.errors,
+            )
+
+    def test_weight_animation_without_morph_target_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            doc=self._rigged_doc()
+            doc["animations"][0]["channels"].append({
+                "sampler":0,
+                "target":{"node":2,"path":"weights"},
+            })
+            path=Path(tmp)/"bad-weight-animation.glb"
+            write_json_only_glb(path,doc)
+            report=audit_glb(path)
+            self.assertFalse(report.morph_ready)
+            self.assertTrue(
+                any("without morph targets" in item for item in report.errors),
+                report.errors,
+            )
+
     def test_inverse_bind_mismatch_rejects_rig(self):
         with tempfile.TemporaryDirectory() as tmp:
             doc = self._rigged_doc()
