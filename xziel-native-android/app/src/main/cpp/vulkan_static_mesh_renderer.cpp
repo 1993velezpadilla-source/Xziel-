@@ -5442,50 +5442,84 @@ bool VulkanStaticMeshRenderer::createPipeline(
     VkVertexInputBindingDescription binding{};
     binding.binding = 0U;
     binding.stride =
-        sizeof(StaticMeshVertex);
+        static_cast<std::uint32_t>(
+            gpuStaticVertexStride(
+                packedStaticVertexEnabled_));
     binding.inputRate =
         VK_VERTEX_INPUT_RATE_VERTEX;
 
-    const std::array<
+    std::array<
         VkVertexInputAttributeDescription,
-        4> attributes{{
-            {
-                0U,
-                0U,
-                VK_FORMAT_R32G32B32_SFLOAT,
-                static_cast<std::uint32_t>(
-                    offsetof(
-                        StaticMeshVertex,
-                        x)),
-            },
-            {
-                1U,
-                0U,
-                VK_FORMAT_R32G32B32_SFLOAT,
-                static_cast<std::uint32_t>(
-                    offsetof(
-                        StaticMeshVertex,
-                        nx)),
-            },
-            {
-                2U,
-                0U,
-                VK_FORMAT_R32G32_SFLOAT,
-                static_cast<std::uint32_t>(
-                    offsetof(
-                        StaticMeshVertex,
-                        u)),
-            },
-            {
-                3U,
-                0U,
-                VK_FORMAT_R8G8B8A8_UNORM,
-                static_cast<std::uint32_t>(
-                    offsetof(
-                        StaticMeshVertex,
-                        rgba)),
-            },
-        }};
+        4> attributes{};
+
+    attributes[0] = {
+        0U,
+        0U,
+        VK_FORMAT_R32G32B32_SFLOAT,
+        0U,
+    };
+
+    if (packedStaticVertexEnabled_) {
+        attributes[1] = {
+            1U,
+            0U,
+            VK_FORMAT_R16G16B16A16_SNORM,
+            static_cast<std::uint32_t>(
+                offsetof(
+                    PackedStaticMeshVertex,
+                    normal)),
+        };
+
+        attributes[2] = {
+            2U,
+            0U,
+            VK_FORMAT_R16G16_SFLOAT,
+            static_cast<std::uint32_t>(
+                offsetof(
+                    PackedStaticMeshVertex,
+                    uv)),
+        };
+
+        attributes[3] = {
+            3U,
+            0U,
+            VK_FORMAT_R8G8B8A8_UNORM,
+            static_cast<std::uint32_t>(
+                offsetof(
+                    PackedStaticMeshVertex,
+                    rgba)),
+        };
+    } else {
+        attributes[1] = {
+            1U,
+            0U,
+            VK_FORMAT_R32G32B32_SFLOAT,
+            static_cast<std::uint32_t>(
+                offsetof(
+                    StaticMeshVertex,
+                    nx)),
+        };
+
+        attributes[2] = {
+            2U,
+            0U,
+            VK_FORMAT_R32G32_SFLOAT,
+            static_cast<std::uint32_t>(
+                offsetof(
+                    StaticMeshVertex,
+                    u)),
+        };
+
+        attributes[3] = {
+            3U,
+            0U,
+            VK_FORMAT_R8G8B8A8_UNORM,
+            static_cast<std::uint32_t>(
+                offsetof(
+                    StaticMeshVertex,
+                    rgba)),
+        };
+    }
 
     VkPipelineVertexInputStateCreateInfo vertexInput{
         VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO
