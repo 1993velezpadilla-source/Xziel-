@@ -2,7 +2,7 @@
   "schema": 2,
   "engine": "HAYUYA PHONE CLOUD",
   "job_id": "zombitest1-muetjpwb",
-  "asset_profile": "prop.static",
+  "asset_profile": "character.humanoid",
   "weapon_family": "auto",
   "animation_requested": true,
   "motion_profile": "hayuya_auto",
@@ -36,7 +36,7 @@
     "faces": 36341,
     "components": 1095,
     "largest_component_fraction": 0.019548,
-    "degenerate_ratio": 0.0,
+    "degenerate_ratio": 0,
     "bbox_extents": [
       0.45784888,
       0.99958244,
@@ -79,7 +79,7 @@
     "passed": true
   },
   "asset": {
-    "profile": "prop.static",
+    "profile": "character.humanoid",
     "weapon_family": "auto",
     "animation_requested": true,
     "motion_profile": "hayuya_auto",
@@ -101,7 +101,7 @@
     "motion_system": "optional_transform_channels",
     "weapon_family": "auto",
     "family_source": null,
-    "family_confidence": 0.0,
+    "family_confidence": 0,
     "preview_set": [
       "static"
     ],
@@ -119,7 +119,7 @@
   },
   "research": {
     "adapter": "wikipedia_mediawiki",
-    "confidence": 0.0,
+    "confidence": 0,
     "inferred_weapon_family": "auto",
     "sources": [],
     "warnings": [
@@ -219,7 +219,8 @@
       "passed": true,
       "action_count": 43,
       "failures": []
-    }
+    },
+    "profile": "character.humanoid"
   },
   "animation_banks": {
     "quaternius-uam2": {
