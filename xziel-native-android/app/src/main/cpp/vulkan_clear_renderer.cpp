@@ -5679,6 +5679,98 @@ bool VulkanClearRenderer::recordDrawCommand(
         mainPlaneD = -mainPlaneD;
     }
 
+    // MAIN_PUSH_BASE_CACHE_V1
+    // Camera/environment/reflection state is invariant for all primitive draws
+    // in this pass. Build it once and patch only object-local fields.
+    PushConstants mainBasePush{};
+    mainBasePush.timeSeconds =
+        safeTime;
+    mainBasePush.aspect =
+        projectionFocalOverAspect;
+    mainBasePush.horrorPulse =
+        pulse;
+    mainBasePush.cameraX =
+        safeCameraX;
+    mainBasePush.cameraY =
+        safeCameraY;
+    mainBasePush.cameraZ =
+        safeCameraZ;
+    mainBasePush.cameraYawRadians =
+        std::isfinite(camera.yawRadians)
+        ? camera.yawRadians
+        : 0.0f;
+    mainBasePush.cameraPitchRadians =
+        std::isfinite(camera.pitchRadians)
+        ? camera.pitchRadians
+        : 0.0f;
+    mainBasePush.verticalFovDegrees =
+        projectionFovDegrees;
+    mainBasePush.cameraPadding0 =
+        static_cast<float>(
+            environment.planarReflectionMaterialId);
+    mainBasePush.fogDensity =
+        std::clamp(
+            environment.fogDensity,
+            0.0f,
+            1.0f);
+    mainBasePush.lightningFlash =
+        std::clamp(
+            environment.lightningFlash,
+            0.0f,
+            2.0f);
+    mainBasePush.wetness =
+        std::clamp(
+            environment.wetness,
+            0.0f,
+            1.0f);
+    mainBasePush.rainIntensity =
+        std::clamp(
+            environment.rainIntensity,
+            0.0f,
+            1.0f);
+    mainBasePush.waterWavePhase =
+        environment.waterWavePhase;
+    mainBasePush.waterFoamStrength =
+        std::clamp(
+            environment.waterFoamStrength,
+            0.0f,
+            1.0f);
+    mainBasePush.waterReflectionStrength =
+        std::clamp(
+            environment.waterReflectionStrength,
+            0.0f,
+            1.0f);
+    mainBasePush.waterRefractionStrength =
+        std::clamp(
+            environment.waterRefractionStrength,
+            0.0f,
+            1.0f);
+    mainBasePush.waterRoughness =
+        std::clamp(
+            environment.waterRoughness,
+            0.02f,
+            0.85f);
+    mainBasePush.waterQualityScale =
+        std::clamp(
+            environment.postProcessScale,
+            0.35f,
+            1.0f);
+    mainBasePush.waterParticleScale =
+        std::clamp(
+            environment.particleDensityScale,
+            0.25f,
+            1.0f);
+    mainBasePush.waterFogScale =
+        projectionFocal;
+    mainBasePush.reflectionPlaneX =
+        mainPlaneNx;
+    mainBasePush.reflectionPlaneY =
+        mainPlaneNy;
+    mainBasePush.reflectionPlaneZ =
+        mainPlaneNz;
+    mainBasePush.reflectionPlaneDistance =
+        mainPlaneD;
+
     const auto drawPrimitive = [&](
         float tx,
         float ty,
@@ -5691,12 +5783,10 @@ bool VulkanClearRenderer::recordDrawCommand(
         float objectYawRadians,
         float objectPitchRadians,
         std::uint32_t vertexCount) noexcept {
-        PushConstants push{};
-        push.timeSeconds = safeTime;
-        push.aspect =
-            projectionFocalOverAspect;
-        push.horrorPulse = pulse;
-        push.materialId = materialId;
+        PushConstants push =
+            mainBasePush;
+        push.materialId =
+            materialId;
 
         push.translationX = tx;
         push.translationY = ty;
@@ -5713,118 +5803,10 @@ bool VulkanClearRenderer::recordDrawCommand(
             std::isfinite(shapeId)
             ? shapeId
             : 0.0f;
-
-        push.cameraX =
-            safeCameraX;
-        push.cameraY =
-            safeCameraY;
-        push.cameraZ =
-            safeCameraZ;
-
-        push.cameraYawRadians =
-            std::isfinite(camera.yawRadians)
-            ? camera.yawRadians
-            : 0.0f;
-
-        push.cameraPitchRadians =
-            std::isfinite(camera.pitchRadians)
-            ? camera.pitchRadians
-            : 0.0f;
-
-        push.verticalFovDegrees =
-            std::clamp(
-                std::isfinite(camera.verticalFovDegrees)
-                    ? camera.verticalFovDegrees
-                    : 72.0f,
-                50.0f,
-                110.0f);
-
-        push.cameraPadding0 =
-            static_cast<float>(
-                environment.planarReflectionMaterialId);
         push.cameraPadding1 =
             std::isfinite(objectPitchRadians)
             ? objectPitchRadians
             : 0.0f;
-
-        push.fogDensity =
-            std::clamp(
-                environment.fogDensity,
-                0.0f,
-                1.0f);
-
-        push.lightningFlash =
-            std::clamp(
-                environment.lightningFlash,
-                0.0f,
-                2.0f);
-
-        push.wetness =
-            std::clamp(
-                environment.wetness,
-                0.0f,
-                1.0f);
-
-        push.rainIntensity =
-            std::clamp(
-                environment.rainIntensity,
-                0.0f,
-                1.0f);
-
-        push.waterWavePhase =
-            environment.waterWavePhase;
-
-        push.waterFoamStrength =
-            std::clamp(
-                environment.waterFoamStrength,
-                0.0f,
-                1.0f);
-
-        push.waterReflectionStrength =
-            std::clamp(
-                environment.waterReflectionStrength,
-                0.0f,
-                1.0f);
-
-        push.waterRefractionStrength =
-            std::clamp(
-                environment.waterRefractionStrength,
-                0.0f,
-                1.0f);
-
-        push.waterRoughness =
-            std::clamp(
-                environment.waterRoughness,
-                0.02f,
-                0.85f);
-
-        // Reuse the final water push-constant vec4 as a compact, uniform
-        // adaptive-quality budget. These values are constant for each draw,
-        // so the fragment shader can cheaply scale storm surface detail
-        // without allocating textures or adding a render pass.
-        push.waterQualityScale =
-            std::clamp(
-                environment.postProcessScale,
-                0.35f,
-                1.0f);
-
-        push.waterParticleScale =
-            std::clamp(
-                environment.particleDensityScale,
-                0.25f,
-                1.0f);
-
-        push.waterFogScale =
-            projectionFocal;
-
-        push.reflectionPlaneX =
-            mainPlaneNx;
-        push.reflectionPlaneY =
-            mainPlaneNy;
-        push.reflectionPlaneZ =
-            mainPlaneNz;
-        push.reflectionPlaneDistance =
-            mainPlaneD;
 
         vkCmdPushConstants(
             command,
