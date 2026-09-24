@@ -104,7 +104,7 @@ public class MainActivity extends Activity {
         root.addView(header);
 
         status = new TextView(this);
-        status.setText("LAB v0.3.1 • memory + attachments");
+        status.setText("LAB v0.4.0 • image reference editing");
         status.setTextColor(Color.rgb(155, 155, 170));
         status.setPadding(0, 0, 0, dp(6));
         root.addView(status);
@@ -290,19 +290,18 @@ public class MainActivity extends Activity {
     }
 
     private void sendImage(boolean newConcept) {
-        if (!pendingAttachmentId.isEmpty()) {
-            Toast.makeText(this, "Attached files currently work with Chat, Research, Code and Map Modeling.", Toast.LENGTH_LONG).show();
-            return;
-        }
-        String text = value(prompt);
-        if (text.isEmpty()) return;
+        String rawText = value(prompt);
+        if (rawText.isEmpty() && pendingAttachmentId.isEmpty()) return;
+        String text = rawText.isEmpty() ? "Use the attached image as the reference and create a refined version." : rawText;
         if (value(endpoint).isEmpty()) {
             Toast.makeText(this, "Set the server URL first.", Toast.LENGTH_SHORT).show();
             settingsPanel.setVisibility(View.VISIBLE);
             return;
         }
         prompt.setText("");
-        addBubble("You • Image", text);
+        String attachmentId = pendingAttachmentId;
+        String attachmentName = pendingAttachmentName;
+        addBubble("You • Image", text + (attachmentName.isEmpty() ? "" : "\nReference: " + attachmentName));
         setBusy(true, "image");
 
         io.execute(() -> {
@@ -312,6 +311,7 @@ public class MainActivity extends Activity {
                 req.put("prompt", text);
                 req.put("new_concept", newConcept);
                 req.put("size", "1024x1024");
+                if (!attachmentId.isEmpty()) req.put("attachment_id", attachmentId);
                 JSONObject out = postJson("/v1/image", req);
                 sessionId = out.optString("session_id", sessionId);
                 String effective = out.optString("effective_prompt", text);
@@ -326,9 +326,16 @@ public class MainActivity extends Activity {
                     bitmap = downloadBitmap(url);
                 }
 
+                boolean referenceApplied = out.optBoolean("reference_applied", false);
                 Bitmap finalBitmap = bitmap;
                 runOnUiThread(() -> {
-                    addBubble("Pichy • Image", "Iteration ready. I kept the prior image instructions unless you started a new concept.\n\n" + effective);
+                    if (!attachmentId.isEmpty() && attachmentId.equals(pendingAttachmentId)) {
+                        clearPendingAttachment();
+                    }
+                    String referenceNote = referenceApplied
+                            ? "Reference image applied at pixel level."
+                            : "Prompt continuity applied; provider did not use an image-edit reference.";
+                    addBubble("Pichy • Image", "Iteration ready. " + referenceNote + "\n\n" + effective);
                     if (finalBitmap != null) addImage(finalBitmap);
                 });
             } catch (Exception e) {
