@@ -20,6 +20,7 @@ on:
       - "tools/hayuya3d/gameplay_graph_solver.py"
       - "tools/hayuya3d/world_model_broker.py"
       - "tools/hayuya3d/reference_search_broker.py"
+      - "tools/hayuya3d/knowledge_registry.py"
       - "hayuya/standards/hayuya_universal_game_design_brain_v1.json"
       - "hayuya/standards/hayuya_monetization_brain_v1.json"
       - "hayuya/standards/hayuya_world_reasoning_domains_v1.json"
@@ -33,6 +34,7 @@ on:
       - "tools/hayuya3d/tests/test_universal_design_and_ads.py"
       - "tools/hayuya3d/tests/test_gameplay_graph_solver.py"
       - "tools/hayuya3d/tests/test_reference_search_broker.py"
+      - "tools/hayuya3d/tests/test_knowledge_registry.py"
       - "docs/hayuya/HAYUYA_MAP_WORLD_BRAIN.md"
       - "docs/hayuya/HAYUYA_LIGHTING_BRAIN.md"
       - "docs/ZOMBIES_MAP_DNA_ATLAS.md"
@@ -84,6 +86,7 @@ jobs:
             tools/hayuya3d/tests/test_universal_design_and_ads.py \
             tools/hayuya3d/tests/test_gameplay_graph_solver.py \
             tools/hayuya3d/tests/test_reference_search_broker.py \
+            tools/hayuya3d/tests/test_knowledge_registry.py \
             -v
 
       - name: Prove provider readiness is secret-safe
@@ -127,6 +130,8 @@ jobs:
           assert p["monetization_intelligence"]["policy"]["programmatic_world_space_texture_baking"] is False
           assert "INTERSTITIAL" in p["monetization_intelligence"]["delivery_paths"]["GOOGLE_ADMOB_UI"]["formats"]
           assert p["monetization_intelligence"]["shared_xziel_ad_contract"]["inventory_pattern_count"] > 30
+          assert p["knowledge_registry"]["pack_count"] > 5
+          assert p["knowledge_registry"]["contract"]["new_pack_requires_core_code_change"] is False
           print("HAYUYA_MAP_OPEN_WORLD_GATE_OK")
           PY
 
@@ -201,6 +206,7 @@ jobs:
           cp tools/hayuya3d/world_reasoning.py /tmp/hayuya-map-intelligence-bundle/tools/hayuya3d/
           cp tools/hayuya3d/world_model_broker.py /tmp/hayuya-map-intelligence-bundle/tools/hayuya3d/
           cp tools/hayuya3d/reference_search_broker.py /tmp/hayuya-map-intelligence-bundle/tools/hayuya3d/
+          cp tools/hayuya3d/knowledge_registry.py /tmp/hayuya-map-intelligence-bundle/tools/hayuya3d/
           cp tools/hayuya3d/gameplay_graph_solver.py /tmp/hayuya-map-intelligence-bundle/tools/hayuya3d/
           cp tools/hayuya3d/hayuya_ads.py /tmp/hayuya-map-intelligence-bundle/tools/hayuya3d/
           cp tools/hayuya3d/world_semantics.py /tmp/hayuya-map-intelligence-bundle/tools/hayuya3d/
