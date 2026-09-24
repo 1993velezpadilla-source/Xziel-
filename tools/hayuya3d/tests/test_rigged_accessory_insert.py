@@ -533,6 +533,74 @@ class RiggedAccessoryInsertTests(unittest.TestCase):
                 result.error or "",
             )
 
+    def test_composite_executes_textured_new_accessory_end_to_end(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            base_path=root/"base.glb"
+            donor_path=root/"textured_donor.glb"
+            source="/refs/medal_detail.png"
+            write_skinned_base(base_path,morph=True)
+            write_donor(donor_path,textured=True)
+
+            base=candidate(
+                "base",
+                base_path,
+                96.0,
+                detail_source=source,
+                detail_score=70.0,
+            )
+            donor=candidate(
+                "donor",
+                donor_path,
+                84.0,
+                detail_source=source,
+                detail_score=98.0,
+            )
+            plan=build_composite_plan(
+                [base,donor],
+                mode="character",
+                inspect_parts=True,
+            )
+            detail=next(
+                item for item in plan.detail_donors
+                if item.source==source
+            )
+            token="detail:"+source
+            self.assertEqual(
+                detail.strategy,
+                "new_rigged_accessory_insert_weight_morph_transfer",
+            )
+            self.assertTrue(
+                detail.accessory_match["rigged_insert_supported"]
+            )
+            self.assertTrue(
+                detail.accessory_match["rigged_insert_material_ready"],
+                detail.accessory_match,
+            )
+            self.assertIn(token,plan.executable_now)
+            self.assertNotIn(token,plan.deferred_transfers)
+
+            result=execute_safe_accessory_challenger(
+                plan,
+                root/"composite",
+                detail_source=source,
+                texture_size=256,
+            )
+            self.assertTrue(result.attempted)
+            self.assertTrue(result.ready,result.error)
+            self.assertTrue(Path(result.candidate_path or "").is_file())
+            self.assertTrue(result.fusion)
+            self.assertTrue(result.fusion["production_ready"])
+            self.assertTrue(result.fusion["material_ready"])
+            self.assertTrue(result.fusion["uv_ready"])
+            self.assertTrue(result.fusion["uv_tangent_ready"])
+            self.assertTrue(result.fusion["rig_ready"])
+            self.assertTrue(result.fusion["skin_weights_ready"])
+            self.assertTrue(result.fusion["morph_deformation_ready"])
+            self.assertTrue(result.fusion["attachment_ready"])
+            self.assertIn("baseColor",result.fusion["material_channels"])
+            self.assertIn("normal",result.fusion["material_channels"])
+
     def test_ambiguous_multiple_donor_accessories_fail_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
