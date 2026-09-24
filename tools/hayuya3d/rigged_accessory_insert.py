@@ -50,6 +50,9 @@ class RiggedAccessoryInsertResult:
     surface_transfer_fallback_vertices: int = 0
     surface_transfer_max_examined_triangles: int = 0
     surface_transfer_max_visited_bvh_nodes: int = 0
+    surface_skin_ambiguous_vertices: int = 0
+    surface_skin_min_gap_ratio: float | None = None
+    surface_skin_max_l1: float = 0.0
     method: str = "hayuya-rigged-accessory-insert-v1"
 
 
@@ -218,6 +221,23 @@ def _surface_skin_transfer(
     relation = query_surface_transfer(
         surface_index,
         target_positions,
+    )
+    ambiguity = _surface_skin_ambiguity(
+        source_positions,
+        source_joints,
+        source_weights,
+        target_positions,
+        surface_index,
+        relation,
+    )
+    relation.ambiguous_skin_vertices = int(
+        ambiguity.ambiguous_vertices
+    )
+    relation.surface_skin_min_gap_ratio = (
+        ambiguity.min_distance_gap_ratio
+    )
+    relation.surface_skin_max_l1 = float(
+        ambiguity.max_skin_l1
     )
     joints, weights = blend_joint_weights_from_relation(
         source_joints,
@@ -389,6 +409,23 @@ def _require_exact_surface_relation(relation) -> None:
             "barycentric surface transfer required nearest-vertex "
             "fallback on degenerate base topology for "
             f"{fallback} accessory vertices"
+        )
+    ambiguous = int(
+        getattr(relation, "ambiguous_skin_vertices", 0) or 0
+    )
+    if ambiguous > 0:
+        gap = getattr(
+            relation,
+            "surface_skin_min_gap_ratio",
+            None,
+        )
+        l1 = float(
+            getattr(relation, "surface_skin_max_l1", 0.0) or 0.0
+        )
+        raise RuntimeError(
+            "closest-surface skin transfer is ambiguous across thin/folded "
+            f"geometry for {ambiguous} accessory vertices "
+            f"(min_gap_ratio={gap}, max_skin_l1={l1:.6f})"
         )
 
 
@@ -1630,6 +1667,15 @@ def insert_rigged_accessory(
             ),
             surface_transfer_max_visited_bvh_nodes=int(
                 surface_relation.max_visited_bvh_nodes
+            ),
+            surface_skin_ambiguous_vertices=int(
+                surface_relation.ambiguous_skin_vertices
+            ),
+            surface_skin_min_gap_ratio=(
+                surface_relation.surface_skin_min_gap_ratio
+            ),
+            surface_skin_max_l1=float(
+                surface_relation.surface_skin_max_l1
             ),
         )
     except Exception as exc:
