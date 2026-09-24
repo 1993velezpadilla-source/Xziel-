@@ -740,6 +740,11 @@ function renderCompositePlan(plan, executions = []) {
           : Number(item.surface_fallback_vertices) + " surface fallback"
       );
     }
+    if (item.surface_search_triangles != null) {
+      parts.push(
+        "surface search " + Number(item.surface_search_triangles) + " tris"
+      );
+    }
     if (item.morph_targets_transferred != null) {
       parts.push(Number(item.morph_targets_transferred) + " morph targets");
     }
