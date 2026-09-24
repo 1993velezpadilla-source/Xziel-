@@ -16,6 +16,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: hayuya-autorig-prototype-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   candy-autorig:
     runs-on: ubuntu-latest
