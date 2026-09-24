@@ -463,13 +463,13 @@
     "banks": {
       "quaternius-uam2": {
         "incumbent_safe": true,
-        "incumbent_clip_count": 19,
+        "incumbent_clip_count": 26,
         "candidate_clip_count": 26,
         "missing_incumbent_clips": []
       },
       "quaternius-uam1": {
         "incumbent_safe": true,
-        "incumbent_clip_count": 30,
+        "incumbent_clip_count": 35,
         "candidate_clip_count": 35,
         "missing_incumbent_clips": []
       }
