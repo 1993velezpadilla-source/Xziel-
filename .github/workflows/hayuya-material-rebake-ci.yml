@@ -70,13 +70,6 @@ jobs:
               obj.scale=scale
               bpy.ops.object.transform_apply(location=False,rotation=False,scale=True)
               obj.data.materials.append(mat)
-              # Explicit UV projection removes dependence on primitive defaults.
-              bpy.context.view_layer.objects.active=obj
-              obj.select_set(True)
-              bpy.ops.object.mode_set(mode="EDIT")
-              bpy.ops.mesh.select_all(action="SELECT")
-              bpy.ops.uv.smart_project(angle_limit=1.15192,island_margin=0.03)
-              bpy.ops.object.mode_set(mode="OBJECT")
               if bevel:
                   modifier=obj.modifiers.new("SourceBevel","BEVEL")
                   modifier.width=0.055
@@ -89,17 +82,29 @@ jobs:
           def build(path,high):
               reset()
               mat=material()
-              # Solid floor and wall form a deep concave runtime corner. The
-              # wall sits directly on the floor, guaranteeing AO near the seam.
               floor=cube("floor",(0.0,0.0,-0.075),(2.0,2.0,0.15),mat,bevel=high)
               wall=cube("wall",(-0.55,0.0,0.85),(0.16,2.0,1.0),mat,bevel=high)
-              # A small overhead block creates a second unmistakable occlusion
-              # region and additional normal detail on the high-poly source.
               ledge=cube("ledge",(0.25,0.0,0.38),(0.55,0.65,0.12),mat,bevel=high)
+
+              # One material means one runtime atlas. Join first, then unwrap the
+              # complete topology exactly once so islands cannot overlap merely
+              # because each source primitive previously owned the full 0..1 UV.
               bpy.ops.object.select_all(action="DESELECT")
               for obj in (floor,wall,ledge):
                   obj.select_set(True)
               bpy.context.view_layer.objects.active=floor
+              bpy.ops.object.join()
+              target=bpy.context.object
+              target.name="fixture"
+
+              bpy.ops.object.mode_set(mode="EDIT")
+              bpy.ops.mesh.select_all(action="SELECT")
+              bpy.ops.uv.smart_project(angle_limit=1.15192,island_margin=0.035)
+              bpy.ops.object.mode_set(mode="OBJECT")
+
+              bpy.ops.object.select_all(action="DESELECT")
+              target.select_set(True)
+              bpy.context.view_layer.objects.active=target
               bpy.ops.export_scene.gltf(
                   filepath=str(path),
                   export_format="GLB",
@@ -110,7 +115,7 @@ jobs:
 
           build(root/"target.glb",False)
           build(root/"source.glb",True)
-          print("HAYUYA_REBAKE_FIXTURE_READY")
+          print("HAYUYA_REBAKE_FIXTURE_READY global_atlas=true")
           PY
           blender --background --factory-startup --python /tmp/hayuya-rebake-fixture.py
 
