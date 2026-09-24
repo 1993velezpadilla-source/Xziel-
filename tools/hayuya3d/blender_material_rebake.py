@@ -137,6 +137,61 @@ def gltf_output_group():
     return group
 
 
+def configure_ao_emission_bake(materials,image,distance):
+    """Temporarily route explicit AO shader output through emission for baking."""
+    restore=[]
+    for material in materials:
+        nodes=material.node_tree.nodes
+        links=material.node_tree.links
+        tex=active_image_node(material,image,"HAYUYA_REBAKED_OCCLUSION")
+
+        output=next((n for n in nodes if n.type=="OUTPUT_MATERIAL" and n.is_active_output),None)
+        if output is None:
+            output=next((n for n in nodes if n.type=="OUTPUT_MATERIAL"),None)
+        if output is None:
+            output=nodes.new("ShaderNodeOutputMaterial")
+
+        old_surface=None
+        if output.inputs.get("Surface") and output.inputs["Surface"].is_linked:
+            old_surface=output.inputs["Surface"].links[0].from_socket
+            links.remove(output.inputs["Surface"].links[0])
+
+        ao=nodes.new("ShaderNodeAmbientOcclusion")
+        ao.name="HAYUYA_AO_BAKE"
+        ao.inputs["Distance"].default_value=max(1e-6,float(distance))
+        try:
+            ao.samples=32
+        except Exception:
+            pass
+        try:
+            ao.only_local=False
+        except Exception:
+            pass
+
+        emission=nodes.new("ShaderNodeEmission")
+        emission.name="HAYUYA_AO_EMISSION_BAKE"
+        links.new(ao.outputs["AO"],emission.inputs["Color"])
+        links.new(emission.outputs["Emission"],output.inputs["Surface"])
+        restore.append((material,output,old_surface,ao,emission,tex))
+    return restore
+
+
+def restore_after_ao_bake(restore):
+    for material,output,old_surface,ao,emission,tex in restore:
+        nodes=material.node_tree.nodes
+        links=material.node_tree.links
+        if output.inputs.get("Surface") and output.inputs["Surface"].is_linked:
+            for link in list(output.inputs["Surface"].links):
+                links.remove(link)
+        if old_surface is not None:
+            links.new(old_surface,output.inputs["Surface"])
+        # Keep the image node; configure_occlusion will attach it to glTF output.
+        if ao in nodes:
+            nodes.remove(ao)
+        if emission in nodes:
+            nodes.remove(emission)
+
+
 def configure_occlusion(materials,image):
     group=gltf_output_group()
     for material in materials:
@@ -263,13 +318,23 @@ def main():
         ao_image=new_noncolor_image(
             "HAYUYA_Rebaked_Occlusion",a.size,(1.0,1.0,1.0,1.0)
         )
-        configure_occlusion(materials,ao_image)
+        ao_distance=diag*0.35
+        ao_restore=configure_ao_emission_bake(
+            materials,ao_image,distance=ao_distance
+        )
         scene.render.bake.use_selected_to_active=False
         select_only([target],target)
-        bpy.ops.object.bake(type="AO")
+        bpy.ops.object.bake(type="EMIT")
+        restore_after_ao_bake(ao_restore)
+        configure_occlusion(materials,ao_image)
         ao_stats=image_signal_stats(ao_image,0)
         ao_image.pack()
-        images["occlusion"]={"name":ao_image.name,"signal":ao_stats}
+        images["occlusion"]={
+            "name":ao_image.name,
+            "signal":ao_stats,
+            "distance":ao_distance,
+            "method":"ambient_occlusion_shader_to_emit",
+        }
         resolved.append("occlusion")
 
     select_only([target],target)
