@@ -200,6 +200,17 @@ def face_seed_hypothesis_count(profile_name: str, detail_inputs: list[Path]) -> 
     return 1
 
 
+def needs_texture_superres(
+    profile_name: str,
+    base_color_min_edge: int | None,
+    target_edge: int,
+) -> bool:
+    if profile_name not in {"monster", "ultra"}:
+        return False
+    edge=int(base_color_min_edge or 0)
+    return edge>0 and edge<int(target_edge)
+
+
 def make_reference_groups(inputs: list[Path], group_size: int) -> list[list[Path]]:
     """
     Split an arbitrary reference pool into backend-sized groups without dropping evidence.
@@ -1344,6 +1355,100 @@ def main() -> int:
                 if args.retopo == "required":
                     raise
 
+    texture_superres_result = None
+    texture_superres_failure = None
+    texture_superres_status = (
+        "off" if args.texture_superres == "off" else "checking"
+    )
+
+    if args.texture_superres in {"auto", "required"}:
+        provisional = valid[0]
+        provisional_edge = int(provisional.base_color_min_edge or 0)
+        if args.profile not in {"monster", "ultra"}:
+            texture_superres_status = "skipped_profile"
+        elif provisional_edge <= 0:
+            texture_superres_status = "skipped_no_basecolor"
+            texture_superres_failure = (
+                "provisional champion has no embedded visible baseColor texture"
+            )
+            print(
+                f"HAYUYA_TEXTURE_SUPERRES_SKIPPED {texture_superres_failure}",
+                file=sys.stderr,
+            )
+            if args.texture_superres == "required":
+                raise RuntimeError(texture_superres_failure)
+        elif not needs_texture_superres(
+            args.profile,
+            provisional_edge,
+            profile.texture_size,
+        ):
+            texture_superres_status = "already_at_target"
+            print(
+                "HAYUYA_TEXTURE_SUPERRES_CLEAN "
+                f"basecolor={provisional_edge} target={profile.texture_size}"
+            )
+        else:
+            try:
+                from texture_superres import superresolve_basecolor_glb
+
+                sr_dir = job_dir / "texture_superres"
+                sr_output = sr_dir / (
+                    f"{provisional.backend}_basecolor_{profile.texture_size}.glb"
+                )
+                texture_superres_result = superresolve_basecolor_glb(
+                    Path(provisional.path),
+                    sr_output,
+                    target_edge=profile.texture_size,
+                )
+                if texture_superres_result.ready:
+                    sr_label = f"{provisional.backend}_texture_sr"
+                    candidates.append(
+                        (sr_label, Path(texture_superres_result.output_glb))
+                    )
+                    texture_superres_status = "candidate_ready"
+                    print(
+                        "HAYUYA_TEXTURE_SUPERRES_READY "
+                        f"source={provisional.backend} candidate={sr_label} "
+                        f"basecolor={provisional_edge}->{profile.texture_size} "
+                        f"items={len(texture_superres_result.items)}"
+                    )
+                    # Super-resolution earns nothing merely for reaching 4K.
+                    # It must survive the same full real-source Judge arena.
+                    ranked = run_full_ranking()
+                    valid = [x for x in ranked if x.valid]
+                    if not valid:
+                        raise RuntimeError(
+                            "texture super-resolution re-ranking produced no valid candidates"
+                        )
+                else:
+                    texture_superres_failure = (
+                        texture_superres_result.error
+                        or texture_superres_result.method
+                    )
+                    texture_superres_status = (
+                        "skipped_unavailable"
+                        if texture_superres_result.method == "realesrgan_unavailable"
+                        else "rejected"
+                    )
+                    print(
+                        "HAYUYA_TEXTURE_SUPERRES_SKIPPED "
+                        f"{texture_superres_failure}",
+                        file=sys.stderr,
+                    )
+                    if args.texture_superres == "required":
+                        raise RuntimeError(texture_superres_failure)
+            except Exception as exc:
+                if texture_superres_status != "skipped_unavailable":
+                    texture_superres_status = "failed"
+                    texture_superres_failure = f"{type(exc).__name__}: {exc}"
+                    print(
+                        f"HAYUYA_TEXTURE_SUPERRES_FAILED {texture_superres_failure}",
+                        file=sys.stderr,
+                    )
+                    traceback.print_exc()
+                if args.texture_superres == "required":
+                    raise
+
     ranking_data = [asdict(x) for x in ranked]
     (job_dir / "ranking.json").write_text(
         json.dumps(ranking_data, indent=2) + "\n",
@@ -1506,6 +1611,17 @@ def main() -> int:
             "failure": retopo_failure,
             "won_final_arena": champion.backend == "instant_meshes_retopo",
         },
+        "texture_superres": {
+            "mode": args.texture_superres,
+            "status": texture_superres_status,
+            "result": (
+                asdict(texture_superres_result)
+                if texture_superres_result is not None else None
+            ),
+            "failure": texture_superres_failure,
+            "won_final_arena": champion.backend.endswith("_texture_sr"),
+            "policy": "baseColor-only GLB payload rewrite; original candidate preserved; challenger must win complete Judge",
+        },
         "geometry_refinement": asdict(refinement_decision) if refinement_decision is not None else None,
         "geometry_refinement_failure": refinement_failure,
         "material_bridge": asdict(material_bridge_result) if material_bridge_result is not None else None,
@@ -1531,6 +1647,7 @@ def main() -> int:
             "If TripoSF wins geometry, Material Bridge v2 reprojects packed PBR UV/material evidence when available (base-color fallback otherwise) and the bridged GLB re-enters the final Judge rather than being auto-promoted.",
             "Mesh Doctor audits the provisional champion before retopology; conservative structural repairs are material-restored and must win the same Judge, while tiny disconnected components are audit-only to protect intentional accessories.",
             "Instant Meshes retopology is an optional deterministic challenger: editable quad/quad-dominant OBJ is preserved, Material Bridge v2 restores runtime material evidence, and the bridged GLB must win the same Judge.",
+            "Monster/Ultra may add one Real-ESRGAN baseColor-only super-resolution challenger when the provisional champion is below the native texture target; geometry/skin/animation buffers are preserved and the refined GLB must win the complete Judge.",
             "GamePrep audits glTF rig/skin state first; skinned assets skip destructive retopology/LOD simplification and preserve exact master/LOD0 until skin-weight transfer exists.",
             "QA Package v1 records geometry/material/reference/rig/GamePrep readiness and creates a source-vs-turntable contact sheet.",
             "Mobile portability is resolved from the versioned HAYUYA knowledge base; the source-faithful Hero Master is preserved while GamePrep derives tier-budget LODs and texture ceilings.",
