@@ -8,6 +8,7 @@ from pathlib import Path
 
 import bpy
 from mathutils import Vector
+from mathutils.bvhtree import BVHTree
 
 
 SUPPORTED_CHANNELS={"normal","occlusion"}
@@ -205,6 +206,115 @@ def restore_after_ao_bake(restore):
         # Blender 4 bpy_prop_collection.__contains__ accepts names, not node objects.
         if nodes.get(ao.name) is ao:
             nodes.remove(ao)
+        if nodes.get(emission.name) is emission:
+            nodes.remove(emission)
+
+
+def _hemisphere_directions(normal:Vector,count:int=16):
+    """Deterministic cosine-weighted-ish hemisphere directions around a normal."""
+    n=normal.normalized()
+    helper=Vector((0.0,0.0,1.0)) if abs(n.z)<0.95 else Vector((0.0,1.0,0.0))
+    tangent=n.cross(helper).normalized()
+    bitangent=n.cross(tangent).normalized()
+    golden=2.399963229728653
+    directions=[]
+    for i in range(count):
+        u=(i+0.5)/count
+        z=max(0.08,u)
+        radius=max(0.0,1.0-z*z)**0.5
+        angle=golden*i
+        local=Vector((radius*__import__("math").cos(angle),radius*__import__("math").sin(angle),z))
+        world=(tangent*local.x + bitangent*local.y + n*local.z).normalized()
+        directions.append(world)
+    return directions
+
+
+def geometric_vertex_ao(target,diag:float,ray_count:int=16):
+    """Compute topology AO directly from the runtime mesh using a BVH."""
+    mesh=target.data
+    matrix=target.matrix_world
+    normal_matrix=matrix.to_3x3()
+    world_vertices=[matrix @ vertex.co for vertex in mesh.vertices]
+    polygons=[tuple(poly.vertices) for poly in mesh.polygons]
+    bvh=BVHTree.FromPolygons(world_vertices,polygons,all_triangles=False,epsilon=0.0)
+
+    max_distance=max(1e-5,float(diag)*0.35)
+    epsilon=max(1e-6,float(diag)*1e-5)
+    values=[]
+    for vertex in mesh.vertices:
+        position=matrix @ vertex.co
+        normal=(normal_matrix @ vertex.normal).normalized()
+        origin=position + normal*epsilon
+        hits=0
+        for direction in _hemisphere_directions(normal,ray_count):
+            location,hit_normal,index,distance=bvh.ray_cast(
+                origin,direction,max_distance
+            )
+            if index is not None:
+                hits+=1
+        values.append(max(0.0,min(1.0,1.0-hits/max(1,ray_count))))
+    return values
+
+
+def prepare_geometric_ao_attribute(target,values):
+    """Store per-vertex AO as a POINT color attribute for interpolation in bake."""
+    mesh=target.data
+    name="HAYUYA_AO_VERTEX"
+    if hasattr(mesh,"color_attributes"):
+        existing=mesh.color_attributes.get(name)
+        if existing is not None:
+            mesh.color_attributes.remove(existing)
+        attr=mesh.color_attributes.new(
+            name=name,
+            type="FLOAT_COLOR",
+            domain="POINT",
+        )
+        for index,value in enumerate(values):
+            attr.data[index].color=(value,value,value,1.0)
+        return name
+    raise RuntimeError("mesh_color_attributes_unavailable")
+
+
+def configure_attribute_emission_bake(materials,image,attribute_name):
+    """Bake an interpolated vertex AO attribute through emission."""
+    restore=[]
+    for material in materials:
+        nodes=material.node_tree.nodes
+        links=material.node_tree.links
+        tex=active_image_node(material,image,"HAYUYA_GEOMETRIC_AO_BAKE_TARGET")
+        output=next((n for n in nodes if n.type=="OUTPUT_MATERIAL" and n.is_active_output),None)
+        if output is None:
+            output=next((n for n in nodes if n.type=="OUTPUT_MATERIAL"),None)
+        if output is None:
+            output=nodes.new("ShaderNodeOutputMaterial")
+
+        old_surface=None
+        if output.inputs.get("Surface") and output.inputs["Surface"].is_linked:
+            old_surface=output.inputs["Surface"].links[0].from_socket
+            links.remove(output.inputs["Surface"].links[0])
+
+        attr=nodes.new("ShaderNodeVertexColor")
+        attr.name="HAYUYA_GEOMETRIC_AO_ATTRIBUTE"
+        attr.layer_name=attribute_name
+        emission=nodes.new("ShaderNodeEmission")
+        emission.name="HAYUYA_GEOMETRIC_AO_EMISSION"
+        links.new(attr.outputs["Color"],emission.inputs["Color"])
+        links.new(emission.outputs["Emission"],output.inputs["Surface"])
+        restore.append((material,output,old_surface,attr,emission,tex))
+    return restore
+
+
+def restore_after_attribute_bake(restore):
+    for material,output,old_surface,attr,emission,tex in restore:
+        nodes=material.node_tree.nodes
+        links=material.node_tree.links
+        if output.inputs.get("Surface") and output.inputs["Surface"].is_linked:
+            for link in list(output.inputs["Surface"].links):
+                links.remove(link)
+        if old_surface is not None:
+            links.new(old_surface,output.inputs["Surface"])
+        if nodes.get(attr.name) is attr:
+            nodes.remove(attr)
         if nodes.get(emission.name) is emission:
             nodes.remove(emission)
 
@@ -453,6 +563,53 @@ def main():
             if shader_attempt["signal_valid"]:
                 ao_image=shader_image
                 ao_method=shader_attempt["method"]
+
+        # Attempt 3: deterministic geometry-only BVH AO. This bypasses
+        # Blender 4 AO bake paths that can return all-zero images on valid meshes.
+        if ao_image is None:
+            geometric_image=new_noncolor_image(
+                "HAYUYA_Rebaked_Occlusion_geometric_bvh_v7",
+                a.size,
+                (1.0,1.0,1.0,1.0),
+            )
+            ao_values=geometric_vertex_ao(target,diag,ray_count=16)
+            attribute_name=prepare_geometric_ao_attribute(target,ao_values)
+            ao_restore=configure_attribute_emission_bake(
+                materials,geometric_image,attribute_name
+            )
+            select_only([target],target)
+            bpy.ops.object.bake(type="EMIT")
+            restore_after_attribute_bake(ao_restore)
+            geometric_stats=image_signal_stats(geometric_image,0)
+            geometric_range=(
+                float(geometric_stats["max"])-float(geometric_stats["min"])
+                if geometric_stats.get("max") is not None
+                and geometric_stats.get("min") is not None
+                else 0.0
+            )
+            vertex_range=(
+                max(ao_values)-min(ao_values)
+                if ao_values else 0.0
+            )
+            geometric_attempt={
+                "method":"geometric_bvh_vertex_ao_emit_v7",
+                "signal":geometric_stats,
+                "signal_range":round(geometric_range,6),
+                "vertex_range":round(vertex_range,6),
+                "vertex_min":round(min(ao_values),6) if ao_values else None,
+                "vertex_max":round(max(ao_values),6) if ao_values else None,
+                "signal_valid":geometric_range>1e-4 and vertex_range>1e-4,
+                "ray_count":16,
+                "distance":max(1e-6,diag*0.35),
+            }
+            ao_attempts.append(geometric_attempt)
+            print(
+                "HAYUYA_REBAKE_SIGNAL occlusion_attempt "
+                + json.dumps(geometric_attempt,sort_keys=True)
+            )
+            if geometric_attempt["signal_valid"]:
+                ao_image=geometric_image
+                ao_method=geometric_attempt["method"]
 
         ao_signal_valid=ao_image is not None
         images["occlusion"]={
