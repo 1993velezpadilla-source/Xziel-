@@ -134,6 +134,7 @@ function renderCandidates(job) {
       ["Look", candidate.appearance_score],
       ["Detail", candidate.detail_score],
       ["Material", candidate.material_score],
+      ["Texture", candidate.texture_resolution_score],
     ].filter(([, value]) => value != null);
     if (metrics.length) {
       const meter = document.createElement("div");
@@ -145,10 +146,13 @@ function renderCandidates(job) {
       });
       card.appendChild(meter);
     }
-    if (candidate.pbr_channels?.length) {
+    if (candidate.pbr_channels?.length || candidate.base_color_max_edge) {
       const channels = document.createElement("div");
       channels.className = "pbr-channels";
-      channels.textContent = "PBR · " + candidate.pbr_channels.join(" · ");
+      const parts = [];
+      if (candidate.base_color_max_edge) parts.push(`baseColor ${candidate.base_color_max_edge}px`);
+      if (candidate.pbr_channels?.length) parts.push(candidate.pbr_channels.join(" · "));
+      channels.textContent = "PBR · " + parts.join(" · ");
       card.appendChild(channels);
     }
     if (candidate.url) {
