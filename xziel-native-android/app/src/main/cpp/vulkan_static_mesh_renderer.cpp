@@ -1516,6 +1516,7 @@ void VulkanStaticMeshRenderer::cacheGpuBatchCullingSphere(
 
 void VulkanStaticMeshRenderer::rebuildStreamingCellBounds() noexcept {
     streamCellBounds_ = {};
+    streamCellBoundsCount_ = 0U;
 
     for (const auto& batch : batches_) {
         if (batch.streamCellId == 0U) {
@@ -1548,6 +1549,7 @@ void VulkanStaticMeshRenderer::rebuildStreamingCellBounds() noexcept {
             slot->bounds =
                 batch.bounds;
             slot->valid = true;
+            ++streamCellBoundsCount_;
             continue;
         }
 
@@ -1565,10 +1567,11 @@ void VulkanStaticMeshRenderer::rebuildStreamingCellBounds() noexcept {
         }
     }
 
-    for (auto& cell : streamCellBounds_) {
-        if (!cell.valid) {
-            continue;
-        }
+    for (std::size_t boundsSlot = 0U;
+         boundsSlot < streamCellBoundsCount_;
+         ++boundsSlot) {
+        auto& cell =
+            streamCellBounds_[boundsSlot];
 
         cell.cullCenterX =
             (cell.bounds.minimum[0] +
@@ -1619,7 +1622,7 @@ void VulkanStaticMeshRenderer::rebuildStreamingCellBounds() noexcept {
         }
 
         for (std::size_t boundsSlot = 0U;
-             boundsSlot < streamCellBounds_.size();
+             boundsSlot < streamCellBoundsCount_;
              ++boundsSlot) {
             const auto& bounds =
                 streamCellBounds_[boundsSlot];
@@ -1639,11 +1642,13 @@ void VulkanStaticMeshRenderer::rebuildStreamingCellBounds() noexcept {
     __android_log_print(
         ANDROID_LOG_INFO,
         kTag,
-        "XZIEL_STREAM_CELL_BOUNDS_INDEX_READY indexed=%u geometry_cells=%u",
+        "XZIEL_STREAM_CELL_BOUNDS_INDEX_READY indexed=%u geometry_cells=%u bounds=%u",
         static_cast<unsigned int>(
             indexedGeometryCells),
         static_cast<unsigned int>(
-            geometryCellCount_));
+            geometryCellCount_),
+        static_cast<unsigned int>(
+            streamCellBoundsCount_));
 }
 
 std::uint32_t VulkanStaticMeshRenderer::inferStreamingCell(
@@ -1660,10 +1665,13 @@ std::uint32_t VulkanStaticMeshRenderer::inferStreamingCell(
     float bestVolume =
         std::numeric_limits<float>::infinity();
 
-    for (const auto& cell :
-         streamCellBounds_) {
-        if (!cell.valid ||
-            cell.cellId == 0U) {
+    for (std::size_t boundsSlot = 0U;
+         boundsSlot < streamCellBoundsCount_;
+         ++boundsSlot) {
+        const auto& cell =
+            streamCellBounds_[boundsSlot];
+
+        if (cell.cellId == 0U) {
             continue;
         }
 

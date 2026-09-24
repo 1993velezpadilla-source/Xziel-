@@ -552,6 +552,7 @@ private:
     bool streamGraphReady_ = false;
     std::array<StreamCellBounds, kMaxStreamCells>
         streamCellBounds_{};
+    std::size_t streamCellBoundsCount_ = 0U;
     mutable std::array<
         StreamCellResourceDecision,
         kMaxStreamBindings> streamDecisions_{};
