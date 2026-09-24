@@ -729,6 +729,12 @@ jobs:
           fi
 
           if [[ "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-io-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-eviction-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-prefetch-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-budget-v1" ]]; then
+            grep -Eq "XZIEL_CULL_SPHERES_READY batches=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
+            CULL_SPHERE_BATCHES="$(grep "XZIEL_CULL_SPHERES_READY" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* batches=\([0-9][0-9]*\).*/\1/p')"
+            test -n "${CULL_SPHERE_BATCHES}"
+            test "${CULL_SPHERE_BATCHES}" -gt 0
+            echo "XZIEL_CULL_SPHERES_CACHED batches=${CULL_SPHERE_BATCHES}"
+
             grep -q "XZIEL_STREAM_GEOMETRY_CELLS_READY cells=" dist/sanctum-hq-logcat.txt
             GEOMETRY_CELLS="$(grep "XZIEL_STREAM_GEOMETRY_CELLS_READY" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* cells=\([0-9][0-9]*\).*/\1/p')"
             GEOMETRY_BUFFERS="$(grep "XZIEL_STREAM_GEOMETRY_CELLS_READY" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* buffers=\([0-9][0-9]*\).*/\1/p')"
