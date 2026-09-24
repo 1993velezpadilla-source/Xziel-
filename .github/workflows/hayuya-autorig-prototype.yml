@@ -69,9 +69,14 @@ jobs:
           ref=gate.get("reference_fidelity") or {}
           if ref and ref.get("passed") is not True:
               raise SystemExit("Candyland rest geometry failed reference fidelity: "+str(ref.get("failures")))
+          required_zombie={"Zombie_Idle_Loop","Zombie_Walk_Fwd_Loop","Zombie_Scratch"}
+          missing_zombie=sorted(required_zombie-set(clips))
           if len(useful)<3:
               raise SystemExit(f"Candyland has only {len(useful)} deformation-safe useful clips")
+          if missing_zombie:
+              raise SystemExit("Candyland core zombie motions failed deformation QA: "+", ".join(missing_zombie))
           print("HAYUYA_AUTORIG_ANIMATION_GATE_PASS",len(useful),useful[:12])
+          print("HAYUYA_CORE_ZOMBIE_MOTIONS_PASS",sorted(required_zombie))
           PY
 
       - name: Persist animated Candyland preview model
