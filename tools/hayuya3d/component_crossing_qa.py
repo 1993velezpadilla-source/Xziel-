@@ -266,6 +266,7 @@ def audit_component_crossings(
             tested_pairs+=1
             pair_errors=[]
             crossings=0
+            candidates=[]
             try:
                 candidates=_candidate_pairs(
                     tris_a,
@@ -309,11 +310,7 @@ def audit_component_crossings(
                 faces_b=b["count"],
                 fraction_a=round(a["fraction"],6),
                 fraction_b=round(b["fraction"],6),
-                candidate_pairs=(
-                    len(candidates)
-                    if "candidates" in locals()
-                    else 0
-                ),
+                candidate_pairs=len(candidates),
                 crossing_pairs=crossings,
                 ready=ready,
                 errors=pair_errors,
