@@ -285,10 +285,28 @@ def main():
             + ",".join(sorted(all_weighted_groups))
         )
 
-    # Donor meshes are no longer needed after the spatial weight transfer.
+    # Donor render meshes/helpers are no longer needed after weight transfer.
+    # Fail closed and remove every non-target mesh in the scene. Some donor GLBs
+    # contain an unparented Icosphere/root mesh which glTF export can otherwise
+    # pull back in through armature dependencies even with use_selection=True.
+    target_mesh_names={m.name for m in target_meshes}
+    for obj in list(bpy.data.objects):
+        if obj.type=="MESH" and obj.name not in target_mesh_names:
+            bpy.data.objects.remove(obj,do_unlink=True)
     for obj in list(donor_objs):
         if obj != arm and obj.name in bpy.data.objects:
             bpy.data.objects.remove(obj,do_unlink=True)
+
+    bpy.context.view_layer.update()
+    remaining_meshes=[o.name for o in bpy.context.scene.objects if o.type=="MESH"]
+    unexpected=[name for name in remaining_meshes if name not in target_mesh_names]
+    if unexpected:
+        raise RuntimeError("unexpected_meshes_before_export:"+",".join(unexpected))
+    if sorted(remaining_meshes)!=sorted(target_mesh_names):
+        raise RuntimeError(
+            "target_mesh_set_changed_before_export:"
+            +json.dumps({"expected":sorted(target_mesh_names),"actual":sorted(remaining_meshes)})
+        )
 
     # Make a sensible default preview action if imported animations exist.
     actions=sorted(bpy.data.actions,key=lambda a:a.name.lower())
@@ -329,7 +347,8 @@ def main():
         "weighted_bones":sorted(all_weighted_groups),
         "weighted_bone_count":len(all_weighted_groups),
         "donor_root_objects":donor_root_names,
-        "binding_method":"aligned_roots_blended_kdtree_v4_parent_inverse",
+        "export_meshes":remaining_meshes,
+        "binding_method":"aligned_roots_blended_kdtree_v5_strict_target_mesh_export",
         "bind_results":bind_results,
         "output_bytes":args.output.stat().st_size if args.output.exists() else 0,
     }
