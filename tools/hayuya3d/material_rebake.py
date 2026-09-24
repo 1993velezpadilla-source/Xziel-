@@ -181,8 +181,17 @@ def rebake_material_channels(
             target_faces=1,
         )
         present=set(inspected.pbr_channels or [])
+        reported_resolved=set(supported_requested)
+        if report_path.is_file():
+            try:
+                report_data=json.loads(report_path.read_text(encoding="utf-8"))
+                reported_resolved=set(
+                    str(x) for x in (report_data.get("resolved_channels") or [])
+                )
+            except Exception:
+                reported_resolved=set()
         for channel in supported_requested:
-            if channel in present:
+            if channel in present and channel in reported_resolved:
                 resolved.add(channel)
                 remaining.discard(channel)
         missing=sorted(set(supported_requested)-resolved)
@@ -192,6 +201,8 @@ def rebake_material_channels(
                 + ",".join(missing)
                 + ":present="
                 + ",".join(sorted(present))
+                + ":baked="
+                + ",".join(sorted(reported_resolved))
             )
             method="blender_cycles_topology_material_rebake_partial_v2"
         else:
