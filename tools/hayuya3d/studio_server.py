@@ -329,6 +329,11 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
                 "surface_search_triangles"
             ),
             "surface_bvh_nodes":_int_value("surface_bvh_nodes"),
+            "surface_ambiguous_vertices":_int_value(
+                "surface_ambiguous_vertices"
+            ),
+            "surface_skin_gap":_float_value("surface_skin_gap"),
+            "surface_skin_l1":_float_value("surface_skin_l1"),
             "morph_targets_transferred":_int_value("morph_targets_transferred"),
             "geometry_ready":_bool_value("geometry_ready"),
             "legacy_preserved":_bool_value("legacy_preserved"),
