@@ -56,7 +56,13 @@ namespace {
 void StreamCellGraph::reset() noexcept {
     cells_ = {};
     portals_ = {};
+    portalCellAIndices_.fill(
+        std::numeric_limits<std::uint8_t>::max());
+    portalCellBIndices_.fill(
+        std::numeric_limits<std::uint8_t>::max());
     bindings_ = {};
+    bindingCellIndices_.fill(
+        std::numeric_limits<std::uint8_t>::max());
     cellCount_ = 0U;
     portalCount_ = 0U;
     bindingCount_ = 0U;
@@ -81,13 +87,28 @@ bool StreamCellGraph::addPortal(
         portal.cellB == 0U ||
         portal.cellA == portal.cellB ||
         portalCount_ >= portals_.size() ||
-        portalIndex(portal.id) >= 0 ||
-        cellIndex(portal.cellA) < 0 ||
-        cellIndex(portal.cellB) < 0) {
+        portalIndex(portal.id) >= 0) {
         return false;
     }
 
-    portals_[portalCount_++] = portal;
+    const int cellAIndex =
+        cellIndex(portal.cellA);
+    const int cellBIndex =
+        cellIndex(portal.cellB);
+
+    if (cellAIndex < 0 ||
+        cellBIndex < 0) {
+        return false;
+    }
+
+    portals_[portalCount_] = portal;
+    portalCellAIndices_[portalCount_] =
+        static_cast<std::uint8_t>(
+            cellAIndex);
+    portalCellBIndices_[portalCount_] =
+        static_cast<std::uint8_t>(
+            cellBIndex);
+    ++portalCount_;
     return true;
 }
 
@@ -130,13 +151,23 @@ bool StreamCellGraph::bindResource(
     if (binding.cellId == 0U ||
         binding.resourceId == 0U ||
         binding.bytes == 0U ||
-        bindingCount_ >= bindings_.size() ||
-        cellIndex(binding.cellId) < 0) {
+        bindingCount_ >= bindings_.size()) {
         return false;
     }
 
-    bindings_[bindingCount_++] =
+    const int ownerIndex =
+        cellIndex(binding.cellId);
+
+    if (ownerIndex < 0) {
+        return false;
+    }
+
+    bindings_[bindingCount_] =
         binding;
+    bindingCellIndices_[bindingCount_] =
+        static_cast<std::uint8_t>(
+            ownerIndex);
+    ++bindingCount_;
     return true;
 }
 
@@ -212,27 +243,23 @@ StreamCellPlanStats StreamCellGraph::plan(
                 continue;
             }
 
-            std::uint32_t nextId = 0U;
+            std::size_t next =
+                kMaxStreamCells;
 
             if (portal.cellA == currentId) {
-                nextId = portal.cellB;
+                next =
+                    portalCellBIndices_[p];
             } else if (
                 portal.cellB == currentId) {
-                nextId = portal.cellA;
+                next =
+                    portalCellAIndices_[p];
             } else {
                 continue;
             }
 
-            const int nextIndex =
-                cellIndex(nextId);
-
-            if (nextIndex < 0) {
+            if (next >= cellCount_) {
                 continue;
             }
-
-            const auto next =
-                static_cast<std::size_t>(
-                    nextIndex);
 
             if (distance[next] !=
                 kUnreached) {
@@ -285,19 +312,17 @@ StreamCellPlanStats StreamCellGraph::plan(
                 continue;
             }
 
-            const int a =
-                cellIndex(portal.cellA);
-            const int b =
-                cellIndex(portal.cellB);
+            const auto ai =
+                static_cast<std::size_t>(
+                    portalCellAIndices_[p]);
+            const auto bi =
+                static_cast<std::size_t>(
+                    portalCellBIndices_[p]);
 
-            if (a < 0 || b < 0) {
+            if (ai >= cellCount_ ||
+                bi >= cellCount_) {
                 continue;
             }
-
-            const auto ai =
-                static_cast<std::size_t>(a);
-            const auto bi =
-                static_cast<std::size_t>(b);
 
             // Closed-door preloading is exactly one boundary deep.
             // Only cells reached through the open graph may seed it; a cell
@@ -363,17 +388,16 @@ StreamCellPlanStats StreamCellGraph::plan(
         const auto& binding =
             bindings_[i];
 
-        const int owner =
-            cellIndex(binding.cellId);
+        const auto owner =
+            static_cast<std::size_t>(
+                bindingCellIndices_[i]);
 
-        if (owner < 0) {
+        if (owner >= cellCount_) {
             continue;
         }
 
         const auto heat =
-            cellHeat[
-                static_cast<std::size_t>(
-                    owner)];
+            cellHeat[owner];
 
         std::size_t existing =
             destinationCapacity;
@@ -555,27 +579,23 @@ StreamCellHeat StreamCellGraph::cellHeat(
                 continue;
             }
 
-            std::uint32_t nextId = 0U;
+            std::size_t next =
+                kMaxStreamCells;
 
             if (portal.cellA == currentId) {
-                nextId = portal.cellB;
+                next =
+                    portalCellBIndices_[p];
             } else if (
                 portal.cellB == currentId) {
-                nextId = portal.cellA;
+                next =
+                    portalCellAIndices_[p];
             } else {
                 continue;
             }
 
-            const int nextIndex =
-                cellIndex(nextId);
-
-            if (nextIndex < 0) {
+            if (next >= cellCount_) {
                 continue;
             }
-
-            const auto next =
-                static_cast<std::size_t>(
-                    nextIndex);
 
             if (distance[next] !=
                 kUnreached) {
@@ -619,24 +639,22 @@ StreamCellHeat StreamCellGraph::cellHeat(
             continue;
         }
 
-        std::uint32_t otherId = 0U;
+        std::size_t otherIndex =
+            kMaxStreamCells;
 
         if (portal.cellA == cellId) {
-            otherId = portal.cellB;
+            otherIndex =
+                portalCellBIndices_[p];
         } else if (
             portal.cellB == cellId) {
-            otherId = portal.cellA;
+            otherIndex =
+                portalCellAIndices_[p];
         } else {
             continue;
         }
 
-        const int otherIndex =
-            cellIndex(otherId);
-
-        if (otherIndex >= 0 &&
-            distance[
-                static_cast<std::size_t>(
-                    otherIndex)] !=
+        if (otherIndex < cellCount_ &&
+            distance[otherIndex] !=
                 kUnreached) {
             return StreamCellHeat::Preload;
         }
@@ -702,22 +720,21 @@ bool StreamCellGraph::cellReachableThroughOpenPortals(
                 continue;
             }
 
-            const int next =
-                cellIndex(nextId);
+            const std::size_t nextIndex =
+                portal.cellA == currentId
+                ? static_cast<std::size_t>(
+                      portalCellBIndices_[p])
+                : static_cast<std::size_t>(
+                      portalCellAIndices_[p]);
 
-            if (next < 0) {
+            if (nextIndex >= cellCount_ ||
+                visited[nextIndex]) {
                 continue;
             }
 
-            const auto nextIndex =
+            if (nextIndex ==
                 static_cast<std::size_t>(
-                    next);
-
-            if (visited[nextIndex]) {
-                continue;
-            }
-
-            if (next == target) {
+                    target)) {
                 return true;
             }
 

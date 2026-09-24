@@ -382,5 +382,55 @@ int main() {
     assert(sanctum.setPortalOpen(2000U, false));
     assert(!sanctum.setPortalOpen(1001U, true));
 
+    // Sparse/non-ordinal IDs prove that cached topology slots are resolved
+    // from IDs during graph construction rather than treating IDs as indices.
+    xziel::StreamCellGraph sparseGraph;
+    assert(sparseGraph.addCell({.id = 10U}));
+    assert(sparseGraph.addCell({.id = 4000000000U}));
+    assert(sparseGraph.addPortal({
+        .id = 77U,
+        .cellA = 10U,
+        .cellB = 4000000000U,
+        .open = true,
+        .preloadAcrossClosed = true,
+    }));
+    assert(sparseGraph.bindResource({
+        .cellId = 4000000000U,
+        .resourceId = 123456U,
+        .kind = xziel::StreamResourceKind::Mesh,
+        .bytes = 4096U,
+    }));
+
+    std::array<xziel::StreamCellResourceDecision, 4>
+        sparseDecisions{};
+    std::array<xziel::StreamCellPlanCellState, 4>
+        sparseStates{};
+    std::size_t sparseWritten = 0U;
+    std::size_t sparseCellWritten = 0U;
+
+    const auto sparseStats =
+        sparseGraph.plan(
+            {
+                .currentCell = 10U,
+                .preloadPortalHops = 1U,
+                .memoryPressure =
+                    xziel::MemoryPressure::Normal,
+            },
+            sparseDecisions.data(),
+            sparseDecisions.size(),
+            sparseWritten,
+            sparseStates.data(),
+            sparseStates.size(),
+            &sparseCellWritten);
+
+    assert(sparseWritten == 1U);
+    assert(sparseCellWritten == 2U);
+    assert(sparseStats.hotCells == 1U);
+    assert(sparseStats.preloadCells == 1U);
+    assert(
+        sparseGraph.cellReachableThroughOpenPortals(
+            10U,
+            4000000000U));
+
     return 0;
 }

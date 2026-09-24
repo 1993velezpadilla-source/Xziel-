@@ -143,8 +143,16 @@ private:
         cells_{};
     std::array<StreamPortalDefinition, kMaxStreamPortals>
         portals_{};
+    // Resolved once when topology/resources are registered. Plan rebuilds
+    // never need to linearly translate cell IDs back into array slots.
+    std::array<std::uint8_t, kMaxStreamPortals>
+        portalCellAIndices_{};
+    std::array<std::uint8_t, kMaxStreamPortals>
+        portalCellBIndices_{};
     std::array<StreamCellResourceBinding, kMaxStreamBindings>
         bindings_{};
+    std::array<std::uint8_t, kMaxStreamBindings>
+        bindingCellIndices_{};
 
     std::size_t cellCount_ = 0U;
     std::size_t portalCount_ = 0U;
