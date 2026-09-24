@@ -204,6 +204,17 @@ def main():
         kd.insert(co,i)
     kd.balance()
 
+    # Bake the fitted armature OBJECT transform into its rest skeleton before
+    # binding the generated target. Leaving a non-identity armature scale/location
+    # makes glTF inverse-bind matrices reconstruct the target in donor space on
+    # re-import, even though Blender looks correct before export.
+    arm_world_before=[list(row) for row in arm.matrix_world]
+    select_only(arm)
+    bpy.context.view_layer.objects.active=arm
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    bpy.context.view_layer.update()
+    arm_world_after=[list(row) for row in arm.matrix_world]
+
     bind_results=[]
     all_weighted_groups=set()
     for mesh in target_meshes:
@@ -351,8 +362,11 @@ def main():
         "weighted_bones":sorted(all_weighted_groups),
         "weighted_bone_count":len(all_weighted_groups),
         "donor_root_objects":donor_root_names,
+        "armature_object_transform_baked":True,
+        "armature_world_before":arm_world_before,
+        "armature_world_after":arm_world_after,
         "export_meshes":remaining_meshes,
-        "binding_method":"aligned_roots_blended_kdtree_v5_strict_target_mesh_export",
+        "binding_method":"aligned_roots_blended_kdtree_v6_baked_armature_bind_pose",
         "bind_results":bind_results,
         "output_bytes":args.output.stat().st_size if args.output.exists() else 0,
     }
