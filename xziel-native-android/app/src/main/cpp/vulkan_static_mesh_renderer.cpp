@@ -3258,10 +3258,10 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
         auto& cell =
             geometryCells_[i];
 
-        if (cell.pinned) {
-            cell.heat =
-                StreamCellHeat::Hot;
-        }
+        cell.heat =
+            cell.pinned
+            ? StreamCellHeat::Hot
+            : cell.plannedHeat;
 
         if (geometryResidencyProbeEnabled_ &&
             !geometryResidencyProbeComplete_ &&
@@ -4061,12 +4061,14 @@ void VulkanStaticMeshRenderer::record(
                     auto& cell =
                         geometryCells_[i];
 
-                    cell.heat =
+                    cell.plannedHeat =
                         cell.pinned
                         ? StreamCellHeat::Hot
                         : streamGraph_.cellHeat(
                               planInput,
                               cell.cellId);
+                    cell.heat =
+                        cell.plannedHeat;
 
                     ++streamCellHeatRefreshCount_;
                 }
