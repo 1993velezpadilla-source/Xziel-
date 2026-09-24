@@ -165,7 +165,9 @@ function renderCandidates(job) {
       if (candidate.head_region_faces) {
         parts.push(`head ${candidate.head_region_faces.toLocaleString()} tris`);
       }
-      if (candidate.head_region_median_edge_normalized != null) {
+      if (candidate.head_region_density_ratio != null) {
+        parts.push(`head density ${Number(candidate.head_region_density_ratio).toFixed(2)}×`);
+      } else if (candidate.head_region_median_edge_normalized != null) {
         parts.push(`head edge ${Number(candidate.head_region_median_edge_normalized).toFixed(5)}× diag`);
       }
       if (candidate.pbr_channels?.length) parts.push(candidate.pbr_channels.join(" · "));
