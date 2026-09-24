@@ -1368,6 +1368,9 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     streamGraph_.reset();
     textureMipResidency_.reset();
     streamGraphReady_ = false;
+    geometryPortalReachable_.fill(0U);
+    cachedPortalReachabilityCell_ = 0U;
+    portalReachabilityCacheValid_ = false;
     streamFallbackTextureIndex_ = UINT32_MAX;
     runtimeTextureUpload_ = {};
     runtimeTextureTransitionFrame_ = 0U;
@@ -1475,6 +1478,7 @@ void VulkanStaticMeshRenderer::setStreamingPortalOpen(
             portalId,
             open)) {
         streamPlanDirty_ = true;
+        portalReachabilityCacheValid_ = false;
         streamCullLogged_ = false;
     }
 }
@@ -1638,6 +1642,10 @@ void VulkanStaticMeshRenderer::rebuildStreamingCellBounds() noexcept {
             }
         }
     }
+
+    portalReachabilityCacheValid_ = false;
+    cachedPortalReachabilityCell_ = 0U;
+    geometryPortalReachable_.fill(0U);
 
     __android_log_print(
         ANDROID_LOG_INFO,
@@ -4443,6 +4451,8 @@ void VulkanStaticMeshRenderer::record(
                 streamPlanDirty_ = false;
                 ++streamPlanBuildCount_;
 
+                geometryPortalReachable_.fill(0U);
+
                 for (std::size_t i = 0U;
                      i < geometryCellCount_;
                      ++i) {
@@ -4458,8 +4468,22 @@ void VulkanStaticMeshRenderer::record(
                     cell.heat =
                         cell.plannedHeat;
 
+                    geometryPortalReachable_[i] =
+                        (cell.pinned ||
+                         cell.cellId == 0U ||
+                         streamGraph_.
+                             cellReachableThroughOpenPortals(
+                                 currentCell,
+                                 cell.cellId))
+                        ? static_cast<std::uint8_t>(1U)
+                        : static_cast<std::uint8_t>(0U);
+
                     ++streamCellHeatRefreshCount_;
                 }
+
+                cachedPortalReachabilityCell_ =
+                    currentCell;
+                portalReachabilityCacheValid_ = true;
 
                 for (const auto& batch :
                      batches_) {
@@ -4544,6 +4568,9 @@ void VulkanStaticMeshRenderer::record(
             cachedStreamPlanStats_ = {};
             cachedStreamPlanCell_ = 0U;
             cachedStreamColdBatches_ = 0U;
+            cachedPortalReachabilityCell_ = 0U;
+            portalReachabilityCacheValid_ = false;
+            geometryPortalReachable_.fill(0U);
             streamPlanDirty_ = true;
         }
     }
@@ -4884,10 +4911,20 @@ void VulkanStaticMeshRenderer::record(
                     geometryCell.cellId != 0U) {
                     ++frameStats_.portalVisibilityTests;
 
-                    if (!streamGraph_.
-                            cellReachableThroughOpenPortals(
-                                frameStats_.streamingCell,
-                                geometryCell.cellId)) {
+                    const bool portalReachable =
+                        portalReachabilityCacheValid_ &&
+                        cachedPortalReachabilityCell_ ==
+                            frameStats_.streamingCell &&
+                        batch.geometryCellSlot <
+                            geometryPortalReachable_.size()
+                        ? geometryPortalReachable_[
+                              batch.geometryCellSlot] != 0U
+                        : streamGraph_.
+                              cellReachableThroughOpenPortals(
+                                  frameStats_.streamingCell,
+                                  geometryCell.cellId);
+
+                    if (!portalReachable) {
                         ++frameStats_.portalVisibilityCulled;
                         frameStats_.culledBatches +=
                             remainingBatches;
