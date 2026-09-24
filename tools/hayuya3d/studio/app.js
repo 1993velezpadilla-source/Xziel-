@@ -170,7 +170,14 @@ function renderCandidates(job) {
       const channels = document.createElement("div");
       channels.className = "pbr-channels";
       const parts = [];
-      if (candidate.base_color_max_edge) parts.push(`baseColor ${candidate.base_color_max_edge}px`);
+      if (candidate.base_color_min_edge) {
+        const strongest = candidate.base_color_max_edge && candidate.base_color_max_edge !== candidate.base_color_min_edge
+          ? `–${candidate.base_color_max_edge}px`
+          : "";
+        parts.push(`baseColor ${candidate.base_color_min_edge}px${strongest}`);
+      } else if (candidate.base_color_max_edge) {
+        parts.push(`baseColor ${candidate.base_color_max_edge}px`);
+      }
       if (candidate.head_region_faces) {
         parts.push(`head ${candidate.head_region_faces.toLocaleString()} tris`);
       }
