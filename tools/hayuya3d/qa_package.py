@@ -32,6 +32,8 @@ class QAPackageResult:
     material_rebake_pending_channels: list[str]
     rig_ready: bool
     animation_ready: bool
+    skin_weights_applicable: bool
+    skin_weights_ready: bool
     turntable_ready: bool
     turntable_score: float | None
     face_evidence_ready: bool
@@ -369,6 +371,31 @@ def build_qa_package(
     rig_ready = bool(rig.rig_ready)
     animation_ready = bool(rig.animation_ready)
 
+    skin_weight_audit = None
+    skin_weights_applicable = False
+    skin_weights_ready = False
+    if rig_required and rig_ready:
+        try:
+            from skin_weight_qa import audit_skin_weights
+            skin_weight_audit = audit_skin_weights(final_glb)
+            skin_weights_applicable = bool(skin_weight_audit.applicable)
+            skin_weights_ready = bool(
+                skin_weight_audit.applicable
+                and skin_weight_audit.ready
+            )
+            warnings.extend(skin_weight_audit.warnings or [])
+            warnings.extend(skin_weight_audit.errors or [])
+        except Exception as exc:
+            warnings.append(
+                "skin-weight QA unavailable: "
+                f"{type(exc).__name__}: {exc}"
+            )
+    if rig_required and rig_ready and not skin_weights_ready:
+        warnings.append(
+            "rig exists but JOINTS/WEIGHTS integrity is not production-ready; "
+            "skin-weight QA must pass before character production-ready status"
+        )
+
     if rig_required and not rig_ready:
         warnings.append(
             "character asset is geometrically usable but unrigged; animation/gameplay-ready status is false"
@@ -509,6 +536,7 @@ def build_qa_package(
         and face_evidence_ready
         and face_quality_evidence_ready
         and (rig_ready if rig_required else True)
+        and (skin_weights_ready if rig_required and rig_ready else True)
         and (animation_ready if rig_required else True)
     )
 
@@ -566,6 +594,13 @@ def build_qa_package(
             "unresolved_rebakes": unresolved_rebakes,
         },
         "rig": asdict(rig),
+        "skin_weights": (
+            asdict(skin_weight_audit)
+            if skin_weight_audit is not None else {
+                "applicable": skin_weights_applicable,
+                "ready": skin_weights_ready,
+            }
+        ),
         "part_map": asdict(part_map_result) if part_map_result is not None else None,
         "judge": {
             "score": champion_data.get("score"),
@@ -623,6 +658,8 @@ def build_qa_package(
         material_rebake_pending_channels=material_rebake_pending_channels,
         rig_ready=rig_ready,
         animation_ready=animation_ready,
+        skin_weights_applicable=skin_weights_applicable,
+        skin_weights_ready=skin_weights_ready,
         turntable_ready=turntable_ready,
         turntable_score=turntable_score,
         face_evidence_ready=face_evidence_ready,
