@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import json
 import os
+import re
 import threading
 import uuid
 from dataclasses import dataclass, field
@@ -16,6 +17,7 @@ from pydantic import BaseModel, Field
 
 from agent.pichy_agent import PichyAgent, load_config
 from server.memory import SessionMemory
+from server.attachments import AttachmentStore
 
 
 APP_VERSION = "0.3.0-lab"
@@ -28,6 +30,22 @@ class ChatRequest(BaseModel):
     session_id: str | None = None
     message: str = Field(min_length=1, max_length=100_000)
     route: str | None = None
+    attachment_ids: list[str] = Field(default_factory=list, max_length=8)
+
+
+class AttachmentRequest(BaseModel):
+    session_id: str | None = None
+    filename: str = Field(min_length=1, max_length=240)
+    mime_type: str = Field(default="application/octet-stream", max_length=120)
+    b64_data: str = Field(min_length=1)
+
+
+class AttachmentResponse(BaseModel):
+    session_id: str
+    attachment_id: str
+    filename: str
+    mime_type: str
+    size: int
 
 
 class ChatResponse(BaseModel):
@@ -68,6 +86,7 @@ def _data_dir() -> Path:
 
 
 _memory = SessionMemory(_data_dir() / "pichy_sessions.sqlite3")
+_attachments = AttachmentStore(_data_dir() / "uploads")
 
 
 def _config_path() -> Path:
@@ -103,8 +122,8 @@ def new_session_id() -> str:
 
 def get_session(session_id: str | None) -> tuple[str, SessionState]:
     sid = (session_id or "").strip() or new_session_id()
-    if len(sid) > 128:
-        raise HTTPException(status_code=400, detail="session_id too long")
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", sid):
+        raise HTTPException(status_code=400, detail="invalid session_id")
     with _sessions_lock:
         state = _sessions.get(sid)
         if state is None:
@@ -205,6 +224,22 @@ def capabilities() -> dict[str, Any]:
     }
 
 
+@app.post("/v1/attachments", response_model=AttachmentResponse, dependencies=[Depends(require_token)])
+def upload_attachment(req: AttachmentRequest) -> AttachmentResponse:
+    sid, _state = get_session(req.session_id)
+    try:
+        item = _attachments.save_b64(sid, req.filename, req.mime_type, req.b64_data)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return AttachmentResponse(
+        session_id=sid,
+        attachment_id=item.attachment_id,
+        filename=item.filename,
+        mime_type=item.mime_type,
+        size=item.size,
+    )
+
+
 @app.get("/v1/provider-status", dependencies=[Depends(require_token)])
 def provider_status() -> dict[str, Any]:
     cfg = get_config()
@@ -249,9 +284,13 @@ def chat(req: ChatRequest) -> ChatResponse:
     if route not in {"general", "reasoning", "coding", "research", "vision", "map_modeling"}:
         raise HTTPException(status_code=400, detail="Unsupported route")
     try:
+        stored = [_attachments.load(sid, aid) for aid in req.attachment_ids]
+        task_content = _attachments.to_message_content(req.message, stored)
         with state.lock:
-            answer = state.agent.run(req.message, forced_route=route)
+            answer = state.agent.run(task_content, forced_route=route)
             persist_session(sid, state)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Pichy agent error: {type(exc).__name__}: {exc}") from exc
     return ChatResponse(session_id=sid, route=route, answer=answer)
@@ -267,8 +306,10 @@ def chat_stream(req: ChatRequest) -> StreamingResponse:
     def event_stream():
         yield "event: status\ndata: " + json.dumps({"session_id": sid, "state": "working", "route": route}) + "\n\n"
         try:
+            stored = [_attachments.load(sid, aid) for aid in req.attachment_ids]
+            task_content = _attachments.to_message_content(req.message, stored)
             with state.lock:
-                answer = state.agent.run(req.message, forced_route=route)
+                answer = state.agent.run(task_content, forced_route=route)
                 persist_session(sid, state)
             payload = {"session_id": sid, "route": route, "answer": answer}
             yield "event: final\ndata: " + json.dumps(payload, ensure_ascii=False) + "\n\n"
