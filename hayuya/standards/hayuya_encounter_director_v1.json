@@ -1,0 +1,117 @@
+{
+  "schema": 1,
+  "id": "hayuya_encounter_director_v1",
+  "purpose": "Author unsettling, story-connected encounters from reusable map anchors, short animation clips, lighting, audio, props and gameplay state instead of relying on long bespoke cinematics or visible pop-in.",
+  "principles": [
+    "The encounter begins before the character is fully revealed.",
+    "A character appearing does not automatically mean combat.",
+    "Prefer anticipation, uncertainty, spatial contradiction and aftermath over repetitive jump scares.",
+    "Never visibly pop a major presence into the player's unobstructed view; use preloaded anchors, occlusion-safe transitions, doors, corners, lighting transitions or authored traversal.",
+    "Use short reusable animation clips and procedural look/idle/locomotion layers instead of requiring a unique cinematic for every encounter.",
+    "Give the player meaningful choices such as observe, follow, approach, interrupt, ignore or leave when the encounter design allows it.",
+    "Rare variants should be deterministic from a match seed so co-op players share the same event state and bugs are reproducible.",
+    "Story encounters must leave evidence or consequence in the world so they feel connected to the location rather than random.",
+    "Accessibility and gameplay readability override horror effects when they conflict."
+  ],
+  "phases": [
+    "signal",
+    "suspicion",
+    "glimpse",
+    "manifestation",
+    "interaction",
+    "consequence",
+    "afterimage",
+    "cooldown"
+  ],
+  "channels": {
+    "audio": ["distant_source", "occluded_source", "room_tone_change", "localized_prop_sound", "voice_or_whisper"],
+    "lighting": ["circuit_sequence", "motivated_flicker", "silhouette_backlight", "temporary_exposure_shift", "light_failure"],
+    "world": ["door_state", "prop_displacement", "anchor_visibility", "route_hint", "temporary_blocker", "environmental_evidence"],
+    "actor": ["idle", "slow_walk", "turn", "look", "gesture", "sit", "stand", "hold_prop", "withdraw"],
+    "gameplay": ["observe", "follow", "avoid", "interact", "reward", "route_change", "combat_escalation"]
+  },
+  "animationContract": {
+    "strategy": "modular_short_clips_plus_state_machine",
+    "minimumReusableSet": [
+      "idle_a",
+      "idle_b",
+      "slow_walk",
+      "turn_45",
+      "turn_90",
+      "look_target",
+      "gesture_subtle",
+      "sit_or_rest",
+      "stand_from_rest",
+      "hold_or_ring_prop",
+      "enter_occlusion",
+      "exit_occlusion"
+    ],
+    "optionalLayers": [
+      "head_look",
+      "upper_body_aim_or_focus",
+      "breathing",
+      "cloth_secondary_motion",
+      "hand_prop_constraint"
+    ],
+    "rootMotion": "optional_per_clip",
+    "eventMarkers": [
+      "footstep",
+      "prop_contact",
+      "bell_or_object_cue",
+      "light_trigger",
+      "voice_cue",
+      "interaction_window",
+      "safe_visibility_swap"
+    ],
+    "longBespokeCinematicRequired": false
+  },
+  "placementContract": {
+    "anchorTypes": [
+      "distant_silhouette",
+      "doorway",
+      "stained_glass_crossing",
+      "aisle_end",
+      "balcony",
+      "confessional",
+      "altar",
+      "side_chapel",
+      "occluded_connector"
+    ],
+    "majorPresenceVisiblePopInAllowed": false,
+    "safeTransitions": [
+      "fully_occluded_reposition",
+      "door_or_corner_traversal",
+      "lighting_blackout_with_position_validation",
+      "streamed_preload_before_reveal"
+    ]
+  },
+  "runtimeContract": {
+    "authoritativeState": "server_or_host_for_coop",
+    "seededVariantSelection": true,
+    "lateJoinStateSerializable": true,
+    "eventStateSerializable": true,
+    "replayDebuggable": true,
+    "preloadBeforeReveal": true,
+    "combatIsOptionalOutcome": true
+  },
+  "judgeGates": [
+    "encounter_has_foreshadowing_or_context",
+    "major_presence_does_not_visible_pop_in",
+    "audio_and_visual_cues_have_spatial_source_or_authored_supernatural_reason",
+    "player_can_read_critical_navigation_during_event",
+    "event_has_world_consequence_or_story_payoff",
+    "repeated_runs_can_vary_without_breaking_logic",
+    "co_op_clients_share_authoritative_event_state",
+    "rare_variant_is_seed_reproducible",
+    "mobile_effect_budget_is_bounded",
+    "critical_cues_do_not_depend_on_flicker_or_color_alone"
+  ],
+  "mobilePolicy": {
+    "preferPreauthoredAnchors": true,
+    "boundedDynamicLightsPerEncounter": true,
+    "boundedSimultaneousAudioVoices": true,
+    "distanceCullSecondaryActorLayers": true,
+    "reuseAnimationClipsAcrossVariants": true,
+    "preserveNarrativeTimingAcrossQualityTiers": true
+  }
+}
