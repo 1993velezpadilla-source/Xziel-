@@ -9,7 +9,9 @@ HERE = Path(__file__).resolve().parent
 HAYUYA3D = HERE.parent
 sys.path.insert(0, str(HAYUYA3D))
 
+from hayuya_lighting import compile_lighting_intelligence
 from hayuya_map import make_plan, parse_bounds
+from map_design_brain import compile_design_intelligence
 from map_source_registry import default_providers, readiness_report
 from world_semantics import Evidence, SourceRecord, WorldEntity, WorldGraph, WorldRelation
 
@@ -122,6 +124,61 @@ class WorldSemanticsTests(unittest.TestCase):
         )
         with self.assertRaises(ValueError):
             parse_bounds("-66.7,18.2,-66.8,18.1")
+
+    def test_zombies_design_brain_loads_complete_clean_room_profile(self):
+        intelligence = compile_design_intelligence("sanctum_classic")
+        self.assertEqual(intelligence["engine"], "HAYUYA Map Structure Brain")
+        self.assertGreaterEqual(intelligence["knowledge"]["atlas_map_count"], 60)
+        self.assertEqual(len(intelligence["source_maps"]), 8)
+        self.assertTrue(intelligence["targets"]["requiredEarlyFork"])
+        self.assertTrue(intelligence["targets"]["requiredCompletedCombatLoop"])
+        self.assertTrue(intelligence["generation_contract"]["author_original_geometry"])
+        self.assertFalse(intelligence["generation_contract"]["copy_reference_layout"])
+        self.assertIn("no_exact_layout_reconstruction", intelligence["guardrails"])
+
+    def test_hayuya_lighting_profile_preserves_horror_and_readability(self):
+        lighting = compile_lighting_intelligence("zombies_horror")
+        self.assertEqual(lighting["engine"], "HAYUYA Lighting")
+        self.assertIn("power_off", lighting["states"])
+        self.assertIn("power_on", lighting["states"])
+        self.assertIn("storm_flash", lighting["states"])
+        self.assertTrue(lighting["beauty_contract"]["depth_layers_required"])
+        self.assertFalse(
+            lighting["beauty_contract"]["black_crush_on_critical_path_allowed"]
+        )
+        self.assertFalse(
+            lighting["beauty_contract"]["constant_random_flicker_allowed"]
+        )
+
+    def test_zombie_goal_auto_attaches_map_and_lighting_intelligence(self):
+        plan = make_plan(
+            job_id="zombies-intelligence",
+            sources=["church-reference.jpg"],
+            goal="author an original round-based zombie horror map for Xziel",
+            provider_ids=["user_capture"],
+            env={},
+        )
+        self.assertEqual(
+            plan["map_design_intelligence"]["profile_id"],
+            "sanctum_classic",
+        )
+        self.assertEqual(
+            plan["lighting_intelligence"]["profile_id"],
+            "zombies_horror",
+        )
+        self.assertIn("zombies_map_dna_atlas", plan["knowledge_library"])
+        self.assertIn("lighting_standard", plan["knowledge_library"])
+
+    def test_generic_world_does_not_force_zombies_profile(self):
+        plan = make_plan(
+            job_id="generic-world",
+            sources=[],
+            goal="reconstruct a neutral city block from survey evidence",
+            provider_ids=["user_capture"],
+            env={},
+        )
+        self.assertIsNone(plan["map_design_intelligence"])
+        self.assertIsNone(plan["lighting_intelligence"])
 
 
 if __name__ == "__main__":
