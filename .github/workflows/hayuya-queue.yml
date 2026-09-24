@@ -185,14 +185,45 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: python tools/hayuya3d/phone_cloud_worker.py
 
+      - name: Classify Auto asset for skeletal character motion
+        id: character_motion
+        if: success() && matrix.animation_requested == 'true'
+        env:
+          HAYUYA_TITLE: ${{ matrix.title }}
+          HAYUYA_ASSET_PROFILE: ${{ matrix.asset_profile }}
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import os,re
+          profile=os.environ.get("HAYUYA_ASSET_PROFILE","auto").strip().lower()
+          title=os.environ.get("HAYUYA_TITLE","").strip().lower()
+          explicit=profile.startswith("character.")
+          character_words=(
+              "zombie","undead","human","humanoid","character","person","npc",
+              "enemy","monster","creature","ghost","witch","witcher","llorona",
+              "woman","female","man","male","girl","boy","soldier","civilian",
+              "survivor","doctor","nurse","police","cop","priest","demon"
+          )
+          prop_words=(
+              "table","chair","door","window","building","church","house","street",
+              "tree","grass","plant","car","vehicle","truck","weapon","gun","rifle",
+              "pistol","shotgun","crate","barrel","lamp","sign","environment","map"
+          )
+          auto_character=profile=="auto" and any(w in title for w in character_words)
+          obvious_prop=profile=="auto" and any(w in title for w in prop_words) and not auto_character
+          skeletal=explicit or (auto_character and not obvious_prop)
+          print("skeletal="+("true" if skeletal else "false"))
+          print("resolved_profile="+("character.humanoid" if skeletal else profile))
+          PY
+
       - name: Install Blender for requested character motion
-        if: success() && matrix.animation_requested == 'true' && (matrix.asset_profile == 'auto' || startsWith(matrix.asset_profile, 'character.'))
+        if: success() && steps.character_motion.outputs.skeletal == 'true'
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq blender python3-numpy
 
       - name: AutoRig generated real model with local UAM2/UAM1 banks
-        if: success() && matrix.animation_requested == 'true' && (matrix.asset_profile == 'auto' || startsWith(matrix.asset_profile, 'character.'))
+        if: success() && steps.character_motion.outputs.skeletal == 'true'
         continue-on-error: true
         shell: bash
         run: |
