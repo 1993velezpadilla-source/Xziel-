@@ -199,6 +199,90 @@ def bone_side_label(name):
     return None
 
 
+def summarize_rest_edge_anatomy(meshes,rest_positions,weight_labels,body_diagonal):
+    total_edges=0
+    cross_side_edges=0
+    cross_side_leg_edges=0
+    pair_counts={}
+    cross_vertices=set()
+    cross_lengths=[]
+    cross_adjacency={}
+
+    def is_leg_bone(name):
+        value=str(name or "").lower()
+        return any(token in value for token in ("thigh","calf","shin","foot","toe","leg"))
+
+    for obj in meshes:
+        pos=rest_positions.get(obj.name,[])
+        for edge in obj.data.edges:
+            a,b=(int(edge.vertices[0]),int(edge.vertices[1]))
+            if a>=len(pos) or b>=len(pos):
+                continue
+            length=(pos[a]-pos[b]).length
+            if length<=1e-8 or not math.isfinite(length):
+                continue
+            total_edges+=1
+            la=weight_labels.get((obj.name,a),{"bone":None})
+            lb=weight_labels.get((obj.name,b),{"bone":None})
+            bone_a=la.get("bone")
+            bone_b=lb.get("bone")
+            side_a=bone_side_label(bone_a)
+            side_b=bone_side_label(bone_b)
+            if side_a is None or side_b is None or side_a==side_b:
+                continue
+            cross_side_edges+=1
+            if is_leg_bone(bone_a) and is_leg_bone(bone_b):
+                cross_side_leg_edges+=1
+            pair="|".join(sorted(str(x or "unweighted") for x in (bone_a,bone_b)))
+            pair_counts[pair]=pair_counts.get(pair,0)+1
+            va=(obj.name,a)
+            vb=(obj.name,b)
+            cross_vertices.add(va)
+            cross_vertices.add(vb)
+            cross_lengths.append(float(length/max(1e-8,body_diagonal)))
+            cross_adjacency.setdefault(va,set()).add(vb)
+            cross_adjacency.setdefault(vb,set()).add(va)
+
+    visited=set()
+    components=[]
+    for seed in cross_adjacency:
+        if seed in visited:
+            continue
+        stack=[seed]
+        visited.add(seed)
+        component=[]
+        while stack:
+            node=stack.pop()
+            component.append(node)
+            for nxt in cross_adjacency.get(node,()):
+                if nxt not in visited:
+                    visited.add(nxt)
+                    stack.append(nxt)
+        components.append(component)
+
+    component_sizes=sorted((len(x) for x in components),reverse=True)
+    return {
+        "schema":1,
+        "method":"dominant_weight_cross_side_full_topology_v1",
+        "total_valid_edges":total_edges,
+        "cross_side_edge_count":cross_side_edges,
+        "cross_side_leg_edge_count":cross_side_leg_edges,
+        "cross_side_vertex_count":len(cross_vertices),
+        "cross_side_component_count":len(components),
+        "largest_cross_side_component_vertices":component_sizes[0] if component_sizes else 0,
+        "top_cross_side_bone_pairs":[
+            {"pair":pair,"count":count}
+            for pair,count in sorted(
+                pair_counts.items(),
+                key=lambda item:(-item[1],item[0]),
+            )[:24]
+        ],
+        "rest_length_diagonal_p01":percentile(cross_lengths,0.01),
+        "rest_length_diagonal_p50":percentile(cross_lengths,0.50),
+        "rest_length_diagonal_p99":percentile(cross_lengths,0.99),
+    }
+
+
 def edge_metrics(edge_samples, positions, weight_labels=None):
     body=[]
     head=[]
@@ -353,6 +437,12 @@ def main():
     if len(edge_samples)<100:
         raise RuntimeError(f"too_few_edge_samples:{len(edge_samples)}")
     vertex_weight_labels=build_vertex_weight_labels(meshes)
+    rest_edge_anatomy=summarize_rest_edge_anatomy(
+        meshes,
+        rest_positions,
+        vertex_weight_labels,
+        float(rest["diagonal"]),
+    )
 
     reference_fidelity=None
     reference_failures=[]
@@ -511,6 +601,7 @@ def main():
         "up_axis_method":up_axis_method,
         "up_axis_pelvis_to_head_vector":up_axis_vector,
         "edge_sample_count":len(edge_samples),
+        "rest_edge_anatomy":rest_edge_anatomy,
         "thresholds":{
             "min_diagonal_ratio":args.min_diagonal_ratio,
             "max_diagonal_ratio":args.max_diagonal_ratio,
