@@ -709,23 +709,19 @@ bool StreamCellGraph::cellReachableThroughOpenPortals(
                 continue;
             }
 
-            std::uint32_t nextId = 0U;
+            std::size_t nextIndex =
+                kMaxStreamCells;
 
             if (portal.cellA == currentId) {
-                nextId = portal.cellB;
+                nextIndex =
+                    portalCellBIndices_[p];
             } else if (
                 portal.cellB == currentId) {
-                nextId = portal.cellA;
+                nextIndex =
+                    portalCellAIndices_[p];
             } else {
                 continue;
             }
-
-            const std::size_t nextIndex =
-                portal.cellA == currentId
-                ? static_cast<std::size_t>(
-                      portalCellBIndices_[p])
-                : static_cast<std::size_t>(
-                      portalCellAIndices_[p]);
 
             if (nextIndex >= cellCount_ ||
                 visited[nextIndex]) {
