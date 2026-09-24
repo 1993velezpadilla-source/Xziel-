@@ -359,6 +359,43 @@ def main():
     bpy.context.view_layer.update()
     arm_world_after=[list(row) for row in arm.matrix_world]
 
+    # Retarget donor motion onto the FITTED rest skeleton. Imported glTF
+    # animations frequently key local translation/scale on many bones. Once
+    # the rest skeleton is resized/repositioned for a generated character,
+    # replaying those donor-space offsets pulls joints back toward donor
+    # proportions and stretches the skin. Keep rotations only. Locomotion/root
+    # translation is owned by the game/clip controller, not by deform bones.
+    animation_retarget={
+        "method":"rotation_only_on_fitted_rest_v28",
+        "actions":0,
+        "removed_location_curves":0,
+        "removed_scale_curves":0,
+        "kept_rotation_curves":0,
+        "kept_other_curves":0,
+    }
+    for action in bpy.data.actions:
+        animation_retarget["actions"]+=1
+        for fcurve in list(action.fcurves):
+            path=str(getattr(fcurve,"data_path","") or "")
+            is_location=(path=="location" or path.endswith(".location"))
+            is_scale=(path=="scale" or path.endswith(".scale"))
+            is_rotation=(
+                "rotation_quaternion" in path
+                or "rotation_euler" in path
+                or "rotation_axis_angle" in path
+            )
+            if is_location:
+                action.fcurves.remove(fcurve)
+                animation_retarget["removed_location_curves"]+=1
+            elif is_scale:
+                action.fcurves.remove(fcurve)
+                animation_retarget["removed_scale_curves"]+=1
+            elif is_rotation:
+                animation_retarget["kept_rotation_curves"]+=1
+            else:
+                animation_retarget["kept_other_curves"]+=1
+    bpy.context.view_layer.update()
+
     # Production skinning: use the fitted skeleton itself as the weighting
     # field. AI-generated meshes may contain hundreds/thousands of disconnected
     # islands, so donor-mesh nearest-neighbour weights can jump abruptly across
@@ -749,7 +786,7 @@ def main():
         "animation_retarget":animation_retarget,
         "export_meshes":remaining_meshes,
         "sterile_export_scene_meshes":export_scene_meshes,
-        "binding_method":"anatomical_lr_axis_masked_smoothing_v27",
+        "binding_method":"rotation_only_anatomical_lr_masked_v28",
         "bind_results":bind_results,
         "output_bytes":args.output.stat().st_size if args.output.exists() else 0,
     }
