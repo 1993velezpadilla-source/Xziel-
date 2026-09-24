@@ -244,6 +244,7 @@ bool VulkanStaticMeshRenderer::initialize(
     VkCommandPool commandPool,
     VkRenderPass renderPass,
     VkSampleCountFlagBits sampleCount,
+    bool multiDrawIndirectEnabled,
     AAssetManager* assetManager,
     const char* modelAssetPath) noexcept {
     shutdown();
@@ -262,6 +263,8 @@ bool VulkanStaticMeshRenderer::initialize(
 
     physicalDevice_ = physicalDevice;
     device_ = device;
+    multiDrawIndirectEnabled_ =
+        multiDrawIndirectEnabled;
 
     VkPhysicalDeviceFeatures deviceFeatures{};
     vkGetPhysicalDeviceFeatures(
@@ -991,6 +994,16 @@ bool VulkanStaticMeshRenderer::initialize(
         return false;
     }
 
+    if (streamGraphReady_ &&
+        multiDrawIndirectEnabled_) {
+        if (!createIndirectFrames()) {
+            destroyIndirectFrames();
+            multiDrawIndirectEnabled_ = false;
+            logInfo(
+                "XZIEL_MULTIDRAW_INDIRECT_FALLBACK allocation_failed");
+        }
+    }
+
     totalVertices_ =
         asset.totalVertices;
     totalIndices_ =
@@ -1024,6 +1037,7 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
         discardPendingUploads();
 
         destroyRuntimeTextureUpload();
+        destroyIndirectFrames();
         destroyGeometryResidency();
 
         for (auto& texture : textures_) {
@@ -1094,6 +1108,8 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     lastLoggedStreamCell_ = 0U;
     pendingUploads_.clear();
     pendingUploadBytes_ = 0U;
+    indirectFrames_ = {};
+    multiDrawIndirectEnabled_ = false;
 
     pipeline_ = VK_NULL_HANDLE;
     pipelineDoubleSided_ = VK_NULL_HANDLE;
