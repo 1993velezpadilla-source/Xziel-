@@ -116,7 +116,45 @@ jobs:
             --reference "hayuya/models/${{ matrix.job_id }}/model.glb" \
             --json "out/rig/${{ matrix.job_id }}/anim-uam1.json" --samples 5 || true
 
+      - name: Confirm this is the latest rig request
+        id: freshness
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          job="${{ matrix.job_id }}"
+          current=Path("${{ matrix.request }}")
+          candidates=[]
+          root=Path("hayuya/rig_requests")
+          for p in root.glob("*.json"):
+              try:
+                  d=json.loads(p.read_text())
+              except Exception:
+                  continue
+              if str(d.get("job_id",""))!=job:
+                  continue
+              candidates.append((
+                  str(d.get("requested_at","")),
+                  p.name,
+                  p,
+              ))
+          latest=max(candidates,key=lambda x:(x[0],x[1]))[2] if candidates else current
+          is_current=(latest.as_posix()==current.as_posix())
+          with open(os.environ["GITHUB_OUTPUT"],"a") as out:
+              out.write("current="+("true" if is_current else "false")+"\n")
+              out.write("latest="+latest.as_posix()+"\n")
+          print("HAYUYA_RIG_REQUEST_FRESHNESS",json.dumps({
+              "job_id":job,
+              "current":current.as_posix(),
+              "latest":latest.as_posix(),
+              "is_current":is_current,
+          },separators=(",",":")))
+          PY
+
       - name: Persist animated real-model banks
+        if: steps.freshness.outputs.current == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -221,8 +259,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if [[ "${{ job.status }}" == "success" ]]; then
-            gh issue comment 55 --repo "$GITHUB_REPOSITORY" --body "🦴 **RIG READY** — **${{ matrix.owner }}** / ${{ matrix.job_id }} — real model now carries UAM1/UAM2 animation banks."
+          if [[ "${{ steps.freshness.outputs.current }}" != "true" ]]; then
+            gh issue comment 55 --repo "$GITHUB_REPOSITORY" --body "⏭️ **RIG SUPERSEDED** — **${{ matrix.owner }}** / ${{ matrix.job_id }} — newer request exists; this run was not allowed to publish."
+          elif [[ "${{ job.status }}" == "success" ]]; then
+            gh issue comment 55 --repo "$GITHUB_REPOSITORY" --body "🦴 **RIG READY** — **${{ matrix.owner }}** / ${{ matrix.job_id }} — real model now carries a QA-approved local animation bank."
           else
             gh issue comment 55 --repo "$GITHUB_REPOSITORY" --body "❌ **RIG FAILED** — **${{ matrix.owner }}** / ${{ matrix.job_id }}"
           fi
