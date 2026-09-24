@@ -62,15 +62,16 @@ def find_realesrgan(explicit:str|Path|None=None)->Path|None:
         resolved=shutil.which(name)
         if resolved:
             return Path(resolved).resolve()
+    runtime_module=None
     try:
-        from texture_runtime import executable_path
+        if __package__:
+            from . import texture_runtime as runtime_module
+        else:
+            import texture_runtime as runtime_module
     except ImportError:
-        try:
-            from .texture_runtime import executable_path
-        except ImportError:
-            executable_path=None
-    if executable_path is not None:
-        resolved=executable_path()
+        runtime_module=None
+    if runtime_module is not None:
+        resolved=runtime_module.executable_path()
         if resolved is not None:
             return Path(resolved).resolve()
     return None
@@ -85,14 +86,14 @@ def ensure_realesrgan(
     if resolved is not None or explicit is not None or not auto_install:
         return resolved
     try:
-        from texture_runtime import install
+        if __package__:
+            from . import texture_runtime as runtime_module
+        else:
+            import texture_runtime as runtime_module
     except ImportError:
-        try:
-            from .texture_runtime import install
-        except ImportError:
-            return None
+        return None
     try:
-        return Path(install()).resolve()
+        return Path(runtime_module.install()).resolve()
     except Exception:
         return None
 
