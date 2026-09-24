@@ -117,6 +117,44 @@ def audit():
             require(bool(item.get("type")),f"addon type missing:{iid}",errors)
     summary["addons"]={"items":addon_items}
 
+    # Pipeline regression contracts. These protect failures that can otherwise
+    # look visually catastrophic while a Blender workflow still appears green.
+    autorig_path=ROOT/"tools/hayuya3d/blender_autorig.py"
+    autorig_source=autorig_path.read_text(encoding="utf-8")
+    retarget_init=autorig_source.find('animation_retarget={')
+    retarget_report=autorig_source.find('"animation_retarget":animation_retarget')
+    require(retarget_init>=0,"autorig rotation-only animation_retarget initialization missing",errors)
+    require(retarget_report>=0,"autorig animation_retarget report field missing",errors)
+    require(retarget_init>=0 and retarget_report>retarget_init,
+            "autorig animation_retarget used before initialization",errors)
+    require("rotation_only_on_fitted_rest" in autorig_source,
+            "autorig no longer declares fitted-rest rotation-only retarget",errors)
+
+    protected_workflows=[
+        ".github/workflows/hayuya-rig-request.yml",
+        ".github/workflows/hayuya-queue.yml",
+        ".github/workflows/hayuya-autorig-prototype.yml",
+        ".github/workflows/hayuya-character-package.yml",
+    ]
+    blender_contract={}
+    for rel in protected_workflows:
+        wf=(ROOT/rel).read_text(encoding="utf-8")
+        guarded=len(re.findall(
+            r"blender --python-exit-code 1 -b --python tools/hayuya3d/(?:blender_autorig|blender_animation_gate)\\.py",
+            wf
+        ))
+        unsafe=len(re.findall(
+            r"blender -b --python tools/hayuya3d/(?:blender_autorig|blender_animation_gate)\\.py",
+            wf
+        ))
+        require(guarded>0,f"no fail-fast Blender Python calls found:{rel}",errors)
+        require(unsafe==0,f"unsafe Blender Python call can hide traceback:{rel}",errors)
+        blender_contract[rel]={"guarded_calls":guarded,"unsafe_calls":unsafe}
+    summary["pipeline_contract"]={
+        "rotation_only_retarget":retarget_init>=0 and retarget_report>retarget_init,
+        "blender_fail_fast":blender_contract,
+    }
+
     summary["warnings"]=warnings
     summary["error_count"]=len(errors)
     summary["errors"]=errors
