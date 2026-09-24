@@ -42,6 +42,28 @@ def infer_critical_targets(
     return targets
 
 
+HEAD_CLOSEUP_TARGETS={"eyes","mouth","teeth","hair","ears"}
+
+
+def render_specs(
+    critical_targets:Iterable[str],
+    views:Iterable[str],
+)->list[tuple[str,str]]:
+    specs=[]
+    for view in views:
+        view=str(view)
+        spec=(view,"full")
+        if spec not in specs:
+            specs.append(spec)
+    targets={str(x).strip().lower() for x in critical_targets}
+    if targets & HEAD_CLOSEUP_TARGETS:
+        for view in ("front","side"):
+            spec=(view,"head")
+            if spec not in specs:
+                specs.append(spec)
+    return specs
+
+
 def semantic_stack_ready()->tuple[bool,list[str]]:
     missing=[]
     if shutil.which("blender") is None:
@@ -141,11 +163,11 @@ def run_semantic_anatomy(
     reports=[]
     report_data=[]
     try:
-        for view in views:
-            view=str(view)
+        for view,frame in render_specs(targets,views):
             if view not in {"front","side","rear","top"}:
                 raise ValueError(f"unsupported semantic render view: {view}")
-            render_path=out_dir/f"{view}.png"
+            label=view if frame=="full" else f"{view}_{frame}"
+            render_path=out_dir/f"{label}.png"
             subprocess.run(
                 [
                     "blender","-b",
@@ -155,6 +177,7 @@ def run_semantic_anatomy(
                     "--output",str(render_path),
                     "--size","1024",
                     "--view",view,
+                    "--frame",frame,
                 ],
                 check=True,
                 stdout=subprocess.PIPE,
@@ -163,7 +186,7 @@ def run_semantic_anatomy(
             )
             rendered.append(str(render_path))
 
-            detector_dir=out_dir/f"detected_{view}"
+            detector_dir=out_dir/f"detected_{label}"
             subprocess.run(
                 [
                     py,str(detector_script),
