@@ -1,10 +1,14 @@
 package com.pichy.ai;
 
 import android.app.Activity;
+import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.OpenableColumns;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
@@ -16,9 +20,11 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -31,6 +37,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class MainActivity extends Activity {
+    private static final int REQ_ATTACH = 1001;
+    private static final int MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
 
     private LinearLayout transcript;
@@ -45,10 +53,14 @@ public class MainActivity extends Activity {
     private Button imageButton;
     private Button mapButton;
     private Button createButton;
+    private Button attachButton;
     private LinearLayout createMenu;
     private TextView status;
+    private TextView attachmentStatus;
 
     private String sessionId;
+    private String pendingAttachmentId = "";
+    private String pendingAttachmentName = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -92,7 +104,7 @@ public class MainActivity extends Activity {
         root.addView(header);
 
         status = new TextView(this);
-        status.setText("LAB v0.3.0 • persistent memory");
+        status.setText("LAB v0.3.1 • memory + attachments");
         status.setTextColor(Color.rgb(155, 155, 170));
         status.setPadding(0, 0, 0, dp(6));
         root.addView(status);
@@ -111,6 +123,13 @@ public class MainActivity extends Activity {
         root.addView(scroll, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 0, 1));
 
+        LinearLayout composer = new LinearLayout(this);
+        composer.setGravity(Gravity.BOTTOM);
+
+        attachButton = makeButton("+");
+        attachButton.setTextSize(24);
+        composer.addView(attachButton, new LinearLayout.LayoutParams(dp(58), LinearLayout.LayoutParams.WRAP_CONTENT));
+
         prompt = new EditText(this);
         prompt.setHint("Ask Pichy anything...");
         prompt.setHintTextColor(Color.rgb(130, 130, 145));
@@ -120,7 +139,16 @@ public class MainActivity extends Activity {
         prompt.setMinLines(2);
         prompt.setMaxLines(7);
         prompt.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
-        root.addView(prompt);
+        composer.addView(prompt, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+        root.addView(composer);
+
+        attachmentStatus = new TextView(this);
+        attachmentStatus.setTextColor(Color.rgb(170, 200, 235));
+        attachmentStatus.setPadding(dp(6), dp(3), dp(6), dp(3));
+        attachmentStatus.setVisibility(View.GONE);
+        root.addView(attachmentStatus);
+
+        attachButton.setOnClickListener(v -> pickAttachment());
 
         createMenu = new LinearLayout(this);
         createMenu.setGravity(Gravity.CENTER);
@@ -208,6 +236,7 @@ public class MainActivity extends Activity {
             sessionId = UUID.randomUUID().toString().replace("-", "");
             getPreferences(MODE_PRIVATE).edit().putString("sessionId", sessionId).apply();
             transcript.removeAllViews();
+            clearPendingAttachment();
             addBubble("Pichy", "New conversation started.");
         });
 
@@ -220,15 +249,18 @@ public class MainActivity extends Activity {
     }
 
     private void sendChat(String route) {
-        String text = value(prompt);
-        if (text.isEmpty()) return;
+        String rawText = value(prompt);
+        if (rawText.isEmpty() && pendingAttachmentId.isEmpty()) return;
+        String text = rawText.isEmpty() ? "Analyze the attached file." : rawText;
         if (value(endpoint).isEmpty()) {
             Toast.makeText(this, "Set the server URL first.", Toast.LENGTH_SHORT).show();
             settingsPanel.setVisibility(View.VISIBLE);
             return;
         }
         prompt.setText("");
-        addBubble("You", text);
+        String attachmentId = pendingAttachmentId;
+        String attachmentName = pendingAttachmentName;
+        addBubble("You", text + (attachmentName.isEmpty() ? "" : "\nAttached: " + attachmentName));
         setBusy(true, route);
 
         io.execute(() -> {
@@ -237,10 +269,18 @@ public class MainActivity extends Activity {
                 req.put("session_id", sessionId);
                 req.put("message", text);
                 req.put("route", route);
+                JSONArray attachmentIds = new JSONArray();
+                if (!attachmentId.isEmpty()) attachmentIds.put(attachmentId);
+                req.put("attachment_ids", attachmentIds);
                 JSONObject out = postJson("/v1/chat", req);
                 sessionId = out.optString("session_id", sessionId);
                 String answer = out.optString("answer", "");
-                runOnUiThread(() -> addBubble("Pichy • " + route, answer));
+                runOnUiThread(() -> {
+                    if (!attachmentId.isEmpty() && attachmentId.equals(pendingAttachmentId)) {
+                        clearPendingAttachment();
+                    }
+                    addBubble("Pichy • " + route, answer);
+                });
             } catch (Exception e) {
                 runOnUiThread(() -> addBubble("Error", message(e)));
             } finally {
@@ -250,6 +290,10 @@ public class MainActivity extends Activity {
     }
 
     private void sendImage(boolean newConcept) {
+        if (!pendingAttachmentId.isEmpty()) {
+            Toast.makeText(this, "Attached files currently work with Chat, Research, Code and Map Modeling.", Toast.LENGTH_LONG).show();
+            return;
+        }
         String text = value(prompt);
         if (text.isEmpty()) return;
         if (value(endpoint).isEmpty()) {
@@ -293,6 +337,103 @@ public class MainActivity extends Activity {
                 runOnUiThread(() -> setBusy(false, ""));
             }
         });
+    }
+
+    private void pickAttachment() {
+        if (value(endpoint).isEmpty()) {
+            Toast.makeText(this, "Set the server URL first.", Toast.LENGTH_SHORT).show();
+            settingsPanel.setVisibility(View.VISIBLE);
+            return;
+        }
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+        startActivityForResult(intent, REQ_ATTACH);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQ_ATTACH && resultCode == RESULT_OK && data != null && data.getData() != null) {
+            uploadAttachment(data.getData());
+        }
+    }
+
+    private void uploadAttachment(Uri uri) {
+        status.setText("Uploading attachment...");
+        attachButton.setEnabled(false);
+        io.execute(() -> {
+            try {
+                String mime = getContentResolver().getType(uri);
+                if (mime == null || mime.isEmpty()) mime = "application/octet-stream";
+                String name = attachmentDisplayName(uri);
+                byte[] bytes = readAttachmentBytes(uri);
+                String b64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP);
+
+                JSONObject req = new JSONObject();
+                req.put("session_id", sessionId);
+                req.put("filename", name);
+                req.put("mime_type", mime);
+                req.put("b64_data", b64);
+                JSONObject out = postJson("/v1/attachments", req);
+
+                String id = out.getString("attachment_id");
+                String savedName = out.optString("filename", name);
+                pendingAttachmentId = id;
+                pendingAttachmentName = savedName;
+                runOnUiThread(() -> {
+                    attachmentStatus.setText("Attached • " + savedName);
+                    attachmentStatus.setVisibility(View.VISIBLE);
+                    status.setText("Ready • attachment loaded");
+                    attachButton.setEnabled(true);
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    attachButton.setEnabled(true);
+                    status.setText("Attachment failed");
+                    addBubble("Error", message(e));
+                });
+            }
+        });
+    }
+
+    private String attachmentDisplayName(Uri uri) {
+        String name = "attachment";
+        try (Cursor c = getContentResolver().query(uri, null, null, null, null)) {
+            if (c != null && c.moveToFirst()) {
+                int index = c.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                if (index >= 0) name = c.getString(index);
+            }
+        } catch (Exception ignored) {
+        }
+        return name == null || name.trim().isEmpty() ? "attachment" : name;
+    }
+
+    private byte[] readAttachmentBytes(Uri uri) throws Exception {
+        try (InputStream in = getContentResolver().openInputStream(uri);
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            if (in == null) throw new IllegalStateException("Unable to open attachment");
+            byte[] buffer = new byte[8192];
+            int total = 0;
+            int n;
+            while ((n = in.read(buffer)) != -1) {
+                total += n;
+                if (total > MAX_ATTACHMENT_BYTES) {
+                    throw new IllegalArgumentException("Attachment is larger than 10 MB");
+                }
+                out.write(buffer, 0, n);
+            }
+            return out.toByteArray();
+        }
+    }
+
+    private void clearPendingAttachment() {
+        pendingAttachmentId = "";
+        pendingAttachmentName = "";
+        if (attachmentStatus != null) {
+            attachmentStatus.setText("");
+            attachmentStatus.setVisibility(View.GONE);
+        }
     }
 
     private void checkHealth() {
@@ -468,6 +609,7 @@ public class MainActivity extends Activity {
         imageButton.setEnabled(!busy);
         mapButton.setEnabled(!busy);
         createButton.setEnabled(!busy);
+        attachButton.setEnabled(!busy);
         if (busy) createMenu.setVisibility(View.GONE);
         status.setText(busy ? "Working • " + mode : "Ready • session " + sessionId.substring(0, 8));
     }
