@@ -47,6 +47,24 @@ class CompositeAttachmentQATests(unittest.TestCase):
                 for row in report.components
             ))
 
+    def test_character_local_accessory_gap_matches_calibrated_tolerance(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "calibrated_gap.glb"
+            body = trimesh.creation.icosphere(subdivisions=2, radius=1.0)
+            charm = trimesh.creation.box(extents=[0.08, 0.08, 0.08])
+            # Surface gap is ~0.19 on a body diagonal of ~3.46 => ~0.055x.
+            # This represents the measured stand-off seen after a valid matched
+            # accessory normalization, while destructive fixtures remain far
+            # outside the 0.06x character allowance.
+            charm.apply_translation([1.23, 0.0, 0.0])
+            write_scene(path, [body, charm])
+
+            report = audit_composite_attachments(path, mode="character")
+            self.assertTrue(report.ready, report.errors)
+            self.assertEqual(report.accessory_candidates, 1)
+            self.assertEqual(report.anchored_accessories, 1)
+            self.assertEqual(report.floating_components, 0)
+
     def test_floating_small_accessory_fails_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "floating_accessory.glb"
