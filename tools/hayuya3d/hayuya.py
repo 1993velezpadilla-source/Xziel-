@@ -1557,6 +1557,44 @@ def main() -> int:
         encoding="utf-8",
     )
 
+    composite_plan = None
+    composite_plan_failure = None
+    try:
+        from composite_champion import (
+            build_composite_plan,
+            write_composite_plan,
+        )
+        composite_plan = build_composite_plan(
+            valid,
+            mode=mode,
+            max_finalists=5,
+            inspect_parts=True,
+        )
+        composite_path = write_composite_plan(
+            composite_plan,
+            job_dir / "composite_champion_plan.json",
+        )
+        donor_summary=";".join(
+            f"{item.region}:{item.donor_backend}"
+            for item in composite_plan.donors
+            if item.donor_backend != composite_plan.base_backend
+        ) or "base_only"
+        print(
+            "HAYUYA_COMPOSITE_PLAN_READY "
+            f"base={composite_plan.base_backend} "
+            f"required={str(bool(composite_plan.composite_required)).lower()} "
+            f"finalists={len(composite_plan.finalists)} "
+            f"donors={donor_summary} "
+            f"plan={composite_path}"
+        )
+    except Exception as exc:
+        composite_plan_failure=f"{type(exc).__name__}: {exc}"
+        print(
+            f"HAYUYA_COMPOSITE_PLAN_FAILED {composite_plan_failure}",
+            file=sys.stderr,
+        )
+        traceback.print_exc()
+
     champion = valid[0]
     source = Path(champion.path)
     final_glb = export_glb(source, job_dir / "hayuya_final.glb")
@@ -1734,6 +1772,11 @@ def main() -> int:
         "material_bridge": asdict(material_bridge_result) if material_bridge_result is not None else None,
         "material_bridge_failure": material_bridge_failure,
         "ranking": ranking_data,
+        "composite_champion": (
+            asdict(composite_plan)
+            if composite_plan is not None else None
+        ),
+        "composite_champion_failure": composite_plan_failure,
         "champion": asdict(champion),
         "final_glb": str(final_glb),
         "gameprep": asdict(gameprep_result) if gameprep_result is not None else None,
@@ -1761,6 +1804,8 @@ def main() -> int:
             "Portable Pack derives Flagship, High, Balanced and Compatibility independently from the same Hero Master; lower tiers never become the source for higher tiers.",
             "Judge v2 combines production mesh health with source-image silhouette agreement.",
             "Judge v3 auto adds DINOv2 appearance similarity when the pinned evaluator is bootstrapped; otherwise it falls back to v2.",
+            "Composite Champion Planner keeps the strongest global finalist as the canonical base, records regional winners across face identity/geometry/texel/detail/material/appearance, and never overwrites originals.",
+            "Regional transfers are promotion-gated challengers: unsafe face/body geometry stays deferred until wrap/seam/skin-weight proof exists, while safer texture/material transfers can be attempted and must re-enter the complete Judge.",
             "Next judge stage adds normal/depth agreement, calibrated camera estimation and local-detail matching.",
         ],
     }
