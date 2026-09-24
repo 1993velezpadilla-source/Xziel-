@@ -258,6 +258,34 @@ class AAAAcceptanceTests(unittest.TestCase):
             report.blockers,
         )
 
+    def test_major_surface_crossing_blocks_aaa(self):
+        qa=base_qa()
+        qa["component_crossing"]={
+            "applicable":True,
+            "ready":False,
+            "large_component_count":2,
+            "crossing_triangle_pairs":14,
+        }
+        report=evaluate_aaa_acceptance(base_manifest(),qa)
+        self.assertFalse(report.ready)
+        self.assertTrue(
+            any("surface" in x.lower() for x in report.blockers),
+            report.blockers,
+        )
+
+    def test_malformed_morph_payload_blocks_aaa_when_present(self):
+        qa=base_qa()
+        qa["rig"]["morph_target_count"]=3
+        qa["rig"]["morph_mesh_count"]=1
+        qa["rig"]["morph_primitive_count"]=1
+        qa["rig"]["morph_ready"]=False
+        report=evaluate_aaa_acceptance(base_manifest(),qa)
+        self.assertFalse(report.ready)
+        self.assertTrue(
+            any("morph" in x.lower() or "blendshape" in x.lower() for x in report.blockers),
+            report.blockers,
+        )
+
     def test_character_without_animation_fails(self):
         qa=base_qa()
         qa["rig"]["animation_ready"]=False
