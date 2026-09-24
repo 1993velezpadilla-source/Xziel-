@@ -92,6 +92,7 @@ def inspect_xmap(path: Path, manifest: dict) -> tuple[dict, list[Finding]]:
         "window": 0,
         "interaction": 0,
         "zombie_spawn": 0,
+        "light": 0,
         "player_spawn": 0,
     }
 
@@ -115,6 +116,10 @@ def inspect_xmap(path: Path, manifest: dict) -> tuple[dict, list[Finding]]:
         "zombie_spawn": (
             "zombie spawn points",
             "max_zombie_spawns",
+        ),
+        "light": (
+            "authored lights",
+            "max_lights",
         ),
     }
 
@@ -334,6 +339,11 @@ def verify_engine_source(repo_root: Path, manifest: dict) -> list[Finding]:
                     "hard_limits",
                     "map_runtime",
                     "max_zombie_spawns",
+                ),
+                "kMaxMapLights": (
+                    "hard_limits",
+                    "map_runtime",
+                    "max_lights",
                 ),
             },
         ),
