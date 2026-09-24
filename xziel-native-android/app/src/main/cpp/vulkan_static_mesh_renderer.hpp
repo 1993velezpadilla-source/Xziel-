@@ -253,6 +253,9 @@ private:
         std::uint32_t indexCount = 0U;
         std::uint32_t firstBatch = UINT32_MAX;
         std::uint32_t batchCount = 0U;
+        // Resolved once by rebuildStreamingCellBounds(). The render hot path
+        // uses this direct slot instead of scanning every stream-cell bound.
+        std::uint32_t streamBoundsSlot = UINT32_MAX;
         bool deviceLocalHostVisible = false;
         bool pinned = false;
         bool physicallyResident = false;

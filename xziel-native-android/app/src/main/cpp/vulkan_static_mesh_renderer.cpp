@@ -1602,6 +1602,48 @@ void VulkanStaticMeshRenderer::rebuildStreamingCellBounds() noexcept {
                 extentY * extentY +
                 extentZ * extentZ);
     }
+
+    std::uint32_t indexedGeometryCells = 0U;
+
+    for (std::size_t geometrySlot = 0U;
+         geometrySlot < geometryCellCount_;
+         ++geometrySlot) {
+        auto& geometryCell =
+            geometryCells_[geometrySlot];
+
+        geometryCell.streamBoundsSlot =
+            UINT32_MAX;
+
+        if (geometryCell.cellId == 0U) {
+            continue;
+        }
+
+        for (std::size_t boundsSlot = 0U;
+             boundsSlot < streamCellBounds_.size();
+             ++boundsSlot) {
+            const auto& bounds =
+                streamCellBounds_[boundsSlot];
+
+            if (bounds.valid &&
+                bounds.cellId ==
+                    geometryCell.cellId) {
+                geometryCell.streamBoundsSlot =
+                    static_cast<std::uint32_t>(
+                        boundsSlot);
+                ++indexedGeometryCells;
+                break;
+            }
+        }
+    }
+
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
+        "XZIEL_STREAM_CELL_BOUNDS_INDEX_READY indexed=%u geometry_cells=%u",
+        static_cast<unsigned int>(
+            indexedGeometryCells),
+        static_cast<unsigned int>(
+            geometryCellCount_));
 }
 
 std::uint32_t VulkanStaticMeshRenderer::inferStreamingCell(
@@ -4747,25 +4789,6 @@ void VulkanStaticMeshRenderer::record(
             return visible;
         };
 
-    const auto streamBoundsForCell =
-        [&](std::uint32_t cellId) noexcept
-            -> const StreamCellBounds* {
-                if (cellId == 0U) {
-                    return nullptr;
-                }
-
-                for (const auto& candidate :
-                     streamCellBounds_) {
-                    if (candidate.valid &&
-                        candidate.cellId ==
-                            cellId) {
-                        return &candidate;
-                    }
-                }
-
-                return nullptr;
-            };
-
     const bool materialVisibilityCacheReady =
         materialVisibilityStates_.size() ==
             materials_.size() &&
@@ -4875,9 +4898,21 @@ void VulkanStaticMeshRenderer::record(
                     }
                 }
 
-                const auto* cellBounds =
-                    streamBoundsForCell(
-                        geometryCell.cellId);
+                const StreamCellBounds* cellBounds =
+                    nullptr;
+
+                if (geometryCell.streamBoundsSlot <
+                    streamCellBounds_.size()) {
+                    const auto& indexedBounds =
+                        streamCellBounds_[
+                            geometryCell.
+                                streamBoundsSlot];
+
+                    if (indexedBounds.valid) {
+                        cellBounds =
+                            &indexedBounds;
+                    }
+                }
 
                 if (cellBounds != nullptr) {
                     ++frameStats_.
