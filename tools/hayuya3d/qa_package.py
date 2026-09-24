@@ -42,6 +42,9 @@ class QAPackageResult:
     deformation_max_edge_stretch_ratio: float | None
     skin_weights_applicable: bool
     skin_weights_ready: bool
+    component_crossing_applicable: bool
+    component_crossing_ready: bool
+    component_crossing_pairs: int
     turntable_ready: bool
     turntable_score: float | None
     face_evidence_ready: bool
@@ -359,6 +362,36 @@ def build_qa_package(
             f"tiny disconnected components retained intentionally: {structure.tiny_components}"
         )
 
+    component_crossing_audit = None
+    component_crossing_applicable = False
+    component_crossing_ready = False
+    component_crossing_pairs = 0
+    try:
+        from component_crossing_qa import audit_component_crossings
+        component_crossing_audit = audit_component_crossings(final_glb)
+        component_crossing_applicable = bool(
+            component_crossing_audit.applicable
+        )
+        component_crossing_ready = bool(
+            component_crossing_audit.ready
+        )
+        component_crossing_pairs = int(
+            component_crossing_audit.crossing_triangle_pairs
+        )
+        warnings.extend(component_crossing_audit.warnings or [])
+        warnings.extend(component_crossing_audit.errors or [])
+    except Exception as exc:
+        component_crossing_ready = False
+        warnings.append(
+            "component surface-crossing QA unavailable: "
+            f"{type(exc).__name__}: {exc}"
+        )
+    if not component_crossing_ready:
+        warnings.append(
+            "large-component surface-crossing QA failed; "
+            "interpenetrating major surfaces block production-ready status"
+        )
+
     base_material_ready = bool(
         mesh.material_score >= 55.0
         or ("baseColor" in set(mesh.pbr_channels or []) and mesh.has_uv)
@@ -640,6 +673,7 @@ def build_qa_package(
         geometry_ready
         and material_ready
         and material_rebake_ready
+        and component_crossing_ready
         and source_coverage >= expected_sources
         and gameprep_ready
         and turntable_ready
@@ -687,6 +721,14 @@ def build_qa_package(
             "head_texture_detail_mean": mesh.head_texture_detail_mean,
         },
         "structure": asdict(structure),
+        "component_crossing": (
+            asdict(component_crossing_audit)
+            if component_crossing_audit is not None else {
+                "applicable": component_crossing_applicable,
+                "ready": component_crossing_ready,
+                "crossing_triangle_pairs": component_crossing_pairs,
+            }
+        ),
         "material": {
             "ready": material_ready,
             "base_material_ready": base_material_ready,
@@ -800,6 +842,9 @@ def build_qa_package(
         deformation_max_edge_stretch_ratio=deformation_max_edge_stretch_ratio,
         skin_weights_applicable=skin_weights_applicable,
         skin_weights_ready=skin_weights_ready,
+        component_crossing_applicable=component_crossing_applicable,
+        component_crossing_ready=component_crossing_ready,
+        component_crossing_pairs=component_crossing_pairs,
         turntable_ready=turntable_ready,
         turntable_score=turntable_score,
         face_evidence_ready=face_evidence_ready,
