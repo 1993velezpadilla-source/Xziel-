@@ -15,7 +15,11 @@ from tools.hayuya3d.composite_champion import (
 from tools.hayuya3d.glb_images import write_glb
 from tools.hayuya3d.gltf_audit import audit_glb
 from tools.hayuya3d.morph_deformation_qa import audit_morph_deformation
-from tools.hayuya3d.rigged_accessory_insert import insert_rigged_accessory
+from tools.hayuya3d.rigged_accessory_insert import (
+    _blend_skin_weights,
+    insert_rigged_accessory,
+    rigged_accessory_insert_supported,
+)
 from tools.hayuya3d.skin_weight_qa import audit_skin_weights
 
 
@@ -225,6 +229,7 @@ class RiggedAccessoryInsertTests(unittest.TestCase):
                 result.transferred_weight_vertices,
                 result.inserted_vertices,
             )
+            self.assertTrue(result.legacy_payload_preserved)
             self.assertTrue(result.rig_ready)
             self.assertTrue(result.skin_weights_ready)
             self.assertTrue(result.morph_ready)
@@ -242,6 +247,129 @@ class RiggedAccessoryInsertTests(unittest.TestCase):
             self.assertEqual(after.morph_primitive_count, 2)
             self.assertTrue(audit_skin_weights(output).ready)
             self.assertTrue(audit_morph_deformation(output).ready)
+
+    def test_weight_transfer_blends_neighbor_joint_influences(self):
+        source_positions=np.asarray([
+            [-1.0,0.0,0.0],
+            [1.0,0.0,0.0],
+        ],dtype=np.float64)
+        source_joints=np.asarray([
+            [0,0,0,0],
+            [1,0,0,0],
+        ],dtype=np.int64)
+        source_weights=np.asarray([
+            [1.0,0.0,0.0,0.0],
+            [1.0,0.0,0.0,0.0],
+        ],dtype=np.float64)
+        target=np.asarray([[0.0,0.0,0.0]],dtype=np.float64)
+
+        joints,weights,distances,nearest=_blend_skin_weights(
+            source_positions,
+            source_joints,
+            source_weights,
+            target,
+            k=2,
+        )
+        active={
+            int(joint):float(weight)
+            for joint,weight in zip(joints[0],weights[0])
+            if float(weight)>1e-6
+        }
+        self.assertEqual(set(active),{0,1})
+        self.assertAlmostEqual(active[0],0.5,places=5)
+        self.assertAlmostEqual(active[1],0.5,places=5)
+        self.assertAlmostEqual(float(distances[0]),1.0,places=5)
+        self.assertIn(int(nearest[0]),{0,1})
+
+    def test_existing_base_accessory_cannot_be_duplicated(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            base=root/"base_with_accessory.glb"
+            donor=root/"donor.glb"
+            output=root/"blocked.glb"
+
+            # The insert path is exclusively for an actually missing accessory.
+            # A base that already owns a detached component must use wrap.
+            body=trimesh.creation.icosphere(subdivisions=2,radius=1.0)
+            charm=trimesh.creation.box(extents=[0.12,0.12,0.10])
+            charm.apply_translation([0.0,1.08,0.0])
+            combined=trimesh.util.concatenate([body,charm])
+            vertices=np.asarray(combined.vertices,dtype=np.float32)
+            faces=np.asarray(combined.faces,dtype=np.uint16)
+            count=len(vertices)
+            joints=np.zeros((count,4),dtype=np.uint8)
+            weights=np.zeros((count,4),dtype=np.float32)
+            weights[:,0]=1.0
+
+            blob=bytearray()
+            chunks=[]
+            for payload in (
+                vertices.astype("<f4").tobytes(),
+                joints.tobytes(),
+                weights.astype("<f4").tobytes(),
+                faces.astype("<u2").reshape(-1).tobytes(),
+            ):
+                offset=_align(blob)
+                blob.extend(payload)
+                chunks.append((offset,len(payload)))
+            doc={
+                "asset":{"version":"2.0"},
+                "buffers":[{"byteLength":len(blob)}],
+                "bufferViews":[
+                    {"buffer":0,"byteOffset":o,"byteLength":n}
+                    for o,n in chunks
+                ],
+                "accessors":[
+                    {
+                        "bufferView":0,"componentType":5126,
+                        "count":count,"type":"VEC3",
+                        "min":vertices.min(axis=0).astype(float).tolist(),
+                        "max":vertices.max(axis=0).astype(float).tolist(),
+                    },
+                    {
+                        "bufferView":1,"componentType":5121,
+                        "count":count,"type":"VEC4",
+                    },
+                    {
+                        "bufferView":2,"componentType":5126,
+                        "count":count,"type":"VEC4",
+                    },
+                    {
+                        "bufferView":3,"componentType":5123,
+                        "count":int(faces.size),"type":"SCALAR",
+                    },
+                ],
+                "meshes":[{
+                    "primitives":[{
+                        "attributes":{
+                            "POSITION":0,
+                            "JOINTS_0":1,
+                            "WEIGHTS_0":2,
+                        },
+                        "indices":3,
+                    }]
+                }],
+                "nodes":[{"mesh":0,"skin":0},{},{}],
+                "skins":[{"joints":[1,2]}],
+                "scenes":[{"nodes":[0,1,2]}],
+                "scene":0,
+            }
+            write_glb(base,doc,bytes(blob))
+            write_donor(donor)
+
+            supported,reason=rigged_accessory_insert_supported(
+                base,donor,
+            )
+            self.assertFalse(supported)
+            self.assertIn("already has detached accessory",reason or "")
+
+            result=insert_rigged_accessory(base,donor,output)
+            self.assertFalse(result.ready)
+            self.assertFalse(output.exists())
+            self.assertTrue(any(
+                "already has detached accessory" in error
+                for error in result.errors
+            ),result.errors)
 
     def test_composite_planner_defers_new_accessory_until_material_proof(self):
         with tempfile.TemporaryDirectory() as tmp:
