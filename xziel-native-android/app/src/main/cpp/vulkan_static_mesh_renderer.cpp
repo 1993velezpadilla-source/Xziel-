@@ -562,6 +562,11 @@ bool VulkanStaticMeshRenderer::initialize(
     __android_log_print(
         ANDROID_LOG_INFO,
         kTag,
+        "XZIEL_PRECOMPUTED_MATERIAL_PUSH_CONSTANTS_READY");
+
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
         "XZIEL_PRECOMPUTED_LIGHTNING_BOOST_READY");
 
 
@@ -1022,6 +1027,31 @@ bool VulkanStaticMeshRenderer::initialize(
                     material.emissiveTextureIndex);
                 material.hasEmissiveTexture = true;
             }
+
+            material.pushMetallicFactor =
+                std::clamp(
+                    material.metallicFactor,
+                    0.0f,
+                    1.0f);
+            material.pushRoughnessFactor =
+                std::clamp(
+                    material.roughnessFactor,
+                    0.045f,
+                    1.0f);
+            material.pushNormalScale =
+                std::max(
+                    material.normalScale,
+                    0.0f);
+            material.pushOcclusionStrength =
+                std::clamp(
+                    material.occlusionStrength,
+                    0.0f,
+                    1.0f);
+            material.pushMaterialFlags =
+                (material.pbrEnabled ? 1U : 0U) |
+                (material.hasNormalTexture ? 2U : 0U) |
+                (material.hasOrmTexture ? 4U : 0U) |
+                (material.hasEmissiveTexture ? 8U : 0U);
 
             const auto sameMaterial =
                 [](const GpuMaterial& a,
@@ -4967,24 +4997,13 @@ void VulkanStaticMeshRenderer::record(
             materialPush.baseColorFactorA =
                 material.baseColorFactor[3];
             materialPush.metallicFactor =
-                std::clamp(
-                    material.metallicFactor,
-                    0.0f,
-                    1.0f);
+                material.pushMetallicFactor;
             materialPush.roughnessFactor =
-                std::clamp(
-                    material.roughnessFactor,
-                    0.045f,
-                    1.0f);
+                material.pushRoughnessFactor;
             materialPush.normalScale =
-                std::max(
-                    material.normalScale,
-                    0.0f);
+                material.pushNormalScale;
             materialPush.occlusionStrength =
-                std::clamp(
-                    material.occlusionStrength,
-                    0.0f,
-                    1.0f);
+                material.pushOcclusionStrength;
             materialPush.emissiveFactorR =
                 material.emissiveFactor[0];
             materialPush.emissiveFactorG =
@@ -4992,13 +5011,8 @@ void VulkanStaticMeshRenderer::record(
             materialPush.emissiveFactorB =
                 material.emissiveFactor[2];
 
-            std::uint32_t flags = 0U;
-            flags |= material.pbrEnabled ? 1U : 0U;
-            flags |= material.hasNormalTexture ? 2U : 0U;
-            flags |= material.hasOrmTexture ? 4U : 0U;
-            flags |= material.hasEmissiveTexture ? 8U : 0U;
             materialPush.materialFlags =
-                flags;
+                material.pushMaterialFlags;
 
             vkCmdPushConstants(
                 command,
@@ -6005,35 +6019,19 @@ void VulkanStaticMeshRenderer::recordViewmodel(
             materialPush.baseColorFactorB = material.baseColorFactor[2];
             materialPush.baseColorFactorA = material.baseColorFactor[3];
             materialPush.metallicFactor =
-                std::clamp(
-                    material.metallicFactor,
-                    0.0f,
-                    1.0f);
+                material.pushMetallicFactor;
             materialPush.roughnessFactor =
-                std::clamp(
-                    material.roughnessFactor,
-                    0.045f,
-                    1.0f);
+                material.pushRoughnessFactor;
             materialPush.normalScale =
-                std::max(
-                    material.normalScale,
-                    0.0f);
+                material.pushNormalScale;
             materialPush.occlusionStrength =
-                std::clamp(
-                    material.occlusionStrength,
-                    0.0f,
-                    1.0f);
+                material.pushOcclusionStrength;
             materialPush.emissiveFactorR = material.emissiveFactor[0];
             materialPush.emissiveFactorG = material.emissiveFactor[1];
             materialPush.emissiveFactorB = material.emissiveFactor[2];
 
-            std::uint32_t flags = 0U;
-            flags |= material.pbrEnabled ? 1U : 0U;
-            flags |= material.hasNormalTexture ? 2U : 0U;
-            flags |= material.hasOrmTexture ? 4U : 0U;
-            flags |= material.hasEmissiveTexture ? 8U : 0U;
             materialPush.materialFlags =
-                flags;
+                material.pushMaterialFlags;
 
             vkCmdPushConstants(
                 command,

@@ -203,6 +203,14 @@ private:
         float normalScale = 1.0f;
         float occlusionStrength = 1.0f;
 
+        // Shader-ready constants derived once after material textures/flags
+        // are known. Render-time material binds only copy these values.
+        float pushMetallicFactor = 0.0f;
+        float pushRoughnessFactor = 1.0f;
+        float pushNormalScale = 1.0f;
+        float pushOcclusionStrength = 1.0f;
+        std::uint32_t pushMaterialFlags = 0U;
+
         bool pbrEnabled = false;
         bool hasNormalTexture = false;
         bool hasOrmTexture = false;

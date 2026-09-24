@@ -1091,10 +1091,12 @@ jobs:
 
               grep -q "XZIEL_INTEGER_DRAW_FLAGS_READY push_bytes=128 viewmodel_offset=76 material_flags_offset=124" dist/sanctum-hq-logcat.txt
               grep -q "XZIEL_CPU_CLAMPED_MATERIAL_CONSTANTS_READY" dist/sanctum-hq-logcat.txt
+              grep -q "XZIEL_PRECOMPUTED_MATERIAL_PUSH_CONSTANTS_READY" dist/sanctum-hq-logcat.txt
               grep -Eq "XZIEL_STREAM_CELL_VOLUME_CACHE_READY cells=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
               grep -q "XZIEL_PRECOMPUTED_LIGHTNING_BOOST_READY" dist/sanctum-hq-logcat.txt
               echo "XZIEL_INTEGER_DRAW_FLAGS_ACTIVE push_bytes=128 viewmodel_offset=76 material_flags_offset=124"
               echo "XZIEL_CPU_CLAMPED_MATERIAL_CONSTANTS_ACTIVE"
+              echo "XZIEL_PRECOMPUTED_MATERIAL_PUSH_CONSTANTS_ACTIVE"
               echo "XZIEL_PRECOMPUTED_LIGHTNING_BOOST_ACTIVE"
               echo "XZIEL_NORMAL_TANGENT_BASIS_RECIPROCAL_FREE_ACTIVE"
               STREAM_PLAN_CELL_SLOTS="$(grep -E "XZIEL_STREAM_PLAN_CELL_SLOTS_READY indexed=[1-9][0-9]*" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* indexed=\([0-9][0-9]*\).*/\1/p')"
