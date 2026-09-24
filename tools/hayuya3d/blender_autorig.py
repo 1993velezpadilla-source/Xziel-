@@ -511,8 +511,31 @@ def main():
         arm.animation_data.action=idle
 
     args.output.unlink(missing_ok=True)
-    # Export only the new target skin + donor armature. This deliberately
-    # excludes source helper nodes/empties from both imported GLBs.
+
+    # Export from a sterile scene containing ONLY the generated target meshes
+    # and fitted armature. glTF exporters may follow dependencies outside the
+    # selected object list (custom shapes / helper roots / donor controls), so
+    # use_selection alone is not a sufficient containment boundary.
+    export_scene=bpy.data.scenes.new("HAYUYA_EXPORT_SCENE")
+    for obj in [arm,*target_meshes]:
+        if obj.name not in export_scene.collection.objects:
+            export_scene.collection.objects.link(obj)
+    if bpy.context.window is not None:
+        bpy.context.window.scene=export_scene
+    bpy.context.view_layer.update()
+    export_scene_meshes=sorted(o.name for o in export_scene.objects if o.type=="MESH")
+    if export_scene_meshes!=sorted(target_mesh_names):
+        raise RuntimeError(
+            "sterile_export_scene_mesh_mismatch:"
+            +json.dumps({"expected":sorted(target_mesh_names),"actual":export_scene_meshes})
+        )
+    extra_scene_objects=[
+        o.name for o in export_scene.objects
+        if o not in target_meshes and o != arm
+    ]
+    if extra_scene_objects:
+        raise RuntimeError("sterile_export_scene_extra_objects:"+",".join(sorted(extra_scene_objects)))
+
     select_only(*target_meshes,arm)
     bpy.ops.export_scene.gltf(
         filepath=str(args.output.resolve()),
@@ -547,7 +570,8 @@ def main():
         "armature_world_before":arm_world_before,
         "armature_world_after":arm_world_after,
         "export_meshes":remaining_meshes,
-        "binding_method":"fitted_skeleton_bone_envelope_v12",
+        "sterile_export_scene_meshes":export_scene_meshes,
+        "binding_method":"fitted_skeleton_bone_envelope_sterile_export_v13",
         "bind_results":bind_results,
         "output_bytes":args.output.stat().st_size if args.output.exists() else 0,
     }
