@@ -24,6 +24,7 @@ class TextureMetric:
     edge_variance:float
     luminance_stddev:float
     entropy:float
+    roles:list[str]
 
 @dataclass
 class TextureReport:
@@ -33,6 +34,11 @@ class TextureReport:
     max_edge:int
     max_megapixels:float
     mean_edge_variance:float
+    base_color_image_count:int
+    base_color_max_edge:int
+    base_color_min_edge:int
+    base_color_max_megapixels:float
+    material_roles:dict[str,list[int]]
     metrics:list[TextureMetric]
     warnings:list[str]
     passed:bool
@@ -60,9 +66,34 @@ def chunks(path:Path):
     return doc,bin_blob
 
 
+def material_image_roles(doc:dict)->dict[int,set[str]]:
+    textures=doc.get("textures") or []
+    roles:dict[int,set[str]]={}
+
+    def add(texture_info,role:str)->None:
+        if not isinstance(texture_info,dict):
+            return
+        texture_index=texture_info.get("index")
+        if not isinstance(texture_index,int) or not (0<=texture_index<len(textures)):
+            return
+        source=textures[texture_index].get("source")
+        if isinstance(source,int):
+            roles.setdefault(source,set()).add(role)
+
+    for material in doc.get("materials") or []:
+        pbr=material.get("pbrMetallicRoughness") or {}
+        add(pbr.get("baseColorTexture"),"baseColor")
+        add(pbr.get("metallicRoughnessTexture"),"metallicRoughness")
+        add(material.get("normalTexture"),"normal")
+        add(material.get("occlusionTexture"),"occlusion")
+        add(material.get("emissiveTexture"),"emissive")
+    return roles
+
+
 def embedded_images(path:Path):
     doc,bin_blob=chunks(path)
     views=doc.get("bufferViews") or []
+    roles=material_image_roles(doc)
     out=[]
     for idx,img in enumerate(doc.get("images") or []):
         bv=img.get("bufferView")
@@ -73,11 +104,16 @@ def embedded_images(path:Path):
         length=int(view.get("byteLength",0))
         data=bin_blob[start:start+length]
         if data:
-            out.append((idx,str(img.get("mimeType") or "unknown"),data))
+            out.append((
+                idx,
+                str(img.get("mimeType") or "unknown"),
+                data,
+                sorted(roles.get(idx) or {"unreferenced"}),
+            ))
     return out
 
 
-def metric(idx:int,mime:str,data:bytes)->TextureMetric:
+def metric(idx:int,mime:str,data:bytes,roles:list[str])->TextureMetric:
     with Image.open(io.BytesIO(data)) as im:
         im.load()
         rgb=im.convert("RGB")
@@ -96,27 +132,60 @@ def metric(idx:int,mime:str,data:bytes)->TextureMetric:
             edge_variance=round(edge_var,4),
             luminance_stddev=round(lum_std,4),
             entropy=round(ent,4),
+            roles=list(roles),
         )
 
 
-def inspect(path:Path,min_edge:int=1024)->TextureReport:
-    metrics=[metric(i,m,d) for i,m,d in embedded_images(path)]
+def inspect(
+    path:Path,
+    min_edge:int=1024,
+    min_base_color_edge:int|None=None,
+)->TextureReport:
+    metrics=[metric(i,m,d,roles) for i,m,d,roles in embedded_images(path)]
     warnings=[]
     max_edge=max((max(x.width,x.height) for x in metrics),default=0)
     max_mp=max((x.megapixels for x in metrics),default=0.0)
     mean_edge=sum(x.edge_variance for x in metrics)/len(metrics) if metrics else 0.0
+
+    base=[x for x in metrics if "baseColor" in x.roles]
+    base_edges=[max(x.width,x.height) for x in base]
+    base_color_max_edge=max(base_edges,default=0)
+    base_color_min_edge=min(base_edges,default=0)
+    base_color_max_mp=max((x.megapixels for x in base),default=0.0)
+    role_map={}
+    for item in metrics:
+        for role in item.roles:
+            role_map.setdefault(role,[]).append(item.index)
+    role_map={k:sorted(set(v)) for k,v in sorted(role_map.items())}
+
+    required_base_edge=int(min_base_color_edge if min_base_color_edge is not None else min_edge)
     if not metrics:
         warnings.append("no_embedded_texture_images")
     if max_edge and max_edge<min_edge:
         warnings.append(f"low_texture_resolution:{max_edge}<{min_edge}")
+    if base and base_color_max_edge<required_base_edge:
+        warnings.append(
+            f"low_base_color_resolution:{base_color_max_edge}<{required_base_edge}"
+        )
+    if metrics and not base:
+        warnings.append("no_embedded_base_color_texture")
     # Calibration signal only. Do not hard-fail creative/stylized textures based
     # on an arbitrary sharpness threshold; the source-vs-render Judge owns fidelity.
     if metrics and mean_edge<25:
         warnings.append(f"low_high_frequency_detail:{mean_edge:.3f}")
+
     passed=bool(metrics) and max_edge>=min_edge
+    if base:
+        passed=passed and base_color_max_edge>=required_base_edge
+
     return TextureReport(
-        schema=1,path=str(path),image_count=len(metrics),max_edge=max_edge,
+        schema=2,path=str(path),image_count=len(metrics),max_edge=max_edge,
         max_megapixels=round(max_mp,4),mean_edge_variance=round(mean_edge,4),
+        base_color_image_count=len(base),
+        base_color_max_edge=base_color_max_edge,
+        base_color_min_edge=base_color_min_edge,
+        base_color_max_megapixels=round(base_color_max_mp,4),
+        material_roles=role_map,
         metrics=metrics,warnings=warnings,passed=passed
     )
 
@@ -125,10 +194,15 @@ def main()->int:
     p=argparse.ArgumentParser(description="Inspect embedded GLB texture resolution and clarity telemetry.")
     p.add_argument("glb",type=Path)
     p.add_argument("--min-edge",type=int,default=1024)
+    p.add_argument(
+        "--min-base-color-edge",
+        type=int,
+        help="minimum edge for the texture actually bound to baseColor; defaults to --min-edge",
+    )
     p.add_argument("--json",type=Path)
     a=p.parse_args()
     try:
-        report=inspect(a.glb,a.min_edge)
+        report=inspect(a.glb,a.min_edge,a.min_base_color_edge)
         payload=json.dumps(asdict(report),indent=2)
         print(payload)
         if a.json:
