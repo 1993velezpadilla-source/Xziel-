@@ -100,8 +100,9 @@ class LocalDetailFusionTests(unittest.TestCase):
             self.assertTrue(result.skin_payload_preserved)
             self.assertTrue(result.seam_ready,result.error)
             self.assertGreater(result.seam_boundary_pairs,0)
+            self.assertIsNotNone(result.seam_added_delta_p95)
             self.assertLessEqual(
-                result.seam_added_delta_p95 or 999.0,
+                float(result.seam_added_delta_p95),
                 12.0,
             )
             self.assertGreater(result.changed_pixels,0)
