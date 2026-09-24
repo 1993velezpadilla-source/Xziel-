@@ -40,6 +40,8 @@ class QAPackageResult:
     face_evidence_evaluated: int
     face_evidence_missing: list[str]
     face_evidence_min_score: float | None
+    face_quality_evidence_ready: bool
+    face_quality_evidence_missing: list[str]
     head_density_score: float | None
     head_texel_density_score: float | None
     head_texture_detail_score: float | None
@@ -156,6 +158,45 @@ def face_reference_evidence(
         and not missing
     )
     return refs,expected,evaluated,missing,aggregate_score,min_score,ready
+
+
+def _finite_metric(value: Any) -> bool:
+    try:
+        return math.isfinite(float(value))
+    except (TypeError, ValueError):
+        return False
+
+
+def face_quality_evidence_chain(
+    *,
+    required: bool,
+    face_min_score: float | None,
+    head_density_score: float | None,
+    head_texel_density_score: float | None,
+    head_texture_detail_score: float | None,
+) -> tuple[bool, list[str]]:
+    """Require complete facial QA evidence without inventing quality thresholds.
+
+    When explicit face references exist, production-ready status needs evidence
+    for identity, local geometry density, face texel allocation and visible
+    texture detail. Numeric acceptance floors stay separate until they are
+    calibrated from a larger real-asset corpus.
+    """
+    if not required:
+        return True, []
+
+    metrics={
+        "identity_min_score":face_min_score,
+        "head_density_score":head_density_score,
+        "head_texel_density_score":head_texel_density_score,
+        "head_texture_detail_score":head_texture_detail_score,
+    }
+    missing=[
+        name
+        for name,value in metrics.items()
+        if not _finite_metric(value)
+    ]
+    return not missing,missing
 
 
 def _thumbnail(path: Path, size: tuple[int, int]):
@@ -354,6 +395,23 @@ def build_qa_package(
         face_evidence_ready,
     )=face_reference_evidence(detail_images,champion_data)
     face_evidence_required=bool(face_detail_refs)
+    (
+        face_quality_evidence_ready,
+        face_quality_evidence_missing,
+    )=face_quality_evidence_chain(
+        required=face_evidence_required,
+        face_min_score=face_evidence_min_score,
+        head_density_score=mesh.head_density_score,
+        head_texel_density_score=mesh.head_texel_density_score,
+        head_texture_detail_score=mesh.head_texture_detail_score,
+    )
+    if face_evidence_required and not face_quality_evidence_ready:
+        warnings.append(
+            "face quality evidence chain incomplete: "
+            + ",".join(face_quality_evidence_missing)
+            + "; identity/geometry/texel/detail evidence must all exist before "
+            "a face-referenced character can be production-ready"
+        )
     if face_evidence_required and not face_evidence_ready:
         if face_evidence_score is None:
             warnings.append(
@@ -444,6 +502,7 @@ def build_qa_package(
         and gameprep_ready
         and turntable_ready
         and face_evidence_ready
+        and face_quality_evidence_ready
         and (rig_ready if rig_required else True)
         and (animation_ready if rig_required else True)
     )
@@ -526,6 +585,8 @@ def build_qa_package(
             "expected": face_evidence_expected,
             "evaluated": face_evidence_evaluated,
             "missing_references": face_evidence_missing,
+            "quality_evidence_ready": face_quality_evidence_ready,
+            "quality_evidence_missing": face_quality_evidence_missing,
             "ready": face_evidence_ready,
         },
         "turntable_qa": asdict(turntable_qa) if turntable_qa is not None else None,
@@ -569,6 +630,8 @@ def build_qa_package(
             float(face_evidence_min_score)
             if face_evidence_min_score is not None else None
         ),
+        face_quality_evidence_ready=face_quality_evidence_ready,
+        face_quality_evidence_missing=list(face_quality_evidence_missing),
         head_density_score=(
             float(mesh.head_density_score)
             if mesh.head_density_score is not None else None
