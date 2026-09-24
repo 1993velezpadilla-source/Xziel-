@@ -4458,6 +4458,18 @@ void VulkanStaticMeshRenderer::record(
         0.01745329251994329577f;
     const float tanHalfFov =
         std::tan(halfFovRadians);
+    const float horizontalTanHalfFov =
+        tanHalfFov *
+        std::max(camera.aspect, 0.25f);
+    const float verticalPlaneRadiusScale =
+        std::sqrt(
+            1.0f +
+            tanHalfFov * tanHalfFov);
+    const float horizontalPlaneRadiusScale =
+        std::sqrt(
+            1.0f +
+            horizontalTanHalfFov *
+                horizontalTanHalfFov);
     constexpr float nearPlane = 0.08f;
     constexpr float farPlane = 180.0f;
 
@@ -4496,20 +4508,22 @@ void VulkanStaticMeshRenderer::record(
                 std::max(
                     viewZ,
                     nearPlane);
-            const float halfHeight =
-                projectedDepth *
-                tanHalfFov;
-            const float halfWidth =
-                halfHeight *
-                std::max(
-                    camera.aspect,
-                    0.25f);
 
+            // Test the sphere against the actual sloped frustum planes.
+            // The old abs(x)-radius > z*tan approximation under-expanded
+            // spheres near the side planes. Fine clusters make that error
+            // visible as edge popping, so scale radius by each plane normal.
             return !(
-                std::abs(yawViewX) - radius >
-                    halfWidth ||
-                std::abs(viewY) - radius >
-                    halfHeight);
+                std::abs(yawViewX) -
+                        projectedDepth *
+                            horizontalTanHalfFov >
+                    radius *
+                        horizontalPlaneRadiusScale ||
+                std::abs(viewY) -
+                        projectedDepth *
+                            tanHalfFov >
+                    radius *
+                        verticalPlaneRadiusScale);
         };
 
     std::uint32_t lastCommandBatchIndex =
