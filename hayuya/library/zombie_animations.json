@@ -884,8 +884,10 @@
               "count": 12,
               "license_note": "Rokoko states the pack may be used in personal through commercial projects.",
               "source_url": "https://www.rokoko.com/resources/rokoko-mocap-12-free-zombie-animations",
-              "availability": "external_download_required",
-              "one_tap_ready": false
+              "availability": "local_archive",
+              "one_tap_ready": false,
+              "local_archive_path": "hayuya/source_archives/rokoko_zombie_12",
+              "notes": "Free source archive downloaded into GitHub; retarget/ingest still required before one-tap preview."
             },
             {
               "id": "mocap_online_demo",
