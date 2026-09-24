@@ -37,6 +37,38 @@ bool ok(VkResult result) noexcept {
     return result == VK_SUCCESS;
 }
 
+struct UiBatchVertex {
+    float positionX = 0.0f;
+    float positionY = 0.0f;
+    float localX = 0.0f;
+    float localY = 0.0f;
+    float colorR = 1.0f;
+    float colorG = 1.0f;
+    float colorB = 1.0f;
+    float colorA = 1.0f;
+    float shape = 0.0f;
+    float ringWidth = 0.10f;
+};
+
+static_assert(
+    sizeof(UiBatchVertex) == 40U,
+    "UI batch vertex layout must remain 40 bytes");
+
+constexpr std::uint32_t kUiBatchVerticesPerPrimitive = 6U;
+constexpr std::uint32_t kUiBatchMaxPrimitives = 128U;
+constexpr std::uint32_t kUiBatchVerticesPerFrame =
+    kUiBatchVerticesPerPrimitive *
+    kUiBatchMaxPrimitives;
+
+constexpr std::array<std::array<float, 2>, 6> kUiQuad{{
+    {{-1.0f, -1.0f}},
+    {{ 1.0f, -1.0f}},
+    {{ 1.0f,  1.0f}},
+    {{-1.0f, -1.0f}},
+    {{ 1.0f,  1.0f}},
+    {{-1.0f,  1.0f}},
+}};
+
 VkCompositeAlphaFlagBitsKHR chooseCompositeAlpha(
     VkCompositeAlphaFlagsKHR supported) noexcept {
     constexpr std::array<VkCompositeAlphaFlagBitsKHR, 4> order{
@@ -90,6 +122,7 @@ bool VulkanClearRenderer::initialize(
         !createGraphicsPipeline() ||
         !createSceneCompositePipeline() ||
         !createUiPipeline() ||
+        !createUiBatchResources() ||
         !createImageViews() ||
         !createSceneColorResources() ||
         !createSceneResolveResources() ||
@@ -178,6 +211,7 @@ void VulkanClearRenderer::shutdown() noexcept {
 
     destroyPerformanceQueries();
     destroySwapchainResources();
+    destroyUiBatchResources();
 
     if (commandPool_ != VK_NULL_HANDLE &&
         device_ != VK_NULL_HANDLE) {
@@ -4408,6 +4442,13 @@ void VulkanClearRenderer::destroySwapchainResources() noexcept {
     }
     imageViews_.clear();
 
+    if (uiBatchPipeline_ != VK_NULL_HANDLE) {
+        vkDestroyPipeline(
+            device_,
+            uiBatchPipeline_,
+            nullptr);
+        uiBatchPipeline_ = VK_NULL_HANDLE;
+    }
     if (uiPipeline_ != VK_NULL_HANDLE) {
         vkDestroyPipeline(device_, uiPipeline_, nullptr);
         uiPipeline_ = VK_NULL_HANDLE;
