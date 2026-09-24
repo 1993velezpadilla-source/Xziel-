@@ -255,7 +255,49 @@ def main():
     donor_center_fit=(donor_min_fit+donor_max_fit)*0.5
     target_center_fit=(target_min+target_max)*0.5
     non_height=[i for i in range(3) if i!=target_axis]
-    width_axis=max(non_height,key=lambda i:abs((target_ext.x,target_ext.y,target_ext.z)[i]))
+
+    def explicit_side_tag(name):
+        n=str(name or "").lower()
+        if n.endswith(".l") or n.endswith("_l") or ".l." in n or "_left" in n or n.startswith("left"):
+            return -1
+        if n.endswith(".r") or n.endswith("_r") or ".r." in n or "_right" in n or n.startswith("right"):
+            return 1
+        return 0
+
+    # Anatomical lateral-axis authority: derive left/right from the skeleton,
+    # never from whichever horizontal bbox extent happens to be larger. V24/25
+    # picked target Y as "width" for Zombitest1 because its depth slightly
+    # exceeded X, turning front/back into left/right and poisoning side filters.
+    left_midpoints=[]
+    right_midpoints=[]
+    for bone in arm.data.bones:
+        tag=explicit_side_tag(bone.name)
+        if not tag:
+            continue
+        mid=arm.matrix_world @ ((bone.head_local+bone.tail_local)*0.5)
+        (left_midpoints if tag<0 else right_midpoints).append(mid)
+    if not left_midpoints or not right_midpoints:
+        raise RuntimeError(
+            f"cannot_determine_anatomical_lateral_axis:left={len(left_midpoints)},right={len(right_midpoints)}"
+        )
+    left_center=sum(left_midpoints,Vector((0.0,0.0,0.0)))/len(left_midpoints)
+    right_center=sum(right_midpoints,Vector((0.0,0.0,0.0)))/len(right_midpoints)
+    lateral_vector=right_center-left_center
+    width_axis=max(non_height,key=lambda i:abs((lateral_vector.x,lateral_vector.y,lateral_vector.z)[i]))
+    lateral_component=abs((lateral_vector.x,lateral_vector.y,lateral_vector.z)[width_axis])
+    if lateral_component <= max(1e-6,target_height*0.01):
+        raise RuntimeError(
+            "anatomical_lateral_axis_degenerate:"
+            +json.dumps({"vector":list(lateral_vector),"axis":width_axis})
+        )
+    lateral_axis_telemetry={
+        "method":"named_lr_bone_centroids_v27",
+        "axis":width_axis,
+        "vector":[float(x) for x in lateral_vector],
+        "left_samples":len(left_midpoints),
+        "right_samples":len(right_midpoints),
+        "target_horizontal_extents":[float((target_ext.x,target_ext.y,target_ext.z)[i]) for i in non_height],
+    }
 
     def coord_axis(v,axis):
         return (v.x,v.y,v.z)[axis]
@@ -317,53 +359,13 @@ def main():
     bpy.context.view_layer.update()
     arm_world_after=[list(row) for row in arm.matrix_world]
 
-    # Retarget the donor motion onto the FITTED rest skeleton instead of
-    # replaying donor-space translations/scales. glTF animation imports often
-    # bake local joint translation on every bone. Once the rest skeleton is
-    # resized/repositioned for the generated character, those old translations
-    # pull joints back toward donor proportions and create catastrophic skin
-    # stretch. For game characters we want in-place locomotion anyway: preserve
-    # rotations, keep the fitted rest offsets/lengths, and let the engine own
-    # world/root translation.
-    animation_retarget={
-        "method":"rotation_only_on_fitted_rest_v26",
-        "actions":0,
-        "removed_location_curves":0,
-        "removed_scale_curves":0,
-        "kept_rotation_curves":0,
-        "kept_other_curves":0,
-    }
-    for action in bpy.data.actions:
-        animation_retarget["actions"]+=1
-        for fcurve in list(action.fcurves):
-            path=str(getattr(fcurve,"data_path","") or "")
-            is_location=(path=="location" or path.endswith(".location"))
-            is_scale=(path=="scale" or path.endswith(".scale"))
-            is_rotation=("rotation_quaternion" in path or "rotation_euler" in path or "rotation_axis_angle" in path)
-            if is_location:
-                action.fcurves.remove(fcurve)
-                animation_retarget["removed_location_curves"]+=1
-            elif is_scale:
-                action.fcurves.remove(fcurve)
-                animation_retarget["removed_scale_curves"]+=1
-            elif is_rotation:
-                animation_retarget["kept_rotation_curves"]+=1
-            else:
-                animation_retarget["kept_other_curves"]+=1
-    bpy.context.view_layer.update()
-
     # Production skinning: use the fitted skeleton itself as the weighting
     # field. AI-generated meshes may contain hundreds/thousands of disconnected
     # islands, so donor-mesh nearest-neighbour weights can jump abruptly across
     # adjacent target vertices. A bone-envelope field stays spatially smooth
     # regardless of mesh fragmentation.
     def bone_side(name):
-        n=name.lower()
-        if n.endswith(".l") or n.endswith("_l") or ".l." in n or "_left" in n or n.startswith("left"):
-            return -1
-        if n.endswith(".r") or n.endswith("_r") or ".r." in n or "_right" in n or n.startswith("right"):
-            return 1
-        return 0
+        return explicit_side_tag(name)
 
     def is_major_deform_bone(name):
         n=name.lower()
@@ -732,6 +734,7 @@ def main():
         "scale":scale,
         "axis_scales":axis_scales,
         "orientation_fix":orientation_fix,
+        "lateral_axis":lateral_axis_telemetry,
         "armature":arm.name,
         "bones":[b.name for b in arm.data.bones],
         "actions":[a.name for a in actions],
@@ -746,7 +749,7 @@ def main():
         "animation_retarget":animation_retarget,
         "export_meshes":remaining_meshes,
         "sterile_export_scene_meshes":export_scene_meshes,
-        "binding_method":"rotation_only_retarget_local_anatomical_v26",
+        "binding_method":"anatomical_lr_axis_masked_smoothing_v27",
         "bind_results":bind_results,
         "output_bytes":args.output.stat().st_size if args.output.exists() else 0,
     }
