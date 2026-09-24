@@ -197,7 +197,7 @@ class StudioServerTests(unittest.TestCase):
                 ("HAYUYA_RETOPO_READY style=pure_quad quad_fraction=1 obj=x", "retopo"),
                 (f"HAYUYA_COMPOSITE_PLAN_READY base=trellis2_seed01 required=true finalists=2 donors=face_identity:trellis2_seed02 plan={composite}", "composite"),
                 ("HAYUYA_GAMEPREP_READY lods=4 collision=True turntable=8", "gameprep"),
-                ("HAYUYA_PORTABLE_PACK_READY tiers=4 complete_lods=True manifest=x", "portable"),
+                ("HAYUYA_PORTABLE_PACK_READY tiers=4 complete_lods=True lod_parity_ready=True manifest=x", "portable"),
                 (f"HAYUYA_QA_READY production_ready=True material_ready=True texture_ready=True texture_score=100.0 basecolor_min=4096 basecolor_max=4096 texture_target=4096 rebake_ready=True rebaked=normal,occlusion rebake_pending=none rig_ready=False skin_weights_ready=False animation_ready=False animation_integrity_ready=False animation_channels=0 animation_keyframes=0 deformation_ready=False deformation_frames=0 deformation_max_disp=none deformation_max_edge=none face_ready=True face_quality_ready=True face_score=94.5 face_min=89.0 face_expected=2 face_evaluated=2 facemesh_score=88.0 facetex_score=91.0 facedetail_score=87.5 report={report}", "qa"),
             ]
             last_progress = -1
@@ -291,6 +291,65 @@ class StudioServerTests(unittest.TestCase):
             self.assertEqual(
                 job.composite_details[0]["reason"],
                 "guard_failed",
+            )
+
+    def test_portable_lod_parity_manifest_is_streamed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            manifest=root/"portable_manifest.json"
+            manifest.write_text(json.dumps({
+                "complete_lod_chain":True,
+                "lod_parity_ready":True,
+                "tiers":[
+                    {
+                        "tier":"flagship",
+                        "gameprep":{"lods":[{"name":"LOD0"},{"name":"LOD1"},{"name":"LOD2"},{"name":"LOD3"}]},
+                        "lod_parity":{
+                            "ready":True,
+                            "lod_count":4,
+                            "errors":[],
+                            "items":[{
+                                "name":"LOD1",
+                                "ready":True,
+                                "shape_p95_distance_ratio":0.021,
+                                "faces":18000,
+                                "rig_required":True,
+                                "rig_ready":True,
+                                "deformation_ready":True,
+                                "errors":[],
+                            }],
+                        },
+                    },
+                    {
+                        "tier":"high",
+                        "gameprep":{"lods":[{"name":"LOD0"},{"name":"LOD1"},{"name":"LOD2"},{"name":"LOD3"}]},
+                        "lod_parity":{
+                            "ready":True,
+                            "lod_count":4,
+                            "errors":[],
+                            "items":[],
+                        },
+                    },
+                ],
+            }),encoding="utf-8")
+            job=self.make_job(root)
+            parse_pipeline_line(
+                job,
+                "HAYUYA_PORTABLE_PACK_READY "
+                "tiers=2 complete_lods=True lod_parity_ready=True "
+                f"manifest={manifest}",
+            )
+            self.assertEqual(job.stage,"portable")
+            self.assertIsNotNone(job.portable_pack)
+            self.assertTrue(job.portable_pack["complete_lod_chain"])
+            self.assertTrue(job.portable_pack["lod_parity_ready"])
+            self.assertEqual(len(job.portable_pack["tiers"]),2)
+            self.assertTrue(
+                job.portable_pack["tiers"][0]["lod_parity"]["ready"]
+            )
+            self.assertEqual(
+                job.events[-1]["kind"],
+                "portable_pack",
             )
 
     def test_aaa_acceptance_report_is_streamed_to_studio(self):
