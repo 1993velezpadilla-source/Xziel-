@@ -730,6 +730,16 @@ function renderCompositePlan(plan, executions = []) {
     if (item.weight_source_max != null) {
       parts.push("weight radius " + Number(item.weight_source_max).toFixed(3));
     }
+    if (item.surface_transfer && item.surface_transfer !== "none") {
+      parts.push(String(item.surface_transfer).replaceAll("_", " "));
+    }
+    if (item.surface_fallback_vertices != null) {
+      parts.push(
+        Number(item.surface_fallback_vertices) === 0
+          ? "surface exact"
+          : Number(item.surface_fallback_vertices) + " surface fallback"
+      );
+    }
     if (item.morph_targets_transferred != null) {
       parts.push(Number(item.morph_targets_transferred) + " morph targets");
     }
