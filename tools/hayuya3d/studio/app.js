@@ -633,7 +633,19 @@ function renderCompositePlan(plan, executions = []) {
       const region = item.region_hint ? String(item.region_hint) + " · " : "";
       const score = item.donor_score == null ? "" : " " + Number(item.donor_score).toFixed(1);
       value.textContent = region + String(item.donor_backend) + score;
-      chip.title = (item.strategy || "local detail") + " · " + (executable ? "executable" : "guarded") + " · seam " + (item.seam_risk || "?");
+      const accessoryMatch = item.accessory_match || {};
+      const accessoryConfidence = accessoryMatch.ready
+        ? Math.max(
+            ...((accessoryMatch.matches || [])
+              .filter((match) => match && match.ready && match.confidence != null)
+              .map((match) => Number(match.confidence))),
+            0
+          )
+        : null;
+      chip.title = (item.strategy || "local detail")
+        + " · " + (executable ? "executable" : "guarded")
+        + " · seam " + (item.seam_risk || "?")
+        + (accessoryConfidence != null ? " · accessory match " + accessoryConfidence.toFixed(2) : "");
       chip.append(name, value);
       grid.appendChild(chip);
     });
@@ -648,6 +660,16 @@ function renderCompositePlan(plan, executions = []) {
     const value = document.createElement("strong");
     const parts = [];
     if (item.region) parts.push(String(item.region));
+    if (item.strategy) {
+      parts.push(
+        String(item.strategy).replaceAll("_", " ")
+      );
+    }
+    if (item.accessory_confidence != null) {
+      parts.push(
+        "match " + Number(item.accessory_confidence).toFixed(2)
+      );
+    }
     if (item.changed_fraction != null) {
       parts.push((Number(item.changed_fraction) * 100).toFixed(1) + "% atlas");
     }
@@ -848,8 +870,10 @@ function handleEvent(event) {
     appendLog(
       "Composite detail: "
       + (event.detail.source || "detail")
-      + " seam="
-      + (event.detail.seam_p95 == null ? "—" : Number(event.detail.seam_p95).toFixed(1))
+      + " · " + (event.detail.strategy || "fusion")
+      + (event.detail.accessory_confidence == null
+        ? " · seam=" + (event.detail.seam_p95 == null ? "—" : Number(event.detail.seam_p95).toFixed(1))
+        : " · match=" + Number(event.detail.accessory_confidence).toFixed(2))
     );
   }
   if (event.kind === "composite_detail_state") {
