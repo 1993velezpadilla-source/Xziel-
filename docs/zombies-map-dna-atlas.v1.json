@@ -1,0 +1,2425 @@
+{
+  "schemaVersion": 1,
+  "updated": "2026-09-24",
+  "purpose": "Public-behavior design reverse-engineering atlas for original Xziel map design. No proprietary assets, map files, scripts, source code, or extracted game data.",
+  "axes": {
+    "topology": [
+      "single_holdout",
+      "hub_spokes",
+      "looping_compound",
+      "vertical_stack",
+      "linear_chain",
+      "multi_hub",
+      "vehicle_connected_regions",
+      "open_world_regions",
+      "time_state_layers"
+    ],
+    "progression": [
+      "doors_only",
+      "power_gate",
+      "multi_power",
+      "ritual_gate",
+      "generator_network",
+      "transport_gate",
+      "quest_gate",
+      "objective_unlock",
+      "state_shift"
+    ],
+    "pressure": [
+      "tight_corridors",
+      "limited_training_space",
+      "vertical_chokes",
+      "hazard_floor",
+      "weather_visibility",
+      "special_enemy_interrupt",
+      "split_spawn",
+      "long_transit",
+      "open_spawn_pressure",
+      "arena_boss_pressure"
+    ],
+    "horror": [
+      "isolation",
+      "institutional",
+      "industrial",
+      "occult",
+      "body_horror",
+      "cosmic",
+      "folk_horror",
+      "war_ruin",
+      "surreal",
+      "dark_aether",
+      "camp_horror"
+    ]
+  },
+  "sources": {
+    "activision_zombies_chronicles": "https://www.callofduty.com/zombieschronicles",
+    "activision_bo4": "https://www.callofduty.com/blog/2018-10/new-zombies-adventures",
+    "activision_coldwar_mauer": "https://www.callofduty.com/blog/2021/07/black-ops-cold-war-zombies-mauer-der-toten-tips",
+    "activision_bo6_guides": "https://www.callofduty.com/guides/blackops6",
+    "activision_bo7_launch": "https://www.callofduty.com/blog/2025/11/call-of-duty-black-ops-7-launch-zombies",
+    "activision_bo7_s2": "https://www.callofduty.com/blog/blackops7/season-02",
+    "activision_bo7_s4": "https://www.callofduty.com/blog/2026/06/call-of-duty-black-ops-7-warzone-season-04-announcement",
+    "activision_bo7_s4r": "https://www.callofduty.com/blog/2026/06/call-of-duty-black-ops-7-warzone-season-04-reloaded-announcement",
+    "activision_bo7_s6": "https://www.callofduty.com/blog/2026/09/call-of-duty-black-ops-7-warzone-season-6-the-haunting-announcement",
+    "activision_wwii": "https://www.callofduty.com/wwii/zombies",
+    "activision_wwii_tortured": "https://www.callofduty.com/ar/blog/archives/the-new-nazi-zombies-dlc-puts-a-three-part-spin-on-the-epic-adventure",
+    "activision_wwii_frozen": "https://www.callofduty.com/de/blog/archives/get-warmed-up-for-frozen-dawn-nazi-zombies-chilling-final-chapter",
+    "community_treyarch_index": "https://www.callofdutyzombies.com/zombie-library/zombies-library/",
+    "community_treyarch_catalog": "https://callofduty.fandom.com/wiki/Zombies_(Treyarch)",
+    "community_exo": "https://callofduty.fandom.com/wiki/Exo_Zombies",
+    "community_iw": "https://call-of-duty-infinite-warfare.fandom.com/wiki/Zombies_(Infinite_Warfare)",
+    "project_waw_dna": "docs/WAW_ZOMBIES_HORROR_DNA.md"
+  },
+  "maps": [
+    {
+      "id": "waw_nacht",
+      "game": "World at War",
+      "title": "Nacht der Untoten",
+      "year": 2008,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "single_holdout",
+        "looping_compound"
+      ],
+      "progression": [
+        "doors_only"
+      ],
+      "horror": [
+        "isolation",
+        "war_ruin"
+      ],
+      "pressure": [
+        "limited_training_space",
+        "tight_corridors"
+      ],
+      "signatureSystems": [
+        "window_barricades",
+        "mystery_box",
+        "minimal_meta_progression"
+      ],
+      "transferableLessons": [
+        "A tiny readable footprint can stay tense if every escape route has a cost.",
+        "Exterior silhouettes and blocked windows make spawn boundaries feel physical.",
+        "Minimal explanation strengthens environmental mystery."
+      ],
+      "sourceKeys": [
+        "activision_zombies_chronicles",
+        "community_treyarch_index",
+        "project_waw_dna"
+      ]
+    },
+    {
+      "id": "waw_verruckt",
+      "game": "World at War",
+      "title": "Verrückt",
+      "year": 2009,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "looping_compound",
+        "multi_hub"
+      ],
+      "progression": [
+        "power_gate"
+      ],
+      "horror": [
+        "institutional",
+        "body_horror"
+      ],
+      "pressure": [
+        "split_spawn",
+        "tight_corridors"
+      ],
+      "signatureSystems": [
+        "split_team_start",
+        "power_switch",
+        "electric_traps",
+        "perk_network"
+      ],
+      "transferableLessons": [
+        "Splitting players creates immediate route pressure.",
+        "A power event can transform navigation, audio, and lighting at once.",
+        "Institutional room identity makes every corridor memorable."
+      ],
+      "sourceKeys": [
+        "community_treyarch_index",
+        "project_waw_dna"
+      ]
+    },
+    {
+      "id": "waw_shi_no_numa",
+      "game": "World at War",
+      "title": "Shi No Numa",
+      "year": 2009,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "hub_spokes"
+      ],
+      "progression": [
+        "doors_only"
+      ],
+      "horror": [
+        "isolation",
+        "folk_horror"
+      ],
+      "pressure": [
+        "weather_visibility",
+        "long_transit"
+      ],
+      "signatureSystems": [
+        "central_hut",
+        "randomized_perk_huts",
+        "funneling_trap",
+        "special_round"
+      ],
+      "transferableLessons": [
+        "Hub-and-spoke layouts make route choice explicit.",
+        "Exterior weather can create fear without darkness.",
+        "Peripheral huts give each progression purchase a destination."
+      ],
+      "sourceKeys": [
+        "activision_zombies_chronicles",
+        "community_treyarch_index",
+        "project_waw_dna"
+      ]
+    },
+    {
+      "id": "waw_der_riese",
+      "game": "World at War",
+      "title": "Der Riese",
+      "year": 2009,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "looping_compound",
+        "multi_hub"
+      ],
+      "progression": [
+        "power_gate",
+        "transport_gate"
+      ],
+      "horror": [
+        "industrial",
+        "occult"
+      ],
+      "pressure": [
+        "tight_corridors",
+        "special_enemy_interrupt"
+      ],
+      "signatureSystems": [
+        "teleporters",
+        "pack_a_punch_unlock",
+        "electric_traps",
+        "linked_shortcuts"
+      ],
+      "transferableLessons": [
+        "Long-term progression works best when it physically reconnects the map.",
+        "Industrial machinery can serve both lore and navigation.",
+        "Upgrade systems feel earned when tied to traversal actions."
+      ],
+      "sourceKeys": [
+        "community_treyarch_index",
+        "project_waw_dna"
+      ]
+    },
+    {
+      "id": "bo1_kino",
+      "game": "Black Ops",
+      "title": "Kino der Toten",
+      "year": 2010,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "looping_compound"
+      ],
+      "progression": [
+        "power_gate",
+        "transport_gate"
+      ],
+      "horror": [
+        "war_ruin",
+        "surreal"
+      ],
+      "pressure": [
+        "tight_corridors",
+        "special_enemy_interrupt"
+      ],
+      "signatureSystems": [
+        "stage_power",
+        "teleporter",
+        "fire_traps",
+        "crawler_enemy"
+      ],
+      "transferableLessons": [
+        "A strong macro loop supports training while side rooms stay dangerous.",
+        "A landmark room can anchor orientation for the whole map.",
+        "Teleport return paths create controlled disorientation."
+      ],
+      "sourceKeys": [
+        "activision_zombies_chronicles",
+        "community_treyarch_index"
+      ]
+    },
+    {
+      "id": "bo1_five",
+      "game": "Black Ops",
+      "title": "Five",
+      "year": 2010,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "vertical_stack",
+        "multi_hub"
+      ],
+      "progression": [
+        "power_gate",
+        "transport_gate"
+      ],
+      "horror": [
+        "institutional",
+        "surreal"
+      ],
+      "pressure": [
+        "vertical_chokes",
+        "special_enemy_interrupt"
+      ],
+      "signatureSystems": [
+        "elevators",
+        "defcon_state",
+        "lab_floor",
+        "thief_special_round"
+      ],
+      "transferableLessons": [
+        "Vertical transport can act as both shortcut and pressure valve.",
+        "State-change switches can reconfigure access to key systems.",
+        "Distinct floors reduce navigation ambiguity in a complex interior."
+      ],
+      "sourceKeys": [
+        "community_treyarch_index"
+      ]
+    },
+    {
+      "id": "bo1_ascension",
+      "game": "Black Ops",
+      "title": "Ascension",
+      "year": 2011,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "multi_hub",
+        "looping_compound"
+      ],
+      "progression": [
+        "power_gate",
+        "generator_network"
+      ],
+      "horror": [
+        "industrial",
+        "cosmic"
+      ],
+      "pressure": [
+        "open_spawn_pressure",
+        "special_enemy_interrupt"
+      ],
+      "signatureSystems": [
+        "lunar_landers",
+        "rocket_event",
+        "monkey_perk_pressure",
+        "large_training_zones"
+      ],
+      "transferableLessons": [
+        "Vehicle-like traversal nodes can double as unlock objectives.",
+        "Special rounds can attack economy rather than only health.",
+        "Large loops need interruptors so safety is never permanent."
+      ],
+      "sourceKeys": [
+        "activision_zombies_chronicles",
+        "community_treyarch_index"
+      ]
+    },
+    {
+      "id": "bo1_call_of_the_dead",
+      "game": "Black Ops",
+      "title": "Call of the Dead",
+      "year": 2011,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "multi_hub",
+        "vertical_stack"
+      ],
+      "progression": [
+        "power_gate"
+      ],
+      "horror": [
+        "camp_horror",
+        "isolation"
+      ],
+      "pressure": [
+        "weather_visibility",
+        "special_enemy_interrupt",
+        "vertical_chokes"
+      ],
+      "signatureSystems": [
+        "persistent_roaming_boss",
+        "lighthouse_landmark",
+        "ice_water_hazard",
+        "zipline_routes"
+      ],
+      "transferableLessons": [
+        "A persistent roaming threat changes how players value safe routes.",
+        "One tall landmark can orient a sprawling map.",
+        "Environmental hazards should be readable and strategically meaningful."
+      ],
+      "sourceKeys": [
+        "community_treyarch_index"
+      ]
+    },
+    {
+      "id": "bo1_shangri_la",
+      "game": "Black Ops",
+      "title": "Shangri-La",
+      "year": 2011,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "looping_compound",
+        "vertical_stack"
+      ],
+      "progression": [
+        "power_gate"
+      ],
+      "horror": [
+        "folk_horror",
+        "surreal"
+      ],
+      "pressure": [
+        "tight_corridors",
+        "hazard_floor"
+      ],
+      "signatureSystems": [
+        "water_slide",
+        "minecart",
+        "spike_traps",
+        "dynamic_maze_pressure"
+      ],
+      "transferableLessons": [
+        "Compact looping geometry can feel large through elevation and one-way travel.",
+        "Environmental traps are strongest when integrated into circulation.",
+        "Claustrophobia can coexist with multiple route options."
+      ],
+      "sourceKeys": [
+        "activision_zombies_chronicles",
+        "community_treyarch_index"
+      ]
+    },
+    {
+      "id": "bo1_moon",
+      "game": "Black Ops",
+      "title": "Moon",
+      "year": 2011,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "multi_hub",
+        "transport_gate"
+      ],
+      "progression": [
+        "power_gate",
+        "transport_gate",
+        "state_shift"
+      ],
+      "horror": [
+        "cosmic",
+        "isolation"
+      ],
+      "pressure": [
+        "special_enemy_interrupt",
+        "hazard_floor"
+      ],
+      "signatureSystems": [
+        "area51_start",
+        "teleporter",
+        "low_gravity",
+        "decompression",
+        "excavators"
+      ],
+      "transferableLessons": [
+        "A radically different starting state can establish identity immediately.",
+        "Environmental state changes can force route maintenance.",
+        "Movement physics can be part of map identity, not only player abilities."
+      ],
+      "sourceKeys": [
+        "activision_zombies_chronicles",
+        "community_treyarch_index"
+      ]
+    },
+    {
+      "id": "bo2_tranzit",
+      "game": "Black Ops II",
+      "title": "TranZit",
+      "year": 2012,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "vehicle_connected_regions",
+        "multi_hub"
+      ],
+      "progression": [
+        "power_gate",
+        "transport_gate"
+      ],
+      "horror": [
+        "war_ruin",
+        "surreal"
+      ],
+      "pressure": [
+        "long_transit",
+        "weather_visibility",
+        "special_enemy_interrupt"
+      ],
+      "signatureSystems": [
+        "bus_transport",
+        "fog_regions",
+        "buildables",
+        "bank_persistence"
+      ],
+      "transferableLessons": [
+        "Separated combat islands can create a macro journey.",
+        "Transit should create meaningful risk, not only travel time.",
+        "Buildables can turn exploration into tangible utility."
+      ],
+      "sourceKeys": [
+        "community_treyarch_catalog",
+        "community_treyarch_index"
+      ]
+    },
+    {
+      "id": "bo2_nuketown",
+      "game": "Black Ops II",
+      "title": "Nuketown Zombies",
+      "year": 2012,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "single_holdout",
+        "looping_compound"
+      ],
+      "progression": [
+        "state_shift"
+      ],
+      "horror": [
+        "war_ruin",
+        "surreal"
+      ],
+      "pressure": [
+        "limited_training_space",
+        "open_spawn_pressure"
+      ],
+      "signatureSystems": [
+        "random_perk_drops",
+        "small_symmetric_core",
+        "late_game_escalation"
+      ],
+      "transferableLessons": [
+        "Randomized progression can make a tiny map replayable.",
+        "Symmetry helps instant readability while timing uncertainty creates pressure.",
+        "Small survival maps benefit from changing resource availability."
+      ],
+      "sourceKeys": [
+        "community_treyarch_catalog",
+        "community_treyarch_index"
+      ]
+    },
+    {
+      "id": "bo2_die_rise",
+      "game": "Black Ops II",
+      "title": "Die Rise",
+      "year": 2013,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "vertical_stack",
+        "multi_hub"
+      ],
+      "progression": [
+        "power_gate",
+        "transport_gate"
+      ],
+      "horror": [
+        "surreal",
+        "industrial"
+      ],
+      "pressure": [
+        "vertical_chokes",
+        "hazard_floor",
+        "long_transit"
+      ],
+      "signatureSystems": [
+        "elevators",
+        "vertical_fall_risk",
+        "trample_steam",
+        "roof_network"
+      ],
+      "transferableLessons": [
+        "Verticality must communicate irreversible drops clearly.",
+        "Moving lifts create timing-based route planning.",
+        "Traversal tools can become combat tools when placement matters."
+      ],
+      "sourceKeys": [
+        "community_treyarch_catalog",
+        "community_treyarch_index"
+      ]
+    },
+    {
+      "id": "bo2_mob",
+      "game": "Black Ops II",
+      "title": "Mob of the Dead",
+      "year": 2013,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "looping_compound",
+        "vertical_stack"
+      ],
+      "progression": [
+        "power_gate",
+        "quest_gate"
+      ],
+      "horror": [
+        "institutional",
+        "occult"
+      ],
+      "pressure": [
+        "tight_corridors",
+        "vertical_chokes"
+      ],
+      "signatureSystems": [
+        "afterlife_state",
+        "plane_build",
+        "acid_gat_build",
+        "prison_traps"
+      ],
+      "transferableLessons": [
+        "A secondary player state can expose hidden interactions without a separate UI.",
+        "Quest progression works when pieces live on natural traversal routes.",
+        "A strong location fantasy can unify mechanics, audio, and art."
+      ],
+      "sourceKeys": [
+        "community_treyarch_catalog",
+        "community_treyarch_index"
+      ]
+    },
+    {
+      "id": "bo2_buried",
+      "game": "Black Ops II",
+      "title": "Buried",
+      "year": 2013,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "multi_hub",
+        "vertical_stack"
+      ],
+      "progression": [
+        "power_gate",
+        "quest_gate"
+      ],
+      "horror": [
+        "folk_horror",
+        "surreal"
+      ],
+      "pressure": [
+        "tight_corridors",
+        "limited_training_space"
+      ],
+      "signatureSystems": [
+        "npc_helper",
+        "chalk_wallbuy_system",
+        "maze",
+        "subsurface_town"
+      ],
+      "transferableLessons": [
+        "An NPC helper can alter level geometry and economy.",
+        "Player-directed placement systems increase replayable route planning.",
+        "A maze can be tolerable when landmarks and reset behavior are consistent."
+      ],
+      "sourceKeys": [
+        "community_treyarch_catalog",
+        "community_treyarch_index"
+      ]
+    },
+    {
+      "id": "bo2_origins",
+      "game": "Black Ops II",
+      "title": "Origins",
+      "year": 2013,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "multi_hub",
+        "looping_compound"
+      ],
+      "progression": [
+        "generator_network",
+        "quest_gate"
+      ],
+      "horror": [
+        "war_ruin",
+        "occult",
+        "cosmic"
+      ],
+      "pressure": [
+        "hazard_floor",
+        "special_enemy_interrupt",
+        "long_transit"
+      ],
+      "signatureSystems": [
+        "six_generators",
+        "mud_slow",
+        "giant_robots",
+        "elemental_staff_quests"
+      ],
+      "transferableLessons": [
+        "Distributed power objectives create a natural opening route.",
+        "Large maps need strong regional landmarks and recurring traversal aids.",
+        "Quest weapons are most satisfying when each path teaches the map."
+      ],
+      "sourceKeys": [
+        "activision_zombies_chronicles",
+        "community_treyarch_catalog",
+        "community_treyarch_index"
+      ]
+    },
+    {
+      "id": "bo3_shadows",
+      "game": "Black Ops III",
+      "title": "Shadows of Evil",
+      "year": 2015,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "multi_hub",
+        "hub_spokes"
+      ],
+      "progression": [
+        "ritual_gate",
+        "transport_gate"
+      ],
+      "horror": [
+        "occult",
+        "surreal",
+        "body_horror"
+      ],
+      "pressure": [
+        "tight_corridors",
+        "special_enemy_interrupt"
+      ],
+      "signatureSystems": [
+        "beast_mode",
+        "district_rituals",
+        "tram",
+        "apothicon_progression"
+      ],
+      "transferableLessons": [
+        "District structure scales complexity without losing orientation.",
+        "Temporary alternate interaction modes can gate traversal elegantly.",
+        "Repeating one ritual grammar across zones helps players learn a complex quest."
+      ],
+      "sourceKeys": [
+        "community_treyarch_index"
+      ]
+    },
+    {
+      "id": "bo3_der_eisendrache",
+      "game": "Black Ops III",
+      "title": "Der Eisendrache",
+      "year": 2016,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "multi_hub",
+        "vertical_stack"
+      ],
+      "progression": [
+        "power_gate",
+        "quest_gate",
+        "transport_gate"
+      ],
+      "horror": [
+        "war_ruin",
+        "occult"
+      ],
+      "pressure": [
+        "vertical_chokes",
+        "special_enemy_interrupt"
+      ],
+      "signatureSystems": [
+        "wonder_weapon_upgrade_paths",
+        "teleporter",
+        "gravity_room",
+        "rocket_test"
+      ],
+      "transferableLessons": [
+        "Parallel upgrade routes support team role specialization.",
+        "Hazard events can temporarily revalue otherwise safe rooms.",
+        "A castle-like vertical map benefits from fast bidirectional shortcuts."
+      ],
+      "sourceKeys": [
+        "community_treyarch_index"
+      ]
+    },
+    {
+      "id": "bo3_zetsubou",
+      "game": "Black Ops III",
+      "title": "Zetsubou No Shima",
+      "year": 2016,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "multi_hub",
+        "hub_spokes"
+      ],
+      "progression": [
+        "multi_power",
+        "quest_gate"
+      ],
+      "horror": [
+        "folk_horror",
+        "body_horror"
+      ],
+      "pressure": [
+        "weather_visibility",
+        "special_enemy_interrupt"
+      ],
+      "signatureSystems": [
+        "dual_power",
+        "plants",
+        "spore_ecology",
+        "bunker_unlock"
+      ],
+      "transferableLessons": [
+        "Environmental systems can double as resource crafting loops.",
+        "Two-stage power gives early progression more texture.",
+        "Biological hazards make the setting itself feel hostile."
+      ],
+      "sourceKeys": [
+        "community_treyarch_index"
+      ]
+    },
+    {
+      "id": "bo3_gorod",
+      "game": "Black Ops III",
+      "title": "Gorod Krovi",
+      "year": 2016,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "multi_hub",
+        "looping_compound"
+      ],
+      "progression": [
+        "power_gate",
+        "quest_gate"
+      ],
+      "horror": [
+        "war_ruin",
+        "surreal"
+      ],
+      "pressure": [
+        "special_enemy_interrupt",
+        "tight_corridors"
+      ],
+      "signatureSystems": [
+        "dragon_transport",
+        "gauntlet_challenges",
+        "shield_build",
+        "robot_enemies"
+      ],
+      "transferableLessons": [
+        "A spectacular transport mechanic can still serve a practical fast-travel role.",
+        "Challenge stations can distribute quest pressure across the map.",
+        "Enemy ecology should match the fiction of each region."
+      ],
+      "sourceKeys": [
+        "community_treyarch_index"
+      ]
+    },
+    {
+      "id": "bo3_revelations",
+      "game": "Black Ops III",
+      "title": "Revelations",
+      "year": 2016,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "multi_hub",
+        "transport_gate"
+      ],
+      "progression": [
+        "power_gate",
+        "quest_gate",
+        "state_shift"
+      ],
+      "horror": [
+        "cosmic",
+        "surreal"
+      ],
+      "pressure": [
+        "long_transit",
+        "special_enemy_interrupt"
+      ],
+      "signatureSystems": [
+        "fragmented_regions",
+        "jump_pads",
+        "apothicon_interior",
+        "cross_map_callbacks"
+      ],
+      "transferableLessons": [
+        "Disconnected themes need a consistent transport grammar.",
+        "Strong silhouettes can make surreal spaces navigable.",
+        "Reused motifs can become new gameplay when topology changes."
+      ],
+      "sourceKeys": [
+        "community_treyarch_index"
+      ]
+    },
+    {
+      "id": "bo3_the_giant",
+      "game": "Black Ops III",
+      "title": "The Giant",
+      "year": 2015,
+      "classification": "reference_reimagining",
+      "topology": [
+        "looping_compound"
+      ],
+      "progression": [
+        "power_gate",
+        "transport_gate"
+      ],
+      "horror": [
+        "industrial",
+        "occult"
+      ],
+      "pressure": [
+        "tight_corridors"
+      ],
+      "signatureSystems": [
+        "der_riese_reinterpretation",
+        "teleporters",
+        "pack_a_punch_unlock"
+      ],
+      "transferableLessons": [
+        "Use only as evidence for how a classic layout can be modernized without changing its navigation identity."
+      ],
+      "sourceKeys": [
+        "community_treyarch_index"
+      ]
+    },
+    {
+      "id": "bo4_voyage",
+      "game": "Black Ops 4",
+      "title": "Voyage of Despair",
+      "year": 2018,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "linear_chain",
+        "vertical_stack"
+      ],
+      "progression": [
+        "quest_gate"
+      ],
+      "horror": [
+        "surreal",
+        "body_horror"
+      ],
+      "pressure": [
+        "tight_corridors",
+        "vertical_chokes"
+      ],
+      "signatureSystems": [
+        "ship_decks",
+        "artifact_activation",
+        "fast_travel",
+        "elemental_catalysts"
+      ],
+      "transferableLessons": [
+        "Long narrow maps need vertical shortcuts and room identity to avoid corridor fatigue.",
+        "Deck-based semantic naming is a strong orientation tool.",
+        "Progression can move players through a realistic structure without breaking its fiction."
+      ],
+      "sourceKeys": [
+        "activision_bo4"
+      ]
+    },
+    {
+      "id": "bo4_ix",
+      "game": "Black Ops 4",
+      "title": "IX",
+      "year": 2018,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "hub_spokes",
+        "vertical_stack"
+      ],
+      "progression": [
+        "quest_gate"
+      ],
+      "horror": [
+        "occult",
+        "surreal"
+      ],
+      "pressure": [
+        "arena_boss_pressure",
+        "tight_corridors"
+      ],
+      "signatureSystems": [
+        "central_arena",
+        "four_towers",
+        "champion_trials",
+        "crowd_affinity"
+      ],
+      "transferableLessons": [
+        "A central arena makes a complex map instantly legible.",
+        "Four themed spokes can teach progression through repetition.",
+        "Public spectacle can be part of atmosphere and feedback."
+      ],
+      "sourceKeys": [
+        "activision_bo4"
+      ]
+    },
+    {
+      "id": "bo4_dead_of_the_night",
+      "game": "Black Ops 4",
+      "title": "Dead of the Night",
+      "year": 2018,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "multi_hub",
+        "looping_compound"
+      ],
+      "progression": [
+        "quest_gate"
+      ],
+      "horror": [
+        "camp_horror",
+        "occult"
+      ],
+      "pressure": [
+        "special_enemy_interrupt",
+        "tight_corridors"
+      ],
+      "signatureSystems": [
+        "mansion_estate",
+        "silver_bullets",
+        "multiple_monster_types",
+        "artifact_puzzles"
+      ],
+      "transferableLessons": [
+        "A mansion map benefits from strong room-purpose storytelling.",
+        "Crafting resources work best when their sources fit the fiction.",
+        "Different monster archetypes can divide pressure by space and timing."
+      ],
+      "sourceKeys": [
+        "community_treyarch_catalog"
+      ]
+    },
+    {
+      "id": "bo4_ancient_evil",
+      "game": "Black Ops 4",
+      "title": "Ancient Evil",
+      "year": 2019,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "multi_hub",
+        "transport_gate"
+      ],
+      "progression": [
+        "quest_gate",
+        "state_shift"
+      ],
+      "horror": [
+        "folk_horror",
+        "occult"
+      ],
+      "pressure": [
+        "arena_boss_pressure",
+        "vertical_chokes"
+      ],
+      "signatureSystems": [
+        "pegasus_transport",
+        "two_world_regions",
+        "gauntlet_upgrades",
+        "amphitheater"
+      ],
+      "transferableLessons": [
+        "A two-region map needs a fast, memorable transfer mechanic.",
+        "Mythic landmarks can double as progression signposts.",
+        "Parallel wonder-weapon quests support cooperative specialization."
+      ],
+      "sourceKeys": [
+        "community_treyarch_catalog"
+      ]
+    },
+    {
+      "id": "bo4_blood",
+      "game": "Black Ops 4",
+      "title": "Blood of the Dead",
+      "year": 2018,
+      "classification": "reference_reimagining",
+      "topology": [
+        "multi_hub"
+      ],
+      "progression": [
+        "quest_gate"
+      ],
+      "horror": [
+        "surreal"
+      ],
+      "pressure": [
+        "special_enemy_interrupt"
+      ],
+      "signatureSystems": [
+        "reimagined_layout"
+      ],
+      "transferableLessons": [
+        "Shows how Mob's prison topology can be expanded and rerouted."
+      ],
+      "sourceKeys": [
+        "community_treyarch_catalog"
+      ]
+    },
+    {
+      "id": "bo4_classified",
+      "game": "Black Ops 4",
+      "title": "Classified",
+      "year": 2018,
+      "classification": "reference_reimagining",
+      "topology": [
+        "multi_hub"
+      ],
+      "progression": [
+        "quest_gate"
+      ],
+      "horror": [
+        "surreal"
+      ],
+      "pressure": [
+        "special_enemy_interrupt"
+      ],
+      "signatureSystems": [
+        "reimagined_layout"
+      ],
+      "transferableLessons": [
+        "Shows how Five's vertical government complex can be re-authored around new progression."
+      ],
+      "sourceKeys": [
+        "community_treyarch_catalog"
+      ]
+    },
+    {
+      "id": "bo4_alpha_omega",
+      "game": "Black Ops 4",
+      "title": "Alpha Omega",
+      "year": 2018,
+      "classification": "reference_reimagining",
+      "topology": [
+        "multi_hub"
+      ],
+      "progression": [
+        "quest_gate"
+      ],
+      "horror": [
+        "surreal"
+      ],
+      "pressure": [
+        "special_enemy_interrupt"
+      ],
+      "signatureSystems": [
+        "reimagined_layout"
+      ],
+      "transferableLessons": [
+        "Shows how a compact survival location can expand underground and gain quest layers."
+      ],
+      "sourceKeys": [
+        "community_treyarch_catalog"
+      ]
+    },
+    {
+      "id": "bo4_tag",
+      "game": "Black Ops 4",
+      "title": "Tag der Toten",
+      "year": 2018,
+      "classification": "reference_reimagining",
+      "topology": [
+        "multi_hub"
+      ],
+      "progression": [
+        "quest_gate"
+      ],
+      "horror": [
+        "surreal"
+      ],
+      "pressure": [
+        "special_enemy_interrupt"
+      ],
+      "signatureSystems": [
+        "reimagined_layout"
+      ],
+      "transferableLessons": [
+        "Shows how a familiar coastal map can gain vertical routes and new endgame circulation."
+      ],
+      "sourceKeys": [
+        "community_treyarch_catalog"
+      ]
+    },
+    {
+      "id": "cw_die_maschine",
+      "game": "Black Ops Cold War",
+      "title": "Die Maschine",
+      "year": 2020,
+      "classification": "primary_round_based_original_with_legacy_core",
+      "topology": [
+        "multi_hub",
+        "vertical_stack"
+      ],
+      "progression": [
+        "power_gate",
+        "quest_gate"
+      ],
+      "horror": [
+        "dark_aether",
+        "war_ruin"
+      ],
+      "pressure": [
+        "open_spawn_pressure",
+        "special_enemy_interrupt"
+      ],
+      "signatureSystems": [
+        "expanded_nacht_core",
+        "dark_aether_shift",
+        "armor_crafting",
+        "exfil"
+      ],
+      "transferableLessons": [
+        "A legacy room can function as one landmark inside a much larger original route.",
+        "Parallel physical and alternate-state spaces can reuse geometry with new threat rules.",
+        "Exfil gives late-round play an optional strategic endpoint."
+      ],
+      "sourceKeys": [
+        "activision_coldwar_mauer"
+      ]
+    },
+    {
+      "id": "cw_firebase_z",
+      "game": "Black Ops Cold War",
+      "title": "Firebase Z",
+      "year": 2021,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "multi_hub",
+        "hub_spokes"
+      ],
+      "progression": [
+        "generator_network",
+        "transport_gate"
+      ],
+      "horror": [
+        "war_ruin",
+        "dark_aether"
+      ],
+      "pressure": [
+        "open_spawn_pressure",
+        "special_enemy_interrupt"
+      ],
+      "signatureSystems": [
+        "teleporter_link",
+        "three_reactors",
+        "assault_rounds",
+        "village_base"
+      ],
+      "transferableLessons": [
+        "A safe-ish village and hostile base create strong macro contrast.",
+        "Distributed reactors naturally teach the base layout.",
+        "Assault events can make perimeter defense a temporary objective."
+      ],
+      "sourceKeys": [
+        "activision_coldwar_mauer"
+      ]
+    },
+    {
+      "id": "cw_mauer",
+      "game": "Black Ops Cold War",
+      "title": "Mauer der Toten",
+      "year": 2021,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "vertical_stack",
+        "multi_hub"
+      ],
+      "progression": [
+        "power_gate",
+        "transport_gate",
+        "quest_gate"
+      ],
+      "horror": [
+        "war_ruin",
+        "dark_aether"
+      ],
+      "pressure": [
+        "vertical_chokes",
+        "special_enemy_interrupt"
+      ],
+      "signatureSystems": [
+        "subway_start",
+        "zipline_network",
+        "street_rooftop_layers",
+        "companion_robot"
+      ],
+      "transferableLessons": [
+        "Dense urban verticality needs multiple fast connections.",
+        "Starting underground before reaching the street creates a satisfying reveal.",
+        "Companion systems can add utility without replacing player routing."
+      ],
+      "sourceKeys": [
+        "activision_coldwar_mauer"
+      ]
+    },
+    {
+      "id": "cw_forsaken",
+      "game": "Black Ops Cold War",
+      "title": "Forsaken",
+      "year": 2021,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "multi_hub",
+        "transport_gate"
+      ],
+      "progression": [
+        "objective_unlock",
+        "quest_gate"
+      ],
+      "horror": [
+        "surreal",
+        "dark_aether"
+      ],
+      "pressure": [
+        "special_enemy_interrupt",
+        "long_transit"
+      ],
+      "signatureSystems": [
+        "teleporter_regions",
+        "arcade_side_systems",
+        "main_street_hub",
+        "boss_endgame"
+      ],
+      "transferableLessons": [
+        "Portal-linked zones need consistent visual destination cues.",
+        "Optional side activities can create downtime between combat peaks.",
+        "A map can support both broad exploration and a directed endgame path."
+      ],
+      "sourceKeys": [
+        "community_treyarch_catalog"
+      ]
+    },
+    {
+      "id": "vg_der_anfang",
+      "game": "Vanguard",
+      "title": "Der Anfang",
+      "year": 2021,
+      "classification": "objective_hub_original",
+      "topology": [
+        "hub_spokes",
+        "transport_gate"
+      ],
+      "progression": [
+        "objective_unlock"
+      ],
+      "horror": [
+        "occult",
+        "dark_aether"
+      ],
+      "pressure": [
+        "arena_boss_pressure",
+        "long_transit"
+      ],
+      "signatureSystems": [
+        "stalingrad_hub",
+        "portal_objectives",
+        "covenant_progression"
+      ],
+      "transferableLessons": [
+        "Objective portals convert map expansion into discrete combat missions.",
+        "A central hub supports predictable regrouping between missions."
+      ],
+      "sourceKeys": [
+        "community_treyarch_catalog"
+      ]
+    },
+    {
+      "id": "vg_terra_maledicta",
+      "game": "Vanguard",
+      "title": "Terra Maledicta",
+      "year": 2022,
+      "classification": "objective_hub_original",
+      "topology": [
+        "hub_spokes",
+        "transport_gate"
+      ],
+      "progression": [
+        "objective_unlock",
+        "quest_gate"
+      ],
+      "horror": [
+        "occult",
+        "dark_aether"
+      ],
+      "pressure": [
+        "arena_boss_pressure",
+        "long_transit"
+      ],
+      "signatureSystems": [
+        "desert_hub",
+        "portal_objectives",
+        "dark_aether_regions"
+      ],
+      "transferableLessons": [
+        "Open hubs need visual anchors and quick return routes.",
+        "Objective variety should change spatial behavior, not only kill targets."
+      ],
+      "sourceKeys": [
+        "community_treyarch_catalog"
+      ]
+    },
+    {
+      "id": "vg_shi_no_numa",
+      "game": "Vanguard",
+      "title": "Shi No Numa Reborn",
+      "year": 2022,
+      "classification": "reference_reimagining",
+      "topology": [
+        "hub_spokes"
+      ],
+      "progression": [
+        "quest_gate"
+      ],
+      "horror": [
+        "folk_horror"
+      ],
+      "pressure": [
+        "weather_visibility"
+      ],
+      "signatureSystems": [
+        "rebuilt_classic_map"
+      ],
+      "transferableLessons": [
+        "Reference for modernizing a compact spoke map."
+      ],
+      "sourceKeys": [
+        "community_treyarch_catalog"
+      ]
+    },
+    {
+      "id": "vg_archon",
+      "game": "Vanguard",
+      "title": "The Archon",
+      "year": 2022,
+      "classification": "reference_reworked_original",
+      "topology": [
+        "multi_hub"
+      ],
+      "progression": [
+        "quest_gate"
+      ],
+      "horror": [
+        "occult",
+        "dark_aether"
+      ],
+      "pressure": [
+        "arena_boss_pressure"
+      ],
+      "signatureSystems": [
+        "round_based_terra_rework"
+      ],
+      "transferableLessons": [
+        "Reference for converting an objective hub into round-based flow."
+      ],
+      "sourceKeys": [
+        "community_treyarch_catalog"
+      ]
+    },
+    {
+      "id": "bo6_terminus",
+      "game": "Black Ops 6",
+      "title": "Terminus",
+      "year": 2024,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "multi_hub",
+        "vehicle_connected_regions"
+      ],
+      "progression": [
+        "power_gate",
+        "quest_gate"
+      ],
+      "horror": [
+        "institutional",
+        "dark_aether"
+      ],
+      "pressure": [
+        "open_spawn_pressure",
+        "special_enemy_interrupt",
+        "long_transit"
+      ],
+      "signatureSystems": [
+        "island_complex",
+        "boat_travel",
+        "underground_labs",
+        "main_quest"
+      ],
+      "transferableLessons": [
+        "A large island needs layered macro-navigation: foot loops locally, vehicle traversal globally.",
+        "Secure-lab interiors and exposed coastlines create strong pacing contrast.",
+        "Optional exploration should still feed back into core survival resources."
+      ],
+      "sourceKeys": [
+        "activision_bo6_guides"
+      ]
+    },
+    {
+      "id": "bo6_liberty_falls",
+      "game": "Black Ops 6",
+      "title": "Liberty Falls",
+      "year": 2024,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "looping_compound",
+        "multi_hub"
+      ],
+      "progression": [
+        "quest_gate"
+      ],
+      "horror": [
+        "dark_aether",
+        "war_ruin"
+      ],
+      "pressure": [
+        "open_spawn_pressure"
+      ],
+      "signatureSystems": [
+        "small_town_streets",
+        "rooftop_access",
+        "church_landmark",
+        "compact_quest"
+      ],
+      "transferableLessons": [
+        "A town map becomes readable when one landmark dominates the skyline.",
+        "Broad streets need interior choke points to maintain pressure.",
+        "Compact quests can coexist with high-round training routes."
+      ],
+      "sourceKeys": [
+        "activision_bo6_guides"
+      ]
+    },
+    {
+      "id": "bo6_citadelle",
+      "game": "Black Ops 6",
+      "title": "Citadelle des Morts",
+      "year": 2024,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "vertical_stack",
+        "multi_hub"
+      ],
+      "progression": [
+        "quest_gate"
+      ],
+      "horror": [
+        "folk_horror",
+        "occult"
+      ],
+      "pressure": [
+        "vertical_chokes",
+        "special_enemy_interrupt"
+      ],
+      "signatureSystems": [
+        "castle_village_layers",
+        "elemental_weapon_paths",
+        "underground_routes"
+      ],
+      "transferableLessons": [
+        "Castle maps should expose shortcuts as the player climbs.",
+        "Weapon-upgrade branches can map cleanly to themed subregions.",
+        "Vertical landmarks help maintain orientation through interiors."
+      ],
+      "sourceKeys": [
+        "activision_bo6_guides"
+      ]
+    },
+    {
+      "id": "bo6_tomb",
+      "game": "Black Ops 6",
+      "title": "The Tomb",
+      "year": 2025,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "multi_hub",
+        "vertical_stack"
+      ],
+      "progression": [
+        "quest_gate",
+        "state_shift"
+      ],
+      "horror": [
+        "occult",
+        "dark_aether"
+      ],
+      "pressure": [
+        "tight_corridors",
+        "special_enemy_interrupt"
+      ],
+      "signatureSystems": [
+        "catacombs",
+        "excavation",
+        "dark_aether_nexus",
+        "moving_upgrade_access"
+      ],
+      "transferableLessons": [
+        "Catacomb layouts need strong room silhouettes and signage to avoid visual sameness.",
+        "A supernatural subspace can act as both traversal and quest layer.",
+        "Moving utility locations create route adaptation without randomizing the whole map."
+      ],
+      "sourceKeys": [
+        "activision_bo6_guides"
+      ]
+    },
+    {
+      "id": "bo6_shattered_veil",
+      "game": "Black Ops 6",
+      "title": "Shattered Veil",
+      "year": 2025,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "multi_hub",
+        "looping_compound"
+      ],
+      "progression": [
+        "quest_gate"
+      ],
+      "horror": [
+        "institutional",
+        "dark_aether"
+      ],
+      "pressure": [
+        "special_enemy_interrupt",
+        "open_spawn_pressure"
+      ],
+      "signatureSystems": [
+        "estate_lab_contrast",
+        "quest_boss",
+        "modern_facility_layers"
+      ],
+      "transferableLessons": [
+        "Contrasting domestic and laboratory spaces can tell the outbreak story through traversal.",
+        "Quest gates should expose new combat geometry, not only unlock rewards."
+      ],
+      "sourceKeys": [
+        "activision_bo6_guides"
+      ]
+    },
+    {
+      "id": "bo6_reckoning",
+      "game": "Black Ops 6",
+      "title": "Reckoning",
+      "year": 2025,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "vertical_stack",
+        "multi_hub"
+      ],
+      "progression": [
+        "quest_gate",
+        "transport_gate"
+      ],
+      "horror": [
+        "institutional",
+        "dark_aether"
+      ],
+      "pressure": [
+        "vertical_chokes",
+        "arena_boss_pressure"
+      ],
+      "signatureSystems": [
+        "janus_towers",
+        "multiple_research_floors",
+        "vertical_transit",
+        "endgame_boss"
+      ],
+      "transferableLessons": [
+        "Tower maps need redundant vertical circulation so one route never becomes mandatory.",
+        "Floor identity should be mechanical as well as visual.",
+        "Finale spaces benefit from previewing their threat language earlier in the map."
+      ],
+      "sourceKeys": [
+        "activision_bo6_guides"
+      ]
+    },
+    {
+      "id": "bo7_ashes",
+      "game": "Black Ops 7",
+      "title": "Ashes of the Damned",
+      "year": 2025,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "vehicle_connected_regions",
+        "multi_hub"
+      ],
+      "progression": [
+        "objective_unlock",
+        "quest_gate"
+      ],
+      "horror": [
+        "dark_aether",
+        "folk_horror"
+      ],
+      "pressure": [
+        "weather_visibility",
+        "long_transit",
+        "open_spawn_pressure"
+      ],
+      "signatureSystems": [
+        "six_major_locations",
+        "wonder_vehicle",
+        "fog_connectors",
+        "regional_survival_spaces"
+      ],
+      "transferableLessons": [
+        "A vehicle can make a very large map practical if regions remain independently readable.",
+        "Dangerous fog can turn travel itself into a gameplay phase.",
+        "Each region should support local survival before asking players to travel again."
+      ],
+      "sourceKeys": [
+        "activision_bo7_launch"
+      ]
+    },
+    {
+      "id": "bo7_astra",
+      "game": "Black Ops 7",
+      "title": "Astra Malorum",
+      "year": 2025,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "multi_hub",
+        "vertical_stack"
+      ],
+      "progression": [
+        "quest_gate"
+      ],
+      "horror": [
+        "cosmic",
+        "dark_aether"
+      ],
+      "pressure": [
+        "special_enemy_interrupt",
+        "arena_boss_pressure"
+      ],
+      "signatureSystems": [
+        "observatory_identity",
+        "robot_elite",
+        "trap_network",
+        "wonder_weapon"
+      ],
+      "transferableLessons": [
+        "A singular scientific landmark can unify cosmic fiction and navigation.",
+        "Elite enemies should force route changes rather than simply add health."
+      ],
+      "sourceKeys": [
+        "activision_bo7_s6"
+      ]
+    },
+    {
+      "id": "bo7_paradox",
+      "game": "Black Ops 7",
+      "title": "Paradox Junction",
+      "year": 2026,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "time_state_layers",
+        "looping_compound"
+      ],
+      "progression": [
+        "state_shift",
+        "quest_gate"
+      ],
+      "horror": [
+        "surreal",
+        "dark_aether"
+      ],
+      "pressure": [
+        "special_enemy_interrupt",
+        "tight_corridors"
+      ],
+      "signatureSystems": [
+        "time_travel",
+        "timeline_perk_randomization",
+        "temporal_conduit",
+        "electro_trap"
+      ],
+      "transferableLessons": [
+        "Time-state variants are most legible when the base footprint remains recognizable.",
+        "State changes can alter resource placement and route value without rebuilding the whole map.",
+        "Temporal travel needs explicit before/after landmarks."
+      ],
+      "sourceKeys": [
+        "activision_bo7_s2"
+      ]
+    },
+    {
+      "id": "bo7_totenreich",
+      "game": "Black Ops 7",
+      "title": "Totenreich",
+      "year": 2026,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "multi_hub",
+        "vertical_stack"
+      ],
+      "progression": [
+        "quest_gate"
+      ],
+      "horror": [
+        "folk_horror",
+        "dark_aether"
+      ],
+      "pressure": [
+        "weather_visibility",
+        "special_enemy_interrupt"
+      ],
+      "signatureSystems": [
+        "fishing_village",
+        "lighthouse",
+        "group_935_lab",
+        "flame_trap"
+      ],
+      "transferableLessons": [
+        "Weather and coastal exposure can make exterior lanes feel dangerous even when wide.",
+        "Ancient settlement plus hidden lab creates a natural surface/subsurface reveal.",
+        "A lighthouse is an excellent global orientation anchor."
+      ],
+      "sourceKeys": [
+        "activision_bo7_s4"
+      ]
+    },
+    {
+      "id": "bo7_kowakujo",
+      "game": "Black Ops 7",
+      "title": "Kowakujō",
+      "year": 2026,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "vertical_stack",
+        "multi_hub"
+      ],
+      "progression": [
+        "quest_gate"
+      ],
+      "horror": [
+        "folk_horror",
+        "dark_aether"
+      ],
+      "pressure": [
+        "hazard_floor",
+        "vertical_chokes",
+        "special_enemy_interrupt"
+      ],
+      "signatureSystems": [
+        "volcanic_castle",
+        "lava_hazards",
+        "ghostly_trap",
+        "oni_elite"
+      ],
+      "transferableLessons": [
+        "A hazard landscape should shape route choices, not merely decorate edges.",
+        "Castle tiers work best with readable ascent goals.",
+        "Folklore-inspired elites can reinforce regional identity."
+      ],
+      "sourceKeys": [
+        "activision_bo7_s4r"
+      ]
+    },
+    {
+      "id": "bo7_rex_infernus",
+      "game": "Black Ops 7",
+      "title": "Rex Infernus",
+      "year": 2026,
+      "classification": "primary_round_based_original",
+      "topology": [
+        "multi_hub",
+        "vertical_stack"
+      ],
+      "progression": [
+        "quest_gate"
+      ],
+      "horror": [
+        "dark_aether",
+        "surreal"
+      ],
+      "pressure": [
+        "arena_boss_pressure",
+        "special_enemy_interrupt"
+      ],
+      "signatureSystems": [
+        "warden_stronghold",
+        "titan_trap",
+        "web_enemies",
+        "final_boss"
+      ],
+      "transferableLessons": [
+        "Finale maps benefit from compressing learned systems into a high-pressure route.",
+        "Boss mechanics should echo environmental hazards seen before the arena."
+      ],
+      "sourceKeys": [
+        "activision_bo7_s6"
+      ]
+    },
+    {
+      "id": "aw_outbreak",
+      "game": "Advanced Warfare",
+      "title": "Outbreak",
+      "year": 2015,
+      "classification": "official_comparative_round_based_original",
+      "topology": [
+        "looping_compound"
+      ],
+      "progression": [
+        "multi_power"
+      ],
+      "horror": [
+        "institutional",
+        "body_horror"
+      ],
+      "pressure": [
+        "special_enemy_interrupt",
+        "open_spawn_pressure"
+      ],
+      "signatureSystems": [
+        "exo_suit_unlock",
+        "local_power",
+        "3d_printer",
+        "decontamination"
+      ],
+      "transferableLessons": [
+        "Mobility unlocks can transform the same geometry mid-match.",
+        "Area-specific power creates localized progression.",
+        "Open zombie entry points change defensive behavior compared with repairable windows."
+      ],
+      "sourceKeys": [
+        "community_exo"
+      ]
+    },
+    {
+      "id": "aw_infection",
+      "game": "Advanced Warfare",
+      "title": "Infection",
+      "year": 2015,
+      "classification": "official_comparative_round_based_original",
+      "topology": [
+        "multi_hub"
+      ],
+      "progression": [
+        "power_gate"
+      ],
+      "horror": [
+        "body_horror",
+        "camp_horror"
+      ],
+      "pressure": [
+        "hazard_floor",
+        "special_enemy_interrupt"
+      ],
+      "signatureSystems": [
+        "burger_town_hub",
+        "toxic_zones",
+        "civilian_rescue",
+        "decontamination"
+      ],
+      "transferableLessons": [
+        "Temporary contamination can turn safe routes into emergencies.",
+        "Objective civilians create movement pressure during survival rounds."
+      ],
+      "sourceKeys": [
+        "community_exo"
+      ]
+    },
+    {
+      "id": "aw_carrier",
+      "game": "Advanced Warfare",
+      "title": "Carrier",
+      "year": 2015,
+      "classification": "official_comparative_round_based_original",
+      "topology": [
+        "multi_hub",
+        "vertical_stack"
+      ],
+      "progression": [
+        "power_gate",
+        "quest_gate"
+      ],
+      "horror": [
+        "industrial",
+        "body_horror"
+      ],
+      "pressure": [
+        "hazard_floor",
+        "special_enemy_interrupt"
+      ],
+      "signatureSystems": [
+        "aircraft_carrier",
+        "gas_bomb_objectives",
+        "dual_spawn",
+        "disposal_machines"
+      ],
+      "transferableLessons": [
+        "Objective interruptions can force teams to abandon preferred loops.",
+        "Ship decks naturally support layered routing and chokepoints."
+      ],
+      "sourceKeys": [
+        "community_exo"
+      ]
+    },
+    {
+      "id": "aw_descent",
+      "game": "Advanced Warfare",
+      "title": "Descent",
+      "year": 2015,
+      "classification": "official_comparative_round_based_original",
+      "topology": [
+        "vertical_stack",
+        "multi_hub"
+      ],
+      "progression": [
+        "quest_gate"
+      ],
+      "horror": [
+        "institutional",
+        "body_horror"
+      ],
+      "pressure": [
+        "arena_boss_pressure",
+        "vertical_chokes"
+      ],
+      "signatureSystems": [
+        "underwater_facility",
+        "boss_encounters",
+        "exo_mobility"
+      ],
+      "transferableLessons": [
+        "A contained facility can escalate through repeated boss pressure without changing the whole map.",
+        "Underwater fiction can justify hard boundaries and emergency systems."
+      ],
+      "sourceKeys": [
+        "community_exo"
+      ]
+    },
+    {
+      "id": "iw_spaceland",
+      "game": "Infinite Warfare",
+      "title": "Zombies in Spaceland",
+      "year": 2016,
+      "classification": "official_comparative_round_based_original",
+      "topology": [
+        "hub_spokes",
+        "multi_hub"
+      ],
+      "progression": [
+        "power_gate",
+        "quest_gate"
+      ],
+      "horror": [
+        "camp_horror",
+        "surreal"
+      ],
+      "pressure": [
+        "open_spawn_pressure",
+        "special_enemy_interrupt"
+      ],
+      "signatureSystems": [
+        "theme_park_districts",
+        "arcade",
+        "souvenir_crafting",
+        "ride_traps"
+      ],
+      "transferableLessons": [
+        "Theme-park districts are a strong way to give each spoke unique mechanics.",
+        "Minigames can create optional downtime without leaving the map.",
+        "Traps are memorable when they are physically tied to attractions."
+      ],
+      "sourceKeys": [
+        "community_iw"
+      ]
+    },
+    {
+      "id": "iw_rave",
+      "game": "Infinite Warfare",
+      "title": "Rave in the Redwoods",
+      "year": 2017,
+      "classification": "official_comparative_round_based_original",
+      "topology": [
+        "multi_hub",
+        "looping_compound"
+      ],
+      "progression": [
+        "quest_gate",
+        "state_shift"
+      ],
+      "horror": [
+        "camp_horror",
+        "folk_horror"
+      ],
+      "pressure": [
+        "weather_visibility",
+        "special_enemy_interrupt"
+      ],
+      "signatureSystems": [
+        "campground",
+        "rave_state",
+        "cabins",
+        "slasher_pressure"
+      ],
+      "transferableLessons": [
+        "Alternate visual states can reinterpret a familiar route.",
+        "Forest maps need landmark lighting to prevent navigation collapse."
+      ],
+      "sourceKeys": [
+        "community_iw"
+      ]
+    },
+    {
+      "id": "iw_shaolin",
+      "game": "Infinite Warfare",
+      "title": "Shaolin Shuffle",
+      "year": 2017,
+      "classification": "official_comparative_round_based_original",
+      "topology": [
+        "multi_hub",
+        "vertical_stack"
+      ],
+      "progression": [
+        "quest_gate"
+      ],
+      "horror": [
+        "camp_horror",
+        "surreal"
+      ],
+      "pressure": [
+        "tight_corridors",
+        "special_enemy_interrupt"
+      ],
+      "signatureSystems": [
+        "urban_districts",
+        "martial_arts_styles",
+        "rooftops",
+        "subway"
+      ],
+      "transferableLessons": [
+        "Player combat-state progression can coexist with map progression.",
+        "Dense cities need district identity and vertical shortcuts."
+      ],
+      "sourceKeys": [
+        "community_iw"
+      ]
+    },
+    {
+      "id": "iw_radioactive",
+      "game": "Infinite Warfare",
+      "title": "Attack of the Radioactive Thing",
+      "year": 2017,
+      "classification": "official_comparative_round_based_original",
+      "topology": [
+        "multi_hub",
+        "looping_compound"
+      ],
+      "progression": [
+        "quest_gate"
+      ],
+      "horror": [
+        "camp_horror",
+        "body_horror"
+      ],
+      "pressure": [
+        "open_spawn_pressure",
+        "hazard_floor"
+      ],
+      "signatureSystems": [
+        "beach_town",
+        "science_puzzle_chain",
+        "environmental_traps",
+        "monster_finale"
+      ],
+      "transferableLessons": [
+        "A deliberately readable town can support unusually complex puzzles.",
+        "Environmental hazards should have obvious fiction and activation language."
+      ],
+      "sourceKeys": [
+        "community_iw"
+      ]
+    },
+    {
+      "id": "iw_beast",
+      "game": "Infinite Warfare",
+      "title": "The Beast from Beyond",
+      "year": 2017,
+      "classification": "official_comparative_round_based_original",
+      "topology": [
+        "multi_hub",
+        "transport_gate"
+      ],
+      "progression": [
+        "power_gate",
+        "quest_gate"
+      ],
+      "horror": [
+        "cosmic",
+        "body_horror"
+      ],
+      "pressure": [
+        "special_enemy_interrupt",
+        "arena_boss_pressure"
+      ],
+      "signatureSystems": [
+        "space_facility",
+        "extinction_enemy_mix",
+        "portal_links",
+        "boss_chain"
+      ],
+      "transferableLessons": [
+        "Cross-mode enemy reuse works when encounter roles are re-authored for the map.",
+        "Endgame-heavy maps need a stable early-game economy first."
+      ],
+      "sourceKeys": [
+        "community_iw"
+      ]
+    },
+    {
+      "id": "wwii_final_reich",
+      "game": "WWII",
+      "title": "The Final Reich",
+      "year": 2017,
+      "classification": "official_comparative_round_based_original",
+      "topology": [
+        "multi_hub",
+        "vertical_stack"
+      ],
+      "progression": [
+        "power_gate",
+        "quest_gate"
+      ],
+      "horror": [
+        "war_ruin",
+        "body_horror",
+        "occult"
+      ],
+      "pressure": [
+        "tight_corridors",
+        "special_enemy_interrupt"
+      ],
+      "signatureSystems": [
+        "village_bunker",
+        "notebook_guidance",
+        "tesla_weapon_path",
+        "sewers"
+      ],
+      "transferableLessons": [
+        "Guided objectives can coexist with secrets if the critical path stays diegetic.",
+        "A surface village plus buried facility creates natural horror escalation.",
+        "Body-horror enemies are stronger when foreshadowed by environment."
+      ],
+      "sourceKeys": [
+        "activision_wwii"
+      ]
+    },
+    {
+      "id": "wwii_darkest_shore",
+      "game": "WWII",
+      "title": "The Darkest Shore",
+      "year": 2018,
+      "classification": "official_comparative_round_based_original",
+      "topology": [
+        "multi_hub",
+        "looping_compound"
+      ],
+      "progression": [
+        "quest_gate"
+      ],
+      "horror": [
+        "war_ruin",
+        "folk_horror"
+      ],
+      "pressure": [
+        "weather_visibility",
+        "special_enemy_interrupt"
+      ],
+      "signatureSystems": [
+        "fog_waves",
+        "island_paths",
+        "mine_system",
+        "artillery_pressure"
+      ],
+      "transferableLessons": [
+        "Dynamic fog can periodically rewrite sightline strategy.",
+        "Island maps should preserve multiple return routes to the core.",
+        "Environmental bombardment can make exterior timing matter."
+      ],
+      "sourceKeys": [
+        "activision_wwii"
+      ]
+    },
+    {
+      "id": "wwii_shadowed_throne",
+      "game": "WWII",
+      "title": "The Shadowed Throne",
+      "year": 2018,
+      "classification": "official_comparative_round_based_original",
+      "topology": [
+        "multi_hub",
+        "vertical_stack"
+      ],
+      "progression": [
+        "quest_gate"
+      ],
+      "horror": [
+        "war_ruin",
+        "body_horror"
+      ],
+      "pressure": [
+        "tight_corridors",
+        "special_enemy_interrupt"
+      ],
+      "signatureSystems": [
+        "berlin_ruins",
+        "zeppelin_context",
+        "energy_mutations",
+        "puzzle_progression"
+      ],
+      "transferableLessons": [
+        "Dense ruined cities need strong interior/exterior rhythm.",
+        "Enemy mutations can be triggered by map systems to create emergent risk."
+      ],
+      "sourceKeys": [
+        "activision_wwii"
+      ]
+    },
+    {
+      "id": "wwii_tortured_path",
+      "game": "WWII",
+      "title": "The Tortured Path",
+      "year": 2018,
+      "classification": "official_comparative_objective_original",
+      "topology": [
+        "multi_hub",
+        "transport_gate"
+      ],
+      "progression": [
+        "objective_unlock"
+      ],
+      "horror": [
+        "war_ruin",
+        "occult"
+      ],
+      "pressure": [
+        "arena_boss_pressure",
+        "special_enemy_interrupt"
+      ],
+      "signatureSystems": [
+        "three_sequential_maps",
+        "timed_objectives",
+        "short_survival_stages"
+      ],
+      "transferableLessons": [
+        "Short maps can form a campaign when progression state carries across stages.",
+        "Objectives should force distinct movement patterns per stage."
+      ],
+      "sourceKeys": [
+        "activision_wwii_tortured"
+      ]
+    },
+    {
+      "id": "wwii_frozen_dawn",
+      "game": "WWII",
+      "title": "The Frozen Dawn",
+      "year": 2018,
+      "classification": "official_comparative_round_based_original",
+      "topology": [
+        "vertical_stack",
+        "multi_hub"
+      ],
+      "progression": [
+        "quest_gate"
+      ],
+      "horror": [
+        "occult",
+        "folk_horror"
+      ],
+      "pressure": [
+        "vertical_chokes",
+        "arena_boss_pressure"
+      ],
+      "signatureSystems": [
+        "antarctic_surface",
+        "lost_city",
+        "four_ancestral_weapons",
+        "deep_descent"
+      ],
+      "transferableLessons": [
+        "Descending deeper is a strong physical metaphor for escalating horror.",
+        "Weapon quests can map cleanly to four themed trials.",
+        "Multi-level subterranean spaces need aggressive landmarking."
+      ],
+      "sourceKeys": [
+        "activision_wwii_frozen"
+      ]
+    },
+    {
+      "id": "wwii_groesten_haus",
+      "game": "WWII",
+      "title": "Gröesten Haus",
+      "year": 2017,
+      "classification": "survival_submap_reference",
+      "topology": [
+        "single_holdout"
+      ],
+      "progression": [
+        "doors_only"
+      ],
+      "horror": [
+        "war_ruin",
+        "body_horror"
+      ],
+      "pressure": [
+        "limited_training_space",
+        "tight_corridors"
+      ],
+      "signatureSystems": [
+        "compact_survival_house"
+      ],
+      "transferableLessons": [
+        "Reference for extremely small survival footprints and resource scarcity."
+      ],
+      "sourceKeys": [
+        "activision_wwii"
+      ]
+    },
+    {
+      "id": "mwiii_urzikstan",
+      "game": "Modern Warfare III",
+      "title": "Urzikstan Zombies",
+      "year": 2023,
+      "classification": "non_round_based_reference",
+      "topology": [
+        "open_world_regions"
+      ],
+      "progression": [
+        "objective_unlock"
+      ],
+      "horror": [
+        "war_ruin"
+      ],
+      "pressure": [
+        "open_spawn_pressure",
+        "long_transit"
+      ],
+      "signatureSystems": [
+        "open_world_extraction",
+        "threat_tiers",
+        "contracts"
+      ],
+      "transferableLessons": [
+        "Use only as reference for macro-region threat zoning and extraction, not classic round-based pacing."
+      ],
+      "sourceKeys": [
+        "community_treyarch_catalog"
+      ]
+    }
+  ]
+}
