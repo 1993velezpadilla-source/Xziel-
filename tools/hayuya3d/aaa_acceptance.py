@@ -340,6 +340,20 @@ def evaluate_aaa_acceptance(
         ),
         required=profile in {"mobile","game","monster","ultra"},
     )
+    runtime_budget_ready=bool(pack.get("runtime_budget_ready"))
+    _gate(
+        gates,"runtime.asset_budget","runtime",
+        bool(pack and tiers and runtime_budget_ready),
+        (
+            f"tiers={len(tiers)} "
+            f"runtime_budget_ready={runtime_budget_ready}"
+        ),
+        blocker=(
+            "one or more runtime tiers exceed HAYUYA house asset budgets "
+            "(triangles/material slots/texture edge)"
+        ),
+        required=profile in {"mobile","game","monster","ultra"},
+    )
 
     composite=manifest.get("composite_champion") or {}
     composite_required=bool(composite.get("composite_required"))
