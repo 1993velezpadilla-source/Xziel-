@@ -384,6 +384,8 @@ class StudioServerTests(unittest.TestCase):
                 "surface_fallback_vertices=0 "
                 "surface_search_triangles=48 "
                 "surface_bvh_nodes=17 "
+                "surface_ambiguous_vertices=0 "
+                "surface_skin_gap=none surface_skin_l1=0.0 "
                 "morph_targets_transferred=2 "
                 "geometry_ready=True legacy_preserved=True "
                 "seam_p95=none seam_max=none "
@@ -412,6 +414,9 @@ class StudioServerTests(unittest.TestCase):
             self.assertEqual(detail["surface_fallback_vertices"],0)
             self.assertEqual(detail["surface_search_triangles"],48)
             self.assertEqual(detail["surface_bvh_nodes"],17)
+            self.assertEqual(detail["surface_ambiguous_vertices"],0)
+            self.assertIsNone(detail["surface_skin_gap"])
+            self.assertEqual(detail["surface_skin_l1"],0.0)
             self.assertEqual(detail["morph_targets_transferred"],2)
             self.assertTrue(detail["geometry_ready"])
             self.assertTrue(detail["legacy_preserved"])
