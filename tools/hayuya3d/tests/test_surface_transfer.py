@@ -5,6 +5,7 @@ import unittest
 import numpy as np
 
 from tools.hayuya3d.surface_transfer import (
+    _closest_point_barycentric,
     blend_joint_weights_from_relation,
     build_surface_transfer_relation,
     interpolate_vertex_values,
@@ -155,7 +156,110 @@ class SurfaceTransferTests(unittest.TestCase):
             set(int(x) for x in relation.triangle_vertex_ids[0]),
             {0,1,2},
         )
-        self.assertGreater(relation.max_examined_triangles,4)
+        self.assertEqual(
+            relation.method,
+            "hayuya-surface-transfer-bvh-barycentric-exact-v2",
+        )
+        self.assertGreater(relation.max_examined_triangles,0)
+        self.assertLess(relation.max_examined_triangles,len(faces))
+        self.assertGreater(relation.max_visited_bvh_nodes,0)
+
+    def test_bvh_matches_bruteforce_on_random_mesh_queries(self):
+        rng=np.random.default_rng(12345)
+        vertices=rng.normal(size=(90,3)).astype(np.float64)
+        faces=[]
+        for _ in range(180):
+            tri=rng.choice(len(vertices),size=3,replace=False)
+            faces.append(tri.tolist())
+        faces=np.asarray(faces,dtype=np.int64)
+        targets=rng.normal(size=(25,3)).astype(np.float64)
+
+        relation=build_surface_transfer_relation(
+            vertices,
+            faces,
+            targets,
+            bvh_leaf_size=6,
+        )
+
+        for row,point in enumerate(targets):
+            best=None
+            for tri_ids in faces:
+                result=_closest_point_barycentric(
+                    point,
+                    vertices[int(tri_ids[0])],
+                    vertices[int(tri_ids[1])],
+                    vertices[int(tri_ids[2])],
+                )
+                if result is None:
+                    continue
+                closest,bary=result
+                distance=float(np.linalg.norm(point-closest))
+                if best is None or distance<best[0]:
+                    best=(distance,np.asarray(tri_ids),np.asarray(bary))
+            self.assertIsNotNone(best)
+            self.assertAlmostEqual(
+                float(relation.surface_distance[row]),
+                float(best[0]),
+                places=9,
+            )
+            reconstructed=np.sum(
+                vertices[relation.triangle_vertex_ids[row]]
+                * relation.barycentric[row][:,None],
+                axis=0,
+            )
+            self.assertAlmostEqual(
+                float(np.linalg.norm(point-reconstructed)),
+                float(best[0]),
+                places=9,
+            )
+
+    def test_dense_grid_prunes_triangle_work(self):
+        size=70
+        vertices=[]
+        for y in range(size):
+            for x in range(size):
+                vertices.append([
+                    float(x)/(size-1),
+                    float(y)/(size-1),
+                    0.0,
+                ])
+        faces=[]
+        for y in range(size-1):
+            for x in range(size-1):
+                a=y*size+x
+                b=a+1
+                c=a+size
+                d=c+1
+                faces.append([a,b,d])
+                faces.append([a,d,c])
+        vertices=np.asarray(vertices,dtype=np.float64)
+        faces=np.asarray(faces,dtype=np.int64)
+        targets=np.asarray([
+            [0.503,0.497,0.01],
+            [0.123,0.876,0.02],
+            [0.932,0.071,0.015],
+        ],dtype=np.float64)
+
+        relation=build_surface_transfer_relation(
+            vertices,
+            faces,
+            targets,
+            bvh_leaf_size=8,
+        )
+        self.assertEqual(relation.fallback_vertices,0)
+        self.assertTrue(np.allclose(
+            relation.surface_distance,
+            np.asarray([0.01,0.02,0.015]),
+            atol=1e-9,
+        ))
+        self.assertLess(
+            relation.max_examined_triangles,
+            max(64,len(faces)//20),
+        )
+        self.assertLess(
+            relation.max_visited_bvh_nodes,
+            max(128,len(faces)//10),
+        )
 
     def test_degenerate_triangle_falls_back_to_nearest_vertex(self):
         vertices=np.asarray([
