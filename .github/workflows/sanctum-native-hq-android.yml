@@ -768,6 +768,12 @@ jobs:
               test "${GEOMETRY_PREFETCH_PEAK}" -ge 2
               test "${GEOMETRY_PREFETCH_PEAK}" -le 4
               test -n "${GEOMETRY_PREFETCH_FRAMES}"
+
+              GEOMETRY_RANGE_COPY_KB="$(grep "XZIEL_RUNTIME_GEOMETRY_RELOAD_COMPLETE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* peak_range_copy_kb=\([0-9][0-9]*\.[0-9][0-9]*\).*/\1/p')"
+              test -n "${GEOMETRY_RANGE_COPY_KB}"
+              awk -v value="${GEOMETRY_RANGE_COPY_KB}" 'BEGIN { exit !(value > 0.0 && value <= 4096.0) }'
+              echo "XZIEL_RUNTIME_GEOMETRY_RANGE_COPY_BOUNDED peak_kb=${GEOMETRY_RANGE_COPY_KB}"
+
               echo "XZIEL_RUNTIME_GEOMETRY_PREFETCH_ACTIVE peak=${GEOMETRY_PREFETCH_PEAK} elapsed_frames=${GEOMETRY_PREFETCH_FRAMES}"
             fi
 
