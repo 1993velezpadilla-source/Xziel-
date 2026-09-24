@@ -70,6 +70,8 @@ class GamePrepTests(unittest.TestCase):
                 self.assertEqual(path.read_bytes()[:4], b"glTF")
                 self.assertIsInstance(lod.dropped_channels, list)
                 self.assertIsInstance(lod.rebake_required, list)
+                self.assertIsInstance(lod.rebaked_channels, list)
+                self.assertIn(lod.rebake_method, (None, "blender_unavailable", "nothing_supported_requested"))
 
             for frame in result.turntable_frames:
                 self.assertTrue(Path(frame).is_file())
