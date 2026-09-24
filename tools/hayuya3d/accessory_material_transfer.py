@@ -587,10 +587,10 @@ def accessory_material_transfer_supported(
     except Exception as exc:
         primary = f"{type(exc).__name__}:{exc}"
         try:
-            from accessory_material_split import (
-                split_accessory_material_supported,
+            from accessory_split_material_bind import (
+                split_material_bind_supported,
             )
-            split_ready, split_blocker = split_accessory_material_supported(
+            split_ready, split_blocker = split_material_bind_supported(
                 donor_mesh,
                 up_axis=up_axis,
             )
@@ -626,10 +626,10 @@ def transfer_accessory_material(
                 up_axis=donor_up_axis,
             )
         except Exception as primary_exc:
-            from accessory_material_split import (
-                transfer_split_accessory_material,
+            from accessory_split_material_bind import (
+                bind_split_accessory_materials,
             )
-            split = transfer_split_accessory_material(
+            split = bind_split_accessory_materials(
                 donor_mesh,
                 inserted_mesh,
                 output_glb,
