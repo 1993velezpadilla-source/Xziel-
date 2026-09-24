@@ -18,6 +18,7 @@ on:
       - "tools/hayuya3d/tests/test_google_map_tiles.py"
       - "tools/hayuya3d/tests/test_geo_coordinates.py"
       - "docs/hayuya/HAYUYA_MAP_WORLD_BRAIN.md"
+      - "docs/hayuya/HAYUYA_LIGHTING_BRAIN.md"
       - "docs/ZOMBIES_MAP_DNA_ATLAS.md"
       - "docs/zombies-map-dna-atlas.v1.json"
       - "docs/zombies-map-dna-coverage.v1.json"
