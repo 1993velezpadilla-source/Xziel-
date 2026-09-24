@@ -3,10 +3,15 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import trimesh
 
+from tools.hayuya3d.composite_champion import (
+    build_composite_plan,
+    execute_safe_accessory_challenger,
+)
 from tools.hayuya3d.glb_images import write_glb
 from tools.hayuya3d.gltf_audit import audit_glb
 from tools.hayuya3d.morph_deformation_qa import audit_morph_deformation
@@ -147,6 +152,41 @@ def write_donor(path: Path, *, ambiguous: bool = False) -> None:
     path.write_bytes(trimesh.exchange.gltf.export_glb(scene))
 
 
+def candidate(
+    backend: str,
+    path: Path,
+    score: float,
+    *,
+    detail_source: str,
+    detail_score: float,
+):
+    return SimpleNamespace(
+        backend=backend,
+        path=str(path),
+        score=score,
+        valid=True,
+        production_score=score,
+        visual_score=score,
+        appearance_score=score,
+        appearance_face_detail_score=92.0,
+        appearance_face_detail_min_score=90.0,
+        head_density_score=98.0,
+        head_texel_density_score=98.0,
+        head_texture_detail_score=92.0,
+        material_score=95.0,
+        texture_resolution_score=100.0,
+        base_color_min_edge=0,
+        pbr_channels=[],
+        appearance_details=[{
+            "source": detail_source,
+            "score": detail_score,
+            "region_hint": "local",
+        }],
+        visual_views=[{"best_up_axis": "y"}],
+        up_axis="y",
+    )
+
+
 class RiggedAccessoryInsertTests(unittest.TestCase):
     def test_new_accessory_gets_skin_weights_and_morph_targets(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -192,6 +232,70 @@ class RiggedAccessoryInsertTests(unittest.TestCase):
             self.assertEqual(after.morph_primitive_count, 2)
             self.assertTrue(audit_skin_weights(output).ready)
             self.assertTrue(audit_morph_deformation(output).ready)
+
+    def test_composite_planner_executes_new_accessory_insert(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            base_path = root / "base.glb"
+            donor_path = root / "donor.glb"
+            source = "/refs/medal_detail.png"
+            write_skinned_base(base_path, morph=True)
+            write_donor(donor_path)
+
+            base = candidate(
+                "base",
+                base_path,
+                96.0,
+                detail_source=source,
+                detail_score=70.0,
+            )
+            donor = candidate(
+                "donor",
+                donor_path,
+                84.0,
+                detail_source=source,
+                detail_score=98.0,
+            )
+            plan = build_composite_plan(
+                [base, donor],
+                mode="character",
+                inspect_parts=True,
+            )
+            detail = next(
+                item
+                for item in plan.detail_donors
+                if item.source == source
+            )
+            token = "detail:" + source
+            self.assertEqual(
+                detail.strategy,
+                "new_rigged_accessory_insert_weight_morph_transfer",
+            )
+            self.assertTrue(
+                detail.accessory_match["rigged_insert_supported"]
+            )
+            self.assertIn(token, plan.executable_now)
+            self.assertNotIn(token, plan.deferred_transfers)
+
+            result = execute_safe_accessory_challenger(
+                plan,
+                root / "composite",
+                detail_source=source,
+                texture_size=256,
+            )
+            self.assertTrue(result.attempted)
+            self.assertTrue(result.ready, result.error)
+            self.assertTrue(Path(result.candidate_path or "").is_file())
+            self.assertTrue(result.fusion)
+            self.assertGreater(
+                int(result.fusion["inserted_vertices"]),
+                0,
+            )
+            self.assertTrue(result.fusion["rig_ready"])
+            self.assertTrue(result.fusion["skin_weights_ready"])
+            self.assertTrue(result.fusion["morph_ready"])
+            self.assertTrue(result.fusion["morph_deformation_ready"])
+            self.assertTrue(result.fusion["attachment_ready"])
 
     def test_ambiguous_multiple_donor_accessories_fail_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
