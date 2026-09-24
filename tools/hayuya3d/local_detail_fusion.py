@@ -91,13 +91,7 @@ def _wrap_uv(values):
     return wrapped
 
 
-def _region_weights(vertices,region:str,up_axis:int):
-    np,_,_=_deps()
-    values=np.asarray(vertices,dtype=np.float64)[:,up_axis]
-    lo=float(np.min(values))
-    hi=float(np.max(values))
-    extent=max(hi-lo,1e-9)
-    h=(values-lo)/extent
+def _region_weight_from_height(h,region:str):
     region=str(region or "").lower()
     if region=="head":
         return _smoothstep((h-0.66)/0.18)
@@ -109,6 +103,22 @@ def _region_weights(vertices,region:str,up_axis:int):
         return _smoothstep((0.46-h)/0.20)
     raise ValueError(
         f"local detail region {region!r} is not executable in v1"
+    )
+
+
+def _normalized_heights(vertices,up_axis:int):
+    np,_,_=_deps()
+    values=np.asarray(vertices,dtype=np.float64)[:,up_axis]
+    lo=float(np.min(values))
+    hi=float(np.max(values))
+    extent=max(hi-lo,1e-9)
+    return (values-lo)/extent
+
+
+def _region_weights(vertices,region:str,up_axis:int):
+    return _region_weight_from_height(
+        _normalized_heights(vertices,up_axis),
+        region,
     )
 
 
@@ -219,7 +229,7 @@ def fuse_local_basecolor(
         vertices=np.asarray(base.vertices,dtype=np.float64)
         faces=np.asarray(base.faces,dtype=np.int64)
         uv=np.asarray(base.visual.uv,dtype=np.float64)
-        weights=_region_weights(vertices,region,axis)
+        normalized_heights=_normalized_heights(vertices,axis)
 
         donor_points,donor_colors=_deterministic_donor_cloud(
             donor_mesh,samples=donor_samples
@@ -244,9 +254,7 @@ def fuse_local_basecolor(
         changed_mask=np.zeros((h,w),dtype=bool)
         skipped_seams=0
         for face in faces:
-            tri_w=weights[face]
-            if float(np.max(tri_w))<=1e-4:
-                continue
+            tri_h=normalized_heights[face]
             tri_uv=_wrap_uv(uv[face])
             # Avoid painting across wrapped UV seams in v1. Those boundary
             # triangles stay base-exact until seam-aware unwrap support lands.
@@ -272,8 +280,12 @@ def fuse_local_basecolor(
             )
             if bary is None or not np.any(inside):
                 continue
-            local_alpha=np.sum(
-                bary*tri_w.reshape((1,1,3)),axis=-1
+            local_height=np.sum(
+                bary*tri_h.reshape((1,1,3)),axis=-1
+            )
+            local_alpha=_region_weight_from_height(
+                local_height,
+                region,
             )
             donor_rgb=np.sum(
                 bary[...,None]
