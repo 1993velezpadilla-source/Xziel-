@@ -115,6 +115,8 @@ vec3 rotateViewmodel(vec3 value) {
 void main() {
     bool viewmodel =
         pc.viewmodelMode != 0u;
+    bool pbrEnabled =
+        (pc.materialFlags & 1u) != 0u;
 
     vec3 view;
     vec3 surfaceNormal;
@@ -126,16 +128,34 @@ void main() {
                 pc.modelOffsetScale.w) +
             pc.modelOffsetScale.xyz;
 
+        // STATIC_VERTEX_NORMALIZE_DEFER_V1
+        // Every fragment path that consumes a viewmodel normal normalizes
+        // vNormal before lighting. Rotation preserves direction, so defer the
+        // normalization to that single consumer instead of doing it here too.
         surfaceNormal =
-            normalize(
-                rotateViewmodel(
-                    inNormal));
+            rotateViewmodel(
+                inNormal);
     } else {
         view = worldToView(inPosition);
-        surfaceNormal =
-            normalize(
+
+        if (pbrEnabled) {
+            // STATIC_VERTEX_NORMALIZE_DEFER_V1
+            // PBR fragment shading always normalizes vNormal before normal-map
+            // or direct-light work. Avoid the redundant per-vertex normalize.
+            surfaceNormal =
                 worldDirectionToView(
-                    inNormal));
+                    inNormal);
+        } else {
+            // STATIC_VERTEX_NORMAL_WORK_GATE_V1
+            // Legacy photogrammetry returns captured albedo directly and
+            // never reads vNormal. Skip the whole normal rotation for those
+            // draw-uniform legacy batches.
+            surfaceNormal =
+                vec3(
+                    0.0,
+                    0.0,
+                    1.0);
+        }
     }
 
     const float nearPlane = 0.08;

@@ -368,6 +368,8 @@ jobs:
           grep -q "TANGENT_BASIS_RECIPROCAL_FREE_V1" app/src/main/shaders/xziel_static_mesh.frag
           grep -q "TANGENT_BASIS_SINGLE_NORMALIZE_V2" app/src/main/shaders/xziel_static_mesh.frag
           grep -q "NORMAL_MAP_FULL_DETAIL_SINGLE_NORMALIZE_V1" app/src/main/shaders/xziel_static_mesh.frag
+          grep -q "STATIC_VERTEX_NORMALIZE_DEFER_V1" app/src/main/shaders/xziel_static_mesh.vert
+          grep -q "STATIC_VERTEX_NORMAL_WORK_GATE_V1" app/src/main/shaders/xziel_static_mesh.vert
           grep -q "WET_FLOOR_SHARED_PRIMARY_WAVE_V1" app/src/main/shaders/xziel_first.frag
           grep -q "FIXED_INTEGER_POW_MULTIPLIES_V1" app/src/main/shaders/xziel_first.frag
           grep -q "PLANAR_REFLECTION_FETCH_GATE_V1" app/src/main/shaders/xziel_first.frag
@@ -1143,6 +1145,8 @@ jobs:
               echo "XZIEL_NORMAL_TANGENT_BASIS_RECIPROCAL_FREE_ACTIVE"
               echo "XZIEL_NORMAL_TANGENT_BASIS_SINGLE_NORMALIZE_ACTIVE"
               echo "XZIEL_NORMAL_MAP_FULL_DETAIL_SINGLE_NORMALIZE_ACTIVE"
+              echo "XZIEL_STATIC_VERTEX_NORMALIZE_DEFER_ACTIVE"
+              echo "XZIEL_STATIC_VERTEX_NORMAL_WORK_GATE_ACTIVE"
               echo "XZIEL_GEOMETRY_SMITH_SHARED_K_ACTIVE"
               echo "XZIEL_WET_FLOOR_SHARED_PRIMARY_WAVE_ACTIVE"
               echo "XZIEL_FIXED_INTEGER_POW_MULTIPLIES_ACTIVE"
