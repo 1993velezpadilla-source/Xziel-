@@ -31,10 +31,12 @@ def compile_design_intelligence(profile_id: str = "sanctum_classic") -> dict[str
     atlas_path = _resolve_repo_path(knowledge["atlas"])
     coverage_path = _resolve_repo_path(knowledge["coverage"])
     profile_path = _resolve_repo_path(profiles[profile_id])
+    pattern_path = _resolve_repo_path(knowledge["patternLibrary"])
 
     atlas = _read_json(atlas_path)
     coverage = _read_json(coverage_path)
     profile = _read_json(profile_path)
+    patterns = _read_json(pattern_path)
 
     atlas_by_id = {record["id"]: record for record in atlas["maps"]}
     source_ids = list(profile["sourceMaps"])
@@ -52,6 +54,11 @@ def compile_design_intelligence(profile_id: str = "sanctum_classic") -> dict[str
         raise ValueError(
             "zombies design atlas does not satisfy coverage contract: "
             + ", ".join(coverage_missing)
+        )
+
+    if patterns.get("corpusSize") != len(atlas["maps"]):
+        raise ValueError(
+            "cross-map pattern library corpus size does not match atlas"
         )
 
     source_maps = [
@@ -73,11 +80,23 @@ def compile_design_intelligence(profile_id: str = "sanctum_classic") -> dict[str
             "atlas": knowledge["atlas"],
             "coverage": knowledge["coverage"],
             "profile": profiles[profile_id],
+            "pattern_library": knowledge["patternLibrary"],
             "atlas_map_count": len(atlas["maps"]),
             "coverage_required_count": len(required_ids),
         },
         "source_maps": source_maps,
         "constraints": profile["constraints"],
+        "cross_map_patterns": {
+            "archetypes": patterns["archetypes"],
+            "global_rules": patterns["globalRules"],
+            "distribution_summary": {
+                field: [
+                    {"id": item["id"], "count": item["count"]}
+                    for item in patterns["distributions"][field]
+                ]
+                for field in ("topology", "progression", "pressure", "horror")
+            },
+        },
         "targets": profile.get("xzielTargets", {}),
         "required_reasoning_passes": standard["requiredReasoningPasses"],
         "world_judge_gates": standard["worldJudgeGates"],
