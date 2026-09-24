@@ -146,6 +146,17 @@ class AccessorySwapTests(unittest.TestCase):
             self.assertTrue(
                 result.self_intersection_ready
             )
+            self.assertTrue(
+                result.attachment_ready
+            )
+            self.assertEqual(
+                result.attachment_floating_components,
+                0,
+            )
+            self.assertEqual(
+                result.attachment_oversized_floating_components,
+                0,
+            )
             self.assertEqual(
                 result.output_components,
                 2,
