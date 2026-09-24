@@ -62,6 +62,10 @@ jobs:
 
           "$GLSLC"             -O             -fshader-stage=frag             app/src/main/shaders/xziel_static_mesh.frag             -o app/src/main/assets/shaders/xziel_static_mesh.frag.spv
 
+          "$GLSLC"             -O             -fshader-stage=vert             app/src/main/shaders/xziel_scene_composite.vert             -o app/src/main/assets/shaders/xziel_scene_composite.vert.spv
+
+          "$GLSLC"             -O             -fshader-stage=frag             app/src/main/shaders/xziel_scene_composite.frag             -o app/src/main/assets/shaders/xziel_scene_composite.frag.spv
+
           "$GLSLC"             -O             -fshader-stage=vert             app/src/main/shaders/xziel_ui.vert             -o app/src/main/assets/shaders/xziel_ui.vert.spv
 
           "$GLSLC"             -O             -fshader-stage=frag             app/src/main/shaders/xziel_ui.frag             -o app/src/main/assets/shaders/xziel_ui.frag.spv
@@ -70,6 +74,8 @@ jobs:
           test -s app/src/main/assets/shaders/xziel_first.frag.spv
           test -s app/src/main/assets/shaders/xziel_static_mesh.vert.spv
           test -s app/src/main/assets/shaders/xziel_static_mesh.frag.spv
+          test -s app/src/main/assets/shaders/xziel_scene_composite.vert.spv
+          test -s app/src/main/assets/shaders/xziel_scene_composite.frag.spv
           test -s app/src/main/assets/shaders/xziel_ui.vert.spv
           test -s app/src/main/assets/shaders/xziel_ui.frag.spv
 
@@ -79,6 +85,8 @@ jobs:
             "$SPIRV_VAL" app/src/main/assets/shaders/xziel_first.frag.spv
             "$SPIRV_VAL" app/src/main/assets/shaders/xziel_static_mesh.vert.spv
             "$SPIRV_VAL" app/src/main/assets/shaders/xziel_static_mesh.frag.spv
+            "$SPIRV_VAL" app/src/main/assets/shaders/xziel_scene_composite.vert.spv
+            "$SPIRV_VAL" app/src/main/assets/shaders/xziel_scene_composite.frag.spv
             "$SPIRV_VAL" app/src/main/assets/shaders/xziel_ui.vert.spv
             "$SPIRV_VAL" app/src/main/assets/shaders/xziel_ui.frag.spv
           fi
@@ -102,6 +110,8 @@ jobs:
           grep -q "assets/shaders/xziel_first.frag.spv" xziel-native-apk-contents.txt
           grep -q "assets/shaders/xziel_static_mesh.vert.spv" xziel-native-apk-contents.txt
           grep -q "assets/shaders/xziel_static_mesh.frag.spv" xziel-native-apk-contents.txt
+          grep -q "assets/shaders/xziel_scene_composite.vert.spv" xziel-native-apk-contents.txt
+          grep -q "assets/shaders/xziel_scene_composite.frag.spv" xziel-native-apk-contents.txt
           grep -q "assets/shaders/xziel_ui.vert.spv" xziel-native-apk-contents.txt
           grep -q "assets/shaders/xziel_ui.frag.spv" xziel-native-apk-contents.txt
           grep -q "assets/maps/prototype.xmap" xziel-native-apk-contents.txt
@@ -188,12 +198,39 @@ jobs:
           "$ADB" install -r "$APK"
           "$ADB" logcat -c
           "$ADB" shell am force-stop com.xziel.engineprototype || true
+
+          # Fresh Android emulator images may pause the GameActivity behind the
+          # system "Viewing full screen / Got it" education overlay. Confirm the
+          # immersive tutorial before launch so the smoke test observes the
+          # native renderer rather than a one-time OS onboarding surface.
+          "$ADB" shell settings put secure immersive_mode_confirmations confirmed || true
+
           # Launch asynchronously. GameActivity/Vulkan does not necessarily
           # satisfy Android's conventional fully-drawn wait even when the
           # native renderer is healthy; explicit native markers are stronger.
           timeout 8 "$ADB" shell am start             -n com.xziel.engineprototype/.XzielGameActivity             > dist/native-am-start.txt 2>&1 || true
 
-          sleep 15
+          READY=0
+          for i in $(seq 1 60); do
+            STARTUP_LOG="$("$ADB" logcat -d -v brief -s XzielNative:I XzielVulkan:I '*:S' 2>/dev/null || true)"
+            if grep -q "XZIEL_NATIVE_BOOT" <<<"$STARTUP_LOG" && \
+               grep -q "XZIEL_VULKAN_READY" <<<"$STARTUP_LOG"; then
+              READY=1
+              break
+            fi
+            sleep 1
+          done
+
+          if [[ "$READY" != "1" ]]; then
+            # Close the final poll/sleep race before declaring startup failure.
+            FINAL_STARTUP_LOG="$("$ADB" logcat -d -v brief -s XzielNative:I XzielVulkan:I '*:S' 2>/dev/null || true)"
+            if grep -q "XZIEL_NATIVE_BOOT" <<<"$FINAL_STARTUP_LOG" && \
+               grep -q "XZIEL_VULKAN_READY" <<<"$FINAL_STARTUP_LOG"; then
+              READY=1
+              echo "XZIEL_NATIVE_STARTUP_READY_FINAL_PROBE"
+            fi
+          fi
+
           timeout 8 "$ADB" logcat -d -v threadtime > dist/native-logcat.txt || true
           timeout 8 "$ADB" exec-out screencap -p > dist/native-first-frame.png || true
 
@@ -203,6 +240,12 @@ jobs:
           if grep -Eq "FATAL EXCEPTION|Fatal signal|ANR in com\.xziel\.engineprototype|>>> com\.xziel\.engineprototype <<<" dist/native-logcat.txt; then
             echo "Native prototype crashed or ANRed"
             grep -Ei "FATAL EXCEPTION|Fatal signal|ANR|XzielNative|com\.xziel\.engineprototype" dist/native-logcat.txt | tail -n 400
+            exit 1
+          fi
+
+          if [[ "$READY" != "1" ]]; then
+            echo "Native prototype did not reach XZIEL_NATIVE_BOOT + XZIEL_VULKAN_READY"
+            grep -Ei "XZIEL_|XzielNative|XzielVulkan|VK_ERROR|Fatal signal|ANR|failed" dist/native-logcat.txt | tail -n 400 || true
             exit 1
           fi
 

@@ -998,6 +998,17 @@ bool VulkanStaticMeshRenderer::initialize(
         static_cast<unsigned int>(emissiveMapCount),
         static_cast<unsigned int>(textures_.size()));
 
+    try {
+        materialVisibilityStates_.assign(
+            materials_.size(),
+            0U);
+    } catch (...) {
+        logError(
+            "static mesh material visibility cache allocation failed");
+        shutdown();
+        return false;
+    }
+
     if (!createGeometryResidency(
             asset,
             batchMaterialIndices)) {
@@ -1091,6 +1102,7 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
 
     batches_.clear();
     materials_.clear();
+    materialVisibilityStates_.clear();
     textures_.clear();
 
     streamGraph_.reset();
@@ -4323,6 +4335,17 @@ void VulkanStaticMeshRenderer::record(
                 return nullptr;
             };
 
+    const bool materialVisibilityCacheReady =
+        materialVisibilityStates_.size() ==
+        materials_.size();
+
+    if (materialVisibilityCacheReady) {
+        std::fill(
+            materialVisibilityStates_.begin(),
+            materialVisibilityStates_.end(),
+            static_cast<std::uint8_t>(0U));
+    }
+
     for (std::size_t batchIndex = 0U;
          batchIndex < batches_.size();
          ++batchIndex) {
@@ -4456,29 +4479,76 @@ void VulkanStaticMeshRenderer::record(
             continue;
         }
 
-        if (!materialStreamingReady(
-                materials_[
-                    batch.materialIndex],
-                frameSlot)) {
+        bool materialVisible = true;
+
+        if (materialVisibilityCacheReady) {
+            auto& cachedState =
+                materialVisibilityStates_[
+                    batch.materialIndex];
+
+            if (cachedState == 0U) {
+                ++frameStats_.
+                    materialVisibilityTests;
+
+                materialVisible =
+                    materialStreamingReady(
+                        materials_[
+                            batch.materialIndex],
+                        frameSlot);
+
+                if (materialVisible &&
+                    streamCullingActive_) {
+                    const auto* decision =
+                        streamDecision(
+                            materials_[
+                                batch.materialIndex].
+                                    streamResourceId,
+                            streamDecisionCount_);
+
+                    materialVisible =
+                        decision == nullptr ||
+                        decision->desiredResident;
+                }
+
+                cachedState =
+                    materialVisible
+                    ? static_cast<std::uint8_t>(1U)
+                    : static_cast<std::uint8_t>(2U);
+            } else {
+                ++frameStats_.
+                    materialVisibilityCacheHits;
+                materialVisible =
+                    cachedState ==
+                    static_cast<std::uint8_t>(1U);
+            }
+        } else {
+            ++frameStats_.
+                materialVisibilityTests;
+
+            materialVisible =
+                materialStreamingReady(
+                    materials_[
+                        batch.materialIndex],
+                    frameSlot);
+
+            if (materialVisible &&
+                streamCullingActive_) {
+                const auto* decision =
+                    streamDecision(
+                        batch.streamResourceId,
+                        streamDecisionCount_);
+
+                materialVisible =
+                    decision == nullptr ||
+                    decision->desiredResident;
+            }
+        }
+
+        if (!materialVisible) {
             ++frameStats_.culledBatches;
             ++frameStats_.
                 streamingCulledBatches;
             continue;
-        }
-
-        if (streamCullingActive_) {
-            const auto* decision =
-                streamDecision(
-                    batch.streamResourceId,
-                    streamDecisionCount_);
-
-            if (decision != nullptr &&
-                !decision->desiredResident) {
-                ++frameStats_.culledBatches;
-                ++frameStats_.
-                    streamingCulledBatches;
-                continue;
-            }
         }
 
         ++frameStats_.batchFrustumTests;
@@ -4737,7 +4807,7 @@ void VulkanStaticMeshRenderer::record(
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u draw_submissions=%u indirect_draws=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u multi_draw_indirect=%u portal_tests=%u portal_culled=%u portal_skipped=%u cell_frustum_tests=%u cell_frustum_culled=%u cell_range_skipped=%u cell_frustum_skipped=%u batch_frustum_tests=%u",
+            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u draw_submissions=%u indirect_draws=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u multi_draw_indirect=%u portal_tests=%u portal_culled=%u portal_skipped=%u cell_frustum_tests=%u cell_frustum_culled=%u cell_range_skipped=%u cell_frustum_skipped=%u batch_frustum_tests=%u material_visibility_tests=%u material_visibility_cache_hits=%u",
             static_cast<unsigned int>(
                 frameStats_.streamingCell),
             static_cast<unsigned int>(
@@ -4779,7 +4849,12 @@ void VulkanStaticMeshRenderer::record(
                 frameStats_.
                     cellFrustumSkippedBatches),
             static_cast<unsigned int>(
-                frameStats_.batchFrustumTests));
+                frameStats_.batchFrustumTests),
+            static_cast<unsigned int>(
+                frameStats_.materialVisibilityTests),
+            static_cast<unsigned int>(
+                frameStats_.
+                    materialVisibilityCacheHits));
     }
 }
 
