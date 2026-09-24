@@ -4789,6 +4789,18 @@ void VulkanStaticMeshRenderer::record(
         0.01745329251994329577f;
     const float tanHalfFov =
         std::tan(halfFovRadians);
+    const float horizontalTanHalfFov =
+        tanHalfFov *
+        std::max(camera.aspect, 0.25f);
+    const float verticalPlaneRadiusScale =
+        std::sqrt(
+            1.0f +
+            tanHalfFov * tanHalfFov);
+    const float horizontalPlaneRadiusScale =
+        std::sqrt(
+            1.0f +
+            horizontalTanHalfFov *
+                horizontalTanHalfFov);
     constexpr float nearPlane = 0.08f;
     constexpr float farPlane = 180.0f;
 
@@ -4827,30 +4839,31 @@ void VulkanStaticMeshRenderer::record(
                 std::max(
                     viewZ,
                     nearPlane);
-            const float halfHeight =
-                projectedDepth *
-                tanHalfFov;
-            const float halfWidth =
-                halfHeight *
-                std::max(
-                    camera.aspect,
-                    0.25f);
 
-            return
-                std::abs(yawViewX) - radius <=
-                    halfWidth &&
-                std::abs(viewY) - radius <=
-                    halfHeight;
+            return !(
+                std::abs(yawViewX) -
+                        projectedDepth *
+                            horizontalTanHalfFov >
+                    radius *
+                        horizontalPlaneRadiusScale ||
+                std::abs(viewY) -
+                        projectedDepth *
+                            tanHalfFov >
+                    radius *
+                        verticalPlaneRadiusScale);
         };
 
-    const auto batchViewDepth =
-        [&](const GpuBatch& batch) noexcept {
+    const auto sphereViewDepth =
+        [&](float centerX,
+            float centerY,
+            float centerZ,
+            float radius) noexcept {
             const float relativeX =
-                batch.cullCenterX - camera.x;
+                centerX - camera.x;
             const float relativeY =
-                batch.cullCenterY - camera.y;
+                centerY - camera.y;
             const float relativeZ =
-                batch.cullCenterZ - camera.z;
+                centerZ - camera.z;
 
             const float yawViewZ =
                 yawSin * relativeX +
@@ -4865,7 +4878,7 @@ void VulkanStaticMeshRenderer::record(
                     nearPlane,
                     viewZ -
                         std::max(
-                            batch.cullRadius,
+                            radius,
                             0.0f));
         };
 
