@@ -1412,6 +1412,11 @@ def main() -> int:
                         f"basecolor={provisional_edge}->{profile.texture_size} "
                         f"items={len(texture_superres_result.items)}"
                     )
+                    print(
+                        "HAYUYA_CANDIDATE_READY "
+                        f"{sr_label} {texture_superres_result.output_glb} "
+                        "source=texture_superres"
+                    )
                     # Super-resolution earns nothing merely for reaching 4K.
                     # It must survive the same full real-source Judge arena.
                     ranked = run_full_ranking()
