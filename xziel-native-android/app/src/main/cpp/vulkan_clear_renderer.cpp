@@ -6838,124 +6838,73 @@ bool VulkanClearRenderer::recordDrawCommand(
             return;
         }
 
-        const std::uint8_t mask =
-            kDigitMasks[
-                static_cast<std::size_t>(
-                    digit)];
+        UiPushConstants ui{};
 
-        const float horizontalHalfWidth =
-            0.0078f * scale;
+        ui.centerX =
+            std::clamp(
+                centerX,
+                0.0f,
+                1.0f) *
+                2.0f -
+            1.0f;
 
-        const float horizontalHalfHeight =
-            0.00125f * scale;
+        ui.centerY =
+            1.0f -
+            std::clamp(
+                centerY,
+                0.0f,
+                1.0f) *
+                2.0f;
 
-        const float verticalHalfWidth =
-            0.00120f * scale;
+        // Shape 3 interprets halfWidth as the digit scale. The vertex shader
+        // expands all seven segment quads from one 42-vertex draw and
+        // degenerates masked-off segments before rasterization.
+        ui.halfWidth =
+            std::max(
+                scale,
+                0.01f);
+        ui.halfHeight = 0.0f;
 
-        const float verticalHalfHeight =
-            0.0062f * scale;
-
-        const float xOffset =
-            0.0084f * scale;
-
-        const float yOffset =
-            0.0080f * scale;
-
-        const float red =
-            0.92f;
-
-        const float green =
+        ui.colorR = 0.92f;
+        ui.colorG =
             0.58f +
             0.20f *
                 std::clamp(
                     hud.scorePulseAlpha,
                     0.0f,
                     1.0f);
-
-        const float blue =
-            0.10f;
-
-        const auto segment = [&](
-            std::uint8_t bit,
-            float x,
-            float y,
-            float halfWidth,
-            float halfHeight) noexcept {
-            if ((mask & bit) == 0U) {
-                return;
-            }
-
-            drawUiPrimitive(
-                x,
-                y,
-                halfWidth,
-                halfHeight,
-                red,
-                green,
-                blue,
+        ui.colorB = 0.10f;
+        ui.colorA =
+            std::clamp(
                 alpha,
                 0.0f,
-                0.10f);
-        };
+                1.0f);
 
-        segment(
-            0x01U,
-            centerX,
-            centerY -
-                yOffset * 2.0f,
-            horizontalHalfWidth,
-            horizontalHalfHeight);
+        ui.shape = 3.0f;
+        ui.ringWidth = 0.10f;
+        ui.padding0 =
+            static_cast<float>(
+                kDigitMasks[
+                    static_cast<std::size_t>(
+                        digit)]);
+        ui.padding1 = 0.0f;
 
-        segment(
-            0x02U,
-            centerX +
-                xOffset,
-            centerY -
-                yOffset,
-            verticalHalfWidth,
-            verticalHalfHeight);
+        vkCmdPushConstants(
+            command,
+            uiPipelineLayout_,
+            VK_SHADER_STAGE_VERTEX_BIT |
+                VK_SHADER_STAGE_FRAGMENT_BIT,
+            0,
+            static_cast<std::uint32_t>(
+                sizeof(UiPushConstants)),
+            &ui);
 
-        segment(
-            0x04U,
-            centerX +
-                xOffset,
-            centerY +
-                yOffset,
-            verticalHalfWidth,
-            verticalHalfHeight);
-
-        segment(
-            0x08U,
-            centerX,
-            centerY +
-                yOffset * 2.0f,
-            horizontalHalfWidth,
-            horizontalHalfHeight);
-
-        segment(
-            0x10U,
-            centerX -
-                xOffset,
-            centerY +
-                yOffset,
-            verticalHalfWidth,
-            verticalHalfHeight);
-
-        segment(
-            0x20U,
-            centerX -
-                xOffset,
-            centerY -
-                yOffset,
-            verticalHalfWidth,
-            verticalHalfHeight);
-
-        segment(
-            0x40U,
-            centerX,
-            centerY,
-            horizontalHalfWidth,
-            horizontalHalfHeight);
+        vkCmdDraw(
+            command,
+            42,
+            1,
+            0,
+            0);
     };
 
     const float rainIntensity =
