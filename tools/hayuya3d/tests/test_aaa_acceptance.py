@@ -286,6 +286,39 @@ class AAAAcceptanceTests(unittest.TestCase):
             report.blockers,
         )
 
+    def test_final_semantic_anatomy_failure_blocks_high_end_aaa(self):
+        manifest=base_manifest()
+        manifest["semantic_anatomy"]={
+            "required":True,
+            "attempted":True,
+            "ready":False,
+            "critical_targets":["eyes","hands"],
+            "rendered_views":["front.png","side.png","rear.png"],
+            "aggregate":{
+                "ready":False,
+                "missing_parts":["right_hand"],
+            },
+            "error":"semantic_anatomy_incomplete:right_hand",
+        }
+        qa=base_qa()
+        qa["critical_anatomy"]={
+            "required":True,
+            "ready":True,
+            "expected":2,
+            "evaluated":2,
+            "missing":[],
+            "targets":[
+                {"target":"eyes","ready":True},
+                {"target":"hands","ready":True},
+            ],
+        }
+        report=evaluate_aaa_acceptance(manifest,qa)
+        self.assertFalse(report.ready)
+        self.assertTrue(
+            any("semantic" in item.lower() for item in report.blockers),
+            report.blockers,
+        )
+
     def test_character_without_animation_fails(self):
         qa=base_qa()
         qa["rig"]["animation_ready"]=False
