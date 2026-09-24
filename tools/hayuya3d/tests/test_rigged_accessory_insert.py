@@ -208,6 +208,16 @@ class RiggedAccessoryInsertTests(unittest.TestCase):
             )
 
             self.assertTrue(result.ready, result.errors)
+            self.assertTrue(result.geometry_ready)
+            self.assertFalse(result.material_ready)
+            self.assertFalse(result.production_ready)
+            self.assertTrue(
+                any(
+                    "UV/material transfer is not proven" in warning
+                    for warning in result.warnings
+                ),
+                result.warnings,
+            )
             self.assertTrue(output.is_file())
             self.assertGreater(result.inserted_vertices, 0)
             self.assertGreater(result.inserted_faces, 0)
@@ -233,7 +243,7 @@ class RiggedAccessoryInsertTests(unittest.TestCase):
             self.assertTrue(audit_skin_weights(output).ready)
             self.assertTrue(audit_morph_deformation(output).ready)
 
-    def test_composite_planner_executes_new_accessory_insert(self):
+    def test_composite_planner_defers_new_accessory_until_material_proof(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             base_path = root / "base.glb"
@@ -274,8 +284,11 @@ class RiggedAccessoryInsertTests(unittest.TestCase):
             self.assertTrue(
                 detail.accessory_match["rigged_insert_supported"]
             )
-            self.assertIn(token, plan.executable_now)
-            self.assertNotIn(token, plan.deferred_transfers)
+            self.assertFalse(
+                detail.accessory_match["rigged_insert_material_ready"]
+            )
+            self.assertNotIn(token, plan.executable_now)
+            self.assertIn(token, plan.deferred_transfers)
 
             result = execute_safe_accessory_challenger(
                 plan,
@@ -283,19 +296,12 @@ class RiggedAccessoryInsertTests(unittest.TestCase):
                 detail_source=source,
                 texture_size=256,
             )
-            self.assertTrue(result.attempted)
-            self.assertTrue(result.ready, result.error)
-            self.assertTrue(Path(result.candidate_path or "").is_file())
-            self.assertTrue(result.fusion)
-            self.assertGreater(
-                int(result.fusion["inserted_vertices"]),
-                0,
+            self.assertFalse(result.attempted)
+            self.assertFalse(result.ready)
+            self.assertIn(
+                "UV/material transfer",
+                result.error or "",
             )
-            self.assertTrue(result.fusion["rig_ready"])
-            self.assertTrue(result.fusion["skin_weights_ready"])
-            self.assertTrue(result.fusion["morph_ready"])
-            self.assertTrue(result.fusion["morph_deformation_ready"])
-            self.assertTrue(result.fusion["attachment_ready"])
 
     def test_ambiguous_multiple_donor_accessories_fail_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
