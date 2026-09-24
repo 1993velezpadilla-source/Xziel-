@@ -128,6 +128,7 @@ function renderFinalQa(qa) {
   const items = [
     ["Production", qa.production_ready],
     ["Material", qa.material_ready],
+    ["Texture", qa.texture_ready],
     ["Rebake", qa.rebake_ready],
     ["Rig", qa.rig_ready],
     ["Animation", qa.animation_ready],
@@ -160,7 +161,22 @@ function renderFinalQa(qa) {
     grid.appendChild(item);
   }
 
+  const textureActual = qa.basecolor_min || qa.basecolor_max;
+  if (textureActual || qa.texture_target) {
+    const item = document.createElement("div");
+    item.className = "qa-chip metric";
+    const name = document.createElement("span");
+    name.textContent = "Visible texture";
+    const value = document.createElement("strong");
+    const actual = textureActual ? `${textureActual}px` : "unknown";
+    const target = qa.texture_target ? `${qa.texture_target}px target` : "no target";
+    value.textContent = `${actual} / ${target}`;
+    item.append(name, value);
+    grid.appendChild(item);
+  }
+
   [
+    ["Texture score", qa.texture_score],
     ["Face score", qa.face_score],
     ["FaceMesh", qa.facemesh_score],
     ["FaceTex", qa.facetex_score],
