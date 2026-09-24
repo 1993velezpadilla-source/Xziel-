@@ -18,6 +18,17 @@ class SurfaceTransferRelation:
     method: str = "hayuya-surface-transfer-bvh-barycentric-exact-v2"
 
 
+@dataclass
+class SurfaceTransferIndex:
+    vertices: object
+    faces: object
+    nodes: object
+    root: int
+    vertex_tree: object
+    bvh_leaf_size: int
+    method: str = "hayuya-surface-transfer-index-bvh-v1"
+
+
 def _deps():
     import numpy as np
     from scipy.spatial import cKDTree
@@ -233,40 +244,59 @@ def _nearest_triangle_bvh(
     return best, examined_triangles, visited_nodes
 
 
-def build_surface_transfer_relation(
+def build_surface_transfer_index(
     source_positions,
     source_faces,
-    target_positions,
     *,
-    candidate_triangles: int = 32,
     bvh_leaf_size: int = 8,
-) -> SurfaceTransferRelation:
+) -> SurfaceTransferIndex:
     np, cKDTree = _deps()
     vertices = np.asarray(source_positions, dtype=np.float64)
     faces = np.asarray(source_faces, dtype=np.int64)
-    targets = np.asarray(target_positions, dtype=np.float64)
 
     if vertices.ndim != 2 or vertices.shape[1] != 3 or not len(vertices):
         raise ValueError("surface-transfer source positions must be non-empty Nx3")
     if faces.ndim != 2 or faces.shape[1] != 3 or not len(faces):
         raise ValueError("surface-transfer source faces must be non-empty Mx3")
-    if targets.ndim != 2 or targets.shape[1] != 3:
-        raise ValueError("surface-transfer targets must be Nx3")
     if int(np.min(faces)) < 0 or int(np.max(faces)) >= len(vertices):
         raise ValueError("surface-transfer faces reference missing vertices")
-    if not (
-        np.isfinite(vertices).all()
-        and np.isfinite(targets).all()
-    ):
-        raise ValueError("surface-transfer geometry contains non-finite values")
+    if not np.isfinite(vertices).all():
+        raise ValueError("surface-transfer source geometry contains non-finite values")
 
+    leaf_size = max(1, int(bvh_leaf_size))
     triangles = vertices[faces]
     nodes, root = _build_triangle_bvh(
         triangles,
-        leaf_size=bvh_leaf_size,
+        leaf_size=leaf_size,
     )
     vertex_tree = cKDTree(vertices)
-    _, nearest_vertices = vertex_tree.query(
+    return SurfaceTransferIndex(
+        vertices=vertices,
+        faces=faces,
+        nodes=nodes,
+        root=int(root),
+        vertex_tree=vertex_tree,
+        bvh_leaf_size=leaf_size,
+    )
+
+
+def query_surface_transfer(
+    index: SurfaceTransferIndex,
+    target_positions,
+    *,
+    candidate_triangles: int = 32,
+) -> SurfaceTransferRelation:
+    np, _ = _deps()
+    vertices = np.asarray(index.vertices, dtype=np.float64)
+    faces = np.asarray(index.faces, dtype=np.int64)
+    targets = np.asarray(target_positions, dtype=np.float64)
+
+    if targets.ndim != 2 or targets.shape[1] != 3:
+        raise ValueError("surface-transfer targets must be Nx3")
+    if not np.isfinite(targets).all():
+        raise ValueError("surface-transfer targets contain non-finite values")
+
+    _, nearest_vertices = index.vertex_tree.query(
         targets,
         k=1,
         workers=-1,
@@ -285,8 +315,8 @@ def build_surface_transfer_relation(
             point,
             vertices,
             faces,
-            nodes,
-            root,
+            index.nodes,
+            index.root,
         )
         max_examined_triangles = max(
             max_examined_triangles,
@@ -328,6 +358,26 @@ def build_surface_transfer_relation(
         fallback_vertices=int(fallback_vertices),
         max_examined_triangles=int(max_examined_triangles),
         max_visited_bvh_nodes=int(max_visited_bvh_nodes),
+    )
+
+
+def build_surface_transfer_relation(
+    source_positions,
+    source_faces,
+    target_positions,
+    *,
+    candidate_triangles: int = 32,
+    bvh_leaf_size: int = 8,
+) -> SurfaceTransferRelation:
+    index = build_surface_transfer_index(
+        source_positions,
+        source_faces,
+        bvh_leaf_size=bvh_leaf_size,
+    )
+    return query_surface_transfer(
+        index,
+        target_positions,
+        candidate_triangles=candidate_triangles,
     )
 
 
