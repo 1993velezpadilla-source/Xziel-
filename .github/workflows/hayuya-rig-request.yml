@@ -188,6 +188,30 @@ jobs:
           g1=json.loads((root/"animation_gate_uam1.json").read_text())
           c2=[str(x) for x in g2.get("compatible_clips",[])]
           c1=[str(x) for x in g1.get("compatible_clips",[])]
+
+          # Fail-closed promotion policy: once a bank has published a safe clip,
+          # experimental rerigs are not allowed to silently lose it. This makes
+          # rig iteration monotonic from the user's point of view; a worse rerig
+          # can fail CI without replacing the last known-good animated model.
+          incumbent_banks=manifest.get("animation_banks") if isinstance(manifest.get("animation_banks"),dict) else {}
+          promotion_guard={}
+          for bank_name,new_clips in (("quaternius-uam2",c2),("quaternius-uam1",c1)):
+              old=incumbent_banks.get(bank_name,{}) if isinstance(incumbent_banks.get(bank_name,{}),dict) else {}
+              old_clips=[str(x) for x in old.get("clips",[])]
+              old_safe=bool(old.get("quality_passed"))
+              missing=sorted(set(old_clips)-set(new_clips)) if old_safe else []
+              promotion_guard[bank_name]={
+                  "incumbent_safe":old_safe,
+                  "incumbent_clip_count":len(old_clips),
+                  "candidate_clip_count":len(new_clips),
+                  "missing_incumbent_clips":missing,
+              }
+              if missing:
+                  raise SystemExit(
+                      f"safe_clip_regression:{bank_name}:"
+                      + ",".join(missing)
+                  )
+
           useful2=[x for x in c2 if "tpose" not in x.lower().replace("_","")]
           useful1=[x for x in c1 if "tpose" not in x.lower().replace("_","")]
           usable2=bool(r2.get("rig_ready")) and len(useful2)>=3
@@ -199,6 +223,11 @@ jobs:
               )
           manifest["preview_model"]="animated.glb" if usable2 else "animated-uam1.glb"
           manifest["rig_quality_version"]=3
+          manifest["rig_promotion_policy"]={
+            "mode":"monotonic_safe_clips_v1",
+            "passed":True,
+            "banks":promotion_guard,
+          }
           manifest["asset_profile"]="character.humanoid"
           asset=manifest.setdefault("asset",{})
           asset.update({
