@@ -7,6 +7,7 @@ from types import SimpleNamespace
 
 import numpy as np
 import trimesh
+from PIL import Image
 
 from tools.hayuya3d.composite_champion import (
     build_composite_plan,
@@ -142,10 +143,75 @@ def write_skinned_base(path: Path, *, morph: bool = True) -> None:
     write_glb(path, doc, bytes(blob))
 
 
-def write_donor(path: Path, *, ambiguous: bool = False) -> None:
+def _textured(mesh, uv, color):
+    base=np.zeros((16,16,4),dtype=np.uint8)
+    base[:,:,:3]=np.asarray(color,dtype=np.uint8)
+    base[:,:,3]=255
+    normal=np.zeros((16,16,3),dtype=np.uint8)
+    normal[:,:,0]=128
+    normal[:,:,1]=128
+    normal[:,:,2]=255
+    material=trimesh.visual.material.PBRMaterial(
+        baseColorTexture=Image.fromarray(base,"RGBA"),
+        normalTexture=Image.fromarray(normal,"RGB"),
+        metallicFactor=0.15,
+        roughnessFactor=0.55,
+    )
+    mesh.visual=trimesh.visual.TextureVisuals(
+        uv=np.asarray(uv,dtype=np.float64),
+        material=material,
+    )
+    return mesh
+
+
+def write_donor(
+    path: Path,
+    *,
+    ambiguous: bool = False,
+    textured: bool = False,
+) -> None:
     body = trimesh.creation.icosphere(subdivisions=2, radius=1.0)
-    charm = trimesh.creation.box(extents=[0.16, 0.18, 0.10])
-    charm.apply_translation([0.0, 1.10, 0.0])
+    if textured:
+        bv=np.asarray(body.vertices,dtype=np.float64)
+        blo=bv.min(axis=0)
+        bext=np.maximum(bv.max(axis=0)-blo,1e-9)
+        body_uv=np.stack([
+            (bv[:,0]-blo[0])/bext[0],
+            (bv[:,2]-blo[2])/bext[2],
+        ],axis=1)
+        body=_textured(body,body_uv,[120,110,100])
+
+        vertices=np.asarray([
+            [-0.08,1.02,-0.06],
+            [ 0.08,1.02,-0.06],
+            [ 0.00,1.20,-0.06],
+            [ 0.00,1.10, 0.08],
+        ],dtype=np.float64)
+        faces=np.asarray([
+            [0,2,1],
+            [0,1,3],
+            [1,2,3],
+            [2,0,3],
+        ],dtype=np.int64)
+        charm=trimesh.Trimesh(
+            vertices=vertices,
+            faces=faces,
+            process=False,
+        )
+        charm=_textured(
+            charm,
+            [
+                [0.0,0.0],
+                [1.0,0.0],
+                [0.5,1.0],
+                [0.5,0.4],
+            ],
+            [180,40,45],
+        )
+    else:
+        charm = trimesh.creation.box(extents=[0.16, 0.18, 0.10])
+        charm.apply_translation([0.0, 1.10, 0.0])
+
     scene = trimesh.Scene()
     scene.add_geometry(body, node_name="body")
     scene.add_geometry(charm, node_name="charm")
@@ -256,6 +322,33 @@ class RiggedAccessoryInsertTests(unittest.TestCase):
             self.assertEqual(after.morph_primitive_count, 2)
             self.assertTrue(audit_skin_weights(output).ready)
             self.assertTrue(audit_morph_deformation(output).ready)
+
+    def test_textured_donor_transplants_pbr_uv_and_tangent_basis(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            base=root/"base.glb"
+            donor=root/"textured_donor.glb"
+            output=root/"inserted_textured.glb"
+            write_skinned_base(base,morph=True)
+            write_donor(donor,textured=True)
+
+            supported,reason=rigged_accessory_insert_supported(
+                base,donor,
+            )
+            self.assertTrue(supported,reason)
+
+            result=insert_rigged_accessory(
+                base,donor,output,
+            )
+            self.assertTrue(result.ready,result.errors)
+            self.assertTrue(result.geometry_ready)
+            self.assertTrue(result.material_ready,result.material_blockers)
+            self.assertTrue(result.uv_ready,result.material_blockers)
+            self.assertTrue(result.uv_tangent_ready,result.material_blockers)
+            self.assertTrue(result.production_ready,result.material_blockers)
+            self.assertTrue(result.legacy_payload_preserved)
+            self.assertIn("baseColor",result.material_channels)
+            self.assertIn("normal",result.material_channels)
 
     def test_weight_transfer_blends_neighbor_joint_influences(self):
         source_positions=np.asarray([
