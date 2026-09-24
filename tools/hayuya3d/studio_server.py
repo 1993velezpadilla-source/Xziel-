@@ -325,6 +325,9 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
             "surface_fallback_vertices":_int_value(
                 "surface_fallback_vertices"
             ),
+            "surface_search_triangles":_int_value(
+                "surface_search_triangles"
+            ),
             "morph_targets_transferred":_int_value("morph_targets_transferred"),
             "geometry_ready":_bool_value("geometry_ready"),
             "legacy_preserved":_bool_value("legacy_preserved"),
