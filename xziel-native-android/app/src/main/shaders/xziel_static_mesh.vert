@@ -1,11 +1,15 @@
 #version 450
 
 layout(push_constant) uniform PushConstants {
-    vec4 cameraPositionYaw;
-    vec4 cameraPitchFovAspectFog;
-    vec4 environment;
+    // cameraPositionViewYawCos: xyz camera position, w yaw cosine.
+    vec4 cameraPositionViewYawCos;
+    // viewRotationFog: x yaw sine, y pitch cosine, z pitch sine, w fog.
+    vec4 viewRotationFog;
+    // environmentRotation: x lightning, y roll cosine, z roll sine.
+    vec4 environmentRotation;
     vec4 modelOffsetScale;
-    vec4 modelRotationMode;
+    // projectionMode: x focal, y focal/aspect, w viewmodel mode.
+    vec4 projectionMode;
     vec4 baseColorFactor;
     vec4 metallicRoughnessNormalOcclusion;
     vec4 emissiveFactorFlags;
@@ -27,13 +31,13 @@ layout(location = 7) out vec3 vViewPosition;
 
 vec3 worldToView(vec3 world) {
     vec3 relative =
-        world - pc.cameraPositionYaw.xyz;
+        world -
+        pc.cameraPositionViewYawCos.xyz;
 
-    float yaw =
-        pc.cameraPositionYaw.w;
-
-    float cy = cos(yaw);
-    float sy = sin(yaw);
+    float cy =
+        pc.cameraPositionViewYawCos.w;
+    float sy =
+        pc.viewRotationFog.x;
 
     vec3 yawView = vec3(
         cy * relative.x - sy * relative.z,
@@ -41,11 +45,10 @@ vec3 worldToView(vec3 world) {
         sy * relative.x + cy * relative.z
     );
 
-    float pitch =
-        pc.cameraPitchFovAspectFog.x;
-
-    float cp = cos(pitch);
-    float sp = sin(pitch);
+    float cp =
+        pc.viewRotationFog.y;
+    float sp =
+        pc.viewRotationFog.z;
 
     return vec3(
         yawView.x,
@@ -55,9 +58,10 @@ vec3 worldToView(vec3 world) {
 }
 
 vec3 worldDirectionToView(vec3 direction) {
-    float yaw = pc.cameraPositionYaw.w;
-    float cy = cos(yaw);
-    float sy = sin(yaw);
+    float cy =
+        pc.cameraPositionViewYawCos.w;
+    float sy =
+        pc.viewRotationFog.x;
 
     vec3 yawView = vec3(
         cy * direction.x - sy * direction.z,
@@ -65,9 +69,10 @@ vec3 worldDirectionToView(vec3 direction) {
         sy * direction.x + cy * direction.z
     );
 
-    float pitch = pc.cameraPitchFovAspectFog.x;
-    float cp = cos(pitch);
-    float sp = sin(pitch);
+    float cp =
+        pc.viewRotationFog.y;
+    float sp =
+        pc.viewRotationFog.z;
 
     return vec3(
         yawView.x,
@@ -77,28 +82,30 @@ vec3 worldDirectionToView(vec3 direction) {
 }
 
 vec3 rotateViewmodel(vec3 value) {
-    float yaw = pc.modelRotationMode.x;
-    float pitch = pc.modelRotationMode.y;
-    float roll = pc.modelRotationMode.z;
-
-    float cy = cos(yaw);
-    float sy = sin(yaw);
+    float cy =
+        pc.cameraPositionViewYawCos.w;
+    float sy =
+        pc.viewRotationFog.x;
     value = vec3(
         cy * value.x + sy * value.z,
         value.y,
        -sy * value.x + cy * value.z
     );
 
-    float cp = cos(pitch);
-    float sp = sin(pitch);
+    float cp =
+        pc.viewRotationFog.y;
+    float sp =
+        pc.viewRotationFog.z;
     value = vec3(
         value.x,
         cp * value.y - sp * value.z,
         sp * value.y + cp * value.z
     );
 
-    float cr = cos(roll);
-    float sr = sin(roll);
+    float cr =
+        pc.environmentRotation.y;
+    float sr =
+        pc.environmentRotation.z;
     return vec3(
         cr * value.x - sr * value.y,
         sr * value.x + cr * value.y,
@@ -110,7 +117,7 @@ void main() {
     float viewmodel =
         step(
             0.5,
-            pc.modelRotationMode.w);
+            pc.projectionMode.w);
 
     vec3 view;
     vec3 surfaceNormal;
@@ -137,28 +144,18 @@ void main() {
     const float nearPlane = 0.08;
     const float farPlane = 180.0;
 
-    float fovDegrees =
-        clamp(
-            pc.cameraPitchFovAspectFog.y,
-            50.0,
-            110.0);
-
     float focal =
-        1.0 /
-        tan(
-            radians(fovDegrees) *
-            0.5);
-
-    float aspect =
-        max(
-            pc.cameraPitchFovAspectFog.z,
-            0.25);
+        pc.projectionMode.x;
+    float focalOverAspect =
+        pc.projectionMode.y;
 
     vec4 clip;
     clip.x =
-        view.x * focal / aspect;
+        view.x *
+        focalOverAspect;
     clip.y =
-        -view.y * focal;
+        -view.y *
+        focal;
     clip.z =
         (farPlane /
          (farPlane - nearPlane)) *
@@ -178,14 +175,14 @@ void main() {
         viewmodel > 0.5
         ? 0.0
         : clamp(
-              pc.cameraPitchFovAspectFog.w,
+              pc.viewRotationFog.w,
               0.0,
               1.0);
     vLightning =
         viewmodel > 0.5
         ? 0.0
         : clamp(
-              pc.environment.x,
+              pc.environmentRotation.x,
               0.0,
               2.0);
     vViewmodel = viewmodel;

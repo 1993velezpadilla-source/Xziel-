@@ -311,29 +311,32 @@ private:
     };
 
     struct PushConstants {
+        // View rotation coefficients are precomputed once on CPU. Reusing
+        // these guaranteed push-constant slots keeps the block at 128 bytes
+        // while removing transcendental math from the vertex hot path.
         float cameraX = 0.0f;
         float cameraY = 0.0f;
         float cameraZ = 0.0f;
-        float cameraYaw = 0.0f;
+        float viewYawCos = 1.0f;
 
-        float cameraPitch = 0.0f;
-        float verticalFovDegrees = 72.0f;
-        float aspect = 1.0f;
+        float viewYawSin = 0.0f;
+        float viewPitchCos = 1.0f;
+        float viewPitchSin = 0.0f;
         float fogDensity = 0.0f;
 
         float lightningFlash = 0.0f;
-        float pad0 = 0.0f;
-        float pad1 = 0.0f;
-        float pad2 = 0.0f;
+        float viewRollCos = 1.0f;
+        float viewRollSin = 0.0f;
+        float reserved0 = 0.0f;
 
         float modelX = 0.0f;
         float modelY = 0.0f;
         float modelZ = 0.0f;
         float modelScale = 1.0f;
 
-        float modelYaw = 0.0f;
-        float modelPitch = 0.0f;
-        float modelRoll = 0.0f;
+        float projectionFocal = 1.0f;
+        float projectionFocalOverAspect = 1.0f;
+        float reserved1 = 0.0f;
         float viewmodelMode = 0.0f;
 
         float baseColorFactorR = 1.0f;
