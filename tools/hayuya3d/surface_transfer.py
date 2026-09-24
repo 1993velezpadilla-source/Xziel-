@@ -15,6 +15,9 @@ class SurfaceTransferRelation:
     fallback_vertices: int
     max_examined_triangles: int = 0
     max_visited_bvh_nodes: int = 0
+    ambiguous_skin_vertices: int = 0
+    surface_skin_min_gap_ratio: float | None = None
+    surface_skin_max_l1: float = 0.0
     method: str = "hayuya-surface-transfer-bvh-barycentric-exact-v2"
 
 
