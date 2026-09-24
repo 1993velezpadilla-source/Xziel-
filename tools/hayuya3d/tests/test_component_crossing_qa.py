@@ -86,8 +86,12 @@ class ComponentCrossingQATests(unittest.TestCase):
                 min_face_fraction=0.08,
             )
             self.assertTrue(report.ready,report.errors)
-            self.assertIn(1,report.ignored_accessory_components)
+            self.assertEqual(
+                len(report.ignored_accessory_components),
+                1,
+            )
             self.assertEqual(report.large_component_count,1)
+            self.assertEqual(report.component_count,2)
 
 
 if __name__=="__main__":
