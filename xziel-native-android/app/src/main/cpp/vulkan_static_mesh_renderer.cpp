@@ -4379,6 +4379,12 @@ void VulkanStaticMeshRenderer::record(
                               cell.cellId);
                     cell.heat =
                         cell.plannedHeat;
+                    cell.portalReachable =
+                        cell.cellId != 0U &&
+                        streamGraph_.
+                            cellReachableThroughOpenPortals(
+                                currentCell,
+                                cell.cellId);
 
                     ++streamCellHeatRefreshCount_;
                 }
@@ -4833,11 +4839,10 @@ void VulkanStaticMeshRenderer::record(
                     frameStats_.streamingCell != 0U &&
                     geometryCell.cellId != 0U) {
                     ++frameStats_.portalVisibilityTests;
+                    ++frameStats_.
+                        portalVisibilityCacheHits;
 
-                    if (!streamGraph_.
-                            cellReachableThroughOpenPortals(
-                                frameStats_.streamingCell,
-                                geometryCell.cellId)) {
+                    if (!geometryCell.portalReachable) {
                         ++frameStats_.portalVisibilityCulled;
                         frameStats_.culledBatches +=
                             remainingBatches;
@@ -5313,7 +5318,7 @@ void VulkanStaticMeshRenderer::record(
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u draw_submissions=%u indirect_draws=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u multi_draw_indirect=%u portal_tests=%u portal_culled=%u portal_skipped=%u cell_frustum_tests=%u cell_frustum_culled=%u cell_range_skipped=%u cell_frustum_skipped=%u batch_frustum_tests=%u material_visibility_tests=%u material_visibility_cache_hits=%u front_to_back_candidates=%u front_to_back_reordered=%u plan_builds=%llu plan_cache_hits=%llu cell_heat_refreshes=%llu",
+            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u draw_submissions=%u indirect_draws=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u multi_draw_indirect=%u portal_tests=%u portal_cache_hits=%u portal_culled=%u portal_skipped=%u cell_frustum_tests=%u cell_frustum_culled=%u cell_range_skipped=%u cell_frustum_skipped=%u batch_frustum_tests=%u material_visibility_tests=%u material_visibility_cache_hits=%u front_to_back_candidates=%u front_to_back_reordered=%u plan_builds=%llu plan_cache_hits=%llu cell_heat_refreshes=%llu",
             static_cast<unsigned int>(
                 frameStats_.streamingCell),
             static_cast<unsigned int>(
@@ -5341,6 +5346,9 @@ void VulkanStaticMeshRenderer::record(
             useIndirect ? 1U : 0U,
             static_cast<unsigned int>(
                 frameStats_.portalVisibilityTests),
+            static_cast<unsigned int>(
+                frameStats_.
+                    portalVisibilityCacheHits),
             static_cast<unsigned int>(
                 frameStats_.portalVisibilityCulled),
             static_cast<unsigned int>(
