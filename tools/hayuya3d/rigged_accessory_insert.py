@@ -1054,6 +1054,63 @@ def insert_rigged_accessory(
             target=34962,
         )
 
+        material_index=None
+        uv_accessor=None
+        tangent_accessor=None
+        transferred_material_channels=[]
+        if donor_uv is not None and donor_material is not None:
+            try:
+                donor_uv=np.asarray(donor_uv,dtype=np.float64)
+                if donor_uv.shape!=(len(aligned),2):
+                    raise RuntimeError(
+                        "donor accessory UV count does not match inserted vertices"
+                    )
+                tangents=_compute_tangents(
+                    aligned,
+                    normals,
+                    donor_uv,
+                    donor_faces,
+                )
+                uv_accessor=_append_accessor(
+                    doc,
+                    blob,
+                    np.asarray(donor_uv,dtype="<f4").tobytes(),
+                    component_type=5126,
+                    count=len(donor_uv),
+                    accessor_type="VEC2",
+                )
+                tangent_accessor=_append_accessor(
+                    doc,
+                    blob,
+                    np.asarray(tangents,dtype="<f4").tobytes(),
+                    component_type=5126,
+                    count=len(tangents),
+                    accessor_type="VEC4",
+                    target=34962,
+                )
+                material_index=_append_material_from_trimesh(
+                    doc,
+                    blob,
+                    donor_material,
+                )
+                from material_bridge import _material_channels
+                transferred_material_channels=sorted(set(
+                    _material_channels(donor_material)
+                ))
+                if "baseColor" not in transferred_material_channels:
+                    raise RuntimeError(
+                        "transferred donor material lacks baseColor evidence"
+                    )
+            except Exception as exc:
+                material_index=None
+                uv_accessor=None
+                tangent_accessor=None
+                transferred_material_channels=[]
+                warnings.append(
+                    "donor accessory material transfer unavailable: "
+                    f"{type(exc).__name__}:{exc}"
+                )
+
         base_targets = base["primitive"].get("targets") or []
         new_targets = []
         semantics = sorted({
@@ -1082,16 +1139,27 @@ def insert_rigged_accessory(
                 transferred_semantics.add(semantic)
             new_targets.append(target_out)
 
+        new_attributes={
+            "POSITION": position_accessor,
+            "NORMAL": normal_accessor,
+            "JOINTS_0": joint_accessor,
+            "WEIGHTS_0": weight_accessor,
+        }
+        if (
+            material_index is not None
+            and uv_accessor is not None
+            and tangent_accessor is not None
+        ):
+            new_attributes["TEXCOORD_0"]=uv_accessor
+            new_attributes["TANGENT"]=tangent_accessor
+
         new_primitive = {
-            "attributes": {
-                "POSITION": position_accessor,
-                "NORMAL": normal_accessor,
-                "JOINTS_0": joint_accessor,
-                "WEIGHTS_0": weight_accessor,
-            },
+            "attributes": new_attributes,
             "indices": index_accessor,
             "mode": 4,
         }
+        if material_index is not None:
+            new_primitive["material"]=int(material_index)
         if new_targets:
             new_primitive["targets"] = new_targets
 
@@ -1219,10 +1287,64 @@ def insert_rigged_accessory(
             after_doc,
             inserted_primitive,
         )
+        uv_tangent_ready=False
+        if material_ready and uv_ready:
+            try:
+                from uv_tangent_qa import audit_uv_tangents
+                from shading_basis_qa import audit_shading_basis
+                uv_audit=audit_uv_tangents(output_glb)
+                shading_audit=audit_shading_basis(
+                    output_glb,
+                    require_explicit_tangents_for_normal_maps=True,
+                )
+                inserted_primitive_index=(
+                    len(
+                        (after_doc.get("meshes") or [])[
+                            int(base["mesh_index"])
+                        ].get("primitives",[])
+                    )-1
+                )
+                uv_item=next(
+                    (
+                        item for item in uv_audit.primitives
+                        if int(item.mesh_index)==int(base["mesh_index"])
+                        and int(item.primitive_index)==inserted_primitive_index
+                    ),
+                    None,
+                )
+                shading_item=next(
+                    (
+                        item for item in shading_audit.primitives
+                        if int(item.mesh_index)==int(base["mesh_index"])
+                        and int(item.primitive_index)==inserted_primitive_index
+                    ),
+                    None,
+                )
+                uv_tangent_ready=bool(
+                    uv_item is not None
+                    and uv_item.ready
+                    and shading_item is not None
+                    and shading_item.ready
+                )
+                if not uv_tangent_ready:
+                    material_blockers.append(
+                        "inserted primitive UV/tangent/shading-basis QA failed"
+                    )
+                    if uv_item is not None:
+                        material_blockers.extend(uv_item.errors or [])
+                    if shading_item is not None:
+                        material_blockers.extend(shading_item.errors or [])
+            except Exception as exc:
+                material_blockers.append(
+                    "inserted primitive UV/tangent QA unavailable: "
+                    f"{type(exc).__name__}:{exc}"
+                )
+
         production_ready=bool(
             geometry_ready
             and material_ready
             and uv_ready
+            and uv_tangent_ready
             and legacy_preserved
         )
         if not production_ready:
@@ -1241,6 +1363,8 @@ def insert_rigged_accessory(
             geometry_ready=geometry_ready,
             material_ready=material_ready,
             uv_ready=uv_ready,
+            uv_tangent_ready=uv_tangent_ready,
+            material_channels=transferred_material_channels,
             production_ready=production_ready,
             legacy_payload_preserved=legacy_preserved,
             material_blockers=material_blockers,
