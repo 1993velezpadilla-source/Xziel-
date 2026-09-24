@@ -1405,13 +1405,40 @@ def prepare_production_rigged_accessory_insert(
     raw_path = out_dir / "rigged_accessory_insert_raw.glb"
     final_path = out_dir / "rigged_accessory_insert_material.glb"
 
-    result = insert_rigged_accessory(
-        base_mesh,
-        donor_mesh,
-        raw_path,
-        base_up_axis=base_up_axis,
-        donor_up_axis=donor_up_axis,
-    )
+    use_split_insert = False
+    try:
+        from accessory_source_groups import audit_accessory_source_groups
+        source_groups = audit_accessory_source_groups(
+            donor_mesh,
+            mode="character",
+            up_axis=donor_up_axis or base_up_axis,
+        )
+        use_split_insert = bool(
+            source_groups.ready
+            and int(source_groups.group_count) > 1
+        )
+    except Exception:
+        use_split_insert = False
+
+    if use_split_insert:
+        from rigged_accessory_split_insert import (
+            insert_split_rigged_accessory,
+        )
+        result = insert_split_rigged_accessory(
+            base_mesh,
+            donor_mesh,
+            raw_path,
+            base_up_axis=base_up_axis,
+            donor_up_axis=donor_up_axis,
+        )
+    else:
+        result = insert_rigged_accessory(
+            base_mesh,
+            donor_mesh,
+            raw_path,
+            base_up_axis=base_up_axis,
+            donor_up_axis=donor_up_axis,
+        )
     if not result.geometry_ready:
         result.ready = False
         result.production_ready = False
@@ -1452,14 +1479,39 @@ def prepare_production_rigged_accessory_insert(
             raise RuntimeError(
                 "production accessory transfer lost the appended primitive"
             )
-        inserted_primitive = primitives[-1]
 
-        material_ready, uv_ready, blockers = (
+        inserted_primitives = [
+            primitive
+            for primitive in primitives
+            if bool(
+                (primitive.get("extras") or {}).get(
+                    "hayuyaAccessorySplit"
+                )
+            )
+        ]
+        if not inserted_primitives:
+            inserted_primitives = [primitives[-1]]
+
+        material_proofs = [
             _inserted_primitive_material_evidence(
                 final_doc,
-                inserted_primitive,
+                primitive,
             )
+            for primitive in inserted_primitives
+        ]
+        material_ready = all(
+            bool(item[0]) for item in material_proofs
         )
+        uv_ready = all(
+            bool(item[1]) for item in material_proofs
+        )
+        blockers = []
+        for primitive_index, proof in enumerate(material_proofs):
+            blockers.extend(
+                f"inserted_primitive[{primitive_index}]:{item}"
+                for item in (proof[2] or [])
+            )
+
         result.material_ready = bool(
             material_ready and transfer.ready
         )
