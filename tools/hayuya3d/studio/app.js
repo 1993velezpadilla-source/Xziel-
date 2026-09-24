@@ -717,7 +717,12 @@ function renderCompositePlan(plan, executions = []) {
     if (item.morph_targets_transferred != null) {
       parts.push(Number(item.morph_targets_transferred) + " morph targets");
     }
-    if (item.runtime_preserved != null) {
+    if (item.geometry_ready != null) {
+      parts.push(item.geometry_ready ? "geometry" : "geometry!");
+    }
+    if (item.legacy_preserved != null) {
+      parts.push(item.legacy_preserved ? "legacy exact" : "legacy!");
+    } else if (item.runtime_preserved != null) {
       parts.push(item.runtime_preserved ? "runtime exact" : "runtime!");
     }
     if (item.rig_ready != null) {
