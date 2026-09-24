@@ -58,6 +58,15 @@ def base_qa():
             "audited_component_count":1,
             "crossing_triangle_pairs":0,
         },
+        "composite_attachment":{
+            "applicable":True,
+            "ready":True,
+            "component_count":6,
+            "accessory_candidates":5,
+            "anchored_accessories":5,
+            "floating_components":0,
+            "oversized_floating_components":0,
+        },
         "source_coverage":{"expected":2,"judged":2},
         "turntable_qa":{"ready":True},
         "material":{
@@ -201,6 +210,22 @@ class AAAAcceptanceTests(unittest.TestCase):
         self.assertTrue(
             any(
                 "self-intersect" in item.lower()
+                for item in report.blockers
+            ),
+            report.blockers,
+        )
+
+    def test_floating_composite_attachment_blocks_aaa(self):
+        qa=base_qa()
+        qa["composite_attachment"]["ready"]=False
+        qa["composite_attachment"]["anchored_accessories"]=4
+        qa["composite_attachment"]["floating_components"]=1
+        report=evaluate_aaa_acceptance(base_manifest(),qa)
+        self.assertFalse(report.ready)
+        self.assertTrue(
+            any(
+                "accessory" in item.lower()
+                or "donor" in item.lower()
                 for item in report.blockers
             ),
             report.blockers,
