@@ -317,7 +317,7 @@ function renderFinalQa(qa) {
   });
 }
 
-function renderCompositePlan(plan) {
+function renderCompositePlan(plan, executions = []) {
   const section = $("compositeSection");
   const summary = $("compositeSummary");
   const grid = $("compositeDonors");
@@ -373,6 +373,28 @@ function renderCompositePlan(plan) {
       chip.append(name, value);
       grid.appendChild(chip);
     });
+
+  const executionItems = Array.isArray(executions) ? executions : [];
+  executionItems.forEach((item) => {
+    if (!item) return;
+    const chip = document.createElement("div");
+    chip.className = "qa-chip " + (item.status === "rejected" ? "fail" : "pass");
+    const name = document.createElement("span");
+    name.textContent = "Applied " + (item.source || item.region || "detail");
+    const value = document.createElement("strong");
+    const parts = [];
+    if (item.region) parts.push(String(item.region));
+    if (item.changed_fraction != null) {
+      parts.push((Number(item.changed_fraction) * 100).toFixed(1) + "% atlas");
+    }
+    if (item.seam_p95 != null) {
+      parts.push("seam " + Number(item.seam_p95).toFixed(1));
+    }
+    value.textContent = parts.join(" · ") || (item.donor || "detail");
+    chip.title = "donor " + (item.donor || "?") + (item.seam_max != null ? " · seam max " + Number(item.seam_max).toFixed(1) : "");
+    chip.append(name, value);
+    grid.appendChild(chip);
+  });
 
   const executable = Array.isArray(plan.executable_now) ? plan.executable_now : [];
   const deferred = Array.isArray(plan.deferred_transfers) ? plan.deferred_transfers : [];
@@ -521,7 +543,7 @@ async function refreshJob() {
   state.job = await res.json();
   setProgress(state.job.stage, state.job.progress, state.job.status);
   renderCandidates(state.job);
-  renderCompositePlan(state.job.composite_plan);
+  renderCompositePlan(state.job.composite_plan, state.job.composite_details);
   renderAAA(state.job.aaa_acceptance);
   renderFinalQa(state.job.final_qa);
   if (state.job.final_model_url) {
@@ -548,8 +570,21 @@ function handleEvent(event) {
   }
   if (event.kind === "composite_plan" && event.plan) {
     if (state.job) state.job.composite_plan = event.plan;
-    renderCompositePlan(event.plan);
+    renderCompositePlan(event.plan, state.job?.composite_details || []);
     appendLog("Composite base: " + (event.plan.base_backend || "unknown"));
+  }
+  if (event.kind === "composite_detail" && event.detail) {
+    if (state.job) {
+      if (!Array.isArray(state.job.composite_details)) state.job.composite_details = [];
+      state.job.composite_details.push(event.detail);
+      renderCompositePlan(state.job.composite_plan, state.job.composite_details);
+    }
+    appendLog(
+      "Composite detail: "
+      + (event.detail.source || "detail")
+      + " seam="
+      + (event.detail.seam_p95 == null ? "—" : Number(event.detail.seam_p95).toFixed(1))
+    );
   }
   if (event.kind === "champion") {
     appendLog(`👑 Champion: ${event.label} score=${event.score}`);
