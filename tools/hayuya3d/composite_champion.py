@@ -82,6 +82,7 @@ class CompositeExecutionResult:
     strategy: str | None
     geometry_preserved: bool
     rebake_required: list[str]
+    runtime_payload_preserved: bool | None = None
     error: str | None = None
     method: str = "hayuya-composite-material-challenger-v1"
 
@@ -812,6 +813,34 @@ def execute_safe_material_challenger(
         if not output.is_file() or output.read_bytes()[:4]!=b"glTF":
             raise RuntimeError("Material Bridge did not produce a valid GLB")
 
+        runtime_payload_preserved=None
+        from gltf_audit import audit_glb
+        base_runtime=audit_glb(Path(base.path))
+        runtime_required=bool(
+            base_runtime.skin_count>0
+            or base_runtime.animation_count>0
+            or base_runtime.morph_target_count>0
+        )
+        if runtime_required:
+            from gltf_position_patch import runtime_payload_signature
+            output_runtime=audit_glb(output)
+            runtime_payload_preserved=bool(
+                output_runtime.skin_count==base_runtime.skin_count
+                and output_runtime.joint_count==base_runtime.joint_count
+                and output_runtime.animation_count==base_runtime.animation_count
+                and output_runtime.morph_mesh_count==base_runtime.morph_mesh_count
+                and output_runtime.morph_primitive_count==base_runtime.morph_primitive_count
+                and output_runtime.morph_target_count==base_runtime.morph_target_count
+                and output_runtime.morph_ready==base_runtime.morph_ready
+                and runtime_payload_signature(output)
+                    ==runtime_payload_signature(Path(base.path))
+            )
+            if not runtime_payload_preserved:
+                raise RuntimeError(
+                    "material-only composite changed protected runtime payload "
+                    "(skin/animation/morph)"
+                )
+
         base_mesh=inspect_mesh(
             Path(base.path),
             backend=base.backend,
@@ -849,6 +878,7 @@ def execute_safe_material_challenger(
             strategy=donor.strategy,
             geometry_preserved=True,
             rebake_required=list(bridge.rebake_required or []),
+            runtime_payload_preserved=runtime_payload_preserved,
             error=None,
         )
     except Exception as exc:
