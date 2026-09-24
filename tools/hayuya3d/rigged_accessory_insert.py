@@ -1276,6 +1276,221 @@ def insert_rigged_accessory(
         )
 
 
+def prepare_production_rigged_accessory_insert(
+    base_mesh: Path,
+    donor_mesh: Path,
+    out_dir: Path,
+    *,
+    base_up_axis: str = "y",
+    donor_up_axis: str | None = None,
+) -> RiggedAccessoryInsertResult:
+    """Build a missing skinned accessory and prove its donor appearance.
+
+    Geometry/runtime insertion and UV/PBR transfer are intentionally separate
+    proofs. This wrapper is the only path that may mark a new-vertex accessory
+    production-ready.
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
+    raw_path = out_dir / "rigged_accessory_insert_raw.glb"
+    final_path = out_dir / "rigged_accessory_insert_material.glb"
+
+    result = insert_rigged_accessory(
+        base_mesh,
+        donor_mesh,
+        raw_path,
+        base_up_axis=base_up_axis,
+        donor_up_axis=donor_up_axis,
+    )
+    if not result.geometry_ready:
+        result.ready = False
+        result.production_ready = False
+        return result
+
+    try:
+        from accessory_material_transfer import (
+            transfer_accessory_material,
+        )
+        transfer = transfer_accessory_material(
+            donor_mesh,
+            raw_path,
+            final_path,
+            donor_up_axis=donor_up_axis or base_up_axis,
+        )
+        result.warnings.extend(transfer.warnings or [])
+        if not transfer.ready:
+            result.ready = False
+            result.material_ready = False
+            result.uv_ready = False
+            result.production_ready = False
+            result.material_blockers = list(transfer.errors or [])
+            result.errors.extend(
+                "material_transfer:" + item
+                for item in (transfer.errors or [])
+            )
+            return result
+
+        from glb_images import read_glb
+        final_doc, final_binary = read_glb(final_path)
+        base = _base_primitive(base_mesh)
+        mesh = (
+            (final_doc.get("meshes") or [])
+            [int(base["mesh_index"])]
+        )
+        primitives = mesh.get("primitives") or []
+        if len(primitives) < 2:
+            raise RuntimeError(
+                "production accessory transfer lost the appended primitive"
+            )
+        inserted_primitive = primitives[-1]
+
+        material_ready, uv_ready, blockers = (
+            _inserted_primitive_material_evidence(
+                final_doc,
+                inserted_primitive,
+            )
+        )
+        result.material_ready = bool(
+            material_ready and transfer.ready
+        )
+        result.uv_ready = bool(
+            uv_ready
+            and transfer.uv_tangent_ready
+            and transfer.shading_basis_ready
+        )
+        result.material_blockers = list(blockers)
+
+        result.legacy_payload_preserved = _legacy_payload_preserved(
+            base["doc"],
+            bytes(base["binary"]),
+            final_doc,
+            final_binary,
+        )
+        if not result.legacy_payload_preserved:
+            result.errors.append(
+                "pre-existing GLB payload changed during donor material transfer"
+            )
+
+        from gltf_audit import audit_glb
+        from skin_weight_qa import audit_skin_weights
+        rig = audit_glb(final_path)
+        skin = audit_skin_weights(final_path)
+        result.rig_ready = bool(rig.rig_ready)
+        result.skin_weights_ready = bool(
+            skin.applicable and skin.ready
+        )
+        result.morph_ready = bool(rig.morph_ready)
+
+        if rig.morph_target_count > 0:
+            from morph_deformation_qa import audit_morph_deformation
+            morph = audit_morph_deformation(final_path)
+            result.morph_deformation_ready = bool(
+                morph.applicable and morph.ready
+            )
+            result.warnings.extend(morph.warnings or [])
+            if not result.morph_deformation_ready:
+                result.errors.append(
+                    "production accessory morph deformation QA failed"
+                )
+                result.errors.extend(morph.errors or [])
+
+        if rig.animation_count > 0:
+            from animation_qa import audit_animation
+            from deformation_qa import audit_deformation
+            animation = audit_animation(final_path)
+            deformation = audit_deformation(
+                final_path,
+                max_frames_per_animation=6,
+            )
+            result.animation_ready = bool(
+                animation.applicable and animation.ready
+            )
+            result.deformation_ready = bool(
+                deformation.applicable and deformation.ready
+            )
+            result.warnings.extend(animation.warnings or [])
+            result.warnings.extend(deformation.warnings or [])
+            if not result.animation_ready:
+                result.errors.append(
+                    "production accessory animation QA failed"
+                )
+                result.errors.extend(animation.errors or [])
+            if not result.deformation_ready:
+                result.errors.append(
+                    "production accessory deformation QA failed"
+                )
+                result.errors.extend(deformation.errors or [])
+
+        from composite_attachment_qa import audit_composite_attachments
+        attachment = audit_composite_attachments(
+            final_path,
+            mode="character",
+        )
+        result.attachment_ready = bool(
+            attachment.applicable and attachment.ready
+        )
+        result.warnings.extend(attachment.warnings or [])
+        if not result.attachment_ready:
+            result.errors.append(
+                "production accessory attachment QA failed"
+            )
+            result.errors.extend(attachment.errors or [])
+
+        from component_crossing_qa import audit_component_crossings
+        from self_intersection_qa import audit_self_intersections
+        crossing = audit_component_crossings(final_path)
+        self_cross = audit_self_intersections(final_path)
+        result.component_crossing_ready = bool(crossing.ready)
+        result.self_intersection_ready = bool(self_cross.ready)
+        if not crossing.ready:
+            result.errors.append(
+                "production accessory component crossing QA failed"
+            )
+        if not self_cross.ready:
+            result.errors.append(
+                "production accessory self-intersection QA failed"
+            )
+
+        result.output_glb = str(final_path)
+        result.production_ready = bool(
+            result.geometry_ready
+            and result.material_ready
+            and result.uv_ready
+            and result.legacy_payload_preserved
+            and result.rig_ready
+            and result.skin_weights_ready
+            and result.morph_ready
+            and (
+                result.morph_deformation_ready is not False
+            )
+            and (
+                result.animation_ready is not False
+            )
+            and (
+                result.deformation_ready is not False
+            )
+            and result.attachment_ready
+            and result.component_crossing_ready
+            and result.self_intersection_ready
+            and not result.material_blockers
+            and not result.errors
+        )
+        result.ready = result.production_ready
+        if not result.production_ready and not result.errors:
+            result.errors.append(
+                "new accessory did not satisfy the complete production proof"
+            )
+        return result
+    except Exception as exc:
+        result.ready = False
+        result.material_ready = False
+        result.uv_ready = False
+        result.production_ready = False
+        result.errors.append(
+            f"production_material_transfer:{type(exc).__name__}:{exc}"
+        )
+        return result
+
+
 def main() -> int:
     import argparse
     parser = argparse.ArgumentParser(
