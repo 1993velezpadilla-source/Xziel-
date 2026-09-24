@@ -93,6 +93,7 @@ class JobState:
     champion: str | None = None
     final_model_url: str | None = None
     final_model_path: str | None = None
+    final_qa: dict | None = None
     error: str | None = None
     events: list[dict] = field(default_factory=list)
     _condition: threading.Condition = field(default_factory=threading.Condition, repr=False)
@@ -237,6 +238,29 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
         _set_stage(job, "gameprep")
     elif line.startswith("HAYUYA_PORTABLE_PACK"):
         _set_stage(job, "portable")
+    elif line.startswith("HAYUYA_QA_READY"):
+        _set_stage(job, "qa")
+        values = dict(re.findall(r"(\w+)=([^\s]+)", line))
+        def _bool(name: str) -> bool:
+            return values.get(name, "").lower() == "true"
+        raw_face = values.get("face_score")
+        face_score = None
+        if raw_face and raw_face.lower() != "none":
+            try:
+                face_score = float(raw_face)
+            except ValueError:
+                face_score = None
+        job.final_qa = {
+            "production_ready": _bool("production_ready"),
+            "material_ready": _bool("material_ready"),
+            "rebake_ready": _bool("rebake_ready"),
+            "rig_ready": _bool("rig_ready"),
+            "animation_ready": _bool("animation_ready"),
+            "face_ready": _bool("face_ready"),
+            "face_score": face_score,
+            "report": values.get("report"),
+        }
+        _emit(job, "qa_ready", {"qa": dict(job.final_qa)})
     elif line.startswith("HAYUYA_QA"):
         _set_stage(job, "qa")
     elif line.startswith("HAYUYA_MONSTER_READY"):
