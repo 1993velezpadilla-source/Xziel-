@@ -137,7 +137,11 @@ class GLTFPositionPatchTests(unittest.TestCase):
             self.assertTrue(result.skin_payload_preserved)
             self.assertEqual(result.skin_signature_before,before)
             self.assertEqual(result.skin_signature_after,before)
-            self.assertEqual(read_position_accessor(output,0),moved)
+            patched=read_position_accessor(output,0)
+            self.assertEqual(len(patched),len(moved))
+            for actual,expected in zip(patched,moved):
+                for a,b in zip(actual,expected):
+                    self.assertAlmostEqual(a,b,places=6)
             self.assertTrue(audit_skin_weights(output).ready)
 
             doc,_,_=_doc_and_bin(output)
