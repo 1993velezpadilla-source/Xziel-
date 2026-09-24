@@ -232,6 +232,11 @@ def insert_split_rigged_accessory(
 
         base = _base_primitive(base_mesh)
         base_vertices = np.asarray(base["positions"], dtype=np.float64)
+        from surface_transfer import build_surface_transfer_index
+        surface_index = build_surface_transfer_index(
+            base_vertices,
+            base["faces"],
+        )
         _, _, base_center, base_extent = _bbox(base_vertices)
         base_diag = max(float(np.linalg.norm(base_extent)), 1e-9)
 
@@ -299,6 +304,7 @@ def insert_split_rigged_accessory(
                 base["joints"],
                 base["weights"],
                 aligned,
+                surface_index=surface_index,
             )
             source_distance = np.asarray(
                 surface_relation.surface_distance,
