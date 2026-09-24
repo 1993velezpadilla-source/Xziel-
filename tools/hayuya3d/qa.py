@@ -45,6 +45,8 @@ class MeshScore:
     head_region_median_edge_normalized: float | None = None
     head_region_density_ratio: float | None = None
     head_density_score: float | None = None
+    head_texel_density_ratio: float | None = None
+    head_texel_density_score: float | None = None
     bbox: list[float] | None = None
     notes: list[str] | None = None
 
@@ -182,7 +184,13 @@ def inspect_mesh(
 
     try:
         loaded = trimesh.load(path, force="scene", process=False)
-        geometries = list(loaded.geometry.values()) if hasattr(loaded, "geometry") else [loaded]
+        if hasattr(loaded, "dump"):
+            try:
+                geometries = list(loaded.dump(concatenate=False))
+            except Exception:
+                geometries = list(loaded.geometry.values()) if hasattr(loaded, "geometry") else [loaded]
+        else:
+            geometries = [loaded]
         meshes = [g for g in geometries if hasattr(g, "faces") and len(g.faces)]
         if not meshes:
             result.valid = False
@@ -219,10 +227,16 @@ def inspect_mesh(
         extents = np.asarray(mesh.extents, dtype=float)
         result.bbox = [round(float(x), 8) for x in extents.tolist()]
 
+        character_up_axis = None
+        character_body_min = None
+        character_body_span = None
         if mode == "character" and len(mesh.faces):
             up_axis = int(np.argmax(np.abs(extents)))
             body_min = float(np.min(mesh.vertices[:, up_axis]))
             body_span = max(1e-12, float(extents[up_axis]))
+            character_up_axis = up_axis
+            character_body_min = body_min
+            character_body_span = body_span
             all_faces = np.asarray(mesh.faces)
             all_tri = np.asarray(mesh.vertices)[all_faces]
             all_edges = np.concatenate(
@@ -301,6 +315,88 @@ def inspect_mesh(
         result.has_uv = has_uv
         result.textured = textured
         result.pbr_channels = sorted(pbr_channels)
+
+        if (
+            mode == "character"
+            and character_up_axis is not None
+            and character_body_min is not None
+            and character_body_span is not None
+        ):
+            global_surface_area = 0.0
+            global_texel_area = 0.0
+            head_surface_area = 0.0
+            head_texel_area = 0.0
+
+            for g in meshes:
+                visual = getattr(g, "visual", None)
+                uv = getattr(visual, "uv", None) if visual is not None else None
+                material_obj = getattr(visual, "material", None) if visual is not None else None
+                base_image = (
+                    getattr(material_obj, "baseColorTexture", None)
+                    if material_obj is not None else None
+                )
+                if base_image is None and material_obj is not None:
+                    base_image = getattr(material_obj, "image", None)
+                if uv is None or len(uv) != len(g.vertices) or base_image is None:
+                    continue
+
+                image_size = getattr(base_image, "size", None)
+                if not image_size or len(image_size) < 2:
+                    continue
+                texture_pixels = max(1.0, float(image_size[0]) * float(image_size[1]))
+
+                vertices_g = np.asarray(g.vertices, dtype=np.float64)
+                faces_g = np.asarray(g.faces, dtype=np.int64)
+                if not len(faces_g):
+                    continue
+                uv_arr = np.asarray(uv, dtype=np.float64)
+                uv_tri = uv_arr[faces_g]
+                uv_cross = (
+                    (uv_tri[:,1,0]-uv_tri[:,0,0]) * (uv_tri[:,2,1]-uv_tri[:,0,1])
+                    - (uv_tri[:,1,1]-uv_tri[:,0,1]) * (uv_tri[:,2,0]-uv_tri[:,0,0])
+                )
+                uv_area = 0.5 * np.abs(uv_cross) * texture_pixels
+                surface_area = np.asarray(g.area_faces, dtype=np.float64)
+                finite = (
+                    np.isfinite(uv_area)
+                    & np.isfinite(surface_area)
+                    & (uv_area > 1e-12)
+                    & (surface_area > 1e-12)
+                )
+                if not np.any(finite):
+                    continue
+
+                face_centers_g = vertices_g[faces_g].mean(axis=1)[:, character_up_axis]
+                head_mask_g = (
+                    (face_centers_g - character_body_min) / character_body_span
+                ) >= 0.72
+                valid_head = finite & head_mask_g
+
+                global_surface_area += float(surface_area[finite].sum())
+                global_texel_area += float(uv_area[finite].sum())
+                if np.any(valid_head):
+                    head_surface_area += float(surface_area[valid_head].sum())
+                    head_texel_area += float(uv_area[valid_head].sum())
+
+            if (
+                global_surface_area > 1e-12
+                and global_texel_area > 1e-12
+                and head_surface_area > 1e-12
+                and head_texel_area > 1e-12
+            ):
+                global_density = global_texel_area / global_surface_area
+                head_density = head_texel_area / head_surface_area
+                ratio = head_density / max(global_density, 1e-12)
+                result.head_texel_density_ratio = round(float(ratio), 4)
+                result.head_texel_density_score = round(
+                    max(0.0, min(100.0, float(ratio) * 100.0)),
+                    3,
+                )
+                if ratio < 1.0:
+                    result.notes.append(
+                        f"head visible-color texel density is below global mesh: "
+                        f"ratio={ratio:.3f}x"
+                    )
 
         texture_resolution_factor = 1.0
         if path.suffix.lower() == ".glb":
