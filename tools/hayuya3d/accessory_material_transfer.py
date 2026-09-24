@@ -765,6 +765,12 @@ def transfer_accessory_material(
             attempted=True,
             ready=not errors,
             donor_component_id=int(component["candidate"].component_id),
+            donor_component_ids=[
+                int(x) for x in component.get(
+                    "candidate_component_ids",
+                    [component["candidate"].component_id],
+                )
+            ],
             donor_mesh_index=int(component["mesh_index"]),
             donor_primitive_index=int(component["primitive_index"]),
             material_index=int(bundle["material_index"]),
@@ -788,6 +794,7 @@ def transfer_accessory_material(
             attempted=True,
             ready=False,
             donor_component_id=None,
+            donor_component_ids=[],
             donor_mesh_index=None,
             donor_primitive_index=None,
             material_index=None,
