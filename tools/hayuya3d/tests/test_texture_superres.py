@@ -135,11 +135,18 @@ class TextureSuperresTests(unittest.TestCase):
 
             self.assertTrue(result.attempted)
             self.assertTrue(result.ready,result.error)
+            self.assertEqual(
+                result.method,
+                "realesrgan_ncnn_vulkan_basecolor_v2",
+            )
             self.assertEqual(result.remaining_image_indices,[])
             self.assertEqual(len(result.items),1)
             self.assertEqual(result.items[0].image_index,0)
             self.assertEqual(result.items[0].final_width,128)
             self.assertEqual(result.items[0].final_height,64)
+            self.assertLess(result.items[0].content_mae,1.0)
+            self.assertLess(result.items[0].luminance_mean_drift,1.0)
+            self.assertTrue(result.items[0].alpha_preserved)
 
             rewritten={idx:(data,roles) for idx,mime,data,roles in embedded_images(output)}
             with Image.open(io.BytesIO(rewritten[0][0])) as image:
@@ -147,6 +154,91 @@ class TextureSuperresTests(unittest.TestCase):
             self.assertEqual(rewritten[0][1],["baseColor"])
             self.assertEqual(rewritten[1][1],["normal"])
             self.assertEqual(rewritten[1][0],original[1])
+
+    def test_superresolution_rejects_catastrophic_content_drift(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            source=root/"source.glb"
+            output=root/"output.glb"
+            fake_exe=root/"realesrgan"
+            fake_exe.write_text("stub",encoding="utf-8")
+            build_fixture(source)
+            original=source.read_bytes()
+
+            def fake_run(cmd,check):
+                src=Path(cmd[cmd.index("-i")+1])
+                dst=Path(cmd[cmd.index("-o")+1])
+                scale=int(cmd[cmd.index("-s")+1])
+                with Image.open(src) as image:
+                    corrupted=Image.new(
+                        "RGB",
+                        (image.width*scale,image.height*scale),
+                        (0,255,255),
+                    )
+                    corrupted.save(dst,format="PNG")
+                return mock.Mock(returncode=0)
+
+            with mock.patch(
+                "tools.hayuya3d.texture_superres.find_realesrgan",
+                return_value=fake_exe,
+            ), mock.patch(
+                "tools.hayuya3d.texture_superres.subprocess.run",
+                side_effect=fake_run,
+            ):
+                result=superresolve_basecolor_glb(
+                    source,
+                    output,
+                    target_edge=128,
+                )
+
+            self.assertTrue(result.attempted)
+            self.assertFalse(result.ready)
+            self.assertEqual(result.method,"realesrgan_failed")
+            self.assertIn("super-resolution content drift",result.error or "")
+            self.assertEqual(result.remaining_image_indices,[0])
+            self.assertEqual(output.read_bytes(),original)
+
+    def test_superresolution_rejects_wrong_generated_dimensions(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            source=root/"source.glb"
+            output=root/"output.glb"
+            fake_exe=root/"realesrgan"
+            fake_exe.write_text("stub",encoding="utf-8")
+            build_fixture(source)
+
+            def fake_run(cmd,check):
+                src=Path(cmd[cmd.index("-i")+1])
+                dst=Path(cmd[cmd.index("-o")+1])
+                scale=int(cmd[cmd.index("-s")+1])
+                with Image.open(src) as image:
+                    wrong=Image.new(
+                        "RGB",
+                        (image.width*scale,image.height*scale+1),
+                        (120,70,50),
+                    )
+                    wrong.save(dst,format="PNG")
+                return mock.Mock(returncode=0)
+
+            with mock.patch(
+                "tools.hayuya3d.texture_superres.find_realesrgan",
+                return_value=fake_exe,
+            ), mock.patch(
+                "tools.hayuya3d.texture_superres.subprocess.run",
+                side_effect=fake_run,
+            ):
+                result=superresolve_basecolor_glb(
+                    source,
+                    output,
+                    target_edge=128,
+                )
+
+            self.assertFalse(result.ready)
+            self.assertEqual(result.method,"realesrgan_failed")
+            self.assertIn(
+                "super-resolution dimensions unexpected",
+                result.error or "",
+            )
 
 
 if __name__=="__main__":
