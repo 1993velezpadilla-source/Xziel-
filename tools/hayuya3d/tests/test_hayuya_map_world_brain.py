@@ -93,6 +93,15 @@ class WorldSemanticsTests(unittest.TestCase):
             ["GOOGLE_MAPS_API_KEY"],
         )
 
+    def test_public_reference_registry_has_multiple_official_image_paths(self):
+        providers = default_providers()
+        for provider_id in ("openverse", "wikimedia", "pexels", "unsplash"):
+            self.assertIn(provider_id, providers)
+        self.assertIn("open_licensed_image_search", providers["openverse"].capabilities)
+        self.assertIn("commons_media_search", providers["wikimedia"].capabilities)
+        self.assertEqual(providers["pexels"].credential_env, ("PEXELS_API_KEY",))
+        self.assertEqual(providers["unsplash"].credential_env, ("UNSPLASH_ACCESS_KEY",))
+
     def test_google_images_is_legacy_optional_not_scrape_fallback(self):
         provider = default_providers()["google_custom_search_legacy"]
         self.assertIn("closed to new customers", provider.notes)
