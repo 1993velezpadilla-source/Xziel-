@@ -12,7 +12,8 @@ class SurfaceTransferRelation:
     nearest_vertex_ids: object
     candidate_triangles: int
     fallback_vertices: int
-    method: str = "hayuya-surface-transfer-barycentric-v1"
+    max_examined_triangles: int = 0
+    method: str = "hayuya-surface-transfer-barycentric-exact-v1"
 
 
 def _deps():
@@ -116,18 +117,20 @@ def build_surface_transfer_relation(
 
     triangles = vertices[faces]
     centroids = np.mean(triangles, axis=1)
+    radii = np.max(
+        np.linalg.norm(
+            triangles - centroids[:, None, :],
+            axis=2,
+        ),
+        axis=1,
+    )
+    global_max_radius = (
+        float(np.max(radii)) if len(radii) else 0.0
+    )
     centroid_tree = cKDTree(centroids)
     vertex_tree = cKDTree(vertices)
 
-    k = max(1, min(int(candidate_triangles), len(faces)))
-    _, candidate_rows = centroid_tree.query(
-        targets,
-        k=k,
-        workers=-1,
-    )
-    candidate_rows = np.asarray(candidate_rows, dtype=np.int64)
-    if k == 1:
-        candidate_rows = candidate_rows[:, None]
+    initial_k = max(1, min(int(candidate_triangles), len(faces)))
 
     _, nearest_vertices = vertex_tree.query(
         targets,
@@ -140,44 +143,95 @@ def build_surface_transfer_relation(
     barycentric = np.zeros((len(targets), 3), dtype=np.float64)
     distances = np.zeros(len(targets), dtype=np.float64)
     fallback_vertices = 0
+    max_examined_triangles = 0
 
-    # Build vertex->triangle adjacency. This closes a centroid-KD blind spot
-    # for long/slender triangles whose centroid can be farther away than the
-    # nearest surface point.
     adjacency = [[] for _ in range(len(vertices))]
     for face_index, tri in enumerate(faces):
         for vertex_id in tri:
             adjacency[int(vertex_id)].append(int(face_index))
 
     for row, point in enumerate(targets):
-        candidate_ids = set(int(x) for x in candidate_rows[row].tolist())
-        candidate_ids.update(adjacency[int(nearest_vertices[row])])
-
+        evaluated: set[int] = set()
         best = None
-        for face_index in candidate_ids:
-            tri_ids = faces[int(face_index)]
-            result = _closest_point_barycentric(
+        current_k = initial_k
+
+        while True:
+            centroid_distances, candidate_rows = centroid_tree.query(
                 point,
-                vertices[int(tri_ids[0])],
-                vertices[int(tri_ids[1])],
-                vertices[int(tri_ids[2])],
+                k=current_k,
+                workers=-1,
             )
-            if result is None:
-                continue
-            closest, bary = result
-            distance = float(np.linalg.norm(point - closest))
-            if not np.isfinite(distance):
-                continue
-            if best is None or distance < best[0]:
-                best = (
-                    distance,
-                    np.asarray(tri_ids, dtype=np.int64),
-                    np.asarray(bary, dtype=np.float64),
+            centroid_distances = np.atleast_1d(
+                np.asarray(centroid_distances, dtype=np.float64)
+            )
+            candidate_rows = np.atleast_1d(
+                np.asarray(candidate_rows, dtype=np.int64)
+            )
+
+            candidate_ids = set(
+                int(x) for x in candidate_rows.tolist()
+            )
+            candidate_ids.update(
+                adjacency[int(nearest_vertices[row])]
+            )
+
+            for face_index in candidate_ids:
+                if face_index in evaluated:
+                    continue
+                evaluated.add(face_index)
+                tri_ids = faces[int(face_index)]
+                result = _closest_point_barycentric(
+                    point,
+                    vertices[int(tri_ids[0])],
+                    vertices[int(tri_ids[1])],
+                    vertices[int(tri_ids[2])],
                 )
+                if result is None:
+                    continue
+                closest, bary = result
+                distance = float(np.linalg.norm(point - closest))
+                if not np.isfinite(distance):
+                    continue
+                if best is None or distance < best[0]:
+                    best = (
+                        distance,
+                        np.asarray(tri_ids, dtype=np.int64),
+                        np.asarray(bary, dtype=np.float64),
+                    )
+
+            max_examined_triangles = max(
+                max_examined_triangles,
+                len(evaluated),
+            )
+
+            if current_k >= len(faces):
+                break
+
+            kth_centroid_distance = float(
+                np.max(centroid_distances)
+            )
+            # Every unseen triangle is contained in a sphere centered at its
+            # centroid with radius <= global_max_radius. If even that sphere
+            # cannot beat the current best distance, the search is exact.
+            unseen_lower_bound = max(
+                0.0,
+                kth_centroid_distance - global_max_radius,
+            )
+            if (
+                best is not None
+                and unseen_lower_bound >= float(best[0]) - 1e-12
+            ):
+                break
+
+            next_k = min(
+                len(faces),
+                max(current_k + 1, current_k * 2),
+            )
+            if next_k == current_k:
+                break
+            current_k = next_k
 
         if best is None:
-            # Fail soft only for fully-degenerate local topology. This keeps
-            # the relation defined while making the fallback count observable.
             vertex_id = int(nearest_vertices[row])
             triangle_vertex_ids[row] = [vertex_id, vertex_id, vertex_id]
             barycentric[row] = [1.0, 0.0, 0.0]
@@ -204,8 +258,9 @@ def build_surface_transfer_relation(
         barycentric=barycentric,
         surface_distance=distances,
         nearest_vertex_ids=nearest_vertices,
-        candidate_triangles=k,
+        candidate_triangles=initial_k,
         fallback_vertices=int(fallback_vertices),
+        max_examined_triangles=int(max_examined_triangles),
     )
 
 
