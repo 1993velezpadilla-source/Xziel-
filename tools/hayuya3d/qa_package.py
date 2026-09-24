@@ -60,6 +60,10 @@ class QAPackageResult:
     shading_missing_tangents: int
     shading_invalid_handedness: int
     shading_nonorthogonal_tangents: int
+    collision_ready: bool
+    collision_faces: int
+    collision_convexity_ratio: float | None
+    collision_bbox_coverage_ready: bool
     turntable_ready: bool
     turntable_score: float | None
     face_evidence_ready: bool
@@ -781,8 +785,45 @@ def build_qa_package(
     gameprep_ready = bool(gameprep_data and lods)
     if not gameprep_ready:
         warnings.append("GamePrep package missing")
-    if gameprep_data and not collision:
-        warnings.append("convex collision proxy unavailable")
+
+    collision_audit = None
+    collision_ready = False
+    collision_faces = 0
+    collision_convexity_ratio = None
+    collision_bbox_coverage_ready = False
+    try:
+        from collision_qa import audit_collision
+        collision_path=(
+            Path(str(collision))
+            if collision else None
+        )
+        collision_audit=audit_collision(
+            final_glb,
+            collision_path,
+        )
+        collision_ready=bool(collision_audit.ready)
+        collision_faces=int(collision_audit.faces)
+        collision_convexity_ratio=(
+            float(collision_audit.convexity_ratio)
+            if collision_audit.convexity_ratio is not None
+            else None
+        )
+        collision_bbox_coverage_ready=bool(
+            collision_audit.bbox_coverage_ready
+        )
+        warnings.extend(collision_audit.warnings or [])
+        warnings.extend(collision_audit.errors or [])
+    except Exception as exc:
+        collision_ready=False
+        warnings.append(
+            "collision QA unavailable: "
+            f"{type(exc).__name__}: {exc}"
+        )
+    if gameprep_ready and not collision_ready:
+        warnings.append(
+            "GamePrep collision proxy is missing or invalid; "
+            "production-ready runtime status is false"
+        )
 
     unresolved_rebakes = unresolved_material_rebakes(gameprep_data)
     material_rebaked_channels,material_rebake_pending_channels = (
@@ -810,6 +851,7 @@ def build_qa_package(
         and (shading_basis_ready if shading_basis_required else True)
         and source_coverage >= expected_sources
         and gameprep_ready
+        and collision_ready
         and turntable_ready
         and face_evidence_ready
         and face_quality_evidence_ready
@@ -950,6 +992,16 @@ def build_qa_package(
             "normal_support_score": champion_data.get("normal_support_score"),
         },
         "gameprep": gameprep_data,
+        "collision_qa": (
+            asdict(collision_audit)
+            if collision_audit is not None else {
+                "applicable": False,
+                "ready": collision_ready,
+                "faces": collision_faces,
+                "convexity_ratio": collision_convexity_ratio,
+                "bbox_coverage_ready": collision_bbox_coverage_ready,
+            }
+        ),
         "source_coverage": {
             "expected": expected_sources,
             "judged": source_coverage,
@@ -1024,6 +1076,10 @@ def build_qa_package(
         shading_missing_tangents=shading_missing_tangents,
         shading_invalid_handedness=shading_invalid_handedness,
         shading_nonorthogonal_tangents=shading_nonorthogonal_tangents,
+        collision_ready=collision_ready,
+        collision_faces=collision_faces,
+        collision_convexity_ratio=collision_convexity_ratio,
+        collision_bbox_coverage_ready=collision_bbox_coverage_ready,
         turntable_ready=turntable_ready,
         turntable_score=turntable_score,
         face_evidence_ready=face_evidence_ready,
