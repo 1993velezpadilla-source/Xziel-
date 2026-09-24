@@ -29,6 +29,9 @@ jobs:
       - name: Run synthetic IW4 input gate
         run: python3 tools/iw4_android_spike/test_prepare_owned_install.py
 
+      - name: Run Android launch-profile gate
+        run: python3 tools/iw4_android_spike/test_build_launch_profile.py
+
       - name: Confirm repository contains no staged proprietary runtime
         shell: bash
         run: |
