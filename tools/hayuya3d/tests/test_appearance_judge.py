@@ -118,6 +118,26 @@ class AppearanceJudgeTests(unittest.TestCase):
             {"grid_0_0", "grid_0_1", "grid_0_2"},
         )
 
+    def test_face_fallback_relaxes_view_before_head_region(self):
+        patch_meta = [
+            (0.0, "grid_1_1"),
+            (45.0, "grid_2_1"),
+            (180.0, "grid_0_0"),
+            (180.0, "grid_0_1"),
+        ]
+        allowed, expected, region = select_detail_candidate_indices(
+            patch_meta,
+            Path("zombie_front_face_detail.png"),
+            orientation_offset=0.0,
+            max_distance=30.0,
+        )
+        self.assertEqual(expected, 0.0)
+        self.assertEqual(region, "head")
+        self.assertEqual(
+            {patch_meta[i][1] for i in allowed},
+            {"grid_0_0", "grid_0_1"},
+        )
+
     def test_hem_detail_is_locked_to_lower_patch_row(self):
         patch_meta = [
             (180.0, "whole"),
