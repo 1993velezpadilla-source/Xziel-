@@ -503,38 +503,43 @@ void main() {
             reflectionUv.y >= -0.015 &&
             reflectionUv.y <= 1.015;
 
-        vec3 planarScene =
-            texture(
-                uPlanarReflection,
-                clamp(
-                    reflectionUv,
-                    vec2(0.002),
-                    vec2(0.998))).rgb;
+        // PLANAR_REFLECTION_FETCH_GATE_V1
+        // When projection/ownership makes the mix weight exactly zero, avoid
+        // sampling the reflection texture altogether.
+        if (reflectionProjectionValid &&
+            vReflectionOwnerMaterial == 13 &&
+            reflectionStrength > 0.0) {
+            vec3 planarScene =
+                texture(
+                    uPlanarReflection,
+                    clamp(
+                        reflectionUv,
+                        vec2(0.002),
+                        vec2(0.998))).rgb;
 
-        float fresnelBase =
-            clamp(
-                1.0 -
-                abs(normal.y),
-                0.0,
-                1.0);
-        float fresnel =
-            fresnelBase *
-            fresnelBase *
-            fresnelBase;
-
-        reflectedSky =
-            mix(
-                reflectedSky,
-                planarScene,
+            float fresnelBase =
                 clamp(
-                    reflectionStrength *
-                    (vReflectionOwnerMaterial == 13 ? 1.0 : 0.0) *
-                    (reflectionProjectionValid ? 1.0 : 0.0) *
-                    (0.42 +
-                     fresnel * 0.48) *
-                    (1.0 - roughness * 0.72),
+                    1.0 -
+                    abs(normal.y),
                     0.0,
-                    0.92));
+                    1.0);
+            float fresnel =
+                fresnelBase *
+                fresnelBase *
+                fresnelBase;
+
+            reflectedSky =
+                mix(
+                    reflectedSky,
+                    planarScene,
+                    clamp(
+                        reflectionStrength *
+                        (0.42 +
+                         fresnel * 0.48) *
+                        (1.0 - roughness * 0.72),
+                        0.0,
+                        0.92));
+        }
 
         vec3 refractedDepth =
             vec3(
@@ -620,21 +625,28 @@ void main() {
             mirrorUv.y >= -0.015 &&
             mirrorUv.y <= 1.015;
 
-        vec3 mirrorPlanar =
-            texture(
-                uPlanarReflection,
-                clamp(
-                    mirrorUv,
-                    vec2(0.002),
-                    vec2(0.998))).rgb;
-
         vec3 mirrorBase =
-            mix(
-                mirrorProbe,
-                mirrorPlanar,
-                mirrorProjectionValid
-                    ? clamp(0.76 + glossy * 0.18, 0.0, 0.94)
-                    : 0.0);
+            mirrorProbe;
+
+        if (mirrorProjectionValid) {
+            vec3 mirrorPlanar =
+                texture(
+                    uPlanarReflection,
+                    clamp(
+                        mirrorUv,
+                        vec2(0.002),
+                        vec2(0.998))).rgb;
+
+            mirrorBase =
+                mix(
+                    mirrorProbe,
+                    mirrorPlanar,
+                    clamp(
+                        0.76 +
+                        glossy * 0.18,
+                        0.0,
+                        0.94));
+        }
 
         lit =
             mirrorBase +
