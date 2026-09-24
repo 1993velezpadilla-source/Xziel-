@@ -191,6 +191,19 @@ int main() {
             3U) ==
         xziel::StreamCellHeat::Cold);
 
+    assert(
+        graph.cellReachableThroughOpenPortals(
+            1U,
+            1U));
+    assert(
+        !graph.cellReachableThroughOpenPortals(
+            1U,
+            2U));
+    assert(
+        !graph.cellReachableThroughOpenPortals(
+            1U,
+            3U));
+
     // Opening the first portal makes cell 2 reachable. The next closed door
     // may preload exactly cell 3, which proves the one-boundary rule.
     assert(graph.setPortalOpen(100U, true));
@@ -209,6 +222,22 @@ int main() {
     assert(stats.hotCells == 1U);
     assert(stats.preloadCells == 2U);
     assert(stats.coldCells == 0U);
+
+    assert(
+        graph.cellReachableThroughOpenPortals(
+            1U,
+            2U));
+    assert(
+        !graph.cellReachableThroughOpenPortals(
+            1U,
+            3U));
+
+    assert(graph.setPortalOpen(101U, true));
+    assert(
+        graph.cellReachableThroughOpenPortals(
+            1U,
+            3U));
+    assert(graph.setPortalOpen(101U, false));
 
     // Critical pressure disables speculative closed-door preloads and open
     // traversal beyond the current cell.
