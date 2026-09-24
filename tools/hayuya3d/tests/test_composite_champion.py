@@ -1,14 +1,17 @@
 from __future__ import annotations
 
+import struct
 import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest import mock
 
 import numpy as np
 import trimesh
 from PIL import Image
 
+from tools.hayuya3d.glb_images import write_glb
 from tools.hayuya3d.hayuya import (
     _strict_metric_improvement,
     local_detail_composite_regressions,
@@ -58,6 +61,93 @@ def candidate(
             if up_axis in {"x","y","z"} else []
         ),
     )
+
+
+def _append_blob(blob:bytearray,payload:bytes)->tuple[int,int]:
+    while len(blob)%4:
+        blob.append(0)
+    offset=len(blob)
+    blob.extend(payload)
+    return offset,len(payload)
+
+
+def write_runtime_guard_mesh(path:Path, *, skinned:bool)->None:
+    positions=(
+        (-0.5,0.0,0.0),
+        (0.5,0.0,0.0),
+        (0.0,1.0,0.0),
+    )
+    indices=(0,1,2)
+    blob=bytearray()
+    pos_off,pos_len=_append_blob(
+        blob,b"".join(struct.pack("<3f",*row) for row in positions)
+    )
+    idx_off,idx_len=_append_blob(
+        blob,b"".join(struct.pack("<H",value) for value in indices)
+    )
+    views=[
+        {"buffer":0,"byteOffset":pos_off,"byteLength":pos_len},
+        {"buffer":0,"byteOffset":idx_off,"byteLength":idx_len},
+    ]
+    accessors=[
+        {
+            "bufferView":0,"componentType":5126,
+            "count":3,"type":"VEC3",
+            "min":[-0.5,0.0,0.0],
+            "max":[0.5,1.0,0.0],
+        },
+        {
+            "bufferView":1,"componentType":5123,
+            "count":3,"type":"SCALAR",
+        },
+    ]
+    attrs={"POSITION":0}
+    nodes=[{"mesh":0}]
+    skins=[]
+    if skinned:
+        joints=((0,0,0,0),)*3
+        weights=((1.0,0.0,0.0,0.0),)*3
+        joint_off,joint_len=_append_blob(
+            blob,b"".join(struct.pack("<4B",*row) for row in joints)
+        )
+        weight_off,weight_len=_append_blob(
+            blob,b"".join(struct.pack("<4f",*row) for row in weights)
+        )
+        views.extend([
+            {"buffer":0,"byteOffset":joint_off,"byteLength":joint_len},
+            {"buffer":0,"byteOffset":weight_off,"byteLength":weight_len},
+        ])
+        accessors.extend([
+            {
+                "bufferView":2,"componentType":5121,
+                "count":3,"type":"VEC4",
+            },
+            {
+                "bufferView":3,"componentType":5126,
+                "count":3,"type":"VEC4",
+            },
+        ])
+        attrs.update({"JOINTS_0":2,"WEIGHTS_0":3})
+        nodes=[
+            {"mesh":0,"skin":0},
+            {"name":"root_joint"},
+        ]
+        skins=[{"joints":[1]}]
+    doc={
+        "asset":{"version":"2.0"},
+        "buffers":[{"byteLength":len(blob)}],
+        "bufferViews":views,
+        "accessors":accessors,
+        "meshes":[{"primitives":[{
+            "attributes":attrs,
+            "indices":1,
+        }]}],
+        "nodes":nodes,
+        "skins":skins,
+        "scenes":[{"nodes":list(range(len(nodes)))}],
+        "scene":0,
+    }
+    write_glb(path,doc,bytes(blob))
 
 
 class CompositeChampionPlannerTests(unittest.TestCase):
@@ -363,6 +453,58 @@ class CompositeChampionPlannerTests(unittest.TestCase):
             self.assertEqual(result.donor_backend,"face")
             self.assertTrue(Path(result.candidate_path or "").is_file())
             self.assertTrue(result.fusion and result.fusion["geometry_ready"])
+
+    def test_material_challenger_rejects_runtime_payload_loss(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            base_path=root/"runtime-base.glb"
+            stripped_path=root/"runtime-stripped.glb"
+            donor_path=root/"runtime-donor.glb"
+            write_runtime_guard_mesh(base_path,skinned=True)
+            write_runtime_guard_mesh(stripped_path,skinned=False)
+            write_runtime_guard_mesh(donor_path,skinned=False)
+
+            base=candidate(
+                "base_runtime",95.0,
+                face_min=90.0,face_mesh=98.0,face_tex=98.0,face_detail=90.0,
+                visual=95.0,appearance=95.0,material=60.0,texture=100.0,
+            )
+            donor=candidate(
+                "donor_runtime",80.0,
+                face_min=85.0,face_mesh=95.0,face_tex=95.0,face_detail=85.0,
+                visual=80.0,appearance=88.0,material=99.0,texture=100.0,
+            )
+            base.path=str(base_path)
+            donor.path=str(donor_path)
+            plan=build_composite_plan(
+                [base,donor],
+                mode="character",
+                inspect_parts=False,
+            )
+            self.assertIn("material_response",plan.executable_now)
+
+            def fake_transfer(source,target,output,**kwargs):
+                output.write_bytes(stripped_path.read_bytes())
+                return SimpleNamespace(rebake_required=[])
+
+            with mock.patch(
+                "material_bridge.transfer_best_material",
+                side_effect=fake_transfer,
+            ):
+                result=execute_safe_material_challenger(
+                    plan,
+                    root/"runtime-composite",
+                    texture_size=256,
+                    total_samples=1000,
+                )
+
+            self.assertTrue(result.attempted)
+            self.assertFalse(result.ready)
+            self.assertFalse(result.runtime_payload_preserved)
+            self.assertIn(
+                "protected runtime payload",
+                result.error or "",
+            )
 
     def test_material_donor_executes_as_geometry_preserving_challenger(self):
         with tempfile.TemporaryDirectory() as tmp:
