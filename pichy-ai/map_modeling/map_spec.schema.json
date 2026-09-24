@@ -1,0 +1,210 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pichy.local/schemas/map_spec.schema.json",
+  "title": "Pichy Map Modeling Spec",
+  "type": "object",
+  "required": [
+    "name",
+    "units",
+    "playable_bounds",
+    "zones",
+    "connections",
+    "lighting",
+    "streaming",
+    "asset_manifest",
+    "validation"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "theme": {
+      "type": "string"
+    },
+    "units": {
+      "type": "string",
+      "enum": [
+        "meters"
+      ]
+    },
+    "playable_bounds": {
+      "type": "object",
+      "required": [
+        "x",
+        "y",
+        "z"
+      ],
+      "properties": {
+        "x": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "y": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "z": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "player_metrics": {
+      "type": "object"
+    },
+    "zones": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "purpose",
+          "size",
+          "elevation"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9_-]+$"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "size": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "minItems": 3,
+            "maxItems": 3
+          },
+          "elevation": {
+            "type": "number"
+          },
+          "encounters": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "landmarks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "connections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "from",
+          "to",
+          "type"
+        ],
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "door",
+              "corridor",
+              "stairs",
+              "ladder",
+              "drop",
+              "zipline",
+              "portal",
+              "open"
+            ]
+          },
+          "width": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "one_way": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "spawns": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "lighting": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "zone",
+          "intent"
+        ]
+      }
+    },
+    "audio_zones": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "collision": {
+      "type": "object"
+    },
+    "navmesh": {
+      "type": "object"
+    },
+    "streaming": {
+      "type": "object"
+    },
+    "optimization": {
+      "type": "object"
+    },
+    "asset_manifest": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "count"
+        ]
+      }
+    },
+    "implementation_order": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "validation": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}
