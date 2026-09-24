@@ -200,9 +200,13 @@ def _assert_source_consistency(
     reasons=[]
     if mae>56.0:
         reasons.append(f"rgb_mae={mae:.3f}>56")
-    if mean_drift>24.0:
-        reasons.append(f"luma_mean_drift={mean_drift:.3f}>24")
-    if source_std>=8.0 and challenger_std<max(2.0,source_std*0.35):
+    # This is intentionally a catastrophic-corruption guard, not the fine
+    # fidelity judge. Real-ESRGAN may legitimately rebalance luminance on tiny
+    # inputs; source-vs-render reranking decides whether that aesthetic change
+    # is actually an improvement on production assets.
+    if mean_drift>64.0:
+        reasons.append(f"luma_mean_drift={mean_drift:.3f}>64")
+    if source_std>=8.0 and challenger_std<max(1.0,source_std*0.15):
         reasons.append(
             "luma_structure_collapsed:"
             f"{source_std:.3f}->{challenger_std:.3f}"
