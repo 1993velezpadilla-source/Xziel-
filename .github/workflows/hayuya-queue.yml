@@ -229,24 +229,24 @@ jobs:
         run: |
           set -euo pipefail
           target="$HAYUYA_OUTPUT_ROOT/hayuya_final.glb"
-          blender -b --python tools/hayuya3d/blender_autorig.py -- \
+          blender --python-exit-code 1 -b --python tools/hayuya3d/blender_autorig.py -- \
             --target "$target" \
             --donor hayuya/animation_library/quaternius-uam2/library.glb \
             --output "$HAYUYA_OUTPUT_ROOT/animated.glb" \
             --report "$HAYUYA_OUTPUT_ROOT/autorig-report.json"
           python tools/hayuya3d/rig_gate.py "$HAYUYA_OUTPUT_ROOT/animated.glb" --json "$HAYUYA_OUTPUT_ROOT/rig_gate_animated.json"
-          blender -b --python tools/hayuya3d/blender_animation_gate.py -- \
+          blender --python-exit-code 1 -b --python tools/hayuya3d/blender_animation_gate.py -- \
             --model "$HAYUYA_OUTPUT_ROOT/animated.glb" \
             --reference "$target" \
             --json "$HAYUYA_OUTPUT_ROOT/animation_gate.json" --samples 5 || true
 
-          blender -b --python tools/hayuya3d/blender_autorig.py -- \
+          blender --python-exit-code 1 -b --python tools/hayuya3d/blender_autorig.py -- \
             --target "$target" \
             --donor hayuya/animation_library/quaternius-uam1/library.glb \
             --output "$HAYUYA_OUTPUT_ROOT/animated-uam1.glb" \
             --report "$HAYUYA_OUTPUT_ROOT/autorig-report-uam1.json"
           python tools/hayuya3d/rig_gate.py "$HAYUYA_OUTPUT_ROOT/animated-uam1.glb" --json "$HAYUYA_OUTPUT_ROOT/rig_gate_uam1.json"
-          blender -b --python tools/hayuya3d/blender_animation_gate.py -- \
+          blender --python-exit-code 1 -b --python tools/hayuya3d/blender_animation_gate.py -- \
             --model "$HAYUYA_OUTPUT_ROOT/animated-uam1.glb" \
             --reference "$target" \
             --json "$HAYUYA_OUTPUT_ROOT/animation_gate_uam1.json" --samples 5 || true
