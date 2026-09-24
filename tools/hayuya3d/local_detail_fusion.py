@@ -23,6 +23,10 @@ class LocalDetailFusionResult:
     skin_payload_preserved:bool
     geometry_preserved:bool
     skipped_uv_seam_faces:int
+    seam_boundary_pairs:int
+    seam_added_delta_p95:float|None
+    seam_added_delta_max:float|None
+    seam_ready:bool
     error:str|None=None
     method:str="hayuya-local-basecolor-fusion-v1"
 
@@ -196,6 +200,47 @@ def _barycentric_grid(tri_xy,min_x,max_x,min_y,max_y):
     return bary,inside
 
 
+def _seam_added_delta(before_rgb,after_rgb,changed_mask):
+    np,_,_=_deps()
+    before=np.asarray(before_rgb,dtype=np.float64)
+    after=np.asarray(after_rgb,dtype=np.float64)
+    changed=np.asarray(changed_mask,dtype=bool)
+    values=[]
+
+    def collect(a_slice,b_slice):
+        a_changed=changed[a_slice]
+        b_changed=changed[b_slice]
+        boundary=a_changed & (~b_changed)
+        if not np.any(boundary):
+            return
+        before_diff=np.mean(
+            np.abs(before[a_slice]-before[b_slice]),
+            axis=-1,
+        )
+        after_diff=np.mean(
+            np.abs(after[a_slice]-after[b_slice]),
+            axis=-1,
+        )
+        added=np.maximum(0.0,after_diff-before_diff)
+        values.extend(
+            float(x) for x in added[boundary]
+        )
+
+    collect((slice(None),slice(1,None)),(slice(None),slice(None,-1)))
+    collect((slice(None),slice(None,-1)),(slice(None),slice(1,None)))
+    collect((slice(1,None),slice(None)),(slice(None,-1),slice(None)))
+    collect((slice(None,-1),slice(None)),(slice(1,None),slice(None)))
+
+    if not values:
+        return 0,0.0,0.0
+    arr=np.asarray(values,dtype=np.float64)
+    return (
+        int(len(arr)),
+        float(np.percentile(arr,95.0)),
+        float(np.max(arr)),
+    )
+
+
 def fuse_local_basecolor(
     base_mesh:Path,
     donor_mesh:Path,
@@ -225,6 +270,7 @@ def fuse_local_basecolor(
             source_had_alpha="A" in image.getbands()
             rgba=image.convert("RGBA")
             pixels=np.asarray(rgba,dtype=np.uint8).copy()
+            original_pixels=pixels.copy()
 
         vertices=np.asarray(base.vertices,dtype=np.float64)
         faces=np.asarray(base.faces,dtype=np.int64)
@@ -311,9 +357,19 @@ def fuse_local_basecolor(
             ).astype(np.uint8)
             changed_mask[gy,gx]=True
 
-        changed=int(np.count_nonzero(changed_mask))
+        actual_changed=np.any(
+            pixels[:,:,:3]!=original_pixels[:,:,:3],
+            axis=-1,
+        )
+        changed=int(np.count_nonzero(actual_changed))
         total=int(h*w)
         unchanged=total-changed
+        seam_pairs,seam_p95,seam_max=_seam_added_delta(
+            original_pixels[:,:,:3],
+            pixels[:,:,:3],
+            actual_changed,
+        )
+        seam_ready=bool(seam_p95<=12.0)
         if changed<=0:
             raise RuntimeError(
                 "local fusion changed no texture pixels"
@@ -321,6 +377,11 @@ def fuse_local_basecolor(
         if unchanged<=0:
             raise RuntimeError(
                 "local fusion unexpectedly replaced the entire atlas"
+            )
+        if not seam_ready:
+            raise RuntimeError(
+                "local fusion added a visible texture-boundary discontinuity: "
+                f"p95={seam_p95:.3f}>12.000"
             )
 
         out_image=Image.fromarray(
@@ -390,6 +451,10 @@ def fuse_local_basecolor(
             skin_payload_preserved=True,
             geometry_preserved=True,
             skipped_uv_seam_faces=skipped_seams,
+            seam_boundary_pairs=seam_pairs,
+            seam_added_delta_p95=round(seam_p95,6),
+            seam_added_delta_max=round(seam_max,6),
+            seam_ready=seam_ready,
         )
     except Exception as exc:
         return LocalDetailFusionResult(
@@ -406,6 +471,10 @@ def fuse_local_basecolor(
             skin_payload_preserved=False,
             geometry_preserved=False,
             skipped_uv_seam_faces=0,
+            seam_boundary_pairs=0,
+            seam_added_delta_p95=None,
+            seam_added_delta_max=None,
+            seam_ready=False,
             error=f"{type(exc).__name__}:{exc}",
         )
 
