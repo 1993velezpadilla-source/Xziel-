@@ -623,6 +623,19 @@ bool VulkanStaticMeshRenderer::initialize(
         configureSanctumStreamingGraph(
             streamGraph_);
 
+    if (streamGraphReady_) {
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_STREAM_GRAPH_ADJACENCY_READY cells=%u portals=%u entries=%u",
+            static_cast<unsigned int>(
+                streamGraph_.cellCount()),
+            static_cast<unsigned int>(
+                streamGraph_.portalCount()),
+            static_cast<unsigned int>(
+                streamGraph_.adjacencyEntryCount()));
+    }
+
     textureMipResidency_.reset();
     streamCellBounds_ = {};
     streamDecisionCount_ = 0U;

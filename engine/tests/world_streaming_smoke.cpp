@@ -407,6 +407,8 @@ int main() {
     assert(sparseGraph.resolveCellSlot(4000000000U, sparseSlot));
     assert(sparseSlot == 1U);
     assert(!sparseGraph.resolveCellSlot(123U, sparseSlot));
+    assert(sparseGraph.portalCount() == 1U);
+    assert(sparseGraph.adjacencyEntryCount() == 2U);
 
     std::array<xziel::StreamCellResourceDecision, 4>
         sparseDecisions{};

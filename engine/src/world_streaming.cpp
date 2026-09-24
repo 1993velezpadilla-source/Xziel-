@@ -60,6 +60,8 @@ void StreamCellGraph::reset() noexcept {
         std::numeric_limits<std::uint8_t>::max());
     portalCellBIndices_.fill(
         std::numeric_limits<std::uint8_t>::max());
+    cellPortalIndices_ = {};
+    cellPortalCounts_.fill(0U);
     bindings_ = {};
     bindingCellIndices_.fill(
         std::numeric_limits<std::uint8_t>::max());
@@ -101,6 +103,16 @@ bool StreamCellGraph::addPortal(
         return false;
     }
 
+    const auto portalSlot =
+        static_cast<std::uint8_t>(
+            portalCount_);
+    const auto cellASlot =
+        static_cast<std::size_t>(
+            cellAIndex);
+    const auto cellBSlot =
+        static_cast<std::size_t>(
+            cellBIndex);
+
     portals_[portalCount_] = portal;
     portalCellAIndices_[portalCount_] =
         static_cast<std::uint8_t>(
@@ -108,6 +120,16 @@ bool StreamCellGraph::addPortal(
     portalCellBIndices_[portalCount_] =
         static_cast<std::uint8_t>(
             cellBIndex);
+
+    cellPortalIndices_[
+        cellASlot][
+        cellPortalCounts_[cellASlot]++] =
+            portalSlot;
+    cellPortalIndices_[
+        cellBSlot][
+        cellPortalCounts_[cellBSlot]++] =
+            portalSlot;
+
     ++portalCount_;
     return true;
 }
@@ -246,12 +268,20 @@ StreamCellPlanStats StreamCellGraph::plan(
         const std::uint8_t currentDistance =
             distance[currentIndex];
 
-        const std::uint32_t currentId =
-            cells_[currentIndex].id;
+        const std::size_t adjacentCount =
+            cellPortalCounts_[currentIndex];
 
-        for (std::size_t p = 0U;
-             p < portalCount_;
-             ++p) {
+        for (std::size_t adjacent = 0U;
+             adjacent < adjacentCount;
+             ++adjacent) {
+            const std::size_t p =
+                cellPortalIndices_[
+                    currentIndex][adjacent];
+
+            if (p >= portalCount_) {
+                continue;
+            }
+
             const auto& portal =
                 portals_[p];
 
@@ -259,19 +289,17 @@ StreamCellPlanStats StreamCellGraph::plan(
                 continue;
             }
 
-            std::size_t next =
-                kMaxStreamCells;
+            const std::size_t cellA =
+                portalCellAIndices_[p];
+            const std::size_t cellB =
+                portalCellBIndices_[p];
 
-            if (portal.cellA == currentId) {
-                next =
-                    portalCellBIndices_[p];
-            } else if (
-                portal.cellB == currentId) {
-                next =
-                    portalCellAIndices_[p];
-            } else {
-                continue;
-            }
+            const std::size_t next =
+                cellA == currentIndex
+                ? cellB
+                : cellB == currentIndex
+                  ? cellA
+                  : kMaxStreamCells;
 
             if (next >= cellCount_) {
                 continue;
@@ -582,12 +610,20 @@ StreamCellHeat StreamCellGraph::cellHeat(
             continue;
         }
 
-        const std::uint32_t currentId =
-            cells_[currentIndex].id;
+        const std::size_t adjacentCount =
+            cellPortalCounts_[currentIndex];
 
-        for (std::size_t p = 0U;
-             p < portalCount_;
-             ++p) {
+        for (std::size_t adjacent = 0U;
+             adjacent < adjacentCount;
+             ++adjacent) {
+            const std::size_t p =
+                cellPortalIndices_[
+                    currentIndex][adjacent];
+
+            if (p >= portalCount_) {
+                continue;
+            }
+
             const auto& portal =
                 portals_[p];
 
@@ -595,19 +631,17 @@ StreamCellHeat StreamCellGraph::cellHeat(
                 continue;
             }
 
-            std::size_t next =
-                kMaxStreamCells;
+            const std::size_t cellA =
+                portalCellAIndices_[p];
+            const std::size_t cellB =
+                portalCellBIndices_[p];
 
-            if (portal.cellA == currentId) {
-                next =
-                    portalCellBIndices_[p];
-            } else if (
-                portal.cellB == currentId) {
-                next =
-                    portalCellAIndices_[p];
-            } else {
-                continue;
-            }
+            const std::size_t next =
+                cellA == currentIndex
+                ? cellB
+                : cellB == currentIndex
+                  ? cellA
+                  : kMaxStreamCells;
 
             if (next >= cellCount_) {
                 continue;
@@ -644,9 +678,23 @@ StreamCellHeat StreamCellGraph::cellHeat(
         return StreamCellHeat::Cold;
     }
 
-    for (std::size_t p = 0U;
-         p < portalCount_;
-         ++p) {
+    const auto targetIndex =
+        static_cast<std::size_t>(
+            target);
+    const std::size_t targetPortalCount =
+        cellPortalCounts_[targetIndex];
+
+    for (std::size_t adjacent = 0U;
+         adjacent < targetPortalCount;
+         ++adjacent) {
+        const std::size_t p =
+            cellPortalIndices_[
+                targetIndex][adjacent];
+
+        if (p >= portalCount_) {
+            continue;
+        }
+
         const auto& portal =
             portals_[p];
 
@@ -655,19 +703,17 @@ StreamCellHeat StreamCellGraph::cellHeat(
             continue;
         }
 
-        std::size_t otherIndex =
-            kMaxStreamCells;
+        const std::size_t cellA =
+            portalCellAIndices_[p];
+        const std::size_t cellB =
+            portalCellBIndices_[p];
 
-        if (portal.cellA == cellId) {
-            otherIndex =
-                portalCellBIndices_[p];
-        } else if (
-            portal.cellB == cellId) {
-            otherIndex =
-                portalCellAIndices_[p];
-        } else {
-            continue;
-        }
+        const std::size_t otherIndex =
+            cellA == targetIndex
+            ? cellB
+            : cellB == targetIndex
+              ? cellA
+              : kMaxStreamCells;
 
         if (otherIndex < cellCount_ &&
             distance[otherIndex] !=
@@ -712,12 +758,20 @@ bool StreamCellGraph::cellReachableThroughOpenPortals(
     while (read < write) {
         const std::size_t currentIndex =
             queue[read++];
-        const std::uint32_t currentId =
-            cells_[currentIndex].id;
+        const std::size_t adjacentCount =
+            cellPortalCounts_[currentIndex];
 
-        for (std::size_t p = 0U;
-             p < portalCount_;
-             ++p) {
+        for (std::size_t adjacent = 0U;
+             adjacent < adjacentCount;
+             ++adjacent) {
+            const std::size_t p =
+                cellPortalIndices_[
+                    currentIndex][adjacent];
+
+            if (p >= portalCount_) {
+                continue;
+            }
+
             const auto& portal =
                 portals_[p];
 
@@ -725,19 +779,17 @@ bool StreamCellGraph::cellReachableThroughOpenPortals(
                 continue;
             }
 
-            std::size_t nextIndex =
-                kMaxStreamCells;
+            const std::size_t cellA =
+                portalCellAIndices_[p];
+            const std::size_t cellB =
+                portalCellBIndices_[p];
 
-            if (portal.cellA == currentId) {
-                nextIndex =
-                    portalCellBIndices_[p];
-            } else if (
-                portal.cellB == currentId) {
-                nextIndex =
-                    portalCellAIndices_[p];
-            } else {
-                continue;
-            }
+            const std::size_t nextIndex =
+                cellA == currentIndex
+                ? cellB
+                : cellB == currentIndex
+                  ? cellA
+                  : kMaxStreamCells;
 
             if (nextIndex >= cellCount_ ||
                 visited[nextIndex]) {
@@ -772,6 +824,19 @@ std::size_t StreamCellGraph::portalCount() const noexcept {
 
 std::size_t StreamCellGraph::bindingCount() const noexcept {
     return bindingCount_;
+}
+
+std::size_t StreamCellGraph::adjacencyEntryCount() const noexcept {
+    std::size_t entries = 0U;
+
+    for (std::size_t i = 0U;
+         i < cellCount_;
+         ++i) {
+        entries +=
+            cellPortalCounts_[i];
+    }
+
+    return entries;
 }
 
 int StreamCellGraph::cellIndex(

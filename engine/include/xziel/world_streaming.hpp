@@ -135,6 +135,7 @@ public:
     [[nodiscard]] std::size_t cellCount() const noexcept;
     [[nodiscard]] std::size_t portalCount() const noexcept;
     [[nodiscard]] std::size_t bindingCount() const noexcept;
+    [[nodiscard]] std::size_t adjacencyEntryCount() const noexcept;
 
 private:
     [[nodiscard]] int cellIndex(
@@ -153,6 +154,13 @@ private:
         portalCellAIndices_{};
     std::array<std::uint8_t, kMaxStreamPortals>
         portalCellBIndices_{};
+    // Each cell owns a compact list of portal slots. BFS traversals visit
+    // only incident portals instead of scanning the entire portal table.
+    std::array<
+        std::array<std::uint8_t, kMaxStreamPortals>,
+        kMaxStreamCells> cellPortalIndices_{};
+    std::array<std::uint8_t, kMaxStreamCells>
+        cellPortalCounts_{};
     std::array<StreamCellResourceBinding, kMaxStreamBindings>
         bindings_{};
     std::array<std::uint8_t, kMaxStreamBindings>
