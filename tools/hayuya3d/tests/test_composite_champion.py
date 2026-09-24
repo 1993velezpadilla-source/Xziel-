@@ -82,7 +82,8 @@ class CompositeChampionPlannerTests(unittest.TestCase):
         self.assertEqual(identity.base_score,70.0)
         self.assertEqual(identity.donor_score,98.0)
         self.assertTrue(plan.composite_required)
-        self.assertIn("face_identity",plan.deferred_transfers)
+        self.assertIn("face_identity",plan.executable_now)
+        self.assertNotIn("face_identity",plan.deferred_transfers)
 
     def test_material_and_face_can_come_from_different_finalists(self):
         base=candidate(
