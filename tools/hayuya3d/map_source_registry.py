@@ -133,6 +133,46 @@ def default_providers() -> dict[str, MapSourceProvider]:
             notes="Highest-value editable source when the user has rights to transform it.",
         ),
         MapSourceProvider(
+            provider_id="openverse",
+            label="Openverse",
+            capabilities=("open_licensed_image_search", "open_licensed_audio_search", "reference_discovery"),
+            official_api=True,
+            persistent_derivatives="verify_each_work_license_and_attribution_before_use",
+            notes=(
+                "Search engine for openly licensed/public-domain media. License metadata is evidence, "
+                "not a guarantee; verify the selected work before redistribution or derivation."
+            ),
+        ),
+        MapSourceProvider(
+            provider_id="wikimedia",
+            label="Wikimedia / Commons APIs",
+            capabilities=("reference_discovery", "encyclopedic_context", "commons_media_search"),
+            official_api=True,
+            persistent_derivatives="follow_each_file_license_and_required_attribution",
+            notes="Public MediaWiki/Wikimedia APIs; retain source page/file metadata and attribution.",
+        ),
+        MapSourceProvider(
+            provider_id="pexels",
+            label="Pexels API",
+            capabilities=("photo_search", "video_search", "reference_discovery"),
+            credential_env=("PEXELS_API_KEY",),
+            official_api=True,
+            persistent_derivatives="follow_pexels_api_and_content_license_terms",
+            notes="Official REST API. Preserve required Pexels/photographer credit and current API terms.",
+        ),
+        MapSourceProvider(
+            provider_id="unsplash",
+            label="Unsplash API",
+            capabilities=("photo_search", "reference_discovery"),
+            credential_env=("UNSPLASH_ACCESS_KEY",),
+            official_api=True,
+            persistent_derivatives="reference_or_authorized_use_under_unsplash_api_terms",
+            notes=(
+                "Official API only. Hotlink returned image URLs, trigger the required download endpoint "
+                "for download-like actions, provide attribution, and do not use as an AI training/data-mining source."
+            ),
+        ),
+        MapSourceProvider(
             provider_id="generic_web_images",
             label="Provider-pluggable web image research",
             capabilities=("web_image_search", "reference_discovery"),
