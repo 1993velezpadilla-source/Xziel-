@@ -1,0 +1,164 @@
+from __future__ import annotations
+
+import tempfile
+import unittest
+from pathlib import Path
+from types import SimpleNamespace
+
+from tools.hayuya3d.composite_champion import build_composite_plan
+
+
+def candidate(
+    backend: str,
+    score: float,
+    *,
+    face_min=None,
+    face_mesh=None,
+    face_tex=None,
+    face_detail=None,
+    visual=None,
+    appearance=None,
+    material=None,
+    texture=None,
+):
+    return SimpleNamespace(
+        backend=backend,
+        path=f"/tmp/{backend}.glb",
+        score=score,
+        valid=True,
+        production_score=score,
+        visual_score=visual,
+        appearance_score=appearance,
+        appearance_face_detail_score=face_min,
+        appearance_face_detail_min_score=face_min,
+        head_density_score=face_mesh,
+        head_texel_density_score=face_tex,
+        head_texture_detail_score=face_detail,
+        material_score=material,
+        texture_resolution_score=texture,
+    )
+
+
+class CompositeChampionPlannerTests(unittest.TestCase):
+    def test_high_global_base_can_borrow_better_face(self):
+        base=candidate(
+            "global99",99.0,
+            face_min=70.0,
+            face_mesh=97.0,
+            face_tex=96.0,
+            face_detail=82.0,
+            visual=99.0,
+            appearance=98.0,
+            material=98.0,
+            texture=100.0,
+        )
+        face=candidate(
+            "face80",80.0,
+            face_min=98.0,
+            face_mesh=100.0,
+            face_tex=100.0,
+            face_detail=99.0,
+            visual=80.0,
+            appearance=90.0,
+            material=85.0,
+            texture=100.0,
+        )
+        plan=build_composite_plan(
+            [base,face],
+            mode="character",
+            inspect_parts=False,
+        )
+        self.assertEqual(plan.base_backend,"global99")
+        identity=next(x for x in plan.donors if x.region=="face_identity")
+        self.assertEqual(identity.donor_backend,"face80")
+        self.assertEqual(identity.base_score,70.0)
+        self.assertEqual(identity.donor_score,98.0)
+        self.assertTrue(plan.composite_required)
+        self.assertIn("face_identity",plan.deferred_transfers)
+
+    def test_material_and_face_can_come_from_different_finalists(self):
+        base=candidate(
+            "base",95.0,
+            face_min=85.0,face_mesh=95.0,face_tex=90.0,face_detail=88.0,
+            visual=96.0,appearance=93.0,material=80.0,texture=90.0,
+        )
+        face=candidate(
+            "face",84.0,
+            face_min=99.0,face_mesh=100.0,face_tex=100.0,face_detail=100.0,
+            visual=82.0,appearance=90.0,material=75.0,texture=90.0,
+        )
+        material=candidate(
+            "material",83.0,
+            face_min=80.0,face_mesh=92.0,face_tex=95.0,face_detail=94.0,
+            visual=81.0,appearance=91.0,material=100.0,texture=100.0,
+        )
+        plan=build_composite_plan(
+            [base,face,material],
+            mode="character",
+            inspect_parts=False,
+        )
+        donors={x.region:x.donor_backend for x in plan.donors}
+        self.assertEqual(donors["face_identity"],"face")
+        self.assertEqual(donors["face_geometry"],"face")
+        self.assertEqual(donors["material_response"],"material")
+        self.assertEqual(donors["texture_resolution"],"material")
+
+    def test_single_finalist_stays_non_composite(self):
+        only=candidate(
+            "only",91.0,
+            face_min=90.0,face_mesh=100.0,face_tex=100.0,face_detail=90.0,
+            visual=91.0,appearance=91.0,material=91.0,texture=100.0,
+        )
+        plan=build_composite_plan(
+            [only],
+            mode="character",
+            inspect_parts=False,
+        )
+        self.assertFalse(plan.composite_required)
+        self.assertEqual(plan.deferred_transfers,[])
+        self.assertEqual(plan.executable_now,[])
+
+    def test_small_metric_noise_does_not_request_composite(self):
+        base=candidate(
+            "base",95.0,
+            face_min=90.0,face_mesh=99.0,face_tex=99.0,face_detail=90.0,
+            visual=95.0,appearance=95.0,material=95.0,texture=100.0,
+        )
+        tiny=candidate(
+            "tiny",90.0,
+            face_min=90.2,face_mesh=99.2,face_tex=99.2,face_detail=90.2,
+            visual=94.0,appearance=94.0,material=95.2,texture=100.0,
+        )
+        plan=build_composite_plan(
+            [base,tiny],
+            mode="character",
+            minimum_regional_gain=0.5,
+            inspect_parts=False,
+        )
+        self.assertFalse(plan.composite_required)
+
+    def test_promotion_contract_requires_rejudge_and_atomic_fallback(self):
+        base=candidate(
+            "base",95.0,
+            face_min=80.0,face_mesh=90.0,face_tex=90.0,face_detail=80.0,
+            visual=95.0,appearance=95.0,material=95.0,texture=100.0,
+        )
+        donor=candidate(
+            "donor",85.0,
+            face_min=98.0,face_mesh=100.0,face_tex=100.0,face_detail=98.0,
+            visual=85.0,appearance=90.0,material=90.0,texture=100.0,
+        )
+        plan=build_composite_plan(
+            [base,donor],
+            mode="character",
+            inspect_parts=False,
+        )
+        text=" ".join(plan.promotion_contract+plan.notes).lower()
+        self.assertIn("re-enter",text)
+        self.assertIn("weakest face",text)
+        self.assertIn("atomic",text)
+        self.assertIn("rig",text)
+
+
+if __name__=="__main__":
+    unittest.main()
