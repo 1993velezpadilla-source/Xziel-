@@ -111,6 +111,51 @@ function showModel(url, label, meta="") {
   viewer.src = url;
 }
 
+function renderFinalQa(qa) {
+  const section = $("finalQaSection");
+  const grid = $("finalQa");
+  if (!qa) {
+    section.hidden = true;
+    grid.replaceChildren();
+    return;
+  }
+
+  section.hidden = false;
+  $("finalQaState").textContent = qa.production_ready ? "READY" : "BLOCKED";
+  $("finalQaState").className = qa.production_ready ? "qa-state ready" : "qa-state blocked";
+  grid.replaceChildren();
+
+  const items = [
+    ["Production", qa.production_ready],
+    ["Material", qa.material_ready],
+    ["Rebake", qa.rebake_ready],
+    ["Rig", qa.rig_ready],
+    ["Animation", qa.animation_ready],
+    ["Face", qa.face_ready],
+  ];
+  items.forEach(([label, ready]) => {
+    const item = document.createElement("div");
+    item.className = "qa-chip " + (ready ? "pass" : "fail");
+    const name = document.createElement("span");
+    name.textContent = label;
+    const value = document.createElement("strong");
+    value.textContent = ready ? "PASS" : "WAIT";
+    item.append(name, value);
+    grid.appendChild(item);
+  });
+
+  if (qa.face_score != null) {
+    const item = document.createElement("div");
+    item.className = "qa-chip metric";
+    const name = document.createElement("span");
+    name.textContent = "Face score";
+    const value = document.createElement("strong");
+    value.textContent = Number(qa.face_score).toFixed(1);
+    item.append(name, value);
+    grid.appendChild(item);
+  }
+}
+
 function renderCandidates(job) {
   const list = $("candidates");
   const candidates = job?.candidates || [];
@@ -233,6 +278,7 @@ async function refreshJob() {
   state.job = await res.json();
   setProgress(state.job.stage, state.job.progress, state.job.status);
   renderCandidates(state.job);
+  renderFinalQa(state.job.final_qa);
   if (state.job.final_model_url) {
     showModel(state.job.final_model_url, "Final Champion", `${state.job.profile} · ${state.job.portable_target}`);
   }
@@ -259,6 +305,9 @@ function handleEvent(event) {
     appendLog(`👑 Champion: ${event.label} score=${event.score}`);
     refreshJob();
   }
+  if (event.kind === "qa_ready") {
+    renderFinalQa(event.qa);
+  }
   if (event.kind === "model" && event.url) {
     showModel(event.url, "Final Champion", "HAYUYA final");
   }
@@ -274,6 +323,7 @@ async function attachJob(jobId) {
   state.job = await res.json();
   setProgress(state.job.stage, state.job.progress, state.job.status);
   renderCandidates(state.job);
+  renderFinalQa(state.job.final_qa);
   if (state.job.final_model_url) showModel(state.job.final_model_url, "Final Champion");
 
   const source = new EventSource(`/api/jobs/${jobId}/events`);
