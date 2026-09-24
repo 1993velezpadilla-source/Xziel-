@@ -47,6 +47,9 @@ class MeshScore:
     head_density_score: float | None = None
     head_texel_density_ratio: float | None = None
     head_texel_density_score: float | None = None
+    head_texture_detail_ratio: float | None = None
+    head_texture_detail_score: float | None = None
+    head_texture_detail_mean: float | None = None
     bbox: list[float] | None = None
     notes: list[str] | None = None
 
@@ -106,6 +109,39 @@ def head_density_score_from_ratio(ratio: float | None) -> float | None:
     if ratio is None or not math.isfinite(float(ratio)):
         return None
     return round(max(0.0, min(100.0, float(ratio) * 100.0)), 3)
+
+
+def _sample_uv_luma_gradients(np, image, uv_centers, mask, max_samples: int = 4096):
+    if image is None or uv_centers is None or mask is None:
+        return np.asarray([], dtype=np.float64)
+    try:
+        rgb=np.asarray(image.convert("RGB"),dtype=np.float32)
+    except Exception:
+        return np.asarray([],dtype=np.float64)
+    if rgb.ndim!=3 or rgb.shape[0]<2 or rgb.shape[1]<2:
+        return np.asarray([],dtype=np.float64)
+    indices=np.flatnonzero(mask)
+    if len(indices)==0:
+        return np.asarray([],dtype=np.float64)
+    if len(indices)>max_samples:
+        picks=np.linspace(0,len(indices)-1,max_samples,dtype=np.int64)
+        indices=indices[picks]
+    uv=np.asarray(uv_centers[indices],dtype=np.float64)
+    u=np.mod(uv[:,0],1.0)
+    v=np.mod(uv[:,1],1.0)
+    height,width=rgb.shape[:2]
+    x=np.clip((u*(width-1)).astype(np.int64),0,width-2)
+    y=np.clip(((1.0-v)*(height-1)).astype(np.int64),0,height-2)
+    luma=(
+        rgb[:,:,0]*0.2126
+        + rgb[:,:,1]*0.7152
+        + rgb[:,:,2]*0.0722
+    )
+    center=luma[y,x]
+    dx=np.abs(luma[y,x+1]-center)
+    dy=np.abs(luma[y+1,x]-center)
+    values=(dx+dy)*0.5
+    return values[np.isfinite(values)]
 
 
 def _component_count(faces) -> int:
@@ -326,6 +362,8 @@ def inspect_mesh(
             global_texel_area = 0.0
             head_surface_area = 0.0
             head_texel_area = 0.0
+            global_texture_gradients = []
+            head_texture_gradients = []
 
             for g in meshes:
                 visual = getattr(g, "visual", None)
@@ -371,6 +409,23 @@ def inspect_mesh(
                     (face_centers_g - character_body_min) / character_body_span
                 ) >= 0.72
                 valid_head = finite & head_mask_g
+                uv_centers = uv_tri.mean(axis=1)
+                global_gradients = _sample_uv_luma_gradients(
+                    np,
+                    base_image,
+                    uv_centers,
+                    finite,
+                )
+                head_gradients = _sample_uv_luma_gradients(
+                    np,
+                    base_image,
+                    uv_centers,
+                    valid_head,
+                )
+                if len(global_gradients):
+                    global_texture_gradients.append(global_gradients)
+                if len(head_gradients):
+                    head_texture_gradients.append(head_gradients)
 
                 global_surface_area += float(surface_area[finite].sum())
                 global_texel_area += float(uv_area[finite].sum())
@@ -396,6 +451,24 @@ def inspect_mesh(
                     result.notes.append(
                         f"head visible-color texel density is below global mesh: "
                         f"ratio={ratio:.3f}x"
+                    )
+
+            if global_texture_gradients and head_texture_gradients:
+                global_values=np.concatenate(global_texture_gradients)
+                head_values=np.concatenate(head_texture_gradients)
+                global_mean=float(np.mean(global_values)) if len(global_values) else 0.0
+                head_mean=float(np.mean(head_values)) if len(head_values) else 0.0
+                if global_mean>1e-6 and math.isfinite(global_mean) and math.isfinite(head_mean):
+                    detail_ratio=head_mean/global_mean
+                    result.head_texture_detail_ratio=round(detail_ratio,4)
+                    result.head_texture_detail_score=round(
+                        max(0.0,min(100.0,detail_ratio*100.0)),
+                        3,
+                    )
+                    result.head_texture_detail_mean=round(head_mean,4)
+                    result.notes.append(
+                        f"head visible-color local detail ratio={detail_ratio:.3f}x "
+                        f"gradient={head_mean:.3f}"
                     )
 
         texture_resolution_factor = 1.0
