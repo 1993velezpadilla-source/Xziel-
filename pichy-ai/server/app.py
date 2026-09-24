@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 
 from agent.pichy_agent import PichyAgent, load_config
 from server.memory import SessionMemory
-from server.attachments import AttachmentStore
+from server.attachments import AttachmentStore, StoredAttachment
 
 
 APP_VERSION = "0.3.1-lab"
@@ -59,6 +59,7 @@ class ImageRequest(BaseModel):
     prompt: str = Field(min_length=1, max_length=20_000)
     new_concept: bool = False
     size: str = "1024x1024"
+    attachment_id: str | None = None
 
 
 class ImageResponse(BaseModel):
@@ -66,6 +67,8 @@ class ImageResponse(BaseModel):
     effective_prompt: str
     b64_json: str | None = None
     url: str | None = None
+    reference_applied: bool = False
+    saved_attachment_id: str | None = None
 
 
 @dataclass
@@ -73,6 +76,7 @@ class SessionState:
     agent: PichyAgent
     lock: threading.Lock = field(default_factory=threading.Lock)
     last_image_prompt: str = ""
+    last_image_attachment_id: str = ""
 
 
 app = FastAPI(title="Pichy AI", version=APP_VERSION)
@@ -130,18 +134,29 @@ def get_session(session_id: str | None) -> tuple[str, SessionState]:
             agent = PichyAgent(get_config())
             saved = _memory.load(sid)
             last_image_prompt = ""
+            last_image_attachment_id = ""
             if saved:
                 restored = [m for m in saved.get("history", []) if isinstance(m, dict) and m.get("role") != "system"]
                 agent.history.extend(restored)
                 last_image_prompt = saved.get("last_image_prompt", "")
-            state = SessionState(agent, last_image_prompt=last_image_prompt)
+                last_image_attachment_id = saved.get("last_image_attachment_id", "")
+            state = SessionState(
+                agent,
+                last_image_prompt=last_image_prompt,
+                last_image_attachment_id=last_image_attachment_id,
+            )
             _sessions[sid] = state
     return sid, state
 
 
 def persist_session(session_id: str, state: SessionState) -> None:
     history = [m for m in state.agent.history if m.get("role") != "system"]
-    _memory.save(session_id, history, state.last_image_prompt)
+    _memory.save(
+        session_id,
+        history,
+        state.last_image_prompt,
+        state.last_image_attachment_id,
+    )
 
 
 def compose_image_prompt(previous: str, request: str, new_concept: bool) -> str:
@@ -156,7 +171,12 @@ def compose_image_prompt(previous: str, request: str, new_concept: bool) -> str:
     )
 
 
-def image_provider_request(config: dict[str, Any], prompt: str, size: str) -> tuple[str | None, str | None]:
+def image_provider_request(
+    config: dict[str, Any],
+    prompt: str,
+    size: str,
+    reference: StoredAttachment | None = None,
+) -> tuple[str | None, str | None, bool]:
     cfg = config.get("image") or {}
     if not cfg:
         raise HTTPException(status_code=503, detail="Image provider is not configured")
@@ -164,33 +184,91 @@ def image_provider_request(config: dict[str, Any], prompt: str, size: str) -> tu
     key = os.getenv(key_env, "")
     if not key:
         raise HTTPException(status_code=503, detail=f"Missing image API key env: {key_env}")
-    payload = {
-        "model": cfg["model"],
-        "prompt": prompt,
-        "n": 1,
-        "size": size,
-        "response_format": "b64_json",
-    }
+
+    base_url = cfg["base_url"].rstrip("/")
+    auth = {"Authorization": f"Bearer {key}"}
+    edit_path = cfg.get("edit_path", "")
+    reference_applied = False
+
     try:
-        r = requests.post(
-            cfg["base_url"].rstrip("/") + "/images/generations",
-            json=payload,
-            timeout=240,
-            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-        )
+        if reference is not None and edit_path:
+            if not reference.mime_type.startswith("image/"):
+                raise HTTPException(status_code=400, detail="Image edit reference must be an image")
+            data = {
+                "model": cfg["model"],
+                "prompt": prompt,
+                "n": "1",
+                "size": size,
+                "response_format": "b64_json",
+            }
+            with reference.data_path.open("rb") as image_file:
+                files = {"image": (reference.filename, image_file, reference.mime_type)}
+                r = requests.post(
+                    base_url + edit_path,
+                    data=data,
+                    files=files,
+                    timeout=240,
+                    headers=auth,
+                )
+            reference_applied = True
+        else:
+            payload = {
+                "model": cfg["model"],
+                "prompt": prompt,
+                "n": 1,
+                "size": size,
+                "response_format": "b64_json",
+            }
+            r = requests.post(
+                base_url + cfg.get("generation_path", "/images/generations"),
+                json=payload,
+                timeout=240,
+                headers={**auth, "Content-Type": "application/json"},
+            )
     except requests.RequestException as exc:
         raise HTTPException(status_code=502, detail=f"Image provider network error: {exc}") from exc
+
     if r.status_code >= 400:
         raise HTTPException(status_code=502, detail=f"Image provider HTTP {r.status_code}: {r.text[:1000]}")
     try:
         first = r.json()["data"][0]
     except Exception as exc:
         raise HTTPException(status_code=502, detail="Image provider returned an unexpected response") from exc
+
     b64 = first.get("b64_json")
     url = first.get("url")
     if not b64 and not url:
         raise HTTPException(status_code=502, detail="Image provider returned no image")
-    return b64, url
+    return b64, url, reference_applied
+
+
+def persist_generated_image(
+    session_id: str,
+    b64: str | None,
+    url: str | None,
+) -> str:
+    raw: bytes | None = None
+    mime_type = "image/png"
+    if b64:
+        try:
+            raw = base64.b64decode(b64, validate=True)
+        except Exception:
+            raw = None
+    elif url:
+        try:
+            response = requests.get(url, timeout=60)
+            if response.status_code < 400 and len(response.content) <= 10 * 1024 * 1024:
+                raw = response.content
+                mime_type = response.headers.get("Content-Type", "image/png").split(";", 1)[0]
+        except requests.RequestException:
+            raw = None
+    if not raw:
+        return ""
+    try:
+        item = _attachments.save_bytes(session_id, "pichy-image.png", mime_type, raw)
+    except ValueError:
+        return ""
+    return item.attachment_id
 
 
 @app.get("/health")
@@ -219,6 +297,7 @@ def capabilities() -> dict[str, Any]:
         "routes": sorted(cfg.get("routes", {}).keys()),
         "models": public_models,
         "image_configured": bool(cfg.get("image")),
+        "image_edit_configured": bool((cfg.get("image") or {}).get("edit_path")),
         "persistent_memory": True,
         "tools": [x["function"]["name"] for x in PichyAgent(cfg).tools.definitions()],
     }
@@ -261,6 +340,7 @@ def provider_status() -> dict[str, Any]:
             "base_url": image_cfg.get("base_url"),
             "api_key_env": image_key_env,
             "key_present": bool(image_key_env and os.getenv(image_key_env, "")),
+            "edit_supported": bool(image_cfg.get("edit_path")),
         },
     }
 
@@ -323,14 +403,46 @@ def chat_stream(req: ChatRequest) -> StreamingResponse:
 @app.post("/v1/image", response_model=ImageResponse, dependencies=[Depends(require_token)])
 def image(req: ImageRequest) -> ImageResponse:
     sid, state = get_session(req.session_id)
+    cfg = get_config()
+    image_cfg = cfg.get("image") or {}
+
     with state.lock:
         effective = compose_image_prompt(state.last_image_prompt, req.prompt, req.new_concept)
-        b64, url = image_provider_request(get_config(), effective, req.size)
+        reference: StoredAttachment | None = None
+
+        if req.attachment_id:
+            if not image_cfg.get("edit_path"):
+                raise HTTPException(
+                    status_code=503,
+                    detail="The configured image provider does not expose an edit endpoint.",
+                )
+            try:
+                reference = _attachments.load(sid, req.attachment_id)
+            except FileNotFoundError as exc:
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
+        elif not req.new_concept and state.last_image_attachment_id and image_cfg.get("edit_path"):
+            try:
+                reference = _attachments.load(sid, state.last_image_attachment_id)
+            except FileNotFoundError:
+                state.last_image_attachment_id = ""
+
+        b64, url, reference_applied = image_provider_request(
+            cfg,
+            effective,
+            req.size,
+            reference=reference,
+        )
+        saved_id = persist_generated_image(sid, b64, url)
         state.last_image_prompt = effective
+        if saved_id:
+            state.last_image_attachment_id = saved_id
         persist_session(sid, state)
+
     return ImageResponse(
         session_id=sid,
         effective_prompt=effective,
         b64_json=b64,
         url=url,
+        reference_applied=reference_applied,
+        saved_attachment_id=saved_id or None,
     )
