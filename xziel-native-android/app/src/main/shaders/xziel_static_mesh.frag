@@ -62,28 +62,42 @@ float geometrySchlickGgx(
 }
 
 float geometrySmith(
-    vec3 normal,
-    vec3 viewDirection,
-    vec3 lightDirection,
+    float nDotV,
+    float nDotL,
     float roughness) {
+    // nDotV/nDotL are already computed by main(). Reuse them instead of
+    // repeating two per-fragment dot products inside the Smith term.
     return
         geometrySchlickGgx(
-            max(dot(normal, viewDirection), 0.0),
+            nDotV,
             roughness) *
         geometrySchlickGgx(
-            max(dot(normal, lightDirection), 0.0),
+            nDotL,
             roughness);
 }
 
 vec3 fresnelSchlick(
     float cosine,
     vec3 f0) {
+    // pow(x, 5) is exactly x*x*x*x*x. Expanding the fixed exponent avoids a
+    // generic transcendental path on mobile fragment hardware.
+    float oneMinusCosine =
+        clamp(
+            1.0 - cosine,
+            0.0,
+            1.0);
+    float squared =
+        oneMinusCosine *
+        oneMinusCosine;
+    float fifth =
+        squared *
+        squared *
+        oneMinusCosine;
+
     return
         f0 +
         (1.0 - f0) *
-        pow(
-            clamp(1.0 - cosine, 0.0, 1.0),
-            5.0);
+        fifth;
 }
 
 vec3 mappedNormal(
@@ -272,19 +286,12 @@ void main() {
                 vUv).rgb;
     }
 
-    vec3 viewDirection =
-        normalize(
-            -vViewPosition);
     vec3 lightDirection =
         normalize(
             vec3(
                 -0.35,
                  0.70,
                 -0.62));
-    vec3 halfVector =
-        normalize(
-            viewDirection +
-            lightDirection);
 
     float nDotL =
         max(
@@ -292,61 +299,77 @@ void main() {
                 normal,
                 lightDirection),
             0.0);
-    float nDotV =
-        max(
-            dot(
-                normal,
-                viewDirection),
-            0.0);
-    float hDotV =
-        max(
-            dot(
-                halfVector,
-                viewDirection),
-            0.0);
 
-    vec3 f0 =
-        mix(
-            vec3(0.04),
-            albedo.rgb,
-            metallic);
-
-    vec3 fresnel =
-        fresnelSchlick(
-            hDotV,
-            f0);
-    float distribution =
-        distributionGgx(
-            normal,
-            halfVector,
-            roughness);
-    float geometry =
-        geometrySmith(
-            normal,
-            viewDirection,
-            lightDirection,
-            roughness);
-
-    vec3 specular =
-        (distribution *
-         geometry *
-         fresnel) /
-        max(
-            4.0 *
-            nDotV *
-            nDotL,
-            0.001);
-
-    vec3 diffuseWeight =
-        (vec3(1.0) - fresnel) *
-        (1.0 - metallic);
-
+    // The previous path evaluated the full Cook-Torrance BRDF even when the
+    // light was behind the surface, then multiplied the result by nDotL=0.
+    // Skip that provably dead work while preserving the exact lit result.
     vec3 direct =
-        (diffuseWeight *
-             albedo.rgb /
-             PI +
-         specular) *
-        nDotL;
+        vec3(0.0);
+
+    if (nDotL > 0.0) {
+        vec3 viewDirection =
+            normalize(
+                -vViewPosition);
+        vec3 halfVector =
+            normalize(
+                viewDirection +
+                lightDirection);
+
+        float nDotV =
+            max(
+                dot(
+                    normal,
+                    viewDirection),
+                0.0);
+        float hDotV =
+            max(
+                dot(
+                    halfVector,
+                    viewDirection),
+                0.0);
+
+        vec3 f0 =
+            mix(
+                vec3(0.04),
+                albedo.rgb,
+                metallic);
+
+        vec3 fresnel =
+            fresnelSchlick(
+                hDotV,
+                f0);
+        float distribution =
+            distributionGgx(
+                normal,
+                halfVector,
+                roughness);
+        float geometry =
+            geometrySmith(
+                nDotV,
+                nDotL,
+                roughness);
+
+        vec3 specular =
+            (distribution *
+             geometry *
+             fresnel) /
+            max(
+                4.0 *
+                nDotV *
+                nDotL,
+                0.001);
+
+        vec3 diffuseWeight =
+            (vec3(1.0) - fresnel) *
+            (1.0 - metallic);
+
+        direct =
+            (diffuseWeight *
+                 albedo.rgb /
+                 PI +
+             specular) *
+            nDotL;
+    }
 
     float lightningBoost =
         1.0 +
