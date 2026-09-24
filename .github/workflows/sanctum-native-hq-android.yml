@@ -742,6 +742,16 @@ jobs:
             grep -Eq "XZIEL_RUNTIME_GEOMETRY_EVICTED cell=[1-9][0-9]* .*freed_mb=[0-9]+\.[0-9]+" dist/sanctum-hq-logcat.txt
             grep -Eq "XZIEL_RUNTIME_GEOMETRY_RELOAD_PROBE_ARMED cell=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
             grep -Eq "XZIEL_RUNTIME_GEOMETRY_RELOAD_QUEUED cell=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
+
+            if [[ "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" ]]; then
+              grep -Eq "XZIEL_RUNTIME_GEOMETRY_GPU_RESTORE_BEGIN cell=[1-9][0-9]* .*copy_budget_kb=(2048|4096)\.0" dist/sanctum-hq-logcat.txt
+              grep -Eq "XZIEL_RUNTIME_GEOMETRY_GPU_RESTORE_COMPLETE cell=[1-9][0-9]* copy_frames=[1-9][0-9]* max_copy_kb=(2048|4096)\.0" dist/sanctum-hq-logcat.txt
+              GEOMETRY_RESTORE_FRAMES="$(grep "XZIEL_RUNTIME_GEOMETRY_GPU_RESTORE_COMPLETE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* copy_frames=\([0-9][0-9]*\).*/\1/p')"
+              test -n "${GEOMETRY_RESTORE_FRAMES}"
+              test "${GEOMETRY_RESTORE_FRAMES}" -ge 1
+              echo "XZIEL_RUNTIME_GEOMETRY_GPU_RESTORE_BOUNDED copy_frames=${GEOMETRY_RESTORE_FRAMES}"
+            fi
+
             grep -Eq "XZIEL_RUNTIME_GEOMETRY_RELOAD_COMPLETE cell=[1-9][0-9]* .*resident_mb=[0-9]+\.[0-9]+" dist/sanctum-hq-logcat.txt
 
             GEOMETRY_EVICTIONS="$(grep -c "XZIEL_RUNTIME_GEOMETRY_EVICTED" dist/sanctum-hq-logcat.txt || true)"
