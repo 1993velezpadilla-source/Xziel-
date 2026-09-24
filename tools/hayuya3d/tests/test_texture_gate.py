@@ -5,7 +5,7 @@ import unittest
 
 from PIL import Image
 
-from tools.hayuya3d.texture_gate import material_image_roles, metric
+from tools.hayuya3d.texture_gate import base_color_resolution_ok, material_image_roles, metric
 
 
 class TextureGateRoleTests(unittest.TestCase):
@@ -41,6 +41,11 @@ class TextureGateRoleTests(unittest.TestCase):
         self.assertEqual(result.width, 64)
         self.assertEqual(result.height, 32)
         self.assertEqual(result.roles, ["baseColor"])
+
+    def test_all_bound_base_colors_must_meet_resolution_floor(self):
+        self.assertTrue(base_color_resolution_ok([4096, 4096], 4096))
+        self.assertFalse(base_color_resolution_ok([4096, 1024], 4096))
+        self.assertFalse(base_color_resolution_ok([], 4096))
 
 
 if __name__ == "__main__":
