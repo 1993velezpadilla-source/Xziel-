@@ -26,6 +26,8 @@ on:
       - "docs/WAW_ZOMBIES_HORROR_DNA.md"
       - "docs/waw-zombies-horror-checklist.json"
       - "hayuya/standards/hayuya_map_design_brain_v1.json"
+      - "hayuya/knowledge/zombies_design_pattern_library_v1.json"
+      - "hayuya/knowledge/zombies_lighting_pattern_library_v1.json"
       - "hayuya/standards/hayuya_lighting_brain_v1.json"
       - ".github/workflows/hayuya-map-world-brain-ci.yml"
   workflow_dispatch:
@@ -126,7 +128,10 @@ jobs:
           assert design["targets"]["requiredEarlyFork"] is True
           assert design["targets"]["requiredCompletedCombatLoop"] is True
           assert design["generation_contract"]["copy_reference_layout"] is False
+          assert len(design["cross_map_patterns"]["archetypes"]) >= 6
           assert "power_off" in lighting["states"]
+          assert lighting["selected_horror_identities"]
+          assert "power_off" in lighting["cross_map_state_composition"]
           assert "power_on" in lighting["states"]
           assert lighting["beauty_contract"]["depth_layers_required"] is True
           assert manifest["design_profile"] == "sanctum_classic"
@@ -139,6 +144,7 @@ jobs:
         run: |
           mkdir -p /tmp/hayuya-map-intelligence-bundle/docs
           mkdir -p /tmp/hayuya-map-intelligence-bundle/standards
+          mkdir -p /tmp/hayuya-map-intelligence-bundle/knowledge
           mkdir -p /tmp/hayuya-map-intelligence-bundle/generated
           cp docs/zombies-map-dna-atlas.v1.json /tmp/hayuya-map-intelligence-bundle/docs/
           cp docs/zombies-map-dna-coverage.v1.json /tmp/hayuya-map-intelligence-bundle/docs/
@@ -148,6 +154,8 @@ jobs:
           cp docs/waw-zombies-horror-checklist.json /tmp/hayuya-map-intelligence-bundle/docs/
           cp hayuya/standards/hayuya_map_design_brain_v1.json /tmp/hayuya-map-intelligence-bundle/standards/
           cp hayuya/standards/hayuya_lighting_brain_v1.json /tmp/hayuya-map-intelligence-bundle/standards/
+          cp hayuya/knowledge/zombies_design_pattern_library_v1.json /tmp/hayuya-map-intelligence-bundle/knowledge/
+          cp hayuya/knowledge/zombies_lighting_pattern_library_v1.json /tmp/hayuya-map-intelligence-bundle/knowledge/
           cp -R /tmp/hayuya-map/ci-zombies-intelligence/intelligence /tmp/hayuya-map-intelligence-bundle/generated/
           cp /tmp/hayuya-map/ci-zombies-intelligence/plan.json /tmp/hayuya-map-intelligence-bundle/generated/
 
