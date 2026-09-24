@@ -5845,7 +5845,9 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
             cell.vertexBytes =
                 static_cast<VkDeviceSize>(
                     cell.vertexCount) *
-                sizeof(StaticMeshVertex);
+                static_cast<VkDeviceSize>(
+                    gpuStaticVertexStride(
+                        packedStaticVertexEnabled_));
             cell.indexBytes =
                 static_cast<VkDeviceSize>(
                     cell.indexCount) *
@@ -6055,20 +6057,23 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
                 const VkDeviceSize vertexOffsetBytes =
                     static_cast<VkDeviceSize>(
                         vertexCursor[slot]) *
-                    sizeof(StaticMeshVertex);
+                    static_cast<VkDeviceSize>(
+                        gpuStaticVertexStride(
+                            packedStaticVertexEnabled_));
 
                 const VkDeviceSize indexOffsetBytes =
                     static_cast<VkDeviceSize>(
                         indexCursor[slot]) *
                     sizeof(std::uint16_t);
 
-                std::memcpy(
+                writeGpuVertices(
+                    std::span<const StaticMeshVertex>(
+                        batch.vertices.data(),
+                        batch.vertices.size()),
                     static_cast<std::byte*>(
                         mappedVertices[slot]) +
                         vertexOffsetBytes,
-                    batch.vertices.data(),
-                    batch.vertices.size() *
-                        sizeof(StaticMeshVertex));
+                    packedStaticVertexEnabled_);
 
                 std::memcpy(
                     static_cast<std::byte*>(
@@ -6286,7 +6291,9 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
     geometryVertexBytes_ =
         static_cast<VkDeviceSize>(
             asset.totalVertices) *
-        sizeof(StaticMeshVertex);
+        static_cast<VkDeviceSize>(
+            gpuStaticVertexStride(
+                packedStaticVertexEnabled_));
 
     geometryIndexBytes_ =
         static_cast<VkDeviceSize>(
@@ -6447,19 +6454,22 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
             const VkDeviceSize vertexOffsetBytes =
                 static_cast<VkDeviceSize>(
                     vertexCursor) *
-                sizeof(StaticMeshVertex);
+                static_cast<VkDeviceSize>(
+                    gpuStaticVertexStride(
+                        packedStaticVertexEnabled_));
 
             const VkDeviceSize indexOffsetBytes =
                 static_cast<VkDeviceSize>(
                     indexCursor) *
                 sizeof(std::uint16_t);
 
-            std::memcpy(
+            writeGpuVertices(
+                std::span<const StaticMeshVertex>(
+                    batch.vertices.data(),
+                    batch.vertices.size()),
                 vertexBytes +
                     vertexOffsetBytes,
-                batch.vertices.data(),
-                batch.vertices.size() *
-                    sizeof(StaticMeshVertex));
+                packedStaticVertexEnabled_);
 
             std::memcpy(
                 indexBytes +
