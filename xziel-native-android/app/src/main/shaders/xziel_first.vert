@@ -421,6 +421,7 @@ void main() {
         (material == 14 &&
          reflectionOwnerMaterial == 14);
 
+    // REFLECTION_VERTEX_MATERIAL_GATE_V1
     // REFLECTION_VERTEX_CONTRIBUTION_GATE_V1
     // Reprojection is consumed only by the live target owner. Water also
     // needs positive reflection strength. These values are draw-uniform, so
