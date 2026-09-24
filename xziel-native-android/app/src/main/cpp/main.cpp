@@ -245,6 +245,8 @@ struct NativeAppState {
 
     xziel::PerformanceBottleneck lastLoggedBottleneck =
         xziel::PerformanceBottleneck::Balanced;
+    xziel::GpuPassBottleneck lastLoggedGpuPassBottleneck =
+        xziel::GpuPassBottleneck::Balanced;
 };
 
 bool loadMapDefinitionFromAsset(
@@ -3053,9 +3055,27 @@ extern "C" void android_main(
         const float measuredGpuFrameMs =
             state.renderer.lastGpuFrameMs();
 
+        const bool gpuTimingAuthoritative =
+            state.renderer.gpuTimingAuthoritative();
+
         const float governorGpuFrameMs =
-            state.renderer.gpuTimingAuthoritative()
+            gpuTimingAuthoritative
             ? measuredGpuFrameMs
+            : 0.0f;
+
+        const float governorGpuPreWorldMs =
+            gpuTimingAuthoritative
+            ? state.renderer.lastGpuPreWorldMs()
+            : 0.0f;
+
+        const float governorGpuWorldMs =
+            gpuTimingAuthoritative
+            ? state.renderer.lastGpuWorldMs()
+            : 0.0f;
+
+        const float governorGpuCompositeUiMs =
+            gpuTimingAuthoritative
+            ? state.renderer.lastGpuCompositeUiMs()
             : 0.0f;
 
         state.renderWorkload =
@@ -3067,10 +3087,18 @@ extern "C" void android_main(
                         : frameDelta * 1000.0f,
                     .gpuFrameMs =
                         governorGpuFrameMs,
+                    .gpuPreWorldMs =
+                        governorGpuPreWorldMs,
+                    .gpuWorldMs =
+                        governorGpuWorldMs,
+                    .gpuCompositeUiMs =
+                        governorGpuCompositeUiMs,
                     .frameIntervalMs =
                         frameDelta * 1000.0f,
                     .thermal =
                         state.thermalLevel,
+                    .gpuPassTimingAuthoritative =
+                        gpuTimingAuthoritative,
                 },
                 frameDelta);
 
@@ -3090,12 +3118,40 @@ extern "C" void android_main(
                     state.performance.smoothedGpuMs()),
                 static_cast<double>(
                     frameDelta * 1000.0f),
-                state.renderer.gpuTimingAuthoritative()
+                gpuTimingAuthoritative
                     ? 1
                     : 0);
 
             state.lastLoggedBottleneck =
                 bottleneck;
+        }
+
+        const auto gpuPassBottleneck =
+            state.performance.gpuPassBottleneck();
+
+        if (gpuPassBottleneck !=
+            state.lastLoggedGpuPassBottleneck) {
+            __android_log_print(
+                ANDROID_LOG_INFO,
+                kTag,
+                "XZIEL_GPU_PASS_BOTTLENECK class=%d preworld_ms=%.3f world_ms=%.3f composite_ui_ms=%.3f authoritative=%d",
+                static_cast<int>(
+                    gpuPassBottleneck),
+                static_cast<double>(
+                    state.performance.
+                        smoothedGpuPreWorldMs()),
+                static_cast<double>(
+                    state.performance.
+                        smoothedGpuWorldMs()),
+                static_cast<double>(
+                    state.performance.
+                        smoothedGpuCompositeUiMs()),
+                gpuTimingAuthoritative
+                    ? 1
+                    : 0);
+
+            state.lastLoggedGpuPassBottleneck =
+                gpuPassBottleneck;
         }
 
         const auto runtimePolicy =

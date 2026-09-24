@@ -770,24 +770,34 @@ jobs:
           grep -Eq "XZIEL_FRAME_PACING_(READY|SKIPPED_CPU|UNAVAILABLE)"             dist/sanctum-hq-logcat.txt
           grep -q "XZIEL_PERF_TIMING "             dist/sanctum-hq-logcat.txt
 
+          if grep -Eq "XZIEL_GPU_PASS_BOTTLENECK class=[1-3].*authoritative=0" dist/sanctum-hq-logcat.txt; then
+            echo "ERROR: non-authoritative GPU pass timing changed governor classification"
+            exit 1
+          fi
+          echo "XZIEL_PASS_AWARE_GOVERNOR_CPU_VULKAN_SAFE"
+
           grep -q "XZIEL_UI_BATCH_PIPELINE_READY" dist/sanctum-hq-logcat.txt
           grep -Eq "XZIEL_UI_BATCH_BUFFER_READY bytes=[1-9][0-9]* vertices_per_frame=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
-          grep -Eq "XZIEL_UI_PRIMITIVE_BATCH logical_primitives=[1-9][0-9]* batch_submissions=[1-9][0-9]* fallback_primitives=0 digit_draws=[1-9][0-9]* total_submissions=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
+          grep -Eq "XZIEL_UI_PRIMITIVE_BATCH logical_primitives=[1-9][0-9]* batch_submissions=[1-9][0-9]* fallback_primitives=0 digit_draws=0 digit_segments=[1-9][0-9]* total_submissions=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
 
           UI_BATCH_LINE="$(grep "XZIEL_UI_PRIMITIVE_BATCH" dist/sanctum-hq-logcat.txt | tail -n 1)"
           UI_LOGICAL="$(sed -n 's/.* logical_primitives=\([0-9][0-9]*\).*/\1/p' <<<"${UI_BATCH_LINE}")"
           UI_BATCHES="$(sed -n 's/.* batch_submissions=\([0-9][0-9]*\).*/\1/p' <<<"${UI_BATCH_LINE}")"
           UI_DIGITS="$(sed -n 's/.* digit_draws=\([0-9][0-9]*\).*/\1/p' <<<"${UI_BATCH_LINE}")"
+          UI_SEGMENTS="$(sed -n 's/.* digit_segments=\([0-9][0-9]*\).*/\1/p' <<<"${UI_BATCH_LINE}")"
           UI_TOTAL="$(sed -n 's/.* total_submissions=\([0-9][0-9]*\).*/\1/p' <<<"${UI_BATCH_LINE}")"
           test -n "${UI_LOGICAL}"
           test -n "${UI_BATCHES}"
           test -n "${UI_DIGITS}"
+          test -n "${UI_SEGMENTS}"
           test -n "${UI_TOTAL}"
           test "${UI_LOGICAL}" -gt 0
-          test "${UI_BATCHES}" -le 6
-          test "${UI_TOTAL}" -le 12
+          test "${UI_DIGITS}" -eq 0
+          test "${UI_SEGMENTS}" -gt 0
+          test "${UI_BATCHES}" -le 2
+          test "${UI_TOTAL}" -le 3
           test "${UI_TOTAL}" -lt "${UI_LOGICAL}"
-          echo "XZIEL_UI_PRIMITIVE_BATCH_ACTIVE logical=${UI_LOGICAL} batches=${UI_BATCHES} digits=${UI_DIGITS} total=${UI_TOTAL}"
+          echo "XZIEL_UI_FULL_BATCH_ACTIVE logical=${UI_LOGICAL} batches=${UI_BATCHES} digit_segments=${UI_SEGMENTS} total=${UI_TOTAL}"
 
           if [[ "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" ]]; then
             grep -Eq "XZIEL_SCENE_COST visible_batches=[1-9][0-9]* culled_batches=[1-9][0-9]* draws=[1-9][0-9]* triangles=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
