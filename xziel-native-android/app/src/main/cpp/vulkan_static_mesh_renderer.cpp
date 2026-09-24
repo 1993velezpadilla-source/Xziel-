@@ -4326,6 +4326,7 @@ void VulkanStaticMeshRenderer::record(
 
                 boundGeometryCell =
                     batch.geometryCellSlot;
+                ++frameStats_.geometryBinds;
             }
         }
 
@@ -4346,6 +4347,7 @@ void VulkanStaticMeshRenderer::record(
                 desiredPipeline);
             boundPipeline =
                 desiredPipeline;
+            ++frameStats_.pipelineBinds;
         }
 
         const auto& material =
@@ -4394,7 +4396,7 @@ void VulkanStaticMeshRenderer::record(
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u material_binds=%u",
+            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u material_binds=%u geometry_binds=%u pipeline_binds=%u",
             static_cast<unsigned int>(
                 frameStats_.streamingCell),
             static_cast<unsigned int>(
@@ -4408,7 +4410,11 @@ void VulkanStaticMeshRenderer::record(
             static_cast<unsigned int>(
                 frameStats_.drawCalls),
             static_cast<unsigned int>(
-                frameStats_.materialBinds));
+                frameStats_.materialBinds),
+            static_cast<unsigned int>(
+                frameStats_.geometryBinds),
+            static_cast<unsigned int>(
+                frameStats_.pipelineBinds));
     }
 }
 
