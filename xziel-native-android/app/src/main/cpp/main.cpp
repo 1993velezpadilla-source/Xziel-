@@ -20,6 +20,7 @@
 #include "xziel/haptics.hpp"
 #include "xziel/horror.hpp"
 #include "xziel/interaction.hpp"
+#include "xziel/lighting.hpp"
 #include "xziel/map_runtime.hpp"
 #include "xziel/map_format.hpp"
 #include "xziel/player_vitals.hpp"
@@ -36,6 +37,7 @@
 #include "xziel/zombie_hit_regions.hpp"
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <string>
@@ -162,6 +164,9 @@ struct NativeAppState {
     xziel::PlayerVitals vitals{};
     xziel::HorrorDirector horror{};
     xziel::HorrorFrame horrorFrame{};
+
+    xziel::HorrorLightingDirector lighting{};
+    xziel::HorrorLightingFrame lightingFrame{};
 
     xziel::EnvironmentSystem environment{};
     xziel::EnvironmentFrame environmentFrame{};
@@ -2087,6 +2092,172 @@ xziel::android::VulkanHudState makeHudState(
     return hud;
 }
 
+std::array<xziel::LocalLightInput, 4> makeHorrorPracticalLights(
+    const NativeAppState& state) noexcept {
+    float minX = -5.0f;
+    float maxX = 5.0f;
+    float minZ = -6.0f;
+    float maxZ = 6.0f;
+
+    if (state.mapDefinition.hasArenaBounds &&
+        state.mapDefinition.arenaMaximumX >
+            state.mapDefinition.arenaMinimumX &&
+        state.mapDefinition.arenaMaximumZ >
+            state.mapDefinition.arenaMinimumZ) {
+        minX = state.mapDefinition.arenaMinimumX;
+        maxX = state.mapDefinition.arenaMaximumX;
+        minZ = state.mapDefinition.arenaMinimumZ;
+        maxZ = state.mapDefinition.arenaMaximumZ;
+    }
+
+    const float centerX =
+        (minX + maxX) * 0.5f;
+    const float centerZ =
+        (minZ + maxZ) * 0.5f;
+    const float spanX =
+        std::max(maxX - minX, 4.0f);
+    const float spanZ =
+        std::max(maxZ - minZ, 4.0f);
+    const float sceneSpan =
+        std::max(spanX, spanZ);
+
+    const float floorY =
+        state.mapDefinition.hasPlayerSpawn
+        ? state.mapDefinition.playerSpawnFeet.y
+        : -1.0f;
+
+    const auto directionTo =
+        [](const xziel::Vec3& from,
+           const xziel::Vec3& to) noexcept {
+            return xziel::Vec3{
+                to.x - from.x,
+                to.y - from.y,
+                to.z - from.z,
+            };
+        };
+
+    const xziel::Vec3 altarPosition{
+        centerX,
+        floorY + 2.55f,
+        centerZ + spanZ * 0.08f,
+    };
+
+    const xziel::Vec3 rearPosition{
+        centerX - spanX * 0.12f,
+        floorY + 3.20f,
+        minZ + spanZ * 0.12f,
+    };
+
+    const xziel::Vec3 sidePosition{
+        minX + spanX * 0.16f,
+        floorY + 1.85f,
+        centerZ - spanZ * 0.12f,
+    };
+
+    const xziel::Vec3 moonPosition{
+        maxX - spanX * 0.12f,
+        floorY + 3.65f,
+        centerZ + spanZ * 0.22f,
+    };
+
+    const xziel::Vec3 centerTarget{
+        centerX,
+        floorY + 0.70f,
+        centerZ,
+    };
+
+    const float practicalRange =
+        std::clamp(
+            sceneSpan * 0.42f,
+            5.5f,
+            15.0f);
+
+    return {{
+        {
+            .id = 10001U,
+            .type = xziel::LightType::Point,
+            .position = altarPosition,
+            .direction = {0.0f, -1.0f, 0.0f},
+            .colorLinear = {1.0f, 0.30f, 0.07f},
+            .intensity = 7.0f,
+            .rangeMeters = practicalRange,
+            .importance = 1.25f,
+            .flickerAmount = 0.24f,
+            .flickerHz = 1.7f,
+            .castsShadows = true,
+            .volumetric = true,
+            .enabled = true,
+        },
+        {
+            .id = 10002U,
+            .type = xziel::LightType::Spot,
+            .position = rearPosition,
+            .direction =
+                directionTo(
+                    rearPosition,
+                    centerTarget),
+            .colorLinear = {0.18f, 0.32f, 0.82f},
+            .intensity = 9.0f,
+            .rangeMeters =
+                std::clamp(
+                    sceneSpan * 0.58f,
+                    7.0f,
+                    18.0f),
+            .innerConeDegrees = 20.0f,
+            .outerConeDegrees = 42.0f,
+            .importance = 1.05f,
+            .flickerAmount = 0.08f,
+            .flickerHz = 0.72f,
+            .castsShadows = true,
+            .volumetric = true,
+            .enabled = true,
+        },
+        {
+            .id = 10003U,
+            .type = xziel::LightType::Point,
+            .position = sidePosition,
+            .direction = {0.0f, -1.0f, 0.0f},
+            .colorLinear = {0.72f, 0.035f, 0.018f},
+            .intensity = 4.0f,
+            .rangeMeters =
+                std::clamp(
+                    sceneSpan * 0.30f,
+                    4.0f,
+                    10.0f),
+            .importance = 0.68f,
+            .flickerAmount = 0.34f,
+            .flickerHz = 2.35f,
+            .castsShadows = false,
+            .volumetric = false,
+            .enabled = true,
+        },
+        {
+            .id = 10004U,
+            .type = xziel::LightType::Spot,
+            .position = moonPosition,
+            .direction =
+                directionTo(
+                    moonPosition,
+                    centerTarget),
+            .colorLinear = {0.16f, 0.25f, 0.62f},
+            .intensity = 6.0f,
+            .rangeMeters =
+                std::clamp(
+                    sceneSpan * 0.48f,
+                    6.0f,
+                    16.0f),
+            .innerConeDegrees = 24.0f,
+            .outerConeDegrees = 48.0f,
+            .importance = 0.82f,
+            .flickerAmount = 0.0f,
+            .flickerHz = 0.0f,
+            .castsShadows = false,
+            .volumetric = true,
+            .enabled = true,
+        },
+    }};
+}
+
 xziel::android::VulkanEnvironmentState makeEnvironmentState(
     NativeAppState& state) noexcept {
     xziel::android::VulkanEnvironmentState environment{};
@@ -2096,10 +2267,8 @@ xziel::android::VulkanEnvironmentState makeEnvironmentState(
             rainIntensity;
 
     environment.fogDensity =
-        state.environmentFrame.
-            fogDensity +
-        state.horrorFrame.
-            fogDensityBoost;
+        state.lightingFrame.
+            fogDensity;
 
     environment.lightningFlash =
         state.environmentFrame.
@@ -2108,6 +2277,97 @@ xziel::android::VulkanEnvironmentState makeEnvironmentState(
     environment.wetness =
         state.environmentFrame.
             wetness;
+
+    environment.keyDirectionX =
+        state.lightingFrame.keyDirection.x;
+    environment.keyDirectionY =
+        state.lightingFrame.keyDirection.y;
+    environment.keyDirectionZ =
+        state.lightingFrame.keyDirection.z;
+    environment.keyIntensity =
+        state.lightingFrame.keyIntensity;
+
+    environment.keyColorR =
+        state.lightingFrame.keyColorLinear.x;
+    environment.keyColorG =
+        state.lightingFrame.keyColorLinear.y;
+    environment.keyColorB =
+        state.lightingFrame.keyColorLinear.z;
+
+    environment.ambientColorR =
+        state.lightingFrame.ambientColorLinear.x;
+    environment.ambientColorG =
+        state.lightingFrame.ambientColorLinear.y;
+    environment.ambientColorB =
+        state.lightingFrame.ambientColorLinear.z;
+    environment.ambientIntensity =
+        state.lightingFrame.ambientIntensity;
+
+    environment.fogColorR =
+        state.lightingFrame.fogColorLinear.x;
+    environment.fogColorG =
+        state.lightingFrame.fogColorLinear.y;
+    environment.fogColorB =
+        state.lightingFrame.fogColorLinear.z;
+    environment.fogHeightFalloff =
+        state.lightingFrame.fogHeightFalloff;
+
+    environment.exposureScale =
+        state.lightingFrame.exposureScale;
+    environment.contrast =
+        state.lightingFrame.contrast;
+    environment.saturation =
+        state.lightingFrame.saturation;
+
+    environment.localLightCount =
+        static_cast<std::uint32_t>(
+            std::min<std::size_t>(
+                state.lightingFrame.localLightCount,
+                xziel::android::kStaticMeshMaxLocalLights));
+
+    for (std::uint32_t lightIndex = 0U;
+         lightIndex < environment.localLightCount;
+         ++lightIndex) {
+        const auto& source =
+            state.lightingFrame.localLights[lightIndex];
+        auto& destination =
+            environment.localLights[lightIndex];
+
+        destination.x = source.position.x;
+        destination.y = source.position.y;
+        destination.z = source.position.z;
+        destination.rangeMeters =
+            source.rangeMeters;
+
+        destination.colorR =
+            source.colorLinear.x;
+        destination.colorG =
+            source.colorLinear.y;
+        destination.colorB =
+            source.colorLinear.z;
+        destination.intensity =
+            source.intensity;
+
+        destination.directionX =
+            source.direction.x;
+        destination.directionY =
+            source.direction.y;
+        destination.directionZ =
+            source.direction.z;
+        destination.type =
+            source.type == xziel::LightType::Spot
+            ? 1.0f
+            : 0.0f;
+
+        destination.innerConeCos =
+            source.innerConeCos;
+        destination.outerConeCos =
+            source.outerConeCos;
+        destination.volumetric =
+            source.volumetric
+            ? 1.0f
+            : 0.0f;
+    }
 
     environment.windX =
         state.environmentFrame.
@@ -3228,6 +3488,24 @@ extern "C" void android_main(
             makeRenderCamera(
                 state.player.frame(),
                 rigFrame);
+
+        const auto practicalLights =
+            makeHorrorPracticalLights(
+                state);
+
+        state.lightingFrame =
+            state.lighting.advance(
+                state.horrorFrame,
+                state.environmentFrame,
+                {
+                    camera.x,
+                    camera.y,
+                    camera.z,
+                },
+                practicalLights.data(),
+                practicalLights.size(),
+                state.renderWorkload.quality,
+                seconds);
 
         const auto hud =
             makeHudState(
