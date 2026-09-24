@@ -20,7 +20,7 @@ from server.memory import SessionMemory
 from server.attachments import AttachmentStore
 
 
-APP_VERSION = "0.3.0-lab"
+APP_VERSION = "0.3.1-lab"
 CONFIG_ENV = "PICHY_CONFIG"
 SERVER_TOKEN_ENV = "PICHY_SERVER_TOKEN"
 DATA_DIR_ENV = "PICHY_DATA_DIR"
