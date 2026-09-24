@@ -1007,6 +1007,13 @@ bool VulkanStaticMeshRenderer::initialize(
         return false;
     }
 
+    if (!buildCullClusters(asset)) {
+        logError(
+            "static cull cluster build failed");
+        shutdown();
+        return false;
+    }
+
     if (!createIndirectDrawBuffers()) {
         logError(
             "static draw submission scratch allocation failed");
@@ -1218,6 +1225,190 @@ void VulkanStaticMeshRenderer::cacheGpuBatchCullingSphere(
             extentX * extentX +
             extentY * extentY +
             extentZ * extentZ);
+}
+
+bool VulkanStaticMeshRenderer::buildCullClusters(
+    const StaticMeshAsset& asset) noexcept {
+    cullClusters_.clear();
+
+    if (asset.batches.size() !=
+            batches_.size() ||
+        asset.batches.empty()) {
+        return false;
+    }
+
+    const std::uint64_t estimatedClusters =
+        static_cast<std::uint64_t>(
+            asset.totalIndices) /
+            kCullClusterIndices +
+        asset.batches.size() +
+        1U;
+
+    if (estimatedClusters >
+        std::numeric_limits<std::size_t>::max()) {
+        return false;
+    }
+
+    try {
+        cullClusters_.reserve(
+            static_cast<std::size_t>(
+                estimatedClusters));
+    } catch (...) {
+        return false;
+    }
+
+    std::uint32_t maxClustersPerBatch = 0U;
+
+    for (std::size_t batchIndex = 0U;
+         batchIndex < asset.batches.size();
+         ++batchIndex) {
+        const auto& source =
+            asset.batches[batchIndex];
+        auto& batch =
+            batches_[batchIndex];
+
+        if (source.indices.empty() ||
+            source.vertices.empty() ||
+            source.indices.size() !=
+                batch.indexCount) {
+            cullClusters_.clear();
+            return false;
+        }
+
+        if (cullClusters_.size() >
+            std::numeric_limits<std::uint32_t>::max()) {
+            cullClusters_.clear();
+            return false;
+        }
+
+        batch.firstCluster =
+            static_cast<std::uint32_t>(
+                cullClusters_.size());
+        batch.clusterCount = 0U;
+
+        for (std::size_t first = 0U;
+             first < source.indices.size();
+             first += kCullClusterIndices) {
+            const std::size_t remaining =
+                source.indices.size() -
+                first;
+            const std::size_t count =
+                std::min<std::size_t>(
+                    remaining,
+                    kCullClusterIndices);
+
+            if (count == 0U ||
+                (count % 3U) != 0U ||
+                first >
+                    std::numeric_limits<std::uint32_t>::max() ||
+                count >
+                    std::numeric_limits<std::uint32_t>::max()) {
+                cullClusters_.clear();
+                return false;
+            }
+
+            float minX =
+                std::numeric_limits<float>::max();
+            float minY =
+                std::numeric_limits<float>::max();
+            float minZ =
+                std::numeric_limits<float>::max();
+            float maxX =
+                std::numeric_limits<float>::lowest();
+            float maxY =
+                std::numeric_limits<float>::lowest();
+            float maxZ =
+                std::numeric_limits<float>::lowest();
+
+            for (std::size_t i = first;
+                 i < first + count;
+                 ++i) {
+                const std::uint32_t vertexIndex =
+                    source.indices[i];
+
+                if (vertexIndex >=
+                    source.vertices.size()) {
+                    cullClusters_.clear();
+                    return false;
+                }
+
+                const auto& vertex =
+                    source.vertices[vertexIndex];
+
+                minX = std::min(minX, vertex.x);
+                minY = std::min(minY, vertex.y);
+                minZ = std::min(minZ, vertex.z);
+                maxX = std::max(maxX, vertex.x);
+                maxY = std::max(maxY, vertex.y);
+                maxZ = std::max(maxZ, vertex.z);
+            }
+
+            const float centerX =
+                (minX + maxX) * 0.5f;
+            const float centerY =
+                (minY + maxY) * 0.5f;
+            const float centerZ =
+                (minZ + maxZ) * 0.5f;
+            const float extentX =
+                (maxX - minX) * 0.5f;
+            const float extentY =
+                (maxY - minY) * 0.5f;
+            const float extentZ =
+                (maxZ - minZ) * 0.5f;
+
+            GpuCullCluster cluster{};
+            cluster.firstIndex =
+                batch.firstIndex +
+                static_cast<std::uint32_t>(
+                    first);
+            cluster.indexCount =
+                static_cast<std::uint32_t>(
+                    count);
+            cluster.cullCenterX = centerX;
+            cluster.cullCenterY = centerY;
+            cluster.cullCenterZ = centerZ;
+            cluster.cullRadius =
+                std::sqrt(
+                    extentX * extentX +
+                    extentY * extentY +
+                    extentZ * extentZ);
+
+            try {
+                cullClusters_.push_back(
+                    cluster);
+            } catch (...) {
+                cullClusters_.clear();
+                return false;
+            }
+
+            ++batch.clusterCount;
+        }
+
+        if (batch.clusterCount == 0U) {
+            cullClusters_.clear();
+            return false;
+        }
+
+        maxClustersPerBatch =
+            std::max(
+                maxClustersPerBatch,
+                batch.clusterCount);
+    }
+
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
+        "XZIEL_STATIC_CLUSTER_CULL_READY batches=%u clusters=%u cluster_triangles=%u max_clusters_per_batch=%u",
+        static_cast<unsigned int>(
+            batches_.size()),
+        static_cast<unsigned int>(
+            cullClusters_.size()),
+        static_cast<unsigned int>(
+            kCullClusterTriangles),
+        static_cast<unsigned int>(
+            maxClustersPerBatch));
+
+    return true;
 }
 
 void VulkanStaticMeshRenderer::rebuildStreamingCellBounds() noexcept {
@@ -4250,6 +4441,18 @@ void VulkanStaticMeshRenderer::record(
         0.01745329251994329577f;
     const float tanHalfFov =
         std::tan(halfFovRadians);
+    const float horizontalTanHalfFov =
+        tanHalfFov *
+        std::max(camera.aspect, 0.25f);
+    const float verticalPlaneRadiusScale =
+        std::sqrt(
+            1.0f +
+            tanHalfFov * tanHalfFov);
+    const float horizontalPlaneRadiusScale =
+        std::sqrt(
+            1.0f +
+            horizontalTanHalfFov *
+                horizontalTanHalfFov);
     constexpr float nearPlane = 0.08f;
     constexpr float farPlane = 180.0f;
 
@@ -4288,20 +4491,18 @@ void VulkanStaticMeshRenderer::record(
                 std::max(
                     viewZ,
                     nearPlane);
-            const float halfHeight =
-                projectedDepth *
-                tanHalfFov;
-            const float halfWidth =
-                halfHeight *
-                std::max(
-                    camera.aspect,
-                    0.25f);
 
-            return
-                std::abs(yawViewX) - radius <=
-                    halfWidth &&
-                std::abs(viewY) - radius <=
-                    halfHeight;
+            return !(
+                std::abs(yawViewX) -
+                        projectedDepth *
+                            horizontalTanHalfFov >
+                    radius *
+                        horizontalPlaneRadiusScale ||
+                std::abs(viewY) -
+                        projectedDepth *
+                            tanHalfFov >
+                    radius *
+                        verticalPlaneRadiusScale);
         };
 
     const auto streamBoundsForCell =
@@ -4322,6 +4523,9 @@ void VulkanStaticMeshRenderer::record(
 
                 return nullptr;
             };
+
+    std::uint32_t lastCommandBatchIndex =
+        UINT32_MAX;
 
     for (std::size_t batchIndex = 0U;
          batchIndex < batches_.size();
@@ -4426,6 +4630,7 @@ void VulkanStaticMeshRenderer::record(
 
         if (batch.materialIndex >=
             materials_.size()) {
+            ++frameStats_.culledBatches;
             continue;
         }
 
@@ -4470,58 +4675,127 @@ void VulkanStaticMeshRenderer::record(
             ? pipelineDoubleSided_
             : pipeline_;
 
-        if (desiredPipeline == VK_NULL_HANDLE) {
+        if (desiredPipeline == VK_NULL_HANDLE ||
+            batch.firstCluster >
+                cullClusters_.size() ||
+            batch.clusterCount >
+                cullClusters_.size() -
+                    batch.firstCluster) {
             ++frameStats_.culledBatches;
             continue;
         }
 
-        ++frameStats_.visibleBatches;
+        bool anyClusterVisible = false;
 
-        const std::uint32_t commandIndex =
-            static_cast<std::uint32_t>(
-                drawCommands_.size());
+        const std::uint32_t clusterEnd =
+            batch.firstCluster +
+            batch.clusterCount;
 
-        VkDrawIndexedIndirectCommand draw{};
-        draw.indexCount = batch.indexCount;
-        draw.instanceCount = 1U;
-        draw.firstIndex = batch.firstIndex;
-        draw.vertexOffset = batch.vertexOffset;
-        draw.firstInstance = 0U;
+        for (std::uint32_t clusterIndex =
+                 batch.firstCluster;
+             clusterIndex < clusterEnd;
+             ++clusterIndex) {
+            const auto& cluster =
+                cullClusters_[clusterIndex];
 
-        drawCommands_.push_back(draw);
+            if (!sphereVisible(
+                    cluster.cullCenterX,
+                    cluster.cullCenterY,
+                    cluster.cullCenterZ,
+                    cluster.cullRadius)) {
+                ++frameStats_.culledClusters;
+                frameStats_.
+                    clusterCulledTriangles +=
+                    static_cast<std::uint64_t>(
+                        cluster.indexCount / 3U);
+                continue;
+            }
 
-        const std::uint32_t geometryCellSlot =
-            cellGeometry
-            ? batch.geometryCellSlot
-            : UINT32_MAX;
+            anyClusterVisible = true;
+            ++frameStats_.visibleClusters;
+            frameStats_.submittedTriangles +=
+                static_cast<std::uint64_t>(
+                    cluster.indexCount / 3U);
 
-        const bool startsGroup =
-            drawGroups_.empty() ||
-            drawGroups_.back().materialIndex !=
-                batch.materialIndex ||
-            drawGroups_.back().geometryCellSlot !=
-                geometryCellSlot ||
-            drawGroups_.back().doubleSided !=
-                batch.doubleSided;
+            bool merged = false;
 
-        if (startsGroup) {
-            StaticDrawGroup group{};
-            group.firstCommand = commandIndex;
-            group.materialIndex =
-                batch.materialIndex;
-            group.geometryCellSlot =
-                geometryCellSlot;
-            group.doubleSided =
-                batch.doubleSided;
-            drawGroups_.push_back(group);
+            if (!drawCommands_.empty() &&
+                lastCommandBatchIndex ==
+                    batchIndex) {
+                auto& previous =
+                    drawCommands_.back();
+
+                if (previous.vertexOffset ==
+                        batch.vertexOffset &&
+                    previous.firstIndex +
+                            previous.indexCount ==
+                        cluster.firstIndex) {
+                    previous.indexCount +=
+                        cluster.indexCount;
+                    merged = true;
+                }
+            }
+
+            if (merged) {
+                continue;
+            }
+
+            const std::uint32_t commandIndex =
+                static_cast<std::uint32_t>(
+                    drawCommands_.size());
+
+            VkDrawIndexedIndirectCommand draw{};
+            draw.indexCount =
+                cluster.indexCount;
+            draw.instanceCount = 1U;
+            draw.firstIndex =
+                cluster.firstIndex;
+            draw.vertexOffset =
+                batch.vertexOffset;
+            draw.firstInstance = 0U;
+
+            drawCommands_.push_back(draw);
+            lastCommandBatchIndex =
+                static_cast<std::uint32_t>(
+                    batchIndex);
+
+            const std::uint32_t geometryCellSlot =
+                cellGeometry
+                ? batch.geometryCellSlot
+                : UINT32_MAX;
+
+            const bool startsGroup =
+                drawGroups_.empty() ||
+                drawGroups_.back().materialIndex !=
+                    batch.materialIndex ||
+                drawGroups_.back().geometryCellSlot !=
+                    geometryCellSlot ||
+                drawGroups_.back().doubleSided !=
+                    batch.doubleSided;
+
+            if (startsGroup) {
+                StaticDrawGroup group{};
+                group.firstCommand =
+                    commandIndex;
+                group.materialIndex =
+                    batch.materialIndex;
+                group.geometryCellSlot =
+                    geometryCellSlot;
+                group.doubleSided =
+                    batch.doubleSided;
+                drawGroups_.push_back(
+                    group);
+            }
+
+            ++drawGroups_.back().commandCount;
+            ++frameStats_.drawCalls;
         }
 
-        ++drawGroups_.back().commandCount;
-        ++frameStats_.drawCalls;
-        frameStats_.submittedTriangles +=
-            static_cast<std::uint64_t>(
-                batch.indexCount / 3U);
-
+        if (anyClusterVisible) {
+            ++frameStats_.visibleBatches;
+        } else {
+            ++frameStats_.culledBatches;
+        }
     }
 
     frameStats_.submissionGroups =
@@ -4710,7 +4984,7 @@ void VulkanStaticMeshRenderer::record(
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u draw_submissions=%u indirect_draws=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u multi_draw_indirect=%u cell_frustum_tests=%u cell_frustum_culled=%u cell_range_skipped=%u cell_frustum_skipped=%u batch_frustum_tests=%u",
+            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u draw_submissions=%u indirect_draws=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u multi_draw_indirect=%u cell_frustum_tests=%u cell_frustum_culled=%u cell_range_skipped=%u cell_frustum_skipped=%u batch_frustum_tests=%u visible_clusters=%u culled_clusters=%u cluster_culled_triangles=%llu triangles=%llu",
             static_cast<unsigned int>(
                 frameStats_.streamingCell),
             static_cast<unsigned int>(
@@ -4746,7 +5020,17 @@ void VulkanStaticMeshRenderer::record(
                 frameStats_.
                     cellFrustumSkippedBatches),
             static_cast<unsigned int>(
-                frameStats_.batchFrustumTests));
+                frameStats_.batchFrustumTests),
+            static_cast<unsigned int>(
+                frameStats_.visibleClusters),
+            static_cast<unsigned int>(
+                frameStats_.culledClusters),
+            static_cast<unsigned long long>(
+                frameStats_.
+                    clusterCulledTriangles),
+            static_cast<unsigned long long>(
+                frameStats_.
+                    submittedTriangles));
     }
 }
 
@@ -7952,9 +8236,14 @@ void VulkanStaticMeshRenderer::destroyTexture(
 bool VulkanStaticMeshRenderer::createIndirectDrawBuffers() noexcept {
     destroyIndirectDrawBuffers();
 
+    const std::size_t maxDraws =
+        std::max(
+            batches_.size(),
+            cullClusters_.size());
+
     try {
         drawCommands_.reserve(
-            batches_.size());
+            maxDraws);
         drawGroups_.reserve(
             batches_.size());
     } catch (...) {
@@ -7962,17 +8251,17 @@ bool VulkanStaticMeshRenderer::createIndirectDrawBuffers() noexcept {
     }
 
     if (!multiDrawIndirectEnabled_ ||
-        batches_.empty()) {
+        maxDraws == 0U) {
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
             "XZIEL_STATIC_DRAW_SUBMISSION_READY mode=direct max_draws=%u",
             static_cast<unsigned int>(
-                batches_.size()));
+                maxDraws));
         return true;
     }
 
-    if (batches_.size() >
+    if (maxDraws >
         std::numeric_limits<VkDeviceSize>::max() /
             sizeof(VkDrawIndexedIndirectCommand)) {
         multiDrawIndirectEnabled_ = false;
@@ -7981,7 +8270,7 @@ bool VulkanStaticMeshRenderer::createIndirectDrawBuffers() noexcept {
 
     const VkDeviceSize bytes =
         static_cast<VkDeviceSize>(
-            batches_.size()) *
+            maxDraws) *
         sizeof(VkDrawIndexedIndirectCommand);
 
     const VkMemoryPropertyFlags memoryFlags =
@@ -8024,7 +8313,7 @@ bool VulkanStaticMeshRenderer::createIndirectDrawBuffers() noexcept {
         static_cast<unsigned int>(
             kDescriptorFrames),
         static_cast<unsigned int>(
-            batches_.size()),
+            maxDraws),
         static_cast<unsigned long long>(
             bytes));
 
@@ -8067,6 +8356,7 @@ void VulkanStaticMeshRenderer::destroyIndirectDrawBuffers() noexcept {
 
 void VulkanStaticMeshRenderer::destroyGeometryResidency() noexcept {
     destroyIndirectDrawBuffers();
+    cullClusters_.clear();
     batches_.clear();
 
     if (device_ != VK_NULL_HANDLE) {
