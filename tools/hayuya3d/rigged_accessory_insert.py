@@ -180,6 +180,31 @@ def _blend_skin_weights(
     )
 
 
+def _surface_skin_transfer(
+    source_positions,
+    source_faces,
+    source_joints,
+    source_weights,
+    target_positions,
+):
+    from surface_transfer import (
+        blend_joint_weights_from_relation,
+        build_surface_transfer_relation,
+    )
+
+    relation = build_surface_transfer_relation(
+        source_positions,
+        source_faces,
+        target_positions,
+    )
+    joints, weights = blend_joint_weights_from_relation(
+        source_joints,
+        source_weights,
+        relation,
+    )
+    return joints, weights, relation
+
+
 def _legacy_payload_preserved(
     before_doc: dict,
     before_binary: bytes,
@@ -377,6 +402,26 @@ def _base_primitive(path: Path):
         _read_accessor(doc, binary, int(attrs["WEIGHTS_0"])),
         dtype=np.float64,
     )
+    if int(primitive.get("mode", 4)) != 4:
+        raise RuntimeError(
+            "new-vertex insertion requires TRIANGLES base primitive"
+        )
+    raw_indices = np.asarray(
+        _read_accessor(doc, binary, int(primitive["indices"])),
+        dtype=np.int64,
+    ).reshape(-1)
+    if len(raw_indices) % 3:
+        raise RuntimeError(
+            "base primitive index count is not divisible by three"
+        )
+    faces = raw_indices.reshape((-1, 3))
+    if len(faces) and (
+        int(np.min(faces)) < 0
+        or int(np.max(faces)) >= len(positions)
+    ):
+        raise RuntimeError(
+            "base primitive indices reference missing vertices"
+        )
     if positions.ndim != 2 or positions.shape[1] != 3:
         raise RuntimeError("base POSITION accessor is not VEC3")
     if joints.shape != (len(positions), 4):
@@ -407,6 +452,7 @@ def _base_primitive(path: Path):
         "skin_index": skin_index,
         "primitive": primitive,
         "positions": positions,
+        "faces": faces,
         "joints": joints,
         "weights": weights,
         "joint_component": joint_component,
@@ -977,17 +1023,27 @@ def insert_rigged_accessory(
         (
             transferred_joints,
             transferred_weights,
-            source_distance,
-            nearest,
-        ) = _blend_skin_weights(
+            surface_relation,
+        ) = _surface_skin_transfer(
             base_vertices,
+            base["faces"],
             base["joints"],
             base["weights"],
             aligned,
-            k=4,
         )
-        source_distance = np.asarray(source_distance, dtype=np.float64)
-        nearest = np.asarray(nearest, dtype=np.int64)
+        source_distance = np.asarray(
+            surface_relation.surface_distance,
+            dtype=np.float64,
+        )
+        nearest = np.asarray(
+            surface_relation.nearest_vertex_ids,
+            dtype=np.int64,
+        )
+        if int(surface_relation.fallback_vertices) > 0:
+            warnings.append(
+                "surface_transfer_fallback_vertices="
+                + str(int(surface_relation.fallback_vertices))
+            )
         source_ratio = source_distance / base_diag
         max_source_ratio = (
             float(np.max(source_ratio)) if len(source_ratio) else 0.0
@@ -1103,7 +1159,11 @@ def insert_rigged_accessory(
             target_out = {}
             for semantic in semantics:
                 deltas = _read_target_deltas(base, semantic)
-                source = deltas[target_index][nearest]
+                from surface_transfer import interpolate_vertex_values
+                source = interpolate_vertex_values(
+                    deltas[target_index],
+                    surface_relation,
+                )
                 accessor = _append_accessor(
                     doc,
                     blob,
