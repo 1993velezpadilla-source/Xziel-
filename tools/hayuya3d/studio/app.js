@@ -259,6 +259,7 @@ function renderFinalQa(qa) {
     ["Deformation", qa.deformation_ready],
     ["Face refs", qa.face_ready],
     ["Face evidence", qa.face_quality_ready],
+    ["Critical anatomy", qa.anatomy_ready],
   ];
   items.forEach(([label, ready]) => {
     const item = document.createElement("div");
@@ -270,6 +271,19 @@ function renderFinalQa(qa) {
     item.append(name, value);
     grid.appendChild(item);
   });
+
+  if (qa.anatomy_expected != null || qa.anatomy_evaluated != null) {
+    const item = document.createElement("div");
+    item.className = "qa-chip metric";
+    const name = document.createElement("span");
+    name.textContent = "Anatomy refs";
+    const value = document.createElement("strong");
+    const evaluated = Number(qa.anatomy_evaluated || 0);
+    const expected = Number(qa.anatomy_expected || 0);
+    value.textContent = evaluated + "/" + expected + " judged";
+    item.append(name, value);
+    grid.appendChild(item);
+  }
 
   if (qa.animation_channels != null || qa.animation_keyframes != null) {
     const item = document.createElement("div");
