@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -35,6 +36,9 @@ class QAPackageResult:
     turntable_score: float | None
     face_evidence_ready: bool
     face_evidence_score: float | None
+    face_evidence_expected: int
+    face_evidence_evaluated: int
+    face_evidence_missing: list[str]
     head_density_score: float | None
     head_texel_density_score: float | None
     head_texture_detail_score: float | None
@@ -71,6 +75,83 @@ def material_rebake_channel_summary(gameprep_data: dict | None) -> tuple[list[st
         pending.update(str(x) for x in (lod.get("rebake_required") or []) if x)
     # A channel still pending on any runtime LOD is not globally complete.
     return sorted(resolved-pending),sorted(pending)
+
+
+def face_reference_evidence(
+    detail_images: list[Path],
+    champion_data: dict,
+) -> tuple[list[Path], int, int, list[str], float | None, bool]:
+    """Require complete Judge coverage for every explicit face reference.
+
+    This intentionally does not invent a visual-quality threshold. It only
+    guarantees that a production-ready character cannot claim face evidence
+    from an aggregate score while silently skipping one or more supplied face
+    close-ups.
+    """
+    refs=[
+        p for p in detail_images
+        if infer_detail_region_hint(p)=="head"
+    ]
+    expected=len(refs)
+    if not refs:
+        return refs,0,0,[],None,True
+
+    raw_score=champion_data.get("appearance_face_detail_score")
+    aggregate_score=None
+    try:
+        value=float(raw_score)
+        if math.isfinite(value):
+            aggregate_score=value
+    except (TypeError,ValueError):
+        aggregate_score=None
+
+    candidates=[]
+    for item in champion_data.get("appearance_details") or []:
+        if not isinstance(item,dict):
+            continue
+        source=str(item.get("source") or "")
+        if not source:
+            continue
+        region=item.get("region_hint")
+        if region is None:
+            try:
+                region=infer_detail_region_hint(Path(source))
+            except Exception:
+                region=None
+        if region!="head":
+            continue
+        try:
+            score=float(item.get("score"))
+        except (TypeError,ValueError):
+            continue
+        if not math.isfinite(score):
+            continue
+        candidates.append((source,score))
+
+    consumed=set()
+    missing=[]
+    evaluated=0
+    for ref in refs:
+        ref_text=str(ref)
+        match_index=None
+        for index,(source,score) in enumerate(candidates):
+            if index in consumed:
+                continue
+            if source==ref_text or Path(source).name==ref.name:
+                match_index=index
+                break
+        if match_index is None:
+            missing.append(ref_text)
+        else:
+            consumed.add(match_index)
+            evaluated+=1
+
+    ready=bool(
+        aggregate_score is not None
+        and evaluated==expected
+        and not missing
+    )
+    return refs,expected,evaluated,missing,aggregate_score,ready
 
 
 def _thumbnail(path: Path, size: tuple[int, int]):
@@ -259,21 +340,29 @@ def build_qa_package(
             f"Judge source coverage {source_coverage}/{expected_sources}; not every geometry reference has a recorded visual view"
         )
 
-    face_detail_refs=[
-        p for p in detail_images
-        if infer_detail_region_hint(p)=="head"
-    ]
+    (
+        face_detail_refs,
+        face_evidence_expected,
+        face_evidence_evaluated,
+        face_evidence_missing,
+        face_evidence_score,
+        face_evidence_ready,
+    )=face_reference_evidence(detail_images,champion_data)
     face_evidence_required=bool(face_detail_refs)
-    face_evidence_score=champion_data.get("appearance_face_detail_score")
-    face_evidence_ready=bool(
-        not face_evidence_required
-        or face_evidence_score is not None
-    )
     if face_evidence_required and not face_evidence_ready:
-        warnings.append(
-            "face references were supplied but no face-detail identity Judge score "
-            "was recorded; asset remains inspectable but is not production-ready"
-        )
+        if face_evidence_score is None:
+            warnings.append(
+                "face references were supplied but no finite face-detail identity "
+                "Judge aggregate score was recorded; asset remains inspectable but "
+                "is not production-ready"
+            )
+        if face_evidence_missing:
+            warnings.append(
+                "face-reference Judge coverage incomplete: "
+                f"{face_evidence_evaluated}/{face_evidence_expected} evaluated; "
+                "missing="+",".join(face_evidence_missing)
+                +"; asset remains inspectable but is not production-ready"
+            )
 
     turntable_qa = None
     turntable_report_path = None
@@ -428,6 +517,9 @@ def build_qa_package(
             "required": face_evidence_required,
             "references": [str(p) for p in face_detail_refs],
             "score": face_evidence_score,
+            "expected": face_evidence_expected,
+            "evaluated": face_evidence_evaluated,
+            "missing_references": face_evidence_missing,
             "ready": face_evidence_ready,
         },
         "turntable_qa": asdict(turntable_qa) if turntable_qa is not None else None,
@@ -464,6 +556,9 @@ def build_qa_package(
             float(face_evidence_score)
             if face_evidence_score is not None else None
         ),
+        face_evidence_expected=face_evidence_expected,
+        face_evidence_evaluated=face_evidence_evaluated,
+        face_evidence_missing=list(face_evidence_missing),
         head_density_score=(
             float(mesh.head_density_score)
             if mesh.head_density_score is not None else None
