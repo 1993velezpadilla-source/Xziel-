@@ -28,8 +28,10 @@
       "max_zombie_spawns": 32,
       "supported_xmap_versions": [
         1,
-        2
-      ]
+        2,
+        3
+      ],
+      "max_lights": 32
     },
     "horde": {
       "max_active_zombies": 16,
@@ -85,7 +87,8 @@
       "max_doors": 12,
       "max_windows": 24,
       "max_generic_interactions": 12,
-      "max_zombie_spawns": 24
+      "max_zombie_spawns": 24,
+      "max_lights": 24
     },
     "horde": {
       "max_active_zombies": 16,
