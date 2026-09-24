@@ -271,8 +271,7 @@ def persist_generated_image(
     return item.attachment_id
 
 
-@app.get("/health")
-def health() -> dict[str, Any]:
+def health_payload() -> dict[str, Any]:
     return {
         "ok": True,
         "name": "Pichy AI",
@@ -281,6 +280,21 @@ def health() -> dict[str, Any]:
         "sessions": len(_sessions),
         "persistent_memory": True,
     }
+
+
+@app.get("/")
+def root() -> dict[str, Any]:
+    return health_payload()
+
+
+@app.head("/")
+def root_head() -> None:
+    return None
+
+
+@app.get("/health")
+def health() -> dict[str, Any]:
+    return health_payload()
 
 
 @app.get("/v1/capabilities", dependencies=[Depends(require_token)])
