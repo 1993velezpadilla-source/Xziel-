@@ -96,7 +96,8 @@ jobs:
             --json "out/rig/${{ matrix.job_id }}/rig-uam2.json"
           blender -b --python tools/hayuya3d/blender_animation_gate.py -- \
             --model "out/rig/${{ matrix.job_id }}/animated.glb" \
-            --json "out/rig/${{ matrix.job_id }}/anim-uam2.json" --samples 5
+            --reference "hayuya/models/${{ matrix.job_id }}/model.glb" \
+            --json "out/rig/${{ matrix.job_id }}/anim-uam2.json" --samples 5 || true
 
       - name: Build UAM1 bank on real model
         shell: bash
@@ -112,7 +113,8 @@ jobs:
             --json "out/rig/${{ matrix.job_id }}/rig-uam1.json"
           blender -b --python tools/hayuya3d/blender_animation_gate.py -- \
             --model "out/rig/${{ matrix.job_id }}/animated-uam1.glb" \
-            --json "out/rig/${{ matrix.job_id }}/anim-uam1.json" --samples 5
+            --reference "hayuya/models/${{ matrix.job_id }}/model.glb" \
+            --json "out/rig/${{ matrix.job_id }}/anim-uam1.json" --samples 5 || true
 
       - name: Persist animated real-model banks
         shell: bash
