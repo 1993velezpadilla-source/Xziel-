@@ -67,16 +67,17 @@ def blender_runtime_ready(blender_raw:str)->tuple[bool,str|None]:
         return False,f"{type(exc).__name__}:{exc}"
 
 
-def build_normal_rebake_command(
+def build_material_rebake_command(
     blender:Path,
     source_mesh:Path,
     target_mesh:Path,
     output_glb:Path,
     report:Path,
     *,
+    channels:list[str],
     size:int,
 )->list[str]:
-    return [
+    cmd=[
         str(blender),
         "--background",
         "--factory-startup",
@@ -87,8 +88,26 @@ def build_normal_rebake_command(
         "--target",str(target_mesh.resolve()),
         "--output",str(output_glb.resolve()),
         "--report",str(report.resolve()),
-        "--size",str(int(size)),
     ]
+    for channel in sorted(set(channels)):
+        cmd.extend(["--channel",channel])
+    cmd.extend(["--size",str(int(size))])
+    return cmd
+
+
+def build_normal_rebake_command(
+    blender:Path,
+    source_mesh:Path,
+    target_mesh:Path,
+    output_glb:Path,
+    report:Path,
+    *,
+    size:int,
+)->list[str]:
+    return build_material_rebake_command(
+        blender,source_mesh,target_mesh,output_glb,report,
+        channels=["normal"],size=size,
+    )
 
 
 def rebake_material_channels(
@@ -106,18 +125,19 @@ def rebake_material_channels(
     blender_path=find_blender(blender)
     blender_ready=False
     blender_runtime_error=None
-    if blender_path is not None and "normal" in remaining:
+    supported_requested=sorted(set(remaining)&{"normal","occlusion"})
+    if blender_path is not None and supported_requested:
         blender_ready,blender_runtime_error=blender_runtime_ready(str(blender_path))
 
     output_glb.parent.mkdir(parents=True,exist_ok=True)
     report_path=output_glb.with_suffix(".rebake.json")
 
-    if "normal" not in remaining or blender_path is None or not blender_ready:
+    if not supported_requested or blender_path is None or not blender_ready:
         if target_mesh.resolve()!=output_glb.resolve():
             shutil.copy2(target_mesh,output_glb)
         unavailable_method=(
             "nothing_supported_requested"
-            if "normal" not in remaining
+            if not supported_requested
             else "blender_unavailable"
             if blender_path is None
             else "blender_runtime_incomplete"
@@ -137,21 +157,22 @@ def rebake_material_channels(
     attempted=True
     error=None
     try:
-        cmd=build_normal_rebake_command(
+        cmd=build_material_rebake_command(
             blender_path,
             source_mesh,
             target_mesh,
             output_glb,
             report_path,
+            channels=supported_requested,
             size=max(64,min(8192,int(max_texture_size))),
         )
         subprocess.run(cmd,check=True)
 
         if not output_glb.is_file() or output_glb.read_bytes()[:4]!=b"glTF":
-            raise RuntimeError("normal_rebake_missing_or_invalid_glb")
+            raise RuntimeError("material_rebake_missing_or_invalid_glb")
 
-        # Never clear the blocker merely because Blender returned zero.
-        # Verify the exported runtime asset actually advertises a normal channel.
+        # Never clear blockers merely because Blender returned zero. Verify every
+        # resolved runtime channel against the exported GLB itself.
         from qa import inspect_mesh
         inspected=inspect_mesh(
             output_glb,
@@ -159,15 +180,20 @@ def rebake_material_channels(
             mode="prop",
             target_faces=1,
         )
-        if "normal" not in set(inspected.pbr_channels or []):
+        present=set(inspected.pbr_channels or [])
+        for channel in supported_requested:
+            if channel in present:
+                resolved.add(channel)
+                remaining.discard(channel)
+        missing=sorted(set(supported_requested)-resolved)
+        if missing:
             raise RuntimeError(
-                "normal_rebake_output_has_no_normal_channel:"
-                + ",".join(inspected.pbr_channels or [])
+                "material_rebake_output_missing_channels:"
+                + ",".join(missing)
+                + ":present="
+                + ",".join(sorted(present))
             )
-
-        resolved.add("normal")
-        remaining.discard("normal")
-        method="blender_cycles_selected_to_active_tangent_normal_v1"
+        method="blender_cycles_topology_material_rebake_v2"
     except Exception as exc:
         error=f"{type(exc).__name__}:{exc}"
         method="normal_rebake_failed"
