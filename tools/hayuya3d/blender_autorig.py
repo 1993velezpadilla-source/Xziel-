@@ -454,6 +454,11 @@ def main():
     if len(bone_segments)<12:
         raise RuntimeError(f"insufficient_major_bone_segments:{len(bone_segments)}<12")
 
+    head_segment=next((seg for seg in bone_segments if seg["name"].lower()=="head" or "head" in seg["name"].lower()),None)
+    neck_segment=next((seg for seg in bone_segments if "neck" in seg["name"].lower()),None)
+    if head_segment is None:
+        raise RuntimeError("major_head_bone_missing")
+
     segment_by_name={seg["name"]:seg for seg in bone_segments}
     major_names=set(segment_by_name)
     bone_neighbors={name:set() for name in major_names}
@@ -495,20 +500,35 @@ def main():
         for v in mesh.data.vertices:
             world=mesh.matrix_world @ v.co
             target_side=side_of(world,target_center_fit,width_axis)
-            scored=[]
-            for seg in bone_segments:
-                if target_side and seg["side"] and target_side!=seg["side"]:
-                    continue
-                dist=point_segment_distance(world,seg["a"],seg["b"])
-                radius=max(target_height*0.035,seg["length"]*0.42)
-                score=1.0/((dist+radius*0.35)**2)
-                scored.append((score,seg["name"],dist))
-            if not scored:
+            height_norm=(
+                (axis_value(world,target_axis)-axis_value(target_min,target_axis))
+                / max(1e-8,target_height)
+            )
+
+            # Face/head safety zone. This model class currently has no facial
+            # rig, so allowing the visible face surface to interpolate between
+            # neck/clavicle/spine bones can only create distortion. Above 76%
+            # of body height, make Head authoritative. This matches the
+            # deformation gate's top-body face region without freezing shoulder
+            # or arm articulation.
+            semantic_head_zone=height_norm>=0.76
+            if semantic_head_zone:
+                scored=[(1.0e12,head_segment["name"],0.0)]
+            else:
+                scored=[]
                 for seg in bone_segments:
+                    if target_side and seg["side"] and target_side!=seg["side"]:
+                        continue
                     dist=point_segment_distance(world,seg["a"],seg["b"])
                     radius=max(target_height*0.035,seg["length"]*0.42)
-                    scored.append((1.0/((dist+radius*0.35)**2),seg["name"],dist))
-            scored.sort(reverse=True,key=lambda x:x[0])
+                    score=1.0/((dist+radius*0.35)**2)
+                    scored.append((score,seg["name"],dist))
+                if not scored:
+                    for seg in bone_segments:
+                        dist=point_segment_distance(world,seg["a"],seg["b"])
+                        radius=max(target_height*0.035,seg["length"]*0.42)
+                        scored.append((1.0/((dist+radius*0.35)**2),seg["name"],dist))
+                scored.sort(reverse=True,key=lambda x:x[0])
             dominant=scored[0][1]
             bone_top1_counts[dominant]=bone_top1_counts.get(dominant,0)+1
 
@@ -517,7 +537,7 @@ def main():
             # silhouette. Blend only the dominant bone and its immediate
             # skeletal neighbours. This preserves rigid facial/head surfaces
             # while retaining smooth elbow/knee/shoulder transitions.
-            allowed={dominant}|bone_neighbors.get(dominant,set())
+            allowed=({head_segment["name"]} if semantic_head_zone else ({dominant}|bone_neighbors.get(dominant,set())))
             allowed_groups_by_vertex[v.index]=set(allowed)
             local=[]
             for score,name,dist in scored:
@@ -557,6 +577,7 @@ def main():
             "groups":len(mesh.vertex_groups),
             "method":"adjacency_python_anatomical_mask_v2",
             "anatomical_mask_enforced":True,
+            "semantic_head_zone":{"min_height_norm":0.76,"bone":head_segment["name"]},
         }
         try:
             adjacency=[set() for _ in mesh.data.vertices]
@@ -858,7 +879,7 @@ def main():
         "animation_retarget":animation_retarget,
         "export_meshes":remaining_meshes,
         "sterile_export_scene_meshes":export_scene_meshes,
-        "binding_method":"uniform_armature_component_coherent_v30",
+        "binding_method":"uniform_component_coherent_semantic_head_v31",
         "bind_results":bind_results,
         "output_bytes":args.output.stat().st_size if args.output.exists() else 0,
     }
