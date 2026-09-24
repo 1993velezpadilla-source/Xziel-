@@ -143,8 +143,8 @@ def insert_split_rigged_accessory(
         _append_accessor,
         _base_primitive,
         _bbox,
-        _blend_skin_weights,
         _legacy_payload_preserved,
+        _surface_skin_transfer,
         _pack_joints,
         _read_target_deltas,
     )
@@ -287,17 +287,27 @@ def insert_split_rigged_accessory(
             (
                 joints,
                 weights,
-                source_distance,
-                nearest,
-            ) = _blend_skin_weights(
+                surface_relation,
+            ) = _surface_skin_transfer(
                 base_vertices,
+                base["faces"],
                 base["joints"],
                 base["weights"],
                 aligned,
-                k=4,
             )
-            source_distance = np.asarray(source_distance, dtype=np.float64)
-            nearest = np.asarray(nearest, dtype=np.int64)
+            source_distance = np.asarray(
+                surface_relation.surface_distance,
+                dtype=np.float64,
+            )
+            nearest = np.asarray(
+                surface_relation.nearest_vertex_ids,
+                dtype=np.int64,
+            )
+            if int(surface_relation.fallback_vertices) > 0:
+                warnings.append(
+                    "surface_transfer_fallback_vertices="
+                    + str(int(surface_relation.fallback_vertices))
+                )
             source_ratio = source_distance / base_diag
             all_source_ratios.extend(source_ratio.tolist())
             if len(source_ratio) and float(np.max(source_ratio)) > (
@@ -389,7 +399,11 @@ def insert_split_rigged_accessory(
             for target_index in range(len(base_targets)):
                 target_out = {}
                 for semantic in semantics:
-                    source_delta = target_deltas[semantic][target_index][nearest]
+                    from surface_transfer import interpolate_vertex_values
+                    source_delta = interpolate_vertex_values(
+                        target_deltas[semantic][target_index],
+                        surface_relation,
+                    )
                     accessor = _append_accessor(
                         doc,
                         blob,
