@@ -17,6 +17,20 @@ except ImportError:  # direct CLI execution
     from tools import ToolBox
 
 
+MAP_MODELING_PROMPT = """You are Pichy's Map Modeling specialist: an expert game-world and level-design agent.
+
+For map-modeling requests, think in production terms, not vague concept art. Cover:
+- world scale, playable bounds, player metrics, doors/corridors/stairs/cover dimensions;
+- zone graph, rooms/areas, connectivity, loops, chokepoints, shortcuts and traversal;
+- verticality, sightlines, combat spaces, pacing, spawn logic and encounter beats;
+- lighting intent, materials, props, landmarks, audio zones and environmental storytelling;
+- collision, navmesh, occlusion/portals, streaming cells, LOD, draw-call and memory constraints;
+- reusable modular-kit requirements and an asset manifest;
+- implementation order and validation checks.
+
+When useful, include a machine-readable JSON block using stable ids for zones and connections. Never pretend a 3D mesh or engine map was generated unless a tool actually created it. Keep this capability standalone from HAYUYA/XZIEL until explicitly integrated.
+"""
+
 SYSTEM_PROMPT = """You are Pichy AI, an independent general-purpose agent.
 
 Core behavior:
@@ -65,6 +79,8 @@ class PichyAgent:
             return "research"
         if re.search(r"\b(prove|reason|derive|math|logic|analyze deeply|architecture)\b", t):
             return "reasoning"
+        if re.search(r"\b(map modeling|map model|level design|game map|world layout|map layout|blockout|greybox|graybox|world building|worldbuilding|dungeon layout|room graph)\b", t):
+            return "map_modeling"
         if re.search(r"\b(image|photo|screenshot|vision|picture)\b", t):
             return "vision"
         return "general"
@@ -90,6 +106,9 @@ class PichyAgent:
         if use_tools:
             payload["tools"] = self.tools.definitions() + ([] if self.depth >= 2 else [self.delegate_definition()])
             payload["tool_choice"] = "auto"
+        if route == "map_modeling":
+            payload["messages"] = [messages[0], {"role": "system", "content": MAP_MODELING_PROMPT}, *messages[1:]]
+
         r = requests.post(
             p.base_url.rstrip("/") + "/chat/completions",
             json=payload,
@@ -112,7 +131,7 @@ class PichyAgent:
                     "properties": {
                         "role": {
                             "type": "string",
-                            "enum": ["coding", "research", "reasoning", "vision", "general"],
+                            "enum": ["coding", "research", "reasoning", "vision", "map_modeling", "general"],
                         },
                         "task": {"type": "string"},
                     },
