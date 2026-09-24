@@ -55,16 +55,19 @@ class RegionalFusionTests(unittest.TestCase):
             self.assertTrue(output.is_file())
             self.assertEqual(output.read_bytes()[:4],b"glTF")
             self.assertIsNotNone(result.seam_max_displacement_normalized)
+            self.assertIsNotNone(result.seam_max_displacement_normalized)
             self.assertLessEqual(
-                result.seam_max_displacement_normalized or 1.0,
+                float(result.seam_max_displacement_normalized),
                 0.012,
             )
+            self.assertIsNotNone(result.max_displacement_normalized)
             self.assertLessEqual(
-                result.max_displacement_normalized or 1.0,
+                float(result.max_displacement_normalized),
                 0.055001,
             )
+            self.assertIsNotNone(result.bbox_drift_fraction)
             self.assertLessEqual(
-                result.bbox_drift_fraction or 1.0,
+                float(result.bbox_drift_fraction),
                 0.08,
             )
 
@@ -128,8 +131,9 @@ class RegionalFusionTests(unittest.TestCase):
             )
             self.assertTrue(result.attempted)
             self.assertGreater(result.clamped_vertices,0)
+            self.assertIsNotNone(result.max_displacement_normalized)
             self.assertLessEqual(
-                result.max_displacement_normalized or 1.0,
+                float(result.max_displacement_normalized),
                 0.055001,
             )
 
