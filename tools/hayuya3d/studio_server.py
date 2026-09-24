@@ -270,6 +270,14 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
             "production_ready": _bool("production_ready"),
             "material_ready": _bool("material_ready"),
             "rebake_ready": _bool("rebake_ready"),
+            "rebaked_channels": (
+                [] if values.get("rebaked") in (None,"","none")
+                else [x for x in values["rebaked"].split(",") if x]
+            ),
+            "rebake_pending_channels": (
+                [] if values.get("rebake_pending") in (None,"","none")
+                else [x for x in values["rebake_pending"].split(",") if x]
+            ),
             "rig_ready": _bool("rig_ready"),
             "animation_ready": _bool("animation_ready"),
             "face_ready": _bool("face_ready"),
