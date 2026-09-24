@@ -5015,37 +5015,9 @@ void VulkanStaticMeshRenderer::record(
             visibleDrawCandidates_.size());
 
     if (visibleDrawCandidates_.size() > 1U) {
-        std::sort(
-            visibleDrawCandidates_.begin(),
-            visibleDrawCandidates_.end(),
+        const auto depthLess =
             [&](const VisibleDrawCandidate& a,
                 const VisibleDrawCandidate& b) noexcept {
-                const auto& batchA =
-                    batches_[a.batchIndex];
-                const auto& batchB =
-                    batches_[b.batchIndex];
-
-                if (batchA.geometryCellSlot !=
-                    batchB.geometryCellSlot) {
-                    return
-                        batchA.geometryCellSlot <
-                        batchB.geometryCellSlot;
-                }
-
-                if (batchA.materialIndex !=
-                    batchB.materialIndex) {
-                    return
-                        batchA.materialIndex <
-                        batchB.materialIndex;
-                }
-
-                if (batchA.doubleSided !=
-                    batchB.doubleSided) {
-                    return
-                        batchA.doubleSided <
-                        batchB.doubleSided;
-                }
-
                 if (a.viewDepth !=
                     b.viewDepth) {
                     return
@@ -5054,9 +5026,114 @@ void VulkanStaticMeshRenderer::record(
                 }
 
                 return
-                    batchA.sourceBatchIndex <
-                    batchB.sourceBatchIndex;
-            });
+                    batches_[a.batchIndex].
+                        sourceBatchIndex <
+                    batches_[b.batchIndex].
+                        sourceBatchIndex;
+            };
+
+        if (cellGeometry) {
+            // Cell geometry is permanently sorted at upload time by
+            // geometry/material/cull mode. Visibility only removes entries,
+            // so compatible submission groups remain contiguous here.
+            // Sorting depth inside each group preserves the exact grouping
+            // needed by multi-draw-indirect without paying for a global
+            // O(N log N) key comparison every frame.
+            std::size_t groupBegin = 0U;
+
+            while (groupBegin <
+                   visibleDrawCandidates_.size()) {
+                const auto& firstBatch =
+                    batches_[
+                        visibleDrawCandidates_[
+                            groupBegin].
+                            batchIndex];
+
+                std::size_t groupEnd =
+                    groupBegin + 1U;
+
+                while (groupEnd <
+                       visibleDrawCandidates_.size()) {
+                    const auto& candidateBatch =
+                        batches_[
+                            visibleDrawCandidates_[
+                                groupEnd].
+                                batchIndex];
+
+                    if (candidateBatch.
+                            geometryCellSlot !=
+                            firstBatch.
+                                geometryCellSlot ||
+                        candidateBatch.
+                            materialIndex !=
+                            firstBatch.
+                                materialIndex ||
+                        candidateBatch.
+                            doubleSided !=
+                            firstBatch.
+                                doubleSided) {
+                        break;
+                    }
+
+                    ++groupEnd;
+                }
+
+                if (groupEnd -
+                        groupBegin >
+                    1U) {
+                    std::sort(
+                        visibleDrawCandidates_.
+                            begin() +
+                            static_cast<
+                                std::ptrdiff_t>(
+                                groupBegin),
+                        visibleDrawCandidates_.
+                            begin() +
+                            static_cast<
+                                std::ptrdiff_t>(
+                                groupEnd),
+                        depthLess);
+                }
+
+                groupBegin = groupEnd;
+            }
+        } else {
+            // Legacy/shared geometry is not guaranteed to be pre-grouped.
+            // Keep the full ordering comparator for that compatibility path.
+            std::sort(
+                visibleDrawCandidates_.begin(),
+                visibleDrawCandidates_.end(),
+                [&](const VisibleDrawCandidate& a,
+                    const VisibleDrawCandidate& b) noexcept {
+                    const auto& batchA =
+                        batches_[a.batchIndex];
+                    const auto& batchB =
+                        batches_[b.batchIndex];
+
+                    if (batchA.geometryCellSlot !=
+                        batchB.geometryCellSlot) {
+                        return
+                            batchA.geometryCellSlot <
+                            batchB.geometryCellSlot;
+                    }
+
+                    if (batchA.materialIndex !=
+                        batchB.materialIndex) {
+                        return
+                            batchA.materialIndex <
+                            batchB.materialIndex;
+                    }
+
+                    if (batchA.doubleSided !=
+                        batchB.doubleSided) {
+                        return
+                            batchA.doubleSided <
+                            batchB.doubleSided;
+                    }
+
+                    return depthLess(a, b);
+                });
+        }
 
         for (std::uint32_t i = 0U;
              i <
