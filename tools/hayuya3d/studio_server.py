@@ -321,6 +321,10 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
             "material_groups":_int_value("material_groups"),
             "weight_transfer_vertices":_int_value("weight_transfer_vertices"),
             "weight_source_max":_float_value("weight_source_max"),
+            "surface_transfer":values.get("surface_transfer"),
+            "surface_fallback_vertices":_int_value(
+                "surface_fallback_vertices"
+            ),
             "morph_targets_transferred":_int_value("morph_targets_transferred"),
             "geometry_ready":_bool_value("geometry_ready"),
             "legacy_preserved":_bool_value("legacy_preserved"),
