@@ -213,6 +213,21 @@ def evaluate_aaa_acceptance(
             f"skins={rig.get('skins')} joints={rig.get('joint_count')}",
             blocker="character has no validated skin/rig",
         )
+        morph_count=int(rig.get("morph_target_count") or 0)
+        if morph_count>0:
+            _gate(
+                gates,"character.morph_targets","character",
+                bool(rig.get("morph_ready")),
+                (
+                    f"morph_meshes={rig.get('morph_mesh_count')} "
+                    f"morph_primitives={rig.get('morph_primitive_count')} "
+                    f"morph_targets={morph_count}"
+                ),
+                blocker=(
+                    "character morph/blendshape payload is malformed "
+                    "or expression wiring is invalid"
+                ),
+            )
         skin_weights=qa_report.get("skin_weights") or {}
         _gate(
             gates,"character.skin_weights","character",
