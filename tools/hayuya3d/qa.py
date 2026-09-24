@@ -40,7 +40,9 @@ class MeshScore:
     head_region_faces: int = 0
     head_region_vertices: int = 0
     head_region_face_fraction: float | None = None
+    global_median_edge_normalized: float | None = None
     head_region_median_edge_normalized: float | None = None
+    head_region_density_ratio: float | None = None
     bbox: list[float] | None = None
     notes: list[str] | None = None
 
@@ -207,12 +209,33 @@ def inspect_mesh(
             up_axis = int(np.argmax(np.abs(extents)))
             body_min = float(np.min(mesh.vertices[:, up_axis]))
             body_span = max(1e-12, float(extents[up_axis]))
+            all_faces = np.asarray(mesh.faces)
+            all_tri = np.asarray(mesh.vertices)[all_faces]
+            all_edges = np.concatenate(
+                (
+                    np.linalg.norm(all_tri[:,0]-all_tri[:,1],axis=1),
+                    np.linalg.norm(all_tri[:,1]-all_tri[:,2],axis=1),
+                    np.linalg.norm(all_tri[:,2]-all_tri[:,0],axis=1),
+                )
+            )
+            finite_global_edges = all_edges[
+                np.isfinite(all_edges) & (all_edges>1e-12)
+            ]
+            body_diag = max(1e-12, float(np.linalg.norm(extents)))
+            global_median_edge = None
+            if len(finite_global_edges):
+                global_median_edge = float(np.median(finite_global_edges))
+                result.global_median_edge_normalized = round(
+                    global_median_edge/body_diag,
+                    8,
+                )
+
             face_centers = np.asarray(mesh.triangles_center)[:, up_axis]
             head_mask = ((face_centers - body_min) / body_span) >= 0.72
             head_face_indices = np.nonzero(head_mask)[0]
             result.head_region_faces = int(len(head_face_indices))
             if len(head_face_indices):
-                head_faces = np.asarray(mesh.faces)[head_face_indices]
+                head_faces = all_faces[head_face_indices]
                 head_vertices = np.unique(head_faces.reshape(-1))
                 result.head_region_vertices = int(len(head_vertices))
                 result.head_region_face_fraction = round(
@@ -228,12 +251,22 @@ def inspect_mesh(
                     )
                 )
                 finite_edges = edges[np.isfinite(edges) & (edges>1e-12)]
-                body_diag = max(1e-12, float(np.linalg.norm(extents)))
                 if len(finite_edges):
+                    head_median_edge=float(np.median(finite_edges))
                     result.head_region_median_edge_normalized = round(
-                        float(np.median(finite_edges))/body_diag,
+                        head_median_edge/body_diag,
                         8,
                     )
+                    if global_median_edge is not None and head_median_edge>1e-12:
+                        result.head_region_density_ratio=round(
+                            global_median_edge/head_median_edge,
+                            4,
+                        )
+                        if result.head_region_density_ratio < 1.0:
+                            result.notes.append(
+                                f"head region is coarser than global mesh: "
+                                f"density_ratio={result.head_region_density_ratio:.3f}x"
+                            )
 
         has_uv = False
         textured = False
