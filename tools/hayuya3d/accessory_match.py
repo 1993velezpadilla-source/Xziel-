@@ -385,8 +385,8 @@ def main()->int:
         choices=["prop","character","architecture"],
         required=True,
     )
-    parser.add_argument("--base-up-axis",choices=["y","z"],default="y")
-    parser.add_argument("--donor-up-axis",choices=["y","z"])
+    parser.add_argument("--base-up-axis",choices=["x","y","z"],default="y")
+    parser.add_argument("--donor-up-axis",choices=["x","y","z"])
     parser.add_argument("--json",type=Path)
     args=parser.parse_args()
     result=match_accessories(
