@@ -1074,6 +1074,8 @@ jobs:
             echo "XZIEL_CULL_SPHERES_CACHED batches=${CULL_SPHERE_BATCHES}"
 
             grep -q "XZIEL_STREAM_GEOMETRY_CELLS_READY cells=" dist/sanctum-hq-logcat.txt
+          grep -Eq "XZIEL_GEOMETRY_HEAT_EVENT_DRIVEN_READY cells=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
+          echo "XZIEL_GEOMETRY_HEAT_EVENT_DRIVEN_ACTIVE"
             GEOMETRY_CELLS="$(grep "XZIEL_STREAM_GEOMETRY_CELLS_READY" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* cells=\([0-9][0-9]*\).*/\1/p')"
             GEOMETRY_BUFFERS="$(grep "XZIEL_STREAM_GEOMETRY_CELLS_READY" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* buffers=\([0-9][0-9]*\).*/\1/p')"
             test "${GEOMETRY_CELLS}" -gt 1

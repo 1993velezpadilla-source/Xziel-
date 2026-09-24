@@ -3724,26 +3724,19 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
         static_cast<std::uint8_t>(
             (1U << kDescriptorFrames) - 1U);
 
-    for (std::size_t i = 0U;
-         i < geometryCellCount_;
-         ++i) {
-        auto& cell =
-            geometryCells_[i];
-
-        cell.heat =
-            cell.pinned
-            ? StreamCellHeat::Hot
-            : cell.plannedHeat;
-
-        if (geometryResidencyProbeEnabled_ &&
-            !geometryResidencyProbeComplete_ &&
-            geometryResidencyProbeCellSlot_ ==
-                i &&
-            runtimeTextureTransitionFrame_ >=
-                geometryResidencyProbeReloadFrame_) {
-            cell.heat =
-                StreamCellHeat::Preload;
-        }
+    // Cell heat is updated when the stream plan rebuilds. Stable frames
+    // keep that state untouched; only the geometry reload probe temporarily
+    // overrides one cell instead of rewriting every geometry cell each frame.
+    if (geometryResidencyProbeEnabled_ &&
+        !geometryResidencyProbeComplete_ &&
+        geometryResidencyProbeCellSlot_ <
+            geometryCellCount_ &&
+        runtimeTextureTransitionFrame_ >=
+            geometryResidencyProbeReloadFrame_) {
+        geometryCells_[
+            geometryResidencyProbeCellSlot_].
+                heat =
+                    StreamCellHeat::Preload;
     }
 
     if (geometryReloadCellSlot_ !=
@@ -4309,6 +4302,10 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
                 completedSlot) {
             geometryResidencyProbeComplete_ =
                 true;
+            cell.heat =
+                cell.pinned
+                ? StreamCellHeat::Hot
+                : cell.plannedHeat;
         }
 
         return;
@@ -7251,6 +7248,13 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
             static_cast<std::uint64_t>(
                 geometryCellVertexBytes_ +
                 geometryCellIndexBytes_);
+
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_GEOMETRY_HEAT_EVENT_DRIVEN_READY cells=%u",
+            static_cast<unsigned int>(
+                geometryCellCount_));
 
         __android_log_print(
             ANDROID_LOG_INFO,
