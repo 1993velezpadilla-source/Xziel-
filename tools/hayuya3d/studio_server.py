@@ -317,6 +317,8 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
             "changed_vertices":_int_value("changed_vertices"),
             "inserted_vertices":_int_value("inserted_vertices"),
             "inserted_faces":_int_value("inserted_faces"),
+            "inserted_primitives":_int_value("inserted_primitives"),
+            "material_groups":_int_value("material_groups"),
             "weight_transfer_vertices":_int_value("weight_transfer_vertices"),
             "weight_source_max":_float_value("weight_source_max"),
             "morph_targets_transferred":_int_value("morph_targets_transferred"),
