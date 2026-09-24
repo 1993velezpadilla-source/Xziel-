@@ -25,7 +25,7 @@ jobs:
     timeout-minutes: 45
     env:
       GH_TOKEN: ${{ github.token }}
-      SOURCE_RUN_ID: "35820034705"
+      SOURCE_RUN_ID: "35972301681"
       SOURCE_ARTIFACT: "Xziel-Sanctum-Clean-Source"
       KTX_VERSION: "4.4.2"
 
@@ -44,7 +44,14 @@ jobs:
           gh api "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" > pack/source.zip
           unzip -q pack/source.zip -d pack/root
           STATIC_ROOT="$(find pack/root -type d -path '*/xziel_native_static' -print -quit)"
+          STATIC_REPORT="$(find pack/root -name 'xziel_native_static_mesh_report.json' -print -quit)"
           test -d "${STATIC_ROOT}"
+          test -s "${STATIC_REPORT}"
+          jq -e '.spatialBatching == "morton_grid_centroid_v1"' "${STATIC_REPORT}"
+          jq -e '.sourceTriangles == .runtimeTriangles' "${STATIC_REPORT}"
+          jq -e '.batchCount == 333' "${STATIC_REPORT}"
+          jq -e '.maxTrianglesPerBatch <= 9000' "${STATIC_REPORT}"
+          jq -e '.totalVertices == 2406868' "${STATIC_REPORT}"
           PNG_COUNT="$(find "${STATIC_ROOT}/textures" -type f -name '*.png' | wc -l)"
           test "${PNG_COUNT}" -gt 0
           echo "XZIEL_ASTC_SOURCE_PNGS=${PNG_COUNT}"
