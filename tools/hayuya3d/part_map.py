@@ -114,11 +114,13 @@ def _component_ids(faces):
 
 
 def _axis_index(up_axis: str) -> int:
+    if up_axis == "x":
+        return 0
     if up_axis == "y":
         return 1
     if up_axis == "z":
         return 2
-    raise ValueError("up_axis must be y or z")
+    raise ValueError("up_axis must be x, y or z")
 
 
 def _spatial_label(
@@ -286,7 +288,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="HAYUYA deterministic semantic-lite mesh Part Map.")
     parser.add_argument("mesh", type=Path)
     parser.add_argument("--mode", choices=["prop", "character", "architecture"], default="prop")
-    parser.add_argument("--up-axis", choices=["y", "z"], default="y")
+    parser.add_argument("--up-axis", choices=["x", "y", "z"], default="y")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
