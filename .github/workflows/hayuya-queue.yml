@@ -185,6 +185,73 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: python tools/hayuya3d/phone_cloud_worker.py
 
+      - name: Install Blender for requested character motion
+        if: success() && matrix.animation_requested == 'true' && (matrix.asset_profile == 'auto' || startsWith(matrix.asset_profile, 'character.'))
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq blender python3-numpy
+
+      - name: AutoRig generated real model with local UAM2/UAM1 banks
+        if: success() && matrix.animation_requested == 'true' && (matrix.asset_profile == 'auto' || startsWith(matrix.asset_profile, 'character.'))
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          target="$HAYUYA_OUTPUT_ROOT/hayuya_final.glb"
+          blender -b --python tools/hayuya3d/blender_autorig.py -- \
+            --target "$target" \
+            --donor hayuya/animation_library/quaternius-uam2/library.glb \
+            --output "$HAYUYA_OUTPUT_ROOT/animated.glb" \
+            --report "$HAYUYA_OUTPUT_ROOT/autorig-report.json"
+          python tools/hayuya3d/rig_gate.py "$HAYUYA_OUTPUT_ROOT/animated.glb" --json "$HAYUYA_OUTPUT_ROOT/rig_gate_animated.json"
+          blender -b --python tools/hayuya3d/blender_animation_gate.py -- \
+            --model "$HAYUYA_OUTPUT_ROOT/animated.glb" \
+            --json "$HAYUYA_OUTPUT_ROOT/animation_gate.json" --samples 5
+
+          blender -b --python tools/hayuya3d/blender_autorig.py -- \
+            --target "$target" \
+            --donor hayuya/animation_library/quaternius-uam1/library.glb \
+            --output "$HAYUYA_OUTPUT_ROOT/animated-uam1.glb" \
+            --report "$HAYUYA_OUTPUT_ROOT/autorig-report-uam1.json"
+          python tools/hayuya3d/rig_gate.py "$HAYUYA_OUTPUT_ROOT/animated-uam1.glb" --json "$HAYUYA_OUTPUT_ROOT/rig_gate_uam1.json"
+          blender -b --python tools/hayuya3d/blender_animation_gate.py -- \
+            --model "$HAYUYA_OUTPUT_ROOT/animated-uam1.glb" \
+            --json "$HAYUYA_OUTPUT_ROOT/animation_gate_uam1.json" --samples 5
+
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root=Path(os.environ["HAYUYA_OUTPUT_ROOT"])
+          mp=root/"manifest.json"
+          if not mp.exists():
+              raise SystemExit("manifest missing")
+          m=json.loads(mp.read_text())
+          r2=json.loads((root/"rig_gate_animated.json").read_text())
+          r1=json.loads((root/"rig_gate_uam1.json").read_text())
+          g2=json.loads((root/"animation_gate.json").read_text())
+          g1=json.loads((root/"animation_gate_uam1.json").read_text())
+          m["preview_model"]="animated.glb"
+          if m.get("asset_profile")=="auto":
+              m["asset_profile"]="character.humanoid"
+          m["character"]={
+            "skeleton_type":r2.get("skeleton_type","hayuya_humanoid_v1"),
+            "preview_pack":"hayuya_preview_pack_v1",
+            "rig_ready":bool(r2.get("rig_ready")),
+            "animation_ready":bool(r2.get("animation_ready")),
+            "preview_animation_ready":bool(r2.get("preview_animation_ready")),
+            "animation_clips":r2.get("animation_clips",[]),
+            "facial":r2.get("facial",{}),
+            "secondary_motion":r2.get("secondary_motion",{}),
+            "warnings":r2.get("warnings",[]),
+            "deformation_qa":{"passed":bool(g2.get("passed")),"action_count":g2.get("action_count",0),"failures":g2.get("failures",[])}
+          }
+          m["animation_banks"]={
+            "quaternius-uam2":{"model":"animated.glb","clips":r2.get("animation_clips",[]),"rig_ready":bool(r2.get("rig_ready")),"animation_ready":bool(r2.get("animation_ready"))},
+            "quaternius-uam1":{"model":"animated-uam1.glb","clips":r1.get("animation_clips",[]),"rig_ready":bool(r1.get("rig_ready")),"animation_ready":bool(r1.get("animation_ready"))}
+          }
+          mp.write_text(json.dumps(m,indent=2)+"\n")
+          PY
+
       - name: Build deterministic 3D part map
         if: success()
         shell: bash
@@ -286,9 +353,14 @@ jobs:
           if [ -f "$HAYUYA_OUTPUT_ROOT/manifest.json" ]; then
             cp "$HAYUYA_OUTPUT_ROOT/manifest.json" "$model_dir/manifest.json"
           fi
-          for qa in quality_gate.json texture_gate.json rig_gate.json part_map.json auto_motion_plan.json part_segmentation_plan.json mechanical_part_fit.json failure_reason.txt; do
+          for qa in quality_gate.json texture_gate.json rig_gate.json part_map.json auto_motion_plan.json part_segmentation_plan.json mechanical_part_fit.json failure_reason.txt rig_gate_animated.json rig_gate_uam1.json animation_gate.json animation_gate_uam1.json autorig-report.json autorig-report-uam1.json; do
             if [ -f "$HAYUYA_OUTPUT_ROOT/$qa" ]; then
               cp "$HAYUYA_OUTPUT_ROOT/$qa" "$model_dir/$qa"
+            fi
+          done
+          for model in animated.glb animated-uam1.glb; do
+            if [ -f "$HAYUYA_OUTPUT_ROOT/$model" ]; then
+              cp "$HAYUYA_OUTPUT_ROOT/$model" "$model_dir/$model"
             fi
           done
           if [ -f "$HAYUYA_EVIDENCE_ROOT/internet_research.json" ]; then
