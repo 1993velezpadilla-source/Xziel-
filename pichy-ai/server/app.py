@@ -15,11 +15,13 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from agent.pichy_agent import PichyAgent, load_config
+from server.memory import SessionMemory
 
 
-APP_VERSION = "0.2.2-lab"
+APP_VERSION = "0.3.0-lab"
 CONFIG_ENV = "PICHY_CONFIG"
 SERVER_TOKEN_ENV = "PICHY_SERVER_TOKEN"
+DATA_DIR_ENV = "PICHY_DATA_DIR"
 
 
 class ChatRequest(BaseModel):
@@ -61,6 +63,13 @@ _sessions_lock = threading.Lock()
 _config_cache: dict[str, Any] | None = None
 
 
+def _data_dir() -> Path:
+    return Path(os.getenv(DATA_DIR_ENV, "data")).resolve()
+
+
+_memory = SessionMemory(_data_dir() / "pichy_sessions.sqlite3")
+
+
 def _config_path() -> Path:
     raw = os.getenv(CONFIG_ENV, "config/pichy.local.json")
     p = Path(raw)
@@ -99,9 +108,21 @@ def get_session(session_id: str | None) -> tuple[str, SessionState]:
     with _sessions_lock:
         state = _sessions.get(sid)
         if state is None:
-            state = SessionState(PichyAgent(get_config()))
+            agent = PichyAgent(get_config())
+            saved = _memory.load(sid)
+            last_image_prompt = ""
+            if saved:
+                restored = [m for m in saved.get("history", []) if isinstance(m, dict) and m.get("role") != "system"]
+                agent.history.extend(restored)
+                last_image_prompt = saved.get("last_image_prompt", "")
+            state = SessionState(agent, last_image_prompt=last_image_prompt)
             _sessions[sid] = state
     return sid, state
+
+
+def persist_session(session_id: str, state: SessionState) -> None:
+    history = [m for m in state.agent.history if m.get("role") != "system"]
+    _memory.save(session_id, history, state.last_image_prompt)
 
 
 def compose_image_prompt(previous: str, request: str, new_concept: bool) -> str:
@@ -161,6 +182,7 @@ def health() -> dict[str, Any]:
         "version": APP_VERSION,
         "configured": _config_path().exists(),
         "sessions": len(_sessions),
+        "persistent_memory": true,
     }
 
 
@@ -178,8 +200,46 @@ def capabilities() -> dict[str, Any]:
         "routes": sorted(cfg.get("routes", {}).keys()),
         "models": public_models,
         "image_configured": bool(cfg.get("image")),
+        "persistent_memory": True,
         "tools": [x["function"]["name"] for x in PichyAgent(cfg).tools.definitions()],
     }
+
+
+@app.get("/v1/provider-status", dependencies=[Depends(require_token)])
+def provider_status() -> dict[str, Any]:
+    cfg = get_config()
+    models: dict[str, Any] = {}
+    for name, item in cfg.get("models", {}).items():
+        key_env = item.get("api_key_env", "")
+        models[name] = {
+            "model": item.get("model"),
+            "base_url": item.get("base_url"),
+            "api_key_env": key_env,
+            "key_present": bool(key_env and os.getenv(key_env, "")),
+        }
+    image_cfg = cfg.get("image") or {}
+    image_key_env = image_cfg.get("api_key_env", "")
+    return {
+        "models": models,
+        "image": {
+            "model": image_cfg.get("model"),
+            "base_url": image_cfg.get("base_url"),
+            "api_key_env": image_key_env,
+            "key_present": bool(image_key_env and os.getenv(image_key_env, "")),
+        },
+    }
+
+
+@app.get("/v1/sessions", dependencies=[Depends(require_token)])
+def list_sessions(limit: int = 20) -> dict[str, Any]:
+    return {"sessions": _memory.list_recent(limit)}
+
+
+@app.delete("/v1/sessions/{session_id}", dependencies=[Depends(require_token)])
+def delete_session(session_id: str) -> dict[str, Any]:
+    with _sessions_lock:
+        _sessions.pop(session_id, None)
+    return {"deleted": _memory.delete(session_id)}
 
 
 @app.post("/v1/chat", response_model=ChatResponse, dependencies=[Depends(require_token)])
@@ -191,6 +251,7 @@ def chat(req: ChatRequest) -> ChatResponse:
     try:
         with state.lock:
             answer = state.agent.run(req.message, forced_route=route)
+            persist_session(sid, state)
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Pichy agent error: {type(exc).__name__}: {exc}") from exc
     return ChatResponse(session_id=sid, route=route, answer=answer)
@@ -208,6 +269,7 @@ def chat_stream(req: ChatRequest) -> StreamingResponse:
         try:
             with state.lock:
                 answer = state.agent.run(req.message, forced_route=route)
+                persist_session(sid, state)
             payload = {"session_id": sid, "route": route, "answer": answer}
             yield "event: final\ndata: " + json.dumps(payload, ensure_ascii=False) + "\n\n"
         except Exception as exc:
@@ -224,6 +286,7 @@ def image(req: ImageRequest) -> ImageResponse:
         effective = compose_image_prompt(state.last_image_prompt, req.prompt, req.new_concept)
         b64, url = image_provider_request(get_config(), effective, req.size)
         state.last_image_prompt = effective
+        persist_session(sid, state)
     return ImageResponse(
         session_id=sid,
         effective_prompt=effective,
