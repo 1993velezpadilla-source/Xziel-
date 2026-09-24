@@ -102,6 +102,7 @@ class JobState:
     final_model_path: str | None = None
     composite_plan: dict | None = None
     composite_details: list[dict] = field(default_factory=list)
+    semantic_anatomy: dict | None = None
     portable_pack: dict | None = None
     aaa_acceptance: dict | None = None
     final_qa: dict | None = None
@@ -324,6 +325,57 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
             "source":values.get("source"),
             "reason":values.get("reason"),
         })
+    elif line.startswith("HAYUYA_SEMANTIC_ANATOMY_READY"):
+        _set_stage(job, "qa")
+        values = dict(re.findall(r"(\w+)=([^\s]+)", line))
+        semantic_data = None
+        report_raw = values.get("report")
+        if report_raw and report_raw.lower()!="none":
+            try:
+                report_path = Path(report_raw).resolve()
+                job_root = Path(job.root).resolve()
+                if report_path.is_file() and report_path.is_relative_to(job_root):
+                    loaded = json.loads(report_path.read_text(encoding="utf-8"))
+                    if isinstance(loaded,dict):
+                        semantic_data = {
+                            "required": True,
+                            "attempted": values.get("attempted","false").lower()=="true",
+                            "ready": values.get("ready","false").lower()=="true",
+                            "critical_targets": [
+                                x for x in values.get("targets","").split(",")
+                                if x and x!="none"
+                            ],
+                            "rendered_views": [None] * int(values.get("views") or 0),
+                            "aggregate": loaded,
+                            "report": str(report_path),
+                            "error": (
+                                None
+                                if values.get("error") in (None,"","none")
+                                else values.get("error")
+                            ),
+                        }
+            except (OSError,ValueError,json.JSONDecodeError):
+                semantic_data = None
+        if semantic_data is None:
+            semantic_data = {
+                "required": True,
+                "attempted": values.get("attempted","false").lower()=="true",
+                "ready": values.get("ready","false").lower()=="true",
+                "critical_targets": [
+                    x for x in values.get("targets","").split(",")
+                    if x and x!="none"
+                ],
+                "rendered_views": [None] * int(values.get("views") or 0),
+                "aggregate": None,
+                "report": None,
+                "error": (
+                    None
+                    if values.get("error") in (None,"","none")
+                    else values.get("error")
+                ),
+            }
+        job.semantic_anatomy = semantic_data
+        _emit(job,"semantic_anatomy",{"semantic":dict(semantic_data)})
     elif line.startswith("HAYUYA_GAMEPREP"):
         _set_stage(job, "gameprep")
     elif line.startswith("HAYUYA_PORTABLE_PACK_READY"):
