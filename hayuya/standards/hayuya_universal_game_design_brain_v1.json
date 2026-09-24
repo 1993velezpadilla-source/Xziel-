@@ -1,0 +1,262 @@
+{
+  "schema": 1,
+  "id": "hayuya_universal_game_design_brain_v1",
+  "purpose": "Give HAYUYA Map broad game-space reasoning beyond any one franchise or genre. These are abstract clean-room design patterns, not copied layouts.",
+  "principles": [
+    "Design the player experience graph before decorative geometry.",
+    "Every authored space must justify itself through navigation, combat, exploration, story, puzzle, economy, social play, spectacle, traversal, ambience, or technical streaming value.",
+    "The same geometry may serve several systems, but no system may silently destroy the readability of another.",
+    "Treat player routes, AI routes, sight lines, sound propagation, encounter pressure, landmarks, pacing and streaming as coupled graphs.",
+    "Generate multiple layout hypotheses and solve/test them before expensive art generation.",
+    "Use genre patterns as constraints and priors, never as a closed taxonomy.",
+    "Prefer measurable constraints plus human-editable intent over one opaque generative score."
+  ],
+  "designDomains": {
+    "navigation": [
+      "critical_path",
+      "optional_path",
+      "loop",
+      "shortcut",
+      "hub",
+      "spoke",
+      "fork",
+      "rejoin",
+      "vertical_link",
+      "one_way_drop",
+      "safe_return",
+      "landmark_visibility",
+      "wayfinding_redundancy"
+    ],
+    "combat": [
+      "engagement_range",
+      "cover_density",
+      "flank_routes",
+      "retreat_space",
+      "spawn_pressure_vectors",
+      "arena_shape",
+      "choke_points",
+      "line_of_sight_breaks",
+      "high_ground",
+      "crossfire_risk",
+      "enemy_role_space"
+    ],
+    "stealth": [
+      "visibility_cones",
+      "shadow_routes",
+      "sound_routes",
+      "hiding_spaces",
+      "alternate_entry",
+      "vertical_observation",
+      "guard_patrol_graph",
+      "alarm_escalation",
+      "recovery_routes"
+    ],
+    "survival_horror": [
+      "resource_tension",
+      "uncertain_visibility",
+      "safe_room_contrast",
+      "threat_foreshadowing",
+      "route_commitment",
+      "backtracking_recontextualization",
+      "audio_anxiety",
+      "controlled_reveal"
+    ],
+    "roguelike": [
+      "room_grammar",
+      "branch_value",
+      "risk_reward",
+      "run_variety",
+      "seed_determinism",
+      "dead_end_reward",
+      "difficulty_ramp",
+      "boss_approach",
+      "meta_progression_hooks"
+    ],
+    "metroidvania": [
+      "ability_gate",
+      "foreshadowed_lock",
+      "shortcut_unlock",
+      "macro_loop",
+      "return_path",
+      "landmark_memory",
+      "sequence_break_safety",
+      "backtrack_reward"
+    ],
+    "puzzle": [
+      "state_readability",
+      "dependency_graph",
+      "teach_test_twist",
+      "reset_path",
+      "softlock_prevention",
+      "observation_point",
+      "feedback_channel",
+      "multi_step_memory"
+    ],
+    "platforming": [
+      "jump_arc_margin",
+      "landing_readability",
+      "camera_clearance",
+      "failure_recovery",
+      "rhythm",
+      "moving_platform_sync",
+      "vertical_progress",
+      "optional_mastery_route"
+    ],
+    "racing": [
+      "track_flow",
+      "corner_sequence",
+      "overtake_zone",
+      "sight_distance",
+      "shortcut_tradeoff",
+      "recovery_space",
+      "checkpoint_integrity",
+      "spectator_landmark",
+      "speed_readability"
+    ],
+    "open_world": [
+      "macro_landmarks",
+      "district_identity",
+      "desire_paths",
+      "poi_spacing",
+      "travel_rhythm",
+      "world_edge_handling",
+      "streaming_regions",
+      "biome_transition",
+      "road_hierarchy",
+      "vertical_silhouette"
+    ],
+    "extraction": [
+      "infiltration_routes",
+      "loot_density",
+      "risk_gradient",
+      "extraction_visibility",
+      "third_party_routes",
+      "hot_zone_circulation",
+      "late_match_pressure",
+      "escape_options"
+    ],
+    "tactical": [
+      "breach_points",
+      "room_clear_sequence",
+      "cover_and_concealment",
+      "crossfire",
+      "peek_angles",
+      "information_advantage",
+      "fallback_positions",
+      "objective_room_access"
+    ],
+    "arena_pvp": [
+      "spawn_safety",
+      "power_position_counterplay",
+      "rotation_time",
+      "lane_interconnect",
+      "pickup_control",
+      "sightline_balance",
+      "comeback_routes",
+      "spectator_readability"
+    ],
+    "coop": [
+      "role_complementarity",
+      "revive_access",
+      "split_and_rejoin",
+      "shared_objective_visibility",
+      "catchup_routes",
+      "anti_grief_geometry",
+      "team_regroup_spaces",
+      "multi_player_traversal_clearance"
+    ],
+    "social_sandbox": [
+      "gathering_nodes",
+      "performative_space",
+      "personalization_zones",
+      "safe_idle_space",
+      "spectator_space",
+      "creator_hooks",
+      "low_conflict_navigation"
+    ],
+    "narrative": [
+      "reveal_order",
+      "environmental_storytelling",
+      "vista",
+      "threshold",
+      "compression_release",
+      "foreshadowing",
+      "return_with_new_context",
+      "diegetic_guidance"
+    ],
+    "immersive_sim": [
+      "systemic_routes",
+      "stacked_affordances",
+      "multiple_solutions",
+      "simulation_visibility",
+      "physical_consistency",
+      "tool_interaction_space",
+      "cause_effect_feedback"
+    ],
+    "technical": [
+      "streaming_cells",
+      "portal_visibility",
+      "occlusion",
+      "lod_hlod",
+      "navmesh_islands",
+      "physics_budget",
+      "audio_portals",
+      "light_clusters",
+      "mobile_memory",
+      "draw_submission_budget"
+    ]
+  },
+  "crossGenreReasoning": [
+    "Select only domains relevant to the goal; do not force every pattern into every map.",
+    "When domains conflict, prioritize player control, navigation clarity, accessibility and gameplay correctness before spectacle.",
+    "A horror map can borrow metroidvania gating, immersive-sim systemic routes, extraction risk gradients or arena combat loops without becoming a copy of any source game.",
+    "Large worlds should be decomposed into nested graphs: world -> region -> encounter -> room/space -> interaction.",
+    "Generate and judge both macro topology and local geometry."
+  ],
+  "requiredPasses": [
+    "intent_and_player_fantasy",
+    "genre_and_mechanic_mix",
+    "macro_topology",
+    "landmarks_and_wayfinding",
+    "traversal_graph",
+    "encounter_graph",
+    "resource_and_progression_graph",
+    "ai_navigation_and_pressure",
+    "narrative_and_reveal",
+    "audio_and_visibility",
+    "accessibility_and_recovery",
+    "streaming_and_mobile_budget",
+    "solver_simulation",
+    "human_editable_summary"
+  ],
+  "solverAgents": [
+    "critical_path_solver",
+    "exploration_agent",
+    "combat_survival_agent",
+    "stealth_agent",
+    "speedrun_agent",
+    "lost_player_agent",
+    "coop_split_agent",
+    "mobile_performance_agent"
+  ],
+  "judgeGates": [
+    "no_unintended_softlock",
+    "critical_path_reachable",
+    "all_required_abilities_or_keys_obtainable_before_gate",
+    "spawn_and_checkpoint_recovery_valid",
+    "landmark_or_wayfinding_support_matches_complexity",
+    "ai_routes_do_not_depend_on_visual_only_geometry",
+    "streaming_boundaries_preserve_gameplay",
+    "camera_and_traversal_clearances_valid",
+    "genre_specific_constraints_pass",
+    "originality_guardrail_pass"
+  ],
+  "cleanRoomGuardrails": [
+    "no_exact_layout_copy",
+    "no_extracted_proprietary_geometry",
+    "no_proprietary_scripts",
+    "no_proprietary_assets",
+    "no_copied_quest_or_dialogue_text",
+    "learn_design_principles_not_content"
+  ]
+}
