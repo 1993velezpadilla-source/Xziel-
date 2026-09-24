@@ -111,6 +111,58 @@ function showModel(url, label, meta="") {
   viewer.src = url;
 }
 
+function renderAAA(aaa) {
+  const section = $("aaaSection");
+  const summary = $("aaaSummary");
+  const grid = $("aaaGates");
+  const blockersBox = $("aaaBlockers");
+  if (!aaa) {
+    section.hidden = true;
+    summary.textContent = "";
+    grid.replaceChildren();
+    blockersBox.replaceChildren();
+    blockersBox.hidden = true;
+    return;
+  }
+
+  section.hidden = false;
+  const ready = Boolean(aaa.ready);
+  $("aaaState").textContent = ready ? "PASS" : "BLOCKED";
+  $("aaaState").className = ready ? "qa-state ready" : "qa-state blocked";
+  const passed = Number(aaa.passed_required || 0);
+  const total = Number(aaa.total_required || 0);
+  summary.textContent = ready
+    ? "Internal AAA contract passed · " + passed + "/" + total + " required gates"
+    : "Internal AAA contract · " + passed + "/" + total + " required gates passed";
+
+  grid.replaceChildren();
+  const gates = Array.isArray(aaa.gates) ? aaa.gates : [];
+  gates.filter((gate) => gate && gate.required).forEach((gate) => {
+    const item = document.createElement("div");
+    item.className = "qa-chip " + (gate.ready ? "pass" : "fail");
+    const name = document.createElement("span");
+    name.textContent = String(gate.id || "gate").replaceAll("_", " ");
+    const value = document.createElement("strong");
+    value.textContent = gate.ready ? "PASS" : "BLOCK";
+    item.title = gate.evidence || "";
+    item.append(name, value);
+    grid.appendChild(item);
+  });
+
+  const blockers = Array.isArray(aaa.blockers) ? aaa.blockers.filter(Boolean) : [];
+  blockersBox.replaceChildren();
+  blockersBox.hidden = blockers.length === 0;
+  blockers.slice(0, 12).forEach((blocker) => {
+    const row = document.createElement("div");
+    row.className = "qa-warning";
+    const marker = document.createElement("span");
+    marker.textContent = "!";
+    const text = document.createElement("p");
+    text.textContent = blocker;
+    row.append(marker, text);
+    blockersBox.appendChild(row);
+  });
+}
 function renderFinalQa(qa) {
   const section = $("finalQaSection");
   const grid = $("finalQa");
@@ -408,6 +460,7 @@ async function refreshJob() {
   setProgress(state.job.stage, state.job.progress, state.job.status);
   renderCandidates(state.job);
   renderCompositePlan(state.job.composite_plan);
+  renderAAA(state.job.aaa_acceptance);
   renderFinalQa(state.job.final_qa);
   if (state.job.final_model_url) {
     showModel(state.job.final_model_url, "Final Champion", `${state.job.profile} · ${state.job.portable_target}`);
@@ -442,6 +495,11 @@ function handleEvent(event) {
   }
   if (event.kind === "qa_ready") {
     renderFinalQa(event.qa);
+  }
+  if (event.kind === "aaa_ready" && event.aaa) {
+    if (state.job) state.job.aaa_acceptance = event.aaa;
+    renderAAA(event.aaa);
+    appendLog("AAA gates: " + Number(event.aaa.passed_required || 0) + "/" + Number(event.aaa.total_required || 0));
   }
   if (event.kind === "model" && event.url) {
     showModel(event.url, "Final Champion", "HAYUYA final");
