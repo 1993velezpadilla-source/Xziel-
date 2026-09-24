@@ -1093,7 +1093,17 @@ jobs:
               echo "XZIEL_CPU_CLAMPED_MATERIAL_CONSTANTS_ACTIVE"
               echo "XZIEL_PRECOMPUTED_LIGHTNING_BOOST_ACTIVE"
               echo "XZIEL_NORMAL_TANGENT_BASIS_RECIPROCAL_FREE_ACTIVE"
+              STREAM_PLAN_CELL_SLOTS="$(grep "XZIEL_STREAM_PLAN_CELL_SLOTS_READY" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* indexed=\([0-9][0-9]*\).*/\1/p')"
+              STREAM_PLAN_CELL_DIRECT="$(grep "XZIEL_STREAM_PLAN_CELL_INDEX_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* direct=\([0-9][0-9]*\).*/\1/p')"
+              STREAM_PLAN_CELL_FALLBACK="$(grep "XZIEL_STREAM_PLAN_CELL_INDEX_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* fallback=\([0-9][0-9]*\).*/\1/p')"
+              test -n "${STREAM_PLAN_CELL_SLOTS}"
+              test -n "${STREAM_PLAN_CELL_DIRECT}"
+              test -n "${STREAM_PLAN_CELL_FALLBACK}"
+              test "${STREAM_PLAN_CELL_SLOTS}" -gt 0
+              test "${STREAM_PLAN_CELL_DIRECT}" -gt 0
+              test "${STREAM_PLAN_CELL_FALLBACK}" -eq 0
               echo "XZIEL_STREAM_CELL_VOLUME_CACHE_ACTIVE"
+              echo "XZIEL_STREAM_PLAN_CELL_INDEX_ACTIVE indexed=${STREAM_PLAN_CELL_SLOTS} direct=${STREAM_PLAN_CELL_DIRECT} fallback=${STREAM_PLAN_CELL_FALLBACK}"
             fi
           fi
 

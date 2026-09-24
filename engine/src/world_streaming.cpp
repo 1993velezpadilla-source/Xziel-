@@ -171,6 +171,22 @@ bool StreamCellGraph::bindResource(
     return true;
 }
 
+bool StreamCellGraph::resolveCellSlot(
+    std::uint32_t cellId,
+    std::uint32_t& slot) const noexcept {
+    const int index =
+        cellIndex(cellId);
+
+    if (index < 0) {
+        return false;
+    }
+
+    slot =
+        static_cast<std::uint32_t>(
+            index);
+    return true;
+}
+
 StreamCellPlanStats StreamCellGraph::plan(
     const StreamCellPlanInput& input,
     StreamCellResourceDecision* destination,

@@ -128,6 +128,10 @@ public:
         std::uint32_t startCell,
         std::uint32_t targetCell) const noexcept;
 
+    [[nodiscard]] bool resolveCellSlot(
+        std::uint32_t cellId,
+        std::uint32_t& slot) const noexcept;
+
     [[nodiscard]] std::size_t cellCount() const noexcept;
     [[nodiscard]] std::size_t portalCount() const noexcept;
     [[nodiscard]] std::size_t bindingCount() const noexcept;

@@ -269,6 +269,9 @@ private:
         // Resolved once by rebuildStreamingCellBounds(). The render hot path
         // uses this direct slot instead of scanning every stream-cell bound.
         std::uint32_t streamBoundsSlot = UINT32_MAX;
+        // Stable StreamCellGraph cell slot, resolved once during geometry
+        // setup. Stream plan output uses the same cell ordering.
+        std::uint32_t streamPlanCellSlot = UINT32_MAX;
         bool deviceLocalHostVisible = false;
         bool pinned = false;
         bool physicallyResident = false;

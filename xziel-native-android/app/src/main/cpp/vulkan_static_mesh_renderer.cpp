@@ -1673,6 +1673,30 @@ void VulkanStaticMeshRenderer::rebuildStreamingCellBounds() noexcept {
                 break;
             }
         }
+
+        std::uint32_t planCellSlot =
+            UINT32_MAX;
+        if (streamGraph_.resolveCellSlot(
+                geometryCell.cellId,
+                planCellSlot)) {
+            geometryCell.streamPlanCellSlot =
+                planCellSlot;
+        } else {
+            geometryCell.streamPlanCellSlot =
+                UINT32_MAX;
+        }
+    }
+
+    std::uint32_t indexedPlanCells = 0U;
+    for (std::size_t geometrySlot = 0U;
+         geometrySlot < geometryCellCount_;
+         ++geometrySlot) {
+        indexedPlanCells +=
+            geometryCells_[geometrySlot].
+                    streamPlanCellSlot !=
+                UINT32_MAX
+            ? 1U
+            : 0U;
     }
 
     portalReachabilityCacheValid_ = false;
@@ -1682,13 +1706,24 @@ void VulkanStaticMeshRenderer::rebuildStreamingCellBounds() noexcept {
     __android_log_print(
         ANDROID_LOG_INFO,
         kTag,
-        "XZIEL_STREAM_CELL_BOUNDS_INDEX_READY indexed=%u geometry_cells=%u bounds=%u",
+        "XZIEL_STREAM_CELL_BOUNDS_INDEX_READY indexed=%u geometry_cells=%u bounds=%u plan_slots=%u",
         static_cast<unsigned int>(
             indexedGeometryCells),
         static_cast<unsigned int>(
             geometryCellCount_),
         static_cast<unsigned int>(
-            streamCellBoundsCount_));
+            streamCellBoundsCount_),
+        static_cast<unsigned int>(
+            indexedPlanCells));
+
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
+        "XZIEL_STREAM_PLAN_CELL_SLOTS_READY indexed=%u geometry_cells=%u",
+        static_cast<unsigned int>(
+            indexedPlanCells),
+        static_cast<unsigned int>(
+            geometryCellCount_));
 }
 
 std::uint32_t VulkanStaticMeshRenderer::inferStreamingCell(
@@ -4529,23 +4564,41 @@ void VulkanStaticMeshRenderer::record(
 
                     if (!cell.pinned &&
                         cell.cellId != 0U) {
-                        for (std::size_t stateIndex = 0U;
-                             stateIndex < plannedCellCount;
-                             ++stateIndex) {
-                            const auto& state =
-                                plannedCells[stateIndex];
+                        const StreamCellPlanCellState*
+                            state = nullptr;
 
-                            if (state.cellId !=
+                        if (cell.streamPlanCellSlot <
+                                plannedCellCount &&
+                            plannedCells[
+                                cell.streamPlanCellSlot].
+                                    cellId ==
                                 cell.cellId) {
-                                continue;
+                            state =
+                                &plannedCells[
+                                    cell.streamPlanCellSlot];
+                        } else {
+                            for (std::size_t stateIndex = 0U;
+                                 stateIndex <
+                                     plannedCellCount;
+                                 ++stateIndex) {
+                                if (plannedCells[
+                                        stateIndex].
+                                            cellId ==
+                                    cell.cellId) {
+                                    state =
+                                        &plannedCells[
+                                            stateIndex];
+                                    break;
+                                }
                             }
+                        }
 
+                        if (state != nullptr) {
                             cell.plannedHeat =
-                                state.heat;
+                                state->heat;
                             portalReachable =
-                                state.
+                                state->
                                     reachableThroughOpenPortals;
-                            break;
                         }
                     }
 
@@ -4559,6 +4612,43 @@ void VulkanStaticMeshRenderer::record(
 
                     ++streamCellHeatRefreshCount_;
                 }
+
+                std::uint32_t directPlanCellReads = 0U;
+                std::uint32_t fallbackPlanCellScans = 0U;
+
+                for (std::size_t i = 0U;
+                     i < geometryCellCount_;
+                     ++i) {
+                    const auto& cell =
+                        geometryCells_[i];
+
+                    if (cell.pinned ||
+                        cell.cellId == 0U) {
+                        continue;
+                    }
+
+                    if (cell.streamPlanCellSlot <
+                            plannedCellCount &&
+                        plannedCells[
+                            cell.streamPlanCellSlot].
+                                cellId ==
+                            cell.cellId) {
+                        ++directPlanCellReads;
+                    } else {
+                        ++fallbackPlanCellScans;
+                    }
+                }
+
+                __android_log_print(
+                    ANDROID_LOG_INFO,
+                    kTag,
+                    "XZIEL_STREAM_PLAN_CELL_INDEX_ACTIVE direct=%u fallback=%u geometry_cells=%u",
+                    static_cast<unsigned int>(
+                        directPlanCellReads),
+                    static_cast<unsigned int>(
+                        fallbackPlanCellScans),
+                    static_cast<unsigned int>(
+                        geometryCellCount_));
 
                 __android_log_print(
                     ANDROID_LOG_INFO,

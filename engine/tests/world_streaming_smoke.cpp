@@ -401,6 +401,13 @@ int main() {
         .bytes = 4096U,
     }));
 
+    std::uint32_t sparseSlot = 99U;
+    assert(sparseGraph.resolveCellSlot(10U, sparseSlot));
+    assert(sparseSlot == 0U);
+    assert(sparseGraph.resolveCellSlot(4000000000U, sparseSlot));
+    assert(sparseSlot == 1U);
+    assert(!sparseGraph.resolveCellSlot(123U, sparseSlot));
+
     std::array<xziel::StreamCellResourceDecision, 4>
         sparseDecisions{};
     std::array<xziel::StreamCellPlanCellState, 4>
