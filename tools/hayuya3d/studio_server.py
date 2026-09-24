@@ -101,6 +101,7 @@ class JobState:
     final_model_url: str | None = None
     final_model_path: str | None = None
     composite_plan: dict | None = None
+    composite_details: list[dict] = field(default_factory=list)
     aaa_acceptance: dict | None = None
     final_qa: dict | None = None
     error: str | None = None
@@ -271,6 +272,31 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
             }
         job.composite_plan = plan_data
         _emit(job, "composite_plan", {"plan": dict(plan_data)})
+    elif line.startswith("HAYUYA_COMPOSITE_DETAIL_READY"):
+        _set_stage(job, "composite")
+        values = dict(re.findall(r"(\w+)=([^\s]+)", line))
+        def _float_value(name: str) -> float | None:
+            raw=values.get(name)
+            if not raw or raw.lower()=="none":
+                return None
+            try:
+                return float(raw)
+            except ValueError:
+                return None
+        item={
+            "label":values.get("label"),
+            "base":values.get("base"),
+            "donor":values.get("donor"),
+            "region":values.get("region"),
+            "source":values.get("source"),
+            "changed_fraction":_float_value("changed"),
+            "seam_p95":_float_value("seam_p95"),
+            "seam_max":_float_value("seam_max"),
+            "path":values.get("path"),
+            "status":"challenger",
+        }
+        job.composite_details.append(item)
+        _emit(job,"composite_detail",{"detail":dict(item)})
     elif line.startswith("HAYUYA_GAMEPREP"):
         _set_stage(job, "gameprep")
     elif line.startswith("HAYUYA_PORTABLE_PACK"):
