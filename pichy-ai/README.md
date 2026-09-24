@@ -4,7 +4,7 @@ Pichy AI is an independent, model-agnostic agent experiment. It is intentionally
 
 The goal is a general assistant first: chat, deep web research, coding, repository work, files, terminal tools, sub-agents, image generation/edit iteration, memory, and self-improvement behind tests.
 
-## Current: v0.3.1 lab
+## Current: v0.4.0 lab
 
 ### Brain
 - Autonomous multi-step agent loop.
@@ -43,6 +43,7 @@ A native lightweight APK provides:
 - Server URL/token settings.
 - Check Brain diagnostics for configured model routes and image provider.
 - Android file/photo picker with session-scoped attachments for Chat, Research, Code and Map Modeling.
+- Pixel-reference image editing pipeline: attached or previously generated images can be sent to an OpenAI-compatible image edit endpoint.
 - Image rendering from base64 or URL responses.
 - No model weights bundled into the APK.
 
@@ -143,4 +144,21 @@ The runner deliberately separates transport success from answer quality. A retur
 
 The Android `+` button uploads one pending file/photo to the current Pichy session. Text-like files are inlined into the next agent message. Image attachments are sent as OpenAI-compatible multimodal `image_url` content using a data URL. Uploads are capped at 10 MB and attachment/session identifiers are validated before filesystem access.
 
-Image-generation editing is intentionally still separate: an attached reference image currently works with multimodal Chat/Research/Code/Map Modeling, not the `Create > Image` generation endpoint.
+`Create > Image` can now use an attached image as the edit reference when the configured image provider declares `edit_path`. Successful generated images are persisted as session attachments so later image prompts can reuse the actual pixels. If no edit endpoint is configured, ordinary prompt-continuity generation still works, but Pichy reports that no pixel reference was applied.
+
+
+### Image provider edit contract
+
+For an OpenAI-compatible provider, the image config can declare:
+
+```json
+{
+  "base_url": "https://YOUR_IMAGE_ENDPOINT/v1",
+  "model": "YOUR_IMAGE_MODEL",
+  "api_key_env": "PICHY_IMAGE_API_KEY",
+  "generation_path": "/images/generations",
+  "edit_path": "/images/edits"
+}
+```
+
+Pichy never claims an image reference was applied unless it actually sent a multipart image to the configured edit endpoint.
