@@ -367,6 +367,53 @@ class StudioServerTests(unittest.TestCase):
             self.assertTrue(detail["rebake_ready"])
             self.assertEqual(detail["accessory_confidence"],0.932)
 
+    def test_inserted_accessory_production_proof_is_streamed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            job=self.make_job(Path(tmp))
+            parse_pipeline_line(
+                job,
+                "HAYUYA_COMPOSITE_DETAIL_READY "
+                "label=composite_accessory_donor_medal "
+                "base=base donor=donor region=local "
+                "source=medal.png strategy=rigged_accessory_insert "
+                "changed=none changed_vertices=none "
+                "inserted_vertices=24 inserted_faces=12 "
+                "weight_transfer_vertices=24 weight_source_max=0.041 "
+                "morph_targets_transferred=2 "
+                "seam_p95=none seam_max=none "
+                "accessory_confidence=none "
+                "runtime_preserved=True rig_ready=True "
+                "skin_weights_ready=True morph_deformation_ready=True "
+                "animation_ready=True deformation_ready=True "
+                "attachment_ready=True material_ready=True "
+                "uv_ready=True uv_tangent_ready=True "
+                "production_ready=True material_channels=baseColor,normal "
+                "rebake_ready=none "
+                f"path={Path(tmp)/'inserted-accessory.glb'}",
+            )
+            detail=job.composite_details[-1]
+            self.assertEqual(detail["strategy"],"rigged_accessory_insert")
+            self.assertEqual(detail["inserted_vertices"],24)
+            self.assertEqual(detail["inserted_faces"],12)
+            self.assertEqual(detail["weight_transfer_vertices"],24)
+            self.assertEqual(detail["weight_source_max"],0.041)
+            self.assertEqual(detail["morph_targets_transferred"],2)
+            self.assertTrue(detail["runtime_preserved"])
+            self.assertTrue(detail["rig_ready"])
+            self.assertTrue(detail["skin_weights_ready"])
+            self.assertTrue(detail["morph_deformation_ready"])
+            self.assertTrue(detail["animation_ready"])
+            self.assertTrue(detail["deformation_ready"])
+            self.assertTrue(detail["attachment_ready"])
+            self.assertTrue(detail["material_ready"])
+            self.assertTrue(detail["uv_ready"])
+            self.assertTrue(detail["uv_tangent_ready"])
+            self.assertTrue(detail["production_ready"])
+            self.assertEqual(
+                detail["material_channels"],
+                ["baseColor","normal"],
+            )
+
     def test_semantic_anatomy_report_is_streamed(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp)
