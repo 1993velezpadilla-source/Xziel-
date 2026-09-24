@@ -726,6 +726,10 @@ jobs:
             STREAM_DRAW_SUBMISSIONS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* draw_submissions=\([0-9][0-9]*\).*/\1/p')"
             STREAM_INDIRECT_DRAWS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* indirect_draws=\([0-9][0-9]*\).*/\1/p')"
             STREAM_MULTI_DRAW_INDIRECT="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* multi_draw_indirect=\([01]\).*/\1/p')"
+            STREAM_VISIBLE_CLUSTERS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* visible_clusters=\([0-9][0-9]*\).*/\1/p')"
+            STREAM_CULLED_CLUSTERS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* culled_clusters=\([0-9][0-9]*\).*/\1/p')"
+            STREAM_CLUSTER_CULLED_TRIANGLES="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* cluster_culled_triangles=\([0-9][0-9]*\).*/\1/p')"
+            STREAM_TRIANGLES="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* triangles=\([0-9][0-9]*\)$/\1/p')"
             test -n "${STREAM_CULLED}"
             test "${STREAM_CULLED}" -gt 0
             test -n "${STREAM_DRAWS}"
@@ -753,11 +757,28 @@ jobs:
 
             if [[ "${GITHUB_REF_NAME}" == "engine/mobile-cluster-culling-v1" ]]; then
               grep -Eq "XZIEL_STATIC_BATCH_SHAPE batches=[1-9][0-9]* triangles=[1-9][0-9]* avg_triangles=[0-9]+\.[0-9]+ max_triangles=[1-9][0-9]* over_4k=[0-9]+ over_16k=[0-9]+ over_32k=[0-9]+" dist/sanctum-hq-logcat.txt
+              grep -Eq "XZIEL_STATIC_CLUSTER_CULL_READY batches=[1-9][0-9]* clusters=[1-9][0-9]* cluster_triangles=512 max_clusters_per_batch=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
               BATCH_SHAPE_LINE="$(grep "XZIEL_STATIC_BATCH_SHAPE" dist/sanctum-hq-logcat.txt | head -n 1)"
+              CLUSTER_READY_LINE="$(grep "XZIEL_STATIC_CLUSTER_CULL_READY" dist/sanctum-hq-logcat.txt | head -n 1)"
+              SOURCE_BATCHES="$(sed -n 's/.* batches=\([0-9][0-9]*\).*/\1/p' <<<"${CLUSTER_READY_LINE}")"
+              CULL_CLUSTERS="$(sed -n 's/.* clusters=\([0-9][0-9]*\).*/\1/p' <<<"${CLUSTER_READY_LINE}")"
+              test -n "${SOURCE_BATCHES}"
+              test -n "${CULL_CLUSTERS}"
+              test "${CULL_CLUSTERS}" -gt "${SOURCE_BATCHES}"
+              test -n "${STREAM_VISIBLE_CLUSTERS}"
+              test "${STREAM_VISIBLE_CLUSTERS}" -gt 0
+              test -n "${STREAM_CULLED_CLUSTERS}"
+              test "${STREAM_CULLED_CLUSTERS}" -gt 0
+              test -n "${STREAM_CLUSTER_CULLED_TRIANGLES}"
+              test "${STREAM_CLUSTER_CULLED_TRIANGLES}" -gt 0
+              test -n "${STREAM_TRIANGLES}"
+              test "${STREAM_TRIANGLES}" -gt 0
               echo "${BATCH_SHAPE_LINE}"
+              echo "${CLUSTER_READY_LINE}"
+              echo "XZIEL_CLUSTER_CULL_ACTIVE visible_clusters=${STREAM_VISIBLE_CLUSTERS} culled_clusters=${STREAM_CULLED_CLUSTERS} saved_triangles=${STREAM_CLUSTER_CULLED_TRIANGLES} submitted_triangles=${STREAM_TRIANGLES} draws=${STREAM_DRAWS}"
             fi
 
-            if [[ "${GITHUB_REF_NAME}" == "engine/mobile-indirect-draw-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" ]]; then
+            if [[ "${GITHUB_REF_NAME}" == "engine/mobile-indirect-draw-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-cluster-culling-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" ]]; then
               grep -q "XZIEL_STATIC_DRAW_SUBMISSION_READY mode=multi_draw_indirect" dist/sanctum-hq-logcat.txt
               test -n "${STREAM_DRAW_SUBMISSIONS}"
               test -n "${STREAM_INDIRECT_DRAWS}"
