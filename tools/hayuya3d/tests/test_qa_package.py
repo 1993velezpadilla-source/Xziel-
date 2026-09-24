@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 import tempfile
+import json
 import unittest
 from pathlib import Path
 
@@ -199,6 +200,8 @@ class QAPackageTests(unittest.TestCase):
             )
 
             self.assertTrue(Path(result.report).is_file())
+            report = json.loads(Path(result.report).read_text(encoding="utf-8"))
+            self.assertIn("head_density_score", report["geometry"])
             self.assertTrue(result.contact_sheet and Path(result.contact_sheet).is_file())
             self.assertTrue(result.geometry_ready)
             self.assertFalse(result.rig_ready)
