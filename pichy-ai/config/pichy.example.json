@@ -1,0 +1,44 @@
+{
+  "workspace": "..",
+  "max_steps": 30,
+  "temperature": 0.25,
+  "routes": {
+    "general": "general",
+    "reasoning": "reasoning",
+    "coding": "coding",
+    "research": "research",
+    "vision": "vision"
+  },
+  "models": {
+    "general": {
+      "base_url": "https://YOUR_OPENAI_COMPATIBLE_ENDPOINT/v1",
+      "model": "YOUR_GENERAL_MODEL",
+      "api_key_env": "PICHY_GENERAL_API_KEY"
+    },
+    "reasoning": {
+      "base_url": "https://YOUR_OPENAI_COMPATIBLE_ENDPOINT/v1",
+      "model": "YOUR_REASONING_MODEL",
+      "api_key_env": "PICHY_REASONING_API_KEY"
+    },
+    "coding": {
+      "base_url": "https://YOUR_OPENAI_COMPATIBLE_ENDPOINT/v1",
+      "model": "YOUR_CODING_MODEL",
+      "api_key_env": "PICHY_CODING_API_KEY"
+    },
+    "research": {
+      "base_url": "https://YOUR_OPENAI_COMPATIBLE_ENDPOINT/v1",
+      "model": "YOUR_RESEARCH_MODEL",
+      "api_key_env": "PICHY_RESEARCH_API_KEY"
+    },
+    "vision": {
+      "base_url": "https://YOUR_OPENAI_COMPATIBLE_ENDPOINT/v1",
+      "model": "YOUR_VISION_MODEL",
+      "api_key_env": "PICHY_VISION_API_KEY"
+    }
+  },
+  "image": {
+    "base_url": "https://YOUR_IMAGE_ENDPOINT/v1",
+    "model": "YOUR_IMAGE_MODEL",
+    "api_key_env": "PICHY_IMAGE_API_KEY"
+  }
+}

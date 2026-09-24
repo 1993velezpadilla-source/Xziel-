@@ -1,0 +1,53 @@
+{
+  "name": "Pichy Astral Gate v1",
+  "updated": "2026-09-24",
+  "goal": "Do not integrate Pichy into HAYUYA until the agent is demonstrably useful across reasoning, research, coding, tool use, vision and long-context work.",
+  "hard_fail": [
+    "claims a tool ran when it did not",
+    "fabricates a web source",
+    "silently loses active constraints",
+    "breaks the repository and reports success"
+  ],
+  "tests": [
+    {
+      "id": "reasoning-boxes",
+      "route": "reasoning",
+      "prompt": "Three boxes are labeled APPLES, ORANGES, and MIXED and every label is wrong. You may draw one fruit from one box. Give the minimum-information strategy and prove it."
+    },
+    {
+      "id": "audio-block-invariance",
+      "route": "coding",
+      "prompt": "Design a real-time-safe smoothing state update such that 512+512 samples and one 1024-sample block end in equivalent state. No allocation, locks, logging, or file IO in the audio callback. Include invariants and tests."
+    },
+    {
+      "id": "engine-debug",
+      "route": "reasoning",
+      "prompt": "An engine is stable at 128/480, a fresh 1024 session works, changing 480→1024 after project load silences track 1, and 2048 produces zipper noise. Produce competing hypotheses and discriminating tests without inventing logs."
+    },
+    {
+      "id": "fresh-web",
+      "route": "research",
+      "prompt": "Find the current Android Gradle Plugin stable release, its required Gradle version, supported API level and JDK requirements. Use current primary sources and URLs."
+    },
+    {
+      "id": "open-model-matrix",
+      "route": "research",
+      "prompt": "Compare the current licenses, context windows, agent/tool capabilities and realistic hardware needs of Kimi K3, GLM-4.7, Qwen3-Coder-Next, DeepSeek-V3.2 and gpt-oss. Separate verified facts from inference."
+    },
+    {
+      "id": "repo-agent",
+      "route": "coding",
+      "prompt": "Inspect this repository, identify one concrete maintainability problem in Pichy AI, implement the smallest robust improvement, run tests, inspect git diff, and summarize evidence."
+    },
+    {
+      "id": "image-iteration",
+      "route": "vision",
+      "prompt": "Generate a fictional non-graphic horror-game creature concept, then preserve identity through three edits: taller silhouette, older clothing, less saturated lighting."
+    },
+    {
+      "id": "long-context",
+      "route": "reasoning",
+      "prompt": "After a long conversation with superseded and active constraints, produce a revised plan preserving all active constraints and naming only those actually superseded."
+    }
+  ]
+}

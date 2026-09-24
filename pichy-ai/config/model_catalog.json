@@ -1,0 +1,42 @@
+{
+  "updated": "2026-09-24",
+  "note": "Research catalog only. Provider-specific model IDs change; configure actual endpoints separately.",
+  "candidates": [
+    {
+      "family": "Kimi K3",
+      "best_for": ["frontier general", "multimodal", "long-context", "long-horizon coding", "agentic work"],
+      "context": "1M",
+      "license": "Kimi K3 License"
+    },
+    {
+      "family": "GLM-4.7",
+      "best_for": ["coding", "reasoning", "tool use"],
+      "context": "~200K",
+      "license": "MIT"
+    },
+    {
+      "family": "Qwen3-Coder-Next",
+      "best_for": ["coding agents", "browser-use", "local development"],
+      "context": "256K",
+      "license": "check model card before distribution"
+    },
+    {
+      "family": "DeepSeek-V3.2",
+      "best_for": ["reasoning", "thinking with tool use", "agents"],
+      "context": "provider/model dependent",
+      "license": "DeepSeek model license"
+    },
+    {
+      "family": "gpt-oss-120b",
+      "best_for": ["reasoning", "agentic tasks", "self-hosting"],
+      "context": "model card dependent",
+      "license": "Apache-2.0"
+    },
+    {
+      "family": "gpt-oss-20b",
+      "best_for": ["lower-cost local or edge inference", "specialized agents"],
+      "context": "model card dependent",
+      "license": "Apache-2.0"
+    }
+  ]
+}

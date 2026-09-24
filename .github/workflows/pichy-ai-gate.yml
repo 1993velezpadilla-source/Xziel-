@@ -1,0 +1,32 @@
+name: Pichy AI Gate
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - lab/pichy-ai-v1
+    paths:
+      - "pichy-ai/**"
+      - ".github/workflows/pichy-ai-gate.yml"
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r pichy-ai/requirements.txt
+      - run: pytest -q pichy-ai/tests
+      - name: Compile Python
+        run: python -m compileall -q pichy-ai/agent
+      - name: Validate JSON
+        run: |
+          python - <<'PY'
+          import json, pathlib
+          for p in pathlib.Path("pichy-ai").rglob("*.json"):
+              json.loads(p.read_text())
+              print("ok", p)
+          PY
