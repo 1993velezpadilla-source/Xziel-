@@ -130,6 +130,12 @@ def main():
         raise RuntimeError("donor_has_no_render_mesh_after_control_shape_filter")
     excluded_donor_meshes=sorted(o.name for o in donor_meshes_all if o not in donor_meshes)
 
+    donor_set=set(donor_objs)
+    donor_roots=[o for o in donor_objs if o.parent not in donor_set]
+    if not donor_roots:
+        donor_roots=[arm]
+    donor_root_names=[o.name for o in donor_roots]
+
     donor_min,donor_max=world_bbox(donor_meshes)
     donor_ext=donor_max-donor_min
     donor_axis=height_axis(donor_ext)
@@ -137,17 +143,45 @@ def main():
     if donor_height<=1e-6:
         raise RuntimeError("donor height is degenerate")
 
-    # Blender glTF import should normalize both sources to Z-up.  The old
-    # prototype scaled only the armature object; some donor meshes are not
-    # parented to that object, so their weight-sampling surface stayed at the
-    # original size.  That caused target vertices to collapse onto a handful
-    # of torso groups and produced the stretched-face/body failure seen in
-    # mobile previews.  Transform each imported donor ROOT exactly once so
-    # mesh + armature stay spatially coherent.
+    # Controller meshes used to hide that some donor bodies are X-up/Y-up.
+    # Determine the donor's anatomical up direction from head vs pelvis, rotate
+    # the entire imported donor hierarchy to the target height axis, and only
+    # then calculate scale/proportions.
+    orientation_fix={
+        "applied":False,
+        "target_axis":target_axis,
+        "donor_axis_before":donor_axis,
+        "source_up_sign":1,
+    }
     if donor_axis != target_axis:
-        raise RuntimeError(
-            f"orientation_mismatch:target_axis={target_axis},donor_axis={donor_axis}"
-        )
+        head_bone=next((b for b in arm.data.bones if "head" in b.name.lower()),None)
+        pelvis_bone=next((b for b in arm.data.bones if any(k in b.name.lower() for k in ("pelvis","hips"))),None)
+        up_sign=1
+        if head_bone is not None and pelvis_bone is not None:
+            head_world=arm.matrix_world @ ((head_bone.head_local+head_bone.tail_local)*0.5)
+            pelvis_world=arm.matrix_world @ ((pelvis_bone.head_local+pelvis_bone.tail_local)*0.5)
+            up_sign=1 if axis_value(head_world,donor_axis)>=axis_value(pelvis_world,donor_axis) else -1
+        source_up=Vector((0.0,0.0,0.0))
+        target_up=Vector((0.0,0.0,0.0))
+        source_up[donor_axis]=float(up_sign)
+        target_up[target_axis]=1.0
+        rotation=source_up.rotation_difference(target_up).to_matrix().to_4x4()
+        for root in donor_roots:
+            root.matrix_world=rotation @ root.matrix_world
+        bpy.context.view_layer.update()
+        donor_min,donor_max=world_bbox(donor_meshes)
+        donor_ext=donor_max-donor_min
+        donor_axis=height_axis(donor_ext)
+        donor_height=axis_value(donor_ext,donor_axis)
+        orientation_fix.update({
+            "applied":True,
+            "source_up_sign":up_sign,
+            "donor_axis_after":donor_axis,
+        })
+        if donor_axis != target_axis:
+            raise RuntimeError(
+                f"orientation_normalization_failed:target_axis={target_axis},donor_axis={donor_axis}"
+            )
 
     scale=target_height/donor_height
     target_ext_values=(abs(target_ext.x),abs(target_ext.y),abs(target_ext.z))
@@ -158,18 +192,9 @@ def main():
             value=scale
         else:
             raw=target_ext_values[axis]/max(1e-8,donor_ext_values[axis])
-            # Generated clothing/hair can exaggerate one envelope axis. Fit the
-            # donor skeleton to the character's actual proportions, but clamp
-            # pathological silhouettes so a cape/weapon does not crush bones.
             value=max(scale*0.55,min(scale*1.80,raw))
         axis_scales.append(value)
     fit_scale=Vector(tuple(axis_scales))
-
-    donor_set=set(donor_objs)
-    donor_roots=[o for o in donor_objs if o.parent not in donor_set]
-    if not donor_roots:
-        donor_roots=[arm]
-    donor_root_names=[o.name for o in donor_roots]
 
     for root in donor_roots:
         root.scale=Vector((
@@ -596,6 +621,7 @@ def main():
         "donor_bounds":{"min":list(donor_min),"max":list(donor_max),"height":donor_height,"axis":donor_axis},
         "scale":scale,
         "axis_scales":axis_scales,
+        "orientation_fix":orientation_fix,
         "armature":arm.name,
         "bones":[b.name for b in arm.data.bones],
         "actions":[a.name for a in actions],
@@ -609,7 +635,7 @@ def main():
         "armature_world_after":arm_world_after,
         "export_meshes":remaining_meshes,
         "sterile_export_scene_meshes":export_scene_meshes,
-        "binding_method":"control_filtered_geometric_bone_envelope_v16",
+        "binding_method":"auto_oriented_control_filtered_bone_envelope_v17",
         "bind_results":bind_results,
         "output_bytes":args.output.stat().st_size if args.output.exists() else 0,
     }
