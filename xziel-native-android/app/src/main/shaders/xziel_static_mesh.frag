@@ -296,6 +296,95 @@ float spotAttenuation(
         cosine);
 }
 
+vec3 evaluateLegacyRelight(vec3 normal) {
+    vec3 illumination =
+        vec3(0.22) +
+        uLighting.ambientColorExposure.rgb *
+        uLighting.keyColorAmbientIntensity.w *
+        0.85;
+
+    vec3 keyDirection =
+        normalize(
+            uLighting.keyDirectionIntensity.xyz);
+
+    float keyDiffuse =
+        max(
+            dot(
+                normal,
+                keyDirection),
+            0.0);
+
+    illumination +=
+        uLighting.keyColorAmbientIntensity.rgb *
+        max(
+            uLighting.keyDirectionIntensity.w,
+            0.0) *
+        keyDiffuse *
+        0.52;
+
+    int localCount =
+        clamp(
+            int(
+                uLighting.post.w +
+                0.5),
+            0,
+            4);
+
+    for (int index = 0;
+         index < 4;
+         ++index) {
+        if (index >= localCount) {
+            break;
+        }
+
+        vec3 toLight =
+            uLighting.localPositionRange[index].xyz -
+            vViewPosition;
+
+        float distanceToLight =
+            length(toLight);
+
+        if (distanceToLight <= 0.0001) {
+            continue;
+        }
+
+        vec3 lightDirection =
+            toLight /
+            distanceToLight;
+
+        float attenuation =
+            localDistanceAttenuation(
+                distanceToLight,
+                uLighting.localPositionRange[index].w) *
+            spotAttenuation(
+                index,
+                lightDirection);
+
+        float diffuse =
+            max(
+                dot(
+                    normal,
+                    lightDirection),
+                0.0);
+
+        illumination +=
+            uLighting.localColorIntensity[index].rgb *
+            max(
+                uLighting.localColorIntensity[index].w,
+                0.0) *
+            attenuation *
+            diffuse *
+            0.34;
+    }
+
+    // Preserve enough of the scan's source texture to retain masonry/detail,
+    // but no longer let captured daylight define the scene exposure.
+    return clamp(
+        illumination,
+        vec3(0.16),
+        vec3(1.25));
+}
+
 vec3 applyAtmosphere(
     vec3 color,
     bool viewmodel) {
@@ -400,13 +489,25 @@ void main() {
     bool viewmodel =
         vViewmodel > 0.5;
 
-    // Legacy photogrammetry contains captured illumination already. Keep it
-    // unlit, but still place it in the same atmosphere/exposure response so
-    // old content no longer looks pasted on top of the horror scene.
+    vec3 normal =
+        normalize(vNormal);
+
+    if (!gl_FrontFacing) {
+        normal = -normal;
+    }
+
+    // Photogrammetry textures contain captured illumination, but treating
+    // that capture as final lighting leaves a daylight scan looking pasted
+    // into a night/horror scene. Preserve the source detail while modulating
+    // it with the same motivated key/practical lights as authored PBR assets.
     if (!pbrEnabled && !viewmodel) {
         vec3 legacy =
+            albedo.rgb *
+            evaluateLegacyRelight(normal);
+
+        legacy =
             applyAtmosphere(
-                albedo.rgb,
+                legacy,
                 false);
 
         outColor =
@@ -417,13 +518,6 @@ void main() {
                     1.0),
                 albedo.a);
         return;
-    }
-
-    vec3 normal =
-        normalize(vNormal);
-
-    if (!gl_FrontFacing) {
-        normal = -normal;
     }
 
     if (pbrEnabled && hasNormal) {
