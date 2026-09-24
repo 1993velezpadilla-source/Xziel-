@@ -4,10 +4,15 @@ import struct
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import trimesh
 
+from tools.hayuya3d.composite_champion import (
+    build_composite_plan,
+    execute_safe_accessory_challenger,
+)
 from tools.hayuya3d.glb_images import write_glb
 from tools.hayuya3d.gltf_audit import audit_glb
 from tools.hayuya3d.gltf_position_patch import runtime_payload_signature
@@ -163,6 +168,41 @@ def write_unskinned_donor(
     )
 
 
+def candidate(
+    backend: str,
+    path: Path,
+    score: float,
+    *,
+    detail_source: str,
+    detail_score: float,
+):
+    return SimpleNamespace(
+        backend=backend,
+        path=str(path),
+        score=score,
+        valid=True,
+        production_score=score,
+        visual_score=score,
+        appearance_score=score,
+        appearance_face_detail_score=92.0,
+        appearance_face_detail_min_score=90.0,
+        head_density_score=98.0,
+        head_texel_density_score=98.0,
+        head_texture_detail_score=92.0,
+        material_score=95.0,
+        texture_resolution_score=100.0,
+        base_color_min_edge=0,
+        pbr_channels=[],
+        appearance_details=[{
+            "source": detail_source,
+            "score": detail_score,
+            "region_hint": "local",
+        }],
+        visual_views=[{"best_up_axis": "y"}],
+        up_axis="y",
+    )
+
+
 class RiggedAccessoryWrapTests(unittest.TestCase):
     def test_wrap_preserves_skin_and_morph_runtime_payload(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -205,6 +245,71 @@ class RiggedAccessoryWrapTests(unittest.TestCase):
             self.assertTrue(audit_glb(output).rig_ready)
             self.assertTrue(audit_skin_weights(output).ready)
             self.assertTrue(audit_morph_deformation(output).ready)
+
+    def test_composite_champion_executes_rigged_accessory_wrap(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            base_path = root / "base.glb"
+            donor_path = root / "donor.glb"
+            source = "/refs/rosary_detail.png"
+            write_skinned_accessory_character(base_path, morph=True)
+            write_unskinned_donor(
+                donor_path,
+                accessory_extent=(0.24, 0.12, 0.20),
+            )
+
+            base = candidate(
+                "base",
+                base_path,
+                96.0,
+                detail_source=source,
+                detail_score=72.0,
+            )
+            donor = candidate(
+                "donor",
+                donor_path,
+                84.0,
+                detail_source=source,
+                detail_score=98.0,
+            )
+            plan = build_composite_plan(
+                [base, donor],
+                mode="character",
+                inspect_parts=True,
+            )
+
+            detail = next(
+                item
+                for item in plan.detail_donors
+                if item.source == source
+            )
+            token = "detail:" + source
+            self.assertEqual(
+                detail.strategy,
+                "matched_rig_preserving_accessory_wrap_then_rebake",
+            )
+            self.assertTrue(
+                detail.accessory_match["rigged_wrap_supported"]
+            )
+            self.assertIn(token, plan.executable_now)
+            self.assertNotIn(token, plan.deferred_transfers)
+
+            result = execute_safe_accessory_challenger(
+                plan,
+                root / "composite",
+                detail_source=source,
+                texture_size=256,
+            )
+            self.assertTrue(result.attempted)
+            self.assertTrue(result.ready, result.error)
+            self.assertTrue(Path(result.candidate_path or "").is_file())
+            self.assertTrue(result.fusion)
+            self.assertTrue(result.fusion["runtime_payload_preserved"])
+            self.assertTrue(result.fusion["rig_ready"])
+            self.assertTrue(result.fusion["skin_weights_ready"])
+            self.assertTrue(result.fusion["morph_deformation_ready"])
+            self.assertTrue(result.fusion["attachment_ready"])
+            self.assertTrue(result.fusion["rebake_ready"])
 
     def test_missing_base_accessory_fails_closed_without_output(self):
         with tempfile.TemporaryDirectory() as tmp:
