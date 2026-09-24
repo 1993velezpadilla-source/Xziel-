@@ -77,6 +77,12 @@ def base_qa():
             "non_normalized_vertices":0,
             "invalid_joint_references":0,
         },
+        "animation_qa":{
+            "applicable":True,
+            "ready":True,
+            "channel_count":12,
+            "total_keyframes":240,
+        },
         "warnings":[],
     }
 
@@ -142,6 +148,16 @@ class AAAAcceptanceTests(unittest.TestCase):
         self.assertFalse(report.ready)
         self.assertTrue(
             any("skin weights" in x.lower() for x in report.blockers),
+            report.blockers,
+        )
+
+    def test_invalid_animation_integrity_fails(self):
+        qa=base_qa()
+        qa["animation_qa"]["ready"]=False
+        report=evaluate_aaa_acceptance(base_manifest(),qa)
+        self.assertFalse(report.ready)
+        self.assertTrue(
+            any("integrity" in x.lower() for x in report.blockers),
             report.blockers,
         )
 
