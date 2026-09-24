@@ -757,10 +757,61 @@ def main():
         }
         for seg in bone_segments
     ]
+
+    # Persist rest-fit coverage telemetry instead of keeping it only in CI logs.
+    # This is deliberately observational: it does not alter weights, skeleton
+    # transforms, animation curves, or QA thresholds. It lets later solvers
+    # distinguish "weighting missed the hand" from "the fitted hand bone is not
+    # spatially inside the generated character's rest-pose envelope".
+    lateral_min=coord_axis(target_min,width_axis)
+    lateral_max=coord_axis(target_max,width_axis)
+    lateral_span=max(1e-8,lateral_max-lateral_min)
+    terminal_major_fit=[]
+    for seg in bone_segments:
+        n=seg["name"].lower()
+        kind=None
+        if "hand" in n:
+            kind="hand"
+        elif "foot" in n or "toe" in n:
+            kind="foot"
+        if kind is None:
+            continue
+        pa=coord_axis(seg["a"],width_axis)
+        pb=coord_axis(seg["b"],width_axis)
+        seg_min=min(pa,pb)
+        seg_max=max(pa,pb)
+        outside=max(0.0,lateral_min-seg_min,seg_max-lateral_max)
+        terminal_major_fit.append({
+            "name":seg["name"],
+            "kind":kind,
+            "top1_vertices":int(bone_top1_counts.get(seg["name"],0)),
+            "weighted":seg["name"] in all_weighted_groups,
+            "lateral_range":[round(float(seg_min),6),round(float(seg_max),6)],
+            "target_lateral_range":[round(float(lateral_min),6),round(float(lateral_max),6)],
+            "lateral_overhang":round(float(outside),6),
+            "lateral_overhang_normalized":round(float(outside/lateral_span),6),
+        })
+    hand_fit=[x for x in terminal_major_fit if x["kind"]=="hand"]
+    suspected_rest_pose_mismatch=bool(
+        hand_fit
+        and all(x["top1_vertices"]==0 for x in hand_fit)
+        and any(x["lateral_overhang_normalized"]>0.10 for x in hand_fit)
+    )
+    rest_pose_fit_telemetry={
+        "schema":1,
+        "method":"terminal_major_bone_bbox_overlap_v1",
+        "lateral_axis":width_axis,
+        "top1_counts":dict(sorted(bone_top1_counts.items(),key=lambda x:x[1],reverse=True)),
+        "terminal_major_fit":terminal_major_fit,
+        "suspected_rest_pose_mismatch":suspected_rest_pose_mismatch,
+    }
+
     print("HAYUYA_BONE_ENVELOPE",json.dumps({
         "target_bounds":{"min":list(target_min),"max":list(target_max)},
         "segments":segment_debug,
-        "top1_counts":dict(sorted(bone_top1_counts.items(),key=lambda x:x[1],reverse=True)),
+        "top1_counts":rest_pose_fit_telemetry["top1_counts"],
+        "terminal_major_fit":terminal_major_fit,
+        "suspected_rest_pose_mismatch":suspected_rest_pose_mismatch,
         "weighted_groups":sorted(all_weighted_groups),
     },separators=(",",":")))
 
@@ -886,6 +937,7 @@ def main():
         "sterile_export_scene_meshes":export_scene_meshes,
         "binding_method":"expanded_component_coherent_semantic_head_v32",
         "bind_results":bind_results,
+        "rest_pose_fit_telemetry":rest_pose_fit_telemetry,
         "output_bytes":args.output.stat().st_size if args.output.exists() else 0,
     }
     args.report.write_text(json.dumps(report,indent=2),encoding="utf-8")
