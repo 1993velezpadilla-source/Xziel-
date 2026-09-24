@@ -563,10 +563,12 @@ private:
 
     std::vector<GpuTexture> textures_{};
     std::vector<GpuMaterial> materials_{};
-    // Pre-sized during initialization; reset in-place each frame so the
-    // render hot path never allocates while avoiding repeated material/
-    // streaming visibility lookups for batches sharing a material.
+    // Pre-sized during initialization. A generation stamp makes stale
+    // entries invisible without clearing the whole cache every frame.
+    // State: 1=visible, 2=hidden; generation identifies the owning frame.
     std::vector<std::uint8_t> materialVisibilityStates_{};
+    std::vector<std::uint32_t> materialVisibilityGenerations_{};
+    std::uint32_t materialVisibilityGeneration_ = 1U;
     std::vector<GpuBatch> batches_{};
     std::vector<VisibleDrawCandidate> visibleDrawCandidates_{};
     std::vector<VkDrawIndexedIndirectCommand> drawCommands_{};

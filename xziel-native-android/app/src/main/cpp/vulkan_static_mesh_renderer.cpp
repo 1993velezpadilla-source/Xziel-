@@ -1231,12 +1231,23 @@ bool VulkanStaticMeshRenderer::initialize(
         materialVisibilityStates_.assign(
             materials_.size(),
             0U);
+        materialVisibilityGenerations_.assign(
+            materials_.size(),
+            0U);
+        materialVisibilityGeneration_ = 1U;
     } catch (...) {
         logError(
             "static mesh material visibility cache allocation failed");
         shutdown();
         return false;
     }
+
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
+        "XZIEL_MATERIAL_VISIBILITY_GENERATION_CACHE_READY materials=%u",
+        static_cast<unsigned int>(
+            materials_.size()));
 
     if (!createGeometryResidency(
             asset,
@@ -1335,6 +1346,8 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     batches_.clear();
     materials_.clear();
     materialVisibilityStates_.clear();
+    materialVisibilityGenerations_.clear();
+    materialVisibilityGeneration_ = 1U;
     textures_.clear();
 
     streamGraph_.reset();
@@ -4752,13 +4765,23 @@ void VulkanStaticMeshRenderer::record(
 
     const bool materialVisibilityCacheReady =
         materialVisibilityStates_.size() ==
-        materials_.size();
+            materials_.size() &&
+        materialVisibilityGenerations_.size() ==
+            materials_.size();
 
     if (materialVisibilityCacheReady) {
-        std::fill(
-            materialVisibilityStates_.begin(),
-            materialVisibilityStates_.end(),
-            static_cast<std::uint8_t>(0U));
+        ++materialVisibilityGeneration_;
+
+        // Generation zero is reserved for never-written entries. This path
+        // runs only after ~4.29 billion frames, so the linear clear is
+        // effectively absent from normal gameplay.
+        if (materialVisibilityGeneration_ == 0U) {
+            std::fill(
+                materialVisibilityGenerations_.begin(),
+                materialVisibilityGenerations_.end(),
+                0U);
+            materialVisibilityGeneration_ = 1U;
+        }
     }
 
     for (std::size_t batchIndex = 0U;
@@ -4900,8 +4923,12 @@ void VulkanStaticMeshRenderer::record(
             auto& cachedState =
                 materialVisibilityStates_[
                     batch.materialIndex];
+            auto& cachedGeneration =
+                materialVisibilityGenerations_[
+                    batch.materialIndex];
 
-            if (cachedState == 0U) {
+            if (cachedGeneration !=
+                materialVisibilityGeneration_) {
                 ++frameStats_.
                     materialVisibilityTests;
 
@@ -4929,6 +4956,8 @@ void VulkanStaticMeshRenderer::record(
                     materialVisible
                     ? static_cast<std::uint8_t>(1U)
                     : static_cast<std::uint8_t>(2U);
+                cachedGeneration =
+                    materialVisibilityGeneration_;
             } else {
                 ++frameStats_.
                     materialVisibilityCacheHits;
