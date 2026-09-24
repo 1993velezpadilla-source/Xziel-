@@ -734,6 +734,7 @@ jobs:
             STREAM_BATCH_FRUSTUM_TESTS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* batch_frustum_tests=\([0-9][0-9]*\).*/\1/p')"
             STREAM_PLAN_BUILDS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* plan_builds=\([0-9][0-9]*\).*/\1/p')"
             STREAM_PLAN_CACHE_HITS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* plan_cache_hits=\([0-9][0-9]*\).*/\1/p')"
+            STREAM_CELL_HEAT_REFRESHES="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* cell_heat_refreshes=\([0-9][0-9]*\).*/\1/p')"
             test -n "${STREAM_CULLED}"
             test "${STREAM_CULLED}" -gt 0
             test -n "${STREAM_DRAWS}"
@@ -794,9 +795,14 @@ jobs:
             if [[ "${GITHUB_REF_NAME}" == "engine/mobile-stream-plan-cache-v1" ]]; then
               test -n "${STREAM_PLAN_BUILDS}"
               test -n "${STREAM_PLAN_CACHE_HITS}"
+              test -n "${STREAM_CELL_HEAT_REFRESHES}"
               test "${STREAM_PLAN_BUILDS}" -ge 1
               test "${STREAM_PLAN_CACHE_HITS}" -gt "${STREAM_PLAN_BUILDS}"
-              echo "XZIEL_STREAM_PLAN_CACHE_ACTIVE builds=${STREAM_PLAN_BUILDS} hits=${STREAM_PLAN_CACHE_HITS}"
+
+              EXPECTED_HEAT_REFRESHES=$((STREAM_PLAN_BUILDS * 10))
+              test "${STREAM_CELL_HEAT_REFRESHES}" -eq "${EXPECTED_HEAT_REFRESHES}"
+
+              echo "XZIEL_STREAM_PLAN_CACHE_ACTIVE builds=${STREAM_PLAN_BUILDS} hits=${STREAM_PLAN_CACHE_HITS} cell_heat_refreshes=${STREAM_CELL_HEAT_REFRESHES}"
             fi
 
             if [[ "${GITHUB_REF_NAME}" == "engine/mobile-material-dedup-v1" ]]; then
