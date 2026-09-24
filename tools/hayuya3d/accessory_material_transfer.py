@@ -585,7 +585,28 @@ def accessory_material_transfer_supported(
         )
         return True, None
     except Exception as exc:
-        return False, f"{type(exc).__name__}:{exc}"
+        primary = f"{type(exc).__name__}:{exc}"
+        try:
+            from accessory_material_split import (
+                split_accessory_material_supported,
+            )
+            split_ready, split_blocker = split_accessory_material_supported(
+                donor_mesh,
+                up_axis=up_axis,
+            )
+            if split_ready:
+                return True, None
+            return False, (
+                primary
+                + " | split_material="
+                + str(split_blocker or "unsupported")
+            )
+        except Exception as split_exc:
+            return False, (
+                primary
+                + " | split_material="
+                + f"{type(split_exc).__name__}:{split_exc}"
+            )
 
 
 def transfer_accessory_material(
@@ -599,10 +620,29 @@ def transfer_accessory_material(
     warnings: list[str] = []
     errors: list[str] = []
     try:
-        donor_doc, donor_binary, component = _find_accessory_component(
-            donor_mesh,
-            up_axis=donor_up_axis,
-        )
+        try:
+            donor_doc, donor_binary, component = _find_accessory_component(
+                donor_mesh,
+                up_axis=donor_up_axis,
+            )
+        except Exception as primary_exc:
+            from accessory_material_split import (
+                transfer_split_accessory_material,
+            )
+            split = transfer_split_accessory_material(
+                donor_mesh,
+                inserted_mesh,
+                output_glb,
+                donor_up_axis=donor_up_axis,
+            )
+            if not split.ready:
+                split.errors.insert(
+                    0,
+                    "shared_atlas_material_path:"
+                    + f"{type(primary_exc).__name__}:{primary_exc}",
+                )
+            return split
+
         primitive = component["primitive"]
         attrs = primitive.get("attributes") or {}
         material_index = primitive.get("material")
