@@ -17,6 +17,7 @@ on:
       - engine/mobile-world-vertex-precompute-v1
       - engine/mobile-front-to-back-earlyz-v1
       - engine/mobile-fragment-distance-lod-v1
+      - engine/mobile-normal-renorm-elision-v1
       - engine/mobile-dynamic-resolution-v1
       - engine/mobile-pbr-materials-v1
       - engine/mobile-ktx2-astc-v1
@@ -730,7 +731,7 @@ jobs:
           fi
           grep -Eq "XZIEL_GPU_TIMESTAMPS_(READY|UNAVAILABLE)"             dist/sanctum-hq-logcat.txt
 
-          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-gpu-pass-timing-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-gpu-pass-timing-mainline-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-vertex-precompute-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-front-to-back-earlyz-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-fragment-distance-lod-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" ]]; then
+          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-gpu-pass-timing-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-gpu-pass-timing-mainline-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-vertex-precompute-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-front-to-back-earlyz-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-fragment-distance-lod-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-normal-renorm-elision-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" ]]; then
             grep -q "XZIEL_GPU_PASS_TIMING_READY passes=3 queries_per_frame=4" dist/sanctum-hq-logcat.txt
             grep -Eq "XZIEL_PERF_TIMING .*gpu_frame_ms=[0-9]+\.[0-9]+ .*gpu_preworld_ms=[0-9]+\.[0-9]+ .*gpu_world_ms=[0-9]+\.[0-9]+ .*gpu_composite_ui_ms=[0-9]+\.[0-9]+" dist/sanctum-hq-logcat.txt
 
