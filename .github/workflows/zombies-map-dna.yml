@@ -1,0 +1,73 @@
+name: Zombies Map DNA Atlas
+
+on:
+  push:
+    branches:
+      - main
+      - design/zombies-map-dna-atlas-v1
+    paths:
+      - "docs/zombies-map-dna-atlas.v1.json"
+      - "docs/ZOMBIES_MAP_DNA_ATLAS.md"
+      - "tools/church_map/zombies_map_dna.py"
+      - "tools/church_map/design_zombies_gameplay.py"
+      - ".github/workflows/zombies-map-dna.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-zombies-map-dna:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Validate atlas
+        run: |
+          set -euo pipefail
+          python3 tools/church_map/zombies_map_dna.py --validate
+          python3 tools/church_map/zombies_map_dna.py --summary > /tmp/zombies-map-dna-summary.json
+          python3 tools/church_map/zombies_map_dna.py --preset sanctum_classic --out /tmp/sanctum-dna.json
+
+      - name: Gate corpus and Sanctum profile
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          atlas = json.loads(Path("docs/zombies-map-dna-atlas.v1.json").read_text())
+          summary = json.loads(Path("/tmp/zombies-map-dna-summary.json").read_text())
+          sanctum = json.loads(Path("/tmp/sanctum-dna.json").read_text())
+
+          ids = {m["id"] for m in atlas["maps"]}
+          assert summary["mapCount"] >= 60, summary
+          assert len(ids) == summary["mapCount"]
+          assert len(sanctum["sourceMaps"]) == 8
+          assert "waw_nacht" in sanctum["sourceMaps"]
+          assert "bo2_mob" in sanctum["sourceMaps"]
+          assert "bo2_origins" in sanctum["sourceMaps"]
+          assert sanctum["constraints"]["topology"]
+          assert sanctum["constraints"]["progression"]
+          assert sanctum["constraints"]["pressure"]
+          assert sanctum["constraints"]["horror"]
+          assert len(sanctum["guardrails"]) >= 4
+
+          print(
+              "XZIEL_ZOMBIES_MAP_DNA_GREEN "
+              f"maps={summary['mapCount']} "
+              f"sanctum_sources={len(sanctum['sourceMaps'])}"
+          )
+          PY
+
+      - name: Upload synthesized Sanctum DNA
+        uses: actions/upload-artifact@v4
+        with:
+          name: sanctum-zombies-dna
+          path: /tmp/sanctum-dna.json
