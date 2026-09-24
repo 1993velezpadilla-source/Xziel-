@@ -613,7 +613,7 @@ class RiggedAccessoryInsertTests(unittest.TestCase):
             self.assertTrue(result.geometry_ready,result.errors)
             self.assertEqual(
                 result.surface_transfer_method,
-                "hayuya-surface-transfer-barycentric-exact-v1",
+                "hayuya-surface-transfer-bvh-barycentric-exact-v2",
             )
             self.assertEqual(result.surface_transfer_fallback_vertices,0)
 
