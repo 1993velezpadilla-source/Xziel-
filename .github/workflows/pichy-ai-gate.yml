@@ -10,9 +10,9 @@ on:
       - ".github/workflows/pichy-ai-gate.yml"
 
 jobs:
-  unit:
+  python:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -21,7 +21,7 @@ jobs:
       - run: pip install -r pichy-ai/requirements.txt
       - run: pytest -q pichy-ai/tests
       - name: Compile Python
-        run: python -m compileall -q pichy-ai/agent
+        run: python -m compileall -q pichy-ai/agent pichy-ai/server
       - name: Validate JSON
         run: |
           python - <<'PY'
@@ -30,3 +30,26 @@ jobs:
               json.loads(p.read_text())
               print("ok", p)
           PY
+
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK
+        run: sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.6.0"
+      - name: Build debug APK
+        run: gradle -p pichy-ai/android :app:assembleDebug --stacktrace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pichy-ai-lab-debug-apk
+          path: pichy-ai/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

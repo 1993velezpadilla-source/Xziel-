@@ -11,7 +11,10 @@ from typing import Any
 
 import requests
 
-from tools import ToolBox
+try:
+    from .tools import ToolBox
+except ImportError:  # direct CLI execution
+    from tools import ToolBox
 
 
 SYSTEM_PROMPT = """You are Pichy AI, an independent general-purpose agent.
@@ -46,8 +49,10 @@ class PichyAgent:
         self.config = config
         self.depth = depth
         self.route = route
-        workspace = Path(__file__).resolve().parent / config.get("workspace", "..")
-        self.tools = ToolBox(workspace.resolve(), config.get("image"))
+        workspace_cfg = config.get("workspace", "..")
+        config_root = Path(config.get("_config_dir", Path.cwd())).resolve()
+        workspace = (config_root / workspace_cfg).resolve()
+        self.tools = ToolBox(workspace, config.get("image"))
         self.history: list[dict[str, Any]] = [{"role": "system", "content": SYSTEM_PROMPT}]
         self.max_steps = int(config.get("max_steps", 30))
         self.temperature = float(config.get("temperature", 0.25))
@@ -126,7 +131,7 @@ class PichyAgent:
         route = forced_route or self.classify_route(task)
         self.history.append({"role": "user", "content": task})
 
-        for step in range(1, self.max_steps + 1):
+        for _step in range(1, self.max_steps + 1):
             msg = self.chat_completion(self.history, route, use_tools=True)
             assistant_entry: dict[str, Any] = {"role": "assistant", "content": msg.get("content")}
             if msg.get("tool_calls"):
@@ -159,8 +164,11 @@ class PichyAgent:
 
 
 def load_config(path: str) -> dict[str, Any]:
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    p = Path(path).resolve()
+    with p.open("r", encoding="utf-8") as f:
+        cfg = json.load(f)
+    cfg["_config_dir"] = str(p.parent)
+    return cfg
 
 
 def main() -> int:
@@ -176,7 +184,7 @@ def main() -> int:
         print(agent.run(args.task))
         return 0
 
-    print("Pichy AI v0.1 — type /exit to quit")
+    print("Pichy AI v0.2 — type /exit to quit")
     while True:
         try:
             text = input("\nYou> ").strip()

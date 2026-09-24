@@ -2,39 +2,44 @@
 
 Pichy AI is an independent, model-agnostic agent experiment. It is intentionally **not connected to HAYUYA, HAYUYA Map, or XZIEL yet**.
 
-The goal is to build a general assistant first: chat, deep web research, coding, repository work, files, terminal tools, sub-agents, image generation, memory, and self-improvement behind tests. If it passes the Astral Gate benchmark, HAYUYA integration becomes a separate phase.
+The goal is a general assistant first: chat, deep web research, coding, repository work, files, terminal tools, sub-agents, image generation/edit iteration, memory, and self-improvement behind tests.
 
-## Design
+## Current: v0.2 lab
 
-Pichy is not one model. It is a **router + agent harness**.
+### Brain
+- Autonomous multi-step agent loop.
+- Logical model routes: general, reasoning, coding, research, vision.
+- Specialist sub-agents.
+- Web search + URL retrieval.
+- Workspace-scoped file search/read/write.
+- Shell, git status/diff and calculator.
+- OpenAI-compatible model and image-provider adapters.
+- Git/test evidence requirement for coding work.
 
-- General/reasoning model: configurable.
-- Coding model: configurable.
-- Research model: configurable.
-- Vision/multimodal model: configurable.
-- Image model: configurable.
-- All language-model endpoints use OpenAI-compatible chat-completions where possible.
-- Tools are owned by Pichy, not by a model vendor.
+### Server
+FastAPI exposes:
+- `GET /health`
+- `GET /v1/capabilities`
+- `POST /v1/chat`
+- `POST /v1/chat/stream`
+- `POST /v1/image`
 
-This lets one installation use Kimi, GLM, Qwen, DeepSeek, gpt-oss, a local llama.cpp server, or another compatible endpoint without rewriting the agent.
+Sessions retain conversation history while the server process is alive. Image sessions retain prior prompt context so revisions such as “make it taller” build on the accepted concept.
 
-## Current v0.1
+### Android
+A native lightweight APK provides:
+- Chat mode.
+- Research mode.
+- Code mode.
+- Image mode.
+- Persistent session ID.
+- Server URL/token settings.
+- Image rendering from base64 or URL responses.
+- No model weights bundled into the APK.
 
-- Autonomous tool loop.
-- Workspace-scoped file read/write/search.
-- Shell execution with timeout.
-- Git status/diff.
-- Web search through DDGS.
-- URL retrieval and text extraction.
-- Calculator.
-- Image generation through an OpenAI-compatible image endpoint.
-- Sub-agent delegation for coding, research, debugging, architecture, and review.
-- Model routing by task category.
-- Conversation history.
-- Explicit test gate before self-modifying changes are accepted.
-- No dependency on leaked proprietary Claude Code source.
+The phone is the client; large open-weight models run through configured providers or a machine you control.
 
-## Start
+## Configure
 
 ```bash
 cd pichy-ai
@@ -42,16 +47,56 @@ python -m venv .venv
 . .venv/bin/activate
 pip install -r requirements.txt
 cp config/pichy.example.json config/pichy.local.json
-# edit endpoints/model ids and put API keys in environment variables, never in git
-python agent/pichy_agent.py --config config/pichy.local.json
 ```
 
-Then type a task.
+Edit `config/pichy.local.json`. Put API keys in environment variables named by the config; never commit keys.
 
-## Phone strategy
+Optional server authentication:
 
-The Android APK should remain a thin client. Running frontier open-weight models directly on a phone is not realistic; the APK will call this agent backend or a compatible hosted/local endpoint. Small GGUF models can later run on-device through llama.cpp for offline fallback.
+```bash
+export PICHY_SERVER_TOKEN="a-long-random-secret"
+```
 
-## Self-improvement rule
+Run:
 
-Pichy may edit its own source when explicitly tasked to improve itself, but the branch is the safety boundary: changes must remain reviewable in git and pass tests/benchmarks before promotion. It never silently merges itself into HAYUYA.
+```bash
+uvicorn server.app:app --host 0.0.0.0 --port 8000
+```
+
+For the Android app, set the server URL in Settings. Cleartext HTTP is allowed in the lab APK so a phone can reach a development server on a LAN; production should use HTTPS and disable cleartext.
+
+## Android build
+
+Pinned toolchain:
+- Android Gradle Plugin 9.4.0
+- Gradle 9.6.0
+- JDK 17
+- compile/target SDK 36
+
+GitHub Actions builds the APK and uploads `pichy-ai-lab-debug-apk` as a workflow artifact.
+
+Manual build:
+
+```bash
+gradle -p android :app:assembleDebug
+```
+
+## Docker
+
+```bash
+docker build -t pichy-ai .
+docker run --rm -p 8000:8000 \
+  -e PICHY_GENERAL_API_KEY=... \
+  -e PICHY_CODING_API_KEY=... \
+  -e PICHY_RESEARCH_API_KEY=... \
+  -e PICHY_REASONING_API_KEY=... \
+  -e PICHY_VISION_API_KEY=... \
+  -e PICHY_IMAGE_API_KEY=... \
+  -e PICHY_SERVER_TOKEN=... \
+  -v "$PWD/config/pichy.local.json:/app/config/pichy.local.json:ro" \
+  pichy-ai
+```
+
+## Important boundary
+
+Pichy can inspect and modify its own lab source when explicitly asked, but it cannot self-approve promotion. HAYUYA integration remains a later milestone after the Astral Gate benchmark is strong enough.
