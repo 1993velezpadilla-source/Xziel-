@@ -1754,6 +1754,28 @@ VulkanStaticMeshRenderer::streamDecision(
     return nullptr;
 }
 
+const StreamCellResourceDecision*
+VulkanStaticMeshRenderer::streamDecisionAt(
+    std::uint32_t slot,
+    std::uint64_t resourceId,
+    std::size_t count) const noexcept {
+    const std::size_t limit =
+        std::min(
+            count,
+            streamDecisions_.size());
+
+    if (slot < limit &&
+        streamDecisions_[slot].
+            resourceId ==
+            resourceId) {
+        return &streamDecisions_[slot];
+    }
+
+    return streamDecision(
+        resourceId,
+        count);
+}
+
 bool VulkanStaticMeshRenderer::updateTextureDescriptorForFrame(
     std::uint32_t textureIndex,
     std::uint32_t frameSlot,
@@ -2493,6 +2515,8 @@ bool VulkanStaticMeshRenderer::beginRuntimeKtx2Upload(
         sourceTexture.assetPath;
     upload.replacement.streamResourceId =
         sourceTexture.streamResourceId;
+    upload.replacement.streamDecisionSlot =
+        sourceTexture.streamDecisionSlot;
     upload.replacement.width =
         parsedTexture.width;
     upload.replacement.height =
@@ -2834,7 +2858,8 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureResidency(
             textures_[textureIndex];
 
         const auto* decision =
-            streamDecision(
+            streamDecisionAt(
+                texture.streamDecisionSlot,
                 texture.streamResourceId,
                 streamDecisionCount_);
 
@@ -4484,6 +4509,37 @@ void VulkanStaticMeshRenderer::record(
                 cachedPortalReachabilityCell_ =
                     currentCell;
                 portalReachabilityCacheValid_ = true;
+
+                std::uint32_t indexedTextureDecisions = 0U;
+
+                for (auto& texture : textures_) {
+                    texture.streamDecisionSlot =
+                        UINT32_MAX;
+
+                    const auto* decision =
+                        streamDecision(
+                            texture.streamResourceId,
+                            streamDecisionCount_);
+
+                    if (decision != nullptr) {
+                        texture.streamDecisionSlot =
+                            static_cast<std::uint32_t>(
+                                decision -
+                                streamDecisions_.data());
+                        ++indexedTextureDecisions;
+                    }
+                }
+
+                __android_log_print(
+                    ANDROID_LOG_INFO,
+                    kTag,
+                    "XZIEL_TEXTURE_DECISION_INDEX_READY indexed=%u textures=%u decisions=%u",
+                    static_cast<unsigned int>(
+                        indexedTextureDecisions),
+                    static_cast<unsigned int>(
+                        textures_.size()),
+                    static_cast<unsigned int>(
+                        streamDecisionCount_));
 
                 for (const auto& batch :
                      batches_) {

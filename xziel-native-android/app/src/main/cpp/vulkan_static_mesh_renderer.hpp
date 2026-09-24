@@ -143,6 +143,9 @@ private:
     struct GpuTexture {
         std::string assetPath{};
         std::uint64_t streamResourceId = 0U;
+        // Refreshed on stream-plan rebuild; stable frames use this direct
+        // decision index instead of a linear resource-id search.
+        std::uint32_t streamDecisionSlot = UINT32_MAX;
         VkImage image = VK_NULL_HANDLE;
         VkDeviceMemory memory = VK_NULL_HANDLE;
         VkImageView view = VK_NULL_HANDLE;
@@ -480,6 +483,12 @@ private:
 
     [[nodiscard]] const StreamCellResourceDecision*
     streamDecision(
+        std::uint64_t resourceId,
+        std::size_t count) const noexcept;
+
+    [[nodiscard]] const StreamCellResourceDecision*
+    streamDecisionAt(
+        std::uint32_t slot,
         std::uint64_t resourceId,
         std::size_t count) const noexcept;
 
