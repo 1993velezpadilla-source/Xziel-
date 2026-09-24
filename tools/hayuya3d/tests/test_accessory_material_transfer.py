@@ -4,6 +4,7 @@ import io
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import trimesh
@@ -13,8 +14,15 @@ from tools.hayuya3d.accessory_material_transfer import (
     accessory_material_transfer_supported,
     transfer_accessory_material,
 )
+from tools.hayuya3d.composite_champion import (
+    build_composite_plan,
+    execute_safe_accessory_challenger,
+)
 from tools.hayuya3d.glb_images import write_glb
-from tools.hayuya3d.rigged_accessory_insert import insert_rigged_accessory
+from tools.hayuya3d.rigged_accessory_insert import (
+    insert_rigged_accessory,
+    prepare_production_rigged_accessory_insert,
+)
 from tools.hayuya3d.shading_basis_qa import audit_shading_basis
 from tools.hayuya3d.uv_tangent_qa import audit_uv_tangents
 
@@ -382,6 +390,41 @@ def write_shared_atlas_cluster_donor(path: Path) -> None:
     write_glb(path, doc, bytes(blob))
 
 
+def _candidate(
+    backend: str,
+    path: Path,
+    score: float,
+    *,
+    detail_source: str,
+    detail_score: float,
+):
+    return SimpleNamespace(
+        backend=backend,
+        path=str(path),
+        score=score,
+        valid=True,
+        production_score=score,
+        visual_score=score,
+        appearance_score=score,
+        appearance_face_detail_score=92.0,
+        appearance_face_detail_min_score=90.0,
+        head_density_score=98.0,
+        head_texel_density_score=98.0,
+        head_texture_detail_score=92.0,
+        material_score=95.0,
+        texture_resolution_score=100.0,
+        base_color_min_edge=0,
+        pbr_channels=[],
+        appearance_details=[{
+            "source": detail_source,
+            "score": detail_score,
+            "region_hint": "local",
+        }],
+        visual_views=[{"best_up_axis": "y"}],
+        up_axis="y",
+    )
+
+
 class AccessoryMaterialTransferTests(unittest.TestCase):
     def test_textured_donor_material_becomes_valid_inserted_primitive(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -468,6 +511,100 @@ class AccessoryMaterialTransferTests(unittest.TestCase):
             self.assertTrue(transfer.shading_basis_ready)
             self.assertTrue(audit_uv_tangents(final).ready)
             self.assertTrue(audit_shading_basis(final).ready)
+
+    def test_shared_atlas_cluster_is_production_ready(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            base = root / "base.glb"
+            donor = root / "cluster.glb"
+            write_skinned_base_with_normals(base)
+            write_shared_atlas_cluster_donor(donor)
+
+            result = prepare_production_rigged_accessory_insert(
+                base,
+                donor,
+                root / "production",
+            )
+            self.assertTrue(result.ready, result.errors)
+            self.assertTrue(result.production_ready, result.material_blockers)
+            self.assertTrue(result.geometry_ready)
+            self.assertTrue(result.material_ready)
+            self.assertTrue(result.uv_ready)
+            self.assertTrue(result.uv_tangent_ready)
+            self.assertTrue(result.legacy_payload_preserved)
+            self.assertTrue(result.rig_ready)
+            self.assertTrue(result.skin_weights_ready)
+            self.assertTrue(result.morph_deformation_ready)
+            self.assertTrue(result.attachment_ready)
+            self.assertIn("baseColor", result.material_channels)
+
+    def test_composite_executes_shared_atlas_cluster_end_to_end(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            base_path = root / "base.glb"
+            donor_path = root / "cluster.glb"
+            source = "/refs/rosary_cluster.png"
+            write_skinned_base_with_normals(base_path)
+            write_shared_atlas_cluster_donor(donor_path)
+
+            base = _candidate(
+                "base",
+                base_path,
+                96.0,
+                detail_source=source,
+                detail_score=70.0,
+            )
+            donor = _candidate(
+                "donor",
+                donor_path,
+                84.0,
+                detail_source=source,
+                detail_score=98.0,
+            )
+            plan = build_composite_plan(
+                [base, donor],
+                mode="character",
+                inspect_parts=True,
+            )
+            detail = next(
+                item for item in plan.detail_donors
+                if item.source == source
+            )
+            token = "detail:" + source
+            self.assertEqual(
+                detail.strategy,
+                "new_rigged_accessory_insert_weight_morph_transfer",
+            )
+            self.assertTrue(
+                detail.accessory_match["rigged_insert_supported"],
+                detail.accessory_match,
+            )
+            self.assertTrue(
+                detail.accessory_match["rigged_insert_material_ready"],
+                detail.accessory_match,
+            )
+            self.assertIn(token, plan.executable_now)
+            self.assertNotIn(token, plan.deferred_transfers)
+
+            result = execute_safe_accessory_challenger(
+                plan,
+                root / "composite",
+                detail_source=source,
+                texture_size=256,
+            )
+            self.assertTrue(result.attempted)
+            self.assertTrue(result.ready, result.error)
+            self.assertTrue(Path(result.candidate_path or "").is_file())
+            self.assertTrue(result.fusion)
+            self.assertTrue(result.fusion["production_ready"])
+            self.assertTrue(result.fusion["material_ready"])
+            self.assertTrue(result.fusion["uv_ready"])
+            self.assertTrue(result.fusion["uv_tangent_ready"])
+            self.assertTrue(result.fusion["rig_ready"])
+            self.assertTrue(result.fusion["skin_weights_ready"])
+            self.assertTrue(result.fusion["morph_deformation_ready"])
+            self.assertTrue(result.fusion["attachment_ready"])
+            self.assertIn("baseColor", result.fusion["material_channels"])
 
     def test_untextured_donor_material_support_fails_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
