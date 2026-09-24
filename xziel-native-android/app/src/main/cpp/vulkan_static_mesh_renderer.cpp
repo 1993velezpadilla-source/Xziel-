@@ -4642,10 +4642,25 @@ void VulkanStaticMeshRenderer::record(
         frameStats_.streamingCell != 0U) {
         streamCullLogged_ = true;
 
+        if (useIndirect) {
+            __android_log_print(
+                ANDROID_LOG_INFO,
+                kTag,
+                "XZIEL_MULTIDRAW_INDIRECT_ACTIVE logical_draws=%u submissions=%u groups=%u commands=%u",
+                static_cast<unsigned int>(
+                    frameStats_.drawCalls),
+                static_cast<unsigned int>(
+                    frameStats_.drawSubmissions),
+                static_cast<unsigned int>(
+                    frameStats_.submissionGroups),
+                static_cast<unsigned int>(
+                    indirectCommandCount));
+        }
+
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u",
+            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u submissions=%u indirect=%u",
             static_cast<unsigned int>(
                 frameStats_.streamingCell),
             static_cast<unsigned int>(
@@ -4665,7 +4680,10 @@ void VulkanStaticMeshRenderer::record(
             static_cast<unsigned int>(
                 frameStats_.pipelineBinds),
             static_cast<unsigned int>(
-                frameStats_.submissionGroups));
+                frameStats_.submissionGroups),
+            static_cast<unsigned int>(
+                frameStats_.drawSubmissions),
+            useIndirect ? 1U : 0U);
     }
 }
 
