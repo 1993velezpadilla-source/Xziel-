@@ -71,13 +71,21 @@ def evaluated_positions(meshes):
     mn=Vector((min(p.x for p in pts),min(p.y for p in pts),min(p.z for p in pts)))
     mx=Vector((max(p.x for p in pts),max(p.y for p in pts),max(p.z for p in pts)))
     ext=mx-mn
+    triangle_count=0
+    polygon_count=0
+    for obj in meshes:
+        polygon_count += len(obj.data.polygons)
+        for poly in obj.data.polygons:
+            triangle_count += max(1, len(poly.vertices)-2)
     return out,{
         "min":[float(x) for x in mn],
         "max":[float(x) for x in mx],
         "extents":[float(x) for x in ext],
         "diagonal":float(ext.length),
         "center":[float(x) for x in (mn+mx)*0.5],
-        "vertex_samples":len(pts)
+        "vertex_samples":len(pts),
+        "polygon_count":int(polygon_count),
+        "triangle_count":int(triangle_count)
     }
 
 
@@ -149,13 +157,37 @@ def main():
     args=parse_args()
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.gltf(filepath=str(args.model.resolve()))
-    meshes=[o for o in bpy.context.scene.objects if o.type=="MESH"]
+    all_model_meshes=[o for o in bpy.context.scene.objects if o.type=="MESH"]
     arms=[o for o in bpy.context.scene.objects if o.type=="ARMATURE"]
-    if not meshes:
+    if not all_model_meshes:
         raise RuntimeError("model_has_no_mesh")
     if not arms:
         raise RuntimeError("model_has_no_armature")
     arm=arms[0]
+    arm_bones={b.name for b in arm.data.bones}
+
+    def mesh_belongs_to_character(obj):
+        # Skin meshes may be connected through an Armature modifier, bone
+        # parenting, armature parenting, or matching deform vertex groups.
+        # Blender/Rigify control shapes such as Icosphere are renderable mesh
+        # datablocks too, but they are not part of the character surface and
+        # must never influence deformation/reference bounds.
+        for mod in obj.modifiers:
+            if mod.type=="ARMATURE" and (getattr(mod,"object",None) in (None,arm)):
+                return True
+        if obj.parent==arm:
+            return True
+        if getattr(obj,"parent_type","")=="BONE":
+            return True
+        return any(g.name in arm_bones for g in obj.vertex_groups)
+
+    meshes=[o for o in all_model_meshes if mesh_belongs_to_character(o)]
+    ignored_meshes=[o for o in all_model_meshes if o not in meshes]
+    if not meshes:
+        raise RuntimeError(
+            "model_has_no_deformable_mesh:"
+            + ",".join(sorted(o.name for o in all_model_meshes))
+        )
 
     if arm.animation_data is None:
         arm.animation_data_create()
@@ -200,18 +232,24 @@ def main():
         ac=Vector(rest["center"])
         center_offset=float((ac-rc).length/ref_diag)
         vertex_ratio=float(rest["vertex_samples"])/max(1,int(ref_bounds["vertex_samples"]))
+        triangle_ratio=float(rest.get("triangle_count",0))/max(1,int(ref_bounds.get("triangle_count",0)))
         if diag_ratio<args.reference_min_diagonal_ratio or diag_ratio>args.reference_max_diagonal_ratio:
             reference_failures.append(f"rest_vs_reference_diagonal:{diag_ratio:.4f}")
         if center_offset>args.reference_max_center_offset:
             reference_failures.append(f"rest_vs_reference_center:{center_offset:.4f}")
-        if vertex_ratio>2.0:
-            reference_failures.append(f"unexpected_export_mesh_growth:{vertex_ratio:.3f}")
+        # Skinned glTF export can legitimately split one source vertex into
+        # several vertices because joints/weights/normals/UV seams differ.
+        # Triangle count tracks actual surface growth and is the correct
+        # topology invariant here.
+        if triangle_ratio>1.35 or triangle_ratio<0.70:
+            reference_failures.append(f"unexpected_export_triangle_growth:{triangle_ratio:.3f}")
         reference_fidelity={
             "reference":str(args.reference),
             "bounds":ref_bounds,
             "diagonal_ratio":diag_ratio,
             "center_offset_normalized":center_offset,
-            "vertex_ratio":vertex_ratio,
+            "vertex_ratio_telemetry_only":vertex_ratio,
+            "triangle_ratio":triangle_ratio,
             "passed":not reference_failures,
             "failures":reference_failures,
         }
@@ -298,7 +336,8 @@ def main():
         "armature":arm.name,
         "nla_tracks_muted":nla_tracks,
         "mesh_count":len(meshes),
-        "mesh_objects":[{"name":o.name,"vertices":len(o.data.vertices),"edges":len(o.data.edges)} for o in meshes],
+        "mesh_objects":[{"name":o.name,"vertices":len(o.data.vertices),"edges":len(o.data.edges),"polygons":len(o.data.polygons)} for o in meshes],
+        "ignored_non_deforming_meshes":[{"name":o.name,"vertices":len(o.data.vertices),"polygons":len(o.data.polygons)} for o in ignored_meshes],
         "action_count":len(actions),
         "compatible_clips":compatible,
         "rejected_clip_count":len(actions)-len(compatible),
