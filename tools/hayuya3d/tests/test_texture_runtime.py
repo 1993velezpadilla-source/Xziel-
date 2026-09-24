@@ -1,0 +1,62 @@
+from __future__ import annotations
+
+import json
+import tempfile
+import unittest
+from pathlib import Path
+from unittest import mock
+
+from tools.hayuya3d import texture_runtime, texture_superres
+
+
+class TextureRuntimeTests(unittest.TestCase):
+    def test_lock_pins_verified_linux_release(self):
+        lock=texture_runtime.load_lock()
+        entry=lock["runtimes"]["realesrgan-ncnn-vulkan"]
+        asset=entry["assets"]["linux-x86_64"]
+        self.assertEqual(entry["version"],"v0.2.0")
+        self.assertEqual(
+            entry["upstream_commit"],
+            "37026f49824c5cf84062e7c6a5dd71445dcf610f",
+        )
+        self.assertEqual(entry["license"],"MIT")
+        self.assertEqual(
+            asset["sha256"],
+            "d0e8e1cf954f5cde11be4745dd912cc3774bef36f71c5b1cb8f74c4112b6e919",
+        )
+        self.assertTrue(asset["url"].startswith("https://github.com/xinntao/"))
+
+    def test_executable_path_finds_pinned_runtime_layout(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            entry,asset=texture_runtime.runtime_spec()
+            exe=(
+                root/"realesrgan-ncnn-vulkan"/entry["version"]/
+                asset["archive_root"]/asset["executable"]
+            )
+            exe.parent.mkdir(parents=True)
+            exe.write_bytes(b"stub")
+            self.assertEqual(texture_runtime.executable_path(root),exe)
+
+    def test_ensure_realesrgan_uses_hash_pinned_installer_only_when_requested(self):
+        fake=Path("/tmp/hayuya-pinned-realesrgan")
+        with mock.patch(
+            "tools.hayuya3d.texture_superres.find_realesrgan",
+            return_value=None,
+        ), mock.patch(
+            "tools.hayuya3d.texture_runtime.install",
+            return_value=fake,
+        ) as install:
+            self.assertIsNone(
+                texture_superres.ensure_realesrgan(auto_install=False)
+            )
+            install.assert_not_called()
+            self.assertEqual(
+                texture_superres.ensure_realesrgan(auto_install=True),
+                fake,
+            )
+            install.assert_called_once()
+
+
+if __name__=="__main__":
+    unittest.main()
