@@ -7,7 +7,8 @@
     "coverage": "docs/zombies-map-dna-coverage.v1.json",
     "profiles": {
       "sanctum_classic": "docs/sanctum-zombies-dna-profile.v1.json"
-    }
+    },
+    "patternLibrary": "hayuya/knowledge/zombies_design_pattern_library_v1.json"
   },
   "principles": [
     "Use source maps only as abstract evidence for topology, pacing, readability, progression, encounter pressure and atmosphere.",
