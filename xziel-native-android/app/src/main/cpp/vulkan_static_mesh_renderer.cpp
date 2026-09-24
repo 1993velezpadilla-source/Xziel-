@@ -5041,6 +5041,8 @@ void VulkanStaticMeshRenderer::record(
                         visibleDrawCandidates_[
                             groupBegin].
                             batchIndex];
+                const std::uint32_t groupId =
+                    firstBatch.submissionGroupId;
 
                 std::size_t groupEnd =
                     groupBegin + 1U;
@@ -5054,17 +5056,8 @@ void VulkanStaticMeshRenderer::record(
                                 batchIndex];
 
                     if (candidateBatch.
-                            geometryCellSlot !=
-                            firstBatch.
-                                geometryCellSlot ||
-                        candidateBatch.
-                            materialIndex !=
-                            firstBatch.
-                                materialIndex ||
-                        candidateBatch.
-                            doubleSided !=
-                            firstBatch.
-                                doubleSided) {
+                            submissionGroupId !=
+                        groupId) {
                         break;
                     }
 
@@ -5141,6 +5134,9 @@ void VulkanStaticMeshRenderer::record(
         }
     }
 
+    std::uint32_t activeSubmissionGroupId =
+        UINT32_MAX;
+
     for (const auto& candidate :
          visibleDrawCandidates_) {
         if (candidate.batchIndex >=
@@ -5169,14 +5165,25 @@ void VulkanStaticMeshRenderer::record(
             ? batch.geometryCellSlot
             : UINT32_MAX;
 
+        const bool hasPrecomputedGroup =
+            cellGeometry &&
+            batch.submissionGroupId !=
+                UINT32_MAX;
+
         const bool startsGroup =
             drawGroups_.empty() ||
-            drawGroups_.back().materialIndex !=
-                batch.materialIndex ||
-            drawGroups_.back().geometryCellSlot !=
-                geometryCellSlot ||
-            drawGroups_.back().doubleSided !=
-                batch.doubleSided;
+            (hasPrecomputedGroup
+                ? activeSubmissionGroupId !=
+                    batch.submissionGroupId
+                : drawGroups_.back().
+                        materialIndex !=
+                        batch.materialIndex ||
+                  drawGroups_.back().
+                        geometryCellSlot !=
+                        geometryCellSlot ||
+                  drawGroups_.back().
+                        doubleSided !=
+                        batch.doubleSided);
 
         if (startsGroup) {
             StaticDrawGroup group{};
@@ -5188,6 +5195,11 @@ void VulkanStaticMeshRenderer::record(
             group.doubleSided =
                 batch.doubleSided;
             drawGroups_.push_back(group);
+
+            activeSubmissionGroupId =
+                hasPrecomputedGroup
+                ? batch.submissionGroupId
+                : UINT32_MAX;
         }
 
         ++drawGroups_.back().commandCount;
@@ -6583,6 +6595,45 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
                     a.sourceBatchIndex <
                     b.sourceBatchIndex;
             });
+
+        std::uint32_t submissionGroupCount = 0U;
+
+        for (std::size_t batchIndex = 0U;
+             batchIndex < batches_.size();
+             ++batchIndex) {
+            auto& batch =
+                batches_[batchIndex];
+
+            if (batchIndex > 0U) {
+                const auto& previous =
+                    batches_[batchIndex - 1U];
+
+                if (batch.geometryCellSlot !=
+                        previous.geometryCellSlot ||
+                    batch.materialIndex !=
+                        previous.materialIndex ||
+                    batch.doubleSided !=
+                        previous.doubleSided) {
+                    ++submissionGroupCount;
+                }
+            }
+
+            batch.submissionGroupId =
+                submissionGroupCount;
+        }
+
+        if (!batches_.empty()) {
+            ++submissionGroupCount;
+        }
+
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_STATIC_SUBMISSION_GROUPS_READY groups=%u batches=%u",
+            static_cast<unsigned int>(
+                submissionGroupCount),
+            static_cast<unsigned int>(
+                batches_.size()));
 
         for (std::size_t i = 0U;
              i < geometryCellCount_;

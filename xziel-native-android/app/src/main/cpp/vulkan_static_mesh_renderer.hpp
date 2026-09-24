@@ -284,6 +284,10 @@ private:
         std::uint32_t streamCellId = 0U;
         std::uint32_t geometryCellSlot = UINT32_MAX;
         std::uint32_t sourceBatchIndex = UINT32_MAX;
+        // Stable compatibility-group ordinal assigned once after cell
+        // geometry is sorted at upload time. The hot render loop can compare
+        // this single integer instead of re-reading cell/material/cull keys.
+        std::uint32_t submissionGroupId = UINT32_MAX;
         std::uint32_t firstIndex = 0U;
         std::int32_t vertexOffset = 0;
         std::uint32_t indexCount = 0U;
