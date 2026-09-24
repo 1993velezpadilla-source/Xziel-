@@ -203,12 +203,14 @@ void main() {
             float(bandCorner) /
             float(bands);
 
+        // PROCEDURAL_SPHERE_UNIT_NORMAL_V1
+        // Spherical coordinates produce a unit vector by construction:
+        // cos²(phi)(cos²(theta)+sin²(theta)) + sin²(phi) = 1.
         unitNormal =
-            normalize(
-                vec3(
-                    cos(phi) * cos(theta),
-                    sin(phi),
-                    cos(phi) * sin(theta)));
+            vec3(
+                cos(phi) * cos(theta),
+                sin(phi),
+                cos(phi) * sin(theta));
 
         unitPosition =
             unitNormal * 0.75;
