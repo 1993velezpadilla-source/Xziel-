@@ -122,8 +122,13 @@ jobs:
         run: |
           set -euo pipefail
           python - <<'PY'
-          import json, os
+          import json, os, sys
+          from dataclasses import asdict
           from pathlib import Path
+          sys.path.insert(0, str(Path("tools/hayuya3d").resolve()))
+          from auto_motion_planner import plan as plan_auto_motion
+          from part_segmentation_plan import build as build_part_segmentation
+          from part_map import build_part_map, write_part_map
           job="${{ matrix.job_id }}"
           current=Path("${{ matrix.request }}")
           candidates=[]
@@ -195,8 +200,48 @@ jobs:
           manifest["preview_model"]="animated.glb" if usable2 else "animated-uam1.glb"
           manifest["rig_quality_version"]=3
           manifest["asset_profile"]="character.humanoid"
-          if isinstance(manifest.get("asset"),dict):
-              manifest["asset"]["profile"]="character.humanoid"
+          asset=manifest.setdefault("asset",{})
+          asset.update({
+            "profile":"character.humanoid",
+            "weapon_family":"auto",
+            "animation_requested":True,
+            "motion_profile":manifest.get("motion_profile","hayuya_auto"),
+            "animation_systems":["skeletal","morph_targets","secondary_motion"],
+            "mechanical_rig_ready":False,
+            "procedural_motion_ready":False,
+            "requires_profile_postprocess":False,
+          })
+
+          # The source job may have entered the cloud worker as profile=auto and
+          # been provisionally treated like a static prop. Once Rig QA proves a
+          # humanoid, rebuild every profile-derived decision so the manifest does
+          # not contain contradictory stale prop.static state.
+          research=manifest.get("research") if isinstance(manifest.get("research"),dict) else {}
+          auto_motion=plan_auto_motion(
+            "character.humanoid",
+            True,
+            manifest.get("motion_profile","hayuya_auto"),
+            "auto",
+            research,
+          )
+          manifest["auto_motion"]=auto_motion
+          (root/"auto_motion_plan.json").write_text(json.dumps(auto_motion,indent=2)+"\n")
+
+          part_plan=build_part_segmentation("character.humanoid","auto")
+          manifest["part_segmentation_plan"]=part_plan
+          (root/"part_segmentation_plan.json").write_text(json.dumps(part_plan,indent=2)+"\n")
+
+          # Rebuild the semantic-lite part map in character mode as well. Keeping
+          # the old prop-mode map after a successful humanoid rig can poison later
+          # animation/add-on decisions even when the rig itself is healthy.
+          part_map=build_part_map(root/"model.glb",mode="character",up_axis="z")
+          write_part_map(part_map,root/"part_map.json")
+          manifest["part_map_summary"]={
+            "components":part_map.component_count,
+            "mode":part_map.mode,
+            "warnings":[],
+          }
+
           manifest["character"]={
             "rig_quality_version":3,
             "skeleton_type":(r2 if usable2 else r1).get("skeleton_type","hayuya_humanoid_v1"),
