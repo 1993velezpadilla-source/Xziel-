@@ -71,8 +71,8 @@ jobs:
               ASTC_PACK_BRANCH="engine/mobile-power-fidelity-v1"
             fi
             for i in $(seq 1 120); do
-              RESPONSE="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs?branch=${ASTC_PACK_BRANCH}&per_page=30")"
-              RUN_ID="$(jq -r '.workflow_runs[] | select(.name == "Sanctum ASTC Texture Pack" and .status == "completed" and .conclusion == "success") | .id' <<<"${RESPONSE}" | head -n 1)"
+              RESPONSE="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/sanctum-astc-texture-pack.yml/runs?branch=${ASTC_PACK_BRANCH}&status=success&per_page=20")"
+              RUN_ID="$(jq -r '.workflow_runs[0].id // empty' <<<"${RESPONSE}")"
 
               if [[ -n "${RUN_ID}" && "${RUN_ID}" != "null" ]]; then
                 echo "SANCTUM_ASSET_RUN_ID=${RUN_ID}" >> "$GITHUB_ENV"
