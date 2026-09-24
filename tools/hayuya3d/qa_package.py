@@ -22,6 +22,8 @@ class QAPackageResult:
     geometry_ready: bool
     material_ready: bool
     material_rebake_ready: bool
+    material_rebaked_channels: list[str]
+    material_rebake_pending_channels: list[str]
     rig_ready: bool
     animation_ready: bool
     turntable_ready: bool
@@ -53,6 +55,16 @@ def unresolved_material_rebakes(gameprep_data: dict | None) -> list[dict]:
                 "channels": channels,
             })
     return unresolved
+
+
+def material_rebake_channel_summary(gameprep_data: dict | None) -> tuple[list[str], list[str]]:
+    resolved:set[str]=set()
+    pending:set[str]=set()
+    for lod in (gameprep_data or {}).get("lods", []) or []:
+        resolved.update(str(x) for x in (lod.get("rebaked_channels") or []) if x)
+        pending.update(str(x) for x in (lod.get("rebake_required") or []) if x)
+    # A channel still pending on any runtime LOD is not globally complete.
+    return sorted(resolved-pending),sorted(pending)
 
 
 def _thumbnail(path: Path, size: tuple[int, int]):
@@ -309,6 +321,9 @@ def build_qa_package(
         warnings.append("convex collision proxy unavailable")
 
     unresolved_rebakes = unresolved_material_rebakes(gameprep_data)
+    material_rebaked_channels,material_rebake_pending_channels = (
+        material_rebake_channel_summary(gameprep_data)
+    )
     material_rebake_ready = not unresolved_rebakes
     if unresolved_rebakes:
         summary = "; ".join(
@@ -379,6 +394,8 @@ def build_qa_package(
             "texture_resolution_score": mesh.texture_resolution_score,
             "target_texture_size": target_texture_size,
             "rebake_ready": material_rebake_ready,
+            "rebaked_channels": material_rebaked_channels,
+            "rebake_pending_channels": material_rebake_pending_channels,
             "unresolved_rebakes": unresolved_rebakes,
         },
         "rig": asdict(rig),
@@ -420,6 +437,8 @@ def build_qa_package(
         geometry_ready=geometry_ready,
         material_ready=material_ready,
         material_rebake_ready=material_rebake_ready,
+        material_rebaked_channels=material_rebaked_channels,
+        material_rebake_pending_channels=material_rebake_pending_channels,
         rig_ready=rig_ready,
         animation_ready=animation_ready,
         turntable_ready=turntable_ready,
