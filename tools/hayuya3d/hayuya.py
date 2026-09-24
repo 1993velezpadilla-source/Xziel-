@@ -1669,10 +1669,12 @@ def main() -> int:
     composite_plan_failure = None
     composite_execution = None
     composite_head_execution = None
+    composite_local_executions = []
 
     from composite_champion import (
         build_composite_plan,
         execute_safe_head_wrap_challenger,
+        execute_safe_local_detail_challenger,
         execute_safe_material_challenger,
         write_composite_plan,
     )
@@ -1700,6 +1702,28 @@ def main() -> int:
         if not label:
             return
         candidates[:] = [pair for pair in candidates if pair[0] != label]
+
+    def promote_composite_base(label: str):
+        nonlocal ranked, valid
+        chosen=next(
+            (
+                item for item in ranked
+                if item.backend==label and item.valid
+            ),
+            None,
+        )
+        if chosen is None:
+            raise RuntimeError(
+                f"cannot promote missing Composite candidate: {label}"
+            )
+        ranked=[
+            chosen,
+            *[
+                item for item in ranked
+                if item is not chosen
+            ],
+        ]
+        valid=[item for item in ranked if item.valid]
 
     def refresh_composite_plan():
         current=build_composite_plan(
@@ -1776,6 +1800,13 @@ def main() -> int:
                     base_item,
                     composite_item,
                 )
+                regressions.extend(
+                    _strict_metric_improvement(
+                        base_item,
+                        composite_item,
+                        "material_score",
+                    )
+                )
                 if regressions:
                     composite_item.valid=False
                     composite_item.notes.append(
@@ -1794,9 +1825,10 @@ def main() -> int:
                         file=sys.stderr,
                     )
                 else:
+                    promote_composite_base(label)
                     print(
                         "HAYUYA_COMPOSITE_CANDIDATE_GUARD_PASS "
-                        f"label={label}"
+                        f"label={label} canonical=true"
                     )
             elif composite_execution.attempted:
                 print(
@@ -1855,6 +1887,13 @@ def main() -> int:
                     base_item,
                     head_item,
                 )
+                regressions.extend(
+                    _strict_metric_improvement(
+                        base_item,
+                        head_item,
+                        "appearance_face_detail_min_score",
+                    )
+                )
                 if regressions:
                     head_item.valid=False
                     head_item.notes.append(
@@ -1873,9 +1912,10 @@ def main() -> int:
                         file=sys.stderr,
                     )
                 else:
+                    promote_composite_base(label)
                     print(
                         "HAYUYA_COMPOSITE_HEAD_GUARD_PASS "
-                        f"label={label}"
+                        f"label={label} canonical=true"
                     )
             elif composite_head_execution.attempted:
                 print(
@@ -1901,6 +1941,115 @@ def main() -> int:
             composite_plan=refresh_composite_plan()
         except Exception as exc:
             composite_plan_failure=f"{type(exc).__name__}: {exc}"
+
+    attempted_detail_tokens=set()
+    while composite_plan is not None:
+        detail_tokens=sorted(
+            token
+            for token in composite_plan.executable_now
+            if token.startswith("detail:")
+            and token not in attempted_detail_tokens
+        )
+        if not detail_tokens:
+            break
+
+        token=detail_tokens[0]
+        attempted_detail_tokens.add(token)
+        detail_source=token[len("detail:"):]
+        detail_execution=None
+        try:
+            detail_execution=execute_safe_local_detail_challenger(
+                composite_plan,
+                job_dir / "composite" / "details",
+                detail_source=detail_source,
+            )
+            composite_local_executions.append(detail_execution)
+            if detail_execution.ready:
+                label=str(detail_execution.candidate_label)
+                candidates.append((
+                    label,
+                    Path(str(detail_execution.candidate_path)),
+                ))
+                print(
+                    "HAYUYA_COMPOSITE_DETAIL_READY "
+                    f"label={label} "
+                    f"base={detail_execution.base_backend} "
+                    f"donor={detail_execution.donor_backend} "
+                    f"region={detail_execution.region_hint} "
+                    f"source={Path(detail_source).name} "
+                    f"path={detail_execution.candidate_path}"
+                )
+                ranked=run_full_ranking()
+                valid=[item for item in ranked if item.valid]
+                base_item=next(
+                    (
+                        item for item in ranked
+                        if item.backend==detail_execution.base_backend
+                    ),
+                    None,
+                )
+                detail_item=next(
+                    (
+                        item for item in ranked
+                        if item.backend==label
+                    ),
+                    None,
+                )
+                if base_item is None or detail_item is None:
+                    raise RuntimeError(
+                        "composite local-detail challenger missing after re-ranking"
+                    )
+                regressions=local_detail_composite_regressions(
+                    base_item,
+                    detail_item,
+                    detail_source,
+                )
+                if regressions:
+                    detail_item.valid=False
+                    detail_item.notes.append(
+                        "Composite Champion local-detail guard rejected: "
+                        +";".join(regressions)
+                    )
+                    remove_candidate(label)
+                    sort_current_ranking()
+                    detail_execution.ready=False
+                    detail_execution.error=(
+                        "detail_guard:"+ ";".join(regressions)
+                    )
+                    print(
+                        "HAYUYA_COMPOSITE_DETAIL_REJECTED "
+                        +detail_execution.error,
+                        file=sys.stderr,
+                    )
+                else:
+                    promote_composite_base(label)
+                    print(
+                        "HAYUYA_COMPOSITE_DETAIL_GUARD_PASS "
+                        f"label={label} "
+                        f"source={Path(detail_source).name} "
+                        "canonical=true"
+                    )
+            elif detail_execution.attempted:
+                print(
+                    "HAYUYA_COMPOSITE_DETAIL_FAILED "
+                    f"source={Path(detail_source).name} "
+                    f"{detail_execution.error or 'unknown'}",
+                    file=sys.stderr,
+                )
+        except Exception as exc:
+            print(
+                "HAYUYA_COMPOSITE_DETAIL_EXECUTION_FAILED "
+                f"source={Path(detail_source).name} "
+                f"{type(exc).__name__}: {exc}",
+                file=sys.stderr,
+            )
+            traceback.print_exc()
+
+        try:
+            composite_plan=refresh_composite_plan()
+        except Exception as exc:
+            composite_plan_failure=f"{type(exc).__name__}: {exc}"
+            break
 
     ranking_data=[asdict(item) for item in ranked]
     (job_dir / "ranking.json").write_text(
@@ -2106,10 +2255,20 @@ def main() -> int:
             asdict(composite_head_execution)
             if composite_head_execution is not None else None
         ),
-        "composite_executions": [
+        "composite_local_executions": [
             asdict(item)
-            for item in (composite_execution, composite_head_execution)
-            if item is not None
+            for item in composite_local_executions
+        ],
+        "composite_executions": [
+            *[
+                asdict(item)
+                for item in (composite_execution, composite_head_execution)
+                if item is not None
+            ],
+            *[
+                asdict(item)
+                for item in composite_local_executions
+            ],
         ],
         "champion": asdict(champion),
         "final_glb": str(final_glb),
