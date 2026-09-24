@@ -198,7 +198,7 @@ class StudioServerTests(unittest.TestCase):
                 (f"HAYUYA_COMPOSITE_PLAN_READY base=trellis2_seed01 required=true finalists=2 donors=face_identity:trellis2_seed02 plan={composite}", "composite"),
                 ("HAYUYA_GAMEPREP_READY lods=4 collision=True turntable=8", "gameprep"),
                 ("HAYUYA_PORTABLE_PACK_READY tiers=4 complete_lods=True lod_parity_ready=True manifest=x", "portable"),
-                (f"HAYUYA_QA_READY production_ready=True material_ready=True texture_ready=True texture_score=100.0 basecolor_min=4096 basecolor_max=4096 texture_target=4096 rebake_ready=True rebaked=normal,occlusion rebake_pending=none rig_ready=False morph_ready=True morph_targets=0 crossing_ready=True crossing_pairs=0 skin_weights_ready=False animation_ready=False animation_integrity_ready=False animation_channels=0 animation_keyframes=0 deformation_ready=False deformation_frames=0 deformation_max_disp=none deformation_max_edge=none face_ready=True face_quality_ready=True anatomy_ready=True anatomy_expected=2 anatomy_evaluated=2 face_score=94.5 face_min=89.0 face_expected=2 face_evaluated=2 facemesh_score=88.0 facetex_score=91.0 facedetail_score=87.5 report={report}", "qa"),
+                (f"HAYUYA_QA_READY production_ready=True material_ready=True texture_ready=True texture_score=100.0 basecolor_min=4096 basecolor_max=4096 texture_target=4096 rebake_ready=True rebaked=normal,occlusion rebake_pending=none rig_ready=False morph_ready=True morph_targets=0 crossing_ready=True crossing_pairs=0 self_intersection_ready=True self_intersection_pairs=0 uv_tangent_ready=True uv_missing=0 uv_degenerate=0 shading_basis_ready=True shading_missing_normals=0 shading_missing_tangents=0 shading_bad_handedness=0 shading_nonorthogonal=0 skin_weights_ready=False animation_ready=False animation_integrity_ready=False animation_channels=0 animation_keyframes=0 deformation_ready=False deformation_frames=0 deformation_max_disp=none deformation_max_edge=none face_ready=True face_quality_ready=True anatomy_ready=True anatomy_expected=2 anatomy_evaluated=2 face_score=94.5 face_min=89.0 face_expected=2 face_evaluated=2 facemesh_score=88.0 facetex_score=91.0 facedetail_score=87.5 report={report}", "qa"),
             ]
             last_progress = -1
             for line, expected in lines:
@@ -221,6 +221,16 @@ class StudioServerTests(unittest.TestCase):
             self.assertEqual(job.final_qa["morph_targets"],0)
             self.assertTrue(job.final_qa["crossing_ready"])
             self.assertEqual(job.final_qa["crossing_pairs"],0)
+            self.assertTrue(job.final_qa["self_intersection_ready"])
+            self.assertEqual(job.final_qa["self_intersection_pairs"],0)
+            self.assertTrue(job.final_qa["uv_tangent_ready"])
+            self.assertEqual(job.final_qa["uv_missing"],0)
+            self.assertEqual(job.final_qa["uv_degenerate"],0)
+            self.assertTrue(job.final_qa["shading_basis_ready"])
+            self.assertEqual(job.final_qa["shading_missing_normals"],0)
+            self.assertEqual(job.final_qa["shading_missing_tangents"],0)
+            self.assertEqual(job.final_qa["shading_bad_handedness"],0)
+            self.assertEqual(job.final_qa["shading_nonorthogonal"],0)
             self.assertFalse(job.final_qa["skin_weights_ready"])
             self.assertFalse(job.final_qa["animation_integrity_ready"])
             self.assertEqual(job.final_qa["animation_channels"],0)
