@@ -537,6 +537,54 @@ class RiggedAccessoryInsertTests(unittest.TestCase):
                 result.warnings,
             )
 
+    def test_planner_recognizes_multi_piece_cluster_but_defers_material(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            base_path=root/"base.glb"
+            donor_path=root/"rosary_cluster.glb"
+            source="/refs/rosary_detail.png"
+            write_skinned_base(base_path,morph=True)
+            write_cluster_donor(donor_path)
+
+            base=candidate(
+                "base",
+                base_path,
+                96.0,
+                detail_source=source,
+                detail_score=70.0,
+            )
+            donor=candidate(
+                "donor",
+                donor_path,
+                84.0,
+                detail_source=source,
+                detail_score=98.0,
+            )
+            plan=build_composite_plan(
+                [base,donor],
+                mode="character",
+                inspect_parts=True,
+            )
+            detail=next(
+                item for item in plan.detail_donors
+                if item.source==source
+            )
+            token="detail:"+source
+            self.assertEqual(
+                detail.strategy,
+                "new_rigged_accessory_insert_weight_morph_transfer",
+            )
+            self.assertTrue(
+                detail.accessory_match["rigged_insert_supported"],
+                detail.accessory_match,
+            )
+            self.assertFalse(
+                detail.accessory_match["rigged_insert_material_ready"],
+                detail.accessory_match,
+            )
+            self.assertNotIn(token,plan.executable_now)
+            self.assertIn(token,plan.deferred_transfers)
+
     def test_weight_transfer_blends_neighbor_joint_influences(self):
         source_positions=np.asarray([
             [-1.0,0.0,0.0],
