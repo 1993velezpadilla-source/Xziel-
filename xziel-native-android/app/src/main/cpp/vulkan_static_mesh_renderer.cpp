@@ -5116,6 +5116,105 @@ bool VulkanStaticMeshRenderer::createBuffer(
     return true;
 }
 
+bool VulkanStaticMeshRenderer::createIndirectFrames() noexcept {
+    destroyIndirectFrames();
+
+    if (!multiDrawIndirectEnabled_ ||
+        device_ == VK_NULL_HANDLE ||
+        batches_.empty()) {
+        return false;
+    }
+
+    if (batches_.size() >
+        std::numeric_limits<VkDeviceSize>::max() /
+            sizeof(VkDrawIndexedIndirectCommand)) {
+        return false;
+    }
+
+    const VkDeviceSize capacityBytes =
+        static_cast<VkDeviceSize>(
+            batches_.size()) *
+        sizeof(VkDrawIndexedIndirectCommand);
+
+    if (capacityBytes == 0U) {
+        return false;
+    }
+
+    constexpr VkMemoryPropertyFlags kHostFlags =
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
+    for (auto& frame : indirectFrames_) {
+        if (!createBuffer(
+                capacityBytes,
+                VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT,
+                kHostFlags,
+                frame.buffer,
+                frame.memory)) {
+            destroyIndirectFrames();
+            return false;
+        }
+
+        if (!ok(
+                vkMapMemory(
+                    device_,
+                    frame.memory,
+                    0U,
+                    capacityBytes,
+                    0U,
+                    &frame.mapped))) {
+            destroyIndirectFrames();
+            return false;
+        }
+
+        frame.capacityBytes =
+            capacityBytes;
+    }
+
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
+        "XZIEL_MULTIDRAW_INDIRECT_READY frames=%u capacity_commands=%u bytes=%llu",
+        static_cast<unsigned int>(
+            kDescriptorFrames),
+        static_cast<unsigned int>(
+            batches_.size()),
+        static_cast<unsigned long long>(
+            capacityBytes));
+
+    return true;
+}
+
+void VulkanStaticMeshRenderer::destroyIndirectFrames() noexcept {
+    for (auto& frame : indirectFrames_) {
+        if (device_ != VK_NULL_HANDLE &&
+            frame.mapped != nullptr &&
+            frame.memory != VK_NULL_HANDLE) {
+            vkUnmapMemory(
+                device_,
+                frame.memory);
+        }
+
+        if (device_ != VK_NULL_HANDLE &&
+            frame.buffer != VK_NULL_HANDLE) {
+            vkDestroyBuffer(
+                device_,
+                frame.buffer,
+                nullptr);
+        }
+
+        if (device_ != VK_NULL_HANDLE &&
+            frame.memory != VK_NULL_HANDLE) {
+            vkFreeMemory(
+                device_,
+                frame.memory,
+                nullptr);
+        }
+
+        frame = {};
+    }
+}
+
 bool VulkanStaticMeshRenderer::createGeometryResidency(
     const StaticMeshAsset& asset,
     const std::vector<std::uint32_t>& materialIndices) noexcept {
