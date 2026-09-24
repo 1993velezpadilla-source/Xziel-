@@ -678,9 +678,6 @@ StreamCellHeat StreamCellGraph::cellHeat(
         return StreamCellHeat::Cold;
     }
 
-    const auto targetIndex =
-        static_cast<std::size_t>(
-            target);
     const std::size_t targetPortalCount =
         cellPortalCounts_[targetIndex];
 
