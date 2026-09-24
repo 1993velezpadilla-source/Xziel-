@@ -7,8 +7,10 @@ import numpy as np
 from tools.hayuya3d.surface_transfer import (
     _closest_point_barycentric,
     blend_joint_weights_from_relation,
+    build_surface_transfer_index,
     build_surface_transfer_relation,
     interpolate_vertex_values,
+    query_surface_transfer,
 )
 
 
@@ -259,6 +261,55 @@ class SurfaceTransferTests(unittest.TestCase):
         self.assertLess(
             relation.max_visited_bvh_nodes,
             max(128,len(faces)//10),
+        )
+
+    def test_surface_index_reuses_one_bvh_for_multiple_target_batches(self):
+        index=build_surface_transfer_index(
+            self.vertices,
+            self.faces,
+            bvh_leaf_size=2,
+        )
+        first=query_surface_transfer(
+            index,
+            np.asarray([[0.2,0.2,0.1]],dtype=np.float64),
+        )
+        second=query_surface_transfer(
+            index,
+            np.asarray([[0.6,0.2,0.2]],dtype=np.float64),
+        )
+        direct_first=build_surface_transfer_relation(
+            self.vertices,
+            self.faces,
+            np.asarray([[0.2,0.2,0.1]],dtype=np.float64),
+            bvh_leaf_size=2,
+        )
+        direct_second=build_surface_transfer_relation(
+            self.vertices,
+            self.faces,
+            np.asarray([[0.6,0.2,0.2]],dtype=np.float64),
+            bvh_leaf_size=2,
+        )
+        self.assertTrue(np.allclose(
+            first.surface_distance,
+            direct_first.surface_distance,
+            atol=1e-12,
+        ))
+        self.assertTrue(np.allclose(
+            second.surface_distance,
+            direct_second.surface_distance,
+            atol=1e-12,
+        ))
+        self.assertTrue(np.array_equal(
+            first.triangle_vertex_ids,
+            direct_first.triangle_vertex_ids,
+        ))
+        self.assertTrue(np.array_equal(
+            second.triangle_vertex_ids,
+            direct_second.triangle_vertex_ids,
+        ))
+        self.assertEqual(
+            index.method,
+            "hayuya-surface-transfer-index-bvh-v1",
         )
 
     def test_degenerate_triangle_falls_back_to_nearest_vertex(self):
