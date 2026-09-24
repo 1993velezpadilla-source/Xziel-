@@ -9,6 +9,7 @@ from typing import Any
 from gltf_audit import audit_glb
 from mesh_doctor import audit_mesh as audit_mesh_structure
 from qa import inspect_mesh
+from reference_pool import infer_detail_region_hint
 
 
 @dataclass
@@ -24,6 +25,7 @@ class QAPackageResult:
     animation_ready: bool
     turntable_ready: bool
     turntable_score: float | None
+    face_evidence_ready: bool
     production_ready: bool
     warnings: list[str]
 
@@ -222,6 +224,22 @@ def build_qa_package(
             f"Judge source coverage {source_coverage}/{expected_sources}; not every geometry reference has a recorded visual view"
         )
 
+    face_detail_refs=[
+        p for p in detail_images
+        if infer_detail_region_hint(p)=="head"
+    ]
+    face_evidence_required=bool(face_detail_refs)
+    face_evidence_score=champion_data.get("appearance_face_detail_score")
+    face_evidence_ready=bool(
+        not face_evidence_required
+        or face_evidence_score is not None
+    )
+    if face_evidence_required and not face_evidence_ready:
+        warnings.append(
+            "face references were supplied but no face-detail identity Judge score "
+            "was recorded; asset remains inspectable but is not production-ready"
+        )
+
     turntable_qa = None
     turntable_report_path = None
     turntable_contact_path = None
@@ -279,6 +297,7 @@ def build_qa_package(
         and source_coverage >= expected_sources
         and gameprep_ready
         and turntable_ready
+        and face_evidence_ready
         and (rig_ready if rig_required else True)
     )
 
@@ -325,9 +344,12 @@ def build_qa_package(
         "references": {
             "geometry_source_count": expected_sources,
             "detail_source_count": len(detail_images),
+            "face_detail_source_count": len(face_detail_refs),
+            "face_evidence_required": face_evidence_required,
+            "face_evidence_ready": face_evidence_ready,
             "appearance_score": champion_data.get("appearance_score"),
             "detail_identity_score": champion_data.get("appearance_detail_score"),
-            "face_detail_identity_score": champion_data.get("appearance_face_detail_score"),
+            "face_detail_identity_score": face_evidence_score,
             "judge_visual_view_count": source_coverage,
             "all_geometry_sources_judged": source_coverage >= expected_sources,
         },
@@ -360,6 +382,7 @@ def build_qa_package(
             "gameprep_ready": gameprep_ready,
             "turntable_ready": turntable_ready,
             "turntable_score": turntable_score,
+            "face_evidence_ready": face_evidence_ready,
             "production_ready": production_ready,
         },
         "warnings": list(dict.fromkeys(warnings)),
@@ -381,6 +404,7 @@ def build_qa_package(
         animation_ready=animation_ready,
         turntable_ready=turntable_ready,
         turntable_score=turntable_score,
+        face_evidence_ready=face_evidence_ready,
         production_ready=production_ready,
         warnings=report["warnings"],
     )
