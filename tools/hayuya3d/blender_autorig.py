@@ -644,8 +644,13 @@ def main():
             rigidized_components=0
             rigidized_vertices=0
             component_count=0
-            max_rigid_vertices=max(64,min(512,int(len(mesh.data.vertices)*0.03)))
-            max_rigid_span=max(target_height*0.12,1e-5)
+            # Fragmented generative meshes need component-level coherence.
+            # A disconnected island cannot benefit from smooth weights across
+            # topology that simply does not exist. Allow medium islands to move
+            # as one anatomical piece; truly large/body-spanning surfaces keep
+            # blended weights for joint articulation.
+            max_rigid_vertices=max(96,min(2048,int(len(mesh.data.vertices)*0.08)))
+            max_rigid_span=max(target_height*0.28,1e-5)
             for seed in range(len(mesh.data.vertices)):
                 if seed in visited:
                     continue
@@ -879,7 +884,7 @@ def main():
         "animation_retarget":animation_retarget,
         "export_meshes":remaining_meshes,
         "sterile_export_scene_meshes":export_scene_meshes,
-        "binding_method":"uniform_component_coherent_semantic_head_v31",
+        "binding_method":"expanded_component_coherent_semantic_head_v32",
         "bind_results":bind_results,
         "output_bytes":args.output.stat().st_size if args.output.exists() else 0,
     }
