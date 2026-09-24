@@ -37,6 +37,7 @@ class QAPackageResult:
     face_evidence_score: float | None
     head_density_score: float | None
     head_texel_density_score: float | None
+    head_texture_detail_score: float | None
     production_ready: bool
     warnings: list[str]
 
@@ -383,6 +384,9 @@ def build_qa_package(
             "head_density_score": mesh.head_density_score,
             "head_texel_density_ratio": mesh.head_texel_density_ratio,
             "head_texel_density_score": mesh.head_texel_density_score,
+            "head_texture_detail_ratio": mesh.head_texture_detail_ratio,
+            "head_texture_detail_score": mesh.head_texture_detail_score,
+            "head_texture_detail_mean": mesh.head_texture_detail_mean,
         },
         "structure": asdict(structure),
         "material": {
@@ -467,6 +471,10 @@ def build_qa_package(
         head_texel_density_score=(
             float(mesh.head_texel_density_score)
             if mesh.head_texel_density_score is not None else None
+        ),
+        head_texture_detail_score=(
+            float(mesh.head_texture_detail_score)
+            if mesh.head_texture_detail_score is not None else None
         ),
         production_ready=production_ready,
         warnings=warnings,
