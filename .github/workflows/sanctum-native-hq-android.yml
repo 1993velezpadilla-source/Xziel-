@@ -44,7 +44,6 @@ permissions:
 concurrency:
   group: sanctum-native-hq-${{ github.ref }}
   cancel-in-progress: true
-  cancel-in-progress: true
 
 jobs:
   build-sanctum-native-hq:
