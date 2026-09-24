@@ -1081,6 +1081,20 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
                 nullptr);
         }
 
+        if (depthPrepassPipeline_ != VK_NULL_HANDLE) {
+            vkDestroyPipeline(
+                device_,
+                depthPrepassPipeline_,
+                nullptr);
+        }
+
+        if (depthPrepassPipelineDoubleSided_ != VK_NULL_HANDLE) {
+            vkDestroyPipeline(
+                device_,
+                depthPrepassPipelineDoubleSided_,
+                nullptr);
+        }
+
         if (pipelineLayout_ != VK_NULL_HANDLE) {
             vkDestroyPipelineLayout(
                 device_,
@@ -1135,6 +1149,8 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
 
     pipeline_ = VK_NULL_HANDLE;
     pipelineDoubleSided_ = VK_NULL_HANDLE;
+    depthPrepassPipeline_ = VK_NULL_HANDLE;
+    depthPrepassPipelineDoubleSided_ = VK_NULL_HANDLE;
     pipelineLayout_ = VK_NULL_HANDLE;
     descriptorPool_ = VK_NULL_HANDLE;
     descriptorSetLayout_ = VK_NULL_HANDLE;
