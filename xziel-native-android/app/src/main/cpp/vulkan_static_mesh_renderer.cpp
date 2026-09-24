@@ -3920,6 +3920,12 @@ void VulkanStaticMeshRenderer::record(
         return;
     }
 
+    // Capacity is reserved once during initialization. clear() keeps the hot
+    // render path allocation-free while rebuilding only the current frame's
+    // visible draw list.
+    drawCommands_.clear();
+    drawGroups_.clear();
+
     if (streamGraphReady_) {
         const std::uint32_t currentCell =
             inferStreamingCell(camera);
