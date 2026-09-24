@@ -45,18 +45,45 @@ def infer_critical_targets(
 HEAD_CLOSEUP_TARGETS={"eyes","mouth","teeth","hair","ears"}
 
 
+def frame_targets(
+    critical_targets:Iterable[str],
+    frame:str,
+)->list[str]:
+    targets=[
+        str(x).strip().lower()
+        for x in critical_targets
+        if str(x).strip()
+    ]
+    if frame=="head":
+        return [
+            target for target in targets
+            if target in HEAD_CLOSEUP_TARGETS
+        ]
+    if frame=="full":
+        return [
+            target for target in targets
+            if target not in HEAD_CLOSEUP_TARGETS
+        ]
+    return list(targets)
+
+
 def render_specs(
     critical_targets:Iterable[str],
     views:Iterable[str],
 )->list[tuple[str,str]]:
+    targets=[
+        str(x).strip().lower()
+        for x in critical_targets
+        if str(x).strip()
+    ]
     specs=[]
-    for view in views:
-        view=str(view)
-        spec=(view,"full")
-        if spec not in specs:
-            specs.append(spec)
-    targets={str(x).strip().lower() for x in critical_targets}
-    if targets & HEAD_CLOSEUP_TARGETS:
+    if frame_targets(targets,"full"):
+        for view in views:
+            view=str(view)
+            spec=(view,"full")
+            if spec not in specs:
+                specs.append(spec)
+    if frame_targets(targets,"head"):
         for view in ("front","side"):
             spec=(view,"head")
             if spec not in specs:
@@ -142,6 +169,18 @@ def run_semantic_anatomy(
         json.dumps(plan_data,indent=2)+"\n",
         encoding="utf-8",
     )
+    frame_plans={}
+    for frame in ("full","head"):
+        selected=frame_targets(targets,frame)
+        if not selected:
+            continue
+        frame_plan=build_critical_plan(selected)
+        frame_plan_path=out_dir/f"semantic_anatomy_plan_{frame}.json"
+        frame_plan_path.write_text(
+            json.dumps(frame_plan,indent=2)+"\n",
+            encoding="utf-8",
+        )
+        frame_plans[frame]=(frame_plan_path,frame_plan)
     if plan_data.get("status")!="ready":
         return SemanticAnatomyRun(
             required=True,
@@ -187,11 +226,17 @@ def run_semantic_anatomy(
             rendered.append(str(render_path))
 
             detector_dir=out_dir/f"detected_{label}"
+            frame_plan_path,frame_plan_data=frame_plans[frame]
+            if frame_plan_data.get("status")!="ready":
+                raise RuntimeError(
+                    f"semantic {frame} plan is not ready: "
+                    +";".join(frame_plan_data.get("warnings") or [])
+                )
             subprocess.run(
                 [
                     py,str(detector_script),
                     "--image",str(render_path),
-                    "--plan",str(plan_path),
+                    "--plan",str(frame_plan_path),
                     "--out",str(detector_dir),
                 ],
                 check=False,
