@@ -133,9 +133,30 @@ def canonical_action_name(name):
             break
     return value
 
-def edge_metrics(edge_samples, positions):
+def build_vertex_weight_labels(meshes):
+    labels={}
+    for obj in meshes:
+        groups={g.index:g.name for g in obj.vertex_groups}
+        for v in obj.data.vertices:
+            ranked=sorted(
+                (
+                    (float(g.weight),groups.get(g.group))
+                    for g in v.groups
+                    if g.group in groups and float(g.weight)>1e-8
+                ),
+                reverse=True,
+            )
+            labels[(obj.name,int(v.index))]=(
+                {"bone":ranked[0][1],"weight":ranked[0][0]}
+                if ranked else {"bone":None,"weight":0.0}
+            )
+    return labels
+
+
+def edge_metrics(edge_samples, positions, weight_labels=None):
     body=[]
     head=[]
+    detailed=[]
     missing=0
     for name,a,b,rest_len,is_head in edge_samples:
         arr=positions.get(name)
@@ -149,7 +170,24 @@ def edge_metrics(edge_samples, positions):
         body.append(ratio)
         if is_head:
             head.append(ratio)
-    return {
+        if weight_labels is not None:
+            la=weight_labels.get((name,a),{"bone":None,"weight":0.0})
+            lb=weight_labels.get((name,b),{"bone":None,"weight":0.0})
+            pair="|".join(sorted(str(x or "unweighted") for x in (la.get("bone"),lb.get("bone"))))
+            detailed.append({
+                "mesh":name,
+                "a":int(a),
+                "b":int(b),
+                "ratio":ratio,
+                "head":bool(is_head),
+                "bone_pair":pair,
+                "a_bone":la.get("bone"),
+                "b_bone":lb.get("bone"),
+                "a_weight":float(la.get("weight",0.0)),
+                "b_weight":float(lb.get("weight",0.0)),
+            })
+
+    result={
         "sample_count":len(body),
         "missing_edges":missing,
         "p01":percentile(body,0.01),
@@ -159,6 +197,28 @@ def edge_metrics(edge_samples, positions):
         "head_p01":percentile(head,0.01),
         "head_p99":percentile(head,0.99),
     }
+    if detailed:
+        count=max(8,min(64,int(math.ceil(len(detailed)*0.01))))
+        stretched=sorted(detailed,key=lambda x:x["ratio"],reverse=True)[:count]
+        collapsed=sorted(detailed,key=lambda x:x["ratio"])[:count]
+
+        def summarize(rows):
+            pairs={}
+            for row in rows:
+                key=row["bone_pair"]
+                pairs[key]=pairs.get(key,0)+1
+            return {
+                "sample_count":len(rows),
+                "bone_pairs":[
+                    {"pair":pair,"count":n}
+                    for pair,n in sorted(pairs.items(),key=lambda x:(-x[1],x[0]))
+                ],
+                "edges":rows[:12],
+            }
+
+        result["worst_stretch_attribution"]=summarize(stretched)
+        result["worst_collapse_attribution"]=summarize(collapsed)
+    return result
 
 
 def main():
@@ -227,6 +287,7 @@ def main():
     edge_samples,up_axis=build_edge_samples(meshes,rest_positions,rest,max(500,args.max_edges))
     if len(edge_samples)<100:
         raise RuntimeError(f"too_few_edge_samples:{len(edge_samples)}")
+    vertex_weight_labels=build_vertex_weight_labels(meshes)
 
     reference_fidelity=None
     reference_failures=[]
@@ -319,7 +380,7 @@ def main():
             bpy.context.view_layer.update()
             positions,b=evaluated_positions(meshes)
             ratio=b["diagonal"]/rest["diagonal"]
-            em=edge_metrics(edge_samples,positions)
+            em=edge_metrics(edge_samples,positions,vertex_weight_labels)
             rec={"frame":float(fr),"diagonal_ratio":float(ratio),"bounds":b,"edge_deformation":em}
             clip["samples"].append(rec)
 
