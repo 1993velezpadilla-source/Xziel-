@@ -2200,6 +2200,7 @@ def main() -> int:
                 f"tiers={len(portable_pack_result.tiers)} "
                 f"complete_lods={portable_pack_result.complete_lod_chain} "
                 f"lod_parity_ready={portable_pack_result.lod_parity_ready} "
+                f"runtime_budget_ready={portable_pack_result.runtime_budget_ready} "
                 f"manifest={portable_pack_result.manifest}"
             )
         except Exception as exc:
