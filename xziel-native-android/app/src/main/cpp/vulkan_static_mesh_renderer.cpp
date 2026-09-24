@@ -519,6 +519,7 @@ bool VulkanStaticMeshRenderer::initialize(
     std::uint32_t normalMapCount = 0U;
     std::uint32_t ormMapCount = 0U;
     std::uint32_t emissiveMapCount = 0U;
+    std::uint32_t reusedMaterialCount = 0U;
 
     const auto loadTexture =
         [&](const std::string& exportedName,
@@ -715,7 +716,6 @@ bool VulkanStaticMeshRenderer::initialize(
                     streamZone,
                     material.normalTextureIndex);
                 material.hasNormalTexture = true;
-                ++normalMapCount;
             }
 
             if (material.pbrEnabled &&
@@ -733,7 +733,6 @@ bool VulkanStaticMeshRenderer::initialize(
                     streamZone,
                     material.ormTextureIndex);
                 material.hasOrmTexture = true;
-                ++ormMapCount;
             }
 
             if (material.pbrEnabled &&
@@ -751,7 +750,65 @@ bool VulkanStaticMeshRenderer::initialize(
                     streamZone,
                     material.emissiveTextureIndex);
                 material.hasEmissiveTexture = true;
-                ++emissiveMapCount;
+            }
+
+            const auto sameMaterial =
+                [](const GpuMaterial& a,
+                   const GpuMaterial& b) noexcept {
+                    return
+                        a.streamResourceId ==
+                            b.streamResourceId &&
+                        a.albedoTextureIndex ==
+                            b.albedoTextureIndex &&
+                        a.normalTextureIndex ==
+                            b.normalTextureIndex &&
+                        a.ormTextureIndex ==
+                            b.ormTextureIndex &&
+                        a.emissiveTextureIndex ==
+                            b.emissiveTextureIndex &&
+                        a.baseColorFactor ==
+                            b.baseColorFactor &&
+                        a.metallicFactor ==
+                            b.metallicFactor &&
+                        a.roughnessFactor ==
+                            b.roughnessFactor &&
+                        a.emissiveFactor ==
+                            b.emissiveFactor &&
+                        a.normalScale ==
+                            b.normalScale &&
+                        a.occlusionStrength ==
+                            b.occlusionStrength &&
+                        a.pbrEnabled ==
+                            b.pbrEnabled &&
+                        a.hasNormalTexture ==
+                            b.hasNormalTexture &&
+                        a.hasOrmTexture ==
+                            b.hasOrmTexture &&
+                        a.hasEmissiveTexture ==
+                            b.hasEmissiveTexture;
+                };
+
+            std::uint32_t materialIndex =
+                UINT32_MAX;
+
+            for (std::size_t i = 0U;
+                 i < materials_.size();
+                 ++i) {
+                if (sameMaterial(
+                        material,
+                        materials_[i])) {
+                    materialIndex =
+                        static_cast<std::uint32_t>(
+                            i);
+                    break;
+                }
+            }
+
+            if (materialIndex != UINT32_MAX) {
+                ++reusedMaterialCount;
+                batchMaterialIndices.push_back(
+                    materialIndex);
+                continue;
             }
 
             if (!createMaterialDescriptor(
@@ -766,7 +823,19 @@ bool VulkanStaticMeshRenderer::initialize(
                 ++pbrMaterialCount;
             }
 
-            const std::uint32_t materialIndex =
+            if (material.hasNormalTexture) {
+                ++normalMapCount;
+            }
+
+            if (material.hasOrmTexture) {
+                ++ormMapCount;
+            }
+
+            if (material.hasEmissiveTexture) {
+                ++emissiveMapCount;
+            }
+
+            materialIndex =
                 static_cast<std::uint32_t>(
                     materials_.size());
 
@@ -886,6 +955,20 @@ bool VulkanStaticMeshRenderer::initialize(
             mipRegistryStats.
                 requestedBytes) /
             (1024.0 * 1024.0));
+
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
+        "XZIEL_STATIC_MATERIAL_DEDUP batches=%u unique=%u reused=%u descriptor_sets=%u",
+        static_cast<unsigned int>(
+            asset.batches.size()),
+        static_cast<unsigned int>(
+            materials_.size()),
+        static_cast<unsigned int>(
+            reusedMaterialCount),
+        static_cast<unsigned int>(
+            materials_.size() *
+            kDescriptorFrames));
 
     __android_log_print(
         ANDROID_LOG_INFO,
