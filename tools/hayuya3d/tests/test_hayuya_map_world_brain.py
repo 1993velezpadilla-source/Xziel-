@@ -135,6 +135,8 @@ class WorldSemanticsTests(unittest.TestCase):
         self.assertTrue(intelligence["generation_contract"]["author_original_geometry"])
         self.assertFalse(intelligence["generation_contract"]["copy_reference_layout"])
         self.assertIn("no_exact_layout_reconstruction", intelligence["guardrails"])
+        self.assertGreaterEqual(len(intelligence["cross_map_patterns"]["archetypes"]), 6)
+        self.assertTrue(intelligence["cross_map_patterns"]["global_rules"])
 
     def test_hayuya_lighting_profile_preserves_horror_and_readability(self):
         lighting = compile_lighting_intelligence("zombies_horror")
@@ -149,6 +151,7 @@ class WorldSemanticsTests(unittest.TestCase):
         self.assertFalse(
             lighting["beauty_contract"]["constant_random_flicker_allowed"]
         )
+        self.assertIn("power_off", lighting["cross_map_state_composition"])
 
     def test_zombie_goal_auto_attaches_map_and_lighting_intelligence(self):
         plan = make_plan(
@@ -168,6 +171,17 @@ class WorldSemanticsTests(unittest.TestCase):
         )
         self.assertIn("zombies_map_dna_atlas", plan["knowledge_library"])
         self.assertIn("lighting_standard", plan["knowledge_library"])
+        self.assertIn(
+            "zombies_design_pattern_library",
+            plan["knowledge_library"],
+        )
+        self.assertIn(
+            "zombies_lighting_pattern_library",
+            plan["knowledge_library"],
+        )
+        self.assertTrue(
+            plan["lighting_intelligence"]["selected_horror_identities"]
+        )
 
     def test_generic_world_does_not_force_zombies_profile(self):
         plan = make_plan(
