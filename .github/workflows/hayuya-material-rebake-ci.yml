@@ -51,51 +51,64 @@ jobs:
           root=Path("/tmp/hayuya-rebake")
           root.mkdir(parents=True,exist_ok=True)
 
-          def grid(n,wavy):
-              xs=np.linspace(-1.0,1.0,n)
+          def grid(n,wavy,z_offset,xmin,xmax,uv_box):
+              xs=np.linspace(xmin,xmax,n)
               ys=np.linspace(-1.0,1.0,n)
+              u0,v0,u1,v1=uv_box
               vertices=[]
               uv=[]
               for y in ys:
                   for x in xs:
-                      z=0.07*np.sin(np.pi*x*2.0)*np.sin(np.pi*y*2.0) if wavy else 0.0
+                      z=z_offset
+                      if wavy:
+                          z+=0.045*np.sin(np.pi*x*2.0)*np.sin(np.pi*y*2.0)
                       vertices.append([x,y,z])
-                      uv.append([(x+1.0)*0.5,(y+1.0)*0.5])
+                      tx=(x-xmin)/max(xmax-xmin,1e-9)
+                      ty=(y+1.0)*0.5
+                      uv.append([u0+(u1-u0)*tx,v0+(v1-v0)*ty])
               faces=[]
               for j in range(n-1):
                   for i in range(n-1):
                       a=j*n+i
                       b=a+1
-                      c=a+n
-                      d=c+1
-                      faces.extend([[a,b,d],[a,d,c]])
+                      cc=a+n
+                      d=cc+1
+                      faces.extend([[a,b,d],[a,d,cc]])
               return np.asarray(vertices,float),np.asarray(faces,int),np.asarray(uv,float)
 
-          base=Image.fromarray(
-              np.full((256,256,4),[145,95,75,255],dtype=np.uint8),
-              mode="RGBA",
-          )
-          material=trimesh.visual.material.PBRMaterial(
-              baseColorTexture=base,
-              roughnessFactor=0.68,
-              metallicFactor=0.0,
-          )
+          def material():
+              base=Image.fromarray(
+                  np.full((256,256,4),[145,95,75,255],dtype=np.uint8),
+                  mode="RGBA",
+              )
+              return trimesh.visual.material.PBRMaterial(
+                  baseColorTexture=base,
+                  roughnessFactor=0.68,
+                  metallicFactor=0.0,
+              )
 
-          for name,n,wavy in [("source",40,True),("target",12,False)]:
-              v,f,uv=grid(n,wavy)
-              mesh=trimesh.Trimesh(
-                  vertices=v,faces=f,process=False,
-                  visual=trimesh.visual.TextureVisuals(
-                      uv=uv,
-                      material=material.copy(),
-                  ),
+          def mesh_for(n,wavy,z_offset,xmin,xmax,uv_box):
+              v,faces,uv=grid(n,wavy,z_offset,xmin,xmax,uv_box)
+              return trimesh.Trimesh(
+                  vertices=v,faces=faces,process=False,
+                  visual=trimesh.visual.TextureVisuals(uv=uv,material=material()),
               )
-              (root/f"{name}.glb").write_bytes(
-                  trimesh.exchange.gltf.export_glb(trimesh.Scene(mesh))
-              )
+
+          # The second plane hovers over part of the first. It gives the new
+          # topology a genuine AO signal while the high-poly lower surface adds
+          # geometric detail for the tangent-space normal bake.
+          source_scene=trimesh.Scene()
+          source_scene.add_geometry(mesh_for(40,True,0.0,-1.0,1.0,(0.00,0.00,0.72,1.00)))
+          source_scene.add_geometry(mesh_for(16,False,0.12,-0.8,0.1,(0.76,0.00,1.00,0.40)))
+          target_scene=trimesh.Scene()
+          target_scene.add_geometry(mesh_for(12,False,0.0,-1.0,1.0,(0.00,0.00,0.72,1.00)))
+          target_scene.add_geometry(mesh_for(6,False,0.12,-0.8,0.1,(0.76,0.00,1.00,0.40)))
+
+          (root/"source.glb").write_bytes(trimesh.exchange.gltf.export_glb(source_scene))
+          (root/"target.glb").write_bytes(trimesh.exchange.gltf.export_glb(target_scene))
           PY
 
-      - name: Execute real Blender normal rebake
+      - name: Execute real Blender normal and AO rebake
         env:
           HAYUYA_BLENDER: /usr/bin/blender
         run: |
@@ -104,10 +117,11 @@ jobs:
             --target /tmp/hayuya-rebake/target.glb \
             --output /tmp/hayuya-rebake/rebaked.glb \
             --required normal \
+            --required occlusion \
             --texture-size 256 \
             --json /tmp/hayuya-rebake/result.json
 
-      - name: Verify rebake is real and non-neutral
+      - name: Verify normal and AO rebakes are real
         run: |
           python - <<'PY'
           import io,json
@@ -122,7 +136,7 @@ jobs:
 
           root=Path("/tmp/hayuya-rebake")
           result=json.loads((root/"result.json").read_text())
-          assert result["resolved_channels"]==["normal"],result
+          assert result["resolved_channels"]==["normal","occlusion"],result
           assert result["remaining_channels"]==[],result
           assert result["error"] is None,result
 
@@ -133,17 +147,27 @@ jobs:
               target_faces=1,
           )
           assert inspected.valid,inspected
-          assert "normal" in (inspected.pbr_channels or []),inspected
+          channels=set(inspected.pbr_channels or [])
+          assert {"normal","occlusion"}.issubset(channels),inspected
 
-          normals=[]
+          role_images={}
           for index,mime,data,roles in embedded_images(root/"rebaked.glb"):
-              if "normal" in roles:
-                  arr=np.asarray(Image.open(io.BytesIO(data)).convert("RGB"),dtype=np.float32)
-                  normals.append(arr)
-          assert normals,"rebaked GLB has no embedded normal image"
-          variation=max(float(np.std(arr,axis=(0,1)).mean()) for arr in normals)
-          assert variation>1.0,f"normal map looks neutral/flat: std={variation}"
-          print("HAYUYA_REAL_NORMAL_REBAKE_PASS",variation,inspected.pbr_channels)
+              arr=np.asarray(Image.open(io.BytesIO(data)).convert("RGB"),dtype=np.float32)
+              for role in roles:
+                  role_images.setdefault(role,[]).append(arr)
+
+          assert role_images.get("normal"),"rebaked GLB has no embedded normal image"
+          assert role_images.get("occlusion"),"rebaked GLB has no embedded occlusion image"
+          normal_variation=max(float(np.std(arr,axis=(0,1)).mean()) for arr in role_images["normal"])
+          ao_variation=max(float(np.std(arr,axis=(0,1)).mean()) for arr in role_images["occlusion"])
+          assert normal_variation>1.0,f"normal map looks neutral/flat: std={normal_variation}"
+          assert ao_variation>0.25,f"AO map looks neutral/flat: std={ao_variation}"
+          print(
+              "HAYUYA_REAL_MATERIAL_REBAKE_PASS",
+              "normal_std",normal_variation,
+              "ao_std",ao_variation,
+              sorted(channels),
+          )
           PY
 
       - name: Upload rebake proof
