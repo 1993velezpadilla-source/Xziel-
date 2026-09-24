@@ -28,6 +28,10 @@ def parse_args():
     p.add_argument("--max-head-edge-ratio",type=float,default=1.80)
     p.add_argument("--min-head-edge-ratio",type=float,default=0.55)
     p.add_argument("--max-edges",type=int,default=6000)
+    p.add_argument("--reference",type=Path)
+    p.add_argument("--reference-min-diagonal-ratio",type=float,default=0.72)
+    p.add_argument("--reference-max-diagonal-ratio",type=float,default=1.38)
+    p.add_argument("--reference-max-center-offset",type=float,default=0.25)
     return p.parse_args(argv)
 
 
@@ -165,8 +169,44 @@ def main():
     if len(edge_samples)<100:
         raise RuntimeError(f"too_few_edge_samples:{len(edge_samples)}")
 
+    reference_fidelity=None
+    reference_failures=[]
+    if args.reference:
+        before=set(bpy.data.objects)
+        bpy.ops.import_scene.gltf(filepath=str(args.reference.resolve()))
+        ref_objs=[o for o in bpy.data.objects if o not in before]
+        ref_meshes=[o for o in ref_objs if o.type=="MESH"]
+        if not ref_meshes:
+            raise RuntimeError("reference_model_has_no_mesh")
+        ref_positions,ref_bounds=evaluated_positions(ref_meshes)
+        ref_diag=max(1e-8,float(ref_bounds["diagonal"]))
+        diag_ratio=float(rest["diagonal"])/ref_diag
+        rc=Vector(ref_bounds["center"])
+        ac=Vector(rest["center"])
+        center_offset=float((ac-rc).length/ref_diag)
+        vertex_ratio=float(rest["vertex_samples"])/max(1,int(ref_bounds["vertex_samples"]))
+        if diag_ratio<args.reference_min_diagonal_ratio or diag_ratio>args.reference_max_diagonal_ratio:
+            reference_failures.append(f"rest_vs_reference_diagonal:{diag_ratio:.4f}")
+        if center_offset>args.reference_max_center_offset:
+            reference_failures.append(f"rest_vs_reference_center:{center_offset:.4f}")
+        if vertex_ratio>2.0:
+            reference_failures.append(f"unexpected_export_mesh_growth:{vertex_ratio:.3f}")
+        reference_fidelity={
+            "reference":str(args.reference),
+            "bounds":ref_bounds,
+            "diagonal_ratio":diag_ratio,
+            "center_offset_normalized":center_offset,
+            "vertex_ratio":vertex_ratio,
+            "passed":not reference_failures,
+            "failures":reference_failures,
+        }
+        for obj in ref_objs:
+            if obj.name in bpy.data.objects:
+                bpy.data.objects.remove(obj,do_unlink=True)
+        bpy.context.view_layer.update()
+
     actions=sorted(bpy.data.actions,key=lambda a:a.name.lower())
-    failures=[]
+    failures=list(reference_failures)
     warnings=[]
     clips=[]
     compatible=[]
@@ -246,6 +286,7 @@ def main():
         "compatible_clips":compatible,
         "rejected_clip_count":len(actions)-len(compatible),
         "rest_bounds":rest,
+        "reference_fidelity":reference_fidelity,
         "up_axis":up_axis,
         "edge_sample_count":len(edge_samples),
         "thresholds":{
@@ -255,6 +296,9 @@ def main():
             "max_edge_ratio":args.max_edge_ratio,
             "min_head_edge_ratio":args.min_head_edge_ratio,
             "max_head_edge_ratio":args.max_head_edge_ratio,
+            "reference_min_diagonal_ratio":args.reference_min_diagonal_ratio,
+            "reference_max_diagonal_ratio":args.reference_max_diagonal_ratio,
+            "reference_max_center_offset":args.reference_max_center_offset,
             "samples_per_action":sample_count
         },
         "clips":clips,
