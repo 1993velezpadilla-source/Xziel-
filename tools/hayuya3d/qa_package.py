@@ -189,16 +189,16 @@ def build_qa_package(
         True
         if target_texture_size is None
         else bool(
-            mesh.base_color_max_edge
-            and mesh.base_color_max_edge >= int(target_texture_size)
+            mesh.base_color_min_edge
+            and mesh.base_color_min_edge >= int(target_texture_size)
         )
     )
     material_ready = bool(base_material_ready and texture_resolution_ready)
     if base_material_ready and not texture_resolution_ready:
         warnings.append(
-            f"visible baseColor resolution {mesh.base_color_max_edge}px "
-            f"is below profile target {int(target_texture_size)}px; "
-            "asset remains inspectable but is not production-ready"
+            f"weakest visible baseColor resolution {mesh.base_color_min_edge}px "
+            f"(strongest {mesh.base_color_max_edge}px) is below profile target "
+            f"{int(target_texture_size)}px; asset remains inspectable but is not production-ready"
         )
 
     rig_required = mode == "character"
@@ -342,6 +342,7 @@ def build_qa_package(
             "channels": mesh.pbr_channels,
             "texture_max_edge": mesh.texture_max_edge,
             "base_color_max_edge": mesh.base_color_max_edge,
+            "base_color_min_edge": mesh.base_color_min_edge,
             "texture_resolution_score": mesh.texture_resolution_score,
             "target_texture_size": target_texture_size,
         },
