@@ -1453,6 +1453,7 @@ def main() -> int:
             f"face_ready={qa_package_result.face_evidence_ready} "
             f"face_score={qa_package_result.face_evidence_score if qa_package_result.face_evidence_score is not None else 'none'} "
             f"facemesh_score={qa_package_result.head_density_score if qa_package_result.head_density_score is not None else 'none'} "
+            f"facetex_score={qa_package_result.head_texel_density_score if qa_package_result.head_texel_density_score is not None else 'none'} "
             f"report={qa_package_result.report}"
         )
     except Exception as exc:
