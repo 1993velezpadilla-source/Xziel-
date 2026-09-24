@@ -33,6 +33,9 @@ class RiggedAccessoryWrapResult:
     attachment_ready: bool
     warnings: list[str]
     errors: list[str]
+    rebake_ready: bool = False
+    rebake_required: list[str] | None = None
+    rebake_resolved: list[str] | None = None
     method: str = "hayuya-rig-preserving-accessory-wrap-v1"
 
 
@@ -140,6 +143,23 @@ def _bbox(vertices):
     return lo, hi, (lo + hi) * 0.5, hi - lo
 
 
+def rigged_accessory_wrap_supported(path: Path) -> tuple[bool, str | None]:
+    try:
+        from gltf_audit import audit_glb
+        from skin_weight_qa import audit_skin_weights
+
+        rig = audit_glb(path)
+        skin = audit_skin_weights(path)
+        if rig.skin_count <= 0 or not rig.rig_ready:
+            return False, "base is not a validated skinned GLB"
+        if not skin.applicable or not skin.ready:
+            return False, "base skin weights are not valid"
+        _single_skinned_triangle_primitive(path)
+        return True, None
+    except Exception as exc:
+        return False, f"{type(exc).__name__}:{exc}"
+
+
 def wrap_rigged_accessory(
     base_mesh: Path,
     donor_mesh: Path,
@@ -185,6 +205,9 @@ def wrap_rigged_accessory(
             attachment_ready=False,
             warnings=warnings,
             errors=[message],
+            rebake_ready=False,
+            rebake_required=[],
+            rebake_resolved=[],
         )
 
     try:
@@ -427,9 +450,109 @@ def wrap_rigged_accessory(
             attachment_ready=bool(attachment.ready),
             warnings=warnings,
             errors=errors,
+            rebake_ready=False,
+            rebake_required=[],
+            rebake_resolved=[],
         )
     except Exception as exc:
         return failed(exc)
+
+
+def prepare_rigged_accessory_challenger(
+    base_mesh: Path,
+    donor_mesh: Path,
+    out_dir: Path,
+    *,
+    texture_size: int,
+    base_up_axis: str = "y",
+    donor_up_axis: str | None = None,
+    blender: str | Path | None = None,
+    require_rebake: bool = True,
+) -> RiggedAccessoryWrapResult:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    raw = out_dir / "rigged_accessory_wrap_raw.glb"
+    result = wrap_rigged_accessory(
+        base_mesh,
+        donor_mesh,
+        raw,
+        mode="character",
+        base_up_axis=base_up_axis,
+        donor_up_axis=donor_up_axis,
+    )
+    if not result.ready:
+        return result
+
+    try:
+        from gltf_audit import audit_glb
+        audit = audit_glb(base_mesh)
+        required = [
+            channel
+            for channel in ("normal", "occlusion")
+            if channel in set(audit.material_channels or [])
+        ]
+    except Exception:
+        required = ["normal", "occlusion"]
+
+    result.rebake_required = list(required)
+    if not required:
+        result.rebake_ready = True
+        result.rebake_resolved = []
+        return result
+
+    final = out_dir / "rigged_accessory_wrap_rebaked.glb"
+    try:
+        from gltf_position_patch import runtime_payload_signature
+        from rig_preserving_rebake import (
+            rebake_material_channels_preserve_rig,
+        )
+
+        before_runtime = runtime_payload_signature(raw)
+        rebake = rebake_material_channels_preserve_rig(
+            base_mesh,
+            raw,
+            final,
+            required=required,
+            max_texture_size=texture_size,
+            blender=blender,
+        )
+        result.rebake_resolved = list(rebake.resolved_channels)
+        result.rebake_ready = bool(
+            rebake.ready and not rebake.remaining_channels
+        )
+        if result.rebake_ready:
+            after_runtime = runtime_payload_signature(final)
+            if before_runtime != after_runtime:
+                result.errors.append(
+                    "runtime payload changed during rig-preserving accessory rebake"
+                )
+                result.runtime_payload_preserved = False
+                result.rebake_ready = False
+            else:
+                result.output_glb = str(final)
+                result.rig_ready = bool(rebake.rig_preserved)
+                result.skin_weights_ready = bool(rebake.skin_weights_ready)
+        if require_rebake and not result.rebake_ready:
+            result.errors.append(
+                "rigged accessory material rebake incomplete: "
+                + ",".join(rebake.remaining_channels or required)
+            )
+        result.ready = bool(
+            result.ready
+            and result.runtime_payload_preserved
+            and result.rig_ready
+            and result.skin_weights_ready
+            and (result.rebake_ready or not require_rebake)
+            and not result.errors
+        )
+        return result
+    except Exception as exc:
+        result.rebake_ready = False
+        if require_rebake:
+            result.ready = False
+        result.errors.append(
+            f"rigged_accessory_rebake_failed:{type(exc).__name__}:{exc}"
+        )
+        return result
 
 
 def main() -> int:
