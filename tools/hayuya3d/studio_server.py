@@ -320,6 +320,8 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
             "weight_transfer_vertices":_int_value("weight_transfer_vertices"),
             "weight_source_max":_float_value("weight_source_max"),
             "morph_targets_transferred":_int_value("morph_targets_transferred"),
+            "geometry_ready":_bool_value("geometry_ready"),
+            "legacy_preserved":_bool_value("legacy_preserved"),
             "runtime_preserved":_bool_value("runtime_preserved"),
             "rig_ready":_bool_value("rig_ready"),
             "skin_weights_ready":_bool_value("skin_weights_ready"),
