@@ -4,7 +4,7 @@ Pichy AI is an independent, model-agnostic agent experiment. It is intentionally
 
 The goal is a general assistant first: chat, deep web research, coding, repository work, files, terminal tools, sub-agents, image generation/edit iteration, memory, and self-improvement behind tests.
 
-## Current: v0.2.2 lab
+## Current: v0.3.0 lab
 
 ### Brain
 - Autonomous multi-step agent loop.
@@ -15,6 +15,8 @@ The goal is a general assistant first: chat, deep web research, coding, reposito
 - Shell, git status/diff and calculator.
 - OpenAI-compatible model and image-provider adapters.
 - Git/test evidence requirement for coding work.
+- Persistent SQLite conversation memory across server restarts.
+- Executable Astral Gate benchmark runner.
 
 ### Server
 FastAPI exposes:
@@ -24,7 +26,7 @@ FastAPI exposes:
 - `POST /v1/chat/stream`
 - `POST /v1/image`
 
-Sessions retain conversation history while the server process is alive. Image sessions retain prior prompt context so revisions such as “make it taller” build on the accepted concept. Map Model uses a dedicated specialist prompt and `map_modeling/map_spec.schema.json` covering zones, connections, traversal, lighting, collision, navmesh, streaming, optimization and asset manifests.
+Sessions are persisted in SQLite and restored after server restarts. Image sessions retain prior prompt context so revisions such as “make it taller” build on the accepted concept. Map Model uses a dedicated specialist prompt and `map_modeling/map_spec.schema.json` covering zones, connections, traversal, lighting, collision, navmesh, streaming, optimization and asset manifests.
 
 ### Android
 A native lightweight APK provides:
@@ -35,6 +37,7 @@ A native lightweight APK provides:
 - Map Model mode for production-oriented 3D level/world planning.
 - Persistent session ID.
 - Server URL/token settings.
+- Check Brain diagnostics for configured model routes and image provider.
 - Image rendering from base64 or URL responses.
 - No model weights bundled into the APK.
 
@@ -95,9 +98,27 @@ docker run --rm -p 8000:8000 \
   -e PICHY_IMAGE_API_KEY=... \
   -e PICHY_SERVER_TOKEN=... \
   -v "$PWD/config/pichy.local.json:/app/config/pichy.local.json:ro" \
+  -v "$PWD/data:/app/data" \
   pichy-ai
 ```
 
 ## Important boundary
 
 Pichy can inspect and modify its own lab source when explicitly asked, but it cannot self-approve promotion. HAYUYA integration remains a later milestone after the Astral Gate benchmark is strong enough.
+
+
+## Astral Gate
+
+Run all configured benchmark cases:
+
+```bash
+python benchmarks/run_astral_gate.py --config config/pichy.local.json --out data/astral-report.json
+```
+
+Run a specific case:
+
+```bash
+python benchmarks/run_astral_gate.py --config config/pichy.local.json --only reasoning-boxes
+```
+
+The runner deliberately separates transport success from answer quality. A returned answer is not automatically counted as frontier-quality; review/critic grading comes next.
