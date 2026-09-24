@@ -521,6 +521,7 @@ private:
     std::uint32_t cachedStreamColdBatches_ = 0U;
     std::uint64_t streamPlanBuildCount_ = 0U;
     std::uint64_t streamPlanCacheHitCount_ = 0U;
+    std::uint64_t streamCellHeatRefreshCount_ = 0U;
     bool streamPlanDirty_ = true;
     mutable std::uint64_t streamPlanFrame_ = 0U;
     mutable std::uint32_t lastLoggedStreamCell_ = 0U;
