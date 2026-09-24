@@ -44,6 +44,8 @@ class RiggedAccessoryInsertResult:
     bbox_drift_fraction: float | None
     warnings: list[str]
     errors: list[str]
+    inserted_primitives: int = 1
+    material_groups: int = 0
     method: str = "hayuya-rigged-accessory-insert-v1"
 
 
@@ -1511,6 +1513,13 @@ def prepare_production_rigged_accessory_insert(
                 f"inserted_primitive[{primitive_index}]:{item}"
                 for item in (proof[2] or [])
             )
+
+        result.inserted_primitives = int(len(inserted_primitives))
+        result.material_groups = int(len({
+            int(primitive["material"])
+            for primitive in inserted_primitives
+            if isinstance(primitive.get("material"), int)
+        }))
 
         result.material_ready = bool(
             material_ready and transfer.ready
