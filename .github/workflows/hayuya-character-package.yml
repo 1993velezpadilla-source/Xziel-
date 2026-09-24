@@ -153,6 +153,7 @@ jobs:
             --json out/character-package/rig-gate.json
           blender -b --python tools/hayuya3d/blender_animation_gate.py -- \
             --model out/character-package/rigged.glb \
+            --reference "hayuya/models/${{ steps.recipe.outputs.job_id }}/model.glb" \
             --json out/character-package/animation-gate.json --samples 5 || true
           python - <<'PY'
           import json
