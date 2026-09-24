@@ -53,6 +53,8 @@ struct StaticMeshFrameStats {
     std::uint32_t cellRangeSkippedBatches = 0U;
     std::uint32_t cellFrustumSkippedBatches = 0U;
     std::uint32_t batchFrustumTests = 0U;
+    std::uint32_t materialVisibilityTests = 0U;
+    std::uint32_t materialVisibilityCacheHits = 0U;
 
     std::uint32_t streamingCell = 0U;
     std::uint32_t streamingColdBatches = 0U;
@@ -534,6 +536,10 @@ private:
 
     std::vector<GpuTexture> textures_{};
     std::vector<GpuMaterial> materials_{};
+    // Pre-sized during initialization; reset in-place each frame so the
+    // render hot path never allocates while avoiding repeated material/
+    // streaming visibility lookups for batches sharing a material.
+    std::vector<std::uint8_t> materialVisibilityStates_{};
     std::vector<GpuBatch> batches_{};
     std::vector<VkDrawIndexedIndirectCommand> drawCommands_{};
     std::vector<StaticDrawGroup> drawGroups_{};
