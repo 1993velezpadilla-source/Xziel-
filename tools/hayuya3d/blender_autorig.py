@@ -588,7 +588,8 @@ def main():
         previous=None
         for frame in times:
             q_old=Quaternion(tuple(float(curves[i].evaluate(frame)) for i in range(4)))
-            if q_old.length<=1e-12:
+            q_norm_sq=sum(float(v)*float(v) for v in q_old)
+            if q_norm_sq<=1e-24:
                 q_old=Quaternion((1.0,0.0,0.0,0.0))
             else:
                 q_old.normalize()
