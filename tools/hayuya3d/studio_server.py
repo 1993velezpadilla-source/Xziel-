@@ -41,8 +41,9 @@ STAGE_PROGRESS = {
     "refinement": 60,
     "mesh_doctor": 68,
     "retopo": 74,
-    "gameprep": 84,
-    "portable": 91,
+    "composite": 80,
+    "gameprep": 86,
+    "portable": 92,
     "qa": 96,
     "complete": 100,
     "failed": 100,
@@ -99,6 +100,7 @@ class JobState:
     champion: str | None = None
     final_model_url: str | None = None
     final_model_path: str | None = None
+    composite_plan: dict | None = None
     final_qa: dict | None = None
     error: str | None = None
     events: list[dict] = field(default_factory=list)
@@ -242,6 +244,32 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
         _set_stage(job, "mesh_doctor")
     elif line.startswith("HAYUYA_RETOPO"):
         _set_stage(job, "retopo")
+    elif line.startswith("HAYUYA_COMPOSITE_PLAN_READY"):
+        _set_stage(job, "composite")
+        values = dict(re.findall(r"(\w+)=([^\s]+)", line))
+        plan_raw = values.get("plan")
+        plan_data = None
+        if plan_raw:
+            try:
+                plan_path = Path(plan_raw).resolve()
+                job_root = Path(job.root).resolve()
+                if plan_path.is_file() and plan_path.is_relative_to(job_root):
+                    loaded = json.loads(plan_path.read_text(encoding="utf-8"))
+                    if isinstance(loaded,dict):
+                        plan_data = loaded
+            except (OSError,ValueError,json.JSONDecodeError):
+                plan_data = None
+        if plan_data is None:
+            plan_data = {
+                "base_backend": values.get("base"),
+                "composite_required": values.get("required","false").lower()=="true",
+                "finalist_backends": [],
+                "donors": [],
+                "executable_now": [],
+                "deferred_transfers": [],
+            }
+        job.composite_plan = plan_data
+        _emit(job, "composite_plan", {"plan": dict(plan_data)})
     elif line.startswith("HAYUYA_GAMEPREP"):
         _set_stage(job, "gameprep")
     elif line.startswith("HAYUYA_PORTABLE_PACK"):
