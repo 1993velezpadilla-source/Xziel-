@@ -634,6 +634,15 @@ bool VulkanStaticMeshRenderer::initialize(
                 streamGraph_.portalCount()),
             static_cast<unsigned int>(
                 streamGraph_.adjacencyEntryCount()));
+
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_STREAM_RESOURCE_DECISION_INDEX_READY bindings=%u unique=%u",
+            static_cast<unsigned int>(
+                streamGraph_.bindingCount()),
+            static_cast<unsigned int>(
+                streamGraph_.uniqueResourceCount()));
     }
 
     textureMipResidency_.reset();

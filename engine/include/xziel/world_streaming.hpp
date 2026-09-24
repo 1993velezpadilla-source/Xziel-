@@ -135,6 +135,7 @@ public:
     [[nodiscard]] std::size_t cellCount() const noexcept;
     [[nodiscard]] std::size_t portalCount() const noexcept;
     [[nodiscard]] std::size_t bindingCount() const noexcept;
+    [[nodiscard]] std::size_t uniqueResourceCount() const noexcept;
     [[nodiscard]] std::size_t adjacencyEntryCount() const noexcept;
 
 private:
@@ -165,10 +166,15 @@ private:
         bindings_{};
     std::array<std::uint8_t, kMaxStreamBindings>
         bindingCellIndices_{};
+    // Stable output slot for each binding's deduplicated resource decision.
+    // Resolved when bindings are registered, not during plan rebuilds.
+    std::array<std::uint16_t, kMaxStreamBindings>
+        bindingDecisionSlots_{};
 
     std::size_t cellCount_ = 0U;
     std::size_t portalCount_ = 0U;
     std::size_t bindingCount_ = 0U;
+    std::size_t uniqueResourceCount_ = 0U;
 };
 
 } // namespace xziel

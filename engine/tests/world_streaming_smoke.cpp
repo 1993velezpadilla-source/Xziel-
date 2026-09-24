@@ -124,6 +124,8 @@ int main() {
         .bytes = 50U,
         .pinned = true,
     }));
+    assert(graph.bindingCount() == 5U);
+    assert(graph.uniqueResourceCount() == 4U);
 
     std::array<xziel::StreamCellResourceDecision, 16>
         decisions{};

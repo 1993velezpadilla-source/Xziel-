@@ -65,9 +65,12 @@ void StreamCellGraph::reset() noexcept {
     bindings_ = {};
     bindingCellIndices_.fill(
         std::numeric_limits<std::uint8_t>::max());
+    bindingDecisionSlots_.fill(
+        std::numeric_limits<std::uint16_t>::max());
     cellCount_ = 0U;
     portalCount_ = 0U;
     bindingCount_ = 0U;
+    uniqueResourceCount_ = 0U;
 }
 
 bool StreamCellGraph::addCell(
@@ -184,11 +187,41 @@ bool StreamCellGraph::bindResource(
         return false;
     }
 
+    std::uint16_t decisionSlot =
+        std::numeric_limits<std::uint16_t>::max();
+
+    for (std::size_t i = 0U;
+         i < bindingCount_;
+         ++i) {
+        if (bindings_[i].resourceId !=
+            binding.resourceId) {
+            continue;
+        }
+
+        decisionSlot =
+            bindingDecisionSlots_[i];
+        break;
+    }
+
+    if (decisionSlot ==
+        std::numeric_limits<std::uint16_t>::max()) {
+        if (uniqueResourceCount_ >=
+            kMaxStreamBindings) {
+            return false;
+        }
+
+        decisionSlot =
+            static_cast<std::uint16_t>(
+                uniqueResourceCount_++);
+    }
+
     bindings_[bindingCount_] =
         binding;
     bindingCellIndices_[bindingCount_] =
         static_cast<std::uint8_t>(
             ownerIndex);
+    bindingDecisionSlots_[bindingCount_] =
+        decisionSlot;
     ++bindingCount_;
     return true;
 }
@@ -443,27 +476,16 @@ StreamCellPlanStats StreamCellGraph::plan(
         const auto heat =
             cellHeat[owner];
 
-        std::size_t existing =
-            destinationCapacity;
+        const std::size_t existing =
+            bindingDecisionSlots_[i];
 
-        for (std::size_t j = 0U;
-             j < written;
-             ++j) {
-            if (destination[j].resourceId ==
-                binding.resourceId) {
-                existing = j;
-                break;
-            }
+        if (existing >=
+            destinationCapacity) {
+            continue;
         }
 
-        if (existing ==
-            destinationCapacity) {
-            if (written >=
-                destinationCapacity) {
-                continue;
-            }
-
-            existing = written++;
+        if (existing == written) {
+            ++written;
             destination[existing] = {
                 .resourceId =
                     binding.resourceId,
@@ -479,7 +501,7 @@ StreamCellPlanStats StreamCellGraph::plan(
                 .pinned =
                     binding.pinned,
             };
-        } else {
+        } else if (existing < written) {
             auto& decision =
                 destination[existing];
 
@@ -821,6 +843,10 @@ std::size_t StreamCellGraph::portalCount() const noexcept {
 
 std::size_t StreamCellGraph::bindingCount() const noexcept {
     return bindingCount_;
+}
+
+std::size_t StreamCellGraph::uniqueResourceCount() const noexcept {
+    return uniqueResourceCount_;
 }
 
 std::size_t StreamCellGraph::adjacencyEntryCount() const noexcept {
