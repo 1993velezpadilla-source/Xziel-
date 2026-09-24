@@ -34,6 +34,7 @@ struct StaticMeshFrameStats {
     std::uint32_t visibleBatches = 0U;
     std::uint32_t culledBatches = 0U;
     std::uint32_t drawCalls = 0U;
+    std::uint32_t materialBinds = 0U;
     std::uint64_t submittedTriangles = 0U;
 
     std::uint32_t streamingCell = 0U;
