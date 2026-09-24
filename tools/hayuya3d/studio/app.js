@@ -702,6 +702,21 @@ function renderCompositePlan(plan, executions = []) {
     if (item.changed_vertices != null) {
       parts.push(Number(item.changed_vertices) + " verts");
     }
+    if (item.inserted_vertices != null) {
+      parts.push(Number(item.inserted_vertices) + " new verts");
+    }
+    if (item.inserted_faces != null) {
+      parts.push(Number(item.inserted_faces) + " new tris");
+    }
+    if (item.weight_transfer_vertices != null) {
+      parts.push(Number(item.weight_transfer_vertices) + " weighted");
+    }
+    if (item.weight_source_max != null) {
+      parts.push("weight radius " + Number(item.weight_source_max).toFixed(3));
+    }
+    if (item.morph_targets_transferred != null) {
+      parts.push(Number(item.morph_targets_transferred) + " morph targets");
+    }
     if (item.runtime_preserved != null) {
       parts.push(item.runtime_preserved ? "runtime exact" : "runtime!");
     }
@@ -715,6 +730,30 @@ function renderCompositePlan(plan, executions = []) {
       parts.push(
         item.morph_deformation_ready ? "morph" : "morph!"
       );
+    }
+    if (item.animation_ready != null) {
+      parts.push(item.animation_ready ? "animation" : "animation!");
+    }
+    if (item.deformation_ready != null) {
+      parts.push(item.deformation_ready ? "deform" : "deform!");
+    }
+    if (item.attachment_ready != null) {
+      parts.push(item.attachment_ready ? "attached" : "attachment!");
+    }
+    if (item.material_ready != null) {
+      parts.push(item.material_ready ? "PBR" : "PBR!");
+    }
+    if (item.uv_ready != null) {
+      parts.push(item.uv_ready ? "UV" : "UV!");
+    }
+    if (item.uv_tangent_ready != null) {
+      parts.push(item.uv_tangent_ready ? "tangent" : "tangent!");
+    }
+    if (Array.isArray(item.material_channels) && item.material_channels.length) {
+      parts.push(item.material_channels.join("+"));
+    }
+    if (item.production_ready != null) {
+      parts.push(item.production_ready ? "production" : "production!");
     }
     if (item.rebake_ready != null) {
       parts.push(item.rebake_ready ? "rebake" : "rebake!");
