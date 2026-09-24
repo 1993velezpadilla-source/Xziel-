@@ -39,6 +39,18 @@ def _champion_dict(champion: Any) -> dict:
         return {}
 
 
+def unresolved_material_rebakes(gameprep_data: dict | None) -> list[dict]:
+    unresolved: list[dict] = []
+    for lod in (gameprep_data or {}).get("lods", []) or []:
+        channels = sorted({str(x) for x in (lod.get("rebake_required") or []) if x})
+        if channels:
+            unresolved.append({
+                "lod": str(lod.get("name") or lod.get("path") or "unknown"),
+                "channels": channels,
+            })
+    return unresolved
+
+
 def _thumbnail(path: Path, size: tuple[int, int]):
     from PIL import Image, ImageOps
 
@@ -292,9 +304,23 @@ def build_qa_package(
     if gameprep_data and not collision:
         warnings.append("convex collision proxy unavailable")
 
+    unresolved_rebakes = unresolved_material_rebakes(gameprep_data)
+    material_rebake_ready = not unresolved_rebakes
+    if unresolved_rebakes:
+        summary = "; ".join(
+            f"{item['lod']}:{','.join(item['channels'])}"
+            for item in unresolved_rebakes
+        )
+        warnings.append(
+            "runtime LOD material rebake is incomplete: "
+            + summary
+            + "; asset remains inspectable but is not production-ready"
+        )
+
     production_ready = bool(
         geometry_ready
         and material_ready
+        and material_rebake_ready
         and source_coverage >= expected_sources
         and gameprep_ready
         and turntable_ready
@@ -345,6 +371,8 @@ def build_qa_package(
             "base_color_min_edge": mesh.base_color_min_edge,
             "texture_resolution_score": mesh.texture_resolution_score,
             "target_texture_size": target_texture_size,
+            "rebake_ready": material_rebake_ready,
+            "unresolved_rebakes": unresolved_rebakes,
         },
         "rig": asdict(rig),
         "part_map": asdict(part_map_result) if part_map_result is not None else None,
