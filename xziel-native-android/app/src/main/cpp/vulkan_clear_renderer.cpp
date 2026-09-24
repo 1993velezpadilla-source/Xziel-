@@ -5184,6 +5184,87 @@ bool VulkanClearRenderer::recordDrawCommand(
                 -reflectedForwardY,
                 reflectedHorizontalForward);
 
+        // REFLECTION_PUSH_BASE_CACHE_V1
+        // Everything below except object transform/material is invariant for
+        // all draws in this capture pass. Build once and copy per object.
+        PushConstants reflectedBasePush{};
+        reflectedBasePush.timeSeconds =
+            std::isfinite(timeSeconds)
+            ? timeSeconds
+            : 0.0f;
+        reflectedBasePush.aspect =
+            reflectedFocalOverAspect;
+        reflectedBasePush.horrorPulse =
+            pulse;
+        reflectedBasePush.cameraX =
+            reflectedCameraX;
+        reflectedBasePush.cameraY =
+            reflectedCameraY;
+        reflectedBasePush.cameraZ =
+            reflectedCameraZ;
+        reflectedBasePush.cameraYawRadians =
+            reflectedCameraYaw;
+        reflectedBasePush.cameraPitchRadians =
+            reflectedCameraPitch;
+        reflectedBasePush.verticalFovDegrees =
+            reflectedFovDegrees;
+        reflectedBasePush.fogDensity =
+            std::clamp(
+                environment.fogDensity,
+                0.0f,
+                1.0f);
+        reflectedBasePush.lightningFlash =
+            std::clamp(
+                environment.lightningFlash,
+                0.0f,
+                2.0f);
+        reflectedBasePush.wetness =
+            std::clamp(
+                environment.wetness,
+                0.0f,
+                1.0f);
+        reflectedBasePush.rainIntensity =
+            std::clamp(
+                environment.rainIntensity,
+                0.0f,
+                1.0f);
+        reflectedBasePush.waterWavePhase =
+            environment.waterWavePhase;
+        reflectedBasePush.waterFoamStrength =
+            std::clamp(
+                environment.waterFoamStrength,
+                0.0f,
+                1.0f);
+        reflectedBasePush.waterReflectionStrength =
+            0.0f;
+        reflectedBasePush.waterRefractionStrength =
+            0.0f;
+        reflectedBasePush.waterRoughness =
+            std::clamp(
+                environment.waterRoughness,
+                0.02f,
+                0.85f);
+        reflectedBasePush.waterQualityScale =
+            std::clamp(
+                environment.postProcessScale,
+                0.35f,
+                1.0f);
+        reflectedBasePush.waterParticleScale =
+            std::clamp(
+                environment.particleDensityScale,
+                0.25f,
+                1.0f);
+        reflectedBasePush.waterFogScale =
+            reflectedFocal;
+        reflectedBasePush.reflectionPlaneX =
+            reflectedPlaneNx;
+        reflectedBasePush.reflectionPlaneY =
+            reflectedPlaneNy;
+        reflectedBasePush.reflectionPlaneZ =
+            reflectedPlaneNz;
+        reflectedBasePush.reflectionPlaneDistance =
+            reflectedPlaneD;
+
         const auto drawReflectedBox = [&](
             float tx,
             float ty,
@@ -5192,64 +5273,16 @@ bool VulkanClearRenderer::recordDrawCommand(
             float sy,
             float sz,
             float materialId) noexcept {
-            PushConstants push{};
-            push.timeSeconds =
-                std::isfinite(timeSeconds) ? timeSeconds : 0.0f;
-            // PROJECTION_TERMS_CPU_PRECOMPUTED_V1
-            // xziel_first.vert reads focal/aspect from aspect and focal from
-            // the otherwise shader-unused waterSurfaceExtra.w slot.
-            push.aspect =
-                reflectedFocalOverAspect;
-            push.horrorPulse = pulse;
-            push.materialId = materialId;
+            PushConstants push =
+                reflectedBasePush;
+            push.materialId =
+                materialId;
             push.translationX = tx;
             push.translationY = ty;
             push.translationZ = tz;
             push.scaleX = sx;
             push.scaleY = sy;
             push.scaleZ = sz;
-
-            push.cameraX =
-                reflectedCameraX;
-            push.cameraY =
-                reflectedCameraY;
-            push.cameraZ =
-                reflectedCameraZ;
-            push.cameraYawRadians =
-                reflectedCameraYaw;
-            push.cameraPitchRadians =
-                reflectedCameraPitch;
-            push.verticalFovDegrees =
-                std::clamp(camera.verticalFovDegrees, 50.0f, 110.0f);
-            push.fogDensity =
-                std::clamp(environment.fogDensity, 0.0f, 1.0f);
-            push.lightningFlash =
-                std::clamp(environment.lightningFlash, 0.0f, 2.0f);
-            push.wetness =
-                std::clamp(environment.wetness, 0.0f, 1.0f);
-            push.rainIntensity =
-                std::clamp(environment.rainIntensity, 0.0f, 1.0f);
-            push.waterWavePhase = environment.waterWavePhase;
-            push.waterFoamStrength =
-                std::clamp(environment.waterFoamStrength, 0.0f, 1.0f);
-            push.waterReflectionStrength = 0.0f;
-            push.waterRefractionStrength = 0.0f;
-            push.waterRoughness =
-                std::clamp(environment.waterRoughness, 0.02f, 0.85f);
-            push.waterQualityScale =
-                std::clamp(environment.postProcessScale, 0.35f, 1.0f);
-            push.waterParticleScale =
-                std::clamp(environment.particleDensityScale, 0.25f, 1.0f);
-            push.waterFogScale =
-                reflectedFocal;
-            push.reflectionPlaneX =
-                reflectedPlaneNx;
-            push.reflectionPlaneY =
-                reflectedPlaneNy;
-            push.reflectionPlaneZ =
-                reflectedPlaneNz;
-            push.reflectionPlaneDistance =
-                reflectedPlaneD;
 
             vkCmdPushConstants(
                 command,
