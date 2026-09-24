@@ -522,6 +522,8 @@ private:
 
     std::array<IndirectFrame, kDescriptorFrames>
         indirectFrames_{};
+    std::array<IndirectGroup, kMaxStaticMeshBatches>
+        indirectGroupsScratch_{};
     bool multiDrawIndirectEnabled_ = false;
     std::uint32_t uploadBatchCommandLimit_ = 16U;
     std::uint64_t textureResidentBudgetBytes_ =
