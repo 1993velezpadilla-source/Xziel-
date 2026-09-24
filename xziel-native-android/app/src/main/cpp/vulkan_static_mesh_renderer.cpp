@@ -4253,7 +4253,177 @@ void VulkanStaticMeshRenderer::record(
     constexpr float nearPlane = 0.08f;
     constexpr float farPlane = 180.0f;
 
-    for (const auto& batch : batches_) {
+    const auto sphereVisible =
+        [&](float centerX,
+            float centerY,
+            float centerZ,
+            float radius) noexcept {
+            const float relativeX =
+                centerX - camera.x;
+            const float relativeY =
+                centerY - camera.y;
+            const float relativeZ =
+                centerZ - camera.z;
+
+            const float yawViewX =
+                yawCos * relativeX -
+                yawSin * relativeZ;
+            const float yawViewZ =
+                yawSin * relativeX +
+                yawCos * relativeZ;
+
+            const float viewY =
+                pitchCos * relativeY +
+                pitchSin * yawViewZ;
+            const float viewZ =
+                -pitchSin * relativeY +
+                pitchCos * yawViewZ;
+
+            if (viewZ + radius < nearPlane ||
+                viewZ - radius > farPlane) {
+                return false;
+            }
+
+            const float projectedDepth =
+                std::max(
+                    viewZ,
+                    nearPlane);
+            const float halfHeight =
+                projectedDepth *
+                tanHalfFov;
+            const float halfWidth =
+                halfHeight *
+                std::max(
+                    camera.aspect,
+                    0.25f);
+
+            return
+                std::abs(yawViewX) - radius <=
+                    halfWidth &&
+                std::abs(viewY) - radius <=
+                    halfHeight;
+        };
+
+    const auto streamBoundsForCell =
+        [&](std::uint32_t cellId) noexcept
+            -> const StreamCellBounds* {
+                if (cellId == 0U) {
+                    return nullptr;
+                }
+
+                for (const auto& candidate :
+                     streamCellBounds_) {
+                    if (candidate.valid &&
+                        candidate.cellId ==
+                            cellId) {
+                        return &candidate;
+                    }
+                }
+
+                return nullptr;
+            };
+
+    for (std::size_t batchIndex = 0U;
+         batchIndex < batches_.size();
+         ++batchIndex) {
+        const auto& batch =
+            batches_[batchIndex];
+
+        if (cellGeometry) {
+            if (batch.geometryCellSlot >=
+                geometryCellCount_) {
+                ++frameStats_.culledBatches;
+                continue;
+            }
+
+            const auto& geometryCell =
+                geometryCells_[
+                    batch.geometryCellSlot];
+
+            if (batchIndex ==
+                geometryCell.firstBatch) {
+                const std::size_t cellEnd =
+                    std::min<std::size_t>(
+                        batches_.size(),
+                        static_cast<std::size_t>(
+                            geometryCell.firstBatch) +
+                            geometryCell.batchCount);
+
+                const std::uint32_t remainingBatches =
+                    static_cast<std::uint32_t>(
+                        cellEnd - batchIndex);
+
+                const bool streamCold =
+                    streamCullingActive_ &&
+                    geometryCell.heat ==
+                        StreamCellHeat::Cold;
+
+                const bool missingGeometry =
+                    !geometryCell.physicallyResident ||
+                    geometryCell.vertexBuffer ==
+                        VK_NULL_HANDLE ||
+                    geometryCell.indexBuffer ==
+                        VK_NULL_HANDLE;
+
+                if (missingGeometry ||
+                    streamCold) {
+                    frameStats_.culledBatches +=
+                        remainingBatches;
+                    frameStats_.
+                        streamingCulledBatches +=
+                        remainingBatches;
+                    frameStats_.
+                        cellRangeSkippedBatches +=
+                        remainingBatches;
+
+                    if (cellEnd > batchIndex) {
+                        batchIndex =
+                            cellEnd - 1U;
+                    }
+
+                    continue;
+                }
+
+                const auto* cellBounds =
+                    streamBoundsForCell(
+                        geometryCell.cellId);
+
+                if (cellBounds != nullptr) {
+                    ++frameStats_.
+                        cellFrustumTests;
+
+                    if (!sphereVisible(
+                            cellBounds->
+                                cullCenterX,
+                            cellBounds->
+                                cullCenterY,
+                            cellBounds->
+                                cullCenterZ,
+                            cellBounds->
+                                cullRadius)) {
+                        ++frameStats_.
+                            cellFrustumCulled;
+                        frameStats_.
+                            culledBatches +=
+                            remainingBatches;
+                        frameStats_.
+                            cellRangeSkippedBatches +=
+                            remainingBatches;
+                        frameStats_.
+                            cellFrustumSkippedBatches +=
+                            remainingBatches;
+
+                        if (cellEnd > batchIndex) {
+                            batchIndex =
+                                cellEnd - 1U;
+                        }
+
+                        continue;
+                    }
+                }
+            }
+        }
+
         if (batch.materialIndex >=
             materials_.size()) {
             continue;
@@ -4267,28 +4437,6 @@ void VulkanStaticMeshRenderer::record(
             ++frameStats_.
                 streamingCulledBatches;
             continue;
-        }
-
-        if (cellGeometry) {
-            if (batch.geometryCellSlot >=
-                geometryCellCount_) {
-                ++frameStats_.culledBatches;
-                continue;
-            }
-
-            const auto& geometryCell =
-                geometryCells_[
-                    batch.geometryCellSlot];
-
-            if (!geometryCell.physicallyResident ||
-                (streamCullingActive_ &&
-                 geometryCell.heat ==
-                    StreamCellHeat::Cold)) {
-                ++frameStats_.culledBatches;
-                ++frameStats_.
-                    streamingCulledBatches;
-                continue;
-            }
         }
 
         if (streamCullingActive_) {
@@ -4306,72 +4454,15 @@ void VulkanStaticMeshRenderer::record(
             }
         }
 
-        const float radius =
-            batch.cullRadius;
+        ++frameStats_.batchFrustumTests;
 
-        const float relativeX =
-            batch.cullCenterX - camera.x;
-        const float relativeY =
-            batch.cullCenterY - camera.y;
-        const float relativeZ =
-            batch.cullCenterZ - camera.z;
-
-        const float yawViewX =
-            yawCos * relativeX -
-            yawSin * relativeZ;
-        const float yawViewZ =
-            yawSin * relativeX +
-            yawCos * relativeZ;
-
-        const float viewY =
-            pitchCos * relativeY +
-            pitchSin * yawViewZ;
-        const float viewZ =
-            -pitchSin * relativeY +
-            pitchCos * yawViewZ;
-
-        if (viewZ + radius < nearPlane ||
-            viewZ - radius > farPlane) {
+        if (!sphereVisible(
+                batch.cullCenterX,
+                batch.cullCenterY,
+                batch.cullCenterZ,
+                batch.cullRadius)) {
             ++frameStats_.culledBatches;
             continue;
-        }
-
-        const float projectedDepth =
-            std::max(viewZ, nearPlane);
-        const float halfHeight =
-            projectedDepth *
-            tanHalfFov;
-        const float halfWidth =
-            halfHeight *
-            std::max(camera.aspect, 0.25f);
-
-        if (std::abs(yawViewX) - radius >
-                halfWidth ||
-            std::abs(viewY) - radius >
-                halfHeight) {
-            ++frameStats_.culledBatches;
-            continue;
-        }
-
-        if (cellGeometry) {
-            if (batch.geometryCellSlot >=
-                geometryCellCount_) {
-                ++frameStats_.culledBatches;
-                continue;
-            }
-
-            const auto& geometryCell =
-                geometryCells_[
-                    batch.geometryCellSlot];
-
-            if (!geometryCell.physicallyResident ||
-                geometryCell.vertexBuffer ==
-                    VK_NULL_HANDLE ||
-                geometryCell.indexBuffer ==
-                    VK_NULL_HANDLE) {
-                ++frameStats_.culledBatches;
-                continue;
-            }
         }
 
         const VkPipeline desiredPipeline =
