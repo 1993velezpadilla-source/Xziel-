@@ -145,12 +145,13 @@ def main():
     # and other asymmetric silhouettes.
     desired_floor=axis_value(target_min,target_axis)
     current_floor=axis_value(dmin2,donor_axis)
+    # Center on the two horizontal axes; on the height axis, align floors.
     if target_axis==0:
-        offset.x += desired_floor-axis_value(donor_center,target_axis) - (current_floor-axis_value(donor_center,donor_axis))
+        offset.x = desired_floor-current_floor
     elif target_axis==1:
-        offset.y += desired_floor-axis_value(donor_center,target_axis) - (current_floor-axis_value(donor_center,donor_axis))
+        offset.y = desired_floor-current_floor
     else:
-        offset.z += desired_floor-axis_value(donor_center,target_axis) - (current_floor-axis_value(donor_center,donor_axis))
+        offset.z = desired_floor-current_floor
 
     for root in donor_roots:
         root.location += offset
