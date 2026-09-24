@@ -1,0 +1,42 @@
+name: Deploy Cloudflare Multiplayer
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "multiplayer/cloudflare/**"
+      - ".github/workflows/deploy-cloudflare-multiplayer.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    outputs:
+      deployment_url: ${{ steps.cloudflare.outputs.deployment-url }}
+    defaults:
+      run:
+        working-directory: multiplayer/cloudflare
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - run: npm install
+      - run: npm run check
+      - name: Deploy
+        id: cloudflare
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: "875d032435bc62d73bb9f98c439b69dc"
+          workingDirectory: multiplayer/cloudflare
+          command: deploy
+
+  build-multiplayer-apk:
+    needs: deploy
+    uses: ./.github/workflows/android-native.yml
+    with:
+      multiplayer_url: ${{ needs.deploy.outputs.deployment_url }}

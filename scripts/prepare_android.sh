@@ -42,6 +42,7 @@ python3 "$ROOT/scripts/patch_vril_mobile_v021.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_mobile_v022.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_mobile_v024.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_sanctum_staticmesh.py" "$DEPS/vril"
+python3 "$ROOT/scripts/patch_vril_multiplayer_voice.py" "$DEPS/vril"
 
 echo "==> Patching and compiling Xziel mobile QuakeC"
 python3 -m pip install --quiet colorama==0.4.6 fastcrc==0.3.0 pandas==2.1.4 cairosvg==2.8.2
@@ -83,11 +84,13 @@ cp "$ROOT/android/jni/Android.mk" "$APP/jni/Android.mk"
 cp "$ROOT/android/jni/Application.mk" "$APP/jni/Application.mk"
 mkdir -p "$APP/jni/src"
 cp "$ROOT/android/jni/src/Android.mk" "$APP/jni/src/Android.mk"
+cp "$ROOT/android/jni/src/xziel_android_bridge.c" "$APP/jni/src/xziel_android_bridge.c"
 
 cp "$ROOT/android/app-build.gradle" "$APP/build.gradle"
 cp "$ROOT/android/AndroidManifest.xml" "$APP/src/main/AndroidManifest.xml"
 cp "$ROOT/android/strings.xml" "$APP/src/main/res/values/strings.xml"
 cp "$ROOT/android/NZPActivity.java"    "$APP/src/main/java/org/libsdl/app/NZPActivity.java"
+cp "$ROOT/android/XzielMultiplayer.java" "$APP/src/main/java/org/libsdl/app/XzielMultiplayer.java"
 
 echo "==> Assembling official NZ:P game data for the APK"
 ASSET_WORK="$BUILD/nzp-data"

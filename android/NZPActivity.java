@@ -28,6 +28,7 @@ import java.util.zip.ZipInputStream;
  * runtime.
  */
 public class NZPActivity extends SDLActivity {
+    private XzielMultiplayer multiplayer;
     private static final String DATA_ARCHIVE = "nzp-data.zip";
     private static final String DATA_VERSION = "nzp-data.version";
 
@@ -75,6 +76,7 @@ public class NZPActivity extends SDLActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        multiplayer = new XzielMultiplayer(this, BuildConfig.XZIEL_MULTIPLAYER_URL);
         applyImmersiveMode();
         getWindow().getDecorView().postDelayed(new Runnable() {
             @Override
@@ -109,6 +111,61 @@ public class NZPActivity extends SDLActivity {
         if (hasFocus) {
             applyImmersiveMode();
         }
+    }
+
+    public void xzielOpenMultiplayer() {
+        if (multiplayer != null) multiplayer.openMultiplayerMenu();
+    }
+
+    public void xzielVoiceToggleMic() {
+        if (multiplayer != null) multiplayer.toggleMic();
+    }
+
+    public void xzielVoiceToggleSpeaker() {
+        if (multiplayer != null) multiplayer.toggleSpeaker();
+    }
+
+    public void xzielVoiceToggleMode() {
+        if (multiplayer != null) multiplayer.toggleVoiceMode();
+    }
+
+    public boolean xzielVoiceInRoom() {
+        return multiplayer != null && multiplayer.isInRoom();
+    }
+
+    public boolean xzielVoiceMicMuted() {
+        return multiplayer == null || multiplayer.isMicMuted();
+    }
+
+    public boolean xzielVoiceSpeakerMuted() {
+        return multiplayer != null && multiplayer.isSpeakerMuted();
+    }
+
+    public boolean xzielVoiceProximityMode() {
+        return multiplayer != null && multiplayer.isProximityMode();
+    }
+
+    public void xzielVoiceUpdatePosition(float x, float y, float z) {
+        if (multiplayer != null) multiplayer.updateLocalPosition(x, y, z);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == XzielMultiplayer.MIC_PERMISSION_REQUEST && multiplayer != null) {
+            boolean granted = grantResults.length > 0
+                && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED;
+            multiplayer.onMicrophonePermissionResult(granted);
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (multiplayer != null) {
+            multiplayer.shutdown();
+            multiplayer = null;
+        }
+        super.onDestroy();
     }
 
     @Override
