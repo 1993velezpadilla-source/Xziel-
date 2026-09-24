@@ -4,7 +4,7 @@ import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
-import android.os.Bundle;
+import android.os.Bundle;\nimport android.view.Window;\nimport android.view.WindowInsets;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
@@ -55,6 +55,10 @@ public class MainActivity extends Activity {
             sessionId = UUID.randomUUID().toString().replace("-", "");
             getPreferences(MODE_PRIVATE).edit().putString("sessionId", sessionId).apply();
         }
+        Window window = getWindow();
+        window.setStatusBarColor(Color.rgb(13, 13, 16));
+        window.setNavigationBarColor(Color.rgb(13, 13, 16));
+
         setContentView(buildUi());
     }
 
@@ -63,6 +67,14 @@ public class MainActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(dp(12), dp(10), dp(12), dp(10));
         root.setBackgroundColor(Color.rgb(13, 13, 16));
+        root.setOnApplyWindowInsetsListener((v, insets) -> {
+            int left = insets.getSystemWindowInsetLeft();
+            int top = insets.getSystemWindowInsetTop();
+            int right = insets.getSystemWindowInsetRight();
+            int bottom = insets.getSystemWindowInsetBottom();
+            v.setPadding(dp(12) + left, dp(10) + top, dp(12) + right, dp(10) + bottom);
+            return insets;
+        });
 
         LinearLayout header = new LinearLayout(this);
         header.setGravity(Gravity.CENTER_VERTICAL);
