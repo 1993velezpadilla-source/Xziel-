@@ -842,7 +842,7 @@ def main():
             "attempted":True,
             "passed":False,
             "groups":len(mesh.vertex_groups),
-            "method":"adjacency_python_anatomical_mask_v2",
+            "method":"adjacency_python_anatomical_mask_v3_consensus_rigidization",
             "anatomical_mask_enforced":True,
             "semantic_head_zone":{"min_height_norm":0.76,"bone":head_segment["name"]},
         }
@@ -910,6 +910,8 @@ def main():
             visited=set()
             rigidized_components=0
             rigidized_vertices=0
+            rigidization_skipped_mixed_components=0
+            rigidization_skipped_mask_conflicts=0
             component_count=0
             # Fragmented generative meshes need component-level coherence.
             # A disconnected island cannot benefit from smooth weights across
@@ -951,12 +953,37 @@ def main():
                     continue
 
                 totals={}
+                dominant_votes={}
+                nonempty_vertices=0
                 for vi in component:
-                    for name,weight in weights_by_vertex[vi].items():
+                    row=weights_by_vertex[vi]
+                    if row:
+                        nonempty_vertices+=1
+                        top_name=max(row.items(),key=lambda x:x[1])[0]
+                        dominant_votes[top_name]=dominant_votes.get(top_name,0)+1
+                    for name,weight in row.items():
                         totals[name]=totals.get(name,0.0)+float(weight)
-                if not totals:
+                if not totals or nonempty_vertices<=0:
                     continue
+
                 dominant=max(totals.items(),key=lambda x:x[1])[0]
+                vote_fraction=dominant_votes.get(dominant,0)/float(nonempty_vertices)
+
+                # A small disconnected card should become rigid only when it is
+                # anatomically unambiguous. Previously a component crossing an
+                # elbow/knee could be forced wholesale onto whichever bone won
+                # the summed weights by a narrow margin. That creates exactly
+                # the high-p99 edge stretch seen in aggressive clips.
+                if vote_fraction < 0.90:
+                    rigidization_skipped_mixed_components+=1
+                    continue
+                if any(
+                    dominant not in (allowed_groups_by_vertex[vi] or set(weights_by_vertex[vi]))
+                    for vi in component
+                ):
+                    rigidization_skipped_mask_conflicts+=1
+                    continue
+
                 for vi in component:
                     weights_by_vertex[vi]={dominant:1.0}
                 rigidized_components+=1
@@ -965,6 +992,9 @@ def main():
             smoothing["connected_components"]=component_count
             smoothing["rigidized_small_components"]=rigidized_components
             smoothing["rigidized_vertices"]=rigidized_vertices
+            smoothing["rigidization_consensus_min"]=0.90
+            smoothing["rigidization_skipped_mixed_components"]=rigidization_skipped_mixed_components
+            smoothing["rigidization_skipped_mask_conflicts"]=rigidization_skipped_mask_conflicts
             smoothing["rigidize_max_vertices"]=max_rigid_vertices
             smoothing["rigidize_max_span"]=float(max_rigid_span)
 
@@ -1203,7 +1233,7 @@ def main():
         "animation_retarget":animation_retarget,
         "export_meshes":remaining_meshes,
         "sterile_export_scene_meshes":export_scene_meshes,
-        "binding_method":"expanded_component_coherent_pose_aware_arms_v34_rest_compensated",
+        "binding_method":"expanded_component_consensus_pose_aware_arms_v35",
         "bind_results":bind_results,
         "rest_pose_fit_telemetry":rest_pose_fit_telemetry,
         "output_bytes":args.output.stat().st_size if args.output.exists() else 0,
