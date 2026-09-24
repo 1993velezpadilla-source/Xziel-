@@ -12,7 +12,7 @@ import tempfile
 from dataclasses import asdict,dataclass
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image,ImageChops,ImageStat
 
 try:
     from glb_images import replace_embedded_images
@@ -34,6 +34,11 @@ class TextureSuperresItem:
     final_width:int
     final_height:int
     model:str
+    content_mae:float
+    luminance_mean_drift:float
+    source_luminance_stddev:float
+    reprojected_luminance_stddev:float
+    alpha_preserved:bool
 
 
 @dataclass
@@ -148,6 +153,67 @@ def _fit_long_edge(image:Image.Image,target_edge:int)->Image.Image:
     return image.resize(size,Image.Resampling.LANCZOS)
 
 
+def _source_consistency_metrics(
+    source:Image.Image,
+    challenger:Image.Image,
+)->dict[str,float]:
+    """Measure whether SR preserved the source's low-frequency identity.
+
+    The challenger is projected back to source resolution before comparison so
+    added high-frequency detail is allowed, while catastrophic color/structure
+    drift remains visible.
+    """
+    source_rgb=source.convert("RGB")
+    projected=challenger.convert("RGB").resize(
+        source_rgb.size,
+        Image.Resampling.LANCZOS,
+    )
+    diff=ImageChops.difference(source_rgb,projected)
+    mae=sum(float(x) for x in ImageStat.Stat(diff).mean)/3.0
+
+    source_luma=source_rgb.convert("L")
+    projected_luma=projected.convert("L")
+    source_stats=ImageStat.Stat(source_luma)
+    projected_stats=ImageStat.Stat(projected_luma)
+    source_mean=float(source_stats.mean[0])
+    projected_mean=float(projected_stats.mean[0])
+    return {
+        "content_mae":round(mae,4),
+        "luminance_mean_drift":round(abs(source_mean-projected_mean),4),
+        "source_luminance_stddev":round(float(source_stats.stddev[0]),4),
+        "reprojected_luminance_stddev":round(float(projected_stats.stddev[0]),4),
+    }
+
+
+def _assert_source_consistency(
+    image_index:int,
+    source:Image.Image,
+    challenger:Image.Image,
+    metrics:dict[str,float],
+)->None:
+    """Fail closed on outputs that are high-resolution but visually corrupted."""
+    mae=float(metrics["content_mae"])
+    mean_drift=float(metrics["luminance_mean_drift"])
+    source_std=float(metrics["source_luminance_stddev"])
+    challenger_std=float(metrics["reprojected_luminance_stddev"])
+
+    reasons=[]
+    if mae>56.0:
+        reasons.append(f"rgb_mae={mae:.3f}>56")
+    if mean_drift>24.0:
+        reasons.append(f"luma_mean_drift={mean_drift:.3f}>24")
+    if source_std>=8.0 and challenger_std<max(2.0,source_std*0.35):
+        reasons.append(
+            "luma_structure_collapsed:"
+            f"{source_std:.3f}->{challenger_std:.3f}"
+        )
+    if reasons:
+        raise RuntimeError(
+            "super-resolution content drift: "
+            f"image={image_index} " + ";".join(reasons)
+        )
+
+
 def superresolve_basecolor_glb(
     input_glb:Path,
     output_glb:Path,
@@ -214,7 +280,12 @@ def superresolve_basecolor_glb(
                 generated=root/f"image-{image_index}-sr.png"
 
                 with Image.open(io.BytesIO(data)) as image:
-                    source_image=image.convert("RGBA") if "A" in image.getbands() else image.convert("RGB")
+                    source_had_alpha="A" in image.getbands()
+                    source_image=(
+                        image.convert("RGBA")
+                        if source_had_alpha
+                        else image.convert("RGB")
+                    )
                     source_image.save(source,format="PNG")
 
                 cmd=build_realesrgan_command(
@@ -228,13 +299,41 @@ def superresolve_basecolor_glb(
                     raise RuntimeError(f"Real-ESRGAN produced no image: {image_index}")
 
                 with Image.open(generated) as image:
-                    produced=image.convert("RGBA") if "A" in image.getbands() else image.convert("RGB")
+                    generated_had_alpha="A" in image.getbands()
+                    if source_had_alpha and not generated_had_alpha:
+                        raise RuntimeError(
+                            f"super-resolution dropped alpha: image={image_index}"
+                        )
+                    produced=(
+                        image.convert("RGBA")
+                        if source_had_alpha
+                        else image.convert("RGB")
+                    )
                     gw,gh=produced.size
+                    expected=(w*scale,h*scale)
+                    if (gw,gh)!=expected:
+                        raise RuntimeError(
+                            "super-resolution dimensions unexpected: "
+                            f"image={image_index} got={gw}x{gh} "
+                            f"expected={expected[0]}x{expected[1]}"
+                        )
                     if max(gw,gh)<target_edge:
                         raise RuntimeError(
                             f"super-resolution below target: image={image_index} "
                             f"edge={max(gw,gh)} target={target_edge}"
                         )
+
+                    consistency=_source_consistency_metrics(
+                        source_image,
+                        produced,
+                    )
+                    _assert_source_consistency(
+                        image_index,
+                        source_image,
+                        produced,
+                        consistency,
+                    )
+
                     final=_fit_long_edge(produced,target_edge)
                     fw,fh=final.size
                     buf=io.BytesIO()
@@ -252,6 +351,19 @@ def superresolve_basecolor_glb(
                     final_width=fw,
                     final_height=fh,
                     model=model,
+                    content_mae=float(consistency["content_mae"]),
+                    luminance_mean_drift=float(
+                        consistency["luminance_mean_drift"]
+                    ),
+                    source_luminance_stddev=float(
+                        consistency["source_luminance_stddev"]
+                    ),
+                    reprojected_luminance_stddev=float(
+                        consistency["reprojected_luminance_stddev"]
+                    ),
+                    alpha_preserved=(
+                        not source_had_alpha or generated_had_alpha
+                    ),
                 ))
 
         replace_embedded_images(input_glb,output_glb,replacements)
@@ -272,7 +384,7 @@ def superresolve_basecolor_glb(
             target_edge=target_edge,
             attempted=True,
             ready=ready,
-            method="realesrgan_ncnn_vulkan_basecolor_v1",
+            method="realesrgan_ncnn_vulkan_basecolor_v2",
             items=items,
             remaining_image_indices=remaining_after,
             error=None if ready else "baseColor target not met after super-resolution",
