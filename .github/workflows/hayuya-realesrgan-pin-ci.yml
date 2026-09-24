@@ -6,6 +6,11 @@ on:
     branches:
       - art/hayuya-monster-v1
     paths:
+      - tools/hayuya3d/texture_runtimes.lock.json
+      - tools/hayuya3d/texture_runtime.py
+      - tools/hayuya3d/texture_superres.py
+      - tools/hayuya3d/tests/test_texture_runtime.py
+      - tools/hayuya3d/tests/test_texture_superres.py
       - .github/workflows/hayuya-realesrgan-pin-ci.yml
 
 permissions:
