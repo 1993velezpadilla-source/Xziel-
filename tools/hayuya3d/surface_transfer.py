@@ -19,6 +19,14 @@ class SurfaceTransferRelation:
 
 
 @dataclass
+class SurfaceCandidate:
+    face_index: int
+    triangle_vertex_ids: object
+    barycentric: object
+    distance: float
+
+
+@dataclass
 class SurfaceTransferIndex:
     vertices: object
     faces: object
@@ -359,6 +367,86 @@ def query_surface_transfer(
         max_examined_triangles=int(max_examined_triangles),
         max_visited_bvh_nodes=int(max_visited_bvh_nodes),
     )
+
+
+def surface_candidates_within_distance(
+    index: SurfaceTransferIndex,
+    point,
+    max_distance: float,
+):
+    np, _ = _deps()
+    point = np.asarray(point, dtype=np.float64)
+    max_distance = float(max_distance)
+    if point.shape != (3,) or not np.isfinite(point).all():
+        raise ValueError("surface candidate point must be finite VEC3")
+    if not np.isfinite(max_distance) or max_distance < 0.0:
+        raise ValueError("surface candidate max_distance must be finite and non-negative")
+
+    limit_sq = max_distance * max_distance
+    heap = [(
+        _point_aabb_distance_sq(
+            point,
+            index.nodes[int(index.root)].lo,
+            index.nodes[int(index.root)].hi,
+        ),
+        int(index.root),
+    )]
+    output = []
+
+    while heap:
+        bound_sq, node_index = heapq.heappop(heap)
+        if bound_sq > limit_sq + 1e-18:
+            break
+        node = index.nodes[int(node_index)]
+
+        if node.face_ids is not None:
+            for face_index in np.asarray(node.face_ids, dtype=np.int64):
+                tri_ids = index.faces[int(face_index)]
+                result = _closest_point_barycentric(
+                    point,
+                    index.vertices[int(tri_ids[0])],
+                    index.vertices[int(tri_ids[1])],
+                    index.vertices[int(tri_ids[2])],
+                )
+                if result is None:
+                    continue
+                closest, bary = result
+                distance = float(np.linalg.norm(point - closest))
+                if (
+                    np.isfinite(distance)
+                    and distance <= max_distance + 1e-12
+                ):
+                    output.append(SurfaceCandidate(
+                        face_index=int(face_index),
+                        triangle_vertex_ids=np.asarray(
+                            tri_ids,
+                            dtype=np.int64,
+                        ),
+                        barycentric=np.asarray(
+                            bary,
+                            dtype=np.float64,
+                        ),
+                        distance=distance,
+                    ))
+            continue
+
+        for child_index in (node.left, node.right):
+            if child_index is None:
+                continue
+            child = index.nodes[int(child_index)]
+            child_bound = _point_aabb_distance_sq(
+                point,
+                child.lo,
+                child.hi,
+            )
+            if child_bound <= limit_sq + 1e-18:
+                heapq.heappush(
+                    heap,
+                    (child_bound, int(child_index)),
+                )
+
+    output.sort(key=lambda item: (item.distance, item.face_index))
+    return output
 
 
 def build_surface_transfer_relation(
