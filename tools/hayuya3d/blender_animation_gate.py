@@ -270,7 +270,29 @@ def main():
                 bpy.data.objects.remove(obj,do_unlink=True)
         bpy.context.view_layer.update()
 
-    actions=sorted(bpy.data.actions,key=lambda a:a.name.lower())
+    # glTF reimport can materialize the same animation twice (for example
+    # Foo_HAYUYA_Armature and Foo.001_HAYUYA_Armature.001).  QA is defined per
+    # canonical gameplay clip, not per Blender datablock copy.  De-duplicate
+    # before sampling so counts are truthful and expensive deformation checks
+    # are not run twice.  Prefer the non-.001 datablock when both exist.
+    raw_actions=sorted(bpy.data.actions,key=lambda a:a.name.lower())
+    actions_by_name={}
+    duplicate_actions_ignored=[]
+    for action in raw_actions:
+        key=canonical_action_name(action.name)
+        current=actions_by_name.get(key)
+        if current is None:
+            actions_by_name[key]=action
+            continue
+        current_copy=".001" in current.name
+        candidate_copy=".001" in action.name
+        if current_copy and not candidate_copy:
+            duplicate_actions_ignored.append(current.name)
+            actions_by_name[key]=action
+        else:
+            duplicate_actions_ignored.append(action.name)
+    actions=[actions_by_name[k] for k in sorted(actions_by_name,key=str.lower)]
+
     failures=list(reference_failures)
     warnings=[]
     clips=[]
@@ -352,6 +374,9 @@ def main():
         "mesh_objects":[{"name":o.name,"vertices":len(o.data.vertices),"edges":len(o.data.edges),"polygons":len(o.data.polygons)} for o in meshes],
         "ignored_non_deforming_meshes":[{"name":o.name,"vertices":len(o.data.vertices),"polygons":len(o.data.polygons)} for o in ignored_meshes],
         "action_count":len(actions),
+        "raw_action_count":len(raw_actions),
+        "duplicate_action_count":len(duplicate_actions_ignored),
+        "duplicate_actions_ignored":duplicate_actions_ignored,
         "compatible_clips":compatible,
         "rejected_clip_count":len(actions)-len(compatible),
         "rest_bounds":rest,
