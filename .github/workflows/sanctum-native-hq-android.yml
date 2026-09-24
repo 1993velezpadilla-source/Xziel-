@@ -945,6 +945,9 @@ jobs:
             test "${GEOMETRY_CELLS}" -gt 1
             test "${GEOMETRY_BUFFERS}" -ge 4
             echo "XZIEL_STREAM_GEOMETRY_CELL_RESIDENCY_ACTIVE cells=${GEOMETRY_CELLS} buffers=${GEOMETRY_BUFFERS}"
+            if [[ "${GITHUB_REF_NAME}" == "engine/mobile-orm-distance-lod-v2" ]]; then
+              grep -Eq "XZIEL_STATIC_VERTEX_FORMAT packed=1 gpu_stride=24 source_stride=36 color_attribute=0 uv_unorm16=1 format_supported=1" dist/sanctum-hq-logcat.txt
+            fi
           fi
 
           if [[ ("${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-vertex-precompute-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-front-to-back-earlyz-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-fragment-distance-lod-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-orm-distance-lod-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-gpu-pass-timing-mainline-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-range-frustum-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-xzsm-mapped-load-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-material-dedup-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-draw-submission-telemetry-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-draw-group-telemetry-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-indirect-draw-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-cell-frustum-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-portal-visibility-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-gpu-pass-timing-v1") || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-eviction-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-prefetch-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-budget-v1" ]]; then
@@ -989,7 +992,11 @@ jobs:
 
             if [[ ("${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-vertex-precompute-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-front-to-back-earlyz-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-fragment-distance-lod-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-orm-distance-lod-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-gpu-pass-timing-mainline-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-range-frustum-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-xzsm-mapped-load-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-material-dedup-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-draw-submission-telemetry-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-draw-group-telemetry-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-indirect-draw-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-cell-frustum-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-portal-visibility-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-gpu-pass-timing-v1") || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-budget-v1" ]]; then
               grep -Eq "XZIEL_GEOMETRY_BUDGET_READY budget_mb=[1-9][0-9]*\.[0-9]+" dist/sanctum-hq-logcat.txt
-              grep -Eq "XZIEL_RUNTIME_GEOMETRY_EVICTED cell=[1-9][0-9]* .*budget_mb=[1-9][0-9]*\.[0-9]+ over_budget=1" dist/sanctum-hq-logcat.txt
+              if [[ "${GITHUB_REF_NAME}" == "engine/mobile-orm-distance-lod-v2" ]]; then
+                grep -Eq "XZIEL_RUNTIME_GEOMETRY_EVICTED cell=[1-9][0-9]* .*budget_mb=[1-9][0-9]*\.[0-9]+ over_budget=0" dist/sanctum-hq-logcat.txt
+              else
+                grep -Eq "XZIEL_RUNTIME_GEOMETRY_EVICTED cell=[1-9][0-9]* .*budget_mb=[1-9][0-9]*\.[0-9]+ over_budget=1" dist/sanctum-hq-logcat.txt
+              fi
               GEOMETRY_BUDGET_MB="$(grep "XZIEL_GEOMETRY_BUDGET_READY" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* budget_mb=\([0-9][0-9]*\.[0-9][0-9]*\).*/\1/p')"
               test -n "${GEOMETRY_BUDGET_MB}"
               echo "XZIEL_RUNTIME_GEOMETRY_BUDGET_ACTIVE budget_mb=${GEOMETRY_BUDGET_MB}"
