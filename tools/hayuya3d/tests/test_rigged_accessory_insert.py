@@ -806,7 +806,8 @@ class RiggedAccessoryInsertTests(unittest.TestCase):
             self.assertFalse(output.exists())
             self.assertTrue(
                 any(
-                    "exactly one unambiguous donor accessory" in error
+                    "automatic grouping would be ambiguous" in error
+                    or "not one proven anchored logical cluster" in error
                     for error in result.errors
                 ),
                 result.errors,
