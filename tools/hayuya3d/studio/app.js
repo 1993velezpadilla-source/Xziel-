@@ -53,9 +53,39 @@ function appendLog(line) {
   $("log").scrollTop = $("log").scrollHeight;
 }
 
+function syncAnimationControls() {
+  const viewer = $("viewer");
+  const controls = $("animationControls");
+  const select = $("animationSelect");
+  const clips = Array.from(viewer.availableAnimations || []);
+  select.replaceChildren();
+  if (!clips.length) {
+    controls.hidden = true;
+    $("animationMeta").textContent = "No animation clips";
+    $("animationPlay").textContent = "Play";
+    return;
+  }
+  clips.forEach((clip) => {
+    const option = document.createElement("option");
+    option.value = clip;
+    option.textContent = clip;
+    select.appendChild(option);
+  });
+  const preferred = clips.find((x) => /idle/i.test(x)) || clips[0];
+  viewer.animationName = preferred;
+  select.value = preferred;
+  viewer.pause();
+  controls.hidden = false;
+  $("animationPlay").textContent = "Play";
+  $("animationMeta").textContent = `${clips.length} clip${clips.length === 1 ? "" : "s"} ready`;
+}
+
 function showModel(url, label, meta="") {
   if (!url) return;
   const viewer = $("viewer");
+  $("viewerError").hidden = true;
+  $("animationControls").hidden = true;
+  viewer.pause();
   viewer.src = url + (url.includes("?") ? "&" : "?") + "v=" + Date.now();
   $("emptyState").style.display = "none";
   $("modelLabel").textContent = label || "HAYUYA model";
@@ -98,6 +128,29 @@ function renderCandidates(job) {
     sub.className = "card-sub";
     sub.textContent = candidate.url ? "Tap to inspect in 3D" : "Mesh path captured";
     card.appendChild(sub);
+
+    const metrics = [
+      ["Shape", candidate.visual_score],
+      ["Look", candidate.appearance_score],
+      ["Detail", candidate.detail_score],
+      ["Material", candidate.material_score],
+    ].filter(([, value]) => value != null);
+    if (metrics.length) {
+      const meter = document.createElement("div");
+      meter.className = "quality-metrics";
+      metrics.forEach(([name, value]) => {
+        const item = document.createElement("span");
+        item.textContent = `${name} ${Number(value).toFixed(1)}`;
+        meter.appendChild(item);
+      });
+      card.appendChild(meter);
+    }
+    if (candidate.pbr_channels?.length) {
+      const channels = document.createElement("div");
+      channels.className = "pbr-channels";
+      channels.textContent = "PBR · " + candidate.pbr_channels.join(" · ");
+      card.appendChild(channels);
+    }
     if (candidate.url) {
       card.addEventListener("click", () => showModel(candidate.url, candidate.label, "Live Arena candidate"));
     }
@@ -227,6 +280,36 @@ $("autoRotate").addEventListener("click", () => {
   const viewer = $("viewer");
   viewer.autoRotate = !viewer.autoRotate;
   $("autoRotate").classList.toggle("active", viewer.autoRotate);
+});
+
+$("animationPlay").addEventListener("click", () => {
+  const viewer = $("viewer");
+  if (!viewer.availableAnimations?.length) return;
+  if (viewer.paused) {
+    viewer.play();
+    $("animationPlay").textContent = "Pause";
+  } else {
+    viewer.pause();
+    $("animationPlay").textContent = "Play";
+  }
+});
+
+$("animationSelect").addEventListener("change", (e) => {
+  const viewer = $("viewer");
+  viewer.animationName = e.target.value;
+  viewer.currentTime = 0;
+  viewer.play();
+  $("animationPlay").textContent = "Pause";
+});
+
+$("viewer").addEventListener("load", () => {
+  syncAnimationControls();
+  $("viewerError").hidden = true;
+});
+
+$("viewer").addEventListener("error", () => {
+  $("viewerError").hidden = false;
+  $("animationControls").hidden = true;
 });
 
 const dz = $("dropzone");
