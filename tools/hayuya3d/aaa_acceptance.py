@@ -366,6 +366,27 @@ def evaluate_aaa_acceptance(
         blocker="GamePrep runtime package is missing",
     )
 
+    collision=qa_report.get("collision_qa") or {}
+    _gate(
+        gates,"runtime.collision","runtime",
+        bool(
+            collision.get("applicable")
+            and collision.get("ready")
+        ),
+        (
+            f"faces={collision.get('faces')} "
+            f"watertight={collision.get('watertight')} "
+            f"volume={collision.get('volume')} "
+            f"convexity={collision.get('convexity_ratio')} "
+            f"bbox={collision.get('bbox_coverage_ready')}"
+        ),
+        blocker=(
+            "runtime collision proxy is missing, non-watertight, "
+            "non-convex, volumeless, or does not cover the Hero Master"
+        ),
+        required=profile in {"mobile","game","monster","ultra"},
+    )
+
     pack=manifest.get("portable_pack") or {}
     tiers=pack.get("tiers") or []
     complete_lods=pack.get("complete_lod_chain")
