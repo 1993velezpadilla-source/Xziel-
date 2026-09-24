@@ -2025,6 +2025,15 @@ def main() -> int:
             asdict(composite_execution)
             if composite_execution is not None else None
         ),
+        "composite_head_execution": (
+            asdict(composite_head_execution)
+            if composite_head_execution is not None else None
+        ),
+        "composite_executions": [
+            asdict(item)
+            for item in (composite_execution, composite_head_execution)
+            if item is not None
+        ],
         "champion": asdict(champion),
         "final_glb": str(final_glb),
         "gameprep": asdict(gameprep_result) if gameprep_result is not None else None,
