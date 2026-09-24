@@ -205,6 +205,7 @@ function renderCandidates(job) {
       ["Material", candidate.material_score],
       ["Texture", candidate.texture_resolution_score],
       ["FaceMesh", candidate.head_density_score],
+      ["FaceTex", candidate.head_texel_density_score],
     ].filter(([, value]) => value != null);
     if (metrics.length) {
       const meter = document.createElement("div");
@@ -235,6 +236,9 @@ function renderCandidates(job) {
         parts.push(`head density ${Number(candidate.head_region_density_ratio).toFixed(2)}×`);
       } else if (candidate.head_region_median_edge_normalized != null) {
         parts.push(`head edge ${Number(candidate.head_region_median_edge_normalized).toFixed(5)}× diag`);
+      }
+      if (candidate.head_texel_density_ratio != null) {
+        parts.push(`face texel ${Number(candidate.head_texel_density_ratio).toFixed(2)}× global`);
       }
       if (candidate.pbr_channels?.length) parts.push(candidate.pbr_channels.join(" · "));
       channels.textContent = "QA · " + parts.join(" · ");
