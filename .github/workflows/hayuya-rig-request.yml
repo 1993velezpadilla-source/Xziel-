@@ -38,8 +38,32 @@ jobs:
           if os.environ.get("GITHUB_EVENT_NAME")=="workflow_dispatch":
               paths=sorted((root/"hayuya/rig_requests").glob("*.json")) if (root/"hayuya/rig_requests").is_dir() else []
           else:
-              p=subprocess.run(["git","diff-tree","--no-commit-id","--name-only","-r",os.environ["GITHUB_SHA"]],text=True,stdout=subprocess.PIPE,check=True)
-              paths=[root/x.strip() for x in p.stdout.splitlines() if x.startswith("hayuya/rig_requests/") and x.endswith(".json")]
+              event_sha=os.environ["GITHUB_SHA"]
+              # The branch may advance while this run is queued. Checkout follows
+              # the current branch head with fetch-depth=1, so the event SHA can
+              # legitimately be absent by the time prepare executes. Fetch that
+              # exact immutable commit before diff-tree instead of failing with
+              # "fatal: bad object".
+              present=subprocess.run(
+                  ["git","cat-file","-e",f"{event_sha}^{{commit}}"],
+                  stdout=subprocess.DEVNULL,
+                  stderr=subprocess.DEVNULL,
+              ).returncode==0
+              if not present:
+                  subprocess.run(
+                      ["git","fetch","--no-tags","--depth=1","origin",event_sha],
+                      check=True,
+                  )
+              p=subprocess.run(
+                  ["git","diff-tree","--no-commit-id","--name-only","-r",event_sha],
+                  text=True,
+                  stdout=subprocess.PIPE,
+                  check=True,
+              )
+              paths=[
+                  root/x.strip() for x in p.stdout.splitlines()
+                  if x.startswith("hayuya/rig_requests/") and x.endswith(".json")
+              ]
           include=[]
           for path in paths:
               if not path.is_file(): continue
