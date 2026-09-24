@@ -1680,6 +1680,7 @@ def main() -> int:
             f"rig_ready={qa_package_result.rig_ready} "
             f"animation_ready={qa_package_result.animation_ready} "
             f"face_ready={qa_package_result.face_evidence_ready} "
+            f"face_quality_ready={qa_package_result.face_quality_evidence_ready} "
             f"face_score={qa_package_result.face_evidence_score if qa_package_result.face_evidence_score is not None else 'none'} "
             f"face_min={qa_package_result.face_evidence_min_score if qa_package_result.face_evidence_min_score is not None else 'none'} "
             f"face_expected={qa_package_result.face_evidence_expected} "
