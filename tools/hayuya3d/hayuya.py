@@ -261,6 +261,42 @@ def texture_refinement_regressions(source, challenger) -> list[str]:
     return reasons
 
 
+def head_composite_regressions(source, challenger) -> list[str]:
+    """Protect evidence that a head-shape fusion is not allowed to damage."""
+    reasons=[]
+
+    source_channels=set(getattr(source,"pbr_channels",None) or [])
+    challenger_channels=set(getattr(challenger,"pbr_channels",None) or [])
+    missing_channels=sorted(source_channels-challenger_channels)
+    if missing_channels:
+        reasons.append("missing_pbr_channels:"+",".join(missing_channels))
+
+    for name in (
+        "head_texel_density_score",
+        "head_texture_detail_score",
+        "appearance_face_detail_min_score",
+    ):
+        before=getattr(source,name,None)
+        after=getattr(challenger,name,None)
+        if before is None:
+            continue
+        if after is None:
+            reasons.append(f"missing_evidence:{name}")
+            continue
+        if float(after)+1e-6<float(before):
+            reasons.append(
+                f"regressed:{name}:{float(before):.3f}->{float(after):.3f}"
+            )
+
+    before_edge=int(getattr(source,"base_color_min_edge",0) or 0)
+    after_edge=int(getattr(challenger,"base_color_min_edge",0) or 0)
+    if before_edge>0 and after_edge<before_edge:
+        reasons.append(
+            f"basecolor_resolution_regressed:{before_edge}->{after_edge}"
+        )
+    return reasons
+
+
 def make_reference_groups(inputs: list[Path], group_size: int) -> list[list[Path]]:
     """
     Split an arbitrary reference pool into backend-sized groups without dropping evidence.
