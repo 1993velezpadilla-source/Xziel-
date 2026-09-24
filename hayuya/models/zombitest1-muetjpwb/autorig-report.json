@@ -422,28 +422,12 @@
       "donor_samples": 8546,
       "bone_envelope_segments": 20,
       "anatomical_neighbor_graph": {
-        "pelvis": [
-          "spine_01",
-          "thigh_l",
+        "calf_r": [
+          "foot_r",
           "thigh_r"
-        ],
-        "foot_r": [
-          "calf_r"
-        ],
-        "neck_01": [
-          "Head",
-          "spine_03"
-        ],
-        "spine_02": [
-          "spine_01",
-          "spine_03"
         ],
         "foot_l": [
           "calf_l"
-        ],
-        "clavicle_r": [
-          "spine_03",
-          "upperarm_r"
         ],
         "spine_03": [
           "clavicle_l",
@@ -451,9 +435,12 @@
           "neck_01",
           "spine_02"
         ],
-        "spine_01": [
-          "pelvis",
-          "spine_02"
+        "hand_r": [
+          "lowerarm_r"
+        ],
+        "thigh_r": [
+          "calf_r",
+          "pelvis"
         ],
         "calf_l": [
           "foot_l",
@@ -463,12 +450,36 @@
           "spine_03",
           "upperarm_l"
         ],
+        "foot_r": [
+          "calf_r"
+        ],
+        "spine_02": [
+          "spine_01",
+          "spine_03"
+        ],
+        "hand_l": [
+          "lowerarm_l"
+        ],
         "lowerarm_l": [
           "hand_l",
           "upperarm_l"
         ],
-        "hand_r": [
+        "upperarm_r": [
+          "clavicle_r",
           "lowerarm_r"
+        ],
+        "spine_01": [
+          "pelvis",
+          "spine_02"
+        ],
+        "pelvis": [
+          "spine_01",
+          "thigh_l",
+          "thigh_r"
+        ],
+        "clavicle_r": [
+          "spine_03",
+          "upperarm_r"
         ],
         "thigh_l": [
           "calf_l",
@@ -478,26 +489,15 @@
           "hand_r",
           "upperarm_r"
         ],
-        "upperarm_l": [
-          "clavicle_l",
-          "lowerarm_l"
+        "neck_01": [
+          "Head",
+          "spine_03"
         ],
         "Head": [
           "neck_01"
         ],
-        "upperarm_r": [
-          "clavicle_r",
-          "lowerarm_r"
-        ],
-        "calf_r": [
-          "foot_r",
-          "thigh_r"
-        ],
-        "thigh_r": [
-          "calf_r",
-          "pelvis"
-        ],
-        "hand_l": [
+        "upperarm_l": [
+          "clavicle_l",
           "lowerarm_l"
         ]
       },

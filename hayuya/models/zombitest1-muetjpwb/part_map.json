@@ -4123,7 +4123,7 @@
       ],
       "main_component": false,
       "accessory_candidate": true,
-      "spatial_label": "upper_body"
+      "spatial_label": "upper_body_left"
     },
     {
       "component_id": 139,

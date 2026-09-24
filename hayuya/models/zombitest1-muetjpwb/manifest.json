@@ -458,7 +458,7 @@
   },
   "rig_quality_version": 3,
   "rig_promotion_policy": {
-    "mode": "monotonic_safe_clips_v1",
+    "mode": "monotonic_safe_clips_and_structure_v2",
     "passed": true,
     "banks": {
       "quaternius-uam2": {
@@ -473,6 +473,16 @@
         "candidate_clip_count": 35,
         "missing_incumbent_clips": []
       }
+    },
+    "structure": {
+      "incumbent_preview_model": "animated.glb",
+      "candidate_preview_model": "animated.glb",
+      "same_bank": true,
+      "incumbent_weighted_joint_count": 20,
+      "candidate_weighted_joint_count": 20,
+      "missing_incumbent_weighted_joints": [],
+      "incumbent_rig_quality_version": 3,
+      "candidate_rig_quality_version": 3
     }
   }
 }
