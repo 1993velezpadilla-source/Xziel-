@@ -38,9 +38,55 @@ jobs:
           grep -Eqi "usage|realesrgan|input-path" /tmp/realesrgan-help.txt
           echo "HAYUYA_REALESRGAN_RUNTIME_PASS exe=$exe self_contained=true"
 
+      - name: Prove real x2 inference through Vulkan
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y mesa-vulkan-drivers
+          python -m pip install --quiet pillow
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+
+          image=Image.new("RGB",(16,16))
+          pixels=image.load()
+          for y in range(16):
+              for x in range(16):
+                  pixels[x,y]=(235,60,55) if (x//2+y//2)%2==0 else (35,185,220)
+          image.save("/tmp/realesrgan-input.png")
+          PY
+          exe="$(find /tmp/realesrgan -type f -name 'realesrgan-ncnn-vulkan' | head -n 1)"
+          "$exe" \
+            -i /tmp/realesrgan-input.png \
+            -o /tmp/realesrgan-output.png \
+            -s 2 \
+            -n realesrgan-x4plus \
+            -f png
+          python - <<'PY'
+          from PIL import Image, ImageStat
+
+          inp=Image.open("/tmp/realesrgan-input.png").convert("RGB")
+          out=Image.open("/tmp/realesrgan-output.png").convert("RGB")
+          assert inp.size==(16,16),inp.size
+          assert out.size==(32,32),out.size
+          stat=ImageStat.Stat(out)
+          spread=max(channel[1]-channel[0] for channel in out.getextrema())
+          assert spread>25,("flat super-resolution output",out.getextrema(),stat.mean)
+          print(
+              "HAYUYA_REALESRGAN_REAL_INFERENCE_PASS",
+              "input",inp.size,
+              "output",out.size,
+              "spread",spread,
+          )
+          PY
+
       - name: Upload pin evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: hayuya-realesrgan-pin-evidence
-          path: /tmp/realesrgan-help.txt
+          path: |
+            /tmp/realesrgan-help.txt
+            /tmp/realesrgan-input.png
+            /tmp/realesrgan-output.png
           retention-days: 7
