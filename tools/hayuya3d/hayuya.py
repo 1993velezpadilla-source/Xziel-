@@ -1384,6 +1384,7 @@ def main() -> int:
             detail_images=detail_inputs,
             gameprep=gameprep_result,
             target_faces=profile.faces,
+            target_texture_size=profile.texture_size,
         )
         print(
             "HAYUYA_QA_READY "
