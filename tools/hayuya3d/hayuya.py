@@ -1068,6 +1068,26 @@ def main() -> int:
                 f"backend={item.backend} score={item.score:.3f} "
                 f"valid={str(bool(item.valid)).lower()} rank={position} pass={ranking_pass}"
             )
+            live_metrics = {
+                "backend": item.backend,
+                "production_score": item.production_score,
+                "visual_score": item.visual_score,
+                "appearance_score": item.appearance_score,
+                "appearance_detail_score": item.appearance_detail_score,
+                "appearance_face_detail_score": item.appearance_face_detail_score,
+                "material_score": item.material_score,
+                "texture_resolution_score": item.texture_resolution_score,
+                "base_color_max_edge": item.base_color_max_edge,
+                "head_region_faces": item.head_region_faces,
+                "head_region_vertices": item.head_region_vertices,
+                "head_region_face_fraction": item.head_region_face_fraction,
+                "head_region_median_edge_normalized": item.head_region_median_edge_normalized,
+                "pbr_channels": item.pbr_channels,
+            }
+            print(
+                "HAYUYA_JUDGE_METRICS "
+                + json.dumps(live_metrics,separators=(",",":"))
+            )
         return result
 
     ranked = run_full_ranking()
