@@ -136,9 +136,13 @@ void main() {
     float objectPitch =
         pc.cameraPitchFov.w;
 
-    mat3 rotation =
-        rotateY(objectYaw + turn) *
-        rotateX(objectPitch + lean);
+    float rotationYaw =
+        objectYaw + turn;
+    float rotationPitch =
+        objectPitch + lean;
+    bool identityRotation =
+        abs(rotationYaw) < 0.000001 &&
+        abs(rotationPitch) < 0.000001;
 
     vec3 objectScale =
         max(
@@ -313,31 +317,56 @@ void main() {
         unitPosition *
         objectScale;
 
-    vec3 world =
-        rotation * local +
-        pc.translation.xyz;
-
+    vec3 world;
     vec3 normal;
 
-    if (shape == 0) {
-        // BOX_NORMAL_FAST_PATH_V1
-        // Cube face normals are axis-aligned and constant across each
-        // triangle. Non-uniform object scale changes only their magnitude,
-        // which the fragment-stage normalize removes anyway. Rotate the unit
-        // face normal directly and skip three divisions plus a vertex
-        // normalize for the dominant box/world primitive path.
-        normal =
-            rotation *
-            unitNormal;
-    } else {
-        vec3 scaledNormal =
-            unitNormal /
-            objectScale;
+    if (identityRotation) {
+        // IDENTITY_OBJECT_ROTATION_FAST_PATH_V1
+        // Most static gameplay primitives have zero yaw/pitch. The branch is
+        // draw-uniform, so those vertices can bypass six trig evaluations,
+        // two matrix constructions/multiplication and the matrix-vector
+        // transforms without changing their world position or normal.
+        world =
+            local +
+            pc.translation.xyz;
 
-        normal =
-            normalize(
+        if (shape == 0) {
+            // BOX_NORMAL_FAST_PATH_V1
+            // Cube face normals are axis-aligned and constant across each
+            // triangle. Non-uniform object scale changes only magnitude, and
+            // the fragment stage normalizes the interpolated normal.
+            normal =
+                unitNormal;
+        } else {
+            normal =
+                normalize(
+                    unitNormal /
+                    objectScale);
+        }
+    } else {
+        mat3 rotation =
+            rotateY(rotationYaw) *
+            rotateX(rotationPitch);
+
+        world =
+            rotation * local +
+            pc.translation.xyz;
+
+        if (shape == 0) {
+            // BOX_NORMAL_FAST_PATH_V1
+            normal =
                 rotation *
-                scaledNormal);
+                unitNormal;
+        } else {
+            vec3 scaledNormal =
+                unitNormal /
+                objectScale;
+
+            normal =
+                normalize(
+                    rotation *
+                    scaledNormal);
+        }
     }
 
     bool viewmodelMaterial =

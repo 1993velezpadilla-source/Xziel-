@@ -376,6 +376,7 @@ jobs:
           grep -q "PROJECTION_TERMS_CPU_PRECOMPUTED_V1" app/src/main/shaders/xziel_first.vert
           grep -q "PROCEDURAL_SPHERE_UNIT_NORMAL_V1" app/src/main/shaders/xziel_first.vert
           grep -q "BOX_NORMAL_FAST_PATH_V1" app/src/main/shaders/xziel_first.vert
+          grep -q "IDENTITY_OBJECT_ROTATION_FAST_PATH_V1" app/src/main/shaders/xziel_first.vert
           grep -q "REFLECTION_CAMERA_PRECOMPUTE_V1" app/src/main/cpp/vulkan_clear_renderer.cpp
           grep -q "REFLECTION_PUSH_BASE_CACHE_V1" app/src/main/cpp/vulkan_clear_renderer.cpp
           grep -q "MAIN_PUSH_BASE_CACHE_V1" app/src/main/cpp/vulkan_clear_renderer.cpp
@@ -1139,6 +1140,7 @@ jobs:
               echo "XZIEL_PROJECTION_TERMS_CPU_PRECOMPUTED_ACTIVE"
               echo "XZIEL_PROCEDURAL_SPHERE_UNIT_NORMAL_ACTIVE"
               echo "XZIEL_BOX_NORMAL_FAST_PATH_ACTIVE"
+              echo "XZIEL_IDENTITY_OBJECT_ROTATION_FAST_PATH_ACTIVE"
               echo "XZIEL_REFLECTION_CAMERA_PRECOMPUTE_ACTIVE"
               echo "XZIEL_REFLECTION_PUSH_BASE_CACHE_ACTIVE"
               echo "XZIEL_MAIN_PUSH_BASE_CACHE_ACTIVE"
