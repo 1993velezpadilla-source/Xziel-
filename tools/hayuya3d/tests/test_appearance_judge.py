@@ -15,6 +15,7 @@ import numpy as np
 from appearance_judge import (
     aggregate_appearance_scores,
     aggregate_detail_scores,
+    aggregate_region_balanced_detail_scores,
     cosine_similarity,
     make_detail_patches,
     rasterize_rgb,
@@ -163,6 +164,22 @@ class AppearanceJudgeTests(unittest.TestCase):
         strong = aggregate_detail_scores([90, 91, 89])
         weak_tail = aggregate_detail_scores([95, 94, 30])
         self.assertGreater(strong, weak_tail)
+
+    def test_detail_aggregation_balances_semantic_regions(self):
+        sparse = aggregate_region_balanced_detail_scores([
+            ("middle",95.0),
+            ("head",50.0),
+        ])
+        torso_heavy = aggregate_region_balanced_detail_scores([
+            *[("middle",95.0) for _ in range(8)],
+            ("head",50.0),
+        ])
+        face_strong = aggregate_region_balanced_detail_scores([
+            *[("middle",95.0) for _ in range(8)],
+            ("head",90.0),
+        ])
+        self.assertAlmostEqual(sparse,torso_heavy,places=6)
+        self.assertGreater(face_strong,torso_heavy)
 
     def test_detail_patch_grid_has_whole_plus_nine_local_crops(self):
         from PIL import Image
