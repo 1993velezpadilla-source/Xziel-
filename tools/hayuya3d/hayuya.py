@@ -15,7 +15,7 @@ sys.path.insert(0, str(HERE))
 
 from adapters import DEFAULT_MODEL_ROOT, GENERATORS, REFINERS, pshuman_readiness
 from qa import export_glb, rank_candidates
-from reference_pool import order_for_multiview_coverage, split_reference_roles
+from reference_pool import infer_detail_region_hint, order_for_multiview_coverage, split_reference_roles
 from mobile_portability import build_portability_plan
 
 
@@ -186,6 +186,20 @@ def load_asset_profile_spec(asset_profile: str) -> dict:
     raise ValueError(f"unknown asset profile: {asset_profile}")
 
 
+def face_seed_hypothesis_count(profile_name: str, detail_inputs: list[Path]) -> int:
+    has_face_reference=any(
+        infer_detail_region_hint(path)=="head"
+        for path in detail_inputs
+    )
+    if not has_face_reference:
+        return 1
+    if profile_name=="ultra":
+        return 3
+    if profile_name=="monster":
+        return 2
+    return 1
+
+
 def make_reference_groups(inputs: list[Path], group_size: int) -> list[list[Path]]:
     """
     Split an arbitrary reference pool into backend-sized groups without dropping evidence.
@@ -288,6 +302,7 @@ def make_job_plan(
         if profile.multi_anchor
         else [geometry_inputs[0]]
     )
+    face_seed_count=face_seed_hypothesis_count(profile_name,detail_inputs)
 
     return {
         "engine": "HAYUYA MONSTER",
@@ -363,6 +378,12 @@ def make_job_plan(
             "detail_sources_enter_judge_v3_when_appearance_is_active": True,
         },
         "candidate_backends": selected_backends,
+        "face_seed_tournament": {
+            "enabled": face_seed_count>1,
+            "trellis2_seed_count": face_seed_count,
+            "activation": "Monster/Ultra + explicit head/face detail evidence",
+            "policy": "extra high-end stochastic hypotheses are judged against the same geometry and face evidence; no seed is auto-promoted",
+        },
         "character_specialist": {
             "mode": character_specialist_mode,
             "backend": "PSHuman 768 6-view",
@@ -696,6 +717,7 @@ def main() -> int:
         if profile.multi_anchor
         else [geometry_inputs[0]]
     )
+    face_seed_count=face_seed_hypothesis_count(args.profile,detail_inputs)
 
     job_name = f"{geometry_inputs[0].stem}-{args.profile}-{args.seed}"
     job_dir = args.output_root / job_name
@@ -879,33 +901,42 @@ def main() -> int:
                             raise
             continue
 
-        # Expensive single-image backends run once from the primary source.
-        # TripoSG is special in multi-anchor profiles: by default every real source
-        # can produce an independent geometry hypothesis, with an explicit CLI budget
-        # available when compute needs to be bounded.
+        # Expensive single-image backends normally run once from the primary
+        # source. When explicit face evidence exists, Monster/Ultra allow a
+        # bounded TRELLIS.2 seed tournament so the appearance Judge can choose
+        # among genuinely different high-end face hypotheses instead of grading
+        # one stochastic draw. No extra seeds run without face evidence.
         run_refs = anchor_refs if backend == "triposg" and profile.multi_anchor else [geometry_inputs[0]]
+        seed_count = face_seed_count if backend == "trellis2" else 1
         for anchor_index, image in enumerate(run_refs, start=1):
-            label = backend if len(run_refs) == 1 else f"{backend}_anchor{anchor_index:03d}"
-            try:
-                candidate = run_single_backend(
-                    backend,
-                    image,
-                    candidates_dir / label,
-                    profile=profile,
-                    seed=args.seed + anchor_index - 1,
-                    model_root=args.model_root,
-                )
-                candidates.append((label, candidate.model_path))
-                print(
-                    f"HAYUYA_CANDIDATE_READY {label} {candidate.model_path} "
-                    f"source={image}"
-                )
-            except Exception as exc:
-                failures[label] = f"{type(exc).__name__}: {exc}"
-                print(f"HAYUYA_CANDIDATE_FAILED {label}: {failures[label]}", file=sys.stderr)
-                traceback.print_exc()
-                if args.require_all:
-                    raise
+            for seed_index in range(seed_count):
+                seed_value=args.seed + anchor_index - 1 + seed_index*1009
+                if len(run_refs)==1 and seed_count==1:
+                    label=backend
+                elif seed_count>1:
+                    label=f"{backend}_seed{seed_index+1:02d}"
+                else:
+                    label=f"{backend}_anchor{anchor_index:03d}"
+                try:
+                    candidate = run_single_backend(
+                        backend,
+                        image,
+                        candidates_dir / label,
+                        profile=profile,
+                        seed=seed_value,
+                        model_root=args.model_root,
+                    )
+                    candidates.append((label, candidate.model_path))
+                    print(
+                        f"HAYUYA_CANDIDATE_READY {label} {candidate.model_path} "
+                        f"source={image} seed={seed_value}"
+                    )
+                except Exception as exc:
+                    failures[label] = f"{type(exc).__name__}: {exc}"
+                    print(f"HAYUYA_CANDIDATE_FAILED {label}: {failures[label]}", file=sys.stderr)
+                    traceback.print_exc()
+                    if args.require_all:
+                        raise
 
     if not candidates:
         manifest = {**plan, "status": "failed", "failures": failures}
