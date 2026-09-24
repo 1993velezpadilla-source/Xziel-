@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import re
 import sys
 from pathlib import Path
 
@@ -119,10 +120,17 @@ def build_edge_samples(meshes, rest_positions, rest_bounds, max_edges):
 
 
 def canonical_action_name(name):
-    value=str(name or "")
-    for suffix in ("_HAYUYA_Armature", "|HAYUYA_Armature", ".HAYUYA_Armature"):
-        if value.endswith(suffix):
-            value=value[:-len(suffix)]
+    value=str(name or "").strip()
+    # Blender/glTF can duplicate imported action names with .001 and append
+    # the exported armature name, sometimes both at once:
+    # Zombie_Walk_Fwd_Loop.001_HAYUYA_Armature.001
+    # Collapse those exporter artifacts back to the stable library clip ID.
+    for _ in range(4):
+        before=value
+        value=re.sub(r"\.\d{3}$","",value)
+        value=re.sub(r"(?:_HAYUYA_Armature|\|HAYUYA_Armature|\.HAYUYA_Armature)$","",value)
+        if value==before:
+            break
     return value
 
 def edge_metrics(edge_samples, positions):
@@ -324,7 +332,8 @@ def main():
         clip["reasons"]=sorted(set(clip["reasons"]))
         clip["passed"]=not clip["reasons"]
         if clip["passed"]:
-            compatible.append(action_name)
+            if action_name not in compatible:
+                compatible.append(action_name)
         else:
             failures.extend(f"{action_name}:{r}" for r in clip["reasons"])
         clips.append(clip)
