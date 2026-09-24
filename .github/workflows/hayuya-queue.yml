@@ -275,12 +275,12 @@ jobs:
                   f"uam2={len(useful2)} useful, uam1={len(useful1)} useful"
               )
           m["preview_model"]="animated.glb" if usable2 else "animated-uam1.glb"
-          m["rig_quality_version"]=2
+          m["rig_quality_version"]=3
           m["asset_profile"]="character.humanoid"
           if isinstance(m.get("asset"),dict):
               m["asset"]["profile"]="character.humanoid"
           m["character"]={
-            "rig_quality_version":2,
+            "rig_quality_version":3,
             "skeleton_type":(r2 if usable2 else r1).get("skeleton_type","hayuya_humanoid_v1"),
             "preview_pack":"hayuya_preview_pack_v1",
             "rig_ready":(usable2 if usable2 else usable1),
@@ -310,7 +310,7 @@ jobs:
               "animation_ready":bool(r2.get("animation_ready")),
               "quality_passed":usable2,
               "full_bank_passed":bool(g2.get("passed")),
-              "rig_quality_version":2
+              "rig_quality_version":3
             },
             "quaternius-uam1":{
               "model":"animated-uam1.glb",
@@ -319,7 +319,7 @@ jobs:
               "animation_ready":bool(r1.get("animation_ready")),
               "quality_passed":usable1,
               "full_bank_passed":bool(g1.get("passed")),
-              "rig_quality_version":2
+              "rig_quality_version":3
             }
           }
           mp.write_text(json.dumps(m,indent=2)+"\n")
