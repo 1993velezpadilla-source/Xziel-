@@ -15,12 +15,20 @@ void PerformanceGovernor::reset() noexcept {
     smoothedFrameMs_ = 0.0f;
     smoothedCpuMs_ = 0.0f;
     smoothedGpuMs_ = 0.0f;
+    smoothedGpuPreWorldMs_ = 0.0f;
+    smoothedGpuWorldMs_ = 0.0f;
+    smoothedGpuCompositeUiMs_ = 0.0f;
     smoothedIntervalMs_ = 0.0f;
     bottleneck_ =
         PerformanceBottleneck::Balanced;
     pendingBottleneck_ =
         PerformanceBottleneck::Balanced;
     bottleneckHoldSeconds_ = 0.0f;
+    gpuPassBottleneck_ =
+        GpuPassBottleneck::Balanced;
+    pendingGpuPassBottleneck_ =
+        GpuPassBottleneck::Balanced;
+    gpuPassHoldSeconds_ = 0.0f;
     overloadSeconds_ = 0.0f;
     recoverySeconds_ = 0.0f;
     rebuildWorkload();
@@ -74,6 +82,18 @@ RenderWorkload PerformanceGovernor::advance(
         sample.gpuFrameMs,
         smoothedGpuMs_);
 
+    if (sample.gpuPassTimingAuthoritative) {
+        smoothMetric(
+            sample.gpuPreWorldMs,
+            smoothedGpuPreWorldMs_);
+        smoothMetric(
+            sample.gpuWorldMs,
+            smoothedGpuWorldMs_);
+        smoothMetric(
+            sample.gpuCompositeUiMs,
+            smoothedGpuCompositeUiMs_);
+    }
+
     smoothMetric(
         sample.frameIntervalMs,
         smoothedIntervalMs_);
@@ -82,6 +102,10 @@ RenderWorkload PerformanceGovernor::advance(
         1000.0f / std::max(config_.targetFps, 1.0f);
 
     classifyBottleneck(
+        sample,
+        targetMs);
+
+    classifyGpuPass(
         sample,
         targetMs);
 
@@ -132,9 +156,26 @@ float PerformanceGovernor::smoothedGpuMs() const noexcept {
     return smoothedGpuMs_;
 }
 
+float PerformanceGovernor::smoothedGpuPreWorldMs() const noexcept {
+    return smoothedGpuPreWorldMs_;
+}
+
+float PerformanceGovernor::smoothedGpuWorldMs() const noexcept {
+    return smoothedGpuWorldMs_;
+}
+
+float PerformanceGovernor::smoothedGpuCompositeUiMs() const noexcept {
+    return smoothedGpuCompositeUiMs_;
+}
+
 PerformanceBottleneck
 PerformanceGovernor::bottleneck() const noexcept {
     return bottleneck_;
+}
+
+GpuPassBottleneck
+PerformanceGovernor::gpuPassBottleneck() const noexcept {
+    return gpuPassBottleneck_;
 }
 
 void PerformanceGovernor::stepDown() noexcept {
@@ -254,6 +295,100 @@ void PerformanceGovernor::classifyBottleneck(
     }
 }
 
+void PerformanceGovernor::classifyGpuPass(
+    const PerformanceSample& sample,
+    float targetMs) noexcept {
+    GpuPassBottleneck candidate =
+        GpuPassBottleneck::Balanced;
+
+    const bool authoritative =
+        sample.gpuPassTimingAuthoritative &&
+        smoothedGpuMs_ > 0.0f &&
+        smoothedGpuPreWorldMs_ >= 0.0f &&
+        smoothedGpuWorldMs_ >= 0.0f &&
+        smoothedGpuCompositeUiMs_ >= 0.0f;
+
+    const bool gpuUnderPressure =
+        smoothedGpuMs_ >
+            targetMs * 0.92f;
+
+    if (authoritative &&
+        gpuUnderPressure) {
+        const float preWorld =
+            smoothedGpuPreWorldMs_;
+        const float world =
+            smoothedGpuWorldMs_;
+        const float composite =
+            smoothedGpuCompositeUiMs_;
+
+        const float largest =
+            std::max(
+                preWorld,
+                std::max(
+                    world,
+                    composite));
+
+        const float secondLargest =
+            preWorld == largest
+            ? std::max(world, composite)
+            : world == largest
+              ? std::max(preWorld, composite)
+              : std::max(preWorld, world);
+
+        // Do not chase noise when two passes are effectively tied. A pass
+        // must be at least 12% more expensive than the runner-up or consume
+        // more than half of the measured GPU frame before it earns a
+        // targeted-quality response.
+        const bool dominant =
+            largest >
+                secondLargest * 1.12f ||
+            largest >
+                smoothedGpuMs_ * 0.50f;
+
+        if (dominant) {
+            if (largest == preWorld) {
+                candidate =
+                    GpuPassBottleneck::PreWorld;
+            } else if (largest == world) {
+                candidate =
+                    GpuPassBottleneck::World;
+            } else {
+                candidate =
+                    GpuPassBottleneck::CompositeUi;
+            }
+        }
+    }
+
+    if (candidate ==
+        pendingGpuPassBottleneck_) {
+        gpuPassHoldSeconds_ +=
+            1.0f /
+            std::max(
+                config_.targetFps,
+                1.0f);
+    } else {
+        pendingGpuPassBottleneck_ =
+            candidate;
+        gpuPassHoldSeconds_ = 0.0f;
+    }
+
+    constexpr float kGpuPassHoldSeconds =
+        0.20f;
+
+    if (!authoritative) {
+        gpuPassBottleneck_ =
+            GpuPassBottleneck::Balanced;
+        pendingGpuPassBottleneck_ =
+            GpuPassBottleneck::Balanced;
+        gpuPassHoldSeconds_ = 0.0f;
+    } else if (
+        gpuPassHoldSeconds_ >=
+            kGpuPassHoldSeconds) {
+        gpuPassBottleneck_ =
+            candidate;
+    }
+}
+
 void PerformanceGovernor::rebuildWorkload() noexcept {
     switch (qualityIndex_) {
         case 0:
@@ -338,6 +473,60 @@ void PerformanceGovernor::rebuildWorkload() noexcept {
 
             workload_.volumetricFogSteps = 32;
             workload_.postProcessScale = 1.0f;
+            break;
+    }
+
+    if (bottleneck_ !=
+        PerformanceBottleneck::Gpu) {
+        return;
+    }
+
+    switch (gpuPassBottleneck_) {
+        case GpuPassBottleneck::PreWorld:
+            workload_.maxPlanarReflectionPasses =
+                std::min<std::uint32_t>(
+                    workload_.maxPlanarReflectionPasses,
+                    1U);
+            workload_.planarReflectionScale *=
+                0.72f;
+            workload_.reflectionDistanceMeters *=
+                0.80f;
+            break;
+
+        case GpuPassBottleneck::World:
+            workload_.shadowDistanceScale *=
+                0.82f;
+            workload_.fogQualityScale *=
+                0.88f;
+            workload_.particleDensityScale *=
+                0.90f;
+            workload_.dynamicLightBudget =
+                std::max<std::uint32_t>(
+                    4U,
+                    (workload_.dynamicLightBudget * 3U) /
+                        4U);
+            workload_.shadowedLightBudget =
+                std::max<std::uint32_t>(
+                    1U,
+                    workload_.shadowedLightBudget > 1U
+                    ? workload_.shadowedLightBudget - 1U
+                    : 1U);
+            break;
+
+        case GpuPassBottleneck::CompositeUi:
+            workload_.renderScale =
+                std::max(
+                    0.60f,
+                    workload_.renderScale *
+                        0.90f);
+            workload_.postProcessScale =
+                std::max(
+                    0.45f,
+                    workload_.postProcessScale *
+                        0.82f);
+            break;
+
+        case GpuPassBottleneck::Balanced:
             break;
     }
 }

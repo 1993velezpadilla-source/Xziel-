@@ -22,6 +22,13 @@ enum class PerformanceBottleneck : std::uint8_t {
     Thermal,
 };
 
+enum class GpuPassBottleneck : std::uint8_t {
+    Balanced,
+    PreWorld,
+    World,
+    CompositeUi,
+};
+
 struct PerformanceConfig {
     float targetFps = 60.0f;
     float degradeThreshold = 1.08f;
@@ -35,8 +42,12 @@ struct PerformanceConfig {
 struct PerformanceSample {
     float cpuFrameMs = 0.0f;
     float gpuFrameMs = 0.0f;
+    float gpuPreWorldMs = 0.0f;
+    float gpuWorldMs = 0.0f;
+    float gpuCompositeUiMs = 0.0f;
     float frameIntervalMs = 0.0f;
     ThermalLevel thermal = ThermalLevel::Nominal;
+    bool gpuPassTimingAuthoritative = false;
 };
 
 struct RenderWorkload {
@@ -79,13 +90,20 @@ public:
     [[nodiscard]] float smoothedFrameMs() const noexcept;
     [[nodiscard]] float smoothedCpuMs() const noexcept;
     [[nodiscard]] float smoothedGpuMs() const noexcept;
+    [[nodiscard]] float smoothedGpuPreWorldMs() const noexcept;
+    [[nodiscard]] float smoothedGpuWorldMs() const noexcept;
+    [[nodiscard]] float smoothedGpuCompositeUiMs() const noexcept;
     [[nodiscard]] PerformanceBottleneck bottleneck() const noexcept;
+    [[nodiscard]] GpuPassBottleneck gpuPassBottleneck() const noexcept;
 
 private:
     void stepDown() noexcept;
     void stepUp() noexcept;
     void applyThermalCeiling(ThermalLevel thermal) noexcept;
     void classifyBottleneck(
+        const PerformanceSample& sample,
+        float targetMs) noexcept;
+    void classifyGpuPass(
         const PerformanceSample& sample,
         float targetMs) noexcept;
     void rebuildWorkload() noexcept;
@@ -97,12 +115,20 @@ private:
     float smoothedFrameMs_ = 0.0f;
     float smoothedCpuMs_ = 0.0f;
     float smoothedGpuMs_ = 0.0f;
+    float smoothedGpuPreWorldMs_ = 0.0f;
+    float smoothedGpuWorldMs_ = 0.0f;
+    float smoothedGpuCompositeUiMs_ = 0.0f;
     float smoothedIntervalMs_ = 0.0f;
     PerformanceBottleneck bottleneck_ =
         PerformanceBottleneck::Balanced;
     PerformanceBottleneck pendingBottleneck_ =
         PerformanceBottleneck::Balanced;
     float bottleneckHoldSeconds_ = 0.0f;
+    GpuPassBottleneck gpuPassBottleneck_ =
+        GpuPassBottleneck::Balanced;
+    GpuPassBottleneck pendingGpuPassBottleneck_ =
+        GpuPassBottleneck::Balanced;
+    float gpuPassHoldSeconds_ = 0.0f;
     float overloadSeconds_ = 0.0f;
     float recoverySeconds_ = 0.0f;
 };
