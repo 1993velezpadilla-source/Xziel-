@@ -182,7 +182,7 @@ def health() -> dict[str, Any]:
         "version": APP_VERSION,
         "configured": _config_path().exists(),
         "sessions": len(_sessions),
-        "persistent_memory": true,
+        "persistent_memory": True,
     }
 
 
