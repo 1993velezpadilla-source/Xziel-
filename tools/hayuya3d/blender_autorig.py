@@ -285,6 +285,29 @@ def main():
                 all_weighted_groups.add(name)
             transferred += 1
 
+        # Smooth the transferred skin field across each connected surface so
+        # adjacent garment/face vertices do not jump between unrelated bones.
+        # Generated meshes often contain many islands; Blender smooths only
+        # within actual mesh connectivity. Cap back to four influences for a
+        # game-friendly GLB.
+        smoothing={"attempted":True,"passed":False,"groups":len(mesh.vertex_groups)}
+        try:
+            select_only(mesh)
+            bpy.context.view_layer.objects.active=mesh
+            for group in list(mesh.vertex_groups):
+                mesh.vertex_groups.active_index=group.index
+                bpy.ops.object.vertex_group_smooth(
+                    group_select_mode="ALL",
+                    factor=0.28,
+                    repeat=2,
+                    expand=0.0,
+                )
+            bpy.ops.object.vertex_group_limit_total(group_select_mode="ALL",limit=4)
+            bpy.ops.object.vertex_group_normalize_all(group_select_mode="ALL",lock_active=False)
+            smoothing["passed"]=True
+        except Exception as exc:
+            smoothing["error"]=f"{type(exc).__name__}:{exc}"
+
         # glTF skin export expects the armature to be the mesh parent. Preserve
         # the target mesh WORLD transform while parenting so the fitted
         # armature transform is not applied twice. This gives the exporter the
@@ -305,6 +328,7 @@ def main():
             "fallback_weighted_vertices":fallback_count,
             "donor_samples":len(samples),
             "blend_neighbours":8,
+            "weight_smoothing":smoothing,
         })
 
     # A technically valid skin with only a few weighted bones is NOT a usable
@@ -386,7 +410,7 @@ def main():
         "armature_world_before":arm_world_before,
         "armature_world_after":arm_world_after,
         "export_meshes":remaining_meshes,
-        "binding_method":"proportion_fit_blended_kdtree_v7_baked_armature_bind_pose",
+        "binding_method":"proportion_fit_blended_kdtree_smoothed_v8",
         "bind_results":bind_results,
         "output_bytes":args.output.stat().st_size if args.output.exists() else 0,
     }
