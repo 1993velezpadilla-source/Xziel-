@@ -23,6 +23,10 @@ class RigAudit:
     texture_count: int
     skinned_mesh_nodes: int
     joint_count: int
+    morph_mesh_count: int
+    morph_primitive_count: int
+    morph_target_count: int
+    morph_ready: bool
     rig_ready: bool
     animation_ready: bool
     material_channels: list[str]
@@ -91,6 +95,10 @@ def audit_glb(path: Path) -> RigAudit:
             texture_count=0,
             skinned_mesh_nodes=0,
             joint_count=0,
+            morph_mesh_count=0,
+            morph_primitive_count=0,
+            morph_target_count=0,
+            morph_ready=False,
             rig_ready=False,
             animation_ready=False,
             material_channels=[],
@@ -151,6 +159,117 @@ def audit_glb(path: Path) -> RigAudit:
             else:
                 skinned_nodes += 1
 
+    morph_errors: list[str] = []
+    morph_mesh_count = 0
+    morph_primitive_count = 0
+    morph_target_count = 0
+    mesh_target_counts: dict[int,int] = {}
+
+    for mesh_index, mesh in enumerate(meshes):
+        primitive_counts: list[int] = []
+        for primitive_index, primitive in enumerate(mesh.get("primitives", [])):
+            attrs = primitive.get("attributes", {}) or {}
+            position_accessor = attrs.get("POSITION")
+            position_count = None
+            if accessor_ok(position_accessor):
+                position_count = int(accessors[position_accessor].get("count", 0))
+            targets = primitive.get("targets") or []
+            primitive_counts.append(len(targets))
+            if not targets:
+                continue
+            morph_primitive_count += 1
+            for target_index, target in enumerate(targets):
+                if not isinstance(target, dict) or not target:
+                    message=(
+                        f"mesh[{mesh_index}].primitive[{primitive_index}] "
+                        f"target[{target_index}] is empty or malformed"
+                    )
+                    morph_errors.append(message)
+                    errors.append(message)
+                    continue
+                for semantic, accessor_index in target.items():
+                    if semantic not in {"POSITION","NORMAL","TANGENT"}:
+                        message=(
+                            f"mesh[{mesh_index}].primitive[{primitive_index}] "
+                            f"target[{target_index}] unsupported semantic {semantic}"
+                        )
+                        morph_errors.append(message)
+                        errors.append(message)
+                    if not accessor_ok(accessor_index):
+                        message=(
+                            f"mesh[{mesh_index}].primitive[{primitive_index}] "
+                            f"target[{target_index}] invalid {semantic} accessor "
+                            f"{accessor_index}"
+                        )
+                        morph_errors.append(message)
+                        errors.append(message)
+                        continue
+                    accessor=accessors[accessor_index]
+                    if str(accessor.get("type") or "")!="VEC3":
+                        message=(
+                            f"mesh[{mesh_index}].primitive[{primitive_index}] "
+                            f"target[{target_index}] {semantic} accessor must be VEC3"
+                        )
+                        morph_errors.append(message)
+                        errors.append(message)
+                    if (
+                        position_count is not None
+                        and int(accessor.get("count",0))!=position_count
+                    ):
+                        message=(
+                            f"mesh[{mesh_index}].primitive[{primitive_index}] "
+                            f"target[{target_index}] {semantic} count "
+                            f"{accessor.get('count')} != POSITION {position_count}"
+                        )
+                        morph_errors.append(message)
+                        errors.append(message)
+
+        nonzero=[count for count in primitive_counts if count>0]
+        if nonzero:
+            morph_mesh_count += 1
+            target_count=max(nonzero)
+            if len(set(primitive_counts))>1:
+                message=(
+                    f"mesh[{mesh_index}] primitives disagree on morph target count: "
+                    f"{primitive_counts}"
+                )
+                morph_errors.append(message)
+                errors.append(message)
+            mesh_target_counts[mesh_index]=target_count
+            morph_target_count += target_count
+            mesh_weights=mesh.get("weights")
+            if mesh_weights is not None and len(mesh_weights)!=target_count:
+                message=(
+                    f"mesh[{mesh_index}] weights length {len(mesh_weights)} "
+                    f"!= morph target count {target_count}"
+                )
+                morph_errors.append(message)
+                errors.append(message)
+        else:
+            mesh_target_counts[mesh_index]=0
+
+    for node_index,node in enumerate(nodes):
+        node_weights=node.get("weights")
+        if node_weights is None:
+            continue
+        mesh_index=node.get("mesh")
+        target_count=(
+            mesh_target_counts.get(mesh_index,0)
+            if isinstance(mesh_index,int)
+            else 0
+        )
+        if target_count<=0:
+            message=f"node[{node_index}] has weights but referenced mesh has no morph targets"
+            morph_errors.append(message)
+            errors.append(message)
+        elif len(node_weights)!=target_count:
+            message=(
+                f"node[{node_index}] weights length {len(node_weights)} "
+                f"!= morph target count {target_count}"
+            )
+            morph_errors.append(message)
+            errors.append(message)
+
     has_joint_attributes = False
     for mesh_index, mesh in enumerate(meshes):
         for primitive_index, primitive in enumerate(mesh.get("primitives", [])):
@@ -177,11 +296,34 @@ def audit_glb(path: Path) -> RigAudit:
                 errors.append(
                     f"animation[{animation_index}].channel[{channel_index}] invalid sampler {sampler}"
                 )
-            target_node = channel.get("target", {}).get("node")
+            target = channel.get("target", {}) or {}
+            target_node = target.get("node")
             if target_node is not None and not node_ok(target_node):
                 errors.append(
                     f"animation[{animation_index}].channel[{channel_index}] invalid target node {target_node}"
                 )
+            if target.get("path")=="weights":
+                if not node_ok(target_node):
+                    message=(
+                        f"animation[{animation_index}].channel[{channel_index}] "
+                        "weights channel has invalid target node"
+                    )
+                    morph_errors.append(message)
+                    errors.append(message)
+                else:
+                    mesh_index=nodes[target_node].get("mesh")
+                    target_count=(
+                        mesh_target_counts.get(mesh_index,0)
+                        if isinstance(mesh_index,int)
+                        else 0
+                    )
+                    if target_count<=0:
+                        message=(
+                            f"animation[{animation_index}].channel[{channel_index}] "
+                            "targets weights on node without morph targets"
+                        )
+                        morph_errors.append(message)
+                        errors.append(message)
 
     rig_ready = bool(skins and skinned_nodes and has_joint_attributes and not errors)
     if skins and not has_joint_attributes:
@@ -201,6 +343,10 @@ def audit_glb(path: Path) -> RigAudit:
         texture_count=len(doc.get("textures", [])),
         skinned_mesh_nodes=skinned_nodes,
         joint_count=joint_total,
+        morph_mesh_count=morph_mesh_count,
+        morph_primitive_count=morph_primitive_count,
+        morph_target_count=morph_target_count,
+        morph_ready=not morph_errors,
         rig_ready=rig_ready,
         animation_ready=bool(rig_ready and animations),
         material_channels=sorted(_material_channels(doc)),
