@@ -99,6 +99,20 @@ def evaluate_aaa_acceptance(
         blocker="geometry has unresolved structural defects",
     )
 
+    crossing=qa_report.get("component_crossing") or {}
+    _gate(
+        gates,"geometry.component_crossing","geometry",
+        bool(crossing.get("ready")),
+        (
+            f"applicable={crossing.get('applicable')} "
+            f"tested_pairs={crossing.get('tested_pairs')} "
+            f"crossings={crossing.get('crossing_triangle_pairs')}"
+        ),
+        blocker=(
+            "large disconnected component surfaces cross/interpenetrate"
+        ),
+    )
+
     source=qa_report.get("source_coverage") or {}
     source_ready=bool(
         int(source.get("judged") or 0)>=int(source.get("expected") or 0)
