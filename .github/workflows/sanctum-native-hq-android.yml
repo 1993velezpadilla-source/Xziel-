@@ -76,10 +76,10 @@ jobs:
           set -euo pipefail
 
           if [[ "${GITHUB_REF_NAME}" == "engine/mobile-spatial-batching-v1" ]]; then
-            echo "SANCTUM_ASSET_RUN_ID=35970670090" >> "$GITHUB_ENV"
+            echo "SANCTUM_ASSET_RUN_ID=35972943362" >> "$GITHUB_ENV"
             echo "SANCTUM_ASSET_NAME=Xziel-Sanctum-Clean-Source-ASTC" >> "$GITHUB_ENV"
             echo "SANCTUM_ASSET_KIND=astc" >> "$GITHUB_ENV"
-            echo "Using validated spatial ASTC asset pack run 35970670090"
+            echo "Using validated spatial 9k ASTC asset pack run 35972943362"
             exit 0
           fi
 
