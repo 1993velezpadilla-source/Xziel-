@@ -241,6 +241,58 @@ class StudioServerTests(unittest.TestCase):
             self.assertEqual(len(job.final_qa["warnings"]), 2)
             self.assertIn("baseColor", job.final_qa["warnings"][0])
 
+    def test_composite_detail_seam_state_is_streamed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            job=self.make_job(Path(tmp))
+            parse_pipeline_line(
+                job,
+                "HAYUYA_COMPOSITE_DETAIL_READY "
+                "label=composite_detail_head_face "
+                "base=base donor=face region=head "
+                "source=scar.png changed=0.184 "
+                "seam_p95=3.2 seam_max=7.5 "
+                f"path={Path(tmp)/'detail.glb'}",
+            )
+            self.assertEqual(job.stage,"composite")
+            self.assertEqual(len(job.composite_details),1)
+            detail=job.composite_details[0]
+            self.assertEqual(detail["label"],"composite_detail_head_face")
+            self.assertEqual(detail["status"],"challenger")
+            self.assertEqual(detail["changed_fraction"],0.184)
+            self.assertEqual(detail["seam_p95"],3.2)
+            self.assertEqual(detail["seam_max"],7.5)
+            self.assertEqual(job.events[-1]["kind"],"composite_detail")
+
+            parse_pipeline_line(
+                job,
+                "HAYUYA_COMPOSITE_DETAIL_GUARD_PASS "
+                "label=composite_detail_head_face "
+                "source=scar.png canonical=true",
+            )
+            self.assertEqual(
+                job.composite_details[0]["status"],
+                "accepted",
+            )
+            self.assertEqual(
+                job.events[-1]["kind"],
+                "composite_detail_state",
+            )
+
+            parse_pipeline_line(
+                job,
+                "HAYUYA_COMPOSITE_DETAIL_REJECTED "
+                "label=composite_detail_head_face "
+                "source=scar.png reason=guard_failed",
+            )
+            self.assertEqual(
+                job.composite_details[0]["status"],
+                "rejected",
+            )
+            self.assertEqual(
+                job.composite_details[0]["reason"],
+                "guard_failed",
+            )
+
     def test_aaa_acceptance_report_is_streamed_to_studio(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp)
