@@ -1,0 +1,190 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import json
+import math
+import sys
+from pathlib import Path
+
+import bpy
+from mathutils import Vector
+
+
+def parse_args():
+    argv=sys.argv
+    argv=argv[argv.index("--")+1:] if "--" in argv else []
+    p=argparse.ArgumentParser(description="HAYUYA selected-to-active topology-change normal rebake.")
+    p.add_argument("--source",required=True,type=Path)
+    p.add_argument("--target",required=True,type=Path)
+    p.add_argument("--output",required=True,type=Path)
+    p.add_argument("--report",required=True,type=Path)
+    p.add_argument("--size",type=int,default=2048)
+    return p.parse_args(argv)
+
+
+def import_glb(path:Path):
+    before=set(bpy.data.objects)
+    bpy.ops.import_scene.gltf(filepath=str(path.resolve()))
+    return [o for o in bpy.data.objects if o not in before]
+
+
+def world_bounds(objects):
+    pts=[]
+    for obj in objects:
+        if obj.type!="MESH":
+            continue
+        pts.extend(obj.matrix_world @ Vector(c) for c in obj.bound_box)
+    if not pts:
+        raise RuntimeError("no_mesh_bounds")
+    mn=Vector((min(p.x for p in pts),min(p.y for p in pts),min(p.z for p in pts)))
+    mx=Vector((max(p.x for p in pts),max(p.y for p in pts),max(p.z for p in pts)))
+    return mn,mx
+
+
+def select_only(objects,active=None):
+    bpy.ops.object.select_all(action="DESELECT")
+    for obj in objects:
+        obj.select_set(True)
+    bpy.context.view_layer.objects.active=active or (objects[-1] if objects else None)
+
+
+def join_target(meshes):
+    if not meshes:
+        raise RuntimeError("target_has_no_mesh")
+    if len(meshes)==1:
+        return meshes[0]
+    select_only(meshes,meshes[0])
+    bpy.ops.object.join()
+    return bpy.context.object
+
+
+def ensure_bake_materials(target,image):
+    if not target.data.uv_layers:
+        raise RuntimeError("target_has_no_uv")
+    target.data.uv_layers.active_index=0
+
+    if not target.material_slots:
+        material=bpy.data.materials.new("HAYUYA_RebakeMaterial")
+        material.use_nodes=True
+        target.data.materials.append(material)
+
+    configured=0
+    for slot in target.material_slots:
+        material=slot.material
+        if material is None:
+            material=bpy.data.materials.new("HAYUYA_RebakeMaterial")
+            material.use_nodes=True
+            slot.material=material
+        material.use_nodes=True
+        nodes=material.node_tree.nodes
+        links=material.node_tree.links
+
+        for node in nodes:
+            node.select=False
+
+        bsdf=next((n for n in nodes if n.type=="BSDF_PRINCIPLED"),None)
+        if bsdf is None:
+            bsdf=nodes.new("ShaderNodeBsdfPrincipled")
+
+        tex=nodes.new("ShaderNodeTexImage")
+        tex.name="HAYUYA_REBAKED_NORMAL"
+        tex.label="HAYUYA Re-baked Normal"
+        tex.image=image
+        tex.interpolation="Linear"
+        tex.select=True
+        nodes.active=tex
+
+        normal=nodes.new("ShaderNodeNormalMap")
+        normal.name="HAYUYA_REBAKED_NORMAL_MAP"
+        normal.space="TANGENT"
+        links.new(tex.outputs["Color"],normal.inputs["Color"])
+        links.new(normal.outputs["Normal"],bsdf.inputs["Normal"])
+        configured+=1
+    return configured
+
+
+def main():
+    a=parse_args()
+    if a.size<64 or a.size>8192:
+        raise RuntimeError(f"invalid_bake_size:{a.size}")
+
+    a.output.parent.mkdir(parents=True,exist_ok=True)
+    a.report.parent.mkdir(parents=True,exist_ok=True)
+
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+
+    source_objects=import_glb(a.source)
+    source_meshes=[o for o in source_objects if o.type=="MESH"]
+    if not source_meshes:
+        raise RuntimeError("source_has_no_mesh")
+
+    target_objects=import_glb(a.target)
+    target_meshes=[o for o in target_objects if o.type=="MESH"]
+    target=join_target(target_meshes)
+
+    image=bpy.data.images.new(
+        "HAYUYA_Rebaked_Normal",
+        width=a.size,
+        height=a.size,
+        alpha=False,
+        float_buffer=False,
+    )
+    image.generated_color=(0.5,0.5,1.0,1.0)
+    try:
+        image.colorspace_settings.name="Non-Color"
+    except Exception:
+        pass
+
+    material_count=ensure_bake_materials(target,image)
+
+    mn,mx=world_bounds([*source_meshes,target])
+    diag=max((mx-mn).length,1e-6)
+
+    scene=bpy.context.scene
+    scene.render.engine="CYCLES"
+    scene.cycles.device="CPU"
+    scene.render.bake.use_selected_to_active=True
+    scene.render.bake.use_clear=True
+    scene.render.bake.margin=max(4,min(32,a.size//128))
+    scene.render.bake.normal_space="TANGENT"
+    scene.render.bake.cage_extrusion=diag*0.003
+    scene.render.bake.max_ray_distance=diag*0.04
+
+    select_only([*source_meshes,target],target)
+    bpy.ops.object.bake(type="NORMAL")
+
+    image.pack()
+
+    # Export only the newly baked target. Source objects remain selected-to-active
+    # evidence and must never leak into the runtime GLB.
+    select_only([target],target)
+    bpy.ops.export_scene.gltf(
+        filepath=str(a.output.resolve()),
+        export_format="GLB",
+        use_selection=True,
+        export_yup=True,
+        export_materials="EXPORT",
+        export_image_format="AUTO",
+    )
+    if not a.output.is_file() or a.output.read_bytes()[:4]!=b"glTF":
+        raise RuntimeError("normal_rebake_export_invalid")
+
+    report={
+        "schema":1,
+        "source":str(a.source),
+        "target":str(a.target),
+        "output":str(a.output),
+        "size":a.size,
+        "resolved_channels":["normal"],
+        "material_count":material_count,
+        "method":"blender_cycles_selected_to_active_tangent_normal_v1",
+        "cage_extrusion":diag*0.003,
+        "max_ray_distance":diag*0.04,
+    }
+    a.report.write_text(json.dumps(report,indent=2)+"\n",encoding="utf-8")
+    print("HAYUYA_NORMAL_REBAKE_READY",a.output,a.size)
+
+
+if __name__=="__main__":
+    main()
