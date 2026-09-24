@@ -4286,6 +4286,8 @@ void VulkanStaticMeshRenderer::record(
 
         ++frameStats_.visibleBatches;
 
+        bool geometryChanged = false;
+
         if (cellGeometry) {
             if (batch.geometryCellSlot >=
                 geometryCellCount_) {
@@ -4306,7 +4308,7 @@ void VulkanStaticMeshRenderer::record(
                 continue;
             }
 
-            const bool geometryChanged =
+            geometryChanged =
                 boundGeometryCell !=
                 batch.geometryCellSlot;
 
