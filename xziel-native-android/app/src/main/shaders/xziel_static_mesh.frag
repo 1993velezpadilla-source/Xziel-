@@ -29,6 +29,8 @@ layout(location = 0) out vec4 outColor;
 
 const float PI = 3.14159265358979323846;
 
+layout(constant_id = 0) const uint FORCE_LEGACY_MATERIAL = 0u;
+
 // Preserve full close-range material detail while avoiding derivative-heavy
 // tangent reconstruction for distant fragments where the normal map is below
 // practical screen-space visibility. The fade band prevents visible popping.
@@ -149,19 +151,19 @@ vec3 mappedNormal(
 }
 
 void main() {
+    const bool forceLegacyMaterial =
+        FORCE_LEGACY_MATERIAL != 0u;
+
     int flags =
-        int(
-            pc.emissiveFactorFlags.w +
-            0.5);
+        forceLegacyMaterial
+        ? 0
+        : int(
+              pc.emissiveFactorFlags.w +
+              0.5);
 
     bool pbrEnabled =
+        !forceLegacyMaterial &&
         (flags & 1) != 0;
-    bool hasNormal =
-        (flags & 2) != 0;
-    bool hasOrm =
-        (flags & 4) != 0;
-    bool hasEmissive =
-        (flags & 8) != 0;
 
     // Viewmodel mode and lightning are uniform for the entire draw and
     // already live in push constants. Reading them here avoids two
@@ -214,6 +216,15 @@ void main() {
         outColor = albedo;
         return;
     }
+
+    // These texture-feature flags live after the legacy early-return so a
+    // FORCE_LEGACY_MATERIAL specialization can dead-strip the entire PBR path.
+    bool hasNormal =
+        (flags & 2) != 0;
+    bool hasOrm =
+        (flags & 4) != 0;
+    bool hasEmissive =
+        (flags & 8) != 0;
 
     vec3 normal =
         normalize(vNormal);
