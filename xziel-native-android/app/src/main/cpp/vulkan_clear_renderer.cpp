@@ -7258,6 +7258,15 @@ bool VulkanClearRenderer::recordDrawCommand(
             return;
         }
 
+        // Preserve exact alpha/blend ordering: any queued primitives that
+        // originally appeared before this digit are submitted first.
+        flushUiPrimitiveBatch();
+
+        vkCmdBindPipeline(
+            command,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            uiPipeline_);
+
         UiPushConstants ui{};
 
         ui.centerX =
@@ -7325,6 +7334,7 @@ bool VulkanClearRenderer::recordDrawCommand(
             1,
             0,
             0);
+        ++uiDigitDraws;
     };
 
     const float rainIntensity =
