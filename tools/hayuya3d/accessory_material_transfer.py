@@ -16,6 +16,7 @@ class AccessoryMaterialTransferResult:
     attempted: bool
     ready: bool
     donor_component_id: int | None
+    donor_component_ids: list[int]
     donor_mesh_index: int | None
     donor_primitive_index: int | None
     material_index: int | None
@@ -149,14 +150,42 @@ def _find_accessory_component(path: Path, *, up_axis: str):
         mode="character",
         up_axis=up_axis,
     )
-    if len(candidates) != 1:
+    if not candidates:
         raise RuntimeError(
-            "material transfer requires exactly one unambiguous donor "
-            f"accessory candidate; found {len(candidates)}"
+            "material transfer requires donor accessory evidence"
         )
-    wanted = candidates[0]
-    doc, binary, components = _world_components(path)
 
+    if len(candidates) == 1:
+        selected = [candidates[0]]
+    else:
+        from accessory_cluster import inspect_accessory_clusters
+        cluster = inspect_accessory_clusters(
+            path,
+            mode="character",
+            up_axis=up_axis,
+        )
+        if not cluster.ready or not cluster.selected_component_ids:
+            detail = ";".join(cluster.errors or [])
+            raise RuntimeError(
+                "multi-piece material transfer requires one proven "
+                "anchored logical accessory cluster"
+                + (f": {detail}" if detail else "")
+            )
+        by_id = {
+            int(item.component_id): item
+            for item in candidates
+        }
+        selected_ids = [
+            int(x) for x in cluster.selected_component_ids
+        ]
+        if set(selected_ids) != set(by_id):
+            raise RuntimeError(
+                "accessory cluster material proof did not account for every "
+                "donor accessory candidate"
+            )
+        selected = [by_id[x] for x in selected_ids]
+
+    doc, binary, components = _world_components(path)
     all_points = np.concatenate([
         item["positions_world"][item["used_vertex_ids"]]
         for item in components
@@ -165,54 +194,99 @@ def _find_accessory_component(path: Path, *, up_axis: str):
     diagonal = max(float(np.linalg.norm(extent)), 1e-9)
     safe_extent = np.maximum(extent, diagonal * 1e-6)
 
-    wanted_centroid = np.asarray(
-        wanted.normalized_centroid,
-        dtype=np.float64,
-    )
-    wanted_extent = np.asarray(
-        wanted.normalized_extent,
-        dtype=np.float64,
-    )
+    mapped = []
+    used_rows = set()
+    for wanted in selected:
+        wanted_centroid = np.asarray(
+            wanted.normalized_centroid,
+            dtype=np.float64,
+        )
+        wanted_extent = np.asarray(
+            wanted.normalized_extent,
+            dtype=np.float64,
+        )
+        scored = []
+        for item in components:
+            if int(item["face_count"]) != int(wanted.face_count):
+                continue
+            row_key = (
+                int(item["node_index"]),
+                int(item["mesh_index"]),
+                int(item["primitive_index"]),
+                int(item["component_id"]),
+            )
+            if row_key in used_rows:
+                continue
+            normalized_centroid = (
+                np.asarray(item["centroid"], dtype=np.float64) - lo
+            ) / safe_extent
+            normalized_extent = (
+                np.asarray(item["extent"], dtype=np.float64)
+            ) / safe_extent
+            score = float(
+                np.linalg.norm(normalized_centroid - wanted_centroid)
+                + np.linalg.norm(normalized_extent - wanted_extent)
+            )
+            scored.append((score, row_key, item))
 
-    scored = []
-    for item in components:
-        if int(item["face_count"]) != int(wanted.face_count):
-            continue
-        normalized_centroid = (
-            np.asarray(item["centroid"], dtype=np.float64) - lo
-        ) / safe_extent
-        normalized_extent = (
-            np.asarray(item["extent"], dtype=np.float64)
-        ) / safe_extent
-        score = float(
-            np.linalg.norm(normalized_centroid - wanted_centroid)
-            + np.linalg.norm(normalized_extent - wanted_extent)
-        )
-        scored.append((score, item))
+        if not scored:
+            raise RuntimeError(
+                "could not map flattened accessory candidate back to "
+                "donor primitive"
+            )
+        scored.sort(key=lambda row: row[0])
+        best_score, best_key, best = scored[0]
+        second_score = scored[1][0] if len(scored) > 1 else None
+        if best_score > 0.02:
+            raise RuntimeError(
+                "donor accessory primitive mapping drift is too large: "
+                f"{best_score:.6f}>0.020000"
+            )
+        if second_score is not None and second_score - best_score < 0.01:
+            raise RuntimeError(
+                "donor accessory primitive mapping is ambiguous"
+            )
+        used_rows.add(best_key)
+        row = dict(best)
+        row["candidate"] = wanted
+        mapped.append(row)
 
-    if not scored:
-        raise RuntimeError(
-            "could not map flattened accessory candidate back to donor primitive"
+    locations = {
+        (
+            int(item["node_index"]),
+            int(item["mesh_index"]),
+            int(item["primitive_index"]),
         )
-    scored.sort(key=lambda row: row[0])
-    best_score, best = scored[0]
-    second_score = scored[1][0] if len(scored) > 1 else None
-    if best_score > 0.02:
+        for item in mapped
+    }
+    if len(locations) != 1:
         raise RuntimeError(
-            "donor accessory primitive mapping drift is too large: "
-            f"{best_score:.6f}>0.020000"
-        )
-    if (
-        second_score is not None
-        and second_score - best_score < 0.01
-    ):
-        raise RuntimeError(
-            "donor accessory primitive mapping is ambiguous"
+            "multi-piece accessory material transfer currently requires "
+            "every selected piece to share one donor primitive/atlas"
         )
 
-    best = dict(best)
-    best["candidate"] = wanted
-    return doc, binary, best
+    first = dict(mapped[0])
+    primitive = first["primitive"]
+    if not isinstance(primitive.get("material"), int):
+        raise RuntimeError(
+            "donor accessory primitive has no explicit material"
+        )
+
+    used = np.unique(np.concatenate([
+        np.asarray(item["used_vertex_ids"], dtype=np.int64)
+        for item in mapped
+    ]))
+    first["used_vertex_ids"] = used
+    first["candidate"] = selected[0]
+    first["candidates"] = selected
+    first["candidate_component_ids"] = [
+        int(item.component_id) for item in selected
+    ]
+    first["mapped_components"] = mapped
+    first["face_count"] = int(sum(
+        int(item["face_count"]) for item in mapped
+    ))
+    return doc, binary, first
 
 
 def _material_texture_indices(material: dict) -> list[int]:
