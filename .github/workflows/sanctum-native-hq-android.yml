@@ -949,14 +949,14 @@ jobs:
             echo "XZIEL_STREAM_GEOMETRY_CELL_RESIDENCY_ACTIVE cells=${GEOMETRY_CELLS} buffers=${GEOMETRY_BUFFERS}"
 
             if [[ "${GITHUB_REF_NAME}" == "engine/mobile-packed-static-vertex-v3" ]]; then
-              grep -Eq "XZIEL_STATIC_VERTEX_FORMAT packed=1 gpu_stride=24 source_stride=36 color_attribute=0" dist/sanctum-hq-logcat.txt
+              grep -Eq "XZIEL_STATIC_VERTEX_FORMAT packed=1 gpu_stride=24 source_stride=36 color_attribute=0 uv_unorm16=1 format_supported=1" dist/sanctum-hq-logcat.txt
               GEOMETRY_VERTEX_MB="$(grep "XZIEL_STREAM_GEOMETRY_CELLS_READY" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* vertex_mb=\([0-9][0-9]*\.[0-9][0-9]*\).*/\1/p')"
               GEOMETRY_INDEX_MB="$(grep "XZIEL_STREAM_GEOMETRY_CELLS_READY" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* index_mb=\([0-9][0-9]*\.[0-9][0-9]*\).*/\1/p')"
               test -n "${GEOMETRY_VERTEX_MB}"
               test -n "${GEOMETRY_INDEX_MB}"
               awk -v value="${GEOMETRY_VERTEX_MB}" 'BEGIN { exit !(value > 0.0 && value < 60.0) }'
               awk -v v="${GEOMETRY_VERTEX_MB}" -v i="${GEOMETRY_INDEX_MB}" 'BEGIN { exit !((v + i) < 80.0) }'
-              echo "XZIEL_PACKED_STATIC_VERTEX_V3_ACTIVE vertex_mb=${GEOMETRY_VERTEX_MB} index_mb=${GEOMETRY_INDEX_MB} stride=24 color_attribute=0"
+              echo "XZIEL_PACKED_STATIC_VERTEX_V3_ACTIVE vertex_mb=${GEOMETRY_VERTEX_MB} index_mb=${GEOMETRY_INDEX_MB} stride=24 color_attribute=0 uv_unorm16=1"
             fi
           fi
 
