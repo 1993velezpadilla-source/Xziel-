@@ -11,6 +11,7 @@ sys.path.insert(0, str(HAYUYA3D))
 
 from hayuya_ads import compile_monetization_intelligence, discover_diegetic_candidates
 from universal_game_design import compile_universal_design_intelligence, infer_domains
+from world_reasoning import compile_world_reasoning_intelligence
 
 
 class UniversalDesignBrainTests(unittest.TestCase):
@@ -45,6 +46,26 @@ class UniversalDesignBrainTests(unittest.TestCase):
         self.assertIn("lost_player_agent", plan["solver_agents"])
         self.assertIn("solve_before_expensive_art", plan["generation_contract"])
         self.assertTrue(plan["generation_contract"]["solve_before_expensive_art"])
+
+
+class WorldReasoningBrainTests(unittest.TestCase):
+    def test_all_world_domains_remain_available_even_when_not_prioritized(self):
+        plan = compile_world_reasoning_intelligence("small interior horror map on Android")
+        self.assertEqual(plan["knowledge_scope"], "all_domains_available")
+        self.assertIn("architecture", plan["domains"])
+        self.assertIn("terrain_and_hydrology", plan["domains"])
+        self.assertIn("multiplayer_networking", plan["domains"])
+        self.assertIn("monetization_and_policy", plan["domains"])
+        self.assertTrue(plan["reasoning_contract"]["priority_is_not_exclusion"])
+
+    def test_goal_prioritizes_but_does_not_remove_domains(self):
+        plan = compile_world_reasoning_intelligence(
+            "online four player city map with ads and Google Play mobile target"
+        )
+        self.assertIn("urbanism", plan["priority_domains"])
+        self.assertIn("multiplayer_networking", plan["priority_domains"])
+        self.assertIn("mobile_rendering", plan["priority_domains"])
+        self.assertIn("monetization_and_policy", plan["priority_domains"])
 
 
 class MonetizationBrainTests(unittest.TestCase):
