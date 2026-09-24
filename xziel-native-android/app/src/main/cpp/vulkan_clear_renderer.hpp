@@ -124,6 +124,35 @@ struct VulkanEnvironmentState {
     float lightningFlash = 0.0f;
     float wetness = 0.0f;
 
+    // Horror-lighting frame produced by the engine layer. The Vulkan backend
+    // consumes this state; it does not invent mood or gameplay-driven light.
+    float keyDirectionX = -0.34f;
+    float keyDirectionY = 0.82f;
+    float keyDirectionZ = -0.46f;
+    float keyIntensity = 0.78f;
+
+    float keyColorR = 1.0f;
+    float keyColorG = 0.58f;
+    float keyColorB = 0.30f;
+
+    float ambientColorR = 0.085f;
+    float ambientColorG = 0.135f;
+    float ambientColorB = 0.22f;
+    float ambientIntensity = 0.20f;
+
+    float fogColorR = 0.022f;
+    float fogColorG = 0.034f;
+    float fogColorB = 0.052f;
+    float fogHeightFalloff = 0.12f;
+
+    float exposureScale = 0.76f;
+    float contrast = 1.10f;
+    float saturation = 0.86f;
+
+    std::array<StaticMeshLocalLightState, kStaticMeshMaxLocalLights>
+        localLights{};
+    std::uint32_t localLightCount = 0U;
+
     float windX = 0.0f;
     float windZ = 0.0f;
 
