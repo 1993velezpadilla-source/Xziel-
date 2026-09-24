@@ -337,6 +337,36 @@ class StudioServerTests(unittest.TestCase):
             self.assertIsNone(detail["seam_p95"])
             self.assertEqual(detail["region"],"local")
 
+    def test_rigged_accessory_runtime_proof_is_streamed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            job=self.make_job(Path(tmp))
+            parse_pipeline_line(
+                job,
+                "HAYUYA_COMPOSITE_DETAIL_READY "
+                "label=composite_accessory_donor_rosary "
+                "base=base donor=donor region=local "
+                "source=rosary.png strategy=rigged_accessory_wrap "
+                "changed=none changed_vertices=8 "
+                "seam_p95=none seam_max=none "
+                "accessory_confidence=0.932 "
+                "runtime_preserved=True rig_ready=True "
+                "skin_weights_ready=True morph_deformation_ready=True "
+                "rebake_ready=True "
+                f"path={Path(tmp)/'rigged-accessory.glb'}",
+            )
+            detail=job.composite_details[-1]
+            self.assertEqual(
+                detail["strategy"],
+                "rigged_accessory_wrap",
+            )
+            self.assertEqual(detail["changed_vertices"],8)
+            self.assertTrue(detail["runtime_preserved"])
+            self.assertTrue(detail["rig_ready"])
+            self.assertTrue(detail["skin_weights_ready"])
+            self.assertTrue(detail["morph_deformation_ready"])
+            self.assertTrue(detail["rebake_ready"])
+            self.assertEqual(detail["accessory_confidence"],0.932)
+
     def test_semantic_anatomy_report_is_streamed(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp)
