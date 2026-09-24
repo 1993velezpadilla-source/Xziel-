@@ -45,6 +45,11 @@ class AccessoryClusterTests(unittest.TestCase):
             cluster = report.clusters[0]
             self.assertTrue(cluster.anchored_to_main)
             self.assertEqual(len(cluster.component_ids), 3)
+            self.assertGreaterEqual(len(cluster.direct_main_anchors), 1)
+            self.assertLess(
+                len(cluster.direct_main_anchors),
+                len(cluster.component_ids),
+            )
             self.assertLessEqual(
                 cluster.max_internal_link_gap_ratio,
                 0.06,
