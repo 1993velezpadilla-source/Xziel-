@@ -60,8 +60,6 @@
       "Farm_Harvest",
       "Farm_PlantSeed",
       "Farm_Watering",
-      "Hit_Knockback",
-      "Hit_Knockback_RM",
       "Idle_FoldArms_Loop",
       "Idle_Lantern_Loop",
       "Idle_No_Loop",
@@ -88,7 +86,6 @@
       "Sword_Regular_A_Rec",
       "Sword_Regular_B",
       "Sword_Regular_B_Rec",
-      "Sword_Regular_C",
       "Sword_Regular_Combo",
       "TreeChopping_Loop",
       "Walk_Carry_Loop",
@@ -97,7 +94,7 @@
       "Zombie_Scratch",
       "Zombie_Walk_Fwd_Loop"
     ],
-    "weighted_joint_count": 15,
+    "weighted_joint_count": 19,
     "weighted_joint_names": [
       "Head",
       "calf_l",
@@ -106,6 +103,9 @@
       "clavicle_r",
       "foot_l",
       "foot_r",
+      "hand_l",
+      "hand_r",
+      "lowerarm_l",
       "lowerarm_r",
       "pelvis",
       "spine_01",
@@ -113,6 +113,7 @@
       "spine_03",
       "thigh_l",
       "thigh_r",
+      "upperarm_l",
       "upperarm_r"
     ],
     "facial": {
@@ -136,7 +137,7 @@
     "deformation_qa": {
       "schema": 2,
       "passed": true,
-      "full_bank_passed": true,
+      "full_bank_passed": false,
       "action_count": 43,
       "compatible_clips": [
         "A_TPose",
@@ -146,8 +147,6 @@
         "Farm_Harvest",
         "Farm_PlantSeed",
         "Farm_Watering",
-        "Hit_Knockback",
-        "Hit_Knockback_RM",
         "Idle_FoldArms_Loop",
         "Idle_Lantern_Loop",
         "Idle_No_Loop",
@@ -174,7 +173,6 @@
         "Sword_Regular_A_Rec",
         "Sword_Regular_B",
         "Sword_Regular_B_Rec",
-        "Sword_Regular_C",
         "Sword_Regular_Combo",
         "TreeChopping_Loop",
         "Walk_Carry_Loop",
@@ -183,7 +181,7 @@
         "Zombie_Scratch",
         "Zombie_Walk_Fwd_Loop"
       ],
-      "rejected_clip_count": 0,
+      "rejected_clip_count": 3,
       "reference_fidelity": {
         "reference": "hayuya/models/candy-zombie-001/model.glb",
         "bounds": {
@@ -212,14 +210,18 @@
           "polygon_count": 19456,
           "triangle_count": 19456
         },
-        "diagonal_ratio": 0.9999999896853313,
-        "center_offset_normalized": 5.2598571276799004e-08,
+        "diagonal_ratio": 0.999999896853309,
+        "center_offset_normalized": 1.1157841929164563e-07,
         "vertex_ratio_telemetry_only": 3.574473297403234,
         "triangle_ratio": 1.0,
         "passed": true,
         "failures": []
       },
-      "failures": []
+      "failures": [
+        "Hit_Knockback:axis_extent_failure:frame=5.00,ratios=2.149,2.764,0.488",
+        "Hit_Knockback_RM:axis_extent_failure:frame=5.00,ratios=2.149,2.764,0.488",
+        "Sword_Regular_C:axis_extent_failure:frame=24.00,ratios=1.221,2.593,0.693"
+      ]
     }
   },
   "preview_model": "animated.glb",
@@ -234,8 +236,6 @@
         "Farm_Harvest",
         "Farm_PlantSeed",
         "Farm_Watering",
-        "Hit_Knockback",
-        "Hit_Knockback_RM",
         "Idle_FoldArms_Loop",
         "Idle_Lantern_Loop",
         "Idle_No_Loop",
@@ -262,7 +262,6 @@
         "Sword_Regular_A_Rec",
         "Sword_Regular_B",
         "Sword_Regular_B_Rec",
-        "Sword_Regular_C",
         "Sword_Regular_Combo",
         "TreeChopping_Loop",
         "Walk_Carry_Loop",
@@ -274,7 +273,7 @@
       "rig_ready": true,
       "animation_ready": true,
       "quality_passed": true,
-      "full_bank_passed": true,
+      "full_bank_passed": false,
       "rig_quality_version": 3
     }
   },
