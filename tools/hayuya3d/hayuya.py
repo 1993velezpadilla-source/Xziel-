@@ -1182,6 +1182,7 @@ def main() -> int:
                 "appearance_score": item.appearance_score,
                 "appearance_detail_score": item.appearance_detail_score,
                 "appearance_face_detail_score": item.appearance_face_detail_score,
+                "appearance_face_detail_min_score": item.appearance_face_detail_min_score,
                 "material_score": item.material_score,
                 "texture_resolution_score": item.texture_resolution_score,
                 "base_color_max_edge": item.base_color_max_edge,
