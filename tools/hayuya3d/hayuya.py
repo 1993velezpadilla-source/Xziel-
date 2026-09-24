@@ -236,6 +236,7 @@ def texture_refinement_regressions(source, challenger) -> list[str]:
     # a regression when the incumbent had it.
     for name in (
         "head_texture_detail_score",
+        "head_texel_density_score",
         "visual_score",
         "appearance_score",
         "appearance_face_detail_score",
@@ -1595,6 +1596,106 @@ def main() -> int:
         )
         traceback.print_exc()
 
+    composite_execution = None
+    if composite_plan is not None and composite_plan.executable_now:
+        try:
+            from composite_champion import execute_safe_material_challenger
+            composite_execution = execute_safe_material_challenger(
+                composite_plan,
+                job_dir / "composite",
+                texture_size=profile.texture_size,
+            )
+            if composite_execution.ready:
+                candidates.append((
+                    str(composite_execution.candidate_label),
+                    Path(str(composite_execution.candidate_path)),
+                ))
+                print(
+                    "HAYUYA_COMPOSITE_CANDIDATE_READY "
+                    f"label={composite_execution.candidate_label} "
+                    f"base={composite_execution.base_backend} "
+                    f"donor={composite_execution.donor_backend} "
+                    f"region={composite_execution.region} "
+                    f"path={composite_execution.candidate_path}"
+                )
+                ranked = run_full_ranking()
+                valid = [x for x in ranked if x.valid]
+                base_item = next(
+                    (
+                        x for x in ranked
+                        if x.backend==composite_execution.base_backend
+                    ),
+                    None,
+                )
+                composite_item = next(
+                    (
+                        x for x in ranked
+                        if x.backend==composite_execution.candidate_label
+                    ),
+                    None,
+                )
+                if base_item is None or composite_item is None:
+                    raise RuntimeError(
+                        "composite material challenger missing after re-ranking"
+                    )
+                regressions=texture_refinement_regressions(
+                    base_item,
+                    composite_item,
+                )
+                if regressions:
+                    composite_item.valid=False
+                    composite_item.notes.append(
+                        "Composite Champion monotonic guard rejected: "
+                        + ";".join(regressions)
+                    )
+                    from qa import candidate_rank_key
+                    ranked=sorted(
+                        ranked,
+                        key=lambda x:candidate_rank_key(
+                            x,
+                            mode=mode,
+                            identity_required=any(
+                                infer_detail_region_hint(path)=="head"
+                                for path in detail_inputs
+                            ),
+                        ),
+                        reverse=True,
+                    )
+                    valid=[x for x in ranked if x.valid]
+                    composite_execution.ready=False
+                    composite_execution.error=(
+                        "monotonic_guard:"+ ";".join(regressions)
+                    )
+                    print(
+                        "HAYUYA_COMPOSITE_CANDIDATE_REJECTED "
+                        + composite_execution.error,
+                        file=sys.stderr,
+                    )
+                else:
+                    print(
+                        "HAYUYA_COMPOSITE_CANDIDATE_GUARD_PASS "
+                        f"label={composite_execution.candidate_label}"
+                    )
+            elif composite_execution.attempted:
+                print(
+                    "HAYUYA_COMPOSITE_CANDIDATE_FAILED "
+                    f"{composite_execution.error or 'unknown'}",
+                    file=sys.stderr,
+                )
+        except Exception as exc:
+            print(
+                "HAYUYA_COMPOSITE_EXECUTION_FAILED "
+                f"{type(exc).__name__}: {exc}",
+                file=sys.stderr,
+            )
+            traceback.print_exc()
+
+    ranking_data = [asdict(x) for x in ranked]
+    (job_dir / "ranking.json").write_text(
+        json.dumps(ranking_data, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
     champion = valid[0]
     source = Path(champion.path)
     final_glb = export_glb(source, job_dir / "hayuya_final.glb")
@@ -1777,6 +1878,10 @@ def main() -> int:
             if composite_plan is not None else None
         ),
         "composite_champion_failure": composite_plan_failure,
+        "composite_execution": (
+            asdict(composite_execution)
+            if composite_execution is not None else None
+        ),
         "champion": asdict(champion),
         "final_glb": str(final_glb),
         "gameprep": asdict(gameprep_result) if gameprep_result is not None else None,
