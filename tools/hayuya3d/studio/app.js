@@ -144,6 +144,22 @@ function renderFinalQa(qa) {
     grid.appendChild(item);
   });
 
+  const rebakeResolved = qa.rebaked_channels || [];
+  const rebakePending = qa.rebake_pending_channels || [];
+  if (rebakeResolved.length || rebakePending.length) {
+    const item = document.createElement("div");
+    item.className = "qa-chip metric";
+    const name = document.createElement("span");
+    name.textContent = "Material maps";
+    const value = document.createElement("strong");
+    const parts = [];
+    if (rebakeResolved.length) parts.push("rebuilt " + rebakeResolved.join(" + "));
+    if (rebakePending.length) parts.push("pending " + rebakePending.join(" + "));
+    value.textContent = parts.join(" · ");
+    item.append(name, value);
+    grid.appendChild(item);
+  }
+
   [
     ["Face score", qa.face_score],
     ["FaceMesh", qa.facemesh_score],
