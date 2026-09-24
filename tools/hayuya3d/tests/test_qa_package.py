@@ -126,6 +126,7 @@ class QAPackageTests(unittest.TestCase):
             self.assertEqual(evaluated.face_evidence_expected,1)
             self.assertEqual(evaluated.face_evidence_evaluated,1)
             self.assertEqual(evaluated.face_evidence_missing,[])
+            self.assertEqual(evaluated.face_evidence_min_score,94.0)
 
     def test_face_reference_requires_complete_per_reference_coverage(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -175,6 +176,7 @@ class QAPackageTests(unittest.TestCase):
                 partial.face_evidence_missing,
                 [str(face_profile)],
             )
+            self.assertEqual(partial.face_evidence_min_score,93.0)
             self.assertTrue(
                 any("coverage incomplete" in w for w in partial.warnings),
                 partial.warnings,
@@ -209,6 +211,7 @@ class QAPackageTests(unittest.TestCase):
             self.assertTrue(complete.face_evidence_ready)
             self.assertEqual(complete.face_evidence_evaluated,2)
             self.assertEqual(complete.face_evidence_missing,[])
+            self.assertEqual(complete.face_evidence_min_score,91.0)
 
 
     def test_unresolved_material_rebakes_are_detected_per_lod(self):
