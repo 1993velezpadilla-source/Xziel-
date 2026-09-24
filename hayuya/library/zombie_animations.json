@@ -983,9 +983,9 @@
               ],
               "license": "CC0",
               "source_url": "https://quaternius.com/packs/animatedzombie.html",
-              "availability": "local",
+              "availability": "local_archive",
               "one_tap_ready": false,
-              "local_archive_path": "hayuya/source_archives/quaternius_animated_zombie",
+              "local_archive_path": "hayuya/source_archives/quaternius_animated_zombie/quaternius_animated_zombie.zip",
               "ingest_note": "Original CC0 source and a self-contained animated GLB preview are local in HAYUYA.",
               "local_path": "hayuya/animation_library/quaternius-animated-zombie/model.glb",
               "embedded_actions": [
@@ -995,7 +995,8 @@
                 "ZombieIdle_Zombie",
                 "ZombieRun_Zombie",
                 "ZombieWalk_Zombie"
-              ]
+              ],
+              "notes": "CC0 source ZIP stored locally in HAYUYA; preview model also local."
             },
             {
               "id": "quaternius_universal_anim1",
