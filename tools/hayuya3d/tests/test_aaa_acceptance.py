@@ -52,6 +52,12 @@ def base_qa():
             "tested_pairs":2,
             "crossing_triangle_pairs":0,
         },
+        "self_intersection":{
+            "applicable":True,
+            "ready":True,
+            "audited_component_count":1,
+            "crossing_triangle_pairs":0,
+        },
         "source_coverage":{"expected":2,"judged":2},
         "turntable_qa":{"ready":True},
         "material":{
@@ -156,6 +162,20 @@ class AAAAcceptanceTests(unittest.TestCase):
             any(
                 "cross" in item.lower()
                 or "interpenetrate" in item.lower()
+                for item in report.blockers
+            ),
+            report.blockers,
+        )
+
+    def test_self_intersection_blocks_aaa(self):
+        qa=base_qa()
+        qa["self_intersection"]["ready"]=False
+        qa["self_intersection"]["crossing_triangle_pairs"]=5
+        report=evaluate_aaa_acceptance(base_manifest(),qa)
+        self.assertFalse(report.ready)
+        self.assertTrue(
+            any(
+                "self-intersect" in item.lower()
                 for item in report.blockers
             ),
             report.blockers,
