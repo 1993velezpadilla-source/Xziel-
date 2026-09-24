@@ -27,13 +27,12 @@ class HighEndTextureContractTests(unittest.TestCase):
             image=root/"front.png"
             from PIL import Image
             Image.new("RGB",(32,32),(120,80,60)).save(image)
-            plan=hayuya.build_plan(
+            plan=hayuya.make_job_plan(
                 [image],
-                "monster",
+                profile_name="monster",
                 mode="character",
                 seed=1993,
-                gpu_vram=24,
-                allow_restricted=False,
+                selected_backends=["trellis2"],
                 model_root=root/"models",
                 texture_superres_mode="auto",
             )
