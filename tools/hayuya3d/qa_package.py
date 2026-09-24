@@ -28,6 +28,7 @@ class QAPackageResult:
     turntable_score: float | None
     face_evidence_ready: bool
     face_evidence_score: float | None
+    head_density_score: float | None
     production_ready: bool
     warnings: list[str]
 
@@ -424,6 +425,10 @@ def build_qa_package(
         face_evidence_score=(
             float(face_evidence_score)
             if face_evidence_score is not None else None
+        ),
+        head_density_score=(
+            float(mesh.head_density_score)
+            if mesh.head_density_score is not None else None
         ),
         production_ready=production_ready,
         warnings=warnings,
