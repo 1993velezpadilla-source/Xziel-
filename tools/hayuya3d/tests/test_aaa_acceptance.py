@@ -68,6 +68,14 @@ def base_qa():
             "joint_count":65,
             "animations":3,
         },
+        "skin_weights":{
+            "applicable":True,
+            "ready":True,
+            "weighted_vertices":12000,
+            "zero_weight_vertices":0,
+            "non_normalized_vertices":0,
+            "invalid_joint_references":0,
+        },
         "warnings":[],
     }
 
@@ -121,6 +129,17 @@ class AAAAcceptanceTests(unittest.TestCase):
         self.assertFalse(report.ready)
         self.assertTrue(
             any("PBR" in x for x in report.blockers),
+            report.blockers,
+        )
+
+    def test_invalid_skin_weights_fail(self):
+        qa=base_qa()
+        qa["skin_weights"]["ready"]=False
+        qa["skin_weights"]["non_normalized_vertices"]=12
+        report=evaluate_aaa_acceptance(base_manifest(),qa)
+        self.assertFalse(report.ready)
+        self.assertTrue(
+            any("skin weights" in x.lower() for x in report.blockers),
             report.blockers,
         )
 
