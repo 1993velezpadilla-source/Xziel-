@@ -111,6 +111,70 @@ function showModel(url, label, meta="") {
   viewer.src = url;
 }
 
+function renderSemanticAnatomy(semantic) {
+  const section = $("semanticSection");
+  const summary = $("semanticSummary");
+  const grid = $("semanticParts");
+  if (!semantic) {
+    section.hidden = true;
+    summary.textContent = "";
+    grid.replaceChildren();
+    return;
+  }
+
+  section.hidden = false;
+  const ready = Boolean(semantic.ready);
+  $("semanticState").textContent = ready ? "PASS" : "BLOCKED";
+  $("semanticState").className = ready ? "qa-state ready" : "qa-state blocked";
+
+  const targets = Array.isArray(semantic.critical_targets)
+    ? semantic.critical_targets
+    : [];
+  const aggregate = semantic.aggregate || {};
+  const parts = Array.isArray(aggregate.parts) ? aggregate.parts : [];
+  const missing = Array.isArray(aggregate.missing_parts)
+    ? aggregate.missing_parts
+    : [];
+  const views = Array.isArray(semantic.rendered_views)
+    ? semantic.rendered_views.length
+    : 0;
+
+  summary.textContent = [
+    targets.length ? "targets " + targets.join(", ") : "no critical targets",
+    views + " rendered views",
+    missing.length ? "missing " + missing.join(", ") : "all required parts detected",
+  ].join(" · ");
+
+  grid.replaceChildren();
+  parts.forEach((part) => {
+    const item = document.createElement("div");
+    item.className = "qa-chip " + (part.ready ? "pass" : "fail");
+    const name = document.createElement("span");
+    name.textContent = String(part.part || "part");
+    const value = document.createElement("strong");
+    const detectedViews = Number(part.detected_views || 0);
+    const score = part.best_grounding_score == null
+      ? ""
+      : " · " + Number(part.best_grounding_score).toFixed(2);
+    value.textContent = (part.ready ? "PASS" : "MISS") + " · " + detectedViews + " view" + (detectedViews === 1 ? "" : "s") + score;
+    item.title = Array.isArray(part.views) ? part.views.join(" · ") : "";
+    item.append(name, value);
+    grid.appendChild(item);
+  });
+
+  if (!parts.length && semantic.error) {
+    const item = document.createElement("div");
+    item.className = "qa-chip fail";
+    const name = document.createElement("span");
+    name.textContent = "Semantic proof";
+    const value = document.createElement("strong");
+    value.textContent = "UNAVAILABLE";
+    item.title = String(semantic.error);
+    item.append(name, value);
+    grid.appendChild(item);
+  }
+}
+
 function renderPortablePack(pack) {
   const section = $("portableSection");
   const summary = $("portableSummary");
@@ -645,6 +709,7 @@ async function refreshJob() {
   setProgress(state.job.stage, state.job.progress, state.job.status);
   renderCandidates(state.job);
   renderCompositePlan(state.job.composite_plan, state.job.composite_details);
+  renderSemanticAnatomy(state.job.semantic_anatomy);
   renderPortablePack(state.job.portable_pack);
   renderAAA(state.job.aaa_acceptance);
   renderFinalQa(state.job.final_qa);
@@ -713,6 +778,14 @@ function handleEvent(event) {
   if (event.kind === "qa_ready") {
     renderFinalQa(event.qa);
   }
+  if (event.kind === "semantic_anatomy" && event.semantic) {
+    if (state.job) state.job.semantic_anatomy = event.semantic;
+    renderSemanticAnatomy(event.semantic);
+    appendLog(
+      "Semantic anatomy: "
+      + (event.semantic.ready ? "PASS" : "BLOCKED")
+    );
+  }
   if (event.kind === "portable_pack" && event.pack) {
     if (state.job) state.job.portable_pack = event.pack;
     renderPortablePack(event.pack);
@@ -742,6 +815,7 @@ async function attachJob(jobId) {
   setProgress(state.job.stage, state.job.progress, state.job.status);
   renderCandidates(state.job);
   renderCompositePlan(state.job.composite_plan, state.job.composite_details);
+  renderSemanticAnatomy(state.job.semantic_anatomy);
   renderPortablePack(state.job.portable_pack);
   renderAAA(state.job.aaa_acceptance);
   renderFinalQa(state.job.final_qa);
