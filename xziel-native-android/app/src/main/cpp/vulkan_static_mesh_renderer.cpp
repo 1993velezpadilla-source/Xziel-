@@ -4833,7 +4833,7 @@ void VulkanStaticMeshRenderer::record(
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u draw_submissions=%u indirect_draws=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u multi_draw_indirect=%u portal_tests=%u portal_culled=%u portal_skipped=%u cell_frustum_tests=%u cell_frustum_culled=%u cell_range_skipped=%u cell_frustum_skipped=%u batch_frustum_tests=%u material_visibility_tests=%u material_visibility_cache_hits=%u",
+            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u submitted_triangles=%llu draw_submissions=%u indirect_draws=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u multi_draw_indirect=%u portal_tests=%u portal_culled=%u portal_skipped=%u cell_frustum_tests=%u cell_frustum_culled=%u cell_range_skipped=%u cell_frustum_skipped=%u batch_frustum_tests=%u material_visibility_tests=%u material_visibility_cache_hits=%u",
             static_cast<unsigned int>(
                 frameStats_.streamingCell),
             static_cast<unsigned int>(
@@ -4846,6 +4846,8 @@ void VulkanStaticMeshRenderer::record(
                     streamingCulledBatches),
             static_cast<unsigned int>(
                 frameStats_.drawCalls),
+            static_cast<unsigned long long>(
+                frameStats_.submittedTriangles),
             static_cast<unsigned int>(
                 frameStats_.drawSubmissions),
             static_cast<unsigned int>(
