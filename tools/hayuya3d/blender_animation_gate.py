@@ -153,7 +153,7 @@ def build_edge_samples(meshes, rest_positions, rest_bounds, max_edges, up_axis):
             sampled.append(candidates[int(idx)])
             idx+=step
         candidates=sampled
-    return candidates,up_axis
+    return candidates
 
 
 def canonical_action_name(name):
