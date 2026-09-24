@@ -317,6 +317,41 @@ def main():
     bpy.context.view_layer.update()
     arm_world_after=[list(row) for row in arm.matrix_world]
 
+    # Retarget the donor motion onto the FITTED rest skeleton instead of
+    # replaying donor-space translations/scales. glTF animation imports often
+    # bake local joint translation on every bone. Once the rest skeleton is
+    # resized/repositioned for the generated character, those old translations
+    # pull joints back toward donor proportions and create catastrophic skin
+    # stretch. For game characters we want in-place locomotion anyway: preserve
+    # rotations, keep the fitted rest offsets/lengths, and let the engine own
+    # world/root translation.
+    animation_retarget={
+        "method":"rotation_only_on_fitted_rest_v26",
+        "actions":0,
+        "removed_location_curves":0,
+        "removed_scale_curves":0,
+        "kept_rotation_curves":0,
+        "kept_other_curves":0,
+    }
+    for action in bpy.data.actions:
+        animation_retarget["actions"]+=1
+        for fcurve in list(action.fcurves):
+            path=str(getattr(fcurve,"data_path","") or "")
+            is_location=(path=="location" or path.endswith(".location"))
+            is_scale=(path=="scale" or path.endswith(".scale"))
+            is_rotation=("rotation_quaternion" in path or "rotation_euler" in path or "rotation_axis_angle" in path)
+            if is_location:
+                action.fcurves.remove(fcurve)
+                animation_retarget["removed_location_curves"]+=1
+            elif is_scale:
+                action.fcurves.remove(fcurve)
+                animation_retarget["removed_scale_curves"]+=1
+            elif is_rotation:
+                animation_retarget["kept_rotation_curves"]+=1
+            else:
+                animation_retarget["kept_other_curves"]+=1
+    bpy.context.view_layer.update()
+
     # Production skinning: use the fitted skeleton itself as the weighting
     # field. AI-generated meshes may contain hundreds/thousands of disconnected
     # islands, so donor-mesh nearest-neighbour weights can jump abruptly across
@@ -708,9 +743,10 @@ def main():
         "armature_object_transform_baked":True,
         "armature_world_before":arm_world_before,
         "armature_world_after":arm_world_after,
+        "animation_retarget":animation_retarget,
         "export_meshes":remaining_meshes,
         "sterile_export_scene_meshes":export_scene_meshes,
-        "binding_method":"local_anatomical_bone_envelope_masked_smoothing_v25",
+        "binding_method":"rotation_only_retarget_local_anatomical_v26",
         "bind_results":bind_results,
         "output_bytes":args.output.stat().st_size if args.output.exists() else 0,
     }
