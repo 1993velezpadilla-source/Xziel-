@@ -186,6 +186,7 @@ function renderFinalQa(qa) {
     ["Texture", qa.texture_ready],
     ["Rebake", qa.rebake_ready],
     ["Rig", qa.rig_ready],
+    ["SkinWeights", qa.skin_weights_ready],
     ["Animation", qa.animation_ready],
     ["Face refs", qa.face_ready],
     ["Face evidence", qa.face_quality_ready],
