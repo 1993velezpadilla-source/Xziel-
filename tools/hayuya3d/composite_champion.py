@@ -616,6 +616,22 @@ def execute_safe_accessory_challenger(
         break
 
     if donor is None:
+        deferred_error=None
+        if plan.mode=="character":
+            for item in plan.detail_donors:
+                if detail_source is not None and item.source!=detail_source:
+                    continue
+                if (
+                    item.strategy=="matched_detached_accessory_swap_then_mesh_doctor"
+                    and bool((item.accessory_match or {}).get("ready"))
+                ):
+                    deferred_error=(
+                        "character accessory geometry remains deferred unless "
+                        "the base has a proven topology-preserving rigged wrap; "
+                        "brand-new/replaced topology requires explicit skin-weight "
+                        "and morph transfer"
+                    )
+                    break
         return LocalDetailExecutionResult(
             attempted=False,
             ready=False,
@@ -626,7 +642,7 @@ def execute_safe_accessory_challenger(
             candidate_label=None,
             candidate_path=None,
             fusion=None,
-            error=None,
+            error=deferred_error,
         )
 
     by_backend={item.backend:item for item in plan.finalists}
