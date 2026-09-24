@@ -272,6 +272,8 @@ def insert_split_rigged_accessory(
         inserted_faces = 0
         all_source_ratios = []
         transferred_semantics = set()
+        surface_fallback_vertices = 0
+        surface_transfer_method = "hayuya-surface-transfer-barycentric-v1"
 
         for group_index, group in enumerate(source.groups):
             primitive, donor_used, donor_world, donor_faces = _group_geometry(
@@ -303,6 +305,10 @@ def insert_split_rigged_accessory(
                 surface_relation.nearest_vertex_ids,
                 dtype=np.int64,
             )
+            surface_fallback_vertices += int(
+                surface_relation.fallback_vertices
+            )
+            surface_transfer_method = str(surface_relation.method)
             if int(surface_relation.fallback_vertices) > 0:
                 warnings.append(
                     "surface_transfer_fallback_vertices="
@@ -593,6 +599,10 @@ def insert_split_rigged_accessory(
             bbox_drift_fraction=round(bbox_drift, 8),
             warnings=warnings,
             errors=errors,
+            surface_transfer_method=surface_transfer_method,
+            surface_transfer_fallback_vertices=int(
+                surface_fallback_vertices
+            ),
         )
     except Exception as exc:
         return fail(f"{type(exc).__name__}:{exc}")
