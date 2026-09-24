@@ -60,6 +60,7 @@ class CandidateState:
     appearance_score: float | None = None
     detail_score: float | None = None
     face_detail_score: float | None = None
+    face_detail_min_score: float | None = None
     material_score: float | None = None
     texture_resolution_score: float | None = None
     base_color_max_edge: int | None = None
@@ -383,6 +384,10 @@ def hydrate_candidate_ranking(job: JobState, ranking: list[dict]) -> None:
             candidate.detail_score = float(item["appearance_detail_score"])
         if item.get("appearance_face_detail_score") is not None:
             candidate.face_detail_score = float(item["appearance_face_detail_score"])
+        if item.get("appearance_face_detail_min_score") is not None:
+            candidate.face_detail_min_score = float(
+                item["appearance_face_detail_min_score"]
+            )
         if item.get("material_score") is not None:
             candidate.material_score = float(item["material_score"])
         if item.get("texture_resolution_score") is not None:
