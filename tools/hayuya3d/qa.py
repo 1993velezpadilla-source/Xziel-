@@ -20,6 +20,8 @@ class MeshScore:
     visual_views: list[dict] | None = None
     appearance_score: float | None = None
     appearance_views: list[dict] | None = None
+    appearance_detail_score: float | None = None
+    appearance_details: list[dict] | None = None
     normal_support_score: float | None = None
     normal_support_views: list[dict] | None = None
     vertices: int = 0
@@ -360,6 +362,16 @@ def rank_candidates(
                                 )
                                 item.appearance_score = appearance.score
                                 item.appearance_views = [_asdict(v) for v in appearance.views]
+                                item.appearance_detail_score = appearance.detail_score
+                                item.appearance_details = (
+                                    [_asdict(v) for v in (appearance.details or [])]
+                                    if appearance.details is not None else None
+                                )
+                                if item.appearance_detail_score is not None:
+                                    item.notes.append(
+                                        f"detail_fidelity={item.appearance_detail_score:.3f} "
+                                        f"detail_refs={len(item.appearance_details or [])}"
+                                    )
 
                                 # Preserve the proven v2 production:silhouette ratio inside
                                 # the non-appearance share, then add DINO appearance evidence.
