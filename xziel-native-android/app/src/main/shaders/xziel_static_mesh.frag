@@ -178,10 +178,7 @@ void main() {
     float lightning =
         viewmodel
         ? 0.0
-        : clamp(
-              pc.environment.x,
-              0.0,
-              2.0);
+        : pc.environment.x;
 
     vec4 albedo =
         texture(
@@ -255,9 +252,7 @@ void main() {
             vec3 detailNormal =
                 mappedNormal(
                     geometricNormal,
-                    max(
-                        pc.metallicRoughnessNormalOcclusion.z,
-                        0.0));
+                    pc.metallicRoughnessNormalOcclusion.z);
 
             normal =
                 normalize(
@@ -269,15 +264,9 @@ void main() {
     }
 
     float metallic =
-        clamp(
-            pc.metallicRoughnessNormalOcclusion.x,
-            0.0,
-            1.0);
+        pc.metallicRoughnessNormalOcclusion.x;
     float roughness =
-        clamp(
-            pc.metallicRoughnessNormalOcclusion.y,
-            0.045,
-            1.0);
+        pc.metallicRoughnessNormalOcclusion.y;
     float occlusion = 1.0;
 
     if (hasOrm &&
@@ -311,10 +300,7 @@ void main() {
                 mix(
                     1.0,
                     orm.r,
-                    clamp(
-                        pc.metallicRoughnessNormalOcclusion.w,
-                        0.0,
-                        1.0));
+                    pc.metallicRoughnessNormalOcclusion.w);
             roughness =
                 clamp(
                     orm.g * roughness,

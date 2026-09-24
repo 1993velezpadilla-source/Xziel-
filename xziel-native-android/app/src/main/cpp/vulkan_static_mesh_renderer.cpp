@@ -557,6 +557,12 @@ bool VulkanStaticMeshRenderer::initialize(
     __android_log_print(
         ANDROID_LOG_INFO,
         kTag,
+        "XZIEL_CPU_CLAMPED_MATERIAL_CONSTANTS_READY");
+
+
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
         "XZIEL_GEOMETRY_BUDGET_READY budget_mb=%.2f",
         static_cast<double>(
             geometryResidentBudgetBytes_) /
@@ -4832,13 +4838,24 @@ void VulkanStaticMeshRenderer::record(
             materialPush.baseColorFactorA =
                 material.baseColorFactor[3];
             materialPush.metallicFactor =
-                material.metallicFactor;
+                std::clamp(
+                    material.metallicFactor,
+                    0.0f,
+                    1.0f);
             materialPush.roughnessFactor =
-                material.roughnessFactor;
+                std::clamp(
+                    material.roughnessFactor,
+                    0.045f,
+                    1.0f);
             materialPush.normalScale =
-                material.normalScale;
+                std::max(
+                    material.normalScale,
+                    0.0f);
             materialPush.occlusionStrength =
-                material.occlusionStrength;
+                std::clamp(
+                    material.occlusionStrength,
+                    0.0f,
+                    1.0f);
             materialPush.emissiveFactorR =
                 material.emissiveFactor[0];
             materialPush.emissiveFactorG =
@@ -5855,10 +5872,25 @@ void VulkanStaticMeshRenderer::recordViewmodel(
             materialPush.baseColorFactorG = material.baseColorFactor[1];
             materialPush.baseColorFactorB = material.baseColorFactor[2];
             materialPush.baseColorFactorA = material.baseColorFactor[3];
-            materialPush.metallicFactor = material.metallicFactor;
-            materialPush.roughnessFactor = material.roughnessFactor;
-            materialPush.normalScale = material.normalScale;
-            materialPush.occlusionStrength = material.occlusionStrength;
+            materialPush.metallicFactor =
+                std::clamp(
+                    material.metallicFactor,
+                    0.0f,
+                    1.0f);
+            materialPush.roughnessFactor =
+                std::clamp(
+                    material.roughnessFactor,
+                    0.045f,
+                    1.0f);
+            materialPush.normalScale =
+                std::max(
+                    material.normalScale,
+                    0.0f);
+            materialPush.occlusionStrength =
+                std::clamp(
+                    material.occlusionStrength,
+                    0.0f,
+                    1.0f);
             materialPush.emissiveFactorR = material.emissiveFactor[0];
             materialPush.emissiveFactorG = material.emissiveFactor[1];
             materialPush.emissiveFactorB = material.emissiveFactor[2];
