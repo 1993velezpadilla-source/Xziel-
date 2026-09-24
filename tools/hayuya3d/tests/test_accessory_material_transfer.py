@@ -724,6 +724,99 @@ class AccessoryMaterialTransferTests(unittest.TestCase):
             self.assertTrue(production.morph_deformation_ready)
             self.assertTrue(production.attachment_ready)
 
+    def test_composite_executes_split_material_cluster_end_to_end(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            base_path = root / "base.glb"
+            donor_path = root / "split-cluster.glb"
+            source = "/refs/rosary_split_material.png"
+            write_skinned_base_with_normals(base_path)
+            write_split_material_cluster_donor(donor_path)
+
+            base = _candidate(
+                "base",
+                base_path,
+                96.0,
+                detail_source=source,
+                detail_score=70.0,
+            )
+            donor = _candidate(
+                "donor",
+                donor_path,
+                84.0,
+                detail_source=source,
+                detail_score=98.0,
+            )
+            plan = build_composite_plan(
+                [base, donor],
+                mode="character",
+                inspect_parts=True,
+            )
+            detail = next(
+                item for item in plan.detail_donors
+                if item.source == source
+            )
+            token = "detail:" + source
+            self.assertEqual(
+                detail.strategy,
+                "new_rigged_accessory_insert_weight_morph_transfer",
+            )
+            self.assertTrue(
+                detail.accessory_match["rigged_insert_supported"],
+                detail.accessory_match,
+            )
+            self.assertTrue(
+                detail.accessory_match["rigged_insert_material_ready"],
+                detail.accessory_match,
+            )
+            self.assertIn(token, plan.executable_now)
+            self.assertNotIn(token, plan.deferred_transfers)
+
+            result = execute_safe_accessory_challenger(
+                plan,
+                root / "composite",
+                detail_source=source,
+                texture_size=256,
+            )
+            self.assertTrue(result.attempted)
+            self.assertTrue(result.ready, result.error)
+            self.assertTrue(Path(result.candidate_path or "").is_file())
+            self.assertTrue(result.fusion)
+            self.assertTrue(result.fusion["production_ready"])
+            self.assertTrue(result.fusion["material_ready"])
+            self.assertTrue(result.fusion["uv_ready"])
+            self.assertTrue(result.fusion["uv_tangent_ready"])
+            self.assertTrue(result.fusion["legacy_payload_preserved"])
+            self.assertTrue(result.fusion["rig_ready"])
+            self.assertTrue(result.fusion["skin_weights_ready"])
+            self.assertTrue(result.fusion["morph_deformation_ready"])
+            self.assertTrue(result.fusion["attachment_ready"])
+            self.assertIn("baseColor", result.fusion["material_channels"])
+
+            from tools.hayuya3d.glb_images import read_glb
+            final_doc, _ = read_glb(Path(result.candidate_path))
+            skinned_node = next(
+                node
+                for node in final_doc.get("nodes") or []
+                if isinstance(node.get("mesh"), int)
+                and isinstance(node.get("skin"), int)
+            )
+            mesh = final_doc["meshes"][int(skinned_node["mesh"])]
+            primitives = mesh.get("primitives") or []
+            self.assertEqual(len(primitives), 4)
+            accessory_primitives = primitives[1:]
+            self.assertTrue(all(
+                isinstance(item.get("material"), int)
+                for item in accessory_primitives
+            ))
+            self.assertEqual(
+                len({
+                    int(item["material"])
+                    for item in accessory_primitives
+                }),
+                3,
+            )
+
     def test_untextured_donor_material_support_fails_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
             donor = Path(tmp) / "donor.glb"
