@@ -251,6 +251,137 @@ def write_textured_donor(path: Path) -> None:
     write_glb(path, doc, bytes(blob))
 
 
+def write_shared_atlas_cluster_donor(path: Path) -> None:
+    body = trimesh.creation.icosphere(subdivisions=2, radius=1.0)
+    body_v = np.asarray(body.vertices, dtype=np.float32)
+    body_f = np.asarray(body.faces, dtype=np.int64)
+
+    pieces = []
+    for center in (
+        (0.0, 1.06, 0.0),
+        (0.0, 1.17, 0.0),
+        (0.0, 1.28, 0.0),
+    ):
+        local = np.asarray([
+            [-0.045, -0.040, -0.035],
+            [ 0.045, -0.040, -0.035],
+            [ 0.000,  0.050, -0.025],
+            [ 0.000,  0.000,  0.050],
+        ], dtype=np.float32)
+        local += np.asarray(center, dtype=np.float32)
+        faces = np.asarray([
+            [0, 2, 1],
+            [0, 1, 3],
+            [1, 2, 3],
+            [2, 0, 3],
+        ], dtype=np.int64)
+        pieces.append((local, faces))
+
+    vertices = [body_v]
+    faces = [body_f]
+    cursor = len(body_v)
+    for vv, ff in pieces:
+        vertices.append(vv)
+        faces.append(ff + cursor)
+        cursor += len(vv)
+    vertices = np.concatenate(vertices, axis=0).astype(np.float32)
+    faces = np.concatenate(faces, axis=0).astype(np.uint16)
+
+    combined = trimesh.Trimesh(
+        vertices=vertices,
+        faces=np.asarray(faces, dtype=np.int64),
+        process=False,
+    )
+    normals = np.asarray(combined.vertex_normals, dtype=np.float32)
+
+    uvs = np.zeros((len(vertices), 2), dtype=np.float32)
+    cursor = len(body_v)
+    piece_uv = np.asarray([
+        [0.05, 0.05],
+        [0.35, 0.08],
+        [0.14, 0.38],
+        [0.38, 0.34],
+    ], dtype=np.float32)
+    offsets = (
+        (0.00, 0.00),
+        (0.48, 0.00),
+        (0.22, 0.52),
+    )
+    for offset in offsets:
+        uv = piece_uv + np.asarray(offset, dtype=np.float32)
+        uvs[cursor:cursor + 4] = uv
+        cursor += 4
+
+    image = Image.new("RGBA", (32, 32), (176, 120, 42, 255))
+    stream = io.BytesIO()
+    image.save(stream, format="PNG")
+    png = stream.getvalue()
+
+    blob = bytearray()
+    payloads = [
+        vertices.astype("<f4").tobytes(),
+        normals.astype("<f4").tobytes(),
+        uvs.astype("<f4").tobytes(),
+        faces.astype("<u2").reshape(-1).tobytes(),
+        png,
+    ]
+    chunks = [_append(blob, payload) for payload in payloads]
+    views = [
+        {"buffer": 0, "byteOffset": off, "byteLength": size}
+        for off, size in chunks
+    ]
+    accessors = [
+        {
+            "bufferView": 0, "componentType": 5126,
+            "count": len(vertices), "type": "VEC3",
+            "min": vertices.min(axis=0).astype(float).tolist(),
+            "max": vertices.max(axis=0).astype(float).tolist(),
+        },
+        {
+            "bufferView": 1, "componentType": 5126,
+            "count": len(normals), "type": "VEC3",
+        },
+        {
+            "bufferView": 2, "componentType": 5126,
+            "count": len(uvs), "type": "VEC2",
+        },
+        {
+            "bufferView": 3, "componentType": 5123,
+            "count": int(faces.size), "type": "SCALAR",
+        },
+    ]
+    doc = {
+        "asset": {"version": "2.0"},
+        "buffers": [{"byteLength": len(blob)}],
+        "bufferViews": views,
+        "accessors": accessors,
+        "images": [{"bufferView": 4, "mimeType": "image/png"}],
+        "textures": [{"source": 0}],
+        "materials": [{
+            "pbrMetallicRoughness": {
+                "baseColorTexture": {"index": 0},
+                "metallicFactor": 0.1,
+                "roughnessFactor": 0.48,
+            }
+        }],
+        "meshes": [{
+            "primitives": [{
+                "attributes": {
+                    "POSITION": 0,
+                    "NORMAL": 1,
+                    "TEXCOORD_0": 2,
+                },
+                "indices": 3,
+                "material": 0,
+            }]
+        }],
+        "nodes": [{"mesh": 0}],
+        "scenes": [{"nodes": [0]}],
+        "scene": 0,
+    }
+    write_glb(path, doc, bytes(blob))
+
+
 class AccessoryMaterialTransferTests(unittest.TestCase):
     def test_textured_donor_material_becomes_valid_inserted_primitive(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -290,6 +421,51 @@ class AccessoryMaterialTransferTests(unittest.TestCase):
             self.assertTrue(transfer.uv_tangent_ready)
             self.assertTrue(transfer.shading_basis_ready)
             self.assertFalse(transfer.tangent_generated)
+            self.assertTrue(audit_uv_tangents(final).ready)
+            self.assertTrue(audit_shading_basis(final).ready)
+
+    def test_shared_atlas_multi_piece_cluster_transfers_as_one_material(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            base = root / "base.glb"
+            donor = root / "cluster.glb"
+            raw = root / "cluster-raw.glb"
+            final = root / "cluster-final.glb"
+            write_skinned_base_with_normals(base)
+            write_shared_atlas_cluster_donor(donor)
+
+            supported, blocker = accessory_material_transfer_supported(
+                donor,
+                up_axis="y",
+            )
+            self.assertTrue(supported, blocker)
+
+            inserted = insert_rigged_accessory(
+                base,
+                donor,
+                raw,
+            )
+            self.assertTrue(inserted.geometry_ready, inserted.errors)
+            self.assertEqual(inserted.spatial_label, "cluster")
+            self.assertFalse(inserted.production_ready)
+
+            transfer = transfer_accessory_material(
+                donor,
+                raw,
+                final,
+                donor_up_axis="y",
+            )
+            self.assertTrue(transfer.ready, transfer.errors)
+            self.assertEqual(len(transfer.donor_component_ids), 3)
+            self.assertEqual(
+                transfer.uv_vertices,
+                inserted.inserted_vertices,
+            )
+            self.assertEqual(transfer.copied_images, 1)
+            self.assertEqual(transfer.copied_textures, 1)
+            self.assertIn("baseColor", transfer.copied_channels)
+            self.assertTrue(transfer.uv_tangent_ready)
+            self.assertTrue(transfer.shading_basis_ready)
             self.assertTrue(audit_uv_tangents(final).ready)
             self.assertTrue(audit_shading_basis(final).ready)
 
