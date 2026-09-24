@@ -371,6 +371,8 @@ function renderFinalQa(qa) {
     ["Rig", qa.rig_ready],
     ["Surface crossings", qa.crossing_ready],
     ["Self intersections", qa.self_intersection_ready],
+    ["UV / Tangent", qa.uv_tangent_ready],
+    ["Shading basis", qa.shading_basis_ready],
     ...(Number(qa.morph_targets || 0) > 0 ? [["Morphs", qa.morph_ready]] : []),
     ["SkinWeights", qa.skin_weights_ready],
     ["Animation", qa.animation_ready],
@@ -410,6 +412,43 @@ function renderFinalQa(qa) {
     }
     if (qa.self_intersection_pairs != null) {
       parts.push(Number(qa.self_intersection_pairs) + " self-crossings");
+    }
+    value.textContent = parts.join(" · ");
+    item.append(name, value);
+    grid.appendChild(item);
+  }
+
+  if (
+    qa.uv_missing != null
+    || qa.uv_degenerate != null
+    || qa.shading_missing_normals != null
+    || qa.shading_missing_tangents != null
+    || qa.shading_bad_handedness != null
+    || qa.shading_nonorthogonal != null
+  ) {
+    const item = document.createElement("div");
+    item.className = "qa-chip metric";
+    const name = document.createElement("span");
+    name.textContent = "Shading topology";
+    const value = document.createElement("strong");
+    const parts = [];
+    if (qa.uv_missing != null) {
+      parts.push(Number(qa.uv_missing) + " missing UV");
+    }
+    if (qa.uv_degenerate != null) {
+      parts.push(Number(qa.uv_degenerate) + " degenerate UV tris");
+    }
+    if (qa.shading_missing_normals != null) {
+      parts.push(Number(qa.shading_missing_normals) + " missing normals");
+    }
+    if (qa.shading_missing_tangents != null) {
+      parts.push(Number(qa.shading_missing_tangents) + " missing tangents");
+    }
+    if (qa.shading_bad_handedness != null) {
+      parts.push(Number(qa.shading_bad_handedness) + " bad handedness");
+    }
+    if (qa.shading_nonorthogonal != null) {
+      parts.push(Number(qa.shading_nonorthogonal) + " non-ortho");
     }
     value.textContent = parts.join(" · ");
     item.append(name, value);
