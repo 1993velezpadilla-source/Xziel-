@@ -1597,34 +1597,68 @@ def main() -> int:
 
     composite_plan = None
     composite_plan_failure = None
-    try:
-        from composite_champion import (
-            build_composite_plan,
-            write_composite_plan,
+    composite_execution = None
+    composite_head_execution = None
+
+    from composite_champion import (
+        build_composite_plan,
+        execute_safe_head_wrap_challenger,
+        execute_safe_material_challenger,
+        write_composite_plan,
+    )
+    from qa import candidate_rank_key
+
+    identity_required = any(
+        infer_detail_region_hint(path)=="head"
+        for path in detail_inputs
+    )
+
+    def sort_current_ranking():
+        nonlocal ranked, valid
+        ranked=sorted(
+            ranked,
+            key=lambda item:candidate_rank_key(
+                item,
+                mode=mode,
+                identity_required=identity_required,
+            ),
+            reverse=True,
         )
-        composite_plan = build_composite_plan(
+        valid=[item for item in ranked if item.valid]
+
+    def remove_candidate(label: str | None):
+        if not label:
+            return
+        candidates[:] = [pair for pair in candidates if pair[0] != label]
+
+    def refresh_composite_plan():
+        current=build_composite_plan(
             valid,
             mode=mode,
             max_finalists=5,
             inspect_parts=True,
         )
-        composite_path = write_composite_plan(
-            composite_plan,
+        composite_path=write_composite_plan(
+            current,
             job_dir / "composite_champion_plan.json",
         )
         donor_summary=";".join(
             f"{item.region}:{item.donor_backend}"
-            for item in composite_plan.donors
-            if item.donor_backend != composite_plan.base_backend
+            for item in current.donors
+            if item.donor_backend != current.base_backend
         ) or "base_only"
         print(
             "HAYUYA_COMPOSITE_PLAN_READY "
-            f"base={composite_plan.base_backend} "
-            f"required={str(bool(composite_plan.composite_required)).lower()} "
-            f"finalists={len(composite_plan.finalists)} "
+            f"base={current.base_backend} "
+            f"required={str(bool(current.composite_required)).lower()} "
+            f"finalists={len(current.finalists)} "
             f"donors={donor_summary} "
             f"plan={composite_path}"
         )
+        return current
+
+    try:
+        composite_plan=refresh_composite_plan()
     except Exception as exc:
         composite_plan_failure=f"{type(exc).__name__}: {exc}"
         print(
@@ -1633,42 +1667,35 @@ def main() -> int:
         )
         traceback.print_exc()
 
-    composite_execution = None
-    if composite_plan is not None and composite_plan.executable_now:
+    if composite_plan is not None and "material_response" in composite_plan.executable_now:
         try:
-            from composite_champion import execute_safe_material_challenger
-            composite_execution = execute_safe_material_challenger(
+            composite_execution=execute_safe_material_challenger(
                 composite_plan,
-                job_dir / "composite",
+                job_dir / "composite" / "material",
                 texture_size=profile.texture_size,
             )
             if composite_execution.ready:
+                label=str(composite_execution.candidate_label)
                 candidates.append((
-                    str(composite_execution.candidate_label),
+                    label,
                     Path(str(composite_execution.candidate_path)),
                 ))
                 print(
                     "HAYUYA_COMPOSITE_CANDIDATE_READY "
-                    f"label={composite_execution.candidate_label} "
+                    f"label={label} "
                     f"base={composite_execution.base_backend} "
                     f"donor={composite_execution.donor_backend} "
                     f"region={composite_execution.region} "
                     f"path={composite_execution.candidate_path}"
                 )
-                ranked = run_full_ranking()
-                valid = [x for x in ranked if x.valid]
-                base_item = next(
-                    (
-                        x for x in ranked
-                        if x.backend==composite_execution.base_backend
-                    ),
+                ranked=run_full_ranking()
+                valid=[item for item in ranked if item.valid]
+                base_item=next(
+                    (item for item in ranked if item.backend==composite_execution.base_backend),
                     None,
                 )
-                composite_item = next(
-                    (
-                        x for x in ranked
-                        if x.backend==composite_execution.candidate_label
-                    ),
+                composite_item=next(
+                    (item for item in ranked if item.backend==label),
                     None,
                 )
                 if base_item is None or composite_item is None:
@@ -1682,26 +1709,14 @@ def main() -> int:
                 if regressions:
                     composite_item.valid=False
                     composite_item.notes.append(
-                        "Composite Champion monotonic guard rejected: "
+                        "Composite Champion material guard rejected: "
                         + ";".join(regressions)
                     )
-                    from qa import candidate_rank_key
-                    ranked=sorted(
-                        ranked,
-                        key=lambda x:candidate_rank_key(
-                            x,
-                            mode=mode,
-                            identity_required=any(
-                                infer_detail_region_hint(path)=="head"
-                                for path in detail_inputs
-                            ),
-                        ),
-                        reverse=True,
-                    )
-                    valid=[x for x in ranked if x.valid]
+                    remove_candidate(label)
+                    sort_current_ranking()
                     composite_execution.ready=False
                     composite_execution.error=(
-                        "monotonic_guard:"+ ";".join(regressions)
+                        "monotonic_guard:"+";".join(regressions)
                     )
                     print(
                         "HAYUYA_COMPOSITE_CANDIDATE_REJECTED "
@@ -1711,7 +1726,7 @@ def main() -> int:
                 else:
                     print(
                         "HAYUYA_COMPOSITE_CANDIDATE_GUARD_PASS "
-                        f"label={composite_execution.candidate_label}"
+                        f"label={label}"
                     )
             elif composite_execution.attempted:
                 print(
@@ -1727,9 +1742,99 @@ def main() -> int:
             )
             traceback.print_exc()
 
-    ranking_data = [asdict(x) for x in ranked]
+        try:
+            composite_plan=refresh_composite_plan()
+        except Exception as exc:
+            composite_plan_failure=f"{type(exc).__name__}: {exc}"
+
+    if composite_plan is not None and "face_identity" in composite_plan.executable_now:
+        try:
+            composite_head_execution=execute_safe_head_wrap_challenger(
+                composite_plan,
+                job_dir / "composite" / "head",
+                texture_size=profile.texture_size,
+            )
+            if composite_head_execution.ready:
+                label=str(composite_head_execution.candidate_label)
+                candidates.append((
+                    label,
+                    Path(str(composite_head_execution.candidate_path)),
+                ))
+                print(
+                    "HAYUYA_COMPOSITE_HEAD_READY "
+                    f"label={label} "
+                    f"base={composite_head_execution.base_backend} "
+                    f"donor={composite_head_execution.donor_backend} "
+                    f"path={composite_head_execution.candidate_path}"
+                )
+                ranked=run_full_ranking()
+                valid=[item for item in ranked if item.valid]
+                base_item=next(
+                    (item for item in ranked if item.backend==composite_head_execution.base_backend),
+                    None,
+                )
+                head_item=next(
+                    (item for item in ranked if item.backend==label),
+                    None,
+                )
+                if base_item is None or head_item is None:
+                    raise RuntimeError(
+                        "composite head challenger missing after re-ranking"
+                    )
+                regressions=head_composite_regressions(
+                    base_item,
+                    head_item,
+                )
+                if regressions:
+                    head_item.valid=False
+                    head_item.notes.append(
+                        "Composite Champion head guard rejected: "
+                        + ";".join(regressions)
+                    )
+                    remove_candidate(label)
+                    sort_current_ranking()
+                    composite_head_execution.ready=False
+                    composite_head_execution.error=(
+                        "head_guard:"+";".join(regressions)
+                    )
+                    print(
+                        "HAYUYA_COMPOSITE_HEAD_REJECTED "
+                        + composite_head_execution.error,
+                        file=sys.stderr,
+                    )
+                else:
+                    print(
+                        "HAYUYA_COMPOSITE_HEAD_GUARD_PASS "
+                        f"label={label}"
+                    )
+            elif composite_head_execution.attempted:
+                print(
+                    "HAYUYA_COMPOSITE_HEAD_FAILED "
+                    f"{composite_head_execution.error or 'unknown'}",
+                    file=sys.stderr,
+                )
+            elif composite_head_execution.error:
+                print(
+                    "HAYUYA_COMPOSITE_HEAD_SKIPPED "
+                    f"{composite_head_execution.error}",
+                    file=sys.stderr,
+                )
+        except Exception as exc:
+            print(
+                "HAYUYA_COMPOSITE_HEAD_EXECUTION_FAILED "
+                f"{type(exc).__name__}: {exc}",
+                file=sys.stderr,
+            )
+            traceback.print_exc()
+
+        try:
+            composite_plan=refresh_composite_plan()
+        except Exception as exc:
+            composite_plan_failure=f"{type(exc).__name__}: {exc}"
+
+    ranking_data=[asdict(item) for item in ranked]
     (job_dir / "ranking.json").write_text(
-        json.dumps(ranking_data, indent=2) + "\n",
+        json.dumps(ranking_data,indent=2)+"\n",
         encoding="utf-8",
     )
 
