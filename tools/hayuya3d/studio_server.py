@@ -502,6 +502,8 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
             "morph_targets": _int_or_none("morph_targets"),
             "crossing_ready": _bool("crossing_ready"),
             "crossing_pairs": _int_or_none("crossing_pairs"),
+            "self_intersection_ready": _bool("self_intersection_ready"),
+            "self_intersection_pairs": _int_or_none("self_intersection_pairs"),
             "skin_weights_ready": _bool("skin_weights_ready"),
             "animation_ready": _bool("animation_ready"),
             "animation_integrity_ready": _bool("animation_integrity_ready"),
