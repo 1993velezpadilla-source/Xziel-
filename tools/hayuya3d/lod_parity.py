@@ -20,6 +20,11 @@ class LODParityItem:
     components:int
     faces:int
     missing_material_channels:list[str]
+    attachment_ready:bool
+    attachment_components:int
+    attachment_accessories:int
+    attachment_floating_components:int
+    attachment_accessory_retention_ready:bool
     rig_required:bool
     rig_ready:bool
     morph_required:bool
@@ -176,6 +181,40 @@ def compare_lod(
         if not lod_qa.valid:
             errors.append("LOD inspect_mesh validation failed")
 
+        from composite_attachment_qa import audit_composite_attachments
+        master_attachment=audit_composite_attachments(
+            master,
+            mode=mode,
+        )
+        lod_attachment=audit_composite_attachments(
+            lod,
+            mode=mode,
+        )
+        attachment_ready=bool(
+            lod_attachment.applicable
+            and lod_attachment.ready
+        )
+        if not attachment_ready:
+            errors.append(
+                "LOD composite attachment QA failed: "
+                +"; ".join(lod_attachment.errors[:3])
+            )
+
+        lod0=bool(
+            str(name or lod.stem).strip().upper().startswith("LOD0")
+        )
+        attachment_accessory_retention_ready=bool(
+            not lod0
+            or int(lod_attachment.accessory_candidates)
+                >=int(master_attachment.accessory_candidates)
+        )
+        if not attachment_accessory_retention_ready:
+            errors.append(
+                "LOD0 lost detached accessory candidates: "
+                f"master={master_attachment.accessory_candidates} "
+                f"lod={lod_attachment.accessory_candidates}"
+            )
+
         from gltf_audit import audit_glb
         master_rig=audit_glb(master)
         lod_rig=audit_glb(lod)
@@ -260,6 +299,19 @@ def compare_lod(
             components=int(lod_qa.components),
             faces=int(lod_qa.faces),
             missing_material_channels=missing,
+            attachment_ready=attachment_ready,
+            attachment_components=int(
+                lod_attachment.component_count
+            ),
+            attachment_accessories=int(
+                lod_attachment.accessory_candidates
+            ),
+            attachment_floating_components=int(
+                lod_attachment.floating_components
+            ),
+            attachment_accessory_retention_ready=(
+                attachment_accessory_retention_ready
+            ),
             rig_required=rig_required,
             rig_ready=rig_ready,
             morph_required=morph_required,
@@ -282,6 +334,11 @@ def compare_lod(
             components=0,
             faces=0,
             missing_material_channels=[],
+            attachment_ready=False,
+            attachment_components=0,
+            attachment_accessories=0,
+            attachment_floating_components=0,
+            attachment_accessory_retention_ready=False,
             rig_required=False,
             rig_ready=False,
             morph_required=False,
