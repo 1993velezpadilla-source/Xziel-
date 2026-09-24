@@ -263,6 +263,30 @@ def image_signal_stats(image,channel_index=0,max_samples=65536):
     }
 
 
+def image_rgb_signal_stats(image,max_samples=65536):
+    channels={
+        name:image_signal_stats(image,index,max_samples)
+        for index,name in enumerate(("r","g","b"))
+    }
+    stddevs=[
+        float(stats["stddev"])
+        for stats in channels.values()
+        if stats.get("stddev") is not None
+    ]
+    return {
+        "channels":channels,
+        "combined_stddev":round(sum(stddevs)/len(stddevs),6) if stddevs else None,
+        "combined_range":round(
+            sum(
+                max(0.0,float(stats["max"])-float(stats["min"]))
+                for stats in channels.values()
+                if stats.get("max") is not None and stats.get("min") is not None
+            )/max(1,len(channels)),
+            6,
+        ),
+    }
+
+
 def new_noncolor_image(name,size,fill):
     image=bpy.data.images.new(
         name,
@@ -327,7 +351,7 @@ def main():
         select_only([*source_meshes,target],target)
         bpy.ops.object.bake(type="NORMAL")
         configure_normal(materials,normal_image)
-        normal_stats=image_signal_stats(normal_image,0)
+        normal_stats=image_rgb_signal_stats(normal_image)
         normal_image.pack()
         images["normal"]={"name":normal_image.name,"signal":normal_stats}
         print("HAYUYA_REBAKE_SIGNAL normal "+json.dumps(normal_stats,sort_keys=True))
