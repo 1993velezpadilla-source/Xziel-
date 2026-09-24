@@ -167,19 +167,23 @@ def main():
     arm_bones={b.name for b in arm.data.bones}
 
     def mesh_belongs_to_character(obj):
-        # Skin meshes may be connected through an Armature modifier, bone
-        # parenting, armature parenting, or matching deform vertex groups.
-        # Blender/Rigify control shapes such as Icosphere are renderable mesh
-        # datablocks too, but they are not part of the character surface and
-        # must never influence deformation/reference bounds.
+        # Deformation QA must measure ONLY the skinned render surface. Rigify
+        # controllers/custom-shape meshes can be parented to the armature and
+        # can even survive glTF dependency export, but they have no deform
+        # groups. Requiring at least one vertex group that matches a real bone
+        # cleanly excludes those helpers without relying on fragile names.
+        deform_groups=[g.name for g in obj.vertex_groups if g.name in arm_bones]
+        if not deform_groups:
+            return False
         for mod in obj.modifiers:
             if mod.type=="ARMATURE" and (getattr(mod,"object",None) in (None,arm)):
                 return True
-        if obj.parent==arm:
+        if obj.parent==arm or getattr(obj,"parent_type","")=="BONE":
             return True
-        if getattr(obj,"parent_type","")=="BONE":
-            return True
-        return any(g.name in arm_bones for g in obj.vertex_groups)
+        # Some importers reconstruct skinning without the original parenting
+        # shape. Matching bone groups are still authoritative evidence that the
+        # mesh belongs to the character.
+        return True
 
     meshes=[o for o in all_model_meshes if mesh_belongs_to_character(o)]
     ignored_meshes=[o for o in all_model_meshes if o not in meshes]
