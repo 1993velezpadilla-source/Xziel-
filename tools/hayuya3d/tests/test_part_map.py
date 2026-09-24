@@ -80,6 +80,20 @@ class PartMapTests(unittest.TestCase):
             self.assertIn("wall_body", labels)
             self.assertIn("roof_upper", labels)
 
+    def test_up_axis_x_is_supported(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / "xup.glb"
+
+            mesh = trimesh.creation.box(extents=[3.0, 1.0, 1.0])
+            path.write_bytes(
+                trimesh.exchange.gltf.export_glb(trimesh.Scene(mesh))
+            )
+
+            result = build_part_map(path, mode="prop", up_axis="x")
+            self.assertEqual(result.up_axis, "x")
+            self.assertEqual(len(result.face_labels), result.face_count)
+
     def test_up_axis_z_is_supported(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
