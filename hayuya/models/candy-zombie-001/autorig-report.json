@@ -46,7 +46,7 @@
     0.9129139229778395,
     0.5402553289130635
   ],
-  "armature_fit_mode": "uniform_height_plus_pose_aware_arms_v31",
+  "armature_fit_mode": "uniform_height_plus_pose_aware_arms_v32_rest_compensated",
   "orientation_fix": {
     "method": "head_minus_pelvis",
     "applied": true,
@@ -93,7 +93,7 @@
   },
   "arm_rest_fit": {
     "schema": 1,
-    "method": "rigid_arm_subtree_lateral_projection_v1",
+    "method": "rigid_arm_subtree_lateral_projection_v2_rest_compensated",
     "applied": true,
     "target_width_height_ratio": 0.49453934155587176,
     "trigger_width_height_ratio_max": 0.68,
@@ -121,6 +121,12 @@
         "desired_lateral_reach": 0.12363390594720841,
         "vertical_drop": 0.2972692460722678,
         "rotated_bone_count": 23,
+        "rest_compensation_quaternion": [
+          0.697268009185791,
+          0.3384360671043396,
+          0.4537760317325592,
+          0.4397336542606354
+        ],
         "new_endpoint": [
           0.22810670733451843,
           0.06639264523983002,
@@ -149,6 +155,12 @@
         "desired_lateral_reach": 0.12363408476114274,
         "vertical_drop": 0.29726907145003745,
         "rotated_bone_count": 23,
+        "rest_compensation_quaternion": [
+          0.6972686052322388,
+          0.3384352922439575,
+          -0.4537757933139801,
+          -0.43973350524902344
+        ],
         "new_endpoint": [
           -0.2265111804008484,
           0.06639260053634644,
@@ -357,12 +369,19 @@
     ]
   ],
   "animation_retarget": {
-    "method": "rotation_only_on_fitted_rest_v28",
+    "method": "rotation_only_on_fitted_rest_v29_rest_compensated",
     "actions": 43,
     "removed_location_curves": 8385,
     "removed_scale_curves": 8385,
     "kept_rotation_curves": 11180,
-    "kept_other_curves": 0
+    "kept_other_curves": 0,
+    "rest_compensated_bones": [
+      "upperarm_l",
+      "upperarm_r"
+    ],
+    "rest_compensated_actions": 43,
+    "rest_compensated_keyframes": 4270,
+    "rest_compensation_missing_quaternion_channels": []
   },
   "export_meshes": [
     "geometry_0"
@@ -370,7 +389,7 @@
   "sterile_export_scene_meshes": [
     "geometry_0"
   ],
-  "binding_method": "expanded_component_coherent_pose_aware_arms_v33",
+  "binding_method": "expanded_component_coherent_pose_aware_arms_v34_rest_compensated",
   "bind_results": [
     {
       "mesh": "geometry_0",
@@ -402,43 +421,17 @@
       "donor_samples": 8546,
       "bone_envelope_segments": 20,
       "anatomical_neighbor_graph": {
-        "calf_r": [
-          "foot_r",
-          "thigh_r"
-        ],
-        "spine_01": [
-          "pelvis",
-          "spine_02"
-        ],
         "thigh_l": [
           "calf_l",
           "pelvis"
         ],
-        "pelvis": [
-          "spine_01",
-          "thigh_l",
+        "calf_r": [
+          "foot_r",
           "thigh_r"
         ],
-        "lowerarm_l": [
-          "hand_l",
-          "upperarm_l"
-        ],
-        "clavicle_r": [
-          "spine_03",
+        "lowerarm_r": [
+          "hand_r",
           "upperarm_r"
-        ],
-        "spine_02": [
-          "spine_01",
-          "spine_03"
-        ],
-        "foot_l": [
-          "calf_l"
-        ],
-        "spine_03": [
-          "clavicle_l",
-          "clavicle_r",
-          "neck_01",
-          "spine_02"
         ],
         "hand_r": [
           "lowerarm_r"
@@ -447,38 +440,64 @@
           "Head",
           "spine_03"
         ],
-        "clavicle_l": [
-          "spine_03",
-          "upperarm_l"
-        ],
-        "upperarm_r": [
-          "clavicle_r",
-          "lowerarm_r"
-        ],
         "thigh_r": [
           "calf_r",
           "pelvis"
-        ],
-        "calf_l": [
-          "foot_l",
-          "thigh_l"
-        ],
-        "hand_l": [
-          "lowerarm_l"
-        ],
-        "Head": [
-          "neck_01"
-        ],
-        "foot_r": [
-          "calf_r"
         ],
         "upperarm_l": [
           "clavicle_l",
           "lowerarm_l"
         ],
-        "lowerarm_r": [
-          "hand_r",
+        "upperarm_r": [
+          "clavicle_r",
+          "lowerarm_r"
+        ],
+        "spine_03": [
+          "clavicle_l",
+          "clavicle_r",
+          "neck_01",
+          "spine_02"
+        ],
+        "foot_l": [
+          "calf_l"
+        ],
+        "hand_l": [
+          "lowerarm_l"
+        ],
+        "clavicle_r": [
+          "spine_03",
           "upperarm_r"
+        ],
+        "Head": [
+          "neck_01"
+        ],
+        "spine_02": [
+          "spine_01",
+          "spine_03"
+        ],
+        "spine_01": [
+          "pelvis",
+          "spine_02"
+        ],
+        "calf_l": [
+          "foot_l",
+          "thigh_l"
+        ],
+        "clavicle_l": [
+          "spine_03",
+          "upperarm_l"
+        ],
+        "lowerarm_l": [
+          "hand_l",
+          "upperarm_l"
+        ],
+        "foot_r": [
+          "calf_r"
+        ],
+        "pelvis": [
+          "spine_01",
+          "thigh_l",
+          "thigh_r"
         ]
       },
       "blend_neighbours": 4,

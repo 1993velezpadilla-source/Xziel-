@@ -60,6 +60,8 @@
       "Farm_Harvest",
       "Farm_PlantSeed",
       "Farm_Watering",
+      "Hit_Knockback",
+      "Hit_Knockback_RM",
       "Idle_FoldArms_Loop",
       "Idle_Lantern_Loop",
       "Idle_No_Loop",
@@ -147,6 +149,8 @@
         "Farm_Harvest",
         "Farm_PlantSeed",
         "Farm_Watering",
+        "Hit_Knockback",
+        "Hit_Knockback_RM",
         "Idle_FoldArms_Loop",
         "Idle_Lantern_Loop",
         "Idle_No_Loop",
@@ -181,7 +185,7 @@
         "Zombie_Scratch",
         "Zombie_Walk_Fwd_Loop"
       ],
-      "rejected_clip_count": 3,
+      "rejected_clip_count": 1,
       "reference_fidelity": {
         "reference": "hayuya/models/candy-zombie-001/model.glb",
         "bounds": {
@@ -210,17 +214,15 @@
           "polygon_count": 19456,
           "triangle_count": 19456
         },
-        "diagonal_ratio": 0.999999896853309,
-        "center_offset_normalized": 1.1157841929164563e-07,
+        "diagonal_ratio": 1.301738161282801,
+        "center_offset_normalized": 0.02260189611724685,
         "vertex_ratio_telemetry_only": 3.574473297403234,
         "triangle_ratio": 1.0,
         "passed": true,
         "failures": []
       },
       "failures": [
-        "Hit_Knockback:axis_extent_failure:frame=5.00,ratios=2.149,2.764,0.488",
-        "Hit_Knockback_RM:axis_extent_failure:frame=5.00,ratios=2.149,2.764,0.488",
-        "Sword_Regular_C:axis_extent_failure:frame=24.00,ratios=1.221,2.593,0.693"
+        "Sword_Regular_C:axis_extent_failure:frame=12.00,ratios=0.397,2.525,1.098"
       ]
     }
   },
@@ -236,6 +238,8 @@
         "Farm_Harvest",
         "Farm_PlantSeed",
         "Farm_Watering",
+        "Hit_Knockback",
+        "Hit_Knockback_RM",
         "Idle_FoldArms_Loop",
         "Idle_Lantern_Loop",
         "Idle_No_Loop",
