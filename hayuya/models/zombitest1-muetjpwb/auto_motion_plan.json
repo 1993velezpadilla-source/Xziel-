@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "engine": "HAYUYA Auto",
+  "enabled": true,
+  "asset_profile": "prop.static",
+  "motion_profile": "hayuya_auto",
+  "status": "static_default",
+  "motion_system": "optional_transform_channels",
+  "weapon_family": "auto",
+  "family_source": null,
+  "family_confidence": 0.0,
+  "preview_set": [
+    "static"
+  ],
+  "required_components": [],
+  "synthesis_operations": [],
+  "requires": [
+    "mesh_gate",
+    "texture_gate"
+  ],
+  "warnings": [],
+  "research_sources": [],
+  "editor_override_allowed": true,
+  "motion_strategy": null,
+  "learned_examples": []
+}

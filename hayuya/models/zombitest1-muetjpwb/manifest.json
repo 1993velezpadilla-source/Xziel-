@@ -1,0 +1,148 @@
+{
+  "schema": 2,
+  "engine": "HAYUYA PHONE CLOUD",
+  "job_id": "zombitest1-muetjpwb",
+  "asset_profile": "prop.static",
+  "weapon_family": "auto",
+  "animation_requested": true,
+  "motion_profile": "hayuya_auto",
+  "texture_quality": "high",
+  "compute": "GitHub-hosted CPU controller + public TRELLIS ZeroGPU",
+  "phone_only": true,
+  "source": "hayuya/assets/zombitest1-muetjpwb/geometry/primary.webp",
+  "prepared_views": [
+    "front.png"
+  ],
+  "prepared_detail_views": [],
+  "reference_dir": "",
+  "detail_dir": "",
+  "prep_target": 1536,
+  "multi_image": false,
+  "generator": "trellis-community/TRELLIS",
+  "texture_size": 2048,
+  "requested_texture_target": 4096,
+  "texture_refinement_pending": true,
+  "glb": "hayuya_final.glb",
+  "glb_bytes": 6268768,
+  "authenticated_hf": false,
+  "source_mode": "RGBA",
+  "source_had_alpha": true,
+  "alpha_preserved": true,
+  "quality_gate": {
+    "path": "out/hayuya-jobs/zombitest1-muetjpwb/outputs/hayuya_final.glb",
+    "valid": true,
+    "passed": true,
+    "vertices": 28290,
+    "faces": 36341,
+    "components": 1095,
+    "largest_component_fraction": 0.019548,
+    "degenerate_ratio": 0.0,
+    "bbox_extents": [
+      0.45784888,
+      0.99958244,
+      0.53538191
+    ],
+    "bbox_aspect_ratio": 2.183215,
+    "axis_alignment_weighted": 0.858651,
+    "axis_aligned_area_98": 0.116099,
+    "dominant_normal_axis_area": [
+      0.510926,
+      0.08075,
+      0.408324
+    ],
+    "reasons": [],
+    "warnings": [
+      "fragmented_surface:components=1095,largest=0.020",
+      "high_component_count:1095"
+    ]
+  },
+  "texture_gate": {
+    "schema": 1,
+    "path": "out/hayuya-jobs/zombitest1-muetjpwb/outputs/hayuya_final.glb",
+    "image_count": 1,
+    "max_edge": 2048,
+    "max_megapixels": 4.1943,
+    "mean_edge_variance": 707.7177,
+    "metrics": [
+      {
+        "index": 0,
+        "mime_type": "image/png",
+        "width": 2048,
+        "height": 2048,
+        "megapixels": 4.1943,
+        "edge_variance": 707.7177,
+        "luminance_stddev": 43.9548,
+        "entropy": 7.0244
+      }
+    ],
+    "warnings": [],
+    "passed": true
+  },
+  "asset": {
+    "profile": "prop.static",
+    "weapon_family": "auto",
+    "animation_requested": true,
+    "motion_profile": "hayuya_auto",
+    "animation_systems": [
+      "optional_transform_channels",
+      "optional_morph_targets"
+    ],
+    "mechanical_rig_ready": false,
+    "procedural_motion_ready": false,
+    "requires_profile_postprocess": false
+  },
+  "auto_motion": {
+    "schema": 1,
+    "engine": "HAYUYA Auto",
+    "enabled": true,
+    "asset_profile": "prop.static",
+    "motion_profile": "hayuya_auto",
+    "status": "static_default",
+    "motion_system": "optional_transform_channels",
+    "weapon_family": "auto",
+    "family_source": null,
+    "family_confidence": 0.0,
+    "preview_set": [
+      "static"
+    ],
+    "required_components": [],
+    "synthesis_operations": [],
+    "requires": [
+      "mesh_gate",
+      "texture_gate"
+    ],
+    "warnings": [],
+    "research_sources": [],
+    "editor_override_allowed": true,
+    "motion_strategy": null,
+    "learned_examples": []
+  },
+  "research": {
+    "adapter": "wikipedia_mediawiki",
+    "confidence": 0.0,
+    "inferred_weapon_family": "auto",
+    "sources": [],
+    "warnings": [
+      "no_search_results"
+    ]
+  },
+  "part_segmentation_plan": {
+    "schema": 1,
+    "asset_profile": "prop.static",
+    "weapon_family": "auto",
+    "status": "not_required",
+    "required": [],
+    "optional": [],
+    "prompts": {},
+    "detectors": [],
+    "projection": "multi_view_preferred",
+    "fusion_rule": "a 3D component is accepted only when masks from available views agree spatially or later 3D geometry evidence confirms it",
+    "confidence_gate": 0.72,
+    "warnings": []
+  },
+  "part_map_summary": {
+    "components": 1095,
+    "mode": "prop",
+    "warnings": []
+  }
+}
