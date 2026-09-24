@@ -17,6 +17,7 @@ on:
       - engine/mobile-world-vertex-precompute-v1
       - engine/mobile-front-to-back-earlyz-v1
       - engine/mobile-fragment-distance-lod-v1
+      - engine/mobile-ui-digit-batching-v1
       - engine/mobile-dynamic-resolution-v1
       - engine/mobile-pbr-materials-v1
       - engine/mobile-ktx2-astc-v1
