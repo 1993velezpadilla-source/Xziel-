@@ -1818,6 +1818,7 @@ def main() -> int:
             f"rebaked={','.join(qa_package_result.material_rebaked_channels) if qa_package_result.material_rebaked_channels else 'none'} "
             f"rebake_pending={','.join(qa_package_result.material_rebake_pending_channels) if qa_package_result.material_rebake_pending_channels else 'none'} "
             f"rig_ready={qa_package_result.rig_ready} "
+            f"skin_weights_ready={qa_package_result.skin_weights_ready} "
             f"animation_ready={qa_package_result.animation_ready} "
             f"face_ready={qa_package_result.face_evidence_ready} "
             f"face_quality_ready={qa_package_result.face_quality_evidence_ready} "
