@@ -82,6 +82,9 @@ class StudioServerTests(unittest.TestCase):
                 "head_region_median_edge_normalized": 0.0011,
                 "head_region_density_ratio": 1.1818,
                 "head_density_score": 100.0,
+                "head_texture_detail_ratio": 1.24,
+                "head_texture_detail_score": 100.0,
+                "head_texture_detail_mean": 18.5,
                 "pbr_channels": ["baseColor", "normal", "roughness"],
             }
             parse_pipeline_line(
@@ -95,6 +98,8 @@ class StudioServerTests(unittest.TestCase):
             self.assertEqual(item.head_region_faces, 20000)
             self.assertAlmostEqual(item.head_region_density_ratio, 1.1818)
             self.assertEqual(item.head_density_score, 100.0)
+            self.assertAlmostEqual(item.head_texture_detail_ratio, 1.24)
+            self.assertEqual(item.head_texture_detail_score, 100.0)
             self.assertEqual(job.events[-1]["kind"], "judge_metrics")
             self.assertEqual(job.events[-1]["candidate"]["face_detail_score"], 97.0)
 
@@ -128,6 +133,9 @@ class StudioServerTests(unittest.TestCase):
                 "head_region_median_edge_normalized": 0.00123,
                 "head_region_density_ratio": 1.1382,
                 "head_density_score": 100.0,
+                "head_texture_detail_ratio": 1.18,
+                "head_texture_detail_score": 100.0,
+                "head_texture_detail_mean": 17.2,
                 "pbr_channels": ["baseColor", "normal", "roughness"],
             }])
 
@@ -140,6 +148,8 @@ class StudioServerTests(unittest.TestCase):
             self.assertAlmostEqual(item.head_region_median_edge_normalized, 0.00123)
             self.assertAlmostEqual(item.head_region_density_ratio, 1.1382)
             self.assertEqual(item.head_density_score, 100.0)
+            self.assertAlmostEqual(item.head_texture_detail_ratio, 1.18)
+            self.assertEqual(item.head_texture_detail_score, 100.0)
             self.assertIn("normal", item.pbr_channels or [])
 
     def test_pipeline_stage_events_are_real_stage_markers(self):
@@ -163,7 +173,7 @@ class StudioServerTests(unittest.TestCase):
                 ("HAYUYA_RETOPO_READY style=pure_quad quad_fraction=1 obj=x", "retopo"),
                 ("HAYUYA_GAMEPREP_READY lods=4 collision=True turntable=8", "gameprep"),
                 ("HAYUYA_PORTABLE_PACK_READY tiers=4 complete_lods=True manifest=x", "portable"),
-                (f"HAYUYA_QA_READY production_ready=True material_ready=True texture_ready=True texture_score=100.0 basecolor_min=4096 basecolor_max=4096 texture_target=4096 rebake_ready=True rebaked=normal,occlusion rebake_pending=none rig_ready=False animation_ready=False face_ready=True face_score=94.5 facemesh_score=88.0 facetex_score=91.0 report={report}", "qa"),
+                (f"HAYUYA_QA_READY production_ready=True material_ready=True texture_ready=True texture_score=100.0 basecolor_min=4096 basecolor_max=4096 texture_target=4096 rebake_ready=True rebaked=normal,occlusion rebake_pending=none rig_ready=False animation_ready=False face_ready=True face_score=94.5 facemesh_score=88.0 facetex_score=91.0 facedetail_score=87.5 report={report}", "qa"),
             ]
             last_progress = -1
             for line, expected in lines:
@@ -174,6 +184,7 @@ class StudioServerTests(unittest.TestCase):
             self.assertEqual(job.final_qa["facemesh_score"], 88.0)
             self.assertEqual(job.final_qa["face_score"], 94.5)
             self.assertEqual(job.final_qa["facetex_score"], 91.0)
+            self.assertEqual(job.final_qa["facedetail_score"], 87.5)
             self.assertTrue(job.final_qa["texture_ready"])
             self.assertEqual(job.final_qa["texture_score"], 100.0)
             self.assertEqual(job.final_qa["basecolor_min"], 4096)
