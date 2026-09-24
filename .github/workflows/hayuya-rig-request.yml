@@ -304,10 +304,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if [[ "${{ steps.freshness.outputs.current }}" != "true" ]]; then
+          status="${{ job.status }}"
+          current="${{ steps.freshness.outputs.current }}"
+          run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          if [[ "$status" == "failure" ]]; then
+            gh issue comment 55 --repo "$GITHUB_REPOSITORY" --body "❌ **RIG FAILED** — **${{ matrix.owner }}** / ${{ matrix.job_id }} — $run_url"
+          elif [[ "$current" != "true" ]]; then
             gh issue comment 55 --repo "$GITHUB_REPOSITORY" --body "⏭️ **RIG SUPERSEDED** — **${{ matrix.owner }}** / ${{ matrix.job_id }} — newer request exists; this run was not allowed to publish."
-          elif [[ "${{ job.status }}" == "success" ]]; then
+          elif [[ "$status" == "success" ]]; then
             gh issue comment 55 --repo "$GITHUB_REPOSITORY" --body "🦴 **RIG READY** — **${{ matrix.owner }}** / ${{ matrix.job_id }} — real model now carries a QA-approved local animation bank."
           else
-            gh issue comment 55 --repo "$GITHUB_REPOSITORY" --body "❌ **RIG FAILED** — **${{ matrix.owner }}** / ${{ matrix.job_id }}"
+            gh issue comment 55 --repo "$GITHUB_REPOSITORY" --body "❌ **RIG FAILED** — **${{ matrix.owner }}** / ${{ matrix.job_id }} — status=$status — $run_url"
           fi
