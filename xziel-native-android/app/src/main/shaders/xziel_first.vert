@@ -141,8 +141,8 @@ void main() {
     float rotationPitch =
         objectPitch + lean;
     bool identityRotation =
-        abs(rotationYaw) < 0.000001 &&
-        abs(rotationPitch) < 0.000001;
+        rotationYaw == 0.0 &&
+        rotationPitch == 0.0;
 
     vec3 objectScale =
         max(
