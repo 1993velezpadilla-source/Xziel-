@@ -5069,6 +5069,121 @@ bool VulkanClearRenderer::recordDrawCommand(
                 reflectedAspect,
                 0.25f);
 
+        // REFLECTION_CAMERA_PRECOMPUTE_V1
+        // Plane orientation and reflected camera are invariant across every
+        // object draw in this capture pass. Resolve them once per pass.
+        float reflectedPlaneNx =
+            environment.planarPlaneNormalX;
+        float reflectedPlaneNy =
+            environment.planarPlaneNormalY;
+        float reflectedPlaneNz =
+            environment.planarPlaneNormalZ;
+        float reflectedPlaneD =
+            environment.planarPlaneDistance;
+        const float reflectedPlaneLength =
+            std::sqrt(
+                reflectedPlaneNx * reflectedPlaneNx +
+                reflectedPlaneNy * reflectedPlaneNy +
+                reflectedPlaneNz * reflectedPlaneNz);
+        if (!std::isfinite(reflectedPlaneLength) ||
+            reflectedPlaneLength < 0.0001f) {
+            reflectedPlaneNx = 0.0f;
+            reflectedPlaneNy = 1.0f;
+            reflectedPlaneNz = 0.0f;
+            reflectedPlaneD = 1.48f;
+        } else {
+            const float inversePlaneLength =
+                1.0f /
+                reflectedPlaneLength;
+            reflectedPlaneNx *= inversePlaneLength;
+            reflectedPlaneNy *= inversePlaneLength;
+            reflectedPlaneNz *= inversePlaneLength;
+            reflectedPlaneD =
+                std::isfinite(reflectedPlaneD)
+                ? reflectedPlaneD *
+                    inversePlaneLength
+                : 0.0f;
+        }
+
+        float reflectedCameraDistance =
+            reflectedPlaneNx * camera.x +
+            reflectedPlaneNy * camera.y +
+            reflectedPlaneNz * camera.z +
+            reflectedPlaneD;
+        if (reflectedCameraDistance < 0.0f) {
+            reflectedPlaneNx = -reflectedPlaneNx;
+            reflectedPlaneNy = -reflectedPlaneNy;
+            reflectedPlaneNz = -reflectedPlaneNz;
+            reflectedPlaneD = -reflectedPlaneD;
+            reflectedCameraDistance =
+                -reflectedCameraDistance;
+        }
+
+        const float reflectedCameraX =
+            camera.x -
+            2.0f *
+                reflectedCameraDistance *
+                reflectedPlaneNx;
+        const float reflectedCameraY =
+            camera.y -
+            2.0f *
+                reflectedCameraDistance *
+                reflectedPlaneNy;
+        const float reflectedCameraZ =
+            camera.z -
+            2.0f *
+                reflectedCameraDistance *
+                reflectedPlaneNz;
+
+        const float safeYaw =
+            std::isfinite(camera.yawRadians)
+            ? camera.yawRadians
+            : 0.0f;
+        const float safePitch =
+            std::isfinite(camera.pitchRadians)
+            ? camera.pitchRadians
+            : 0.0f;
+        const float cosPitch =
+            std::cos(safePitch);
+        float reflectedForwardX =
+            std::sin(safeYaw) *
+            cosPitch;
+        float reflectedForwardY =
+            -std::sin(safePitch);
+        float reflectedForwardZ =
+            std::cos(safeYaw) *
+            cosPitch;
+        const float reflectedForwardDotPlane =
+            reflectedForwardX * reflectedPlaneNx +
+            reflectedForwardY * reflectedPlaneNy +
+            reflectedForwardZ * reflectedPlaneNz;
+        reflectedForwardX -=
+            2.0f *
+            reflectedForwardDotPlane *
+            reflectedPlaneNx;
+        reflectedForwardY -=
+            2.0f *
+            reflectedForwardDotPlane *
+            reflectedPlaneNy;
+        reflectedForwardZ -=
+            2.0f *
+            reflectedForwardDotPlane *
+            reflectedPlaneNz;
+        const float reflectedHorizontalForward =
+            std::sqrt(
+                reflectedForwardX *
+                    reflectedForwardX +
+                reflectedForwardZ *
+                    reflectedForwardZ);
+        const float reflectedCameraYaw =
+            std::atan2(
+                reflectedForwardX,
+                reflectedForwardZ);
+        const float reflectedCameraPitch =
+            std::atan2(
+                -reflectedForwardY,
+                reflectedHorizontalForward);
+
         const auto drawReflectedBox = [&](
             float tx,
             float ty,
@@ -5094,73 +5209,16 @@ bool VulkanClearRenderer::recordDrawCommand(
             push.scaleY = sy;
             push.scaleZ = sz;
 
-            float planeNx = environment.planarPlaneNormalX;
-            float planeNy = environment.planarPlaneNormalY;
-            float planeNz = environment.planarPlaneNormalZ;
-            float planeD = environment.planarPlaneDistance;
-            const float planeLength = std::sqrt(
-                planeNx * planeNx +
-                planeNy * planeNy +
-                planeNz * planeNz);
-            if (!std::isfinite(planeLength) || planeLength < 0.0001f) {
-                planeNx = 0.0f;
-                planeNy = 1.0f;
-                planeNz = 0.0f;
-                planeD = 1.48f;
-            } else {
-                const float inversePlaneLength = 1.0f / planeLength;
-                planeNx *= inversePlaneLength;
-                planeNy *= inversePlaneLength;
-                planeNz *= inversePlaneLength;
-                planeD = std::isfinite(planeD)
-                    ? planeD * inversePlaneLength
-                    : 0.0f;
-            }
-
-            float signedCameraDistance =
-                planeNx * camera.x +
-                planeNy * camera.y +
-                planeNz * camera.z +
-                planeD;
-
-            // Plane equations are geometrically equivalent under sign flip,
-            // but the capture shader deliberately keeps the positive half
-            // space. Orient authored planes toward the real camera so water,
-            // mirrors and map-authored surfaces all retain the visible world
-            // side regardless of authoring normal direction.
-            if (signedCameraDistance < 0.0f) {
-                planeNx = -planeNx;
-                planeNy = -planeNy;
-                planeNz = -planeNz;
-                planeD = -planeD;
-                signedCameraDistance = -signedCameraDistance;
-            }
-            push.cameraX = camera.x - 2.0f * signedCameraDistance * planeNx;
-            push.cameraY = camera.y - 2.0f * signedCameraDistance * planeNy;
-            push.cameraZ = camera.z - 2.0f * signedCameraDistance * planeNz;
-            // Reflect the camera forward vector across the authored plane,
-            // then recover the yaw/pitch convention used by xziel_first.vert.
-            // This handles horizontal water, vertical mirrors, and oblique
-            // planar surfaces instead of only flipping pitch for floors.
-            const float safeYaw = std::isfinite(camera.yawRadians)
-                ? camera.yawRadians : 0.0f;
-            const float safePitch = std::isfinite(camera.pitchRadians)
-                ? camera.pitchRadians : 0.0f;
-            const float cosPitch = std::cos(safePitch);
-            float forwardX = std::sin(safeYaw) * cosPitch;
-            float forwardY = -std::sin(safePitch);
-            float forwardZ = std::cos(safeYaw) * cosPitch;
-            const float forwardDotPlane =
-                forwardX * planeNx +
-                forwardY * planeNy +
-                forwardZ * planeNz;
-            forwardX -= 2.0f * forwardDotPlane * planeNx;
-            forwardY -= 2.0f * forwardDotPlane * planeNy;
-            forwardZ -= 2.0f * forwardDotPlane * planeNz;
-            const float horizontalForward =
-                std::sqrt(forwardX * forwardX + forwardZ * forwardZ);
-            push.cameraYawRadians = std::atan2(forwardX, forwardZ);
-            push.cameraPitchRadians = std::atan2(-forwardY, horizontalForward);
+            push.cameraX =
+                reflectedCameraX;
+            push.cameraY =
+                reflectedCameraY;
+            push.cameraZ =
+                reflectedCameraZ;
+            push.cameraYawRadians =
+                reflectedCameraYaw;
+            push.cameraPitchRadians =
+                reflectedCameraPitch;
             push.verticalFovDegrees =
                 std::clamp(camera.verticalFovDegrees, 50.0f, 110.0f);
             push.fogDensity =
@@ -5184,10 +5242,14 @@ bool VulkanClearRenderer::recordDrawCommand(
                 std::clamp(environment.particleDensityScale, 0.25f, 1.0f);
             push.waterFogScale =
                 reflectedFocal;
-            push.reflectionPlaneX = planeNx;
-            push.reflectionPlaneY = planeNy;
-            push.reflectionPlaneZ = planeNz;
-            push.reflectionPlaneDistance = planeD;
+            push.reflectionPlaneX =
+                reflectedPlaneNx;
+            push.reflectionPlaneY =
+                reflectedPlaneNy;
+            push.reflectionPlaneZ =
+                reflectedPlaneNz;
+            push.reflectionPlaneDistance =
+                reflectedPlaneD;
 
             vkCmdPushConstants(
                 command,
@@ -5527,6 +5589,63 @@ bool VulkanClearRenderer::recordDrawCommand(
             aspect,
             0.25f);
 
+    const float safeCameraX =
+        std::isfinite(camera.x)
+        ? camera.x
+        : 0.0f;
+    const float safeCameraY =
+        std::isfinite(camera.y)
+        ? camera.y
+        : 0.14f;
+    const float safeCameraZ =
+        std::isfinite(camera.z)
+        ? camera.z
+        : -2.55f;
+
+    float mainPlaneNx =
+        environment.planarPlaneNormalX;
+    float mainPlaneNy =
+        environment.planarPlaneNormalY;
+    float mainPlaneNz =
+        environment.planarPlaneNormalZ;
+    float mainPlaneD =
+        environment.planarPlaneDistance;
+    const float mainPlaneLength =
+        std::sqrt(
+            mainPlaneNx * mainPlaneNx +
+            mainPlaneNy * mainPlaneNy +
+            mainPlaneNz * mainPlaneNz);
+    if (!std::isfinite(mainPlaneLength) ||
+        mainPlaneLength < 0.0001f) {
+        mainPlaneNx = 0.0f;
+        mainPlaneNy = 1.0f;
+        mainPlaneNz = 0.0f;
+        mainPlaneD = 1.48f;
+    } else {
+        const float inverseMainPlaneLength =
+            1.0f /
+            mainPlaneLength;
+        mainPlaneNx *= inverseMainPlaneLength;
+        mainPlaneNy *= inverseMainPlaneLength;
+        mainPlaneNz *= inverseMainPlaneLength;
+        mainPlaneD =
+            std::isfinite(mainPlaneD)
+            ? mainPlaneD *
+                inverseMainPlaneLength
+            : 0.0f;
+    }
+    const float mainCameraSide =
+        mainPlaneNx * safeCameraX +
+        mainPlaneNy * safeCameraY +
+        mainPlaneNz * safeCameraZ +
+        mainPlaneD;
+    if (mainCameraSide < 0.0f) {
+        mainPlaneNx = -mainPlaneNx;
+        mainPlaneNy = -mainPlaneNy;
+        mainPlaneNz = -mainPlaneNz;
+        mainPlaneD = -mainPlaneD;
+    }
+
     const auto drawPrimitive = [&](
         float tx,
         float ty,
@@ -5563,17 +5682,11 @@ bool VulkanClearRenderer::recordDrawCommand(
             : 0.0f;
 
         push.cameraX =
-            std::isfinite(camera.x)
-            ? camera.x
-            : 0.0f;
+            safeCameraX;
         push.cameraY =
-            std::isfinite(camera.y)
-            ? camera.y
-            : 0.14f;
+            safeCameraY;
         push.cameraZ =
-            std::isfinite(camera.z)
-            ? camera.z
-            : -2.55f;
+            safeCameraZ;
 
         push.cameraYawRadians =
             std::isfinite(camera.yawRadians)
@@ -5671,47 +5784,14 @@ bool VulkanClearRenderer::recordDrawCommand(
         push.waterFogScale =
             projectionFocal;
 
-        // Main-pass projection must use the exact plane selected by the
-        // ReflectionPlanner. Keep the plane orientation consistent with the
-        // capture pass so projective UVs remain valid for both water and
-        // vertical mirrors.
-        float mainPlaneNx = environment.planarPlaneNormalX;
-        float mainPlaneNy = environment.planarPlaneNormalY;
-        float mainPlaneNz = environment.planarPlaneNormalZ;
-        float mainPlaneD = environment.planarPlaneDistance;
-        const float mainPlaneLength = std::sqrt(
-            mainPlaneNx * mainPlaneNx +
-            mainPlaneNy * mainPlaneNy +
-            mainPlaneNz * mainPlaneNz);
-        if (!std::isfinite(mainPlaneLength) || mainPlaneLength < 0.0001f) {
-            mainPlaneNx = 0.0f;
-            mainPlaneNy = 1.0f;
-            mainPlaneNz = 0.0f;
-            mainPlaneD = 1.48f;
-        } else {
-            const float inverseMainPlaneLength = 1.0f / mainPlaneLength;
-            mainPlaneNx *= inverseMainPlaneLength;
-            mainPlaneNy *= inverseMainPlaneLength;
-            mainPlaneNz *= inverseMainPlaneLength;
-            mainPlaneD = std::isfinite(mainPlaneD)
-                ? mainPlaneD * inverseMainPlaneLength
-                : 0.0f;
-        }
-        const float mainCameraSide =
-            mainPlaneNx * push.cameraX +
-            mainPlaneNy * push.cameraY +
-            mainPlaneNz * push.cameraZ +
+        push.reflectionPlaneX =
+            mainPlaneNx;
+        push.reflectionPlaneY =
+            mainPlaneNy;
+        push.reflectionPlaneZ =
+            mainPlaneNz;
+        push.reflectionPlaneDistance =
             mainPlaneD;
-        if (mainCameraSide < 0.0f) {
-            mainPlaneNx = -mainPlaneNx;
-            mainPlaneNy = -mainPlaneNy;
-            mainPlaneNz = -mainPlaneNz;
-            mainPlaneD = -mainPlaneD;
-        }
-        push.reflectionPlaneX = mainPlaneNx;
-        push.reflectionPlaneY = mainPlaneNy;
-        push.reflectionPlaneZ = mainPlaneNz;
-        push.reflectionPlaneDistance = mainPlaneD;
 
         vkCmdPushConstants(
             command,
