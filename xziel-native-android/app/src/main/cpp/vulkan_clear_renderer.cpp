@@ -5030,6 +5030,62 @@ bool VulkanClearRenderer::recordDrawCommand(
             environment.fogDensity;
         sanctumEnvironment.lightningFlash =
             environment.lightningFlash;
+
+        sanctumEnvironment.keyDirectionX =
+            environment.keyDirectionX;
+        sanctumEnvironment.keyDirectionY =
+            environment.keyDirectionY;
+        sanctumEnvironment.keyDirectionZ =
+            environment.keyDirectionZ;
+        sanctumEnvironment.keyIntensity =
+            environment.keyIntensity;
+
+        sanctumEnvironment.keyColorR =
+            environment.keyColorR;
+        sanctumEnvironment.keyColorG =
+            environment.keyColorG;
+        sanctumEnvironment.keyColorB =
+            environment.keyColorB;
+
+        sanctumEnvironment.ambientColorR =
+            environment.ambientColorR;
+        sanctumEnvironment.ambientColorG =
+            environment.ambientColorG;
+        sanctumEnvironment.ambientColorB =
+            environment.ambientColorB;
+        sanctumEnvironment.ambientIntensity =
+            environment.ambientIntensity;
+
+        sanctumEnvironment.fogColorR =
+            environment.fogColorR;
+        sanctumEnvironment.fogColorG =
+            environment.fogColorG;
+        sanctumEnvironment.fogColorB =
+            environment.fogColorB;
+        sanctumEnvironment.fogHeightFalloff =
+            environment.fogHeightFalloff;
+
+        sanctumEnvironment.exposureScale =
+            environment.exposureScale;
+        sanctumEnvironment.contrast =
+            environment.contrast;
+        sanctumEnvironment.saturation =
+            environment.saturation;
+        sanctumEnvironment.timeSeconds =
+            timeSeconds;
+
+        sanctumEnvironment.localLightCount =
+            std::min<std::uint32_t>(
+                environment.localLightCount,
+                kStaticMeshMaxLocalLights);
+
+        for (std::uint32_t lightIndex = 0U;
+             lightIndex < sanctumEnvironment.localLightCount;
+             ++lightIndex) {
+            sanctumEnvironment.localLights[lightIndex] =
+                environment.localLights[lightIndex];
+        }
+
         sanctumEnvironment.memoryPressure =
             environment.memoryPressure;
 
