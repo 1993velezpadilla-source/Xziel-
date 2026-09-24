@@ -183,6 +183,7 @@ function renderFinalQa(qa) {
     ["Face score", qa.face_score],
     ["FaceMesh", qa.facemesh_score],
     ["FaceTex", qa.facetex_score],
+    ["FaceDetail", qa.facedetail_score],
   ].forEach(([label, score]) => {
     if (score == null) return;
     const item = document.createElement("div");
@@ -256,6 +257,7 @@ function renderCandidates(job) {
       ["Texture", candidate.texture_resolution_score],
       ["FaceMesh", candidate.head_density_score],
       ["FaceTex", candidate.head_texel_density_score],
+      ["FaceDetail", candidate.head_texture_detail_score],
     ].filter(([, value]) => value != null);
     if (metrics.length) {
       const meter = document.createElement("div");
@@ -289,6 +291,9 @@ function renderCandidates(job) {
       }
       if (candidate.head_texel_density_ratio != null) {
         parts.push(`face texel ${Number(candidate.head_texel_density_ratio).toFixed(2)}× global`);
+      }
+      if (candidate.head_texture_detail_ratio != null) {
+        parts.push(`face detail ${Number(candidate.head_texture_detail_ratio).toFixed(2)}× global`);
       }
       if (candidate.pbr_channels?.length) parts.push(candidate.pbr_channels.join(" · "));
       channels.textContent = "QA · " + parts.join(" · ");
