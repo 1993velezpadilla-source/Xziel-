@@ -55,7 +55,7 @@ static_assert(
     "UI batch vertex layout must remain 40 bytes");
 
 constexpr std::uint32_t kUiBatchVerticesPerPrimitive = 6U;
-constexpr std::uint32_t kUiBatchMaxPrimitives = 128U;
+constexpr std::uint32_t kUiBatchMaxPrimitives = 256U;
 constexpr std::uint32_t kUiBatchVerticesPerFrame =
     kUiBatchVerticesPerPrimitive *
     kUiBatchMaxPrimitives;
@@ -6998,6 +6998,7 @@ bool VulkanClearRenderer::recordDrawCommand(
     std::uint32_t uiBatchSubmissions = 0U;
     std::uint32_t uiFallbackPrimitiveDraws = 0U;
     std::uint32_t uiDigitDraws = 0U;
+    std::uint32_t uiDigitSegments = 0U;
 
     const auto flushUiPrimitiveBatch = [&]() noexcept {
         if (uiBatchPendingCount == 0U) {
@@ -7258,83 +7259,119 @@ bool VulkanClearRenderer::recordDrawCommand(
             return;
         }
 
-        // Preserve exact alpha/blend ordering: any queued primitives that
-        // originally appeared before this digit are submitted first.
-        flushUiPrimitiveBatch();
+        const std::uint8_t digitMask =
+            kDigitMasks[
+                static_cast<std::size_t>(
+                    digit)];
 
-        vkCmdBindPipeline(
-            command,
-            VK_PIPELINE_BIND_POINT_GRAPHICS,
-            uiPipeline_);
-
-        UiPushConstants ui{};
-
-        ui.centerX =
-            std::clamp(
-                centerX,
-                0.0f,
-                1.0f) *
-                2.0f -
-            1.0f;
-
-        ui.centerY =
-            1.0f -
-            std::clamp(
-                centerY,
-                0.0f,
-                1.0f) *
-                2.0f;
-
-        // Shape 3 interprets halfWidth as the digit scale. The vertex shader
-        // expands all seven segment quads from one 42-vertex draw and
-        // degenerates masked-off segments before rasterization.
-        ui.halfWidth =
+        const float digitScale =
             std::max(
                 scale,
                 0.01f);
-        ui.halfHeight = 0.0f;
 
-        ui.colorR = 0.92f;
-        ui.colorG =
+        const float digitGreen =
             0.58f +
             0.20f *
                 std::clamp(
                     hud.scorePulseAlpha,
                     0.0f,
                     1.0f);
-        ui.colorB = 0.10f;
-        ui.colorA =
-            std::clamp(
+
+        constexpr float xStep = 0.0168f;
+        constexpr float yStep = 0.0160f;
+        constexpr float horizontalHalfX = 0.0156f;
+        constexpr float horizontalHalfY = 0.0025f;
+        constexpr float verticalHalfX = 0.0024f;
+        constexpr float verticalHalfY = 0.0124f;
+
+        for (int segmentIndex = 0;
+             segmentIndex < 7;
+             ++segmentIndex) {
+            std::uint8_t segmentBit = 0U;
+            float offsetClipX = 0.0f;
+            float offsetClipY = 0.0f;
+            float halfClipX = 0.0f;
+            float halfClipY = 0.0f;
+
+            switch (segmentIndex) {
+                case 0:
+                    segmentBit = 0x01U;
+                    offsetClipY = 2.0f * yStep;
+                    halfClipX = horizontalHalfX;
+                    halfClipY = horizontalHalfY;
+                    break;
+                case 1:
+                    segmentBit = 0x02U;
+                    offsetClipX = xStep;
+                    offsetClipY = yStep;
+                    halfClipX = verticalHalfX;
+                    halfClipY = verticalHalfY;
+                    break;
+                case 2:
+                    segmentBit = 0x04U;
+                    offsetClipX = xStep;
+                    offsetClipY = -yStep;
+                    halfClipX = verticalHalfX;
+                    halfClipY = verticalHalfY;
+                    break;
+                case 3:
+                    segmentBit = 0x08U;
+                    offsetClipY = -2.0f * yStep;
+                    halfClipX = horizontalHalfX;
+                    halfClipY = horizontalHalfY;
+                    break;
+                case 4:
+                    segmentBit = 0x10U;
+                    offsetClipX = -xStep;
+                    offsetClipY = -yStep;
+                    halfClipX = verticalHalfX;
+                    halfClipY = verticalHalfY;
+                    break;
+                case 5:
+                    segmentBit = 0x20U;
+                    offsetClipX = -xStep;
+                    offsetClipY = yStep;
+                    halfClipX = verticalHalfX;
+                    halfClipY = verticalHalfY;
+                    break;
+                default:
+                    segmentBit = 0x40U;
+                    halfClipX = horizontalHalfX;
+                    halfClipY = horizontalHalfY;
+                    break;
+            }
+
+            if ((digitMask & segmentBit) == 0U) {
+                continue;
+            }
+
+            // The old digit shader authored offsets/extents in clip space.
+            // drawUiPrimitive accepts normalized screen coordinates, so x
+            // deltas halve while y deltas halve and invert.
+            drawUiPrimitive(
+                centerX +
+                    offsetClipX *
+                        digitScale *
+                        0.5f,
+                centerY -
+                    offsetClipY *
+                        digitScale *
+                        0.5f,
+                halfClipX *
+                    digitScale *
+                    0.5f,
+                halfClipY *
+                    digitScale *
+                    0.5f,
+                0.92f,
+                digitGreen,
+                0.10f,
                 alpha,
                 0.0f,
-                1.0f);
+                0.10f);
 
-        ui.shape = 3.0f;
-        ui.ringWidth = 0.10f;
-        ui.padding0 =
-            static_cast<float>(
-                kDigitMasks[
-                    static_cast<std::size_t>(
-                        digit)]);
-        ui.padding1 = 0.0f;
-
-        vkCmdPushConstants(
-            command,
-            uiPipelineLayout_,
-            VK_SHADER_STAGE_VERTEX_BIT |
-                VK_SHADER_STAGE_FRAGMENT_BIT,
-            0,
-            static_cast<std::uint32_t>(
-                sizeof(UiPushConstants)),
-            &ui);
-
-        vkCmdDraw(
-            command,
-            42,
-            1,
-            0,
-            0);
-        ++uiDigitDraws;
+            ++uiDigitSegments;
+        }
     };
 
     const float rainIntensity =
@@ -8208,11 +8245,12 @@ bool VulkanClearRenderer::recordDrawCommand(
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_UI_PRIMITIVE_BATCH logical_primitives=%u batch_submissions=%u fallback_primitives=%u digit_draws=%u total_submissions=%u",
+            "XZIEL_UI_PRIMITIVE_BATCH logical_primitives=%u batch_submissions=%u fallback_primitives=%u digit_draws=%u digit_segments=%u total_submissions=%u",
             uiLogicalPrimitiveDraws,
             uiBatchSubmissions,
             uiFallbackPrimitiveDraws,
             uiDigitDraws,
+            uiDigitSegments,
             totalUiSubmissions);
     }
 
