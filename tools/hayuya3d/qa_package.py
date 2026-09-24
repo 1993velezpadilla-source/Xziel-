@@ -131,7 +131,7 @@ def build_qa_package(
             part_map_result,
             out_dir / "part_map.json",
         )
-    except Exception as exc:
+    except Exception:
         part_map_result = None
         part_map_path = None
 
@@ -210,9 +210,10 @@ def build_qa_package(
             "character asset is geometrically usable but unrigged; animation/gameplay-ready status is false"
         )
     if rig_ready and not animation_ready:
-        warnings.append("rig is valid but no glTF animation clips are embedded")
+        warnings.append(
+            "rig is valid but no glTF animation clips are embedded; character production-ready status is false"
+        )
     if mode != "character" and not rig_ready:
-        # Unrigged props/architecture are normal; do not treat this as a readiness failure.
         pass
 
     expected_sources = len(source_images)
@@ -299,6 +300,7 @@ def build_qa_package(
         and turntable_ready
         and face_evidence_ready
         and (rig_ready if rig_required else True)
+        and (animation_ready if rig_required else True)
     )
 
     contact_path = build_contact_sheet(
@@ -328,68 +330,47 @@ def build_qa_package(
             "global_median_edge_normalized": mesh.global_median_edge_normalized,
             "head_region_median_edge_normalized": mesh.head_region_median_edge_normalized,
             "head_region_density_ratio": mesh.head_region_density_ratio,
-            "mesh_doctor": asdict(structure),
-            "unresolved_structural_defects": unresolved_structural_defects,
         },
-        "materials": {
+        "structure": asdict(structure),
+        "material": {
             "ready": material_ready,
+            "base_material_ready": base_material_ready,
+            "texture_resolution_ready": texture_resolution_ready,
+            "material_score": mesh.material_score,
             "has_uv": mesh.has_uv,
             "textured": mesh.textured,
-            "pbr_channels": mesh.pbr_channels or [],
-            "material_score": mesh.material_score,
+            "channels": mesh.pbr_channels,
             "texture_max_edge": mesh.texture_max_edge,
             "base_color_max_edge": mesh.base_color_max_edge,
             "texture_resolution_score": mesh.texture_resolution_score,
-            "profile_texture_target": target_texture_size,
-            "texture_resolution_ready": texture_resolution_ready,
+            "target_texture_size": target_texture_size,
         },
-        "references": {
-            "geometry_source_count": expected_sources,
-            "detail_source_count": len(detail_images),
-            "face_detail_source_count": len(face_detail_refs),
-            "face_evidence_required": face_evidence_required,
-            "face_evidence_ready": face_evidence_ready,
-            "appearance_score": champion_data.get("appearance_score"),
-            "detail_identity_score": champion_data.get("appearance_detail_score"),
-            "face_detail_identity_score": face_evidence_score,
-            "judge_visual_view_count": source_coverage,
-            "all_geometry_sources_judged": source_coverage >= expected_sources,
-        },
-        "source_vs_turntable": (
-            asdict(turntable_qa)
-            if turntable_qa is not None
-            else {
-                "ready": turntable_ready,
-                "score": turntable_score,
-                "report": str(turntable_report_path) if turntable_report_path else None,
-                "contact_sheet": str(turntable_contact_path) if turntable_contact_path else None,
-            }
-        ),
-        "part_map": (
-            {
-                **asdict(part_map_result),
-                "report": str(part_map_path) if part_map_path else None,
-            }
-            if part_map_result is not None
-            else None
-        ),
         "rig": asdict(rig),
-        "gameprep": gameprep_data,
-        "readiness": {
-            "geometry_ready": geometry_ready,
-            "material_ready": material_ready,
-            "rig_required": rig_required,
-            "rig_ready": rig_ready,
-            "animation_ready": animation_ready,
-            "gameprep_ready": gameprep_ready,
-            "turntable_ready": turntable_ready,
-            "turntable_score": turntable_score,
-            "face_evidence_ready": face_evidence_ready,
-            "production_ready": production_ready,
+        "part_map": asdict(part_map_result) if part_map_result is not None else None,
+        "judge": {
+            "score": champion_data.get("score"),
+            "visual_score": champion_data.get("visual_score"),
+            "visual_views": judged_views,
+            "appearance_score": champion_data.get("appearance_score"),
+            "appearance_detail_score": champion_data.get("appearance_detail_score"),
+            "appearance_face_detail_score": champion_data.get("appearance_face_detail_score"),
+            "appearance_details": champion_data.get("appearance_details"),
+            "normal_support_score": champion_data.get("normal_support_score"),
         },
-        "warnings": list(dict.fromkeys(warnings)),
-        "contact_sheet": str(contact_path) if contact_path else None,
-        "source_vs_turntable_sheet": str(turntable_contact_path) if turntable_contact_path else None,
+        "gameprep": gameprep_data,
+        "source_coverage": {
+            "expected": expected_sources,
+            "judged": source_coverage,
+        },
+        "face_evidence": {
+            "required": face_evidence_required,
+            "references": [str(p) for p in face_detail_refs],
+            "score": face_evidence_score,
+            "ready": face_evidence_ready,
+        },
+        "turntable_qa": asdict(turntable_qa) if turntable_qa is not None else None,
+        "production_ready": production_ready,
+        "warnings": warnings,
     }
     report_path = out_dir / "qa_report.json"
     report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
@@ -408,37 +389,5 @@ def build_qa_package(
         turntable_score=turntable_score,
         face_evidence_ready=face_evidence_ready,
         production_ready=production_ready,
-        warnings=report["warnings"],
+        warnings=warnings,
     )
-
-
-def main() -> int:
-    import argparse
-
-    parser = argparse.ArgumentParser(description="Build a HAYUYA final asset QA package.")
-    parser.add_argument("glb", type=Path)
-    parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--mode", choices=["prop", "character", "architecture"], default="prop")
-    parser.add_argument("--profile", default="game")
-    parser.add_argument("--target-faces", type=int, default=100000)
-    parser.add_argument("--target-texture-size", type=int)
-    parser.add_argument("--source", type=Path, action="append", default=[])
-    args = parser.parse_args()
-
-    result = build_qa_package(
-        args.glb,
-        args.output,
-        champion={},
-        mode=args.mode,
-        profile=args.profile,
-        source_images=args.source,
-        detail_images=[],
-        target_faces=args.target_faces,
-        target_texture_size=args.target_texture_size,
-    )
-    print(json.dumps(asdict(result), indent=2))
-    return 0 if result.geometry_ready else 2
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
