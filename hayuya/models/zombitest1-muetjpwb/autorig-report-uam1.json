@@ -328,17 +328,12 @@
       "donor_samples": 8546,
       "bone_envelope_segments": 22,
       "anatomical_neighbor_graph": {
-        "DEF-forearm.L": [
-          "DEF-hand.L",
-          "DEF-upper_arm.L"
+        "DEF-hand.R": [
+          "DEF-forearm.R"
         ],
-        "DEF-upper_arm.R": [
-          "DEF-forearm.R",
-          "DEF-shoulder.R"
-        ],
-        "DEF-forearm.R": [
-          "DEF-hand.R",
-          "DEF-upper_arm.R"
+        "DEF-foot.L": [
+          "DEF-shin.L",
+          "DEF-toe.L"
         ],
         "DEF-shin.L": [
           "DEF-foot.L",
@@ -348,71 +343,76 @@
           "DEF-hips",
           "DEF-spine.002"
         ],
-        "DEF-spine.003": [
-          "DEF-neck",
-          "DEF-shoulder.L",
-          "DEF-shoulder.R",
-          "DEF-spine.002"
+        "DEF-head": [
+          "DEF-neck"
         ],
-        "DEF-shin.R": [
-          "DEF-foot.R",
-          "DEF-thigh.R"
-        ],
-        "DEF-neck": [
-          "DEF-head",
-          "DEF-spine.003"
-        ],
-        "DEF-toe.R": [
-          "DEF-foot.R"
+        "DEF-forearm.L": [
+          "DEF-hand.L",
+          "DEF-upper_arm.L"
         ],
         "DEF-foot.R": [
           "DEF-shin.R",
           "DEF-toe.R"
         ],
-        "DEF-toe.L": [
-          "DEF-foot.L"
-        ],
-        "DEF-upper_arm.L": [
-          "DEF-forearm.L",
-          "DEF-shoulder.L"
-        ],
-        "DEF-thigh.R": [
-          "DEF-hips",
-          "DEF-shin.R"
-        ],
-        "DEF-shoulder.R": [
-          "DEF-spine.003",
-          "DEF-upper_arm.R"
-        ],
-        "DEF-hand.R": [
-          "DEF-forearm.R"
-        ],
         "DEF-thigh.L": [
           "DEF-hips",
           "DEF-shin.L"
         ],
-        "DEF-spine.002": [
-          "DEF-spine.001",
-          "DEF-spine.003"
+        "DEF-upper_arm.R": [
+          "DEF-forearm.R",
+          "DEF-shoulder.R"
         ],
-        "DEF-head": [
-          "DEF-neck"
+        "DEF-forearm.R": [
+          "DEF-hand.R",
+          "DEF-upper_arm.R"
+        ],
+        "DEF-shin.R": [
+          "DEF-foot.R",
+          "DEF-thigh.R"
         ],
         "DEF-hips": [
           "DEF-spine.001",
           "DEF-thigh.L",
           "DEF-thigh.R"
         ],
+        "DEF-thigh.R": [
+          "DEF-hips",
+          "DEF-shin.R"
+        ],
+        "DEF-spine.002": [
+          "DEF-spine.001",
+          "DEF-spine.003"
+        ],
+        "DEF-toe.L": [
+          "DEF-foot.L"
+        ],
+        "DEF-spine.003": [
+          "DEF-neck",
+          "DEF-shoulder.L",
+          "DEF-shoulder.R",
+          "DEF-spine.002"
+        ],
         "DEF-hand.L": [
           "DEF-forearm.L"
+        ],
+        "DEF-neck": [
+          "DEF-head",
+          "DEF-spine.003"
+        ],
+        "DEF-shoulder.R": [
+          "DEF-spine.003",
+          "DEF-upper_arm.R"
         ],
         "DEF-shoulder.L": [
           "DEF-spine.003",
           "DEF-upper_arm.L"
         ],
-        "DEF-foot.L": [
-          "DEF-shin.L",
-          "DEF-toe.L"
+        "DEF-upper_arm.L": [
+          "DEF-forearm.L",
+          "DEF-shoulder.L"
+        ],
+        "DEF-toe.R": [
+          "DEF-foot.R"
         ]
       },
       "blend_neighbours": 4,
@@ -435,5 +435,127 @@
       }
     }
   ],
+  "rest_pose_fit_telemetry": {
+    "schema": 1,
+    "method": "terminal_major_bone_bbox_overlap_v1",
+    "lateral_axis": 0,
+    "top1_counts": {
+      "DEF-thigh.R": 5186,
+      "DEF-head": 3617,
+      "DEF-thigh.L": 3343,
+      "DEF-foot.L": 2262,
+      "DEF-spine.001": 2062,
+      "DEF-shin.R": 1920,
+      "DEF-shin.L": 1824,
+      "DEF-foot.R": 1722,
+      "DEF-spine.002": 1424,
+      "DEF-hips": 1283,
+      "DEF-upper_arm.L": 1145,
+      "DEF-toe.R": 1127,
+      "DEF-shoulder.R": 678,
+      "DEF-upper_arm.R": 316,
+      "DEF-shoulder.L": 220,
+      "DEF-spine.003": 161
+    },
+    "terminal_major_fit": [
+      {
+        "name": "DEF-hand.L",
+        "kind": "hand",
+        "top1_vertices": 0,
+        "weighted": false,
+        "lateral_range": [
+          0.401726,
+          0.42817
+        ],
+        "target_lateral_range": [
+          -0.226541,
+          0.231308
+        ],
+        "lateral_overhang": 0.196862,
+        "lateral_overhang_normalized": 0.429972
+      },
+      {
+        "name": "DEF-hand.R",
+        "kind": "hand",
+        "top1_vertices": 0,
+        "weighted": false,
+        "lateral_range": [
+          -0.423403,
+          -0.396959
+        ],
+        "target_lateral_range": [
+          -0.226541,
+          0.231308
+        ],
+        "lateral_overhang": 0.196862,
+        "lateral_overhang_normalized": 0.429972
+      },
+      {
+        "name": "DEF-foot.L",
+        "kind": "foot",
+        "top1_vertices": 2262,
+        "weighted": true,
+        "lateral_range": [
+          0.050484,
+          0.050484
+        ],
+        "target_lateral_range": [
+          -0.226541,
+          0.231308
+        ],
+        "lateral_overhang": 0.0,
+        "lateral_overhang_normalized": 0.0
+      },
+      {
+        "name": "DEF-toe.L",
+        "kind": "foot",
+        "top1_vertices": 0,
+        "weighted": true,
+        "lateral_range": [
+          0.050484,
+          0.050484
+        ],
+        "target_lateral_range": [
+          -0.226541,
+          0.231308
+        ],
+        "lateral_overhang": 0.0,
+        "lateral_overhang_normalized": 0.0
+      },
+      {
+        "name": "DEF-foot.R",
+        "kind": "foot",
+        "top1_vertices": 1722,
+        "weighted": true,
+        "lateral_range": [
+          -0.045717,
+          -0.045717
+        ],
+        "target_lateral_range": [
+          -0.226541,
+          0.231308
+        ],
+        "lateral_overhang": 0.0,
+        "lateral_overhang_normalized": 0.0
+      },
+      {
+        "name": "DEF-toe.R",
+        "kind": "foot",
+        "top1_vertices": 1127,
+        "weighted": true,
+        "lateral_range": [
+          -0.045717,
+          -0.045717
+        ],
+        "target_lateral_range": [
+          -0.226541,
+          0.231308
+        ],
+        "lateral_overhang": 0.0,
+        "lateral_overhang_normalized": 0.0
+      }
+    ],
+    "suspected_rest_pose_mismatch": true
+  },
   "output_bytes": 16615112
 }
