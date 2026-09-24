@@ -33,6 +33,10 @@ class QAPackageResult:
     rig_ready: bool
     morph_target_count: int
     morph_ready: bool
+    morph_deformation_applicable: bool
+    morph_deformation_ready: bool
+    morph_deformation_poses: int
+    morph_deformation_max_displacement_ratio: float | None
     animation_ready: bool
     animation_integrity_ready: bool
     animation_channels: int
@@ -549,6 +553,47 @@ def build_qa_package(
             "character morph/blendshape payload is malformed; "
             "expression-capable assets cannot be production-ready"
         )
+
+    morph_deformation_audit = None
+    morph_deformation_applicable = False
+    morph_deformation_ready = not morph_required
+    morph_deformation_poses = 0
+    morph_deformation_max_displacement_ratio = None
+    if morph_required and morph_ready:
+        try:
+            from morph_deformation_qa import audit_morph_deformation
+            morph_deformation_audit = audit_morph_deformation(final_glb)
+            morph_deformation_applicable = bool(
+                morph_deformation_audit.applicable
+            )
+            morph_deformation_ready = bool(
+                morph_deformation_audit.applicable
+                and morph_deformation_audit.ready
+            )
+            morph_deformation_poses = int(
+                morph_deformation_audit.sampled_poses
+            )
+            morph_deformation_max_displacement_ratio = float(
+                morph_deformation_audit.max_displacement_ratio
+            )
+            warnings.extend(
+                morph_deformation_audit.warnings or []
+            )
+            warnings.extend(
+                morph_deformation_audit.errors or []
+            )
+        except Exception as exc:
+            morph_deformation_ready = False
+            warnings.append(
+                "morph-deformation QA unavailable: "
+                f"{type(exc).__name__}: {exc}"
+            )
+    if morph_required and morph_ready and not morph_deformation_ready:
+        warnings.append(
+            "morph/blendshape wiring is valid but sampled morph deformation "
+            "failed; expression-capable character is not production-ready"
+        )
+
     embedded_animation_ready = bool(rig.animation_ready)
 
     animation_audit = None
@@ -858,6 +903,7 @@ def build_qa_package(
         and (anatomy_evidence_ready if mode=="character" else True)
         and (rig_ready if rig_required else True)
         and (morph_ready if morph_required else True)
+        and (morph_deformation_ready if morph_required else True)
         and (skin_weights_ready if rig_required and rig_ready else True)
         and (animation_ready if rig_required else True)
         and (deformation_ready if rig_required else True)
@@ -954,6 +1000,17 @@ def build_qa_package(
             "unresolved_rebakes": unresolved_rebakes,
         },
         "rig": asdict(rig),
+        "morph_deformation": (
+            asdict(morph_deformation_audit)
+            if morph_deformation_audit is not None else {
+                "applicable": morph_deformation_applicable,
+                "ready": morph_deformation_ready,
+                "sampled_poses": morph_deformation_poses,
+                "max_displacement_ratio": (
+                    morph_deformation_max_displacement_ratio
+                ),
+            }
+        ),
         "animation_qa": (
             asdict(animation_audit)
             if animation_audit is not None else {
@@ -1049,6 +1106,12 @@ def build_qa_package(
         rig_ready=rig_ready,
         morph_target_count=morph_target_count,
         morph_ready=morph_ready,
+        morph_deformation_applicable=morph_deformation_applicable,
+        morph_deformation_ready=morph_deformation_ready,
+        morph_deformation_poses=morph_deformation_poses,
+        morph_deformation_max_displacement_ratio=(
+            morph_deformation_max_displacement_ratio
+        ),
         animation_ready=animation_ready,
         animation_integrity_ready=animation_integrity_ready,
         animation_channels=animation_channels,
