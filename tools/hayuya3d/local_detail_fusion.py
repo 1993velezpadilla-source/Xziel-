@@ -79,6 +79,18 @@ def _basecolor_image(path:Path):
     return matches[0]
 
 
+def _wrap_uv(values):
+    np,_,_=_deps()
+    raw=np.asarray(values,dtype=np.float64)
+    wrapped=np.mod(raw,1.0)
+    integer_upper=(
+        (np.abs(wrapped)<=1e-10)
+        &(raw>0.0)
+    )
+    wrapped[integer_upper]=1.0
+    return wrapped
+
+
 def _region_weights(vertices,region:str,up_axis:int):
     np,_,_=_deps()
     values=np.asarray(vertices,dtype=np.float64)[:,up_axis]
@@ -219,7 +231,7 @@ def fuse_local_basecolor(
             tri_w=weights[face]
             if float(np.max(tri_w))<=1e-4:
                 continue
-            tri_uv=np.mod(uv[face],1.0)
+            tri_uv=_wrap_uv(uv[face])
             # Avoid painting across wrapped UV seams in v1. Those boundary
             # triangles stay base-exact until seam-aware unwrap support lands.
             if (
