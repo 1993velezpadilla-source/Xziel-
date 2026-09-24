@@ -353,6 +353,27 @@ function renderCompositePlan(plan) {
     grid.appendChild(chip);
   });
 
+  const detailDonors = Array.isArray(plan.detail_donors) ? plan.detail_donors : [];
+  detailDonors
+    .filter((item) => item && item.donor_backend)
+    .forEach((item) => {
+      const chip = document.createElement("div");
+      const token = "detail:" + String(item.source || "");
+      const executable = Array.isArray(plan.executable_now) && plan.executable_now.includes(token);
+      const external = item.donor_backend !== plan.base_backend;
+      chip.className = "qa-chip " + (external ? (executable ? "pass" : "metric") : "pass");
+      const name = document.createElement("span");
+      const sourceName = String(item.source || "detail").split(/[\\/]/).pop() || "detail";
+      name.textContent = sourceName;
+      const value = document.createElement("strong");
+      const region = item.region_hint ? String(item.region_hint) + " · " : "";
+      const score = item.donor_score == null ? "" : " " + Number(item.donor_score).toFixed(1);
+      value.textContent = region + String(item.donor_backend) + score;
+      chip.title = (item.strategy || "local detail") + " · " + (executable ? "executable" : "guarded") + " · seam " + (item.seam_risk || "?");
+      chip.append(name, value);
+      grid.appendChild(chip);
+    });
+
   const executable = Array.isArray(plan.executable_now) ? plan.executable_now : [];
   const deferred = Array.isArray(plan.deferred_transfers) ? plan.deferred_transfers : [];
   if (executable.length || deferred.length) {
