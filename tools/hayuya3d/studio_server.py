@@ -63,6 +63,7 @@ class CandidateState:
     material_score: float | None = None
     texture_resolution_score: float | None = None
     base_color_max_edge: int | None = None
+    base_color_min_edge: int | None = None
     head_region_faces: int | None = None
     head_region_vertices: int | None = None
     head_region_face_fraction: float | None = None
@@ -283,6 +284,8 @@ def hydrate_candidate_ranking(job: JobState, ranking: list[dict]) -> None:
             candidate.texture_resolution_score = float(item["texture_resolution_score"])
         if item.get("base_color_max_edge") is not None:
             candidate.base_color_max_edge = int(item["base_color_max_edge"])
+        if item.get("base_color_min_edge") is not None:
+            candidate.base_color_min_edge = int(item["base_color_min_edge"])
         if item.get("head_region_faces") is not None:
             candidate.head_region_faces = int(item["head_region_faces"])
         if item.get("head_region_vertices") is not None:
