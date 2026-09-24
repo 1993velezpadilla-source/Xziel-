@@ -68,6 +68,21 @@ def base_qa():
             "base_color_min_edge":4096,
             "target_texture_size":4096,
         },
+        "uv_tangent":{
+            "applicable":True,
+            "ready":True,
+            "missing_uv_primitives":0,
+            "degenerate_uv_triangles":0,
+            "invalid_tangent_primitives":0,
+        },
+        "shading_basis":{
+            "applicable":True,
+            "ready":True,
+            "missing_normals":0,
+            "missing_required_tangents":0,
+            "invalid_handedness":0,
+            "nonorthogonal_tangents":0,
+        },
         "face_evidence":{
             "required":True,
             "ready":True,
@@ -199,6 +214,32 @@ class AAAAcceptanceTests(unittest.TestCase):
         self.assertTrue(
             any(
                 "budget" in item.lower()
+                for item in report.blockers
+            ),
+            report.blockers,
+        )
+
+    def test_high_end_collapsed_uvs_block_aaa(self):
+        qa=base_qa()
+        qa["uv_tangent"]["ready"]=False
+        qa["uv_tangent"]["degenerate_uv_triangles"]=12
+        report=evaluate_aaa_acceptance(base_manifest(),qa)
+        self.assertFalse(report.ready)
+        self.assertTrue(
+            any("UV" in item or "tangent" in item.lower() for item in report.blockers),
+            report.blockers,
+        )
+
+    def test_high_end_invalid_shading_basis_blocks_aaa(self):
+        qa=base_qa()
+        qa["shading_basis"]["ready"]=False
+        qa["shading_basis"]["missing_required_tangents"]=1
+        report=evaluate_aaa_acceptance(base_manifest(),qa)
+        self.assertFalse(report.ready)
+        self.assertTrue(
+            any(
+                "shading basis" in item.lower()
+                or "normal/tangent" in item.lower()
                 for item in report.blockers
             ),
             report.blockers,
