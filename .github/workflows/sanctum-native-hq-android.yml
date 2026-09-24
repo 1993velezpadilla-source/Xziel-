@@ -222,13 +222,14 @@ jobs:
           if [[ "${GITHUB_REF_NAME}" == "engine/mobile-spatial-batching-v1" ]]; then
             jq -e '.spatialBatching == "morton_grid_centroid_v1"' "$REPORT"
             jq -e '.spatialBatchGridMeters == 0.5' "$REPORT"
-            jq -e '.batchCount == 179' "$REPORT"
-            jq -e '.maxTrianglesPerBatch <= 18000' "$REPORT"
+            jq -e '.batchCount == 333' "$REPORT"
+            jq -e '.maxTrianglesPerBatch <= 9000' "$REPORT"
             jq -e '.totalIndices == (.runtimeTriangles * 3)' "$REPORT"
-            jq -e '.totalVertices <= 2408102' "$REPORT"
-            jq -e '.batchBoundsDiagonalMeanMeters < 22.0' "$REPORT"
-            jq -e '.batchBoundsDiagonalMedianMeters < 19.0' "$REPORT"
-            jq -e '.batchBoundsOver40m <= 20' "$REPORT"
+            jq -e '.totalVertices == 2406868' "$REPORT"
+            jq -e '.batchBoundsDiagonalMeanMeters < 17.0' "$REPORT"
+            jq -e '.batchBoundsDiagonalMedianMeters < 14.1' "$REPORT"
+            jq -e '.batchBoundsDiagonalMaxMeters < 65.0' "$REPORT"
+            jq -e '.batchBoundsOver40m <= 13' "$REPORT"
             echo "XZIEL_SPATIAL_BATCH_SOURCE_ACTIVE"
           fi
 

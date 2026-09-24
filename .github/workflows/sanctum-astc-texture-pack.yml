@@ -26,7 +26,7 @@ jobs:
     timeout-minutes: 45
     env:
       GH_TOKEN: ${{ github.token }}
-      SOURCE_RUN_ID: "35970232051"
+      SOURCE_RUN_ID: "35972301681"
       SOURCE_ARTIFACT: "Xziel-Sanctum-Clean-Source"
       KTX_VERSION: "4.4.2"
 
@@ -50,7 +50,9 @@ jobs:
           test -s "${STATIC_REPORT}"
           jq -e '.spatialBatching == "morton_grid_centroid_v1"' "${STATIC_REPORT}"
           jq -e '.sourceTriangles == .runtimeTriangles' "${STATIC_REPORT}"
-          jq -e '.batchCount == 179' "${STATIC_REPORT}"
+          jq -e '.batchCount == 333' "${STATIC_REPORT}"
+          jq -e '.maxTrianglesPerBatch <= 9000' "${STATIC_REPORT}"
+          jq -e '.totalVertices == 2406868' "${STATIC_REPORT}"
           PNG_COUNT="$(find "${STATIC_ROOT}/textures" -type f -name '*.png' | wc -l)"
           test "${PNG_COUNT}" -gt 0
           echo "XZIEL_ASTC_SOURCE_PNGS=${PNG_COUNT}"
