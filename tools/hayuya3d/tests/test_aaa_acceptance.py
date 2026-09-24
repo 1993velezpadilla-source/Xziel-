@@ -45,6 +45,12 @@ def base_qa():
             "nonmanifold_edges":0,
             "winding_consistent":True,
         },
+        "component_crossing":{
+            "applicable":True,
+            "ready":True,
+            "tested_pairs":2,
+            "crossing_triangle_pairs":0,
+        },
         "source_coverage":{"expected":2,"judged":2},
         "turntable_qa":{"ready":True},
         "material":{
@@ -138,6 +144,21 @@ class AAAAcceptanceTests(unittest.TestCase):
         manifest["composite_execution"]=None
         report=evaluate_aaa_acceptance(manifest,base_qa())
         self.assertTrue(report.ready,report.blockers)
+
+    def test_major_surface_crossing_blocks_aaa(self):
+        qa=base_qa()
+        qa["component_crossing"]["ready"]=False
+        qa["component_crossing"]["crossing_triangle_pairs"]=7
+        report=evaluate_aaa_acceptance(base_manifest(),qa)
+        self.assertFalse(report.ready)
+        self.assertTrue(
+            any(
+                "cross" in item.lower()
+                or "interpenetrate" in item.lower()
+                for item in report.blockers
+            ),
+            report.blockers,
+        )
 
     def test_runtime_lod_parity_failure_blocks_aaa(self):
         manifest=base_manifest()
