@@ -12,7 +12,7 @@ import subprocess
 import tempfile
 import urllib.request
 import zipfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 HERE=Path(__file__).resolve().parent
 ROOT=HERE.parents[1]
@@ -121,7 +121,8 @@ def install(root:Path=DEFAULT_ROOT)->Path:
             names=zf.namelist()
             prefix=asset["archive_root"].rstrip("/")+"/"
             if not names or any(
-                name.startswith("/") or ".." in Path(name).parts
+                name.startswith("/")
+                or ".." in PurePosixPath(name.replace("\\","/")).parts
                 for name in names
             ):
                 raise RuntimeError("unsafe_runtime_archive_paths")
