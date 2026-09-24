@@ -135,7 +135,8 @@ function renderFinalQa(qa) {
     ["Rebake", qa.rebake_ready],
     ["Rig", qa.rig_ready],
     ["Animation", qa.animation_ready],
-    ["Face", qa.face_ready],
+    ["Face refs", qa.face_ready],
+    ["Face evidence", qa.face_quality_ready],
   ];
   items.forEach(([label, ready]) => {
     const item = document.createElement("div");
