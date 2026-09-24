@@ -12,6 +12,8 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))
 
+from hayuya_lighting import auto_lighting_profile, compile_lighting_intelligence
+from map_design_brain import auto_design_profile, compile_design_intelligence
 from map_source_registry import default_providers, readiness_report
 from world_semantics import SourceRecord, WorldGraph
 
@@ -80,6 +82,8 @@ def make_plan(
     bounds: list[float] | None = None,
     center: tuple[float, float, float] | None = None,
     env: dict[str, str] | None = None,
+    design_profile: str | None = "auto",
+    lighting_profile: str | None = "auto",
 ) -> dict:
     registry = default_providers()
     unknown = [provider_id for provider_id in provider_ids if provider_id not in registry]
@@ -105,6 +109,25 @@ def make_plan(
             )
         )
 
+    resolved_design_profile = design_profile
+    if resolved_design_profile == "auto":
+        resolved_design_profile = auto_design_profile(goal)
+
+    resolved_lighting_profile = lighting_profile
+    if resolved_lighting_profile == "auto":
+        resolved_lighting_profile = auto_lighting_profile(goal)
+
+    design_intelligence = (
+        compile_design_intelligence(resolved_design_profile)
+        if resolved_design_profile
+        else None
+    )
+    lighting_intelligence = (
+        compile_lighting_intelligence(resolved_lighting_profile)
+        if resolved_lighting_profile
+        else None
+    )
+
     geo = {
         "bounds_wsen": bounds,
         "center": (
@@ -123,6 +146,17 @@ def make_plan(
         "world_graph": graph.to_dict(),
         "geospatial": geo,
         "providers": readiness_report(provider_ids, env=env),
+        "knowledge_library": {
+            "zombies_map_dna_atlas": "docs/zombies-map-dna-atlas.v1.json",
+            "zombies_map_dna_coverage": "docs/zombies-map-dna-coverage.v1.json",
+            "sanctum_zombies_dna_profile": "docs/sanctum-zombies-dna-profile.v1.json",
+            "waw_horror_dna": "docs/WAW_ZOMBIES_HORROR_DNA.md",
+            "waw_horror_checklist": "docs/waw-zombies-horror-checklist.json",
+            "map_design_standard": "hayuya/standards/hayuya_map_design_brain_v1.json",
+            "lighting_standard": "hayuya/standards/hayuya_lighting_brain_v1.json",
+        },
+        "map_design_intelligence": design_intelligence,
+        "lighting_intelligence": lighting_intelligence,
         "stages": list(WORLD_STAGES),
         "perception_policy": {
             "closed_class_detector_is_authoritative": False,
@@ -183,6 +217,16 @@ def main() -> int:
     parser.add_argument("--longitude", type=float)
     parser.add_argument("--radius-m", type=float, default=500.0)
     parser.add_argument("--output-root", type=Path, default=ROOT / "out" / "hayuya-map")
+    parser.add_argument(
+        "--design-profile",
+        default="auto",
+        help="HAYUYA Map Structure Brain profile; auto enables Zombies DNA for zombie/horror goals",
+    )
+    parser.add_argument(
+        "--lighting-profile",
+        default="auto",
+        help="HAYUYA Lighting profile; auto enables horror lighting for zombie/horror goals",
+    )
     parser.add_argument("--list-providers", action="store_true")
     args = parser.parse_args()
 
@@ -213,6 +257,8 @@ def main() -> int:
             provider_ids=providers,
             bounds=bounds,
             center=center,
+            design_profile=args.design_profile,
+            lighting_profile=args.lighting_profile,
         )
     except ValueError as exc:
         parser.error(str(exc))
@@ -221,8 +267,43 @@ def main() -> int:
     job_dir.mkdir(parents=True, exist_ok=True)
     output = job_dir / "plan.json"
     output.write_text(json.dumps(plan, indent=2) + "\n", encoding="utf-8")
+
+    intelligence_dir = job_dir / "intelligence"
+    intelligence_dir.mkdir(parents=True, exist_ok=True)
+    if plan["map_design_intelligence"] is not None:
+        (intelligence_dir / "map_design.json").write_text(
+            json.dumps(plan["map_design_intelligence"], indent=2) + "\n",
+            encoding="utf-8",
+        )
+    if plan["lighting_intelligence"] is not None:
+        (intelligence_dir / "lighting.json").write_text(
+            json.dumps(plan["lighting_intelligence"], indent=2) + "\n",
+            encoding="utf-8",
+        )
+
+    knowledge_manifest = {
+        "schema": 1,
+        "job_id": args.job_id,
+        "knowledge_library": plan["knowledge_library"],
+        "design_profile": (
+            plan["map_design_intelligence"]["profile_id"]
+            if plan["map_design_intelligence"]
+            else None
+        ),
+        "lighting_profile": (
+            plan["lighting_intelligence"]["profile_id"]
+            if plan["lighting_intelligence"]
+            else None
+        ),
+    }
+    (intelligence_dir / "knowledge_manifest.json").write_text(
+        json.dumps(knowledge_manifest, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
     print(json.dumps(plan, indent=2))
     print(f"HAYUYA_MAP_PLAN_READY {output}")
+    print(f"HAYUYA_MAP_INTELLIGENCE_READY {intelligence_dir}")
     return 0
 
 
