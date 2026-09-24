@@ -853,25 +853,15 @@ def rigged_accessory_insert_supported(
                 "new-vertex insertion v1 requires matching base/donor up axes",
             )
         _base_primitive(base_mesh)
-        donor_data=_donor_accessory(
+        _donor_accessory(
             donor_mesh,
             mode="character",
             up_axis=donor_up_axis or base_up_axis,
         )
-        donor_uv=donor_data[5]
-        donor_material=donor_data[6]
-        if donor_uv is None or donor_material is None:
-            return (
-                False,
-                "donor accessory has no transferable UV/PBR material evidence",
-            )
-        from material_bridge import _material_channels
-        channels=set(_material_channels(donor_material))
-        if "baseColor" not in channels:
-            return (
-                False,
-                "donor accessory material lacks baseColor evidence",
-            )
+        # Geometry/runtime support is intentionally independent from material
+        # support. Composite planning records both proofs separately so an
+        # untextured donor can be diagnosed as material-blocked rather than
+        # misclassified as an unrelated local-detail transfer.
         return True, None
     except Exception as exc:
         return False, f"{type(exc).__name__}:{exc}"
