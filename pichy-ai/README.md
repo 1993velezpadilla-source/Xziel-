@@ -4,11 +4,11 @@ Pichy AI is an independent, model-agnostic agent experiment. It is intentionally
 
 The goal is a general assistant first: chat, deep web research, coding, repository work, files, terminal tools, sub-agents, image generation/edit iteration, memory, and self-improvement behind tests.
 
-## Current: v0.2 lab
+## Current: v0.2.2 lab
 
 ### Brain
 - Autonomous multi-step agent loop.
-- Logical model routes: general, reasoning, coding, research, vision.
+- Logical model routes: general, reasoning, coding, research, vision, map modeling.
 - Specialist sub-agents.
 - Web search + URL retrieval.
 - Workspace-scoped file search/read/write.
@@ -24,7 +24,7 @@ FastAPI exposes:
 - `POST /v1/chat/stream`
 - `POST /v1/image`
 
-Sessions retain conversation history while the server process is alive. Image sessions retain prior prompt context so revisions such as “make it taller” build on the accepted concept.
+Sessions retain conversation history while the server process is alive. Image sessions retain prior prompt context so revisions such as “make it taller” build on the accepted concept. Map Model uses a dedicated specialist prompt and `map_modeling/map_spec.schema.json` covering zones, connections, traversal, lighting, collision, navmesh, streaming, optimization and asset manifests.
 
 ### Android
 A native lightweight APK provides:
@@ -32,6 +32,7 @@ A native lightweight APK provides:
 - Research mode.
 - Code mode.
 - Image mode.
+- Map Model mode for production-oriented 3D level/world planning.
 - Persistent session ID.
 - Server URL/token settings.
 - Image rendering from base64 or URL responses.
