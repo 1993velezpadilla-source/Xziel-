@@ -3952,6 +3952,8 @@ void VulkanStaticMeshRenderer::record(
 
     VkPipeline boundPipeline =
         VK_NULL_HANDLE;
+    std::uint32_t boundMaterialIndex =
+        UINT32_MAX;
 
     VkViewport viewport{};
     viewport.x = 0.0f;
@@ -4266,19 +4268,26 @@ void VulkanStaticMeshRenderer::record(
         const auto& material =
             materials_[batch.materialIndex];
 
-        applyMaterial(material);
+        if (boundMaterialIndex !=
+            batch.materialIndex) {
+            applyMaterial(material);
 
-        vkCmdBindDescriptorSets(
-            command,
-            VK_PIPELINE_BIND_POINT_GRAPHICS,
-            pipelineLayout_,
-            0U,
-            1U,
-            &material.descriptorSets[
-                frameSlot %
-                kDescriptorFrames],
-            0U,
-            nullptr);
+            vkCmdBindDescriptorSets(
+                command,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                pipelineLayout_,
+                0U,
+                1U,
+                &material.descriptorSets[
+                    frameSlot %
+                    kDescriptorFrames],
+                0U,
+                nullptr);
+
+            boundMaterialIndex =
+                batch.materialIndex;
+            ++frameStats_.materialBinds;
+        }
 
         vkCmdDrawIndexed(
             command,
@@ -4302,7 +4311,7 @@ void VulkanStaticMeshRenderer::record(
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u",
+            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u material_binds=%u",
             static_cast<unsigned int>(
                 frameStats_.streamingCell),
             static_cast<unsigned int>(
@@ -4314,7 +4323,9 @@ void VulkanStaticMeshRenderer::record(
                 frameStats_.
                     streamingCulledBatches),
             static_cast<unsigned int>(
-                frameStats_.drawCalls));
+                frameStats_.drawCalls),
+            static_cast<unsigned int>(
+                frameStats_.materialBinds));
     }
 }
 
