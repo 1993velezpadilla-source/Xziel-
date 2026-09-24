@@ -162,6 +162,41 @@ def evaluate_aaa_acceptance(
         blocker="material/texture/rebake contract is incomplete",
     )
 
+    uv_tangent=qa_report.get("uv_tangent") or {}
+    _gate(
+        gates,"material.uv_tangent","materials",
+        bool(uv_tangent.get("ready")),
+        (
+            f"applicable={uv_tangent.get('applicable')} "
+            f"missing_uv_primitives={uv_tangent.get('missing_uv_primitives')} "
+            f"degenerate_uv_triangles={uv_tangent.get('degenerate_uv_triangles')} "
+            f"invalid_tangent_primitives={uv_tangent.get('invalid_tangent_primitives')}"
+        ),
+        blocker=(
+            "textured UV/tangent structural QA failed "
+            "(missing/collapsed UVs or unusable tangent derivation)"
+        ),
+        required=high_end,
+    )
+
+    shading_basis=qa_report.get("shading_basis") or {}
+    _gate(
+        gates,"material.shading_basis","materials",
+        bool(shading_basis.get("ready")),
+        (
+            f"applicable={shading_basis.get('applicable')} "
+            f"missing_normals={shading_basis.get('missing_normals')} "
+            f"missing_tangents={shading_basis.get('missing_required_tangents')} "
+            f"bad_handedness={shading_basis.get('invalid_handedness')} "
+            f"nonorthogonal={shading_basis.get('nonorthogonal_tangents')}"
+        ),
+        blocker=(
+            "high-end normal-mapped asset lacks a valid explicit "
+            "normal/tangent shading basis"
+        ),
+        required=bool(high_end and "normal" in channels),
+    )
+
     if high_end:
         pbr_core={"baseColor","roughness","normal"}
         pbr_ready=pbr_core.issubset(channels)
