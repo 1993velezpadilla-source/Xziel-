@@ -47,7 +47,7 @@ function setProgress(stage, progress, status) {
   $("progressBar").style.width = `${progress ?? 0}%`;
   $("jobStatus").textContent = (status || "idle").toUpperCase();
 
-  const order = ["planning","viewforge","generating","judge","refinement","mesh_doctor","retopo","gameprep","portable","qa"];
+  const order = ["planning","viewforge","generating","judge","refinement","mesh_doctor","retopo","composite","gameprep","portable","qa"];
   const current = order.indexOf(stage);
   document.querySelectorAll("#stageStrip span").forEach((el) => {
     const idx = order.indexOf(el.dataset.stage);
@@ -224,6 +224,58 @@ function renderFinalQa(qa) {
   });
 }
 
+function renderCompositePlan(plan) {
+  const section = $("compositeSection");
+  const summary = $("compositeSummary");
+  const grid = $("compositeDonors");
+  if (!plan) {
+    section.hidden = true;
+    summary.textContent = "";
+    grid.replaceChildren();
+    return;
+  }
+
+  section.hidden = false;
+  const required = Boolean(plan.composite_required);
+  $("compositeState").textContent = required ? "MIX" : "BASE";
+  $("compositeState").className = required ? "qa-state ready" : "qa-state";
+  const finalists = Array.isArray(plan.finalist_backends) ? plan.finalist_backends.length : 0;
+  summary.textContent = required
+    ? "Base " + (plan.base_backend || "unknown") + " · " + finalists + " finalists · regional donors selected"
+    : "Base " + (plan.base_backend || "unknown") + " already owns the strongest regional evidence";
+
+  grid.replaceChildren();
+  const donors = Array.isArray(plan.donors) ? plan.donors : [];
+  donors.filter((item) => item && item.donor_backend).forEach((item) => {
+    const chip = document.createElement("div");
+    const isExternal = item.donor_backend !== plan.base_backend;
+    chip.className = "qa-chip " + (isExternal ? "metric" : "pass");
+    const name = document.createElement("span");
+    name.textContent = String(item.region || "region").replaceAll("_", " ");
+    const value = document.createElement("strong");
+    const score = item.donor_score == null ? "" : " " + Number(item.donor_score).toFixed(1);
+    value.textContent = String(item.donor_backend) + score;
+    chip.title = (item.strategy || "retain") + " · seam " + (item.seam_risk || "?") + " · rig " + (item.rig_risk || "?");
+    chip.append(name, value);
+    grid.appendChild(chip);
+  });
+
+  const executable = Array.isArray(plan.executable_now) ? plan.executable_now : [];
+  const deferred = Array.isArray(plan.deferred_transfers) ? plan.deferred_transfers : [];
+  if (executable.length || deferred.length) {
+    const detail = document.createElement("div");
+    detail.className = "qa-chip metric";
+    const name = document.createElement("span");
+    name.textContent = "Transfer plan";
+    const value = document.createElement("strong");
+    value.textContent = [
+      executable.length ? "safe " + executable.length : "",
+      deferred.length ? "guarded " + deferred.length : "",
+    ].filter(Boolean).join(" · ");
+    detail.append(name, value);
+    grid.appendChild(detail);
+  }
+}
 function renderCandidates(job) {
   const list = $("candidates");
   const candidates = job?.candidates || [];
@@ -355,6 +407,7 @@ async function refreshJob() {
   state.job = await res.json();
   setProgress(state.job.stage, state.job.progress, state.job.status);
   renderCandidates(state.job);
+  renderCompositePlan(state.job.composite_plan);
   renderFinalQa(state.job.final_qa);
   if (state.job.final_model_url) {
     showModel(state.job.final_model_url, "Final Champion", `${state.job.profile} · ${state.job.portable_target}`);
@@ -377,6 +430,11 @@ function handleEvent(event) {
     } else {
       refreshJob();
     }
+  }
+  if (event.kind === "composite_plan" && event.plan) {
+    if (state.job) state.job.composite_plan = event.plan;
+    renderCompositePlan(event.plan);
+    appendLog("Composite base: " + (event.plan.base_backend || "unknown"));
   }
   if (event.kind === "champion") {
     appendLog(`👑 Champion: ${event.label} score=${event.score}`);
