@@ -64,7 +64,8 @@ MapLoadResult MapRuntime::load(
         definition.doorCount > definition.doors.size() ||
         definition.windowCount > definition.windows.size() ||
         definition.interactionCount > definition.interactions.size() ||
-        definition.zombieSpawnCount > definition.zombieSpawns.size()) {
+        definition.zombieSpawnCount > definition.zombieSpawns.size() ||
+        definition.lightCount > definition.lights.size()) {
         return result;
     }
 
@@ -90,6 +91,37 @@ MapLoadResult MapRuntime::load(
             return result;
         }
     }
+
+    for (std::size_t i = 0;
+         i < definition.lightCount;
+         ++i) {
+        const auto& light = definition.lights[i];
+
+        if (light.id == 0U ||
+            !finiteVec3(light.position) ||
+            !finiteVec3(light.direction) ||
+            !finiteVec3(light.colorLinear) ||
+            !std::isfinite(light.intensity) ||
+            !std::isfinite(light.rangeMeters) ||
+            !std::isfinite(light.innerConeDegrees) ||
+            !std::isfinite(light.outerConeDegrees) ||
+            !std::isfinite(light.importance) ||
+            !std::isfinite(light.flickerAmount) ||
+            !std::isfinite(light.flickerHz) ||
+            light.intensity < 0.0f ||
+            light.rangeMeters <= 0.0f ||
+            light.innerConeDegrees < 0.0f ||
+            light.outerConeDegrees < light.innerConeDegrees ||
+            light.outerConeDegrees >= 90.0f ||
+            light.flickerAmount < 0.0f ||
+            light.flickerAmount > 1.0f ||
+            light.flickerHz < 0.0f) {
+            return result;
+        }
+    }
+
+    result.lights =
+        definition.lightCount;
 
     clear(player, horde, interactions);
 
