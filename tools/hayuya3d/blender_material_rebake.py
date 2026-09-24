@@ -313,6 +313,7 @@ def main():
         normal_stats=image_signal_stats(normal_image,0)
         normal_image.pack()
         images["normal"]={"name":normal_image.name,"signal":normal_stats}
+        print("HAYUYA_REBAKE_SIGNAL normal "+json.dumps(normal_stats,sort_keys=True))
         resolved.append("normal")
 
     if "occlusion" in channels:
@@ -347,6 +348,10 @@ def main():
             "signal_valid":ao_signal_valid,
             "method":"cycles_native_ao_target_only_v3",
         }
+        print(
+            "HAYUYA_REBAKE_SIGNAL occlusion "
+            + json.dumps(images["occlusion"],sort_keys=True)
+        )
         if ao_signal_valid:
             resolved.append("occlusion")
 
