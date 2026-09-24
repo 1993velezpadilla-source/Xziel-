@@ -1388,6 +1388,7 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     totalVertices_ = 0U;
     totalIndices_ = 0U;
     samplerAnisotropyEnabled_ = false;
+    packedStaticVertexEnabled_ = false;
     astcLdrSupported_ = false;
     multiDrawIndirectEnabled_ = false;
     maxDrawIndirectCount_ = 1U;
