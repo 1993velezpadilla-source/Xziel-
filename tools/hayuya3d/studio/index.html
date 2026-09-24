@@ -100,6 +100,16 @@
           <strong>Live 3D will appear here</strong>
           <span>Candidate meshes can replace the viewer as Hayuya produces them.</span>
         </div>
+        <div id="viewerError" class="viewer-error" hidden>Preview could not be loaded.</div>
+      </div>
+
+      <div id="animationControls" class="animation-controls" hidden>
+        <button id="animationPlay" class="ghost" type="button">Play</button>
+        <label>
+          Animation
+          <select id="animationSelect" aria-label="Preview animation"></select>
+        </label>
+        <span id="animationMeta" class="animation-meta">No animation clips</span>
       </div>
 
       <div class="progress-wrap">
