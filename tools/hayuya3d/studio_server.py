@@ -285,6 +285,24 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
                 return float(raw)
             except ValueError:
                 return None
+        def _int_value(name: str) -> int | None:
+            raw=values.get(name)
+            if not raw or raw.lower()=="none":
+                return None
+            try:
+                return int(raw)
+            except ValueError:
+                return None
+        def _bool_value(name: str) -> bool | None:
+            raw=values.get(name)
+            if not raw or raw.lower()=="none":
+                return None
+            token=raw.lower()
+            if token=="true":
+                return True
+            if token=="false":
+                return False
+            return None
         item={
             "label":values.get("label"),
             "base":values.get("base"),
@@ -296,6 +314,12 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
             "seam_p95":_float_value("seam_p95"),
             "seam_max":_float_value("seam_max"),
             "accessory_confidence":_float_value("accessory_confidence"),
+            "changed_vertices":_int_value("changed_vertices"),
+            "runtime_preserved":_bool_value("runtime_preserved"),
+            "rig_ready":_bool_value("rig_ready"),
+            "skin_weights_ready":_bool_value("skin_weights_ready"),
+            "morph_deformation_ready":_bool_value("morph_deformation_ready"),
+            "rebake_ready":_bool_value("rebake_ready"),
             "path":values.get("path"),
             "status":"challenger",
         }
