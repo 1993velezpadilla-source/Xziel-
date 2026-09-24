@@ -47,6 +47,7 @@ struct StaticMeshFrameStats {
     std::uint64_t submittedTriangles = 0U;
     std::uint32_t cellFrustumTests = 0U;
     std::uint32_t cellFrustumCulled = 0U;
+    std::uint32_t cellRangeSkippedBatches = 0U;
     std::uint32_t cellFrustumSkippedBatches = 0U;
     std::uint32_t batchFrustumTests = 0U;
 
