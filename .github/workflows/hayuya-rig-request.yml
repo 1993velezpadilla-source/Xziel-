@@ -86,7 +86,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "out/rig/${{ matrix.job_id }}"
-          blender -b --python tools/hayuya3d/blender_autorig.py -- \
+          blender --python-exit-code 1 -b --python tools/hayuya3d/blender_autorig.py -- \
             --target "hayuya/models/${{ matrix.job_id }}/model.glb" \
             --donor hayuya/animation_library/quaternius-uam2/library.glb \
             --output "out/rig/${{ matrix.job_id }}/animated.glb" \
@@ -94,7 +94,7 @@ jobs:
           python tools/hayuya3d/rig_gate.py \
             "out/rig/${{ matrix.job_id }}/animated.glb" \
             --json "out/rig/${{ matrix.job_id }}/rig-uam2.json"
-          blender -b --python tools/hayuya3d/blender_animation_gate.py -- \
+          blender --python-exit-code 1 -b --python tools/hayuya3d/blender_animation_gate.py -- \
             --model "out/rig/${{ matrix.job_id }}/animated.glb" \
             --reference "hayuya/models/${{ matrix.job_id }}/model.glb" \
             --json "out/rig/${{ matrix.job_id }}/anim-uam2.json" --samples 5 || true
@@ -103,7 +103,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          blender -b --python tools/hayuya3d/blender_autorig.py -- \
+          blender --python-exit-code 1 -b --python tools/hayuya3d/blender_autorig.py -- \
             --target "hayuya/models/${{ matrix.job_id }}/model.glb" \
             --donor hayuya/animation_library/quaternius-uam1/library.glb \
             --output "out/rig/${{ matrix.job_id }}/animated-uam1.glb" \
@@ -111,7 +111,7 @@ jobs:
           python tools/hayuya3d/rig_gate.py \
             "out/rig/${{ matrix.job_id }}/animated-uam1.glb" \
             --json "out/rig/${{ matrix.job_id }}/rig-uam1.json"
-          blender -b --python tools/hayuya3d/blender_animation_gate.py -- \
+          blender --python-exit-code 1 -b --python tools/hayuya3d/blender_animation_gate.py -- \
             --model "out/rig/${{ matrix.job_id }}/animated-uam1.glb" \
             --reference "hayuya/models/${{ matrix.job_id }}/model.glb" \
             --json "out/rig/${{ matrix.job_id }}/anim-uam1.json" --samples 5 || true
