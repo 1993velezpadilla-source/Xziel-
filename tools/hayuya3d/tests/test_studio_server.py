@@ -360,6 +360,7 @@ class StudioServerTests(unittest.TestCase):
             manifest.write_text(json.dumps({
                 "complete_lod_chain":True,
                 "lod_parity_ready":True,
+                "runtime_budget_ready":True,
                 "tiers":[
                     {
                         "tier":"flagship",
@@ -379,11 +380,32 @@ class StudioServerTests(unittest.TestCase):
                                 "errors":[],
                             }],
                         },
+                        "runtime_budget":{
+                            "ready":True,
+                            "lod_count":4,
+                            "errors":[],
+                            "items":[{
+                                "name":"LOD0",
+                                "ready":True,
+                                "faces":80000,
+                                "face_budget_max":180000,
+                                "material_count":2,
+                                "material_slots_max":6,
+                                "texture_max_edge":4096,
+                                "texture_edge_max":4096,
+                            }],
+                        },
                     },
                     {
                         "tier":"high",
                         "gameprep":{"lods":[{"name":"LOD0"},{"name":"LOD1"},{"name":"LOD2"},{"name":"LOD3"}]},
                         "lod_parity":{
+                            "ready":True,
+                            "lod_count":4,
+                            "errors":[],
+                            "items":[],
+                        },
+                        "runtime_budget":{
                             "ready":True,
                             "lod_count":4,
                             "errors":[],
@@ -396,16 +418,24 @@ class StudioServerTests(unittest.TestCase):
             parse_pipeline_line(
                 job,
                 "HAYUYA_PORTABLE_PACK_READY "
-                "tiers=2 complete_lods=True lod_parity_ready=True "
+                "tiers=2 complete_lods=True lod_parity_ready=True runtime_budget_ready=True "
                 f"manifest={manifest}",
             )
             self.assertEqual(job.stage,"portable")
             self.assertIsNotNone(job.portable_pack)
             self.assertTrue(job.portable_pack["complete_lod_chain"])
             self.assertTrue(job.portable_pack["lod_parity_ready"])
+            self.assertTrue(job.portable_pack["runtime_budget_ready"])
             self.assertEqual(len(job.portable_pack["tiers"]),2)
             self.assertTrue(
                 job.portable_pack["tiers"][0]["lod_parity"]["ready"]
+            )
+            self.assertTrue(
+                job.portable_pack["tiers"][0]["runtime_budget"]["ready"]
+            )
+            self.assertEqual(
+                job.portable_pack["tiers"][0]["runtime_budget"]["items"][0]["face_budget_max"],
+                180000,
             )
             self.assertEqual(
                 job.events[-1]["kind"],
