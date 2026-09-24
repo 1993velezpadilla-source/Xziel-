@@ -143,7 +143,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          blender -b --python tools/hayuya3d/blender_autorig.py -- \
+          blender --python-exit-code 1 -b --python tools/hayuya3d/blender_autorig.py -- \
             --target "hayuya/models/${{ steps.recipe.outputs.job_id }}/model.glb" \
             --donor "${{ steps.model.outputs.donor }}" \
             --output out/character-package/rigged.glb \
@@ -151,7 +151,7 @@ jobs:
           python tools/hayuya3d/rig_gate.py \
             out/character-package/rigged.glb \
             --json out/character-package/rig-gate.json
-          blender -b --python tools/hayuya3d/blender_animation_gate.py -- \
+          blender --python-exit-code 1 -b --python tools/hayuya3d/blender_animation_gate.py -- \
             --model out/character-package/rigged.glb \
             --reference "hayuya/models/${{ steps.recipe.outputs.job_id }}/model.glb" \
             --json out/character-package/animation-gate.json --samples 5 || true
