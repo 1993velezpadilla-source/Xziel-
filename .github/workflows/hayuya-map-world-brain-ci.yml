@@ -4,9 +4,12 @@ on:
   push:
     branches:
       - feature/hayuya-map-world-brain-v1
+      - feature/hayuya-map-zombies-dna-v1
   pull_request:
     paths:
       - "tools/hayuya3d/hayuya_map.py"
+      - "tools/hayuya3d/map_design_brain.py"
+      - "tools/hayuya3d/hayuya_lighting.py"
       - "tools/hayuya3d/world_semantics.py"
       - "tools/hayuya3d/map_source_registry.py"
       - "tools/hayuya3d/google_map_tiles.py"
@@ -15,6 +18,14 @@ on:
       - "tools/hayuya3d/tests/test_google_map_tiles.py"
       - "tools/hayuya3d/tests/test_geo_coordinates.py"
       - "docs/hayuya/HAYUYA_MAP_WORLD_BRAIN.md"
+      - "docs/ZOMBIES_MAP_DNA_ATLAS.md"
+      - "docs/zombies-map-dna-atlas.v1.json"
+      - "docs/zombies-map-dna-coverage.v1.json"
+      - "docs/sanctum-zombies-dna-profile.v1.json"
+      - "docs/WAW_ZOMBIES_HORROR_DNA.md"
+      - "docs/waw-zombies-horror-checklist.json"
+      - "hayuya/standards/hayuya_map_design_brain_v1.json"
+      - "hayuya/standards/hayuya_lighting_brain_v1.json"
       - ".github/workflows/hayuya-map-world-brain-ci.yml"
   workflow_dispatch:
 
@@ -41,6 +52,8 @@ jobs:
             tools/hayuya3d/map_source_registry.py \
             tools/hayuya3d/google_map_tiles.py \
             tools/hayuya3d/geo_coordinates.py \
+            tools/hayuya3d/map_design_brain.py \
+            tools/hayuya3d/hayuya_lighting.py \
             tools/hayuya3d/hayuya_map.py
 
       - name: Run World Brain tests
@@ -85,3 +98,60 @@ jobs:
           assert p["delegation"]["runtime"] == "Xziel XZSM/XMAP compiler"
           print("HAYUYA_MAP_OPEN_WORLD_GATE_OK")
           PY
+
+      - name: Build Zombies structure and lighting intelligence fixture
+        run: |
+          python tools/hayuya3d/hayuya_map.py \
+            --job-id ci-zombies-intelligence \
+            --goal "author an original round-based zombie horror map for Xziel" \
+            --source "original-church-reference.jpg" \
+            --provider user_capture \
+            --design-profile sanctum_classic \
+            --lighting-profile zombies_horror \
+            --output-root /tmp/hayuya-map
+
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root=Path("/tmp/hayuya-map/ci-zombies-intelligence")
+          plan=json.loads((root/"plan.json").read_text())
+          design=json.loads((root/"intelligence/map_design.json").read_text())
+          lighting=json.loads((root/"intelligence/lighting.json").read_text())
+          manifest=json.loads((root/"intelligence/knowledge_manifest.json").read_text())
+
+          assert design["knowledge"]["atlas_map_count"] >= 60
+          assert len(design["source_maps"]) == 8
+          assert design["targets"]["requiredEarlyFork"] is True
+          assert design["targets"]["requiredCompletedCombatLoop"] is True
+          assert design["generation_contract"]["copy_reference_layout"] is False
+          assert "power_off" in lighting["states"]
+          assert "power_on" in lighting["states"]
+          assert lighting["beauty_contract"]["depth_layers_required"] is True
+          assert manifest["design_profile"] == "sanctum_classic"
+          assert manifest["lighting_profile"] == "zombies_horror"
+          assert plan["map_design_intelligence"]["profile_id"] == "sanctum_classic"
+          print("HAYUYA_MAP_ZOMBIES_INTELLIGENCE_GREEN")
+          PY
+
+      - name: Build downloadable intelligence bundle
+        run: |
+          mkdir -p /tmp/hayuya-map-intelligence-bundle/docs
+          mkdir -p /tmp/hayuya-map-intelligence-bundle/standards
+          mkdir -p /tmp/hayuya-map-intelligence-bundle/generated
+          cp docs/zombies-map-dna-atlas.v1.json /tmp/hayuya-map-intelligence-bundle/docs/
+          cp docs/zombies-map-dna-coverage.v1.json /tmp/hayuya-map-intelligence-bundle/docs/
+          cp docs/sanctum-zombies-dna-profile.v1.json /tmp/hayuya-map-intelligence-bundle/docs/
+          cp docs/ZOMBIES_MAP_DNA_ATLAS.md /tmp/hayuya-map-intelligence-bundle/docs/
+          cp docs/WAW_ZOMBIES_HORROR_DNA.md /tmp/hayuya-map-intelligence-bundle/docs/
+          cp docs/waw-zombies-horror-checklist.json /tmp/hayuya-map-intelligence-bundle/docs/
+          cp hayuya/standards/hayuya_map_design_brain_v1.json /tmp/hayuya-map-intelligence-bundle/standards/
+          cp hayuya/standards/hayuya_lighting_brain_v1.json /tmp/hayuya-map-intelligence-bundle/standards/
+          cp -R /tmp/hayuya-map/ci-zombies-intelligence/intelligence /tmp/hayuya-map-intelligence-bundle/generated/
+          cp /tmp/hayuya-map/ci-zombies-intelligence/plan.json /tmp/hayuya-map-intelligence-bundle/generated/
+
+      - name: Upload Hayuya Map intelligence bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: hayuya-map-intelligence-bundle
+          path: /tmp/hayuya-map-intelligence-bundle
