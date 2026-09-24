@@ -302,12 +302,12 @@
   "sterile_export_scene_meshes": [
     "geometry_0"
   ],
-  "binding_method": "uniform_component_coherent_semantic_head_v31",
+  "binding_method": "expanded_component_coherent_semantic_head_v32",
   "bind_results": [
     {
       "mesh": "geometry_0",
       "ok": true,
-      "groups": 17,
+      "groups": 15,
       "weighted_group_names": [
         "Head",
         "calf_l",
@@ -317,14 +317,12 @@
         "foot_l",
         "foot_r",
         "lowerarm_r",
-        "neck_01",
         "pelvis",
         "spine_01",
         "spine_02",
         "spine_03",
         "thigh_l",
         "thigh_r",
-        "upperarm_l",
         "upperarm_r"
       ],
       "spatial_weight_vertices": 16328,
@@ -332,8 +330,21 @@
       "donor_samples": 8546,
       "bone_envelope_segments": 20,
       "anatomical_neighbor_graph": {
-        "foot_r": [
-          "calf_r"
+        "lowerarm_l": [
+          "hand_l",
+          "upperarm_l"
+        ],
+        "hand_l": [
+          "lowerarm_l"
+        ],
+        "pelvis": [
+          "spine_01",
+          "thigh_l",
+          "thigh_r"
+        ],
+        "upperarm_r": [
+          "clavicle_r",
+          "lowerarm_r"
         ],
         "spine_03": [
           "clavicle_l",
@@ -341,36 +352,34 @@
           "neck_01",
           "spine_02"
         ],
+        "calf_l": [
+          "foot_l",
+          "thigh_l"
+        ],
         "foot_l": [
           "calf_l"
-        ],
-        "clavicle_r": [
-          "spine_03",
-          "upperarm_r"
-        ],
-        "upperarm_r": [
-          "clavicle_r",
-          "lowerarm_r"
-        ],
-        "pelvis": [
-          "spine_01",
-          "thigh_l",
-          "thigh_r"
         ],
         "hand_r": [
           "lowerarm_r"
         ],
-        "spine_01": [
-          "pelvis",
-          "spine_02"
+        "clavicle_l": [
+          "spine_03",
+          "upperarm_l"
         ],
-        "calf_r": [
-          "foot_r",
-          "thigh_r"
+        "foot_r": [
+          "calf_r"
         ],
-        "calf_l": [
-          "foot_l",
-          "thigh_l"
+        "spine_02": [
+          "spine_01",
+          "spine_03"
+        ],
+        "upperarm_l": [
+          "clavicle_l",
+          "lowerarm_l"
+        ],
+        "neck_01": [
+          "Head",
+          "spine_03"
         ],
         "thigh_r": [
           "calf_r",
@@ -383,32 +392,21 @@
         "Head": [
           "neck_01"
         ],
-        "upperarm_l": [
-          "clavicle_l",
-          "lowerarm_l"
+        "calf_r": [
+          "foot_r",
+          "thigh_r"
         ],
         "lowerarm_r": [
           "hand_r",
           "upperarm_r"
         ],
-        "spine_02": [
-          "spine_01",
-          "spine_03"
-        ],
-        "neck_01": [
-          "Head",
-          "spine_03"
-        ],
-        "lowerarm_l": [
-          "hand_l",
-          "upperarm_l"
-        ],
-        "hand_l": [
-          "lowerarm_l"
-        ],
-        "clavicle_l": [
+        "clavicle_r": [
           "spine_03",
-          "upperarm_l"
+          "upperarm_r"
+        ],
+        "spine_01": [
+          "pelvis",
+          "spine_02"
         ]
       },
       "blend_neighbours": 4,
@@ -416,7 +414,7 @@
       "weight_smoothing": {
         "attempted": true,
         "passed": true,
-        "groups": 17,
+        "groups": 15,
         "method": "adjacency_python_anatomical_mask_v2",
         "anatomical_mask_enforced": true,
         "semantic_head_zone": {
@@ -424,10 +422,10 @@
           "bone": "Head"
         },
         "connected_components": 827,
-        "rigidized_small_components": 715,
-        "rigidized_vertices": 7846,
-        "rigidize_max_vertices": 489,
-        "rigidize_max_span": 0.1199055004119873
+        "rigidized_small_components": 820,
+        "rigidized_vertices": 15098,
+        "rigidize_max_vertices": 1306,
+        "rigidize_max_span": 0.2797795009613037
       }
     }
   ],
