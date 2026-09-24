@@ -100,6 +100,7 @@ def main():
         raise RuntimeError("target height is degenerate")
 
     donor_objs=import_glb(args.donor)
+    donor_object_names={o.name for o in donor_objs}
     donor_meshes=[o for o in donor_objs if o.type=="MESH"]
     donor_arms=[o for o in donor_objs if o.type=="ARMATURE"]
     if len(donor_arms)!=1:
@@ -293,8 +294,11 @@ def main():
     for obj in list(bpy.data.objects):
         if obj.type=="MESH" and obj.name not in target_mesh_names:
             bpy.data.objects.remove(obj,do_unlink=True)
-    for obj in list(donor_objs):
-        if obj != arm and obj.name in bpy.data.objects:
+    # Remove remaining donor helpers by NAME, not by stale Blender object
+    # references. Mesh objects above may already have been unlinked and a stale
+    # StructRNA raises ReferenceError when its .name is accessed.
+    for obj in list(bpy.data.objects):
+        if obj.name in donor_object_names and obj != arm and obj.name not in target_mesh_names:
             bpy.data.objects.remove(obj,do_unlink=True)
 
     bpy.context.view_layer.update()
