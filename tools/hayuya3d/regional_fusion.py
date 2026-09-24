@@ -532,6 +532,243 @@ def build_head_wrap_geometry(
         )
 
 
+def build_rig_preserving_head_wrap_geometry(
+    base_mesh:Path,
+    donor_mesh:Path,
+    output_glb:Path,
+    *,
+    head_start:float=0.72,
+    full_influence:float=0.84,
+    max_displacement_fraction:float=0.055,
+    seam_limit_fraction:float=0.012,
+    bbox_drift_limit:float=0.08,
+    up_axis:str|int|None=None,
+)->HeadWrapResult:
+    """Patch only skinned POSITION accessors and preserve JOINTS/WEIGHTS bytes."""
+    np,_,cKDTree=_deps()
+    try:
+        from gltf_audit import audit_glb
+        from gltf_position_patch import (
+            _doc_and_bin,
+            mesh_nodes_identity_for_accessors,
+            mesh_position_accessors,
+            patch_position_accessors,
+            read_position_accessor,
+        )
+        from skin_weight_qa import audit_skin_weights
+
+        before_rig=audit_glb(base_mesh)
+        before_skin=audit_skin_weights(base_mesh)
+        if not before_rig.rig_ready:
+            raise RuntimeError("base rig is not valid")
+        if not before_skin.applicable or not before_skin.ready:
+            raise RuntimeError("base skin weights are not valid")
+
+        doc,_,_=_doc_and_bin(base_mesh)
+        accessors=mesh_position_accessors(doc,skinned_only=True)
+        if not accessors:
+            raise RuntimeError("no skinned POSITION accessors")
+        if not mesh_nodes_identity_for_accessors(doc,accessors):
+            raise RuntimeError(
+                "skinned mesh node has non-identity transform; "
+                "object-space POSITION patch is unsafe"
+            )
+
+        arrays=[
+            np.asarray(read_position_accessor(base_mesh,index),dtype=np.float64)
+            for index in accessors
+        ]
+        counts=[len(array) for array in arrays]
+        base_vertices=np.concatenate(arrays,axis=0)
+        donor_vertices=_all_vertices(_scene_meshes(donor_mesh))
+
+        base_lo,base_hi,base_center,base_extent=_bbox(base_vertices)
+        _,_,donor_center,donor_extent=_bbox(donor_vertices)
+        if isinstance(up_axis,str):
+            axis_map={"x":0,"y":1,"z":2}
+            if up_axis.lower() not in axis_map:
+                raise ValueError(f"invalid up_axis: {up_axis}")
+            resolved_up_axis=axis_map[up_axis.lower()]
+        elif isinstance(up_axis,int):
+            if up_axis not in (0,1,2):
+                raise ValueError(f"invalid up_axis index: {up_axis}")
+            resolved_up_axis=up_axis
+        else:
+            resolved_up_axis=int(np.argmax(base_extent))
+
+        base_height=float(base_extent[resolved_up_axis])
+        donor_height=float(donor_extent[resolved_up_axis])
+        if base_height<=1e-9 or donor_height<=1e-9:
+            raise ValueError("collapsed character bounds")
+
+        scale=base_height/donor_height
+        aligned=(donor_vertices-donor_center)*scale+base_center
+        donor_norm_h=(
+            aligned[:,resolved_up_axis]-base_lo[resolved_up_axis]
+        )/base_height
+        donor_head=aligned[
+            donor_norm_h>=max(0.68,head_start-0.04)
+        ]
+        if len(donor_head)<16:
+            raise RuntimeError(
+                f"donor head region too sparse: {len(donor_head)} vertices"
+            )
+        tree=cKDTree(donor_head)
+
+        diagonal=max(float(np.linalg.norm(base_extent)),1e-9)
+        normalized=(
+            base_vertices[:,resolved_up_axis]-base_lo[resolved_up_axis]
+        )/base_height
+        ids=np.flatnonzero(normalized>=head_start)
+        if len(ids)<=0:
+            raise RuntimeError("base has no head-region vertices")
+
+        _,nearest=tree.query(base_vertices[ids],k=1,workers=-1)
+        targets=donor_head[np.asarray(nearest,dtype=np.int64)]
+        displacement=targets-base_vertices[ids]
+        raw_norm=np.linalg.norm(displacement,axis=1)
+        max_disp=max_displacement_fraction*diagonal
+        clamp_scale=np.ones_like(raw_norm)
+        too_large=raw_norm>max_disp
+        clamp_scale[too_large]=max_disp/np.maximum(
+            raw_norm[too_large],
+            1e-12,
+        )
+        displacement*=clamp_scale[:,None]
+        t=(normalized[ids]-head_start)/max(
+            full_influence-head_start,
+            1e-9,
+        )
+        influence=_smoothstep(t)
+        applied=displacement*influence[:,None]
+
+        wrapped=base_vertices.copy()
+        wrapped[ids]+=applied
+        moved_norm=np.linalg.norm(applied,axis=1)/diagonal
+        seam_mask=normalized[ids] < (
+            head_start+(full_influence-head_start)*0.35
+        )
+        seam_norm=(
+            np.linalg.norm(applied[seam_mask],axis=1)/diagonal
+            if np.any(seam_mask)
+            else np.zeros(0)
+        )
+
+        _,_,_,wrapped_extent=_bbox(wrapped)
+        bbox_drift=float(np.max(
+            np.abs(wrapped_extent-base_extent)
+            /np.maximum(base_extent,1e-9)
+        ))
+        seam_max=float(np.max(seam_norm)) if len(seam_norm) else 0.0
+        max_disp_norm=float(np.max(moved_norm)) if len(moved_norm) else 0.0
+        mean_disp_norm=float(np.mean(moved_norm)) if len(moved_norm) else 0.0
+        geometry_ready=bool(
+            seam_max<=seam_limit_fraction
+            and bbox_drift<=bbox_drift_limit
+            and math.isfinite(max_disp_norm)
+        )
+        if not geometry_ready:
+            reasons=[]
+            if seam_max>seam_limit_fraction:
+                reasons.append(
+                    f"neck_seam_drift={seam_max:.6f}>{seam_limit_fraction:.6f}"
+                )
+            if bbox_drift>bbox_drift_limit:
+                reasons.append(
+                    f"bbox_drift={bbox_drift:.6f}>{bbox_drift_limit:.6f}"
+                )
+            raise RuntimeError(";".join(reasons) or "geometry gate failed")
+
+        replacements={}
+        offset=0
+        for accessor,count in zip(accessors,counts):
+            replacements[accessor]=wrapped[offset:offset+count].tolist()
+            offset+=count
+
+        patch=patch_position_accessors(
+            base_mesh,
+            output_glb,
+            replacements,
+        )
+        if not patch.ready or not patch.skin_payload_preserved:
+            raise RuntimeError(
+                patch.error or "POSITION patch changed skin payload"
+            )
+
+        after_rig=audit_glb(output_glb)
+        after_skin=audit_skin_weights(output_glb)
+        rig_preserved=bool(
+            after_rig.rig_ready
+            and before_rig.skin_count==after_rig.skin_count
+            and before_rig.joint_count==after_rig.joint_count
+            and before_rig.animation_count==after_rig.animation_count
+            and before_rig.skinned_mesh_nodes==after_rig.skinned_mesh_nodes
+        )
+        skin_ready=bool(after_skin.applicable and after_skin.ready)
+        if not rig_preserved or not skin_ready:
+            raise RuntimeError(
+                "rig or skin-weight audit regressed after POSITION patch"
+            )
+
+        required=[
+            channel for channel in ("normal","occlusion")
+            if channel in set(before_rig.material_channels or [])
+        ]
+        return HeadWrapResult(
+            base_mesh=str(base_mesh),
+            donor_mesh=str(donor_mesh),
+            raw_output_glb=str(output_glb),
+            output_glb=str(output_glb),
+            attempted=True,
+            geometry_ready=True,
+            rebake_ready=not required,
+            ready_for_judge=not required,
+            up_axis=resolved_up_axis,
+            alignment_scale=round(float(scale),8),
+            head_vertices=int(len(ids)),
+            changed_vertices=int(np.count_nonzero(
+                np.linalg.norm(applied,axis=1)>1e-10
+            )),
+            clamped_vertices=int(np.count_nonzero(too_large)),
+            mean_displacement_normalized=round(mean_disp_norm,8),
+            max_displacement_normalized=round(max_disp_norm,8),
+            seam_max_displacement_normalized=round(seam_max,8),
+            bbox_drift_fraction=round(bbox_drift,8),
+            rebake_required=required,
+            rebake_resolved=[],
+            rig_preserved=True,
+            skin_weights_ready=True,
+            skin_payload_preserved=True,
+            error=None,
+        )
+    except Exception as exc:
+        return HeadWrapResult(
+            base_mesh=str(base_mesh),
+            donor_mesh=str(donor_mesh),
+            raw_output_glb=None,
+            output_glb=None,
+            attempted=True,
+            geometry_ready=False,
+            rebake_ready=False,
+            ready_for_judge=False,
+            up_axis=None,
+            alignment_scale=None,
+            head_vertices=0,
+            changed_vertices=0,
+            clamped_vertices=0,
+            mean_displacement_normalized=None,
+            max_displacement_normalized=None,
+            seam_max_displacement_normalized=None,
+            bbox_drift_fraction=None,
+            rebake_required=[],
+            rebake_resolved=[],
+            rig_preserved=False,
+            skin_weights_ready=False,
+            skin_payload_preserved=False,
+            error=f"{type(exc).__name__}:{exc}",
+        )
+
+
 def prepare_head_wrap_challenger(
     base_mesh:Path,
     donor_mesh:Path,
@@ -544,9 +781,22 @@ def prepare_head_wrap_challenger(
 )->HeadWrapResult:
     out_dir.mkdir(parents=True,exist_ok=True)
     raw=out_dir/"head_wrap_raw.glb"
-    result=build_head_wrap_geometry(
-        base_mesh,donor_mesh,raw,up_axis=up_axis
-    )
+    try:
+        from gltf_audit import audit_glb
+        base_rig=audit_glb(base_mesh)
+    except Exception:
+        base_rig=None
+    if base_rig is not None and base_rig.skin_count>0:
+        result=build_rig_preserving_head_wrap_geometry(
+            base_mesh,
+            donor_mesh,
+            raw,
+            up_axis=up_axis,
+        )
+    else:
+        result=build_head_wrap_geometry(
+            base_mesh,donor_mesh,raw,up_axis=up_axis
+        )
     if not result.geometry_ready:
         return result
 
@@ -570,15 +820,33 @@ def prepare_head_wrap_challenger(
 
     final=out_dir/"head_wrap_rebaked.glb"
     try:
-        from material_rebake import rebake_material_channels
-        rebake=rebake_material_channels(
-            base_mesh,
-            raw,
-            final,
-            required=required,
-            max_texture_size=texture_size,
-            blender=blender,
-        )
+        if base_rig is not None and base_rig.skin_count>0:
+            from rig_preserving_rebake import (
+                rebake_material_channels_preserve_rig,
+            )
+            rebake=rebake_material_channels_preserve_rig(
+                base_mesh,
+                raw,
+                final,
+                required=required,
+                max_texture_size=texture_size,
+                blender=blender,
+            )
+            result.rig_preserved=bool(rebake.rig_preserved)
+            result.skin_weights_ready=bool(rebake.skin_weights_ready)
+            result.skin_payload_preserved=bool(
+                rebake.skin_payload_preserved
+            )
+        else:
+            from material_rebake import rebake_material_channels
+            rebake=rebake_material_channels(
+                base_mesh,
+                raw,
+                final,
+                required=required,
+                max_texture_size=texture_size,
+                blender=blender,
+            )
         result.output_glb=str(final)
         result.rebake_resolved=list(rebake.resolved_channels)
         result.rebake_ready=not rebake.remaining_channels
