@@ -436,6 +436,43 @@ def build_composite_plan(
                     strategy="matched_detached_accessory_swap_then_mesh_doctor"
                     seam_risk="low"
                     rig_risk=("high" if mode=="character" else "low")
+                    if mode=="character":
+                        try:
+                            from gltf_audit import audit_glb
+                            base_runtime=audit_glb(Path(base.path))
+                            if (
+                                base_runtime.skin_count>0
+                                or base_runtime.skinned_mesh_nodes>0
+                            ):
+                                from rigged_accessory_wrap import (
+                                    rigged_accessory_wrap_supported,
+                                )
+                                supported,blocker=(
+                                    rigged_accessory_wrap_supported(
+                                        Path(base.path)
+                                    )
+                                )
+                                accessory_match_data[
+                                    "rigged_wrap_supported"
+                                ]=bool(supported)
+                                accessory_match_data[
+                                    "rigged_wrap_blocker"
+                                ]=blocker
+                                if supported:
+                                    strategy=(
+                                        "matched_rig_preserving_"
+                                        "accessory_wrap_then_rebake"
+                                    )
+                                    rig_risk="low"
+                        except Exception as exc:
+                            accessory_match_data[
+                                "rigged_wrap_supported"
+                            ]=False
+                            accessory_match_data[
+                                "rigged_wrap_blocker"
+                            ]=(
+                                f"{type(exc).__name__}:{exc}"
+                            )
             except Exception as exc:
                 accessory_match_data={
                     "ready":False,
@@ -486,10 +523,16 @@ def build_composite_plan(
         if (
             str(item.region_hint or "").lower() in {"head","middle","lower"}
             or (
-                mode!="character"
-                and item.strategy=="matched_detached_accessory_swap_then_mesh_doctor"
-                and bool((item.accessory_match or {}).get("ready"))
+                (
+                    mode!="character"
+                    and item.strategy=="matched_detached_accessory_swap_then_mesh_doctor"
+                )
+                or (
+                    mode=="character"
+                    and item.strategy=="matched_rig_preserving_accessory_wrap_then_rebake"
+                )
             )
+            and bool((item.accessory_match or {}).get("ready"))
         )
     }
     executable_now=sorted({
@@ -527,7 +570,7 @@ def build_composite_plan(
             "FaceMesh, FaceTex and FaceDetail evidence must remain complete for characters",
             "geometry/topology must pass Mesh Doctor after any geometry transfer",
             "detached accessory/donor components must pass Composite Attachment QA and remain reachable from the canonical base",
-            "normal and occlusion must be rebaked after topology or UV changes",
+            "normal and occlusion must be rebaked after geometry, topology or UV changes",
             "rig/skin/animation must remain valid for skinned characters",
             "source-vs-turntable QA must pass after fusion",
             "no original finalist is overwritten; composite is always a challenger",
@@ -538,6 +581,7 @@ def build_composite_plan(
             "Every explicit local/detail reference gets its own donor winner so scars, hands, jewelry, wounds and clothing details cannot disappear inside an aggregate score.",
             "Detached accessory candidates are never chosen by component count alone; local accessory donors need explicit reference superiority plus non-ambiguous spatial/attachment correspondence.",
             "Multi-piece chains, rosaries, medals and loose detail may remain disconnected meshes, but their proximity graph must stay anchored to the canonical base instead of becoming floating donor islands.",
+            "Existing skinned accessory topology may be reshaped only through the rig-preserving wrap path; adding brand-new accessory vertices remains deferred until explicit weight/morph transfer exists.",
             "High-risk body/face geometry transfers stay deferred until wrap/seam/skin-weight proof exists.",
             "Texture/material transfers can be attempted earlier because they preserve base topology.",
             "Every fusion is atomic: rejection restores the untouched base champion.",
@@ -550,24 +594,8 @@ def execute_safe_accessory_challenger(
     out_dir: Path,
     *,
     detail_source: str | None=None,
+    texture_size: int=4096,
 ) -> LocalDetailExecutionResult:
-    if plan.mode=="character":
-        return LocalDetailExecutionResult(
-            attempted=False,
-            ready=False,
-            base_backend=plan.base_backend,
-            donor_backend=None,
-            source=detail_source,
-            region_hint="local",
-            candidate_label=None,
-            candidate_path=None,
-            fusion=None,
-            error=(
-                "character detached accessory swap remains deferred until "
-                "new-vertex skin-weight and morph transfer is implemented"
-            ),
-        )
-
     donor=None
     for item in plan.detail_donors:
         token="detail:"+item.source
@@ -577,7 +605,10 @@ def execute_safe_accessory_challenger(
             continue
         if item.donor_backend==plan.base_backend:
             continue
-        if item.strategy!="matched_detached_accessory_swap_then_mesh_doctor":
+        if item.strategy not in {
+            "matched_detached_accessory_swap_then_mesh_doctor",
+            "matched_rig_preserving_accessory_wrap_then_rebake",
+        }:
             continue
         if not bool((item.accessory_match or {}).get("ready")):
             continue
@@ -616,7 +647,6 @@ def execute_safe_accessory_challenger(
         )
 
     try:
-        from accessory_swap import swap_detached_accessory
         safe_backend="".join(
             ch if ch.isalnum() or ch in {"-","_"} else "_"
             for ch in source.backend
@@ -627,20 +657,41 @@ def execute_safe_accessory_challenger(
         )[:48] or "accessory"
         out_dir.mkdir(parents=True,exist_ok=True)
         output=out_dir/f"composite_accessory_{safe_backend}_{safe_source}.glb"
-        swap=swap_detached_accessory(
-            Path(base.path),
-            Path(source.path),
-            output,
-            mode=plan.mode,
-            base_up_axis=(
-                base.up_axis
-                if base.up_axis in {"x","y","z"} else "y"
-            ),
-            donor_up_axis=(
-                source.up_axis
-                if source.up_axis in {"x","y","z"} else None
-            ),
-        )
+        if donor.strategy=="matched_rig_preserving_accessory_wrap_then_rebake":
+            from rigged_accessory_wrap import (
+                prepare_rigged_accessory_challenger,
+            )
+            swap=prepare_rigged_accessory_challenger(
+                Path(base.path),
+                Path(source.path),
+                out_dir/f"rigged_{safe_backend}_{safe_source}",
+                texture_size=int(texture_size),
+                base_up_axis=(
+                    base.up_axis
+                    if base.up_axis in {"x","y","z"} else "y"
+                ),
+                donor_up_axis=(
+                    source.up_axis
+                    if source.up_axis in {"x","y","z"} else None
+                ),
+            )
+            output=Path(swap.output_glb)
+        else:
+            from accessory_swap import swap_detached_accessory
+            swap=swap_detached_accessory(
+                Path(base.path),
+                Path(source.path),
+                output,
+                mode=plan.mode,
+                base_up_axis=(
+                    base.up_axis
+                    if base.up_axis in {"x","y","z"} else "y"
+                ),
+                donor_up_axis=(
+                    source.up_axis
+                    if source.up_axis in {"x","y","z"} else None
+                ),
+            )
         swap_data=asdict(swap)
         if not swap.ready:
             return LocalDetailExecutionResult(
