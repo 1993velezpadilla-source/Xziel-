@@ -7,9 +7,6 @@ layout(push_constant) uniform UiPushConstants {
 } pc;
 
 layout(location = 0) out vec2 vLocal;
-layout(location = 1) out vec4 vColor;
-layout(location = 2) flat out int vShape;
-layout(location = 3) out float vRingWidth;
 
 const vec2 kQuad[6] = vec2[](
     vec2(-1.0, -1.0),
@@ -34,7 +31,7 @@ void main() {
         pc.rect.xy +
         local * pc.rect.zw;
 
-    // Shape 3 batches one seven-segment digit into a 42-vertex draw, replacing
+    // Shape 3 is a batched seven-segment digit. One 42-vertex draw replaces
     // up to seven push-constant + draw pairs while producing the same quads.
     if (shape == 3) {
         int segmentIndex =
@@ -106,9 +103,6 @@ void main() {
             gl_Position =
                 vec4(2.0, 2.0, 0.0, 1.0);
             vLocal = local;
-            vColor = pc.color;
-            vShape = 0;
-            vRingWidth = pc.params.y;
             return;
         }
 
@@ -125,14 +119,4 @@ void main() {
             1.0);
 
     vLocal = local;
-    vColor = pc.color;
-    vShape =
-        shape == 3
-        ? 0
-        : shape;
-    vRingWidth =
-        clamp(
-            pc.params.y,
-            0.02,
-            0.90);
 }
