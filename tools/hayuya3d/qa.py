@@ -33,6 +33,9 @@ class MeshScore:
     textured: bool = False
     pbr_channels: list[str] | None = None
     material_score: float = 0.0
+    texture_max_edge: int = 0
+    base_color_max_edge: int = 0
+    texture_resolution_score: float | None = None
     bbox: list[float] | None = None
     notes: list[str] | None = None
 
@@ -135,6 +138,7 @@ def inspect_mesh(
     backend: str = "unknown",
     mode: str = "prop",
     target_faces: int = 100_000,
+    target_texture_size: int = 1024,
 ) -> MeshScore:
     valid, notes = _basic_valid(path)
     result = MeshScore(
@@ -211,6 +215,41 @@ def inspect_mesh(
         result.textured = textured
         result.pbr_channels = sorted(pbr_channels)
 
+        texture_resolution_factor = 1.0
+        if path.suffix.lower() == ".glb":
+            try:
+                from texture_gate import inspect as inspect_textures
+                texture_report = inspect_textures(
+                    path,
+                    min_edge=1,
+                    min_base_color_edge=1,
+                )
+                result.texture_max_edge = int(texture_report.max_edge)
+                result.base_color_max_edge = int(texture_report.base_color_max_edge)
+                if result.base_color_max_edge > 0:
+                    texture_resolution_factor = min(
+                        1.0,
+                        result.base_color_max_edge / max(1.0, float(target_texture_size)),
+                    )
+                    result.texture_resolution_score = round(
+                        texture_resolution_factor * 100.0,
+                        3,
+                    )
+                    result.notes.append(
+                        f"baseColor resolution={result.base_color_max_edge}px "
+                        f"target={int(target_texture_size)}px"
+                    )
+                elif texture_report.image_count:
+                    texture_resolution_factor = 0.45
+                    result.texture_resolution_score = 45.0
+                    result.notes.append(
+                        "embedded textures exist but no baseColor image binding was found"
+                    )
+            except Exception as exc:
+                result.notes.append(
+                    f"texture role inspection unavailable: {type(exc).__name__}: {exc}"
+                )
+
         if result.faces < 50:
             result.notes.append("extremely low face count")
         if result.components > 12:
@@ -245,10 +284,14 @@ def inspect_mesh(
         if result.has_uv:
             material += 0.25
         if "baseColor" in channels:
-            material += 0.45
+            # A 1K visible baseColor should not receive the same production
+            # credit as the 4K target of Monster/Ultra. Resolution influences
+            # only the bounded material sub-score; source fidelity remains
+            # dominated by the real-image Judges.
+            material += 0.45 * (0.35 + 0.65 * texture_resolution_factor)
         elif result.textured:
             # Unknown/legacy texture still gets partial credit.
-            material += 0.30
+            material += 0.30 * (0.55 + 0.45 * texture_resolution_factor)
         if "normal" in channels:
             material += 0.10
         if "roughness" in channels:
@@ -294,6 +337,7 @@ def rank_candidates(
     *,
     mode: str,
     target_faces: int,
+    target_texture_size: int = 1024,
     source_images: list[Path] | None = None,
     detail_images: list[Path] | None = None,
     visual_weight: float = 0.55,
@@ -305,7 +349,13 @@ def rank_candidates(
     normal_support_weight: float = 0.06,
 ) -> list[MeshScore]:
     scores = [
-        inspect_mesh(path, backend=backend, mode=mode, target_faces=target_faces)
+        inspect_mesh(
+            path,
+            backend=backend,
+            mode=mode,
+            target_faces=target_faces,
+            target_texture_size=target_texture_size,
+        )
         for backend, path in candidates
     ]
 
@@ -466,6 +516,7 @@ def main() -> int:
     parser.add_argument("mesh", type=Path, nargs="+")
     parser.add_argument("--mode", choices=["auto", "prop", "character", "architecture"], default="prop")
     parser.add_argument("--target-faces", type=int, default=100000)
+    parser.add_argument("--target-texture-size", type=int, default=1024)
     parser.add_argument("--source", type=Path, action="append", help="real geometry source image; repeatable")
     parser.add_argument("--detail", type=Path, action="append", help="detail/close-up reference image; repeatable")
     parser.add_argument("--visual-weight", type=float, default=0.55)
@@ -487,6 +538,7 @@ def main() -> int:
         [(p.stem, p) for p in args.mesh],
         mode="prop" if args.mode == "auto" else args.mode,
         target_faces=args.target_faces,
+        target_texture_size=args.target_texture_size,
         source_images=args.source,
         detail_images=args.detail,
         visual_weight=args.visual_weight,
