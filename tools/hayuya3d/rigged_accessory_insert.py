@@ -17,8 +17,10 @@ class RiggedAccessoryInsertResult:
     ready: bool
     geometry_ready: bool
     material_ready: bool
+    uv_ready: bool
     production_ready: bool
     legacy_payload_preserved: bool
+    material_blockers: list[str]
     donor_component_id: int | None
     spatial_label: str | None
     inserted_vertices: int
@@ -65,8 +67,10 @@ def _fail(
         ready=False,
         geometry_ready=False,
         material_ready=False,
+        uv_ready=False,
         production_ready=False,
         legacy_payload_preserved=False,
+        material_blockers=[],
         donor_component_id=None,
         spatial_label=None,
         inserted_vertices=0,
@@ -220,6 +224,75 @@ def _legacy_payload_preserved(
         if old_rest != new_rest:
             return False
     return True
+
+
+def _inserted_primitive_material_evidence(
+    doc: dict,
+    primitive: dict,
+) -> tuple[bool, bool, list[str]]:
+    blockers: list[str] = []
+    materials = doc.get("materials") or []
+    textures = doc.get("textures") or []
+    images = doc.get("images") or []
+    attrs = primitive.get("attributes") or []
+
+    material_index = primitive.get("material")
+    if not isinstance(material_index, int) or not (
+        0 <= material_index < len(materials)
+    ):
+        return (
+            False,
+            False,
+            ["inserted primitive has no valid material binding"],
+        )
+
+    material = materials[material_index] or {}
+    pbr = material.get("pbrMetallicRoughness") or {}
+    base_color = pbr.get("baseColorTexture")
+    base_factor = pbr.get("baseColorFactor")
+    if base_color is None and base_factor is None:
+        blockers.append(
+            "inserted primitive material has no explicit base-color evidence"
+        )
+
+    texture_infos = []
+    for info in (
+        base_color,
+        pbr.get("metallicRoughnessTexture"),
+        material.get("normalTexture"),
+        material.get("occlusionTexture"),
+        material.get("emissiveTexture"),
+    ):
+        if isinstance(info, dict):
+            texture_infos.append(info)
+
+    uv_ready = True
+    for info in texture_infos:
+        texture_index = info.get("index")
+        if not isinstance(texture_index, int) or not (
+            0 <= texture_index < len(textures)
+        ):
+            blockers.append(
+                "inserted primitive material references invalid texture"
+            )
+            uv_ready = False
+            continue
+        source = (textures[texture_index] or {}).get("source")
+        if not isinstance(source, int) or not (0 <= source < len(images)):
+            blockers.append(
+                "inserted primitive texture has no valid image source"
+            )
+            uv_ready = False
+        texcoord = int(info.get("texCoord", 0) or 0)
+        semantic = f"TEXCOORD_{texcoord}"
+        if semantic not in attrs:
+            blockers.append(
+                f"inserted primitive texture requires missing {semantic}"
+            )
+            uv_ready = False
+
+    material_ready = bool(not blockers and uv_ready)
+    return material_ready, uv_ready, blockers
 
 
 def _base_primitive(path: Path):
@@ -861,13 +934,30 @@ def insert_rigged_accessory(
             )
 
         geometry_ready=not errors
-        material_ready=False
-        production_ready=False
-        warnings.append(
-            "new-vertex accessory geometry/runtime proof passed, but donor "
-            "UV/material transfer is not proven; Composite production "
-            "promotion remains blocked"
+        inserted_primitive=(
+            (after_doc.get("meshes") or [])[int(base["mesh_index"])]
+            .get("primitives", [])[-1]
         )
+        (
+            material_ready,
+            uv_ready,
+            material_blockers,
+        )=_inserted_primitive_material_evidence(
+            after_doc,
+            inserted_primitive,
+        )
+        production_ready=bool(
+            geometry_ready
+            and material_ready
+            and uv_ready
+            and legacy_preserved
+        )
+        if not production_ready:
+            warnings.append(
+                "new-vertex accessory geometry/runtime proof passed, but "
+                "inserted-primitive UV/material evidence is incomplete; "
+                "Composite production promotion remains blocked"
+            )
 
         return RiggedAccessoryInsertResult(
             base_mesh=str(base_mesh),
@@ -877,8 +967,10 @@ def insert_rigged_accessory(
             ready=geometry_ready,
             geometry_ready=geometry_ready,
             material_ready=material_ready,
+            uv_ready=uv_ready,
             production_ready=production_ready,
             legacy_payload_preserved=legacy_preserved,
+            material_blockers=material_blockers,
             donor_component_id=int(selected.component_id),
             spatial_label=str(selected.spatial_label),
             inserted_vertices=int(len(aligned)),
