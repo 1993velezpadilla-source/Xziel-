@@ -7,7 +7,8 @@
     "reasoning": "reasoning",
     "coding": "coding",
     "research": "research",
-    "vision": "vision"
+    "vision": "vision",
+    "map_modeling": "reasoning"
   },
   "models": {
     "general": {
