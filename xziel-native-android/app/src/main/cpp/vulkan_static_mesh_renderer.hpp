@@ -37,6 +37,7 @@ struct StaticMeshFrameStats {
     std::uint32_t materialBinds = 0U;
     std::uint32_t geometryBinds = 0U;
     std::uint32_t pipelineBinds = 0U;
+    std::uint32_t submissionGroups = 0U;
     std::uint64_t submittedTriangles = 0U;
 
     std::uint32_t streamingCell = 0U;
