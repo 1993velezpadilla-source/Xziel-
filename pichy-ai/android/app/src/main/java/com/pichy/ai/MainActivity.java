@@ -92,7 +92,7 @@ public class MainActivity extends Activity {
         root.addView(header);
 
         status = new TextView(this);
-        status.setText("LAB v0.2.3 • independent from HAYUYA");
+        status.setText("LAB v0.3.0 • persistent memory");
         status.setTextColor(Color.rgb(155, 155, 170));
         status.setPadding(0, 0, 0, dp(6));
         root.addView(status);
@@ -200,6 +200,9 @@ public class MainActivity extends Activity {
             checkHealth();
         });
 
+        Button checkBrain = makeButton("Check brain");
+        checkBrain.setOnClickListener(v -> checkBrain());
+
         Button newChat = makeButton("New conversation");
         newChat.setOnClickListener(v -> {
             sessionId = UUID.randomUUID().toString().replace("-", "");
@@ -211,6 +214,7 @@ public class MainActivity extends Activity {
         box.addView(endpoint);
         box.addView(serverToken);
         box.addView(save);
+        box.addView(checkBrain);
         box.addView(newChat);
         return box;
     }
@@ -307,6 +311,52 @@ public class MainActivity extends Activity {
                 }
             } catch (Exception e) {
                 runOnUiThread(() -> status.setText("Offline • " + message(e)));
+            }
+        });
+    }
+
+    private void checkBrain() {
+        if (value(endpoint).isEmpty()) {
+            Toast.makeText(this, "Set the server URL first.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        status.setText("Checking brain...");
+        io.execute(() -> {
+            try {
+                HttpURLConnection c = open("/v1/provider-status", "GET");
+                String body = read(c);
+                int responseCode = c.getResponseCode();
+                if (responseCode < 200 || responseCode >= 300) {
+                    throw new IllegalStateException("HTTP " + responseCode + ": " + body);
+                }
+                JSONObject out = new JSONObject(body);
+                JSONObject models = out.optJSONObject("models");
+                int total = 0;
+                int ready = 0;
+                if (models != null) {
+                    java.util.Iterator<String> keys = models.keys();
+                    while (keys.hasNext()) {
+                        String key = keys.next();
+                        total++;
+                        JSONObject item = models.optJSONObject(key);
+                        if (item != null && item.optBoolean("key_present", false)) ready++;
+                    }
+                }
+                JSONObject image = out.optJSONObject("image");
+                boolean imageReady = image != null && image.optBoolean("key_present", false);
+                int finalReady = ready;
+                int finalTotal = total;
+                runOnUiThread(() -> {
+                    status.setText("Brain • " + finalReady + "/" + finalTotal + " model routes ready");
+                    addBubble("Pichy • Brain Check",
+                            finalReady + " of " + finalTotal + " configured model profiles have credentials. "
+                                    + "Image provider: " + (imageReady ? "ready" : "not ready") + ".");
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    status.setText("Brain check failed");
+                    addBubble("Error", message(e));
+                });
             }
         });
     }
