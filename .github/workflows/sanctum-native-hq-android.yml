@@ -183,7 +183,18 @@ jobs:
             dynamicBarricadeObjectsExcluded,
             originalMaxTextureDimension,
             pbrLinkedMaterialCounts,
+            spatialBatching,
+            spatialBatchGridMeters,
             batchCount,
+            maxTrianglesPerBatch,
+            batchBoundsDiagonalMeanMeters,
+            batchBoundsDiagonalMedianMeters,
+            batchBoundsDiagonalMaxMeters,
+            batchBoundsOver10m,
+            batchBoundsOver20m,
+            batchBoundsOver40m,
+            totalVertices,
+            totalIndices,
             textureCount,
             modelBytes,
             boundsMin,
@@ -198,6 +209,21 @@ jobs:
           jq -e '.vertexStrideBytes == 36' "$REPORT"
           jq -e '.sourceTriangles >= 2700000' "$REPORT"
           jq -e '.runtimeTriangles == .sourceTriangles' "$REPORT"
+
+          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" ]]; then
+            jq -e '.spatialBatching == "morton_grid_centroid_v1"' "$REPORT"
+            jq -e '.spatialBatchGridMeters == 0.5' "$REPORT"
+            jq -e '.batchCount == 333' "$REPORT"
+            jq -e '.maxTrianglesPerBatch <= 9000' "$REPORT"
+            jq -e '.totalIndices == (.runtimeTriangles * 3)' "$REPORT"
+            jq -e '.totalVertices == 2406868' "$REPORT"
+            jq -e '.batchBoundsDiagonalMeanMeters < 17.0' "$REPORT"
+            jq -e '.batchBoundsDiagonalMedianMeters < 14.1' "$REPORT"
+            jq -e '.batchBoundsDiagonalMaxMeters < 65.0' "$REPORT"
+            jq -e '.batchBoundsOver40m <= 13' "$REPORT"
+            echo "XZIEL_SPATIAL_BATCH_SOURCE_ACTIVE"
+          fi
+
           jq -e '(.doubleSidedBatchCount + .backfaceCulledBatchCount) == .batchCount' "$REPORT"
           jq -e '.legacyPhotogrammetryDoubleSided == true' "$REPORT"
           jq -e '.doubleSidedBatchCount == .batchCount' "$REPORT"
@@ -731,6 +757,22 @@ jobs:
           grep -q "XZIEL_GAME_STATE loading=0 mode=1"             dist/sanctum-hq-logcat.txt
           grep -Eq "XZIEL_FRAME_PACING_(READY|SKIPPED_CPU|UNAVAILABLE)"             dist/sanctum-hq-logcat.txt
           grep -q "XZIEL_PERF_TIMING "             dist/sanctum-hq-logcat.txt
+
+          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" ]]; then
+            grep -Eq "XZIEL_SCENE_COST visible_batches=[1-9][0-9]* culled_batches=[1-9][0-9]* draws=[1-9][0-9]* triangles=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
+            SPATIAL_SCENE_LINE="$(grep "XZIEL_SCENE_COST" dist/sanctum-hq-logcat.txt | tail -n 1)"
+            SPATIAL_VISIBLE_BATCHES="$(sed -n 's/.* visible_batches=\([0-9][0-9]*\).*/\1/p' <<<"${SPATIAL_SCENE_LINE}")"
+            SPATIAL_CULLED_BATCHES="$(sed -n 's/.* culled_batches=\([0-9][0-9]*\).*/\1/p' <<<"${SPATIAL_SCENE_LINE}")"
+            SPATIAL_DRAWS="$(sed -n 's/.* draws=\([0-9][0-9]*\).*/\1/p' <<<"${SPATIAL_SCENE_LINE}")"
+            SPATIAL_TRIANGLES="$(sed -n 's/.* triangles=\([0-9][0-9]*\).*/\1/p' <<<"${SPATIAL_SCENE_LINE}")"
+            test -n "${SPATIAL_VISIBLE_BATCHES}"
+            test -n "${SPATIAL_CULLED_BATCHES}"
+            test -n "${SPATIAL_DRAWS}"
+            test -n "${SPATIAL_TRIANGLES}"
+            test "${SPATIAL_VISIBLE_BATCHES}" -le 60
+            test "${SPATIAL_TRIANGLES}" -le 500000
+            echo "XZIEL_SPATIAL_BATCH_RUNTIME_ACTIVE visible_batches=${SPATIAL_VISIBLE_BATCHES} culled_batches=${SPATIAL_CULLED_BATCHES} draws=${SPATIAL_DRAWS} triangles=${SPATIAL_TRIANGLES}"
+          fi
 
           if [[ ("${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-vertex-precompute-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-gpu-pass-timing-mainline-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-range-frustum-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-xzsm-mapped-load-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-material-dedup-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-draw-submission-telemetry-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-draw-group-telemetry-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-indirect-draw-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-cell-frustum-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-portal-visibility-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-gpu-pass-timing-v1") || "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-cull-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-descriptor-frames-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-residency-registry-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-runtime-io-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-gpu-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-mip-transition-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-index-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-io-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-eviction-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-prefetch-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-budget-v1" ]]; then
             grep -Eq "XZIEL_WORLD_STREAMING_PLAN current_cell=[1-9][0-9]* .*hot_resources=[1-9][0-9]* .*cold_batches=[1-9][0-9]* .*evictable_mb=[0-9]+\.[0-9]+" dist/sanctum-hq-logcat.txt
