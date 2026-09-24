@@ -305,12 +305,18 @@ def main():
         a=arm.matrix_world @ bone.head_local
         b=arm.matrix_world @ bone.tail_local
         length=max((b-a).length,1e-5)
+        midpoint=(a+b)*0.5
+        geometric_side=side_of(midpoint,target_center_fit,width_axis)
         bone_segments.append({
             "name":bone.name,
             "a":a,
             "b":b,
             "length":length,
-            "side":bone_side(bone.name),
+            # Geometry decides left/right. Bone naming conventions disagree
+            # across Mixamo/Rigify/UAM sources, so name suffixes are telemetry,
+            # never the source of truth for side filtering.
+            "side":geometric_side,
+            "name_side":bone_side(bone.name),
         })
     if len(bone_segments)<12:
         raise RuntimeError(f"insufficient_major_bone_segments:{len(bone_segments)}<12")
@@ -571,7 +577,7 @@ def main():
         "armature_world_after":arm_world_after,
         "export_meshes":remaining_meshes,
         "sterile_export_scene_meshes":export_scene_meshes,
-        "binding_method":"fitted_skeleton_bone_envelope_sterile_export_v13",
+        "binding_method":"geometric_side_bone_envelope_sterile_export_v14",
         "bind_results":bind_results,
         "output_bytes":args.output.stat().st_size if args.output.exists() else 0,
     }
