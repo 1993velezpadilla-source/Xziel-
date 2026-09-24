@@ -6024,43 +6024,133 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
                     batch.indices.size() *
                         sizeof(std::uint16_t));
 
-                GpuBatch gpuBatch{};
-                gpuBatch.materialIndex =
-                    materialIndices[batchIndex];
+                // XZSM source batches are physically stored at roughly 9k
+                // triangles for compact asset I/O. MDI has reduced the CPU
+                // submission cost to one group in the common Sanctum path, so
+                // use a finer *runtime-only* culling granularity without
+                // duplicating or decimating any geometry.
+                constexpr std::uint32_t
+                    kRuntimeCullTrianglesPerBatch = 3000U;
+                constexpr std::uint32_t
+                    kRuntimeCullIndicesPerBatch =
+                        kRuntimeCullTrianglesPerBatch * 3U;
 
-                if (gpuBatch.materialIndex <
-                    materials_.size()) {
-                    gpuBatch.streamResourceId =
-                        materials_[
-                            gpuBatch.materialIndex].
-                                streamResourceId;
-                }
-
-                gpuBatch.streamCellId =
-                    cellId;
-                gpuBatch.geometryCellSlot =
-                    slot;
-                gpuBatch.sourceBatchIndex =
-                    static_cast<std::uint32_t>(
-                        batchIndex);
-                gpuBatch.firstIndex =
-                    static_cast<std::uint32_t>(
-                        indexCursor[slot]);
-                gpuBatch.vertexOffset =
-                    static_cast<std::int32_t>(
-                        vertexCursor[slot]);
-                gpuBatch.indexCount =
+                const std::uint32_t sourceIndexCount =
                     static_cast<std::uint32_t>(
                         batch.indices.size());
-                gpuBatch.bounds =
-                    batch.bounds;
-                cacheGpuBatchCullingSphere(
-                    gpuBatch);
-                gpuBatch.doubleSided =
-                    batch.doubleSided();
 
-                batches_.emplace_back(
-                    gpuBatch);
+                for (std::uint32_t localFirstIndex = 0U;
+                     localFirstIndex < sourceIndexCount;
+                     localFirstIndex +=
+                         kRuntimeCullIndicesPerBatch) {
+                    const std::uint32_t chunkIndexCount =
+                        std::min<std::uint32_t>(
+                            kRuntimeCullIndicesPerBatch,
+                            sourceIndexCount -
+                                localFirstIndex);
+
+                    if (chunkIndexCount == 0U ||
+                        (chunkIndexCount % 3U) != 0U) {
+                        unmapCells();
+                        destroyGeometryResidency();
+                        return false;
+                    }
+
+                    StaticMeshBounds chunkBounds{};
+                    chunkBounds.minimum = {
+                        std::numeric_limits<float>::infinity(),
+                        std::numeric_limits<float>::infinity(),
+                        std::numeric_limits<float>::infinity(),
+                    };
+                    chunkBounds.maximum = {
+                        -std::numeric_limits<float>::infinity(),
+                        -std::numeric_limits<float>::infinity(),
+                        -std::numeric_limits<float>::infinity(),
+                    };
+
+                    for (std::uint32_t localIndex =
+                             localFirstIndex;
+                         localIndex <
+                             localFirstIndex +
+                                 chunkIndexCount;
+                         ++localIndex) {
+                        const std::uint16_t vertexIndex =
+                            batch.indices[localIndex];
+
+                        if (vertexIndex >=
+                            batch.vertices.size()) {
+                            unmapCells();
+                            destroyGeometryResidency();
+                            return false;
+                        }
+
+                        const auto& vertex =
+                            batch.vertices[vertexIndex];
+
+                        chunkBounds.minimum[0] =
+                            std::min(
+                                chunkBounds.minimum[0],
+                                vertex.x);
+                        chunkBounds.minimum[1] =
+                            std::min(
+                                chunkBounds.minimum[1],
+                                vertex.y);
+                        chunkBounds.minimum[2] =
+                            std::min(
+                                chunkBounds.minimum[2],
+                                vertex.z);
+                        chunkBounds.maximum[0] =
+                            std::max(
+                                chunkBounds.maximum[0],
+                                vertex.x);
+                        chunkBounds.maximum[1] =
+                            std::max(
+                                chunkBounds.maximum[1],
+                                vertex.y);
+                        chunkBounds.maximum[2] =
+                            std::max(
+                                chunkBounds.maximum[2],
+                                vertex.z);
+                    }
+
+                    GpuBatch gpuBatch{};
+                    gpuBatch.materialIndex =
+                        materialIndices[batchIndex];
+
+                    if (gpuBatch.materialIndex <
+                        materials_.size()) {
+                        gpuBatch.streamResourceId =
+                            materials_[
+                                gpuBatch.materialIndex].
+                                    streamResourceId;
+                    }
+
+                    gpuBatch.streamCellId =
+                        cellId;
+                    gpuBatch.geometryCellSlot =
+                        slot;
+                    gpuBatch.sourceBatchIndex =
+                        static_cast<std::uint32_t>(
+                            batchIndex);
+                    gpuBatch.firstIndex =
+                        static_cast<std::uint32_t>(
+                            indexCursor[slot]) +
+                        localFirstIndex;
+                    gpuBatch.vertexOffset =
+                        static_cast<std::int32_t>(
+                            vertexCursor[slot]);
+                    gpuBatch.indexCount =
+                        chunkIndexCount;
+                    gpuBatch.bounds =
+                        chunkBounds;
+                    cacheGpuBatchCullingSphere(
+                        gpuBatch);
+                    gpuBatch.doubleSided =
+                        batch.doubleSided();
+
+                    batches_.emplace_back(
+                        gpuBatch);
+                }
 
                 vertexCursor[slot] +=
                     batch.vertices.size();
