@@ -333,14 +333,23 @@ def main():
         restore_after_ao_bake(ao_restore)
         configure_occlusion(materials,ao_image)
         ao_stats=image_signal_stats(ao_image,0)
+        ao_range=(
+            float(ao_stats["max"])-float(ao_stats["min"])
+            if ao_stats.get("max") is not None and ao_stats.get("min") is not None
+            else 0.0
+        )
+        ao_signal_valid=ao_range>1e-4
         ao_image.pack()
         images["occlusion"]={
             "name":ao_image.name,
             "signal":ao_stats,
+            "signal_range":round(ao_range,6),
+            "signal_valid":ao_signal_valid,
             "distance":ao_distance,
             "method":"ambient_occlusion_shader_to_emit",
         }
-        resolved.append("occlusion")
+        if ao_signal_valid:
+            resolved.append("occlusion")
 
     select_only([target],target)
     bpy.ops.export_scene.gltf(
