@@ -3594,17 +3594,33 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
                     return false;
                 }
 
-                const std::uint64_t vertexBytes =
+                const std::uint64_t sourceVertexBytes =
                     entry.indexDataOffset -
                     entry.vertexDataOffset;
                 const std::uint64_t indexBytes =
                     entry.payloadBytes -
-                    vertexBytes;
+                    sourceVertexBytes;
+
+                if (batch.vertexOffset < 0 ||
+                    sourceVertexBytes !=
+                        static_cast<std::uint64_t>(
+                            entry.vertexCount) *
+                            sizeof(StaticMeshVertex)) {
+                    return false;
+                }
+
+                const std::uint64_t gpuVertexStride =
+                    gpuStaticVertexStride(
+                        packedStaticVertexEnabled_);
+                const std::uint64_t gpuVertexBytes =
+                    static_cast<std::uint64_t>(
+                        entry.vertexCount) *
+                    gpuVertexStride;
 
                 const std::uint64_t vertexDst =
                     static_cast<std::uint64_t>(
                         batch.vertexOffset) *
-                    sizeof(StaticMeshVertex);
+                    gpuVertexStride;
                 const std::uint64_t indexDst =
                     static_cast<std::uint64_t>(
                         batch.firstIndex) *
@@ -3612,7 +3628,7 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
 
                 if (vertexDst >
                         cell.reloadVertexBytes.size() ||
-                    vertexBytes >
+                    gpuVertexBytes >
                         cell.reloadVertexBytes.size() -
                             vertexDst ||
                     indexDst >
@@ -3631,10 +3647,66 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
                         static_cast<std::uint64_t>(
                             range.copyCursor);
 
-                    if (payloadCursor < vertexBytes) {
+                    if (payloadCursor <
+                        sourceVertexBytes) {
+                        if (packedStaticVertexEnabled_) {
+                            if ((payloadCursor %
+                                 sizeof(StaticMeshVertex)) !=
+                                0U) {
+                                return false;
+                            }
+
+                            const std::uint64_t remainingVertices =
+                                (sourceVertexBytes -
+                                 payloadCursor) /
+                                sizeof(StaticMeshVertex);
+                            const std::uint64_t budgetVertices =
+                                remainingBudget /
+                                sizeof(StaticMeshVertex);
+
+                            if (budgetVertices == 0U) {
+                                remainingBudget = 0U;
+                                continue;
+                            }
+
+                            const std::uint32_t verticesToPack =
+                                static_cast<std::uint32_t>(
+                                    std::min<std::uint64_t>(
+                                        remainingVertices,
+                                        budgetVertices));
+                            const std::size_t sourceBytesToPack =
+                                static_cast<std::size_t>(
+                                    verticesToPack) *
+                                sizeof(StaticMeshVertex);
+                            const std::uint64_t destinationVertex =
+                                payloadCursor /
+                                sizeof(StaticMeshVertex);
+
+                            if (!packGpuVerticesFromBytes(
+                                    std::span<const std::byte>(
+                                        range.readyBytes.data() +
+                                            range.copyCursor,
+                                        sourceBytesToPack),
+                                    verticesToPack,
+                                    cell.reloadVertexBytes.data() +
+                                        static_cast<std::size_t>(
+                                            vertexDst +
+                                            destinationVertex *
+                                                gpuVertexStride))) {
+                                return false;
+                            }
+
+                            range.copyCursor +=
+                                sourceBytesToPack;
+                            remainingBudget -=
+                                static_cast<VkDeviceSize>(
+                                    sourceBytesToPack);
+                            continue;
+                        }
+
                         const VkDeviceSize available =
                             static_cast<VkDeviceSize>(
-                                vertexBytes -
+                                sourceVertexBytes -
                                 payloadCursor);
                         const VkDeviceSize amount =
                             std::min(
@@ -3660,7 +3732,7 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
 
                     const std::uint64_t indexCursor =
                         payloadCursor -
-                        vertexBytes;
+                        sourceVertexBytes;
 
                     if (indexCursor >= indexBytes) {
                         return false;
