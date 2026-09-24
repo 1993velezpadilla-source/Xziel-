@@ -261,12 +261,19 @@ void main() {
                     geometricNormal,
                     pc.metallicRoughnessNormalOcclusion.z);
 
+            // NORMAL_MAP_FULL_DETAIL_SINGLE_NORMALIZE_V1
+            // mappedNormal() already returns a unit vector. In the full-detail
+            // region normalDetail is exactly 1, so mix() returns detailNormal
+            // and a second normalize is redundant. Keep normalization only
+            // for the 32-56m fade blend.
             normal =
-                normalize(
-                    mix(
-                        geometricNormal,
-                        detailNormal,
-                        normalDetail));
+                normalDetail >= 1.0
+                ? detailNormal
+                : normalize(
+                      mix(
+                          geometricNormal,
+                          detailNormal,
+                          normalDetail));
         }
     }
 
