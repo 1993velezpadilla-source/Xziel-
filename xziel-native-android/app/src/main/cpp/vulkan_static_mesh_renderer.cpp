@@ -209,6 +209,202 @@ effectiveGeometryResidentBudget(
     }
 }
 
+struct PackedStaticMeshVertex {
+    float x = 0.0f;
+    float y = 0.0f;
+    float z = 0.0f;
+    std::array<std::int16_t, 4> normal{};
+    std::array<std::uint16_t, 2> uv{};
+};
+
+static_assert(
+    sizeof(PackedStaticMeshVertex) == 24U,
+    "packed static GPU vertex must remain 24 bytes");
+
+[[nodiscard]] bool supportsVertexFormat(
+    VkPhysicalDevice physicalDevice,
+    VkFormat format) noexcept {
+    VkFormatProperties properties{};
+    vkGetPhysicalDeviceFormatProperties(
+        physicalDevice,
+        format,
+        &properties);
+
+    return
+        (properties.bufferFeatures &
+         VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT) != 0U;
+}
+
+[[nodiscard]] bool supportsPackedStaticVertex(
+    VkPhysicalDevice physicalDevice) noexcept {
+    return
+        supportsVertexFormat(
+            physicalDevice,
+            VK_FORMAT_R16G16B16A16_SNORM) &&
+        supportsVertexFormat(
+            physicalDevice,
+            VK_FORMAT_R16G16_UNORM);
+}
+
+[[nodiscard]] std::size_t gpuStaticVertexStride(
+    bool packed) noexcept {
+    return
+        packed
+        ? sizeof(PackedStaticMeshVertex)
+        : sizeof(StaticMeshVertex);
+}
+
+[[nodiscard]] std::int16_t packSnorm16(
+    float value) noexcept {
+    if (!std::isfinite(value)) {
+        return 0;
+    }
+
+    const float clamped =
+        std::clamp(
+            value,
+            -1.0f,
+            1.0f);
+
+    return static_cast<std::int16_t>(
+        std::lround(
+            clamped * 32767.0f));
+}
+
+[[nodiscard]] std::uint16_t packUnorm16(
+    float value) noexcept {
+    if (!std::isfinite(value)) {
+        return 0U;
+    }
+
+    const float clamped =
+        std::clamp(
+            value,
+            0.0f,
+            1.0f);
+
+    return static_cast<std::uint16_t>(
+        std::lround(
+            clamped * 65535.0f));
+}
+
+[[nodiscard]] bool assetUvFitsUnorm16(
+    const StaticMeshAsset& asset) noexcept {
+    // Blender can legally author tiled UVs outside [0,1]. Do not silently
+    // clamp those assets: use the original 36-byte layout instead.
+    constexpr float kTolerance = 1.0e-5f;
+
+    for (const auto& batch : asset.batches) {
+        for (const auto& vertex : batch.vertices) {
+            if (!std::isfinite(vertex.u) ||
+                !std::isfinite(vertex.v) ||
+                vertex.u < -kTolerance ||
+                vertex.u > 1.0f + kTolerance ||
+                vertex.v < -kTolerance ||
+                vertex.v > 1.0f + kTolerance) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+void packStaticVertex(
+    const StaticMeshVertex& source,
+    PackedStaticMeshVertex& destination) noexcept {
+    destination.x = source.x;
+    destination.y = source.y;
+    destination.z = source.z;
+
+    destination.normal = {
+        packSnorm16(source.nx),
+        packSnorm16(source.ny),
+        packSnorm16(source.nz),
+        0,
+    };
+
+    destination.uv = {
+        packUnorm16(source.u),
+        packUnorm16(source.v),
+    };
+}
+
+void writeGpuVertices(
+    std::span<const StaticMeshVertex> source,
+    std::byte* destination,
+    bool packed) noexcept {
+    if (destination == nullptr ||
+        source.empty()) {
+        return;
+    }
+
+    if (!packed) {
+        std::memcpy(
+            destination,
+            source.data(),
+            source.size_bytes());
+        return;
+    }
+
+    for (std::size_t i = 0U;
+         i < source.size();
+         ++i) {
+        PackedStaticMeshVertex vertex{};
+        packStaticVertex(
+            source[i],
+            vertex);
+
+        std::memcpy(
+            destination +
+                i *
+                sizeof(PackedStaticMeshVertex),
+            &vertex,
+            sizeof(vertex));
+    }
+}
+
+[[nodiscard]] bool packGpuVerticesFromBytes(
+    std::span<const std::byte> source,
+    std::uint32_t vertexCount,
+    std::byte* destination) noexcept {
+    if (destination == nullptr ||
+        vertexCount == 0U ||
+        source.size() !=
+            static_cast<std::size_t>(
+                vertexCount) *
+                sizeof(StaticMeshVertex)) {
+        return false;
+    }
+
+    for (std::uint32_t i = 0U;
+         i < vertexCount;
+         ++i) {
+        StaticMeshVertex sourceVertex{};
+
+        std::memcpy(
+            &sourceVertex,
+            source.data() +
+                static_cast<std::size_t>(i) *
+                    sizeof(StaticMeshVertex),
+            sizeof(sourceVertex));
+
+        PackedStaticMeshVertex vertex{};
+        packStaticVertex(
+            sourceVertex,
+            vertex);
+
+        std::memcpy(
+            destination +
+                static_cast<std::size_t>(i) *
+                    sizeof(PackedStaticMeshVertex),
+            &vertex,
+            sizeof(vertex));
+    }
+
+    return true;
+}
+
 [[nodiscard]] bool assetExists(
     AAssetManager* assetManager,
     const std::string& path) noexcept {
@@ -275,6 +471,11 @@ bool VulkanStaticMeshRenderer::initialize(
 
     samplerAnisotropyEnabled_ =
         deviceFeatures.samplerAnisotropy == VK_TRUE;
+
+    const bool packedStaticVertexFormatsSupported =
+        supportsPackedStaticVertex(
+            physicalDevice_);
+
     astcLdrSupported_ =
         deviceFeatures.textureCompressionASTC_LDR ==
         VK_TRUE;
@@ -360,6 +561,25 @@ bool VulkanStaticMeshRenderer::initialize(
         shutdown();
         return false;
     }
+
+    const bool uvFitsUnorm16 =
+        assetUvFitsUnorm16(asset);
+    packedStaticVertexEnabled_ =
+        packedStaticVertexFormatsSupported &&
+        uvFitsUnorm16;
+
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
+        "XZIEL_STATIC_VERTEX_FORMAT packed=%u gpu_stride=%u source_stride=%u color_attribute=0 uv_unorm16=%u format_supported=%u",
+        packedStaticVertexEnabled_ ? 1U : 0U,
+        static_cast<unsigned int>(
+            gpuStaticVertexStride(
+                packedStaticVertexEnabled_)),
+        static_cast<unsigned int>(
+            sizeof(StaticMeshVertex)),
+        uvFitsUnorm16 ? 1U : 0U,
+        packedStaticVertexFormatsSupported ? 1U : 0U);
 
     const std::string modelPath =
         modelAssetPath != nullptr
@@ -1142,6 +1362,7 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     totalVertices_ = 0U;
     totalIndices_ = 0U;
     samplerAnisotropyEnabled_ = false;
+    packedStaticVertexEnabled_ = false;
     astcLdrSupported_ = false;
     multiDrawIndirectEnabled_ = false;
     maxDrawIndirectCount_ = 1U;
@@ -3347,17 +3568,33 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
                     return false;
                 }
 
-                const std::uint64_t vertexBytes =
+                const std::uint64_t sourceVertexBytes =
                     entry.indexDataOffset -
                     entry.vertexDataOffset;
                 const std::uint64_t indexBytes =
                     entry.payloadBytes -
-                    vertexBytes;
+                    sourceVertexBytes;
+
+                if (batch.vertexOffset < 0 ||
+                    sourceVertexBytes !=
+                        static_cast<std::uint64_t>(
+                            entry.vertexCount) *
+                            sizeof(StaticMeshVertex)) {
+                    return false;
+                }
+
+                const std::uint64_t gpuVertexStride =
+                    gpuStaticVertexStride(
+                        packedStaticVertexEnabled_);
+                const std::uint64_t gpuVertexBytes =
+                    static_cast<std::uint64_t>(
+                        entry.vertexCount) *
+                    gpuVertexStride;
 
                 const std::uint64_t vertexDst =
                     static_cast<std::uint64_t>(
                         batch.vertexOffset) *
-                    sizeof(StaticMeshVertex);
+                    gpuVertexStride;
                 const std::uint64_t indexDst =
                     static_cast<std::uint64_t>(
                         batch.firstIndex) *
@@ -3365,7 +3602,7 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
 
                 if (vertexDst >
                         cell.reloadVertexBytes.size() ||
-                    vertexBytes >
+                    gpuVertexBytes >
                         cell.reloadVertexBytes.size() -
                             vertexDst ||
                     indexDst >
@@ -3384,10 +3621,66 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
                         static_cast<std::uint64_t>(
                             range.copyCursor);
 
-                    if (payloadCursor < vertexBytes) {
+                    if (payloadCursor <
+                        sourceVertexBytes) {
+                        if (packedStaticVertexEnabled_) {
+                            if ((payloadCursor %
+                                 sizeof(StaticMeshVertex)) !=
+                                0U) {
+                                return false;
+                            }
+
+                            const std::uint64_t remainingVertices =
+                                (sourceVertexBytes -
+                                 payloadCursor) /
+                                sizeof(StaticMeshVertex);
+                            const std::uint64_t budgetVertices =
+                                remainingBudget /
+                                sizeof(StaticMeshVertex);
+
+                            if (budgetVertices == 0U) {
+                                remainingBudget = 0U;
+                                continue;
+                            }
+
+                            const std::uint32_t verticesToPack =
+                                static_cast<std::uint32_t>(
+                                    std::min<std::uint64_t>(
+                                        remainingVertices,
+                                        budgetVertices));
+                            const std::size_t sourceBytesToPack =
+                                static_cast<std::size_t>(
+                                    verticesToPack) *
+                                sizeof(StaticMeshVertex);
+                            const std::uint64_t destinationVertex =
+                                payloadCursor /
+                                sizeof(StaticMeshVertex);
+
+                            if (!packGpuVerticesFromBytes(
+                                    std::span<const std::byte>(
+                                        range.readyBytes.data() +
+                                            range.copyCursor,
+                                        sourceBytesToPack),
+                                    verticesToPack,
+                                    cell.reloadVertexBytes.data() +
+                                        static_cast<std::size_t>(
+                                            vertexDst +
+                                            destinationVertex *
+                                                gpuVertexStride))) {
+                                return false;
+                            }
+
+                            range.copyCursor +=
+                                sourceBytesToPack;
+                            remainingBudget -=
+                                static_cast<VkDeviceSize>(
+                                    sourceBytesToPack);
+                            continue;
+                        }
+
                         const VkDeviceSize available =
                             static_cast<VkDeviceSize>(
-                                vertexBytes -
+                                sourceVertexBytes -
                                 payloadCursor);
                         const VkDeviceSize amount =
                             std::min(
@@ -3413,7 +3706,7 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
 
                     const std::uint64_t indexCursor =
                         payloadCursor -
-                        vertexBytes;
+                        sourceVertexBytes;
 
                     if (indexCursor >= indexBytes) {
                         return false;
@@ -5422,50 +5715,64 @@ bool VulkanStaticMeshRenderer::createPipeline(
     VkVertexInputBindingDescription binding{};
     binding.binding = 0U;
     binding.stride =
-        sizeof(StaticMeshVertex);
+        static_cast<std::uint32_t>(
+            gpuStaticVertexStride(
+                packedStaticVertexEnabled_));
     binding.inputRate =
         VK_VERTEX_INPUT_RATE_VERTEX;
 
-    const std::array<
+    std::array<
         VkVertexInputAttributeDescription,
-        4> attributes{{
-            {
-                0U,
-                0U,
-                VK_FORMAT_R32G32B32_SFLOAT,
-                static_cast<std::uint32_t>(
-                    offsetof(
-                        StaticMeshVertex,
-                        x)),
-            },
-            {
-                1U,
-                0U,
-                VK_FORMAT_R32G32B32_SFLOAT,
-                static_cast<std::uint32_t>(
-                    offsetof(
-                        StaticMeshVertex,
-                        nx)),
-            },
-            {
-                2U,
-                0U,
-                VK_FORMAT_R32G32_SFLOAT,
-                static_cast<std::uint32_t>(
-                    offsetof(
-                        StaticMeshVertex,
-                        u)),
-            },
-            {
-                3U,
-                0U,
-                VK_FORMAT_R8G8B8A8_UNORM,
-                static_cast<std::uint32_t>(
-                    offsetof(
-                        StaticMeshVertex,
-                        rgba)),
-            },
-        }};
+        3> attributes{};
+
+    attributes[0] = {
+        0U,
+        0U,
+        VK_FORMAT_R32G32B32_SFLOAT,
+        0U,
+    };
+
+    if (packedStaticVertexEnabled_) {
+        attributes[1] = {
+            1U,
+            0U,
+            VK_FORMAT_R16G16B16A16_SNORM,
+            static_cast<std::uint32_t>(
+                offsetof(
+                    PackedStaticMeshVertex,
+                    normal)),
+        };
+
+        attributes[2] = {
+            2U,
+            0U,
+            VK_FORMAT_R16G16_UNORM,
+            static_cast<std::uint32_t>(
+                offsetof(
+                    PackedStaticMeshVertex,
+                    uv)),
+        };
+    } else {
+        attributes[1] = {
+            1U,
+            0U,
+            VK_FORMAT_R32G32B32_SFLOAT,
+            static_cast<std::uint32_t>(
+                offsetof(
+                    StaticMeshVertex,
+                    nx)),
+        };
+
+        attributes[2] = {
+            2U,
+            0U,
+            VK_FORMAT_R32G32_SFLOAT,
+            static_cast<std::uint32_t>(
+                offsetof(
+                    StaticMeshVertex,
+                    u)),
+        };
+    }
 
     VkPipelineVertexInputStateCreateInfo vertexInput{
         VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO
@@ -5791,7 +6098,9 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
             cell.vertexBytes =
                 static_cast<VkDeviceSize>(
                     cell.vertexCount) *
-                sizeof(StaticMeshVertex);
+                static_cast<VkDeviceSize>(
+                    gpuStaticVertexStride(
+                        packedStaticVertexEnabled_));
             cell.indexBytes =
                 static_cast<VkDeviceSize>(
                     cell.indexCount) *
@@ -6001,20 +6310,23 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
                 const VkDeviceSize vertexOffsetBytes =
                     static_cast<VkDeviceSize>(
                         vertexCursor[slot]) *
-                    sizeof(StaticMeshVertex);
+                    static_cast<VkDeviceSize>(
+                        gpuStaticVertexStride(
+                            packedStaticVertexEnabled_));
 
                 const VkDeviceSize indexOffsetBytes =
                     static_cast<VkDeviceSize>(
                         indexCursor[slot]) *
                     sizeof(std::uint16_t);
 
-                std::memcpy(
+                writeGpuVertices(
+                    std::span<const StaticMeshVertex>(
+                        batch.vertices.data(),
+                        batch.vertices.size()),
                     static_cast<std::byte*>(
                         mappedVertices[slot]) +
                         vertexOffsetBytes,
-                    batch.vertices.data(),
-                    batch.vertices.size() *
-                        sizeof(StaticMeshVertex));
+                    packedStaticVertexEnabled_);
 
                 std::memcpy(
                     static_cast<std::byte*>(
@@ -6232,7 +6544,9 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
     geometryVertexBytes_ =
         static_cast<VkDeviceSize>(
             asset.totalVertices) *
-        sizeof(StaticMeshVertex);
+        static_cast<VkDeviceSize>(
+            gpuStaticVertexStride(
+                packedStaticVertexEnabled_));
 
     geometryIndexBytes_ =
         static_cast<VkDeviceSize>(
@@ -6393,19 +6707,22 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
             const VkDeviceSize vertexOffsetBytes =
                 static_cast<VkDeviceSize>(
                     vertexCursor) *
-                sizeof(StaticMeshVertex);
+                static_cast<VkDeviceSize>(
+                    gpuStaticVertexStride(
+                        packedStaticVertexEnabled_));
 
             const VkDeviceSize indexOffsetBytes =
                 static_cast<VkDeviceSize>(
                     indexCursor) *
                 sizeof(std::uint16_t);
 
-            std::memcpy(
+            writeGpuVertices(
+                std::span<const StaticMeshVertex>(
+                    batch.vertices.data(),
+                    batch.vertices.size()),
                 vertexBytes +
                     vertexOffsetBytes,
-                batch.vertices.data(),
-                batch.vertices.size() *
-                    sizeof(StaticMeshVertex));
+                packedStaticVertexEnabled_);
 
             std::memcpy(
                 indexBytes +
