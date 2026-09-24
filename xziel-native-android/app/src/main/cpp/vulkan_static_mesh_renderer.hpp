@@ -40,6 +40,9 @@ struct StaticMeshFrameStats {
     std::uint32_t drawSubmissions = 0U;
     // Logical draws carried by vkCmdDrawIndexedIndirect submissions.
     std::uint32_t indirectDraws = 0U;
+    // Commands written straight into the persistently mapped indirect buffer,
+    // avoiding the per-frame CPU staging vector + memcpy on the fast path.
+    std::uint32_t indirectCommandDirectWrites = 0U;
     std::uint32_t materialBinds = 0U;
     std::uint32_t geometryBinds = 0U;
     std::uint32_t pipelineBinds = 0U;

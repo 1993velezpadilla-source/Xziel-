@@ -5157,8 +5157,34 @@ void VulkanStaticMeshRenderer::record(
         }
     }
 
+    const std::uint32_t indirectFrameSlot =
+        frameSlot % kDescriptorFrames;
+    auto& indirectFrame =
+        indirectDrawFrames_[
+            indirectFrameSlot];
+
+    const VkDeviceSize visibleCommandBytes =
+        static_cast<VkDeviceSize>(
+            visibleDrawCandidates_.size()) *
+        sizeof(VkDrawIndexedIndirectCommand);
+
+    const bool useIndirect =
+        multiDrawIndirectEnabled_ &&
+        indirectFrame.buffer != VK_NULL_HANDLE &&
+        indirectFrame.mapped != nullptr &&
+        visibleCommandBytes <=
+            indirectFrame.bytes;
+
+    auto* mappedDrawCommands =
+        useIndirect
+        ? static_cast<
+              VkDrawIndexedIndirectCommand*>(
+              indirectFrame.mapped)
+        : nullptr;
+
     std::uint32_t activeSubmissionGroupId =
         UINT32_MAX;
+    std::uint32_t commandCount = 0U;
 
     for (const auto& candidate :
          visibleDrawCandidates_) {
@@ -5171,8 +5197,7 @@ void VulkanStaticMeshRenderer::record(
             batches_[candidate.batchIndex];
 
         const std::uint32_t commandIndex =
-            static_cast<std::uint32_t>(
-                drawCommands_.size());
+            commandCount++;
 
         VkDrawIndexedIndirectCommand draw{};
         draw.indexCount = batch.indexCount;
@@ -5181,7 +5206,14 @@ void VulkanStaticMeshRenderer::record(
         draw.vertexOffset = batch.vertexOffset;
         draw.firstInstance = 0U;
 
-        drawCommands_.push_back(draw);
+        if (mappedDrawCommands != nullptr) {
+            mappedDrawCommands[
+                commandIndex] = draw;
+            ++frameStats_.
+                indirectCommandDirectWrites;
+        } else {
+            drawCommands_.push_back(draw);
+        }
 
         const std::uint32_t geometryCellSlot =
             cellGeometry
@@ -5235,32 +5267,6 @@ void VulkanStaticMeshRenderer::record(
     frameStats_.submissionGroups =
         static_cast<std::uint32_t>(
             drawGroups_.size());
-
-    const std::uint32_t indirectFrameSlot =
-        frameSlot % kDescriptorFrames;
-    auto& indirectFrame =
-        indirectDrawFrames_[
-            indirectFrameSlot];
-
-    const VkDeviceSize commandBytes =
-        static_cast<VkDeviceSize>(
-            drawCommands_.size()) *
-        sizeof(VkDrawIndexedIndirectCommand);
-
-    const bool useIndirect =
-        multiDrawIndirectEnabled_ &&
-        indirectFrame.buffer != VK_NULL_HANDLE &&
-        indirectFrame.mapped != nullptr &&
-        commandBytes <= indirectFrame.bytes;
-
-    if (useIndirect &&
-        commandBytes > 0U) {
-        std::memcpy(
-            indirectFrame.mapped,
-            drawCommands_.data(),
-            static_cast<std::size_t>(
-                commandBytes));
-    }
 
     for (const auto& group : drawGroups_) {
         if (group.commandCount == 0U ||
@@ -5418,7 +5424,7 @@ void VulkanStaticMeshRenderer::record(
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u draw_submissions=%u indirect_draws=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u multi_draw_indirect=%u portal_tests=%u portal_culled=%u portal_skipped=%u cell_frustum_tests=%u cell_frustum_culled=%u cell_range_skipped=%u cell_frustum_skipped=%u batch_frustum_tests=%u material_visibility_tests=%u material_visibility_cache_hits=%u front_to_back_candidates=%u front_to_back_reordered=%u front_to_back_depth_reuses=%u plan_builds=%llu plan_cache_hits=%llu cell_heat_refreshes=%llu",
+            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u draw_submissions=%u indirect_draws=%u indirect_direct_writes=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u multi_draw_indirect=%u portal_tests=%u portal_culled=%u portal_skipped=%u cell_frustum_tests=%u cell_frustum_culled=%u cell_range_skipped=%u cell_frustum_skipped=%u batch_frustum_tests=%u material_visibility_tests=%u material_visibility_cache_hits=%u front_to_back_candidates=%u front_to_back_reordered=%u front_to_back_depth_reuses=%u plan_builds=%llu plan_cache_hits=%llu cell_heat_refreshes=%llu",
             static_cast<unsigned int>(
                 frameStats_.streamingCell),
             static_cast<unsigned int>(
@@ -5435,6 +5441,9 @@ void VulkanStaticMeshRenderer::record(
                 frameStats_.drawSubmissions),
             static_cast<unsigned int>(
                 frameStats_.indirectDraws),
+            static_cast<unsigned int>(
+                frameStats_.
+                    indirectCommandDirectWrites),
             static_cast<unsigned int>(
                 frameStats_.materialBinds),
             static_cast<unsigned int>(

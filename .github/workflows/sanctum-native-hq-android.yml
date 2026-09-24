@@ -864,6 +864,7 @@ jobs:
             STREAM_SUBMISSION_GROUPS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* submission_groups=\([0-9][0-9]*\).*/\1/p')"
             STREAM_DRAW_SUBMISSIONS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* draw_submissions=\([0-9][0-9]*\).*/\1/p')"
             STREAM_INDIRECT_DRAWS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* indirect_draws=\([0-9][0-9]*\).*/\1/p')"
+            STREAM_INDIRECT_DIRECT_WRITES="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* indirect_direct_writes=\([0-9][0-9]*\).*/\1/p')"
             STREAM_MULTI_DRAW_INDIRECT="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* multi_draw_indirect=\([01]\).*/\1/p')"
             STREAM_PORTAL_TESTS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* portal_tests=\([0-9][0-9]*\).*/\1/p')"
             STREAM_PORTAL_CULLED="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* portal_culled=\([0-9][0-9]*\).*/\1/p')"
@@ -951,6 +952,13 @@ jobs:
               test "${STREAM_DRAW_SUBMISSIONS}" -ge "${STREAM_SUBMISSION_GROUPS}"
               test "${STREAM_DRAW_SUBMISSIONS}" -lt "${STREAM_DRAWS}"
               test "${STREAM_INDIRECT_DRAWS}" -eq "${STREAM_DRAWS}"
+
+              if [[ "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" ]]; then
+                test -n "${STREAM_INDIRECT_DIRECT_WRITES}"
+                test "${STREAM_INDIRECT_DIRECT_WRITES}" -eq "${STREAM_DRAWS}"
+                echo "XZIEL_INDIRECT_COMMAND_DIRECT_WRITE_ACTIVE draws=${STREAM_DRAWS} direct_writes=${STREAM_INDIRECT_DIRECT_WRITES}"
+              fi
+
               echo "XZIEL_MULTI_DRAW_INDIRECT_ACTIVE draws=${STREAM_DRAWS} submissions=${STREAM_DRAW_SUBMISSIONS} groups=${STREAM_SUBMISSION_GROUPS} indirect_draws=${STREAM_INDIRECT_DRAWS}"
             fi
 
