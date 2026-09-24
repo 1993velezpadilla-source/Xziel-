@@ -165,6 +165,9 @@ jobs:
           cp tools/hayuya3d/world_model_broker.py /tmp/hayuya-map-intelligence/tools/hayuya3d/
           cp tools/hayuya3d/reference_search_broker.py /tmp/hayuya-map-intelligence/tools/hayuya3d/
           cp tools/hayuya3d/world_semantics.py /tmp/hayuya-map-intelligence/tools/hayuya3d/
+          cp tools/hayuya3d/map_source_registry.py /tmp/hayuya-map-intelligence/tools/hayuya3d/
+          cp tools/hayuya3d/google_map_tiles.py /tmp/hayuya-map-intelligence/tools/hayuya3d/
+          cp tools/hayuya3d/geo_coordinates.py /tmp/hayuya-map-intelligence/tools/hayuya3d/
           cp ads/policy/google_play_guardrails_v1.json /tmp/hayuya-map-intelligence/ads/policy/
           cp ads/design/world_inventory_patterns_v1.json /tmp/hayuya-map-intelligence/ads/design/
           cp tools/ads/validate_diegetic_ads.py /tmp/hayuya-map-intelligence/tools/ads/
