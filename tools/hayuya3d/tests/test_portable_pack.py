@@ -44,6 +44,7 @@ class PortablePackTests(unittest.TestCase):
             self.assertTrue(Path(result.manifest).is_file())
             self.assertTrue(result.complete_lod_chain)
             self.assertTrue(result.lod_parity_ready)
+            self.assertTrue(result.runtime_budget_ready)
 
             expected_max = {
                 "flagship": 180000,
@@ -73,6 +74,17 @@ class PortablePackTests(unittest.TestCase):
                 self.assertTrue(
                     Path(artifact.lod_parity["report"]).is_file()
                 )
+                self.assertTrue(
+                    artifact.runtime_budget["ready"],
+                    artifact.runtime_budget.get("errors"),
+                )
+                self.assertEqual(
+                    artifact.runtime_budget["lod_count"],
+                    4,
+                )
+                self.assertTrue(
+                    Path(artifact.runtime_budget["report"]).is_file()
+                )
                 self.assertLessEqual(
                     artifact.gameprep["target_lod0_faces"],
                     expected_max[artifact.tier],
@@ -89,6 +101,7 @@ class PortablePackTests(unittest.TestCase):
             manifest = json.loads(Path(result.manifest).read_text())
             self.assertEqual(manifest["asset_mode"], "character")
             self.assertEqual(len(manifest["tiers"]), 4)
+            self.assertTrue(manifest["runtime_budget_ready"])
 
 
 if __name__ == "__main__":
