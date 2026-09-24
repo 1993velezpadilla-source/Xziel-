@@ -59,9 +59,14 @@ class CandidateState:
     visual_score: float | None = None
     appearance_score: float | None = None
     detail_score: float | None = None
+    face_detail_score: float | None = None
     material_score: float | None = None
     texture_resolution_score: float | None = None
     base_color_max_edge: int | None = None
+    head_region_faces: int | None = None
+    head_region_vertices: int | None = None
+    head_region_face_fraction: float | None = None
+    head_region_median_edge_normalized: float | None = None
     pbr_channels: list[str] | None = None
     is_champion: bool = False
 
@@ -273,12 +278,22 @@ def _run_job(job: JobState) -> None:
                         candidate.appearance_score = float(item["appearance_score"])
                     if item.get("appearance_detail_score") is not None:
                         candidate.detail_score = float(item["appearance_detail_score"])
+                    if item.get("appearance_face_detail_score") is not None:
+                        candidate.face_detail_score = float(item["appearance_face_detail_score"])
                     if item.get("material_score") is not None:
                         candidate.material_score = float(item["material_score"])
                     if item.get("texture_resolution_score") is not None:
                         candidate.texture_resolution_score = float(item["texture_resolution_score"])
                     if item.get("base_color_max_edge") is not None:
                         candidate.base_color_max_edge = int(item["base_color_max_edge"])
+                    if item.get("head_region_faces") is not None:
+                        candidate.head_region_faces = int(item["head_region_faces"])
+                    if item.get("head_region_vertices") is not None:
+                        candidate.head_region_vertices = int(item["head_region_vertices"])
+                    if item.get("head_region_face_fraction") is not None:
+                        candidate.head_region_face_fraction = float(item["head_region_face_fraction"])
+                    if item.get("head_region_median_edge_normalized") is not None:
+                        candidate.head_region_median_edge_normalized = float(item["head_region_median_edge_normalized"])
                     channels = item.get("pbr_channels")
                     if isinstance(channels, list):
                         candidate.pbr_channels = [str(x) for x in channels]
