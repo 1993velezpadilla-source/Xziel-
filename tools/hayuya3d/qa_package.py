@@ -54,6 +54,12 @@ class QAPackageResult:
     uv_tangent_ready: bool
     uv_missing_primitives: int
     uv_degenerate_triangles: int
+    shading_basis_applicable: bool
+    shading_basis_ready: bool
+    shading_missing_normals: int
+    shading_missing_tangents: int
+    shading_invalid_handedness: int
+    shading_nonorthogonal_tangents: int
     turntable_ready: bool
     turntable_score: float | None
     face_evidence_ready: bool
@@ -462,6 +468,50 @@ def build_qa_package(
             "an unusable normal-map tangent basis block production-ready status"
         )
 
+    shading_basis_audit = None
+    shading_basis_applicable = False
+    shading_basis_ready = True
+    shading_missing_normals = 0
+    shading_missing_tangents = 0
+    shading_invalid_handedness = 0
+    shading_nonorthogonal_tangents = 0
+    high_end_shading = profile in {"monster","ultra"}
+    normal_mapped = "normal" in set(mesh.pbr_channels or [])
+    shading_basis_required = bool(high_end_shading and normal_mapped)
+    try:
+        from shading_basis_qa import audit_shading_basis
+        shading_basis_audit = audit_shading_basis(
+            final_glb,
+            require_explicit_tangents_for_normal_maps=high_end_shading,
+        )
+        shading_basis_applicable = bool(shading_basis_audit.applicable)
+        shading_basis_ready = bool(shading_basis_audit.ready)
+        shading_missing_normals = int(shading_basis_audit.missing_normals)
+        shading_missing_tangents = int(
+            shading_basis_audit.missing_required_tangents
+        )
+        shading_invalid_handedness = int(
+            shading_basis_audit.invalid_handedness
+        )
+        shading_nonorthogonal_tangents = int(
+            shading_basis_audit.nonorthogonal_tangents
+        )
+        warnings.extend(shading_basis_audit.warnings or [])
+        if shading_basis_required:
+            warnings.extend(shading_basis_audit.errors or [])
+    except Exception as exc:
+        if shading_basis_required:
+            shading_basis_ready = False
+        warnings.append(
+            "shading-basis QA unavailable: "
+            f"{type(exc).__name__}: {exc}"
+        )
+    if shading_basis_required and not shading_basis_ready:
+        warnings.append(
+            "high-end normal-mapped asset lacks a valid explicit "
+            "normal/tangent basis; cross-renderer shading is not production-ready"
+        )
+
     base_material_ready = bool(
         mesh.material_score >= 55.0
         or ("baseColor" in set(mesh.pbr_channels or []) and mesh.has_uv)
@@ -757,6 +807,7 @@ def build_qa_package(
         and component_crossing_ready
         and self_intersection_ready
         and uv_tangent_ready
+        and (shading_basis_ready if shading_basis_required else True)
         and source_coverage >= expected_sources
         and gameprep_ready
         and turntable_ready
@@ -828,6 +879,18 @@ def build_qa_package(
                 "ready": uv_tangent_ready,
                 "missing_uv_primitives": uv_missing_primitives,
                 "degenerate_uv_triangles": uv_degenerate_triangles,
+            }
+        ),
+        "shading_basis": (
+            asdict(shading_basis_audit)
+            if shading_basis_audit is not None else {
+                "applicable": shading_basis_applicable,
+                "ready": shading_basis_ready,
+                "required": shading_basis_required,
+                "missing_normals": shading_missing_normals,
+                "missing_required_tangents": shading_missing_tangents,
+                "invalid_handedness": shading_invalid_handedness,
+                "nonorthogonal_tangents": shading_nonorthogonal_tangents,
             }
         ),
         "material": {
@@ -955,6 +1018,12 @@ def build_qa_package(
         uv_tangent_ready=uv_tangent_ready,
         uv_missing_primitives=uv_missing_primitives,
         uv_degenerate_triangles=uv_degenerate_triangles,
+        shading_basis_applicable=shading_basis_applicable,
+        shading_basis_ready=shading_basis_ready,
+        shading_missing_normals=shading_missing_normals,
+        shading_missing_tangents=shading_missing_tangents,
+        shading_invalid_handedness=shading_invalid_handedness,
+        shading_nonorthogonal_tangents=shading_nonorthogonal_tangents,
         turntable_ready=turntable_ready,
         turntable_score=turntable_score,
         face_evidence_ready=face_evidence_ready,
