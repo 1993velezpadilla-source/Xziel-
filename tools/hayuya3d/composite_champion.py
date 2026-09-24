@@ -473,6 +473,49 @@ def build_composite_plan(
                             ]=(
                                 f"{type(exc).__name__}:{exc}"
                             )
+                elif (
+                    mode=="character"
+                    and int(match_report.base_accessories)==0
+                    and int(match_report.donor_accessories)==1
+                ):
+                    try:
+                        from rigged_accessory_insert import (
+                            rigged_accessory_insert_supported,
+                        )
+                        supported,blocker=rigged_accessory_insert_supported(
+                            Path(base.path),
+                            Path(winner.path),
+                            base_up_axis=(
+                                base.up_axis
+                                if base.up_axis in {"x","y","z"}
+                                else "y"
+                            ),
+                            donor_up_axis=(
+                                winner.up_axis
+                                if winner.up_axis in {"x","y","z"}
+                                else None
+                            ),
+                        )
+                        accessory_match_data[
+                            "rigged_insert_supported"
+                        ]=bool(supported)
+                        accessory_match_data[
+                            "rigged_insert_blocker"
+                        ]=blocker
+                        if supported:
+                            strategy=(
+                                "new_rigged_accessory_insert_"
+                                "weight_morph_transfer"
+                            )
+                            seam_risk="low"
+                            rig_risk="low"
+                    except Exception as exc:
+                        accessory_match_data[
+                            "rigged_insert_supported"
+                        ]=False
+                        accessory_match_data[
+                            "rigged_insert_blocker"
+                        ]=f"{type(exc).__name__}:{exc}"
             except Exception as exc:
                 accessory_match_data={
                     "ready":False,
@@ -533,6 +576,15 @@ def build_composite_plan(
                 )
             )
             and bool((item.accessory_match or {}).get("ready"))
+            or (
+                mode=="character"
+                and item.strategy=="new_rigged_accessory_insert_weight_morph_transfer"
+                and bool(
+                    (item.accessory_match or {}).get(
+                        "rigged_insert_supported"
+                    )
+                )
+            )
         )
     }
     executable_now=sorted({
@@ -581,7 +633,7 @@ def build_composite_plan(
             "Every explicit local/detail reference gets its own donor winner so scars, hands, jewelry, wounds and clothing details cannot disappear inside an aggregate score.",
             "Detached accessory candidates are never chosen by component count alone; local accessory donors need explicit reference superiority plus non-ambiguous spatial/attachment correspondence.",
             "Multi-piece chains, rosaries, medals and loose detail may remain disconnected meshes, but their proximity graph must stay anchored to the canonical base instead of becoming floating donor islands.",
-            "Existing skinned accessory topology may be reshaped only through the rig-preserving wrap path; adding brand-new accessory vertices remains deferred until explicit weight/morph transfer exists.",
+            "Existing skinned accessory topology may be reshaped through the rig-preserving wrap path; a single unambiguous missing accessory may be inserted only through explicit nearest-surface skin-weight plus morph-delta transfer and the full runtime QA stack.",
             "High-risk body/face geometry transfers stay deferred until wrap/seam/skin-weight proof exists.",
             "Texture/material transfers can be attempted earlier because they preserve base topology.",
             "Every fusion is atomic: rejection restores the untouched base champion.",
@@ -608,9 +660,19 @@ def execute_safe_accessory_challenger(
         if item.strategy not in {
             "matched_detached_accessory_swap_then_mesh_doctor",
             "matched_rig_preserving_accessory_wrap_then_rebake",
+            "new_rigged_accessory_insert_weight_morph_transfer",
         }:
             continue
-        if not bool((item.accessory_match or {}).get("ready")):
+        proof=item.accessory_match or {}
+        if (
+            item.strategy=="new_rigged_accessory_insert_weight_morph_transfer"
+            and not bool(proof.get("rigged_insert_supported"))
+        ):
+            continue
+        if (
+            item.strategy!="new_rigged_accessory_insert_weight_morph_transfer"
+            and not bool(proof.get("ready"))
+        ):
             continue
         donor=item
         break
@@ -692,6 +754,21 @@ def execute_safe_accessory_challenger(
                 ),
             )
             output=Path(swap.output_glb)
+        elif donor.strategy=="new_rigged_accessory_insert_weight_morph_transfer":
+            from rigged_accessory_insert import insert_rigged_accessory
+            swap=insert_rigged_accessory(
+                Path(base.path),
+                Path(source.path),
+                output,
+                base_up_axis=(
+                    base.up_axis
+                    if base.up_axis in {"x","y","z"} else "y"
+                ),
+                donor_up_axis=(
+                    source.up_axis
+                    if source.up_axis in {"x","y","z"} else None
+                ),
+            )
         else:
             from accessory_swap import swap_detached_accessory
             swap=swap_detached_accessory(
