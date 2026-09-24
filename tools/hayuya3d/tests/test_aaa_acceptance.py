@@ -17,8 +17,9 @@ def base_manifest():
             "tiers":[{"name":"flagship"},{"name":"high"},{"name":"balanced"},{"name":"compatibility"}],
         },
         "composite_champion":{
-            "composite_required":True,
+            "composite_required":False,
             "deferred_transfers":[],
+            "executable_now":[],
         },
         "composite_execution":{"ready":True},
     }
@@ -103,6 +104,7 @@ class AAAAcceptanceTests(unittest.TestCase):
 
     def test_unresolved_better_regional_donor_blocks_aaa_claim(self):
         manifest=base_manifest()
+        manifest["composite_champion"]["composite_required"]=True
         manifest["composite_champion"]["deferred_transfers"]=["face_identity"]
         report=evaluate_aaa_acceptance(manifest,base_qa())
         self.assertFalse(report.ready)
