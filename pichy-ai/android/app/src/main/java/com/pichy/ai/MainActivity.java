@@ -4,7 +4,9 @@ import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
-import android.os.Bundle;\nimport android.view.Window;\nimport android.view.WindowInsets;
+import android.os.Bundle;
+import android.view.Window;
+import android.view.WindowInsets;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
@@ -252,7 +254,9 @@ public class MainActivity extends Activity {
 
                 Bitmap finalBitmap = bitmap;
                 runOnUiThread(() -> {
-                    addBubble("Pichy • Image", "Iteration ready. I kept the prior image instructions unless you started a new concept.\n\n" + effective);
+                    addBubble("Pichy • Image", "Iteration ready. I kept the prior image instructions unless you started a new concept.
+
+" + effective);
                     if (finalBitmap != null) addImage(finalBitmap);
                 });
             } catch (Exception e) {
@@ -315,7 +319,8 @@ public class MainActivity extends Activity {
         try (BufferedReader br = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
             StringBuilder sb = new StringBuilder();
             String line;
-            while ((line = br.readLine()) != null) sb.append(line).append('\n');
+            while ((line = br.readLine()) != null) sb.append(line).append('
+');
             return sb.toString();
         }
     }
