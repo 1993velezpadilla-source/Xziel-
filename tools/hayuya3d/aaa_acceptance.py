@@ -98,6 +98,20 @@ def evaluate_aaa_acceptance(
         "QA geometry + Mesh Doctor structural audit",
         blocker="geometry has unresolved structural defects",
     )
+    crossing=qa_report.get("component_crossing") or {}
+    _gate(
+        gates,"geometry.surface_crossings","geometry",
+        bool(crossing.get("ready")),
+        (
+            f"applicable={crossing.get('applicable')} "
+            f"large_components={crossing.get('large_component_count')} "
+            f"crossing_pairs={crossing.get('crossing_triangle_pairs')}"
+        ),
+        blocker=(
+            "major disconnected surfaces interpenetrate or "
+            "surface-crossing evidence is unavailable"
+        ),
+    )
 
     crossing=qa_report.get("component_crossing") or {}
     _gate(
@@ -213,6 +227,21 @@ def evaluate_aaa_acceptance(
             f"skins={rig.get('skins')} joints={rig.get('joint_count')}",
             blocker="character has no validated skin/rig",
         )
+        morph_targets=int(rig.get("morph_target_count") or 0)
+        if morph_targets>0:
+            _gate(
+                gates,"character.morphs","character",
+                bool(rig.get("morph_ready")),
+                (
+                    f"targets={morph_targets} "
+                    f"meshes={rig.get('morph_mesh_count')} "
+                    f"primitives={rig.get('morph_primitive_count')}"
+                ),
+                blocker=(
+                    "character morph/blendshape payload or weight-channel "
+                    "wiring is malformed"
+                ),
+            )
         morph_count=int(rig.get("morph_target_count") or 0)
         if morph_count>0:
             _gate(
