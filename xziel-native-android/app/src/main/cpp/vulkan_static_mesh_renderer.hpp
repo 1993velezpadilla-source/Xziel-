@@ -242,7 +242,10 @@ private:
         bool deviceLocalHostVisible = false;
         bool pinned = false;
         bool physicallyResident = false;
-        StreamCellHeat heat = StreamCellHeat::Cold;
+        StreamCellHeat plannedHeat =
+            StreamCellHeat::Cold;
+        StreamCellHeat heat =
+            StreamCellHeat::Cold;
         std::uint8_t retireMask = 0U;
         bool reloadActive = false;
         bool reloadFailed = false;
