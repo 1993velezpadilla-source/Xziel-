@@ -25,6 +25,7 @@ def main() -> int:
     p.add_argument("--model",required=True,type=Path)
     p.add_argument("--out",required=True,type=Path)
     p.add_argument("--repo-root",type=Path,default=Path("."))
+    p.add_argument("--animation-gate",type=Path)
     args=p.parse_args()
 
     recipe=json.loads(args.recipe.read_text(encoding="utf-8"))
@@ -108,6 +109,33 @@ def main() -> int:
         if x.get("availability") not in (None,"local")
     ]
 
+    selected_local_clips=sorted({
+        str(x.get("clip")) for x in profile["animations"]
+        if x.get("availability") in (None,"local") and x.get("clip")
+    })
+    animation_qa={}
+    if args.animation_gate and args.animation_gate.exists():
+        animation_qa=json.loads(args.animation_gate.read_text(encoding="utf-8"))
+    else:
+        # Existing banks are accepted only if the model manifest explicitly
+        # records Rig QA v2 and the selected source bank was marked safe.
+        manifest_path=model_dir/"manifest.json"
+        if manifest_path.exists():
+            manifest=json.loads(manifest_path.read_text(encoding="utf-8"))
+            banks=manifest.get("animation_banks") or {}
+            source=local_animation_sources[0] if len(local_animation_sources)==1 else ""
+            bank=banks.get(source) or {}
+            if int(bank.get("rig_quality_version") or 0)>=2 and bank.get("quality_passed") is True:
+                animation_qa={
+                    "schema":2,
+                    "source":"manifest_safe_bank",
+                    "compatible_clips":bank.get("clips") or [],
+                    "passed":True,
+                }
+    compatible_clips={str(x) for x in animation_qa.get("compatible_clips") or []}
+    unsafe_selected_clips=sorted(set(selected_local_clips)-compatible_clips) if selected_local_clips else []
+    missing_animation_qa=bool(selected_local_clips) and not bool(animation_qa)
+
     unresolved_weapon=[
         x for x in profile["weapon_animations"]
         if x.get("availability") not in (None,"local")
@@ -153,13 +181,18 @@ def main() -> int:
         "mixed_animation_sources":mixed_animation_sources,
         "unresolved_animation_retarget":unresolved_animations,
         "unresolved_external_mocap":unresolved_mocap,
+        "selected_local_clips":selected_local_clips,
+        "animation_qa":animation_qa,
+        "unsafe_selected_clips":unsafe_selected_clips,
+        "missing_animation_qa":missing_animation_qa,
         "unresolved_weapon_assets":unresolved_weapon,
         "unresolved_weapon_compatibility":unresolved_weapon_compat,
         "incompatible_procedural_motion":incompatible_motion,
         "auto_motion_plan":auto_plan,
         "unresolved_auto_motion":unresolved_auto_motion,
-        "game_ready":not unresolved_audio and not mixed_animation_sources and not unresolved_animations and not unresolved_mocap and not unresolved_weapon and not unresolved_weapon_compat and not incompatible_motion and not unresolved_auto_motion,
+        "game_ready":not unresolved_audio and not mixed_animation_sources and not unresolved_animations and not unresolved_mocap and not unsafe_selected_clips and not missing_animation_qa and not unresolved_weapon and not unresolved_weapon_compat and not incompatible_motion and not unresolved_auto_motion,
         "notes":[
+            "Local skeletal animations are game-ready only when the selected clip names pass deformation QA.",
             "External mocap is never silently bundled without an ingested/licensed local source.",
             "Gameplay state/motion mapping remains explicit in asset_profile.json.",
             "Firearm animation compatibility is fail-closed: family/mechanical proof is required before game-ready.",
@@ -186,6 +219,8 @@ def main() -> int:
         "mixed_animation_sources":mixed_animation_sources,
         "unresolved_animation_retarget":len(unresolved_animations),
         "unresolved_external_mocap":len(unresolved_mocap),
+        "unsafe_selected_clips":unsafe_selected_clips,
+        "missing_animation_qa":missing_animation_qa,
         "audio_items":len(copied_audio),
         "weapon_items":len(profile["weapon_animations"]),
         "motion_fx":len(profile["procedural_motion"]),
