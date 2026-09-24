@@ -1,6 +1,7 @@
 const $ = (id) => document.getElementById(id);
 const state = {
   files: [],
+  faceFiles: [],
   job: null,
   source: null,
   logs: [],
@@ -15,18 +16,27 @@ function toast(message) {
   toast.timer = setTimeout(() => el.classList.remove("show"), 2600);
 }
 
-function setFiles(files) {
-  state.files = Array.from(files || []);
-  $("fileCount").textContent = state.files.length;
-  const thumbs = $("thumbs");
+function renderFileThumbs(files, countId, thumbsId) {
+  $(countId).textContent = files.length;
+  const thumbs = $(thumbsId);
   thumbs.replaceChildren();
-  state.files.slice(0, 20).forEach((file) => {
+  files.slice(0, 20).forEach((file) => {
     const img = document.createElement("img");
     img.className = "thumb";
     img.alt = file.name;
     img.src = URL.createObjectURL(file);
     thumbs.appendChild(img);
   });
+}
+
+function setFiles(files) {
+  state.files = Array.from(files || []);
+  renderFileThumbs(state.files, "fileCount", "thumbs");
+}
+
+function setFaceFiles(files) {
+  state.faceFiles = Array.from(files || []);
+  renderFileThumbs(state.faceFiles, "faceFileCount", "faceThumbs");
 }
 
 function setProgress(stage, progress, status) {
@@ -260,6 +270,7 @@ async function startJob() {
 
   const body = new FormData();
   state.files.forEach((file) => body.append("images", file, file.name));
+  state.faceFiles.forEach((file) => body.append("face_images", file, file.name));
   body.append("profile", $("profile").value);
   body.append("mode", $("mode").value);
   body.append("portable_target", $("tier").value);
@@ -279,6 +290,7 @@ async function startJob() {
 }
 
 $("images").addEventListener("change", (e) => setFiles(e.target.files));
+$("faceImages").addEventListener("change", (e) => setFaceFiles(e.target.files));
 $("runButton").addEventListener("click", startJob);
 $("refreshJobs").addEventListener("click", refreshJobs);
 $("clearLog").addEventListener("click", () => { state.logs=[]; $("log").textContent=""; });
@@ -323,10 +335,20 @@ $("viewer").addEventListener("error", () => {
   $("animationControls").hidden = true;
 });
 
-const dz = $("dropzone");
-["dragenter","dragover"].forEach((name) => dz.addEventListener(name, (e) => { e.preventDefault(); dz.classList.add("drag"); }));
-["dragleave","drop"].forEach((name) => dz.addEventListener(name, (e) => { e.preventDefault(); dz.classList.remove("drag"); }));
-dz.addEventListener("drop", (e) => setFiles(e.dataTransfer.files));
+function wireDropzone(element, onFiles) {
+  ["dragenter","dragover"].forEach((name) => element.addEventListener(name, (e) => {
+    e.preventDefault();
+    element.classList.add("drag");
+  }));
+  ["dragleave","drop"].forEach((name) => element.addEventListener(name, (e) => {
+    e.preventDefault();
+    element.classList.remove("drag");
+  }));
+  element.addEventListener("drop", (e) => onFiles(e.dataTransfer.files));
+}
+
+wireDropzone($("dropzone"), setFiles);
+wireDropzone($("faceDropzone"), setFaceFiles);
 
 (async () => {
   try {
