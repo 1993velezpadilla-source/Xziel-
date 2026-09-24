@@ -117,6 +117,7 @@ bool VulkanClearRenderer::initialize(
         commandPool_,
         renderPass_,
         preferredSceneMsaa_,
+        multiDrawIndirectEnabled_,
         assetManager_,
         "models/xziel/sanctum/sanctum.xzsm");
 
@@ -128,6 +129,7 @@ bool VulkanClearRenderer::initialize(
         commandPool_,
         renderPass_,
         preferredSceneMsaa_,
+        multiDrawIndirectEnabled_,
         assetManager_,
         "models/xziel/weapons/standard_rifle.xzsm");
 
@@ -232,6 +234,7 @@ void VulkanClearRenderer::shutdown() noexcept {
     timestampValidBits_ = 0;
     timestampPeriodNs_ = 0.0f;
     astcLdrSupported_ = false;
+    multiDrawIndirectEnabled_ = false;
     preferredSceneMsaa_ = VK_SAMPLE_COUNT_1_BIT;
     maxImageDimension2D_ = 0U;
     deviceMaxSamplerAnisotropy_ = 1.0f;
@@ -940,6 +943,9 @@ bool VulkanClearRenderer::selectPhysicalDevice() noexcept {
                 astcLdrSupported_ =
                     features.textureCompressionASTC_LDR ==
                     VK_TRUE;
+                multiDrawIndirectEnabled_ =
+                    features.multiDrawIndirect ==
+                    VK_TRUE;
 
                 maxImageDimension2D_ =
                     properties.limits.maxImageDimension2D;
@@ -984,7 +990,7 @@ bool VulkanClearRenderer::selectPhysicalDevice() noexcept {
                 __android_log_print(
                     ANDROID_LOG_INFO,
                     kTag,
-                    "XZIEL_GPU_CAPS name=%s vendor=0x%x device=0x%x api=%u.%u.%u astc=%d msaa=%u max_tex=%u aniso=%.1f local_mb=%llu timestamp_bits=%u timestamp_ns=%.3f",
+                    "XZIEL_GPU_CAPS name=%s vendor=0x%x device=0x%x api=%u.%u.%u astc=%d mdi=%d msaa=%u max_tex=%u aniso=%.1f local_mb=%llu timestamp_bits=%u timestamp_ns=%.3f",
                     properties.deviceName,
                     properties.vendorID,
                     properties.deviceID,
@@ -992,6 +998,7 @@ bool VulkanClearRenderer::selectPhysicalDevice() noexcept {
                     VK_API_VERSION_MINOR(properties.apiVersion),
                     VK_API_VERSION_PATCH(properties.apiVersion),
                     astcLdrSupported_ ? 1 : 0,
+                    multiDrawIndirectEnabled_ ? 1 : 0,
                     static_cast<unsigned int>(preferredSceneMsaa_),
                     maxImageDimension2D_,
                     static_cast<double>(deviceMaxSamplerAnisotropy_),
@@ -1139,6 +1146,11 @@ bool VulkanClearRenderer::createDevice() noexcept {
     VkPhysicalDeviceFeatures enabledFeatures{};
     enabledFeatures.samplerAnisotropy =
         availableFeatures.samplerAnisotropy;
+    enabledFeatures.multiDrawIndirect =
+        availableFeatures.multiDrawIndirect;
+    multiDrawIndirectEnabled_ =
+        availableFeatures.multiDrawIndirect ==
+        VK_TRUE;
 
     VkDeviceCreateInfo createInfo{
         VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO
@@ -4470,6 +4482,7 @@ bool VulkanClearRenderer::recreateSwapchain() noexcept {
         commandPool_,
         renderPass_,
         preferredSceneMsaa_,
+        multiDrawIndirectEnabled_,
         assetManager_,
         "models/xziel/sanctum/sanctum.xzsm");
 
@@ -4481,6 +4494,7 @@ bool VulkanClearRenderer::recreateSwapchain() noexcept {
         commandPool_,
         renderPass_,
         preferredSceneMsaa_,
+        multiDrawIndirectEnabled_,
         assetManager_,
         "models/xziel/weapons/standard_rifle.xzsm");
 
