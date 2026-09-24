@@ -50,6 +50,10 @@ class QAPackageResult:
     self_intersection_applicable: bool
     self_intersection_ready: bool
     self_intersection_pairs: int
+    uv_tangent_applicable: bool
+    uv_tangent_ready: bool
+    uv_missing_primitives: int
+    uv_degenerate_triangles: int
     turntable_ready: bool
     turntable_score: float | None
     face_evidence_ready: bool
@@ -428,6 +432,36 @@ def build_qa_package(
             "production-ready status"
         )
 
+    uv_tangent_audit = None
+    uv_tangent_applicable = False
+    uv_tangent_ready = False
+    uv_missing_primitives = 0
+    uv_degenerate_triangles = 0
+    try:
+        from uv_tangent_qa import audit_uv_tangents
+        uv_tangent_audit = audit_uv_tangents(final_glb)
+        uv_tangent_applicable = bool(uv_tangent_audit.applicable)
+        uv_tangent_ready = bool(uv_tangent_audit.ready)
+        uv_missing_primitives = int(
+            uv_tangent_audit.missing_uv_primitives
+        )
+        uv_degenerate_triangles = int(
+            uv_tangent_audit.degenerate_uv_triangles
+        )
+        warnings.extend(uv_tangent_audit.warnings or [])
+        warnings.extend(uv_tangent_audit.errors or [])
+    except Exception as exc:
+        uv_tangent_ready = False
+        warnings.append(
+            "UV/tangent mapping QA unavailable: "
+            f"{type(exc).__name__}: {exc}"
+        )
+    if not uv_tangent_ready:
+        warnings.append(
+            "UV/tangent mapping QA failed; missing/collapsed UVs or "
+            "an unusable normal-map tangent basis block production-ready status"
+        )
+
     base_material_ready = bool(
         mesh.material_score >= 55.0
         or ("baseColor" in set(mesh.pbr_channels or []) and mesh.has_uv)
@@ -722,6 +756,7 @@ def build_qa_package(
         and material_rebake_ready
         and component_crossing_ready
         and self_intersection_ready
+        and uv_tangent_ready
         and source_coverage >= expected_sources
         and gameprep_ready
         and turntable_ready
@@ -784,6 +819,15 @@ def build_qa_package(
                 "applicable": self_intersection_applicable,
                 "ready": self_intersection_ready,
                 "crossing_triangle_pairs": self_intersection_pairs,
+            }
+        ),
+        "uv_tangent": (
+            asdict(uv_tangent_audit)
+            if uv_tangent_audit is not None else {
+                "applicable": uv_tangent_applicable,
+                "ready": uv_tangent_ready,
+                "missing_uv_primitives": uv_missing_primitives,
+                "degenerate_uv_triangles": uv_degenerate_triangles,
             }
         ),
         "material": {
@@ -907,6 +951,10 @@ def build_qa_package(
         self_intersection_applicable=self_intersection_applicable,
         self_intersection_ready=self_intersection_ready,
         self_intersection_pairs=self_intersection_pairs,
+        uv_tangent_applicable=uv_tangent_applicable,
+        uv_tangent_ready=uv_tangent_ready,
+        uv_missing_primitives=uv_missing_primitives,
+        uv_degenerate_triangles=uv_degenerate_triangles,
         turntable_ready=turntable_ready,
         turntable_score=turntable_score,
         face_evidence_ready=face_evidence_ready,
