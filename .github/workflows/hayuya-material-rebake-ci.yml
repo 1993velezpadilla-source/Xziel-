@@ -1,0 +1,154 @@
+name: HAYUYA Material Rebake CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - art/hayuya-monster-v1
+    paths:
+      - tools/hayuya3d/material_rebake.py
+      - tools/hayuya3d/blender_material_rebake.py
+      - tools/hayuya3d/gameprep.py
+      - tools/hayuya3d/tests/test_material_rebake.py
+      - .github/workflows/hayuya-material-rebake-ci.yml
+
+permissions:
+  contents: read
+
+jobs:
+  blender-normal-rebake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy pillow trimesh scipy
+          sudo apt-get update -qq
+          sudo apt-get install -y blender
+
+      - name: Build synthetic high and low meshes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import numpy as np
+          import trimesh
+          from PIL import Image
+
+          root=Path("/tmp/hayuya-rebake")
+          root.mkdir(parents=True,exist_ok=True)
+
+          def grid(n,wavy):
+              xs=np.linspace(-1.0,1.0,n)
+              ys=np.linspace(-1.0,1.0,n)
+              vertices=[]
+              uv=[]
+              for y in ys:
+                  for x in xs:
+                      z=0.07*np.sin(np.pi*x*2.0)*np.sin(np.pi*y*2.0) if wavy else 0.0
+                      vertices.append([x,y,z])
+                      uv.append([(x+1.0)*0.5,(y+1.0)*0.5])
+              faces=[]
+              for j in range(n-1):
+                  for i in range(n-1):
+                      a=j*n+i
+                      b=a+1
+                      c=a+n
+                      d=c+1
+                      faces.extend([[a,b,d],[a,d,c]])
+              return np.asarray(vertices,float),np.asarray(faces,int),np.asarray(uv,float)
+
+          base=Image.fromarray(
+              np.full((256,256,4),[145,95,75,255],dtype=np.uint8),
+              mode="RGBA",
+          )
+          material=trimesh.visual.material.PBRMaterial(
+              baseColorTexture=base,
+              roughnessFactor=0.68,
+              metallicFactor=0.0,
+          )
+
+          for name,n,wavy in [("source",40,True),("target",12,False)]:
+              v,f,uv=grid(n,wavy)
+              mesh=trimesh.Trimesh(
+                  vertices=v,faces=f,process=False,
+                  visual=trimesh.visual.TextureVisuals(
+                      uv=uv,
+                      material=material.copy(),
+                  ),
+              )
+              (root/f"{name}.glb").write_bytes(
+                  trimesh.exchange.gltf.export_glb(trimesh.Scene(mesh))
+              )
+          PY
+
+      - name: Execute real Blender normal rebake
+        env:
+          HAYUYA_BLENDER: /usr/bin/blender
+        run: |
+          python tools/hayuya3d/material_rebake.py \
+            --source /tmp/hayuya-rebake/source.glb \
+            --target /tmp/hayuya-rebake/target.glb \
+            --output /tmp/hayuya-rebake/rebaked.glb \
+            --required normal \
+            --texture-size 256 \
+            --json /tmp/hayuya-rebake/result.json
+
+      - name: Verify rebake is real and non-neutral
+        run: |
+          python - <<'PY'
+          import io,json
+          from pathlib import Path
+          import numpy as np
+          from PIL import Image
+          import sys
+
+          sys.path.insert(0,"tools/hayuya3d")
+          from qa import inspect_mesh
+          from texture_gate import embedded_images
+
+          root=Path("/tmp/hayuya-rebake")
+          result=json.loads((root/"result.json").read_text())
+          assert result["resolved_channels"]==["normal"],result
+          assert result["remaining_channels"]==[],result
+          assert result["error"] is None,result
+
+          inspected=inspect_mesh(
+              root/"rebaked.glb",
+              backend="blender_rebake_ci",
+              mode="prop",
+              target_faces=1,
+          )
+          assert inspected.valid,inspected
+          assert "normal" in (inspected.pbr_channels or []),inspected
+
+          normals=[]
+          for index,mime,data,roles in embedded_images(root/"rebaked.glb"):
+              if "normal" in roles:
+                  arr=np.asarray(Image.open(io.BytesIO(data)).convert("RGB"),dtype=np.float32)
+                  normals.append(arr)
+          assert normals,"rebaked GLB has no embedded normal image"
+          variation=max(float(np.std(arr,axis=(0,1)).mean()) for arr in normals)
+          assert variation>1.0,f"normal map looks neutral/flat: std={variation}"
+          print("HAYUYA_REAL_NORMAL_REBAKE_PASS",variation,inspected.pbr_channels)
+          PY
+
+      - name: Upload rebake proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hayuya-material-rebake-proof
+          path: |
+            /tmp/hayuya-rebake/rebaked.glb
+            /tmp/hayuya-rebake/result.json
+            /tmp/hayuya-rebake/*.rebake.json
+          retention-days: 7
