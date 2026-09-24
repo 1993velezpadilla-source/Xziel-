@@ -239,6 +239,17 @@ class QAPackageTests(unittest.TestCase):
         self.assertEqual(missing,[])
 
         ready, missing = face_quality_evidence_chain(
+            required=True,
+            identity_required=False,
+            face_min_score=None,
+            head_density_score=98.0,
+            head_texel_density_score=97.0,
+            head_texture_detail_score=82.0,
+        )
+        self.assertTrue(ready)
+        self.assertEqual(missing,[])
+
+        ready, missing = face_quality_evidence_chain(
             required=False,
             face_min_score=None,
             head_density_score=None,
@@ -358,6 +369,11 @@ class QAPackageTests(unittest.TestCase):
             self.assertIn("head_density_score", report["geometry"])
             self.assertTrue(result.contact_sheet and Path(result.contact_sheet).is_file())
             self.assertTrue(result.geometry_ready)
+            self.assertFalse(result.face_quality_evidence_ready)
+            self.assertIn(
+                "head_texel_density_score",
+                result.face_quality_evidence_missing,
+            )
             self.assertFalse(result.rig_ready)
             self.assertFalse(result.animation_ready)
             self.assertFalse(result.production_ready)
