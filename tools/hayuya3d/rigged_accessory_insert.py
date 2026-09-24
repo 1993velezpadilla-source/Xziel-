@@ -15,6 +15,9 @@ class RiggedAccessoryInsertResult:
     output_glb: str
     attempted: bool
     ready: bool
+    geometry_ready: bool
+    material_ready: bool
+    production_ready: bool
     donor_component_id: int | None
     spatial_label: str | None
     inserted_vertices: int
@@ -59,6 +62,9 @@ def _fail(
         output_glb=str(output_glb),
         attempted=True,
         ready=False,
+        geometry_ready=False,
+        material_ready=False,
+        production_ready=False,
         donor_component_id=None,
         spatial_label=None,
         inserted_vertices=0,
@@ -658,12 +664,24 @@ def insert_rigged_accessory(
                 f"{bbox_drift:.6f}>{max_bbox_drift_fraction:.6f}"
             )
 
+        geometry_ready=not errors
+        material_ready=False
+        production_ready=False
+        warnings.append(
+            "new-vertex accessory geometry/runtime proof passed, but donor "
+            "UV/material transfer is not proven; Composite production "
+            "promotion remains blocked"
+        )
+
         return RiggedAccessoryInsertResult(
             base_mesh=str(base_mesh),
             donor_mesh=str(donor_mesh),
             output_glb=str(output_glb),
             attempted=True,
-            ready=not errors,
+            ready=geometry_ready,
+            geometry_ready=geometry_ready,
+            material_ready=material_ready,
+            production_ready=production_ready,
             donor_component_id=int(selected.component_id),
             spatial_label=str(selected.spatial_label),
             inserted_vertices=int(len(aligned)),
@@ -702,7 +720,8 @@ def main() -> int:
         description=(
             "Insert one new detached accessory primitive into a validated "
             "skinned HAYUYA character with nearest-surface skin-weight and "
-            "morph-delta transfer."
+            "morph-delta transfer. Geometry/runtime readiness does not imply "
+            "production readiness until donor UV/material transfer is proven."
         )
     )
     parser.add_argument("--base", type=Path, required=True)
