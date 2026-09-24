@@ -47,6 +47,9 @@ class QAPackageResult:
     component_crossing_applicable: bool
     component_crossing_ready: bool
     component_crossing_pairs: int
+    self_intersection_applicable: bool
+    self_intersection_ready: bool
+    self_intersection_pairs: int
     turntable_ready: bool
     turntable_score: float | None
     face_evidence_ready: bool
@@ -394,6 +397,37 @@ def build_qa_package(
             "interpenetrating major surfaces block production-ready status"
         )
 
+    self_intersection_audit = None
+    self_intersection_applicable = False
+    self_intersection_ready = False
+    self_intersection_pairs = 0
+    try:
+        from self_intersection_qa import audit_self_intersections
+        self_intersection_audit = audit_self_intersections(final_glb)
+        self_intersection_applicable = bool(
+            self_intersection_audit.applicable
+        )
+        self_intersection_ready = bool(
+            self_intersection_audit.ready
+        )
+        self_intersection_pairs = int(
+            self_intersection_audit.crossing_triangle_pairs
+        )
+        warnings.extend(self_intersection_audit.warnings or [])
+        warnings.extend(self_intersection_audit.errors or [])
+    except Exception as exc:
+        self_intersection_ready = False
+        warnings.append(
+            "self-intersection QA unavailable: "
+            f"{type(exc).__name__}: {exc}"
+        )
+    if not self_intersection_ready:
+        warnings.append(
+            "intra-component self-intersection QA failed; "
+            "connected surfaces crossing through themselves block "
+            "production-ready status"
+        )
+
     base_material_ready = bool(
         mesh.material_score >= 55.0
         or ("baseColor" in set(mesh.pbr_channels or []) and mesh.has_uv)
@@ -687,6 +721,7 @@ def build_qa_package(
         and material_ready
         and material_rebake_ready
         and component_crossing_ready
+        and self_intersection_ready
         and source_coverage >= expected_sources
         and gameprep_ready
         and turntable_ready
@@ -741,6 +776,14 @@ def build_qa_package(
                 "applicable": component_crossing_applicable,
                 "ready": component_crossing_ready,
                 "crossing_triangle_pairs": component_crossing_pairs,
+            }
+        ),
+        "self_intersection": (
+            asdict(self_intersection_audit)
+            if self_intersection_audit is not None else {
+                "applicable": self_intersection_applicable,
+                "ready": self_intersection_ready,
+                "crossing_triangle_pairs": self_intersection_pairs,
             }
         ),
         "material": {
@@ -861,6 +904,9 @@ def build_qa_package(
         component_crossing_applicable=component_crossing_applicable,
         component_crossing_ready=component_crossing_ready,
         component_crossing_pairs=component_crossing_pairs,
+        self_intersection_applicable=self_intersection_applicable,
+        self_intersection_ready=self_intersection_ready,
+        self_intersection_pairs=self_intersection_pairs,
         turntable_ready=turntable_ready,
         turntable_score=turntable_score,
         face_evidence_ready=face_evidence_ready,
