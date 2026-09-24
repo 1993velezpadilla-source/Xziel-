@@ -8751,11 +8751,16 @@ void VulkanStaticMeshRenderer::destroyTexture(
 bool VulkanStaticMeshRenderer::createIndirectDrawBuffers() noexcept {
     destroyIndirectDrawBuffers();
 
+    const std::size_t maxDraws =
+        std::max(
+            batches_.size(),
+            cullClusters_.size());
+
     try {
         visibleDrawCandidates_.reserve(
-            batches_.size());
+            maxDraws);
         drawCommands_.reserve(
-            batches_.size());
+            maxDraws);
         drawGroups_.reserve(
             batches_.size());
     } catch (...) {
@@ -8763,17 +8768,17 @@ bool VulkanStaticMeshRenderer::createIndirectDrawBuffers() noexcept {
     }
 
     if (!multiDrawIndirectEnabled_ ||
-        batches_.empty()) {
+        maxDraws == 0U) {
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
             "XZIEL_STATIC_DRAW_SUBMISSION_READY mode=direct max_draws=%u",
             static_cast<unsigned int>(
-                batches_.size()));
+                maxDraws));
         return true;
     }
 
-    if (batches_.size() >
+    if (maxDraws >
         std::numeric_limits<VkDeviceSize>::max() /
             sizeof(VkDrawIndexedIndirectCommand)) {
         multiDrawIndirectEnabled_ = false;
@@ -8782,7 +8787,7 @@ bool VulkanStaticMeshRenderer::createIndirectDrawBuffers() noexcept {
 
     const VkDeviceSize bytes =
         static_cast<VkDeviceSize>(
-            batches_.size()) *
+            maxDraws) *
         sizeof(VkDrawIndexedIndirectCommand);
 
     const VkMemoryPropertyFlags memoryFlags =
@@ -8825,7 +8830,7 @@ bool VulkanStaticMeshRenderer::createIndirectDrawBuffers() noexcept {
         static_cast<unsigned int>(
             kDescriptorFrames),
         static_cast<unsigned int>(
-            batches_.size()),
+            maxDraws),
         static_cast<unsigned long long>(
             bytes));
 
@@ -8870,6 +8875,7 @@ void VulkanStaticMeshRenderer::destroyIndirectDrawBuffers() noexcept {
 
 void VulkanStaticMeshRenderer::destroyGeometryResidency() noexcept {
     destroyIndirectDrawBuffers();
+    cullClusters_.clear();
     batches_.clear();
 
     if (device_ != VK_NULL_HANDLE) {
