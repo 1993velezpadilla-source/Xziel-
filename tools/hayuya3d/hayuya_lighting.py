@@ -14,7 +14,10 @@ def _read_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def compile_lighting_intelligence(profile_id: str = "zombies_horror") -> dict[str, Any]:
+def compile_lighting_intelligence(
+    profile_id: str = "zombies_horror",
+    horror_identities: list[str] | None = None,
+) -> dict[str, Any]:
     standard = _read_json(STANDARD_PATH)
     profiles = standard["profiles"]
     if profile_id not in profiles:
@@ -24,11 +27,33 @@ def compile_lighting_intelligence(profile_id: str = "zombies_horror") -> dict[st
         )
 
     profile = profiles[profile_id]
+    pattern_path = ROOT / standard["patternLibrary"]
+    pattern_library = _read_json(pattern_path)
+
+    requested_identities = horror_identities or []
+    unknown = [
+        identity
+        for identity in requested_identities
+        if identity not in pattern_library["identities"]
+    ]
+    if unknown:
+        raise ValueError(
+            "unknown HAYUYA Lighting horror identities: " + ", ".join(unknown)
+        )
+    selected_identities = {
+        identity: pattern_library["identities"][identity]
+        for identity in requested_identities
+    }
+
     return {
         "engine": "HAYUYA Lighting",
         "schema": 1,
         "profile_id": profile_id,
         "source_knowledge": standard["sourceKnowledge"],
+        "pattern_library": standard["patternLibrary"],
+        "selected_horror_identities": selected_identities,
+        "cross_map_state_composition": pattern_library["stateComposition"],
+        "cross_map_beauty_metrics": pattern_library["beautyMetrics"],
         "intent": profile["intent"],
         "layers": profile["layers"],
         "states": profile["states"],
