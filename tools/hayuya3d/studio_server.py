@@ -241,6 +241,45 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
             _set_stage(job, "judge")
 
 
+def hydrate_candidate_ranking(job: JobState, ranking: list[dict]) -> None:
+    for item in ranking:
+        label = str(item.get("backend", ""))
+        candidate = job.candidates.get(label)
+        if candidate is None:
+            continue
+        if item.get("score") is not None:
+            candidate.score = float(item["score"])
+        if item.get("production_score") is not None:
+            candidate.production_score = float(item["production_score"])
+        if item.get("visual_score") is not None:
+            candidate.visual_score = float(item["visual_score"])
+        if item.get("appearance_score") is not None:
+            candidate.appearance_score = float(item["appearance_score"])
+        if item.get("appearance_detail_score") is not None:
+            candidate.detail_score = float(item["appearance_detail_score"])
+        if item.get("appearance_face_detail_score") is not None:
+            candidate.face_detail_score = float(item["appearance_face_detail_score"])
+        if item.get("material_score") is not None:
+            candidate.material_score = float(item["material_score"])
+        if item.get("texture_resolution_score") is not None:
+            candidate.texture_resolution_score = float(item["texture_resolution_score"])
+        if item.get("base_color_max_edge") is not None:
+            candidate.base_color_max_edge = int(item["base_color_max_edge"])
+        if item.get("head_region_faces") is not None:
+            candidate.head_region_faces = int(item["head_region_faces"])
+        if item.get("head_region_vertices") is not None:
+            candidate.head_region_vertices = int(item["head_region_vertices"])
+        if item.get("head_region_face_fraction") is not None:
+            candidate.head_region_face_fraction = float(item["head_region_face_fraction"])
+        if item.get("head_region_median_edge_normalized") is not None:
+            candidate.head_region_median_edge_normalized = float(
+                item["head_region_median_edge_normalized"]
+            )
+        channels = item.get("pbr_channels")
+        if isinstance(channels, list):
+            candidate.pbr_channels = [str(x) for x in channels]
+
+
 def _run_job(job: JobState) -> None:
     _set_stage(job, "planning", status="running")
     log_path = Path(job.root) / "studio.log"
@@ -263,40 +302,7 @@ def _run_job(job: JobState) -> None:
         for ranking_path in sorted(Path(job.root).glob("output/**/ranking.json")):
             try:
                 ranking = json.loads(ranking_path.read_text(encoding="utf-8"))
-                for item in ranking:
-                    label = str(item.get("backend", ""))
-                    candidate = job.candidates.get(label)
-                    if candidate is None:
-                        continue
-                    if item.get("score") is not None:
-                        candidate.score = float(item["score"])
-                    if item.get("production_score") is not None:
-                        candidate.production_score = float(item["production_score"])
-                    if item.get("visual_score") is not None:
-                        candidate.visual_score = float(item["visual_score"])
-                    if item.get("appearance_score") is not None:
-                        candidate.appearance_score = float(item["appearance_score"])
-                    if item.get("appearance_detail_score") is not None:
-                        candidate.detail_score = float(item["appearance_detail_score"])
-                    if item.get("appearance_face_detail_score") is not None:
-                        candidate.face_detail_score = float(item["appearance_face_detail_score"])
-                    if item.get("material_score") is not None:
-                        candidate.material_score = float(item["material_score"])
-                    if item.get("texture_resolution_score") is not None:
-                        candidate.texture_resolution_score = float(item["texture_resolution_score"])
-                    if item.get("base_color_max_edge") is not None:
-                        candidate.base_color_max_edge = int(item["base_color_max_edge"])
-                    if item.get("head_region_faces") is not None:
-                        candidate.head_region_faces = int(item["head_region_faces"])
-                    if item.get("head_region_vertices") is not None:
-                        candidate.head_region_vertices = int(item["head_region_vertices"])
-                    if item.get("head_region_face_fraction") is not None:
-                        candidate.head_region_face_fraction = float(item["head_region_face_fraction"])
-                    if item.get("head_region_median_edge_normalized") is not None:
-                        candidate.head_region_median_edge_normalized = float(item["head_region_median_edge_normalized"])
-                    channels = item.get("pbr_channels")
-                    if isinstance(channels, list):
-                        candidate.pbr_channels = [str(x) for x in channels]
+                hydrate_candidate_ranking(job, ranking)
                 _emit(job, "ranking", {
                     "candidates": [asdict(x) for x in job.candidates.values()]
                 })
