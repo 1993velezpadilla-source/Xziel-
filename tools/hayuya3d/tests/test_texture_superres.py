@@ -75,6 +75,7 @@ class TextureSuperresTests(unittest.TestCase):
         self.assertEqual(cmd[0],"/opt/realesrgan")
         self.assertEqual(cmd[cmd.index("-s")+1],"2")
         self.assertEqual(cmd[cmd.index("-n")+1],"realesrgan-x4plus")
+        self.assertEqual(cmd[cmd.index("-m")+1],"/opt/models")
         self.assertEqual(cmd[cmd.index("-t")+1],"256")
         self.assertEqual(cmd[cmd.index("-f")+1],"png")
 
