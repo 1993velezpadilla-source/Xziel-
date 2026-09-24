@@ -17,6 +17,7 @@ from PIL import Image
 from gameprep import build_gameprep
 from qa_package import (
     build_qa_package,
+    face_quality_evidence_chain,
     material_rebake_channel_summary,
     unresolved_material_rebakes,
 )
@@ -127,6 +128,8 @@ class QAPackageTests(unittest.TestCase):
             self.assertEqual(evaluated.face_evidence_evaluated,1)
             self.assertEqual(evaluated.face_evidence_missing,[])
             self.assertEqual(evaluated.face_evidence_min_score,94.0)
+            self.assertFalse(evaluated.face_quality_evidence_ready)
+            self.assertTrue(evaluated.face_quality_evidence_missing)
 
     def test_face_reference_requires_complete_per_reference_coverage(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -213,6 +216,37 @@ class QAPackageTests(unittest.TestCase):
             self.assertEqual(complete.face_evidence_missing,[])
             self.assertEqual(complete.face_evidence_min_score,91.0)
 
+
+    def test_face_quality_evidence_chain_requires_all_dimensions(self):
+        ready, missing = face_quality_evidence_chain(
+            required=True,
+            face_min_score=91.0,
+            head_density_score=98.0,
+            head_texel_density_score=None,
+            head_texture_detail_score=82.0,
+        )
+        self.assertFalse(ready)
+        self.assertEqual(missing,["head_texel_density_score"])
+
+        ready, missing = face_quality_evidence_chain(
+            required=True,
+            face_min_score=91.0,
+            head_density_score=98.0,
+            head_texel_density_score=97.0,
+            head_texture_detail_score=82.0,
+        )
+        self.assertTrue(ready)
+        self.assertEqual(missing,[])
+
+        ready, missing = face_quality_evidence_chain(
+            required=False,
+            face_min_score=None,
+            head_density_score=None,
+            head_texel_density_score=None,
+            head_texture_detail_score=None,
+        )
+        self.assertTrue(ready)
+        self.assertEqual(missing,[])
 
     def test_unresolved_material_rebakes_are_detected_per_lod(self):
         data = {
