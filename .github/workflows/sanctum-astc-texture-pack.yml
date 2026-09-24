@@ -6,6 +6,7 @@ on:
       - engine/mobile-ktx2-astc-v1
       - engine/mobile-mip-streaming-v1
       - engine/mobile-power-fidelity-v1
+      - engine/mobile-spatial-batch-4500-v1
     paths:
       - ".github/workflows/sanctum-astc-texture-pack.yml"
       - "tools/texture_pack/build_astc_pack.py"
@@ -32,6 +33,33 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Resolve validated Sanctum source run
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_REF_NAME}" != "engine/mobile-spatial-batch-4500-v1" ]]; then
+            echo "SOURCE_RUN_ID=${SOURCE_RUN_ID}" >> "$GITHUB_ENV"
+            exit 0
+          fi
+
+          for i in $(seq 1 180); do
+            RESPONSE="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/sanctum-clean-source.yml/runs?branch=${GITHUB_REF_NAME}&status=success&per_page=10")"
+            RUN_ID="$(jq -r '.workflow_runs[0].id // empty' <<<"${RESPONSE}")"
+
+            if [[ -n "${RUN_ID}" && "${RUN_ID}" != "null" ]]; then
+              echo "SOURCE_RUN_ID=${RUN_ID}" >> "$GITHUB_ENV"
+              echo "XZIEL_SPATIAL_4500_SOURCE_RUN=${RUN_ID}"
+              exit 0
+            fi
+
+            echo "Waiting for validated 4500-triangle clean source"
+            sleep 20
+          done
+
+          echo "ERROR: timed out waiting for 4500-triangle source"
+          exit 1
+
       - name: Download validated Sanctum source artifact
         shell: bash
         run: |
@@ -49,9 +77,16 @@ jobs:
           test -s "${STATIC_REPORT}"
           jq -e '.spatialBatching == "morton_grid_centroid_v1"' "${STATIC_REPORT}"
           jq -e '.sourceTriangles == .runtimeTriangles' "${STATIC_REPORT}"
-          jq -e '.batchCount == 333' "${STATIC_REPORT}"
-          jq -e '.maxTrianglesPerBatch <= 9000' "${STATIC_REPORT}"
-          jq -e '.totalVertices == 2406868' "${STATIC_REPORT}"
+          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-spatial-batch-4500-v1" ]]; then
+            jq -e '.batchCount > 333 and .batchCount <= 768' "${STATIC_REPORT}"
+            jq -e '.maxTrianglesPerBatch <= 4500' "${STATIC_REPORT}"
+            jq -e '.totalVertices > 0 and .totalVertices <= 8000000' "${STATIC_REPORT}"
+            echo "XZIEL_SPATIAL_4500_ASTC_SOURCE_ACTIVE"
+          else
+            jq -e '.batchCount == 333' "${STATIC_REPORT}"
+            jq -e '.maxTrianglesPerBatch <= 9000' "${STATIC_REPORT}"
+            jq -e '.totalVertices == 2406868' "${STATIC_REPORT}"
+          fi
           PNG_COUNT="$(find "${STATIC_ROOT}/textures" -type f -name '*.png' | wc -l)"
           test "${PNG_COUNT}" -gt 0
           echo "XZIEL_ASTC_SOURCE_PNGS=${PNG_COUNT}"
