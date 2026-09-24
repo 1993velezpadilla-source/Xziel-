@@ -58,3 +58,11 @@ def test_attachment_ids_cannot_escape_session_directory(tmp_path: Path):
         pass
     else:
         raise AssertionError("unsafe attachment id must be rejected")
+
+
+def test_save_bytes_supports_generated_image_persistence(tmp_path: Path):
+    store = AttachmentStore(tmp_path / "uploads")
+    item = store.save_bytes("session1", "generated.png", "image/png", b"png-bytes")
+    loaded = store.load("session1", item.attachment_id)
+    assert loaded.filename == "generated.png"
+    assert loaded.data_path.read_bytes() == b"png-bytes"
