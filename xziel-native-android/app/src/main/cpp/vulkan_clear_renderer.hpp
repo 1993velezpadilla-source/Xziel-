@@ -245,6 +245,9 @@ public:
     // instead of wall-clock frame cadence / guessed GPU cost.
     [[nodiscard]] float lastCpuRenderMs() const noexcept;
     [[nodiscard]] float lastGpuFrameMs() const noexcept;
+    [[nodiscard]] float lastGpuPreWorldMs() const noexcept;
+    [[nodiscard]] float lastGpuWorldMs() const noexcept;
+    [[nodiscard]] float lastGpuCompositeUiMs() const noexcept;
     [[nodiscard]] bool gpuTimingAuthoritative() const noexcept;
 
 private:
@@ -486,18 +489,24 @@ private:
     std::vector<VkFence> imageFences_;
 
     static constexpr std::uint32_t kFramesInFlight = 2;
+    static constexpr std::uint32_t
+        kGpuTimestampQueriesPerFrame = 4U;
     FrameSync frames_[kFramesInFlight]{};
     std::uint32_t frameIndex_ = 0;
 
-    // Two timestamp queries per in-flight frame: GPU begin/end. Query results
-    // are read only after that frame slot's fence signals, so no CPU stall is
-    // introduced just to measure GPU time.
+    // Four timestamp cuts per in-flight frame: frame begin, end of
+    // pre-world/reflection work, end of world rendering, and end of
+    // composite/UI. Results are read only after that frame slot's fence
+    // signals, so pass timing never stalls the GPU.
     VkQueryPool gpuTimestampQueryPool_ = VK_NULL_HANDLE;
     std::array<bool, kFramesInFlight> gpuTimestampValid_{};
     std::uint32_t timestampValidBits_ = 0;
     float timestampPeriodNs_ = 0.0f;
     float lastCpuRenderMs_ = 0.0f;
     float lastGpuFrameMs_ = 0.0f;
+    float lastGpuPreWorldMs_ = 0.0f;
+    float lastGpuWorldMs_ = 0.0f;
+    float lastGpuCompositeUiMs_ = 0.0f;
     std::uint64_t performanceTelemetryFrame_ = 0;
     bool performanceTimingReadyLogged_ = false;
     std::uint64_t suboptimalFrameCount_ = 0;
