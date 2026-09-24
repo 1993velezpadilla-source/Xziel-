@@ -10,8 +10,8 @@ android {
         applicationId = "com.pichy.ai"
         minSdk = 28
         targetSdk = 36
-        versionCode = 6
-        versionName = "0.3.0-lab"
+        versionCode = 7
+        versionName = "0.3.1-lab"
     }
 
     buildTypes {
