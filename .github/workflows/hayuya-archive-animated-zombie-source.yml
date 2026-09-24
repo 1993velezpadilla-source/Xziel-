@@ -60,9 +60,17 @@ jobs:
           HAYUYA storage: lossless tar.gz split into GitHub-safe chunks. Reassemble chunks in lexical order before extraction.
           EOF
 
+          (
+            cd /tmp/hayuya-animated-zombie
+            zip -qr "$GITHUB_WORKSPACE/$dst/quaternius_animated_zombie.zip" .
+          )
+          zipbytes="$(stat -c%s "$dst/quaternius_animated_zombie.zip")"
+          test "$zipbytes" -lt 99000000
+
           tar -C /tmp/hayuya-animated-zombie -czf /tmp/quaternius_animated_zombie.tar.gz .
+          sha256sum "$dst/quaternius_animated_zombie.zip" > "$dst/SHA256-ZIP.txt"
           sha256sum /tmp/quaternius_animated_zombie.tar.gz > "$dst/SHA256.txt"
-          split -b 90M -d -a 3             /tmp/quaternius_animated_zombie.tar.gz             "$dst/parts/quaternius_animated_zombie.tar.gz.part-"
+          split -b 90M -d -a 3 /tmp/quaternius_animated_zombie.tar.gz "$dst/parts/quaternius_animated_zombie.tar.gz.part-"
 
           python - <<'PY'
           import json
@@ -77,6 +85,8 @@ jobs:
               "source_page":"https://quaternius.com/packs/animatedzombie.html",
               "drive_folder":"https://drive.google.com/drive/folders/1AfOPRgr5Gl8gll9KfGDEUSYq_Ag7yPJG",
               "source_file_count":len(inventory),
+              "zip_archive":"hayuya/source_archives/quaternius_animated_zombie/quaternius_animated_zombie.zip",
+              "zip_bytes":(root/"quaternius_animated_zombie.zip").stat().st_size,
               "parts":parts,
           }
           (root/"manifest.json").write_text(json.dumps(manifest,indent=2)+"\n")
