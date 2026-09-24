@@ -369,6 +369,7 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
                 else [x for x in values["rebake_pending"].split(",") if x]
             ),
             "rig_ready": _bool("rig_ready"),
+            "skin_weights_ready": _bool("skin_weights_ready"),
             "animation_ready": _bool("animation_ready"),
             "face_ready": _bool("face_ready"),
             "face_quality_ready": _bool("face_quality_ready"),
