@@ -6682,6 +6682,12 @@ bool VulkanClearRenderer::recordDrawCommand(
         VK_PIPELINE_BIND_POINT_GRAPHICS,
         uiPipeline_);
 
+    // Command-buffer telemetry only: no extra GPU work. Count the logical UI
+    // submissions so future batching changes have an objective before/after.
+    std::uint32_t uiPrimitiveDraws = 0U;
+    std::uint32_t uiDigitDraws = 0U;
+    std::uint32_t uiRainDraws = 0U;
+
     const float viewportWidth =
         static_cast<float>(
             std::max(
@@ -6783,6 +6789,7 @@ bool VulkanClearRenderer::recordDrawCommand(
             1,
             0,
             0);
+        ++uiPrimitiveDraws;
     };
 
     const auto drawUiCircle = [&](
@@ -6907,6 +6914,7 @@ bool VulkanClearRenderer::recordDrawCommand(
             1,
             0,
             0);
+        ++uiDigitDraws;
     };
 
     const float rainIntensity =
@@ -6916,6 +6924,9 @@ bool VulkanClearRenderer::recordDrawCommand(
             1.0f);
 
     if (rainIntensity > 0.01f) {
+        const std::uint32_t rainPrimitiveStart =
+            uiPrimitiveDraws;
+
         const int visibleRainStreaks =
             std::clamp(
                 static_cast<int>(
@@ -6981,6 +6992,10 @@ bool VulkanClearRenderer::recordDrawCommand(
                 0.0f,
                 0.10f);
         }
+
+        uiRainDraws =
+            uiPrimitiveDraws -
+            rainPrimitiveStart;
     }
 
     const float fogOverlay =
@@ -7766,6 +7781,26 @@ bool VulkanClearRenderer::recordDrawCommand(
             0.96f,
             0.58f,
             false);
+    }
+
+    if (performanceTelemetryFrame_ % 120U == 0U) {
+        const std::uint32_t uiDrawSubmissions =
+            1U + // scene composite triangle
+            uiPrimitiveDraws +
+            uiDigitDraws;
+
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_UI_DRAW_TELEMETRY submissions=%u primitives=%u rain=%u digits=%u",
+            static_cast<unsigned int>(
+                uiDrawSubmissions),
+            static_cast<unsigned int>(
+                uiPrimitiveDraws),
+            static_cast<unsigned int>(
+                uiRainDraws),
+            static_cast<unsigned int>(
+                uiDigitDraws));
     }
 
     vkCmdEndRenderPass(command);
