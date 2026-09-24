@@ -256,6 +256,91 @@ def geometric_vertex_ao(target,diag:float,ray_count:int=16):
     return values
 
 
+def rasterize_vertex_ao_to_image(target,values,image):
+    """Rasterize interpolated per-vertex AO directly into the active UV atlas.
+
+    This intentionally bypasses Blender's bake operators. On Blender 4.0 headless
+    those operators can return an all-zero image even when the BVH AO values are
+    demonstrably non-uniform.
+    """
+    from array import array
+
+    mesh=target.data
+    uv_layer=mesh.uv_layers.active
+    if uv_layer is None:
+        raise RuntimeError("target_has_no_active_uv_for_ao_raster")
+    width,height=image.size
+    if width<2 or height<2:
+        raise RuntimeError("invalid_ao_image_size")
+
+    pixel_count=width*height
+    # AO defaults to fully unoccluded white. UV overlaps use the darker value,
+    # which is conservative and prevents one surface from hiding another's AO.
+    grayscale=array("f",[1.0])*pixel_count
+
+    mesh.calc_loop_triangles()
+    painted=0
+    for tri in mesh.loop_triangles:
+        loop_ids=tri.loops
+        vertex_ids=tri.vertices
+        uvs=[uv_layer.data[int(loop_id)].uv.copy() for loop_id in loop_ids]
+        # Production UV atlases should live in 0..1. Clamp tiny numerical drift
+        # while still allowing valid boundary coordinates.
+        pts=[
+            (
+                max(0.0,min(1.0,float(uv.x)))*(width-1),
+                max(0.0,min(1.0,float(uv.y)))*(height-1),
+            )
+            for uv in uvs
+        ]
+        (x0,y0),(x1,y1),(x2,y2)=pts
+        denom=(y1-y2)*(x0-x2)+(x2-x1)*(y0-y2)
+        if abs(denom)<1e-12:
+            continue
+
+        min_x=max(0,int(__import__("math").floor(min(x0,x1,x2))))
+        max_x=min(width-1,int(__import__("math").ceil(max(x0,x1,x2))))
+        min_y=max(0,int(__import__("math").floor(min(y0,y1,y2))))
+        max_y=min(height-1,int(__import__("math").ceil(max(y0,y1,y2))))
+        v0=float(values[int(vertex_ids[0])])
+        v1=float(values[int(vertex_ids[1])])
+        v2=float(values[int(vertex_ids[2])])
+
+        for py in range(min_y,max_y+1):
+            sy=py+0.5
+            row=py*width
+            for px in range(min_x,max_x+1):
+                sx=px+0.5
+                w0=((y1-y2)*(sx-x2)+(x2-x1)*(sy-y2))/denom
+                w1=((y2-y0)*(sx-x2)+(x0-x2)*(sy-y2))/denom
+                w2=1.0-w0-w1
+                if w0>=-1e-6 and w1>=-1e-6 and w2>=-1e-6:
+                    value=max(0.0,min(1.0,w0*v0+w1*v1+w2*v2))
+                    index=row+px
+                    if value<grayscale[index]:
+                        grayscale[index]=value
+                    painted+=1
+
+    if painted<=0:
+        raise RuntimeError("ao_uv_raster_painted_no_pixels")
+
+    rgba=array("f",[1.0])*(pixel_count*4)
+    for index,value in enumerate(grayscale):
+        offset=index*4
+        rgba[offset]=value
+        rgba[offset+1]=value
+        rgba[offset+2]=value
+        rgba[offset+3]=1.0
+    image.pixels.foreach_set(rgba)
+    image.update()
+    return {
+        "painted_samples":painted,
+        "triangle_count":len(mesh.loop_triangles),
+        "width":width,
+        "height":height,
+    }
+
+
 def prepare_geometric_ao_attribute(target,values):
     """Store per-vertex AO as a POINT color attribute for interpolation in bake."""
     mesh=target.data
@@ -567,19 +652,19 @@ def main():
         # Attempt 3: deterministic geometry-only BVH AO. This bypasses
         # Blender 4 AO bake paths that can return all-zero images on valid meshes.
         if ao_image is None:
+            # AO detail does not need to match a 4K hero albedo one-for-one.
+            # Cap the deterministic raster at 2048 to keep offline GamePrep bounded
+            # while preserving substantially more resolution than mobile AO needs.
+            ao_raster_size=min(a.size,2048)
             geometric_image=new_noncolor_image(
-                "HAYUYA_Rebaked_Occlusion_geometric_bvh_v7",
-                a.size,
+                "HAYUYA_Rebaked_Occlusion_geometric_bvh_uv_v8",
+                ao_raster_size,
                 (1.0,1.0,1.0,1.0),
             )
-            ao_values=geometric_vertex_ao(target,diag,ray_count=16)
-            attribute_name=prepare_geometric_ao_attribute(target,ao_values)
-            ao_restore=configure_attribute_emission_bake(
-                materials,geometric_image,attribute_name
+            ao_values=geometric_vertex_ao(target,diag,ray_count=32)
+            raster_info=rasterize_vertex_ao_to_image(
+                target,ao_values,geometric_image
             )
-            select_only([target],target)
-            bpy.ops.object.bake(type="EMIT")
-            restore_after_attribute_bake(ao_restore)
             geometric_stats=image_signal_stats(geometric_image,0)
             geometric_range=(
                 float(geometric_stats["max"])-float(geometric_stats["min"])
@@ -592,15 +677,16 @@ def main():
                 if ao_values else 0.0
             )
             geometric_attempt={
-                "method":"geometric_bvh_vertex_ao_emit_v7",
+                "method":"geometric_bvh_uv_raster_v8",
                 "signal":geometric_stats,
                 "signal_range":round(geometric_range,6),
                 "vertex_range":round(vertex_range,6),
                 "vertex_min":round(min(ao_values),6) if ao_values else None,
                 "vertex_max":round(max(ao_values),6) if ao_values else None,
                 "signal_valid":geometric_range>1e-4 and vertex_range>1e-4,
-                "ray_count":16,
+                "ray_count":32,
                 "distance":max(1e-6,diag*0.35),
+                "raster":raster_info,
             }
             ao_attempts.append(geometric_attempt)
             print(
