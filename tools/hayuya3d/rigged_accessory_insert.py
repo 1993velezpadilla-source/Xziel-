@@ -49,6 +49,7 @@ class RiggedAccessoryInsertResult:
     surface_transfer_method: str = "nearest-vertex-knn-v1"
     surface_transfer_fallback_vertices: int = 0
     surface_transfer_max_examined_triangles: int = 0
+    surface_transfer_max_visited_bvh_nodes: int = 0
     method: str = "hayuya-rigged-accessory-insert-v1"
 
 
@@ -1453,6 +1454,9 @@ def insert_rigged_accessory(
             ),
             surface_transfer_max_examined_triangles=int(
                 surface_relation.max_examined_triangles
+            ),
+            surface_transfer_max_visited_bvh_nodes=int(
+                surface_relation.max_visited_bvh_nodes
             ),
         )
     except Exception as exc:
