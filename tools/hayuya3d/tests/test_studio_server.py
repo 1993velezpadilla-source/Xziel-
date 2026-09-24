@@ -300,6 +300,59 @@ class StudioServerTests(unittest.TestCase):
                 "guard_failed",
             )
 
+    def test_semantic_anatomy_report_is_streamed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            report=root/"semantic_anatomy.json"
+            report.write_text(json.dumps({
+                "required":True,
+                "ready":False,
+                "critical_targets":["eyes","hands"],
+                "required_parts":[
+                    "left_eye","right_eye",
+                    "left_hand","right_hand",
+                ],
+                "detected_parts":[
+                    "left_eye","right_eye","left_hand",
+                ],
+                "missing_parts":["right_hand"],
+                "view_count":3,
+                "parts":[
+                    {
+                        "part":"right_hand",
+                        "required":True,
+                        "detected_views":0,
+                        "ready":False,
+                    },
+                ],
+                "warnings":[],
+                "errors":[],
+            }),encoding="utf-8")
+            job=self.make_job(root)
+            parse_pipeline_line(
+                job,
+                "HAYUYA_SEMANTIC_ANATOMY_READY "
+                "attempted=true ready=false "
+                "targets=eyes,hands views=3 "
+                f"report={report} "
+                "error=semantic_anatomy_incomplete:right_hand",
+            )
+            self.assertIsNotNone(job.semantic_anatomy)
+            self.assertFalse(job.semantic_anatomy["ready"])
+            self.assertTrue(job.semantic_anatomy["attempted"])
+            self.assertEqual(
+                job.semantic_anatomy["critical_targets"],
+                ["eyes","hands"],
+            )
+            self.assertEqual(
+                job.semantic_anatomy["aggregate"]["missing_parts"],
+                ["right_hand"],
+            )
+            self.assertEqual(
+                job.events[-1]["kind"],
+                "semantic_anatomy",
+            )
+
     def test_portable_lod_parity_manifest_is_streamed(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp)
