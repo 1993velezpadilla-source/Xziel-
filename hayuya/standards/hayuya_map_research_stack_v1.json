@@ -1,0 +1,95 @@
+{
+  "schema": 1,
+  "purpose": "HAYUYA Map model/provider research shortlist. No entry becomes a shipping default without a fresh license/terms review.",
+  "models": [
+    {
+      "id": "mapanything_apache",
+      "name": "Meta MapAnything Apache checkpoint",
+      "role": ["metric_3d", "camera", "depth", "multi_view_geometry", "registration"],
+      "url": "https://github.com/facebookresearch/map-anything",
+      "license_observation": "code Apache-2.0; facebook/map-anything-apache checkpoint Apache-2.0",
+      "commercial_candidate": true,
+      "notes": "Prefer the Apache checkpoint for commercial evaluation. The higher-performing default checkpoint is separately CC-BY-NC."
+    },
+    {
+      "id": "vggt_commercial",
+      "name": "Meta VGGT-1B-Commercial",
+      "role": ["camera", "depth", "point_maps", "point_tracks", "multi_view_geometry"],
+      "url": "https://github.com/facebookresearch/vggt",
+      "license_observation": "commercial-use-friendly Meta license; commercial checkpoint is separately gated and excludes military applications",
+      "commercial_candidate": true,
+      "notes": "Do not substitute the original non-commercial checkpoint for the commercial checkpoint."
+    },
+    {
+      "id": "grounding_dino",
+      "name": "Grounding DINO",
+      "role": ["open_vocabulary_detection", "language_grounding"],
+      "url": "https://github.com/IDEA-Research/GroundingDINO",
+      "license_observation": "Apache-2.0 repository",
+      "commercial_candidate": true,
+      "notes": "Use as one proposal layer, not a closed ontology or sole authority."
+    },
+    {
+      "id": "sam2",
+      "name": "Meta SAM 2",
+      "role": ["promptable_segmentation", "video_tracking"],
+      "url": "https://github.com/facebookresearch/sam2",
+      "license_observation": "Apache-2.0 package metadata; review checkpoint/dependency notices before shipping",
+      "commercial_candidate": true,
+      "notes": "Pairs naturally with open-vocabulary detectors for masks and temporal tracking."
+    },
+    {
+      "id": "clay",
+      "name": "Clay Foundation Model",
+      "role": ["earth_observation", "remote_sensing_embeddings"],
+      "url": "https://github.com/Clay-foundation/model",
+      "license_observation": "Apache-2.0 code and trained model weights",
+      "commercial_candidate": true,
+      "notes": "Geospatial imagery specialist; not a replacement for ground-level scene understanding."
+    }
+  ],
+  "commercial_product_benchmarks": [
+    {
+      "id": "google_maps_platform",
+      "name": "Google Maps Platform",
+      "role": ["map_tiles", "satellite", "terrain", "street_view", "photorealistic_3d_tiles"],
+      "url": "https://developers.google.com/maps/documentation/tile/overview",
+      "integration": "official_api_only"
+    },
+    {
+      "id": "cesium",
+      "name": "Cesium",
+      "role": ["3d_tiles", "globe", "geospatial_streaming", "coordinate_systems"],
+      "url": "https://cesium.com/",
+      "integration": "sdk_or_service_under_current_terms"
+    },
+    {
+      "id": "mapbox",
+      "name": "Mapbox",
+      "role": ["maps", "satellite", "terrain", "3d_buildings", "model_layers"],
+      "url": "https://docs.mapbox.com/",
+      "integration": "sdk_or_service_under_current_terms"
+    },
+    {
+      "id": "arcgis_reality",
+      "name": "Esri ArcGIS Reality",
+      "role": ["photogrammetry", "reality_mesh", "point_cloud", "gaussian_splats"],
+      "url": "https://www.esri.com/en-us/arcgis/products/arcgis-reality/overview",
+      "integration": "export_or_service_under_current_terms"
+    },
+    {
+      "id": "world_labs_marble",
+      "name": "World Labs Marble",
+      "role": ["multimodal_world_generation", "world_model_product_reference"],
+      "url": "https://www.worldlabs.ai/",
+      "integration": "benchmark_product_behavior_before_any_dependency"
+    }
+  ],
+  "policy": {
+    "single_model_authority": false,
+    "fixed_taxonomy": false,
+    "preserve_provenance": true,
+    "license_review_required_on_version_change": true,
+    "provider_terms_review_required_on_version_change": true
+  }
+}
