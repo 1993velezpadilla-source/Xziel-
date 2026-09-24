@@ -757,7 +757,11 @@ jobs:
               test -n "${STREAM_MULTI_DRAW_INDIRECT}"
               test "${STREAM_MULTI_DRAW_INDIRECT}" -eq 1
               test "${STREAM_DRAW_SUBMISSIONS}" -gt 0
-              test "${STREAM_DRAW_SUBMISSIONS}" -eq "${STREAM_SUBMISSION_GROUPS}"
+              # One submission per group is the ideal path. The Vulkan
+              # maxDrawIndirectCount device limit may legally split a group,
+              # so require no fewer than groups while still proving a real
+              # reduction versus logical draws.
+              test "${STREAM_DRAW_SUBMISSIONS}" -ge "${STREAM_SUBMISSION_GROUPS}"
               test "${STREAM_DRAW_SUBMISSIONS}" -lt "${STREAM_DRAWS}"
               test "${STREAM_INDIRECT_DRAWS}" -eq "${STREAM_DRAWS}"
               echo "XZIEL_MULTI_DRAW_INDIRECT_ACTIVE draws=${STREAM_DRAWS} submissions=${STREAM_DRAW_SUBMISSIONS} groups=${STREAM_SUBMISSION_GROUPS} indirect_draws=${STREAM_INDIRECT_DRAWS}"
