@@ -246,14 +246,14 @@ class MorphDeformationQATests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path=Path(tmp)/"overshoot.glb"
             # 1 target, 2 keys:
-            # key0: in=0, value=0, out=100
-            # key1: in=-100, value=0, out=0
+            # key0: in=0, value=0, out=1000
+            # key1: in=-1000, value=0, out=0
             build_morph_glb(
                 path,
                 interpolation="CUBICSPLINE",
                 weight_output=[
-                    0.0,0.0,100.0,
-                    -100.0,0.0,0.0,
+                    0.0,0.0,1000.0,
+                    -1000.0,0.0,0.0,
                 ],
             )
             report=audit_morph_deformation(path)
