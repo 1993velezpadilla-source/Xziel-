@@ -516,6 +516,8 @@ private:
     VkPipelineLayout pipelineLayout_ = VK_NULL_HANDLE;
     VkPipeline pipeline_ = VK_NULL_HANDLE;
     VkPipeline pipelineDoubleSided_ = VK_NULL_HANDLE;
+    VkPipeline pipelineLegacy_ = VK_NULL_HANDLE;
+    VkPipeline pipelineLegacyDoubleSided_ = VK_NULL_HANDLE;
 
     AndroidAssetStreamer assetStreamer_{};
     std::uint32_t asyncPrefetchQueued_ = 0U;
