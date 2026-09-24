@@ -595,6 +595,15 @@ bool VulkanStaticMeshRenderer::initialize(
     textureMipResidency_.reset();
     streamCellBounds_ = {};
     streamDecisionCount_ = 0U;
+    cachedStreamPlanStats_ = {};
+    cachedStreamPlanCell_ = 0U;
+    cachedStreamPlanPressure_ =
+        MemoryPressure::Normal;
+    cachedStreamColdBatches_ = 0U;
+    streamPlanBuildCount_ = 0U;
+    streamPlanCacheHitCount_ = 0U;
+    streamCellHeatRefreshCount_ = 0U;
+    streamPlanDirty_ = true;
     streamPlanFrame_ = 0U;
     lastLoggedStreamCell_ = 0U;
     streamCellCandidate_ = 0U;
@@ -1348,6 +1357,15 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     geometryAssetPath_.clear();
     streamCellBounds_ = {};
     streamDecisionCount_ = 0U;
+    cachedStreamPlanStats_ = {};
+    cachedStreamPlanCell_ = 0U;
+    cachedStreamPlanPressure_ =
+        MemoryPressure::Normal;
+    cachedStreamColdBatches_ = 0U;
+    streamPlanBuildCount_ = 0U;
+    streamPlanCacheHitCount_ = 0U;
+    streamCellHeatRefreshCount_ = 0U;
+    streamPlanDirty_ = true;
     streamPlanFrame_ = 0U;
     lastLoggedStreamCell_ = 0U;
     pendingUploads_.clear();
@@ -1416,9 +1434,21 @@ void VulkanStaticMeshRenderer::setStreamingPortalOpen(
         return;
     }
 
-    (void) streamGraph_.setPortalOpen(
-        portalId,
-        open);
+    bool current = false;
+
+    if (!streamGraph_.portalOpen(
+            portalId,
+            current) ||
+        current == open) {
+        return;
+    }
+
+    if (streamGraph_.setPortalOpen(
+            portalId,
+            open)) {
+        streamPlanDirty_ = true;
+        streamCullLogged_ = false;
+    }
 }
 
 void VulkanStaticMeshRenderer::cacheGpuBatchCullingSphere(
@@ -3440,6 +3470,7 @@ std::string VulkanStaticMeshRenderer::geometryRangeRequestKey(
 void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
     std::uint32_t frameSlot,
     const StreamCellPlanInput& input) noexcept {
+    (void) input;
     if (!streamGraphReady_ ||
         frameSlot >= kDescriptorFrames ||
         geometryCellCount_ == 0U ||
@@ -3464,16 +3495,10 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
         auto& cell =
             geometryCells_[i];
 
-        if (cell.pinned) {
-            cell.heat =
-                StreamCellHeat::Hot;
-            continue;
-        }
-
         cell.heat =
-            streamGraph_.cellHeat(
-                input,
-                cell.cellId);
+            cell.pinned
+            ? StreamCellHeat::Hot
+            : cell.plannedHeat;
 
         if (geometryResidencyProbeEnabled_ &&
             !geometryResidencyProbeComplete_ &&
@@ -4310,19 +4335,72 @@ void VulkanStaticMeshRenderer::record(
                 }
             }
 
-            const auto streamStats =
-                streamGraph_.plan(
-                    {
-                        .currentCell =
-                            currentCell,
-                        .preloadPortalHops = 1U,
-                        .memoryPressure =
-                            environment.
-                                memoryPressure,
-                    },
-                    streamDecisions_.data(),
-                    streamDecisions_.size(),
-                    streamDecisionCount_);
+            const StreamCellPlanInput planInput{
+                .currentCell = currentCell,
+                .preloadPortalHops = 1U,
+                .memoryPressure =
+                    environment.memoryPressure,
+            };
+
+            const bool planRebuilt =
+                streamPlanDirty_ ||
+                cachedStreamPlanCell_ !=
+                    currentCell ||
+                cachedStreamPlanPressure_ !=
+                    environment.memoryPressure;
+
+            if (planRebuilt) {
+                cachedStreamPlanStats_ =
+                    streamGraph_.plan(
+                        planInput,
+                        streamDecisions_.data(),
+                        streamDecisions_.size(),
+                        streamDecisionCount_);
+
+                cachedStreamPlanCell_ =
+                    currentCell;
+                cachedStreamPlanPressure_ =
+                    environment.memoryPressure;
+                cachedStreamColdBatches_ = 0U;
+                streamPlanDirty_ = false;
+                ++streamPlanBuildCount_;
+
+                for (std::size_t i = 0U;
+                     i < geometryCellCount_;
+                     ++i) {
+                    auto& cell =
+                        geometryCells_[i];
+
+                    cell.plannedHeat =
+                        cell.pinned
+                        ? StreamCellHeat::Hot
+                        : streamGraph_.cellHeat(
+                              planInput,
+                              cell.cellId);
+                    cell.heat =
+                        cell.plannedHeat;
+
+                    ++streamCellHeatRefreshCount_;
+                }
+
+                for (const auto& batch :
+                     batches_) {
+                    const auto* decision =
+                        streamDecision(
+                            batch.streamResourceId,
+                            streamDecisionCount_);
+
+                    if (decision != nullptr &&
+                        !decision->desiredResident) {
+                        ++cachedStreamColdBatches_;
+                    }
+                }
+            } else {
+                ++streamPlanCacheHitCount_;
+            }
+
+            const auto& streamStats =
+                cachedStreamPlanStats_;
 
             frameStats_.streamingCell =
                 currentCell;
@@ -4334,25 +4412,14 @@ void VulkanStaticMeshRenderer::record(
             frameStats_.
                 streamingEvictableBytes =
                 streamStats.evictableBytes;
-
-            for (const auto& batch :
-                 batches_) {
-                const auto* decision =
-                    streamDecision(
-                        batch.streamResourceId,
-                        streamDecisionCount_);
-
-                if (decision != nullptr &&
-                    !decision->desiredResident) {
-                    ++frameStats_.
-                        streamingColdBatches;
-                }
-            }
+            frameStats_.streamingColdBatches =
+                cachedStreamColdBatches_;
 
             ++streamPlanFrame_;
 
             if (currentCell !=
                     lastLoggedStreamCell_ ||
+                planRebuilt ||
                 (streamPlanFrame_ % 240U) ==
                     0U) {
                 lastLoggedStreamCell_ =
@@ -4361,7 +4428,7 @@ void VulkanStaticMeshRenderer::record(
                 __android_log_print(
                     ANDROID_LOG_INFO,
                     kTag,
-                    "XZIEL_WORLD_STREAMING_PLAN current_cell=%u hot_resources=%u preload_resources=%u cold_resources=%u cold_batches=%u desired_mb=%.2f evictable_mb=%.2f pressure=%u",
+                    "XZIEL_WORLD_STREAMING_PLAN current_cell=%u hot_resources=%u preload_resources=%u cold_resources=%u cold_batches=%u desired_mb=%.2f evictable_mb=%.2f pressure=%u plan_rebuilt=%u plan_builds=%llu plan_cache_hits=%llu",
                     static_cast<unsigned int>(
                         currentCell),
                     static_cast<unsigned int>(
@@ -4383,7 +4450,12 @@ void VulkanStaticMeshRenderer::record(
                         (1024.0 * 1024.0),
                     static_cast<unsigned int>(
                         environment.
-                            memoryPressure));
+                            memoryPressure),
+                    planRebuilt ? 1U : 0U,
+                    static_cast<unsigned long long>(
+                        streamPlanBuildCount_),
+                    static_cast<unsigned long long>(
+                        streamPlanCacheHitCount_));
             }
         } else {
             streamCellCandidate_ = 0U;
@@ -4391,6 +4463,10 @@ void VulkanStaticMeshRenderer::record(
             streamCullingActive_ = false;
             streamCullLogged_ = false;
             streamDecisionCount_ = 0U;
+            cachedStreamPlanStats_ = {};
+            cachedStreamPlanCell_ = 0U;
+            cachedStreamColdBatches_ = 0U;
+            streamPlanDirty_ = true;
         }
     }
 
@@ -5237,7 +5313,7 @@ void VulkanStaticMeshRenderer::record(
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u draw_submissions=%u indirect_draws=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u multi_draw_indirect=%u portal_tests=%u portal_culled=%u portal_skipped=%u cell_frustum_tests=%u cell_frustum_culled=%u cell_range_skipped=%u cell_frustum_skipped=%u batch_frustum_tests=%u material_visibility_tests=%u material_visibility_cache_hits=%u front_to_back_candidates=%u front_to_back_reordered=%u",
+            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u draw_submissions=%u indirect_draws=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u multi_draw_indirect=%u portal_tests=%u portal_culled=%u portal_skipped=%u cell_frustum_tests=%u cell_frustum_culled=%u cell_range_skipped=%u cell_frustum_skipped=%u batch_frustum_tests=%u material_visibility_tests=%u material_visibility_cache_hits=%u front_to_back_candidates=%u front_to_back_reordered=%u plan_builds=%llu plan_cache_hits=%llu cell_heat_refreshes=%llu",
             static_cast<unsigned int>(
                 frameStats_.streamingCell),
             static_cast<unsigned int>(
@@ -5290,7 +5366,13 @@ void VulkanStaticMeshRenderer::record(
                     frontToBackCandidates),
             static_cast<unsigned int>(
                 frameStats_.
-                    frontToBackReordered));
+                    frontToBackReordered),
+            static_cast<unsigned long long>(
+                streamPlanBuildCount_),
+            static_cast<unsigned long long>(
+                streamPlanCacheHitCount_),
+            static_cast<unsigned long long>(
+                streamCellHeatRefreshCount_));
     }
 }
 

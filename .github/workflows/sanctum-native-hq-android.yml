@@ -849,6 +849,9 @@ jobs:
             STREAM_MATERIAL_VISIBILITY_CACHE_HITS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* material_visibility_cache_hits=\([0-9][0-9]*\).*/\1/p')"
             STREAM_FRONT_TO_BACK_CANDIDATES="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* front_to_back_candidates=\([0-9][0-9]*\).*/\1/p')"
             STREAM_FRONT_TO_BACK_REORDERED="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* front_to_back_reordered=\([0-9][0-9]*\).*/\1/p')"
+            STREAM_PLAN_BUILDS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* plan_builds=\([0-9][0-9]*\).*/\1/p')"
+            STREAM_PLAN_CACHE_HITS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* plan_cache_hits=\([0-9][0-9]*\).*/\1/p')"
+            STREAM_CELL_HEAT_REFRESHES="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* cell_heat_refreshes=\([0-9][0-9]*\).*/\1/p')"
             test -n "${STREAM_CULLED}"
             test "${STREAM_CULLED}" -gt 0
             test -n "${STREAM_DRAWS}"
@@ -856,6 +859,24 @@ jobs:
             test "${STREAM_MATERIAL_BINDS}" -gt 0
             test "${STREAM_MATERIAL_BINDS}" -le "${STREAM_DRAWS}"
             echo "XZIEL_WORLD_STREAMING_CULL_RUNTIME_ACTIVE culled=${STREAM_CULLED} draws=${STREAM_DRAWS} material_binds=${STREAM_MATERIAL_BINDS} geometry_binds=${STREAM_GEOMETRY_BINDS:-0} pipeline_binds=${STREAM_PIPELINE_BINDS:-0}"
+
+            if [[ "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" ]]; then
+              test -n "${STREAM_PLAN_BUILDS}"
+              test -n "${STREAM_PLAN_CACHE_HITS}"
+              test -n "${STREAM_CELL_HEAT_REFRESHES}"
+              test "${STREAM_PLAN_BUILDS}" -gt 0
+              test "${STREAM_PLAN_CACHE_HITS}" -gt 0
+
+              STREAM_GEOMETRY_CELLS="$(grep "XZIEL_STREAM_GEOMETRY_CELLS_READY" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* cells=\([0-9][0-9]*\).*/\1/p')"
+              test -n "${STREAM_GEOMETRY_CELLS}"
+              test "${STREAM_GEOMETRY_CELLS}" -gt 0
+
+              MAX_HEAT_REFRESHES=$((STREAM_PLAN_BUILDS * STREAM_GEOMETRY_CELLS))
+              test "${STREAM_CELL_HEAT_REFRESHES}" -gt 0
+              test "${STREAM_CELL_HEAT_REFRESHES}" -le "${MAX_HEAT_REFRESHES}"
+
+              echo "XZIEL_STREAM_PLAN_CACHE_V2_ACTIVE builds=${STREAM_PLAN_BUILDS} hits=${STREAM_PLAN_CACHE_HITS} cell_heat_refreshes=${STREAM_CELL_HEAT_REFRESHES} geometry_cells=${STREAM_GEOMETRY_CELLS}"
+            fi
 
             if [[ "${GITHUB_REF_NAME}" == "engine/mobile-front-to-back-earlyz-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-fragment-distance-lod-v1" ]]; then
               test -n "${STREAM_FRONT_TO_BACK_CANDIDATES}"
