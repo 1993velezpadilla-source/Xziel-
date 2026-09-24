@@ -7232,6 +7232,22 @@ void VulkanStaticMeshRenderer::destroyGeometryResidency() noexcept {
             auto& cell =
                 geometryCells_[i];
 
+            if (cell.restoreMappedIndices != nullptr &&
+                cell.indexMemory != VK_NULL_HANDLE) {
+                vkUnmapMemory(
+                    device_,
+                    cell.indexMemory);
+                cell.restoreMappedIndices = nullptr;
+            }
+
+            if (cell.restoreMappedVertices != nullptr &&
+                cell.vertexMemory != VK_NULL_HANDLE) {
+                vkUnmapMemory(
+                    device_,
+                    cell.vertexMemory);
+                cell.restoreMappedVertices = nullptr;
+            }
+
             if (cell.indexBuffer !=
                 VK_NULL_HANDLE) {
                 vkDestroyBuffer(
