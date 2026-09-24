@@ -252,6 +252,24 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
                 face_score = float(raw_face)
             except ValueError:
                 face_score = None
+        def _float_or_none(key: str) -> float | None:
+            raw = values.get(key)
+            if not raw or raw.lower() == "none":
+                return None
+            try:
+                return float(raw)
+            except ValueError:
+                return None
+
+        def _int_or_none(key: str) -> int | None:
+            raw = values.get(key)
+            if not raw or raw.lower() == "none":
+                return None
+            try:
+                return int(raw)
+            except ValueError:
+                return None
+
         raw_facemesh = values.get("facemesh_score")
         facemesh_score = None
         if raw_facemesh and raw_facemesh.lower() != "none":
@@ -269,6 +287,11 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
         job.final_qa = {
             "production_ready": _bool("production_ready"),
             "material_ready": _bool("material_ready"),
+            "texture_ready": _bool("texture_ready"),
+            "texture_score": _float_or_none("texture_score"),
+            "basecolor_min": _int_or_none("basecolor_min"),
+            "basecolor_max": _int_or_none("basecolor_max"),
+            "texture_target": _int_or_none("texture_target"),
             "rebake_ready": _bool("rebake_ready"),
             "rebaked_channels": (
                 [] if values.get("rebaked") in (None,"","none")
