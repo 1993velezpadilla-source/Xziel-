@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import heapq
 
 
 @dataclass
@@ -13,7 +14,8 @@ class SurfaceTransferRelation:
     candidate_triangles: int
     fallback_vertices: int
     max_examined_triangles: int = 0
-    method: str = "hayuya-surface-transfer-barycentric-exact-v1"
+    max_visited_bvh_nodes: int = 0
+    method: str = "hayuya-surface-transfer-bvh-barycentric-exact-v2"
 
 
 def _deps():
@@ -89,12 +91,155 @@ def _closest_point_barycentric(point, a, b, c):
     return closest, bary
 
 
+@dataclass
+class _BVHNode:
+    lo: object
+    hi: object
+    left: int | None = None
+    right: int | None = None
+    face_ids: object | None = None
+
+
+def _point_aabb_distance_sq(point, lo, hi) -> float:
+    np, _ = _deps()
+    point = np.asarray(point, dtype=np.float64)
+    lo = np.asarray(lo, dtype=np.float64)
+    hi = np.asarray(hi, dtype=np.float64)
+    delta = np.maximum(0.0, np.maximum(lo - point, point - hi))
+    return float(np.dot(delta, delta))
+
+
+def _build_triangle_bvh(triangles, *, leaf_size: int = 8):
+    np, _ = _deps()
+    triangles = np.asarray(triangles, dtype=np.float64)
+    if triangles.ndim != 3 or triangles.shape[1:] != (3, 3):
+        raise ValueError("triangle BVH requires Mx3x3 triangles")
+    if not len(triangles):
+        raise ValueError("triangle BVH requires at least one triangle")
+
+    tri_lo = np.min(triangles, axis=1)
+    tri_hi = np.max(triangles, axis=1)
+    centroids = (tri_lo + tri_hi) * 0.5
+    leaf_size = max(1, int(leaf_size))
+    nodes: list[_BVHNode] = []
+
+    def build(face_ids) -> int:
+        face_ids = np.asarray(face_ids, dtype=np.int64)
+        lo = np.min(tri_lo[face_ids], axis=0)
+        hi = np.max(tri_hi[face_ids], axis=0)
+        node_index = len(nodes)
+        nodes.append(_BVHNode(lo=lo, hi=hi))
+
+        if len(face_ids) <= leaf_size:
+            nodes[node_index].face_ids = face_ids
+            return node_index
+
+        extent = np.ptp(centroids[face_ids], axis=0)
+        axis = int(np.argmax(extent))
+        if float(extent[axis]) <= 1e-15:
+            nodes[node_index].face_ids = face_ids
+            return node_index
+
+        order = face_ids[
+            np.argsort(centroids[face_ids, axis], kind="mergesort")
+        ]
+        split = len(order) // 2
+        if split <= 0 or split >= len(order):
+            nodes[node_index].face_ids = face_ids
+            return node_index
+
+        left = build(order[:split])
+        right = build(order[split:])
+        nodes[node_index].left = left
+        nodes[node_index].right = right
+        return node_index
+
+    root = build(np.arange(len(triangles), dtype=np.int64))
+    return nodes, root
+
+
+def _nearest_triangle_bvh(
+    point,
+    vertices,
+    faces,
+    nodes,
+    root: int,
+):
+    np, _ = _deps()
+    point = np.asarray(point, dtype=np.float64)
+    best = None
+    examined_triangles = 0
+    visited_nodes = 0
+
+    root_node = nodes[int(root)]
+    heap = [(
+        _point_aabb_distance_sq(point, root_node.lo, root_node.hi),
+        int(root),
+    )]
+
+    while heap:
+        lower_bound_sq, node_index = heapq.heappop(heap)
+        if (
+            best is not None
+            and lower_bound_sq >= float(best[0]) ** 2 - 1e-18
+        ):
+            break
+
+        node = nodes[int(node_index)]
+        visited_nodes += 1
+
+        if node.face_ids is not None:
+            for face_index in np.asarray(node.face_ids, dtype=np.int64):
+                tri_ids = faces[int(face_index)]
+                result = _closest_point_barycentric(
+                    point,
+                    vertices[int(tri_ids[0])],
+                    vertices[int(tri_ids[1])],
+                    vertices[int(tri_ids[2])],
+                )
+                examined_triangles += 1
+                if result is None:
+                    continue
+                closest, bary = result
+                distance = float(np.linalg.norm(point - closest))
+                if not np.isfinite(distance):
+                    continue
+                if best is None or distance < best[0]:
+                    best = (
+                        distance,
+                        np.asarray(tri_ids, dtype=np.int64),
+                        np.asarray(bary, dtype=np.float64),
+                    )
+            continue
+
+        for child_index in (node.left, node.right):
+            if child_index is None:
+                continue
+            child = nodes[int(child_index)]
+            bound_sq = _point_aabb_distance_sq(
+                point,
+                child.lo,
+                child.hi,
+            )
+            if (
+                best is None
+                or bound_sq < float(best[0]) ** 2 - 1e-18
+            ):
+                heapq.heappush(
+                    heap,
+                    (bound_sq, int(child_index)),
+                )
+
+    return best, examined_triangles, visited_nodes
+
+
 def build_surface_transfer_relation(
     source_positions,
     source_faces,
     target_positions,
     *,
     candidate_triangles: int = 32,
+    bvh_leaf_size: int = 8,
 ) -> SurfaceTransferRelation:
     np, cKDTree = _deps()
     vertices = np.asarray(source_positions, dtype=np.float64)
@@ -116,22 +261,11 @@ def build_surface_transfer_relation(
         raise ValueError("surface-transfer geometry contains non-finite values")
 
     triangles = vertices[faces]
-    centroids = np.mean(triangles, axis=1)
-    radii = np.max(
-        np.linalg.norm(
-            triangles - centroids[:, None, :],
-            axis=2,
-        ),
-        axis=1,
+    nodes, root = _build_triangle_bvh(
+        triangles,
+        leaf_size=bvh_leaf_size,
     )
-    global_max_radius = (
-        float(np.max(radii)) if len(radii) else 0.0
-    )
-    centroid_tree = cKDTree(centroids)
     vertex_tree = cKDTree(vertices)
-
-    initial_k = max(1, min(int(candidate_triangles), len(faces)))
-
     _, nearest_vertices = vertex_tree.query(
         targets,
         k=1,
@@ -144,92 +278,24 @@ def build_surface_transfer_relation(
     distances = np.zeros(len(targets), dtype=np.float64)
     fallback_vertices = 0
     max_examined_triangles = 0
-
-    adjacency = [[] for _ in range(len(vertices))]
-    for face_index, tri in enumerate(faces):
-        for vertex_id in tri:
-            adjacency[int(vertex_id)].append(int(face_index))
+    max_visited_bvh_nodes = 0
 
     for row, point in enumerate(targets):
-        evaluated: set[int] = set()
-        best = None
-        current_k = initial_k
-
-        while True:
-            centroid_distances, candidate_rows = centroid_tree.query(
-                point,
-                k=current_k,
-                workers=-1,
-            )
-            centroid_distances = np.atleast_1d(
-                np.asarray(centroid_distances, dtype=np.float64)
-            )
-            candidate_rows = np.atleast_1d(
-                np.asarray(candidate_rows, dtype=np.int64)
-            )
-
-            candidate_ids = set(
-                int(x) for x in candidate_rows.tolist()
-            )
-            candidate_ids.update(
-                adjacency[int(nearest_vertices[row])]
-            )
-
-            for face_index in candidate_ids:
-                if face_index in evaluated:
-                    continue
-                evaluated.add(face_index)
-                tri_ids = faces[int(face_index)]
-                result = _closest_point_barycentric(
-                    point,
-                    vertices[int(tri_ids[0])],
-                    vertices[int(tri_ids[1])],
-                    vertices[int(tri_ids[2])],
-                )
-                if result is None:
-                    continue
-                closest, bary = result
-                distance = float(np.linalg.norm(point - closest))
-                if not np.isfinite(distance):
-                    continue
-                if best is None or distance < best[0]:
-                    best = (
-                        distance,
-                        np.asarray(tri_ids, dtype=np.int64),
-                        np.asarray(bary, dtype=np.float64),
-                    )
-
-            max_examined_triangles = max(
-                max_examined_triangles,
-                len(evaluated),
-            )
-
-            if current_k >= len(faces):
-                break
-
-            kth_centroid_distance = float(
-                np.max(centroid_distances)
-            )
-            # Every unseen triangle is contained in a sphere centered at its
-            # centroid with radius <= global_max_radius. If even that sphere
-            # cannot beat the current best distance, the search is exact.
-            unseen_lower_bound = max(
-                0.0,
-                kth_centroid_distance - global_max_radius,
-            )
-            if (
-                best is not None
-                and unseen_lower_bound >= float(best[0]) - 1e-12
-            ):
-                break
-
-            next_k = min(
-                len(faces),
-                max(current_k + 1, current_k * 2),
-            )
-            if next_k == current_k:
-                break
-            current_k = next_k
+        best, examined, visited = _nearest_triangle_bvh(
+            point,
+            vertices,
+            faces,
+            nodes,
+            root,
+        )
+        max_examined_triangles = max(
+            max_examined_triangles,
+            int(examined),
+        )
+        max_visited_bvh_nodes = max(
+            max_visited_bvh_nodes,
+            int(visited),
+        )
 
         if best is None:
             vertex_id = int(nearest_vertices[row])
@@ -258,9 +324,10 @@ def build_surface_transfer_relation(
         barycentric=barycentric,
         surface_distance=distances,
         nearest_vertex_ids=nearest_vertices,
-        candidate_triangles=initial_k,
+        candidate_triangles=max(1, min(int(candidate_triangles), len(faces))),
         fallback_vertices=int(fallback_vertices),
         max_examined_triangles=int(max_examined_triangles),
+        max_visited_bvh_nodes=int(max_visited_bvh_nodes),
     )
 
 
