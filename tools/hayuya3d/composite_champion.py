@@ -805,11 +805,13 @@ def execute_safe_accessory_challenger(
             )
             output=Path(swap.output_glb)
         elif donor.strategy=="new_rigged_accessory_insert_weight_morph_transfer":
-            from rigged_accessory_insert import insert_rigged_accessory
-            swap=insert_rigged_accessory(
+            from rigged_accessory_insert import (
+                prepare_production_rigged_accessory_insert,
+            )
+            swap=prepare_production_rigged_accessory_insert(
                 Path(base.path),
                 Path(source.path),
-                output,
+                out_dir/f"insert_{safe_backend}_{safe_source}",
                 base_up_axis=(
                     base.up_axis
                     if base.up_axis in {"x","y","z"} else "y"
@@ -819,6 +821,7 @@ def execute_safe_accessory_challenger(
                     if source.up_axis in {"x","y","z"} else None
                 ),
             )
+            output=Path(swap.output_glb)
         else:
             from accessory_swap import swap_detached_accessory
             swap=swap_detached_accessory(
