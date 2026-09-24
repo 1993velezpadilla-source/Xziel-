@@ -8,6 +8,8 @@ from typing import Any
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 STANDARD_PATH = ROOT / "hayuya" / "standards" / "hayuya_monetization_brain_v1.json"
+XZIEL_POLICY_PATH = ROOT / "ads" / "policy" / "google_play_guardrails_v1.json"
+XZIEL_INVENTORY_PATH = ROOT / "ads" / "design" / "world_inventory_patterns_v1.json"
 
 
 def _read_standard() -> dict[str, Any]:
@@ -101,6 +103,8 @@ def compile_monetization_intelligence(
 ) -> dict[str, Any]:
     standard = _read_standard()
     candidates = discover_diegetic_candidates(world_graph) if enabled else []
+    xziel_policy = json.loads(XZIEL_POLICY_PATH.read_text(encoding="utf-8"))
+    xziel_inventory = json.loads(XZIEL_INVENTORY_PATH.read_text(encoding="utf-8"))
 
     return {
         "engine": "HAYUYA Monetization Brain",
@@ -114,6 +118,13 @@ def compile_monetization_intelligence(
             "direct_diegetic_and_google_programmatic_are_separate": True,
         },
         "delivery_paths": standard["deliveryPaths"],
+        "shared_xziel_ad_contract": {
+            "policy": str(XZIEL_POLICY_PATH.relative_to(ROOT)),
+            "world_inventory": str(XZIEL_INVENTORY_PATH.relative_to(ROOT)),
+            "inventory_pattern_count": len(xziel_inventory.get("patterns", [])),
+            "universal_exclusions": xziel_inventory.get("universalExclusions", []),
+            "google_play_principles": xziel_policy.get("principles", {}),
+        },
         "runtime_hooks": standard["runtimeHooks"],
         "frequency_defaults": standard["frequencyDefaults"],
         "hard_exclusions": standard["hardExclusions"],
