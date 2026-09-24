@@ -149,6 +149,22 @@ def _align_cloud(points,base_vertices):
     return aligned,b_diag,p95
 
 
+def _uv_axis_crosses_wrap(values)->bool:
+    np,_,_=_deps()
+    values=np.asarray(values,dtype=np.float64)
+    span=float(np.ptp(values))
+    if span<=0.5:
+        return False
+    eps=1e-8
+    # A face that explicitly uses only the 0/1 atlas boundary is allowed to
+    # span the full image. This is common on simple unwraps and is not itself a
+    # wrap seam. Ambiguous 0.98->0.02 style faces remain fail-closed.
+    boundary_only=bool(np.all(
+        (values<=eps)|(values>=1.0-eps)
+    ))
+    return not boundary_only
+
+
 def _barycentric_grid(tri_xy,min_x,max_x,min_y,max_y):
     np,_,_=_deps()
     xs=np.arange(min_x,max_x+1,dtype=np.float64)+0.5
@@ -235,8 +251,8 @@ def fuse_local_basecolor(
             # Avoid painting across wrapped UV seams in v1. Those boundary
             # triangles stay base-exact until seam-aware unwrap support lands.
             if (
-                float(np.ptp(tri_uv[:,0]))>0.5
-                or float(np.ptp(tri_uv[:,1]))>0.5
+                _uv_axis_crosses_wrap(tri_uv[:,0])
+                or _uv_axis_crosses_wrap(tri_uv[:,1])
             ):
                 skipped_seams+=1
                 continue
