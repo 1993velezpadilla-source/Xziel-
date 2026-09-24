@@ -8228,6 +8228,8 @@ bool VulkanStaticMeshRenderer::createIndirectDrawBuffers() noexcept {
     destroyIndirectDrawBuffers();
 
     try {
+        visibleDrawCandidates_.reserve(
+            batches_.size());
         drawCommands_.reserve(
             batches_.size());
         drawGroups_.reserve(
@@ -8336,6 +8338,8 @@ void VulkanStaticMeshRenderer::destroyIndirectDrawBuffers() noexcept {
         indirectDrawFrames_ = {};
     }
 
+    visibleDrawCandidates_.clear();
+    visibleDrawCandidates_.shrink_to_fit();
     drawCommands_.clear();
     drawGroups_.clear();
 }
