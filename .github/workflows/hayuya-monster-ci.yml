@@ -59,6 +59,48 @@ jobs:
           python tools/hayuya3d/texture_gate.py             hayuya/models/zombie-iglesia-001/model.glb             --json /tmp/zombie-iglesia-texture.json
           python tools/hayuya3d/texture_gate.py             hayuya/models/candy-zombie-001/model.glb             --json /tmp/candy-zombie-texture.json
 
+      - name: Calibrate face mesh and texel telemetry on real Hayuya characters
+        run: |
+          python - <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, "tools/hayuya3d")
+          from qa import inspect_mesh
+
+          models = [
+              Path("hayuya/models/zombie-iglesia-001/model.glb"),
+              Path("hayuya/models/candy-zombie-001/model.glb"),
+              Path("hayuya/models/zombitest1-muetjpwb/model.glb"),
+          ]
+          rows = []
+          for path in models:
+              score = inspect_mesh(
+                  path,
+                  backend="face_calibration",
+                  mode="character",
+                  target_faces=250000,
+                  target_texture_size=4096,
+              )
+              if not score.valid:
+                  raise SystemExit(f"face calibration model invalid: {path}: {score.notes}")
+              rows.append({
+                  "model": str(path),
+                  "faces": score.faces,
+                  "head_region_faces": score.head_region_faces,
+                  "head_region_face_fraction": score.head_region_face_fraction,
+                  "head_region_density_ratio": score.head_region_density_ratio,
+                  "head_density_score": score.head_density_score,
+                  "head_texel_density_ratio": score.head_texel_density_ratio,
+                  "head_texel_density_score": score.head_texel_density_score,
+                  "base_color_min_edge": score.base_color_min_edge,
+                  "base_color_max_edge": score.base_color_max_edge,
+                  "texture_resolution_score": score.texture_resolution_score,
+              })
+          print("HAYUYA_FACE_QUALITY_CALIBRATION", json.dumps(rows, sort_keys=True))
+          PY
+
       - name: Inspect character rig readiness
         run: |
           python tools/hayuya3d/rig_gate.py \
