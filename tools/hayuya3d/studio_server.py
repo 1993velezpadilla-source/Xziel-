@@ -308,7 +308,22 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
             "facemesh_score": facemesh_score,
             "facetex_score": facetex_score,
             "report": values.get("report"),
+            "warnings": [],
         }
+        report_raw = values.get("report")
+        if report_raw:
+            try:
+                report_path = Path(report_raw).resolve()
+                job_root = Path(job.root).resolve()
+                if report_path.is_file() and report_path.is_relative_to(job_root):
+                    report_data = json.loads(report_path.read_text(encoding="utf-8"))
+                    warnings = report_data.get("warnings") or []
+                    if isinstance(warnings, list):
+                        job.final_qa["warnings"] = [
+                            str(item) for item in warnings if str(item).strip()
+                        ][:12]
+            except (OSError, ValueError, json.JSONDecodeError):
+                pass
         _emit(job, "qa_ready", {"qa": dict(job.final_qa)})
     elif line.startswith("HAYUYA_QA"):
         _set_stage(job, "qa")
