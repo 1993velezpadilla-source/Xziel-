@@ -36,6 +36,7 @@ class MeshScore:
     material_score: float = 0.0
     texture_max_edge: int = 0
     base_color_max_edge: int = 0
+    base_color_min_edge: int = 0
     texture_resolution_score: float | None = None
     head_region_faces: int = 0
     head_region_vertices: int = 0
@@ -296,24 +297,27 @@ def inspect_mesh(
                 )
                 result.texture_max_edge = int(texture_report.max_edge)
                 result.base_color_max_edge = int(texture_report.base_color_max_edge)
-                if result.base_color_max_edge > 0:
+                result.base_color_min_edge = int(texture_report.base_color_min_edge)
+                if result.base_color_min_edge > 0:
                     if target_texture_size is not None:
                         texture_resolution_factor = min(
                             1.0,
-                            result.base_color_max_edge / max(1.0, float(target_texture_size)),
+                            result.base_color_min_edge / max(1.0, float(target_texture_size)),
                         )
                         result.texture_resolution_score = round(
                             texture_resolution_factor * 100.0,
                             3,
                         )
                         result.notes.append(
-                            f"baseColor resolution={result.base_color_max_edge}px "
+                            f"baseColor resolution weakest={result.base_color_min_edge}px "
+                            f"strongest={result.base_color_max_edge}px "
                             f"target={int(target_texture_size)}px"
                         )
                     else:
                         result.texture_resolution_score = 100.0
                         result.notes.append(
-                            f"baseColor resolution={result.base_color_max_edge}px "
+                            f"baseColor resolution weakest={result.base_color_min_edge}px "
+                            f"strongest={result.base_color_max_edge}px "
                             "(no profile texture target applied)"
                         )
                 elif texture_report.image_count and target_texture_size is not None:
