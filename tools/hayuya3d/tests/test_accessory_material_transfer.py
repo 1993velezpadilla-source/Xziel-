@@ -622,7 +622,7 @@ class AccessoryMaterialTransferTests(unittest.TestCase):
             )
             self.assertTrue(supported, blocker)
 
-            inserted = insert_rigged_accessory(
+            inserted = insert_split_rigged_accessory(
                 base,
                 donor,
                 raw,
@@ -630,6 +630,26 @@ class AccessoryMaterialTransferTests(unittest.TestCase):
             self.assertTrue(inserted.geometry_ready, inserted.errors)
             self.assertEqual(inserted.spatial_label, "cluster")
             self.assertFalse(inserted.production_ready)
+
+            raw_doc, _ = read_glb(raw)
+            raw_mesh = raw_doc["meshes"][0]
+            split_primitives = [
+                item
+                for item in raw_mesh.get("primitives") or []
+                if (item.get("extras") or {}).get("hayuyaAccessorySplit")
+            ]
+            self.assertEqual(len(split_primitives), 3)
+            self.assertEqual(
+                len({
+                    (
+                        int(item["extras"]["hayuyaSourceNode"]),
+                        int(item["extras"]["hayuyaSourceMesh"]),
+                        int(item["extras"]["hayuyaSourcePrimitive"]),
+                    )
+                    for item in split_primitives
+                }),
+                3,
+            )
 
             transfer = transfer_accessory_material(
                 donor,
