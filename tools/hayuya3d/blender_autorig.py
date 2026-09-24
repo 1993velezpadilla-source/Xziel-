@@ -113,35 +113,73 @@ def main():
     if donor_height<=1e-6:
         raise RuntimeError("donor height is degenerate")
 
-    # Blender glTF import should normalize both sources to the same Z-up scene.
-    # If the dominant axes differ, keep going but report it for the next fitting pass.
+    # Blender glTF import should normalize both sources to Z-up.  The old
+    # prototype scaled only the armature object; some donor meshes are not
+    # parented to that object, so their weight-sampling surface stayed at the
+    # original size.  That caused target vertices to collapse onto a handful
+    # of torso groups and produced the stretched-face/body failure seen in
+    # mobile previews.  Transform each imported donor ROOT exactly once so
+    # mesh + armature stay spatially coherent.
+    if donor_axis != target_axis:
+        raise RuntimeError(
+            f"orientation_mismatch:target_axis={target_axis},donor_axis={donor_axis}"
+        )
+
     scale=target_height/donor_height
-    arm.scale=Vector((scale,scale,scale))
+    donor_set=set(donor_objs)
+    donor_roots=[o for o in donor_objs if o.parent not in donor_set]
+    if not donor_roots:
+        donor_roots=[arm]
+
+    for root in donor_roots:
+        root.scale=Vector((root.scale.x*scale,root.scale.y*scale,root.scale.z*scale))
     bpy.context.view_layer.update()
 
-    # Align donor mesh envelope center and floor with target envelope.
-    # Compute donor envelope after scaling armature. Donor mesh objects may be children.
     dmin2,dmax2=world_bbox(donor_meshes)
     target_center=(target_min+target_max)*0.5
     donor_center=(dmin2+dmax2)*0.5
     offset=target_center-donor_center
-    # Prefer floor alignment on the target dominant axis.
-    current_floor=axis_value(dmin2,donor_axis)
+
+    # Preserve horizontal centering but align the feet/floor on the vertical
+    # axis.  This is much safer than center-only fitting for robes, long hair
+    # and other asymmetric silhouettes.
     desired_floor=axis_value(target_min,target_axis)
-    if donor_axis==0: offset.x += desired_floor-current_floor
-    elif donor_axis==1: offset.y += desired_floor-current_floor
-    else: offset.z += desired_floor-current_floor
-    arm.location += offset
+    current_floor=axis_value(dmin2,donor_axis)
+    if target_axis==0:
+        offset.x += desired_floor-axis_value(donor_center,target_axis) - (current_floor-axis_value(donor_center,donor_axis))
+    elif target_axis==1:
+        offset.y += desired_floor-axis_value(donor_center,target_axis) - (current_floor-axis_value(donor_center,donor_axis))
+    else:
+        offset.z += desired_floor-axis_value(donor_center,target_axis) - (current_floor-axis_value(donor_center,donor_axis))
+
+    for root in donor_roots:
+        root.location += offset
     bpy.context.view_layer.update()
 
     arm.name="HAYUYA_Armature"
 
-    # Build a spatial weight donor from the already-rigged CC0 human.
-    # This is much more robust for TRELLIS meshes than Blender's Bone Heat
-    # solver, because generated characters often contain hundreds of disconnected
-    # clothing/hair/candy islands that make ARMATURE_AUTO fail.
+    # Build a spatial weight donor from the already-rigged CC0 character.
+    # Use blended nearest-neighbour weights (instead of ONE nearest donor
+    # vertex), preserve left/right body side, and cap at four influences.
+    # This keeps shoulders, arms, neck and face from inheriting torso weights.
     arm_bones={b.name for b in arm.data.bones}
     samples=[]
+    donor_min_fit,donor_max_fit=world_bbox(donor_meshes)
+    donor_center_fit=(donor_min_fit+donor_max_fit)*0.5
+    target_center_fit=(target_min+target_max)*0.5
+    non_height=[i for i in range(3) if i!=target_axis]
+    width_axis=max(non_height,key=lambda i:abs((target_ext.x,target_ext.y,target_ext.z)[i]))
+
+    def coord_axis(v,axis):
+        return (v.x,v.y,v.z)[axis]
+
+    def side_of(co,center,axis):
+        delta=coord_axis(co,axis)-coord_axis(center,axis)
+        width=max(1e-8,abs((target_ext.x,target_ext.y,target_ext.z)[axis]))
+        if abs(delta)/width < 0.04:
+            return 0
+        return -1 if delta < 0 else 1
+
     for donor in donor_meshes:
         for v in donor.data.vertices:
             weights=[]
@@ -153,18 +191,19 @@ def main():
             if not weights:
                 continue
             weights.sort(key=lambda x:x[1],reverse=True)
-            samples.append((donor.matrix_world @ v.co,weights[:4]))
+            world=donor.matrix_world @ v.co
+            samples.append((world,weights[:4],side_of(world,donor_center_fit,width_axis)))
     if not samples:
         raise RuntimeError("donor rig has no transferable vertex weights")
 
     kd=KDTree(len(samples))
-    for i,(co,_) in enumerate(samples):
+    for i,(co,_,__) in enumerate(samples):
         kd.insert(co,i)
     kd.balance()
 
     bind_results=[]
+    all_weighted_groups=set()
     for mesh in target_meshes:
-        # Remove stale skin state.
         for mod in list(mesh.modifiers):
             if mod.type=="ARMATURE":
                 mesh.modifiers.remove(mod)
@@ -174,21 +213,43 @@ def main():
         transferred=0
         fallback_count=0
         group_cache={}
+        mesh_groups=set()
         for v in mesh.data.vertices:
             world=mesh.matrix_world @ v.co
-            _,idx,_=kd.find(world)
-            weights=samples[idx][1] if idx is not None else []
-            total=sum(w for _,w in weights)
+            target_side=side_of(world,target_center_fit,width_axis)
+            neighbours=kd.find_n(world,12)
+            candidates=[]
+            for _,idx,dist in neighbours:
+                sco,sweights,sside=samples[idx]
+                if target_side and sside and target_side!=sside:
+                    continue
+                candidates.append((dist,sweights))
+            if len(candidates)<3:
+                candidates=[(dist,samples[idx][1]) for _,idx,dist in neighbours[:8]]
+
+            accum={}
+            for dist,sweights in candidates[:8]:
+                influence=1.0/((float(dist)+1e-5)**2)
+                for name,weight in sweights:
+                    accum[name]=accum.get(name,0.0)+influence*weight
+
+            ranked=sorted(accum.items(),key=lambda x:x[1],reverse=True)[:4]
+            total=sum(w for _,w in ranked)
             if total <= 1e-8:
-                weights=[("Hips",1.0)]
+                ranked=[("pelvis" if "pelvis" in arm_bones else "Hips",1.0)]
                 total=1.0
                 fallback_count += 1
-            for name,weight in weights:
+
+            for name,weight in ranked:
+                if name not in arm_bones:
+                    continue
                 group=group_cache.get(name)
                 if group is None:
-                    group=mesh.vertex_groups.new(name=name)
+                    group=mesh.vertex_groups.get(name) or mesh.vertex_groups.new(name=name)
                     group_cache[name]=group
                 group.add([v.index],float(weight/total),"REPLACE")
+                mesh_groups.add(name)
+                all_weighted_groups.add(name)
             transferred += 1
 
         mesh.parent=arm
@@ -198,11 +259,22 @@ def main():
         bind_results.append({
             "mesh":mesh.name,
             "ok":True,
-            "groups":len(mesh.vertex_groups),
+            "groups":len(mesh_groups),
+            "weighted_group_names":sorted(mesh_groups),
             "spatial_weight_vertices":transferred,
             "fallback_weighted_vertices":fallback_count,
-            "donor_samples":len(samples)
+            "donor_samples":len(samples),
+            "blend_neighbours":8,
         })
+
+    # A technically valid skin with only a few weighted bones is NOT a usable
+    # humanoid rig.  Fail here so the Studio keeps the clean static model rather
+    # than publishing a melted/stretched animated preview.
+    if len(all_weighted_groups) < 12:
+        raise RuntimeError(
+            f"insufficient_weighted_bone_coverage:{len(all_weighted_groups)}<12:"
+            + ",".join(sorted(all_weighted_groups))
+        )
 
     # Donor meshes are no longer needed after the spatial weight transfer.
     for obj in list(donor_objs):
@@ -245,6 +317,10 @@ def main():
         "armature":arm.name,
         "bones":[b.name for b in arm.data.bones],
         "actions":[a.name for a in actions],
+        "weighted_bones":sorted(all_weighted_groups),
+        "weighted_bone_count":len(all_weighted_groups),
+        "donor_root_objects":[o.name for o in donor_roots],
+        "binding_method":"aligned_roots_blended_kdtree_v2",
         "bind_results":bind_results,
         "output_bytes":args.output.stat().st_size if args.output.exists() else 0,
     }
