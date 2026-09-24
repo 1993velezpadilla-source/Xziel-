@@ -100,6 +100,21 @@ class HeadWrapExecutionResult:
 
 
 @dataclass
+class LocalDetailExecutionResult:
+    attempted: bool
+    ready: bool
+    base_backend: str
+    donor_backend: str | None
+    source: str | None
+    region_hint: str | None
+    candidate_label: str | None
+    candidate_path: str | None
+    fusion: dict | None
+    error: str | None = None
+    method: str = "hayuya-composite-local-detail-challenger-v1"
+
+
+@dataclass
 class CompositeChampionPlan:
     version: int
     mode: str
@@ -437,22 +452,28 @@ def build_composite_plan(
     ]
     # Implemented Composite challengers:
     # - material_response: topology-preserving Material Bridge projection.
-    # - face_identity: seam-aware head wrap; it is only Judge-eligible after
-    #   required normal/AO rebakes and never runs on a skinned base.
-    # Local face UV/detail fusion and density/topology grafting remain deferred.
+    # - face_identity: seam-aware head wrap with rig/skin preservation gates.
+    # - detail:<source>: baseColor-only semantic fusion for localized
+    #   head/middle/lower references, one donor/reference per challenger pass.
+    executable_detail={
+        "detail:"+item.source
+        for item in meaningful_detail
+        if str(item.region_hint or "").lower() in {"head","middle","lower"}
+    }
     executable_now=sorted({
         d.region for d in meaningful
         if (
             d.strategy=="material_projection_then_rebake"
             or d.region=="face_identity"
         )
-    })
+    } | executable_detail)
     deferred=sorted({
         d.region for d in meaningful
         if d.region not in executable_now
     } | {
         "detail:"+item.source
         for item in meaningful_detail
+        if "detail:"+item.source not in executable_detail
     })
 
     return CompositeChampionPlan(
@@ -487,6 +508,138 @@ def build_composite_plan(
             "Every fusion is atomic: rejection restores the untouched base champion.",
         ],
     )
+
+
+def execute_safe_local_detail_challenger(
+    plan: CompositeChampionPlan,
+    out_dir: Path,
+    *,
+    detail_source: str | None=None,
+    donor_samples: int=60_000,
+) -> LocalDetailExecutionResult:
+    executable={
+        item
+        for item in plan.executable_now
+        if item.startswith("detail:")
+    }
+    donor=None
+    for item in plan.detail_donors:
+        token="detail:"+item.source
+        if token not in executable:
+            continue
+        if detail_source is not None and item.source!=detail_source:
+            continue
+        if item.donor_backend==plan.base_backend:
+            continue
+        donor=item
+        break
+
+    if donor is None:
+        return LocalDetailExecutionResult(
+            attempted=False,
+            ready=False,
+            base_backend=plan.base_backend,
+            donor_backend=None,
+            source=detail_source,
+            region_hint=None,
+            candidate_label=None,
+            candidate_path=None,
+            fusion=None,
+            error=None,
+        )
+
+    by_backend={item.backend:item for item in plan.finalists}
+    base=by_backend.get(plan.base_backend)
+    source=by_backend.get(donor.donor_backend)
+    if base is None or source is None:
+        return LocalDetailExecutionResult(
+            attempted=True,
+            ready=False,
+            base_backend=plan.base_backend,
+            donor_backend=donor.donor_backend,
+            source=donor.source,
+            region_hint=donor.region_hint,
+            candidate_label=None,
+            candidate_path=None,
+            fusion=None,
+            error="base or local-detail donor finalist metadata missing",
+        )
+
+    region=str(donor.region_hint or "").lower()
+    if region not in {"head","middle","lower"}:
+        return LocalDetailExecutionResult(
+            attempted=False,
+            ready=False,
+            base_backend=base.backend,
+            donor_backend=source.backend,
+            source=donor.source,
+            region_hint=donor.region_hint,
+            candidate_label=None,
+            candidate_path=None,
+            fusion=None,
+            error=f"detail region {donor.region_hint!r} is not executable",
+        )
+
+    try:
+        from local_detail_fusion import fuse_local_basecolor
+        safe_backend="".join(
+            ch if ch.isalnum() or ch in {"-","_"} else "_"
+            for ch in source.backend
+        )
+        safe_source="".join(
+            ch if ch.isalnum() or ch in {"-","_"} else "_"
+            for ch in Path(donor.source).stem
+        )[:48] or "detail"
+        out_dir.mkdir(parents=True,exist_ok=True)
+        output=out_dir/f"composite_detail_{region}_{safe_backend}_{safe_source}.glb"
+        fusion=fuse_local_basecolor(
+            Path(base.path),
+            Path(source.path),
+            output,
+            region=region,
+            up_axis=base.up_axis or source.up_axis or "y",
+            donor_samples=int(donor_samples),
+        )
+        fusion_data=asdict(fusion)
+        if not fusion.ready:
+            return LocalDetailExecutionResult(
+                attempted=True,
+                ready=False,
+                base_backend=base.backend,
+                donor_backend=source.backend,
+                source=donor.source,
+                region_hint=region,
+                candidate_label=None,
+                candidate_path=str(output) if output.exists() else None,
+                fusion=fusion_data,
+                error=fusion.error or "local detail fusion is not Judge-eligible",
+            )
+        label=f"composite_detail_{region}_{safe_backend}_{safe_source}"
+        return LocalDetailExecutionResult(
+            attempted=True,
+            ready=True,
+            base_backend=base.backend,
+            donor_backend=source.backend,
+            source=donor.source,
+            region_hint=region,
+            candidate_label=label,
+            candidate_path=str(output),
+            fusion=fusion_data,
+            error=None,
+        )
+    except Exception as exc:
+        return LocalDetailExecutionResult(
+            attempted=True,
+            ready=False,
+            base_backend=base.backend,
+            donor_backend=source.backend,
+            source=donor.source,
+            region_hint=region,
+            candidate_label=None,
+            candidate_path=None,
+            fusion=None,
+            error=f"{type(exc).__name__}:{exc}",
+        )
 
 
 def execute_safe_head_wrap_challenger(
