@@ -419,14 +419,14 @@ void main() {
         // Reproject each world position through the camera mirrored across the
         // authored planar surface. The fragment shader then samples the live
         // reflection target using true projective coordinates.
-        vec3 planeNormal = pc.reflectionPlane.xyz;
-        float planeLength = length(planeNormal);
-        if (planeLength < 0.0001) {
-            planeNormal = vec3(0.0, 1.0, 0.0);
-            planeLength = 1.0;
-        }
-        planeNormal /= planeLength;
-        float planeDistance = pc.reflectionPlane.w / planeLength;
+        // REFLECTION_PLANE_CPU_NORMALIZED_V1
+        // The renderer validates, normalizes and camera-orients this plane
+        // once per pass before writing the push constants. Reuse it directly
+        // instead of length/divide work in every water/mirror vertex.
+        vec3 planeNormal =
+            pc.reflectionPlane.xyz;
+        float planeDistance =
+            pc.reflectionPlane.w;
         float cameraPlaneDistance =
             dot(
                 planeNormal,
@@ -440,19 +440,25 @@ void main() {
 
         float yaw = pc.cameraPositionYaw.w;
         float pitch = pc.cameraPitchFov.x;
+        float cosPitch =
+            cos(pitch);
         vec3 forward =
             vec3(
-                sin(yaw) * cos(pitch),
+                sin(yaw) * cosPitch,
                 -sin(pitch),
-                cos(yaw) * cos(pitch));
+                cos(yaw) * cosPitch);
+
+        // REFLECTED_FORWARD_UNIT_LENGTH_V1
+        // The camera forward vector is unit length by construction and a
+        // reflection across a unit plane preserves length exactly. Skip the
+        // redundant normalize after reflection.
         forward =
-            normalize(
-                forward -
-                2.0 *
-                    dot(
-                        forward,
-                        planeNormal) *
-                    planeNormal);
+            forward -
+            2.0 *
+                dot(
+                    forward,
+                    planeNormal) *
+                planeNormal;
         float reflectedYaw =
             atan(
                 forward.x,
