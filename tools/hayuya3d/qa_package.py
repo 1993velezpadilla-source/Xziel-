@@ -31,6 +31,8 @@ class QAPackageResult:
     material_rebaked_channels: list[str]
     material_rebake_pending_channels: list[str]
     rig_ready: bool
+    morph_target_count: int
+    morph_ready: bool
     animation_ready: bool
     animation_integrity_ready: bool
     animation_channels: int
@@ -414,6 +416,17 @@ def build_qa_package(
 
     rig_required = mode == "character"
     rig_ready = bool(rig.rig_ready)
+    morph_target_count = int(rig.morph_target_count or 0)
+    morph_ready = bool(rig.morph_ready)
+    morph_required = bool(
+        mode=="character"
+        and morph_target_count>0
+    )
+    if morph_required and not morph_ready:
+        warnings.append(
+            "character morph/blendshape payload is malformed; "
+            "expression-capable assets cannot be production-ready"
+        )
     embedded_animation_ready = bool(rig.animation_ready)
 
     animation_audit = None
@@ -681,6 +694,7 @@ def build_qa_package(
         and face_quality_evidence_ready
         and (anatomy_evidence_ready if mode=="character" else True)
         and (rig_ready if rig_required else True)
+        and (morph_ready if morph_required else True)
         and (skin_weights_ready if rig_required and rig_ready else True)
         and (animation_ready if rig_required else True)
         and (deformation_ready if rig_required else True)
@@ -831,6 +845,8 @@ def build_qa_package(
         material_rebaked_channels=material_rebaked_channels,
         material_rebake_pending_channels=material_rebake_pending_channels,
         rig_ready=rig_ready,
+        morph_target_count=morph_target_count,
+        morph_ready=morph_ready,
         animation_ready=animation_ready,
         animation_integrity_ready=animation_integrity_ready,
         animation_channels=animation_channels,
