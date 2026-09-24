@@ -25,7 +25,7 @@ import sys
 from pathlib import Path
 
 import bpy
-from mathutils import Vector
+from mathutils import Vector, Quaternion
 from mathutils.kdtree import KDTree
 
 
@@ -379,7 +379,7 @@ def main():
     # rotation animation continues to operate on this fitted rest pose.
     arm_rest_fit={
         "schema":1,
-        "method":"rigid_arm_subtree_lateral_projection_v1",
+        "method":"rigid_arm_subtree_lateral_projection_v2_rest_compensated",
         "applied":False,
         "target_width_height_ratio":0.0,
         "trigger_width_height_ratio_max":0.68,
@@ -407,6 +407,12 @@ def main():
         # Prefer the shortest canonical-looking name rather than a helper copy.
         return sorted(candidates,key=lambda x:(len(x),x.lower()))[0]
 
+    # For a rigid subtree rotation, every descendant keeps the same local rest
+    # transform. Only the upper-arm local rest orientation changes relative to
+    # its unchanged parent, so animation compensation belongs on that one bone.
+    # Mapping: bone name -> quaternion C where B_new = C * B_old.
+    arm_animation_rest_compensation={}
+
     arm_chain_names=[]
     for side_tag,side_label in ((-1,"left"),(1,"right")):
         upper_name=_find_side_bone_name(
@@ -430,6 +436,12 @@ def main():
                 if upper is None or hand is None:
                     continue
                 pivot=upper.head.copy()
+                upper_parent=upper.parent
+                old_upper_local=(
+                    upper_parent.matrix.inverted() @ upper.matrix
+                    if upper_parent is not None
+                    else upper.matrix.copy()
+                )
                 original_endpoint=hand.tail.copy()
                 original_vector=original_endpoint-pivot
                 original_length=original_vector.length
@@ -511,6 +523,18 @@ def main():
                     bone.head=pivot+(rotation_delta @ (bone.head-pivot))
                     bone.tail=pivot+(rotation_delta @ (bone.tail-pivot))
 
+                new_upper_local=(
+                    upper_parent.matrix.inverted() @ upper.matrix
+                    if upper_parent is not None
+                    else upper.matrix.copy()
+                )
+                # Want: Rest_new * Basis_new == Rest_old * Basis_old
+                # therefore Basis_new = inverse(Rest_new) * Rest_old * Basis_old.
+                compensation_matrix=new_upper_local.inverted() @ old_upper_local
+                compensation_quat=compensation_matrix.to_quaternion()
+                compensation_quat.normalize()
+                arm_animation_rest_compensation[upper_name]=compensation_quat.copy()
+
                 new_endpoint=pivot+target_vector
                 chain_info.update({
                     "applied":True,
@@ -518,6 +542,7 @@ def main():
                     "desired_lateral_reach":float(desired_lateral),
                     "vertical_drop":float(vertical_drop),
                     "rotated_bone_count":len(subtree),
+                    "rest_compensation_quaternion":[float(x) for x in compensation_quat],
                     "new_endpoint":[float(x) for x in new_endpoint],
                 })
                 arm_rest_fit["chains"].append(chain_info)
@@ -533,13 +558,94 @@ def main():
     # proportions and stretches the skin. Keep rotations only. Locomotion/root
     # translation is owned by the game/clip controller, not by deform bones.
     animation_retarget={
-        "method":"rotation_only_on_fitted_rest_v28",
+        "method":"rotation_only_on_fitted_rest_v29_rest_compensated",
         "actions":0,
         "removed_location_curves":0,
         "removed_scale_curves":0,
         "kept_rotation_curves":0,
         "kept_other_curves":0,
+        "rest_compensated_bones":sorted(arm_animation_rest_compensation),
+        "rest_compensated_actions":0,
+        "rest_compensated_keyframes":0,
+        "rest_compensation_missing_quaternion_channels":[],
     }
+
+    def compensate_quaternion_fcurves(action,bone_name,compensation):
+        path=f'pose.bones["{bone_name}"].rotation_quaternion'
+        curves={fc.array_index:fc for fc in action.fcurves if fc.data_path==path and 0<=fc.array_index<=3}
+        if len(curves)!=4:
+            return 0,False
+        times=sorted({
+            float(kp.co.x)
+            for fc in curves.values()
+            for kp in fc.keyframe_points
+        })
+        if not times:
+            return 0,True
+
+        # Snapshot before mutating because fcurve.evaluate() reads live points.
+        samples=[]
+        previous=None
+        for frame in times:
+            q_old=Quaternion(tuple(float(curves[i].evaluate(frame)) for i in range(4)))
+            if q_old.length<=1e-12:
+                q_old=Quaternion((1.0,0.0,0.0,0.0))
+            else:
+                q_old.normalize()
+            q_new=compensation @ q_old
+            q_new.normalize()
+            # Quaternion q and -q are equivalent, but sign flips between adjacent
+            # keys make interpolation take the long path.
+            if previous is not None and q_new.dot(previous)<0.0:
+                q_new=Quaternion(tuple(-float(v) for v in q_new))
+            previous=q_new.copy()
+            samples.append((frame,tuple(float(v) for v in q_new)))
+
+        def set_component(fc,frame,value):
+            for kp in fc.keyframe_points:
+                if abs(float(kp.co.x)-frame)<=1e-6:
+                    kp.co.y=value
+                    kp.handle_left.y=value
+                    kp.handle_right.y=value
+                    return
+            fc.keyframe_points.insert(frame,value,options={"FAST"})
+
+        for frame,values in samples:
+            for index,value in enumerate(values):
+                set_component(curves[index],frame,value)
+        for fc in curves.values():
+            fc.update()
+        return len(samples),True
+
+    for action in bpy.data.actions:
+        compensated_this_action=False
+        for bone_name,compensation in arm_animation_rest_compensation.items():
+            count,found=compensate_quaternion_fcurves(action,bone_name,compensation)
+            if not found:
+                # Only report actions which actually address this bone by another
+                # rotation representation. A clip with no channel for the bone is
+                # valid and needs no compensation.
+                prefix=f'pose.bones["{bone_name}"].'
+                has_bone_rotation=any(
+                    fc.data_path.startswith(prefix) and "rotation_" in fc.data_path
+                    for fc in action.fcurves
+                )
+                if has_bone_rotation:
+                    animation_retarget["rest_compensation_missing_quaternion_channels"].append(
+                        f"{action.name}:{bone_name}"
+                    )
+            elif count:
+                compensated_this_action=True
+                animation_retarget["rest_compensated_keyframes"]+=count
+        if compensated_this_action:
+            animation_retarget["rest_compensated_actions"]+=1
+
+    if animation_retarget["rest_compensation_missing_quaternion_channels"]:
+        raise RuntimeError(
+            "arm_rest_compensation_requires_quaternion_channels:"
+            + ",".join(animation_retarget["rest_compensation_missing_quaternion_channels"][:16])
+        )
+
     for action in bpy.data.actions:
         animation_retarget["actions"]+=1
         for fcurve in list(action.fcurves):
@@ -1078,7 +1184,7 @@ def main():
         "scale":scale,
         "axis_scales":axis_scales,
         "requested_axis_scales":requested_axis_scales,
-        "armature_fit_mode":"uniform_height_plus_pose_aware_arms_v31",
+        "armature_fit_mode":"uniform_height_plus_pose_aware_arms_v32_rest_compensated",
         "orientation_fix":orientation_fix,
         "lateral_axis":lateral_axis_telemetry,
         "arm_rest_fit":arm_rest_fit,
@@ -1096,7 +1202,7 @@ def main():
         "animation_retarget":animation_retarget,
         "export_meshes":remaining_meshes,
         "sterile_export_scene_meshes":export_scene_meshes,
-        "binding_method":"expanded_component_coherent_pose_aware_arms_v33",
+        "binding_method":"expanded_component_coherent_pose_aware_arms_v34_rest_compensated",
         "bind_results":bind_results,
         "rest_pose_fit_telemetry":rest_pose_fit_telemetry,
         "output_bytes":args.output.stat().st_size if args.output.exists() else 0,
