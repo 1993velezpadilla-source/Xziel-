@@ -349,7 +349,6 @@ def main():
         scene.render.bake.use_selected_to_active=False
         if hasattr(scene.render.bake,"target"):
             scene.render.bake.target="IMAGE_TEXTURES"
-        scene.render.bake.use_pass_ambient_occlusion=True
         select_only([target],target)
         bpy.ops.object.bake(type="COMBINED",pass_filter={"AO"})
         configure_occlusion(materials,ao_image)
