@@ -1043,9 +1043,10 @@ def insert_rigged_accessory(
             dtype=np.int64,
         )
         if int(surface_relation.fallback_vertices) > 0:
-            warnings.append(
-                "surface_transfer_fallback_vertices="
-                + str(int(surface_relation.fallback_vertices))
+            raise RuntimeError(
+                "barycentric surface transfer required nearest-vertex "
+                "fallback on degenerate base topology for "
+                f"{int(surface_relation.fallback_vertices)} accessory vertices"
             )
         source_ratio = source_distance / base_diag
         max_source_ratio = (
