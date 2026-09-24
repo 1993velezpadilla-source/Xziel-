@@ -22,6 +22,9 @@ class LODParityItem:
     missing_material_channels:list[str]
     rig_required:bool
     rig_ready:bool
+    morph_required:bool
+    morph_ready:bool|None
+    morph_target_count:int
     skin_weights_ready:bool|None
     animation_integrity_ready:bool|None
     deformation_ready:bool|None
@@ -177,6 +180,22 @@ def compare_lod(
         master_rig=audit_glb(master)
         lod_rig=audit_glb(lod)
         rig_required=bool(master_rig.skin_count>0)
+        morph_required=bool(master_rig.morph_target_count>0)
+        morph_ready=(
+            bool(
+                lod_rig.morph_ready
+                and lod_rig.morph_target_count==master_rig.morph_target_count
+                and lod_rig.morph_mesh_count==master_rig.morph_mesh_count
+                and lod_rig.morph_primitive_count==master_rig.morph_primitive_count
+            )
+            if morph_required else None
+        )
+        if morph_required and not morph_ready:
+            errors.append(
+                "LOD morph/blendshape payload does not match Hero Master: "
+                f"master={master_rig.morph_target_count} "
+                f"lod={lod_rig.morph_target_count}"
+            )
         skin_weights_ready=None
         animation_ready=None
         deformation_ready=None
@@ -243,6 +262,9 @@ def compare_lod(
             missing_material_channels=missing,
             rig_required=rig_required,
             rig_ready=rig_ready,
+            morph_required=morph_required,
+            morph_ready=morph_ready,
+            morph_target_count=int(lod_rig.morph_target_count or 0),
             skin_weights_ready=skin_weights_ready,
             animation_integrity_ready=animation_ready,
             deformation_ready=deformation_ready,
@@ -262,6 +284,9 @@ def compare_lod(
             missing_material_channels=[],
             rig_required=False,
             rig_ready=False,
+            morph_required=False,
+            morph_ready=None,
+            morph_target_count=0,
             skin_weights_ready=None,
             animation_integrity_ready=None,
             deformation_ready=None,
