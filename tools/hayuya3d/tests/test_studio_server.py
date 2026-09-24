@@ -71,6 +71,7 @@ class StudioServerTests(unittest.TestCase):
                 "appearance_score": 94.0,
                 "appearance_detail_score": 92.0,
                 "appearance_face_detail_score": 97.0,
+                "appearance_face_detail_min_score": 91.0,
                 "material_score": 90.0,
                 "texture_resolution_score": 100.0,
                 "base_color_max_edge": 4096,
@@ -93,6 +94,7 @@ class StudioServerTests(unittest.TestCase):
             )
             item = job.candidates["trellis2"]
             self.assertEqual(item.face_detail_score, 97.0)
+            self.assertEqual(item.face_detail_min_score, 91.0)
             self.assertEqual(item.base_color_max_edge, 4096)
             self.assertEqual(item.base_color_min_edge, 2048)
             self.assertEqual(item.head_region_faces, 20000)
@@ -102,6 +104,10 @@ class StudioServerTests(unittest.TestCase):
             self.assertEqual(item.head_texture_detail_score, 100.0)
             self.assertEqual(job.events[-1]["kind"], "judge_metrics")
             self.assertEqual(job.events[-1]["candidate"]["face_detail_score"], 97.0)
+            self.assertEqual(
+                job.events[-1]["candidate"]["face_detail_min_score"],
+                91.0,
+            )
 
     def test_ranking_hydration_keeps_face_texture_and_head_geometry_evidence(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -122,6 +128,7 @@ class StudioServerTests(unittest.TestCase):
                 "appearance_score": 91.0,
                 "appearance_detail_score": 90.0,
                 "appearance_face_detail_score": 96.0,
+                "appearance_face_detail_min_score": 88.0,
                 "material_score": 87.0,
                 "texture_resolution_score": 100.0,
                 "base_color_max_edge": 4096,
@@ -141,6 +148,7 @@ class StudioServerTests(unittest.TestCase):
 
             item = job.candidates["trellis2"]
             self.assertEqual(item.face_detail_score, 96.0)
+            self.assertEqual(item.face_detail_min_score, 88.0)
             self.assertEqual(item.texture_resolution_score, 100.0)
             self.assertEqual(item.base_color_max_edge, 4096)
             self.assertEqual(item.base_color_min_edge, 2048)
