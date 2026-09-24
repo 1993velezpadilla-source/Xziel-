@@ -514,6 +514,14 @@ private:
         StreamCellResourceDecision,
         kMaxStreamBindings> streamDecisions_{};
     mutable std::size_t streamDecisionCount_ = 0U;
+    StreamCellPlanStats cachedStreamPlanStats_{};
+    std::uint32_t cachedStreamPlanCell_ = 0U;
+    MemoryPressure cachedStreamPlanPressure_ =
+        MemoryPressure::Normal;
+    std::uint32_t cachedStreamColdBatches_ = 0U;
+    std::uint64_t streamPlanBuildCount_ = 0U;
+    std::uint64_t streamPlanCacheHitCount_ = 0U;
+    bool streamPlanDirty_ = true;
     mutable std::uint64_t streamPlanFrame_ = 0U;
     mutable std::uint32_t lastLoggedStreamCell_ = 0U;
     mutable std::uint32_t streamCellCandidate_ = 0U;
