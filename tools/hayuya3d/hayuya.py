@@ -239,6 +239,7 @@ def texture_refinement_regressions(source, challenger) -> list[str]:
         "visual_score",
         "appearance_score",
         "appearance_face_detail_score",
+        "appearance_face_detail_min_score",
     ):
         a=getattr(source,name,None)
         b=getattr(challenger,name,None)
