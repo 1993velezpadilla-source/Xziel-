@@ -273,7 +273,8 @@ def insert_split_rigged_accessory(
         all_source_ratios = []
         transferred_semantics = set()
         surface_fallback_vertices = 0
-        surface_transfer_method = "hayuya-surface-transfer-barycentric-v1"
+        surface_transfer_method = "hayuya-surface-transfer-barycentric-exact-v1"
+        surface_max_examined_triangles = 0
 
         for group_index, group in enumerate(source.groups):
             primitive, donor_used, donor_world, donor_faces = _group_geometry(
@@ -309,6 +310,10 @@ def insert_split_rigged_accessory(
                 surface_relation.fallback_vertices
             )
             surface_transfer_method = str(surface_relation.method)
+            surface_max_examined_triangles = max(
+                surface_max_examined_triangles,
+                int(surface_relation.max_examined_triangles),
+            )
             if int(surface_relation.fallback_vertices) > 0:
                 warnings.append(
                     "surface_transfer_fallback_vertices="
@@ -602,6 +607,9 @@ def insert_split_rigged_accessory(
             surface_transfer_method=surface_transfer_method,
             surface_transfer_fallback_vertices=int(
                 surface_fallback_vertices
+            ),
+            surface_transfer_max_examined_triangles=int(
+                surface_max_examined_triangles
             ),
         )
     except Exception as exc:
