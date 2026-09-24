@@ -81,6 +81,7 @@ class StudioServerTests(unittest.TestCase):
                 "global_median_edge_normalized": 0.0013,
                 "head_region_median_edge_normalized": 0.0011,
                 "head_region_density_ratio": 1.1818,
+                "head_density_score": 100.0,
                 "pbr_channels": ["baseColor", "normal", "roughness"],
             }
             parse_pipeline_line(
@@ -93,6 +94,7 @@ class StudioServerTests(unittest.TestCase):
             self.assertEqual(item.base_color_min_edge, 2048)
             self.assertEqual(item.head_region_faces, 20000)
             self.assertAlmostEqual(item.head_region_density_ratio, 1.1818)
+            self.assertEqual(item.head_density_score, 100.0)
             self.assertEqual(job.events[-1]["kind"], "judge_metrics")
             self.assertEqual(job.events[-1]["candidate"]["face_detail_score"], 97.0)
 
@@ -125,6 +127,7 @@ class StudioServerTests(unittest.TestCase):
                 "global_median_edge_normalized": 0.00140,
                 "head_region_median_edge_normalized": 0.00123,
                 "head_region_density_ratio": 1.1382,
+                "head_density_score": 100.0,
                 "pbr_channels": ["baseColor", "normal", "roughness"],
             }])
 
@@ -136,6 +139,7 @@ class StudioServerTests(unittest.TestCase):
             self.assertEqual(item.head_region_faces, 18240)
             self.assertAlmostEqual(item.head_region_median_edge_normalized, 0.00123)
             self.assertAlmostEqual(item.head_region_density_ratio, 1.1382)
+            self.assertEqual(item.head_density_score, 100.0)
             self.assertIn("normal", item.pbr_channels or [])
 
     def test_pipeline_stage_events_are_real_stage_markers(self):
