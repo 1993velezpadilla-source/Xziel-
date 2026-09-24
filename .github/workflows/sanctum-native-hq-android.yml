@@ -371,6 +371,9 @@ jobs:
           grep -q "WET_FLOOR_SHARED_PRIMARY_WAVE_V1" app/src/main/shaders/xziel_first.frag
           grep -q "FIXED_INTEGER_POW_MULTIPLIES_V1" app/src/main/shaders/xziel_first.frag
           grep -q "PLANAR_REFLECTION_FETCH_GATE_V1" app/src/main/shaders/xziel_first.frag
+          grep -q "RAIN_DETAIL_MATERIAL_GATE_V1" app/src/main/shaders/xziel_first.frag
+          grep -q "REFLECTIVE_COMMON_LIGHTING_GATE_V1" app/src/main/shaders/xziel_first.frag
+          grep -q "VIEWMODEL_WORLD_LIGHTING_GATE_V1" app/src/main/shaders/xziel_first.frag
           grep -q "FIXED_INTEGER_POW_MULTIPLIES_V1" app/src/main/shaders/xziel_reflection_capture.frag
           grep -q "REFLECTION_VERTEX_MATERIAL_GATE_V1" app/src/main/shaders/xziel_first.vert
           grep -q "PROJECTION_TERMS_CPU_PRECOMPUTED_V1" app/src/main/shaders/xziel_first.vert
@@ -1138,6 +1141,9 @@ jobs:
               echo "XZIEL_WET_FLOOR_SHARED_PRIMARY_WAVE_ACTIVE"
               echo "XZIEL_FIXED_INTEGER_POW_MULTIPLIES_ACTIVE"
               echo "XZIEL_PLANAR_REFLECTION_FETCH_GATE_ACTIVE"
+              echo "XZIEL_VIEWMODEL_WORLD_LIGHTING_GATE_ACTIVE"
+              echo "XZIEL_REFLECTIVE_COMMON_LIGHTING_GATE_ACTIVE"
+              echo "XZIEL_RAIN_DETAIL_MATERIAL_GATE_ACTIVE"
               echo "XZIEL_REFLECTION_VERTEX_MATERIAL_GATE_ACTIVE"
               echo "XZIEL_PROJECTION_TERMS_CPU_PRECOMPUTED_ACTIVE"
               echo "XZIEL_PROCEDURAL_SPHERE_UNIT_NORMAL_ACTIVE"

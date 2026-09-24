@@ -97,45 +97,13 @@ vec3 materialBase(int material, float pulse) {
 void main() {
     vec3 normal = normalize(vNormal);
 
-    vec3 keyDirection = normalize(vec3(-0.38, 0.78, -0.48));
-    vec3 rimDirection = normalize(vec3(0.72, 0.14, 0.68));
-
-    float key = max(dot(normal, keyDirection), 0.0);
-    // FIXED_INTEGER_POW_MULTIPLIES_V1
-    float rimBase =
-        max(
-            dot(normal, rimDirection),
-            0.0);
-    float rim =
-        rimBase *
-        rimBase *
-        rimBase;
-
     float pulse = clamp(vPulse, 0.0, 1.0);
-
-    vec3 base = materialBase(vMaterial, pulse);
 
     bool viewmodelMaterial =
         (vMaterial >= 10 &&
          vMaterial <= 12) ||
         (vMaterial >= 15 &&
          vMaterial <= 16);
-
-    float floorCold =
-        smoothstep(-1.55, -0.6, -vWorldPosition.y);
-
-    vec3 coldBounce = vec3(0.015, 0.08, 0.12) * floorCold;
-
-    float horrorRimScale =
-        (vMaterial == 17 ||
-         vMaterial == 18)
-        ? 0.022
-        : (0.10 + 0.18 * pulse);
-
-    vec3 magentaRim =
-        vec3(0.60, 0.02, 0.18) *
-        rim *
-        horrorRimScale;
 
     float wetness =
         clamp(
@@ -150,6 +118,15 @@ void main() {
             2.0);
 
     if (viewmodelMaterial) {
+        // VIEWMODEL_WORLD_LIGHTING_GATE_V1
+        // Viewmodel shading returns before world floor/rim lighting. Resolve
+        // its base here so first-person fragments never evaluate that dead
+        // world-lighting work.
+        vec3 base =
+            materialBase(
+                vMaterial,
+                pulse);
+
         // Viewmodel coordinates are camera-local, not world-space. The old
         // path applied floor/cold-bounce lighting to those coordinates and
         // made the gun read as a large cyan block. Give first-person parts a
@@ -232,52 +209,123 @@ void main() {
         return;
     }
 
-    float rainIntensity =
-        clamp(
-            vEnvironment.w,
-            0.0,
-            1.0);
-
-    float surfaceQuality =
-        clamp(
-            vWaterSurfaceExtra.y,
-            0.35,
-            1.0);
-
-    float rainDetailScale =
-        clamp(
-            vWaterSurfaceExtra.z,
-            0.25,
-            1.0);
-
     vec3 lit =
-        base *
-            (0.20 +
-             key * 0.90) *
-            mix(
-                1.0,
-                0.78,
-                wetness)
-        + coldBounce *
-            mix(
-                1.0,
-                1.65,
-                wetness)
-        + magentaRim
-        + vec3(
-              0.55,
-              0.68,
-              0.95) *
-            lightning *
-            0.55;
+        vec3(0.0);
 
-    float floorFacing =
-        max(
-            normal.y,
-            0.0);
+    // REFLECTIVE_COMMON_LIGHTING_GATE_V1
+    // Water and mirror paths fully replace lit before returning, so do not
+    // evaluate generic base/key/rim/floor lighting for those materials.
+    if (vMaterial != 13 &&
+        vMaterial != 14) {
+        vec3 keyDirection =
+            normalize(
+                vec3(
+                    -0.38,
+                     0.78,
+                    -0.48));
+        vec3 rimDirection =
+            normalize(
+                vec3(
+                     0.72,
+                     0.14,
+                     0.68));
+
+        float key =
+            max(
+                dot(
+                    normal,
+                    keyDirection),
+                0.0);
+
+        // FIXED_INTEGER_POW_MULTIPLIES_V1
+        float rimBase =
+            max(
+                dot(
+                    normal,
+                    rimDirection),
+                0.0);
+        float rim =
+            rimBase *
+            rimBase *
+            rimBase;
+
+        vec3 base =
+            materialBase(
+                vMaterial,
+                pulse);
+
+        float floorCold =
+            smoothstep(
+                -1.55,
+                -0.6,
+                -vWorldPosition.y);
+
+        vec3 coldBounce =
+            vec3(
+                0.015,
+                0.08,
+                0.12) *
+            floorCold;
+
+        float horrorRimScale =
+            (vMaterial == 17 ||
+             vMaterial == 18)
+            ? 0.022
+            : (0.10 + 0.18 * pulse);
+
+        vec3 magentaRim =
+            vec3(
+                0.60,
+                0.02,
+                0.18) *
+            rim *
+            horrorRimScale;
+
+        lit =
+            base *
+                (0.20 +
+                 key * 0.90) *
+                mix(
+                    1.0,
+                    0.78,
+                    wetness)
+            + coldBounce *
+                mix(
+                    1.0,
+                    1.65,
+                    wetness)
+            + magentaRim
+            + vec3(
+                  0.55,
+                  0.68,
+                  0.95) *
+                lightning *
+                0.55;
+    }
 
     if (vMaterial == 0 &&
         wetness > 0.001) {
+        // RAIN_DETAIL_MATERIAL_GATE_V1
+        // Rain-detail controls are consumed only by wet floor and water.
+        float rainIntensity =
+            clamp(
+                vEnvironment.w,
+                0.0,
+                1.0);
+        float surfaceQuality =
+            clamp(
+                vWaterSurfaceExtra.y,
+                0.35,
+                1.0);
+        float rainDetailScale =
+            clamp(
+                vWaterSurfaceExtra.z,
+                0.25,
+                1.0);
+        float floorFacing =
+            max(
+                normal.y,
+                0.0);
         float rainResponse =
             rainIntensity *
             rainDetailScale;
@@ -376,6 +424,23 @@ void main() {
     }
 
     if (vMaterial == 13) {
+        // RAIN_DETAIL_MATERIAL_GATE_V1
+        float rainIntensity =
+            clamp(
+                vEnvironment.w,
+                0.0,
+                1.0);
+        float surfaceQuality =
+            clamp(
+                vWaterSurfaceExtra.y,
+                0.35,
+                1.0);
+        float rainDetailScale =
+            clamp(
+                vWaterSurfaceExtra.z,
+                0.25,
+                1.0);
+
         float wavePhase =
             vWaterSurface.x;
 
