@@ -264,20 +264,24 @@ void main() {
             rainIntensity *
             rainDetailScale;
 
+        // WET_FLOOR_SHARED_PRIMARY_WAVE_V1
+        // The high-quality branch uses the same primary puddle sine as the
+        // baseline branch. Evaluate it once per wet-floor fragment.
+        float puddlePrimaryWave =
+            sin(
+                vWorldPosition.x * 1.35 +
+                vWorldPosition.z * 1.80);
+
         float broadPuddle =
             0.5 +
             0.5 *
-                sin(
-                    vWorldPosition.x * 1.35 +
-                    vWorldPosition.z * 1.80);
+                puddlePrimaryWave;
 
         if (surfaceQuality > 0.68) {
             broadPuddle =
                 0.5 +
                 0.25 *
-                    sin(
-                        vWorldPosition.x * 1.35 +
-                        vWorldPosition.z * 1.80) +
+                    puddlePrimaryWave +
                 0.25 *
                     cos(
                         vWorldPosition.z * 1.10 -
