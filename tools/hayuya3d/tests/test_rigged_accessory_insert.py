@@ -214,10 +214,19 @@ class RiggedAccessoryInsertTests(unittest.TestCase):
             self.assertTrue(result.ready, result.errors)
             self.assertTrue(result.geometry_ready)
             self.assertFalse(result.material_ready)
+            self.assertFalse(result.uv_ready)
             self.assertFalse(result.production_ready)
+            self.assertTrue(result.material_blockers)
             self.assertTrue(
                 any(
-                    "UV/material transfer is not proven" in warning
+                    "no valid material binding" in blocker
+                    for blocker in result.material_blockers
+                ),
+                result.material_blockers,
+            )
+            self.assertTrue(
+                any(
+                    "UV/material evidence is incomplete" in warning
                     for warning in result.warnings
                 ),
                 result.warnings,
