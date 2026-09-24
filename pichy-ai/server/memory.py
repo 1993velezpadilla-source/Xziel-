@@ -29,15 +29,21 @@ class SessionMemory:
                     session_id TEXT PRIMARY KEY,
                     history_json TEXT NOT NULL,
                     last_image_prompt TEXT NOT NULL DEFAULT '',
+                    last_image_attachment_id TEXT NOT NULL DEFAULT '',
                     updated_at INTEGER NOT NULL
                 )
                 """
             )
+            columns = {row[1] for row in conn.execute("PRAGMA table_info(sessions)").fetchall()}
+            if "last_image_attachment_id" not in columns:
+                conn.execute(
+                    "ALTER TABLE sessions ADD COLUMN last_image_attachment_id TEXT NOT NULL DEFAULT ''"
+                )
 
     def load(self, session_id: str) -> dict[str, Any] | None:
         with self._lock, self._connect() as conn:
             row = conn.execute(
-                "SELECT history_json, last_image_prompt, updated_at FROM sessions WHERE session_id = ?",
+                "SELECT history_json, last_image_prompt, last_image_attachment_id, updated_at FROM sessions WHERE session_id = ?",
                 (session_id,),
             ).fetchone()
         if not row:
@@ -51,23 +57,33 @@ class SessionMemory:
         return {
             "history": history,
             "last_image_prompt": row[1] or "",
-            "updated_at": int(row[2]),
+            "last_image_attachment_id": row[2] or "",
+            "updated_at": int(row[3]),
         }
 
-    def save(self, session_id: str, history: list[dict[str, Any]], last_image_prompt: str = "") -> None:
+    def save(
+        self,
+        session_id: str,
+        history: list[dict[str, Any]],
+        last_image_prompt: str = "",
+        last_image_attachment_id: str = "",
+    ) -> None:
         payload = json.dumps(history, ensure_ascii=False, separators=(",", ":"))
         now = int(time.time())
         with self._lock, self._connect() as conn:
             conn.execute(
                 """
-                INSERT INTO sessions(session_id, history_json, last_image_prompt, updated_at)
-                VALUES(?, ?, ?, ?)
+                INSERT INTO sessions(
+                    session_id, history_json, last_image_prompt, last_image_attachment_id, updated_at
+                )
+                VALUES(?, ?, ?, ?, ?)
                 ON CONFLICT(session_id) DO UPDATE SET
                     history_json=excluded.history_json,
                     last_image_prompt=excluded.last_image_prompt,
+                    last_image_attachment_id=excluded.last_image_attachment_id,
                     updated_at=excluded.updated_at
                 """,
-                (session_id, payload, last_image_prompt, now),
+                (session_id, payload, last_image_prompt, last_image_attachment_id, now),
             )
 
     def delete(self, session_id: str) -> bool:
