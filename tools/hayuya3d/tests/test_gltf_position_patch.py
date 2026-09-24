@@ -12,6 +12,7 @@ from tools.hayuya3d.gltf_position_patch import (
     mesh_position_accessors,
     patch_position_accessors,
     read_position_accessor,
+    runtime_payload_signature,
     skin_payload_signature,
 )
 from tools.hayuya3d.skin_weight_qa import audit_skin_weights
@@ -122,6 +123,7 @@ class GLTFPositionPatchTests(unittest.TestCase):
             build_skinned_position_glb(source)
 
             before=skin_payload_signature(source)
+            runtime_before=runtime_payload_signature(source)
             positions=read_position_accessor(source,0)
             moved=[
                 (x*1.1,y,z)
@@ -137,6 +139,10 @@ class GLTFPositionPatchTests(unittest.TestCase):
             self.assertTrue(result.skin_payload_preserved)
             self.assertEqual(result.skin_signature_before,before)
             self.assertEqual(result.skin_signature_after,before)
+            self.assertEqual(
+                runtime_payload_signature(output),
+                runtime_before,
+            )
             patched=read_position_accessor(output,0)
             self.assertEqual(len(patched),len(moved))
             for actual,expected in zip(patched,moved):
