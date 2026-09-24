@@ -4,7 +4,7 @@ Pichy AI is an independent, model-agnostic agent experiment. It is intentionally
 
 The goal is a general assistant first: chat, deep web research, coding, repository work, files, terminal tools, sub-agents, image generation/edit iteration, memory, and self-improvement behind tests.
 
-## Current: v0.3.0 lab
+## Current: v0.3.1 lab
 
 ### Brain
 - Autonomous multi-step agent loop.
@@ -25,6 +25,10 @@ FastAPI exposes:
 - `POST /v1/chat`
 - `POST /v1/chat/stream`
 - `POST /v1/image`
+- `POST /v1/attachments`
+- `GET /v1/provider-status`
+- `GET /v1/sessions`
+- `DELETE /v1/sessions/{session_id}`
 
 Sessions are persisted in SQLite and restored after server restarts. Image sessions retain prior prompt context so revisions such as “make it taller” build on the accepted concept. Map Model uses a dedicated specialist prompt and `map_modeling/map_spec.schema.json` covering zones, connections, traversal, lighting, collision, navmesh, streaming, optimization and asset manifests.
 
@@ -38,6 +42,7 @@ A native lightweight APK provides:
 - Persistent session ID.
 - Server URL/token settings.
 - Check Brain diagnostics for configured model routes and image provider.
+- Android file/photo picker with session-scoped attachments for Chat, Research, Code and Map Modeling.
 - Image rendering from base64 or URL responses.
 - No model weights bundled into the APK.
 
@@ -132,3 +137,10 @@ python benchmarks/run_astral_gate.py --config config/pichy.local.json --only rea
 ```
 
 The runner deliberately separates transport success from answer quality. A returned answer is not automatically counted as frontier-quality; review/critic grading comes next.
+
+
+## Attachments
+
+The Android `+` button uploads one pending file/photo to the current Pichy session. Text-like files are inlined into the next agent message. Image attachments are sent as OpenAI-compatible multimodal `image_url` content using a data URL. Uploads are capped at 10 MB and attachment/session identifiers are validated before filesystem access.
+
+Image-generation editing is intentionally still separate: an attached reference image currently works with multimodal Chat/Research/Code/Map Modeling, not the `Create > Image` generation endpoint.
