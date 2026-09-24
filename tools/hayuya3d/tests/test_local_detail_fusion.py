@@ -9,7 +9,10 @@ import numpy as np
 import trimesh
 from PIL import Image
 
-from tools.hayuya3d.local_detail_fusion import fuse_local_basecolor
+from tools.hayuya3d.local_detail_fusion import (
+    _seam_added_delta,
+    fuse_local_basecolor,
+)
 from tools.hayuya3d.texture_gate import embedded_images
 
 
@@ -95,6 +98,12 @@ class LocalDetailFusionTests(unittest.TestCase):
             self.assertTrue(result.ready,result.error)
             self.assertTrue(result.geometry_preserved)
             self.assertTrue(result.skin_payload_preserved)
+            self.assertTrue(result.seam_ready,result.error)
+            self.assertGreater(result.seam_boundary_pairs,0)
+            self.assertLessEqual(
+                result.seam_added_delta_p95 or 999.0,
+                12.0,
+            )
             self.assertGreater(result.changed_pixels,0)
             self.assertGreater(result.unchanged_pixels,0)
             self.assertGreater(result.changed_fraction,0.05)
@@ -138,6 +147,22 @@ class LocalDetailFusionTests(unittest.TestCase):
             self.assertTrue(np.array_equal(after[:4],before[:4]))
             self.assertTrue(np.array_equal(after[-4:],before[-4:]))
             self.assertFalse(np.array_equal(after[24:40],before[24:40]))
+
+    def test_seam_metric_detects_hard_texture_cut(self):
+        before=np.full((32,32,3),100,dtype=np.uint8)
+        after=before.copy()
+        after[:16,:,:]=220
+        changed=np.zeros((32,32),dtype=bool)
+        changed[:16,:]=True
+
+        pairs,p95,maximum=_seam_added_delta(
+            before,
+            after,
+            changed,
+        )
+        self.assertGreater(pairs,0)
+        self.assertGreater(p95,12.0)
+        self.assertGreaterEqual(maximum,p95)
 
     def test_unsupported_unlocalized_detail_fails_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
