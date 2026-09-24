@@ -537,6 +537,244 @@ def _append_accessor(
     return accessor_index
 
 
+def _parse_glb_bytes(payload: bytes) -> tuple[dict, bytes]:
+    if len(payload)<20 or payload[:4]!=b"glTF":
+        raise ValueError("material export is not a GLB")
+    _,version,total=struct.unpack_from("<4sII",payload,0)
+    if version!=2 or total!=len(payload):
+        raise ValueError("invalid material GLB header")
+    offset=12
+    doc=None
+    binary=b""
+    while offset+8<=total:
+        length,kind=struct.unpack_from("<II",payload,offset)
+        offset+=8
+        chunk=payload[offset:offset+length]
+        offset+=length
+        if kind==0x4E4F534A:
+            doc=json.loads(chunk.decode("utf-8").rstrip("\x00 \t\r\n"))
+        elif kind==0x004E4942:
+            binary=chunk
+    if doc is None:
+        raise ValueError("material GLB JSON chunk missing")
+    return doc,binary
+
+
+def _export_material_glb(material):
+    np,_=_deps()
+    import trimesh
+
+    vertices=np.asarray([
+        [0.0,0.0,0.0],
+        [1.0,0.0,0.0],
+        [0.0,1.0,0.0],
+    ],dtype=np.float64)
+    faces=np.asarray([[0,1,2]],dtype=np.int64)
+    uv=np.asarray([
+        [0.0,0.0],
+        [1.0,0.0],
+        [0.0,1.0],
+    ],dtype=np.float64)
+    mesh=trimesh.Trimesh(
+        vertices=vertices,
+        faces=faces,
+        process=False,
+        visual=trimesh.visual.TextureVisuals(
+            uv=uv,
+            material=material.copy() if hasattr(material,"copy") else material,
+        ),
+    )
+    raw=trimesh.exchange.gltf.export_glb(trimesh.Scene(mesh))
+    doc,binary=_parse_glb_bytes(raw)
+    material_index=None
+    for mesh_doc in doc.get("meshes") or []:
+        for primitive in mesh_doc.get("primitives") or []:
+            if isinstance(primitive.get("material"),int):
+                material_index=int(primitive["material"])
+                break
+        if material_index is not None:
+            break
+    if material_index is None:
+        raise RuntimeError("donor material export produced no material binding")
+    return doc,binary,material_index
+
+
+def _append_material_from_trimesh(
+    doc: dict,
+    blob: bytearray,
+    material,
+) -> int:
+    source_doc,source_binary,source_material_index=(
+        _export_material_glb(material)
+    )
+    source_materials=source_doc.get("materials") or []
+    if not (
+        0<=source_material_index<len(source_materials)
+    ):
+        raise RuntimeError("exported donor material index is invalid")
+    source_material=json.loads(json.dumps(
+        source_materials[source_material_index]
+    ))
+    if source_material.get("extensions"):
+        raise RuntimeError(
+            "new accessory material extensions are not yet proven safe"
+        )
+
+    image_map={}
+    sampler_map={}
+    texture_map={}
+
+    def copy_sampler(index):
+        if index is None:
+            return None
+        index=int(index)
+        if index in sampler_map:
+            return sampler_map[index]
+        source=source_doc.get("samplers") or []
+        if not (0<=index<len(source)):
+            raise RuntimeError("donor material sampler index is invalid")
+        target=doc.setdefault("samplers",[])
+        new_index=len(target)
+        target.append(json.loads(json.dumps(source[index])))
+        sampler_map[index]=new_index
+        return new_index
+
+    def copy_image(index):
+        index=int(index)
+        if index in image_map:
+            return image_map[index]
+        images=source_doc.get("images") or []
+        views=source_doc.get("bufferViews") or []
+        if not (0<=index<len(images)):
+            raise RuntimeError("donor material image index is invalid")
+        image=json.loads(json.dumps(images[index]))
+        view_index=image.get("bufferView")
+        if not isinstance(view_index,int) or not (0<=view_index<len(views)):
+            raise RuntimeError(
+                "donor material image must be embedded in GLB bufferView"
+            )
+        view=views[view_index]
+        if int(view.get("buffer",0) or 0)!=0:
+            raise RuntimeError("donor material image uses unsupported buffer")
+        start=int(view.get("byteOffset",0) or 0)
+        length=int(view.get("byteLength",0) or 0)
+        payload=source_binary[start:start+length]
+        if len(payload)!=length or not payload:
+            raise RuntimeError("donor material image payload is invalid")
+        offset,new_length=_append_bytes(blob,payload)
+        dest_views=doc.setdefault("bufferViews",[])
+        new_view=len(dest_views)
+        dest_views.append({
+            "buffer":0,
+            "byteOffset":offset,
+            "byteLength":new_length,
+        })
+        image["bufferView"]=new_view
+        image.pop("uri",None)
+        dest_images=doc.setdefault("images",[])
+        new_image=len(dest_images)
+        dest_images.append(image)
+        image_map[index]=new_image
+        return new_image
+
+    def copy_texture(index):
+        index=int(index)
+        if index in texture_map:
+            return texture_map[index]
+        textures=source_doc.get("textures") or []
+        if not (0<=index<len(textures)):
+            raise RuntimeError("donor material texture index is invalid")
+        texture=json.loads(json.dumps(textures[index]))
+        if texture.get("extensions"):
+            raise RuntimeError(
+                "new accessory texture extensions are not yet proven safe"
+            )
+        source_index=texture.get("source")
+        if not isinstance(source_index,int):
+            raise RuntimeError("donor texture has no image source")
+        texture["source"]=copy_image(source_index)
+        sampler=texture.get("sampler")
+        if isinstance(sampler,int):
+            texture["sampler"]=copy_sampler(sampler)
+        dest_textures=doc.setdefault("textures",[])
+        new_texture=len(dest_textures)
+        dest_textures.append(texture)
+        texture_map[index]=new_texture
+        return new_texture
+
+    pbr=source_material.get("pbrMetallicRoughness") or {}
+    texture_infos=[
+        pbr.get("baseColorTexture"),
+        pbr.get("metallicRoughnessTexture"),
+        source_material.get("normalTexture"),
+        source_material.get("occlusionTexture"),
+        source_material.get("emissiveTexture"),
+    ]
+    for info in texture_infos:
+        if not isinstance(info,dict):
+            continue
+        source_index=info.get("index")
+        if not isinstance(source_index,int):
+            raise RuntimeError("donor material texture info has invalid index")
+        info["index"]=copy_texture(source_index)
+
+    materials=doc.setdefault("materials",[])
+    new_material=len(materials)
+    materials.append(source_material)
+    return new_material
+
+
+def _compute_tangents(vertices, normals, uvs, faces):
+    np,_=_deps()
+    vertices=np.asarray(vertices,dtype=np.float64)
+    normals=np.asarray(normals,dtype=np.float64)
+    uvs=np.asarray(uvs,dtype=np.float64)
+    faces=np.asarray(faces,dtype=np.int64)
+    tan=np.zeros((len(vertices),3),dtype=np.float64)
+    bitan=np.zeros((len(vertices),3),dtype=np.float64)
+
+    for tri in faces:
+        i0,i1,i2=(int(x) for x in tri)
+        p0,p1,p2=vertices[[i0,i1,i2]]
+        uv0,uv1,uv2=uvs[[i0,i1,i2]]
+        e1=p1-p0
+        e2=p2-p0
+        d1=uv1-uv0
+        d2=uv2-uv0
+        denom=float(d1[0]*d2[1]-d1[1]*d2[0])
+        if not math.isfinite(denom) or abs(denom)<=1e-12:
+            raise RuntimeError(
+                "donor accessory has degenerate UV triangle; tangent basis unavailable"
+            )
+        r=1.0/denom
+        t=(e1*d2[1]-e2*d1[1])*r
+        b=(e2*d1[0]-e1*d2[0])*r
+        for index in (i0,i1,i2):
+            tan[index]+=t
+            bitan[index]+=b
+
+    output=np.zeros((len(vertices),4),dtype=np.float64)
+    for index in range(len(vertices)):
+        n=normals[index]
+        n_norm=float(np.linalg.norm(n))
+        if not math.isfinite(n_norm) or n_norm<=1e-12:
+            raise RuntimeError("donor accessory normal is invalid")
+        n=n/n_norm
+        t=tan[index]-n*float(np.dot(n,tan[index]))
+        t_norm=float(np.linalg.norm(t))
+        if not math.isfinite(t_norm) or t_norm<=1e-12:
+            raise RuntimeError("donor accessory tangent is invalid")
+        t=t/t_norm
+        handedness=(
+            -1.0
+            if float(np.dot(np.cross(n,t),bitan[index]))<0.0
+            else 1.0
+        )
+        output[index,:3]=t
+        output[index,3]=handedness
+    return output
+
+
 def _pack_joints(values, component_type: int) -> bytes:
     np, _ = _deps()
     arr = np.asarray(values)
