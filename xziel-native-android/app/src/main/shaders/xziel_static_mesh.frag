@@ -39,6 +39,12 @@ const float PI = 3.14159265358979323846;
 const float NORMAL_MAP_FULL_DETAIL_DISTANCE = 32.0;
 const float NORMAL_MAP_FADE_END_DISTANCE = 56.0;
 
+// ORM still matters at mid range, but per-texel occlusion/roughness/metallic
+// detail becomes sub-pixel farther out. Fade toward the authored scalar
+// material factors, then skip the texture fetch entirely in the far field.
+const float ORM_MAP_FULL_DETAIL_DISTANCE = 48.0;
+const float ORM_MAP_FADE_END_DISTANCE = 80.0;
+
 float distributionGgx(
     vec3 normal,
     vec3 halfVector,
@@ -239,28 +245,47 @@ void main() {
     float occlusion = 1.0;
 
     if (hasOrm) {
-        vec3 orm =
-            texture(
-                uOrm,
-                vUv).rgb;
-        occlusion =
-            mix(
-                1.0,
-                orm.r,
+        float ormDetail =
+            1.0 -
+            smoothstep(
+                ORM_MAP_FULL_DETAIL_DISTANCE,
+                ORM_MAP_FADE_END_DISTANCE,
+                max(vDistance, 0.0));
+
+        // Far fragments retain the authored scalar material response while
+        // avoiding an additional texture lookup. In the transition band the
+        // map fades continuously toward neutral ORM values, preventing a
+        // visible mip-like pop as geometry moves through the threshold.
+        if (ormDetail > 0.001) {
+            vec3 sampledOrm =
+                texture(
+                    uOrm,
+                    vUv).rgb;
+            vec3 orm =
+                mix(
+                    vec3(1.0),
+                    sampledOrm,
+                    ormDetail);
+
+            occlusion =
+                mix(
+                    1.0,
+                    orm.r,
+                    clamp(
+                        pc.metallicRoughnessNormalOcclusion.w,
+                        0.0,
+                        1.0));
+            roughness =
                 clamp(
-                    pc.metallicRoughnessNormalOcclusion.w,
+                    orm.g * roughness,
+                    0.045,
+                    1.0);
+            metallic =
+                clamp(
+                    orm.b * metallic,
                     0.0,
-                    1.0));
-        roughness =
-            clamp(
-                orm.g * roughness,
-                0.045,
-                1.0);
-        metallic =
-            clamp(
-                orm.b * metallic,
-                0.0,
-                1.0);
+                    1.0);
+        }
     }
 
     vec3 emissive =
