@@ -5081,7 +5081,8 @@ void VulkanStaticMeshRenderer::record(
     const float pitchSin =
         push.viewPitchSin;
     const float tanHalfFov =
-        1.0f / projectionFocal;
+        1.0f /
+        cachedWorldProjectionFocal_;
     constexpr float nearPlane = 0.08f;
     constexpr float farPlane = 180.0f;
 
