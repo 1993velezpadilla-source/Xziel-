@@ -33,6 +33,8 @@ struct StaticMeshEnvironmentState {
 struct StaticMeshFrameStats {
     std::uint32_t visibleBatches = 0U;
     std::uint32_t culledBatches = 0U;
+    std::uint32_t visibleClusters = 0U;
+    std::uint32_t culledClusters = 0U;
     // Logical visible mesh draws. This stays comparable across direct and
     // multi-draw-indirect paths.
     std::uint32_t drawCalls = 0U;
@@ -45,6 +47,7 @@ struct StaticMeshFrameStats {
     std::uint32_t pipelineBinds = 0U;
     std::uint32_t submissionGroups = 0U;
     std::uint64_t submittedTriangles = 0U;
+    std::uint64_t clusterCulledTriangles = 0U;
 
     std::uint32_t streamingCell = 0U;
     std::uint32_t streamingColdBatches = 0U;
@@ -117,6 +120,11 @@ public:
 private:
     static constexpr std::uint32_t
         kDescriptorFrames = 2U;
+    static constexpr std::uint32_t
+        kCullClusterTriangles = 512U;
+    static constexpr std::uint32_t
+        kCullClusterIndices =
+            kCullClusterTriangles * 3U;
 
     struct GpuTexture {
         std::string assetPath{};
@@ -263,6 +271,8 @@ private:
         std::uint32_t streamCellId = 0U;
         std::uint32_t geometryCellSlot = UINT32_MAX;
         std::uint32_t sourceBatchIndex = UINT32_MAX;
+        std::uint32_t firstCluster = 0U;
+        std::uint32_t clusterCount = 0U;
         std::uint32_t firstIndex = 0U;
         std::int32_t vertexOffset = 0;
         std::uint32_t indexCount = 0U;
@@ -277,6 +287,15 @@ private:
         float cullRadius = 0.0f;
 
         bool doubleSided = true;
+    };
+
+    struct GpuCullCluster {
+        std::uint32_t firstIndex = 0U;
+        std::uint32_t indexCount = 0U;
+        float cullCenterX = 0.0f;
+        float cullCenterY = 0.0f;
+        float cullCenterZ = 0.0f;
+        float cullRadius = 0.0f;
     };
 
     struct IndirectDrawFrame {
@@ -414,6 +433,9 @@ private:
     [[nodiscard]] bool createIndirectDrawBuffers() noexcept;
     void destroyIndirectDrawBuffers() noexcept;
 
+    [[nodiscard]] bool buildCullClusters(
+        const StaticMeshAsset& asset) noexcept;
+
     static void cacheGpuBatchCullingSphere(
         GpuBatch& batch) noexcept;
 
@@ -521,6 +543,7 @@ private:
     std::vector<GpuTexture> textures_{};
     std::vector<GpuMaterial> materials_{};
     std::vector<GpuBatch> batches_{};
+    std::vector<GpuCullCluster> cullClusters_{};
     std::vector<VkDrawIndexedIndirectCommand> drawCommands_{};
     std::vector<StaticDrawGroup> drawGroups_{};
     std::array<IndirectDrawFrame, kDescriptorFrames>
