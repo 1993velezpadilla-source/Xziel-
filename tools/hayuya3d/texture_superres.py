@@ -62,7 +62,39 @@ def find_realesrgan(explicit:str|Path|None=None)->Path|None:
         resolved=shutil.which(name)
         if resolved:
             return Path(resolved).resolve()
+    try:
+        from texture_runtime import executable_path
+    except ImportError:
+        try:
+            from .texture_runtime import executable_path
+        except ImportError:
+            executable_path=None
+    if executable_path is not None:
+        resolved=executable_path()
+        if resolved is not None:
+            return Path(resolved).resolve()
     return None
+
+
+def ensure_realesrgan(
+    explicit:str|Path|None=None,
+    *,
+    auto_install:bool=False,
+)->Path|None:
+    resolved=find_realesrgan(explicit)
+    if resolved is not None or explicit is not None or not auto_install:
+        return resolved
+    try:
+        from texture_runtime import install
+    except ImportError:
+        try:
+            from .texture_runtime import install
+        except ImportError:
+            return None
+    try:
+        return Path(install()).resolve()
+    except Exception:
+        return None
 
 
 def required_scale(current_edge:int,target_edge:int)->int:
@@ -121,8 +153,9 @@ def superresolve_basecolor_glb(
     executable:str|Path|None=None,
     model:str="realesrgan-x4plus",
     tile_size:int=0,
+    auto_install:bool=False,
 )->TextureSuperresResult:
-    exe=find_realesrgan(executable)
+    exe=ensure_realesrgan(executable,auto_install=auto_install)
     base_images=[]
     for image_index,mime,data,roles in embedded_images(input_glb):
         if "baseColor" not in roles:
@@ -265,6 +298,7 @@ def main()->int:
     p.add_argument("--realesrgan")
     p.add_argument("--model",default="realesrgan-x4plus")
     p.add_argument("--tile-size",type=int,default=0)
+    p.add_argument("--auto-install",action="store_true")
     p.add_argument("--json",type=Path)
     a=p.parse_args()
     result=superresolve_basecolor_glb(
@@ -273,6 +307,7 @@ def main()->int:
         executable=a.realesrgan,
         model=a.model,
         tile_size=a.tile_size,
+        auto_install=a.auto_install,
     )
     payload=json.dumps(asdict(result),indent=2)
     print(payload)
