@@ -97,6 +97,10 @@ public:
         std::uint32_t portalId,
         bool open) noexcept;
 
+    [[nodiscard]] bool portalOpen(
+        std::uint32_t portalId,
+        bool& open) const noexcept;
+
     [[nodiscard]] bool bindResource(
         const StreamCellResourceBinding& binding) noexcept;
 
