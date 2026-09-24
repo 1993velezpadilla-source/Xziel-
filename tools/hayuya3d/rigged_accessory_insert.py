@@ -18,6 +18,8 @@ class RiggedAccessoryInsertResult:
     geometry_ready: bool
     material_ready: bool
     uv_ready: bool
+    uv_tangent_ready: bool
+    material_channels: list[str]
     production_ready: bool
     legacy_payload_preserved: bool
     material_blockers: list[str]
@@ -68,6 +70,8 @@ def _fail(
         geometry_ready=False,
         material_ready=False,
         uv_ready=False,
+        uv_tangent_ready=False,
+        material_channels=[],
         production_ready=False,
         legacy_payload_preserved=False,
         material_blockers=[],
@@ -458,12 +462,27 @@ def _donor_accessory(path: Path, *, mode: str, up_axis: str):
     if not len(main_vertices):
         raise RuntimeError("donor main body component is empty")
 
+    visual=getattr(mesh,"visual",None)
+    uv=getattr(visual,"uv",None) if visual is not None else None
+    material=getattr(visual,"material",None) if visual is not None else None
+    local_uv=None
+    if uv is not None and len(uv)==len(vertices):
+        uv_arr=np.asarray(uv,dtype=np.float64)
+        candidate_uv=uv_arr[used]
+        if (
+            candidate_uv.shape==(len(local_vertices),2)
+            and np.isfinite(candidate_uv).all()
+        ):
+            local_uv=candidate_uv
+
     return (
         selected,
         mesh,
         local_vertices,
         local_faces,
         main_vertices,
+        local_uv,
+        material,
     )
 
 
@@ -596,11 +615,25 @@ def rigged_accessory_insert_supported(
                 "new-vertex insertion v1 requires matching base/donor up axes",
             )
         _base_primitive(base_mesh)
-        _donor_accessory(
+        donor_data=_donor_accessory(
             donor_mesh,
             mode="character",
             up_axis=donor_up_axis or base_up_axis,
         )
+        donor_uv=donor_data[5]
+        donor_material=donor_data[6]
+        if donor_uv is None or donor_material is None:
+            return (
+                False,
+                "donor accessory has no transferable UV/PBR material evidence",
+            )
+        from material_bridge import _material_channels
+        channels=set(_material_channels(donor_material))
+        if "baseColor" not in channels:
+            return (
+                False,
+                "donor accessory material lacks baseColor evidence",
+            )
         return True, None
     except Exception as exc:
         return False, f"{type(exc).__name__}:{exc}"
@@ -655,6 +688,8 @@ def insert_rigged_accessory(
             donor_vertices,
             donor_faces,
             donor_main_vertices,
+            donor_uv,
+            donor_material,
         ) = _donor_accessory(
             donor_mesh,
             mode="character",
