@@ -180,6 +180,30 @@ class AAAAcceptanceTests(unittest.TestCase):
             report.blockers,
         )
 
+    def test_invalid_existing_morph_targets_fail(self):
+        qa=base_qa()
+        qa["rig"]["morph_target_count"]=4
+        qa["rig"]["morph_mesh_count"]=1
+        qa["rig"]["morph_primitive_count"]=1
+        qa["rig"]["morph_ready"]=False
+        report=evaluate_aaa_acceptance(base_manifest(),qa)
+        self.assertFalse(report.ready)
+        self.assertTrue(
+            any(
+                "morph" in item.lower()
+                or "blendshape" in item.lower()
+                for item in report.blockers
+            ),
+            report.blockers,
+        )
+
+    def test_character_without_morph_targets_does_not_gain_fake_requirement(self):
+        qa=base_qa()
+        qa["rig"]["morph_target_count"]=0
+        qa["rig"]["morph_ready"]=False
+        report=evaluate_aaa_acceptance(base_manifest(),qa)
+        self.assertTrue(report.ready,report.blockers)
+
     def test_invalid_skin_weights_fail(self):
         qa=base_qa()
         qa["skin_weights"]["ready"]=False
