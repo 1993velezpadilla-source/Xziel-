@@ -709,10 +709,14 @@ jobs:
             grep -Eq "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=[1-9][0-9]* .*culled_batches=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
             STREAM_CULLED="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* culled_batches=\([0-9][0-9]*\).*/\1/p')"
             STREAM_DRAWS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* draws=\([0-9][0-9]*\).*/\1/p')"
+            STREAM_MATERIAL_BINDS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* material_binds=\([0-9][0-9]*\).*/\1/p')"
             test -n "${STREAM_CULLED}"
             test "${STREAM_CULLED}" -gt 0
             test -n "${STREAM_DRAWS}"
-            echo "XZIEL_WORLD_STREAMING_CULL_RUNTIME_ACTIVE culled=${STREAM_CULLED} draws=${STREAM_DRAWS}"
+            test -n "${STREAM_MATERIAL_BINDS}"
+            test "${STREAM_MATERIAL_BINDS}" -gt 0
+            test "${STREAM_MATERIAL_BINDS}" -le "${STREAM_DRAWS}"
+            echo "XZIEL_WORLD_STREAMING_CULL_RUNTIME_ACTIVE culled=${STREAM_CULLED} draws=${STREAM_DRAWS} material_binds=${STREAM_MATERIAL_BINDS}"
           fi
 
           if [[ "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-residency-registry-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-runtime-io-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-gpu-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-mip-transition-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-index-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-io-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-eviction-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-prefetch-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-budget-v1" ]]; then
