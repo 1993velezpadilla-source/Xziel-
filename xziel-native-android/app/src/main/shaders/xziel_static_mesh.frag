@@ -57,28 +57,31 @@ float distributionGgx(
         max(PI * denominator * denominator, 0.0001);
 }
 
-float geometrySchlickGgx(
-    float nDotV,
-    float roughness) {
-    float r = roughness + 1.0;
-    float k = (r * r) * 0.125;
-    return nDotV /
-        max(nDotV * (1.0 - k) + k, 0.0001);
-}
-
 float geometrySmith(
     float nDotV,
     float nDotL,
     float roughness) {
-    // nDotV/nDotL are already computed by main(). Reuse them instead of
-    // repeating two per-fragment dot products inside the Smith term.
+    // GEOMETRY_SMITH_SHARED_K_V1
+    // Both Schlick-GGX terms use the same roughness-derived k. Compute it
+    // once per lit fragment instead of rebuilding it separately for V and L.
+    float r = roughness + 1.0;
+    float k = (r * r) * 0.125;
+    float oneMinusK = 1.0 - k;
+
+    float visibilityV =
+        nDotV /
+        max(
+            nDotV * oneMinusK + k,
+            0.0001);
+    float visibilityL =
+        nDotL /
+        max(
+            nDotL * oneMinusK + k,
+            0.0001);
+
     return
-        geometrySchlickGgx(
-            nDotV,
-            roughness) *
-        geometrySchlickGgx(
-            nDotL,
-            roughness);
+        visibilityV *
+        visibilityL;
 }
 
 vec3 fresnelSchlick(
