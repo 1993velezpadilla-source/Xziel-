@@ -34,7 +34,11 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install numpy pillow trimesh scipy
           sudo apt-get update -qq
-          sudo apt-get install -y blender
+          sudo apt-get install -y blender python3-numpy
+
+      - name: Verify Blender glTF Python runtime
+        run: |
+          blender --background --factory-startup --python-expr "import numpy, bpy; print('HAYUYA_BLENDER_NUMPY_READY', numpy.__version__)"
 
       - name: Build synthetic high and low meshes
         run: |
