@@ -1270,6 +1270,44 @@ void VulkanStaticMeshRenderer::rebuildStreamingCellBounds() noexcept {
                     batch.bounds.maximum[axis]);
         }
     }
+
+    for (auto& cell : streamCellBounds_) {
+        if (!cell.valid) {
+            continue;
+        }
+
+        cell.cullCenterX =
+            (cell.bounds.minimum[0] +
+             cell.bounds.maximum[0]) *
+            0.5f;
+        cell.cullCenterY =
+            (cell.bounds.minimum[1] +
+             cell.bounds.maximum[1]) *
+            0.5f;
+        cell.cullCenterZ =
+            (cell.bounds.minimum[2] +
+             cell.bounds.maximum[2]) *
+            0.5f;
+
+        const float extentX =
+            (cell.bounds.maximum[0] -
+             cell.bounds.minimum[0]) *
+            0.5f;
+        const float extentY =
+            (cell.bounds.maximum[1] -
+             cell.bounds.minimum[1]) *
+            0.5f;
+        const float extentZ =
+            (cell.bounds.maximum[2] -
+             cell.bounds.minimum[2]) *
+            0.5f;
+
+        cell.cullRadius =
+            std::sqrt(
+                extentX * extentX +
+                extentY * extentY +
+                extentZ * extentZ);
+    }
 }
 
 std::uint32_t VulkanStaticMeshRenderer::inferStreamingCell(
