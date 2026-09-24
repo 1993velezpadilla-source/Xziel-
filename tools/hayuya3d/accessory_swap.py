@@ -24,6 +24,9 @@ class AccessorySwapResult:
     output_faces:int
     component_crossing_ready:bool
     self_intersection_ready:bool
+    attachment_ready:bool
+    attachment_floating_components:int
+    attachment_oversized_floating_components:int
     warnings:list[str]
     errors:list[str]
     method:str="hayuya-detached-accessory-swap-v1"
@@ -121,6 +124,9 @@ def swap_detached_accessory(
             output_faces=0,
             component_crossing_ready=False,
             self_intersection_ready=False,
+            attachment_ready=False,
+            attachment_floating_components=0,
+            attachment_oversized_floating_components=0,
             warnings=[],
             errors=[
                 "detached accessory swap requires runtime-payload-free "
@@ -302,6 +308,21 @@ def swap_detached_accessory(
                 "accessory swap introduced self intersections"
             )
 
+        from composite_attachment_qa import (
+            audit_composite_attachments,
+        )
+        attachment=audit_composite_attachments(
+            output_glb,
+            mode=mode,
+        )
+        warnings.extend(attachment.warnings or [])
+        if not attachment.ready:
+            errors.append(
+                "accessory swap introduced detached/floating "
+                "component topology"
+            )
+            errors.extend(attachment.errors or [])
+
         return AccessorySwapResult(
             base_mesh=str(base_mesh),
             donor_mesh=str(donor_mesh),
@@ -340,6 +361,15 @@ def swap_detached_accessory(
             self_intersection_ready=bool(
                 self_cross.ready
             ),
+            attachment_ready=bool(
+                attachment.ready
+            ),
+            attachment_floating_components=int(
+                attachment.floating_components
+            ),
+            attachment_oversized_floating_components=int(
+                attachment.oversized_floating_components
+            ),
             warnings=warnings,
             errors=errors,
         )
@@ -360,6 +390,9 @@ def swap_detached_accessory(
             output_faces=0,
             component_crossing_ready=False,
             self_intersection_ready=False,
+            attachment_ready=False,
+            attachment_floating_components=0,
+            attachment_oversized_floating_components=0,
             warnings=warnings,
             errors=[
                 f"{type(exc).__name__}:{exc}"
