@@ -1970,6 +1970,7 @@ def main() -> int:
                     label,
                     Path(str(detail_execution.candidate_path)),
                 ))
+                detail_fusion=detail_execution.fusion or {}
                 print(
                     "HAYUYA_COMPOSITE_DETAIL_READY "
                     f"label={label} "
@@ -1977,6 +1978,9 @@ def main() -> int:
                     f"donor={detail_execution.donor_backend} "
                     f"region={detail_execution.region_hint} "
                     f"source={Path(detail_source).name} "
+                    f"changed={detail_fusion.get('changed_fraction','none')} "
+                    f"seam_p95={detail_fusion.get('seam_added_delta_p95','none')} "
+                    f"seam_max={detail_fusion.get('seam_added_delta_max','none')} "
                     f"path={detail_execution.candidate_path}"
                 )
                 ranked=run_full_ranking()
