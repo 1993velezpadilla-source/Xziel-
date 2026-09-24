@@ -138,7 +138,7 @@ def inspect_mesh(
     backend: str = "unknown",
     mode: str = "prop",
     target_faces: int = 100_000,
-    target_texture_size: int = 1024,
+    target_texture_size: int | None = None,
 ) -> MeshScore:
     valid, notes = _basic_valid(path)
     result = MeshScore(
@@ -227,19 +227,26 @@ def inspect_mesh(
                 result.texture_max_edge = int(texture_report.max_edge)
                 result.base_color_max_edge = int(texture_report.base_color_max_edge)
                 if result.base_color_max_edge > 0:
-                    texture_resolution_factor = min(
-                        1.0,
-                        result.base_color_max_edge / max(1.0, float(target_texture_size)),
-                    )
-                    result.texture_resolution_score = round(
-                        texture_resolution_factor * 100.0,
-                        3,
-                    )
-                    result.notes.append(
-                        f"baseColor resolution={result.base_color_max_edge}px "
-                        f"target={int(target_texture_size)}px"
-                    )
-                elif texture_report.image_count:
+                    if target_texture_size is not None:
+                        texture_resolution_factor = min(
+                            1.0,
+                            result.base_color_max_edge / max(1.0, float(target_texture_size)),
+                        )
+                        result.texture_resolution_score = round(
+                            texture_resolution_factor * 100.0,
+                            3,
+                        )
+                        result.notes.append(
+                            f"baseColor resolution={result.base_color_max_edge}px "
+                            f"target={int(target_texture_size)}px"
+                        )
+                    else:
+                        result.texture_resolution_score = 100.0
+                        result.notes.append(
+                            f"baseColor resolution={result.base_color_max_edge}px "
+                            "(no profile texture target applied)"
+                        )
+                elif texture_report.image_count and target_texture_size is not None:
                     texture_resolution_factor = 0.45
                     result.texture_resolution_score = 45.0
                     result.notes.append(
@@ -337,7 +344,7 @@ def rank_candidates(
     *,
     mode: str,
     target_faces: int,
-    target_texture_size: int = 1024,
+    target_texture_size: int | None = None,
     source_images: list[Path] | None = None,
     detail_images: list[Path] | None = None,
     visual_weight: float = 0.55,
@@ -516,7 +523,7 @@ def main() -> int:
     parser.add_argument("mesh", type=Path, nargs="+")
     parser.add_argument("--mode", choices=["auto", "prop", "character", "architecture"], default="prop")
     parser.add_argument("--target-faces", type=int, default=100000)
-    parser.add_argument("--target-texture-size", type=int, default=1024)
+    parser.add_argument("--target-texture-size", type=int)
     parser.add_argument("--source", type=Path, action="append", help="real geometry source image; repeatable")
     parser.add_argument("--detail", type=Path, action="append", help="detail/close-up reference image; repeatable")
     parser.add_argument("--visual-weight", type=float, default=0.55)
