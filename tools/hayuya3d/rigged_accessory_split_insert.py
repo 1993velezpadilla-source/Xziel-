@@ -145,6 +145,7 @@ def insert_split_rigged_accessory(
         _bbox,
         _legacy_payload_preserved,
         _surface_skin_transfer,
+        _require_exact_surface_relation,
         _pack_joints,
         _read_target_deltas,
     )
@@ -314,12 +315,7 @@ def insert_split_rigged_accessory(
                 surface_max_examined_triangles,
                 int(surface_relation.max_examined_triangles),
             )
-            if int(surface_relation.fallback_vertices) > 0:
-                raise RuntimeError(
-                    "barycentric surface transfer required nearest-vertex "
-                    "fallback on degenerate base topology for "
-                    f"{int(surface_relation.fallback_vertices)} accessory vertices"
-                )
+            _require_exact_surface_relation(surface_relation)
             source_ratio = source_distance / base_diag
             all_source_ratios.extend(source_ratio.tolist())
             if len(source_ratio) and float(np.max(source_ratio)) > (
