@@ -15,7 +15,11 @@ import trimesh
 from PIL import Image
 
 from gameprep import build_gameprep
-from qa_package import build_qa_package, unresolved_material_rebakes
+from qa_package import (
+    build_qa_package,
+    material_rebake_channel_summary,
+    unresolved_material_rebakes,
+)
 from visual_judge import SourceViewScore
 
 
@@ -133,6 +137,30 @@ class QAPackageTests(unittest.TestCase):
         ])
         self.assertEqual(unresolved_material_rebakes({"lods": []}), [])
         self.assertEqual(unresolved_material_rebakes(None), [])
+
+    def test_material_rebake_summary_requires_every_lod_complete(self):
+        data = {
+            "lods": [
+                {
+                    "name": "LOD0",
+                    "rebaked_channels": ["normal", "occlusion"],
+                    "rebake_required": [],
+                },
+                {
+                    "name": "LOD1",
+                    "rebaked_channels": ["normal"],
+                    "rebake_required": ["occlusion"],
+                },
+                {
+                    "name": "LOD2",
+                    "rebaked_channels": ["normal", "occlusion"],
+                    "rebake_required": [],
+                },
+            ]
+        }
+        resolved, pending = material_rebake_channel_summary(data)
+        self.assertEqual(resolved, ["normal"])
+        self.assertEqual(pending, ["occlusion"])
 
 
     def test_character_without_skin_is_not_production_ready(self):
