@@ -207,6 +207,22 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
                 "rank": rank,
                 "pass": ranking_pass,
             })
+    elif line.startswith("HAYUYA_JUDGE_METRICS "):
+        _set_stage(job, "judge")
+        payload = line.removeprefix("HAYUYA_JUDGE_METRICS ").strip()
+        try:
+            item = json.loads(payload)
+            if isinstance(item, dict):
+                hydrate_candidate_ranking(job, [item])
+                label = str(item.get("backend", ""))
+                candidate = job.candidates.get(label)
+                if candidate is not None:
+                    _emit(job, "judge_metrics", {
+                        "label": label,
+                        "candidate": asdict(candidate),
+                    })
+        except (TypeError, ValueError, json.JSONDecodeError):
+            pass
     elif line.startswith("HAYUYA_REFINEMENT"):
         _set_stage(job, "refinement")
     elif line.startswith("HAYUYA_MESH_DOCTOR"):
