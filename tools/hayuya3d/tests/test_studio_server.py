@@ -233,6 +233,48 @@ class StudioServerTests(unittest.TestCase):
             self.assertEqual(len(job.final_qa["warnings"]), 2)
             self.assertIn("baseColor", job.final_qa["warnings"][0])
 
+    def test_aaa_acceptance_report_is_streamed_to_studio(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            report=root/"aaa_acceptance.json"
+            report.write_text(json.dumps({
+                "ready":False,
+                "passed_required":10,
+                "total_required":12,
+                "blockers":[
+                    "character has no validated animation clips",
+                    "better regional donor evidence exists but Composite Champion fusion is not fully resolved",
+                ],
+                "gates":[
+                    {
+                        "id":"character.animation",
+                        "category":"character",
+                        "ready":False,
+                        "required":True,
+                        "evidence":"animations=0",
+                        "blocker":"character has no validated animation clips",
+                    }
+                ],
+            }),encoding="utf-8")
+            job=self.make_job(root)
+            parse_pipeline_line(
+                job,
+                "HAYUYA_AAA_READY "
+                f"ready=false passed=10 total=12 "
+                f"blockers=character.animation,composite.optimized "
+                f"report={report}",
+            )
+            self.assertEqual(job.stage,"qa")
+            self.assertIsNotNone(job.aaa_acceptance)
+            self.assertFalse(job.aaa_acceptance["ready"])
+            self.assertEqual(job.aaa_acceptance["passed_required"],10)
+            self.assertEqual(job.aaa_acceptance["total_required"],12)
+            self.assertEqual(job.events[-1]["kind"],"aaa_ready")
+            self.assertEqual(
+                job.events[-1]["aaa"]["gates"][0]["id"],
+                "character.animation",
+            )
+
     def test_texture_superres_event_stays_inside_refinement_stage(self):
         with tempfile.TemporaryDirectory() as tmp:
             job = self.make_job(Path(tmp))
