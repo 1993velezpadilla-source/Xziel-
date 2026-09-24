@@ -22,12 +22,9 @@ layout(push_constant) uniform PushConstants {
 
 layout(location = 0) in vec2 vUv;
 layout(location = 1) in vec3 vNormal;
-layout(location = 2) in vec4 vColor;
-layout(location = 3) in float vDistance;
-layout(location = 4) in float vFogDensity;
-layout(location = 5) in float vLightning;
-layout(location = 6) in float vViewmodel;
-layout(location = 7) in vec3 vViewPosition;
+// Packed frame-varying data: x=view distance, y=lightning, z=viewmodel.
+layout(location = 2) in vec3 vFrameData;
+layout(location = 3) in vec3 vViewPosition;
 
 layout(location = 0) out vec4 outColor;
 
@@ -160,7 +157,7 @@ void main() {
         pc.baseColorFactor;
 
     if (!pbrEnabled) {
-        if (vViewmodel > 0.5) {
+        if (vFrameData.z > 0.5) {
             vec3 normal =
                 normalize(vNormal);
             vec3 keyDirection =
@@ -203,7 +200,7 @@ void main() {
             smoothstep(
                 NORMAL_MAP_FULL_DETAIL_DISTANCE,
                 NORMAL_MAP_FADE_END_DISTANCE,
-                max(vDistance, 0.0));
+                max(vFrameData.x, 0.0));
 
         // Most far-world fragments now skip mappedNormal() entirely. That
         // avoids four derivatives, multiple normalizations and the normal-map
@@ -350,7 +347,7 @@ void main() {
 
     float lightningBoost =
         1.0 +
-        clamp(vLightning, 0.0, 2.0) *
+        clamp(vFrameData.y, 0.0, 2.0) *
         1.8;
 
     vec3 ambient =
