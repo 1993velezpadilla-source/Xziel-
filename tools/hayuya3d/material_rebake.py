@@ -5,6 +5,7 @@ import json
 import os
 import shutil
 import subprocess
+from functools import lru_cache
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -37,6 +38,33 @@ def find_blender(explicit:str|Path|None=None)->Path|None:
             return Path(resolved).resolve()
     resolved=shutil.which("blender")
     return Path(resolved).resolve() if resolved else None
+
+
+@lru_cache(maxsize=4)
+def blender_runtime_ready(blender_raw:str)->tuple[bool,str|None]:
+    """Verify the installed Blender can load the dependencies used by glTF IO."""
+    try:
+        proc=subprocess.run(
+            [
+                blender_raw,
+                "--background",
+                "--factory-startup",
+                "--python-expr",
+                "import numpy, bpy; print('HAYUYA_BLENDER_REBAKE_RUNTIME_READY')",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=45,
+        )
+        if proc.returncode!=0:
+            detail=(proc.stderr or proc.stdout or "").strip().splitlines()
+            return False,(detail[-1] if detail else f"exit_{proc.returncode}")
+        if "HAYUYA_BLENDER_REBAKE_RUNTIME_READY" not in (proc.stdout or ""):
+            return False,"runtime_probe_marker_missing"
+        return True,None
+    except Exception as exc:
+        return False,f"{type(exc).__name__}:{exc}"
 
 
 def build_normal_rebake_command(
@@ -76,13 +104,24 @@ def rebake_material_channels(
     remaining=set(requested)
     resolved:set[str]=set()
     blender_path=find_blender(blender)
+    blender_ready=False
+    blender_runtime_error=None
+    if blender_path is not None and "normal" in remaining:
+        blender_ready,blender_runtime_error=blender_runtime_ready(str(blender_path))
 
     output_glb.parent.mkdir(parents=True,exist_ok=True)
     report_path=output_glb.with_suffix(".rebake.json")
 
-    if "normal" not in remaining or blender_path is None:
+    if "normal" not in remaining or blender_path is None or not blender_ready:
         if target_mesh.resolve()!=output_glb.resolve():
             shutil.copy2(target_mesh,output_glb)
+        unavailable_method=(
+            "nothing_supported_requested"
+            if "normal" not in remaining
+            else "blender_unavailable"
+            if blender_path is None
+            else "blender_runtime_incomplete"
+        )
         return MaterialRebakeResult(
             source_mesh=str(source_mesh),
             target_mesh=str(target_mesh),
@@ -91,7 +130,8 @@ def rebake_material_channels(
             resolved_channels=[],
             remaining_channels=sorted(remaining),
             attempted=False,
-            method="blender_unavailable" if "normal" in remaining else "nothing_supported_requested",
+            method=unavailable_method,
+            error=blender_runtime_error if unavailable_method=="blender_runtime_incomplete" else None,
         )
 
     attempted=True
