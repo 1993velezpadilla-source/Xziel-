@@ -159,6 +159,7 @@ def swap_detached_accessory(
         donor_faces=np.asarray(donor.faces,dtype=np.int64)
         base_components=_component_ids(base_faces)
         donor_components=_component_ids(donor_faces)
+        base_component_count=int(len(np.unique(base_components)))
 
         base_acc=_submesh_for_component(
             base,
@@ -272,6 +273,11 @@ def swap_detached_accessory(
         if not output_qa.valid:
             errors.append(
                 "accessory swap output failed mesh QA"
+            )
+        if int(output_qa.components)!=base_component_count:
+            errors.append(
+                "accessory swap changed component cardinality: "
+                f"{base_component_count}->{int(output_qa.components)}"
             )
 
         from component_crossing_qa import (
