@@ -4384,6 +4384,33 @@ void VulkanStaticMeshRenderer::record(
                     continue;
                 }
 
+                if (streamCullingActive_ &&
+                    frameStats_.streamingCell != 0U &&
+                    geometryCell.cellId != 0U) {
+                    ++frameStats_.portalVisibilityTests;
+
+                    if (!streamGraph_.
+                            cellReachableThroughOpenPortals(
+                                frameStats_.streamingCell,
+                                geometryCell.cellId)) {
+                        ++frameStats_.portalVisibilityCulled;
+                        frameStats_.culledBatches +=
+                            remainingBatches;
+                        frameStats_.
+                            cellRangeSkippedBatches +=
+                            remainingBatches;
+                        frameStats_.portalSkippedBatches +=
+                            remainingBatches;
+
+                        if (cellEnd > batchIndex) {
+                            batchIndex =
+                                cellEnd - 1U;
+                        }
+
+                        continue;
+                    }
+                }
+
                 const auto* cellBounds =
                     streamBoundsForCell(
                         geometryCell.cellId);
@@ -4710,7 +4737,7 @@ void VulkanStaticMeshRenderer::record(
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u draw_submissions=%u indirect_draws=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u multi_draw_indirect=%u cell_frustum_tests=%u cell_frustum_culled=%u cell_range_skipped=%u cell_frustum_skipped=%u batch_frustum_tests=%u",
+            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u draw_submissions=%u indirect_draws=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u multi_draw_indirect=%u portal_tests=%u portal_culled=%u portal_skipped=%u cell_frustum_tests=%u cell_frustum_culled=%u cell_range_skipped=%u cell_frustum_skipped=%u batch_frustum_tests=%u",
             static_cast<unsigned int>(
                 frameStats_.streamingCell),
             static_cast<unsigned int>(
@@ -4736,6 +4763,12 @@ void VulkanStaticMeshRenderer::record(
             static_cast<unsigned int>(
                 frameStats_.submissionGroups),
             useIndirect ? 1U : 0U,
+            static_cast<unsigned int>(
+                frameStats_.portalVisibilityTests),
+            static_cast<unsigned int>(
+                frameStats_.portalVisibilityCulled),
+            static_cast<unsigned int>(
+                frameStats_.portalSkippedBatches),
             static_cast<unsigned int>(
                 frameStats_.cellFrustumTests),
             static_cast<unsigned int>(
