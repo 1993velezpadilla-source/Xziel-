@@ -106,6 +106,13 @@ def build_edge_samples(meshes, rest_positions, rest_bounds, max_edges):
     return candidates,up_axis
 
 
+def canonical_action_name(name):
+    value=str(name or "")
+    for suffix in ("_HAYUYA_Armature", "|HAYUYA_Armature", ".HAYUYA_Armature"):
+        if value.endswith(suffix):
+            value=value[:-len(suffix)]
+    return value
+
 def edge_metrics(edge_samples, positions):
     body=[]
     head=[]
@@ -167,9 +174,10 @@ def main():
 
     for action in actions:
         arm.animation_data.action=action
+        action_name=canonical_action_name(action.name)
         start,end=action.frame_range
         if not math.isfinite(start) or not math.isfinite(end):
-            failures.append(f"{action.name}:invalid_frame_range")
+            failures.append(f"{action_name}:invalid_frame_range")
             continue
         if end < start:
             start,end=end,start
@@ -178,7 +186,7 @@ def main():
         else:
             frames=[start+(end-start)*(i/(sample_count-1)) for i in range(sample_count)]
 
-        clip={"name":action.name,"frame_range":[float(start),float(end)],"samples":[],"passed":True,"reasons":[]}
+        clip={"name":action_name,"raw_name":action.name,"frame_range":[float(start),float(end)],"samples":[],"passed":True,"reasons":[]}
         for fr in frames:
             bpy.context.scene.frame_set(int(round(fr)))
             bpy.context.view_layer.update()
@@ -219,9 +227,9 @@ def main():
         clip["reasons"]=sorted(set(clip["reasons"]))
         clip["passed"]=not clip["reasons"]
         if clip["passed"]:
-            compatible.append(action.name)
+            compatible.append(action_name)
         else:
-            failures.extend(f"{action.name}:{r}" for r in clip["reasons"])
+            failures.extend(f"{action_name}:{r}" for r in clip["reasons"])
         clips.append(clip)
 
     if not actions:
