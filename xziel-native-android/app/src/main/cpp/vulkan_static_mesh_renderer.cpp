@@ -4306,8 +4306,11 @@ void VulkanStaticMeshRenderer::record(
                 continue;
             }
 
-            if (boundGeometryCell !=
-                batch.geometryCellSlot) {
+            const bool geometryChanged =
+                boundGeometryCell !=
+                batch.geometryCellSlot;
+
+            if (geometryChanged) {
                 const VkDeviceSize geometryOffset =
                     0U;
 
@@ -4340,7 +4343,22 @@ void VulkanStaticMeshRenderer::record(
             continue;
         }
 
-        if (boundPipeline != desiredPipeline) {
+        const bool pipelineChanged =
+            boundPipeline != desiredPipeline;
+        const bool materialChanged =
+            boundMaterialIndex !=
+                batch.materialIndex;
+        const bool groupChanged =
+            pipelineChanged ||
+            materialChanged ||
+            (cellGeometry &&
+             geometryChanged);
+
+        if (groupChanged) {
+            ++frameStats_.submissionGroups;
+        }
+
+        if (pipelineChanged) {
             vkCmdBindPipeline(
                 command,
                 VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -4353,8 +4371,7 @@ void VulkanStaticMeshRenderer::record(
         const auto& material =
             materials_[batch.materialIndex];
 
-        if (boundMaterialIndex !=
-            batch.materialIndex) {
+        if (materialChanged) {
             applyMaterial(material);
 
             vkCmdBindDescriptorSets(
@@ -4396,7 +4413,7 @@ void VulkanStaticMeshRenderer::record(
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u material_binds=%u geometry_binds=%u pipeline_binds=%u",
+            "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=%u stable_frames=%u cold_batches=%u culled_batches=%u draws=%u material_binds=%u geometry_binds=%u pipeline_binds=%u submission_groups=%u",
             static_cast<unsigned int>(
                 frameStats_.streamingCell),
             static_cast<unsigned int>(
@@ -4414,7 +4431,9 @@ void VulkanStaticMeshRenderer::record(
             static_cast<unsigned int>(
                 frameStats_.geometryBinds),
             static_cast<unsigned int>(
-                frameStats_.pipelineBinds));
+                frameStats_.pipelineBinds),
+            static_cast<unsigned int>(
+                frameStats_.submissionGroups));
     }
 }
 
