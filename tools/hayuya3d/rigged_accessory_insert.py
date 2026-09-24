@@ -208,6 +208,16 @@ def _surface_skin_transfer(
     return joints, weights, relation
 
 
+def _require_exact_surface_relation(relation) -> None:
+    fallback = int(getattr(relation, "fallback_vertices", 0) or 0)
+    if fallback > 0:
+        raise RuntimeError(
+            "barycentric surface transfer required nearest-vertex "
+            "fallback on degenerate base topology for "
+            f"{fallback} accessory vertices"
+        )
+
+
 def _legacy_payload_preserved(
     before_doc: dict,
     before_binary: bytes,
@@ -1042,12 +1052,7 @@ def insert_rigged_accessory(
             surface_relation.nearest_vertex_ids,
             dtype=np.int64,
         )
-        if int(surface_relation.fallback_vertices) > 0:
-            raise RuntimeError(
-                "barycentric surface transfer required nearest-vertex "
-                "fallback on degenerate base topology for "
-                f"{int(surface_relation.fallback_vertices)} accessory vertices"
-            )
+        _require_exact_surface_relation(surface_relation)
         source_ratio = source_distance / base_diag
         max_source_ratio = (
             float(np.max(source_ratio)) if len(source_ratio) else 0.0
