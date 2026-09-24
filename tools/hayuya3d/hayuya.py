@@ -1399,6 +1399,7 @@ def main() -> int:
                     Path(provisional.path),
                     sr_output,
                     target_edge=profile.texture_size,
+                    auto_install=True,
                 )
                 if texture_superres_result.ready:
                     sr_label = f"{provisional.backend}_texture_sr"
