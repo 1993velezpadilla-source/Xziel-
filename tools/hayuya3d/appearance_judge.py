@@ -642,9 +642,18 @@ def select_detail_candidate_indices(
         allowed.append(index)
 
     if not allowed:
-        # Never turn a metadata hint into a hard scoring failure. Fall back to the
-        # orientation-only set first, then all patches as a last resort.
-        if expected is not None:
+        # Region semantics are stronger than camera-name metadata for explicit
+        # detail references. A face close-up must never jump to a torso patch
+        # merely because its inferred view direction was too strict. Relax
+        # orientation first while preserving head/middle/lower, then fall back
+        # to orientation-only only when no region-specific patch exists at all.
+        if region_hint is not None:
+            allowed = [
+                index
+                for index, (_, patch_name) in enumerate(patch_meta)
+                if _patch_matches_region(patch_name,region_hint)
+            ]
+        if not allowed and expected is not None:
             allowed = [
                 index
                 for index, (azimuth, _) in enumerate(patch_meta)
