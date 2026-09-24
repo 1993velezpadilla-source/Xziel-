@@ -52,6 +52,10 @@ class QAPackageResult:
     face_evidence_min_score: float | None
     face_quality_evidence_ready: bool
     face_quality_evidence_missing: list[str]
+    anatomy_evidence_ready: bool
+    anatomy_evidence_expected: int
+    anatomy_evidence_evaluated: int
+    anatomy_evidence_missing: list[str]
     head_density_score: float | None
     head_texel_density_score: float | None
     head_texture_detail_score: float | None
@@ -512,6 +516,26 @@ def build_qa_package(
         face_evidence_ready,
     )=face_reference_evidence(detail_images,champion_data)
     face_evidence_required=bool(face_detail_refs)
+
+    from anatomy_reference import critical_anatomy_evidence
+    anatomy_evidence=critical_anatomy_evidence(
+        detail_images,
+        champion_data.get("appearance_details") or [],
+    )
+    anatomy_evidence_ready=bool(anatomy_evidence.ready)
+    anatomy_evidence_expected=int(anatomy_evidence.expected)
+    anatomy_evidence_evaluated=int(anatomy_evidence.evaluated)
+    anatomy_evidence_missing=list(anatomy_evidence.missing)
+    if (
+        mode=="character"
+        and anatomy_evidence.required
+        and not anatomy_evidence_ready
+    ):
+        warnings.append(
+            "critical anatomy reference coverage incomplete: "
+            f"{anatomy_evidence_evaluated}/{anatomy_evidence_expected} evaluated; "
+            +"missing="+",".join(anatomy_evidence_missing)
+        )
     (
         face_quality_evidence_ready,
         face_quality_evidence_missing,
@@ -621,6 +645,7 @@ def build_qa_package(
         and turntable_ready
         and face_evidence_ready
         and face_quality_evidence_ready
+        and (anatomy_evidence_ready if mode=="character" else True)
         and (rig_ready if rig_required else True)
         and (skin_weights_ready if rig_required and rig_ready else True)
         and (animation_ready if rig_required else True)
@@ -723,6 +748,7 @@ def build_qa_package(
             "expected": expected_sources,
             "judged": source_coverage,
         },
+        "critical_anatomy": asdict(anatomy_evidence),
         "face_evidence": {
             "required": face_evidence_required,
             "references": [str(p) for p in face_detail_refs],
@@ -790,6 +816,10 @@ def build_qa_package(
         ),
         face_quality_evidence_ready=face_quality_evidence_ready,
         face_quality_evidence_missing=list(face_quality_evidence_missing),
+        anatomy_evidence_ready=anatomy_evidence_ready,
+        anatomy_evidence_expected=anatomy_evidence_expected,
+        anatomy_evidence_evaluated=anatomy_evidence_evaluated,
+        anatomy_evidence_missing=list(anatomy_evidence_missing),
         head_density_score=(
             float(mesh.head_density_score)
             if mesh.head_density_score is not None else None
