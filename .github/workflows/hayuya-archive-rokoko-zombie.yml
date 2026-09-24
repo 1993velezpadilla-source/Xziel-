@@ -1,0 +1,122 @@
+name: HAYUYA Archive Rokoko Zombie Mocap
+
+on:
+  push:
+    branches:
+      - art/hayuya-monster-v1
+    paths:
+      - .github/workflows/hayuya-archive-rokoko-zombie.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: art/hayuya-monster-v1
+          fetch-depth: 1
+
+      - name: Download public free zombie mocap folder
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet "gdown>=5,<6"
+          rm -rf /tmp/hayuya-rokoko-zombie
+          mkdir -p /tmp/hayuya-rokoko-zombie
+          folder="https://drive.google.com/drive/folders/1Jz9UylqxBP7Z1rmXLO0-Mr1Wj36D_6UD"
+          gdown --folder --remaining-ok "$folder" -O /tmp/hayuya-rokoko-zombie
+          files="$(find /tmp/hayuya-rokoko-zombie -type f | wc -l)"
+          bytes="$(du -sb /tmp/hayuya-rokoko-zombie | cut -f1)"
+          echo "HAYUYA_ROKOKO_FILES=$files"
+          echo "HAYUYA_ROKOKO_BYTES=$bytes"
+          test "$files" -ge 8
+          test "$bytes" -gt 100000
+
+      - name: Package real ZIP and inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          dst="hayuya/source_archives/rokoko_zombie_12"
+          rm -rf "$dst"
+          mkdir -p "$dst/zip_parts"
+          (
+            cd /tmp/hayuya-rokoko-zombie
+            find . -type f -printf '%P\n' | sort > "$GITHUB_WORKSPACE/$dst/INVENTORY.txt"
+            zip -qr /tmp/rokoko_zombie_12.zip .
+          )
+          zipbytes="$(stat -c%s /tmp/rokoko_zombie_12.zip)"
+          if [ "$zipbytes" -lt 99000000 ]; then
+            cp /tmp/rokoko_zombie_12.zip "$dst/rokoko_zombie_12.zip"
+            mode="single"
+          else
+            split -b 90M -d -a 3 /tmp/rokoko_zombie_12.zip "$dst/zip_parts/rokoko_zombie_12.zip.part-"
+            mode="split"
+          fi
+          sha256sum /tmp/rokoko_zombie_12.zip > "$dst/SHA256-ZIP.txt"
+          cat > "$dst/SOURCE.txt" <<'EOF'
+          Title: Rokoko mocap — 12 free zombie animations
+          Creator: Rokoko / Sam Lazarus
+          Source page: https://www.rokoko.com/resources/rokoko-mocap-12-free-zombie-animations
+          Public resource folder: https://drive.google.com/drive/folders/1Jz9UylqxBP7Z1rmXLO0-Mr1Wj36D_6UD
+          Format advertised by source: FBX, Mixamo skeleton, 30 FPS
+          Source page states the animations may be used in animation, VFX, games and 3D art projects, including commercial projects.
+          EOF
+          ZIPMODE="$mode" ZIPBYTES="$zipbytes" python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root=Path("hayuya/source_archives/rokoko_zombie_12")
+          inv=(root/"INVENTORY.txt").read_text().splitlines()
+          parts=[{"path":str(p).replace("\\","/"),"bytes":p.stat().st_size} for p in sorted((root/"zip_parts").glob("*"))]
+          m={
+            "schema":1,
+            "id":"rokoko_zombie_12",
+            "source_page":"https://www.rokoko.com/resources/rokoko-mocap-12-free-zombie-animations",
+            "drive_folder":"https://drive.google.com/drive/folders/1Jz9UylqxBP7Z1rmXLO0-Mr1Wj36D_6UD",
+            "source_file_count":len(inv),
+            "zip_mode":os.environ["ZIPMODE"],
+            "zip_bytes":int(os.environ["ZIPBYTES"]),
+            "zip_archive":"hayuya/source_archives/rokoko_zombie_12/rokoko_zombie_12.zip" if os.environ["ZIPMODE"]=="single" else None,
+            "zip_parts":parts,
+            "complete":True
+          }
+          (root/"manifest.json").write_text(json.dumps(m,indent=2)+"\n")
+          PY
+
+      - name: Mark mocap local only after archive exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("hayuya/library/zombie_animations.json")
+          d=json.loads(p.read_text())
+          for g in d.get("groups",[]):
+            for c in g.get("categories",[]):
+              for item in c.get("items",[]):
+                if item.get("id")=="rokoko_zombie_12":
+                  item["availability"]="local_archive"
+                  item["local_archive_path"]="hayuya/source_archives/rokoko_zombie_12"
+                  item["notes"]="Free source archive downloaded into GitHub; retarget/ingest still required before one-tap preview."
+          p.write_text(json.dumps(d,indent=2)+"\n")
+          PY
+
+      - name: Commit archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add hayuya/source_archives/rokoko_zombie_12 hayuya/library/zombie_animations.json
+          git commit -m "hayuya: archive Rokoko free zombie mocap ZIP"
+          for attempt in 1 2 3 4 5; do
+            git pull --rebase origin art/hayuya-monster-v1 || { git rebase --abort || true; sleep $((attempt*2)); continue; }
+            if git push origin HEAD:art/hayuya-monster-v1; then exit 0; fi
+            sleep $((attempt*2))
+          done
+          exit 1
