@@ -12,8 +12,10 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))
 
+from hayuya_ads import compile_monetization_intelligence
 from hayuya_lighting import auto_lighting_profile, compile_lighting_intelligence
 from map_design_brain import auto_design_profile, compile_design_intelligence
+from universal_game_design import compile_universal_design_intelligence
 from map_source_registry import default_providers, readiness_report
 from world_semantics import SourceRecord, WorldGraph
 
@@ -84,6 +86,8 @@ def make_plan(
     env: dict[str, str] | None = None,
     design_profile: str | None = "auto",
     lighting_profile: str | None = "auto",
+    universal_design_mode: str = "auto",
+    monetization_mode: str = "auto",
 ) -> dict:
     registry = default_providers()
     unknown = [provider_id for provider_id in provider_ids if provider_id not in registry]
@@ -139,6 +143,17 @@ def make_plan(
         else None
     )
 
+    universal_design_intelligence = (
+        compile_universal_design_intelligence(goal)
+        if universal_design_mode != "off"
+        else None
+    )
+    world_graph_dict = graph.to_dict()
+    monetization_intelligence = compile_monetization_intelligence(
+        world_graph_dict,
+        enabled=(monetization_mode != "off"),
+    )
+
     geo = {
         "bounds_wsen": bounds,
         "center": (
@@ -154,7 +169,7 @@ def make_plan(
         "schema": 1,
         "job_id": job_id,
         "goal": goal,
-        "world_graph": graph.to_dict(),
+        "world_graph": world_graph_dict,
         "geospatial": geo,
         "providers": readiness_report(provider_ids, env=env),
         "knowledge_library": {
@@ -167,9 +182,14 @@ def make_plan(
             "lighting_standard": "hayuya/standards/hayuya_lighting_brain_v1.json",
             "zombies_design_pattern_library": "hayuya/knowledge/zombies_design_pattern_library_v1.json",
             "zombies_lighting_pattern_library": "hayuya/knowledge/zombies_lighting_pattern_library_v1.json",
+            "universal_game_design_standard": "hayuya/standards/hayuya_universal_game_design_brain_v1.json",
+            "world_generation_ai_atlas": "hayuya/knowledge/world_generation_ai_atlas_v1.json",
+            "monetization_standard": "hayuya/standards/hayuya_monetization_brain_v1.json",
         },
         "map_design_intelligence": design_intelligence,
+        "universal_game_design_intelligence": universal_design_intelligence,
         "lighting_intelligence": lighting_intelligence,
+        "monetization_intelligence": monetization_intelligence,
         "stages": list(WORLD_STAGES),
         "perception_policy": {
             "closed_class_detector_is_authoritative": False,
@@ -208,6 +228,8 @@ def make_plan(
             "nav_and_collision",
             "streaming_cells",
             "qa_package",
+            "universal_game_design.json",
+            "monetization.json",
         ],
     }
 
@@ -239,6 +261,18 @@ def main() -> int:
         "--lighting-profile",
         default="auto",
         help="HAYUYA Lighting profile; auto enables horror lighting for zombie/horror goals",
+    )
+    parser.add_argument(
+        "--universal-design",
+        choices=["off", "auto", "required"],
+        default="auto",
+        help="cross-genre game-space reasoning and solver planning",
+    )
+    parser.add_argument(
+        "--monetization",
+        choices=["off", "auto", "required"],
+        default="auto",
+        help="pre-author safe diegetic inventory plus Google AdMob UI hooks",
     )
     parser.add_argument("--list-providers", action="store_true")
     args = parser.parse_args()
@@ -272,6 +306,8 @@ def main() -> int:
             center=center,
             design_profile=args.design_profile,
             lighting_profile=args.lighting_profile,
+            universal_design_mode=args.universal_design,
+            monetization_mode=args.monetization,
         )
     except ValueError as exc:
         parser.error(str(exc))
@@ -293,6 +329,16 @@ def main() -> int:
             json.dumps(plan["lighting_intelligence"], indent=2) + "\n",
             encoding="utf-8",
         )
+    if plan["universal_game_design_intelligence"] is not None:
+        (intelligence_dir / "universal_game_design.json").write_text(
+            json.dumps(plan["universal_game_design_intelligence"], indent=2) + "\n",
+            encoding="utf-8",
+        )
+    if plan["monetization_intelligence"] is not None:
+        (intelligence_dir / "monetization.json").write_text(
+            json.dumps(plan["monetization_intelligence"], indent=2) + "\n",
+            encoding="utf-8",
+        )
 
     knowledge_manifest = {
         "schema": 1,
@@ -308,6 +354,14 @@ def main() -> int:
             if plan["lighting_intelligence"]
             else None
         ),
+        "universal_design_enabled": plan["universal_game_design_intelligence"] is not None,
+        "universal_design_domains": (
+            plan["universal_game_design_intelligence"]["selected_domains"]
+            if plan["universal_game_design_intelligence"]
+            else []
+        ),
+        "monetization_enabled": plan["monetization_intelligence"]["enabled"],
+        "monetization_candidate_count": plan["monetization_intelligence"]["candidate_count"],
     }
     (intelligence_dir / "knowledge_manifest.json").write_text(
         json.dumps(knowledge_manifest, indent=2) + "\n",
