@@ -107,6 +107,19 @@ def main():
         raise RuntimeError(f"expected one donor armature, got {len(donor_arms)}")
     arm=donor_arms[0]
 
+    # Donor rigs may carry Blender-only controller/custom-shape objects such as
+    # "Icosphere". glTF can follow those armature dependencies even when the
+    # render mesh selection contains only the generated target. That was the
+    # hidden second mesh behind the giant sphere/slab-looking preview. Remove
+    # every pose-bone custom-shape reference before export.
+    custom_shape_names=set()
+    if arm.pose:
+        for pbone in arm.pose.bones:
+            shape=getattr(pbone,"custom_shape",None)
+            if shape is not None:
+                custom_shape_names.add(shape.name)
+                pbone.custom_shape=None
+
     donor_min,donor_max=world_bbox(donor_meshes)
     donor_ext=donor_max-donor_min
     donor_axis=height_axis(donor_ext)
@@ -285,26 +298,67 @@ def main():
                 all_weighted_groups.add(name)
             transferred += 1
 
-        # Smooth the transferred skin field across each connected surface so
-        # adjacent garment/face vertices do not jump between unrelated bones.
-        # Generated meshes often contain many islands; Blender smooths only
-        # within actual mesh connectivity. Cap back to four influences for a
-        # game-friendly GLB.
-        smoothing={"attempted":True,"passed":False,"groups":len(mesh.vertex_groups)}
+        # Smooth the transferred skin field across actual mesh adjacency without
+        # context-sensitive bpy operators. This works headless in GitHub Actions
+        # and prevents abrupt bone-weight jumps across face/clothing surfaces.
+        smoothing={"attempted":True,"passed":False,"groups":len(mesh.vertex_groups),"method":"adjacency_python_v1"}
         try:
-            select_only(mesh)
-            bpy.context.view_layer.objects.active=mesh
+            adjacency=[set() for _ in mesh.data.vertices]
+            for edge in mesh.data.edges:
+                a,b=edge.vertices
+                adjacency[a].add(b)
+                adjacency[b].add(a)
+
+            # Snapshot sparse weights by bone name.
+            weights_by_vertex=[]
+            for v in mesh.data.vertices:
+                row={}
+                for g in v.groups:
+                    if g.group < len(mesh.vertex_groups):
+                        name=mesh.vertex_groups[g.group].name
+                        if name in arm_bones and g.weight>1e-8:
+                            row[name]=float(g.weight)
+                weights_by_vertex.append(row)
+
+            factor=0.28
+            for _pass in range(2):
+                next_rows=[]
+                for vi,row in enumerate(weights_by_vertex):
+                    neighbors=adjacency[vi]
+                    if not neighbors:
+                        next_rows.append(dict(row))
+                        continue
+                    names=set(row)
+                    for ni in neighbors:
+                        names.update(weights_by_vertex[ni])
+                    merged={}
+                    denom=float(len(neighbors))
+                    for name in names:
+                        own=row.get(name,0.0)
+                        avg=sum(weights_by_vertex[ni].get(name,0.0) for ni in neighbors)/denom
+                        value=(1.0-factor)*own+factor*avg
+                        if value>1e-6:
+                            merged[name]=value
+                    ranked=sorted(merged.items(),key=lambda x:x[1],reverse=True)[:4]
+                    total=sum(w for _,w in ranked)
+                    next_rows.append({name:w/total for name,w in ranked} if total>1e-8 else dict(row))
+                weights_by_vertex=next_rows
+
+            # Rewrite groups from the smoothed field.
             for group in list(mesh.vertex_groups):
-                mesh.vertex_groups.active_index=group.index
-                bpy.ops.object.vertex_group_smooth(
-                    group_select_mode="ALL",
-                    factor=0.28,
-                    repeat=2,
-                    expand=0.0,
-                )
-            bpy.ops.object.vertex_group_limit_total(group_select_mode="ALL",limit=4)
-            bpy.ops.object.vertex_group_normalize_all(group_select_mode="ALL",lock_active=False)
+                mesh.vertex_groups.remove(group)
+            group_cache={}
+            smoothed_group_names=set()
+            for vi,row in enumerate(weights_by_vertex):
+                for name,weight in row.items():
+                    group=group_cache.get(name)
+                    if group is None:
+                        group=mesh.vertex_groups.new(name=name)
+                        group_cache[name]=group
+                    group.add([vi],float(weight),"REPLACE")
+                    smoothed_group_names.add(name)
             smoothing["passed"]=True
+            smoothing["groups"]=len(smoothed_group_names)
         except Exception as exc:
             smoothing["error"]=f"{type(exc).__name__}:{exc}"
 
@@ -347,6 +401,10 @@ def main():
     target_mesh_names={m.name for m in target_meshes}
     for obj in list(bpy.data.objects):
         if obj.type=="MESH" and obj.name not in target_mesh_names:
+            bpy.data.objects.remove(obj,do_unlink=True)
+    for name in list(custom_shape_names):
+        obj=bpy.data.objects.get(name)
+        if obj is not None and obj.name not in target_mesh_names:
             bpy.data.objects.remove(obj,do_unlink=True)
     # Remove remaining donor helpers by NAME, not by stale Blender object
     # references. Mesh objects above may already have been unlinked and a stale
@@ -406,11 +464,12 @@ def main():
         "weighted_bones":sorted(all_weighted_groups),
         "weighted_bone_count":len(all_weighted_groups),
         "donor_root_objects":donor_root_names,
+        "cleared_custom_shape_objects":sorted(custom_shape_names),
         "armature_object_transform_baked":True,
         "armature_world_before":arm_world_before,
         "armature_world_after":arm_world_after,
         "export_meshes":remaining_meshes,
-        "binding_method":"proportion_fit_blended_kdtree_smoothed_v8",
+        "binding_method":"proportion_fit_adjacency_smoothed_v9_custom_shape_purge",
         "bind_results":bind_results,
         "output_bytes":args.output.stat().st_size if args.output.exists() else 0,
     }
