@@ -152,7 +152,7 @@ class StudioServerTests(unittest.TestCase):
                 ("HAYUYA_RETOPO_READY style=pure_quad quad_fraction=1 obj=x", "retopo"),
                 ("HAYUYA_GAMEPREP_READY lods=4 collision=True turntable=8", "gameprep"),
                 ("HAYUYA_PORTABLE_PACK_READY tiers=4 complete_lods=True manifest=x", "portable"),
-                ("HAYUYA_QA_READY production_ready=True rig_ready=False report=x", "qa"),
+                ("HAYUYA_QA_READY production_ready=True material_ready=True rebake_ready=True rig_ready=False animation_ready=False face_ready=True face_score=94.5 facemesh_score=88.0 report=x", "qa"),
             ]
             last_progress = -1
             for line, expected in lines:
@@ -160,6 +160,8 @@ class StudioServerTests(unittest.TestCase):
                 self.assertEqual(job.stage, expected)
                 self.assertGreater(job.progress, last_progress)
                 last_progress = job.progress
+            self.assertEqual(job.final_qa["facemesh_score"], 88.0)
+            self.assertEqual(job.final_qa["face_score"], 94.5)
 
     def test_multipart_accepts_many_images_and_fields(self):
         boundary = "----hayuya-test"
