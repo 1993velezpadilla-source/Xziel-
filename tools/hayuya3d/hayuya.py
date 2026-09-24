@@ -2247,6 +2247,8 @@ def main() -> int:
             f"morph_targets={qa_package_result.morph_target_count} "
             f"crossing_ready={qa_package_result.component_crossing_ready} "
             f"crossing_pairs={qa_package_result.component_crossing_pairs} "
+            f"self_intersection_ready={qa_package_result.self_intersection_ready} "
+            f"self_intersection_pairs={qa_package_result.self_intersection_pairs} "
             f"skin_weights_ready={qa_package_result.skin_weights_ready} "
             f"animation_ready={qa_package_result.animation_ready} "
             f"animation_integrity_ready={qa_package_result.animation_integrity_ready} "
