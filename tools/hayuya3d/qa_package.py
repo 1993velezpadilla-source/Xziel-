@@ -21,11 +21,13 @@ class QAPackageResult:
     part_map: str | None
     geometry_ready: bool
     material_ready: bool
+    material_rebake_ready: bool
     rig_ready: bool
     animation_ready: bool
     turntable_ready: bool
     turntable_score: float | None
     face_evidence_ready: bool
+    face_evidence_score: float | None
     production_ready: bool
     warnings: list[str]
 
@@ -412,11 +414,16 @@ def build_qa_package(
         part_map=str(part_map_path) if part_map_path else None,
         geometry_ready=geometry_ready,
         material_ready=material_ready,
+        material_rebake_ready=material_rebake_ready,
         rig_ready=rig_ready,
         animation_ready=animation_ready,
         turntable_ready=turntable_ready,
         turntable_score=turntable_score,
         face_evidence_ready=face_evidence_ready,
+        face_evidence_score=(
+            float(face_evidence_score)
+            if face_evidence_score is not None else None
+        ),
         production_ready=production_ready,
         warnings=warnings,
     )
