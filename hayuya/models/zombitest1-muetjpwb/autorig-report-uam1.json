@@ -417,17 +417,71 @@
       "donor_samples": 8546,
       "bone_envelope_segments": 22,
       "anatomical_neighbor_graph": {
+        "DEF-spine.003": [
+          "DEF-neck",
+          "DEF-shoulder.L",
+          "DEF-shoulder.R",
+          "DEF-spine.002"
+        ],
         "DEF-shin.R": [
           "DEF-foot.R",
           "DEF-thigh.R"
         ],
-        "DEF-neck": [
-          "DEF-head",
-          "DEF-spine.003"
+        "DEF-head": [
+          "DEF-neck"
         ],
-        "DEF-thigh.L": [
+        "DEF-shoulder.L": [
+          "DEF-spine.003",
+          "DEF-upper_arm.L"
+        ],
+        "DEF-shin.L": [
+          "DEF-foot.L",
+          "DEF-thigh.L"
+        ],
+        "DEF-forearm.L": [
+          "DEF-hand.L",
+          "DEF-upper_arm.L"
+        ],
+        "DEF-hand.R": [
+          "DEF-forearm.R"
+        ],
+        "DEF-shoulder.R": [
+          "DEF-spine.003",
+          "DEF-upper_arm.R"
+        ],
+        "DEF-upper_arm.R": [
+          "DEF-forearm.R",
+          "DEF-shoulder.R"
+        ],
+        "DEF-spine.001": [
           "DEF-hips",
-          "DEF-shin.L"
+          "DEF-spine.002"
+        ],
+        "DEF-thigh.R": [
+          "DEF-hips",
+          "DEF-shin.R"
+        ],
+        "DEF-upper_arm.L": [
+          "DEF-forearm.L",
+          "DEF-shoulder.L"
+        ],
+        "DEF-hand.L": [
+          "DEF-forearm.L"
+        ],
+        "DEF-foot.L": [
+          "DEF-shin.L",
+          "DEF-toe.L"
+        ],
+        "DEF-forearm.R": [
+          "DEF-hand.R",
+          "DEF-upper_arm.R"
+        ],
+        "DEF-toe.L": [
+          "DEF-foot.L"
+        ],
+        "DEF-foot.R": [
+          "DEF-shin.R",
+          "DEF-toe.R"
         ],
         "DEF-hips": [
           "DEF-spine.001",
@@ -438,70 +492,16 @@
           "DEF-spine.001",
           "DEF-spine.003"
         ],
-        "DEF-shoulder.R": [
-          "DEF-spine.003",
-          "DEF-upper_arm.R"
+        "DEF-thigh.L": [
+          "DEF-hips",
+          "DEF-shin.L"
+        ],
+        "DEF-neck": [
+          "DEF-head",
+          "DEF-spine.003"
         ],
         "DEF-toe.R": [
           "DEF-foot.R"
-        ],
-        "DEF-hand.L": [
-          "DEF-forearm.L"
-        ],
-        "DEF-foot.R": [
-          "DEF-shin.R",
-          "DEF-toe.R"
-        ],
-        "DEF-spine.001": [
-          "DEF-hips",
-          "DEF-spine.002"
-        ],
-        "DEF-forearm.R": [
-          "DEF-hand.R",
-          "DEF-upper_arm.R"
-        ],
-        "DEF-shin.L": [
-          "DEF-foot.L",
-          "DEF-thigh.L"
-        ],
-        "DEF-hand.R": [
-          "DEF-forearm.R"
-        ],
-        "DEF-shoulder.L": [
-          "DEF-spine.003",
-          "DEF-upper_arm.L"
-        ],
-        "DEF-upper_arm.R": [
-          "DEF-forearm.R",
-          "DEF-shoulder.R"
-        ],
-        "DEF-forearm.L": [
-          "DEF-hand.L",
-          "DEF-upper_arm.L"
-        ],
-        "DEF-head": [
-          "DEF-neck"
-        ],
-        "DEF-toe.L": [
-          "DEF-foot.L"
-        ],
-        "DEF-upper_arm.L": [
-          "DEF-forearm.L",
-          "DEF-shoulder.L"
-        ],
-        "DEF-spine.003": [
-          "DEF-neck",
-          "DEF-shoulder.L",
-          "DEF-shoulder.R",
-          "DEF-spine.002"
-        ],
-        "DEF-foot.L": [
-          "DEF-shin.L",
-          "DEF-toe.L"
-        ],
-        "DEF-thigh.R": [
-          "DEF-hips",
-          "DEF-shin.R"
         ]
       },
       "blend_neighbours": 4,
