@@ -5,5 +5,8 @@ layout(location = 0) in vec2 vUv;
 layout(location = 0) out vec4 outColor;
 
 void main() {
-    outColor = texture(uScene, clamp(vUv, vec2(0.0), vec2(1.0)));
+    // The fullscreen triangle only covers the viewport interior and the
+    // sampler is already CLAMP_TO_EDGE, so clamping UVs in the fragment
+    // shader duplicates address handling for every swapchain pixel.
+    outColor = texture(uScene, vUv);
 }
