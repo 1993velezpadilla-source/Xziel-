@@ -73,6 +73,9 @@ class CandidateState:
     head_density_score: float | None = None
     head_texel_density_ratio: float | None = None
     head_texel_density_score: float | None = None
+    head_texture_detail_ratio: float | None = None
+    head_texture_detail_score: float | None = None
+    head_texture_detail_mean: float | None = None
     pbr_channels: list[str] | None = None
     is_champion: bool = False
 
@@ -286,6 +289,13 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
                 facetex_score = float(raw_facetex)
             except ValueError:
                 facetex_score = None
+        raw_facedetail = values.get("facedetail_score")
+        facedetail_score = None
+        if raw_facedetail and raw_facedetail.lower() != "none":
+            try:
+                facedetail_score = float(raw_facedetail)
+            except ValueError:
+                facedetail_score = None
         job.final_qa = {
             "production_ready": _bool("production_ready"),
             "material_ready": _bool("material_ready"),
@@ -309,6 +319,7 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
             "face_score": face_score,
             "facemesh_score": facemesh_score,
             "facetex_score": facetex_score,
+            "facedetail_score": facedetail_score,
             "report": values.get("report"),
             "warnings": [],
         }
@@ -401,6 +412,12 @@ def hydrate_candidate_ranking(job: JobState, ranking: list[dict]) -> None:
             candidate.head_texel_density_ratio = float(item["head_texel_density_ratio"])
         if item.get("head_texel_density_score") is not None:
             candidate.head_texel_density_score = float(item["head_texel_density_score"])
+        if item.get("head_texture_detail_ratio") is not None:
+            candidate.head_texture_detail_ratio = float(item["head_texture_detail_ratio"])
+        if item.get("head_texture_detail_score") is not None:
+            candidate.head_texture_detail_score = float(item["head_texture_detail_score"])
+        if item.get("head_texture_detail_mean") is not None:
+            candidate.head_texture_detail_mean = float(item["head_texture_detail_mean"])
         channels = item.get("pbr_channels")
         if isinstance(channels, list):
             candidate.pbr_channels = [str(x) for x in channels]
