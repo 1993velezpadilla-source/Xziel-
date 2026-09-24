@@ -59,7 +59,7 @@ struct RuntimeLocalLight {
 struct HorrorLightingConfig {
     HorrorLightingMood mood = HorrorLightingMood::Sanctum;
 
-    Vec3 keyDirection{-0.34f, -0.82f, -0.46f};
+    Vec3 keyDirection{-0.34f, 0.82f, -0.46f};
     Vec3 keyColorLinear{1.0f, 0.62f, 0.34f};
     float keyIntensity = 0.82f;
 
