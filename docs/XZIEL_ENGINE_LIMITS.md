@@ -26,6 +26,7 @@ These are **Xziel's current measured/implemented limits**, not claimed specifica
 | Windows | 32 |
 | Generic interactions | 16 |
 | Zombie spawn points | 32 |
+| Authored map lights | 32 |
 | Active Horde zombies | 16 |
 | Navigation obstacles | 256 |
 | Navigation floors | 256 |
@@ -58,6 +59,7 @@ Keep a normal mobile map at or below roughly:
 - 192 collision boxes / 192 floors
 - 12 doors / 24 windows / 12 generic interactions
 - 24 zombie spawn points
+- 24 authored map lights
 - 16 active zombies
 - 48 dynamic blockers
 
