@@ -39,6 +39,9 @@ class AttachmentStore:
             raw = base64.b64decode(b64_data, validate=True)
         except Exception as exc:
             raise ValueError("invalid base64 attachment") from exc
+        return self.save_bytes(session_id, filename, mime_type, raw)
+
+    def save_bytes(self, session_id: str, filename: str, mime_type: str, raw: bytes) -> StoredAttachment:
         if not raw:
             raise ValueError("attachment is empty")
         if len(raw) > MAX_ATTACHMENT_BYTES:
