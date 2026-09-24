@@ -46,6 +46,7 @@ class DetailDonor:
     strategy: str
     seam_risk: str
     rig_risk: str
+    accessory_match: dict | None = None
     requires_rejudge: bool = True
 
 
@@ -305,12 +306,20 @@ def _detail_strategy(region_hint: str | None) -> tuple[str,str,str]:
     return ("local_detail_surface_projection","medium","low")
 
 
-def _part_map_accessory_count(path: str, mode: str) -> int | None:
+def _part_map_accessory_count(
+    path: str,
+    mode: str,
+    up_axis: str | None=None,
+) -> int | None:
     if not path or mode not in {"character","prop","architecture"}:
         return None
     try:
         from part_map import build_part_map
-        result=build_part_map(Path(path),mode=mode)
+        result=build_part_map(
+            Path(path),
+            mode=mode,
+            up_axis=(up_axis if up_axis in {"x","y","z"} else "y"),
+        )
         return len(result.accessory_component_ids)
     except Exception:
         return None
@@ -333,7 +342,11 @@ def build_composite_plan(
 
     if inspect_parts:
         for item in finalists:
-            item.accessory_components=_part_map_accessory_count(item.path,mode)
+            item.accessory_components=_part_map_accessory_count(
+                item.path,
+                mode,
+                item.up_axis,
+            )
 
     donors: list[RegionalDonor]=[]
     for spec in REGIONAL_METRICS:
@@ -358,30 +371,6 @@ def build_composite_plan(
             seam_risk=spec.seam_risk,
             rig_risk=spec.rig_risk,
             destructive=spec.destructive,
-        ))
-
-    # Detached accessories are the first geometry class that can eventually be
-    # auto-swapped safely. Planning still requires later alignment/dedup proof.
-    accessory_winner=None
-    accessory_count=-1
-    for item in finalists:
-        count=item.accessory_components
-        if count is not None and count>accessory_count:
-            accessory_count=count
-            accessory_winner=item
-    if accessory_winner is not None and accessory_count>0:
-        donors.append(RegionalDonor(
-            region="detached_accessories",
-            metric="accessory_component_count",
-            base_backend=base.backend,
-            donor_backend=accessory_winner.backend,
-            base_score=float(base.accessory_components or 0),
-            donor_score=float(accessory_count),
-            improvement=float(accessory_count-(base.accessory_components or 0)),
-            strategy="aligned_component_swap_then_mesh_doctor",
-            seam_risk="low",
-            rig_risk="medium" if mode=="character" else "low",
-            destructive=False,
         ))
 
     detail_donors: list[DetailDonor]=[]
@@ -419,6 +408,40 @@ def build_composite_plan(
         strategy,seam_risk,rig_risk=_detail_strategy(
             winner_item.get("region_hint")
         )
+        accessory_match_data=None
+        if (
+            inspect_parts
+            and winner.backend!=base.backend
+            and str(winner_item.get("region_hint") or "").lower()=="local"
+        ):
+            try:
+                from accessory_match import match_accessories
+                match_report=match_accessories(
+                    Path(base.path),
+                    Path(winner.path),
+                    mode=mode,
+                    base_up_axis=(
+                        base.up_axis
+                        if base.up_axis in {"x","y","z"}
+                        else "y"
+                    ),
+                    donor_up_axis=(
+                        winner.up_axis
+                        if winner.up_axis in {"x","y","z"}
+                        else None
+                    ),
+                )
+                accessory_match_data=asdict(match_report)
+                if match_report.ready:
+                    strategy="matched_detached_accessory_swap_then_mesh_doctor"
+                    seam_risk="low"
+                    rig_risk=("high" if mode=="character" else "low")
+            except Exception as exc:
+                accessory_match_data={
+                    "ready":False,
+                    "error":f"{type(exc).__name__}:{exc}",
+                }
+
         detail_donors.append(DetailDonor(
             source=source,
             region_hint=winner_item.get("region_hint"),
@@ -430,6 +453,7 @@ def build_composite_plan(
             strategy=strategy,
             seam_risk=seam_risk,
             rig_risk=rig_risk,
+            accessory_match=accessory_match_data,
         ))
 
     meaningful_detail=[
@@ -504,6 +528,7 @@ def build_composite_plan(
             "The base finalist supplies the canonical coordinate system and continuity.",
             "Regional donors are evidence sources, not unconditional copy/paste instructions.",
             "Every explicit local/detail reference gets its own donor winner so scars, hands, jewelry, wounds and clothing details cannot disappear inside an aggregate score.",
+            "Detached accessory candidates are never chosen by component count alone; local accessory donors need explicit reference superiority plus non-ambiguous spatial/attachment correspondence.",
             "High-risk body/face geometry transfers stay deferred until wrap/seam/skin-weight proof exists.",
             "Texture/material transfers can be attempted earlier because they preserve base topology.",
             "Every fusion is atomic: rejection restores the untouched base champion.",
