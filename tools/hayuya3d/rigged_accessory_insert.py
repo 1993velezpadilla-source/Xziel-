@@ -46,6 +46,8 @@ class RiggedAccessoryInsertResult:
     errors: list[str]
     inserted_primitives: int = 1
     material_groups: int = 0
+    surface_transfer_method: str = "nearest-vertex-knn-v1"
+    surface_transfer_fallback_vertices: int = 0
     method: str = "hayuya-rigged-accessory-insert-v1"
 
 
@@ -1438,6 +1440,10 @@ def insert_rigged_accessory(
             bbox_drift_fraction=round(bbox_drift, 8),
             warnings=warnings,
             errors=errors,
+            surface_transfer_method=str(surface_relation.method),
+            surface_transfer_fallback_vertices=int(
+                surface_relation.fallback_vertices
+            ),
         )
     except Exception as exc:
         return _fail(
