@@ -13,12 +13,13 @@ def test_session_memory_round_trip(tmp_path: Path):
         {"role": "user", "content": "hello"},
         {"role": "assistant", "content": "hi"},
     ]
-    store.save("abc", history, "old image prompt")
+    store.save("abc", history, "old image prompt", "deadbeef" * 4)
 
     loaded = store.load("abc")
     assert loaded is not None
     assert loaded["history"] == history
     assert loaded["last_image_prompt"] == "old image prompt"
+    assert loaded["last_image_attachment_id"] == "deadbeef" * 4
 
 
 def test_session_memory_upsert_and_delete(tmp_path: Path):
