@@ -397,6 +397,7 @@ private:
         VK_PHYSICAL_DEVICE_TYPE_OTHER;
 
     bool astcLdrSupported_ = false;
+    bool multiDrawIndirectEnabled_ = false;
     VkSampleCountFlagBits preferredSceneMsaa_ =
         VK_SAMPLE_COUNT_1_BIT;
     std::uint32_t maxImageDimension2D_ = 0U;
