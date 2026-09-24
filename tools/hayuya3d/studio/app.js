@@ -227,6 +227,15 @@ function handleEvent(event) {
     appendLog(`Judge #${event.rank}: ${event.label} = ${event.score.toFixed(2)}`);
     refreshJob();
   }
+  if (event.kind === "judge_metrics" && event.candidate) {
+    const index = state.job?.candidates?.findIndex((x) => x.label === event.label) ?? -1;
+    if (index >= 0) {
+      state.job.candidates[index] = event.candidate;
+      renderCandidates(state.job);
+    } else {
+      refreshJob();
+    }
+  }
   if (event.kind === "champion") {
     appendLog(`👑 Champion: ${event.label} score=${event.score}`);
     refreshJob();
