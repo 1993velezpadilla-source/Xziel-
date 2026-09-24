@@ -55,6 +55,8 @@ struct StaticMeshFrameStats {
     std::uint32_t batchFrustumTests = 0U;
     std::uint32_t materialVisibilityTests = 0U;
     std::uint32_t materialVisibilityCacheHits = 0U;
+    std::uint32_t frontToBackCandidates = 0U;
+    std::uint32_t frontToBackReordered = 0U;
 
     std::uint32_t streamingCell = 0U;
     std::uint32_t streamingColdBatches = 0U;
@@ -310,6 +312,12 @@ private:
         bool doubleSided = true;
     };
 
+    struct VisibleDrawCandidate {
+        std::uint32_t batchIndex = UINT32_MAX;
+        std::uint32_t originalOrder = 0U;
+        float viewDepth = 0.0f;
+    };
+
     struct PushConstants {
         // View rotation coefficients are precomputed once on CPU. Reusing
         // these guaranteed push-constant slots keeps the block at 128 bytes
@@ -544,6 +552,7 @@ private:
     // streaming visibility lookups for batches sharing a material.
     std::vector<std::uint8_t> materialVisibilityStates_{};
     std::vector<GpuBatch> batches_{};
+    std::vector<VisibleDrawCandidate> visibleDrawCandidates_{};
     std::vector<VkDrawIndexedIndirectCommand> drawCommands_{};
     std::vector<StaticDrawGroup> drawGroups_{};
     std::array<IndirectDrawFrame, kDescriptorFrames>
