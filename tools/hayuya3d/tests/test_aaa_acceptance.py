@@ -192,6 +192,27 @@ class AAAAcceptanceTests(unittest.TestCase):
             report.blockers,
         )
 
+    def test_missing_explicit_critical_anatomy_reference_blocks_aaa(self):
+        qa=base_qa()
+        qa["critical_anatomy"]={
+            "required":True,
+            "ready":False,
+            "expected":3,
+            "evaluated":2,
+            "missing":["/refs/teeth_detail.png"],
+            "targets":[
+                {"target":"eyes","ready":True},
+                {"target":"hands","ready":True},
+                {"target":"teeth","ready":False},
+            ],
+        }
+        report=evaluate_aaa_acceptance(base_manifest(),qa)
+        self.assertFalse(report.ready)
+        self.assertTrue(
+            any("critical anatomy" in x.lower() for x in report.blockers),
+            report.blockers,
+        )
+
     def test_character_without_animation_fails(self):
         qa=base_qa()
         qa["rig"]["animation_ready"]=False
