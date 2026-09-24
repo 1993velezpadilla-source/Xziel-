@@ -45,6 +45,10 @@ struct StaticMeshFrameStats {
     std::uint32_t pipelineBinds = 0U;
     std::uint32_t submissionGroups = 0U;
     std::uint64_t submittedTriangles = 0U;
+    std::uint32_t cellFrustumTests = 0U;
+    std::uint32_t cellFrustumCulled = 0U;
+    std::uint32_t cellFrustumSkippedBatches = 0U;
+    std::uint32_t batchFrustumTests = 0U;
 
     std::uint32_t streamingCell = 0U;
     std::uint32_t streamingColdBatches = 0U;
@@ -190,6 +194,10 @@ private:
     struct StreamCellBounds {
         std::uint32_t cellId = 0U;
         StaticMeshBounds bounds{};
+        float cullCenterX = 0.0f;
+        float cullCenterY = 0.0f;
+        float cullCenterZ = 0.0f;
+        float cullRadius = 0.0f;
         bool valid = false;
     };
 
@@ -228,6 +236,8 @@ private:
         VkDeviceSize indexBytes = 0U;
         std::uint32_t vertexCount = 0U;
         std::uint32_t indexCount = 0U;
+        std::uint32_t firstBatch = UINT32_MAX;
+        std::uint32_t batchCount = 0U;
         bool deviceLocalHostVisible = false;
         bool pinned = false;
         bool physicallyResident = false;
