@@ -120,6 +120,51 @@ jobs:
           print("HAYUYA_MAP_OPEN_WORLD_GATE_OK")
           PY
 
+      - name: Build intelligence bundle
+        run: |
+          rm -rf /tmp/hayuya-map-intelligence
+          mkdir -p /tmp/hayuya-map-intelligence/docs/hayuya
+          mkdir -p /tmp/hayuya-map-intelligence/hayuya/knowledge
+          mkdir -p /tmp/hayuya-map-intelligence/hayuya/standards
+          mkdir -p /tmp/hayuya-map-intelligence/tools/hayuya3d
+
+          cp docs/ZOMBIES_MAP_DNA_ATLAS.md /tmp/hayuya-map-intelligence/docs/ 2>/dev/null || true
+          cp docs/zombies-map-dna-atlas.v1.json /tmp/hayuya-map-intelligence/docs/
+          cp docs/zombies-map-dna-coverage.v1.json /tmp/hayuya-map-intelligence/docs/
+          cp docs/WAW_ZOMBIES_HORROR_DNA.md /tmp/hayuya-map-intelligence/docs/
+          cp docs/waw-zombies-horror-checklist.json /tmp/hayuya-map-intelligence/docs/
+          cp docs/sanctum-zombies-dna-profile.v1.json /tmp/hayuya-map-intelligence/docs/
+          cp docs/hayuya/HAYUYA_MAP_WORLD_BRAIN.md /tmp/hayuya-map-intelligence/docs/hayuya/
+          cp docs/hayuya/HAYUYA_LIGHTING_BRAIN.md /tmp/hayuya-map-intelligence/docs/hayuya/
+
+          cp hayuya/knowledge/*.json /tmp/hayuya-map-intelligence/hayuya/knowledge/
+          cp hayuya/standards/*.json /tmp/hayuya-map-intelligence/hayuya/standards/
+
+          cp tools/hayuya3d/hayuya_map.py /tmp/hayuya-map-intelligence/tools/hayuya3d/
+          cp tools/hayuya3d/map_design_brain.py /tmp/hayuya-map-intelligence/tools/hayuya3d/
+          cp tools/hayuya3d/hayuya_lighting.py /tmp/hayuya-map-intelligence/tools/hayuya3d/
+          cp tools/hayuya3d/universal_game_design.py /tmp/hayuya-map-intelligence/tools/hayuya3d/
+          cp tools/hayuya3d/world_reasoning.py /tmp/hayuya-map-intelligence/tools/hayuya3d/
+          cp tools/hayuya3d/hayuya_ads.py /tmp/hayuya-map-intelligence/tools/hayuya3d/
+          cp tools/hayuya3d/gameplay_graph_solver.py /tmp/hayuya-map-intelligence/tools/hayuya3d/
+          cp tools/hayuya3d/world_semantics.py /tmp/hayuya-map-intelligence/tools/hayuya3d/
+
+          {
+            echo "HAYUYA MAP INTELLIGENCE BUNDLE"
+            echo "commit=$GITHUB_SHA"
+            echo "generated_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo
+            find /tmp/hayuya-map-intelligence -type f | sort
+          } > /tmp/hayuya-map-intelligence/BUNDLE_MANIFEST.txt
+
+      - name: Upload Hayuya Map intelligence bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: hayuya-map-intelligence-bundle
+          path: /tmp/hayuya-map-intelligence
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Build Zombies structure and lighting intelligence fixture
         run: |
           python tools/hayuya3d/hayuya_map.py \
