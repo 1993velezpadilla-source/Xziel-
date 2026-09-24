@@ -60,6 +60,8 @@ class CandidateState:
     appearance_score: float | None = None
     detail_score: float | None = None
     material_score: float | None = None
+    texture_resolution_score: float | None = None
+    base_color_max_edge: int | None = None
     pbr_channels: list[str] | None = None
     is_champion: bool = False
 
@@ -273,6 +275,10 @@ def _run_job(job: JobState) -> None:
                         candidate.detail_score = float(item["appearance_detail_score"])
                     if item.get("material_score") is not None:
                         candidate.material_score = float(item["material_score"])
+                    if item.get("texture_resolution_score") is not None:
+                        candidate.texture_resolution_score = float(item["texture_resolution_score"])
+                    if item.get("base_color_max_edge") is not None:
+                        candidate.base_color_max_edge = int(item["base_color_max_edge"])
                     channels = item.get("pbr_channels")
                     if isinstance(channels, list):
                         candidate.pbr_channels = [str(x) for x in channels]
