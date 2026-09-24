@@ -203,15 +203,22 @@ def main():
     scale=target_height/donor_height
     target_ext_values=(abs(target_ext.x),abs(target_ext.y),abs(target_ext.z))
     donor_ext_values=(abs(donor_ext.x),abs(donor_ext.y),abs(donor_ext.z))
-    axis_scales=[]
+    requested_axis_scales=[]
     for axis in range(3):
         if axis==target_axis:
             value=scale
         else:
             raw=target_ext_values[axis]/max(1e-8,donor_ext_values[axis])
             value=max(scale*0.55,min(scale*1.80,raw))
-        axis_scales.append(value)
-    fit_scale=Vector(tuple(axis_scales))
+        requested_axis_scales.append(value)
+
+    # Never apply anisotropic object scale to an animated armature. A fitted
+    # skeleton with X/Y/Z scales such as 0.30/0.91/0.54 can create shear when
+    # donor rotations are evaluated, even after transform_apply(). Fit the
+    # skeleton uniformly by anatomical height; surface proportions are handled
+    # by the skin-weight solver, not by distorting the armature basis.
+    axis_scales=[scale,scale,scale]
+    fit_scale=Vector((scale,scale,scale))
 
     for root in donor_roots:
         root.scale=Vector((
@@ -833,6 +840,8 @@ def main():
         },
         "scale":scale,
         "axis_scales":axis_scales,
+        "requested_axis_scales":requested_axis_scales,
+        "armature_fit_mode":"uniform_height_only_v30",
         "orientation_fix":orientation_fix,
         "lateral_axis":lateral_axis_telemetry,
         "armature":arm.name,
@@ -849,7 +858,7 @@ def main():
         "animation_retarget":animation_retarget,
         "export_meshes":remaining_meshes,
         "sterile_export_scene_meshes":export_scene_meshes,
-        "binding_method":"component_coherent_rotation_only_skin_v29",
+        "binding_method":"uniform_armature_component_coherent_v30",
         "bind_results":bind_results,
         "output_bytes":args.output.stat().st_size if args.output.exists() else 0,
     }
