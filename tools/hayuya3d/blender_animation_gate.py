@@ -90,11 +90,38 @@ def evaluated_positions(meshes):
     }
 
 
-def build_edge_samples(meshes, rest_positions, rest_bounds, max_edges):
+def infer_semantic_up_axis(arm, rest_bounds):
+    bones=list(arm.data.bones)
+    head=next(
+        (b for b in bones if b.name.lower()=="head" or "head" in b.name.lower()),
+        None,
+    )
+    pelvis=next(
+        (
+            b for b in bones
+            if any(token in b.name.lower() for token in ("pelvis","hips"))
+        ),
+        None,
+    )
+    if head is not None and pelvis is not None:
+        head_world=arm.matrix_world @ ((head.head_local+head.tail_local)*0.5)
+        pelvis_world=arm.matrix_world @ ((pelvis.head_local+pelvis.tail_local)*0.5)
+        delta=head_world-pelvis_world
+        if delta.length>1e-8:
+            axis=max(range(3),key=lambda i:abs(delta[i]))
+            return axis,"armature_pelvis_to_head_v1",[
+                float(delta.x),float(delta.y),float(delta.z)
+            ]
     ext=rest_bounds["extents"]
-    up_axis=max(range(3),key=lambda i:abs(ext[i]))
+    axis=max(range(3),key=lambda i:abs(ext[i]))
+    return axis,"bbox_longest_axis_fallback_v1",None
+
+
+def build_edge_samples(meshes, rest_positions, rest_bounds, max_edges, up_axis):
+    ext=rest_bounds["extents"]
     body_min=rest_bounds["min"][up_axis]
     body_span=max(1e-8,ext[up_axis])
+    body_diag=max(1e-8,float(rest_bounds["diagonal"]))
     candidates=[]
     for obj in meshes:
         pos=rest_positions.get(obj.name,[])
@@ -116,6 +143,7 @@ def build_edge_samples(meshes, rest_positions, rest_bounds, max_edges):
                 bool(head),
                 height_norm,
                 float(length/body_span),
+                float(length/body_diag),
             ))
     if len(candidates)>max_edges:
         step=len(candidates)/float(max_edges)
@@ -176,7 +204,7 @@ def edge_metrics(edge_samples, positions, weight_labels=None):
     head=[]
     detailed=[]
     missing=0
-    for name,a,b,rest_len,is_head,height_norm,rest_len_normalized in edge_samples:
+    for name,a,b,rest_len,is_head,height_norm,rest_len_normalized,rest_len_diagonal in edge_samples:
         arr=positions.get(name)
         if not arr or a>=len(arr) or b>=len(arr):
             missing+=1
@@ -201,6 +229,7 @@ def edge_metrics(edge_samples, positions, weight_labels=None):
                 "ratio":ratio,
                 "rest_length":float(rest_len),
                 "rest_length_normalized":float(rest_len_normalized),
+                "rest_length_diagonal_normalized":float(rest_len_diagonal),
                 "height_normalized":float(height_norm),
                 "head":bool(is_head),
                 "bone_pair":pair,
@@ -313,7 +342,14 @@ def main():
     rest_positions,rest=evaluated_positions(meshes)
     if rest["diagonal"]<=1e-8:
         raise RuntimeError("rest_bounds_degenerate")
-    edge_samples,up_axis=build_edge_samples(meshes,rest_positions,rest,max(500,args.max_edges))
+    up_axis,up_axis_method,up_axis_vector=infer_semantic_up_axis(arm,rest)
+    edge_samples=build_edge_samples(
+        meshes,
+        rest_positions,
+        rest,
+        max(500,args.max_edges),
+        up_axis,
+    )
     if len(edge_samples)<100:
         raise RuntimeError(f"too_few_edge_samples:{len(edge_samples)}")
     vertex_weight_labels=build_vertex_weight_labels(meshes)
@@ -472,6 +508,8 @@ def main():
         "rest_bounds":rest,
         "reference_fidelity":reference_fidelity,
         "up_axis":up_axis,
+        "up_axis_method":up_axis_method,
+        "up_axis_pelvis_to_head_vector":up_axis_vector,
         "edge_sample_count":len(edge_samples),
         "thresholds":{
             "min_diagonal_ratio":args.min_diagonal_ratio,
