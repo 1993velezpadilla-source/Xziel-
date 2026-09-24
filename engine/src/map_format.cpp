@@ -23,6 +23,22 @@ bool parseBool(
     return false;
 }
 
+bool parseLightType(
+    const std::string& value,
+    MapLightType& type) noexcept {
+    if (value == "point") {
+        type = MapLightType::Point;
+        return true;
+    }
+
+    if (value == "spot") {
+        type = MapLightType::Spot;
+        return true;
+    }
+
+    return false;
+}
+
 bool parseKind(
     const std::string& value,
     InteractionKind& kind) noexcept {
@@ -109,7 +125,8 @@ bool parseMapText(
             }
 
             if (mapVersion != 1U &&
-                mapVersion != 2U) {
+                mapVersion != 2U &&
+                mapVersion != 3U) {
                 error = {
                     MapParseErrorCode::UnsupportedVersion,
                     lineNumber,
@@ -170,6 +187,73 @@ bool parseMapText(
             destination.zombieSpawns[
                 destination.zombieSpawnCount++] =
                 spawn;
+            continue;
+        }
+
+        if (type == "light") {
+            if (mapVersion < 3U ||
+                destination.lightCount >=
+                    destination.lights.size()) {
+                error = {
+                    mapVersion < 3U
+                        ? MapParseErrorCode::MalformedRecord
+                        : MapParseErrorCode::CapacityExceeded,
+                    lineNumber,
+                };
+                return false;
+            }
+
+            MapLightDefinition light{};
+            std::string lightType;
+            int castsShadows = 0;
+            int volumetric = 0;
+            int enabled = 0;
+
+            if (!(record >>
+                  light.id >>
+                  lightType >>
+                  light.position.x >>
+                  light.position.y >>
+                  light.position.z >>
+                  light.direction.x >>
+                  light.direction.y >>
+                  light.direction.z >>
+                  light.colorLinear.x >>
+                  light.colorLinear.y >>
+                  light.colorLinear.z >>
+                  light.intensity >>
+                  light.rangeMeters >>
+                  light.innerConeDegrees >>
+                  light.outerConeDegrees >>
+                  light.importance >>
+                  light.flickerAmount >>
+                  light.flickerHz >>
+                  castsShadows >>
+                  volumetric >>
+                  enabled) ||
+                !onlyWhitespaceRemaining(record) ||
+                !parseLightType(
+                    lightType,
+                    light.type) ||
+                !parseBool(
+                    castsShadows,
+                    light.castsShadows) ||
+                !parseBool(
+                    volumetric,
+                    light.volumetric) ||
+                !parseBool(
+                    enabled,
+                    light.enabled)) {
+                error = {
+                    MapParseErrorCode::MalformedRecord,
+                    lineNumber,
+                };
+                return false;
+            }
+
+            destination.lights[
+                destination.lightCount++] =
+                light;
             continue;
         }
 
