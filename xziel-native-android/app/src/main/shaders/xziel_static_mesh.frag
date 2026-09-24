@@ -242,12 +242,18 @@ void main() {
                         pc.metallicRoughnessNormalOcclusion.z,
                         0.0));
 
+            // mappedNormal() already returns a unit vector. Inside the
+            // full-detail zone smoothstep resolves normalDetail to exactly
+            // 1.0, so renormalizing detailNormal is redundant. Keep the
+            // normalize only inside the 32-56 m cross-fade band.
             normal =
-                normalize(
-                    mix(
-                        geometricNormal,
-                        detailNormal,
-                        normalDetail));
+                normalDetail >= 1.0
+                ? detailNormal
+                : normalize(
+                      mix(
+                          geometricNormal,
+                          detailNormal,
+                          normalDetail));
         }
     }
 
