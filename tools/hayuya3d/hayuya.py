@@ -2115,11 +2115,6 @@ def main() -> int:
                     f"animation_ready={detail_fusion.get('animation_ready','none')} "
                     f"deformation_ready={detail_fusion.get('deformation_ready','none')} "
                     f"attachment_ready={detail_fusion.get('attachment_ready','none')} "
-                    f"material_ready={detail_fusion.get('material_ready','none')} "
-                    f"uv_ready={detail_fusion.get('uv_ready','none')} "
-                    f"uv_tangent_ready={detail_fusion.get('uv_tangent_ready','none')} "
-                    f"production_ready={detail_fusion.get('production_ready','none')} "
-                    f"material_channels={','.join(detail_fusion.get('material_channels') or []) or 'none'} "
                     f"rebake_ready={detail_fusion.get('rebake_ready','none')} "
                     f"path={detail_execution.candidate_path}"
                 )
