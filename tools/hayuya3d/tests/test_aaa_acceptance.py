@@ -15,6 +15,7 @@ def base_manifest():
         "portable_pack":{
             "complete_lod_chain":True,
             "lod_parity_ready":True,
+            "runtime_budget_ready":True,
             "tiers":[{"name":"flagship"},{"name":"high"},{"name":"balanced"},{"name":"compatibility"}],
         },
         "composite_champion":{
@@ -167,6 +168,19 @@ class AAAAcceptanceTests(unittest.TestCase):
         self.assertFalse(report.ready)
         self.assertTrue(
             any("LOD" in x or "parity" in x.lower() for x in report.blockers),
+            report.blockers,
+        )
+
+    def test_runtime_asset_budget_failure_blocks_aaa(self):
+        manifest=base_manifest()
+        manifest["portable_pack"]["runtime_budget_ready"]=False
+        report=evaluate_aaa_acceptance(manifest,base_qa())
+        self.assertFalse(report.ready)
+        self.assertTrue(
+            any(
+                "budget" in item.lower()
+                for item in report.blockers
+            ),
             report.blockers,
         )
 
