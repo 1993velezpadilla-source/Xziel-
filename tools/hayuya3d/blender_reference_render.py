@@ -21,6 +21,12 @@ def parse_args():
     p.add_argument("--output",required=True,type=Path)
     p.add_argument("--size",type=int,default=1024)
     p.add_argument("--view",choices=["front","side","rear","top"],default="front")
+    p.add_argument(
+        "--frame",
+        choices=["full","head","upper","lower"],
+        default="full",
+        help="semantic framing crop; head keeps facial anatomy large enough for detector QA",
+    )
     return p.parse_args(argv)
 
 
@@ -70,6 +76,34 @@ def main():
     radius=max(ext.x,ext.y,ext.z)*0.72
     radius=max(radius,0.5)
 
+    frame_center=center.copy()
+    if a.frame=="head":
+        frame_center.z=mn.z+ext.z*0.84
+        frame_scale=max(
+            ext.z*0.38,
+            ext.x*0.28,
+            ext.y*0.28,
+            0.25,
+        )
+    elif a.frame=="upper":
+        frame_center.z=mn.z+ext.z*0.68
+        frame_scale=max(
+            ext.z*0.66,
+            ext.x*0.82,
+            ext.y*0.82,
+            0.4,
+        )
+    elif a.frame=="lower":
+        frame_center.z=mn.z+ext.z*0.28
+        frame_scale=max(
+            ext.z*0.58,
+            ext.x*0.74,
+            ext.y*0.74,
+            0.4,
+        )
+    else:
+        frame_scale=max(ext.x,ext.y,ext.z)*1.35
+
     scene=bpy.context.scene
     scene.render.engine="BLENDER_EEVEE"
     scene.render.resolution_x=a.size
@@ -88,26 +122,31 @@ def main():
         "side":Vector((3.2*radius,0,0)),
         "top":Vector((0,0,3.2*radius)),
     }
-    cam.location=center+offsets[a.view]
-    look_at(cam,center)
+    cam.location=frame_center+offsets[a.view]
+    look_at(cam,frame_center)
     cam.data.type="ORTHO"
-    cam.data.ortho_scale=max(ext.x,ext.y,ext.z)*1.35
+    cam.data.ortho_scale=frame_scale
 
     for loc,energy,size in [
-        (center+Vector((-2*radius,-2*radius,2*radius)),900,4*radius),
-        (center+Vector((2*radius,-1*radius,0.5*radius)),500,3*radius),
-        (center+Vector((0,1.5*radius,2.5*radius)),650,3*radius),
+        (frame_center+Vector((-2*radius,-2*radius,2*radius)),900,4*radius),
+        (frame_center+Vector((2*radius,-1*radius,0.5*radius)),500,3*radius),
+        (frame_center+Vector((0,1.5*radius,2.5*radius)),650,3*radius),
     ]:
         bpy.ops.object.light_add(type="AREA",location=loc)
         light=bpy.context.object
         light.data.energy=energy
         light.data.size=size
-        look_at(light,center)
+        look_at(light,frame_center)
 
     a.output.parent.mkdir(parents=True,exist_ok=True)
     scene.render.filepath=str(a.output.resolve())
     bpy.ops.render.render(write_still=True)
-    print("HAYUYA_REFERENCE_RENDER",a.output)
+    print(
+        "HAYUYA_REFERENCE_RENDER",
+        a.output,
+        f"view={a.view}",
+        f"frame={a.frame}",
+    )
 
 
 if __name__=="__main__":
