@@ -238,6 +238,9 @@ void VulkanClearRenderer::shutdown() noexcept {
     deviceLocalMemoryBytes_ = 0U;
     lastCpuRenderMs_ = 0.0f;
     lastGpuFrameMs_ = 0.0f;
+    lastGpuPreWorldMs_ = 0.0f;
+    lastGpuWorldMs_ = 0.0f;
+    lastGpuCompositeUiMs_ = 0.0f;
     performanceTelemetryFrame_ = 0;
     performanceTimingReadyLogged_ = false;
     suboptimalFrameCount_ = 0;
@@ -703,9 +706,12 @@ bool VulkanClearRenderer::drawFrame(
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_PERF_TIMING cpu_render_ms=%.3f gpu_frame_ms=%.3f gpu_authoritative=%d",
+            "XZIEL_PERF_TIMING cpu_render_ms=%.3f gpu_frame_ms=%.3f gpu_preworld_ms=%.3f gpu_world_ms=%.3f gpu_composite_ui_ms=%.3f gpu_authoritative=%d",
             static_cast<double>(lastCpuRenderMs_),
             static_cast<double>(lastGpuFrameMs_),
+            static_cast<double>(lastGpuPreWorldMs_),
+            static_cast<double>(lastGpuWorldMs_),
+            static_cast<double>(lastGpuCompositeUiMs_),
             gpuTimingAuthoritative() ? 1 : 0);
     }
 
@@ -726,6 +732,18 @@ float VulkanClearRenderer::lastCpuRenderMs() const noexcept {
 
 float VulkanClearRenderer::lastGpuFrameMs() const noexcept {
     return lastGpuFrameMs_;
+}
+
+float VulkanClearRenderer::lastGpuPreWorldMs() const noexcept {
+    return lastGpuPreWorldMs_;
+}
+
+float VulkanClearRenderer::lastGpuWorldMs() const noexcept {
+    return lastGpuWorldMs_;
+}
+
+float VulkanClearRenderer::lastGpuCompositeUiMs() const noexcept {
+    return lastGpuCompositeUiMs_;
 }
 
 bool VulkanClearRenderer::gpuTimingAuthoritative() const noexcept {
@@ -4021,7 +4039,8 @@ bool VulkanClearRenderer::createPerformanceQueries() noexcept {
     info.queryType =
         VK_QUERY_TYPE_TIMESTAMP;
     info.queryCount =
-        kFramesInFlight * 2U;
+        kFramesInFlight *
+        kGpuTimestampQueriesPerFrame;
 
     const VkResult result =
         vkCreateQueryPool(
@@ -4039,7 +4058,11 @@ bool VulkanClearRenderer::createPerformanceQueries() noexcept {
 
     gpuTimestampValid_.fill(false);
     lastGpuFrameMs_ = 0.0f;
+    lastGpuPreWorldMs_ = 0.0f;
+    lastGpuWorldMs_ = 0.0f;
+    lastGpuCompositeUiMs_ = 0.0f;
     logInfo("XZIEL_GPU_TIMESTAMPS_READY");
+    logInfo("XZIEL_GPU_PASS_TIMING_READY passes=3 queries_per_frame=4");
     return true;
 }
 
@@ -4056,6 +4079,9 @@ void VulkanClearRenderer::destroyPerformanceQueries() noexcept {
         VK_NULL_HANDLE;
     gpuTimestampValid_.fill(false);
     lastGpuFrameMs_ = 0.0f;
+    lastGpuPreWorldMs_ = 0.0f;
+    lastGpuWorldMs_ = 0.0f;
+    lastGpuCompositeUiMs_ = 0.0f;
 }
 
 void VulkanClearRenderer::resolvePerformanceQueries(
@@ -4067,14 +4093,20 @@ void VulkanClearRenderer::resolvePerformanceQueries(
         return;
     }
 
-    std::array<std::uint64_t, 2> timestamps{};
+    std::array<
+        std::uint64_t,
+        kGpuTimestampQueriesPerFrame> timestamps{};
+
+    const std::uint32_t queryBase =
+        frameSlot *
+        kGpuTimestampQueriesPerFrame;
 
     const VkResult result =
         vkGetQueryPoolResults(
             device_,
             gpuTimestampQueryPool_,
-            frameSlot * 2U,
-            2U,
+            queryBase,
+            kGpuTimestampQueriesPerFrame,
             sizeof(timestamps),
             timestamps.data(),
             sizeof(std::uint64_t),
@@ -4086,44 +4118,92 @@ void VulkanClearRenderer::resolvePerformanceQueries(
         return;
     }
 
-    std::uint64_t deltaTicks = 0U;
+    const auto deltaTicks =
+        [&](std::uint64_t begin,
+            std::uint64_t end) noexcept
+            -> std::uint64_t {
+                if (timestampValidBits_ >= 64U) {
+                    return end - begin;
+                }
 
-    if (timestampValidBits_ >= 64U) {
-        deltaTicks =
-            timestamps[1] -
-            timestamps[0];
-    } else {
-        const std::uint64_t mask =
-            (1ULL << timestampValidBits_) -
-            1ULL;
+                const std::uint64_t mask =
+                    (1ULL << timestampValidBits_) -
+                    1ULL;
 
-        deltaTicks =
-            (timestamps[1] -
-             timestamps[0]) &
-            mask;
+                return
+                    (end - begin) &
+                    mask;
+            };
+
+    const auto toMilliseconds =
+        [&](std::uint64_t ticks) noexcept
+            -> double {
+                return
+                    static_cast<double>(ticks) *
+                    static_cast<double>(
+                        timestampPeriodNs_) *
+                    1.0e-6;
+            };
+
+    const double frameMs =
+        toMilliseconds(
+            deltaTicks(
+                timestamps[0],
+                timestamps[3]));
+
+    const double preWorldMs =
+        toMilliseconds(
+            deltaTicks(
+                timestamps[0],
+                timestamps[1]));
+
+    const double worldMs =
+        toMilliseconds(
+            deltaTicks(
+                timestamps[1],
+                timestamps[2]));
+
+    const double compositeUiMs =
+        toMilliseconds(
+            deltaTicks(
+                timestamps[2],
+                timestamps[3]));
+
+    const auto validDuration =
+        [](double value) noexcept {
+            return
+                std::isfinite(value) &&
+                value >= 0.0 &&
+                value < 1000.0;
+        };
+
+    if (!validDuration(frameMs) ||
+        !validDuration(preWorldMs) ||
+        !validDuration(worldMs) ||
+        !validDuration(compositeUiMs)) {
+        return;
     }
 
-    const double milliseconds =
-        static_cast<double>(deltaTicks) *
-        static_cast<double>(timestampPeriodNs_) *
-        1.0e-6;
+    lastGpuFrameMs_ =
+        static_cast<float>(frameMs);
+    lastGpuPreWorldMs_ =
+        static_cast<float>(preWorldMs);
+    lastGpuWorldMs_ =
+        static_cast<float>(worldMs);
+    lastGpuCompositeUiMs_ =
+        static_cast<float>(compositeUiMs);
 
-    if (std::isfinite(milliseconds) &&
-        milliseconds >= 0.0 &&
-        milliseconds < 1000.0) {
-        lastGpuFrameMs_ =
-            static_cast<float>(
-                milliseconds);
-
-        if (!performanceTimingReadyLogged_) {
-            __android_log_print(
-                ANDROID_LOG_INFO,
-                kTag,
-                "XZIEL_PERF_TIMING cpu_render_ms=%.3f gpu_frame_ms=%.3f",
-                static_cast<double>(lastCpuRenderMs_),
-                static_cast<double>(lastGpuFrameMs_));
-            performanceTimingReadyLogged_ = true;
-        }
+    if (!performanceTimingReadyLogged_) {
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_PERF_TIMING cpu_render_ms=%.3f gpu_frame_ms=%.3f gpu_preworld_ms=%.3f gpu_world_ms=%.3f gpu_composite_ui_ms=%.3f",
+            static_cast<double>(lastCpuRenderMs_),
+            static_cast<double>(lastGpuFrameMs_),
+            static_cast<double>(lastGpuPreWorldMs_),
+            static_cast<double>(lastGpuWorldMs_),
+            static_cast<double>(lastGpuCompositeUiMs_));
+        performanceTimingReadyLogged_ = true;
     }
 }
 
