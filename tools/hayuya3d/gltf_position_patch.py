@@ -23,7 +23,10 @@ class PositionPatchResult:
     skin_signature_before:str
     skin_signature_after:str
     skin_payload_preserved:bool
-    ready:bool
+    runtime_signature_before:str=""
+    runtime_signature_after:str=""
+    runtime_payload_preserved:bool=True
+    ready:bool=True
     error:str|None=None
     method:str="hayuya-gltf-position-patch-v1"
 
@@ -340,9 +343,12 @@ def patch_position_accessors(
     replacements:dict[int,Iterable[Iterable[float]]],
 )->PositionPatchResult:
     before_signature=""
+    runtime_before=""
+    runtime_after=""
     try:
         doc,binary,chunks=_doc_and_bin(source_glb)
         before_signature=skin_payload_signature(source_glb)
+        runtime_before=runtime_payload_signature(source_glb)
         patched=bytearray(binary)
         patched_vertices=0
 
@@ -415,6 +421,13 @@ def patch_position_accessors(
         preserved=before_signature==after_signature
         if not preserved:
             raise RuntimeError("JOINTS/WEIGHTS payload changed during POSITION patch")
+        runtime_after=runtime_payload_signature(output_glb)
+        runtime_preserved=runtime_before==runtime_after
+        if not runtime_preserved:
+            raise RuntimeError(
+                "runtime payload changed during POSITION patch "
+                "(skin/animation/morph)"
+            )
         return PositionPatchResult(
             source_glb=str(source_glb),
             output_glb=str(output_glb),
@@ -423,6 +436,9 @@ def patch_position_accessors(
             skin_signature_before=before_signature,
             skin_signature_after=after_signature,
             skin_payload_preserved=True,
+            runtime_signature_before=runtime_before,
+            runtime_signature_after=runtime_after,
+            runtime_payload_preserved=True,
             ready=True,
         )
     except Exception as exc:
@@ -434,6 +450,9 @@ def patch_position_accessors(
             skin_signature_before=before_signature,
             skin_signature_after="",
             skin_payload_preserved=False,
+            runtime_signature_before=runtime_before,
+            runtime_signature_after=runtime_after,
+            runtime_payload_preserved=False,
             ready=False,
             error=f"{type(exc).__name__}:{exc}",
         )
