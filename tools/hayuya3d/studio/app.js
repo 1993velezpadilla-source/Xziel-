@@ -750,6 +750,23 @@ function renderCompositePlan(plan, executions = []) {
         "BVH " + Number(item.surface_bvh_nodes) + " nodes"
       );
     }
+    if (item.surface_ambiguous_vertices != null) {
+      parts.push(
+        Number(item.surface_ambiguous_vertices) === 0
+          ? "surface unambiguous"
+          : Number(item.surface_ambiguous_vertices) + " surface ambiguous!"
+      );
+    }
+    if (item.surface_skin_gap != null) {
+      parts.push(
+        "skin gap " + Number(item.surface_skin_gap).toFixed(4)
+      );
+    }
+    if (item.surface_skin_l1 != null) {
+      parts.push(
+        "skin L1 " + Number(item.surface_skin_l1).toFixed(2)
+      );
+    }
     if (item.morph_targets_transferred != null) {
       parts.push(Number(item.morph_targets_transferred) + " morph targets");
     }
