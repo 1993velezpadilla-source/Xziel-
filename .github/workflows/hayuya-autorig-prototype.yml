@@ -32,7 +32,7 @@ jobs:
       - name: Rig Candyland zombie with canonical CC0 animation library
         run: |
           mkdir -p out/autorig
-          blender -b --python tools/hayuya3d/blender_autorig.py --             --target hayuya/models/candy-zombie-001/model.glb             --donor hayuya/animation_library/quaternius-uam2/library.glb             --output out/autorig/candy-zombie-001-rigged.glb             --report out/autorig/autorig-report.json
+          blender --python-exit-code 1 -b --python tools/hayuya3d/blender_autorig.py --             --target hayuya/models/candy-zombie-001/model.glb             --donor hayuya/animation_library/quaternius-uam2/library.glb             --output out/autorig/candy-zombie-001-rigged.glb             --report out/autorig/autorig-report.json
 
       - name: Validate exported rig and animations
         run: |
@@ -51,7 +51,7 @@ jobs:
 
       - name: Run animation deformation gate
         run: |
-          blender -b --python tools/hayuya3d/blender_animation_gate.py -- \
+          blender --python-exit-code 1 -b --python tools/hayuya3d/blender_animation_gate.py -- \
             --model out/autorig/candy-zombie-001-rigged.glb \
             --reference hayuya/models/candy-zombie-001/model.glb \
             --json out/autorig/animation-gate.json \
