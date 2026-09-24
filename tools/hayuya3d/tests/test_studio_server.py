@@ -130,6 +130,7 @@ class StudioServerTests(unittest.TestCase):
         parts.append(field("mode", "character"))
         parts.append(file("images", "front.png", b"PNG-A"))
         parts.append(file("images", "back.png", b"PNG-B"))
+        parts.append(file("face_images", "IMG_1234.jpg", b"FACE-C"))
         body = b"".join(parts) + f"--{boundary}--\r\n".encode()
 
         fields, files = parse_multipart(
@@ -138,9 +139,12 @@ class StudioServerTests(unittest.TestCase):
         )
         self.assertEqual(fields["profile"], "ultra")
         self.assertEqual(fields["mode"], "character")
-        self.assertEqual(len(files), 2)
+        self.assertEqual(len(files), 3)
         self.assertEqual(files[0][1], "front.png")
         self.assertEqual(files[1][2], b"PNG-B")
+        self.assertEqual(files[2][0], "face_images")
+        self.assertEqual(files[2][1], "IMG_1234.jpg")
+        self.assertEqual(files[2][2], b"FACE-C")
 
 
 if __name__ == "__main__":
