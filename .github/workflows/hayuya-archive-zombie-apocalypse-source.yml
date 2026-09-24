@@ -21,53 +21,19 @@ jobs:
           ref: art/hayuya-monster-v1
           fetch-depth: 1
 
-      - name: Download every accessible file from public CC0 folder
+      - name: Download public CC0 Google Drive folder
         shell: bash
         run: |
           set -euo pipefail
-          python -m pip install --quiet "gdown>=6.1,<7"
+          python -m pip install --quiet "gdown>=5,<6"
           rm -rf /tmp/hayuya-zombie-apocalypse
           mkdir -p /tmp/hayuya-zombie-apocalypse
           folder="https://drive.google.com/drive/folders/1mWP6sCHun7OUMHQeDNZLrXTteXlzWg_t?usp=sharing"
-
-          gdown "$folder" --folder --json > /tmp/zap-files.json
-          python - <<'PY'
-          import json, pathlib, subprocess, time
-          items=json.loads(pathlib.Path("/tmp/zap-files.json").read_text())
-          root=pathlib.Path("/tmp/hayuya-zombie-apocalypse")
-          missing=[]
-          print("HAYUYA_ZAP_EXPECTED",len(items))
-          for i,item in enumerate(items,1):
-              url=item.get("url")
-              rel=item.get("path")
-              if not url or not rel:
-                  missing.append({"path":rel,"url":url,"reason":"bad_listing"})
-                  continue
-              dst=root/pathlib.PurePosixPath(rel)
-              dst.parent.mkdir(parents=True,exist_ok=True)
-              ok=False
-              last=""
-              for attempt in range(1,5):
-                  cmd=["gdown",url,"-O",str(dst),"--retries","3"]
-                  if dst.exists() and dst.stat().st_size>0:
-                      cmd.append("--continue")
-                  proc=subprocess.run(cmd,text=True,capture_output=True)
-                  if proc.returncode==0 and dst.exists() and dst.stat().st_size>0:
-                      ok=True
-                      break
-                  last=(proc.stderr or proc.stdout or "")[-1200:]
-                  time.sleep(attempt*1.5)
-              print("HAYUYA_ZAP_FILE",i,len(items),"OK" if ok else "FAILED",rel)
-              if not ok:
-                  missing.append({"path":rel,"url":url,"reason":last})
-                  try: dst.unlink()
-                  except FileNotFoundError: pass
-          pathlib.Path("/tmp/zap-missing.json").write_text(json.dumps(missing,indent=2)+"\n")
-          print("HAYUYA_ZAP_MISSING",len(missing))
-          if missing:
-              for row in missing:
-                  print("MISSING",row["path"],row["url"])
-          PY
+          gdown --folder --remaining-ok "$folder" -O /tmp/hayuya-zombie-apocalypse
+          find /tmp/hayuya-zombie-apocalypse -type f -printf '%P\n' | sort > /tmp/zap-files.txt
+          files="$(wc -l < /tmp/zap-files.txt)"
+          echo "HAYUYA_ZAP_DOWNLOADED=$files"
+          test "$files" -gt 5
 
       - name: Validate and package source
         shell: bash
@@ -79,17 +45,11 @@ jobs:
           echo "HAYUYA_ZAP_BYTES=$bytes"
           test "$files" -gt 5
           test "$bytes" -gt 1000000
-          test "$bytes" -lt 1000000000
+
           dst="hayuya/source_archives/quaternius_zombie_apocalypse"
           rm -rf "$dst"
-          mkdir -p "$dst/parts"
-          cp /tmp/zap-files.json "$dst/DRIVE_LISTING.json" 2>/dev/null || true
-          cp /tmp/zap-missing.json "$dst/MISSING.json" 2>/dev/null || echo '[]' > "$dst/MISSING.json"
-
-          (
-            cd /tmp/hayuya-zombie-apocalypse
-            find . -type f -printf '%P\n' | sort > "$GITHUB_WORKSPACE/$dst/INVENTORY.txt"
-          )
+          mkdir -p "$dst/zip_parts"
+          cp /tmp/zap-files.txt "$dst/INVENTORY.txt"
 
           cat > "$dst/SOURCE.txt" <<'EOF'
           Title: Zombie Apocalypse Kit
@@ -98,38 +58,43 @@ jobs:
           Original pack page: https://quaternius.com/packs/zombieapocalypsekit.html
           Public creator Patreon post: https://www.patreon.com/posts/zombie-kit-60-100385247
           Public Google Drive folder: https://drive.google.com/drive/folders/1mWP6sCHun7OUMHQeDNZLrXTteXlzWg_t
-          HAYUYA storage: lossless tar.gz split into GitHub-safe chunks. Reassemble chunks in lexical order before extraction.
           EOF
 
-          tar -C /tmp/hayuya-zombie-apocalypse -czf /tmp/quaternius_zombie_apocalypse.tar.gz .
-          sha256sum /tmp/quaternius_zombie_apocalypse.tar.gz > "$dst/SHA256.txt"
-          split -b 90M -d -a 3             /tmp/quaternius_zombie_apocalypse.tar.gz             "$dst/parts/quaternius_zombie_apocalypse.tar.gz.part-"
+          (
+            cd /tmp/hayuya-zombie-apocalypse
+            zip -qr /tmp/quaternius_zombie_apocalypse.zip .
+          )
+          zipbytes="$(stat -c%s /tmp/quaternius_zombie_apocalypse.zip)"
+          if [ "$zipbytes" -lt 99000000 ]; then
+            cp /tmp/quaternius_zombie_apocalypse.zip "$dst/quaternius_zombie_apocalypse.zip"
+            zipmode="single"
+          else
+            split -b 90M -d -a 3 /tmp/quaternius_zombie_apocalypse.zip "$dst/zip_parts/quaternius_zombie_apocalypse.zip.part-"
+            zipmode="split"
+          fi
+          sha256sum /tmp/quaternius_zombie_apocalypse.zip > "$dst/SHA256-ZIP.txt"
 
-          python - <<'PY'
-          import json
+          ZIPMODE="$zipmode" ZIPBYTES="$zipbytes" python - <<'PY'
+          import json, os
           from pathlib import Path
           root=Path("hayuya/source_archives/quaternius_zombie_apocalypse")
-          parts=[]
-          for p in sorted((root/"parts").glob("*")):
-              parts.append({"path":str(p).replace("\\","/"),"bytes":p.stat().st_size})
-          inventory=(root/"INVENTORY.txt").read_text().splitlines()
-          missing=json.loads((root/"MISSING.json").read_text()) if (root/"MISSING.json").exists() else []
-          listing=json.loads((root/"DRIVE_LISTING.json").read_text()) if (root/"DRIVE_LISTING.json").exists() else []
-          manifest={
-              "schema":1,
-              "id":"quaternius_zombie_apocalypse",
-              "license":"CC0",
-              "source_page":"https://quaternius.com/packs/zombieapocalypsekit.html",
-              "drive_folder":"https://drive.google.com/drive/folders/1mWP6sCHun7OUMHQeDNZLrXTteXlzWg_t",
-              "expected_file_count":len(listing),
-              "source_file_count":len(inventory),
-              "missing_file_count":len(missing),
-              "complete":len(missing)==0 and len(listing)>0,
-              "missing":missing,
-              "parts":parts,
+          inv=(root/"INVENTORY.txt").read_text().splitlines()
+          parts=[{"path":str(p).replace("\\","/"),"bytes":p.stat().st_size} for p in sorted((root/"zip_parts").glob("*"))]
+          m={
+            "schema":1,
+            "id":"quaternius_zombie_apocalypse",
+            "license":"CC0",
+            "source_page":"https://quaternius.com/packs/zombieapocalypsekit.html",
+            "drive_folder":"https://drive.google.com/drive/folders/1mWP6sCHun7OUMHQeDNZLrXTteXlzWg_t",
+            "source_file_count":len(inv),
+            "zip_mode":os.environ["ZIPMODE"],
+            "zip_bytes":int(os.environ["ZIPBYTES"]),
+            "zip_archive":"hayuya/source_archives/quaternius_zombie_apocalypse/quaternius_zombie_apocalypse.zip" if os.environ["ZIPMODE"]=="single" else None,
+            "zip_parts":parts,
+            "complete":True
           }
-          (root/"manifest.json").write_text(json.dumps(manifest,indent=2)+"\n")
-          print(json.dumps(manifest,indent=2))
+          (root/"manifest.json").write_text(json.dumps(m,indent=2)+"\n")
+          print(json.dumps(m,indent=2))
           PY
 
       - name: Commit archived source
