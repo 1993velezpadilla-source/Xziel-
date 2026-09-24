@@ -1,6 +1,0 @@
-Title: Rokoko mocap — 12 free zombie animations
-Creator: Rokoko / Sam Lazarus
-Source page: https://www.rokoko.com/resources/rokoko-mocap-12-free-zombie-animations
-Public resource folder: https://drive.google.com/drive/folders/1Jz9UylqxBP7Z1rmXLO0-Mr1Wj36D_6UD
-Format advertised by source: FBX, Mixamo skeleton, 30 FPS
-Source page states the animations may be used in animation, VFX, games and 3D art projects, including commercial projects.
