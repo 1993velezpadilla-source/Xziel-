@@ -111,6 +111,8 @@ class MonetizationBrainTests(unittest.TestCase):
         self.assertFalse(google["worldSpace"])
         self.assertIn("INTERSTITIAL", google["formats"])
         self.assertIn("REWARDED", google["formats"])
+        self.assertGreater(plan["shared_xziel_ad_contract"]["inventory_pattern_count"], 30)
+        self.assertTrue(plan["shared_xziel_ad_contract"]["google_play_principles"]["gameplayFirst"])
 
     def test_active_gameplay_rejects_programmatic_overlay(self):
         plan = compile_monetization_intelligence({"entities": {}})
