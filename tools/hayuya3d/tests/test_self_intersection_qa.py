@@ -71,10 +71,11 @@ class SelfIntersectionQATests(unittest.TestCase):
                 (-1.0,0.0,0.0), # 0
                 ( 1.0,0.0,0.0), # 1
                 ( 0.0,1.0,0.0), # 2
-                # Triangle B: vertical, crossing A through its interior.
-                (0.0,-0.4,-1.0), # 3
-                (0.0,-0.4, 1.0), # 4
-                (0.0, 0.6, 0.0), # 5
+                # Triangle B: vertical. Edge 3->4 crosses z=0 at
+                # (0,0.30,0), strictly inside triangle A.
+                (0.0, 0.30,-1.0), # 3
+                (0.0, 0.30, 1.0), # 4
+                (0.0,-0.60, 0.2), # 5
                 # Connector placed away from the central crossing.
                 (1.8,1.8,1.8),   # 6
                 (2.1,1.8,1.8),   # 7
