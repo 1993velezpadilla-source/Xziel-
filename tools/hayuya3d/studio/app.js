@@ -264,6 +264,7 @@ function renderCandidates(job) {
       ["Shape", candidate.visual_score],
       ["Look", candidate.appearance_score],
       ["Face", candidate.face_detail_score],
+      ["Face worst", candidate.face_detail_min_score],
       ["Detail", candidate.detail_score],
       ["Material", candidate.material_score],
       ["Texture", candidate.texture_resolution_score],
