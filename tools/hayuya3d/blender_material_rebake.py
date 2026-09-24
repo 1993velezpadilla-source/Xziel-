@@ -362,41 +362,71 @@ def main():
         # are only normal-bake evidence and must not contaminate target AO.
         for source_obj in source_meshes:
             source_obj.hide_render=True
-        ao_image=new_noncolor_image(
-            "HAYUYA_Rebaked_Occlusion",a.size,(1.0,1.0,1.0,1.0)
-        )
-        # Cycles AO bake writes into the active image node on each material.
-        # Use the runtime target itself (solid/UV'd) instead of routing an AO
-        # shader through emission, which Blender 4 can evaluate as all-zero.
-        for material in materials:
-            active_image_node(material,ao_image,"HAYUYA_AO_BAKE_TARGET")
         scene.render.bake.use_selected_to_active=False
         if hasattr(scene.render.bake,"target"):
             scene.render.bake.target="IMAGE_TEXTURES"
-        select_only([target],target)
-        bpy.ops.object.bake(type="COMBINED",pass_filter={"AO"})
-        configure_occlusion(materials,ao_image)
-        ao_stats=image_signal_stats(ao_image,0)
-        ao_range=(
-            float(ao_stats["max"])-float(ao_stats["min"])
-            if ao_stats.get("max") is not None and ao_stats.get("min") is not None
-            else 0.0
-        )
-        ao_signal_valid=ao_range>1e-4
-        ao_image.pack()
+
+        ao_attempts=[]
+        ao_image=None
+        ao_method=None
+        for attempt_name,bake_kwargs in (
+            ("cycles_native_ao_target_only_v5",{"type":"AO"}),
+            (
+                "cycles_combined_ao_pass_target_only_v5",
+                {"type":"COMBINED","pass_filter":{"AO"}},
+            ),
+        ):
+            candidate_image=new_noncolor_image(
+                "HAYUYA_Rebaked_Occlusion_"+attempt_name,
+                a.size,
+                (1.0,1.0,1.0,1.0),
+            )
+            for material in materials:
+                active_image_node(
+                    material,
+                    candidate_image,
+                    "HAYUYA_AO_BAKE_TARGET_"+attempt_name,
+                )
+            select_only([target],target)
+            bpy.ops.object.bake(**bake_kwargs)
+            candidate_stats=image_signal_stats(candidate_image,0)
+            candidate_range=(
+                float(candidate_stats["max"])-float(candidate_stats["min"])
+                if candidate_stats.get("max") is not None
+                and candidate_stats.get("min") is not None
+                else 0.0
+            )
+            attempt={
+                "method":attempt_name,
+                "signal":candidate_stats,
+                "signal_range":round(candidate_range,6),
+                "signal_valid":candidate_range>1e-4,
+            }
+            ao_attempts.append(attempt)
+            print(
+                "HAYUYA_REBAKE_SIGNAL occlusion_attempt "
+                + json.dumps(attempt,sort_keys=True)
+            )
+            if attempt["signal_valid"]:
+                ao_image=candidate_image
+                ao_method=attempt_name
+                break
+
+        ao_signal_valid=ao_image is not None
         images["occlusion"]={
-            "name":ao_image.name,
-            "signal":ao_stats,
-            "signal_range":round(ao_range,6),
             "signal_valid":ao_signal_valid,
-            "method":"cycles_combined_ao_pass_target_only_v4",
+            "method":ao_method,
+            "attempts":ao_attempts,
         }
+        if ao_signal_valid:
+            configure_occlusion(materials,ao_image)
+            ao_image.pack()
+            images["occlusion"]["name"]=ao_image.name
+            resolved.append("occlusion")
         print(
             "HAYUYA_REBAKE_SIGNAL occlusion "
             + json.dumps(images["occlusion"],sort_keys=True)
         )
-        if ao_signal_valid:
-            resolved.append("occlusion")
 
     select_only([target],target)
     bpy.ops.export_scene.gltf(
