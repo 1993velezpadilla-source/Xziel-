@@ -21,6 +21,7 @@ class LocalDetailFusionResult:
     changed_fraction:float
     donor_alignment_p95_ratio:float|None
     skin_payload_preserved:bool
+    runtime_payload_preserved:bool
     geometry_preserved:bool
     skipped_uv_seam_faces:int
     seam_boundary_pairs:int
@@ -410,10 +411,17 @@ def fuse_local_basecolor(
             {image_index:("image/png",buf.getvalue())},
         )
 
-        from gltf_position_patch import skin_payload_signature
+        from gltf_position_patch import (
+            runtime_payload_signature,
+            skin_payload_signature,
+        )
         skin_preserved=(
             skin_payload_signature(base_mesh)
             ==skin_payload_signature(output_glb)
+        )
+        runtime_preserved=(
+            runtime_payload_signature(base_mesh)
+            ==runtime_payload_signature(output_glb)
         )
 
         from qa import inspect_mesh
@@ -443,6 +451,11 @@ def fuse_local_basecolor(
             raise RuntimeError(
                 "local texture fusion changed JOINTS/WEIGHTS payload"
             )
+        if not runtime_preserved:
+            raise RuntimeError(
+                "local texture fusion changed protected runtime payload "
+                "(skin/animation/morph)"
+            )
 
         return LocalDetailFusionResult(
             base_mesh=str(base_mesh),
@@ -456,6 +469,7 @@ def fuse_local_basecolor(
             changed_fraction=round(changed/total,6),
             donor_alignment_p95_ratio=round(alignment_p95,6),
             skin_payload_preserved=True,
+            runtime_payload_preserved=True,
             geometry_preserved=True,
             skipped_uv_seam_faces=skipped_seams,
             seam_boundary_pairs=seam_pairs,
@@ -476,6 +490,7 @@ def fuse_local_basecolor(
             changed_fraction=0.0,
             donor_alignment_p95_ratio=None,
             skin_payload_preserved=False,
+            runtime_payload_preserved=False,
             geometry_preserved=False,
             skipped_uv_seam_faces=0,
             seam_boundary_pairs=0,
