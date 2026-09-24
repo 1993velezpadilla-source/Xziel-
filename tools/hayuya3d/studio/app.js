@@ -147,6 +147,7 @@ function renderFinalQa(qa) {
   [
     ["Face score", qa.face_score],
     ["FaceMesh", qa.facemesh_score],
+    ["FaceTex", qa.facetex_score],
   ].forEach(([label, score]) => {
     if (score == null) return;
     const item = document.createElement("div");
