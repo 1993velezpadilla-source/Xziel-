@@ -291,9 +291,11 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
             "donor":values.get("donor"),
             "region":values.get("region"),
             "source":values.get("source"),
+            "strategy":values.get("strategy"),
             "changed_fraction":_float_value("changed"),
             "seam_p95":_float_value("seam_p95"),
             "seam_max":_float_value("seam_max"),
+            "accessory_confidence":_float_value("accessory_confidence"),
             "path":values.get("path"),
             "status":"challenger",
         }
