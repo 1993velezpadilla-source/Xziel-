@@ -19,6 +19,7 @@ on:
       - "tools/hayuya3d/world_reasoning.py"
       - "tools/hayuya3d/gameplay_graph_solver.py"
       - "tools/hayuya3d/world_model_broker.py"
+      - "tools/hayuya3d/reference_search_broker.py"
       - "hayuya/standards/hayuya_universal_game_design_brain_v1.json"
       - "hayuya/standards/hayuya_monetization_brain_v1.json"
       - "hayuya/standards/hayuya_world_reasoning_domains_v1.json"
@@ -31,6 +32,7 @@ on:
       - "tools/hayuya3d/tests/test_geo_coordinates.py"
       - "tools/hayuya3d/tests/test_universal_design_and_ads.py"
       - "tools/hayuya3d/tests/test_gameplay_graph_solver.py"
+      - "tools/hayuya3d/tests/test_reference_search_broker.py"
       - "docs/hayuya/HAYUYA_MAP_WORLD_BRAIN.md"
       - "docs/hayuya/HAYUYA_LIGHTING_BRAIN.md"
       - "docs/ZOMBIES_MAP_DNA_ATLAS.md"
@@ -81,6 +83,7 @@ jobs:
             tools/hayuya3d/tests/test_geo_coordinates.py \
             tools/hayuya3d/tests/test_universal_design_and_ads.py \
             tools/hayuya3d/tests/test_gameplay_graph_solver.py \
+            tools/hayuya3d/tests/test_reference_search_broker.py \
             -v
 
       - name: Prove provider readiness is secret-safe
@@ -160,6 +163,7 @@ jobs:
           cp tools/hayuya3d/hayuya_ads.py /tmp/hayuya-map-intelligence/tools/hayuya3d/
           cp tools/hayuya3d/gameplay_graph_solver.py /tmp/hayuya-map-intelligence/tools/hayuya3d/
           cp tools/hayuya3d/world_model_broker.py /tmp/hayuya-map-intelligence/tools/hayuya3d/
+          cp tools/hayuya3d/reference_search_broker.py /tmp/hayuya-map-intelligence/tools/hayuya3d/
           cp tools/hayuya3d/world_semantics.py /tmp/hayuya-map-intelligence/tools/hayuya3d/
           cp ads/policy/google_play_guardrails_v1.json /tmp/hayuya-map-intelligence/ads/policy/
           cp ads/design/world_inventory_patterns_v1.json /tmp/hayuya-map-intelligence/ads/design/
