@@ -174,11 +174,28 @@ class StudioServerTests(unittest.TestCase):
                 encoding="utf-8",
             )
             job = self.make_job(root)
+            composite = root / "composite_champion_plan.json"
+            composite.write_text(json.dumps({
+                "base_backend": "trellis2_seed01",
+                "composite_required": True,
+                "finalist_backends": ["trellis2_seed01","trellis2_seed02"],
+                "donors": [{
+                    "region": "face_identity",
+                    "donor_backend": "trellis2_seed02",
+                    "donor_score": 98.0,
+                    "strategy": "surface_wrap_plus_identity_texture_projection",
+                    "seam_risk": "high",
+                    "rig_risk": "high",
+                }],
+                "executable_now": [],
+                "deferred_transfers": ["face_identity"],
+            }), encoding="utf-8")
             lines = [
                 ("HAYUYA_VIEWFORGE_READY backend=wonder3d synthetic_views=5", "viewforge"),
                 ("HAYUYA_REFINEMENT_READY source=x preferred=y improvement=2", "refinement"),
                 ("HAYUYA_MESH_DOCTOR_CLEAN defect_score=0", "mesh_doctor"),
                 ("HAYUYA_RETOPO_READY style=pure_quad quad_fraction=1 obj=x", "retopo"),
+                (f"HAYUYA_COMPOSITE_PLAN_READY base=trellis2_seed01 required=true finalists=2 donors=face_identity:trellis2_seed02 plan={composite}", "composite"),
                 ("HAYUYA_GAMEPREP_READY lods=4 collision=True turntable=8", "gameprep"),
                 ("HAYUYA_PORTABLE_PACK_READY tiers=4 complete_lods=True manifest=x", "portable"),
                 (f"HAYUYA_QA_READY production_ready=True material_ready=True texture_ready=True texture_score=100.0 basecolor_min=4096 basecolor_max=4096 texture_target=4096 rebake_ready=True rebaked=normal,occlusion rebake_pending=none rig_ready=False animation_ready=False face_ready=True face_quality_ready=True face_score=94.5 face_min=89.0 face_expected=2 face_evaluated=2 facemesh_score=88.0 facetex_score=91.0 facedetail_score=87.5 report={report}", "qa"),
@@ -189,6 +206,16 @@ class StudioServerTests(unittest.TestCase):
                 self.assertEqual(job.stage, expected)
                 self.assertGreater(job.progress, last_progress)
                 last_progress = job.progress
+            self.assertIsNotNone(job.composite_plan)
+            self.assertEqual(
+                job.composite_plan["base_backend"],
+                "trellis2_seed01",
+            )
+            self.assertTrue(job.composite_plan["composite_required"])
+            self.assertEqual(
+                job.composite_plan["donors"][0]["donor_backend"],
+                "trellis2_seed02",
+            )
             self.assertEqual(job.final_qa["facemesh_score"], 88.0)
             self.assertTrue(job.final_qa["face_quality_ready"])
             self.assertEqual(job.final_qa["face_score"], 94.5)
