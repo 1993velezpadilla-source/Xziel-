@@ -358,6 +358,7 @@ def build_qa_package(
             "global_median_edge_normalized": mesh.global_median_edge_normalized,
             "head_region_median_edge_normalized": mesh.head_region_median_edge_normalized,
             "head_region_density_ratio": mesh.head_region_density_ratio,
+            "head_density_score": mesh.head_density_score,
         },
         "structure": asdict(structure),
         "material": {
