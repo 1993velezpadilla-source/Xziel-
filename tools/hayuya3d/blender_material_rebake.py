@@ -161,6 +161,36 @@ def configure_occlusion(materials,image):
         links.new(tex.outputs["Color"],socket)
 
 
+def image_signal_stats(image,channel_index=0,max_samples=65536):
+    """Sample a baked image without materializing a multi-4K pixel list."""
+    pixels=image.pixels
+    pixel_count=max(0,len(pixels)//4)
+    if pixel_count<=0:
+        return {"samples":0,"min":None,"max":None,"mean":None,"stddev":None}
+    stride=max(1,pixel_count//max_samples)
+    count=0
+    mean=0.0
+    m2=0.0
+    mn=float("inf")
+    mx=float("-inf")
+    for pixel_index in range(0,pixel_count,stride):
+        value=float(pixels[pixel_index*4+channel_index])
+        count+=1
+        delta=value-mean
+        mean+=delta/count
+        m2+=delta*(value-mean)
+        mn=min(mn,value)
+        mx=max(mx,value)
+    variance=m2/max(1,count-1)
+    return {
+        "samples":count,
+        "min":round(mn,6),
+        "max":round(mx,6),
+        "mean":round(mean,6),
+        "stddev":round(variance**0.5,6),
+    }
+
+
 def new_noncolor_image(name,size,fill):
     image=bpy.data.images.new(
         name,
@@ -224,8 +254,9 @@ def main():
         scene.render.bake.normal_space="TANGENT"
         select_only([*source_meshes,target],target)
         bpy.ops.object.bake(type="NORMAL")
+        normal_stats=image_signal_stats(normal_image,0)
         normal_image.pack()
-        images["normal"]=normal_image.name
+        images["normal"]={"name":normal_image.name,"signal":normal_stats}
         resolved.append("normal")
 
     if "occlusion" in channels:
@@ -236,8 +267,9 @@ def main():
         scene.render.bake.use_selected_to_active=False
         select_only([target],target)
         bpy.ops.object.bake(type="AO")
+        ao_stats=image_signal_stats(ao_image,0)
         ao_image.pack()
-        images["occlusion"]=ao_image.name
+        images["occlusion"]={"name":ao_image.name,"signal":ao_stats}
         resolved.append("occlusion")
 
     select_only([target],target)
