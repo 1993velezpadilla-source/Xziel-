@@ -2624,8 +2624,264 @@ bool VulkanClearRenderer::createUiPipeline() noexcept {
         return false;
     }
 
+    VkShaderModule batchVertex = VK_NULL_HANDLE;
+    VkShaderModule batchFragment = VK_NULL_HANDLE;
+
+    if (!createShaderModuleFromAsset(
+            "shaders/xziel_ui_batch.vert.spv",
+            batchVertex) ||
+        !createShaderModuleFromAsset(
+            "shaders/xziel_ui_batch.frag.spv",
+            batchFragment)) {
+        if (batchVertex != VK_NULL_HANDLE) {
+            vkDestroyShaderModule(device_, batchVertex, nullptr);
+        }
+        if (batchFragment != VK_NULL_HANDLE) {
+            vkDestroyShaderModule(device_, batchFragment, nullptr);
+        }
+        logError("UI batch shader load failed");
+        return false;
+    }
+
+    const std::array<VkPipelineShaderStageCreateInfo, 2>
+        batchStages{{
+            {
+                VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+                nullptr,
+                0,
+                VK_SHADER_STAGE_VERTEX_BIT,
+                batchVertex,
+                "main",
+                nullptr,
+            },
+            {
+                VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+                nullptr,
+                0,
+                VK_SHADER_STAGE_FRAGMENT_BIT,
+                batchFragment,
+                "main",
+                nullptr,
+            },
+        }};
+
+    VkVertexInputBindingDescription batchBinding{};
+    batchBinding.binding = 0U;
+    batchBinding.stride =
+        static_cast<std::uint32_t>(
+            sizeof(UiBatchVertex));
+    batchBinding.inputRate =
+        VK_VERTEX_INPUT_RATE_VERTEX;
+
+    const std::array<VkVertexInputAttributeDescription, 4>
+        batchAttributes{{
+            {
+                0U,
+                0U,
+                VK_FORMAT_R32G32_SFLOAT,
+                static_cast<std::uint32_t>(
+                    offsetof(UiBatchVertex, positionX)),
+            },
+            {
+                1U,
+                0U,
+                VK_FORMAT_R32G32_SFLOAT,
+                static_cast<std::uint32_t>(
+                    offsetof(UiBatchVertex, localX)),
+            },
+            {
+                2U,
+                0U,
+                VK_FORMAT_R32G32B32A32_SFLOAT,
+                static_cast<std::uint32_t>(
+                    offsetof(UiBatchVertex, colorR)),
+            },
+            {
+                3U,
+                0U,
+                VK_FORMAT_R32G32_SFLOAT,
+                static_cast<std::uint32_t>(
+                    offsetof(UiBatchVertex, shape)),
+            },
+        }};
+
+    VkPipelineVertexInputStateCreateInfo batchVertexInput{
+        VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO
+    };
+    batchVertexInput.vertexBindingDescriptionCount = 1U;
+    batchVertexInput.pVertexBindingDescriptions =
+        &batchBinding;
+    batchVertexInput.vertexAttributeDescriptionCount =
+        static_cast<std::uint32_t>(
+            batchAttributes.size());
+    batchVertexInput.pVertexAttributeDescriptions =
+        batchAttributes.data();
+
+    VkGraphicsPipelineCreateInfo batchPipelineInfo =
+        pipelineInfo;
+    batchPipelineInfo.pStages =
+        batchStages.data();
+    batchPipelineInfo.pVertexInputState =
+        &batchVertexInput;
+
+    result =
+        vkCreateGraphicsPipelines(
+            device_,
+            VK_NULL_HANDLE,
+            1U,
+            &batchPipelineInfo,
+            nullptr,
+            &uiBatchPipeline_);
+
+    vkDestroyShaderModule(
+        device_,
+        batchFragment,
+        nullptr);
+    vkDestroyShaderModule(
+        device_,
+        batchVertex,
+        nullptr);
+
+    if (!ok(result)) {
+        uiBatchPipeline_ = VK_NULL_HANDLE;
+        logError("vkCreateGraphicsPipelines UI batch failed");
+        return false;
+    }
+
     logInfo("XZIEL_UI_PIPELINE_READY");
+    logInfo("XZIEL_UI_BATCH_PIPELINE_READY");
     return true;
+}
+
+bool VulkanClearRenderer::createUiBatchResources() noexcept {
+    if (uiBatchVertexBuffer_ != VK_NULL_HANDLE &&
+        uiBatchVertexMemory_ != VK_NULL_HANDLE &&
+        uiBatchMapped_ != nullptr) {
+        return true;
+    }
+
+    destroyUiBatchResources();
+
+    const VkDeviceSize frameBytes =
+        static_cast<VkDeviceSize>(
+            sizeof(UiBatchVertex)) *
+        kUiBatchVerticesPerFrame;
+    const VkDeviceSize totalBytes =
+        frameBytes *
+        kFramesInFlight;
+
+    VkBufferCreateInfo bufferInfo{
+        VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO
+    };
+    bufferInfo.size = totalBytes;
+    bufferInfo.usage =
+        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    bufferInfo.sharingMode =
+        VK_SHARING_MODE_EXCLUSIVE;
+
+    if (!ok(
+            vkCreateBuffer(
+                device_,
+                &bufferInfo,
+                nullptr,
+                &uiBatchVertexBuffer_))) {
+        logError("UI batch vertex buffer creation failed");
+        return false;
+    }
+
+    VkMemoryRequirements requirements{};
+    vkGetBufferMemoryRequirements(
+        device_,
+        uiBatchVertexBuffer_,
+        &requirements);
+
+    std::uint32_t memoryType = 0U;
+    if (!findMemoryType(
+            requirements.memoryTypeBits,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            memoryType)) {
+        logError("No host-visible memory for UI batch");
+        destroyUiBatchResources();
+        return false;
+    }
+
+    VkMemoryAllocateInfo allocation{
+        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO
+    };
+    allocation.allocationSize =
+        requirements.size;
+    allocation.memoryTypeIndex =
+        memoryType;
+
+    if (!ok(
+            vkAllocateMemory(
+                device_,
+                &allocation,
+                nullptr,
+                &uiBatchVertexMemory_)) ||
+        !ok(
+            vkBindBufferMemory(
+                device_,
+                uiBatchVertexBuffer_,
+                uiBatchVertexMemory_,
+                0U)) ||
+        !ok(
+            vkMapMemory(
+                device_,
+                uiBatchVertexMemory_,
+                0U,
+                VK_WHOLE_SIZE,
+                0U,
+                &uiBatchMapped_))) {
+        logError("UI batch vertex memory setup failed");
+        destroyUiBatchResources();
+        return false;
+    }
+
+    std::memset(
+        uiBatchMapped_,
+        0,
+        static_cast<std::size_t>(
+            totalBytes));
+
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
+        "XZIEL_UI_BATCH_BUFFER_READY bytes=%llu vertices_per_frame=%u",
+        static_cast<unsigned long long>(
+            totalBytes),
+        kUiBatchVerticesPerFrame);
+    return true;
+}
+
+void VulkanClearRenderer::destroyUiBatchResources() noexcept {
+    if (device_ != VK_NULL_HANDLE &&
+        uiBatchMapped_ != nullptr &&
+        uiBatchVertexMemory_ != VK_NULL_HANDLE) {
+        vkUnmapMemory(
+            device_,
+            uiBatchVertexMemory_);
+    }
+    uiBatchMapped_ = nullptr;
+
+    if (device_ != VK_NULL_HANDLE &&
+        uiBatchVertexBuffer_ != VK_NULL_HANDLE) {
+        vkDestroyBuffer(
+            device_,
+            uiBatchVertexBuffer_,
+            nullptr);
+    }
+    uiBatchVertexBuffer_ = VK_NULL_HANDLE;
+
+    if (device_ != VK_NULL_HANDLE &&
+        uiBatchVertexMemory_ != VK_NULL_HANDLE) {
+        vkFreeMemory(
+            device_,
+            uiBatchVertexMemory_,
+            nullptr);
+    }
+    uiBatchVertexMemory_ = VK_NULL_HANDLE;
 }
 
 bool VulkanClearRenderer::createImageViews() noexcept {
