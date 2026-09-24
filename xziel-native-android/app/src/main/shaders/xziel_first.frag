@@ -535,75 +535,83 @@ void main() {
             (0.45 +
              wave * 0.55);
 
-        // Perspective-correct lookup from the same reflected camera used by
-        // the offscreen capture. Vulkan NDC Y is converted to texture space.
-        float reflectionW = max(vReflectionClip.w, 0.0001);
-        vec2 reflectionNdc = vReflectionClip.xy / reflectionW;
-        vec2 reflectionUv =
-            vec2(
-                reflectionNdc.x * 0.5 + 0.5,
-                reflectionNdc.y * 0.5 + 0.5);
-        bool reflectionProjectionValid =
-            vReflectionClip.w > 0.08 &&
-            reflectionUv.x >= -0.02 &&
-            reflectionUv.x <= 1.02 &&
-            reflectionUv.y >= -0.02 &&
-            reflectionUv.y <= 1.02;
-
-        float distortion =
-            (1.0 - roughness) *
-            (0.003 +
-             rainResponse * 0.006) *
-            surfaceQuality;
-
-        reflectionUv +=
-            vec2(
-                waveA,
-                waveB) *
-            distortion;
-        reflectionProjectionValid =
-            reflectionProjectionValid &&
-            reflectionUv.x >= -0.015 &&
-            reflectionUv.x <= 1.015 &&
-            reflectionUv.y >= -0.015 &&
-            reflectionUv.y <= 1.015;
-
-        // PLANAR_REFLECTION_FETCH_GATE_V1
-        // When projection/ownership makes the mix weight exactly zero, avoid
-        // sampling the reflection texture altogether.
-        if (reflectionProjectionValid &&
-            vReflectionOwnerMaterial == 13 &&
+        // PLANAR_REFLECTION_PROJECTION_GATE_V1
+        // Projection/division/distortion are dead when water does not own a
+        // live target or reflection strength is zero. Gate the whole lookup
+        // path, not just the final texture fetch.
+        if (vReflectionOwnerMaterial == 13 &&
             reflectionStrength > 0.0) {
-            vec3 planarScene =
-                texture(
-                    uPlanarReflection,
-                    clamp(
-                        reflectionUv,
-                        vec2(0.002),
-                        vec2(0.998))).rgb;
+            // Perspective-correct lookup from the same reflected camera used
+            // by the offscreen capture. Vulkan NDC Y is texture space.
+            float reflectionW =
+                max(
+                    vReflectionClip.w,
+                    0.0001);
+            vec2 reflectionNdc =
+                vReflectionClip.xy /
+                reflectionW;
+            vec2 reflectionUv =
+                vec2(
+                    reflectionNdc.x * 0.5 + 0.5,
+                    reflectionNdc.y * 0.5 + 0.5);
+            bool reflectionProjectionValid =
+                vReflectionClip.w > 0.08 &&
+                reflectionUv.x >= -0.02 &&
+                reflectionUv.x <= 1.02 &&
+                reflectionUv.y >= -0.02 &&
+                reflectionUv.y <= 1.02;
 
-            float fresnelBase =
-                clamp(
-                    1.0 -
-                    abs(normal.y),
-                    0.0,
-                    1.0);
-            float fresnel =
-                fresnelBase *
-                fresnelBase *
-                fresnelBase;
+            float distortion =
+                (1.0 - roughness) *
+                (0.003 +
+                 rainResponse * 0.006) *
+                surfaceQuality;
 
-            reflectedSky =
-                mix(
-                    reflectedSky,
-                    planarScene,
+            reflectionUv +=
+                vec2(
+                    waveA,
+                    waveB) *
+                distortion;
+            reflectionProjectionValid =
+                reflectionProjectionValid &&
+                reflectionUv.x >= -0.015 &&
+                reflectionUv.x <= 1.015 &&
+                reflectionUv.y >= -0.015 &&
+                reflectionUv.y <= 1.015;
+
+            // PLANAR_REFLECTION_FETCH_GATE_V1
+            if (reflectionProjectionValid) {
+                vec3 planarScene =
+                    texture(
+                        uPlanarReflection,
+                        clamp(
+                            reflectionUv,
+                            vec2(0.002),
+                            vec2(0.998))).rgb;
+
+                float fresnelBase =
                     clamp(
-                        reflectionStrength *
-                        (0.42 +
-                         fresnel * 0.48) *
-                        (1.0 - roughness * 0.72),
+                        1.0 -
+                        abs(normal.y),
                         0.0,
-                        0.92));
+                        1.0);
+                float fresnel =
+                    fresnelBase *
+                    fresnelBase *
+                    fresnelBase;
+
+                reflectedSky =
+                    mix(
+                        reflectedSky,
+                        planarScene,
+                        clamp(
+                            reflectionStrength *
+                            (0.42 +
+                             fresnel * 0.48) *
+                            (1.0 - roughness * 0.72),
+                            0.0,
+                            0.92));
+            }
         }
 
         vec3 refractedDepth =
@@ -677,40 +685,50 @@ void main() {
                 vec3(0.11, 0.16, 0.23),
                 0.30 + glossy * 0.52);
 
-        float mirrorW = max(vReflectionClip.w, 0.0001);
-        vec2 mirrorNdc = vReflectionClip.xy / mirrorW;
-        vec2 mirrorUv = vec2(
-            mirrorNdc.x * 0.5 + 0.5,
-            mirrorNdc.y * 0.5 + 0.5);
-        bool mirrorProjectionValid =
-            vReflectionOwnerMaterial == 14 &&
-            vReflectionClip.w > 0.08 &&
-            mirrorUv.x >= -0.015 &&
-            mirrorUv.x <= 1.015 &&
-            mirrorUv.y >= -0.015 &&
-            mirrorUv.y <= 1.015;
-
         vec3 mirrorBase =
             mirrorProbe;
 
-        if (mirrorProjectionValid) {
-            vec3 mirrorPlanar =
-                texture(
-                    uPlanarReflection,
-                    clamp(
-                        mirrorUv,
-                        vec2(0.002),
-                        vec2(0.998))).rgb;
+        // MIRROR_REFLECTION_PROJECTION_GATE_V1
+        // A non-owner mirror uses the probe only, so skip projective divide,
+        // UV bounds and texture lookup entirely.
+        if (vReflectionOwnerMaterial == 14) {
+            float mirrorW =
+                max(
+                    vReflectionClip.w,
+                    0.0001);
+            vec2 mirrorNdc =
+                vReflectionClip.xy /
+                mirrorW;
+            vec2 mirrorUv =
+                vec2(
+                    mirrorNdc.x * 0.5 + 0.5,
+                    mirrorNdc.y * 0.5 + 0.5);
+            bool mirrorProjectionValid =
+                vReflectionClip.w > 0.08 &&
+                mirrorUv.x >= -0.015 &&
+                mirrorUv.x <= 1.015 &&
+                mirrorUv.y >= -0.015 &&
+                mirrorUv.y <= 1.015;
 
-            mirrorBase =
-                mix(
-                    mirrorProbe,
-                    mirrorPlanar,
-                    clamp(
-                        0.76 +
-                        glossy * 0.18,
-                        0.0,
-                        0.94));
+            if (mirrorProjectionValid) {
+                vec3 mirrorPlanar =
+                    texture(
+                        uPlanarReflection,
+                        clamp(
+                            mirrorUv,
+                            vec2(0.002),
+                            vec2(0.998))).rgb;
+
+                mirrorBase =
+                    mix(
+                        mirrorProbe,
+                        mirrorPlanar,
+                        clamp(
+                            0.76 +
+                            glossy * 0.18,
+                            0.0,
+                            0.94));
+            }
         }
 
         lit =

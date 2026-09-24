@@ -410,12 +410,22 @@ void main() {
 
     gl_Position = clip;
 
-    // REFLECTION_VERTEX_MATERIAL_GATE_V1
-    // Only water/mirror fragments consume vReflectionClip. Skip mirrored
-    // camera construction (normalization, trig and atan work) for every other
-    // material. material is uniform for the draw, so this branch is coherent.
-    if (material == 13 ||
-        material == 14) {
+    int reflectionOwnerMaterial =
+        int(
+            pc.cameraPitchFov.z +
+            0.5);
+    bool reflectionVertexNeeded =
+        (material == 13 &&
+         reflectionOwnerMaterial == 13 &&
+         pc.waterSurface.z > 0.0) ||
+        (material == 14 &&
+         reflectionOwnerMaterial == 14);
+
+    // REFLECTION_VERTEX_CONTRIBUTION_GATE_V1
+    // Reprojection is consumed only by the live target owner. Water also
+    // needs positive reflection strength. These values are draw-uniform, so
+    // non-contributing surfaces skip all reflection trig/atan work coherently.
+    if (reflectionVertexNeeded) {
         // Reproject each world position through the camera mirrored across the
         // authored planar surface. The fragment shader then samples the live
         // reflection target using true projective coordinates.
@@ -508,6 +518,7 @@ void main() {
     vEnvironment = pc.environment;
     vWaterSurface = pc.waterSurface;
     vWaterSurfaceExtra = pc.waterSurfaceExtra;
-    vReflectionOwnerMaterial = int(pc.cameraPitchFov.z + 0.5);
+    vReflectionOwnerMaterial =
+        reflectionOwnerMaterial;
     // vReflectionClip was populated above from the reflected camera.
 }
