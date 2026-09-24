@@ -611,6 +611,46 @@ def inspect_mesh(
         return result
 
 
+def character_quality_evidence_complete(
+    item: MeshScore,
+    *,
+    identity_required: bool=False,
+) -> bool:
+    """Return whether a character candidate has the evidence QA needs to ship."""
+    names=[
+        "head_density_score",
+        "head_texel_density_score",
+        "head_texture_detail_score",
+    ]
+    if identity_required:
+        names.append("appearance_face_detail_min_score")
+    for name in names:
+        value=getattr(item,name,None)
+        try:
+            if not math.isfinite(float(value)):
+                return False
+        except (TypeError,ValueError):
+            return False
+    return True
+
+
+def candidate_rank_key(
+    item: MeshScore,
+    *,
+    mode: str,
+    identity_required: bool=False,
+) -> tuple:
+    evidence_ready=(
+        character_quality_evidence_complete(
+            item,
+            identity_required=identity_required,
+        )
+        if mode=="character"
+        else True
+    )
+    return (bool(item.valid),bool(evidence_ready),float(item.score))
+
+
 def rank_candidates(
     candidates: Iterable[tuple[str, Path]],
     *,
@@ -790,7 +830,26 @@ def rank_candidates(
                             f"synthetic normal support unavailable: {type(exc).__name__}: {exc}"
                         )
 
-    return sorted(scores, key=lambda x: (x.valid, x.score), reverse=True)
+    identity_required=False
+    if mode=="character" and detail_images:
+        try:
+            from reference_pool import infer_detail_region_hint
+            identity_required=any(
+                infer_detail_region_hint(path)=="head"
+                for path in detail_images
+            )
+        except Exception:
+            identity_required=False
+
+    return sorted(
+        scores,
+        key=lambda x: candidate_rank_key(
+            x,
+            mode=mode,
+            identity_required=identity_required,
+        ),
+        reverse=True,
+    )
 
 
 def export_glb(src: Path, dst: Path) -> Path:
