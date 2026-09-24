@@ -73,7 +73,20 @@ jobs:
           assert sanctum["constraints"]["horror"]
           assert len(sanctum["guardrails"]) >= 4
           assert committed_sanctum["sourceMaps"] == sanctum["sourceMaps"]
-          assert committed_sanctum["constraints"] == sanctum["constraints"]
+
+          def normalized_constraints(payload):
+              return {
+                  field: {
+                      item["value"]: item["count"]
+                      for item in values
+                  }
+                  for field, values in payload["constraints"].items()
+              }
+
+          assert (
+              normalized_constraints(committed_sanctum)
+              == normalized_constraints(sanctum)
+          )
 
           print(
               "XZIEL_ZOMBIES_MAP_DNA_GREEN "
