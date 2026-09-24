@@ -32,6 +32,9 @@ class QAPackageResult:
     material_rebake_pending_channels: list[str]
     rig_ready: bool
     animation_ready: bool
+    animation_integrity_ready: bool
+    animation_channels: int
+    animation_keyframes: int
     skin_weights_applicable: bool
     skin_weights_ready: bool
     turntable_ready: bool
@@ -369,7 +372,33 @@ def build_qa_package(
 
     rig_required = mode == "character"
     rig_ready = bool(rig.rig_ready)
-    animation_ready = bool(rig.animation_ready)
+    embedded_animation_ready = bool(rig.animation_ready)
+
+    animation_audit = None
+    animation_integrity_ready = False
+    animation_channels = 0
+    animation_keyframes = 0
+    if rig_required and rig_ready and embedded_animation_ready:
+        try:
+            from animation_qa import audit_animation
+            animation_audit = audit_animation(final_glb)
+            animation_integrity_ready = bool(
+                animation_audit.applicable
+                and animation_audit.ready
+            )
+            animation_channels = int(animation_audit.channel_count)
+            animation_keyframes = int(animation_audit.total_keyframes)
+            warnings.extend(animation_audit.warnings or [])
+            warnings.extend(animation_audit.errors or [])
+        except Exception as exc:
+            warnings.append(
+                "animation QA unavailable: "
+                f"{type(exc).__name__}: {exc}"
+            )
+    animation_ready = bool(
+        embedded_animation_ready
+        and animation_integrity_ready
+    )
 
     skin_weight_audit = None
     skin_weights_applicable = False
@@ -400,9 +429,15 @@ def build_qa_package(
         warnings.append(
             "character asset is geometrically usable but unrigged; animation/gameplay-ready status is false"
         )
-    if rig_ready and not animation_ready:
+    if rig_ready and not embedded_animation_ready:
         warnings.append(
             "rig is valid but no glTF animation clips are embedded; character production-ready status is false"
+        )
+    elif rig_required and rig_ready and embedded_animation_ready and not animation_integrity_ready:
+        warnings.append(
+            "animation clips are embedded but Animation QA failed; "
+            "timestamps/samples/rotations/channels must pass before "
+            "character production-ready status"
         )
     if mode != "character" and not rig_ready:
         pass
@@ -594,6 +629,15 @@ def build_qa_package(
             "unresolved_rebakes": unresolved_rebakes,
         },
         "rig": asdict(rig),
+        "animation_qa": (
+            asdict(animation_audit)
+            if animation_audit is not None else {
+                "applicable": bool(embedded_animation_ready),
+                "ready": animation_integrity_ready,
+                "channel_count": animation_channels,
+                "total_keyframes": animation_keyframes,
+            }
+        ),
         "skin_weights": (
             asdict(skin_weight_audit)
             if skin_weight_audit is not None else {
@@ -658,6 +702,9 @@ def build_qa_package(
         material_rebake_pending_channels=material_rebake_pending_channels,
         rig_ready=rig_ready,
         animation_ready=animation_ready,
+        animation_integrity_ready=animation_integrity_ready,
+        animation_channels=animation_channels,
+        animation_keyframes=animation_keyframes,
         skin_weights_applicable=skin_weights_applicable,
         skin_weights_ready=skin_weights_ready,
         turntable_ready=turntable_ready,
