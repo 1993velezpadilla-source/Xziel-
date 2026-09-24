@@ -178,6 +178,17 @@ function renderFinalQa(qa) {
     grid.appendChild(item);
   }
 
+  if (qa.face_expected != null && Number(qa.face_expected) > 0) {
+    const item = document.createElement("div");
+    item.className = "qa-chip metric";
+    const name = document.createElement("span");
+    name.textContent = "Face refs";
+    const value = document.createElement("strong");
+    value.textContent = `${Number(qa.face_evaluated || 0)}/${Number(qa.face_expected)}`;
+    item.append(name, value);
+    grid.appendChild(item);
+  }
+
   [
     ["Texture score", qa.texture_score],
     ["Face score", qa.face_score],
