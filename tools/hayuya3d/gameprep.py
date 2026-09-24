@@ -236,7 +236,8 @@ def build_gameprep(
                             | set(rebake_result.resolved_channels or [])
                         )
                         material_policy += (
-                            " + verified Blender selected-to-active normal rebake"
+                            " + verified Blender topology material rebake "
+                            f"({','.join(rebake_result.resolved_channels)})"
                         )
                     remaining_rebakes = list(rebake_result.remaining_channels or [])
                 except Exception as exc:
