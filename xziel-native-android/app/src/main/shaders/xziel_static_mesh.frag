@@ -368,46 +368,12 @@ vec3 acesFitted(vec3 value) {
         1.0);
 }
 
-vec3 gradeScene(vec3 color) {
-    color *=
-        clamp(
-            uLighting.ambientColorExposure.w,
-            0.10,
-            4.0);
-
-    color =
+vec3 toneMapPbr(vec3 color) {
+    return
         acesFitted(
-            max(color, vec3(0.0)));
-
-    float luminance =
-        dot(
-            color,
-            vec3(
-                0.2126,
-                0.7152,
-                0.0722));
-
-    color =
-        mix(
-            vec3(luminance),
-            color,
-            clamp(
-                uLighting.post.y,
-                0.50,
-                1.20));
-
-    float contrast =
-        clamp(
-            uLighting.post.x,
-            0.70,
-            1.40);
-
-    color =
-        (color - vec3(0.18)) *
-            contrast +
-        vec3(0.18);
-
-    return clamp(color, 0.0, 1.0);
+            max(
+                color,
+                vec3(0.0)));
 }
 
 void main() {
@@ -445,7 +411,10 @@ void main() {
 
         outColor =
             vec4(
-                gradeScene(legacy),
+                clamp(
+                    legacy,
+                    0.0,
+                    1.0),
                 albedo.a);
         return;
     }
@@ -625,6 +594,6 @@ void main() {
 
     outColor =
         vec4(
-            gradeScene(color),
+            toneMapPbr(color),
             albedo.a);
 }
