@@ -73,6 +73,21 @@ def download(url:str,target:Path)->None:
         shutil.copyfileobj(response,out,1024*1024)
 
 
+def required_model_files(exe:Path)->list[Path]:
+    model_dir=exe.parent/"models"
+    return [
+        model_dir/"realesrgan-x4plus.param",
+        model_dir/"realesrgan-x4plus.bin",
+    ]
+
+
+def runtime_complete(exe:Path)->tuple[bool,str|None]:
+    missing=[str(path) for path in required_model_files(exe) if not path.is_file()]
+    if missing:
+        return False,"missing_model_files:"+",".join(missing)
+    return True,None
+
+
 def smoke_test(exe:Path)->tuple[bool,str]:
     try:
         proc=subprocess.run(
@@ -85,7 +100,12 @@ def smoke_test(exe:Path)->tuple[bool,str]:
         text=(proc.stdout or "")+"\n"+(proc.stderr or "")
         lower=text.lower()
         ok=any(marker in lower for marker in ("usage","realesrgan","input-path"))
-        return ok,text.strip()[-2000:]
+        if not ok:
+            return False,text.strip()[-2000:]
+        complete,detail=runtime_complete(exe)
+        if not complete:
+            return False,detail or "runtime_incomplete"
+        return True,text.strip()[-2000:]
     except Exception as exc:
         return False,f"{type(exc).__name__}:{exc}"
 
