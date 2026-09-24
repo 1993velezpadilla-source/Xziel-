@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 1,
+  "updated": "2026-09-24",
+  "note": "Coverage contract for the Xziel clean-room Zombies map DNA corpus. Categories distinguish primary originals from reimaginings and non-round-based references.",
+  "groups": [
+    {
+      "game": "World at War",
+      "role": "primary_originals",
+      "ids": [
+        "waw_nacht",
+        "waw_verruckt",
+        "waw_shi_no_numa",
+        "waw_der_riese"
+      ]
+    },
+    {
+      "game": "Black Ops",
+      "role": "primary_originals",
+      "ids": [
+        "bo1_kino",
+        "bo1_five",
+        "bo1_ascension",
+        "bo1_call_of_the_dead",
+        "bo1_shangri_la",
+        "bo1_moon"
+      ]
+    },
+    {
+      "game": "Black Ops II",
+      "role": "primary_originals",
+      "ids": [
+        "bo2_tranzit",
+        "bo2_nuketown",
+        "bo2_die_rise",
+        "bo2_mob",
+        "bo2_buried",
+        "bo2_origins"
+      ]
+    },
+    {
+      "game": "Black Ops III",
+      "role": "primary_originals",
+      "ids": [
+        "bo3_shadows",
+        "bo3_der_eisendrache",
+        "bo3_zetsubou",
+        "bo3_gorod",
+        "bo3_revelations"
+      ]
+    },
+    {
+      "game": "Black Ops III",
+      "role": "reimagining_reference",
+      "ids": [
+        "bo3_the_giant"
+      ]
+    },
+    {
+      "game": "Black Ops 4",
+      "role": "primary_originals",
+      "ids": [
+        "bo4_voyage",
+        "bo4_ix",
+        "bo4_dead_of_the_night",
+        "bo4_ancient_evil"
+      ]
+    },
+    {
+      "game": "Black Ops 4",
+      "role": "reimagining_reference",
+      "ids": [
+        "bo4_blood",
+        "bo4_classified",
+        "bo4_alpha_omega",
+        "bo4_tag"
+      ]
+    },
+    {
+      "game": "Black Ops Cold War",
+      "role": "primary_originals",
+      "ids": [
+        "cw_die_maschine",
+        "cw_firebase_z",
+        "cw_mauer",
+        "cw_forsaken"
+      ]
+    },
+    {
+      "game": "Vanguard",
+      "role": "objective_originals",
+      "ids": [
+        "vg_der_anfang",
+        "vg_terra_maledicta"
+      ]
+    },
+    {
+      "game": "Vanguard",
+      "role": "rework_reference",
+      "ids": [
+        "vg_shi_no_numa",
+        "vg_archon"
+      ]
+    },
+    {
+      "game": "Black Ops 6",
+      "role": "primary_originals",
+      "ids": [
+        "bo6_terminus",
+        "bo6_liberty_falls",
+        "bo6_citadelle",
+        "bo6_tomb",
+        "bo6_shattered_veil",
+        "bo6_reckoning"
+      ]
+    },
+    {
+      "game": "Black Ops 7",
+      "role": "primary_originals_current_through_2026_09_24",
+      "ids": [
+        "bo7_ashes",
+        "bo7_astra",
+        "bo7_paradox",
+        "bo7_totenreich",
+        "bo7_kowakujo",
+        "bo7_rex_infernus"
+      ]
+    },
+    {
+      "game": "Advanced Warfare",
+      "role": "official_comparative_originals",
+      "ids": [
+        "aw_outbreak",
+        "aw_infection",
+        "aw_carrier",
+        "aw_descent"
+      ]
+    },
+    {
+      "game": "Infinite Warfare",
+      "role": "official_comparative_originals",
+      "ids": [
+        "iw_spaceland",
+        "iw_rave",
+        "iw_shaolin",
+        "iw_radioactive",
+        "iw_beast"
+      ]
+    },
+    {
+      "game": "WWII",
+      "role": "official_comparative_originals",
+      "ids": [
+        "wwii_final_reich",
+        "wwii_darkest_shore",
+        "wwii_shadowed_throne",
+        "wwii_tortured_path",
+        "wwii_frozen_dawn",
+        "wwii_groesten_haus"
+      ]
+    },
+    {
+      "game": "Modern Warfare III",
+      "role": "non_round_based_reference",
+      "ids": [
+        "mwiii_urzikstan"
+      ]
+    }
+  ]
+}
