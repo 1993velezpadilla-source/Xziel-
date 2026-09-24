@@ -18,6 +18,7 @@ class RiggedAccessoryInsertResult:
     geometry_ready: bool
     material_ready: bool
     production_ready: bool
+    legacy_payload_preserved: bool
     donor_component_id: int | None
     spatial_label: str | None
     inserted_vertices: int
@@ -65,6 +66,7 @@ def _fail(
         geometry_ready=False,
         material_ready=False,
         production_ready=False,
+        legacy_payload_preserved=False,
         donor_component_id=None,
         spatial_label=None,
         inserted_vertices=0,
@@ -95,6 +97,129 @@ def _bbox(vertices):
     lo = np.min(vv, axis=0)
     hi = np.max(vv, axis=0)
     return lo, hi, (lo + hi) * 0.5, hi - lo
+
+
+def _blend_skin_weights(
+    source_positions,
+    source_joints,
+    source_weights,
+    target_positions,
+    *,
+    k: int = 4,
+):
+    np, cKDTree = _deps()
+    source_positions = np.asarray(source_positions, dtype=np.float64)
+    source_joints = np.asarray(source_joints, dtype=np.int64)
+    source_weights = np.asarray(source_weights, dtype=np.float64)
+    target_positions = np.asarray(target_positions, dtype=np.float64)
+    if not len(source_positions):
+        raise ValueError("skin-weight source surface is empty")
+
+    kk = max(1, min(int(k), len(source_positions)))
+    tree = cKDTree(source_positions)
+    distances, neighbors = tree.query(
+        target_positions,
+        k=kk,
+        workers=-1,
+    )
+    distances = np.asarray(distances, dtype=np.float64)
+    neighbors = np.asarray(neighbors, dtype=np.int64)
+    if kk == 1:
+        distances = distances[:, None]
+        neighbors = neighbors[:, None]
+
+    out_joints = np.zeros((len(target_positions), 4), dtype=np.int64)
+    out_weights = np.zeros((len(target_positions), 4), dtype=np.float64)
+
+    for row in range(len(target_positions)):
+        d = distances[row]
+        ids = neighbors[row]
+        spatial = 1.0 / np.maximum(d, 1e-6)
+        spatial /= max(float(np.sum(spatial)), 1e-12)
+        accumulated: dict[int, float] = {}
+        for local_weight, source_index in zip(spatial, ids):
+            for joint, skin_weight in zip(
+                source_joints[int(source_index)],
+                source_weights[int(source_index)],
+            ):
+                contribution = float(local_weight) * float(skin_weight)
+                if contribution <= 1e-12:
+                    continue
+                accumulated[int(joint)] = (
+                    accumulated.get(int(joint), 0.0) + contribution
+                )
+        strongest = sorted(
+            accumulated.items(),
+            key=lambda item: item[1],
+            reverse=True,
+        )[:4]
+        total = sum(weight for _, weight in strongest)
+        if total <= 1e-12:
+            raise RuntimeError(
+                f"target accessory vertex {row} received no skin influence"
+            )
+        for slot, (joint, weight) in enumerate(strongest):
+            out_joints[row, slot] = int(joint)
+            out_weights[row, slot] = float(weight / total)
+
+    return (
+        out_joints,
+        out_weights,
+        distances[:, 0],
+        neighbors[:, 0],
+    )
+
+
+def _legacy_payload_preserved(
+    before_doc: dict,
+    before_binary: bytes,
+    after_doc: dict,
+    after_binary: bytes,
+) -> bool:
+    if bytes(after_binary[:len(before_binary)]) != bytes(before_binary):
+        return False
+
+    for key in (
+        "bufferViews",
+        "accessors",
+        "skins",
+        "animations",
+        "materials",
+        "textures",
+        "images",
+        "samplers",
+    ):
+        old = before_doc.get(key) or []
+        new = after_doc.get(key) or []
+        if new[:len(old)] != old:
+            return False
+
+    old_nodes = before_doc.get("nodes") or []
+    new_nodes = after_doc.get("nodes") or []
+    if new_nodes[:len(old_nodes)] != old_nodes:
+        return False
+
+    old_meshes = before_doc.get("meshes") or []
+    new_meshes = after_doc.get("meshes") or []
+    if len(new_meshes) < len(old_meshes):
+        return False
+    for index, old_mesh in enumerate(old_meshes):
+        new_mesh = new_meshes[index]
+        old_primitives = old_mesh.get("primitives") or []
+        new_primitives = new_mesh.get("primitives") or []
+        if new_primitives[:len(old_primitives)] != old_primitives:
+            return False
+        old_rest = {
+            key: value for key, value in old_mesh.items()
+            if key != "primitives"
+        }
+        new_rest = {
+            key: value for key, value in new_mesh.items()
+            if key != "primitives"
+        }
+        if old_rest != new_rest:
+            return False
+    return True
 
 
 def _base_primitive(path: Path):
@@ -250,7 +375,23 @@ def _donor_accessory(path: Path, *, mode: str, up_axis: str):
     if len(local_vertices) < 3 or len(local_faces) < 1:
         raise RuntimeError("donor accessory component is too sparse")
 
-    return selected, mesh, local_vertices, local_faces
+    unique_components, counts = np.unique(component_ids, return_counts=True)
+    main_component = int(
+        unique_components[int(np.argmax(counts))]
+    )
+    main_faces = faces[component_ids == main_component]
+    main_used = np.unique(main_faces.reshape(-1))
+    main_vertices = vertices[main_used]
+    if not len(main_vertices):
+        raise RuntimeError("donor main body component is empty")
+
+    return (
+        selected,
+        mesh,
+        local_vertices,
+        local_faces,
+        main_vertices,
+    )
 
 
 def _append_bytes(blob: bytearray, payload: bytes) -> tuple[int, int]:
@@ -364,6 +505,23 @@ def rigged_accessory_insert_supported(
             return False, "base rig is not valid"
         if not skin.applicable or not skin.ready:
             return False, "base skin weights are not valid"
+        from accessory_match import inspect_accessories
+        base_accessories = inspect_accessories(
+            base_mesh,
+            mode="character",
+            up_axis=base_up_axis,
+        )
+        if base_accessories:
+            return (
+                False,
+                "base already has detached accessory candidates; "
+                "use rig-preserving accessory wrap instead",
+            )
+        if (donor_up_axis or base_up_axis) != base_up_axis:
+            return (
+                False,
+                "new-vertex insertion v1 requires matching base/donor up axes",
+            )
         _base_primitive(base_mesh)
         _donor_accessory(
             donor_mesh,
@@ -401,8 +559,30 @@ def insert_rigged_accessory(
         if not before_skin.applicable or not before_skin.ready:
             raise RuntimeError("base skin weights are not valid")
 
+        from accessory_match import inspect_accessories
+        base_accessories = inspect_accessories(
+            base_mesh,
+            mode="character",
+            up_axis=base_up_axis,
+        )
+        if base_accessories:
+            raise RuntimeError(
+                "base already has detached accessory candidates; use the "
+                "topology-preserving rigged accessory wrap path instead"
+            )
+        if donor_up_axis != base_up_axis:
+            raise RuntimeError(
+                "new-vertex insertion v1 requires matching base/donor up axes"
+            )
+
         base = _base_primitive(base_mesh)
-        selected, donor_mesh_flat, donor_vertices, donor_faces = _donor_accessory(
+        (
+            selected,
+            donor_mesh_flat,
+            donor_vertices,
+            donor_faces,
+            donor_main_vertices,
+        ) = _donor_accessory(
             donor_mesh,
             mode="character",
             up_axis=donor_up_axis,
@@ -410,8 +590,7 @@ def insert_rigged_accessory(
 
         base_vertices = base["positions"]
         _, _, base_center, base_extent = _bbox(base_vertices)
-        donor_all = np.asarray(donor_mesh_flat.vertices, dtype=np.float64)
-        _, _, donor_center, donor_extent = _bbox(donor_all)
+        _, _, donor_center, donor_extent = _bbox(donor_main_vertices)
         base_diag = max(float(np.linalg.norm(base_extent)), 1e-9)
         donor_diag = max(float(np.linalg.norm(donor_extent)), 1e-9)
         aligned = (
@@ -420,11 +599,17 @@ def insert_rigged_accessory(
             + base_center
         )
 
-        body_tree = cKDTree(base_vertices)
-        source_distance, nearest = body_tree.query(
+        (
+            transferred_joints,
+            transferred_weights,
+            source_distance,
+            nearest,
+        ) = _blend_skin_weights(
+            base_vertices,
+            base["joints"],
+            base["weights"],
             aligned,
-            k=1,
-            workers=-1,
+            k=4,
         )
         source_distance = np.asarray(source_distance, dtype=np.float64)
         nearest = np.asarray(nearest, dtype=np.int64)
@@ -442,13 +627,13 @@ def insert_rigged_accessory(
                 f"{max_source_ratio:.6f}>{max_weight_source_distance_ratio:.6f}"
             )
 
-        transferred_joints = base["joints"][nearest]
-        transferred_weights = base["weights"][nearest].copy()
         sums = np.sum(transferred_weights, axis=1)
         if np.any(~np.isfinite(transferred_weights)) or np.any(sums <= 1e-8):
-            raise RuntimeError("nearest canonical skin weights are invalid")
+            raise RuntimeError("blended canonical skin weights are invalid")
         transferred_weights /= sums[:, None]
 
+        before_doc = json.loads(json.dumps(base["doc"]))
+        before_binary = bytes(base["binary"])
         doc = json.loads(json.dumps(base["doc"]))
         blob = bytearray(base["binary"])
 
@@ -568,8 +753,19 @@ def insert_rigged_accessory(
         mesh = meshes[int(base["mesh_index"])]
         mesh.setdefault("primitives", []).append(new_primitive)
 
-        from glb_images import write_glb
+        from glb_images import read_glb, write_glb
         write_glb(output_glb, doc, bytes(blob))
+        after_doc, after_binary = read_glb(output_glb)
+        legacy_preserved = _legacy_payload_preserved(
+            before_doc,
+            before_binary,
+            after_doc,
+            after_binary,
+        )
+        if not legacy_preserved:
+            errors.append(
+                "pre-existing GLB payload changed during accessory insertion"
+            )
 
         after_rig = audit_glb(output_glb)
         after_skin = audit_skin_weights(output_glb)
@@ -682,6 +878,7 @@ def insert_rigged_accessory(
             geometry_ready=geometry_ready,
             material_ready=material_ready,
             production_ready=production_ready,
+            legacy_payload_preserved=legacy_preserved,
             donor_component_id=int(selected.component_id),
             spatial_label=str(selected.spatial_label),
             inserted_vertices=int(len(aligned)),
