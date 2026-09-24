@@ -43,6 +43,16 @@ A native lightweight APK provides:
 
 The phone is the client; large open-weight models run through configured providers or a machine you control.
 
+
+### Low-cost provider presets
+
+Pichy ships with two optional starter presets:
+
+- `config/pichy.openrouter-free.example.json` — routes all logical modes through `openrouter/free` using `OPENROUTER_API_KEY`.
+- `config/pichy.groq-gpt-oss.example.json` — routes text/agent modes through Groq's `openai/gpt-oss-120b` using `GROQ_API_KEY`.
+
+Copy the preset you want to `config/pichy.local.json` and set the matching environment variable. Provider availability and free-tier limits can change, so the app exposes **Check Brain** instead of assuming a provider is ready.
+
 ## Configure
 
 ```bash
