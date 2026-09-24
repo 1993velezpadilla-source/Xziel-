@@ -5309,6 +5309,7 @@ bool VulkanStaticMeshRenderer::createPipeline(
     AAssetManager* assetManager) noexcept {
     VkShaderModule vertex = VK_NULL_HANDLE;
     VkShaderModule fragment = VK_NULL_HANDLE;
+    VkShaderModule depthFragment = VK_NULL_HANDLE;
 
     if (!createShaderModule(
             assetManager,
@@ -5317,7 +5318,11 @@ bool VulkanStaticMeshRenderer::createPipeline(
         !createShaderModule(
             assetManager,
             "shaders/xziel_static_mesh.frag.spv",
-            fragment)) {
+            fragment) ||
+        !createShaderModule(
+            assetManager,
+            "shaders/xziel_static_depth.frag.spv",
+            depthFragment)) {
         if (vertex != VK_NULL_HANDLE) {
             vkDestroyShaderModule(
                 device_, vertex, nullptr);
@@ -5325,6 +5330,10 @@ bool VulkanStaticMeshRenderer::createPipeline(
         if (fragment != VK_NULL_HANDLE) {
             vkDestroyShaderModule(
                 device_, fragment, nullptr);
+        }
+        if (depthFragment != VK_NULL_HANDLE) {
+            vkDestroyShaderModule(
+                device_, depthFragment, nullptr);
         }
         return false;
     }
@@ -5359,6 +5368,8 @@ bool VulkanStaticMeshRenderer::createPipeline(
                 nullptr,
                 &descriptorSetLayout_))) {
         vkDestroyShaderModule(
+            device_, depthFragment, nullptr);
+        vkDestroyShaderModule(
             device_, fragment, nullptr);
         vkDestroyShaderModule(
             device_, vertex, nullptr);
@@ -5391,6 +5402,8 @@ bool VulkanStaticMeshRenderer::createPipeline(
                 nullptr,
                 &pipelineLayout_))) {
         vkDestroyShaderModule(
+            device_, depthFragment, nullptr);
+        vkDestroyShaderModule(
             device_, fragment, nullptr);
         vkDestroyShaderModule(
             device_, vertex, nullptr);
@@ -5414,6 +5427,28 @@ bool VulkanStaticMeshRenderer::createPipeline(
                 0U,
                 VK_SHADER_STAGE_FRAGMENT_BIT,
                 fragment,
+                "main",
+                nullptr,
+            },
+        }};
+
+    const std::array<VkPipelineShaderStageCreateInfo, 2>
+        depthStages{{
+            {
+                VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+                nullptr,
+                0U,
+                VK_SHADER_STAGE_VERTEX_BIT,
+                vertex,
+                "main",
+                nullptr,
+            },
+            {
+                VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+                nullptr,
+                0U,
+                VK_SHADER_STAGE_FRAGMENT_BIT,
+                depthFragment,
                 "main",
                 nullptr,
             },
@@ -5593,14 +5628,61 @@ bool VulkanStaticMeshRenderer::createPipeline(
                 &pipelineDoubleSided_);
     }
 
+    VkResult depthCulledResult =
+        VK_ERROR_INITIALIZATION_FAILED;
+    VkResult depthDoubleSidedResult =
+        VK_ERROR_INITIALIZATION_FAILED;
+
+    if (ok(culledResult) &&
+        ok(doubleSidedResult)) {
+        attachment.colorWriteMask = 0U;
+        info.pStages = depthStages.data();
+        raster.cullMode =
+            VK_CULL_MODE_BACK_BIT;
+
+        depthCulledResult =
+            vkCreateGraphicsPipelines(
+                device_,
+                VK_NULL_HANDLE,
+                1U,
+                &info,
+                nullptr,
+                &depthPrepassPipeline_);
+
+        if (ok(depthCulledResult)) {
+            raster.cullMode =
+                VK_CULL_MODE_NONE;
+
+            depthDoubleSidedResult =
+                vkCreateGraphicsPipelines(
+                    device_,
+                    VK_NULL_HANDLE,
+                    1U,
+                    &info,
+                    nullptr,
+                    &depthPrepassPipelineDoubleSided_);
+        }
+    }
+
+    vkDestroyShaderModule(
+        device_, depthFragment, nullptr);
     vkDestroyShaderModule(
         device_, fragment, nullptr);
     vkDestroyShaderModule(
         device_, vertex, nullptr);
 
-    return
+    const bool success =
         ok(culledResult) &&
-        ok(doubleSidedResult);
+        ok(doubleSidedResult) &&
+        ok(depthCulledResult) &&
+        ok(depthDoubleSidedResult);
+
+    if (success) {
+        logInfo(
+            "XZIEL_STATIC_DEPTH_PREPASS_PIPELINES_READY");
+    }
+
+    return success;
 }
 
 bool VulkanStaticMeshRenderer::createBuffer(
