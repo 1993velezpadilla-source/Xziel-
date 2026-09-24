@@ -34,7 +34,7 @@ void main() {
         pc.rect.xy +
         local * pc.rect.zw;
 
-    // Shape 3 is a batched seven-segment digit. One 42-vertex draw replaces
+    // Shape 3 batches one seven-segment digit into a 42-vertex draw, replacing
     // up to seven push-constant + draw pairs while producing the same quads.
     if (shape == 3) {
         int segmentIndex =
