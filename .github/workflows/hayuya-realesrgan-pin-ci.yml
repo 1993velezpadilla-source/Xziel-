@@ -1,0 +1,47 @@
+name: HAYUYA Real-ESRGAN Runtime Pin CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - art/hayuya-monster-v1
+    paths:
+      - .github/workflows/hayuya-realesrgan-pin-ci.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify-linux-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Download pinned official runtime
+        run: |
+          set -euo pipefail
+          url="https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan/releases/download/v0.2.0/realesrgan-ncnn-vulkan-v0.2.0-ubuntu.zip"
+          curl --fail --location --retry 3 --output /tmp/realesrgan.zip "$url"
+          echo "HAYUYA_REALESRGAN_ASSET_URL=$url"
+          echo "HAYUYA_REALESRGAN_SHA256=$(sha256sum /tmp/realesrgan.zip | awk '{print $1}')"
+          unzip -l /tmp/realesrgan.zip
+
+      - name: Smoke-test pinned executable
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/realesrgan
+          unzip -q /tmp/realesrgan.zip -d /tmp/realesrgan
+          exe="$(find /tmp/realesrgan -type f -name 'realesrgan-ncnn-vulkan' | head -n 1)"
+          test -n "$exe"
+          chmod +x "$exe"
+          models="$(find /tmp/realesrgan -type d -name models | head -n 1)"
+          test -n "$models"
+          "$exe" -h 2>&1 | tee /tmp/realesrgan-help.txt
+          grep -q "realesrgan" /tmp/realesrgan-help.txt
+          echo "HAYUYA_REALESRGAN_RUNTIME_PASS exe=$exe models=$models"
+
+      - name: Upload pin evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: hayuya-realesrgan-pin-evidence
+          path: /tmp/realesrgan-help.txt
+          retention-days: 7
