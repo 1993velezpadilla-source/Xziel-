@@ -43,6 +43,7 @@ class PortablePackTests(unittest.TestCase):
             self.assertEqual([x.tier for x in result.tiers], list(TIERS))
             self.assertTrue(Path(result.manifest).is_file())
             self.assertTrue(result.complete_lod_chain)
+            self.assertTrue(result.lod_parity_ready)
 
             expected_max = {
                 "flagship": 180000,
@@ -61,6 +62,17 @@ class PortablePackTests(unittest.TestCase):
                 tier_dir = Path(artifact.directory)
                 self.assertTrue((tier_dir / "tier_manifest.json").is_file())
                 self.assertEqual(len(artifact.gameprep["lods"]), 4)
+                self.assertTrue(
+                    artifact.lod_parity["ready"],
+                    artifact.lod_parity.get("errors"),
+                )
+                self.assertEqual(
+                    artifact.lod_parity["lod_count"],
+                    4,
+                )
+                self.assertTrue(
+                    Path(artifact.lod_parity["report"]).is_file()
+                )
                 self.assertLessEqual(
                     artifact.gameprep["target_lod0_faces"],
                     expected_max[artifact.tier],
