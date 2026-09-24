@@ -7,9 +7,6 @@ layout(push_constant) uniform UiPushConstants {
 } pc;
 
 layout(location = 0) out vec2 vLocal;
-layout(location = 1) out vec4 vColor;
-layout(location = 2) flat out int vShape;
-layout(location = 3) out float vRingWidth;
 
 const vec2 kQuad[6] = vec2[](
     vec2(-1.0, -1.0),
@@ -106,9 +103,6 @@ void main() {
             gl_Position =
                 vec4(2.0, 2.0, 0.0, 1.0);
             vLocal = local;
-            vColor = pc.color;
-            vShape = 0;
-            vRingWidth = pc.params.y;
             return;
         }
 
@@ -125,14 +119,4 @@ void main() {
             1.0);
 
     vLocal = local;
-    vColor = pc.color;
-    vShape =
-        shape == 3
-        ? 0
-        : shape;
-    vRingWidth =
-        clamp(
-            pc.params.y,
-            0.02,
-            0.90);
 }

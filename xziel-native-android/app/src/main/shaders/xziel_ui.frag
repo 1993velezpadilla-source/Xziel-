@@ -1,18 +1,35 @@
 #version 450
 
+layout(push_constant) uniform UiPushConstants {
+    vec4 rect;
+    vec4 color;
+    vec4 params;
+} pc;
+
 layout(location = 0) in vec2 vLocal;
-layout(location = 1) in vec4 vColor;
-layout(location = 2) flat in int vShape;
-layout(location = 3) in float vRingWidth;
 
 layout(location = 0) out vec4 outColor;
 
 void main() {
-    float alpha =
-        vColor.a;
+    int rawShape =
+        int(pc.params.x + 0.5);
+    int shape =
+        rawShape == 3
+        ? 0
+        : rawShape;
+    float ringWidth =
+        clamp(
+            pc.params.y,
+            0.02,
+            0.90);
+    vec4 color =
+        pc.color;
 
-    if (vShape == 1 ||
-        vShape == 2) {
+    float alpha =
+        color.a;
+
+    if (shape == 1 ||
+        shape == 2) {
         float distanceToCenter =
             length(vLocal);
 
@@ -28,12 +45,12 @@ void main() {
                 1.0 + edgeWidth,
                 distanceToCenter);
 
-        if (vShape == 1) {
+        if (shape == 1) {
             alpha *= outer;
         } else {
             float innerRadius =
                 clamp(
-                    1.0 - vRingWidth,
+                    1.0 - ringWidth,
                     0.02,
                     0.98);
 
@@ -55,6 +72,6 @@ void main() {
 
     outColor =
         vec4(
-            vColor.rgb,
+            color.rgb,
             alpha);
 }
