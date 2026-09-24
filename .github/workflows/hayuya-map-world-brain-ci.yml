@@ -14,9 +14,15 @@ on:
       - "tools/hayuya3d/map_source_registry.py"
       - "tools/hayuya3d/google_map_tiles.py"
       - "tools/hayuya3d/geo_coordinates.py"
+      - "tools/hayuya3d/universal_game_design.py"
+      - "tools/hayuya3d/hayuya_ads.py"
+      - "hayuya/standards/hayuya_universal_game_design_brain_v1.json"
+      - "hayuya/standards/hayuya_monetization_brain_v1.json"
+      - "hayuya/knowledge/world_generation_ai_atlas_v1.json"
       - "tools/hayuya3d/tests/test_hayuya_map_world_brain.py"
       - "tools/hayuya3d/tests/test_google_map_tiles.py"
       - "tools/hayuya3d/tests/test_geo_coordinates.py"
+      - "tools/hayuya3d/tests/test_universal_design_and_ads.py"
       - "docs/hayuya/HAYUYA_MAP_WORLD_BRAIN.md"
       - "docs/hayuya/HAYUYA_LIGHTING_BRAIN.md"
       - "docs/ZOMBIES_MAP_DNA_ATLAS.md"
@@ -65,6 +71,7 @@ jobs:
             tools/hayuya3d/tests/test_hayuya_map_world_brain.py \
             tools/hayuya3d/tests/test_google_map_tiles.py \
             tools/hayuya3d/tests/test_geo_coordinates.py \
+            tools/hayuya3d/tests/test_universal_design_and_ads.py \
             -v
 
       - name: Prove provider readiness is secret-safe
@@ -99,6 +106,9 @@ jobs:
           assert p["perception_policy"]["unknown_is_valid"] is True
           assert p["perception_policy"]["closed_class_detector_is_authoritative"] is False
           assert p["delegation"]["runtime"] == "Xziel XZSM/XMAP compiler"
+          assert p["universal_game_design_intelligence"]["generation_contract"]["solve_before_expensive_art"] is True
+          assert p["monetization_intelligence"]["policy"]["programmatic_world_space_texture_baking"] is False
+          assert "INTERSTITIAL" in p["monetization_intelligence"]["delivery_paths"]["GOOGLE_ADMOB_UI"]["formats"]
           print("HAYUYA_MAP_OPEN_WORLD_GATE_OK")
           PY
 
