@@ -335,14 +335,15 @@ params=[p.get("parameter_name") for p in spec.get("parameters",[])]
 front=processed[0]
 gallery=[{"image":v,"caption":None} for v in processed]
 quality_presets={
-    "preview":{"ss_steps":10,"slat_steps":10,"mesh_simplify":0.94,"texture_size":1024},
-    "standard":{"ss_steps":12,"slat_steps":12,"mesh_simplify":0.92,"texture_size":2048},
-    # The public TRELLIS endpoint caps texture at 2048 and simplification at
-    # 0.90 minimum.  High/ultra spend extra diffusion steps and keep the
-    # maximum geometry the endpoint exposes instead of pretending to output
-    # fake 4K/8K textures.
-    "high":{"ss_steps":16,"slat_steps":16,"mesh_simplify":0.90,"texture_size":2048},
-    "ultra":{"ss_steps":18,"slat_steps":18,"mesh_simplify":0.90,"texture_size":2048},
+    # TRELLIS' "simplify" argument is the fraction of triangles REMOVED, not
+    # retained. The public UI exposes 0.90..0.98, so even its best visible
+    # setting removes 90% of the extracted mesh. HAYUYA keeps a safe fallback
+    # but first asks the backend function for a denser master when quality is
+    # High/Ultra.
+    "preview":{"ss_steps":10,"slat_steps":10,"mesh_simplify":0.95,"texture_size":1024},
+    "standard":{"ss_steps":12,"slat_steps":12,"mesh_simplify":0.90,"texture_size":2048},
+    "high":{"ss_steps":16,"slat_steps":16,"mesh_simplify":0.70,"texture_size":2048},
+    "ultra":{"ss_steps":20,"slat_steps":20,"mesh_simplify":0.40,"texture_size":4096},
 }
 qp=quality_presets.get(TEXTURE_QUALITY,quality_presets["standard"])
 values={
@@ -362,10 +363,37 @@ if missing:
     fail(f"Unhandled TRELLIS parameters: {missing}")
 args=[values[p] for p in params]
 print("HAYUYA_TRELLIS_SUBMIT",JOB,endpoint,params)
+extraction_fallback=None
+actual_mesh_simplify=qp["mesh_simplify"]
+actual_texture_size=qp["texture_size"]
 try:
     result=resilient_predict(*args,api_name=endpoint,stage="trellis_generation",max_attempts=5)
 except Exception as e:
-    fail(f"TRELLIS generation failed after transient retries: {type(e).__name__}: {e}")
+    # Gradio's public UI currently constrains Simplify to >=0.90 and Texture
+    # Size to <=2048, even though TRELLIS' underlying to_glb() accepts numeric
+    # arguments. If server-side component validation enforces those UI bounds,
+    # retry at the best officially exposed extraction quality rather than fail
+    # the whole phone workflow.
+    if qp["mesh_simplify"] < 0.90 or qp["texture_size"] > 2048:
+        extraction_fallback={
+            "requested_mesh_simplify":qp["mesh_simplify"],
+            "requested_texture_size":qp["texture_size"],
+            "fallback_mesh_simplify":0.90,
+            "fallback_texture_size":2048,
+            "reason":f"{type(e).__name__}: {e}",
+        }
+        values["mesh_simplify"]=0.90
+        values["texture_size"]=2048
+        actual_mesh_simplify=0.90
+        actual_texture_size=2048
+        args=[values[p] for p in params]
+        print("::warning::HAYUYA dense extraction override rejected; retrying official max-quality bounds")
+        try:
+            result=resilient_predict(*args,api_name=endpoint,stage="trellis_generation_fallback",max_attempts=5)
+        except Exception as fallback_exc:
+            fail(f"TRELLIS generation failed after quality fallback: {type(fallback_exc).__name__}: {fallback_exc}")
+    else:
+        fail(f"TRELLIS generation failed after transient retries: {type(e).__name__}: {e}")
 
 (OUT/"trellis_result.txt").write_text(repr(result),encoding="utf-8")
 candidates=[]
@@ -479,17 +507,23 @@ manifest={
     "prep_target":PREP_TARGET,
     "multi_image":multi,
     "generator":"trellis-community/TRELLIS",
-    "texture_size":qp["texture_size"],
+    "texture_size":actual_texture_size,
     "requested_texture_target":qp["texture_size"],
-    "native_texture_target":qp["texture_size"],
-    "texture_refinement_pending":False,
+    "native_texture_target":actual_texture_size,
+    "texture_refinement_pending":actual_texture_size < qp["texture_size"],
     "quality_profile":{
         "ss_sampling_steps":qp["ss_steps"],
         "slat_sampling_steps":qp["slat_steps"],
-        "mesh_simplify":qp["mesh_simplify"],
-        "provider_texture_cap":2048,
+        "requested_mesh_simplify":qp["mesh_simplify"],
+        "actual_mesh_simplify":actual_mesh_simplify,
+        "requested_texture_size":qp["texture_size"],
+        "actual_texture_size":actual_texture_size,
+        "public_ui_simplify_floor":0.90,
+        "public_ui_texture_ceiling":2048,
+        "dense_extraction_override_attempted":qp["mesh_simplify"]<0.90 or qp["texture_size"]>2048,
+        "extraction_fallback":extraction_fallback,
         "detail_reference_count":len(detail_views),
-        "note":"High/ultra maximize the public TRELLIS endpoint honestly; no fake resolution upscaling is reported."
+        "note":"TRELLIS simplify is triangle-removal ratio. HAYUYA reports requested and actual extraction quality separately."
     },
     "glb":dst.name,
     "glb_bytes":len(data),
