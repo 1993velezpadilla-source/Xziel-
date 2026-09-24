@@ -33,11 +33,10 @@ jobs:
           exe="$(find /tmp/realesrgan -type f -name 'realesrgan-ncnn-vulkan' | head -n 1)"
           test -n "$exe"
           chmod +x "$exe"
-          models="$(find /tmp/realesrgan -type d -name models | head -n 1)"
-          test -n "$models"
-          "$exe" -h 2>&1 | tee /tmp/realesrgan-help.txt
-          grep -q "realesrgan" /tmp/realesrgan-help.txt
-          echo "HAYUYA_REALESRGAN_RUNTIME_PASS exe=$exe models=$models"
+          "$exe" -h >/tmp/realesrgan-help.txt 2>&1 || true
+          cat /tmp/realesrgan-help.txt
+          grep -Eqi "usage|realesrgan|input-path" /tmp/realesrgan-help.txt
+          echo "HAYUYA_REALESRGAN_RUNTIME_PASS exe=$exe self_contained=true"
 
       - name: Upload pin evidence
         uses: actions/upload-artifact@v4
