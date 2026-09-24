@@ -102,6 +102,7 @@ class JobState:
     final_model_path: str | None = None
     composite_plan: dict | None = None
     composite_details: list[dict] = field(default_factory=list)
+    portable_pack: dict | None = None
     aaa_acceptance: dict | None = None
     final_qa: dict | None = None
     error: str | None = None
@@ -325,6 +326,29 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
         })
     elif line.startswith("HAYUYA_GAMEPREP"):
         _set_stage(job, "gameprep")
+    elif line.startswith("HAYUYA_PORTABLE_PACK_READY"):
+        _set_stage(job, "portable")
+        values = dict(re.findall(r"(\w+)=([^\s]+)", line))
+        manifest_data = None
+        manifest_raw = values.get("manifest")
+        if manifest_raw:
+            try:
+                manifest_path = Path(manifest_raw).resolve()
+                job_root = Path(job.root).resolve()
+                if manifest_path.is_file() and manifest_path.is_relative_to(job_root):
+                    loaded = json.loads(manifest_path.read_text(encoding="utf-8"))
+                    if isinstance(loaded,dict):
+                        manifest_data = loaded
+            except (OSError,ValueError,json.JSONDecodeError):
+                manifest_data = None
+        if manifest_data is None:
+            manifest_data = {
+                "complete_lod_chain": values.get("complete_lods","false").lower()=="true",
+                "lod_parity_ready": values.get("lod_parity_ready","false").lower()=="true",
+                "tiers": [],
+            }
+        job.portable_pack = manifest_data
+        _emit(job,"portable_pack",{"pack":dict(manifest_data)})
     elif line.startswith("HAYUYA_PORTABLE_PACK"):
         _set_stage(job, "portable")
     elif line.startswith("HAYUYA_AAA_READY"):
