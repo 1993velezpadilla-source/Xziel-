@@ -50,6 +50,7 @@ class FinalistSummary:
     head_texture_detail_score: float | None
     material_score: float | None
     texture_resolution_score: float | None
+    up_axis: str | None = None
     accessory_components: int | None = None
 
 
@@ -169,6 +170,16 @@ def _get(item: Any, name: str, default: Any=None) -> Any:
 
 
 def _summary(item: Any) -> FinalistSummary:
+    views=_get(item,"visual_views") or []
+    up_axis=None
+    if views:
+        first=views[0]
+        if isinstance(first,dict):
+            raw=first.get("best_up_axis")
+        else:
+            raw=getattr(first,"best_up_axis",None)
+        if raw in {"x","y","z"}:
+            up_axis=str(raw)
     return FinalistSummary(
         backend=str(_get(item,"backend","unknown")),
         path=str(_get(item,"path","")),
@@ -184,6 +195,7 @@ def _summary(item: Any) -> FinalistSummary:
         head_texture_detail_score=_finite(_get(item,"head_texture_detail_score")),
         material_score=_finite(_get(item,"material_score")),
         texture_resolution_score=_finite(_get(item,"texture_resolution_score")),
+        up_axis=up_axis,
     )
 
 
