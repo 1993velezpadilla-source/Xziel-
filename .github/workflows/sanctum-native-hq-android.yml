@@ -906,7 +906,7 @@ jobs:
               echo "XZIEL_STREAM_PLAN_CACHE_V2_ACTIVE builds=${STREAM_PLAN_BUILDS} hits=${STREAM_PLAN_CACHE_HITS} cell_heat_refreshes=${STREAM_CELL_HEAT_REFRESHES} geometry_cells=${STREAM_GEOMETRY_CELLS}"
             fi
 
-            if [[ "${GITHUB_REF_NAME}" == "engine/mobile-front-to-back-earlyz-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-fragment-distance-lod-v1" ]]; then
+            if [[ "${GITHUB_REF_NAME}" == "engine/mobile-front-to-back-earlyz-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-fragment-distance-lod-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" ]]; then
               test -n "${STREAM_FRONT_TO_BACK_CANDIDATES}"
               test -n "${STREAM_FRONT_TO_BACK_REORDERED}"
               test "${STREAM_FRONT_TO_BACK_CANDIDATES}" -eq "${STREAM_DRAWS}"
@@ -975,6 +975,23 @@ jobs:
               STREAM_MATERIAL_VISIBILITY_COVERAGE=$((STREAM_MATERIAL_VISIBILITY_TESTS + STREAM_MATERIAL_VISIBILITY_CACHE_HITS))
               test "${STREAM_MATERIAL_VISIBILITY_COVERAGE}" -ge "${STREAM_DRAWS}"
               echo "XZIEL_MATERIAL_VISIBILITY_CACHE_ACTIVE draws=${STREAM_DRAWS} material_tests=${STREAM_MATERIAL_VISIBILITY_TESTS} cache_hits=${STREAM_MATERIAL_VISIBILITY_CACHE_HITS} coverage=${STREAM_MATERIAL_VISIBILITY_COVERAGE}"
+
+              if [[ "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" ]]; then
+                grep -Eq "XZIEL_MATERIAL_VISIBILITY_GENERATION_CACHE_READY materials=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
+                GENERATION_CACHE_MATERIALS="$(grep "XZIEL_MATERIAL_VISIBILITY_GENERATION_CACHE_READY" dist/sanctum-hq-logcat.txt | head -n 1 | sed -n 's/.* materials=\([0-9][0-9]*\).*/\1/p')"
+                test -n "${GENERATION_CACHE_MATERIALS}"
+                test "${GENERATION_CACHE_MATERIALS}" -gt 0
+                echo "XZIEL_MATERIAL_VISIBILITY_GENERATION_CACHE_ACTIVE materials=${GENERATION_CACHE_MATERIALS}"
+
+                grep -Eq "XZIEL_STATIC_SUBMISSION_GROUPS_READY groups=[1-9][0-9]* batches=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
+                STATIC_SUBMISSION_GROUPS="$(grep "XZIEL_STATIC_SUBMISSION_GROUPS_READY" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* groups=\([0-9][0-9]*\).*/\1/p')"
+                STATIC_SUBMISSION_BATCHES="$(grep "XZIEL_STATIC_SUBMISSION_GROUPS_READY" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* batches=\([0-9][0-9]*\).*/\1/p')"
+                test -n "${STATIC_SUBMISSION_GROUPS}"
+                test -n "${STATIC_SUBMISSION_BATCHES}"
+                test "${STATIC_SUBMISSION_GROUPS}" -gt 0
+                test "${STATIC_SUBMISSION_GROUPS}" -le "${STATIC_SUBMISSION_BATCHES}"
+                echo "XZIEL_STATIC_SUBMISSION_GROUPS_ACTIVE groups=${STATIC_SUBMISSION_GROUPS} batches=${STATIC_SUBMISSION_BATCHES}"
+              fi
             fi
 
             if [[ "${GITHUB_REF_NAME}" == "engine/mobile-portal-visibility-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-gpu-pass-timing-v1" ]]; then
