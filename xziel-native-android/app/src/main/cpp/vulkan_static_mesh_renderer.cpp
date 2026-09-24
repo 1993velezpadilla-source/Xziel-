@@ -209,6 +209,248 @@ effectiveGeometryResidentBudget(
     }
 }
 
+struct PackedStaticMeshVertex {
+    float x = 0.0f;
+    float y = 0.0f;
+    float z = 0.0f;
+    std::array<std::int16_t, 4> normal{};
+    std::array<std::uint16_t, 2> uv{};
+};
+
+static_assert(
+    sizeof(PackedStaticMeshVertex) == 24U,
+    "packed static GPU vertex must remain 24 bytes");
+
+[[nodiscard]] bool supportsVertexFormat(
+    VkPhysicalDevice physicalDevice,
+    VkFormat format) noexcept {
+    VkFormatProperties properties{};
+    vkGetPhysicalDeviceFormatProperties(
+        physicalDevice,
+        format,
+        &properties);
+
+    return
+        (properties.bufferFeatures &
+         VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT) != 0U;
+}
+
+[[nodiscard]] bool supportsPackedStaticVertex(
+    VkPhysicalDevice physicalDevice) noexcept {
+    return
+        supportsVertexFormat(
+            physicalDevice,
+            VK_FORMAT_R16G16B16A16_SNORM) &&
+        supportsVertexFormat(
+            physicalDevice,
+            VK_FORMAT_R16G16_SFLOAT);
+}
+
+[[nodiscard]] std::size_t gpuStaticVertexStride(
+    bool packed) noexcept {
+    return
+        packed
+        ? sizeof(PackedStaticMeshVertex)
+        : sizeof(StaticMeshVertex);
+}
+
+[[nodiscard]] std::int16_t packSnorm16(
+    float value) noexcept {
+    if (!std::isfinite(value)) {
+        return 0;
+    }
+
+    const float clamped =
+        std::clamp(
+            value,
+            -1.0f,
+            1.0f);
+
+    return static_cast<std::int16_t>(
+        std::lround(
+            clamped * 32767.0f));
+}
+
+[[nodiscard]] std::uint16_t floatToHalfBits(
+    float value) noexcept {
+    if (!std::isfinite(value)) {
+        value = 0.0f;
+    }
+
+    std::uint32_t bits = 0U;
+    std::memcpy(
+        &bits,
+        &value,
+        sizeof(bits));
+
+    const std::uint32_t sign =
+        (bits >> 16U) & 0x8000U;
+    const std::uint32_t exponent =
+        (bits >> 23U) & 0xFFU;
+    std::uint32_t mantissa =
+        bits & 0x7FFFFFU;
+
+    if (exponent == 0U) {
+        return
+            static_cast<std::uint16_t>(
+                sign);
+    }
+
+    const int adjustedExponent =
+        static_cast<int>(exponent) -
+        127 +
+        15;
+
+    if (adjustedExponent <= 0) {
+        if (adjustedExponent < -10) {
+            return
+                static_cast<std::uint16_t>(
+                    sign);
+        }
+
+        mantissa |= 0x800000U;
+
+        const int shift =
+            14 - adjustedExponent;
+
+        const std::uint32_t rounding =
+            (1U << (shift - 1)) - 1U +
+            ((mantissa >> shift) & 1U);
+
+        return static_cast<std::uint16_t>(
+            sign |
+            ((mantissa + rounding) >>
+             shift));
+    }
+
+    if (adjustedExponent >= 31) {
+        return static_cast<std::uint16_t>(
+            sign | 0x7BFFU);
+    }
+
+    const std::uint32_t rounded =
+        mantissa + 0x0FFFU +
+        ((mantissa >> 13U) & 1U);
+
+    if ((rounded & 0x800000U) != 0U) {
+        const int bumpedExponent =
+            adjustedExponent + 1;
+
+        if (bumpedExponent >= 31) {
+            return static_cast<std::uint16_t>(
+                sign | 0x7BFFU);
+        }
+
+        return static_cast<std::uint16_t>(
+            sign |
+            (static_cast<std::uint32_t>(
+                 bumpedExponent)
+             << 10U));
+    }
+
+    return static_cast<std::uint16_t>(
+        sign |
+        (static_cast<std::uint32_t>(
+             adjustedExponent)
+         << 10U) |
+        (rounded >> 13U));
+}
+
+void packStaticVertex(
+    const StaticMeshVertex& source,
+    PackedStaticMeshVertex& destination) noexcept {
+    destination.x = source.x;
+    destination.y = source.y;
+    destination.z = source.z;
+
+    destination.normal = {
+        packSnorm16(source.nx),
+        packSnorm16(source.ny),
+        packSnorm16(source.nz),
+        0,
+    };
+
+    destination.uv = {
+        floatToHalfBits(source.u),
+        floatToHalfBits(source.v),
+    };
+}
+
+void writeGpuVertices(
+    std::span<const StaticMeshVertex> source,
+    std::byte* destination,
+    bool packed) noexcept {
+    if (destination == nullptr ||
+        source.empty()) {
+        return;
+    }
+
+    if (!packed) {
+        std::memcpy(
+            destination,
+            source.data(),
+            source.size_bytes());
+        return;
+    }
+
+    for (std::size_t i = 0U;
+         i < source.size();
+         ++i) {
+        PackedStaticMeshVertex vertex{};
+        packStaticVertex(
+            source[i],
+            vertex);
+
+        std::memcpy(
+            destination +
+                i *
+                sizeof(PackedStaticMeshVertex),
+            &vertex,
+            sizeof(vertex));
+    }
+}
+
+[[nodiscard]] bool packGpuVerticesFromBytes(
+    std::span<const std::byte> source,
+    std::uint32_t vertexCount,
+    std::byte* destination) noexcept {
+    if (destination == nullptr ||
+        vertexCount == 0U ||
+        source.size() !=
+            static_cast<std::size_t>(
+                vertexCount) *
+                sizeof(StaticMeshVertex)) {
+        return false;
+    }
+
+    for (std::uint32_t i = 0U;
+         i < vertexCount;
+         ++i) {
+        StaticMeshVertex sourceVertex{};
+
+        std::memcpy(
+            &sourceVertex,
+            source.data() +
+                static_cast<std::size_t>(i) *
+                    sizeof(StaticMeshVertex),
+            sizeof(sourceVertex));
+
+        PackedStaticMeshVertex vertex{};
+        packStaticVertex(
+            sourceVertex,
+            vertex);
+
+        std::memcpy(
+            destination +
+                static_cast<std::size_t>(i) *
+                    sizeof(PackedStaticMeshVertex),
+            &vertex,
+            sizeof(vertex));
+    }
+
+    return true;
+}
+
 [[nodiscard]] bool assetExists(
     AAssetManager* assetManager,
     const std::string& path) noexcept {
@@ -275,6 +517,22 @@ bool VulkanStaticMeshRenderer::initialize(
 
     samplerAnisotropyEnabled_ =
         deviceFeatures.samplerAnisotropy == VK_TRUE;
+
+    packedStaticVertexEnabled_ =
+        supportsPackedStaticVertex(
+            physicalDevice_);
+
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
+        "XZIEL_STATIC_VERTEX_FORMAT packed=%u gpu_stride=%u source_stride=%u color_attribute=0",
+        packedStaticVertexEnabled_ ? 1U : 0U,
+        static_cast<unsigned int>(
+            gpuStaticVertexStride(
+                packedStaticVertexEnabled_)),
+        static_cast<unsigned int>(
+            sizeof(StaticMeshVertex)));
+
     astcLdrSupported_ =
         deviceFeatures.textureCompressionASTC_LDR ==
         VK_TRUE;
@@ -1142,6 +1400,7 @@ void VulkanStaticMeshRenderer::shutdown() noexcept {
     totalVertices_ = 0U;
     totalIndices_ = 0U;
     samplerAnisotropyEnabled_ = false;
+    packedStaticVertexEnabled_ = false;
     astcLdrSupported_ = false;
     multiDrawIndirectEnabled_ = false;
     maxDrawIndirectCount_ = 1U;
