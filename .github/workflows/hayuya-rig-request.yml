@@ -1,0 +1,197 @@
+name: HAYUYA Rig Request
+
+on:
+  push:
+    branches:
+      - art/hayuya-monster-v1
+    paths:
+      - hayuya/rig_requests/**.json
+      - .github/workflows/hayuya-rig-request.yml
+      - tools/hayuya3d/blender_autorig.py
+      - tools/hayuya3d/rig_gate.py
+      - tools/hayuya3d/blender_animation_gate.py
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.collect.outputs.matrix }}
+      count: ${{ steps.collect.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: art/hayuya-monster-v1
+          fetch-depth: 2
+      - id: collect
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          root=Path(".")
+          if os.environ.get("GITHUB_EVENT_NAME")=="workflow_dispatch":
+              paths=sorted((root/"hayuya/rig_requests").glob("*.json")) if (root/"hayuya/rig_requests").is_dir() else []
+          else:
+              p=subprocess.run(["git","diff-tree","--no-commit-id","--name-only","-r",os.environ["GITHUB_SHA"]],text=True,stdout=subprocess.PIPE,check=True)
+              paths=[root/x.strip() for x in p.stdout.splitlines() if x.startswith("hayuya/rig_requests/") and x.endswith(".json")]
+          include=[]
+          for path in paths:
+              if not path.is_file(): continue
+              d=json.loads(path.read_text())
+              job=str(d.get("job_id",""))
+              if not job or not all(ch.isalnum() or ch in "._-" for ch in job):
+                  raise SystemExit("unsafe job_id")
+              include.append({"job_id":job,"request":str(path),"owner":str(d.get("owner","HAYUYA"))})
+          with open(os.environ["GITHUB_OUTPUT"],"a") as f:
+              f.write("matrix="+json.dumps({"include":include},separators=(",",":"))+"\n")
+              f.write("count="+str(len(include))+"\n")
+          print(json.dumps(include,indent=2))
+          PY
+
+  rig:
+    needs: prepare
+    if: needs.prepare.outputs.count != '0'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: hayuya-rig-${{ matrix.job_id }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: art/hayuya-monster-v1
+          fetch-depth: 1
+
+      - name: Validate source model
+        run: |
+          set -euo pipefail
+          test -s "hayuya/models/${{ matrix.job_id }}/model.glb"
+
+      - name: Install Blender
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq blender python3-numpy
+
+      - name: Build UAM2 bank on real model
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "out/rig/${{ matrix.job_id }}"
+          blender -b --python tools/hayuya3d/blender_autorig.py -- \
+            --target "hayuya/models/${{ matrix.job_id }}/model.glb" \
+            --donor hayuya/animation_library/quaternius-uam2/library.glb \
+            --output "out/rig/${{ matrix.job_id }}/animated.glb" \
+            --report "out/rig/${{ matrix.job_id }}/autorig-uam2.json"
+          python tools/hayuya3d/rig_gate.py \
+            "out/rig/${{ matrix.job_id }}/animated.glb" \
+            --json "out/rig/${{ matrix.job_id }}/rig-uam2.json"
+          blender -b --python tools/hayuya3d/blender_animation_gate.py -- \
+            --model "out/rig/${{ matrix.job_id }}/animated.glb" \
+            --json "out/rig/${{ matrix.job_id }}/anim-uam2.json" --samples 5
+
+      - name: Build UAM1 bank on real model
+        shell: bash
+        run: |
+          set -euo pipefail
+          blender -b --python tools/hayuya3d/blender_autorig.py -- \
+            --target "hayuya/models/${{ matrix.job_id }}/model.glb" \
+            --donor hayuya/animation_library/quaternius-uam1/library.glb \
+            --output "out/rig/${{ matrix.job_id }}/animated-uam1.glb" \
+            --report "out/rig/${{ matrix.job_id }}/autorig-uam1.json"
+          python tools/hayuya3d/rig_gate.py \
+            "out/rig/${{ matrix.job_id }}/animated-uam1.glb" \
+            --json "out/rig/${{ matrix.job_id }}/rig-uam1.json"
+          blender -b --python tools/hayuya3d/blender_animation_gate.py -- \
+            --model "out/rig/${{ matrix.job_id }}/animated-uam1.glb" \
+            --json "out/rig/${{ matrix.job_id }}/anim-uam1.json" --samples 5
+
+      - name: Persist animated real-model banks
+        shell: bash
+        run: |
+          set -euo pipefail
+          job="${{ matrix.job_id }}"
+          src="out/rig/$job"
+          dst="hayuya/models/$job"
+          cp "$src/animated.glb" "$dst/animated.glb"
+          cp "$src/animated-uam1.glb" "$dst/animated-uam1.glb"
+          cp "$src/rig-uam2.json" "$dst/rig_gate.json"
+          cp "$src/rig-uam1.json" "$dst/rig_gate_uam1.json"
+          cp "$src/anim-uam2.json" "$dst/animation_gate.json"
+          cp "$src/anim-uam1.json" "$dst/animation_gate_uam1.json"
+          cp "$src/autorig-uam2.json" "$dst/autorig-report.json"
+          cp "$src/autorig-uam1.json" "$dst/autorig-report-uam1.json"
+
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          job="${{ matrix.job_id }}"
+          root=Path("hayuya/models")/job
+          manifest_path=root/"manifest.json"
+          manifest=json.loads(manifest_path.read_text()) if manifest_path.exists() else {"schema":2,"job_id":job}
+          r2=json.loads((root/"rig_gate.json").read_text())
+          r1=json.loads((root/"rig_gate_uam1.json").read_text())
+          g2=json.loads((root/"animation_gate.json").read_text())
+          g1=json.loads((root/"animation_gate_uam1.json").read_text())
+          manifest["preview_model"]="animated.glb"
+          manifest["asset_profile"]="character.humanoid" if manifest.get("asset_profile")=="auto" else manifest.get("asset_profile","character.humanoid")
+          manifest["character"]={
+            "skeleton_type":r2.get("skeleton_type","hayuya_humanoid_v1"),
+            "preview_pack":"hayuya_preview_pack_v1",
+            "rig_ready":bool(r2.get("rig_ready")),
+            "animation_ready":bool(r2.get("animation_ready")),
+            "preview_animation_ready":bool(r2.get("preview_animation_ready")),
+            "animation_clips":r2.get("animation_clips",[]),
+            "facial":r2.get("facial",{}),
+            "secondary_motion":r2.get("secondary_motion",{}),
+            "warnings":r2.get("warnings",[]),
+            "deformation_qa":{"passed":bool(g2.get("passed")),"action_count":g2.get("action_count",0),"failures":g2.get("failures",[])}
+          }
+          manifest["animation_banks"]={
+            "quaternius-uam2":{
+              "model":"animated.glb",
+              "clips":r2.get("animation_clips",[]),
+              "rig_ready":bool(r2.get("rig_ready")),
+              "animation_ready":bool(r2.get("animation_ready")),
+              "deformation_qa":{"passed":bool(g2.get("passed")),"action_count":g2.get("action_count",0),"failures":g2.get("failures",[])}
+            },
+            "quaternius-uam1":{
+              "model":"animated-uam1.glb",
+              "clips":r1.get("animation_clips",[]),
+              "rig_ready":bool(r1.get("rig_ready")),
+              "animation_ready":bool(r1.get("animation_ready")),
+              "deformation_qa":{"passed":bool(g1.get("passed")),"action_count":g1.get("action_count",0),"failures":g1.get("failures",[])}
+            }
+          }
+          manifest_path.write_text(json.dumps(manifest,indent=2)+"\n")
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$dst"
+          git commit -m "hayuya: rig real model $job with local animation banks"
+          for attempt in 1 2 3 4 5; do
+            git pull --rebase origin art/hayuya-monster-v1 || { git rebase --abort || true; sleep $((attempt*2)); continue; }
+            if git push origin HEAD:art/hayuya-monster-v1; then exit 0; fi
+            sleep $((attempt*2))
+          done
+          exit 1
+
+      - name: Notify Hub
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ "${{ job.status }}" == "success" ]]; then
+            gh issue comment 55 --repo "$GITHUB_REPOSITORY" --body "🦴 **RIG READY** — **${{ matrix.owner }}** / `${{ matrix.job_id }}` — real model now carries UAM1/UAM2 animation banks."
+          else
+            gh issue comment 55 --repo "$GITHUB_REPOSITORY" --body "❌ **RIG FAILED** — **${{ matrix.owner }}** / `${{ matrix.job_id }}`"
+          fi
