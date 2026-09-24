@@ -35,7 +35,7 @@ HorrorLightingConfig makeSanctumLightingConfig() noexcept {
     // Sanctum deliberately separates a weak warm practical/key from a cold
     // blue-black ambient field. This preserves material readability while
     // leaving large negative-space regions that horror lighting depends on.
-    config.keyDirection = {-0.34f, -0.82f, -0.46f};
+    config.keyDirection = {-0.34f, 0.82f, -0.46f};
     config.keyColorLinear = {1.0f, 0.58f, 0.30f};
     config.keyIntensity = 0.78f;
 
@@ -93,7 +93,7 @@ HorrorLightingFrame HorrorLightingDirector::advance(
     frame_.keyDirection =
         normalizeOr(
             config_.keyDirection,
-            {-0.34f, -0.82f, -0.46f});
+            {-0.34f, 0.82f, -0.46f});
     frame_.keyColorLinear = {
         std::max(0.0f, sanitizeFinite(config_.keyColorLinear.x)),
         std::max(0.0f, sanitizeFinite(config_.keyColorLinear.y)),
