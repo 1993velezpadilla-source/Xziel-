@@ -232,6 +232,8 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
             pass
     elif line.startswith("HAYUYA_REFINEMENT"):
         _set_stage(job, "refinement")
+    elif line.startswith("HAYUYA_TEXTURE_SUPERRES"):
+        _set_stage(job, "refinement")
     elif line.startswith("HAYUYA_MESH_DOCTOR"):
         _set_stage(job, "mesh_doctor")
     elif line.startswith("HAYUYA_RETOPO"):
