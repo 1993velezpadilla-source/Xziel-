@@ -106,8 +106,17 @@ def build_edge_samples(meshes, rest_positions, rest_bounds, max_edges):
             if length<=1e-8 or not math.isfinite(length):
                 continue
             mid=(pos[a][up_axis]+pos[b][up_axis])*0.5
-            head=((mid-body_min)/body_span)>=0.78
-            candidates.append((obj.name,int(a),int(b),float(length),bool(head)))
+            height_norm=float((mid-body_min)/body_span)
+            head=height_norm>=0.78
+            candidates.append((
+                obj.name,
+                int(a),
+                int(b),
+                float(length),
+                bool(head),
+                height_norm,
+                float(length/body_span),
+            ))
     if len(candidates)>max_edges:
         step=len(candidates)/float(max_edges)
         sampled=[]
@@ -153,12 +162,21 @@ def build_vertex_weight_labels(meshes):
     return labels
 
 
+def bone_side_label(name):
+    value=str(name or "").lower()
+    if re.search(r"(?:_l|\.l)$",value):
+        return "left"
+    if re.search(r"(?:_r|\.r)$",value):
+        return "right"
+    return None
+
+
 def edge_metrics(edge_samples, positions, weight_labels=None):
     body=[]
     head=[]
     detailed=[]
     missing=0
-    for name,a,b,rest_len,is_head in edge_samples:
+    for name,a,b,rest_len,is_head,height_norm,rest_len_normalized in edge_samples:
         arr=positions.get(name)
         if not arr or a>=len(arr) or b>=len(arr):
             missing+=1
@@ -174,13 +192,21 @@ def edge_metrics(edge_samples, positions, weight_labels=None):
             la=weight_labels.get((name,a),{"bone":None,"weight":0.0})
             lb=weight_labels.get((name,b),{"bone":None,"weight":0.0})
             pair="|".join(sorted(str(x or "unweighted") for x in (la.get("bone"),lb.get("bone"))))
+            side_a=bone_side_label(la.get("bone"))
+            side_b=bone_side_label(lb.get("bone"))
             detailed.append({
                 "mesh":name,
                 "a":int(a),
                 "b":int(b),
                 "ratio":ratio,
+                "rest_length":float(rest_len),
+                "rest_length_normalized":float(rest_len_normalized),
+                "height_normalized":float(height_norm),
                 "head":bool(is_head),
                 "bone_pair":pair,
+                "cross_side_bone_pair":bool(
+                    side_a is not None and side_b is not None and side_a!=side_b
+                ),
                 "a_bone":la.get("bone"),
                 "b_bone":lb.get("bone"),
                 "a_weight":float(la.get("weight",0.0)),
@@ -204,11 +230,14 @@ def edge_metrics(edge_samples, positions, weight_labels=None):
 
         def summarize(rows):
             pairs={}
+            cross_side=0
             for row in rows:
                 key=row["bone_pair"]
                 pairs[key]=pairs.get(key,0)+1
+                cross_side+=int(bool(row.get("cross_side_bone_pair")))
             return {
                 "sample_count":len(rows),
+                "cross_side_bone_pair_count":cross_side,
                 "bone_pairs":[
                     {"pair":pair,"count":n}
                     for pair,n in sorted(pairs.items(),key=lambda x:(-x[1],x[0]))
