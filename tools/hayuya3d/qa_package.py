@@ -93,6 +93,7 @@ def build_qa_package(
     detail_images: list[Path],
     gameprep: Any = None,
     target_faces: int,
+    target_texture_size: int | None = None,
 ) -> QAPackageResult:
     out_dir.mkdir(parents=True, exist_ok=True)
     champion_data = _champion_dict(champion)
@@ -101,6 +102,7 @@ def build_qa_package(
         backend=str(champion_data.get("backend", "final")),
         mode=mode,
         target_faces=target_faces,
+        target_texture_size=target_texture_size,
     )
     rig = audit_glb(final_glb)
     structure = audit_mesh_structure(final_glb)
@@ -177,10 +179,25 @@ def build_qa_package(
             f"tiny disconnected components retained intentionally: {structure.tiny_components}"
         )
 
-    material_ready = bool(
+    base_material_ready = bool(
         mesh.material_score >= 55.0
         or ("baseColor" in set(mesh.pbr_channels or []) and mesh.has_uv)
     )
+    texture_resolution_ready = (
+        True
+        if target_texture_size is None
+        else bool(
+            mesh.base_color_max_edge
+            and mesh.base_color_max_edge >= int(target_texture_size)
+        )
+    )
+    material_ready = bool(base_material_ready and texture_resolution_ready)
+    if base_material_ready and not texture_resolution_ready:
+        warnings.append(
+            f"visible baseColor resolution {mesh.base_color_max_edge}px "
+            f"is below profile target {int(target_texture_size)}px; "
+            "asset remains inspectable but is not production-ready"
+        )
 
     rig_required = mode == "character"
     rig_ready = bool(rig.rig_ready)
@@ -286,6 +303,10 @@ def build_qa_package(
             "degenerate_ratio": mesh.degenerate_ratio,
             "bbox": mesh.bbox,
             "production_score": mesh.production_score,
+            "head_region_faces": mesh.head_region_faces,
+            "head_region_vertices": mesh.head_region_vertices,
+            "head_region_face_fraction": mesh.head_region_face_fraction,
+            "head_region_median_edge_normalized": mesh.head_region_median_edge_normalized,
             "mesh_doctor": asdict(structure),
             "unresolved_structural_defects": unresolved_structural_defects,
         },
@@ -295,10 +316,18 @@ def build_qa_package(
             "textured": mesh.textured,
             "pbr_channels": mesh.pbr_channels or [],
             "material_score": mesh.material_score,
+            "texture_max_edge": mesh.texture_max_edge,
+            "base_color_max_edge": mesh.base_color_max_edge,
+            "texture_resolution_score": mesh.texture_resolution_score,
+            "profile_texture_target": target_texture_size,
+            "texture_resolution_ready": texture_resolution_ready,
         },
         "references": {
             "geometry_source_count": expected_sources,
             "detail_source_count": len(detail_images),
+            "appearance_score": champion_data.get("appearance_score"),
+            "detail_identity_score": champion_data.get("appearance_detail_score"),
+            "face_detail_identity_score": champion_data.get("appearance_face_detail_score"),
             "judge_visual_view_count": source_coverage,
             "all_geometry_sources_judged": source_coverage >= expected_sources,
         },
@@ -366,6 +395,7 @@ def main() -> int:
     parser.add_argument("--mode", choices=["prop", "character", "architecture"], default="prop")
     parser.add_argument("--profile", default="game")
     parser.add_argument("--target-faces", type=int, default=100000)
+    parser.add_argument("--target-texture-size", type=int)
     parser.add_argument("--source", type=Path, action="append", default=[])
     args = parser.parse_args()
 
@@ -378,6 +408,7 @@ def main() -> int:
         source_images=args.source,
         detail_images=[],
         target_faces=args.target_faces,
+        target_texture_size=args.target_texture_size,
     )
     print(json.dumps(asdict(result), indent=2))
     return 0 if result.geometry_ready else 2
