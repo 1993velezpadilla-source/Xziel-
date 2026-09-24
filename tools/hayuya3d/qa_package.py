@@ -170,6 +170,7 @@ def _finite_metric(value: Any) -> bool:
 def face_quality_evidence_chain(
     *,
     required: bool,
+    identity_required: bool | None = None,
     face_min_score: float | None,
     head_density_score: float | None,
     head_texel_density_score: float | None,
@@ -184,13 +185,16 @@ def face_quality_evidence_chain(
     """
     if not required:
         return True, []
+    if identity_required is None:
+        identity_required=required
 
     metrics={
-        "identity_min_score":face_min_score,
         "head_density_score":head_density_score,
         "head_texel_density_score":head_texel_density_score,
         "head_texture_detail_score":head_texture_detail_score,
     }
+    if identity_required:
+        metrics["identity_min_score"]=face_min_score
     missing=[
         name
         for name,value in metrics.items()
@@ -399,15 +403,16 @@ def build_qa_package(
         face_quality_evidence_ready,
         face_quality_evidence_missing,
     )=face_quality_evidence_chain(
-        required=face_evidence_required,
+        required=(mode=="character"),
+        identity_required=face_evidence_required,
         face_min_score=face_evidence_min_score,
         head_density_score=mesh.head_density_score,
         head_texel_density_score=mesh.head_texel_density_score,
         head_texture_detail_score=mesh.head_texture_detail_score,
     )
-    if face_evidence_required and not face_quality_evidence_ready:
+    if mode=="character" and not face_quality_evidence_ready:
         warnings.append(
-            "face quality evidence chain incomplete: "
+            "character face-quality evidence chain incomplete: "
             + ",".join(face_quality_evidence_missing)
             + "; identity/geometry/texel/detail evidence must all exist before "
             "a face-referenced character can be production-ready"
@@ -585,6 +590,8 @@ def build_qa_package(
             "expected": face_evidence_expected,
             "evaluated": face_evidence_evaluated,
             "missing_references": face_evidence_missing,
+            "quality_evidence_required": mode=="character",
+            "identity_evidence_required": face_evidence_required,
             "quality_evidence_ready": face_quality_evidence_ready,
             "quality_evidence_missing": face_quality_evidence_missing,
             "ready": face_evidence_ready,
