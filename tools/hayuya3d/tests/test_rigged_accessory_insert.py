@@ -19,6 +19,7 @@ from tools.hayuya3d.morph_deformation_qa import audit_morph_deformation
 from tools.hayuya3d.rigged_accessory_insert import (
     _blend_skin_weights,
     _require_exact_surface_relation,
+    _surface_skin_ambiguity,
     insert_rigged_accessory,
     prepare_production_rigged_accessory_insert,
     rigged_accessory_insert_supported,
@@ -691,6 +692,127 @@ class RiggedAccessoryInsertTests(unittest.TestCase):
                 float(np.max(np.abs(expected-nearest_copy))),
                 1e-5,
             )
+
+    def test_thin_parallel_surfaces_with_different_skin_are_ambiguous(self):
+        from tools.hayuya3d.surface_transfer import (
+            build_surface_transfer_index,
+            query_surface_transfer,
+        )
+
+        vertices=np.asarray([
+            [-1.0,-1.0,0.0],
+            [ 1.0,-1.0,0.0],
+            [ 1.0, 1.0,0.0],
+            [-1.0, 1.0,0.0],
+            [-1.0,-1.0,0.006],
+            [ 1.0,-1.0,0.006],
+            [ 1.0, 1.0,0.006],
+            [-1.0, 1.0,0.006],
+        ],dtype=np.float64)
+        faces=np.asarray([
+            [0,1,2],[0,2,3],
+            [4,6,5],[4,7,6],
+        ],dtype=np.int64)
+        joints=np.zeros((len(vertices),4),dtype=np.int64)
+        joints[4:,0]=1
+        weights=np.zeros((len(vertices),4),dtype=np.float64)
+        weights[:,0]=1.0
+        targets=np.asarray([[0.25,0.10,0.003]],dtype=np.float64)
+
+        index=build_surface_transfer_index(vertices,faces)
+        relation=query_surface_transfer(index,targets)
+        report=_surface_skin_ambiguity(
+            vertices,
+            joints,
+            weights,
+            targets,
+            index,
+            relation,
+        )
+        self.assertEqual(report.ambiguous_vertices,1)
+        self.assertAlmostEqual(report.max_skin_l1,2.0,places=6)
+        self.assertAlmostEqual(
+            report.min_distance_gap_ratio or 0.0,
+            0.0,
+            places=8,
+        )
+
+    def test_distant_competing_surface_is_not_skin_ambiguous(self):
+        from tools.hayuya3d.surface_transfer import (
+            build_surface_transfer_index,
+            query_surface_transfer,
+        )
+
+        vertices=np.asarray([
+            [-1.0,-1.0,0.0],
+            [ 1.0,-1.0,0.0],
+            [ 1.0, 1.0,0.0],
+            [-1.0, 1.0,0.0],
+            [-1.0,-1.0,0.05],
+            [ 1.0,-1.0,0.05],
+            [ 1.0, 1.0,0.05],
+            [-1.0, 1.0,0.05],
+        ],dtype=np.float64)
+        faces=np.asarray([
+            [0,1,2],[0,2,3],
+            [4,6,5],[4,7,6],
+        ],dtype=np.int64)
+        joints=np.zeros((len(vertices),4),dtype=np.int64)
+        joints[4:,0]=1
+        weights=np.zeros((len(vertices),4),dtype=np.float64)
+        weights[:,0]=1.0
+        targets=np.asarray([[0.25,0.10,0.001]],dtype=np.float64)
+
+        index=build_surface_transfer_index(vertices,faces)
+        relation=query_surface_transfer(index,targets)
+        report=_surface_skin_ambiguity(
+            vertices,
+            joints,
+            weights,
+            targets,
+            index,
+            relation,
+        )
+        self.assertEqual(report.ambiguous_vertices,0)
+        self.assertIsNone(report.min_distance_gap_ratio)
+        self.assertAlmostEqual(report.max_skin_l1,0.0,places=8)
+
+    def test_equivalent_skin_patch_does_not_trigger_ambiguity(self):
+        from tools.hayuya3d.surface_transfer import (
+            build_surface_transfer_index,
+            query_surface_transfer,
+        )
+
+        vertices=np.asarray([
+            [-1.0,-1.0,0.0],
+            [ 1.0,-1.0,0.0],
+            [ 1.0, 1.0,0.0],
+            [-1.0, 1.0,0.0],
+            [-0.2,-0.2,0.002],
+            [ 0.2,-0.2,0.002],
+            [ 0.0, 0.2,0.002],
+        ],dtype=np.float64)
+        faces=np.asarray([
+            [0,1,2],[0,2,3],
+            [4,5,6],
+        ],dtype=np.int64)
+        joints=np.zeros((len(vertices),4),dtype=np.int64)
+        weights=np.zeros((len(vertices),4),dtype=np.float64)
+        weights[:,0]=1.0
+        targets=np.asarray([[0.0,0.0,0.001]],dtype=np.float64)
+
+        index=build_surface_transfer_index(vertices,faces)
+        relation=query_surface_transfer(index,targets)
+        report=_surface_skin_ambiguity(
+            vertices,
+            joints,
+            weights,
+            targets,
+            index,
+            relation,
+        )
+        self.assertEqual(report.ambiguous_vertices,0)
+        self.assertAlmostEqual(report.max_skin_l1,0.0,places=8)
 
     def test_degenerate_surface_fallback_is_not_production_safe(self):
         relation=SimpleNamespace(fallback_vertices=1)
