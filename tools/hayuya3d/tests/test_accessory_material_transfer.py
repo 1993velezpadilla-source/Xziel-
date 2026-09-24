@@ -813,6 +813,45 @@ class AccessoryMaterialTransferTests(unittest.TestCase):
             self.assertTrue(production.morph_deformation_ready)
             self.assertTrue(production.attachment_ready)
 
+    def test_split_insert_builds_surface_bvh_once_for_all_groups(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            base = root / "base.glb"
+            donor = root / "split-cluster.glb"
+            raw = root / "split-raw.glb"
+            write_skinned_base_with_normals(base)
+            write_split_material_cluster_donor(donor)
+
+            import tools.hayuya3d.surface_transfer as surface_transfer
+            original = surface_transfer.build_surface_transfer_index
+            calls = []
+
+            def counted(*args, **kwargs):
+                calls.append(1)
+                return original(*args, **kwargs)
+
+            from unittest.mock import patch
+            with patch.object(
+                surface_transfer,
+                "build_surface_transfer_index",
+                side_effect=counted,
+            ):
+                inserted = insert_split_rigged_accessory(
+                    base,
+                    donor,
+                    raw,
+                )
+
+            self.assertTrue(inserted.geometry_ready, inserted.errors)
+            self.assertEqual(len(calls), 1)
+            self.assertTrue(
+                any(
+                    warning == "split_accessory_groups=3"
+                    for warning in inserted.warnings
+                ),
+                inserted.warnings,
+            )
+
     def test_split_material_normal_maps_survive_skeletal_animation(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
