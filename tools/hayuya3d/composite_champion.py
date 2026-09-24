@@ -476,7 +476,7 @@ def build_composite_plan(
                 elif (
                     mode=="character"
                     and int(match_report.base_accessories)==0
-                    and int(match_report.donor_accessories)==1
+                    and int(match_report.donor_accessories)>=1
                 ):
                     try:
                         from rigged_accessory_insert import (
