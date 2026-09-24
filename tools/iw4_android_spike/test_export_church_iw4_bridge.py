@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import struct
+import sys
 import tempfile
 from pathlib import Path
 
@@ -14,6 +15,7 @@ MODULE_PATH = HERE / "export_church_iw4_bridge.py"
 spec = importlib.util.spec_from_file_location("export_church_iw4_bridge", MODULE_PATH)
 module = importlib.util.module_from_spec(spec)
 assert spec and spec.loader
+sys.modules[spec.name] = module
 spec.loader.exec_module(module)
 
 
