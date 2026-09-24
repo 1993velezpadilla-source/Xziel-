@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - engine/mobile-power-fidelity-v1
+      - engine/horror-lighting-v1
       - engine/mobile-xzsm-mapped-load-v1
       - engine/mobile-material-dedup-v1
       - engine/mobile-draw-submission-telemetry-v1
