@@ -144,16 +144,20 @@ function renderFinalQa(qa) {
     grid.appendChild(item);
   });
 
-  if (qa.face_score != null) {
+  [
+    ["Face score", qa.face_score],
+    ["FaceMesh", qa.facemesh_score],
+  ].forEach(([label, score]) => {
+    if (score == null) return;
     const item = document.createElement("div");
     item.className = "qa-chip metric";
     const name = document.createElement("span");
-    name.textContent = "Face score";
+    name.textContent = label;
     const value = document.createElement("strong");
-    value.textContent = Number(qa.face_score).toFixed(1);
+    value.textContent = Number(score).toFixed(1);
     item.append(name, value);
     grid.appendChild(item);
-  }
+  });
 }
 
 function renderCandidates(job) {
