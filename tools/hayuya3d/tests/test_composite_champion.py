@@ -9,6 +9,11 @@ import numpy as np
 import trimesh
 from PIL import Image
 
+from tools.hayuya3d.hayuya import (
+    _strict_metric_improvement,
+    local_detail_composite_regressions,
+)
+
 from tools.hayuya3d.composite_champion import (
     build_composite_plan,
     execute_safe_head_wrap_challenger,
@@ -458,6 +463,80 @@ class CompositeChampionPlannerTests(unittest.TestCase):
                 Path(result.candidate_path or "").read_bytes()[:4],
                 b"glTF",
             )
+
+    def test_local_detail_guard_requires_target_reference_improvement(self):
+        source="/refs/scar-closeup.png"
+        base=SimpleNamespace(
+            score=99.0,
+            production_score=98.0,
+            vertices=100,
+            faces=180,
+            components=1,
+            bbox=[1.0,2.0,1.0],
+            pbr_channels=["baseColor","roughness","normal"],
+            head_texture_detail_score=90.0,
+            head_texel_density_score=98.0,
+            visual_score=99.0,
+            appearance_score=96.0,
+            appearance_face_detail_score=94.0,
+            appearance_face_detail_min_score=91.0,
+            base_color_min_edge=4096,
+            appearance_details=[{
+                "source":source,
+                "score":80.0,
+                "region_hint":"head",
+            }],
+        )
+        flat=SimpleNamespace(
+            **{
+                **base.__dict__,
+                "appearance_details":[{
+                    "source":source,
+                    "score":80.0,
+                    "region_hint":"head",
+                }],
+            }
+        )
+        improved=SimpleNamespace(
+            **{
+                **base.__dict__,
+                "appearance_details":[{
+                    "source":source,
+                    "score":88.0,
+                    "region_hint":"head",
+                }],
+            }
+        )
+
+        flat_reasons=local_detail_composite_regressions(
+            base,flat,source
+        )
+        self.assertTrue(
+            any("target_detail_not_improved" in item for item in flat_reasons),
+            flat_reasons,
+        )
+        self.assertEqual(
+            local_detail_composite_regressions(
+                base,improved,source
+            ),
+            [],
+        )
+
+    def test_target_metric_must_strictly_improve(self):
+        base=SimpleNamespace(material_score=90.0)
+        same=SimpleNamespace(material_score=90.0)
+        better=SimpleNamespace(material_score=91.0)
+        self.assertTrue(
+            _strict_metric_improvement(
+                base,same,"material_score"
+            )
+        )
+        self.assertEqual(
+            _strict_metric_improvement(
+                base,better,"material_score"
+            ),
+            [],
+        )
 
     def test_promotion_contract_requires_rejudge_and_atomic_fallback(self):
         base=candidate(
