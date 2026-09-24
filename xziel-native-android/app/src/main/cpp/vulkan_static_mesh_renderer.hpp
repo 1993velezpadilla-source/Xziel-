@@ -294,6 +294,10 @@ private:
         float cullCenterZ = 0.0f;
         float cullRadius = 0.0f;
 
+        // Exactly one render range per source XZSM batch owns streaming
+        // restore I/O. Additional ranges only refine visibility and indirect
+        // drawing; they must never enqueue the same APK payload twice.
+        bool streamSourcePrimary = true;
         bool doubleSided = true;
     };
 
