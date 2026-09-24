@@ -606,6 +606,68 @@ def main():
                         )
                 weights_by_vertex=next_rows
 
+            # AI image-to-3D surfaces can contain hundreds/thousands of tiny
+            # disconnected islands. Per-vertex blend differences inside a tiny
+            # island visibly stretch faces, teeth, hair cards and clothing
+            # patches when bones rotate. For small local islands, use one
+            # coherent dominant bone for the entire connected component. Large
+            # surfaces keep normal blended skinning for joint flexibility.
+            visited=set()
+            rigidized_components=0
+            rigidized_vertices=0
+            component_count=0
+            max_rigid_vertices=max(64,min(512,int(len(mesh.data.vertices)*0.03)))
+            max_rigid_span=max(target_height*0.12,1e-5)
+            for seed in range(len(mesh.data.vertices)):
+                if seed in visited:
+                    continue
+                stack=[seed]
+                visited.add(seed)
+                component=[]
+                while stack:
+                    vi=stack.pop()
+                    component.append(vi)
+                    for ni in adjacency[vi]:
+                        if ni not in visited:
+                            visited.add(ni)
+                            stack.append(ni)
+                component_count+=1
+                if not component:
+                    continue
+
+                coords=[mesh.matrix_world @ mesh.data.vertices[vi].co for vi in component]
+                cmin=Vector((
+                    min(p.x for p in coords),
+                    min(p.y for p in coords),
+                    min(p.z for p in coords),
+                ))
+                cmax=Vector((
+                    max(p.x for p in coords),
+                    max(p.y for p in coords),
+                    max(p.z for p in coords),
+                ))
+                span=(cmax-cmin).length
+                if len(component)>max_rigid_vertices or span>max_rigid_span:
+                    continue
+
+                totals={}
+                for vi in component:
+                    for name,weight in weights_by_vertex[vi].items():
+                        totals[name]=totals.get(name,0.0)+float(weight)
+                if not totals:
+                    continue
+                dominant=max(totals.items(),key=lambda x:x[1])[0]
+                for vi in component:
+                    weights_by_vertex[vi]={dominant:1.0}
+                rigidized_components+=1
+                rigidized_vertices+=len(component)
+
+            smoothing["connected_components"]=component_count
+            smoothing["rigidized_small_components"]=rigidized_components
+            smoothing["rigidized_vertices"]=rigidized_vertices
+            smoothing["rigidize_max_vertices"]=max_rigid_vertices
+            smoothing["rigidize_max_span"]=float(max_rigid_span)
+
             # Rewrite groups from the smoothed field.
             for group in list(mesh.vertex_groups):
                 mesh.vertex_groups.remove(group)
@@ -621,6 +683,7 @@ def main():
                     smoothed_group_names.add(name)
             smoothing["passed"]=True
             smoothing["groups"]=len(smoothed_group_names)
+            mesh_groups=set(smoothed_group_names)
         except Exception as exc:
             smoothing["error"]=f"{type(exc).__name__}:{exc}"
 
@@ -786,7 +849,7 @@ def main():
         "animation_retarget":animation_retarget,
         "export_meshes":remaining_meshes,
         "sterile_export_scene_meshes":export_scene_meshes,
-        "binding_method":"rotation_only_anatomical_lr_masked_v28",
+        "binding_method":"component_coherent_rotation_only_skin_v29",
         "bind_results":bind_results,
         "output_bytes":args.output.stat().st_size if args.output.exists() else 0,
     }
