@@ -12,6 +12,7 @@ sys.path.insert(0, str(HAYUYA3D))
 from hayuya_ads import compile_monetization_intelligence, discover_diegetic_candidates
 from universal_game_design import compile_universal_design_intelligence, infer_domains
 from world_reasoning import compile_world_reasoning_intelligence
+from world_model_broker import compile_world_model_broker
 
 
 class UniversalDesignBrainTests(unittest.TestCase):
@@ -66,6 +67,23 @@ class WorldReasoningBrainTests(unittest.TestCase):
         self.assertIn("multiplayer_networking", plan["priority_domains"])
         self.assertIn("mobile_rendering", plan["priority_domains"])
         self.assertIn("monetization_and_policy", plan["priority_domains"])
+
+
+class WorldModelBrokerTests(unittest.TestCase):
+    def test_geometry_arena_has_independent_candidates(self):
+        broker = compile_world_model_broker()
+        ids = [x["id"] for x in broker["stages"]["metric_geometry_arena"]]
+        self.assertIn("meta_mapanything", ids)
+        self.assertIn("meta_vggt", ids)
+        self.assertTrue(broker["policies"]["independent_challengers_for_uncertain_geometry"])
+
+    def test_product_benchmarks_do_not_claim_execution(self):
+        broker = compile_world_model_broker()
+        genie = broker["stages"]["interactive_world_simulation"][1]
+        self.assertEqual(genie["id"], "google_genie_3")
+        self.assertEqual(genie["mode"], "product_benchmark")
+        self.assertFalse(genie["execution"]["wired_in_hayuya_map"])
+        self.assertTrue(broker["policies"]["research_is_not_execution"])
 
 
 class MonetizationBrainTests(unittest.TestCase):
