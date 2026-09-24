@@ -1,0 +1,2504 @@
+{
+  "schemaVersion": 1,
+  "updated": "2026-09-24",
+  "source": "docs/zombies-map-dna-atlas.v1.json",
+  "corpusSize": 66,
+  "purpose": "Aggregate clean-room design patterns learned across the Call of Duty Zombies reference corpus for original HAYUYA/Xziel map generation.",
+  "distributions": {
+    "topology": [
+      {
+        "id": "multi_hub",
+        "count": 50,
+        "maps": [
+          "waw_verruckt",
+          "waw_der_riese",
+          "bo1_five",
+          "bo1_ascension",
+          "bo1_call_of_the_dead",
+          "bo1_moon",
+          "bo2_tranzit",
+          "bo2_die_rise",
+          "bo2_buried",
+          "bo2_origins",
+          "bo3_shadows",
+          "bo3_der_eisendrache",
+          "bo3_zetsubou",
+          "bo3_gorod",
+          "bo3_revelations",
+          "bo4_dead_of_the_night",
+          "bo4_ancient_evil",
+          "bo4_blood",
+          "bo4_classified",
+          "bo4_alpha_omega",
+          "bo4_tag",
+          "cw_die_maschine",
+          "cw_firebase_z",
+          "cw_mauer",
+          "cw_forsaken",
+          "vg_archon",
+          "bo6_terminus",
+          "bo6_liberty_falls",
+          "bo6_citadelle",
+          "bo6_tomb",
+          "bo6_shattered_veil",
+          "bo6_reckoning",
+          "bo7_ashes",
+          "bo7_astra",
+          "bo7_totenreich",
+          "bo7_kowakujo",
+          "bo7_rex_infernus",
+          "aw_infection",
+          "aw_carrier",
+          "aw_descent",
+          "iw_spaceland",
+          "iw_rave",
+          "iw_shaolin",
+          "iw_radioactive",
+          "iw_beast",
+          "wwii_final_reich",
+          "wwii_darkest_shore",
+          "wwii_shadowed_throne",
+          "wwii_tortured_path",
+          "wwii_frozen_dawn"
+        ]
+      },
+      {
+        "id": "vertical_stack",
+        "count": 24,
+        "maps": [
+          "bo1_five",
+          "bo1_call_of_the_dead",
+          "bo1_shangri_la",
+          "bo2_die_rise",
+          "bo2_mob",
+          "bo2_buried",
+          "bo3_der_eisendrache",
+          "bo4_voyage",
+          "bo4_ix",
+          "cw_die_maschine",
+          "cw_mauer",
+          "bo6_citadelle",
+          "bo6_tomb",
+          "bo6_reckoning",
+          "bo7_astra",
+          "bo7_totenreich",
+          "bo7_kowakujo",
+          "bo7_rex_infernus",
+          "aw_carrier",
+          "aw_descent",
+          "iw_shaolin",
+          "wwii_final_reich",
+          "wwii_shadowed_throne",
+          "wwii_frozen_dawn"
+        ]
+      },
+      {
+        "id": "looping_compound",
+        "count": 19,
+        "maps": [
+          "waw_nacht",
+          "waw_verruckt",
+          "waw_der_riese",
+          "bo1_kino",
+          "bo1_ascension",
+          "bo1_shangri_la",
+          "bo2_nuketown",
+          "bo2_mob",
+          "bo2_origins",
+          "bo3_gorod",
+          "bo3_the_giant",
+          "bo4_dead_of_the_night",
+          "bo6_liberty_falls",
+          "bo6_shattered_veil",
+          "bo7_paradox",
+          "aw_outbreak",
+          "iw_rave",
+          "iw_radioactive",
+          "wwii_darkest_shore"
+        ]
+      },
+      {
+        "id": "hub_spokes",
+        "count": 9,
+        "maps": [
+          "waw_shi_no_numa",
+          "bo3_shadows",
+          "bo3_zetsubou",
+          "bo4_ix",
+          "cw_firebase_z",
+          "vg_der_anfang",
+          "vg_terra_maledicta",
+          "vg_shi_no_numa",
+          "iw_spaceland"
+        ]
+      },
+      {
+        "id": "transport_gate",
+        "count": 8,
+        "maps": [
+          "bo1_moon",
+          "bo3_revelations",
+          "bo4_ancient_evil",
+          "cw_forsaken",
+          "vg_der_anfang",
+          "vg_terra_maledicta",
+          "iw_beast",
+          "wwii_tortured_path"
+        ]
+      },
+      {
+        "id": "single_holdout",
+        "count": 3,
+        "maps": [
+          "waw_nacht",
+          "bo2_nuketown",
+          "wwii_groesten_haus"
+        ]
+      },
+      {
+        "id": "vehicle_connected_regions",
+        "count": 3,
+        "maps": [
+          "bo2_tranzit",
+          "bo6_terminus",
+          "bo7_ashes"
+        ]
+      },
+      {
+        "id": "linear_chain",
+        "count": 1,
+        "maps": [
+          "bo4_voyage"
+        ]
+      },
+      {
+        "id": "open_world_regions",
+        "count": 1,
+        "maps": [
+          "mwiii_urzikstan"
+        ]
+      },
+      {
+        "id": "time_state_layers",
+        "count": 1,
+        "maps": [
+          "bo7_paradox"
+        ]
+      }
+    ],
+    "progression": [
+      {
+        "id": "quest_gate",
+        "count": 44,
+        "maps": [
+          "bo2_mob",
+          "bo2_buried",
+          "bo2_origins",
+          "bo3_der_eisendrache",
+          "bo3_zetsubou",
+          "bo3_gorod",
+          "bo3_revelations",
+          "bo4_voyage",
+          "bo4_ix",
+          "bo4_dead_of_the_night",
+          "bo4_ancient_evil",
+          "bo4_blood",
+          "bo4_classified",
+          "bo4_alpha_omega",
+          "bo4_tag",
+          "cw_die_maschine",
+          "cw_mauer",
+          "cw_forsaken",
+          "vg_terra_maledicta",
+          "vg_shi_no_numa",
+          "vg_archon",
+          "bo6_terminus",
+          "bo6_liberty_falls",
+          "bo6_citadelle",
+          "bo6_tomb",
+          "bo6_shattered_veil",
+          "bo6_reckoning",
+          "bo7_ashes",
+          "bo7_astra",
+          "bo7_paradox",
+          "bo7_totenreich",
+          "bo7_kowakujo",
+          "bo7_rex_infernus",
+          "aw_carrier",
+          "aw_descent",
+          "iw_spaceland",
+          "iw_rave",
+          "iw_shaolin",
+          "iw_radioactive",
+          "iw_beast",
+          "wwii_final_reich",
+          "wwii_darkest_shore",
+          "wwii_shadowed_throne",
+          "wwii_frozen_dawn"
+        ]
+      },
+      {
+        "id": "power_gate",
+        "count": 24,
+        "maps": [
+          "waw_verruckt",
+          "waw_der_riese",
+          "bo1_kino",
+          "bo1_five",
+          "bo1_ascension",
+          "bo1_call_of_the_dead",
+          "bo1_shangri_la",
+          "bo1_moon",
+          "bo2_tranzit",
+          "bo2_die_rise",
+          "bo2_mob",
+          "bo2_buried",
+          "bo3_der_eisendrache",
+          "bo3_gorod",
+          "bo3_revelations",
+          "bo3_the_giant",
+          "cw_die_maschine",
+          "cw_mauer",
+          "bo6_terminus",
+          "aw_infection",
+          "aw_carrier",
+          "iw_spaceland",
+          "iw_beast",
+          "wwii_final_reich"
+        ]
+      },
+      {
+        "id": "transport_gate",
+        "count": 12,
+        "maps": [
+          "waw_der_riese",
+          "bo1_kino",
+          "bo1_five",
+          "bo1_moon",
+          "bo2_tranzit",
+          "bo2_die_rise",
+          "bo3_shadows",
+          "bo3_der_eisendrache",
+          "bo3_the_giant",
+          "cw_firebase_z",
+          "cw_mauer",
+          "bo6_reckoning"
+        ]
+      },
+      {
+        "id": "state_shift",
+        "count": 7,
+        "maps": [
+          "bo1_moon",
+          "bo2_nuketown",
+          "bo3_revelations",
+          "bo4_ancient_evil",
+          "bo6_tomb",
+          "bo7_paradox",
+          "iw_rave"
+        ]
+      },
+      {
+        "id": "objective_unlock",
+        "count": 6,
+        "maps": [
+          "cw_forsaken",
+          "vg_der_anfang",
+          "vg_terra_maledicta",
+          "bo7_ashes",
+          "wwii_tortured_path",
+          "mwiii_urzikstan"
+        ]
+      },
+      {
+        "id": "doors_only",
+        "count": 3,
+        "maps": [
+          "waw_nacht",
+          "waw_shi_no_numa",
+          "wwii_groesten_haus"
+        ]
+      },
+      {
+        "id": "generator_network",
+        "count": 3,
+        "maps": [
+          "bo1_ascension",
+          "bo2_origins",
+          "cw_firebase_z"
+        ]
+      },
+      {
+        "id": "multi_power",
+        "count": 2,
+        "maps": [
+          "bo3_zetsubou",
+          "aw_outbreak"
+        ]
+      },
+      {
+        "id": "ritual_gate",
+        "count": 1,
+        "maps": [
+          "bo3_shadows"
+        ]
+      }
+    ],
+    "pressure": [
+      {
+        "id": "special_enemy_interrupt",
+        "count": 42,
+        "maps": [
+          "waw_der_riese",
+          "bo1_kino",
+          "bo1_five",
+          "bo1_ascension",
+          "bo1_call_of_the_dead",
+          "bo1_moon",
+          "bo2_tranzit",
+          "bo2_origins",
+          "bo3_shadows",
+          "bo3_der_eisendrache",
+          "bo3_zetsubou",
+          "bo3_gorod",
+          "bo3_revelations",
+          "bo4_dead_of_the_night",
+          "bo4_blood",
+          "bo4_classified",
+          "bo4_alpha_omega",
+          "bo4_tag",
+          "cw_die_maschine",
+          "cw_firebase_z",
+          "cw_mauer",
+          "cw_forsaken",
+          "bo6_terminus",
+          "bo6_citadelle",
+          "bo6_tomb",
+          "bo6_shattered_veil",
+          "bo7_astra",
+          "bo7_paradox",
+          "bo7_totenreich",
+          "bo7_kowakujo",
+          "bo7_rex_infernus",
+          "aw_outbreak",
+          "aw_infection",
+          "aw_carrier",
+          "iw_spaceland",
+          "iw_rave",
+          "iw_shaolin",
+          "iw_beast",
+          "wwii_final_reich",
+          "wwii_darkest_shore",
+          "wwii_shadowed_throne",
+          "wwii_tortured_path"
+        ]
+      },
+      {
+        "id": "tight_corridors",
+        "count": 19,
+        "maps": [
+          "waw_nacht",
+          "waw_verruckt",
+          "waw_der_riese",
+          "bo1_kino",
+          "bo1_shangri_la",
+          "bo2_mob",
+          "bo2_buried",
+          "bo3_shadows",
+          "bo3_gorod",
+          "bo3_the_giant",
+          "bo4_voyage",
+          "bo4_ix",
+          "bo4_dead_of_the_night",
+          "bo6_tomb",
+          "bo7_paradox",
+          "iw_shaolin",
+          "wwii_final_reich",
+          "wwii_shadowed_throne",
+          "wwii_groesten_haus"
+        ]
+      },
+      {
+        "id": "vertical_chokes",
+        "count": 13,
+        "maps": [
+          "bo1_five",
+          "bo1_call_of_the_dead",
+          "bo2_die_rise",
+          "bo2_mob",
+          "bo3_der_eisendrache",
+          "bo4_voyage",
+          "bo4_ancient_evil",
+          "cw_mauer",
+          "bo6_citadelle",
+          "bo6_reckoning",
+          "bo7_kowakujo",
+          "aw_descent",
+          "wwii_frozen_dawn"
+        ]
+      },
+      {
+        "id": "arena_boss_pressure",
+        "count": 12,
+        "maps": [
+          "bo4_ix",
+          "bo4_ancient_evil",
+          "vg_der_anfang",
+          "vg_terra_maledicta",
+          "vg_archon",
+          "bo6_reckoning",
+          "bo7_astra",
+          "bo7_rex_infernus",
+          "aw_descent",
+          "iw_beast",
+          "wwii_tortured_path",
+          "wwii_frozen_dawn"
+        ]
+      },
+      {
+        "id": "open_spawn_pressure",
+        "count": 12,
+        "maps": [
+          "bo1_ascension",
+          "bo2_nuketown",
+          "cw_die_maschine",
+          "cw_firebase_z",
+          "bo6_terminus",
+          "bo6_liberty_falls",
+          "bo6_shattered_veil",
+          "bo7_ashes",
+          "aw_outbreak",
+          "iw_spaceland",
+          "iw_radioactive",
+          "mwiii_urzikstan"
+        ]
+      },
+      {
+        "id": "long_transit",
+        "count": 11,
+        "maps": [
+          "waw_shi_no_numa",
+          "bo2_tranzit",
+          "bo2_die_rise",
+          "bo2_origins",
+          "bo3_revelations",
+          "cw_forsaken",
+          "vg_der_anfang",
+          "vg_terra_maledicta",
+          "bo6_terminus",
+          "bo7_ashes",
+          "mwiii_urzikstan"
+        ]
+      },
+      {
+        "id": "weather_visibility",
+        "count": 9,
+        "maps": [
+          "waw_shi_no_numa",
+          "bo1_call_of_the_dead",
+          "bo2_tranzit",
+          "bo3_zetsubou",
+          "vg_shi_no_numa",
+          "bo7_ashes",
+          "bo7_totenreich",
+          "iw_rave",
+          "wwii_darkest_shore"
+        ]
+      },
+      {
+        "id": "hazard_floor",
+        "count": 8,
+        "maps": [
+          "bo1_shangri_la",
+          "bo1_moon",
+          "bo2_die_rise",
+          "bo2_origins",
+          "bo7_kowakujo",
+          "aw_infection",
+          "aw_carrier",
+          "iw_radioactive"
+        ]
+      },
+      {
+        "id": "limited_training_space",
+        "count": 4,
+        "maps": [
+          "waw_nacht",
+          "bo2_nuketown",
+          "bo2_buried",
+          "wwii_groesten_haus"
+        ]
+      },
+      {
+        "id": "split_spawn",
+        "count": 1,
+        "maps": [
+          "waw_verruckt"
+        ]
+      }
+    ],
+    "horror": [
+      {
+        "id": "surreal",
+        "count": 21,
+        "maps": [
+          "bo1_kino",
+          "bo1_five",
+          "bo1_shangri_la",
+          "bo2_tranzit",
+          "bo2_nuketown",
+          "bo2_die_rise",
+          "bo2_buried",
+          "bo3_shadows",
+          "bo3_gorod",
+          "bo3_revelations",
+          "bo4_voyage",
+          "bo4_ix",
+          "bo4_blood",
+          "bo4_classified",
+          "bo4_alpha_omega",
+          "bo4_tag",
+          "cw_forsaken",
+          "bo7_paradox",
+          "bo7_rex_infernus",
+          "iw_spaceland",
+          "iw_shaolin"
+        ]
+      },
+      {
+        "id": "dark_aether",
+        "count": 18,
+        "maps": [
+          "cw_die_maschine",
+          "cw_firebase_z",
+          "cw_mauer",
+          "cw_forsaken",
+          "vg_der_anfang",
+          "vg_terra_maledicta",
+          "vg_archon",
+          "bo6_terminus",
+          "bo6_liberty_falls",
+          "bo6_tomb",
+          "bo6_shattered_veil",
+          "bo6_reckoning",
+          "bo7_ashes",
+          "bo7_astra",
+          "bo7_paradox",
+          "bo7_totenreich",
+          "bo7_kowakujo",
+          "bo7_rex_infernus"
+        ]
+      },
+      {
+        "id": "occult",
+        "count": 17,
+        "maps": [
+          "waw_der_riese",
+          "bo2_mob",
+          "bo2_origins",
+          "bo3_shadows",
+          "bo3_der_eisendrache",
+          "bo3_the_giant",
+          "bo4_ix",
+          "bo4_dead_of_the_night",
+          "bo4_ancient_evil",
+          "vg_der_anfang",
+          "vg_terra_maledicta",
+          "vg_archon",
+          "bo6_citadelle",
+          "bo6_tomb",
+          "wwii_final_reich",
+          "wwii_tortured_path",
+          "wwii_frozen_dawn"
+        ]
+      },
+      {
+        "id": "war_ruin",
+        "count": 17,
+        "maps": [
+          "waw_nacht",
+          "bo1_kino",
+          "bo2_tranzit",
+          "bo2_nuketown",
+          "bo2_origins",
+          "bo3_der_eisendrache",
+          "bo3_gorod",
+          "cw_die_maschine",
+          "cw_firebase_z",
+          "cw_mauer",
+          "bo6_liberty_falls",
+          "wwii_final_reich",
+          "wwii_darkest_shore",
+          "wwii_shadowed_throne",
+          "wwii_tortured_path",
+          "wwii_groesten_haus",
+          "mwiii_urzikstan"
+        ]
+      },
+      {
+        "id": "body_horror",
+        "count": 13,
+        "maps": [
+          "waw_verruckt",
+          "bo3_shadows",
+          "bo3_zetsubou",
+          "bo4_voyage",
+          "aw_outbreak",
+          "aw_infection",
+          "aw_carrier",
+          "aw_descent",
+          "iw_radioactive",
+          "iw_beast",
+          "wwii_final_reich",
+          "wwii_shadowed_throne",
+          "wwii_groesten_haus"
+        ]
+      },
+      {
+        "id": "folk_horror",
+        "count": 13,
+        "maps": [
+          "waw_shi_no_numa",
+          "bo1_shangri_la",
+          "bo2_buried",
+          "bo3_zetsubou",
+          "bo4_ancient_evil",
+          "vg_shi_no_numa",
+          "bo6_citadelle",
+          "bo7_ashes",
+          "bo7_totenreich",
+          "bo7_kowakujo",
+          "iw_rave",
+          "wwii_darkest_shore",
+          "wwii_frozen_dawn"
+        ]
+      },
+      {
+        "id": "institutional",
+        "count": 8,
+        "maps": [
+          "waw_verruckt",
+          "bo1_five",
+          "bo2_mob",
+          "bo6_terminus",
+          "bo6_shattered_veil",
+          "bo6_reckoning",
+          "aw_outbreak",
+          "aw_descent"
+        ]
+      },
+      {
+        "id": "camp_horror",
+        "count": 7,
+        "maps": [
+          "bo1_call_of_the_dead",
+          "bo4_dead_of_the_night",
+          "aw_infection",
+          "iw_spaceland",
+          "iw_rave",
+          "iw_shaolin",
+          "iw_radioactive"
+        ]
+      },
+      {
+        "id": "cosmic",
+        "count": 6,
+        "maps": [
+          "bo1_ascension",
+          "bo1_moon",
+          "bo2_origins",
+          "bo3_revelations",
+          "bo7_astra",
+          "iw_beast"
+        ]
+      },
+      {
+        "id": "industrial",
+        "count": 5,
+        "maps": [
+          "waw_der_riese",
+          "bo1_ascension",
+          "bo2_die_rise",
+          "bo3_the_giant",
+          "aw_carrier"
+        ]
+      },
+      {
+        "id": "isolation",
+        "count": 4,
+        "maps": [
+          "waw_nacht",
+          "waw_shi_no_numa",
+          "bo1_call_of_the_dead",
+          "bo1_moon"
+        ]
+      }
+    ],
+    "signatureSystems": [
+      {
+        "id": "reimagined_layout",
+        "count": 4,
+        "maps": [
+          "bo4_blood",
+          "bo4_classified",
+          "bo4_alpha_omega",
+          "bo4_tag"
+        ]
+      },
+      {
+        "id": "teleporter",
+        "count": 3,
+        "maps": [
+          "bo1_kino",
+          "bo1_moon",
+          "bo3_der_eisendrache"
+        ]
+      },
+      {
+        "id": "decontamination",
+        "count": 2,
+        "maps": [
+          "aw_outbreak",
+          "aw_infection"
+        ]
+      },
+      {
+        "id": "electric_traps",
+        "count": 2,
+        "maps": [
+          "waw_verruckt",
+          "waw_der_riese"
+        ]
+      },
+      {
+        "id": "elevators",
+        "count": 2,
+        "maps": [
+          "bo1_five",
+          "bo2_die_rise"
+        ]
+      },
+      {
+        "id": "pack_a_punch_unlock",
+        "count": 2,
+        "maps": [
+          "waw_der_riese",
+          "bo3_the_giant"
+        ]
+      },
+      {
+        "id": "portal_objectives",
+        "count": 2,
+        "maps": [
+          "vg_der_anfang",
+          "vg_terra_maledicta"
+        ]
+      },
+      {
+        "id": "teleporters",
+        "count": 2,
+        "maps": [
+          "waw_der_riese",
+          "bo3_the_giant"
+        ]
+      },
+      {
+        "id": "3d_printer",
+        "count": 1,
+        "maps": [
+          "aw_outbreak"
+        ]
+      },
+      {
+        "id": "acid_gat_build",
+        "count": 1,
+        "maps": [
+          "bo2_mob"
+        ]
+      },
+      {
+        "id": "afterlife_state",
+        "count": 1,
+        "maps": [
+          "bo2_mob"
+        ]
+      },
+      {
+        "id": "aircraft_carrier",
+        "count": 1,
+        "maps": [
+          "aw_carrier"
+        ]
+      },
+      {
+        "id": "amphitheater",
+        "count": 1,
+        "maps": [
+          "bo4_ancient_evil"
+        ]
+      },
+      {
+        "id": "antarctic_surface",
+        "count": 1,
+        "maps": [
+          "wwii_frozen_dawn"
+        ]
+      },
+      {
+        "id": "apothicon_interior",
+        "count": 1,
+        "maps": [
+          "bo3_revelations"
+        ]
+      },
+      {
+        "id": "apothicon_progression",
+        "count": 1,
+        "maps": [
+          "bo3_shadows"
+        ]
+      },
+      {
+        "id": "arcade",
+        "count": 1,
+        "maps": [
+          "iw_spaceland"
+        ]
+      },
+      {
+        "id": "arcade_side_systems",
+        "count": 1,
+        "maps": [
+          "cw_forsaken"
+        ]
+      },
+      {
+        "id": "area51_start",
+        "count": 1,
+        "maps": [
+          "bo1_moon"
+        ]
+      },
+      {
+        "id": "armor_crafting",
+        "count": 1,
+        "maps": [
+          "cw_die_maschine"
+        ]
+      },
+      {
+        "id": "artifact_activation",
+        "count": 1,
+        "maps": [
+          "bo4_voyage"
+        ]
+      },
+      {
+        "id": "artifact_puzzles",
+        "count": 1,
+        "maps": [
+          "bo4_dead_of_the_night"
+        ]
+      },
+      {
+        "id": "artillery_pressure",
+        "count": 1,
+        "maps": [
+          "wwii_darkest_shore"
+        ]
+      },
+      {
+        "id": "assault_rounds",
+        "count": 1,
+        "maps": [
+          "cw_firebase_z"
+        ]
+      },
+      {
+        "id": "bank_persistence",
+        "count": 1,
+        "maps": [
+          "bo2_tranzit"
+        ]
+      },
+      {
+        "id": "beach_town",
+        "count": 1,
+        "maps": [
+          "iw_radioactive"
+        ]
+      },
+      {
+        "id": "beast_mode",
+        "count": 1,
+        "maps": [
+          "bo3_shadows"
+        ]
+      },
+      {
+        "id": "berlin_ruins",
+        "count": 1,
+        "maps": [
+          "wwii_shadowed_throne"
+        ]
+      },
+      {
+        "id": "boat_travel",
+        "count": 1,
+        "maps": [
+          "bo6_terminus"
+        ]
+      },
+      {
+        "id": "boss_chain",
+        "count": 1,
+        "maps": [
+          "iw_beast"
+        ]
+      },
+      {
+        "id": "boss_encounters",
+        "count": 1,
+        "maps": [
+          "aw_descent"
+        ]
+      },
+      {
+        "id": "boss_endgame",
+        "count": 1,
+        "maps": [
+          "cw_forsaken"
+        ]
+      },
+      {
+        "id": "buildables",
+        "count": 1,
+        "maps": [
+          "bo2_tranzit"
+        ]
+      },
+      {
+        "id": "bunker_unlock",
+        "count": 1,
+        "maps": [
+          "bo3_zetsubou"
+        ]
+      },
+      {
+        "id": "burger_town_hub",
+        "count": 1,
+        "maps": [
+          "aw_infection"
+        ]
+      },
+      {
+        "id": "bus_transport",
+        "count": 1,
+        "maps": [
+          "bo2_tranzit"
+        ]
+      },
+      {
+        "id": "cabins",
+        "count": 1,
+        "maps": [
+          "iw_rave"
+        ]
+      },
+      {
+        "id": "campground",
+        "count": 1,
+        "maps": [
+          "iw_rave"
+        ]
+      },
+      {
+        "id": "castle_village_layers",
+        "count": 1,
+        "maps": [
+          "bo6_citadelle"
+        ]
+      },
+      {
+        "id": "catacombs",
+        "count": 1,
+        "maps": [
+          "bo6_tomb"
+        ]
+      },
+      {
+        "id": "central_arena",
+        "count": 1,
+        "maps": [
+          "bo4_ix"
+        ]
+      },
+      {
+        "id": "central_hut",
+        "count": 1,
+        "maps": [
+          "waw_shi_no_numa"
+        ]
+      },
+      {
+        "id": "chalk_wallbuy_system",
+        "count": 1,
+        "maps": [
+          "bo2_buried"
+        ]
+      },
+      {
+        "id": "champion_trials",
+        "count": 1,
+        "maps": [
+          "bo4_ix"
+        ]
+      },
+      {
+        "id": "church_landmark",
+        "count": 1,
+        "maps": [
+          "bo6_liberty_falls"
+        ]
+      },
+      {
+        "id": "civilian_rescue",
+        "count": 1,
+        "maps": [
+          "aw_infection"
+        ]
+      },
+      {
+        "id": "compact_quest",
+        "count": 1,
+        "maps": [
+          "bo6_liberty_falls"
+        ]
+      },
+      {
+        "id": "compact_survival_house",
+        "count": 1,
+        "maps": [
+          "wwii_groesten_haus"
+        ]
+      },
+      {
+        "id": "companion_robot",
+        "count": 1,
+        "maps": [
+          "cw_mauer"
+        ]
+      },
+      {
+        "id": "contracts",
+        "count": 1,
+        "maps": [
+          "mwiii_urzikstan"
+        ]
+      },
+      {
+        "id": "covenant_progression",
+        "count": 1,
+        "maps": [
+          "vg_der_anfang"
+        ]
+      },
+      {
+        "id": "crawler_enemy",
+        "count": 1,
+        "maps": [
+          "bo1_kino"
+        ]
+      },
+      {
+        "id": "cross_map_callbacks",
+        "count": 1,
+        "maps": [
+          "bo3_revelations"
+        ]
+      },
+      {
+        "id": "crowd_affinity",
+        "count": 1,
+        "maps": [
+          "bo4_ix"
+        ]
+      },
+      {
+        "id": "dark_aether_nexus",
+        "count": 1,
+        "maps": [
+          "bo6_tomb"
+        ]
+      },
+      {
+        "id": "dark_aether_regions",
+        "count": 1,
+        "maps": [
+          "vg_terra_maledicta"
+        ]
+      },
+      {
+        "id": "dark_aether_shift",
+        "count": 1,
+        "maps": [
+          "cw_die_maschine"
+        ]
+      },
+      {
+        "id": "decompression",
+        "count": 1,
+        "maps": [
+          "bo1_moon"
+        ]
+      },
+      {
+        "id": "deep_descent",
+        "count": 1,
+        "maps": [
+          "wwii_frozen_dawn"
+        ]
+      },
+      {
+        "id": "defcon_state",
+        "count": 1,
+        "maps": [
+          "bo1_five"
+        ]
+      },
+      {
+        "id": "der_riese_reinterpretation",
+        "count": 1,
+        "maps": [
+          "bo3_the_giant"
+        ]
+      },
+      {
+        "id": "desert_hub",
+        "count": 1,
+        "maps": [
+          "vg_terra_maledicta"
+        ]
+      },
+      {
+        "id": "disposal_machines",
+        "count": 1,
+        "maps": [
+          "aw_carrier"
+        ]
+      },
+      {
+        "id": "district_rituals",
+        "count": 1,
+        "maps": [
+          "bo3_shadows"
+        ]
+      },
+      {
+        "id": "dragon_transport",
+        "count": 1,
+        "maps": [
+          "bo3_gorod"
+        ]
+      },
+      {
+        "id": "dual_power",
+        "count": 1,
+        "maps": [
+          "bo3_zetsubou"
+        ]
+      },
+      {
+        "id": "dual_spawn",
+        "count": 1,
+        "maps": [
+          "aw_carrier"
+        ]
+      },
+      {
+        "id": "dynamic_maze_pressure",
+        "count": 1,
+        "maps": [
+          "bo1_shangri_la"
+        ]
+      },
+      {
+        "id": "electro_trap",
+        "count": 1,
+        "maps": [
+          "bo7_paradox"
+        ]
+      },
+      {
+        "id": "elemental_catalysts",
+        "count": 1,
+        "maps": [
+          "bo4_voyage"
+        ]
+      },
+      {
+        "id": "elemental_staff_quests",
+        "count": 1,
+        "maps": [
+          "bo2_origins"
+        ]
+      },
+      {
+        "id": "elemental_weapon_paths",
+        "count": 1,
+        "maps": [
+          "bo6_citadelle"
+        ]
+      },
+      {
+        "id": "endgame_boss",
+        "count": 1,
+        "maps": [
+          "bo6_reckoning"
+        ]
+      },
+      {
+        "id": "energy_mutations",
+        "count": 1,
+        "maps": [
+          "wwii_shadowed_throne"
+        ]
+      },
+      {
+        "id": "environmental_traps",
+        "count": 1,
+        "maps": [
+          "iw_radioactive"
+        ]
+      },
+      {
+        "id": "estate_lab_contrast",
+        "count": 1,
+        "maps": [
+          "bo6_shattered_veil"
+        ]
+      },
+      {
+        "id": "excavation",
+        "count": 1,
+        "maps": [
+          "bo6_tomb"
+        ]
+      },
+      {
+        "id": "excavators",
+        "count": 1,
+        "maps": [
+          "bo1_moon"
+        ]
+      },
+      {
+        "id": "exfil",
+        "count": 1,
+        "maps": [
+          "cw_die_maschine"
+        ]
+      },
+      {
+        "id": "exo_mobility",
+        "count": 1,
+        "maps": [
+          "aw_descent"
+        ]
+      },
+      {
+        "id": "exo_suit_unlock",
+        "count": 1,
+        "maps": [
+          "aw_outbreak"
+        ]
+      },
+      {
+        "id": "expanded_nacht_core",
+        "count": 1,
+        "maps": [
+          "cw_die_maschine"
+        ]
+      },
+      {
+        "id": "extinction_enemy_mix",
+        "count": 1,
+        "maps": [
+          "iw_beast"
+        ]
+      },
+      {
+        "id": "fast_travel",
+        "count": 1,
+        "maps": [
+          "bo4_voyage"
+        ]
+      },
+      {
+        "id": "final_boss",
+        "count": 1,
+        "maps": [
+          "bo7_rex_infernus"
+        ]
+      },
+      {
+        "id": "fire_traps",
+        "count": 1,
+        "maps": [
+          "bo1_kino"
+        ]
+      },
+      {
+        "id": "fishing_village",
+        "count": 1,
+        "maps": [
+          "bo7_totenreich"
+        ]
+      },
+      {
+        "id": "flame_trap",
+        "count": 1,
+        "maps": [
+          "bo7_totenreich"
+        ]
+      },
+      {
+        "id": "fog_connectors",
+        "count": 1,
+        "maps": [
+          "bo7_ashes"
+        ]
+      },
+      {
+        "id": "fog_regions",
+        "count": 1,
+        "maps": [
+          "bo2_tranzit"
+        ]
+      },
+      {
+        "id": "fog_waves",
+        "count": 1,
+        "maps": [
+          "wwii_darkest_shore"
+        ]
+      },
+      {
+        "id": "four_ancestral_weapons",
+        "count": 1,
+        "maps": [
+          "wwii_frozen_dawn"
+        ]
+      },
+      {
+        "id": "four_towers",
+        "count": 1,
+        "maps": [
+          "bo4_ix"
+        ]
+      },
+      {
+        "id": "fragmented_regions",
+        "count": 1,
+        "maps": [
+          "bo3_revelations"
+        ]
+      },
+      {
+        "id": "funneling_trap",
+        "count": 1,
+        "maps": [
+          "waw_shi_no_numa"
+        ]
+      },
+      {
+        "id": "gas_bomb_objectives",
+        "count": 1,
+        "maps": [
+          "aw_carrier"
+        ]
+      },
+      {
+        "id": "gauntlet_challenges",
+        "count": 1,
+        "maps": [
+          "bo3_gorod"
+        ]
+      },
+      {
+        "id": "gauntlet_upgrades",
+        "count": 1,
+        "maps": [
+          "bo4_ancient_evil"
+        ]
+      },
+      {
+        "id": "ghostly_trap",
+        "count": 1,
+        "maps": [
+          "bo7_kowakujo"
+        ]
+      },
+      {
+        "id": "giant_robots",
+        "count": 1,
+        "maps": [
+          "bo2_origins"
+        ]
+      },
+      {
+        "id": "gravity_room",
+        "count": 1,
+        "maps": [
+          "bo3_der_eisendrache"
+        ]
+      },
+      {
+        "id": "group_935_lab",
+        "count": 1,
+        "maps": [
+          "bo7_totenreich"
+        ]
+      },
+      {
+        "id": "ice_water_hazard",
+        "count": 1,
+        "maps": [
+          "bo1_call_of_the_dead"
+        ]
+      },
+      {
+        "id": "island_complex",
+        "count": 1,
+        "maps": [
+          "bo6_terminus"
+        ]
+      },
+      {
+        "id": "island_paths",
+        "count": 1,
+        "maps": [
+          "wwii_darkest_shore"
+        ]
+      },
+      {
+        "id": "janus_towers",
+        "count": 1,
+        "maps": [
+          "bo6_reckoning"
+        ]
+      },
+      {
+        "id": "jump_pads",
+        "count": 1,
+        "maps": [
+          "bo3_revelations"
+        ]
+      },
+      {
+        "id": "lab_floor",
+        "count": 1,
+        "maps": [
+          "bo1_five"
+        ]
+      },
+      {
+        "id": "large_training_zones",
+        "count": 1,
+        "maps": [
+          "bo1_ascension"
+        ]
+      },
+      {
+        "id": "late_game_escalation",
+        "count": 1,
+        "maps": [
+          "bo2_nuketown"
+        ]
+      },
+      {
+        "id": "lava_hazards",
+        "count": 1,
+        "maps": [
+          "bo7_kowakujo"
+        ]
+      },
+      {
+        "id": "lighthouse",
+        "count": 1,
+        "maps": [
+          "bo7_totenreich"
+        ]
+      },
+      {
+        "id": "lighthouse_landmark",
+        "count": 1,
+        "maps": [
+          "bo1_call_of_the_dead"
+        ]
+      },
+      {
+        "id": "linked_shortcuts",
+        "count": 1,
+        "maps": [
+          "waw_der_riese"
+        ]
+      },
+      {
+        "id": "local_power",
+        "count": 1,
+        "maps": [
+          "aw_outbreak"
+        ]
+      },
+      {
+        "id": "lost_city",
+        "count": 1,
+        "maps": [
+          "wwii_frozen_dawn"
+        ]
+      },
+      {
+        "id": "low_gravity",
+        "count": 1,
+        "maps": [
+          "bo1_moon"
+        ]
+      },
+      {
+        "id": "lunar_landers",
+        "count": 1,
+        "maps": [
+          "bo1_ascension"
+        ]
+      },
+      {
+        "id": "main_quest",
+        "count": 1,
+        "maps": [
+          "bo6_terminus"
+        ]
+      },
+      {
+        "id": "main_street_hub",
+        "count": 1,
+        "maps": [
+          "cw_forsaken"
+        ]
+      },
+      {
+        "id": "mansion_estate",
+        "count": 1,
+        "maps": [
+          "bo4_dead_of_the_night"
+        ]
+      },
+      {
+        "id": "martial_arts_styles",
+        "count": 1,
+        "maps": [
+          "iw_shaolin"
+        ]
+      },
+      {
+        "id": "maze",
+        "count": 1,
+        "maps": [
+          "bo2_buried"
+        ]
+      },
+      {
+        "id": "mine_system",
+        "count": 1,
+        "maps": [
+          "wwii_darkest_shore"
+        ]
+      },
+      {
+        "id": "minecart",
+        "count": 1,
+        "maps": [
+          "bo1_shangri_la"
+        ]
+      },
+      {
+        "id": "minimal_meta_progression",
+        "count": 1,
+        "maps": [
+          "waw_nacht"
+        ]
+      },
+      {
+        "id": "modern_facility_layers",
+        "count": 1,
+        "maps": [
+          "bo6_shattered_veil"
+        ]
+      },
+      {
+        "id": "monkey_perk_pressure",
+        "count": 1,
+        "maps": [
+          "bo1_ascension"
+        ]
+      },
+      {
+        "id": "monster_finale",
+        "count": 1,
+        "maps": [
+          "iw_radioactive"
+        ]
+      },
+      {
+        "id": "moving_upgrade_access",
+        "count": 1,
+        "maps": [
+          "bo6_tomb"
+        ]
+      },
+      {
+        "id": "mud_slow",
+        "count": 1,
+        "maps": [
+          "bo2_origins"
+        ]
+      },
+      {
+        "id": "multiple_monster_types",
+        "count": 1,
+        "maps": [
+          "bo4_dead_of_the_night"
+        ]
+      },
+      {
+        "id": "multiple_research_floors",
+        "count": 1,
+        "maps": [
+          "bo6_reckoning"
+        ]
+      },
+      {
+        "id": "mystery_box",
+        "count": 1,
+        "maps": [
+          "waw_nacht"
+        ]
+      },
+      {
+        "id": "notebook_guidance",
+        "count": 1,
+        "maps": [
+          "wwii_final_reich"
+        ]
+      },
+      {
+        "id": "npc_helper",
+        "count": 1,
+        "maps": [
+          "bo2_buried"
+        ]
+      },
+      {
+        "id": "observatory_identity",
+        "count": 1,
+        "maps": [
+          "bo7_astra"
+        ]
+      },
+      {
+        "id": "oni_elite",
+        "count": 1,
+        "maps": [
+          "bo7_kowakujo"
+        ]
+      },
+      {
+        "id": "open_world_extraction",
+        "count": 1,
+        "maps": [
+          "mwiii_urzikstan"
+        ]
+      },
+      {
+        "id": "pegasus_transport",
+        "count": 1,
+        "maps": [
+          "bo4_ancient_evil"
+        ]
+      },
+      {
+        "id": "perk_network",
+        "count": 1,
+        "maps": [
+          "waw_verruckt"
+        ]
+      },
+      {
+        "id": "persistent_roaming_boss",
+        "count": 1,
+        "maps": [
+          "bo1_call_of_the_dead"
+        ]
+      },
+      {
+        "id": "plane_build",
+        "count": 1,
+        "maps": [
+          "bo2_mob"
+        ]
+      },
+      {
+        "id": "plants",
+        "count": 1,
+        "maps": [
+          "bo3_zetsubou"
+        ]
+      },
+      {
+        "id": "portal_links",
+        "count": 1,
+        "maps": [
+          "iw_beast"
+        ]
+      },
+      {
+        "id": "power_switch",
+        "count": 1,
+        "maps": [
+          "waw_verruckt"
+        ]
+      },
+      {
+        "id": "prison_traps",
+        "count": 1,
+        "maps": [
+          "bo2_mob"
+        ]
+      },
+      {
+        "id": "puzzle_progression",
+        "count": 1,
+        "maps": [
+          "wwii_shadowed_throne"
+        ]
+      },
+      {
+        "id": "quest_boss",
+        "count": 1,
+        "maps": [
+          "bo6_shattered_veil"
+        ]
+      },
+      {
+        "id": "random_perk_drops",
+        "count": 1,
+        "maps": [
+          "bo2_nuketown"
+        ]
+      },
+      {
+        "id": "randomized_perk_huts",
+        "count": 1,
+        "maps": [
+          "waw_shi_no_numa"
+        ]
+      },
+      {
+        "id": "rave_state",
+        "count": 1,
+        "maps": [
+          "iw_rave"
+        ]
+      },
+      {
+        "id": "rebuilt_classic_map",
+        "count": 1,
+        "maps": [
+          "vg_shi_no_numa"
+        ]
+      },
+      {
+        "id": "regional_survival_spaces",
+        "count": 1,
+        "maps": [
+          "bo7_ashes"
+        ]
+      },
+      {
+        "id": "ride_traps",
+        "count": 1,
+        "maps": [
+          "iw_spaceland"
+        ]
+      },
+      {
+        "id": "robot_elite",
+        "count": 1,
+        "maps": [
+          "bo7_astra"
+        ]
+      },
+      {
+        "id": "robot_enemies",
+        "count": 1,
+        "maps": [
+          "bo3_gorod"
+        ]
+      },
+      {
+        "id": "rocket_event",
+        "count": 1,
+        "maps": [
+          "bo1_ascension"
+        ]
+      },
+      {
+        "id": "rocket_test",
+        "count": 1,
+        "maps": [
+          "bo3_der_eisendrache"
+        ]
+      },
+      {
+        "id": "roof_network",
+        "count": 1,
+        "maps": [
+          "bo2_die_rise"
+        ]
+      },
+      {
+        "id": "rooftop_access",
+        "count": 1,
+        "maps": [
+          "bo6_liberty_falls"
+        ]
+      },
+      {
+        "id": "rooftops",
+        "count": 1,
+        "maps": [
+          "iw_shaolin"
+        ]
+      },
+      {
+        "id": "round_based_terra_rework",
+        "count": 1,
+        "maps": [
+          "vg_archon"
+        ]
+      },
+      {
+        "id": "science_puzzle_chain",
+        "count": 1,
+        "maps": [
+          "iw_radioactive"
+        ]
+      },
+      {
+        "id": "sewers",
+        "count": 1,
+        "maps": [
+          "wwii_final_reich"
+        ]
+      },
+      {
+        "id": "shield_build",
+        "count": 1,
+        "maps": [
+          "bo3_gorod"
+        ]
+      },
+      {
+        "id": "ship_decks",
+        "count": 1,
+        "maps": [
+          "bo4_voyage"
+        ]
+      },
+      {
+        "id": "short_survival_stages",
+        "count": 1,
+        "maps": [
+          "wwii_tortured_path"
+        ]
+      },
+      {
+        "id": "silver_bullets",
+        "count": 1,
+        "maps": [
+          "bo4_dead_of_the_night"
+        ]
+      },
+      {
+        "id": "six_generators",
+        "count": 1,
+        "maps": [
+          "bo2_origins"
+        ]
+      },
+      {
+        "id": "six_major_locations",
+        "count": 1,
+        "maps": [
+          "bo7_ashes"
+        ]
+      },
+      {
+        "id": "slasher_pressure",
+        "count": 1,
+        "maps": [
+          "iw_rave"
+        ]
+      },
+      {
+        "id": "small_symmetric_core",
+        "count": 1,
+        "maps": [
+          "bo2_nuketown"
+        ]
+      },
+      {
+        "id": "small_town_streets",
+        "count": 1,
+        "maps": [
+          "bo6_liberty_falls"
+        ]
+      },
+      {
+        "id": "souvenir_crafting",
+        "count": 1,
+        "maps": [
+          "iw_spaceland"
+        ]
+      },
+      {
+        "id": "space_facility",
+        "count": 1,
+        "maps": [
+          "iw_beast"
+        ]
+      },
+      {
+        "id": "special_round",
+        "count": 1,
+        "maps": [
+          "waw_shi_no_numa"
+        ]
+      },
+      {
+        "id": "spike_traps",
+        "count": 1,
+        "maps": [
+          "bo1_shangri_la"
+        ]
+      },
+      {
+        "id": "split_team_start",
+        "count": 1,
+        "maps": [
+          "waw_verruckt"
+        ]
+      },
+      {
+        "id": "spore_ecology",
+        "count": 1,
+        "maps": [
+          "bo3_zetsubou"
+        ]
+      },
+      {
+        "id": "stage_power",
+        "count": 1,
+        "maps": [
+          "bo1_kino"
+        ]
+      },
+      {
+        "id": "stalingrad_hub",
+        "count": 1,
+        "maps": [
+          "vg_der_anfang"
+        ]
+      },
+      {
+        "id": "street_rooftop_layers",
+        "count": 1,
+        "maps": [
+          "cw_mauer"
+        ]
+      },
+      {
+        "id": "subsurface_town",
+        "count": 1,
+        "maps": [
+          "bo2_buried"
+        ]
+      },
+      {
+        "id": "subway",
+        "count": 1,
+        "maps": [
+          "iw_shaolin"
+        ]
+      },
+      {
+        "id": "subway_start",
+        "count": 1,
+        "maps": [
+          "cw_mauer"
+        ]
+      },
+      {
+        "id": "teleporter_link",
+        "count": 1,
+        "maps": [
+          "cw_firebase_z"
+        ]
+      },
+      {
+        "id": "teleporter_regions",
+        "count": 1,
+        "maps": [
+          "cw_forsaken"
+        ]
+      },
+      {
+        "id": "temporal_conduit",
+        "count": 1,
+        "maps": [
+          "bo7_paradox"
+        ]
+      },
+      {
+        "id": "tesla_weapon_path",
+        "count": 1,
+        "maps": [
+          "wwii_final_reich"
+        ]
+      },
+      {
+        "id": "theme_park_districts",
+        "count": 1,
+        "maps": [
+          "iw_spaceland"
+        ]
+      },
+      {
+        "id": "thief_special_round",
+        "count": 1,
+        "maps": [
+          "bo1_five"
+        ]
+      },
+      {
+        "id": "threat_tiers",
+        "count": 1,
+        "maps": [
+          "mwiii_urzikstan"
+        ]
+      },
+      {
+        "id": "three_reactors",
+        "count": 1,
+        "maps": [
+          "cw_firebase_z"
+        ]
+      },
+      {
+        "id": "three_sequential_maps",
+        "count": 1,
+        "maps": [
+          "wwii_tortured_path"
+        ]
+      },
+      {
+        "id": "time_travel",
+        "count": 1,
+        "maps": [
+          "bo7_paradox"
+        ]
+      },
+      {
+        "id": "timed_objectives",
+        "count": 1,
+        "maps": [
+          "wwii_tortured_path"
+        ]
+      },
+      {
+        "id": "timeline_perk_randomization",
+        "count": 1,
+        "maps": [
+          "bo7_paradox"
+        ]
+      },
+      {
+        "id": "titan_trap",
+        "count": 1,
+        "maps": [
+          "bo7_rex_infernus"
+        ]
+      },
+      {
+        "id": "toxic_zones",
+        "count": 1,
+        "maps": [
+          "aw_infection"
+        ]
+      },
+      {
+        "id": "tram",
+        "count": 1,
+        "maps": [
+          "bo3_shadows"
+        ]
+      },
+      {
+        "id": "trample_steam",
+        "count": 1,
+        "maps": [
+          "bo2_die_rise"
+        ]
+      },
+      {
+        "id": "trap_network",
+        "count": 1,
+        "maps": [
+          "bo7_astra"
+        ]
+      },
+      {
+        "id": "two_world_regions",
+        "count": 1,
+        "maps": [
+          "bo4_ancient_evil"
+        ]
+      },
+      {
+        "id": "underground_labs",
+        "count": 1,
+        "maps": [
+          "bo6_terminus"
+        ]
+      },
+      {
+        "id": "underground_routes",
+        "count": 1,
+        "maps": [
+          "bo6_citadelle"
+        ]
+      },
+      {
+        "id": "underwater_facility",
+        "count": 1,
+        "maps": [
+          "aw_descent"
+        ]
+      },
+      {
+        "id": "urban_districts",
+        "count": 1,
+        "maps": [
+          "iw_shaolin"
+        ]
+      },
+      {
+        "id": "vertical_fall_risk",
+        "count": 1,
+        "maps": [
+          "bo2_die_rise"
+        ]
+      },
+      {
+        "id": "vertical_transit",
+        "count": 1,
+        "maps": [
+          "bo6_reckoning"
+        ]
+      },
+      {
+        "id": "village_base",
+        "count": 1,
+        "maps": [
+          "cw_firebase_z"
+        ]
+      },
+      {
+        "id": "village_bunker",
+        "count": 1,
+        "maps": [
+          "wwii_final_reich"
+        ]
+      },
+      {
+        "id": "volcanic_castle",
+        "count": 1,
+        "maps": [
+          "bo7_kowakujo"
+        ]
+      },
+      {
+        "id": "warden_stronghold",
+        "count": 1,
+        "maps": [
+          "bo7_rex_infernus"
+        ]
+      },
+      {
+        "id": "water_slide",
+        "count": 1,
+        "maps": [
+          "bo1_shangri_la"
+        ]
+      },
+      {
+        "id": "web_enemies",
+        "count": 1,
+        "maps": [
+          "bo7_rex_infernus"
+        ]
+      },
+      {
+        "id": "window_barricades",
+        "count": 1,
+        "maps": [
+          "waw_nacht"
+        ]
+      },
+      {
+        "id": "wonder_vehicle",
+        "count": 1,
+        "maps": [
+          "bo7_ashes"
+        ]
+      },
+      {
+        "id": "wonder_weapon",
+        "count": 1,
+        "maps": [
+          "bo7_astra"
+        ]
+      },
+      {
+        "id": "wonder_weapon_upgrade_paths",
+        "count": 1,
+        "maps": [
+          "bo3_der_eisendrache"
+        ]
+      },
+      {
+        "id": "zeppelin_context",
+        "count": 1,
+        "maps": [
+          "wwii_shadowed_throne"
+        ]
+      },
+      {
+        "id": "zipline_network",
+        "count": 1,
+        "maps": [
+          "cw_mauer"
+        ]
+      },
+      {
+        "id": "zipline_routes",
+        "count": 1,
+        "maps": [
+          "bo1_call_of_the_dead"
+        ]
+      }
+    ]
+  },
+  "archetypes": [
+    {
+      "id": "classic_holdout",
+      "sourceMaps": [
+        "waw_nacht",
+        "bo2_nuketown",
+        "wwii_groesten_haus"
+      ],
+      "structure": [
+        "small readable footprint",
+        "short resource distances",
+        "limited bailout space"
+      ],
+      "strengths": [
+        "instant readability",
+        "high pressure",
+        "low traversal overhead"
+      ],
+      "failureModes": [
+        "camping dominance",
+        "repetition",
+        "no long-term route evolution"
+      ],
+      "hayuyaRules": [
+        "make every doorway consequential",
+        "use spawn concealment",
+        "change resource availability or pressure state over time"
+      ]
+    },
+    {
+      "id": "hub_and_spokes",
+      "sourceMaps": [
+        "waw_shi_no_numa",
+        "bo4_ix",
+        "bo3_shadows",
+        "cw_firebase_z"
+      ],
+      "structure": [
+        "strong central landmark",
+        "themed peripheral regions",
+        "return-to-hub circulation"
+      ],
+      "strengths": [
+        "clear player choice",
+        "regional identity",
+        "easy onboarding"
+      ],
+      "failureModes": [
+        "dead spokes",
+        "hub becomes too safe",
+        "travel repetition"
+      ],
+      "hayuyaRules": [
+        "each spoke must change risk/reward",
+        "give at least one spoke a shortcut or one-way return",
+        "keep hub under periodic pressure"
+      ]
+    },
+    {
+      "id": "looping_compound",
+      "sourceMaps": [
+        "waw_der_riese",
+        "bo1_kino",
+        "bo2_mob",
+        "bo6_liberty_falls"
+      ],
+      "structure": [
+        "progressively completed loops",
+        "doors alter circulation",
+        "local combat arenas connected by risky corridors"
+      ],
+      "strengths": [
+        "high-round circulation",
+        "player-authored topology",
+        "strong replay route choices"
+      ],
+      "failureModes": [
+        "one objectively safest loop",
+        "doors become automatic purchases"
+      ],
+      "hayuyaRules": [
+        "at least one door must trade safety for mobility",
+        "special enemies must be able to break preferred loops",
+        "bailouts need cost or risk"
+      ]
+    },
+    {
+      "id": "vertical_horror",
+      "sourceMaps": [
+        "bo1_five",
+        "bo2_die_rise",
+        "bo2_mob",
+        "cw_mauer",
+        "bo6_citadelle",
+        "bo7_kowakujo"
+      ],
+      "structure": [
+        "stacked floors or terraces",
+        "vertical commitment",
+        "fast-return systems or irreversible drops"
+      ],
+      "strengths": [
+        "strong reveal moments",
+        "dense footprint",
+        "natural landmark hierarchy"
+      ],
+      "failureModes": [
+        "navigation confusion",
+        "single mandatory stairwell",
+        "unreadable fall risk"
+      ],
+      "hayuyaRules": [
+        "show destination before committing when possible",
+        "provide redundant vertical circulation on larger maps",
+        "use light and audio to identify floors"
+      ]
+    },
+    {
+      "id": "large_journey",
+      "sourceMaps": [
+        "bo2_tranzit",
+        "bo2_origins",
+        "bo6_terminus",
+        "bo7_ashes"
+      ],
+      "structure": [
+        "multiple regional combat spaces",
+        "macro traversal system",
+        "local loops inside regions"
+      ],
+      "strengths": [
+        "sense of expedition",
+        "regional diversity",
+        "high exploration value"
+      ],
+      "failureModes": [
+        "travel downtime",
+        "players become stranded",
+        "global navigation overload"
+      ],
+      "hayuyaRules": [
+        "every region must support temporary survival",
+        "macro transit needs predictable state",
+        "global landmarking and local route grammar must coexist"
+      ]
+    },
+    {
+      "id": "state_layered_world",
+      "sourceMaps": [
+        "bo1_moon",
+        "bo2_mob",
+        "cw_die_maschine",
+        "bo7_paradox"
+      ],
+      "structure": [
+        "same world gains alternate interaction or environment state",
+        "state changes alter route/resource value"
+      ],
+      "strengths": [
+        "geometry reuse with new meaning",
+        "puzzle depth",
+        "strong supernatural identity"
+      ],
+      "failureModes": [
+        "state becomes cosmetic",
+        "player loses orientation"
+      ],
+      "hayuyaRules": [
+        "keep stable landmarks across states",
+        "change mechanics not only color grading",
+        "surface state changes through lighting/audio/interaction"
+      ]
+    }
+  ],
+  "globalRules": [
+    "A map should have one globally understandable orientation anchor plus regional identity.",
+    "Medium and large maps should offer a meaningful early fork and at least one completed loop.",
+    "Progression should transform traversal or threat, not only unlock UI systems.",
+    "High-round safety must be interruptible by enemy role, hazard, objective, route state or resource pressure.",
+    "Spawn pressure is a spatial design problem: entries, sightlines, travel time and concealment matter.",
+    "Transport exists to solve scale or verticality and must carry strategic cost or timing.",
+    "Power/state changes should alter lighting, audio, machinery and route readability.",
+    "Quest primitives should be reusable engine nodes while each map authors original content.",
+    "Large-map complexity requires stronger landmarks, shortcuts, local loops and semantic zone identity.",
+    "Lighting is part of navigation and threat communication, not a post-process decoration."
+  ],
+  "cleanRoomGuardrails": [
+    "No exact reference layouts or room dimensions.",
+    "No proprietary assets, scripts, source code, lightmaps, audio, textures or extracted map data.",
+    "Use references only for abstract behavior and design principles.",
+    "All generated HAYUYA/Xziel content must be original or properly licensed."
+  ]
+}
