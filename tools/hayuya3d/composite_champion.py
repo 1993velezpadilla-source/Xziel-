@@ -793,6 +793,7 @@ def execute_safe_material_challenger(
             error="base or donor finalist metadata missing",
         )
 
+    runtime_payload_preserved=None
     try:
         from material_bridge import transfer_best_material
         from qa import inspect_mesh
@@ -893,6 +894,7 @@ def execute_safe_material_challenger(
             strategy=donor.strategy,
             geometry_preserved=False,
             rebake_required=[],
+            runtime_payload_preserved=runtime_payload_preserved,
             error=f"{type(exc).__name__}:{exc}",
         )
 
