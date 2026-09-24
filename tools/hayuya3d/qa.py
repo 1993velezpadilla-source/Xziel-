@@ -44,6 +44,7 @@ class MeshScore:
     global_median_edge_normalized: float | None = None
     head_region_median_edge_normalized: float | None = None
     head_region_density_ratio: float | None = None
+    head_density_score: float | None = None
     bbox: list[float] | None = None
     notes: list[str] | None = None
 
@@ -91,6 +92,18 @@ def _material_channels(material) -> set[str]:
     ):
         channels.add("emissive")
     return channels
+
+
+def head_density_score_from_ratio(ratio: float | None) -> float | None:
+    """Map relative head-vs-global mesh density to a bounded QA score.
+
+    A ratio of 1.0 means the head is at least as dense as the overall mesh.
+    Denser heads are capped at 100; coarser heads lose score proportionally.
+    Missing telemetry stays neutral rather than inventing a failure.
+    """
+    if ratio is None or not math.isfinite(float(ratio)):
+        return None
+    return round(max(0.0, min(100.0, float(ratio) * 100.0)), 3)
 
 
 def _component_count(faces) -> int:
@@ -263,6 +276,9 @@ def inspect_mesh(
                             global_median_edge/head_median_edge,
                             4,
                         )
+                        result.head_density_score=head_density_score_from_ratio(
+                            result.head_region_density_ratio
+                        )
                         if result.head_region_density_ratio < 1.0:
                             result.notes.append(
                                 f"head region is coarser than global mesh: "
@@ -398,12 +414,24 @@ def inspect_mesh(
                     bbox_health = 0.55
                     result.notes.append(f"extreme bbox aspect ratio: {ratio:.1f}")
 
-        raw = (
-            geometry * 0.42
-            + health * 0.33
-            + material * 0.18
-            + bbox_health * 0.07
-        )
+        if mode == "character" and result.head_density_score is not None:
+            # Reserve a bounded 6% of production score for local head resolution.
+            # This prevents a high-poly torso from hiding a visibly coarse face while
+            # keeping real-source silhouette/appearance evidence dominant overall.
+            raw = (
+                geometry * 0.36
+                + (result.head_density_score / 100.0) * 0.06
+                + health * 0.33
+                + material * 0.18
+                + bbox_health * 0.07
+            )
+        else:
+            raw = (
+                geometry * 0.42
+                + health * 0.33
+                + material * 0.18
+                + bbox_health * 0.07
+            )
         result.score = round(max(0.0, min(100.0, raw * 100.0)), 3)
         result.production_score = result.score
         return result
