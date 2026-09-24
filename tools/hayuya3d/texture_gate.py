@@ -4,15 +4,12 @@ from __future__ import annotations
 import argparse
 import io
 import json
-import math
 import struct
-from dataclasses import asdict, dataclass
+from dataclasses import asdict,dataclass
 from pathlib import Path
 
-from PIL import Image, ImageFilter, ImageStat
+from PIL import Image,ImageFilter,ImageStat
 
-JSON_CHUNK=0x4E4F534A
-BIN_CHUNK=0x004E4942
 
 @dataclass
 class TextureMetric:
@@ -25,6 +22,7 @@ class TextureMetric:
     luminance_stddev:float
     entropy:float
     roles:list[str]
+
 
 @dataclass
 class TextureReport:
@@ -45,22 +43,24 @@ class TextureReport:
 
 
 def chunks(path:Path):
-    blob=path.read_bytes()
-    if len(blob)<20 or blob[:4]!=b"glTF":
+    data=path.read_bytes()
+    if len(data)<20 or data[:4]!=b"glTF":
         raise ValueError("not a GLB")
-    version,total=struct.unpack_from("<II",blob,4)
-    if version!=2 or total>len(blob):
-        raise ValueError("invalid GLB")
+    _,version,total=struct.unpack_from("<4sII",data,0)
+    if version!=2 or total>len(data):
+        raise ValueError("invalid GLB header")
     off=12
     doc=None
     bin_blob=b""
     while off+8<=total:
-        ln,typ=struct.unpack_from("<II",blob,off);off+=8
-        data=blob[off:off+ln];off+=ln
-        if typ==JSON_CHUNK:
-            doc=json.loads(data.rstrip(b"\x00 \t\r\n").decode("utf-8"))
-        elif typ==BIN_CHUNK:
-            bin_blob=data
+        length,kind=struct.unpack_from("<II",data,off)
+        off+=8
+        payload=data[off:off+length]
+        off+=length
+        if kind==0x4E4F534A:
+            doc=json.loads(payload.decode("utf-8").rstrip("\x00 \t\r\n"))
+        elif kind==0x004E4942:
+            bin_blob=payload
     if doc is None:
         raise ValueError("missing JSON chunk")
     return doc,bin_blob
@@ -114,9 +114,8 @@ def embedded_images(path:Path):
 
 
 def metric(idx:int,mime:str,data:bytes,roles:list[str])->TextureMetric:
-    with Image.open(io.BytesIO(data)) as im:
-        im.load()
-        rgb=im.convert("RGB")
+    with Image.open(io.BytesIO(data)) as image:
+        rgb=image.convert("RGB")
         w,h=rgb.size
         # Normalize to a stable analysis size so resolution alone cannot inflate
         # the detail score.
@@ -134,6 +133,16 @@ def metric(idx:int,mime:str,data:bytes,roles:list[str])->TextureMetric:
             entropy=round(ent,4),
             roles=list(roles),
         )
+
+
+def base_color_resolution_ok(base_edges:list[int],required_edge:int)->bool:
+    """Require every bound baseColor atlas to meet the requested floor.
+
+    Using only the largest atlas lets one high-resolution accessory texture hide a
+    low-resolution face/body atlas. The production gate must represent the weakest
+    visible baseColor binding, while max-edge telemetry remains useful for diagnosis.
+    """
+    return bool(base_edges) and min(base_edges)>=required_edge
 
 
 def inspect(
@@ -163,9 +172,9 @@ def inspect(
         warnings.append("no_embedded_texture_images")
     if max_edge and max_edge<min_edge:
         warnings.append(f"low_texture_resolution:{max_edge}<{min_edge}")
-    if base and base_color_max_edge<required_base_edge:
+    if base and not base_color_resolution_ok(base_edges,required_base_edge):
         warnings.append(
-            f"low_base_color_resolution:{base_color_max_edge}<{required_base_edge}"
+            f"low_base_color_resolution:{base_color_min_edge}<{required_base_edge}"
         )
     if metrics and not base:
         warnings.append("no_embedded_base_color_texture")
@@ -176,7 +185,7 @@ def inspect(
 
     passed=bool(metrics) and max_edge>=min_edge
     if base:
-        passed=passed and base_color_max_edge>=required_base_edge
+        passed=passed and base_color_resolution_ok(base_edges,required_base_edge)
 
     return TextureReport(
         schema=2,path=str(path),image_count=len(metrics),max_edge=max_edge,
@@ -197,7 +206,7 @@ def main()->int:
     p.add_argument(
         "--min-base-color-edge",
         type=int,
-        help="minimum edge for the texture actually bound to baseColor; defaults to --min-edge",
+        help="minimum edge for every texture bound to baseColor; defaults to --min-edge",
     )
     p.add_argument("--json",type=Path)
     a=p.parse_args()
