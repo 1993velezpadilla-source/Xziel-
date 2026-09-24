@@ -2053,9 +2053,14 @@ def main() -> int:
                 detail_strategy
                 =="matched_rig_preserving_accessory_wrap_then_rebake"
             )
+            is_inserted_accessory=(
+                detail_strategy
+                =="new_rigged_accessory_insert_weight_morph_transfer"
+            )
             is_accessory=detail_strategy in {
                 "matched_detached_accessory_swap_then_mesh_doctor",
                 "matched_rig_preserving_accessory_wrap_then_rebake",
+                "new_rigged_accessory_insert_weight_morph_transfer",
             }
             if is_accessory:
                 detail_execution=execute_safe_accessory_challenger(
@@ -2085,9 +2090,14 @@ def main() -> int:
                     f"donor={detail_execution.donor_backend} "
                     f"region={detail_execution.region_hint} "
                     f"source={Path(detail_source).name} "
-                    f"strategy={('rigged_accessory_wrap' if is_rigged_accessory else ('accessory_swap' if is_accessory else 'texture_fusion'))} "
+                    f"strategy={('rigged_accessory_insert' if is_inserted_accessory else ('rigged_accessory_wrap' if is_rigged_accessory else ('accessory_swap' if is_accessory else 'texture_fusion')))} "
                     f"changed={detail_fusion.get('changed_fraction','none')} "
                     f"changed_vertices={detail_fusion.get('changed_vertices','none')} "
+                    f"inserted_vertices={detail_fusion.get('inserted_vertices','none')} "
+                    f"inserted_faces={detail_fusion.get('inserted_faces','none')} "
+                    f"weight_transfer_vertices={detail_fusion.get('transferred_weight_vertices','none')} "
+                    f"weight_source_max={detail_fusion.get('weight_source_max_distance_ratio','none')} "
+                    f"morph_targets_transferred={detail_fusion.get('morph_targets_transferred','none')} "
                     f"seam_p95={detail_fusion.get('seam_added_delta_p95','none')} "
                     f"seam_max={detail_fusion.get('seam_added_delta_max','none')} "
                     f"accessory_confidence={detail_fusion.get('confidence','none')} "
@@ -2095,6 +2105,9 @@ def main() -> int:
                     f"rig_ready={detail_fusion.get('rig_ready','none')} "
                     f"skin_weights_ready={detail_fusion.get('skin_weights_ready','none')} "
                     f"morph_deformation_ready={detail_fusion.get('morph_deformation_ready','none')} "
+                    f"animation_ready={detail_fusion.get('animation_ready','none')} "
+                    f"deformation_ready={detail_fusion.get('deformation_ready','none')} "
+                    f"attachment_ready={detail_fusion.get('attachment_ready','none')} "
                     f"rebake_ready={detail_fusion.get('rebake_ready','none')} "
                     f"path={detail_execution.candidate_path}"
                 )
