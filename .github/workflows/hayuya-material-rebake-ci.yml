@@ -51,31 +51,6 @@ jobs:
           root=Path("/tmp/hayuya-rebake")
           root.mkdir(parents=True,exist_ok=True)
 
-          def grid(n,wavy,z_offset,xmin,xmax,uv_box):
-              xs=np.linspace(xmin,xmax,n)
-              ys=np.linspace(-1.0,1.0,n)
-              u0,v0,u1,v1=uv_box
-              vertices=[]
-              uv=[]
-              for y in ys:
-                  for x in xs:
-                      z=z_offset
-                      if wavy:
-                          z+=0.045*np.sin(np.pi*x*2.0)*np.sin(np.pi*y*2.0)
-                      vertices.append([x,y,z])
-                      tx=(x-xmin)/max(xmax-xmin,1e-9)
-                      ty=(y+1.0)*0.5
-                      uv.append([u0+(u1-u0)*tx,v0+(v1-v0)*ty])
-              faces=[]
-              for j in range(n-1):
-                  for i in range(n-1):
-                      a=j*n+i
-                      b=a+1
-                      cc=a+n
-                      d=cc+1
-                      faces.extend([[a,b,d],[a,d,cc]])
-              return np.asarray(vertices,float),np.asarray(faces,int),np.asarray(uv,float)
-
           def material():
               base=Image.fromarray(
                   np.full((256,256,4),[145,95,75,255],dtype=np.uint8),
@@ -87,22 +62,62 @@ jobs:
                   metallicFactor=0.0,
               )
 
-          def mesh_for(n,wavy,z_offset,xmin,xmax,uv_box):
-              v,faces,uv=grid(n,wavy,z_offset,xmin,xmax,uv_box)
+          def floor_mesh(n,wavy):
+              xs=np.linspace(-1.0,1.0,n)
+              ys=np.linspace(-1.0,1.0,n)
+              verts=[]; uv=[]
+              for y in ys:
+                  for x in xs:
+                      z=0.055*np.sin(np.pi*x*2.0)*np.sin(np.pi*y*2.0) if wavy else 0.0
+                      verts.append([x,y,z])
+                      uv.append([(x+1.0)*0.36,(y+1.0)*0.5])
+              faces=[]
+              for j in range(n-1):
+                  for i in range(n-1):
+                      a=j*n+i; b=a+1; cc=a+n; d=cc+1
+                      faces.extend([[a,b,d],[a,d,cc]])
               return trimesh.Trimesh(
-                  vertices=v,faces=faces,process=False,
-                  visual=trimesh.visual.TextureVisuals(uv=uv,material=material()),
+                  vertices=np.asarray(verts,float),
+                  faces=np.asarray(faces,int),
+                  process=False,
+                  visual=trimesh.visual.TextureVisuals(
+                      uv=np.asarray(uv,float),
+                      material=material(),
+                  ),
               )
 
-          # The second plane hovers over part of the first. It gives the new
-          # topology a genuine AO signal while the high-poly lower surface adds
-          # geometric detail for the tangent-space normal bake.
+          def wall_mesh(n):
+              ys=np.linspace(-1.0,1.0,n)
+              zs=np.linspace(0.0,1.4,n)
+              verts=[]; uv=[]
+              # Vertical wall at x=-0.35 creates a strong concave floor/wall corner.
+              for z in zs:
+                  for y in ys:
+                      verts.append([-0.35,y,z])
+                      uv.append([0.76+(y+1.0)*0.12,z/1.4])
+              faces=[]
+              for j in range(n-1):
+                  for i in range(n-1):
+                      a=j*n+i; b=a+1; cc=a+n; d=cc+1
+                      # Winding faces the wall toward +X (into the corner).
+                      faces.extend([[a,d,b],[a,cc,d]])
+              return trimesh.Trimesh(
+                  vertices=np.asarray(verts,float),
+                  faces=np.asarray(faces,int),
+                  process=False,
+                  visual=trimesh.visual.TextureVisuals(
+                      uv=np.asarray(uv,float),
+                      material=material(),
+                  ),
+              )
+
           source_scene=trimesh.Scene()
-          source_scene.add_geometry(mesh_for(40,True,0.0,-1.0,1.0,(0.00,0.00,0.72,1.00)))
-          source_scene.add_geometry(mesh_for(16,False,0.12,-0.8,0.1,(0.76,0.00,1.00,0.40)))
+          source_scene.add_geometry(floor_mesh(40,True),node_name="source_floor")
+          source_scene.add_geometry(wall_mesh(30),node_name="source_wall")
+
           target_scene=trimesh.Scene()
-          target_scene.add_geometry(mesh_for(12,False,0.0,-1.0,1.0,(0.00,0.00,0.72,1.00)))
-          target_scene.add_geometry(mesh_for(6,False,0.12,-0.8,0.1,(0.76,0.00,1.00,0.40)))
+          target_scene.add_geometry(floor_mesh(14,False),node_name="target_floor")
+          target_scene.add_geometry(wall_mesh(10),node_name="target_wall")
 
           (root/"source.glb").write_bytes(trimesh.exchange.gltf.export_glb(source_scene))
           (root/"target.glb").write_bytes(trimesh.exchange.gltf.export_glb(target_scene))
