@@ -372,6 +372,58 @@ bool VulkanStaticMeshRenderer::initialize(
         configureSanctumStreamingGraph(
             streamGraph_);
 
+    if (streamGraphReady_) {
+        std::uint64_t totalTriangles = 0U;
+        std::uint64_t maxTriangles = 0U;
+        std::uint32_t batchesOver4k = 0U;
+        std::uint32_t batchesOver16k = 0U;
+        std::uint32_t batchesOver32k = 0U;
+
+        for (const auto& batch : asset.batches) {
+            const std::uint64_t triangles =
+                static_cast<std::uint64_t>(
+                    batch.indices.size() / 3U);
+
+            totalTriangles += triangles;
+            maxTriangles =
+                std::max(
+                    maxTriangles,
+                    triangles);
+            batchesOver4k +=
+                triangles > 4096U ? 1U : 0U;
+            batchesOver16k +=
+                triangles > 16384U ? 1U : 0U;
+            batchesOver32k +=
+                triangles > 32768U ? 1U : 0U;
+        }
+
+        const double averageTriangles =
+            asset.batches.empty()
+            ? 0.0
+            : static_cast<double>(
+                  totalTriangles) /
+              static_cast<double>(
+                  asset.batches.size());
+
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_STATIC_BATCH_SHAPE batches=%u triangles=%llu avg_triangles=%.1f max_triangles=%llu over_4k=%u over_16k=%u over_32k=%u",
+            static_cast<unsigned int>(
+                asset.batches.size()),
+            static_cast<unsigned long long>(
+                totalTriangles),
+            averageTriangles,
+            static_cast<unsigned long long>(
+                maxTriangles),
+            static_cast<unsigned int>(
+                batchesOver4k),
+            static_cast<unsigned int>(
+                batchesOver16k),
+            static_cast<unsigned int>(
+                batchesOver32k));
+    }
+
     textureMipResidency_.reset();
     streamCellBounds_ = {};
     streamDecisionCount_ = 0U;
