@@ -375,45 +375,91 @@ void main() {
 
     gl_Position = clip;
 
-    // Reproject each world position through the camera mirrored across the
-    // authored planar surface. The fragment shader can then sample the live
-    // reflection target using true projective coordinates instead of a
-    // world-space UV approximation.
-    vec3 planeNormal = pc.reflectionPlane.xyz;
-    float planeLength = length(planeNormal);
-    if (planeLength < 0.0001) {
-        planeNormal = vec3(0.0, 1.0, 0.0);
-        planeLength = 1.0;
-    }
-    planeNormal /= planeLength;
-    float planeDistance = pc.reflectionPlane.w / planeLength;
-    float cameraPlaneDistance = dot(planeNormal, pc.cameraPositionYaw.xyz) + planeDistance;
-    vec3 reflectedPosition = pc.cameraPositionYaw.xyz - 2.0 * cameraPlaneDistance * planeNormal;
+    // REFLECTION_VERTEX_MATERIAL_GATE_V1
+    // Only water/mirror fragments consume vReflectionClip. Skip mirrored
+    // camera construction (normalization, trig and atan work) for every other
+    // material. material is uniform for the draw, so this branch is coherent.
+    if (material == 13 ||
+        material == 14) {
+        // Reproject each world position through the camera mirrored across the
+        // authored planar surface. The fragment shader then samples the live
+        // reflection target using true projective coordinates.
+        vec3 planeNormal = pc.reflectionPlane.xyz;
+        float planeLength = length(planeNormal);
+        if (planeLength < 0.0001) {
+            planeNormal = vec3(0.0, 1.0, 0.0);
+            planeLength = 1.0;
+        }
+        planeNormal /= planeLength;
+        float planeDistance = pc.reflectionPlane.w / planeLength;
+        float cameraPlaneDistance =
+            dot(
+                planeNormal,
+                pc.cameraPositionYaw.xyz) +
+            planeDistance;
+        vec3 reflectedPosition =
+            pc.cameraPositionYaw.xyz -
+            2.0 *
+                cameraPlaneDistance *
+                planeNormal;
 
-    float yaw = pc.cameraPositionYaw.w;
-    float pitch = pc.cameraPitchFov.x;
-    vec3 forward = vec3(sin(yaw) * cos(pitch), -sin(pitch), cos(yaw) * cos(pitch));
-    forward = normalize(forward - 2.0 * dot(forward, planeNormal) * planeNormal);
-    float reflectedYaw = atan(forward.x, forward.z);
-    float reflectedPitch = atan(-forward.y, length(forward.xz));
-    vec3 relativeReflection = world - reflectedPosition;
-    float rcy = cos(reflectedYaw);
-    float rsy = sin(reflectedYaw);
-    vec3 reflectionYawView = vec3(
-        rcy * relativeReflection.x - rsy * relativeReflection.z,
-        relativeReflection.y,
-        rsy * relativeReflection.x + rcy * relativeReflection.z);
-    float rcp = cos(reflectedPitch);
-    float rsp = sin(reflectedPitch);
-    vec3 reflectionView = vec3(
-        reflectionYawView.x,
-        rcp * reflectionYawView.y + rsp * reflectionYawView.z,
-       -rsp * reflectionYawView.y + rcp * reflectionYawView.z);
-    vReflectionClip = vec4(
-        reflectionView.x * focal / aspect,
-       -reflectionView.y * focal,
-        reflectionView.z,
-        reflectionView.z);
+        float yaw = pc.cameraPositionYaw.w;
+        float pitch = pc.cameraPitchFov.x;
+        vec3 forward =
+            vec3(
+                sin(yaw) * cos(pitch),
+                -sin(pitch),
+                cos(yaw) * cos(pitch));
+        forward =
+            normalize(
+                forward -
+                2.0 *
+                    dot(
+                        forward,
+                        planeNormal) *
+                    planeNormal);
+        float reflectedYaw =
+            atan(
+                forward.x,
+                forward.z);
+        float reflectedPitch =
+            atan(
+                -forward.y,
+                length(forward.xz));
+        vec3 relativeReflection =
+            world -
+            reflectedPosition;
+        float rcy = cos(reflectedYaw);
+        float rsy = sin(reflectedYaw);
+        vec3 reflectionYawView =
+            vec3(
+                rcy * relativeReflection.x -
+                    rsy * relativeReflection.z,
+                relativeReflection.y,
+                rsy * relativeReflection.x +
+                    rcy * relativeReflection.z);
+        float rcp = cos(reflectedPitch);
+        float rsp = sin(reflectedPitch);
+        vec3 reflectionView =
+            vec3(
+                reflectionYawView.x,
+                rcp * reflectionYawView.y +
+                    rsp * reflectionYawView.z,
+                -rsp * reflectionYawView.y +
+                    rcp * reflectionYawView.z);
+        vReflectionClip =
+            vec4(
+                reflectionView.x *
+                    focal /
+                    aspect,
+                -reflectionView.y *
+                    focal,
+                reflectionView.z,
+                reflectionView.z);
+    } else {
+        vReflectionClip =
+            vec4(0.0);
+    }
 
     vNormal = normal;
     vWorldPosition = world;
