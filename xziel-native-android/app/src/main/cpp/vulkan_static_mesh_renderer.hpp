@@ -7,6 +7,7 @@
 #include "xziel/static_mesh.hpp"
 #include "xziel/world_streaming.hpp"
 
+#include <array>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -23,9 +24,63 @@ struct StaticMeshCameraState {
     float aspect = 1.0f;
 };
 
+inline constexpr std::uint32_t kStaticMeshMaxLocalLights = 4U;
+
+struct StaticMeshLocalLightState {
+    float x = 0.0f;
+    float y = 0.0f;
+    float z = 0.0f;
+    float rangeMeters = 0.0f;
+
+    float colorR = 1.0f;
+    float colorG = 1.0f;
+    float colorB = 1.0f;
+    float intensity = 0.0f;
+
+    float directionX = 0.0f;
+    float directionY = -1.0f;
+    float directionZ = 0.0f;
+    // 0 = point, 1 = spot. The main directional/key light has its own slot.
+    float type = 0.0f;
+
+    float innerConeCos = 1.0f;
+    float outerConeCos = 1.0f;
+    float volumetric = 0.0f;
+    float reserved = 0.0f;
+};
+
 struct StaticMeshEnvironmentState {
     float fogDensity = 0.0f;
     float lightningFlash = 0.0f;
+
+    float keyDirectionX = -0.34f;
+    float keyDirectionY = -0.82f;
+    float keyDirectionZ = -0.46f;
+    float keyIntensity = 0.78f;
+
+    float keyColorR = 1.0f;
+    float keyColorG = 0.58f;
+    float keyColorB = 0.30f;
+
+    float ambientColorR = 0.085f;
+    float ambientColorG = 0.135f;
+    float ambientColorB = 0.22f;
+    float ambientIntensity = 0.20f;
+
+    float fogColorR = 0.022f;
+    float fogColorG = 0.034f;
+    float fogColorB = 0.052f;
+    float fogHeightFalloff = 0.12f;
+
+    float exposureScale = 0.76f;
+    float contrast = 1.10f;
+    float saturation = 0.86f;
+    float timeSeconds = 0.0f;
+
+    std::array<StaticMeshLocalLightState, kStaticMeshMaxLocalLights>
+        localLights{};
+    std::uint32_t localLightCount = 0U;
+
     MemoryPressure memoryPressure =
         MemoryPressure::Normal;
 };
@@ -318,6 +373,28 @@ private:
         float viewDepth = 0.0f;
     };
 
+    struct LightingUniformFrame {
+        VkBuffer buffer = VK_NULL_HANDLE;
+        VkDeviceMemory memory = VK_NULL_HANDLE;
+        void* mapped = nullptr;
+    };
+
+    struct alignas(16) SceneLightingUniform {
+        float keyDirectionIntensity[4]{};
+        float keyColorAmbientIntensity[4]{};
+        float ambientColorExposure[4]{};
+        float fogColorDensity[4]{};
+        float post[4]{};
+        float localPositionRange[kStaticMeshMaxLocalLights][4]{};
+        float localColorIntensity[kStaticMeshMaxLocalLights][4]{};
+        float localDirectionType[kStaticMeshMaxLocalLights][4]{};
+        float localConeVolumetric[kStaticMeshMaxLocalLights][4]{};
+    };
+
+    static_assert(
+        sizeof(SceneLightingUniform) % 16U == 0U,
+        "scene lighting UBO must preserve std140 vec4 alignment");
+
     struct PushConstants {
         // View rotation coefficients are precomputed once on CPU. Reusing
         // these guaranteed push-constant slots keeps the block at 128 bytes
@@ -371,6 +448,13 @@ private:
         AAssetManager* assetManager,
         const char* path,
         StaticMeshAsset& out) noexcept;
+
+    [[nodiscard]] bool createLightingUniformBuffers() noexcept;
+    void destroyLightingUniformBuffers() noexcept;
+    void updateLightingUniform(
+        std::uint32_t frameSlot,
+        const StaticMeshCameraState& camera,
+        const StaticMeshEnvironmentState& environment) noexcept;
 
     [[nodiscard]] bool createPipeline(
         AAssetManager* assetManager) noexcept;
@@ -512,6 +596,9 @@ private:
         VK_SAMPLE_COUNT_1_BIT;
 
     VkDescriptorSetLayout descriptorSetLayout_ = VK_NULL_HANDLE;
+    std::array<LightingUniformFrame, kDescriptorFrames>
+        lightingUniformFrames_{};
+
     VkDescriptorPool descriptorPool_ = VK_NULL_HANDLE;
     VkPipelineLayout pipelineLayout_ = VK_NULL_HANDLE;
     VkPipeline pipeline_ = VK_NULL_HANDLE;
