@@ -265,6 +265,56 @@ def main():
     bpy.context.view_layer.update()
     arm_world_after=[list(row) for row in arm.matrix_world]
 
+    # Production skinning: use the fitted skeleton itself as the weighting
+    # field. AI-generated meshes may contain hundreds/thousands of disconnected
+    # islands, so donor-mesh nearest-neighbour weights can jump abruptly across
+    # adjacent target vertices. A bone-envelope field stays spatially smooth
+    # regardless of mesh fragmentation.
+    def bone_side(name):
+        n=name.lower()
+        if n.endswith(".l") or n.endswith("_l") or ".l." in n or "_left" in n or n.startswith("left"):
+            return -1
+        if n.endswith(".r") or n.endswith("_r") or ".r." in n or "_right" in n or n.startswith("right"):
+            return 1
+        return 0
+
+    def is_major_deform_bone(name):
+        n=name.lower()
+        if any(token in n for token in ("finger","thumb","index","middle","pinky","ring","twist","helper","ctrl","control","ik","pole")):
+            return False
+        return any(token in n for token in (
+            "hips","pelvis","spine","chest","neck","head","shoulder","clav",
+            "upper_arm","upperarm","arm.","arm_","forearm","lower_arm","lowerarm",
+            "hand","thigh","upper_leg","upperleg","shin","calf","lower_leg",
+            "lowerleg","foot","toe"
+        ))
+
+    def point_segment_distance(point,a,b):
+        ab=b-a
+        denom=ab.length_squared
+        if denom<=1e-12:
+            return (point-a).length
+        t=max(0.0,min(1.0,(point-a).dot(ab)/denom))
+        nearest=a+ab*t
+        return (point-nearest).length
+
+    bone_segments=[]
+    for bone in arm.data.bones:
+        if not is_major_deform_bone(bone.name):
+            continue
+        a=arm.matrix_world @ bone.head_local
+        b=arm.matrix_world @ bone.tail_local
+        length=max((b-a).length,1e-5)
+        bone_segments.append({
+            "name":bone.name,
+            "a":a,
+            "b":b,
+            "length":length,
+            "side":bone_side(bone.name),
+        })
+    if len(bone_segments)<12:
+        raise RuntimeError(f"insufficient_major_bone_segments:{len(bone_segments)}<12")
+
     bind_results=[]
     all_weighted_groups=set()
     for mesh in target_meshes:
@@ -280,24 +330,31 @@ def main():
         mesh_groups=set()
         for v in mesh.data.vertices:
             world=mesh.matrix_world @ v.co
-            query=remap_target_to_donor_space(world)
             target_side=side_of(world,target_center_fit,width_axis)
-            neighbours=kd.find_n(query,16)
-            candidates=[]
-            for _,idx,dist in neighbours:
-                sco,sweights,sside=samples[idx]
-                if target_side and sside and target_side!=sside:
+            scored=[]
+            for seg in bone_segments:
+                if target_side and seg["side"] and target_side!=seg["side"]:
                     continue
-                candidates.append((dist,sweights))
-            if len(candidates)<3:
-                candidates=[(dist,samples[idx][1]) for _,idx,dist in neighbours[:8]]
-
+                dist=point_segment_distance(world,seg["a"],seg["b"])
+                # Radius scales with bone length. The additive floor prevents
+                # tiny hand/foot bones from creating razor-thin weight spikes.
+                radius=max(target_height*0.035,seg["length"]*0.42)
+                score=1.0/((dist+radius*0.35)**2)
+                scored.append((score,seg["name"],dist))
+            if len(scored)<4:
+                scored=[]
+                for seg in bone_segments:
+                    dist=point_segment_distance(world,seg["a"],seg["b"])
+                    radius=max(target_height*0.035,seg["length"]*0.42)
+                    score=1.0/((dist+radius*0.35)**2)
+                    scored.append((score,seg["name"],dist))
+            scored.sort(reverse=True,key=lambda x:x[0])
+            # Eight candidates are blended, then the strongest four are kept.
+            # This makes joint transitions smooth while preserving mobile/game
+            # skinning limits.
             accum={}
-            for dist,sweights in candidates[:8]:
-                influence=1.0/((float(dist)+1e-5)**2)
-                for name,weight in sweights:
-                    accum[name]=accum.get(name,0.0)+influence*weight
-
+            for score,name,_ in scored[:8]:
+                accum[name]=accum.get(name,0.0)+score
             ranked=sorted(accum.items(),key=lambda x:x[1],reverse=True)[:4]
             total=sum(w for _,w in ranked)
             if total <= 1e-8:
@@ -400,8 +457,9 @@ def main():
             "spatial_weight_vertices":transferred,
             "fallback_weighted_vertices":fallback_count,
             "donor_samples":len(samples),
+            "bone_envelope_segments":len(bone_segments),
             "blend_neighbours":8,
-            "query_space":"normalized_target_to_donor_body_envelope",
+            "query_space":"fitted_skeleton_bone_envelopes",
             "weight_smoothing":smoothing,
         })
 
@@ -489,7 +547,7 @@ def main():
         "armature_world_before":arm_world_before,
         "armature_world_after":arm_world_after,
         "export_meshes":remaining_meshes,
-        "binding_method":"proportion_fit_adjacency_smoothed_v9_custom_shape_purge",
+        "binding_method":"fitted_skeleton_bone_envelope_v12",
         "bind_results":bind_results,
         "output_bytes":args.output.stat().st_size if args.output.exists() else 0,
     }
