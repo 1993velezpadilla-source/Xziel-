@@ -54,6 +54,22 @@ class FinalistSummary:
 
 
 @dataclass
+class CompositeExecutionResult:
+    attempted: bool
+    ready: bool
+    base_backend: str
+    donor_backend: str | None
+    candidate_label: str | None
+    candidate_path: str | None
+    region: str | None
+    strategy: str | None
+    geometry_preserved: bool
+    rebake_required: list[str]
+    error: str | None = None
+    method: str = "hayuya-composite-material-challenger-v1"
+
+
+@dataclass
 class CompositeChampionPlan:
     version: int
     mode: str
@@ -288,13 +304,12 @@ def build_composite_plan(
             or d.improvement>=minimum_regional_gain
         )
     ]
+    # v1 executes only the topology-preserving whole-material challenger.
+    # Local face/detail UV fusion needs a dedicated seam-aware atlas transfer and
+    # remains deferred rather than pretending generic projection is regional.
     executable_now=sorted({
         d.region for d in meaningful
-        if d.strategy in {
-            "local_texture_detail_projection",
-            "material_projection_then_rebake",
-            "texture_challenger_reference",
-        }
+        if d.strategy=="material_projection_then_rebake"
     })
     deferred=sorted({
         d.region for d in meaningful
@@ -331,6 +346,137 @@ def build_composite_plan(
             "Every fusion is atomic: rejection restores the untouched base champion.",
         ],
     )
+
+
+def execute_safe_material_challenger(
+    plan: CompositeChampionPlan,
+    out_dir: Path,
+    *,
+    texture_size: int,
+    total_samples: int=200_000,
+) -> CompositeExecutionResult:
+    """Project a stronger finalist material onto the untouched base topology.
+
+    This is the first executable Composite Champion transfer because Material
+    Bridge already has a topology-preserving path. The produced GLB is only a
+    challenger; callers must re-run the complete Judge before promotion.
+    """
+    base_backend=plan.base_backend
+    donor=next(
+        (
+            item for item in plan.donors
+            if item.region=="material_response"
+            and item.donor_backend!=base_backend
+            and item.region in plan.executable_now
+        ),
+        None,
+    )
+    if donor is None:
+        return CompositeExecutionResult(
+            attempted=False,
+            ready=False,
+            base_backend=base_backend,
+            donor_backend=None,
+            candidate_label=None,
+            candidate_path=None,
+            region=None,
+            strategy=None,
+            geometry_preserved=True,
+            rebake_required=[],
+            error=None,
+        )
+
+    by_backend={item.backend:item for item in plan.finalists}
+    base=by_backend.get(base_backend)
+    source=by_backend.get(donor.donor_backend)
+    if base is None or source is None:
+        return CompositeExecutionResult(
+            attempted=True,
+            ready=False,
+            base_backend=base_backend,
+            donor_backend=donor.donor_backend,
+            candidate_label=None,
+            candidate_path=None,
+            region=donor.region,
+            strategy=donor.strategy,
+            geometry_preserved=False,
+            rebake_required=[],
+            error="base or donor finalist metadata missing",
+        )
+
+    try:
+        from material_bridge import transfer_best_material
+        from qa import inspect_mesh
+
+        safe_name="".join(
+            ch if ch.isalnum() or ch in {"-","_"} else "_"
+            for ch in donor.donor_backend
+        )
+        out_dir.mkdir(parents=True,exist_ok=True)
+        output=out_dir/f"composite_material_{safe_name}.glb"
+        bridge=transfer_best_material(
+            Path(source.path),
+            Path(base.path),
+            output,
+            total_samples=total_samples,
+            max_texture_size=int(texture_size),
+        )
+        if not output.is_file() or output.read_bytes()[:4]!=b"glTF":
+            raise RuntimeError("Material Bridge did not produce a valid GLB")
+
+        base_mesh=inspect_mesh(
+            Path(base.path),
+            backend=base.backend,
+            mode=plan.mode,
+            target_faces=max(1,1),
+        )
+        composite_mesh=inspect_mesh(
+            output,
+            backend="composite_material",
+            mode=plan.mode,
+            target_faces=max(1,1),
+        )
+        geometry_preserved=bool(
+            base_mesh.valid
+            and composite_mesh.valid
+            and base_mesh.vertices==composite_mesh.vertices
+            and base_mesh.faces==composite_mesh.faces
+            and base_mesh.components==composite_mesh.components
+            and list(base_mesh.bbox or [])==list(composite_mesh.bbox or [])
+        )
+        if not geometry_preserved:
+            raise RuntimeError(
+                "material-only composite changed base geometry/topology"
+            )
+
+        label=f"composite_material_{safe_name}"
+        return CompositeExecutionResult(
+            attempted=True,
+            ready=True,
+            base_backend=base_backend,
+            donor_backend=donor.donor_backend,
+            candidate_label=label,
+            candidate_path=str(output),
+            region=donor.region,
+            strategy=donor.strategy,
+            geometry_preserved=True,
+            rebake_required=list(bridge.rebake_required or []),
+            error=None,
+        )
+    except Exception as exc:
+        return CompositeExecutionResult(
+            attempted=True,
+            ready=False,
+            base_backend=base_backend,
+            donor_backend=donor.donor_backend,
+            candidate_label=None,
+            candidate_path=None,
+            region=donor.region,
+            strategy=donor.strategy,
+            geometry_preserved=False,
+            rebake_required=[],
+            error=f"{type(exc).__name__}:{exc}",
+        )
 
 
 def write_composite_plan(plan: CompositeChampionPlan, path: Path) -> Path:
