@@ -83,6 +83,16 @@ def base_qa():
             "invalid_handedness":0,
             "nonorthogonal_tangents":0,
         },
+        "collision_qa":{
+            "applicable":True,
+            "ready":True,
+            "faces":64,
+            "watertight":True,
+            "positive_volume":True,
+            "volume":1.25,
+            "convexity_ratio":1.0,
+            "bbox_coverage_ready":True,
+        },
         "face_evidence":{
             "required":True,
             "ready":True,
@@ -191,6 +201,20 @@ class AAAAcceptanceTests(unittest.TestCase):
         self.assertTrue(
             any(
                 "self-intersect" in item.lower()
+                for item in report.blockers
+            ),
+            report.blockers,
+        )
+
+    def test_invalid_runtime_collision_blocks_aaa(self):
+        qa=base_qa()
+        qa["collision_qa"]["ready"]=False
+        qa["collision_qa"]["watertight"]=False
+        report=evaluate_aaa_acceptance(base_manifest(),qa)
+        self.assertFalse(report.ready)
+        self.assertTrue(
+            any(
+                "collision" in item.lower()
                 for item in report.blockers
             ),
             report.blockers,
