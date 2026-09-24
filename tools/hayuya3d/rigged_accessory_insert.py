@@ -1044,62 +1044,12 @@ def insert_rigged_accessory(
             target=34962,
         )
 
+        # Raw insertion deliberately does not bind donor appearance.
+        # accessory_material_transfer.py owns the independent UV/PBR proof.
         material_index=None
         uv_accessor=None
         tangent_accessor=None
         transferred_material_channels=[]
-        if donor_uv is not None and donor_material is not None:
-            try:
-                donor_uv=np.asarray(donor_uv,dtype=np.float64)
-                if donor_uv.shape!=(len(aligned),2):
-                    raise RuntimeError(
-                        "donor accessory UV count does not match inserted vertices"
-                    )
-                tangents=_compute_tangents(
-                    aligned,
-                    normals,
-                    donor_uv,
-                    donor_faces,
-                )
-                uv_accessor=_append_accessor(
-                    doc,
-                    blob,
-                    np.asarray(donor_uv,dtype="<f4").tobytes(),
-                    component_type=5126,
-                    count=len(donor_uv),
-                    accessor_type="VEC2",
-                )
-                tangent_accessor=_append_accessor(
-                    doc,
-                    blob,
-                    np.asarray(tangents,dtype="<f4").tobytes(),
-                    component_type=5126,
-                    count=len(tangents),
-                    accessor_type="VEC4",
-                    target=34962,
-                )
-                material_index=_append_material_from_trimesh(
-                    doc,
-                    blob,
-                    donor_material,
-                )
-                from material_bridge import _material_channels
-                transferred_material_channels=sorted(set(
-                    _material_channels(donor_material)
-                ))
-                if "baseColor" not in transferred_material_channels:
-                    raise RuntimeError(
-                        "transferred donor material lacks baseColor evidence"
-                    )
-            except Exception as exc:
-                material_index=None
-                uv_accessor=None
-                tangent_accessor=None
-                transferred_material_channels=[]
-                warnings.append(
-                    "donor accessory material transfer unavailable: "
-                    f"{type(exc).__name__}:{exc}"
-                )
 
         base_targets = base["primitive"].get("targets") or []
         new_targets = []
@@ -1466,12 +1416,19 @@ def prepare_production_rigged_accessory_insert(
         result.material_ready = bool(
             material_ready and transfer.ready
         )
-        result.uv_ready = bool(
-            uv_ready
-            and transfer.uv_tangent_ready
+        result.uv_ready = bool(uv_ready)
+        result.uv_tangent_ready = bool(
+            transfer.uv_tangent_ready
             and transfer.shading_basis_ready
         )
+        result.material_channels = list(
+            transfer.copied_channels or []
+        )
         result.material_blockers = list(blockers)
+        if not result.uv_tangent_ready:
+            result.material_blockers.append(
+                "accessory material transfer lacks valid UV/tangent/shading proof"
+            )
 
         result.legacy_payload_preserved = _legacy_payload_preserved(
             base["doc"],
@@ -1569,6 +1526,7 @@ def prepare_production_rigged_accessory_insert(
             result.geometry_ready
             and result.material_ready
             and result.uv_ready
+            and result.uv_tangent_ready
             and result.legacy_payload_preserved
             and result.rig_ready
             and result.skin_weights_ready
