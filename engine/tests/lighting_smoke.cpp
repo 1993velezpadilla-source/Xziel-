@@ -17,6 +17,7 @@ int main() {
     xziel::LocalLightInput lights[3]{};
 
     lights[0].id = 1U;
+    lights[0].enabled = true;
     lights[0].position = {0.0f, 1.8f, 2.0f};
     lights[0].colorLinear = {1.0f, 0.35f, 0.08f};
     lights[0].intensity = 2.4f;
@@ -26,12 +27,14 @@ int main() {
     lights[0].flickerHz = 2.1f;
 
     lights[1].id = 2U;
+    lights[1].enabled = true;
     lights[1].position = {80.0f, 0.0f, 0.0f};
     lights[1].intensity = 1.0f;
     lights[1].rangeMeters = 4.0f;
     lights[1].importance = 1.0f;
 
     lights[2].id = 3U;
+    lights[2].enabled = true;
     lights[2].type = xziel::LightType::Spot;
     lights[2].position = {1.0f, 2.0f, -1.0f};
     lights[2].direction = {-0.2f, -0.8f, 0.3f};
