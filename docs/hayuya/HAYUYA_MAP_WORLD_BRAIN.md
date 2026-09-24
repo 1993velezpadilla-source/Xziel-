@@ -369,3 +369,66 @@ Every model must pass a license/commercial-use review before becoming a shipping
 - Mapbox Maps SDK / 3D: https://docs.mapbox.com/
 - ArcGIS Reality: https://www.esri.com/en-us/arcgis/products/arcgis-reality/overview
 - Clay Foundation Model: https://github.com/Clay-foundation/model
+
+
+## Map-design and lighting knowledge brains
+
+HAYUYA Map now has two optional downstream reasoning brains that consume the World Brain rather than replacing it.
+
+### HAYUYA Map Structure Brain
+
+`tools/hayuya3d/map_design_brain.py` compiles abstract map-design evidence into constraints for original map generation.
+
+For Xziel Zombies work it consumes the versioned clean-room corpus:
+
+- `docs/zombies-map-dna-atlas.v1.json`;
+- `docs/zombies-map-dna-coverage.v1.json`;
+- `docs/sanctum-zombies-dna-profile.v1.json`;
+- `hayuya/standards/hayuya_map_design_brain_v1.json`.
+
+The corpus stores abstract topology, progression, pressure, horror identity, signature systems and transferable lessons. It is not a repository of copied game geometry or extracted proprietary data.
+
+The Structure Brain reasons about:
+
+- global/regional landmarks;
+- early forks;
+- combat loops;
+- bailout routes;
+- door economy;
+- power/progression state;
+- spawn pressure vectors;
+- special-enemy route modifiers;
+- quest graphs;
+- transport/shortcuts;
+- high-round circulation;
+- streaming/cell boundaries.
+
+### HAYUYA Lighting
+
+`tools/hayuya3d/hayuya_lighting.py` is a separate semantic lighting composer. Its design is documented in `docs/hayuya/HAYUYA_LIGHTING_BRAIN.md`.
+
+It consumes geometry/semantics, critical navigation, map-design intent, materials, progression state and atmosphere goals to produce:
+
+- base visibility;
+- motivated practicals;
+- landmark guidance;
+- anxiety/negative-space shadow;
+- power-off/on variants;
+- rare event lighting;
+- mobile lighting policy;
+- lighting-judge gates.
+
+A visually accurate reconstruction is not considered finished until the lighting judge confirms composition, depth, landmark readability, material response and gameplay readability.
+
+### Automatic profile selection
+
+`hayuya_map.py` keeps general world reconstruction open-ended. Zombies-specific design is not forced onto ordinary city/world jobs.
+
+When the goal explicitly indicates a zombie/undead/round-based/Sanctum/horror map, the planner can automatically attach:
+
+- `sanctum_classic` structure intelligence;
+- `zombies_horror` lighting intelligence.
+
+Both profiles can also be selected explicitly from the CLI.
+
+Every generated job keeps a knowledge manifest and emits the activated intelligence as separate JSON files so later geometry, XMAP, lighting and Xziel compilation stages can consume the same reasoning contract.
