@@ -4912,6 +4912,13 @@ void VulkanStaticMeshRenderer::record(
             static_cast<std::uint8_t>(0U));
     }
 
+    const bool useClusterCulling =
+        cellGeometry &&
+        multiDrawIndirectEnabled_ &&
+        maxDrawIndirectCount_ >=
+            kClusterCullMinIndirectCount &&
+        !cullClusters_.empty();
+
     for (std::size_t batchIndex = 0U;
          batchIndex < batches_.size();
          ++batchIndex) {
@@ -5138,17 +5145,90 @@ void VulkanStaticMeshRenderer::record(
             continue;
         }
 
+        if (useClusterCulling) {
+            if (batch.firstCluster >
+                    cullClusters_.size() ||
+                batch.clusterCount >
+                    cullClusters_.size() -
+                        batch.firstCluster) {
+                ++frameStats_.culledBatches;
+                continue;
+            }
+
+            bool anyClusterVisible = false;
+            const std::uint32_t clusterEnd =
+                batch.firstCluster +
+                batch.clusterCount;
+
+            for (std::uint32_t clusterIndex =
+                     batch.firstCluster;
+                 clusterIndex < clusterEnd;
+                 ++clusterIndex) {
+                const auto& cluster =
+                    cullClusters_[
+                        clusterIndex];
+
+                if (!sphereVisible(
+                        cluster.cullCenterX,
+                        cluster.cullCenterY,
+                        cluster.cullCenterZ,
+                        cluster.cullRadius)) {
+                    ++frameStats_.culledClusters;
+                    frameStats_.
+                        clusterCulledTriangles +=
+                        static_cast<std::uint64_t>(
+                            cluster.indexCount / 3U);
+                    continue;
+                }
+
+                anyClusterVisible = true;
+                ++frameStats_.visibleClusters;
+
+                VisibleDrawCandidate candidate{};
+                candidate.batchIndex =
+                    static_cast<std::uint32_t>(
+                        batchIndex);
+                candidate.clusterIndex =
+                    clusterIndex;
+                candidate.originalOrder =
+                    static_cast<std::uint32_t>(
+                        visibleDrawCandidates_.size());
+                candidate.viewDepth =
+                    sphereViewDepth(
+                        cluster.cullCenterX,
+                        cluster.cullCenterY,
+                        cluster.cullCenterZ,
+                        cluster.cullRadius);
+
+                visibleDrawCandidates_.push_back(
+                    candidate);
+            }
+
+            if (anyClusterVisible) {
+                ++frameStats_.visibleBatches;
+            } else {
+                ++frameStats_.culledBatches;
+            }
+
+            continue;
+        }
+
         ++frameStats_.visibleBatches;
 
         VisibleDrawCandidate candidate{};
         candidate.batchIndex =
             static_cast<std::uint32_t>(
                 batchIndex);
+        candidate.clusterIndex = UINT32_MAX;
         candidate.originalOrder =
             static_cast<std::uint32_t>(
                 visibleDrawCandidates_.size());
         candidate.viewDepth =
-            batchViewDepth(batch);
+            sphereViewDepth(
+                batch.cullCenterX,
+                batch.cullCenterY,
+                batch.cullCenterZ,
+                batch.cullRadius);
 
         visibleDrawCandidates_.push_back(
             candidate);
@@ -5197,9 +5277,16 @@ void VulkanStaticMeshRenderer::record(
                         b.viewDepth;
                 }
 
+                if (batchA.sourceBatchIndex !=
+                    batchB.sourceBatchIndex) {
+                    return
+                        batchA.sourceBatchIndex <
+                        batchB.sourceBatchIndex;
+                }
+
                 return
-                    batchA.sourceBatchIndex <
-                    batchB.sourceBatchIndex;
+                    a.clusterIndex <
+                    b.clusterIndex;
             });
 
         for (std::uint32_t i = 0U;
@@ -5229,10 +5316,31 @@ void VulkanStaticMeshRenderer::record(
             static_cast<std::uint32_t>(
                 drawCommands_.size());
 
+        std::uint32_t drawFirstIndex =
+            batch.firstIndex;
+        std::uint32_t drawIndexCount =
+            batch.indexCount;
+
+        if (candidate.clusterIndex !=
+            UINT32_MAX) {
+            if (candidate.clusterIndex >=
+                cullClusters_.size()) {
+                continue;
+            }
+
+            const auto& cluster =
+                cullClusters_[
+                    candidate.clusterIndex];
+            drawFirstIndex =
+                cluster.firstIndex;
+            drawIndexCount =
+                cluster.indexCount;
+        }
+
         VkDrawIndexedIndirectCommand draw{};
-        draw.indexCount = batch.indexCount;
+        draw.indexCount = drawIndexCount;
         draw.instanceCount = 1U;
-        draw.firstIndex = batch.firstIndex;
+        draw.firstIndex = drawFirstIndex;
         draw.vertexOffset = batch.vertexOffset;
         draw.firstInstance = 0U;
 
@@ -5268,7 +5376,7 @@ void VulkanStaticMeshRenderer::record(
         ++frameStats_.drawCalls;
         frameStats_.submittedTriangles +=
             static_cast<std::uint64_t>(
-                batch.indexCount / 3U);
+                drawIndexCount / 3U);
     }
 
     frameStats_.submissionGroups =
