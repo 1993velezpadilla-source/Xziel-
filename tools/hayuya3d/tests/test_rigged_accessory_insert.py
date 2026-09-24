@@ -13,7 +13,7 @@ from tools.hayuya3d.composite_champion import (
     build_composite_plan,
     execute_safe_accessory_challenger,
 )
-from tools.hayuya3d.glb_images import write_glb
+from tools.hayuya3d.glb_images import read_glb, write_glb
 from tools.hayuya3d.gltf_audit import audit_glb
 from tools.hayuya3d.morph_deformation_qa import audit_morph_deformation
 from tools.hayuya3d.rigged_accessory_insert import (
@@ -37,6 +37,7 @@ def write_skinned_base(
     *,
     morph: bool = True,
     animated: bool = False,
+    morph_gradient: bool = False,
 ) -> None:
     source = trimesh.creation.icosphere(subdivisions=2, radius=1.0)
     vertices = np.asarray(source.vertices, dtype=np.float32)
@@ -124,9 +125,14 @@ def write_skinned_base(
 
     if morph:
         delta = np.zeros((count, 3), dtype=np.float32)
-        # Upper-body breathing/shape target. New accessory vertices should
-        # inherit nearby canonical deltas instead of receiving invented zeros.
-        delta[upper, 2] = 0.015
+        if morph_gradient:
+            # Linear field makes barycentric interpolation analytically
+            # distinguishable from nearest-vertex copying.
+            delta[:, 2] = 0.01 * (vertices[:, 0] + 1.0)
+        else:
+            # Upper-body breathing/shape target. New accessory vertices should
+            # inherit nearby canonical deltas instead of receiving invented zeros.
+            delta[upper, 2] = 0.015
         morph_offset = _align(blob)
         morph_bytes = delta.astype("<f4").tobytes()
         blob.extend(morph_bytes)
@@ -585,6 +591,106 @@ class RiggedAccessoryInsertTests(unittest.TestCase):
             )
             self.assertNotIn(token,plan.executable_now)
             self.assertIn(token,plan.deferred_transfers)
+
+    def test_inserted_morph_payload_matches_barycentric_surface_field(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            base=root/"gradient-base.glb"
+            donor=root/"donor.glb"
+            output=root/"barycentric-insert.glb"
+            write_skinned_base(
+                base,
+                morph=True,
+                morph_gradient=True,
+            )
+            write_donor(donor)
+
+            result=insert_rigged_accessory(
+                base,
+                donor,
+                output,
+            )
+            self.assertTrue(result.geometry_ready,result.errors)
+            self.assertEqual(
+                result.surface_transfer_method,
+                "hayuya-surface-transfer-barycentric-exact-v1",
+            )
+            self.assertEqual(result.surface_transfer_fallback_vertices,0)
+
+            from tools.hayuya3d.skin_weight_qa import _read_accessor
+            from tools.hayuya3d.surface_transfer import (
+                build_surface_transfer_relation,
+                interpolate_vertex_values,
+            )
+
+            base_doc,base_binary=read_glb(base)
+            out_doc,out_binary=read_glb(output)
+            base_primitive=base_doc["meshes"][0]["primitives"][0]
+            out_primitives=out_doc["meshes"][0]["primitives"]
+            inserted=out_primitives[-1]
+
+            base_positions=np.asarray(
+                _read_accessor(
+                    base_doc,
+                    base_binary,
+                    int(base_primitive["attributes"]["POSITION"]),
+                ),
+                dtype=np.float64,
+            )
+            base_faces=np.asarray(
+                _read_accessor(
+                    base_doc,
+                    base_binary,
+                    int(base_primitive["indices"]),
+                ),
+                dtype=np.int64,
+            ).reshape((-1,3))
+            base_delta=np.asarray(
+                _read_accessor(
+                    base_doc,
+                    base_binary,
+                    int(base_primitive["targets"][0]["POSITION"]),
+                ),
+                dtype=np.float64,
+            )
+            inserted_positions=np.asarray(
+                _read_accessor(
+                    out_doc,
+                    out_binary,
+                    int(inserted["attributes"]["POSITION"]),
+                ),
+                dtype=np.float64,
+            )
+            actual_delta=np.asarray(
+                _read_accessor(
+                    out_doc,
+                    out_binary,
+                    int(inserted["targets"][0]["POSITION"]),
+                ),
+                dtype=np.float64,
+            )
+
+            relation=build_surface_transfer_relation(
+                base_positions,
+                base_faces,
+                inserted_positions,
+            )
+            expected=interpolate_vertex_values(
+                base_delta,
+                relation,
+            )
+            self.assertTrue(
+                np.allclose(actual_delta,expected,atol=2e-6),
+                (actual_delta-expected),
+            )
+
+            nearest_copy=base_delta[
+                np.asarray(relation.nearest_vertex_ids,dtype=np.int64)
+            ]
+            self.assertGreater(
+                float(np.max(np.abs(expected-nearest_copy))),
+                1e-5,
+            )
 
     def test_degenerate_surface_fallback_is_not_production_safe(self):
         relation=SimpleNamespace(fallback_vertices=1)
