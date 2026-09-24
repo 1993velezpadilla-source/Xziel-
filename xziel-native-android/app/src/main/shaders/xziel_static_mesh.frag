@@ -112,11 +112,14 @@ vec3 mappedNormal(
         return geometricNormal;
     }
 
+    // The first normalize used to be redundant: Gram-Schmidt is
+    // homogeneous in tangent magnitude and the orthogonalized result is
+    // normalized immediately below. Preserve determinant sign/orientation
+    // while avoiding one reciprocal-sqrt on every detailed fragment.
     vec3 tangent =
-        normalize(
-            (dpdx * duvdy.y -
-             dpdy * duvdx.y) /
-            determinant);
+        (dpdx * duvdy.y -
+         dpdy * duvdx.y) /
+        determinant;
 
     tangent =
         normalize(
