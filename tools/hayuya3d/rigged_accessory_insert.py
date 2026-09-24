@@ -53,6 +53,17 @@ class RiggedAccessoryInsertResult:
     method: str = "hayuya-rigged-accessory-insert-v1"
 
 
+@dataclass
+class SurfaceSkinAmbiguityReport:
+    ambiguous_vertices: int
+    min_distance_gap_ratio: float | None
+    max_skin_l1: float
+    checked_vertices: int
+    margin_ratio: float
+    skin_l1_threshold: float
+    method: str = "hayuya-surface-skin-ambiguity-v1"
+
+
 def _deps():
     import numpy as np
     from scipy.spatial import cKDTree
@@ -214,6 +225,161 @@ def _surface_skin_transfer(
         relation,
     )
     return joints, weights, relation
+
+
+def _joint_signature(
+    source_joints,
+    source_weights,
+    triangle_vertex_ids,
+    barycentric,
+):
+    np, _ = _deps()
+    joints = np.asarray(source_joints, dtype=np.int64)
+    weights = np.asarray(source_weights, dtype=np.float64)
+    tri = np.asarray(triangle_vertex_ids, dtype=np.int64)
+    bary = np.asarray(barycentric, dtype=np.float64)
+    accumulated: dict[int, float] = {}
+    for vertex_id, spatial in zip(tri, bary):
+        for joint, skin_weight in zip(
+            joints[int(vertex_id)],
+            weights[int(vertex_id)],
+        ):
+            value = float(spatial) * float(skin_weight)
+            if value <= 1e-12:
+                continue
+            accumulated[int(joint)] = (
+                accumulated.get(int(joint), 0.0) + value
+            )
+    total = sum(accumulated.values())
+    if total <= 1e-12:
+        return {}
+    return {
+        joint: float(value / total)
+        for joint, value in accumulated.items()
+    }
+
+
+def _surface_skin_ambiguity(
+    source_positions,
+    source_joints,
+    source_weights,
+    target_positions,
+    surface_index,
+    relation,
+    *,
+    margin_ratio: float = 0.002,
+    skin_l1_threshold: float = 0.75,
+) -> SurfaceSkinAmbiguityReport:
+    np, _ = _deps()
+    from surface_transfer import surface_candidates_within_distance
+
+    vertices = np.asarray(source_positions, dtype=np.float64)
+    targets = np.asarray(target_positions, dtype=np.float64)
+    _, _, _, extent = _bbox(vertices)
+    diagonal = max(float(np.linalg.norm(extent)), 1e-9)
+    margin = diagonal * float(margin_ratio)
+
+    ambiguous = 0
+    min_gap_ratio = None
+    max_skin_l1 = 0.0
+
+    for row, point in enumerate(targets):
+        best_tri = np.asarray(
+            relation.triangle_vertex_ids[row],
+            dtype=np.int64,
+        )
+        best_bary = np.asarray(
+            relation.barycentric[row],
+            dtype=np.float64,
+        )
+        best_distance = float(relation.surface_distance[row])
+        best_signature = _joint_signature(
+            source_joints,
+            source_weights,
+            best_tri,
+            best_bary,
+        )
+        if not best_signature:
+            continue
+
+        candidates = surface_candidates_within_distance(
+            surface_index,
+            point,
+            best_distance + margin,
+        )
+        risky = False
+        row_best_gap_ratio = None
+        row_max_l1 = 0.0
+
+        for candidate in candidates:
+            candidate_tri = np.asarray(
+                candidate.triangle_vertex_ids,
+                dtype=np.int64,
+            )
+            if np.array_equal(candidate_tri, best_tri):
+                continue
+            if set(int(x) for x in candidate_tri).intersection(
+                int(x) for x in best_tri
+            ):
+                # Neighboring triangles on the same local patch are not
+                # competing surfaces; their interpolation is expected to vary.
+                continue
+
+            distance_gap = max(
+                0.0,
+                float(candidate.distance) - best_distance,
+            )
+            if distance_gap > margin + 1e-12:
+                continue
+
+            candidate_signature = _joint_signature(
+                source_joints,
+                source_weights,
+                candidate_tri,
+                candidate.barycentric,
+            )
+            joints = set(best_signature) | set(candidate_signature)
+            l1 = sum(
+                abs(
+                    float(best_signature.get(joint, 0.0))
+                    - float(candidate_signature.get(joint, 0.0))
+                )
+                for joint in joints
+            )
+            row_max_l1 = max(row_max_l1, float(l1))
+            if l1 < float(skin_l1_threshold):
+                continue
+
+            risky = True
+            gap_ratio = float(distance_gap / diagonal)
+            row_best_gap_ratio = (
+                gap_ratio
+                if row_best_gap_ratio is None
+                else min(row_best_gap_ratio, gap_ratio)
+            )
+
+        if risky:
+            ambiguous += 1
+            max_skin_l1 = max(max_skin_l1, row_max_l1)
+            if row_best_gap_ratio is not None:
+                min_gap_ratio = (
+                    row_best_gap_ratio
+                    if min_gap_ratio is None
+                    else min(min_gap_ratio, row_best_gap_ratio)
+                )
+
+    return SurfaceSkinAmbiguityReport(
+        ambiguous_vertices=int(ambiguous),
+        min_distance_gap_ratio=(
+            None
+            if min_gap_ratio is None
+            else round(float(min_gap_ratio), 8)
+        ),
+        max_skin_l1=round(float(max_skin_l1), 8),
+        checked_vertices=int(len(targets)),
+        margin_ratio=float(margin_ratio),
+        skin_l1_threshold=float(skin_l1_threshold),
+    )
 
 
 def _require_exact_surface_relation(relation) -> None:
