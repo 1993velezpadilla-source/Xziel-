@@ -192,6 +192,7 @@ function renderFinalQa(qa) {
   [
     ["Texture score", qa.texture_score],
     ["Face score", qa.face_score],
+    ["Face worst", qa.face_min],
     ["FaceMesh", qa.facemesh_score],
     ["FaceTex", qa.facetex_score],
     ["FaceDetail", qa.facedetail_score],
