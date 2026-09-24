@@ -826,6 +826,19 @@ class RiggedAccessoryInsertTests(unittest.TestCase):
             SimpleNamespace(fallback_vertices=0)
         )
 
+    def test_thin_surface_skin_ambiguity_is_not_production_safe(self):
+        relation=SimpleNamespace(
+            fallback_vertices=0,
+            ambiguous_skin_vertices=1,
+            surface_skin_min_gap_ratio=0.0004,
+            surface_skin_max_l1=1.75,
+        )
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "ambiguous across thin/folded geometry",
+        ):
+            _require_exact_surface_relation(relation)
+
     def test_weight_transfer_blends_neighbor_joint_influences(self):
         source_positions=np.asarray([
             [-1.0,0.0,0.0],
