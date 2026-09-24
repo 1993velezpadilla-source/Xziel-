@@ -200,7 +200,7 @@ def _weight_sampler(
             p1=values[key+1]
             m0=out_tangents[key]
             m1=in_tangents[key+1]
-            for step in (0.25,0.5,0.75):
+            # Sample every eighth of the Hermite interval. Sparse quarter-point\n            # probes can miss narrow tangent-driven overshoot between keys.\n            for step in (0.125,0.25,0.375,0.5,0.625,0.75,0.875):
                 s=float(step)
                 h00=2*s**3-3*s**2+1
                 h10=s**3-2*s**2+s
