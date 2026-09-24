@@ -596,6 +596,94 @@ StreamCellHeat StreamCellGraph::cellHeat(
     return StreamCellHeat::Cold;
 }
 
+bool StreamCellGraph::cellReachableThroughOpenPortals(
+    std::uint32_t startCell,
+    std::uint32_t targetCell) const noexcept {
+    const int start =
+        cellIndex(startCell);
+    const int target =
+        cellIndex(targetCell);
+
+    if (start < 0 || target < 0) {
+        return false;
+    }
+
+    if (start == target) {
+        return true;
+    }
+
+    std::array<bool, kMaxStreamCells>
+        visited{};
+    std::array<std::size_t, kMaxStreamCells>
+        queue{};
+
+    std::size_t read = 0U;
+    std::size_t write = 0U;
+
+    visited[
+        static_cast<std::size_t>(start)] =
+        true;
+    queue[write++] =
+        static_cast<std::size_t>(start);
+
+    while (read < write) {
+        const std::size_t currentIndex =
+            queue[read++];
+        const std::uint32_t currentId =
+            cells_[currentIndex].id;
+
+        for (std::size_t p = 0U;
+             p < portalCount_;
+             ++p) {
+            const auto& portal =
+                portals_[p];
+
+            if (!portal.open) {
+                continue;
+            }
+
+            std::uint32_t nextId = 0U;
+
+            if (portal.cellA == currentId) {
+                nextId = portal.cellB;
+            } else if (
+                portal.cellB == currentId) {
+                nextId = portal.cellA;
+            } else {
+                continue;
+            }
+
+            const int next =
+                cellIndex(nextId);
+
+            if (next < 0) {
+                continue;
+            }
+
+            const auto nextIndex =
+                static_cast<std::size_t>(
+                    next);
+
+            if (visited[nextIndex]) {
+                continue;
+            }
+
+            if (next == target) {
+                return true;
+            }
+
+            visited[nextIndex] = true;
+
+            if (write < queue.size()) {
+                queue[write++] =
+                    nextIndex;
+            }
+        }
+    }
+
+    return false;
+}
+
 std::size_t StreamCellGraph::cellCount() const noexcept {
     return cellCount_;
 }
