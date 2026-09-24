@@ -5712,14 +5712,101 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
             }
         }
 
+        std::stable_sort(
+            batches_.begin(),
+            batches_.end(),
+            [](const GpuBatch& a,
+               const GpuBatch& b) noexcept {
+                if (a.geometryCellSlot !=
+                    b.geometryCellSlot) {
+                    return
+                        a.geometryCellSlot <
+                        b.geometryCellSlot;
+                }
+
+                if (a.materialIndex !=
+                    b.materialIndex) {
+                    return
+                        a.materialIndex <
+                        b.materialIndex;
+                }
+
+                if (a.doubleSided !=
+                    b.doubleSided) {
+                    return
+                        a.doubleSided <
+                        b.doubleSided;
+                }
+
+                return
+                    a.sourceBatchIndex <
+                    b.sourceBatchIndex;
+            });
+
+        for (std::size_t i = 0U;
+             i < geometryCellCount_;
+             ++i) {
+            geometryCells_[i].firstBatch =
+                UINT32_MAX;
+            geometryCells_[i].batchCount = 0U;
+        }
+
+        for (std::uint32_t batchIndex = 0U;
+             batchIndex <
+                 static_cast<std::uint32_t>(
+                     batches_.size());
+             ++batchIndex) {
+            const auto& batch =
+                batches_[batchIndex];
+
+            if (batch.geometryCellSlot >=
+                geometryCellCount_) {
+                destroyGeometryResidency();
+                return false;
+            }
+
+            auto& cell =
+                geometryCells_[
+                    batch.geometryCellSlot];
+
+            if (cell.firstBatch ==
+                UINT32_MAX) {
+                cell.firstBatch =
+                    batchIndex;
+            }
+
+            ++cell.batchCount;
+        }
+
+        for (std::size_t i = 0U;
+             i < geometryCellCount_;
+             ++i) {
+            const auto& cell =
+                geometryCells_[i];
+
+            if (cell.firstBatch ==
+                    UINT32_MAX ||
+                cell.batchCount == 0U ||
+                static_cast<std::uint64_t>(
+                    cell.firstBatch) +
+                    static_cast<std::uint64_t>(
+                        cell.batchCount) >
+                    batches_.size()) {
+                destroyGeometryResidency();
+                return false;
+            }
+        }
+
         rebuildStreamingCellBounds();
 
         __android_log_print(
             ANDROID_LOG_INFO,
             kTag,
-            "XZIEL_CULL_SPHERES_READY batches=%u",
+            "XZIEL_CULL_SPHERES_READY batches=%u cells=%u",
             static_cast<unsigned int>(
-                batches_.size()));
+                batches_.size()),
+            static_cast<unsigned int>(
+                geometryCellCount_));
 
         std::uint32_t pinnedCells = 0U;
         std::uint32_t localCells = 0U;
