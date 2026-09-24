@@ -63,6 +63,7 @@ jobs:
         run: |
           python - <<'PY'
           import json
+          import math
           import sys
           from pathlib import Path
 
@@ -85,6 +86,19 @@ jobs:
               )
               if not score.valid:
                   raise SystemExit(f"face calibration model invalid: {path}: {score.notes}")
+              for metric_name in (
+                  "head_density_score",
+                  "head_texel_density_score",
+                  "head_texture_detail_ratio",
+                  "head_texture_detail_score",
+                  "head_texture_detail_mean",
+              ):
+                  value = getattr(score, metric_name)
+                  if value is None or not math.isfinite(float(value)):
+                      raise SystemExit(
+                          f"face calibration metric missing/non-finite: "
+                          f"{path}: {metric_name}={value}: {score.notes}"
+                      )
               rows.append({
                   "model": str(path),
                   "faces": score.faces,
@@ -94,6 +108,9 @@ jobs:
                   "head_density_score": score.head_density_score,
                   "head_texel_density_ratio": score.head_texel_density_ratio,
                   "head_texel_density_score": score.head_texel_density_score,
+                  "head_texture_detail_ratio": score.head_texture_detail_ratio,
+                  "head_texture_detail_score": score.head_texture_detail_score,
+                  "head_texture_detail_mean": score.head_texture_detail_mean,
                   "base_color_min_edge": score.base_color_min_edge,
                   "base_color_max_edge": score.base_color_max_edge,
                   "texture_resolution_score": score.texture_resolution_score,
