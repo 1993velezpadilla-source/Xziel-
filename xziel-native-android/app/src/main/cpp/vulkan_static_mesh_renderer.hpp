@@ -34,6 +34,7 @@ struct StaticMeshFrameStats {
     std::uint32_t visibleBatches = 0U;
     std::uint32_t culledBatches = 0U;
     std::uint32_t drawCalls = 0U;
+    std::uint32_t drawSubmissions = 0U;
     std::uint32_t materialBinds = 0U;
     std::uint32_t geometryBinds = 0U;
     std::uint32_t pipelineBinds = 0U;
@@ -80,6 +81,7 @@ public:
         VkCommandPool commandPool,
         VkRenderPass renderPass,
         VkSampleCountFlagBits sampleCount,
+        bool multiDrawIndirectEnabled,
         AAssetManager* assetManager,
         const char* modelAssetPath) noexcept;
 
@@ -179,6 +181,21 @@ private:
         VkBuffer stagingBuffer = VK_NULL_HANDLE;
         VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
         VkDeviceSize stagingBytes = 0U;
+    };
+
+    struct IndirectFrame {
+        VkBuffer buffer = VK_NULL_HANDLE;
+        VkDeviceMemory memory = VK_NULL_HANDLE;
+        void* mapped = nullptr;
+        VkDeviceSize capacityBytes = 0U;
+    };
+
+    struct IndirectGroup {
+        std::uint32_t geometryCellSlot = UINT32_MAX;
+        std::uint32_t materialIndex = UINT32_MAX;
+        bool doubleSided = false;
+        std::uint32_t firstCommand = 0U;
+        std::uint32_t commandCount = 0U;
     };
 
     struct StreamCellBounds {
@@ -390,6 +407,9 @@ private:
     void destroyTexture(GpuTexture& texture) noexcept;
     void destroyGeometryResidency() noexcept;
 
+    [[nodiscard]] bool createIndirectFrames() noexcept;
+    void destroyIndirectFrames() noexcept;
+
     static void cacheGpuBatchCullingSphere(
         GpuBatch& batch) noexcept;
 
@@ -499,6 +519,10 @@ private:
     std::vector<GpuBatch> batches_{};
     std::vector<PendingUpload> pendingUploads_{};
     VkDeviceSize pendingUploadBytes_ = 0U;
+
+    std::array<IndirectFrame, kDescriptorFrames>
+        indirectFrames_{};
+    bool multiDrawIndirectEnabled_ = false;
     std::uint32_t uploadBatchCommandLimit_ = 16U;
     std::uint64_t textureResidentBudgetBytes_ =
         128ULL * 1024ULL * 1024ULL;
