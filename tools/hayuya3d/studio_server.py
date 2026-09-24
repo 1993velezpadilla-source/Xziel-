@@ -397,6 +397,7 @@ def parse_pipeline_line(job: JobState, line: str) -> None:
             manifest_data = {
                 "complete_lod_chain": values.get("complete_lods","false").lower()=="true",
                 "lod_parity_ready": values.get("lod_parity_ready","false").lower()=="true",
+                "runtime_budget_ready": values.get("runtime_budget_ready","false").lower()=="true",
                 "tiers": [],
             }
         job.portable_pack = manifest_data
