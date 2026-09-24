@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "runtimes": {
+    "realesrgan-ncnn-vulkan": {
+      "version": "v0.2.0",
+      "upstream_repo": "https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan",
+      "upstream_commit": "37026f49824c5cf84062e7c6a5dd71445dcf610f",
+      "license": "MIT",
+      "purpose": "optional visible baseColor super-resolution challenger",
+      "assets": {
+        "linux-x86_64": {
+          "url": "https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan/releases/download/v0.2.0/realesrgan-ncnn-vulkan-v0.2.0-ubuntu.zip",
+          "sha256": "d0e8e1cf954f5cde11be4745dd912cc3774bef36f71c5b1cb8f74c4112b6e919",
+          "archive_root": "realesrgan-ncnn-vulkan-v0.2.0-ubuntu",
+          "executable": "realesrgan-ncnn-vulkan"
+        }
+      }
+    }
+  }
+}
