@@ -2103,6 +2103,7 @@ def main() -> int:
                     f"ready={str(bool(semantic_anatomy_result.ready)).lower()} "
                     f"targets={','.join(semantic_anatomy_result.critical_targets) if semantic_anatomy_result.critical_targets else 'none'} "
                     f"views={len(semantic_anatomy_result.rendered_views)} "
+                    f"report={str(job_dir / 'semantic_anatomy' / 'semantic_anatomy.json') if (job_dir / 'semantic_anatomy' / 'semantic_anatomy.json').is_file() else 'none'} "
                     f"error={(semantic_anatomy_result.error or 'none').replace(' ','_')}"
                 )
                 if (
