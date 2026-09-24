@@ -224,14 +224,78 @@ for attempt in range(1,6):
 if client is None:
     fail(f"Unable to connect to public TRELLIS ZeroGPU: {last}")
 
+retry_events=[]
+
+def _transient_cloud_error(exc):
+    text=(f"{type(exc).__name__}: {exc}").lower()
+    markers=(
+        "zerogpu quota",
+        "exceeded your zerogpu quota",
+        "try again in",
+        "rate limit",
+        "too many requests",
+        "queue full",
+        "temporarily unavailable",
+        "service unavailable",
+        "http 429",
+        "status code 429",
+    )
+    return any(m in text for m in markers)
+
+def _record_retry(stage, attempt, delay, exc):
+    event={
+        "stage":stage,
+        "attempt":attempt,
+        "delay_seconds":delay,
+        "error":f"{type(exc).__name__}: {exc}",
+        "time":time.time(),
+    }
+    retry_events.append(event)
+    try:
+        (OUT/"cloud_retry_state.json").write_text(
+            json.dumps({
+                "schema":1,
+                "job_id":JOB,
+                "status":"retrying",
+                "events":retry_events,
+            },indent=2)+"\n",
+            encoding="utf-8",
+        )
+    except Exception:
+        pass
+    print(
+        f"::warning::HAYUYA transient cloud error during {stage}; "
+        f"retry {attempt} in {delay}s: {type(exc).__name__}: {exc}"
+    )
+
+def resilient_predict(*args, api_name, stage, max_attempts=5):
+    delays=(20,35,55,75)
+    for attempt in range(1,max_attempts+1):
+        try:
+            return client.predict(*args,api_name=api_name)
+        except Exception as exc:
+            if attempt>=max_attempts or not _transient_cloud_error(exc):
+                raise
+            delay=delays[min(attempt-1,len(delays)-1)]
+            _record_retry(stage,attempt,delay,exc)
+            time.sleep(delay)
+            try:
+                client.predict(api_name="/start_session")
+            except Exception as session_exc:
+                print(
+                    f"::warning::TRELLIS session refresh after retry: "
+                    f"{type(session_exc).__name__}: {session_exc}"
+                )
+    raise RuntimeError(f"{stage} exhausted retry loop")
+
 try:
-    client.predict(api_name="/start_session")
+    resilient_predict(api_name="/start_session",stage="start_session",max_attempts=3)
 except Exception as e:
     print(f"::warning::start_session: {type(e).__name__}: {e}")
 
 if multi:
     try:
-        client.predict(api_name="/lambda_1")
+        resilient_predict(api_name="/lambda_1",stage="enable_multiimage",max_attempts=4)
         print("HAYUYA_MULTIIMAGE_STATE_ENABLED")
     except Exception as e:
         fail(f"Could not enable multi-image mode: {type(e).__name__}: {e}")
@@ -249,7 +313,7 @@ def uploadable(v):
 processed=[]
 for p in crops:
     try:
-        v=client.predict(handle_file(str(p)),api_name="/preprocess_image")
+        v=resilient_predict(handle_file(str(p)),api_name="/preprocess_image",stage=f"preprocess:{p.name}",max_attempts=4)
         processed.append(uploadable(v))
         print("HAYUYA_PREPROCESS_PASS",p.name)
     except Exception as e:
@@ -290,9 +354,9 @@ if missing:
 args=[values[p] for p in params]
 print("HAYUYA_TRELLIS_SUBMIT",JOB,endpoint,params)
 try:
-    result=client.predict(*args,api_name=endpoint)
+    result=resilient_predict(*args,api_name=endpoint,stage="trellis_generation",max_attempts=5)
 except Exception as e:
-    fail(f"TRELLIS generation failed: {type(e).__name__}: {e}")
+    fail(f"TRELLIS generation failed after transient retries: {type(e).__name__}: {e}")
 
 (OUT/"trellis_result.txt").write_text(repr(result),encoding="utf-8")
 candidates=[]
@@ -412,6 +476,8 @@ manifest={
     "glb":dst.name,
     "glb_bytes":len(data),
     "authenticated_hf":bool(TOKEN),
+    "cloud_retry_count":len(retry_events),
+    "cloud_retries":retry_events,
     "source_mode":source_mode,
     "source_had_alpha":source_had_alpha,
     "alpha_preserved":True,
@@ -422,5 +488,15 @@ manifest={
 if character_payload is not None:
     manifest["character"]=character_payload
 (OUT/"manifest.json").write_text(json.dumps(manifest,indent=2),encoding="utf-8")
+if retry_events:
+    (OUT/"cloud_retry_state.json").write_text(
+        json.dumps({
+            "schema":1,
+            "job_id":JOB,
+            "status":"recovered",
+            "events":retry_events,
+        },indent=2)+"\n",
+        encoding="utf-8",
+    )
 print("HAYUYA_PHONE_CLOUD_PASS")
 print(json.dumps(manifest,indent=2))
