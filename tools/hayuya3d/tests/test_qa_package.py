@@ -109,6 +109,11 @@ class QAPackageTests(unittest.TestCase):
                 champion={
                     "backend": "test",
                     "appearance_face_detail_score": 94.0,
+                    "appearance_details": [{
+                        "source": str(face_ref),
+                        "score": 94.0,
+                        "region_hint": "head",
+                    }],
                 },
                 mode="character",
                 profile="monster",
@@ -118,8 +123,92 @@ class QAPackageTests(unittest.TestCase):
                 target_faces=500,
             )
             self.assertTrue(evaluated.face_evidence_ready)
+            self.assertEqual(evaluated.face_evidence_expected,1)
+            self.assertEqual(evaluated.face_evidence_evaluated,1)
+            self.assertEqual(evaluated.face_evidence_missing,[])
 
+    def test_face_reference_requires_complete_per_reference_coverage(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            final_glb=root/"face_asset.glb"
+            face_front=root/"face_detail-front.jpg"
+            face_profile=root/"face_detail-profile.jpg"
 
+            mesh=trimesh.creation.icosphere(subdivisions=2,radius=0.5)
+            rgba=np.tile(
+                np.array([[130,90,70,255]],dtype=np.uint8),
+                (len(mesh.vertices),1),
+            )
+            mesh.visual=trimesh.visual.ColorVisuals(
+                mesh,
+                vertex_colors=rgba,
+            )
+            final_glb.write_bytes(
+                trimesh.exchange.gltf.export_glb(trimesh.Scene(mesh))
+            )
+            Image.new("RGB",(256,256),(130,90,70)).save(face_front)
+            Image.new("RGB",(256,256),(125,85,65)).save(face_profile)
+
+            partial=build_qa_package(
+                final_glb,
+                root/"qa-partial",
+                champion={
+                    "backend":"test",
+                    "appearance_face_detail_score":92.0,
+                    "appearance_details":[{
+                        "source":str(face_front),
+                        "score":93.0,
+                        "region_hint":"head",
+                    }],
+                },
+                mode="character",
+                profile="monster",
+                source_images=[],
+                detail_images=[face_front,face_profile],
+                gameprep=None,
+                target_faces=500,
+            )
+            self.assertFalse(partial.face_evidence_ready)
+            self.assertEqual(partial.face_evidence_expected,2)
+            self.assertEqual(partial.face_evidence_evaluated,1)
+            self.assertEqual(
+                partial.face_evidence_missing,
+                [str(face_profile)],
+            )
+            self.assertTrue(
+                any("coverage incomplete" in w for w in partial.warnings),
+                partial.warnings,
+            )
+
+            complete=build_qa_package(
+                final_glb,
+                root/"qa-complete",
+                champion={
+                    "backend":"test",
+                    "appearance_face_detail_score":92.0,
+                    "appearance_details":[
+                        {
+                            "source":str(face_front),
+                            "score":93.0,
+                            "region_hint":"head",
+                        },
+                        {
+                            "source":str(face_profile),
+                            "score":91.0,
+                            "region_hint":"head",
+                        },
+                    ],
+                },
+                mode="character",
+                profile="monster",
+                source_images=[],
+                detail_images=[face_front,face_profile],
+                gameprep=None,
+                target_faces=500,
+            )
+            self.assertTrue(complete.face_evidence_ready)
+            self.assertEqual(complete.face_evidence_evaluated,2)
+            self.assertEqual(complete.face_evidence_missing,[])
 
 
     def test_unresolved_material_rebakes_are_detected_per_lod(self):
