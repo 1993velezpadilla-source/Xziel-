@@ -1,0 +1,186 @@
+{
+  "schema": 1,
+  "id": "hayuya_monetization_brain_v1",
+  "updated": "2026-09-24",
+  "purpose": "Pre-author monetization hooks without making gameplay depend on advertising or confusing programmatic UI ads with diegetic world sponsorship.",
+  "principles": [
+    "Gameplay must remain fully functional with ads unavailable or disabled.",
+    "No ad may block movement, combat, navigation, objectives, revive, inventory, aiming, firing, or critical narrative.",
+    "Programmatic ad SDK formats and diegetic world sponsorship are separate delivery paths.",
+    "Advertising placement is authored as semantic inventory and validated after geometry exists.",
+    "All sellable diegetic slots need a lore fallback so unsold inventory never leaves holes.",
+    "Contextual targeting is sufficient for core monetization; behavioral identity is not required by architecture.",
+    "Network, analytics and creative validation stay outside render/audio realtime hot paths."
+  ],
+  "deliveryPaths": {
+    "DIRECT_DIEGETIC_SPONSOR": {
+      "worldSpace": true,
+      "providerSdkRequired": false,
+      "formats": [
+        "SURFACE_STATIC",
+        "SURFACE_VIDEO",
+        "SPATIAL_AUDIO",
+        "PROP_BRANDING",
+        "ENVIRONMENT_TEXT",
+        "FLAG_BANNER",
+        "VEHICLE_LIVERY",
+        "SPORTS_BOARD",
+        "STOREFRONT_BRANDING"
+      ],
+      "requirements": [
+        "signed_campaign_manifest",
+        "local_validated_asset_cache",
+        "lore_fallback",
+        "content_rating_gate",
+        "placement_safety_gate",
+        "off_thread_exposure_telemetry"
+      ]
+    },
+    "GOOGLE_ADMOB_UI": {
+      "worldSpace": false,
+      "providerSdkRequired": true,
+      "formats": [
+        "APP_OPEN",
+        "INTERSTITIAL",
+        "REWARDED",
+        "NATIVE_UI",
+        "BANNER_UI_OPTIONAL"
+      ],
+      "requirements": [
+        "official_google_mobile_ads_sdk",
+        "test_ad_units_during_development",
+        "required_ad_attribution",
+        "adchoices_for_native_when_required",
+        "natural_transition_only_for_interstitial",
+        "explicit_user_intent_for_rewarded",
+        "no_banner_on_continuously_interactive_gameplay"
+      ]
+    }
+  },
+  "runtimeHooks": {
+    "app_foreground_loading": {
+      "eligible": ["APP_OPEN"],
+      "rules": [
+        "show_only_while_user_is_already_waiting",
+        "never_interrupt_live_match_resume",
+        "frequency_cap"
+      ]
+    },
+    "main_menu_idle": {
+      "eligible": ["NATIVE_UI", "BANNER_UI_OPTIONAL"],
+      "rules": [
+        "visually_distinguishable_from_game_navigation",
+        "not_adjacent_to_primary_play_button",
+        "required_attribution_visible"
+      ]
+    },
+    "match_end_summary": {
+      "eligible": ["INTERSTITIAL", "NATIVE_UI"],
+      "rules": [
+        "only_after_gameplay_has_ended",
+        "clear_dismiss_path",
+        "frequency_cap",
+        "never_chain_interstitials"
+      ]
+    },
+    "return_to_lobby": {
+      "eligible": ["INTERSTITIAL", "NATIVE_UI"],
+      "rules": [
+        "natural_transition_only",
+        "do_not_delay_critical_party_rejoin_or_matchmaking_state"
+      ]
+    },
+    "optional_reward_request": {
+      "eligible": ["REWARDED"],
+      "rules": [
+        "explicit_player_opt_in",
+        "reward_is_nonessential",
+        "no_required_progression_gate",
+        "grant_reward_only_from_provider_reward_callback"
+      ]
+    },
+    "active_gameplay": {
+      "eligible": ["DIRECT_DIEGETIC_SPONSOR"],
+      "rules": [
+        "no_programmatic_fullscreen",
+        "no_programmatic_banner_overlay",
+        "no_fake_interaction_prompt",
+        "no_click_hotspot_in_combat",
+        "world_slots_must_yield_to_gameplay"
+      ]
+    }
+  },
+  "diegeticCandidateCapabilities": {
+    "flat_noninteractive_surface": ["SURFACE_STATIC"],
+    "screen_or_projector": ["SURFACE_STATIC", "SURFACE_VIDEO"],
+    "radio_or_speaker": ["SPATIAL_AUDIO"],
+    "brandable_prop": ["PROP_BRANDING"],
+    "environment_text_surface": ["ENVIRONMENT_TEXT"],
+    "cloth_banner_anchor": ["FLAG_BANNER"],
+    "vehicle_body_panel": ["VEHICLE_LIVERY"],
+    "arena_perimeter_board": ["SPORTS_BOARD"],
+    "storefront_fascia": ["STOREFRONT_BRANDING"]
+  },
+  "hardExclusions": [
+    "critical_combat_lane",
+    "enemy_silhouette_surface",
+    "objective_marker",
+    "quest_clue",
+    "navigation_critical_sign",
+    "interaction_prompt_surface",
+    "crosshair",
+    "hud",
+    "revive_or_downed_ui",
+    "player_spawn_primary_focal",
+    "boss_focal",
+    "corpse",
+    "gore",
+    "grave_marker",
+    "sacred_or_memorial_focal",
+    "required_door_read_zone",
+    "required_barricade_read_zone",
+    "accessibility_cue"
+  ],
+  "autoPlacementScoring": {
+    "metrics": [
+      "believability",
+      "gameplay_obstruction_safety",
+      "navigation_confusion_safety",
+      "narrative_confusion_safety",
+      "natural_exposure",
+      "tone_compatibility",
+      "mobile_readability",
+      "performance_cost",
+      "privacy_and_policy_safety"
+    ],
+    "criticalFail": [
+      "blocks_gameplay",
+      "looks_like_required_interaction",
+      "requires_network_for_map",
+      "missing_lore_fallback",
+      "missing_required_ad_disclosure",
+      "unsafe_content_rating",
+      "accidental_click_risk"
+    ]
+  },
+  "frequencyDefaults": {
+    "interstitialPerMatchMax": 1,
+    "rewardedOnlyOnExplicitRequest": true,
+    "sameDiegeticAudioCreativePerMatchMax": 1,
+    "paidDiegeticAudioStartsPerMatchMax": 2,
+    "movingDiegeticVideoPerRoomMax": 1,
+    "minimumSecondsBetweenPaidDiegeticAudioStarts": 600
+  },
+  "googleNotes": {
+    "native": "Google native ads must remain inside NativeAdView and preserve required attribution/AdChoices; do not texture-bake them onto 3D geometry.",
+    "banner": "Avoid banners on continuously interactive gameplay screens and near interactive controls.",
+    "interstitial": "Use only at natural transition points such as between activities/levels or after a match, never unexpectedly during active play.",
+    "rewarded": "Rewarded inventory is user-initiated and optional.",
+    "appOpen": "App-open inventory belongs on foreground/loading moments where the user is already waiting; do not surprise a player returning to live gameplay."
+  },
+  "compatibility": {
+    "existingXzielDiegeticAdsBranch": "feature/diegetic-ads-v1",
+    "slotSchema": "xziel_diegetic_ads",
+    "policy": "HAYUYA discovers and proposes semantic candidates; Xziel geometry-fit and runtime validation make them sellable."
+  }
+}
