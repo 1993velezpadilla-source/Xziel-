@@ -371,6 +371,7 @@ function renderFinalQa(qa) {
     ["Rig", qa.rig_ready],
     ["Surface crossings", qa.crossing_ready],
     ["Self intersections", qa.self_intersection_ready],
+    ["Composite attachments", qa.composite_attachment_ready],
     ["UV / Tangent", qa.uv_tangent_ready],
     ["Shading basis", qa.shading_basis_ready],
     ...(Number(qa.morph_targets || 0) > 0 ? [["Morphs", qa.morph_ready]] : []),
@@ -397,6 +398,10 @@ function renderFinalQa(qa) {
     qa.morph_targets != null
     || qa.crossing_pairs != null
     || qa.self_intersection_pairs != null
+    || qa.composite_components != null
+    || qa.composite_accessories != null
+    || qa.composite_floating != null
+    || qa.composite_oversized_floating != null
   ) {
     const item = document.createElement("div");
     item.className = "qa-chip metric";
@@ -412,6 +417,18 @@ function renderFinalQa(qa) {
     }
     if (qa.self_intersection_pairs != null) {
       parts.push(Number(qa.self_intersection_pairs) + " self-crossings");
+    }
+    if (qa.composite_components != null) {
+      parts.push(Number(qa.composite_components) + " components");
+    }
+    if (qa.composite_accessories != null) {
+      parts.push(Number(qa.composite_accessories) + " accessories");
+    }
+    if (qa.composite_floating != null) {
+      parts.push(Number(qa.composite_floating) + " floating");
+    }
+    if (qa.composite_oversized_floating != null) {
+      parts.push(Number(qa.composite_oversized_floating) + " donor islands");
     }
     value.textContent = parts.join(" · ");
     item.append(name, value);
