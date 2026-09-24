@@ -16,6 +16,34 @@ inline constexpr std::size_t kMaxMapDoors = 16;
 inline constexpr std::size_t kMaxMapWindows = 32;
 inline constexpr std::size_t kMaxMapGenericInteractions = 16;
 inline constexpr std::size_t kMaxMapZombieSpawns = 32;
+inline constexpr std::size_t kMaxMapLights = 32;
+
+enum class MapLightType : std::uint8_t {
+    Point,
+    Spot,
+};
+
+struct MapLightDefinition {
+    std::uint32_t id = 0U;
+    MapLightType type = MapLightType::Point;
+
+    Vec3 position{};
+    Vec3 direction{0.0f, -1.0f, 0.0f};
+    Vec3 colorLinear{1.0f, 1.0f, 1.0f};
+
+    float intensity = 1.0f;
+    float rangeMeters = 8.0f;
+    float innerConeDegrees = 24.0f;
+    float outerConeDegrees = 42.0f;
+    float importance = 1.0f;
+
+    float flickerAmount = 0.0f;
+    float flickerHz = 0.0f;
+
+    bool castsShadows = false;
+    bool volumetric = false;
+    bool enabled = true;
+};
 
 struct MapBoxDefinition {
     std::uint32_t id = 0;
@@ -56,6 +84,9 @@ struct MapDefinition {
     std::array<Vec3, kMaxMapZombieSpawns> zombieSpawns{};
     std::size_t zombieSpawnCount = 0;
 
+    std::array<MapLightDefinition, kMaxMapLights> lights{};
+    std::size_t lightCount = 0;
+
     float arenaMinimumX = 0.0f;
     float arenaMaximumX = 0.0f;
     float arenaMinimumZ = 0.0f;
@@ -83,6 +114,7 @@ struct MapLoadResult {
     std::size_t windows = 0;
     std::size_t interactions = 0;
     std::size_t zombieSpawns = 0;
+    std::size_t lights = 0;
     bool playerSpawnApplied = false;
     bool arenaBoundsApplied = false;
 };
