@@ -115,6 +115,48 @@ class SurfaceTransferTests(unittest.TestCase):
             places=7,
         )
 
+    def test_progressive_search_finds_large_triangle_with_far_centroid(self):
+        vertices=[
+            [-100.0,-100.0,0.0],
+            [100.0,-100.0,0.0],
+            [0.0,100.0,0.0],
+        ]
+        faces=[[0,1,2]]
+
+        # Forty tiny distractor triangles have centroids and vertices much
+        # closer to the target than the giant triangle's centroid/vertices,
+        # but their surfaces sit above z=0. The exact search must expand past
+        # the initial KD shortlist and recover the giant zero-distance face.
+        for index in range(40):
+            angle=2.0*np.pi*float(index)/40.0
+            cx=0.25*np.cos(angle)
+            cy=0.25*np.sin(angle)
+            base=len(vertices)
+            vertices.extend([
+                [cx-0.01,cy-0.01,0.05],
+                [cx+0.01,cy-0.01,0.05],
+                [cx,cy+0.01,0.05],
+            ])
+            faces.append([base,base+1,base+2])
+
+        relation=build_surface_transfer_relation(
+            np.asarray(vertices,dtype=np.float64),
+            np.asarray(faces,dtype=np.int64),
+            np.asarray([[0.0,0.0,0.0]],dtype=np.float64),
+            candidate_triangles=4,
+        )
+        self.assertEqual(relation.fallback_vertices,0)
+        self.assertAlmostEqual(
+            float(relation.surface_distance[0]),
+            0.0,
+            places=8,
+        )
+        self.assertEqual(
+            set(int(x) for x in relation.triangle_vertex_ids[0]),
+            {0,1,2},
+        )
+        self.assertGreater(relation.max_examined_triangles,4)
+
     def test_degenerate_triangle_falls_back_to_nearest_vertex(self):
         vertices=np.asarray([
             [0.0,0.0,0.0],
