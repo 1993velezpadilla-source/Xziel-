@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 from agent.pichy_agent import PichyAgent, load_config
 
 
-APP_VERSION = "0.2.0-lab"
+APP_VERSION = "0.2.2-lab"
 CONFIG_ENV = "PICHY_CONFIG"
 SERVER_TOKEN_ENV = "PICHY_SERVER_TOKEN"
 
@@ -186,7 +186,7 @@ def capabilities() -> dict[str, Any]:
 def chat(req: ChatRequest) -> ChatResponse:
     sid, state = get_session(req.session_id)
     route = req.route or state.agent.classify_route(req.message)
-    if route not in {"general", "reasoning", "coding", "research", "vision"}:
+    if route not in {"general", "reasoning", "coding", "research", "vision", "map_modeling"}:
         raise HTTPException(status_code=400, detail="Unsupported route")
     try:
         with state.lock:
@@ -200,7 +200,7 @@ def chat(req: ChatRequest) -> ChatResponse:
 def chat_stream(req: ChatRequest) -> StreamingResponse:
     sid, state = get_session(req.session_id)
     route = req.route or state.agent.classify_route(req.message)
-    if route not in {"general", "reasoning", "coding", "research", "vision"}:
+    if route not in {"general", "reasoning", "coding", "research", "vision", "map_modeling"}:
         raise HTTPException(status_code=400, detail="Unsupported route")
 
     def event_stream():
