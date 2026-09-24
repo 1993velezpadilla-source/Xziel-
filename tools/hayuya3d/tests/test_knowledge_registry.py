@@ -23,6 +23,8 @@ class KnowledgeRegistryTests(unittest.TestCase):
         paths = [x["path"] for x in registry["packs"].values()]
         self.assertTrue(any("world_generation_ai_atlas_v1.json" in p for p in paths))
         self.assertTrue(any("hayuya_monetization_brain_v1.json" in p for p in paths))
+        self.assertTrue(any("hayuya_encounter_director_v1.json" in p for p in paths))
+        self.assertTrue(any("church_giant_encounters_v1.json" in p for p in paths))
 
     def test_external_pack_is_discovered_without_core_change(self):
         with tempfile.TemporaryDirectory() as tmp:
