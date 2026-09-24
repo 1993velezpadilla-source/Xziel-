@@ -2102,6 +2102,7 @@ def main() -> int:
                     f"surface_transfer={detail_fusion.get('surface_transfer_method','none')} "
                     f"surface_fallback_vertices={detail_fusion.get('surface_transfer_fallback_vertices','none')} "
                     f"surface_search_triangles={detail_fusion.get('surface_transfer_max_examined_triangles','none')} "
+                    f"surface_bvh_nodes={detail_fusion.get('surface_transfer_max_visited_bvh_nodes','none')} "
                     f"morph_targets_transferred={detail_fusion.get('morph_targets_transferred','none')} "
                     f"geometry_ready={detail_fusion.get('geometry_ready','none')} "
                     f"material_ready={detail_fusion.get('material_ready','none')} "
