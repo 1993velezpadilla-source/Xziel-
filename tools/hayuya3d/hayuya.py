@@ -1915,6 +1915,48 @@ def main() -> int:
             "Next judge stage adds normal/depth agreement, calibrated camera estimation and local-detail matching.",
         ],
     }
+    aaa_acceptance_result = None
+    aaa_acceptance_failure = None
+    try:
+        if qa_package_result is None:
+            raise RuntimeError("QA Package missing; AAA acceptance cannot run")
+        from aaa_acceptance import evaluate_aaa_acceptance, write_aaa_report
+        qa_report_data=json.loads(
+            Path(qa_package_result.report).read_text(encoding="utf-8")
+        )
+        aaa_acceptance_result=evaluate_aaa_acceptance(
+            manifest,
+            qa_report_data,
+        )
+        aaa_report_path=write_aaa_report(
+            aaa_acceptance_result,
+            job_dir / "aaa_acceptance.json",
+        )
+        manifest["aaa_acceptance"]=asdict(aaa_acceptance_result)
+        manifest["aaa_acceptance_report"]=str(aaa_report_path)
+        blocker_ids=[
+            gate.id
+            for gate in aaa_acceptance_result.gates
+            if gate.required and not gate.ready
+        ]
+        print(
+            "HAYUYA_AAA_READY "
+            f"ready={str(bool(aaa_acceptance_result.ready)).lower()} "
+            f"passed={aaa_acceptance_result.passed_required} "
+            f"total={aaa_acceptance_result.total_required} "
+            f"blockers={','.join(blocker_ids) if blocker_ids else 'none'} "
+            f"report={aaa_report_path}"
+        )
+    except Exception as exc:
+        aaa_acceptance_failure=f"{type(exc).__name__}: {exc}"
+        manifest["aaa_acceptance"]=None
+        manifest["aaa_acceptance_failure"]=aaa_acceptance_failure
+        print(
+            f"HAYUYA_AAA_FAILED {aaa_acceptance_failure}",
+            file=sys.stderr,
+        )
+        traceback.print_exc()
+
     (job_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     print(f"HAYUYA_MONSTER_READY {final_glb}")
     print(
