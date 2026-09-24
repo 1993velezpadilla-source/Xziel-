@@ -180,7 +180,7 @@ def configure_ao_emission_bake(materials,image,distance):
         except Exception:
             pass
         try:
-            ao.only_local=False
+            ao.only_local=True
         except Exception:
             pass
 
@@ -334,6 +334,16 @@ def main():
     scene.render.engine="CYCLES"
     scene.cycles.device="CPU"
     scene.render.bake.use_clear=True
+    if scene.world is None:
+        scene.world=bpy.data.worlds.new("HAYUYA_RebakeWorld")
+    light_settings=getattr(scene.world,"light_settings",None)
+    if light_settings is not None:
+        if hasattr(light_settings,"use_ambient_occlusion"):
+            light_settings.use_ambient_occlusion=True
+        if hasattr(light_settings,"ao_factor"):
+            light_settings.ao_factor=1.0
+        if hasattr(light_settings,"distance"):
+            light_settings.distance=max(1e-6,diag*0.35)
     scene.render.bake.margin=max(4,min(32,a.size//128))
     scene.render.bake.cage_extrusion=diag*0.003
     scene.render.bake.max_ray_distance=diag*0.04
@@ -369,48 +379,80 @@ def main():
         ao_attempts=[]
         ao_image=None
         ao_method=None
-        for attempt_name,bake_kwargs in (
-            ("cycles_native_ao_target_only_v5",{"type":"AO"}),
-            (
-                "cycles_combined_ao_pass_target_only_v5",
-                {"type":"COMBINED","pass_filter":{"AO"}},
-            ),
-        ):
-            candidate_image=new_noncolor_image(
-                "HAYUYA_Rebaked_Occlusion_"+attempt_name,
+
+        # Attempt 1: native Cycles AO bake with explicit World AO settings.
+        native_image=new_noncolor_image(
+            "HAYUYA_Rebaked_Occlusion_cycles_native_ao_target_only_v6",
+            a.size,
+            (1.0,1.0,1.0,1.0),
+        )
+        for material in materials:
+            active_image_node(
+                material,
+                native_image,
+                "HAYUYA_AO_BAKE_TARGET_cycles_native_ao_target_only_v6",
+            )
+        select_only([target],target)
+        bpy.ops.object.bake(type="AO")
+        native_stats=image_signal_stats(native_image,0)
+        native_range=(
+            float(native_stats["max"])-float(native_stats["min"])
+            if native_stats.get("max") is not None
+            and native_stats.get("min") is not None
+            else 0.0
+        )
+        native_attempt={
+            "method":"cycles_native_ao_target_only_v6",
+            "signal":native_stats,
+            "signal_range":round(native_range,6),
+            "signal_valid":native_range>1e-4,
+        }
+        ao_attempts.append(native_attempt)
+        print(
+            "HAYUYA_REBAKE_SIGNAL occlusion_attempt "
+            + json.dumps(native_attempt,sort_keys=True)
+        )
+        if native_attempt["signal_valid"]:
+            ao_image=native_image
+            ao_method=native_attempt["method"]
+
+        # Attempt 2: explicit AO shader -> emission, target-local only.
+        if ao_image is None:
+            shader_image=new_noncolor_image(
+                "HAYUYA_Rebaked_Occlusion_shader_emit_v6",
                 a.size,
                 (1.0,1.0,1.0,1.0),
             )
-            for material in materials:
-                active_image_node(
-                    material,
-                    candidate_image,
-                    "HAYUYA_AO_BAKE_TARGET_"+attempt_name,
-                )
+            ao_restore=configure_ao_emission_bake(
+                materials,
+                shader_image,
+                distance=max(1e-6,diag*0.35),
+            )
             select_only([target],target)
-            bpy.ops.object.bake(**bake_kwargs)
-            candidate_stats=image_signal_stats(candidate_image,0)
-            candidate_range=(
-                float(candidate_stats["max"])-float(candidate_stats["min"])
-                if candidate_stats.get("max") is not None
-                and candidate_stats.get("min") is not None
+            bpy.ops.object.bake(type="EMIT")
+            restore_after_ao_bake(ao_restore)
+            shader_stats=image_signal_stats(shader_image,0)
+            shader_range=(
+                float(shader_stats["max"])-float(shader_stats["min"])
+                if shader_stats.get("max") is not None
+                and shader_stats.get("min") is not None
                 else 0.0
             )
-            attempt={
-                "method":attempt_name,
-                "signal":candidate_stats,
-                "signal_range":round(candidate_range,6),
-                "signal_valid":candidate_range>1e-4,
+            shader_attempt={
+                "method":"ao_shader_emit_target_local_v6",
+                "signal":shader_stats,
+                "signal_range":round(shader_range,6),
+                "signal_valid":shader_range>1e-4,
+                "distance":max(1e-6,diag*0.35),
             }
-            ao_attempts.append(attempt)
+            ao_attempts.append(shader_attempt)
             print(
                 "HAYUYA_REBAKE_SIGNAL occlusion_attempt "
-                + json.dumps(attempt,sort_keys=True)
+                + json.dumps(shader_attempt,sort_keys=True)
             )
-            if attempt["signal_valid"]:
-                ao_image=candidate_image
-                ao_method=attempt_name
-                break
+            if shader_attempt["signal_valid"]:
+                ao_image=shader_image
+                ao_method=shader_attempt["method"]
 
         ao_signal_valid=ao_image is not None
         images["occlusion"]={
