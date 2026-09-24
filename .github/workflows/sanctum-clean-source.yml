@@ -251,6 +251,7 @@ jobs:
           XZIEL_STATIC_RUNTIME_ROOT: church/out/clean/xziel_native_static
           XZIEL_STATIC_REPORT: church/out/clean/xziel_native_static_mesh_report.json
           XZIEL_STATIC_NATIVE_FLOOR_Y: "-1.58"
+          XZIEL_STATIC_BATCH_TRIS: "9000"
           XZIEL_STATIC_SPATIAL_GRID_METERS: "0.50"
           LIBGL_ALWAYS_SOFTWARE: "1"
         run: |
@@ -301,7 +302,7 @@ jobs:
           jq -e '.totalIndices == (.runtimeTriangles * 3)' "$R"
           jq -e '.totalVertices > 0 and .totalVertices <= 8000000' "$R"
           jq -e '.batchCount > 0 and .batchCount <= 2048' "$R"
-          jq -e '.maxTrianglesPerBatch <= 18000' "$R"
+          jq -e '.maxTrianglesPerBatch <= 9000' "$R"
           jq -e '.spatialBatching == "morton_grid_centroid_v1"' "$R"
           jq -e '.spatialBatchGridMeters == 0.5' "$R"
           jq -e '.batchBoundsDiagonalMeanMeters > 0' "$R"
