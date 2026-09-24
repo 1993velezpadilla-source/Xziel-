@@ -359,6 +359,133 @@ class CompositeChampionPlannerTests(unittest.TestCase):
                 result.fusion and result.fusion["skin_payload_preserved"]
             )
 
+    def test_more_small_components_alone_do_not_create_accessory_donor(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+
+            def write_asset(path,centers):
+                body=trimesh.creation.icosphere(subdivisions=2,radius=1.0)
+                scene=trimesh.Scene()
+                scene.add_geometry(body)
+                for center in centers:
+                    accessory=trimesh.creation.box(
+                        extents=[0.14,0.18,0.12]
+                    )
+                    accessory.apply_translation(center)
+                    scene.add_geometry(accessory)
+                path.write_bytes(
+                    trimesh.exchange.gltf.export_glb(scene)
+                )
+
+            base_path=root/"base.glb"
+            noisy_path=root/"noisy.glb"
+            write_asset(base_path,[(1.12,0.18,0.0)])
+            write_asset(
+                noisy_path,
+                [
+                    (1.12,0.18,0.0),
+                    (-1.12,0.18,0.0),
+                ],
+            )
+            base=candidate(
+                "base",95.0,
+                face_min=90.0,face_mesh=98.0,face_tex=98.0,face_detail=90.0,
+                visual=95.0,appearance=95.0,material=95.0,texture=100.0,
+                up_axis="y",
+            )
+            noisy=candidate(
+                "noisy",90.0,
+                face_min=90.0,face_mesh=98.0,face_tex=98.0,face_detail=90.0,
+                visual=90.0,appearance=90.0,material=90.0,texture=100.0,
+                up_axis="y",
+            )
+            base.path=str(base_path)
+            noisy.path=str(noisy_path)
+            plan=build_composite_plan(
+                [base,noisy],
+                mode="prop",
+                inspect_parts=True,
+            )
+            self.assertFalse(
+                any(
+                    donor.region=="detached_accessories"
+                    for donor in plan.donors
+                ),
+                plan.donors,
+            )
+            self.assertFalse(plan.composite_required)
+
+    def test_local_accessory_reference_records_safe_correspondence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+
+            def write_asset(path,center):
+                body=trimesh.creation.icosphere(subdivisions=2,radius=1.0)
+                accessory=trimesh.creation.box(
+                    extents=[0.14,0.18,0.12]
+                )
+                accessory.apply_translation(center)
+                scene=trimesh.Scene()
+                scene.add_geometry(body)
+                scene.add_geometry(accessory)
+                path.write_bytes(
+                    trimesh.exchange.gltf.export_glb(scene)
+                )
+
+            base_path=root/"base.glb"
+            donor_path=root/"donor.glb"
+            write_asset(base_path,(1.12,0.18,0.0))
+            write_asset(donor_path,(1.15,0.20,0.01))
+            source="/refs/rosary_detail.png"
+            base=candidate(
+                "base",96.0,
+                face_min=90.0,face_mesh=98.0,face_tex=98.0,face_detail=90.0,
+                visual=96.0,appearance=96.0,material=95.0,texture=100.0,
+                appearance_details=[{
+                    "source":source,
+                    "score":72.0,
+                    "region_hint":"local",
+                }],
+                up_axis="y",
+            )
+            donor=candidate(
+                "donor",84.0,
+                face_min=90.0,face_mesh=98.0,face_tex=98.0,face_detail=90.0,
+                visual=84.0,appearance=92.0,material=90.0,texture=100.0,
+                appearance_details=[{
+                    "source":source,
+                    "score":98.0,
+                    "region_hint":"local",
+                }],
+                up_axis="y",
+            )
+            base.path=str(base_path)
+            donor.path=str(donor_path)
+            plan=build_composite_plan(
+                [base,donor],
+                mode="prop",
+                inspect_parts=True,
+            )
+            detail=next(
+                item for item in plan.detail_donors
+                if item.source==source
+            )
+            self.assertEqual(
+                detail.strategy,
+                "matched_detached_accessory_swap_then_mesh_doctor",
+            )
+            self.assertIsNotNone(detail.accessory_match)
+            self.assertTrue(detail.accessory_match["ready"])
+            self.assertIn(
+                "detail:"+source,
+                plan.deferred_transfers,
+            )
+            self.assertNotIn(
+                "detail:"+source,
+                plan.executable_now,
+            )
+            self.assertTrue(plan.composite_required)
+
     def test_unlocalized_detail_remains_deferred(self):
         source="/refs/tiny-symbol.png"
         base=candidate(
