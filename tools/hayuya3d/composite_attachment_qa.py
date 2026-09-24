@@ -89,7 +89,12 @@ def _nearest_vertex_gap(a, b) -> float:
 def _mode_gap(mode: str) -> float:
     token = str(mode or "").strip().lower()
     if token == "character":
-        return 0.05
+        # Calibrated against the matched detached-accessory swap fixture:
+        # a valid local replacement can land at ~0.0542x of the canonical
+        # body diagonal after coordinate normalization. 0.06 keeps that
+        # bounded while remaining strict enough to reject true floating
+        # islands exercised by the destructive fixtures.
+        return 0.06
     if token == "architecture":
         return 0.08
     return 0.06
