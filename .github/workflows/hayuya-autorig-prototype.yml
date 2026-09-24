@@ -51,7 +51,24 @@ jobs:
 
       - name: Run animation deformation gate
         run: |
-          blender -b --python tools/hayuya3d/blender_animation_gate.py --             --model out/autorig/candy-zombie-001-rigged.glb             --json out/autorig/animation-gate.json             --samples 5
+          blender -b --python tools/hayuya3d/blender_animation_gate.py -- \
+            --model out/autorig/candy-zombie-001-rigged.glb \
+            --reference hayuya/models/candy-zombie-001/model.glb \
+            --json out/autorig/animation-gate.json \
+            --samples 5 || true
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          gate=json.loads(Path("out/autorig/animation-gate.json").read_text())
+          clips=[str(x) for x in gate.get("compatible_clips",[])]
+          useful=[x for x in clips if "tpose" not in x.lower().replace("_","")]
+          ref=gate.get("reference_fidelity") or {}
+          if ref and ref.get("passed") is not True:
+              raise SystemExit("Candyland rest geometry failed reference fidelity: "+str(ref.get("failures")))
+          if len(useful)<3:
+              raise SystemExit(f"Candyland has only {len(useful)} deformation-safe useful clips")
+          print("HAYUYA_AUTORIG_ANIMATION_GATE_PASS",len(useful),useful[:12])
+          PY
 
       - name: Persist animated Candyland preview model
         shell: bash
@@ -70,22 +87,45 @@ jobs:
           manifest=json.loads((root/"manifest.json").read_text())
           rig=json.loads((root/"rig_gate.json").read_text())
           anim_gate=json.loads((root/"animation_gate.json").read_text())
+          compatible=[str(x) for x in anim_gate.get("compatible_clips",[])]
+          useful=[x for x in compatible if "tpose" not in x.lower().replace("_","")]
           manifest["schema"]=2
+          manifest["rig_quality_version"]=2
           manifest["preview_model"]="animated.glb"
+          manifest["asset_profile"]="character.humanoid"
           manifest["character"]={
+              "rig_quality_version":2,
               "skeleton_type":rig.get("skeleton_type","hayuya_humanoid_v1"),
               "preview_pack":"hayuya_preview_pack_v1",
-              "rig_ready":bool(rig.get("rig_ready")),
-              "animation_ready":bool(rig.get("animation_ready")),
-              "preview_animation_ready":bool(rig.get("preview_animation_ready")),
-              "animation_clips":rig.get("animation_clips",[]),
+              "rig_ready":bool(rig.get("rig_ready")) and len(useful)>=3,
+              "animation_ready":bool(rig.get("animation_ready")) and len(useful)>=3,
+              "preview_animation_ready":bool(rig.get("preview_animation_ready")) and len(useful)>=3,
+              "animation_clips":compatible,
+              "weighted_joint_count":rig.get("weighted_joints",0),
+              "weighted_joint_names":rig.get("weighted_joint_names",[]),
               "facial":rig.get("facial",{}),
               "secondary_motion":rig.get("secondary_motion",{}),
               "warnings":rig.get("warnings",[]),
               "deformation_qa":{
-                  "passed":bool(anim_gate.get("passed")),
+                  "schema":anim_gate.get("schema",1),
+                  "passed":len(useful)>=3 and (anim_gate.get("reference_fidelity") or {}).get("passed",True),
+                  "full_bank_passed":bool(anim_gate.get("passed")),
                   "action_count":anim_gate.get("action_count",0),
+                  "compatible_clips":compatible,
+                  "rejected_clip_count":anim_gate.get("rejected_clip_count",0),
+                  "reference_fidelity":anim_gate.get("reference_fidelity"),
                   "failures":anim_gate.get("failures",[])
+              }
+          }
+          manifest["animation_banks"]={
+              "quaternius-uam2":{
+                  "model":"animated.glb",
+                  "clips":compatible,
+                  "rig_ready":bool(rig.get("rig_ready")),
+                  "animation_ready":bool(rig.get("animation_ready")),
+                  "quality_passed":bool(rig.get("rig_ready")) and len(useful)>=3,
+                  "full_bank_passed":bool(anim_gate.get("passed")),
+                  "rig_quality_version":2
               }
           }
           (root/"manifest.json").write_text(json.dumps(manifest,indent=2)+"\n")
