@@ -57,6 +57,8 @@ struct StaticMeshFrameStats {
     std::uint32_t materialVisibilityCacheHits = 0U;
     std::uint32_t frontToBackCandidates = 0U;
     std::uint32_t frontToBackReordered = 0U;
+    std::uint32_t depthPrepassDraws = 0U;
+    std::uint32_t depthPrepassSubmissions = 0U;
 
     std::uint32_t streamingCell = 0U;
     std::uint32_t streamingColdBatches = 0U;
@@ -516,6 +518,8 @@ private:
     VkPipelineLayout pipelineLayout_ = VK_NULL_HANDLE;
     VkPipeline pipeline_ = VK_NULL_HANDLE;
     VkPipeline pipelineDoubleSided_ = VK_NULL_HANDLE;
+    VkPipeline depthPrepassPipeline_ = VK_NULL_HANDLE;
+    VkPipeline depthPrepassPipelineDoubleSided_ = VK_NULL_HANDLE;
 
     AndroidAssetStreamer assetStreamer_{};
     std::uint32_t asyncPrefetchQueued_ = 0U;
