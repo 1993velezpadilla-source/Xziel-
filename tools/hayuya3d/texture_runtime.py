@@ -47,12 +47,18 @@ def install_dir(root:Path,entry:dict)->Path:
     return root/"realesrgan-ncnn-vulkan"/entry["version"]
 
 
+def payload_dir(root:Path,entry:dict,asset:dict)->Path:
+    base=install_dir(root,entry)
+    archive_root=str(asset.get("archive_root") or "").strip().strip("/")
+    return base/archive_root if archive_root else base
+
+
 def executable_path(root:Path=DEFAULT_ROOT)->Path|None:
     try:
         entry,asset=runtime_spec()
     except RuntimeError:
         return None
-    path=install_dir(root,entry)/asset["archive_root"]/asset["executable"]
+    path=payload_dir(root,entry,asset)/asset["executable"]
     return path if path.is_file() else None
 
 
@@ -113,7 +119,7 @@ def smoke_test(exe:Path)->tuple[bool,str]:
 def install(root:Path=DEFAULT_ROOT)->Path:
     entry,asset=runtime_spec()
     dst=install_dir(root,entry)
-    exe=dst/asset["archive_root"]/asset["executable"]
+    exe=payload_dir(root,entry,asset)/asset["executable"]
     if exe.is_file():
         ok,_=smoke_test(exe)
         if ok:
@@ -139,18 +145,20 @@ def install(root:Path=DEFAULT_ROOT)->Path:
         extract.mkdir()
         with zipfile.ZipFile(archive) as zf:
             names=zf.namelist()
-            prefix=asset["archive_root"].rstrip("/")+"/"
+            archive_root=str(asset.get("archive_root") or "").strip().strip("/")
+            prefix=archive_root+"/" if archive_root else ""
             if not names or any(
                 name.startswith("/")
                 or ".." in PurePosixPath(name.replace("\\","/")).parts
                 for name in names
             ):
                 raise RuntimeError("unsafe_runtime_archive_paths")
-            if not any(name.startswith(prefix) for name in names):
+            if prefix and not any(name.startswith(prefix) for name in names):
                 raise RuntimeError("runtime_archive_root_missing")
             zf.extractall(extract)
 
-        staged=extract/asset["archive_root"]/asset["executable"]
+        staged_root=extract/archive_root if archive_root else extract
+        staged=staged_root/asset["executable"]
         if not staged.is_file():
             raise RuntimeError("runtime_executable_missing")
         staged.chmod(staged.stat().st_mode|stat.S_IXUSR|stat.S_IXGRP|stat.S_IXOTH)
@@ -160,7 +168,7 @@ def install(root:Path=DEFAULT_ROOT)->Path:
         dst.parent.mkdir(parents=True,exist_ok=True)
         shutil.move(str(extract),str(dst))
 
-    exe=dst/asset["archive_root"]/asset["executable"]
+    exe=payload_dir(root,entry,asset)/asset["executable"]
     ok,detail=smoke_test(exe)
     if not ok:
         shutil.rmtree(dst,ignore_errors=True)
