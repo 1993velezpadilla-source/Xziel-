@@ -165,6 +165,22 @@ def evaluate_aaa_acceptance(
                 f"evaluated={face.get('evaluated')} expected={face.get('expected')} worst={face.get('min_score')}",
                 blocker="explicit face references are not completely evaluated",
             )
+        anatomy=qa_report.get("critical_anatomy") or {}
+        if anatomy.get("required"):
+            _gate(
+                gates,"character.critical_anatomy","character",
+                bool(anatomy.get("ready")),
+                (
+                    f"evaluated={anatomy.get('evaluated')} "
+                    f"expected={anatomy.get('expected')} "
+                    f"targets={[x.get('target') for x in (anatomy.get('targets') or [])]}"
+                ),
+                blocker=(
+                    "one or more explicit critical anatomy references "
+                    "(eyes/mouth/teeth/hands/hair/ears/wounds) were not evaluated"
+                ),
+            )
+
         for key in (
             "head_density_score",
             "head_texel_density_score",
