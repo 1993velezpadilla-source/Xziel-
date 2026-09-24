@@ -224,6 +224,116 @@ def skin_payload_signature(path:Path)->str:
     return digest.hexdigest()
 
 
+def runtime_payload_signature(path:Path)->str:
+    """Hash runtime-critical GLB payload while excluding material/texture/POSITION.
+
+    This deliberately demands byte-stable skinning, animations and morph
+    deltas for topology-preserving appearance edits. POSITION is excluded so
+    seam-aware head-wrap can legally deform the base while keeping runtime
+    payload unchanged.
+    """
+    doc,binary,_=_doc_and_bin(path)
+    digest=hashlib.sha256()
+
+    def add_json(tag:str,value)->None:
+        digest.update(tag.encode("utf-8"))
+        digest.update(
+            json.dumps(
+                value,
+                sort_keys=True,
+                separators=(",",":"),
+            ).encode("utf-8")
+        )
+
+    def add_accessor(tag:str,index)->None:
+        if index is None:
+            add_json(tag,None)
+            return
+        if not isinstance(index,int):
+            raise ValueError(f"{tag} accessor is not an integer: {index}")
+        accessors=doc.get("accessors") or []
+        if not (0<=index<len(accessors)):
+            raise ValueError(f"{tag} invalid accessor: {index}")
+        accessor=accessors[index]
+        add_json(tag+":meta",{
+            "componentType":accessor.get("componentType"),
+            "count":accessor.get("count"),
+            "type":accessor.get("type"),
+            "normalized":bool(accessor.get("normalized",False)),
+        })
+        digest.update(_raw_accessor_elements(doc,binary,index))
+
+    meshes=doc.get("meshes") or []
+    for mesh_index,mesh in enumerate(meshes):
+        add_json(
+            f"mesh:{mesh_index}:weights",
+            mesh.get("weights"),
+        )
+        for primitive_index,primitive in enumerate(mesh.get("primitives") or []):
+            attrs=primitive.get("attributes") or {}
+            for semantic,index in sorted(attrs.items()):
+                if (
+                    str(semantic).startswith("JOINTS_")
+                    or str(semantic).startswith("WEIGHTS_")
+                ):
+                    add_accessor(
+                        f"mesh:{mesh_index}:primitive:{primitive_index}:"
+                        f"attr:{semantic}",
+                        index,
+                    )
+            for target_index,target in enumerate(primitive.get("targets") or []):
+                for semantic,index in sorted((target or {}).items()):
+                    add_accessor(
+                        f"mesh:{mesh_index}:primitive:{primitive_index}:"
+                        f"target:{target_index}:{semantic}",
+                        index,
+                    )
+
+    nodes=doc.get("nodes") or []
+    node_runtime=[]
+    for node in nodes:
+        node_runtime.append({
+            "mesh":node.get("mesh"),
+            "skin":node.get("skin"),
+            "children":node.get("children"),
+            "matrix":node.get("matrix"),
+            "translation":node.get("translation"),
+            "rotation":node.get("rotation"),
+            "scale":node.get("scale"),
+            "weights":node.get("weights"),
+        })
+    add_json("nodes",node_runtime)
+
+    for skin_index,skin in enumerate(doc.get("skins") or []):
+        add_json(f"skin:{skin_index}:joints",skin.get("joints") or [])
+        add_json(f"skin:{skin_index}:skeleton",skin.get("skeleton"))
+        add_accessor(
+            f"skin:{skin_index}:inverseBindMatrices",
+            skin.get("inverseBindMatrices"),
+        )
+
+    for animation_index,animation in enumerate(doc.get("animations") or []):
+        add_json(
+            f"animation:{animation_index}:channels",
+            animation.get("channels") or [],
+        )
+        for sampler_index,sampler in enumerate(animation.get("samplers") or []):
+            add_json(
+                f"animation:{animation_index}:sampler:{sampler_index}:interpolation",
+                sampler.get("interpolation","LINEAR"),
+            )
+            add_accessor(
+                f"animation:{animation_index}:sampler:{sampler_index}:input",
+                sampler.get("input"),
+            )
+            add_accessor(
+                f"animation:{animation_index}:sampler:{sampler_index}:output",
+                sampler.get("output"),
+            )
+
+    return digest.hexdigest()
+
+
 def patch_position_accessors(
     source_glb:Path,
     output_glb:Path,
