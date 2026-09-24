@@ -2659,6 +2659,21 @@ void VulkanStaticMeshRenderer::serviceRuntimeTextureResidency(
 void VulkanStaticMeshRenderer::releaseGeometryCellGpuResidency(
     GeometryCellResidency& cell) noexcept {
     if (device_ != VK_NULL_HANDLE) {
+        if (cell.restoreMappedIndices != nullptr &&
+            cell.indexMemory != VK_NULL_HANDLE) {
+            vkUnmapMemory(
+                device_,
+                cell.indexMemory);
+            cell.restoreMappedIndices = nullptr;
+        }
+
+        if (cell.restoreMappedVertices != nullptr &&
+            cell.vertexMemory != VK_NULL_HANDLE) {
+            vkUnmapMemory(
+                device_,
+                cell.vertexMemory);
+            cell.restoreMappedVertices = nullptr;
+        }
         if (cell.indexBuffer != VK_NULL_HANDLE) {
             vkDestroyBuffer(
                 device_,
@@ -2707,12 +2722,22 @@ void VulkanStaticMeshRenderer::releaseGeometryCellGpuResidency(
     cell.deviceLocalHostVisible = false;
     cell.physicallyResident = false;
     cell.retireMask = 0U;
+    cell.restoreVertexCursor = 0U;
+    cell.restoreIndexCursor = 0U;
+    cell.restoreCopyFrames = 0U;
+    cell.restorePrepared = false;
 }
 
-bool VulkanStaticMeshRenderer::restoreGeometryCellGpuResidency(
-    GeometryCellResidency& cell) noexcept {
+VulkanStaticMeshRenderer::GeometryRestoreResult
+VulkanStaticMeshRenderer::restoreGeometryCellGpuResidency(
+    GeometryCellResidency& cell,
+    VkDeviceSize copyBudgetBytes) noexcept {
+    if (cell.physicallyResident) {
+        return GeometryRestoreResult::Complete;
+    }
+
     if (device_ == VK_NULL_HANDLE ||
-        cell.physicallyResident ||
+        copyBudgetBytes == 0U ||
         cell.vertexBytes == 0U ||
         cell.indexBytes == 0U ||
         cell.reloadVertexBytes.size() !=
@@ -2721,7 +2746,7 @@ bool VulkanStaticMeshRenderer::restoreGeometryCellGpuResidency(
         cell.reloadIndexBytes.size() !=
             static_cast<std::size_t>(
                 cell.indexBytes)) {
-        return false;
+        return GeometryRestoreResult::Failed;
     }
 
     const VkMemoryPropertyFlags hostFlags =
@@ -2733,6 +2758,27 @@ bool VulkanStaticMeshRenderer::restoreGeometryCellGpuResidency(
 
     const auto destroyPartial =
         [&]() noexcept {
+            if (cell.restoreMappedIndices != nullptr &&
+                cell.indexMemory != VK_NULL_HANDLE) {
+                vkUnmapMemory(
+                    device_,
+                    cell.indexMemory);
+            }
+
+            if (cell.restoreMappedVertices != nullptr &&
+                cell.vertexMemory != VK_NULL_HANDLE) {
+                vkUnmapMemory(
+                    device_,
+                    cell.vertexMemory);
+            }
+
+            cell.restoreMappedVertices = nullptr;
+            cell.restoreMappedIndices = nullptr;
+            cell.restoreVertexCursor = 0U;
+            cell.restoreIndexCursor = 0U;
+            cell.restoreCopyFrames = 0U;
+            cell.restorePrepared = false;
+
             if (cell.indexBuffer != VK_NULL_HANDLE) {
                 vkDestroyBuffer(
                     device_,
@@ -2796,51 +2842,116 @@ bool VulkanStaticMeshRenderer::restoreGeometryCellGpuResidency(
             return true;
         };
 
-    cell.deviceLocalHostVisible =
-        createPair(preferredFlags);
+    if (!cell.restorePrepared) {
+        cell.deviceLocalHostVisible =
+            createPair(preferredFlags);
 
-    if (!cell.deviceLocalHostVisible &&
-        !createPair(hostFlags)) {
-        return false;
-    }
-
-    void* mappedVertices = nullptr;
-    void* mappedIndices = nullptr;
-
-    if (!ok(
-            vkMapMemory(
-                device_,
-                cell.vertexMemory,
-                0U,
-                cell.vertexBytes,
-                0U,
-                &mappedVertices)) ||
-        !ok(
-            vkMapMemory(
-                device_,
-                cell.indexMemory,
-                0U,
-                cell.indexBytes,
-                0U,
-                &mappedIndices))) {
-        if (mappedVertices != nullptr) {
-            vkUnmapMemory(
-                device_,
-                cell.vertexMemory);
+        if (!cell.deviceLocalHostVisible &&
+            !createPair(hostFlags)) {
+            return GeometryRestoreResult::Failed;
         }
-        destroyPartial();
-        return false;
+
+        if (!ok(
+                vkMapMemory(
+                    device_,
+                    cell.vertexMemory,
+                    0U,
+                    cell.vertexBytes,
+                    0U,
+                    &cell.restoreMappedVertices)) ||
+            !ok(
+                vkMapMemory(
+                    device_,
+                    cell.indexMemory,
+                    0U,
+                    cell.indexBytes,
+                    0U,
+                    &cell.restoreMappedIndices))) {
+            destroyPartial();
+            return GeometryRestoreResult::Failed;
+        }
+
+        cell.restoreVertexCursor = 0U;
+        cell.restoreIndexCursor = 0U;
+        cell.restoreCopyFrames = 0U;
+        cell.restorePrepared = true;
+
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_RUNTIME_GEOMETRY_GPU_RESTORE_BEGIN cell=%u total_mb=%.2f copy_budget_kb=%.1f",
+            static_cast<unsigned int>(
+                cell.cellId),
+            static_cast<double>(
+                static_cast<std::uint64_t>(
+                    cell.vertexBytes +
+                    cell.indexBytes)) /
+                (1024.0 * 1024.0),
+            static_cast<double>(
+                copyBudgetBytes) /
+                1024.0);
+
+        // Keep Vulkan allocation/mapping separate from the first bulk copy so
+        // one render frame never pays both costs for a newly hot cell.
+        return GeometryRestoreResult::InProgress;
     }
 
-    std::memcpy(
-        mappedVertices,
-        cell.reloadVertexBytes.data(),
-        cell.reloadVertexBytes.size());
+    VkDeviceSize remainingBudget =
+        copyBudgetBytes;
 
-    std::memcpy(
-        mappedIndices,
-        cell.reloadIndexBytes.data(),
-        cell.reloadIndexBytes.size());
+    const auto copySlice =
+        [&](const std::vector<std::byte>& source,
+            VkDeviceSize& cursor,
+            void* mapped) noexcept {
+            if (remainingBudget == 0U ||
+                mapped == nullptr ||
+                cursor >=
+                    static_cast<VkDeviceSize>(
+                        source.size())) {
+                return;
+            }
+
+            const VkDeviceSize available =
+                static_cast<VkDeviceSize>(
+                    source.size()) -
+                cursor;
+            const VkDeviceSize amount =
+                std::min(
+                    available,
+                    remainingBudget);
+
+            std::memcpy(
+                static_cast<std::byte*>(mapped) +
+                    static_cast<std::size_t>(
+                        cursor),
+                source.data() +
+                    static_cast<std::size_t>(
+                        cursor),
+                static_cast<std::size_t>(
+                    amount));
+
+            cursor += amount;
+            remainingBudget -= amount;
+        };
+
+    copySlice(
+        cell.reloadVertexBytes,
+        cell.restoreVertexCursor,
+        cell.restoreMappedVertices);
+
+    copySlice(
+        cell.reloadIndexBytes,
+        cell.restoreIndexCursor,
+        cell.restoreMappedIndices);
+
+    ++cell.restoreCopyFrames;
+
+    if (cell.restoreVertexCursor <
+            cell.vertexBytes ||
+        cell.restoreIndexCursor <
+            cell.indexBytes) {
+        return GeometryRestoreResult::InProgress;
+    }
 
     vkUnmapMemory(
         device_,
@@ -2848,6 +2959,12 @@ bool VulkanStaticMeshRenderer::restoreGeometryCellGpuResidency(
     vkUnmapMemory(
         device_,
         cell.vertexMemory);
+
+    cell.restoreMappedVertices = nullptr;
+    cell.restoreMappedIndices = nullptr;
+
+    const std::uint32_t copyFrames =
+        cell.restoreCopyFrames;
 
     cell.physicallyResident = true;
     cell.retireMask = 0U;
@@ -2860,6 +2977,10 @@ bool VulkanStaticMeshRenderer::restoreGeometryCellGpuResidency(
     cell.reloadStartFrame = 0U;
     cell.reloadVertexBytes.clear();
     cell.reloadIndexBytes.clear();
+    cell.restoreVertexCursor = 0U;
+    cell.restoreIndexCursor = 0U;
+    cell.restoreCopyFrames = 0U;
+    cell.restorePrepared = false;
 
     const std::uint64_t bytes =
         static_cast<std::uint64_t>(
@@ -2873,7 +2994,19 @@ bool VulkanStaticMeshRenderer::restoreGeometryCellGpuResidency(
             bytes;
     }
 
-    return true;
+    __android_log_print(
+        ANDROID_LOG_INFO,
+        kTag,
+        "XZIEL_RUNTIME_GEOMETRY_GPU_RESTORE_COMPLETE cell=%u copy_frames=%u max_copy_kb=%.1f",
+        static_cast<unsigned int>(
+            cell.cellId),
+        static_cast<unsigned int>(
+            copyFrames),
+        static_cast<double>(
+            copyBudgetBytes) /
+            1024.0);
+
+    return GeometryRestoreResult::Complete;
 }
 
 std::string VulkanStaticMeshRenderer::geometryRangeRequestKey(
@@ -3227,9 +3360,24 @@ void VulkanStaticMeshRenderer::serviceRuntimeGeometryResidency(
         const std::uint32_t peakPending =
             cell.reloadPeakPendingCount;
 
-        if (!restoreGeometryCellGpuResidency(
-                cell)) {
+        const VkDeviceSize restoreCopyBudget =
+            cell.heat == StreamCellHeat::Hot
+            ? kGeometryRestoreHotBudgetBytes
+            : kGeometryRestorePreloadBudgetBytes;
+
+        const GeometryRestoreResult restoreResult =
+            restoreGeometryCellGpuResidency(
+                cell,
+                restoreCopyBudget);
+
+        if (restoreResult ==
+            GeometryRestoreResult::Failed) {
             abortReload();
+            return;
+        }
+
+        if (restoreResult ==
+            GeometryRestoreResult::InProgress) {
             return;
         }
 
