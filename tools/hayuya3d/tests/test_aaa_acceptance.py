@@ -83,6 +83,14 @@ def base_qa():
             "channel_count":12,
             "total_keyframes":240,
         },
+        "deformation_qa":{
+            "applicable":True,
+            "ready":True,
+            "sampled_frames":24,
+            "max_displacement_ratio":0.85,
+            "max_edge_stretch_ratio":1.35,
+            "catastrophic_frames":0,
+        },
         "warnings":[],
     }
 
@@ -158,6 +166,18 @@ class AAAAcceptanceTests(unittest.TestCase):
         self.assertFalse(report.ready)
         self.assertTrue(
             any("integrity" in x.lower() for x in report.blockers),
+            report.blockers,
+        )
+
+    def test_catastrophic_deformation_fails(self):
+        qa=base_qa()
+        qa["deformation_qa"]["ready"]=False
+        qa["deformation_qa"]["catastrophic_frames"]=1
+        qa["deformation_qa"]["max_displacement_ratio"]=30.0
+        report=evaluate_aaa_acceptance(base_manifest(),qa)
+        self.assertFalse(report.ready)
+        self.assertTrue(
+            any("deformation" in x.lower() for x in report.blockers),
             report.blockers,
         )
 
