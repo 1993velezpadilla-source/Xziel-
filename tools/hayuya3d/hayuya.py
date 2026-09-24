@@ -2055,6 +2055,7 @@ def main() -> int:
                     composite_plan,
                     job_dir / "composite" / "accessories",
                     detail_source=detail_source,
+                    texture_size=profile.texture_size,
                 )
             else:
                 detail_execution=execute_safe_local_detail_challenger(
