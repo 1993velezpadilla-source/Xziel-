@@ -64,6 +64,56 @@ class QAPackageTests(unittest.TestCase):
                 result.warnings,
             )
 
+    def test_face_reference_requires_face_identity_evaluation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            final_glb = root / "face_asset.glb"
+            face_ref = root / "face_detail-closeup.jpg"
+
+            mesh = trimesh.creation.icosphere(subdivisions=2, radius=0.5)
+            rgba = np.tile(
+                np.array([[130, 90, 70, 255]], dtype=np.uint8),
+                (len(mesh.vertices), 1),
+            )
+            mesh.visual = trimesh.visual.ColorVisuals(mesh, vertex_colors=rgba)
+            final_glb.write_bytes(
+                trimesh.exchange.gltf.export_glb(trimesh.Scene(mesh))
+            )
+            Image.new("RGB", (256, 256), (130, 90, 70)).save(face_ref)
+
+            missing = build_qa_package(
+                final_glb,
+                root / "qa-missing",
+                champion={"backend": "test"},
+                mode="character",
+                profile="monster",
+                source_images=[],
+                detail_images=[face_ref],
+                gameprep=None,
+                target_faces=500,
+            )
+            self.assertFalse(missing.face_evidence_ready)
+            self.assertTrue(
+                any("face references were supplied" in w for w in missing.warnings),
+                missing.warnings,
+            )
+
+            evaluated = build_qa_package(
+                final_glb,
+                root / "qa-evaluated",
+                champion={
+                    "backend": "test",
+                    "appearance_face_detail_score": 94.0,
+                },
+                mode="character",
+                profile="monster",
+                source_images=[],
+                detail_images=[face_ref],
+                gameprep=None,
+                target_faces=500,
+            )
+            self.assertTrue(evaluated.face_evidence_ready)
+
     def test_character_without_skin_is_not_production_ready(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
