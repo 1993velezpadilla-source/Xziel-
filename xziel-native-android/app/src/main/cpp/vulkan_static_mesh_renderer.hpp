@@ -301,6 +301,9 @@ private:
         std::uint32_t firstIndex = 0U;
         std::int32_t vertexOffset = 0;
         std::uint32_t indexCount = 0U;
+        // Derived once from indexCount when geometry is loaded. Avoids an
+        // integer divide for every visible draw on every frame.
+        std::uint32_t triangleCount = 0U;
         std::uint32_t materialIndex = 0U;
         StaticMeshBounds bounds{};
 

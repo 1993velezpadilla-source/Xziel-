@@ -5311,7 +5311,7 @@ void VulkanStaticMeshRenderer::record(
         ++frameStats_.drawCalls;
         frameStats_.submittedTriangles +=
             static_cast<std::uint64_t>(
-                batch.indexCount / 3U);
+                batch.triangleCount);
     }
 
     frameStats_.submissionGroups =
@@ -6613,6 +6613,8 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
                 gpuBatch.indexCount =
                     static_cast<std::uint32_t>(
                         batch.indices.size());
+                gpuBatch.triangleCount =
+                    gpuBatch.indexCount / 3U;
                 gpuBatch.bounds =
                     batch.bounds;
                 cacheGpuBatchCullingSphere(
@@ -7044,6 +7046,8 @@ bool VulkanStaticMeshRenderer::createGeometryResidency(
             gpuBatch.indexCount =
                 static_cast<std::uint32_t>(
                     batch.indices.size());
+            gpuBatch.triangleCount =
+                gpuBatch.indexCount / 3U;
             gpuBatch.bounds =
                 batch.bounds;
             cacheGpuBatchCullingSphere(
