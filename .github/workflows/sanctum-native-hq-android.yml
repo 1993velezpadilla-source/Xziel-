@@ -385,6 +385,7 @@ jobs:
           grep -q "REFLECTION_PLANE_CPU_NORMALIZED_V1" app/src/main/shaders/xziel_first.vert
           grep -q "REFLECTED_FORWARD_UNIT_LENGTH_V1" app/src/main/shaders/xziel_first.vert
           grep -q "CAMERA_TRIG_CPU_CACHE_V1" app/src/main/shaders/xziel_first.vert
+          grep -q "PROCEDURAL_TRIG_LOOKUP_V1" app/src/main/shaders/xziel_first.vert
           grep -q "CAMERA_TRIG_CPU_CACHE_V1" app/src/main/cpp/vulkan_clear_renderer.cpp
           grep -q "REFLECTION_VERTEX_CONTRIBUTION_GATE_V1" app/src/main/shaders/xziel_first.vert
           grep -q "REFLECTION_CAMERA_PRECOMPUTE_V1" app/src/main/cpp/vulkan_clear_renderer.cpp
@@ -1160,6 +1161,7 @@ jobs:
               echo "XZIEL_REFLECTION_PLANE_CPU_NORMALIZED_ACTIVE"
               echo "XZIEL_REFLECTED_FORWARD_UNIT_LENGTH_ACTIVE"
               echo "XZIEL_CAMERA_TRIG_CPU_CACHE_ACTIVE"
+              echo "XZIEL_PROCEDURAL_TRIG_LOOKUP_ACTIVE"
               echo "XZIEL_REFLECTION_CAMERA_PRECOMPUTE_ACTIVE"
               echo "XZIEL_REFLECTION_PUSH_BASE_CACHE_ACTIVE"
               echo "XZIEL_MAIN_PUSH_BASE_CACHE_ACTIVE"

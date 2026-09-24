@@ -67,6 +67,48 @@ const vec3 kNormals[36] = vec3[](
     vec3( 0, 1, 0), vec3( 0, 1, 0), vec3( 0, 1, 0)
 );
 
+// PROCEDURAL_TRIG_LOOKUP_V1
+// Procedural sphere/cylinder topology uses fixed angular grids. Store their
+// sin/cos pairs once in shader constants instead of evaluating transcendentals
+// for every generated vertex.
+const vec2 kSphereSegmentTrig[9] = vec2[](
+    vec2( 1.0,  0.0),
+    vec2( 0.7071067811865476,  0.7071067811865476),
+    vec2( 0.0,  1.0),
+    vec2(-0.7071067811865476,  0.7071067811865476),
+    vec2(-1.0,  0.0),
+    vec2(-0.7071067811865476, -0.7071067811865476),
+    vec2( 0.0, -1.0),
+    vec2( 0.7071067811865476, -0.7071067811865476),
+    vec2( 1.0,  0.0)
+);
+
+const vec2 kSphereBandTrig[7] = vec2[](
+    vec2(0.0, -1.0),
+    vec2(0.5, -0.8660254037844386),
+    vec2(0.8660254037844386, -0.5),
+    vec2(1.0,  0.0),
+    vec2(0.8660254037844386,  0.5),
+    vec2(0.5,  0.8660254037844386),
+    vec2(0.0,  1.0)
+);
+
+const vec2 kCylinderSegmentTrig[13] = vec2[](
+    vec2( 1.0,  0.0),
+    vec2( 0.8660254037844386,  0.5),
+    vec2( 0.5,  0.8660254037844386),
+    vec2( 0.0,  1.0),
+    vec2(-0.5,  0.8660254037844386),
+    vec2(-0.8660254037844386,  0.5),
+    vec2(-1.0,  0.0),
+    vec2(-0.8660254037844386, -0.5),
+    vec2(-0.5, -0.8660254037844386),
+    vec2( 0.0, -1.0),
+    vec2( 0.5, -0.8660254037844386),
+    vec2( 0.8660254037844386, -0.5),
+    vec2( 1.0,  0.0)
+);
+
 mat3 rotateY(float angle) {
     float c = cos(angle);
     float s = sin(angle);
@@ -213,25 +255,23 @@ void main() {
                 : band + 1;
         }
 
-        float theta =
-            2.0 * pi *
-            float(segmentCorner) /
-            float(segments);
-
-        float phi =
-            -0.5 * pi +
-            pi *
-            float(bandCorner) /
-            float(bands);
+        vec2 segmentTrig =
+            kSphereSegmentTrig[
+                segmentCorner];
+        vec2 bandTrig =
+            kSphereBandTrig[
+                bandCorner];
 
         // PROCEDURAL_SPHERE_UNIT_NORMAL_V1
-        // Spherical coordinates produce a unit vector by construction:
-        // cos²(phi)(cos²(theta)+sin²(theta)) + sin²(phi) = 1.
+        // Spherical coordinates produce a unit vector by construction. The
+        // fixed angle grid comes from the lookup tables above.
         unitNormal =
             vec3(
-                cos(phi) * cos(theta),
-                sin(phi),
-                cos(phi) * sin(theta));
+                bandTrig.x *
+                    segmentTrig.x,
+                bandTrig.y,
+                bandTrig.x *
+                    segmentTrig.y);
 
         unitPosition =
             unitNormal * 0.75;
@@ -270,12 +310,9 @@ void main() {
                     : 0.75;
             }
 
-            float theta =
-                2.0 * pi *
-                float(segmentCorner) /
-                float(segments);
             vec2 radial =
-                vec2(cos(theta), sin(theta));
+                kCylinderSegmentTrig[
+                    segmentCorner];
 
             unitPosition =
                 vec3(
@@ -306,14 +343,12 @@ void main() {
                     triangleCorner == 1
                     ? segment
                     : segment + 1;
-                float theta =
-                    2.0 * pi *
-                    float(segmentCorner) /
-                    float(segments);
+                vec2 radial =
+                    kCylinderSegmentTrig[
+                        segmentCorner];
                 unitPosition =
                     vec3(
-                        cos(theta) * 0.75,
-                        sin(theta) * 0.75,
+                        radial * 0.75,
                         localZ);
             }
 
