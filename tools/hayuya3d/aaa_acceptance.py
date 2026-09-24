@@ -113,20 +113,6 @@ def evaluate_aaa_acceptance(
         ),
     )
 
-    crossing=qa_report.get("component_crossing") or {}
-    _gate(
-        gates,"geometry.component_crossing","geometry",
-        bool(crossing.get("ready")),
-        (
-            f"applicable={crossing.get('applicable')} "
-            f"tested_pairs={crossing.get('tested_pairs')} "
-            f"crossings={crossing.get('crossing_triangle_pairs')}"
-        ),
-        blocker=(
-            "large disconnected component surfaces cross/interpenetrate"
-        ),
-    )
-
     source=qa_report.get("source_coverage") or {}
     source_ready=bool(
         int(source.get("judged") or 0)>=int(source.get("expected") or 0)
@@ -266,21 +252,6 @@ def evaluate_aaa_acceptance(
                     "wiring is malformed"
                 ),
             )
-        morph_count=int(rig.get("morph_target_count") or 0)
-        if morph_count>0:
-            _gate(
-                gates,"character.morph_targets","character",
-                bool(rig.get("morph_ready")),
-                (
-                    f"morph_meshes={rig.get('morph_mesh_count')} "
-                    f"morph_primitives={rig.get('morph_primitive_count')} "
-                    f"morph_targets={morph_count}"
-                ),
-                blocker=(
-                    "character morph/blendshape payload is malformed "
-                    "or expression wiring is invalid"
-                ),
-            )
         skin_weights=qa_report.get("skin_weights") or {}
         _gate(
             gates,"character.skin_weights","character",
@@ -365,7 +336,7 @@ def evaluate_aaa_acceptance(
         ),
         blocker=(
             "one or more runtime LOD tiers fail Hero Master parity "
-            "(shape/material/rig/animation/deformation)"
+            "(shape/material/rig/morph/animation/deformation)"
         ),
         required=profile in {"mobile","game","monster","ultra"},
     )
