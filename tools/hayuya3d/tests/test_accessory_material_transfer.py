@@ -23,6 +23,9 @@ from tools.hayuya3d.rigged_accessory_insert import (
     insert_rigged_accessory,
     prepare_production_rigged_accessory_insert,
 )
+from tools.hayuya3d.rigged_accessory_split_insert import (
+    insert_split_rigged_accessory,
+)
 from tools.hayuya3d.shading_basis_qa import audit_shading_basis
 from tools.hayuya3d.uv_tangent_qa import audit_uv_tangents
 
@@ -679,7 +682,7 @@ class AccessoryMaterialTransferTests(unittest.TestCase):
             )
             self.assertTrue(supported, blocker)
 
-            inserted = insert_rigged_accessory(
+            inserted = insert_split_rigged_accessory(
                 base,
                 donor,
                 raw,
@@ -687,6 +690,13 @@ class AccessoryMaterialTransferTests(unittest.TestCase):
             self.assertTrue(inserted.geometry_ready, inserted.errors)
             self.assertEqual(inserted.spatial_label, "cluster")
             self.assertFalse(inserted.production_ready)
+            self.assertTrue(
+                any(
+                    warning == "split_accessory_groups=3"
+                    for warning in inserted.warnings
+                ),
+                inserted.warnings,
+            )
 
             transfer = transfer_accessory_material(
                 donor,
