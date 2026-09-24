@@ -14,6 +14,7 @@ from PIL import Image
 from tools.hayuya3d.glb_images import write_glb
 from tools.hayuya3d.hayuya import (
     _strict_metric_improvement,
+    accessory_composite_regressions,
     local_detail_composite_regressions,
 )
 
@@ -870,6 +871,63 @@ class CompositeChampionPlannerTests(unittest.TestCase):
                 base,improved,source
             ),
             [],
+        )
+
+    def test_accessory_guard_allows_geometry_change_but_not_global_regression(self):
+        source="/refs/rosary_detail.png"
+        base=SimpleNamespace(
+            score=96.0,
+            production_score=95.0,
+            visual_score=96.0,
+            appearance_score=95.0,
+            material_score=94.0,
+            texture_resolution_score=100.0,
+            head_texture_detail_score=None,
+            head_texel_density_score=None,
+            appearance_face_detail_score=None,
+            appearance_face_detail_min_score=None,
+            pbr_channels=["baseColor","roughness","normal"],
+            base_color_min_edge=2048,
+            vertices=1000,
+            faces=1800,
+            components=2,
+            appearance_details=[{
+                "source":source,
+                "score":70.0,
+                "region_hint":"local",
+            }],
+        )
+        winner=SimpleNamespace(
+            **{
+                **base.__dict__,
+                "vertices":1040,
+                "faces":1880,
+                "appearance_details":[{
+                    "source":source,
+                    "score":92.0,
+                    "region_hint":"local",
+                }],
+            }
+        )
+        self.assertEqual(
+            accessory_composite_regressions(
+                base,winner,source
+            ),
+            [],
+        )
+
+        regressed=SimpleNamespace(
+            **{
+                **winner.__dict__,
+                "score":95.0,
+            }
+        )
+        reasons=accessory_composite_regressions(
+            base,regressed,source
+        )
+        self.assertTrue(
+            any("regressed:score" in item for item in reasons),
+            reasons,
         )
 
     def test_target_metric_must_strictly_improve(self):
