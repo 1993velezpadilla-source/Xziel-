@@ -22,12 +22,9 @@ layout(location = 3) in vec4 inColor;
 
 layout(location = 0) out vec2 vUv;
 layout(location = 1) out vec3 vNormal;
-layout(location = 2) out vec4 vColor;
-layout(location = 3) out float vDistance;
-layout(location = 4) out float vFogDensity;
-layout(location = 5) out float vLightning;
-layout(location = 6) out float vViewmodel;
-layout(location = 7) out vec3 vViewPosition;
+// Packed frame-varying data: x=view distance, y=lightning, z=viewmodel.
+layout(location = 2) out vec3 vFrameData;
+layout(location = 3) out vec3 vViewPosition;
 
 vec3 worldToView(vec3 world) {
     vec3 relative =
@@ -169,22 +166,14 @@ void main() {
 
     vUv = inUv;
     vNormal = surfaceNormal;
-    vColor = inColor;
-    vDistance = max(view.z, 0.0);
-    vFogDensity =
-        viewmodel > 0.5
-        ? 0.0
-        : clamp(
-              pc.viewRotationFog.w,
-              0.0,
-              1.0);
-    vLightning =
+    vFrameData.x = max(view.z, 0.0);
+    vFrameData.y =
         viewmodel > 0.5
         ? 0.0
         : clamp(
               pc.environmentRotation.x,
               0.0,
               2.0);
-    vViewmodel = viewmodel;
+    vFrameData.z = viewmodel;
     vViewPosition = view;
 }
