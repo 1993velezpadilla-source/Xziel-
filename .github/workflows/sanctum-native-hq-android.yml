@@ -748,7 +748,7 @@ jobs:
             grep -Eq "XZIEL_WORLD_STREAMING_CULL_ACTIVE cell=[1-9][0-9]* .*culled_batches=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
             STREAM_CULLED="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* culled_batches=\([0-9][0-9]*\).*/\1/p')"
             STREAM_DRAWS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* draws=\([0-9][0-9]*\).*/\1/p')"
-            STREAM_SUBMITTED_TRIANGLES="$(grep \"XZIEL_WORLD_STREAMING_CULL_ACTIVE\" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* submitted_triangles=\([0-9][0-9]*\).*/\1/p')"
+            STREAM_SUBMITTED_TRIANGLES="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* submitted_triangles=\([0-9][0-9]*\).*/\1/p')"
             STREAM_MATERIAL_BINDS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* material_binds=\([0-9][0-9]*\).*/\1/p')"
             STREAM_GEOMETRY_BINDS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* geometry_binds=\([0-9][0-9]*\).*/\1/p')"
             STREAM_PIPELINE_BINDS="$(grep "XZIEL_WORLD_STREAMING_CULL_ACTIVE" dist/sanctum-hq-logcat.txt | tail -n 1 | sed -n 's/.* pipeline_binds=\([0-9][0-9]*\).*/\1/p')"
