@@ -9,11 +9,40 @@ from unittest import mock
 
 from tools.hayuya3d.semantic_anatomy_runner import (
     infer_critical_targets,
+    render_specs,
     run_semantic_anatomy,
 )
 
 
 class SemanticAnatomyRunnerTests(unittest.TestCase):
+    def test_head_targets_add_closeup_views(self):
+        self.assertEqual(
+            render_specs(
+                ["eyes","hands"],
+                ["front","side","rear"],
+            ),
+            [
+                ("front","full"),
+                ("side","full"),
+                ("rear","full"),
+                ("front","head"),
+                ("side","head"),
+            ],
+        )
+
+    def test_non_head_targets_keep_full_body_views_only(self):
+        self.assertEqual(
+            render_specs(
+                ["hands"],
+                ["front","side","rear"],
+            ),
+            [
+                ("front","full"),
+                ("side","full"),
+                ("rear","full"),
+            ],
+        )
+
     def test_infers_unique_targets_from_explicit_detail_names(self):
         targets=infer_critical_targets([
             Path("/refs/left_eye_detail.png"),
@@ -112,8 +141,8 @@ class SemanticAnatomyRunnerTests(unittest.TestCase):
             self.assertTrue(result.attempted)
             self.assertTrue(result.ready,result.error)
             self.assertEqual(result.critical_targets,["eyes","hands"])
-            self.assertEqual(len(result.rendered_views),3)
-            self.assertEqual(len(result.detector_reports),3)
+            self.assertEqual(len(result.rendered_views),5)
+            self.assertEqual(len(result.detector_reports),5)
             self.assertIsNotNone(result.aggregate)
             self.assertEqual(
                 result.aggregate["missing_parts"],
