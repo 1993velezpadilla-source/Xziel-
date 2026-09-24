@@ -71,6 +71,19 @@ class CompositeExecutionResult:
 
 
 @dataclass
+class HeadWrapExecutionResult:
+    attempted: bool
+    ready: bool
+    base_backend: str
+    donor_backend: str | None
+    candidate_label: str | None
+    candidate_path: str | None
+    fusion: dict | None
+    error: str | None = None
+    method: str = "hayuya-composite-head-wrap-challenger-v1"
+
+
+@dataclass
 class CompositeChampionPlan:
     version: int
     mode: str
@@ -316,12 +329,17 @@ def build_composite_plan(
             or d.improvement>=minimum_regional_gain
         )
     ]
-    # v1 executes only the topology-preserving whole-material challenger.
-    # Local face/detail UV fusion needs a dedicated seam-aware atlas transfer and
-    # remains deferred rather than pretending generic projection is regional.
+    # Implemented Composite challengers:
+    # - material_response: topology-preserving Material Bridge projection.
+    # - face_identity: seam-aware head wrap; it is only Judge-eligible after
+    #   required normal/AO rebakes and never runs on a skinned base.
+    # Local face UV/detail fusion and density/topology grafting remain deferred.
     executable_now=sorted({
         d.region for d in meaningful
-        if d.strategy=="material_projection_then_rebake"
+        if (
+            d.strategy=="material_projection_then_rebake"
+            or d.region=="face_identity"
+        )
     })
     deferred=sorted({
         d.region for d in meaningful
@@ -358,6 +376,100 @@ def build_composite_plan(
             "Every fusion is atomic: rejection restores the untouched base champion.",
         ],
     )
+
+
+def execute_safe_head_wrap_challenger(
+    plan: CompositeChampionPlan,
+    out_dir: Path,
+    *,
+    texture_size: int,
+    blender: str | Path | None=None,
+) -> HeadWrapExecutionResult:
+    donor=next(
+        (
+            item for item in plan.donors
+            if item.region=="face_identity"
+            and item.donor_backend!=plan.base_backend
+            and item.region in plan.executable_now
+        ),
+        None,
+    )
+    if donor is None:
+        return HeadWrapExecutionResult(
+            attempted=False,
+            ready=False,
+            base_backend=plan.base_backend,
+            donor_backend=None,
+            candidate_label=None,
+            candidate_path=None,
+            fusion=None,
+            error=None,
+        )
+
+    by_backend={item.backend:item for item in plan.finalists}
+    base=by_backend.get(plan.base_backend)
+    source=by_backend.get(donor.donor_backend)
+    if base is None or source is None:
+        return HeadWrapExecutionResult(
+            attempted=True,
+            ready=False,
+            base_backend=plan.base_backend,
+            donor_backend=donor.donor_backend,
+            candidate_label=None,
+            candidate_path=None,
+            fusion=None,
+            error="base or face donor finalist metadata missing",
+        )
+
+    try:
+        from regional_fusion import prepare_head_wrap_challenger
+        fusion=prepare_head_wrap_challenger(
+            Path(base.path),
+            Path(source.path),
+            out_dir,
+            texture_size=int(texture_size),
+            blender=blender,
+            require_rebake=True,
+            up_axis=base.up_axis or source.up_axis,
+        )
+        fusion_data=asdict(fusion)
+        if not fusion.ready_for_judge:
+            return HeadWrapExecutionResult(
+                attempted=bool(fusion.attempted),
+                ready=False,
+                base_backend=base.backend,
+                donor_backend=source.backend,
+                candidate_label=None,
+                candidate_path=fusion.output_glb,
+                fusion=fusion_data,
+                error=fusion.error or "head wrap is not Judge-eligible",
+            )
+        safe_name="".join(
+            ch if ch.isalnum() or ch in {"-","_"} else "_"
+            for ch in source.backend
+        )
+        label=f"composite_head_{safe_name}"
+        return HeadWrapExecutionResult(
+            attempted=True,
+            ready=True,
+            base_backend=base.backend,
+            donor_backend=source.backend,
+            candidate_label=label,
+            candidate_path=fusion.output_glb,
+            fusion=fusion_data,
+            error=None,
+        )
+    except Exception as exc:
+        return HeadWrapExecutionResult(
+            attempted=True,
+            ready=False,
+            base_backend=base.backend,
+            donor_backend=source.backend,
+            candidate_label=None,
+            candidate_path=None,
+            fusion=None,
+            error=f"{type(exc).__name__}:{exc}",
+        )
 
 
 def execute_safe_material_challenger(
