@@ -378,6 +378,7 @@ class StudioServerTests(unittest.TestCase):
                 "source=medal.png strategy=rigged_accessory_insert "
                 "changed=none changed_vertices=none "
                 "inserted_vertices=24 inserted_faces=12 "
+                "inserted_primitives=3 material_groups=3 "
                 "weight_transfer_vertices=24 weight_source_max=0.041 "
                 "morph_targets_transferred=2 "
                 "geometry_ready=True legacy_preserved=True "
@@ -396,6 +397,8 @@ class StudioServerTests(unittest.TestCase):
             self.assertEqual(detail["strategy"],"rigged_accessory_insert")
             self.assertEqual(detail["inserted_vertices"],24)
             self.assertEqual(detail["inserted_faces"],12)
+            self.assertEqual(detail["inserted_primitives"],3)
+            self.assertEqual(detail["material_groups"],3)
             self.assertEqual(detail["weight_transfer_vertices"],24)
             self.assertEqual(detail["weight_source_max"],0.041)
             self.assertEqual(detail["morph_targets_transferred"],2)
