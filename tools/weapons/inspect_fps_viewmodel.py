@@ -150,20 +150,6 @@ has_reload_action = any("reload" in name for name in action_names)
 
 dimensions = world_max - world_min
 
-# Export a normalized interchange snapshot preserving the original rig/actions.
-# Do not depend on selection/context: background Blender files can open without
-# an active ViewLayer context, making object.select_all() invalid even though
-# the scene itself is perfectly readable.
-glb_path.parent.mkdir(parents=True, exist_ok=True)
-bpy.ops.export_scene.gltf(
-    filepath=str(glb_path.resolve()),
-    export_format="GLB",
-    use_selection=False,
-    export_animations=True,
-    export_skins=True,
-    export_morph=True,
-)
-
 report = {
     "source": str(source),
     "meshCount": len(mesh_objects),
@@ -189,9 +175,35 @@ report = {
         "hasReloadLikeAction": has_reload_action,
     },
     "canonicalGlb": str(glb_path),
+    "canonicalGlbExported": False,
+    "canonicalGlbExportError": None,
 }
 
+# Persist inspection evidence before attempting interchange export. A Blender
+# exporter dependency failure must never erase the asset inventory we need to
+# decide whether the source is genuinely first-person ready.
 report_path.parent.mkdir(parents=True, exist_ok=True)
+report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+
+# Export a normalized interchange snapshot preserving the original rig/actions.
+# This is useful for the next XZSM stage, but it is deliberately diagnostic in
+# the probe: the authored .blend remains authoritative if glTF export is not
+# available on a particular CI image.
+glb_path.parent.mkdir(parents=True, exist_ok=True)
+try:
+    result = bpy.ops.export_scene.gltf(
+        filepath=str(glb_path.resolve()),
+        export_format="GLB",
+        use_selection=False,
+        export_animations=True,
+        export_skins=True,
+        export_morph=True,
+    )
+    report["canonicalGlbExported"] = "FINISHED" in result and glb_path.is_file()
+except Exception as exc:
+    report["canonicalGlbExportError"] = repr(exc)
+    print("XZIEL_FPS_GLB_EXPORT_DIAGNOSTIC", repr(exc))
+
 report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
 
 print(
@@ -202,4 +214,5 @@ print(
     f"hands={int(has_hands)}",
     f"weapon={int(has_weapon)}",
     f"shoot={int(has_shoot_action)}",
+    f"glb={int(report['canonicalGlbExported'])}",
 )
