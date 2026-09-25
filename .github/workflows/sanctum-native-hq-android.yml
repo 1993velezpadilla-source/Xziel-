@@ -296,6 +296,55 @@ jobs:
           echo "Staged ${TEXTURE_COUNT} PNG fallback textures and ${KTX2_COUNT} KTX2 textures"
           du -sh             xziel-native-android/app/src/main/assets/models/xziel/sanctum             xziel-native-android/app/src/main/assets/textures/xziel/sanctum
 
+      - name: Overlay validated weapon viewmodel
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          WEAPON_RUN_ID=""
+          for i in $(seq 1 90); do
+            RESPONSE="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/xziel-weapon-viewmodel.yml/runs?branch=engine%2Fmobile-power-fidelity-v1&status=success&per_page=10")"
+            WEAPON_RUN_ID="$(jq -r '.workflow_runs[0].id // empty' <<<"${RESPONSE}")"
+            if [[ -n "${WEAPON_RUN_ID}" && "${WEAPON_RUN_ID}" != "null" ]]; then
+              break
+            fi
+            echo "Waiting for validated AKM weapon artifact..."
+            sleep 10
+          done
+
+          test -n "${WEAPON_RUN_ID}"
+          ARTIFACTS="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${WEAPON_RUN_ID}/artifacts")"
+          WEAPON_ARTIFACT_ID="$(jq -r '.artifacts[] | select(.name == "Xziel-Weapon-Viewmodel-Fixed" and .expired == false) | .id' <<<"${ARTIFACTS}" | head -n1)"
+          test -n "${WEAPON_ARTIFACT_ID}"
+          test "${WEAPON_ARTIFACT_ID}" != "null"
+
+          rm -rf build/weapon-viewmodel
+          mkdir -p build/weapon-viewmodel
+          gh api "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${WEAPON_ARTIFACT_ID}/zip" > build/weapon-viewmodel.zip
+          unzip -q build/weapon-viewmodel.zip -d build/weapon-viewmodel
+
+          FIXED_MODEL="$(find build/weapon-viewmodel -path '*/models/xziel/weapons/standard_rifle.xzsm' -print -quit)"
+          FIXED_TEXTURES="$(find build/weapon-viewmodel -type d -path '*/textures/xziel/weapons/standard_rifle' -print -quit)"
+          FIXED_REPORT="$(find build/weapon-viewmodel -name 'weapon_standard_rifle_report.json' -print -quit)"
+          FIXED_LICENSE="$(find build/weapon-viewmodel -path '*/licenses/standard_rifle_assets.txt' -print -quit)"
+
+          test -s "${FIXED_MODEL}"
+          test -d "${FIXED_TEXTURES}"
+          test -s "${FIXED_REPORT}"
+          test -s "${FIXED_LICENSE}"
+          jq -e '.exportMode == "rigid_weapon_rest_pose"' "${FIXED_REPORT}"
+          jq -e '.meaningfulBatchCount >= 4' "${FIXED_REPORT}"
+          jq -e '.dimensionsMeters | max >= 0.85 and max <= 0.95' "${FIXED_REPORT}"
+
+          cp "${FIXED_MODEL}" xziel-native-android/app/src/main/assets/models/xziel/weapons/standard_rifle.xzsm
+          rm -rf xziel-native-android/app/src/main/assets/textures/xziel/weapons/standard_rifle
+          mkdir -p xziel-native-android/app/src/main/assets/textures/xziel/weapons/standard_rifle
+          cp -a "${FIXED_TEXTURES}"/. xziel-native-android/app/src/main/assets/textures/xziel/weapons/standard_rifle/
+          cp "${FIXED_LICENSE}" xziel-native-android/app/src/main/assets/licenses/standard_rifle_assets.txt
+          cp "${FIXED_REPORT}" build/weapon-standard-rifle-report.json
+
+          echo "XZIEL_FIXED_WEAPON_OVERLAY_READY run=${WEAPON_RUN_ID} artifact=${WEAPON_ARTIFACT_ID}"
+
       - name: Build and test native Xziel core
         shell: bash
         run: |
