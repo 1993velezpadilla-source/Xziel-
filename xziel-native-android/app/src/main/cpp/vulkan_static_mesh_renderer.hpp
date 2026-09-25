@@ -212,6 +212,7 @@ private:
         std::uint32_t pushMaterialFlags = 0U;
 
         bool pbrEnabled = false;
+        bool photogrammetryPbr = false;
         bool hasNormalTexture = false;
         bool hasOrmTexture = false;
         bool hasEmissiveTexture = false;

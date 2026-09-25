@@ -184,6 +184,8 @@ void main() {
         (flags & 4u) != 0u;
     bool hasEmissive =
         (flags & 8u) != 0u;
+    bool photogrammetryPbr =
+        (flags & 16u) != 0u;
 
     // Viewmodel mode is uniform for the draw. Direct-light scale is
     // precomputed once on CPU from lightning (or fixed to 1 for viewmodels).
@@ -233,6 +235,8 @@ void main() {
     if (!gl_FrontFacing) {
         normal = -normal;
     }
+
+    vec3 sourceNormal = normal;
 
     // The vertex stage guarantees this value is non-negative. Reuse it for
     // both material-detail gates instead of re-clamping the varying.
@@ -346,6 +350,54 @@ void main() {
                 -0.35,
                  0.70,
                 -0.62));
+
+    if (photogrammetryPbr &&
+        !viewmodel) {
+        // PHOTOGRAMMETRY_PBR_SOURCE_FIDELITY_V1
+        // Scan albedo already contains captured lighting. Preserve it and
+        // apply only the local micro-normal delta plus bounded AO so generated
+        // detail does not double-light the photogrammetry.
+        float sourceKey =
+            max(
+                dot(
+                    sourceNormal,
+                    lightDirection),
+                0.0);
+        float detailKey =
+            max(
+                dot(
+                    normal,
+                    lightDirection),
+                0.0);
+
+        float normalResponse =
+            clamp(
+                1.0 +
+                    (detailKey - sourceKey) *
+                    0.28,
+                0.84,
+                1.16);
+
+        float aoResponse =
+            mix(
+                1.0,
+                occlusion,
+                0.28);
+
+        vec3 photoColor =
+            albedo.rgb *
+            normalResponse *
+            aoResponse +
+            emissive;
+
+        outColor =
+            vec4(
+                max(
+                    photoColor,
+                    vec3(0.0)),
+                albedo.a);
+        return;
+    }
 
     float nDotL =
         max(

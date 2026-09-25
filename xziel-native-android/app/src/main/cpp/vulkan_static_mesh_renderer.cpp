@@ -814,6 +814,7 @@ bool VulkanStaticMeshRenderer::initialize(
         batchMaterialIndices;
 
     std::uint32_t pbrMaterialCount = 0U;
+    std::uint32_t photogrammetryPbrCount = 0U;
     std::uint32_t normalMapCount = 0U;
     std::uint32_t ormMapCount = 0U;
     std::uint32_t emissiveMapCount = 0U;
@@ -998,6 +999,16 @@ bool VulkanStaticMeshRenderer::initialize(
                 batch.pbr.occlusionStrength;
             material.pbrEnabled =
                 batch.pbrEnabled();
+            material.photogrammetryPbr =
+                batch.photogrammetryPbr();
+
+            if (material.photogrammetryPbr &&
+                !material.pbrEnabled) {
+                logError(
+                    "photogrammetry PBR batch missing PBR material");
+                shutdown();
+                return false;
+            }
 
             if (material.pbrEnabled &&
                 !batch.pbr.normalTextureName.empty()) {
@@ -1073,7 +1084,8 @@ bool VulkanStaticMeshRenderer::initialize(
                 (material.pbrEnabled ? 1U : 0U) |
                 (material.hasNormalTexture ? 2U : 0U) |
                 (material.hasOrmTexture ? 4U : 0U) |
-                (material.hasEmissiveTexture ? 8U : 0U);
+                (material.hasEmissiveTexture ? 8U : 0U) |
+                (material.photogrammetryPbr ? 16U : 0U);
 
             const auto sameMaterial =
                 [](const GpuMaterial& a,
@@ -1103,6 +1115,8 @@ bool VulkanStaticMeshRenderer::initialize(
                             b.occlusionStrength &&
                         a.pbrEnabled ==
                             b.pbrEnabled &&
+                        a.photogrammetryPbr ==
+                            b.photogrammetryPbr &&
                         a.hasNormalTexture ==
                             b.hasNormalTexture &&
                         a.hasOrmTexture ==
@@ -1144,6 +1158,10 @@ bool VulkanStaticMeshRenderer::initialize(
 
             if (material.pbrEnabled) {
                 ++pbrMaterialCount;
+            }
+
+            if (material.photogrammetryPbr) {
+                ++photogrammetryPbrCount;
             }
 
             if (material.hasNormalTexture) {
@@ -1307,13 +1325,14 @@ bool VulkanStaticMeshRenderer::initialize(
     __android_log_print(
         ANDROID_LOG_INFO,
         kTag,
-        "XZIEL_PBR_MATERIALS_READY materials=%u pbr=%u legacy=%u normal=%u orm=%u emissive=%u textures=%u",
+        "XZIEL_PBR_MATERIALS_READY materials=%u pbr=%u legacy=%u normal=%u orm=%u emissive=%u photo_pbr=%u textures=%u",
         static_cast<unsigned int>(materials_.size()),
         static_cast<unsigned int>(pbrMaterialCount),
         static_cast<unsigned int>(materials_.size() - pbrMaterialCount),
         static_cast<unsigned int>(normalMapCount),
         static_cast<unsigned int>(ormMapCount),
         static_cast<unsigned int>(emissiveMapCount),
+        static_cast<unsigned int>(photogrammetryPbrCount),
         static_cast<unsigned int>(textures_.size()));
 
     try {
