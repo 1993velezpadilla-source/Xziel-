@@ -25,7 +25,8 @@ jobs:
     timeout-minutes: 45
     env:
       GH_TOKEN: ${{ github.token }}
-      SOURCE_RUN_ID: "35972301681"
+      # Clean Source #57: mixed XZSM v5 exterior PBR source, GREEN.
+      SOURCE_RUN_ID: "36145587211"
       SOURCE_ARTIFACT: "Xziel-Sanctum-Clean-Source"
       KTX_VERSION: "4.4.2"
 
@@ -49,9 +50,18 @@ jobs:
           test -s "${STATIC_REPORT}"
           jq -e '.spatialBatching == "morton_grid_centroid_v1"' "${STATIC_REPORT}"
           jq -e '.sourceTriangles == .runtimeTriangles' "${STATIC_REPORT}"
+          jq -e '.version == 5' "${STATIC_REPORT}"
+          jq -e '.generatedPbrApplied == true' "${STATIC_REPORT}"
+          jq -e '.generatedPbrResolution == [4096,4096]' "${STATIC_REPORT}"
+          jq -e '.generatedPbrBatchCount > 0' "${STATIC_REPORT}"
+          jq -e '.generatedPbrMaterials | length == 1' "${STATIC_REPORT}"
           jq -e '.batchCount == 333' "${STATIC_REPORT}"
           jq -e '.maxTrianglesPerBatch <= 9000' "${STATIC_REPORT}"
           jq -e '.totalVertices == 2406868' "${STATIC_REPORT}"
+          NORMAL_REL="$(jq -r '.generatedPbrNormalTexture' "${STATIC_REPORT}")"
+          ORM_REL="$(jq -r '.generatedPbrOrmTexture' "${STATIC_REPORT}")"
+          test -s "${STATIC_ROOT}/${NORMAL_REL}"
+          test -s "${STATIC_ROOT}/${ORM_REL}"
           PNG_COUNT="$(find "${STATIC_ROOT}/textures" -type f -name '*.png' | wc -l)"
           test "${PNG_COUNT}" -gt 0
           echo "XZIEL_ASTC_SOURCE_PNGS=${PNG_COUNT}"
@@ -85,7 +95,10 @@ jobs:
           jq -e '.block == "6x6"' pack/root/xziel_astc_texture_report.json
           jq -e '.pngCount == .ktx2Count and .ktx2Count > 0' pack/root/xziel_astc_texture_report.json
           jq -e '.textures | all(.levels > 0 and .vkFormat >= 157 and .vkFormat <= 184)' pack/root/xziel_astc_texture_report.json
-          jq '{codec, block, quality, pngCount, ktx2Count, pngBytes, ktx2Bytes, ktx2ToPngRatio}' pack/root/xziel_astc_texture_report.json
+          jq -e '.textures | any(.semantic == "normal" and .width == 4096 and .height == 4096 and .srgb == false)' pack/root/xziel_astc_texture_report.json
+          jq -e '.textures | any(.semantic == "linear-data" and .width == 4096 and .height == 4096 and .srgb == false)' pack/root/xziel_astc_texture_report.json
+          jq -e '.textures | any(.semantic == "color" and .width == 4096 and .height == 4096)' pack/root/xziel_astc_texture_report.json
+          jq '{codec, block, quality, pngCount, ktx2Count, pngBytes, ktx2Bytes, ktx2ToPngRatio, semantics: ([.textures[].semantic] | unique)}' pack/root/xziel_astc_texture_report.json
 
       - name: Upload validated ASTC runtime pack
         uses: actions/upload-artifact@v4

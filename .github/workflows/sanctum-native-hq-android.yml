@@ -88,18 +88,28 @@ jobs:
               ASTC_PACK_BRANCH="engine/mobile-power-fidelity-v1"
             fi
             for i in $(seq 1 120); do
-              RESPONSE="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/sanctum-astc-texture-pack.yml/runs?branch=${ASTC_PACK_BRANCH}&status=success&per_page=20")"
-              RUN_ID="$(jq -r '.workflow_runs[0].id // empty' <<<"${RESPONSE}")"
+              RESPONSE="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/sanctum-astc-texture-pack.yml/runs?branch=${ASTC_PACK_BRANCH}&per_page=30")"
+              RUN_ID="$(jq -r --arg SHA "${GITHUB_SHA}" '
+                .workflow_runs[]
+                | select(
+                    .head_sha == $SHA and
+                    .status == "completed" and
+                    .conclusion == "success"
+                  )
+                | .id
+              ' <<<"${RESPONSE}" | head -n 1)"
 
               if [[ -n "${RUN_ID}" && "${RUN_ID}" != "null" ]]; then
+                RUN_SHA="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}" --jq '.head_sha')"
+                test "${RUN_SHA}" = "${GITHUB_SHA}"
                 echo "SANCTUM_ASSET_RUN_ID=${RUN_ID}" >> "$GITHUB_ENV"
                 echo "SANCTUM_ASSET_NAME=Xziel-Sanctum-Clean-Source-ASTC" >> "$GITHUB_ENV"
                 echo "SANCTUM_ASSET_KIND=astc" >> "$GITHUB_ENV"
-                echo "Using validated ASTC asset pack run ${RUN_ID}"
+                echo "Using commit-matched validated ASTC asset pack run ${RUN_ID} sha=${RUN_SHA}"
                 exit 0
               fi
 
-              echo "Waiting for first validated ASTC pack on ${GITHUB_REF_NAME}"
+              echo "Waiting for commit-matched ASTC pack sha=${GITHUB_SHA} on ${ASTC_PACK_BRANCH}"
               sleep 20
             done
 
@@ -239,6 +249,10 @@ jobs:
           jq -e '.microdetailApplied == true' "$REPORT"
           jq -e '.microdetailCandidate == "polyhaven_medieval_blocks_03"' "$REPORT"
           jq -e '.runtimeExteriorResolution == [4096,4096]' "$REPORT"
+          jq -e '.version == 5' "$REPORT"
+          jq -e '.generatedPbrApplied == true' "$REPORT"
+          jq -e '.generatedPbrResolution == [4096,4096]' "$REPORT"
+          jq -e '.generatedPbrBatchCount > 0' "$REPORT"
           jq -e '.exactSourcePixelTextures == (.textureCount - 1)' "$REPORT"
           jq -e '[.materialReport[] | select(.exactSourcePixels == false)] | length == 1' "$REPORT"
 
