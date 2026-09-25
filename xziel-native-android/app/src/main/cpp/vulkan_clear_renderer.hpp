@@ -6,6 +6,7 @@
 #include <vulkan/vulkan.h>
 
 #include "vulkan_static_mesh_renderer.hpp"
+#include "xziel/weapon_catalog.hpp"
 
 #include <array>
 #include <cstdint>
@@ -202,6 +203,7 @@ struct VulkanHudState {
     float weaponFireAlpha = 0.0f;
     float weaponMagazineRatio = 1.0f;
     float viewmodelLowering = 0.0f;
+    xziel::WeaponViewmodelProfile weaponViewmodel{};
 
     float playerHealthRatio = 1.0f;
     float damageFlashAlpha = 0.0f;
