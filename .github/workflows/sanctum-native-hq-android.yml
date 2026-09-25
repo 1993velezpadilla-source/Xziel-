@@ -217,7 +217,7 @@ jobs:
           jq -e '.sourceUid == "b92917ff83914adc8bc93959ba8b4399"' "$REPORT"
           jq -e '.coordinateSpace == "native"' "$REPORT"
           jq -e '.sourceCollection == "DIRECT_ORIGINAL_GLB"' "$REPORT"
-          jq -e '.version == 4' "$REPORT"
+          jq -e '.version == 5' "$REPORT"
           jq -e '.vertexStrideBytes == 36' "$REPORT"
           jq -e '.sourceTriangles >= 2700000' "$REPORT"
           jq -e '.runtimeTriangles == .sourceTriangles' "$REPORT"
