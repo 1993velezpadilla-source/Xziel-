@@ -15,6 +15,25 @@ from PIL import Image, ImageOps
 from judge_v4_face_worker import _crop_top_subject, _ensure_model
 
 
+POSE_MODEL_URL = (
+    "https://storage.googleapis.com/mediapipe-models/pose_landmarker/"
+    "pose_landmarker_lite/float16/1/pose_landmarker_lite.task"
+)
+
+
+def _ensure_pose_model(path: Path) -> Path:
+    import urllib.request
+    if path.is_file() and path.stat().st_size > 1_000_000:
+        return path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tmp")
+    urllib.request.urlretrieve(POSE_MODEL_URL, tmp)
+    if tmp.stat().st_size <= 1_000_000:
+        raise RuntimeError("downloaded MediaPipe pose model is unexpectedly small")
+    tmp.replace(path)
+    return path
+
+
 @dataclass
 class SourceAutofixItem:
     source: str
@@ -114,6 +133,85 @@ def _mediapipe_face(source: Path, out_path: Path, cache_path: Path):
             }
     return None
 
+
+
+def _mediapipe_pose_head(source: Path, out_path: Path, cache_path: Path):
+    """Use official MediaPipe Pose Lite to confirm a humanoid and recover its head."""
+    import mediapipe as mp
+
+    model_path = _ensure_pose_model(cache_path)
+    options = mp.tasks.vision.PoseLandmarkerOptions(
+        base_options=mp.tasks.BaseOptions(model_asset_path=str(model_path)),
+        running_mode=mp.tasks.vision.RunningMode.IMAGE,
+        num_poses=1,
+        min_pose_detection_confidence=0.25,
+        min_pose_presence_confidence=0.25,
+        output_segmentation_masks=False,
+    )
+    image = Image.open(source).convert("RGB")
+    attempts = [
+        ("direct", image),
+        ("subject_zoom", _crop_top_subject(image)),
+    ]
+    with mp.tasks.vision.PoseLandmarker.create_from_options(options) as detector:
+        for label, pil in attempts:
+            arr = np.asarray(pil, dtype=np.uint8)
+            result = detector.detect(
+                mp.Image(image_format=mp.ImageFormat.SRGB, data=arr)
+            )
+            if not result.pose_landmarks:
+                continue
+            landmarks = result.pose_landmarks[0]
+            if len(landmarks) < 13:
+                continue
+
+            # 0..10 cover nose/eyes/ears/mouth; 11/12 are shoulders.
+            head = [landmarks[i] for i in range(0, 11)]
+            valid = [
+                p for p in head
+                if -0.25 <= float(p.x) <= 1.25 and -0.25 <= float(p.y) <= 1.25
+            ]
+            if len(valid) < 4:
+                continue
+            w, h = pil.size
+            xs = [float(p.x) * w for p in valid]
+            ys = [float(p.y) * h for p in valid]
+            cx = sum(xs) / len(xs)
+            cy = sum(ys) / len(ys)
+            head_w = max(xs) - min(xs)
+            head_h = max(ys) - min(ys)
+            shoulder_w = abs(float(landmarks[12].x) - float(landmarks[11].x)) * w
+            side = max(head_w * 2.25, head_h * 2.25, shoulder_w * 0.80, 64.0)
+            left = max(0, int(round(cx - side * 0.5)))
+            top = max(0, int(round(cy - side * 0.52)))
+            right = min(w, int(round(cx + side * 0.5)))
+            bottom = min(h, int(round(cy + side * 0.48)))
+            if right - left < 24 or bottom - top < 24:
+                continue
+            crop = pil.crop((left, top, right, bottom)).convert("RGB")
+            crop = ImageOps.pad(
+                crop,
+                (1024, 1024),
+                method=Image.Resampling.LANCZOS,
+                color=(0, 0, 0),
+                centering=(0.5, 0.5),
+            )
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            crop.save(out_path, optimize=True)
+            return {
+                "face_detail": str(out_path),
+                "method": (
+                    "mediapipe_pose_head_direct"
+                    if label == "direct"
+                    else "mediapipe_pose_head_subject_zoom"
+                ),
+                "direct_face_detected": False,
+                "used_zoom_probe": label != "direct",
+                "face_box_fraction": round((side * side) / float(max(1, w * h)), 8),
+                "output_size": [crop.width, crop.height],
+                "semantic_face_or_head_confirmed": True,
+            }
+    return None
 
 
 def _foreground_head_zoom(source: Path, out_path: Path):
@@ -281,6 +379,7 @@ def build_source_autofix(
     *,
     policy: str = "auto",
     cache_path: Path | None = None,
+    pose_cache_path: Path | None = None,
 ) -> SourceAutofixReport:
     policy = str(policy).lower()
     if policy not in {"off", "auto", "required"}:
@@ -304,6 +403,7 @@ def build_source_autofix(
         return report
 
     cache_path = cache_path or (Path.home() / ".cache" / "hayuya" / "face_landmarker.task")
+    pose_cache_path = pose_cache_path or (Path.home() / ".cache" / "hayuya" / "pose_landmarker_lite.task")
     items: list[SourceAutofixItem] = []
     details: list[str] = []
 
@@ -316,6 +416,13 @@ def build_source_autofix(
             result = _mediapipe_face(source, target, cache_path)
         except Exception as exc:
             warning = f"mediapipe:{type(exc).__name__}:{exc}"
+
+        if result is None:
+            try:
+                result = _mediapipe_pose_head(source, target, pose_cache_path)
+            except Exception as exc:
+                extra = f"mediapipe_pose:{type(exc).__name__}:{exc}"
+                warning = f"{warning};{extra}" if warning else extra
 
         if result is None:
             try:
