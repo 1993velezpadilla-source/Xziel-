@@ -223,8 +223,7 @@ def run(sources:list[Path],candidates:list[Path],cache:Path,aligned_dir:Path)->F
 
     src_frac=len(source_embeddings)/max(1,len(sources))
     cand_frac=len(candidate_embeddings)/max(1,len(candidates))
-    ready=bool(source_embeddings and candidate_embeddings and front is not None)
-    return FaceIdentityReport(
+    # Worker readiness means execution completed. Missing/undetected faces are\n    # content evidence and are vetoed by Judge V5 via coverage/front/median rules.\n    ready=bool(sources and candidates)\n    return FaceIdentityReport(
         schema=2,
         aligner_model=ALIGNER_ID,
         identity_model=IDENTITY_ID,

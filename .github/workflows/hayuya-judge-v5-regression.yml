@@ -178,7 +178,58 @@ jobs:
           )
           reasons=v5.get("hard_fail_reasons") or []
           assert reasons, "KNOWN BAD must have concrete hard-fail evidence"
-          print("HAYUYA_KNOWN_BAD_MONJA_REJECTED",len(reasons))
+
+          # A broken/missing evaluator is NOT proof that the eyes saw a bad face.
+          infrastructure_tokens=(
+              "_worker:", "python_missing", "_evidence_missing",
+              "missing_metric", "final_glb_missing",
+          )
+          infra=[r for r in reasons if any(t in r for t in infrastructure_tokens)]
+          assert not infra, "REGRESSION INVALID: evaluator/infrastructure failure: "+str(infra)
+
+          # Require the heavyweight eyes to have actually executed.
+          for key in ("visualquality_r1","siglip2","pyiqa"):
+              payload=v5.get(key)
+              assert isinstance(payload,dict) and payload.get("ready") is True, (
+                  "REGRESSION INVALID: "+key+" did not execute successfully"
+              )
+          face_expected=bool((v4.get("face_landmarks") or {}).get("face_expected_from_source"))
+          if face_expected:
+              for key in ("cvlface","ediffiqa"):
+                  payload=v5.get(key)
+                  assert isinstance(payload,dict) and payload.get("ready") is True, (
+                      "REGRESSION INVALID: "+key+" did not execute successfully"
+                  )
+
+          # The pass condition is a CONTENT rejection from at least one real eye,
+          # not merely Judge V4 being absent/rejected.
+          v4_reasons=v4.get("hard_fail_reasons") or []
+          content_prefixes=(
+              "visualquality_r1_catastrophic_",
+              "siglip2_catastrophic_",
+              "siglip2_source_",
+              "adaface_detection_coverage:",
+              "adaface_catastrophic_",
+              "adaface_front_face_missing",
+              "ediffiqa_detection_coverage:",
+              "ediffiqa_minimum:",
+              "ediffiqa_median:",
+          )
+          v4_content_prefixes=(
+              "qrealign_","dreamsim_","internvl_pass_",
+              "front_face_not_detected","face_detection_fraction:",
+              "face_profile_",
+          )
+          content_hits=[
+              r for r in reasons if r.startswith(content_prefixes)
+          ] + [
+              "v4:"+r for r in v4_reasons if r.startswith(v4_content_prefixes)
+          ]
+          assert content_hits, (
+              "REGRESSION INVALID: known-bad was rejected without any visual "
+              "content eye identifying a defect. V5="+str(reasons)+" V4="+str(v4_reasons)
+          )
+          print("HAYUYA_KNOWN_BAD_MONJA_REJECTED_BY_REAL_EYES",content_hits)
           PY
 
       - name: Upload full visual evidence
