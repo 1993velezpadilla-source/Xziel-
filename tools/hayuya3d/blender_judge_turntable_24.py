@@ -91,7 +91,12 @@ def main():
             bpy.data.objects.remove(obj,do_unlink=True)
 
     scene=bpy.context.scene
-    scene.render.engine="BLENDER_EEVEE_NEXT" if hasattr(bpy.types,"BLENDER_EEVEE_NEXT") else "BLENDER_EEVEE"
+    # Blender 4.x exposes render engines as enum values, not bpy.types attrs.
+    # Prefer Eevee Next and only fall back for genuinely older Blender builds.
+    try:
+        scene.render.engine="BLENDER_EEVEE_NEXT"
+    except Exception:
+        scene.render.engine="BLENDER_EEVEE"
     scene.render.image_settings.file_format="PNG"
     scene.render.film_transparent=False
     scene.world=bpy.data.worlds.new("HAYUYA_Judge_World") if scene.world is None else scene.world
