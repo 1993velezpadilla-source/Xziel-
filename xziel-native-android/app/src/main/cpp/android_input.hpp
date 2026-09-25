@@ -22,6 +22,7 @@ struct AndroidInputSnapshot {
 
     bool moveActive = false;
     bool firePressed = false;
+    bool restartPressed = false;
     bool gyroAvailable = false;
 };
 
@@ -52,6 +53,9 @@ public:
     void setInteractAvailable(
         bool available) noexcept;
 
+    void setRestartAvailable(
+        bool available) noexcept;
+
     void handleLooperIdentifier(int identifier) noexcept;
 
     void consumeInputBuffer(
@@ -75,6 +79,7 @@ private:
         Interact,
         Jump,
         Stance,
+        Restart,
     };
 
     struct TouchPointer {
@@ -142,10 +147,12 @@ private:
     bool interactPressedThisFrame_ = false;
     bool jumpPressedThisFrame_ = false;
     bool stancePressedThisFrame_ = false;
+    bool restartPressedThisFrame_ = false;
 
     float stanceHeldSeconds_ = 0.0f;
     int displayRotation_ = 0;
     bool interactAvailable_ = false;
+    bool restartAvailable_ = false;
 };
 
 } // namespace xziel::android
