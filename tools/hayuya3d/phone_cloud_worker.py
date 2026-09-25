@@ -9,6 +9,7 @@ from gradio_client import Client, handle_file
 from mesh_gate import inspect as inspect_mesh_gate
 from rig_gate import inspect as inspect_rig_gate
 from texture_gate import inspect as inspect_texture_gate
+from trellis2_cloud import generate as generate_trellis2_cloud
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -26,6 +27,7 @@ MOTION_PROFILE = os.environ.get("HAYUYA_MOTION_PROFILE","auto").strip() or "auto
 TEXTURE_QUALITY = os.environ.get("HAYUYA_TEXTURE_QUALITY","standard").strip() or "standard"
 TOKEN = os.environ.get("HF_TOKEN","").strip() or None
 SPACE_URL = os.environ.get("TRELLIS_URL","https://trellis-community-trellis.hf.space")
+TRELLIS2_SPACE = os.environ.get("TRELLIS2_SPACE","microsoft/TRELLIS.2")
 OUT.mkdir(parents=True, exist_ok=True)
 PREP = OUT / "prepared_views"
 PREP.mkdir(parents=True, exist_ok=True)
@@ -366,34 +368,76 @@ print("HAYUYA_TRELLIS_SUBMIT",JOB,endpoint,params)
 extraction_fallback=None
 actual_mesh_simplify=qp["mesh_simplify"]
 actual_texture_size=qp["texture_size"]
-try:
-    result=resilient_predict(*args,api_name=endpoint,stage="trellis_generation",max_attempts=5)
-except Exception as e:
-    # Gradio's public UI currently constrains Simplify to >=0.90 and Texture
-    # Size to <=2048, even though TRELLIS' underlying to_glb() accepts numeric
-    # arguments. If server-side component validation enforces those UI bounds,
-    # retry at the best officially exposed extraction quality rather than fail
-    # the whole phone workflow.
-    if qp["mesh_simplify"] < 0.90 or qp["texture_size"] > 2048:
-        extraction_fallback={
-            "requested_mesh_simplify":qp["mesh_simplify"],
-            "requested_texture_size":qp["texture_size"],
-            "fallback_mesh_simplify":0.90,
-            "fallback_texture_size":2048,
-            "reason":f"{type(e).__name__}: {e}",
-        }
-        values["mesh_simplify"]=0.90
-        values["texture_size"]=2048
-        actual_mesh_simplify=0.90
-        actual_texture_size=2048
-        args=[values[p] for p in params]
-        print("::warning::HAYUYA dense extraction override rejected; retrying official max-quality bounds")
-        try:
-            result=resilient_predict(*args,api_name=endpoint,stage="trellis_generation_fallback",max_attempts=5)
-        except Exception as fallback_exc:
-            fail(f"TRELLIS generation failed after quality fallback: {type(fallback_exc).__name__}: {fallback_exc}")
-    else:
-        fail(f"TRELLIS generation failed after transient retries: {type(e).__name__}: {e}")
+selected_generator="trellis-community/TRELLIS"
+selected_compute="GitHub-hosted CPU controller + public TRELLIS ZeroGPU"
+modern_candidate=None
+
+# Modern single-image authority. TRELLIS.2 is deliberately not used to replace
+# classic TRELLIS native multi-image fusion: with 2+ real geometry views the
+# camera evidence is more valuable than forcing a single-image model.
+if not multi and TEXTURE_QUALITY in {"high","ultra"}:
+    try:
+        modern_meta=generate_trellis2_cloud(
+            crops[0],
+            OUT/"trellis2_candidate.glb",
+            token=TOKEN,
+            quality=TEXTURE_QUALITY,
+            seed=1993,
+            space=TRELLIS2_SPACE,
+        )
+        modern_candidate=Path(modern_meta["path"])
+        modern_mesh=inspect_mesh_gate(modern_candidate)
+        modern_tex=inspect_texture_gate(modern_candidate,min_edge=2048)
+        print("HAYUYA_TRELLIS2_MESH_GATE",json.dumps(asdict(modern_mesh),separators=(",",":")))
+        print("HAYUYA_TRELLIS2_TEXTURE_GATE",json.dumps(asdict(modern_tex),separators=(",",":")))
+        if not modern_mesh.passed or not modern_tex.passed:
+            raise RuntimeError(
+                "TRELLIS.2 challenger failed HAYUYA hard gates: "
+                +"; ".join(list(modern_mesh.reasons)+list(modern_tex.warnings))
+            )
+        selected_generator=modern_meta["generator"]
+        selected_compute="GitHub-hosted CPU controller + official public TRELLIS.2 GPU Space"
+        actual_mesh_simplify=None
+        actual_texture_size=int(modern_meta["texture_size"])
+        result=str(modern_candidate)
+        print("HAYUYA_TRELLIS2_PROMOTED",json.dumps(modern_meta,separators=(",",":")))
+    except Exception as modern_exc:
+        modern_candidate=None
+        print(
+            "::warning::TRELLIS.2 challenger unavailable/rejected; "
+            "falling back to classic TRELLIS: "
+            f"{type(modern_exc).__name__}: {modern_exc}"
+        )
+
+if modern_candidate is None:
+    try:
+        result=resilient_predict(*args,api_name=endpoint,stage="trellis_generation",max_attempts=5)
+    except Exception as e:
+        # Gradio's public UI currently constrains Simplify to >=0.90 and Texture
+        # Size to <=2048, even though TRELLIS' underlying to_glb() accepts numeric
+        # arguments. If server-side component validation enforces those UI bounds,
+        # retry at the best officially exposed extraction quality rather than fail
+        # the whole phone workflow.
+        if qp["mesh_simplify"] < 0.90 or qp["texture_size"] > 2048:
+            extraction_fallback={
+                "requested_mesh_simplify":qp["mesh_simplify"],
+                "requested_texture_size":qp["texture_size"],
+                "fallback_mesh_simplify":0.90,
+                "fallback_texture_size":2048,
+                "reason":f"{type(e).__name__}: {e}",
+            }
+            values["mesh_simplify"]=0.90
+            values["texture_size"]=2048
+            actual_mesh_simplify=0.90
+            actual_texture_size=2048
+            args=[values[p] for p in params]
+            print("::warning::HAYUYA dense extraction override rejected; retrying official max-quality bounds")
+            try:
+                result=resilient_predict(*args,api_name=endpoint,stage="trellis_generation_fallback",max_attempts=5)
+            except Exception as fallback_exc:
+                fail(f"TRELLIS generation failed after quality fallback: {type(fallback_exc).__name__}: {fallback_exc}")
+        else:
+            fail(f"TRELLIS generation failed after transient retries: {type(e).__name__}: {e}")
 
 (OUT/"trellis_result.txt").write_text(repr(result),encoding="utf-8")
 candidates=[]
@@ -497,7 +541,7 @@ manifest={
     "animation_requested":ANIMATION_REQUESTED,
     "motion_profile":MOTION_PROFILE,
     "texture_quality":TEXTURE_QUALITY,
-    "compute":"GitHub-hosted CPU controller + public TRELLIS ZeroGPU",
+    "compute":selected_compute,
     "phone_only":True,
     "source":str(GEOMETRY),
     "prepared_views":[p.name for p in crops],
@@ -506,7 +550,7 @@ manifest={
     "detail_dir":str(DETAIL_DIR) if DETAIL_DIR else "",
     "prep_target":PREP_TARGET,
     "multi_image":multi,
-    "generator":"trellis-community/TRELLIS",
+    "generator":selected_generator,
     "texture_size":actual_texture_size,
     "requested_texture_target":qp["texture_size"],
     "native_texture_target":actual_texture_size,
@@ -519,11 +563,18 @@ manifest={
         "requested_texture_size":qp["texture_size"],
         "actual_texture_size":actual_texture_size,
         "public_ui_simplify_floor":0.90,
-        "public_ui_texture_ceiling":2048,
-        "dense_extraction_override_attempted":qp["mesh_simplify"]<0.90 or qp["texture_size"]>2048,
+        "public_ui_texture_ceiling":4096 if selected_generator=="microsoft/TRELLIS.2-4B" else 2048,
+        "dense_extraction_override_attempted":(
+            False if selected_generator=="microsoft/TRELLIS.2-4B"
+            else qp["mesh_simplify"]<0.90 or qp["texture_size"]>2048
+        ),
         "extraction_fallback":extraction_fallback,
         "detail_reference_count":len(detail_views),
-        "note":"TRELLIS simplify is triangle-removal ratio. HAYUYA reports requested and actual extraction quality separately."
+        "note":(
+            "TRELLIS.2 official Space full-PBR extraction; classic TRELLIS remains fallback/multi-image authority."
+            if selected_generator=="microsoft/TRELLIS.2-4B"
+            else "TRELLIS simplify is triangle-removal ratio. HAYUYA reports requested and actual extraction quality separately."
+        )
     },
     "glb":dst.name,
     "glb_bytes":len(data),
