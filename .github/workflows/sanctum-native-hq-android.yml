@@ -836,49 +836,6 @@ jobs:
           sleep 1
           capture_png dist/sanctum-hq-tour-06-hip-after-ads.png
 
-          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" ]]; then
-            # Arm the engine's opt-in CI death probe only after the normal
-            # movement + ADS tour has finished. This exercises the exact
-            # production death state, real restart touch role, and restartRun().
-            "$ADB" shell setprop debug.xziel.restart_probe 1
-
-            RESTART_DEATH_READY=0
-            for i in $(seq 1 30); do
-              RESTART_LOG="$("$ADB" logcat -d -v brief -s XzielNative:I XzielInput:I '*:S' 2>/dev/null || true)"
-              if grep -q "XZIEL_RESTART_PROBE_DEATH_READY" <<<"$RESTART_LOG"; then
-                RESTART_DEATH_READY=1
-                break
-              fi
-              sleep 1
-            done
-            test "$RESTART_DEATH_READY" = "1"
-
-            sleep 1
-            capture_png dist/sanctum-hq-tour-07-death-restart.png
-
-            RESTART_X="$(awk -v w="$DISPLAY_WIDTH" 'BEGIN { printf "%d", w * 0.50 }')"
-            RESTART_Y="$(awk -v h="$DISPLAY_HEIGHT" 'BEGIN { printf "%d", h * 0.62 }')"
-            echo "XZIEL_RESTART_TEST_COORDS surface=${DISPLAY_WIDTH}x${DISPLAY_HEIGHT} tap=${RESTART_X},${RESTART_Y}"
-
-            "$ADB" shell input tap "$RESTART_X" "$RESTART_Y" || true
-
-            RESTART_COMPLETED=0
-            for i in $(seq 1 20); do
-              RESTART_LOG="$("$ADB" logcat -d -v brief -s XzielNative:I XzielInput:I '*:S' 2>/dev/null || true)"
-              if grep -q "XZIEL_RESTART_PRESSED" <<<"$RESTART_LOG" && \
-                 grep -q "XZIEL_RESTART_COMPLETE" <<<"$RESTART_LOG"; then
-                RESTART_COMPLETED=1
-                break
-              fi
-              sleep 1
-            done
-            test "$RESTART_COMPLETED" = "1"
-
-            "$ADB" shell setprop debug.xziel.restart_probe 0
-            sleep 1
-            capture_png dist/sanctum-hq-tour-08-restarted.png
-          fi
-
           # Refresh diagnostics after the tour so delayed frame-pacing,
           # first GPU timing, ADPF and swapchain-stability markers are kept.
           timeout 8 "$ADB" logcat -d -v threadtime             > dist/sanctum-hq-logcat.txt || true
@@ -1436,13 +1393,6 @@ jobs:
           grep -q "XZIEL_ADS_ALPHA_LOW" dist/sanctum-hq-logcat.txt
           echo "XZIEL_ADS_TOGGLE_RUNTIME_OK"
 
-          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" ]]; then
-            grep -q "XZIEL_RESTART_PROBE_DEATH_READY" dist/sanctum-hq-logcat.txt
-            grep -q "XZIEL_RESTART_PRESSED" dist/sanctum-hq-logcat.txt
-            grep -q "XZIEL_RESTART_COMPLETE" dist/sanctum-hq-logcat.txt
-            echo "XZIEL_DEATH_RESTART_RUNTIME_OK"
-          fi
-
           grep -q "XZIEL_SANCTUM_MESH_READY"             dist/sanctum-hq-logcat.txt
           grep -q "XZIEL_WEAPON_VIEWMODEL_READY"             dist/sanctum-hq-logcat.txt
           grep -q "XZIEL_WEAPON_AUDIO_READY fire=1 reload=1"             dist/sanctum-hq-logcat.txt
@@ -1458,6 +1408,57 @@ jobs:
             XZSM_MAPPED_MB="$(grep "XZIEL_XZSM_PARSE_SOURCE path=models/xziel/sanctum/sanctum.xzsm" dist/sanctum-hq-logcat.txt | head -n 1 | sed -n 's/.* bytes_mb=\([0-9][0-9]*\.[0-9][0-9]*\).*/\1/p')"
             test -n "${XZSM_MAPPED_MB}"
             echo "XZIEL_XZSM_MAPPED_LOAD_ACTIVE bytes_mb=${XZSM_MAPPED_MB} heap_copy_mb=0.00"
+          fi
+
+          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" ]]; then
+            # Destructive CI gameplay probe. Keep it after every legacy
+            # performance/streaming gate because restartRun() resets camera and
+            # gameplay state, which legitimately changes later scene telemetry.
+            "$ADB" shell setprop debug.xziel.restart_probe 1
+
+            RESTART_DEATH_READY=0
+            for i in $(seq 1 30); do
+              RESTART_LOG="$("$ADB" logcat -d -v brief -s XzielNative:I XzielInput:I '*:S' 2>/dev/null || true)"
+              if grep -q "XZIEL_RESTART_PROBE_DEATH_READY" <<<"$RESTART_LOG"; then
+                RESTART_DEATH_READY=1
+                break
+              fi
+              sleep 1
+            done
+            test "$RESTART_DEATH_READY" = "1"
+
+            sleep 1
+            capture_png dist/sanctum-hq-tour-07-death-restart.png
+
+            RESTART_X="$(awk -v w="$DISPLAY_WIDTH" 'BEGIN { printf "%d", w * 0.50 }')"
+            RESTART_Y="$(awk -v h="$DISPLAY_HEIGHT" 'BEGIN { printf "%d", h * 0.62 }')"
+            echo "XZIEL_RESTART_TEST_COORDS surface=${DISPLAY_WIDTH}x${DISPLAY_HEIGHT} tap=${RESTART_X},${RESTART_Y}"
+
+            "$ADB" shell input tap "$RESTART_X" "$RESTART_Y" || true
+
+            RESTART_COMPLETED=0
+            for i in $(seq 1 20); do
+              RESTART_LOG="$("$ADB" logcat -d -v brief -s XzielNative:I XzielInput:I '*:S' 2>/dev/null || true)"
+              if grep -q "XZIEL_RESTART_PRESSED" <<<"$RESTART_LOG" && \
+                 grep -q "XZIEL_RESTART_COMPLETE" <<<"$RESTART_LOG"; then
+                RESTART_COMPLETED=1
+                break
+              fi
+              sleep 1
+            done
+            test "$RESTART_COMPLETED" = "1"
+
+            "$ADB" shell setprop debug.xziel.restart_probe 0
+            sleep 1
+            capture_png dist/sanctum-hq-tour-08-restarted.png
+
+            timeout 8 "$ADB" logcat -d -v threadtime \
+              > dist/sanctum-hq-restart-logcat.txt || true
+
+            grep -q "XZIEL_RESTART_PROBE_DEATH_READY" dist/sanctum-hq-restart-logcat.txt
+            grep -q "XZIEL_RESTART_PRESSED" dist/sanctum-hq-restart-logcat.txt
+            grep -q "XZIEL_RESTART_COMPLETE" dist/sanctum-hq-restart-logcat.txt
+            echo "XZIEL_DEATH_RESTART_RUNTIME_OK"
           fi
 
           echo "SANCTUM_NATIVE_HQ_GAMEPLAY_TAKEOVER_OK"
@@ -1480,6 +1481,7 @@ jobs:
             build/sanctum-native-map-report.json
             build/sanctum-hq-apk-contents.txt
             dist/sanctum-hq-logcat.txt
+            dist/sanctum-hq-restart-logcat.txt
             dist/sanctum-hq-startup-logcat.txt
             dist/sanctum-hq-first-frame.png
             dist/sanctum-hq-tour-01-entry.png
