@@ -1,0 +1,137 @@
+{
+  "schema": 1,
+  "id": "st_giles_blender_rebuild_toolchain_v1",
+  "asset": {
+    "name": "St Giles Cripplegate",
+    "source_uid": "b92917ff83914adc8bc93959ba8b4399",
+    "canonical_role": "HAYUYA church scan/reference",
+    "rule": "The licensed scan is the geometric source of truth. Procedural building generators may assist secondary assets only and may not override church silhouette, openings, tower, roofline, footprint, or global scale."
+  },
+  "production_stack": [
+    {
+      "id": "blender_builtin_reference_rebuild",
+      "status": "wired_now",
+      "use": [
+        "GLB ingest",
+        "immutable scan collection",
+        "decimate LODs",
+        "global bounds match",
+        "material/UV preservation",
+        "collision proxy",
+        "comparison renders",
+        "GLB export"
+      ],
+      "code": "tools/church_map/rebuild_st_giles_1to1.py"
+    },
+    {
+      "id": "building_tools",
+      "url": "https://github.com/ranjian0/building_tools",
+      "status": "researched_optional",
+      "use": [
+        "secondary modular walls",
+        "doors",
+        "windows",
+        "stairs",
+        "roofs",
+        "balconies"
+      ],
+      "authority": "secondary_only"
+    },
+    {
+      "id": "blosm",
+      "url": "https://github.com/vvoovv/blosm",
+      "status": "researched_optional",
+      "use": [
+        "OSM context",
+        "surrounding buildings",
+        "terrain/context ingestion"
+      ],
+      "authority": "environment_context_only"
+    },
+    {
+      "id": "blendergis",
+      "url": "https://github.com/domlysz/BlenderGIS",
+      "status": "researched_optional",
+      "use": [
+        "GIS context",
+        "terrain/DEM",
+        "georeferenced basemaps",
+        "spatial alignment"
+      ],
+      "authority": "environment_context_only"
+    },
+    {
+      "id": "sverchok",
+      "url": "https://github.com/nortikin/sverchok",
+      "status": "researched_optional",
+      "use": [
+        "parametric secondary architecture",
+        "repeatable procedural asset layouts"
+      ],
+      "authority": "secondary_only"
+    },
+    {
+      "id": "photogrammetry_importer",
+      "url": "https://github.com/SBCV/Blender-Addon-Photogrammetry-Importer",
+      "status": "researched_optional",
+      "use": [
+        "camera/point-cloud/photogrammetry ingest when future captures exist"
+      ],
+      "authority": "reference_ingest"
+    },
+    {
+      "id": "instant_meshes",
+      "url": "https://github.com/wjakob/instant-meshes",
+      "status": "researched_candidate",
+      "use": [
+        "automatic surface remeshing",
+        "cleaner topology candidate"
+      ],
+      "authority": "must_shrinkwrap_and_validate_against_scan"
+    },
+    {
+      "id": "retopo_stroke_tool",
+      "url": "https://github.com/CGCookie/retopoflow",
+      "status": "manual_reference",
+      "use": [
+        "guided/manual topology cleanup"
+      ],
+      "authority": "must_validate_against_scan"
+    },
+    {
+      "id": "remi",
+      "url": "https://github.com/3dverse/Remi",
+      "status": "researched_candidate",
+      "use": [
+        "repair",
+        "simplify",
+        "retopology",
+        "texture rebake"
+      ],
+      "authority": "must_validate_against_scan"
+    }
+  ],
+  "one_to_one_contract": {
+    "canonical_scan_untouched": true,
+    "preserve_global_dimensions": true,
+    "preserve_global_center": true,
+    "preserve_primary_openings": true,
+    "preserve_tower_and_roofline": true,
+    "preserve_material_slots_and_uvs_when_possible": true,
+    "generic_building_generator_is_authoritative": false,
+    "lod0_bounds_relative_error_max": 0.001,
+    "map_import_rule": "do_not_rescale"
+  },
+  "outputs": {
+    "master_blend": "st_giles_church_1to1_master.blend",
+    "lods": [
+      "st_giles_church_lod0.glb",
+      "st_giles_church_lod1.glb",
+      "st_giles_church_lod2.glb",
+      "st_giles_church_lod3.glb"
+    ],
+    "collision": "st_giles_church_collision.glb",
+    "qa": "church_1to1_report.json",
+    "manifest": "church_map_asset_manifest.json"
+  }
+}
