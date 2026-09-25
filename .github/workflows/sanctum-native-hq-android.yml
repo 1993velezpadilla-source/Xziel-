@@ -332,6 +332,7 @@ jobs:
           test -d "${FIXED_TEXTURES}"
           test -s "${FIXED_REPORT}"
           test -s "${FIXED_LICENSE}"
+          jq -e '.sourceUid == "a0e1e52051294bebb8a716df9e69434d"' "${FIXED_REPORT}"
           jq -e '.exportMode == "rigid_weapon_rest_pose"' "${FIXED_REPORT}"
           jq -e '.meaningfulBatchCount >= 4' "${FIXED_REPORT}"
           jq -e '.dimensionsMeters | max >= 0.85 and max <= 0.95' "${FIXED_REPORT}"
