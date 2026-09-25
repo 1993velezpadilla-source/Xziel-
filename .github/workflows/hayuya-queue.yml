@@ -77,7 +77,7 @@ jobs:
                   'soldier','civilian','doctor','nurse','police','cop','priest','priestess',
                   'woman','female','man','male','girl','boy','witch','llorona','monja','nun','sister'
               )
-              if raw_asset=='auto' and animated and any(w in title for w in humanoid_words):
+              if raw_asset=='auto' and any(w in title for w in humanoid_words):
                   effective_asset='character.humanoid'
               elif raw_asset=='auto' and animated and request_profile in {'monster','creature'}:
                   effective_asset='character.creature'
