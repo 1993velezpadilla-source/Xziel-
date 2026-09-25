@@ -5481,7 +5481,19 @@ bool VulkanClearRenderer::recordDrawCommand(
             sanctumCamera,
             sanctumEnvironment);
 
-        if (performanceTelemetryFrame_ % 120U == 0U) {
+        // CI_SOFTWARE_VULKAN_FRESH_SCENE_COST_V1
+        // SwiftShader can run the HQ scene near 1 FPS, so a 120-frame
+        // telemetry period leaves the Android touch tour validating an old
+        // camera sample. Real GPUs retain the low-noise 120-frame cadence;
+        // CPU/software Vulkan emits the current post-cull scene cost every
+        // frame so CI validates the camera that was actually captured.
+        const std::uint32_t sceneCostTelemetryPeriod =
+            physicalDeviceType_ == VK_PHYSICAL_DEVICE_TYPE_CPU
+            ? 1U
+            : 120U;
+
+        if (performanceTelemetryFrame_ %
+                sceneCostTelemetryPeriod == 0U) {
             const auto meshStats =
                 sanctumMesh_.frameStats();
 
