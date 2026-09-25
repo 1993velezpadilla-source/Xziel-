@@ -7791,25 +7791,27 @@ bool VulkanClearRenderer::recordDrawCommand(
         float y,
         float radius,
         bool active) noexcept {
+        // Dark tactical pad with a warm yellow-green accent, matching the
+        // supplied mobile shooter reference instead of the old debug rings.
         drawUiCircle(
             x,
             y,
             radius,
-            0.015f,
-            0.020f,
+            0.025f,
             0.028f,
-            active ? 0.42f : 0.24f,
+            0.030f,
+            active ? 0.82f : 0.58f,
             false);
         drawUiCircle(
             x,
             y,
             radius,
             0.88f,
-            0.92f,
             0.96f,
-            active ? 0.62f : 0.30f,
+            0.18f,
+            active ? 0.96f : 0.54f,
             true,
-            0.065f);
+            active ? 0.085f : 0.060f);
     };
 
     const auto drawCrosshairIcon = [&](
@@ -7836,14 +7838,14 @@ bool VulkanClearRenderer::recordDrawCommand(
         float x,
         float y,
         float alpha) noexcept {
-        drawShortRect(x, y + 0.004f, 0.0060f, 0.019f, 1.0f, 0.94f, 0.86f, alpha);
+        drawShortRect(x, y + 0.004f, 0.0060f, 0.019f, 0.98f, 0.98f, 0.98f, alpha);
         drawUiCircle(
             x,
             y - 0.018f,
             0.0061f,
-            1.0f,
-            0.94f,
-            0.86f,
+            0.98f,
+            0.98f,
+            0.98f,
             alpha,
             false);
         drawShortRect(x, y + 0.025f, 0.0075f, 0.0030f, 1.0f, 0.94f, 0.86f, alpha);
@@ -7925,18 +7927,27 @@ bool VulkanClearRenderer::recordDrawCommand(
         mobileTopYToUiY(
             moveAnchorTopY);
 
-    // Neutral COD-style joystick: quiet enough to see through, strong enough
-    // to acquire by peripheral vision.
+    // Tactical joystick pad: opaque enough to acquire instantly while still
+    // leaving the world readable under the thumb.
     drawUiCircle(
         moveAnchorX,
         moveAnchorY,
         0.095f,
-        0.76f,
-        0.82f,
-        0.90f,
-        hud.moveActive ? 0.34f : 0.18f,
+        0.025f,
+        0.028f,
+        0.030f,
+        hud.moveActive ? 0.62f : 0.44f,
+        false);
+    drawUiCircle(
+        moveAnchorX,
+        moveAnchorY,
+        0.095f,
+        0.88f,
+        0.96f,
+        0.18f,
+        hud.moveActive ? 0.90f : 0.46f,
         true,
-        0.055f);
+        0.060f);
 
     const float knobTravel = 0.058f;
     drawUiCircle(
