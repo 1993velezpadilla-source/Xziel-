@@ -1548,6 +1548,9 @@ jobs:
             dist/sanctum-hq-tour-03-forward.png \
             dist/sanctum-hq-tour-04-look-up.png \
             --report build/sanctum-visual-quality.json
+          jq -e '.verdict == "pass" and (.failures | length) == 0' \
+            build/sanctum-visual-quality.json
+          echo "XZIEL_PRIMARY_VIEW_VISUAL_QA_ACTIVE"
 
       - name: Upload Sanctum HQ APK
         uses: actions/upload-artifact@v4
