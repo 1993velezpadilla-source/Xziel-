@@ -101,7 +101,7 @@ def build_turntable(
 
     out_dir.mkdir(parents=True, exist_ok=True)
     frames: list[str] = []
-    for index, offset in enumerate(range(0, 360, 45)):
+    for index, offset in enumerate(range(0, 360, 15)):
         view = SourceViewScore(
             source="gameprep",
             best_score=0.0,
