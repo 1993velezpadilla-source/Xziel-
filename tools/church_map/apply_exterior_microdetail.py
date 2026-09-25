@@ -106,6 +106,86 @@ def main():
         compress_level=3,
     )
 
+    # Derive tangent-space relief from the exact same high-frequency field
+    # fused into albedo; no foreign macro block/mortar pattern is imported.
+    grad_v, grad_u = np.gradient(
+        micro.astype(np.float32)
+    )
+    normal_strength = 1.35
+    nx = -grad_u * normal_strength * mask
+    ny = -grad_v * normal_strength * mask
+    nz = np.ones_like(nx, dtype=np.float32)
+    normal_length = np.maximum(
+        np.sqrt(nx * nx + ny * ny + nz * nz),
+        1.0e-6,
+    )
+    normal_rgb = np.stack(
+        (
+            nx / normal_length,
+            ny / normal_length,
+            nz / normal_length,
+        ),
+        axis=-1,
+    )
+    normal_u8 = np.round(
+        np.clip(
+            normal_rgb * 0.5 + 0.5,
+            0.0,
+            1.0,
+        ) * 255.0
+    ).astype(np.uint8)
+
+    crevice = np.maximum(-micro, 0.0) * mask
+    ao = np.clip(
+        1.0 - crevice * 0.16,
+        0.82,
+        1.0,
+    )
+    roughness = np.clip(
+        1.0 -
+        mask * (
+            0.18 -
+            0.06 * np.abs(micro)
+        ),
+        0.76,
+        1.0,
+    )
+    metallic = np.zeros_like(
+        roughness,
+        dtype=np.float32,
+    )
+    orm_u8 = np.round(
+        np.stack(
+            (ao, roughness, metallic),
+            axis=-1,
+        ) * 255.0
+    ).astype(np.uint8)
+
+    normal_rel = texture_rel.with_name(
+        texture_rel.stem + "_normal.png"
+    )
+    orm_rel = texture_rel.with_name(
+        texture_rel.stem + "_orm.png"
+    )
+    normal_target = root / normal_rel
+    orm_target = root / orm_rel
+    Image.fromarray(
+        normal_u8,
+        "RGB",
+    ).save(
+        normal_target,
+        format="PNG",
+        compress_level=3,
+    )
+    Image.fromarray(
+        orm_u8,
+        "RGB",
+    ).save(
+        orm_target,
+        format="PNG",
+        compress_level=3,
+    )
+
     before = list(material.get("sourceSize", [1024, 1024]))
     material["microdetail"] = {
         "candidate": "polyhaven_medieval_blocks_03",
@@ -119,6 +199,13 @@ def main():
     }
     material["runtimeSize"] = [4096, 4096]
     material["exactSourcePixels"] = False
+    material["generatedPbr"] = {
+        "normalTexturePath": str(normal_rel),
+        "ormTexturePath": str(orm_rel),
+        "normalScale": 0.55,
+        "occlusionStrength": 0.35,
+        "method": "matched_high_frequency_heightfield",
+    }
 
     report["textureSourceMode"] = (
         "original_glb_embedded_pixels_plus_matched_exterior_microdetail"
@@ -129,6 +216,11 @@ def main():
     report["microdetailCandidateLicense"] = "CC0"
     report["originalExteriorResolution"] = before
     report["runtimeExteriorResolution"] = [4096, 4096]
+    report["generatedPbrApplied"] = True
+    report["generatedPbrMaterial"] = target_key
+    report["generatedPbrNormalTexture"] = str(normal_rel)
+    report["generatedPbrOrmTexture"] = str(orm_rel)
+    report["generatedPbrResolution"] = [4096, 4096]
     report["exactSourcePixelTextures"] = sum(
         1 for value in report["materialReport"].values()
         if value.get("exactSourcePixels")
@@ -150,6 +242,13 @@ def main():
             "maskMean": float(mask.mean()),
             "strengthLuma8bit": strength,
             "method": "high_frequency_luma_only_stone_mask",
+            "generatedPbr": {
+                "normalTexture": str(normal_target),
+                "ormTexture": str(orm_target),
+                "resolution": [4096, 4096],
+                "normalScale": 0.55,
+                "occlusionStrength": 0.35,
+            },
         }, indent=2),
         encoding="utf-8",
     )

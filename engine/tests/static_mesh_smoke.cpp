@@ -58,7 +58,9 @@ void appendFixed96(
     }
 }
 
-std::vector<std::byte> makeTriangle(std::uint32_t version) {
+std::vector<std::byte> makeTriangle(
+    std::uint32_t version,
+    bool authoredPbr = true) {
     std::vector<std::byte> bytes;
 
     for (char c : std::array<char, 4>{
@@ -102,30 +104,55 @@ std::vector<std::byte> makeTriangle(std::uint32_t version) {
         xziel::kStaticMeshFormatVersion) {
         appendFixed96(
             bytes,
-            "textures/xziel/sanctum/test_n");
+            authoredPbr
+                ? "textures/xziel/sanctum/test_n"
+                : "");
         appendFixed96(
             bytes,
-            "textures/xziel/sanctum/test_orm");
+            authoredPbr
+                ? "textures/xziel/sanctum/test_orm"
+                : "");
         appendFixed96(
             bytes,
-            "textures/xziel/sanctum/test_e");
+            authoredPbr
+                ? "textures/xziel/sanctum/test_e"
+                : "");
 
-        for (float value :
-             std::array<float, 4>{
-                 0.90f, 0.80f, 0.70f, 1.0f}) {
+        const std::array<float, 4> baseColor =
+            authoredPbr
+            ? std::array<float, 4>{
+                  0.90f, 0.80f, 0.70f, 1.0f}
+            : std::array<float, 4>{
+                  1.0f, 1.0f, 1.0f, 1.0f};
+
+        for (float value : baseColor) {
             appendF32(bytes, value);
         }
-        appendF32(bytes, 0.25f);
-        appendF32(bytes, 0.65f);
 
-        for (float value :
-             std::array<float, 3>{
-                 0.10f, 0.05f, 0.02f}) {
+        appendF32(
+            bytes,
+            authoredPbr ? 0.25f : 0.0f);
+        appendF32(
+            bytes,
+            authoredPbr ? 0.65f : 1.0f);
+
+        const std::array<float, 3> emissive =
+            authoredPbr
+            ? std::array<float, 3>{
+                  0.10f, 0.05f, 0.02f}
+            : std::array<float, 3>{
+                  0.0f, 0.0f, 0.0f};
+
+        for (float value : emissive) {
             appendF32(bytes, value);
         }
 
-        appendF32(bytes, 0.75f);
-        appendF32(bytes, 0.85f);
+        appendF32(
+            bytes,
+            authoredPbr ? 0.75f : 1.0f);
+        appendF32(
+            bytes,
+            authoredPbr ? 0.85f : 1.0f);
     }
 
     for (float value :
@@ -265,6 +292,32 @@ int main() {
         encoded.size() -
             directoryBatch.vertexDataOffset);
     assert(!directoryBatch.doubleSided());
+
+    // Mixed v5 assets can use the v5 record layout while leaving legacy
+    // photogrammetry batches on the source-fidelity non-PBR path.
+    const auto neutralV5Encoded =
+        makeTriangle(
+            xziel::kStaticMeshFormatVersion,
+            false);
+
+    xziel::StaticMeshAsset neutralV5Asset;
+    const auto neutralV5Parsed =
+        xziel::parseStaticMeshXzsm(
+            neutralV5Encoded,
+            neutralV5Asset);
+
+    assert(neutralV5Parsed.success);
+    assert(neutralV5Asset.batches.size() == 1U);
+    assert(!neutralV5Asset.batches[0].pbrEnabled());
+    assert(
+        neutralV5Asset.batches[0].
+            pbr.normalTextureName.empty());
+    assert(
+        neutralV5Asset.batches[0].
+            pbr.ormTextureName.empty());
+    assert(
+        neutralV5Asset.batches[0].
+            pbr.roughnessFactor == 1.0f);
 
     const auto v4Encoded =
         makeTriangle(

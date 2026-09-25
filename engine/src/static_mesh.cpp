@@ -417,8 +417,39 @@ parseStaticMeshXzsm(
 
         batch.bounds = bounds;
         batch.flags = flags;
-        batch.pbrMaterial =
-            version >= kStaticMeshFormatVersion;
+
+        if (version >= kStaticMeshFormatVersion) {
+            const auto anyNonDefault =
+                [](const auto& values,
+                   float expected) noexcept {
+                    return std::any_of(
+                        values.begin(),
+                        values.end(),
+                        [expected](float value) noexcept {
+                            return value != expected;
+                        });
+                };
+
+            // v5 is a container capability, not a mandate that every batch
+            // use PBR. Legacy photogrammetry can stay pixel-faithful while
+            // selected authored/material-enhanced batches opt in.
+            batch.pbrMaterial =
+                !batch.pbr.normalTextureName.empty() ||
+                !batch.pbr.ormTextureName.empty() ||
+                !batch.pbr.emissiveTextureName.empty() ||
+                anyNonDefault(
+                    batch.pbr.baseColorFactor,
+                    1.0f) ||
+                batch.pbr.metallicFactor != 0.0f ||
+                batch.pbr.roughnessFactor != 1.0f ||
+                anyNonDefault(
+                    batch.pbr.emissiveFactor,
+                    0.0f) ||
+                batch.pbr.normalScale != 1.0f ||
+                batch.pbr.occlusionStrength != 1.0f;
+        } else {
+            batch.pbrMaterial = false;
+        }
 
         if (batch.textureName.empty()) {
             return failure(

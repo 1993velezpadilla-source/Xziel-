@@ -528,10 +528,45 @@ with tempfile.TemporaryDirectory(prefix="xziel-clean-") as tmp:
                 handle.write(struct.pack("<8f4B", *vertex))
             handle.write(struct.pack("<" + "H" * len(indices), *indices))
 
+        material_name = (
+            mat.name
+            if mat is not None
+            else "__fallback__"
+        )
+        generated_exterior_pbr = (
+            "Exterior04" in material_name
+        )
+
         return {
             "object": obj.name,
-            "material": mat.name if mat is not None else "__fallback__",
+            "material": material_name,
             "texture": texture,
+            "normalTexture": (
+                texture + "_normal"
+                if generated_exterior_pbr
+                else ""
+            ),
+            "ormTexture": (
+                texture + "_orm"
+                if generated_exterior_pbr
+                else ""
+            ),
+            "emissiveTexture": "",
+            "baseColorFactor": [1.0, 1.0, 1.0, 1.0],
+            "metallicFactor": 0.0,
+            "roughnessFactor": 1.0,
+            "emissiveFactor": [0.0, 0.0, 0.0],
+            "normalScale": (
+                0.55
+                if generated_exterior_pbr
+                else 1.0
+            ),
+            "occlusionStrength": (
+                0.35
+                if generated_exterior_pbr
+                else 1.0
+            ),
+            "generatedExteriorPbr": generated_exterior_pbr,
             "uvLayer": uv_name,
             "uvSource": uv_source,
             "gltfDoubleSided": gltf_double_sided,
@@ -631,29 +666,76 @@ with tempfile.TemporaryDirectory(prefix="xziel-clean-") as tmp:
         raise RuntimeError("textured source meshes missing UVs: " + ", ".join(sorted(missing_uv)))
 
     model_path = MODEL_DIR / "sanctum.xzsm"
+
+    def fixed_texture_field(value):
+        encoded = value.encode("utf-8")[:95]
+        return encoded + b"\0" * (96 - len(encoded))
+
     with model_path.open("wb") as out:
         out.write(struct.pack(
             "<4sIIII",
             b"XZSM",
-            4,
+            5,
             len(batch_records),
             total_vertices,
             total_indices,
         ))
         for batch in batch_records:
-            texture_bytes = batch["texture"].encode("utf-8")[:95]
-            texture_field = texture_bytes + b"\0" * (96 - len(texture_bytes))
             out.write(struct.pack(
-                "<II96sI6f",
+                "<II96sI",
                 batch["vertexCount"],
                 batch["indexCount"],
-                texture_field,
+                fixed_texture_field(batch["texture"]),
                 batch["flags"],
-                batch["mins"].x, batch["mins"].y, batch["mins"].z,
-                batch["maxs"].x, batch["maxs"].y, batch["maxs"].z,
+            ))
+            out.write(
+                fixed_texture_field(
+                    batch["normalTexture"]
+                )
+            )
+            out.write(
+                fixed_texture_field(
+                    batch["ormTexture"]
+                )
+            )
+            out.write(
+                fixed_texture_field(
+                    batch["emissiveTexture"]
+                )
+            )
+            out.write(struct.pack(
+                "<4f",
+                *batch["baseColorFactor"],
+            ))
+            out.write(struct.pack(
+                "<2f",
+                batch["metallicFactor"],
+                batch["roughnessFactor"],
+            ))
+            out.write(struct.pack(
+                "<3f",
+                *batch["emissiveFactor"],
+            ))
+            out.write(struct.pack(
+                "<2f",
+                batch["normalScale"],
+                batch["occlusionStrength"],
+            ))
+            out.write(struct.pack(
+                "<6f",
+                batch["mins"].x,
+                batch["mins"].y,
+                batch["mins"].z,
+                batch["maxs"].x,
+                batch["maxs"].y,
+                batch["maxs"].z,
             ))
             with batch["payload"].open("rb") as payload:
-                shutil.copyfileobj(payload, out, length=1024 * 1024)
+                shutil.copyfileobj(
+                    payload,
+                    out,
+                    length=1024 * 1024,
+                )
 
 batch_diagonals = [
     float((batch["maxs"] - batch["mins"]).length)
@@ -677,7 +759,7 @@ report = {
     "sourceUid": SOURCE_UID,
     "sourcePath": str(SOURCE),
     "coordinateSpace": "native",
-    "version": 4,
+    "version": 5,
     "vertexStrideBytes": 36,
     "doubleSidedBatchCount": sum(
         1 for batch in batch_records
@@ -705,6 +787,15 @@ report = {
     "originalMaxTextureDimension": max_texture_dimension,
     "fallbackMaterials": sorted(fallback_materials),
     "pbrLinkedMaterialCounts": pbr_counts,
+    "generatedPbrBatchCount": sum(
+        1 for batch in batch_records
+        if batch["generatedExteriorPbr"]
+    ),
+    "generatedPbrMaterials": sorted({
+        batch["material"]
+        for batch in batch_records
+        if batch["generatedExteriorPbr"]
+    }),
     "materialReport": material_report,
     "spatialBatching": "morton_grid_centroid_v1",
     "spatialBatchGridMeters": SPATIAL_BATCH_GRID_METERS,
