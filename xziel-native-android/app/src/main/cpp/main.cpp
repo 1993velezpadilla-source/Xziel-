@@ -528,7 +528,16 @@ bool restartRun(
     // session instead of merely giving health back in-place.
     state.vitals.reset();
     state.player.reset();
-    state.weapon.reset();
+
+    // A new run must restore the starting loadout, not just refill whichever
+    // weapon happened to be equipped at death. Otherwise the wall-buy state
+    // resets while the purchased rifle silently survives into the new run.
+    state.weaponProfile =
+        xziel::makeWeaponProfile(
+            xziel::WeaponArchetype::Sidearm);
+    state.weapon.equip(
+        state.weaponProfile.controller);
+
     state.horde.reset();
     state.score.reset();
     state.interaction.reset();
