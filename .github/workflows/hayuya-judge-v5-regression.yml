@@ -11,6 +11,7 @@ on:
       - hayuya/assets/monja-mugfwln6/**
       - hayuya/standards/judge_v5_policy.json
       - tools/hayuya3d/judge_v4*.py
+      - tools/hayuya3d/judge_model_provenance.py
       - tools/hayuya3d/judge_v5*.py
       - tools/hayuya3d/siglip2_reference_judge.py
       - tools/hayuya3d/cvlface_identity_judge.py
@@ -40,6 +41,7 @@ jobs:
       - name: Compile authoritative judge code
         run: |
           python -m py_compile \
+            tools/hayuya3d/judge_model_provenance.py \
             tools/hayuya3d/judge_v4.py \
             tools/hayuya3d/judge_v4_qrealign_worker.py \
             tools/hayuya3d/judge_v4_face_worker.py \
@@ -180,6 +182,32 @@ jobs:
           )
           reasons=v5.get("hard_fail_reasons") or []
           assert reasons, "KNOWN BAD must have concrete hard-fail evidence"
+
+          # Prove the heavyweight checkpoints that actually executed.
+          expected=(
+              (v4.get("qrealign") or {}, "q-future/Q-ReAlign-Pro-9B"),
+              (v4.get("internvl") or {}, "OpenGVLab/InternVL3_5-8B-HF"),
+              (v5.get("visualquality_r1") or {}, "TianheWu/VisualQuality-R1-7B"),
+              (v5.get("siglip2") or {}, "google/siglip2-giant-opt-patch16-384"),
+          )
+          checkpoint_proof=[]
+          for payload,model_id in expected:
+              p=payload.get("provenance") or {}
+              assert p.get("model_id")==model_id, (
+                  "REGRESSION INVALID: wrong checkpoint "+str(p)
+              )
+              assert p.get("resolved_revision"), (
+                  "REGRESSION INVALID: unresolved checkpoint revision for "+model_id
+              )
+              assert int(p.get("num_parameters") or 0)>100_000_000, (
+                  "REGRESSION INVALID: suspiciously small/unloaded checkpoint "+str(p)
+              )
+              checkpoint_proof.append({
+                  "model":model_id,
+                  "revision":p["resolved_revision"],
+                  "parameters":p["num_parameters"],
+              })
+          print("HAYUYA_REAL_CHECKPOINT_PROVENANCE",checkpoint_proof)
 
           # A broken/missing evaluator is NOT proof that the eyes saw a bad face.
           infrastructure_tokens=(
