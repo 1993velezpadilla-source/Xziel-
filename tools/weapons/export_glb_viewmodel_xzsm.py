@@ -281,6 +281,14 @@ for required in ("body", "barrel", "stock", "magazine"):
             f"{sorted(included_material_names)!r}"
         )
 
+raw_dimensions = raw_max - raw_min
+raw_longest = max(
+    float(raw_dimensions.x),
+    float(raw_dimensions.y),
+    float(raw_dimensions.z),
+    1e-6,
+)
+
 # Some Sketchfab/Objaverse FPS assets are authored in centimetres even when
 # their glTF scene metadata does not expose an explicit unit scale. Normalize
 # the complete ready-pose bounds to a real rifle-sized envelope instead of
