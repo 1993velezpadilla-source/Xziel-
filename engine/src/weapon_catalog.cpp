@@ -12,6 +12,8 @@ WeaponProfile makeWeaponProfile(
 
     switch (archetype) {
         case WeaponArchetype::Sidearm:
+            profile.viewmodel.asset =
+                WeaponViewmodelAsset::Sidearm;
             profile.controller.magazineSize = 12;
             profile.controller.startingReserve = 72;
             profile.controller.fireIntervalSeconds = 0.18f;
@@ -28,6 +30,8 @@ WeaponProfile makeWeaponProfile(
             break;
 
         case WeaponArchetype::SubmachineGun:
+            profile.viewmodel.asset =
+                WeaponViewmodelAsset::SubmachineGun;
             profile.controller.magazineSize = 32;
             profile.controller.startingReserve = 192;
             profile.controller.fireIntervalSeconds = 0.075f;
@@ -44,6 +48,8 @@ WeaponProfile makeWeaponProfile(
             break;
 
         case WeaponArchetype::AssaultRifle:
+            profile.viewmodel.asset =
+                WeaponViewmodelAsset::AssaultRifle;
             profile.controller.magazineSize = 30;
             profile.controller.startingReserve = 180;
             profile.controller.fireIntervalSeconds = 0.095f;
@@ -60,6 +66,8 @@ WeaponProfile makeWeaponProfile(
             break;
 
         case WeaponArchetype::MarksmanRifle:
+            profile.viewmodel.asset =
+                WeaponViewmodelAsset::MarksmanRifle;
             profile.controller.magazineSize = 12;
             profile.controller.startingReserve = 72;
             profile.controller.fireIntervalSeconds = 0.24f;
@@ -79,6 +87,8 @@ WeaponProfile makeWeaponProfile(
             break;
 
         case WeaponArchetype::Shotgun:
+            profile.viewmodel.asset =
+                WeaponViewmodelAsset::Shotgun;
             profile.controller.magazineSize = 8;
             profile.controller.startingReserve = 48;
             profile.controller.fireIntervalSeconds = 0.72f;
@@ -97,6 +107,8 @@ WeaponProfile makeWeaponProfile(
             break;
 
         case WeaponArchetype::LightMachineGun:
+            profile.viewmodel.asset =
+                WeaponViewmodelAsset::LightMachineGun;
             profile.controller.magazineSize = 60;
             profile.controller.startingReserve = 240;
             profile.controller.fireIntervalSeconds = 0.105f;
@@ -113,6 +125,8 @@ WeaponProfile makeWeaponProfile(
             break;
 
         case WeaponArchetype::SniperRifle:
+            profile.viewmodel.asset =
+                WeaponViewmodelAsset::SniperRifle;
             profile.controller.magazineSize = 5;
             profile.controller.startingReserve = 35;
             profile.controller.fireIntervalSeconds = 0.88f;
