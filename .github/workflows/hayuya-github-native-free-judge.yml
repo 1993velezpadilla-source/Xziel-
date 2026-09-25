@@ -62,7 +62,7 @@ jobs:
           set -euo pipefail
           rm -rf out/github-native-evidence
           mkdir -p out/github-native-evidence
-          xvfb-run -a -s "-screen 0 1280x1024x24"             /opt/blender-4.5.14/blender --background             --python tools/hayuya3d/blender_judge_turntable_24.py             --             --input hayuya/models/monja-mugfwln6/model.glb             --output-dir out/github-native-evidence             --size 768             --face-size 768
+          xvfb-run -a -s "-screen 0 1280x1024x24"             /opt/blender-4.5.14/blender --background --python-exit-code 1             --python tools/hayuya3d/blender_judge_turntable_24.py             --             --input hayuya/models/monja-mugfwln6/model.glb             --output-dir out/github-native-evidence             --size 768             --face-size 768
       - name: Build source/turntable/face boards
         shell: bash
         run: |
