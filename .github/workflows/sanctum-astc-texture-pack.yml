@@ -8,6 +8,7 @@ on:
       - engine/mobile-power-fidelity-v1
     paths:
       - ".github/workflows/sanctum-astc-texture-pack.yml"
+      - ".github/workflows/sanctum-native-hq-android.yml"
       - ".github/workflows/sanctum-clean-source.yml"
       - "tools/texture_pack/build_astc_pack.py"
       - "tools/church_map/apply_exterior_microdetail.py"
