@@ -10,6 +10,7 @@ on:
       - tools/hayuya3d/job_request.py
       - tools/hayuya3d/gpu_e2e.sh
       - tools/hayuya3d/phone_cloud_worker.py
+      - tools/hayuya3d/blender_animation_gate.py
       - tools/hayuya3d/internet_asset_research.py
       - tools/hayuya3d/auto_motion_planner.py
       - tools/hayuya3d/part_segmentation_plan.py
@@ -73,8 +74,8 @@ jobs:
               animated=bool(data.get('animation_requested'))
               humanoid_words=(
                   'zombi','undead','human','humanoid','person','npc','survivor',
-                  'soldier','civilian','doctor','nurse','police','cop','priest',
-                  'woman','female','man','male','girl','boy','witch','llorona'
+                  'soldier','civilian','doctor','nurse','police','cop','priest','priestess',
+                  'woman','female','man','male','girl','boy','witch','llorona','monja','nun','sister'
               )
               if raw_asset=='auto' and animated and any(w in title for w in humanoid_words):
                   effective_asset='character.humanoid'
@@ -223,7 +224,7 @@ jobs:
               "zombi","zombie","undead","human","humanoid","character","person","npc",
               "enemy","monster","creature","ghost","witch","witcher","llorona",
               "woman","female","man","male","girl","boy","soldier","civilian",
-              "survivor","doctor","nurse","police","cop","priest","demon"
+              "survivor","doctor","nurse","police","cop","priest","priestess","monja","nun","sister","demon"
           )
           prop_words=(
               "table","chair","door","window","building","church","house","street",
@@ -287,8 +288,12 @@ jobs:
           r1=json.loads((root/"rig_gate_uam1.json").read_text())
           g2=json.loads((root/"animation_gate.json").read_text())
           g1=json.loads((root/"animation_gate_uam1.json").read_text())
-          c2=[str(x) for x in g2.get("compatible_clips",[])]
-          c1=[str(x) for x in g1.get("compatible_clips",[])]
+          c2_all=[str(x) for x in g2.get("compatible_clips",[])]
+          c1_all=[str(x) for x in g1.get("compatible_clips",[])]
+          moving2={str(x) for x in g2.get("observable_clips",[])}
+          moving1={str(x) for x in g1.get("observable_clips",[])}
+          c2=[x for x in c2_all if x in moving2]
+          c1=[x for x in c1_all if x in moving1]
           useful2=[x for x in c2 if "tpose" not in x.lower().replace("_","")]
           useful1=[x for x in c1 if "tpose" not in x.lower().replace("_","")]
           usable2=bool(r2.get("rig_ready")) and len(useful2)>=3
@@ -322,6 +327,10 @@ jobs:
               "full_bank_passed":bool((g2 if usable2 else g1).get("passed")),
               "action_count":(g2 if usable2 else g1).get("action_count",0),
               "compatible_clips":(c2 if usable2 else c1),
+              "all_geometry_safe_clips":(c2_all if usable2 else c1_all),
+              "observable_motion_passed":True,
+              "observable_clip_count":len(c2 if usable2 else c1),
+              "static_compatible_clips":(g2 if usable2 else g1).get("static_compatible_clips",[]),
               "rejected_clip_count":(g2 if usable2 else g1).get("rejected_clip_count",0),
               "failures":(g2 if usable2 else g1).get("failures",[])
             }
@@ -330,6 +339,8 @@ jobs:
             "quaternius-uam2":{
               "model":"animated.glb",
               "clips":c2,
+              "geometry_safe_clips":c2_all,
+              "observable_clip_count":len(c2),
               "rig_ready":bool(r2.get("rig_ready")),
               "animation_ready":bool(r2.get("animation_ready")),
               "quality_passed":usable2,
@@ -339,6 +350,8 @@ jobs:
             "quaternius-uam1":{
               "model":"animated-uam1.glb",
               "clips":c1,
+              "geometry_safe_clips":c1_all,
+              "observable_clip_count":len(c1),
               "rig_ready":bool(r1.get("rig_ready")),
               "animation_ready":bool(r1.get("animation_ready")),
               "quality_passed":usable1,

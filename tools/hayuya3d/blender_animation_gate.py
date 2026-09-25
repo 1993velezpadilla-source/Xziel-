@@ -33,6 +33,9 @@ def parse_args():
     p.add_argument("--reference-min-diagonal-ratio",type=float,default=0.72)
     p.add_argument("--reference-max-diagonal-ratio",type=float,default=1.38)
     p.add_argument("--reference-max-center-offset",type=float,default=0.25)
+    p.add_argument("--min-motion-p95-ratio",type=float,default=0.0015)
+    p.add_argument("--min-motion-max-ratio",type=float,default=0.005)
+    p.add_argument("--max-motion-vertices",type=int,default=4096)
     return p.parse_args(argv)
 
 
@@ -363,6 +366,49 @@ def edge_metrics(edge_samples, positions, weight_labels=None):
     return result
 
 
+def build_motion_vertex_samples(meshes,max_vertices):
+    refs=[]
+    for obj in meshes:
+        refs.extend((obj.name,int(v.index)) for v in obj.data.vertices)
+    if len(refs)<=max_vertices:
+        return refs
+    step=len(refs)/float(max_vertices)
+    out=[]
+    pos=0.0
+    while len(out)<max_vertices and int(pos)<len(refs):
+        out.append(refs[int(pos)])
+        pos+=step
+    return out
+
+
+def capture_motion_reference(samples,positions):
+    out=[]
+    for name,index in samples:
+        arr=positions.get(name)
+        if arr is None or index>=len(arr):
+            continue
+        out.append((name,index,arr[index].copy()))
+    return out
+
+
+def sampled_motion_metrics(reference,current_positions,body_diagonal):
+    denom=max(1e-8,float(body_diagonal))
+    ratios=[]
+    for name,index,origin in reference:
+        arr=current_positions.get(name)
+        if arr is None or index>=len(arr):
+            continue
+        distance=(arr[index]-origin).length
+        if math.isfinite(distance):
+            ratios.append(float(distance/denom))
+    return {
+        "sample_count":len(ratios),
+        "p50":percentile(ratios,0.50),
+        "p95":percentile(ratios,0.95),
+        "max":max(ratios) if ratios else None,
+    }
+
+
 def main():
     args=parse_args()
     bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -436,6 +482,12 @@ def main():
     )
     if len(edge_samples)<100:
         raise RuntimeError(f"too_few_edge_samples:{len(edge_samples)}")
+    motion_vertex_samples=build_motion_vertex_samples(
+        meshes,
+        max(256,int(args.max_motion_vertices)),
+    )
+    if len(motion_vertex_samples)<64:
+        raise RuntimeError(f"too_few_motion_vertex_samples:{len(motion_vertex_samples)}")
     vertex_weight_labels=build_vertex_weight_labels(meshes)
     rest_edge_anatomy=summarize_rest_edge_anatomy(
         meshes,
@@ -530,6 +582,9 @@ def main():
             frames=[start+(end-start)*(i/(sample_count-1)) for i in range(sample_count)]
 
         clip={"name":action_name,"raw_name":action.name,"frame_range":[float(start),float(end)],"samples":[],"passed":True,"reasons":[]}
+        motion_reference=None
+        motion_p95_peak=0.0
+        motion_max_peak=0.0
         for fr in frames:
             bpy.context.scene.frame_set(int(round(fr)))
             bpy.context.view_layer.update()
@@ -537,6 +592,14 @@ def main():
             ratio=b["diagonal"]/rest["diagonal"]
             em=edge_metrics(edge_samples,positions,vertex_weight_labels)
             rec={"frame":float(fr),"diagonal_ratio":float(ratio),"bounds":b,"edge_deformation":em}
+            if motion_reference is None:
+                motion_reference=capture_motion_reference(motion_vertex_samples,positions)
+                motion={"sample_count":len(motion_reference),"p50":0.0,"p95":0.0,"max":0.0}
+            else:
+                motion=sampled_motion_metrics(motion_reference,positions,rest["diagonal"])
+                motion_p95_peak=max(motion_p95_peak,float(motion.get("p95") or 0.0))
+                motion_max_peak=max(motion_max_peak,float(motion.get("max") or 0.0))
+            rec["motion_from_first"]=motion
             clip["samples"].append(rec)
 
             if ratio > args.max_diagonal_ratio:
@@ -569,6 +632,18 @@ def main():
 
         clip["reasons"]=sorted(set(clip["reasons"]))
         clip["passed"]=not clip["reasons"]
+        clip["motion_qa"]={
+            "method":"sampled_skinned_vertex_displacement_v1",
+            "vertex_samples":len(motion_reference or []),
+            "p95_peak_ratio":motion_p95_peak,
+            "max_peak_ratio":motion_max_peak,
+            "min_p95_ratio":float(args.min_motion_p95_ratio),
+            "min_max_ratio":float(args.min_motion_max_ratio),
+        }
+        clip["observable_motion"]=bool(
+            motion_p95_peak>=float(args.min_motion_p95_ratio)
+            or motion_max_peak>=float(args.min_motion_max_ratio)
+        )
         if clip["passed"]:
             if action_name not in compatible:
                 compatible.append(action_name)
@@ -594,6 +669,8 @@ def main():
         "duplicate_action_count":len(duplicate_actions_ignored),
         "duplicate_actions_ignored":duplicate_actions_ignored,
         "compatible_clips":compatible,
+        "observable_clips":[c["name"] for c in clips if c.get("passed") and c.get("observable_motion")],
+        "static_compatible_clips":[c["name"] for c in clips if c.get("passed") and not c.get("observable_motion")],
         "rejected_clip_count":len(actions)-len(compatible),
         "rest_bounds":rest,
         "reference_fidelity":reference_fidelity,
@@ -612,6 +689,9 @@ def main():
             "reference_min_diagonal_ratio":args.reference_min_diagonal_ratio,
             "reference_max_diagonal_ratio":args.reference_max_diagonal_ratio,
             "reference_max_center_offset":args.reference_max_center_offset,
+            "min_motion_p95_ratio":args.min_motion_p95_ratio,
+            "min_motion_max_ratio":args.min_motion_max_ratio,
+            "motion_vertex_samples":len(motion_vertex_samples),
             "samples_per_action":sample_count
         },
         "clips":clips,
