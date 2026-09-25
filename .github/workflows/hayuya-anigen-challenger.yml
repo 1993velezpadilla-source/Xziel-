@@ -94,10 +94,11 @@ jobs:
         run: |
           python tools/hayuya3d/anigen_cloud.py             --input "${{ matrix.image }}"             --output-dir "$OUT"             --ss-model "${{ matrix.ss_model }}"             --slat-model "${{ matrix.slat_model }}"             --ss-steps "${{ matrix.ss_steps }}"             --slat-steps "${{ matrix.slat_steps }}"             --joints-density "${{ matrix.joints_density }}"             --texture-size "${{ matrix.texture_size }}"             --seed "${{ matrix.seed }}"
 
-      - name: Map generated joint hierarchy to HAYUYA humanoid semantics
+      - name: Map embedded AniGen rig to HAYUYA humanoid semantics
         run: |
+          test -s "$OUT/anigen_mesh.glb"
           python tools/hayuya3d/anigen_semantic_rig.py \
-            --input "$OUT/anigen_semantic.glb" \
+            --input "$OUT/anigen_mesh.glb" \
             --output "$OUT/anigen_semantic.glb" \
             --report "$OUT/anigen_semantic_rig.json"
 
@@ -121,7 +122,7 @@ jobs:
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
         run: |
-          blender --python-exit-code 1 -b             --python tools/hayuya3d/blender_model_preview_pack.py --             --input "$OUT/anigen_mesh.glb"             --output-dir "$OUT/renders"             --size 1024
+          blender --python-exit-code 1 -b             --python tools/hayuya3d/blender_model_preview_pack.py --             --input "$OUT/anigen_semantic.glb"             --output-dir "$OUT/renders"             --size 1024
 
       - name: Upload complete challenger result
         if: always()
