@@ -137,6 +137,8 @@ void AndroidInputAdapter::shutdown() noexcept {
     snapshot_ = {};
     stanceHeldSeconds_ = 0.0f;
     aimToggled_ = false;
+    restartAvailable_ = false;
+    restartPressedThisFrame_ = false;
 }
 
 void AndroidInputAdapter::onResume() noexcept {
@@ -240,6 +242,7 @@ void AndroidInputAdapter::beginFrame(
     interactPressedThisFrame_ = false;
     jumpPressedThisFrame_ = false;
     stancePressedThisFrame_ = false;
+    restartPressedThisFrame_ = false;
 
     snapshot_.input.look = {};
 
@@ -262,6 +265,24 @@ void AndroidInputAdapter::beginFrame(
 void AndroidInputAdapter::setInteractAvailable(
     bool available) noexcept {
     interactAvailable_ = available;
+}
+
+void AndroidInputAdapter::setRestartAvailable(
+    bool available) noexcept {
+    if (restartAvailable_ == available) {
+        return;
+    }
+
+    restartAvailable_ = available;
+    releaseAllPointers();
+
+    if (available) {
+        aimToggled_ = false;
+        stanceHeldSeconds_ = 0.0f;
+        snapshot_.input = {};
+        snapshot_.movementButtons = {};
+        snapshot_.moveActive = false;
+    }
 }
 
 void AndroidInputAdapter::handleLooperIdentifier(
@@ -470,6 +491,14 @@ AndroidInputAdapter::chooseRole(
         return TouchRole::None;
     }
 
+    if (restartAvailable_) {
+        return insideButton(
+                   x, y, width, height,
+                   0.50f, 0.62f, 0.16f)
+            ? TouchRole::Restart
+            : TouchRole::None;
+    }
+
     // Four familiar action areas, but only two are movement-specific:
     // Jump/Mantle and Stance. Fire/ADS remain weapon controls rather than
     // creating separate buttons for slide, dive, sprint, wall-run, etc.
@@ -571,6 +600,8 @@ void AndroidInputAdapter::updateDerivedState(
         stancePressedThisFrame_;
     snapshot_.firePressed =
         firePressedThisFrame_;
+    snapshot_.restartPressed =
+        restartPressedThisFrame_;
     snapshot_.moveActive = false;
     snapshot_.moveAnchorNormalized = {
         0.17f,
@@ -587,6 +618,13 @@ void AndroidInputAdapter::updateDerivedState(
         stanceHeldSeconds_;
     snapshot_.movementButtons.movementCancelGesture =
         false;
+
+    if (restartAvailable_) {
+        snapshot_.input = {};
+        snapshot_.movementButtons = {};
+        snapshot_.moveActive = false;
+        return;
+    }
 
     if (width <= 0 || height <= 0) {
         return;
@@ -687,6 +725,9 @@ void AndroidInputAdapter::updateDerivedState(
                 snapshot_.input.crouch = true;
                 snapshot_.movementButtons.stanceHeld =
                     true;
+                break;
+
+            case TouchRole::Restart:
                 break;
 
             case TouchRole::None:
@@ -793,6 +834,14 @@ void AndroidInputAdapter::processMotionEvent(
                 TouchRole::Stance) {
                 stancePressedThisFrame_ = true;
                 stanceHeldSeconds_ = 0.0f;
+            } else if (
+                pointer->role ==
+                TouchRole::Restart) {
+                restartPressedThisFrame_ = true;
+                __android_log_print(
+                    ANDROID_LOG_INFO,
+                    kTag,
+                    "XZIEL_RESTART_PRESSED");
             }
         }
     }
