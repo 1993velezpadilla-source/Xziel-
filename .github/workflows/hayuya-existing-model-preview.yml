@@ -62,19 +62,26 @@ jobs:
           git add hayuya/models/*/renders || true
           if git diff --cached --quiet; then
             echo "Preview renders already current."
-            exit 0
+          else
+            git commit -m "hayuya: persist generated-model preview renders"
+            for attempt in 1 2 3 4 5; do
+              if git pull --rebase origin art/hayuya-monster-v1 && git push origin HEAD:art/hayuya-monster-v1; then
+                echo "HAYUYA_PREVIEWS_PERSISTED"
+                break
+              fi
+              git rebase --abort || true
+              if [ "$attempt" -eq 5 ]; then
+                echo "Could not persist preview renders after retries" >&2
+                exit 1
+              fi
+              sleep $((attempt * 2))
+            done
           fi
 
-          git commit -m "hayuya: persist generated-model preview renders"
-
-          for attempt in 1 2 3 4 5; do
-            if git pull --rebase origin art/hayuya-monster-v1 && git push origin HEAD:art/hayuya-monster-v1; then
-              echo "HAYUYA_PREVIEWS_PERSISTED"
-              exit 0
-            fi
-            git rebase --abort || true
-            sleep $((attempt * 2))
-          done
-
-          echo "Could not persist preview renders after retries" >&2
-          exit 1
+      - name: Upload preview artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hayuya-generated-previews-${{ github.run_number }}
+          path: hayuya/models/*/renders/**
+          if-no-files-found: error
+          retention-days: 7
