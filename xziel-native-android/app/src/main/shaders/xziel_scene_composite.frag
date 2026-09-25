@@ -20,6 +20,17 @@ void main() {
         vec2(textureSize(uScene, 0));
 
     vec3 c = texture(uScene, vUv).rgb;
+
+    // EXACT_SOURCE_COMPOSITE_PASSTHROUGH_V1
+    // During source-fidelity validation, the compositor must not manufacture
+    // edge energy. This makes a runtime screenshot useful for comparing the
+    // actual St Giles material instead of a sharpened derivative.
+    const bool exactSourceReference = true;
+    if (exactSourceReference) {
+        outColor = vec4(c, 1.0);
+        return;
+    }
+
     vec3 n = texture(uScene, vUv + vec2(0.0, -texel.y)).rgb;
     vec3 s = texture(uScene, vUv + vec2(0.0,  texel.y)).rgb;
     vec3 w = texture(uScene, vUv + vec2(-texel.x, 0.0)).rgb;
