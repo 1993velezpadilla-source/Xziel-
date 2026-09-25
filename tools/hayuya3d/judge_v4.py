@@ -291,8 +291,19 @@ def run_judge_v4(
     policy: str = "required",
     python_executable: str | None = None,
     thresholds: JudgeV4Thresholds | None = None,
+    tier: str = "pro",
 ) -> JudgeV4Report:
     t = thresholds or JudgeV4Thresholds()
+    if tier not in {"core","pro"}:
+        raise ValueError(f"unsupported Judge v4 tier: {tier}")
+    qrealign_model=(
+        "q-future/Q-ReAlign-Pro-9B"
+        if tier=="pro" else "q-future/Q-ReAlign-Mini-0.8B"
+    )
+    internvl_model=(
+        "OpenGVLab/InternVL3_5-8B-HF"
+        if tier=="pro" else "OpenGVLab/InternVL3_5-1B-HF"
+    )
     failures: list[str] = []
     advisories: list[str] = []
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -410,6 +421,7 @@ def run_judge_v4(
     face_landmarks = None
     dreamsim = None
     internvl = None
+    detected_source_faces: list[Path] = []
 
     if python:
         here = Path(__file__).resolve().parent
@@ -425,6 +437,11 @@ def run_judge_v4(
                 out_dir / "face_landmarks.log",
                 timeout=900,
             )
+            detected_source_faces = [
+                Path(str(item["path"]))
+                for item in (face_landmarks.get("source") or [])
+                if item.get("path")
+            ]
             if face_landmarks.get("face_expected_from_source"):
                 total = max(1, int(face_landmarks.get("candidate_total") or 0))
                 detected = int(face_landmarks.get("candidate_detected") or 0)
@@ -466,7 +483,11 @@ def run_judge_v4(
             qrealign = _run_worker(
                 python,
                 here / "judge_v4_qrealign_worker.py",
-                sum((["--image", str(p)] for p in all_q_images), []),
+                [
+                    *sum((["--image", str(p)] for p in all_q_images), []),
+                    "--model",
+                    qrealign_model,
+                ],
                 out_dir / "qrealign.json",
                 out_dir / "qrealign.log",
             )
@@ -507,7 +528,10 @@ def run_judge_v4(
                 [
                     *sum((["--source-full", str(p)] for p in normalized_source), []),
                     *sum((["--candidate-full", str(p)] for p in normalized_turns), []),
-                    *sum((["--source-face", str(p)] for p in source_faces), []),
+                    *sum((
+                        ["--source-face", str(p)]
+                        for p in detected_source_faces
+                    ), []),
                     *sum((["--candidate-face", str(p)] for p in candidate_faces), []),
                 ],
                 out_dir / "dreamsim.json",
@@ -538,6 +562,8 @@ def run_judge_v4(
                     str(board_a),
                     "--board",
                     str(board_b),
+                    "--model",
+                    internvl_model,
                 ],
                 out_dir / "internvl.json",
                 out_dir / "internvl.log",
@@ -554,7 +580,12 @@ def run_judge_v4(
         method=(
             "fail-closed multi-eye visual acceptance: 24-view render evidence + "
             "Q-ReAlign-Pro-9B + MediaPipe dense face geometry + DreamSim + "
-            "dual-order InternVL3.5-8B-HF"
+            + (
+                "dual-order InternVL3.5-8B-HF"
+                if tier=="pro"
+                else "dual-order InternVL3.5-1B-HF"
+            )
+            + f" [tier={tier}]"
         ),
         policy=policy,
         passed=passed,
@@ -583,6 +614,7 @@ def main() -> int:
     p.add_argument("--output-dir", type=Path, required=True)
     p.add_argument("--policy", choices=["required", "auto"], default="required")
     p.add_argument("--python")
+    p.add_argument("--tier", choices=["core","pro"], default="pro")
     a = p.parse_args()
 
     report = run_judge_v4(
@@ -593,6 +625,7 @@ def main() -> int:
         out_dir=a.output_dir,
         policy=a.policy,
         python_executable=a.python,
+        tier=a.tier,
     )
     print("HAYUYA_JUDGE_V4 " + json.dumps(asdict(report), separators=(",", ":")))
     return 0 if report.passed else 2
