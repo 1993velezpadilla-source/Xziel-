@@ -58,7 +58,10 @@ struct WeaponViewmodelProfile {
     WeaponViewmodelPose ads{
         -0.008f,
         -0.065f,
-        0.160f,
+        // Keep the stock/receiver seam just behind the 0.08 m viewmodel
+        // near plane. Moving this forward to 0.160 exposed a large stock
+        // cross-section directly in front of the sight during ADS.
+        0.075f,
         0.58f,
         0.0f,
         0.018f,
