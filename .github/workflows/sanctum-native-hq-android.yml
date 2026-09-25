@@ -844,7 +844,7 @@ jobs:
 
             RESTART_DEATH_READY=0
             for i in $(seq 1 30); do
-              RESTART_LOG="$("$ADB" logcat -d -v brief -s XzielNative:I '*:S' 2>/dev/null || true)"
+              RESTART_LOG="$("$ADB" logcat -d -v brief -s XzielNative:I XzielInput:I '*:S' 2>/dev/null || true)"
               if grep -q "XZIEL_RESTART_PROBE_DEATH_READY" <<<"$RESTART_LOG"; then
                 RESTART_DEATH_READY=1
                 break
@@ -864,7 +864,7 @@ jobs:
 
             RESTART_COMPLETED=0
             for i in $(seq 1 20); do
-              RESTART_LOG="$("$ADB" logcat -d -v brief -s XzielNative:I '*:S' 2>/dev/null || true)"
+              RESTART_LOG="$("$ADB" logcat -d -v brief -s XzielNative:I XzielInput:I '*:S' 2>/dev/null || true)"
               if grep -q "XZIEL_RESTART_PRESSED" <<<"$RESTART_LOG" && \
                  grep -q "XZIEL_RESTART_COMPLETE" <<<"$RESTART_LOG"; then
                 RESTART_COMPLETED=1
