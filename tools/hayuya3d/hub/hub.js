@@ -42,7 +42,7 @@ function render(){
           <div class="title">${esc(j.title)}</div>
           <div class="jobid">${esc(j.jobId)}</div>
         </div>
-        <span class="badge ${j.state}">${j.state.toUpperCase()}</span>
+        <span class="badge ${j.state}">${j.state==="done"?"GENERATED":j.state.toUpperCase()}</span>
       </div>
       <div class="meta">
         <span>Action #${j.runNumber}</span>
