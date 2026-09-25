@@ -6,6 +6,8 @@ on:
       - art/hayuya-monster-v1
     paths:
       - "hayuya/preview_requests/**.json"
+      - "tools/hayuya3d/blender_model_preview_pack.py"
+      - ".github/workflows/hayuya-existing-model-preview.yml"
   workflow_dispatch:
 
 permissions:
@@ -41,29 +43,13 @@ jobs:
           fi
 
           for request in "${requests[@]}"; do
-            eval "$(
-              python - "$request" <<'PY'
-import json, shlex, sys
-from pathlib import Path
-
-req = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
-job_id = str(req["job_id"]).strip()
-source = str(req.get("source") or f"hayuya/models/{job_id}/model.glb").strip()
-size = int(req.get("size", 1024))
-if not job_id or "/" in job_id or "\\" in job_id:
-    raise SystemExit("invalid job_id")
-if size < 512 or size > 2048:
-    raise SystemExit("preview size must be 512..2048")
-print("JOB_ID=" + shlex.quote(job_id))
-print("SOURCE=" + shlex.quote(source))
-print("SIZE=" + shlex.quote(str(size)))
-PY
-            )"
+            python -c 'import json,shlex,sys; from pathlib import Path; req=json.loads(Path(sys.argv[1]).read_text(encoding="utf-8")); job_id=str(req["job_id"]).strip(); source=str(req.get("source") or f"hayuya/models/{job_id}/model.glb").strip(); size=int(req.get("size",1024)); assert job_id and "/" not in job_id and "\\" not in job_id, "invalid job_id"; assert 512 <= size <= 2048, "preview size must be 512..2048"; print("JOB_ID="+shlex.quote(job_id)); print("SOURCE="+shlex.quote(source)); print("SIZE="+shlex.quote(str(size)))' "$request" > /tmp/hayuya_preview_env
+            source /tmp/hayuya_preview_env
 
             test -s "$SOURCE"
             out="hayuya/models/$JOB_ID/renders"
             rm -rf "$out"
-            blender --python-exit-code 1 -b --python tools/hayuya3d/blender_model_preview_pack.py --               --input "$SOURCE"               --output-dir "$out"               --size "$SIZE"
+            blender --python-exit-code 1 -b --python tools/hayuya3d/blender_model_preview_pack.py -- --input "$SOURCE" --output-dir "$out" --size "$SIZE"
           done
 
       - name: Persist preview packs
@@ -82,7 +68,7 @@ PY
           git commit -m "hayuya: persist generated-model preview renders"
 
           for attempt in 1 2 3 4 5; do
-            if git pull --rebase origin art/hayuya-monster-v1 &&                git push origin HEAD:art/hayuya-monster-v1; then
+            if git pull --rebase origin art/hayuya-monster-v1 && git push origin HEAD:art/hayuya-monster-v1; then
               echo "HAYUYA_PREVIEWS_PERSISTED"
               exit 0
             fi
