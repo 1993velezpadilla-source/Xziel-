@@ -51,9 +51,9 @@ struct MovementConfig {
     float tacticalSprintSpeed = 7.2f;
     float crouchSpeed = 2.5f;
 
-    float groundAcceleration = 28.0f;
+    float groundAcceleration = 42.0f;
     float airAcceleration = 8.0f;
-    float groundFriction = 12.0f;
+    float groundFriction = 36.0f;
 
     float jumpVelocity = 5.4f;
     float doubleJumpVelocity = 5.0f;
@@ -82,8 +82,8 @@ struct MovementConfig {
     float mantleForwardSpeed = 2.8f;
     float mantleVerticalSpeed = 2.6f;
 
-    float autoSprintThreshold = 0.92f;
-    float tacticalSprintThreshold = 0.985f;
+    float autoSprintThreshold = 0.88f;
+    float tacticalSprintThreshold = 0.97f;
 };
 
 struct MovementInput {
