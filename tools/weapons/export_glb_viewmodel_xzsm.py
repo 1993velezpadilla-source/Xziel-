@@ -245,6 +245,10 @@ barrel_sum = Vector((0.0, 0.0, 0.0))
 barrel_count = 0
 stock_sum = Vector((0.0, 0.0, 0.0))
 stock_count = 0
+rear_sight_sum = Vector((0.0, 0.0, 0.0))
+rear_sight_count = 0
+magazine_sum = Vector((0.0, 0.0, 0.0))
+magazine_count = 0
 
 for source_obj in mesh_objects:
     mesh = source_obj.data
@@ -279,6 +283,12 @@ for source_obj in mesh_objects:
             if "stock" in material_lower:
                 stock_sum += p
                 stock_count += 1
+            if "rear_sight" in material_lower:
+                rear_sight_sum += p
+                rear_sight_count += 1
+            if "magazine" in material_lower:
+                magazine_sum += p
+                magazine_count += 1
 
     static_sources.append((source_obj, mesh, world))
 
@@ -309,15 +319,26 @@ if canonical_forward.length <= 1e-6:
     raise RuntimeError("weapon stock-to-barrel forward axis collapsed")
 canonical_forward.normalize()
 
-# XZIEL source-space +Y is nominal up. Remove any component parallel to the
-# rifle forward axis, then rebuild an orthonormal right/up/forward basis.
-nominal_up = Vector((0.0, 1.0, 0.0))
-canonical_up = nominal_up - canonical_forward * nominal_up.dot(canonical_forward)
+# Derive UP from weapon semantics, not the imported scene axes. The rear sight
+# must sit above the magazine in first-person view. This avoids a valid +Z
+# barrel axis paired with a 180-degree roll, which previously put the sight
+# below the magazine and made ADS look like a vertical/sideways weapon.
+if rear_sight_count <= 0 or magazine_count <= 0:
+    raise RuntimeError(
+        f"weapon up landmarks missing: "
+        f"rear_sight_count={rear_sight_count} "
+        f"magazine_count={magazine_count}"
+    )
+
+rear_sight_center = rear_sight_sum / float(rear_sight_count)
+magazine_center = magazine_sum / float(magazine_count)
+semantic_up = rear_sight_center - magazine_center
+canonical_up = (
+    semantic_up -
+    canonical_forward * semantic_up.dot(canonical_forward)
+)
 if canonical_up.length <= 1e-5:
-    nominal_up = Vector((0.0, 0.0, 1.0))
-    canonical_up = nominal_up - canonical_forward * nominal_up.dot(canonical_forward)
-if canonical_up.length <= 1e-5:
-    raise RuntimeError("weapon canonical up axis is degenerate")
+    raise RuntimeError("weapon semantic up axis is degenerate")
 canonical_up.normalize()
 
 canonical_right = canonical_up.cross(canonical_forward)
@@ -575,7 +596,7 @@ report = {
     "sourcePage": SOURCE_PAGE,
     "coordinateSpace": "viewmodel_y_up_z_forward",
     "readyPoseAction": None,
-    "exportMode": "rigid_weapon_rest_pose_canonical_xziel",
+    "exportMode": "rigid_weapon_rest_pose_canonical_xziel_v2",
     "canonicalForwardSource": [
         float(canonical_forward.x),
         float(canonical_forward.y),
@@ -586,6 +607,7 @@ report = {
         float(canonical_up.y),
         float(canonical_up.z),
     ],
+    "canonicalUpSemantic": "rear_sight_minus_magazine",
     "includedMaterials": sorted(included_material_names),
     "excludedMaterials": sorted(excluded_material_names),
     "meaningfulBatchCount": meaningful_batches,
@@ -624,6 +646,6 @@ print("XZIEL_WEAPON_XZSM_READY", json.dumps({
     "unitNormalizationScale": model_scale,
     "animations": animations,
     "readyPose": None,
-    "exportMode": "rigid_weapon_rest_pose_canonical_xziel",    "meaningfulBatches": meaningful_batches,
+    "exportMode": "rigid_weapon_rest_pose_canonical_xziel_v2",    "meaningfulBatches": meaningful_batches,
     "modelBytes": model_path.stat().st_size,
 }))
