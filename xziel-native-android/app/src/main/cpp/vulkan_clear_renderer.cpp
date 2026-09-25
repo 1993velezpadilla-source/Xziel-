@@ -5560,8 +5560,8 @@ bool VulkanClearRenderer::recordDrawCommand(
             0.20f * lowering +
             0.016f * fire;
         weaponState.z =
-            0.150f * (1.0f - ads) -
-            0.100f * ads +
+            0.150f * (1.0f - ads) +
+            0.075f * ads +
             0.024f * reloadArc -
             0.055f * fire +
             0.030f * lowering;
