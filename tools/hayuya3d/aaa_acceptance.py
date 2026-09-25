@@ -229,7 +229,28 @@ def evaluate_aaa_acceptance(
             ),
             blocker=(
                 "final high-end character failed or lacks fail-closed Judge v4 "
-                "visual acceptance (face/body/material/multiview/source fidelity)"
+                "visual evidence"
+            ),
+        )
+        visual_v5=manifest.get("judge_v5") or {}
+        visual_approval=manifest.get("visual_approval") or {}
+        v5_ready=bool(
+            visual_v5.get("passed") is True
+            and visual_v5.get("status")=="APPROVED"
+            and visual_approval.get("production_approved") is True
+        )
+        _gate(
+            gates,"character.visual_judge_v5","character",
+            v5_ready,
+            (
+                f"status={visual_v5.get('status')} "
+                f"passed={visual_v5.get('passed')} "
+                f"production_approved={visual_approval.get('production_approved')} "
+                f"hard_failures={len(visual_v5.get('hard_fail_reasons') or [])}"
+            ),
+            blocker=(
+                "high-end character lacks authoritative Judge v5 production "
+                "approval; V4 alone can never ship a Monster/Ultra character"
             ),
         )
 
