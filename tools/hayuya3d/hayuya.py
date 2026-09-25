@@ -926,6 +926,17 @@ def main() -> int:
         ),
     )
     parser.add_argument(
+        "--judge-v5",
+        choices=["off", "auto", "required"],
+        default="auto",
+        help=(
+            "authoritative high-end visual acceptance ensemble. V5 consumes "
+            "Judge V4 evidence plus VisualQuality-R1, SigLIP2 Giant, AdaFace "
+            "identity and PyIQA face/general metrics. Missing/uncalibrated "
+            "evidence can never become production-approved."
+        ),
+    )
+    parser.add_argument(
         "--semantic-anatomy",
         choices=["off","auto","required"],
         default="auto",
@@ -974,6 +985,8 @@ def main() -> int:
         mode = infer_asset_mode(geometry_inputs[0])
     if args.judge_v4 == "required" and mode != "character":
         parser.error("--judge-v4 required needs --mode character or a character-path input")
+    if args.judge_v5 == "required" and mode != "character":
+        parser.error("--judge-v5 required needs --mode character or a character-path input")
     if args.character_specialist != "off" and not args.allow_restricted:
         parser.error("--character-specialist requires --allow-restricted because PSHuman includes separately licensed third-party human-model components")
     if args.character_specialist == "required" and mode != "character":
@@ -2420,6 +2433,55 @@ def main() -> int:
             if judge_v4_required:
                 raise
 
+    judge_v5_result = None
+    judge_v5_failure = None
+    judge_v5_should_run = bool(
+        mode=="character"
+        and args.judge_v5!="off"
+        and (
+            args.judge_v5=="required"
+            or args.profile in {"game","monster","ultra"}
+        )
+    )
+    judge_v5_required = bool(args.judge_v5=="required")
+    if judge_v5_should_run:
+        try:
+            if judge_v4_result is None:
+                raise RuntimeError("Judge v5 requires Judge v4 evidence")
+            from judge_v5 import run_judge_v5
+            judge_v5_result=run_judge_v5(
+                judge_v4=judge_v4_result,
+                source_images=geometry_inputs,
+                final_glb=final_glb,
+                out_dir=job_dir / "judge_v5",
+                python_executable=(
+                    __import__("os").environ.get("HAYUYA_JUDGE_V4_PYTHON")
+                    or None
+                ),
+            )
+            print(
+                "HAYUYA_JUDGE_V5_READY "
+                f"status={judge_v5_result.status} "
+                f"passed={str(bool(judge_v5_result.passed)).lower()} "
+                f"hard_failures={len(judge_v5_result.hard_fail_reasons)} "
+                f"report={job_dir / 'judge_v5' / 'judge_v5.json'}"
+            )
+            if judge_v5_required and not judge_v5_result.passed:
+                raise RuntimeError(
+                    "Judge v5 did not production-approve final character: "
+                    f"status={judge_v5_result.status}; "
+                    + ";".join(judge_v5_result.hard_fail_reasons[:16])
+                )
+        except Exception as exc:
+            judge_v5_failure=f"{type(exc).__name__}: {exc}"
+            print(
+                f"HAYUYA_JUDGE_V5_FAILED {judge_v5_failure}",
+                file=sys.stderr,
+            )
+            traceback.print_exc()
+            if judge_v5_required:
+                raise
+
     portable_pack_result = None
     portable_pack_failure = None
     should_try_portable_pack = (
@@ -2635,6 +2697,30 @@ def main() -> int:
             if judge_v4_result is not None else None
         ),
         "judge_v4_failure": judge_v4_failure,
+        "judge_v5": (
+            asdict(judge_v5_result)
+            if judge_v5_result is not None else None
+        ),
+        "judge_v5_failure": judge_v5_failure,
+        "visual_approval": {
+            "schema": 2,
+            "production_approved": bool(
+                judge_v5_result is not None
+                and judge_v5_result.passed
+                and judge_v5_result.status=="APPROVED"
+            ),
+            "state": (
+                judge_v5_result.status
+                if judge_v5_result is not None
+                else (
+                    "NOT_APPLICABLE"
+                    if mode!="character"
+                    else "NOT_EVALUATED"
+                )
+            ),
+            "authoritative_judge": "HAYUYA_JUDGE_V5",
+            "fail_closed": True,
+        },
         "notes": [
             "The reference pool has no Hayuya-level photo-count cap.",
             "All unique full-object/geometry source photos participate in Judge v2.",
