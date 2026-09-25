@@ -5545,32 +5545,38 @@ bool VulkanClearRenderer::recordDrawCommand(
                 1.0f);
 
         StaticMeshViewmodelState weaponState{};
+        // The validated AKM rest-pose export is +Y along the rifle barrel.
+        // Rotate +90 degrees around view X so source +Y becomes camera +Z.
+        // Hip placement keeps the weapon in the lower-right quadrant; ADS
+        // centers the receiver/sight line rather than scaling a toy blockout.
         weaponState.x =
-            0.235f * (1.0f - ads) +
-            0.004f * ads +
-            0.055f * lowering;
+            0.45f * (1.0f - ads) +
+            0.000f * ads +
+            0.050f * lowering;
         weaponState.y =
-            -0.205f +
-            0.105f * ads -
-            0.155f * reloadArc -
-            0.31f * lowering -
-            0.018f * fire;
+            -0.050f * (1.0f - ads) +
+            0.200f * ads -
+            0.120f * reloadArc -
+            0.28f * lowering -
+            0.012f * fire;
         weaponState.z =
-            0.175f +
-            0.025f * ads +
-            0.045f * reloadArc -
-            0.070f * fire +
-            0.06f * lowering;
-        weaponState.scale = 1.0f;
+            0.720f * (1.0f - ads) +
+            0.680f * ads +
+            0.040f * reloadArc -
+            0.045f * fire +
+            0.05f * lowering;
+        weaponState.scale = 0.90f;
         weaponState.yawRadians =
-            -0.025f +
-            0.08f * reloadArc;
+            -0.020f +
+            0.07f * reloadArc;
         weaponState.pitchRadians =
-            -0.035f -
-            0.16f * reloadArc;
+            1.570796327f -
+            0.020f -
+            0.14f * reloadArc;
         weaponState.rollRadians =
-            -0.055f -
-            0.42f * reloadArc;
+            -0.10f * (1.0f - ads) -
+            0.02f * ads -
+            0.36f * reloadArc;
         weaponState.verticalFovDegrees =
             std::clamp(
                 camera.verticalFovDegrees,
