@@ -27,6 +27,7 @@ class JudgeV5Report:
     visualquality_r1:dict|None
     siglip2:dict|None
     cvlface:dict|None
+    ediffiqa:dict|None
     pyiqa:dict|None
 
 
@@ -167,6 +168,7 @@ def run_judge_v5(
     visualquality=None
     siglip=None
     cvlface=None
+    ediffiqa=None
     pyiqa=None
     here=Path(__file__).resolve().parent
 
@@ -332,6 +334,40 @@ def run_judge_v5(
                 "established by the independent MediaPipe source detector."
             )
 
+        if face_expected:
+            try:
+                ediff_args=[]
+                for index,path in audit_faces:
+                    ediff_args.extend(["--image",f"face_{index:02d}={path}"])
+                ediffiqa=_run_json_worker(
+                    python,here/"ediffiqa_face_judge.py",ediff_args,
+                    out_dir/"ediffiqa.json",out_dir/"ediffiqa.log",
+                    timeout=3600,
+                )
+                epol=policy.get("ediffiqa") or {}
+                detect_min=float(epol.get("candidate_detection_fraction_min",0.80))
+                minimum_floor=float(epol.get("minimum_catastrophic_floor",0.15))
+                median_floor=float(epol.get("median_catastrophic_floor",0.30))
+                frac=float(ediffiqa.get("detection_fraction") or 0.0)
+                minimum=ediffiqa.get("minimum")
+                median=ediffiqa.get("median")
+                if frac<detect_min:
+                    failures.append(
+                        f"ediffiqa_detection_coverage:{frac:.3f}<{detect_min:.3f}"
+                    )
+                if minimum is None or float(minimum)<minimum_floor:
+                    failures.append(
+                        f"ediffiqa_minimum:{minimum}<{minimum_floor:.3f}"
+                    )
+                if median is None or float(median)<median_floor:
+                    failures.append(
+                        f"ediffiqa_median:{median}<{median_floor:.3f}"
+                    )
+            except Exception as exc:
+                failures.append(
+                    f"ediffiqa_worker:{type(exc).__name__}:{exc}"
+                )
+
         try:
             args=[]
             for index,path in audit_turns:
@@ -380,7 +416,8 @@ def run_judge_v5(
             "HAYUYA Judge v5 hard-veto ensemble: ALL 24 Judge v4 turntable views + "
             "Q-ReAlign-Pro-9B + InternVL3.5 + MediaPipe + DreamSim; "
             "VisualQuality-R1-7B; SigLIP2-Giant; CVLFace AdaFace "
-            "ViT-KPRPE WebFace12M; PyIQA TOPIQ/MUSIQ/CLIPIQA/MANIQA "
+            "ViT-KPRPE WebFace12M; eDifFIQA-L face quality; "
+            "PyIQA TOPIQ/MUSIQ/CLIPIQA/MANIQA "
             "+ dual face TOPIQ"
         ),
         policy_id=policy_id,
@@ -401,6 +438,7 @@ def run_judge_v5(
         visualquality_r1=visualquality,
         siglip2=siglip,
         cvlface=cvlface,
+        ediffiqa=ediffiqa,
         pyiqa=pyiqa,
     )
     (out_dir/"judge_v5.json").write_text(
