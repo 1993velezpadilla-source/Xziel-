@@ -7893,6 +7893,18 @@ bool VulkanClearRenderer::recordDrawCommand(
         drawShortRect(x - 0.016f * shortToX, y + 0.014f, 0.0035f, 0.012f, 0.96f, 0.98f, 1.0f, alpha * 0.85f);
     };
 
+    // Android touch coordinates are top-origin while this renderer's UI
+    // layout helpers are bottom-origin. Keep the input/HUD contract explicitly
+    // top-origin for mobile controls and convert only at the renderer boundary.
+    const auto mobileTopYToUiY = [](
+        float topOriginY) noexcept {
+        return 1.0f -
+            std::clamp(
+                topOriginY,
+                0.0f,
+                1.0f);
+    };
+
     const float moveAnchorX =
         hud.moveActive
         ? std::clamp(
@@ -7901,13 +7913,17 @@ bool VulkanClearRenderer::recordDrawCommand(
               0.42f)
         : 0.17f;
 
-    const float moveAnchorY =
+    const float moveAnchorTopY =
         hud.moveActive
         ? std::clamp(
               hud.moveAnchorY,
               0.55f,
               0.92f)
         : 0.78f;
+
+    const float moveAnchorY =
+        mobileTopYToUiY(
+            moveAnchorTopY);
 
     // Neutral COD-style joystick: quiet enough to see through, strong enough
     // to acquire by peripheral vision.
@@ -7927,7 +7943,7 @@ bool VulkanClearRenderer::recordDrawCommand(
         moveAnchorX +
             std::clamp(hud.moveX, -1.0f, 1.0f) *
             knobTravel * shortToX,
-        moveAnchorY -
+        moveAnchorY +
             std::clamp(hud.moveY, -1.0f, 1.0f) *
             knobTravel,
         0.031f,
@@ -7937,17 +7953,31 @@ bool VulkanClearRenderer::recordDrawCommand(
         hud.moveActive ? 0.72f : 0.30f,
         false);
 
+    constexpr float fireTopY = 0.47f;
+    constexpr float aimTopY = 0.54f;
+    constexpr float reloadTopY = 0.35f;
+    constexpr float interactTopY = 0.73f;
+    constexpr float jumpTopY = 0.72f;
+    constexpr float stanceTopY = 0.83f;
+
+    const float fireY = mobileTopYToUiY(fireTopY);
+    const float aimY = mobileTopYToUiY(aimTopY);
+    const float reloadY = mobileTopYToUiY(reloadTopY);
+    const float interactY = mobileTopYToUiY(interactTopY);
+    const float jumpY = mobileTopYToUiY(jumpTopY);
+    const float stanceY = mobileTopYToUiY(stanceTopY);
+
     // FIRE: bullet silhouette, not an unlabeled neon ring.
-    drawActionBackplate(0.90f, 0.47f, 0.066f, hud.fire);
-    drawBulletIcon(0.90f, 0.47f, hud.fire ? 1.0f : 0.78f);
+    drawActionBackplate(0.90f, fireY, 0.066f, hud.fire);
+    drawBulletIcon(0.90f, fireY, hud.fire ? 1.0f : 0.78f);
 
     // ADS: proper reticle.
-    drawActionBackplate(0.73f, 0.54f, 0.059f, hud.aim);
-    drawCrosshairIcon(0.73f, 0.54f, hud.aim ? 1.0f : 0.78f);
+    drawActionBackplate(0.73f, aimY, 0.059f, hud.aim);
+    drawCrosshairIcon(0.73f, aimY, hud.aim ? 1.0f : 0.78f);
 
     // RELOAD: circular-arrow glyph.
-    drawActionBackplate(0.80f, 0.35f, 0.049f, hud.reload);
-    drawReloadIcon(0.80f, 0.35f, hud.reload ? 1.0f : 0.76f);
+    drawActionBackplate(0.80f, reloadY, 0.049f, hud.reload);
+    drawReloadIcon(0.80f, reloadY, hud.reload ? 1.0f : 0.76f);
 
     if (hud.interactAvailable) {
         const float interactProgress =
@@ -7965,7 +7995,7 @@ bool VulkanClearRenderer::recordDrawCommand(
 
         drawUiCircle(
             0.65f,
-            0.73f,
+            interactY,
             0.050f,
             0.015f,
             0.020f,
@@ -7974,7 +8004,7 @@ bool VulkanClearRenderer::recordDrawCommand(
             false);
         drawUiCircle(
             0.65f,
-            0.73f,
+            interactY,
             0.050f,
             interactR,
             interactG,
@@ -7982,13 +8012,13 @@ bool VulkanClearRenderer::recordDrawCommand(
             hud.interactHeld ? 0.82f : 0.46f,
             true,
             0.07f);
-        drawShortRect(0.65f, 0.73f, 0.004f, 0.020f, interactR, interactG, interactB, 0.90f);
-        drawShortRect(0.65f, 0.73f, 0.020f, 0.004f, interactR, interactG, interactB, 0.90f);
+        drawShortRect(0.65f, interactY, 0.004f, 0.020f, interactR, interactG, interactB, 0.90f);
+        drawShortRect(0.65f, interactY, 0.020f, 0.004f, interactR, interactG, interactB, 0.90f);
 
         if (interactProgress > 0.01f) {
             drawUiCircle(
                 0.65f,
-                0.73f,
+                interactY,
                 0.038f + interactProgress * 0.008f,
                 interactR,
                 interactG,
@@ -8031,13 +8061,17 @@ bool VulkanClearRenderer::recordDrawCommand(
                     firstCostDigit) *
                     0.010f;
 
+            const float costY =
+                mobileTopYToUiY(
+                    0.655f);
+
             for (std::size_t i = firstCostDigit;
                  i < costDigits.size();
                  ++i) {
                 drawSevenSegmentDigit(
                     costDigits[i],
                     costX,
-                    0.655f,
+                    costY,
                     0.72f,
                     affordable
                         ? 0.78f
@@ -8048,11 +8082,11 @@ bool VulkanClearRenderer::recordDrawCommand(
     }
 
     // JUMP/MANTLE and contextual STANCE get readable human silhouettes.
-    drawActionBackplate(0.89f, 0.72f, 0.061f, hud.jump);
-    drawJumpIcon(0.89f, 0.72f, hud.jump ? 1.0f : 0.80f);
+    drawActionBackplate(0.89f, jumpY, 0.061f, hud.jump);
+    drawJumpIcon(0.89f, jumpY, hud.jump ? 1.0f : 0.80f);
 
-    drawActionBackplate(0.77f, 0.83f, 0.057f, hud.stance);
-    drawCrouchIcon(0.77f, 0.83f, hud.stance ? 1.0f : 0.80f);
+    drawActionBackplate(0.77f, stanceY, 0.057f, hud.stance);
+    drawCrouchIcon(0.77f, stanceY, hud.stance ? 1.0f : 0.80f);
 
     const float roundProgress =
         std::clamp(
