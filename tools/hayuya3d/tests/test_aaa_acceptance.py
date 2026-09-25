@@ -11,6 +11,11 @@ def base_manifest():
         "mode":"character",
         "profile":"monster",
         "champion":{"backend":"composite_material_b"},
+        "judge_v4":{
+            "passed":True,
+            "hard_fail_reasons":[],
+            "method":"fixture-pass",
+        },
         "gameprep":{"lods":[{"name":"LOD0"},{"name":"LOD1"},{"name":"LOD2"},{"name":"LOD3"}]},
         "portable_pack":{
             "complete_lod_chain":True,
@@ -148,6 +153,30 @@ class AAAAcceptanceTests(unittest.TestCase):
         report=evaluate_aaa_acceptance(base_manifest(),base_qa())
         self.assertTrue(report.ready,report.blockers)
         self.assertEqual(report.passed_required,report.total_required)
+
+    def test_missing_visual_judge_v4_blocks_high_end_character(self):
+        manifest=base_manifest()
+        manifest.pop("judge_v4",None)
+        report=evaluate_aaa_acceptance(manifest,base_qa())
+        self.assertFalse(report.ready)
+        self.assertTrue(
+            any("Judge v4" in x for x in report.blockers),
+            report.blockers,
+        )
+
+    def test_rejected_visual_judge_v4_blocks_high_end_character(self):
+        manifest=base_manifest()
+        manifest["judge_v4"]={
+            "passed":False,
+            "hard_fail_reasons":["face_anatomy"],
+            "method":"fixture-reject",
+        }
+        report=evaluate_aaa_acceptance(manifest,base_qa())
+        self.assertFalse(report.ready)
+        self.assertTrue(
+            any("Judge v4" in x for x in report.blockers),
+            report.blockers,
+        )
 
     def test_missing_face_texel_evidence_fails_closed(self):
         qa=base_qa()
