@@ -778,6 +778,17 @@ jobs:
           sleep 1
           capture_png dist/sanctum-hq-tour-04-look-up.png
 
+          # Verify mobile ADS is a real tap-toggle.  Capture both states so a
+          # stuck ADS regression or broken viewmodel transform is visible in
+          # the runtime artifact before a phone build is handed off.
+          "$ADB" shell input tap 1752 583 || true
+          sleep 1
+          capture_png dist/sanctum-hq-tour-05-ads.png
+
+          "$ADB" shell input tap 1752 583 || true
+          sleep 1
+          capture_png dist/sanctum-hq-tour-06-hip-after-ads.png
+
           # Refresh diagnostics after the tour so delayed frame-pacing,
           # first GPU timing, ADPF and swapchain-stability markers are kept.
           timeout 8 "$ADB" logcat -d -v threadtime             > dist/sanctum-hq-logcat.txt || true
@@ -1370,6 +1381,8 @@ jobs:
             dist/sanctum-hq-tour-02-look.png
             dist/sanctum-hq-tour-03-forward.png
             dist/sanctum-hq-tour-04-look-up.png
+            dist/sanctum-hq-tour-05-ads.png
+            dist/sanctum-hq-tour-06-hip-after-ads.png
             dist/sanctum-hq-window.xml
             dist/sanctum-hq-emulator.txt
             dist/sanctum-hq-am-start.txt
