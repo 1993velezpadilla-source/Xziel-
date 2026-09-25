@@ -807,11 +807,23 @@ jobs:
           # Verify mobile ADS is a real tap-toggle.  Capture both states so a
           # stuck ADS regression or broken viewmodel transform is visible in
           # the runtime artifact before a phone build is handed off.
-          "$ADB" shell input tap 1752 583 || true
+          # Tap the current NZ:P-baseline ADS control at normalized
+          # 0.695 / 0.575. Compute pixels from the runtime display size so
+          # orientation/resolution changes cannot silently invalidate this test.
+          DISPLAY_SIZE="$("$ADB" shell wm size | tr -d '\r' | tail -n1)"
+          DISPLAY_WIDTH="$(sed -n 's/.*: \([0-9][0-9]*\)x\([0-9][0-9]*\).*/\1/p' <<<"$DISPLAY_SIZE")"
+          DISPLAY_HEIGHT="$(sed -n 's/.*: \([0-9][0-9]*\)x\([0-9][0-9]*\).*/\2/p' <<<"$DISPLAY_SIZE")"
+          test -n "$DISPLAY_WIDTH"
+          test -n "$DISPLAY_HEIGHT"
+
+          ADS_X="$(awk -v w="$DISPLAY_WIDTH" 'BEGIN { printf "%d", w * 0.695 }')"
+          ADS_Y="$(awk -v h="$DISPLAY_HEIGHT" 'BEGIN { printf "%d", h * 0.575 }')"
+
+          "$ADB" shell input tap "$ADS_X" "$ADS_Y" || true
           sleep 1
           capture_png dist/sanctum-hq-tour-05-ads.png
 
-          "$ADB" shell input tap 1752 583 || true
+          "$ADB" shell input tap "$ADS_X" "$ADS_Y" || true
           sleep 1
           capture_png dist/sanctum-hq-tour-06-hip-after-ads.png
 
