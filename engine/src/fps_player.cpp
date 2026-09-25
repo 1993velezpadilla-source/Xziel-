@@ -241,16 +241,23 @@ void FpsPlayerController::sampleViewInput(
         finiteOrZero(
             input.gyroRadiansPerSecond.x);
 
+    const float gyroStateMultiplier =
+        input.aim
+        ? 0.65f
+        : 1.0f;
+
     frame_.yawDegrees +=
         gyroYaw *
         kRadiansToDegrees *
         config_.gyroSensitivity *
+        gyroStateMultiplier *
         dt;
 
     frame_.pitchDegrees +=
         gyroPitch *
         kRadiansToDegrees *
         config_.gyroSensitivity *
+        gyroStateMultiplier *
         dt;
 
     if (!std::isfinite(frame_.yawDegrees)) {
