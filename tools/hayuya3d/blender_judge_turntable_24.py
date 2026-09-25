@@ -132,8 +132,7 @@ def main():
 
     full=[]
     faces=[]
-    face_indices={0,1,2,3,4,20,21,22,23}
-    distance=3.2*radius
+    # Render head closeups at every azimuth. Never assume which GLB axis is the face.\n    face_indices=set(range(24))\n    distance=3.2*radius
     for index in range(24):
         deg=index*15
         rad=math.radians(deg)
