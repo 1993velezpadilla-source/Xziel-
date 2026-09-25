@@ -60,10 +60,14 @@ def safe_name(value):
 # will get their own skinned animation path.  Keep all named AKM components
 # and reject obvious arm/hand/glove materials.
 def weapon_material_allowed(mat):
-    name = (mat.name if mat else "__fallback__").strip().lower()
+    if mat is None:
+        return False
+    name = mat.name.strip().lower()
     if name == "textura":
         return False
-    if any(token in name for token in ("forearm", "glove", "hand", "arms")):
+    if name in {"arm", "arms", "hand", "hands", "forearm", "forearms", "glove", "gloves"}:
+        return False
+    if name.startswith(("arm_", "arms_", "hand_", "hands_", "forearm_", "glove_")):
         return False
     return True
 
@@ -452,8 +456,10 @@ sorted_dimensions = sorted(
 # before a malformed model can ever reach the Android APK.
 if sorted_dimensions[0] < 0.85 or sorted_dimensions[0] > 0.95:
     raise RuntimeError(f"weapon longest dimension invalid: {sorted_dimensions}")
-if sorted_dimensions[1] < 0.10 or sorted_dimensions[2] < 0.035:
-    raise RuntimeError(f"weapon geometry collapsed: {sorted_dimensions}")
+if sorted_dimensions[1] < 0.10 or sorted_dimensions[1] > 0.45:
+    raise RuntimeError(f"weapon second dimension invalid: {sorted_dimensions}")
+if sorted_dimensions[2] < 0.035 or sorted_dimensions[2] > 0.20:
+    raise RuntimeError(f"weapon thickness invalid: {sorted_dimensions}")
 
 meaningful_batches = 0
 for batch in batches:
