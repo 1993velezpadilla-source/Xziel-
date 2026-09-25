@@ -123,6 +123,7 @@ jobs:
           jq -e '.textures | all(.levels > 0 and .vkFormat >= 157 and .vkFormat <= 184)' pack/root/xziel_astc_texture_report.json
           jq -e '.textures | any(.semantic == "normal" and .width == 4096 and .height == 4096 and .srgb == false)' pack/root/xziel_astc_texture_report.json
           jq -e '.textures | any(.semantic == "linear-data" and .width == 4096 and .height == 4096 and .srgb == false)' pack/root/xziel_astc_texture_report.json
+          jq -e '.textures | any(.semantic == "photo-detail" and .width == 1024 and .height == 1024 and .srgb == false and .mipWrap == "repeat")' pack/root/xziel_astc_texture_report.json
           jq -e '.textures | any(.semantic == "color" and .width == 4096 and .height == 4096)' pack/root/xziel_astc_texture_report.json
           jq '{codec, block, quality, pngCount, ktx2Count, pngBytes, ktx2Bytes, ktx2ToPngRatio, semantics: ([.textures[].semantic] | unique)}' pack/root/xziel_astc_texture_report.json
 
