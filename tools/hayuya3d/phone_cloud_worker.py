@@ -419,8 +419,11 @@ if not multi and TRELLIS2_ENABLED and TEXTURE_QUALITY in {"high","ultra"}:
             space=TRELLIS2_SPACE,
         )
         modern_candidate=Path(modern_meta["path"])
-        modern_mesh=inspect_mesh_gate(modern_candidate)
-        modern_tex=inspect_texture_gate(modern_candidate,min_edge=2048)
+        modern_min_texture_edge=4096 if TEXTURE_QUALITY=="ultra" else 2048
+        modern_mesh=inspect_mesh_gate(modern_candidate,require_normals=True)
+        modern_tex=inspect_texture_gate(
+            modern_candidate,min_edge=modern_min_texture_edge
+        )
         print("HAYUYA_TRELLIS2_MESH_GATE",json.dumps(asdict(modern_mesh),separators=(",",":")))
         print("HAYUYA_TRELLIS2_TEXTURE_GATE",json.dumps(asdict(modern_tex),separators=(",",":")))
         if not modern_mesh.passed or not modern_tex.passed:
@@ -514,7 +517,8 @@ if data[:4] != b"glTF" or len(data)<1024:
 # Catastrophic geometry gate: a backend returning a syntactically valid GLB is
 # not enough. Reject billboard crosses, fragmented texture planes, collapsed
 # bounds, and other obvious non-model outputs before the Hub ever says DONE.
-gate=inspect_mesh_gate(dst)
+require_final_normals=STRICT_TRELLIS2 and TEXTURE_QUALITY in {"high","ultra"}
+gate=inspect_mesh_gate(dst,require_normals=require_final_normals)
 gate_payload=asdict(gate)
 (OUT/"quality_gate.json").write_text(json.dumps(gate_payload,indent=2),encoding="utf-8")
 print("HAYUYA_MESH_GATE", json.dumps(gate_payload, separators=(",",":")))
@@ -524,7 +528,12 @@ if not gate.passed:
 # Texture gate prevents the old failure mode where a geometrically valid model
 # reaches DONE with no usable embedded texture or only a tiny texture. Blur is
 # reported as telemetry first; fidelity refinement owns the stricter judgment.
-texture_gate=inspect_texture_gate(dst, min_edge=1024)
+final_texture_min_edge=(
+    4096
+    if STRICT_TRELLIS2 and TEXTURE_QUALITY in {"high","ultra"}
+    else 1024
+)
+texture_gate=inspect_texture_gate(dst, min_edge=final_texture_min_edge)
 texture_payload=asdict(texture_gate)
 (OUT/"texture_gate.json").write_text(json.dumps(texture_payload,indent=2),encoding="utf-8")
 print("HAYUYA_TEXTURE_GATE", json.dumps(texture_payload,separators=(",",":")))
