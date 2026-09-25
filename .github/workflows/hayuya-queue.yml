@@ -205,9 +205,9 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: python tools/hayuya3d/phone_cloud_worker.py
 
-      - name: Classify Auto asset for skeletal character motion
+      - name: Classify asset for character QA and skeletal motion
         id: character_motion
-        if: success() && matrix.animation_requested == 'true'
+        if: success()
         env:
           HAYUYA_TITLE: ${{ matrix.title }}
           HAYUYA_ASSET_PROFILE: ${{ matrix.asset_profile }}
@@ -241,14 +241,30 @@ jobs:
           print("resolved_profile="+("character.humanoid" if skeletal else profile))
           PY
 
-      - name: Install Blender for requested character motion
+      - name: Install Judge v4 Core eyes
         if: success() && steps.character_motion.outputs.skeletal == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade "transformers>=5.2,<6" accelerate safetensors huggingface_hub sentencepiece einops timm
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision
+          python -m pip install "mediapipe==1.0.1" dreamsim
+
+      - name: Judge v4 Core — fail closed before Hub or AutoRig
+        if: success() && steps.character_motion.outputs.skeletal == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/hayuya3d/judge_phone_v4.py             --output-root "$HAYUYA_OUTPUT_ROOT"             --python "$(command -v python)"             --force-character
+
+      - name: Install Blender for requested character motion
+        if: success() && matrix.animation_requested == 'true' && steps.character_motion.outputs.skeletal == 'true'
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq blender python3-numpy
 
       - name: AutoRig generated real model with local UAM2/UAM1 banks
-        if: success() && steps.character_motion.outputs.skeletal == 'true'
+        if: success() && matrix.animation_requested == 'true' && steps.character_motion.outputs.skeletal == 'true'
         continue-on-error: true
         shell: bash
         run: |
@@ -450,7 +466,7 @@ jobs:
               manifest_path.write_text(json.dumps(manifest,indent=2)+"\n")
           PY
 
-      - name: Persist successful model for Hub preview
+      - name: Persist core-screened model for Hub preview
         if: success()
         shell: bash
         run: |
@@ -468,6 +484,9 @@ jobs:
               cp "$HAYUYA_OUTPUT_ROOT/$qa" "$model_dir/$qa"
             fi
           done
+          if [ -f "$HAYUYA_OUTPUT_ROOT/judge_v4_core/judge_v4.json" ]; then
+            cp "$HAYUYA_OUTPUT_ROOT/judge_v4_core/judge_v4.json" "$model_dir/judge_v4_core.json"
+          fi
           for model in animated.glb animated-uam1.glb; do
             if [ -f "$HAYUYA_OUTPUT_ROOT/$model" ]; then
               cp "$HAYUYA_OUTPUT_ROOT/$model" "$model_dir/$model"
