@@ -5267,7 +5267,7 @@ void VulkanStaticMeshRenderer::record(
                             frameSlot);
 
                     if (materialVisible &&
-                        streamCullingActive_) {
+                        streamVisibilityCulling) {
                         const auto& material =
                             materials_[
                                 batch.materialIndex];
@@ -5306,7 +5306,7 @@ void VulkanStaticMeshRenderer::record(
                         frameSlot);
 
                 if (materialVisible &&
-                    streamCullingActive_) {
+                    streamVisibilityCulling) {
                     const auto& material =
                         materials_[
                             batch.materialIndex];
@@ -5412,7 +5412,7 @@ void VulkanStaticMeshRenderer::record(
                     cellEnd - cellBegin);
 
             const bool streamCold =
-                streamCullingActive_ &&
+                streamVisibilityCulling &&
                 geometryCell.heat ==
                     StreamCellHeat::Cold;
 
@@ -5436,7 +5436,7 @@ void VulkanStaticMeshRenderer::record(
                 continue;
             }
 
-            if (streamCullingActive_ &&
+            if (streamVisibilityCulling &&
                 frameStats_.streamingCell != 0U &&
                 geometryCell.cellId != 0U) {
                 ++frameStats_.portalVisibilityTests;
