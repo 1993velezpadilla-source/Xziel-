@@ -159,9 +159,15 @@
         "Pillow>=10",
         "numpy>=1.26,<3",
         "mediapipe==1.0.1",
-        "dreamsim"
+        "dreamsim",
+        "pyiqa==0.1.15",
+        "hydra-core==1.3.2",
+        "easydict>=1.10",
+        "fvcore",
+        "iopath",
+        "scipy>=1.11,<2"
       ],
-      "notes": "Sequential worker processes unload each large evaluator between passes. Q-ReAlign-Pro-9B and InternVL3.5-8B-HF download from their Apache-2.0 Hugging Face model cards; DreamSim is MIT."
+      "notes": "Sequential worker processes unload large evaluators between passes. Final visual acceptance uses Q-ReAlign-Pro-9B, InternVL3.5-8B-HF, MediaPipe dense landmarks, DreamSim, SigLIP2, CVLFace AdaFace identity, and an Apache-licensed PyIQA 0.1.15 ensemble. Missing evidence fails closed."
     }
   }
 }
