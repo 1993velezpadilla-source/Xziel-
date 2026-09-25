@@ -8,6 +8,8 @@ from pathlib import Path
 
 from PIL import Image
 
+from judge_model_provenance import model_provenance
+
 
 LEVELS = ["excellent", "good", "fair", "poor", "bad"]
 WEIGHTS = [1.0, 0.75, 0.5, 0.25, 0.0]
@@ -85,6 +87,7 @@ def score_images(paths: list[Path], model_id: str) -> dict:
     return {
         "schema": 1,
         "model": model_id,
+        "provenance": model_provenance(model_id, model),
         "device": device,
         "images": rows,
         "count": len(rows),
