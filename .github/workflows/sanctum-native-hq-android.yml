@@ -302,26 +302,50 @@ jobs:
           set -euo pipefail
 
           WEAPON_RUN_ID=""
+          WEAPON_ARTIFACT_ID=""
+
+          # Do not blindly consume the newest successful weapon workflow. A
+          # previous exporter generation can still be the newest success while
+          # the canonical build is running. Inspect candidate artifact reports
+          # and wait until the actual canonical XZIEL contract is available.
           for i in $(seq 1 90); do
             RESPONSE="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/xziel-weapon-viewmodel.yml/runs?branch=engine%2Fmobile-power-fidelity-v1&status=success&per_page=10")"
-            WEAPON_RUN_ID="$(jq -r '.workflow_runs[0].id // empty' <<<"${RESPONSE}")"
-            if [[ -n "${WEAPON_RUN_ID}" && "${WEAPON_RUN_ID}" != "null" ]]; then
+
+            while IFS= read -r CANDIDATE_RUN_ID; do
+              [[ -n "${CANDIDATE_RUN_ID}" ]] || continue
+
+              ARTIFACTS="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${CANDIDATE_RUN_ID}/artifacts")"
+              CANDIDATE_ARTIFACT_ID="$(jq -r '.artifacts[] | select(.name == "Xziel-Weapon-Viewmodel-Fixed" and .expired == false) | .id' <<<"${ARTIFACTS}" | head -n1)"
+              [[ -n "${CANDIDATE_ARTIFACT_ID}" && "${CANDIDATE_ARTIFACT_ID}" != "null" ]] || continue
+
+              rm -rf build/weapon-candidate build/weapon-candidate.zip
+              mkdir -p build/weapon-candidate
+              gh api "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${CANDIDATE_ARTIFACT_ID}/zip" > build/weapon-candidate.zip
+              unzip -q build/weapon-candidate.zip -d build/weapon-candidate
+
+              CANDIDATE_REPORT="$(find build/weapon-candidate -name 'weapon_standard_rifle_report.json' -print -quit)"
+              if [[ -s "${CANDIDATE_REPORT}" ]] &&
+                 jq -e '.sourceUid == "a0e1e52051294bebb8a716df9e69434d" and .exportMode == "rigid_weapon_rest_pose_canonical_xziel"' "${CANDIDATE_REPORT}" >/dev/null; then
+                WEAPON_RUN_ID="${CANDIDATE_RUN_ID}"
+                WEAPON_ARTIFACT_ID="${CANDIDATE_ARTIFACT_ID}"
+                rm -rf build/weapon-viewmodel
+                mv build/weapon-candidate build/weapon-viewmodel
+                mv build/weapon-candidate.zip build/weapon-viewmodel.zip
+                break
+              fi
+            done < <(jq -r '.workflow_runs[].id' <<<"${RESPONSE}")
+
+            if [[ -n "${WEAPON_RUN_ID}" ]]; then
               break
             fi
-            echo "Waiting for validated AKM weapon artifact..."
+
+            echo "Waiting for canonical XZIEL AKM artifact..."
             sleep 10
           done
 
           test -n "${WEAPON_RUN_ID}"
-          ARTIFACTS="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${WEAPON_RUN_ID}/artifacts")"
-          WEAPON_ARTIFACT_ID="$(jq -r '.artifacts[] | select(.name == "Xziel-Weapon-Viewmodel-Fixed" and .expired == false) | .id' <<<"${ARTIFACTS}" | head -n1)"
           test -n "${WEAPON_ARTIFACT_ID}"
-          test "${WEAPON_ARTIFACT_ID}" != "null"
-
-          rm -rf build/weapon-viewmodel
-          mkdir -p build/weapon-viewmodel
-          gh api "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${WEAPON_ARTIFACT_ID}/zip" > build/weapon-viewmodel.zip
-          unzip -q build/weapon-viewmodel.zip -d build/weapon-viewmodel
+          test -d build/weapon-viewmodel
 
           FIXED_MODEL="$(find build/weapon-viewmodel -path '*/models/xziel/weapons/standard_rifle.xzsm' -print -quit)"
           FIXED_TEXTURES="$(find build/weapon-viewmodel -type d -path '*/textures/xziel/weapons/standard_rifle' -print -quit)"
