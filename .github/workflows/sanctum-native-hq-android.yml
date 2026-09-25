@@ -816,19 +816,7 @@ jobs:
           # instead, so normalized HUD coordinates map to real touch pixels.
           "$ADB" exec-out screencap -p > dist/sanctum-hq-pre-ads.png
           read DISPLAY_WIDTH DISPLAY_HEIGHT < <(
-            python3 - <<'PY'
-import struct
-with open("dist/sanctum-hq-pre-ads.png", "rb") as handle:
-    signature = handle.read(8)
-    if signature != b"\x89PNG\r\n\x1a\n":
-        raise SystemExit("invalid screenshot PNG")
-    length = struct.unpack(">I", handle.read(4))[0]
-    chunk = handle.read(4)
-    if chunk != b"IHDR" or length < 8:
-        raise SystemExit("missing PNG IHDR")
-    width, height = struct.unpack(">II", handle.read(8))
-    print(width, height)
-PY
+            python3 -c 'import struct; f=open("dist/sanctum-hq-pre-ads.png","rb"); f.seek(16); print(*struct.unpack(">II",f.read(8)))'
           )
           test -n "$DISPLAY_WIDTH"
           test -n "$DISPLAY_HEIGHT"
