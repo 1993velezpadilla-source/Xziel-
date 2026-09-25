@@ -458,18 +458,19 @@ void main() {
                 2.0;
 
             // PHOTOGRAMMETRY_MICRODETAIL_RESPONSE_V2
-            // #580's 2K tile is resolving correctly, but the entry wall still
-            // loses a small amount of real stone microstructure after scene
-            // composition. Increase the bounded material response itself
-            // before CAS instead of compensating only in post.
+            // #583 now clears blur and edge-density comfortably; only the
+            // deterministic entry view remains 0.0006 below the real-detail
+            // RMS floor. Add one small material-space step here instead of
+            // pushing CAS harder, so the extra definition comes from the
+            // photogrammetry microstructure itself.
             worldDetailResponse =
                 clamp(
                     1.0 +
                     detailSignal *
-                    0.22 *
+                    0.24 *
                     detailFade,
-                    0.86,
-                    1.14);
+                    0.85,
+                    1.15);
         }
 
         vec3 photoColor =
