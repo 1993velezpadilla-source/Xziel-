@@ -1411,6 +1411,25 @@ jobs:
           fi
 
           if [[ "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" ]]; then
+            # The normal movement tour begins on the visible home pad.
+            grep -q "XZIEL_MOVE_ANCHOR mode=fixed" dist/sanctum-hq-logcat.txt
+
+            # A lower-left touch well outside the home pad must acquire a
+            # floating stick instead of generating an immediate fixed-center
+            # movement impulse. This tap is intentionally after all legacy
+            # scene/performance gates so it cannot perturb their telemetry.
+            FLOAT_MOVE_X="$(awk -v w="$DISPLAY_WIDTH" 'BEGIN { printf "%d", w * 0.325 }')"
+            FLOAT_MOVE_Y="$(awk -v h="$DISPLAY_HEIGHT" 'BEGIN { printf "%d", h * 0.785 }')"
+
+            "$ADB" shell input tap "$FLOAT_MOVE_X" "$FLOAT_MOVE_Y" || true
+            sleep 1
+
+            FLOAT_MOVE_LOG="$("$ADB" logcat -d -v brief -s XzielInput:I '*:S' 2>/dev/null || true)"
+            grep -q "XZIEL_MOVE_ANCHOR mode=floating" <<<"$FLOAT_MOVE_LOG"
+            echo "XZIEL_FLOATING_MOVE_ACQUIRE_OK"
+          fi
+
+          if [[ "${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" ]]; then
             # Destructive CI gameplay probe. Keep it after every legacy
             # performance/streaming gate because restartRun() resets camera and
             # gameplay state, which legitimately changes later scene telemetry.
