@@ -30,6 +30,21 @@ int main() {
         assault.controller.automatic);
 
     assert(
+        assault.viewmodel.asset ==
+            xziel::WeaponViewmodelAsset::
+                AssaultRifle);
+
+    assert(
+        assault.viewmodel.hip.scale > 0.0f);
+
+    assert(
+        assault.viewmodel.ads.scale > 0.0f);
+
+    assert(
+        assault.viewmodel.ads.z >
+            0.08f);
+
+    assert(
         marksman.controller.
             fireRequiresAds);
 
