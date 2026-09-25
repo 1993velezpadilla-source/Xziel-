@@ -70,6 +70,7 @@ private:
         float ageSeconds = 0.0f;
         float durationSeconds = 0.0f;
         float samplePosition = 0.0f;
+        float playbackRate = 1.0f;
         std::uint32_t noiseState = 1U;
         bool sampled = false;
     };
@@ -118,6 +119,7 @@ private:
     std::atomic<bool> disconnected_{false};
     std::atomic<bool> ready_{false};
     std::atomic<std::uint64_t> dropped_{0};
+    std::uint32_t voiceSequence_ = 0U;
 };
 
 } // namespace xziel::android
