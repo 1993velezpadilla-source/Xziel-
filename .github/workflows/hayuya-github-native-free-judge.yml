@@ -9,7 +9,9 @@ on:
       - tools/hayuya3d/blender_judge_turntable_24.py
       - tools/hayuya3d/github_native_pack_blender_evidence.py
       - tools/hayuya3d/github_cpu_heavy_eye.py
+      - tools/hayuya3d/github_cpu_qwen_fidelity.py
       - tools/hayuya3d/github_cpu_internvl_parse.py
+      - tools/hayuya3d/judge_v4_internvl_worker.py
   workflow_dispatch:
 
 permissions:
@@ -76,6 +78,8 @@ jobs:
           test "$(find out/github-native-evidence/turntable -name '*.png' | wc -l)" -eq 24
           test -s out/github-native-evidence/board.jpg
           test -s out/github-native-evidence/face_sheet.jpg
+          test -s out/github-native-evidence/face_compare.jpg
+          test -s out/github-native-evidence/source_face.webp
       - uses: actions/upload-artifact@v4
         with:
           name: github-native-known-bad-evidence
@@ -136,7 +140,7 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-  visualquality-r1:
+  qwen25-fidelity:
     needs: evidence
     runs-on: ubuntu-24.04
     timeout-minutes: 360
@@ -148,7 +152,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Free GitHub runner disk for real 7B weights
+      - name: Free GitHub runner disk for Qwen2.5-VL source fidelity
         uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be
         with:
           tool-cache: false
@@ -162,30 +166,35 @@ jobs:
         with:
           name: github-native-known-bad-evidence
           path: evidence
-      - name: Run real VisualQuality-R1 7B on CPU INT8
+      - name: Run Qwen2.5-VL 7B source face fidelity on CPU INT8
         shell: bash
         env:
-          HF_HOME: ${{ runner.temp }}/hf-visualquality
+          HF_HOME: ${{ runner.temp }}/hf-qwen-fidelity
         run: |
           set -euo pipefail
           df -h
           python -m pip install --upgrade pip
           python -m pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision torchao
           python -m pip install "transformers>=5.2,<6" accelerate safetensors huggingface_hub pillow "qwen-vl-utils>=0.0.14"
-          python tools/hayuya3d/github_cpu_heavy_eye.py visualquality             --image front=evidence/faces/12_180.png             --image quarter_r=evidence/faces/10_150.png             --image quarter_l=evidence/faces/14_210.png             --json visualquality.json
+          python tools/hayuya3d/github_cpu_qwen_fidelity.py \
+            --source evidence/source_face.webp \
+            --candidate evidence/faces/12_180.png \
+            --candidate evidence/faces/10_150.png \
+            --candidate evidence/faces/14_210.png \
+            --json qwen-fidelity.json
           python - <<'PY'
           import json
-          p=json.load(open("visualquality.json"))
+          p=json.load(open("qwen-fidelity.json"))
           assert p["ready"] is True
-          assert p["model"]=="TianheWu/VisualQuality-R1-7B"
+          assert p["model"]=="Qwen/Qwen2.5-VL-7B-Instruct"
           assert p["provenance"]["resolved_revision"]
           assert p["provenance"]["num_parameters"]>1_000_000_000
-          print("HAYUYA_GITHUB_VISUALQUALITY_R1_REAL",p["provenance"])
+          print("HAYUYA_GITHUB_QWEN25_SOURCE_FIDELITY_REAL",p["provenance"],p["verdict"])
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: github-native-visualquality-r1
-          path: visualquality.json
+          name: github-native-qwen25-fidelity
+          path: qwen-fidelity.json
           retention-days: 1
           if-no-files-found: error
 
@@ -231,10 +240,10 @@ jobs:
           python - <<'PY' > prompt.txt
           import sys
           sys.path.insert(0,"tools/hayuya3d")
-          from judge_v4_internvl_worker import PROMPT
-          print(PROMPT)
+          from judge_v4_internvl_worker import FACE_FIDELITY_PROMPT
+          print(FACE_FIDELITY_PROMPT)
           PY
-          /tmp/llama.cpp/build/bin/llama-mtmd-cli             -hf lmstudio-community/InternVL3_5-8B-GGUF:Q6_K             --image evidence/board.jpg             --no-mmproj-offload             -ngl 0             -t 4             --temp 0             -n 900             -p "$(cat prompt.txt)" 2>&1 | tee internvl.log
+          /tmp/llama.cpp/build/bin/llama-mtmd-cli             -hf lmstudio-community/InternVL3_5-8B-GGUF:Q6_K             --image evidence/face_compare.jpg             --no-mmproj-offload             -ngl 0             -t 4             --temp 0             -n 900             -p "$(cat prompt.txt)" 2>&1 | tee internvl.log
           python tools/hayuya3d/github_cpu_internvl_parse.py             --log internvl.log             --json internvl.json
       - uses: actions/upload-artifact@v4
         with:
@@ -246,7 +255,7 @@ jobs:
           if-no-files-found: error
 
   verdict:
-    needs: [qrealign-pro, visualquality-r1, internvl35-q6]
+    needs: [qrealign-pro, qwen25-fidelity, internvl35-q6]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -256,50 +265,62 @@ jobs:
           path: q
       - uses: actions/download-artifact@v4
         with:
-          name: github-native-visualquality-r1
-          path: vq
+          name: github-native-qwen25-fidelity
+          path: qf
       - uses: actions/download-artifact@v4
         with:
           name: github-native-internvl35-q6
           path: iv
-      - name: Known-bad face must be caught independently
+      - name: Known-bad source face must be caught by two fidelity judges
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
           import json
           q=json.load(open("q/qrealign.json"))
-          vq=json.load(open("vq/visualquality.json"))
+          qf=json.load(open("qf/qwen-fidelity.json"))
           iv=json.load(open("iv/internvl.json"))
 
           families=[]
-          if q["mean"]<0.55 or q["p10"]<0.42:
-              families.append("Q-ReAlign-Pro-9B")
-          if vq["median"]<2.25 or vq["minimum"]<1.75:
-              families.append("VisualQuality-R1-7B")
+          qv=qf["verdict"]
+          if (
+              qv["pass"] is False
+              or qv["critical_issues"]
+              or qv["scores"]["face_source_fidelity"]<75
+              or qv["scores"]["shape_match"]<70
+              or qv["scores"]["feature_geometry_match"]<70
+          ):
+              families.append("Qwen2.5-VL-7B-source-fidelity")
+
           vv=iv["verdict"]
           if (
               vv["pass"] is False
               or vv["critical_issues"]
               or vv["scores"]["face_anatomy"]<80
               or vv["scores"]["face_source_fidelity"]<75
+              or vv["scores"]["source_fidelity"]<75
           ):
-              families.append("InternVL3.5-8B-Q6")
+              families.append("InternVL3.5-8B-Q6-source-fidelity")
 
           summary={
               "fixture":"monja-mugfwln6",
-              "expected":"REJECTED_FACE",
-              "face_failure_families":families,
-              "qrealign":{"mean":q["mean"],"p10":q["p10"],"provenance":q["provenance"]},
-              "visualquality":{"median":vq["median"],"minimum":vq["minimum"],"provenance":vq["provenance"]},
-              "internvl":vv,
+              "expected":"REJECTED_FACE_SOURCE_FIDELITY",
+              "source_fidelity_failure_families":families,
+              "qrealign_quality_diagnostic":{
+                  "mean":q["mean"],
+                  "p10":q["p10"],
+                  "note":"No-reference visual quality only; deliberately not counted as source fidelity.",
+                  "provenance":q["provenance"],
+              },
+              "qwen25_fidelity":qv,
+              "internvl_fidelity":vv,
           }
           print(json.dumps(summary,indent=2))
           open("github-native-verdict.json","w").write(json.dumps(summary,indent=2)+"\n")
           assert len(set(families))>=2, (
-              "KNOWN BAD FACE escaped independent heavyweight eyes: "+str(families)
+              "KNOWN BAD FACE escaped source-aware heavyweight eyes: "+str(families)
           )
-          print("HAYUYA_GITHUB_NATIVE_KNOWN_BAD_FACE_REJECTED_BY_2_PLUS_EYES",families)
+          print("HAYUYA_KNOWN_BAD_FACE_REJECTED_BY_2_SOURCE_AWARE_EYES",families)
           PY
       - uses: actions/upload-artifact@v4
         with:
