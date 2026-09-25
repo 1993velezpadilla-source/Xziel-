@@ -25,6 +25,7 @@ class SourceAutofixItem:
     face_box_fraction: float | None
     source_size: list[int]
     output_size: list[int] | None
+    semantic_face_or_head_confirmed: bool
     warning: str | None = None
 
 
@@ -34,6 +35,7 @@ class SourceAutofixReport:
     ready: bool
     sources: list[SourceAutofixItem]
     derived_detail_sources: list[str]
+    character_hint: bool
     real_sources_preserved: bool
     derived_sources_are_not_independent_references: bool
     policy: str
@@ -108,8 +110,86 @@ def _mediapipe_face(source: Path, out_path: Path, cache_path: Path):
                 "used_zoom_probe": label != "direct",
                 "face_box_fraction": round(frac, 8),
                 "output_size": [crop.width, crop.height],
+                "semantic_face_or_head_confirmed": True,
             }
     return None
+
+
+
+def _foreground_head_zoom(source: Path, out_path: Path):
+    """Recover a head-region zoom from the real subject silhouette without inventing pixels."""
+    image = Image.open(source).convert("RGBA")
+    arr = np.asarray(image)
+    h, w = arr.shape[:2]
+    alpha = arr[:, :, 3]
+
+    if int(alpha.min()) < 245:
+        mask = alpha > 24
+    else:
+        rgb = arr[:, :, :3].astype(np.float32)
+        patch = max(4, min(h, w) // 24)
+        corners = np.concatenate([
+            rgb[:patch, :patch].reshape(-1, 3),
+            rgb[:patch, -patch:].reshape(-1, 3),
+            rgb[-patch:, :patch].reshape(-1, 3),
+            rgb[-patch:, -patch:].reshape(-1, 3),
+        ], axis=0)
+        bg = np.median(corners, axis=0)
+        spread = np.linalg.norm(corners - bg, axis=1)
+        threshold = max(18.0, float(np.percentile(spread, 95)) * 2.5 + 6.0)
+        mask = np.linalg.norm(rgb - bg, axis=2) > threshold
+
+    ys, xs = np.where(mask)
+    if len(xs) < 128:
+        return None
+
+    x0, x1 = int(xs.min()), int(xs.max())
+    y0, y1 = int(ys.min()), int(ys.max())
+    sh = max(1, y1 - y0 + 1)
+    top_limit = min(h, y0 + max(48, int(round(sh * 0.30))))
+    top_mask = mask[y0:top_limit, x0:x1 + 1]
+    tys, txs = np.where(top_mask)
+    if len(txs) >= 32:
+        hx0 = x0 + int(txs.min())
+        hx1 = x0 + int(txs.max())
+        hy0 = y0 + int(tys.min())
+        hy1 = y0 + int(tys.max())
+        cx = (hx0 + hx1) * 0.5
+        # Bias upward: face/head lives above shoulder/arm evidence in this band.
+        cy = y0 + sh * 0.115
+        top_width = max(1, hx1 - hx0 + 1)
+        side = max(top_width * 1.05, sh * 0.24, 64.0)
+    else:
+        cx = (x0 + x1) * 0.5
+        cy = y0 + sh * 0.115
+        side = max((x1 - x0 + 1) * 0.55, sh * 0.25, 64.0)
+
+    left = max(0, int(round(cx - side * 0.5)))
+    top = max(0, int(round(cy - side * 0.5)))
+    right = min(w, int(round(cx + side * 0.5)))
+    bottom = min(h, int(round(cy + side * 0.5)))
+    if right - left < 24 or bottom - top < 24:
+        return None
+
+    crop = image.convert("RGB").crop((left, top, right, bottom))
+    crop = ImageOps.pad(
+        crop,
+        (1024, 1024),
+        method=Image.Resampling.LANCZOS,
+        color=(0, 0, 0),
+        centering=(0.5, 0.5),
+    )
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    crop.save(out_path, optimize=True)
+    return {
+        "face_detail": str(out_path),
+        "method": "foreground_silhouette_head_zoom",
+        "direct_face_detected": False,
+        "used_zoom_probe": True,
+        "face_box_fraction": round((side * side) / float(max(1, w * h)), 8),
+        "output_size": [crop.width, crop.height],
+        "semantic_face_or_head_confirmed": False,
+    }
 
 
 def _grounded_head_fallback(source: Path, out_path: Path, work_dir: Path):
@@ -191,6 +271,7 @@ def _grounded_head_fallback(source: Path, out_path: Path, work_dir: Path):
         "used_zoom_probe": True,
         "face_box_fraction": round(frac, 8),
         "output_size": [crop.width, crop.height],
+        "semantic_face_or_head_confirmed": True,
     }
 
 
@@ -213,6 +294,7 @@ def build_source_autofix(
             ready=True,
             sources=[],
             derived_detail_sources=[],
+            character_hint=False,
             real_sources_preserved=True,
             derived_sources_are_not_independent_references=True,
             policy=policy,
@@ -246,6 +328,15 @@ def build_source_autofix(
                 extra = f"grounded:{type(exc).__name__}:{exc}"
                 warning = f"{warning};{extra}" if warning else extra
 
+        # Last-resort Tripo-style autofix: zoom the real top-of-subject region.
+        # This never fabricates identity and remains marked semantically unconfirmed.
+        if result is None:
+            try:
+                result = _foreground_head_zoom(source, target)
+            except Exception as exc:
+                extra = f"foreground_head:{type(exc).__name__}:{exc}"
+                warning = f"{warning};{extra}" if warning else extra
+
         if result is not None:
             details.append(str(target))
             item = SourceAutofixItem(
@@ -257,6 +348,7 @@ def build_source_autofix(
                 face_box_fraction=result["face_box_fraction"],
                 source_size=[image.width, image.height],
                 output_size=result["output_size"],
+                semantic_face_or_head_confirmed=bool(result.get("semantic_face_or_head_confirmed")),
                 warning=warning,
             )
         else:
@@ -269,6 +361,7 @@ def build_source_autofix(
                 face_box_fraction=None,
                 source_size=[image.width, image.height],
                 output_size=None,
+                semantic_face_or_head_confirmed=False,
                 warning=warning or "no_face_or_head_detected",
             )
         items.append(item)
@@ -282,6 +375,7 @@ def build_source_autofix(
         ready=ready,
         sources=items,
         derived_detail_sources=details,
+        character_hint=any(item.semantic_face_or_head_confirmed for item in items),
         real_sources_preserved=True,
         derived_sources_are_not_independent_references=True,
         policy=policy,
