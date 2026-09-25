@@ -207,6 +207,9 @@ void AndroidInputAdapter::setDisplayRotation(
 
     stanceHeldSeconds_ = 0.0f;
     firePressedThisFrame_ = false;
+    aimPressedThisFrame_ = false;
+    reloadPressedThisFrame_ = false;
+    interactPressedThisFrame_ = false;
     jumpPressedThisFrame_ = false;
     stancePressedThisFrame_ = false;
 
@@ -467,38 +470,38 @@ AndroidInputAdapter::chooseRole(
     // creating separate buttons for slide, dive, sprint, wall-run, etc.
     if (insideButton(
             x, y, width, height,
-            0.89f, 0.72f, 0.086f)) {
+            0.89f, 0.72f, 0.100f)) {
         return TouchRole::Jump;
     }
 
     if (insideButton(
             x, y, width, height,
-            0.77f, 0.83f, 0.078f)) {
+            0.77f, 0.83f, 0.092f)) {
         return TouchRole::Stance;
     }
 
     if (insideButton(
             x, y, width, height,
-            0.90f, 0.47f, 0.094f)) {
+            0.90f, 0.47f, 0.108f)) {
         return TouchRole::Fire;
     }
 
     if (insideButton(
             x, y, width, height,
-            0.73f, 0.54f, 0.081f)) {
+            0.73f, 0.54f, 0.094f)) {
         return TouchRole::Aim;
     }
 
     if (insideButton(
             x, y, width, height,
-            0.80f, 0.35f, 0.066f)) {
+            0.80f, 0.35f, 0.080f)) {
         return TouchRole::Reload;
     }
 
     if (interactAvailable_ &&
         insideButton(
             x, y, width, height,
-            0.65f, 0.73f, 0.069f)) {
+            0.65f, 0.73f, 0.080f)) {
         return TouchRole::Interact;
     }
 
@@ -536,12 +539,18 @@ void AndroidInputAdapter::updateDerivedState(
     int width,
     int height) noexcept {
     snapshot_.input.move = {};
-    snapshot_.input.fire = false;
-    snapshot_.input.aim = false;
-    snapshot_.input.reload = false;
-    snapshot_.input.interact = false;
-    snapshot_.input.jump = false;
-    snapshot_.input.crouch = false;
+    snapshot_.input.fire =
+        firePressedThisFrame_;
+    snapshot_.input.aim =
+        aimPressedThisFrame_;
+    snapshot_.input.reload =
+        reloadPressedThisFrame_;
+    snapshot_.input.interact =
+        interactPressedThisFrame_;
+    snapshot_.input.jump =
+        jumpPressedThisFrame_;
+    snapshot_.input.crouch =
+        stancePressedThisFrame_;
     snapshot_.firePressed =
         firePressedThisFrame_;
     snapshot_.moveActive = false;
@@ -721,6 +730,18 @@ void AndroidInputAdapter::processMotionEvent(
             if (pointer->role ==
                 TouchRole::Fire) {
                 firePressedThisFrame_ = true;
+            } else if (
+                pointer->role ==
+                TouchRole::Aim) {
+                aimPressedThisFrame_ = true;
+            } else if (
+                pointer->role ==
+                TouchRole::Reload) {
+                reloadPressedThisFrame_ = true;
+            } else if (
+                pointer->role ==
+                TouchRole::Interact) {
+                interactPressedThisFrame_ = true;
             } else if (
                 pointer->role ==
                 TouchRole::Jump) {
