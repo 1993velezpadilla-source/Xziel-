@@ -1,0 +1,146 @@
+name: XZIEL Weapon Viewmodel Asset
+
+on:
+  push:
+    branches:
+      - engine/mobile-power-fidelity-v1
+    paths:
+      - ".github/workflows/xziel-weapon-viewmodel.yml"
+      - "tools/weapons/export_glb_viewmodel_xzsm.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: xziel-weapon-viewmodel-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-weapon:
+    name: Build validated AKM viewmodel
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout XZIEL
+        uses: actions/checkout@v5
+
+      - name: Install Blender and Objaverse
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq blender xvfb libegl1 libgl1-mesa-dri libglx-mesa0
+          python3 -m pip install --quiet --upgrade pip
+          python3 -m pip install --quiet objaverse
+          blender --version
+
+      - name: Download original CC-BY AKM GLB
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p church/source/weapons church/out/xziel_native_static
+          python3 - <<'PY'
+          import json
+          import shutil
+          from pathlib import Path
+          import objaverse
+
+          uid = "a0e1e52051294bebb8a716df9e69434d"
+          annotations = objaverse.load_annotations([uid])
+          ann = annotations.get(uid)
+          if not ann:
+              raise SystemExit("AKM FPS asset UID missing from Objaverse")
+          if ann.get("license") != "by":
+              raise SystemExit(f"Unexpected AKM license: {ann.get('license')!r}")
+
+          objects = objaverse.load_objects([uid], download_processes=1)
+          source = objects.get(uid)
+          if not source:
+              raise SystemExit("AKM FPS GLB download failed")
+
+          out = Path("church/source/weapons")
+          shutil.copy2(source, out / "akm_fps.glb")
+          (out / "akm_source_metadata.json").write_text(
+              json.dumps(ann, indent=2),
+              encoding="utf-8",
+          )
+          print("XZIEL_AKM_SOURCE_READY", source)
+          PY
+          test -s church/source/weapons/akm_fps.glb
+
+      - name: Export rigid weapon-only XZSM
+        shell: bash
+        env:
+          WEAPON_SOURCE: church/source/weapons/akm_fps.glb
+          WEAPON_SOURCE_PAGE: https://sketchfab.com/3d-models/akm-fps-animation-a0e1e52051294bebb8a716df9e69434d
+          WEAPON_LICENSE: CC-BY
+          WEAPON_UID: a0e1e52051294bebb8a716df9e69434d
+          XZIEL_STATIC_RUNTIME_ROOT: church/out/xziel_native_static
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          xvfb-run -a -s "-screen 0 1280x1024x24" \
+            blender --background \
+            --python tools/weapons/export_glb_viewmodel_xzsm.py \
+            2>&1 | tee church/out/xziel-weapon-export.log
+
+      - name: Validate non-collapsed rifle geometry
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPORT=church/out/xziel_native_static/weapon_standard_rifle_report.json
+          MODEL=church/out/xziel_native_static/models/xziel/weapons/standard_rifle.xzsm
+          test -s "$REPORT"
+          test -s "$MODEL"
+          jq -e '.exportMode == "rigid_weapon_rest_pose"' "$REPORT"
+          jq -e '.sourceTriangles >= 10000' "$REPORT"
+          jq -e '.meaningfulBatchCount >= 4' "$REPORT"
+          jq -e '.dimensionsMeters | max >= 0.85 and max <= 0.95' "$REPORT"
+          jq -e '.dimensionsMeters | sort | .[1] >= 0.10 and .[0] >= 0.035' "$REPORT"
+          jq -e '.excludedMaterials | map(ascii_downcase) | index("textura") != null' "$REPORT"
+          jq -e '.includedMaterials | map(ascii_downcase) | any(contains("body"))' "$REPORT"
+          jq -e '.includedMaterials | map(ascii_downcase) | any(contains("barrel"))' "$REPORT"
+          jq -e '.includedMaterials | map(ascii_downcase) | any(contains("stock"))' "$REPORT"
+          jq -e '.includedMaterials | map(ascii_downcase) | any(contains("magazine"))' "$REPORT"
+
+          python3 - <<'PY'
+          import json, struct
+          from pathlib import Path
+
+          path = Path("church/out/xziel_native_static/models/xziel/weapons/standard_rifle.xzsm")
+          data = path.read_bytes()
+          magic, version, batches, vertices, indices = struct.unpack_from("<4sIIII", data, 0)
+          assert magic == b"XZSM"
+          assert version == 3
+          assert batches >= 4
+          assert vertices >= 30000
+          assert indices >= 30000
+          print("XZIEL_AKM_XZSM_STRUCTURAL_READY",
+                f"batches={batches}", f"vertices={vertices}",
+                f"indices={indices}", f"bytes={len(data)}")
+          PY
+
+      - name: Package attribution
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p church/out/xziel_native_static/licenses
+          cat > church/out/xziel_native_static/licenses/standard_rifle_assets.txt <<'EOF'
+          AKM FPS ANIMATION by BURNER (Alexander Ovelar)
+          Source: https://sketchfab.com/3d-models/akm-fps-animation-a0e1e52051294bebb8a716df9e69434d
+          License: Creative Commons Attribution (CC BY)
+          Original Sketchfab/Objaverse UID: a0e1e52051294bebb8a716df9e69434d
+          EOF
+
+      - name: Upload validated weapon asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xziel-Weapon-Viewmodel-Fixed
+          path: |
+            church/out/xziel_native_static/models/xziel/weapons/standard_rifle.xzsm
+            church/out/xziel_native_static/textures/xziel/weapons/standard_rifle
+            church/out/xziel_native_static/weapon_standard_rifle_report.json
+            church/out/xziel_native_static/licenses/standard_rifle_assets.txt
+            church/out/xziel-weapon-export.log
+          retention-days: 14
