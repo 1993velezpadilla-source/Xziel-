@@ -187,8 +187,38 @@ void AndroidInputAdapter::onPause() noexcept {
 
 void AndroidInputAdapter::setDisplayRotation(
     int rotation) noexcept {
-    displayRotation_ =
+    const int clampedRotation =
         std::clamp(rotation, 0, 3);
+
+    if (displayRotation_ ==
+        clampedRotation) {
+        return;
+    }
+
+    displayRotation_ =
+        clampedRotation;
+
+    // Motion-event coordinates are expressed in the current surface
+    // orientation. Any fingers that were already down before an orientation
+    // change still carry anchors from the old coordinate system, which makes
+    // the joystick/buttons jump or become effectively untouchable. Drop those
+    // pointers and let the next touch acquire a fresh role/anchor.
+    releaseAllPointers();
+
+    stanceHeldSeconds_ = 0.0f;
+    firePressedThisFrame_ = false;
+    jumpPressedThisFrame_ = false;
+    stancePressedThisFrame_ = false;
+
+    snapshot_.input.move = {};
+    snapshot_.input.look = {};
+    snapshot_.input.fire = false;
+    snapshot_.input.aim = false;
+    snapshot_.input.reload = false;
+    snapshot_.input.interact = false;
+    snapshot_.input.jump = false;
+    snapshot_.input.crouch = false;
+    snapshot_.moveActive = false;
 }
 
 void AndroidInputAdapter::beginFrame(
@@ -297,6 +327,13 @@ void AndroidInputAdapter::handleLooperIdentifier(
                     };
                     break;
             }
+
+            // Android's gyro pitch sign is opposite to XZIEL's touch-look
+            // convention on the tested handset: tilting the phone upward was
+            // pitching the camera downward. Keep yaw unchanged and make gyro
+            // vertical motion agree with drag-look.
+            snapshot_.input.gyroRadiansPerSecond.x =
+                -snapshot_.input.gyroRadiansPerSecond.x;
         }
     }
 }
@@ -430,38 +467,38 @@ AndroidInputAdapter::chooseRole(
     // creating separate buttons for slide, dive, sprint, wall-run, etc.
     if (insideButton(
             x, y, width, height,
-            0.89f, 0.72f, 0.075f)) {
+            0.89f, 0.72f, 0.086f)) {
         return TouchRole::Jump;
     }
 
     if (insideButton(
             x, y, width, height,
-            0.77f, 0.83f, 0.067f)) {
+            0.77f, 0.83f, 0.078f)) {
         return TouchRole::Stance;
     }
 
     if (insideButton(
             x, y, width, height,
-            0.90f, 0.47f, 0.082f)) {
+            0.90f, 0.47f, 0.094f)) {
         return TouchRole::Fire;
     }
 
     if (insideButton(
             x, y, width, height,
-            0.73f, 0.54f, 0.070f)) {
+            0.73f, 0.54f, 0.081f)) {
         return TouchRole::Aim;
     }
 
     if (insideButton(
             x, y, width, height,
-            0.80f, 0.35f, 0.055f)) {
+            0.80f, 0.35f, 0.066f)) {
         return TouchRole::Reload;
     }
 
     if (interactAvailable_ &&
         insideButton(
             x, y, width, height,
-            0.65f, 0.73f, 0.058f)) {
+            0.65f, 0.73f, 0.069f)) {
         return TouchRole::Interact;
     }
 
