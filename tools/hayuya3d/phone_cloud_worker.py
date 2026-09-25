@@ -471,16 +471,32 @@ if not multi and TRELLIS2_ENABLED and TEXTURE_QUALITY in {"high","ultra"}:
         print("HAYUYA_TRELLIS2_PROMOTED",json.dumps(modern_meta,separators=(",",":")))
     except Exception as modern_exc:
         modern_candidate=None
+        modern_text=f"{type(modern_exc).__name__}: {modern_exc}"
+        quota_blocked=(
+            "zerogpu quota" in modern_text.lower()
+            or "exceeded your zerogpu quota" in modern_text.lower()
+            or ("more quota" in modern_text.lower() and "hugging face token" in modern_text.lower())
+        )
+        if quota_blocked:
+            # TRELLIS classic is another Hugging Face ZeroGPU path and shares
+            # the same exhausted quota. Do not waste retries or throw away the
+            # TRELLIS.2 latent checkpoint that was already persisted.
+            fail(
+                "TRELLIS.2 generation completed but GLB extraction is blocked "
+                "by Hugging Face ZeroGPU quota. Generation checkpoint preserved "
+                "in outputs; retry extraction after quota reset instead of "
+                "regenerating. Provider error: " + modern_text
+            )
         if STRICT_TRELLIS2:
             fail(
                 "TRELLIS.2 is the required generator for this job and did not "
                 "produce an accepted candidate: "
-                f"{type(modern_exc).__name__}: {modern_exc}"
+                + modern_text
             )
         print(
             "::warning::TRELLIS.2 challenger unavailable/rejected; "
             "falling back to classic TRELLIS: "
-            f"{type(modern_exc).__name__}: {modern_exc}"
+            + modern_text
         )
 
 if modern_candidate is None:
