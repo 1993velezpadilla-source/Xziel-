@@ -1368,11 +1368,15 @@ def main() -> int:
         )
         if mode=="character" and args.profile in {"monster","ultra"}:
             from qa import candidate_rank_key, character_quality_evidence_complete
+            identity_required_for_ranking=any(
+                infer_detail_region_hint(path)=="head"
+                for path in detail_inputs
+            )
             for item in result:
                 hard_reasons=[]
                 if not character_quality_evidence_complete(
                     item,
-                    identity_required=bool(detail_inputs),
+                    identity_required=identity_required_for_ranking,
                 ):
                     hard_reasons.append("incomplete_character_quality_evidence")
                 structure=getattr(item,"head_structure_score",None)
@@ -1399,7 +1403,7 @@ def main() -> int:
                 key=lambda item:candidate_rank_key(
                     item,
                     mode=mode,
-                    identity_required=bool(detail_inputs),
+                    identity_required=identity_required_for_ranking,
                 ),
                 reverse=True,
             )
