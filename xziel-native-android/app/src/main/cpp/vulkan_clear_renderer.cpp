@@ -5555,19 +5555,19 @@ bool VulkanClearRenderer::recordDrawCommand(
             0.035f * lowering;
         weaponState.y =
             -0.180f * (1.0f - ads) -
-            0.132f * ads -
+            0.115f * ads -
             0.080f * reloadArc -
             0.22f * lowering -
             0.008f * fire;
         weaponState.z =
             0.340f * (1.0f - ads) +
-            0.280f * ads +
+            0.190f * ads +
             0.028f * reloadArc -
             0.024f * fire +
             0.035f * lowering;
         weaponState.scale =
             0.58f * (1.0f - ads) +
-            0.55f * ads;
+            0.48f * ads;
         weaponState.yawRadians =
             0.006f +
             0.050f * reloadArc;
