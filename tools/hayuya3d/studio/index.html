@@ -24,61 +24,66 @@
     <aside class="left-panel panel">
       <section>
         <div class="section-head">
-          <h2>Geometry References</h2>
+          <h2>Create from Image</h2>
           <span id="fileCount">0</span>
         </div>
         <label class="dropzone" id="dropzone">
           <input id="images" type="file" accept="image/png,image/jpeg,image/webp" multiple>
-          <strong>Drop shape / multiview photos</strong>
+          <strong>Drop one photo</strong>
           <span>or tap to choose</span>
-          <small>Front, sides, back, 3/4 — used for global 3D shape</small>
+          <small>One photo is enough. Add more angles only if you have them.</small>
         </label>
         <div id="thumbs" class="thumbs"></div>
       </section>
 
-      <section>
-        <div class="section-head">
-          <h2>Face References</h2>
-          <span id="faceFileCount">0</span>
-        </div>
-        <label class="dropzone face-dropzone" id="faceDropzone">
-          <input id="faceImages" type="file" accept="image/png,image/jpeg,image/webp" multiple>
-          <strong>Drop face close-ups</strong>
-          <span>or tap to choose</span>
-          <small>Identity + texture/detail Judge only — never global silhouette</small>
-        </label>
-        <div id="faceThumbs" class="thumbs"></div>
-      </section>
+      <button id="runButton" class="primary">Generate 3D</button>
 
-      <section class="controls">
-        <label>Profile
-          <select id="profile">
-            <option value="monster" selected>Monster</option>
-            <option value="ultra">Ultra</option>
-            <option value="game">Game</option>
-            <option value="mobile">Mobile</option>
-            <option value="preview">Preview</option>
-          </select>
-        </label>
-        <label>Asset
-          <select id="mode">
-            <option value="auto" selected>Auto</option>
-            <option value="character">Character</option>
-            <option value="prop">Prop</option>
-            <option value="architecture">Architecture</option>
-          </select>
-        </label>
-        <label>Portable target
-          <select id="tier">
-            <option value="auto" selected>Auto</option>
-            <option value="flagship">Flagship</option>
-            <option value="high">High</option>
-            <option value="balanced">Balanced</option>
-            <option value="compatibility">Compatibility</option>
-          </select>
-        </label>
-        <button id="runButton" class="primary">Generate 3D</button>
-      </section>
+      <details class="advanced-options">
+        <summary>Advanced options (optional)</summary>
+
+        <section>
+          <div class="section-head">
+            <h2>Extra face/detail photos</h2>
+            <span id="faceFileCount">0</span>
+          </div>
+          <label class="dropzone face-dropzone" id="faceDropzone">
+            <input id="faceImages" type="file" accept="image/png,image/jpeg,image/webp" multiple>
+            <strong>Add optional close-ups</strong>
+            <span>or tap to choose</span>
+            <small>Not required — HAYUYA automatically finds and zooms the face from the main photo.</small>
+          </label>
+          <div id="faceThumbs" class="thumbs"></div>
+        </section>
+
+        <section class="controls">
+          <label>Profile
+            <select id="profile">
+              <option value="monster" selected>Monster</option>
+              <option value="ultra">Ultra</option>
+              <option value="game">Game</option>
+              <option value="mobile">Mobile</option>
+              <option value="preview">Preview</option>
+            </select>
+          </label>
+          <label>Asset
+            <select id="mode">
+              <option value="auto" selected>Auto</option>
+              <option value="character">Character</option>
+              <option value="prop">Prop</option>
+              <option value="architecture">Architecture</option>
+            </select>
+          </label>
+          <label>Portable target
+            <select id="tier">
+              <option value="auto" selected>Auto</option>
+              <option value="flagship">Flagship</option>
+              <option value="high">High</option>
+              <option value="balanced">Balanced</option>
+              <option value="compatibility">Compatibility</option>
+            </select>
+          </label>
+        </section>
+      </details>
 
       <section>
         <div class="section-head"><h2>Jobs</h2><button id="refreshJobs" class="ghost">Refresh</button></div>
@@ -90,7 +95,7 @@
       <div class="viewer-toolbar">
         <div>
           <div id="modelLabel" class="model-label">No model yet</div>
-          <div id="modelMeta" class="model-meta">Upload references and start Hayuya.</div>
+          <div id="modelMeta" class="model-meta">Drop one photo and generate your 3D model.</div>
         </div>
         <div class="viewer-actions">
           <button id="resetView" class="ghost">Reset</button>
