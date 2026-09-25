@@ -5515,11 +5515,18 @@ bool VulkanClearRenderer::recordDrawCommand(
                   sceneExtent_.height)
             : 1.0f;
 
-        const float ads =
+        const float adsRaw =
             std::clamp(
                 hud.weaponAdsAlpha,
                 0.0f,
                 1.0f);
+
+        // Preserve controller timing but ease the visual pose like a real FPS
+        // viewmodel instead of linearly sliding the gun toward the sight.
+        const float ads =
+            adsRaw *
+            adsRaw *
+            (3.0f - 2.0f * adsRaw);
 
         const float reload =
             std::clamp(
@@ -5545,44 +5552,53 @@ bool VulkanClearRenderer::recordDrawCommand(
                 1.0f);
 
         StaticMeshViewmodelState weaponState{};
-        // The validated weapon exporter now emits canonical XZIEL viewmodel
-        // space directly: +X right, +Y up, +Z stock-to-muzzle.  Keep runtime
-        // rotation close to identity so ADS is a camera-space translation,
-        // not a stack of import-axis compensation angles.
+        const auto& viewmodel =
+            hud.weaponViewmodel;
+        const auto& hip =
+            viewmodel.hip;
+        const auto& aimed =
+            viewmodel.ads;
+
+        // Assets enter the renderer in canonical XZIEL first-person space.
+        // Every weapon owns its own calibrated hip/ADS poses so changing gun
+        // models no longer requires editing renderer constants.
         weaponState.x =
-            0.265f * (1.0f - ads) -
-            0.008f * ads +
-            0.030f * lowering;
+            hip.x * (1.0f - ads) +
+            aimed.x * ads +
+            viewmodel.loweringX * lowering;
         weaponState.y =
-            -0.205f * (1.0f - ads) -
-            0.065f * ads -
-            0.070f * reloadArc -
-            0.20f * lowering +
-            0.016f * fire;
+            hip.y * (1.0f - ads) +
+            aimed.y * ads +
+            viewmodel.reloadY * reloadArc +
+            viewmodel.loweringY * lowering +
+            viewmodel.fireY * fire;
         weaponState.z =
-            0.220f * (1.0f - ads) +
-            0.160f * ads +
-            0.024f * reloadArc -
-            0.055f * fire +
-            0.030f * lowering;
+            hip.z * (1.0f - ads) +
+            aimed.z * ads +
+            viewmodel.reloadZ * reloadArc +
+            viewmodel.fireZ * fire +
+            viewmodel.loweringZ * lowering;
         weaponState.scale =
-            0.64f * (1.0f - ads) +
-            0.58f * ads;
+            hip.scale * (1.0f - ads) +
+            aimed.scale * ads;
         weaponState.yawRadians =
-            -0.055f * (1.0f - ads) +
-            0.045f * reloadArc;
+            hip.yawRadians * (1.0f - ads) +
+            aimed.yawRadians * ads +
+            viewmodel.reloadYawRadians * reloadArc;
         weaponState.pitchRadians =
-            0.018f -
-            0.090f * reloadArc +
-            0.020f * fire;
+            hip.pitchRadians * (1.0f - ads) +
+            aimed.pitchRadians * ads +
+            viewmodel.reloadPitchRadians * reloadArc +
+            viewmodel.firePitchRadians * fire;
         weaponState.rollRadians =
-            0.030f * (1.0f - ads) -
-            0.220f * reloadArc +
-            0.020f * fire;
+            hip.rollRadians * (1.0f - ads) +
+            aimed.rollRadians * ads +
+            viewmodel.reloadRollRadians * reloadArc +
+            viewmodel.fireRollRadians * fire;
         weaponState.verticalFovDegrees =
             std::clamp(
-                camera.verticalFovDegrees,
-                60.0f,
+                viewmodel.verticalFovDegrees,
+                55.0f,
                 90.0f);
         weaponState.aspect =
             viewAspect;
