@@ -265,7 +265,7 @@ def build_contact_sheet(
     from PIL import Image, ImageDraw
 
     sources = [p for p in source_images if p.is_file()][:8]
-    turns = [p for p in turntable_frames if p.is_file()][:8]
+    turns = [p for p in turntable_frames if p.is_file()][:12]
     if not sources and not turns:
         return None
 
@@ -273,7 +273,10 @@ def build_contact_sheet(
     columns = 4
     items: list[tuple[str, Path]] = [
         *[(f"SOURCE {i + 1}", p) for i, p in enumerate(sources)],
-        *[(f"TURN {i * 45:03d}", p) for i, p in enumerate(turns)],
+        *[(
+            f"TURN {((i * 15) % 360):03d}",
+            p,
+        ) for i, p in enumerate(turns)],
     ]
     rows = (len(items) + columns - 1) // columns
     header = 30
