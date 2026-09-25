@@ -259,6 +259,41 @@ jobs:
               "REGRESSION INVALID: known-bad was rejected without any visual "
               "content eye identifying a defect. V5="+str(reasons)+" V4="+str(v4_reasons)
           )
+
+          # This fixture is specifically a FACE failure. Do not let a body,
+          # silhouette, or generic-image veto hide the fact that the face eyes
+          # missed it. Require at least TWO independent face-specific families.
+          families=set()
+          for r in reasons:
+              if r.startswith("visualquality_r1_face_catastrophic_"):
+                  families.add("VisualQuality-R1-face")
+              if r.startswith(("adaface_detection_coverage:","adaface_catastrophic_","adaface_front_face_missing")):
+                  families.add("AdaFace-identity")
+              if r.startswith(("ediffiqa_detection_coverage:","ediffiqa_minimum:","ediffiqa_median:")):
+                  families.add("eDifFIQA-face-quality")
+          for r in v4_reasons:
+              if r.startswith("qrealign_face_"):
+                  families.add("Q-ReAlign-face")
+              if r.startswith("dreamsim_face_"):
+                  families.add("DreamSim-face")
+              if r.startswith(("front_face_not_detected","face_detection_fraction:","face_profile_")):
+                  families.add("MediaPipe-face-geometry")
+              if r.startswith("internvl_pass_") and (
+                  "_face_anatomy:" in r
+                  or "_face_source_fidelity:" in r
+                  or "_critical:" in r
+              ):
+                  families.add("InternVL-face-critic")
+
+          assert len(families)>=2, (
+              "REGRESSION INVALID: known-bad Monja was not independently "
+              "identified as a FACE failure by at least two eyes. families="
+              +str(sorted(families))+" V5="+str(reasons)+" V4="+str(v4_reasons)
+          )
+          print(
+              "HAYUYA_KNOWN_BAD_MONJA_FACE_CAUGHT_BY_INDEPENDENT_EYES",
+              sorted(families),
+          )
           print("HAYUYA_KNOWN_BAD_MONJA_REJECTED_BY_REAL_EYES",content_hits)
           PY
 
