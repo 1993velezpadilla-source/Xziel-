@@ -2149,6 +2149,9 @@ xziel::android::VulkanHudState makeHudState(
         state.player.frame().
             movement.viewmodelLowering;
 
+    hud.weaponViewmodel =
+        state.weaponProfile.viewmodel;
+
     hud.playerHealthRatio =
         state.vitals.frame().
             healthRatio;
