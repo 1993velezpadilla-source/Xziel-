@@ -28,7 +28,7 @@ def classify_texture(path: Path):
         return "ASTC_6x6_UNORM_BLOCK", ["--normalize"], "normal", "clamp"
 
     if "_detail." in name:
-        return "ASTC_6x6_UNORM_BLOCK", [], "photo-detail", "repeat"
+        return "ASTC_6x6_UNORM_BLOCK", [], "photo-detail", "wrap"
 
     if any(token in name for token in linear_tokens):
         return "ASTC_6x6_UNORM_BLOCK", [], "linear-data", "clamp"
