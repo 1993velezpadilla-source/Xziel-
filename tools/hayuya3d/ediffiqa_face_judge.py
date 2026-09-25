@@ -63,7 +63,9 @@ def run(rows:list[tuple[str,Path]])->dict:
     return {
         "schema":1,
         "model":"eDifFIQA-L",
-        # Execution success is separate from visual acceptance. A missing face\n        # must remain inspectable evidence, not be misreported as a worker crash.\n        "ready":bool(evidence),
+        # Execution success is separate from visual acceptance. A missing face
+        # must remain inspectable evidence, not be misreported as a worker crash.
+        "ready":bool(evidence),
         "detected":detected,
         "total":len(evidence),
         "detection_fraction":round(detected/max(1,len(evidence)),6),
