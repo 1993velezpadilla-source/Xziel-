@@ -702,6 +702,17 @@ jobs:
           done
           test "$BOOTED" = "1"
 
+          # Keep unrelated Google system apps from contaminating the FPS
+          # touch tour. On software-Vulkan runners, Messages can start its
+          # indexing provider, ANR under host load, and put a system modal
+          # above XZIEL. That steals every injected swipe/tap and turns all
+          # screenshots into the same Android dialog even though XZIEL itself
+          # is still alive. XZIEL crash/ANR detection remains strict below.
+          "$ADB" shell settings put global hide_error_dialogs 1 || true
+          "$ADB" shell am force-stop com.google.android.apps.messaging || true
+          "$ADB" shell pm disable-user --user 0 com.google.android.apps.messaging || true
+          echo "XZIEL_CI_FOREIGN_ANR_QUARANTINE_READY"
+
           APK="xziel-native-android/app/build/outputs/apk/debug/app-debug.apk"
           "$ADB" install -r "$APK"
 
