@@ -457,14 +457,19 @@ void main() {
                 (detailSample - 0.5) *
                 2.0;
 
+            // PHOTOGRAMMETRY_MICRODETAIL_RESPONSE_V2
+            // #580's 2K tile is resolving correctly, but the entry wall still
+            // loses a small amount of real stone microstructure after scene
+            // composition. Increase the bounded material response itself
+            // before CAS instead of compensating only in post.
             worldDetailResponse =
                 clamp(
                     1.0 +
                     detailSignal *
-                    0.18 *
+                    0.22 *
                     detailFade,
-                    0.88,
-                    1.12);
+                    0.86,
+                    1.14);
         }
 
         vec3 photoColor =
