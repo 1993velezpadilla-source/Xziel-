@@ -520,6 +520,70 @@ void logError(const char* message) noexcept {
         message);
 }
 
+
+bool restartRun(
+    NativeAppState& state) noexcept {
+    // Manual round restart used by the death-screen preset. Sanctum keeps
+    // autoRespawn disabled, so this must restore the complete gameplay
+    // session instead of merely giving health back in-place.
+    state.vitals.reset();
+    state.player.reset();
+    state.weapon.reset();
+    state.horde.reset();
+    state.score.reset();
+    state.interaction.reset();
+    state.interactionFrame = {};
+    state.gameplayEvents.clear();
+    state.questRuntime.reset();
+    state.cameraRig.reset();
+    state.horror.reset();
+
+    state.prototypeWeaponBuyPurchased = false;
+    state.prototypeDoorOpenAlpha = 0.0f;
+    state.purchaseDeniedSeconds = 0.0f;
+    state.pendingRecoilPitch = 0.0f;
+    state.pendingRecoilYaw = 0.0f;
+    state.adsRuntimeHigh = false;
+    state.hitMarkerSeconds = 0.0f;
+    state.criticalHitSeconds = 0.0f;
+    state.impactFxSeconds = 0.0f;
+    state.decapFxSeconds = 0.0f;
+    state.muzzleFlashSeconds = 0.0f;
+    state.zombieAttackFlashSeconds = 0.0f;
+    state.scorePulseSeconds = 0.0f;
+    state.stridePhase = 0.0f;
+
+    const auto load =
+        state.mapRuntime.load(
+            state.mapDefinition,
+            state.player,
+            state.horde,
+            state.interaction);
+
+    if (!load.success) {
+        logError(
+            "XZIEL_RESTART_FAILED_MAP_RELOAD");
+        return false;
+    }
+
+    state.mapRuntime.beginRound();
+
+    if (!state.sanctumMapLoaded) {
+        configurePrototypeQuest(
+            state);
+    }
+
+    state.stormEnabled = true;
+    state.environment.reset();
+    state.environment.setWeather(
+        state.stormWeather);
+
+    logInfo(
+        "XZIEL_RESTART_COMPLETE");
+
+    return true;
+}
+
 void requestHaptic(
     NativeAppState& state,
     xziel::HapticEvent event) noexcept {
@@ -2094,6 +2158,10 @@ xziel::android::VulkanHudState makeHudState(
         state.vitals.frame().
             deathAlpha;
 
+    hud.restartVisible =
+        !state.vitals.frame().
+            alive;
+
     hud.horrorVignette =
         state.horrorFrame.
             vignetteStrength;
@@ -3244,6 +3312,10 @@ extern "C" void android_main(
             state.vitals.frame().
                 alive);
 
+        state.input.setRestartAvailable(
+            !state.vitals.frame().
+                alive);
+
         const int width =
             app->window != nullptr
             ? ANativeWindow_getWidth(
@@ -3263,6 +3335,17 @@ extern "C" void android_main(
 
         const auto inputSnapshot =
             state.input.snapshot();
+
+        if (inputSnapshot.restartPressed &&
+            !state.vitals.frame().alive) {
+            if (restartRun(state)) {
+                state.input.setRestartAvailable(
+                    false);
+                requestHaptic(
+                    state,
+                    xziel::HapticEvent::UiConfirm);
+            }
+        }
 
         if (latest.canSimulate) {
             state.engine.submitInput(
