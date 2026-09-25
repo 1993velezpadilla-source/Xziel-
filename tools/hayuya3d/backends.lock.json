@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_utc": "2026-09-23T20:55:00Z",
+  "updated_utc": "2026-09-25T17:55:00Z",
   "policy": {
     "default_stack": "permissive_open_source",
     "allow_restricted_by_default": false,
@@ -245,6 +245,22 @@
       "min_vram_gb": 4,
       "quality_tier": "detection",
       "notes": "Optional open-vocabulary locator for semantic parts such as magazine, slide, pump, cylinder, doors or wheels. Must be combined with SAM2 masks and downstream 3D projection; fail closed when confidence is weak."
+    },
+    {
+      "id": "judge_v4",
+      "role": [
+        "final_visual_acceptance",
+        "face_anatomy_evaluator",
+        "human_aligned_image_quality",
+        "multimodal_asset_review",
+        "perceptual_similarity"
+      ],
+      "source_required": false,
+      "license": "Apache-2.0",
+      "enabled_by_default": true,
+      "min_vram_gb": 20,
+      "quality_tier": "evaluator_ultra",
+      "notes": "Fail-closed final visual judge. Runtime uses Apache-2.0 Q-ReAlign-Pro-9B and InternVL3.5-8B-HF checkpoints plus Apache MediaPipe and MIT DreamSim. No generator is auto-approved from aggregate mesh score alone."
     }
   ],
   "service_adapters": [
