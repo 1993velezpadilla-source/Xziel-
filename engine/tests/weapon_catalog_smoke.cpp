@@ -7,9 +7,17 @@ int main() {
         xziel::makeWeaponProfile(
             xziel::WeaponArchetype::Sidearm);
 
+    const auto smg =
+        xziel::makeWeaponProfile(
+            xziel::WeaponArchetype::SubmachineGun);
+
     const auto assault =
         xziel::makeWeaponProfile(
             xziel::WeaponArchetype::AssaultRifle);
+
+    const auto lmg =
+        xziel::makeWeaponProfile(
+            xziel::WeaponArchetype::LightMachineGun);
 
     const auto marksman =
         xziel::makeWeaponProfile(
@@ -25,6 +33,37 @@ int main() {
 
     assert(
         sidearm.controller.magazineSize > 0U);
+
+    assert(
+        sidearm.soundFamily ==
+            xziel::WeaponSoundFamily::Sidearm);
+
+    assert(
+        smg.soundFamily ==
+            xziel::WeaponSoundFamily::SubmachineGun);
+
+    assert(
+        assault.soundFamily ==
+            xziel::WeaponSoundFamily::AssaultRifle);
+
+    assert(
+        marksman.soundFamily ==
+            xziel::WeaponSoundFamily::MarksmanRifle);
+
+    assert(
+        shotgun.soundFamily ==
+            xziel::WeaponSoundFamily::Shotgun);
+
+    assert(
+        lmg.soundFamily ==
+            xziel::WeaponSoundFamily::LightMachineGun);
+
+    assert(
+        sniper.soundFamily ==
+            xziel::WeaponSoundFamily::SniperRifle);
+
+    assert(sidearm.soundFamily != assault.soundFamily);
+    assert(assault.soundFamily != shotgun.soundFamily);
 
     assert(
         assault.controller.automatic);

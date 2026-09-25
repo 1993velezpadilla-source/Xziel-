@@ -4,6 +4,7 @@
 #include <android/asset_manager.h>
 
 #include "xziel/spsc_queue.hpp"
+#include "xziel/weapon_catalog.hpp"
 
 #include <array>
 #include <atomic>
@@ -13,7 +14,13 @@
 namespace xziel::android {
 
 enum class AndroidAudioCue : std::uint8_t {
-    Fire,
+    FireSidearm,
+    FireSubmachineGun,
+    FireAssaultRifle,
+    FireMarksmanRifle,
+    FireShotgun,
+    FireLightMachineGun,
+    FireSniperRifle,
     Hit,
     CriticalHit,
     PlayerHit,
@@ -28,6 +35,9 @@ enum class AndroidAudioCue : std::uint8_t {
     HorrorStinger,
     Thunder,
 };
+
+[[nodiscard]] AndroidAudioCue weaponFireCue(
+    xziel::WeaponSoundFamily family) noexcept;
 
 class AndroidAudioEngine final {
 public:
@@ -57,13 +67,13 @@ public:
 
 private:
     struct Command {
-        AndroidAudioCue cue = AndroidAudioCue::Fire;
+        AndroidAudioCue cue = AndroidAudioCue::FireAssaultRifle;
         float gain = 1.0f;
     };
 
     struct Voice {
         bool active = false;
-        AndroidAudioCue cue = AndroidAudioCue::Fire;
+        AndroidAudioCue cue = AndroidAudioCue::FireAssaultRifle;
         float phase = 0.0f;
         float phaseIncrement = 0.0f;
         float gain = 0.0f;

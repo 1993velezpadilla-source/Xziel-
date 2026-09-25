@@ -1737,7 +1737,8 @@ void advancePlayer(
                 0.055f;
 
             state.audio.play(
-                xziel::android::AndroidAudioCue::Fire,
+                xziel::android::weaponFireCue(
+                    state.weaponProfile.soundFamily),
                 0.92f);
 
             requestHaptic(

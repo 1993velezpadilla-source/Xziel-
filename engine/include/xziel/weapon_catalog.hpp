@@ -16,6 +16,16 @@ enum class WeaponArchetype : std::uint8_t {
     SniperRifle,
 };
 
+enum class WeaponSoundFamily : std::uint8_t {
+    Sidearm,
+    SubmachineGun,
+    AssaultRifle,
+    MarksmanRifle,
+    Shotgun,
+    LightMachineGun,
+    SniperRifle,
+};
+
 enum class WeaponViewmodelAsset : std::uint8_t {
     Sidearm,
     SubmachineGun,
@@ -76,6 +86,9 @@ struct WeaponViewmodelProfile {
 struct WeaponProfile {
     WeaponArchetype archetype =
         WeaponArchetype::Sidearm;
+
+    WeaponSoundFamily soundFamily =
+        WeaponSoundFamily::Sidearm;
 
     WeaponConfig controller{};
     WeaponViewmodelProfile viewmodel{};

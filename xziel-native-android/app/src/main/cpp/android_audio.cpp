@@ -22,11 +22,71 @@ struct CueProfile {
     float pitchFall = 0.0f;
 };
 
+struct FireCueProfile {
+    float playbackRate = 1.0f;
+    float sampleMix = 0.80f;
+    float toneMix = 0.18f;
+    float noiseMix = 0.055f;
+    float bodySeconds = 0.095f;
+    float crackSeconds = 0.018f;
+    float transientFrequency = 82.0f;
+};
+
+bool isWeaponFireCue(
+    AndroidAudioCue cue) noexcept {
+    switch (cue) {
+        case AndroidAudioCue::FireSidearm:
+        case AndroidAudioCue::FireSubmachineGun:
+        case AndroidAudioCue::FireAssaultRifle:
+        case AndroidAudioCue::FireMarksmanRifle:
+        case AndroidAudioCue::FireShotgun:
+        case AndroidAudioCue::FireLightMachineGun:
+        case AndroidAudioCue::FireSniperRifle:
+            return true;
+        default:
+            return false;
+    }
+}
+
+FireCueProfile fireProfileFor(
+    AndroidAudioCue cue) noexcept {
+    switch (cue) {
+        case AndroidAudioCue::FireSidearm:
+            return {1.16f, 0.66f, 0.10f, 0.095f, 0.055f, 0.012f, 152.0f};
+        case AndroidAudioCue::FireSubmachineGun:
+            return {1.08f, 0.72f, 0.12f, 0.075f, 0.065f, 0.014f, 126.0f};
+        case AndroidAudioCue::FireAssaultRifle:
+            return {1.00f, 0.80f, 0.18f, 0.055f, 0.095f, 0.018f, 82.0f};
+        case AndroidAudioCue::FireMarksmanRifle:
+            return {0.95f, 0.84f, 0.20f, 0.062f, 0.120f, 0.020f, 72.0f};
+        case AndroidAudioCue::FireShotgun:
+            return {0.86f, 0.90f, 0.28f, 0.120f, 0.160f, 0.028f, 58.0f};
+        case AndroidAudioCue::FireLightMachineGun:
+            return {0.92f, 0.88f, 0.24f, 0.065f, 0.130f, 0.022f, 64.0f};
+        case AndroidAudioCue::FireSniperRifle:
+            return {0.82f, 0.92f, 0.32f, 0.100f, 0.180f, 0.030f, 52.0f};
+        default:
+            return {};
+    }
+}
+
 CueProfile profileFor(
     AndroidAudioCue cue) noexcept {
     switch (cue) {
-        case AndroidAudioCue::Fire:
+        case AndroidAudioCue::FireSidearm:
+            return {260.0f, 0.055f, 0.48f, 0.70f, 0.58f};
+        case AndroidAudioCue::FireSubmachineGun:
+            return {190.0f, 0.065f, 0.42f, 0.78f, 0.64f};
+        case AndroidAudioCue::FireAssaultRifle:
             return {118.0f, 0.075f, 0.36f, 0.88f, 0.72f};
+        case AndroidAudioCue::FireMarksmanRifle:
+            return {92.0f, 0.105f, 0.34f, 0.86f, 0.76f};
+        case AndroidAudioCue::FireShotgun:
+            return {62.0f, 0.155f, 0.24f, 0.96f, 0.80f};
+        case AndroidAudioCue::FireLightMachineGun:
+            return {74.0f, 0.125f, 0.30f, 0.90f, 0.78f};
+        case AndroidAudioCue::FireSniperRifle:
+            return {48.0f, 0.180f, 0.20f, 0.98f, 0.84f};
         case AndroidAudioCue::Hit:
             return {760.0f, 0.055f, 0.92f, 0.08f, 0.18f};
         case AndroidAudioCue::CriticalHit:
@@ -63,6 +123,27 @@ float clampSample(float value) noexcept {
 }
 
 } // namespace
+
+AndroidAudioCue weaponFireCue(
+    xziel::WeaponSoundFamily family) noexcept {
+    switch (family) {
+        case xziel::WeaponSoundFamily::Sidearm:
+            return AndroidAudioCue::FireSidearm;
+        case xziel::WeaponSoundFamily::SubmachineGun:
+            return AndroidAudioCue::FireSubmachineGun;
+        case xziel::WeaponSoundFamily::AssaultRifle:
+            return AndroidAudioCue::FireAssaultRifle;
+        case xziel::WeaponSoundFamily::MarksmanRifle:
+            return AndroidAudioCue::FireMarksmanRifle;
+        case xziel::WeaponSoundFamily::Shotgun:
+            return AndroidAudioCue::FireShotgun;
+        case xziel::WeaponSoundFamily::LightMachineGun:
+            return AndroidAudioCue::FireLightMachineGun;
+        case xziel::WeaponSoundFamily::SniperRifle:
+            return AndroidAudioCue::FireSniperRifle;
+    }
+    return AndroidAudioCue::FireAssaultRifle;
+}
 
 AndroidAudioEngine::~AndroidAudioEngine() {
     shutdown();
@@ -319,7 +400,13 @@ const AndroidAudioEngine::SampleBuffer*
 AndroidAudioEngine::sampleFor(
     AndroidAudioCue cue) const noexcept {
     switch (cue) {
-        case AndroidAudioCue::Fire:
+        case AndroidAudioCue::FireSidearm:
+        case AndroidAudioCue::FireSubmachineGun:
+        case AndroidAudioCue::FireAssaultRifle:
+        case AndroidAudioCue::FireMarksmanRifle:
+        case AndroidAudioCue::FireShotgun:
+        case AndroidAudioCue::FireLightMachineGun:
+        case AndroidAudioCue::FireSniperRifle:
             return fireSample_.mono.empty()
                 ? nullptr
                 : &fireSample_;
@@ -455,8 +542,8 @@ void AndroidAudioEngine::startVoice(
         const std::uint32_t sequence =
             voiceSequence_++;
 
-        if (command.cue ==
-            AndroidAudioCue::Fire) {
+        if (isWeaponFireCue(
+                command.cue)) {
             constexpr std::array<float, 5> kShotRates{
                 0.972f,
                 0.988f,
@@ -465,23 +552,31 @@ void AndroidAudioEngine::startVoice(
                 1.028f,
             };
 
+            const FireCueProfile fire =
+                fireProfileFor(
+                    command.cue);
+
             slot->playbackRate =
+                fire.playbackRate *
                 kShotRates[
                     sequence %
                     kShotRates.size()];
 
             slot->phaseIncrement =
                 2.0f * kPi *
-                (82.0f +
+                (fire.transientFrequency +
                  static_cast<float>(
                      sequence % 4U) *
-                     7.0f) /
+                     5.0f) /
                 std::max(sampleRate_, 8000.0f);
 
             slot->noiseState =
                 0xA511E9B3U ^
                 sequence *
-                    0x9E3779B9U;
+                    0x9E3779B9U ^
+                static_cast<std::uint32_t>(
+                    command.cue) *
+                    0x85EBCA6BU;
         }
 
         slot->durationSeconds =
@@ -574,21 +669,33 @@ float AndroidAudioEngine::renderVoice(
 
         float transient = 0.0f;
 
-        if (voice.cue ==
-            AndroidAudioCue::Fire) {
+        FireCueProfile fire{};
+        const bool weaponFire =
+            isWeaponFireCue(
+                voice.cue);
+
+        if (weaponFire) {
+            fire =
+                fireProfileFor(
+                    voice.cue);
+
             const float bodyEnvelope =
                 std::max(
                     0.0f,
                     1.0f -
                         voice.ageSeconds /
-                        0.095f);
+                        std::max(
+                            fire.bodySeconds,
+                            0.001f));
 
             const float crackEnvelope =
                 std::max(
                     0.0f,
                     1.0f -
                         voice.ageSeconds /
-                        0.018f);
+                        std::max(
+                            fire.crackSeconds,
+                            0.001f));
 
             voice.noiseState =
                 voice.noiseState *
@@ -605,10 +712,10 @@ float AndroidAudioEngine::renderVoice(
             transient =
                 std::sin(
                     voice.phase) *
-                    0.18f *
+                    fire.toneMix *
                     bodyEnvelope +
                 noise *
-                    0.055f *
+                    fire.noiseMix *
                     crackEnvelope;
 
             voice.phase +=
@@ -628,7 +735,10 @@ float AndroidAudioEngine::renderVoice(
         }
 
         return (
-            value * 0.80f +
+            value *
+                (weaponFire
+                    ? fire.sampleMix
+                    : 0.80f) +
             transient) *
             voice.gain;
     }

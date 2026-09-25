@@ -12,6 +12,8 @@ WeaponProfile makeWeaponProfile(
 
     switch (archetype) {
         case WeaponArchetype::Sidearm:
+            profile.soundFamily =
+                WeaponSoundFamily::Sidearm;
             profile.viewmodel.asset =
                 WeaponViewmodelAsset::Sidearm;
             profile.controller.magazineSize = 12;
@@ -30,6 +32,8 @@ WeaponProfile makeWeaponProfile(
             break;
 
         case WeaponArchetype::SubmachineGun:
+            profile.soundFamily =
+                WeaponSoundFamily::SubmachineGun;
             profile.viewmodel.asset =
                 WeaponViewmodelAsset::SubmachineGun;
             profile.controller.magazineSize = 32;
@@ -48,6 +52,8 @@ WeaponProfile makeWeaponProfile(
             break;
 
         case WeaponArchetype::AssaultRifle:
+            profile.soundFamily =
+                WeaponSoundFamily::AssaultRifle;
             profile.viewmodel.asset =
                 WeaponViewmodelAsset::AssaultRifle;
             profile.controller.magazineSize = 30;
@@ -66,6 +72,8 @@ WeaponProfile makeWeaponProfile(
             break;
 
         case WeaponArchetype::MarksmanRifle:
+            profile.soundFamily =
+                WeaponSoundFamily::MarksmanRifle;
             profile.viewmodel.asset =
                 WeaponViewmodelAsset::MarksmanRifle;
             profile.controller.magazineSize = 12;
@@ -87,6 +95,8 @@ WeaponProfile makeWeaponProfile(
             break;
 
         case WeaponArchetype::Shotgun:
+            profile.soundFamily =
+                WeaponSoundFamily::Shotgun;
             profile.viewmodel.asset =
                 WeaponViewmodelAsset::Shotgun;
             profile.controller.magazineSize = 8;
@@ -107,6 +117,8 @@ WeaponProfile makeWeaponProfile(
             break;
 
         case WeaponArchetype::LightMachineGun:
+            profile.soundFamily =
+                WeaponSoundFamily::LightMachineGun;
             profile.viewmodel.asset =
                 WeaponViewmodelAsset::LightMachineGun;
             profile.controller.magazineSize = 60;
@@ -125,6 +137,8 @@ WeaponProfile makeWeaponProfile(
             break;
 
         case WeaponArchetype::SniperRifle:
+            profile.soundFamily =
+                WeaponSoundFamily::SniperRifle;
             profile.viewmodel.asset =
                 WeaponViewmodelAsset::SniperRifle;
             profile.controller.magazineSize = 5;
