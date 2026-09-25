@@ -5550,33 +5550,36 @@ bool VulkanClearRenderer::recordDrawCommand(
         // Hip placement keeps the weapon in the lower-right quadrant; ADS
         // centers the receiver/sight line rather than scaling a toy blockout.
         weaponState.x =
-            0.30f * (1.0f - ads) -
-            0.010f * ads +
-            0.040f * lowering;
+            0.27f * (1.0f - ads) +
+            0.000f * ads +
+            0.035f * lowering;
         weaponState.y =
-            -0.080f * (1.0f - ads) +
-            0.158f * ads -
-            0.095f * reloadArc -
-            0.24f * lowering -
-            0.010f * fire;
+            -0.180f * (1.0f - ads) -
+            0.132f * ads -
+            0.080f * reloadArc -
+            0.22f * lowering -
+            0.008f * fire;
         weaponState.z =
-            0.430f * (1.0f - ads) +
-            0.360f * ads +
-            0.032f * reloadArc -
-            0.030f * fire +
-            0.04f * lowering;
-        weaponState.scale = 0.66f;
+            0.340f * (1.0f - ads) +
+            0.280f * ads +
+            0.028f * reloadArc -
+            0.024f * fire +
+            0.035f * lowering;
+        weaponState.scale =
+            0.58f * (1.0f - ads) +
+            0.55f * ads;
         weaponState.yawRadians =
-            0.010f +
-            0.055f * reloadArc;
+            0.006f +
+            0.050f * reloadArc;
         weaponState.pitchRadians =
             1.570796327f -
-            0.010f -
-            0.11f * reloadArc;
+            0.008f -
+            0.10f * reloadArc;
         weaponState.rollRadians =
-            -0.035f * (1.0f - ads) -
+            3.141592654f +
+            0.045f * (1.0f - ads) +
             0.005f * ads -
-            0.30f * reloadArc;
+            0.26f * reloadArc;
         weaponState.verticalFovDegrees =
             std::clamp(
                 camera.verticalFovDegrees,
