@@ -404,7 +404,7 @@ def inspect_mesh(
                     f"flatness={result.head_flatness_ratio:.3f} "
                     f"taper={result.head_taper_ratio if result.head_taper_ratio is not None else 'n/a'}"
                 )
-                if result.head_structure_score < 35.0:
+                if result.head_structure_score < 45.0:
                     result.notes.append(
                         "head structure is a gross-shape outlier; demote before character promotion"
                     )
@@ -772,7 +772,7 @@ def candidate_rank_key(
     structure_ready=True
     if mode=="character" and structure is not None:
         try:
-            structure_ready=math.isfinite(float(structure)) and float(structure)>=35.0
+            structure_ready=math.isfinite(float(structure)) and float(structure)>=45.0
         except (TypeError,ValueError):
             structure_ready=False
     return (

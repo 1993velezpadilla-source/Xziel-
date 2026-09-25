@@ -53,7 +53,7 @@ class HeadStructureTests(unittest.TestCase):
             up_axis=1,body_min=0.0,body_span=1.0,
         )
         self.assertIsNotNone(metrics["score"])
-        self.assertLess(metrics["score"],35.0)
+        self.assertLess(metrics["score"],45.0)
 
     def test_ranking_demotes_structural_head_outlier(self):
         healthy=MeshScore(
