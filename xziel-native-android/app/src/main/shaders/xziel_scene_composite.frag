@@ -5,9 +5,16 @@ layout(location = 0) in vec2 vUv;
 layout(location = 0) out vec4 outColor;
 
 void main() {
-    // SCENE_CONTRAST_ADAPTIVE_SHARPEN_V1
-    // The scene may be dynamically rendered below native resolution. Restore
-    // local edge definition before the HUD pass without sharpening UI/text.
+    // FIDELITYFX_CAS_SHARPEN_V1
+    // Five-tap sharpen-only adaptation of AMD FidelityFX CAS (MIT), pinned to
+    // GPUOpen-Effects/FidelityFX-CAS commit
+    // 9fabcc9a2c45f958aff55ddfda337e74ef894b7f.
+    //
+    // CAS shapes its negative neighbor weight from the local signal headroom
+    // instead of applying one fixed Laplacian everywhere. That is exactly what
+    // this mobile compositor needs: recover stone/photogrammetry detail after
+    // dynamic-resolution sampling while avoiding halos on gothic windows,
+    // weapon silhouettes, HUD edges and bright highlights.
     vec2 texel =
         1.0 /
         vec2(textureSize(uScene, 0));
@@ -18,46 +25,82 @@ void main() {
     vec3 w = texture(uScene, vUv + vec2(-texel.x, 0.0)).rgb;
     vec3 e = texture(uScene, vUv + vec2( texel.x, 0.0)).rgb;
 
-    vec3 localMin = min(c, min(min(n, s), min(w, e)));
-    vec3 localMax = max(c, max(max(n, s), max(w, e)));
-    vec3 span = max(localMax - localMin, vec3(1.0e-4));
+    vec3 localMin =
+        min(
+            c,
+            min(
+                min(n, s),
+                min(w, e)));
 
-    float localContrast =
+    vec3 localMax =
         max(
-            max(span.r, span.g),
-            span.b);
+            c,
+            max(
+                max(n, s),
+                max(w, e)));
 
-    float strength =
+    // FidelityFX CAS uses the green channel for one shared filter coefficient
+    // in its fast path. Preserve that property so RGB edges remain aligned and
+    // the shader stays at five texture reads.
+    float maxGreen =
+        max(
+            localMax.g,
+            1.0e-4);
+
+    float amplitude =
+        clamp(
+            min(
+                localMin.g,
+                1.0 - localMax.g) /
+                maxGreen,
+            0.0,
+            1.0);
+
+    amplitude =
+        sqrt(amplitude);
+
+    // 0 = conservative CAS, 1 = maximum CAS. 0.70 was selected against the
+    // deterministic 2400x1080 Sanctum tour because it restores real stone
+    // micro-detail without the ringing produced by the old fixed Laplacian.
+    const float sharpness = 0.70;
+    const float peak =
+        -1.0 /
         mix(
-            0.16,
-            0.34,
-            clamp(
-                localContrast * 4.0,
-                0.0,
-                1.0));
+            8.0,
+            5.0,
+            sharpness);
 
-    vec3 laplacian =
-        c * 4.0 -
-        (n + s + w + e);
+    float weight =
+        amplitude *
+        peak;
+
+    float reciprocalWeight =
+        1.0 /
+        max(
+            1.0 +
+                4.0 *
+                weight,
+            0.20);
 
     vec3 sharpened =
-        c +
-        laplacian * strength;
+        (
+            (n + s + w + e) *
+                weight +
+            c
+        ) *
+        reciprocalWeight;
 
-    // Tight local clamp prevents ringing/halos around gothic windows and the
-    // weapon silhouette while still restoring texture/stone definition.
-    vec3 guard =
-        vec3(0.025) +
-        span * 0.08;
-
+    // The current scene target is display-referred before the separate HUD
+    // pass. Saturation here matches the reference CAS sharpen-only path and
+    // prevents negative/overshoot ringing from leaking into presentation.
     sharpened =
         clamp(
             sharpened,
-            localMin - guard,
-            localMax + guard);
+            vec3(0.0),
+            vec3(1.0));
 
     outColor =
         vec4(
-            max(sharpened, vec3(0.0)),
+            sharpened,
             1.0);
 }
