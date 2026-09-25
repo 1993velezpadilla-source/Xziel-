@@ -18,8 +18,60 @@ from qa import (
     _sample_uv_luma_gradients,
     candidate_rank_key,
     head_density_score_from_ratio,
+    head_structure_metrics,
     inspect_mesh,
 )
+
+
+class HeadStructureTests(unittest.TestCase):
+    def _cloud(self, *, head_width: float, head_depth: float, lower_scale: float=0.82):
+        body=[]
+        for y in np.linspace(0.0,0.80,12):
+            for x in (-0.18,0.18):
+                for z in (-0.10,0.10):
+                    body.append([x,y,z])
+        head=[]
+        for y in np.linspace(0.835,0.985,10):
+            t=(y-0.835)/(0.985-0.835)
+            scale=lower_scale+(1.0-lower_scale)*t
+            for x in np.linspace(-head_width*0.5*scale,head_width*0.5*scale,5):
+                for z in np.linspace(-head_depth*0.5,head_depth*0.5,4):
+                    head.append([x,y,z])
+        return np.asarray(body+head,dtype=np.float64)
+
+    def test_normal_humanoid_head_is_not_demoted(self):
+        metrics=head_structure_metrics(
+            np,self._cloud(head_width=0.16,head_depth=0.12),
+            up_axis=1,body_min=0.0,body_span=1.0,
+        )
+        self.assertIsNotNone(metrics["score"])
+        self.assertGreaterEqual(metrics["score"],85.0)
+
+    def test_needle_flat_head_is_detected(self):
+        metrics=head_structure_metrics(
+            np,self._cloud(head_width=0.045,head_depth=0.009,lower_scale=0.22),
+            up_axis=1,body_min=0.0,body_span=1.0,
+        )
+        self.assertIsNotNone(metrics["score"])
+        self.assertLess(metrics["score"],35.0)
+
+    def test_ranking_demotes_structural_head_outlier(self):
+        healthy=MeshScore(
+            path="healthy.glb",backend="healthy",score=78.0,valid=True,
+            head_density_score=90.0,head_texel_density_score=90.0,
+            head_texture_detail_score=90.0,head_structure_score=88.0,
+        )
+        weird=MeshScore(
+            path="weird.glb",backend="weird",score=99.0,valid=True,
+            head_density_score=100.0,head_texel_density_score=100.0,
+            head_texture_detail_score=100.0,head_structure_score=20.0,
+        )
+        ranked=sorted(
+            [weird,healthy],
+            key=lambda item:candidate_rank_key(item,mode="character"),
+            reverse=True,
+        )
+        self.assertEqual(ranked[0].backend,"healthy")
 
 
 class HeadDensityScoreTests(unittest.TestCase):

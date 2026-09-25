@@ -51,6 +51,11 @@ class MeshScore:
     head_texture_detail_ratio: float | None = None
     head_texture_detail_score: float | None = None
     head_texture_detail_mean: float | None = None
+    head_structure_score: float | None = None
+    head_width_body_ratio: float | None = None
+    head_depth_body_ratio: float | None = None
+    head_flatness_ratio: float | None = None
+    head_taper_ratio: float | None = None
     bbox: list[float] | None = None
     notes: list[str] | None = None
 
@@ -110,6 +115,89 @@ def head_density_score_from_ratio(ratio: float | None) -> float | None:
     if ratio is None or not math.isfinite(float(ratio)):
         return None
     return round(max(0.0, min(100.0, float(ratio) * 100.0)), 3)
+
+
+def _soft_range_score(value: float, *, hard_lo: float, soft_lo: float, soft_hi: float, hard_hi: float) -> float:
+    """Return 0..100 with a flat healthy band and linear catastrophic shoulders."""
+    value=float(value)
+    if not math.isfinite(value) or value <= hard_lo or value >= hard_hi:
+        return 0.0
+    if soft_lo <= value <= soft_hi:
+        return 100.0
+    if value < soft_lo:
+        return 100.0 * (value-hard_lo) / max(1e-12, soft_lo-hard_lo)
+    return 100.0 * (hard_hi-value) / max(1e-12, hard_hi-soft_hi)
+
+
+def head_structure_metrics(np, vertices, *, up_axis: int, body_min: float, body_span: float) -> dict:
+    """Robust humanoid upper-head sanity telemetry.
+
+    This intentionally catches only gross structural collapses. It does not try
+    to force realistic beauty/proportions onto stylized characters, hoods, hair,
+    helmets or zombie silhouettes.
+    """
+    points=np.asarray(vertices,dtype=np.float64)
+    if points.ndim!=2 or points.shape[1] < 3 or len(points) < 32:
+        return {"score":None}
+
+    norm=(points[:,up_axis]-float(body_min))/max(1e-12,float(body_span))
+    head=points[(norm>=0.82)&(norm<=1.005)]
+    if len(head)<24:
+        return {"score":None}
+
+    transverse=[axis for axis in (0,1,2) if axis!=up_axis]
+    spans=[]
+    for axis in transverse:
+        lo=float(np.percentile(head[:,axis],5.0))
+        hi=float(np.percentile(head[:,axis],95.0))
+        spans.append(max(0.0,hi-lo))
+    width=max(spans)
+    depth=min(spans)
+    width_ratio=width/max(1e-12,float(body_span))
+    depth_ratio=depth/max(1e-12,float(body_span))
+    flatness=depth/max(width,1e-12)
+
+    upper=points[(norm>=0.90)&(norm<=0.985)]
+    lower=points[(norm>=0.835)&(norm<0.90)]
+    taper=None
+    if len(upper)>=12 and len(lower)>=12:
+        def robust_width(block):
+            local=[]
+            for axis in transverse:
+                lo=float(np.percentile(block[:,axis],8.0))
+                hi=float(np.percentile(block[:,axis],92.0))
+                local.append(max(0.0,hi-lo))
+            return max(local)
+        upper_width=robust_width(upper)
+        lower_width=robust_width(lower)
+        if upper_width>1e-12:
+            taper=lower_width/upper_width
+
+    width_score=_soft_range_score(
+        width_ratio,hard_lo=0.035,soft_lo=0.085,soft_hi=0.30,hard_hi=0.48
+    )
+    depth_score=_soft_range_score(
+        depth_ratio,hard_lo=0.018,soft_lo=0.055,soft_hi=0.24,hard_hi=0.40
+    )
+    flat_score=_soft_range_score(
+        flatness,hard_lo=0.10,soft_lo=0.30,soft_hi=1.0,hard_hi=1.01
+    )
+    if taper is None:
+        taper_score=100.0
+    else:
+        taper_score=_soft_range_score(
+            taper,hard_lo=0.18,soft_lo=0.42,soft_hi=1.55,hard_hi=2.25
+        )
+
+    score=0.30*width_score+0.25*depth_score+0.25*flat_score+0.20*taper_score
+    return {
+        "score":round(max(0.0,min(100.0,score)),3),
+        "width_body_ratio":round(width_ratio,5),
+        "depth_body_ratio":round(depth_ratio,5),
+        "flatness_ratio":round(flatness,5),
+        "taper_ratio":round(float(taper),5) if taper is not None else None,
+        "samples":int(len(head)),
+    }
 
 
 def _sample_uv_luma_gradients(np, image, uv_centers, mask, max_samples: int = 4096):
@@ -294,6 +382,32 @@ def inspect_mesh(
                     global_median_edge/body_diag,
                     8,
                 )
+
+            structure=head_structure_metrics(
+                np,
+                np.asarray(mesh.vertices,dtype=np.float64),
+                up_axis=up_axis,
+                body_min=body_min,
+                body_span=body_span,
+            )
+            result.head_structure_score=structure.get("score")
+            result.head_width_body_ratio=structure.get("width_body_ratio")
+            result.head_depth_body_ratio=structure.get("depth_body_ratio")
+            result.head_flatness_ratio=structure.get("flatness_ratio")
+            result.head_taper_ratio=structure.get("taper_ratio")
+            if result.head_structure_score is not None:
+                result.notes.append(
+                    "head structure "
+                    f"score={result.head_structure_score:.1f} "
+                    f"width/body={result.head_width_body_ratio:.3f} "
+                    f"depth/body={result.head_depth_body_ratio:.3f} "
+                    f"flatness={result.head_flatness_ratio:.3f} "
+                    f"taper={result.head_taper_ratio if result.head_taper_ratio is not None else 'n/a'}"
+                )
+                if result.head_structure_score < 35.0:
+                    result.notes.append(
+                        "head structure is a gross-shape outlier; demote before character promotion"
+                    )
 
             face_centers = np.asarray(mesh.triangles_center)[:, up_axis]
             head_mask = ((face_centers - body_min) / body_span) >= 0.72
@@ -585,12 +699,18 @@ def inspect_mesh(
                     result.notes.append(f"extreme bbox aspect ratio: {ratio:.1f}")
 
         if mode == "character" and result.head_density_score is not None:
-            # Reserve a bounded 6% of production score for local head resolution.
-            # This prevents a high-poly torso from hiding a visibly coarse face while
-            # keeping real-source silhouette/appearance evidence dominant overall.
+            # Head quality has two independent failure modes: local resolution and
+            # gross 3D structure. Keep both bounded so source-image Judges still
+            # dominate identity, but a needle-flat/collapsed head cannot hide behind
+            # a dense torso or a high-resolution texture.
+            structure_factor=(
+                result.head_structure_score/100.0
+                if result.head_structure_score is not None else 0.75
+            )
             raw = (
-                geometry * 0.36
-                + (result.head_density_score / 100.0) * 0.06
+                geometry * 0.34
+                + (result.head_density_score / 100.0) * 0.04
+                + structure_factor * 0.04
                 + health * 0.33
                 + material * 0.18
                 + bbox_health * 0.07
@@ -648,7 +768,19 @@ def candidate_rank_key(
         if mode=="character"
         else True
     )
-    return (bool(item.valid),bool(evidence_ready),float(item.score))
+    structure=getattr(item,"head_structure_score",None)
+    structure_ready=True
+    if mode=="character" and structure is not None:
+        try:
+            structure_ready=math.isfinite(float(structure)) and float(structure)>=35.0
+        except (TypeError,ValueError):
+            structure_ready=False
+    return (
+        bool(item.valid),
+        bool(evidence_ready),
+        bool(structure_ready),
+        float(item.score),
+    )
 
 
 def rank_candidates(
