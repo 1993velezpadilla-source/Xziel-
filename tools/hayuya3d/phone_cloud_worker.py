@@ -221,23 +221,26 @@ print("HAYUYA_REFERENCE_SET",
       "detail_views="+str(len(detail_views)),
       "prep_target="+str(PREP_TARGET))
 
-last=None
-client=None
-for attempt in range(1,6):
-    try:
-        kwargs={"verbose":True,"httpx_kwargs":{"timeout":120.0}}
-        if TOKEN: kwargs["token"]=TOKEN
-        client=Client(SPACE_URL,**kwargs)
-        print("HAYUYA_TRELLIS_CONNECTED",attempt)
-        break
-    except Exception as e:
-        last=e
-        print(f"::warning::TRELLIS connect {attempt}/5 failed: {type(e).__name__}: {e}")
-        if attempt<5: time.sleep(15*attempt)
-if client is None:
-    fail(f"Unable to connect to public TRELLIS ZeroGPU: {last}")
+quality_presets={
+    # TRELLIS' "simplify" argument is the fraction of triangles REMOVED, not
+    # retained. The public UI exposes 0.90..0.98, so even its best visible
+    # setting removes 90% of the extracted mesh. HAYUYA keeps a safe fallback
+    # but first asks the backend function for a denser master when quality is
+    # High/Ultra.
+    "preview":{"ss_steps":10,"slat_steps":10,"mesh_simplify":0.95,"texture_size":1024},
+    "standard":{"ss_steps":12,"slat_steps":12,"mesh_simplify":0.90,"texture_size":2048},
+    "high":{"ss_steps":16,"slat_steps":16,"mesh_simplify":0.70,"texture_size":4096},
+    "ultra":{"ss_steps":20,"slat_steps":20,"mesh_simplify":0.40,"texture_size":4096},
+}
+qp=quality_presets.get(TEXTURE_QUALITY,quality_presets["standard"])
 
 retry_events=[]
+client=None
+processed=[]
+params=[]
+args=[]
+values={}
+endpoint=None
 
 def _transient_cloud_error(exc):
     text=(f"{type(exc).__name__}: {exc}").lower()
@@ -281,11 +284,13 @@ def _record_retry(stage, attempt, delay, exc):
         f"retry {attempt} in {delay}s: {type(exc).__name__}: {exc}"
     )
 
-def resilient_predict(*args, api_name, stage, max_attempts=5):
+def resilient_predict(*call_args, api_name, stage, max_attempts=5):
+    if client is None:
+        raise RuntimeError("classic TRELLIS client is disabled")
     delays=(20,35,55,75)
     for attempt in range(1,max_attempts+1):
         try:
-            return client.predict(*args,api_name=api_name)
+            return client.predict(*call_args,api_name=api_name)
         except Exception as exc:
             if attempt>=max_attempts or not _transient_cloud_error(exc):
                 raise
@@ -301,18 +306,6 @@ def resilient_predict(*args, api_name, stage, max_attempts=5):
                 )
     raise RuntimeError(f"{stage} exhausted retry loop")
 
-try:
-    resilient_predict(api_name="/start_session",stage="start_session",max_attempts=3)
-except Exception as e:
-    print(f"::warning::start_session: {type(e).__name__}: {e}")
-
-if multi:
-    try:
-        resilient_predict(api_name="/lambda_1",stage="enable_multiimage",max_attempts=4)
-        print("HAYUYA_MULTIIMAGE_STATE_ENABLED")
-    except Exception as e:
-        fail(f"Could not enable multi-image mode: {type(e).__name__}: {e}")
-
 def uploadable(v):
     if isinstance(v,str):
         p=Path(v)
@@ -323,59 +316,88 @@ def uploadable(v):
             return handle_file(p)
     return v
 
-processed=[]
-for p in crops:
+if CLASSIC_TRELLIS_ENABLED:
+    last=None
+    for attempt in range(1,6):
+        try:
+            kwargs={"verbose":True,"httpx_kwargs":{"timeout":120.0}}
+            if TOKEN:
+                kwargs["token"]=TOKEN
+            client=Client(SPACE_URL,**kwargs)
+            print("HAYUYA_TRELLIS_CONNECTED",attempt)
+            break
+        except Exception as e:
+            last=e
+            print(f"::warning::TRELLIS connect {attempt}/5 failed: {type(e).__name__}: {e}")
+            if attempt<5:
+                time.sleep(15*attempt)
+    if client is None:
+        fail(f"Unable to connect to public TRELLIS ZeroGPU: {last}")
+
     try:
-        v=resilient_predict(handle_file(str(p)),api_name="/preprocess_image",stage=f"preprocess:{p.name}",max_attempts=4)
-        processed.append(uploadable(v))
-        print("HAYUYA_PREPROCESS_PASS",p.name)
+        resilient_predict(api_name="/start_session",stage="start_session",max_attempts=3)
     except Exception as e:
-        fail(f"preprocess failed for {p.name}: {type(e).__name__}: {e}")
+        print(f"::warning::start_session: {type(e).__name__}: {e}")
 
-api=client.view_api(print_info=False,return_format="dict")
-named=api.get("named_endpoints",{})
-spec=named.get("/generate_and_extract_glb")
-if not spec:
-    # tolerate endpoint spelling changes
-    key=next((k for k in named if "generate_and_extract_glb" in k),None)
-    if key: spec=named[key]
-    else: fail(f"TRELLIS GLB endpoint unavailable: {list(named)}")
-    endpoint=key
+    if multi:
+        try:
+            resilient_predict(api_name="/lambda_1",stage="enable_multiimage",max_attempts=4)
+            print("HAYUYA_MULTIIMAGE_STATE_ENABLED")
+        except Exception as e:
+            fail(f"Could not enable multi-image mode: {type(e).__name__}: {e}")
+
+    for p in crops:
+        try:
+            v=resilient_predict(
+                handle_file(str(p)),
+                api_name="/preprocess_image",
+                stage=f"preprocess:{p.name}",
+                max_attempts=4,
+            )
+            processed.append(uploadable(v))
+            print("HAYUYA_PREPROCESS_PASS",p.name)
+        except Exception as e:
+            fail(f"preprocess failed for {p.name}: {type(e).__name__}: {e}")
+
+    api=client.view_api(print_info=False,return_format="dict")
+    named=api.get("named_endpoints",{})
+    spec=named.get("/generate_and_extract_glb")
+    if not spec:
+        key=next((k for k in named if "generate_and_extract_glb" in k),None)
+        if key:
+            spec=named[key]
+        else:
+            fail(f"TRELLIS GLB endpoint unavailable: {list(named)}")
+        endpoint=key
+    else:
+        endpoint="/generate_and_extract_glb"
+
+    params=[p.get("parameter_name") for p in spec.get("parameters",[])]
+    front=processed[0]
+    gallery=[{"image":v,"caption":None} for v in processed]
+    values={
+        "image":front,
+        "multiimages":gallery,
+        "seed":1993,
+        "ss_guidance_strength":7.5,
+        "ss_sampling_steps":qp["ss_steps"],
+        "slat_guidance_strength":3.0,
+        "slat_sampling_steps":qp["slat_steps"],
+        "multiimage_algo":"multidiffusion",
+        "mesh_simplify":qp["mesh_simplify"],
+        "texture_size":qp["texture_size"],
+    }
+    missing=[p for p in params if p not in values]
+    if missing:
+        fail(f"Unhandled TRELLIS parameters: {missing}")
+    args=[values[p] for p in params]
+    print("HAYUYA_TRELLIS_SUBMIT",JOB,endpoint,params)
 else:
-    endpoint="/generate_and_extract_glb"
+    print(
+        "HAYUYA_CLASSIC_TRELLIS_SKIPPED",
+        "requested_backends="+",".join(BACKENDS),
+    )
 
-params=[p.get("parameter_name") for p in spec.get("parameters",[])]
-front=processed[0]
-gallery=[{"image":v,"caption":None} for v in processed]
-quality_presets={
-    # TRELLIS' "simplify" argument is the fraction of triangles REMOVED, not
-    # retained. The public UI exposes 0.90..0.98, so even its best visible
-    # setting removes 90% of the extracted mesh. HAYUYA keeps a safe fallback
-    # but first asks the backend function for a denser master when quality is
-    # High/Ultra.
-    "preview":{"ss_steps":10,"slat_steps":10,"mesh_simplify":0.95,"texture_size":1024},
-    "standard":{"ss_steps":12,"slat_steps":12,"mesh_simplify":0.90,"texture_size":2048},
-    "high":{"ss_steps":16,"slat_steps":16,"mesh_simplify":0.70,"texture_size":4096},
-    "ultra":{"ss_steps":20,"slat_steps":20,"mesh_simplify":0.40,"texture_size":4096},
-}
-qp=quality_presets.get(TEXTURE_QUALITY,quality_presets["standard"])
-values={
-    "image":front,
-    "multiimages":gallery,
-    "seed":1993,
-    "ss_guidance_strength":7.5,
-    "ss_sampling_steps":qp["ss_steps"],
-    "slat_guidance_strength":3.0,
-    "slat_sampling_steps":qp["slat_steps"],
-    "multiimage_algo":"multidiffusion",
-    "mesh_simplify":qp["mesh_simplify"],
-    "texture_size":qp["texture_size"],
-}
-missing=[p for p in params if p not in values]
-if missing:
-    fail(f"Unhandled TRELLIS parameters: {missing}")
-args=[values[p] for p in params]
-print("HAYUYA_TRELLIS_SUBMIT",JOB,endpoint,params)
 extraction_fallback=None
 actual_mesh_simplify=qp["mesh_simplify"]
 actual_texture_size=qp["texture_size"]
