@@ -7621,6 +7621,36 @@ bool VulkanStaticMeshRenderer::createTexture(
     const std::string& exportedName,
     bool srgb,
     GpuTexture& out) noexcept {
+    // EXACT_ST_GILES_PNG_RUNTIME_REFERENCE_V1
+    // The exterior albedo is the comparison authority.  During this audit,
+    // load its exact GLB-decoded PNG instead of the ASTC derivative.  Normal,
+    // ORM and detail maps are linear (srgb=false), so they are not caught by
+    // this reference-only branch.
+    const bool exactExteriorReference =
+        srgb &&
+        exportedName.find(
+            "StGilesCripplegateExterior04") !=
+            std::string::npos;
+
+    if (exactExteriorReference) {
+        const std::string pngPath =
+            textureAssetPath(
+                exportedName,
+                ".png");
+
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_EXTERIOR_SOURCE_PNG_FIDELITY_ACTIVE path=%s",
+            pngPath.c_str());
+
+        return createPngTexture(
+            assetManager,
+            pngPath,
+            true,
+            out);
+    }
+
     const std::string ktxPath =
         textureAssetPath(
             exportedName,
