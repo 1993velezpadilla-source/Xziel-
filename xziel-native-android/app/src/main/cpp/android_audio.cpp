@@ -87,6 +87,7 @@ bool AndroidAudioEngine::initialize(
             reloadSample_);
     }
 
+    voiceSequence_ = 0U;
     disconnected_.store(false, std::memory_order_release);
     return openStream();
 }
@@ -450,11 +451,47 @@ void AndroidAudioEngine::startVoice(
         sample->sampleRate > 0U) {
         slot->sampled = true;
         slot->samplePosition = 0.0f;
+
+        const std::uint32_t sequence =
+            voiceSequence_++;
+
+        if (command.cue ==
+            AndroidAudioCue::Fire) {
+            constexpr std::array<float, 5> kShotRates{
+                0.972f,
+                0.988f,
+                1.000f,
+                1.014f,
+                1.028f,
+            };
+
+            slot->playbackRate =
+                kShotRates[
+                    sequence %
+                    kShotRates.size()];
+
+            slot->phaseIncrement =
+                2.0f * kPi *
+                (82.0f +
+                 static_cast<float>(
+                     sequence % 4U) *
+                     7.0f) /
+                std::max(sampleRate_, 8000.0f);
+
+            slot->noiseState =
+                0xA511E9B3U ^
+                sequence *
+                    0x9E3779B9U;
+        }
+
         slot->durationSeconds =
             static_cast<float>(
                 sample->mono.size()) /
             static_cast<float>(
-                sample->sampleRate);
+                sample->sampleRate) /
+            std::max(
+                slot->playbackRate,
+                0.25f);
         return;
     }
 
@@ -526,11 +563,63 @@ float AndroidAudioEngine::renderVoice(
         voice.samplePosition +=
             static_cast<float>(
                 sample->sampleRate) /
-            outputRate;
+            outputRate *
+            std::max(
+                voice.playbackRate,
+                0.25f);
 
         voice.ageSeconds +=
             1.0f /
             outputRate;
+
+        float transient = 0.0f;
+
+        if (voice.cue ==
+            AndroidAudioCue::Fire) {
+            const float bodyEnvelope =
+                std::max(
+                    0.0f,
+                    1.0f -
+                        voice.ageSeconds /
+                        0.095f);
+
+            const float crackEnvelope =
+                std::max(
+                    0.0f,
+                    1.0f -
+                        voice.ageSeconds /
+                        0.018f);
+
+            voice.noiseState =
+                voice.noiseState *
+                    1664525U +
+                1013904223U;
+
+            const float noise =
+                static_cast<float>(
+                    static_cast<std::int32_t>(
+                        voice.noiseState >> 9U) -
+                    4194304) /
+                4194304.0f;
+
+            transient =
+                std::sin(
+                    voice.phase) *
+                    0.18f *
+                    bodyEnvelope +
+                noise *
+                    0.055f *
+                    crackEnvelope;
+
+            voice.phase +=
+                voice.phaseIncrement;
+
+            if (voice.phase >
+                2.0f * kPi) {
+                voice.phase -=
+                    2.0f * kPi;
+            }
+        }
 
         if (voice.samplePosition >=
             static_cast<float>(
@@ -538,9 +627,10 @@ float AndroidAudioEngine::renderVoice(
             voice.active = false;
         }
 
-        return value *
-            voice.gain *
-            0.84f;
+        return (
+            value * 0.80f +
+            transient) *
+            voice.gain;
     }
 
     const CueProfile profile =
