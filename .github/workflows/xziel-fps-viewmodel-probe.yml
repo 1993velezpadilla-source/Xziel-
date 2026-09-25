@@ -99,7 +99,7 @@ jobs:
           LIBGL_ALWAYS_SOFTWARE: "1"
         run: |
           set -euo pipefail
-          xvfb-run -a -s "-screen 0 1280x1024x24"             blender --background             --python tools/weapons/inspect_fps_viewmodel.py             2>&1 | tee church/out/fps_ready/blender_probe.log
+          xvfb-run -a -s "-screen 0 1280x1024x24"             blender --background             --python tools/weapons/inspect_fps_viewmodel.py             --python-exit-code 1             2>&1 | tee church/out/fps_ready/blender_probe.log
 
       - name: Validate probe contract
         shell: bash
@@ -124,6 +124,7 @@ jobs:
           jq '.armatures | map({name, boneCount, bones})' "$REPORT"
 
       - name: Upload FPS-ready probe
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Xziel-FPS-Ready-Viewmodel-Probe
