@@ -6,6 +6,8 @@ import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+from judge_model_provenance import model_provenance
+
 
 @dataclass
 class CandidateSimilarity:
@@ -126,7 +128,7 @@ def score(sources:list[Path],candidates:list[tuple[str,Path]],model_id:str)->Sig
             best_similarity=round(float(values[best_index]),7),
         ))
 
-    return SigLIP2Report(
+    report=SigLIP2Report(
         schema=3,
         model=model_id,
         sources=[str(x) for x in sources],
@@ -136,6 +138,9 @@ def score(sources:list[Path],candidates:list[tuple[str,Path]],model_id:str)->Sig
         source_coverage=coverage,
         warnings=[],
     )
+    payload=asdict(report)
+    payload["provenance"]=model_provenance(model_id,model)
+    return payload
 
 
 def main()->int:
@@ -149,9 +154,8 @@ def main()->int:
         missing=[str(p) for p in a.source if not p.is_file()]
         if missing:
             raise FileNotFoundError(",".join(missing))
-        report=score(a.source,_parse_named(a.candidate),a.model)
-        payload=asdict(report)
-        code=0 if report.ready else 2
+        payload=score(a.source,_parse_named(a.candidate),a.model)
+        code=0 if payload.get("ready") else 2
     except Exception as exc:
         payload={
             "schema":3,"model":a.model,"sources":[str(x) for x in a.source],
