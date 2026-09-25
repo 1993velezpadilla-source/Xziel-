@@ -64,7 +64,7 @@ def frame_offset(path: Path, fallback_index: int) -> float:
             return float(int(match.group("offset")) % 360)
         except Exception:
             pass
-    return float((fallback_index * 45) % 360)
+    return float((fallback_index * 15) % 360)
 
 
 def index_turntable_frames(frames: list[Path]) -> list[tuple[float, Path]]:
