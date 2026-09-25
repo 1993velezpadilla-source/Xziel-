@@ -8250,7 +8250,14 @@ bool VulkanStaticMeshRenderer::createTextureSampler(
         VK_BORDER_COLOR_INT_OPAQUE_BLACK;
     samplerInfo.unnormalizedCoordinates =
         VK_FALSE;
-    samplerInfo.mipLodBias = 0.0f;
+    // Sanctum's original photogrammetry textures top out at 1024 px.
+    // A small negative bias preserves authored edge/detail energy when the
+    // scene is rendered below native scale, while anisotropy keeps oblique
+    // surfaces stable.  Keep this conservative to avoid mobile shimmer.
+    samplerInfo.mipLodBias =
+        mipLevels > 1U
+        ? -0.35f
+        : 0.0f;
     samplerInfo.minLod = 0.0f;
     samplerInfo.maxLod =
         static_cast<float>(
