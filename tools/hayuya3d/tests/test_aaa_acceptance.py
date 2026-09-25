@@ -16,6 +16,18 @@ def base_manifest():
             "hard_fail_reasons":[],
             "method":"fixture-pass",
         },
+        "judge_v5":{
+            "passed":True,
+            "status":"APPROVED",
+            "hard_fail_reasons":[],
+            "method":"fixture-v5-pass",
+        },
+        "visual_approval":{
+            "production_approved":True,
+            "state":"APPROVED",
+            "authoritative_judge":"HAYUYA_JUDGE_V5",
+            "fail_closed":True,
+        },
         "gameprep":{"lods":[{"name":"LOD0"},{"name":"LOD1"},{"name":"LOD2"},{"name":"LOD3"}]},
         "portable_pack":{
             "complete_lod_chain":True,
@@ -161,6 +173,33 @@ class AAAAcceptanceTests(unittest.TestCase):
         self.assertFalse(report.ready)
         self.assertTrue(
             any("Judge v4" in x for x in report.blockers),
+            report.blockers,
+        )
+
+    def test_missing_visual_judge_v5_blocks_high_end_character(self):
+        manifest=base_manifest()
+        manifest.pop("judge_v5",None)
+        manifest["visual_approval"]["production_approved"]=False
+        report=evaluate_aaa_acceptance(manifest,base_qa())
+        self.assertFalse(report.ready)
+        self.assertTrue(
+            any("Judge v5" in x for x in report.blockers),
+            report.blockers,
+        )
+
+    def test_blocked_uncalibrated_v5_cannot_ship(self):
+        manifest=base_manifest()
+        manifest["judge_v5"]={
+            "passed":False,
+            "status":"BLOCKED_UNCALIBRATED",
+            "hard_fail_reasons":[],
+            "method":"fixture-v5-blocked",
+        }
+        manifest["visual_approval"]["production_approved"]=False
+        report=evaluate_aaa_acceptance(manifest,base_qa())
+        self.assertFalse(report.ready)
+        self.assertTrue(
+            any("Judge v5" in x for x in report.blockers),
             report.blockers,
         )
 
