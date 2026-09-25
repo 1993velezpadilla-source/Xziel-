@@ -537,6 +537,11 @@ with tempfile.TemporaryDirectory(prefix="xziel-clean-") as tmp:
             "Exterior04" in material_name
         )
 
+        if generated_exterior_pbr:
+            # XZSM v5 bit 1: preserve captured photogrammetry lighting while
+            # applying generated micro-normal/AO surface response.
+            batch_flags |= 2
+
         return {
             "object": obj.name,
             "material": material_name,
@@ -790,6 +795,10 @@ report = {
     "generatedPbrBatchCount": sum(
         1 for batch in batch_records
         if batch["generatedExteriorPbr"]
+    ),
+    "photogrammetryPbrBatchCount": sum(
+        1 for batch in batch_records
+        if (batch["flags"] & 2) != 0
     ),
     "generatedPbrMaterials": sorted({
         batch["material"]

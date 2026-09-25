@@ -253,6 +253,7 @@ jobs:
           jq -e '.generatedPbrApplied == true' "$REPORT"
           jq -e '.generatedPbrResolution == [4096,4096]' "$REPORT"
           jq -e '.generatedPbrBatchCount > 0' "$REPORT"
+          jq -e '.photogrammetryPbrBatchCount == .generatedPbrBatchCount' "$REPORT"
           jq -e '.exactSourcePixelTextures == (.textureCount - 1)' "$REPORT"
           jq -e '[.materialReport[] | select(.exactSourcePixels == false)] | length == 1' "$REPORT"
 
@@ -464,6 +465,7 @@ jobs:
           grep -q "TANGENT_BASIS_RECIPROCAL_FREE_V1" app/src/main/shaders/xziel_static_mesh.frag
           grep -q "TANGENT_BASIS_SINGLE_NORMALIZE_V2" app/src/main/shaders/xziel_static_mesh.frag
           grep -q "NORMAL_MAP_FULL_DETAIL_SINGLE_NORMALIZE_V1" app/src/main/shaders/xziel_static_mesh.frag
+          grep -q "PHOTOGRAMMETRY_PBR_SOURCE_FIDELITY_V1" app/src/main/shaders/xziel_static_mesh.frag
           grep -q "STATIC_VERTEX_NORMALIZE_DEFER_V1" app/src/main/shaders/xziel_static_mesh.vert
           grep -q "STATIC_VERTEX_NORMAL_WORK_GATE_V1" app/src/main/shaders/xziel_static_mesh.vert
           grep -q "WET_FLOOR_SHARED_PRIMARY_WAVE_V1" app/src/main/shaders/xziel_first.frag
@@ -905,6 +907,9 @@ jobs:
               fi
 
               echo "XZIEL_ASTC_RUNTIME_ACTIVE textures=${KTX_LOAD_COUNT}"
+
+              grep -Eq "XZIEL_PBR_MATERIALS_READY .*pbr=[1-9][0-9]* .*normal=[1-9][0-9]* .*orm=[1-9][0-9]* .*photo_pbr=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
+              echo "XZIEL_PHOTOGRAMMETRY_PBR_RUNTIME_ACTIVE"
 
               if [[ ("${GITHUB_REF_NAME}" == "engine/mobile-power-fidelity-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-vertex-precompute-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-front-to-back-earlyz-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-fragment-distance-lod-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-gpu-pass-timing-mainline-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-range-frustum-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-xzsm-mapped-load-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-material-dedup-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-draw-submission-telemetry-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-draw-group-telemetry-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-indirect-draw-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-cell-frustum-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-portal-visibility-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-gpu-pass-timing-v1") || "${GITHUB_REF_NAME}" == "engine/mobile-async-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-cull-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-descriptor-frames-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-residency-registry-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-runtime-io-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-gpu-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-mip-transition-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-index-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-io-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-eviction-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-prefetch-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-budget-v1" ]]; then
                 grep -Eq "XZIEL_ASYNC_ASTC_PREFETCH_READY .*queued=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
