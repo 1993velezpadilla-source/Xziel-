@@ -335,6 +335,10 @@ jobs:
           jq -e '.exportMode == "rigid_weapon_rest_pose"' "${FIXED_REPORT}"
           jq -e '.meaningfulBatchCount >= 4' "${FIXED_REPORT}"
           jq -e '.dimensionsMeters | max >= 0.85 and max <= 0.95' "${FIXED_REPORT}"
+          jq -e '.dimensionsMeters | sort | .[1] >= 0.10 and .[1] <= 0.45 and .[0] >= 0.035 and .[0] <= 0.20' "${FIXED_REPORT}"
+          jq -e '.includedMaterials | map(ascii_downcase) | any(contains("upper_handgaurd"))' "${FIXED_REPORT}"
+          jq -e '.includedMaterials | map(ascii_downcase) | any(contains("lower_handgaurd"))' "${FIXED_REPORT}"
+          jq -e '.includedMaterials | index("__fallback__") == null' "${FIXED_REPORT}"
 
           cp "${FIXED_MODEL}" xziel-native-android/app/src/main/assets/models/xziel/weapons/standard_rifle.xzsm
           rm -rf xziel-native-android/app/src/main/assets/textures/xziel/weapons/standard_rifle
