@@ -5545,41 +5545,40 @@ bool VulkanClearRenderer::recordDrawCommand(
                 1.0f);
 
         StaticMeshViewmodelState weaponState{};
-        // The validated AKM rest-pose export is +Y along the rifle barrel.
-        // Rotate +90 degrees around view X so source +Y becomes camera +Z.
-        // Hip placement keeps the weapon in the lower-right quadrant; ADS
-        // centers the receiver/sight line rather than scaling a toy blockout.
+        // The validated weapon exporter now emits canonical XZIEL viewmodel
+        // space directly: +X right, +Y up, +Z stock-to-muzzle.  Keep runtime
+        // rotation close to identity so ADS is a camera-space translation,
+        // not a stack of import-axis compensation angles.
         weaponState.x =
-            0.27f * (1.0f - ads) +
+            0.220f * (1.0f - ads) +
             0.000f * ads +
-            0.035f * lowering;
+            0.030f * lowering;
         weaponState.y =
             -0.180f * (1.0f - ads) -
-            0.115f * ads -
-            0.080f * reloadArc -
-            0.22f * lowering -
-            0.008f * fire;
+            0.080f * ads -
+            0.070f * reloadArc -
+            0.20f * lowering +
+            0.016f * fire;
         weaponState.z =
-            0.340f * (1.0f - ads) +
-            0.190f * ads +
-            0.028f * reloadArc -
-            0.024f * fire +
-            0.035f * lowering;
+            0.150f * (1.0f - ads) +
+            0.120f * ads +
+            0.024f * reloadArc -
+            0.055f * fire +
+            0.030f * lowering;
         weaponState.scale =
-            0.58f * (1.0f - ads) +
-            0.48f * ads;
+            0.78f * (1.0f - ads) +
+            0.72f * ads;
         weaponState.yawRadians =
-            0.006f +
-            0.050f * reloadArc;
+            -0.055f * (1.0f - ads) +
+            0.045f * reloadArc;
         weaponState.pitchRadians =
-            1.570796327f -
-            0.008f -
-            0.10f * reloadArc;
+            0.018f -
+            0.090f * reloadArc +
+            0.020f * fire;
         weaponState.rollRadians =
-            3.141592654f +
-            0.045f * (1.0f - ads) +
-            0.005f * ads -
-            0.26f * reloadArc;
+            0.030f * (1.0f - ads) -
+            0.220f * reloadArc +
+            0.020f * fire;
         weaponState.verticalFovDegrees =
             std::clamp(
                 camera.verticalFovDegrees,
