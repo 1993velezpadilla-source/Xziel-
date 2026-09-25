@@ -579,7 +579,12 @@ def run_judge_v4(
         schema=4,
         method=(
             "fail-closed multi-eye visual acceptance: 24-view render evidence + "
-            "Q-ReAlign-Pro-9B + MediaPipe dense face geometry + DreamSim + "
+            + (
+                "Q-ReAlign-Pro-9B"
+                if tier=="pro"
+                else "Q-ReAlign-Mini-0.8B"
+            )
+            + " + MediaPipe dense face geometry + DreamSim + "
             + (
                 "dual-order InternVL3.5-8B-HF"
                 if tier=="pro"
