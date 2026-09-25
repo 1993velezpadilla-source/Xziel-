@@ -331,7 +331,7 @@ jobs:
           NORMAL_REL="$(jq -r '.generatedPbrNormalTexture' "$R")"
           ORM_REL="$(jq -r '.generatedPbrOrmTexture' "$R")"
           DETAIL_REL="$(jq -r '.generatedPhotoDetailTexture' "$R")"
-          jq -e '.generatedPhotoDetailResolution == [1024,1024]' "$R"
+          jq -e '.generatedPhotoDetailResolution == [2048,2048]' "$R"
           jq -e '.generatedPhotoDetailWorldTilesPerMeter == 1.25' "$R"
           test -s "church/out/clean/xziel_native_static/${NORMAL_REL}"
           test -s "church/out/clean/xziel_native_static/${ORM_REL}"
