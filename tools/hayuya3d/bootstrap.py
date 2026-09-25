@@ -28,6 +28,12 @@ def git_output(args: list[str], cwd: Path) -> str:
 
 def clone_backend(entry: dict, root: Path) -> None:
     backend_id = entry["id"]
+    if not entry.get("source_required", True):
+        print(
+            f"HAYUYA_BACKEND_ENV_ONLY {backend_id} "
+            f"license={entry['license']}"
+        )
+        return
     url = entry["repo"]
     sha = entry["sha"]
     dst = root / backend_id
@@ -50,6 +56,9 @@ def clone_backend(entry: dict, root: Path) -> None:
 
 
 def verify_backend(entry: dict, root: Path) -> bool:
+    if not entry.get("source_required", True):
+        print(f"PASS {entry['id']} source=env-only")
+        return True
     dst = root / entry["id"]
     if not (dst / ".git").exists():
         print(f"MISSING {entry['id']}")
