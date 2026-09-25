@@ -1,0 +1,136 @@
+name: XZIEL FPS-Ready Viewmodel Probe
+
+on:
+  push:
+    branches:
+      - engine/fps-ready-viewmodel-probe-v1
+    paths:
+      - ".github/workflows/xziel-fps-viewmodel-probe.yml"
+      - "tools/weapons/inspect_fps_viewmodel.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: xziel-fps-viewmodel-probe-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    name: Inspect CC0 rifle + hands asset
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout XZIEL
+        uses: actions/checkout@v5
+
+      - name: Install Blender
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq blender xvfb libegl1 libgl1-mesa-dri libglx-mesa0 unzip
+          blender --version
+
+      - name: Download CC0 FPS rifle and hands
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p church/source/fps_ready/rifle_hands church/out/fps_ready
+
+          SOURCE_URL="https://opengameart.org/sites/default/files/rifle_0.zip"
+          curl --fail --location --retry 5 --retry-delay 2             "$SOURCE_URL"             --output church/source/fps_ready/rifle_0.zip
+
+          test -s church/source/fps_ready/rifle_0.zip
+          unzip -q church/source/fps_ready/rifle_0.zip             -d church/source/fps_ready/rifle_hands
+
+          find church/source/fps_ready/rifle_hands -maxdepth 4 -type f -printf '%P\n'             | sort             | tee church/out/fps_ready/source_inventory.txt
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          metadata = {
+              "title": "Low Poly FPS Rifle and Hands",
+              "author": "Robin Lamb",
+              "sourcePage": "https://opengameart.org/content/low-poly-fps-rifle-and-hands",
+              "downloadUrl": "https://opengameart.org/sites/default/files/rifle_0.zip",
+              "license": "CC0",
+              "purpose": "XZIEL first-person viewmodel feasibility probe",
+          }
+          Path("church/out/fps_ready/source_metadata.json").write_text(
+              json.dumps(metadata, indent=2),
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Select richest authored source
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="church/source/fps_ready/rifle_hands"
+
+          SOURCE="$(find "$ROOT" -type f -iname '*.blend' -print -quit)"
+          if [[ -z "$SOURCE" ]]; then
+            SOURCE="$(find "$ROOT" -type f \( -iname '*.gltf' -o -iname '*.glb' \) -print -quit)"
+          fi
+          if [[ -z "$SOURCE" ]]; then
+            SOURCE="$(find "$ROOT" -type f -iname '*.fbx' -print -quit)"
+          fi
+          if [[ -z "$SOURCE" ]]; then
+            SOURCE="$(find "$ROOT" -type f -iname '*.obj' -print -quit)"
+          fi
+
+          test -n "$SOURCE"
+          test -s "$SOURCE"
+
+          echo "source=$SOURCE" >> "$GITHUB_OUTPUT"
+          echo "XZIEL_FPS_PROBE_SOURCE=$SOURCE"
+
+      - name: Inspect FPS rig, meshes and animation
+        shell: bash
+        env:
+          FPS_SOURCE: ${{ steps.source.outputs.source }}
+          FPS_REPORT: church/out/fps_ready/fps_viewmodel_probe.json
+          FPS_CANONICAL_GLB: church/out/fps_ready/fps_viewmodel_probe.glb
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          xvfb-run -a -s "-screen 0 1280x1024x24"             blender --background             --python tools/weapons/inspect_fps_viewmodel.py             2>&1 | tee church/out/fps_ready/blender_probe.log
+
+      - name: Validate probe contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPORT="church/out/fps_ready/fps_viewmodel_probe.json"
+          GLB="church/out/fps_ready/fps_viewmodel_probe.glb"
+
+          test -s "$REPORT"
+          test -s "$GLB"
+
+          jq -e '.meshCount >= 1' "$REPORT"
+          jq -e '.objectCount >= .meshCount' "$REPORT"
+          jq -e '.bounds.dimensions | all(. >= 0)' "$REPORT"
+          jq -e '.fpsReadiness.hasAuthoredAnimation == true' "$REPORT"
+
+          echo "---- FPS READINESS ----"
+          jq '.fpsReadiness' "$REPORT"
+          echo "---- ACTIONS ----"
+          jq '.actions' "$REPORT"
+          echo "---- ARMATURES ----"
+          jq '.armatures | map({name, boneCount, bones})' "$REPORT"
+
+      - name: Upload FPS-ready probe
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xziel-FPS-Ready-Viewmodel-Probe
+          path: |
+            church/out/fps_ready/fps_viewmodel_probe.json
+            church/out/fps_ready/fps_viewmodel_probe.glb
+            church/out/fps_ready/source_metadata.json
+            church/out/fps_ready/source_inventory.txt
+            church/out/fps_ready/blender_probe.log
+          retention-days: 14
