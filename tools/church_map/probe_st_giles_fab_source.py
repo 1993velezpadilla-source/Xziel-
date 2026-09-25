@@ -18,7 +18,11 @@ import json
 import re
 from pathlib import Path
 
-from curl_cffi import requests
+import os
+import subprocess
+import tempfile
+import time
+
 
 LISTING_ID = "36c06a81-a1b8-4ebd-a734-9e2da2d2814e"
 ORIGIN = "https://www.fab.com"
@@ -31,19 +35,97 @@ UUID = re.compile(
 
 
 def get_json(url: str):
-    response = requests.get(
-        url,
-        headers={"accept": "application/json"},
-        impersonate="chrome",
-        timeout=30,
-    )
-    response.raise_for_status()
-    content_type = response.headers.get("content-type", "")
-    if "json" not in content_type.lower():
-        raise RuntimeError(
-            f"Fab returned non-JSON content type {content_type!r}"
-        )
-    return response.json()
+    command = os.environ.get("FAB_CURL_IMPERSONATE", "").strip()
+    if not command:
+        raise RuntimeError("FAB_CURL_IMPERSONATE is not configured")
+
+    waits = (0, 5, 15)
+    with tempfile.TemporaryDirectory(prefix="xziel-fab-") as tmp:
+        cookie_jar = Path(tmp) / "cookies.txt"
+
+        for attempt, wait_seconds in enumerate(waits):
+            if wait_seconds:
+                time.sleep(wait_seconds)
+
+            headers_path = Path(tmp) / f"headers-{attempt}.txt"
+            body_path = Path(tmp) / f"body-{attempt}.bin"
+
+            completed = subprocess.run(
+                [
+                    command,
+                    "-sS",
+                    "-b", str(cookie_jar),
+                    "-c", str(cookie_jar),
+                    "-D", str(headers_path),
+                    "-o", str(body_path),
+                    "--max-time", "30",
+                    url,
+                ],
+                check=False,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            if completed.returncode != 0:
+                raise RuntimeError(
+                    "curl-impersonate transport failed: "
+                    f"exit={completed.returncode}"
+                )
+
+            raw_headers = headers_path.read_text(
+                encoding="utf-8",
+                errors="replace",
+            )
+            blocks = [
+                block.strip()
+                for block in raw_headers.replace("\r\n", "\n").split("\n\n")
+                if block.strip()
+            ]
+            final = blocks[-1] if blocks else ""
+            header_lines = final.splitlines()
+            status = 0
+            if header_lines:
+                match = re.search(r"\b(\d{3})\b", header_lines[0])
+                if match:
+                    status = int(match.group(1))
+
+            parsed_headers = {}
+            for line in header_lines[1:]:
+                if ":" not in line:
+                    continue
+                name, value = line.split(":", 1)
+                parsed_headers[name.strip().lower()] = value.strip()
+
+            content_type = parsed_headers.get("content-type", "")
+            challenged = (
+                status == 403
+                and (
+                    parsed_headers.get("cf-mitigated", "").lower()
+                    == "challenge"
+                    or "text/html" in content_type.lower()
+                )
+            )
+            if challenged and attempt + 1 < len(waits):
+                continue
+
+            if status < 200 or status >= 300:
+                raise RuntimeError(
+                    f"Fab anonymous API returned HTTP {status}"
+                )
+
+            if "json" not in content_type.lower():
+                raise RuntimeError(
+                    f"Fab returned non-JSON content type {content_type!r}"
+                )
+
+            return json.loads(
+                body_path.read_text(
+                    encoding="utf-8",
+                    errors="strict",
+                )
+            )
+
+    raise RuntimeError("Fab anonymous API remained challenged")
 
 
 def record_license(detail: dict) -> dict:
