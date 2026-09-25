@@ -340,7 +340,7 @@ jobs:
           jq -e '.exactSourcePixelTextures == .textureCount' "$R"
           jq -e '[.materialReport[] | select(.texturePath | contains("Exterior04")) | select(.exactSourcePixels == true and .sourceDecodedSha256 == .runtimeDecodedSha256)] | length == 1' "$R"
           echo "EXACT_ST_GILES_SOURCE_PIXELS_VERIFIED"
-          jq -e '[.materialReport[] | select(.exactSourcePixels == false)] | length == 1' "$R"
+          jq -e '[.materialReport[] | select(.exactSourcePixels == false)] | length == 0' "$R"
           jq -e '.fallbackMaterials | length == 0' "$R"
 
           A=church/out/clean/original_texture_audit.json
