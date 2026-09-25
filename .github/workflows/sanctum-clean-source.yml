@@ -7,6 +7,7 @@ on:
     paths:
       - ".github/workflows/sanctum-clean-source.yml"
       - ".github/workflows/sanctum-astc-texture-pack.yml"
+      - ".github/workflows/sanctum-native-hq-android.yml"
       - "tools/texture_pack/build_astc_pack.py"
       - "tools/church_map/export_xziel_original_clean.py"
       - "tools/church_map/apply_exterior_microdetail.py"
