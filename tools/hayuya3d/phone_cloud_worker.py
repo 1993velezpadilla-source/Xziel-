@@ -10,6 +10,7 @@ from mesh_gate import inspect as inspect_mesh_gate
 from rig_gate import inspect as inspect_rig_gate
 from texture_gate import inspect as inspect_texture_gate
 from trellis2_cloud import generate as generate_trellis2_cloud
+from source_autofix import build_source_autofix
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -200,6 +201,37 @@ if REFERENCE_DIR and REFERENCE_DIR.is_dir():
 # We still normalize/preserve them for the subsequent texture/detail refinement
 # stage and expose them in the manifest.
 detail_views=[]
+source_autofix_result=None
+source_autofix_failure=None
+
+# One-photo-first cloud path: derive head/face evidence from the primary source.
+# This is auxiliary evidence only; it is never mixed into geometry/multiview input.
+if ASSET_PROFILE in {"auto","character.humanoid","character.creature"}:
+    try:
+        source_autofix_result=build_source_autofix(
+            [GEOMETRY],
+            OUT/"source_autofix",
+            policy="auto",
+        )
+        for raw in source_autofix_result.derived_detail_sources:
+            p=Path(raw)
+            if not p.is_file() or len(detail_views)>=12:
+                continue
+            with Image.open(p) as im:
+                im.load()
+                dst=DETAIL_PREP/f"detail_{len(detail_views)+1:02d}_auto_head.png"
+                detail_views.append(prepare_view(im,dst,target=PREP_TARGET))
+        print(
+            "HAYUYA_PHONE_SOURCE_AUTOFIX",
+            "derived="+str(len(source_autofix_result.derived_detail_sources)),
+            "character_hint="+str(bool(source_autofix_result.character_hint)).lower(),
+            "manifest="+str(source_autofix_result.manifest),
+        )
+    except Exception as exc:
+        source_autofix_failure=f"{type(exc).__name__}: {exc}"
+        print(f"::warning::HAYUYA phone source autofix failed: {source_autofix_failure}")
+
+# User-supplied closeups remain optional enhancements.
 if DETAIL_DIR and DETAIL_DIR.is_dir():
     for p in sorted(DETAIL_DIR.iterdir()):
         if not p.is_file() or p.suffix.lower() not in IMAGE_EXTS:
@@ -600,6 +632,13 @@ manifest={
     "source":str(GEOMETRY),
     "prepared_views":[p.name for p in crops],
     "prepared_detail_views":[p.name for p in detail_views],
+    "source_autofix":(
+        asdict(source_autofix_result)
+        if source_autofix_result is not None else None
+    ),
+    "source_autofix_failure":source_autofix_failure,
+    "manual_face_closeup_required":False,
+    "single_photo_first":True,
     "reference_dir":str(REFERENCE_DIR) if REFERENCE_DIR else "",
     "detail_dir":str(DETAIL_DIR) if DETAIL_DIR else "",
     "prep_target":PREP_TARGET,
