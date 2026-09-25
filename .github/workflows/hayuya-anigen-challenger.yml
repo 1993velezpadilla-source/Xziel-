@@ -105,13 +105,16 @@ jobs:
       - name: Install Blender for factual preview
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq blender
+          sudo apt-get install -y -qq blender libegl1 libgl1-mesa-dri
 
       - name: Render front three-quarter side and face
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
         run: |
           blender --python-exit-code 1 -b             --python tools/hayuya3d/blender_model_preview_pack.py --             --input "$OUT/anigen_mesh.glb"             --output-dir "$OUT/renders"             --size 1024
 
       - name: Upload complete challenger result
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: hayuya-anigen-${{ matrix.job_id }}
