@@ -7,6 +7,7 @@ on:
     paths:
       - hayuya/jobs/anigen/**.json
       - tools/hayuya3d/anigen_cloud.py
+      - tools/hayuya3d/anigen_semantic_rig.py
       - tools/hayuya3d/mesh_gate.py
       - tools/hayuya3d/rig_gate.py
       - tools/hayuya3d/blender_model_preview_pack.py
@@ -93,14 +94,23 @@ jobs:
         run: |
           python tools/hayuya3d/anigen_cloud.py             --input "${{ matrix.image }}"             --output-dir "$OUT"             --ss-model "${{ matrix.ss_model }}"             --slat-model "${{ matrix.slat_model }}"             --ss-steps "${{ matrix.ss_steps }}"             --slat-steps "${{ matrix.slat_steps }}"             --joints-density "${{ matrix.joints_density }}"             --texture-size "${{ matrix.texture_size }}"             --seed "${{ matrix.seed }}"
 
+      - name: Map generated joint hierarchy to HAYUYA humanoid semantics
+        run: |
+          python tools/hayuya3d/anigen_semantic_rig.py \
+            --input "$OUT/anigen_semantic.glb" \
+            --output "$OUT/anigen_semantic.glb" \
+            --report "$OUT/anigen_semantic_rig.json"
+
       - name: Structural mesh gate
         run: |
-          python tools/hayuya3d/mesh_gate.py "$OUT/anigen_mesh.glb"             --require-normals --json "$OUT/mesh_gate.json"
+          python tools/hayuya3d/mesh_gate.py "$OUT/anigen_semantic.glb" \
+            --require-normals --json "$OUT/mesh_gate.json"
 
-      - name: Inspect embedded rig
+      - name: Inspect generated semantic rig
         shell: bash
         run: |
-          python tools/hayuya3d/rig_gate.py "$OUT/anigen_mesh.glb"             --json "$OUT/rig_gate.json" || true
+          python tools/hayuya3d/rig_gate.py "$OUT/anigen_semantic.glb" \
+            --json "$OUT/rig_gate.json"
 
       - name: Install Blender for factual preview
         run: |
