@@ -5550,18 +5550,18 @@ bool VulkanClearRenderer::recordDrawCommand(
         // rotation close to identity so ADS is a camera-space translation,
         // not a stack of import-axis compensation angles.
         weaponState.x =
-            0.220f * (1.0f - ads) +
-            0.000f * ads +
+            0.220f * (1.0f - ads) -
+            0.010f * ads +
             0.030f * lowering;
         weaponState.y =
             -0.180f * (1.0f - ads) -
-            0.080f * ads -
+            0.071f * ads -
             0.070f * reloadArc -
             0.20f * lowering +
             0.016f * fire;
         weaponState.z =
             0.150f * (1.0f - ads) -
-            0.120f * ads +
+            0.100f * ads +
             0.024f * reloadArc -
             0.055f * fire +
             0.030f * lowering;
