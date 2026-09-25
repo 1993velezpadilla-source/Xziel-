@@ -6801,7 +6801,8 @@ bool VulkanClearRenderer::recordDrawCommand(
             6.0f);
     }
 
-    if (!weaponMesh_.ready()) {
+    if (!kImportedWeaponViewmodelEnabled ||
+        !weaponMesh_.ready()) {
         const float weaponAds =
             std::clamp(
                 hud.weaponAdsAlpha,
