@@ -44,6 +44,7 @@ struct StaticMeshBounds {
 enum StaticMeshBatchFlags : std::uint32_t {
     StaticMeshBatchFlagNone = 0U,
     StaticMeshBatchFlagDoubleSided = 1U << 0U,
+    StaticMeshBatchFlagPhotogrammetryPbr = 1U << 1U,
 };
 
 struct StaticMeshPbrMaterial {
@@ -83,6 +84,12 @@ struct StaticMeshBatch {
     [[nodiscard]] bool pbrEnabled() const noexcept {
         return pbrMaterial;
     }
+
+    [[nodiscard]] bool photogrammetryPbr() const noexcept {
+        return
+            (flags &
+             StaticMeshBatchFlagPhotogrammetryPbr) != 0U;
+    }
 };
 
 struct StaticMeshAsset {
@@ -106,6 +113,12 @@ struct StaticMeshBatchDirectoryEntry {
         return
             (flags &
              StaticMeshBatchFlagDoubleSided) != 0U;
+    }
+
+    [[nodiscard]] bool photogrammetryPbr() const noexcept {
+        return
+            (flags &
+             StaticMeshBatchFlagPhotogrammetryPbr) != 0U;
     }
 };
 

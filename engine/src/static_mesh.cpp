@@ -243,10 +243,15 @@ parseStaticMeshXzsm(
                     destination);
             }
 
-            constexpr std::uint32_t kKnownFlags =
+            std::uint32_t knownFlags =
                 StaticMeshBatchFlagDoubleSided;
 
-            if ((flags & ~kKnownFlags) != 0U) {
+            if (version >= kStaticMeshFormatVersion) {
+                knownFlags |=
+                    StaticMeshBatchFlagPhotogrammetryPbr;
+            }
+
+            if ((flags & ~knownFlags) != 0U) {
                 return failure(
                     StaticMeshParseError::InvalidBatch,
                     reader.offset(),
@@ -451,7 +456,9 @@ parseStaticMeshXzsm(
             batch.pbrMaterial = false;
         }
 
-        if (batch.textureName.empty()) {
+        if (batch.textureName.empty() ||
+            (batch.photogrammetryPbr() &&
+             !batch.pbrEnabled())) {
             return failure(
                 StaticMeshParseError::InvalidBatch,
                 reader.offset(),
@@ -689,10 +696,15 @@ parseStaticMeshXzsmDirectory(
                 };
             }
 
-            constexpr std::uint32_t kKnownFlags =
+            std::uint32_t knownFlags =
                 StaticMeshBatchFlagDoubleSided;
 
-            if ((flags & ~kKnownFlags) != 0U) {
+            if (version >= kStaticMeshFormatVersion) {
+                knownFlags |=
+                    StaticMeshBatchFlagPhotogrammetryPbr;
+            }
+
+            if ((flags & ~knownFlags) != 0U) {
                 destination = {};
                 return {
                     .success = false,

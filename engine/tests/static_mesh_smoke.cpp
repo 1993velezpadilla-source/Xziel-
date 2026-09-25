@@ -60,7 +60,9 @@ void appendFixed96(
 
 std::vector<std::byte> makeTriangle(
     std::uint32_t version,
-    bool authoredPbr = true) {
+    bool authoredPbr = true,
+    std::uint32_t batchFlags =
+        xziel::StaticMeshBatchFlagNone) {
     std::vector<std::byte> bytes;
 
     for (char c : std::array<char, 4>{
@@ -97,7 +99,7 @@ std::vector<std::byte> makeTriangle(
         xziel::kStaticMeshMaterialFlagsVersion) {
         appendU32(
             bytes,
-            xziel::StaticMeshBatchFlagNone);
+            batchFlags);
     }
 
     if (version >=
@@ -292,6 +294,34 @@ int main() {
         encoded.size() -
             directoryBatch.vertexDataOffset);
     assert(!directoryBatch.doubleSided());
+
+    const auto photoPbrEncoded =
+        makeTriangle(
+            xziel::kStaticMeshFormatVersion,
+            true,
+            xziel::StaticMeshBatchFlagPhotogrammetryPbr);
+
+    xziel::StaticMeshAsset photoPbrAsset;
+    const auto photoPbrParsed =
+        xziel::parseStaticMeshXzsm(
+            photoPbrEncoded,
+            photoPbrAsset);
+
+    assert(photoPbrParsed.success);
+    assert(photoPbrAsset.batches.size() == 1U);
+    assert(photoPbrAsset.batches[0].pbrEnabled());
+    assert(photoPbrAsset.batches[0].photogrammetryPbr());
+
+    xziel::StaticMeshDirectory photoPbrDirectory;
+    const auto photoPbrDirectoryParsed =
+        xziel::parseStaticMeshXzsmDirectory(
+            photoPbrEncoded,
+            photoPbrDirectory);
+
+    assert(photoPbrDirectoryParsed.success);
+    assert(
+        photoPbrDirectory.batches[0].
+            photogrammetryPbr());
 
     // Mixed v5 assets can use the v5 record layout while leaving legacy
     // photogrammetry batches on the source-fidelity non-PBR path.
