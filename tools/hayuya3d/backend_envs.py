@@ -222,7 +222,8 @@ def execute_plan(
     prefix = Path(plan.prefix)
     python = Path(plan.python)
     repo = model_root / plan.backend
-    if not repo.is_dir():
+    source_required = bool(spec.get("source_required", True))
+    if source_required and not repo.is_dir():
         raise FileNotFoundError(
             f"backend source not bootstrapped: {repo}"
         )
