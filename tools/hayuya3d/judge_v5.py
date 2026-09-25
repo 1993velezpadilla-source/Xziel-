@@ -99,6 +99,32 @@ def _scores(report:dict,key:str="score")->list[float]:
     return out
 
 
+def _checkpoint_failures(
+    payload:dict,
+    *,
+    label:str,
+    expected_model:str,
+    min_parameters:int=100_000_000,
+)->list[str]:
+    p=(payload or {}).get("provenance") or {}
+    out=[]
+    if p.get("model_id")!=expected_model:
+        out.append(
+            f"{label}_checkpoint_model:{p.get('model_id')}!={expected_model}"
+        )
+    if not p.get("resolved_revision"):
+        out.append(f"{label}_checkpoint_revision_missing")
+    try:
+        params=int(p.get("num_parameters") or 0)
+    except Exception:
+        params=0
+    if params<min_parameters:
+        out.append(
+            f"{label}_checkpoint_parameters:{params}<{min_parameters}"
+        )
+    return out
+
+
 def _metric_values(pyiqa:dict,metric_name:str)->list[float]:
     metric=(pyiqa.get("metrics") or {}).get(metric_name) or {}
     values=metric.get("values") or {}
@@ -133,6 +159,21 @@ def run_judge_v5(
 
     if v4.get("passed") is not True:
         failures.append("judge_v4_rejected_or_missing")
+
+    # Authoritative V5 is only valid when the actual heavyweight V4 checkpoints
+    # can be proven at runtime; labels alone are not accepted.
+    failures.extend(_checkpoint_failures(
+        v4.get("qrealign") or {},
+        label="qrealign",
+        expected_model="q-future/Q-ReAlign-Pro-9B",
+        min_parameters=1_000_000_000,
+    ))
+    failures.extend(_checkpoint_failures(
+        v4.get("internvl") or {},
+        label="internvl",
+        expected_model="OpenGVLab/InternVL3_5-8B-HF",
+        min_parameters=1_000_000_000,
+    ))
 
     evidence=v4.get("evidence") or {}
     v4_dir=out_dir.parent/"judge_v4"
@@ -184,6 +225,12 @@ def run_judge_v5(
                 out_dir/"visualquality_r1.json",out_dir/"visualquality_r1.log",
                 timeout=10800,
             )
+            failures.extend(_checkpoint_failures(
+                visualquality,
+                label="visualquality",
+                expected_model="TianheWu/VisualQuality-R1-7B",
+                min_parameters=1_000_000_000,
+            ))
             scores=_scores(visualquality)
             if not scores:
                 failures.append("visualquality_r1_no_scores")
@@ -223,6 +270,12 @@ def run_judge_v5(
                 out_dir/"siglip2.json",out_dir/"siglip2.log",
                 timeout=7200,
             )
+            failures.extend(_checkpoint_failures(
+                siglip,
+                label="siglip2",
+                expected_model="google/siglip2-giant-opt-patch16-384",
+                min_parameters=100_000_000,
+            ))
             full_rows=[
                 row for row in (siglip.get("candidates") or [])
                 if str(row.get("name","")).startswith("turn_")
