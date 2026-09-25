@@ -210,6 +210,7 @@ struct NativeAppState {
 
     float pendingRecoilPitch = 0.0f;
     float pendingRecoilYaw = 0.0f;
+    bool adsRuntimeHigh = false;
 
     float hitMarkerSeconds = 0.0f;
     float criticalHitSeconds = 0.0f;
@@ -1602,6 +1603,17 @@ void advancePlayer(
                         playerFrame.movement.canAim,
                 },
                 fixedDelta);
+
+        if (!state.adsRuntimeHigh &&
+            weaponFrame.adsAlpha >= 0.90f) {
+            state.adsRuntimeHigh = true;
+            logInfo("XZIEL_ADS_ALPHA_HIGH");
+        } else if (
+            state.adsRuntimeHigh &&
+            weaponFrame.adsAlpha <= 0.10f) {
+            state.adsRuntimeHigh = false;
+            logInfo("XZIEL_ADS_ALPHA_LOW");
+        }
 
         if (weaponFrame.reloadStartedThisTick) {
             state.audio.play(
