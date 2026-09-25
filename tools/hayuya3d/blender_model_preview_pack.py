@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import sys
 from pathlib import Path
 
@@ -99,12 +98,18 @@ def main():
     scene.render.resolution_percentage = 100
     scene.render.image_settings.file_format = "PNG"
     scene.render.film_transparent = False
+
+    if scene.world is None:
+        scene.world = bpy.data.worlds.new("HAYUYA_Preview_World")
     scene.world.color = (0.025, 0.025, 0.03)
 
     try:
-        scene.view_settings.look = "Medium High Contrast"
+        scene.view_settings.look = "AgX - Medium High Contrast"
     except Exception:
-        pass
+        try:
+            scene.view_settings.look = "Medium High Contrast"
+        except Exception:
+            pass
 
     bpy.ops.object.camera_add()
     cam = bpy.context.object
