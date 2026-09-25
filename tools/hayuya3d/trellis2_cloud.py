@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import shutil
+import time
 from pathlib import Path
 from typing import Any
 
@@ -42,6 +43,50 @@ def _call_named(client: Client, endpoint: str, spec: dict, values: dict[str,Any]
         *[values[name] for name in params],
         api_name=endpoint,
     )
+
+
+def _retryable(exc: Exception) -> bool:
+    text=f"{type(exc).__name__}: {exc}".lower()
+    hard=(
+        "unsupported parameters",
+        "endpoint /",
+        "unexpected trellis.2 preprocess signature",
+        "produced invalid glb",
+        "returned no downloaded glb",
+    )
+    if any(marker in text for marker in hard):
+        return False
+    # The public ZeroGPU app frequently surfaces queue/OOM/session failures as
+    # a generic AppError with no useful message. Treat remote/runtime failures
+    # as retryable, but keep deterministic API-contract failures hard.
+    return True
+
+
+def _retry_call(
+    fn,
+    *,
+    stage: str,
+    attempts: int = 3,
+    delays: tuple[int,...] = (20,45),
+):
+    last=None
+    for attempt in range(1,attempts+1):
+        try:
+            print(f"HAYUYA_TRELLIS2_STAGE {stage} attempt={attempt}")
+            result=fn()
+            print(f"HAYUYA_TRELLIS2_STAGE_PASS {stage} attempt={attempt}")
+            return result
+        except Exception as exc:
+            last=exc
+            if attempt>=attempts or not _retryable(exc):
+                raise
+            delay=delays[min(attempt-1,len(delays)-1)]
+            print(
+                f"::warning::TRELLIS.2 {stage} attempt {attempt}/{attempts} "
+                f"failed; retrying in {delay}s: {type(exc).__name__}: {exc}"
+            )
+            time.sleep(delay)
+    raise RuntimeError(f"TRELLIS.2 {stage} exhausted retries: {last}")
 
 
 def _walk_paths(value):
@@ -95,6 +140,20 @@ def generate(
     client=Client(space,**kwargs)
     named=_named_endpoints(client)
 
+    if "/start_session" in named:
+        try:
+            _retry_call(
+                lambda: client.predict(api_name="/start_session"),
+                stage="start_session",
+                attempts=2,
+                delays=(8,),
+            )
+        except Exception as exc:
+            print(
+                "::warning::TRELLIS.2 start_session failed; continuing with "
+                f"Gradio session state: {type(exc).__name__}: {exc}"
+            )
+
     preprocess_ep,preprocess_spec=_endpoint(
         named,"/preprocess_image","preprocess_image"
     )
@@ -103,9 +162,12 @@ def generate(
         raise RuntimeError(
             f"Unexpected TRELLIS.2 preprocess signature: {preprocess_params}"
         )
-    processed=client.predict(
-        handle_file(str(image.resolve())),
-        api_name=preprocess_ep,
+    processed=_retry_call(
+        lambda: client.predict(
+            handle_file(str(image.resolve())),
+            api_name=preprocess_ep,
+        ),
+        stage="preprocess_image",
     )
 
     generate_ep,generate_spec=_endpoint(
@@ -130,8 +192,11 @@ def generate(
         "tex_slat_sampling_steps":12,
         "tex_slat_rescale_t":3.0,
     }
-    generation=_call_named(
-        client,generate_ep,generate_spec,generate_values
+    generation=_retry_call(
+        lambda: _call_named(
+            client,generate_ep,generate_spec,generate_values
+        ),
+        stage=f"image_to_3d_{resolution}",
     )
     state=_state_from_generation(generation)
 
@@ -152,7 +217,10 @@ def generate(
                 "TRELLIS.2 exposed state as an API parameter but generation "
                 "did not return a serializable state"
             )
-    extracted=_call_named(client,extract_ep,extract_spec,extract_values)
+    extracted=_retry_call(
+        lambda: _call_named(client,extract_ep,extract_spec,extract_values),
+        stage=f"extract_glb_{faces}f_{texture_size}px",
+    )
 
     candidates=[]
     for value in _walk_paths(extracted):
