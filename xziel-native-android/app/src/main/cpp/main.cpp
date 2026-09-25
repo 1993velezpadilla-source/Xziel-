@@ -7,6 +7,7 @@
 #include <android/log.h>
 #include <android/native_window.h>
 #include <game-activity/native_app_glue/android_native_app_glue.h>
+#include <sys/system_properties.h>
 
 #include "xziel/android_runtime.hpp"
 #include "xziel/camera_rig.hpp"
@@ -193,6 +194,9 @@ struct NativeAppState {
     xziel::android::VulkanClearRenderer renderer{};
 
     bool hasWindow = false;
+
+    bool restartProbeDeathTriggered = false;
+    float restartProbePollSeconds = 0.0f;
 
     JNIEnv* jniEnv = nullptr;
     jobject javaActivity = nullptr;
@@ -518,6 +522,20 @@ void logError(const char* message) noexcept {
         kTag,
         "%s",
         message);
+}
+
+bool systemPropertyEnabled(
+    const char* name) noexcept {
+    if (name == nullptr) {
+        return false;
+    }
+
+    char value[PROP_VALUE_MAX] = {};
+
+    return __system_property_get(
+               name,
+               value) > 0 &&
+        value[0] == '1';
 }
 
 
@@ -3314,6 +3332,40 @@ extern "C" void android_main(
                 state.environmentFrame.
                     rainIntensity,
                 frameDelta);
+
+        // CI-only, opt-in runtime probe. The property is sampled at a low
+        // frequency so shipping gameplay pays no per-frame property lookup.
+        // When armed by the Android workflow, use the real vitals damage path
+        // to enter death mode, then let the workflow press the real HUD button.
+        if (!state.restartProbeDeathTriggered &&
+            latest.canSimulate) {
+            state.restartProbePollSeconds +=
+                frameDelta;
+
+            if (state.restartProbePollSeconds >=
+                0.50f) {
+                state.restartProbePollSeconds =
+                    0.0f;
+
+                if (systemPropertyEnabled(
+                        "debug.xziel.restart_probe") &&
+                    state.vitals.frame().alive) {
+                    const float fatalDamage =
+                        state.vitals.config().
+                            maxHealth +
+                        1.0f;
+
+                    if (state.vitals.applyDamage(
+                            fatalDamage) &&
+                        !state.vitals.frame().alive) {
+                        state.restartProbeDeathTriggered =
+                            true;
+                        logInfo(
+                            "XZIEL_RESTART_PROBE_DEATH_READY");
+                    }
+                }
+            }
+        }
 
         state.input.beginFrame(
             frameDelta);
