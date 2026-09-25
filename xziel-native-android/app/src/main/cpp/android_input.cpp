@@ -22,10 +22,6 @@ float clamp01(float value) noexcept {
     return std::clamp(value, 0.0f, 1.0f);
 }
 
-float length(float x, float y) noexcept {
-    return std::sqrt(x * x + y * y);
-}
-
 float pointerX(const GameActivityPointerAxes& pointer) noexcept {
     return GameActivityPointerAxes_getAxisValue(
         &pointer,
