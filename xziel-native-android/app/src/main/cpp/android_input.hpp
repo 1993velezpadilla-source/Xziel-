@@ -17,7 +17,7 @@ struct AndroidInputSnapshot {
 
     xziel::Vec2 moveAnchorNormalized{
         0.17f,
-        0.78f,
+        0.74f,
     };
 
     bool moveActive = false;
