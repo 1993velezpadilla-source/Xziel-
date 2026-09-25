@@ -89,6 +89,31 @@ def _retry_call(
     raise RuntimeError(f"TRELLIS.2 {stage} exhausted retries: {last}")
 
 
+def _as_gradio_file_input(value):
+    """Convert a Gradio image output back into a valid file input.
+
+    gradio_client 1.x requires local file paths/URLs to be wrapped with
+    handle_file() when they are sent into another endpoint. Image outputs are
+    commonly returned as local downloaded paths or FileData-like mappings.
+    """
+    candidates=list(_walk_paths(value))
+    for raw in candidates:
+        try:
+            path=Path(raw)
+            if path.is_file():
+                return handle_file(str(path.resolve()))
+        except Exception:
+            pass
+        if isinstance(raw,str) and (
+            raw.startswith("http://") or raw.startswith("https://")
+        ):
+            return handle_file(raw)
+    raise RuntimeError(
+        "TRELLIS.2 preprocess returned no reusable image file: "
+        + repr(value)[:500]
+    )
+
+
 def _walk_paths(value):
     if isinstance(value,str):
         yield value
@@ -169,6 +194,12 @@ def generate(
         ),
         stage="preprocess_image",
     )
+    processed_input=_as_gradio_file_input(processed)
+    print(
+        "HAYUYA_TRELLIS2_PREPROCESS_CHAIN",
+        "output_type="+type(processed).__name__,
+        "reupload=handle_file",
+    )
 
     generate_ep,generate_spec=_endpoint(
         named,"/image_to_3d","image_to_3d"
@@ -187,8 +218,8 @@ def generate(
     resolution_failures=[]
     for candidate_resolution in resolution_candidates:
         generate_values={
-            "image":processed,
-            "input":processed,
+            "image":processed_input,
+            "input":processed_input,
             "seed":int(seed),
             "resolution":candidate_resolution,
             "ss_guidance_strength":7.5,
