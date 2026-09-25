@@ -987,7 +987,13 @@ jobs:
 
           grep -q "XZIEL_TRANSIENT_DEPTH_"             dist/sanctum-hq-logcat.txt
           grep -q "XZIEL_SCENE_COMPOSITE_READY"             dist/sanctum-hq-logcat.txt
-          grep -Eq "XZIEL_DYNAMIC_RESOLUTION scale=0\.(78|88|96) scene=[0-9]+x[0-9]+ native=[0-9]+x[0-9]+"             dist/sanctum-hq-logcat.txt
+          grep -Eq "XZIEL_DYNAMIC_RESOLUTION scale=0\.9[0-9] scene=[0-9]+x[0-9]+ native=[0-9]+x[0-9]+"             dist/sanctum-hq-logcat.txt
+
+          if grep -Eq "XZIEL_DYNAMIC_RESOLUTION scale=0\.[0-8][0-9]" dist/sanctum-hq-logcat.txt; then
+            echo "ERROR: non-thermal CI dropped scene below 0.90 render scale"
+            exit 1
+          fi
+          echo "XZIEL_RENDER_SCALE_FIDELITY_FLOOR_OK"
           grep -q "XZIEL_ADPF "             dist/sanctum-hq-logcat.txt
           grep -q "XZIEL_GAME_STATE loading=0 mode=1"             dist/sanctum-hq-logcat.txt
           grep -Eq "XZIEL_FRAME_PACING_(READY|SKIPPED_CPU|UNAVAILABLE)"             dist/sanctum-hq-logcat.txt
