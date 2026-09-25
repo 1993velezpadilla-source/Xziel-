@@ -18,6 +18,13 @@ on:
       - tools/hayuya3d/judge_v4_face_worker.py
       - tools/hayuya3d/judge_v4_dreamsim_worker.py
       - tools/hayuya3d/judge_v4_internvl_worker.py
+      - tools/hayuya3d/judge_v5.py
+      - tools/hayuya3d/judge_v5_gate.py
+      - tools/hayuya3d/judge_v5_visualquality_r1_worker.py
+      - tools/hayuya3d/siglip2_reference_judge.py
+      - tools/hayuya3d/cvlface_identity_judge.py
+      - tools/hayuya3d/pyiqa_ensemble_judge.py
+      - hayuya/standards/judge_v5_policy.json
 
 permissions:
   contents: read
@@ -36,7 +43,7 @@ jobs:
           node-version: "22"
       - name: Compile queue code
         run: |
-          python -m py_compile             tools/hayuya3d/job_request.py             tools/hayuya3d/judge_phone_v4.py             tools/hayuya3d/judge_v4.py             tools/hayuya3d/judge_v4_qrealign_worker.py             tools/hayuya3d/judge_v4_face_worker.py             tools/hayuya3d/judge_v4_dreamsim_worker.py             tools/hayuya3d/judge_v4_internvl_worker.py
+          python -m py_compile             tools/hayuya3d/job_request.py             tools/hayuya3d/judge_phone_v4.py             tools/hayuya3d/judge_v4.py             tools/hayuya3d/judge_v4_qrealign_worker.py             tools/hayuya3d/judge_v4_face_worker.py             tools/hayuya3d/judge_v4_dreamsim_worker.py             tools/hayuya3d/judge_v4_internvl_worker.py             tools/hayuya3d/judge_v5.py             tools/hayuya3d/judge_v5_gate.py             tools/hayuya3d/judge_v5_visualquality_r1_worker.py             tools/hayuya3d/siglip2_reference_judge.py             tools/hayuya3d/cvlface_identity_judge.py             tools/hayuya3d/pyiqa_ensemble_judge.py
       - name: Validate request template shape
         run: |
           python - <<'PY'
@@ -59,3 +66,6 @@ jobs:
           grep -q 'Judge v4 Core — fail closed before Hub or AutoRig' .github/workflows/hayuya-queue.yml
           grep -q 'Persist core-screened model for Hub preview' .github/workflows/hayuya-queue.yml
           grep -q 'mesh_gate' tools/hayuya3d/phone_cloud_worker.py
+          grep -q '"production_approved":False' tools/hayuya3d/judge_phone_v4.py
+          grep -q 'Judge v5' tools/hayuya3d/judge_phone_v4.py
+          grep -q 'approval_enabled' hayuya/standards/judge_v5_policy.json
