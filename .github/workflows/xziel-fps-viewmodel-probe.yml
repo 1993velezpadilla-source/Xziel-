@@ -3,7 +3,7 @@ name: XZIEL FPS-Ready Viewmodel Probe
 on:
   push:
     branches:
-      - engine/fps-ready-viewmodel-probe-v1
+      - engine/fps-ready-viewmodel-probe-v2
     paths:
       - ".github/workflows/xziel-fps-viewmodel-probe.yml"
       - "tools/weapons/inspect_fps_viewmodel.py"
