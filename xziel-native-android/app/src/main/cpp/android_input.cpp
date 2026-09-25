@@ -771,6 +771,11 @@ void AndroidInputAdapter::processMotionEvent(
                 TouchRole::Aim) {
                 aimPressedThisFrame_ = true;
                 aimToggled_ = !aimToggled_;
+                __android_log_print(
+                    ANDROID_LOG_INFO,
+                    kTag,
+                    "XZIEL_ADS_TOGGLE state=%d",
+                    aimToggled_ ? 1 : 0);
             } else if (
                 pointer->role ==
                 TouchRole::Reload) {
