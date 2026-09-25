@@ -32,13 +32,47 @@ jobs:
           python-version: "3.11"
 
       - name: Install CPU Hayuya test deps
-        run: python -m pip install --upgrade pip numpy pillow trimesh scipy fast-simplification
+        run: python -m pip install --upgrade pip numpy pillow trimesh scipy fast-simplification mediapipe
 
       - name: Compile Hayuya Python
         run: python -m py_compile tools/hayuya3d/*.py
 
       - name: Run Hayuya unit tests
         run: python -m unittest discover -s tools/hayuya3d/tests -v
+
+      - name: Validate real single-photo automatic face zoom
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/hayuya-source-autofix
+          python tools/hayuya3d/source_autofix.py \
+            --input hayuya/assets/monja-mugfwln6/geometry/primary.webp \
+            --out /tmp/hayuya-source-autofix \
+            --policy required
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report=Path("/tmp/hayuya-source-autofix/source_autofix.json")
+          data=json.loads(report.read_text(encoding="utf-8"))
+          assert data["ready"] is True, data
+          assert data["real_sources_preserved"] is True, data
+          assert data["derived_sources_are_not_independent_references"] is True, data
+          assert len(data["sources"]) == 1, data
+          assert len(data["derived_detail_sources"]) == 1, data
+          crop=Path(data["derived_detail_sources"][0])
+          assert crop.is_file() and crop.stat().st_size > 1024, data
+          assert data["sources"][0]["output_size"] == [1024,1024], data
+          print("HAYUYA_SINGLE_PHOTO_AUTOFIX_PASS", crop, data["sources"][0]["method"])
+          PY
+
+      - name: Upload single-photo autofix evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: hayuya-single-photo-autofix-evidence
+          path: |
+            /tmp/hayuya-source-autofix/source_autofix.json
+            /tmp/hayuya-source-autofix/details/*.png
+          retention-days: 1
+          if-no-files-found: error
 
       - name: Validate catastrophic-mesh gate on known-good Zombie Iglesia
         run: |
