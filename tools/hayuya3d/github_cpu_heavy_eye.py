@@ -20,17 +20,14 @@ def _named(items):
     return out
 
 def _torchao_config():
+    # INT8 weight-only is supported on CPU by TorchAO. The previous INT4
+    # PLAIN_INT32 path is not supported on CPU and failed on GitHub runners.
     from transformers import TorchAoConfig
     try:
-        from torchao.quantization import Int4WeightOnlyConfig
-        from torchao.quantization.quantize_.workflows import Int4PackingFormat
-        q=Int4WeightOnlyConfig(
-            group_size=128,
-            int4_packing_format=Int4PackingFormat.PLAIN_INT32,
-        )
-        return TorchAoConfig(quant_type=q)
+        from torchao.quantization import Int8WeightOnlyConfig
+        return TorchAoConfig(quant_type=Int8WeightOnlyConfig())
     except Exception:
-        return TorchAoConfig("int4_weight_only",group_size=128)
+        return TorchAoConfig("int8wo")
 
 def _provenance(model_id,model):
     rev=getattr(getattr(model,"config",None),"_commit_hash",None)
@@ -39,7 +36,7 @@ def _provenance(model_id,model):
         "model_id":model_id,
         "resolved_revision":rev,
         "num_parameters":params,
-        "quantization":"torchao-int4-weight-only-cpu",
+        "quantization":"torchao-int8-weight-only-cpu",
         "device":"cpu",
     }
 
@@ -84,7 +81,7 @@ def qrealign(rows,model_id):
         "minimum":round(vals[0],6),
         "p10":round(vals[max(0,int(math.floor((len(vals)-1)*.10)))],6),
         "maximum":round(vals[-1],6),
-        "method":"qrealign-pro-9b-torchao-int4-cpu-github",
+        "method":"qrealign-pro-9b-torchao-int8-cpu-github",
     }
 
 VQ_QUESTION=(
@@ -136,7 +133,7 @@ def visualquality(rows,model_id):
         "minimum":round(vals[0],4),
         "median":round(vals[len(vals)//2],4),
         "maximum":round(vals[-1],4),
-        "method":"visualquality-r1-7b-torchao-int4-cpu-github",
+        "method":"visualquality-r1-7b-torchao-int8-cpu-github",
     }
 
 def main():
