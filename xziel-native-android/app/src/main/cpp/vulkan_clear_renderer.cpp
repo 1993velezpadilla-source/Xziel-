@@ -7931,7 +7931,7 @@ bool VulkanClearRenderer::recordDrawCommand(
               hud.moveAnchorY,
               0.55f,
               0.92f)
-        : 0.78f;
+        : 0.74f;
 
     const float moveAnchorY =
         mobileTopYToUiY(
@@ -7959,7 +7959,7 @@ bool VulkanClearRenderer::recordDrawCommand(
         true,
         0.060f);
 
-    const float knobTravel = 0.058f;
+    const float knobTravel = 0.0684f;
     drawUiCircle(
         moveAnchorX +
             std::clamp(hud.moveX, -1.0f, 1.0f) *
@@ -7974,12 +7974,13 @@ bool VulkanClearRenderer::recordDrawCommand(
         hud.moveActive ? 0.72f : 0.30f,
         false);
 
-    constexpr float fireTopY = 0.47f;
-    constexpr float aimTopY = 0.54f;
-    constexpr float reloadTopY = 0.35f;
-    constexpr float interactTopY = 0.73f;
-    constexpr float jumpTopY = 0.72f;
-    constexpr float stanceTopY = 0.83f;
+    // Proven NZ:P Android control layout, reused as XZIEL's mobile baseline.
+    constexpr float fireTopY = 0.585f;
+    constexpr float aimTopY = 0.575f;
+    constexpr float reloadTopY = 0.785f;
+    constexpr float interactTopY = 0.675f;
+    constexpr float jumpTopY = 0.790f;
+    constexpr float stanceTopY = 0.800f;
 
     const float fireY = mobileTopYToUiY(fireTopY);
     const float aimY = mobileTopYToUiY(aimTopY);
@@ -7989,16 +7990,16 @@ bool VulkanClearRenderer::recordDrawCommand(
     const float stanceY = mobileTopYToUiY(stanceTopY);
 
     // FIRE: bullet silhouette, not an unlabeled neon ring.
-    drawActionBackplate(0.90f, fireY, 0.066f, hud.fire);
-    drawBulletIcon(0.90f, fireY, hud.fire ? 1.0f : 0.78f);
+    drawActionBackplate(0.885f, fireY, 0.073f, hud.fire);
+    drawBulletIcon(0.885f, fireY, hud.fire ? 1.0f : 0.78f);
 
     // ADS: proper reticle.
-    drawActionBackplate(0.73f, aimY, 0.059f, hud.aim);
-    drawCrosshairIcon(0.73f, aimY, hud.aim ? 1.0f : 0.78f);
+    drawActionBackplate(0.695f, aimY, 0.047f, hud.aim);
+    drawCrosshairIcon(0.695f, aimY, hud.aim ? 1.0f : 0.78f);
 
     // RELOAD: circular-arrow glyph.
-    drawActionBackplate(0.80f, reloadY, 0.049f, hud.reload);
-    drawReloadIcon(0.80f, reloadY, hud.reload ? 1.0f : 0.76f);
+    drawActionBackplate(0.805f, reloadY, 0.044f, hud.reload);
+    drawReloadIcon(0.805f, reloadY, hud.reload ? 1.0f : 0.76f);
 
     if (hud.interactAvailable) {
         const float interactProgress =
@@ -8015,7 +8016,7 @@ bool VulkanClearRenderer::recordDrawCommand(
             denied > 0.001f || !affordable ? 0.16f : 1.0f;
 
         drawUiCircle(
-            0.65f,
+            0.605f,
             interactY,
             0.050f,
             0.015f,
@@ -8103,11 +8104,11 @@ bool VulkanClearRenderer::recordDrawCommand(
     }
 
     // JUMP/MANTLE and contextual STANCE get readable human silhouettes.
-    drawActionBackplate(0.89f, jumpY, 0.061f, hud.jump);
-    drawJumpIcon(0.89f, jumpY, hud.jump ? 1.0f : 0.80f);
+    drawActionBackplate(0.695f, jumpY, 0.044f, hud.jump);
+    drawJumpIcon(0.695f, jumpY, hud.jump ? 1.0f : 0.80f);
 
-    drawActionBackplate(0.77f, stanceY, 0.057f, hud.stance);
-    drawCrouchIcon(0.77f, stanceY, hud.stance ? 1.0f : 0.80f);
+    drawActionBackplate(0.915f, stanceY, 0.044f, hud.stance);
+    drawCrouchIcon(0.915f, stanceY, hud.stance ? 1.0f : 0.80f);
 
     const float roundProgress =
         std::clamp(
