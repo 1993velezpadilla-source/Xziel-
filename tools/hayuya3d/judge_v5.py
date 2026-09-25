@@ -147,15 +147,15 @@ def run_judge_v5(
     ]
     source_images=[Path(p) for p in source_images if Path(p).is_file()]
 
-    if len(normalized_turns)<24:
-        failures.append(f"judge_v5_turntable_evidence:{len(normalized_turns)}<24")
+    if len(normalized_turns)!=24:
+        failures.append(f"judge_v5_turntable_evidence:{len(normalized_turns)}!=24")
     if not normalized_sources and not source_images:
         failures.append("judge_v5_source_evidence_missing")
     if not final_glb.is_file():
         failures.append("judge_v5_final_glb_missing")
 
-    rep_turns=_representative(normalized_turns,8)
-    rep_faces=_representative(candidate_faces,7)
+    audit_turns=[(i,p) for i,p in enumerate(normalized_turns) if p.is_file()]
+    audit_faces=[(i,p) for i,p in enumerate(candidate_faces) if p.is_file()]
     python=(
         python_executable
         or os.environ.get("HAYUYA_JUDGE_V4_PYTHON")
@@ -170,11 +170,11 @@ def run_judge_v5(
     pyiqa=None
     here=Path(__file__).resolve().parent
 
-    if python and rep_turns:
+    if python and audit_turns:
         try:
             named=[
-                *[(f"turn_{index:02d}",path) for index,path in rep_turns],
-                *[(f"face_{index:02d}",path) for index,path in rep_faces],
+                *[(f"turn_{index:02d}",path) for index,path in audit_turns],
+                *[(f"face_{index:02d}",path) for index,path in audit_faces],
             ]
             args=sum((["--image",f"{name}={path}"] for name,path in named),[])
             visualquality=_run_json_worker(
@@ -206,28 +206,39 @@ def run_judge_v5(
             )
 
         try:
-            source_for_siglip=(
-                normalized_sources[0] if normalized_sources else source_images[0]
+            siglip_sources=(
+                normalized_sources if normalized_sources else source_images
             )
-            args=["--source",str(source_for_siglip)]
-            for index,path in rep_turns:
+            args=[]
+            for source in siglip_sources:
+                args.extend(["--source",str(source)])
+            for index,path in audit_turns:
                 args.extend(["--candidate",f"turn_{index:02d}={path}"])
-            for index,path in rep_faces:
+            for index,path in audit_faces:
                 args.extend(["--candidate",f"face_{index:02d}={path}"])
             siglip=_run_json_worker(
                 python,here/"siglip2_reference_judge.py",args,
                 out_dir/"siglip2.json",out_dir/"siglip2.log",
                 timeout=7200,
             )
-            sims=[
+            full_rows=[
+                row for row in (siglip.get("candidates") or [])
+                if str(row.get("name","")).startswith("turn_")
+            ]
+            full_centroid=[
                 float(row["cosine_similarity"])
-                for row in siglip.get("candidates") or []
+                for row in full_rows
                 if math.isfinite(float(row["cosine_similarity"]))
             ]
-            full_sims=[
-                float(row["cosine_similarity"])
-                for row in siglip.get("candidates") or []
-                if str(row.get("name","")).startswith("turn_")
+            full_best_source=[
+                float(row["max_source_similarity"])
+                for row in full_rows
+                if math.isfinite(float(row["max_source_similarity"]))
+            ]
+            coverage=[
+                float(row["best_similarity"])
+                for row in (siglip.get("source_coverage") or [])
+                if math.isfinite(float(row["best_similarity"]))
             ]
             floor=float((policy.get("siglip2") or {}).get(
                 "best_full_body_catastrophic_floor",0.20
@@ -235,18 +246,34 @@ def run_judge_v5(
             mean_floor=float((policy.get("siglip2") or {}).get(
                 "mean_full_body_catastrophic_floor",0.12
             ))
-            if not full_sims:
+            source_floor=float((policy.get("siglip2") or {}).get(
+                "per_source_best_catastrophic_floor",0.22
+            ))
+            if len(full_rows)!=24:
+                failures.append(
+                    f"siglip2_full_body_coverage:{len(full_rows)}!=24"
+                )
+            if not full_centroid or not full_best_source:
                 failures.append("siglip2_no_full_body_scores")
             else:
-                if max(full_sims)<floor:
+                if max(full_best_source)<floor:
                     failures.append(
-                        f"siglip2_catastrophic_best:{max(full_sims):.4f}<{floor:.4f}"
+                        f"siglip2_catastrophic_best:{max(full_best_source):.4f}<{floor:.4f}"
                     )
-                if sum(full_sims)/len(full_sims)<mean_floor:
+                if sum(full_centroid)/len(full_centroid)<mean_floor:
                     failures.append(
                         "siglip2_catastrophic_mean:"
-                        f"{sum(full_sims)/len(full_sims):.4f}<{mean_floor:.4f}"
+                        f"{sum(full_centroid)/len(full_centroid):.4f}<{mean_floor:.4f}"
                     )
+            if not coverage:
+                failures.append("siglip2_source_coverage_missing")
+            else:
+                for index,value in enumerate(coverage):
+                    if value<source_floor:
+                        failures.append(
+                            f"siglip2_source_{index}_unmatched:"
+                            f"{value:.4f}<{source_floor:.4f}"
+                        )
         except Exception as exc:
             failures.append(f"siglip2_worker:{type(exc).__name__}:{exc}")
 
@@ -260,9 +287,9 @@ def run_judge_v5(
                 if not candidate_faces:
                     raise RuntimeError("no candidate face crops from Judge v4")
                 args=[]
-                for path in source_faces[:8]:
+                for path in source_faces:
                     args.extend(["--source",str(path)])
-                for path in candidate_faces[:9]:
+                for path in candidate_faces:
                     args.extend(["--candidate",str(path)])
                 args.extend(["--aligned-dir",str(out_dir/"adaface_aligned")])
                 cvlface=_run_json_worker(
@@ -275,21 +302,25 @@ def run_judge_v5(
                 candidate_fraction=float(
                     cvlface.get("candidate_detection_fraction") or 0.0
                 )
-                if candidate_fraction<0.60:
+                fpol=policy.get("face_identity") or {}
+                detect_min=float(fpol.get("candidate_detection_fraction_min",0.80))
+                front_min=float(fpol.get("front_cosine_catastrophic_floor",0.30))
+                median_min=float(fpol.get("median_cosine_catastrophic_floor",0.28))
+                if candidate_fraction<detect_min:
                     failures.append(
-                        f"adaface_detection_coverage:{candidate_fraction:.3f}<0.600"
+                        f"adaface_detection_coverage:{candidate_fraction:.3f}<{detect_min:.3f}"
                     )
                 if front is None:
                     failures.append("adaface_front_face_missing")
-                elif float(front)<0.20:
+                elif float(front)<front_min:
                     failures.append(
-                        f"adaface_catastrophic_front:{float(front):.4f}<0.2000"
+                        f"adaface_catastrophic_front:{float(front):.4f}<{front_min:.4f}"
                     )
                 if median is None:
                     failures.append("adaface_median_missing")
-                elif float(median)<0.18:
+                elif float(median)<median_min:
                     failures.append(
-                        f"adaface_catastrophic_median:{float(median):.4f}<0.1800"
+                        f"adaface_catastrophic_median:{float(median):.4f}<{median_min:.4f}"
                     )
             except Exception as exc:
                 failures.append(
@@ -303,9 +334,9 @@ def run_judge_v5(
 
         try:
             args=[]
-            for index,path in rep_turns:
+            for index,path in audit_turns:
                 args.extend(["--image",f"turn_{index:02d}={path}"])
-            for index,path in rep_faces:
+            for index,path in audit_faces:
                 args.extend(["--image",f"face_{index:02d}={path}"])
                 args.extend(["--face-image",f"face_{index:02d}={path}"])
             pyiqa=_run_json_worker(
@@ -346,7 +377,7 @@ def run_judge_v5(
     report=JudgeV5Report(
         schema=5,
         method=(
-            "HAYUYA Judge v5 hard-veto ensemble: Judge v4 24-view + "
+            "HAYUYA Judge v5 hard-veto ensemble: ALL 24 Judge v4 turntable views + "
             "Q-ReAlign-Pro-9B + InternVL3.5 + MediaPipe + DreamSim; "
             "VisualQuality-R1-7B; SigLIP2-Giant; CVLFace AdaFace "
             "ViT-KPRPE WebFace12M; PyIQA TOPIQ/MUSIQ/CLIPIQA/MANIQA "
@@ -362,7 +393,7 @@ def run_judge_v5(
         evidence={
             "final_glb":str(final_glb),
             "normalized_turntable":[str(p) for p in normalized_turns],
-            "representative_turntable":[str(p) for _,p in rep_turns],
+            "audited_turntable":[str(p) for _,p in audit_turns],
             "source_faces":[str(p) for p in source_faces],
             "candidate_faces":[str(p) for p in candidate_faces],
         },
