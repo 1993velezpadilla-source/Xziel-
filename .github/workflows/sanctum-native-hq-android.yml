@@ -88,60 +88,69 @@ jobs:
             elif [[ "${GITHUB_REF_NAME}" == "engine/mobile-mip-residency-vulkan-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-mip-residency-vulkan-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-async-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-cull-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-descriptor-frames-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-residency-registry-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-runtime-io-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-gpu-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-mip-transition-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-index-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-io-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-eviction-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-prefetch-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-budget-v1" ]]; then
               ASTC_PACK_BRANCH="engine/mobile-power-fidelity-v1"
             fi
-            ASSET_AFFECTING=0
-            if git diff --name-only HEAD^ HEAD | grep -Eq '^(.github/workflows/sanctum-(clean-source|astc-texture-pack)\.yml|tools/church_map/|tools/texture_pack/)'; then
-              ASSET_AFFECTING=1
+            # Resolve asset lineage from GitHub metadata, never from a shallow
+            # checkout. This prevents HEAD^ failures from silently classifying
+            # asset-changing commits as engine-only.
+            COMMIT_META="$(gh api "/repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}")"
+            ASSET_AFFECTING="$(jq -r '
+              [
+                .files[].filename
+                | select(
+                    test("^\\.github/workflows/sanctum-(clean-source|astc-texture-pack)\\.yml$") or
+                    test("^tools/church_map/") or
+                    test("^tools/texture_pack/")
+                  )
+              ]
+              | if length > 0 then "1" else "0" end
+            ' <<<"${COMMIT_META}")"
+
+            if [[ "${ASSET_AFFECTING}" == "1" ]]; then
+              ASSET_SOURCE_SHA="${GITHUB_SHA}"
+              echo "Asset-changing commit detected; requiring same-SHA source/ASTC lineage ${ASSET_SOURCE_SHA}"
+            else
+              SOURCE_RESPONSE="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/sanctum-clean-source.yml/runs?branch=${ASTC_PACK_BRANCH}&per_page=30")"
+              ASSET_SOURCE_SHA="$(jq -r '
+                .workflow_runs[]
+                | select(
+                    .status == "completed" and
+                    .conclusion == "success"
+                  )
+                | .head_sha
+              ' <<<"${SOURCE_RESPONSE}" | head -n 1)"
+              test -n "${ASSET_SOURCE_SHA}"
+              test "${ASSET_SOURCE_SHA}" != "null"
+              echo "Engine-only commit; binding to latest validated Clean Source sha=${ASSET_SOURCE_SHA}"
             fi
 
             for i in $(seq 1 120); do
               RESPONSE="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/sanctum-astc-texture-pack.yml/runs?branch=${ASTC_PACK_BRANCH}&per_page=30")"
-
-              if [[ "${ASSET_AFFECTING}" == "1" ]]; then
-                RUN_ID="$(jq -r --arg SHA "${GITHUB_SHA}" '
-                  .workflow_runs[]
-                  | select(
-                      .head_sha == $SHA and
-                      .status == "completed" and
-                      .conclusion == "success"
-                    )
-                  | .id
-                ' <<<"${RESPONSE}" | head -n 1)"
-              else
-                RUN_ID="$(jq -r '
-                  .workflow_runs[]
-                  | select(
-                      .status == "completed" and
-                      .conclusion == "success"
-                    )
-                  | .id
-                ' <<<"${RESPONSE}" | head -n 1)"
-              fi
+              RUN_ID="$(jq -r --arg SHA "${ASSET_SOURCE_SHA}" '
+                .workflow_runs[]
+                | select(
+                    .head_sha == $SHA and
+                    .status == "completed" and
+                    .conclusion == "success"
+                  )
+                | .id
+              ' <<<"${RESPONSE}" | head -n 1)"
 
               if [[ -n "${RUN_ID}" && "${RUN_ID}" != "null" ]]; then
                 RUN_SHA="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}" --jq '.head_sha')"
-
-                if [[ "${ASSET_AFFECTING}" == "1" ]]; then
-                  test "${RUN_SHA}" = "${GITHUB_SHA}"
-                  echo "Using commit-matched validated ASTC asset pack run ${RUN_ID} sha=${RUN_SHA}"
-                else
-                  echo "Using latest validated ASTC asset pack run ${RUN_ID} sha=${RUN_SHA} for engine-only commit ${GITHUB_SHA}"
-                fi
+                test "${RUN_SHA}" = "${ASSET_SOURCE_SHA}"
 
                 echo "SANCTUM_ASSET_RUN_ID=${RUN_ID}" >> "$GITHUB_ENV"
                 echo "SANCTUM_ASSET_NAME=Xziel-Sanctum-Clean-Source-ASTC" >> "$GITHUB_ENV"
                 echo "SANCTUM_ASSET_KIND=astc" >> "$GITHUB_ENV"
+                echo "SANCTUM_ASSET_SOURCE_SHA=${ASSET_SOURCE_SHA}" >> "$GITHUB_ENV"
+                echo "Using lineage-matched ASTC run ${RUN_ID} sha=${RUN_SHA}"
                 exit 0
               fi
 
-              if [[ "${ASSET_AFFECTING}" == "1" ]]; then
-                echo "Waiting for commit-matched ASTC pack sha=${GITHUB_SHA} on ${ASTC_PACK_BRANCH}"
-              else
-                echo "Waiting for latest validated ASTC pack on ${ASTC_PACK_BRANCH}"
-              fi
+              echo "Waiting for lineage-matched ASTC pack sha=${ASSET_SOURCE_SHA} on ${ASTC_PACK_BRANCH}"
               sleep 20
             done
 
-            echo "Timed out waiting for validated ASTC texture pack"
+            echo "Timed out waiting for lineage-matched ASTC texture pack sha=${ASSET_SOURCE_SHA}"
             exit 1
           fi
 
@@ -175,6 +184,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
+          if [[ "${SANCTUM_ASSET_KIND}" == "astc" ]]; then
+            SELECTED_ASTC_SHA="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${SANCTUM_ASSET_RUN_ID}" --jq '.head_sha')"
+            test "${SELECTED_ASTC_SHA}" = "${SANCTUM_ASSET_SOURCE_SHA}"
+            echo "XZIEL_ASTC_LINEAGE_OK run=${SANCTUM_ASSET_RUN_ID} sha=${SELECTED_ASTC_SHA}"
+          fi
 
           ARTIFACTS="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${SANCTUM_ASSET_RUN_ID}/artifacts")"
           ARTIFACT_ID="$(jq -r --arg NAME "${SANCTUM_ASSET_NAME}" '.artifacts[] | select(.name == $NAME and .expired == false) | .id' <<<"${ARTIFACTS}" | head -n 1)"
