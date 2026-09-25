@@ -437,7 +437,7 @@ void PerformanceGovernor::rebuildWorkload() noexcept {
             workload_.quality = RenderQuality::High;
             workload_.renderScale = 0.96f;
             workload_.particleDensityScale = 0.72f;
-            workload_.shadowDistanceScale = 0.75f;
+            workload_.shadowDistanceScale = 0.82f;
             workload_.fogQualityScale = 0.70f;
             workload_.dynamicLightBudget = 12;
             workload_.shadowedLightBudget = 3;
