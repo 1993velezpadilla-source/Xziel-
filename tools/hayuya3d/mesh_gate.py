@@ -35,6 +35,9 @@ class MeshGateReport:
     passed: bool
     vertices: int
     faces: int
+    triangle_primitives: int
+    normal_primitives: int
+    missing_normal_primitives: int
     components: int
     largest_component_fraction: float
     degenerate_ratio: float
@@ -97,9 +100,29 @@ def _cross(a, b):
         a[0] * b[1] - a[1] * b[0],
     )
 
-def inspect(path: Path) -> MeshGateReport:
+def _catastrophic_fragmentation_reason(components: int, largest_fraction: float) -> str | None:
+    # Extremely fragmented geometry is not a detailed multi-part asset; it is a
+    # failed surface extraction. Keep normal clothing/hair/accessory islands as
+    # telemetry, but reject outputs where no coherent body surface dominates.
+    if components > 1024 and largest_fraction < 0.05:
+        return (
+            "catastrophic_fragmentation:"
+            f"components={components},largest={largest_fraction:.3f}"
+        )
+    if components > 512 and largest_fraction < 0.01:
+        return (
+            "catastrophic_fragmentation:"
+            f"components={components},largest={largest_fraction:.3f}"
+        )
+    return None
+
+
+def inspect(path: Path, *, require_normals: bool = False) -> MeshGateReport:
     reasons = []
     warnings = []
+    triangle_primitives = 0
+    normal_primitives = 0
+    missing_normal_primitives = 0
     try:
         doc, binary = _read_glb(path)
         vertices = []
@@ -109,9 +132,15 @@ def inspect(path: Path) -> MeshGateReport:
             for primitive in mesh.get("primitives", []):
                 if int(primitive.get("mode", 4)) != 4:
                     continue
-                pos_idx = primitive.get("attributes", {}).get("POSITION")
+                attributes = primitive.get("attributes", {})
+                pos_idx = attributes.get("POSITION")
                 if pos_idx is None:
                     continue
+                triangle_primitives += 1
+                if attributes.get("NORMAL") is None:
+                    missing_normal_primitives += 1
+                else:
+                    normal_primitives += 1
                 local = [tuple(float(x) for x in row[:3]) for row in _accessor(doc, binary, pos_idx)]
                 base = len(vertices)
                 vertices.extend(local)
@@ -221,9 +250,21 @@ def inspect(path: Path) -> MeshGateReport:
                 f"aligned98={aligned98:.3f},axis={','.join(f'{x:.3f}' for x in axis_fraction)}"
             )
 
-        # TRELLIS commonly emits many disconnected-but-valid surface islands
-        # (hair, clothing, candy decorations, etc.). Component count is useful
-        # telemetry but is NOT a catastrophic failure by itself.
+        if require_normals and missing_normal_primitives:
+            reasons.append(
+                "missing_vertex_normals:"
+                f"{missing_normal_primitives}/{triangle_primitives}_triangle_primitives"
+            )
+
+        fragmentation_reason = _catastrophic_fragmentation_reason(
+            components, largest_fraction
+        )
+        if fragmentation_reason:
+            reasons.append(fragmentation_reason)
+
+        # TRELLIS can legitimately emit disconnected clothing/hair/accessory
+        # islands. Moderate fragmentation remains telemetry; only the extreme
+        # failed-extraction regime above is a hard reject.
         if components > 128 and largest_fraction < 0.45:
             warnings.append(
                 f"fragmented_surface:components={components},largest={largest_fraction:.3f}"
@@ -237,6 +278,9 @@ def inspect(path: Path) -> MeshGateReport:
             passed=not reasons,
             vertices=len(vertices),
             faces=len(faces),
+            triangle_primitives=triangle_primitives,
+            normal_primitives=normal_primitives,
+            missing_normal_primitives=missing_normal_primitives,
             components=components,
             largest_component_fraction=round(largest_fraction, 6),
             degenerate_ratio=round(degenerate_ratio, 6),
@@ -255,6 +299,9 @@ def inspect(path: Path) -> MeshGateReport:
             passed=False,
             vertices=0,
             faces=0,
+            triangle_primitives=triangle_primitives,
+            normal_primitives=normal_primitives,
+            missing_normal_primitives=missing_normal_primitives,
             components=0,
             largest_component_fraction=0.0,
             degenerate_ratio=1.0,
@@ -272,8 +319,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="HAYUYA lightweight catastrophic-mesh gate.")
     parser.add_argument("glb", type=Path)
     parser.add_argument("--json", type=Path)
+    parser.add_argument("--require-normals", action="store_true")
     args = parser.parse_args()
-    report = inspect(args.glb)
+    report = inspect(args.glb, require_normals=args.require_normals)
     payload = json.dumps(asdict(report), indent=2)
     print(payload)
     if args.json:
