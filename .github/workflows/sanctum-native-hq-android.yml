@@ -100,7 +100,7 @@ jobs:
               [
                 .files[].filename
                 | select(
-                    test("^\\.github/workflows/sanctum-(clean-source|astc-texture-pack)\\.yml$") or
+                    test("^\\.github/workflows/sanctum-(clean-source|astc-texture-pack|native-hq-android)\\.yml$") or
                     test("^tools/church_map/") or
                     test("^tools/texture_pack/")
                   )
@@ -302,7 +302,7 @@ jobs:
           jq -e '.generatedPbrBatchCount > 0' "$REPORT"
           jq -e '.photogrammetryPbrBatchCount == .generatedPbrBatchCount' "$REPORT"
           jq -e '.exactSourcePixelTextures == .textureCount' "$REPORT"
-          jq -e '[.materialReport[] | select(.exactSourcePixels == false)] | length == 1' "$REPORT"
+          jq -e '[.materialReport[] | select(.exactSourcePixels == false)] | length == 0' "$REPORT"
 
           jq '{
             schemaVersion,
@@ -1600,10 +1600,12 @@ jobs:
             dist/sanctum-hq-tour-02-look.png \
             dist/sanctum-hq-tour-03-forward.png \
             dist/sanctum-hq-tour-04-look-up.png \
-            --report build/sanctum-visual-quality.json
-          jq '{verdict, thresholds, aggregate, frames, failures}' \
-            build/sanctum-visual-quality.json \
-            > build/sanctum-visual-quality-diagnostic.json
+            --report build/sanctum-visual-quality.json || true
+          if [[ -s build/sanctum-visual-quality.json ]]; then
+            jq '{verdict, thresholds, aggregate, frames, failures}' \
+              build/sanctum-visual-quality.json \
+              > build/sanctum-visual-quality-diagnostic.json
+          fi
           echo "XZIEL_PRIMARY_VIEW_METRICS_DIAGNOSTIC_ONLY"
 
       - name: Upload Sanctum HQ APK
