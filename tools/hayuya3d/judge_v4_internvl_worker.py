@@ -45,6 +45,51 @@ the rest of the model is excellent. Never let an average score rescue a
 critical face/body/multiview failure.
 """.strip()
 
+FACE_FIDELITY_PROMPT = r"""
+You are HAYUYA's strict SOURCE-FIDELITY face judge.
+
+The supplied comparison board has exactly four labeled panels:
+1) SOURCE FACE — AUTHORITATIVE
+2) CANDIDATE 150°
+3) CANDIDATE 180°
+4) CANDIDATE 210°
+
+The candidate is intended to be the SAME character as the source. Judge whether
+the actual face structure is preserved. Do NOT reward matching hood, clothing,
+colors, lighting, background, horror theme, age, damage, or general style.
+Compare facial geometry feature-by-feature: overall width/height, cranium and
+forehead, eye size/placement/orbital depth, nose bridge/tip/nostrils, mouth and
+lips, jaw/chin, cheekbones, skin/flesh topology, and the spatial relationships
+between these features.
+
+Intentional horror, undead, aged, asymmetric, scarred, or unsettling features
+shown in the source are valid and should be preserved. A technically clean or
+detailed render that has a materially different face is a SOURCE-FIDELITY
+FAILURE and "pass" MUST be false. Use all three candidate views; do not let one
+favorable angle rescue a mismatch.
+
+Return STRICT JSON only, exactly with this schema:
+{
+  "pass": false,
+  "confidence": 0.0,
+  "critical_issues": [],
+  "scores": {
+    "face_anatomy": 0,
+    "face_source_fidelity": 0,
+    "body_anatomy": 100,
+    "hands": 100,
+    "material_texture": 100,
+    "multiview_consistency": 0,
+    "source_fidelity": 0
+  },
+  "notes": []
+}
+All scores are 0-100. For this face-only board, body_anatomy, hands, and
+material_texture are placeholders and must not influence pass/fail.
+face_source_fidelity >=75 means strongly supported by the source; 60-74 is
+questionable; below 60 is a clear mismatch.
+""".strip()
+
 
 def _extract_text(result) -> str:
     if isinstance(result, str):
