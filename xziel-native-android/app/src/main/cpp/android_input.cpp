@@ -132,6 +132,7 @@ void AndroidInputAdapter::shutdown() noexcept {
     releaseAllPointers();
     snapshot_ = {};
     stanceHeldSeconds_ = 0.0f;
+    fixedTickPulses_.reset();
     aimToggled_ = false;
     restartAvailable_ = false;
     restartPressedThisFrame_ = false;
@@ -205,13 +206,8 @@ void AndroidInputAdapter::setDisplayRotation(
     releaseAllPointers();
 
     stanceHeldSeconds_ = 0.0f;
-    firePressedThisFrame_ = false;
-    aimPressedThisFrame_ = false;
+    fixedTickPulses_.reset();
     aimToggled_ = false;
-    reloadPressedThisFrame_ = false;
-    interactPressedThisFrame_ = false;
-    jumpPressedThisFrame_ = false;
-    stancePressedThisFrame_ = false;
 
     snapshot_.input.move = {};
     snapshot_.input.look = {};
@@ -232,12 +228,6 @@ void AndroidInputAdapter::beginFrame(
         ? 0.0f
         : std::min(deltaSeconds, 0.10f);
 
-    firePressedThisFrame_ = false;
-    aimPressedThisFrame_ = false;
-    reloadPressedThisFrame_ = false;
-    interactPressedThisFrame_ = false;
-    jumpPressedThisFrame_ = false;
-    stancePressedThisFrame_ = false;
     restartPressedThisFrame_ = false;
 
     snapshot_.input.look = {};
@@ -273,12 +263,17 @@ void AndroidInputAdapter::setRestartAvailable(
     releaseAllPointers();
 
     if (available) {
+        fixedTickPulses_.reset();
         aimToggled_ = false;
         stanceHeldSeconds_ = 0.0f;
         snapshot_.input = {};
         snapshot_.movementButtons = {};
         snapshot_.moveActive = false;
     }
+}
+
+void AndroidInputAdapter::acknowledgeFixedTickActions() noexcept {
+    fixedTickPulses_.acknowledge();
 }
 
 void AndroidInputAdapter::handleLooperIdentifier(
@@ -581,21 +576,24 @@ AndroidInputAdapter::chooseRole(
 void AndroidInputAdapter::updateDerivedState(
     int width,
     int height) noexcept {
+    const auto& pulses =
+        fixedTickPulses_.pending();
+
     snapshot_.input.move = {};
     snapshot_.input.fire =
-        firePressedThisFrame_;
+        pulses.fire;
     snapshot_.input.aim =
         aimToggled_;
     snapshot_.input.reload =
-        reloadPressedThisFrame_;
+        pulses.reload;
     snapshot_.input.interact =
-        interactPressedThisFrame_;
+        pulses.interact;
     snapshot_.input.jump =
-        jumpPressedThisFrame_;
+        pulses.jump;
     snapshot_.input.crouch =
-        stancePressedThisFrame_;
+        pulses.stance;
     snapshot_.firePressed =
-        firePressedThisFrame_;
+        pulses.fire;
     snapshot_.restartPressed =
         restartPressedThisFrame_;
     snapshot_.moveActive = false;
@@ -605,9 +603,9 @@ void AndroidInputAdapter::updateDerivedState(
     };
 
     snapshot_.movementButtons.jumpPressed =
-        jumpPressedThisFrame_;
+        pulses.jump;
     snapshot_.movementButtons.stancePressed =
-        stancePressedThisFrame_;
+        pulses.stance;
     snapshot_.movementButtons.jumpHeld = false;
     snapshot_.movementButtons.stanceHeld = false;
     snapshot_.movementButtons.stanceHeldSeconds =
@@ -833,11 +831,12 @@ void AndroidInputAdapter::processMotionEvent(
 
             if (pointer->role ==
                 TouchRole::Fire) {
-                firePressedThisFrame_ = true;
+                fixedTickPulses_.capture({
+                    .fire = true,
+                });
             } else if (
                 pointer->role ==
                 TouchRole::Aim) {
-                aimPressedThisFrame_ = true;
                 aimToggled_ = !aimToggled_;
                 __android_log_print(
                     ANDROID_LOG_INFO,
@@ -847,19 +846,27 @@ void AndroidInputAdapter::processMotionEvent(
             } else if (
                 pointer->role ==
                 TouchRole::Reload) {
-                reloadPressedThisFrame_ = true;
+                fixedTickPulses_.capture({
+                    .reload = true,
+                });
             } else if (
                 pointer->role ==
                 TouchRole::Interact) {
-                interactPressedThisFrame_ = true;
+                fixedTickPulses_.capture({
+                    .interact = true,
+                });
             } else if (
                 pointer->role ==
                 TouchRole::Jump) {
-                jumpPressedThisFrame_ = true;
+                fixedTickPulses_.capture({
+                    .jump = true,
+                });
             } else if (
                 pointer->role ==
                 TouchRole::Stance) {
-                stancePressedThisFrame_ = true;
+                fixedTickPulses_.capture({
+                    .stance = true,
+                });
                 stanceHeldSeconds_ = 0.0f;
             } else if (
                 pointer->role ==

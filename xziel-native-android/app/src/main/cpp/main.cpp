@@ -3424,6 +3424,11 @@ extern "C" void android_main(
                 state,
                 inputSnapshot,
                 stats);
+
+            if (stats.ticksThisFrame > 0U) {
+                state.input.
+                    acknowledgeFixedTickActions();
+            }
         }
 
         if (!latest.canRender ||

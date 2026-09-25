@@ -86,6 +86,11 @@ if(XZIEL_ENGINE_BUILD_TESTS)
     target_compile_features(xziel_mobile_controls_smoke PRIVATE cxx_std_20)
     add_test(NAME xziel_mobile_controls_smoke COMMAND xziel_mobile_controls_smoke)
 
+    add_executable(xziel_fixed_tick_input_latch_smoke tests/fixed_tick_input_latch_smoke.cpp)
+    target_link_libraries(xziel_fixed_tick_input_latch_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_fixed_tick_input_latch_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_fixed_tick_input_latch_smoke COMMAND xziel_fixed_tick_input_latch_smoke)
+
     add_executable(xziel_weapon_smoke tests/weapon_smoke.cpp)
     target_link_libraries(xziel_weapon_smoke PRIVATE xziel_engine)
     target_compile_features(xziel_weapon_smoke PRIVATE cxx_std_20)

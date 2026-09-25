@@ -4,6 +4,7 @@
 #include <game-activity/native_app_glue/android_native_app_glue.h>
 
 #include "xziel/engine.hpp"
+#include "xziel/fixed_tick_input_latch.hpp"
 #include "xziel/mobile_controls.hpp"
 
 #include <array>
@@ -55,6 +56,11 @@ public:
 
     void setRestartAvailable(
         bool available) noexcept;
+
+    // One-shot touch actions survive render frames with zero fixed simulation
+    // ticks. Call this only after at least one fixed tick had a chance to
+    // consume the current snapshot.
+    void acknowledgeFixedTickActions() noexcept;
 
     void handleLooperIdentifier(int identifier) noexcept;
 
@@ -140,13 +146,8 @@ private:
     AndroidInputSnapshot snapshot_{};
 
     bool sensorsEnabled_ = false;
-    bool firePressedThisFrame_ = false;
-    bool aimPressedThisFrame_ = false;
+    xziel::FixedTickInputPulseLatch fixedTickPulses_{};
     bool aimToggled_ = false;
-    bool reloadPressedThisFrame_ = false;
-    bool interactPressedThisFrame_ = false;
-    bool jumpPressedThisFrame_ = false;
-    bool stancePressedThisFrame_ = false;
     bool restartPressedThisFrame_ = false;
 
     float stanceHeldSeconds_ = 0.0f;
