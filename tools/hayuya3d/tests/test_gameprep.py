@@ -55,7 +55,7 @@ class GamePrepTests(unittest.TestCase):
             self.assertFalse(result.rig_audit["rig_ready"])
             self.assertIn("unrigged source", result.lod_policy)
             self.assertTrue(Path(result.rig_audit_path).is_file())
-            self.assertEqual(len(result.turntable_frames), 8)
+            self.assertEqual(len(result.turntable_frames), 24)
             self.assertTrue(Path(result.master).is_file())
             self.assertTrue(result.collision and Path(result.collision).is_file())
             self.assertTrue(Path(result.manifest).is_file())
