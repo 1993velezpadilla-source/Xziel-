@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import shutil
 import time
 from dataclasses import dataclass, asdict
@@ -108,7 +107,6 @@ def generate(
     image: Path,
     output_dir: Path,
     *,
-    token: str | None = None,
     space: str = "VAST-AI/AniGen",
     ss_model: str = "ss_flow_solo",
     slat_model: str = "slat_flow_auto",
@@ -120,8 +118,6 @@ def generate(
 ) -> AniGenResult:
     output_dir.mkdir(parents=True, exist_ok=True)
     kwargs = {"verbose": True, "httpx_kwargs": {"timeout": 240.0}}
-    if token:
-        kwargs["token"] = token
     client = Client(space, **kwargs)
     named = _named_endpoints(client)
     endpoint, spec = _find_generation_endpoint(named)
@@ -205,7 +201,6 @@ def main() -> int:
     result = generate(
         a.input,
         a.output_dir,
-        token=os.environ.get("HF_TOKEN"),
         space=a.space,
         ss_model=a.ss_model,
         slat_model=a.slat_model,
