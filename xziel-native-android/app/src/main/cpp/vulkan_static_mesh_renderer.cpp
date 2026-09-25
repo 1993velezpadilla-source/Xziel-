@@ -89,6 +89,16 @@ std::string textureAssetPath(
     return path;
 }
 
+[[nodiscard]] bool isExactStGilesExteriorReference(
+    const std::string& exportedName,
+    bool srgb) noexcept {
+    return
+        srgb &&
+        exportedName.find(
+            "StGilesCripplegateExterior04") !=
+            std::string::npos;
+}
+
 [[nodiscard]] std::uint64_t
 chooseTextureResidentBudget(
     VkPhysicalDevice physicalDevice,
@@ -739,8 +749,22 @@ bool VulkanStaticMeshRenderer::initialize(
                     }
                 };
 
+            bool skippedExactExteriorKtx = false;
+
             for (const auto& batch : asset.batches) {
-                queueTexture(batch.textureName);
+                // EXACT_ST_GILES_KTX_PREFETCH_BYPASS_V1
+                // Exact-source audit loads this one sRGB base color from PNG.
+                // Do not waste async I/O on its ASTC derivative, otherwise
+                // prefetch accounting reports queued=14/consumed=13 even
+                // though every texture actually requested by the renderer
+                // was consumed successfully.
+                if (isExactStGilesExteriorReference(
+                        batch.textureName,
+                        true)) {
+                    skippedExactExteriorKtx = true;
+                } else {
+                    queueTexture(batch.textureName);
+                }
 
                 if (!batch.pbrEnabled()) {
                     continue;
@@ -752,6 +776,11 @@ bool VulkanStaticMeshRenderer::initialize(
                     batch.pbr.ormTextureName);
                 queueTexture(
                     batch.pbr.emissiveTextureName);
+            }
+
+            if (skippedExactExteriorKtx) {
+                logInfo(
+                    "XZIEL_EXACT_EXTERIOR_KTX_PREFETCH_BYPASS_READY");
             }
 
             __android_log_print(
@@ -7627,10 +7656,9 @@ bool VulkanStaticMeshRenderer::createTexture(
     // ORM and detail maps are linear (srgb=false), so they are not caught by
     // this reference-only branch.
     const bool exactExteriorReference =
-        srgb &&
-        exportedName.find(
-            "StGilesCripplegateExterior04") !=
-            std::string::npos;
+        isExactStGilesExteriorReference(
+            exportedName,
+            srgb);
 
     if (exactExteriorReference) {
         const std::string pngPath =
