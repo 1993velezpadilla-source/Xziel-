@@ -20,6 +20,24 @@ def _parameter_names(spec):
     return [p.get("parameter_name") for p in spec.get("parameters", [])]
 
 
+def _find_preprocess_endpoint(named):
+    ranked = []
+    for name, spec in named.items():
+        lname = name.lower()
+        params = _parameter_names(spec)
+        score = 0
+        if "preprocess" in lname:
+            score += 10
+        if len(params) == 1 and params[0] in {"image", "image_prompt"}:
+            score += 3
+        if score:
+            ranked.append((score, name, spec))
+    if not ranked:
+        raise RuntimeError(f"AniGen preprocess endpoint not found: {list(named)}")
+    ranked.sort(reverse=True, key=lambda x: x[0])
+    return ranked[0][1], ranked[0][2]
+
+
 def _find_generation_endpoint(named):
     preferred = []
     for name, spec in named.items():
@@ -52,7 +70,10 @@ def _retry(call, stage, attempts=5):
             return call()
         except Exception as exc:
             last = exc
+            text = f"{type(exc).__name__}: {exc}".lower()
             print(f"::warning::AniGen {stage} attempt {i}/{attempts}: {type(exc).__name__}: {exc}")
+            if "zerogpu quota" in text or "quota" in text and "exceeded" in text:
+                raise RuntimeError(f"AniGen {stage} blocked by upstream GPU quota: {exc}")
             if i < attempts:
                 time.sleep(delays[min(i - 1, len(delays) - 1)])
     raise RuntimeError(f"AniGen {stage} failed after {attempts} attempts: {last}")
@@ -120,12 +141,26 @@ def generate(
     kwargs = {"verbose": True, "httpx_kwargs": {"timeout": 240.0}}
     client = Client(space, **kwargs)
     named = _named_endpoints(client)
+
+    preprocess_endpoint, preprocess_spec = _find_preprocess_endpoint(named)
+    preprocess_params = _parameter_names(preprocess_spec)
+    if len(preprocess_params) != 1:
+        raise RuntimeError(
+            f"Unexpected AniGen preprocess signature {preprocess_endpoint}: {preprocess_params}"
+        )
+    raw_image = handle_file(str(image.resolve()))
+    processed = _retry(
+        lambda: client.predict(raw_image, api_name=preprocess_endpoint),
+        stage="preprocess_image",
+        attempts=3,
+    )
+
     endpoint, spec = _find_generation_endpoint(named)
     params = _parameter_names(spec)
 
     values = {
-        "image": handle_file(str(image.resolve())),
-        "image_prompt": handle_file(str(image.resolve())),
+        "image": processed,
+        "image_prompt": processed,
         "seed": int(seed),
         "ss_model_name": ss_model,
         "slat_model_name": slat_model,
@@ -168,7 +203,7 @@ def generate(
         skeleton=str(skeleton) if skeleton else None,
         processed_image=processed_image,
         space=space,
-        endpoint=endpoint,
+        endpoint=f"{preprocess_endpoint} -> {endpoint}",
         ss_model=ss_model,
         slat_model=slat_model,
         ss_steps=int(ss_steps),
