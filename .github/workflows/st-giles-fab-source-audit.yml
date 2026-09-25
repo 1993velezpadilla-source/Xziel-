@@ -23,11 +23,43 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Install anonymous Fab probe transport
+      - name: Install pinned anonymous Fab probe transport
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m pip install --quiet --disable-pip-version-check curl_cffi
+          URL="https://github.com/lexiforest/curl-impersonate/releases/download/v2.2.3/curl-impersonate-v2.2.3.x86_64-linux-gnu.tar.gz"
+          EXPECTED="ca7c8aae49e33260d3a2400db16c7737aaf04692d606a843502056b42990f989"
+
+          curl -L --fail --retry 3 "$URL" -o /tmp/curl-impersonate.tar.gz
+          echo "$EXPECTED  /tmp/curl-impersonate.tar.gz" | sha256sum -c -
+
+          mkdir -p /tmp/curl-impersonate
+          tar -xzf /tmp/curl-impersonate.tar.gz -C /tmp/curl-impersonate
+
+          COMMAND="$(find /tmp/curl-impersonate -type f -perm -u+x \
+            | grep -E '/(curl_chrome146|curl_chrome145|curl_chrome142|curl-impersonate-chrome|curl-impersonate)
+      - name: Probe original Fab source metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/church_map/probe_st_giles_fab_source.py
+          test -s build/st-giles-fab-source-audit.json
+          jq -e '.decision == "SOURCE_DOWNLOAD_CANDIDATE"' build/st-giles-fab-source-audit.json
+          jq -e '.isFree == true' build/st-giles-fab-source-audit.json
+          jq -e '.formats | index("obj") != null' build/st-giles-fab-source-audit.json
+          jq . build/st-giles-fab-source-audit.json
+
+      - name: Upload source audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xziel-St-Giles-Fab-Source-Audit
+          path: build/st-giles-fab-source-audit.json
+          retention-days: 14
+ \
+            | head -n 1)"
+          test -x "$COMMAND"
+          echo "FAB_CURL_IMPERSONATE=$COMMAND" >> "$GITHUB_ENV"
+          "$COMMAND" --version | head -n 2
 
       - name: Probe original Fab source metadata
         shell: bash
