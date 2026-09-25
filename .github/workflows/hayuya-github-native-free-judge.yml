@@ -119,7 +119,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision torchao
           python -m pip install "transformers>=5.2,<6" accelerate safetensors huggingface_hub pillow
-          python tools/hayuya3d/github_cpu_heavy_eye.py qrealign             --image front=evidence/faces/00_000.png             --image quarter_r=evidence/faces/02_030.png             --image quarter_l=evidence/faces/22_330.png             --json qrealign.json
+          python tools/hayuya3d/github_cpu_heavy_eye.py qrealign             --image front=evidence/faces/12_180.png             --image quarter_r=evidence/faces/10_150.png             --image quarter_l=evidence/faces/14_210.png             --json qrealign.json
           python - <<'PY'
           import json
           p=json.load(open("qrealign.json"))
@@ -172,7 +172,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision torchao
           python -m pip install "transformers>=5.2,<6" accelerate safetensors huggingface_hub pillow "qwen-vl-utils>=0.0.14"
-          python tools/hayuya3d/github_cpu_heavy_eye.py visualquality             --image front=evidence/faces/00_000.png             --image quarter_r=evidence/faces/02_030.png             --image quarter_l=evidence/faces/22_330.png             --json visualquality.json
+          python tools/hayuya3d/github_cpu_heavy_eye.py visualquality             --image front=evidence/faces/12_180.png             --image quarter_r=evidence/faces/10_150.png             --image quarter_l=evidence/faces/14_210.png             --json visualquality.json
           python - <<'PY'
           import json
           p=json.load(open("visualquality.json"))
