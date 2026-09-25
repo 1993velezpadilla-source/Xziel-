@@ -1007,8 +1007,9 @@ def main() -> int:
     # inflate the count of independent reference photos.
     source_autofix_result = None
     source_autofix_failure = None
+    recovered_detail_inputs: list[Path] = []
     derived_detail_inputs: list[Path] = []
-    if args.source_autofix in {"auto", "required"} and args.execute:
+    if args.source_autofix in {"auto", "required"} and args.execute and args.mode in {"auto", "character"}:
         try:
             from source_autofix import build_source_autofix
             source_autofix_result = build_source_autofix(
@@ -1016,15 +1017,15 @@ def main() -> int:
                 job_dir / "source_autofix",
                 policy=args.source_autofix,
             )
-            derived_detail_inputs = [
+            recovered_detail_inputs = [
                 Path(x).resolve()
                 for x in source_autofix_result.derived_detail_sources
             ]
-            detail_inputs = [*real_detail_inputs, *derived_detail_inputs]
             print(
                 "HAYUYA_SOURCE_AUTOFIX_READY "
                 f"real_sources={len(geometry_inputs)} "
-                f"derived_face_details={len(derived_detail_inputs)} "
+                f"recovered_head_details={len(recovered_detail_inputs)} "
+                f"character_hint={str(bool(source_autofix_result.character_hint)).lower()} "
                 f"manifest={source_autofix_result.manifest}"
             )
         except Exception as exc:
@@ -1039,12 +1040,17 @@ def main() -> int:
 
     mode = args.mode
     if mode == "auto":
-        # Content beats filenames: if a face was recovered from IMG_1234.jpg,
-        # this is a character job even when the path has no semantic token.
-        if derived_detail_inputs:
+        # Content beats filenames only when a face/head detector actually confirms it.
+        if source_autofix_result is not None and source_autofix_result.character_hint:
             mode = "character"
         else:
             mode = infer_asset_mode(geometry_inputs[0])
+
+    # Heuristic top-of-subject crops are safe auxiliary evidence for a character,
+    # but they never turn an unknown prop into a character on their own.
+    if mode == "character":
+        derived_detail_inputs = list(recovered_detail_inputs)
+    detail_inputs = [*real_detail_inputs, *derived_detail_inputs]
 
     lock = load_lock()
     selected = choose_backends(
