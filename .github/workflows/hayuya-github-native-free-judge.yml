@@ -1,0 +1,278 @@
+name: Hayuya GitHub Native Free Judge
+
+on:
+  push:
+    branches:
+      - art/hayuya-monster-v1
+    paths:
+      - .github/workflows/hayuya-github-native-free-judge.yml
+      - tools/hayuya3d/github_native_evidence.py
+      - tools/hayuya3d/github_cpu_heavy_eye.py
+      - tools/hayuya3d/github_cpu_internvl_parse.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hayuya-github-native-free-judge
+  cancel-in-progress: true
+
+jobs:
+  evidence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            tools/hayuya3d
+            hayuya/models/monja-mugfwln6
+            hayuya/assets/monja-mugfwln6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Build real 24-view known-bad evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install "numpy<3" pillow trimesh scipy networkx
+          mapfile -t details < <(find hayuya/assets/monja-mugfwln6/details -maxdepth 1 -type f | sort)
+          args=()
+          for p in "${details[@]}"; do args+=(--detail "$p"); done
+          python tools/hayuya3d/github_native_evidence.py             --model hayuya/models/monja-mugfwln6/model.glb             --source hayuya/assets/monja-mugfwln6/geometry/primary.webp             "${args[@]}"             --out out/github-native-evidence
+          test "$(find out/github-native-evidence/turntable -name '*.png' | wc -l)" -eq 24
+          test -s out/github-native-evidence/board.jpg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: github-native-known-bad-evidence
+          path: out/github-native-evidence
+          retention-days: 1
+          if-no-files-found: error
+
+  qrealign-pro:
+    needs: evidence
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: tools/hayuya3d
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Free GitHub runner disk for real 9B weights
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: github-native-known-bad-evidence
+          path: evidence
+      - name: Run real Q-ReAlign Pro 9B on CPU INT4
+        shell: bash
+        env:
+          HF_HOME: ${{ runner.temp }}/hf-qrealign
+        run: |
+          set -euo pipefail
+          df -h
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision
+          python -m pip install "transformers>=5.2,<6" "torchao>=0.15" accelerate safetensors huggingface_hub pillow
+          python tools/hayuya3d/github_cpu_heavy_eye.py qrealign             --image front=evidence/faces/00.png             --image quarter_r=evidence/faces/02.png             --image quarter_l=evidence/faces/22.png             --json qrealign.json
+          python - <<'PY'
+          import json
+          p=json.load(open("qrealign.json"))
+          assert p["ready"] is True
+          assert p["model"]=="q-future/Q-ReAlign-Pro-9B"
+          assert p["provenance"]["resolved_revision"]
+          assert p["provenance"]["num_parameters"]>1_000_000_000
+          print("HAYUYA_GITHUB_QREALIGN_PRO_REAL",p["provenance"])
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: github-native-qrealign-pro
+          path: qrealign.json
+          retention-days: 1
+          if-no-files-found: error
+
+  visualquality-r1:
+    needs: evidence
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: tools/hayuya3d
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Free GitHub runner disk for real 7B weights
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: github-native-known-bad-evidence
+          path: evidence
+      - name: Run real VisualQuality-R1 7B on CPU INT4
+        shell: bash
+        env:
+          HF_HOME: ${{ runner.temp }}/hf-visualquality
+        run: |
+          set -euo pipefail
+          df -h
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision
+          python -m pip install "transformers>=5.2,<6" "torchao>=0.15" accelerate safetensors huggingface_hub pillow "qwen-vl-utils>=0.0.14"
+          python tools/hayuya3d/github_cpu_heavy_eye.py visualquality             --image front=evidence/faces/00.png             --image quarter_r=evidence/faces/02.png             --image quarter_l=evidence/faces/22.png             --json visualquality.json
+          python - <<'PY'
+          import json
+          p=json.load(open("visualquality.json"))
+          assert p["ready"] is True
+          assert p["model"]=="TianheWu/VisualQuality-R1-7B"
+          assert p["provenance"]["resolved_revision"]
+          assert p["provenance"]["num_parameters"]>1_000_000_000
+          print("HAYUYA_GITHUB_VISUALQUALITY_R1_REAL",p["provenance"])
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: github-native-visualquality-r1
+          path: visualquality.json
+          retention-days: 1
+          if-no-files-found: error
+
+  internvl35-q6:
+    needs: evidence
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: tools/hayuya3d
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Free GitHub runner disk for InternVL3.5 Q6
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: github-native-known-bad-evidence
+          path: evidence
+      - name: Build llama.cpp from GitHub
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/ggml-org/llama.cpp.git /tmp/llama.cpp
+          cmake -S /tmp/llama.cpp -B /tmp/llama.cpp/build -DGGML_NATIVE=OFF -DGGML_OPENMP=ON
+          cmake --build /tmp/llama.cpp/build -j4 --target llama-mtmd-cli
+      - name: Run InternVL3.5 8B Q6_K CPU visual critic
+        shell: bash
+        env:
+          HF_HOME: ${{ runner.temp }}/hf-internvl
+        run: |
+          set -euo pipefail
+          python - <<'PY' > prompt.txt
+          import sys
+          sys.path.insert(0,"tools/hayuya3d")
+          from judge_v4_internvl_worker import PROMPT
+          print(PROMPT)
+          PY
+          /tmp/llama.cpp/build/bin/llama-mtmd-cli             -hf lmstudio-community/InternVL3_5-8B-GGUF:Q6_K             --image evidence/board.jpg             --no-mmproj-offload             -ngl 0             -t 4             --temp 0             -n 900             -p "$(cat prompt.txt)" 2>&1 | tee internvl.log
+          python tools/hayuya3d/github_cpu_internvl_parse.py             --log internvl.log             --json internvl.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: github-native-internvl35-q6
+          path: |
+            internvl.json
+            internvl.log
+          retention-days: 1
+          if-no-files-found: error
+
+  verdict:
+    needs: [qrealign-pro, visualquality-r1, internvl35-q6]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: github-native-qrealign-pro
+          path: q
+      - uses: actions/download-artifact@v4
+        with:
+          name: github-native-visualquality-r1
+          path: vq
+      - uses: actions/download-artifact@v4
+        with:
+          name: github-native-internvl35-q6
+          path: iv
+      - name: Known-bad face must be caught independently
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          q=json.load(open("q/qrealign.json"))
+          vq=json.load(open("vq/visualquality.json"))
+          iv=json.load(open("iv/internvl.json"))
+
+          families=[]
+          if q["mean"]<0.55 or q["p10"]<0.42:
+              families.append("Q-ReAlign-Pro-9B")
+          if vq["median"]<2.25 or vq["minimum"]<1.75:
+              families.append("VisualQuality-R1-7B")
+          vv=iv["verdict"]
+          if (
+              vv["pass"] is False
+              or vv["critical_issues"]
+              or vv["scores"]["face_anatomy"]<80
+              or vv["scores"]["face_source_fidelity"]<75
+          ):
+              families.append("InternVL3.5-8B-Q6")
+
+          summary={
+              "fixture":"monja-mugfwln6",
+              "expected":"REJECTED_FACE",
+              "face_failure_families":families,
+              "qrealign":{"mean":q["mean"],"p10":q["p10"],"provenance":q["provenance"]},
+              "visualquality":{"median":vq["median"],"minimum":vq["minimum"],"provenance":vq["provenance"]},
+              "internvl":vv,
+          }
+          print(json.dumps(summary,indent=2))
+          open("github-native-verdict.json","w").write(json.dumps(summary,indent=2)+"\n")
+          assert len(set(families))>=2, (
+              "KNOWN BAD FACE escaped independent heavyweight eyes: "+str(families)
+          )
+          print("HAYUYA_GITHUB_NATIVE_KNOWN_BAD_FACE_REJECTED_BY_2_PLUS_EYES",families)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: github-native-verdict
+          path: github-native-verdict.json
+          retention-days: 1
+          if-no-files-found: error
