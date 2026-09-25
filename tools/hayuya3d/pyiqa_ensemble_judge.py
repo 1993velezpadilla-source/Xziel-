@@ -5,19 +5,19 @@ import argparse
 import json
 from pathlib import Path
 
-DEFAULT_GENERAL=["topiq_nr","musiq","clipiqa+","maniqa"]
-FACE_METRIC="topiq_nr-face"
+GENERAL_METRICS=["topiq_nr","musiq","clipiqa+","maniqa"]
+FACE_METRICS=["topiq_nr-face","topiq_nr_swin-face"]
 
 
-def _named(items:list[str]):
+def _named(items:list[str])->list[tuple[str,Path]]:
     out=[]
     for raw in items:
         if "=" not in raw:
             raise ValueError(f"expected NAME=PATH, got {raw!r}")
         name,path=raw.split("=",1)
         p=Path(path)
-        if not p.is_file():
-            raise FileNotFoundError(p)
+        if not name.strip() or not p.is_file():
+            raise FileNotFoundError(f"{name}={p}")
         out.append((name.strip(),p))
     return out
 
@@ -39,56 +39,82 @@ def _range(metric):
         return None
 
 
-def run(named,face_name:str):
+def _run_metric(pyiqa,torch,device,metric_name:str,rows:list[tuple[str,Path]]):
+    metric=pyiqa.create_metric(metric_name,device=device)
+    values={}
+    for name,path in rows:
+        values[name]=round(_scalar(metric(str(path))),7)
+    payload={
+        "higher_better":bool(getattr(metric,"higher_better",not getattr(metric,"lower_better",False))),
+        "score_range":_range(metric),
+        "values":values,
+    }
+    del metric
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    return payload
+
+
+def run(general_rows,face_rows):
     import torch
     import pyiqa
     device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    report={"schema":1,"device":str(device),"ready":True,"metrics":{},"warnings":[],"method":"pyiqa-multi-eye-v1"}
-    for metric_name in DEFAULT_GENERAL:
+    report={
+        "schema":2,
+        "device":str(device),
+        "ready":True,
+        "general_images":[name for name,_ in general_rows],
+        "face_images":[name for name,_ in face_rows],
+        "metrics":{},
+        "warnings":[],
+        "method":"pyiqa-independent-multi-eye-v2",
+    }
+    if not general_rows:
+        report["ready"]=False
+        report["warnings"].append("no_general_images")
+    if not face_rows:
+        report["ready"]=False
+        report["warnings"].append("no_face_images")
+
+    for metric_name in GENERAL_METRICS:
+        if not general_rows:
+            continue
         try:
-            metric=pyiqa.create_metric(metric_name,device=device)
-            values={name:round(_scalar(metric(str(path))),7) for name,path in named}
-            report["metrics"][metric_name]={
-                "higher_better":bool(getattr(metric,"higher_better",True)),
-                "score_range":_range(metric),
-                "values":values,
-            }
-            del metric
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
+            report["metrics"][metric_name]=_run_metric(
+                pyiqa,torch,device,metric_name,general_rows
+            )
         except Exception as exc:
             report["ready"]=False
             report["warnings"].append(f"{metric_name}:{type(exc).__name__}:{exc}")
 
-    face_path=next((path for name,path in named if name==face_name),None)
-    if face_path is None:
-        report["ready"]=False
-        report["warnings"].append(f"missing_face_view:{face_name}")
-    else:
+    for metric_name in FACE_METRICS:
+        if not face_rows:
+            continue
         try:
-            metric=pyiqa.create_metric(FACE_METRIC,device=device)
-            report["metrics"][FACE_METRIC]={
-                "higher_better":bool(getattr(metric,"higher_better",True)),
-                "score_range":_range(metric),
-                "values":{face_name:round(_scalar(metric(str(face_path))),7)},
-            }
+            report["metrics"][metric_name]=_run_metric(
+                pyiqa,torch,device,metric_name,face_rows
+            )
         except Exception as exc:
             report["ready"]=False
-            report["warnings"].append(f"{FACE_METRIC}:{type(exc).__name__}:{exc}")
+            report["warnings"].append(f"{metric_name}:{type(exc).__name__}:{exc}")
     return report
 
 
 def main()->int:
-    p=argparse.ArgumentParser(description="HAYUYA Judge v5 independent IQA ensemble.")
-    p.add_argument("--image",action="append",default=[],required=True,help="NAME=PATH")
-    p.add_argument("--face-name",default="face")
+    p=argparse.ArgumentParser(description="HAYUYA Judge v5 independent PyIQA ensemble.")
+    p.add_argument("--image",action="append",default=[],help="NAME=PATH")
+    p.add_argument("--face-image",action="append",default=[],help="NAME=PATH")
     p.add_argument("--json",type=Path,required=True)
     a=p.parse_args()
     try:
-        payload=run(_named(a.image),a.face_name)
+        payload=run(_named(a.image),_named(a.face_image))
         code=0 if payload["ready"] else 2
     except Exception as exc:
-        payload={"schema":1,"ready":False,"metrics":{},"warnings":[f"{type(exc).__name__}:{exc}"],"method":"pyiqa-multi-eye-v1"}
+        payload={
+            "schema":2,"ready":False,"metrics":{},
+            "warnings":[f"{type(exc).__name__}:{exc}"],
+            "method":"pyiqa-independent-multi-eye-v2",
+        }
         code=2
     a.json.parent.mkdir(parents=True,exist_ok=True)
     a.json.write_text(json.dumps(payload,indent=2)+"\n",encoding="utf-8")
