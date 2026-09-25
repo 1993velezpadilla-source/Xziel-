@@ -1032,6 +1032,17 @@ void handleCommand(
                 xziel::AndroidLifecycleEvent::FocusLost);
             break;
 
+        case APP_CMD_CONFIG_CHANGED:
+            // GameActivity can keep the same native window while Android
+            // rotates between landscape-left and landscape-right. Refresh the
+            // sensor remap and force touch pointers to reacquire against the
+            // new surface coordinate system.
+            refreshDisplayRotation(
+                *state);
+            state->hasLastFrame = false;
+            logInfo("DISPLAY_CONFIGURATION_CHANGED");
+            break;
+
         case APP_CMD_LOW_MEMORY:
             state->runtime.onEvent(
                 xziel::AndroidLifecycleEvent::LowMemory);
