@@ -264,7 +264,7 @@ def select_backends(
     if csv:
         selected.extend(x.strip() for x in csv.split(",") if x.strip())
     if include_support:
-        selected.extend(["dinov2", "wonder3d", "triposf"])
+        selected.extend(["dinov2", "wonder3d", "triposf", "judge_v4"])
 
     if not selected:
         selected = list(available)
