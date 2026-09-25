@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "id": "hayuya_judge_v5_research_2026_09_25",
+  "approval_enabled": false,
+  "calibration_status": "human_gold_set_required",
+  "required_views": ["front", "three_quarter", "side", "face"],
+  "qrealign": {
+    "main_min_score": 0.45,
+    "main_max_poor_bad_mass": 0.35,
+    "face_min_score": 0.55,
+    "face_min_good_excellent_mass": 0.50,
+    "face_max_poor_bad_mass": 0.20
+  },
+  "siglip2": {
+    "full_body_views": ["front", "three_quarter", "side"],
+    "best_full_body_catastrophic_floor": 0.20,
+    "mean_full_body_catastrophic_floor": 0.12
+  },
+  "face_identity": {
+    "required": true,
+    "cosine_catastrophic_floor": 0.30,
+    "cosine_provisional_accept": 0.40
+  },
+  "pyiqa": {
+    "required_metrics": ["topiq_nr", "musiq", "clipiqa+", "maniqa", "topiq_nr-face"]
+  },
+  "policy": {
+    "hard_veto": true,
+    "missing_evidence_rejects": true,
+    "averages_cannot_override_face_failure": true,
+    "unknown_is_not_pass": true
+  }
+}
