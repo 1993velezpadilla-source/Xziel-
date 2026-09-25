@@ -57,6 +57,20 @@ def main() -> int:
             + ";".join(str(x) for x in reasons[:16])
         )
 
+    judge_v5 = data.get("judge_v5") or {}
+    visual_approval = data.get("visual_approval") or {}
+    if (
+        judge_v5.get("passed") is not True
+        or judge_v5.get("status") != "APPROVED"
+        or visual_approval.get("production_approved") is not True
+    ):
+        reasons = judge_v5.get("hard_fail_reasons") or []
+        raise SystemExit(
+            "Judge v5 did not production-approve final visual asset: "
+            f"status={judge_v5.get('status')} "
+            + ";".join(str(x) for x in reasons[:16])
+        )
+
     aaa = data.get("aaa_acceptance") or {}
     visual_gate = next(
         (
@@ -84,6 +98,9 @@ def main() -> int:
         "turntable_frames": len(frames),
         "judge_v4_passed": True,
         "judge_v4_hard_failures": len(judge_v4.get("hard_fail_reasons") or []),
+        "judge_v5_passed": True,
+        "judge_v5_status": "APPROVED",
+        "production_approved": True,
         "aaa_visual_v4_ready": (
             bool(visual_gate.get("ready")) if visual_gate is not None else None
         ),
