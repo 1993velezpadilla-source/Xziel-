@@ -5226,6 +5226,11 @@ void VulkanStaticMeshRenderer::record(
         }
     }
 
+    const bool streamVisibilityCulling =
+        streamCullingActive_ &&
+        environment.memoryPressure !=
+            MemoryPressure::Normal;
+
     const auto visitBatch =
         [&](std::size_t batchIndex) noexcept {
             if (batchIndex >= batches_.size()) {
@@ -5370,11 +5375,6 @@ void VulkanStaticMeshRenderer::record(
             visibleDrawCandidates_.push_back(
                 candidate);
         };
-
-    const bool streamVisibilityCulling =
-        streamCullingActive_ &&
-        environment.memoryPressure !=
-            MemoryPressure::Normal;
 
     if (cellGeometry) {
         // Geometry was permanently sorted by cell at upload time and every
