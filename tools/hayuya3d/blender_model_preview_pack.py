@@ -144,6 +144,21 @@ def main():
             "offset": Vector((3.2 * radius, 0.0, 0.0)),
             "scale": full_scale,
         },
+        "opposite": {
+            "target": center,
+            "offset": Vector((0.0, 3.2 * radius, 0.0)),
+            "scale": full_scale,
+        },
+        "three_quarter_opposite": {
+            "target": center,
+            "offset": Vector((-2.30 * radius, 2.30 * radius, 0.0)),
+            "scale": full_scale,
+        },
+        "side_opposite": {
+            "target": center,
+            "offset": Vector((-3.2 * radius, 0.0, 0.0)),
+            "scale": full_scale,
+        },
     }
 
     head_target = center.copy()
@@ -152,6 +167,11 @@ def main():
     views["face"] = {
         "target": head_target,
         "offset": Vector((0.0, -3.0 * radius, 0.05 * radius)),
+        "scale": head_scale,
+    }
+    views["face_opposite"] = {
+        "target": head_target,
+        "offset": Vector((0.0, 3.0 * radius, 0.05 * radius)),
         "scale": head_scale,
     }
 
