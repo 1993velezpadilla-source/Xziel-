@@ -5,7 +5,7 @@
 namespace xziel {
 
 struct MobileControlConfig {
-    float autoSprintThreshold = 0.92f;
+    float autoSprintThreshold = 0.99f;
     float tacticalSprintThreshold = 0.985f;
     float diveHoldSeconds = 0.24f;
 
