@@ -100,8 +100,9 @@ def main()->int:
         "pro_required":True,
         "hard_fail_reasons":list(report.hard_fail_reasons),
         "note":(
-            "Core is the mandatory CPU pre-screen. Monster/Ultra production "
-            "approval still requires Judge v4 Pro on the HAYUYA GPU worker."
+            "Core is the mandatory CPU pre-screen only. It can reject but can "
+            "never production-approve a character. Monster/Ultra production "
+            "approval requires authoritative Judge v5 on the HAYUYA GPU worker."
         ),
     }
     manifest_path.write_text(json.dumps(manifest,indent=2)+"\n",encoding="utf-8")
