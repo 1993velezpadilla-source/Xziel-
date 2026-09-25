@@ -2932,6 +2932,9 @@ extern "C" void android_main(
                 state,
                 now);
 
+        // Sample GameActivity input immediately after the event pump, before
+        // thermal/governor/environment work. This removes avoidable CPU-side
+        // latency between a finger event and the simulation consuming it.
         state.audio.service();
 
         state.hapticElapsedSeconds =
