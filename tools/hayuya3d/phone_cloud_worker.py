@@ -26,6 +26,17 @@ ANIMATION_REQUESTED = os.environ.get("HAYUYA_ANIMATION_REQUESTED","false").strip
 MOTION_PROFILE = os.environ.get("HAYUYA_MOTION_PROFILE","auto").strip() or "auto"
 TEXTURE_QUALITY = os.environ.get("HAYUYA_TEXTURE_QUALITY","standard").strip() or "standard"
 TOKEN = os.environ.get("HF_TOKEN","").strip() or None
+BACKENDS = [
+    x.strip().lower()
+    for x in os.environ.get(
+        "HAYUYA_BACKENDS",
+        "triposg,trellis2,trellis,instantmesh,triposr",
+    ).split(",")
+    if x.strip()
+]
+TRELLIS2_ENABLED = "trellis2" in BACKENDS
+CLASSIC_TRELLIS_ENABLED = "trellis" in BACKENDS
+STRICT_TRELLIS2 = BACKENDS == ["trellis2"]
 SPACE_URL = os.environ.get("TRELLIS_URL","https://trellis-community-trellis.hf.space")
 TRELLIS2_SPACE = os.environ.get("TRELLIS2_SPACE","microsoft/TRELLIS.2")
 OUT.mkdir(parents=True, exist_ok=True)
@@ -375,7 +386,7 @@ modern_candidate=None
 # Modern single-image authority. TRELLIS.2 is deliberately not used to replace
 # classic TRELLIS native multi-image fusion: with 2+ real geometry views the
 # camera evidence is more valuable than forcing a single-image model.
-if not multi and TEXTURE_QUALITY in {"high","ultra"}:
+if not multi and TRELLIS2_ENABLED and TEXTURE_QUALITY in {"high","ultra"}:
     try:
         modern_meta=generate_trellis2_cloud(
             crops[0],
@@ -403,6 +414,12 @@ if not multi and TEXTURE_QUALITY in {"high","ultra"}:
         print("HAYUYA_TRELLIS2_PROMOTED",json.dumps(modern_meta,separators=(",",":")))
     except Exception as modern_exc:
         modern_candidate=None
+        if STRICT_TRELLIS2:
+            fail(
+                "TRELLIS.2 is the required generator for this job and did not "
+                "produce an accepted candidate: "
+                f"{type(modern_exc).__name__}: {modern_exc}"
+            )
         print(
             "::warning::TRELLIS.2 challenger unavailable/rejected; "
             "falling back to classic TRELLIS: "
@@ -410,6 +427,12 @@ if not multi and TEXTURE_QUALITY in {"high","ultra"}:
         )
 
 if modern_candidate is None:
+    if not CLASSIC_TRELLIS_ENABLED:
+        fail(
+            "No permitted generator produced a model. "
+            f"requested_backends={BACKENDS}; multi_image={multi}; "
+            f"texture_quality={TEXTURE_QUALITY}"
+        )
     try:
         result=resilient_predict(*args,api_name=endpoint,stage="trellis_generation",max_attempts=5)
     except Exception as e:
@@ -551,6 +574,8 @@ manifest={
     "prep_target":PREP_TARGET,
     "multi_image":multi,
     "generator":selected_generator,
+    "requested_backends":BACKENDS,
+    "strict_trellis2":STRICT_TRELLIS2,
     "texture_size":actual_texture_size,
     "requested_texture_target":qp["texture_size"],
     "native_texture_target":actual_texture_size,
