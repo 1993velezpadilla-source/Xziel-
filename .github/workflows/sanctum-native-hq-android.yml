@@ -1,5 +1,7 @@
 name: Sanctum Exterior Detail A-B Android
 
+# XZIEL_FULL_LINEAGE_ANDROID_ASSET_SYNC_V1
+
 on:
   push:
     branches:
