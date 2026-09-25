@@ -518,6 +518,8 @@ def make_job_plan(
     texture_delivery_mode: str = "auto",
     asset_profile: str | None = None,
     animation_requested: bool = False,
+    source_autofix_mode: str = "auto",
+    derived_detail_inputs: list[Path] | None = None,
 ) -> dict:
     profile = PROFILES[profile_name]
     resolved_asset_profile = asset_profile or infer_asset_profile(inputs[0], mode)
@@ -531,7 +533,9 @@ def make_job_plan(
     )
     roles = split_reference_roles(inputs)
     geometry_inputs = roles.geometry
-    detail_inputs = roles.detail
+    real_detail_inputs = list(roles.detail)
+    derived_detail_inputs = list(derived_detail_inputs or [])
+    detail_inputs = [*real_detail_inputs, *derived_detail_inputs]
     group_size = multiview_group_size or profile.multiview_group_size
     groups = make_reference_groups(geometry_inputs, group_size) if len(geometry_inputs) > 1 else [list(geometry_inputs)]
     anchor_refs = (
@@ -556,7 +560,12 @@ def make_job_plan(
             "geometry_source_count": len(geometry_inputs),
             "detail_sources": [str(p) for p in detail_inputs],
             "detail_source_count": len(detail_inputs),
-            "detail_policy": "detail/close-up references are preserved for material/local-detail stages and do not distort whole-object silhouette scoring",
+            "real_detail_sources": [str(p) for p in real_detail_inputs],
+            "real_detail_source_count": len(real_detail_inputs),
+            "derived_detail_sources": [str(p) for p in derived_detail_inputs],
+            "derived_detail_source_count": len(derived_detail_inputs),
+            "derived_details_are_auxiliary_evidence": True,
+            "detail_policy": "manual detail/close-up references are optional; source-autofix crops are derived from real geometry sources and never count as independent photos",
         },
         "mode": mode,
         "profile": profile_name,
@@ -581,6 +590,15 @@ def make_job_plan(
             "faces": profile.faces,
             "texture_size": profile.texture_size,
             "trellis2_resolution": profile.trellis2_resolution,
+        },
+        "source_autofix": {
+            "mode": source_autofix_mode,
+            "single_photo_first": True,
+            "manual_face_closeup_required": False,
+            "auto_face_zoom": True,
+            "auto_character_hint_from_face": True,
+            "derived_detail_sources": [str(p) for p in derived_detail_inputs],
+            "policy": "derived crops stay tied to their original real source and are auxiliary evidence only",
         },
         "viewforge": {
             "mode": viewforge_mode,
@@ -856,6 +874,15 @@ def main() -> int:
     parser.add_argument("--require-all", action="store_true", help="fail if any selected backend candidate fails")
     parser.add_argument("--allow-restricted", action="store_true", help="allow explicitly opt-in non-permissive backends")
     parser.add_argument(
+        "--source-autofix",
+        choices=["off", "auto", "required"],
+        default="auto",
+        help=(
+            "Tripo-style source preprocessing: recover face/head detail automatically "
+            "from ordinary source photos; manual close-ups remain optional"
+        ),
+    )
+    parser.add_argument(
         "--viewforge",
         choices=["off", "auto", "required"],
         default="auto",
@@ -962,12 +989,62 @@ def main() -> int:
 
     inputs = validate_inputs(raw_inputs)
     roles = split_reference_roles(inputs)
-    geometry_inputs = roles.geometry
-    detail_inputs = roles.detail
+    geometry_inputs = list(roles.geometry)
+    real_detail_inputs = list(roles.detail)
+    detail_inputs = list(real_detail_inputs)
     profile = PROFILES[args.profile]
     group_size = args.multiview_group_size or profile.multiview_group_size
     if group_size < 2:
         parser.error("--multiview-group-size must be >= 2")
+
+    job_name = f"{geometry_inputs[0].stem}-{args.profile}-{args.seed}"
+    job_dir = args.output_root / job_name
+    candidates_dir = job_dir / "candidates"
+    job_dir.mkdir(parents=True, exist_ok=True)
+
+    # Tripo-style source preprocessing: a normal source photo is sufficient.
+    # Derived face crops are auxiliary evidence tied to the real source and never
+    # inflate the count of independent reference photos.
+    source_autofix_result = None
+    source_autofix_failure = None
+    derived_detail_inputs: list[Path] = []
+    if args.source_autofix in {"auto", "required"} and args.execute:
+        try:
+            from source_autofix import build_source_autofix
+            source_autofix_result = build_source_autofix(
+                geometry_inputs,
+                job_dir / "source_autofix",
+                policy=args.source_autofix,
+            )
+            derived_detail_inputs = [
+                Path(x).resolve()
+                for x in source_autofix_result.derived_detail_sources
+            ]
+            detail_inputs = [*real_detail_inputs, *derived_detail_inputs]
+            print(
+                "HAYUYA_SOURCE_AUTOFIX_READY "
+                f"real_sources={len(geometry_inputs)} "
+                f"derived_face_details={len(derived_detail_inputs)} "
+                f"manifest={source_autofix_result.manifest}"
+            )
+        except Exception as exc:
+            source_autofix_failure = f"{type(exc).__name__}: {exc}"
+            print(
+                f"HAYUYA_SOURCE_AUTOFIX_FAILED {source_autofix_failure}",
+                file=sys.stderr,
+            )
+            traceback.print_exc()
+            if args.source_autofix == "required":
+                raise
+
+    mode = args.mode
+    if mode == "auto":
+        # Content beats filenames: if a face was recovered from IMG_1234.jpg,
+        # this is a character job even when the path has no semantic token.
+        if derived_detail_inputs:
+            mode = "character"
+        else:
+            mode = infer_asset_mode(geometry_inputs[0])
 
     lock = load_lock()
     selected = choose_backends(
@@ -980,17 +1057,14 @@ def main() -> int:
     if not selected:
         raise SystemExit("No executable backends selected")
 
-    mode = args.mode
-    if mode == "auto":
-        mode = infer_asset_mode(geometry_inputs[0])
     if args.judge_v4 == "required" and mode != "character":
-        parser.error("--judge-v4 required needs --mode character or a character-path input")
+        parser.error("--judge-v4 required needs --mode character or a detected character source")
     if args.judge_v5 == "required" and mode != "character":
-        parser.error("--judge-v5 required needs --mode character or a character-path input")
+        parser.error("--judge-v5 required needs --mode character or a detected character source")
     if args.character_specialist != "off" and not args.allow_restricted:
         parser.error("--character-specialist requires --allow-restricted because PSHuman includes separately licensed third-party human-model components")
     if args.character_specialist == "required" and mode != "character":
-        parser.error("--character-specialist required needs --mode character or a character-path input")
+        parser.error("--character-specialist required needs --mode character or a detected character source")
 
     reference_groups = (
         make_reference_groups(geometry_inputs, group_size)
@@ -1003,11 +1077,6 @@ def main() -> int:
         else [geometry_inputs[0]]
     )
     face_seed_count=face_seed_hypothesis_count(args.profile,detail_inputs)
-
-    job_name = f"{geometry_inputs[0].stem}-{args.profile}-{args.seed}"
-    job_dir = args.output_root / job_name
-    candidates_dir = job_dir / "candidates"
-    job_dir.mkdir(parents=True, exist_ok=True)
 
     plan = make_job_plan(
         inputs,
@@ -1031,6 +1100,8 @@ def main() -> int:
         texture_delivery_mode=args.texture_delivery,
         asset_profile=(None if args.asset_profile == "auto" else args.asset_profile),
         animation_requested=args.animation,
+        source_autofix_mode=args.source_autofix,
+        derived_detail_inputs=derived_detail_inputs,
     )
     portable_runtime = plan["mobile_portability"]["runtime_target"]
     portable_lod0_ceiling = int(portable_runtime["lod0_triangles"][1])
@@ -2616,6 +2687,12 @@ def main() -> int:
         **plan,
         "status": "success",
         "failures": failures,
+        "source_autofix": (
+            asdict(source_autofix_result)
+            if source_autofix_result is not None
+            else plan.get("source_autofix")
+        ),
+        "source_autofix_failure": source_autofix_failure,
         "viewforge": asdict(viewforge_result) if viewforge_result is not None else None,
         "viewforge_failure": viewforge_failure,
         "character_specialist": {
@@ -2722,6 +2799,8 @@ def main() -> int:
             "fail_closed": True,
         },
         "notes": [
+            "Single-photo-first: one ordinary source photo is sufficient; HAYUYA automatically derives face/head zoom evidence when possible and never requires a manual close-up.",
+            "Derived source-autofix crops are auxiliary evidence tied to the original photo and never count as independent real references.",
             "The reference pool has no Hayuya-level photo-count cap.",
             "All unique full-object/geometry source photos participate in Judge v2.",
             "Detail/close-up sources stay out of whole-object silhouette scoring but enter Judge v3 through multi-view local patch retrieval when DINOv2 is active.",
