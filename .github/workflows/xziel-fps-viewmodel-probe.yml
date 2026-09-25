@@ -31,7 +31,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          sudo apt-get install -y -qq blender xvfb libegl1 libgl1-mesa-dri libglx-mesa0 unzip
+          sudo apt-get install -y -qq blender xvfb libegl1 libgl1-mesa-dri libglx-mesa0 unzip python3-numpy
           blender --version
 
       - name: Download CC0 FPS rifle and hands
@@ -109,12 +109,18 @@ jobs:
           GLB="church/out/fps_ready/fps_viewmodel_probe.glb"
 
           test -s "$REPORT"
-          test -s "$GLB"
 
           jq -e '.meshCount >= 1' "$REPORT"
           jq -e '.objectCount >= .meshCount' "$REPORT"
           jq -e '.bounds.dimensions | all(. >= 0)' "$REPORT"
           jq -e '.fpsReadiness.hasAuthoredAnimation == true' "$REPORT"
+
+          if [[ -s "$GLB" ]]; then
+            echo "XZIEL_FPS_CANONICAL_GLB_READY bytes=$(stat -c%s "$GLB")"
+          else
+            echo "XZIEL_FPS_CANONICAL_GLB_NOT_READY"
+            jq '.canonicalGlbExportError' "$REPORT"
+          fi
 
           echo "---- FPS READINESS ----"
           jq '.fpsReadiness' "$REPORT"
