@@ -810,14 +810,33 @@ jobs:
           # Tap the current NZ:P-baseline ADS control at normalized
           # 0.695 / 0.575. Compute pixels from the runtime display size so
           # orientation/resolution changes cannot silently invalidate this test.
-          DISPLAY_SIZE="$("$ADB" shell wm size | tr -d '\r' | tail -n1)"
-          DISPLAY_WIDTH="$(sed -n 's/.*: \([0-9][0-9]*\)x\([0-9][0-9]*\).*/\1/p' <<<"$DISPLAY_SIZE")"
-          DISPLAY_HEIGHT="$(sed -n 's/.*: \([0-9][0-9]*\)x\([0-9][0-9]*\).*/\2/p' <<<"$DISPLAY_SIZE")"
+          # Android "wm size" reports the base physical display dimensions
+          # and does not swap them for the current landscape surface. Derive
+          # the active render-surface dimensions from an actual screenshot
+          # instead, so normalized HUD coordinates map to real touch pixels.
+          "$ADB" exec-out screencap -p > dist/sanctum-hq-pre-ads.png
+          read DISPLAY_WIDTH DISPLAY_HEIGHT < <(
+            python3 - <<'PY'
+import struct
+with open("dist/sanctum-hq-pre-ads.png", "rb") as handle:
+    signature = handle.read(8)
+    if signature != b"\x89PNG\r\n\x1a\n":
+        raise SystemExit("invalid screenshot PNG")
+    length = struct.unpack(">I", handle.read(4))[0]
+    chunk = handle.read(4)
+    if chunk != b"IHDR" or length < 8:
+        raise SystemExit("missing PNG IHDR")
+    width, height = struct.unpack(">II", handle.read(8))
+    print(width, height)
+PY
+          )
           test -n "$DISPLAY_WIDTH"
           test -n "$DISPLAY_HEIGHT"
 
           ADS_X="$(awk -v w="$DISPLAY_WIDTH" 'BEGIN { printf "%d", w * 0.695 }')"
           ADS_Y="$(awk -v h="$DISPLAY_HEIGHT" 'BEGIN { printf "%d", h * 0.575 }')"
+
+          echo "XZIEL_ADS_TEST_COORDS surface=${DISPLAY_WIDTH}x${DISPLAY_HEIGHT} tap=${ADS_X},${ADS_Y}"
 
           "$ADB" shell input tap "$ADS_X" "$ADS_Y" || true
           sleep 1
@@ -1419,6 +1438,7 @@ jobs:
             dist/sanctum-hq-tour-02-look.png
             dist/sanctum-hq-tour-03-forward.png
             dist/sanctum-hq-tour-04-look-up.png
+            dist/sanctum-hq-pre-ads.png
             dist/sanctum-hq-tour-05-ads.png
             dist/sanctum-hq-tour-06-hip-after-ads.png
             dist/sanctum-hq-window.xml
