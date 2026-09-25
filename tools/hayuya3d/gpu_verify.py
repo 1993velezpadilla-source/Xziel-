@@ -46,8 +46,8 @@ def main() -> int:
         validate_glb(Path(lod["path"]))
 
     frames = [Path(p) for p in gameprep.get("turntable_frames", [])]
-    if len(frames) != 8 or not all(p.is_file() for p in frames):
-        raise SystemExit("expected 8 valid turntable frames")
+    if len(frames) != 24 or not all(p.is_file() for p in frames):
+        raise SystemExit("expected 24 valid turntable frames")
 
     report = {
         "status": "PASS",
