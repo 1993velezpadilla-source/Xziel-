@@ -8371,6 +8371,80 @@ bool VulkanClearRenderer::recordDrawCommand(
             0.10f);
     }
 
+    if (hud.restartVisible) {
+        const float restartY =
+            mobileTopYToUiY(
+                0.62f);
+
+        // Temporary death-screen preset: large, unmistakable restart button
+        // centered under the reticle. Input uses the same normalized center
+        // and radius, so the visual and touch target cannot drift apart.
+        drawUiCircle(
+            0.50f,
+            restartY,
+            0.13f,
+            0.018f,
+            0.022f,
+            0.028f,
+            0.88f,
+            false);
+        drawUiCircle(
+            0.50f,
+            restartY,
+            0.13f,
+            0.88f,
+            0.96f,
+            0.18f,
+            0.96f,
+            true,
+            0.070f);
+
+        drawUiCircle(
+            0.50f,
+            restartY,
+            0.055f,
+            0.98f,
+            0.98f,
+            0.98f,
+            0.96f,
+            true,
+            0.11f);
+
+        drawShortRect(
+            0.50f +
+                0.047f * shortToX,
+            restartY -
+                0.040f,
+            0.020f,
+            0.006f,
+            0.018f,
+            0.022f,
+            0.028f,
+            0.98f);
+        drawShortRect(
+            0.50f +
+                0.050f * shortToX,
+            restartY -
+                0.040f,
+            0.018f,
+            0.0038f,
+            0.98f,
+            0.98f,
+            0.98f,
+            0.96f);
+        drawShortRect(
+            0.50f +
+                0.058f * shortToX,
+            restartY -
+                0.028f,
+            0.0040f,
+            0.012f,
+            0.98f,
+            0.98f,
+            0.98f,
+            0.96f);
+    }
+
     // Thin center reticle. Keeping this procedural avoids introducing font or
     // texture dependencies before the renderer has an asset streaming layer.
     const float hitMarker =
