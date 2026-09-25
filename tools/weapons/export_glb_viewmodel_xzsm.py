@@ -359,6 +359,8 @@ def canonicalize(value):
 # +Z point from stock toward muzzle regardless of imported GLB/armature axes.
 raw_min = Vector((1e30, 1e30, 1e30))
 raw_max = Vector((-1e30, -1e30, -1e30))
+stock_max_z = -1e30
+receiver_min_z = 1e30
 for source_obj, mesh, world in static_sources:
     mesh.calc_loop_triangles()
     for tri in mesh.loop_triangles:
@@ -370,6 +372,7 @@ for source_obj, mesh, world in static_sources:
         )
         if not weapon_material_allowed(mat):
             continue
+        material_lower = mat.name.lower()
         for loop_index in tri.loops:
             vertex_index = mesh.loops[loop_index].vertex_index
             p = canonicalize(
@@ -381,6 +384,11 @@ for source_obj, mesh, world in static_sources:
             raw_max.x = max(raw_max.x, p.x)
             raw_max.y = max(raw_max.y, p.y)
             raw_max.z = max(raw_max.z, p.z)
+
+            if "stock" in material_lower:
+                stock_max_z = max(stock_max_z, p.z)
+            if material_lower.startswith("body"):
+                receiver_min_z = min(receiver_min_z, p.z)
 
 raw_dimensions = raw_max - raw_min
 raw_longest = max(
@@ -398,10 +406,26 @@ raw_longest = max(
 TARGET_LONGEST_METERS = 0.90
 model_scale = TARGET_LONGEST_METERS / raw_longest
 
+if stock_max_z <= -1e20 or receiver_min_z >= 1e20:
+    raise RuntimeError(
+        f"weapon stock/receiver seam missing: "
+        f"stock_max_z={stock_max_z} receiver_min_z={receiver_min_z}"
+    )
+
+seam_gap = abs(stock_max_z - receiver_min_z)
+if seam_gap > raw_longest * 0.03:
+    raise RuntimeError(
+        f"weapon stock/receiver seam inconsistent: "
+        f"stock_max_z={stock_max_z} receiver_min_z={receiver_min_z} "
+        f"gap={seam_gap}"
+    )
+
+viewmodel_pivot_z = (stock_max_z + receiver_min_z) * 0.5
+
 anchor = Vector((
     (raw_min.x + raw_max.x) * 0.5,
     (raw_min.y + raw_max.y) * 0.5,
-    raw_min.z,
+    viewmodel_pivot_z,
 ))
 
 groups = {}
@@ -596,7 +620,7 @@ report = {
     "sourcePage": SOURCE_PAGE,
     "coordinateSpace": "viewmodel_y_up_z_forward",
     "readyPoseAction": None,
-    "exportMode": "rigid_weapon_rest_pose_canonical_xziel_v2",
+    "exportMode": "rigid_weapon_rest_pose_canonical_xziel_v3",
     "canonicalForwardSource": [
         float(canonical_forward.x),
         float(canonical_forward.y),
@@ -608,6 +632,11 @@ report = {
         float(canonical_up.z),
     ],
     "canonicalUpSemantic": "rear_sight_minus_magazine",
+    "viewmodelPivotSemantic": "stock_receiver_seam",
+    "viewmodelPivotSourceZ": float(viewmodel_pivot_z),
+    "stockMaxSourceZ": float(stock_max_z),
+    "receiverMinSourceZ": float(receiver_min_z),
+    "stockReceiverSeamGapSource": float(seam_gap),
     "includedMaterials": sorted(included_material_names),
     "excludedMaterials": sorted(excluded_material_names),
     "meaningfulBatchCount": meaningful_batches,
@@ -646,6 +675,6 @@ print("XZIEL_WEAPON_XZSM_READY", json.dumps({
     "unitNormalizationScale": model_scale,
     "animations": animations,
     "readyPose": None,
-    "exportMode": "rigid_weapon_rest_pose_canonical_xziel_v2",    "meaningfulBatches": meaningful_batches,
+    "exportMode": "rigid_weapon_rest_pose_canonical_xziel_v3",    "meaningfulBatches": meaningful_batches,
     "modelBytes": model_path.stat().st_size,
 }))
