@@ -818,6 +818,7 @@ bool VulkanStaticMeshRenderer::initialize(
     std::uint32_t normalMapCount = 0U;
     std::uint32_t ormMapCount = 0U;
     std::uint32_t emissiveMapCount = 0U;
+    std::uint32_t photoDetailMapCount = 0U;
     std::uint32_t reusedMaterialCount = 0U;
 
     const auto loadTexture =
@@ -1046,9 +1047,12 @@ bool VulkanStaticMeshRenderer::initialize(
 
             if (material.pbrEnabled &&
                 !batch.pbr.emissiveTextureName.empty()) {
+                const bool emissiveSrgb =
+                    !material.photogrammetryPbr;
+
                 if (!loadTexture(
                         batch.pbr.emissiveTextureName,
-                        true,
+                        emissiveSrgb,
                         material.emissiveTextureIndex)) {
                     logError(
                         "static mesh emissive texture load failed");
@@ -1174,6 +1178,10 @@ bool VulkanStaticMeshRenderer::initialize(
 
             if (material.hasEmissiveTexture) {
                 ++emissiveMapCount;
+
+                if (material.photogrammetryPbr) {
+                    ++photoDetailMapCount;
+                }
             }
 
             materialIndex =
@@ -1325,7 +1333,7 @@ bool VulkanStaticMeshRenderer::initialize(
     __android_log_print(
         ANDROID_LOG_INFO,
         kTag,
-        "XZIEL_PBR_MATERIALS_READY materials=%u pbr=%u legacy=%u normal=%u orm=%u emissive=%u photo_pbr=%u textures=%u",
+        "XZIEL_PBR_MATERIALS_READY materials=%u pbr=%u legacy=%u normal=%u orm=%u emissive=%u photo_pbr=%u photo_detail=%u textures=%u",
         static_cast<unsigned int>(materials_.size()),
         static_cast<unsigned int>(pbrMaterialCount),
         static_cast<unsigned int>(materials_.size() - pbrMaterialCount),
@@ -1333,6 +1341,7 @@ bool VulkanStaticMeshRenderer::initialize(
         static_cast<unsigned int>(ormMapCount),
         static_cast<unsigned int>(emissiveMapCount),
         static_cast<unsigned int>(photogrammetryPbrCount),
+        static_cast<unsigned int>(photoDetailMapCount),
         static_cast<unsigned int>(textures_.size()));
 
     try {

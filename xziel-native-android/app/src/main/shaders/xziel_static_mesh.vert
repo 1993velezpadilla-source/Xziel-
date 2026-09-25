@@ -27,6 +27,7 @@ layout(location = 0) out vec2 vUv;
 layout(location = 1) out vec3 vNormal;
 // xyz=view-space position, w=non-negative view distance.
 layout(location = 2) out vec4 vViewData;
+layout(location = 3) out vec3 vWorldPosition;
 
 vec3 worldToView(vec3 world) {
     vec3 relative =
@@ -190,4 +191,8 @@ void main() {
         vec4(
             view,
             max(view.z, 0.0));
+    vWorldPosition =
+        viewmodel
+        ? vec3(0.0)
+        : inPosition;
 }

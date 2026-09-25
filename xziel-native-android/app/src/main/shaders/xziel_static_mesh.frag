@@ -27,6 +27,7 @@ layout(location = 0) in vec2 vUv;
 layout(location = 1) in vec3 vNormal;
 // xyz=view-space position, w=non-negative view distance.
 layout(location = 2) in vec4 vViewData;
+layout(location = 3) in vec3 vWorldPosition;
 
 layout(location = 0) out vec4 outColor;
 
@@ -170,6 +171,59 @@ vec3 mappedNormal(
             bitangent,
             geometricNormal) *
         sampled);
+}
+
+// WORLD_SPACE_PHOTOGRAMMETRY_DETAIL_V1
+float samplePhotoDetailPlane(
+    vec2 unwrappedUv) {
+    vec2 dx = dFdx(unwrappedUv);
+    vec2 dy = dFdy(unwrappedUv);
+
+    return textureGrad(
+        uEmissive,
+        fract(unwrappedUv),
+        dx,
+        dy).r;
+}
+
+float samplePhotoDetail(
+    vec3 worldPosition) {
+    vec3 worldNormal =
+        normalize(
+            cross(
+                dFdx(worldPosition),
+                dFdy(worldPosition)));
+
+    vec3 weights =
+        pow(
+            abs(worldNormal),
+            vec3(4.0));
+    weights /=
+        max(
+            weights.x +
+            weights.y +
+            weights.z,
+            0.0001);
+
+    const float tilesPerMeter = 1.25;
+
+    float xProjection =
+        samplePhotoDetailPlane(
+            worldPosition.zy *
+            tilesPerMeter);
+    float yProjection =
+        samplePhotoDetailPlane(
+            worldPosition.xz *
+            tilesPerMeter);
+    float zProjection =
+        samplePhotoDetailPlane(
+            worldPosition.xy *
+            tilesPerMeter);
+
+    return
+        xProjection * weights.x +
+        yProjection * weights.y +
+        zProjection * weights.z;
 }
 
 void main() {
@@ -337,7 +391,8 @@ void main() {
 
     vec3 emissive =
         pc.emissiveFactor;
-    if (hasEmissive) {
+    if (hasEmissive &&
+        !photogrammetryPbr) {
         emissive *=
             texture(
                 uEmissive,
@@ -384,11 +439,39 @@ void main() {
                 occlusion,
                 0.28);
 
+        float worldDetailResponse = 1.0;
+
+        if (hasEmissive &&
+            viewDepth < 42.0) {
+            float detailFade =
+                1.0 -
+                smoothstep(
+                    24.0,
+                    42.0,
+                    viewDepth);
+
+            float detailSample =
+                samplePhotoDetail(
+                    vWorldPosition);
+            float detailSignal =
+                (detailSample - 0.5) *
+                2.0;
+
+            worldDetailResponse =
+                clamp(
+                    1.0 +
+                    detailSignal *
+                    0.18 *
+                    detailFade,
+                    0.88,
+                    1.12);
+        }
+
         vec3 photoColor =
             albedo.rgb *
             normalResponse *
-            aoResponse +
-            emissive;
+            aoResponse *
+            worldDetailResponse;
 
         outColor =
             vec4(
