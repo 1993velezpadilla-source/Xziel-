@@ -136,6 +136,7 @@ void AndroidInputAdapter::shutdown() noexcept {
     releaseAllPointers();
     snapshot_ = {};
     stanceHeldSeconds_ = 0.0f;
+    aimToggled_ = false;
 }
 
 void AndroidInputAdapter::onResume() noexcept {
@@ -208,6 +209,7 @@ void AndroidInputAdapter::setDisplayRotation(
     stanceHeldSeconds_ = 0.0f;
     firePressedThisFrame_ = false;
     aimPressedThisFrame_ = false;
+    aimToggled_ = false;
     reloadPressedThisFrame_ = false;
     interactPressedThisFrame_ = false;
     jumpPressedThisFrame_ = false;
@@ -233,6 +235,9 @@ void AndroidInputAdapter::beginFrame(
         : std::min(deltaSeconds, 0.10f);
 
     firePressedThisFrame_ = false;
+    aimPressedThisFrame_ = false;
+    reloadPressedThisFrame_ = false;
+    interactPressedThisFrame_ = false;
     jumpPressedThisFrame_ = false;
     stancePressedThisFrame_ = false;
 
@@ -522,12 +527,18 @@ AndroidInputAdapter::chooseRole(
             pointer.role == TouchRole::Look;
     }
 
-    if (x <
-        static_cast<float>(width) *
-        0.48f) {
+    if (insideButton(
+            x, y, width, height,
+            0.17f, 0.78f, 0.20f)) {
         return moveAssigned
             ? TouchRole::None
             : TouchRole::Move;
+    }
+
+    if (x <
+        static_cast<float>(width) *
+        0.48f) {
+        return TouchRole::None;
     }
 
     return lookAssigned
@@ -542,7 +553,7 @@ void AndroidInputAdapter::updateDerivedState(
     snapshot_.input.fire =
         firePressedThisFrame_;
     snapshot_.input.aim =
-        aimPressedThisFrame_;
+        aimToggled_;
     snapshot_.input.reload =
         reloadPressedThisFrame_;
     snapshot_.input.interact =
@@ -581,7 +592,7 @@ void AndroidInputAdapter::updateDerivedState(
     const float joystickRadius =
         std::max(
             48.0f,
-            minDimension * 0.17f);
+            minDimension * 0.105f);
 
     for (const auto& pointer : pointers_) {
         if (!pointer.down) {
@@ -591,34 +602,51 @@ void AndroidInputAdapter::updateDerivedState(
         switch (pointer.role) {
             case TouchRole::Move: {
                 snapshot_.moveActive = true;
+                constexpr float kMoveCenterX = 0.17f;
+                constexpr float kMoveCenterY = 0.78f;
+                constexpr float kMoveDeadzone = 0.10f;
+
                 snapshot_.moveAnchorNormalized = {
-                    clamp01(
-                        pointer.anchorX /
-                        static_cast<float>(width)),
-                    clamp01(
-                        pointer.anchorY /
-                        static_cast<float>(height)),
+                    kMoveCenterX,
+                    kMoveCenterY,
                 };
 
+                const float centerX =
+                    kMoveCenterX *
+                    static_cast<float>(width);
+                const float centerY =
+                    kMoveCenterY *
+                    static_cast<float>(height);
+
                 float dx =
-                    (pointer.x -
-                     pointer.anchorX) /
+                    (pointer.x - centerX) /
                     joystickRadius;
 
                 float dy =
-                    -(pointer.y -
-                      pointer.anchorY) /
+                    -(pointer.y - centerY) /
                     joystickRadius;
 
                 const float magnitude =
                     length(dx, dy);
 
-                if (magnitude < 0.08f) {
+                if (magnitude <= kMoveDeadzone) {
                     dx = 0.0f;
                     dy = 0.0f;
-                } else if (magnitude > 1.0f) {
-                    dx /= magnitude;
-                    dy /= magnitude;
+                } else {
+                    const float safeMagnitude =
+                        std::max(magnitude, 0.0001f);
+                    const float remappedMagnitude =
+                        std::clamp(
+                            (magnitude - kMoveDeadzone) /
+                                (1.0f - kMoveDeadzone),
+                            0.0f,
+                            1.0f);
+                    dx =
+                        (dx / safeMagnitude) *
+                        remappedMagnitude;
+                    dy =
+                        (dy / safeMagnitude) *
+                        remappedMagnitude;
                 }
 
                 snapshot_.input.move = {
@@ -642,7 +670,6 @@ void AndroidInputAdapter::updateDerivedState(
                 break;
 
             case TouchRole::Aim:
-                snapshot_.input.aim = true;
                 break;
 
             case TouchRole::Reload:
@@ -728,12 +755,25 @@ void AndroidInputAdapter::processMotionEvent(
                     height);
 
             if (pointer->role ==
+                    TouchRole::Move &&
+                width > 0 &&
+                height > 0) {
+                pointer->anchorX =
+                    0.17f *
+                    static_cast<float>(width);
+                pointer->anchorY =
+                    0.78f *
+                    static_cast<float>(height);
+            }
+
+            if (pointer->role ==
                 TouchRole::Fire) {
                 firePressedThisFrame_ = true;
             } else if (
                 pointer->role ==
                 TouchRole::Aim) {
                 aimPressedThisFrame_ = true;
+                aimToggled_ = !aimToggled_;
             } else if (
                 pointer->role ==
                 TouchRole::Reload) {
