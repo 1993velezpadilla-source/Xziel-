@@ -49,6 +49,25 @@ def main() -> int:
     if len(frames) != 24 or not all(p.is_file() for p in frames):
         raise SystemExit("expected 24 valid turntable frames")
 
+    judge_v4 = data.get("judge_v4") or {}
+    if judge_v4.get("passed") is not True:
+        reasons = judge_v4.get("hard_fail_reasons") or []
+        raise SystemExit(
+            "Judge v4 did not pass final visual acceptance: "
+            + ";".join(str(x) for x in reasons[:16])
+        )
+
+    aaa = data.get("aaa_acceptance") or {}
+    visual_gate = next(
+        (
+            gate for gate in (aaa.get("gates") or [])
+            if gate.get("id") == "character.visual_judge_v4"
+        ),
+        None,
+    )
+    if visual_gate is not None and visual_gate.get("ready") is not True:
+        raise SystemExit("AAA visual Judge v4 gate is not ready")
+
     report = {
         "status": "PASS",
         "manifest": str(manifest_path),
@@ -63,6 +82,11 @@ def main() -> int:
         "skin_count": int(rig_audit.get("skin_count", 0)),
         "lod_policy": gameprep.get("lod_policy"),
         "turntable_frames": len(frames),
+        "judge_v4_passed": True,
+        "judge_v4_hard_failures": len(judge_v4.get("hard_fail_reasons") or []),
+        "aaa_visual_v4_ready": (
+            bool(visual_gate.get("ready")) if visual_gate is not None else None
+        ),
     }
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
