@@ -88,29 +88,56 @@ jobs:
             elif [[ "${GITHUB_REF_NAME}" == "engine/mobile-mip-residency-vulkan-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-mip-residency-vulkan-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-async-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-world-streaming-cull-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-descriptor-frames-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-residency-registry-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-runtime-io-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-gpu-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-mip-transition-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-index-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-residency-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-io-v2" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-eviction-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-prefetch-v1" || "${GITHUB_REF_NAME}" == "engine/mobile-streaming-geometry-budget-v1" ]]; then
               ASTC_PACK_BRANCH="engine/mobile-power-fidelity-v1"
             fi
+            ASSET_AFFECTING=0
+            if git diff --name-only HEAD^ HEAD | grep -Eq '^(.github/workflows/sanctum-(clean-source|astc-texture-pack)\.yml|tools/church_map/|tools/texture_pack/)'; then
+              ASSET_AFFECTING=1
+            fi
+
             for i in $(seq 1 120); do
               RESPONSE="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/sanctum-astc-texture-pack.yml/runs?branch=${ASTC_PACK_BRANCH}&per_page=30")"
-              RUN_ID="$(jq -r --arg SHA "${GITHUB_SHA}" '
-                .workflow_runs[]
-                | select(
-                    .head_sha == $SHA and
-                    .status == "completed" and
-                    .conclusion == "success"
-                  )
-                | .id
-              ' <<<"${RESPONSE}" | head -n 1)"
+
+              if [[ "${ASSET_AFFECTING}" == "1" ]]; then
+                RUN_ID="$(jq -r --arg SHA "${GITHUB_SHA}" '
+                  .workflow_runs[]
+                  | select(
+                      .head_sha == $SHA and
+                      .status == "completed" and
+                      .conclusion == "success"
+                    )
+                  | .id
+                ' <<<"${RESPONSE}" | head -n 1)"
+              else
+                RUN_ID="$(jq -r '
+                  .workflow_runs[]
+                  | select(
+                      .status == "completed" and
+                      .conclusion == "success"
+                    )
+                  | .id
+                ' <<<"${RESPONSE}" | head -n 1)"
+              fi
 
               if [[ -n "${RUN_ID}" && "${RUN_ID}" != "null" ]]; then
                 RUN_SHA="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}" --jq '.head_sha')"
-                test "${RUN_SHA}" = "${GITHUB_SHA}"
+
+                if [[ "${ASSET_AFFECTING}" == "1" ]]; then
+                  test "${RUN_SHA}" = "${GITHUB_SHA}"
+                  echo "Using commit-matched validated ASTC asset pack run ${RUN_ID} sha=${RUN_SHA}"
+                else
+                  echo "Using latest validated ASTC asset pack run ${RUN_ID} sha=${RUN_SHA} for engine-only commit ${GITHUB_SHA}"
+                fi
+
                 echo "SANCTUM_ASSET_RUN_ID=${RUN_ID}" >> "$GITHUB_ENV"
                 echo "SANCTUM_ASSET_NAME=Xziel-Sanctum-Clean-Source-ASTC" >> "$GITHUB_ENV"
                 echo "SANCTUM_ASSET_KIND=astc" >> "$GITHUB_ENV"
-                echo "Using commit-matched validated ASTC asset pack run ${RUN_ID} sha=${RUN_SHA}"
                 exit 0
               fi
 
-              echo "Waiting for commit-matched ASTC pack sha=${GITHUB_SHA} on ${ASTC_PACK_BRANCH}"
+              if [[ "${ASSET_AFFECTING}" == "1" ]]; then
+                echo "Waiting for commit-matched ASTC pack sha=${GITHUB_SHA} on ${ASTC_PACK_BRANCH}"
+              else
+                echo "Waiting for latest validated ASTC pack on ${ASTC_PACK_BRANCH}"
+              fi
               sleep 20
             done
 
@@ -467,7 +494,7 @@ jobs:
           grep -q "TANGENT_BASIS_SINGLE_NORMALIZE_V2" app/src/main/shaders/xziel_static_mesh.frag
           grep -q "NORMAL_MAP_FULL_DETAIL_SINGLE_NORMALIZE_V1" app/src/main/shaders/xziel_static_mesh.frag
           grep -q "SCENE_CONTRAST_ADAPTIVE_SHARPEN_V1" app/src/main/shaders/xziel_scene_composite.frag
-          grep -q "SOURCE_FIDELITY_RENDER_SCALE_FLOOR_V1" ../../engine/src/performance.cpp
+          grep -q "SOURCE_FIDELITY_RENDER_SCALE_FLOOR_V1" ../engine/src/performance.cpp
           grep -q "PHOTOGRAMMETRY_PBR_SOURCE_FIDELITY_V1" app/src/main/shaders/xziel_static_mesh.frag
           grep -q "STATIC_VERTEX_NORMALIZE_DEFER_V1" app/src/main/shaders/xziel_static_mesh.vert
           grep -q "STATIC_VERTEX_NORMAL_WORK_GATE_V1" app/src/main/shaders/xziel_static_mesh.vert
