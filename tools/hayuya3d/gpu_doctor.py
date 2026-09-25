@@ -180,9 +180,14 @@ def backend_probe(entry: dict, model_root: Path, env_spec: dict | None = None) -
         if expected_cuda:
             result["cuda_family_matches"] = actual_cuda.startswith(expected_cuda)
 
+    source_required = bool(entry.get("source_required", True))
+    result["source_required"] = source_required
+    source_ready = bool(
+        (result["repo_exists"] and result["repo_sha_matches"])
+        if source_required else True
+    )
     result["ready"] = bool(
-        result["repo_exists"]
-        and result["repo_sha_matches"]
+        source_ready
         and result["python_exists"]
         and result["cuda_ready"]
         and result["python_version_matches"]
