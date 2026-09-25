@@ -60,12 +60,11 @@ void main() {
         sqrt(amplitude);
 
     // 0 = conservative CAS, 1 = maximum CAS.
-    // #580 proved the CAS path itself is healthy: 3/4 deterministic views
-    // cleared the pixel-quality gate and the entry view missed by only
-    // blur=0.0028 / high-frequency=0.0018. Move one bounded step stronger
-    // rather than stacking another post-process pass.
-    // SANCTUM_ENTRY_CAS_TUNING_V2
-    const float sharpness = 0.88;
+    // #583/#584 already clear blur and edge-density; the remaining entry-view
+    // miss is only ~0.0006 high-frequency RMS. Use FidelityFX CAS' documented
+    // maximum sharpen-only setting instead of stacking a second filter.
+    // SANCTUM_ENTRY_CAS_TUNING_V3
+    const float sharpness = 1.00;
     const float peak =
         -1.0 /
         mix(
