@@ -175,7 +175,7 @@ struct VulkanHudState {
     float moveY = 0.0f;
 
     float moveAnchorX = 0.17f;
-    float moveAnchorY = 0.78f;
+    float moveAnchorY = 0.74f;
 
     bool moveActive = false;
     bool fire = false;
