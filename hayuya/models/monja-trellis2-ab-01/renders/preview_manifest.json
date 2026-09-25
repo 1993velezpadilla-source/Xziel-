@@ -29,5 +29,5 @@
     "face": "hayuya/models/monja-trellis2-ab-01/renders/face.png",
     "face_opposite": "hayuya/models/monja-trellis2-ab-01/renders/face_opposite.png"
   },
-  "renderer": "blender_eevee_generated_model_preview_v1"
+  "renderer": "blender_eevee_generated_model_preview_v2_eye_framed"
 }
