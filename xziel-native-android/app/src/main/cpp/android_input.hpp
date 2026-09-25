@@ -137,6 +137,7 @@ private:
     bool sensorsEnabled_ = false;
     bool firePressedThisFrame_ = false;
     bool aimPressedThisFrame_ = false;
+    bool aimToggled_ = false;
     bool reloadPressedThisFrame_ = false;
     bool interactPressedThisFrame_ = false;
     bool jumpPressedThisFrame_ = false;
