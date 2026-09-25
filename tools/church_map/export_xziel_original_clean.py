@@ -556,7 +556,11 @@ with tempfile.TemporaryDirectory(prefix="xziel-clean-") as tmp:
                 if generated_exterior_pbr
                 else ""
             ),
-            "emissiveTexture": "",
+            "emissiveTexture": (
+                texture + "_detail"
+                if generated_exterior_pbr
+                else ""
+            ),
             "baseColorFactor": [1.0, 1.0, 1.0, 1.0],
             "metallicFactor": 0.0,
             "roughnessFactor": 1.0,

@@ -220,8 +220,12 @@ def main():
     orm_rel = texture_rel.with_name(
         texture_rel.stem + "_orm.png"
     )
+    detail_rel = texture_rel.with_name(
+        texture_rel.stem + "_detail.png"
+    )
     normal_target = root / normal_rel
     orm_target = root / orm_rel
+    detail_target = root / detail_rel
     Image.fromarray(
         normal_u8,
         "RGB",
@@ -235,6 +239,40 @@ def main():
         "RGB",
     ).save(
         orm_target,
+        format="PNG",
+        compress_level=3,
+    )
+
+    # WORLD_SPACE_PHOTO_DETAIL_TILE_V1
+    # Neutral linear detail: 0.5 = no change. Keep only the bounded
+    # multi-scale stone structure so the shader can repeat it in world space
+    # without importing another building's macro block layout.
+    detail_signal = np.clip(
+        surface_height * 0.46,
+        -0.46,
+        0.46,
+    )
+    detail_linear = np.clip(
+        0.5 + detail_signal,
+        0.04,
+        0.96,
+    )
+    detail_u8 = np.round(
+        detail_linear * 255.0
+    ).astype(np.uint8)
+    detail_rgb = np.repeat(
+        detail_u8[..., None],
+        3,
+        axis=2,
+    )
+    Image.fromarray(
+        detail_rgb,
+        "RGB",
+    ).resize(
+        (1024, 1024),
+        Image.Resampling.LANCZOS,
+    ).save(
+        detail_target,
         format="PNG",
         compress_level=3,
     )
@@ -259,9 +297,12 @@ def main():
     material["generatedPbr"] = {
         "normalTexturePath": str(normal_rel),
         "ormTexturePath": str(orm_rel),
+        "detailTexturePath": str(detail_rel),
+        "detailTextureResolution": [1024, 1024],
+        "detailWorldTilesPerMeter": 1.25,
         "normalScale": 0.55,
         "occlusionStrength": 0.35,
-        "method": "matched_multiscale_heightfield_v2",
+        "method": "matched_multiscale_heightfield_v2_world_detail",
     }
 
     report["textureSourceMode"] = (
@@ -277,6 +318,9 @@ def main():
     report["generatedPbrMaterial"] = target_key
     report["generatedPbrNormalTexture"] = str(normal_rel)
     report["generatedPbrOrmTexture"] = str(orm_rel)
+    report["generatedPhotoDetailTexture"] = str(detail_rel)
+    report["generatedPhotoDetailResolution"] = [1024, 1024]
+    report["generatedPhotoDetailWorldTilesPerMeter"] = 1.25
     report["generatedPbrResolution"] = [4096, 4096]
     report["exactSourcePixelTextures"] = sum(
         1 for value in report["materialReport"].values()
@@ -306,7 +350,10 @@ def main():
             "generatedPbr": {
                 "normalTexture": str(normal_target),
                 "ormTexture": str(orm_target),
+                "detailTexture": str(detail_target),
                 "resolution": [4096, 4096],
+                "detailResolution": [1024, 1024],
+                "detailWorldTilesPerMeter": 1.25,
                 "normalScale": 0.55,
                 "occlusionStrength": 0.35,
             },

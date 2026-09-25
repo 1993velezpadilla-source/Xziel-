@@ -21,15 +21,19 @@ def classify_texture(path: Path):
         "metal",
         "occlusion",
         "_ao.",
+        "_detail.",
     )
 
     if any(token in name for token in normal_tokens):
-        return "ASTC_6x6_UNORM_BLOCK", ["--normalize"], "normal"
+        return "ASTC_6x6_UNORM_BLOCK", ["--normalize"], "normal", "clamp"
+
+    if "_detail." in name:
+        return "ASTC_6x6_UNORM_BLOCK", [], "photo-detail", "repeat"
 
     if any(token in name for token in linear_tokens):
-        return "ASTC_6x6_UNORM_BLOCK", [], "linear-data"
+        return "ASTC_6x6_UNORM_BLOCK", [], "linear-data", "clamp"
 
-    return "ASTC_6x6_SRGB_BLOCK", ["--astc-perceptual"], "color"
+    return "ASTC_6x6_SRGB_BLOCK", ["--astc-perceptual"], "color", "clamp"
 
 
 def parse_ktx2(path: Path):
@@ -100,7 +104,7 @@ def main():
 
     for png in pngs:
         output = png.with_suffix(".ktx2")
-        fmt, extra, semantic = classify_texture(png)
+        fmt, extra, semantic, mip_wrap = classify_texture(png)
 
         command = [
             args.ktx,
@@ -111,7 +115,7 @@ def main():
             "--mipmap-filter",
             "lanczos4",
             "--mipmap-wrap",
-            "clamp",
+            mip_wrap,
             "--astc-quality",
             args.quality,
             *extra,
@@ -141,6 +145,7 @@ def main():
             "path": str(output.relative_to(root)),
             "semantic": semantic,
             "format": fmt,
+            "mipWrap": mip_wrap,
         })
 
         png_bytes += png.stat().st_size
