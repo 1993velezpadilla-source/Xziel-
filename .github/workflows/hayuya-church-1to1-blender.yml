@@ -1,0 +1,152 @@
+name: HAYUYA Church 1to1 Blender
+
+on:
+  push:
+    branches:
+      - feature/hayuya-church-1to1-blender-v1
+    paths:
+      - "tools/church_map/rebuild_st_giles_1to1.py"
+      - "hayuya/knowledge/church_blender_rebuild_toolchain_v1.json"
+      - ".github/workflows/hayuya-church-1to1-blender.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hayuya-church-1to1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rebuild:
+    name: St Giles scan -> 1:1 Blender map asset
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout HAYUYA/XZIEL
+        uses: actions/checkout@v5
+
+      - name: Install Blender headless runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq \
+            blender python3-numpy \
+            libegl1 libgl1-mesa-dri libglx-mesa0 mesa-utils xvfb
+          python3 -m pip install --quiet --upgrade pip
+          python3 -m pip install --quiet objaverse huggingface_hub trimesh
+          blender --version
+
+      - name: Fetch canonical St Giles scan
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p church/source church/out_1to1
+          python3 - <<'PY'
+          import json
+          import shutil
+          from pathlib import Path
+          import objaverse
+
+          uid = "b92917ff83914adc8bc93959ba8b4399"
+          out = Path("church/source")
+          annotations = objaverse.load_annotations([uid])
+          ann = annotations.get(uid)
+          if not ann:
+              raise SystemExit("St Giles Cripplegate missing from Objaverse annotations")
+          if ann.get("license") != "by":
+              raise SystemExit(f"Unexpected source license {ann.get('license')!r}; expected CC BY")
+
+          objects = objaverse.load_objects([uid], download_processes=1)
+          source = objects.get(uid)
+          if not source:
+              raise SystemExit("St Giles source GLB download failed")
+
+          shutil.copy2(source, out / "st-giles-cripplegate.glb")
+          (out / "source_metadata.json").write_text(
+              json.dumps(ann, indent=2),
+              encoding="utf-8",
+          )
+          (out / "ATTRIBUTION.txt").write_text(
+              "St Giles Cripplegate by artfletch\n"
+              "Sketchfab/Objaverse UID: b92917ff83914adc8bc93959ba8b4399\n"
+              "Original: https://sketchfab.com/3d-models/st-giles-cripplegate-b92917ff83914adc8bc93959ba8b4399\n"
+              "License: Creative Commons Attribution (CC BY).\n",
+              encoding="utf-8",
+          )
+          print("SOURCE", source)
+          PY
+          ls -lh church/source
+
+      - name: Rebuild one-to-one church in Blender
+        shell: bash
+        env:
+          CHURCH_SOURCE: church/source/st-giles-cripplegate.glb
+          CHURCH_OUT: church/out_1to1
+          CHURCH_LOD0_TRIS: "650000"
+          CHURCH_LOD1_TRIS: "325000"
+          CHURCH_LOD2_TRIS: "160000"
+          CHURCH_LOD3_TRIS: "80000"
+          CHURCH_COLLISION_TRIS: "50000"
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          xvfb-run -a -s "-screen 0 1280x1024x24" \
+            blender --background --python tools/church_map/rebuild_st_giles_1to1.py \
+            2>&1 | tee church/out_1to1/blender-build.log
+          cp church/source/source_metadata.json church/out_1to1/
+          cp church/source/ATTRIBUTION.txt church/out_1to1/
+          cp hayuya/knowledge/church_blender_rebuild_toolchain_v1.json church/out_1to1/
+          ls -lh church/out_1to1
+
+      - name: Validate one-to-one contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in \
+            st_giles_church_1to1_master.blend \
+            st_giles_church_lod0.glb \
+            st_giles_church_lod1.glb \
+            st_giles_church_lod2.glb \
+            st_giles_church_lod3.glb \
+            st_giles_church_collision.glb \
+            church_1to1_report.json \
+            church_map_asset_manifest.json \
+            source_front_3q.png \
+            rebuild_lod0_front_3q.png
+          do
+            test -s "church/out_1to1/$f"
+          done
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("church/out_1to1")
+          r = json.loads((root / "church_1to1_report.json").read_text(encoding="utf-8"))
+          qa = r["one_to_one_qa"]
+          assert qa["pass"] is True, qa
+          assert qa["max_size_relative_error"] <= 0.001, qa
+          assert qa["material_slots_preserved"] is True, qa
+          assert r["source"]["triangles"] > 1000000, r["source"]["triangles"]
+          assert r["lods"]["LOD0"]["triangles"] >= 300000, r["lods"]["LOD0"]["triangles"]
+          assert r["lods"]["LOD0"]["triangles"] <= r["source"]["triangles"]
+          manifest = json.loads((root / "church_map_asset_manifest.json").read_text(encoding="utf-8"))
+          assert manifest["do_not_rescale"] is True
+          print("HAYUYA_CHURCH_1TO1_GREEN")
+          print("SOURCE_TRIS", r["source"]["triangles"])
+          print("LOD0_TRIS", r["lods"]["LOD0"]["triangles"])
+          print("BOUNDS", r["source"]["bounds_size"])
+          print("MAX_SIZE_REL_ERROR", qa["max_size_relative_error"])
+          PY
+
+      - name: Upload Blender church package
+        uses: actions/upload-artifact@v4
+        with:
+          name: HAYUYA-St-Giles-Church-1to1
+          path: church/out_1to1/
+          if-no-files-found: error
+          compression-level: 1
+          retention-days: 14
