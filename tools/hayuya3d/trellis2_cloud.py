@@ -173,31 +173,70 @@ def generate(
     generate_ep,generate_spec=_endpoint(
         named,"/image_to_3d","image_to_3d"
     )
-    resolution="1536" if quality=="ultra" else "1024"
-    generate_values={
-        "image":processed,
-        "input":processed,
-        "seed":int(seed),
-        "resolution":resolution,
-        "ss_guidance_strength":7.5,
-        "ss_guidance_rescale":0.7,
-        "ss_sampling_steps":12,
-        "ss_rescale_t":5.0,
-        "shape_slat_guidance_strength":7.5,
-        "shape_slat_guidance_rescale":0.5,
-        "shape_slat_sampling_steps":12,
-        "shape_slat_rescale_t":3.0,
-        "tex_slat_guidance_strength":1.0,
-        "tex_slat_guidance_rescale":0.0,
-        "tex_slat_sampling_steps":12,
-        "tex_slat_rescale_t":3.0,
-    }
-    generation=_retry_call(
-        lambda: _call_named(
-            client,generate_ep,generate_spec,generate_values
-        ),
-        stage=f"image_to_3d_{resolution}",
+    # Microsoft's official TRELLIS.2 app exposes 512 / 1024 / 1536 and
+    # defaults to 1024. Ultra first attempts 1536, but an upstream Space/OOM
+    # failure must degrade inside TRELLIS.2 before HAYUYA considers another
+    # generator. This avoids silently falling back to a lower-fidelity model.
+    resolution_candidates=(
+        ["1536","1024","512"]
+        if quality=="ultra"
+        else ["1024","512"]
     )
+    generation=None
+    resolution=None
+    resolution_failures=[]
+    for candidate_resolution in resolution_candidates:
+        generate_values={
+            "image":processed,
+            "input":processed,
+            "seed":int(seed),
+            "resolution":candidate_resolution,
+            "ss_guidance_strength":7.5,
+            "ss_guidance_rescale":0.7,
+            "ss_sampling_steps":12,
+            "ss_rescale_t":5.0,
+            "shape_slat_guidance_strength":7.5,
+            "shape_slat_guidance_rescale":0.5,
+            "shape_slat_sampling_steps":12,
+            "shape_slat_rescale_t":3.0,
+            "tex_slat_guidance_strength":1.0,
+            "tex_slat_guidance_rescale":0.0,
+            "tex_slat_sampling_steps":12,
+            "tex_slat_rescale_t":3.0,
+        }
+        try:
+            generation=_retry_call(
+                lambda values=generate_values: _call_named(
+                    client,generate_ep,generate_spec,values
+                ),
+                stage=f"image_to_3d_{candidate_resolution}",
+            )
+            resolution=candidate_resolution
+            if resolution_failures:
+                print(
+                    "HAYUYA_TRELLIS2_RESOLUTION_RECOVERED",
+                    f"selected={resolution}",
+                    "failed="+",".join(x["resolution"] for x in resolution_failures),
+                )
+            break
+        except Exception as exc:
+            resolution_failures.append({
+                "resolution":candidate_resolution,
+                "error":f"{type(exc).__name__}: {exc}",
+            })
+            print(
+                "::warning::TRELLIS.2 resolution "
+                f"{candidate_resolution} unavailable; trying lower official "
+                f"resolution: {type(exc).__name__}: {exc}"
+            )
+    if generation is None or resolution is None:
+        raise RuntimeError(
+            "TRELLIS.2 failed all official resolutions: "
+            + "; ".join(
+                f"{x['resolution']}={x['error']}"
+                for x in resolution_failures
+            )
+        )
     state=_state_from_generation(generation)
 
     extract_ep,extract_spec=_endpoint(named,"/extract_glb","extract_glb")
@@ -245,6 +284,7 @@ def generate(
         "generator":"microsoft/TRELLIS.2-4B",
         "space":space,
         "resolution":int(resolution),
+        "resolution_fallbacks":resolution_failures,
         "texture_size":texture_size,
         "faces_target":faces,
         "bytes":len(data),
