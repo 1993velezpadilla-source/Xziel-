@@ -325,7 +325,7 @@ jobs:
 
               CANDIDATE_REPORT="$(find build/weapon-candidate -name 'weapon_standard_rifle_report.json' -print -quit)"
               if [[ -s "${CANDIDATE_REPORT}" ]] &&
-                 jq -e '.sourceUid == "a0e1e52051294bebb8a716df9e69434d" and .exportMode == "rigid_weapon_rest_pose_canonical_xziel_v2"' "${CANDIDATE_REPORT}" >/dev/null; then
+                 jq -e '.sourceUid == "a0e1e52051294bebb8a716df9e69434d" and .exportMode == "rigid_weapon_rest_pose_canonical_xziel_v3"' "${CANDIDATE_REPORT}" >/dev/null; then
                 WEAPON_RUN_ID="${CANDIDATE_RUN_ID}"
                 WEAPON_ARTIFACT_ID="${CANDIDATE_ARTIFACT_ID}"
                 rm -rf build/weapon-viewmodel
@@ -357,7 +357,7 @@ jobs:
           test -s "${FIXED_REPORT}"
           test -s "${FIXED_LICENSE}"
           jq -e '.sourceUid == "a0e1e52051294bebb8a716df9e69434d"' "${FIXED_REPORT}"
-          jq -e '.exportMode == "rigid_weapon_rest_pose_canonical_xziel_v2"' "${FIXED_REPORT}"
+          jq -e '.exportMode == "rigid_weapon_rest_pose_canonical_xziel_v3"' "${FIXED_REPORT}"
           jq -e '.meaningfulBatchCount >= 4' "${FIXED_REPORT}"
           jq -e '.dimensionsMeters[2] >= 0.85 and .dimensionsMeters[2] <= 0.95' "${FIXED_REPORT}"
           jq -e '.dimensionsMeters[1] >= 0.10 and .dimensionsMeters[1] <= 0.45' "${FIXED_REPORT}"
@@ -366,6 +366,8 @@ jobs:
           jq -e '.includedMaterials | map(ascii_downcase) | any(contains("lower_handgaurd"))' "${FIXED_REPORT}"
           jq -e '.includedMaterials | index("__fallback__") == null' "${FIXED_REPORT}"
           jq -e '.canonicalUpSemantic == "rear_sight_minus_magazine"' "${FIXED_REPORT}"
+          jq -e '.viewmodelPivotSemantic == "stock_receiver_seam"' "${FIXED_REPORT}"
+          jq -e '.stockReceiverSeamGapSource >= 0 and .stockReceiverSeamGapSource <= 0.08' "${FIXED_REPORT}"
 
           cp "${FIXED_MODEL}" xziel-native-android/app/src/main/assets/models/xziel/weapons/standard_rifle.xzsm
           rm -rf xziel-native-android/app/src/main/assets/textures/xziel/weapons/standard_rifle
