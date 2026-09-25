@@ -15,6 +15,17 @@ struct MobileControlConfig {
     bool autoMantle = true;
 };
 
+// Shared radial virtual-stick resolver. Coordinates/radius are in the same
+// pixel space. The deadzone is normalized [0,1] and is remapped away so
+// crossing it cannot create an instant movement jump.
+[[nodiscard]] Vec2 resolveMobileJoystick(
+    float pointerX,
+    float pointerY,
+    float anchorX,
+    float anchorY,
+    float radiusPixels,
+    float deadzone = 0.10f) noexcept;
+
 struct MobileMovementButtons {
     // Physical layout target:
     // - left joystick

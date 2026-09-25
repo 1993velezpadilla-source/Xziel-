@@ -649,51 +649,29 @@ void AndroidInputAdapter::updateDerivedState(
         switch (pointer.role) {
             case TouchRole::Move: {
                 snapshot_.moveActive = true;
-                constexpr float kMoveCenterX = 0.17f;
-                constexpr float kMoveCenterY = 0.74f;
                 constexpr float kMoveDeadzone = 0.10f;
 
                 snapshot_.moveAnchorNormalized = {
-                    kMoveCenterX,
-                    kMoveCenterY,
-                };
-
-                const float centerX =
-                    kMoveCenterX *
-                    static_cast<float>(width);
-                const float centerY =
-                    kMoveCenterY *
-                    static_cast<float>(height);
-
-                float dx =
-                    (pointer.x - centerX) /
-                    joystickRadius;
-
-                float dy =
-                    -(pointer.y - centerY) /
-                    joystickRadius;
-
-                const float magnitude =
-                    length(dx, dy);
-
-                if (magnitude <= kMoveDeadzone) {
-                    dx = 0.0f;
-                    dy = 0.0f;
-                } else if (magnitude > 1.0f) {
-                    dx /= magnitude;
-                    dy /= magnitude;
-                }
-
-                snapshot_.input.move = {
                     std::clamp(
-                        dx,
-                        -1.0f,
+                        pointer.anchorX /
+                            static_cast<float>(width),
+                        0.0f,
                         1.0f),
                     std::clamp(
-                        dy,
-                        -1.0f,
+                        pointer.anchorY /
+                            static_cast<float>(height),
+                        0.0f,
                         1.0f),
                 };
+
+                snapshot_.input.move =
+                    xziel::resolveMobileJoystick(
+                        pointer.x,
+                        pointer.y,
+                        pointer.anchorX,
+                        pointer.anchorY,
+                        joystickRadius,
+                        kMoveDeadzone);
                 break;
             }
 
@@ -796,12 +774,65 @@ void AndroidInputAdapter::processMotionEvent(
                     TouchRole::Move &&
                 width > 0 &&
                 height > 0) {
-                pointer->anchorX =
-                    0.17f *
+                constexpr float kMoveCenterX = 0.17f;
+                constexpr float kMoveCenterY = 0.74f;
+
+                const float minDimension =
+                    static_cast<float>(
+                        std::min(width, height));
+
+                const float fixedCenterX =
+                    kMoveCenterX *
                     static_cast<float>(width);
-                pointer->anchorY =
-                    0.74f *
+
+                const float fixedCenterY =
+                    kMoveCenterY *
                     static_cast<float>(height);
+
+                const float fromHomeX =
+                    pointer->x -
+                    fixedCenterX;
+
+                const float fromHomeY =
+                    pointer->y -
+                    fixedCenterY;
+
+                // Inside/near the visible home pad, preserve the familiar
+                // fixed joystick. A forgiving lower-left acquisition touch
+                // farther away becomes a floating stick anchored under the
+                // thumb, so movement starts at zero instead of jumping.
+                const float fixedAcquireRadius =
+                    std::max(
+                        52.0f,
+                        minDimension *
+                            0.115f);
+
+                const bool useFixedHome =
+                    fromHomeX * fromHomeX +
+                        fromHomeY * fromHomeY <=
+                    fixedAcquireRadius *
+                        fixedAcquireRadius;
+
+                if (useFixedHome) {
+                    pointer->anchorX =
+                        fixedCenterX;
+                    pointer->anchorY =
+                        fixedCenterY;
+                }
+
+                __android_log_print(
+                    ANDROID_LOG_INFO,
+                    kTag,
+                    "XZIEL_MOVE_ANCHOR mode=%s x=%.3f y=%.3f",
+                    useFixedHome
+                        ? "fixed"
+                        : "floating",
+                    static_cast<double>(
+                        pointer->anchorX /
+                        static_cast<float>(width)),
+                    static_cast<double>(
+                        pointer->anchorY /
+                        static_cast<float>(height)));
             }
 
             if (pointer->role ==

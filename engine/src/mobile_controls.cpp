@@ -11,7 +11,73 @@ float magnitude(Vec2 value) noexcept {
     return std::sqrt(value.x * value.x + value.y * value.y);
 }
 
+float finiteOrZero(float value) noexcept {
+    return std::isfinite(value)
+        ? value
+        : 0.0f;
+}
+
 } // namespace
+
+Vec2 resolveMobileJoystick(
+    float pointerX,
+    float pointerY,
+    float anchorX,
+    float anchorY,
+    float radiusPixels,
+    float deadzone) noexcept {
+    const float radius =
+        std::isfinite(radiusPixels)
+        ? std::max(radiusPixels, 1.0f)
+        : 1.0f;
+
+    const float dz =
+        std::clamp(
+            finiteOrZero(deadzone),
+            0.0f,
+            0.95f);
+
+    float x =
+        (finiteOrZero(pointerX) -
+         finiteOrZero(anchorX)) /
+        radius;
+
+    float y =
+        -(finiteOrZero(pointerY) -
+          finiteOrZero(anchorY)) /
+        radius;
+
+    const float rawMagnitude =
+        std::sqrt(
+            x * x +
+            y * y);
+
+    if (!std::isfinite(rawMagnitude) ||
+        rawMagnitude <= dz ||
+        rawMagnitude <= 1.0e-6f) {
+        return {};
+    }
+
+    const float unitX =
+        x / rawMagnitude;
+
+    const float unitY =
+        y / rawMagnitude;
+
+    const float remappedMagnitude =
+        std::clamp(
+            (rawMagnitude - dz) /
+                (1.0f - dz),
+            0.0f,
+            1.0f);
+
+    return {
+        unitX * remappedMagnitude,
+        unitY * remappedMagnitude,
+    };
+}
+
+
 
 MobileMovementResolver::MobileMovementResolver(MobileControlConfig config)
     : config_(config) {}

@@ -81,6 +81,11 @@ if(XZIEL_ENGINE_BUILD_TESTS)
     target_compile_features(xziel_fps_player_smoke PRIVATE cxx_std_20)
     add_test(NAME xziel_fps_player_smoke COMMAND xziel_fps_player_smoke)
 
+    add_executable(xziel_mobile_controls_smoke tests/mobile_controls_smoke.cpp)
+    target_link_libraries(xziel_mobile_controls_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_mobile_controls_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_mobile_controls_smoke COMMAND xziel_mobile_controls_smoke)
+
     add_executable(xziel_weapon_smoke tests/weapon_smoke.cpp)
     target_link_libraries(xziel_weapon_smoke PRIVATE xziel_engine)
     target_compile_features(xziel_weapon_smoke PRIVATE cxx_std_20)
