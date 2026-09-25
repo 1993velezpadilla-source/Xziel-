@@ -5551,23 +5551,23 @@ bool VulkanClearRenderer::recordDrawCommand(
         // not a stack of import-axis compensation angles.
         weaponState.x =
             0.265f * (1.0f - ads) -
-            0.010f * ads +
+            0.008f * ads +
             0.030f * lowering;
         weaponState.y =
             -0.205f * (1.0f - ads) -
-            0.071f * ads -
+            0.065f * ads -
             0.070f * reloadArc -
             0.20f * lowering +
             0.016f * fire;
         weaponState.z =
             0.220f * (1.0f - ads) +
-            0.075f * ads +
+            0.160f * ads +
             0.024f * reloadArc -
             0.055f * fire +
             0.030f * lowering;
         weaponState.scale =
             0.64f * (1.0f - ads) +
-            0.72f * ads;
+            0.58f * ads;
         weaponState.yawRadians =
             -0.055f * (1.0f - ads) +
             0.045f * reloadArc;
