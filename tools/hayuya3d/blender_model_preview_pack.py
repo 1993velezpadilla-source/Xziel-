@@ -171,12 +171,12 @@ def main():
     head_scale = max(height * 0.22, float(ext.x) * 0.36, float(ext.y) * 0.36, 0.14)
     views["face"] = {
         "target": head_target,
-        "offset": Vector((0.0, -3.0 * radius, 0.05 * radius)),
+        "offset": Vector((0.0, 3.0 * radius, 0.05 * radius)),
         "scale": head_scale,
     }
     views["face_opposite"] = {
         "target": head_target,
-        "offset": Vector((0.0, 3.0 * radius, 0.05 * radius)),
+        "offset": Vector((0.0, -3.0 * radius, 0.05 * radius)),
         "scale": head_scale,
     }
 
