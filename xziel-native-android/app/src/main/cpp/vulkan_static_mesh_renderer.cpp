@@ -5226,11 +5226,6 @@ void VulkanStaticMeshRenderer::record(
         }
     }
 
-    const bool streamVisibilityCulling =
-        streamCullingActive_ &&
-        environment.memoryPressure !=
-            MemoryPressure::Normal;
-
     const auto visitBatch =
         [&](std::size_t batchIndex) noexcept {
             if (batchIndex >= batches_.size()) {
@@ -5272,7 +5267,7 @@ void VulkanStaticMeshRenderer::record(
                             frameSlot);
 
                     if (materialVisible &&
-                        streamVisibilityCulling) {
+                        streamCullingActive_) {
                         const auto& material =
                             materials_[
                                 batch.materialIndex];
@@ -5311,7 +5306,7 @@ void VulkanStaticMeshRenderer::record(
                         frameSlot);
 
                 if (materialVisible &&
-                    streamVisibilityCulling) {
+                    streamCullingActive_) {
                     const auto& material =
                         materials_[
                             batch.materialIndex];
@@ -5412,7 +5407,7 @@ void VulkanStaticMeshRenderer::record(
                     cellEnd - cellBegin);
 
             const bool streamCold =
-                streamVisibilityCulling &&
+                streamCullingActive_ &&
                 geometryCell.heat ==
                     StreamCellHeat::Cold;
 
@@ -5436,7 +5431,7 @@ void VulkanStaticMeshRenderer::record(
                 continue;
             }
 
-            if (streamVisibilityCulling &&
+            if (streamCullingActive_ &&
                 frameStats_.streamingCell != 0U &&
                 geometryCell.cellId != 0U) {
                 ++frameStats_.portalVisibilityTests;
