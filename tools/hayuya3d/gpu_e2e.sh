@@ -79,6 +79,7 @@ ARGS=(
   --execute
   --viewforge required
   --appearance-judge required
+  --judge-v4 required
   --geometry-refine required
   --mesh-doctor required
   --gameprep required
