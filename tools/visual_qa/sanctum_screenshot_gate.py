@@ -32,6 +32,16 @@ MIN_MEDIAN_CONTRAST = 0.100
 MIN_MEDIAN_LUMA = 0.200
 MAX_MEDIAN_LUMA = 0.720
 
+# A median can hide a catastrophically soft primary camera if other views have
+# more edges. These deterministic gameplay views are mandatory individually.
+CRITICAL_FRAME_MARKERS = (
+    "tour-01-entry",
+    "tour-03-forward",
+)
+MAX_CRITICAL_BLUR_INDEX = 0.305
+MIN_CRITICAL_HIGH_FREQ_RMS = 0.032
+MIN_CRITICAL_EDGE_DENSITY = 0.135
+
 
 def _axis_box_blur(values: np.ndarray, axis: int, size: int = 9) -> np.ndarray:
     pad = size // 2
@@ -171,6 +181,50 @@ def main() -> int:
                 f"{frame['width']}x{frame['height']}"
             )
 
+    critical_frames = [
+        frame
+        for frame in frames
+        if any(
+            marker in Path(str(frame["path"])).name
+            for marker in CRITICAL_FRAME_MARKERS
+        )
+    ]
+
+    for marker in CRITICAL_FRAME_MARKERS:
+        matched = [
+            frame for frame in critical_frames
+            if marker in Path(str(frame["path"])).name
+        ]
+        if len(matched) != 1:
+            failures.append(
+                f"critical frame {marker!r} missing or duplicated"
+            )
+            continue
+
+        frame = matched[0]
+        frame_name = Path(str(frame["path"])).name
+
+        if float(frame["blur_index"]) > MAX_CRITICAL_BLUR_INDEX:
+            failures.append(
+                f"{frame_name}: critical view too blurry: blur_index="
+                f"{float(frame['blur_index']):.4f} > "
+                f"{MAX_CRITICAL_BLUR_INDEX:.4f}"
+            )
+
+        if float(frame["high_freq_rms"]) < MIN_CRITICAL_HIGH_FREQ_RMS:
+            failures.append(
+                f"{frame_name}: critical micro-detail too weak: "
+                f"high_freq_rms={float(frame['high_freq_rms']):.4f} < "
+                f"{MIN_CRITICAL_HIGH_FREQ_RMS:.4f}"
+            )
+
+        if float(frame["edge_density"]) < MIN_CRITICAL_EDGE_DENSITY:
+            failures.append(
+                f"{frame_name}: critical edge/detail density too low: "
+                f"edge_density={float(frame['edge_density']):.4f} < "
+                f"{MIN_CRITICAL_EDGE_DENSITY:.4f}"
+            )
+
     aggregate = {}
     if frames:
         aggregate = {
@@ -229,6 +283,10 @@ def main() -> int:
             "minMedianContrast": MIN_MEDIAN_CONTRAST,
             "minMedianLuma": MIN_MEDIAN_LUMA,
             "maxMedianLuma": MAX_MEDIAN_LUMA,
+            "criticalFrameMarkers": list(CRITICAL_FRAME_MARKERS),
+            "maxCriticalBlurIndex": MAX_CRITICAL_BLUR_INDEX,
+            "minCriticalHighFreqRms": MIN_CRITICAL_HIGH_FREQ_RMS,
+            "minCriticalEdgeDensity": MIN_CRITICAL_EDGE_DENSITY,
         },
         "aggregate": aggregate,
         "frames": frames,
