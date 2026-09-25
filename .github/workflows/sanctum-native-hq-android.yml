@@ -567,6 +567,11 @@ jobs:
             "$ADB" shell setprop debug.xziel.geometry_streaming_probe 1
           fi
 
+          # The HQ startup emits enough texture/geometry diagnostics to rotate
+          # Android's default logcat ring before the readiness snapshot. Keep
+          # the strict marker gate, but give the emulator a large enough ring
+          # so early engine markers remain available for the final audit.
+          "$ADB" logcat -G 16M || true
           "$ADB" logcat -c
           "$ADB" shell am force-stop             com.xziel.engineprototype || true
 
