@@ -223,7 +223,7 @@ def main() -> int:
             and entry.get("license") in {"MIT", "Apache-2.0"}
         ]
     if args.include_support:
-        requested.extend(["dinov2", "wonder3d", "triposf"])
+        requested.extend(["dinov2", "wonder3d", "triposf", "judge_v4"])
 
     ordered = []
     seen = set()
