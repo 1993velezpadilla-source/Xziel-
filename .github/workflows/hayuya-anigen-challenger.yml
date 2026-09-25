@@ -29,6 +29,8 @@ jobs:
       count: ${{ steps.collect.outputs.count }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - id: collect
         shell: bash
         env:
