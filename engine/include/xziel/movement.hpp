@@ -82,7 +82,7 @@ struct MovementConfig {
     float mantleForwardSpeed = 2.8f;
     float mantleVerticalSpeed = 2.6f;
 
-    float autoSprintThreshold = 0.88f;
+    float autoSprintThreshold = 0.99f;
     float tacticalSprintThreshold = 0.97f;
 };
 
