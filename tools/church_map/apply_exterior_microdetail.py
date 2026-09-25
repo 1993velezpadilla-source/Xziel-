@@ -67,13 +67,48 @@ def main():
         np.clip(det_luma, 0, 255).astype(np.uint8),
         "L",
     )
-    low = np.asarray(
-        det_luma_img.filter(ImageFilter.GaussianBlur(radius=10.0)),
+    # MULTISCALE_EXTERIOR_DETAIL_V2
+    # The source atlas is only 1K. A single high-pass band adds grain but
+    # leaves broad stone surfaces mushy. Split the real CC0 stone candidate
+    # into fine and medium bands while still removing its macro block layout.
+    fine_low = np.asarray(
+        det_luma_img.filter(ImageFilter.GaussianBlur(radius=4.0)),
         dtype=np.float32,
     )
-    micro = det_luma - low
-    scale = max(float(np.percentile(np.abs(micro), 95)), 1.0)
-    micro = np.clip(micro / scale, -1.0, 1.0)
+    medium_low = np.asarray(
+        det_luma_img.filter(ImageFilter.GaussianBlur(radius=24.0)),
+        dtype=np.float32,
+    )
+
+    fine = det_luma - fine_low
+    medium = fine_low - medium_low
+
+    fine_scale = max(
+        float(np.percentile(np.abs(fine), 95)),
+        1.0,
+    )
+    medium_scale = max(
+        float(np.percentile(np.abs(medium), 95)),
+        1.0,
+    )
+
+    fine = np.clip(
+        fine / fine_scale,
+        -1.0,
+        1.0,
+    )
+    medium = np.clip(
+        medium / medium_scale,
+        -1.0,
+        1.0,
+    )
+
+    surface_height = np.clip(
+        fine * 0.68 +
+        medium * 0.32,
+        -1.0,
+        1.0,
+    )
 
     hsv = rgb_to_hsv_np(src)
     saturation = hsv[..., 1]
@@ -94,11 +129,26 @@ def main():
     ).filter(ImageFilter.GaussianBlur(radius=2.2))
     mask = np.asarray(stone_mask_img, dtype=np.float32) / 255.0
 
-    # Conservative A/B: ±9% luminance micro-detail at full mask. The source
-    # color/large-scale lighting remain authoritative.
-    strength = 23.0
-    delta = micro[..., None] * strength * mask[..., None]
-    fused = np.clip(src + delta, 0.0, 255.0).astype(np.uint8)
+    # Add enough real mid-scale stone structure to survive the 1K source
+    # upscale, while keeping St Giles' photographed color and large-scale
+    # illumination authoritative.
+    fine_strength = 20.0
+    medium_strength = 14.0
+    strength = fine_strength + medium_strength
+
+    detail_delta = (
+        fine * fine_strength +
+        medium * medium_strength
+    )
+    delta = (
+        detail_delta[..., None] *
+        mask[..., None]
+    )
+    fused = np.clip(
+        src + delta,
+        0.0,
+        255.0,
+    ).astype(np.uint8)
 
     Image.fromarray(fused, "RGB").save(
         target,
@@ -106,12 +156,12 @@ def main():
         compress_level=3,
     )
 
-    # Derive tangent-space relief from the exact same high-frequency field
-    # fused into albedo; no foreign macro block/mortar pattern is imported.
+    # Derive tangent-space relief from the same bounded multi-scale field.
+    # The candidate's macro block/mortar layout never enters this height map.
     grad_v, grad_u = np.gradient(
-        micro.astype(np.float32)
+        surface_height.astype(np.float32)
     )
-    normal_strength = 1.35
+    normal_strength = 1.55
     nx = -grad_u * normal_strength * mask
     ny = -grad_v * normal_strength * mask
     nz = np.ones_like(nx, dtype=np.float32)
@@ -135,7 +185,10 @@ def main():
         ) * 255.0
     ).astype(np.uint8)
 
-    crevice = np.maximum(-micro, 0.0) * mask
+    crevice = (
+        np.maximum(-surface_height, 0.0) *
+        mask
+    )
     ao = np.clip(
         1.0 - crevice * 0.16,
         0.82,
@@ -145,7 +198,7 @@ def main():
         1.0 -
         mask * (
             0.18 -
-            0.06 * np.abs(micro)
+            0.06 * np.abs(surface_height)
         ),
         0.76,
         1.0,
@@ -191,8 +244,12 @@ def main():
         "candidate": "polyhaven_medieval_blocks_03",
         "license": "CC0",
         "candidateResolution": [4096, 4096],
-        "method": "high_frequency_luma_only_stone_mask",
+        "method": "multiscale_bandpass_stone_mask_v2",
         "strengthLuma8bit": strength,
+        "fineStrengthLuma8bit": fine_strength,
+        "mediumStrengthLuma8bit": medium_strength,
+        "fineBandRadius": 4.0,
+        "mediumBandRadius": 24.0,
         "maskMean": float(mask.mean()),
         "preservesSourceColor": True,
         "preservesMacroPattern": True,
@@ -204,7 +261,7 @@ def main():
         "ormTexturePath": str(orm_rel),
         "normalScale": 0.55,
         "occlusionStrength": 0.35,
-        "method": "matched_high_frequency_heightfield",
+        "method": "matched_multiscale_heightfield_v2",
     }
 
     report["textureSourceMode"] = (
@@ -241,7 +298,11 @@ def main():
             "runtimeResolution": [4096, 4096],
             "maskMean": float(mask.mean()),
             "strengthLuma8bit": strength,
-            "method": "high_frequency_luma_only_stone_mask",
+            "fineStrengthLuma8bit": fine_strength,
+            "mediumStrengthLuma8bit": medium_strength,
+            "fineBandRadius": 4.0,
+            "mediumBandRadius": 24.0,
+            "method": "multiscale_bandpass_stone_mask_v2",
             "generatedPbr": {
                 "normalTexture": str(normal_target),
                 "ormTexture": str(orm_target),
