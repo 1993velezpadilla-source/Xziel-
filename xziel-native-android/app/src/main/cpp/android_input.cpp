@@ -527,9 +527,16 @@ AndroidInputAdapter::chooseRole(
             pointer.role == TouchRole::Look;
     }
 
-    if (insideButton(
-            x, y, width, height,
-            0.17f, 0.78f, 0.20f)) {
+    // Match the proven NZ:P mobile acquisition zone: the whole lower-left
+    // quadrant can acquire movement, while the actual joystick remains fixed
+    // at its visual home. This makes thumb acquisition forgiving without
+    // making movement direction itself float.
+    if (x <
+            static_cast<float>(width) *
+                0.45f &&
+        y >
+            static_cast<float>(height) *
+                0.30f) {
         return moveAssigned
             ? TouchRole::None
             : TouchRole::Move;
@@ -537,7 +544,7 @@ AndroidInputAdapter::chooseRole(
 
     if (x <
         static_cast<float>(width) *
-        0.48f) {
+        0.45f) {
         return TouchRole::None;
     }
 
@@ -567,7 +574,7 @@ void AndroidInputAdapter::updateDerivedState(
     snapshot_.moveActive = false;
     snapshot_.moveAnchorNormalized = {
         0.17f,
-        0.78f,
+        0.74f,
     };
 
     snapshot_.movementButtons.jumpPressed =
@@ -589,10 +596,12 @@ void AndroidInputAdapter::updateDerivedState(
         static_cast<float>(
             std::min(width, height));
 
+    // Proven NZ:P physical stick radius. 0.16 of the short dimension keeps
+    // walk/sprint travel progressive instead of hitting 100% too early.
     const float joystickRadius =
         std::max(
             48.0f,
-            minDimension * 0.105f);
+            minDimension * 0.16f);
 
     for (const auto& pointer : pointers_) {
         if (!pointer.down) {
@@ -603,7 +612,7 @@ void AndroidInputAdapter::updateDerivedState(
             case TouchRole::Move: {
                 snapshot_.moveActive = true;
                 constexpr float kMoveCenterX = 0.17f;
-                constexpr float kMoveCenterY = 0.78f;
+                constexpr float kMoveCenterY = 0.74f;
                 constexpr float kMoveDeadzone = 0.10f;
 
                 snapshot_.moveAnchorNormalized = {
@@ -632,21 +641,9 @@ void AndroidInputAdapter::updateDerivedState(
                 if (magnitude <= kMoveDeadzone) {
                     dx = 0.0f;
                     dy = 0.0f;
-                } else {
-                    const float safeMagnitude =
-                        std::max(magnitude, 0.0001f);
-                    const float remappedMagnitude =
-                        std::clamp(
-                            (magnitude - kMoveDeadzone) /
-                                (1.0f - kMoveDeadzone),
-                            0.0f,
-                            1.0f);
-                    dx =
-                        (dx / safeMagnitude) *
-                        remappedMagnitude;
-                    dy =
-                        (dy / safeMagnitude) *
-                        remappedMagnitude;
+                } else if (magnitude > 1.0f) {
+                    dx /= magnitude;
+                    dy /= magnitude;
                 }
 
                 snapshot_.input.move = {
@@ -762,7 +759,7 @@ void AndroidInputAdapter::processMotionEvent(
                     0.17f *
                     static_cast<float>(width);
                 pointer->anchorY =
-                    0.78f *
+                    0.74f *
                     static_cast<float>(height);
             }
 
@@ -820,19 +817,31 @@ void AndroidInputAdapter::processMotionEvent(
             pointer->x = pointerX(source);
             pointer->y = pointerY(source);
 
-            if (pointer->role ==
-                    TouchRole::Look &&
+            if ((pointer->role ==
+                     TouchRole::Look ||
+                 pointer->role ==
+                     TouchRole::Fire) &&
                 width > 0 &&
                 height > 0) {
+                // NZ:P proven mobile behavior: dragging the FIRE control keeps
+                // rotating the camera while fire remains held. ADS uses the
+                // same 0.62 camera multiplier as the established port.
+                const float lookScale =
+                    aimToggled_
+                    ? 0.62f
+                    : 1.0f;
+
                 snapshot_.input.look.x +=
                     (pointer->x - oldX) /
                     static_cast<float>(
-                        width);
+                        width) *
+                    lookScale;
 
                 snapshot_.input.look.y +=
                     (pointer->y - oldY) /
                     static_cast<float>(
-                        height);
+                        height) *
+                    lookScale;
             }
         }
     }
