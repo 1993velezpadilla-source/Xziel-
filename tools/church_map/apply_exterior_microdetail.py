@@ -269,7 +269,7 @@ def main():
         detail_rgb,
         "RGB",
     ).resize(
-        (1024, 1024),
+        (2048, 2048),
         Image.Resampling.LANCZOS,
     ).save(
         detail_target,
@@ -298,7 +298,7 @@ def main():
         "normalTexturePath": str(normal_rel),
         "ormTexturePath": str(orm_rel),
         "detailTexturePath": str(detail_rel),
-        "detailTextureResolution": [1024, 1024],
+        "detailTextureResolution": [2048, 2048],
         "detailWorldTilesPerMeter": 1.25,
         "normalScale": 0.55,
         "occlusionStrength": 0.35,
@@ -319,7 +319,7 @@ def main():
     report["generatedPbrNormalTexture"] = str(normal_rel)
     report["generatedPbrOrmTexture"] = str(orm_rel)
     report["generatedPhotoDetailTexture"] = str(detail_rel)
-    report["generatedPhotoDetailResolution"] = [1024, 1024]
+    report["generatedPhotoDetailResolution"] = [2048, 2048]
     report["generatedPhotoDetailWorldTilesPerMeter"] = 1.25
     report["generatedPbrResolution"] = [4096, 4096]
     report["exactSourcePixelTextures"] = sum(
@@ -352,7 +352,7 @@ def main():
                 "ormTexture": str(orm_target),
                 "detailTexture": str(detail_target),
                 "resolution": [4096, 4096],
-                "detailResolution": [1024, 1024],
+                "detailResolution": [2048, 2048],
                 "detailWorldTilesPerMeter": 1.25,
                 "normalScale": 0.55,
                 "occlusionStrength": 0.35,
