@@ -34,7 +34,7 @@ PREP.mkdir(parents=True, exist_ok=True)
 DETAIL_PREP = OUT / "prepared_details"
 DETAIL_PREP.mkdir(parents=True, exist_ok=True)
 
-QUALITY_TARGETS={"preview":768,"standard":1024,"high":1536,"ultra":2048}
+QUALITY_TARGETS={"preview":768,"standard":1024,"high":2048,"ultra":2048}
 PREP_TARGET=QUALITY_TARGETS.get(TEXTURE_QUALITY,1024)
 IMAGE_EXTS={".png",".jpg",".jpeg",".webp",".bmp"}
 
@@ -344,7 +344,7 @@ quality_presets={
     # High/Ultra.
     "preview":{"ss_steps":10,"slat_steps":10,"mesh_simplify":0.95,"texture_size":1024},
     "standard":{"ss_steps":12,"slat_steps":12,"mesh_simplify":0.90,"texture_size":2048},
-    "high":{"ss_steps":16,"slat_steps":16,"mesh_simplify":0.70,"texture_size":2048},
+    "high":{"ss_steps":16,"slat_steps":16,"mesh_simplify":0.70,"texture_size":4096},
     "ultra":{"ss_steps":20,"slat_steps":20,"mesh_simplify":0.40,"texture_size":4096},
 }
 qp=quality_presets.get(TEXTURE_QUALITY,quality_presets["standard"])
