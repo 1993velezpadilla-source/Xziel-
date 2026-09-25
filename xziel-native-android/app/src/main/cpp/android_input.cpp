@@ -475,38 +475,38 @@ AndroidInputAdapter::chooseRole(
     // creating separate buttons for slide, dive, sprint, wall-run, etc.
     if (insideButton(
             x, y, width, height,
-            0.89f, 0.72f, 0.100f)) {
+            0.695f, 0.790f, 0.044f)) {
         return TouchRole::Jump;
     }
 
     if (insideButton(
             x, y, width, height,
-            0.77f, 0.83f, 0.092f)) {
+            0.915f, 0.800f, 0.044f)) {
         return TouchRole::Stance;
     }
 
     if (insideButton(
             x, y, width, height,
-            0.90f, 0.47f, 0.108f)) {
+            0.885f, 0.585f, 0.073f)) {
         return TouchRole::Fire;
     }
 
     if (insideButton(
             x, y, width, height,
-            0.73f, 0.54f, 0.094f)) {
+            0.695f, 0.575f, 0.047f)) {
         return TouchRole::Aim;
     }
 
     if (insideButton(
             x, y, width, height,
-            0.80f, 0.35f, 0.080f)) {
+            0.805f, 0.785f, 0.044f)) {
         return TouchRole::Reload;
     }
 
     if (interactAvailable_ &&
         insideButton(
             x, y, width, height,
-            0.65f, 0.73f, 0.080f)) {
+            0.605f, 0.675f, 0.050f)) {
         return TouchRole::Interact;
     }
 
