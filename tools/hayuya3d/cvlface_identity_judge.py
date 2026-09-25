@@ -10,7 +10,7 @@ from pathlib import Path
 
 
 ALIGNER_ID="minchul/cvlface_DFA_mobilenet"
-IDENTITY_ID="minchul/cvlface_adaface_vit_base_kprpe_webface4m"
+IDENTITY_ID="minchul/cvlface_adaface_vit_base_kprpe_webface12m"
 
 
 @dataclass
@@ -28,12 +28,22 @@ class FaceIdentityReport:
     aligner_model:str
     identity_model:str
     device:str
-    source:FaceEvidence
-    candidate:FaceEvidence
-    cosine_similarity:float|None
+    sources:list[FaceEvidence]
+    candidates:list[FaceEvidence]
+    source_detected:int
+    source_total:int
+    candidate_detected:int
+    candidate_total:int
+    source_detection_fraction:float
+    candidate_detection_fraction:float
+    candidate_cosines_to_source_centroid:list[float]
+    front_cosine_similarity:float|None
+    median_cosine_similarity:float|None
+    minimum_cosine_similarity:float|None
+    maximum_cosine_similarity:float|None
     ready:bool
     warnings:list[str]
-    method:str="cvlface-dfa-adaface-kprpe-v1"
+    method:str="cvlface-dfa-adaface-kprpe-webface12m-multiview-v2"
 
 
 def _download_repo(repo_id:str,root:Path,token:str|None):
@@ -157,47 +167,107 @@ def _face(path:Path,aligner,identity,device:str,out_path:Path):
     return FaceEvidence(str(path),det,str(out_path),_bbox(bbox),True),emb
 
 
-def run(source:Path,candidate:Path,cache:Path,aligned_dir:Path)->FaceIdentityReport:
+def _median(values:list[float])->float|None:
+    if not values:
+        return None
+    ordered=sorted(float(x) for x in values)
+    n=len(ordered)
+    mid=n//2
+    return ordered[mid] if n%2 else (ordered[mid-1]+ordered[mid])*0.5
+
+
+def run(sources:list[Path],candidates:list[Path],cache:Path,aligned_dir:Path)->FaceIdentityReport:
     import torch
     device="cuda" if torch.cuda.is_available() else "cpu"
     token=os.environ.get("HF_TOKEN") or None
     aligner=_load_model(ALIGNER_ID,cache/"aligner",token).to(device).eval()
     identity=_load_model(IDENTITY_ID,cache/"identity",token).to(device).eval()
 
-    src_ev,src_emb=_face(source,aligner,identity,device,aligned_dir/"source.png")
-    can_ev,can_emb=_face(candidate,aligner,identity,device,aligned_dir/"candidate.png")
-    similarity=None
-    if src_emb is not None and can_emb is not None:
-        similarity=float((src_emb@can_emb.T).reshape(-1)[0].detach().cpu().item())
-    ready=src_ev.ready and can_ev.ready and similarity is not None
+    source_evidence=[]
+    source_embeddings=[]
+    for index,path in enumerate(sources):
+        ev,emb=_face(path,aligner,identity,device,aligned_dir/"sources"/f"{index:02d}.png")
+        source_evidence.append(ev)
+        if ev.ready and emb is not None:
+            source_embeddings.append(emb)
+
+    candidate_evidence=[]
+    candidate_embeddings=[]
+    candidate_embedding_indices=[]
+    for index,path in enumerate(candidates):
+        ev,emb=_face(path,aligner,identity,device,aligned_dir/"candidates"/f"{index:02d}.png")
+        candidate_evidence.append(ev)
+        if ev.ready and emb is not None:
+            candidate_embeddings.append(emb)
+            candidate_embedding_indices.append(index)
+
+    warnings=[]
+    cosines=[]
+    front=None
+    if source_embeddings:
+        centroid=torch.nn.functional.normalize(
+            torch.stack([x.reshape(-1) for x in source_embeddings],dim=0).mean(dim=0,keepdim=True),
+            dim=-1,
+        )
+        for index,emb in zip(candidate_embedding_indices,candidate_embeddings):
+            value=float((torch.nn.functional.normalize(emb.reshape(1,-1),dim=-1)@centroid.T).reshape(-1)[0].detach().cpu().item())
+            cosines.append(value)
+            if index==0:
+                front=value
+    else:
+        warnings.append("no_source_face_embedding")
+    if not candidate_embeddings:
+        warnings.append("no_candidate_face_embedding")
+    if front is None and candidate_embedding_indices:
+        warnings.append("front_candidate_face_not_detected")
+
+    src_frac=len(source_embeddings)/max(1,len(sources))
+    cand_frac=len(candidate_embeddings)/max(1,len(candidates))
+    ready=bool(source_embeddings and candidate_embeddings and front is not None)
     return FaceIdentityReport(
-        schema=1,aligner_model=ALIGNER_ID,identity_model=IDENTITY_ID,device=device,
-        source=src_ev,candidate=can_ev,
-        cosine_similarity=round(similarity,7) if similarity is not None else None,
-        ready=bool(ready),warnings=[]
+        schema=2,
+        aligner_model=ALIGNER_ID,
+        identity_model=IDENTITY_ID,
+        device=device,
+        sources=source_evidence,
+        candidates=candidate_evidence,
+        source_detected=len(source_embeddings),
+        source_total=len(sources),
+        candidate_detected=len(candidate_embeddings),
+        candidate_total=len(candidates),
+        source_detection_fraction=round(src_frac,6),
+        candidate_detection_fraction=round(cand_frac,6),
+        candidate_cosines_to_source_centroid=[round(x,7) for x in cosines],
+        front_cosine_similarity=round(front,7) if front is not None else None,
+        median_cosine_similarity=round(_median(cosines),7) if cosines else None,
+        minimum_cosine_similarity=round(min(cosines),7) if cosines else None,
+        maximum_cosine_similarity=round(max(cosines),7) if cosines else None,
+        ready=ready,
+        warnings=warnings,
     )
 
-
 def main()->int:
-    p=argparse.ArgumentParser(description="HAYUYA Judge v5 face-preservation eye using CVLFace AdaFace.")
-    p.add_argument("--source",type=Path,required=True)
-    p.add_argument("--candidate",type=Path,required=True)
+    p=argparse.ArgumentParser(description="HAYUYA Judge v5 face-preservation eye using CVLFace AdaFace WebFace12M.")
+    p.add_argument("--source",type=Path,action="append",required=True)
+    p.add_argument("--candidate",type=Path,action="append",required=True)
     p.add_argument("--cache",type=Path,default=Path(".cache/hayuya/cvlface"))
     p.add_argument("--aligned-dir",type=Path,required=True)
     p.add_argument("--json",type=Path,required=True)
     a=p.parse_args()
     try:
-        if not a.source.is_file() or not a.candidate.is_file():
-            raise FileNotFoundError(f"{a.source} / {a.candidate}")
+        missing=[str(x) for x in [*a.source,*a.candidate] if not x.is_file()]
+        if missing:
+            raise FileNotFoundError(",".join(missing))
         report=run(a.source,a.candidate,a.cache,a.aligned_dir)
         payload=asdict(report)
         code=0 if report.ready else 2
     except Exception as exc:
         payload={
-            "schema":1,"aligner_model":ALIGNER_ID,"identity_model":IDENTITY_ID,
-            "ready":False,"cosine_similarity":None,
+            "schema":2,"aligner_model":ALIGNER_ID,"identity_model":IDENTITY_ID,
+            "ready":False,"candidate_cosines_to_source_centroid":[],
+            "front_cosine_similarity":None,"median_cosine_similarity":None,
             "warnings":[f"{type(exc).__name__}:{exc}"],
-            "method":"cvlface-dfa-adaface-kprpe-v1",
+            "method":"cvlface-dfa-adaface-kprpe-webface12m-multiview-v2",
         }
         code=2
     a.json.parent.mkdir(parents=True,exist_ok=True)
