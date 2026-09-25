@@ -27,6 +27,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       # Clean Source #57: mixed XZSM v5 exterior PBR source, GREEN.
       SOURCE_RUN_ID: "36145587211"
+      SOURCE_RUN_SHA: "57f8df0c95515bd641101aad0c8994c5c80c69ce"
       SOURCE_ARTIFACT: "Xziel-Sanctum-Clean-Source"
       KTX_VERSION: "4.4.2"
 
@@ -37,6 +38,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          SOURCE_META="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}")"
+          test "$(jq -r '.head_sha' <<<"${SOURCE_META}")" = "${SOURCE_RUN_SHA}"
+          test "$(jq -r '.status' <<<"${SOURCE_META}")" = "completed"
+          test "$(jq -r '.conclusion' <<<"${SOURCE_META}")" = "success"
           ARTIFACTS="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}/artifacts")"
           ARTIFACT_ID="$(jq -r --arg NAME "${SOURCE_ARTIFACT}" '.artifacts[] | select(.name == $NAME and .expired == false) | .id' <<<"${ARTIFACTS}" | head -n 1)"
           test -n "${ARTIFACT_ID}"
