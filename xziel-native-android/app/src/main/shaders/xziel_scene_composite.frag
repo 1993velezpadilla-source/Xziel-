@@ -59,10 +59,13 @@ void main() {
     amplitude =
         sqrt(amplitude);
 
-    // 0 = conservative CAS, 1 = maximum CAS. 0.70 was selected against the
-    // deterministic 2400x1080 Sanctum tour because it restores real stone
-    // micro-detail without the ringing produced by the old fixed Laplacian.
-    const float sharpness = 0.70;
+    // 0 = conservative CAS, 1 = maximum CAS.
+    // #580 proved the CAS path itself is healthy: 3/4 deterministic views
+    // cleared the pixel-quality gate and the entry view missed by only
+    // blur=0.0028 / high-frequency=0.0018. Move one bounded step stronger
+    // rather than stacking another post-process pass.
+    // SANCTUM_ENTRY_CAS_TUNING_V2
+    const float sharpness = 0.88;
     const float peak =
         -1.0 /
         mix(
