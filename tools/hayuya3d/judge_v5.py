@@ -183,8 +183,16 @@ def run_judge_v5(
         Path(p) for p in (evidence.get("candidate_face_crops") or [])
         if Path(p).is_file()
     ]
+    # Only use source images where the independent MediaPipe pass actually
+    # detected a face. V4's generic source_face_crops can include non-face detail
+    # references (clothing/hands/etc.), which must never contaminate identity.
+    detected_source_face_paths=[
+        str(item.get("path"))
+        for item in ((v4.get("face_landmarks") or {}).get("source") or [])
+        if item.get("path")
+    ]
     source_faces=[
-        Path(p) for p in (evidence.get("source_face_crops") or [])
+        Path(p) for p in detected_source_face_paths
         if Path(p).is_file()
     ]
     source_images=[Path(p) for p in source_images if Path(p).is_file()]
@@ -386,6 +394,8 @@ def run_judge_v5(
                 "AdaFace identity veto marked N/A because source face was not "
                 "established by the independent MediaPipe source detector."
             )
+        if face_expected and not source_faces:
+            failures.append("adaface_detected_source_face_evidence_missing")
 
         if face_expected:
             try:
