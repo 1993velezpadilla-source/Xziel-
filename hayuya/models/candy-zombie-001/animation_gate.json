@@ -419,6 +419,52 @@
     "Zombie_Scratch",
     "Zombie_Walk_Fwd_Loop"
   ],
+  "observable_clips": [
+    "Chest_Open",
+    "ClimbUp_1m_RM",
+    "Consume",
+    "Farm_Harvest",
+    "Farm_PlantSeed",
+    "Farm_Watering",
+    "Hit_Knockback",
+    "Hit_Knockback_RM",
+    "Idle_FoldArms_Loop",
+    "Idle_Lantern_Loop",
+    "Idle_No_Loop",
+    "Idle_Rail_Call",
+    "Idle_Rail_Loop",
+    "Idle_Shield_Break",
+    "Idle_Shield_Loop",
+    "Idle_TalkingPhone_Loop",
+    "LayToIdle",
+    "Melee_Hook",
+    "Melee_Hook_Rec",
+    "NinjaJump_Idle_Loop",
+    "NinjaJump_Land",
+    "NinjaJump_Start",
+    "OverhandThrow",
+    "Shield_Dash_RM",
+    "Shield_OneShot",
+    "Slide_Exit",
+    "Slide_Loop",
+    "Slide_Start",
+    "Sword_Block",
+    "Sword_Dash_RM",
+    "Sword_Regular_A",
+    "Sword_Regular_A_Rec",
+    "Sword_Regular_B",
+    "Sword_Regular_B_Rec",
+    "Sword_Regular_Combo",
+    "TreeChopping_Loop",
+    "Walk_Carry_Loop",
+    "Yes",
+    "Zombie_Idle_Loop",
+    "Zombie_Scratch",
+    "Zombie_Walk_Fwd_Loop"
+  ],
+  "static_compatible_clips": [
+    "A_TPose"
+  ],
   "rejected_clip_count": 1,
   "rest_bounds": {
     "min": [
@@ -518,6 +564,9 @@
     "reference_min_diagonal_ratio": 0.72,
     "reference_max_diagonal_ratio": 1.38,
     "reference_max_center_offset": 0.25,
+    "min_motion_p95_ratio": 0.0015,
+    "min_motion_max_ratio": 0.005,
+    "motion_vertex_samples": 4096,
     "samples_per_action": 5
   },
   "clips": [
@@ -1111,6 +1160,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -1695,6 +1750,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -2279,6 +2340,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -2863,6 +2930,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -3447,11 +3520,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.0,
+        "max_peak_ratio": 0.0,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": false
     },
     {
       "name": "Chest_Open",
@@ -4019,6 +4107,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -4583,6 +4677,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.03479065431655762,
+            "p95": 0.11650148974348981,
+            "max": 0.16059838431578036
           }
         },
         {
@@ -5143,6 +5243,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.047685711901200134,
+            "p95": 0.21542539365790808,
+            "max": 0.3685120189659331
           }
         },
         {
@@ -5711,6 +5817,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.007326065381748887,
+            "p95": 0.12371038350467539,
+            "max": 0.3203083816779174
           }
         },
         {
@@ -6271,11 +6383,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 4.756794166253529e-05,
+            "p95": 0.0015741943807370826,
+            "max": 0.006268671434603545
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.21542539365790808,
+        "max_peak_ratio": 0.3685120189659331,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "ClimbUp_1m_RM",
@@ -6835,6 +6962,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -7387,6 +7520,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.08012881887568558,
+            "p95": 0.38086168594217007,
+            "max": 0.5668424289905342
           }
         },
         {
@@ -7931,6 +8070,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.18031975389896004,
+            "p95": 0.30947714226051815,
+            "max": 0.4622901032643392
           }
         },
         {
@@ -8479,6 +8624,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.07869828056973703,
+            "p95": 0.2203466649319359,
+            "max": 0.32416667476057337
           }
         },
         {
@@ -9031,11 +9182,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 9.712493208196764e-08,
+            "p95": 2.7881322949207914e-07,
+            "max": 3.591400647888481e-07
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.38086168594217007,
+        "max_peak_ratio": 0.5668424289905342,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Consume",
@@ -9603,6 +9769,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -10167,6 +10339,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.01565248985918293,
+            "p95": 0.22633835558913323,
+            "max": 0.40382287288495045
           }
         },
         {
@@ -10731,6 +10909,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.016395304861620892,
+            "p95": 0.24269931653395282,
+            "max": 0.4842553555127087
           }
         },
         {
@@ -11295,6 +11479,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.011117917101486383,
+            "p95": 0.23567633339323193,
+            "max": 0.4551010036276621
           }
         },
         {
@@ -11855,11 +12045,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.24269931653395282,
+        "max_peak_ratio": 0.4842553555127087,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Farm_Harvest",
@@ -12427,6 +12632,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -12979,6 +13190,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.09850003921819114,
+            "p95": 0.319522920916843,
+            "max": 0.393429275308842
           }
         },
         {
@@ -13531,6 +13748,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.10384309994820944,
+            "p95": 0.32810024717304703,
+            "max": 0.4091497991465993
           }
         },
         {
@@ -14091,6 +14314,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0627142826594373,
+            "p95": 0.11664851699040697,
+            "max": 0.1305073994131614
           }
         },
         {
@@ -14651,11 +14880,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.32810024717304703,
+        "max_peak_ratio": 0.4091497991465993,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Farm_PlantSeed",
@@ -15223,6 +15467,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -15779,6 +16029,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.09578410805294801,
+            "p95": 0.21119829200208295,
+            "max": 0.27806305581678487
           }
         },
         {
@@ -16319,6 +16575,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.1279271970023297,
+            "p95": 0.23088119353189074,
+            "max": 0.3107583892547559
           }
         },
         {
@@ -16879,6 +17141,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.07512164081232373,
+            "p95": 0.11850466620060057,
+            "max": 0.14849943559645137
           }
         },
         {
@@ -17439,11 +17707,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 1.1674043272844698e-07,
+            "p95": 0.00019389754600534847,
+            "max": 0.0003070149179004873
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.23088119353189074,
+        "max_peak_ratio": 0.3107583892547559,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Farm_Watering",
@@ -18011,6 +18294,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -18567,6 +18856,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.016252871237326154,
+            "p95": 0.20644326235750338,
+            "max": 0.22917896414376243
           }
         },
         {
@@ -19131,6 +19426,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.017302740217303443,
+            "p95": 0.16773081641286808,
+            "max": 0.24432498394645233
           }
         },
         {
@@ -19699,6 +20000,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.017341741498299628,
+            "p95": 0.1443896485651138,
+            "max": 0.25242564641618503
           }
         },
         {
@@ -20259,11 +20566,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 5.6125287803873394e-05,
+            "max": 0.00011669817475566217
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.20644326235750338,
+        "max_peak_ratio": 0.25242564641618503,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Hit_Knockback",
@@ -20823,6 +21145,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -21403,6 +21731,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.258091787354359,
+            "p95": 0.505189555774734,
+            "max": 0.6797819442596441
           }
         },
         {
@@ -21971,6 +22305,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.1820951772627038,
+            "p95": 0.4463194592667499,
+            "max": 0.562882351133498
           }
         },
         {
@@ -22539,6 +22879,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.19817844496793285,
+            "p95": 0.4697243783787916,
+            "max": 0.5873975076090078
           }
         },
         {
@@ -23123,11 +23469,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.18360572736628095,
+            "p95": 0.4651545256605032,
+            "max": 0.5854062979457952
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.505189555774734,
+        "max_peak_ratio": 0.6797819442596441,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Hit_Knockback_RM",
@@ -23687,6 +24048,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -24267,6 +24634,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.2580918544299172,
+            "p95": 0.5051895833669087,
+            "max": 0.6797819979862756
           }
         },
         {
@@ -24835,6 +25208,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.18209512176905568,
+            "p95": 0.4463194363857217,
+            "max": 0.5628823570474588
           }
         },
         {
@@ -25403,6 +25782,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.19817848065854266,
+            "p95": 0.4697243783819685,
+            "max": 0.587397519267125
           }
         },
         {
@@ -25987,11 +26372,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.18360572736628095,
+            "p95": 0.46515455381119986,
+            "max": 0.5854063818610533
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.5051895833669087,
+        "max_peak_ratio": 0.6797819979862756,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Idle_FoldArms_Loop",
@@ -26547,6 +26947,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -27095,6 +27501,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.005021149811986465,
+            "p95": 0.008372183553058849,
+            "max": 0.012291511632805915
           }
         },
         {
@@ -27643,6 +28055,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.00022308184177793336,
+            "p95": 0.009139718407939236,
+            "max": 0.02452458441291108
           }
         },
         {
@@ -28191,6 +28609,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.005055830456664186,
+            "p95": 0.008503147195273213,
+            "max": 0.012207360131048483
           }
         },
         {
@@ -28739,11 +29163,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.00011984193095550521,
+            "p95": 0.0007471179840933309,
+            "max": 0.0011626032059856221
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.009139718407939236,
+        "max_peak_ratio": 0.02452458441291108,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Idle_Lantern_Loop",
@@ -29319,6 +29758,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -29887,6 +30332,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.005581998620819276,
+            "p95": 0.013511408136276758,
+            "max": 0.01648574110800643
           }
         },
         {
@@ -30455,6 +30906,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 6.032841061243623e-05,
+            "p95": 0.001920340068031511,
+            "max": 0.004289858207126085
           }
         },
         {
@@ -31027,6 +31484,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.004967307143917981,
+            "p95": 0.009956922708834285,
+            "max": 0.014068450712033099
           }
         },
         {
@@ -31595,11 +32058,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0012114145617417092,
+            "max": 0.0021012995284567576
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.013511408136276758,
+        "max_peak_ratio": 0.01648574110800643,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Idle_No_Loop",
@@ -32167,6 +32645,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -32731,6 +33215,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.006710358259021058,
+            "p95": 0.027929451243648908,
+            "max": 0.03684092749479964
           }
         },
         {
@@ -33291,6 +33781,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0010315004341919366,
+            "p95": 0.025824685507401964,
+            "max": 0.050333274615975004
           }
         },
         {
@@ -33855,6 +34351,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.005637108589308737,
+            "p95": 0.01441504700976137,
+            "max": 0.020929643757091786
           }
         },
         {
@@ -34415,11 +34917,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0001262727198311185,
+            "p95": 0.0006904387696829168,
+            "max": 0.000978454745864798
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.027929451243648908,
+        "max_peak_ratio": 0.050333274615975004,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Idle_Rail_Call",
@@ -34987,6 +35504,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -35551,6 +36074,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.003449241700308079,
+            "p95": 0.1295839710284109,
+            "max": 0.2085338567325409
           }
         },
         {
@@ -36115,6 +36644,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.006657841408798201,
+            "p95": 0.14450103328113253,
+            "max": 0.24302294438929886
           }
         },
         {
@@ -36675,6 +37210,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.003384223576400709,
+            "p95": 0.08931244465375629,
+            "max": 0.1469368068851
           }
         },
         {
@@ -37235,11 +37776,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0012462674333059303,
+            "max": 0.002564011159812992
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.14450103328113253,
+        "max_peak_ratio": 0.24302294438929886,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Idle_Rail_Loop",
@@ -37807,6 +38363,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -38367,6 +38929,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0011833021351654103,
+            "p95": 0.005931099216554286,
+            "max": 0.011746707245894272
           }
         },
         {
@@ -38927,6 +39495,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0023167391853189134,
+            "p95": 0.011421541980679158,
+            "max": 0.015121916702083616
           }
         },
         {
@@ -39487,6 +40061,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.001188098671856035,
+            "p95": 0.007971009168395927,
+            "max": 0.010855279448624229
           }
         },
         {
@@ -40047,11 +40627,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.011421541980679158,
+        "max_peak_ratio": 0.015121916702083616,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Idle_Shield_Break",
@@ -40623,6 +41218,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -41199,6 +41800,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.05900366441588854,
+            "p95": 0.2846229324136794,
+            "max": 0.4955357211627963
           }
         },
         {
@@ -41775,6 +42382,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.036946483122073166,
+            "p95": 0.21554957556066512,
+            "max": 0.41154449551808137
           }
         },
         {
@@ -42343,6 +42956,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.005822172531798344,
+            "p95": 0.07123698498340741,
+            "max": 0.11784856549102092
           }
         },
         {
@@ -42907,11 +43526,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 7.660802756608582e-05,
+            "p95": 0.000825547172769397,
+            "max": 0.0014774762972481605
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.2846229324136794,
+        "max_peak_ratio": 0.4955357211627963,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Idle_Shield_Loop",
@@ -43483,6 +44117,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -44047,6 +44687,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.005440073642455051,
+            "p95": 0.013257645247046305,
+            "max": 0.01898607610514317
           }
         },
         {
@@ -44611,6 +45257,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.00033767804345663304,
+            "p95": 0.0026880258485502194,
+            "max": 0.002892310372440753
           }
         },
         {
@@ -45175,6 +45827,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.005436035205133807,
+            "p95": 0.013213041403650412,
+            "max": 0.0188925823579325
           }
         },
         {
@@ -45739,11 +46397,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.00011981513372180092,
+            "p95": 0.0007756601035147682,
+            "max": 0.0012346706098313432
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.013257645247046305,
+        "max_peak_ratio": 0.01898607610514317,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Idle_TalkingPhone_Loop",
@@ -46307,6 +46980,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -46859,6 +47538,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.001988393925886146,
+            "p95": 0.010693621990536632,
+            "max": 0.034856647075885094
           }
         },
         {
@@ -47411,6 +48096,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 3.476967405050948e-05,
+            "p95": 0.018327151754873573,
+            "max": 0.03610263612307066
           }
         },
         {
@@ -47967,6 +48658,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.004137802436339932,
+            "p95": 0.029406343929540845,
+            "max": 0.051397470911755214
           }
         },
         {
@@ -48523,11 +49220,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 2.9456649503647186e-05,
+            "p95": 0.0006718711402996905,
+            "max": 0.0012939895009901033
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.029406343929540845,
+        "max_peak_ratio": 0.051397470911755214,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "LayToIdle",
@@ -49111,6 +49823,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -49655,6 +50373,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.12021484185362827,
+            "p95": 0.23011317190059188,
+            "max": 0.3380312121949562
           }
         },
         {
@@ -50199,6 +50923,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.15069329465283865,
+            "p95": 0.3263731614887403,
+            "max": 0.5023471358400953
           }
         },
         {
@@ -50743,6 +51473,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.17346448430974415,
+            "p95": 0.39147794156447197,
+            "max": 0.5543182822688831
           }
         },
         {
@@ -51303,11 +52039,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.20132805015575944,
+            "p95": 0.46878129160989124,
+            "max": 0.5724241202250767
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.46878129160989124,
+        "max_peak_ratio": 0.5724241202250767,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Melee_Hook",
@@ -51879,6 +52630,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -52439,6 +53196,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.10923427328116654,
+            "p95": 0.2879627917344353,
+            "max": 0.4127586950192078
           }
         },
         {
@@ -52999,6 +53762,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.1287898865424869,
+            "p95": 0.3186959453790306,
+            "max": 0.4362323823700077
           }
         },
         {
@@ -53547,6 +54316,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.1244496552313739,
+            "p95": 0.32108983577712724,
+            "max": 0.45862021444547707
           }
         },
         {
@@ -54107,11 +54882,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.09680317115117035,
+            "p95": 0.2711577433942931,
+            "max": 0.4757001252072096
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.32108983577712724,
+        "max_peak_ratio": 0.4757001252072096,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Melee_Hook_Rec",
@@ -54679,6 +55469,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -55231,6 +56027,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.02606098742765004,
+            "p95": 0.11860766753646265,
+            "max": 0.22243726849059706
           }
         },
         {
@@ -55787,6 +56589,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.05005247050925102,
+            "p95": 0.24924764630029425,
+            "max": 0.4635725079184288
           }
         },
         {
@@ -56351,6 +57159,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.08262320083469082,
+            "p95": 0.2886941672780072,
+            "max": 0.5298990629835643
           }
         },
         {
@@ -56915,11 +57729,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.11251273091523872,
+            "p95": 0.26688516314322713,
+            "max": 0.46478892586715637
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.2886941672780072,
+        "max_peak_ratio": 0.5298990629835643,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "NinjaJump_Idle_Loop",
@@ -57447,6 +58276,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -57967,6 +58802,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.007522717976989231,
+            "p95": 0.018142098532153105,
+            "max": 0.026849755045792515
           }
         },
         {
@@ -58487,6 +59328,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.00882685511211146,
+            "p95": 0.028180399766709576,
+            "max": 0.04472774271203283
           }
         },
         {
@@ -59007,6 +59854,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.006512930235225918,
+            "p95": 0.015785879874609058,
+            "max": 0.020589501465757064
           }
         },
         {
@@ -59527,11 +60380,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.028180399766709576,
+        "max_peak_ratio": 0.04472774271203283,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "NinjaJump_Land",
@@ -60059,6 +60927,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -60603,6 +61477,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.09745168709311669,
+            "p95": 0.356974949827218,
+            "max": 0.49301235596334797
           }
         },
         {
@@ -61159,6 +62039,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.12771965636126803,
+            "p95": 0.3670833143131437,
+            "max": 0.5071644370341781
           }
         },
         {
@@ -61723,6 +62609,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.14194734219673666,
+            "p95": 0.3413021688585874,
+            "max": 0.4199961686325141
           }
         },
         {
@@ -62279,11 +63171,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.13726026291984852,
+            "p95": 0.32770792754714934,
+            "max": 0.3923939646704782
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.3670833143131437,
+        "max_peak_ratio": 0.5071644370341781,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "NinjaJump_Start",
@@ -62835,6 +63742,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -63363,6 +64276,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.09987490020822612,
+            "p95": 0.29598183250289883,
+            "max": 0.37588545031407794
           }
         },
         {
@@ -63891,6 +64810,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.08571387242265746,
+            "p95": 0.29833909055043,
+            "max": 0.38504116140539646
           }
         },
         {
@@ -64415,6 +65340,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.08464442282987472,
+            "p95": 0.3001434478199223,
+            "max": 0.39737503537960395
           }
         },
         {
@@ -64935,11 +65866,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.08284189660016911,
+            "p95": 0.29725538893604725,
+            "max": 0.39827462324185986
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.3001434478199223,
+        "max_peak_ratio": 0.39827462324185986,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "OverhandThrow",
@@ -65515,6 +66461,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -66071,6 +67023,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.06977375803482633,
+            "p95": 0.35939585266409074,
+            "max": 0.5739343698421774
           }
         },
         {
@@ -66623,6 +67581,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.10597704865995611,
+            "p95": 0.3124362231435465,
+            "max": 0.47558397259557444
           }
         },
         {
@@ -67167,6 +68131,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0800870694615759,
+            "p95": 0.2090194017700039,
+            "max": 0.3511889435576493
           }
         },
         {
@@ -67735,11 +68705,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.35939585266409074,
+        "max_peak_ratio": 0.5739343698421774,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Shield_Dash_RM",
@@ -68299,6 +69284,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -68843,6 +69834,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.05900872941028855,
+            "p95": 0.2576132437460945,
+            "max": 0.4075781602530238
           }
         },
         {
@@ -69407,6 +70404,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0748680660848173,
+            "p95": 0.2410940086258106,
+            "max": 0.34235627399052126
           }
         },
         {
@@ -69979,6 +70982,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.12573393785313902,
+            "p95": 0.3600619801005606,
+            "max": 0.5168154084312104
           }
         },
         {
@@ -70539,11 +71548,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.1398781317638031,
+            "p95": 0.3804762507112999,
+            "max": 0.5377516391139072
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.3804762507112999,
+        "max_peak_ratio": 0.5377516391139072,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Shield_OneShot",
@@ -71111,6 +72135,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -71679,6 +72709,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.019381362761498225,
+            "p95": 0.2924308229839052,
+            "max": 0.4600670723321531
           }
         },
         {
@@ -72239,6 +73275,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.01579700921726302,
+            "p95": 0.26940843552109006,
+            "max": 0.4381391660667185
           }
         },
         {
@@ -72803,6 +73845,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.008504963226644915,
+            "p95": 0.1725965250546304,
+            "max": 0.33729462768841023
           }
         },
         {
@@ -73363,11 +74411,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.2924308229839052,
+        "max_peak_ratio": 0.4600670723321531,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Slide_Exit",
@@ -73927,6 +74990,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -74483,6 +75552,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.03442495694840633,
+            "p95": 0.08370086100672808,
+            "max": 0.13393156635832598
           }
         },
         {
@@ -75031,6 +76106,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.11023223236030597,
+            "p95": 0.217591292216572,
+            "max": 0.36710229498423885
           }
         },
         {
@@ -75583,6 +76664,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.19750261916270329,
+            "p95": 0.42813781831889736,
+            "max": 0.4988269274372589
           }
         },
         {
@@ -76135,11 +77222,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.23695622299811203,
+            "p95": 0.587678979698588,
+            "max": 0.7857548773369297
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.587678979698588,
+        "max_peak_ratio": 0.7857548773369297,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Slide_Loop",
@@ -76699,6 +77801,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -77247,6 +78355,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.011849212728375176,
+            "p95": 0.03410684605552127,
+            "max": 0.06109418532032633
           }
         },
         {
@@ -77803,6 +78917,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.011299545700031652,
+            "p95": 0.03154398627330126,
+            "max": 0.06471368971686368
           }
         },
         {
@@ -78351,6 +79471,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.011216124720295036,
+            "p95": 0.04339204889681111,
+            "max": 0.08885873764061168
           }
         },
         {
@@ -78903,11 +80029,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.04339204889681111,
+        "max_peak_ratio": 0.08885873764061168,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Slide_Start",
@@ -79467,6 +80608,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -80023,6 +81170,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.14478455405587476,
+            "p95": 0.5313573404805405,
+            "max": 0.7164773450631483
           }
         },
         {
@@ -80579,6 +81732,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.24403685180975754,
+            "p95": 0.5545795112271864,
+            "max": 0.7527131886235546
           }
         },
         {
@@ -81131,6 +82290,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.2310309935487716,
+            "p95": 0.5877857753361632,
+            "max": 0.7859074500167728
           }
         },
         {
@@ -81683,11 +82848,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.23695621833220556,
+            "p95": 0.587678979698588,
+            "max": 0.7857548773369297
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.5877857753361632,
+        "max_peak_ratio": 0.7859074500167728,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Sword_Block",
@@ -82259,6 +83439,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -82799,6 +83985,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.07845004766325789,
+            "p95": 0.24916173259384505,
+            "max": 0.3462337754260939
           }
         },
         {
@@ -83335,6 +84527,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.07345252816688139,
+            "p95": 0.22437550590036553,
+            "max": 0.35471094277742304
           }
         },
         {
@@ -83907,6 +85105,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0093011453901798,
+            "p95": 0.04248423215019888,
+            "max": 0.07223923659524838
           }
         },
         {
@@ -84471,11 +85675,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 8.368094466395828e-06,
+            "p95": 0.00022746883136643442,
+            "max": 0.0006244683657536095
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.24916173259384505,
+        "max_peak_ratio": 0.35471094277742304,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Sword_Dash_RM",
@@ -85043,6 +86262,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -85599,6 +86824,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.18080413077132174,
+            "p95": 0.3282141512123322,
+            "max": 0.36934227700010175
           }
         },
         {
@@ -86151,6 +87382,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.17264801816897934,
+            "p95": 0.3308759144156537,
+            "max": 0.3665836121862585
           }
         },
         {
@@ -86707,6 +87944,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.13875732564098642,
+            "p95": 0.24303884162099257,
+            "max": 0.28543313095632106
           }
         },
         {
@@ -87267,11 +88510,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0004963348372712597,
+            "p95": 0.0024887665258809914,
+            "max": 0.004964823462968675
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.3308759144156537,
+        "max_peak_ratio": 0.36934227700010175,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Sword_Regular_A",
@@ -87843,6 +89101,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -88403,6 +89667,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.08116492092738106,
+            "p95": 0.242766551971366,
+            "max": 0.3208404398879359
           }
         },
         {
@@ -88979,6 +90249,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.1418455150738571,
+            "p95": 0.3176433745521736,
+            "max": 0.4324046752835338
           }
         },
         {
@@ -89531,6 +90807,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.16920301446829406,
+            "p95": 0.33143308595758475,
+            "max": 0.45642228451699823
           }
         },
         {
@@ -90083,11 +91365,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.1677687042437607,
+            "p95": 0.332222086431907,
+            "max": 0.42079831477889124
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.332222086431907,
+        "max_peak_ratio": 0.45642228451699823,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Sword_Regular_A_Rec",
@@ -90643,6 +91940,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -91183,6 +92486,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.09049356446923598,
+            "p95": 0.18470918572842934,
+            "max": 0.35560425219532216
           }
         },
         {
@@ -91727,6 +93036,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.16801915581529714,
+            "p95": 0.3474407499651026,
+            "max": 0.4588026199259254
           }
         },
         {
@@ -92291,6 +93606,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.1678372288051243,
+            "p95": 0.3290984620741337,
+            "max": 0.4130482386976782
           }
         },
         {
@@ -92851,11 +94172,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.16700432636919527,
+            "p95": 0.3306039671263331,
+            "max": 0.41191159950133716
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.3474407499651026,
+        "max_peak_ratio": 0.4588026199259254,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Sword_Regular_B",
@@ -93403,6 +94739,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -93951,6 +95293,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.04835365134726318,
+            "p95": 0.22521200948498643,
+            "max": 0.2755243335153092
           }
         },
         {
@@ -94519,6 +95867,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.1387341889489211,
+            "p95": 0.47879790812431444,
+            "max": 0.6308048205032347
           }
         },
         {
@@ -95067,6 +96421,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.1661022429291955,
+            "p95": 0.4590597091658835,
+            "max": 0.5893190442945505
           }
         },
         {
@@ -95623,11 +96983,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.16289173024936388,
+            "p95": 0.4458245473307176,
+            "max": 0.5753301612949945
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.47879790812431444,
+        "max_peak_ratio": 0.6308048205032347,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Sword_Regular_B_Rec",
@@ -96191,6 +97566,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -96739,6 +98120,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.012406171804741638,
+            "p95": 0.061046227477640456,
+            "max": 0.07146977364182829
           }
         },
         {
@@ -97291,6 +98678,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.051775230890465235,
+            "p95": 0.17717267132633466,
+            "max": 0.2635614711744998
           }
         },
         {
@@ -97847,6 +99240,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.13210339788531705,
+            "p95": 0.35395467129501457,
+            "max": 0.3944898170095371
           }
         },
         {
@@ -98407,11 +99806,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.17687870645159098,
+            "p95": 0.33856580635192973,
+            "max": 0.3706842472998827
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.35395467129501457,
+        "max_peak_ratio": 0.3944898170095371,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Sword_Regular_C",
@@ -98975,6 +100389,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -99531,6 +100951,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.22173653632282908,
+            "p95": 0.40397848176077567,
+            "max": 0.5394399826292455
           }
         },
         {
@@ -100091,6 +101517,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.19093258684743342,
+            "p95": 0.5128578085457106,
+            "max": 0.6915447539272057
           }
         },
         {
@@ -100655,6 +102087,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.13858627946267915,
+            "p95": 0.37440729438629194,
+            "max": 0.45272054661922745
           }
         },
         {
@@ -101215,13 +102653,28 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.17778219105147397,
+            "p95": 0.33823896882001697,
+            "max": 0.37052521783584536
           }
         }
       ],
       "passed": false,
       "reasons": [
         "axis_extent_failure:frame=12.00,ratios=0.397,2.525,1.098"
-      ]
+      ],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.5128578085457106,
+        "max_peak_ratio": 0.6915447539272057,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Sword_Regular_Combo",
@@ -101793,6 +103246,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -102357,6 +103816,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.18675982260957746,
+            "p95": 0.35687339687560155,
+            "max": 0.4311192360798553
           }
         },
         {
@@ -102905,6 +104370,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.09318515600255468,
+            "p95": 0.34661303230298934,
+            "max": 0.5356590439857325
           }
         },
         {
@@ -103465,6 +104936,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.08838440740752337,
+            "p95": 0.2228609684673094,
+            "max": 0.33088857822836
           }
         },
         {
@@ -104025,11 +105502,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.003507585526058685,
+            "p95": 0.03448517108929195,
+            "max": 0.06459733005591402
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.35687339687560155,
+        "max_peak_ratio": 0.5356590439857325,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "TreeChopping_Loop",
@@ -104605,6 +106097,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -105165,6 +106663,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.055145438578853415,
+            "p95": 0.42013410111431065,
+            "max": 0.5515874500841982
           }
         },
         {
@@ -105721,6 +107225,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.030637305439814647,
+            "p95": 0.29003578732580093,
+            "max": 0.3758758562951314
           }
         },
         {
@@ -106289,6 +107799,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0070013081419495835,
+            "p95": 0.07913543088865083,
+            "max": 0.15956240457599974
           }
         },
         {
@@ -106857,11 +108373,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 1.9978784546137238e-05,
+            "p95": 0.0007395281829654882,
+            "max": 0.0018440964214772343
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.42013410111431065,
+        "max_peak_ratio": 0.5515874500841982,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Walk_Carry_Loop",
@@ -107437,6 +108968,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -107985,6 +109522,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.03407764269693644,
+            "p95": 0.11660071181286967,
+            "max": 0.14348932035834377
           }
         },
         {
@@ -108549,6 +110092,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.027364642751949983,
+            "p95": 0.22516118414077696,
+            "max": 0.24001818301638111
           }
         },
         {
@@ -109113,6 +110662,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.03270424387432218,
+            "p95": 0.1229096823977794,
+            "max": 0.19881014704699027
           }
         },
         {
@@ -109681,11 +111236,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.22516118414077696,
+        "max_peak_ratio": 0.24001818301638111,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Yes",
@@ -110253,6 +111823,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -110817,6 +112393,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0033786434544297254,
+            "p95": 0.22017467794440942,
+            "max": 0.4254736002464677
           }
         },
         {
@@ -111377,6 +112959,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.00145912565344264,
+            "p95": 0.2202081739124669,
+            "max": 0.42285038931607305
           }
         },
         {
@@ -111933,6 +113521,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.001496795007037854,
+            "p95": 0.14825191727276188,
+            "max": 0.2938174018038849
           }
         },
         {
@@ -112493,11 +114087,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0006366753156627548,
+            "max": 0.0013932615192085835
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.2202081739124669,
+        "max_peak_ratio": 0.4254736002464677,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Zombie_Idle_Loop",
@@ -113057,6 +114666,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -113613,6 +115228,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.009625445609650205,
+            "p95": 0.01972614944172276,
+            "max": 0.03366750650543336
           }
         },
         {
@@ -114177,6 +115798,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.018384465668270164,
+            "p95": 0.03649892947480197,
+            "max": 0.059066767528184426
           }
         },
         {
@@ -114737,6 +116364,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.009496974085246211,
+            "p95": 0.019341848803910367,
+            "max": 0.031470735022511166
           }
         },
         {
@@ -115289,11 +116922,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0015851148030516563,
+            "max": 0.0016126087257238343
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.03649892947480197,
+        "max_peak_ratio": 0.059066767528184426,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Zombie_Scratch",
@@ -115853,6 +117501,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -116413,6 +118067,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0907786054106266,
+            "p95": 0.33785284138735555,
+            "max": 0.4816156961138611
           }
         },
         {
@@ -116957,6 +118617,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.08346981953764376,
+            "p95": 0.2682321842329742,
+            "max": 0.409553597006301
           }
         },
         {
@@ -117509,6 +119175,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.02862782340447232,
+            "p95": 0.11298495893243822,
+            "max": 0.1915729079390343
           }
         },
         {
@@ -118061,11 +119733,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.00013745946876793271,
+            "p95": 0.0003803120223149593,
+            "max": 0.0008336278510754791
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.33785284138735555,
+        "max_peak_ratio": 0.4816156961138611,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     },
     {
       "name": "Zombie_Walk_Fwd_Loop",
@@ -118633,6 +120320,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         },
         {
@@ -119201,6 +120894,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.02985613634581486,
+            "p95": 0.137889818377604,
+            "max": 0.1557106176108137
           }
         },
         {
@@ -119769,6 +121468,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.07350774131251636,
+            "p95": 0.24149612353223615,
+            "max": 0.28220591252124816
           }
         },
         {
@@ -120337,6 +122042,12 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.04486909972573157,
+            "p95": 0.16704914084094155,
+            "max": 0.22069436534589248
           }
         },
         {
@@ -120897,11 +122608,26 @@
                 }
               ]
             }
+          },
+          "motion_from_first": {
+            "sample_count": 4096,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
           }
         }
       ],
       "passed": true,
-      "reasons": []
+      "reasons": [],
+      "motion_qa": {
+        "method": "sampled_skinned_vertex_displacement_v1",
+        "vertex_samples": 4096,
+        "p95_peak_ratio": 0.24149612353223615,
+        "max_peak_ratio": 0.28220591252124816,
+        "min_p95_ratio": 0.0015,
+        "min_max_ratio": 0.005
+      },
+      "observable_motion": true
     }
   ],
   "failures": [
