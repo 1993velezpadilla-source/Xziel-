@@ -93,7 +93,7 @@ jobs:
           MODEL=church/out/xziel_native_static/models/xziel/weapons/standard_rifle.xzsm
           test -s "$REPORT"
           test -s "$MODEL"
-          jq -e '.exportMode == "rigid_weapon_rest_pose_canonical_xziel_v2"' "$REPORT"
+          jq -e '.exportMode == "rigid_weapon_rest_pose_canonical_xziel_v3"' "$REPORT"
           jq -e '.sourceTriangles >= 10000' "$REPORT"
           jq -e '.meaningfulBatchCount >= 4' "$REPORT"
           jq -e '.dimensionsMeters[2] >= 0.85 and .dimensionsMeters[2] <= 0.95' "$REPORT"
@@ -101,6 +101,8 @@ jobs:
           jq -e '.dimensionsMeters[0] >= 0.035 and .dimensionsMeters[0] <= 0.20' "$REPORT"
           jq -e '.excludedMaterials | map(ascii_downcase) | index("textura") != null' "$REPORT"
           jq -e '.canonicalUpSemantic == "rear_sight_minus_magazine"' "$REPORT"
+          jq -e '.viewmodelPivotSemantic == "stock_receiver_seam"' "$REPORT"
+          jq -e '.stockReceiverSeamGapSource >= 0 and .stockReceiverSeamGapSource <= 0.08' "$REPORT"
           jq -e '.includedMaterials | map(ascii_downcase) | any(contains("body"))' "$REPORT"
           jq -e '.includedMaterials | map(ascii_downcase) | any(contains("barrel"))' "$REPORT"
           jq -e '.includedMaterials | map(ascii_downcase) | any(contains("stock"))' "$REPORT"
