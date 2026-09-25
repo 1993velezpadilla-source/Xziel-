@@ -144,17 +144,21 @@ def main():
         detail_delta[..., None] *
         mask[..., None]
     )
+    # EXACT_ST_GILES_ALBEDO_REFERENCE_V1
+    # Do NOT rewrite the St Giles base-color atlas.  The previous pipeline
+    # upscaled the original 1024 atlas to 4096 and injected a Poly Haven
+    # high/medium-frequency field over ~95% of its pixels.  That made the
+    # runtime "more detailed" numerically while visibly changing the source
+    # material.  Generated relief maps below remain separate, but the albedo
+    # stays exactly the GLB-decoded PNG exported by export_xziel_original_clean.
+    #
+    # Keep the candidate-derived arrays only for optional normal/ORM/detail
+    # diagnostics; they are no longer fused into the photographed color.
     fused = np.clip(
         src + delta,
         0.0,
         255.0,
     ).astype(np.uint8)
-
-    Image.fromarray(fused, "RGB").save(
-        target,
-        format="PNG",
-        compress_level=3,
-    )
 
     # Derive tangent-space relief from the same bounded multi-scale field.
     # The candidate's macro block/mortar layout never enters this height map.
@@ -291,9 +295,10 @@ def main():
         "maskMean": float(mask.mean()),
         "preservesSourceColor": True,
         "preservesMacroPattern": True,
+        "albedoMutation": False,
     }
-    material["runtimeSize"] = [4096, 4096]
-    material["exactSourcePixels"] = False
+    material["runtimeSize"] = before
+    material["exactSourcePixels"] = True
     material["generatedPbr"] = {
         "normalTexturePath": str(normal_rel),
         "ormTexturePath": str(orm_rel),
@@ -306,14 +311,14 @@ def main():
     }
 
     report["textureSourceMode"] = (
-        "original_glb_embedded_pixels_plus_matched_exterior_microdetail"
+        "original_glb_embedded_pixels_exact_plus_separate_generated_detail_maps"
     )
     report["microdetailApplied"] = True
     report["microdetailMaterial"] = target_key
     report["microdetailCandidate"] = "polyhaven_medieval_blocks_03"
     report["microdetailCandidateLicense"] = "CC0"
     report["originalExteriorResolution"] = before
-    report["runtimeExteriorResolution"] = [4096, 4096]
+    report["runtimeExteriorResolution"] = before
     report["generatedPbrApplied"] = True
     report["generatedPbrMaterial"] = target_key
     report["generatedPbrNormalTexture"] = str(normal_rel)
@@ -339,7 +344,8 @@ def main():
             "candidateName": "medieval_blocks_03",
             "candidateLicense": "CC0",
             "originalResolution": before,
-            "runtimeResolution": [4096, 4096],
+            "runtimeResolution": before,
+            "albedoMutation": False,
             "maskMean": float(mask.mean()),
             "strengthLuma8bit": strength,
             "fineStrengthLuma8bit": fine_strength,
@@ -365,7 +371,8 @@ def main():
         "XZIEL_EXTERIOR_DETAIL_AB_READY",
         json.dumps({
             "material": target_key,
-            "runtimeResolution": [4096, 4096],
+            "runtimeResolution": before,
+            "albedoMutation": False,
             "maskMean": round(float(mask.mean()), 4),
             "candidate": "medieval_blocks_03",
         }),
