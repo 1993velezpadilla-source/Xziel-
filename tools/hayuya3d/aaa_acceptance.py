@@ -217,6 +217,22 @@ def evaluate_aaa_acceptance(
         required=bool(high_end and "normal" in channels),
     )
 
+    if mode=="character" and high_end:
+        visual_v4=manifest.get("judge_v4") or {}
+        _gate(
+            gates,"character.visual_judge_v4","character",
+            bool(visual_v4.get("passed")),
+            (
+                f"passed={visual_v4.get('passed')} "
+                f"hard_failures={len(visual_v4.get('hard_fail_reasons') or [])} "
+                f"method={visual_v4.get('method')}"
+            ),
+            blocker=(
+                "final high-end character failed or lacks fail-closed Judge v4 "
+                "visual acceptance (face/body/material/multiview/source fidelity)"
+            ),
+        )
+
     if high_end:
         pbr_core={"baseColor","roughness","normal"}
         pbr_ready=pbr_core.issubset(channels)
