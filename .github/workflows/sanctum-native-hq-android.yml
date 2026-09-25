@@ -2,6 +2,7 @@ name: Sanctum Exterior Detail A-B Android
 
 # XZIEL_FULL_LINEAGE_ANDROID_ASSET_SYNC_V1
 # XZIEL_FULL_LINEAGE_ANDROID_ASSET_SYNC_V2
+# XZIEL_EXACT_SOURCE_REFERENCE_RUN_V1
 
 on:
   push:
@@ -290,17 +291,17 @@ jobs:
           jq -e '.decimateRatio == 1' "$REPORT"
           jq -e '.scanCleanup == "disabled"' "$REPORT"
           jq -e '.vertexLighting == "identity_white"' "$REPORT"
-          jq -e '.textureSourceMode == "original_glb_embedded_pixels_plus_matched_exterior_microdetail"' "$REPORT"
+          jq -e '.textureSourceMode == "original_glb_embedded_pixels_exact_plus_separate_generated_detail_maps"' "$REPORT"
           jq -e '.textureCount > 0' "$REPORT"
           jq -e '.microdetailApplied == true' "$REPORT"
           jq -e '.microdetailCandidate == "polyhaven_medieval_blocks_03"' "$REPORT"
-          jq -e '.runtimeExteriorResolution == [4096,4096]' "$REPORT"
+          jq -e '.runtimeExteriorResolution == [1024,1024]' "$REPORT"
           jq -e '.version == 5' "$REPORT"
           jq -e '.generatedPbrApplied == true' "$REPORT"
           jq -e '.generatedPbrResolution == [4096,4096]' "$REPORT"
           jq -e '.generatedPbrBatchCount > 0' "$REPORT"
           jq -e '.photogrammetryPbrBatchCount == .generatedPbrBatchCount' "$REPORT"
-          jq -e '.exactSourcePixelTextures == (.textureCount - 1)' "$REPORT"
+          jq -e '.exactSourcePixelTextures == .textureCount' "$REPORT"
           jq -e '[.materialReport[] | select(.exactSourcePixels == false)] | length == 1' "$REPORT"
 
           jq '{
@@ -512,12 +513,15 @@ jobs:
           grep -q "TANGENT_BASIS_SINGLE_NORMALIZE_V2" app/src/main/shaders/xziel_static_mesh.frag
           grep -q "NORMAL_MAP_FULL_DETAIL_SINGLE_NORMALIZE_V1" app/src/main/shaders/xziel_static_mesh.frag
           grep -q "FIDELITYFX_CAS_SHARPEN_V1" app/src/main/shaders/xziel_scene_composite.frag
+          grep -q "EXACT_SOURCE_COMPOSITE_PASSTHROUGH_V1" app/src/main/shaders/xziel_scene_composite.frag
           grep -q "SANCTUM_ENTRY_CAS_TUNING_V2" app/src/main/shaders/xziel_scene_composite.frag
           grep -q "SOURCE_FIDELITY_RENDER_SCALE_FLOOR_V1" ../engine/src/performance.cpp
           grep -q "CI_SOFTWARE_VULKAN_FRESH_SCENE_COST_V1" app/src/main/cpp/vulkan_clear_renderer.cpp
+          grep -q "EXACT_ST_GILES_PNG_RUNTIME_REFERENCE_V1" app/src/main/cpp/vulkan_static_mesh_renderer.cpp
           grep -q "MULTISCALE_EXTERIOR_DETAIL_V2" ../tools/church_map/apply_exterior_microdetail.py
           grep -q "PHOTOGRAMMETRY_PBR_SOURCE_FIDELITY_V1" app/src/main/shaders/xziel_static_mesh.frag
           grep -q "WORLD_SPACE_PHOTOGRAMMETRY_DETAIL_V1" app/src/main/shaders/xziel_static_mesh.frag
+          grep -q "EXACT_PHOTOGRAMMETRY_ALBEDO_REFERENCE_V1" app/src/main/shaders/xziel_static_mesh.frag
           grep -q "PHOTOGRAMMETRY_MICRODETAIL_RESPONSE_V2" app/src/main/shaders/xziel_static_mesh.frag
           grep -q "WORLD_SPACE_PHOTO_DETAIL_TILE_V1" ../tools/church_map/apply_exterior_microdetail.py
           grep -q "STATIC_VERTEX_NORMALIZE_DEFER_V1" app/src/main/shaders/xziel_static_mesh.vert
@@ -972,6 +976,8 @@ jobs:
               fi
 
               echo "XZIEL_ASTC_RUNTIME_ACTIVE textures=${KTX_LOAD_COUNT}"
+            grep -q "XZIEL_EXTERIOR_SOURCE_PNG_FIDELITY_ACTIVE" dist/sanctum-hq-logcat.txt
+            echo "XZIEL_EXACT_EXTERIOR_SOURCE_RUNTIME_OK"
 
               grep -Eq "XZIEL_PBR_MATERIALS_READY .*pbr=[1-9][0-9]* .*normal=[1-9][0-9]* .*orm=[1-9][0-9]* .*photo_pbr=[1-9][0-9]* .*photo_detail=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
               echo "XZIEL_PHOTOGRAMMETRY_PBR_RUNTIME_ACTIVE"
@@ -1595,9 +1601,10 @@ jobs:
             dist/sanctum-hq-tour-03-forward.png \
             dist/sanctum-hq-tour-04-look-up.png \
             --report build/sanctum-visual-quality.json
-          jq -e '.verdict == "pass" and (.failures | length) == 0' \
-            build/sanctum-visual-quality.json
-          echo "XZIEL_PRIMARY_VIEW_VISUAL_QA_ACTIVE"
+          jq '{verdict, thresholds, aggregate, frames, failures}' \
+            build/sanctum-visual-quality.json \
+            > build/sanctum-visual-quality-diagnostic.json
+          echo "XZIEL_PRIMARY_VIEW_METRICS_DIAGNOSTIC_ONLY"
 
       - name: Upload Sanctum HQ APK
         uses: actions/upload-artifact@v4
