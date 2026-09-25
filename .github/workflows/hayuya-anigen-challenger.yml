@@ -105,7 +105,7 @@ jobs:
       - name: Install Blender for factual preview
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq blender libegl1 libgl1-mesa-dri
+          sudo apt-get install -y -qq blender libegl1 libgl1 libglx-mesa0 xvfb libegl1 libgl1-mesa-dri
 
       - name: Render front three-quarter side and face
         env:
