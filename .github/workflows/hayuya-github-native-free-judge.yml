@@ -109,7 +109,7 @@ jobs:
         with:
           name: github-native-known-bad-evidence
           path: evidence
-      - name: Run real Q-ReAlign Pro 9B on CPU INT4
+      - name: Run real Q-ReAlign Pro 9B on CPU INT8
         shell: bash
         env:
           HF_HOME: ${{ runner.temp }}/hf-qrealign
@@ -117,8 +117,8 @@ jobs:
           set -euo pipefail
           df -h
           python -m pip install --upgrade pip
-          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision
-          python -m pip install "transformers>=5.2,<6" "torchao>=0.15" accelerate safetensors huggingface_hub pillow
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision torchao
+          python -m pip install "transformers>=5.2,<6" accelerate safetensors huggingface_hub pillow
           python tools/hayuya3d/github_cpu_heavy_eye.py qrealign             --image front=evidence/faces/00_000.png             --image quarter_r=evidence/faces/02_030.png             --image quarter_l=evidence/faces/22_330.png             --json qrealign.json
           python - <<'PY'
           import json
@@ -162,7 +162,7 @@ jobs:
         with:
           name: github-native-known-bad-evidence
           path: evidence
-      - name: Run real VisualQuality-R1 7B on CPU INT4
+      - name: Run real VisualQuality-R1 7B on CPU INT8
         shell: bash
         env:
           HF_HOME: ${{ runner.temp }}/hf-visualquality
@@ -170,8 +170,8 @@ jobs:
           set -euo pipefail
           df -h
           python -m pip install --upgrade pip
-          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision
-          python -m pip install "transformers>=5.2,<6" "torchao>=0.15" accelerate safetensors huggingface_hub pillow "qwen-vl-utils>=0.0.14"
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision torchao
+          python -m pip install "transformers>=5.2,<6" accelerate safetensors huggingface_hub pillow "qwen-vl-utils>=0.0.14"
           python tools/hayuya3d/github_cpu_heavy_eye.py visualquality             --image front=evidence/faces/00_000.png             --image quarter_r=evidence/faces/02_030.png             --image quarter_l=evidence/faces/22_330.png             --json visualquality.json
           python - <<'PY'
           import json
