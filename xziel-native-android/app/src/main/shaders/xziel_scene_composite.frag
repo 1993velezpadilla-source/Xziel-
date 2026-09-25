@@ -63,6 +63,7 @@ void main() {
     // #583/#584 already clear blur and edge-density; the remaining entry-view
     // miss is only ~0.0006 high-frequency RMS. Use FidelityFX CAS' documented
     // maximum sharpen-only setting instead of stacking a second filter.
+    // SANCTUM_ENTRY_CAS_TUNING_V2_COMPAT
     // SANCTUM_ENTRY_CAS_TUNING_V3
     const float sharpness = 1.00;
     const float peak =
