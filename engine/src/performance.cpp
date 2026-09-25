@@ -393,11 +393,11 @@ void PerformanceGovernor::rebuildWorkload() noexcept {
     switch (qualityIndex_) {
         case 0:
             workload_.quality = RenderQuality::Low;
-            workload_.renderScale = 0.70f;
-            workload_.particleDensityScale = 0.42f;
-            workload_.shadowDistanceScale = 0.40f;
-            workload_.fogQualityScale = 0.35f;
-            workload_.dynamicLightBudget = 4;
+            workload_.renderScale = 0.78f;
+            workload_.particleDensityScale = 0.30f;
+            workload_.shadowDistanceScale = 0.30f;
+            workload_.fogQualityScale = 0.25f;
+            workload_.dynamicLightBudget = 3;
             workload_.shadowedLightBudget = 1;
             workload_.shadowMapResolution = 512;
 
@@ -408,18 +408,18 @@ void PerformanceGovernor::rebuildWorkload() noexcept {
             workload_.ssrResolutionScale = 0.0f;
             workload_.ssrMaxSteps = 0;
 
-            workload_.volumetricFogSteps = 8;
+            workload_.volumetricFogSteps = 6;
             workload_.postProcessScale = 0.50f;
             break;
 
         case 1:
             workload_.quality = RenderQuality::Medium;
-            workload_.renderScale = 0.82f;
-            workload_.particleDensityScale = 0.62f;
-            workload_.shadowDistanceScale = 0.62f;
-            workload_.fogQualityScale = 0.58f;
-            workload_.dynamicLightBudget = 8;
-            workload_.shadowedLightBudget = 2;
+            workload_.renderScale = 0.88f;
+            workload_.particleDensityScale = 0.50f;
+            workload_.shadowDistanceScale = 0.50f;
+            workload_.fogQualityScale = 0.45f;
+            workload_.dynamicLightBudget = 6;
+            workload_.shadowedLightBudget = 1;
             workload_.shadowMapResolution = 768;
 
             workload_.maxPlanarReflectionPasses = 1;
@@ -429,28 +429,28 @@ void PerformanceGovernor::rebuildWorkload() noexcept {
             workload_.ssrResolutionScale = 0.0f;
             workload_.ssrMaxSteps = 0;
 
-            workload_.volumetricFogSteps = 12;
+            workload_.volumetricFogSteps = 10;
             workload_.postProcessScale = 0.60f;
             break;
 
         case 2:
             workload_.quality = RenderQuality::High;
-            workload_.renderScale = 0.92f;
-            workload_.particleDensityScale = 0.82f;
-            workload_.shadowDistanceScale = 0.82f;
-            workload_.fogQualityScale = 0.82f;
-            workload_.dynamicLightBudget = 16;
-            workload_.shadowedLightBudget = 4;
+            workload_.renderScale = 0.96f;
+            workload_.particleDensityScale = 0.72f;
+            workload_.shadowDistanceScale = 0.75f;
+            workload_.fogQualityScale = 0.70f;
+            workload_.dynamicLightBudget = 12;
+            workload_.shadowedLightBudget = 3;
             workload_.shadowMapResolution = 1024;
 
             workload_.maxPlanarReflectionPasses = 1;
             workload_.planarReflectionScale = 0.60f;
             workload_.reflectionDistanceMeters = 35.0f;
-            workload_.ssrEnabled = true;
-            workload_.ssrResolutionScale = 0.50f;
-            workload_.ssrMaxSteps = 24;
+            workload_.ssrEnabled = false;
+            workload_.ssrResolutionScale = 0.0f;
+            workload_.ssrMaxSteps = 0;
 
-            workload_.volumetricFogSteps = 24;
+            workload_.volumetricFogSteps = 18;
             workload_.postProcessScale = 0.75f;
             break;
 
