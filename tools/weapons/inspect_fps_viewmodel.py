@@ -151,11 +151,14 @@ has_reload_action = any("reload" in name for name in action_names)
 dimensions = world_max - world_min
 
 # Export a normalized interchange snapshot preserving the original rig/actions.
+# Do not depend on selection/context: background Blender files can open without
+# an active ViewLayer context, making object.select_all() invalid even though
+# the scene itself is perfectly readable.
 glb_path.parent.mkdir(parents=True, exist_ok=True)
-bpy.ops.object.select_all(action="SELECT")
 bpy.ops.export_scene.gltf(
     filepath=str(glb_path.resolve()),
     export_format="GLB",
+    use_selection=False,
     export_animations=True,
     export_skins=True,
     export_morph=True,
