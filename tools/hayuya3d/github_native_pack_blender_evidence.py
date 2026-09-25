@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import argparse,json,sys
+import argparse,json,sys,shutil
 from pathlib import Path
 
 def main()->int:
@@ -30,6 +30,9 @@ def main()->int:
         title="SOURCE REFERENCES",
         columns=4,cell=320,
     )
+    source_face=refs[1] if len(refs)>1 else refs[0]
+    source_face_copy=a.out/("source_face"+source_face.suffix.lower())
+    shutil.copy2(source_face,source_face_copy)
     turn_sheet=_labelled_sheet(
         [(f"TURN {i*15:03d}",x) for i,x in enumerate(turns)],
         a.out/"turntable_sheet.jpg",
@@ -42,6 +45,17 @@ def main()->int:
         title="KNOWN-BAD MONJA — BLENDER FACE CLOSEUPS",
         columns=3,cell=420,
     )
+    face_compare=_labelled_sheet(
+        [
+            ("SOURCE FACE — AUTHORITATIVE",source_face),
+            ("CANDIDATE 150°",faces[10]),
+            ("CANDIDATE 180°",faces[12]),
+            ("CANDIDATE 210°",faces[14]),
+        ],
+        a.out/"face_compare.jpg",
+        title="SOURCE FACE vs CANDIDATE FACE — FIDELITY ONLY",
+        columns=2,cell=640,
+    )
     board=_stack_boards(
         [("SOURCE REFERENCES",source_sheet),("BLENDER TURNTABLE",turn_sheet),("BLENDER FACE CLOSEUPS",face_sheet)],
         a.out/"board.jpg",
@@ -52,6 +66,8 @@ def main()->int:
         "source":str(a.source),
         "turns":[str(x) for x in turns],
         "faces":[str(x) for x in faces],
+        "source_face":str(source_face_copy),
+        "face_compare":str(face_compare),
         "board":str(board),
     }
     (a.out/"evidence.json").write_text(json.dumps(payload,indent=2)+"\n",encoding="utf-8")
