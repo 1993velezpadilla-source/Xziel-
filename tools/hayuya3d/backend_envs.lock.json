@@ -166,9 +166,10 @@
         "fvcore",
         "iopath",
         "scipy>=1.11,<2",
-        "qwen-vl-utils>=0.0.14"
+        "qwen-vl-utils>=0.0.14",
+        "uniface[gpu]>=4.0,<5"
       ],
-      "notes": "Sequential worker processes unload large evaluators between passes. Final visual acceptance uses Q-ReAlign-Pro-9B, VisualQuality-R1-7B, InternVL3.5-8B-HF, MediaPipe dense landmarks, DreamSim, SigLIP2 Giant, CVLFace AdaFace WebFace12M identity, and an Apache-licensed PyIQA 0.1.15 ensemble. Missing evidence fails closed."
+      "notes": "Sequential worker processes unload large evaluators between passes. Final visual acceptance uses Q-ReAlign-Pro-9B, VisualQuality-R1-7B, InternVL3.5-8B-HF, MediaPipe dense landmarks, DreamSim, SigLIP2 Giant, CVLFace AdaFace WebFace12M identity, eDifFIQA-L face quality, and an Apache-licensed PyIQA 0.1.15 ensemble. Missing evidence fails closed."
     }
   }
 }
