@@ -1,0 +1,48 @@
+name: St Giles Fab Source Audit
+
+on:
+  push:
+    branches:
+      - engine/mobile-power-fidelity-v1
+    paths:
+      - ".github/workflows/st-giles-fab-source-audit.yml"
+      - "tools/church_map/probe_st_giles_fab_source.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: st-giles-fab-source-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install anonymous Fab probe transport
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet --disable-pip-version-check curl_cffi
+
+      - name: Probe original Fab source metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/church_map/probe_st_giles_fab_source.py
+          test -s build/st-giles-fab-source-audit.json
+          jq -e '.decision == "SOURCE_DOWNLOAD_CANDIDATE"' build/st-giles-fab-source-audit.json
+          jq -e '.isFree == true' build/st-giles-fab-source-audit.json
+          jq -e '.formats | index("obj") != null' build/st-giles-fab-source-audit.json
+          jq . build/st-giles-fab-source-audit.json
+
+      - name: Upload source audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xziel-St-Giles-Fab-Source-Audit
+          path: build/st-giles-fab-source-audit.json
+          retention-days: 14
