@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import time
 from dataclasses import dataclass, asdict
@@ -139,6 +140,9 @@ def generate(
 ) -> AniGenResult:
     output_dir.mkdir(parents=True, exist_ok=True)
     kwargs = {"verbose": True, "httpx_kwargs": {"timeout": 240.0}}
+    token = os.environ.get("HF_TOKEN", "").strip()
+    if token:
+        kwargs["token"] = token
     client = Client(space, **kwargs)
     named = _named_endpoints(client)
 
