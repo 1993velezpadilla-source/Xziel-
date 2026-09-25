@@ -408,6 +408,13 @@ void main() {
 
     if (photogrammetryPbr &&
         !viewmodel) {
+        // EXACT_PHOTOGRAMMETRY_ALBEDO_REFERENCE_V1
+        // Reference mode: the photographed GLB albedo is the visual authority.
+        // No synthetic normal/AO/world-detail scalar is allowed to alter it
+        // until the runtime screenshot is proven against the source texture.
+        outColor = albedo;
+        return;
+
         // PHOTOGRAMMETRY_PBR_SOURCE_FIDELITY_V1
         // Scan albedo already contains captured lighting. Preserve it and
         // apply only the local micro-normal delta plus bounded AO so generated
