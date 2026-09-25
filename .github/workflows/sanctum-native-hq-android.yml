@@ -45,6 +45,7 @@ on:
       - "tools/church_map/export_xziel_original_clean.py"
       - "tools/church_map/apply_exterior_microdetail.py"
       - "tools/texture_pack/**"
+      - "tools/visual_qa/**"
       - "engine/**"
       - "xziel-native-android/**"
   workflow_dispatch:
@@ -1501,6 +1502,18 @@ jobs:
 
           echo "SANCTUM_NATIVE_HQ_GAMEPLAY_TAKEOVER_OK"
 
+      - name: Judge Sanctum screenshot visual quality
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet --disable-pip-version-check pillow numpy
+          python3 tools/visual_qa/sanctum_screenshot_gate.py \
+            dist/sanctum-hq-tour-01-entry.png \
+            dist/sanctum-hq-tour-02-look.png \
+            dist/sanctum-hq-tour-03-forward.png \
+            dist/sanctum-hq-tour-04-look-up.png \
+            --report build/sanctum-visual-quality.json
+
       - name: Upload Sanctum HQ APK
         uses: actions/upload-artifact@v4
         with:
@@ -1518,6 +1531,7 @@ jobs:
             build/sanctum-native-hq-report.json
             build/sanctum-native-map-report.json
             build/sanctum-hq-apk-contents.txt
+            build/sanctum-visual-quality.json
             dist/sanctum-hq-logcat.txt
             dist/sanctum-hq-restart-logcat.txt
             dist/sanctum-hq-startup-logcat.txt

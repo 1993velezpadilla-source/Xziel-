@@ -8,6 +8,7 @@ on:
       - ".github/workflows/sanctum-clean-source.yml"
       - "tools/church_map/export_xziel_original_clean.py"
       - "tools/church_map/apply_exterior_microdetail.py"
+      - "tools/visual_qa/**"
   workflow_dispatch:
 
 permissions:

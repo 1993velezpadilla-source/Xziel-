@@ -9,6 +9,7 @@ on:
     paths:
       - ".github/workflows/sanctum-astc-texture-pack.yml"
       - "tools/texture_pack/build_astc_pack.py"
+      - "tools/visual_qa/**"
   workflow_dispatch:
 
 permissions:
