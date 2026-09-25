@@ -18,6 +18,7 @@ int main() {
             {.cpuFrameMs = 24.0f, .gpuFrameMs = 27.0f},
             1.0f / 60.0f);
     }
+    assert(workload.renderScale >= 0.90f);
     assert(workload.renderScale < 0.96f);
     assert(workload.particleDensityScale < 0.72f);
     assert(workload.maxPlanarReflectionPasses <= 1);
@@ -33,6 +34,7 @@ int main() {
         },
         1.0f / 60.0f);
     assert(workload.quality == xziel::RenderQuality::Low);
+    assert(workload.renderScale <= 0.78f + 0.0001f);
     assert(workload.dynamicLightBudget == 3);
     assert(workload.shadowedLightBudget == 1);
     assert(workload.maxPlanarReflectionPasses == 0);
@@ -150,6 +152,7 @@ int main() {
     assert(
         governor.gpuPassBottleneck() ==
         xziel::GpuPassBottleneck::CompositeUi);
+    assert(workload.renderScale >= 0.90f);
     assert(workload.renderScale < 0.96f);
     assert(workload.postProcessScale < 0.75f);
     assert(workload.shadowDistanceScale > 0.81f);

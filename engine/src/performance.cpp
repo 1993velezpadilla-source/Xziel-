@@ -137,6 +137,42 @@ RenderWorkload PerformanceGovernor::advance(
 
     applyThermalCeiling(sample.thermal);
     rebuildWorkload();
+
+    // SOURCE_FIDELITY_RENDER_SCALE_FLOOR_V1
+    // Normal performance pressure trims expensive effects before destroying
+    // scene resolution. Sub-0.90 rendering is reserved for real thermal
+    // protection instead of software-Vulkan/CI pacing noise.
+    switch (sample.thermal) {
+        case ThermalLevel::Nominal:
+        case ThermalLevel::Light:
+            workload_.renderScale =
+                std::max(
+                    workload_.renderScale,
+                    0.90f);
+            break;
+
+        case ThermalLevel::Moderate:
+            workload_.renderScale =
+                std::min(
+                    workload_.renderScale,
+                    0.90f);
+            break;
+
+        case ThermalLevel::Severe:
+            workload_.renderScale =
+                std::min(
+                    workload_.renderScale,
+                    0.84f);
+            break;
+
+        case ThermalLevel::Critical:
+            workload_.renderScale =
+                std::min(
+                    workload_.renderScale,
+                    0.78f);
+            break;
+    }
+
     return workload_;
 }
 
@@ -393,7 +429,7 @@ void PerformanceGovernor::rebuildWorkload() noexcept {
     switch (qualityIndex_) {
         case 0:
             workload_.quality = RenderQuality::Low;
-            workload_.renderScale = 0.78f;
+            workload_.renderScale = 0.90f;
             workload_.particleDensityScale = 0.30f;
             workload_.shadowDistanceScale = 0.30f;
             workload_.fogQualityScale = 0.25f;
@@ -414,7 +450,7 @@ void PerformanceGovernor::rebuildWorkload() noexcept {
 
         case 1:
             workload_.quality = RenderQuality::Medium;
-            workload_.renderScale = 0.88f;
+            workload_.renderScale = 0.94f;
             workload_.particleDensityScale = 0.50f;
             workload_.shadowDistanceScale = 0.50f;
             workload_.fogQualityScale = 0.45f;
@@ -435,7 +471,7 @@ void PerformanceGovernor::rebuildWorkload() noexcept {
 
         case 2:
             workload_.quality = RenderQuality::High;
-            workload_.renderScale = 0.96f;
+            workload_.renderScale = 0.97f;
             workload_.particleDensityScale = 0.72f;
             workload_.shadowDistanceScale = 0.82f;
             workload_.fogQualityScale = 0.70f;

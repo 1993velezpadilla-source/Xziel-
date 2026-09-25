@@ -466,6 +466,8 @@ jobs:
           grep -q "TANGENT_BASIS_RECIPROCAL_FREE_V1" app/src/main/shaders/xziel_static_mesh.frag
           grep -q "TANGENT_BASIS_SINGLE_NORMALIZE_V2" app/src/main/shaders/xziel_static_mesh.frag
           grep -q "NORMAL_MAP_FULL_DETAIL_SINGLE_NORMALIZE_V1" app/src/main/shaders/xziel_static_mesh.frag
+          grep -q "SCENE_CONTRAST_ADAPTIVE_SHARPEN_V1" app/src/main/shaders/xziel_scene_composite.frag
+          grep -q "SOURCE_FIDELITY_RENDER_SCALE_FLOOR_V1" ../../engine/src/performance.cpp
           grep -q "PHOTOGRAMMETRY_PBR_SOURCE_FIDELITY_V1" app/src/main/shaders/xziel_static_mesh.frag
           grep -q "STATIC_VERTEX_NORMALIZE_DEFER_V1" app/src/main/shaders/xziel_static_mesh.vert
           grep -q "STATIC_VERTEX_NORMAL_WORK_GATE_V1" app/src/main/shaders/xziel_static_mesh.vert
