@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -297,6 +298,25 @@ def main():
         "preservesMacroPattern": True,
         "albedoMutation": False,
     }
+    # Re-decode the packaged albedo after all processing and prove that the
+    # runtime pixels still match the hash captured directly from the GLB.
+    with Image.open(target) as runtime_albedo:
+        runtime_rgba = runtime_albedo.convert("RGBA")
+        runtime_decoded_sha = hashlib.sha256(
+            runtime_rgba.tobytes()
+        ).hexdigest()
+
+    source_decoded_sha = material.get("sourceDecodedSha256")
+    if (
+        not source_decoded_sha or
+        runtime_decoded_sha != source_decoded_sha
+    ):
+        raise RuntimeError(
+            "St Giles exterior albedo fidelity changed: "
+            f"source={source_decoded_sha} runtime={runtime_decoded_sha}"
+        )
+
+    material["runtimeDecodedSha256"] = runtime_decoded_sha
     material["runtimeSize"] = before
     material["exactSourcePixels"] = True
     material["generatedPbr"] = {
