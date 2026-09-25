@@ -79,9 +79,22 @@ int main() {
     assert(
         assault.viewmodel.ads.scale > 0.0f);
 
+    // The canonical AKM pivot is the stock/receiver seam. It must stay
+    // at or just behind the renderer's 0.08 m near plane in ADS so the stock
+    // clips away instead of appearing as a giant wooden cross-section.
     assert(
-        assault.viewmodel.ads.z >
-            0.08f);
+        assault.viewmodel.ads.z >=
+            0.070f);
+
+    assert(
+        assault.viewmodel.ads.z <=
+            0.080f);
+
+    // Magnification reduction belongs to scale/FOV, not pushing the seam
+    // forward through the near plane.
+    assert(
+        assault.viewmodel.ads.scale <=
+            0.60f);
 
     assert(
         marksman.controller.
