@@ -119,24 +119,29 @@ def main():
     cam.data.clip_start = 0.01
     cam.data.clip_end = max(100.0, radius * 20.0)
 
-    add_light(center + Vector((-2.0 * radius, -2.2 * radius, 2.2 * radius)), center, 950, 4.0 * radius)
-    add_light(center + Vector((2.2 * radius, -1.2 * radius, 0.7 * radius)), center, 520, 3.0 * radius)
-    add_light(center + Vector((0.0, 1.8 * radius, 2.8 * radius)), center, 700, 3.0 * radius)
+    add_light(center + Vector((-2.0 * radius, 2.2 * radius, 2.2 * radius)), center, 520, 4.0 * radius)
+    add_light(center + Vector((2.2 * radius, 1.2 * radius, 0.7 * radius)), center, 260, 3.0 * radius)
+    add_light(center + Vector((0.0, -1.8 * radius, 2.8 * radius)), center, 360, 3.0 * radius)
 
     a.output_dir.mkdir(parents=True, exist_ok=True)
 
-    full_scale = max(float(ext.x), float(ext.y), float(ext.z)) * 1.30
-    full_scale = max(full_scale, 0.5)
+    # Blender's orthographic scale behaves like a half-span for this imported
+    # glTF scene. The previous 1.30 factor left the subject at ~39% of frame.
+    # Keep factual geometry, but frame it like a production turntable.
+    full_scale = max(float(ext.x), float(ext.y), float(ext.z)) * 0.66
+    full_scale = max(full_scale, 0.28)
 
     views = {
+        # AniGen's glTF export faces +Y after Blender imports Y-up glTF into
+        # Blender's Z-up scene. The old preview labeled the back as "front".
         "front": {
             "target": center,
-            "offset": Vector((0.0, -3.2 * radius, 0.0)),
+            "offset": Vector((0.0, 3.2 * radius, 0.0)),
             "scale": full_scale,
         },
         "three_quarter": {
             "target": center,
-            "offset": Vector((2.30 * radius, -2.30 * radius, 0.0)),
+            "offset": Vector((2.30 * radius, 2.30 * radius, 0.0)),
             "scale": full_scale,
         },
         "side": {
@@ -146,12 +151,12 @@ def main():
         },
         "opposite": {
             "target": center,
-            "offset": Vector((0.0, 3.2 * radius, 0.0)),
+            "offset": Vector((0.0, -3.2 * radius, 0.0)),
             "scale": full_scale,
         },
         "three_quarter_opposite": {
             "target": center,
-            "offset": Vector((-2.30 * radius, 2.30 * radius, 0.0)),
+            "offset": Vector((-2.30 * radius, -2.30 * radius, 0.0)),
             "scale": full_scale,
         },
         "side_opposite": {
@@ -162,8 +167,8 @@ def main():
     }
 
     head_target = center.copy()
-    head_target.z = mn.z + ext.z * 0.82
-    head_scale = max(height * 0.34, float(ext.x) * 0.72, float(ext.y) * 0.72, 0.20)
+    head_target.z = mn.z + ext.z * 0.78
+    head_scale = max(height * 0.22, float(ext.x) * 0.36, float(ext.y) * 0.36, 0.14)
     views["face"] = {
         "target": head_target,
         "offset": Vector((0.0, -3.0 * radius, 0.05 * radius)),
@@ -191,7 +196,7 @@ def main():
             "extents": [round(float(v), 7) for v in ext],
         },
         "renders": rendered,
-        "renderer": "blender_eevee_generated_model_preview_v1",
+        "renderer": "blender_eevee_generated_model_preview_v2_eye_framed",
     }
     (a.output_dir / "preview_manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     print("HAYUYA_MODEL_PREVIEW_PACK", json.dumps(manifest))
