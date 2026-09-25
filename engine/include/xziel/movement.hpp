@@ -51,9 +51,12 @@ struct MovementConfig {
     float tacticalSprintSpeed = 7.2f;
     float crouchSpeed = 2.5f;
 
-    float groundAcceleration = 42.0f;
+    // Crisp grounded response target: full sprint and full stop in roughly
+    // 70 ms at 120 Hz. This mirrors the proven modern-movement profile from
+    // the portable path without changing authored walk/sprint speeds.
+    float groundAcceleration = 90.0f;
     float airAcceleration = 8.0f;
-    float groundFriction = 36.0f;
+    float groundFriction = 90.0f;
 
     float jumpVelocity = 5.4f;
     float doubleJumpVelocity = 5.0f;

@@ -2,6 +2,7 @@
 #include "xziel/movement.hpp"
 
 #include <cassert>
+#include <cmath>
 
 int main() {
     xziel::MovementCapabilities capabilities{};
@@ -14,6 +15,40 @@ int main() {
 
     xziel::TraversalContext traversal{};
     traversal.grounded = true;
+
+    // Touch movement must feel immediate rather than easing in for multiple
+    // tenths of a second. The grounded profile reaches essentially full
+    // sprint within 10 fixed ticks (~83 ms at 120 Hz), then friction alone
+    // brings it back to rest within the same window.
+    {
+        xziel::MovementController responseMovement;
+        xziel::TraversalContext responseTraversal{};
+        responseTraversal.grounded = true;
+
+        xziel::MovementFrame responseFrame{};
+
+        for (int i = 0; i < 10; ++i) {
+            responseFrame = responseMovement.step(
+                {
+                    .move = {0.0f, 1.0f},
+                    .sprintRequested = true,
+                },
+                responseTraversal,
+                1.0f / 120.0f);
+        }
+
+        assert(responseFrame.velocity.z > 6.20f);
+
+        for (int i = 0; i < 10; ++i) {
+            responseFrame = responseMovement.step(
+                {},
+                responseTraversal,
+                1.0f / 120.0f);
+        }
+
+        assert(std::fabs(responseFrame.velocity.x) < 0.02f);
+        assert(std::fabs(responseFrame.velocity.z) < 0.02f);
+    }
 
     // Full-forward joystick auto-sprints without a dedicated sprint button.
     xziel::MobileMovementButtons buttons{};

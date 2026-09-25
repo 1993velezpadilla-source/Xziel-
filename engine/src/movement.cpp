@@ -346,13 +346,20 @@ MovementFrame MovementController::step(
                 setMode(MovementMode::Grounded, MovementCue::None);
             }
 
-            accelerateHorizontal(
-                move,
-                speed,
-                config_.groundAcceleration,
-                dt);
             if (moveMagnitude < 0.05f) {
-                applyHorizontalFriction(config_.groundFriction, dt);
+                // No-input braking is friction-only. Previously this path
+                // first accelerated toward zero and then applied friction,
+                // producing a different response curve for starting vs
+                // stopping and making touchscreen movement feel inconsistent.
+                applyHorizontalFriction(
+                    config_.groundFriction,
+                    dt);
+            } else {
+                accelerateHorizontal(
+                    move,
+                    speed,
+                    config_.groundAcceleration,
+                    dt);
             }
             frame_.velocity.y = 0.0f;
             break;
