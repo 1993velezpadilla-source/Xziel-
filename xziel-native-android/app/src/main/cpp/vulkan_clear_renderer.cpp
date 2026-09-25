@@ -5502,7 +5502,7 @@ bool VulkanClearRenderer::recordDrawCommand(
     // streak across the player's screen. The procedural blockout also stays
     // suppressed because a clean no-viewmodel checkpoint is preferable to
     // regressing to the toy-looking placeholder.
-    constexpr bool kImportedWeaponViewmodelEnabled = false;
+    constexpr bool kImportedWeaponViewmodelEnabled = true;
 
     if (kImportedWeaponViewmodelEnabled &&
         weaponMesh_.ready()) {
