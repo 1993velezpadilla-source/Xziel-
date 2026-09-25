@@ -238,6 +238,14 @@ source_triangles = 0
 included_material_names = set()
 excluded_material_names = set()
 
+# Rigid first-person canonicalization landmarks.  The source GLB can arrive
+# with any object/armature orientation, so derive weapon forward from its own
+# semantic parts instead of compensating with runtime Euler angles.
+barrel_sum = Vector((0.0, 0.0, 0.0))
+barrel_count = 0
+stock_sum = Vector((0.0, 0.0, 0.0))
+stock_count = 0
+
 for source_obj in mesh_objects:
     mesh = source_obj.data
     mesh.calc_loop_triangles()
@@ -259,15 +267,18 @@ for source_obj in mesh_objects:
         included_material_names.add(mat_name)
         source_triangles += 1
 
+        material_lower = mat_name.lower()
+
         for loop_index in tri.loops:
             vertex_index = mesh.loops[loop_index].vertex_index
             p = to_xziel(world @ mesh.vertices[vertex_index].co)
-            raw_min.x = min(raw_min.x, p.x)
-            raw_min.y = min(raw_min.y, p.y)
-            raw_min.z = min(raw_min.z, p.z)
-            raw_max.x = max(raw_max.x, p.x)
-            raw_max.y = max(raw_max.y, p.y)
-            raw_max.z = max(raw_max.z, p.z)
+
+            if "barrel" in material_lower:
+                barrel_sum += p
+                barrel_count += 1
+            if "stock" in material_lower:
+                stock_sum += p
+                stock_count += 1
 
     static_sources.append((source_obj, mesh, world))
 
@@ -284,6 +295,71 @@ for required in ("body", "barrel", "stock", "magazine"):
             f"weapon export missing required material family {required!r}: "
             f"{sorted(included_material_names)!r}"
         )
+
+if barrel_count <= 0 or stock_count <= 0:
+    raise RuntimeError(
+        f"weapon canonicalization landmarks missing: "
+        f"barrel_count={barrel_count} stock_count={stock_count}"
+    )
+
+barrel_center = barrel_sum / float(barrel_count)
+stock_center = stock_sum / float(stock_count)
+canonical_forward = barrel_center - stock_center
+if canonical_forward.length <= 1e-6:
+    raise RuntimeError("weapon stock-to-barrel forward axis collapsed")
+canonical_forward.normalize()
+
+# XZIEL source-space +Y is nominal up. Remove any component parallel to the
+# rifle forward axis, then rebuild an orthonormal right/up/forward basis.
+nominal_up = Vector((0.0, 1.0, 0.0))
+canonical_up = nominal_up - canonical_forward * nominal_up.dot(canonical_forward)
+if canonical_up.length <= 1e-5:
+    nominal_up = Vector((0.0, 0.0, 1.0))
+    canonical_up = nominal_up - canonical_forward * nominal_up.dot(canonical_forward)
+if canonical_up.length <= 1e-5:
+    raise RuntimeError("weapon canonical up axis is degenerate")
+canonical_up.normalize()
+
+canonical_right = canonical_up.cross(canonical_forward)
+if canonical_right.length <= 1e-5:
+    raise RuntimeError("weapon canonical right axis is degenerate")
+canonical_right.normalize()
+canonical_up = canonical_forward.cross(canonical_right)
+canonical_up.normalize()
+
+def canonicalize(value):
+    return Vector((
+        value.dot(canonical_right),
+        value.dot(canonical_up),
+        value.dot(canonical_forward),
+    ))
+
+# Recompute weapon-only bounds after semantic canonicalization.  This makes
+# +Z point from stock toward muzzle regardless of imported GLB/armature axes.
+raw_min = Vector((1e30, 1e30, 1e30))
+raw_max = Vector((-1e30, -1e30, -1e30))
+for source_obj, mesh, world in static_sources:
+    mesh.calc_loop_triangles()
+    for tri in mesh.loop_triangles:
+        poly = mesh.polygons[tri.polygon_index]
+        mat = (
+            source_obj.material_slots[poly.material_index].material
+            if poly.material_index < len(source_obj.material_slots)
+            else None
+        )
+        if not weapon_material_allowed(mat):
+            continue
+        for loop_index in tri.loops:
+            vertex_index = mesh.loops[loop_index].vertex_index
+            p = canonicalize(
+                to_xziel(world @ mesh.vertices[vertex_index].co)
+            )
+            raw_min.x = min(raw_min.x, p.x)
+            raw_min.y = min(raw_min.y, p.y)
+            raw_min.z = min(raw_min.z, p.z)
+            raw_max.x = max(raw_max.x, p.x)
+            raw_max.y = max(raw_max.y, p.y)
+            raw_max.z = max(raw_max.z, p.z)
 
 raw_dimensions = raw_max - raw_min
 raw_longest = max(
@@ -343,12 +419,16 @@ for source_obj, mesh, world in static_sources:
         for loop_index in tri.loops:
             vertex_index = mesh.loops[loop_index].vertex_index
             p = (
-                to_xziel(
-                    world @ mesh.vertices[vertex_index].co
+                canonicalize(
+                    to_xziel(
+                        world @ mesh.vertices[vertex_index].co
+                    )
                 ) - anchor
             ) * model_scale
-            n = to_xziel(
-                normal_matrix @ mesh.vertices[vertex_index].normal
+            n = canonicalize(
+                to_xziel(
+                    normal_matrix @ mesh.vertices[vertex_index].normal
+                )
             )
             if n.length > 1e-8:
                 n.normalize()
@@ -454,12 +534,21 @@ sorted_dimensions = sorted(
 # A valid AKM checkpoint must occupy a rifle-like 3D envelope, not a line or
 # a tiny armature-origin cluster.  These gates intentionally fail the build
 # before a malformed model can ever reach the Android APK.
-if sorted_dimensions[0] < 0.85 or sorted_dimensions[0] > 0.95:
-    raise RuntimeError(f"weapon longest dimension invalid: {sorted_dimensions}")
-if sorted_dimensions[1] < 0.10 or sorted_dimensions[1] > 0.45:
-    raise RuntimeError(f"weapon second dimension invalid: {sorted_dimensions}")
-if sorted_dimensions[2] < 0.035 or sorted_dimensions[2] > 0.20:
-    raise RuntimeError(f"weapon thickness invalid: {sorted_dimensions}")
+if dimensions.z < 0.85 or dimensions.z > 0.95:
+    raise RuntimeError(
+        f"weapon canonical forward dimension invalid: "
+        f"{[dimensions.x, dimensions.y, dimensions.z]}"
+    )
+if dimensions.y < 0.10 or dimensions.y > 0.45:
+    raise RuntimeError(
+        f"weapon canonical height invalid: "
+        f"{[dimensions.x, dimensions.y, dimensions.z]}"
+    )
+if dimensions.x < 0.035 or dimensions.x > 0.20:
+    raise RuntimeError(
+        f"weapon canonical width invalid: "
+        f"{[dimensions.x, dimensions.y, dimensions.z]}"
+    )
 
 meaningful_batches = 0
 for batch in batches:
@@ -486,7 +575,17 @@ report = {
     "sourcePage": SOURCE_PAGE,
     "coordinateSpace": "viewmodel_y_up_z_forward",
     "readyPoseAction": None,
-    "exportMode": "rigid_weapon_rest_pose",
+    "exportMode": "rigid_weapon_rest_pose_canonical_xziel",
+    "canonicalForwardSource": [
+        float(canonical_forward.x),
+        float(canonical_forward.y),
+        float(canonical_forward.z),
+    ],
+    "canonicalUpSource": [
+        float(canonical_up.x),
+        float(canonical_up.y),
+        float(canonical_up.z),
+    ],
     "includedMaterials": sorted(included_material_names),
     "excludedMaterials": sorted(excluded_material_names),
     "meaningfulBatchCount": meaningful_batches,
@@ -525,7 +624,6 @@ print("XZIEL_WEAPON_XZSM_READY", json.dumps({
     "unitNormalizationScale": model_scale,
     "animations": animations,
     "readyPose": None,
-    "exportMode": "rigid_weapon_rest_pose",
-    "meaningfulBatches": meaningful_batches,
+    "exportMode": "rigid_weapon_rest_pose_canonical_xziel",    "meaningfulBatches": meaningful_batches,
     "modelBytes": model_path.stat().st_size,
 }))
