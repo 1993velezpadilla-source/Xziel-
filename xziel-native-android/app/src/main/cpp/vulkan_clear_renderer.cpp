@@ -4944,18 +4944,19 @@ bool VulkanClearRenderer::recordDrawCommand(
             1.0f);
 
     clears[0].color.float32[0] =
-        0.006f +
-        pulse * 0.006f +
-        lightning * 0.18f;
+        0.004f +
+        pulse * 0.002f +
+        lightning * 0.14f;
 
     clears[0].color.float32[1] =
-        0.004f +
-        lightning * 0.22f;
+        0.009f +
+        pulse * 0.003f +
+        lightning * 0.18f;
 
     clears[0].color.float32[2] =
-        0.010f +
-        pulse * 0.010f +
-        lightning * 0.30f;
+        0.016f +
+        pulse * 0.005f +
+        lightning * 0.24f;
     clears[0].color.float32[3] =
         1.0f;
 
