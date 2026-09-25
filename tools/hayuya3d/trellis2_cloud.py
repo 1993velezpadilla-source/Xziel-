@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import json
 import shutil
 import time
 from pathlib import Path
@@ -45,6 +46,15 @@ def _call_named(client: Client, endpoint: str, spec: dict, values: dict[str,Any]
     )
 
 
+def _is_zerogpu_quota(exc: Exception) -> bool:
+    text=f"{type(exc).__name__}: {exc}".lower()
+    return (
+        "zerogpu quota" in text
+        or "exceeded your zerogpu quota" in text
+        or "more quota" in text and "hugging face token" in text
+    )
+
+
 def _retryable(exc: Exception) -> bool:
     text=f"{type(exc).__name__}: {exc}".lower()
     hard=(
@@ -78,6 +88,15 @@ def _retry_call(
             return result
         except Exception as exc:
             last=exc
+            # Quota exhaustion cannot recover by sleeping for seconds; the
+            # provider reports an hours-long reset. Fail fast so the caller can
+            # preserve state and choose another execution path.
+            if _is_zerogpu_quota(exc):
+                print(
+                    f"::warning::TRELLIS.2 {stage} blocked by ZeroGPU quota; "
+                    "skipping useless short retries"
+                )
+                raise
             if attempt>=attempts or not _retryable(exc):
                 raise
             delay=delays[min(attempt-1,len(delays)-1)]
@@ -144,6 +163,58 @@ def _state_from_generation(result):
             if state is not None:
                 return state
     return None
+
+
+def _save_generation_checkpoint(result, state: dict, output: Path) -> dict:
+    """Persist TRELLIS.2 latent state + preview before GLB extraction."""
+    checkpoint={}
+    try:
+        import numpy as np
+        state_path=output.with_suffix(".state.npz")
+        payload={}
+        for key,value in state.items():
+            if isinstance(value,np.ndarray):
+                payload[key]=value
+            elif isinstance(value,(int,float,bool,str)):
+                payload[key]=np.asarray(value)
+        if payload:
+            np.savez_compressed(state_path,**payload)
+            checkpoint["state_npz"]=str(state_path)
+            checkpoint["state_bytes"]=state_path.stat().st_size
+    except Exception as exc:
+        checkpoint["state_error"]=f"{type(exc).__name__}: {exc}"
+
+    try:
+        preview=None
+        def find_preview(value):
+            nonlocal preview
+            if preview is not None:
+                return
+            if isinstance(value,str) and (
+                "previewer-container" in value or "<img" in value
+            ):
+                preview=value
+                return
+            if isinstance(value,dict):
+                for v in value.values():
+                    find_preview(v)
+            elif isinstance(value,(list,tuple)):
+                for v in value:
+                    find_preview(v)
+        find_preview(result)
+        if preview:
+            preview_path=output.with_suffix(".preview.html")
+            preview_path.write_text(preview,encoding="utf-8")
+            checkpoint["preview_html"]=str(preview_path)
+            checkpoint["preview_bytes"]=preview_path.stat().st_size
+    except Exception as exc:
+        checkpoint["preview_error"]=f"{type(exc).__name__}: {exc}"
+
+    meta_path=output.with_suffix(".generation.json")
+    meta_path.write_text(json.dumps(checkpoint,indent=2)+"\n",encoding="utf-8")
+    checkpoint["metadata"]=str(meta_path)
+    print("HAYUYA_TRELLIS2_GENERATION_CHECKPOINT",json.dumps(checkpoint,separators=(",",":")))
+    return checkpoint
 
 
 def generate(
@@ -269,6 +340,9 @@ def generate(
             )
         )
     state=_state_from_generation(generation)
+    if state is None:
+        raise RuntimeError("TRELLIS.2 generation returned no latent state")
+    checkpoint=_save_generation_checkpoint(generation,state,output)
 
     extract_ep,extract_spec=_endpoint(named,"/extract_glb","extract_glb")
     texture_size=4096 if quality in {"high","ultra"} else 2048
@@ -316,6 +390,7 @@ def generate(
         "space":space,
         "resolution":int(resolution),
         "resolution_fallbacks":resolution_failures,
+        "generation_checkpoint":checkpoint,
         "texture_size":texture_size,
         "faces_target":faces,
         "bytes":len(data),
