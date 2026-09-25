@@ -7,6 +7,8 @@ import math
 import re
 from pathlib import Path
 
+from judge_model_provenance import model_provenance
+
 
 MODEL_ID="TianheWu/VisualQuality-R1-7B"
 QUESTION=(
@@ -104,6 +106,7 @@ def run(rows:list[tuple[str,Path]],model_id:str)->dict:
     return {
         "schema":1,
         "model":model_id,
+        "provenance":model_provenance(model_id,model),
         "device":device,
         "ready":len(evidence)==len(rows) and bool(evidence),
         "images":evidence,
