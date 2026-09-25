@@ -1,0 +1,2 @@
+Temporary CI trigger after packaging UI batch SPIR-V assets.
+Engine HEAD: 87cf0d800736f57e80febe05109a0e31d1406079
