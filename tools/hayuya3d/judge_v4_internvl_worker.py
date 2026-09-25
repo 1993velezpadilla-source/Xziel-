@@ -5,6 +5,8 @@ import argparse
 import json
 from pathlib import Path
 
+from judge_model_provenance import model_provenance
+
 
 PROMPT = r"""
 You are HAYUYA's final production 3D character QA judge. The supplied board is
@@ -152,6 +154,7 @@ def main() -> int:
     report = {
         "schema": 1,
         "model": a.model,
+        "provenance": model_provenance(a.model, pipe.model),
         "device": "cuda" if torch.cuda.is_available() else "cpu",
         "passes": passes,
     }
