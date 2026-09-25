@@ -916,6 +916,16 @@ def main() -> int:
         help="Judge v3 DINOv2 appearance scoring policy; auto falls back to v2 if evaluator is not bootstrapped",
     )
     parser.add_argument(
+        "--judge-v4",
+        choices=["off", "auto", "required"],
+        default="auto",
+        help=(
+            "fail-closed final visual acceptance using 24-view evidence, "
+            "Q-ReAlign-Pro-9B, dense face geometry, DreamSim and InternVL3.5; "
+            "auto is REQUIRED for Monster/Ultra characters"
+        ),
+    )
+    parser.add_argument(
         "--semantic-anatomy",
         choices=["off","auto","required"],
         default="auto",
@@ -962,6 +972,8 @@ def main() -> int:
     mode = args.mode
     if mode == "auto":
         mode = infer_asset_mode(geometry_inputs[0])
+    if args.judge_v4 == "required" and mode != "character":
+        parser.error("--judge-v4 required needs --mode character or a character-path input")
     if args.character_specialist != "off" and not args.allow_restricted:
         parser.error("--character-specialist requires --allow-restricted because PSHuman includes separately licensed third-party human-model components")
     if args.character_specialist == "required" and mode != "character":
@@ -1354,6 +1366,43 @@ def main() -> int:
             normal_support_images=normal_support_images,
             normal_support_weight=0.06,
         )
+        if mode=="character" and args.profile in {"monster","ultra"}:
+            from qa import candidate_rank_key, character_quality_evidence_complete
+            for item in result:
+                hard_reasons=[]
+                if not character_quality_evidence_complete(
+                    item,
+                    identity_required=bool(detail_inputs),
+                ):
+                    hard_reasons.append("incomplete_character_quality_evidence")
+                structure=getattr(item,"head_structure_score",None)
+                try:
+                    structure_ok=(
+                        structure is not None
+                        and math.isfinite(float(structure))
+                        and float(structure)>=45.0
+                    )
+                except (TypeError,ValueError):
+                    structure_ok=False
+                if not structure_ok:
+                    hard_reasons.append(
+                        f"head_structure_below_gate:{structure}"
+                    )
+                if hard_reasons:
+                    item.valid=False
+                    item.notes.append(
+                        "HARD CHARACTER PROMOTION VETO: "
+                        + ";".join(hard_reasons)
+                    )
+            result=sorted(
+                result,
+                key=lambda item:candidate_rank_key(
+                    item,
+                    mode=mode,
+                    identity_required=bool(detail_inputs),
+                ),
+                reverse=True,
+            )
         for position, item in enumerate(result, start=1):
             print(
                 "HAYUYA_JUDGE_SCORE "
@@ -2309,6 +2358,64 @@ def main() -> int:
             if args.gameprep == "required":
                 raise
 
+    judge_v4_result = None
+    judge_v4_failure = None
+    judge_v4_required = bool(
+        mode=="character"
+        and (
+            args.judge_v4=="required"
+            or (
+                args.judge_v4=="auto"
+                and args.profile in {"monster","ultra"}
+            )
+        )
+    )
+    should_run_judge_v4 = bool(
+        mode=="character"
+        and args.judge_v4!="off"
+        and (
+            judge_v4_required
+            or args.profile in {"game","monster","ultra"}
+        )
+    )
+    if should_run_judge_v4:
+        try:
+            if gameprep_result is None:
+                raise RuntimeError(
+                    "Judge v4 requires GamePrep turntable evidence"
+                )
+            from judge_v4 import run_judge_v4
+            judge_v4_result=run_judge_v4(
+                final_glb=final_glb,
+                source_images=geometry_inputs,
+                detail_images=detail_inputs,
+                turntable_frames=[
+                    Path(p) for p in gameprep_result.turntable_frames
+                ],
+                out_dir=job_dir / "judge_v4",
+                policy=("required" if judge_v4_required else args.judge_v4),
+            )
+            print(
+                "HAYUYA_JUDGE_V4_READY "
+                f"passed={str(bool(judge_v4_result.passed)).lower()} "
+                f"hard_failures={len(judge_v4_result.hard_fail_reasons)} "
+                f"report={job_dir / 'judge_v4' / 'judge_v4.json'}"
+            )
+            if judge_v4_required and not judge_v4_result.passed:
+                raise RuntimeError(
+                    "Judge v4 rejected final character: "
+                    + ";".join(judge_v4_result.hard_fail_reasons[:16])
+                )
+        except Exception as exc:
+            judge_v4_failure=f"{type(exc).__name__}: {exc}"
+            print(
+                f"HAYUYA_JUDGE_V4_FAILED {judge_v4_failure}",
+                file=sys.stderr,
+            )
+            traceback.print_exc()
+            if judge_v4_required:
+                raise
+
     portable_pack_result = None
     portable_pack_failure = None
     should_try_portable_pack = (
@@ -2519,6 +2626,11 @@ def main() -> int:
         "portable_pack_failure": portable_pack_failure,
         "qa_package": asdict(qa_package_result) if qa_package_result is not None else None,
         "qa_package_failure": qa_package_failure,
+        "judge_v4": (
+            asdict(judge_v4_result)
+            if judge_v4_result is not None else None
+        ),
+        "judge_v4_failure": judge_v4_failure,
         "notes": [
             "The reference pool has no Hayuya-level photo-count cap.",
             "All unique full-object/geometry source photos participate in Judge v2.",
@@ -2537,7 +2649,8 @@ def main() -> int:
             "Mobile portability is resolved from the versioned HAYUYA knowledge base; the source-faithful Hero Master is preserved while GamePrep derives tier-budget LODs and texture ceilings.",
             "Portable Pack derives Flagship, High, Balanced and Compatibility independently from the same Hero Master; lower tiers never become the source for higher tiers.",
             "Judge v2 combines production mesh health with source-image silhouette agreement.",
-            "Judge v3 auto adds DINOv2 appearance similarity when the pinned evaluator is bootstrapped; otherwise it falls back to v2.",
+            "Judge v3 remains a candidate-ranking signal; Monster/Ultra character promotion is now vetoed when face-quality evidence or gross head structure is incomplete.",
+            "Judge v4 is the fail-closed final visual acceptance layer for Monster/Ultra characters: 24 fixed turntable views, Q-ReAlign-Pro-9B quality scoring, MediaPipe dense face geometry, DreamSim reference similarity and two order-swapped InternVL3.5 visual critiques. No weighted average can rescue a critical V4 failure.",
             "Composite Champion Planner keeps the strongest global finalist as the canonical base, records regional winners across face identity/geometry/texel/detail/material/appearance, and never overwrites originals.",
             "Regional transfers are promotion-gated challengers: unsafe face/body geometry stays deferred until wrap/seam/skin-weight proof exists, while safer texture/material transfers can be attempted and must re-enter the complete Judge.",
             "Next judge stage adds normal/depth agreement, calibrated camera estimation and local-detail matching.",
