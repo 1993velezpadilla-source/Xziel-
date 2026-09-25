@@ -23,7 +23,7 @@ class SigLIP2Report:
     ready: bool
     candidates: list[CandidateSimilarity]
     warnings: list[str]
-    method: str = "siglip2-image-embedding-fidelity-v1"
+    method: str = "siglip2-giant-image-embedding-fidelity-v2"
 
 
 def _parse_named(items:list[str])->list[tuple[str,Path]]:
@@ -91,7 +91,7 @@ def main()->int:
     p=argparse.ArgumentParser(description="HAYUYA Judge v5 SigLIP2 source-fidelity eye.")
     p.add_argument("--source",type=Path,required=True)
     p.add_argument("--candidate",action="append",default=[],required=True,help="NAME=PATH")
-    p.add_argument("--model",default="google/siglip2-base-patch16-224")
+    p.add_argument("--model",default="google/siglip2-giant-opt-patch16-384")
     p.add_argument("--json",type=Path,required=True)
     a=p.parse_args()
     try:
