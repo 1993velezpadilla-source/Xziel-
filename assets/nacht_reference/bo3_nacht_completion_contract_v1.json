@@ -3,7 +3,7 @@
   "contractId": "bo3_nacht_android_one_to_one_v1",
   "releaseCandidate": false,
   "target": "BO3 Zombies Chronicles Nacht der Untoten gameplay-parity validation target for XZIEL Android",
-  "rule": "Nothing may be silently omitted. Every catalog weapon and every tracked gameplay system must have an explicit state; releaseCandidate=true is illegal while any required lane is incomplete.",
+  "rule": "Nothing may be silently omitted. Every catalog weapon and every tracked gameplay system must have an explicit state; releaseCandidate=true is illegal while any required lane is incomplete. A catalog identity or upgrade ID never counts as behavior/runtime completion.",
   "sources": {
     "weaponCatalog": "assets/weapons/xziel_weapon_catalog_v1.json",
     "globalMysteryBoxPool": "assets/weapons/xziel_mystery_box_pool_v1.json",
@@ -19,7 +19,8 @@
     "zombieSpawns": 21,
     "playerSpawns": 4,
     "maxPlayers": 4,
-    "roundSoakTarget": 100
+    "roundSoakTarget": 100,
+    "bo3StructuredBehaviorSpecCount": 8
   },
   "bo3ChroniclesFeatureReference": {
     "mysteryBox": true,
@@ -41,6 +42,7 @@
   "requiredWeaponLanes": [
     "identity",
     "source_stats",
+    "behavior_spec",
     "native_gameplay",
     "wall_buy",
     "mystery_box",
@@ -133,7 +135,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "ar_cqb": {
@@ -154,7 +157,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "ar_damage": {
@@ -175,7 +179,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "ar_famas": {
@@ -196,7 +201,8 @@
         "pack_a_punch_identity": "pending",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "ar_fastburst": {
@@ -217,7 +223,8 @@
         "pack_a_punch_identity": "pending",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "ar_garand": {
@@ -238,7 +245,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "ar_longburst": {
@@ -259,7 +267,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "ar_marksman": {
@@ -280,7 +289,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "cataloged"
       }
     },
     "ar_standard": {
@@ -301,7 +311,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "cataloged"
       }
     },
     "ar_stg44": {
@@ -322,7 +333,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "bowie_knife": {
@@ -343,7 +355,8 @@
         "pack_a_punch_identity": "pending",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "cymbal_monkey": {
@@ -364,7 +377,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "cymbal_monkey_upgraded": {
@@ -385,7 +399,8 @@
         "pack_a_punch_identity": "pending",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "frag_grenade": {
@@ -406,7 +421,8 @@
         "pack_a_punch_identity": "pending",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "hero_annihilator": {
@@ -427,7 +443,8 @@
         "pack_a_punch_identity": "pending",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "knife": {
@@ -448,7 +465,8 @@
         "pack_a_punch_identity": "pending",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "launcher_standard": {
@@ -469,7 +487,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "lmg_cqb": {
@@ -490,7 +509,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "lmg_heavy": {
@@ -511,7 +531,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "lmg_light": {
@@ -532,7 +553,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "lmg_rpk": {
@@ -553,7 +575,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "lmg_slowfire": {
@@ -574,7 +597,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "pistol_burst": {
@@ -595,7 +619,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "cataloged"
       }
     },
     "pistol_energy": {
@@ -616,7 +641,8 @@
         "pack_a_punch_identity": "pending",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "pistol_fullauto": {
@@ -637,7 +663,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "pistol_m1911": {
@@ -658,7 +685,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "pistol_shotgun": {
@@ -679,7 +707,8 @@
         "pack_a_punch_identity": "pending",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "pistol_standard": {
@@ -700,7 +729,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "ray_gun": {
@@ -721,7 +751,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "raygun_mark2": {
@@ -742,7 +773,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "shotgun_energy": {
@@ -763,7 +795,8 @@
         "pack_a_punch_identity": "pending",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "shotgun_fullauto": {
@@ -784,7 +817,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "shotgun_precision": {
@@ -805,7 +839,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "cataloged"
       }
     },
     "shotgun_pump": {
@@ -826,7 +861,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "cataloged"
       }
     },
     "shotgun_semiauto": {
@@ -847,7 +883,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "smg_ak74u": {
@@ -868,7 +905,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "smg_burst": {
@@ -889,7 +927,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "cataloged"
       }
     },
     "smg_capacity": {
@@ -910,7 +949,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "smg_fastfire": {
@@ -931,7 +971,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "smg_longrange": {
@@ -952,7 +993,8 @@
         "pack_a_punch_identity": "pending",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "smg_mp40": {
@@ -973,7 +1015,8 @@
         "pack_a_punch_identity": "pending",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "smg_mp40_1940": {
@@ -994,7 +1037,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "smg_standard": {
@@ -1015,7 +1059,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "cataloged"
       }
     },
     "smg_sten": {
@@ -1036,7 +1081,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "smg_versatile": {
@@ -1057,7 +1103,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "sniper_chargeshot": {
@@ -1078,7 +1125,8 @@
         "pack_a_punch_identity": "pending",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "sniper_fastbolt": {
@@ -1099,7 +1147,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "cataloged"
       }
     },
     "sniper_fastsemi": {
@@ -1120,7 +1169,8 @@
         "pack_a_punch_identity": "pending",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "sniper_powerbolt": {
@@ -1141,7 +1191,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "sniper_quickscope": {
@@ -1162,7 +1213,8 @@
         "pack_a_punch_identity": "pending",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     },
     "thundergun": {
@@ -1183,7 +1235,8 @@
         "pack_a_punch_identity": "cataloged",
         "pack_a_punch_runtime": "pending",
         "android_exposure": "pending",
-        "regression_test": "pending"
+        "regression_test": "pending",
+        "behavior_spec": "pending"
       }
     }
   }
