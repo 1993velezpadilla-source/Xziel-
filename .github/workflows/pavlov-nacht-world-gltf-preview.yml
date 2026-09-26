@@ -1,0 +1,155 @@
+name: Pavlov Nacht World glTF Preview
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - experiment/bo3-nacht-standalone-audit
+    paths:
+      - ".github/workflows/pavlov-nacht-world-gltf-preview.yml"
+
+jobs:
+  render-world:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y blender p7zip-full python3-numpy libegl1 libgl1 libgl1-mesa-dri libegl-mesa0
+          mkdir -p "$RUNNER_TEMP/steamcmd" "$RUNNER_TEMP/repak"
+          curl -fL --retry 6 --retry-delay 2 --retry-all-errors https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz -o "$RUNNER_TEMP/steamcmd.tgz"
+          tar -xzf "$RUNNER_TEMP/steamcmd.tgz" -C "$RUNNER_TEMP/steamcmd"
+          "$RUNNER_TEMP/steamcmd/steamcmd.sh" +quit || true
+          curl -fL --retry 5 https://github.com/trumank/repak/releases/download/v0.2.3/repak_cli-x86_64-unknown-linux-gnu.tar.xz -o "$RUNNER_TEMP/repak.tar.xz"
+          tar -xJf "$RUNNER_TEMP/repak.tar.xz" -C "$RUNNER_TEMP/repak"
+          REPAK_BIN=$(find "$RUNNER_TEMP/repak" -type f -name 'repak*' -perm -111 | head -1)
+          test -n "$REPAK_BIN"
+          echo "REPAK_BIN=$REPAK_BIN" >> "$GITHUB_ENV"
+
+      - name: Download and unpack public Pavlov Nacht
+        run: |
+          set +e
+          "$RUNNER_TEMP/steamcmd/steamcmd.sh" +login anonymous +workshop_download_item 555160 2755515831 validate +quit 2>&1 | tee "$RUNNER_TEMP/steamcmd.log"
+          ROOT=$(find "$HOME" "$RUNNER_TEMP" -type d -path '*/steamapps/workshop/content/555160/2755515831' -print -quit 2>/dev/null)
+          if [ -z "$ROOT" ]; then echo 'Workshop payload missing'; exit 1; fi
+          PAK="$ROOT/WindowsNoEditor.pak"
+          test -f "$PAK" || exit 1
+          mkdir -p "$RUNNER_TEMP/nacht-unpacked"
+          "$REPAK_BIN" unpack "$PAK" -o "$RUNNER_TEMP/nacht-unpacked"
+          echo "UNPACKED=$RUNNER_TEMP/nacht-unpacked" >> "$GITHUB_ENV"
+          exit 0
+
+      - name: Build CUE4Parse world exporter
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/worldexport"
+          cd "$RUNNER_TEMP/worldexport"
+          dotnet new console --framework net10.0 --force
+          dotnet add package CUE4Parse --version 1.2.2.202609
+          dotnet add package CUE4Parse-Conversion --version 1.2.2.202609
+          cat > Program.cs <<'CS'
+          using CUE4Parse.FileProvider;
+          using CUE4Parse.UE4.Versions;
+          using CUE4Parse.UE4.Assets.Exports.Engine;
+          using CUE4Parse_Conversion;
+          using CUE4Parse_Conversion.Options;
+
+          if (args.Length < 2) return 2;
+          var provider = new DefaultFileProvider(args[0], SearchOption.AllDirectories, true, new VersionContainer(EGame.GAME_UE4_21));
+          provider.Initialize(); provider.PostMount(); provider.LoadVirtualPaths();
+          var mapFile = provider.Files.Values.FirstOrDefault(f => f.IsUePackage && f.Path.EndsWith("/Nacht_de_Untoten.umap", StringComparison.OrdinalIgnoreCase));
+          if (mapFile == null) {
+              Console.Error.WriteLine("map package not indexed");
+              foreach (var f in provider.Files.Values.Where(f=>f.Path.Contains("Nacht_de_Untoten",StringComparison.OrdinalIgnoreCase)).Take(20)) Console.Error.WriteLine(f.Path);
+              return 3;
+          }
+          Console.WriteLine("map="+mapFile.Path);
+          var pkg=provider.LoadPackage(mapFile.Path);
+          var world=pkg.GetExports().OfType<UWorld>().FirstOrDefault();
+          if(world==null){Console.Error.WriteLine("UWorld export missing"); return 4;}
+          Console.WriteLine("world="+world.GetPathName());
+          var session=new ExportSession{MaxDegreeOfParallelism=Math.Max(1,Environment.ProcessorCount/2)};
+          session.Add(world);
+          var results=await session.RunAsync(args[1],new ExportOptions(meshFormat: EMeshFormat.Gltf2,exportMaterials:false));
+          Console.WriteLine("results="+results.Count);
+          foreach(var r in results.Take(50)) Console.WriteLine(r);
+          return results.Count>0 ? 0 : 5;
+          CS
+          dotnet build -c Release
+
+      - name: Export composed UWorld
+        run: |
+          set +e
+          mkdir -p audit-out/world
+          dotnet "$RUNNER_TEMP/worldexport/bin/Release/net10.0/worldexport.dll" "$UNPACKED" audit-out/world 2>&1 | tee audit-out/world-export.log
+          RC=${PIPESTATUS[0]}
+          echo "$RC" > audit-out/world-export.rc
+          echo "world exporter rc=$RC"
+          find audit-out/world -type f -printf '%s %p\n' | sort -nr | head -100 | tee audit-out/world-files.txt
+          exit 0
+
+      - name: Render composed world glTF files
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/render_world.py" <<'PY'
+          import bpy, pathlib, json, os
+          from mathutils import Vector
+          root=pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'audit-out'/'world'
+          out=pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'audit-out'
+          bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete(use_global=False)
+          gltfs=list(root.rglob('*.gltf'))+list(root.rglob('*.glb'))
+          print('world glTF files',len(gltfs))
+          imported=[]
+          for f in gltfs:
+              before=set(bpy.data.objects)
+              try: bpy.ops.import_scene.gltf(filepath=str(f))
+              except Exception as e: print('IMPORT_FAIL',f,e); continue
+              imported += [o for o in bpy.data.objects if o not in before and o.type=='MESH']
+          if not imported:
+              print('NO_MESH_OBJECTS')
+              raise SystemExit(0)
+          for o in list(bpy.data.objects):
+              if o.type in {'LIGHT','CAMERA'}: bpy.data.objects.remove(o,do_unlink=True)
+          mat=bpy.data.materials.new('Neutral'); mat.diffuse_color=(0.45,0.45,0.45,1)
+          for o in imported:
+              if o.data: o.data.materials.clear(); o.data.materials.append(mat)
+          mins=Vector((1e30,1e30,1e30)); maxs=Vector((-1e30,-1e30,-1e30))
+          for o in imported:
+              for c in o.bound_box:
+                  p=o.matrix_world@Vector(c)
+                  for i in range(3): mins[i]=min(mins[i],p[i]); maxs[i]=max(maxs[i],p[i])
+          center=(mins+maxs)*0.5; span=maxs-mins; maxspan=max(span)
+          scene=bpy.context.scene; scene.render.engine='BLENDER_WORKBENCH'; scene.display.shading.light='STUDIO'; scene.display.shading.show_shadows=True; scene.display.shading.show_cavity=True; scene.display.shading.cavity_type='BOTH'; scene.display.shading.color_type='MATERIAL'
+          scene.render.resolution_x=1400; scene.render.resolution_y=1000; scene.render.resolution_percentage=100; scene.render.image_settings.file_format='PNG'
+          camd=bpy.data.cameras.new('Camera'); cam=bpy.data.objects.new('Camera',camd); bpy.context.collection.objects.link(cam); scene.camera=cam; camd.type='ORTHO'; camd.clip_start=0.001
+          dist=maxspan*2.5+1; camd.clip_end=dist*5
+          def look(loc): cam.location=loc; cam.rotation_euler=(center-loc).to_track_quat('-Z','Y').to_euler()
+          views=[('world_top.png',center+Vector((0,0,dist)),max(span.x,span.y)*1.1),('world_front.png',center+Vector((0,-dist,0)),max(span.x,span.z)*1.1),('world_side.png',center+Vector((dist,0,0)),max(span.y,span.z)*1.1),('world_iso.png',center+Vector((dist,-dist,dist*.72)),maxspan*1.45)]
+          for name,loc,scale in views:
+              look(loc); camd.ortho_scale=max(scale,1); scene.render.filepath=str(out/name); bpy.ops.render.render(write_still=True)
+          report={'gltf_files':len(gltfs),'mesh_objects':len(imported),'bounds_min':list(mins),'bounds_max':list(maxs),'span':list(span),'renders':[v[0] for v in views]}
+          (out/'world-preview-report.json').write_text(json.dumps(report,indent=2)+'\n'); print(json.dumps(report,indent=2))
+          PY
+          set +e
+          blender -b --python "$RUNNER_TEMP/render_world.py" 2>&1 | tee audit-out/world-render.log
+          exit 0
+
+      - name: Upload world audit only
+        uses: actions/upload-artifact@v4
+        with:
+          name: pavlov-nacht-world-gltf-preview
+          path: |
+            audit-out/world-export.log
+            audit-out/world-export.rc
+            audit-out/world-files.txt
+            audit-out/world-preview-report.json
+            audit-out/world_top.png
+            audit-out/world_front.png
+            audit-out/world_side.png
+            audit-out/world_iso.png
+          if-no-files-found: warn
+          retention-days: 7
