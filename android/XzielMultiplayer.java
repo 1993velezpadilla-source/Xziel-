@@ -78,6 +78,7 @@ public final class XzielMultiplayer {
     private volatile WebSocket gameSocket;
     private volatile WebSocket matchSocket;
     private volatile AlertDialog activeDialog;
+    private volatile AlertDialog matchmakingDialog;
 
     private volatile boolean matchStarted;
     private volatile boolean hostPreparing;
@@ -342,8 +343,9 @@ public final class XzielMultiplayer {
         ));
 
         TextView detail = new TextView(activity);
-        detail.setText(players == 2 ? "YOU + 1" :
-            players == 3 ? "YOU + 2" : "YOU + 3");
+        detail.setText(players == 2 ? "YOU + 1  •  FIND MATCH" :
+            players == 3 ? "YOU + 2  •  FIND MATCH" :
+            "YOU + 3  •  FIND MATCH");
         detail.setTextColor(accent);
         detail.setTextSize(11);
         detail.setGravity(Gravity.CENTER);
@@ -470,7 +472,7 @@ public final class XzielMultiplayer {
             "&queue=" + queue;
         Request request = new Request.Builder().url(wsUrl).build();
 
-        toast("Searching public match...");
+        showMatchmakingSearchDialog();
         matchSocket = http.newWebSocket(request, new WebSocketListener() {
             @Override
             public void onMessage(WebSocket webSocket, String text) {
@@ -481,8 +483,7 @@ public final class XzielMultiplayer {
                         int queued = message.optInt("queued", 1);
                         int needed = message.optInt("needed", targetPlayers);
                         targetPlayers = needed;
-                        toast("Searching " + prettyMap(selectedMap) + " " +
-                            squadLabel(targetPlayers) + "... " + queued + "/" + needed);
+                        updateMatchmakingStatus(queued, needed);
                         return;
                     }
                     if ("match_found".equals(type)) {
@@ -490,9 +491,11 @@ public final class XzielMultiplayer {
                         selectedMap = message.optString("map", DEFAULT_MAP);
                         targetPlayers = message.optInt("targetPlayers", targetPlayers);
                         matchSocket = null;
+                        matchmakingDialog = null;
+                        dismissTrackedDialog();
                         try { webSocket.close(1000, "matched"); } catch (Exception ignored) {}
                         if (code.length() == 6) {
-                            toast("Match found");
+                            toast("Match found - entering room");
                             joinRoom(code, true);
                         }
                     }
@@ -503,6 +506,8 @@ public final class XzielMultiplayer {
             public void onFailure(WebSocket webSocket, Throwable t, Response response) {
                 if (matchSocket == webSocket) {
                     matchSocket = null;
+                    matchmakingDialog = null;
+                    dismissTrackedDialog();
                     toast("Public matchmaking connection failed");
                 }
             }
@@ -904,9 +909,44 @@ public final class XzielMultiplayer {
         pendingNativeCommand.set("");
     }
 
+    private void showMatchmakingSearchDialog() {
+        activity.runOnUiThread(() -> {
+            AlertDialog dialog = new AlertDialog.Builder(activity)
+                .setTitle("FIND MATCH - " + squadLabel(targetPlayers))
+                .setMessage(
+                    "SEARCHING...\n" +
+                    prettyMap(selectedMap) + "\n" +
+                    "PLAYERS 1/" + targetPlayers
+                )
+                .setNegativeButton("CANCEL SEARCH", (d, w) -> {
+                    cancelMatchmaking();
+                    showPublicSquadSizeMenu();
+                })
+                .create();
+            dialog.setCancelable(false);
+            dialog.setCanceledOnTouchOutside(false);
+            matchmakingDialog = dialog;
+            showTracked(dialog);
+        });
+    }
+
+    private void updateMatchmakingStatus(int queued, int needed) {
+        activity.runOnUiThread(() -> {
+            AlertDialog dialog = matchmakingDialog;
+            if (dialog == null || !dialog.isShowing()) return;
+            dialog.setTitle("FIND MATCH - " + squadLabel(needed));
+            dialog.setMessage(
+                "SEARCHING...\n" +
+                prettyMap(selectedMap) + "\n" +
+                "PLAYERS " + Math.max(1, queued) + "/" + needed
+            );
+        });
+    }
+
     private void cancelMatchmaking() {
         WebSocket socket = matchSocket;
         matchSocket = null;
+        matchmakingDialog = null;
         if (socket != null) {
             try { socket.close(1000, "cancel"); } catch (Exception ignored) {}
         }
