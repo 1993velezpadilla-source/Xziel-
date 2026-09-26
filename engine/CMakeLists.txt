@@ -9,6 +9,8 @@ add_library(xziel_engine STATIC
     src/mobile_controls.cpp
     src/fps_player.cpp
     src/weapon.cpp
+    src/purchase_system.cpp
+    src/nacht_reference.cpp
     src/hitscan.cpp
     src/zombie_actor.cpp
     src/player_vitals.cpp
@@ -71,6 +73,16 @@ if(XZIEL_ENGINE_BUILD_TESTS)
     target_link_libraries(xziel_weapon_smoke PRIVATE xziel_engine)
     target_compile_features(xziel_weapon_smoke PRIVATE cxx_std_20)
     add_test(NAME xziel_weapon_smoke COMMAND xziel_weapon_smoke)
+
+    add_executable(xziel_purchase_system_smoke tests/purchase_system_smoke.cpp)
+    target_link_libraries(xziel_purchase_system_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_purchase_system_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_purchase_system_smoke COMMAND xziel_purchase_system_smoke)
+
+    add_executable(xziel_nacht_reference_smoke tests/nacht_reference_smoke.cpp)
+    target_link_libraries(xziel_nacht_reference_smoke PRIVATE xziel_engine)
+    target_compile_features(xziel_nacht_reference_smoke PRIVATE cxx_std_20)
+    add_test(NAME xziel_nacht_reference_smoke COMMAND xziel_nacht_reference_smoke)
 
     add_executable(xziel_hitscan_smoke tests/hitscan_smoke.cpp)
     target_link_libraries(xziel_hitscan_smoke PRIVATE xziel_engine)
