@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "poolId": "nacht_prototype_box_pool_v1",
+  "mapId": "xziel_nacht_bo3",
+  "policy": "exact_zm_prototype_in_box_membership",
+  "catalog": "assets/weapons/xziel_weapon_catalog_v1.json",
+  "generated": true,
+  "sourceAuthority": {
+    "repository": "ate47/bo3-source",
+    "path": "gamedata/weapons/zm/zm_prototype_weapons.csv",
+    "blobSha": "1700efd635d77951d64ad8feec1cfc2ed1a16e2b"
+  },
+  "weaponIds": [
+    "ar_accurate",
+    "ar_cqb",
+    "ar_damage",
+    "ar_garand",
+    "ar_longburst",
+    "ar_marksman",
+    "ar_standard",
+    "ar_stg44",
+    "cymbal_monkey",
+    "hero_annihilator",
+    "launcher_standard",
+    "lmg_cqb",
+    "lmg_heavy",
+    "lmg_light",
+    "lmg_rpk",
+    "lmg_slowfire",
+    "pistol_fullauto",
+    "ray_gun",
+    "raygun_mark2",
+    "shotgun_fullauto",
+    "shotgun_precision",
+    "shotgun_pump",
+    "shotgun_semiauto",
+    "smg_ak74u",
+    "smg_burst",
+    "smg_capacity",
+    "smg_fastfire",
+    "smg_mp40_1940",
+    "smg_standard",
+    "smg_sten",
+    "smg_versatile",
+    "sniper_fastbolt",
+    "sniper_powerbolt",
+    "thundergun"
+  ],
+  "validation": {
+    "generatedEligibleCount": 34
+  }
+}
