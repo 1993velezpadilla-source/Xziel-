@@ -89,5 +89,69 @@ if "Online co-op keeps a visible fire-ready pose while ADS is held" not in text:
         raise SystemExit("Could not find third-person idle animation anchor")
     text = text.replace(idle_old, idle_new, 1)
 
+# Mystery Box co-op pickup sharing.
+# Stock NZ:P only lets the player who paid collect the revealed gun. Online
+# co-op keeps the roll/animation authoritative on the host, but once the gun is
+# fully presented any living player may take it. First successful pickup wins,
+# then the authoritative box closes for everyone.
+mbox_path = root / "source" / "server" / "entities" / "mystery_box.qc"
+mbox = mbox_path.read_text(encoding="utf-8")
+
+owner_prompt = '''	if (self.boxstatus == 2 && self.owner == other) {
+		other.useprint_touch = GetWeaponName(self.boxweapon.weapon, -1);
+		Player_UseprintWithWait(other, self, self.useprint_index_2, 0);
+	}
+'''
+shared_prompt = '''	if (self.boxstatus == 2 && self.owner != world) {
+		other.useprint_touch = GetWeaponName(self.boxweapon.weapon, -1);
+		Player_UseprintWithWait(other, self, self.useprint_index_2, 0);
+	}
+'''
+if "First successful co-op pickup wins" not in mbox:
+    if owner_prompt not in mbox:
+        raise SystemExit("Could not find Mystery Box owner-only useprint anchor")
+    mbox = mbox.replace(owner_prompt, shared_prompt, 1)
+
+    owner_take = '''		if (self.boxstatus == 2)
+		{
+			if (self.owner == other)
+			{
+				other.reload_delay = 0;
+				self.owner = world;
+				Sound_PlaySound(self, "sounds/misc/ching.wav", SOUND_TYPE_ENV_CHING, SOUND_PRIORITY_PLAYALWAYS);
+				tempe = self;
+				self = other;
+
+				Weapon_GiveWeapon(tempe.boxweapon.weapon, 0, 0, 0);
+				self = tempe;
+				MBOX_FreeEnt(self.boxweapon);
+				MBOX_PlayCloseAnimation();
+			}
+		}
+'''
+    shared_take = '''		if (self.boxstatus == 2 && self.owner != world)
+		{
+			/* First successful co-op pickup wins. The buyer paid for the spin,
+			   but any living teammate may claim the revealed weapon. This runs
+			   entirely on SSQC, so weapon ownership, box close animation and
+			   pickup sound replicate from the authoritative host. */
+			other.reload_delay = 0;
+			self.owner = world;
+			Sound_PlaySound(self, "sounds/misc/ching.wav", SOUND_TYPE_ENV_CHING, SOUND_PRIORITY_PLAYALWAYS);
+			tempe = self;
+			self = other;
+
+			Weapon_GiveWeapon(tempe.boxweapon.weapon, 0, 0, 0);
+			self = tempe;
+			MBOX_FreeEnt(self.boxweapon);
+			MBOX_PlayCloseAnimation();
+		}
+'''
+    if owner_take not in mbox:
+        raise SystemExit("Could not find Mystery Box owner-only pickup block")
+    mbox = mbox.replace(owner_take, shared_take, 1)
+
+mbox_path.write_text(mbox, encoding="utf-8")
+
 path.write_text(text, encoding="utf-8")
-print("Applied Xziel v0.26 online spawns + third-person ADS pose.")
+print("Applied Xziel v0.26 online spawns + ADS pose + shared Mystery Box pickup.")
