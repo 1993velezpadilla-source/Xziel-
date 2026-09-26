@@ -62,7 +62,9 @@
     "packAPunchStatstableCoverage": 30,
     "packAPunchAttachmentMappingCoverage": 26,
     "packAPunchBallisticStatsReady": 0,
-    "packAPunchNativeRuntimeReady": 0
+    "packAPunchNativeRuntimeReady": 0,
+    "packAPunchDedicatedNativeIdCount": 35,
+    "packAPunchReusedCatalogIdCount": 1
   },
   "bo3ChroniclesFeatureReference": {
     "mysteryBox": true,
@@ -205,7 +207,10 @@
         "model_audio_animation_presentation",
         "GobbleGum_grant_surface_integration",
         "Android_regression_tests"
-      ]
+      ],
+      "dedicatedNativeUpgradeIds": 35,
+      "reusedCatalogUpgradeIds": 1,
+      "nativeIdentityRegistryStatus": "ready"
     },
     "points_economy_scoring": {
       "state": "pending"
