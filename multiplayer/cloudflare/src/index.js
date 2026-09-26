@@ -591,6 +591,12 @@ export class GameRoom extends DurableObject {
     if (destinationSlot < 1 || destinationSlot > MAX_PLAYERS) return;
     if (destinationSlot === sender.slot) return;
 
+    // Gameplay is a strict server-authoritative star:
+    //   clients (2..4) -> host/server (1)
+    //   host/server (1) -> clients (2..4)
+    // Never relay gameplay directly from one non-host client to another.
+    if (sender.slot !== 1 && destinationSlot !== 1) return;
+
     const forwarded = new Uint8Array(bytes.length);
     forwarded.set(bytes);
     forwarded[4] = sender.slot;
