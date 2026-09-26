@@ -94,6 +94,7 @@ public final class XzielMultiplayer {
     private volatile int engineSignon;
     private volatile String engineMap = "";
     private volatile long lastConnectAttemptMs;
+    private volatile boolean gameSocketConnecting;
 
     private volatile boolean ciEvidenceMode;
     private volatile boolean ciReadySent;
@@ -626,48 +627,98 @@ public final class XzielMultiplayer {
         connectedSlots.clear();
         packetsByPort.clear();
 
-        String wsUrl = websocketBase() + "/game/" + code + "?playerId=" + playerId;
+        toast("Joining room " + code + "...");
+        openGameSocket();
+    }
+
+    private void openGameSocket() {
+        final String expectedRoom = roomCode;
+        if (expectedRoom.isEmpty() || gameSocket != null || gameSocketConnecting) {
+            return;
+        }
+
+        gameSocketConnecting = true;
+        String wsUrl = websocketBase() + "/game/" + expectedRoom +
+            "?playerId=" + playerId;
         Request request = new Request.Builder().url(wsUrl).build();
 
-        toast("Joining room " + code + "...");
-        gameSocket = http.newWebSocket(request, new WebSocketListener() {
+        Log.i(TAG, "GAME_CONNECT room=" + expectedRoom +
+            " playerId=" + playerId + " mode=" + roomMode);
+
+        final WebSocket socket = http.newWebSocket(request, new WebSocketListener() {
             @Override
             public void onOpen(WebSocket webSocket, Response response) {
+                gameSocketConnecting = false;
+
+                if (!expectedRoom.equals(roomCode)) {
+                    try { webSocket.close(1000, "stale_room"); } catch (Exception ignored) {}
+                    return;
+                }
+
+                gameSocket = webSocket;
+                Log.i(TAG, "GAME_SOCKET_OPEN room=" + expectedRoom +
+                    " status=" + response.code());
                 webSocket.send("{\"type\":\"hello\"}");
             }
 
             @Override
             public void onMessage(WebSocket webSocket, String text) {
-                handleControlMessage(text);
+                if (gameSocket == webSocket && expectedRoom.equals(roomCode)) {
+                    handleControlMessage(text);
+                }
             }
 
             @Override
             public void onMessage(WebSocket webSocket, ByteString bytes) {
-                handleGamePacket(bytes.toByteArray());
+                if (gameSocket == webSocket && expectedRoom.equals(roomCode)) {
+                    handleGamePacket(bytes.toByteArray());
+                }
             }
 
             @Override
             public void onFailure(WebSocket webSocket, Throwable t, Response response) {
+                gameSocketConnecting = false;
                 int status = response != null ? response.code() : 0;
-                if (!roomCode.isEmpty()) {
-                    if (status == 404) toast("Room not found");
-                    else if (status == 409) toast("Room is full");
-                    else toast("Online connection lost");
-                }
-                if (gameSocket == webSocket) {
-                    gameSocket = null;
-                    localSlot = 0;
+                if (gameSocket == webSocket) gameSocket = null;
+
+                Log.w(TAG, "GAME_SOCKET_FAILURE room=" + expectedRoom +
+                    " status=" + status + " retrying=" +
+                    expectedRoom.equals(roomCode), t);
+
+                if (expectedRoom.equals(roomCode) && !roomCode.isEmpty()) {
+                    if (status == 409) {
+                        toast("Room is full");
+                        leaveGameRoomOnly();
+                    } else {
+                        scheduleGameSocketReconnect(expectedRoom);
+                    }
                 }
             }
 
             @Override
             public void onClosed(WebSocket webSocket, int codeValue, String reason) {
-                if (gameSocket == webSocket) {
-                    gameSocket = null;
-                    localSlot = 0;
+                gameSocketConnecting = false;
+                if (gameSocket == webSocket) gameSocket = null;
+
+                Log.i(TAG, "GAME_SOCKET_CLOSED room=" + expectedRoom +
+                    " code=" + codeValue + " reason=" + reason);
+
+                if (expectedRoom.equals(roomCode) && !roomCode.isEmpty() &&
+                    codeValue != 1000) {
+                    scheduleGameSocketReconnect(expectedRoom);
                 }
             }
         });
+    }
+
+    private void scheduleGameSocketReconnect(String expectedRoom) {
+        activity.getWindow().getDecorView().postDelayed(() -> {
+            if (expectedRoom.equals(roomCode) && !roomCode.isEmpty() &&
+                gameSocket == null && !gameSocketConnecting) {
+                Log.i(TAG, "GAME_RECONNECT room=" + expectedRoom);
+                openGameSocket();
+            }
+        }, 1200);
     }
 
     private void handleControlMessage(String text) {
@@ -1171,6 +1222,7 @@ public final class XzielMultiplayer {
     }
 
     private void leaveGameRoomOnly() {
+        gameSocketConnecting = false;
         WebSocket socket = gameSocket;
         gameSocket = null;
         if (socket != null) {
