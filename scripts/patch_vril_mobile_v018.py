@@ -521,7 +521,21 @@ load_code = r'''    xziel_icon_fire    = Image_LoadImage("gfx/xziel/fire", IMAGE
     xziel_icon_threat  = Image_LoadImage("gfx/xziel/threat", IMAGE_PNG, 0, true, false);
 '''
 if 'Image_LoadImage("gfx/xziel/fire"' not in htext:
-    htext = must_replace(htext, load_anchor, load_anchor + load_code, "Xziel icon loading")
+    if load_anchor in htext:
+        htext = htext.replace(load_anchor, load_anchor + load_code, 1)
+    else:
+        # Upstream Vril occasionally changes indentation/spacing in HUD_Init.
+        # Anchor semantically on the hit-marker loader instead of requiring an
+        # exact whitespace match.
+        marker = 'hud_hitmarker = Image_LoadImage("gfx/hud/hit_marker"'
+        marker_pos = htext.find(marker)
+        if marker_pos < 0:
+            raise SystemExit("Could not find semantic HUD hit-marker loader for Xziel icons")
+        marker_end = htext.find("\n", marker_pos)
+        if marker_end < 0:
+            raise SystemExit("Could not find end of HUD hit-marker loader line")
+        marker_end += 1
+        htext = htext[:marker_end] + load_code + htext[marker_end:]
 
 style_helper = r'''
 static void Xziel_ControlStyle(const char *label1, const char *label2, float *scale, float *opacity)
