@@ -362,6 +362,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          python3 -m pip install --quiet --disable-pip-version-check pillow
 
           # SOURCE_LOCKED_ST_GILES_RUNTIME_AB_V1
           # This is an A/B candidate only. The exact 1K GLB texture remains
