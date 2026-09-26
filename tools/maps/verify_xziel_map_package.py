@@ -54,6 +54,8 @@ def verify(path) -> dict:
             fail("map maxPlayers out of range")
         if not isinstance(entry_world, str) or not entry_world.startswith("maps/") or not entry_world.endswith(".bsp"):
             fail("entryWorld invalid")
+        if entry_world != f"maps/{map_id}.bsp":
+            fail("entryWorld must equal maps/<mapId>.bsp")
 
         expected = {}
         for row in manifest.get("files", []):
