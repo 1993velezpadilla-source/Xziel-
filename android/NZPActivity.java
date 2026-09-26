@@ -30,6 +30,7 @@ import java.util.zip.ZipInputStream;
 public class NZPActivity extends SDLActivity {
     private static final String DATA_ARCHIVE = "nzp-data.zip";
     private static final String DATA_VERSION = "nzp-data.version";
+    private XzielMultiplayer multiplayer;
 
     /**
      * Keep SDL/Vril locked to sensor-landscape. Without this override SDL2
@@ -75,6 +76,7 @@ public class NZPActivity extends SDLActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        multiplayer = new XzielMultiplayer(this, BuildConfig.XZIEL_MULTIPLAYER_URL);
         applyImmersiveMode();
         getWindow().getDecorView().postDelayed(new Runnable() {
             @Override
@@ -109,6 +111,41 @@ public class NZPActivity extends SDLActivity {
         if (hasFocus) {
             applyImmersiveMode();
         }
+    }
+
+    public void xzielOpenMultiplayer() {
+        if (multiplayer != null) multiplayer.openMultiplayerMenu();
+    }
+
+    public boolean xzielOnlineActive() {
+        return multiplayer != null && multiplayer.isOnlineActive();
+    }
+
+    public boolean xzielGameSend(byte[] data, int destinationSlot,
+                                 int sourcePort, int destinationPort) {
+        return multiplayer != null &&
+            multiplayer.sendGameDatagram(data, destinationSlot, sourcePort, destinationPort);
+    }
+
+    public byte[] xzielGamePoll(int localPort) {
+        return multiplayer != null ? multiplayer.pollGameDatagram(localPort) : null;
+    }
+
+    public boolean xzielGameHasPacket(int localPort) {
+        return multiplayer != null && multiplayer.hasGameDatagram(localPort);
+    }
+
+    public String xzielOnlinePollCommand() {
+        return multiplayer != null ? multiplayer.pollNativeCommand() : "";
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (multiplayer != null) {
+            multiplayer.shutdown();
+            multiplayer = null;
+        }
+        super.onDestroy();
     }
 
     @Override
