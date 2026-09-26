@@ -13,6 +13,7 @@ import json
 from pathlib import Path
 
 DEFAULT_REFERENCE = Path("assets/nacht_reference/runtime_reference_v1.json")
+DEFAULT_WEAPON_SPECS = Path("assets/nacht_reference/bo3_weapon_specs_v1.json")
 DEFAULT_OUTPUT = Path("assets/nacht_reference/nzp_runtime_overlay.json")
 
 WEAPON_MAP = {
@@ -23,25 +24,44 @@ WEAPON_MAP = {
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--reference", type=Path, default=DEFAULT_REFERENCE)
+    ap.add_argument("--weapon-specs", type=Path, default=DEFAULT_WEAPON_SPECS)
     ap.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     args = ap.parse_args()
 
     ref = json.loads(args.reference.read_text(encoding="utf-8"))
+    weapon_specs = json.loads(args.weapon_specs.read_text(encoding="utf-8"))
+    specs_by_logical_id = {
+        spec["logicalItemId"]: spec
+        for spec in weapon_specs["weapons"]
+    }
 
     purchases = []
     for source in ref["purchases"]:
         item = dict(source)
         native = WEAPON_MAP.get(source["logicalItemId"])
         item["nzpWeaponConstant"] = native
-        item["integrationStatus"] = (
-            "native_ready" if native else "awaiting_native_weapon_definition"
-        )
+        if native:
+            item["integrationStatus"] = "native_ready"
+            item["weaponSpecId"] = None
+            item["notes"] = (
+                "Use stock NZ:P W_GRENADE purchase path; fills primary grenades to four."
+            )
+        else:
+            spec = specs_by_logical_id.get(source["logicalItemId"])
+            if not spec:
+                raise SystemExit(
+                    f"missing BO3 behavior spec for {source['logicalItemId']}"
+                )
+            item["integrationStatus"] = (
+                "behavior_spec_ready_native_implementation_pending"
+            )
+            item["weaponSpecId"] = spec["specId"]
+            item["notes"] = (
+                "Clean-room behavior spec is ready. Native XZIEL weapon code and "
+                "original/licensed presentation assets are still required; do not "
+                "substitute an unrelated NZ:P firearm."
+            )
         item["replicationPolicy"] = "server_authoritative"
-        item["notes"] = (
-            "Use stock NZ:P W_GRENADE purchase path; fills primary grenades to four."
-            if native == "W_GRENADE"
-            else "Do not substitute an unrelated NZ:P firearm. Implement the BO3 weapon definition first."
-        )
         purchases.append(item)
 
     barricades = []
@@ -80,6 +100,11 @@ def main() -> int:
             "nativeReadyPurchases": sum(
                 p["integrationStatus"] == "native_ready" for p in purchases
             ),
+            "behaviorSpecReadyPurchases": sum(
+                p["integrationStatus"]
+                == "behavior_spec_ready_native_implementation_pending"
+                for p in purchases
+            ),
             "blockedWeaponPurchases": sum(
                 p["integrationStatus"] != "native_ready" for p in purchases
             ),
@@ -101,6 +126,7 @@ def main() -> int:
     expected = {
         "purchaseCount": 9,
         "nativeReadyPurchases": 1,
+        "behaviorSpecReadyPurchases": 8,
         "blockedWeaponPurchases": 8,
         "doorCount": 3,
         "barricadeCount": 12,
