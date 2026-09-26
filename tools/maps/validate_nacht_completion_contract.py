@@ -30,6 +30,7 @@ PERK_CATALOG = ROOT / "assets/nacht_reference/bo3_perk_catalog_v1.json"
 POWERUP_CATALOG = ROOT / "assets/nacht_reference/bo3_powerup_catalog_v1.json"
 WEAPON_ID_REGISTRY = ROOT / "assets/weapons/xziel_weapon_id_registry_v1.json"
 RUNTIME_BOX_POOL = ROOT / "assets/weapons/xziel_mystery_box_runtime_pool_v1.json"
+RUNTIME_CAPABILITIES = ROOT / "assets/nacht_reference/xziel_zombies_runtime_capabilities_v1.json"
 
 ALLOWED_STATES = {
     "pending",
@@ -86,6 +87,7 @@ def main() -> int:
     powerup_catalog = load(POWERUP_CATALOG)
     weapon_id_registry = load(WEAPON_ID_REGISTRY)
     runtime_box_pool = load(RUNTIME_BOX_POOL)
+    runtime_capabilities = load(RUNTIME_CAPABILITIES)
 
     if contract.get("schemaVersion") != 1:
         fail("schemaVersion must be 1")
@@ -180,6 +182,41 @@ def main() -> int:
     natural_power = [row for row in power_entries if row.get("nachtNaturalDrop") is True]
     if len(natural_power) != 6 or baseline.get("nachtNaturalPowerupIdentityCount") != len(natural_power):
         fail("Nacht natural power-up identity count drift")
+
+    capability_perks = runtime_capabilities.get("perks", [])
+    capability_powerups = runtime_capabilities.get("powerups", [])
+    if len(capability_perks) != len(perk_entries):
+        fail("runtime perk capability coverage drift")
+    if len(capability_powerups) != len(power_entries):
+        fail("runtime power-up capability coverage drift")
+
+    reusable_perks = [row for row in capability_perks if row.get("primitiveAvailable") is True]
+    reusable_powerups = [row for row in capability_powerups if row.get("primitiveAvailable") is True]
+    missing_perks = sorted(row["id"] for row in capability_perks if row.get("primitiveAvailable") is not True)
+    missing_powerups = sorted(row["id"] for row in capability_powerups if row.get("primitiveAvailable") is not True)
+
+    if len(reusable_perks) != 7 or baseline.get("reusablePerkPrimitiveCount") != 7:
+        fail("reusable perk primitive count drift")
+    if len(reusable_powerups) != 7 or baseline.get("reusablePowerupPrimitiveCount") != 7:
+        fail("reusable power-up primitive count drift")
+    if missing_perks != ["widows_wine"]:
+        fail(f"unexpected missing perk primitives: {missing_perks}")
+    if missing_powerups != ["death_machine", "fire_sale"]:
+        fail(f"unexpected missing power-up primitives: {missing_powerups}")
+
+    perk_cap_by_id = {row["id"]: row for row in capability_perks}
+    for row in perk_entries:
+        primitive = row.get("runtimePrimitive", {})
+        expected = perk_cap_by_id[row["id"]].get("primitiveAvailable") is True
+        if primitive.get("available") is not expected:
+            fail(f"perk runtime primitive drift for {row['id']}")
+
+    power_cap_by_id = {row["id"]: row for row in capability_powerups}
+    for row in power_entries:
+        primitive = row.get("runtimePrimitive", {})
+        expected = power_cap_by_id[row["id"]].get("primitiveAvailable") is True
+        if primitive.get("available") is not expected:
+            fail(f"power-up runtime primitive drift for {row['id']}")
 
     if baseline.get("catalogWeaponCount") != len(weapons):
         fail(
