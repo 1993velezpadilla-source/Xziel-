@@ -1,0 +1,86 @@
+{
+  "ok": true,
+  "errors": [],
+  "counts": {
+    "sceneInstances": 10791,
+    "uniqueMeshes": 492,
+    "barricades": 12,
+    "zombieSpawns": 21,
+    "houndSpawnsPavlovExtension": 15,
+    "playerSpawnCandidates": 10,
+    "purchaseSlots": 9,
+    "doors": 4,
+    "utilityEntities": 6,
+    "environmentActors": 129,
+    "collisionActors": 24,
+    "zones": 3
+  },
+  "wallBuyValidation": {
+    "calibration": {
+      "perm": [
+        0,
+        2,
+        1
+      ],
+      "signs": [
+        1,
+        1,
+        1
+      ],
+      "scale": 99.98562427192498,
+      "translation": [
+        -0.053916712807108524,
+        -1.3952357384873721,
+        -3.2566920681031206
+      ],
+      "rmse_cm": 3.642585764715487,
+      "anchors": [
+        "arak",
+        "kuda",
+        "triton"
+      ],
+      "predicted": {
+        "arak": [
+          -570.913717026163,
+          -2645.155078796263,
+          494.51171516784643
+        ],
+        "kuda": [
+          2404.9802553256945,
+          -2563.886913360376,
+          136.42322651775876
+        ],
+        "triton": [
+          -248.93812033078189,
+          1034.775756805077,
+          145.31194552142603
+        ]
+      },
+      "target": {
+        "arak": [
+          -570.94189453125,
+          -2645.71630859375,
+          499.06719970703125
+        ],
+        "kuda": [
+          2404.990234375,
+          -2562.860107421875,
+          136.02821350097656
+        ],
+        "triton": [
+          -248.919921875,
+          1034.3101806640625,
+          141.15147399902344
+        ]
+      }
+    },
+    "summary": {
+      "slot_count": 9,
+      "functional_actor_slots": 3,
+      "geometry_derived_slots": 6,
+      "weapon_or_cabinet_slots": 8,
+      "equipment_slots": 1,
+      "calibration_rmse_cm": 3.642585764715487
+    }
+  }
+}
