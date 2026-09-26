@@ -8,6 +8,8 @@ on:
     paths:
       - "assets/nacht_reference/**"
       - "tools/maps/export_nacht_nzp_harness.py"
+      - "tools/maps/validate_nacht_bo3_weapon_specs.py"
+      - "tools/maps/export_nacht_nzp_runtime_overlay.py"
       - "scripts/prepare_android.sh"
       - "scripts/patch_quakec_*.py"
       - "scripts/patch_vril_*.py"
@@ -45,6 +47,14 @@ jobs:
             | tee nacht-ci/export.log
           test -s nacht-ci/xziel_nacht_bo3.map
           test -s nacht-ci/xziel_nacht_bo3_harness.json
+
+      - name: Validate BO3 Nacht weapon behavior specs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/maps/validate_nacht_bo3_weapon_specs.py
+          python3 tools/maps/export_nacht_nzp_runtime_overlay.py
+          git diff --exit-code -- assets/nacht_reference/nzp_runtime_overlay.json
 
       - name: Validate Nacht server entity contract
         shell: bash
