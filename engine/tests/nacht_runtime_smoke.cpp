@@ -15,6 +15,7 @@ int main() {
             spawnPointCount ==
         10U);
     assert(runtime.purchases().count() == 9U);
+    assert(runtime.doors().count() == 3U);
 
     const auto& profile =
         xziel::nachtReferenceProfile();
@@ -40,21 +41,53 @@ int main() {
         std::string_view("pistol_burst"));
     assert(runtime.points() == 0U);
 
-    runtime.awardPoints(1500U);
-    assert(runtime.points() == 1500U);
+    runtime.awardPoints(2500U);
+    assert(runtime.points() == 2500U);
+
+    const auto boxDoor =
+        runtime.queryDoor(
+            profile.doors[0].position);
+
+    assert(boxDoor.has_value());
+    assert(boxDoor->index == 0U);
+    assert(boxDoor->affordable);
+
+    const auto openedBox =
+        runtime.tryOpenDoor(
+            boxDoor->index,
+            profile.doors[0].position);
 
     assert(
-        runtime.unlockZone(
-            xziel::NachtZone::Box));
+        openedBox.code ==
+        xziel::DoorResultCode::Success);
+    assert(runtime.points() == 1500U);
+    assert(
+        runtime.activeZones() ==
+        static_cast<xziel::NachtZoneMask>(
+            xziel::kNachtStartZoneMask |
+            xziel::kNachtBoxZoneMask));
 
     assert(
         runtime.horde().config().
             spawnPointCount ==
         15U);
 
+    const auto upperDoor =
+        runtime.queryDoor(
+            profile.doors[2].position);
+
+    assert(upperDoor.has_value());
+    assert(upperDoor->index == 2U);
+
+    const auto openedUpper =
+        runtime.tryOpenDoor(
+            upperDoor->index,
+            profile.doors[2].position);
+
     assert(
-        runtime.unlockZone(
-            xziel::NachtZone::Upstairs));
+        openedUpper.code ==
+        xziel::DoorResultCode::Success);
+    assert(runtime.points() == 500U);
 
     assert(
         runtime.horde().config().
