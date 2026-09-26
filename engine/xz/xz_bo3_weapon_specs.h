@@ -44,6 +44,8 @@ typedef struct XzBo3WeaponSpec {
     float damage_min;
     unsigned int projectiles_per_shot;
     float head_multiplier;
+    int damage_falloff_verified;
+    int native_enablement_allowed;
 
     unsigned int magazine;
     unsigned int reserve;
@@ -70,6 +72,9 @@ float XzBo3WeaponSpec_BurstCycleSeconds(
     const XzBo3WeaponSpec *spec);
 
 float XzBo3WeaponSpec_BurstTailSeconds(
+    const XzBo3WeaponSpec *spec);
+
+int XzBo3WeaponSpec_IsNativeReady(
     const XzBo3WeaponSpec *spec);
 
 int XzBo3WeaponSpec_SelfTest(void);
