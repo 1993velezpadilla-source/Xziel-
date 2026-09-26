@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.provider.Settings;
 import android.text.InputFilter;
+import android.util.Log;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -40,6 +41,7 @@ import okhttp3.WebSocketListener;
  * are wrapped in XZD1 and routed between virtual 10.77.0.x peers.
  */
 public final class XzielMultiplayer {
+    private static final String TAG = "XzielOnline";
     private static final int MAX_PLAYERS = 4;
     private static final int GAME_HEADER_BYTES = 9;
     private static final int MAX_GAME_DATAGRAM = 4096;
@@ -367,6 +369,9 @@ public final class XzielMultiplayer {
                 selectedMap = message.optString("map", DEFAULT_MAP);
                 roomMode = message.optString("mode", roomMode);
                 connectedSlots.add(slot);
+                queueNativeCommand("name XzielP" + slot + "\n");
+                Log.i(TAG, "WELCOME room=" + roomCode + " mode=" + roomMode +
+                    " slot=" + slot + " map=" + selectedMap);
                 toast(("public".equals(roomMode) ? "Public match" : "Room " + roomCode) +
                     " - Player " + slot);
 
@@ -380,6 +385,7 @@ public final class XzielMultiplayer {
                 int slot = message.optInt("slot", 0);
                 if (slot >= 1 && slot <= MAX_PLAYERS) {
                     connectedSlots.add(slot);
+                    Log.i(TAG, "PLAYER_JOINED slot=" + slot + " count=" + connectedSlots.size());
                     toast("Player " + slot + " connected");
                 }
                 return;
@@ -405,6 +411,7 @@ public final class XzielMultiplayer {
                 selectedMap = message.optString("map", selectedMap);
                 matchStarted = true;
                 dismissTrackedDialog();
+                Log.i(TAG, "PREPARE_GAME slot=" + localSlot + " map=" + selectedMap);
                 toast("Host is loading " + prettyMap(selectedMap) + "...");
                 return;
             }
@@ -414,6 +421,7 @@ public final class XzielMultiplayer {
                 serverReadyReceived = true;
                 matchStarted = true;
                 dismissTrackedDialog();
+                Log.i(TAG, "SERVER_READY slot=" + localSlot + " map=" + selectedMap);
                 beginClientConnection(false);
                 return;
             }
@@ -421,6 +429,7 @@ public final class XzielMultiplayer {
             if ("client_ready".equals(type) && localSlot == 1) {
                 int slot = message.optInt("slot", 0);
                 if (slot >= 2 && slot <= MAX_PLAYERS) {
+                    Log.i(TAG, "CLIENT_READY host=1 clientSlot=" + slot);
                     toast("Player " + slot + " entered the match");
                 }
             }
@@ -482,6 +491,8 @@ public final class XzielMultiplayer {
             "map " + selectedMap + "\n"
         );
 
+        Log.i(TAG, "HOST_PREPARE mode=" + roomMode + " map=" + selectedMap +
+            " players=" + connectedSlots.size());
         toast((automaticPublicStart ? "Public match ready - " : "Starting ") +
             prettyMap(selectedMap) + "...");
     }
@@ -493,6 +504,8 @@ public final class XzielMultiplayer {
         if (retry && now - lastConnectAttemptMs < CONNECT_RETRY_MS) return;
         lastConnectAttemptMs = now;
 
+        Log.i(TAG, (retry ? "CONNECT_RETRY" : "CONNECT_START") +
+            " slot=" + localSlot + " target=10.77.0.1:26000");
         if (retry) {
             queueNativeCommand("disconnect\nconnect 10.77.0.1:26000\n");
             toast("Reconnecting to host...");
@@ -529,6 +542,7 @@ public final class XzielMultiplayer {
                 if (socket != null) socket.send(ready.toString());
             } catch (Exception ignored) {}
 
+            Log.i(TAG, "HOST_SERVER_READY map=" + selectedMap);
             toast("Server ready - bringing players in");
             return;
         }
@@ -544,6 +558,8 @@ public final class XzielMultiplayer {
                     WebSocket socket = gameSocket;
                     if (socket != null) socket.send(ready.toString());
                 } catch (Exception ignored) {}
+                Log.i(TAG, "SIGNON_COMPLETE slot=" + localSlot +
+                    " signon=" + signon + " map=" + engineMap);
                 toast("Connected to match");
             }
         }
