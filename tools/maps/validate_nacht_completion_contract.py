@@ -458,6 +458,23 @@ def main() -> int:
         fail("Pack-a-Punch ballistic stats must not be promoted prematurely")
     if pap_system.get("nativeRuntimeReady") != 0:
         fail("Pack-a-Punch runtime must not be promoted prematurely")
+    if pap_system.get("nativeLegacyHelperBridgeStatus") != "ready":
+        fail("Pack-a-Punch native legacy-helper bridge must remain ready")
+    if pap_system.get("nativeLegacyHelperBridgeScope") != "xziel_*":
+        fail("Pack-a-Punch legacy-helper bridge scope drift")
+    if pap_system.get("legacyMapIsolation") is not True:
+        fail("Pack-a-Punch legacy map isolation must remain enabled")
+    if pap_system.get("equalPapExposureRequiresRuntimeReady") is not True:
+        fail("EqualPapWeapon must remain gated by PaP runtime readiness")
+    expected_legacy_bridge_functions = [
+        "IsPapWeapon",
+        "EqualNonPapWeapon",
+        "EqualPapWeapon",
+    ]
+    if pap_system.get("nativeLegacyHelperBridgeFunctions") != expected_legacy_bridge_functions:
+        fail("Pack-a-Punch legacy-helper bridge function list drift")
+    if baseline.get("packAPunchLegacyBridgeFunctions") != 3:
+        fail("packAPunchLegacyBridgeFunctions drift")
     if pap_system.get("nativeIdentityResolverStatus") != "ready":
         fail("Pack-a-Punch native identity resolver must remain ready")
     if pap_system.get("nativeIdentityResolverPairs") != 36:
