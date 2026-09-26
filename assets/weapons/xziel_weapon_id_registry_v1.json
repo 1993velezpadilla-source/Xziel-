@@ -1,0 +1,381 @@
+{
+  "schemaVersion": 1,
+  "registryId": "xziel_weapon_id_registry_v1",
+  "policy": {
+    "rk5PinnedId": 70,
+    "baseWeaponRange": [
+      80,
+      129
+    ],
+    "reservedPackAPunchRange": [
+      160,
+      210
+    ],
+    "note": "Stable XZIEL IDs are reserved independently of NZ:P legacy IDs. Identity reservation does not imply native gameplay readiness."
+  },
+  "entries": [
+    {
+      "weaponId": "ar_accurate",
+      "displayName": "ICR-1",
+      "quakecId": 80,
+      "quakecDefine": "W_XZ_AR_ACCURATE",
+      "mboxToken": "xz_ar_accurate"
+    },
+    {
+      "weaponId": "ar_cqb",
+      "displayName": "HVK-30",
+      "quakecId": 81,
+      "quakecDefine": "W_XZ_AR_CQB",
+      "mboxToken": "xz_ar_cqb"
+    },
+    {
+      "weaponId": "ar_damage",
+      "displayName": "Man-O-War",
+      "quakecId": 82,
+      "quakecDefine": "W_XZ_AR_DAMAGE",
+      "mboxToken": "xz_ar_damage"
+    },
+    {
+      "weaponId": "ar_famas",
+      "displayName": "FFAR",
+      "quakecId": 83,
+      "quakecDefine": "W_XZ_AR_FAMAS",
+      "mboxToken": "xz_ar_famas"
+    },
+    {
+      "weaponId": "ar_fastburst",
+      "displayName": "XR-2",
+      "quakecId": 84,
+      "quakecDefine": "W_XZ_AR_FASTBURST",
+      "mboxToken": "xz_ar_fastburst"
+    },
+    {
+      "weaponId": "ar_garand",
+      "displayName": "MX Garand",
+      "quakecId": 85,
+      "quakecDefine": "W_XZ_AR_GARAND",
+      "mboxToken": "xz_ar_garand"
+    },
+    {
+      "weaponId": "ar_longburst",
+      "displayName": "M8A7",
+      "quakecId": 86,
+      "quakecDefine": "W_XZ_AR_LONGBURST",
+      "mboxToken": "xz_ar_longburst"
+    },
+    {
+      "weaponId": "ar_marksman",
+      "displayName": "Sheiva",
+      "quakecId": 87,
+      "quakecDefine": "W_XZ_AR_MARKSMAN",
+      "mboxToken": "xz_ar_marksman"
+    },
+    {
+      "weaponId": "ar_standard",
+      "displayName": "KN-44",
+      "quakecId": 88,
+      "quakecDefine": "W_XZ_AR_STANDARD",
+      "mboxToken": "xz_ar_standard"
+    },
+    {
+      "weaponId": "ar_stg44",
+      "displayName": "STG-44",
+      "quakecId": 89,
+      "quakecDefine": "W_XZ_AR_STG44",
+      "mboxToken": "xz_ar_stg44"
+    },
+    {
+      "weaponId": "bowie_knife",
+      "displayName": "Bowie Knife",
+      "quakecId": 90,
+      "quakecDefine": "W_XZ_BOWIE_KNIFE",
+      "mboxToken": "xz_bowie_knife"
+    },
+    {
+      "weaponId": "cymbal_monkey",
+      "displayName": "Cymbal Monkey",
+      "quakecId": 91,
+      "quakecDefine": "W_XZ_CYMBAL_MONKEY",
+      "mboxToken": "xz_cymbal_monkey"
+    },
+    {
+      "weaponId": "cymbal_monkey_upgraded",
+      "displayName": "Cymbal Monkey Upgraded",
+      "quakecId": 92,
+      "quakecDefine": "W_XZ_CYMBAL_MONKEY_UPGRADED",
+      "mboxToken": "xz_cymbal_monkey_upgraded"
+    },
+    {
+      "weaponId": "frag_grenade",
+      "displayName": "Fragmentation Grenades",
+      "quakecId": 93,
+      "quakecDefine": "W_XZ_FRAG_GRENADE",
+      "mboxToken": "xz_frag_grenade"
+    },
+    {
+      "weaponId": "hero_annihilator",
+      "displayName": "Annihilator",
+      "quakecId": 94,
+      "quakecDefine": "W_XZ_HERO_ANNIHILATOR",
+      "mboxToken": "xz_hero_annihilator"
+    },
+    {
+      "weaponId": "knife",
+      "displayName": "Knife",
+      "quakecId": 95,
+      "quakecDefine": "W_XZ_KNIFE",
+      "mboxToken": "xz_knife"
+    },
+    {
+      "weaponId": "launcher_standard",
+      "displayName": "XM-53",
+      "quakecId": 96,
+      "quakecDefine": "W_XZ_LAUNCHER_STANDARD",
+      "mboxToken": "xz_launcher_standard"
+    },
+    {
+      "weaponId": "lmg_cqb",
+      "displayName": "Dingo",
+      "quakecId": 97,
+      "quakecDefine": "W_XZ_LMG_CQB",
+      "mboxToken": "xz_lmg_cqb"
+    },
+    {
+      "weaponId": "lmg_heavy",
+      "displayName": "48 Dredge",
+      "quakecId": 98,
+      "quakecDefine": "W_XZ_LMG_HEAVY",
+      "mboxToken": "xz_lmg_heavy"
+    },
+    {
+      "weaponId": "lmg_light",
+      "displayName": "BRM",
+      "quakecId": 99,
+      "quakecDefine": "W_XZ_LMG_LIGHT",
+      "mboxToken": "xz_lmg_light"
+    },
+    {
+      "weaponId": "lmg_rpk",
+      "displayName": "RPK",
+      "quakecId": 100,
+      "quakecDefine": "W_XZ_LMG_RPK",
+      "mboxToken": "xz_lmg_rpk"
+    },
+    {
+      "weaponId": "lmg_slowfire",
+      "displayName": "Gorgon",
+      "quakecId": 101,
+      "quakecDefine": "W_XZ_LMG_SLOWFIRE",
+      "mboxToken": "xz_lmg_slowfire"
+    },
+    {
+      "weaponId": "pistol_burst",
+      "displayName": "RK5",
+      "quakecId": 70,
+      "quakecDefine": "W_XZ_RK5",
+      "mboxToken": "xz_pistol_burst"
+    },
+    {
+      "weaponId": "pistol_energy",
+      "displayName": "Rift E9",
+      "quakecId": 102,
+      "quakecDefine": "W_XZ_PISTOL_ENERGY",
+      "mboxToken": "xz_pistol_energy"
+    },
+    {
+      "weaponId": "pistol_fullauto",
+      "displayName": "L-CAR 9",
+      "quakecId": 103,
+      "quakecDefine": "W_XZ_PISTOL_FULLAUTO",
+      "mboxToken": "xz_pistol_fullauto"
+    },
+    {
+      "weaponId": "pistol_m1911",
+      "displayName": "M1911",
+      "quakecId": 104,
+      "quakecDefine": "W_XZ_PISTOL_M1911",
+      "mboxToken": "xz_pistol_m1911"
+    },
+    {
+      "weaponId": "pistol_shotgun",
+      "displayName": "Marshal 16",
+      "quakecId": 105,
+      "quakecDefine": "W_XZ_PISTOL_SHOTGUN",
+      "mboxToken": "xz_pistol_shotgun"
+    },
+    {
+      "weaponId": "pistol_standard",
+      "displayName": "MR6",
+      "quakecId": 106,
+      "quakecDefine": "W_XZ_PISTOL_STANDARD",
+      "mboxToken": "xz_pistol_standard"
+    },
+    {
+      "weaponId": "ray_gun",
+      "displayName": "Ray Gun",
+      "quakecId": 107,
+      "quakecDefine": "W_XZ_RAY_GUN",
+      "mboxToken": "xz_ray_gun"
+    },
+    {
+      "weaponId": "raygun_mark2",
+      "displayName": "Ray Gun Mark II",
+      "quakecId": 108,
+      "quakecDefine": "W_XZ_RAYGUN_MARK2",
+      "mboxToken": "xz_raygun_mark2"
+    },
+    {
+      "weaponId": "shotgun_energy",
+      "displayName": "Banshii",
+      "quakecId": 109,
+      "quakecDefine": "W_XZ_SHOTGUN_ENERGY",
+      "mboxToken": "xz_shotgun_energy"
+    },
+    {
+      "weaponId": "shotgun_fullauto",
+      "displayName": "Haymaker 12",
+      "quakecId": 110,
+      "quakecDefine": "W_XZ_SHOTGUN_FULLAUTO",
+      "mboxToken": "xz_shotgun_fullauto"
+    },
+    {
+      "weaponId": "shotgun_precision",
+      "displayName": "Argus",
+      "quakecId": 111,
+      "quakecDefine": "W_XZ_SHOTGUN_PRECISION",
+      "mboxToken": "xz_shotgun_precision"
+    },
+    {
+      "weaponId": "shotgun_pump",
+      "displayName": "KRM-262",
+      "quakecId": 112,
+      "quakecDefine": "W_XZ_SHOTGUN_PUMP",
+      "mboxToken": "xz_shotgun_pump"
+    },
+    {
+      "weaponId": "shotgun_semiauto",
+      "displayName": "205 Brecci",
+      "quakecId": 113,
+      "quakecDefine": "W_XZ_SHOTGUN_SEMIAUTO",
+      "mboxToken": "xz_shotgun_semiauto"
+    },
+    {
+      "weaponId": "smg_ak74u",
+      "displayName": "AK-74u",
+      "quakecId": 114,
+      "quakecDefine": "W_XZ_SMG_AK74U",
+      "mboxToken": "xz_smg_ak74u"
+    },
+    {
+      "weaponId": "smg_burst",
+      "displayName": "Pharo",
+      "quakecId": 115,
+      "quakecDefine": "W_XZ_SMG_BURST",
+      "mboxToken": "xz_smg_burst"
+    },
+    {
+      "weaponId": "smg_capacity",
+      "displayName": "Weevil",
+      "quakecId": 116,
+      "quakecDefine": "W_XZ_SMG_CAPACITY",
+      "mboxToken": "xz_smg_capacity"
+    },
+    {
+      "weaponId": "smg_fastfire",
+      "displayName": "Vesper",
+      "quakecId": 117,
+      "quakecDefine": "W_XZ_SMG_FASTFIRE",
+      "mboxToken": "xz_smg_fastfire"
+    },
+    {
+      "weaponId": "smg_longrange",
+      "displayName": "Razorback",
+      "quakecId": 118,
+      "quakecDefine": "W_XZ_SMG_LONGRANGE",
+      "mboxToken": "xz_smg_longrange"
+    },
+    {
+      "weaponId": "smg_mp40",
+      "displayName": "HG 40",
+      "quakecId": 119,
+      "quakecDefine": "W_XZ_SMG_MP40",
+      "mboxToken": "xz_smg_mp40"
+    },
+    {
+      "weaponId": "smg_mp40_1940",
+      "displayName": "MP40",
+      "quakecId": 120,
+      "quakecDefine": "W_XZ_SMG_MP40_1940",
+      "mboxToken": "xz_smg_mp40_1940"
+    },
+    {
+      "weaponId": "smg_standard",
+      "displayName": "Kuda",
+      "quakecId": 121,
+      "quakecDefine": "W_XZ_SMG_STANDARD",
+      "mboxToken": "xz_smg_standard"
+    },
+    {
+      "weaponId": "smg_sten",
+      "displayName": "Sten",
+      "quakecId": 122,
+      "quakecDefine": "W_XZ_SMG_STEN",
+      "mboxToken": "xz_smg_sten"
+    },
+    {
+      "weaponId": "smg_versatile",
+      "displayName": "VMP",
+      "quakecId": 123,
+      "quakecDefine": "W_XZ_SMG_VERSATILE",
+      "mboxToken": "xz_smg_versatile"
+    },
+    {
+      "weaponId": "sniper_chargeshot",
+      "displayName": "P-06",
+      "quakecId": 124,
+      "quakecDefine": "W_XZ_SNIPER_CHARGESHOT",
+      "mboxToken": "xz_sniper_chargeshot"
+    },
+    {
+      "weaponId": "sniper_fastbolt",
+      "displayName": "Locus",
+      "quakecId": 125,
+      "quakecDefine": "W_XZ_SNIPER_FASTBOLT",
+      "mboxToken": "xz_sniper_fastbolt"
+    },
+    {
+      "weaponId": "sniper_fastsemi",
+      "displayName": "Drakon",
+      "quakecId": 126,
+      "quakecDefine": "W_XZ_SNIPER_FASTSEMI",
+      "mboxToken": "xz_sniper_fastsemi"
+    },
+    {
+      "weaponId": "sniper_powerbolt",
+      "displayName": "SVG-100",
+      "quakecId": 127,
+      "quakecDefine": "W_XZ_SNIPER_POWERBOLT",
+      "mboxToken": "xz_sniper_powerbolt"
+    },
+    {
+      "weaponId": "sniper_quickscope",
+      "displayName": "RSA Interdiction",
+      "quakecId": 128,
+      "quakecDefine": "W_XZ_SNIPER_QUICKSCOPE",
+      "mboxToken": "xz_sniper_quickscope"
+    },
+    {
+      "weaponId": "thundergun",
+      "displayName": "Thundergun",
+      "quakecId": 129,
+      "quakecDefine": "W_XZ_THUNDERGUN",
+      "mboxToken": "xz_thundergun"
+    }
+  ],
+  "validation": {
+    "expectedCatalogCount": 51,
+    "uniqueIds": true,
+    "uniqueDefines": true,
+    "uniqueMboxTokens": true
+  }
+}
