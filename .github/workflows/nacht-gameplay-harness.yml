@@ -281,6 +281,42 @@ jobs:
           grep -F 'XZIEL_GobbleGumEphemeralTick' build/deps/quakec/source/server/utilities/weapon_utilities.qc
           grep -F 'XZIEL_GOBBLEGUM_EPHEMERAL_TICK' build/deps/quakec/source/server/weapons/weapon_core.qc
           grep -F '#define XZIEL_GUM_EPHEMERAL_DURATION_SECONDS 60' build/deps/quakec/source/server/defs/custom.qc
+          grep -F 'XZIEL_WEAPON_RUNTIME_READINESS_BEGIN' build/deps/quakec/source/shared/weapon_stats.qc
+          grep -F 'XZIEL_WeaponRuntimeReady' build/deps/quakec/source/shared/weapon_stats.qc
+          grep -F 'XZIEL_GOBBLEGUM_DISORDERLY_POOL_BEGIN' build/deps/quakec/source/server/utilities/weapon_utilities.qc
+          grep -F 'XZIEL_GobbleGumDisorderlyWeaponAtIndex' build/deps/quakec/source/server/utilities/weapon_utilities.qc
+          grep -F 'XZIEL_GobbleGumDisorderlyReadyBaseCount' build/deps/quakec/source/server/utilities/weapon_utilities.qc
+          grep -F 'XZIEL_GobbleGumDisorderlyReadyPapCount' build/deps/quakec/source/server/utilities/weapon_utilities.qc
+          grep -F 'XZIEL_GobbleGumDisorderlyPoolRuntimeReady' build/deps/quakec/source/server/utilities/weapon_utilities.qc
+          grep -F 'XZIEL_GobbleGumDisorderlyCanActivate' build/deps/quakec/source/server/utilities/weapon_utilities.qc
+          grep -F '#define XZIEL_GUM_DISORDERLY_POOL_SIZE 26' build/deps/quakec/source/server/defs/custom.qc
+          grep -F '#define XZIEL_GUM_DISORDERLY_DURATION_SECONDS 300' build/deps/quakec/source/server/defs/custom.qc
+          grep -F '#define XZIEL_GUM_DISORDERLY_SWITCH_SECONDS 10' build/deps/quakec/source/server/defs/custom.qc
+          python3 - <<'PY'
+          from pathlib import Path
+
+          stats = Path("build/deps/quakec/source/shared/weapon_stats.qc").read_text()
+          ready = stats.split(
+              "// XZIEL_WEAPON_RUNTIME_READINESS_BEGIN", 1
+          )[1].split("// XZIEL_WEAPON_RUNTIME_READINESS_END", 1)[0]
+          assert "return true;" not in ready, ready
+
+          utils = Path(
+              "build/deps/quakec/source/server/utilities/weapon_utilities.qc"
+          ).read_text()
+          pool = utils.split(
+              "// XZIEL_GOBBLEGUM_DISORDERLY_POOL_BEGIN", 1
+          )[1].split("// XZIEL_GOBBLEGUM_DISORDERLY_POOL_END", 1)[0]
+          compiled = [
+              line.strip()
+              for line in pool.splitlines()
+              if line.strip().startswith("case ")
+              and ": return W_XZ_" in line
+          ]
+          assert len(compiled) == 26, len(compiled)
+          assert len(set(compiled)) == 26, compiled
+          print("XZIEL_DISORDERLY_COMPILED_POOL_OK", {"weapons": 26, "runtimeReady": 0})
+          PY
           grep -F 'XZIEL_ZOMBIES_POWERUP_BRIDGE_BEGIN' build/deps/quakec/source/server/entities/powerups.qc
           grep -F 'XZIEL_SpawnCorePowerup' build/deps/quakec/source/server/entities/powerups.qc
           grep -F 'XZIEL_SpawnPackAPunchGrant' build/deps/quakec/source/server/entities/powerups.qc
