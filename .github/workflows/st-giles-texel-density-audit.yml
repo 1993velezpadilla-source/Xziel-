@@ -1,0 +1,56 @@
+name: St Giles Texel Density Audit
+
+on:
+  push:
+    branches:
+      - engine/mobile-power-fidelity-v1
+    paths:
+      - ".github/workflows/st-giles-texel-density-audit.yml"
+      - "tools/church_map/audit_xzsm_texel_density.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install audit dependency
+        run: python3 -m pip install --quiet --disable-pip-version-check numpy
+
+      - name: Recover latest exact-source XZSM
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/clean-source
+          RUN_ID="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/sanctum-clean-source.yml/runs?branch=engine/mobile-power-fidelity-v1&status=success&per_page=20" --jq '.workflow_runs[0].id')"
+          test -n "$RUN_ID"
+          ARTIFACT_ID="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/artifacts" --jq '.artifacts[] | select(.name == "Xziel-Sanctum-Clean-Source") | .id' | head -n1)"
+          test -n "$ARTIFACT_ID"
+          gh api "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" > build/clean.zip
+          unzip -q build/clean.zip -d build/clean-source
+          XZSM="$(find build/clean-source -name sanctum.xzsm -print -quit)"
+          test -s "$XZSM"
+          echo "XZSM=$XZSM" >> "$GITHUB_ENV"
+
+      - name: Measure real exterior texel density
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/church_map/audit_xzsm_texel_density.py             --xzsm "$XZSM"             --texture-width 1024             --texture-height 1024             --match Exterior04             --report build/st-giles-texel-density.json
+          jq . build/st-giles-texel-density.json
+
+      - name: Upload texel-density evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xziel-St-Giles-Texel-Density-Audit
+          path: build/st-giles-texel-density.json
+          retention-days: 14
