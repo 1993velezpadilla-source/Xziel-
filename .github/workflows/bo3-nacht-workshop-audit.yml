@@ -1,0 +1,140 @@
+name: BO3 Nacht Workshop Audit
+
+on:
+  push:
+    branches:
+      - experiment/bo3-nacht-workshop-audit
+    paths:
+      - ".github/workflows/bo3-nacht-workshop-audit.yml"
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout Xziel
+        uses: actions/checkout@v4
+
+      - name: Install SteamCMD
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/steamcmd"
+          curl -fL --retry 6 --retry-delay 2 --retry-all-errors \
+            https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz \
+            -o "$RUNNER_TEMP/steamcmd_linux.tar.gz"
+          tar -xzf "$RUNNER_TEMP/steamcmd_linux.tar.gz" -C "$RUNNER_TEMP/steamcmd"
+          "$RUNNER_TEMP/steamcmd/steamcmd.sh" +quit
+
+      - name: Attempt anonymous Workshop download
+        id: workshop
+        shell: bash
+        run: |
+          set +e
+          LOG="$RUNNER_TEMP/workshop-download.log"
+          "$RUNNER_TEMP/steamcmd/steamcmd.sh" \
+            +login anonymous \
+            +workshop_download_item 311210 3596966808 validate \
+            +quit 2>&1 | tee "$LOG"
+          RC=${PIPESTATUS[0]}
+          echo "steamcmd_rc=$RC" >> "$GITHUB_OUTPUT"
+          ROOT=$(find "$HOME" "$RUNNER_TEMP" -type d -path '*/steamapps/workshop/content/311210/3596966808' -print -quit 2>/dev/null)
+          if [[ -n "$ROOT" ]]; then
+            echo "workshop_root=$ROOT" >> "$GITHUB_OUTPUT"
+            echo "downloaded=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "downloaded=false" >> "$GITHUB_OUTPUT"
+          fi
+          exit 0
+
+      - name: Build Workshop inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p audit-out
+          cp "$RUNNER_TEMP/workshop-download.log" audit-out/steamcmd.log || true
+          ROOT='${{ steps.workshop.outputs.workshop_root }}'
+          DOWNLOADED='${{ steps.workshop.outputs.downloaded }}'
+          RC='${{ steps.workshop.outputs.steamcmd_rc }}'
+          python3 - "$ROOT" "$DOWNLOADED" "$RC" <<'PY'
+          import collections, hashlib, json, os, pathlib, sys
+          root_s, downloaded_s, rc_s = sys.argv[1:]
+          report = {
+              "app_id": 311210,
+              "workshop_id": 3596966808,
+              "steamcmd_return_code": int(rc_s or 0),
+              "downloaded": downloaded_s.lower() == "true",
+              "root": root_s or None,
+          }
+          if report["downloaded"] and root_s:
+              root = pathlib.Path(root_s)
+              files = [p for p in root.rglob('*') if p.is_file()]
+              ext = collections.Counter((p.suffix.lower() or '<none>') for p in files)
+              total = sum(p.stat().st_size for p in files)
+              report.update({
+                  "file_count": len(files),
+                  "total_bytes": total,
+                  "total_gib": round(total / (1024**3), 3),
+                  "extensions": dict(ext.most_common()),
+              })
+              interesting_exts = {
+                  '.map','.ff','.xpak','.zone','.xmodel_bin','.xmodel_export',
+                  '.xanim_bin','.xanim_export','.gsc','.csc','.sabs','.sabl',
+                  '.pak','.iwd','.bsp','.d3dbsp','.xcam','.wav','.flac','.ogg',
+                  '.dds','.tga','.png','.jpg','.jpeg','.material','.json'
+              }
+              interesting = []
+              for p in files:
+                  rel = p.relative_to(root).as_posix()
+                  low = rel.lower()
+                  if p.suffix.lower() in interesting_exts or any(k in low for k in (
+                      'nacht','zombie','prototype','map','xmodel','xanim','weapon',
+                      'material','texture','sound','audio','script','zone','fastfile'
+                  )):
+                      interesting.append({"path": rel, "bytes": p.stat().st_size})
+              interesting.sort(key=lambda x: (-x['bytes'], x['path']))
+              report["interesting_files"] = interesting[:2000]
+              largest = sorted(
+                  ({"path": p.relative_to(root).as_posix(), "bytes": p.stat().st_size} for p in files),
+                  key=lambda x: -x['bytes']
+              )[:200]
+              report["largest_files"] = largest
+              # Hash only small metadata/script files; avoid wasting CI time on multi-GB payloads.
+              hashes = []
+              for p in files:
+                  if p.stat().st_size <= 8 * 1024 * 1024 and p.suffix.lower() in interesting_exts:
+                      h = hashlib.sha256(p.read_bytes()).hexdigest()
+                      hashes.append({"path": p.relative_to(root).as_posix(), "sha256": h, "bytes": p.stat().st_size})
+              report["small_file_hashes"] = hashes[:2000]
+          pathlib.Path('audit-out/workshop_inventory.json').write_text(
+              json.dumps(report, indent=2) + '\n', encoding='utf-8'
+          )
+          print(json.dumps(report, indent=2)[:20000])
+          PY
+
+      - name: Summarize whether map payload exists
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, pathlib
+          r=json.loads(pathlib.Path('audit-out/workshop_inventory.json').read_text())
+          print('downloaded:', r.get('downloaded'))
+          if not r.get('downloaded'):
+              print('Anonymous SteamCMD could not materialize this Workshop item.')
+              raise SystemExit(0)
+          files=r.get('interesting_files',[])
+          mapish=[x for x in files if any(t in x['path'].lower() for t in ('.map','.d3dbsp','.bsp','.ff','.xpak','zone'))]
+          print('total GiB:', r.get('total_gib'))
+          print('map-like candidates:', len(mapish))
+          for x in mapish[:100]:
+              print(x['bytes'], x['path'])
+          PY
+
+      - name: Upload audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: bo3-nacht-workshop-audit-3596966808
+          path: audit-out/
+          if-no-files-found: error
+          retention-days: 7
