@@ -16,7 +16,8 @@
     "powerupCatalog": "assets/nacht_reference/bo3_powerup_catalog_v1.json",
     "weaponIdRegistry": "assets/weapons/xziel_weapon_id_registry_v1.json",
     "mysteryBoxRuntimePool": "assets/weapons/xziel_mystery_box_runtime_pool_v1.json",
-    "runtimePrimitiveCapabilities": "assets/nacht_reference/xziel_zombies_runtime_capabilities_v1.json"
+    "runtimePrimitiveCapabilities": "assets/nacht_reference/xziel_zombies_runtime_capabilities_v1.json",
+    "deathMachineSpec": "assets/nacht_reference/bo3_death_machine_spec_v1.json"
   },
   "baseline": {
     "catalogWeaponCount": 52,
@@ -155,7 +156,10 @@
         "fire_sale"
       ],
       "deathMachineWeaponIdentity": "special_death_machine",
-      "deathMachineIdentityStatus": "cataloged"
+      "deathMachineIdentityStatus": "cataloged",
+      "deathMachineStateTimer": "logic_ready",
+      "deathMachineInteractionRestrictions": "partial",
+      "deathMachinePickupHook": "pending"
     },
     "pack_a_punch_weapon_variants": {
       "state": "pending"
@@ -1314,8 +1318,8 @@
       "lanes": {
         "identity": "ready",
         "source_stats": "pending",
-        "behavior_spec": "pending",
-        "native_gameplay": "pending",
+        "behavior_spec": "cataloged",
+        "native_gameplay": "logic_only",
         "wall_buy": "not_applicable",
         "mystery_box": "not_applicable",
         "model": "pending",
