@@ -40,6 +40,7 @@ upgrade_by_id = {
 }
 
 pairs = []
+runtime_ready_upgrades = set()
 for row in pap.get("variants", []):
     base_id = row["baseWeaponId"]
     upgrade_id = row["upgradeWeaponId"]
@@ -59,6 +60,8 @@ for row in pap.get("variants", []):
             "upgradeDefine": upgrade["quakecDefine"],
         }
     )
+    if row.get("nativeRuntimeStatus") == "ready":
+        runtime_ready_upgrades.add(upgrade_id)
 
 if len(pairs) != 36:
     raise SystemExit(f"expected 36 PaP identity pairs, got {len(pairs)}")
@@ -117,6 +120,22 @@ if begin not in stats:
             "float(float weapon_id) XZIEL_IsPackAPunchIdentity =",
             "{",
             "    return XZIEL_GetBaseWeaponIDFromPackAPunch(weapon_id) != W_NOWEP;",
+            "};",
+            "",
+            "float(float weapon_id) XZIEL_PackAPunchRuntimeReady =",
+            "{",
+            "    switch (weapon_id) {",
+        ]
+    )
+    for row in pairs:
+        if row["upgradeWeaponId"] in runtime_ready_upgrades:
+            lines.append(
+                f"        case {row['upgradeDefine']}: return true;"
+            )
+    lines.extend(
+        [
+            "        default: return false;",
+            "    }",
             "};",
             end,
             "",
