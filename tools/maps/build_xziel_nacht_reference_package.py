@@ -86,27 +86,15 @@ def id_for(prefix: str, name: Any, index: int | None = None) -> str:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("source_json", type=Path)
-    ap.add_argument("purchase_json", type=Path)
+    ap.add_argument("map_json", type=Path)
+    ap.add_argument("wallbuy_plan", type=Path)
     ap.add_argument("out_dir", type=Path)
     args = ap.parse_args()
 
-    source_doc = json.loads(args.source_json.read_text(encoding="utf-8-sig"))
-    if "Exports" in source_doc and "Imports" in source_doc:
-        doc = source_doc
-        spatial_doc = None
-    else:
-        spatial_doc = source_doc
-        raw_map = args.source_json.parent / "Nacht_de_Untoten.json"
-        if not raw_map.exists():
-            raise SystemExit(
-                "spatial manifest input requires sibling Nacht_de_Untoten.json"
-            )
-        doc = json.loads(raw_map.read_text(encoding="utf-8-sig"))
-
+    doc = json.loads(args.map_json.read_text(encoding="utf-8-sig"))
     exports: list[dict[str, Any]] = doc["Exports"]
     imports: list[dict[str, Any]] = doc["Imports"]
-    purchase_doc = json.loads(args.purchase_json.read_text(encoding="utf-8"))
+    wallbuy = json.loads(args.wallbuy_plan.read_text(encoding="utf-8"))
 
     level_index = next(
         i + 1 for i, e in enumerate(exports)
@@ -296,54 +284,16 @@ def main() -> int:
     # Purchase slots: all nine BO3 placements, including repaired six.
     # ------------------------------------------------------------------
     purchases: list[dict[str, Any]] = []
-    bo3_ids = {
-        "arak": "ar_standard",
-        "argus": "shotgun_precision",
-        "frag": "frag_grenade",
-        "krm": "shotgun_pump",
-        "kuda": "smg_standard",
-        "locus_decal": "sniper_fastbolt",
-        "pharaoh": "smg_burst",
-        "shiva": "ar_marksman",
-        "triton": "pistol_burst",
-    }
-    for slot in purchase_doc["purchase_slots"]:
-        marker = slot.get("chalk_key") or slot.get("source_marker")
-        canonical = slot["canonical"]
-        slot_type = slot.get("type") or slot.get("kind")
-        if "interaction_location_ue_cm" in slot:
-            ue = slot["interaction_location_ue_cm"]
-            functional_actor = slot.get("functional_actor")
-            reconstructed = bool(slot.get("reconstructed"))
-            placement_source = slot.get("placement_source")
-            pavlov_id = slot.get("pavlov_weapon_id")
-            chalk_asset = slot.get("chalk_asset")
-            radius = slot.get("interaction_radius_cm", 150.0)
-        else:
-            transform = slot.get("transform") or {}
-            ue = transform.get("position")
-            if not isinstance(ue, dict):
-                raise SystemExit(f"purchase slot {canonical} missing resolved position")
-            functional_actor = slot.get("functional_actor")
-            placement_source = slot.get("placement_source")
-            reconstructed = placement_source != "functional_wallbuy_actor"
-            pavlov_id = slot.get("weapon_id")
-            chalk_asset = slot.get("marker_mesh") or (
-                f"zm_prototype_part4_t7_zm_chalk_buy_{marker}" if marker else None
-            )
-            radius = 150.0
-
-        if slot_type in {"weapon", "wallbuy"}:
-            runtime_type = "wall_buy"
-        elif slot_type in {"sniper_cabinet", "weapon_cabinet"}:
-            runtime_type = "weapon_cabinet"
-        else:
-            runtime_type = "equipment_buy"
-
+    for slot in wallbuy["purchase_slots"]:
+        ue = slot["interaction_location_ue_cm"]
         purchases.append({
-            "id": slot.get("id") or f"purchase_{marker or canonical.lower()}",
-            "name": canonical,
-            "type": runtime_type,
+            "id": slot["id"],
+            "name": slot["canonical"],
+            "type": (
+                "wall_buy"
+                if slot["type"] in {"weapon", "wallbuy"}
+                else ("weapon_cabinet" if slot["type"] == "sniper_cabinet" else "equipment_buy")
+            ),
             "transform": {
                 "position": lower_vec_to_xziel_m(ue),
                 "sourcePositionUEcm": ue,
@@ -352,12 +302,62 @@ def main() -> int:
             },
             "source": (
                 "pavlov_functional_actor"
-                if not reconstructed
+                if not slot["reconstructed"]
                 else "bo3_derived_chalk_geometry_reconstruction"
             ),
             "enabledProfiles": ["bo3_chronicles", "pavlov_extended"],
             "properties": {
-                "canonical": canonical,
+                "canonical": slot["canonical"],
+                "bo3WeaponId": slot["bo3_weapon_id"],
+                "pavlovWeaponId": slot["pavlov_weapon_id"],
+                "price": slot["price"],
+                "chalkAsset": slot["chalk_asset"],
+                "interactionRadiusCm": slot["interaction_radius_cm"],
+                "reconstructed": slot["reconstructed"],
+                "functionalActor": slot["functional_actor"],
+            },
+            "replicationPolicy": "server_authoritative",
+        })
+
+    # ------------------------------------------------------------------
+    # Doors and utility actors.
+    # ------------------------------------------------------------------
+    doors: list[dict[str, Any]] = []
+    utility_entities: list[dict[str, Any]] = []
+    player_spawns: list[dict[str, Any]] = []
+    for ai in actor_indices:
+        cls = actor_class(ai)
+        actor = exports[ai - 1]
+        p = prop_map(actor)
+        if "/BuyableDoor/" in cls or "/BuyableDoor_Child/" in cls:
+            doors.append({
+                "id": id_for("door", actor.get("ObjectName"), ai),
+                "name": actor.get("ObjectName"),
+                "type": "buyable_door",
+                "transform": actor_transform(ai),
+                "source": "pavlov_port_spatial_reference",
+                "enabledProfiles": ["bo3_chronicles", "pavlov_extended"],
+                "properties": {
+                    "price": scalar(actor, "Price"),
+                    "zombieSpawnerFlags": int_array(actor, "ZombieSpawnerFlags"),
+                    "moveToOpenUE": clean(struct_value(p.get("MoveToOpen"))),
+                    "rotateToOpenUE": clean(struct_value(p.get("RotateToOpen"))),
+                    "canonicalZoneEdgePending": True,
+                },
+                "replicationPolicy": "server_authoritative",
+            })
+        elif "MysteryBoxLocation" in cls:
+            utility_entities.append({
+                "id": id_for("mystery_box", actor.get("ObjectName"), ai),
+                "name": actor.get("ObjectName"),
+                "type": "mystery_box_anchor",
+                "transform": actor_transform(ai),
+                "source": "pavlov_port_spatial_reference",
+                "enabledProfiles": ["bo3_chronicles", "pavlov_extended"],
+                "properties": {"alwaysSpawnHereFirst": bool(scalar(actor, "AlwaySpawnHereFirst"))},
+                "replicationPolicy": "server_authoritative",
+            })
+        elif "WonderFizz" in cls:
                 "bo3WeaponId": slot.get("bo3_weapon_id") or bo3_ids.get(marker),
                 "pavlovWeaponId": pavlov_id,
                 "price": slot["price"],
