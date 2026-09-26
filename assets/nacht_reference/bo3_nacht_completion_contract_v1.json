@@ -120,11 +120,13 @@
       "maxRollsPerRound": 3,
       "firstRollFree": true,
       "machineInteractionStatus": "pending",
-      "effectDispatchReady": 0,
+      "effectDispatchReady": 6,
       "presentationStatus": "pending",
       "effectSpecsVerified": 6,
       "effectPrimitivesLogicReady": 6,
-      "remainingEffectPrimitives": 57
+      "remainingEffectPrimitives": 57,
+      "effectDispatchStatus": "partial",
+      "remainingEffectDispatches": 57
     },
     "der_wunderfizz_and_perk_randomization": {
       "state": "pending",
