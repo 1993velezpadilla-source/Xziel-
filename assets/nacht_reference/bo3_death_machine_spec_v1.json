@@ -51,8 +51,8 @@
   "readiness": {
     "identity": "ready",
     "behaviorSpec": "partial",
-    "stateTimerRuntime": "pending",
-    "interactionRestrictions": "pending",
+    "stateTimerRuntime": "logic_ready",
+    "interactionRestrictions": "partial",
     "damageFormula": "pending",
     "firingRuntime": "pending",
     "model": "pending",
@@ -62,5 +62,23 @@
     "androidExposure": "pending",
     "regressionTest": "pending"
   },
-  "safetyRule": "Do not hook the Death Machine power-up pickup to this weapon until firing, presentation, interaction restrictions, cancellation and restoration are all runtime-ready."
+  "safetyRule": "Do not hook the Death Machine power-up pickup to this weapon until firing, presentation, interaction restrictions, cancellation and restoration are all runtime-ready.",
+  "runtimeState": {
+    "hookStatus": "not_hooked_to_powerup",
+    "durationSeconds": 30,
+    "switchCancel": true,
+    "blockedInteractions": [
+      "wall_buy",
+      "mystery_box",
+      "perk_purchase",
+      "pack_a_punch",
+      "barricade_repair",
+      "manual_revive"
+    ],
+    "deliberatelyUnchangedUntilVerified": [
+      "doors",
+      "debris"
+    ],
+    "powerupPickupSafeToEnable": false
+  }
 }
