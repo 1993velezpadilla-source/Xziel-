@@ -56,6 +56,7 @@ python3 "$ROOT/scripts/patch_quakec_xziel_damage_falloff.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_xziel_weapon_registry.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_xziel_mystery_box_capacity.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_xziel_zombies_runtime_bridge.py" "$DEPS/quakec"
+python3 "$ROOT/scripts/patch_quakec_xziel_death_machine_state.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_xziel_rk5_logic.py" "$DEPS/quakec"
 chmod +x "$DEPS/quakec/bin/fteqcc-cli-lin" "$DEPS/quakec/tools/qc-compiler-gnu.sh"
 (
