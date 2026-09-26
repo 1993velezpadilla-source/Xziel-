@@ -21,7 +21,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import okhttp3.ByteString;
+import okio.ByteString;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.OkHttpClient;
