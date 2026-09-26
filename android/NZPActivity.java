@@ -90,6 +90,11 @@ public class NZPActivity extends SDLActivity {
         if (ciPlayerId != null && multiplayer != null) {
             multiplayer.setCiPlayerId(ciPlayerId);
         }
+        boolean ciEvidenceMode = getIntent() != null
+            && getIntent().getBooleanExtra("xziel_ci_evidence_mode", false);
+        if (multiplayer != null) {
+            multiplayer.setCiEvidenceMode(ciEvidenceMode);
+        }
         if (ciPublicMatch) {
             getWindow().getDecorView().postDelayed(new Runnable() {
                 @Override
@@ -186,6 +191,13 @@ public class NZPActivity extends SDLActivity {
 
     public void xzielVoiceUpdatePosition(float x, float y, float z) {
         if (multiplayer != null) multiplayer.updateVoicePosition(x, y, z);
+    }
+
+    public void xzielCiRemoteEntity(int slot, float x, float y, float z,
+                                    int frame, float yaw) {
+        if (multiplayer != null) {
+            multiplayer.onCiRemoteEntity(slot, x, y, z, frame, yaw);
+        }
     }
 
     public void xzielOnlinePauseVoice(boolean visible) {
