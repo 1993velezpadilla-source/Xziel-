@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "specId": "bo3_death_machine_powerup_weapon_v1",
+  "logicalItemId": "special_death_machine",
+  "displayName": "Death Machine",
+  "runtimeRole": "temporary_powerup_weapon",
+  "acquisition": {
+    "type": "powerup_only",
+    "mysteryBoxEligible": false,
+    "wallBuyEligible": false
+  },
+  "durationSeconds": 30,
+  "ammo": {
+    "displayMagazine": 999,
+    "reserve": 0,
+    "reload": false,
+    "runtimeSemantics": "effectively_unlimited_for_powerup_duration"
+  },
+  "fire": {
+    "mode": "automatic",
+    "rateRpm": 1666,
+    "spinUp": "short",
+    "adsSpinUp": false
+  },
+  "packAPunchEligible": false,
+  "movement": {
+    "sprintAllowed": true,
+    "sprintSpeed": "slow",
+    "exactMultiplierStatus": "pending"
+  },
+  "confirmedBO3InteractionRules": {
+    "barricadeRepair": false,
+    "reviveTeammate": false,
+    "weaponSwitch": "cancels_remaining_powerup_time",
+    "broadMapInteraction": "restricted"
+  },
+  "unresolvedInteractionRules": [
+    "door_and_debris_use_exact_behavior",
+    "knife_and_equipment_exact_behavior",
+    "purchase_subtypes_not_explicitly_documented_for_BO3"
+  ],
+  "damage": {
+    "model": "percentage_based_high_round_scaling",
+    "exactFormulaStatus": "pending",
+    "observedHighRoundBehavior": "approximately_two_headshots_or_a_few_bodyshots_on_round_70_plus",
+    "implementationAllowed": false
+  },
+  "sourceAuthority": {
+    "behavior": "https://callofduty.fandom.com/wiki/Death_Machine"
+  },
+  "readiness": {
+    "identity": "ready",
+    "behaviorSpec": "partial",
+    "stateTimerRuntime": "pending",
+    "interactionRestrictions": "pending",
+    "damageFormula": "pending",
+    "firingRuntime": "pending",
+    "model": "pending",
+    "audio": "pending",
+    "animation": "pending",
+    "pickupPresentation": "pending",
+    "androidExposure": "pending",
+    "regressionTest": "pending"
+  },
+  "safetyRule": "Do not hook the Death Machine power-up pickup to this weapon until firing, presentation, interaction restrictions, cancellation and restoration are all runtime-ready."
+}
