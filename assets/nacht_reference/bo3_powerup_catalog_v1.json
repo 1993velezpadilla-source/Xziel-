@@ -86,7 +86,10 @@
         "upstreamSymbol": null,
         "xzielSemantic": "XZIEL_PU_DEATHMACHINE",
         "bridgeStatus": "native_feature_required"
-      }
+      },
+      "temporaryWeaponId": "special_death_machine",
+      "weaponIdentityStatus": "cataloged",
+      "packAPunchEligible": false
     },
     {
       "id": "fire_sale",
