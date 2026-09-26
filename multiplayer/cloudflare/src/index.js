@@ -68,6 +68,8 @@ async function initRoom(env, code, options = {}) {
       mode: options.mode === "public" ? "public" : "private",
       targetPlayers: sanitizeTargetPlayers(options.targetPlayers),
       reservations: options.reservations || {},
+      worldPhase: "lobby",
+      worldRevision: 0,
     }),
   }));
 }
@@ -286,6 +288,8 @@ export class GameRoom extends DurableObject {
         mode: body.mode === "public" ? "public" : "private",
         targetPlayers: sanitizeTargetPlayers(body.targetPlayers),
         reservations: body.reservations || {},
+        worldPhase: "lobby",
+        worldRevision: 0,
       });
       return json({ ok: true });
     }
@@ -296,6 +300,7 @@ export class GameRoom extends DurableObject {
 
     const state = await this.ctx.storage.get([
       "roomCode", "map", "mode", "targetPlayers", "reservations",
+      "worldPhase", "worldRevision",
     ]);
     const expectedRoom = String(state.roomCode || "");
     const requestedRoom = String(url.searchParams.get("room") || "");
@@ -309,6 +314,10 @@ export class GameRoom extends DurableObject {
       ? sanitizeTargetPlayers(state.targetPlayers)
       : MAX_PLAYERS;
     const reservations = state.reservations || {};
+    const worldPhase = ["lobby", "preparing", "live"].includes(state.worldPhase)
+      ? state.worldPhase : "lobby";
+    const worldRevision = Number.isFinite(Number(state.worldRevision))
+      ? Number(state.worldRevision) : 0;
     const kind = url.searchParams.get("kind") === "voice" ? "voice" : "game";
     const playerId = String(
       url.searchParams.get("playerId") || crypto.randomUUID()
@@ -395,6 +404,8 @@ export class GameRoom extends DurableObject {
           targetPlayers: roomMaxPlayers,
           maxPlayers: roomMaxPlayers,
           hostSlot: 1,
+          worldPhase,
+          worldRevision,
           serverTime: Date.now(),
         }));
       } catch {}
@@ -407,9 +418,37 @@ export class GameRoom extends DurableObject {
           map: roomMap,
           mode: roomMode,
           targetPlayers: roomMaxPlayers,
+          worldPhase,
+          worldRevision,
         },
         server,
       );
+
+      // A reconnecting client must rejoin the exact authoritative world that
+      // already exists on Player 1. Never ask it to create/load its own map.
+      if (slot !== 1 && worldPhase === "preparing") {
+        try {
+          server.send(JSON.stringify({
+            type: "prepare_game",
+            map: roomMap,
+            worldPhase,
+            worldRevision,
+            replay: true,
+            serverTime: Date.now(),
+          }));
+        } catch {}
+      } else if (slot !== 1 && worldPhase === "live") {
+        try {
+          server.send(JSON.stringify({
+            type: "server_ready",
+            map: roomMap,
+            worldPhase,
+            worldRevision,
+            replay: true,
+            serverTime: Date.now(),
+          }));
+        } catch {}
+      }
 
       // Public rooms auto-start when their selected Duo/Trio/Quad size is full.
       // Private rooms remain host-controlled.
@@ -444,7 +483,7 @@ export class GameRoom extends DurableObject {
     return new Response(null, { status: 101, webSocket: client });
   }
 
-  webSocketMessage(ws, message) {
+  async webSocketMessage(ws, message) {
     const sender = ws.deserializeAttachment() || {};
 
     if (typeof message === "string") {
@@ -483,9 +522,37 @@ export class GameRoom extends DurableObject {
         return;
       }
 
-      if (parsed.type === "prepare_game" || parsed.type === "server_ready") {
+      if (parsed.type === "prepare_game") {
         if (sender.slot !== 1) return;
-        parsed.map = sanitizeMap(sender.map);
+
+        const current = await this.ctx.storage.get([
+          "map", "worldRevision",
+        ]);
+        const authoritativeMap = sanitizeMap(current.map || sender.map);
+        const nextRevision = Number(current.worldRevision || 0) + 1;
+
+        await this.ctx.storage.put({
+          worldPhase: "preparing",
+          worldRevision: nextRevision,
+        });
+
+        parsed.map = authoritativeMap;
+        parsed.worldPhase = "preparing";
+        parsed.worldRevision = nextRevision;
+      } else if (parsed.type === "server_ready") {
+        if (sender.slot !== 1) return;
+
+        const current = await this.ctx.storage.get([
+          "map", "worldRevision",
+        ]);
+        const authoritativeMap = sanitizeMap(current.map || sender.map);
+        const revision = Number(current.worldRevision || 0);
+
+        await this.ctx.storage.put({ worldPhase: "live" });
+
+        parsed.map = authoritativeMap;
+        parsed.worldPhase = "live";
+        parsed.worldRevision = revision;
       }
 
       if (parsed.type === "client_ready") {
