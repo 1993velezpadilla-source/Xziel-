@@ -221,10 +221,18 @@ if ASSET_PROFILE in {"auto","character.humanoid","character.creature"}:
                 im.load()
                 dst=DETAIL_PREP/f"detail_{len(detail_views)+1:02d}_auto_head.png"
                 detail_views.append(prepare_view(im,dst,target=PREP_TARGET))
+        if ASSET_PROFILE == "auto" and source_autofix_result.character_hint:
+            ASSET_PROFILE = "character.humanoid"
+            print(
+                "HAYUYA_CONTENT_CLASSIFICATION",
+                "asset_profile=character.humanoid",
+                "reason=source_autofix_face_or_pose",
+            )
         print(
             "HAYUYA_PHONE_SOURCE_AUTOFIX",
             "derived="+str(len(source_autofix_result.derived_detail_sources)),
             "character_hint="+str(bool(source_autofix_result.character_hint)).lower(),
+            "asset_profile="+ASSET_PROFILE,
             "manifest="+str(source_autofix_result.manifest),
         )
     except Exception as exc:
