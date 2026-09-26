@@ -58,8 +58,8 @@ if "void(entity who, float damage, float critical) nzp_damage_number;" not in te
         "void(entity who, float damage, float critical) nzp_damage_number;\n\n"
     ) + text[insert_at:]
 
-hit_anchor = '''\tif (victim.classname == "ai_zombie" || victim.classname == "ai_dog") {\n\n'''
-hit_repl = '''\tif (victim.classname == "ai_zombie" || victim.classname == "ai_dog") {\n\n\t\t/* Mobile COD-style floating damage numbers. Report the actual weapon\n\t\t   damage request for every legitimate player hit, including the fatal\n\t\t   shot. The client owns presentation/timing only. */\n\t\tif (attacker.classname == "player" && d_style != DMG_TYPE_OTHER && damage > 0)\n\t\t\tnzp_damage_number(attacker, damage, d_style == DMG_TYPE_HEADSHOT);\n\n'''
+hit_anchor = '''\tif (victim.classname == "ai_zombie" || victim.classname == "ai_dog") {\n'''
+hit_repl = '''\tif (victim.classname == "ai_zombie" || victim.classname == "ai_dog") {\n\t\t/* Mobile COD-style floating damage numbers. Report the actual weapon\n\t\t   damage request for every legitimate player hit, including the fatal\n\t\t   shot. The client owns presentation/timing only. */\n\t\tif (attacker.classname == "player" && d_style != DMG_TYPE_OTHER && damage > 0)\n\t\t\tnzp_damage_number(attacker, damage, d_style == DMG_TYPE_HEADSHOT);\n\n'''
 if "nzp_damage_number(attacker" not in text:
     if hit_anchor not in text:
         raise SystemExit("Could not find zombie damage branch")
