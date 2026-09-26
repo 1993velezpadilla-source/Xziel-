@@ -1,12 +1,12 @@
 name: Project Aether Public Build Audit
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - experiment/project-aether-golden-reference
     paths:
       - ".github/workflows/project-aether-public-build-audit.yml"
-  workflow_dispatch:
 
 jobs:
   audit:
@@ -16,70 +16,147 @@ jobs:
       - name: Checkout XZIEL
         uses: actions/checkout@v4
 
-      - name: Install tools
+      - name: Install Playwright and 7zip
         run: |
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y p7zip-full file
-          npm --version
-          node --version
+          mkdir -p "$RUNNER_TEMP/aether-browser"
+          cd "$RUNNER_TEMP/aether-browser"
+          npm init -y >/dev/null 2>&1
+          npm install playwright@latest >/dev/null
+          npx playwright install --with-deps chromium
 
-      - name: Download official free Project Aether build from itch.io
+      - name: Resolve itch free download and save build
+        env:
+          PURCHASE_URL: https://verrial.itch.io/projectaether/purchase
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/aether-download"
-          npx --yes itchio-downloader \
-            --url "https://verrial.itch.io/projectaether" \
-            --downloadDirectory "$RUNNER_TEMP/aether-download"
-          find "$RUNNER_TEMP/aether-download" -maxdepth 2 -type f -printf '%s %p\n' | sort -nr | head -20
+          cd "$RUNNER_TEMP/aether-browser"
+          cat > fetch.mjs <<'JS'
+          import { chromium } from 'playwright';
+          import fs from 'fs';
+          import path from 'path';
 
-      - name: Locate primary payload
-        run: |
-          set -euo pipefail
-          FILE=$(find "$RUNNER_TEMP/aether-download" -type f -printf '%s\t%p\n' | sort -nr | head -1 | cut -f2-)
-          test -n "$FILE"
-          echo "PAYLOAD=$FILE" >> "$GITHUB_ENV"
-          echo "Largest downloaded payload: $FILE"
-          ls -lh "$FILE"
-          sha256sum "$FILE" | tee payload.sha256
-          file "$FILE" | tee payload.filetype.txt
+          const outDir = path.join(process.env.RUNNER_TEMP, 'project-aether-build');
+          fs.mkdirSync(outDir, { recursive: true });
+          const browser = await chromium.launch({ headless: true });
+          const context = await browser.newContext({ acceptDownloads: true });
+          const page = await context.newPage();
+          await page.goto(process.env.PURCHASE_URL, { waitUntil: 'domcontentloaded', timeout: 120000 });
 
-      - name: List archive/package contents without extracting
-        run: |
-          set +e
-          mkdir -p audit-out
-          cp payload.sha256 payload.filetype.txt audit-out/
-          7z l -slt "$PAYLOAD" > audit-out/archive-list.txt 2>&1
-          RC=$?
-          echo "7z list rc=$RC"
-          python3 - <<'PY'
-          import json, os, pathlib, re
-          p=pathlib.Path('audit-out/archive-list.txt')
-          txt=p.read_text(encoding='utf-8',errors='replace') if p.exists() else ''
-          paths=[]
-          for line in txt.splitlines():
-              if line.startswith('Path = '):
-                  paths.append(line[7:].strip())
-          interesting=[]
-          needles=('nacht','prototype','zombie','content/paks','projectaether','.pak','.utoc','.ucas','.uproject','.umap','.uasset','.exe')
-          for x in paths:
-              low=x.lower()
-              if any(n in low for n in needles): interesting.append(x)
-          ext={}
-          for x in paths:
-              s=pathlib.PurePosixPath(x).suffix.lower() or '<none>'
-              ext[s]=ext.get(s,0)+1
-          report={
-            'file_entries':len(paths),
-            'extensions':dict(sorted(ext.items(),key=lambda kv:(-kv[1],kv[0]))),
-            'interesting_paths':interesting[:5000],
+          const skip = page.getByText('No thanks, just take me to the downloads', { exact: false });
+          if (await skip.count() === 0) {
+            fs.writeFileSync(path.join(outDir, 'purchase-page.html'), await page.content());
+            throw new Error('Free-download bypass link was not found');
           }
-          pathlib.Path('audit-out/public-build-inventory.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
+          await skip.first().click();
+          await page.waitForLoadState('domcontentloaded', { timeout: 120000 }).catch(()=>{});
+          await page.waitForTimeout(2000);
+
+          fs.writeFileSync(path.join(outDir, 'downloads-page.html'), await page.content());
+          fs.writeFileSync(path.join(outDir, 'downloads-page-url.txt'), page.url() + '\n');
+
+          const anchors = await page.locator('a').evaluateAll(els => els.map(a => ({
+            text: (a.textContent || '').trim(),
+            href: a.href,
+            download: a.getAttribute('download'),
+            cls: a.className
+          })));
+          fs.writeFileSync(path.join(outDir, 'anchors.json'), JSON.stringify(anchors, null, 2));
+
+          const candidates = page.locator('a').filter({ hasText: /download/i });
+          let downloaded = false;
+          for (let i = 0; i < await candidates.count(); i++) {
+            const a = candidates.nth(i);
+            const txt = (await a.innerText().catch(()=>'')) || '';
+            const href = await a.getAttribute('href');
+            if (!href) continue;
+            console.log('candidate', i, txt, href);
+            try {
+              const downloadPromise = page.waitForEvent('download', { timeout: 15000 });
+              await a.click({ timeout: 15000 });
+              const download = await downloadPromise;
+              const name = download.suggestedFilename() || 'Project-Aether.bin';
+              const dst = path.join(outDir, name);
+              await download.saveAs(dst);
+              console.log('saved', dst);
+              downloaded = true;
+              break;
+            } catch (e) {
+              console.log('candidate failed', String(e));
+              await page.goBack({ waitUntil: 'domcontentloaded', timeout: 30000 }).catch(()=>{});
+              await page.waitForTimeout(500);
+            }
+          }
+
+          if (!downloaded) {
+            const generic = page.locator('a[href*="download"], a[href*="upload"], .download_btn, .button').filter({hasText:/Project|Download|Windows|4\.2/i});
+            for (let i=0; i<await generic.count(); i++) {
+              const a=generic.nth(i);
+              console.log('generic', i, await a.innerText().catch(()=>''), await a.getAttribute('href'));
+              try {
+                const downloadPromise = page.waitForEvent('download', { timeout: 15000 });
+                await a.click({ timeout: 15000 });
+                const download = await downloadPromise;
+                const name = download.suggestedFilename() || 'Project-Aether.bin';
+                const dst = path.join(outDir, name);
+                await download.saveAs(dst);
+                downloaded = true;
+                break;
+              } catch {}
+            }
+          }
+
+          await browser.close();
+          if (!downloaded) throw new Error('Could not trigger the public itch download');
+          JS
+          node fetch.mjs
+
+      - name: Inspect downloaded Project Aether build
+        run: |
+          set -euo pipefail
+          mkdir -p audit-out
+          BUILD_DIR="$RUNNER_TEMP/project-aether-build"
+          find "$BUILD_DIR" -maxdepth 1 -type f -printf '%f %s\n' | tee audit-out/top-level-files.txt
+          PAYLOAD=$(find "$BUILD_DIR" -maxdepth 1 -type f ! -name '*.html' ! -name '*.json' ! -name '*.txt' -printf '%s %p\n' | sort -nr | head -n1 | cut -d' ' -f2-)
+          if [ -z "$PAYLOAD" ]; then echo 'No downloaded payload found'; exit 1; fi
+          echo "$PAYLOAD" > audit-out/payload-path.txt
+          sha256sum "$PAYLOAD" | tee audit-out/payload.sha256
+          file "$PAYLOAD" | tee audit-out/payload-filetype.txt
+          7z l -slt "$PAYLOAD" > audit-out/archive-listing.txt || true
+
+          mkdir -p "$RUNNER_TEMP/project-aether-extracted"
+          7z x -y "$PAYLOAD" -o"$RUNNER_TEMP/project-aether-extracted" >/tmp/7z-extract.log 2>&1 || true
+          cp /tmp/7z-extract.log audit-out/7z-extract.log
+
+          python3 - <<'PY'
+          import json, os, pathlib
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'project-aether-extracted'
+          files=[p for p in root.rglob('*') if p.is_file()] if root.exists() else []
+          ext={}
+          for p in files:
+              e=p.suffix.lower() or '<none>'
+              ext[e]=ext.get(e,0)+1
+          interesting=[]
+          for p in files:
+              rel=p.relative_to(root).as_posix()
+              low=rel.lower()
+              if any(k in low for k in ('nacht','prototype','aether','pak','ucas','utoc','uproject','umap','weapon','zombie')) or p.suffix.lower() in {'.pak','.ucas','.utoc','.umap','.uasset','.uproject'}:
+                  interesting.append({'path':rel,'bytes':p.stat().st_size})
+          interesting.sort(key=lambda x:(-x['bytes'],x['path']))
+          report={
+              'file_count':len(files),
+              'total_bytes':sum(p.stat().st_size for p in files),
+              'extensions':dict(sorted(ext.items(), key=lambda kv:(-kv[1],kv[0]))),
+              'interesting_files':interesting[:5000],
+              'largest_files':sorted(({'path':p.relative_to(root).as_posix(),'bytes':p.stat().st_size} for p in files), key=lambda x:-x['bytes'])[:500],
+          }
+          pathlib.Path('audit-out/project-aether-public-build-inventory.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
           print(json.dumps(report,indent=2)[:30000])
           PY
-          exit 0
 
-      - name: Upload audit report only
+      - name: Upload audit metadata only
         uses: actions/upload-artifact@v4
         with:
           name: project-aether-public-build-audit
