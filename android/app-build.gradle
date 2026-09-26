@@ -14,7 +14,7 @@ android {
         targetSdkVersion 35
         versionCode 25
         versionName "0.25-online-tunnel-test"
-        buildConfigField "String", "XZIEL_MULTIPLAYER_URL", "\"\${xzielMultiplayerUrlEscaped}\""
+        buildConfigField "String", "XZIEL_MULTIPLAYER_URL", "\"${xzielMultiplayerUrlEscaped}\""
 
         externalNativeBuild {
             ndkBuild {
