@@ -1,0 +1,120 @@
+name: Pavlov BO3 Nacht Structural Preview
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - experiment/bo3-nacht-standalone-audit
+    paths:
+      - ".github/workflows/pavlov-bo3-nacht-structural-preview.yml"
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install and unpack public Pavlov Nacht
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1 libgl1-mesa-dri libegl-mesa0
+          mkdir -p "$RUNNER_TEMP/steamcmd" "$RUNNER_TEMP/repak"
+          curl -fL --retry 6 --retry-delay 2 --retry-all-errors https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz -o "$RUNNER_TEMP/steamcmd.tgz"
+          tar -xzf "$RUNNER_TEMP/steamcmd.tgz" -C "$RUNNER_TEMP/steamcmd"
+          "$RUNNER_TEMP/steamcmd/steamcmd.sh" +quit || true
+          set +e
+          "$RUNNER_TEMP/steamcmd/steamcmd.sh" +login anonymous +workshop_download_item 555160 2755515831 validate +quit
+          set -e
+          ROOT=$(find "$HOME" "$RUNNER_TEMP" -type d -path '*/steamapps/workshop/content/555160/2755515831' -print -quit 2>/dev/null)
+          test -n "$ROOT"; PAK="$ROOT/WindowsNoEditor.pak"; test -f "$PAK"
+          curl -fL https://github.com/trumank/repak/releases/download/v0.2.3/repak_cli-x86_64-unknown-linux-gnu.tar.xz -o "$RUNNER_TEMP/repak.tar.xz"
+          tar -xJf "$RUNNER_TEMP/repak.tar.xz" -C "$RUNNER_TEMP/repak"
+          REPAK=$(find "$RUNNER_TEMP/repak" -type f -name 'repak*' -perm -111 | head -1)
+          mkdir -p "$RUNNER_TEMP/unpacked"; "$REPAK" unpack "$PAK" -o "$RUNNER_TEMP/unpacked"
+          echo "UNPACKED=$RUNNER_TEMP/unpacked" >> "$GITHUB_ENV"
+
+      - name: Build structural glTF exporter
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/exporter"; cd "$RUNNER_TEMP/exporter"
+          dotnet new console --framework net10.0 --force
+          dotnet add package CUE4Parse --version 1.2.2.202609
+          dotnet add package CUE4Parse-Conversion --version 1.2.2.202609
+          cat > Program.cs <<'CS'
+          using CUE4Parse.FileProvider;
+          using CUE4Parse.UE4.Versions;
+          using CUE4Parse.UE4.Assets.Exports.StaticMesh;
+          using CUE4Parse_Conversion;
+          using CUE4Parse_Conversion.Options;
+          if(args.Length<2)return 2;
+          var p=new DefaultFileProvider(args[0],SearchOption.AllDirectories,true,new VersionContainer(EGame.GAME_UE4_21));
+          p.Initialize();p.PostMount();p.LoadVirtualPaths();
+          var s=new ExportSession{MaxDegreeOfParallelism=Math.Max(1,Environment.ProcessorCount/2)};
+          int queued=0;
+          foreach(var f in p.Files.Values.Where(f=>f.IsUePackage && f.Path.Contains("/CoD_nacht/MAP_FILES/",StringComparison.OrdinalIgnoreCase)&&f.Path.EndsWith(".uasset",StringComparison.OrdinalIgnoreCase)).OrderBy(f=>f.Path)){
+            try{foreach(var m in p.LoadPackage(f.Path).GetExports().OfType<UStaticMesh>()){
+              var n=m.Name;
+              if(!n.StartsWith("zm_prototype_part",StringComparison.OrdinalIgnoreCase))continue;
+              if(n.StartsWith("zm_prototype_part1_1_",StringComparison.OrdinalIgnoreCase))continue;
+              s.Add(m);queued++;
+            }}catch{}
+          }
+          Console.WriteLine($"queued_structural={queued}");
+          var r=await s.RunAsync(args[1],new ExportOptions(meshFormat:EMeshFormat.Gltf2,exportMaterials:false));
+          Console.WriteLine($"results={r.Count}");
+          return r.Count==71?0:3;
+          CS
+          dotnet build -c Release
+
+      - name: Export 71 structural chunks
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/glb" audit-out
+          dotnet "$RUNNER_TEMP/exporter/bin/Release/net10.0/exporter.dll" "$UNPACKED" "$RUNNER_TEMP/glb" 2>&1 | tee audit-out/export.log
+          python3 - <<'PY'
+          import pathlib,os,shutil
+          dst=pathlib.Path(os.environ['RUNNER_TEMP'])/'glb'
+          for p in list(pathlib.Path.cwd().iterdir()):
+            if p.is_file() and p.name.lower().endswith('.glb') and '\\' in p.name:
+              shutil.move(str(p),str(dst/p.name.replace('\\','/').split('/')[-1]))
+          print('GLBs',len(list(dst.glob('*.glb'))))
+          PY
+          test "$(find "$RUNNER_TEMP/glb" -maxdepth 1 -name '*.glb' | wc -l)" -eq 71
+
+      - name: Render structural-only views
+        run: |
+          cat > "$RUNNER_TEMP/render.py" <<'PY'
+          import bpy,os,pathlib,json
+          from mathutils import Vector
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'glb'; out=pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'audit-out'
+          bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
+          objs=[]
+          for f in sorted(root.glob('*.glb')):
+            before=set(bpy.data.objects);bpy.ops.import_scene.gltf(filepath=str(f));objs += [o for o in bpy.data.objects if o not in before and o.type=='MESH']
+          for o in list(bpy.data.objects):
+            if o.type in {'LIGHT','CAMERA'}:bpy.data.objects.remove(o,do_unlink=True)
+          mat=bpy.data.materials.new('Neutral');mat.diffuse_color=(0.45,0.45,0.45,1)
+          for o in objs:o.data.materials.clear();o.data.materials.append(mat)
+          mn=Vector((1e30,)*3);mx=Vector((-1e30,)*3)
+          for o in objs:
+            for c in o.bound_box:
+              q=o.matrix_world@Vector(c)
+              for i in range(3):mn[i]=min(mn[i],q[i]);mx[i]=max(mx[i],q[i])
+          center=(mn+mx)/2;span=mx-mn;mxs=max(span);dist=mxs*2.5+1
+          sc=bpy.context.scene;sc.render.engine='BLENDER_WORKBENCH';sc.display.shading.light='STUDIO';sc.display.shading.show_shadows=True;sc.display.shading.show_cavity=True;sc.display.shading.cavity_type='BOTH';sc.display.shading.color_type='MATERIAL';sc.render.resolution_x=1400;sc.render.resolution_y=1000;sc.render.resolution_percentage=100;sc.render.image_settings.file_format='PNG'
+          cd=bpy.data.cameras.new('Camera');cam=bpy.data.objects.new('Camera',cd);bpy.context.collection.objects.link(cam);sc.camera=cam;cd.type='ORTHO';cd.clip_start=.001;cd.clip_end=dist*5
+          def look(loc):cam.location=loc;cam.rotation_euler=(center-loc).to_track_quat('-Z','Y').to_euler()
+          views=[('struct_top.png',center+Vector((0,0,dist)),max(span.x,span.y)*1.08),('struct_front.png',center+Vector((0,-dist,0)),max(span.x,span.z)*1.08),('struct_side.png',center+Vector((dist,0,0)),max(span.y,span.z)*1.08),('struct_iso.png',center+Vector((dist,-dist,dist*.72)),mxs*1.4)]
+          for n,l,z in views:look(l);cd.ortho_scale=max(z,1);sc.render.filepath=str(out/n);bpy.ops.render.render(write_still=True)
+          rep={'mesh_objects':len(objs),'bounds_min':list(mn),'bounds_max':list(mx),'span':list(span),'renders':[v[0] for v in views]};(out/'struct-report.json').write_text(json.dumps(rep,indent=2)+'\n');print(json.dumps(rep,indent=2))
+          PY
+          set -o pipefail
+          blender -b --python "$RUNNER_TEMP/render.py" 2>&1 | tee audit-out/render.log
+
+      - name: Upload structural preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: pavlov-bo3-nacht-structural-preview
+          path: audit-out/
+          retention-days: 7
