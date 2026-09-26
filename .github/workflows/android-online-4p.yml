@@ -1,0 +1,259 @@
+name: Android Online 4P Integration
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/multiplayer-online-tunnel-test
+    paths:
+      - "multiplayer/cloudflare/**"
+      - "android/**"
+      - "scripts/patch_vril_multiplayer_online.py"
+      - "scripts/patch_quakec_multiplayer_v026.py"
+      - ".github/workflows/android-native.yml"
+      - ".github/workflows/android-online-4p.yml"
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: xziel-online-4p-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    outputs:
+      deployment_url: ${{ steps.cloudflare.outputs.deployment-url }}
+    defaults:
+      run:
+        working-directory: multiplayer/cloudflare
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - name: Install Worker tooling
+        run: npm install
+
+      - name: Validate Worker
+        run: npm run check
+
+      - name: Deploy multiplayer Worker
+        id: cloudflare
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: "875d032435bc62d73bb9f98c439b69dc"
+          workingDirectory: multiplayer/cloudflare
+          command: deploy
+
+  build-online-apk:
+    needs: deploy
+    uses: ./.github/workflows/android-native.yml
+    with:
+      multiplayer_url: ${{ needs.deploy.outputs.deployment_url }}
+
+  four-player:
+    name: Player ${{ matrix.runner }} online emulator
+    needs: build-online-apk
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        runner: [1, 2, 3, 4]
+
+    steps:
+      - name: Download online APK
+        uses: actions/download-artifact@v5
+        with:
+          name: Xziel-NZP-native-universal-debug
+          path: apk
+
+      - name: Install Android emulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$(find "${ANDROID_HOME}/cmdline-tools" -type f -name sdkmanager | sort | tail -n 1)"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" \
+            "platform-tools" \
+            "emulator" \
+            "system-images;android-35;google_apis;x86_64"
+
+      - name: Boot player emulator
+        shell: bash
+        env:
+          ANDROID_AVD_HOME: ${{ runner.temp }}/xziel-4p-avd
+        run: |
+          set -euo pipefail
+          mkdir -p "$ANDROID_AVD_HOME" evidence
+          ADB="${ANDROID_HOME}/platform-tools/adb"
+          EMULATOR="${ANDROID_HOME}/emulator/emulator"
+          AVDMANAGER="$(find "${ANDROID_HOME}/cmdline-tools" -type f -name avdmanager | sort | tail -n 1)"
+
+          printf 'no\n' | "$AVDMANAGER" create avd \
+            --force \
+            --name "xziel-4p-${{ matrix.runner }}" \
+            --package "system-images;android-35;google_apis;x86_64" \
+            --device "pixel_6"
+
+          if [[ -e /dev/kvm ]]; then
+            sudo chmod 666 /dev/kvm || true
+          fi
+
+          nohup "$EMULATOR" \
+            @"xziel-4p-${{ matrix.runner }}" \
+            -no-window \
+            -no-audio \
+            -no-boot-anim \
+            -no-snapshot \
+            -gpu swiftshader_indirect \
+            -memory 2048 \
+            > "evidence/emulator-${{ matrix.runner }}.txt" 2>&1 &
+
+          timeout 180 "$ADB" wait-for-device
+
+          BOOTED=0
+          for i in $(seq 1 90); do
+            if [[ "$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == "1" ]]; then
+              BOOTED=1
+              break
+            fi
+            sleep 2
+          done
+          test "$BOOTED" = "1"
+
+          "$ADB" install -r apk/Xziel-NZP-native-universal-debug.apk
+          "$ADB" shell settings put secure immersive_mode_confirmations confirmed || true
+          "$ADB" logcat -c
+
+      - name: Enter isolated public matchmaking
+        shell: bash
+        env:
+          ANDROID_AVD_HOME: ${{ runner.temp }}/xziel-4p-avd
+        run: |
+          set -euo pipefail
+          ADB="${ANDROID_HOME}/platform-tools/adb"
+          QUEUE="ci-${GITHUB_RUN_ID}"
+
+          "$ADB" shell am force-stop com.xziel.nzp || true
+          "$ADB" shell am start -W \
+            -n com.xziel.nzp/org.libsdl.app.NZPActivity \
+            --ez xziel_ci_public_match true \
+            --es xziel_ci_match_queue "$QUEUE" \
+            > "evidence/am-start-${{ matrix.runner }}.txt" 2>&1
+
+          # The first queue arrival becomes slot 1/host. Host success requires
+          # all three remote clients to complete their Quake signon. Every
+          # other runner must report SIGNON_COMPLETE.
+          SUCCESS=0
+          for i in $(seq 1 120); do
+            "$ADB" logcat -d -v brief > "evidence/logcat-${{ matrix.runner }}.txt" || true
+
+            if grep -q "XzielOnline.*SIGNON_COMPLETE" "evidence/logcat-${{ matrix.runner }}.txt"; then
+              SUCCESS=1
+              break
+            fi
+
+            READY_COUNT="$(grep -c "XzielOnline.*CLIENT_READY host=1" "evidence/logcat-${{ matrix.runner }}.txt" || true)"
+            if [[ "$READY_COUNT" -ge 3 ]]; then
+              SUCCESS=1
+              break
+            fi
+            sleep 2
+          done
+
+          "$ADB" exec-out screencap -p > "evidence/player-${{ matrix.runner }}.png" || true
+          "$ADB" logcat -d -v threadtime > "evidence/logcat-${{ matrix.runner }}.txt" || true
+
+          {
+            echo "runner=${{ matrix.runner }}"
+            echo "queue=$QUEUE"
+            grep -E "XzielOnline.*(WELCOME|PLAYER_JOINED|HOST_PREPARE|HOST_SERVER_READY|SERVER_READY|CONNECT_START|CONNECT_RETRY|SIGNON_COMPLETE|CLIENT_READY)" \
+              "evidence/logcat-${{ matrix.runner }}.txt" || true
+          } > "evidence/online-summary-${{ matrix.runner }}.txt"
+
+          PID="$("$ADB" shell pidof com.xziel.nzp 2>/dev/null | tr -d '\r' || true)"
+          test -n "$PID"
+          test "$SUCCESS" = "1"
+
+      - name: Validate screenshot
+        shell: bash
+        run: |
+          python3 -m pip install --quiet pillow==11.3.0
+          python3 - <<'PY'
+          from PIL import Image, ImageStat
+          from pathlib import Path
+          p = next(Path("evidence").glob("player-*.png"))
+          im = Image.open(p).convert("RGB")
+          if im.width < 1000 or im.height < 500 or im.width <= im.height:
+              raise SystemExit(f"invalid screenshot dimensions: {im.size}")
+          stat = ImageStat.Stat(im.convert("L"))
+          if stat.stddev[0] < 8:
+              raise SystemExit(f"screenshot appears blank: std={stat.stddev[0]:.2f}")
+          print(p, im.size, "std", stat.stddev[0])
+          PY
+
+      - name: Upload player evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xziel-online-4p-player-${{ matrix.runner }}
+          path: evidence/
+          if-no-files-found: warn
+          retention-days: 14
+
+  collect-evidence:
+    name: Collect four-player evidence
+    if: always()
+    needs: four-player
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all player evidence
+        uses: actions/download-artifact@v5
+        with:
+          pattern: Xziel-online-4p-player-*
+          path: four-player-evidence
+          merge-multiple: false
+
+      - name: Build 2x2 screenshot contact sheet
+        shell: bash
+        run: |
+          python3 -m pip install --quiet pillow==11.3.0
+          python3 - <<'PY'
+          from pathlib import Path
+          from PIL import Image, ImageOps, ImageDraw
+
+          paths = sorted(Path("four-player-evidence").glob("*/player-*.png"))
+          if len(paths) != 4:
+              raise SystemExit(f"expected four screenshots, found {len(paths)}")
+
+          images = [Image.open(p).convert("RGB") for p in paths]
+          target_w = max(im.width for im in images)
+          target_h = max(im.height for im in images)
+          sheet = Image.new("RGB", (target_w * 2, target_h * 2))
+
+          for i, (path, im) in enumerate(zip(paths, images)):
+              canvas = ImageOps.pad(im, (target_w, target_h))
+              draw = ImageDraw.Draw(canvas)
+              draw.rectangle((8, 8, 190, 42), fill="black")
+              draw.text((16, 16), f"PLAYER RUNNER {i + 1}", fill="white")
+              sheet.paste(canvas, ((i % 2) * target_w, (i // 2) * target_h))
+
+          out = Path("four-player-evidence") / "xziel-online-4p-contact-sheet.png"
+          sheet.save(out)
+          print(out)
+          PY
+
+      - name: Upload combined evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xziel-online-4p-combined-evidence
+          path: four-player-evidence/
+          retention-days: 14
