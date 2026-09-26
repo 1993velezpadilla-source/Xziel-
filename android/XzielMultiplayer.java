@@ -1057,6 +1057,21 @@ public final class XzielMultiplayer {
         }
     }
 
+    public void onCiSoundEvent(int entity, int channel, String name,
+                               float x, float y, float z) {
+        if (!ciEvidenceMode || entity < 1 || entity > MAX_PLAYERS ||
+            entity == localSlot) {
+            return;
+        }
+
+        String sound = name == null ? "" : name;
+        Log.i(TAG, "CI_REMOTE_SOUND observer=" + localSlot +
+            " source=" + entity +
+            " channel=" + channel +
+            " sound=" + sound +
+            " pos=" + x + "," + y + "," + z);
+    }
+
     public boolean sendGameDatagram(byte[] payload, int destinationSlot,
                                     int sourcePort, int destinationPort) {
         WebSocket socket = gameSocket;
