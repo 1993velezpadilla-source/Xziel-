@@ -81,6 +81,8 @@ public final class XzielMultiplayer {
     private volatile WebSocket matchSocket;
     private volatile AlertDialog activeDialog;
     private volatile AlertDialog matchmakingDialog;
+    private volatile boolean matchmakingActive;
+    private volatile String matchmakingQueue = "public-v1";
 
     private volatile boolean matchStarted;
     private volatile boolean hostPreparing;
@@ -486,15 +488,37 @@ public final class XzielMultiplayer {
             : queueName.replaceAll("[^A-Za-z0-9_-]", "");
         if (queue.isEmpty()) queue = "public-v1";
 
+        matchmakingQueue = queue;
+        matchmakingActive = true;
+        showMatchmakingSearchDialog();
+        openMatchmakingSocket();
+    }
+
+    private void openMatchmakingSocket() {
+        if (!matchmakingActive || matchSocket != null) return;
+
         String wsUrl = websocketBase() + "/matchmake?playerId=" + playerId +
             "&map=" + selectedMap + "&players=" + targetPlayers +
-            "&queue=" + queue;
+            "&queue=" + matchmakingQueue;
         Request request = new Request.Builder().url(wsUrl).build();
 
-        showMatchmakingSearchDialog();
-        matchSocket = http.newWebSocket(request, new WebSocketListener() {
+        Log.i(TAG, "MATCH_CONNECT queue=" + matchmakingQueue +
+            " map=" + selectedMap + " targetPlayers=" + targetPlayers);
+
+        final WebSocket socket = http.newWebSocket(request, new WebSocketListener() {
+            @Override
+            public void onOpen(WebSocket webSocket, Response response) {
+                if (!matchmakingActive) {
+                    try { webSocket.close(1000, "cancelled"); } catch (Exception ignored) {}
+                    return;
+                }
+                Log.i(TAG, "MATCH_SOCKET_OPEN queue=" + matchmakingQueue +
+                    " targetPlayers=" + targetPlayers);
+            }
+
             @Override
             public void onMessage(WebSocket webSocket, String text) {
+                if (!matchmakingActive) return;
                 try {
                     JSONObject message = new JSONObject(text);
                     String type = message.optString("type", "");
@@ -502,6 +526,8 @@ public final class XzielMultiplayer {
                         int queued = message.optInt("queued", 1);
                         int needed = message.optInt("needed", targetPlayers);
                         targetPlayers = needed;
+                        Log.i(TAG, "MATCH_SEARCHING queued=" + queued +
+                            " needed=" + needed);
                         updateMatchmakingStatus(queued, needed);
                         return;
                     }
@@ -509,10 +535,16 @@ public final class XzielMultiplayer {
                         String code = message.optString("roomCode", "");
                         selectedMap = message.optString("map", DEFAULT_MAP);
                         targetPlayers = message.optInt("targetPlayers", targetPlayers);
-                        matchSocket = null;
+
+                        matchmakingActive = false;
+                        if (matchSocket == webSocket) matchSocket = null;
                         matchmakingDialog = null;
                         dismissTrackedDialog();
+
+                        Log.i(TAG, "MATCH_FOUND room=" + code +
+                            " targetPlayers=" + targetPlayers);
                         try { webSocket.close(1000, "matched"); } catch (Exception ignored) {}
+
                         if (code.length() == 6) {
                             toast("Match found - entering room");
                             joinRoom(code, true);
@@ -523,14 +555,39 @@ public final class XzielMultiplayer {
 
             @Override
             public void onFailure(WebSocket webSocket, Throwable t, Response response) {
-                if (matchSocket == webSocket) {
-                    matchSocket = null;
-                    matchmakingDialog = null;
-                    dismissTrackedDialog();
-                    toast("Public matchmaking connection failed");
-                }
+                if (matchSocket == webSocket) matchSocket = null;
+                if (!matchmakingActive) return;
+
+                Log.w(TAG, "MATCH_SOCKET_FAILURE - retrying", t);
+                updateMatchmakingReconnectState();
+                scheduleMatchmakingReconnect();
+            }
+
+            @Override
+            public void onClosed(WebSocket webSocket, int code, String reason) {
+                if (matchSocket == webSocket) matchSocket = null;
+                if (!matchmakingActive) return;
+
+                Log.i(TAG, "MATCH_SOCKET_CLOSED code=" + code +
+                    " reason=" + reason + " - retrying");
+                updateMatchmakingReconnectState();
+                scheduleMatchmakingReconnect();
             }
         });
+
+        if (matchmakingActive) {
+            matchSocket = socket;
+        } else {
+            try { socket.close(1000, "cancelled"); } catch (Exception ignored) {}
+        }
+    }
+
+    private void scheduleMatchmakingReconnect() {
+        activity.getWindow().getDecorView().postDelayed(() -> {
+            if (matchmakingActive && matchSocket == null) {
+                openMatchmakingSocket();
+            }
+        }, 1500);
     }
 
     private void joinRoom(String code, boolean publicMatch) {
@@ -994,6 +1051,7 @@ public final class XzielMultiplayer {
     }
 
     private void cancelMatchmaking() {
+        matchmakingActive = false;
         WebSocket socket = matchSocket;
         matchSocket = null;
         matchmakingDialog = null;
