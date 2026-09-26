@@ -64,7 +64,8 @@
     "packAPunchBallisticStatsReady": 0,
     "packAPunchNativeRuntimeReady": 0,
     "packAPunchDedicatedNativeIdCount": 35,
-    "packAPunchReusedCatalogIdCount": 1
+    "packAPunchReusedCatalogIdCount": 1,
+    "packAPunchNativeIdentityResolverPairs": 36
   },
   "bo3ChroniclesFeatureReference": {
     "mysteryBox": true,
@@ -210,7 +211,9 @@
       ],
       "dedicatedNativeUpgradeIds": 35,
       "reusedCatalogUpgradeIds": 1,
-      "nativeIdentityRegistryStatus": "ready"
+      "nativeIdentityRegistryStatus": "ready",
+      "nativeIdentityResolverStatus": "ready",
+      "nativeIdentityResolverPairs": 36
     },
     "points_economy_scoring": {
       "state": "pending"
