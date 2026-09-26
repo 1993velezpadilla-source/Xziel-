@@ -1,0 +1,68 @@
+name: WaW Thompson Golden Reference
+
+on:
+  push:
+    branches:
+      - experiment/waw-golden-thompson
+    paths:
+      - "tools/weapons/waw_thompson_reference.json"
+      - "tools/weapons/prepare_waw_thompson_reference.py"
+      - ".github/workflows/waw-thompson-golden.yml"
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout Xziel
+        uses: actions/checkout@v4
+
+      - name: Checkout public WaW Mod Tools
+        run: |
+          git clone --depth 1 \
+            https://github.com/CallOfDutyModding/call_of_duty_world_at_war_mod_tools.git \
+            "$RUNNER_TEMP/waw-modtools"
+
+      - name: Validate and stage Thompson reference
+        run: |
+          mkdir -p "$RUNNER_TEMP/waw-thompson"
+          python3 tools/weapons/prepare_waw_thompson_reference.py \
+            "$RUNNER_TEMP/waw-modtools" \
+            "$RUNNER_TEMP/waw-thompson"
+
+      - name: Assert golden invariants
+        run: |
+          python3 - "$RUNNER_TEMP/waw-thompson/validation_report.json" <<'PY'
+          import json, sys
+          p=sys.argv[1]
+          r=json.load(open(p,encoding="utf-8"))
+          assert r["status"] == "VALIDATED", r
+          m=r["model"]
+          assert m["version"] == 6, m
+          assert m["bones"] == 5, m
+          assert m["vertices"] == 2833, m
+          assert m["triangles"] == 4887, m
+          assert m["objects"] == 7, m
+          assert m["materials"] == 2, m
+          assert m["uv_records"] == 4887*3, m
+          assert m["normal_records"] == 4887*3, m
+          roles={x["role"] for x in r["textures"]}
+          assert roles == {"base_color","normal","specular","gloss_aux"}, roles
+          names={x["name"] for x in r["animations"]}
+          for required in {
+              "thompson_idle.XANIM_EXPORT",
+              "thompson_fire.XANIM_EXPORT",
+              "thompson_reload.XANIM_EXPORT",
+              "thompson_melee.XANIM_EXPORT",
+          }:
+              assert required in names, (required,names)
+          print("WaW Thompson GOLDEN source validation PASS")
+          PY
+
+      - name: Upload validation report only
+        uses: actions/upload-artifact@v4
+        with:
+          name: waw-thompson-golden-validation
+          path: ${{ runner.temp }}/waw-thompson/validation_report.json
+          if-no-files-found: error
