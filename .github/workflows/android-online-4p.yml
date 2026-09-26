@@ -80,11 +80,34 @@ jobs:
         run: |
           set -euo pipefail
           SDKMANAGER="$(find "${ANDROID_HOME}/cmdline-tools" -type f -name sdkmanager | sort | tail -n 1)"
+          test -n "$SDKMANAGER"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER" \
-            "platform-tools" \
-            "emulator" \
+
+          PACKAGES=(
+            "platform-tools"
             "system-images;android-35;google_apis;x86_64"
+          )
+          if [[ ! -x "${ANDROID_HOME}/emulator/emulator" ]]; then
+            PACKAGES+=("emulator")
+          fi
+
+          INSTALLED=0
+          for attempt in 1 2 3; do
+            echo "SDK install attempt $attempt/3"
+            if "$SDKMANAGER" "${PACKAGES[@]}"; then
+              INSTALLED=1
+              break
+            fi
+
+            echo "SDK download failed; clearing temporary package cache before retry."
+            rm -rf "${HOME}/.android/cache" || true
+            rm -rf "${ANDROID_HOME}/.temp" || true
+            find "${ANDROID_HOME}" -maxdepth 1 -type d -name "temp*" -exec rm -rf {} + 2>/dev/null || true
+            sleep $((attempt * 4))
+          done
+
+          test "$INSTALLED" = "1"
+          test -x "${ANDROID_HOME}/emulator/emulator"
 
       - name: Boot player emulator
         shell: bash
