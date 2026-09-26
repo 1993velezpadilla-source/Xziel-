@@ -294,6 +294,10 @@ jobs:
           grep -F 'XzielMapPackageInstaller.install' build/android-project/app/src/main/java/org/libsdl/app/NZPActivity.java
           grep -F '"-game", importedMap.gameDirectoryName' build/android-project/app/src/main/java/org/libsdl/app/NZPActivity.java
           grep -F 'SHA-256 mismatch' build/android-project/app/src/main/java/org/libsdl/app/XzielMapPackageInstaller.java
+          grep -F '"-xzielstrictassets"' build/android-project/app/src/main/java/org/libsdl/app/NZPActivity.java
+          grep -F 'XZIEL_STRICT_MISSING_MODEL' build/deps/vril/source/platform/sdl/gl/gl_model.c
+          grep -F 'XZIEL_STRICT_PRECACHE_MODEL' build/deps/vril/source/cl_parse.c
+          grep -F 'XZIEL_STRICT_MISSING_SFX' build/deps/vril/source/snd_mem.c
           grep -F 'XZIEL_FULL_BOX_CAPACITY' build/deps/quakec/source/server/defs/custom.qc
           grep -F '#define MAX_BOX_WEAPONS' build/deps/quakec/source/server/defs/custom.qc | grep -F '64'
           grep -F 'XZIEL_BOUNDED_BOX_SELECTION' build/deps/quakec/source/server/entities/mystery_box.qc
