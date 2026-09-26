@@ -18,7 +18,8 @@
     "mysteryBoxRuntimePool": "assets/weapons/xziel_mystery_box_runtime_pool_v1.json",
     "runtimePrimitiveCapabilities": "assets/nacht_reference/xziel_zombies_runtime_capabilities_v1.json",
     "deathMachineSpec": "assets/nacht_reference/bo3_death_machine_spec_v1.json",
-    "bo3WeaponSourceStats": "assets/weapons/bo3_weapon_source_stats_v1.json"
+    "bo3WeaponSourceStats": "assets/weapons/bo3_weapon_source_stats_v1.json",
+    "bo3PrototypeWeaponTable": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
   },
   "baseline": {
     "catalogWeaponCount": 52,
@@ -49,7 +50,10 @@
     "specialWeaponBehaviorSpecCount": 1,
     "sourceWeaponFileCount": 36,
     "zombiesSourceWeaponCount": 26,
-    "multiplayerReferenceOnlyWeaponCount": 10
+    "multiplayerReferenceOnlyWeaponCount": 10,
+    "prototypeWeaponTableRows": 41,
+    "prototypeWeaponTableFields": 20,
+    "prototypeUpgradeIdentityCount": 36
   },
   "bo3ChroniclesFeatureReference": {
     "mysteryBox": true,
@@ -1348,5 +1352,10 @@
     "zombiesAuthorityCount": 26,
     "multiplayerReferenceOnlyCount": 10,
     "rule": "MP-reference-only rows preserve available source information but do not satisfy Zombies source_stats or native gameplay readiness."
+  },
+  "prototypeSourcePolicy": {
+    "exactRawSnapshot": true,
+    "preserveBlankAsNull": true,
+    "rule": "Catalog prototype metadata must mirror the raw BO3 table exactly; blanks are unknown/not-set and must not be silently converted to false."
   }
 }
