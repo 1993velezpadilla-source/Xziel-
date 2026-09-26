@@ -223,6 +223,11 @@ jobs:
             -lm -o /tmp/xz_map_runtime_test
           /tmp/xz_map_runtime_test
 
+      - name: Validate BO3 Nacht weapon behavior specs
+        shell: bash
+        run: |
+          python3 tools/maps/validate_nacht_bo3_weapon_specs.py
+
       - name: Validate Nacht runtime overlay
         shell: bash
         run: |
