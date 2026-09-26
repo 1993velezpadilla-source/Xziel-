@@ -99,7 +99,11 @@
         "available": false,
         "upstreamSymbol": null,
         "xzielSemantic": "XZIEL_PU_FIRESALE",
-        "bridgeStatus": "native_feature_required"
+        "bridgeStatus": "native_feature_required",
+        "xzielLogicAvailable": true,
+        "xzielLogicSymbol": "XZIEL_StartFireSaleLogic",
+        "logicStatus": "ready",
+        "presentationStatus": "pending"
       }
     },
     {
