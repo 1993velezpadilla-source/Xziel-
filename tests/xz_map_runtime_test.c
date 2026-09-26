@@ -25,5 +25,13 @@ int main(void)
     assert(XzMapRuntime_Nacht(&state)->points == 500u);
     assert(XzNacht_ActiveSpawnCount(XzMapRuntime_Nacht(&state)) == 10u);
 
+    XzNacht_AwardPoints(XzMapRuntime_Nacht(&state), 250u);
+    assert(XzMapRuntime_Nacht(&state)->points == 750u);
+
+    XzMapRuntime_SetWorldModel(
+        &state,
+        "maps/xziel_nacht_bo3.bsp");
+    assert(XzMapRuntime_Nacht(&state)->points == 500u);
+
     return 0;
 }
