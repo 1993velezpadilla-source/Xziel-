@@ -1,0 +1,231 @@
+#!/usr/bin/env python3
+"""Extract a reproducible spatial manifest from UAssetGUI JSON for the Pavlov BO3 Nacht port.
+
+Input:
+  UAssetGUI JSON generated from Nacht_de_Untoten.umap with UE4.21.
+
+Output:
+  JSON containing:
+  - level actor inventory;
+  - resolved actor classes;
+  - static-mesh instance references;
+  - root/component transforms;
+  - gameplay actor placements.
+
+This intentionally stores metadata/layout only, not third-party mesh/texture payloads.
+"""
+from __future__ import annotations
+
+import argparse
+import collections
+import json
+from pathlib import Path
+from typing import Any
+
+
+def property_map(export: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    return {
+        p["Name"]: p
+        for p in export.get("Data", [])
+        if isinstance(p, dict) and isinstance(p.get("Name"), str)
+    }
+
+
+def struct_value(prop: dict[str, Any] | None) -> Any:
+    if not prop:
+        return None
+    value = prop.get("Value")
+    if isinstance(value, list) and value and isinstance(value[0], dict):
+        return value[0].get("Value")
+    return value
+
+
+def clean_numeric_obj(value: Any) -> Any:
+    if isinstance(value, dict):
+        out = {}
+        for k, v in value.items():
+            if k == "$type":
+                continue
+            out[k] = clean_numeric_obj(v)
+        return out
+    if isinstance(value, list):
+        return [clean_numeric_obj(v) for v in value]
+    if value == "+0":
+        return 0.0
+    return value
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("uasset_json", type=Path)
+    ap.add_argument("output_json", type=Path)
+    args = ap.parse_args()
+
+    doc = json.loads(args.uasset_json.read_text(encoding="utf-8-sig"))
+    exports: list[dict[str, Any]] = doc["Exports"]
+    imports: list[dict[str, Any]] = doc["Imports"]
+
+    level_index = next(
+        i + 1 for i, e in enumerate(exports)
+        if "LevelExport" in str(e.get("$type", ""))
+    )
+    level = exports[level_index - 1]
+    actors = [
+        x for x in level.get("Actors", [])
+        if isinstance(x, int) and x > 0
+    ]
+    actor_set = set(actors)
+
+    def resolve_index(index: int) -> str | None:
+        if not index:
+            return None
+        seen: set[int] = set()
+        parts: list[str] = []
+        while index and index not in seen:
+            seen.add(index)
+            if index < 0:
+                obj = imports[-index - 1]
+            else:
+                obj = exports[index - 1]
+            parts.append(str(obj.get("ObjectName", "?")))
+            index = int(obj.get("OuterIndex", 0) or 0)
+        return "/".join(reversed(parts))
+
+    def owner_actor_index(export_index: int) -> int | None:
+        index = export_index
+        seen: set[int] = set()
+        while index > 0 and index not in seen:
+            if index in actor_set:
+                return index
+            seen.add(index)
+            index = int(exports[index - 1].get("OuterIndex", 0) or 0)
+        return None
+
+    def root_transform(actor: dict[str, Any]) -> dict[str, Any] | None:
+        props = property_map(actor)
+        root = props.get("RootComponent")
+        if not root or not isinstance(root.get("Value"), int):
+            return None
+        root_index = root["Value"]
+        if root_index <= 0:
+            return None
+        component = exports[root_index - 1]
+        cp = property_map(component)
+        return {
+            "component_export_index": root_index,
+            "component_name": component.get("ObjectName"),
+            "location": clean_numeric_obj(struct_value(cp.get("RelativeLocation"))),
+            "rotation": clean_numeric_obj(struct_value(cp.get("RelativeRotation"))),
+            "scale": clean_numeric_obj(struct_value(cp.get("RelativeScale3D"))),
+        }
+
+    class_counts: collections.Counter[str] = collections.Counter()
+    actor_rows: list[dict[str, Any]] = []
+    for actor_index in actors:
+        actor = exports[actor_index - 1]
+        actor_class = resolve_index(int(actor.get("ClassIndex", 0) or 0)) or "UNKNOWN"
+        class_counts[actor_class] += 1
+        actor_rows.append({
+            "export_index": actor_index,
+            "name": actor.get("ObjectName"),
+            "class": actor_class,
+            "transform": root_transform(actor),
+        })
+
+    mesh_rows: list[dict[str, Any]] = []
+    for export_index, export in enumerate(exports, start=1):
+        props = property_map(export)
+        static_mesh = props.get("StaticMesh")
+        if not static_mesh:
+            continue
+
+        actor_index = owner_actor_index(export_index)
+        if not actor_index:
+            continue
+
+        mesh_index = static_mesh.get("Value")
+        if not isinstance(mesh_index, int) or mesh_index == 0:
+            continue
+
+        actor = exports[actor_index - 1]
+        mesh_rows.append({
+            "component_export_index": export_index,
+            "component_name": export.get("ObjectName"),
+            "actor_export_index": actor_index,
+            "actor_name": actor.get("ObjectName"),
+            "actor_class": resolve_index(int(actor.get("ClassIndex", 0) or 0)),
+            "mesh": resolve_index(mesh_index),
+            "relative_location": clean_numeric_obj(struct_value(props.get("RelativeLocation"))),
+            "relative_rotation": clean_numeric_obj(struct_value(props.get("RelativeRotation"))),
+            "relative_scale": clean_numeric_obj(struct_value(props.get("RelativeScale3D"))),
+            "outer_path": resolve_index(int(export.get("OuterIndex", 0) or 0)),
+        })
+
+    gameplay_needles = (
+        "ZombieSpawner",
+        "Zombie_hounds_Spawner",
+        "Barricade",
+        "WallBuy",
+        "MysteryBoxLocation",
+        "BuyableDoor",
+        "WonderFizz",
+        "PerkMachine",
+        "PunchAPack",
+        "Pavlov_Spawn",
+        "GameLogic",
+    )
+    gameplay = [
+        row for row in actor_rows
+        if any(needle.lower() in row["class"].lower() for needle in gameplay_needles)
+    ]
+
+    unique_meshes = sorted({row["mesh"] for row in mesh_rows if row["mesh"]})
+    cod_nacht_rows = [
+        row for row in mesh_rows
+        if isinstance(row["mesh"], str) and "/CoD_nacht/" in row["mesh"]
+    ]
+    map_file_rows = [
+        row for row in mesh_rows
+        if isinstance(row["mesh"], str)
+        and ("/MAP_FILES/" in row["mesh"] or "zm_prototype_part" in row["mesh"])
+    ]
+
+    output = {
+        "schema": 1,
+        "source": {
+            "map": "Nacht_de_Untoten.umap",
+            "engine": "UE4.21",
+            "workshop_id": "2755515831",
+            "note": "Pavlov community port credited with BO1/BO3 map geometry/models; not Treyarch source.",
+        },
+        "summary": {
+            "level_export_index": level_index,
+            "level_actor_count": len(actor_rows),
+            "actor_class_counts": dict(class_counts.most_common()),
+            "static_mesh_instance_count": len(mesh_rows),
+            "unique_static_mesh_count": len(unique_meshes),
+            "cod_nacht_static_mesh_instance_count": len(cod_nacht_rows),
+            "cod_nacht_unique_static_mesh_count": len({
+                r["mesh"] for r in cod_nacht_rows if r["mesh"]
+            }),
+            "map_files_instance_count": len(map_file_rows),
+            "map_files_unique_mesh_count": len({
+                r["mesh"] for r in map_file_rows if r["mesh"]
+            }),
+            "gameplay_actor_count": len(gameplay),
+        },
+        "gameplay_actors": gameplay,
+        "static_mesh_instances": mesh_rows,
+    }
+
+    args.output_json.parent.mkdir(parents=True, exist_ok=True)
+    args.output_json.write_text(
+        json.dumps(output, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    print(json.dumps(output["summary"], indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
