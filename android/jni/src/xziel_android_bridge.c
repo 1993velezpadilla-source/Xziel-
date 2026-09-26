@@ -296,3 +296,36 @@ void Xziel_Android_CiRemoteEntity(int slot, float x, float y, float z,
         (*env)->DeleteLocalRef(env, activity);
     Xziel_ClearException(env);
 }
+
+
+void Xziel_Android_CiSoundEvent(int ent, int channel, const char *name,
+    float x, float y, float z)
+{
+    JNIEnv *env = Xziel_Env();
+    jobject activity = Xziel_Activity(env);
+    jmethodID method;
+    jstring soundName = NULL;
+
+    if (!env || !activity)
+        goto done;
+
+    method = Xziel_Method(env, activity, "xzielCiSoundEvent",
+        "(IILjava/lang/String;FFF)V");
+    if (!method)
+        goto done;
+
+    soundName = (*env)->NewStringUTF(env, name ? name : "");
+    if (!soundName)
+        goto done;
+
+    (*env)->CallVoidMethod(env, activity, method,
+        (jint)ent, (jint)channel, soundName,
+        (jfloat)x, (jfloat)y, (jfloat)z);
+
+done:
+    if (soundName)
+        (*env)->DeleteLocalRef(env, soundName);
+    if (activity)
+        (*env)->DeleteLocalRef(env, activity);
+    Xziel_ClearException(env);
+}
