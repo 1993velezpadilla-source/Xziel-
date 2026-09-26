@@ -1,0 +1,1488 @@
+{
+  "schemaVersion": 1,
+  "matrixId": "bo3_weapon_source_coverage_v1",
+  "rule": "Every XZIEL weapon identity must trace to at least one concrete source. Identity/availability, raw stats, behavior and native readiness are independent dimensions.",
+  "counts": {
+    "catalogWeapons": 52,
+    "anySource": 52,
+    "zombiesIdentityOrBehavior": 42,
+    "zombiesWeaponfileStats": 26,
+    "nonZombiesStatsReference": 10,
+    "noSource": 0
+  },
+  "entries": [
+    {
+      "weaponId": "ar_accurate",
+      "displayName": "ICR-1",
+      "kind": "firearm",
+      "category": "ar",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "zombies_weaponfile",
+          "sourceWeaponFile": "ar_accurate_zm",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        },
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "ar_accurate",
+          "upgradeName": "ar_accurate_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": true,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "ar_cqb",
+      "displayName": "HVK-30",
+      "kind": "firearm",
+      "category": "ar",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "zombies_weaponfile",
+          "sourceWeaponFile": "ar_cqb_zm",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        },
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "ar_cqb",
+          "upgradeName": "ar_cqb_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": true,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "ar_damage",
+      "displayName": "Man-O-War",
+      "kind": "firearm",
+      "category": "ar",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "zombies_weaponfile",
+          "sourceWeaponFile": "ar_damage_zm",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        },
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "ar_damage",
+          "upgradeName": "ar_damage_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": true,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "ar_famas",
+      "displayName": "FFAR",
+      "kind": "firearm",
+      "category": "ar",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "multiplayer_reference_only",
+          "sourceWeaponFile": "ar_famas_mp",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": false,
+        "zombiesWeaponfileStats": false,
+        "nonZombiesStatsReference": true
+      },
+      "blockers": [
+        "zombies_weaponfile_stats_not_yet_available",
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "ar_fastburst",
+      "displayName": "XR-2",
+      "kind": "firearm",
+      "category": "ar",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "multiplayer_reference_only",
+          "sourceWeaponFile": "ar_fastburst_mp",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": false,
+        "zombiesWeaponfileStats": false,
+        "nonZombiesStatsReference": true
+      },
+      "blockers": [
+        "zombies_weaponfile_stats_not_yet_available",
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "ar_garand",
+      "displayName": "MX Garand",
+      "kind": "firearm",
+      "category": "ar",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "multiplayer_reference_only",
+          "sourceWeaponFile": "ar_garand_mp",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        },
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "ar_garand",
+          "upgradeName": "ar_garand_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": false,
+        "nonZombiesStatsReference": true
+      },
+      "blockers": [
+        "zombies_weaponfile_stats_not_yet_available",
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "ar_longburst",
+      "displayName": "M8A7",
+      "kind": "firearm",
+      "category": "ar",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "zombies_weaponfile",
+          "sourceWeaponFile": "ar_longburst_zm",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        },
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "ar_longburst",
+          "upgradeName": "ar_longburst_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": true,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "ar_marksman",
+      "displayName": "Sheiva",
+      "kind": "firearm",
+      "category": "ar",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "zombies_weaponfile",
+          "sourceWeaponFile": "ar_marksman_zm",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        },
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "ar_marksman",
+          "upgradeName": "ar_marksman_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": true,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "ar_standard",
+      "displayName": "KN-44",
+      "kind": "firearm",
+      "category": "ar",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "zombies_weaponfile",
+          "sourceWeaponFile": "ar_standard_zm",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        },
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "ar_standard",
+          "upgradeName": "ar_standard_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": true,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "ar_stg44",
+      "displayName": "STG-44",
+      "kind": "firearm",
+      "category": "rifle",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "ar_stg44",
+          "upgradeName": "ar_stg44_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": false,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "zombies_weaponfile_stats_not_yet_available",
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "bowie_knife",
+      "displayName": "Bowie Knife",
+      "kind": "melee",
+      "category": "special",
+      "mysteryBoxEligible": false,
+      "sources": [
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "bowie_knife",
+          "upgradeName": null,
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": false,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "zombies_weaponfile_stats_not_yet_available",
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "cymbal_monkey",
+      "displayName": "Cymbal Monkey",
+      "kind": "equipment",
+      "category": "grenade",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "cymbal_monkey",
+          "upgradeName": "cymbal_monkey_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": false,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "zombies_weaponfile_stats_not_yet_available",
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "cymbal_monkey_upgraded",
+      "displayName": "Cymbal Monkey Upgraded",
+      "kind": "equipment",
+      "category": "grenade",
+      "mysteryBoxEligible": false,
+      "sources": [
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "cymbal_monkey_upgraded",
+          "upgradeName": null,
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": false,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "zombies_weaponfile_stats_not_yet_available",
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "frag_grenade",
+      "displayName": "Fragmentation Grenades",
+      "kind": "equipment",
+      "category": "grenade",
+      "mysteryBoxEligible": false,
+      "sources": [
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "frag_grenade",
+          "upgradeName": null,
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": false,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "zombies_weaponfile_stats_not_yet_available",
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "hero_annihilator",
+      "displayName": "Annihilator",
+      "kind": "wonder_weapon",
+      "category": "special",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "hero_annihilator",
+          "upgradeName": null,
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": false,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "zombies_weaponfile_stats_not_yet_available",
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "knife",
+      "displayName": "Knife",
+      "kind": "melee",
+      "category": "special",
+      "mysteryBoxEligible": false,
+      "sources": [
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "knife",
+          "upgradeName": null,
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": false,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "zombies_weaponfile_stats_not_yet_available",
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "launcher_standard",
+      "displayName": "XM-53",
+      "kind": "firearm",
+      "category": "launcher",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "zombies_weaponfile",
+          "sourceWeaponFile": "launcher_standard_zm",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        },
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "launcher_standard",
+          "upgradeName": "launcher_standard_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": true,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "lmg_cqb",
+      "displayName": "Dingo",
+      "kind": "firearm",
+      "category": "lmg",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "zombies_weaponfile",
+          "sourceWeaponFile": "lmg_cqb_zm",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        },
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "lmg_cqb",
+          "upgradeName": "lmg_cqb_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": true,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "lmg_heavy",
+      "displayName": "48 Dredge",
+      "kind": "firearm",
+      "category": "lmg",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "zombies_weaponfile",
+          "sourceWeaponFile": "lmg_heavy_zm",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        },
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "lmg_heavy",
+          "upgradeName": "lmg_heavy_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": true,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "lmg_light",
+      "displayName": "BRM",
+      "kind": "firearm",
+      "category": "lmg",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "zombies_weaponfile",
+          "sourceWeaponFile": "lmg_light_zm",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        },
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "lmg_light",
+          "upgradeName": "lmg_light_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": true,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "lmg_rpk",
+      "displayName": "RPK",
+      "kind": "firearm",
+      "category": "lmg",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "lmg_rpk",
+          "upgradeName": "lmg_rpk_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": false,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "zombies_weaponfile_stats_not_yet_available",
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "lmg_slowfire",
+      "displayName": "Gorgon",
+      "kind": "firearm",
+      "category": "lmg",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "zombies_weaponfile",
+          "sourceWeaponFile": "lmg_slowfire_zm",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        },
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "lmg_slowfire",
+          "upgradeName": "lmg_slowfire_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": true,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "pistol_burst",
+      "displayName": "RK5",
+      "kind": "firearm",
+      "category": "pistol",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "zombies_weaponfile",
+          "sourceWeaponFile": "pistol_burst_zm",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        },
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "pistol_burst",
+          "upgradeName": "pistol_burst_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": true,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "native_binding_logic_only"
+      ]
+    },
+    {
+      "weaponId": "pistol_energy",
+      "displayName": "Rift E9",
+      "kind": "firearm",
+      "category": "pistol",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "multiplayer_reference_only",
+          "sourceWeaponFile": "pistol_energy_mp",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": false,
+        "zombiesWeaponfileStats": false,
+        "nonZombiesStatsReference": true
+      },
+      "blockers": [
+        "zombies_weaponfile_stats_not_yet_available",
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "pistol_fullauto",
+      "displayName": "L-CAR 9",
+      "kind": "firearm",
+      "category": "pistol",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "zombies_weaponfile",
+          "sourceWeaponFile": "pistol_fullauto_zm",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        },
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "pistol_fullauto",
+          "upgradeName": "pistol_fullauto_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": true,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "pistol_m1911",
+      "displayName": "M1911",
+      "kind": "firearm",
+      "category": "pistol",
+      "mysteryBoxEligible": false,
+      "sources": [
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "pistol_m1911",
+          "upgradeName": "pistol_m1911_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": false,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "zombies_weaponfile_stats_not_yet_available",
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "pistol_shotgun",
+      "displayName": "Marshal 16",
+      "kind": "firearm",
+      "category": "pistol",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "multiplayer_reference_only",
+          "sourceWeaponFile": "pistol_shotgun_mp",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": false,
+        "zombiesWeaponfileStats": false,
+        "nonZombiesStatsReference": true
+      },
+      "blockers": [
+        "zombies_weaponfile_stats_not_yet_available",
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "pistol_standard",
+      "displayName": "MR6",
+      "kind": "firearm",
+      "category": "pistol",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "zombies_weaponfile",
+          "sourceWeaponFile": "pistol_standard_zm",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        },
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "pistol_standard",
+          "upgradeName": "pistol_standard_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": true,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "ray_gun",
+      "displayName": "Ray Gun",
+      "kind": "wonder_weapon",
+      "category": "special",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "ray_gun",
+          "upgradeName": "ray_gun_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": false,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "zombies_weaponfile_stats_not_yet_available",
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "raygun_mark2",
+      "displayName": "Ray Gun Mark II",
+      "kind": "wonder_weapon",
+      "category": "special",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "raygun_mark2",
+          "upgradeName": "raygun_mark2_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": false,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "zombies_weaponfile_stats_not_yet_available",
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "shotgun_energy",
+      "displayName": "Banshii",
+      "kind": "firearm",
+      "category": "shotgun",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "multiplayer_reference_only",
+          "sourceWeaponFile": "shotgun_energy_mp",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": false,
+        "zombiesWeaponfileStats": false,
+        "nonZombiesStatsReference": true
+      },
+      "blockers": [
+        "zombies_weaponfile_stats_not_yet_available",
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "shotgun_fullauto",
+      "displayName": "Haymaker 12",
+      "kind": "firearm",
+      "category": "shotgun",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "zombies_weaponfile",
+          "sourceWeaponFile": "shotgun_fullauto_zm",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        },
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "shotgun_fullauto",
+          "upgradeName": "shotgun_fullauto_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": true,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "shotgun_precision",
+      "displayName": "Argus",
+      "kind": "firearm",
+      "category": "shotgun",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "zombies_weaponfile",
+          "sourceWeaponFile": "shotgun_precision_zm",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        },
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "shotgun_precision",
+          "upgradeName": "shotgun_precision_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": true,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "shotgun_pump",
+      "displayName": "KRM-262",
+      "kind": "firearm",
+      "category": "shotgun",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "zombies_weaponfile",
+          "sourceWeaponFile": "shotgun_pump_zm",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        },
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "shotgun_pump",
+          "upgradeName": "shotgun_pump_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": true,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "shotgun_semiauto",
+      "displayName": "205 Brecci",
+      "kind": "firearm",
+      "category": "shotgun",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "zombies_weaponfile",
+          "sourceWeaponFile": "shotgun_semiauto_zm",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        },
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "shotgun_semiauto",
+          "upgradeName": "shotgun_semiauto_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": true,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "smg_ak74u",
+      "displayName": "AK-74u",
+      "kind": "firearm",
+      "category": "smg",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "smg_ak74u",
+          "upgradeName": "smg_ak74u_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": false,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "zombies_weaponfile_stats_not_yet_available",
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "smg_burst",
+      "displayName": "Pharo",
+      "kind": "firearm",
+      "category": "smg",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "zombies_weaponfile",
+          "sourceWeaponFile": "smg_burst_zm",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        },
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "smg_burst",
+          "upgradeName": "smg_burst_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": true,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "smg_capacity",
+      "displayName": "Weevil",
+      "kind": "firearm",
+      "category": "smg",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "zombies_weaponfile",
+          "sourceWeaponFile": "smg_capacity_zm",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        },
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "smg_capacity",
+          "upgradeName": "smg_capacity_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": true,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "smg_fastfire",
+      "displayName": "Vesper",
+      "kind": "firearm",
+      "category": "smg",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "zombies_weaponfile",
+          "sourceWeaponFile": "smg_fastfire_zm",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        },
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "smg_fastfire",
+          "upgradeName": "smg_fastfire_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": true,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "smg_longrange",
+      "displayName": "Razorback",
+      "kind": "firearm",
+      "category": "smg",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "multiplayer_reference_only",
+          "sourceWeaponFile": "smg_longrange_mp",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": false,
+        "zombiesWeaponfileStats": false,
+        "nonZombiesStatsReference": true
+      },
+      "blockers": [
+        "zombies_weaponfile_stats_not_yet_available",
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "smg_mp40",
+      "displayName": "HG 40",
+      "kind": "firearm",
+      "category": "smg",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "multiplayer_reference_only",
+          "sourceWeaponFile": "smg_mp40_mp",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": false,
+        "zombiesWeaponfileStats": false,
+        "nonZombiesStatsReference": true
+      },
+      "blockers": [
+        "zombies_weaponfile_stats_not_yet_available",
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "smg_mp40_1940",
+      "displayName": "MP40",
+      "kind": "firearm",
+      "category": "smg",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "smg_mp40_1940",
+          "upgradeName": "smg_mp40_1940_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": false,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "zombies_weaponfile_stats_not_yet_available",
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "smg_standard",
+      "displayName": "Kuda",
+      "kind": "firearm",
+      "category": "smg",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "zombies_weaponfile",
+          "sourceWeaponFile": "smg_standard_zm",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        },
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "smg_standard",
+          "upgradeName": "smg_standard_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": true,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "smg_sten",
+      "displayName": "Sten",
+      "kind": "firearm",
+      "category": "smg",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "smg_sten",
+          "upgradeName": "smg_sten_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": false,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "zombies_weaponfile_stats_not_yet_available",
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "smg_versatile",
+      "displayName": "VMP",
+      "kind": "firearm",
+      "category": "smg",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "zombies_weaponfile",
+          "sourceWeaponFile": "smg_versatile_zm",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        },
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "smg_versatile",
+          "upgradeName": "smg_versatile_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": true,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "sniper_chargeshot",
+      "displayName": "P-06",
+      "kind": "firearm",
+      "category": "sniper",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "multiplayer_reference_only",
+          "sourceWeaponFile": "sniper_chargeshot_mp",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": false,
+        "zombiesWeaponfileStats": false,
+        "nonZombiesStatsReference": true
+      },
+      "blockers": [
+        "zombies_weaponfile_stats_not_yet_available",
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "sniper_fastbolt",
+      "displayName": "Locus",
+      "kind": "firearm",
+      "category": "sniper",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "zombies_weaponfile",
+          "sourceWeaponFile": "sniper_fastbolt_zm",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        },
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "sniper_fastbolt",
+          "upgradeName": "sniper_fastbolt_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": true,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "sniper_fastsemi",
+      "displayName": "Drakon",
+      "kind": "firearm",
+      "category": "sniper",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "zombies_weaponfile",
+          "sourceWeaponFile": "sniper_fastsemi_zm",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": false,
+        "zombiesWeaponfileStats": true,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "sniper_powerbolt",
+      "displayName": "SVG-100",
+      "kind": "firearm",
+      "category": "sniper",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "zombies_weaponfile",
+          "sourceWeaponFile": "sniper_powerbolt_zm",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        },
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "sniper_powerbolt",
+          "upgradeName": "sniper_powerbolt_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": true,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "sniper_quickscope",
+      "displayName": "RSA Interdiction",
+      "kind": "firearm",
+      "category": "sniper",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "raw_weaponfile_row",
+          "authorityScope": "multiplayer_reference_only",
+          "sourceWeaponFile": "sniper_quickscope_mp",
+          "snapshot": "assets/weapons/bo3_weapon_source_stats_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": false,
+        "zombiesWeaponfileStats": false,
+        "nonZombiesStatsReference": true
+      },
+      "blockers": [
+        "zombies_weaponfile_stats_not_yet_available",
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "special_death_machine",
+      "displayName": "Death Machine",
+      "kind": "firearm",
+      "category": "special",
+      "mysteryBoxEligible": false,
+      "sources": [
+        {
+          "type": "bo3_zm_runtime_scripts",
+          "authorityScope": "zombies_behavior",
+          "implementationScript": "scripts/zm/_zm_powerup_weapon_minigun.gsc",
+          "genericPowerupScript": "scripts/zm/_zm_powerups.gsc",
+          "implementationBlobSha": "9d3f0cbe0d1dd9ac72289cad9531d91a46eccaf8",
+          "genericBlobSha": "8965a32e1d9f426f94f24e83c095fda8b9c00512"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": false,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "zombies_weaponfile_stats_not_yet_available",
+        "native_binding_pending"
+      ]
+    },
+    {
+      "weaponId": "thundergun",
+      "displayName": "Thundergun",
+      "kind": "wonder_weapon",
+      "category": "special",
+      "mysteryBoxEligible": true,
+      "sources": [
+        {
+          "type": "bo3_zm_prototype_table",
+          "authorityScope": "zombies_identity_and_availability",
+          "weaponName": "thundergun",
+          "upgradeName": "thundergun_upgraded",
+          "snapshot": "assets/weapons/bo3_zm_prototype_weapons_v1.json"
+        }
+      ],
+      "sourceCoverage": {
+        "anySource": true,
+        "zombiesIdentityOrBehavior": true,
+        "zombiesWeaponfileStats": false,
+        "nonZombiesStatsReference": false
+      },
+      "blockers": [
+        "zombies_weaponfile_stats_not_yet_available",
+        "native_binding_pending"
+      ]
+    }
+  ]
+}
