@@ -11,8 +11,11 @@ int main(void)
     size_t index = 999u;
     float distance_m = -1.0f;
     const char *item_id = 0;
+    size_t purchase_index;
+    size_t firearm_specs = 0u;
 
     assert(XzMapRuntime_SelfTest());
+    assert(XzBo3WeaponSpec_SelfTest());
 
     XzMapRuntime_Init(&state);
     XzMapRuntime_SetWorldModel(&state, "maps/ndu.bsp");
@@ -29,6 +32,38 @@ int main(void)
     assert(XzMapRuntime_Nacht(&state) != 0);
     assert(XzMapRuntime_Nacht(&state)->points == 500u);
     assert(XzNacht_ActiveSpawnCount(XzMapRuntime_Nacht(&state)) == 10u);
+
+    for (purchase_index = 0u;
+         purchase_index < XZ_NACHT_PURCHASE_COUNT;
+         ++purchase_index) {
+        const XzNachtPurchase *purchase =
+            XzNacht_GetPurchase(purchase_index);
+        const XzBo3WeaponSpec *spec =
+            XzMapRuntime_NachtPurchaseWeaponSpec(
+                &state,
+                purchase_index);
+
+        assert(purchase != 0);
+
+        if (strcmp(
+                purchase->logical_item_id,
+                "frag_grenade") == 0) {
+            assert(spec == 0);
+            continue;
+        }
+
+        assert(spec != 0);
+        assert(strcmp(
+            spec->logical_item_id,
+            purchase->logical_item_id) == 0);
+        assert(strcmp(
+            spec->display_name,
+            purchase->display_name) == 0);
+        assert(spec->wall_cost == purchase->cost);
+        firearm_specs++;
+    }
+
+    assert(firearm_specs == 8u);
 
     /* Exact RK5 reference position must survive meters -> runtime -> meters. */
     assert(XzMapRuntime_NachtPurchasePositionUnits(&state, 8u, &position_units));
