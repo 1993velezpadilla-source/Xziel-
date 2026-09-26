@@ -1,4 +1,4 @@
-name: Native Android APK
+name: XZIEL Engine Android APK
 
 on:
   workflow_dispatch:
@@ -29,7 +29,7 @@ on:
       - feature/xz-bsp-special-raster-suppress
       - feature/xz-special-raster-suppress
       - feature/xz-full-world-raster-retirement
-      - feature/xz-nacht-reference-runtime-v1
+      - feature/xziel-engine-nacht-runtime-v1
     paths:
       - ".github/workflows/android-native.yml"
       - "android/**"
@@ -48,7 +48,7 @@ permissions:
 
 jobs:
   build-and-smoke-test:
-    name: Build native APK + Android smoke test
+    name: Build XZIEL Engine APK + Android smoke test
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
@@ -64,8 +64,8 @@ jobs:
           gh api --method POST \
             "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
             -f state=pending \
-            -f context="xziel/android-hud" \
-            -f description="Native Android HUD build is running" \
+            -f context="xziel/engine-android" \
+            -f description="XZIEL Engine Android build is running" \
             -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
             >/dev/null || true
 
@@ -201,7 +201,7 @@ jobs:
             -lm -o /tmp/xz_nacht_reference_test
           /tmp/xz_nacht_reference_test
 
-      - name: Validate Nacht NZP overlay
+      - name: Validate Nacht runtime overlay
         shell: bash
         run: |
           python3 tools/maps/export_nacht_nzp_runtime_overlay.py
@@ -303,7 +303,7 @@ jobs:
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER"             "platform-tools"             "platforms;android-35"             "build-tools;35.0.0"             "ndk;27.2.12479018"             "emulator"             "system-images;android-35;google_apis;x86_64"
 
-      - name: Prepare full native NZ:P Android project
+      - name: Prepare XZIEL Engine Android project
         shell: bash
         run: bash scripts/prepare_android.sh
 
@@ -316,8 +316,8 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-          cp build/android-project/app/build/outputs/apk/debug/app-debug.apk              dist/Xziel-NZP-native-universal-debug.apk
-          ls -lh dist/Xziel-NZP-native-universal-debug.apk
+          cp build/android-project/app/build/outputs/apk/debug/app-debug.apk              dist/XZIEL-Engine-Android-debug.apk
+          ls -lh dist/XZIEL-Engine-Android-debug.apk
 
       - name: Boot emulator and smoke-test Xziel
         id: smoke
@@ -369,7 +369,7 @@ jobs:
             exit 1
           fi
 
-          "$ADB" install -r dist/Xziel-NZP-native-universal-debug.apk
+          "$ADB" install -r dist/XZIEL-Engine-Android-debug.apk
           # Keep emulator orientation deterministic. SwiftShader/API-35 can
           # occasionally expose the physical screencap in portrait even though
           # SDL has already entered landscape.
@@ -379,14 +379,14 @@ jobs:
           # automated HUD screenshots contain only the game UI.
           "$ADB" shell settings put secure immersive_mode_confirmations confirmed || true
           "$ADB" logcat -c
-          "$ADB" shell am force-stop com.xziel.nzp || true
-          "$ADB" shell am start -W -n com.xziel.nzp/org.libsdl.app.NZPActivity             --ez xziel_ci_hud_preview true             --ez xziel_ci_fog_preview true             > dist/am-start.txt 2>&1 || true
+          "$ADB" shell am force-stop com.xziel.engine || true
+          "$ADB" shell am start -W -n com.xziel.engine/org.libsdl.app.NZPActivity             --ez xziel_ci_hud_preview true             --ez xziel_ci_fog_preview true             > dist/am-start.txt 2>&1 || true
 
           # Wait for the actual processed-frame marker instead of assuming
           # emulator/SwiftShader startup completes at a fixed wall-clock time.
           STAGE=""
           for i in $(seq 1 30); do
-            STAGE="$("$ADB" shell run-as com.xziel.nzp cat files/nzp-runtime/.xziel-stage 2>/dev/null | tr -d '\\r' || true)"
+            STAGE="$("$ADB" shell run-as com.xziel.engine cat files/nzp-runtime/.xziel-stage 2>/dev/null | tr -d '\\r' || true)"
             if [[ "$STAGE" == "FIRST_FRAME_OK" ]]; then
               break
             fi
@@ -498,14 +498,14 @@ jobs:
 
           # Second real-scene parity probe. Dung3on is an official NZ:P map
           # whose source explicitly contains knee-high water.
-          "$ADB" shell am force-stop com.xziel.nzp || true
-          "$ADB" shell run-as com.xziel.nzp rm -f files/nzp-runtime/.xziel-stage files/nzp-runtime/.xziel-last-error || true
+          "$ADB" shell am force-stop com.xziel.engine || true
+          "$ADB" shell run-as com.xziel.engine rm -f files/nzp-runtime/.xziel-stage files/nzp-runtime/.xziel-last-error || true
           "$ADB" logcat -c
-          "$ADB" shell am start -W -n com.xziel.nzp/org.libsdl.app.NZPActivity             --ez xziel_ci_hud_preview true             --ez xziel_ci_fog_preview true             --es xziel_ci_map dung3on             > dist/am-start-water.txt 2>&1 || true
+          "$ADB" shell am start -W -n com.xziel.engine/org.libsdl.app.NZPActivity             --ez xziel_ci_hud_preview true             --ez xziel_ci_fog_preview true             --es xziel_ci_map dung3on             > dist/am-start-water.txt 2>&1 || true
 
           WATER_STAGE=""
           for i in $(seq 1 45); do
-            WATER_STAGE="$("$ADB" shell run-as com.xziel.nzp cat files/nzp-runtime/.xziel-stage 2>/dev/null | tr -d '\r' || true)"
+            WATER_STAGE="$("$ADB" shell run-as com.xziel.engine cat files/nzp-runtime/.xziel-stage 2>/dev/null | tr -d '\r' || true)"
             if [[ "$WATER_STAGE" == "FIRST_FRAME_OK" ]]; then
               break
             fi
@@ -584,15 +584,15 @@ jobs:
           cat dist/xziel-logcat-nacht.txt dist/xziel-logcat-water.txt > dist/xziel-logcat.txt
           "$ADB" shell dumpsys activity processes > dist/activity-processes.txt || true
 
-          PID="$("$ADB" shell pidof com.xziel.nzp 2>/dev/null | tr -d '\\r' || true)"
+          PID="$("$ADB" shell pidof com.xziel.engine 2>/dev/null | tr -d '\\r' || true)"
           echo "PID=$PID"
 
           echo "===== DEVICE STARTUP MARKER ====="
-          "$ADB" shell run-as com.xziel.nzp cat files/nzp-runtime/.xziel-stage 2>/dev/null || true
-          "$ADB" shell run-as com.xziel.nzp cat files/nzp-runtime/.xziel-last-error 2>/dev/null || true
+          "$ADB" shell run-as com.xziel.engine cat files/nzp-runtime/.xziel-stage 2>/dev/null || true
+          "$ADB" shell run-as com.xziel.engine cat files/nzp-runtime/.xziel-last-error 2>/dev/null || true
 
           echo "===== XZIEL LOGCAT HIGHLIGHTS ====="
-          grep -Ei "FATAL EXCEPTION|Fatal signal|AndroidRuntime|DEBUG|libmain|gl4es|SDL|xziel|XZIEL-XZ|com.xziel.nzp|Vril Engine|Sys_Error|EGL_BAD_CONTEXT|stage=SYS_ERROR|stage=HOST_INIT_OK|stage=FIRST_FRAME_OK" \
+          grep -Ei "FATAL EXCEPTION|Fatal signal|AndroidRuntime|DEBUG|libmain|gl4es|SDL|xziel|XZIEL-XZ|com.xziel.engine|Vril Engine|Sys_Error|EGL_BAD_CONTEXT|stage=SYS_ERROR|stage=HOST_INIT_OK|stage=FIRST_FRAME_OK" \
             dist/xziel-logcat.txt | tail -n 500 || true
 
           if grep -Eq "Fatal signal .*SDLActivity|>>> com\\.xziel\\.nzp <<<|Process .*com\\.xziel\\.nzp.*exited due to signal|EGL_BAD_CONTEXT|stage=SYS_ERROR" dist/xziel-logcat.txt; then
@@ -605,7 +605,7 @@ jobs:
             exit 1
           fi
 
-          STAGE="$("$ADB" shell run-as com.xziel.nzp cat files/nzp-runtime/.xziel-stage 2>/dev/null | tr -d '\\r' || true)"
+          STAGE="$("$ADB" shell run-as com.xziel.engine cat files/nzp-runtime/.xziel-stage 2>/dev/null | tr -d '\\r' || true)"
           if [[ "$STAGE" != "FIRST_FRAME_OK" ]]; then
             echo "Xziel is alive but did not reach FIRST_FRAME_OK (stage=$STAGE)."
             exit 1
@@ -926,7 +926,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Xziel-runtime-diagnostics
+          name: XZIEL-Engine-runtime-diagnostics
           path: |
             dist/xziel-logcat.txt
             dist/xziel-logcat-nacht.txt
@@ -950,8 +950,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Xziel-NZP-native-universal-debug
-          path: dist/Xziel-NZP-native-universal-debug.apk
+          name: XZIEL-Engine-Android-debug
+          path: dist/XZIEL-Engine-Android-debug.apk
           if-no-files-found: error
           retention-days: 14
 
@@ -975,7 +975,7 @@ jobs:
           gh api --method POST \
             "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
             -f state="$STATE" \
-            -f context="xziel/android-hud" \
-            -f description="Native Android HUD build: $JOB_STATUS" \
+            -f context="xziel/engine-android" \
+            -f description="XZIEL Engine Android build: $JOB_STATUS" \
             -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
             >/dev/null || true
