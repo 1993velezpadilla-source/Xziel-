@@ -358,6 +358,84 @@ jobs:
           echo "Staged ${TEXTURE_COUNT} PNG fallback textures and ${KTX2_COUNT} KTX2 textures"
           du -sh             xziel-native-android/app/src/main/assets/models/xziel/sanctum             xziel-native-android/app/src/main/assets/textures/xziel/sanctum
 
+      - name: Overlay source-locked St Giles 4K candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # SOURCE_LOCKED_ST_GILES_RUNTIME_AB_V1
+          # This is an A/B candidate only. The exact 1K GLB texture remains
+          # the authority; the derivative may enter the APK only when its
+          # report proves source locking against the same decoded source hash.
+          RESPONSE="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/st-giles-source-locked-superres.yml/runs?branch=engine%2Fmobile-power-fidelity-v1&status=success&per_page=10")"
+          SR_RUN_ID="$(jq -r '.workflow_runs[0].id // empty' <<<"${RESPONSE}")"
+          test -n "${SR_RUN_ID}"
+
+          ARTIFACTS="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${SR_RUN_ID}/artifacts")"
+          SR_ARTIFACT_ID="$(jq -r '.artifacts[] | select(.name == "Xziel-St-Giles-Source-Locked-SR-AB" and .expired == false) | .id' <<<"${ARTIFACTS}" | head -n1)"
+          test -n "${SR_ARTIFACT_ID}"
+          test "${SR_ARTIFACT_ID}" != "null"
+
+          rm -rf build/st-giles-source-locked-runtime build/st-giles-source-locked-runtime.zip
+          mkdir -p build/st-giles-source-locked-runtime
+          gh api "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${SR_ARTIFACT_ID}/zip" > build/st-giles-source-locked-runtime.zip
+          unzip -q build/st-giles-source-locked-runtime.zip -d build/st-giles-source-locked-runtime
+
+          SR_REPORT="$(find build/st-giles-source-locked-runtime -name 'st-giles-source-locked-4k-report.json' -print -quit)"
+          SR_TEXTURE="$(find build/st-giles-source-locked-runtime -name 'st-giles-source-locked-4k.png' -print -quit)"
+          SOURCE_REPORT="$(find build/sanctum-artifact -name 'xziel_native_static_mesh_report.json' -print -quit)"
+
+          test -s "${SR_REPORT}"
+          test -s "${SR_TEXTURE}"
+          test -s "${SOURCE_REPORT}"
+
+          jq -e '.method == "SOURCE_LOCKED_REALESRGAN_HIGH_PASS_V1"' "${SR_REPORT}"
+          jq -e '.classification == "DERIVATIVE_NOT_ORIGINAL"' "${SR_REPORT}"
+          jq -e '.sourceAuthority == true' "${SR_REPORT}"
+          jq -e '.outputDimensions == [4096,4096]' "${SR_REPORT}"
+          jq -e '.roundTripMae <= 2.0' "${SR_REPORT}"
+          jq -e '.roundTripPsnrDb >= 38.0' "${SR_REPORT}"
+
+          SOURCE_SHA="$(jq -r '.materialReport | to_entries[] | select(.key | contains("Exterior04")) | .value.sourceDecodedSha256' "${SOURCE_REPORT}" | head -n1)"
+          CANDIDATE_SOURCE_SHA="$(jq -r '.sourceDecodedRgbaSha256' "${SR_REPORT}")"
+          test -n "${SOURCE_SHA}"
+          test "${SOURCE_SHA}" = "${CANDIDATE_SOURCE_SHA}"
+
+          EXTERIOR_REL="$(jq -r '.materialReport | to_entries[] | select(.key | contains("Exterior04")) | .value.texturePath' "${SOURCE_REPORT}" | head -n1)"
+          test -n "${EXTERIOR_REL}"
+          DEST="xziel-native-android/app/src/main/assets/${EXTERIOR_REL}"
+          test -s "${DEST}"
+
+          cp "${SR_TEXTURE}" "${DEST}"
+
+          python3 - "${DEST}" "${SR_REPORT}" <<'PY'
+          import hashlib
+          import json
+          import pathlib
+          import sys
+          from PIL import Image
+
+          path = pathlib.Path(sys.argv[1])
+          report = json.loads(pathlib.Path(sys.argv[2]).read_text())
+          with Image.open(path) as image:
+              rgba = image.convert("RGBA")
+              if list(rgba.size) != [4096, 4096]:
+                  raise SystemExit(f"unexpected staged candidate size: {rgba.size}")
+              digest = hashlib.sha256(rgba.tobytes()).hexdigest()
+          if digest != report["outputDecodedRgbaSha256"]:
+              raise SystemExit(
+                  "staged candidate decoded hash mismatch: "
+                  f"{digest} != {report['outputDecodedRgbaSha256']}"
+              )
+          print(
+              "XZIEL_SOURCE_LOCKED_SR_RUNTIME_CANDIDATE_STAGED "
+              f"size=4096x4096 sha={digest}"
+          )
+          PY
+
+          cp "${SR_REPORT}" build/st-giles-source-locked-runtime-report.json
+          echo "XZIEL_SOURCE_LOCKED_SR_RUNTIME_AB run=${SR_RUN_ID} artifact=${SR_ARTIFACT_ID}"
+
       - name: Overlay validated weapon viewmodel
         shell: bash
         run: |
