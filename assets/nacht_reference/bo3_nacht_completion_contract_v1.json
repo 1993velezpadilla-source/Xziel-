@@ -1,0 +1,1190 @@
+{
+  "schemaVersion": 1,
+  "contractId": "bo3_nacht_android_one_to_one_v1",
+  "releaseCandidate": false,
+  "target": "BO3 Zombies Chronicles Nacht der Untoten gameplay-parity validation target for XZIEL Android",
+  "rule": "Nothing may be silently omitted. Every catalog weapon and every tracked gameplay system must have an explicit state; releaseCandidate=true is illegal while any required lane is incomplete.",
+  "sources": {
+    "weaponCatalog": "assets/weapons/xziel_weapon_catalog_v1.json",
+    "globalMysteryBoxPool": "assets/weapons/xziel_mystery_box_pool_v1.json",
+    "nachtPrototypePool": "assets/weapons/nacht_prototype_box_pool_v1.json",
+    "runtimeReference": "assets/nacht_reference/runtime_reference_v1.json",
+    "bo3WeaponBehavior": "assets/nacht_reference/bo3_weapon_specs_v1.json"
+  },
+  "baseline": {
+    "catalogWeaponCount": 51,
+    "runtimePurchases": 9,
+    "doors": 3,
+    "barricades": 12,
+    "zombieSpawns": 21,
+    "playerSpawns": 4,
+    "maxPlayers": 4,
+    "roundSoakTarget": 100
+  },
+  "bo3ChroniclesFeatureReference": {
+    "mysteryBox": true,
+    "gobbleGumMachines": 2,
+    "derWunderfizz": true,
+    "muleKick": true,
+    "powerUps": [
+      "insta_kill",
+      "double_points",
+      "nuke",
+      "max_ammo",
+      "carpenter",
+      "death_machine"
+    ],
+    "packAPunchMachinePresent": false,
+    "packAPunchWeaponVariantsStillRequired": true,
+    "note": "Nacht itself has no Pack-a-Punch machine in BO3 Chronicles, but upgraded weapon variants remain required because BO3 GobbleGum mechanics can award Pack-a-Punched weapons."
+  },
+  "requiredWeaponLanes": [
+    "identity",
+    "source_stats",
+    "native_gameplay",
+    "wall_buy",
+    "mystery_box",
+    "model",
+    "audio",
+    "recoil",
+    "spread",
+    "animations",
+    "penetration",
+    "pack_a_punch_identity",
+    "pack_a_punch_runtime",
+    "android_exposure",
+    "regression_test"
+  ],
+  "requiredSystems": {
+    "map_topology_and_collision": {
+      "state": "partial"
+    },
+    "doors_and_zone_unlocks": {
+      "state": "partial"
+    },
+    "barricades_repair_points": {
+      "state": "partial"
+    },
+    "zombie_spawns_pathing_ai": {
+      "state": "partial"
+    },
+    "wall_buys_and_ammo_refills": {
+      "state": "partial"
+    },
+    "mystery_box_full_pool_and_teddy_flow": {
+      "state": "pending"
+    },
+    "gobblegum_machines_and_full_effect_runtime": {
+      "state": "pending"
+    },
+    "der_wunderfizz_and_perk_randomization": {
+      "state": "pending"
+    },
+    "mule_kick_and_weapon_slot_semantics": {
+      "state": "pending"
+    },
+    "powerup_drop_pool_and_effects": {
+      "state": "pending"
+    },
+    "pack_a_punch_weapon_variants": {
+      "state": "pending"
+    },
+    "points_economy_scoring": {
+      "state": "pending"
+    },
+    "all_interactions_zero_dead_prompts": {
+      "state": "pending"
+    },
+    "weapon_models_audio_fx_animations": {
+      "state": "pending"
+    },
+    "multiplayer_1_to_4_gameplay": {
+      "state": "pending"
+    },
+    "android_touch_hud_and_controls": {
+      "state": "partial"
+    },
+    "android_visual_parity": {
+      "state": "partial"
+    },
+    "horde_stress_and_round_100_soak": {
+      "state": "pending"
+    },
+    "crash_memory_leak_watch": {
+      "state": "pending"
+    }
+  },
+  "weapons": {
+    "ar_accurate": {
+      "displayName": "ICR-1",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "ready",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "ar_cqb": {
+      "displayName": "HVK-30",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "ready",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "ar_damage": {
+      "displayName": "Man-O-War",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "ready",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "ar_famas": {
+      "displayName": "FFAR",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "pending",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "pending",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "ar_fastburst": {
+      "displayName": "XR-2",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "pending",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "pending",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "ar_garand": {
+      "displayName": "MX Garand",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "pending",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "ar_longburst": {
+      "displayName": "M8A7",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "ready",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "ar_marksman": {
+      "displayName": "Sheiva",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "ready",
+        "native_gameplay": "pending",
+        "wall_buy": "cataloged",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "ar_standard": {
+      "displayName": "KN-44",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "ready",
+        "native_gameplay": "pending",
+        "wall_buy": "cataloged",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "ar_stg44": {
+      "displayName": "STG-44",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "pending",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "bowie_knife": {
+      "displayName": "Bowie Knife",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "pending",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "not_applicable",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "pending",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "cymbal_monkey": {
+      "displayName": "Cymbal Monkey",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "pending",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "cymbal_monkey_upgraded": {
+      "displayName": "Cymbal Monkey Upgraded",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "pending",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "not_applicable",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "pending",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "frag_grenade": {
+      "displayName": "Fragmentation Grenades",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "pending",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "not_applicable",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "pending",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "hero_annihilator": {
+      "displayName": "Annihilator",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "pending",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "pending",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "knife": {
+      "displayName": "Knife",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "pending",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "not_applicable",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "pending",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "launcher_standard": {
+      "displayName": "XM-53",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "ready",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "lmg_cqb": {
+      "displayName": "Dingo",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "ready",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "lmg_heavy": {
+      "displayName": "48 Dredge",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "ready",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "lmg_light": {
+      "displayName": "BRM",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "ready",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "lmg_rpk": {
+      "displayName": "RPK",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "pending",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "lmg_slowfire": {
+      "displayName": "Gorgon",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "ready",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "pistol_burst": {
+      "displayName": "RK5",
+      "catalogNativeStatus": "logic_only",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "ready",
+        "native_gameplay": "logic_only",
+        "wall_buy": "cataloged",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "pistol_energy": {
+      "displayName": "Rift E9",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "pending",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "pending",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "pistol_fullauto": {
+      "displayName": "L-CAR 9",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "ready",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "pistol_m1911": {
+      "displayName": "M1911",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "pending",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "not_applicable",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "pistol_shotgun": {
+      "displayName": "Marshal 16",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "pending",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "pending",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "pistol_standard": {
+      "displayName": "MR6",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "ready",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "ray_gun": {
+      "displayName": "Ray Gun",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "pending",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "raygun_mark2": {
+      "displayName": "Ray Gun Mark II",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "pending",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "shotgun_energy": {
+      "displayName": "Banshii",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "pending",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "pending",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "shotgun_fullauto": {
+      "displayName": "Haymaker 12",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "ready",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "shotgun_precision": {
+      "displayName": "Argus",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "ready",
+        "native_gameplay": "pending",
+        "wall_buy": "cataloged",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "shotgun_pump": {
+      "displayName": "KRM-262",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "ready",
+        "native_gameplay": "pending",
+        "wall_buy": "cataloged",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "shotgun_semiauto": {
+      "displayName": "205 Brecci",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "ready",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "smg_ak74u": {
+      "displayName": "AK-74u",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "pending",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "smg_burst": {
+      "displayName": "Pharo",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "ready",
+        "native_gameplay": "pending",
+        "wall_buy": "cataloged",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "smg_capacity": {
+      "displayName": "Weevil",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "ready",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "smg_fastfire": {
+      "displayName": "Vesper",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "ready",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "smg_longrange": {
+      "displayName": "Razorback",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "pending",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "pending",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "smg_mp40": {
+      "displayName": "HG 40",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "pending",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "pending",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "smg_mp40_1940": {
+      "displayName": "MP40",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "pending",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "smg_standard": {
+      "displayName": "Kuda",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "ready",
+        "native_gameplay": "pending",
+        "wall_buy": "cataloged",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "smg_sten": {
+      "displayName": "Sten",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "pending",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "smg_versatile": {
+      "displayName": "VMP",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "ready",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "sniper_chargeshot": {
+      "displayName": "P-06",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "pending",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "pending",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "sniper_fastbolt": {
+      "displayName": "Locus",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "ready",
+        "native_gameplay": "pending",
+        "wall_buy": "cataloged",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "sniper_fastsemi": {
+      "displayName": "Drakon",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "ready",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "pending",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "sniper_powerbolt": {
+      "displayName": "SVG-100",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "ready",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "sniper_quickscope": {
+      "displayName": "RSA Interdiction",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "pending",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "pending",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    },
+    "thundergun": {
+      "displayName": "Thundergun",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "pending",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "cataloged",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "cataloged",
+        "pack_a_punch_runtime": "pending",
+        "android_exposure": "pending",
+        "regression_test": "pending"
+      }
+    }
+  }
+}
