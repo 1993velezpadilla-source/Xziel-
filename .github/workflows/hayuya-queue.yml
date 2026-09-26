@@ -10,6 +10,7 @@ on:
       - tools/hayuya3d/job_request.py
       - tools/hayuya3d/gpu_e2e.sh
       - tools/hayuya3d/phone_cloud_worker.py
+      - tools/hayuya3d/trellis2_preview_recovery.py
       - tools/hayuya3d/blender_animation_gate.py
       - tools/hayuya3d/internet_asset_research.py
       - tools/hayuya3d/auto_motion_planner.py
@@ -200,7 +201,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libegl1 libgl1
           python -m pip install --upgrade pip
-          python -m pip install "gradio_client>=1.10,<2" pillow numpy trimesh mediapipe
+          python -m pip install "gradio_client>=1.10,<2" pillow numpy trimesh mediapipe "scipy>=1.11" "scikit-image>=0.22" "xatlas==0.0.11" "fast-simplification>=0.1.7"
 
       - name: Run phone-only Hayuya cloud job
         env:
