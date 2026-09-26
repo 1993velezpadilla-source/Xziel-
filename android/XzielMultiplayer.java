@@ -248,14 +248,22 @@ public final class XzielMultiplayer {
     }
 
     public void findPublicMatch() {
+        findPublicMatch("public-v1");
+    }
+
+    public void findPublicMatch(String queueName) {
         cancelMatchmaking();
         leaveGameRoomOnly();
 
         selectedMap = DEFAULT_MAP;
         roomMode = "public";
 
+        String queue = queueName == null ? "public-v1"
+            : queueName.replaceAll("[^A-Za-z0-9_-]", "");
+        if (queue.isEmpty()) queue = "public-v1";
+
         String wsUrl = websocketBase() + "/matchmake?playerId=" + playerId +
-            "&map=" + selectedMap;
+            "&map=" + selectedMap + "&queue=" + queue;
         Request request = new Request.Builder().url(wsUrl).build();
 
         toast("Searching public match...");
