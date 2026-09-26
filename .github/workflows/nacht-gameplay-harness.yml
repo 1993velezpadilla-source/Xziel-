@@ -257,6 +257,11 @@ jobs:
           grep -F 'XZIEL_GetPackAPunchWeaponID' build/deps/quakec/source/shared/weapon_stats.qc
           grep -F 'XZIEL_GetBaseWeaponIDFromPackAPunch' build/deps/quakec/source/shared/weapon_stats.qc
           grep -F 'XZIEL_PackAPunchRuntimeReady' build/deps/quakec/source/shared/weapon_stats.qc
+          grep -F 'XZIEL_PackAPunchMapScopeActive' build/deps/quakec/source/shared/weapon_stats.qc
+          grep -F 'substring(mapname, 0, 6) == "xziel_"' build/deps/quakec/source/shared/weapon_stats.qc
+          grep -F 'XZIEL_PAP_LEGACY_ISPAP_BRIDGE' build/deps/quakec/source/shared/weapon_stats.qc
+          grep -F 'XZIEL_PAP_LEGACY_NONPAP_BRIDGE' build/deps/quakec/source/shared/weapon_stats.qc
+          grep -F 'XZIEL_PAP_LEGACY_PAP_BRIDGE' build/deps/quakec/source/shared/weapon_stats.qc
           grep -F 'XZIEL_GOBBLEGUM_PAP_EVENT_RUNTIME_BEGIN' build/deps/quakec/source/server/utilities/weapon_utilities.qc
           grep -F 'XZIEL_GobbleGumActivatePapEvent' build/deps/quakec/source/server/utilities/weapon_utilities.qc
           grep -F 'XZIEL_GobbleGumResolveWallPowerWeapon' build/deps/quakec/source/server/utilities/weapon_utilities.qc
