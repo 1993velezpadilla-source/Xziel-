@@ -1,0 +1,140 @@
+name: BO3 Nacht FastFile Assetlist Audit
+
+on:
+  push:
+    branches:
+      - experiment/bo3-nacht-workshop-audit
+    paths:
+      - ".github/workflows/bo3-nacht-assetlist-audit.yml"
+  workflow_dispatch:
+
+jobs:
+  assetlist:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout Xziel
+        uses: actions/checkout@v4
+
+      - name: Install SteamCMD and download Workshop item
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $steam = Join-Path $env:RUNNER_TEMP 'steamcmd'
+          New-Item -ItemType Directory -Force -Path $steam | Out-Null
+          Invoke-WebRequest 'https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip' -OutFile (Join-Path $env:RUNNER_TEMP 'steamcmd.zip')
+          Expand-Archive (Join-Path $env:RUNNER_TEMP 'steamcmd.zip') -DestinationPath $steam -Force
+          & (Join-Path $steam 'steamcmd.exe') +login anonymous +workshop_download_item 311210 3596966808 validate +quit
+          $steamRc = $LASTEXITCODE
+          $global:LASTEXITCODE = 0
+          Write-Host "SteamCMD exit code: $steamRc (ignored after verified payload)"
+          $root = Get-ChildItem -Path $steam,$env:RUNNER_TEMP -Directory -Recurse -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -like '*steamapps\workshop\content\311210\3596966808' } |
+            Select-Object -First 1
+          if (-not $root) { throw "Workshop payload not found; SteamCMD exit code $steamRc" }
+          foreach ($name in @('zm_mod.ff','core_mod.ff')) {
+            $ff = Join-Path $root.FullName $name
+            if (-not (Test-Path $ff)) { throw "Missing $name" }
+            Get-Item $ff | Format-List FullName,Length
+          }
+          "WORKSHOP_ROOT=$($root.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          exit 0
+
+      - name: Download Atian COD Tools
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $zip = Join-Path $env:RUNNER_TEMP 'acts.zip'
+          Invoke-WebRequest 'https://github.com/ate47/atian-cod-tools/releases/download/3.3.0/acts.zip' -OutFile $zip
+          $dir = Join-Path $env:RUNNER_TEMP 'acts'
+          Expand-Archive $zip -DestinationPath $dir -Force
+          $exe = Get-ChildItem $dir -Filter acts.exe -Recurse | Select-Object -First 1
+          if (-not $exe) { throw 'acts.exe not found' }
+          "ACTS_EXE=$($exe.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Extract raw BO3 asset lists
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          New-Item -ItemType Directory -Force -Path 'asset-audit' | Out-Null
+          foreach ($name in @('zm_mod.ff','core_mod.ff')) {
+            Write-Host "=== ASSETLIST $name ==="
+            & $env:ACTS_EXE -l i fastfile -r assets --gameId bo3 -o 'asset-audit' (Join-Path $env:WORKSHOP_ROOT $name) 2>&1 | Tee-Object -FilePath ("asset-audit/acts-" + $name + ".log")
+            Write-Host "ACTS rc: $LASTEXITCODE"
+            $global:LASTEXITCODE = 0
+          }
+          exit 0
+
+      - name: Decode BO3 asset type counts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          @'
+          import csv, json, pathlib, re
+          names={
+            0:'PHYSPRESET',1:'PHYSCONSTRAINTS',2:'DESTRUCTIBLEDEF',3:'XANIM',4:'XMODEL',5:'XMODELMESH',
+            6:'MATERIAL',7:'COMPUTESHADERSET',8:'TECHSET',9:'IMAGE',10:'SOUND',11:'SOUND_PATCH',
+            12:'COL_MAP',13:'COM_MAP',14:'GAME_MAP',15:'MAP_ENTS',16:'GFX_MAP',17:'LIGHTDEF',
+            18:'LENSFLAREDEF',19:'UI_MAP',20:'FONT',21:'FONTICON',22:'LOCALIZE',23:'WEAPON',
+            24:'WEAPONDEF',25:'WEAPONVARIANT',26:'WEAPONFULL',37:'SNDDRIVERGLOBALS',38:'FX',
+            43:'PLAYER_CHARACTER',44:'AITYPE',45:'CHARACTER',46:'XMODELALIAS',47:'RAWFILE',
+            48:'STRINGTABLE',49:'STRUCTUREDTABLE',51:'DDL',53:'TEXTURELIST',54:'SCRIPTPARSETREE',
+            55:'KEYVALUEPAIRS',57:'ADDON_MAP_ENTS',65:'ZBARRIER',69:'SCRIPTBUNDLE',70:'SCRIPTBUNDLELIST',
+            75:'ANIMSELECTORTABLE',76:'ANIMMAPPINGTABLE',77:'ANIMSTATEMACHINE',78:'BEHAVIORTREE',
+            79:'BEHAVIORSTATEMACHINE',81:'SANIM',82:'LIGHTDESCRIPTION',84:'XCAM',85:'BGCACHE',
+            86:'TEXTURECOMBO',90:'MAPTABLE',91:'MAPTABLELOADINGIMAGES',96:'UMBRA_TOME',
+            97:'NAVMESH',98:'NAVVOLUME',102:'STREAMERHINT'
+          }
+          root=pathlib.Path('asset-audit')
+          csvs=list(root.rglob('*.csv'))
+          result={'csv_files':[str(p) for p in csvs],'fastfiles':{}}
+          for p in csvs:
+            # pre_assets files contain numeric type ids before full unlinking
+            if 'pre_assets' not in p.as_posix().lower(): continue
+            ff=p.stem
+            counts={}
+            rows=[]
+            with p.open(encoding='utf-8-sig',errors='replace',newline='') as f:
+              rd=csv.DictReader(f)
+              for row in rd:
+                raw=(row.get('type') or '').strip()
+                try:
+                  t=int(raw,16) if raw.lower().startswith('0x') else int(raw)
+                except Exception:
+                  continue
+                counts[t]=counts.get(t,0)+1
+                if len(rows)<5000: rows.append({'type_id':t,'type':names.get(t,f'UNKNOWN_{t}'),'ref':row.get('ref')})
+            result['fastfiles'][ff]={
+              'counts_by_id':{str(k):v for k,v in sorted(counts.items())},
+              'counts_by_name':{names.get(k,f'UNKNOWN_{k}'):v for k,v in sorted(counts.items())},
+              'map_authority':{
+                'GAME_MAP':counts.get(14,0),
+                'MAP_ENTS':counts.get(15,0),
+                'GFX_MAP':counts.get(16,0),
+                'ADDON_MAP_ENTS':counts.get(57,0),
+                'UMBRA_TOME':counts.get(96,0),
+                'NAVMESH':counts.get(97,0),
+                'NAVVOLUME':counts.get(98,0),
+              },
+              'content':{
+                'XANIM':counts.get(3,0),'XMODEL':counts.get(4,0),'XMODELMESH':counts.get(5,0),
+                'MATERIAL':counts.get(6,0),'IMAGE':counts.get(9,0),'SOUND':counts.get(10,0),
+                'WEAPON':counts.get(23,0),'FX':counts.get(38,0),'SCRIPTPARSETREE':counts.get(54,0),
+                'ZBARRIER':counts.get(65,0),'XCAM':counts.get(84,0)
+              },
+              'sample_rows':rows[:200]
+            }
+          pathlib.Path('asset-audit/assetlist-report.json').write_text(json.dumps(result,indent=2)+'\n',encoding='utf-8')
+          print(json.dumps(result,indent=2)[:30000])
+          '@ | Set-Content 'asset-audit/decode_assetlist.py' -Encoding utf8
+          python 'asset-audit/decode_assetlist.py'
+
+      - name: Upload reports only
+        uses: actions/upload-artifact@v4
+        with:
+          name: bo3-nacht-fastfile-assetlist-audit
+          path: |
+            asset-audit/assetlist-report.json
+            asset-audit/acts-*.log
+          if-no-files-found: warn
+          retention-days: 7
