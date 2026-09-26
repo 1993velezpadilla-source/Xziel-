@@ -217,6 +217,12 @@ public final class XzielMultiplayer {
         return localSlot;
     }
 
+    public void showCiSquadPreview() {
+        selectedMap = DEFAULT_MAP;
+        targetPlayers = MAX_PLAYERS;
+        showPublicSquadSizeMenu();
+    }
+
     public void openMultiplayerMenu() {
         activity.runOnUiThread(() -> {
             if (baseUrl.isEmpty()) {
