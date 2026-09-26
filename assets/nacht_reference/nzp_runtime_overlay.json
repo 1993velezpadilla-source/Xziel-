@@ -32,9 +32,10 @@
         4.990672
       ],
       "nzpWeaponConstant": null,
-      "integrationStatus": "awaiting_native_weapon_definition",
-      "replicationPolicy": "server_authoritative",
-      "notes": "Do not substitute an unrelated NZ:P firearm. Implement the BO3 weapon definition first."
+      "integrationStatus": "behavior_spec_ready_native_implementation_pending",
+      "weaponSpecId": "bo3_kn44_v1",
+      "notes": "Clean-room behavior spec is ready. Native XZIEL weapon code and original/licensed presentation assets are still required; do not substitute an unrelated NZ:P firearm.",
+      "replicationPolicy": "server_authoritative"
     },
     {
       "id": "purchase_argus",
@@ -49,9 +50,10 @@
         5.707007
       ],
       "nzpWeaponConstant": null,
-      "integrationStatus": "awaiting_native_weapon_definition",
-      "replicationPolicy": "server_authoritative",
-      "notes": "Do not substitute an unrelated NZ:P firearm. Implement the BO3 weapon definition first."
+      "integrationStatus": "behavior_spec_ready_native_implementation_pending",
+      "weaponSpecId": "bo3_argus_v1",
+      "notes": "Clean-room behavior spec is ready. Native XZIEL weapon code and original/licensed presentation assets are still required; do not substitute an unrelated NZ:P firearm.",
+      "replicationPolicy": "server_authoritative"
     },
     {
       "id": "purchase_frag",
@@ -67,8 +69,9 @@
       ],
       "nzpWeaponConstant": "W_GRENADE",
       "integrationStatus": "native_ready",
-      "replicationPolicy": "server_authoritative",
-      "notes": "Use stock NZ:P W_GRENADE purchase path; fills primary grenades to four."
+      "weaponSpecId": null,
+      "notes": "Use stock NZ:P W_GRENADE purchase path; fills primary grenades to four.",
+      "replicationPolicy": "server_authoritative"
     },
     {
       "id": "purchase_krm",
@@ -83,9 +86,10 @@
         1.440421
       ],
       "nzpWeaponConstant": null,
-      "integrationStatus": "awaiting_native_weapon_definition",
-      "replicationPolicy": "server_authoritative",
-      "notes": "Do not substitute an unrelated NZ:P firearm. Implement the BO3 weapon definition first."
+      "integrationStatus": "behavior_spec_ready_native_implementation_pending",
+      "weaponSpecId": "bo3_krm262_v1",
+      "notes": "Clean-room behavior spec is ready. Native XZIEL weapon code and original/licensed presentation assets are still required; do not substitute an unrelated NZ:P firearm.",
+      "replicationPolicy": "server_authoritative"
     },
     {
       "id": "purchase_kuda",
@@ -100,9 +104,10 @@
         1.360282
       ],
       "nzpWeaponConstant": null,
-      "integrationStatus": "awaiting_native_weapon_definition",
-      "replicationPolicy": "server_authoritative",
-      "notes": "Do not substitute an unrelated NZ:P firearm. Implement the BO3 weapon definition first."
+      "integrationStatus": "behavior_spec_ready_native_implementation_pending",
+      "weaponSpecId": "bo3_kuda_v1",
+      "notes": "Clean-room behavior spec is ready. Native XZIEL weapon code and original/licensed presentation assets are still required; do not substitute an unrelated NZ:P firearm.",
+      "replicationPolicy": "server_authoritative"
     },
     {
       "id": "purchase_locus_decal",
@@ -117,9 +122,10 @@
         4.376229
       ],
       "nzpWeaponConstant": null,
-      "integrationStatus": "awaiting_native_weapon_definition",
-      "replicationPolicy": "server_authoritative",
-      "notes": "Do not substitute an unrelated NZ:P firearm. Implement the BO3 weapon definition first."
+      "integrationStatus": "behavior_spec_ready_native_implementation_pending",
+      "weaponSpecId": "bo3_locus_v1",
+      "notes": "Clean-room behavior spec is ready. Native XZIEL weapon code and original/licensed presentation assets are still required; do not substitute an unrelated NZ:P firearm.",
+      "replicationPolicy": "server_authoritative"
     },
     {
       "id": "purchase_pharaoh",
@@ -134,9 +140,10 @@
         5.046703
       ],
       "nzpWeaponConstant": null,
-      "integrationStatus": "awaiting_native_weapon_definition",
-      "replicationPolicy": "server_authoritative",
-      "notes": "Do not substitute an unrelated NZ:P firearm. Implement the BO3 weapon definition first."
+      "integrationStatus": "behavior_spec_ready_native_implementation_pending",
+      "weaponSpecId": "bo3_pharo_v1",
+      "notes": "Clean-room behavior spec is ready. Native XZIEL weapon code and original/licensed presentation assets are still required; do not substitute an unrelated NZ:P firearm.",
+      "replicationPolicy": "server_authoritative"
     },
     {
       "id": "purchase_shiva",
@@ -151,9 +158,10 @@
         1.440421
       ],
       "nzpWeaponConstant": null,
-      "integrationStatus": "awaiting_native_weapon_definition",
-      "replicationPolicy": "server_authoritative",
-      "notes": "Do not substitute an unrelated NZ:P firearm. Implement the BO3 weapon definition first."
+      "integrationStatus": "behavior_spec_ready_native_implementation_pending",
+      "weaponSpecId": "bo3_sheiva_v1",
+      "notes": "Clean-room behavior spec is ready. Native XZIEL weapon code and original/licensed presentation assets are still required; do not substitute an unrelated NZ:P firearm.",
+      "replicationPolicy": "server_authoritative"
     },
     {
       "id": "purchase_triton",
@@ -168,9 +176,10 @@
         1.411515
       ],
       "nzpWeaponConstant": null,
-      "integrationStatus": "awaiting_native_weapon_definition",
-      "replicationPolicy": "server_authoritative",
-      "notes": "Do not substitute an unrelated NZ:P firearm. Implement the BO3 weapon definition first."
+      "integrationStatus": "behavior_spec_ready_native_implementation_pending",
+      "weaponSpecId": "bo3_rk5_v1",
+      "notes": "Clean-room behavior spec is ready. Native XZIEL weapon code and original/licensed presentation assets are still required; do not substitute an unrelated NZ:P firearm.",
+      "replicationPolicy": "server_authoritative"
     }
   ],
   "doors": [
@@ -665,6 +674,7 @@
   "validation": {
     "purchaseCount": 9,
     "nativeReadyPurchases": 1,
+    "behaviorSpecReadyPurchases": 8,
     "blockedWeaponPurchases": 8,
     "doorCount": 3,
     "barricadeCount": 12,
