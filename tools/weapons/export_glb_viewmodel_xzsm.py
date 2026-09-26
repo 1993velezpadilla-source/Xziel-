@@ -117,6 +117,62 @@ def material_image_node(mat):
             return node
     return candidates[0] if candidates else None
 
+def socket_image_record(sock):
+    node = linked_image_node_from_socket(sock)
+    if node is None or node.image is None:
+        return None
+    image = node.image
+    return {
+        "name": image.name,
+        "size": [int(image.size[0]), int(image.size[1])],
+        "colorspace": getattr(
+            getattr(image, "colorspace_settings", None),
+            "name",
+            None,
+        ),
+    }
+
+def material_pbr_inventory(mat):
+    if not mat or not mat.use_nodes or not mat.node_tree:
+        return {
+            "baseColor": None,
+            "metallic": None,
+            "roughness": None,
+            "normal": None,
+            "metallicFactor": 0.0,
+            "roughnessFactor": 1.0,
+        }
+
+    bsdf = mat.node_tree.nodes.get("Principled BSDF")
+    if bsdf is None:
+        return {
+            "baseColor": None,
+            "metallic": None,
+            "roughness": None,
+            "normal": None,
+            "metallicFactor": 0.0,
+            "roughnessFactor": 1.0,
+        }
+
+    metallic_socket = bsdf.inputs.get("Metallic")
+    roughness_socket = bsdf.inputs.get("Roughness")
+    return {
+        "baseColor": socket_image_record(bsdf.inputs.get("Base Color")),
+        "metallic": socket_image_record(metallic_socket),
+        "roughness": socket_image_record(roughness_socket),
+        "normal": socket_image_record(bsdf.inputs.get("Normal")),
+        "metallicFactor": (
+            float(metallic_socket.default_value)
+            if metallic_socket is not None
+            else 0.0
+        ),
+        "roughnessFactor": (
+            float(roughness_socket.default_value)
+            if roughness_socket is not None
+            else 1.0
+        ),
+    }
+
 def linked_uv_map_name(sock, visited=None):
     if not sock or not getattr(sock, "is_linked", False):
         return None
@@ -220,6 +276,7 @@ def save_material_texture(mat):
         "source": source_desc,
         "bytes": dst.stat().st_size,
         "baseColorFactor": list(material_color(mat)),
+        "sourcePbr": material_pbr_inventory(mat),
     }
     return rel
 
@@ -657,6 +714,25 @@ report = {
     "targetLongestDimensionMeters": TARGET_LONGEST_METERS,
     "animations": animations,
     "materials": material_records,
+    "sourcePbrMaterialCount": sum(
+        1 for record in material_records.values()
+        if any(
+            record["sourcePbr"].get(channel) is not None
+            for channel in ("metallic", "roughness", "normal")
+        )
+    ),
+    "sourceNormalMappedMaterialCount": sum(
+        1 for record in material_records.values()
+        if record["sourcePbr"].get("normal") is not None
+    ),
+    "sourceMetallicMappedMaterialCount": sum(
+        1 for record in material_records.values()
+        if record["sourcePbr"].get("metallic") is not None
+    ),
+    "sourceRoughnessMappedMaterialCount": sum(
+        1 for record in material_records.values()
+        if record["sourcePbr"].get("roughness") is not None
+    ),
     "uvBindings": uv_records,
 }
 
