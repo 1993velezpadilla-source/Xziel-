@@ -1191,6 +1191,28 @@
       }
     },
     {
+      "weaponId": "special_death_machine",
+      "displayName": "Death Machine",
+      "category": "special",
+      "sourceWeaponFile": null,
+      "zombiesStatsAvailable": false,
+      "gameEnabled": true,
+      "mysteryBoxEligible": false,
+      "nativeBindingStatus": "pending",
+      "origin": "bo3_reference_identity",
+      "nachtWallBuyId": null,
+      "kind": "firearm",
+      "runtimeRole": "temporary_powerup_weapon",
+      "packAPunchEligible": false,
+      "nachtPrototype": {
+        "present": false
+      },
+      "nativeBindingNotes": [
+        "BO3 Nacht/Chronicles power-up weapon identity. It is not a Mystery Box reward and cannot be Pack-a-Punched.",
+        "Dedicated 30-second temporary-weapon runtime, presentation, interaction restrictions and high-round damage behavior remain pending."
+      ]
+    },
+    {
       "weaponId": "thundergun",
       "displayName": "Thundergun",
       "category": "special",
@@ -1217,7 +1239,7 @@
     }
   ],
   "validation": {
-    "minimumWeaponCount": 51,
+    "minimumWeaponCount": 52,
     "baselineWeaponIds": [
       "ar_accurate",
       "ar_cqb",
@@ -1269,6 +1291,7 @@
       "sniper_fastsemi",
       "sniper_powerbolt",
       "sniper_quickscope",
+      "special_death_machine",
       "thundergun"
     ],
     "minimumZombiesStatsAvailableCount": 26,
