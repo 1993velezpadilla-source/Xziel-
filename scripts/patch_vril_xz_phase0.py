@@ -74,6 +74,8 @@ for name in (
     "xz_geometry_tap.c",
     "xz_texture_tap.h",
     "xz_texture_tap.c",
+    "xz_nacht_reference.h",
+    "xz_nacht_reference.c",
 ):
     src = modules / name
     if not src.is_file():
