@@ -3,11 +3,20 @@ package org.libsdl.app;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.RectF;
+import android.graphics.Typeface;
 import android.provider.Settings;
 import android.text.InputFilter;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import org.json.JSONObject;
@@ -63,6 +72,7 @@ public final class XzielMultiplayer {
     private volatile String roomCode = "";
     private volatile String roomMode = "private";
     private volatile String selectedMap = DEFAULT_MAP;
+    private volatile int targetPlayers = MAX_PLAYERS;
     private volatile String playerId;
     private volatile int localSlot;
     private volatile WebSocket gameSocket;
@@ -90,6 +100,102 @@ public final class XzielMultiplayer {
             this.sourcePort = sourcePort;
             this.payload = payload;
         }
+    }
+
+
+    /**
+     * Original in-app squad-size icon. No external/copyrighted art is used:
+     * rings and player silhouettes are drawn directly with Android Canvas.
+     */
+    private static final class SquadIconView extends View {
+        private final int playerCount;
+        private final int accent;
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final RectF body = new RectF();
+
+        SquadIconView(Context context, int playerCount, int accent) {
+            super(context);
+            this.playerCount = playerCount;
+            this.accent = accent;
+            setMinimumWidth(dp(context, 112));
+            setMinimumHeight(dp(context, 112));
+            setContentDescription(playerCount == 2 ? "Duo" :
+                playerCount == 3 ? "Trio" : "Quad");
+        }
+
+        @Override
+        protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+            int size = dp(getContext(), 112);
+            setMeasuredDimension(
+                resolveSize(size, widthMeasureSpec),
+                resolveSize(size, heightMeasureSpec)
+            );
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            float cx = getWidth() * 0.5f;
+            float cy = getHeight() * 0.5f;
+            float radius = Math.min(getWidth(), getHeight()) * 0.42f;
+
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(Color.rgb(18, 22, 28));
+            canvas.drawCircle(cx, cy, radius, paint);
+
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(dp(getContext(), 4));
+            paint.setColor(accent);
+            canvas.drawCircle(cx, cy, radius, paint);
+            paint.setStrokeWidth(dp(getContext(), 2));
+            paint.setAlpha(145);
+            canvas.drawCircle(cx, cy, radius - dp(getContext(), 8), paint);
+            paint.setAlpha(255);
+
+            float spacing = radius * (playerCount == 2 ? 0.42f : 0.31f);
+            float start = cx - spacing * (playerCount - 1) * 0.5f;
+            float headR = radius * (playerCount == 4 ? 0.12f : 0.14f);
+            float bodyW = headR * 1.75f;
+            float bodyH = headR * 2.1f;
+
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(Color.WHITE);
+            for (int i = 0; i < playerCount; i++) {
+                float x = start + spacing * i;
+                float headY = cy - radius * 0.16f;
+                canvas.drawCircle(x, headY, headR, paint);
+                body.set(
+                    x - bodyW * 0.5f,
+                    headY + headR * 0.70f,
+                    x + bodyW * 0.5f,
+                    headY + headR * 0.70f + bodyH
+                );
+                canvas.drawRoundRect(body, headR * 0.55f, headR * 0.55f, paint);
+            }
+
+            float badgeR = radius * 0.27f;
+            float badgeX = cx - radius * 0.78f;
+            float badgeY = cy - radius * 0.78f;
+            paint.setColor(Color.rgb(10, 12, 16));
+            canvas.drawCircle(badgeX, badgeY, badgeR, paint);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(dp(getContext(), 3));
+            paint.setColor(accent);
+            canvas.drawCircle(badgeX, badgeY, badgeR, paint);
+
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(Color.WHITE);
+            paint.setTypeface(Typeface.DEFAULT_BOLD);
+            paint.setTextAlign(Paint.Align.CENTER);
+            paint.setTextSize(radius * 0.43f);
+            Paint.FontMetrics fm = paint.getFontMetrics();
+            float baseline = badgeY - (fm.ascent + fm.descent) * 0.5f;
+            canvas.drawText(String.valueOf(playerCount), badgeX, baseline, paint);
+        }
+    }
+
+    private static int dp(Context context, int value) {
+        return Math.round(value * context.getResources().getDisplayMetrics().density);
     }
 
     public XzielMultiplayer(Activity activity, String endpoint) {
@@ -126,27 +232,7 @@ public final class XzielMultiplayer {
                 return;
             }
 
-            AlertDialog dialog = new AlertDialog.Builder(activity)
-                .setTitle("ONLINE MULTIPLAYER")
-                .setMessage("Private rooms or automatic public matchmaking - up to 4 players.")
-                .setPositiveButton("PRIVATE ROOM", (d, w) -> showPrivateMenu())
-                .setNegativeButton("FIND PUBLIC MATCH", (d, w) -> findPublicMatch())
-                .setNeutralButton("CANCEL", null)
-                .create();
-            showTracked(dialog);
-        });
-    }
-
-    private void showPrivateMenu() {
-        activity.runOnUiThread(() -> {
-            AlertDialog dialog = new AlertDialog.Builder(activity)
-                .setTitle("PRIVATE ROOM")
-                .setMessage("Create a room and share the 6-character code, or join a friend's room.")
-                .setPositiveButton("CREATE ROOM", (d, w) -> showMapSelection())
-                .setNegativeButton("JOIN ROOM", (d, w) -> showJoinDialog())
-                .setNeutralButton("BACK", (d, w) -> openMultiplayerMenu())
-                .create();
-            showTracked(dialog);
+            showMapSelection();
         });
     }
 
@@ -156,14 +242,125 @@ public final class XzielMultiplayer {
             final String[] maps = { "ndu" };
             AlertDialog dialog = new AlertDialog.Builder(activity)
                 .setTitle("SELECT MAP")
+                .setMessage("Choose the map first. Solo stays offline from the main menu.")
                 .setItems(labels, (d, which) -> {
                     selectedMap = maps[which];
-                    createRoom(selectedMap);
+                    showOnlineModeSelection();
                 })
-                .setNegativeButton("BACK", (d, w) -> showPrivateMenu())
+                .setNegativeButton("CANCEL", null)
                 .create();
             showTracked(dialog);
         });
+    }
+
+    private void showOnlineModeSelection() {
+        activity.runOnUiThread(() -> {
+            AlertDialog dialog = new AlertDialog.Builder(activity)
+                .setTitle(prettyMap(selectedMap))
+                .setMessage("How do you want to play this map online?")
+                .setPositiveButton("PRIVATE ROOM", (d, w) -> showPrivateMenu())
+                .setNegativeButton("PUBLIC MATCH", (d, w) -> showPublicSquadSizeMenu())
+                .setNeutralButton("BACK", (d, w) -> showMapSelection())
+                .create();
+            showTracked(dialog);
+        });
+    }
+
+    private void showPrivateMenu() {
+        activity.runOnUiThread(() -> {
+            AlertDialog dialog = new AlertDialog.Builder(activity)
+                .setTitle("PRIVATE ROOM - " + prettyMap(selectedMap))
+                .setMessage("Create a room for this map, or join a room code from a friend.")
+                .setPositiveButton("CREATE ROOM", (d, w) -> createRoom(selectedMap))
+                .setNegativeButton("JOIN ROOM", (d, w) -> showJoinDialog())
+                .setNeutralButton("BACK", (d, w) -> showOnlineModeSelection())
+                .create();
+            showTracked(dialog);
+        });
+    }
+
+    private void showPublicSquadSizeMenu() {
+        activity.runOnUiThread(() -> {
+            LinearLayout root = new LinearLayout(activity);
+            root.setOrientation(LinearLayout.VERTICAL);
+            root.setPadding(dp(activity, 12), dp(activity, 8),
+                dp(activity, 12), dp(activity, 4));
+
+            TextView help = new TextView(activity);
+            help.setText("Choose how many total players you want in this public match.");
+            help.setTextColor(Color.LTGRAY);
+            help.setTextSize(15);
+            help.setGravity(Gravity.CENTER);
+            help.setPadding(0, 0, 0, dp(activity, 8));
+            root.addView(help, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ));
+
+            LinearLayout row = new LinearLayout(activity);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER);
+            root.addView(row, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ));
+
+            addSquadChoice(row, 2, "DUO", Color.rgb(255, 151, 45));
+            addSquadChoice(row, 3, "TRIO", Color.rgb(76, 220, 111));
+            addSquadChoice(row, 4, "QUAD", Color.rgb(190, 78, 255));
+
+            AlertDialog dialog = new AlertDialog.Builder(activity)
+                .setTitle("PUBLIC MATCH - " + prettyMap(selectedMap))
+                .setView(root)
+                .setNegativeButton("BACK", (d, w) -> showOnlineModeSelection())
+                .create();
+            showTracked(dialog);
+        });
+    }
+
+    private void addSquadChoice(LinearLayout row, int players,
+                                String label, int accent) {
+        LinearLayout card = new LinearLayout(activity);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setGravity(Gravity.CENTER);
+        card.setPadding(dp(activity, 4), 0, dp(activity, 4), 0);
+
+        SquadIconView icon = new SquadIconView(activity, players, accent);
+        card.addView(icon, new LinearLayout.LayoutParams(
+            dp(activity, 112), dp(activity, 112)
+        ));
+
+        TextView name = new TextView(activity);
+        name.setText(label);
+        name.setTextColor(Color.WHITE);
+        name.setTextSize(18);
+        name.setTypeface(Typeface.DEFAULT_BOLD);
+        name.setGravity(Gravity.CENTER);
+        card.addView(name, new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+
+        TextView detail = new TextView(activity);
+        detail.setText(players == 2 ? "YOU + 1" :
+            players == 3 ? "YOU + 2" : "YOU + 3");
+        detail.setTextColor(accent);
+        detail.setTextSize(11);
+        detail.setGravity(Gravity.CENTER);
+        card.addView(detail, new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+
+        card.setOnClickListener(v -> {
+            dismissTrackedDialog();
+            findPublicMatch(selectedMap, players, "public-v1");
+        });
+
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+            0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f
+        );
+        row.addView(card, params);
     }
 
     private void showJoinDialog() {
@@ -248,14 +445,20 @@ public final class XzielMultiplayer {
     }
 
     public void findPublicMatch() {
-        findPublicMatch("public-v1");
+        findPublicMatch(DEFAULT_MAP, MAX_PLAYERS, "public-v1");
     }
 
     public void findPublicMatch(String queueName) {
+        findPublicMatch(DEFAULT_MAP, MAX_PLAYERS, queueName);
+    }
+
+    public void findPublicMatch(String map, int players, String queueName) {
         cancelMatchmaking();
         leaveGameRoomOnly();
 
-        selectedMap = DEFAULT_MAP;
+        selectedMap = map == null || map.isEmpty() ? DEFAULT_MAP : map;
+        targetPlayers = players == 2 || players == 3 || players == 4
+            ? players : MAX_PLAYERS;
         roomMode = "public";
 
         String queue = queueName == null ? "public-v1"
@@ -263,7 +466,8 @@ public final class XzielMultiplayer {
         if (queue.isEmpty()) queue = "public-v1";
 
         String wsUrl = websocketBase() + "/matchmake?playerId=" + playerId +
-            "&map=" + selectedMap + "&queue=" + queue;
+            "&map=" + selectedMap + "&players=" + targetPlayers +
+            "&queue=" + queue;
         Request request = new Request.Builder().url(wsUrl).build();
 
         toast("Searching public match...");
@@ -275,12 +479,16 @@ public final class XzielMultiplayer {
                     String type = message.optString("type", "");
                     if ("searching".equals(type)) {
                         int queued = message.optInt("queued", 1);
-                        toast("Searching... " + queued + "/" + MAX_PLAYERS);
+                        int needed = message.optInt("needed", targetPlayers);
+                        targetPlayers = needed;
+                        toast("Searching " + prettyMap(selectedMap) + " " +
+                            squadLabel(targetPlayers) + "... " + queued + "/" + needed);
                         return;
                     }
                     if ("match_found".equals(type)) {
                         String code = message.optString("roomCode", "");
                         selectedMap = message.optString("map", DEFAULT_MAP);
+                        targetPlayers = message.optInt("targetPlayers", targetPlayers);
                         matchSocket = null;
                         try { webSocket.close(1000, "matched"); } catch (Exception ignored) {}
                         if (code.length() == 6) {
@@ -376,10 +584,13 @@ public final class XzielMultiplayer {
                 localSlot = slot;
                 selectedMap = message.optString("map", DEFAULT_MAP);
                 roomMode = message.optString("mode", roomMode);
+                targetPlayers = message.optInt("targetPlayers",
+                    "public".equals(roomMode) ? targetPlayers : MAX_PLAYERS);
                 connectedSlots.add(slot);
                 queueNativeCommand("name XzielP" + slot + "\n");
                 Log.i(TAG, "WELCOME room=" + roomCode + " mode=" + roomMode +
-                    " slot=" + slot + " map=" + selectedMap);
+                    " slot=" + slot + " map=" + selectedMap +
+                    " targetPlayers=" + targetPlayers);
                 toast(("public".equals(roomMode) ? "Public match" : "Room " + roomCode) +
                     " - Player " + slot);
 
@@ -410,7 +621,8 @@ public final class XzielMultiplayer {
                 if ("public".equals(roomMode) && localSlot == 1 && !hostPreparing) {
                     startHostMatch(true);
                 } else if ("public".equals(roomMode)) {
-                    toast("4/4 players - starting match...");
+                    toast(targetPlayers + "/" + targetPlayers +
+                        " players - starting match...");
                 }
                 return;
             }
@@ -492,7 +704,7 @@ public final class XzielMultiplayer {
 
         queueNativeCommand(
             "disconnect\n" +
-            "maxplayers 4\n" +
+            "maxplayers " + ("public".equals(roomMode) ? targetPlayers : MAX_PLAYERS) + "\n" +
             "coop 1\n" +
             "deathmatch 0\n" +
             "listen 1\n" +
@@ -500,6 +712,7 @@ public final class XzielMultiplayer {
         );
 
         Log.i(TAG, "HOST_PREPARE mode=" + roomMode + " map=" + selectedMap +
+            " targetPlayers=" + targetPlayers +
             " players=" + connectedSlots.size());
         toast((automaticPublicStart ? "Public match ready - " : "Starting ") +
             prettyMap(selectedMap) + "...");
@@ -680,6 +893,7 @@ public final class XzielMultiplayer {
 
         roomCode = "";
         localSlot = 0;
+        targetPlayers = MAX_PLAYERS;
         matchStarted = false;
         hostPreparing = false;
         serverReadySent = false;
@@ -735,6 +949,12 @@ public final class XzielMultiplayer {
 
     private static String prettyMap(String map) {
         return "ndu".equals(map) ? "Nacht der Untoten" : map;
+    }
+
+    private static String squadLabel(int players) {
+        if (players == 2) return "DUO";
+        if (players == 3) return "TRIO";
+        return "QUAD";
     }
 
     private static String normalizeBaseUrl(String value) {
