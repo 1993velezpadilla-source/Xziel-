@@ -9,7 +9,7 @@ from pathlib import Path
 import tempfile
 import zipfile
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 MODULE = ROOT / "tools/maps/build_xziel_map_package.py"
 
 spec = importlib.util.spec_from_file_location("xziel_map_builder", MODULE)
