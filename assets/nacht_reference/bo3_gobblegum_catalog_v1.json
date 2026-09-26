@@ -144,7 +144,10 @@
         "status": "logic_ready",
         "quakecFunction": "XZIEL_GobbleGumSpawnMappedPowerup",
         "powerupSemantic": "XZIEL_PU_MAXAMMO",
-        "activationCountFunction": "XZIEL_GobbleGumMappedActivationCount"
+        "activationCountFunction": "XZIEL_GobbleGumMappedActivationCount",
+        "dispatchStatus": "logic_ready",
+        "activationFunction": "XZIEL_GobbleGumActivateHeldMappedPowerup",
+        "chargeStateFunction": "XZIEL_GobbleGumHeldUsesRemaining"
       }
     },
     {
@@ -204,7 +207,10 @@
         "status": "logic_ready",
         "quakecFunction": "XZIEL_GobbleGumSpawnMappedPowerup",
         "powerupSemantic": "XZIEL_PU_NUKE",
-        "activationCountFunction": "XZIEL_GobbleGumMappedActivationCount"
+        "activationCountFunction": "XZIEL_GobbleGumMappedActivationCount",
+        "dispatchStatus": "logic_ready",
+        "activationFunction": "XZIEL_GobbleGumActivateHeldMappedPowerup",
+        "chargeStateFunction": "XZIEL_GobbleGumHeldUsesRemaining"
       }
     },
     {
@@ -364,7 +370,10 @@
         "status": "logic_ready",
         "quakecFunction": "XZIEL_GobbleGumSpawnMappedPowerup",
         "powerupSemantic": "XZIEL_PU_INSTAKILL",
-        "activationCountFunction": "XZIEL_GobbleGumMappedActivationCount"
+        "activationCountFunction": "XZIEL_GobbleGumMappedActivationCount",
+        "dispatchStatus": "logic_ready",
+        "activationFunction": "XZIEL_GobbleGumActivateHeldMappedPowerup",
+        "chargeStateFunction": "XZIEL_GobbleGumHeldUsesRemaining"
       }
     },
     {
@@ -394,7 +403,10 @@
         "status": "logic_ready",
         "quakecFunction": "XZIEL_GobbleGumSpawnMappedPowerup",
         "powerupSemantic": "XZIEL_PU_CARPENTER",
-        "activationCountFunction": "XZIEL_GobbleGumMappedActivationCount"
+        "activationCountFunction": "XZIEL_GobbleGumMappedActivationCount",
+        "dispatchStatus": "logic_ready",
+        "activationFunction": "XZIEL_GobbleGumActivateHeldMappedPowerup",
+        "chargeStateFunction": "XZIEL_GobbleGumHeldUsesRemaining"
       }
     },
     {
@@ -464,7 +476,10 @@
         "status": "logic_ready",
         "quakecFunction": "XZIEL_GobbleGumSpawnMappedPowerup",
         "powerupSemantic": "XZIEL_PU_RANDOMPERK",
-        "activationCountFunction": "XZIEL_GobbleGumMappedActivationCount"
+        "activationCountFunction": "XZIEL_GobbleGumMappedActivationCount",
+        "dispatchStatus": "logic_ready",
+        "activationFunction": "XZIEL_GobbleGumActivateHeldMappedPowerup",
+        "chargeStateFunction": "XZIEL_GobbleGumHeldUsesRemaining"
       }
     },
     {
@@ -704,7 +719,10 @@
         "status": "logic_ready",
         "quakecFunction": "XZIEL_GobbleGumSpawnMappedPowerup",
         "powerupSemantic": "XZIEL_PU_DOUBLEPOINTS",
-        "activationCountFunction": "XZIEL_GobbleGumMappedActivationCount"
+        "activationCountFunction": "XZIEL_GobbleGumMappedActivationCount",
+        "dispatchStatus": "logic_ready",
+        "activationFunction": "XZIEL_GobbleGumActivateHeldMappedPowerup",
+        "chargeStateFunction": "XZIEL_GobbleGumHeldUsesRemaining"
       }
     }
   ],
@@ -713,7 +731,8 @@
     "allRuntimeReady": false,
     "runtimeCoreReady": true,
     "effectSpecsVerified": 6,
-    "effectPrimitivesLogicReady": 6
+    "effectPrimitivesLogicReady": 6,
+    "effectDispatchLogicReady": 6
   },
   "runtimeCore": {
     "status": "logic_ready",
