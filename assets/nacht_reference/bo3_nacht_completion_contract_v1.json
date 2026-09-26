@@ -11,7 +11,9 @@
     "runtimeReference": "assets/nacht_reference/runtime_reference_v1.json",
     "bo3WeaponBehavior": "assets/nacht_reference/bo3_weapon_specs_v1.json",
     "gobbleGumCatalog": "assets/nacht_reference/bo3_gobblegum_catalog_v1.json",
-    "systemPlacements": "assets/nacht_reference/bo3_system_placements_v1.json"
+    "systemPlacements": "assets/nacht_reference/bo3_system_placements_v1.json",
+    "perkCatalog": "assets/nacht_reference/bo3_perk_catalog_v1.json",
+    "powerupCatalog": "assets/nacht_reference/bo3_powerup_catalog_v1.json"
   },
   "baseline": {
     "catalogWeaponCount": 51,
@@ -26,7 +28,11 @@
     "gobbleGumIdentityCount": 63,
     "gobbleGumMachinePlacements": 2,
     "wunderfizzMachinePlacements": 1,
-    "mysteryBoxAnchors": 1
+    "mysteryBoxAnchors": 1,
+    "canonicalPerkIdentityCount": 8,
+    "wunderfizzPoolIdentityCount": 7,
+    "corePowerupIdentityCount": 9,
+    "nachtNaturalPowerupIdentityCount": 6
   },
   "bo3ChroniclesFeatureReference": {
     "mysteryBox": true,
@@ -92,13 +98,17 @@
     "der_wunderfizz_and_perk_randomization": {
       "state": "pending",
       "wunderfizzPlacements": 1,
-      "muleKickPlacementState": "pending"
+      "muleKickPlacementState": "pending",
+      "perkIdentityCount": 8,
+      "wunderfizzPoolIdentityCount": 7
     },
     "mule_kick_and_weapon_slot_semantics": {
       "state": "pending"
     },
     "powerup_drop_pool_and_effects": {
-      "state": "pending"
+      "state": "pending",
+      "coreIdentityCount": 9,
+      "nachtNaturalIdentityCount": 6
     },
     "pack_a_punch_weapon_variants": {
       "state": "pending"
