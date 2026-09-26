@@ -26,8 +26,8 @@ def main() -> int:
         "catalog": str(CATALOG),
         "generated": True,
         "notes": [
-            "Every globally enabled firearm marked mysteryBoxEligible is included automatically.",
-            "Map profiles may exclude entries later without deleting them from the global catalog.",
+            "Every globally enabled weapon marked mysteryBoxEligible is included automatically.",
+            "Map-specific pools can override this without deleting entries from the global catalog.",
             "A catalog entry still requires a native weapon binding before playable spawning is possible."
         ],
         "weaponIds": eligible,
