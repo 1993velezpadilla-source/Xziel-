@@ -239,7 +239,7 @@ def main() -> int:
             "source": ("scripts/zm/bgbs/_zm_bgb_ephemeral_enhancement.gsc", "d9dd26127ac48e7b39ec0705b05faf14e8a42999"),
         },
         "disorderly_combat": {
-            "status": "identity_backend_ready_runtime_pending",
+            "status": "pool_backend_logic_ready_dormant",
             "source": ("scripts/zm/bgbs/_zm_bgb_disorderly_combat.gsc", "a66e8287ba98702aa75e62213fa1f49ee39f9c45"),
         },
     }
@@ -261,6 +261,26 @@ def main() -> int:
                 fail(f"{gum_id} readiness gate drift")
             if primitive.get("exposedUpgradeCount") != 0:
                 fail(f"{gum_id} must expose zero PaP rewards while runtime-ready count is zero")
+        if gum_id == "disorderly_combat":
+            if primitive.get("canActivateFunction") != "XZIEL_GobbleGumDisorderlyCanActivate":
+                fail("Disorderly Combat activation validator drift")
+            if primitive.get("poolResolverFunction") != "XZIEL_GobbleGumDisorderlyWeaponAtIndex":
+                fail("Disorderly Combat pool resolver drift")
+            if primitive.get("baseReadinessFunction") != "XZIEL_GobbleGumDisorderlyReadyBaseCount":
+                fail("Disorderly Combat base readiness function drift")
+            if primitive.get("papReadinessFunction") != "XZIEL_GobbleGumDisorderlyReadyPapCount":
+                fail("Disorderly Combat PaP readiness function drift")
+            if primitive.get("poolReadinessGate") != "XZIEL_GobbleGumDisorderlyPoolRuntimeReady":
+                fail("Disorderly Combat pool readiness gate drift")
+            if primitive.get("requiredPoolCount") != 26:
+                fail("Disorderly Combat required pool count drift")
+            if primitive.get("readyPoolCount") != 0:
+                fail("Disorderly Combat ready pool count must remain zero")
+            if primitive.get("activationAllowed") is not False:
+                fail("Disorderly Combat activation must remain blocked")
+            if primitive.get("timerRotationInventoryRuntime") != "pending":
+                fail("Disorderly Combat rotation runtime must remain pending")
+
         if gum_id == "ephemeral_enhancement":
             if primitive.get("canActivateFunction") != "XZIEL_GobbleGumEphemeralCanActivate":
                 fail("Ephemeral Enhancement activation validator drift")
@@ -297,6 +317,14 @@ def main() -> int:
         fail("Ephemeral Enhancement timed PaP backend count drift")
     if gum_validation.get("papDependentRuntimeLogicReady") != 3:
         fail("PaP-dependent GobbleGum runtime logic-ready count drift")
+    if gum_validation.get("disorderlyCombatPoolVerified") is not True:
+        fail("Disorderly Combat pool verification flag drift")
+    if gum_validation.get("disorderlyCombatEligiblePoolCount") != 26:
+        fail("Disorderly Combat eligible pool count drift")
+    if gum_validation.get("disorderlyCombatPoolBackendLogicReady") is not True:
+        fail("Disorderly Combat pool backend readiness flag drift")
+    if gum_validation.get("disorderlyCombatActivationAllowed") is not False:
+        fail("Disorderly Combat activation flag must remain false")
     if gum_validation.get("papRuntimeRewardsExposed") != 0:
         fail("PaP GobbleGums must expose zero runtime rewards while PaP variants are pending")
 
