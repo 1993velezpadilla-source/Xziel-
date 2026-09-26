@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "catalogId": "bo3_nacht_powerup_catalog_v1",
+  "mapId": "bo3_nacht_reference",
+  "rule": "The natural Nacht drop set and GobbleGum-triggerable core power-ups are both tracked; an identity is not runtime completion.",
+  "entries": [
+    {
+      "id": "insta_kill",
+      "displayName": "Insta-Kill",
+      "nachtNaturalDrop": true,
+      "gobblegumTriggerable": true,
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending"
+    },
+    {
+      "id": "double_points",
+      "displayName": "Double Points",
+      "nachtNaturalDrop": true,
+      "gobblegumTriggerable": true,
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending"
+    },
+    {
+      "id": "nuke",
+      "displayName": "Nuke",
+      "nachtNaturalDrop": true,
+      "gobblegumTriggerable": true,
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending"
+    },
+    {
+      "id": "max_ammo",
+      "displayName": "Max Ammo",
+      "nachtNaturalDrop": true,
+      "gobblegumTriggerable": true,
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending"
+    },
+    {
+      "id": "carpenter",
+      "displayName": "Carpenter",
+      "nachtNaturalDrop": true,
+      "gobblegumTriggerable": true,
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending"
+    },
+    {
+      "id": "death_machine",
+      "displayName": "Death Machine",
+      "nachtNaturalDrop": true,
+      "gobblegumTriggerable": true,
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending"
+    },
+    {
+      "id": "fire_sale",
+      "displayName": "Fire Sale",
+      "nachtNaturalDrop": false,
+      "gobblegumTriggerable": true,
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending"
+    },
+    {
+      "id": "random_perk",
+      "displayName": "Random Perk",
+      "nachtNaturalDrop": false,
+      "gobblegumTriggerable": true,
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending"
+    },
+    {
+      "id": "bonus_points",
+      "displayName": "Bonus Points",
+      "nachtNaturalDrop": false,
+      "gobblegumTriggerable": true,
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending"
+    }
+  ],
+  "validation": {
+    "expectedCorePowerupCount": 9,
+    "expectedNachtNaturalDropCount": 6,
+    "allRuntimeReady": false
+  }
+}
