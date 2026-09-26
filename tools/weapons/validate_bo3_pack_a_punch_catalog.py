@@ -20,6 +20,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 PROTOTYPE = ROOT / "assets/weapons/bo3_zm_prototype_weapons_v1.json"
 PAP = ROOT / "assets/weapons/bo3_pack_a_punch_catalog_v1.json"
+REGISTRY = ROOT / "assets/weapons/xziel_weapon_id_registry_v1.json"
 
 EXPECTED_UPGRADES = 36
 EXPECTED_STATSTABLE = 30
@@ -82,6 +83,7 @@ def assert_source(actual: dict, expected: dict, label: str) -> None:
 def main() -> int:
     prototype = load(PROTOTYPE)
     pap = load(PAP)
+    registry = load(REGISTRY)
 
     if pap.get("schemaVersion") != 1:
         fail("schemaVersion must be 1")
@@ -198,6 +200,21 @@ def main() -> int:
         if row.get("regressionTestStatus") != "pending":
             fail(f"{upgrade} regression test must remain pending")
 
+        native = row.get("nativeIdentityRegistry", {})
+        if upgrade == "cymbal_monkey_upgraded":
+            if native.get("mode") != "reused_catalog_identity":
+                fail("cymbal_monkey_upgraded must reuse its catalog identity")
+        else:
+            if native.get("mode") != "dedicated_pack_a_punch_id":
+                fail(f"{upgrade} must use a dedicated Pack-a-Punch ID")
+            qid = native.get("quakecId")
+            if not isinstance(qid, int) or not (160 <= qid <= 194):
+                fail(f"{upgrade} dedicated QuakeC ID out of assigned range: {qid!r}")
+            if not native.get("quakecDefine", "").startswith("W_XZ_PAP_"):
+                fail(f"{upgrade} dedicated QuakeC define drift")
+            if not native.get("mboxToken", "").startswith("xz_pap_"):
+                fail(f"{upgrade} dedicated token drift")
+
         blockers = row.get("blockers", [])
         required_blockers = {
             "ballistic_upgrade_stats_not_exposed_in_current_source_snapshot",
@@ -226,9 +243,46 @@ def main() -> int:
         "specialEvidenceVariants": EXPECTED_SPECIAL,
         "ballisticUpgradeStatsReady": 0,
         "nativeRuntimeReady": 0,
+        "dedicatedNativeUpgradeIds": 35,
+        "reusedCatalogUpgradeIds": 1,
     }
     if counts != expected_counts:
         fail(f"PaP counts drift: {counts} != {expected_counts}")
+
+    base_registry = registry.get("entries", [])
+    upgrade_registry = registry.get("upgradeEntries", [])
+    if len(base_registry) != 52:
+        fail(f"expected 52 base registry identities, got {len(base_registry)}")
+    if len(upgrade_registry) != 35:
+        fail(f"expected 35 dedicated PaP registry identities, got {len(upgrade_registry)}")
+
+    all_ids = [row["quakecId"] for row in base_registry + upgrade_registry]
+    if len(all_ids) != len(set(all_ids)):
+        fail("base + Pack-a-Punch registry contains QuakeC ID collisions")
+
+    dedicated_ids = sorted(row["quakecId"] for row in upgrade_registry)
+    if dedicated_ids != list(range(160, 195)):
+        fail(f"dedicated PaP ID range drift: {dedicated_ids}")
+
+    dedicated_by_upgrade = {row["upgradeWeaponId"]: row for row in upgrade_registry}
+    base_by_id = {row["weaponId"]: row for row in base_registry}
+    for row in variants:
+        upgrade = row["upgradeWeaponId"]
+        native = row["nativeIdentityRegistry"]
+        if native["mode"] == "dedicated_pack_a_punch_id":
+            reg = dedicated_by_upgrade.get(upgrade)
+            if reg is None:
+                fail(f"{upgrade} missing from dedicated PaP registry")
+            for key in ("quakecId", "quakecDefine", "mboxToken"):
+                if native.get(key) != reg.get(key):
+                    fail(f"{upgrade} native registry binding drift for {key}")
+        else:
+            reg = base_by_id.get(upgrade)
+            if reg is None:
+                fail(f"{upgrade} missing reused base registry identity")
+            for key in ("quakecId", "quakecDefine", "mboxToken"):
+                if native.get(key) != reg.get(key):
+                    fail(f"{upgrade} reused registry binding drift for {key}")
 
     semantics = pap.get("runtimeSemantics", {})
     if "level.zombie_weapons[base].upgrade" not in semantics.get("identityMapping", ""):
