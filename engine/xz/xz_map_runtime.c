@@ -92,14 +92,18 @@ void XzMapRuntime_SetWorldModel(
 
     next_kind = XzMapRuntime_Classify(next_id);
 
-    if (strcmp(state->map_id, next_id) == 0 &&
-        state->kind == next_kind)
-        return;
-
-    memcpy(state->map_id, next_id, sizeof(state->map_id));
+    memset(state->map_id, 0, sizeof(state->map_id));
+    memcpy(
+        state->map_id,
+        next_id,
+        strlen(next_id) + 1u);
     state->kind = next_kind;
     state->generation++;
 
+    /*
+     * This function is called from Vril R_NewMap, so every invocation is a
+     * real world load. Reloading the same map must start a fresh match too.
+     */
     XzNacht_Reset(&state->nacht);
 }
 
@@ -171,15 +175,17 @@ int XzMapRuntime_SelfTest(void)
     if (state.nacht.points != 750u)
         return 0;
 
-    /* Reloading the same world does not reset state accidentally. */
+    /* Reloading the same world starts a fresh match. */
     generation = state.generation;
     XzMapRuntime_SetWorldModel(
         &state,
         "maps/xziel_nacht_bo3.bsp");
-    if (state.generation != generation ||
-        state.nacht.points != 750u)
+    if (state.generation != generation + 1u ||
+        state.nacht.points != 500u ||
+        XzNacht_ActiveSpawnCount(&state.nacht) != 10u)
         return 0;
 
+    generation = state.generation;
     XzMapRuntime_SetWorldModel(&state, "maps/ndu.bsp");
     if (state.kind != XZ_MAP_RUNTIME_NONE ||
         state.nacht.points != 500u ||
