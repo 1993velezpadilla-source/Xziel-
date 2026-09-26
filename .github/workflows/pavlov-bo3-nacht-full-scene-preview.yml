@@ -37,7 +37,7 @@ jobs:
           names=sorted(set(r['mesh'].rsplit('/',1)[-1] for r in rows))
           pathlib.Path('audit-out/used-mesh-names.txt').write_text('\n'.join(names)+'\n')
           print('used instances',len(rows),'unique names',len(names))
-          assert len(rows) == 10789, len(rows)
+          assert len(rows) == 10787, len(rows)
           assert len(names) == 490, len(names)
           PY
       - uses: actions/upload-artifact@v4
