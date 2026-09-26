@@ -66,6 +66,12 @@ float XzBo3WeaponSpec_SecondsPerShot(
 float XzBo3WeaponSpec_SecondsPerBurstShot(
     const XzBo3WeaponSpec *spec);
 
+float XzBo3WeaponSpec_BurstCycleSeconds(
+    const XzBo3WeaponSpec *spec);
+
+float XzBo3WeaponSpec_BurstTailSeconds(
+    const XzBo3WeaponSpec *spec);
+
 int XzBo3WeaponSpec_SelfTest(void);
 
 #ifdef __cplusplus
