@@ -87,10 +87,11 @@
         "interactionRestrictions": "partial",
         "pickupHook": "pending",
         "firingRuntime": "pending",
-        "damageFormula": "pending",
+        "damageFormula": "base + currentHealth * random(0.34,0.75)",
         "available": false,
         "xzielStateRuntimeAvailable": true,
-        "fullRuntimeAvailable": false
+        "fullRuntimeAvailable": false,
+        "damageHook": "logic_ready_dormant"
       },
       "temporaryWeaponId": "special_death_machine",
       "weaponIdentityStatus": "cataloged",
