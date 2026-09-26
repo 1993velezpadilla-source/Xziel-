@@ -268,20 +268,36 @@
         }
       ],
       "runtimePrimitive": {
-        "status": "pool_backend_logic_ready_dormant",
+        "status": "rotation_backend_logic_ready_dormant_aat_blocked",
         "upgradeResolver": "XZIEL_GetPackAPunchWeaponID",
         "readinessGate": "XZIEL_PackAPunchRuntimeReady",
-        "timerRotationInventoryRuntime": "pending",
+        "timerRotationInventoryRuntime": "logic_ready_dormant",
         "poolStatus": "verified_runtime_blocked",
         "fullPoolRequired": true,
         "readyPoolCount": 0,
         "requiredPoolCount": 26,
         "activationAllowed": false,
-        "canActivateFunction": "XZIEL_GobbleGumDisorderlyCanActivate",
+        "canActivateFunction": "XZIEL_GobbleGumDisorderlyCanActivateFull",
         "poolResolverFunction": "XZIEL_GobbleGumDisorderlyWeaponAtIndex",
         "baseReadinessFunction": "XZIEL_GobbleGumDisorderlyReadyBaseCount",
         "papReadinessFunction": "XZIEL_GobbleGumDisorderlyReadyPapCount",
-        "poolReadinessGate": "XZIEL_GobbleGumDisorderlyPoolRuntimeReady"
+        "poolReadinessGate": "XZIEL_GobbleGumDisorderlyPoolRuntimeReady",
+        "activationFunction": "XZIEL_GobbleGumActivateDisorderlyCombat",
+        "tickFunction": "XZIEL_GobbleGumDisorderlyTick",
+        "restoreFunction": "XZIEL_GobbleGumDisorderlyRestore",
+        "aatReadinessFunction": "XZIEL_GobbleGumDisorderlyAATRuntimeReady",
+        "durationSeconds": 300,
+        "switchIntervalSeconds": 10,
+        "warningSecondsBeforeSwitch": 5,
+        "cyclePolicy": "randomized no-repeat eligible cycle; reshuffle after exhaustion; skip owned/saved original",
+        "inputLock": {
+          "weaponCycling": "logic_ready",
+          "offhand": "logic_ready"
+        },
+        "originalWeaponRestore": "logic_ready",
+        "papStatePreservation": "logic_ready",
+        "aatPreservation": "pending",
+        "warningPresentation": "pending"
       }
     },
     {
@@ -855,11 +871,13 @@
     "papEventPlumbingLogicReady": 2,
     "papRuntimeRewardsExposed": 0,
     "papTimedEffectLogicReady": 1,
-    "papDependentRuntimeLogicReady": 3,
+    "papDependentRuntimeLogicReady": 4,
     "disorderlyCombatPoolVerified": true,
     "disorderlyCombatEligiblePoolCount": 26,
     "disorderlyCombatPoolBackendLogicReady": true,
-    "disorderlyCombatActivationAllowed": false
+    "disorderlyCombatActivationAllowed": false,
+    "disorderlyCombatRotationBackendLogicReady": true,
+    "disorderlyCombatAATBridgeReady": false
   },
   "runtimeCore": {
     "status": "logic_ready",
