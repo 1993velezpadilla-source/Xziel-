@@ -89,7 +89,30 @@ jobs:
           RC=${PIPESTATUS[0]}
           echo "$RC" > audit-out/world-export.rc
           echo "world exporter rc=$RC"
-          find audit-out/world -type f -printf '%s %p\n' | sort -nr | head -100 | tee audit-out/world-files.txt
+          # CUE4Parse currently normalizes output to Windows backslashes even on Linux.
+          # Recover literal-backslash files written at repository root.
+          python3 - <<'PY'
+          import pathlib, shutil
+          dst=pathlib.Path('audit-out/world')
+          dst.mkdir(parents=True,exist_ok=True)
+          recovered=0
+          for p in list(pathlib.Path.cwd().iterdir()):
+              if not p.is_file() or '\\' not in p.name:
+                  continue
+              low=p.name.lower()
+              if not low.endswith(('.usda','.glb','.gltf','.png','.mat')):
+                  continue
+              rel=p.name.replace('\\','/').split('/')
+              name=rel[-1]
+              target=dst/name
+              if target.exists():
+                  stem=target.stem; suf=target.suffix
+                  target=dst/f"{stem}_{recovered}{suf}"
+              shutil.move(str(p),str(target))
+              recovered+=1
+          print('recovered',recovered)
+          PY
+          find audit-out/world -type f -printf '%s %p\n' | sort -nr | head -300 | tee audit-out/world-files.txt
           exit 0
 
       - name: Render composed world USD
