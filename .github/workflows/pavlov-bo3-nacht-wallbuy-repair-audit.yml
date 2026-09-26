@@ -7,7 +7,8 @@ on:
       - experiment/bo3-nacht-standalone-audit
     paths:
       - ".github/workflows/pavlov-bo3-nacht-wallbuy-repair-audit.yml"
-      - "tools/maps/audit_pavlov_nacht_wallbuys.py"
+      - "tools/maps/build_pavlov_nacht_wallbuy_repair_plan.py"
+      - "experiments/bo3_nacht_reference/chalk_bounds_umodel_v1.json"
 
 jobs:
   audit:
@@ -32,7 +33,7 @@ jobs:
           "PAK=$pak" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
           exit 0
 
-      - name: Download tools
+      - name: Unpack PAK and export map JSON
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
@@ -40,45 +41,31 @@ jobs:
           $repakDir=Join-Path $env:RUNNER_TEMP 'repak'
           Expand-Archive (Join-Path $env:RUNNER_TEMP 'repak.zip') -DestinationPath $repakDir -Force
           $repak=Get-ChildItem $repakDir -Filter repak.exe -Recurse | Select-Object -First 1
-          "REPAK=$($repak.FullName)" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
-          Invoke-WebRequest 'https://github.com/atenfyr/UAssetGUI/releases/download/v1.1.0/UAssetGUI.exe' -OutFile (Join-Path $env:RUNNER_TEMP 'UAssetGUI.exe')
-          "UASSETGUI=$env:RUNNER_TEMP\UAssetGUI.exe" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
-
-      - name: Unpack PAK and export map plus chalk meshes
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
           $out=Join-Path $env:RUNNER_TEMP 'pakextract'
           New-Item -ItemType Directory -Force -Path $out | Out-Null
-          & $env:REPAK unpack $env:PAK -o $out
+          & $repak.FullName unpack $env:PAK -o $out
           if($LASTEXITCODE -ne 0){throw 'repak failed'}
-          $audit=Join-Path $env:GITHUB_WORKSPACE 'audit-out'
-          $chalk=Join-Path $audit 'chalk-json'
-          New-Item -ItemType Directory -Force -Path $chalk | Out-Null
           $map=Get-ChildItem $out -Filter 'Nacht_de_Untoten.umap' -Recurse | Select-Object -First 1
-          $mapJson=Join-Path $audit 'Nacht_de_Untoten.json'
-          & $env:UASSETGUI tojson $map.FullName $mapJson VER_UE4_21
-          if($LASTEXITCODE -ne 0 -or -not (Test-Path $mapJson)){throw 'map export failed'}
-          $names=@('arak','argus','frag','krm','kuda','locus_decal','pharaoh','shiva','triton')
-          foreach($n in $names){
-            $f=Get-ChildItem $out -Filter "zm_prototype_part4_t7_zm_chalk_buy_$n.uasset" -Recurse | Select-Object -First 1
-            if(-not $f){throw "missing chalk asset $n"}
-            $chalkJson=Join-Path $chalk "$n.json"
-            & $env:UASSETGUI tojson $f.FullName $chalkJson VER_UE4_21
-            if($LASTEXITCODE -ne 0 -or -not (Test-Path $chalkJson)){throw "chalk export failed $n"}
-          }
+          if(-not $map){throw 'map missing'}
+          Invoke-WebRequest 'https://github.com/atenfyr/UAssetGUI/releases/download/v1.1.0/UAssetGUI.exe' -OutFile (Join-Path $env:RUNNER_TEMP 'UAssetGUI.exe')
+          $audit=(New-Item -ItemType Directory -Force -Path 'audit-out').FullName
+          $json=Join-Path $audit 'Nacht_de_Untoten.json'
+          & (Join-Path $env:RUNNER_TEMP 'UAssetGUI.exe') tojson $map.FullName $json VER_UE4_21
+          if($LASTEXITCODE -ne 0){throw 'map export failed'}
+          if(-not(Test-Path $json)){throw "map JSON missing at $json"}
+          "MAP_JSON=$json" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
 
-      - name: Build wallbuy repair plan
-        shell: bash
+      - name: Build complete nine-slot wallbuy repair plan
+        shell: pwsh
         run: |
-          python tools/maps/audit_pavlov_nacht_wallbuys.py \
-            audit-out/Nacht_de_Untoten.json \
-            audit-out/chalk-json \
-            audit-out/nacht-wallbuy-repair-plan.json
+          python tools/maps/build_pavlov_nacht_wallbuy_repair_plan.py $env:MAP_JSON experiments/bo3_nacht_reference/chalk_bounds_umodel_v1.json audit-out/nacht-wallbuy-repair-plan.json
+          if($LASTEXITCODE -ne 0){throw 'wallbuy repair validation failed'}
+          Get-Content audit-out/nacht-wallbuy-repair-plan.json | Select-Object -First 240
 
       - name: Upload metadata audit
         uses: actions/upload-artifact@v4
         with:
           name: pavlov-bo3-nacht-wallbuy-repair-audit
-          path: audit-out/
+          path: audit-out/nacht-wallbuy-repair-plan.json
+          if-no-files-found: error
           retention-days: 7
