@@ -1,0 +1,96 @@
+name: St Giles Source-Locked SR Retune
+
+on:
+  push:
+    branches:
+      - engine/mobile-power-fidelity-v1
+    paths:
+      - ".github/workflows/st-giles-source-locked-retune.yml"
+      - "tools/church_map/build_source_locked_superres.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  retune:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install deterministic image dependencies
+        run: python3 -m pip install --quiet --disable-pip-version-check pillow numpy
+
+      - name: Recover validated raw Real-ESRGAN evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/base
+          RESPONSE="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/st-giles-source-locked-superres.yml/runs?branch=engine%2Fmobile-power-fidelity-v1&status=success&per_page=10")"
+          RUN_ID="$(jq -r '.workflow_runs[0].id // empty' <<<"${RESPONSE}")"
+          test -n "${RUN_ID}"
+
+          ARTIFACTS="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/artifacts")"
+          ARTIFACT_ID="$(jq -r '.artifacts[] | select(.name == "Xziel-St-Giles-Source-Locked-SR-AB" and .expired == false) | .id' <<<"${ARTIFACTS}" | head -n1)"
+          test -n "${ARTIFACT_ID}"
+
+          gh api "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" > build/base.zip
+          unzip -q build/base.zip -d build/base
+
+          test -s build/base/st-giles-source-1k.png
+          test -s build/base/st-giles-realesrgan-raw-4k.png
+          echo "XZIEL_ST_GILES_RAW_SR_REUSED run=${RUN_ID} artifact=${ARTIFACT_ID}"
+
+      - name: Build stronger source-locked 4K candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/church_map/build_source_locked_superres.py             --source build/base/st-giles-source-1k.png             --sr build/base/st-giles-realesrgan-raw-4k.png             --output build/st-giles-source-locked-strong-4k.png             --report build/st-giles-source-locked-strong-4k-report.json             --alpha 0.65             --max-mae 3.0             --min-psnr 33.0
+
+          jq -e '.classification == "DERIVATIVE_NOT_ORIGINAL"' build/st-giles-source-locked-strong-4k-report.json
+          jq -e '.sourceAuthority == true' build/st-giles-source-locked-strong-4k-report.json
+          jq -e '.acceptedHighPassAlpha >= 0.64' build/st-giles-source-locked-strong-4k-report.json
+          jq -e '.roundTripMae <= 3.0' build/st-giles-source-locked-strong-4k-report.json
+          jq -e '.roundTripPsnrDb >= 33.0' build/st-giles-source-locked-strong-4k-report.json
+          jq . build/st-giles-source-locked-strong-4k-report.json
+
+      - name: Build strength comparison sheet
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from PIL import Image, ImageDraw
+
+          old=Image.open("build/base/st-giles-source-locked-4k.png").convert("RGB")
+          strong=Image.open("build/st-giles-source-locked-strong-4k.png").convert("RGB")
+          raw=Image.open("build/base/st-giles-realesrgan-raw-4k.png").convert("RGB")
+          crop=(0,220,4096,1450)
+          panels=[
+              ("SOURCE-LOCKED 0.35",old.crop(crop)),
+              ("SOURCE-LOCKED 0.65",strong.crop(crop)),
+              ("RAW AI DIAGNOSTIC",raw.crop(crop)),
+          ]
+          w=1200
+          h=360
+          sheet=Image.new("RGB",(w*3,h+54),(18,18,18))
+          draw=ImageDraw.Draw(sheet)
+          for i,(label,img) in enumerate(panels):
+              sheet.paste(img.resize((w,h),Image.Resampling.LANCZOS),(i*w,54))
+              draw.text((i*w+14,18),label,fill=(240,240,240))
+          sheet.save("build/st-giles-source-locked-strong-ab.jpg",quality=95)
+          PY
+
+      - name: Upload stronger source-locked candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xziel-St-Giles-Source-Locked-SR-Strong
+          path: |
+            build/st-giles-source-locked-strong-4k.png
+            build/st-giles-source-locked-strong-4k-report.json
+            build/st-giles-source-locked-strong-ab.jpg
+          retention-days: 14
