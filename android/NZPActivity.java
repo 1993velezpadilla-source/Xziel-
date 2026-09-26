@@ -134,11 +134,60 @@ public class NZPActivity extends SDLActivity {
             && getIntent().getBooleanExtra("xziel_ci_hud_preview", false);
         boolean fogPreview = getIntent() != null
             && getIntent().getBooleanExtra("xziel_ci_fog_preview", false);
-        String ciMap = getIntent() != null
-            ? getIntent().getStringExtra("xziel_ci_map")
+
+        XzielMapPackageInstaller.InstalledMap importedMap = null;
+        String packagePath = getIntent() != null
+            ? getIntent().getStringExtra("xziel_map_package_path")
             : null;
-        if (ciMap == null || ciMap.isEmpty()) {
-            ciMap = "ndu";
+
+        if (packagePath != null && !packagePath.isEmpty()) {
+            try {
+                importedMap = XzielMapPackageInstaller.install(
+                    new File(packagePath),
+                    dataRoot);
+            } catch (IOException e) {
+                throw new RuntimeException(
+                    "XZIEL map package verification/install failed: "
+                        + packagePath,
+                    e);
+            }
+        }
+
+        String ciMap;
+        if (importedMap != null) {
+            // A verified package owns its canonical map identity. Never let an
+            // arbitrary Intent override the BSP selected by its signed/hash-
+            // checked manifest.
+            ciMap = importedMap.mapId;
+        } else {
+            ciMap = getIntent() != null
+                ? getIntent().getStringExtra("xziel_ci_map")
+                : null;
+            if (ciMap == null || ciMap.isEmpty()) {
+                ciMap = "ndu";
+            }
+        }
+
+        if (importedMap != null) {
+            if (hudPreview && fogPreview) {
+                return new String[] {
+                    "-basedir", dataRoot.getAbsolutePath(),
+                    "-game", importedMap.gameDirectoryName,
+                    "+map", ciMap,
+                    "+fog", "96", "768", "16", "20", "24",
+                    "++attack",
+                    "++r_shadows", "1"
+                };
+            }
+
+            // Normal imported-map boot and HUD-only CI boot use the exact same
+            // search path. Base NZ:P remains underneath; verified map payload
+            // is layered on top through Vril's native -game mechanism.
+            return new String[] {
+                "-basedir", dataRoot.getAbsolutePath(),
+                "-game", importedMap.gameDirectoryName,
+                "+map", ciMap
+            };
         }
 
         if (hudPreview && fogPreview) {
