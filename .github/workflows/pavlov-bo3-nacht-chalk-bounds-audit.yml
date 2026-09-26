@@ -10,91 +10,99 @@ on:
 
 jobs:
   audit:
-    runs-on: windows-latest
-    timeout-minutes: 120
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download Pavlov Nacht Workshop
-        shell: pwsh
+      - name: Download and unpack Pavlov Nacht
         run: |
-          $ErrorActionPreference='Stop'
-          $steam=Join-Path $env:RUNNER_TEMP 'steamcmd'
-          New-Item -ItemType Directory -Force -Path $steam | Out-Null
-          Invoke-WebRequest 'https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip' -OutFile (Join-Path $env:RUNNER_TEMP 'steamcmd.zip')
-          Expand-Archive (Join-Path $env:RUNNER_TEMP 'steamcmd.zip') -DestinationPath $steam -Force
-          & (Join-Path $steam 'steamcmd.exe') +login anonymous +workshop_download_item 555160 2755515831 validate +quit
-          $root=Get-ChildItem $steam,$env:RUNNER_TEMP -Directory -Recurse -ErrorAction SilentlyContinue | Where-Object {$_.FullName -like '*steamapps\workshop\content\555160\2755515831'} | Select-Object -First 1
-          if(-not $root){throw 'payload not found'}
-          $pak=Join-Path $root.FullName 'WindowsNoEditor.pak'
-          if(-not (Test-Path $pak)){throw 'pak missing'}
-          "PAK=$pak" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
-          exit 0
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libsdl2-dev zlib1g-dev libpng-dev build-essential perl git p7zip-full
+          mkdir -p "$RUNNER_TEMP/steamcmd" "$RUNNER_TEMP/repak"
+          curl -fL --retry 6 --retry-delay 2 --retry-all-errors https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz -o "$RUNNER_TEMP/steamcmd.tgz"
+          tar -xzf "$RUNNER_TEMP/steamcmd.tgz" -C "$RUNNER_TEMP/steamcmd"
+          "$RUNNER_TEMP/steamcmd/steamcmd.sh" +quit || true
+          set +e
+          "$RUNNER_TEMP/steamcmd/steamcmd.sh" +login anonymous +workshop_download_item 555160 2755515831 validate +quit 2>&1 | tee "$RUNNER_TEMP/steamcmd.log"
+          set -e
+          ROOT=$(find "$HOME" "$RUNNER_TEMP" -type d -path '*/steamapps/workshop/content/555160/2755515831' -print -quit 2>/dev/null)
+          test -n "$ROOT"
+          PAK="$ROOT/WindowsNoEditor.pak"; test -f "$PAK"
+          curl -fL https://github.com/trumank/repak/releases/download/v0.2.3/repak_cli-x86_64-unknown-linux-gnu.tar.xz -o "$RUNNER_TEMP/repak.tar.xz"
+          tar -xJf "$RUNNER_TEMP/repak.tar.xz" -C "$RUNNER_TEMP/repak"
+          REPAK=$(find "$RUNNER_TEMP/repak" -type f -name 'repak*' -perm -111 | head -1)
+          mkdir -p "$RUNNER_TEMP/unpacked"
+          "$REPAK" unpack "$PAK" -o "$RUNNER_TEMP/unpacked"
+          echo "UNPACKED=$RUNNER_TEMP/unpacked" >> "$GITHUB_ENV"
 
-      - name: Download tools and unpack PAK
-        shell: pwsh
+      - name: Build UE Viewer / UModel
         run: |
-          $ErrorActionPreference='Stop'
-          Invoke-WebRequest 'https://github.com/trumank/repak/releases/download/v0.2.3/repak_cli-x86_64-pc-windows-msvc.zip' -OutFile (Join-Path $env:RUNNER_TEMP 'repak.zip')
-          $repakDir=Join-Path $env:RUNNER_TEMP 'repak'
-          Expand-Archive (Join-Path $env:RUNNER_TEMP 'repak.zip') -DestinationPath $repakDir -Force
-          $repak=Get-ChildItem $repakDir -Filter repak.exe -Recurse | Select-Object -First 1
-          Invoke-WebRequest 'https://github.com/atenfyr/UAssetGUI/releases/download/v1.1.0/UAssetGUI.exe' -OutFile (Join-Path $env:RUNNER_TEMP 'UAssetGUI.exe')
-          "UASSETGUI=$env:RUNNER_TEMP\UAssetGUI.exe" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
-          $out=Join-Path $env:RUNNER_TEMP 'pakextract'
-          New-Item -ItemType Directory -Force -Path $out | Out-Null
-          & $repak.FullName unpack $env:PAK -o $out
-          if($LASTEXITCODE -ne 0){throw "repak failed $LASTEXITCODE"}
-          "EXTRACTED=$out" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          set -euo pipefail
+          git clone --depth 1 https://github.com/gildor2/UEViewer.git "$RUNNER_TEMP/UEViewer"
+          cd "$RUNNER_TEMP/UEViewer"
+          ./build.sh
+          UMODEL=$(realpath "$(find . -type f -name umodel -perm -111 | head -1)")
+          test -n "$UMODEL"
+          echo "UMODEL=$UMODEL" >> "$GITHUB_ENV"
 
-      - name: Export nine BO3 Nacht chalk meshes to JSON
-        shell: pwsh
+      - name: Export nine BO3 Nacht chalk meshes to glTF
         run: |
-          $ErrorActionPreference='Stop'
-          New-Item -ItemType Directory -Force -Path 'audit-out/chalk-json' | Out-Null
-          $names=@('arak','argus','frag','krm','kuda','locus_decal','pharaoh','shiva','triton')
-          foreach($n in $names){
-            $asset="zm_prototype_part4_t7_zm_chalk_buy_$n"
-            $u=Get-ChildItem $env:EXTRACTED -Recurse -File -Filter "$asset.uasset" | Select-Object -First 1
-            if(-not $u){throw "missing $asset.uasset"}
-            & $env:UASSETGUI tojson $u.FullName "audit-out\chalk-json\$asset.json" VER_UE4_21
-            if($LASTEXITCODE -ne 0){throw "UAssetGUI failed for $asset"}
-          }
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/chalk-gltf"
+          mkdir -p "$OUT" audit-out
+          names=(arak argus frag krm kuda locus_decal pharaoh shiva triton)
+          for n in "${names[@]}"; do
+            asset="zm_prototype_part4_t7_zm_chalk_buy_${n}"
+            file=$(find "$UNPACKED" -type f -name "${asset}.uasset" -print -quit)
+            test -n "$file"
+            rel=${file#"$UNPACKED/"}
+            echo "EXPORT $n -> $rel"
+            "$UMODEL" -export -gltf -game=ue4.21 -path="$UNPACKED" -out="$OUT/$n" "$rel"
+          done
+          find "$OUT" -type f -printf '%s %p\n' | sort -nr | tee audit-out/chalk-export-files.txt
 
-      - name: Extract static-mesh bounds metadata
-        shell: bash
+      - name: Compute glTF bounds
         run: |
-          python - <<'PY'
-          import json, pathlib, collections
-          root=pathlib.Path('audit-out/chalk-json')
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, pathlib, math
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'chalk-gltf'
           result={}
-          def walk(x,path=''):
-              if isinstance(x,dict):
-                  for k,v in x.items():
-                      p=f'{path}/{k}'
-                      if any(t in k.lower() for t in ('bound','origin','extent','vertex','position')):
-                          yield p,v
-                      yield from walk(v,p)
-              elif isinstance(x,list):
-                  for i,v in enumerate(x): yield from walk(v,f'{path}[{i}]')
-          for p in sorted(root.glob('*.json')):
-              d=json.loads(p.read_text(encoding='utf-8-sig'))
-              hits=[]
-              for path,value in walk(d):
-                  s=json.dumps(value,default=str)
-                  if len(s)>3000: s=s[:3000]+'...'
-                  hits.append({'path':path,'value':s})
-                  if len(hits)>=500: break
-              result[p.stem]={'hits':hits}
-          pathlib.Path('audit-out/chalk-bounds-metadata.json').write_text(json.dumps(result,indent=2),encoding='utf-8')
-          for k,v in result.items():
-              print('\n###',k)
-              for h in v['hits'][:80]: print(h['path'],h['value'][:1000])
+          for d in sorted(p for p in root.iterdir() if p.is_dir()):
+              gltfs=sorted(d.rglob('*.gltf'))
+              mins=[math.inf,math.inf,math.inf]; maxs=[-math.inf,-math.inf,-math.inf]
+              accessors=0; files=[]
+              for g in gltfs:
+                  doc=json.loads(g.read_text(errors='replace'))
+                  files.append(str(g.relative_to(root)))
+                  for mesh in doc.get('meshes',[]):
+                      for prim in mesh.get('primitives',[]):
+                          idx=prim.get('attributes',{}).get('POSITION')
+                          if idx is None: continue
+                          a=doc.get('accessors',[])[idx]
+                          mn=a.get('min'); mx=a.get('max')
+                          if not (mn and mx and len(mn)>=3 and len(mx)>=3): continue
+                          accessors+=1
+                          for i in range(3):
+                              mins[i]=min(mins[i],float(mn[i])); maxs[i]=max(maxs[i],float(mx[i]))
+              if accessors:
+                  center=[(a+b)/2 for a,b in zip(mins,maxs)]
+                  extent=[(b-a)/2 for a,b in zip(mins,maxs)]
+                  result[d.name]={'gltf_files':files,'position_accessors':accessors,'min':mins,'max':maxs,'center':center,'extent':extent,'thin_axis':['x','y','z'][min(range(3),key=lambda i:extent[i])]}
+              else:
+                  result[d.name]={'gltf_files':files,'position_accessors':0,'error':'no POSITION min/max accessors'}
+          pathlib.Path('audit-out/chalk-bounds.json').write_text(json.dumps(result,indent=2)+'\n')
+          print(json.dumps(result,indent=2))
           PY
 
       - name: Upload compact audit
         uses: actions/upload-artifact@v4
         with:
           name: pavlov-bo3-nacht-chalk-bounds-audit
-          path: audit-out/chalk-bounds-metadata.json
+          path: |
+            audit-out/chalk-bounds.json
+            audit-out/chalk-export-files.txt
+          if-no-files-found: error
           retention-days: 7
