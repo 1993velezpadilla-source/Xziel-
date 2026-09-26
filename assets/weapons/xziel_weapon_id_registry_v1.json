@@ -5,7 +5,7 @@
     "rk5PinnedId": 70,
     "baseWeaponRange": [
       80,
-      129
+      130
     ],
     "reservedPackAPunchRange": [
       160,
@@ -365,6 +365,13 @@
       "mboxToken": "xz_sniper_quickscope"
     },
     {
+      "weaponId": "special_death_machine",
+      "displayName": "Death Machine",
+      "quakecId": 130,
+      "quakecDefine": "W_XZ_SPECIAL_DEATH_MACHINE",
+      "mboxToken": "xz_special_death_machine"
+    },
+    {
       "weaponId": "thundergun",
       "displayName": "Thundergun",
       "quakecId": 129,
@@ -373,7 +380,7 @@
     }
   ],
   "validation": {
-    "expectedCatalogCount": 51,
+    "expectedCatalogCount": 52,
     "uniqueIds": true,
     "uniqueDefines": true,
     "uniqueMboxTokens": true
