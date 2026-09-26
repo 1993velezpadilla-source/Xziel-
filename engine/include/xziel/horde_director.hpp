@@ -6,11 +6,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <span>
 
 namespace xziel {
 
-inline constexpr std::size_t kMaxHordeZombies = 16;
-inline constexpr std::size_t kMaxHordeNavigationObstacles = 8;
+inline constexpr std::size_t kMaxHordeZombies = 24;
+inline constexpr std::size_t kMaxHordeNavigationObstacles = 32;
 
 struct HordeConfig {
     std::uint32_t startingRound = 1;
@@ -37,7 +38,7 @@ struct HordeConfig {
     float arenaMinimumZ = -3.25f;
     float arenaMaximumZ = 3.45f;
 
-    std::array<Vec3, 8> spawnPoints{{
+    std::array<Vec3, 32> spawnPoints{{
         {-2.35f, -1.48f,  3.15f},
         { 2.35f, -1.48f,  3.15f},
         {-2.55f, -1.48f,  1.55f},
@@ -71,6 +72,9 @@ public:
     void reset() noexcept;
 
     void clearNavigationObstacles() noexcept;
+
+    [[nodiscard]] bool replaceSpawnPoints(
+        std::span<const Vec3> spawnPoints) noexcept;
 
     [[nodiscard]] bool addNavigationObstacle(
         const Aabb& obstacle) noexcept;
