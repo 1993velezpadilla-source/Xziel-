@@ -50,6 +50,7 @@ python3 "$ROOT/scripts/patch_vril_animation_feel.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_mobile_v021.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_mobile_v022.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_mobile_v024.py" "$DEPS/vril"
+python3 "$ROOT/scripts/patch_vril_multiplayer_hud_test.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_sanctum_staticmesh.py" "$DEPS/vril"
 
 echo "==> Patching and compiling Xziel mobile QuakeC"
