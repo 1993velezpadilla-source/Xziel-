@@ -169,10 +169,10 @@ def resolve_reference(source_rel: str, ref: str, all_paths: set[str]) -> tuple[s
     if not candidates:
         # Last-resort suffix lookup supports scripts that omit a package root
         # such as "sound/foo.wav" while the extracted package has "raw/sound/foo.wav".
-        suffix = "/" + direct.lower()
+        suffix = "/" + direct
         suffix_matches = sorted(
             p for p in all_paths
-            if p.lower() == direct.lower() or p.lower().endswith(suffix)
+            if p == direct or p.endswith(suffix)
         )
         candidates.extend(suffix_matches)
 
@@ -248,7 +248,6 @@ def build_manifest(root: Path, source_kind: str, source_name: str) -> dict:
     blockers = {
         "zeroByteFiles": zero_byte,
         "casePathCollisions": case_collisions,
-        "ambiguousBasenames": duplicate_basenames,
         "unresolvedAssetReferences": unresolved,
         "ambiguousAssetReferences": ambiguous,
     }
@@ -278,6 +277,9 @@ def build_manifest(root: Path, source_kind: str, source_name: str) -> dict:
         "files": records,
         "references": refs,
         "blockers": blockers,
+        "diagnostics": {
+            "duplicateBasenames": duplicate_basenames,
+        },
     }
 
 
