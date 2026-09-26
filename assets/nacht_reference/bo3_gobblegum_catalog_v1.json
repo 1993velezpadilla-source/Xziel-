@@ -165,10 +165,34 @@
       "id": "crate_power",
       "displayName": "Crate Power",
       "identityStatus": "verified",
-      "effectSpecStatus": "pending",
+      "effectSpecStatus": "verified",
       "runtimeStatus": "pending",
       "androidStatus": "pending",
-      "regressionTestStatus": "pending"
+      "regressionTestStatus": "pending",
+      "effectSpec": {
+        "type": "next_mystery_box_reward_pack_a_punch",
+        "consumption": "consume_only_when_final_box_reward_can_upgrade",
+        "finalRewardModelMustMatchUpgradedIdentity": true
+      },
+      "sourceAuthority": [
+        {
+          "repository": "ate47/bo3-source",
+          "path": "scripts/zm/bgbs/_zm_bgb_crate_power.gsc",
+          "blobSha": "b3683e2da10edf0dcb208eb10e353172f37e8fcf"
+        },
+        {
+          "repository": "ate47/bo3-source",
+          "path": "scripts/zm/_zm_magicbox.gsc",
+          "blobSha": "e410a29cb85cc9ea1e69d6b8128fd046d79cfa8d"
+        }
+      ],
+      "runtimePrimitive": {
+        "status": "logic_ready_dormant",
+        "activationFunction": "XZIEL_GobbleGumActivatePapEvent",
+        "resolveFunction": "XZIEL_GobbleGumResolveCratePowerWeapon",
+        "readinessGate": "XZIEL_PackAPunchRuntimeReady",
+        "exposedUpgradeCount": 0
+      }
     },
     {
       "index": 15,
@@ -218,20 +242,68 @@
       "id": "disorderly_combat",
       "displayName": "Disorderly Combat",
       "identityStatus": "verified",
-      "effectSpecStatus": "pending",
+      "effectSpecStatus": "verified",
       "runtimeStatus": "pending",
       "androidStatus": "pending",
-      "regressionTestStatus": "pending"
+      "regressionTestStatus": "pending",
+      "effectSpec": {
+        "type": "timed_random_weapon_rotation",
+        "durationSeconds": 300,
+        "switchIntervalSeconds": 10,
+        "fiveSecondWarning": true,
+        "preserveOriginalPackAPunchState": true,
+        "preserveOriginalAatState": true,
+        "disableManualWeaponCycling": true,
+        "disableOffhandWeapons": true,
+        "exactEligiblePoolFilterStatus": "pending_due_decompiler_ambiguity"
+      },
+      "sourceAuthority": [
+        {
+          "repository": "ate47/bo3-source",
+          "path": "scripts/zm/bgbs/_zm_bgb_disorderly_combat.gsc",
+          "blobSha": "a66e8287ba98702aa75e62213fa1f49ee39f9c45"
+        }
+      ],
+      "runtimePrimitive": {
+        "status": "identity_backend_ready_runtime_pending",
+        "upgradeResolver": "XZIEL_GetPackAPunchWeaponID",
+        "readinessGate": "XZIEL_PackAPunchRuntimeReady",
+        "timerRotationInventoryRuntime": "pending"
+      }
     },
     {
       "index": 19,
       "id": "ephemeral_enhancement",
       "displayName": "Ephemeral Enhancement",
       "identityStatus": "verified",
-      "effectSpecStatus": "pending",
+      "effectSpecStatus": "verified",
       "runtimeStatus": "pending",
       "androidStatus": "pending",
-      "regressionTestStatus": "pending"
+      "regressionTestStatus": "pending",
+      "effectSpec": {
+        "type": "temporary_current_weapon_pack_a_punch",
+        "durationSeconds": 60,
+        "validation": [
+          "not_already_active",
+          "death_machine_not_active",
+          "current_weapon_can_upgrade"
+        ],
+        "start": "replace current weapon with upgraded identity and give start ammo",
+        "end": "restore original weapon and reconcile ammo without creating extra ammo"
+      },
+      "sourceAuthority": [
+        {
+          "repository": "ate47/bo3-source",
+          "path": "scripts/zm/bgbs/_zm_bgb_ephemeral_enhancement.gsc",
+          "blobSha": "d9dd26127ac48e7b39ec0705b05faf14e8a42999"
+        }
+      ],
+      "runtimePrimitive": {
+        "status": "identity_backend_ready_runtime_pending",
+        "upgradeResolver": "XZIEL_GetPackAPunchWeaponID",
+        "readinessGate": "XZIEL_PackAPunchRuntimeReady",
+        "timerAndInventoryRestore": "pending"
+      }
     },
     {
       "index": 20,
@@ -697,10 +769,34 @@
       "id": "wall_power",
       "displayName": "Wall Power",
       "identityStatus": "verified",
-      "effectSpecStatus": "pending",
+      "effectSpecStatus": "verified",
       "runtimeStatus": "pending",
       "androidStatus": "pending",
-      "regressionTestStatus": "pending"
+      "regressionTestStatus": "pending",
+      "effectSpec": {
+        "type": "next_wall_purchase_pack_a_punch",
+        "consumption": "consume_only_when_selected_wall_weapon_can_upgrade",
+        "inactiveOnUnsupportedWeapon": true
+      },
+      "sourceAuthority": [
+        {
+          "repository": "ate47/bo3-source",
+          "path": "scripts/zm/bgbs/_zm_bgb_wall_power.gsc",
+          "blobSha": "7c5e47f2e7e1574c7057b39d4abfddb6a9fb4cde"
+        },
+        {
+          "repository": "ate47/bo3-source",
+          "path": "scripts/zm/_zm_weapons.gsc",
+          "blobSha": "d336d2544b307ccf5de63fc5c29546a56a607506"
+        }
+      ],
+      "runtimePrimitive": {
+        "status": "logic_ready_dormant",
+        "activationFunction": "XZIEL_GobbleGumActivatePapEvent",
+        "resolveFunction": "XZIEL_GobbleGumResolveWallPowerWeapon",
+        "readinessGate": "XZIEL_PackAPunchRuntimeReady",
+        "exposedUpgradeCount": 0
+      }
     },
     {
       "index": 63,
@@ -730,9 +826,12 @@
     "expectedIdentityCount": 63,
     "allRuntimeReady": false,
     "runtimeCoreReady": true,
-    "effectSpecsVerified": 6,
+    "effectSpecsVerified": 10,
     "effectPrimitivesLogicReady": 6,
-    "effectDispatchLogicReady": 6
+    "effectDispatchLogicReady": 6,
+    "papDependentEffectSpecsVerified": 4,
+    "papEventPlumbingLogicReady": 2,
+    "papRuntimeRewardsExposed": 0
   },
   "runtimeCore": {
     "status": "logic_ready",
