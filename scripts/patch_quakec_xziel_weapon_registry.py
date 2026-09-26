@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Reserve stable QuakeC IDs and .mb2 tokens for the full XZIEL weapon catalog.
 
-This patch is identity-only. It deliberately does not make pending weapons
-playable. Runtime readiness is controlled separately by the completion contract
-and the generated Mystery Box runtime pool.
+This patch is identity-only. It registers the global catalog identities plus
+dedicated Pack-a-Punch upgrade identities. It deliberately does not make pending
+weapons playable. Runtime readiness is controlled separately by the completion
+contract and the generated Mystery Box runtime pool.
 """
 
 from __future__ import annotations
@@ -20,6 +21,8 @@ repo_root = Path(__file__).resolve().parents[1]
 registry_path = repo_root / "assets/weapons/xziel_weapon_id_registry_v1.json"
 registry = json.loads(registry_path.read_text(encoding="utf-8"))
 entries = registry.get("entries", [])
+upgrade_entries = registry.get("upgradeEntries", [])
+all_entries = entries + upgrade_entries
 
 defs_path = quakec_root / "source/shared/shared_defs.qc"
 stats_path = quakec_root / "source/shared/weapon_stats.qc"
@@ -28,10 +31,12 @@ stats = stats_path.read_text(encoding="utf-8")
 
 if len(entries) != registry.get("validation", {}).get("expectedCatalogCount"):
     raise SystemExit("weapon ID registry count mismatch")
+if len(upgrade_entries) != registry.get("validation", {}).get("expectedDedicatedPackAPunchIdCount"):
+    raise SystemExit("Pack-a-Punch ID registry count mismatch")
 
-ids = [int(e["quakecId"]) for e in entries]
-defines = [e["quakecDefine"] for e in entries]
-tokens = [e["mboxToken"] for e in entries]
+ids = [int(e["quakecId"]) for e in all_entries]
+defines = [e["quakecDefine"] for e in all_entries]
+tokens = [e["mboxToken"] for e in all_entries]
 if len(ids) != len(set(ids)):
     raise SystemExit("duplicate QuakeC IDs in XZIEL registry")
 if len(defines) != len(set(defines)):
@@ -52,8 +57,8 @@ if block_start not in defs:
         raise SystemExit("could not find end of W_CUSTOM4 line")
 
     lines = ["", block_start]
-    for e in entries:
-        lines.append(f"#define {e['quakecDefine']:<28} {int(e['quakecId'])}")
+    for e in all_entries:
+        lines.append(f"#define {e['quakecDefine']:<36} {int(e['quakecId'])}")
     lines.append(block_end)
     block = "\n".join(lines) + "\n"
     defs = defs[: line_end + 1] + block + defs[line_end + 1 :]
@@ -72,7 +77,7 @@ if "XZIEL_FULL_MBOX_NAME_REGISTRY_BEGIN" not in stats:
     lines = [
         "\t\t// XZIEL_FULL_MBOX_NAME_REGISTRY_BEGIN",
     ]
-    for e in entries:
+    for e in all_entries:
         lines.append(
             f'\t\tcase "{e["mboxToken"]}": return {e["quakecDefine"]};'
         )
@@ -86,14 +91,20 @@ if defs.count(block_start) != 1 or defs.count(block_end) != 1:
 if stats.count("XZIEL_FULL_MBOX_NAME_REGISTRY_BEGIN") != 1:
     raise SystemExit("XZIEL .mb2 registry marker mismatch")
 
-for e in entries:
-    define_line = f"#define {e['quakecDefine']:<28} {int(e['quakecId'])}"
+for e in all_entries:
+    define_line = f"#define {e['quakecDefine']:<36} {int(e['quakecId'])}"
     if define_line not in defs:
-        raise SystemExit(f"missing QuakeC ID definition: {e['weaponId']}")
+        identity = e.get("weaponId", e.get("upgradeWeaponId"))
+        raise SystemExit(f"missing QuakeC ID definition: {identity}")
     case_line = f'case "{e["mboxToken"]}": return {e["quakecDefine"]};'
     if case_line not in stats:
-        raise SystemExit(f"missing .mb2 token mapping: {e['weaponId']}")
+        identity = e.get("weaponId", e.get("upgradeWeaponId"))
+        raise SystemExit(f"missing .mb2 token mapping: {identity}")
 
 defs_path.write_text(defs, encoding="utf-8")
 stats_path.write_text(stats, encoding="utf-8")
-print(f"Applied XZIEL full weapon ID registry: {len(entries)} identities.")
+print(
+    "Applied XZIEL weapon ID registry: "
+    f"{len(entries)} catalog identities + "
+    f"{len(upgrade_entries)} dedicated Pack-a-Punch identities."
+)
