@@ -278,42 +278,44 @@ weapon_core = inject_once(
     "XZIEL_DEATH_MACHINE_SWITCH_CANCEL",
 )
 
-checks = {
+unique_markers = {
     "custom": (
         custom,
         [
-            "XZIEL_DEATH_MACHINE_STATE_FIELDS_BEGIN",
-            "xziel_dm_until",
+            "// XZIEL_DEATH_MACHINE_STATE_FIELDS_BEGIN",
+            "// XZIEL_DEATH_MACHINE_STATE_FIELDS_END",
+            ".float xziel_dm_until;",
         ],
     ),
     "weapon_utils": (
         weapon_utils,
         [
-            "XZIEL_DEATH_MACHINE_STATE_RUNTIME_BEGIN",
-            "XZIEL_DeathMachineActive",
-            "XZIEL_DeathMachineBeginStateOnly",
-            "XZIEL_DeathMachineCancelStateOnly",
-            "XZIEL_DeathMachineTick",
+            "// XZIEL_DEATH_MACHINE_STATE_RUNTIME_BEGIN",
+            "// XZIEL_DEATH_MACHINE_STATE_RUNTIME_END",
+            "float(entity player) XZIEL_DeathMachineActive =",
+            "float(entity player) XZIEL_DeathMachineBeginStateOnly =",
+            "void(entity player) XZIEL_DeathMachineCancelStateOnly =",
+            "void(entity player) XZIEL_DeathMachineTick =",
         ],
     ),
-    "wall": (wall, ["XZIEL_DEATH_MACHINE_BLOCK_WALLBUY"]),
-    "mbox": (mbox, ["XZIEL_DEATH_MACHINE_BLOCK_MBOX"]),
-    "perk": (perk, ["XZIEL_DEATH_MACHINE_BLOCK_PERK"]),
-    "pap": (pap, ["XZIEL_DEATH_MACHINE_BLOCK_PAP"]),
-    "window": (window, ["XZIEL_DEATH_MACHINE_BLOCK_BARRICADE"]),
-    "last_stand": (last_stand, ["XZIEL_DEATH_MACHINE_BLOCK_REVIVE"]),
+    "wall": (wall, ["// XZIEL_DEATH_MACHINE_BLOCK_WALLBUY"]),
+    "mbox": (mbox, ["// XZIEL_DEATH_MACHINE_BLOCK_MBOX"]),
+    "perk": (perk, ["// XZIEL_DEATH_MACHINE_BLOCK_PERK"]),
+    "pap": (pap, ["// XZIEL_DEATH_MACHINE_BLOCK_PAP"]),
+    "window": (window, ["// XZIEL_DEATH_MACHINE_BLOCK_BARRICADE"]),
+    "last_stand": (last_stand, ["// XZIEL_DEATH_MACHINE_BLOCK_REVIVE"]),
     "weapon_core": (
         weapon_core,
         [
-            "XZIEL_DEATH_MACHINE_STATE_TICK",
-            "XZIEL_DEATH_MACHINE_SWITCH_CANCEL",
+            "// XZIEL_DEATH_MACHINE_STATE_TICK",
+            "// XZIEL_DEATH_MACHINE_SWITCH_CANCEL",
         ],
     ),
 }
-for file_name, (text_value, markers) in checks.items():
+for file_name, (text_value, markers) in unique_markers.items():
     for marker in markers:
         if text_value.count(marker) != 1:
-            raise SystemExit(f"{file_name}: marker count mismatch for {marker}")
+            raise SystemExit(f"{file_name}: unique marker/signature count mismatch for {marker}")
 
 custom_path.write_text(custom, encoding="utf-8")
 weapon_utils_path.write_text(weapon_utils, encoding="utf-8")
