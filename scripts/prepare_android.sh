@@ -53,6 +53,8 @@ python3 "$ROOT/scripts/patch_quakec_mobile_v022.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_mobile_v024.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_xziel_burst_timing.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_xziel_damage_falloff.py" "$DEPS/quakec"
+python3 "$ROOT/scripts/patch_quakec_xziel_weapon_registry.py" "$DEPS/quakec"
+python3 "$ROOT/scripts/patch_quakec_xziel_mystery_box_capacity.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_xziel_rk5_logic.py" "$DEPS/quakec"
 chmod +x "$DEPS/quakec/bin/fteqcc-cli-lin" "$DEPS/quakec/tools/qc-compiler-gnu.sh"
 (
@@ -124,6 +126,10 @@ cp "$ROOT/assets/weapons/xziel_weapon_catalog_v1.json" \
     "$ASSET_WORK/nzp/xziel/weapons/xziel_weapon_catalog_v1.json"
 cp "$ROOT/assets/weapons/xziel_mystery_box_pool_v1.json" \
     "$ASSET_WORK/nzp/xziel/weapons/xziel_mystery_box_pool_v1.json"
+cp "$ROOT/assets/weapons/xziel_weapon_id_registry_v1.json" \
+    "$ASSET_WORK/nzp/xziel/weapons/xziel_weapon_id_registry_v1.json"
+cp "$ROOT/assets/weapons/xziel_mystery_box_runtime_pool_v1.json" \
+    "$ASSET_WORK/nzp/xziel/weapons/xziel_mystery_box_runtime_pool_v1.json"
 
 cp "$ROOT/assets/weapons/nacht_prototype_box_pool_v1.json" \
     "$ASSET_WORK/nzp/xziel/weapons/nacht_prototype_box_pool_v1.json"
@@ -141,6 +147,11 @@ if [[ -n "${XZIEL_EXTRA_MAP_BSP:-}" ]]; then
     if [[ -n "${XZIEL_EXTRA_MAP_NSZ:-}" && -s "$XZIEL_EXTRA_MAP_NSZ" ]]; then
         cp "$XZIEL_EXTRA_MAP_NSZ" "$ASSET_WORK/nzp/maps/${EXTRA_MAP_NAME}.nsz"
         echo "==> Bundled development spawn zones: ${EXTRA_MAP_NAME}.nsz"
+    fi
+
+    if [[ -n "${XZIEL_EXTRA_MAP_MB2:-}" && -s "$XZIEL_EXTRA_MAP_MB2" ]]; then
+        cp "$XZIEL_EXTRA_MAP_MB2" "$ASSET_WORK/nzp/maps/${EXTRA_MAP_NAME}.mb2"
+        echo "==> Bundled readiness-gated Mystery Box pool: ${EXTRA_MAP_NAME}.mb2"
     fi
 fi
 
