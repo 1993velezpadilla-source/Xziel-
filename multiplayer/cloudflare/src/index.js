@@ -458,6 +458,31 @@ export class GameRoom extends DurableObject {
       }
       if (!parsed || typeof parsed !== "object") return;
 
+      if (parsed.type === "ci_ready") {
+        if (sender.kind !== "game") return;
+
+        const updated = { ...sender, ciReady: true };
+        ws.serializeAttachment(updated);
+
+        let readyCount = 0;
+        let target = Number(sender.targetPlayers || MAX_PLAYERS);
+        if (target < 1 || target > MAX_PLAYERS) target = MAX_PLAYERS;
+
+        for (const socket of this.ctx.getWebSockets()) {
+          const a = socket.deserializeAttachment() || {};
+          if (a.kind === "game" && a.ciReady) readyCount++;
+        }
+
+        if (readyCount >= target) {
+          this.broadcastText(JSON.stringify({
+            type: "ci_begin",
+            players: target,
+            serverTime: Date.now(),
+          }), null, "game");
+        }
+        return;
+      }
+
       if (parsed.type === "prepare_game" || parsed.type === "server_ready") {
         if (sender.slot !== 1) return;
         parsed.map = sanitizeMap(sender.map);
