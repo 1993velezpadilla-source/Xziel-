@@ -78,6 +78,37 @@ jobs:
           grep -Fx 'allow:' nacht-ci/xziel_nacht_bo3.mb2
           python3 tools/weapons/validate_xziel_weapon_catalog.py
 
+      - name: Validate Mystery Box runtime allow-list
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          manifest=json.loads(Path("assets/weapons/xziel_mystery_box_runtime_pool_v1.json").read_text())
+          lines=[
+              line.strip()
+              for line in Path("nacht-ci/xziel_nacht_bo3.mb2").read_text().splitlines()
+              if line.strip() and not line.lstrip().startswith("#")
+          ]
+          assert lines[:2] == ["nzp_mbox2", "allow:"], lines[:2]
+          tokens=lines[2:]
+          expected=[row["mboxToken"] for row in manifest["active"]]
+          assert tokens == expected, (tokens, expected)
+          assert manifest["candidateCount"] == 46, manifest
+          assert manifest["activeCount"] == len(expected), manifest
+          assert manifest["blockedCount"] + manifest["activeCount"] == 46, manifest
+          print(
+              "XZIEL_MYSTERY_BOX_ALLOWLIST_OK",
+              {
+                  "candidate": manifest["candidateCount"],
+                  "active": manifest["activeCount"],
+                  "blocked": manifest["blockedCount"],
+              },
+          )
+          PY
+
       - name: Validate zero-omission Nacht completion contract
         shell: bash
         run: |
@@ -186,6 +217,12 @@ jobs:
         run: |
           set -euo pipefail
           bash scripts/prepare_android.sh
+          grep -F 'XZIEL_FULL_BOX_CAPACITY' build/deps/quakec/source/server/defs/custom.qc
+          grep -F '#define MAX_BOX_WEAPONS' build/deps/quakec/source/server/defs/custom.qc | grep -F '64'
+          grep -F 'XZIEL_BOUNDED_BOX_SELECTION' build/deps/quakec/source/server/entities/mystery_box.qc
+          grep -F 'XZIEL_SPARSE_BOX_ALLOWLIST' build/deps/quakec/source/server/entities/mystery_box.qc
+          grep -F 'XZIEL_EMPTY_BOX_GUARD' build/deps/quakec/source/server/entities/mystery_box.qc
+          test "$(grep -c 'case "xz_.*": return W_XZ_' build/deps/quakec/source/shared/weapon_stats.qc)" -eq 51
           unzip -l build/android-project/app/src/main/assets/nzp-data.zip \
             | grep 'nzp/maps/xziel_nacht_bo3.bsp'
           unzip -l build/android-project/app/src/main/assets/nzp-data.zip \
