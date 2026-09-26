@@ -1,0 +1,125 @@
+name: Pavlov Nacht StaticMesh glTF Probe
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - experiment/bo3-nacht-standalone-audit
+    paths:
+      - ".github/workflows/pavlov-nacht-staticmesh-gltf-probe.yml"
+
+jobs:
+  export:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Pavlov Nacht Workshop
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $steam=Join-Path $env:RUNNER_TEMP 'steamcmd'
+          New-Item -ItemType Directory -Force -Path $steam | Out-Null
+          Invoke-WebRequest 'https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip' -OutFile (Join-Path $env:RUNNER_TEMP 'steamcmd.zip')
+          Expand-Archive (Join-Path $env:RUNNER_TEMP 'steamcmd.zip') -DestinationPath $steam -Force
+          & (Join-Path $steam 'steamcmd.exe') +login anonymous +workshop_download_item 555160 2755515831 validate +quit
+          $root=Get-ChildItem $steam,$env:RUNNER_TEMP -Directory -Recurse -ErrorAction SilentlyContinue | Where-Object {$_.FullName -like '*steamapps\workshop\content\555160\2755515831'} | Select-Object -First 1
+          if(-not $root){throw 'Workshop payload missing'}
+          $pak=Join-Path $root.FullName 'WindowsNoEditor.pak'
+          if(-not (Test-Path $pak)){throw 'WindowsNoEditor.pak missing'}
+          "PAK=$pak" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          exit 0
+
+      - name: Unpack PAK
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Invoke-WebRequest 'https://github.com/trumank/repak/releases/download/v0.2.3/repak_cli-x86_64-pc-windows-msvc.zip' -OutFile (Join-Path $env:RUNNER_TEMP 'repak.zip')
+          $dir=Join-Path $env:RUNNER_TEMP 'repak'
+          Expand-Archive (Join-Path $env:RUNNER_TEMP 'repak.zip') -DestinationPath $dir -Force
+          $repak=Get-ChildItem $dir -Filter repak.exe -Recurse | Select-Object -First 1
+          if(-not $repak){throw 'repak.exe missing'}
+          $out=Join-Path $env:RUNNER_TEMP 'nacht-unpacked'
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          & $repak.FullName unpack $env:PAK -o $out
+          if($LASTEXITCODE -ne 0){throw "repak failed $LASTEXITCODE"}
+          "UNPACKED=$out" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          $target=Get-ChildItem $out -Filter 'zm_prototype_part1_t7_concrete_wall_weathered_01.uasset' -Recurse | Select-Object -First 1
+          if(-not $target){throw 'target chunk not found'}
+          Write-Host "Target: $($target.FullName)"
+
+      - name: Build CUE4Parse glTF probe
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:RUNNER_TEMP 'nacht-gltf-probe'
+          New-Item -ItemType Directory -Force -Path $src | Out-Null
+          Push-Location $src
+          dotnet new console --framework net10.0 --force
+          dotnet add package CUE4Parse
+          dotnet add package CUE4Parse-Conversion
+          @'
+          using System;
+          using System.IO;
+          using System.Linq;
+          using System.Threading.Tasks;
+          using CUE4Parse.FileProvider;
+          using CUE4Parse.UE4.Versions;
+          using CUE4Parse.UE4.Assets.Exports.StaticMesh;
+          using CUE4Parse_Conversion;
+          using CUE4Parse_Conversion.Options;
+
+          if (args.Length < 2) { Console.Error.WriteLine("usage: probe <root> <out>"); return 2; }
+          var root=args[0];
+          var outDir=args[1];
+          var needle="zm_prototype_part1_t7_concrete_wall_weathered_01.uasset";
+          var provider=new DefaultFileProvider(root, SearchOption.AllDirectories, new VersionContainer(EGame.GAME_UE4_21), StringComparer.OrdinalIgnoreCase);
+          provider.Initialize();
+          provider.PostMount();
+          provider.LoadVirtualPaths();
+          var file=provider.Files.Values.FirstOrDefault(f => f.Path.EndsWith(needle, StringComparison.OrdinalIgnoreCase));
+          if (file == null) {
+              Console.Error.WriteLine("target file not indexed");
+              foreach (var f in provider.Files.Values.Where(f=>f.Path.Contains("concrete_wall_weathered_01",StringComparison.OrdinalIgnoreCase)).Take(20)) Console.Error.WriteLine(f.Path);
+              return 3;
+          }
+          Console.WriteLine("indexed="+file.Path);
+          var pkg=provider.LoadPackage(file.Path);
+          var mesh=pkg.GetExports().OfType<UStaticMesh>().FirstOrDefault();
+          if(mesh==null){Console.Error.WriteLine("UStaticMesh export missing"); return 4;}
+          Console.WriteLine("mesh="+mesh.Name);
+          Directory.CreateDirectory(outDir);
+          var session=new ExportSession{MaxDegreeOfParallelism=Environment.ProcessorCount};
+          session.Add(mesh);
+          var result=await session.RunAsync(outDir,new ExportOptions(meshFormat: EMeshFormat.Gltf2));
+          Console.WriteLine("exported="+result.Count);
+          return 0;
+          '@ | Set-Content Program.cs -Encoding utf8
+          dotnet build -c Release
+          Pop-Location
+          "PROBE=$src\bin\Release\net10.0\nacht-gltf-probe.dll" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Export one structural chunk to glTF
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Continue'
+          New-Item -ItemType Directory -Force -Path 'audit-out\gltf' | Out-Null
+          dotnet $env:PROBE $env:UNPACKED 'audit-out\gltf' 2>&1 | Tee-Object -FilePath 'audit-out\probe.log'
+          $rc=$LASTEXITCODE
+          "$rc" | Set-Content 'audit-out\probe.rc'
+          Write-Host "probe rc=$rc"
+          Get-ChildItem 'audit-out\gltf' -Recurse -File -ErrorAction SilentlyContinue | Select-Object FullName,Length | Format-Table -AutoSize
+          exit 0
+
+      - name: Validate exported geometry
+        shell: pwsh
+        run: |
+          python -c "import json,pathlib,struct; root=pathlib.Path('audit-out/gltf'); files=list(root.rglob('*')); print('files',[(str(p),p.stat().st_size) for p in files if p.is_file()]); gltfs=list(root.rglob('*.gltf')); print('gltf_count',len(gltfs)); [print('asset',json.loads(p.read_text(encoding='utf-8-sig')).get('asset'), 'meshes',len(json.loads(p.read_text(encoding='utf-8-sig')).get('meshes',[])), 'materials',len(json.loads(p.read_text(encoding='utf-8-sig')).get('materials',[])), 'images',len(json.loads(p.read_text(encoding='utf-8-sig')).get('images',[]))) for p in gltfs]" | Tee-Object -FilePath 'audit-out\validation.txt'
+
+      - name: Upload probe metadata and glTF
+        uses: actions/upload-artifact@v4
+        with:
+          name: pavlov-nacht-staticmesh-gltf-probe
+          path: audit-out/
+          retention-days: 7
