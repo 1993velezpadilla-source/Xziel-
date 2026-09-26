@@ -24,6 +24,8 @@ CATALOG = ROOT / "assets/weapons/xziel_weapon_catalog_v1.json"
 BOX = ROOT / "assets/weapons/xziel_mystery_box_pool_v1.json"
 RUNTIME = ROOT / "assets/nacht_reference/runtime_reference_v1.json"
 BEHAVIOR_SPECS = ROOT / "assets/nacht_reference/bo3_weapon_specs_v1.json"
+GOBBLEGUM_CATALOG = ROOT / "assets/nacht_reference/bo3_gobblegum_catalog_v1.json"
+SYSTEM_PLACEMENTS = ROOT / "assets/nacht_reference/bo3_system_placements_v1.json"
 
 ALLOWED_STATES = {
     "pending",
@@ -74,6 +76,8 @@ def main() -> int:
     box = load(BOX)
     runtime = load(RUNTIME)
     behavior_specs = load(BEHAVIOR_SPECS)
+    gobblegum_catalog = load(GOBBLEGUM_CATALOG)
+    system_placements = load(SYSTEM_PLACEMENTS)
 
     if contract.get("schemaVersion") != 1:
         fail("schemaVersion must be 1")
@@ -121,6 +125,29 @@ def main() -> int:
             f"bo3StructuredBehaviorSpecCount={baseline.get('bo3StructuredBehaviorSpecCount')} "
             f"does not match behavior specs={len(spec_rows)}"
         )
+
+    gum_entries = gobblegum_catalog.get("entries", [])
+    if not isinstance(gum_entries, list):
+        fail("GobbleGum catalog entries must be a list")
+    gum_ids = [row.get("id") for row in gum_entries]
+    if len(gum_entries) != 63 or len(gum_ids) != len(set(gum_ids)):
+        fail("GobbleGum identity catalog must contain exactly 63 unique entries")
+    if baseline.get("gobbleGumIdentityCount") != len(gum_entries):
+        fail("gobbleGumIdentityCount drift")
+
+    placement_rows = system_placements.get("entities", [])
+    if not isinstance(placement_rows, list):
+        fail("system placements entities must be a list")
+    type_counts = {}
+    for row in placement_rows:
+        t = row.get("type")
+        type_counts[t] = type_counts.get(t, 0) + 1
+    if type_counts.get("gobblegum_machine", 0) != baseline.get("gobbleGumMachinePlacements"):
+        fail("GobbleGum machine placement count drift")
+    if type_counts.get("der_wunderfizz", 0) != baseline.get("wunderfizzMachinePlacements"):
+        fail("Wunderfizz placement count drift")
+    if type_counts.get("mystery_box", 0) != baseline.get("mysteryBoxAnchors"):
+        fail("Mystery Box anchor count drift")
 
     if baseline.get("catalogWeaponCount") != len(weapons):
         fail(
