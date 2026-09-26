@@ -8,6 +8,7 @@ on:
     paths:
       - ".github/workflows/pavlov-bo3-nacht-uassetgui-audit.yml"
       - "tools/maps/extract_pavlov_nacht_layout.py"
+      - "tools/maps/resolve_pavlov_nacht_purchase_slots.py"
 
 jobs:
   parse:
@@ -56,6 +57,7 @@ jobs:
           $map=Get-ChildItem $out -Filter 'Nacht_de_Untoten.umap' -Recurse | Select-Object -First 1
           if(-not $map){throw 'Nacht map missing after unpack'}
           "MAPFILE=$($map.FullName)" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          "UNPACKED=$out" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
           Get-Item $map.FullName | Format-List FullName,Length
 
       - name: Export map to UAssetAPI JSON
@@ -75,6 +77,92 @@ jobs:
           python tools/maps/extract_pavlov_nacht_layout.py \
             audit-out/Nacht_de_Untoten.json \
             audit-out/nacht-spatial-manifest.json
+      - name: Build BO3 purchase-marker glTF exporter
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:RUNNER_TEMP 'nacht-purchase-exporter'
+          New-Item -ItemType Directory -Force -Path $src | Out-Null
+          Push-Location $src
+          dotnet new console --framework net10.0 --force
+          dotnet add package CUE4Parse --version 1.2.2.202609
+          dotnet add package CUE4Parse-Conversion --version 1.2.2.202609
+          @'
+          using CUE4Parse.FileProvider;
+          using CUE4Parse.UE4.Versions;
+          using CUE4Parse.UE4.Assets.Exports.StaticMesh;
+          using CUE4Parse_Conversion;
+          using CUE4Parse_Conversion.Options;
+
+          if(args.Length<2) return 2;
+          var provider=new DefaultFileProvider(
+              args[0],
+              SearchOption.AllDirectories,
+              true,
+              new VersionContainer(EGame.GAME_UE4_21));
+          provider.Initialize();
+          provider.PostMount();
+          provider.LoadVirtualPaths();
+
+          var session=new ExportSession{
+              MaxDegreeOfParallelism=Math.Max(1,Environment.ProcessorCount/2)
+          };
+          int queued=0;
+          foreach(var file in provider.Files.Values
+              .Where(f=>f.IsUePackage
+                  && f.Path.Contains("/CoD_nacht/MAP_FILES/",StringComparison.OrdinalIgnoreCase)
+                  && f.Path.Contains("chalk_buy_",StringComparison.OrdinalIgnoreCase)
+                  && f.Path.EndsWith(".uasset",StringComparison.OrdinalIgnoreCase))
+              .OrderBy(f=>f.Path))
+          {
+              try
+              {
+                  foreach(var mesh in provider.LoadPackage(file.Path).GetExports().OfType<UStaticMesh>())
+                  {
+                      if(!mesh.Name.Contains("chalk_buy_",StringComparison.OrdinalIgnoreCase))
+                          continue;
+                      session.Add(mesh);
+                      queued++;
+                      Console.WriteLine("queued="+mesh.Name);
+                  }
+              }
+              catch(Exception e)
+              {
+                  Console.WriteLine("skip="+file.Path+" :: "+e.Message);
+              }
+          }
+          Console.WriteLine("queued_count="+queued);
+          Directory.CreateDirectory(args[1]);
+          var results=await session.RunAsync(
+              args[1],
+              new ExportOptions(meshFormat:EMeshFormat.Gltf2,exportMaterials:false));
+          Console.WriteLine("result_count="+results.Count);
+          return queued==9 && results.Count==9 ? 0 : 3;
+          '@ | Set-Content Program.cs -Encoding utf8
+          dotnet build -c Release
+          Pop-Location
+          "PURCHASE_EXPORTER=$src\bin\Release\net10.0\nacht-purchase-exporter.dll" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Export nine BO3 purchase marker meshes
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $out=Join-Path $env:GITHUB_WORKSPACE 'audit-out\purchase-gltf'
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          dotnet $env:PURCHASE_EXPORTER $env:UNPACKED $out 2>&1 | Tee-Object -FilePath 'audit-out\purchase-export.log'
+          if($LASTEXITCODE -ne 0){throw "purchase marker export failed $LASTEXITCODE"}
+          $glbs=Get-ChildItem $out -Filter '*.glb' -Recurse -ErrorAction SilentlyContinue
+          Write-Host "purchase marker glbs=$($glbs.Count)"
+          $glbs | Select-Object FullName,Length | Format-Table -AutoSize
+          if($glbs.Count -ne 9){throw "expected 9 purchase marker GLBs, got $($glbs.Count)"}
+
+      - name: Resolve all nine BO3 purchase slots
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          python -m pip install --disable-pip-version-check --quiet numpy trimesh
+          python tools/maps/resolve_pavlov_nacht_purchase_slots.py audit-out/nacht-spatial-manifest.json audit-out/purchase-gltf audit-out/nacht-purchase-slots-resolved.json
+          if($LASTEXITCODE -ne 0){throw "purchase slot resolver failed $LASTEXITCODE"}
       - name: Upload map JSON audit
         uses: actions/upload-artifact@v4
         with:
