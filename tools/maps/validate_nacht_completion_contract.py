@@ -210,6 +210,17 @@ def main() -> int:
     if gobblegum_catalog.get("validation", {}).get("effectPrimitivesLogicReady") != 6:
         fail("GobbleGum logic-ready effect primitive count drift")
 
+    if gobblegum_catalog.get("validation", {}).get("effectDispatchLogicReady") != 6:
+        fail("GobbleGum logic-ready effect dispatch count drift")
+    for gum_id in expected_mapped_gums:
+        primitive = gum_by_id[gum_id].get("runtimePrimitive", {})
+        if primitive.get("dispatchStatus") != "logic_ready":
+            fail(f"{gum_id} effect dispatch must be logic_ready")
+        if primitive.get("activationFunction") != "XZIEL_GobbleGumActivateHeldMappedPowerup":
+            fail(f"{gum_id} activation function drift")
+        if primitive.get("chargeStateFunction") != "XZIEL_GobbleGumHeldUsesRemaining":
+            fail(f"{gum_id} charge-state function drift")
+
     placement_rows = system_placements.get("entities", [])
     if not isinstance(placement_rows, list):
         fail("system placements entities must be a list")
