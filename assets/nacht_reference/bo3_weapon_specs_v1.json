@@ -50,6 +50,11 @@
         "nativeImplementation": "pending",
         "art": "pending",
         "audio": "pending"
+      },
+      "damageFalloff": {
+        "status": "pending_verified_zombies_distance_curve",
+        "implementationAllowed": false,
+        "note": "Generic Range fields are not accepted as Zombies falloff thresholds without ZM-specific evidence."
       }
     },
     {
@@ -85,6 +90,11 @@
         "nativeImplementation": "pending",
         "art": "pending",
         "audio": "pending"
+      },
+      "damageFalloff": {
+        "status": "pending_verified_zombies_distance_curve",
+        "implementationAllowed": false,
+        "note": "Generic Range fields are not accepted as Zombies falloff thresholds without ZM-specific evidence."
       }
     },
     {
@@ -117,6 +127,11 @@
         "nativeImplementation": "pending",
         "art": "pending",
         "audio": "pending"
+      },
+      "damageFalloff": {
+        "status": "pending_verified_zombies_distance_curve",
+        "implementationAllowed": false,
+        "note": "Generic Range fields are not accepted as Zombies falloff thresholds without ZM-specific evidence."
       }
     },
     {
@@ -156,6 +171,11 @@
         "nativeImplementation": "pending",
         "art": "pending",
         "audio": "pending"
+      },
+      "damageFalloff": {
+        "status": "pending_verified_zombies_distance_curve",
+        "implementationAllowed": false,
+        "note": "Generic Range fields are not accepted as Zombies falloff thresholds without ZM-specific evidence."
       }
     },
     {
@@ -186,6 +206,11 @@
         "nativeImplementation": "pending",
         "art": "pending",
         "audio": "pending"
+      },
+      "damageFalloff": {
+        "status": "pending_verified_zombies_distance_curve",
+        "implementationAllowed": false,
+        "note": "Generic Range fields are not accepted as Zombies falloff thresholds without ZM-specific evidence."
       }
     },
     {
@@ -224,6 +249,11 @@
         "nativeImplementation": "pending",
         "art": "pending",
         "audio": "pending"
+      },
+      "damageFalloff": {
+        "status": "pending_verified_zombies_distance_curve",
+        "implementationAllowed": false,
+        "note": "Generic Range fields are not accepted as Zombies falloff thresholds without ZM-specific evidence."
       }
     },
     {
@@ -260,6 +290,11 @@
         "nativeImplementation": "pending",
         "art": "pending",
         "audio": "pending"
+      },
+      "damageFalloff": {
+        "status": "pending_verified_zombies_distance_curve",
+        "implementationAllowed": false,
+        "note": "Generic Range fields are not accepted as Zombies falloff thresholds without ZM-specific evidence."
       }
     },
     {
@@ -298,6 +333,11 @@
         "nativeImplementation": "pending",
         "art": "pending",
         "audio": "pending"
+      },
+      "damageFalloff": {
+        "status": "pending_verified_zombies_distance_curve",
+        "implementationAllowed": false,
+        "note": "Generic Range fields are not accepted as Zombies falloff thresholds without ZM-specific evidence."
       }
     }
   ],
@@ -314,6 +354,8 @@
       "pistol_burst"
     ],
     "nativeReadyWeaponCount": 0,
-    "behaviorSpecReadyWeaponCount": 8
+    "behaviorSpecReadyWeaponCount": 8,
+    "damageFalloffReadyWeaponCount": 0,
+    "nativeEnablementAllowed": false
   }
 }
