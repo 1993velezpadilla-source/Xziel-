@@ -293,7 +293,7 @@ public final class XzielVoiceChat {
             micButton.setOnClickListener(v -> toggleMic());
             speakerButton.setOnClickListener(v -> toggleSpeaker());
 
-            int size = dp(42);
+            int size = dp(38);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(size, size);
             lp.setMargins(dp(2), 0, dp(2), 0);
             row.addView(micButton, lp);
@@ -303,9 +303,9 @@ public final class XzielVoiceChat {
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
             );
-            params.gravity = Gravity.TOP | Gravity.END;
-            params.topMargin = dp(56);
-            params.rightMargin = dp(12);
+            params.gravity = Gravity.TOP | Gravity.START;
+            params.topMargin = dp(12);
+            params.leftMargin = dp(12);
 
             activity.addContentView(row, params);
             hudOverlay = row;
