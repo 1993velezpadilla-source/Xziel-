@@ -58,12 +58,28 @@ if "void(entity who, float damage, float critical) nzp_damage_number;" not in te
         "void(entity who, float damage, float critical) nzp_damage_number;\n\n"
     ) + text[insert_at:]
 
-hit_anchor = '''\tif (victim.classname == "ai_zombie" || victim.classname == "ai_dog") {\n\n'''
-hit_repl = '''\tif (victim.classname == "ai_zombie" || victim.classname == "ai_dog") {\n\n\t\t/* Mobile COD-style floating damage numbers. Report the actual weapon\n\t\t   damage request for every legitimate player hit, including the fatal\n\t\t   shot. The client owns presentation/timing only. */\n\t\tif (attacker.classname == "player" && d_style != DMG_TYPE_OTHER && damage > 0)\n\t\t\tnzp_damage_number(attacker, damage, d_style == DMG_TYPE_HEADSHOT);\n\n'''
 if "nzp_damage_number(attacker" not in text:
-    if hit_anchor not in text:
-        raise SystemExit("Could not find zombie damage branch")
-    text = text.replace(hit_anchor, hit_repl, 1)
+    # Locate the current zombie/dog branch inside DamageHandler semantically.
+    # Do not depend on exact indentation or blank-line layout from upstream.
+    damage_sig = "void(entity victim, entity attacker, float damage, float d_style) DamageHandler ="
+    damage_start = text.find(damage_sig)
+    if damage_start < 0:
+        raise SystemExit("Could not find DamageHandler")
+    branch_marker = 'if (victim.classname == "ai_zombie" || victim.classname == "ai_dog") {'
+    branch_pos = text.find(branch_marker, damage_start)
+    if branch_pos < 0:
+        raise SystemExit("Could not find zombie/dog branch inside DamageHandler")
+    line_end = text.find("\n", branch_pos)
+    if line_end < 0:
+        raise SystemExit("Could not find end of zombie/dog branch line")
+    line_end += 1
+    damage_hook = (
+        "\t\t/* Xziel floating damage numbers; gameplay damage stays server-authoritative. */\n"
+        "\t\tif (attacker.classname == \"player\" && d_style != DMG_TYPE_OTHER && damage > 0)\n"
+        "\t\t\tnzp_damage_number(attacker, damage, d_style == DMG_TYPE_HEADSHOT);\n\n"
+    )
+    text = text[:line_end] + damage_hook + text[line_end:]
+
 damage.write_text(text, encoding="utf-8")
 
 print("Patched QuakeC Xziel combat feedback.")
