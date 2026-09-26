@@ -260,6 +260,9 @@ jobs:
           grep -F 'XZIEL_DEATH_MACHINE_BLOCK_BARRICADE' build/deps/quakec/source/server/entities/window.qc
           grep -F 'XZIEL_DEATH_MACHINE_BLOCK_REVIVE' build/deps/quakec/source/server/player/last_stand.qc
           grep -F 'XZIEL_DEATH_MACHINE_SWITCH_CANCEL' build/deps/quakec/source/server/weapons/weapon_core.qc
+          grep -F 'XZIEL_DeathMachineAdjustDamage' build/deps/quakec/source/server/utilities/weapon_utilities.qc
+          grep -F 'XZIEL_DEATH_MACHINE_DAMAGE_HOOK' build/deps/quakec/source/server/damage.qc
+          grep -F '0.34 + (random() * 0.41)' build/deps/quakec/source/server/utilities/weapon_utilities.qc
           unzip -l build/android-project/app/src/main/assets/nzp-data.zip \
             | grep 'nzp/maps/xziel_nacht_bo3.bsp'
           unzip -l build/android-project/app/src/main/assets/nzp-data.zip \
