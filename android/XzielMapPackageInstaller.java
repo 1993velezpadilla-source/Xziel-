@@ -261,7 +261,7 @@ public final class XzielMapPackageInstaller {
                          new BufferedOutputStream(
                              new FileOutputStream(installedManifest))) {
                     output.write(
-                        manifest.toString(2).getBytes(StandardCharsets.UTF_8));
+                        manifest.toString().getBytes(StandardCharsets.UTF_8));
                     output.write('\n');
                 }
 
