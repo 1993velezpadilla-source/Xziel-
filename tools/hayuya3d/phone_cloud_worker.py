@@ -10,6 +10,7 @@ from mesh_gate import inspect as inspect_mesh_gate
 from rig_gate import inspect as inspect_rig_gate
 from texture_gate import inspect as inspect_texture_gate
 from trellis2_cloud import generate as generate_trellis2_cloud
+from triposr_cpu_cloud import generate as generate_triposr_cpu_cloud
 from source_autofix import build_source_autofix
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -37,6 +38,7 @@ BACKENDS = [
 ]
 TRELLIS2_ENABLED = "trellis2" in BACKENDS
 CLASSIC_TRELLIS_ENABLED = "trellis" in BACKENDS
+TRIPOSR_CPU_ENABLED = "triposr" in BACKENDS
 STRICT_TRELLIS2 = BACKENDS == ["trellis2"]
 SPACE_URL = os.environ.get("TRELLIS_URL","https://trellis-community-trellis.hf.space")
 TRELLIS2_SPACE = os.environ.get("TRELLIS2_SPACE","microsoft/TRELLIS.2")
@@ -486,15 +488,43 @@ if not multi and TRELLIS2_ENABLED and TEXTURE_QUALITY in {"high","ultra"}:
             or ("more quota" in modern_text.lower() and "hugging face token" in modern_text.lower())
         )
         if quota_blocked:
-            # TRELLIS classic is another Hugging Face ZeroGPU path and shares
-            # the same exhausted quota. Do not waste retries or throw away the
-            # TRELLIS.2 latent checkpoint that was already persisted.
-            fail(
-                "TRELLIS.2 generation completed but GLB extraction is blocked "
-                "by Hugging Face ZeroGPU quota. Generation checkpoint preserved "
-                "in outputs; retry extraction after quota reset instead of "
-                "regenerating. Provider error: " + modern_text
-            )
+            # TRELLIS classic shares the exhausted ZeroGPU quota. If TripoSR is
+            # explicitly allowed, use the audited free CPU Space only as a
+            # continuity candidate. It still must pass HAYUYA mesh/texture/visual
+            # gates and can never silently replace the TRELLIS.2 ultra result.
+            if TRIPOSR_CPU_ENABLED:
+                try:
+                    cpu_meta=generate_triposr_cpu_cloud(
+                        crops[0],
+                        OUT/"triposr_cpu_candidate.glb",
+                        token=TOKEN,
+                    )
+                    modern_candidate=Path(cpu_meta["path"])
+                    selected_generator=cpu_meta["generator"]
+                    selected_compute=cpu_meta["compute"]
+                    actual_mesh_simplify=None
+                    actual_texture_size=0
+                    result=str(modern_candidate)
+                    print(
+                        "HAYUYA_TRIPOSR_CPU_CONTINUITY_CANDIDATE",
+                        json.dumps(cpu_meta,separators=(",",":")),
+                    )
+                except Exception as cpu_exc:
+                    fail(
+                        "TRELLIS.2 generation completed but GLB extraction is "
+                        "blocked by Hugging Face ZeroGPU quota. TRELLIS.2 "
+                        "checkpoint is preserved, and the free CPU TripoSR "
+                        "continuity candidate also failed: "
+                        f"{type(cpu_exc).__name__}: {cpu_exc}. Provider error: "
+                        + modern_text
+                    )
+            else:
+                fail(
+                    "TRELLIS.2 generation completed but GLB extraction is blocked "
+                    "by Hugging Face ZeroGPU quota. Generation checkpoint preserved "
+                    "in outputs; retry extraction after quota reset instead of "
+                    "regenerating. Provider error: " + modern_text
+                )
         if STRICT_TRELLIS2:
             fail(
                 "TRELLIS.2 is the required generator for this job and did not "
