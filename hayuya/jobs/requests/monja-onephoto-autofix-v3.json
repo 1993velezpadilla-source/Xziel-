@@ -1,0 +1,20 @@
+{
+  "schema": 2,
+  "job_id": "monja-onephoto-autofix-v3",
+  "owner": "HAYUYA_AUDIT",
+  "title": "Monja One Photo AutoFix V3",
+  "geometry_input": "hayuya/assets/monja-mugfwln6/geometry/primary.webp",
+  "reference_dir": "",
+  "detail_dir": "",
+  "profile": "monster",
+  "mode": "auto",
+  "asset_profile": "auto",
+  "weapon_family": "auto",
+  "animation_requested": false,
+  "motion_profile": "hayuya_auto",
+  "texture_quality": "ultra",
+  "portable_target": "high",
+  "gpu_vram": 24,
+  "backends": "trellis2,triposr",
+  "retry_token": "onephoto-autofix-v13-head-detail-fusion-20260925"
+}

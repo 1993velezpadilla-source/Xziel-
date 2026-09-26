@@ -1,0 +1,891 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+import json, os, shutil, sys, time
+from collections import Counter
+from dataclasses import asdict
+from pathlib import Path
+from PIL import Image, ImageFile
+from gradio_client import Client, handle_file
+from mesh_gate import inspect as inspect_mesh_gate
+from rig_gate import inspect as inspect_rig_gate
+from texture_gate import inspect as inspect_texture_gate
+from trellis2_cloud import generate as generate_trellis2_cloud
+from trellis2_preview_recovery import recover as recover_trellis2_preview
+from triposr_cpu_cloud import generate as generate_triposr_cpu_cloud
+from local_detail_fusion import fuse_local_basecolor
+from source_autofix import build_source_autofix
+
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+
+GEOMETRY = Path(os.environ["HAYUYA_GEOMETRY_INPUT"])
+REFERENCE_DIR_RAW = os.environ.get("HAYUYA_REFERENCE_DIR","").strip()
+DETAIL_DIR_RAW = os.environ.get("HAYUYA_DETAIL_DIR","").strip()
+REFERENCE_DIR = Path(REFERENCE_DIR_RAW) if REFERENCE_DIR_RAW else None
+DETAIL_DIR = Path(DETAIL_DIR_RAW) if DETAIL_DIR_RAW else None
+OUT = Path(os.environ.get("HAYUYA_OUTPUT_ROOT","out/hayuya-phone-cloud"))
+JOB = os.environ.get("HAYUYA_JOB_ID","hayuya-phone")
+ASSET_PROFILE = os.environ.get("HAYUYA_ASSET_PROFILE","auto").strip() or "auto"
+WEAPON_FAMILY = os.environ.get("HAYUYA_WEAPON_FAMILY","auto").strip() or "auto"
+ANIMATION_REQUESTED = os.environ.get("HAYUYA_ANIMATION_REQUESTED","false").strip().lower() in {"1","true","yes","on"}
+MOTION_PROFILE = os.environ.get("HAYUYA_MOTION_PROFILE","auto").strip() or "auto"
+TEXTURE_QUALITY = os.environ.get("HAYUYA_TEXTURE_QUALITY","standard").strip() or "standard"
+TOKEN = os.environ.get("HF_TOKEN","").strip() or None
+BACKENDS = [
+    x.strip().lower()
+    for x in os.environ.get(
+        "HAYUYA_BACKENDS",
+        "triposg,trellis2,trellis,instantmesh,triposr",
+    ).split(",")
+    if x.strip()
+]
+TRELLIS2_ENABLED = "trellis2" in BACKENDS
+CLASSIC_TRELLIS_ENABLED = "trellis" in BACKENDS
+TRIPOSR_CPU_ENABLED = "triposr" in BACKENDS
+STRICT_TRELLIS2 = BACKENDS == ["trellis2"]
+SPACE_URL = os.environ.get("TRELLIS_URL","https://trellis-community-trellis.hf.space")
+TRELLIS2_SPACE = os.environ.get("TRELLIS2_SPACE","microsoft/TRELLIS.2")
+OUT.mkdir(parents=True, exist_ok=True)
+PREP = OUT / "prepared_views"
+PREP.mkdir(parents=True, exist_ok=True)
+DETAIL_PREP = OUT / "prepared_details"
+DETAIL_PREP.mkdir(parents=True, exist_ok=True)
+
+QUALITY_TARGETS={"preview":768,"standard":1024,"high":2048,"ultra":2048}
+PREP_TARGET=QUALITY_TARGETS.get(TEXTURE_QUALITY,1024)
+IMAGE_EXTS={".png",".jpg",".jpeg",".webp",".bmp"}
+
+def fail(msg):
+    try:
+        (OUT/"failure_reason.txt").write_text(str(msg).strip()+"\n", encoding="utf-8")
+    except Exception:
+        pass
+    print(f"::error::{msg}")
+    raise SystemExit(1)
+
+if not GEOMETRY.is_file():
+    fail(f"Missing primary reference: {GEOMETRY}")
+
+# HAYUYA phone/cloud mode accepts a single image or a wide multi-view sheet.
+# IMPORTANT: preserve alpha. Some generated PNGs are palette images (P mode) with
+# tRNS transparency; converting those directly to RGB turns the transparent area
+# into a solid palette color and TRELLIS reconstructs that background as geometry.
+def has_useful_alpha(image):
+    if image.mode != "RGBA":
+        image = image.convert("RGBA")
+    lo, hi = image.getchannel("A").getextrema()
+    return lo < 250 and hi > 0
+
+def prepare_view(image, dst, *, target=1024):
+    rgba = image.convert("RGBA")
+    useful_alpha = has_useful_alpha(rgba)
+
+    if useful_alpha:
+        alpha = rgba.getchannel("A")
+        mask = alpha.point(lambda v: 255 if v > 8 else 0)
+        bbox = mask.getbbox()
+        if bbox:
+            l, t, r, b = bbox
+            span = max(r-l, b-t)
+            pad = max(8, round(span * 0.06))
+            l=max(0,l-pad); t=max(0,t-pad)
+            r=min(rgba.width,r+pad); b=min(rgba.height,b+pad)
+            rgba = rgba.crop((l,t,r,b))
+
+        # Give the object breathing room and center it on transparent canvas.
+        side=max(rgba.width,rgba.height)
+        margin=max(8,round(side*0.08))
+        canvas=Image.new("RGBA",(side+margin*2,side+margin*2),(0,0,0,0))
+        x=(canvas.width-rgba.width)//2
+        y=(canvas.height-rgba.height)//2
+        canvas.alpha_composite(rgba,(x,y))
+        rgba=canvas.resize((target,target),Image.Resampling.LANCZOS)
+        rgba.save(dst,"PNG",optimize=True)
+    else:
+        # No reliable alpha: keep RGB and let TRELLIS/rembg do its own removal.
+        rgb=rgba.convert("RGB")
+        scale=min(1.0,target/max(rgb.width,rgb.height))
+        if scale < 1.0:
+            rgb=rgb.resize((max(1,round(rgb.width*scale)),max(1,round(rgb.height*scale))),Image.Resampling.LANCZOS)
+        rgb.save(dst,"PNG",optimize=True)
+
+    with Image.open(dst) as check:
+        check.load()
+        alpha_fraction=None
+        if check.mode=="RGBA":
+            a=check.getchannel("A")
+            hist=a.histogram()
+            alpha_fraction=1.0-(hist[255]/float(check.width*check.height))
+        print(
+            "HAYUYA_VIEW_READY",
+            dst.stem,
+            dst,
+            check.size,
+            "mode="+check.mode,
+            "alpha_fraction="+("none" if alpha_fraction is None else f"{alpha_fraction:.4f}")
+        )
+    return dst
+
+with Image.open(GEOMETRY) as source:
+    source.load()
+    source_mode=source.mode
+    source_info=dict(source.info)
+    source_rgba=source.convert("RGBA")
+    source_had_alpha=has_useful_alpha(source_rgba)
+    w,h=source_rgba.size
+    print(
+        "HAYUYA_SOURCE",
+        GEOMETRY,
+        "mode="+source_mode,
+        "size="+f"{w}x{h}",
+        "palette_transparency="+str("transparency" in source_info),
+        "useful_alpha="+str(source_had_alpha)
+    )
+
+    # Reject a known catastrophic input class before spending GPU quota:
+    # palette+tRNS files where one almost-opaque fill color dominates the
+    # visible image. This is what produced the Candyland "cross of planes".
+    if source_mode == "P" and "transparency" in source_info:
+        probe=source_rgba.resize((min(256,w), max(1,round(h*min(256,w)/w))), Image.Resampling.NEAREST)
+        visible=[px for px in probe.getdata() if px[3] > 16]
+        if visible:
+            rgba_count, rgba_n = Counter(visible).most_common(1)[0]
+            dominant_ratio = rgba_n / len(visible)
+            print("HAYUYA_PALETTE_DIAGNOSTIC", "dominant_ratio="+f"{dominant_ratio:.4f}", "rgba="+str(rgba_count))
+            if dominant_ratio > 0.35:
+                fail(
+                    "Rejected corrupt/suspicious palette+tRNS source before GPU generation: "
+                    f"one visible RGBA value occupies {dominant_ratio:.1%} of the foreground. "
+                    "Replace the source with the original RGB/RGBA reference."
+                )
+
+    if w >= int(h*1.25):
+        # Legacy/reference-sheet path: recover the four body panels from the left
+        # ~76% of the sheet and preserve transparency inside each crop.
+        x0=0
+        x1=int(w*0.76)
+        y0=int(h*0.08)
+        y1=int(h*0.96)
+        span=x1-x0
+        names=["front","side","back","three_quarter"]
+        crops=[]
+        for i,name in enumerate(names):
+            a=x0+int(span*i/4)
+            b=x0+int(span*(i+1)/4)
+            pad=int(span*0.025)
+            a=max(x0,a-pad); b=min(x1,b+pad)
+            crop=source_rgba.crop((a,y0,b,y1))
+            dst=PREP/f"{name}.png"
+            crops.append(prepare_view(crop,dst,target=PREP_TARGET))
+    else:
+        dst=PREP/"front.png"
+        crops=[prepare_view(source_rgba,dst,target=PREP_TARGET)]
+
+# Native multi-image mode: a user/project may provide independent views instead
+# of baking them into one contact sheet. Keep the primary geometry reference
+# first, then add up to seven extra views. This preserves perspective evidence
+# far better than asking a single image to invent the unseen side/back.
+if REFERENCE_DIR and REFERENCE_DIR.is_dir():
+    extras=[]
+    for p in sorted(REFERENCE_DIR.iterdir()):
+        if not p.is_file() or p.suffix.lower() not in IMAGE_EXTS:
+            continue
+        try:
+            with Image.open(p) as im:
+                im.load()
+                dst=PREP/f"view_{len(extras)+2:02d}.png"
+                extras.append(prepare_view(im,dst,target=PREP_TARGET))
+        except Exception as exc:
+            print(f"::warning::Skipping reference {p}: {type(exc).__name__}: {exc}")
+        if len(extras)>=7:
+            break
+    crops.extend(extras)
+
+# Detail/face/material crops are intentionally NOT mixed into geometry views:
+# closeups have incompatible camera scale and can warp the reconstructed body.
+# We still normalize/preserve them for the subsequent texture/detail refinement
+# stage and expose them in the manifest.
+detail_views=[]
+source_autofix_result=None
+source_autofix_failure=None
+
+# One-photo-first cloud path: derive head/face evidence from the primary source.
+# This is auxiliary evidence only; it is never mixed into geometry/multiview input.
+if ASSET_PROFILE in {"auto","character.humanoid","character.creature"}:
+    try:
+        source_autofix_result=build_source_autofix(
+            [GEOMETRY],
+            OUT/"source_autofix",
+            policy="auto",
+        )
+        for raw in source_autofix_result.derived_detail_sources:
+            p=Path(raw)
+            if not p.is_file() or len(detail_views)>=12:
+                continue
+            with Image.open(p) as im:
+                im.load()
+                dst=DETAIL_PREP/f"detail_{len(detail_views)+1:02d}_auto_head.png"
+                detail_views.append(prepare_view(im,dst,target=PREP_TARGET))
+        if ASSET_PROFILE == "auto" and source_autofix_result.character_hint:
+            ASSET_PROFILE = "character.humanoid"
+            print(
+                "HAYUYA_CONTENT_CLASSIFICATION",
+                "asset_profile=character.humanoid",
+                "reason=source_autofix_face_or_pose",
+            )
+        print(
+            "HAYUYA_PHONE_SOURCE_AUTOFIX",
+            "derived="+str(len(source_autofix_result.derived_detail_sources)),
+            "character_hint="+str(bool(source_autofix_result.character_hint)).lower(),
+            "asset_profile="+ASSET_PROFILE,
+            "manifest="+str(source_autofix_result.manifest),
+        )
+    except Exception as exc:
+        source_autofix_failure=f"{type(exc).__name__}: {exc}"
+        print(f"::warning::HAYUYA phone source autofix failed: {source_autofix_failure}")
+
+# User-supplied closeups remain optional enhancements.
+if DETAIL_DIR and DETAIL_DIR.is_dir():
+    for p in sorted(DETAIL_DIR.iterdir()):
+        if not p.is_file() or p.suffix.lower() not in IMAGE_EXTS:
+            continue
+        try:
+            with Image.open(p) as im:
+                im.load()
+                dst=DETAIL_PREP/f"detail_{len(detail_views)+1:02d}.png"
+                detail_views.append(prepare_view(im,dst,target=PREP_TARGET))
+        except Exception as exc:
+            print(f"::warning::Skipping detail reference {p}: {type(exc).__name__}: {exc}")
+        if len(detail_views)>=12:
+            break
+
+# If only one view exists, TRELLIS runs its true single-image path.
+multi=len(crops) >= 2
+print("HAYUYA_REFERENCE_SET",
+      "geometry_views="+str(len(crops)),
+      "detail_views="+str(len(detail_views)),
+      "prep_target="+str(PREP_TARGET))
+
+quality_presets={
+    # TRELLIS' "simplify" argument is the fraction of triangles REMOVED, not
+    # retained. The public UI exposes 0.90..0.98, so even its best visible
+    # setting removes 90% of the extracted mesh. HAYUYA keeps a safe fallback
+    # but first asks the backend function for a denser master when quality is
+    # High/Ultra.
+    "preview":{"ss_steps":10,"slat_steps":10,"mesh_simplify":0.95,"texture_size":1024},
+    "standard":{"ss_steps":12,"slat_steps":12,"mesh_simplify":0.90,"texture_size":2048},
+    "high":{"ss_steps":16,"slat_steps":16,"mesh_simplify":0.70,"texture_size":4096},
+    "ultra":{"ss_steps":20,"slat_steps":20,"mesh_simplify":0.40,"texture_size":4096},
+}
+qp=quality_presets.get(TEXTURE_QUALITY,quality_presets["standard"])
+
+retry_events=[]
+client=None
+processed=[]
+params=[]
+args=[]
+values={}
+endpoint=None
+
+def _transient_cloud_error(exc):
+    text=(f"{type(exc).__name__}: {exc}").lower()
+    markers=(
+        "zerogpu quota",
+        "exceeded your zerogpu quota",
+        "try again in",
+        "rate limit",
+        "too many requests",
+        "queue full",
+        "temporarily unavailable",
+        "service unavailable",
+        "http 429",
+        "status code 429",
+    )
+    return any(m in text for m in markers)
+
+def _record_retry(stage, attempt, delay, exc):
+    event={
+        "stage":stage,
+        "attempt":attempt,
+        "delay_seconds":delay,
+        "error":f"{type(exc).__name__}: {exc}",
+        "time":time.time(),
+    }
+    retry_events.append(event)
+    try:
+        (OUT/"cloud_retry_state.json").write_text(
+            json.dumps({
+                "schema":1,
+                "job_id":JOB,
+                "status":"retrying",
+                "events":retry_events,
+            },indent=2)+"\n",
+            encoding="utf-8",
+        )
+    except Exception:
+        pass
+    print(
+        f"::warning::HAYUYA transient cloud error during {stage}; "
+        f"retry {attempt} in {delay}s: {type(exc).__name__}: {exc}"
+    )
+
+def resilient_predict(*call_args, api_name, stage, max_attempts=5):
+    if client is None:
+        raise RuntimeError("classic TRELLIS client is disabled")
+    delays=(20,35,55,75)
+    for attempt in range(1,max_attempts+1):
+        try:
+            return client.predict(*call_args,api_name=api_name)
+        except Exception as exc:
+            if attempt>=max_attempts or not _transient_cloud_error(exc):
+                raise
+            delay=delays[min(attempt-1,len(delays)-1)]
+            _record_retry(stage,attempt,delay,exc)
+            time.sleep(delay)
+            try:
+                client.predict(api_name="/start_session")
+            except Exception as session_exc:
+                print(
+                    f"::warning::TRELLIS session refresh after retry: "
+                    f"{type(session_exc).__name__}: {session_exc}"
+                )
+    raise RuntimeError(f"{stage} exhausted retry loop")
+
+def uploadable(v):
+    if isinstance(v,str):
+        p=Path(v)
+        return handle_file(str(p)) if p.exists() else v
+    if isinstance(v,dict):
+        p=v.get("path")
+        if isinstance(p,str) and Path(p).exists():
+            return handle_file(p)
+    return v
+
+if CLASSIC_TRELLIS_ENABLED:
+    last=None
+    for attempt in range(1,6):
+        try:
+            kwargs={"verbose":True,"httpx_kwargs":{"timeout":120.0}}
+            if TOKEN:
+                kwargs["token"]=TOKEN
+            client=Client(SPACE_URL,**kwargs)
+            print("HAYUYA_TRELLIS_CONNECTED",attempt)
+            break
+        except Exception as e:
+            last=e
+            print(f"::warning::TRELLIS connect {attempt}/5 failed: {type(e).__name__}: {e}")
+            if attempt<5:
+                time.sleep(15*attempt)
+    if client is None:
+        fail(f"Unable to connect to public TRELLIS ZeroGPU: {last}")
+
+    try:
+        resilient_predict(api_name="/start_session",stage="start_session",max_attempts=3)
+    except Exception as e:
+        print(f"::warning::start_session: {type(e).__name__}: {e}")
+
+    if multi:
+        try:
+            resilient_predict(api_name="/lambda_1",stage="enable_multiimage",max_attempts=4)
+            print("HAYUYA_MULTIIMAGE_STATE_ENABLED")
+        except Exception as e:
+            fail(f"Could not enable multi-image mode: {type(e).__name__}: {e}")
+
+    for p in crops:
+        try:
+            v=resilient_predict(
+                handle_file(str(p)),
+                api_name="/preprocess_image",
+                stage=f"preprocess:{p.name}",
+                max_attempts=4,
+            )
+            processed.append(uploadable(v))
+            print("HAYUYA_PREPROCESS_PASS",p.name)
+        except Exception as e:
+            fail(f"preprocess failed for {p.name}: {type(e).__name__}: {e}")
+
+    api=client.view_api(print_info=False,return_format="dict")
+    named=api.get("named_endpoints",{})
+    spec=named.get("/generate_and_extract_glb")
+    if not spec:
+        key=next((k for k in named if "generate_and_extract_glb" in k),None)
+        if key:
+            spec=named[key]
+        else:
+            fail(f"TRELLIS GLB endpoint unavailable: {list(named)}")
+        endpoint=key
+    else:
+        endpoint="/generate_and_extract_glb"
+
+    params=[p.get("parameter_name") for p in spec.get("parameters",[])]
+    front=processed[0]
+    gallery=[{"image":v,"caption":None} for v in processed]
+    values={
+        "image":front,
+        "multiimages":gallery,
+        "seed":1993,
+        "ss_guidance_strength":7.5,
+        "ss_sampling_steps":qp["ss_steps"],
+        "slat_guidance_strength":3.0,
+        "slat_sampling_steps":qp["slat_steps"],
+        "multiimage_algo":"multidiffusion",
+        "mesh_simplify":qp["mesh_simplify"],
+        "texture_size":qp["texture_size"],
+    }
+    missing=[p for p in params if p not in values]
+    if missing:
+        fail(f"Unhandled TRELLIS parameters: {missing}")
+    args=[values[p] for p in params]
+    print("HAYUYA_TRELLIS_SUBMIT",JOB,endpoint,params)
+else:
+    print(
+        "HAYUYA_CLASSIC_TRELLIS_SKIPPED",
+        "requested_backends="+",".join(BACKENDS),
+    )
+
+extraction_fallback=None
+actual_mesh_simplify=qp["mesh_simplify"]
+actual_texture_size=qp["texture_size"]
+selected_generator="trellis-community/TRELLIS"
+selected_compute="GitHub-hosted CPU controller + public TRELLIS ZeroGPU"
+modern_candidate=None
+
+# Modern single-image authority. TRELLIS.2 is deliberately not used to replace
+# classic TRELLIS native multi-image fusion: with 2+ real geometry views the
+# camera evidence is more valuable than forcing a single-image model.
+if not multi and TRELLIS2_ENABLED and TEXTURE_QUALITY in {"high","ultra"}:
+    try:
+        modern_meta=generate_trellis2_cloud(
+            crops[0],
+            OUT/"trellis2_candidate.glb",
+            token=TOKEN,
+            quality=TEXTURE_QUALITY,
+            seed=1993,
+            space=TRELLIS2_SPACE,
+        )
+        modern_candidate=Path(modern_meta["path"])
+        modern_min_texture_edge=4096 if TEXTURE_QUALITY=="ultra" else 2048
+        modern_mesh=inspect_mesh_gate(modern_candidate,require_normals=True)
+        modern_tex=inspect_texture_gate(
+            modern_candidate,min_edge=modern_min_texture_edge
+        )
+        print("HAYUYA_TRELLIS2_MESH_GATE",json.dumps(asdict(modern_mesh),separators=(",",":")))
+        print("HAYUYA_TRELLIS2_TEXTURE_GATE",json.dumps(asdict(modern_tex),separators=(",",":")))
+        if not modern_mesh.passed or not modern_tex.passed:
+            raise RuntimeError(
+                "TRELLIS.2 challenger failed HAYUYA hard gates: "
+                +"; ".join(list(modern_mesh.reasons)+list(modern_tex.warnings))
+            )
+        selected_generator=modern_meta["generator"]
+        selected_compute="GitHub-hosted CPU controller + official public TRELLIS.2 GPU Space"
+        actual_mesh_simplify=None
+        actual_texture_size=int(modern_meta["texture_size"])
+        result=str(modern_candidate)
+        print("HAYUYA_TRELLIS2_PROMOTED",json.dumps(modern_meta,separators=(",",":")))
+    except Exception as modern_exc:
+        modern_candidate=None
+        modern_text=f"{type(modern_exc).__name__}: {modern_exc}"
+        quota_blocked=(
+            "zerogpu quota" in modern_text.lower()
+            or "exceeded your zerogpu quota" in modern_text.lower()
+            or ("more quota" in modern_text.lower() and "hugging face token" in modern_text.lower())
+        )
+        if quota_blocked:
+            # Generation already succeeded and the official Space preserved 48
+            # static turntable frames (Normal / Clay / Base Color / HDRI). Recover
+            # a CPU visual hull from the exact 8 TRELLIS.2 cameras before trying
+            # a different generator. The recovered GLB must pass the same mesh and
+            # real embedded-texture gates; no gate is relaxed for this path.
+            preview_html=OUT/"trellis2_candidate.preview.html"
+            if preview_html.is_file():
+                try:
+                    recovered_meta=recover_trellis2_preview(
+                        preview_html,
+                        OUT/"trellis2_preview_recovered.glb",
+                        grid_resolution=224 if TEXTURE_QUALITY in {"high","ultra"} else 192,
+                        texture_size=2048 if TEXTURE_QUALITY in {"high","ultra"} else 1024,
+                        face_target=140000 if TEXTURE_QUALITY=="ultra" else 120000,
+                    )
+                    recovered_candidate=Path(recovered_meta["path"])
+                    recovered_mesh_report=inspect_mesh_gate(
+                        recovered_candidate,
+                        require_normals=False,
+                    )
+                    recovered_texture_report=inspect_texture_gate(
+                        recovered_candidate,
+                        min_edge=int(recovered_meta["texture_size"]),
+                        min_base_color_edge=int(recovered_meta["texture_size"]),
+                    )
+                    if not recovered_mesh_report.passed:
+                        raise RuntimeError(
+                            "TRELLIS.2 preview recovery mesh gate failed: "
+                            + json.dumps(asdict(recovered_mesh_report),separators=(",",":"))
+                        )
+                    if not recovered_texture_report.passed:
+                        raise RuntimeError(
+                            "TRELLIS.2 preview recovery texture gate failed: "
+                            + json.dumps(asdict(recovered_texture_report),separators=(",",":"))
+                        )
+                    modern_candidate=recovered_candidate
+                    selected_generator=recovered_meta["generator"]
+                    selected_compute=recovered_meta["compute"]
+                    actual_mesh_simplify=0.0
+                    actual_texture_size=int(recovered_meta["texture_size"])
+                    result=str(modern_candidate)
+                    print(
+                        "HAYUYA_TRELLIS2_PREVIEW_RECOVERY_PROMOTED",
+                        json.dumps(recovered_meta,separators=(",",":")),
+                    )
+                except Exception as recovery_exc:
+                    print(
+                        "::warning::TRELLIS.2 preview recovery failed; "
+                        "keeping native generation checkpoint and trying the "
+                        "explicit continuity backend: "
+                        f"{type(recovery_exc).__name__}: {recovery_exc}"
+                    )
+
+            # TRELLIS classic shares the exhausted ZeroGPU quota. TripoSR remains
+            # last-resort continuity only when preview recovery was unavailable.
+            if modern_candidate is None and TRIPOSR_CPU_ENABLED:
+                try:
+                    cpu_meta=generate_triposr_cpu_cloud(
+                        crops[0],
+                        OUT/"triposr_cpu_candidate.glb",
+                        token=TOKEN,
+                    )
+                    modern_candidate=Path(cpu_meta["path"])
+                    selected_generator=cpu_meta["generator"]
+                    selected_compute=cpu_meta["compute"]
+                    actual_mesh_simplify=None
+                    actual_texture_size=0
+                    result=str(modern_candidate)
+                    print(
+                        "HAYUYA_TRIPOSR_CPU_CONTINUITY_CANDIDATE",
+                        json.dumps(cpu_meta,separators=(",",":")),
+                    )
+                except Exception as cpu_exc:
+                    fail(
+                        "TRELLIS.2 generation completed but GLB extraction is "
+                        "blocked by Hugging Face ZeroGPU quota. TRELLIS.2 "
+                        "checkpoint is preserved, preview recovery failed, and "
+                        "the free CPU TripoSR continuity candidate also failed: "
+                        f"{type(cpu_exc).__name__}: {cpu_exc}. Provider error: "
+                        + modern_text
+                    )
+            elif modern_candidate is None:
+                fail(
+                    "TRELLIS.2 generation completed but GLB extraction is blocked "
+                    "by Hugging Face ZeroGPU quota. Generation checkpoint preserved "
+                    "in outputs; preview recovery did not produce an accepted GLB. "
+                    "Provider error: " + modern_text
+                )
+        if STRICT_TRELLIS2 and modern_candidate is None:
+            fail(
+                "TRELLIS.2 is the required generator for this job and did not "
+                "produce an accepted candidate: "
+                + modern_text
+            )
+        if modern_candidate is None:
+            print(
+                "::warning::TRELLIS.2 challenger unavailable/rejected; "
+                "falling back to classic TRELLIS: "
+                + modern_text
+            )
+
+if modern_candidate is None:
+    if not CLASSIC_TRELLIS_ENABLED:
+        fail(
+            "No permitted generator produced a model. "
+            f"requested_backends={BACKENDS}; multi_image={multi}; "
+            f"texture_quality={TEXTURE_QUALITY}"
+        )
+    try:
+        result=resilient_predict(*args,api_name=endpoint,stage="trellis_generation",max_attempts=5)
+    except Exception as e:
+        # Gradio's public UI currently constrains Simplify to >=0.90 and Texture
+        # Size to <=2048, even though TRELLIS' underlying to_glb() accepts numeric
+        # arguments. If server-side component validation enforces those UI bounds,
+        # retry at the best officially exposed extraction quality rather than fail
+        # the whole phone workflow.
+        if qp["mesh_simplify"] < 0.90 or qp["texture_size"] > 2048:
+            extraction_fallback={
+                "requested_mesh_simplify":qp["mesh_simplify"],
+                "requested_texture_size":qp["texture_size"],
+                "fallback_mesh_simplify":0.90,
+                "fallback_texture_size":2048,
+                "reason":f"{type(e).__name__}: {e}",
+            }
+            values["mesh_simplify"]=0.90
+            values["texture_size"]=2048
+            actual_mesh_simplify=0.90
+            actual_texture_size=2048
+            args=[values[p] for p in params]
+            print("::warning::HAYUYA dense extraction override rejected; retrying official max-quality bounds")
+            try:
+                result=resilient_predict(*args,api_name=endpoint,stage="trellis_generation_fallback",max_attempts=5)
+            except Exception as fallback_exc:
+                fail(f"TRELLIS generation failed after quality fallback: {type(fallback_exc).__name__}: {fallback_exc}")
+        else:
+            fail(f"TRELLIS generation failed after transient retries: {type(e).__name__}: {e}")
+
+(OUT/"trellis_result.txt").write_text(repr(result),encoding="utf-8")
+candidates=[]
+def walk(x):
+    if isinstance(x,str):
+        yield x
+    elif isinstance(x,dict):
+        for v in x.values(): yield from walk(v)
+    elif isinstance(x,(list,tuple)):
+        for v in x: yield from walk(v)
+    else:
+        for attr in ("path","url"):
+            v=getattr(x,attr,None)
+            if isinstance(v,str): yield v
+
+for s in walk(result):
+    if s.lower().endswith(".glb") and Path(s).exists():
+        candidates.append(Path(s))
+if not candidates:
+    fail(f"No downloaded GLB in TRELLIS result: {result!r}")
+
+src=candidates[-1]
+dst=OUT/"hayuya_final.glb"
+shutil.copy2(src,dst)
+data=dst.read_bytes()
+if data[:4] != b"glTF" or len(data)<1024:
+    fail("Invalid GLB output")
+
+require_final_normals=STRICT_TRELLIS2 and TEXTURE_QUALITY in {"high","ultra"}
+final_texture_min_edge=(
+    4096
+    if STRICT_TRELLIS2 and TEXTURE_QUALITY in {"high","ultra"}
+    else 1024
+)
+detail_fusion_payload=None
+
+# Real head/detail evidence must affect the final character instead of only
+# being written to the manifest. Build a CPU TripoSR donor from the tight
+# source-derived head crop, align that donor to the semantic head region, and
+# transfer only its baseColor evidence. Geometry/runtime payload stays byte-safe.
+# This is a challenger: failure never downgrades a valid TRELLIS result.
+if (
+    detail_views
+    and TRIPOSR_CPU_ENABLED
+    and ASSET_PROFILE in {"auto","character.humanoid","character.creature"}
+    and selected_generator!="stabilityai/TripoSR"
+):
+    try:
+        detail_donor_meta=generate_triposr_cpu_cloud(
+            detail_views[0],
+            OUT/"detail_head_donor.glb",
+            token=TOKEN,
+        )
+        detail_donor=Path(detail_donor_meta["path"])
+        detail_fused=OUT/"hayuya_head_detail_fused.glb"
+        fusion=fuse_local_basecolor(
+            dst,
+            detail_donor,
+            detail_fused,
+            region="head",
+            up_axis="y",
+            donor_samples=80_000,
+            max_alignment_p95_ratio=0.30,
+            donor_scope="region",
+        )
+        detail_fusion_payload={
+            "attempted":True,
+            "source_detail":detail_views[0].name,
+            "donor":detail_donor_meta,
+            "fusion":asdict(fusion),
+            "promoted":False,
+        }
+        print(
+            "HAYUYA_HEAD_DETAIL_FUSION",
+            json.dumps(detail_fusion_payload,separators=(",",":")),
+        )
+        if fusion.ready:
+            fused_mesh=inspect_mesh_gate(
+                detail_fused,
+                require_normals=require_final_normals,
+            )
+            fused_texture=inspect_texture_gate(
+                detail_fused,
+                min_edge=final_texture_min_edge,
+            )
+            if fused_mesh.passed and fused_texture.passed:
+                shutil.copy2(detail_fused,dst)
+                data=dst.read_bytes()
+                detail_fusion_payload["promoted"]=True
+                detail_fusion_payload["mesh_gate"]=asdict(fused_mesh)
+                detail_fusion_payload["texture_gate"]=asdict(fused_texture)
+                selected_compute=selected_compute+" + CPU semantic head-detail fusion"
+                print(
+                    "HAYUYA_HEAD_DETAIL_FUSION_PROMOTED",
+                    json.dumps(detail_fusion_payload,separators=(",",":")),
+                )
+            else:
+                detail_fusion_payload["mesh_gate"]=asdict(fused_mesh)
+                detail_fusion_payload["texture_gate"]=asdict(fused_texture)
+                detail_fusion_payload["rejected_reason"]="post_fusion_gate"
+                print(
+                    "::warning::Head-detail fusion challenger rejected by hard gates"
+                )
+    except Exception as detail_exc:
+        detail_fusion_payload={
+            "attempted":True,
+            "source_detail":detail_views[0].name if detail_views else None,
+            "promoted":False,
+            "error":f"{type(detail_exc).__name__}: {detail_exc}",
+        }
+        print(
+            "::warning::HAYUYA head-detail fusion unavailable; "
+            "keeping base model: "
+            +detail_fusion_payload["error"]
+        )
+
+# Catastrophic geometry gate: a backend returning a syntactically valid GLB is
+# not enough. Reject billboard crosses, fragmented texture planes, collapsed
+# bounds, and other obvious non-model outputs before the Hub ever says DONE.
+gate=inspect_mesh_gate(dst,require_normals=require_final_normals)
+gate_payload=asdict(gate)
+(OUT/"quality_gate.json").write_text(json.dumps(gate_payload,indent=2),encoding="utf-8")
+print("HAYUYA_MESH_GATE", json.dumps(gate_payload, separators=(",",":")))
+if not gate.passed:
+    fail("HAYUYA mesh quality gate rejected output: " + "; ".join(gate.reasons))
+
+# Texture gate prevents the old failure mode where a geometrically valid model
+# reaches DONE with no usable embedded texture or only a tiny texture. Blur is
+# reported as telemetry first; fidelity refinement owns the stricter judgment.
+texture_gate=inspect_texture_gate(dst, min_edge=final_texture_min_edge)
+texture_payload=asdict(texture_gate)
+(OUT/"texture_gate.json").write_text(json.dumps(texture_payload,indent=2),encoding="utf-8")
+print("HAYUYA_TEXTURE_GATE", json.dumps(texture_payload,separators=(",",":")))
+if not texture_gate.passed:
+    fail("HAYUYA texture gate rejected output: " + "; ".join(texture_gate.warnings))
+
+# Animation readiness is profile-specific. Humanoids use skeletal rig QA;
+# weapons/vehicles/mechanical props require part/pivot mechanics; foliage uses
+# runtime wind/vertex motion. Never force a humanoid skeleton onto arbitrary
+# assets just to make the "animation ready" badge turn green.
+character_payload=None
+if ASSET_PROFILE in {"auto","character.humanoid","character.creature"}:
+    rig=inspect_rig_gate(dst, Path("hayuya/standards/hayuya_humanoid_v1.json"))
+    rig_payload=asdict(rig)
+    (OUT/"rig_gate.json").write_text(json.dumps(rig_payload,indent=2),encoding="utf-8")
+    print("HAYUYA_RIG_GATE", json.dumps(rig_payload, separators=(",",":")))
+    character_payload={
+        "skeleton_type":rig_payload["skeleton_type"],
+        "preview_pack":"hayuya_preview_pack_v1",
+        "rig_ready":rig_payload["rig_ready"],
+        "animation_ready":rig_payload["animation_ready"],
+        "preview_animation_ready":rig_payload["preview_animation_ready"],
+        "animation_clips":rig_payload["animation_clips"],
+        "facial":rig_payload["facial"],
+        "secondary_motion":rig_payload["secondary_motion"],
+        "warnings":rig_payload["warnings"],
+    }
+
+profile_systems={
+    "character.humanoid":["skeletal","morph_targets","secondary_motion"],
+    "character.creature":["skeletal","morph_targets","secondary_motion"],
+    "weapon.firearm":["mechanical_skeleton","transform_channels"],
+    "weapon.melee":["transform_channels","optional_skeletal"],
+    "prop.mechanical":["mechanical_skeleton","transform_channels"],
+    "vehicle":["mechanical_skeleton","transform_channels","suspension_rig"],
+    "foliage.grass":["vertex_wind","transform_channels"],
+    "foliage.tree":["vertex_wind","skeletal_foliage"],
+    "prop.static":["optional_transform_channels","optional_morph_targets"],
+    "environment.modular":["optional_transform_channels","optional_vertex_animation"],
+    "auto":[],
+}
+asset_payload={
+    "profile":ASSET_PROFILE,
+    "weapon_family":WEAPON_FAMILY if ASSET_PROFILE=="weapon.firearm" else "auto",
+    "animation_requested":ANIMATION_REQUESTED,
+    "motion_profile":MOTION_PROFILE,
+    "animation_systems":profile_systems.get(ASSET_PROFILE,[]),
+    "mechanical_rig_ready":False,
+    "procedural_motion_ready":ASSET_PROFILE in {"foliage.grass","foliage.tree"},
+    "requires_profile_postprocess":ASSET_PROFILE not in {"auto","character.humanoid","character.creature","prop.static"},
+}
+
+manifest={
+    "schema":2,
+    "engine":"HAYUYA PHONE CLOUD",
+    "job_id":JOB,
+    "asset_profile":ASSET_PROFILE,
+    "weapon_family":WEAPON_FAMILY if ASSET_PROFILE=="weapon.firearm" else "auto",
+    "animation_requested":ANIMATION_REQUESTED,
+    "motion_profile":MOTION_PROFILE,
+    "texture_quality":TEXTURE_QUALITY,
+    "compute":selected_compute,
+    "phone_only":True,
+    "source":str(GEOMETRY),
+    "prepared_views":[p.name for p in crops],
+    "prepared_detail_views":[p.name for p in detail_views],
+    "detail_fusion":detail_fusion_payload,
+    "source_autofix":(
+        asdict(source_autofix_result)
+        if source_autofix_result is not None else None
+    ),
+    "source_autofix_failure":source_autofix_failure,
+    "manual_face_closeup_required":False,
+    "single_photo_first":True,
+    "reference_dir":str(REFERENCE_DIR) if REFERENCE_DIR else "",
+    "detail_dir":str(DETAIL_DIR) if DETAIL_DIR else "",
+    "prep_target":PREP_TARGET,
+    "multi_image":multi,
+    "generator":selected_generator,
+    "requested_backends":BACKENDS,
+    "strict_trellis2":STRICT_TRELLIS2,
+    "texture_size":actual_texture_size,
+    "requested_texture_target":qp["texture_size"],
+    "native_texture_target":actual_texture_size,
+    "texture_refinement_pending":actual_texture_size < qp["texture_size"],
+    "quality_profile":{
+        "ss_sampling_steps":qp["ss_steps"],
+        "slat_sampling_steps":qp["slat_steps"],
+        "requested_mesh_simplify":qp["mesh_simplify"],
+        "actual_mesh_simplify":actual_mesh_simplify,
+        "requested_texture_size":qp["texture_size"],
+        "actual_texture_size":actual_texture_size,
+        "public_ui_simplify_floor":0.90,
+        "public_ui_texture_ceiling":4096 if selected_generator=="microsoft/TRELLIS.2-4B" else 2048,
+        "dense_extraction_override_attempted":(
+            False if selected_generator=="microsoft/TRELLIS.2-4B"
+            else qp["mesh_simplify"]<0.90 or qp["texture_size"]>2048
+        ),
+        "extraction_fallback":extraction_fallback,
+        "detail_reference_count":len(detail_views),
+        "note":(
+            "TRELLIS.2 official Space full-PBR extraction; classic TRELLIS remains fallback/multi-image authority."
+            if selected_generator=="microsoft/TRELLIS.2-4B"
+            else "TRELLIS simplify is triangle-removal ratio. HAYUYA reports requested and actual extraction quality separately."
+        )
+    },
+    "glb":dst.name,
+    "glb_bytes":len(data),
+    "authenticated_hf":bool(TOKEN),
+    "cloud_retry_count":len(retry_events),
+    "cloud_retries":retry_events,
+    "source_mode":source_mode,
+    "source_had_alpha":source_had_alpha,
+    "alpha_preserved":True,
+    "quality_gate":gate_payload,
+    "texture_gate":texture_payload,
+    "asset":asset_payload,
+}
+if character_payload is not None:
+    manifest["character"]=character_payload
+(OUT/"manifest.json").write_text(json.dumps(manifest,indent=2),encoding="utf-8")
+if retry_events:
+    (OUT/"cloud_retry_state.json").write_text(
+        json.dumps({
+            "schema":1,
+            "job_id":JOB,
+            "status":"recovered",
+            "events":retry_events,
+        },indent=2)+"\n",
+        encoding="utf-8",
+    )
+print("HAYUYA_PHONE_CLOUD_PASS")
+print(json.dumps(manifest,indent=2))
