@@ -26,6 +26,8 @@ RUNTIME = ROOT / "assets/nacht_reference/runtime_reference_v1.json"
 BEHAVIOR_SPECS = ROOT / "assets/nacht_reference/bo3_weapon_specs_v1.json"
 GOBBLEGUM_CATALOG = ROOT / "assets/nacht_reference/bo3_gobblegum_catalog_v1.json"
 SYSTEM_PLACEMENTS = ROOT / "assets/nacht_reference/bo3_system_placements_v1.json"
+PERK_CATALOG = ROOT / "assets/nacht_reference/bo3_perk_catalog_v1.json"
+POWERUP_CATALOG = ROOT / "assets/nacht_reference/bo3_powerup_catalog_v1.json"
 
 ALLOWED_STATES = {
     "pending",
@@ -78,6 +80,8 @@ def main() -> int:
     behavior_specs = load(BEHAVIOR_SPECS)
     gobblegum_catalog = load(GOBBLEGUM_CATALOG)
     system_placements = load(SYSTEM_PLACEMENTS)
+    perk_catalog = load(PERK_CATALOG)
+    powerup_catalog = load(POWERUP_CATALOG)
 
     if contract.get("schemaVersion") != 1:
         fail("schemaVersion must be 1")
@@ -148,6 +152,30 @@ def main() -> int:
         fail("Wunderfizz placement count drift")
     if type_counts.get("mystery_box", 0) != baseline.get("mysteryBoxAnchors"):
         fail("Mystery Box anchor count drift")
+
+    perk_entries = perk_catalog.get("entries", [])
+    if not isinstance(perk_entries, list):
+        fail("perk catalog entries must be a list")
+    perk_ids = [row.get("id") for row in perk_entries]
+    if len(perk_entries) != 8 or len(perk_ids) != len(set(perk_ids)):
+        fail("BO3 Nacht perk catalog must contain exactly 8 unique identities")
+    if baseline.get("canonicalPerkIdentityCount") != len(perk_entries):
+        fail("canonicalPerkIdentityCount drift")
+    wf_pool = [row for row in perk_entries if row.get("wunderfizzEligible") is True]
+    if len(wf_pool) != 7 or baseline.get("wunderfizzPoolIdentityCount") != len(wf_pool):
+        fail("Wunderfizz perk pool identity count drift")
+
+    power_entries = powerup_catalog.get("entries", [])
+    if not isinstance(power_entries, list):
+        fail("power-up catalog entries must be a list")
+    power_ids = [row.get("id") for row in power_entries]
+    if len(power_entries) != 9 or len(power_ids) != len(set(power_ids)):
+        fail("BO3 core power-up catalog must contain exactly 9 unique identities")
+    if baseline.get("corePowerupIdentityCount") != len(power_entries):
+        fail("corePowerupIdentityCount drift")
+    natural_power = [row for row in power_entries if row.get("nachtNaturalDrop") is True]
+    if len(natural_power) != 6 or baseline.get("nachtNaturalPowerupIdentityCount") != len(natural_power):
+        fail("Nacht natural power-up identity count drift")
 
     if baseline.get("catalogWeaponCount") != len(weapons):
         fail(
