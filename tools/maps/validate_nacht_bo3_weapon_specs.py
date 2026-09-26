@@ -90,6 +90,11 @@ def main() -> int:
         damage = spec.get("damage", {})
         if not damage.get("model"):
             fail(f"missing damage model for {logical_id}")
+        falloff = spec.get("damageFalloff", {})
+        if falloff.get("status") != "pending_verified_zombies_distance_curve":
+            fail(f"unexpected falloff readiness for {logical_id}: {falloff}")
+        if falloff.get("implementationAllowed") is not False:
+            fail(f"native falloff implementation must remain blocked for {logical_id}")
         numeric_damage = [
             damage.get("base"),
             damage.get("max"),
@@ -153,6 +158,11 @@ def main() -> int:
         fail("no BO3 firearm may be marked native-ready yet")
     if expected.get("behaviorSpecReadyWeaponCount") != 8:
         fail("all eight behavior specs must be ready")
+
+    if expected.get("damageFalloffReadyWeaponCount") != 0:
+        fail("no BO3 firearm may claim a verified Zombies falloff curve yet")
+    if expected.get("nativeEnablementAllowed") is not False:
+        fail("native wall-buy enablement must remain blocked")
 
     result = {
         "weaponSpecs": len(weapons),
