@@ -7,6 +7,7 @@ on:
       - experiment/bo3-nacht-standalone-audit
     paths:
       - ".github/workflows/pavlov-bo3-nacht-material-audit.yml"
+      - "tools/maps/build_xziel_nacht_material_contract.py"
 
 jobs:
   audit-materials:
@@ -100,6 +101,12 @@ jobs:
           for r in rows[:120]: print(json.dumps(r,sort_keys=True))
           PY
 
+      - name: Build XZIEL material contract
+        run: |
+          set -euo pipefail
+          python3 tools/maps/build_xziel_nacht_material_contract.py \
+            audit-out/nacht-material-channel-report.json \
+            audit-out/nacht-xziel-material-contract.json
       - name: Upload metadata report only
         uses: actions/upload-artifact@v4
         with:
