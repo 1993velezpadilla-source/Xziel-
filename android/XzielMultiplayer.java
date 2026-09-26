@@ -1038,7 +1038,7 @@ public final class XzielMultiplayer {
             activity.getWindow().getDecorView().postDelayed(() -> {
                 if (ciEvidenceMode) voiceChat.sendCiTestTone();
             }, 3400);
-            ciCommand(6000, "CI_SCENARIO_DONE", "");
+            ciCommand(7200, "CI_SCENARIO_DONE", "");
         } else if (localSlot == 2) {
             ciCommand(700, "CI_P2_WALK_START", "+forward\n");
             ciCommand(1250, "CI_P2_WALK_STOP", "-forward\n");
@@ -1051,10 +1051,12 @@ public final class XzielMultiplayer {
         } else if (localSlot == 3) {
             ciCommand(3000, "CI_P3_SPRINT_START", "impulse 23\n+forward\n");
             ciCommand(4000, "CI_P3_SPRINT_STOP", "-forward\nimpulse 24\n");
+            ciCommand(4450, "CI_P3_GRENADE_PRIME", "+grenade\n");
+            ciCommand(5000, "CI_P3_GRENADE_THROW", "-grenade\n");
             activity.getWindow().getDecorView().postDelayed(() -> {
                 if (ciEvidenceMode) voiceChat.sendCiTestTone();
             }, 3800);
-            ciCommand(6000, "CI_SCENARIO_DONE", "");
+            ciCommand(7200, "CI_SCENARIO_DONE", "");
         } else if (localSlot == 4) {
             ciCommand(3000, "CI_P4_AIM_START", "+aim\n");
             ciCommand(3600, "CI_P4_FIRE_START", "+attack\n");
@@ -1110,8 +1112,7 @@ public final class XzielMultiplayer {
 
     public void onCiSoundEvent(int entity, int channel, String name,
                                float x, float y, float z) {
-        if (!ciEvidenceMode || entity < 1 || entity > MAX_PLAYERS ||
-            entity == localSlot) {
+        if (!ciEvidenceMode || entity == localSlot) {
             return;
         }
 
