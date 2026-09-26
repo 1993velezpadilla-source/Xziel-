@@ -49,6 +49,14 @@ function isGamePacket(bytes) {
     bytes[3] === GAME_MAGIC[3];
 }
 
+function isVoicePacket(bytes) {
+  return bytes.length > 24 &&
+    bytes[0] === 0x58 && // X
+    bytes[1] === 0x56 && // V
+    bytes[2] === 0x43 && // C
+    bytes[3] === 0x31;   // 1
+}
+
 async function initRoom(env, code, options = {}) {
   const id = env.GAME_ROOMS.idFromName(code);
   const stub = env.GAME_ROOMS.get(id);
@@ -414,6 +422,16 @@ export class GameRoom extends DurableObject {
           }, null);
         }
       }
+    } else {
+      try {
+        server.send(JSON.stringify({
+          type: "voice_ready",
+          roomCode: expectedRoom,
+          playerId,
+          slot,
+          serverTime: Date.now(),
+        }));
+      } catch {}
     }
 
     return new Response(null, { status: 101, webSocket: client });
@@ -452,8 +470,15 @@ export class GameRoom extends DurableObject {
     if (!(message instanceof ArrayBuffer)) return;
 
     if (sender.kind === "voice") {
-      if (message.byteLength > MAX_VOICE_PACKET) return;
-      this.broadcastBinary(message, ws, "voice");
+      const bytes = new Uint8Array(message);
+      if (bytes.length > MAX_VOICE_PACKET || !isVoicePacket(bytes)) return;
+
+      // Never trust the player slot carried by the client microphone packet.
+      // Bind voice identity to the already-authenticated room WebSocket slot.
+      const forwarded = new Uint8Array(bytes.length);
+      forwarded.set(bytes);
+      forwarded[4] = sender.slot;
+      this.broadcastBinary(forwarded.buffer, ws, "voice");
       return;
     }
 
