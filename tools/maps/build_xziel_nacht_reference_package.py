@@ -358,59 +358,6 @@ def main() -> int:
                 "replicationPolicy": "server_authoritative",
             })
         elif "WonderFizz" in cls:
-                "bo3WeaponId": slot.get("bo3_weapon_id") or bo3_ids.get(marker),
-                "pavlovWeaponId": pavlov_id,
-                "price": slot["price"],
-                "chalkAsset": chalk_asset,
-                "interactionRadiusCm": radius,
-                "reconstructed": reconstructed,
-                "functionalActor": functional_actor,
-                "placementSource": placement_source,
-                "placementConfidence": slot.get("placement_confidence"),
-                "yawCandidatesUE": slot.get("yaw_candidates"),
-            },
-            "replicationPolicy": "server_authoritative",
-        })
-
-    # ------------------------------------------------------------------
-    # Doors and utility actors.
-    # ------------------------------------------------------------------
-    doors: list[dict[str, Any]] = []
-    utility_entities: list[dict[str, Any]] = []
-    player_spawns: list[dict[str, Any]] = []
-    for ai in actor_indices:
-        cls = actor_class(ai)
-        actor = exports[ai - 1]
-        p = prop_map(actor)
-        if "/BuyableDoor/" in cls or "/BuyableDoor_Child/" in cls:
-            doors.append({
-                "id": id_for("door", actor.get("ObjectName"), ai),
-                "name": actor.get("ObjectName"),
-                "type": "buyable_door",
-                "transform": actor_transform(ai),
-                "source": "pavlov_port_spatial_reference",
-                "enabledProfiles": ["bo3_chronicles", "pavlov_extended"],
-                "properties": {
-                    "price": scalar(actor, "Price"),
-                    "zombieSpawnerFlags": int_array(actor, "ZombieSpawnerFlags"),
-                    "moveToOpenUE": clean(struct_value(p.get("MoveToOpen"))),
-                    "rotateToOpenUE": clean(struct_value(p.get("RotateToOpen"))),
-                    "canonicalZoneEdgePending": True,
-                },
-                "replicationPolicy": "server_authoritative",
-            })
-        elif "MysteryBoxLocation" in cls:
-            utility_entities.append({
-                "id": id_for("mystery_box", actor.get("ObjectName"), ai),
-                "name": actor.get("ObjectName"),
-                "type": "mystery_box_anchor",
-                "transform": actor_transform(ai),
-                "source": "pavlov_port_spatial_reference",
-                "enabledProfiles": ["bo3_chronicles", "pavlov_extended"],
-                "properties": {"alwaysSpawnHereFirst": bool(scalar(actor, "AlwaySpawnHereFirst"))},
-                "replicationPolicy": "server_authoritative",
-            })
-        elif "WonderFizz" in cls:
             utility_entities.append({
                 "id": id_for("wunderfizz", actor.get("ObjectName"), ai),
                 "name": actor.get("ObjectName"),
