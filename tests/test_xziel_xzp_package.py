@@ -114,7 +114,10 @@ with tempfile.TemporaryDirectory(prefix="xziel-xzp-test-") as td:
     try:
         compiler.compile_package(bad_descriptor, td / "bad.xzp")
     except SystemExit as exc:
-        descriptor_failed = "entryWorld not found" in str(exc)
+        descriptor_failed = (
+            "entryWorld not found" in str(exc)
+            or "entryWorld must equal maps/<mapId>.bsp" in str(exc)
+        )
     assert descriptor_failed, "missing entryWorld unexpectedly packaged"
 
     # Rebuild a maliciously modified package with the original manifest but one
