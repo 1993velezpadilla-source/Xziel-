@@ -170,7 +170,9 @@
       "deathMachineIdentityStatus": "cataloged",
       "deathMachineStateTimer": "logic_ready",
       "deathMachineInteractionRestrictions": "partial",
-      "deathMachinePickupHook": "pending"
+      "deathMachinePickupHook": "pending",
+      "deathMachineDamageHook": "logic_ready_dormant",
+      "deathMachineDamageFormula": "verified_source_exact"
     },
     "pack_a_punch_weapon_variants": {
       "state": "pending"
@@ -1329,7 +1331,7 @@
       "lanes": {
         "identity": "ready",
         "source_stats": "pending",
-        "behavior_spec": "cataloged",
+        "behavior_spec": "ready",
         "native_gameplay": "logic_only",
         "wall_buy": "not_applicable",
         "mystery_box": "not_applicable",
