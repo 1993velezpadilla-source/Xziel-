@@ -173,10 +173,40 @@ def main() -> int:
         "PunchAPack",
         "Pavlov_Spawn",
         "GameLogic",
+        "MachineGumball",
     )
     gameplay = [
         row for row in actor_rows
         if any(needle.lower() in row["class"].lower() for needle in gameplay_needles)
+    ]
+
+    environment_needles = (
+        "/PointLight",
+        "/SpotLight",
+        "/DirectionalLight",
+        "/SkyLight",
+        "/ExponentialHeightFog",
+        "/SphereReflectionCapture",
+        "/Emitter",
+        "FlickerLight",
+        "Flickerfire",
+        "BP_Sky_Sphere",
+    )
+    environment = [
+        row for row in actor_rows
+        if any(needle.lower() in row["class"].lower() for needle in environment_needles)
+    ]
+
+    collision_needles = (
+        "PlayerBlocker",
+        "/BlockingVolume",
+        "/NavMeshBoundsVolume",
+        "/RecastNavMesh",
+        "/PrecomputedVisibilityVolume",
+    )
+    collision = [
+        row for row in actor_rows
+        if any(needle.lower() in row["class"].lower() for needle in collision_needles)
     ]
 
     unique_meshes = sorted({row["mesh"] for row in mesh_rows if row["mesh"]})
@@ -378,6 +408,8 @@ def main() -> int:
                 1 for r in bo3_purchase_slots if r["needs_geometry_resolution"]
             ),
             "gameplay_actor_count": len(gameplay),
+            "environment_actor_count": len(environment),
+            "collision_actor_count": len(collision),
             "validation_error_count": len(validation_errors),
         },
         "bo3_reference_purchase_markers": bo3_purchase_markers,
@@ -385,6 +417,8 @@ def main() -> int:
         "pavlov_functional_wallbuy_actors": functional_wallbuys,
         "validation_errors": validation_errors,
         "gameplay_actors": gameplay,
+        "environment_actors": environment,
+        "collision_actors": collision,
         "map_files_structural": map_file_structural_rows,
         "map_files_decals": map_file_decal_rows,
         "static_mesh_instances": mesh_rows,
