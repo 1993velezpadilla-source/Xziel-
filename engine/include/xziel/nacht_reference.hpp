@@ -1,5 +1,6 @@
 #pragma once
 
+#include "xziel/door_system.hpp"
 #include "xziel/horde_director.hpp"
 #include "xziel/purchase_system.hpp"
 
@@ -38,6 +39,7 @@ struct NachtZombieSpawn {
 struct NachtReferenceProfile {
     std::array<NachtZombieSpawn, 21> zombieSpawns{};
     std::array<PurchaseDefinition, 9> purchases{};
+    std::array<DoorDefinition, 3> doors{};
 };
 
 [[nodiscard]] const NachtReferenceProfile&
