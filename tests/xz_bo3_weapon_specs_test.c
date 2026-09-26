@@ -41,18 +41,23 @@ int main(void)
     assert(rk5 && rk5->burst_size == 3u);
     assert(rk5->cyclic_rpm == 909.0f && rk5->overall_rpm == 775.0f);
     assert(rk5->magazine == 15u && rk5->reserve == 120u);
+    assert(rk5->head_multiplier == 2.0f);
 
     assert(pharo && pharo->burst_size == 4u);
     assert(pharo->cyclic_rpm == 909.0f && pharo->overall_rpm == 659.0f);
+    assert(pharo->head_multiplier == 4.0f);
 
     assert(argus && argus->projectiles_per_shot == 1u);
     assert(argus->damage_max == 800.0f && argus->damage_min == 500.0f);
+    assert(argus->head_multiplier == 3.0f);
 
     assert(krm && krm->projectiles_per_shot == 4u);
     assert(krm->damage_max == 225.0f && krm->damage_min == 15.0f);
+    assert(krm->head_multiplier == 2.0f);
 
     assert(locus && locus->wall_cost == 5000u);
     assert(locus->wall_refill_cost == 2500u);
+    assert(locus->head_multiplier == 10.0f);
 
     assert(locus->damage_falloff_verified == 1);
     assert(locus->native_enablement_allowed == 0);

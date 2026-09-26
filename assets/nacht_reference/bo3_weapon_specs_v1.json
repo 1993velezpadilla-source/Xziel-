@@ -80,7 +80,8 @@
         "model": "single_slug_range",
         "max": 800,
         "min": 500,
-        "projectilesPerShot": 1
+        "projectilesPerShot": 1,
+        "headMultiplier": 3
       },
       "ammo": {
         "magazine": 10,
@@ -146,7 +147,8 @@
         "model": "pellet_range",
         "max": 225,
         "min": 15,
-        "projectilesPerShot": 4
+        "projectilesPerShot": 4,
+        "headMultiplier": 2
       },
       "ammo": {
         "magazine": 8,
@@ -260,7 +262,8 @@
       },
       "damage": {
         "model": "hitscan_flat",
-        "base": 500
+        "base": 500,
+        "headMultiplier": 10
       },
       "ammo": {
         "magazine": 10,
@@ -307,7 +310,8 @@
       "damage": {
         "model": "hitscan_range",
         "max": 80,
-        "min": 60
+        "min": 60,
+        "headMultiplier": 4
       },
       "ammo": {
         "magazine": 40,
@@ -409,7 +413,8 @@
       "damage": {
         "model": "hitscan_range",
         "max": 100,
-        "min": 25
+        "min": 25,
+        "headMultiplier": 2
       },
       "ammo": {
         "magazine": 15,

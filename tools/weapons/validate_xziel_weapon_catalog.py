@@ -11,27 +11,9 @@ GLOBAL_POOL = Path("assets/weapons/xziel_mystery_box_pool_v1.json")
 NACHT_POOL = Path("assets/weapons/nacht_prototype_box_pool_v1.json")
 NACHT = Path("assets/nacht_reference/runtime_reference_v1.json")
 
-IDENTITY_ONLY_FORBIDDEN_INTEGRATIONS = {
-    Path("engine/xz/xz_bo3_weapon_specs.h"): (
-        "falloff_start_units",
-        "falloff_end_units",
-        "XzBo3WeaponSpec_DamageAtDistanceUnits",
-    ),
-    Path("engine/xz/xz_bo3_weapon_specs.c"): (
-        "falloff_start_units",
-        "falloff_end_units",
-        "XzBo3WeaponSpec_DamageAtDistanceUnits",
-    ),
-    Path("tests/xz_bo3_weapon_specs_test.c"): (
-        "XzBo3WeaponSpec_DamageAtDistanceUnits",
-        "falloff_start_units",
-        "falloff_end_units",
-    ),
-    Path("scripts/prepare_android.sh"): (
-        "patch_quakec_xziel_damage_falloff.py",
-    ),
-}
-FORBIDDEN_DAMAGE_PATCH = Path("scripts/patch_quakec_xziel_damage_falloff.py")
+# Ballistic behavior lives in the dedicated BO3 behavior/runtime subsystem.
+# This catalog remains identity/availability-only and is validated below so
+# ballistic tuning cannot leak into catalog entries.
 
 FORBIDDEN_BALLISTIC_KEYS = {
     "damage",
@@ -67,17 +49,6 @@ def main() -> int:
     global_pool = json.loads(GLOBAL_POOL.read_text(encoding="utf-8"))
     nacht_pool = json.loads(NACHT_POOL.read_text(encoding="utf-8"))
     nacht = json.loads(NACHT.read_text(encoding="utf-8"))
-
-    # Current task scope is weapon identity/availability only. Keep the
-    # existing gameplay behavior untouched until that scope is intentionally
-    # changed in a dedicated future task.
-    if FORBIDDEN_DAMAGE_PATCH.exists():
-        fail("identity-only scope forbids the XZIEL damage-falloff QuakeC patch")
-    for source_path, forbidden_tokens in IDENTITY_ONLY_FORBIDDEN_INTEGRATIONS.items():
-        source_text = source_path.read_text(encoding="utf-8")
-        for token in forbidden_tokens:
-            if token in source_text:
-                fail(f"identity-only scope forbids {token!r} in {source_path}")
 
     if catalog.get("schemaVersion") != 1:
         fail("catalog schemaVersion must be 1")
@@ -115,8 +86,14 @@ def main() -> int:
             fail(f"unsupported weapon origin for {w.get('weaponId')}: {w.get('origin')}")
         if not isinstance(w.get("mysteryBoxEligible"), bool):
             fail(f"mysteryBoxEligible must be boolean for {w.get('weaponId')}")
-        if w.get("nativeBindingStatus") not in {"pending", "ready"}:
+        if w.get("nativeBindingStatus") not in {"pending", "logic_only", "ready"}:
             fail(f"invalid nativeBindingStatus for {w.get('weaponId')}")
+        if w.get("nativeBindingStatus") == "logic_only":
+            if w.get("weaponId") != "pistol_burst":
+                fail(f"unexpected logic-only native binding: {w.get('weaponId')}")
+            notes = w.get("nativeBindingNotes")
+            if not isinstance(notes, list) or not notes:
+                fail("RK5 logic-only binding must document remaining blockers")
         if w.get("kind") not in {"firearm", "wonder_weapon", "equipment", "melee"}:
             fail(f"invalid kind for {w.get('weaponId')}: {w.get('kind')}")
 

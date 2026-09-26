@@ -53,6 +53,7 @@ python3 "$ROOT/scripts/patch_quakec_mobile_v022.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_mobile_v024.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_xziel_burst_timing.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_xziel_damage_falloff.py" "$DEPS/quakec"
+python3 "$ROOT/scripts/patch_quakec_xziel_rk5_logic.py" "$DEPS/quakec"
 chmod +x "$DEPS/quakec/bin/fteqcc-cli-lin" "$DEPS/quakec/tools/qc-compiler-gnu.sh"
 (
     cd "$DEPS/quakec"
