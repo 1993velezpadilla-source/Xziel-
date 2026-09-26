@@ -173,6 +173,7 @@ public class NZPActivity extends SDLActivity {
                 return new String[] {
                     "-basedir", dataRoot.getAbsolutePath(),
                     "-game", importedMap.gameDirectoryName,
+                    "-xzielstrictassets",
                     "+map", ciMap,
                     "+fog", "96", "768", "16", "20", "24",
                     "++attack",
@@ -186,6 +187,7 @@ public class NZPActivity extends SDLActivity {
             return new String[] {
                 "-basedir", dataRoot.getAbsolutePath(),
                 "-game", importedMap.gameDirectoryName,
+                "-xzielstrictassets",
                 "+map", ciMap
             };
         }
