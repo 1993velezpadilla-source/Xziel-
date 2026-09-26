@@ -31,7 +31,9 @@ with tempfile.TemporaryDirectory(prefix="xziel-xzp-test-") as td:
     (src / "models").mkdir(parents=True)
     (src / "textures").mkdir()
     (src / "sound").mkdir()
+    (src / "maps").mkdir()
 
+    (src / "maps/test_map.bsp").write_bytes(b"BSP-V1")
     (src / "models/weapon.mdl").write_bytes(b"MODEL-V1")
     (src / "textures/weapon.png").write_bytes(b"TEXTURE-V1")
     (src / "sound/fire.wav").write_bytes(b"AUDIO-V1")
@@ -39,6 +41,21 @@ with tempfile.TemporaryDirectory(prefix="xziel-xzp-test-") as td:
         'model "models/weapon.mdl"\n'
         'texture "textures/weapon.png"\n'
         'sound "sound/fire.wav"\n',
+        encoding="utf-8",
+    )
+    (src / "xziel.map.json").write_text(
+        """{
+  "schemaVersion": 1,
+  "format": "xziel_map_descriptor_v1",
+  "mapId": "test_map",
+  "displayName": "Test Map",
+  "entryWorld": "maps/test_map.bsp",
+  "gameMode": "round_based_zombies",
+  "maxPlayers": 4,
+  "contentContract": "xziel_map_content_contract_v1",
+  "serverAuthoritative": true
+}
+""",
         encoding="utf-8",
     )
 
@@ -51,7 +68,9 @@ with tempfile.TemporaryDirectory(prefix="xziel-xzp-test-") as td:
     assert sha(a) == sha(b), "deterministic package bytes drift"
 
     va = verifier.verify(a)
-    assert va["summary"]["fileCount"] == 4
+    assert va["summary"]["fileCount"] == 6
+    assert va["map"]["mapId"] == "test_map"
+    assert va["map"]["entryWorld"] == "maps/test_map.bsp"
     assert va["summary"]["totalBytes"] == sum(p.stat().st_size for p in src.rglob("*") if p.is_file())
 
     source_zip = td / "source.zip"
@@ -66,6 +85,37 @@ with tempfile.TemporaryDirectory(prefix="xziel-xzp-test-") as td:
     } == {
         row["path"]: row["sha256"] for row in mz["files"]
     }
+
+
+    # Descriptor must not be allowed to point at a missing world.
+    bad_descriptor = td / "bad_descriptor"
+    bad_descriptor.mkdir()
+    for p in src.rglob("*"):
+        if p.is_file():
+            dst = bad_descriptor / p.relative_to(src)
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            dst.write_bytes(p.read_bytes())
+    (bad_descriptor / "xziel.map.json").write_text(
+        """{
+  "schemaVersion": 1,
+  "format": "xziel_map_descriptor_v1",
+  "mapId": "broken_map",
+  "displayName": "Broken Map",
+  "entryWorld": "maps/not_here.bsp",
+  "gameMode": "round_based_zombies",
+  "maxPlayers": 4,
+  "contentContract": "xziel_map_content_contract_v1",
+  "serverAuthoritative": true
+}
+""",
+        encoding="utf-8",
+    )
+    descriptor_failed = False
+    try:
+        compiler.compile_package(bad_descriptor, td / "bad.xzp")
+    except SystemExit as exc:
+        descriptor_failed = "entryWorld not found" in str(exc)
+    assert descriptor_failed, "missing entryWorld unexpectedly packaged"
 
     # Rebuild a maliciously modified package with the original manifest but one
     # changed payload. Verification must fail on SHA-256 mismatch.
