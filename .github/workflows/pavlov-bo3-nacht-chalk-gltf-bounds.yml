@@ -1,0 +1,75 @@
+name: Pavlov BO3 Nacht Chalk GLTF Bounds
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - experiment/bo3-nacht-standalone-audit
+    paths:
+      - ".github/workflows/pavlov-bo3-nacht-chalk-gltf-bounds.yml"
+      - "tools/maps/extract_gltf_bounds.py"
+
+jobs:
+  bounds:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download and unpack Pavlov Nacht
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libsdl2-dev zlib1g-dev libpng-dev build-essential perl git p7zip-full
+          mkdir -p "$RUNNER_TEMP/steamcmd" "$RUNNER_TEMP/repak"
+          curl -fL --retry 6 --retry-delay 2 --retry-all-errors https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz -o "$RUNNER_TEMP/steamcmd.tgz"
+          tar -xzf "$RUNNER_TEMP/steamcmd.tgz" -C "$RUNNER_TEMP/steamcmd"
+          "$RUNNER_TEMP/steamcmd/steamcmd.sh" +quit || true
+          set +e
+          "$RUNNER_TEMP/steamcmd/steamcmd.sh" +login anonymous +workshop_download_item 555160 2755515831 validate +quit
+          set -e
+          ROOT=$(find "$HOME" "$RUNNER_TEMP" -type d -path '*/steamapps/workshop/content/555160/2755515831' -print -quit 2>/dev/null)
+          test -n "$ROOT"
+          PAK="$ROOT/WindowsNoEditor.pak"; test -f "$PAK"
+          curl -fL https://github.com/trumank/repak/releases/download/v0.2.3/repak_cli-x86_64-unknown-linux-gnu.tar.xz -o "$RUNNER_TEMP/repak.tar.xz"
+          tar -xJf "$RUNNER_TEMP/repak.tar.xz" -C "$RUNNER_TEMP/repak"
+          REPAK=$(find "$RUNNER_TEMP/repak" -type f -name 'repak*' -perm -111 | head -1)
+          mkdir -p "$RUNNER_TEMP/unpacked"
+          "$REPAK" unpack "$PAK" -o "$RUNNER_TEMP/unpacked"
+          echo "UNPACKED=$RUNNER_TEMP/unpacked" >> "$GITHUB_ENV"
+
+      - name: Build UE Viewer UModel
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/gildor2/UEViewer.git "$RUNNER_TEMP/UEViewer"
+          cd "$RUNNER_TEMP/UEViewer"
+          ./build.sh
+          UMODEL=$(realpath "$(find . -type f -name umodel -perm -111 | head -1)")
+          test -n "$UMODEL"
+          echo "UMODEL=$UMODEL" >> "$GITHUB_ENV"
+
+      - name: Export nine BO3 Nacht chalk meshes
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/chalk-gltf"
+          mkdir -p "$OUT" audit-out
+          for n in arak argus frag krm kuda locus_decal pharaoh shiva triton; do
+            file=$(find "$UNPACKED/Pavlov/Content/CustomMaps/UGC2755515831/CoD_nacht/MAP_FILES" -type f -name "zm_prototype_part4_t7_zm_chalk_buy_${n}.uasset" -print -quit)
+            test -n "$file"
+            rel=${file#"$UNPACKED/"}
+            "$UMODEL" -export -gltf -game=ue4.21 -path="$UNPACKED" -out="$OUT" "$rel"
+          done
+          find "$OUT" -type f -name '*.gltf' -print | sort
+
+      - name: Compute baked world-space bounds
+        run: |
+          set -euo pipefail
+          python3 tools/maps/extract_gltf_bounds.py             "$RUNNER_TEMP/chalk-gltf"             audit-out/chalk-gltf-bounds.json
+
+      - name: Upload bounds metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: pavlov-bo3-nacht-chalk-gltf-bounds
+          path: audit-out/chalk-gltf-bounds.json
+          if-no-files-found: error
+          retention-days: 7
