@@ -75,3 +75,24 @@ Use:
 against an UAssetGUI JSON export of `Nacht_de_Untoten.umap`.
 
 It resolves Unreal import/export object references and composes component transforms using the UE4 `FRotator::Quaternion()` convention.
+
+
+## MAP_FILES geometry export — verified
+
+The 120 `MAP_FILES/zm_prototype_part*` static meshes were exported successfully with CUE4Parse-Conversion as glTF/GLB.
+
+Verified CI result:
+- queued static meshes: **120**
+- successful GLBs recovered: **120 / 120**
+- total vertices: **106,095**
+- total triangles: **122,926**
+- mesh-space bounds minimum: `(-501.65, -725.17, -147.93)`
+- mesh-space bounds maximum: `(2393.95, 2730.50, 565.14)`
+- span: approximately **28.96 m × 34.56 m × 7.13 m** at UE centimeter units
+
+This confirms that the `zm_prototype_part*` packages contain actual recoverable world geometry, not merely material names or empty placeholder assets.
+
+The geometry exporter does not commit the recovered third-party mesh payloads. CI preserves only audit reports and generated diagnostic previews.
+
+Reproducible workflow:
+`.github/workflows/pavlov-bo3-nacht-mapfiles-gltf-audit.yml`
