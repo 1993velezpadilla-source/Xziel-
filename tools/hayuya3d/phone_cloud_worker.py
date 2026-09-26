@@ -507,8 +507,6 @@ if not multi and TRELLIS2_ENABLED and TEXTURE_QUALITY in {"high","ultra"}:
                     recovered_candidate=Path(recovered_meta["path"])
                     recovered_mesh_report=inspect_mesh_gate(
                         recovered_candidate,
-                        min_vertices=1500,
-                        min_faces=2500,
                         require_normals=False,
                     )
                     recovered_texture_report=inspect_texture_gate(
