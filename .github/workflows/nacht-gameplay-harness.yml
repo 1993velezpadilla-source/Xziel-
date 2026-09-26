@@ -268,6 +268,13 @@ jobs:
           grep -F 'XZIEL_GobbleGumResolveCratePowerWeapon' build/deps/quakec/source/server/utilities/weapon_utilities.qc
           grep -F 'XZIEL_GOBBLEGUM_WALL_POWER_HOOK' build/deps/quakec/source/server/entities/wall_weapon.qc
           grep -F 'XZIEL_GOBBLEGUM_CRATE_POWER_HOOK' build/deps/quakec/source/server/entities/mystery_box.qc
+          grep -F 'XZIEL_GOBBLEGUM_EPHEMERAL_RUNTIME_BEGIN' build/deps/quakec/source/server/utilities/weapon_utilities.qc
+          grep -F 'XZIEL_GobbleGumEphemeralCanActivate' build/deps/quakec/source/server/utilities/weapon_utilities.qc
+          grep -F 'XZIEL_GobbleGumActivateEphemeralEnhancement' build/deps/quakec/source/server/utilities/weapon_utilities.qc
+          grep -F 'XZIEL_GobbleGumEphemeralRestore' build/deps/quakec/source/server/utilities/weapon_utilities.qc
+          grep -F 'XZIEL_GobbleGumEphemeralTick' build/deps/quakec/source/server/utilities/weapon_utilities.qc
+          grep -F 'XZIEL_GOBBLEGUM_EPHEMERAL_TICK' build/deps/quakec/source/server/weapons/weapon_core.qc
+          grep -F '#define XZIEL_GUM_EPHEMERAL_DURATION_SECONDS 60' build/deps/quakec/source/server/defs/custom.qc
           grep -F 'XZIEL_ZOMBIES_POWERUP_BRIDGE_BEGIN' build/deps/quakec/source/server/entities/powerups.qc
           grep -F 'XZIEL_SpawnCorePowerup' build/deps/quakec/source/server/entities/powerups.qc
           grep -F 'XZIEL_SpawnPackAPunchGrant' build/deps/quakec/source/server/entities/powerups.qc
