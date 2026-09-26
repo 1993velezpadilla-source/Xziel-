@@ -22,12 +22,8 @@ jobs:
           curl -fL --retry 6 --retry-delay 2 --retry-all-errors https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz -o "$RUNNER_TEMP/steamcmd.tgz"
           tar -xzf "$RUNNER_TEMP/steamcmd.tgz" -C "$RUNNER_TEMP/steamcmd"
           "$RUNNER_TEMP/steamcmd/steamcmd.sh" +quit || true
-          curl -fL --retry 5 https://github.com/trumank/repak/releases/download/v0.2.3/repak_cli-x86_64-unknown-linux-gnu.zip -o "$RUNNER_TEMP/repak.zip"
-          python3 - <<'PY'
-          import zipfile, os
-          z=zipfile.ZipFile(os.environ['RUNNER_TEMP']+'/repak.zip')
-          z.extractall(os.environ['RUNNER_TEMP']+'/repak')
-          PY
+          curl -fL --retry 5 https://github.com/trumank/repak/releases/download/v0.2.3/repak_cli-x86_64-unknown-linux-gnu.tar.xz -o "$RUNNER_TEMP/repak.tar.xz"
+          tar -xJf "$RUNNER_TEMP/repak.tar.xz" -C "$RUNNER_TEMP/repak"
           chmod +x "$RUNNER_TEMP/repak/repak"
 
       - name: Download and unpack Pavlov BO3 Nacht
