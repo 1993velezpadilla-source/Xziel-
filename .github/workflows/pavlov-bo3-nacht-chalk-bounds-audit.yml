@@ -1,0 +1,100 @@
+name: Pavlov BO3 Nacht Chalk Bounds Audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - experiment/bo3-nacht-standalone-audit
+    paths:
+      - ".github/workflows/pavlov-bo3-nacht-chalk-bounds-audit.yml"
+
+jobs:
+  audit:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Pavlov Nacht Workshop
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $steam=Join-Path $env:RUNNER_TEMP 'steamcmd'
+          New-Item -ItemType Directory -Force -Path $steam | Out-Null
+          Invoke-WebRequest 'https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip' -OutFile (Join-Path $env:RUNNER_TEMP 'steamcmd.zip')
+          Expand-Archive (Join-Path $env:RUNNER_TEMP 'steamcmd.zip') -DestinationPath $steam -Force
+          & (Join-Path $steam 'steamcmd.exe') +login anonymous +workshop_download_item 555160 2755515831 validate +quit
+          $root=Get-ChildItem $steam,$env:RUNNER_TEMP -Directory -Recurse -ErrorAction SilentlyContinue | Where-Object {$_.FullName -like '*steamapps\workshop\content\555160\2755515831'} | Select-Object -First 1
+          if(-not $root){throw 'payload not found'}
+          $pak=Join-Path $root.FullName 'WindowsNoEditor.pak'
+          if(-not (Test-Path $pak)){throw 'pak missing'}
+          "PAK=$pak" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          exit 0
+
+      - name: Download tools and unpack PAK
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Invoke-WebRequest 'https://github.com/trumank/repak/releases/download/v0.2.3/repak_cli-x86_64-pc-windows-msvc.zip' -OutFile (Join-Path $env:RUNNER_TEMP 'repak.zip')
+          $repakDir=Join-Path $env:RUNNER_TEMP 'repak'
+          Expand-Archive (Join-Path $env:RUNNER_TEMP 'repak.zip') -DestinationPath $repakDir -Force
+          $repak=Get-ChildItem $repakDir -Filter repak.exe -Recurse | Select-Object -First 1
+          Invoke-WebRequest 'https://github.com/atenfyr/UAssetGUI/releases/download/v1.1.0/UAssetGUI.exe' -OutFile (Join-Path $env:RUNNER_TEMP 'UAssetGUI.exe')
+          "UASSETGUI=$env:RUNNER_TEMP\UAssetGUI.exe" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          $out=Join-Path $env:RUNNER_TEMP 'pakextract'
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          & $repak.FullName unpack $env:PAK -o $out
+          if($LASTEXITCODE -ne 0){throw "repak failed $LASTEXITCODE"}
+          "EXTRACTED=$out" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Export nine BO3 Nacht chalk meshes to JSON
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          New-Item -ItemType Directory -Force -Path 'audit-out/chalk-json' | Out-Null
+          $names=@('arak','argus','frag','krm','kuda','locus_decal','pharaoh','shiva','triton')
+          foreach($n in $names){
+            $asset="zm_prototype_part4_t7_zm_chalk_buy_$n"
+            $u=Get-ChildItem $env:EXTRACTED -Recurse -File -Filter "$asset.uasset" | Select-Object -First 1
+            if(-not $u){throw "missing $asset.uasset"}
+            & $env:UASSETGUI tojson $u.FullName "audit-out\chalk-json\$asset.json" VER_UE4_21
+            if($LASTEXITCODE -ne 0){throw "UAssetGUI failed for $asset"}
+          }
+
+      - name: Extract static-mesh bounds metadata
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, pathlib, collections
+          root=pathlib.Path('audit-out/chalk-json')
+          result={}
+          def walk(x,path=''):
+              if isinstance(x,dict):
+                  for k,v in x.items():
+                      p=f'{path}/{k}'
+                      if any(t in k.lower() for t in ('bound','origin','extent','vertex','position')):
+                          yield p,v
+                      yield from walk(v,p)
+              elif isinstance(x,list):
+                  for i,v in enumerate(x): yield from walk(v,f'{path}[{i}]')
+          for p in sorted(root.glob('*.json')):
+              d=json.loads(p.read_text(encoding='utf-8-sig'))
+              hits=[]
+              for path,value in walk(d):
+                  s=json.dumps(value,default=str)
+                  if len(s)>3000: s=s[:3000]+'...'
+                  hits.append({'path':path,'value':s})
+                  if len(hits)>=500: break
+              result[p.stem]={'hits':hits}
+          pathlib.Path('audit-out/chalk-bounds-metadata.json').write_text(json.dumps(result,indent=2),encoding='utf-8')
+          for k,v in result.items():
+              print('\n###',k)
+              for h in v['hits'][:80]: print(h['path'],h['value'][:1000])
+          PY
+
+      - name: Upload compact audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: pavlov-bo3-nacht-chalk-bounds-audit
+          path: audit-out/chalk-bounds-metadata.json
+          retention-days: 7
