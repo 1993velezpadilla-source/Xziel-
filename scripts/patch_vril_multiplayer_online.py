@@ -374,7 +374,7 @@ pause.write_text(text, encoding="utf-8")
 cl_main = source / "cl_main.c"
 text = cl_main.read_text(encoding="utf-8")
 
-cl_include = '#include "quakedef.h"\n'
+cl_include = '#include "nzportable_def.h"\n'
 cl_voice_decl = """#ifdef __ANDROID__
 extern void Xziel_Android_VoiceUpdatePosition(float x, float y, float z);
 #endif
