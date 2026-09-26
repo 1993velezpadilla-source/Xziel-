@@ -25,13 +25,16 @@ jobs:
           Invoke-WebRequest 'https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip' -OutFile (Join-Path $env:RUNNER_TEMP 'steamcmd.zip')
           Expand-Archive (Join-Path $env:RUNNER_TEMP 'steamcmd.zip') -DestinationPath $steam -Force
           & (Join-Path $steam 'steamcmd.exe') +login anonymous +workshop_download_item 311210 3596966808 validate +quit
-          if ($LASTEXITCODE -ne 0) { throw "SteamCMD failed: $LASTEXITCODE" }
+          $steamRc = $LASTEXITCODE
+          Write-Host "SteamCMD exit code: $steamRc"
           $root = Get-ChildItem -Path $steam,$env:RUNNER_TEMP -Directory -Recurse -ErrorAction SilentlyContinue |
             Where-Object { $_.FullName -like '*steamapps\workshop\content\311210\3596966808' } |
             Select-Object -First 1
-          if (-not $root) { throw 'Workshop payload not found' }
+          if (-not $root) { throw "Workshop payload not found; SteamCMD exit code $steamRc" }
+          $ff = Join-Path $root.FullName 'zm_mod.ff'
+          if (-not (Test-Path $ff)) { throw "Workshop folder exists but zm_mod.ff is missing" }
           "WORKSHOP_ROOT=$($root.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          Get-Item (Join-Path $root.FullName 'zm_mod.ff') | Format-List FullName,Length
+          Get-Item $ff | Format-List FullName,Length
 
       - name: Download Atian COD Tools
         shell: pwsh
