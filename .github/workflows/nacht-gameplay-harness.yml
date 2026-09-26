@@ -11,6 +11,7 @@ on:
       - "assets/weapons/**"
       - "tools/weapons/**"
       - "tools/maps/export_nacht_nzp_harness.py"
+      - "tools/maps/export_nacht_xziel_package_status.py"
       - "tools/maps/build_xziel_map_package.py"
       - "tools/maps/validate_xziel_map_content_contract.py"
       - "tests/test_xziel_map_package_builder.py"
@@ -68,6 +69,23 @@ jobs:
         run: |
           set -euo pipefail
           python3 tests/test_xziel_map_package_builder.py
+
+      - name: Validate Nacht universal package status
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/maps/export_nacht_xziel_package_status.py
+          git diff --exit-code -- assets/nacht_reference/xziel_map_package_status_v1.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path("assets/nacht_reference/xziel_map_package_status_v1.json").read_text())
+          assert p["summary"]["requiredFamilyCount"] == 24
+          assert p["summary"]["strictReady"] is False
+          assert p["policy"]["zeroOmission"] is True
+          assert p["policy"]["noSilentFallbacks"] is True
+          print("XZIEL_NACHT_UNIVERSAL_PACKAGE_STATUS_OK", p["summary"])
+          PY
 
       - name: Validate BO3 Nacht weapon behavior specs
         shell: bash
