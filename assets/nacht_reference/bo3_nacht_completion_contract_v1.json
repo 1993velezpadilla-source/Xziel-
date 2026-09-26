@@ -21,7 +21,8 @@
     "bo3WeaponSourceStats": "assets/weapons/bo3_weapon_source_stats_v1.json",
     "bo3PrototypeWeaponTable": "assets/weapons/bo3_zm_prototype_weapons_v1.json",
     "weaponSourceCoverage": "assets/weapons/bo3_weapon_source_coverage_v1.json",
-    "packAPunchCatalog": "assets/weapons/bo3_pack_a_punch_catalog_v1.json"
+    "packAPunchCatalog": "assets/weapons/bo3_pack_a_punch_catalog_v1.json",
+    "disorderlyCombatPool": "assets/nacht_reference/bo3_disorderly_combat_pool_v1.json"
   },
   "baseline": {
     "catalogWeaponCount": 52,
@@ -66,7 +67,9 @@
     "packAPunchDedicatedNativeIdCount": 35,
     "packAPunchReusedCatalogIdCount": 1,
     "packAPunchNativeIdentityResolverPairs": 36,
-    "packAPunchLegacyBridgeFunctions": 3
+    "packAPunchLegacyBridgeFunctions": 3,
+    "disorderlyCombatEligiblePoolCount": 26,
+    "disorderlyCombatExcludedPrototypeCount": 15
   },
   "bo3ChroniclesFeatureReference": {
     "mysteryBox": true,
@@ -156,7 +159,11 @@
       "ephemeralEnhancementStatus": "logic_ready_dormant",
       "disorderlyCombatStatus": "identity_backend_ready_runtime_pending",
       "papTimedEffectLogicReady": 1,
-      "papDependentRuntimeLogicReady": 3
+      "papDependentRuntimeLogicReady": 3,
+      "disorderlyCombatPoolStatus": "verified",
+      "disorderlyCombatEligiblePoolCount": 26,
+      "disorderlyCombatReadyPoolCount": 0,
+      "disorderlyCombatActivationAllowed": false
     },
     "der_wunderfizz_and_perk_randomization": {
       "state": "pending",
