@@ -302,22 +302,24 @@ export class GameRoom extends DurableObject {
       "roomCode", "map", "mode", "targetPlayers", "reservations",
       "worldPhase", "worldRevision",
     ]);
-    const expectedRoom = String(state.roomCode || "");
+    const expectedRoom = String(state.get("roomCode") || "");
     const requestedRoom = String(url.searchParams.get("room") || "");
     if (!expectedRoom || requestedRoom !== expectedRoom) {
       return json({ error: "room_not_found" }, 404);
     }
 
-    const roomMap = sanitizeMap(state.map);
-    const roomMode = state.mode === "public" ? "public" : "private";
+    const roomMap = sanitizeMap(state.get("map"));
+    const roomMode = state.get("mode") === "public" ? "public" : "private";
     const roomMaxPlayers = roomMode === "public"
-      ? sanitizeTargetPlayers(state.targetPlayers)
+      ? sanitizeTargetPlayers(state.get("targetPlayers"))
       : MAX_PLAYERS;
-    const reservations = state.reservations || {};
-    const worldPhase = ["lobby", "preparing", "live"].includes(state.worldPhase)
-      ? state.worldPhase : "lobby";
-    const worldRevision = Number.isFinite(Number(state.worldRevision))
-      ? Number(state.worldRevision) : 0;
+    const reservations = state.get("reservations") || {};
+    const storedWorldPhase = state.get("worldPhase");
+    const worldPhase = ["lobby", "preparing", "live"].includes(storedWorldPhase)
+      ? storedWorldPhase : "lobby";
+    const storedWorldRevision = state.get("worldRevision");
+    const worldRevision = Number.isFinite(Number(storedWorldRevision))
+      ? Number(storedWorldRevision) : 0;
     const kind = url.searchParams.get("kind") === "voice" ? "voice" : "game";
     const playerId = String(
       url.searchParams.get("playerId") || crypto.randomUUID()
@@ -528,8 +530,8 @@ export class GameRoom extends DurableObject {
         const current = await this.ctx.storage.get([
           "map", "worldRevision",
         ]);
-        const authoritativeMap = sanitizeMap(current.map || sender.map);
-        const nextRevision = Number(current.worldRevision || 0) + 1;
+        const authoritativeMap = sanitizeMap(current.get("map") || sender.map);
+        const nextRevision = Number(current.get("worldRevision") || 0) + 1;
 
         await this.ctx.storage.put({
           worldPhase: "preparing",
@@ -545,8 +547,8 @@ export class GameRoom extends DurableObject {
         const current = await this.ctx.storage.get([
           "map", "worldRevision",
         ]);
-        const authoritativeMap = sanitizeMap(current.map || sender.map);
-        const revision = Number(current.worldRevision || 0);
+        const authoritativeMap = sanitizeMap(current.get("map") || sender.map);
+        const revision = Number(current.get("worldRevision") || 0);
 
         await this.ctx.storage.put({ worldPhase: "live" });
 
