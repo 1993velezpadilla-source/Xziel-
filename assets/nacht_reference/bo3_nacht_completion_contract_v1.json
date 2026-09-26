@@ -17,7 +17,8 @@
     "weaponIdRegistry": "assets/weapons/xziel_weapon_id_registry_v1.json",
     "mysteryBoxRuntimePool": "assets/weapons/xziel_mystery_box_runtime_pool_v1.json",
     "runtimePrimitiveCapabilities": "assets/nacht_reference/xziel_zombies_runtime_capabilities_v1.json",
-    "deathMachineSpec": "assets/nacht_reference/bo3_death_machine_spec_v1.json"
+    "deathMachineSpec": "assets/nacht_reference/bo3_death_machine_spec_v1.json",
+    "bo3WeaponSourceStats": "assets/weapons/bo3_weapon_source_stats_v1.json"
   },
   "baseline": {
     "catalogWeaponCount": 52,
@@ -45,7 +46,10 @@
     "xzielPowerupLogicPrimitiveCount": 8,
     "gobbleGumLoadoutSize": 5,
     "gobbleGumMaxRollsPerRound": 3,
-    "specialWeaponBehaviorSpecCount": 1
+    "specialWeaponBehaviorSpecCount": 1,
+    "sourceWeaponFileCount": 36,
+    "zombiesSourceWeaponCount": 26,
+    "multiplayerReferenceOnlyWeaponCount": 10
   },
   "bo3ChroniclesFeatureReference": {
     "mysteryBox": true,
@@ -1337,5 +1341,12 @@
         "regression_test": "pending"
       }
     }
+  },
+  "weaponSourcePolicy": {
+    "fullRawFieldSnapshot": true,
+    "rawFieldsPerMatchedWeapon": 249,
+    "zombiesAuthorityCount": 26,
+    "multiplayerReferenceOnlyCount": 10,
+    "rule": "MP-reference-only rows preserve available source information but do not satisfy Zombies source_stats or native gameplay readiness."
   }
 }
