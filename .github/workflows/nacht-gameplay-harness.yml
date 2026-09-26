@@ -85,6 +85,12 @@ jobs:
           set -euo pipefail
           python3 tools/weapons/validate_bo3_pack_a_punch_catalog.py
 
+      - name: Validate BO3 Disorderly Combat pool
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/maps/validate_bo3_disorderly_combat_pool.py
+
       - name: Validate global XZIEL weapon catalog
         shell: bash
         env:
