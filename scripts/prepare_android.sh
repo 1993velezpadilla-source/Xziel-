@@ -123,6 +123,9 @@ cp "$ROOT/assets/weapons/xziel_weapon_catalog_v1.json" \
 cp "$ROOT/assets/weapons/xziel_mystery_box_pool_v1.json" \
     "$ASSET_WORK/nzp/xziel/weapons/xziel_mystery_box_pool_v1.json"
 
+cp "$ROOT/assets/weapons/nacht_prototype_box_pool_v1.json" \
+    "$ASSET_WORK/nzp/xziel/weapons/nacht_prototype_box_pool_v1.json"
+
 # Optional CI/development map overlay. The normal product build remains
 # unchanged when these variables are unset. Map-specific workflows can inject
 # freshly compiled BSP/NSZ files without committing generated binaries.
