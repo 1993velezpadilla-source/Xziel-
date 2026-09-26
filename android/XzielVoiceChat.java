@@ -60,6 +60,7 @@ public final class XzielVoiceChat {
     private static final int FRAME_BYTES = FRAME_SAMPLES * 2;
     private static final int HEADER_BYTES = 24;
     private static final int FLAG_POSITION_VALID = 1;
+    private static final int FLAG_CI_TONE = 2;
 
     // Quake units. Full voice nearby, smooth falloff, silent beyond max.
     private static final float PROX_FULL_DISTANCE = 220.0f;
@@ -261,6 +262,36 @@ public final class XzielVoiceChat {
         Log.i(TAG, "PLAYER_MUTE slot=" + slot + " muted=" + muted);
     }
 
+    public void sendCiTestTone() {
+        WebSocket socket = voiceSocket;
+        if (socket == null || localSlot < 1) {
+            Log.w(TAG, "CI_TONE_SKIPPED slot=" + localSlot + " socket=false");
+            return;
+        }
+
+        byte[] pcm = new byte[FRAME_BYTES];
+        ByteBuffer samples = ByteBuffer.wrap(pcm).order(ByteOrder.LITTLE_ENDIAN);
+        double phaseBase = localSlot * 0.31;
+        for (int i = 0; i < FRAME_SAMPLES; i++) {
+            double t = (double)i / (double)SAMPLE_RATE;
+            short sample = (short)(Math.sin(
+                2.0 * Math.PI * (420.0 + localSlot * 55.0) * t + phaseBase
+            ) * 9000.0);
+            samples.putShort(sample);
+        }
+
+        int sent = 0;
+        for (int frame = 0; frame < 10; frame++) {
+            if (socket.send(ByteString.of(buildVoicePacket(pcm, FLAG_CI_TONE)))) {
+                sent++;
+            }
+        }
+
+        Log.i(TAG, "CI_TONE_SENT slot=" + localSlot +
+            " frames=" + sent +
+            " pos=" + localX + "," + localY + "," + localZ);
+    }
+
     public void onMicrophonePermissionResult(boolean granted) {
         if (granted && !micMuted.get()) {
             startCaptureIfPermitted();
@@ -379,9 +410,14 @@ public final class XzielVoiceChat {
             );
             icon.setMuted(slot == localSlot ? micMuted.get() : isPlayerMuted(slot));
             if (slot == localSlot) {
+                icon.setContentDescription(micMuted.get()
+                    ? "Unmute microphone" : "Mute microphone");
                 icon.setOnClickListener(v -> toggleMic());
             } else {
                 final int playerSlot = slot;
+                icon.setContentDescription(
+                    (isPlayerMuted(slot) ? "Unmute Player " : "Mute Player ") + slot
+                );
                 icon.setOnClickListener(v -> togglePlayerMute(playerSlot));
             }
             row.addView(icon, new LinearLayout.LayoutParams(dp(36), dp(36)));
@@ -509,7 +545,7 @@ public final class XzielVoiceChat {
 
                 WebSocket socket = voiceSocket;
                 if (socket != null) {
-                    socket.send(ByteString.of(buildVoicePacket(pcm)));
+                    socket.send(ByteString.of(buildVoicePacket(pcm, 0)));
                 }
             }
         }, "XzielVoiceCapture");
@@ -518,7 +554,7 @@ public final class XzielVoiceChat {
         Log.i(TAG, "CAPTURE_STARTED slot=" + localSlot);
     }
 
-    private byte[] buildVoicePacket(byte[] pcm) {
+    private byte[] buildVoicePacket(byte[] pcm, int extraFlags) {
         ByteBuffer packet = ByteBuffer.allocate(HEADER_BYTES + pcm.length)
             .order(ByteOrder.LITTLE_ENDIAN);
         packet.put((byte)'X');
@@ -526,7 +562,8 @@ public final class XzielVoiceChat {
         packet.put((byte)'C');
         packet.put((byte)'1');
         packet.put((byte)localSlot);
-        packet.put((byte)(localPositionValid ? FLAG_POSITION_VALID : 0));
+        int flags = extraFlags | (localPositionValid ? FLAG_POSITION_VALID : 0);
+        packet.put((byte)flags);
         packet.putShort((short)0);
         packet.putInt(sequence.incrementAndGet());
         packet.putFloat(localX);
@@ -555,14 +592,21 @@ public final class XzielVoiceChat {
         if (isPlayerMuted(senderSlot)) return;
 
         float volume = 1.0f;
+        float distance = 0.0f;
         boolean senderPositionValid = (flags & FLAG_POSITION_VALID) != 0;
         if (localPositionValid && senderPositionValid) {
             float dx = senderX - localX;
             float dy = senderY - localY;
             float dz = senderZ - localZ;
-            float distance = (float)Math.sqrt(dx * dx + dy * dy + dz * dz);
+            distance = (float)Math.sqrt(dx * dx + dy * dy + dz * dz);
             volume = proximityGain(distance);
-            if (volume <= 0.001f) return;
+            if (volume <= 0.001f) {
+                if ((flags & FLAG_CI_TONE) != 0) {
+                    Log.i(TAG, "CI_VOICE_OUT_OF_RANGE receiver=" + localSlot +
+                        " sender=" + senderSlot + " distance=" + distance);
+                }
+                return;
+            }
         }
 
         byte[] pcm = new byte[packet.remaining()];
@@ -575,8 +619,33 @@ public final class XzielVoiceChat {
 
         try {
             track.setVolume(volume);
-            track.write(pcm, 0, pcm.length, AudioTrack.WRITE_NON_BLOCKING);
-        } catch (Exception ignored) {}
+            int written = track.write(
+                pcm, 0, pcm.length, AudioTrack.WRITE_NON_BLOCKING);
+
+            if ((flags & FLAG_CI_TONE) != 0) {
+                ByteBuffer sampleBuffer = ByteBuffer.wrap(pcm)
+                    .order(ByteOrder.LITTLE_ENDIAN);
+                double energy = 0.0;
+                int count = 0;
+                while (sampleBuffer.remaining() >= 2) {
+                    short sample = sampleBuffer.getShort();
+                    energy += (double)sample * (double)sample;
+                    count++;
+                }
+                double rms = count > 0 ? Math.sqrt(energy / count) : 0.0;
+                Log.i(TAG, "CI_VOICE_PLAY receiver=" + localSlot +
+                    " sender=" + senderSlot +
+                    " bytes=" + written +
+                    " distance=" + distance +
+                    " gain=" + volume +
+                    " rms=" + rms);
+            }
+        } catch (Exception e) {
+            if ((flags & FLAG_CI_TONE) != 0) {
+                Log.w(TAG, "CI_VOICE_PLAY_FAILED receiver=" + localSlot +
+                    " sender=" + senderSlot, e);
+            }
+        }
     }
 
     private float proximityGain(float distance) {
