@@ -1,6 +1,8 @@
 #ifndef XZ_ANDROID_RUNTIME_H
 #define XZ_ANDROID_RUNTIME_H
 
+#include "xz_nacht_reference.h"
+
 #include <stddef.h>
 
 #ifdef __cplusplus
@@ -20,6 +22,10 @@ typedef enum {
 
 void XzAndroidRuntime_BeginFrame(double now_seconds);
 void XzAndroidRuntime_NotifyWorldTransition(void);
+void XzAndroidRuntime_NotifyWorldTransitionNamed(
+    const char *world_model_name);
+int XzAndroidRuntime_ActiveMapIsNachtBo3(void);
+const XzNachtGameplayState *XzAndroidRuntime_NachtState(void);
 int XzAndroidRuntime_ShouldSuppressLegacyWorldDraw(
     XzLegacyWorldDrawKind kind);
 int XzAndroidRuntime_CompositeVisibleWorld(void);
