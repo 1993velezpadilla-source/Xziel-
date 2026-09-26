@@ -22,6 +22,11 @@ function sanitizeMap(value) {
   return String(value || DEFAULT_MAP).toLowerCase() === "ndu" ? "ndu" : DEFAULT_MAP;
 }
 
+function sanitizeTargetPlayers(value) {
+  const n = Number(value);
+  return n === 2 || n === 3 || n === 4 ? n : MAX_PLAYERS;
+}
+
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -53,6 +58,7 @@ async function initRoom(env, code, options = {}) {
       code,
       map: sanitizeMap(options.map),
       mode: options.mode === "public" ? "public" : "private",
+      targetPlayers: sanitizeTargetPlayers(options.targetPlayers),
       reservations: options.reservations || {},
     }),
   }));
@@ -98,11 +104,17 @@ export default {
     if (url.pathname === "/matchmake" && upgrade(request)) {
       const rawQueue = String(url.searchParams.get("queue") || "public-v1");
       const queue = rawQueue.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 64) || "public-v1";
-      const id = env.MATCHMAKER.idFromName("queue-" + queue);
+      const map = sanitizeMap(url.searchParams.get("map"));
+      const targetPlayers = sanitizeTargetPlayers(url.searchParams.get("players"));
+      const id = env.MATCHMAKER.idFromName(
+        "queue-" + queue + "-" + map + "-" + targetPlayers
+      );
       const stub = env.MATCHMAKER.get(id);
       const target = new URL(request.url);
       target.pathname = "/socket";
       target.searchParams.set("queue", queue);
+      target.searchParams.set("map", map);
+      target.searchParams.set("players", String(targetPlayers));
       return stub.fetch(new Request(target, request));
     }
 
@@ -139,6 +151,7 @@ export class Matchmaker extends DurableObject {
       url.searchParams.get("playerId") || crypto.randomUUID()
     ).slice(0, 64);
     const map = sanitizeMap(url.searchParams.get("map"));
+    const targetPlayers = sanitizeTargetPlayers(url.searchParams.get("players"));
 
     // One active queue socket per player ID.
     for (const socket of this.ctx.getWebSockets()) {
@@ -154,6 +167,7 @@ export class Matchmaker extends DurableObject {
     server.serializeAttachment({
       playerId,
       map,
+      targetPlayers,
       joinedAt: Date.now(),
     });
 
@@ -161,31 +175,36 @@ export class Matchmaker extends DurableObject {
       server.send(JSON.stringify({
         type: "searching",
         map,
-        needed: MAX_PLAYERS,
-        queued: this.queueForMap(map).length,
+        targetPlayers,
+        needed: targetPlayers,
+        queued: this.queueForCriteria(map, targetPlayers).length,
       }));
     } catch {}
 
-    await this.tryCreateMatch(map);
-    this.broadcastQueueStatus(map);
+    await this.tryCreateMatch(map, targetPlayers);
+    this.broadcastQueueStatus(map, targetPlayers);
     return new Response(null, { status: 101, webSocket: client });
   }
 
-  queueForMap(map) {
+  queueForCriteria(map, targetPlayers) {
     const out = [];
     for (const socket of this.ctx.getWebSockets()) {
       const a = socket.deserializeAttachment() || {};
-      if (a.map === map && a.playerId) out.push({ socket, ...a });
+      if (a.map === map &&
+          a.targetPlayers === targetPlayers &&
+          a.playerId) {
+        out.push({ socket, ...a });
+      }
     }
     out.sort((a, b) => a.joinedAt - b.joinedAt);
     return out;
   }
 
-  async tryCreateMatch(map) {
-    const queue = this.queueForMap(map);
-    if (queue.length < MAX_PLAYERS) return;
+  async tryCreateMatch(map, targetPlayers) {
+    const queue = this.queueForCriteria(map, targetPlayers);
+    if (queue.length < targetPlayers) return;
 
-    const group = queue.slice(0, MAX_PLAYERS);
+    const group = queue.slice(0, targetPlayers);
     const code = roomCode();
     const reservations = {};
     group.forEach((entry, index) => {
@@ -195,6 +214,7 @@ export class Matchmaker extends DurableObject {
     await initRoom(this.env, code, {
       map,
       mode: "public",
+      targetPlayers,
       reservations,
     });
 
@@ -205,7 +225,8 @@ export class Matchmaker extends DurableObject {
           roomCode: code,
           map,
           mode: "public",
-          maxPlayers: MAX_PLAYERS,
+          targetPlayers,
+          maxPlayers: targetPlayers,
         }));
         entry.socket.close(1000, "matched");
       } catch {}
@@ -216,20 +237,24 @@ export class Matchmaker extends DurableObject {
 
   webSocketClose(ws) {
     const a = ws.deserializeAttachment() || {};
-    if (a.map) this.broadcastQueueStatus(a.map);
+    if (a.map) this.broadcastQueueStatus(
+      a.map,
+      sanitizeTargetPlayers(a.targetPlayers)
+    );
   }
 
   webSocketError() {}
 
-  broadcastQueueStatus(map) {
-    const queue = this.queueForMap(map);
+  broadcastQueueStatus(map, targetPlayers) {
+    const queue = this.queueForCriteria(map, targetPlayers);
     for (const entry of queue) {
       try {
         entry.socket.send(JSON.stringify({
           type: "searching",
           map,
+          targetPlayers,
           queued: queue.length,
-          needed: MAX_PLAYERS,
+          needed: targetPlayers,
         }));
       } catch {}
     }
@@ -251,6 +276,7 @@ export class GameRoom extends DurableObject {
         roomCode: String(body.code || ""),
         map: sanitizeMap(body.map),
         mode: body.mode === "public" ? "public" : "private",
+        targetPlayers: sanitizeTargetPlayers(body.targetPlayers),
         reservations: body.reservations || {},
       });
       return json({ ok: true });
@@ -261,7 +287,7 @@ export class GameRoom extends DurableObject {
     }
 
     const state = await this.ctx.storage.get([
-      "roomCode", "map", "mode", "reservations",
+      "roomCode", "map", "mode", "targetPlayers", "reservations",
     ]);
     const expectedRoom = String(state.roomCode || "");
     const requestedRoom = String(url.searchParams.get("room") || "");
@@ -271,6 +297,9 @@ export class GameRoom extends DurableObject {
 
     const roomMap = sanitizeMap(state.map);
     const roomMode = state.mode === "public" ? "public" : "private";
+    const roomMaxPlayers = roomMode === "public"
+      ? sanitizeTargetPlayers(state.targetPlayers)
+      : MAX_PLAYERS;
     const reservations = state.reservations || {};
     const kind = url.searchParams.get("kind") === "voice" ? "voice" : "game";
     const playerId = String(
@@ -294,15 +323,15 @@ export class GameRoom extends DurableObject {
       if (existing) {
         slot = existing.slot;
       } else {
-        if (gameByPlayer.size >= MAX_PLAYERS) {
-          return json({ error: "room_full", maxPlayers: MAX_PLAYERS }, 409);
+        if (gameByPlayer.size >= roomMaxPlayers) {
+          return json({ error: "room_full", maxPlayers: roomMaxPlayers }, 409);
         }
 
         const reserved = Number(reservations[playerId] || 0);
-        if (reserved >= 1 && reserved <= MAX_PLAYERS && !usedSlots.has(reserved)) {
+        if (reserved >= 1 && reserved <= roomMaxPlayers && !usedSlots.has(reserved)) {
           slot = reserved;
         } else {
-          for (let candidate = 1; candidate <= MAX_PLAYERS; candidate += 1) {
+          for (let candidate = 1; candidate <= roomMaxPlayers; candidate += 1) {
             if (!usedSlots.has(candidate) &&
                 !Object.values(reservations).includes(candidate)) {
               slot = candidate;
@@ -310,7 +339,7 @@ export class GameRoom extends DurableObject {
             }
           }
           if (!slot) {
-            for (let candidate = 1; candidate <= MAX_PLAYERS; candidate += 1) {
+            for (let candidate = 1; candidate <= roomMaxPlayers; candidate += 1) {
               if (!usedSlots.has(candidate)) {
                 slot = candidate;
                 break;
@@ -336,6 +365,7 @@ export class GameRoom extends DurableObject {
       slot,
       map: roomMap,
       mode: roomMode,
+      targetPlayers: roomMaxPlayers,
     });
 
     if (kind === "game") {
@@ -347,31 +377,40 @@ export class GameRoom extends DurableObject {
           slot,
           map: roomMap,
           mode: roomMode,
-          maxPlayers: MAX_PLAYERS,
+          targetPlayers: roomMaxPlayers,
+          maxPlayers: roomMaxPlayers,
           hostSlot: 1,
           serverTime: Date.now(),
         }));
       } catch {}
 
       this.broadcastJson(
-        { type: "player_joined", playerId, slot, map: roomMap, mode: roomMode },
+        {
+          type: "player_joined",
+          playerId,
+          slot,
+          map: roomMap,
+          mode: roomMode,
+          targetPlayers: roomMaxPlayers,
+        },
         server,
       );
 
-      // A public match starts itself once the reserved four have all entered
-      // the room. Private rooms always remain host-controlled.
+      // Public rooms auto-start when their selected Duo/Trio/Quad size is full.
+      // Private rooms remain host-controlled.
       if (roomMode === "public") {
         let count = 0;
         for (const socket of this.ctx.getWebSockets()) {
           const a = socket.deserializeAttachment() || {};
           if (a.kind === "game") count++;
         }
-        if (count === MAX_PLAYERS) {
+        if (count === roomMaxPlayers) {
           this.broadcastJson({
             type: "room_full",
             map: roomMap,
             mode: roomMode,
             players: count,
+            targetPlayers: roomMaxPlayers,
           }, null);
         }
       }
