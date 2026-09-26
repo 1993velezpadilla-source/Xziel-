@@ -1,0 +1,104 @@
+name: Pavlov BO3 Nacht UAssetGUI Audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - experiment/bo3-nacht-standalone-audit
+    paths:
+      - ".github/workflows/pavlov-bo3-nacht-uassetgui-audit.yml"
+
+jobs:
+  parse:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Pavlov Nacht Workshop with SteamCMD
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $steam=Join-Path $env:RUNNER_TEMP 'steamcmd'
+          New-Item -ItemType Directory -Force -Path $steam | Out-Null
+          Invoke-WebRequest 'https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip' -OutFile (Join-Path $env:RUNNER_TEMP 'steamcmd.zip')
+          Expand-Archive (Join-Path $env:RUNNER_TEMP 'steamcmd.zip') -DestinationPath $steam -Force
+          & (Join-Path $steam 'steamcmd.exe') +login anonymous +workshop_download_item 555160 2755515831 validate +quit
+          $root=Get-ChildItem $steam,$env:RUNNER_TEMP -Directory -Recurse -ErrorAction SilentlyContinue | Where-Object {$_.FullName -like '*steamapps\workshop\content\555160\2755515831'} | Select-Object -First 1
+          if(-not $root){throw 'payload not found'}
+          $pak=Join-Path $root.FullName 'WindowsNoEditor.pak'
+          if(-not (Test-Path $pak)){throw 'pak not found'}
+          "PAK=$pak" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          exit 0
+
+      - name: Download repak and UAssetGUI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Invoke-WebRequest 'https://github.com/trumank/repak/releases/download/v0.2.3/repak_cli-x86_64-pc-windows-msvc.zip' -OutFile (Join-Path $env:RUNNER_TEMP 'repak.zip')
+          $repakDir=Join-Path $env:RUNNER_TEMP 'repak'
+          Expand-Archive (Join-Path $env:RUNNER_TEMP 'repak.zip') -DestinationPath $repakDir -Force
+          $repak=Get-ChildItem $repakDir -Filter repak.exe -Recurse | Select-Object -First 1
+          if(-not $repak){throw 'repak.exe missing'}
+          "REPAK=$($repak.FullName)" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          Invoke-WebRequest 'https://github.com/atenfyr/UAssetGUI/releases/download/v1.1.0/UAssetGUI.exe' -OutFile (Join-Path $env:RUNNER_TEMP 'UAssetGUI.exe')
+          "UASSETGUI=$env:RUNNER_TEMP\UAssetGUI.exe" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Extract Nacht map and MAP_FILES
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $out=Join-Path $env:RUNNER_TEMP 'pakextract'
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          & $env:REPAK unpack $env:PAK -o $out
+          if($LASTEXITCODE -ne 0){throw "repak unpack failed $LASTEXITCODE"}
+          $map=Get-ChildItem $out -Filter 'Nacht_de_Untoten.umap' -Recurse | Select-Object -First 1
+          if(-not $map){throw 'Nacht map missing after unpack'}
+          "MAPFILE=$($map.FullName)" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          Get-Item $map.FullName | Format-List FullName,Length
+
+      - name: Export map to UAssetAPI JSON
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Continue'
+          New-Item -ItemType Directory -Force -Path 'audit-out' | Out-Null
+          & $env:UASSETGUI tojson $env:MAPFILE 'audit-out\Nacht_de_Untoten.json' VER_UE4_21 2>&1 | Tee-Object -FilePath 'audit-out\uassetgui.log'
+          $rc=$LASTEXITCODE
+          "$rc" | Set-Content 'audit-out\uassetgui.rc'
+          Write-Host "UAssetGUI rc=$rc"
+          exit 0
+
+      - name: Extract mesh references and transforms
+        shell: pwsh
+        run: |
+          python - <<'PY'
+          import json, pathlib, re
+          p=pathlib.Path('audit-out/Nacht_de_Untoten.json')
+          if not p.exists():
+              print(pathlib.Path('audit-out/uassetgui.log').read_text(errors='replace')[-12000:])
+              raise SystemExit(0)
+          d=json.loads(p.read_text(encoding='utf-8-sig'))
+          rows=[]
+          def walk(x,path=''):
+              if isinstance(x,dict):
+                  keys={str(k).lower():k for k in x}
+                  interesting={}
+                  for target in ('staticmesh','relativelocation','relativerotation','relativescale3d','actorlocation','actorrotation'):
+                      if target in keys: interesting[target]=x[keys[target]]
+                  if interesting:
+                      rows.append({'path':path,**interesting})
+                  for k,v in x.items(): walk(v,f'{path}/{k}')
+              elif isinstance(x,list):
+                  for i,v in enumerate(x): walk(v,f'{path}[{i}]')
+          walk(d)
+          pathlib.Path('audit-out/nacht-transform-rows.json').write_text(json.dumps(rows,indent=2,default=str),encoding='utf-8')
+          print('transform/reference rows:',len(rows))
+          for r in rows[:300]: print(json.dumps(r,default=str)[:2000])
+          PY
+
+      - name: Upload map JSON audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: pavlov-bo3-nacht-uassetgui-audit
+          path: audit-out/
+          retention-days: 7
