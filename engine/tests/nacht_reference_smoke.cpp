@@ -11,6 +11,7 @@ int main() {
 
     assert(profile.zombieSpawns.size() == 21U);
     assert(profile.purchases.size() == 9U);
+    assert(profile.doors.size() == 3U);
 
     std::size_t start = 0;
     std::size_t box = 0;
@@ -47,6 +48,10 @@ int main() {
     assert(profile.purchases[6].price == 700U);
     assert(profile.purchases[7].price == 500U);
     assert(profile.purchases[8].price == 500U);
+
+    assert(profile.doors[0].price == 1000U);
+    assert(profile.doors[1].price == 1000U);
+    assert(profile.doors[2].price == 1000U);
 
     const auto startConfig =
         xziel::makeNachtHordeConfig();
