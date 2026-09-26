@@ -7,6 +7,8 @@ on:
       - feature/xziel-engine-nacht-runtime-v1
     paths:
       - "assets/nacht_reference/**"
+      - "assets/weapons/**"
+      - "tools/weapons/**"
       - "tools/maps/export_nacht_nzp_harness.py"
       - "tools/maps/validate_nacht_bo3_weapon_specs.py"
       - "tools/maps/export_nacht_nzp_runtime_overlay.py"
@@ -57,6 +59,14 @@ jobs:
           python3 tools/maps/validate_nacht_bo3_weapon_specs.py
           python3 tools/maps/export_nacht_nzp_runtime_overlay.py
           git diff --exit-code -- assets/nacht_reference/nzp_runtime_overlay.json
+
+      - name: Validate global XZIEL weapon catalog
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/weapons/export_xziel_mystery_box_pool.py
+          git diff --exit-code -- assets/weapons/xziel_mystery_box_pool_v1.json
+          python3 tools/weapons/validate_xziel_weapon_catalog.py
 
       - name: Test XZIEL BO3 weapon registry
         shell: bash
