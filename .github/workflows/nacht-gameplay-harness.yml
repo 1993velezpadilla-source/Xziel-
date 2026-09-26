@@ -61,6 +61,12 @@ jobs:
           python3 tools/maps/export_nacht_nzp_runtime_overlay.py
           git diff --exit-code -- assets/nacht_reference/nzp_runtime_overlay.json
 
+      - name: Validate complete BO3 weapon source snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/weapons/validate_bo3_weapon_source_stats.py
+
       - name: Validate global XZIEL weapon catalog
         shell: bash
         env:
