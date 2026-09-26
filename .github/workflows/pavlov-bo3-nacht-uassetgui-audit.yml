@@ -68,34 +68,12 @@ jobs:
           Write-Host "UAssetGUI rc=$rc"
           exit 0
 
-      - name: Extract mesh references and transforms
+      - name: Extract spatial manifest
         shell: bash
         run: |
-          python - <<'PY'
-          import json, pathlib, re
-          p=pathlib.Path('audit-out/Nacht_de_Untoten.json')
-          if not p.exists():
-              print(pathlib.Path('audit-out/uassetgui.log').read_text(errors='replace')[-12000:])
-              raise SystemExit(0)
-          d=json.loads(p.read_text(encoding='utf-8-sig'))
-          rows=[]
-          def walk(x,path=''):
-              if isinstance(x,dict):
-                  keys={str(k).lower():k for k in x}
-                  interesting={}
-                  for target in ('staticmesh','relativelocation','relativerotation','relativescale3d','actorlocation','actorrotation'):
-                      if target in keys: interesting[target]=x[keys[target]]
-                  if interesting:
-                      rows.append({'path':path,**interesting})
-                  for k,v in x.items(): walk(v,f'{path}/{k}')
-              elif isinstance(x,list):
-                  for i,v in enumerate(x): walk(v,f'{path}[{i}]')
-          walk(d)
-          pathlib.Path('audit-out/nacht-transform-rows.json').write_text(json.dumps(rows,indent=2,default=str),encoding='utf-8')
-          print('transform/reference rows:',len(rows))
-          for r in rows[:300]: print(json.dumps(r,default=str)[:2000])
-          PY
-
+          python tools/maps/extract_pavlov_nacht_layout.py \
+            audit-out/Nacht_de_Untoten.json \
+            audit-out/nacht-spatial-manifest.json
       - name: Upload map JSON audit
         uses: actions/upload-artifact@v4
         with:
