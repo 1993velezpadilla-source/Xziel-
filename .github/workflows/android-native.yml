@@ -73,6 +73,40 @@ jobs:
             scripts/patch_quakec_mobile_v024.py
 
 
+      - name: Audit full Vril and QuakeC patch chain
+        shell: bash
+        run: |
+          set -euo pipefail
+          AUDIT="${RUNNER_TEMP}/xziel-patch-audit"
+          rm -rf "$AUDIT"
+          mkdir -p "$AUDIT"
+          git clone --depth 1 https://github.com/nzp-team/vril-engine.git "$AUDIT/vril"
+          git clone --depth 1 https://github.com/nzp-team/quakec.git "$AUDIT/quakec"
+
+          python3 scripts/patch_vril_android.py "$AUDIT/vril"
+          python3 scripts/patch_vril_weaponhud.py "$AUDIT/vril"
+          python3 scripts/patch_vril_mobile_v018.py "$AUDIT/vril"
+          python3 scripts/patch_vril_weaponhud_v020.py "$AUDIT/vril"
+          python3 scripts/patch_vril_combatfx.py "$AUDIT/vril"
+          python3 scripts/patch_vril_modern_movement.py "$AUDIT/vril"
+          python3 scripts/patch_vril_camera_feel.py "$AUDIT/vril"
+          python3 scripts/patch_vril_animation_feel.py "$AUDIT/vril"
+          python3 scripts/patch_vril_mobile_v021.py "$AUDIT/vril"
+          python3 scripts/patch_vril_mobile_v022.py "$AUDIT/vril"
+          python3 scripts/patch_vril_mobile_v024.py "$AUDIT/vril"
+          python3 scripts/patch_vril_multiplayer_hud_test.py "$AUDIT/vril"
+          python3 scripts/patch_vril_multiplayer_online.py "$AUDIT/vril"
+          python3 scripts/patch_vril_sanctum_staticmesh.py "$AUDIT/vril"
+
+          python3 scripts/patch_quakec_mobile.py "$AUDIT/quakec"
+          python3 scripts/patch_quakec_combatfx.py "$AUDIT/quakec"
+          python3 scripts/patch_quakec_modern_movement.py "$AUDIT/quakec"
+          python3 scripts/patch_quakec_mobile_v021.py "$AUDIT/quakec"
+          python3 scripts/patch_quakec_mobile_v022.py "$AUDIT/quakec"
+          python3 scripts/patch_quakec_mobile_v024.py "$AUDIT/quakec"
+
+          echo "Full upstream patch chain applied successfully."
+
       - name: Set up Java 17
         uses: actions/setup-java@v5
         with:
