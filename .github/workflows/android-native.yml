@@ -247,7 +247,9 @@ jobs:
         shell: bash
         run: |
           python3 tools/weapons/export_xziel_mystery_box_pool.py
+          python3 tools/weapons/export_nacht_prototype_box_pool.py
           git diff --exit-code -- assets/weapons/xziel_mystery_box_pool_v1.json
+          git diff --exit-code -- assets/weapons/nacht_prototype_box_pool_v1.json
           python3 tools/weapons/validate_xziel_weapon_catalog.py
 
       - name: Validate Nacht runtime overlay
@@ -360,6 +362,8 @@ jobs:
             | grep -F "nzp/xziel/weapons/xziel_weapon_catalog_v1.json"
           unzip -l build/android-project/app/src/main/assets/nzp-data.zip \
             | grep -F "nzp/xziel/weapons/xziel_mystery_box_pool_v1.json"
+          unzip -l build/android-project/app/src/main/assets/nzp-data.zip \
+            | grep -F "nzp/xziel/weapons/nacht_prototype_box_pool_v1.json"
 
       - name: Build debug APK
         working-directory: build/android-project
