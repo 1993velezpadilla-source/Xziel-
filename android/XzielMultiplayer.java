@@ -220,6 +220,16 @@ public final class XzielMultiplayer {
         return localSlot;
     }
 
+    public void setCiPlayerId(String value) {
+        if (value == null) return;
+        String clean = value.replaceAll("[^A-Za-z0-9_-]", "");
+        if (!clean.isEmpty() && clean.length() <= 64 &&
+            gameSocket == null && matchSocket == null) {
+            playerId = clean;
+            Log.i(TAG, "CI_PLAYER_ID=" + playerId);
+        }
+    }
+
     public void showCiSquadPreview() {
         selectedMap = DEFAULT_MAP;
         targetPlayers = MAX_PLAYERS;
