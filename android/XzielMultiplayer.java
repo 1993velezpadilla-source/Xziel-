@@ -95,6 +95,15 @@ public final class XzielMultiplayer {
     private volatile String engineMap = "";
     private volatile long lastConnectAttemptMs;
 
+    private volatile boolean ciEvidenceMode;
+    private volatile boolean ciReadySent;
+    private volatile boolean ciScenarioStarted;
+    private final boolean[] ciRemoteSeen = new boolean[MAX_PLAYERS + 1];
+    private final float[] ciRemoteX = new float[MAX_PLAYERS + 1];
+    private final float[] ciRemoteY = new float[MAX_PLAYERS + 1];
+    private final float[] ciRemoteZ = new float[MAX_PLAYERS + 1];
+    private final int[] ciRemoteFrame = new int[MAX_PLAYERS + 1];
+
     private static final class GamePacket {
         final int sourceSlot;
         final int sourcePort;
@@ -230,6 +239,15 @@ public final class XzielMultiplayer {
             playerId = clean;
             Log.i(TAG, "CI_PLAYER_ID=" + playerId);
         }
+    }
+
+    public void setCiEvidenceMode(boolean enabled) {
+        ciEvidenceMode = enabled;
+        Log.i(TAG, "CI_EVIDENCE_MODE=" + enabled);
+    }
+
+    public boolean isCiEvidenceMode() {
+        return ciEvidenceMode;
     }
 
     public void showCiSquadPreview() {
@@ -601,6 +619,9 @@ public final class XzielMultiplayer {
         serverReadySent = false;
         serverReadyReceived = false;
         clientReadySent = false;
+        ciReadySent = false;
+        ciScenarioStarted = false;
+        for (int i = 0; i < ciRemoteSeen.length; i++) ciRemoteSeen[i] = false;
         lastConnectAttemptMs = 0;
         connectedSlots.clear();
         packetsByPort.clear();
@@ -751,6 +772,15 @@ public final class XzielMultiplayer {
                     toast("Player " + slot + " entered the match");
                 }
             }
+
+
+            if ("ci_begin".equals(type) && ciEvidenceMode && !ciScenarioStarted) {
+                ciScenarioStarted = true;
+                Log.i(TAG, "CI_BEGIN slot=" + localSlot +
+                    " players=" + targetPlayers);
+                scheduleCiEvidenceScenario();
+                return;
+            }
         } catch (Exception ignored) {
         }
     }
@@ -876,6 +906,7 @@ public final class XzielMultiplayer {
 
             Log.i(TAG, "HOST_SERVER_READY map=" + selectedMap);
             toast("Server ready - bringing players in");
+            if (ciEvidenceMode) sendCiReady();
             return;
         }
 
@@ -893,6 +924,7 @@ public final class XzielMultiplayer {
                 Log.i(TAG, "SIGNON_COMPLETE slot=" + localSlot +
                     " signon=" + signon + " map=" + engineMap);
                 toast("Connected to match");
+                if (ciEvidenceMode) sendCiReady();
             }
         }
     }
