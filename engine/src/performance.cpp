@@ -139,16 +139,17 @@ RenderWorkload PerformanceGovernor::advance(
     rebuildWorkload();
 
     // SOURCE_FIDELITY_RENDER_SCALE_FLOOR_V1
-    // Normal performance pressure trims expensive effects before destroying
-    // scene resolution. Sub-0.90 rendering is reserved for real thermal
-    // protection instead of software-Vulkan/CI pacing noise.
+    // CLOSE_SOURCE_FIDELITY_NATIVE_SCALE_V1
+    // #601 still fell to 0.90 while judging a close photogrammetry surface.
+    // Keep nominal/light play effectively native during this fidelity pass;
+    // thermal protection retains the lower ceilings below.
     switch (sample.thermal) {
         case ThermalLevel::Nominal:
         case ThermalLevel::Light:
             workload_.renderScale =
                 std::max(
                     workload_.renderScale,
-                    0.90f);
+                    0.99f);
             break;
 
         case ThermalLevel::Moderate:
