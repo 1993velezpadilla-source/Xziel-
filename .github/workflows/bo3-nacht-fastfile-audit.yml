@@ -37,6 +37,7 @@ jobs:
           "WORKSHOP_ROOT=$($root.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           Get-Item $ff | Format-List FullName,Length
           exit 0
+          exit 0
 
       - name: Download Atian COD Tools
         shell: pwsh
