@@ -1,0 +1,463 @@
+{
+  "schemaVersion": 1,
+  "contractId": "xziel_map_content_contract_v1",
+  "purpose": "Universal zero-omission content contract for folder/ZIP map ingestion. A package is not complete until every required family is declared, inventoried, resolved, runtime-bound, platform-validated, and free of blockers.",
+  "completionRule": "all_required_families_ready_and_inventory_strictReady_and_runtime_validation_green",
+  "requiredFamilies": [
+    {
+      "id": "world_geometry",
+      "required": true,
+      "scope": [
+        "renderable world surfaces",
+        "structural meshes",
+        "terrain",
+        "sky/world bounds"
+      ],
+      "readyRequires": [
+        "inventory",
+        "runtime_binding",
+        "visual_validation"
+      ]
+    },
+    {
+      "id": "collision",
+      "required": true,
+      "scope": [
+        "world collision",
+        "dynamic collision",
+        "player bounds",
+        "projectile collision"
+      ],
+      "readyRequires": [
+        "inventory",
+        "runtime_binding",
+        "playtest_validation"
+      ]
+    },
+    {
+      "id": "navigation_pathing",
+      "required": true,
+      "scope": [
+        "zombie navigation",
+        "spawn-to-window paths",
+        "zone traversal",
+        "riser paths"
+      ],
+      "readyRequires": [
+        "inventory",
+        "runtime_binding",
+        "AI_validation"
+      ]
+    },
+    {
+      "id": "materials_textures",
+      "required": true,
+      "scope": [
+        "materials",
+        "textures",
+        "normal/roughness/emissive masks",
+        "decals",
+        "transparent surfaces"
+      ],
+      "readyRequires": [
+        "inventory",
+        "reference_resolution",
+        "runtime_binding",
+        "visual_validation"
+      ]
+    },
+    {
+      "id": "static_models_props",
+      "required": true,
+      "scope": [
+        "furniture",
+        "machines",
+        "environment props",
+        "destructibles"
+      ],
+      "readyRequires": [
+        "inventory",
+        "reference_resolution",
+        "runtime_binding",
+        "visual_validation"
+      ]
+    },
+    {
+      "id": "animated_models_rigs",
+      "required": true,
+      "scope": [
+        "players",
+        "zombies",
+        "machines",
+        "animated props",
+        "weapon rigs"
+      ],
+      "readyRequires": [
+        "inventory",
+        "skeleton_binding",
+        "animation_binding",
+        "runtime_validation"
+      ]
+    },
+    {
+      "id": "animations",
+      "required": true,
+      "scope": [
+        "player",
+        "zombie",
+        "weapon",
+        "reload",
+        "inspect",
+        "machine",
+        "interaction",
+        "world animations"
+      ],
+      "readyRequires": [
+        "inventory",
+        "reference_resolution",
+        "runtime_binding",
+        "visual_validation"
+      ]
+    },
+    {
+      "id": "weapons_equipment",
+      "required": true,
+      "scope": [
+        "weapon identities",
+        "ballistics",
+        "ammo",
+        "recoil",
+        "spread",
+        "penetration",
+        "projectiles",
+        "grenades",
+        "melee",
+        "wall buys",
+        "refills"
+      ],
+      "readyRequires": [
+        "source_spec",
+        "native_runtime",
+        "presentation",
+        "regression_tests"
+      ]
+    },
+    {
+      "id": "pack_a_punch_variants",
+      "required": true,
+      "scope": [
+        "upgrade identities",
+        "upgrade stats",
+        "attachments",
+        "models",
+        "audio",
+        "animations",
+        "grant surfaces"
+      ],
+      "readyRequires": [
+        "source_spec",
+        "native_runtime",
+        "presentation",
+        "regression_tests"
+      ]
+    },
+    {
+      "id": "audio_sfx",
+      "required": true,
+      "scope": [
+        "weapon SFX",
+        "foley",
+        "machines",
+        "doors",
+        "barricades",
+        "zombies",
+        "UI SFX",
+        "world one-shots"
+      ],
+      "readyRequires": [
+        "inventory",
+        "reference_resolution",
+        "runtime_binding",
+        "audible_validation"
+      ]
+    },
+    {
+      "id": "ambient_music_vo",
+      "required": true,
+      "scope": [
+        "ambient loops",
+        "stingers",
+        "music",
+        "announcer",
+        "character VO",
+        "radio audio"
+      ],
+      "readyRequires": [
+        "inventory",
+        "reference_resolution",
+        "runtime_binding",
+        "audible_validation"
+      ]
+    },
+    {
+      "id": "vfx_particles",
+      "required": true,
+      "scope": [
+        "muzzle flashes",
+        "impacts",
+        "smoke",
+        "fire",
+        "dust",
+        "powerups",
+        "machines",
+        "weather",
+        "screen FX"
+      ],
+      "readyRequires": [
+        "inventory",
+        "reference_resolution",
+        "runtime_binding",
+        "visual_validation"
+      ]
+    },
+    {
+      "id": "lighting_postfx",
+      "required": true,
+      "scope": [
+        "static lights",
+        "dynamic lights",
+        "lightmaps/probes",
+        "fog",
+        "exposure",
+        "color grading",
+        "post effects"
+      ],
+      "readyRequires": [
+        "inventory",
+        "runtime_binding",
+        "visual_validation"
+      ]
+    },
+    {
+      "id": "gameplay_scripts",
+      "required": true,
+      "scope": [
+        "round flow",
+        "zones",
+        "doors",
+        "spawns",
+        "AI",
+        "economy",
+        "interactions",
+        "map events"
+      ],
+      "readyRequires": [
+        "inventory",
+        "dependency_resolution",
+        "runtime_binding",
+        "regression_tests"
+      ]
+    },
+    {
+      "id": "interactables",
+      "required": true,
+      "scope": [
+        "doors",
+        "barricades",
+        "wall buys",
+        "box",
+        "machines",
+        "radios",
+        "buttons",
+        "pickups",
+        "prompts"
+      ],
+      "readyRequires": [
+        "declared_count",
+        "runtime_binding",
+        "zero_dead_prompts",
+        "multiplayer_replication"
+      ]
+    },
+    {
+      "id": "perks_wunderfizz",
+      "required": true,
+      "scope": [
+        "perk identities",
+        "effects",
+        "machines",
+        "Wunderfizz",
+        "Mule Kick slot semantics"
+      ],
+      "readyRequires": [
+        "source_spec",
+        "native_runtime",
+        "presentation",
+        "regression_tests"
+      ]
+    },
+    {
+      "id": "powerups",
+      "required": true,
+      "scope": [
+        "drop pool",
+        "pickup models",
+        "effects",
+        "timers",
+        "audio",
+        "HUD feedback"
+      ],
+      "readyRequires": [
+        "source_spec",
+        "native_runtime",
+        "presentation",
+        "regression_tests"
+      ]
+    },
+    {
+      "id": "gobblegum",
+      "required": true,
+      "scope": [
+        "machines",
+        "63 BO3 identities when applicable",
+        "economy",
+        "selection",
+        "effects",
+        "HUD feedback"
+      ],
+      "readyRequires": [
+        "source_spec",
+        "native_runtime",
+        "presentation",
+        "regression_tests"
+      ]
+    },
+    {
+      "id": "mystery_box",
+      "required": true,
+      "scope": [
+        "eligible pool",
+        "roll animation",
+        "teddy relocation",
+        "pricing",
+        "pickup ownership",
+        "shared visibility"
+      ],
+      "readyRequires": [
+        "source_spec",
+        "runtime_pool",
+        "presentation",
+        "multiplayer_replication",
+        "regression_tests"
+      ]
+    },
+    {
+      "id": "spawns_rounds_ai",
+      "required": true,
+      "scope": [
+        "player spawns",
+        "zombie spawns",
+        "round scaling",
+        "special rounds",
+        "target selection",
+        "horde behavior"
+      ],
+      "readyRequires": [
+        "declared_count",
+        "runtime_binding",
+        "multiplayer_replication",
+        "stress_tests"
+      ]
+    },
+    {
+      "id": "hud_ui_prompts",
+      "required": true,
+      "scope": [
+        "points",
+        "ammo",
+        "round",
+        "interaction prompts",
+        "perk/powerup/gum UI",
+        "touch overlays"
+      ],
+      "readyRequires": [
+        "inventory",
+        "runtime_binding",
+        "visual_validation",
+        "touch_validation"
+      ]
+    },
+    {
+      "id": "multiplayer_replication",
+      "required": true,
+      "scope": [
+        "1-4 players",
+        "shared world state",
+        "movement",
+        "weapons",
+        "projectiles",
+        "audio events",
+        "interactions",
+        "pickups",
+        "round state"
+      ],
+      "readyRequires": [
+        "server_authoritative_contract",
+        "replication_tests",
+        "reconnect_tests"
+      ]
+    },
+    {
+      "id": "platform_packaging",
+      "required": true,
+      "scope": [
+        "Android packaging",
+        "asset mount",
+        "case/path compatibility",
+        "memory budget",
+        "streaming"
+      ],
+      "readyRequires": [
+        "strict_inventory",
+        "APK_build",
+        "device_smoke",
+        "memory_validation"
+      ]
+    },
+    {
+      "id": "soak_release_quality",
+      "required": true,
+      "scope": [
+        "large hordes",
+        "round 100",
+        "crash watch",
+        "memory leak watch",
+        "missing-asset watch",
+        "visual hole watch"
+      ],
+      "readyRequires": [
+        "stress_tests",
+        "round_100",
+        "zero_crashes",
+        "zero_missing_assets",
+        "zero_visual_holes"
+      ]
+    }
+  ],
+  "packagePolicy": {
+    "acceptedInputs": [
+      "folder",
+      "zip"
+    ],
+    "preserveSourceBytes": true,
+    "deterministicInventory": true,
+    "contentHash": "sha256",
+    "rejectUnsafeZipPaths": true,
+    "rejectZeroByteFiles": true,
+    "rejectCasePathCollisions": true,
+    "rejectUnresolvedAssetReferences": true,
+    "rejectAmbiguousAssetReferences": true,
+    "noSilentFallbacks": true,
+    "noUnrelatedAssetSubstitution": true
+  }
+}
