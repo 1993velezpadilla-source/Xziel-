@@ -137,6 +137,7 @@ pause_decls = r'''
 #ifdef __ANDROID__
 extern int Xziel_Android_OnlineActive(void);
 extern void Xziel_Android_OnlineLeaveRoom(void);
+extern void Xziel_Android_OnlinePauseVoice(int visible);
 extern qboolean showscoreboard;
 extern void HUD_EndScreen(void);
 #endif
@@ -168,6 +169,36 @@ def replace_c_function(src: str, signature: str, replacement: str) -> str:
         end += 1
     return src[:start] + replacement + src[end:]
 
+pause_resume = r'''void Menu_Resume(void)
+{
+	key_dest = key_game;
+	m_state = m_none;
+	m_previous_state = m_state;
+#ifdef __ANDROID__
+	if (Xziel_Android_OnlineActive()) {
+		Xziel_Android_OnlinePauseVoice(0);
+	} else if (sv.active && svs.maxclients == 1) {
+		Xziel_BeginMobileResumeCountdown();
+		return;
+	}
+#endif
+	Music_Resume();
+}'''
+text = replace_c_function(text, "void Menu_Resume(void)", pause_resume)
+
+configuration_old = "void Menu_Configuration(void) { Menu_Configuration_Set(); key_dest = key_menu_pause; };"
+configuration_new = r'''void Menu_Configuration(void)
+{
+#ifdef __ANDROID__
+	if (Xziel_Android_OnlineActive())
+		Xziel_Android_OnlinePauseVoice(0);
+#endif
+	Menu_Configuration_Set();
+	key_dest = key_menu_pause;
+};'''
+if configuration_old in text:
+    text = text.replace(configuration_old, configuration_new, 1)
+
 pause_set = r'''void Menu_Pause_Set (void)
 {
 	Menu_ResetMenuButtons();
@@ -191,8 +222,11 @@ pause_set = r'''void Menu_Pause_Set (void)
 #ifdef __ANDROID__
 	// Solo still freezes exactly as before. Online maxclients > 1 keeps
 	// simulation and networking running behind this menu.
-	if (!Xziel_Android_OnlineActive() && sv.active && svs.maxclients == 1)
+	if (Xziel_Android_OnlineActive()) {
+		Xziel_Android_OnlinePauseVoice(1);
+	} else if (sv.active && svs.maxclients == 1) {
 		sv.paused = true;
+	}
 #endif
 }'''
 text = replace_c_function(text, "void Menu_Pause_Set (void)", pause_set)
@@ -332,6 +366,52 @@ pause_draw = r'''void Menu_Pause_Draw (void)
 }'''
 text = replace_c_function(text, "void Menu_Pause_Draw (void)", pause_draw)
 pause.write_text(text, encoding="utf-8")
+
+# ---------------------------------------------------------------------------
+# Proximity voice: push the rendered local player origin to Android. This is
+# presentation-only and never changes movement, hit detection or net state.
+# ---------------------------------------------------------------------------
+cl_main = source / "cl_main.c"
+text = cl_main.read_text(encoding="utf-8")
+
+cl_include = '#include "quakedef.h"\n'
+cl_voice_decl = """#ifdef __ANDROID__
+extern void Xziel_Android_VoiceUpdatePosition(float x, float y, float z);
+#endif
+"""
+if "Xziel_Android_VoiceUpdatePosition" not in text:
+    text = replace_once(text, cl_include, cl_include + cl_voice_decl,
+                        "cl_main voice include anchor")
+
+cl_update_anchor = """	CL_RelinkEntities ();
+	CL_UpdateTEnts ();
+
+//
+// bring the links up to date
+//
+"""
+cl_update_repl = """	CL_RelinkEntities ();
+	CL_UpdateTEnts ();
+
+#ifdef __ANDROID__
+	if (cl.viewentity > 0 && cl.viewentity < cl.num_entities) {
+		entity_t *voice_listener = &cl_entities[cl.viewentity];
+		Xziel_Android_VoiceUpdatePosition(
+			voice_listener->origin[0],
+			voice_listener->origin[1],
+			voice_listener->origin[2]);
+	}
+#endif
+
+//
+// bring the links up to date
+//
+"""
+if "voice_listener = &cl_entities[cl.viewentity]" not in text:
+    text = replace_once(text, cl_update_anchor, cl_update_repl,
+                        "CL_ReadFromServer voice position anchor")
+
+cl_main.write_text(text, encoding="utf-8")
 
 # ---------------------------------------------------------------------------
 # SDL UDP: virtual internet peers are 10.77.0.<slot>. OS UDP remains untouched
