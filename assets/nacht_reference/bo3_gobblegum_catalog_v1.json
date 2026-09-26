@@ -299,10 +299,19 @@
         }
       ],
       "runtimePrimitive": {
-        "status": "identity_backend_ready_runtime_pending",
+        "status": "logic_ready_dormant",
         "upgradeResolver": "XZIEL_GetPackAPunchWeaponID",
         "readinessGate": "XZIEL_PackAPunchRuntimeReady",
-        "timerAndInventoryRestore": "pending"
+        "canActivateFunction": "XZIEL_GobbleGumEphemeralCanActivate",
+        "activationFunction": "XZIEL_GobbleGumActivateEphemeralEnhancement",
+        "tickFunction": "XZIEL_GobbleGumEphemeralTick",
+        "restoreFunction": "XZIEL_GobbleGumEphemeralRestore",
+        "durationSeconds": 60,
+        "inventorySearch": "exact upgraded weapon identity across all player slots",
+        "downedExpiry": "defer restore until revive",
+        "replacedWeapon": "clear effect without recreating original",
+        "ammoReconciliation": "source-backed anti-extra-ammo rule",
+        "exposedUpgradeCount": 0
       }
     },
     {
@@ -831,7 +840,9 @@
     "effectDispatchLogicReady": 6,
     "papDependentEffectSpecsVerified": 4,
     "papEventPlumbingLogicReady": 2,
-    "papRuntimeRewardsExposed": 0
+    "papRuntimeRewardsExposed": 0,
+    "papTimedEffectLogicReady": 1,
+    "papDependentRuntimeLogicReady": 3
   },
   "runtimeCore": {
     "status": "logic_ready",
