@@ -24,7 +24,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/nacht-pack"
-          python3 -m gdown --id 1LK3xMftaeoY_DLmkvkp2btf2XsN1zCQe -O "$RUNNER_TEMP/nacht-pack/payload.bin"
+          python3 -m gdown 1LK3xMftaeoY_DLmkvkp2btf2XsN1zCQe -O "$RUNNER_TEMP/nacht-pack/payload.bin"
           ls -lh "$RUNNER_TEMP/nacht-pack/payload.bin"
           sha256sum "$RUNNER_TEMP/nacht-pack/payload.bin" | tee "$RUNNER_TEMP/nacht-pack/payload.sha256"
           file "$RUNNER_TEMP/nacht-pack/payload.bin" | tee "$RUNNER_TEMP/nacht-pack/payload.filetype"
