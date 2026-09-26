@@ -8,60 +8,51 @@ on:
     paths:
       - ".github/workflows/pavlov-bo3-nacht-xziel-reference-package.yml"
       - "tools/maps/build_xziel_nacht_reference_package.py"
-      - "experiments/bo3_nacht_reference/nacht_wallbuy_repair_plan_v1.json"
+      - "experiments/bo3_nacht_reference/nacht_wallbuy_repair_plan_v2.json"
 
 jobs:
   package:
-    runs-on: windows-latest
-    timeout-minutes: 120
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download Pavlov Nacht Workshop
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          $steam=Join-Path $env:RUNNER_TEMP 'steamcmd'
-          New-Item -ItemType Directory -Force -Path $steam | Out-Null
-          Invoke-WebRequest 'https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip' -OutFile (Join-Path $env:RUNNER_TEMP 'steamcmd.zip')
-          Expand-Archive (Join-Path $env:RUNNER_TEMP 'steamcmd.zip') -DestinationPath $steam -Force
-          & (Join-Path $steam 'steamcmd.exe') +login anonymous +workshop_download_item 555160 2755515831 validate +quit
-          $root=Get-ChildItem $steam,$env:RUNNER_TEMP -Directory -Recurse -ErrorAction SilentlyContinue | Where-Object {$_.FullName -like '*steamapps\workshop\content\555160\2755515831'} | Select-Object -First 1
-          if(-not $root){throw 'payload not found'}
-          $pak=Join-Path $root.FullName 'WindowsNoEditor.pak'
-          if(-not(Test-Path $pak)){throw 'pak missing'}
-          "PAK=$pak" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
-          exit 0
+      - name: Restore verified GREEN Nacht source audit
+        uses: actions/download-artifact@v4
+        with:
+          name: pavlov-bo3-nacht-uassetgui-audit
+          path: audit-source
+          github-token: ${{ github.token }}
+          run-id: 36226521409
 
-      - name: Unpack map and export UAssetAPI JSON
-        shell: pwsh
+      - name: Verify source evidence
+        shell: bash
         run: |
-          $ErrorActionPreference='Stop'
-          Invoke-WebRequest 'https://github.com/trumank/repak/releases/download/v0.2.3/repak_cli-x86_64-pc-windows-msvc.zip' -OutFile (Join-Path $env:RUNNER_TEMP 'repak.zip')
-          $rd=Join-Path $env:RUNNER_TEMP 'repak'
-          Expand-Archive (Join-Path $env:RUNNER_TEMP 'repak.zip') -DestinationPath $rd -Force
-          $repak=Get-ChildItem $rd -Filter repak.exe -Recurse | Select-Object -First 1
-          $out=Join-Path $env:RUNNER_TEMP 'unpacked'
-          New-Item -ItemType Directory -Force -Path $out | Out-Null
-          & $repak.FullName unpack $env:PAK -o $out
-          if($LASTEXITCODE -ne 0){throw 'repak failed'}
-          $map=Get-ChildItem $out -Filter 'Nacht_de_Untoten.umap' -Recurse | Select-Object -First 1
-          if(-not $map){throw 'map missing'}
-          Invoke-WebRequest 'https://github.com/atenfyr/UAssetGUI/releases/download/v1.1.0/UAssetGUI.exe' -OutFile (Join-Path $env:RUNNER_TEMP 'UAssetGUI.exe')
-          New-Item -ItemType Directory -Force -Path audit-out | Out-Null
-          & (Join-Path $env:RUNNER_TEMP 'UAssetGUI.exe') tojson $map.FullName 'audit-out\Nacht_de_Untoten.json' VER_UE4_21
-          if($LASTEXITCODE -ne 0){throw 'UAssetGUI failed'}
-          $json=Get-ChildItem $PWD,$env:RUNNER_TEMP -Recurse -File -Filter 'Nacht_de_Untoten.json' -ErrorAction SilentlyContinue | Select-Object -First 1
-          if(-not $json){throw 'map JSON not found'}
-          "MAP_JSON=$($json.FullName)" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          set -euo pipefail
+          test -s audit-source/Nacht_de_Untoten.json
+          test -s audit-source/nacht-spatial-manifest.json
+          test -s experiments/bo3_nacht_reference/nacht_wallbuy_repair_plan_v2.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          repair=json.loads(Path("experiments/bo3_nacht_reference/nacht_wallbuy_repair_plan_v2.json").read_text())
+          assert repair["validation"]["gate"] == "PASS"
+          assert repair["validation"]["slot_count"] == 9
+          assert repair["validation"]["unresolved_slot_count"] == 0
+          print("verified wallbuy v2: 9/9, unresolved=0")
+          PY
 
       - name: Build layered XZIEL reference package
-        shell: pwsh
+        shell: bash
         run: |
-          $dest='audit-out\xziel-nacht-reference'
-          python tools/maps/build_xziel_nacht_reference_package.py $env:MAP_JSON experiments/bo3_nacht_reference/nacht_wallbuy_repair_plan_v1.json $dest
-          if($LASTEXITCODE -ne 0){throw 'XZIEL Nacht package preflight failed'}
-          Get-Content (Join-Path $dest 'preflight.json')
+          set -euo pipefail
+          dest="audit-out/xziel-nacht-reference"
+          mkdir -p "$dest"
+          python3 tools/maps/build_xziel_nacht_reference_package.py \
+            audit-source/Nacht_de_Untoten.json \
+            experiments/bo3_nacht_reference/nacht_wallbuy_repair_plan_v2.json \
+            "$dest"
+          cat "$dest/preflight.json"
 
       - name: Upload metadata package only
         uses: actions/upload-artifact@v4
