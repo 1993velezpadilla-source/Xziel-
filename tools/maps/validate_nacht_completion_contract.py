@@ -207,7 +207,7 @@ def main() -> int:
 
     if logic_ready_effects != 6:
         fail("expected exactly six mapped GobbleGum effect primitives")
-    if gobblegum_catalog.get("validation", {}).get("effectSpecsVerified") != 6:
+    if gobblegum_catalog.get("validation", {}).get("effectSpecsVerified") != 10:
         fail("GobbleGum verified effect-spec count drift")
     if gobblegum_catalog.get("validation", {}).get("effectPrimitivesLogicReady") != 6:
         fail("GobbleGum logic-ready effect primitive count drift")
@@ -222,6 +222,60 @@ def main() -> int:
             fail(f"{gum_id} activation function drift")
         if primitive.get("chargeStateFunction") != "XZIEL_GobbleGumHeldUsesRemaining":
             fail(f"{gum_id} charge-state function drift")
+
+    expected_pap_gums = {
+        "wall_power": {
+            "status": "logic_ready_dormant",
+            "resolveFunction": "XZIEL_GobbleGumResolveWallPowerWeapon",
+            "source": ("scripts/zm/bgbs/_zm_bgb_wall_power.gsc", "7c5e47f2e7e1574c7057b39d4abfddb6a9fb4cde"),
+        },
+        "crate_power": {
+            "status": "logic_ready_dormant",
+            "resolveFunction": "XZIEL_GobbleGumResolveCratePowerWeapon",
+            "source": ("scripts/zm/bgbs/_zm_bgb_crate_power.gsc", "b3683e2da10edf0dcb208eb10e353172f37e8fcf"),
+        },
+        "ephemeral_enhancement": {
+            "status": "identity_backend_ready_runtime_pending",
+            "source": ("scripts/zm/bgbs/_zm_bgb_ephemeral_enhancement.gsc", "d9dd26127ac48e7b39ec0705b05faf14e8a42999"),
+        },
+        "disorderly_combat": {
+            "status": "identity_backend_ready_runtime_pending",
+            "source": ("scripts/zm/bgbs/_zm_bgb_disorderly_combat.gsc", "a66e8287ba98702aa75e62213fa1f49ee39f9c45"),
+        },
+    }
+    for gum_id, expected in expected_pap_gums.items():
+        row = gum_by_id[gum_id]
+        if row.get("effectSpecStatus") != "verified":
+            fail(f"{gum_id} PaP-dependent effect spec must be verified")
+        if row.get("runtimeStatus") != "pending":
+            fail(f"{gum_id} must remain pending until full runtime/presentation is complete")
+        primitive = row.get("runtimePrimitive", {})
+        if primitive.get("status") != expected["status"]:
+            fail(f"{gum_id} runtime primitive status drift")
+        if gum_id in {"wall_power", "crate_power"}:
+            if primitive.get("activationFunction") != "XZIEL_GobbleGumActivatePapEvent":
+                fail(f"{gum_id} event activation function drift")
+            if primitive.get("resolveFunction") != expected["resolveFunction"]:
+                fail(f"{gum_id} event resolve function drift")
+            if primitive.get("readinessGate") != "XZIEL_PackAPunchRuntimeReady":
+                fail(f"{gum_id} readiness gate drift")
+            if primitive.get("exposedUpgradeCount") != 0:
+                fail(f"{gum_id} must expose zero PaP rewards while runtime-ready count is zero")
+        sources = row.get("sourceAuthority", [])
+        if not any(
+            src.get("path") == expected["source"][0]
+            and src.get("blobSha") == expected["source"][1]
+            for src in sources
+        ):
+            fail(f"{gum_id} source provenance drift")
+
+    gum_validation = gobblegum_catalog.get("validation", {})
+    if gum_validation.get("papDependentEffectSpecsVerified") != 4:
+        fail("PaP-dependent GobbleGum verified spec count drift")
+    if gum_validation.get("papEventPlumbingLogicReady") != 2:
+        fail("Wall/Crate Power event plumbing count drift")
+    if gum_validation.get("papRuntimeRewardsExposed") != 0:
+        fail("PaP GobbleGums must expose zero runtime rewards while PaP variants are pending")
 
     placement_rows = system_placements.get("entities", [])
     if not isinstance(placement_rows, list):
