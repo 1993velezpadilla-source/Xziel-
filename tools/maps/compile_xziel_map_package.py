@@ -81,6 +81,10 @@ def load_map_descriptor(root: Path, manifest: dict) -> dict:
         )
     if file_by_path[entry_world].get("kind") != "world_geometry":
         raise SystemExit("XZIEL package rejected: entryWorld is not world_geometry")
+    if entry_world != f"maps/{map_id}.bsp":
+        raise SystemExit(
+            "XZIEL package rejected: entryWorld must equal maps/<mapId>.bsp"
+        )
 
     return {
         "mapId": map_id,
