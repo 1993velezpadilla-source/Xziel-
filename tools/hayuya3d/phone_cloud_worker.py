@@ -12,6 +12,7 @@ from texture_gate import inspect as inspect_texture_gate
 from trellis2_cloud import generate as generate_trellis2_cloud
 from trellis2_preview_recovery import recover as recover_trellis2_preview
 from triposr_cpu_cloud import generate as generate_triposr_cpu_cloud
+from local_detail_fusion import fuse_local_basecolor
 from source_autofix import build_source_autofix
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -653,10 +654,97 @@ data=dst.read_bytes()
 if data[:4] != b"glTF" or len(data)<1024:
     fail("Invalid GLB output")
 
+require_final_normals=STRICT_TRELLIS2 and TEXTURE_QUALITY in {"high","ultra"}
+final_texture_min_edge=(
+    4096
+    if STRICT_TRELLIS2 and TEXTURE_QUALITY in {"high","ultra"}
+    else 1024
+)
+detail_fusion_payload=None
+
+# Real head/detail evidence must affect the final character instead of only
+# being written to the manifest. Build a CPU TripoSR donor from the tight
+# source-derived head crop, align that donor to the semantic head region, and
+# transfer only its baseColor evidence. Geometry/runtime payload stays byte-safe.
+# This is a challenger: failure never downgrades a valid TRELLIS result.
+if (
+    detail_views
+    and TRIPOSR_CPU_ENABLED
+    and ASSET_PROFILE in {"auto","character.humanoid","character.creature"}
+    and selected_generator!="stabilityai/TripoSR"
+):
+    try:
+        detail_donor_meta=generate_triposr_cpu_cloud(
+            detail_views[0],
+            OUT/"detail_head_donor.glb",
+            token=TOKEN,
+        )
+        detail_donor=Path(detail_donor_meta["path"])
+        detail_fused=OUT/"hayuya_head_detail_fused.glb"
+        fusion=fuse_local_basecolor(
+            dst,
+            detail_donor,
+            detail_fused,
+            region="head",
+            up_axis="y",
+            donor_samples=80_000,
+            max_alignment_p95_ratio=0.30,
+            donor_scope="region",
+        )
+        detail_fusion_payload={
+            "attempted":True,
+            "source_detail":detail_views[0].name,
+            "donor":detail_donor_meta,
+            "fusion":asdict(fusion),
+            "promoted":False,
+        }
+        print(
+            "HAYUYA_HEAD_DETAIL_FUSION",
+            json.dumps(detail_fusion_payload,separators=(",",":")),
+        )
+        if fusion.ready:
+            fused_mesh=inspect_mesh_gate(
+                detail_fused,
+                require_normals=require_final_normals,
+            )
+            fused_texture=inspect_texture_gate(
+                detail_fused,
+                min_edge=final_texture_min_edge,
+            )
+            if fused_mesh.passed and fused_texture.passed:
+                shutil.copy2(detail_fused,dst)
+                data=dst.read_bytes()
+                detail_fusion_payload["promoted"]=True
+                detail_fusion_payload["mesh_gate"]=asdict(fused_mesh)
+                detail_fusion_payload["texture_gate"]=asdict(fused_texture)
+                selected_compute=selected_compute+" + CPU semantic head-detail fusion"
+                print(
+                    "HAYUYA_HEAD_DETAIL_FUSION_PROMOTED",
+                    json.dumps(detail_fusion_payload,separators=(",",":")),
+                )
+            else:
+                detail_fusion_payload["mesh_gate"]=asdict(fused_mesh)
+                detail_fusion_payload["texture_gate"]=asdict(fused_texture)
+                detail_fusion_payload["rejected_reason"]="post_fusion_gate"
+                print(
+                    "::warning::Head-detail fusion challenger rejected by hard gates"
+                )
+    except Exception as detail_exc:
+        detail_fusion_payload={
+            "attempted":True,
+            "source_detail":detail_views[0].name if detail_views else None,
+            "promoted":False,
+            "error":f"{type(detail_exc).__name__}: {detail_exc}",
+        }
+        print(
+            "::warning::HAYUYA head-detail fusion unavailable; "
+            "keeping base model: "
+            +detail_fusion_payload["error"]
+        )
+
 # Catastrophic geometry gate: a backend returning a syntactically valid GLB is
 # not enough. Reject billboard crosses, fragmented texture planes, collapsed
 # bounds, and other obvious non-model outputs before the Hub ever says DONE.
-require_final_normals=STRICT_TRELLIS2 and TEXTURE_QUALITY in {"high","ultra"}
 gate=inspect_mesh_gate(dst,require_normals=require_final_normals)
 gate_payload=asdict(gate)
 (OUT/"quality_gate.json").write_text(json.dumps(gate_payload,indent=2),encoding="utf-8")
@@ -667,11 +755,6 @@ if not gate.passed:
 # Texture gate prevents the old failure mode where a geometrically valid model
 # reaches DONE with no usable embedded texture or only a tiny texture. Blur is
 # reported as telemetry first; fidelity refinement owns the stricter judgment.
-final_texture_min_edge=(
-    4096
-    if STRICT_TRELLIS2 and TEXTURE_QUALITY in {"high","ultra"}
-    else 1024
-)
 texture_gate=inspect_texture_gate(dst, min_edge=final_texture_min_edge)
 texture_payload=asdict(texture_gate)
 (OUT/"texture_gate.json").write_text(json.dumps(texture_payload,indent=2),encoding="utf-8")
@@ -739,6 +822,7 @@ manifest={
     "source":str(GEOMETRY),
     "prepared_views":[p.name for p in crops],
     "prepared_detail_views":[p.name for p in detail_views],
+    "detail_fusion":detail_fusion_payload,
     "source_autofix":(
         asdict(source_autofix_result)
         if source_autofix_result is not None else None
