@@ -116,7 +116,7 @@ host.write_text(text, encoding="utf-8")
 # ---------------------------------------------------------------------------
 udp = source / "platform" / "sdl" / "net_udp_sdl.c"
 text = udp.read_text(encoding="utf-8")
-include_anchor = '#include "net_udp.h"\n\n'
+include_anchor = '#include <unistd.h>\n\n'
 decls = r'''#ifdef __ANDROID__
 extern int Xziel_Android_OnlineActive(void);
 extern int Xziel_Android_GameHasPacket(int localPort);
