@@ -55,5 +55,39 @@ if "Online/co-op: make the first four player slots deterministic" not in text:
         raise SystemExit("Could not find Player_PickSpawnPoint location anchor")
     text = text.replace(anchor, insert, 1)
 
+# Xziel online third-person ADS pose.
+# NZ:P's stock player model has no dedicated ADS state: standing players always
+# fall back to frame 0, so remote clients cannot visually tell aim-in/aim-out.
+# Reuse the existing standing fire-ready pose (frame 9) while a co-op player is
+# holding ADS and no higher-priority reload/fire/melee animation owns the model.
+# Firing still advances 9->10 through the stock PAnim_Fire path.
+idle_old = """		} else {
+			// Stand still so Crouch Walk isn't stuck in place
+			switch(self.stance) {
+				case 2: self.frame = 0; break;
+				case 1: self.frame = 115; break;
+				case 0: self.frame = 162; break;
+			}
+"""
+idle_new = """		} else {
+			// Stand still so Crouch Walk isn't stuck in place.
+			// Online co-op keeps a visible fire-ready pose while ADS is held so
+			// other players can actually see aim-in / aim-out state.
+			switch(self.stance) {
+				case 2:
+					if (coop && self.zoom && self.zoom != 3)
+						self.frame = 9;
+					else
+						self.frame = 0;
+					break;
+				case 1: self.frame = 115; break;
+				case 0: self.frame = 162; break;
+			}
+"""
+if "Online co-op keeps a visible fire-ready pose while ADS is held" not in text:
+    if idle_old not in text:
+        raise SystemExit("Could not find third-person idle animation anchor")
+    text = text.replace(idle_old, idle_new, 1)
+
 path.write_text(text, encoding="utf-8")
-print("Applied Xziel v0.26 deterministic four-player co-op spawns.")
+print("Applied Xziel v0.26 online spawns + third-person ADS pose.")
