@@ -65,7 +65,8 @@
     "packAPunchNativeRuntimeReady": 0,
     "packAPunchDedicatedNativeIdCount": 35,
     "packAPunchReusedCatalogIdCount": 1,
-    "packAPunchNativeIdentityResolverPairs": 36
+    "packAPunchNativeIdentityResolverPairs": 36,
+    "packAPunchLegacyBridgeFunctions": 3
   },
   "bo3ChroniclesFeatureReference": {
     "mysteryBox": true,
@@ -220,7 +221,16 @@
       "reusedCatalogUpgradeIds": 1,
       "nativeIdentityRegistryStatus": "ready",
       "nativeIdentityResolverStatus": "ready",
-      "nativeIdentityResolverPairs": 36
+      "nativeIdentityResolverPairs": 36,
+      "nativeLegacyHelperBridgeStatus": "ready",
+      "nativeLegacyHelperBridgeScope": "xziel_*",
+      "nativeLegacyHelperBridgeFunctions": [
+        "IsPapWeapon",
+        "EqualNonPapWeapon",
+        "EqualPapWeapon"
+      ],
+      "legacyMapIsolation": true,
+      "equalPapExposureRequiresRuntimeReady": true
     },
     "points_economy_scoring": {
       "state": "pending"
