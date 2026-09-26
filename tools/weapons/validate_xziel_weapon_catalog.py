@@ -149,6 +149,38 @@ def main() -> int:
     if nacht_pool.get("mapId") != "xziel_nacht_bo3":
         fail("Nacht Mystery Box pool mapId mismatch")
 
+    weapon_runtime = nacht.get("weaponRuntime", {})
+    expected_paths = {
+        "globalCatalog": str(CATALOG),
+        "globalMysteryBoxPool": str(GLOBAL_POOL),
+        "nachtMysteryBoxPool": str(NACHT_POOL),
+    }
+    for key, expected_path in expected_paths.items():
+        if weapon_runtime.get(key) != expected_path:
+            fail(f"Nacht weapon runtime path mismatch for {key}: {weapon_runtime.get(key)!r}")
+
+    if weapon_runtime.get("scope") != "identity_and_availability_only":
+        fail("Nacht weapon runtime must remain identity/availability-only")
+    if weapon_runtime.get("ballisticTuning") != "unchanged":
+        fail("weapon catalog work must not alter ballistic tuning")
+
+    catalog_minimum = weapon_runtime.get("globalCatalogMinimumCount")
+    if not isinstance(catalog_minimum, int) or catalog_minimum < 51:
+        fail(f"invalid global catalog baseline: {catalog_minimum!r}")
+    if len(weapons) < catalog_minimum:
+        fail(f"global catalog below runtime baseline: {len(weapons)} < {catalog_minimum}")
+
+    box_minimum = weapon_runtime.get("globalMysteryBoxMinimumCount")
+    if not isinstance(box_minimum, int) or box_minimum < 46:
+        fail(f"invalid global box baseline: {box_minimum!r}")
+    if len(global_ids) < box_minimum:
+        fail(f"global box below runtime baseline: {len(global_ids)} < {box_minimum}")
+
+    if weapon_runtime.get("nachtPrototypeWeaponTableCount") != len(prototype):
+        fail("Nacht runtime weapon-table count is stale")
+    if weapon_runtime.get("nachtPrototypeMysteryBoxCount") != len(nacht_ids):
+        fail("Nacht runtime Mystery Box count is stale")
+
     print(
         "XZIEL_WEAPON_CATALOG_OK "
         f"weapons={len(weapons)} zmSource={zm_count} "
