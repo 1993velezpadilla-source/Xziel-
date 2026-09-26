@@ -200,6 +200,13 @@ public class NZPActivity extends SDLActivity {
         }
     }
 
+    public void xzielCiSoundEvent(int entity, int channel, String name,
+                                  float x, float y, float z) {
+        if (multiplayer != null) {
+            multiplayer.onCiSoundEvent(entity, channel, name, x, y, z);
+        }
+    }
+
     public void xzielOnlinePauseVoice(boolean visible) {
         if (multiplayer != null) multiplayer.showVoicePausePanel(visible);
     }
