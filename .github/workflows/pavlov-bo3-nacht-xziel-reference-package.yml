@@ -1,5 +1,8 @@
 name: Pavlov BO3 Nacht XZIEL Reference Package
 
+permissions:
+  contents: write
+
 on:
   workflow_dispatch:
   push:
@@ -61,3 +64,26 @@ jobs:
           path: audit-out/xziel-nacht-reference/
           if-no-files-found: error
           retention-days: 7
+
+      - name: Persist validated XZIEL Nacht metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          dest="experiments/bo3_nacht_reference/xziel_package"
+          rm -rf "$dest"
+          mkdir -p "$dest"
+          cp -a audit-out/xziel-nacht-reference/. "$dest"/
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$dest"
+
+          if git diff --cached --quiet; then
+            echo "XZIEL Nacht metadata already current"
+            exit 0
+          fi
+
+          git commit -m "data: persist validated XZIEL Nacht reference package"
+          git fetch origin experiment/bo3-nacht-standalone-audit
+          git rebase origin/experiment/bo3-nacht-standalone-audit
+          git push origin HEAD:experiment/bo3-nacht-standalone-audit
