@@ -96,3 +96,31 @@ The geometry exporter does not commit the recovered third-party mesh payloads. C
 
 Reproducible workflow:
 `.github/workflows/pavlov-bo3-nacht-mapfiles-gltf-audit.yml`
+
+
+## Independent UE Viewer / UModel cross-check
+
+The same Pavlov `CoD_nacht/MAP_FILES` directory was independently processed with UE Viewer / UModel using the explicit `-game=ue4.21` override.
+
+Verified result:
+- input `.uasset` files scanned: **328**
+- UModel command successes: **328 / 328**
+- failures: **0**
+- exported world-mesh glTF files: **120**
+- exported binary buffers: **120**
+- exported textures: **136 TGA**
+- exported material descriptors: **84 MAT**
+- exported material/text metadata files: **84 TXT**
+- exported payload size in the ephemeral runner: **257,107,300 bytes**
+
+This independently confirms the same **120** world meshes found by CUE4Parse and also proves that the map package carries recoverable material/texture data rather than geometry alone.
+
+Examples of recovered texture channels include:
+- `i_t7_concrete_tiles_4x4_dirty_01_c.tga`
+- `i_t7_dirt_rocky_01_n.tga`
+- `i_t7_decal_grunge_oil_stain_wet_01_s.tga`
+- `i_t7_zm_ctl_wood_plank_wide_01_c.tga`
+- `i_t7_zm_ctl_wood_plank_wide_01_n.tga`
+- `i_t7_zm_chalk_buy_locus_c.tga`
+
+The third-party exported payload remains ephemeral and is not committed to this repository.
