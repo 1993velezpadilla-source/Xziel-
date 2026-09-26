@@ -19,10 +19,44 @@ if len(sys.argv) != 2:
 quakec_root = Path(sys.argv[1])
 repo_root = Path(__file__).resolve().parents[1]
 registry_path = repo_root / "assets/weapons/xziel_weapon_id_registry_v1.json"
+catalog_path = repo_root / "assets/weapons/xziel_weapon_catalog_v1.json"
+contract_path = repo_root / "assets/nacht_reference/bo3_nacht_completion_contract_v1.json"
 registry = json.loads(registry_path.read_text(encoding="utf-8"))
+catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+contract = json.loads(contract_path.read_text(encoding="utf-8"))
 entries = registry.get("entries", [])
 upgrade_entries = registry.get("upgradeEntries", [])
 all_entries = entries + upgrade_entries
+
+runtime_required_lanes = (
+    "source_stats",
+    "behavior_spec",
+    "native_gameplay",
+    "model",
+    "audio",
+    "recoil",
+    "spread",
+    "animations",
+    "penetration",
+    "android_exposure",
+    "regression_test",
+)
+complete_states = {"ready", "not_applicable"}
+catalog_by_id = {row["weaponId"]: row for row in catalog.get("weapons", [])}
+contract_weapons = contract.get("weapons", {})
+runtime_ready_weapon_ids = set()
+for e in entries:
+    wid = e["weaponId"]
+    weapon = catalog_by_id.get(wid)
+    tracked = contract_weapons.get(wid)
+    if weapon is None or tracked is None:
+        raise SystemExit(f"weapon readiness source missing for {wid}")
+    lanes = tracked.get("lanes", {})
+    if (
+        weapon.get("nativeBindingStatus") == "ready"
+        and all(lanes.get(lane) in complete_states for lane in runtime_required_lanes)
+    ):
+        runtime_ready_weapon_ids.add(wid)
 
 defs_path = quakec_root / "source/shared/shared_defs.qc"
 stats_path = quakec_root / "source/shared/weapon_stats.qc"
@@ -85,11 +119,41 @@ if "XZIEL_FULL_MBOX_NAME_REGISTRY_BEGIN" not in stats:
     insertion = "\n".join(lines) + "\n"
     stats = stats[:default_pos] + insertion + stats[default_pos:]
 
+# Compile the same zero-broken-reward readiness policy used by higher-level
+# systems. Identity existence alone never makes a weapon safe to grant.
+ready_begin = "// XZIEL_WEAPON_RUNTIME_READINESS_BEGIN"
+ready_end = "// XZIEL_WEAPON_RUNTIME_READINESS_END"
+if ready_begin not in stats:
+    lines = [
+        "",
+        ready_begin,
+        "float(float weapon_id) XZIEL_WeaponRuntimeReady =",
+        "{",
+        "    switch (weapon_id) {",
+    ]
+    for e in entries:
+        if e["weaponId"] in runtime_ready_weapon_ids:
+            lines.append(f"        case {e['quakecDefine']}: return true;")
+    lines.extend(
+        [
+            "        default: return false;",
+            "    }",
+            "};",
+            ready_end,
+            "",
+        ]
+    )
+    stats += "\n".join(lines)
+
 # Registry must be exact and idempotent.
 if defs.count(block_start) != 1 or defs.count(block_end) != 1:
     raise SystemExit("XZIEL weapon registry marker mismatch")
 if stats.count("XZIEL_FULL_MBOX_NAME_REGISTRY_BEGIN") != 1:
     raise SystemExit("XZIEL .mb2 registry marker mismatch")
+if stats.count(ready_begin) != 1 or stats.count(ready_end) != 1:
+    raise SystemExit("XZIEL weapon runtime-readiness marker mismatch")
+if stats.count("float(float weapon_id) XZIEL_WeaponRuntimeReady =") != 1:
+    raise SystemExit("XZIEL weapon runtime-readiness helper signature mismatch")
 
 for e in all_entries:
     define_line = f"#define {e['quakecDefine']:<36} {int(e['quakecId'])}"
@@ -106,5 +170,6 @@ stats_path.write_text(stats, encoding="utf-8")
 print(
     "Applied XZIEL weapon ID registry: "
     f"{len(entries)} catalog identities + "
-    f"{len(upgrade_entries)} dedicated Pack-a-Punch identities."
+    f"{len(upgrade_entries)} dedicated Pack-a-Punch identities; "
+    f"{len(runtime_ready_weapon_ids)} catalog weapons runtime-ready."
 )
