@@ -32,6 +32,7 @@ WEAPON_ID_REGISTRY = ROOT / "assets/weapons/xziel_weapon_id_registry_v1.json"
 RUNTIME_BOX_POOL = ROOT / "assets/weapons/xziel_mystery_box_runtime_pool_v1.json"
 RUNTIME_CAPABILITIES = ROOT / "assets/nacht_reference/xziel_zombies_runtime_capabilities_v1.json"
 DEATH_MACHINE_SPEC = ROOT / "assets/nacht_reference/bo3_death_machine_spec_v1.json"
+PAP_CATALOG = ROOT / "assets/weapons/bo3_pack_a_punch_catalog_v1.json"
 
 ALLOWED_STATES = {
     "pending",
@@ -90,6 +91,7 @@ def main() -> int:
     runtime_box_pool = load(RUNTIME_BOX_POOL)
     runtime_capabilities = load(RUNTIME_CAPABILITIES)
     death_machine_spec = load(DEATH_MACHINE_SPEC)
+    pap_catalog = load(PAP_CATALOG)
 
     if contract.get("schemaVersion") != 1:
         fail("schemaVersion must be 1")
@@ -346,6 +348,65 @@ def main() -> int:
     if baseline.get("specialWeaponBehaviorSpecCount") != 1:
         fail("specialWeaponBehaviorSpecCount drift")
 
+    pap_variants = pap_catalog.get("variants", [])
+    if not isinstance(pap_variants, list):
+        fail("Pack-a-Punch catalog variants must be a list")
+    if len(pap_variants) != 36:
+        fail(f"Pack-a-Punch catalog must contain exactly 36 variants, got {len(pap_variants)}")
+
+    pap_base_ids = [row.get("baseWeaponId") for row in pap_variants]
+    pap_upgrade_ids = [row.get("upgradeWeaponId") for row in pap_variants]
+    if len(pap_base_ids) != len(set(pap_base_ids)):
+        fail("Pack-a-Punch catalog contains duplicate base weapon IDs")
+    if len(pap_upgrade_ids) != len(set(pap_upgrade_ids)):
+        fail("Pack-a-Punch catalog contains duplicate upgrade weapon IDs")
+    if not set(pap_base_ids).issubset(catalog_set):
+        fail(
+            "Pack-a-Punch catalog contains unknown base weapon IDs: "
+            f"{sorted(set(pap_base_ids)-catalog_set)}"
+        )
+
+    pap_counts = pap_catalog.get("counts", {})
+    expected_pap_counts = {
+        "upgradeIdentities": 36,
+        "statstableRows": 30,
+        "attachmentMappingRows": 26,
+        "specialEvidenceVariants": 6,
+        "ballisticUpgradeStatsReady": 0,
+        "nativeRuntimeReady": 0,
+    }
+    if pap_counts != expected_pap_counts:
+        fail(f"Pack-a-Punch count drift: {pap_counts} != {expected_pap_counts}")
+
+    if baseline.get("packAPunchUpgradeIdentityCount") != 36:
+        fail("packAPunchUpgradeIdentityCount drift")
+    if baseline.get("packAPunchStatstableCoverage") != 30:
+        fail("packAPunchStatstableCoverage drift")
+    if baseline.get("packAPunchAttachmentMappingCoverage") != 26:
+        fail("packAPunchAttachmentMappingCoverage drift")
+    if baseline.get("packAPunchBallisticStatsReady") != 0:
+        fail("packAPunchBallisticStatsReady must remain 0 until source-backed values land")
+    if baseline.get("packAPunchNativeRuntimeReady") != 0:
+        fail("packAPunchNativeRuntimeReady must remain 0 until native runtime lands")
+
+    pap_system = contract.get("requiredSystems", {}).get(
+        "pack_a_punch_weapon_variants", {}
+    )
+    if pap_system.get("state") != "partial":
+        fail("Pack-a-Punch system must remain partial")
+    if pap_system.get("upgradeIdentityCount") != 36:
+        fail("Pack-a-Punch system identity count drift")
+    if pap_system.get("identityStatus") != "ready":
+        fail("Pack-a-Punch identity layer must be ready")
+    if pap_system.get("ballisticUpgradeStatsReady") != 0:
+        fail("Pack-a-Punch ballistic stats must not be promoted prematurely")
+    if pap_system.get("nativeRuntimeReady") != 0:
+        fail("Pack-a-Punch runtime must not be promoted prematurely")
+    if pap_system.get("physicalMachinePresentOnNacht") is not False:
+        fail("Nacht Chronicles must not claim a physical Pack-a-Punch machine")
+
+    pap_base_set = set(pap_base_ids)
+
     if baseline.get("catalogWeaponCount") != len(weapons):
         fail(
             f"catalogWeaponCount={baseline.get('catalogWeaponCount')} "
@@ -397,6 +458,23 @@ def main() -> int:
                 f"{wid}.behavior_spec={lanes['behavior_spec']!r} "
                 "but no structured BO3 behavior spec exists"
             )
+
+        if wid in pap_base_set:
+            if lanes["pack_a_punch_identity"] != "ready":
+                fail(
+                    f"{wid}.pack_a_punch_identity={lanes['pack_a_punch_identity']!r} "
+                    "but BO3 prototype exposes a verified upgrade identity"
+                )
+            if lanes["pack_a_punch_runtime"] != "pending":
+                fail(
+                    f"{wid}.pack_a_punch_runtime={lanes['pack_a_punch_runtime']!r} "
+                    "must remain pending until native PaP runtime is complete"
+                )
+        elif wid == "special_death_machine":
+            if lanes["pack_a_punch_identity"] != "not_applicable":
+                fail("Death Machine Pack-a-Punch identity must be not_applicable")
+            if lanes["pack_a_punch_runtime"] != "not_applicable":
+                fail("Death Machine Pack-a-Punch runtime must be not_applicable")
 
         if weapon.get("mysteryBoxEligible") and lanes["mystery_box"] == "not_applicable":
             fail(f"{wid} is Mystery Box eligible but marked not_applicable")
