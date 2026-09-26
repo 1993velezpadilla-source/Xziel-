@@ -145,7 +145,7 @@
       "presentationStatus": "pending",
       "effectSpecsVerified": 10,
       "effectPrimitivesLogicReady": 6,
-      "remainingEffectPrimitives": 55,
+      "remainingEffectPrimitives": 54,
       "effectDispatchStatus": "partial",
       "remainingEffectDispatches": 57,
       "papDependentEffectSpecsVerified": 4,
@@ -153,8 +153,10 @@
       "papRuntimeRewardsExposed": 0,
       "wallPowerStatus": "logic_ready_dormant",
       "cratePowerStatus": "logic_ready_dormant",
-      "ephemeralEnhancementStatus": "identity_backend_ready_runtime_pending",
-      "disorderlyCombatStatus": "identity_backend_ready_runtime_pending"
+      "ephemeralEnhancementStatus": "logic_ready_dormant",
+      "disorderlyCombatStatus": "identity_backend_ready_runtime_pending",
+      "papTimedEffectLogicReady": 1,
+      "papDependentRuntimeLogicReady": 3
     },
     "der_wunderfizz_and_perk_randomization": {
       "state": "pending",
