@@ -40,7 +40,8 @@
     "mysteryBoxCandidateCount": 46,
     "mysteryBoxRuntimeCapacity": 64,
     "reusablePerkPrimitiveCount": 7,
-    "reusablePowerupPrimitiveCount": 7
+    "reusablePowerupPrimitiveCount": 7,
+    "xzielPowerupLogicPrimitiveCount": 8
   },
   "bo3ChroniclesFeatureReference": {
     "mysteryBox": true,
@@ -132,6 +133,13 @@
       "missingNativePowerupPrimitives": [
         "fire_sale",
         "death_machine"
+      ],
+      "xzielLogicPrimitives": 8,
+      "missingPowerupLogicPrimitives": [
+        "death_machine"
+      ],
+      "logicOnlyPendingPresentation": [
+        "fire_sale"
       ]
     },
     "pack_a_punch_weapon_variants": {
