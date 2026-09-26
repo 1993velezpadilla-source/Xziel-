@@ -81,11 +81,18 @@ public class NZPActivity extends SDLActivity {
 
         boolean ciPublicMatch = getIntent() != null
             && getIntent().getBooleanExtra("xziel_ci_public_match", false);
+        final String ciMatchQueue = getIntent() != null
+            ? getIntent().getStringExtra("xziel_ci_match_queue")
+            : null;
         if (ciPublicMatch) {
             getWindow().getDecorView().postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    if (multiplayer != null) multiplayer.findPublicMatch();
+                    if (multiplayer != null) {
+                        multiplayer.findPublicMatch(
+                            ciMatchQueue == null ? "public-v1" : ciMatchQueue
+                        );
+                    }
                 }
             }, 5000);
         }
