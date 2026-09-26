@@ -86,15 +86,27 @@ def id_for(prefix: str, name: Any, index: int | None = None) -> str:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("map_json", type=Path)
-    ap.add_argument("wallbuy_plan", type=Path)
+    ap.add_argument("source_json", type=Path)
+    ap.add_argument("purchase_json", type=Path)
     ap.add_argument("out_dir", type=Path)
     args = ap.parse_args()
 
-    doc = json.loads(args.map_json.read_text(encoding="utf-8-sig"))
+    source_doc = json.loads(args.source_json.read_text(encoding="utf-8-sig"))
+    if "Exports" in source_doc and "Imports" in source_doc:
+        doc = source_doc
+        spatial_doc = None
+    else:
+        spatial_doc = source_doc
+        raw_map = args.source_json.parent / "Nacht_de_Untoten.json"
+        if not raw_map.exists():
+            raise SystemExit(
+                "spatial manifest input requires sibling Nacht_de_Untoten.json"
+            )
+        doc = json.loads(raw_map.read_text(encoding="utf-8-sig"))
+
     exports: list[dict[str, Any]] = doc["Exports"]
     imports: list[dict[str, Any]] = doc["Imports"]
-    wallbuy = json.loads(args.wallbuy_plan.read_text(encoding="utf-8"))
+    purchase_doc = json.loads(args.purchase_json.read_text(encoding="utf-8"))
 
     level_index = next(
         i + 1 for i, e in enumerate(exports)
@@ -284,16 +296,54 @@ def main() -> int:
     # Purchase slots: all nine BO3 placements, including repaired six.
     # ------------------------------------------------------------------
     purchases: list[dict[str, Any]] = []
-    for slot in wallbuy["purchase_slots"]:
-        ue = slot["interaction_location_ue_cm"]
+    bo3_ids = {
+        "arak": "ar_standard",
+        "argus": "shotgun_precision",
+        "frag": "frag_grenade",
+        "krm": "shotgun_pump",
+        "kuda": "smg_standard",
+        "locus_decal": "sniper_fastbolt",
+        "pharaoh": "smg_burst",
+        "shiva": "ar_marksman",
+        "triton": "pistol_burst",
+    }
+    for slot in purchase_doc["purchase_slots"]:
+        marker = slot.get("chalk_key") or slot.get("source_marker")
+        canonical = slot["canonical"]
+        slot_type = slot.get("type") or slot.get("kind")
+        if "interaction_location_ue_cm" in slot:
+            ue = slot["interaction_location_ue_cm"]
+            functional_actor = slot.get("functional_actor")
+            reconstructed = bool(slot.get("reconstructed"))
+            placement_source = slot.get("placement_source")
+            pavlov_id = slot.get("pavlov_weapon_id")
+            chalk_asset = slot.get("chalk_asset")
+            radius = slot.get("interaction_radius_cm", 150.0)
+        else:
+            transform = slot.get("transform") or {}
+            ue = transform.get("position")
+            if not isinstance(ue, dict):
+                raise SystemExit(f"purchase slot {canonical} missing resolved position")
+            functional_actor = slot.get("functional_actor")
+            placement_source = slot.get("placement_source")
+            reconstructed = placement_source != "functional_wallbuy_actor"
+            pavlov_id = slot.get("weapon_id")
+            chalk_asset = slot.get("marker_mesh") or (
+                f"zm_prototype_part4_t7_zm_chalk_buy_{marker}" if marker else None
+            )
+            radius = 150.0
+
+        if slot_type in {"weapon", "wallbuy"}:
+            runtime_type = "wall_buy"
+        elif slot_type in {"sniper_cabinet", "weapon_cabinet"}:
+            runtime_type = "weapon_cabinet"
+        else:
+            runtime_type = "equipment_buy"
+
         purchases.append({
-            "id": slot["id"],
-            "name": slot["canonical"],
-            "type": (
-                "wall_buy"
-                if slot["type"] == "weapon"
-                else ("weapon_cabinet" if slot["type"] == "sniper_cabinet" else "equipment_buy")
-            ),
+            "id": slot.get("id") or f"purchase_{marker or canonical.lower()}",
+            "name": canonical,
+            "type": runtime_type,
             "transform": {
                 "position": lower_vec_to_xziel_m(ue),
                 "sourcePositionUEcm": ue,
@@ -302,19 +352,22 @@ def main() -> int:
             },
             "source": (
                 "pavlov_functional_actor"
-                if not slot["reconstructed"]
+                if not reconstructed
                 else "bo3_derived_chalk_geometry_reconstruction"
             ),
             "enabledProfiles": ["bo3_chronicles", "pavlov_extended"],
             "properties": {
-                "canonical": slot["canonical"],
-                "bo3WeaponId": slot["bo3_weapon_id"],
-                "pavlovWeaponId": slot["pavlov_weapon_id"],
+                "canonical": canonical,
+                "bo3WeaponId": slot.get("bo3_weapon_id") or bo3_ids.get(marker),
+                "pavlovWeaponId": pavlov_id,
                 "price": slot["price"],
-                "chalkAsset": slot["chalk_asset"],
-                "interactionRadiusCm": slot["interaction_radius_cm"],
-                "reconstructed": slot["reconstructed"],
-                "functionalActor": slot["functional_actor"],
+                "chalkAsset": chalk_asset,
+                "interactionRadiusCm": radius,
+                "reconstructed": reconstructed,
+                "functionalActor": functional_actor,
+                "placementSource": placement_source,
+                "placementConfidence": slot.get("placement_confidence"),
+                "yawCandidatesUE": slot.get("yaw_candidates"),
             },
             "replicationPolicy": "server_authoritative",
         })
@@ -593,10 +646,27 @@ def main() -> int:
         preflight_errors.append(f"expected 21 zombie spawns, got {len(zombie_spawns)}")
     if len(purchases) != 9:
         preflight_errors.append(f"expected 9 BO3 purchase slots, got {len(purchases)}")
-    if len(wallbuy.get("anchors", [])) != 3:
-        preflight_errors.append("wallbuy plan missing 3 validation anchors")
-    if wallbuy.get("validation", {}).get("max_anchor_error_cm", 999) > 10:
-        preflight_errors.append("wallbuy anchor validation exceeds 10 cm")
+    anchor_count = len(purchase_doc.get("anchors", []))
+    if not anchor_count:
+        anchor_count = int(
+            purchase_doc.get("summary", {}).get("functional_actor_slots", 0)
+        )
+    if anchor_count != 3:
+        preflight_errors.append(
+            f"purchase calibration expected 3 functional anchors, got {anchor_count}"
+        )
+    calibration_error = purchase_doc.get("validation", {}).get(
+        "max_anchor_error_cm"
+    )
+    if calibration_error is None:
+        calibration_error = purchase_doc.get("summary", {}).get(
+            "calibration_rmse_cm",
+            purchase_doc.get("calibration", {}).get("rmse_cm"),
+        )
+    if calibration_error is None or float(calibration_error) > 10.0:
+        preflight_errors.append(
+            f"purchase anchor/calibration error exceeds 10 cm: {calibration_error}"
+        )
 
     preflight = {
         "ok": not preflight_errors,
@@ -615,7 +685,10 @@ def main() -> int:
             "collisionActors": len(collision),
             "zones": len(zones),
         },
-        "wallBuyValidation": wallbuy.get("validation"),
+        "wallBuyValidation": purchase_doc.get("validation") or {
+            "calibration": purchase_doc.get("calibration"),
+            "summary": purchase_doc.get("summary"),
+        },
     }
 
     files = {
