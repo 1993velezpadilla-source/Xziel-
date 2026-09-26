@@ -19,7 +19,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y blender p7zip-full python3-numpy
+          sudo apt-get install -y blender p7zip-full python3-numpy libegl1 libgl1 libgl1-mesa-dri libegl-mesa0
           mkdir -p "$RUNNER_TEMP/steamcmd" "$RUNNER_TEMP/repak"
           curl -fL --retry 6 --retry-delay 2 --retry-all-errors https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz -o "$RUNNER_TEMP/steamcmd.tgz"
           tar -xzf "$RUNNER_TEMP/steamcmd.tgz" -C "$RUNNER_TEMP/steamcmd"
