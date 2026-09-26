@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "poolId": "xziel_mystery_box_global_v1",
+  "policy": "global_enabled_firearms",
+  "catalog": "assets/weapons/xziel_weapon_catalog_v1.json",
+  "notes": [
+    "Every globally enabled firearm in the catalog is eligible for the XZIEL Mystery Box by default.",
+    "Map profiles may exclude entries later without deleting them from the global catalog.",
+    "A catalog entry still requires a native weapon binding before it can be spawned as a playable weapon."
+  ],
+  "weaponIds": [
+    "ar_famas",
+    "ar_cqb",
+    "ar_accurate",
+    "ar_standard",
+    "ar_longburst",
+    "ar_damage",
+    "ar_garand",
+    "ar_marksman",
+    "ar_fastburst",
+    "launcher_standard",
+    "lmg_heavy",
+    "lmg_light",
+    "lmg_cqb",
+    "lmg_slowfire",
+    "pistol_fullauto",
+    "pistol_shotgun",
+    "pistol_standard",
+    "pistol_energy",
+    "pistol_burst",
+    "shotgun_semiauto",
+    "shotgun_precision",
+    "shotgun_energy",
+    "shotgun_fullauto",
+    "shotgun_pump",
+    "smg_mp40",
+    "smg_standard",
+    "smg_burst",
+    "smg_longrange",
+    "smg_fastfire",
+    "smg_versatile",
+    "smg_capacity",
+    "sniper_fastsemi",
+    "sniper_fastbolt",
+    "sniper_chargeshot",
+    "sniper_quickscope",
+    "sniper_powerbolt"
+  ],
+  "validation": {
+    "expectedCount": 36
+  }
+}
