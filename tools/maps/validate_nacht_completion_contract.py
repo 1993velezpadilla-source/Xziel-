@@ -374,6 +374,8 @@ def main() -> int:
         "specialEvidenceVariants": 6,
         "ballisticUpgradeStatsReady": 0,
         "nativeRuntimeReady": 0,
+        "dedicatedNativeUpgradeIds": 35,
+        "reusedCatalogUpgradeIds": 1,
     }
     if pap_counts != expected_pap_counts:
         fail(f"Pack-a-Punch count drift: {pap_counts} != {expected_pap_counts}")
