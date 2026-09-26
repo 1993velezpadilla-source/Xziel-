@@ -582,5 +582,16 @@
         1.0938642883300782
       ]
     }
-  ]
+  ],
+  "weaponRuntime": {
+    "globalCatalog": "assets/weapons/xziel_weapon_catalog_v1.json",
+    "globalMysteryBoxPool": "assets/weapons/xziel_mystery_box_pool_v1.json",
+    "nachtMysteryBoxPool": "assets/weapons/nacht_prototype_box_pool_v1.json",
+    "globalCatalogMinimumCount": 51,
+    "globalMysteryBoxCount": 46,
+    "nachtPrototypeWeaponTableCount": 41,
+    "nachtPrototypeMysteryBoxCount": 34,
+    "scope": "identity_and_availability_only",
+    "ballisticTuning": "unchanged"
+  }
 }
