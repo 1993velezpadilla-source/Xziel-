@@ -278,3 +278,21 @@ void Xziel_Android_OnlinePauseVoice(int visible)
         (*env)->DeleteLocalRef(env, activity);
     Xziel_ClearException(env);
 }
+
+
+void Xziel_Android_CiRemoteEntity(int slot, float x, float y, float z,
+    int frame, float yaw)
+{
+    JNIEnv *env = Xziel_Env();
+    jobject activity = Xziel_Activity(env);
+    jmethodID method = Xziel_Method(env, activity, "xzielCiRemoteEntity",
+        "(IFFFIF)V");
+
+    if (method)
+        (*env)->CallVoidMethod(env, activity, method,
+            (jint)slot, (jfloat)x, (jfloat)y, (jfloat)z,
+            (jint)frame, (jfloat)yaw);
+    if (activity)
+        (*env)->DeleteLocalRef(env, activity);
+    Xziel_ClearException(env);
+}
