@@ -23,6 +23,7 @@ CONTRACT = ROOT / "assets/nacht_reference/bo3_nacht_completion_contract_v1.json"
 CATALOG = ROOT / "assets/weapons/xziel_weapon_catalog_v1.json"
 BOX = ROOT / "assets/weapons/xziel_mystery_box_pool_v1.json"
 RUNTIME = ROOT / "assets/nacht_reference/runtime_reference_v1.json"
+BEHAVIOR_SPECS = ROOT / "assets/nacht_reference/bo3_weapon_specs_v1.json"
 
 ALLOWED_STATES = {
     "pending",
@@ -72,6 +73,7 @@ def main() -> int:
     catalog = load(CATALOG)
     box = load(BOX)
     runtime = load(RUNTIME)
+    behavior_specs = load(BEHAVIOR_SPECS)
 
     if contract.get("schemaVersion") != 1:
         fail("schemaVersion must be 1")
@@ -104,6 +106,22 @@ def main() -> int:
         fail(f"completion contract contains unknown weapons: {extra}")
 
     baseline = contract.get("baseline", {})
+    spec_rows = behavior_specs.get("weapons", [])
+    if not isinstance(spec_rows, list):
+        fail("BO3 behavior specs weapons must be a list")
+    spec_ids = [row.get("logicalItemId") for row in spec_rows]
+    if any(not isinstance(x, str) or not x for x in spec_ids):
+        fail("BO3 behavior specs contains invalid logicalItemId")
+    if len(spec_ids) != len(set(spec_ids)):
+        fail("BO3 behavior specs contains duplicate logicalItemId values")
+    if not set(spec_ids).issubset(catalog_set):
+        fail(f"BO3 behavior specs contains unknown catalog IDs: {sorted(set(spec_ids)-catalog_set)}")
+    if baseline.get("bo3StructuredBehaviorSpecCount") != len(spec_rows):
+        fail(
+            f"bo3StructuredBehaviorSpecCount={baseline.get('bo3StructuredBehaviorSpecCount')} "
+            f"does not match behavior specs={len(spec_rows)}"
+        )
+
     if baseline.get("catalogWeaponCount") != len(weapons):
         fail(
             f"catalogWeaponCount={baseline.get('catalogWeaponCount')} "
@@ -138,6 +156,13 @@ def main() -> int:
         for lane, state in lanes.items():
             if state not in ALLOWED_STATES:
                 fail(f"{wid}.{lane} has invalid state {state!r}")
+
+        expected_behavior_state = "cataloged" if wid in set(spec_ids) else "pending"
+        if lanes["behavior_spec"] != expected_behavior_state:
+            fail(
+                f"{wid}.behavior_spec={lanes['behavior_spec']!r} "
+                f"but expected {expected_behavior_state!r} from structured spec coverage"
+            )
 
         if weapon.get("mysteryBoxEligible") and lanes["mystery_box"] == "not_applicable":
             fail(f"{wid} is Mystery Box eligible but marked not_applicable")
