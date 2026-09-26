@@ -214,13 +214,97 @@ jobs:
             sleep 2
           done
 
-          sleep 4
-          "$ADB" exec-out screencap -p > dist/nacht-harness.png || true
+          # FIRST_FRAME_OK proves the game loop is alive, but SwiftShader can
+          # still be presenting a transient black surface while XZIEL Phase 16
+          # validates native ownership. Wait for the same stable MODERN proof
+          # used by the main Android workflow before judging visual output.
+          MODERN_VISUAL_READY=0
+          for i in $(seq 1 60); do
+            "$ADB" logcat -d -v threadtime > dist/nacht-logcat-previsual.txt || true
+            if grep -Eq "XZIEL-XZ.*parity present context=1 attempts=[1-9][0-9]* success=[1-9][0-9]* fail=0 draws=[1-9][0-9]* streak=([2-9]|[1-9][0-9]+)" dist/nacht-logcat-previsual.txt \
+              && grep -Eq "XZIEL-XZ.*phase16 heartbeat requested=MODERN active=MODERN candidate=1 allowed=1 caps=0xff blockers=0x0 .*legacyVisible=0" dist/nacht-logcat-previsual.txt; then
+              MODERN_VISUAL_READY=1
+              break
+            fi
+            sleep 2
+          done
+
+          if [[ "$MODERN_VISUAL_READY" != "1" ]]; then
+            echo "Nacht harness never reached stable MODERN visual ownership."
+            grep -E "XZIEL-XZ.*parity geometry|XZIEL-XZ.*parity texture|XZIEL-XZ.*parity shadows|XZIEL-XZ.*parity present|XZIEL-XZ.*phase16 heartbeat" \
+              dist/nacht-logcat-previsual.txt | tail -n 260 || true
+            exit 1
+          fi
+
+          sleep 3
+
+          python3 -m pip install --quiet pillow==11.3.0
+          : > dist/nacht-visual-report.txt
+          VISUAL_OK=0
+
+          for attempt in $(seq 1 6); do
+            "$ADB" exec-out screencap -p > dist/nacht-harness-a.png || true
+            sleep 3
+            "$ADB" exec-out screencap -p > dist/nacht-harness-b.png || true
+
+            if ATTEMPT="$attempt" python3 - <<'PY' >> dist/nacht-visual-report.txt 2>&1
+          import os
+          from pathlib import Path
+          from PIL import Image, ImageChops, ImageStat
+
+          attempt=os.environ.get("ATTEMPT","?")
+          paths=[Path("dist/nacht-harness-a.png"),Path("dist/nacht-harness-b.png")]
+          images=[]
+
+          for path in paths:
+              im=Image.open(path).convert("RGB")
+              if im.height > im.width:
+                  im=im.transpose(Image.Transpose.ROTATE_90)
+
+              if im.width < 1000 or im.height < 500 or im.width <= im.height:
+                  raise SystemExit(f"attempt={attempt} invalid dimensions: {path} {im.size}")
+
+              gray=im.convert("L")
+              stat=ImageStat.Stat(gray)
+              lo,hi=gray.getextrema()
+              if hi-lo < 24 or stat.stddev[0] < 8:
+                  raise SystemExit(
+                      f"attempt={attempt} blank/flat: {path} "
+                      f"extrema={(lo,hi)} std={stat.stddev[0]:.2f}"
+                  )
+
+              images.append(im)
+              print(
+                  f"attempt={attempt} {path.name}: size={im.size} "
+                  f"mean={stat.mean[0]:.2f} std={stat.stddev[0]:.2f} "
+                  f"extrema={(lo,hi)}"
+              )
+
+          diff=ImageChops.difference(images[0],images[1]).convert("L")
+          dstat=ImageStat.Stat(diff)
+          print(
+              f"attempt={attempt} frame_delta_mean={dstat.mean[0]:.3f} "
+              f"frame_delta_std={dstat.stddev[0]:.3f}"
+          )
+          PY
+            then
+              VISUAL_OK=1
+              cp dist/nacht-harness-a.png dist/nacht-harness.png
+              break
+            fi
+
+            sleep 4
+          done
+
+          cat dist/nacht-visual-report.txt
+
           "$ADB" logcat -d -v threadtime > dist/nacht-logcat.txt || true
 
           PID="$("$ADB" shell pidof com.xziel.engine 2>/dev/null | tr -d '\r' || true)"
           echo "PID=$PID" | tee dist/runtime-state.txt
           echo "STAGE=$STAGE" | tee -a dist/runtime-state.txt
+          echo "MODERN_VISUAL_READY=$MODERN_VISUAL_READY" | tee -a dist/runtime-state.txt
+          echo "VISUAL_OK=$VISUAL_OK" | tee -a dist/runtime-state.txt
 
           grep -Ei "xziel_nacht_bo3|nacht runtime active|mapRuntime=NACHT_BO3|Fatal signal|FATAL EXCEPTION" \
             dist/nacht-logcat.txt > dist/nacht-runtime-highlights.txt || true
@@ -237,20 +321,12 @@ jobs:
           grep -Eq "nacht runtime active points=500 zones=0x1 spawns=10 purchases=9 doors=3 barricades=12" \
             dist/nacht-logcat.txt
 
-          python3 -m pip install --quiet pillow==11.3.0
-          python3 - <<'PY' | tee dist/nacht-visual-report.txt
-          from PIL import Image, ImageStat
-          im=Image.open("dist/nacht-harness.png").convert("RGB")
-          if im.height > im.width:
-              im=im.transpose(Image.Transpose.ROTATE_90)
-          gray=im.convert("L")
-          stat=ImageStat.Stat(gray)
-          lo,hi=gray.getextrema()
-          print("size",im.size,"mean",stat.mean[0],"std",stat.stddev[0],"extrema",(lo,hi))
-          assert im.width >= 1000 and im.height >= 500
-          assert hi-lo >= 20
-          assert stat.stddev[0] >= 6
-          PY
+          if [[ "$VISUAL_OK" != "1" ]]; then
+            echo "Nacht harness remained blank/flat after stable MODERN ownership and all capture retries."
+            grep -E "XZIEL-XZ.*parity geometry|XZIEL-XZ.*parity texture|XZIEL-XZ.*parity present|XZIEL-XZ.*phase16 heartbeat" \
+              dist/nacht-logcat.txt | tail -n 220 || true
+            exit 1
+          fi
 
       - name: Upload Nacht gameplay harness
         if: always()
@@ -260,7 +336,10 @@ jobs:
           path: |
             dist/XZIEL-Engine-Nacht-Gameplay-Harness-debug.apk
             dist/nacht-harness.png
+            dist/nacht-harness-a.png
+            dist/nacht-harness-b.png
             dist/nacht-logcat.txt
+            dist/nacht-logcat-previsual.txt
             dist/nacht-runtime-highlights.txt
             dist/nacht-visual-report.txt
             dist/runtime-state.txt
