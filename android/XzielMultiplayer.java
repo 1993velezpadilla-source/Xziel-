@@ -62,6 +62,7 @@ public final class XzielMultiplayer {
 
     private final Activity activity;
     private final OkHttpClient http;
+    private final XzielVoiceChat voiceChat;
     private final ConcurrentHashMap<Integer, ConcurrentLinkedQueue<GamePacket>> packetsByPort =
         new ConcurrentHashMap<>();
     private final Set<Integer> connectedSlots = ConcurrentHashMap.newKeySet();
@@ -207,6 +208,7 @@ public final class XzielMultiplayer {
             .pingInterval(15, TimeUnit.SECONDS)
             .retryOnConnectionFailure(true)
             .build();
+        this.voiceChat = new XzielVoiceChat(activity, this.http);
     }
 
     public boolean isOnlineActive() {
@@ -598,6 +600,8 @@ public final class XzielMultiplayer {
                 targetPlayers = message.optInt("targetPlayers",
                     "public".equals(roomMode) ? targetPlayers : MAX_PLAYERS);
                 connectedSlots.add(slot);
+                voiceChat.connect(baseUrl, roomCode, playerId, slot);
+                voiceChat.setPlayerConnected(slot, true);
                 queueNativeCommand("name XzielP" + slot + "\n");
                 Log.i(TAG, "WELCOME room=" + roomCode + " mode=" + roomMode +
                     " slot=" + slot + " map=" + selectedMap +
@@ -615,6 +619,7 @@ public final class XzielMultiplayer {
                 int slot = message.optInt("slot", 0);
                 if (slot >= 1 && slot <= MAX_PLAYERS) {
                     connectedSlots.add(slot);
+                    voiceChat.setPlayerConnected(slot, true);
                     Log.i(TAG, "PLAYER_JOINED slot=" + slot + " count=" + connectedSlots.size());
                     toast("Player " + slot + " connected");
                 }
@@ -624,6 +629,7 @@ public final class XzielMultiplayer {
             if ("player_left".equals(type)) {
                 int slot = message.optInt("slot", 0);
                 connectedSlots.remove(slot);
+                voiceChat.setPlayerConnected(slot, false);
                 toast("Player " + slot + " left");
                 return;
             }
@@ -752,6 +758,19 @@ public final class XzielMultiplayer {
      * This closes the old race where clients tried to connect before the host
      * had actually opened its Quake listen socket.
      */
+    public void updateVoicePosition(float x, float y, float z) {
+        voiceChat.updateLocalPosition(x, y, z);
+    }
+
+    public void showVoicePausePanel(boolean visible) {
+        if (visible) voiceChat.showPausePanel();
+        else voiceChat.hidePausePanel();
+    }
+
+    public void onMicrophonePermissionResult(boolean granted) {
+        voiceChat.onMicrophonePermissionResult(granted);
+    }
+
     public void onEngineState(boolean serverActive, boolean clientConnected,
                               int signon, String map) {
         engineServerActive = serverActive;
@@ -910,6 +929,7 @@ public final class XzielMultiplayer {
         serverReadySent = false;
         serverReadyReceived = false;
         clientReadySent = false;
+        voiceChat.leaveRoom();
         connectedSlots.clear();
         packetsByPort.clear();
         pendingNativeCommand.set("");
