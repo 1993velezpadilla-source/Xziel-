@@ -238,6 +238,14 @@ jobs:
           grep -F 'XZIEL_GobbleGumMappedActivationCount' build/deps/quakec/source/server/entities/perk_a_cola.qc
           grep -F 'XZIEL_GobbleGumSpawnMappedPowerup' build/deps/quakec/source/server/entities/perk_a_cola.qc
           grep -F 'XZIEL_GOBBLEGUM_PLAYER_STATE_BEGIN' build/deps/quakec/source/server/defs/custom.qc
+          grep -F 'XZIEL_DEATH_MACHINE_STATE_RUNTIME_BEGIN' build/deps/quakec/source/server/utilities/weapon_utilities.qc
+          grep -F 'XZIEL_DEATH_MACHINE_BLOCK_WALLBUY' build/deps/quakec/source/server/entities/wall_weapon.qc
+          grep -F 'XZIEL_DEATH_MACHINE_BLOCK_MBOX' build/deps/quakec/source/server/entities/mystery_box.qc
+          grep -F 'XZIEL_DEATH_MACHINE_BLOCK_PERK' build/deps/quakec/source/server/entities/perk_a_cola.qc
+          grep -F 'XZIEL_DEATH_MACHINE_BLOCK_PAP' build/deps/quakec/source/server/entities/pack_a_punch.qc
+          grep -F 'XZIEL_DEATH_MACHINE_BLOCK_BARRICADE' build/deps/quakec/source/server/entities/window.qc
+          grep -F 'XZIEL_DEATH_MACHINE_BLOCK_REVIVE' build/deps/quakec/source/server/player/last_stand.qc
+          grep -F 'XZIEL_DEATH_MACHINE_SWITCH_CANCEL' build/deps/quakec/source/server/weapons/weapon_core.qc
           unzip -l build/android-project/app/src/main/assets/nzp-data.zip \
             | grep 'nzp/maps/xziel_nacht_bo3.bsp'
           unzip -l build/android-project/app/src/main/assets/nzp-data.zip \
