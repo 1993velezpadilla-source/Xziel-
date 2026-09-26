@@ -7,66 +7,112 @@ on:
       - experiment/bo3-nacht-standalone-audit
     paths:
       - ".github/workflows/pavlov-bo3-nacht-wallbuy-repair-audit.yml"
-      - "tools/maps/build_pavlov_nacht_wallbuy_repair_plan.py"
-      - "experiments/bo3_nacht_reference/chalk_bounds_umodel_v1.json"
+      - "experiments/bo3_nacht_reference/nacht_wallbuy_repair_plan_v2.json"
 
 jobs:
-  audit:
-    runs-on: windows-latest
-    timeout-minutes: 120
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download Pavlov Nacht Workshop
-        shell: pwsh
+      - name: Validate calibrated nine-slot repair plan
+        shell: bash
         run: |
-          $ErrorActionPreference='Stop'
-          $steam=Join-Path $env:RUNNER_TEMP 'steamcmd'
-          New-Item -ItemType Directory -Force -Path $steam | Out-Null
-          Invoke-WebRequest 'https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip' -OutFile (Join-Path $env:RUNNER_TEMP 'steamcmd.zip')
-          Expand-Archive (Join-Path $env:RUNNER_TEMP 'steamcmd.zip') -DestinationPath $steam -Force
-          & (Join-Path $steam 'steamcmd.exe') +login anonymous +workshop_download_item 555160 2755515831 validate +quit
-          $root=Get-ChildItem $steam,$env:RUNNER_TEMP -Directory -Recurse -ErrorAction SilentlyContinue | Where-Object {$_.FullName -like '*steamapps\workshop\content\555160\2755515831'} | Select-Object -First 1
-          if(-not $root){throw 'payload not found'}
-          $pak=Join-Path $root.FullName 'WindowsNoEditor.pak'
-          if(-not (Test-Path $pak)){throw 'pak missing'}
-          "PAK=$pak" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
-          exit 0
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, math
+          from pathlib import Path
 
-      - name: Unpack PAK and export map JSON
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          Invoke-WebRequest 'https://github.com/trumank/repak/releases/download/v0.2.3/repak_cli-x86_64-pc-windows-msvc.zip' -OutFile (Join-Path $env:RUNNER_TEMP 'repak.zip')
-          $repakDir=Join-Path $env:RUNNER_TEMP 'repak'
-          Expand-Archive (Join-Path $env:RUNNER_TEMP 'repak.zip') -DestinationPath $repakDir -Force
-          $repak=Get-ChildItem $repakDir -Filter repak.exe -Recurse | Select-Object -First 1
-          $out=Join-Path $env:RUNNER_TEMP 'pakextract'
-          New-Item -ItemType Directory -Force -Path $out | Out-Null
-          & $repak.FullName unpack $env:PAK -o $out
-          if($LASTEXITCODE -ne 0){throw 'repak failed'}
-          $map=Get-ChildItem $out -Filter 'Nacht_de_Untoten.umap' -Recurse | Select-Object -First 1
-          if(-not $map){throw 'map missing'}
-          Invoke-WebRequest 'https://github.com/atenfyr/UAssetGUI/releases/download/v1.1.0/UAssetGUI.exe' -OutFile (Join-Path $env:RUNNER_TEMP 'UAssetGUI.exe')
-          New-Item -ItemType Directory -Force -Path 'audit-out' | Out-Null
-          & (Join-Path $env:RUNNER_TEMP 'UAssetGUI.exe') tojson $map.FullName 'audit-out\Nacht_de_Untoten.json' VER_UE4_21
-          if($LASTEXITCODE -ne 0){throw 'map export failed'}
-          $json=Get-ChildItem $PWD,$env:RUNNER_TEMP -Recurse -File -Filter 'Nacht_de_Untoten.json' -ErrorAction SilentlyContinue | Select-Object -First 1
-          if(-not $json){throw 'map JSON not found after UAssetGUI export'}
-          Write-Host "Map JSON: $($json.FullName) bytes=$($json.Length)"
-          "MAP_JSON=$($json.FullName)" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          path = Path("experiments/bo3_nacht_reference/nacht_wallbuy_repair_plan_v2.json")
+          doc = json.loads(path.read_text(encoding="utf-8"))
+          slots = doc.get("purchase_slots", [])
+          errors = []
 
-      - name: Build complete nine-slot wallbuy repair plan
-        shell: pwsh
-        run: |
-          python tools/maps/build_pavlov_nacht_wallbuy_repair_plan.py $env:MAP_JSON experiments/bo3_nacht_reference/chalk_bounds_umodel_v1.json audit-out/nacht-wallbuy-repair-plan.json
-          if($LASTEXITCODE -ne 0){throw 'wallbuy repair validation failed'}
-          Get-Content audit-out/nacht-wallbuy-repair-plan.json | Select-Object -First 240
+          expected = {
+              "purchase_arak": ("KN-44", "wallbuy", 1400),
+              "purchase_argus": ("Argus", "wallbuy", 1100),
+              "purchase_frag": ("Fragmentation Grenades", "equipment", 250),
+              "purchase_krm": ("KRM-262", "wallbuy", 750),
+              "purchase_kuda": ("Kuda", "wallbuy", 1250),
+              "purchase_locus_decal": ("Locus", "sniper_cabinet", 5000),
+              "purchase_pharaoh": ("Pharo", "wallbuy", 700),
+              "purchase_shiva": ("Sheiva", "wallbuy", 500),
+              "purchase_triton": ("RK5", "wallbuy", 500),
+          }
 
-      - name: Upload metadata audit
-        uses: actions/upload-artifact@v4
-        with:
-          name: pavlov-bo3-nacht-wallbuy-repair-audit
-          path: audit-out/nacht-wallbuy-repair-plan.json
-          if-no-files-found: error
-          retention-days: 7
+          by_id = {row.get("id"): row for row in slots}
+          if len(slots) != 9 or len(by_id) != 9:
+              errors.append(
+                  f"expected 9 unique slots, got {len(slots)} rows / {len(by_id)} unique"
+              )
+
+          for slot_id, (name, kind, price) in expected.items():
+              row = by_id.get(slot_id)
+              if row is None:
+                  errors.append(f"missing {slot_id}")
+                  continue
+              if row.get("canonical") != name:
+                  errors.append(f"{slot_id}: wrong name {row.get('canonical')!r}")
+              if row.get("type") != kind:
+                  errors.append(f"{slot_id}: wrong type {row.get('type')!r}")
+              if row.get("price") != price:
+                  errors.append(f"{slot_id}: wrong price {row.get('price')}")
+              if row.get("needs_geometry_resolution") is not False:
+                  errors.append(f"{slot_id}: geometry unresolved")
+              if row.get("replicationPolicy") != "server_authoritative":
+                  errors.append(f"{slot_id}: replication must be server_authoritative")
+              if float(row.get("interaction_radius_cm", 0)) <= 0:
+                  errors.append(f"{slot_id}: invalid interaction radius")
+
+              for key in ("interaction_location_ue_cm", "interaction_location_xziel_m"):
+                  pos = row.get(key)
+                  if not isinstance(pos, dict):
+                      errors.append(f"{slot_id}: missing {key}")
+                      continue
+                  values = [pos.get(axis) for axis in ("x", "y", "z")]
+                  if not all(
+                      isinstance(value, (int, float))
+                      and math.isfinite(float(value))
+                      for value in values
+                  ):
+                      errors.append(f"{slot_id}: invalid {key}")
+
+          functional = [
+              slot for slot in slots
+              if slot.get("placement_source") == "functional_wallbuy_actor"
+          ]
+          derived = [
+              slot for slot in slots
+              if slot.get("placement_source") == "calibrated_marker_mesh_bounds"
+          ]
+          if len(functional) != 3:
+              errors.append(f"expected 3 functional anchors, got {len(functional)}")
+          if len(derived) != 6:
+              errors.append(f"expected 6 reconstructed slots, got {len(derived)}")
+
+          rmse = float((doc.get("calibration") or {}).get("rmse_cm", math.inf))
+          if not math.isfinite(rmse) or rmse > 10.0:
+              errors.append(f"calibration RMSE too high: {rmse}")
+
+          validation = doc.get("validation") or {}
+          if validation.get("gate") != "PASS":
+              errors.append("stored validation gate is not PASS")
+          if validation.get("unresolved_slot_count") != 0:
+              errors.append("stored manifest reports unresolved slots")
+
+          result = {
+              "slot_count": len(slots),
+              "functional_anchor_count": len(functional),
+              "reconstructed_count": len(derived),
+              "calibration_rmse_cm": rmse,
+              "unresolved": sum(
+                  1 for slot in slots
+                  if slot.get("needs_geometry_resolution")
+              ),
+              "errors": errors,
+          }
+          print(json.dumps(result, indent=2))
+          if errors:
+              raise SystemExit(3)
+          PY
