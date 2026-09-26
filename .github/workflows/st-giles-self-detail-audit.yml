@@ -1,0 +1,57 @@
+name: St Giles Self-Derived Detail Audit
+
+on:
+  push:
+    branches:
+      - engine/mobile-power-fidelity-v1
+    paths:
+      - ".github/workflows/st-giles-self-detail-audit.yml"
+      - "tools/church_map/build_st_giles_self_detail.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install deterministic image dependencies
+        run: python3 -m pip install --quiet --disable-pip-version-check pillow numpy
+
+      - name: Recover exact St Giles exterior source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/clean
+          RUN_ID="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/sanctum-clean-source.yml/runs?branch=engine/mobile-power-fidelity-v1&status=success&per_page=20" --jq '.workflow_runs[0].id')"
+          ARTIFACT_ID="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/artifacts" --jq '.artifacts[] | select(.name == "Xziel-Sanctum-Clean-Source") | .id' | head -n1)"
+          test -n "$ARTIFACT_ID"
+          gh api "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" > build/clean.zip
+          unzip -q build/clean.zip -d build/clean
+          SOURCE="$(find build/clean -name 'source_03.png' -print -quit)"
+          test -s "$SOURCE"
+          echo "SOURCE=$SOURCE" >> "$GITHUB_ENV"
+
+      - name: Mine source-native stone detail candidates
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/church_map/build_st_giles_self_detail.py             --source "$SOURCE"             --out-dir build/self-detail             --report build/self-detail-report.json             --patch-size 192             --stride 48             --count 8             --detail-size 1024
+          jq . build/self-detail-report.json
+
+      - name: Upload source-native detail A-B
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xziel-St-Giles-Self-Derived-Detail
+          path: |
+            build/self-detail/**
+            build/self-detail-report.json
+          retention-days: 14
