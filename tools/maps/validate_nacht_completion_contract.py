@@ -145,6 +145,37 @@ def main() -> int:
     if baseline.get("gobbleGumIdentityCount") != len(gum_entries):
         fail("gobbleGumIdentityCount drift")
 
+    gum_core = gobblegum_catalog.get("runtimeCore", {})
+    if gum_core.get("status") != "logic_ready":
+        fail("GobbleGum runtime core must remain logic_ready once landed")
+    if gum_core.get("loadoutSize") != 5 or baseline.get("gobbleGumLoadoutSize") != 5:
+        fail("GobbleGum loadout size drift")
+    if gum_core.get("maxRollsPerRound") != 3 or baseline.get("gobbleGumMaxRollsPerRound") != 3:
+        fail("GobbleGum max rolls per round drift")
+    if gum_core.get("firstRollFree") is not True:
+        fail("Chronicles GobbleGum first roll must be free")
+    expected_second_prices = {
+        "1-9": 1500,
+        "10-19": 2500,
+        "20-29": 4500,
+        "30-39": 8500,
+        "40-49": 16500,
+        "50-59": 32500,
+        "60-69": 64500,
+        "70-79": 128500,
+        "80-89": 256500,
+        "90-99": 512500,
+        "100+": 1024500,
+    }
+    if gum_core.get("secondRollBaseByRoundTier") != expected_second_prices:
+        fail("GobbleGum round-tier price schedule drift")
+    if gum_core.get("thirdRollMultiplier") != 2:
+        fail("GobbleGum third-roll multiplier drift")
+    if gum_core.get("fireSalePriceReduction") != 490:
+        fail("GobbleGum Fire Sale price reduction drift")
+    if gum_core.get("selectionPolicy") != "five_entry_shuffle_bag_before_repeat":
+        fail("GobbleGum selection policy drift")
+
     placement_rows = system_placements.get("entities", [])
     if not isinstance(placement_rows, list):
         fail("system placements entities must be a list")
