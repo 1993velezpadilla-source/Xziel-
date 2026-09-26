@@ -6,11 +6,11 @@ android {
     ndkVersion "27.2.12479018"
 
     defaultConfig {
-        applicationId "com.xziel.nzp"
+        applicationId "com.xziel.engine"
         minSdkVersion 23
         targetSdkVersion 35
         versionCode 18
-        versionName "0.18-hud-polish"
+        versionName "0.18-xziel-engine"
 
         externalNativeBuild {
             ndkBuild {
