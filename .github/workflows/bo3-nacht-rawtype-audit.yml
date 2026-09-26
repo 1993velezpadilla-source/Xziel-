@@ -1,0 +1,123 @@
+name: BO3 Nacht Raw FastFile Type Audit
+
+on:
+  push:
+    branches:
+      - experiment/bo3-nacht-workshop-audit
+    paths:
+      - ".github/workflows/bo3-nacht-rawtype-audit.yml"
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Workshop payload
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $steam=Join-Path $env:RUNNER_TEMP 'steamcmd'
+          New-Item -ItemType Directory -Force -Path $steam | Out-Null
+          Invoke-WebRequest 'https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip' -OutFile (Join-Path $env:RUNNER_TEMP 'steamcmd.zip')
+          Expand-Archive (Join-Path $env:RUNNER_TEMP 'steamcmd.zip') -DestinationPath $steam -Force
+          & (Join-Path $steam 'steamcmd.exe') +login anonymous +workshop_download_item 311210 3596966808 validate +quit
+          $rc=$LASTEXITCODE; $global:LASTEXITCODE=0
+          $root=Get-ChildItem -Path $steam,$env:RUNNER_TEMP -Directory -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.FullName -like '*steamapps\workshop\content\311210\3596966808' } | Select-Object -First 1
+          if (-not $root) { throw "Workshop missing rc=$rc" }
+          "WORKSHOP_ROOT=$($root.FullName)" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          exit 0
+
+      - name: Install ACTS
+        shell: pwsh
+        run: |
+          Invoke-WebRequest 'https://github.com/ate47/atian-cod-tools/releases/download/3.3.0/acts.zip' -OutFile (Join-Path $env:RUNNER_TEMP 'acts.zip')
+          Expand-Archive (Join-Path $env:RUNNER_TEMP 'acts.zip') -DestinationPath (Join-Path $env:RUNNER_TEMP 'acts') -Force
+          $exe=Get-ChildItem (Join-Path $env:RUNNER_TEMP 'acts') -Filter acts.exe -Recurse | Select-Object -First 1
+          if (-not $exe) { throw 'acts.exe missing' }
+          "ACTS_EXE=$($exe.FullName)" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Decompress FastFiles
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path raw-audit | Out-Null
+          foreach($name in @('zm_mod.ff','core_mod.ff')) {
+            $out=Join-Path (Resolve-Path raw-audit) ([IO.Path]::GetFileNameWithoutExtension($name))
+            New-Item -ItemType Directory -Force -Path $out | Out-Null
+            Push-Location $out
+            & $env:ACTS_EXE -d --disableScriptsDecomp fastfile -r gsc (Join-Path $env:WORKSHOP_ROOT $name)
+            $rc=$LASTEXITCODE; $global:LASTEXITCODE=0
+            Pop-Location
+            Write-Host "$name ACTS rc=$rc"
+            $dec=Get-ChildItem $out -Filter '*.ff.dec' -Recurse | Select-Object -First 1
+            if (-not $dec) { throw "No decompressed FastFile for $name" }
+            Write-Host "$name decompressed: $($dec.FullName) $($dec.Length) bytes"
+          }
+          exit 0
+
+      - name: Parse BO3 XAssetList tables
+        shell: pwsh
+        run: |
+          @'
+          import collections,json,pathlib,struct
+          NAMES={0:'PHYSPRESET',1:'PHYSCONSTRAINTS',2:'DESTRUCTIBLEDEF',3:'XANIM',4:'XMODEL',5:'XMODELMESH',6:'MATERIAL',7:'COMPUTESHADERSET',8:'TECHSET',9:'IMAGE',10:'SOUND',11:'SOUND_PATCH',12:'COL_MAP',13:'COM_MAP',14:'GAME_MAP',15:'MAP_ENTS',16:'GFX_MAP',17:'LIGHTDEF',18:'LENSFLAREDEF',19:'UI_MAP',20:'FONT',21:'FONTICON',22:'LOCALIZE',23:'WEAPON',24:'WEAPONDEF',25:'WEAPONVARIANT',26:'WEAPONFULL',37:'SNDDRIVERGLOBALS',38:'FX',43:'PLAYER_CHARACTER',44:'AITYPE',45:'CHARACTER',46:'XMODELALIAS',47:'RAWFILE',48:'STRINGTABLE',49:'STRUCTUREDTABLE',51:'DDL',53:'TEXTURELIST',54:'SCRIPTPARSETREE',55:'KEYVALUEPAIRS',57:'ADDON_MAP_ENTS',65:'ZBARRIER',69:'SCRIPTBUNDLE',70:'SCRIPTBUNDLELIST',75:'ANIMSELECTORTABLE',76:'ANIMMAPPINGTABLE',77:'ANIMSTATEMACHINE',78:'BEHAVIORTREE',79:'BEHAVIORSTATEMACHINE',81:'SANIM',82:'LIGHTDESCRIPTION',84:'XCAM',85:'BGCACHE',86:'TEXTURECOMBO',90:'MAPTABLE',91:'MAPTABLELOADINGIMAGES',96:'UMBRA_TOME',97:'NAVMESH',98:'NAVVOLUME',102:'STREAMERHINT'}
+          SPF_NEXT=2<<61
+          def align(v,a): return (v+(a-1))&~(a-1)
+          def cstring(data,pos):
+            end=data.find(b'\0',pos)
+            if end<0: raise ValueError('unterminated string')
+            return data[pos:end].decode('utf-8','replace'),end+1
+          def parse(path):
+            data=path.read_bytes()
+            if len(data)<0x30: raise ValueError('short decompressed FF')
+            strings_count=struct.unpack_from('<i',data,0)[0]
+            strings_ptr=struct.unpack_from('<Q',data,8)[0]
+            unk10=struct.unpack_from('<I',data,16)[0]
+            unk18=struct.unpack_from('<Q',data,24)[0]
+            asset_count=struct.unpack_from('<i',data,32)[0]
+            assets_ptr=struct.unpack_from('<Q',data,40)[0]
+            if not (0 <= strings_count < 10000000 and 0 <= asset_count < 10000000): raise ValueError(f'implausible header strings={strings_count} assets={asset_count}')
+            pos=0x30
+            string_ptrs=[]
+            strings=[]
+            if strings_ptr:
+              need=strings_count*8
+              if pos+need>len(data): raise ValueError('string pointer table OOB')
+              string_ptrs=list(struct.unpack_from('<'+'Q'*strings_count,data,pos)) if strings_count else []
+              pos+=need
+              for ptr in string_ptrs:
+                if ptr & SPF_NEXT:
+                  s,pos=cstring(data,pos); strings.append(s)
+                else: strings.append('')
+            pos=align(pos,8)
+            if not assets_ptr and asset_count: raise ValueError('asset_count nonzero but null assets pointer')
+            need=asset_count*16
+            if pos+need>len(data): raise ValueError(f'asset table OOB pos={pos} need={need} len={len(data)}')
+            counts=collections.Counter()
+            sample=[]
+            for i in range(asset_count):
+              off=pos+i*16
+              typ=data[off]
+              ptr=struct.unpack_from('<Q',data,off+8)[0]
+              counts[typ]+=1
+              if i<300: sample.append({'index':i,'type_id':typ,'type':NAMES.get(typ,f'UNKNOWN_{typ}'),'header_ref':f'0x{ptr:016x}'})
+            mapids=[12,13,14,15,16,57,96,97,98]
+            return {'file':path.name,'decompressed_bytes':len(data),'strings_count':strings_count,'unk10':unk10,'unk18':f'0x{unk18:016x}','asset_count':asset_count,'counts_by_name':{NAMES.get(k,f'UNKNOWN_{k}'):v for k,v in sorted(counts.items())},'map_authority':{NAMES[k]:counts.get(k,0) for k in mapids},'content':{NAMES[k]:counts.get(k,0) for k in [3,4,5,6,9,10,23,38,43,44,45,54,65,84]},'sample_assets':sample,'string_samples':[s for s in strings if s][:250]}
+          root=pathlib.Path('raw-audit')
+          decs=list(root.rglob('*.ff.dec'))
+          result={'files':[]}
+          for p in decs:
+            try: result['files'].append(parse(p))
+            except Exception as e: result['files'].append({'file':str(p),'error':str(e)})
+          pathlib.Path('raw-audit/raw-type-report.json').write_text(json.dumps(result,indent=2)+'\n',encoding='utf-8')
+          print(json.dumps(result,indent=2)[:50000])
+          '@ | Set-Content raw-audit/parse_bo3_xassetlist.py -Encoding utf8
+          python raw-audit/parse_bo3_xassetlist.py
+
+      - name: Upload report only
+        uses: actions/upload-artifact@v4
+        with:
+          name: bo3-nacht-raw-fastfile-type-audit
+          path: raw-audit/raw-type-report.json
+          retention-days: 7
