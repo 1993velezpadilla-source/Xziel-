@@ -8308,7 +8308,8 @@ bool VulkanStaticMeshRenderer::createKtx2Texture(
 
 bool VulkanStaticMeshRenderer::createTextureSampler(
     std::uint32_t mipLevels,
-    GpuTexture& out) noexcept {
+    GpuTexture& out,
+    float mipLodBias) noexcept {
     if (mipLevels == 0U) {
         return false;
     }
@@ -8342,7 +8343,7 @@ bool VulkanStaticMeshRenderer::createTextureSampler(
     // surfaces stable.  Keep this conservative to avoid mobile shimmer.
     samplerInfo.mipLodBias =
         mipLevels > 1U
-        ? -0.35f
+        ? mipLodBias
         : 0.0f;
     samplerInfo.minLod = 0.0f;
     samplerInfo.maxLod =
@@ -8837,9 +8838,27 @@ bool VulkanStaticMeshRenderer::createPngTexture(
         return false;
     }
 
+    const bool closeStGilesExterior =
+        srgb &&
+        assetPath.find(
+            "StGilesCripplegateExterior04") !=
+            std::string::npos;
+
+    if (closeStGilesExterior) {
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            kTag,
+            "XZIEL_ST_GILES_CLOSE_DETAIL_SAMPLER_V1 size=%dx%d lod_bias=-0.90",
+            width,
+            height);
+    }
+
     if (!createTextureSampler(
             mipLevels,
-            out)) {
+            out,
+            closeStGilesExterior
+                ? -0.90f
+                : -0.35f)) {
         discardPendingUploads();
         destroyTexture(out);
         return false;
