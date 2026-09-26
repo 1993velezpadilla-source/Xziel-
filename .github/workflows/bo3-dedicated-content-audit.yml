@@ -1,0 +1,79 @@
+name: BO3 Official Dedicated Content Audit
+
+on:
+  push:
+    branches:
+      - experiment/bo3-nacht-workshop-audit
+    paths:
+      - ".github/workflows/bo3-dedicated-content-audit.yml"
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install SteamCMD
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $steam=Join-Path $env:RUNNER_TEMP 'steamcmd'
+          New-Item -ItemType Directory -Force -Path $steam | Out-Null
+          Invoke-WebRequest 'https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip' -OutFile (Join-Path $env:RUNNER_TEMP 'steamcmd.zip')
+          Expand-Archive (Join-Path $env:RUNNER_TEMP 'steamcmd.zip') -DestinationPath $steam -Force
+          "STEAMCMD=$((Join-Path $steam 'steamcmd.exe'))" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Download official BO3 unranked dedicated server
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Continue'
+          $dir=Join-Path $env:RUNNER_TEMP 'bo3-dedicated'
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          & $env:STEAMCMD +force_install_dir $dir +login anonymous +app_update 545990 validate +quit
+          $rc=$LASTEXITCODE
+          $global:LASTEXITCODE=0
+          Write-Host "SteamCMD rc=$rc"
+          if (-not (Test-Path $dir)) { throw 'Dedicated server directory missing' }
+          "BO3_SERVER_ROOT=$dir" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          exit 0
+
+      - name: Inventory official content
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          New-Item -ItemType Directory -Force -Path 'dedicated-audit' | Out-Null
+          @'
+          import collections, json, pathlib, sys
+          root=pathlib.Path(sys.argv[1])
+          files=[p for p in root.rglob('*') if p.is_file()]
+          rows=[]
+          for p in files:
+              rel=p.relative_to(root).as_posix()
+              low=rel.lower()
+              if p.suffix.lower() in {'.ff','.xpak','.sabs','.sabl','.zone','.map','.bsp','.d3dbsp'} or any(k in low for k in ('zm_','zombie','prototype','nacht')):
+                  rows.append({'path':rel,'bytes':p.stat().st_size})
+          rows.sort(key=lambda x:x['path'].lower())
+          report={
+            'app_id':545990,
+            'root_file_count':len(files),
+            'total_bytes':sum(p.stat().st_size for p in files),
+            'extensions':dict(collections.Counter((p.suffix.lower() or '<none>') for p in files).most_common()),
+            'interesting':rows,
+            'prototype_hits':[x for x in rows if 'prototype' in x['path'].lower() or 'nacht' in x['path'].lower()],
+            'zombies_hits':[x for x in rows if 'zm_' in x['path'].lower() or 'zombie' in x['path'].lower()],
+          }
+          pathlib.Path('dedicated-audit/report.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
+          print(json.dumps(report,indent=2)[:40000])
+          '@ | Set-Content 'dedicated-audit/inventory.py' -Encoding utf8
+          python 'dedicated-audit/inventory.py' $env:BO3_SERVER_ROOT
+
+      - name: Upload report only
+        uses: actions/upload-artifact@v4
+        with:
+          name: bo3-official-dedicated-content-audit
+          path: dedicated-audit/report.json
+          if-no-files-found: error
+          retention-days: 7
