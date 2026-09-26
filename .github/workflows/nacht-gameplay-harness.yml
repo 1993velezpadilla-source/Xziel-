@@ -228,6 +228,10 @@ jobs:
           grep -F 'XZIEL_SpawnPackAPunchGrant' build/deps/quakec/source/server/entities/powerups.qc
           grep -F 'XZIEL_ZOMBIES_PERK_BRIDGE_BEGIN' build/deps/quakec/source/server/entities/perk_a_cola.qc
           grep -F 'XZIEL_GrantPerkLogic' build/deps/quakec/source/server/entities/perk_a_cola.qc
+          grep -F 'XZIEL_StartFireSaleLogic' build/deps/quakec/source/server/entities/powerups.qc
+          grep -F 'XZIEL_FireSaleLogicActive' build/deps/quakec/source/server/entities/powerups.qc
+          grep -F 'XZIEL_WunderfizzPickSupportedPerk' build/deps/quakec/source/server/entities/perk_a_cola.qc
+          grep -F 'XZIEL_WunderfizzGrantLogic' build/deps/quakec/source/server/entities/perk_a_cola.qc
           unzip -l build/android-project/app/src/main/assets/nzp-data.zip \
             | grep 'nzp/maps/xziel_nacht_bo3.bsp'
           unzip -l build/android-project/app/src/main/assets/nzp-data.zip \
