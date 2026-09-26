@@ -402,6 +402,12 @@ def main() -> int:
         fail("Pack-a-Punch ballistic stats must not be promoted prematurely")
     if pap_system.get("nativeRuntimeReady") != 0:
         fail("Pack-a-Punch runtime must not be promoted prematurely")
+    if pap_system.get("nativeIdentityResolverStatus") != "ready":
+        fail("Pack-a-Punch native identity resolver must remain ready")
+    if pap_system.get("nativeIdentityResolverPairs") != 36:
+        fail("Pack-a-Punch native identity resolver pair count drift")
+    if baseline.get("packAPunchNativeIdentityResolverPairs") != 36:
+        fail("packAPunchNativeIdentityResolverPairs drift")
     if pap_system.get("physicalMachinePresentOnNacht") is not False:
         fail("Nacht Chronicles must not claim a physical Pack-a-Punch machine")
 
