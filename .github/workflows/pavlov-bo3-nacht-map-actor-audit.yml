@@ -38,7 +38,7 @@ jobs:
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/cue4map"
           cd "$RUNNER_TEMP/cue4map"
-          dotnet new console --framework net8.0 --force
+          dotnet new console --framework net10.0 --force
           dotnet add package CUE4Parse
           dotnet add package Newtonsoft.Json
           cat > Program.cs <<'CS'
@@ -127,7 +127,7 @@ jobs:
         run: |
           set +e
           mkdir -p audit-out
-          dotnet "$RUNNER_TEMP/cue4map/bin/Release/net8.0/cue4map.dll" "$PAK_ROOT" audit-out/nacht-map-actors.json 2>&1 | tee audit-out/cue4parse.log
+          dotnet "$RUNNER_TEMP/cue4map/bin/Release/net10.0/cue4map.dll" "$PAK_ROOT" audit-out/nacht-map-actors.json 2>&1 | tee audit-out/cue4parse.log
           RC=${PIPESTATUS[0]}
           echo "$RC" > audit-out/cue4parse.rc
           exit 0
