@@ -165,24 +165,34 @@ def _state_from_generation(result):
     return None
 
 
-def _save_generation_checkpoint(result, state: dict, output: Path) -> dict:
-    """Persist TRELLIS.2 latent state + preview before GLB extraction."""
+def _save_generation_checkpoint(result, state, output: Path) -> dict:
+    """Persist what the public Gradio API exposes before GLB extraction.
+
+    The official Space keeps gr.State server-side in some API revisions, so a
+    client may receive only preview HTML while extract_glb still has access to
+    the latent through the same session. Never abort generation merely because
+    the hidden state is not serializable client-side.
+    """
     checkpoint={}
-    try:
-        import numpy as np
-        state_path=output.with_suffix(".state.npz")
-        payload={}
-        for key,value in state.items():
-            if isinstance(value,np.ndarray):
-                payload[key]=value
-            elif isinstance(value,(int,float,bool,str)):
-                payload[key]=np.asarray(value)
-        if payload:
-            np.savez_compressed(state_path,**payload)
-            checkpoint["state_npz"]=str(state_path)
-            checkpoint["state_bytes"]=state_path.stat().st_size
-    except Exception as exc:
-        checkpoint["state_error"]=f"{type(exc).__name__}: {exc}"
+    if isinstance(state,dict):
+        try:
+            import numpy as np
+            state_path=output.with_suffix(".state.npz")
+            payload={}
+            for key,value in state.items():
+                if isinstance(value,np.ndarray):
+                    payload[key]=value
+                elif isinstance(value,(int,float,bool,str)):
+                    payload[key]=np.asarray(value)
+            if payload:
+                np.savez_compressed(state_path,**payload)
+                checkpoint["state_npz"]=str(state_path)
+                checkpoint["state_bytes"]=state_path.stat().st_size
+        except Exception as exc:
+            checkpoint["state_error"]=f"{type(exc).__name__}: {exc}"
+    else:
+        checkpoint["state_visibility"]="server_session_only"
+        checkpoint["state_persistable"]=False
 
     try:
         preview=None
@@ -340,9 +350,13 @@ def generate(
             )
         )
     state=_state_from_generation(generation)
-    if state is None:
-        raise RuntimeError("TRELLIS.2 generation returned no latent state")
     checkpoint=_save_generation_checkpoint(generation,state,output)
+    if state is None:
+        print(
+            "HAYUYA_TRELLIS2_STATE",
+            "visibility=server_session_only",
+            "continuing_extract_same_session=true",
+        )
 
     extract_ep,extract_spec=_endpoint(named,"/extract_glb","extract_glb")
     texture_size=4096 if quality in {"high","ultra"} else 2048
