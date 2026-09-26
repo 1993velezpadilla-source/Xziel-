@@ -433,16 +433,10 @@
         "bo3WeaponId": "ar_standard",
         "pavlovWeaponId": "kn44",
         "price": 1400,
-        "chalkAsset": "/Game/CustomMaps/UGC2755515831/CoD_nacht/MAP_FILES/Normal_mesh/zm_prototype_part4_t7_zm_chalk_buy_arak/zm_prototype_part4_t7_zm_chalk_buy_arak",
-        "interactionRadiusCm": 150.0,
+        "chalkAsset": "zm_prototype_part4_t7_zm_chalk_buy_arak",
+        "interactionRadiusCm": 150,
         "reconstructed": false,
-        "functionalActor": "WallBuy2_2",
-        "placementSource": "functional_wallbuy_actor",
-        "placementConfidence": "authoritative_port_actor",
-        "yawCandidatesUE": [
-          0.0,
-          180.0
-        ]
+        "functionalActor": "WallBuy2_2"
       },
       "replicationPolicy": "server_authoritative"
     },
@@ -474,16 +468,10 @@
         "bo3WeaponId": "shotgun_precision",
         "pavlovWeaponId": "argus",
         "price": 1100,
-        "chalkAsset": "/Game/CustomMaps/UGC2755515831/CoD_nacht/MAP_FILES/Normal_mesh/zm_prototype_part4_t7_zm_chalk_buy_argus/zm_prototype_part4_t7_zm_chalk_buy_argus",
-        "interactionRadiusCm": 150.0,
+        "chalkAsset": "zm_prototype_part4_t7_zm_chalk_buy_argus",
+        "interactionRadiusCm": 150,
         "reconstructed": true,
-        "functionalActor": null,
-        "placementSource": "calibrated_marker_mesh_bounds",
-        "placementConfidence": "geometry_derived",
-        "yawCandidatesUE": [
-          90.0,
-          270.0
-        ]
+        "functionalActor": null
       },
       "replicationPolicy": "server_authoritative"
     },
@@ -515,16 +503,10 @@
         "bo3WeaponId": "frag_grenade",
         "pavlovWeaponId": "frag",
         "price": 250,
-        "chalkAsset": "/Game/CustomMaps/UGC2755515831/CoD_nacht/MAP_FILES/Normal_mesh/zm_prototype_part4_t7_zm_chalk_buy_frag/zm_prototype_part4_t7_zm_chalk_buy_frag",
-        "interactionRadiusCm": 150.0,
+        "chalkAsset": "zm_prototype_part4_t7_zm_chalk_buy_frag",
+        "interactionRadiusCm": 150,
         "reconstructed": true,
-        "functionalActor": null,
-        "placementSource": "calibrated_marker_mesh_bounds",
-        "placementConfidence": "geometry_derived",
-        "yawCandidatesUE": [
-          90.0,
-          270.0
-        ]
+        "functionalActor": null
       },
       "replicationPolicy": "server_authoritative"
     },
@@ -556,16 +538,10 @@
         "bo3WeaponId": "shotgun_pump",
         "pavlovWeaponId": "krm",
         "price": 750,
-        "chalkAsset": "/Game/CustomMaps/UGC2755515831/CoD_nacht/MAP_FILES/Normal_mesh/zm_prototype_part4_t7_zm_chalk_buy_krm/zm_prototype_part4_t7_zm_chalk_buy_krm",
-        "interactionRadiusCm": 150.0,
+        "chalkAsset": "zm_prototype_part4_t7_zm_chalk_buy_krm",
+        "interactionRadiusCm": 150,
         "reconstructed": true,
-        "functionalActor": null,
-        "placementSource": "calibrated_marker_mesh_bounds",
-        "placementConfidence": "geometry_derived",
-        "yawCandidatesUE": [
-          0.0,
-          180.0
-        ]
+        "functionalActor": null
       },
       "replicationPolicy": "server_authoritative"
     },
@@ -597,16 +573,10 @@
         "bo3WeaponId": "smg_standard",
         "pavlovWeaponId": "kuda",
         "price": 1250,
-        "chalkAsset": "/Game/CustomMaps/UGC2755515831/CoD_nacht/MAP_FILES/Normal_mesh/zm_prototype_part4_t7_zm_chalk_buy_kuda/zm_prototype_part4_t7_zm_chalk_buy_kuda",
-        "interactionRadiusCm": 150.0,
+        "chalkAsset": "zm_prototype_part4_t7_zm_chalk_buy_kuda",
+        "interactionRadiusCm": 150,
         "reconstructed": false,
-        "functionalActor": "WallBuy3_2",
-        "placementSource": "functional_wallbuy_actor",
-        "placementConfidence": "authoritative_port_actor",
-        "yawCandidatesUE": [
-          90.0,
-          270.0
-        ]
+        "functionalActor": "WallBuy3_2"
       },
       "replicationPolicy": "server_authoritative"
     },
@@ -638,16 +608,10 @@
         "bo3WeaponId": "sniper_fastbolt",
         "pavlovWeaponId": "locus",
         "price": 5000,
-        "chalkAsset": "/Game/CustomMaps/UGC2755515831/CoD_nacht/MAP_FILES/Normal_mesh/zm_prototype_part4_t7_zm_chalk_buy_locus_decal/zm_prototype_part4_t7_zm_chalk_buy_locus_decal",
-        "interactionRadiusCm": 150.0,
+        "chalkAsset": "zm_prototype_part4_t7_zm_chalk_buy_locus_decal",
+        "interactionRadiusCm": 150,
         "reconstructed": true,
-        "functionalActor": null,
-        "placementSource": "calibrated_marker_mesh_bounds",
-        "placementConfidence": "geometry_derived",
-        "yawCandidatesUE": [
-          0.0,
-          180.0
-        ]
+        "functionalActor": null
       },
       "replicationPolicy": "server_authoritative"
     },
@@ -679,16 +643,10 @@
         "bo3WeaponId": "smg_burst",
         "pavlovWeaponId": "pharaoh",
         "price": 700,
-        "chalkAsset": "/Game/CustomMaps/UGC2755515831/CoD_nacht/MAP_FILES/Normal_mesh/zm_prototype_part4_t7_zm_chalk_buy_pharaoh/zm_prototype_part4_t7_zm_chalk_buy_pharaoh",
-        "interactionRadiusCm": 150.0,
+        "chalkAsset": "zm_prototype_part4_t7_zm_chalk_buy_pharaoh",
+        "interactionRadiusCm": 150,
         "reconstructed": true,
-        "functionalActor": null,
-        "placementSource": "calibrated_marker_mesh_bounds",
-        "placementConfidence": "geometry_derived",
-        "yawCandidatesUE": [
-          0.0,
-          180.0
-        ]
+        "functionalActor": null
       },
       "replicationPolicy": "server_authoritative"
     },
@@ -720,16 +678,10 @@
         "bo3WeaponId": "ar_marksman",
         "pavlovWeaponId": "shiva",
         "price": 500,
-        "chalkAsset": "/Game/CustomMaps/UGC2755515831/CoD_nacht/MAP_FILES/Normal_mesh/zm_prototype_part4_t7_zm_chalk_buy_shiva/zm_prototype_part4_t7_zm_chalk_buy_shiva",
-        "interactionRadiusCm": 150.0,
+        "chalkAsset": "zm_prototype_part4_t7_zm_chalk_buy_shiva",
+        "interactionRadiusCm": 150,
         "reconstructed": true,
-        "functionalActor": null,
-        "placementSource": "calibrated_marker_mesh_bounds",
-        "placementConfidence": "geometry_derived",
-        "yawCandidatesUE": [
-          0.0,
-          180.0
-        ]
+        "functionalActor": null
       },
       "replicationPolicy": "server_authoritative"
     },
@@ -761,16 +713,10 @@
         "bo3WeaponId": "pistol_burst",
         "pavlovWeaponId": "triton",
         "price": 500,
-        "chalkAsset": "/Game/CustomMaps/UGC2755515831/CoD_nacht/MAP_FILES/Normal_mesh/zm_prototype_part4_t7_zm_chalk_buy_triton/zm_prototype_part4_t7_zm_chalk_buy_triton",
-        "interactionRadiusCm": 150.0,
+        "chalkAsset": "zm_prototype_part4_t7_zm_chalk_buy_triton",
+        "interactionRadiusCm": 150,
         "reconstructed": false,
-        "functionalActor": "WallBuy_2",
-        "placementSource": "functional_wallbuy_actor",
-        "placementConfidence": "authoritative_port_actor",
-        "yawCandidatesUE": [
-          0.0,
-          180.0
-        ]
+        "functionalActor": "WallBuy_2"
       },
       "replicationPolicy": "server_authoritative"
     },
