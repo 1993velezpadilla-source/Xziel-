@@ -1,5 +1,6 @@
 #pragma once
 
+#include "xziel/door_system.hpp"
 #include "xziel/nacht_reference.hpp"
 #include "xziel/purchase_system.hpp"
 
@@ -34,11 +35,22 @@ public:
         std::size_t index,
         Vec3 playerPosition) noexcept;
 
+    [[nodiscard]] std::optional<DoorCandidate>
+    queryDoor(
+        Vec3 playerPosition) const noexcept;
+
+    [[nodiscard]] DoorResult tryOpenDoor(
+        std::size_t index,
+        Vec3 playerPosition) noexcept;
+
     [[nodiscard]] HordeDirector& horde() noexcept;
     [[nodiscard]] const HordeDirector& horde() const noexcept;
 
     [[nodiscard]] const PurchaseSystem&
     purchases() const noexcept;
+
+    [[nodiscard]] const DoorSystem&
+    doors() const noexcept;
 
     [[nodiscard]] std::uint32_t points() const noexcept;
     [[nodiscard]] NachtZoneMask activeZones() const noexcept;
@@ -49,6 +61,7 @@ private:
     NachtRuntimeConfig config_{};
     HordeDirector horde_{};
     PurchaseSystem purchases_{};
+    DoorSystem doors_{};
     std::uint32_t points_ = 0U;
     NachtZoneMask activeZones_ =
         kNachtStartZoneMask;
