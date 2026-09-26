@@ -88,6 +88,8 @@ public final class XzielMultiplayer {
     private volatile boolean hostPreparing;
     private volatile boolean serverReadySent;
     private volatile boolean serverReadyReceived;
+    private volatile String worldPhase = "lobby";
+    private volatile int worldRevision;
     private volatile boolean clientReadySent;
     private volatile boolean engineServerActive;
     private volatile boolean engineClientConnected;
@@ -619,6 +621,10 @@ public final class XzielMultiplayer {
         hostPreparing = false;
         serverReadySent = false;
         serverReadyReceived = false;
+        worldPhase = "lobby";
+        worldRevision = 0;
+        worldPhase = "lobby";
+        worldRevision = 0;
         clientReadySent = false;
         ciReadySent = false;
         ciScenarioStarted = false;
@@ -739,6 +745,8 @@ public final class XzielMultiplayer {
                 roomMode = message.optString("mode", roomMode);
                 targetPlayers = message.optInt("targetPlayers",
                     "public".equals(roomMode) ? targetPlayers : MAX_PLAYERS);
+                worldPhase = message.optString("worldPhase", "lobby");
+                worldRevision = Math.max(0, message.optInt("worldRevision", 0));
                 connectedSlots.clear();
                 JSONArray roster = message.optJSONArray("players");
                 if (roster != null) {
@@ -758,7 +766,8 @@ public final class XzielMultiplayer {
                 queueNativeCommand("name XzielP" + slot + "\n");
                 Log.i(TAG, "WELCOME room=" + roomCode + " mode=" + roomMode +
                     " slot=" + slot + " map=" + selectedMap +
-                    " targetPlayers=" + targetPlayers);
+                    " targetPlayers=" + targetPlayers +
+                    " world=" + worldRevision + "/" + worldPhase);
                 toast(("public".equals(roomMode) ? "Public match" : "Room " + roomCode) +
                     " - Player " + slot);
 
@@ -798,21 +807,52 @@ public final class XzielMultiplayer {
             }
 
             if ("prepare_game".equals(type) && localSlot != 1) {
-                selectedMap = message.optString("map", selectedMap);
+                String authoritativeMap = message.optString("map", selectedMap);
+                int revision = Math.max(0,
+                    message.optInt("worldRevision", worldRevision));
+
+                if (revision < worldRevision) {
+                    Log.i(TAG, "IGNORE_STALE_PREPARE slot=" + localSlot +
+                        " incoming=" + revision + " current=" + worldRevision);
+                    return;
+                }
+
+                selectedMap = authoritativeMap;
+                worldRevision = revision;
+                worldPhase = "preparing";
                 matchStarted = true;
+                serverReadyReceived = false;
                 dismissTrackedDialog();
-                Log.i(TAG, "PREPARE_GAME slot=" + localSlot + " map=" + selectedMap);
+                Log.i(TAG, "PREPARE_GAME slot=" + localSlot +
+                    " map=" + selectedMap +
+                    " world=" + worldRevision +
+                    " replay=" + message.optBoolean("replay", false));
                 toast("Host is loading " + prettyMap(selectedMap) + "...");
                 return;
             }
 
             if ("server_ready".equals(type) && localSlot != 1) {
-                selectedMap = message.optString("map", selectedMap);
+                String authoritativeMap = message.optString("map", selectedMap);
+                int revision = Math.max(0,
+                    message.optInt("worldRevision", worldRevision));
+
+                if (revision < worldRevision) {
+                    Log.i(TAG, "IGNORE_STALE_SERVER_READY slot=" + localSlot +
+                        " incoming=" + revision + " current=" + worldRevision);
+                    return;
+                }
+
+                selectedMap = authoritativeMap;
+                worldRevision = revision;
+                worldPhase = "live";
                 serverReadyReceived = true;
                 matchStarted = true;
                 dismissTrackedDialog();
-                Log.i(TAG, "SERVER_READY slot=" + localSlot + " map=" + selectedMap);
-                beginClientConnection(false);
+                Log.i(TAG, "SERVER_READY slot=" + localSlot +
+                    " map=" + selectedMap +
+                    " world=" + worldRevision +
+                    " replay=" + message.optBoolean("replay", false));
+                beginClientConnection(message.optBoolean("replay", false));
                 return;
             }
 
@@ -901,9 +941,11 @@ public final class XzielMultiplayer {
             "map " + selectedMap + "\n"
         );
 
+        worldPhase = "preparing";
         Log.i(TAG, "HOST_PREPARE mode=" + roomMode + " map=" + selectedMap +
             " targetPlayers=" + targetPlayers +
-            " players=" + connectedSlots.size());
+            " players=" + connectedSlots.size() +
+            " authoritativeWorld=true");
         toast((automaticPublicStart ? "Public match ready - " : "Starting ") +
             prettyMap(selectedMap) + "...");
     }
