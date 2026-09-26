@@ -201,6 +201,12 @@ jobs:
             -lm -o /tmp/xz_nacht_reference_test
           /tmp/xz_nacht_reference_test
 
+      - name: Validate Nacht NZP overlay
+        shell: bash
+        run: |
+          python3 tools/maps/export_nacht_nzp_runtime_overlay.py
+          git diff --exit-code -- assets/nacht_reference/nzp_runtime_overlay.json
+
       - name: Test Xz RHI
         shell: bash
         run: |
