@@ -1,0 +1,343 @@
+{
+  "schemaVersion": 1,
+  "mapId": "bo3_nacht_reference",
+  "contractId": "xziel_map_content_contract_v1",
+  "policy": {
+    "zeroOmission": true,
+    "noSilentFallbacks": true,
+    "thirdPartyPayloadCommittedToRepository": false,
+    "payloadExpectation": "mount_user_owned_or_licensed_source_folder_or_zip_then_inventory"
+  },
+  "summary": {
+    "requiredFamilyCount": 24,
+    "runtimeReadyFamilies": 0,
+    "runtimePartialFamilies": 16,
+    "runtimePendingFamilies": 8,
+    "payloadFamiliesNotMounted": 21,
+    "strictReadyFamilies": 0,
+    "strictReady": false
+  },
+  "families": [
+    {
+      "id": "world_geometry",
+      "runtimeState": "partial",
+      "inventoryState": "not_mounted",
+      "sourceSystemKeys": [
+        "map_topology_and_collision",
+        "android_visual_parity"
+      ],
+      "strictReady": false,
+      "blockers": [
+        "runtime_family_not_ready",
+        "final_payload_inventory_not_mounted"
+      ]
+    },
+    {
+      "id": "collision",
+      "runtimeState": "partial",
+      "inventoryState": "not_mounted",
+      "sourceSystemKeys": [
+        "map_topology_and_collision"
+      ],
+      "strictReady": false,
+      "blockers": [
+        "runtime_family_not_ready",
+        "final_payload_inventory_not_mounted"
+      ]
+    },
+    {
+      "id": "navigation_pathing",
+      "runtimeState": "partial",
+      "inventoryState": "not_mounted",
+      "sourceSystemKeys": [
+        "zombie_spawns_pathing_ai"
+      ],
+      "strictReady": false,
+      "blockers": [
+        "runtime_family_not_ready",
+        "final_payload_inventory_not_mounted"
+      ]
+    },
+    {
+      "id": "materials_textures",
+      "runtimeState": "partial",
+      "inventoryState": "not_mounted",
+      "sourceSystemKeys": [
+        "android_visual_parity"
+      ],
+      "strictReady": false,
+      "blockers": [
+        "runtime_family_not_ready",
+        "final_payload_inventory_not_mounted"
+      ]
+    },
+    {
+      "id": "static_models_props",
+      "runtimeState": "partial",
+      "inventoryState": "not_mounted",
+      "sourceSystemKeys": [
+        "android_visual_parity",
+        "all_interactions_zero_dead_prompts"
+      ],
+      "strictReady": false,
+      "blockers": [
+        "runtime_family_not_ready",
+        "final_payload_inventory_not_mounted"
+      ]
+    },
+    {
+      "id": "animated_models_rigs",
+      "runtimeState": "pending",
+      "inventoryState": "not_mounted",
+      "sourceSystemKeys": [
+        "weapon_models_audio_fx_animations"
+      ],
+      "strictReady": false,
+      "blockers": [
+        "runtime_family_not_ready",
+        "final_payload_inventory_not_mounted"
+      ]
+    },
+    {
+      "id": "animations",
+      "runtimeState": "pending",
+      "inventoryState": "not_mounted",
+      "sourceSystemKeys": [
+        "weapon_models_audio_fx_animations"
+      ],
+      "strictReady": false,
+      "blockers": [
+        "runtime_family_not_ready",
+        "final_payload_inventory_not_mounted"
+      ]
+    },
+    {
+      "id": "weapons_equipment",
+      "runtimeState": "partial",
+      "inventoryState": "not_mounted",
+      "sourceSystemKeys": [
+        "wall_buys_and_ammo_refills",
+        "weapon_models_audio_fx_animations"
+      ],
+      "strictReady": false,
+      "blockers": [
+        "runtime_family_not_ready",
+        "final_payload_inventory_not_mounted"
+      ]
+    },
+    {
+      "id": "pack_a_punch_variants",
+      "runtimeState": "partial",
+      "inventoryState": "not_mounted",
+      "sourceSystemKeys": [
+        "pack_a_punch_weapon_variants"
+      ],
+      "strictReady": false,
+      "blockers": [
+        "runtime_family_not_ready",
+        "final_payload_inventory_not_mounted"
+      ]
+    },
+    {
+      "id": "audio_sfx",
+      "runtimeState": "pending",
+      "inventoryState": "not_mounted",
+      "sourceSystemKeys": [
+        "weapon_models_audio_fx_animations"
+      ],
+      "strictReady": false,
+      "blockers": [
+        "runtime_family_not_ready",
+        "final_payload_inventory_not_mounted"
+      ]
+    },
+    {
+      "id": "ambient_music_vo",
+      "runtimeState": "partial",
+      "inventoryState": "not_mounted",
+      "sourceSystemKeys": [
+        "android_visual_parity"
+      ],
+      "strictReady": false,
+      "blockers": [
+        "runtime_family_not_ready",
+        "final_payload_inventory_not_mounted"
+      ]
+    },
+    {
+      "id": "vfx_particles",
+      "runtimeState": "partial",
+      "inventoryState": "not_mounted",
+      "sourceSystemKeys": [
+        "weapon_models_audio_fx_animations",
+        "android_visual_parity"
+      ],
+      "strictReady": false,
+      "blockers": [
+        "runtime_family_not_ready",
+        "final_payload_inventory_not_mounted"
+      ]
+    },
+    {
+      "id": "lighting_postfx",
+      "runtimeState": "partial",
+      "inventoryState": "not_mounted",
+      "sourceSystemKeys": [
+        "android_visual_parity"
+      ],
+      "strictReady": false,
+      "blockers": [
+        "runtime_family_not_ready",
+        "final_payload_inventory_not_mounted"
+      ]
+    },
+    {
+      "id": "gameplay_scripts",
+      "runtimeState": "partial",
+      "inventoryState": "not_mounted",
+      "sourceSystemKeys": [
+        "doors_and_zone_unlocks",
+        "barricades_repair_points",
+        "zombie_spawns_pathing_ai",
+        "points_economy_scoring"
+      ],
+      "strictReady": false,
+      "blockers": [
+        "runtime_family_not_ready",
+        "final_payload_inventory_not_mounted"
+      ]
+    },
+    {
+      "id": "interactables",
+      "runtimeState": "pending",
+      "inventoryState": "not_mounted",
+      "sourceSystemKeys": [
+        "all_interactions_zero_dead_prompts"
+      ],
+      "strictReady": false,
+      "blockers": [
+        "runtime_family_not_ready",
+        "final_payload_inventory_not_mounted"
+      ]
+    },
+    {
+      "id": "perks_wunderfizz",
+      "runtimeState": "pending",
+      "inventoryState": "not_mounted",
+      "sourceSystemKeys": [
+        "der_wunderfizz_and_perk_randomization",
+        "mule_kick_and_weapon_slot_semantics"
+      ],
+      "strictReady": false,
+      "blockers": [
+        "runtime_family_not_ready",
+        "final_payload_inventory_not_mounted"
+      ]
+    },
+    {
+      "id": "powerups",
+      "runtimeState": "pending",
+      "inventoryState": "not_mounted",
+      "sourceSystemKeys": [
+        "powerup_drop_pool_and_effects"
+      ],
+      "strictReady": false,
+      "blockers": [
+        "runtime_family_not_ready",
+        "final_payload_inventory_not_mounted"
+      ]
+    },
+    {
+      "id": "gobblegum",
+      "runtimeState": "partial",
+      "inventoryState": "not_mounted",
+      "sourceSystemKeys": [
+        "gobblegum_machines_and_full_effect_runtime"
+      ],
+      "strictReady": false,
+      "blockers": [
+        "runtime_family_not_ready",
+        "final_payload_inventory_not_mounted"
+      ]
+    },
+    {
+      "id": "mystery_box",
+      "runtimeState": "partial",
+      "inventoryState": "not_mounted",
+      "sourceSystemKeys": [
+        "mystery_box_full_pool_and_teddy_flow"
+      ],
+      "strictReady": false,
+      "blockers": [
+        "runtime_family_not_ready",
+        "final_payload_inventory_not_mounted"
+      ]
+    },
+    {
+      "id": "spawns_rounds_ai",
+      "runtimeState": "partial",
+      "inventoryState": "not_applicable",
+      "sourceSystemKeys": [
+        "zombie_spawns_pathing_ai"
+      ],
+      "strictReady": false,
+      "blockers": [
+        "runtime_family_not_ready"
+      ]
+    },
+    {
+      "id": "hud_ui_prompts",
+      "runtimeState": "partial",
+      "inventoryState": "not_mounted",
+      "sourceSystemKeys": [
+        "android_touch_hud_and_controls",
+        "all_interactions_zero_dead_prompts"
+      ],
+      "strictReady": false,
+      "blockers": [
+        "runtime_family_not_ready",
+        "final_payload_inventory_not_mounted"
+      ]
+    },
+    {
+      "id": "multiplayer_replication",
+      "runtimeState": "pending",
+      "inventoryState": "not_applicable",
+      "sourceSystemKeys": [
+        "multiplayer_1_to_4_gameplay"
+      ],
+      "strictReady": false,
+      "blockers": [
+        "runtime_family_not_ready"
+      ]
+    },
+    {
+      "id": "platform_packaging",
+      "runtimeState": "partial",
+      "inventoryState": "not_mounted",
+      "sourceSystemKeys": [
+        "android_touch_hud_and_controls",
+        "android_visual_parity",
+        "crash_memory_leak_watch"
+      ],
+      "strictReady": false,
+      "blockers": [
+        "runtime_family_not_ready",
+        "final_payload_inventory_not_mounted"
+      ]
+    },
+    {
+      "id": "soak_release_quality",
+      "runtimeState": "pending",
+      "inventoryState": "not_applicable",
+      "sourceSystemKeys": [
+        "horde_stress_and_round_100_soak",
+        "crash_memory_leak_watch"
+      ],
+      "strictReady": false,
+      "blockers": [
+        "runtime_family_not_ready"
+      ]
+    }
+  ]
+}
