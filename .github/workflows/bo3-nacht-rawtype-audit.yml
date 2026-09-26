@@ -46,7 +46,7 @@ jobs:
             $out=Join-Path (Resolve-Path raw-audit) ([IO.Path]::GetFileNameWithoutExtension($name))
             New-Item -ItemType Directory -Force -Path $out | Out-Null
             Push-Location $out
-            & $env:ACTS_EXE -d --disableScriptsDecomp fastfile -r gsc (Join-Path $env:WORKSHOP_ROOT $name)
+            & $env:ACTS_EXE -d fastfile -r gsc (Join-Path $env:WORKSHOP_ROOT $name)
             $rc=$LASTEXITCODE; $global:LASTEXITCODE=0
             Pop-Location
             Write-Host "$name ACTS rc=$rc"
