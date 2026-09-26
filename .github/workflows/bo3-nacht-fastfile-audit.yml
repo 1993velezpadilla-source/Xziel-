@@ -1,0 +1,106 @@
+name: BO3 Nacht FastFile Script Audit
+
+on:
+  push:
+    branches:
+      - experiment/bo3-nacht-workshop-audit
+    paths:
+      - ".github/workflows/bo3-nacht-fastfile-audit.yml"
+  workflow_dispatch:
+
+jobs:
+  gsc-audit:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout Xziel
+        uses: actions/checkout@v4
+
+      - name: Install SteamCMD and download Workshop item
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $steam = Join-Path $env:RUNNER_TEMP 'steamcmd'
+          New-Item -ItemType Directory -Force -Path $steam | Out-Null
+          Invoke-WebRequest 'https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip' -OutFile (Join-Path $env:RUNNER_TEMP 'steamcmd.zip')
+          Expand-Archive (Join-Path $env:RUNNER_TEMP 'steamcmd.zip') -DestinationPath $steam -Force
+          & (Join-Path $steam 'steamcmd.exe') +login anonymous +workshop_download_item 311210 3596966808 validate +quit
+          if ($LASTEXITCODE -ne 0) { throw "SteamCMD failed: $LASTEXITCODE" }
+          $root = Get-ChildItem -Path $steam,$env:RUNNER_TEMP -Directory -Recurse -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -like '*steamapps\workshop\content\311210\3596966808' } |
+            Select-Object -First 1
+          if (-not $root) { throw 'Workshop payload not found' }
+          "WORKSHOP_ROOT=$($root.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Get-Item (Join-Path $root.FullName 'zm_mod.ff') | Format-List FullName,Length
+
+      - name: Download Atian COD Tools
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $zip = Join-Path $env:RUNNER_TEMP 'acts.zip'
+          Invoke-WebRequest 'https://github.com/ate47/atian-cod-tools/releases/download/3.3.0/acts.zip' -OutFile $zip
+          $dir = Join-Path $env:RUNNER_TEMP 'acts'
+          Expand-Archive $zip -DestinationPath $dir -Force
+          $exe = Get-ChildItem $dir -Filter acts.exe -Recurse | Select-Object -First 1
+          if (-not $exe) { throw 'acts.exe not found' }
+          "ACTS_EXE=$($exe.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          & $exe.FullName --help | Select-Object -First 80
+
+      - name: Dump BO3 GSC assets from zm_mod.ff
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          New-Item -ItemType Directory -Force -Path 'audit-out' | Out-Null
+          Push-Location 'audit-out'
+          & $env:ACTS_EXE -d fastfile -r gsc (Join-Path $env:WORKSHOP_ROOT 'zm_mod.ff') 2>&1 | Tee-Object -FilePath 'acts-gsc.log'
+          $rc = $LASTEXITCODE
+          Pop-Location
+          "ACTS_RC=$rc" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "ACTS return code: $rc"
+          exit 0
+
+      - name: Inventory extracted scripts and Nacht references
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $files = Get-ChildItem 'audit-out' -File -Recurse | Where-Object { $_.Name -ne 'acts-gsc.log' }
+          $rows = @()
+          foreach ($f in $files) {
+            $rel = Resolve-Path -Relative $f.FullName
+            $rows += [pscustomobject]@{ path=$rel; bytes=$f.Length; ext=$f.Extension.ToLowerInvariant() }
+          }
+          $needles = 'nacht','prototype','zm_prototype','chronicles','zombie','barrier','window','spawn','round','weapon','thompson'
+          $hits = @()
+          foreach ($f in $files) {
+            if ($f.Length -gt 16777216) { continue }
+            try { $txt = Get-Content $f.FullName -Raw -ErrorAction Stop } catch { continue }
+            foreach ($n in $needles) {
+              if ($txt -match [regex]::Escape($n)) {
+                $hits += [pscustomobject]@{ path=(Resolve-Path -Relative $f.FullName); needle=$n }
+              }
+            }
+          }
+          $report = [ordered]@{
+            workshop_id = '3596966808'
+            fastfile = 'zm_mod.ff'
+            acts_version = '3.3.0'
+            acts_return_code = [int]$env:ACTS_RC
+            extracted_file_count = $files.Count
+            files = $rows
+            keyword_hits = $hits
+          }
+          $report | ConvertTo-Json -Depth 6 | Set-Content 'audit-out/fastfile-script-report.json' -Encoding utf8
+          Write-Host "Extracted files: $($files.Count)"
+          $rows | Sort-Object bytes -Descending | Select-Object -First 100 | Format-Table -AutoSize
+          Write-Host 'Keyword hits:'
+          $hits | Select-Object -First 200 | Format-Table -AutoSize
+
+      - name: Upload report and logs only
+        uses: actions/upload-artifact@v4
+        with:
+          name: bo3-nacht-fastfile-script-audit
+          path: |
+            audit-out/fastfile-script-report.json
+            audit-out/acts-gsc.log
+          if-no-files-found: error
+          retention-days: 7
