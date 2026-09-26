@@ -76,6 +76,8 @@ for name in (
     "xz_texture_tap.c",
     "xz_nacht_reference.h",
     "xz_nacht_reference.c",
+    "xz_map_runtime.h",
+    "xz_map_runtime.c",
 ):
     src = modules / name
     if not src.is_file():
@@ -1223,7 +1225,8 @@ if "XZ_WORLD_TRANSITION_RESET" not in rmisc:
         "void R_NewMap (void)\n{\n\tint\t\ti;\n"
         "#ifdef __ANDROID__\n"
         "\t/* XZ_WORLD_TRANSITION_RESET */\n"
-        "\tXzAndroidRuntime_NotifyWorldTransition();\n"
+        "\tXzAndroidRuntime_NotifyWorldTransitionNamed(\n"
+        "\t\tcl.worldmodel ? cl.worldmodel->name : NULL);\n"
         "#endif\n",
         1,
     )
