@@ -73,6 +73,12 @@ jobs:
           set -euo pipefail
           python3 tools/weapons/validate_bo3_zm_prototype_weapons.py
 
+      - name: Validate BO3 source coverage for all weapon identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/weapons/validate_bo3_weapon_source_coverage.py
+
       - name: Validate global XZIEL weapon catalog
         shell: bash
         env:
