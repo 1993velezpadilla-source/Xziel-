@@ -1,0 +1,81 @@
+name: BO3 Standalone Nacht Script Audit
+
+on:
+  push:
+    branches:
+      - experiment/bo3-nacht-workshop-audit
+    paths:
+      - ".github/workflows/bo3-standalone-nacht-scripts.yml"
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download standalone Nacht
+        shell: pwsh
+        run: |
+          $steam=Join-Path $env:RUNNER_TEMP 'steamcmd'
+          New-Item -ItemType Directory -Force -Path $steam | Out-Null
+          Invoke-WebRequest 'https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip' -OutFile (Join-Path $env:RUNNER_TEMP 'steamcmd.zip')
+          Expand-Archive (Join-Path $env:RUNNER_TEMP 'steamcmd.zip') -DestinationPath $steam -Force
+          & (Join-Path $steam 'steamcmd.exe') +login anonymous +workshop_download_item 311210 782262486 validate +quit
+          $rc=$LASTEXITCODE; $global:LASTEXITCODE=0
+          $root=Get-ChildItem -Path $steam,$env:RUNNER_TEMP -Directory -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.FullName -like '*steamapps\workshop\content\311210\782262486' } | Select-Object -First 1
+          if (-not $root) { throw "Workshop missing rc=$rc" }
+          "MAP_FF=$(Join-Path $root.FullName 'zm_return_to_nacht_der_untoten.ff')" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          exit 0
+
+      - name: Install ACTS
+        shell: pwsh
+        run: |
+          Invoke-WebRequest 'https://github.com/ate47/atian-cod-tools/releases/download/3.3.0/acts.zip' -OutFile (Join-Path $env:RUNNER_TEMP 'acts.zip')
+          Expand-Archive (Join-Path $env:RUNNER_TEMP 'acts.zip') -DestinationPath (Join-Path $env:RUNNER_TEMP 'acts') -Force
+          $exe=Get-ChildItem (Join-Path $env:RUNNER_TEMP 'acts') -Filter acts.exe -Recurse | Select-Object -First 1
+          "ACTS_EXE=$($exe.FullName)" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Dump/decompile map scripts
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path script-audit | Out-Null
+          Push-Location script-audit
+          & $env:ACTS_EXE fastfile -r gsc $env:MAP_FF 2>&1 | Tee-Object acts.log
+          $rc=$LASTEXITCODE; $global:LASTEXITCODE=0
+          Pop-Location
+          Write-Host "ACTS rc=$rc"
+          exit 0
+
+      - name: Inventory gameplay scripts
+        shell: pwsh
+        run: |
+          @'
+          import json,pathlib,re
+          root=pathlib.Path('script-audit')
+          files=[p for p in root.rglob('*') if p.is_file() and p.name!='acts.log']
+          needles=['nacht','return_to_nacht','zombie','spawn','window','barrier','board','round','wallbuy','weapon','box','magicbox','door','power','zone','path','nav']
+          rows=[]
+          hits=[]
+          for p in files:
+            rel=p.as_posix(); rows.append({'path':rel,'bytes':p.stat().st_size})
+            if p.stat().st_size>8*1024*1024: continue
+            try: t=p.read_text(encoding='utf-8',errors='replace')
+            except: continue
+            for n in needles:
+              if n.lower() in t.lower() or n.lower() in rel.lower(): hits.append({'path':rel,'needle':n})
+          rows.sort(key=lambda x:-x['bytes'])
+          report={'fastfile':'zm_return_to_nacht_der_untoten.ff','file_count':len(files),'largest':rows[:200],'keyword_hits':hits[:1500]}
+          pathlib.Path('script-audit/report.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
+          print(json.dumps(report,indent=2)[:50000])
+          '@ | Set-Content script-audit/inventory.py -Encoding utf8
+          python script-audit/inventory.py
+
+      - name: Upload report/log only
+        uses: actions/upload-artifact@v4
+        with:
+          name: bo3-standalone-nacht-script-audit
+          path: |
+            script-audit/report.json
+            script-audit/acts.log
+          retention-days: 7
