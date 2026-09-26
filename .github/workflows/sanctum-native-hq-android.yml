@@ -409,6 +409,11 @@ jobs:
 
           cp "${SR_TEXTURE}" "${DEST}"
 
+          # Pillow is used only to validate the decoded RGBA hash of the staged
+          # candidate against the SR report. Keep this explicit in the A/B step
+          # instead of depending on runner-global Python packages.
+          python3 -m pip install --quiet --disable-pip-version-check pillow
+
           python3 - "${DEST}" "${SR_REPORT}" <<'PY'
           import hashlib
           import json
