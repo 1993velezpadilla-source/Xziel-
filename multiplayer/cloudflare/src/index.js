@@ -96,10 +96,13 @@ export default {
     }
 
     if (url.pathname === "/matchmake" && upgrade(request)) {
-      const id = env.MATCHMAKER.idFromName("public-v1");
+      const rawQueue = String(url.searchParams.get("queue") || "public-v1");
+      const queue = rawQueue.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 64) || "public-v1";
+      const id = env.MATCHMAKER.idFromName("queue-" + queue);
       const stub = env.MATCHMAKER.get(id);
       const target = new URL(request.url);
       target.pathname = "/socket";
+      target.searchParams.set("queue", queue);
       return stub.fetch(new Request(target, request));
     }
 
