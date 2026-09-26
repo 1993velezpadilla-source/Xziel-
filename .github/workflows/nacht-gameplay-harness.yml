@@ -63,12 +63,19 @@ jobs:
 
       - name: Validate global XZIEL weapon catalog
         shell: bash
+        env:
+          XZIEL_MYSTERY_BOX_MB2_OUT: ${{ github.workspace }}/nacht-ci/xziel_nacht_bo3.mb2
         run: |
           set -euo pipefail
           python3 tools/weapons/export_xziel_mystery_box_pool.py
           python3 tools/weapons/export_nacht_prototype_box_pool.py
+          python3 tools/weapons/export_xziel_mystery_box_runtime_pool.py
           git diff --exit-code -- assets/weapons/xziel_mystery_box_pool_v1.json
           git diff --exit-code -- assets/weapons/nacht_prototype_box_pool_v1.json
+          git diff --exit-code -- assets/weapons/xziel_mystery_box_runtime_pool_v1.json
+          test -s nacht-ci/xziel_nacht_bo3.mb2
+          grep -Fx 'nzp_mbox2' nacht-ci/xziel_nacht_bo3.mb2
+          grep -Fx 'allow:' nacht-ci/xziel_nacht_bo3.mb2
           python3 tools/weapons/validate_xziel_weapon_catalog.py
 
       - name: Validate zero-omission Nacht completion contract
@@ -110,6 +117,7 @@ jobs:
               "doors":3,
               "nativePurchases":1,
               "blockedBo3WeaponPurchases":8,
+              "mysteryBoxes":1,
           }, c
           assert r["nativePurchase"]["weapon"] == "W_GRENADE", r
           assert r["nativePurchase"]["cost"] == 250, r
@@ -119,7 +127,9 @@ jobs:
           assert text.count('"classname" "item_barricade"') == 12
           assert text.count('"classname" "func_door_nzp"') == 3
           assert text.count('"classname" "buy_weapon"') == 1
+          assert text.count('"classname" "mystery_box"') == 1
           assert text.count('"classname" "trigger_relay"') == 2
+          assert '"cost" "950"' in text
           assert '"weapon" "26"' in text
           assert '"cost2" "250"' in text
           assert '"targetname" "xz_upstairs_purchases"' in text
@@ -172,6 +182,7 @@ jobs:
         env:
           XZIEL_EXTRA_MAP_NAME: xziel_nacht_bo3
           XZIEL_EXTRA_MAP_BSP: ${{ github.workspace }}/nacht-ci/xziel_nacht_bo3.bsp
+          XZIEL_EXTRA_MAP_MB2: ${{ github.workspace }}/nacht-ci/xziel_nacht_bo3.mb2
         run: |
           set -euo pipefail
           bash scripts/prepare_android.sh
@@ -179,6 +190,12 @@ jobs:
             | grep 'nzp/maps/xziel_nacht_bo3.bsp'
           unzip -l build/android-project/app/src/main/assets/nzp-data.zip \
             | grep -F 'nzp/xziel/weapons/nacht_prototype_box_pool_v1.json'
+          unzip -l build/android-project/app/src/main/assets/nzp-data.zip \
+            | grep -F 'nzp/xziel/weapons/xziel_weapon_id_registry_v1.json'
+          unzip -l build/android-project/app/src/main/assets/nzp-data.zip \
+            | grep -F 'nzp/xziel/weapons/xziel_mystery_box_runtime_pool_v1.json'
+          unzip -l build/android-project/app/src/main/assets/nzp-data.zip \
+            | grep -F 'nzp/maps/xziel_nacht_bo3.mb2'
 
       - name: Build Nacht harness APK
         working-directory: build/android-project
@@ -391,6 +408,7 @@ jobs:
             dist/emulator-stdout.txt
             nacht-ci/xziel_nacht_bo3.map
             nacht-ci/xziel_nacht_bo3.bsp
+            nacht-ci/xziel_nacht_bo3.mb2
             nacht-ci/xziel_nacht_bo3_harness.json
             nacht-ci/export.log
             nacht-ci/compile.log
