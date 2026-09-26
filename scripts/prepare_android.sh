@@ -7,6 +7,15 @@ DEPS="$BUILD/deps"
 PROJECT="$BUILD/android-project"
 APP="$PROJECT/app"
 
+# Nacht golden-reference stress builds are opt-in. Normal builds remain at the
+# classic 24-AI ceiling and do not enable benchmark gameplay controls.
+if [[ "${XZIEL_NACHT_BENCHMARK:-0}" == "1" ]]; then
+    XZIEL_MAX_AI_COUNT="${XZIEL_MAX_AI_COUNT:-96}"
+else
+    XZIEL_MAX_AI_COUNT="${XZIEL_MAX_AI_COUNT:-24}"
+fi
+export XZIEL_MAX_AI_COUNT
+
 rm -rf "$BUILD"
 mkdir -p "$DEPS"
 
@@ -51,6 +60,10 @@ python3 "$ROOT/scripts/patch_quakec_modern_movement.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_mobile_v021.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_mobile_v022.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_mobile_v024.py" "$DEPS/quakec"
+if [[ "${XZIEL_NACHT_BENCHMARK:-0}" == "1" ]]; then
+    echo "==> Enabling Nacht golden-reference stress controls"
+    python3 "$ROOT/scripts/patch_quakec_nacht_benchmark.py" "$DEPS/quakec"
+fi
 chmod +x "$DEPS/quakec/bin/fteqcc-cli-lin" "$DEPS/quakec/tools/qc-compiler-gnu.sh"
 (
     cd "$DEPS/quakec"
@@ -83,6 +96,22 @@ cp "$ROOT/android/jni/Android.mk" "$APP/jni/Android.mk"
 cp "$ROOT/android/jni/Application.mk" "$APP/jni/Application.mk"
 mkdir -p "$APP/jni/src"
 cp "$ROOT/android/jni/src/Android.mk" "$APP/jni/src/Android.mk"
+python3 - "$APP/jni/src/Android.mk" "$XZIEL_MAX_AI_COUNT" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+cap = int(sys.argv[2])
+if cap < 2 or cap > 256:
+    raise SystemExit(f"XZIEL_MAX_AI_COUNT out of supported benchmark range: {cap}")
+text = path.read_text(encoding="utf-8")
+anchor = "XZIEL_MAX_AI_COUNT ?= 24"
+if anchor not in text:
+    raise SystemExit("Could not find XZIEL_MAX_AI_COUNT default in generated Android.mk")
+text = text.replace(anchor, f"XZIEL_MAX_AI_COUNT := {cap}", 1)
+path.write_text(text, encoding="utf-8")
+print(f"==> Native AI compile ceiling: {cap}")
+PY
 
 cp "$ROOT/android/app-build.gradle" "$APP/build.gradle"
 cp "$ROOT/android/AndroidManifest.xml" "$APP/src/main/AndroidManifest.xml"
