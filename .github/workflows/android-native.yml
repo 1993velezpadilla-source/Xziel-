@@ -29,6 +29,7 @@ on:
       - feature/xz-bsp-special-raster-suppress
       - feature/xz-special-raster-suppress
       - feature/xz-full-world-raster-retirement
+      - feature/xz-nacht-reference-runtime-v1
     paths:
       - ".github/workflows/android-native.yml"
       - "android/**"
@@ -189,6 +190,16 @@ jobs:
             engine/xz/xz_texture_tap.c \
             -o /tmp/xz_texture_tap_test
           /tmp/xz_texture_tap_test
+
+      - name: Test Xz Nacht reference runtime
+        shell: bash
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_nacht_reference_test.c \
+            engine/xz/xz_nacht_reference.c \
+            -lm -o /tmp/xz_nacht_reference_test
+          /tmp/xz_nacht_reference_test
 
       - name: Test Xz RHI
         shell: bash
