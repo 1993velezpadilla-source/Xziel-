@@ -29,7 +29,7 @@ class LocalDetailFusionResult:
     seam_added_delta_max:float|None
     seam_ready:bool
     error:str|None=None
-    method:str="hayuya-local-basecolor-fusion-v1"
+    method:str="hayuya-local-basecolor-fusion-v2"
 
 
 def _deps():
@@ -144,14 +144,43 @@ def _deterministic_donor_cloud(
         np.random.set_state(state)
 
 
-def _align_cloud(points,base_vertices):
+def _align_cloud(
+    points,
+    base_vertices,
+    *,
+    region:str|None=None,
+    up_axis:int=1,
+    donor_scope:str="full",
+):
+    """Align donor color evidence to the full asset or one semantic region."""
     np,_,cKDTree=_deps()
     points=np.asarray(points,dtype=np.float64)
     base=np.asarray(base_vertices,dtype=np.float64)
+    scope=str(donor_scope or "full").lower()
+    if scope not in {"full","region"}:
+        raise ValueError(
+            f"unsupported donor_scope {donor_scope!r}; expected full or region"
+        )
+
+    target=base
+    if scope=="region":
+        heights=_normalized_heights(base,int(up_axis))
+        resolved=str(region or "").lower()
+        if resolved=="head":
+            target=base[heights>=0.58]
+        elif resolved=="middle":
+            target=base[(heights>=0.18)&(heights<=0.84)]
+        elif resolved=="lower":
+            target=base[heights<=0.46]
+        if len(target)<16:
+            raise RuntimeError(
+                f"semantic alignment region {region!r} is too sparse: {len(target)}"
+            )
+
     p_lo=np.min(points,axis=0)
     p_hi=np.max(points,axis=0)
-    b_lo=np.min(base,axis=0)
-    b_hi=np.max(base,axis=0)
+    b_lo=np.min(target,axis=0)
+    b_hi=np.max(target,axis=0)
     p_center=(p_lo+p_hi)*0.5
     b_center=(b_lo+b_hi)*0.5
     p_diag=max(float(np.linalg.norm(p_hi-p_lo)),1e-9)
@@ -159,7 +188,7 @@ def _align_cloud(points,base_vertices):
     scale=b_diag/p_diag
     aligned=(points-p_center)*scale+b_center
     tree=cKDTree(aligned)
-    distances,_=tree.query(base,k=1,workers=-1)
+    distances,_=tree.query(target,k=1,workers=-1)
     p95=float(np.percentile(distances/b_diag,95.0))
     return aligned,b_diag,p95
 
@@ -251,6 +280,7 @@ def fuse_local_basecolor(
     up_axis:str|int="y",
     donor_samples:int=60_000,
     max_alignment_p95_ratio:float=0.18,
+    donor_scope:str="full",
 )->LocalDetailFusionResult:
     np,_,cKDTree=_deps()
     try:
@@ -282,7 +312,11 @@ def fuse_local_basecolor(
             donor_mesh,samples=donor_samples
         )
         aligned,diag,alignment_p95=_align_cloud(
-            donor_points,vertices
+            donor_points,
+            vertices,
+            region=region,
+            up_axis=axis,
+            donor_scope=donor_scope,
         )
         if alignment_p95>max_alignment_p95_ratio:
             raise RuntimeError(
@@ -515,12 +549,18 @@ def main()->int:
         required=True,
     )
     parser.add_argument("--up-axis",choices=["x","y","z"],default="y")
+    parser.add_argument(
+        "--donor-scope",
+        choices=["full","region"],
+        default="full",
+    )
     parser.add_argument("--json",type=Path)
     args=parser.parse_args()
     result=fuse_local_basecolor(
         args.base,args.donor,args.output,
         region=args.region,
         up_axis=args.up_axis,
+        donor_scope=args.donor_scope,
     )
     payload=json.dumps(asdict(result),indent=2)
     print(payload)
