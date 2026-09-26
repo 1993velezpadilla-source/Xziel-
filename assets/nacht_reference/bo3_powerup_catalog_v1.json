@@ -10,7 +10,13 @@
       "nachtNaturalDrop": true,
       "gobblegumTriggerable": true,
       "effectSpecStatus": "pending",
-      "runtimeStatus": "pending"
+      "runtimeStatus": "pending",
+      "runtimePrimitive": {
+        "available": true,
+        "upstreamSymbol": "PU_INSTAKILL",
+        "xzielSemantic": "XZIEL_PU_INSTAKILL",
+        "bridgeStatus": "logic_ready"
+      }
     },
     {
       "id": "double_points",
@@ -18,7 +24,13 @@
       "nachtNaturalDrop": true,
       "gobblegumTriggerable": true,
       "effectSpecStatus": "pending",
-      "runtimeStatus": "pending"
+      "runtimeStatus": "pending",
+      "runtimePrimitive": {
+        "available": true,
+        "upstreamSymbol": "PU_DOUBLEPTS",
+        "xzielSemantic": "XZIEL_PU_DOUBLEPOINTS",
+        "bridgeStatus": "logic_ready"
+      }
     },
     {
       "id": "nuke",
@@ -26,7 +38,13 @@
       "nachtNaturalDrop": true,
       "gobblegumTriggerable": true,
       "effectSpecStatus": "pending",
-      "runtimeStatus": "pending"
+      "runtimeStatus": "pending",
+      "runtimePrimitive": {
+        "available": true,
+        "upstreamSymbol": "PU_NUKE",
+        "xzielSemantic": "XZIEL_PU_NUKE",
+        "bridgeStatus": "logic_ready"
+      }
     },
     {
       "id": "max_ammo",
@@ -34,7 +52,13 @@
       "nachtNaturalDrop": true,
       "gobblegumTriggerable": true,
       "effectSpecStatus": "pending",
-      "runtimeStatus": "pending"
+      "runtimeStatus": "pending",
+      "runtimePrimitive": {
+        "available": true,
+        "upstreamSymbol": "PU_MAXAMMO",
+        "xzielSemantic": "XZIEL_PU_MAXAMMO",
+        "bridgeStatus": "logic_ready"
+      }
     },
     {
       "id": "carpenter",
@@ -42,7 +66,13 @@
       "nachtNaturalDrop": true,
       "gobblegumTriggerable": true,
       "effectSpecStatus": "pending",
-      "runtimeStatus": "pending"
+      "runtimeStatus": "pending",
+      "runtimePrimitive": {
+        "available": true,
+        "upstreamSymbol": "PU_CARPENTER",
+        "xzielSemantic": "XZIEL_PU_CARPENTER",
+        "bridgeStatus": "logic_ready"
+      }
     },
     {
       "id": "death_machine",
@@ -50,7 +80,13 @@
       "nachtNaturalDrop": true,
       "gobblegumTriggerable": true,
       "effectSpecStatus": "pending",
-      "runtimeStatus": "pending"
+      "runtimeStatus": "pending",
+      "runtimePrimitive": {
+        "available": false,
+        "upstreamSymbol": null,
+        "xzielSemantic": "XZIEL_PU_DEATHMACHINE",
+        "bridgeStatus": "native_feature_required"
+      }
     },
     {
       "id": "fire_sale",
@@ -58,7 +94,13 @@
       "nachtNaturalDrop": false,
       "gobblegumTriggerable": true,
       "effectSpecStatus": "pending",
-      "runtimeStatus": "pending"
+      "runtimeStatus": "pending",
+      "runtimePrimitive": {
+        "available": false,
+        "upstreamSymbol": null,
+        "xzielSemantic": "XZIEL_PU_FIRESALE",
+        "bridgeStatus": "native_feature_required"
+      }
     },
     {
       "id": "random_perk",
@@ -66,7 +108,13 @@
       "nachtNaturalDrop": false,
       "gobblegumTriggerable": true,
       "effectSpecStatus": "pending",
-      "runtimeStatus": "pending"
+      "runtimeStatus": "pending",
+      "runtimePrimitive": {
+        "available": true,
+        "upstreamSymbol": "PU_FREEPERK",
+        "xzielSemantic": "XZIEL_PU_RANDOMPERK",
+        "bridgeStatus": "logic_ready"
+      }
     },
     {
       "id": "bonus_points",
@@ -74,12 +122,19 @@
       "nachtNaturalDrop": false,
       "gobblegumTriggerable": true,
       "effectSpecStatus": "pending",
-      "runtimeStatus": "pending"
+      "runtimeStatus": "pending",
+      "runtimePrimitive": {
+        "available": true,
+        "upstreamSymbol": "PU_BONUSPOINTS",
+        "xzielSemantic": "XZIEL_PU_BONUSPOINTS",
+        "bridgeStatus": "logic_ready"
+      }
     }
   ],
   "validation": {
     "expectedCorePowerupCount": 9,
     "expectedNachtNaturalDropCount": 6,
-    "allRuntimeReady": false
+    "allRuntimeReady": false,
+    "expectedReusablePrimitiveCount": 7
   }
 }
