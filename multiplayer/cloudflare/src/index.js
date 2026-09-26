@@ -377,12 +377,19 @@ export class GameRoom extends DurableObject {
     });
 
     if (kind === "game") {
+      const playerSlots = Array.from(gameByPlayer.values())
+        .map(a => a.slot)
+        .filter(value => value >= 1 && value <= roomMaxPlayers);
+      if (!playerSlots.includes(slot)) playerSlots.push(slot);
+      playerSlots.sort((a, b) => a - b);
+
       try {
         server.send(JSON.stringify({
           type: "welcome",
           roomCode: expectedRoom,
           playerId,
           slot,
+          players: playerSlots,
           map: roomMap,
           mode: roomMode,
           targetPlayers: roomMaxPlayers,
