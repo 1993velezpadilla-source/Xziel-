@@ -35,13 +35,16 @@ jobs:
 
       - name: Generate Nacht server gameplay harness
         shell: bash
+        env:
+          XZIEL_NACHT_MAP_OUT: ${{ github.workspace }}/nacht-ci/xziel_nacht_bo3.map
+          XZIEL_NACHT_HARNESS_SUMMARY: ${{ github.workspace }}/nacht-ci/xziel_nacht_bo3_harness.json
         run: |
           set -euo pipefail
-          mkdir -p build/nacht_harness
+          mkdir -p nacht-ci
           python3 tools/maps/export_nacht_nzp_harness.py \
-            | tee build/nacht_harness/export.log
-          test -s build/nacht_harness/xziel_nacht_bo3.map
-          test -s build/nacht_harness/xziel_nacht_bo3_harness.json
+            | tee nacht-ci/export.log
+          test -s nacht-ci/xziel_nacht_bo3.map
+          test -s nacht-ci/xziel_nacht_bo3_harness.json
 
       - name: Validate Nacht server entity contract
         shell: bash
@@ -50,7 +53,7 @@ jobs:
           python3 - <<'PY'
           import json
           from pathlib import Path
-          p=Path("build/nacht_harness/xziel_nacht_bo3_harness.json")
+          p=Path("nacht-ci/xziel_nacht_bo3_harness.json")
           r=json.loads(p.read_text(encoding="utf-8"))
           c=r["counts"]
           assert r["serverAuthoritative"] is True, r
@@ -69,7 +72,7 @@ jobs:
           assert r["nativePurchase"]["weapon"] == "W_GRENADE", r
           assert r["nativePurchase"]["cost"] == 250, r
           assert len(r["blockedBo3Weapons"]) == 8, r
-          text=Path("build/nacht_harness/xziel_nacht_bo3.map").read_text(encoding="utf-8")
+          text=Path("nacht-ci/xziel_nacht_bo3.map").read_text(encoding="utf-8")
           assert text.count('"classname" "spawn_zombie"') == 21
           assert text.count('"classname" "item_barricade"') == 12
           assert text.count('"classname" "func_door_nzp"') == 3
@@ -92,14 +95,14 @@ jobs:
             cd /tmp/nzp-assets
             bash tools/compile-wads.sh
             mkdir -p source/maps/xziel_nacht_bo3
-            cp "$GITHUB_WORKSPACE/build/nacht_harness/xziel_nacht_bo3.map" \
+            cp "$GITHUB_WORKSPACE/nacht-ci/xziel_nacht_bo3.map" \
               source/maps/xziel_nacht_bo3/xziel_nacht_bo3.map
             bash tools/compile-maps.sh --map xziel_nacht_bo3
-          ) 2>&1 | tee build/nacht_harness/compile.log
+          ) 2>&1 | tee nacht-ci/compile.log
           cp /tmp/nzp-assets/common/maps/xziel_nacht_bo3.bsp \
-            build/nacht_harness/xziel_nacht_bo3.bsp
-          test -s build/nacht_harness/xziel_nacht_bo3.bsp
-          ls -lh build/nacht_harness/xziel_nacht_bo3.bsp
+            nacht-ci/xziel_nacht_bo3.bsp
+          test -s nacht-ci/xziel_nacht_bo3.bsp
+          ls -lh nacht-ci/xziel_nacht_bo3.bsp
 
       - name: Set up Java 17
         uses: actions/setup-java@v5
@@ -126,7 +129,7 @@ jobs:
         shell: bash
         env:
           XZIEL_EXTRA_MAP_NAME: xziel_nacht_bo3
-          XZIEL_EXTRA_MAP_BSP: ${{ github.workspace }}/build/nacht_harness/xziel_nacht_bo3.bsp
+          XZIEL_EXTRA_MAP_BSP: ${{ github.workspace }}/nacht-ci/xziel_nacht_bo3.bsp
         run: |
           set -euo pipefail
           bash scripts/prepare_android.sh
@@ -263,11 +266,11 @@ jobs:
             dist/runtime-state.txt
             dist/am-start.txt
             dist/emulator-stdout.txt
-            build/nacht_harness/xziel_nacht_bo3.map
-            build/nacht_harness/xziel_nacht_bo3.bsp
-            build/nacht_harness/xziel_nacht_bo3_harness.json
-            build/nacht_harness/export.log
-            build/nacht_harness/compile.log
+            nacht-ci/xziel_nacht_bo3.map
+            nacht-ci/xziel_nacht_bo3.bsp
+            nacht-ci/xziel_nacht_bo3_harness.json
+            nacht-ci/export.log
+            nacht-ci/compile.log
           if-no-files-found: warn
           retention-days: 14
 
