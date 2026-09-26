@@ -300,7 +300,7 @@ jobs:
           grep -F 'XZIEL_GobbleGumDisorderlyTick' build/deps/quakec/source/server/utilities/weapon_utilities.qc
           grep -F 'XZIEL_GOBBLEGUM_DISORDERLY_RUNTIME_TICK' build/deps/quakec/source/server/weapons/weapon_core.qc
           grep -F 'XZIEL_GOBBLEGUM_DISORDERLY_BLOCK_WEAPON_CYCLE' build/deps/quakec/source/server/weapons/weapon_core.qc
-          grep -F 'XZIEL_GOBBLEGUM_DISORDERLY_BLOCK_OFFHAND' build/deps/quakec/source/server/weapons/weapon_core.qc
+          grep -F 'XZIEL_GOBBLEGUM_DISORDERLY_BLOCK_GRENADE_INPUT' build/deps/quakec/source/server/weapons/weapon_core.qc
           grep -F 'XZIEL_GOBBLEGUM_DISORDERLY_BLOCK_OFFHAND_IMPULSE' build/deps/quakec/source/server/weapons/weapon_core.qc
           python3 - <<'PY'
           from pathlib import Path
