@@ -10,6 +10,7 @@ from mesh_gate import inspect as inspect_mesh_gate
 from rig_gate import inspect as inspect_rig_gate
 from texture_gate import inspect as inspect_texture_gate
 from trellis2_cloud import generate as generate_trellis2_cloud
+from trellis2_preview_recovery import recover as recover_trellis2_preview
 from triposr_cpu_cloud import generate as generate_triposr_cpu_cloud
 from source_autofix import build_source_autofix
 
@@ -488,11 +489,64 @@ if not multi and TRELLIS2_ENABLED and TEXTURE_QUALITY in {"high","ultra"}:
             or ("more quota" in modern_text.lower() and "hugging face token" in modern_text.lower())
         )
         if quota_blocked:
-            # TRELLIS classic shares the exhausted ZeroGPU quota. If TripoSR is
-            # explicitly allowed, use the audited free CPU Space only as a
-            # continuity candidate. It still must pass HAYUYA mesh/texture/visual
-            # gates and can never silently replace the TRELLIS.2 ultra result.
-            if TRIPOSR_CPU_ENABLED:
+            # Generation already succeeded and the official Space preserved 48
+            # static turntable frames (Normal / Clay / Base Color / HDRI). Recover
+            # a CPU visual hull from the exact 8 TRELLIS.2 cameras before trying
+            # a different generator. The recovered GLB must pass the same mesh and
+            # real embedded-texture gates; no gate is relaxed for this path.
+            preview_html=OUT/"trellis2_candidate.preview.html"
+            if preview_html.is_file():
+                try:
+                    recovered_meta=recover_trellis2_preview(
+                        preview_html,
+                        OUT/"trellis2_preview_recovered.glb",
+                        grid_resolution=224 if TEXTURE_QUALITY in {"high","ultra"} else 192,
+                        texture_size=2048 if TEXTURE_QUALITY in {"high","ultra"} else 1024,
+                        face_target=140000 if TEXTURE_QUALITY=="ultra" else 120000,
+                    )
+                    recovered_candidate=Path(recovered_meta["path"])
+                    recovered_mesh_report=inspect_mesh_gate(
+                        recovered_candidate,
+                        min_vertices=1500,
+                        min_faces=2500,
+                        require_normals=False,
+                    )
+                    recovered_texture_report=inspect_texture_gate(
+                        recovered_candidate,
+                        min_edge=int(recovered_meta["texture_size"]),
+                        min_base_color_edge=int(recovered_meta["texture_size"]),
+                    )
+                    if not recovered_mesh_report.passed:
+                        raise RuntimeError(
+                            "TRELLIS.2 preview recovery mesh gate failed: "
+                            + json.dumps(asdict(recovered_mesh_report),separators=(",",":"))
+                        )
+                    if not recovered_texture_report.passed:
+                        raise RuntimeError(
+                            "TRELLIS.2 preview recovery texture gate failed: "
+                            + json.dumps(asdict(recovered_texture_report),separators=(",",":"))
+                        )
+                    modern_candidate=recovered_candidate
+                    selected_generator=recovered_meta["generator"]
+                    selected_compute=recovered_meta["compute"]
+                    actual_mesh_simplify=0.0
+                    actual_texture_size=int(recovered_meta["texture_size"])
+                    result=str(modern_candidate)
+                    print(
+                        "HAYUYA_TRELLIS2_PREVIEW_RECOVERY_PROMOTED",
+                        json.dumps(recovered_meta,separators=(",",":")),
+                    )
+                except Exception as recovery_exc:
+                    print(
+                        "::warning::TRELLIS.2 preview recovery failed; "
+                        "keeping native generation checkpoint and trying the "
+                        "explicit continuity backend: "
+                        f"{type(recovery_exc).__name__}: {recovery_exc}"
+                    )
+
+            # TRELLIS classic shares the exhausted ZeroGPU quota. TripoSR remains
+            # last-resort continuity only when preview recovery was unavailable.
+            if modern_candidate is None and TRIPOSR_CPU_ENABLED:
                 try:
                     cpu_meta=generate_triposr_cpu_cloud(
                         crops[0],
@@ -513,29 +567,30 @@ if not multi and TRELLIS2_ENABLED and TEXTURE_QUALITY in {"high","ultra"}:
                     fail(
                         "TRELLIS.2 generation completed but GLB extraction is "
                         "blocked by Hugging Face ZeroGPU quota. TRELLIS.2 "
-                        "checkpoint is preserved, and the free CPU TripoSR "
-                        "continuity candidate also failed: "
+                        "checkpoint is preserved, preview recovery failed, and "
+                        "the free CPU TripoSR continuity candidate also failed: "
                         f"{type(cpu_exc).__name__}: {cpu_exc}. Provider error: "
                         + modern_text
                     )
-            else:
+            elif modern_candidate is None:
                 fail(
                     "TRELLIS.2 generation completed but GLB extraction is blocked "
                     "by Hugging Face ZeroGPU quota. Generation checkpoint preserved "
-                    "in outputs; retry extraction after quota reset instead of "
-                    "regenerating. Provider error: " + modern_text
+                    "in outputs; preview recovery did not produce an accepted GLB. "
+                    "Provider error: " + modern_text
                 )
-        if STRICT_TRELLIS2:
+        if STRICT_TRELLIS2 and modern_candidate is None:
             fail(
                 "TRELLIS.2 is the required generator for this job and did not "
                 "produce an accepted candidate: "
                 + modern_text
             )
-        print(
-            "::warning::TRELLIS.2 challenger unavailable/rejected; "
-            "falling back to classic TRELLIS: "
-            + modern_text
-        )
+        if modern_candidate is None:
+            print(
+                "::warning::TRELLIS.2 challenger unavailable/rejected; "
+                "falling back to classic TRELLIS: "
+                + modern_text
+            )
 
 if modern_candidate is None:
     if not CLASSIC_TRELLIS_ENABLED:
