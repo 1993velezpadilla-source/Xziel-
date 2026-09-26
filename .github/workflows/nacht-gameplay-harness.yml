@@ -256,6 +256,13 @@ jobs:
           grep -F 'case W_XZ_CYMBAL_MONKEY: return W_XZ_CYMBAL_MONKEY_UPGRADED;' build/deps/quakec/source/shared/weapon_stats.qc
           grep -F 'XZIEL_GetPackAPunchWeaponID' build/deps/quakec/source/shared/weapon_stats.qc
           grep -F 'XZIEL_GetBaseWeaponIDFromPackAPunch' build/deps/quakec/source/shared/weapon_stats.qc
+          grep -F 'XZIEL_PackAPunchRuntimeReady' build/deps/quakec/source/shared/weapon_stats.qc
+          grep -F 'XZIEL_GOBBLEGUM_PAP_EVENT_RUNTIME_BEGIN' build/deps/quakec/source/server/utilities/weapon_utilities.qc
+          grep -F 'XZIEL_GobbleGumActivatePapEvent' build/deps/quakec/source/server/utilities/weapon_utilities.qc
+          grep -F 'XZIEL_GobbleGumResolveWallPowerWeapon' build/deps/quakec/source/server/utilities/weapon_utilities.qc
+          grep -F 'XZIEL_GobbleGumResolveCratePowerWeapon' build/deps/quakec/source/server/utilities/weapon_utilities.qc
+          grep -F 'XZIEL_GOBBLEGUM_WALL_POWER_HOOK' build/deps/quakec/source/server/entities/wall_weapon.qc
+          grep -F 'XZIEL_GOBBLEGUM_CRATE_POWER_HOOK' build/deps/quakec/source/server/entities/mystery_box.qc
           grep -F 'XZIEL_ZOMBIES_POWERUP_BRIDGE_BEGIN' build/deps/quakec/source/server/entities/powerups.qc
           grep -F 'XZIEL_SpawnCorePowerup' build/deps/quakec/source/server/entities/powerups.qc
           grep -F 'XZIEL_SpawnPackAPunchGrant' build/deps/quakec/source/server/entities/powerups.qc
