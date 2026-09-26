@@ -54,6 +54,16 @@ int main(void)
     assert(locus && locus->wall_cost == 5000u);
     assert(locus->wall_refill_cost == 2500u);
 
+    assert(locus->damage_falloff_verified == 1);
+    assert(locus->native_enablement_allowed == 0);
+    assert(!XzBo3WeaponSpec_IsNativeReady(locus));
+
+    for (size_t i = 0u; i < XzBo3WeaponSpec_Count(); ++i) {
+        const XzBo3WeaponSpec *spec = XzBo3WeaponSpec_Get(i);
+        assert(spec != 0);
+        assert(!XzBo3WeaponSpec_IsNativeReady(spec));
+    }
+
     assert(XzBo3WeaponSpec_FindByLogicalItemId("frag_grenade") == 0);
     assert(XzBo3WeaponSpec_FindByLogicalItemId("not_a_weapon") == 0);
 
