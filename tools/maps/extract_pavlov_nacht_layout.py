@@ -190,6 +190,16 @@ def main() -> int:
         and ("/MAP_FILES/" in row["mesh"] or "zm_prototype_part" in row["mesh"])
     ]
 
+    map_file_decal_rows = [
+        row for row in map_file_rows
+        if isinstance(row["mesh"], str)
+        and row["mesh"].rsplit("/", 1)[-1].lower().startswith("zm_prototype_part1_1_")
+    ]
+    map_file_structural_rows = [
+        row for row in map_file_rows
+        if row not in map_file_decal_rows
+    ]
+
     output = {
         "schema": 1,
         "source": {
@@ -212,9 +222,19 @@ def main() -> int:
             "map_files_unique_mesh_count": len({
                 r["mesh"] for r in map_file_rows if r["mesh"]
             }),
+            "map_files_structural_instance_count": len(map_file_structural_rows),
+            "map_files_structural_unique_mesh_count": len({
+                r["mesh"] for r in map_file_structural_rows if r["mesh"]
+            }),
+            "map_files_decal_instance_count": len(map_file_decal_rows),
+            "map_files_decal_unique_mesh_count": len({
+                r["mesh"] for r in map_file_decal_rows if r["mesh"]
+            }),
             "gameplay_actor_count": len(gameplay),
         },
         "gameplay_actors": gameplay,
+        "map_files_structural": map_file_structural_rows,
+        "map_files_decals": map_file_decal_rows,
         "static_mesh_instances": mesh_rows,
     }
 
