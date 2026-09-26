@@ -439,6 +439,54 @@ float(entity player) XZIEL_GobbleGumRollsRemaining =
     return max(0, XZIEL_GOBBLEGUM_MAX_ROLLS - player.xziel_gum_uses_this_round);
 };
 
+// First BO3 GobbleGum effect primitives that map directly to existing
+// XZIEL/NZ:P power-up pickups. Identity numbers match the committed 63-entry
+// GobbleGum catalog and remain stable.
+#define XZIEL_GUM_CACHE_BACK              12
+#define XZIEL_GUM_DEAD_NUCLEAR_WINTER     17
+#define XZIEL_GUM_KILL_JOY                 32
+#define XZIEL_GUM_LICENSED_CONTRACTOR      34
+#define XZIEL_GUM_ON_THE_HOUSE             40
+#define XZIEL_GUM_WHOS_KEEPING_SCORE       63
+
+float(float gum_identity) XZIEL_GobbleGumMappedPowerupSemantic =
+{
+    switch (gum_identity) {
+        case XZIEL_GUM_CACHE_BACK: return XZIEL_PU_MAXAMMO;
+        case XZIEL_GUM_DEAD_NUCLEAR_WINTER: return XZIEL_PU_NUKE;
+        case XZIEL_GUM_KILL_JOY: return XZIEL_PU_INSTAKILL;
+        case XZIEL_GUM_LICENSED_CONTRACTOR: return XZIEL_PU_CARPENTER;
+        case XZIEL_GUM_ON_THE_HOUSE: return XZIEL_PU_RANDOMPERK;
+        case XZIEL_GUM_WHOS_KEEPING_SCORE: return XZIEL_PU_DOUBLEPOINTS;
+        default: return 0;
+    }
+};
+
+float(float gum_identity) XZIEL_GobbleGumMappedActivationCount =
+{
+    switch (gum_identity) {
+        case XZIEL_GUM_CACHE_BACK: return 1;
+        case XZIEL_GUM_DEAD_NUCLEAR_WINTER: return 2;
+        case XZIEL_GUM_KILL_JOY: return 2;
+        case XZIEL_GUM_LICENSED_CONTRACTOR: return 3;
+        case XZIEL_GUM_ON_THE_HOUSE: return 1;
+        case XZIEL_GUM_WHOS_KEEPING_SCORE: return 2;
+        default: return 0;
+    }
+};
+
+float(entity player, float gum_identity) XZIEL_GobbleGumSpawnMappedPowerup =
+{
+    if (player == world || player.classname != "player")
+        return false;
+
+    float semantic_id = XZIEL_GobbleGumMappedPowerupSemantic(gum_identity);
+    if (!semantic_id)
+        return false;
+
+    return XZIEL_SpawnCorePowerup(player.origin, semantic_id);
+};
+
 // XZIEL_ZOMBIES_PERK_BRIDGE_END
 '''
 
@@ -474,6 +522,9 @@ required_perk = [
     "XZIEL_GobbleGumConfigureLoadout",
     "XZIEL_GobbleGumRollIdentity",
     "XZIEL_GobbleGumRollsRemaining",
+    "XZIEL_GobbleGumMappedPowerupSemantic",
+    "XZIEL_GobbleGumMappedActivationCount",
+    "XZIEL_GobbleGumSpawnMappedPowerup",
 ]
 for token in required_perk:
     if perk.count(token) < 1:
