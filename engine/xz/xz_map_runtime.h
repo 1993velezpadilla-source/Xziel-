@@ -2,6 +2,7 @@
 #define XZ_MAP_RUNTIME_H
 
 #include "xz_nacht_reference.h"
+#include "xz_world_transform.h"
 
 #include <stdint.h>
 
@@ -20,6 +21,7 @@ typedef struct XzMapRuntimeState {
     XzMapRuntimeKind kind;
     char map_id[XZ_MAP_RUNTIME_NAME_MAX];
     uint64_t generation;
+    XzWorldTransform world_transform;
     XzNachtGameplayState nacht;
 } XzMapRuntimeState;
 
@@ -33,6 +35,56 @@ XzMapRuntimeKind XzMapRuntime_Kind(
 
 const char *XzMapRuntime_MapId(
     const XzMapRuntimeState *state);
+
+const XzWorldTransform *XzMapRuntime_WorldTransform(
+    const XzMapRuntimeState *state);
+
+int XzMapRuntime_SetWorldTransform(
+    XzMapRuntimeState *state,
+    const XzWorldTransform *transform);
+
+int XzMapRuntime_NachtPurchasePositionUnits(
+    const XzMapRuntimeState *state,
+    size_t index,
+    XzWorldVec3 *out_position_units);
+
+int XzMapRuntime_NachtDoorPositionUnits(
+    const XzMapRuntimeState *state,
+    size_t index,
+    XzWorldVec3 *out_position_units);
+
+int XzMapRuntime_NachtBarricadePositionUnits(
+    const XzMapRuntimeState *state,
+    size_t index,
+    XzWorldVec3 *out_position_units);
+
+int XzMapRuntime_NachtSpawnPositionUnits(
+    const XzMapRuntimeState *state,
+    size_t index,
+    XzWorldVec3 *out_position_units);
+
+int XzMapRuntime_NachtFindNearestPurchaseUnits(
+    const XzMapRuntimeState *state,
+    XzWorldVec3 player_position_units,
+    size_t *out_index,
+    float *out_distance_m);
+
+int XzMapRuntime_NachtFindNearestDoorUnits(
+    const XzMapRuntimeState *state,
+    XzWorldVec3 player_position_units,
+    size_t *out_index,
+    float *out_distance_m);
+
+XzNachtResult XzMapRuntime_NachtTryPurchaseUnits(
+    XzMapRuntimeState *state,
+    size_t index,
+    XzWorldVec3 player_position_units,
+    const char **out_logical_item_id);
+
+XzNachtResult XzMapRuntime_NachtTryOpenDoorUnits(
+    XzMapRuntimeState *state,
+    size_t index,
+    XzWorldVec3 player_position_units);
 
 XzNachtGameplayState *XzMapRuntime_Nacht(
     XzMapRuntimeState *state);
