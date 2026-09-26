@@ -66,7 +66,7 @@ if parse_marker not in parse:
 
 sound_marker = "XZIEL_STRICT_MISSING_SFX"
 if sound_marker not in sound:
-    old = '''	if (!(data = COM_LoadStackFile(namebuffer, stackbuf, sizeof(stackbuf))))
+    old = r'''	if (!(data = COM_LoadStackFile(namebuffer, stackbuf, sizeof(stackbuf))))
 	{
 		Con_Printf ("Couldn't load %s\n", namebuffer);
 		return NULL;
@@ -74,7 +74,7 @@ if sound_marker not in sound:
 '''
     if old not in sound:
         raise SystemExit("missing sound fallback anchor")
-    new = '''	if (!(data = COM_LoadStackFile(namebuffer, stackbuf, sizeof(stackbuf))))
+    new = r'''	if (!(data = COM_LoadStackFile(namebuffer, stackbuf, sizeof(stackbuf))))
 	{
 		/* XZIEL_STRICT_MISSING_SFX */
 		if (COM_CheckParm("-xzielstrictassets"))
