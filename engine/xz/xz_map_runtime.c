@@ -72,6 +72,7 @@ void XzMapRuntime_Init(XzMapRuntimeState *state)
 
     memset(state, 0, sizeof(*state));
     state->kind = XZ_MAP_RUNTIME_NONE;
+    XzWorldTransform_Init(&state->world_transform);
     XzNacht_Reset(&state->nacht);
 }
 
@@ -101,6 +102,14 @@ void XzMapRuntime_SetWorldModel(
     state->generation++;
 
     /*
+     * BO3 reference metadata is already normalized to X,-Y,Z meters. Keep an
+     * identity basis and the shared XZIEL 39.3700787402 units/m convention.
+     * A future geometry package may override only the origins/basis through
+     * XzMapRuntime_SetWorldTransform without touching gameplay definitions.
+     */
+    XzWorldTransform_Init(&state->world_transform);
+
+    /*
      * This function is called from Vril R_NewMap, so every invocation is a
      * real world load. Reloading the same map must start a fresh match too.
      */
@@ -117,6 +126,231 @@ const char *XzMapRuntime_MapId(
     const XzMapRuntimeState *state)
 {
     return state ? state->map_id : "";
+}
+
+const XzWorldTransform *XzMapRuntime_WorldTransform(
+    const XzMapRuntimeState *state)
+{
+    return state ? &state->world_transform : NULL;
+}
+
+int XzMapRuntime_SetWorldTransform(
+    XzMapRuntimeState *state,
+    const XzWorldTransform *transform)
+{
+    if (!state ||
+        !transform ||
+        !XzWorldTransform_IsValid(transform))
+        return 0;
+
+    state->world_transform = *transform;
+    return 1;
+}
+
+static XzWorldVec3 XzMapRuntime_FromNachtMeters(
+    XzNachtVec3 value)
+{
+    XzWorldVec3 result;
+    result.x = value.x;
+    result.y = value.y;
+    result.z = value.z;
+    return result;
+}
+
+static XzNachtVec3 XzMapRuntime_ToNachtMeters(
+    XzWorldVec3 value)
+{
+    XzNachtVec3 result;
+    result.x = value.x;
+    result.y = value.y;
+    result.z = value.z;
+    return result;
+}
+
+int XzMapRuntime_NachtPurchasePositionUnits(
+    const XzMapRuntimeState *state,
+    size_t index,
+    XzWorldVec3 *out_position_units)
+{
+    const XzNachtPurchase *purchase;
+
+    if (!state ||
+        state->kind != XZ_MAP_RUNTIME_NACHT_BO3 ||
+        !out_position_units)
+        return 0;
+
+    purchase = XzNacht_GetPurchase(index);
+    if (!purchase)
+        return 0;
+
+    *out_position_units =
+        XzWorldTransform_ToRuntime(
+            &state->world_transform,
+            XzMapRuntime_FromNachtMeters(
+                purchase->position_m));
+    return 1;
+}
+
+int XzMapRuntime_NachtDoorPositionUnits(
+    const XzMapRuntimeState *state,
+    size_t index,
+    XzWorldVec3 *out_position_units)
+{
+    const XzNachtDoor *door;
+
+    if (!state ||
+        state->kind != XZ_MAP_RUNTIME_NACHT_BO3 ||
+        !out_position_units)
+        return 0;
+
+    door = XzNacht_GetDoor(index);
+    if (!door)
+        return 0;
+
+    *out_position_units =
+        XzWorldTransform_ToRuntime(
+            &state->world_transform,
+            XzMapRuntime_FromNachtMeters(
+                door->position_m));
+    return 1;
+}
+
+int XzMapRuntime_NachtBarricadePositionUnits(
+    const XzMapRuntimeState *state,
+    size_t index,
+    XzWorldVec3 *out_position_units)
+{
+    const XzNachtBarricade *barricade;
+
+    if (!state ||
+        state->kind != XZ_MAP_RUNTIME_NACHT_BO3 ||
+        !out_position_units)
+        return 0;
+
+    barricade = XzNacht_GetBarricade(index);
+    if (!barricade)
+        return 0;
+
+    *out_position_units =
+        XzWorldTransform_ToRuntime(
+            &state->world_transform,
+            XzMapRuntime_FromNachtMeters(
+                barricade->position_m));
+    return 1;
+}
+
+int XzMapRuntime_NachtSpawnPositionUnits(
+    const XzMapRuntimeState *state,
+    size_t index,
+    XzWorldVec3 *out_position_units)
+{
+    const XzNachtSpawn *spawn;
+
+    if (!state ||
+        state->kind != XZ_MAP_RUNTIME_NACHT_BO3 ||
+        !out_position_units)
+        return 0;
+
+    spawn = XzNacht_GetSpawn(index);
+    if (!spawn)
+        return 0;
+
+    *out_position_units =
+        XzWorldTransform_ToRuntime(
+            &state->world_transform,
+            XzMapRuntime_FromNachtMeters(
+                spawn->position_m));
+    return 1;
+}
+
+int XzMapRuntime_NachtFindNearestPurchaseUnits(
+    const XzMapRuntimeState *state,
+    XzWorldVec3 player_position_units,
+    size_t *out_index,
+    float *out_distance_m)
+{
+    XzWorldVec3 source_m;
+
+    if (!state ||
+        state->kind != XZ_MAP_RUNTIME_NACHT_BO3)
+        return 0;
+
+    source_m = XzWorldTransform_ToSourceMeters(
+        &state->world_transform,
+        player_position_units);
+
+    return XzNacht_FindNearestPurchase(
+        &state->nacht,
+        XzMapRuntime_ToNachtMeters(source_m),
+        out_index,
+        out_distance_m);
+}
+
+int XzMapRuntime_NachtFindNearestDoorUnits(
+    const XzMapRuntimeState *state,
+    XzWorldVec3 player_position_units,
+    size_t *out_index,
+    float *out_distance_m)
+{
+    XzWorldVec3 source_m;
+
+    if (!state ||
+        state->kind != XZ_MAP_RUNTIME_NACHT_BO3)
+        return 0;
+
+    source_m = XzWorldTransform_ToSourceMeters(
+        &state->world_transform,
+        player_position_units);
+
+    return XzNacht_FindNearestDoor(
+        &state->nacht,
+        XzMapRuntime_ToNachtMeters(source_m),
+        out_index,
+        out_distance_m);
+}
+
+XzNachtResult XzMapRuntime_NachtTryPurchaseUnits(
+    XzMapRuntimeState *state,
+    size_t index,
+    XzWorldVec3 player_position_units,
+    const char **out_logical_item_id)
+{
+    XzWorldVec3 source_m;
+
+    if (!state ||
+        state->kind != XZ_MAP_RUNTIME_NACHT_BO3)
+        return XZ_NACHT_RESULT_INVALID_INDEX;
+
+    source_m = XzWorldTransform_ToSourceMeters(
+        &state->world_transform,
+        player_position_units);
+
+    return XzNacht_TryPurchase(
+        &state->nacht,
+        index,
+        XzMapRuntime_ToNachtMeters(source_m),
+        out_logical_item_id);
+}
+
+XzNachtResult XzMapRuntime_NachtTryOpenDoorUnits(
+    XzMapRuntimeState *state,
+    size_t index,
+    XzWorldVec3 player_position_units)
+{
+    XzWorldVec3 source_m;
+
+    if (!state ||
+        state->kind != XZ_MAP_RUNTIME_NACHT_BO3)
+        return XZ_NACHT_RESULT_INVALID_INDEX;
+
+    source_m = XzWorldTransform_ToSourceMeters(
+        &state->world_transform,
+        player_position_units);
+
+    return XzNacht_TryOpenDoor(
+        &state->nacht,
+        index,
+        XzMapRuntime_ToNachtMeters(source_m));
 }
 
 XzNachtGameplayState *XzMapRuntime_Nacht(
@@ -143,6 +377,9 @@ int XzMapRuntime_SelfTest(void)
     uint64_t generation;
 
     XzMapRuntime_Init(&state);
+
+    if (!XzWorldTransform_IsValid(&state.world_transform))
+        return 0;
 
     if (state.kind != XZ_MAP_RUNTIME_NONE ||
         state.generation != 0u ||
