@@ -15,6 +15,7 @@
   "environment": "environment.json",
   "collision": "collision.json",
   "profiles": "profiles.json",
+  "purchaseRuntime": "purchase_runtime.json",
   "defaultProfile": "bo3_chronicles",
   "referenceOnly": true
 }
