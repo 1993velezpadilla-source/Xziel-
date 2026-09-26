@@ -155,6 +155,20 @@ jobs:
           "$ADB" install -r apk/Xziel-NZP-native-universal-debug.apk
           "$ADB" shell pm grant com.xziel.nzp android.permission.RECORD_AUDIO || true
           "$ADB" shell settings put secure immersive_mode_confirmations confirmed || true
+
+          # Give PackageManager/configuration broadcasts time to settle before
+          # SDL binds to its native Surface. Without this, API 35 occasionally
+          # recreates NZPActivity immediately after launch and VID_Init sees a
+          # destroyed window.
+          sleep 8
+
+          # Xziel is landscape-only. Lock the emulator before launch so no
+          # rotation/configuration relaunch can race SDL_CreateWindow.
+          "$ADB" shell settings put system accelerometer_rotation 0 || true
+          "$ADB" shell settings put system user_rotation 1 || true
+          "$ADB" shell wm dismiss-keyguard || true
+          sleep 3
+
           "$ADB" logcat -c
 
       - name: Enter isolated public matchmaking
@@ -187,6 +201,12 @@ jobs:
           for i in $(seq 1 180); do
             "$ADB" logcat -d -v brief > "evidence/logcat-${{ matrix.runner }}.txt" || true
             LOG="evidence/logcat-${{ matrix.runner }}.txt"
+
+            if grep -q "Xziel.*stage=SYS_ERROR" "$LOG" || \
+               grep -q "SDL_CreateWindow: Could not fetch native window" "$LOG"; then
+              echo "Native startup lost the Android Surface."
+              break
+            fi
 
             if [[ "$CAMERA_SHOT" = "0" ]] && grep -q "XzielOnline.*CI_CAMERA_READY" "$LOG"; then
               "$ADB" exec-out screencap -p > "evidence/ci-camera-player-${{ matrix.runner }}.png" || true
