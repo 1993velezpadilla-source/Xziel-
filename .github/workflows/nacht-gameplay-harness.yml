@@ -13,7 +13,7 @@ on:
       - "tools/maps/export_nacht_nzp_harness.py"
       - "tools/maps/export_nacht_xziel_package_status.py"
       - "tools/maps/build_xziel_map_package.py"
-      - "tools/maps/validate_xziel_map_content_contract.py"
+      - "tests/test_xziel_xzp_package.py"\n      - "tools/maps/verify_xziel_map_package.py"\n      - "tools/maps/compile_xziel_map_package.py"\n      - "tools/maps/validate_xziel_map_content_contract.py"
       - "tests/test_xziel_map_package_builder.py"
       - "tools/maps/validate_nacht_bo3_weapon_specs.py"
       - "tools/maps/validate_nacht_completion_contract.py"
@@ -69,6 +69,12 @@ jobs:
         run: |
           set -euo pipefail
           python3 tests/test_xziel_map_package_builder.py
+
+      - name: Test deterministic XZIEL XZP package
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tests/test_xziel_xzp_package.py
 
       - name: Validate Nacht universal package status
         shell: bash
