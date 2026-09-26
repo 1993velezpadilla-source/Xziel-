@@ -17,11 +17,29 @@ if len(sys.argv) != 2:
     raise SystemExit("usage: patch_quakec_xziel_zombies_runtime_bridge.py <quakec-root>")
 
 root = Path(sys.argv[1])
+custom_path = root / "source/server/defs/custom.qc"
 power_path = root / "source/server/entities/powerups.qc"
 perk_path = root / "source/server/entities/perk_a_cola.qc"
 
+custom = custom_path.read_text(encoding="utf-8")
 power = power_path.read_text(encoding="utf-8")
 perk = perk_path.read_text(encoding="utf-8")
+
+if "// XZIEL_GOBBLEGUM_PLAYER_STATE_BEGIN" not in custom:
+    custom += r'''
+
+// XZIEL_GOBBLEGUM_PLAYER_STATE_BEGIN
+.float xziel_gum_round;
+.float xziel_gum_uses_this_round;
+.float xziel_gum_bag_mask;
+.float xziel_gum_held_identity;
+.float xziel_gum_slot1;
+.float xziel_gum_slot2;
+.float xziel_gum_slot3;
+.float xziel_gum_slot4;
+.float xziel_gum_slot5;
+// XZIEL_GOBBLEGUM_PLAYER_STATE_END
+'''
 
 power_marker = "// XZIEL_ZOMBIES_POWERUP_BRIDGE_BEGIN"
 if power_marker not in power:
@@ -257,6 +275,170 @@ float(entity player) XZIEL_WunderfizzGrantLogic =
     return XZIEL_GrantPerkLogic(player, semantic_id);
 };
 
+
+#define XZIEL_GOBBLEGUM_IDENTITY_COUNT 63
+#define XZIEL_GOBBLEGUM_PACK_SIZE      5
+#define XZIEL_GOBBLEGUM_MAX_ROLLS      3
+
+void(entity player) XZIEL_GobbleGumSyncRound =
+{
+    if (player.xziel_gum_round != rounds) {
+        player.xziel_gum_round = rounds;
+        player.xziel_gum_uses_this_round = 0;
+    }
+};
+
+float(float round_number) XZIEL_GobbleGumSecondUseBasePrice =
+{
+    // Zombies Chronicles online-era schedule:
+    // R1-9 1500, R10-19 2500, ... capped at R100+ 1,024,500.
+    float tier = floor(round_number / 10);
+    if (tier < 0)
+        tier = 0;
+    if (tier > 10)
+        tier = 10;
+
+    float price = 1500;
+    for (float i = 0; i < tier; i++)
+        price = (price * 2) - 500;
+
+    return price;
+};
+
+float(entity player) XZIEL_GobbleGumCurrentPrice =
+{
+    if (player == world || player.classname != "player")
+        return -1;
+
+    XZIEL_GobbleGumSyncRound(player);
+
+    if (player.xziel_gum_uses_this_round >= XZIEL_GOBBLEGUM_MAX_ROLLS)
+        return -1;
+
+    float price = 0;
+    if (player.xziel_gum_uses_this_round == 1)
+        price = XZIEL_GobbleGumSecondUseBasePrice(rounds);
+    else if (player.xziel_gum_uses_this_round == 2)
+        price = XZIEL_GobbleGumSecondUseBasePrice(rounds) * 2;
+
+    // BO3 Fire Sale reduces GobbleGum machine prices by 490, clamped at zero.
+    if (XZIEL_FireSaleLogicActive())
+        price = max(0, price - 490);
+
+    return price;
+};
+
+float(entity player, float a, float b, float c, float d, float e) XZIEL_GobbleGumConfigureLoadout =
+{
+    if (player == world || player.classname != "player")
+        return false;
+
+    if (a < 1 || a > XZIEL_GOBBLEGUM_IDENTITY_COUNT ||
+        b < 1 || b > XZIEL_GOBBLEGUM_IDENTITY_COUNT ||
+        c < 1 || c > XZIEL_GOBBLEGUM_IDENTITY_COUNT ||
+        d < 1 || d > XZIEL_GOBBLEGUM_IDENTITY_COUNT ||
+        e < 1 || e > XZIEL_GOBBLEGUM_IDENTITY_COUNT)
+        return false;
+
+    if (a == b || a == c || a == d || a == e ||
+        b == c || b == d || b == e ||
+        c == d || c == e || d == e)
+        return false;
+
+    player.xziel_gum_slot1 = a;
+    player.xziel_gum_slot2 = b;
+    player.xziel_gum_slot3 = c;
+    player.xziel_gum_slot4 = d;
+    player.xziel_gum_slot5 = e;
+    player.xziel_gum_bag_mask = 0;
+    player.xziel_gum_held_identity = 0;
+    player.xziel_gum_round = rounds;
+    player.xziel_gum_uses_this_round = 0;
+    return true;
+};
+
+float(entity player, float slot) XZIEL_GobbleGumIdentityAtSlot =
+{
+    switch (slot) {
+        case 0: return player.xziel_gum_slot1;
+        case 1: return player.xziel_gum_slot2;
+        case 2: return player.xziel_gum_slot3;
+        case 3: return player.xziel_gum_slot4;
+        case 4: return player.xziel_gum_slot5;
+    }
+    return 0;
+};
+
+float(float slot) XZIEL_GobbleGumSlotMask =
+{
+    switch (slot) {
+        case 0: return 1;
+        case 1: return 2;
+        case 2: return 4;
+        case 3: return 8;
+        case 4: return 16;
+    }
+    return 0;
+};
+
+float(entity player) XZIEL_GobbleGumRollIdentity =
+{
+    if (player == world || player.classname != "player")
+        return 0;
+
+    XZIEL_GobbleGumSyncRound(player);
+    if (player.xziel_gum_uses_this_round >= XZIEL_GOBBLEGUM_MAX_ROLLS)
+        return 0;
+
+    // All five configured identities must be valid before the machine can roll.
+    for (float slot = 0; slot < XZIEL_GOBBLEGUM_PACK_SIZE; slot++) {
+        float identity = XZIEL_GobbleGumIdentityAtSlot(player, slot);
+        if (identity < 1 || identity > XZIEL_GOBBLEGUM_IDENTITY_COUNT)
+            return 0;
+    }
+
+    // Five-entry shuffle bag: consume every configured gum once before repeats.
+    if (player.xziel_gum_bag_mask >= 31)
+        player.xziel_gum_bag_mask = 0;
+
+    float available = 0;
+    for (float slot = 0; slot < XZIEL_GOBBLEGUM_PACK_SIZE; slot++) {
+        float mask = XZIEL_GobbleGumSlotMask(slot);
+        if (!(player.xziel_gum_bag_mask & mask))
+            available++;
+    }
+    if (available <= 0)
+        return 0;
+
+    float target = floor(random() * available);
+    if (target >= available)
+        target = available - 1;
+
+    float seen = 0;
+    for (float slot = 0; slot < XZIEL_GOBBLEGUM_PACK_SIZE; slot++) {
+        float mask = XZIEL_GobbleGumSlotMask(slot);
+        if (player.xziel_gum_bag_mask & mask)
+            continue;
+
+        if (seen == target) {
+            float identity = XZIEL_GobbleGumIdentityAtSlot(player, slot);
+            player.xziel_gum_bag_mask = player.xziel_gum_bag_mask | mask;
+            player.xziel_gum_uses_this_round++;
+            player.xziel_gum_held_identity = identity;
+            return identity;
+        }
+        seen++;
+    }
+
+    return 0;
+};
+
+float(entity player) XZIEL_GobbleGumRollsRemaining =
+{
+    XZIEL_GobbleGumSyncRound(player);
+    return max(0, XZIEL_GOBBLEGUM_MAX_ROLLS - player.xziel_gum_uses_this_round);
+};
+
 // XZIEL_ZOMBIES_PERK_BRIDGE_END
 '''
 
@@ -287,11 +469,20 @@ required_perk = [
     "XZIEL_WunderfizzEligiblePerkCount",
     "XZIEL_WunderfizzPickSupportedPerk",
     "XZIEL_WunderfizzGrantLogic",
+    "XZIEL_GobbleGumSecondUseBasePrice",
+    "XZIEL_GobbleGumCurrentPrice",
+    "XZIEL_GobbleGumConfigureLoadout",
+    "XZIEL_GobbleGumRollIdentity",
+    "XZIEL_GobbleGumRollsRemaining",
 ]
 for token in required_perk:
     if perk.count(token) < 1:
         raise SystemExit(f"missing perk bridge token: {token}")
 
+if custom.count("// XZIEL_GOBBLEGUM_PLAYER_STATE_BEGIN") != 1 or custom.count("// XZIEL_GOBBLEGUM_PLAYER_STATE_END") != 1:
+    raise SystemExit("GobbleGum player-state marker mismatch")
+
+custom_path.write_text(custom, encoding="utf-8")
 power_path.write_text(power, encoding="utf-8")
 perk_path.write_text(perk, encoding="utf-8")
-print("Applied XZIEL Zombies semantic runtime bridge (7 perks, 7 upstream power-ups, Fire Sale logic, PaP grant primitive).")
+print("Applied XZIEL Zombies bridge (7 perks, 7 upstream power-ups, Fire Sale logic, PaP grant, GobbleGum economy/bag core).")
