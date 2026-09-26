@@ -176,6 +176,38 @@ def main() -> int:
     if gum_core.get("selectionPolicy") != "five_entry_shuffle_bag_before_repeat":
         fail("GobbleGum selection policy drift")
 
+    expected_mapped_gums = {
+        "cache_back": ("spawn_max_ammo", 1, "XZIEL_PU_MAXAMMO"),
+        "dead_of_nuclear_winter": ("spawn_nuke", 2, "XZIEL_PU_NUKE"),
+        "kill_joy": ("spawn_insta_kill", 2, "XZIEL_PU_INSTAKILL"),
+        "licensed_contractor": ("spawn_carpenter", 3, "XZIEL_PU_CARPENTER"),
+        "on_the_house": ("spawn_random_perk", 1, "XZIEL_PU_RANDOMPERK"),
+        "whos_keeping_score": ("spawn_double_points", 2, "XZIEL_PU_DOUBLEPOINTS"),
+    }
+    gum_by_id = {row["id"]: row for row in gum_entries}
+    logic_ready_effects = 0
+    for gum_id, (effect_type, activations, semantic) in expected_mapped_gums.items():
+        row = gum_by_id[gum_id]
+        if row.get("effectSpecStatus") != "verified":
+            fail(f"{gum_id} effect spec must be verified")
+        if row.get("effectSpec") != {"type": effect_type, "activations": activations}:
+            fail(f"{gum_id} effect spec drift")
+        primitive = row.get("runtimePrimitive", {})
+        if primitive.get("status") != "logic_ready":
+            fail(f"{gum_id} runtime primitive must be logic_ready")
+        if primitive.get("powerupSemantic") != semantic:
+            fail(f"{gum_id} power-up semantic drift")
+        if row.get("runtimeStatus") != "pending":
+            fail(f"{gum_id} must remain pending until full machine/consumption/presentation runtime is complete")
+        logic_ready_effects += 1
+
+    if logic_ready_effects != 6:
+        fail("expected exactly six mapped GobbleGum effect primitives")
+    if gobblegum_catalog.get("validation", {}).get("effectSpecsVerified") != 6:
+        fail("GobbleGum verified effect-spec count drift")
+    if gobblegum_catalog.get("validation", {}).get("effectPrimitivesLogicReady") != 6:
+        fail("GobbleGum logic-ready effect primitive count drift")
+
     placement_rows = system_placements.get("entities", [])
     if not isinstance(placement_rows, list):
         fail("system placements entities must be a list")
