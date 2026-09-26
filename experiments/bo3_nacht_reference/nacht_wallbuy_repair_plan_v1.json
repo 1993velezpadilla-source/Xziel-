@@ -1,0 +1,302 @@
+{
+  "schema": 1,
+  "authority": "BO3 Zombies Chronicles purchase layout reconstructed from Pavlov community port metadata and BO3-derived chalk geometry; not Treyarch source map",
+  "coordinate_system": {
+    "source_chalk": "UModel glTF meters",
+    "target": "Unreal centimeters",
+    "conversion": "UE_cm=(gltf_x*100, gltf_z*100, gltf_y*100)"
+  },
+  "validation": {
+    "functional_anchor_count": 3,
+    "max_anchor_error_cm": 7.705260714435853,
+    "mean_anchor_error_cm": 4.4651223369893955,
+    "rule": "reconstructed missing slots accepted because all three existing functional anchors are within 10 cm of their baked chalk center"
+  },
+  "anchors": [
+    {
+      "chalk_key": "arak",
+      "canonical": "KN-44",
+      "chalk_center_ue_cm": {
+        "x": -570.942,
+        "y": -2644.1400000000003,
+        "z": 497.84
+      },
+      "functional_actor_location_ue_cm": {
+        "x": -570.9418945,
+        "y": -2645.7163086,
+        "z": 499.0671997
+      },
+      "delta_cm": {
+        "x": 0.0001055000000178552,
+        "y": -1.5763085999997202,
+        "z": 1.2271997000000283
+      },
+      "distance_cm": 1.9976906460319344
+    },
+    {
+      "chalk_key": "kuda",
+      "canonical": "Kuda",
+      "chalk_center_ue_cm": {
+        "x": 2405.38,
+        "y": -2562.8599999999997,
+        "z": 139.7
+      },
+      "functional_actor_location_ue_cm": {
+        "x": 2404.9902344,
+        "y": -2562.8601074,
+        "z": 136.0282135
+      },
+      "delta_cm": {
+        "x": -0.3897655999999188,
+        "y": -0.00010740000016085105,
+        "z": -3.671786499999996
+      },
+      "distance_cm": 3.6924156505003984
+    },
+    {
+      "chalk_key": "triton",
+      "canonical": "RK5",
+      "chalk_center_ue_cm": {
+        "x": -248.92,
+        "y": 1036.3200000000002,
+        "z": 148.59
+      },
+      "functional_actor_location_ue_cm": {
+        "x": -248.9199219,
+        "y": 1034.3101807,
+        "z": 141.151474
+      },
+      "delta_cm": {
+        "x": 0.00007809999999608408,
+        "y": -2.0098193000001174,
+        "z": -7.438525999999996
+      },
+      "distance_cm": 7.705260714435853
+    }
+  ],
+  "summary": {
+    "total_purchase_slots": 9,
+    "functional_original": 3,
+    "reconstructed_missing": 6,
+    "weapon_or_cabinet_slots": 8,
+    "equipment_slots": 1
+  },
+  "purchase_slots": [
+    {
+      "id": "purchase_arak",
+      "canonical": "KN-44",
+      "type": "weapon",
+      "bo3_weapon_id": "ar_standard",
+      "pavlov_weapon_id": "kn44",
+      "price": 1400,
+      "chalk_asset": "zm_prototype_part4_t7_zm_chalk_buy_arak",
+      "chalk_center_ue_cm": {
+        "x": -570.942,
+        "y": -2644.1400000000003,
+        "z": 497.84
+      },
+      "interaction_location_ue_cm": {
+        "x": -570.9418945,
+        "y": -2645.7163086,
+        "z": 499.0671997
+      },
+      "functional_actor": "WallBuy2_2",
+      "placement_source": "functional_wallbuy_actor",
+      "reconstructed": false,
+      "interaction_radius_cm": 150,
+      "replicationPolicy": "server_authoritative"
+    },
+    {
+      "id": "purchase_argus",
+      "canonical": "Argus",
+      "type": "weapon",
+      "bo3_weapon_id": "shotgun_precision",
+      "pavlov_weapon_id": "argus",
+      "price": 1100,
+      "chalk_asset": "zm_prototype_part4_t7_zm_chalk_buy_argus",
+      "chalk_center_ue_cm": {
+        "x": 1862.77,
+        "y": -2567.2999999999997,
+        "z": 574.04
+      },
+      "interaction_location_ue_cm": {
+        "x": 1862.77,
+        "y": -2567.2999999999997,
+        "z": 574.04
+      },
+      "functional_actor": null,
+      "placement_source": "verified_chalk_geometry_center",
+      "reconstructed": true,
+      "interaction_radius_cm": 150,
+      "replicationPolicy": "server_authoritative"
+    },
+    {
+      "id": "purchase_frag",
+      "canonical": "Fragmentation Grenades",
+      "type": "equipment",
+      "bo3_weapon_id": "frag_grenade",
+      "pavlov_weapon_id": "frag",
+      "price": 250,
+      "chalk_asset": "zm_prototype_part4_t7_zm_chalk_buy_frag",
+      "chalk_center_ue_cm": {
+        "x": -396.04949999999997,
+        "y": 311.301,
+        "z": 508
+      },
+      "interaction_location_ue_cm": {
+        "x": -396.04949999999997,
+        "y": 311.301,
+        "z": 508
+      },
+      "functional_actor": null,
+      "placement_source": "verified_chalk_geometry_center",
+      "reconstructed": true,
+      "interaction_radius_cm": 150,
+      "replicationPolicy": "server_authoritative"
+    },
+    {
+      "id": "purchase_krm",
+      "canonical": "KRM-262",
+      "type": "weapon",
+      "bo3_weapon_id": "shotgun_pump",
+      "pavlov_weapon_id": "krm",
+      "price": 750,
+      "chalk_asset": "zm_prototype_part4_t7_zm_chalk_buy_krm",
+      "chalk_center_ue_cm": {
+        "x": 2635.68,
+        "y": -1962.15,
+        "z": 147.32
+      },
+      "interaction_location_ue_cm": {
+        "x": 2635.68,
+        "y": -1962.15,
+        "z": 147.32
+      },
+      "functional_actor": null,
+      "placement_source": "verified_chalk_geometry_center",
+      "reconstructed": true,
+      "interaction_radius_cm": 150,
+      "replicationPolicy": "server_authoritative"
+    },
+    {
+      "id": "purchase_kuda",
+      "canonical": "Kuda",
+      "type": "weapon",
+      "bo3_weapon_id": "smg_standard",
+      "pavlov_weapon_id": "kuda",
+      "price": 1250,
+      "chalk_asset": "zm_prototype_part4_t7_zm_chalk_buy_kuda",
+      "chalk_center_ue_cm": {
+        "x": 2405.38,
+        "y": -2562.8599999999997,
+        "z": 139.7
+      },
+      "interaction_location_ue_cm": {
+        "x": 2404.9902344,
+        "y": -2562.8601074,
+        "z": 136.0282135
+      },
+      "functional_actor": "WallBuy3_2",
+      "placement_source": "functional_wallbuy_actor",
+      "reconstructed": false,
+      "interaction_radius_cm": 150,
+      "replicationPolicy": "server_authoritative"
+    },
+    {
+      "id": "purchase_locus_decal",
+      "canonical": "Locus",
+      "type": "sniper_cabinet",
+      "bo3_weapon_id": "sniper_fastbolt",
+      "pavlov_weapon_id": "locus",
+      "price": 5000,
+      "chalk_asset": "zm_prototype_part4_t7_zm_chalk_buy_locus_decal",
+      "chalk_center_ue_cm": {
+        "x": 1425.96,
+        "y": -2251.46,
+        "z": 440.94300000000004
+      },
+      "interaction_location_ue_cm": {
+        "x": 1425.96,
+        "y": -2251.46,
+        "z": 440.94300000000004
+      },
+      "functional_actor": null,
+      "placement_source": "verified_chalk_geometry_center",
+      "reconstructed": true,
+      "interaction_radius_cm": 150,
+      "replicationPolicy": "server_authoritative"
+    },
+    {
+      "id": "purchase_pharaoh",
+      "canonical": "Pharo",
+      "type": "weapon",
+      "bo3_weapon_id": "smg_burst",
+      "pavlov_weapon_id": "pharaoh",
+      "price": 700,
+      "chalk_asset": "zm_prototype_part4_t7_zm_chalk_buy_pharaoh",
+      "chalk_center_ue_cm": {
+        "x": 542.57,
+        "y": -1130.425,
+        "z": 508
+      },
+      "interaction_location_ue_cm": {
+        "x": 542.57,
+        "y": -1130.425,
+        "z": 508
+      },
+      "functional_actor": null,
+      "placement_source": "verified_chalk_geometry_center",
+      "reconstructed": true,
+      "interaction_radius_cm": 150,
+      "replicationPolicy": "server_authoritative"
+    },
+    {
+      "id": "purchase_shiva",
+      "canonical": "Sheiva",
+      "type": "weapon",
+      "bo3_weapon_id": "ar_marksman",
+      "pavlov_weapon_id": "shiva",
+      "price": 500,
+      "chalk_asset": "zm_prototype_part4_t7_zm_chalk_buy_shiva",
+      "chalk_center_ue_cm": {
+        "x": -523.24,
+        "y": -604.52,
+        "z": 147.32
+      },
+      "interaction_location_ue_cm": {
+        "x": -523.24,
+        "y": -604.52,
+        "z": 147.32
+      },
+      "functional_actor": null,
+      "placement_source": "verified_chalk_geometry_center",
+      "reconstructed": true,
+      "interaction_radius_cm": 150,
+      "replicationPolicy": "server_authoritative"
+    },
+    {
+      "id": "purchase_triton",
+      "canonical": "RK5",
+      "type": "weapon",
+      "bo3_weapon_id": "pistol_burst",
+      "pavlov_weapon_id": "triton",
+      "price": 500,
+      "chalk_asset": "zm_prototype_part4_t7_zm_chalk_buy_triton",
+      "chalk_center_ue_cm": {
+        "x": -248.92,
+        "y": 1036.3200000000002,
+        "z": 148.59
+      },
+      "interaction_location_ue_cm": {
+        "x": -248.9199219,
+        "y": 1034.3101807,
+        "z": 141.151474
+      },
+      "functional_actor": "WallBuy_2",
+      "placement_source": "functional_wallbuy_actor",
+      "reconstructed": false,
+      "interaction_radius_cm": 150,
+      "replicationPolicy": "server_authoritative"
+    }
+  ]
+}
