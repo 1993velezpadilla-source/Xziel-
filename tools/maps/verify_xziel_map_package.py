@@ -1,13 +1,26 @@
 #!/usr/bin/env python3
-"""Verify XZIEL .xzp package structure and payload hashes before runtime mount."""
+"""Verify XZIEL .xzp package structure, hashes, and runtime-promotion proof."""
 
 from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 import zipfile
+
+ROOT = Path(__file__).resolve().parents[2]
+RUNTIME_VALIDATOR = ROOT / "tools/maps/xziel_runtime_manifest.py"
+
+spec = importlib.util.spec_from_file_location(
+    "xziel_runtime_manifest",
+    RUNTIME_VALIDATOR,
+)
+if spec is None or spec.loader is None:
+    raise SystemExit("unable to load XZIEL runtime manifest validator")
+runtime_validator = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(runtime_validator)
 
 
 def digest(data: bytes) -> str:
@@ -36,6 +49,8 @@ def verify(path) -> dict:
             fail("payload root drift")
         if package.get("sourceBytesPreserved") is not True:
             fail("sourceBytesPreserved must remain true")
+        if package.get("runtimePromotionRequired") is not True:
+            fail("runtimePromotionRequired must remain true")
         if manifest.get("summary", {}).get("strictReady") is not True:
             fail("embedded inventory is not strictReady")
 
@@ -50,9 +65,17 @@ def verify(path) -> dict:
             fail("unsupported map gameMode")
         if map_meta.get("serverAuthoritative") is not True:
             fail("map must remain server authoritative")
-        if not isinstance(map_meta.get("maxPlayers"), int) or not (1 <= map_meta["maxPlayers"] <= 4):
+        if (
+            not isinstance(map_meta.get("maxPlayers"), int)
+            or isinstance(map_meta.get("maxPlayers"), bool)
+            or not (1 <= map_meta["maxPlayers"] <= 4)
+        ):
             fail("map maxPlayers out of range")
-        if not isinstance(entry_world, str) or not entry_world.startswith("maps/") or not entry_world.endswith(".bsp"):
+        if (
+            not isinstance(entry_world, str)
+            or not entry_world.startswith("maps/")
+            or not entry_world.endswith(".bsp")
+        ):
             fail("entryWorld invalid")
         if entry_world != f"maps/{map_id}.bsp":
             fail("entryWorld must equal maps/<mapId>.bsp")
@@ -72,16 +95,24 @@ def verify(path) -> dict:
 
         if "payload/" + entry_world not in expected:
             fail("entryWorld missing from embedded inventory")
+        runtime_arc = "payload/" + runtime_validator.RUNTIME_FILE
+        if runtime_arc not in expected:
+            fail("runtime manifest missing from embedded inventory")
 
-        actual = [n for n in names if n.startswith("payload/") and not n.endswith("/")]
+        actual = [
+            n for n in names
+            if n.startswith("payload/") and not n.endswith("/")
+        ]
         if sorted(actual) != sorted(expected):
             missing = sorted(set(expected) - set(actual))
             extra = sorted(set(actual) - set(expected))
             fail(f"payload membership mismatch missing={missing} extra={extra}")
 
         total = 0
+        payload_bytes = {}
         for arc, row in expected.items():
             data = zf.read(arc)
+            payload_bytes[arc] = data
             total += len(data)
             if len(data) != row.get("bytes"):
                 fail(f"size mismatch: {arc}")
@@ -90,6 +121,26 @@ def verify(path) -> dict:
 
         if total != manifest["summary"]["totalBytes"]:
             fail("total payload byte count mismatch")
+
+        try:
+            runtime = json.loads(payload_bytes[runtime_arc])
+        except Exception as exc:
+            fail(f"invalid payload/{runtime_validator.RUNTIME_FILE}: {exc}")
+
+        runtime_row = expected[runtime_arc]
+        try:
+            runtime_summary = runtime_validator.validate_runtime_manifest(
+                runtime,
+                map_meta,
+                {row["path"] for row in manifest.get("files", [])},
+                inventory_strict_ready=True,
+                manifest_sha256=runtime_row.get("sha256", ""),
+            )
+        except SystemExit as exc:
+            fail(str(exc))
+
+        if manifest.get("runtime") != runtime_summary:
+            fail("embedded runtime promotion summary drift")
 
         return manifest
 
@@ -104,6 +155,8 @@ def main() -> int:
         {
             "files": manifest["summary"]["fileCount"],
             "bytes": manifest["summary"]["totalBytes"],
+            "runtimeReady": manifest["runtime"]["runtimeReady"],
+            "readyFamilies": manifest["runtime"]["readyFamilyCount"],
         },
     )
     return 0

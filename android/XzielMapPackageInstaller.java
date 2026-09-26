@@ -14,6 +14,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -27,8 +28,10 @@ import java.util.zip.ZipFile;
  * Strict installer for XZIEL .xzp map packages.
  *
  * The package is verified before it is made visible to Vril:
- * - xziel.package.json must be unique and strictReady;
+ * - xziel.package.json must be unique and source-inventory strictReady;
  * - map metadata must match the portable descriptor contract;
+ * - xziel.runtime.json must promote all 24 universal families to ready;
+ * - every runtime artifact must be present in the verified package inventory;
  * - every payload member must match manifest size + SHA-256;
  * - extra, missing, duplicate or unsafe paths are rejected;
  * - extraction occurs into a temporary private directory and is renamed only
@@ -36,6 +39,50 @@ import java.util.zip.ZipFile;
  */
 public final class XzielMapPackageInstaller {
     private XzielMapPackageInstaller() {}
+
+    private static final String RUNTIME_MANIFEST = "xziel.runtime.json";
+    private static final String RUNTIME_FORMAT = "xziel_runtime_manifest_v1";
+    private static final int REQUIRED_FAMILY_COUNT = 24;
+
+    private static final Set<String> REQUIRED_RUNTIME_FAMILIES =
+        new HashSet<>(Arrays.asList(
+            "world_geometry",
+            "collision",
+            "navigation_pathing",
+            "materials_textures",
+            "static_models_props",
+            "animated_models_rigs",
+            "animations",
+            "weapons_equipment",
+            "pack_a_punch_variants",
+            "audio_sfx",
+            "ambient_music_vo",
+            "vfx_particles",
+            "lighting_postfx",
+            "gameplay_scripts",
+            "interactables",
+            "perks_wunderfizz",
+            "powerups",
+            "gobblegum",
+            "mystery_box",
+            "spawns_rounds_ai",
+            "hud_ui_prompts",
+            "multiplayer_replication",
+            "platform_packaging",
+            "soak_release_quality"
+        ));
+
+    private static final String[] REQUIRED_RUNTIME_GLOBALS = {
+        "sourceInventoryStrictReady",
+        "allRequiredFamiliesReady",
+        "entryWorldRuntimeLoadable",
+        "noMissingRuntimeArtifacts",
+        "noUnsupportedRuntimeFormats",
+        "noSilentFallbacks",
+        "multiplayerContractReady",
+        "platformPackagingReady",
+        "soakReleaseQualityReady"
+    };
 
     public static final class InstalledMap {
         public final String mapId;
@@ -112,6 +159,10 @@ public final class XzielMapPackageInstaller {
             if (!packageMeta.optBoolean("sourceBytesPreserved", false)) {
                 throw new IOException("XZIEL package sourceBytesPreserved is false");
             }
+            if (!packageMeta.optBoolean("runtimePromotionRequired", false)) {
+                throw new IOException(
+                    "XZIEL package does not require runtime promotion");
+            }
 
             JSONObject mapMeta = object(manifest, "map");
             String mapId = mapMeta.optString("mapId", "");
@@ -134,6 +185,33 @@ public final class XzielMapPackageInstaller {
             int maxPlayers = mapMeta.optInt("maxPlayers", 0);
             if (maxPlayers < 1 || maxPlayers > 4) {
                 throw new IOException("Map maxPlayers must be 1..4");
+            }
+
+            JSONObject runtimeSummary = object(manifest, "runtime");
+            requireString(runtimeSummary, "format", RUNTIME_FORMAT);
+            requireString(runtimeSummary, "manifestPath", RUNTIME_MANIFEST);
+            if (!runtimeSummary.optBoolean("runtimeReady", false)) {
+                throw new IOException("XZIEL runtime promotion is not ready");
+            }
+            if (!runtimeSummary.optBoolean("sourceInventoryStrictReady", false)) {
+                throw new IOException(
+                    "XZIEL runtime promotion did not attest strict inventory");
+            }
+            if (runtimeSummary.optInt("requiredFamilyCount", -1)
+                    != REQUIRED_FAMILY_COUNT
+                    || runtimeSummary.optInt("readyFamilyCount", -1)
+                    != REQUIRED_FAMILY_COUNT) {
+                throw new IOException("XZIEL runtime family count mismatch");
+            }
+            validateRuntimeGlobals(
+                object(runtimeSummary, "globalRequirements"),
+                "runtime summary");
+
+            String runtimeManifestSha = runtimeSummary
+                .optString("manifestSha256", "")
+                .toLowerCase(Locale.US);
+            if (!runtimeManifestSha.matches("^[0-9a-f]{64}$")) {
+                throw new IOException("Invalid runtime manifest SHA-256");
             }
 
             JSONArray files = manifest.optJSONArray("files");
@@ -174,6 +252,17 @@ public final class XzielMapPackageInstaller {
                 throw new IOException("entryWorld is missing from payload inventory");
             }
 
+            ExpectedFile runtimeExpected =
+                expected.get("payload/" + RUNTIME_MANIFEST);
+            if (runtimeExpected == null) {
+                throw new IOException(
+                    "runtime manifest is missing from payload inventory");
+            }
+            if (!runtimeManifestSha.equals(runtimeExpected.sha256)) {
+                throw new IOException(
+                    "runtime manifest SHA does not match payload inventory");
+            }
+
             long declaredTotal = summary.optLong("totalBytes", -1L);
             if (declaredTotal != totalExpectedBytes) {
                 throw new IOException("XZIEL totalBytes mismatch");
@@ -195,6 +284,19 @@ public final class XzielMapPackageInstaller {
                     "XZIEL payload membership mismatch missing="
                     + missing + " extra=" + extra);
             }
+
+            ZipEntry runtimeEntry =
+                zip.getEntry("payload/" + RUNTIME_MANIFEST);
+            if (runtimeEntry == null || runtimeEntry.isDirectory()) {
+                throw new IOException("Missing runtime manifest payload member");
+            }
+            JSONObject runtimeManifest = parseJson(
+                readAll(zip.getInputStream(runtimeEntry)));
+            validateRuntimeManifest(
+                runtimeManifest,
+                mapId,
+                entryWorld,
+                expected);
 
             File importRoot = new File(dataRoot, "xziel-import");
             if (!importRoot.mkdirs() && !importRoot.isDirectory()) {
@@ -283,11 +385,124 @@ public final class XzielMapPackageInstaller {
         }
     }
 
+    private static void validateRuntimeManifest(
+            JSONObject runtime,
+            String mapId,
+            String entryWorld,
+            Map<String, ExpectedFile> expected) throws IOException {
+        if (runtime.optInt("schemaVersion", -1) != 1) {
+            throw new IOException("runtime schemaVersion must be 1");
+        }
+        requireString(runtime, "format", RUNTIME_FORMAT);
+        requireString(runtime, "mapId", mapId);
+        requireString(
+            runtime,
+            "contentContract",
+            "xziel_map_content_contract_v1");
+        if (!runtime.optBoolean("sourceInventoryStrictReady", false)) {
+            throw new IOException(
+                "runtime manifest sourceInventoryStrictReady is false");
+        }
+
+        validateRuntimeGlobals(
+            object(runtime, "globalRequirements"),
+            "runtime manifest");
+
+        JSONArray families = runtime.optJSONArray("families");
+        if (families == null
+                || families.length() != REQUIRED_FAMILY_COUNT) {
+            throw new IOException(
+                "runtime manifest must contain exactly "
+                + REQUIRED_FAMILY_COUNT + " families");
+        }
+
+        Set<String> seenFamilies = new HashSet<>();
+        boolean worldBindsEntryWorld = false;
+
+        for (int i = 0; i < families.length(); ++i) {
+            JSONObject family = families.optJSONObject(i);
+            if (family == null) {
+                throw new IOException("Invalid runtime family row");
+            }
+
+            String familyId = family.optString("id", "");
+            if (!REQUIRED_RUNTIME_FAMILIES.contains(familyId)) {
+                throw new IOException(
+                    "Unknown runtime family: " + familyId);
+            }
+            if (!seenFamilies.add(familyId)) {
+                throw new IOException(
+                    "Duplicate runtime family: " + familyId);
+            }
+            requireString(family, "state", "ready");
+
+            JSONArray artifacts = family.optJSONArray("runtimeArtifacts");
+            if (artifacts == null || artifacts.length() == 0) {
+                throw new IOException(
+                    "runtimeArtifacts missing for " + familyId);
+            }
+            for (int j = 0; j < artifacts.length(); ++j) {
+                String artifact = normalize(artifacts.optString(j, ""));
+                validateSafeRelativePath(artifact);
+                if (RUNTIME_MANIFEST.equals(artifact)) {
+                    throw new IOException(
+                        familyId + " cannot self-reference "
+                        + RUNTIME_MANIFEST);
+                }
+                if (!expected.containsKey("payload/" + artifact)) {
+                    throw new IOException(
+                        "Missing runtime artifact for "
+                        + familyId + ": " + artifact);
+                }
+                if ("world_geometry".equals(familyId)
+                        && entryWorld.equals(artifact)) {
+                    worldBindsEntryWorld = true;
+                }
+            }
+
+            JSONArray evidence = family.optJSONArray("validationEvidence");
+            if (evidence == null || evidence.length() == 0) {
+                throw new IOException(
+                    "validationEvidence missing for " + familyId);
+            }
+            for (int j = 0; j < evidence.length(); ++j) {
+                String value = evidence.optString(j, "");
+                if (value.trim().isEmpty()) {
+                    throw new IOException(
+                        "Invalid validationEvidence for " + familyId);
+                }
+            }
+        }
+
+        if (!seenFamilies.equals(REQUIRED_RUNTIME_FAMILIES)) {
+            Set<String> missing =
+                new HashSet<>(REQUIRED_RUNTIME_FAMILIES);
+            missing.removeAll(seenFamilies);
+            throw new IOException(
+                "runtime family coverage mismatch missing=" + missing);
+        }
+        if (!worldBindsEntryWorld) {
+            throw new IOException(
+                "world_geometry must bind descriptor entryWorld");
+        }
+    }
+
+    private static void validateRuntimeGlobals(
+            JSONObject globals,
+            String label) throws IOException {
+        for (String key : REQUIRED_RUNTIME_GLOBALS) {
+            if (!globals.optBoolean(key, false)) {
+                throw new IOException(
+                    label + " global requirement not ready: " + key);
+            }
+        }
+    }
+
     private static JSONObject parseJson(byte[] bytes) throws IOException {
         try {
             return new JSONObject(new String(bytes, StandardCharsets.UTF_8));
         } catch (JSONException error) {
-            throw new IOException("Invalid xziel.package.json", error);
+            throw new IOException("Invalid XZIEL JSON", error);
         }
     }
 

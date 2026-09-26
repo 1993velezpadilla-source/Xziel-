@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compile a folder or ZIP into a deterministic strict XZIEL .xzp package."""
+"""Compile a folder or ZIP into a deterministic runtime-ready XZIEL .xzp."""
 
 from __future__ import annotations
 
@@ -13,15 +13,25 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
 BUILDER = ROOT / "tools/maps/build_xziel_map_package.py"
+RUNTIME_VALIDATOR = ROOT / "tools/maps/xziel_runtime_manifest.py"
 
-spec = importlib.util.spec_from_file_location("xziel_map_builder", BUILDER)
-if spec is None or spec.loader is None:
-    raise SystemExit("unable to load XZIEL map package builder")
-builder = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(builder)
+
+def _load_module(name: str, path: Path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        raise SystemExit(f"unable to load {path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+builder = _load_module("xziel_map_builder", BUILDER)
+runtime_validator = _load_module(
+    "xziel_runtime_manifest",
+    RUNTIME_VALIDATOR,
+)
 
 FIXED_ZIP_DT = (2000, 1, 1, 0, 0, 0)
-
 MAP_ID_RE = re.compile(r"^[a-z0-9][a-z0-9_]{0,62}$")
 
 
@@ -66,7 +76,11 @@ def load_map_descriptor(root: Path, manifest: dict) -> dict:
         raise SystemExit("XZIEL package rejected: unsupported gameMode")
 
     max_players = descriptor.get("maxPlayers")
-    if not isinstance(max_players, int) or isinstance(max_players, bool) or not (1 <= max_players <= 4):
+    if (
+        not isinstance(max_players, int)
+        or isinstance(max_players, bool)
+        or not (1 <= max_players <= 4)
+    ):
         raise SystemExit("XZIEL package rejected: maxPlayers must be integer 1..4")
 
     if descriptor.get("contentContract") != "xziel_map_content_contract_v1":
@@ -95,7 +109,6 @@ def load_map_descriptor(root: Path, manifest: dict) -> dict:
         "contentContract": descriptor["contentContract"],
         "serverAuthoritative": True,
     }
-
 
 
 def add_bytes(zf: zipfile.ZipFile, arcname: str, payload: bytes) -> None:
@@ -131,11 +144,25 @@ def compile_package(src: Path, out: Path) -> dict:
             )
 
         manifest["map"] = load_map_descriptor(root, manifest)
+
+        # A clean source inventory is not a runnable map. Promotion to .xzp is
+        # fail-closed until xziel.runtime.json proves every universal family is
+        # explicitly runtime-bound and validated.
+        try:
+            manifest["runtime"] = runtime_validator.load_runtime_manifest(
+                root,
+                manifest["map"],
+                manifest,
+            )
+        except SystemExit as exc:
+            raise SystemExit(f"XZIEL package rejected: {exc}") from exc
+
         manifest["package"] = {
             "format": "xziel_xzp_v1",
             "payloadRoot": "payload/",
             "deterministic": True,
             "sourceBytesPreserved": True,
+            "runtimePromotionRequired": True,
         }
         manifest_bytes = (json.dumps(manifest, indent=2) + "\n").encode("utf-8")
 
@@ -167,6 +194,8 @@ def main() -> int:
                 "bytes": manifest["summary"]["totalBytes"],
                 "mapId": manifest["map"]["mapId"],
                 "entryWorld": manifest["map"]["entryWorld"],
+                "runtimeReady": manifest["runtime"]["runtimeReady"],
+                "readyFamilies": manifest["runtime"]["readyFamilyCount"],
             },
             sort_keys=True,
         ),
