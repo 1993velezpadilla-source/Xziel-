@@ -10,6 +10,7 @@ add_library(xziel_engine STATIC
     src/fps_player.cpp
     src/weapon.cpp
     src/purchase_system.cpp
+    src/door_system.cpp
     src/nacht_reference.cpp
     src/nacht_runtime.cpp
     src/hitscan.cpp
