@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "format": "xziel_runtime_manifest_contract_v1",
+  "requiredFile": "xziel.runtime.json",
+  "purpose": "Promotion gate between a source inventory and an executable XZIEL map package. Inventory cleanliness alone never implies runtime compatibility.",
+  "requiredFamilyCount": 24,
+  "familyStates": [
+    "pending",
+    "partial",
+    "ready",
+    "not_applicable"
+  ],
+  "promotionRule": "every universal required family must be ready; not_applicable is forbidden for required families",
+  "requiredPerFamilyFields": [
+    "id",
+    "state",
+    "runtimeArtifacts",
+    "validationEvidence"
+  ],
+  "globalRequirements": {
+    "sourceInventoryStrictReady": true,
+    "allRequiredFamiliesReady": true,
+    "entryWorldRuntimeLoadable": true,
+    "noMissingRuntimeArtifacts": true,
+    "noUnsupportedRuntimeFormats": true,
+    "noSilentFallbacks": true,
+    "multiplayerContractReady": true,
+    "platformPackagingReady": true,
+    "soakReleaseQualityReady": true
+  },
+  "policy": {
+    "sourceFilesMayBePreservedAlongsideRuntimeArtifacts": true,
+    "runtimeArtifactsMustBeExplicit": true,
+    "unknownSourceFormatsDoNotBecomeRuntimeReadyAutomatically": true,
+    "successfulCompilationAloneDoesNotPromoteFamily": true,
+    "visualAudioGameplayValidationRequired": true
+  }
+}
