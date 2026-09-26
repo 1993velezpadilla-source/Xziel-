@@ -1,0 +1,159 @@
+name: St Giles Source-Locked Super Resolution
+
+on:
+  push:
+    branches:
+      - engine/mobile-power-fidelity-v1
+    paths:
+      - ".github/workflows/st-giles-source-locked-superres.yml"
+      - "tools/church_map/build_source_locked_superres.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: st-giles-source-locked-superres-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install deterministic image and Vulkan dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq unzip libvulkan1 mesa-vulkan-drivers
+          python3 -m pip install --quiet --disable-pip-version-check pillow numpy
+
+      - name: Recover latest exact-source St Giles texture
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/clean-source
+
+          RUN_ID="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/sanctum-clean-source.yml/runs?branch=engine/mobile-power-fidelity-v1&status=success&per_page=20" --jq '.workflow_runs[0].id')"
+          test -n "$RUN_ID"
+
+          ARTIFACT_ID="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/artifacts" --jq '.artifacts[] | select(.name == "Xziel-Sanctum-Clean-Source") | .id' | head -n 1)"
+          test -n "$ARTIFACT_ID"
+
+          gh api "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" > build/clean-source.zip
+          unzip -q build/clean-source.zip -d build/clean-source
+
+          REPORT="$(find build/clean-source -name xziel_native_static_mesh_report.json -print -quit)"
+          test -s "$REPORT"
+
+          SOURCE_TEXTURE="$(python3 - "$REPORT" <<'PY'
+          import json, pathlib, sys
+          report=json.loads(pathlib.Path(sys.argv[1]).read_text())
+          hits=[
+              v for k,v in report["materialReport"].items()
+              if "Exterior04" in k and v.get("exactSourcePixels") is True
+          ]
+          if len(hits) != 1:
+              raise SystemExit(f"expected one exact Exterior04 material, got {len(hits)}")
+          print(pathlib.Path(hits[0]["texturePath"]).name)
+          PY
+          )"
+
+          SOURCE="$(find build/clean-source -name "$SOURCE_TEXTURE" -print -quit)"
+          test -s "$SOURCE"
+
+          cp "$SOURCE" build/st-giles-source-1k.png
+          cp "$REPORT" build/st-giles-source-report.json
+
+          python3 - <<'PY'
+          from PIL import Image
+          im=Image.open("build/st-giles-source-1k.png")
+          if im.size != (1024,1024):
+              raise SystemExit(f"unexpected source size {im.size}")
+          print("XZIEL_ST_GILES_EXACT_1K_SOURCE_READY")
+          PY
+
+      - name: Install official Real-ESRGAN portable build
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-ubuntu.zip"
+          curl -L --fail --retry 3 "$URL" -o build/realesrgan.zip
+          unzip -q build/realesrgan.zip -d build/realesrgan
+          BIN="$(find build/realesrgan -type f -name realesrgan-ncnn-vulkan -print -quit)"
+          test -f "$BIN"
+          chmod +x "$BIN"
+          echo "REALESRGAN_BIN=$BIN" >> "$GITHUB_ENV"
+          dirname "$BIN" > build/realesrgan-dir.txt
+
+      - name: Generate raw 4K restoration candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          MODEL_DIR="$(cat build/realesrgan-dir.txt)"
+          "$REALESRGAN_BIN"             -i build/st-giles-source-1k.png             -o build/st-giles-realesrgan-raw-4k.png             -n realesrgan-x4plus             -s 4             -m "$MODEL_DIR/models"             -t 256             -f png
+          test -s build/st-giles-realesrgan-raw-4k.png
+
+      - name: Build bounded source-locked derivative
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/church_map/build_source_locked_superres.py             --source build/st-giles-source-1k.png             --sr build/st-giles-realesrgan-raw-4k.png             --output build/st-giles-source-locked-4k.png             --report build/st-giles-source-locked-4k-report.json             --alpha 0.35             --max-mae 2.0             --min-psnr 38.0
+
+          jq -e '.classification == "DERIVATIVE_NOT_ORIGINAL"' build/st-giles-source-locked-4k-report.json
+          jq -e '.sourceAuthority == true and .runtimeApproved == false' build/st-giles-source-locked-4k-report.json
+          jq . build/st-giles-source-locked-4k-report.json
+
+      - name: Build visual A-B sheet
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          from PIL import Image, ImageDraw
+
+          src=Image.open("build/st-giles-source-1k.png").convert("RGB")
+          raw=Image.open("build/st-giles-realesrgan-raw-4k.png").convert("RGB")
+          locked=Image.open("build/st-giles-source-locked-4k.png").convert("RGB")
+          lanczos=src.resize((4096,4096),Image.Resampling.LANCZOS)
+          lanczos.save("build/st-giles-lanczos-4k.png")
+
+          # Compare the exterior-wall strip that is most relevant to the FPS
+          # entry camera, plus a wider atlas overview. Crops remain identical
+          # coordinates across candidates.
+          crop=(0, 220, 4096, 1450)
+          panels=[
+              ("LANCZOS / SOURCE ONLY", lanczos.crop(crop)),
+              ("SOURCE-LOCKED SR", locked.crop(crop)),
+              ("RAW REAL-ESRGAN / DIAGNOSTIC", raw.crop(crop)),
+          ]
+          panel_w=1365
+          panel_h=410
+          sheet=Image.new("RGB",(panel_w*3,panel_h+64),(16,16,16))
+          draw=ImageDraw.Draw(sheet)
+          for i,(label,img) in enumerate(panels):
+              img=img.resize((panel_w,panel_h),Image.Resampling.LANCZOS)
+              sheet.paste(img,(i*panel_w,64))
+              draw.text((i*panel_w+16,20),label,fill=(240,240,240))
+          sheet.save("build/st-giles-source-locked-ab.jpg",quality=94)
+          PY
+
+      - name: Upload source-locked A-B candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xziel-St-Giles-Source-Locked-SR-AB
+          path: |
+            build/st-giles-source-1k.png
+            build/st-giles-lanczos-4k.png
+            build/st-giles-realesrgan-raw-4k.png
+            build/st-giles-source-locked-4k.png
+            build/st-giles-source-locked-4k-report.json
+            build/st-giles-source-locked-ab.jpg
+          retention-days: 14
