@@ -1,0 +1,104 @@
+name: Project Aether Source Audit
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_url:
+        description: 'Direct official Project Aether source archive URL from the Discord/source post'
+        required: true
+        type: string
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout XZIEL
+        uses: actions/checkout@v4
+
+      - name: Install archive tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y p7zip-full file
+
+      - name: Download official source archive
+        env:
+          SOURCE_URL: ${{ inputs.source_url }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/aether-source"
+          curl -fL --retry 5 --retry-all-errors --retry-delay 3 \
+            "$SOURCE_URL" -o "$RUNNER_TEMP/aether-source/source.bin"
+          ls -lh "$RUNNER_TEMP/aether-source/source.bin"
+          sha256sum "$RUNNER_TEMP/aether-source/source.bin" | tee "$RUNNER_TEMP/aether-source/source.sha256"
+          file "$RUNNER_TEMP/aether-source/source.bin" | tee "$RUNNER_TEMP/aether-source/filetype.txt"
+
+      - name: Extract source archive
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/aether-source/extracted"
+          7z x -y "$RUNNER_TEMP/aether-source/source.bin" -o"$RUNNER_TEMP/aether-source/extracted"
+
+      - name: Inventory Unreal project
+        run: |
+          set -euo pipefail
+          mkdir -p audit-out
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib
+          root = pathlib.Path(os.environ['RUNNER_TEMP'])/'aether-source'/'extracted'
+          files=[p for p in root.rglob('*') if p.is_file()]
+          total=sum(p.stat().st_size for p in files)
+          ext={}
+          for p in files:
+              k=p.suffix.lower() or '<none>'
+              ext[k]=ext.get(k,0)+1
+          uprojects=[p.relative_to(root).as_posix() for p in files if p.suffix.lower()=='.uproject']
+          maps=[p.relative_to(root).as_posix() for p in files if p.suffix.lower()=='.umap']
+          nacht=[p.relative_to(root).as_posix() for p in files if 'nacht' in p.as_posix().lower() or 'prototype' in p.as_posix().lower()]
+          licenses=[p.relative_to(root).as_posix() for p in files if p.name.lower() in {'license','license.txt','license.md','copying','copying.txt','readme.md','readme.txt'}]
+          largest=sorted(({'path':p.relative_to(root).as_posix(),'bytes':p.stat().st_size} for p in files), key=lambda x:-x['bytes'])[:300]
+          report={
+            'file_count':len(files),
+            'total_bytes':total,
+            'total_gib':round(total/(1024**3),3),
+            'extensions':dict(sorted(ext.items(), key=lambda kv:(-kv[1],kv[0]))),
+            'uprojects':uprojects,
+            'umap_count':len(maps),
+            'umaps':maps[:2000],
+            'nacht_candidates':nacht[:3000],
+            'license_and_readme_candidates':licenses[:500],
+            'largest_files':largest,
+          }
+          pathlib.Path('audit-out/project-aether-source-inventory.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
+          pathlib.Path('audit-out/source.sha256').write_text((pathlib.Path(os.environ['RUNNER_TEMP'])/'aether-source'/'source.sha256').read_text(),encoding='utf-8')
+          pathlib.Path('audit-out/filetype.txt').write_text((pathlib.Path(os.environ['RUNNER_TEMP'])/'aether-source'/'filetype.txt').read_text(),encoding='utf-8')
+          print(json.dumps(report,indent=2)[:30000])
+          PY
+
+      - name: Copy license/readme text for permission audit
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, pathlib, shutil
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'aether-source'/'extracted'
+          out=pathlib.Path('audit-out/legal-text')
+          out.mkdir(parents=True,exist_ok=True)
+          names={'license','license.txt','license.md','copying','copying.txt','readme.md','readme.txt'}
+          n=0
+          for p in root.rglob('*'):
+              if p.is_file() and p.name.lower() in names and p.stat().st_size <= 2*1024*1024:
+                  rel=p.relative_to(root)
+                  safe='__'.join(rel.parts)
+                  shutil.copy2(p,out/safe)
+                  n+=1
+                  if n>=200: break
+          print('copied legal/readme files:',n)
+          PY
+
+      - name: Upload audit report only
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-aether-source-audit
+          path: audit-out/
+          if-no-files-found: error
+          retention-days: 7
