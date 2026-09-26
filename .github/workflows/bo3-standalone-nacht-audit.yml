@@ -1,0 +1,66 @@
+name: BO3 Standalone Nacht Map Audit
+
+on:
+  push:
+    branches:
+      - experiment/bo3-nacht-workshop-audit
+    paths:
+      - ".github/workflows/bo3-standalone-nacht-audit.yml"
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Workshop candidate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $steam=Join-Path $env:RUNNER_TEMP 'steamcmd'
+          New-Item -ItemType Directory -Force -Path $steam | Out-Null
+          Invoke-WebRequest 'https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip' -OutFile (Join-Path $env:RUNNER_TEMP 'steamcmd.zip')
+          Expand-Archive (Join-Path $env:RUNNER_TEMP 'steamcmd.zip') -DestinationPath $steam -Force
+          & (Join-Path $steam 'steamcmd.exe') +login anonymous +workshop_download_item 311210 782262486 validate +quit
+          $rc=$LASTEXITCODE; $global:LASTEXITCODE=0
+          Write-Host "SteamCMD rc=$rc"
+          $root=Get-ChildItem -Path $steam,$env:RUNNER_TEMP -Directory -Recurse -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -like '*steamapps\workshop\content\311210\782262486' } | Select-Object -First 1
+          if (-not $root) { throw "Workshop candidate not materialized; rc=$rc" }
+          "MAP_ROOT=$($root.FullName)" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          exit 0
+
+      - name: Inventory package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path audit-out | Out-Null
+          @'
+          import collections,json,pathlib,sys
+          root=pathlib.Path(sys.argv[1])
+          files=[p for p in root.rglob('*') if p.is_file()]
+          rows=[]
+          for p in files:
+            rel=p.relative_to(root).as_posix()
+            rows.append({'path':rel,'bytes':p.stat().st_size,'ext':p.suffix.lower()})
+          rows.sort(key=lambda x:-x['bytes'])
+          report={
+            'workshop_id':'782262486',
+            'file_count':len(files),
+            'total_bytes':sum(x['bytes'] for x in rows),
+            'total_gib':round(sum(x['bytes'] for x in rows)/(1024**3),3),
+            'extensions':dict(collections.Counter(x['ext'] or '<none>' for x in rows).most_common()),
+            'largest':rows[:150],
+            'map_like':[x for x in rows if x['ext'] in {'.ff','.xpak','.map','.bsp','.d3dbsp','.zone'} or any(k in x['path'].lower() for k in ('nacht','prototype','zm_','usermap'))]
+          }
+          pathlib.Path('audit-out/report.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
+          print(json.dumps(report,indent=2)[:40000])
+          '@ | Set-Content audit-out/inventory.py -Encoding utf8
+          python audit-out/inventory.py $env:MAP_ROOT
+
+      - name: Upload report only
+        uses: actions/upload-artifact@v4
+        with:
+          name: bo3-standalone-nacht-782262486-audit
+          path: audit-out/report.json
+          retention-days: 7
