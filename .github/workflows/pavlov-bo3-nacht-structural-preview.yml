@@ -107,7 +107,21 @@ jobs:
           def look(loc):cam.location=loc;cam.rotation_euler=(center-loc).to_track_quat('-Z','Y').to_euler()
           views=[('struct_top.png',center+Vector((0,0,dist)),max(span.x,span.y)*1.08),('struct_front.png',center+Vector((0,-dist,0)),max(span.x,span.z)*1.08),('struct_side.png',center+Vector((dist,0,0)),max(span.y,span.z)*1.08),('struct_iso.png',center+Vector((dist,-dist,dist*.72)),mxs*1.4)]
           for n,l,z in views:look(l);cd.ortho_scale=max(z,1);sc.render.filepath=str(out/n);bpy.ops.render.render(write_still=True)
-          rep={'mesh_objects':len(objs),'bounds_min':list(mn),'bounds_max':list(mx),'span':list(span),'renders':[v[0] for v in views]};(out/'struct-report.json').write_text(json.dumps(rep,indent=2)+'\n');print(json.dumps(rep,indent=2))
+
+          # Building close-up derived from recovered gameplay actor footprint.
+          # UE4 gameplay footprint: X [-570.94,2665.90] cm, Y [-2883.09,2241.80] cm.
+          # CUE4Parse glTF converts cm->m and Blender converts glTF Y-up to Z-up,
+          # so the floor-plane center is approximately (10.47, 3.21) m.
+          bc=Vector((10.4748,3.20645,2.5))
+          bdist=95.0
+          close=[
+              ('building_top.png',bc+Vector((0,0,bdist)),64.0),
+              ('building_front.png',bc+Vector((0,-bdist,8.0)),64.0),
+              ('building_side.png',bc+Vector((bdist,0,8.0)),64.0),
+              ('building_iso.png',bc+Vector((55,-55,42)),72.0),
+          ]
+          for n,l,z in close:look(l);cd.ortho_scale=z;sc.render.filepath=str(out/n);bpy.ops.render.render(write_still=True)
+          rep={'mesh_objects':len(objs),'bounds_min':list(mn),'bounds_max':list(mx),'span':list(span),'renders':[v[0] for v in views+close]};(out/'struct-report.json').write_text(json.dumps(rep,indent=2)+'\n');print(json.dumps(rep,indent=2))
           PY
           set -o pipefail
           blender -b --python "$RUNNER_TEMP/render.py" 2>&1 | tee audit-out/render.log
