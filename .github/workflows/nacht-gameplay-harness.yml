@@ -11,6 +11,7 @@ on:
       - "tools/weapons/**"
       - "tools/maps/export_nacht_nzp_harness.py"
       - "tools/maps/validate_nacht_bo3_weapon_specs.py"
+      - "tools/maps/validate_nacht_completion_contract.py"
       - "tools/maps/export_nacht_nzp_runtime_overlay.py"
       - "scripts/prepare_android.sh"
       - "scripts/patch_quakec_*.py"
@@ -69,6 +70,12 @@ jobs:
           git diff --exit-code -- assets/weapons/xziel_mystery_box_pool_v1.json
           git diff --exit-code -- assets/weapons/nacht_prototype_box_pool_v1.json
           python3 tools/weapons/validate_xziel_weapon_catalog.py
+
+      - name: Validate zero-omission Nacht completion contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/maps/validate_nacht_completion_contract.py
 
       - name: Test XZIEL BO3 weapon registry
         shell: bash
