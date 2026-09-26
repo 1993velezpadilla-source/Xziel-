@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Audit and reconstruct the incomplete wall-buy layer in the Pavlov BO3 Nacht port.
+"""Audit and reconstruct the complete BO3 Zombies Chronicles Nacht purchase set.
 
-The port keeps BO3/Zombies-Chronicles chalk meshes for the wall purchases but
-only instantiates three WallBuy blueprints.  This tool treats those three as
-calibration anchors and emits metadata for all expected purchase surfaces.
+The Pavlov Nacht port preserves all nine BO3 purchase chalk meshes but only
+instantiates three functional WallBuy_C actors.  This tool uses those three
+functional instances as anchors and the baked world-space bounds of all nine
+chalk meshes to build a reproducible repair plan for XZIEL.
 
-It emits metadata only; no third-party asset payloads are copied.
+It writes metadata only; it does not copy third-party mesh/texture payloads.
 """
 from __future__ import annotations
 
@@ -15,83 +16,82 @@ import math
 from pathlib import Path
 from typing import Any
 
-EXPECTED = {
-    "triton": {
-        "kind": "weapon",
-        "weapon_id": "rk5",
-        "display_name": "RK5",
-        "price": 500,
-        "room": "spawn",
-    },
-    "shiva": {
-        "kind": "weapon",
-        "weapon_id": "sheiva",
-        "display_name": "Sheiva",
-        "price": 500,
-        "room": "spawn",
-    },
-    "kuda": {
-        "kind": "weapon",
-        "weapon_id": "kuda",
-        "display_name": "Kuda",
-        "price": 1250,
-        "room": "help_1f",
-    },
-    "krm": {
-        "kind": "weapon",
-        "weapon_id": "krm262",
-        "display_name": "KRM-262",
-        "price": 750,
-        "room": "help_1f",
-    },
+
+PURCHASES = {
     "arak": {
+        "canonical": "KN-44",
         "kind": "weapon",
-        "weapon_id": "kn44",
-        "display_name": "KN-44",
+        "bo3_weapon_id": "ar_standard",
+        "pavlov_weapon_id": "kn44",
         "price": 1400,
-        "room": "help_2f",
     },
     "argus": {
+        "canonical": "Argus",
         "kind": "weapon",
-        "weapon_id": "argus",
-        "display_name": "Argus",
+        "bo3_weapon_id": "shotgun_precision",
+        "pavlov_weapon_id": "argus",
         "price": 1100,
-        "room": "help_2f",
-    },
-    "locus_decal": {
-        "kind": "sniper_cabinet",
-        "weapon_id": "locus",
-        "display_name": "Locus",
-        "price": 5000,
-        "room": "help_2f",
-    },
-    "pharaoh": {
-        "kind": "weapon",
-        "weapon_id": "pharo",
-        "display_name": "Pharo",
-        "price": 700,
-        "room": "grenade_room",
     },
     "frag": {
-        "kind": "grenade",
-        "weapon_id": "frag",
-        "display_name": "Fragmentation Grenades",
+        "canonical": "Fragmentation Grenades",
+        "kind": "equipment",
+        "bo3_weapon_id": "frag_grenade",
+        "pavlov_weapon_id": "frag",
         "price": 250,
-        "room": "grenade_room",
+    },
+    "krm": {
+        "canonical": "KRM-262",
+        "kind": "weapon",
+        "bo3_weapon_id": "shotgun_pump",
+        "pavlov_weapon_id": "krm",
+        "price": 750,
+    },
+    "kuda": {
+        "canonical": "Kuda",
+        "kind": "weapon",
+        "bo3_weapon_id": "smg_standard",
+        "pavlov_weapon_id": "kuda",
+        "price": 1250,
+    },
+    "locus_decal": {
+        "canonical": "Locus",
+        "kind": "sniper_cabinet",
+        "bo3_weapon_id": "sniper_fastbolt",
+        "pavlov_weapon_id": "locus",
+        "price": 5000,
+    },
+    "pharaoh": {
+        "canonical": "Pharo",
+        "kind": "weapon",
+        "bo3_weapon_id": "smg_burst",
+        "pavlov_weapon_id": "pharaoh",
+        "price": 700,
+    },
+    "shiva": {
+        "canonical": "Sheiva",
+        "kind": "weapon",
+        "bo3_weapon_id": "ar_marksman",
+        "pavlov_weapon_id": "shiva",
+        "price": 500,
+    },
+    "triton": {
+        "canonical": "RK5",
+        "kind": "weapon",
+        "bo3_weapon_id": "pistol_burst",
+        "pavlov_weapon_id": "triton",
+        "price": 500,
     },
 }
 
-# The community port uses internal Treyarch codenames for several wall weapons.
-EXISTING_ID_TO_CHALK = {
-    "triton": "triton",
-    "rk5": "triton",
-    "kuda": "kuda",
-    "arak": "arak",
+# The three actual WallBuy_C instances present in the Pavlov port.
+ANCHOR_BY_PAVLOV_ID = {
     "kn44": "arak",
+    "kuda": "kuda",
+    "triton": "triton",
 }
 
 
-def prop_map(export: dict[str, Any]) -> dict[str, dict[str, Any]]:
+def property_map(export: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return {
         p["Name"]: p
         for p in export.get("Data", [])
@@ -108,101 +108,129 @@ def struct_value(prop: dict[str, Any] | None) -> Any:
     return value
 
 
-def clean(value: Any) -> Any:
-    if isinstance(value, dict):
-        return {k: clean(v) for k, v in value.items() if k != "$type"}
-    if isinstance(value, list):
-        return [clean(v) for v in value]
-    if value == "+0":
-        return 0.0
-    return value
-
-
-def xyz(value: Any) -> list[float] | None:
-    value = clean(value)
+def clean_vector(value: Any) -> dict[str, float] | None:
     if not isinstance(value, dict):
         return None
-    if not all(k in value for k in ("X", "Y", "Z")):
-        return None
     try:
-        return [float(value["X"]), float(value["Y"]), float(value["Z"])]
-    except Exception:
+        return {
+            "x": float(0 if value.get("X") == "+0" else value.get("X", 0)),
+            "y": float(0 if value.get("Y") == "+0" else value.get("Y", 0)),
+            "z": float(0 if value.get("Z") == "+0" else value.get("Z", 0)),
+        }
+    except (TypeError, ValueError):
         return None
 
 
-def distance(a: list[float] | None, b: list[float] | None) -> float | None:
-    if a is None or b is None:
-        return None
-    return math.sqrt(sum((x - y) ** 2 for x, y in zip(a, b)))
+def vector_distance(a: dict[str, float], b: dict[str, float]) -> float:
+    return math.sqrt(
+        (a["x"] - b["x"]) ** 2
+        + (a["y"] - b["y"]) ** 2
+        + (a["z"] - b["z"]) ** 2
+    )
 
 
-def find_bounds_candidates(doc: Any) -> list[dict[str, Any]]:
-    """Collect likely local/world bounds from a UAssetAPI StaticMesh JSON."""
-    rows: list[dict[str, Any]] = []
-
-    def walk(node: Any, path: str = "") -> None:
-        if isinstance(node, dict):
-            lower = {str(k).lower(): k for k in node}
-            # FBoxSphereBounds-like object
-            if "origin" in lower and "boxextent" in lower:
-                origin = xyz(node[lower["origin"]])
-                extent = xyz(node[lower["boxextent"]])
-                if origin and extent:
-                    rows.append({
-                        "path": path,
-                        "type": "box_sphere_bounds",
-                        "origin": origin,
-                        "extent": extent,
-                    })
-            # FBox-like object
-            if "min" in lower and "max" in lower:
-                mn = xyz(node[lower["min"]])
-                mx = xyz(node[lower["max"]])
-                if mn and mx:
-                    rows.append({
-                        "path": path,
-                        "type": "box",
-                        "min": mn,
-                        "max": mx,
-                        "origin": [(a + b) / 2.0 for a, b in zip(mn, mx)],
-                        "extent": [(b - a) / 2.0 for a, b in zip(mn, mx)],
-                    })
-            for k, v in node.items():
-                walk(v, f"{path}/{k}")
-        elif isinstance(node, list):
-            for i, v in enumerate(node):
-                walk(v, f"{path}[{i}]")
-
-    walk(doc)
-    # Prefer nonzero finite candidates and de-duplicate by rounded geometry.
-    out = []
-    seen = set()
-    for r in rows:
-        o = r.get("origin")
-        e = r.get("extent")
-        if not o or not e:
-            continue
-        if not all(math.isfinite(v) for v in o + e):
-            continue
-        key = tuple(round(v, 4) for v in o + e)
-        if key in seen:
-            continue
-        seen.add(key)
-        out.append(r)
-    return out
+def iter_bounds_candidates(node: Any, path: str = ""):
+    """Yield any JSON object shaped like an Unreal FBoxSphereBounds."""
+    if isinstance(node, dict):
+        keys = {str(k).lower(): k for k in node}
+        if "origin" in keys and ("boxextent" in keys or "box_extent" in keys):
+            origin = clean_vector(node[keys["origin"]])
+            extent_key = keys.get("boxextent", keys.get("box_extent"))
+            extent = clean_vector(node[extent_key]) if extent_key else None
+            if origin is not None and extent is not None:
+                yield {
+                    "path": path or "/",
+                    "origin": origin,
+                    "box_extent": extent,
+                    "sphere_radius": node.get(
+                        keys.get("sphereradius", "SphereRadius")
+                    ),
+                }
+        for k, v in node.items():
+            yield from iter_bounds_candidates(v, f"{path}/{k}")
+    elif isinstance(node, list):
+        for i, v in enumerate(node):
+            yield from iter_bounds_candidates(v, f"{path}[{i}]")
 
 
-def choose_bounds(candidates: list[dict[str, Any]]) -> dict[str, Any] | None:
+def choose_bounds(doc: dict[str, Any]) -> dict[str, Any] | None:
+    candidates = list(iter_bounds_candidates(doc))
     if not candidates:
         return None
-    # Chalk surfaces should be relatively small. Prefer the smallest nonzero
-    # AABB by volume; world-space imported map pieces often carry absolute origins.
-    def score(r: dict[str, Any]) -> tuple[float, float]:
-        e = r["extent"]
-        vol = max(e[0], 1e-6) * max(e[1], 1e-6) * max(e[2], 1e-6)
-        span = sum(abs(v) for v in e)
-        return (vol, span)
-    return min(candidates, key=score)
+
+    # Prefer serialized export bounds over incidental nested/physics bounds.
+    def score(c: dict[str, Any]) -> tuple[int, float]:
+        p = c["path"].lower()
+        s = 0
+        if "/bounds" in p:
+            s += 10
+        if "export" in p:
+            s += 4
+        if "bodysetup" in p or "agggeom" in p or "collision" in p:
+            s -= 8
+        e = c["box_extent"]
+        volume_hint = abs(e["x"] * e["y"] * e["z"])
+        return (s, volume_hint)
+
+    return max(candidates, key=score)
+
+
+def load_map_wallbuys(map_json: Path) -> list[dict[str, Any]]:
+    doc = json.loads(map_json.read_text(encoding="utf-8-sig"))
+    exports: list[dict[str, Any]] = doc["Exports"]
+    imports: list[dict[str, Any]] = doc["Imports"]
+
+    def resolve_index(index: int) -> str | None:
+        if not index:
+            return None
+        parts: list[str] = []
+        seen: set[int] = set()
+        while index and index not in seen:
+            seen.add(index)
+            obj = imports[-index - 1] if index < 0 else exports[index - 1]
+            parts.append(str(obj.get("ObjectName", "?")))
+            index = int(obj.get("OuterIndex", 0) or 0)
+        return "/".join(reversed(parts))
+
+    level_index = next(
+        i + 1 for i, e in enumerate(exports)
+        if "LevelExport" in str(e.get("$type", ""))
+    )
+    actor_indices = [
+        x for x in exports[level_index - 1].get("Actors", [])
+        if isinstance(x, int) and x > 0
+    ]
+
+    rows: list[dict[str, Any]] = []
+    for actor_index in actor_indices:
+        actor = exports[actor_index - 1]
+        actor_class = resolve_index(int(actor.get("ClassIndex", 0) or 0)) or ""
+        if not actor_class.endswith("/WallBuy_C"):
+            continue
+        props = property_map(actor)
+        root = props.get("RootComponent", {}).get("Value")
+        location = rotation = scale = None
+        if isinstance(root, int) and root > 0:
+            cp = property_map(exports[root - 1])
+            location = clean_vector(struct_value(cp.get("RelativeLocation")))
+            rotation = struct_value(cp.get("RelativeRotation"))
+            scale = clean_vector(struct_value(cp.get("RelativeScale3D")))
+
+        weapon_id = props.get("WeaponID", {}).get("Value")
+        rows.append({
+            "actor_export_index": actor_index,
+            "actor_name": actor.get("ObjectName"),
+            "actor_class": actor_class,
+            "pavlov_weapon_id": weapon_id,
+            "canonical": PURCHASES[
+                ANCHOR_BY_PAVLOV_ID[weapon_id]
+            ]["canonical"] if weapon_id in ANCHOR_BY_PAVLOV_ID else None,
+            "price": props.get("Price", {}).get("Value"),
+            "location": location,
+            "rotation": rotation,
+            "scale": scale,
+        })
+    return rows
 
 
 def main() -> int:
@@ -212,150 +240,147 @@ def main() -> int:
     ap.add_argument("output_json", type=Path)
     args = ap.parse_args()
 
-    doc = json.loads(args.map_json.read_text(encoding="utf-8-sig"))
-    exports: list[dict[str, Any]] = doc["Exports"]
-    imports: list[dict[str, Any]] = doc["Imports"]
+    functional = load_map_wallbuys(args.map_json)
+    functional_by_id = {
+        row["pavlov_weapon_id"]: row
+        for row in functional
+        if row.get("pavlov_weapon_id")
+    }
 
-    def resolve(index: int) -> str | None:
-        if not index:
-            return None
-        seen: set[int] = set()
-        parts: list[str] = []
-        while index and index not in seen:
-            seen.add(index)
-            obj = imports[-index - 1] if index < 0 else exports[index - 1]
-            parts.append(str(obj.get("ObjectName", "?")))
-            index = int(obj.get("OuterIndex", 0) or 0)
-        return "/".join(reversed(parts))
-
-    def class_name(export: dict[str, Any]) -> str:
-        return resolve(int(export.get("ClassIndex", 0) or 0)) or ""
-
-    level = next(e for e in exports if "LevelExport" in str(e.get("$type", "")))
-    actor_indices = [x for x in level.get("Actors", []) if isinstance(x, int) and x > 0]
-
-    def root_transform(actor: dict[str, Any]) -> dict[str, Any]:
-        p = prop_map(actor)
-        root = p.get("RootComponent", {}).get("Value")
-        if not isinstance(root, int) or root <= 0:
-            return {}
-        comp = exports[root - 1]
-        cp = prop_map(comp)
-        return {
-            "location": clean(struct_value(cp.get("RelativeLocation"))),
-            "rotation": clean(struct_value(cp.get("RelativeRotation"))),
-            "scale": clean(struct_value(cp.get("RelativeScale3D"))),
+    chalks: dict[str, dict[str, Any]] = {}
+    for key in PURCHASES:
+        p = args.chalk_json_dir / f"{key}.json"
+        if not p.exists():
+            raise SystemExit(f"missing chalk JSON: {p}")
+        doc = json.loads(p.read_text(encoding="utf-8-sig"))
+        bounds = choose_bounds(doc)
+        chalks[key] = {
+            "asset": f"zm_prototype_part4_t7_zm_chalk_buy_{key}",
+            "bounds": bounds,
         }
 
-    existing: list[dict[str, Any]] = []
-    for idx in actor_indices:
-        actor = exports[idx - 1]
-        if not class_name(actor).endswith("/WallBuy_C"):
-            continue
-        p = prop_map(actor)
-        weapon_id = p.get("WeaponID", {}).get("Value")
-        display = p.get("DisplayName", {}).get("CultureInvariantString")
-        price = p.get("Price", {}).get("Value")
-        key = EXISTING_ID_TO_CHALK.get(str(weapon_id).lower())
-        existing.append({
-            "actor_export_index": idx,
-            "actor_name": actor.get("ObjectName"),
-            "weapon_id": weapon_id,
-            "display_name": display,
-            "price": price,
-            "chalk_key": key,
-            "transform": root_transform(actor),
-        })
-
-    chalk: dict[str, dict[str, Any]] = {}
-    for key, spec in EXPECTED.items():
-        path = args.chalk_json_dir / f"{key}.json"
-        if not path.exists():
-            chalk[key] = {"error": "missing_chalk_json"}
-            continue
-        mesh_doc = json.loads(path.read_text(encoding="utf-8-sig"))
-        candidates = find_bounds_candidates(mesh_doc)
-        chosen = choose_bounds(candidates)
-        chalk[key] = {
-            "bounds": chosen,
-            "bounds_candidate_count": len(candidates),
+    anchor_rows: list[dict[str, Any]] = []
+    for pavlov_id, chalk_key in ANCHOR_BY_PAVLOV_ID.items():
+        actor = functional_by_id.get(pavlov_id)
+        bounds = chalks[chalk_key].get("bounds")
+        row = {
+            "chalk": chalk_key,
+            "actor": actor,
+            "bounds": bounds,
+            "distance_actor_to_bounds_origin": None,
         }
+        if actor and actor.get("location") and bounds:
+            row["distance_actor_to_bounds_origin"] = vector_distance(
+                actor["location"], bounds["origin"]
+            )
+        anchor_rows.append(row)
 
-    existing_by_key = {r["chalk_key"]: r for r in existing if r.get("chalk_key")}
+    valid_anchor_distances = [
+        r["distance_actor_to_bounds_origin"]
+        for r in anchor_rows
+        if isinstance(r.get("distance_actor_to_bounds_origin"), (int, float))
+    ]
 
-    purchases = []
-    calibration = []
-    for key, spec in EXPECTED.items():
-        ex = existing_by_key.get(key)
-        bounds = chalk.get(key, {}).get("bounds")
-        center = bounds.get("origin") if bounds else None
-        active_loc = xyz(ex.get("transform", {}).get("location")) if ex else None
-        err = distance(center, active_loc)
-        if ex and center and active_loc:
-            calibration.append({
-                "chalk_key": key,
-                "chalk_center": center,
-                "active_wallbuy_location": active_loc,
-                "distance": err,
-                "delta": [active_loc[i] - center[i] for i in range(3)],
-            })
+    # A chalk's baked bounds origin is the best available ground truth for the
+    # six omitted Pavlov triggers.  The three existing functional actors are
+    # retained as validation anchors; no position is guessed from screenshots.
+    slots: list[dict[str, Any]] = []
+    for key, meta in PURCHASES.items():
+        functional_actor = functional_by_id.get(meta["pavlov_weapon_id"])
+        bounds = chalks[key].get("bounds")
+        if functional_actor is not None:
+            location = functional_actor.get("location")
+            placement_source = "functional_wallbuy_actor"
+            reconstructed = False
+        elif bounds is not None:
+            location = bounds["origin"]
+            placement_source = "chalk_mesh_baked_bounds_origin"
+            reconstructed = True
+        else:
+            location = None
+            placement_source = "unresolved"
+            reconstructed = True
 
-        purchases.append({
+        slots.append({
+            "id": f"purchase_{key}",
+            **meta,
             "chalk_key": key,
-            **spec,
-            "existing_active_wallbuy": ex,
+            "chalk_asset": chalks[key]["asset"],
             "chalk_bounds": bounds,
-            "suggested_trigger_location": (
-                active_loc if active_loc is not None else center
-            ),
-            "repair_needed": ex is None,
-            "position_source": (
-                "existing_wallbuy_actor" if active_loc is not None
-                else "chalk_mesh_bounds_center" if center is not None
-                else "unresolved"
-            ),
+            "functional_actor": functional_actor,
+            "interaction_location": location,
+            "placement_source": placement_source,
+            "reconstructed": reconstructed,
+            "interaction_radius": 150.0,
+            "replication_policy": "server_authoritative",
         })
 
-    output = {
+    validation_errors: list[str] = []
+    if len(functional) != 3:
+        validation_errors.append(
+            f"expected exactly 3 functional Pavlov WallBuy_C actors, got {len(functional)}"
+        )
+    if len(chalks) != 9:
+        validation_errors.append(f"expected 9 chalk assets, got {len(chalks)}")
+    missing_bounds = [k for k, v in chalks.items() if not v.get("bounds")]
+    if missing_bounds:
+        validation_errors.append(
+            "no serialized bounds found for chalk assets: " + ", ".join(missing_bounds)
+        )
+    unresolved = [r["id"] for r in slots if r["interaction_location"] is None]
+    if unresolved:
+        validation_errors.append(
+            "unresolved interaction locations: " + ", ".join(unresolved)
+        )
+
+    report = {
         "schema": 1,
         "source": {
             "map": "Nacht_de_Untoten.umap",
-            "workshop_id": "2755515831",
             "engine": "UE4.21",
-            "note": "Pavlov community port; use as reconstruction/reference evidence, not Treyarch source.",
+            "workshop_id": "2755515831",
+            "note": (
+                "Pavlov community port. All nine BO3 Chronicles chalk markers are "
+                "present; only three WallBuy_C interactions were implemented."
+            ),
         },
         "summary": {
-            "expected_purchase_surfaces": len(EXPECTED),
-            "expected_direct_weapon_wallbuys": 7,
-            "existing_wallbuy_blueprints": len(existing),
-            "missing_direct_or_special_purchase_surfaces": sum(1 for p in purchases if p["repair_needed"]),
-            "calibration_pair_count": len(calibration),
+            "expected_bo3_purchase_slots": 9,
+            "functional_pavlov_wallbuys": len(functional),
+            "reconstructed_slots": sum(1 for r in slots if r["reconstructed"]),
+            "resolved_interaction_locations": sum(
+                1 for r in slots if r["interaction_location"] is not None
+            ),
+            "anchor_distance_count": len(valid_anchor_distances),
+            "anchor_distance_min": min(valid_anchor_distances) if valid_anchor_distances else None,
+            "anchor_distance_max": max(valid_anchor_distances) if valid_anchor_distances else None,
+            "anchor_distance_mean": (
+                sum(valid_anchor_distances) / len(valid_anchor_distances)
+                if valid_anchor_distances else None
+            ),
+            "validation_error_count": len(validation_errors),
         },
-        "existing_wallbuys": existing,
-        "calibration": calibration,
-        "purchases": purchases,
-        "repair_rule": {
-            "template": "Clone behavior/schema from existing WallBuy_C actors.",
-            "position": "Use exact active actor transform when present; otherwise seed trigger from the corresponding chalk mesh bounds center.",
-            "orientation": "Derive wall-facing normal from the thinnest chalk AABB axis during XZIEL mesh conversion, then offset the interaction volume toward playable space.",
-            "validation": "The three surviving RK5/Kuda/KN-44 actors are calibration anchors for trigger offset/radius and UI behavior.",
-        },
+        "functional_wallbuys": functional,
+        "anchor_validation": anchor_rows,
+        "purchase_slots": slots,
+        "validation_errors": validation_errors,
     }
 
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
-    args.output_json.write_text(json.dumps(output, indent=2) + "\n", encoding="utf-8")
+    args.output_json.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
 
-    print(json.dumps(output["summary"], indent=2))
-    print("existing:")
-    for r in existing:
-        print(r["weapon_id"], r["price"], r["transform"])
-    print("calibration:")
-    for r in calibration:
-        print(r)
-    print("repair:")
-    for p in purchases:
-        if p["repair_needed"]:
-            print(p["chalk_key"], p["display_name"], p["price"], p["position_source"], p["suggested_trigger_location"])
+    print(json.dumps(report["summary"], indent=2))
+    for row in slots:
+        print(
+            f'{row["canonical"]:24s} '
+            f'price={row["price"]:4d} '
+            f'source={row["placement_source"]} '
+            f'location={row["interaction_location"]}'
+        )
+    if validation_errors:
+        for e in validation_errors:
+            print("VALIDATION_ERROR:", e)
+        return 3
     return 0
 
 
