@@ -7,9 +7,13 @@ on:
       - feature/xziel-engine-nacht-runtime-v1
     paths:
       - "assets/nacht_reference/**"
+      - "assets/map_package/**"
       - "assets/weapons/**"
       - "tools/weapons/**"
       - "tools/maps/export_nacht_nzp_harness.py"
+      - "tools/maps/build_xziel_map_package.py"
+      - "tools/maps/validate_xziel_map_content_contract.py"
+      - "tests/test_xziel_map_package_builder.py"
       - "tools/maps/validate_nacht_bo3_weapon_specs.py"
       - "tools/maps/validate_nacht_completion_contract.py"
       - "tools/maps/export_nacht_nzp_runtime_overlay.py"
@@ -52,6 +56,18 @@ jobs:
             | tee nacht-ci/export.log
           test -s nacht-ci/xziel_nacht_bo3.map
           test -s nacht-ci/xziel_nacht_bo3_harness.json
+
+      - name: Validate XZIEL universal map content contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/maps/validate_xziel_map_content_contract.py
+
+      - name: Test XZIEL folder and ZIP package inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tests/test_xziel_map_package_builder.py
 
       - name: Validate BO3 Nacht weapon behavior specs
         shell: bash
