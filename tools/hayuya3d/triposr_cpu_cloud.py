@@ -66,7 +66,9 @@ def generate(
     generate(image) function exports OBJ + GLB. HAYUYA never auto-promotes this
     candidate: caller quality/source gates remain authoritative.
     """
-    kwargs={"verbose":True,"httpx_kwargs":{"timeout":900.0}}
+    # gradio_client 1.x already owns the httpx timeout argument internally;
+    # passing timeout again through httpx_kwargs causes duplicate-key failure.
+    kwargs={"verbose":True}
     if token:
         kwargs["token"]=token
     client=Client(space,**kwargs)
