@@ -2,15 +2,6 @@ name: Deploy Cloudflare Multiplayer Test
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - feature/multiplayer-online-tunnel-test
-    paths:
-      - "multiplayer/cloudflare/**"
-      - "android/**"
-      - "scripts/**"
-      - ".github/workflows/android-native.yml"
-      - ".github/workflows/deploy-cloudflare-multiplayer-test.yml"
 
 permissions:
   contents: read
