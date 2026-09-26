@@ -6,6 +6,7 @@ const GAME_MAGIC = [0x58, 0x5a, 0x44, 0x31]; // XZD1
 const GAME_HEADER_BYTES = 9;
 const MAX_GAME_DATAGRAM = 4096;
 const MAX_VOICE_PACKET = 4096;
+const DEFAULT_MAP = "ndu";
 
 function roomCode() {
   const b = new Uint8Array(6);
@@ -13,6 +14,12 @@ function roomCode() {
   let out = "";
   for (const n of b) out += CODE_CHARS[n % CODE_CHARS.length];
   return out;
+}
+
+function sanitizeMap(value) {
+  // v0.26 ships Nacht as the online test map. Keep this centralized so
+  // additional bundled maps can be allow-listed without touching clients.
+  return String(value || DEFAULT_MAP).toLowerCase() === "ndu" ? "ndu" : DEFAULT_MAP;
 }
 
 function json(data, status = 200) {
@@ -37,6 +44,20 @@ function isGamePacket(bytes) {
     bytes[3] === GAME_MAGIC[3];
 }
 
+async function initRoom(env, code, options = {}) {
+  const id = env.GAME_ROOMS.idFromName(code);
+  const stub = env.GAME_ROOMS.get(id);
+  await stub.fetch(new Request("https://room/init", {
+    method: "POST",
+    body: JSON.stringify({
+      code,
+      map: sanitizeMap(options.map),
+      mode: options.mode === "public" ? "public" : "private",
+      reservations: options.reservations || {},
+    }),
+  }));
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -47,18 +68,39 @@ export default {
         service: "xziel-multiplayer",
         transport: "websocket-datagram-tunnel",
         maxPlayers: MAX_PLAYERS,
+        matchmaking: true,
       });
     }
 
     if (request.method === "POST" && url.pathname === "/api/rooms/create") {
+      let body = {};
+      try { body = await request.json(); } catch {}
+
       const code = roomCode();
-      const id = env.GAME_ROOMS.idFromName(code);
-      const stub = env.GAME_ROOMS.get(id);
-      await stub.fetch(new Request("https://room/init", {
-        method: "POST",
-        body: JSON.stringify({ code }),
-      }));
-      return json({ roomCode: code, maxPlayers: MAX_PLAYERS });
+      const ownerPlayerId = String(body.playerId || "").slice(0, 64);
+      const reservations = ownerPlayerId ? { [ownerPlayerId]: 1 } : {};
+      const map = sanitizeMap(body.map);
+
+      await initRoom(env, code, {
+        map,
+        mode: "private",
+        reservations,
+      });
+
+      return json({
+        roomCode: code,
+        map,
+        mode: "private",
+        maxPlayers: MAX_PLAYERS,
+      });
+    }
+
+    if (url.pathname === "/matchmake" && upgrade(request)) {
+      const id = env.MATCHMAKER.idFromName("public-v1");
+      const stub = env.MATCHMAKER.get(id);
+      const target = new URL(request.url);
+      target.pathname = "/socket";
+      return stub.fetch(new Request(target, request));
     }
 
     const match = url.pathname.match(/^\/(game|voice)\/([A-Z0-9]{6})$/);
@@ -77,6 +119,120 @@ export default {
   },
 };
 
+export class Matchmaker extends DurableObject {
+  constructor(ctx, env) {
+    super(ctx, env);
+    this.ctx = ctx;
+    this.env = env;
+  }
+
+  async fetch(request) {
+    const url = new URL(request.url);
+    if (url.pathname !== "/socket" || !upgrade(request)) {
+      return json({ error: "upgrade_required" }, 426);
+    }
+
+    const playerId = String(
+      url.searchParams.get("playerId") || crypto.randomUUID()
+    ).slice(0, 64);
+    const map = sanitizeMap(url.searchParams.get("map"));
+
+    // One active queue socket per player ID.
+    for (const socket of this.ctx.getWebSockets()) {
+      const a = socket.deserializeAttachment() || {};
+      if (a.playerId === playerId) {
+        try { socket.close(1000, "replaced"); } catch {}
+      }
+    }
+
+    const pair = new WebSocketPair();
+    const [client, server] = Object.values(pair);
+    this.ctx.acceptWebSocket(server);
+    server.serializeAttachment({
+      playerId,
+      map,
+      joinedAt: Date.now(),
+    });
+
+    try {
+      server.send(JSON.stringify({
+        type: "searching",
+        map,
+        needed: MAX_PLAYERS,
+        queued: this.queueForMap(map).length,
+      }));
+    } catch {}
+
+    await this.tryCreateMatch(map);
+    this.broadcastQueueStatus(map);
+    return new Response(null, { status: 101, webSocket: client });
+  }
+
+  queueForMap(map) {
+    const out = [];
+    for (const socket of this.ctx.getWebSockets()) {
+      const a = socket.deserializeAttachment() || {};
+      if (a.map === map && a.playerId) out.push({ socket, ...a });
+    }
+    out.sort((a, b) => a.joinedAt - b.joinedAt);
+    return out;
+  }
+
+  async tryCreateMatch(map) {
+    const queue = this.queueForMap(map);
+    if (queue.length < MAX_PLAYERS) return;
+
+    const group = queue.slice(0, MAX_PLAYERS);
+    const code = roomCode();
+    const reservations = {};
+    group.forEach((entry, index) => {
+      reservations[entry.playerId] = index + 1;
+    });
+
+    await initRoom(this.env, code, {
+      map,
+      mode: "public",
+      reservations,
+    });
+
+    for (const entry of group) {
+      try {
+        entry.socket.send(JSON.stringify({
+          type: "match_found",
+          roomCode: code,
+          map,
+          mode: "public",
+          maxPlayers: MAX_PLAYERS,
+        }));
+        entry.socket.close(1000, "matched");
+      } catch {}
+    }
+  }
+
+  webSocketMessage() {}
+
+  webSocketClose(ws) {
+    const a = ws.deserializeAttachment() || {};
+    if (a.map) this.broadcastQueueStatus(a.map);
+  }
+
+  webSocketError() {}
+
+  broadcastQueueStatus(map) {
+    const queue = this.queueForMap(map);
+    for (const entry of queue) {
+      try {
+        entry.socket.send(JSON.stringify({
+          type: "searching",
+          map,
+          queued: queue.length,
+          needed: MAX_PLAYERS,
+        }));
+      } catch {}
+    }
+  }
+}
+
 export class GameRoom extends DurableObject {
   constructor(ctx, env) {
     super(ctx, env);
@@ -88,7 +244,12 @@ export class GameRoom extends DurableObject {
 
     if (request.method === "POST" && url.pathname === "/init") {
       const body = await request.json();
-      await this.ctx.storage.put("roomCode", String(body.code || ""));
+      await this.ctx.storage.put({
+        roomCode: String(body.code || ""),
+        map: sanitizeMap(body.map),
+        mode: body.mode === "public" ? "public" : "private",
+        reservations: body.reservations || {},
+      });
       return json({ ok: true });
     }
 
@@ -96,12 +257,18 @@ export class GameRoom extends DurableObject {
       return json({ error: "upgrade_required" }, 426);
     }
 
-    const expectedRoom = String((await this.ctx.storage.get("roomCode")) || "");
+    const state = await this.ctx.storage.get([
+      "roomCode", "map", "mode", "reservations",
+    ]);
+    const expectedRoom = String(state.roomCode || "");
     const requestedRoom = String(url.searchParams.get("room") || "");
     if (!expectedRoom || requestedRoom !== expectedRoom) {
       return json({ error: "room_not_found" }, 404);
     }
 
+    const roomMap = sanitizeMap(state.map);
+    const roomMode = state.mode === "public" ? "public" : "private";
+    const reservations = state.reservations || {};
     const kind = url.searchParams.get("kind") === "voice" ? "voice" : "game";
     const playerId = String(
       url.searchParams.get("playerId") || crypto.randomUUID()
@@ -127,10 +294,25 @@ export class GameRoom extends DurableObject {
         if (gameByPlayer.size >= MAX_PLAYERS) {
           return json({ error: "room_full", maxPlayers: MAX_PLAYERS }, 409);
         }
-        for (let candidate = 1; candidate <= MAX_PLAYERS; candidate += 1) {
-          if (!usedSlots.has(candidate)) {
-            slot = candidate;
-            break;
+
+        const reserved = Number(reservations[playerId] || 0);
+        if (reserved >= 1 && reserved <= MAX_PLAYERS && !usedSlots.has(reserved)) {
+          slot = reserved;
+        } else {
+          for (let candidate = 1; candidate <= MAX_PLAYERS; candidate += 1) {
+            if (!usedSlots.has(candidate) &&
+                !Object.values(reservations).includes(candidate)) {
+              slot = candidate;
+              break;
+            }
+          }
+          if (!slot) {
+            for (let candidate = 1; candidate <= MAX_PLAYERS; candidate += 1) {
+              if (!usedSlots.has(candidate)) {
+                slot = candidate;
+                break;
+              }
+            }
           }
         }
       }
@@ -145,7 +327,13 @@ export class GameRoom extends DurableObject {
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
     this.ctx.acceptWebSocket(server);
-    server.serializeAttachment({ kind, playerId, slot });
+    server.serializeAttachment({
+      kind,
+      playerId,
+      slot,
+      map: roomMap,
+      mode: roomMode,
+    });
 
     if (kind === "game") {
       try {
@@ -154,24 +342,36 @@ export class GameRoom extends DurableObject {
           roomCode: expectedRoom,
           playerId,
           slot,
+          map: roomMap,
+          mode: roomMode,
           maxPlayers: MAX_PLAYERS,
           hostSlot: 1,
           serverTime: Date.now(),
         }));
       } catch {}
+
       this.broadcastJson(
-        { type: "player_joined", playerId, slot },
+        { type: "player_joined", playerId, slot, map: roomMap, mode: roomMode },
         server,
       );
-    } else {
-      try {
-        server.send(JSON.stringify({
-          type: "voice_ready",
-          playerId,
-          slot,
-          serverTime: Date.now(),
-        }));
-      } catch {}
+
+      // A public match starts itself once the reserved four have all entered
+      // the room. Private rooms always remain host-controlled.
+      if (roomMode === "public") {
+        let count = 0;
+        for (const socket of this.ctx.getWebSockets()) {
+          const a = socket.deserializeAttachment() || {};
+          if (a.kind === "game") count++;
+        }
+        if (count === MAX_PLAYERS) {
+          this.broadcastJson({
+            type: "room_full",
+            map: roomMap,
+            mode: roomMode,
+            players: count,
+          }, null);
+        }
+      }
     }
 
     return new Response(null, { status: 101, webSocket: client });
@@ -191,10 +391,13 @@ export class GameRoom extends DurableObject {
       }
       if (!parsed || typeof parsed !== "object") return;
 
-      if (parsed.type === "start_game") {
-        // Slot 1 is room authority. Clients cannot spoof a game start.
+      if (parsed.type === "prepare_game" || parsed.type === "server_ready") {
         if (sender.slot !== 1) return;
-        parsed.map = "ndu";
+        parsed.map = sanitizeMap(sender.map);
+      }
+
+      if (parsed.type === "client_ready") {
+        parsed.map = sanitizeMap(sender.map);
       }
 
       parsed.playerId = sender.playerId;
@@ -222,9 +425,6 @@ export class GameRoom extends DurableObject {
     if (destinationSlot < 1 || destinationSlot > MAX_PLAYERS) return;
     if (destinationSlot === sender.slot) return;
 
-    // Client packet header:
-    // XZD1 | dstSlot | srcPort(be16) | dstPort(be16) | raw Quake datagram
-    // Receiver packet uses the same shape but byte 4 becomes srcSlot.
     const forwarded = new Uint8Array(bytes.length);
     forwarded.set(bytes);
     forwarded[4] = sender.slot;
@@ -232,9 +432,7 @@ export class GameRoom extends DurableObject {
     for (const socket of this.ctx.getWebSockets()) {
       const a = socket.deserializeAttachment() || {};
       if (a.kind !== "game" || a.slot !== destinationSlot) continue;
-      try {
-        socket.send(forwarded.buffer);
-      } catch {}
+      try { socket.send(forwarded.buffer); } catch {}
       break;
     }
   }
@@ -264,9 +462,7 @@ export class GameRoom extends DurableObject {
       if (socket === except) continue;
       const a = socket.deserializeAttachment() || {};
       if (a.kind !== kind) continue;
-      try {
-        socket.send(text);
-      } catch {}
+      try { socket.send(text); } catch {}
     }
   }
 
@@ -275,9 +471,7 @@ export class GameRoom extends DurableObject {
       if (socket === except) continue;
       const a = socket.deserializeAttachment() || {};
       if (a.kind !== kind) continue;
-      try {
-        socket.send(buffer);
-      } catch {}
+      try { socket.send(buffer); } catch {}
     }
   }
 }
