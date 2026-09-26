@@ -15,7 +15,8 @@
     "perkCatalog": "assets/nacht_reference/bo3_perk_catalog_v1.json",
     "powerupCatalog": "assets/nacht_reference/bo3_powerup_catalog_v1.json",
     "weaponIdRegistry": "assets/weapons/xziel_weapon_id_registry_v1.json",
-    "mysteryBoxRuntimePool": "assets/weapons/xziel_mystery_box_runtime_pool_v1.json"
+    "mysteryBoxRuntimePool": "assets/weapons/xziel_mystery_box_runtime_pool_v1.json",
+    "runtimePrimitiveCapabilities": "assets/nacht_reference/xziel_zombies_runtime_capabilities_v1.json"
   },
   "baseline": {
     "catalogWeaponCount": 51,
@@ -37,7 +38,9 @@
     "nachtNaturalPowerupIdentityCount": 6,
     "weaponIdRegistryCount": 51,
     "mysteryBoxCandidateCount": 46,
-    "mysteryBoxRuntimeCapacity": 64
+    "mysteryBoxRuntimeCapacity": 64,
+    "reusablePerkPrimitiveCount": 7,
+    "reusablePowerupPrimitiveCount": 7
   },
   "bo3ChroniclesFeatureReference": {
     "mysteryBox": true,
@@ -112,7 +115,11 @@
       "wunderfizzPlacements": 1,
       "muleKickPlacementState": "pending",
       "perkIdentityCount": 8,
-      "wunderfizzPoolIdentityCount": 7
+      "wunderfizzPoolIdentityCount": 7,
+      "reusablePerkPrimitives": 7,
+      "missingNativePerkPrimitives": [
+        "widows_wine"
+      ]
     },
     "mule_kick_and_weapon_slot_semantics": {
       "state": "pending"
@@ -120,7 +127,12 @@
     "powerup_drop_pool_and_effects": {
       "state": "pending",
       "coreIdentityCount": 9,
-      "nachtNaturalIdentityCount": 6
+      "nachtNaturalIdentityCount": 6,
+      "reusablePowerupPrimitives": 7,
+      "missingNativePowerupPrimitives": [
+        "fire_sale",
+        "death_machine"
+      ]
     },
     "pack_a_punch_weapon_variants": {
       "state": "pending"
