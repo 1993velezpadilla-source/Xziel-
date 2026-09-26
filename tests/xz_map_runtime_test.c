@@ -59,7 +59,7 @@ int main(void)
         assert(strcmp(
             spec->display_name,
             purchase->display_name) == 0);
-        assert(spec->wall_cost == purchase->cost);
+        assert(spec->wall_cost == purchase->price);
         firearm_specs++;
     }
 
