@@ -69,7 +69,7 @@ jobs:
           exit 0
 
       - name: Extract mesh references and transforms
-        shell: pwsh
+        shell: bash
         run: |
           python - <<'PY'
           import json, pathlib, re
