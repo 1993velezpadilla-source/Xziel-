@@ -237,6 +237,8 @@ jobs:
           grep -F 'XZIEL_GobbleGumMappedPowerupSemantic' build/deps/quakec/source/server/entities/perk_a_cola.qc
           grep -F 'XZIEL_GobbleGumMappedActivationCount' build/deps/quakec/source/server/entities/perk_a_cola.qc
           grep -F 'XZIEL_GobbleGumSpawnMappedPowerup' build/deps/quakec/source/server/entities/perk_a_cola.qc
+          grep -F 'XZIEL_GobbleGumActivateHeldMappedPowerup' build/deps/quakec/source/server/entities/perk_a_cola.qc
+          grep -F 'XZIEL_GobbleGumHeldUsesRemaining' build/deps/quakec/source/server/entities/perk_a_cola.qc
           grep -F 'XZIEL_GOBBLEGUM_PLAYER_STATE_BEGIN' build/deps/quakec/source/server/defs/custom.qc
           grep -F 'XZIEL_DEATH_MACHINE_STATE_RUNTIME_BEGIN' build/deps/quakec/source/server/utilities/weapon_utilities.qc
           grep -F 'XZIEL_DEATH_MACHINE_BLOCK_WALLBUY' build/deps/quakec/source/server/entities/wall_weapon.qc
