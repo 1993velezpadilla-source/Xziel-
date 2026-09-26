@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "name": "waw_thompson_golden_reference",
+  "source_repository": "CallOfDutyModding/call_of_duty_world_at_war_mod_tools",
+  "source_ref": "main",
+  "model": {
+    "path": "model_export/american/weapons/SMGs/thompson/viewmodel_usa_thompson_smg.XMODEL_EXPORT",
+    "sha1": "6a7dffbfec970487c352ce9b9e8bbe2c911a8b6c",
+    "xmodel_version": 6,
+    "bones": 5,
+    "vertices": 2833,
+    "triangles": 4887,
+    "objects": 7,
+    "materials": 2
+  },
+  "textures": [
+    {
+      "path": "model_export/american/weapons/SMGs/thompson/w_tommy_C.tga",
+      "sha1": "e1da1c33bcd2cabde85351fe1be8e57edf86a581",
+      "role": "base_color",
+      "width": 512,
+      "height": 512
+    },
+    {
+      "path": "model_export/american/weapons/SMGs/thompson/w_tommy_N.tga",
+      "sha1": "99138bd5d4f0e224724f1c91f8a01900a92830f6",
+      "role": "normal",
+      "expected_bytes": 4194348
+    },
+    {
+      "path": "model_export/american/weapons/SMGs/thompson/w_tommy_S.tga",
+      "sha1": "578f155310733c458e07c5fb7de5271c890bfa9a",
+      "role": "specular",
+      "width": 512,
+      "height": 512
+    },
+    {
+      "path": "model_export/american/weapons/SMGs/thompson/w_tommy_g.tga",
+      "sha1": "743f84adca356883381470d5759e8a55ffd80167",
+      "role": "gloss_aux",
+      "width": 512,
+      "height": 512
+    }
+  ],
+  "animations": [
+    "thompson_idle.XANIM_EXPORT",
+    "thompson_fire.XANIM_EXPORT",
+    "thompson_fire_ads.XANIM_EXPORT",
+    "thompson_reload.XANIM_EXPORT",
+    "thompson_reload_empty.XANIM_EXPORT",
+    "thompson_melee.XANIM_EXPORT",
+    "thompson_pullout.XANIM_EXPORT",
+    "thompson_putaway.XANIM_EXPORT",
+    "thompson_ADS_up.XANIM_EXPORT",
+    "thompson_ADS_down.XANIM_EXPORT",
+    "thompson_lastshot.XANIM_EXPORT"
+  ],
+  "animation_root": "xanim_export/viewmodel/US/thompson",
+  "required_tags": ["J_Gun", "J_Bolt", "J_Clip", "tag_brass", "tag_flash"],
+  "golden_rule": "Do not silently drop UVs, normals, skeleton tags, material channels, or animation tracks."
+}
