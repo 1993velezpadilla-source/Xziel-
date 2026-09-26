@@ -19,7 +19,7 @@
     "runtimePrimitiveCapabilities": "assets/nacht_reference/xziel_zombies_runtime_capabilities_v1.json"
   },
   "baseline": {
-    "catalogWeaponCount": 51,
+    "catalogWeaponCount": 52,
     "runtimePurchases": 9,
     "doors": 3,
     "barricades": 12,
@@ -36,7 +36,7 @@
     "wunderfizzPoolIdentityCount": 7,
     "corePowerupIdentityCount": 9,
     "nachtNaturalPowerupIdentityCount": 6,
-    "weaponIdRegistryCount": 51,
+    "weaponIdRegistryCount": 52,
     "mysteryBoxCandidateCount": 46,
     "mysteryBoxRuntimeCapacity": 64,
     "reusablePerkPrimitiveCount": 7,
@@ -153,7 +153,9 @@
       ],
       "logicOnlyPendingPresentation": [
         "fire_sale"
-      ]
+      ],
+      "deathMachineWeaponIdentity": "special_death_machine",
+      "deathMachineIdentityStatus": "cataloged"
     },
     "pack_a_punch_weapon_variants": {
       "state": "pending"
@@ -1304,6 +1306,28 @@
         "android_exposure": "pending",
         "regression_test": "pending",
         "behavior_spec": "pending"
+      }
+    },
+    "special_death_machine": {
+      "displayName": "Death Machine",
+      "catalogNativeStatus": "pending",
+      "lanes": {
+        "identity": "ready",
+        "source_stats": "pending",
+        "behavior_spec": "pending",
+        "native_gameplay": "pending",
+        "wall_buy": "not_applicable",
+        "mystery_box": "not_applicable",
+        "model": "pending",
+        "audio": "pending",
+        "recoil": "pending",
+        "spread": "pending",
+        "animations": "pending",
+        "penetration": "pending",
+        "pack_a_punch_identity": "not_applicable",
+        "pack_a_punch_runtime": "not_applicable",
+        "android_exposure": "pending",
+        "regression_test": "pending"
       }
     }
   }
