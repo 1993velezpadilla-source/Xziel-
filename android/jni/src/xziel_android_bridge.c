@@ -250,3 +250,31 @@ void Xziel_Android_OnlineLeaveRoom(void)
         (*env)->DeleteLocalRef(env, activity);
     Xziel_ClearException(env);
 }
+
+
+void Xziel_Android_VoiceUpdatePosition(float x, float y, float z)
+{
+    JNIEnv *env = Xziel_Env();
+    jobject activity = Xziel_Activity(env);
+    jmethodID method = Xziel_Method(env, activity, "xzielVoiceUpdatePosition", "(FFF)V");
+
+    if (method)
+        (*env)->CallVoidMethod(env, activity, method, (jfloat)x, (jfloat)y, (jfloat)z);
+    if (activity)
+        (*env)->DeleteLocalRef(env, activity);
+    Xziel_ClearException(env);
+}
+
+void Xziel_Android_OnlinePauseVoice(int visible)
+{
+    JNIEnv *env = Xziel_Env();
+    jobject activity = Xziel_Activity(env);
+    jmethodID method = Xziel_Method(env, activity, "xzielOnlinePauseVoice", "(Z)V");
+
+    if (method)
+        (*env)->CallVoidMethod(env, activity, method,
+            visible ? JNI_TRUE : JNI_FALSE);
+    if (activity)
+        (*env)->DeleteLocalRef(env, activity);
+    Xziel_ClearException(env);
+}
