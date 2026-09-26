@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import okio.ByteString;
 import okhttp3.Call;
 import okhttp3.Callback;
+import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -32,17 +33,21 @@ import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
 
 /**
- * Xziel internet multiplayer test transport.
+ * Xziel internet multiplayer transport.
  *
- * Cloudflare owns room discovery and WebSocket routing. Vril keeps its native
- * Quake datagram protocol unchanged: raw UDP datagrams are wrapped in XZD1,
- * routed by room/player slot, and restored into virtual 10.77.0.x peers.
+ * Cloudflare owns private rooms/public matchmaking and WebSocket routing.
+ * Vril keeps its native Quake datagram protocol unchanged: raw UDP datagrams
+ * are wrapped in XZD1 and routed between virtual 10.77.0.x peers.
  */
 public final class XzielMultiplayer {
     private static final int MAX_PLAYERS = 4;
     private static final int GAME_HEADER_BYTES = 9;
     private static final int MAX_GAME_DATAGRAM = 4096;
     private static final int MAX_QUEUE_PER_PORT = 256;
+    private static final long CONNECT_RETRY_MS = 3000L;
+    private static final String DEFAULT_MAP = "ndu";
+    private static final MediaType JSON =
+        MediaType.parse("application/json; charset=utf-8");
 
     private final Activity activity;
     private final OkHttpClient http;
@@ -54,10 +59,24 @@ public final class XzielMultiplayer {
 
     private volatile String baseUrl;
     private volatile String roomCode = "";
+    private volatile String roomMode = "private";
+    private volatile String selectedMap = DEFAULT_MAP;
     private volatile String playerId;
     private volatile int localSlot;
     private volatile WebSocket gameSocket;
+    private volatile WebSocket matchSocket;
+    private volatile AlertDialog activeDialog;
+
     private volatile boolean matchStarted;
+    private volatile boolean hostPreparing;
+    private volatile boolean serverReadySent;
+    private volatile boolean serverReadyReceived;
+    private volatile boolean clientReadySent;
+    private volatile boolean engineServerActive;
+    private volatile boolean engineClientConnected;
+    private volatile int engineSignon;
+    private volatile String engineMap = "";
+    private volatile long lastConnectAttemptMs;
 
     private static final class GamePacket {
         final int sourceSlot;
@@ -105,59 +124,98 @@ public final class XzielMultiplayer {
                 return;
             }
 
-            new AlertDialog.Builder(activity)
+            AlertDialog dialog = new AlertDialog.Builder(activity)
                 .setTitle("ONLINE MULTIPLAYER")
-                .setMessage("Private internet room - up to 4 players.")
-                .setPositiveButton("CREATE ROOM", (d, w) -> createRoom())
-                .setNegativeButton("JOIN ROOM", (d, w) -> showJoinDialog())
+                .setMessage("Private rooms or automatic public matchmaking - up to 4 players.")
+                .setPositiveButton("PRIVATE ROOM", (d, w) -> showPrivateMenu())
+                .setNegativeButton("FIND PUBLIC MATCH", (d, w) -> findPublicMatch())
                 .setNeutralButton("CANCEL", null)
-                .show();
+                .create();
+            showTracked(dialog);
+        });
+    }
+
+    private void showPrivateMenu() {
+        activity.runOnUiThread(() -> {
+            AlertDialog dialog = new AlertDialog.Builder(activity)
+                .setTitle("PRIVATE ROOM")
+                .setMessage("Create a room and share the 6-character code, or join a friend's room.")
+                .setPositiveButton("CREATE ROOM", (d, w) -> showMapSelection())
+                .setNegativeButton("JOIN ROOM", (d, w) -> showJoinDialog())
+                .setNeutralButton("BACK", (d, w) -> openMultiplayerMenu())
+                .create();
+            showTracked(dialog);
+        });
+    }
+
+    private void showMapSelection() {
+        activity.runOnUiThread(() -> {
+            final String[] labels = { "NACHT DER UNTOTEN" };
+            final String[] maps = { "ndu" };
+            AlertDialog dialog = new AlertDialog.Builder(activity)
+                .setTitle("SELECT MAP")
+                .setItems(labels, (d, which) -> {
+                    selectedMap = maps[which];
+                    createRoom(selectedMap);
+                })
+                .setNegativeButton("BACK", (d, w) -> showPrivateMenu())
+                .create();
+            showTracked(dialog);
         });
     }
 
     private void showJoinDialog() {
-        EditText input = new EditText(activity);
-        input.setSingleLine(true);
-        input.setHint("6-CHARACTER ROOM CODE");
-        input.setAllCaps(true);
-        input.setFilters(new InputFilter[] { new InputFilter.LengthFilter(6) });
+        activity.runOnUiThread(() -> {
+            EditText input = new EditText(activity);
+            input.setSingleLine(true);
+            input.setHint("6-CHARACTER ROOM CODE");
+            input.setAllCaps(true);
+            input.setFilters(new InputFilter[] { new InputFilter.LengthFilter(6) });
 
-        AlertDialog dialog = new AlertDialog.Builder(activity)
-            .setTitle("JOIN ONLINE ROOM")
-            .setView(input)
-            .setPositiveButton("JOIN", null)
-            .setNegativeButton("BACK", null)
-            .create();
+            AlertDialog dialog = new AlertDialog.Builder(activity)
+                .setTitle("JOIN PRIVATE ROOM")
+                .setView(input)
+                .setPositiveButton("JOIN", null)
+                .setNegativeButton("BACK", (d, w) -> showPrivateMenu())
+                .create();
 
-        dialog.setOnShowListener(v -> {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(button -> {
-                String code = input.getText().toString().trim().toUpperCase(Locale.US);
-                if (!code.matches("[A-HJ-NP-Z2-9]{6}")) {
-                    input.setError("Enter the 6-character room code");
-                    return;
+            dialog.setOnShowListener(v -> {
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(button -> {
+                    String code = input.getText().toString().trim().toUpperCase(Locale.US);
+                    if (!code.matches("[A-HJ-NP-Z2-9]{6}")) {
+                        input.setError("Enter the 6-character room code");
+                        return;
+                    }
+                    dialog.dismiss();
+                    activeDialog = null;
+                    joinRoom(code, false);
+                });
+
+                input.requestFocus();
+                InputMethodManager imm = (InputMethodManager)
+                    activity.getSystemService(Context.INPUT_METHOD_SERVICE);
+                if (imm != null) {
+                    imm.showSoftInput(input, InputMethodManager.SHOW_IMPLICIT);
                 }
-                dialog.dismiss();
-                joinRoom(code);
             });
 
-            input.requestFocus();
-            InputMethodManager imm = (InputMethodManager)
-                activity.getSystemService(Context.INPUT_METHOD_SERVICE);
-            if (imm != null) {
-                imm.showSoftInput(input, InputMethodManager.SHOW_IMPLICIT);
-            }
+            showTracked(dialog);
         });
-
-        dialog.show();
     }
 
-    private void createRoom() {
+    private void createRoom(String map) {
+        JSONObject body = new JSONObject();
+        try {
+            body.put("playerId", playerId);
+            body.put("map", map);
+        } catch (Exception ignored) {}
+
         Request request = new Request.Builder()
             .url(baseUrl + "/api/rooms/create")
-            .post(RequestBody.create(new byte[0], null))
+            .post(RequestBody.create(body.toString(), JSON))
             .build();
 
-        toast("Creating online room...");
+        toast("Creating private room...");
         http.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, java.io.IOException e) {
@@ -172,13 +230,14 @@ public final class XzielMultiplayer {
                         return;
                     }
 
-                    JSONObject body = new JSONObject(r.body().string());
-                    String code = body.optString("roomCode", "");
+                    JSONObject answer = new JSONObject(r.body().string());
+                    String code = answer.optString("roomCode", "");
                     if (code.length() != 6) {
                         toast("Server returned an invalid room");
                         return;
                     }
-                    joinRoom(code);
+                    selectedMap = answer.optString("map", DEFAULT_MAP);
+                    joinRoom(code, false);
                 } catch (Exception e) {
                     toast("Could not read room response");
                 }
@@ -186,12 +245,64 @@ public final class XzielMultiplayer {
         });
     }
 
-    private void joinRoom(String code) {
-        leaveRoom();
+    public void findPublicMatch() {
+        cancelMatchmaking();
+        leaveGameRoomOnly();
+
+        selectedMap = DEFAULT_MAP;
+        roomMode = "public";
+
+        String wsUrl = websocketBase() + "/matchmake?playerId=" + playerId +
+            "&map=" + selectedMap;
+        Request request = new Request.Builder().url(wsUrl).build();
+
+        toast("Searching public match...");
+        matchSocket = http.newWebSocket(request, new WebSocketListener() {
+            @Override
+            public void onMessage(WebSocket webSocket, String text) {
+                try {
+                    JSONObject message = new JSONObject(text);
+                    String type = message.optString("type", "");
+                    if ("searching".equals(type)) {
+                        int queued = message.optInt("queued", 1);
+                        toast("Searching... " + queued + "/" + MAX_PLAYERS);
+                        return;
+                    }
+                    if ("match_found".equals(type)) {
+                        String code = message.optString("roomCode", "");
+                        selectedMap = message.optString("map", DEFAULT_MAP);
+                        matchSocket = null;
+                        try { webSocket.close(1000, "matched"); } catch (Exception ignored) {}
+                        if (code.length() == 6) {
+                            toast("Match found");
+                            joinRoom(code, true);
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+
+            @Override
+            public void onFailure(WebSocket webSocket, Throwable t, Response response) {
+                if (matchSocket == webSocket) {
+                    matchSocket = null;
+                    toast("Public matchmaking connection failed");
+                }
+            }
+        });
+    }
+
+    private void joinRoom(String code, boolean publicMatch) {
+        leaveGameRoomOnly();
 
         roomCode = code;
+        roomMode = publicMatch ? "public" : "private";
         localSlot = 0;
         matchStarted = false;
+        hostPreparing = false;
+        serverReadySent = false;
+        serverReadyReceived = false;
+        clientReadySent = false;
+        lastConnectAttemptMs = 0;
         connectedSlots.clear();
         packetsByPort.clear();
 
@@ -223,14 +334,18 @@ public final class XzielMultiplayer {
                     else if (status == 409) toast("Room is full");
                     else toast("Online connection lost");
                 }
-                gameSocket = null;
-                localSlot = 0;
+                if (gameSocket == webSocket) {
+                    gameSocket = null;
+                    localSlot = 0;
+                }
             }
 
             @Override
             public void onClosed(WebSocket webSocket, int codeValue, String reason) {
-                gameSocket = null;
-                localSlot = 0;
+                if (gameSocket == webSocket) {
+                    gameSocket = null;
+                    localSlot = 0;
+                }
             }
         });
     }
@@ -249,9 +364,15 @@ public final class XzielMultiplayer {
                 }
 
                 localSlot = slot;
+                selectedMap = message.optString("map", DEFAULT_MAP);
+                roomMode = message.optString("mode", roomMode);
                 connectedSlots.add(slot);
-                toast("Room " + roomCode + " - Player " + slot);
-                activity.runOnUiThread(this::showLobbyDialog);
+                toast(("public".equals(roomMode) ? "Public match" : "Room " + roomCode) +
+                    " - Player " + slot);
+
+                if ("private".equals(roomMode)) {
+                    activity.runOnUiThread(this::showLobbyDialog);
+                }
                 return;
             }
 
@@ -259,7 +380,7 @@ public final class XzielMultiplayer {
                 int slot = message.optInt("slot", 0);
                 if (slot >= 1 && slot <= MAX_PLAYERS) {
                     connectedSlots.add(slot);
-                    toast("Player " + slot + " joined");
+                    toast("Player " + slot + " connected");
                 }
                 return;
             }
@@ -271,11 +392,37 @@ public final class XzielMultiplayer {
                 return;
             }
 
-            if ("start_game".equals(type) && localSlot != 1) {
+            if ("room_full".equals(type)) {
+                if ("public".equals(roomMode) && localSlot == 1 && !hostPreparing) {
+                    startHostMatch(true);
+                } else if ("public".equals(roomMode)) {
+                    toast("4/4 players - starting match...");
+                }
+                return;
+            }
+
+            if ("prepare_game".equals(type) && localSlot != 1) {
+                selectedMap = message.optString("map", selectedMap);
                 matchStarted = true;
-                // Slot 1 is represented by the virtual tunnel address.
-                queueNativeCommand("connect 10.77.0.1:26000\n");
-                toast("Host started Nacht - connecting...");
+                dismissTrackedDialog();
+                toast("Host is loading " + prettyMap(selectedMap) + "...");
+                return;
+            }
+
+            if ("server_ready".equals(type) && localSlot != 1) {
+                selectedMap = message.optString("map", selectedMap);
+                serverReadyReceived = true;
+                matchStarted = true;
+                dismissTrackedDialog();
+                beginClientConnection(false);
+                return;
+            }
+
+            if ("client_ready".equals(type) && localSlot == 1) {
+                int slot = message.optInt("slot", 0);
+                if (slot >= 2 && slot <= MAX_PLAYERS) {
+                    toast("Player " + slot + " entered the match");
+                }
             }
         } catch (Exception ignored) {
         }
@@ -284,45 +431,122 @@ public final class XzielMultiplayer {
     private void showLobbyDialog() {
         if (!isOnlineActive()) return;
 
-        boolean host = localSlot == 1;
-        String message =
-            "ROOM CODE: " + roomCode +
-            "\nPLAYER: " + localSlot +
-            "\nPLAYERS CONNECTED: " + connectedSlots.size() + "/" + MAX_PLAYERS +
-            (host
-                ? "\n\nSend this room code to your cousin. Press START NACHT when ready."
-                : "\n\nWaiting for Player 1 to start Nacht.");
+        activity.runOnUiThread(() -> {
+            if (!isOnlineActive()) return;
+            boolean host = localSlot == 1;
+            String message =
+                "ROOM CODE: " + roomCode +
+                "\nMAP: " + prettyMap(selectedMap) +
+                "\nPLAYER: " + localSlot +
+                "\nPLAYERS CONNECTED: " + connectedSlots.size() + "/" + MAX_PLAYERS +
+                (host
+                    ? "\n\nShare the code. Start when everyone is ready."
+                    : "\n\nWaiting for Player 1 to start the match.");
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(activity)
-            .setTitle(host ? "HOST ONLINE ROOM" : "ONLINE ROOM")
-            .setMessage(message)
-            .setNegativeButton("LEAVE", (d, w) -> leaveRoom())
-            .setNeutralButton("CLOSE", null);
+            AlertDialog.Builder builder = new AlertDialog.Builder(activity)
+                .setTitle(host ? "PRIVATE ROOM - HOST" : "PRIVATE ROOM")
+                .setMessage(message)
+                .setNegativeButton("LEAVE ROOM", (d, w) -> leaveRoom())
+                .setNeutralButton("CLOSE", null);
 
-        if (host && !matchStarted) {
-            builder.setPositiveButton("START NACHT", (d, w) -> startHostMatch());
-        }
+            if (host && !matchStarted && !hostPreparing) {
+                builder.setPositiveButton("START MATCH", (d, w) -> startHostMatch(false));
+            }
 
-        builder.show();
+            showTracked(builder.create());
+        });
     }
 
-    private void startHostMatch() {
-        if (localSlot != 1 || matchStarted || gameSocket == null) return;
+    private void startHostMatch(boolean automaticPublicStart) {
+        if (localSlot != 1 || hostPreparing || gameSocket == null) return;
 
+        hostPreparing = true;
         matchStarted = true;
+        serverReadySent = false;
+        serverReadyReceived = false;
+        dismissTrackedDialog();
 
-        // Configure the existing Vril/NZ:P Quake server as 4-player co-op.
-        // The host remains authoritative; the tunnel only moves datagrams.
+        JSONObject prepare = new JSONObject();
+        try {
+            prepare.put("type", "prepare_game");
+            prepare.put("map", selectedMap);
+            gameSocket.send(prepare.toString());
+        } catch (Exception ignored) {}
+
         queueNativeCommand(
+            "disconnect\n" +
             "maxplayers 4\n" +
             "coop 1\n" +
             "deathmatch 0\n" +
             "listen 1\n" +
-            "map ndu\n"
+            "map " + selectedMap + "\n"
         );
 
-        gameSocket.send("{\"type\":\"start_game\",\"map\":\"ndu\"}");
-        toast("Starting Nacht online...");
+        toast((automaticPublicStart ? "Public match ready - " : "Starting ") +
+            prettyMap(selectedMap) + "...");
+    }
+
+    private void beginClientConnection(boolean retry) {
+        if (localSlot <= 1 || gameSocket == null || !serverReadyReceived) return;
+
+        long now = System.currentTimeMillis();
+        if (retry && now - lastConnectAttemptMs < CONNECT_RETRY_MS) return;
+        lastConnectAttemptMs = now;
+
+        if (retry) {
+            queueNativeCommand("disconnect\nconnect 10.77.0.1:26000\n");
+            toast("Reconnecting to host...");
+        } else {
+            queueNativeCommand("connect 10.77.0.1:26000\n");
+            toast("Server ready - entering match...");
+        }
+    }
+
+    /**
+     * Called from the native Vril game thread at a low frequency.
+     * This closes the old race where clients tried to connect before the host
+     * had actually opened its Quake listen socket.
+     */
+    public void onEngineState(boolean serverActive, boolean clientConnected,
+                              int signon, String map) {
+        engineServerActive = serverActive;
+        engineClientConnected = clientConnected;
+        engineSignon = signon;
+        engineMap = map == null ? "" : map;
+
+        if (!isOnlineActive()) return;
+
+        if (localSlot == 1 && hostPreparing && !serverReadySent &&
+            serverActive && selectedMap.equals(engineMap)) {
+            serverReadySent = true;
+            hostPreparing = false;
+
+            JSONObject ready = new JSONObject();
+            try {
+                ready.put("type", "server_ready");
+                ready.put("map", selectedMap);
+                WebSocket socket = gameSocket;
+                if (socket != null) socket.send(ready.toString());
+            } catch (Exception ignored) {}
+
+            toast("Server ready - bringing players in");
+            return;
+        }
+
+        if (localSlot > 1 && serverReadyReceived) {
+            if (!clientConnected || signon < 4) {
+                beginClientConnection(true);
+            } else if (!clientReadySent) {
+                clientReadySent = true;
+                JSONObject ready = new JSONObject();
+                try {
+                    ready.put("type", "client_ready");
+                    WebSocket socket = gameSocket;
+                    if (socket != null) socket.send(ready.toString());
+                } catch (Exception ignored) {}
+                toast("Connected to match");
+            }
+        }
     }
 
     public boolean sendGameDatagram(byte[] payload, int destinationSlot,
@@ -385,12 +609,6 @@ public final class XzielMultiplayer {
         queue.offer(new GamePacket(sourceSlot, sourcePort, payload));
     }
 
-    /**
-     * Native poll packet format:
-     * byte 0 = source slot
-     * bytes 1..2 = source port, network byte order
-     * bytes 3.. = raw Quake datagram
-     */
     public byte[] pollGameDatagram(int localPort) {
         ConcurrentLinkedQueue<GamePacket> queue = packetsByPort.get(localPort);
         if (queue == null) return null;
@@ -424,27 +642,61 @@ public final class XzielMultiplayer {
     }
 
     public void leaveRoom() {
+        cancelMatchmaking();
+        leaveGameRoomOnly();
+        dismissTrackedDialog();
+    }
+
+    private void leaveGameRoomOnly() {
         WebSocket socket = gameSocket;
         gameSocket = null;
         if (socket != null) {
-            try {
-                socket.close(1000, "leave");
-            } catch (Exception ignored) {
-            }
+            try { socket.close(1000, "leave"); } catch (Exception ignored) {}
         }
 
         roomCode = "";
         localSlot = 0;
         matchStarted = false;
+        hostPreparing = false;
+        serverReadySent = false;
+        serverReadyReceived = false;
+        clientReadySent = false;
         connectedSlots.clear();
         packetsByPort.clear();
         pendingNativeCommand.set("");
+    }
+
+    private void cancelMatchmaking() {
+        WebSocket socket = matchSocket;
+        matchSocket = null;
+        if (socket != null) {
+            try { socket.close(1000, "cancel"); } catch (Exception ignored) {}
+        }
     }
 
     public void shutdown() {
         leaveRoom();
         http.dispatcher().executorService().shutdown();
         http.connectionPool().evictAll();
+    }
+
+    private void showTracked(AlertDialog dialog) {
+        dismissTrackedDialog();
+        activeDialog = dialog;
+        dialog.setOnDismissListener(d -> {
+            if (activeDialog == dialog) activeDialog = null;
+        });
+        dialog.show();
+    }
+
+    private void dismissTrackedDialog() {
+        activity.runOnUiThread(() -> {
+            AlertDialog dialog = activeDialog;
+            activeDialog = null;
+            if (dialog != null && dialog.isShowing()) {
+                try { dialog.dismiss(); } catch (Exception ignored) {}
+            }
+        });
     }
 
     private String websocketBase() {
@@ -455,6 +707,10 @@ public final class XzielMultiplayer {
             return "ws://" + baseUrl.substring(7);
         }
         return baseUrl;
+    }
+
+    private static String prettyMap(String map) {
+        return "ndu".equals(map) ? "Nacht der Untoten" : map;
     }
 
     private static String normalizeBaseUrl(String value) {
