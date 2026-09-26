@@ -36,9 +36,11 @@ jobs:
           $map=Get-ChildItem $out -Filter Nacht_de_Untoten.umap -Recurse | Select-Object -First 1
           if(-not $map){throw 'map missing'}
           Invoke-WebRequest 'https://github.com/atenfyr/UAssetGUI/releases/download/v1.1.0/UAssetGUI.exe' -OutFile (Join-Path $env:RUNNER_TEMP 'UAssetGUI.exe')
-          New-Item -ItemType Directory -Force -Path audit-out | Out-Null
-          & (Join-Path $env:RUNNER_TEMP 'UAssetGUI.exe') tojson $map.FullName 'audit-out\Nacht_de_Untoten.json' VER_UE4_21
+          $audit=(New-Item -ItemType Directory -Force -Path 'audit-out').FullName
+          $json=Join-Path $audit 'Nacht_de_Untoten.json'
+          & (Join-Path $env:RUNNER_TEMP 'UAssetGUI.exe') tojson $map.FullName $json VER_UE4_21
           if($LASTEXITCODE -ne 0){throw 'UAssetGUI failed'}
+          if(-not(Test-Path $json)){throw "map JSON missing at $json"}
       - name: Extract spatial manifest
         shell: pwsh
         run: |
