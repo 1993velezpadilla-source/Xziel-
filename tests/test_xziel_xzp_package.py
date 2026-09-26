@@ -111,14 +111,13 @@ with tempfile.TemporaryDirectory(prefix="xziel-xzp-test-") as td:
         encoding="utf-8",
     )
     descriptor_failed = False
+    bad_package = td / "bad.xzp"
     try:
-        compiler.compile_package(bad_descriptor, td / "bad.xzp")
-    except SystemExit as exc:
-        descriptor_failed = (
-            "entryWorld not found" in str(exc)
-            or "entryWorld must equal maps/<mapId>.bsp" in str(exc)
-        )
+        compiler.compile_package(bad_descriptor, bad_package)
+    except SystemExit:
+        descriptor_failed = True
     assert descriptor_failed, "missing entryWorld unexpectedly packaged"
+    assert not bad_package.exists(), "rejected descriptor left a package behind"
 
     # Rebuild a maliciously modified package with the original manifest but one
     # changed payload. Verification must fail on SHA-256 mismatch.
