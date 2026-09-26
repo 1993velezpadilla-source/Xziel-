@@ -19,7 +19,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y blender p7zip-full
+          sudo apt-get install -y blender p7zip-full python3-numpy
           mkdir -p "$RUNNER_TEMP/steamcmd" "$RUNNER_TEMP/repak"
           curl -fL --retry 6 --retry-delay 2 --retry-all-errors https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz -o "$RUNNER_TEMP/steamcmd.tgz"
           tar -xzf "$RUNNER_TEMP/steamcmd.tgz" -C "$RUNNER_TEMP/steamcmd"
@@ -193,7 +193,14 @@ jobs:
           (out/'solid-preview-report.json').write_text(json.dumps(report,indent=2)+'\n')
           print(json.dumps(report,indent=2))
           PY
+          set -o pipefail
+          blender -b --python-expr "import numpy; print('Blender NumPy OK', numpy.__version__)" 2>&1 | tee audit-out/blender-numpy.log
           blender -b --python "$RUNNER_TEMP/render_nacht.py" 2>&1 | tee audit-out/blender-render.log
+          test -f audit-out/solid_top.png
+          test -f audit-out/solid_front.png
+          test -f audit-out/solid_side.png
+          test -f audit-out/solid_iso.png
+          test -f audit-out/solid-preview-report.json
 
       - name: Upload screenshots and report only
         uses: actions/upload-artifact@v4
