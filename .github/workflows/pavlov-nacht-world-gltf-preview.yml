@@ -54,7 +54,7 @@ jobs:
           cat > Program.cs <<'CS'
           using CUE4Parse.FileProvider;
           using CUE4Parse.UE4.Versions;
-          using CUE4Parse.UE4.Assets.Exports.Engine;
+          using CUE4Parse.UE4.Objects.Engine;
           using CUE4Parse_Conversion;
           using CUE4Parse_Conversion.Options;
 
@@ -74,7 +74,7 @@ jobs:
           Console.WriteLine("world="+world.GetPathName());
           var session=new ExportSession{MaxDegreeOfParallelism=Math.Max(1,Environment.ProcessorCount/2)};
           session.Add(world);
-          var results=await session.RunAsync(args[1],new ExportOptions(meshFormat: EMeshFormat.Gltf2,exportMaterials:false));
+          var results=await session.RunAsync(args[1],new ExportOptions(meshFormat: EMeshFormat.USD,exportMaterials:false));
           Console.WriteLine("results="+results.Count);
           foreach(var r in results.Take(50)) Console.WriteLine(r);
           return results.Count>0 ? 0 : 5;
@@ -92,7 +92,7 @@ jobs:
           find audit-out/world -type f -printf '%s %p\n' | sort -nr | head -100 | tee audit-out/world-files.txt
           exit 0
 
-      - name: Render composed world glTF files
+      - name: Render composed world USD
         run: |
           set -euo pipefail
           cat > "$RUNNER_TEMP/render_world.py" <<'PY'
@@ -101,12 +101,12 @@ jobs:
           root=pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'audit-out'/'world'
           out=pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'audit-out'
           bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete(use_global=False)
-          gltfs=list(root.rglob('*.gltf'))+list(root.rglob('*.glb'))
-          print('world glTF files',len(gltfs))
+          gltfs=list(root.rglob('*.usda'))
+          print('world USD files',len(gltfs))
           imported=[]
           for f in gltfs:
               before=set(bpy.data.objects)
-              try: bpy.ops.import_scene.gltf(filepath=str(f))
+              try: bpy.ops.wm.usd_import(filepath=str(f))
               except Exception as e: print('IMPORT_FAIL',f,e); continue
               imported += [o for o in bpy.data.objects if o not in before and o.type=='MESH']
           if not imported:
@@ -131,7 +131,7 @@ jobs:
           views=[('world_top.png',center+Vector((0,0,dist)),max(span.x,span.y)*1.1),('world_front.png',center+Vector((0,-dist,0)),max(span.x,span.z)*1.1),('world_side.png',center+Vector((dist,0,0)),max(span.y,span.z)*1.1),('world_iso.png',center+Vector((dist,-dist,dist*.72)),maxspan*1.45)]
           for name,loc,scale in views:
               look(loc); camd.ortho_scale=max(scale,1); scene.render.filepath=str(out/name); bpy.ops.render.render(write_still=True)
-          report={'gltf_files':len(gltfs),'mesh_objects':len(imported),'bounds_min':list(mins),'bounds_max':list(maxs),'span':list(span),'renders':[v[0] for v in views]}
+          report={'usd_files':len(gltfs),'mesh_objects':len(imported),'bounds_min':list(mins),'bounds_max':list(maxs),'span':list(span),'renders':[v[0] for v in views]}
           (out/'world-preview-report.json').write_text(json.dumps(report,indent=2)+'\n'); print(json.dumps(report,indent=2))
           PY
           set +e
