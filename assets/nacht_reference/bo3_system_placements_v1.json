@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "contractId": "bo3_nacht_system_placements_v1",
+  "mapId": "bo3_nacht_reference",
+  "coordinateSystem": {
+    "units": "meters",
+    "source": "Unreal centimeters converted to XZIEL reference meters"
+  },
+  "sourceAuthority": {
+    "workflowRunId": 36228602076,
+    "artifactId": 10901452125,
+    "artifactName": "xziel-bo3-nacht-reference-package",
+    "sourceMap": "Nacht_de_Untoten.umap",
+    "usage": "metadata_only_spatial_reference"
+  },
+  "entities": [
+    {
+      "id": "mystery_box_anchor",
+      "type": "mystery_box",
+      "room": "help",
+      "transform": {
+        "position": {
+          "x": -3.4489825439453123,
+          "y": 17.27906005859375,
+          "z": 0
+        },
+        "rotationDegrees": {
+          "pitch": 0,
+          "yaw": -34.753509521484375,
+          "roll": 0
+        }
+      },
+      "serverAuthoritative": true,
+      "properties": {
+        "cost": 950,
+        "fixedLocation": true
+      },
+      "runtimeState": "pending"
+    },
+    {
+      "id": "gobblegum_spawn",
+      "type": "gobblegum_machine",
+      "room": "spawn",
+      "transform": {
+        "position": {
+          "x": -4.812414855957031,
+          "y": -1.5572979736328125,
+          "z": 0.050127391815185544
+        },
+        "rotationDegrees": null
+      },
+      "serverAuthoritative": true,
+      "properties": {
+        "machineIndex": 1
+      },
+      "runtimeState": "pending"
+    },
+    {
+      "id": "gobblegum_upstairs",
+      "type": "gobblegum_machine",
+      "room": "upstairs",
+      "transform": {
+        "position": {
+          "x": 2.334840087890625,
+          "y": 22.29349609375,
+          "z": 3.868224792480469
+        },
+        "rotationDegrees": {
+          "pitch": 0,
+          "yaw": 169.99993896484375,
+          "roll": 0
+        }
+      },
+      "serverAuthoritative": true,
+      "properties": {
+        "machineIndex": 2
+      },
+      "runtimeState": "pending"
+    },
+    {
+      "id": "der_wunderfizz_upstairs",
+      "type": "der_wunderfizz",
+      "room": "upstairs",
+      "transform": {
+        "position": {
+          "x": -4.95678466796875,
+          "y": 20.6478125,
+          "z": 3.687571716308594
+        },
+        "rotationDegrees": null
+      },
+      "serverAuthoritative": true,
+      "properties": {
+        "cost": 1500
+      },
+      "runtimeState": "pending"
+    }
+  ],
+  "unresolvedCanonicalPlacements": [
+    {
+      "id": "mule_kick",
+      "type": "perk_machine",
+      "reason": "Canonical BO3 Nacht presence is verified, but the current reference package entity set does not contain a canonical Mule Kick transform; do not substitute the Pavlov-only Quick Revive machine.",
+      "runtimeState": "pending"
+    }
+  ],
+  "validation": {
+    "expectedGobbleGumMachines": 2,
+    "expectedWunderfizzMachines": 1,
+    "expectedMysteryBoxAnchors": 1
+  }
+}
