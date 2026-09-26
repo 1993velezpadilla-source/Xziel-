@@ -1,0 +1,56 @@
+name: St Giles UV Tile Plan
+
+on:
+  push:
+    branches:
+      - engine/mobile-power-fidelity-v1
+    paths:
+      - ".github/workflows/st-giles-uv-tile-plan.yml"
+      - "tools/church_map/plan_exterior_uv_tiles.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install planner dependency
+        run: python3 -m pip install --quiet --disable-pip-version-check numpy
+
+      - name: Recover latest exact-source XZSM
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/clean-source
+          RUN_ID="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/sanctum-clean-source.yml/runs?branch=engine/mobile-power-fidelity-v1&status=success&per_page=20" --jq '.workflow_runs[0].id')"
+          test -n "$RUN_ID"
+          ARTIFACT_ID="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/artifacts" --jq '.artifacts[] | select(.name == "Xziel-Sanctum-Clean-Source") | .id' | head -n1)"
+          test -n "$ARTIFACT_ID"
+          gh api "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" > build/clean.zip
+          unzip -q build/clean.zip -d build/clean-source
+          XZSM="$(find build/clean-source -name sanctum.xzsm -print -quit)"
+          test -s "$XZSM"
+          echo "XZSM=$XZSM" >> "$GITHUB_ENV"
+
+      - name: Plan mobile-streamed exterior tiles
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/church_map/plan_exterior_uv_tiles.py             --xzsm "$XZSM"             --source-size 1024             --target-tpm 128             --max-tile-size 2048             --match Exterior04             --report build/st-giles-uv-tile-plan.json
+          jq '{targetTexelsPerMeter,maxTileSize,exteriorBatchCount,batchesMeetingTargetAtMaxTile,allBatchesMeetTarget,estimatedResidentIfAllTilesAstc6x6MiB,recommendation}' build/st-giles-uv-tile-plan.json
+
+      - name: Upload UV tile plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xziel-St-Giles-UV-Tile-Plan
+          path: build/st-giles-uv-tile-plan.json
+          retention-days: 14
