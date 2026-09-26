@@ -85,6 +85,9 @@ extern qboolean sdl_running;
 """
 online_decl = """#ifdef __ANDROID__
 extern int Xziel_Android_OnlinePollCommand(char *out, int outSize);
+extern void Xziel_Android_OnlineReportEngineState(int serverActive,
+    int clientConnected, int signon, const char *map);
+static double xziel_online_state_next;
 #endif
 """
 if "Xziel_Android_OnlinePollCommand" not in text:
@@ -104,11 +107,133 @@ execute_repl = """// process console commands
 	}
 #endif
 	Cbuf_Execute ();
+#ifdef __ANDROID__
+	if (Sys_FloatTime() >= xziel_online_state_next) {
+		xziel_online_state_next = Sys_FloatTime() + 0.25;
+		Xziel_Android_OnlineReportEngineState(
+			sv.active ? 1 : 0,
+			cls.state == ca_connected ? 1 : 0,
+			cls.signon,
+			sv.active ? sv.name : "");
+	}
+#endif
 """
 if "char xziel_online_command[512]" not in text:
     text = replace_once(text, execute_anchor, execute_repl,
                         "host command execution anchor")
 host.write_text(text, encoding="utf-8")
+
+# ---------------------------------------------------------------------------
+# Online pause menu: gameplay continues while the overlay is open. Reuse the
+# existing native scoreboard and expose only SETTINGS + QUIT MATCH.
+# ---------------------------------------------------------------------------
+pause = source / "menu" / "menu_pause.c"
+text = pause.read_text(encoding="utf-8")
+
+pause_include = '#include "menu_defs.h"\n'
+pause_decls = r'''
+#ifdef __ANDROID__
+extern int Xziel_Android_OnlineActive(void);
+extern void Xziel_Android_OnlineLeaveRoom(void);
+extern qboolean showscoreboard;
+extern void HUD_EndScreen(void);
+#endif
+'''
+if "Xziel_Android_OnlineLeaveRoom" not in text:
+    text = replace_once(text, pause_include, pause_include + pause_decls,
+                        "pause Android declarations")
+
+pause_set_old = r'''void Menu_Pause_Set (void)
+{
+	Menu_ResetMenuButtons();
+	S_StopAllSounds(true);
+	Music_Pause();
+	Menu_SetSound(MENU_SND_ENTER);
+
+	menu_paus_submenu = 0;
+	loadingScreen = 0;
+	loadscreeninit = false;
+	key_dest = key_menu_pause;
+	m_state = m_pause;
+	m_previous_state = m_state;
+}'''
+pause_set_new = r'''void Menu_Pause_Set (void)
+{
+	Menu_ResetMenuButtons();
+#ifdef __ANDROID__
+	if (!Xziel_Android_OnlineActive()) {
+		S_StopAllSounds(true);
+		Music_Pause();
+	}
+#else
+	S_StopAllSounds(true);
+	Music_Pause();
+#endif
+	Menu_SetSound(MENU_SND_ENTER);
+
+	menu_paus_submenu = 0;
+	loadingScreen = 0;
+	loadscreeninit = false;
+	key_dest = key_menu_pause;
+	m_state = m_pause;
+	m_previous_state = m_state;
+}'''
+text = replace_once(text, pause_set_old, pause_set_new, "online pause set")
+
+pause_yes_anchor = r'''void Menu_Pause_Yes(void)
+{
+    if (menu_paus_submenu == 1) {'''
+pause_yes_repl = r'''void Menu_Pause_Yes(void)
+{
+#ifdef __ANDROID__
+	if (Xziel_Android_OnlineActive() && menu_paus_submenu == 9) {
+		Xziel_Android_OnlineLeaveRoom();
+		menu_paus_submenu = 0;
+		Menu_ExitMap();
+		return;
+	}
+#endif
+    if (menu_paus_submenu == 1) {'''
+text = replace_once(text, pause_yes_anchor, pause_yes_repl, "online pause quit")
+
+pause_draw_anchor = r'''void Menu_Pause_Draw (void)
+{
+    // Background'''
+pause_draw_repl = r'''void Menu_Pause_Draw (void)
+{
+#ifdef __ANDROID__
+	if (Xziel_Android_OnlineActive()) {
+		qboolean old_scoreboard = showscoreboard;
+
+		Menu_DrawCustomBackground (true);
+		Menu_DrawTitle ("ONLINE MATCH", MENU_COLOR_WHITE);
+
+		// Reuse NZ:P's authoritative multiplayer stats table.
+		showscoreboard = true;
+		HUD_EndScreen();
+		showscoreboard = old_scoreboard;
+
+		if (menu_paus_submenu == 0) {
+			Menu_DrawButton (1, 0, "SETTINGS", "Adjust controls, audio and video.", Menu_Configuration);
+			Menu_DrawButton (2, 1, "QUIT MATCH", "Leave this online match.", Menu_Pause_EnterSubMenu);
+		} else {
+			Menu_DrawGreyButton (1, "SETTINGS");
+			Menu_DrawGreyButton (2, "QUIT MATCH");
+			Menu_DrawSubMenu("Leave online match?", "The other players will keep playing.");
+			Menu_DrawButton (7, 0, "QUIT MATCH", "", Menu_Pause_Yes);
+			Menu_DrawButton (8, 1, "STAY", "", Menu_Pause_No);
+		}
+
+		// Reserve submenu id 9 for online quit confirmation.
+		if (menu_paus_submenu != 0 && menu_paus_submenu != 9)
+			menu_paus_submenu = 9;
+		return;
+	}
+#endif
+
+    // Background'''
+text = replace_once(text, pause_draw_anchor, pause_draw_repl, "online pause draw")
+pause.write_text(text, encoding="utf-8")
 
 # ---------------------------------------------------------------------------
 # SDL UDP: virtual internet peers are 10.77.0.<slot>. OS UDP remains untouched
