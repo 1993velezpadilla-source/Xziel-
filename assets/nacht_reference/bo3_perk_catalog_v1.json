@@ -6,7 +6,8 @@
   "wunderfizz": {
     "cost": 1500,
     "placementId": "der_wunderfizz_upstairs",
-    "runtimeStatus": "pending"
+    "runtimeStatus": "pending",
+    "runtimeBridgeStatus": "partial"
   },
   "entries": [
     {
@@ -18,7 +19,13 @@
       "wunderfizzEligible": false,
       "knownCost": 4000,
       "effectSpecStatus": "pending",
-      "runtimeStatus": "pending"
+      "runtimeStatus": "pending",
+      "runtimePrimitive": {
+        "available": true,
+        "upstreamSymbol": "P_MULE",
+        "xzielSemantic": "XZIEL_PERK_MULEKICK",
+        "bridgeStatus": "logic_ready"
+      }
     },
     {
       "id": "juggernog",
@@ -28,7 +35,13 @@
       ],
       "wunderfizzEligible": true,
       "effectSpecStatus": "pending",
-      "runtimeStatus": "pending"
+      "runtimeStatus": "pending",
+      "runtimePrimitive": {
+        "available": true,
+        "upstreamSymbol": "P_JUG",
+        "xzielSemantic": "XZIEL_PERK_JUGGERNOG",
+        "bridgeStatus": "logic_ready"
+      }
     },
     {
       "id": "quick_revive",
@@ -38,7 +51,13 @@
       ],
       "wunderfizzEligible": true,
       "effectSpecStatus": "pending",
-      "runtimeStatus": "pending"
+      "runtimeStatus": "pending",
+      "runtimePrimitive": {
+        "available": true,
+        "upstreamSymbol": "P_REVIVE",
+        "xzielSemantic": "XZIEL_PERK_QUICKREVIVE",
+        "bridgeStatus": "logic_ready"
+      }
     },
     {
       "id": "speed_cola",
@@ -48,7 +67,13 @@
       ],
       "wunderfizzEligible": true,
       "effectSpecStatus": "pending",
-      "runtimeStatus": "pending"
+      "runtimeStatus": "pending",
+      "runtimePrimitive": {
+        "available": true,
+        "upstreamSymbol": "P_SPEED",
+        "xzielSemantic": "XZIEL_PERK_SPEEDCOLA",
+        "bridgeStatus": "logic_ready"
+      }
     },
     {
       "id": "double_tap_ii",
@@ -58,7 +83,13 @@
       ],
       "wunderfizzEligible": true,
       "effectSpecStatus": "pending",
-      "runtimeStatus": "pending"
+      "runtimeStatus": "pending",
+      "runtimePrimitive": {
+        "available": true,
+        "upstreamSymbol": "P_DOUBLE",
+        "xzielSemantic": "XZIEL_PERK_DOUBLETAP2",
+        "bridgeStatus": "logic_ready"
+      }
     },
     {
       "id": "stamin_up",
@@ -68,7 +99,13 @@
       ],
       "wunderfizzEligible": true,
       "effectSpecStatus": "pending",
-      "runtimeStatus": "pending"
+      "runtimeStatus": "pending",
+      "runtimePrimitive": {
+        "available": true,
+        "upstreamSymbol": "P_STAMIN",
+        "xzielSemantic": "XZIEL_PERK_STAMINUP",
+        "bridgeStatus": "logic_ready"
+      }
     },
     {
       "id": "deadshot_daiquiri",
@@ -78,7 +115,13 @@
       ],
       "wunderfizzEligible": true,
       "effectSpecStatus": "pending",
-      "runtimeStatus": "pending"
+      "runtimeStatus": "pending",
+      "runtimePrimitive": {
+        "available": true,
+        "upstreamSymbol": "P_DEAD",
+        "xzielSemantic": "XZIEL_PERK_DEADSHOT",
+        "bridgeStatus": "logic_ready"
+      }
     },
     {
       "id": "widows_wine",
@@ -88,12 +131,19 @@
       ],
       "wunderfizzEligible": true,
       "effectSpecStatus": "pending",
-      "runtimeStatus": "pending"
+      "runtimeStatus": "pending",
+      "runtimePrimitive": {
+        "available": false,
+        "upstreamSymbol": null,
+        "xzielSemantic": "XZIEL_PERK_WIDOWSWINE",
+        "bridgeStatus": "native_feature_required"
+      }
     }
   ],
   "validation": {
     "expectedPerkCount": 8,
     "expectedWunderfizzPoolCount": 7,
-    "allRuntimeReady": false
+    "allRuntimeReady": false,
+    "expectedReusablePrimitiveCount": 7
   }
 }
