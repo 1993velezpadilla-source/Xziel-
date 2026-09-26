@@ -49,6 +49,7 @@ float(vector where, float semantic_id) XZIEL_SpawnCorePowerup;
 .float xziel_gum_uses_this_round;
 .float xziel_gum_bag_mask;
 .float xziel_gum_held_identity;
+.float xziel_gum_held_uses_remaining;
 .float xziel_gum_slot1;
 .float xziel_gum_slot2;
 .float xziel_gum_slot3;
@@ -363,6 +364,7 @@ float(entity player, float a, float b, float c, float d, float e) XZIEL_GobbleGu
     player.xziel_gum_slot5 = e;
     player.xziel_gum_bag_mask = 0;
     player.xziel_gum_held_identity = 0;
+    player.xziel_gum_held_uses_remaining = 0;
     player.xziel_gum_round = rounds;
     player.xziel_gum_uses_this_round = 0;
     return true;
@@ -436,6 +438,7 @@ float(entity player) XZIEL_GobbleGumRollIdentity =
             player.xziel_gum_bag_mask = player.xziel_gum_bag_mask | mask;
             player.xziel_gum_uses_this_round++;
             player.xziel_gum_held_identity = identity;
+            player.xziel_gum_held_uses_remaining = 0;
             return identity;
         }
         seen++;
@@ -501,6 +504,49 @@ float(entity player, float gum_identity) XZIEL_GobbleGumSpawnMappedPowerup =
     return XZIEL_SpawnCorePowerup(player.origin, semantic_id);
 };
 
+float(entity player) XZIEL_GobbleGumActivateHeldMappedPowerup =
+{
+    if (player == world || player.classname != "player")
+        return false;
+
+    float gum_identity = player.xziel_gum_held_identity;
+    if (!gum_identity)
+        return false;
+
+    float max_uses = XZIEL_GobbleGumMappedActivationCount(gum_identity);
+    if (max_uses <= 0)
+        return false;
+
+    if (player.xziel_gum_held_uses_remaining <= 0)
+        player.xziel_gum_held_uses_remaining = max_uses;
+
+    if (!XZIEL_GobbleGumSpawnMappedPowerup(player, gum_identity))
+        return false;
+
+    player.xziel_gum_held_uses_remaining--;
+
+    if (player.xziel_gum_held_uses_remaining <= 0) {
+        player.xziel_gum_held_uses_remaining = 0;
+        player.xziel_gum_held_identity = 0;
+    }
+
+    return true;
+};
+
+float(entity player) XZIEL_GobbleGumHeldUsesRemaining =
+{
+    if (player == world || player.classname != "player")
+        return 0;
+
+    if (!player.xziel_gum_held_identity)
+        return 0;
+
+    if (player.xziel_gum_held_uses_remaining > 0)
+        return player.xziel_gum_held_uses_remaining;
+
+    return XZIEL_GobbleGumMappedActivationCount(player.xziel_gum_held_identity);
+};
+
 // XZIEL_ZOMBIES_PERK_BRIDGE_END
 '''
 
@@ -539,6 +585,8 @@ required_perk = [
     "XZIEL_GobbleGumMappedPowerupSemantic",
     "XZIEL_GobbleGumMappedActivationCount",
     "XZIEL_GobbleGumSpawnMappedPowerup",
+    "XZIEL_GobbleGumActivateHeldMappedPowerup",
+    "XZIEL_GobbleGumHeldUsesRemaining",
 ]
 for token in required_perk:
     if perk.count(token) < 1:
