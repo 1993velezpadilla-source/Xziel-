@@ -1,0 +1,47 @@
+name: St Giles UV Grid Audit
+
+on:
+  push:
+    branches:
+      - engine/mobile-power-fidelity-v1
+    paths:
+      - ".github/workflows/st-giles-uv-grid-audit.yml"
+      - "tools/church_map/audit_exterior_uv_grid_virtualization.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Recover exact-source XZSM
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/clean
+          RUN_ID="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/sanctum-clean-source.yml/runs?branch=engine/mobile-power-fidelity-v1&status=success&per_page=20" --jq '.workflow_runs[0].id')"
+          ARTIFACT_ID="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/artifacts" --jq '.artifacts[] | select(.name == "Xziel-Sanctum-Clean-Source") | .id' | head -n1)"
+          gh api "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" > build/clean.zip
+          unzip -q build/clean.zip -d build/clean
+          XZSM="$(find build/clean -name sanctum.xzsm -print -quit)"
+          test -s "$XZSM"
+          echo "XZSM=$XZSM" >> "$GITHUB_ENV"
+      - name: Audit shared UV grid options
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/church_map/audit_exterior_uv_grid_virtualization.py             --xzsm "$XZSM"             --source-size 1024             --match Exterior04             --report build/st-giles-uv-grid-audit.json
+          jq . build/st-giles-uv-grid-audit.json
+      - name: Upload UV grid evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xziel-St-Giles-UV-Grid-Audit
+          path: build/st-giles-uv-grid-audit.json
+          retention-days: 14
