@@ -28,6 +28,8 @@ GOBBLEGUM_CATALOG = ROOT / "assets/nacht_reference/bo3_gobblegum_catalog_v1.json
 SYSTEM_PLACEMENTS = ROOT / "assets/nacht_reference/bo3_system_placements_v1.json"
 PERK_CATALOG = ROOT / "assets/nacht_reference/bo3_perk_catalog_v1.json"
 POWERUP_CATALOG = ROOT / "assets/nacht_reference/bo3_powerup_catalog_v1.json"
+WEAPON_ID_REGISTRY = ROOT / "assets/weapons/xziel_weapon_id_registry_v1.json"
+RUNTIME_BOX_POOL = ROOT / "assets/weapons/xziel_mystery_box_runtime_pool_v1.json"
 
 ALLOWED_STATES = {
     "pending",
@@ -82,6 +84,8 @@ def main() -> int:
     system_placements = load(SYSTEM_PLACEMENTS)
     perk_catalog = load(PERK_CATALOG)
     powerup_catalog = load(POWERUP_CATALOG)
+    weapon_id_registry = load(WEAPON_ID_REGISTRY)
+    runtime_box_pool = load(RUNTIME_BOX_POOL)
 
     if contract.get("schemaVersion") != 1:
         fail("schemaVersion must be 1")
@@ -212,11 +216,16 @@ def main() -> int:
             if state not in ALLOWED_STATES:
                 fail(f"{wid}.{lane} has invalid state {state!r}")
 
-        expected_behavior_state = "cataloged" if wid in set(spec_ids) else "pending"
-        if lanes["behavior_spec"] != expected_behavior_state:
+        if wid in set(spec_ids):
+            if lanes["behavior_spec"] not in {"cataloged", "ready"}:
+                fail(
+                    f"{wid}.behavior_spec={lanes['behavior_spec']!r} "
+                    "but a structured BO3 behavior spec exists"
+                )
+        elif lanes["behavior_spec"] != "pending":
             fail(
                 f"{wid}.behavior_spec={lanes['behavior_spec']!r} "
-                f"but expected {expected_behavior_state!r} from structured spec coverage"
+                "but no structured BO3 behavior spec exists"
             )
 
         if weapon.get("mysteryBoxEligible") and lanes["mystery_box"] == "not_applicable":
@@ -240,6 +249,80 @@ def main() -> int:
         fail("Mystery Box pool no longer matches catalog eligibility")
     if len(pool_ids) != len(set(pool_ids)):
         fail("Mystery Box pool contains duplicate weapons")
+
+    registry_entries = weapon_id_registry.get("entries", [])
+    if not isinstance(registry_entries, list):
+        fail("weapon ID registry entries must be a list")
+    registry_ids = [row.get("weaponId") for row in registry_entries]
+    quakec_ids = [row.get("quakecId") for row in registry_entries]
+    mbox_tokens = [row.get("mboxToken") for row in registry_entries]
+    if set(registry_ids) != catalog_set:
+        fail("weapon ID registry must cover the complete weapon catalog")
+    if len(quakec_ids) != len(set(quakec_ids)):
+        fail("weapon ID registry contains duplicate QuakeC IDs")
+    if len(mbox_tokens) != len(set(mbox_tokens)):
+        fail("weapon ID registry contains duplicate Mystery Box tokens")
+    registry_by_id = {row["weaponId"]: row for row in registry_entries}
+    if registry_by_id.get("pistol_burst", {}).get("quakecId") != 70:
+        fail("RK5 stable QuakeC ID must remain pinned to 70")
+    if baseline.get("weaponIdRegistryCount") != len(registry_entries):
+        fail("weaponIdRegistryCount drift")
+
+    if runtime_box_pool.get("candidateCount") != len(pool_ids):
+        fail("runtime Mystery Box candidateCount drift")
+    if baseline.get("mysteryBoxCandidateCount") != len(pool_ids):
+        fail("mysteryBoxCandidateCount baseline drift")
+    capacity = baseline.get("mysteryBoxRuntimeCapacity")
+    if not isinstance(capacity, int) or capacity < len(pool_ids) or capacity != 64:
+        fail(f"invalid Mystery Box runtime capacity: {capacity!r}")
+
+    active_rows = runtime_box_pool.get("active", [])
+    blocked_rows = runtime_box_pool.get("blocked", [])
+    if not isinstance(active_rows, list) or not isinstance(blocked_rows, list):
+        fail("runtime Mystery Box active/blocked rows must be lists")
+    active_ids = [row.get("weaponId") for row in active_rows]
+    blocked_ids = [row.get("weaponId") for row in blocked_rows]
+    if set(active_ids) & set(blocked_ids):
+        fail("runtime Mystery Box weapon cannot be both active and blocked")
+    if set(active_ids) | set(blocked_ids) != set(pool_ids):
+        fail("runtime Mystery Box active+blocked coverage must equal identity pool")
+    if runtime_box_pool.get("activeCount") != len(active_rows):
+        fail("runtime Mystery Box activeCount drift")
+    if runtime_box_pool.get("blockedCount") != len(blocked_rows):
+        fail("runtime Mystery Box blockedCount drift")
+
+    runtime_required_lanes = runtime_box_pool.get("requiredLanes", [])
+    if not isinstance(runtime_required_lanes, list) or not runtime_required_lanes:
+        fail("runtime Mystery Box requiredLanes must be a non-empty list")
+
+    catalog_by_id = {w["weaponId"]: w for w in weapons}
+    expected_active_ids = []
+    for wid in pool_ids:
+        weapon = catalog_by_id[wid]
+        lane_states = tracked[wid]["lanes"]
+        native_ready = weapon.get("nativeBindingStatus") == "ready"
+        lanes_ready = all(
+            lane_states.get(lane) in COMPLETE_STATES
+            for lane in runtime_required_lanes
+        )
+        if native_ready and lanes_ready:
+            expected_active_ids.append(wid)
+
+    if active_ids != expected_active_ids:
+        fail(
+            "runtime Mystery Box active list does not match readiness gates: "
+            f"expected={expected_active_ids} actual={active_ids}"
+        )
+
+    mystery_system = contract.get("requiredSystems", {}).get(
+        "mystery_box_full_pool_and_teddy_flow", {}
+    )
+    if mystery_system.get("runtimeCapacity") != capacity:
+        fail("Mystery Box system runtimeCapacity drift")
+    if mystery_system.get("candidateWeaponIdentities") != len(pool_ids):
+        fail("Mystery Box system candidate count drift")
+    if mystery_system.get("runtimeReadyRewards") != len(active_ids):
+        fail("Mystery Box system active reward count drift")
 
     if baseline.get("runtimePurchases") != len(runtime.get("purchases", [])):
         fail("runtime purchase count drift")
@@ -317,6 +400,8 @@ def main() -> int:
         {
             "weapons": len(weapons),
             "box": len(pool_ids),
+            "runtimeBoxActive": len(active_ids),
+            "weaponIdRegistry": len(registry_entries),
             "weaponLaneStates": states,
             "systemStates": system_states,
             "releaseCandidate": contract["releaseCandidate"],
