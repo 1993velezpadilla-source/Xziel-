@@ -239,6 +239,13 @@ jobs:
         run: |
           python3 tools/maps/validate_nacht_bo3_weapon_specs.py
 
+      - name: Validate global XZIEL weapon catalog
+        shell: bash
+        run: |
+          python3 tools/weapons/export_xziel_mystery_box_pool.py
+          git diff --exit-code -- assets/weapons/xziel_mystery_box_pool_v1.json
+          python3 tools/weapons/validate_xziel_weapon_catalog.py
+
       - name: Validate Nacht runtime overlay
         shell: bash
         run: |
