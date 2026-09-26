@@ -44,7 +44,8 @@
     "reusablePowerupPrimitiveCount": 7,
     "xzielPowerupLogicPrimitiveCount": 8,
     "gobbleGumLoadoutSize": 5,
-    "gobbleGumMaxRollsPerRound": 3
+    "gobbleGumMaxRollsPerRound": 3,
+    "specialWeaponBehaviorSpecCount": 1
   },
   "bo3ChroniclesFeatureReference": {
     "mysteryBox": true,
