@@ -78,6 +78,8 @@ for name in (
     "xz_nacht_reference.c",
     "xz_map_runtime.h",
     "xz_map_runtime.c",
+    "xz_world_transform.h",
+    "xz_world_transform.c",
 ):
     src = modules / name
     if not src.is_file():
