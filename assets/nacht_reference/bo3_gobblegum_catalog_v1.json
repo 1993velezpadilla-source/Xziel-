@@ -268,7 +268,7 @@
         }
       ],
       "runtimePrimitive": {
-        "status": "identity_backend_ready_runtime_pending",
+        "status": "pool_backend_logic_ready_dormant",
         "upgradeResolver": "XZIEL_GetPackAPunchWeaponID",
         "readinessGate": "XZIEL_PackAPunchRuntimeReady",
         "timerRotationInventoryRuntime": "pending",
@@ -276,7 +276,12 @@
         "fullPoolRequired": true,
         "readyPoolCount": 0,
         "requiredPoolCount": 26,
-        "activationAllowed": false
+        "activationAllowed": false,
+        "canActivateFunction": "XZIEL_GobbleGumDisorderlyCanActivate",
+        "poolResolverFunction": "XZIEL_GobbleGumDisorderlyWeaponAtIndex",
+        "baseReadinessFunction": "XZIEL_GobbleGumDisorderlyReadyBaseCount",
+        "papReadinessFunction": "XZIEL_GobbleGumDisorderlyReadyPapCount",
+        "poolReadinessGate": "XZIEL_GobbleGumDisorderlyPoolRuntimeReady"
       }
     },
     {
@@ -852,7 +857,9 @@
     "papTimedEffectLogicReady": 1,
     "papDependentRuntimeLogicReady": 3,
     "disorderlyCombatPoolVerified": true,
-    "disorderlyCombatEligiblePoolCount": 26
+    "disorderlyCombatEligiblePoolCount": 26,
+    "disorderlyCombatPoolBackendLogicReady": true,
+    "disorderlyCombatActivationAllowed": false
   },
   "runtimeCore": {
     "status": "logic_ready",
