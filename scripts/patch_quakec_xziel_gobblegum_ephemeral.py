@@ -188,14 +188,20 @@ void(entity player, float slot) XZIEL_GobbleGumEphemeralRestore =
         // If the temporary weapon fell below base start-ammo total, preserve
         // its remaining amount without exceeding any base magazine capacity.
         if (temporary_total < start_total) {
-            final_mag = jmin(temporary_mag, start_mag);
+            final_mag = temporary_mag;
+            if (final_mag > start_mag)
+                final_mag = start_mag;
+
             float remaining = temporary_total - final_mag;
 
             if (remaining < 0)
                 remaining = 0;
 
             if (IsDualWeapon(base_weapon)) {
-                final_left = jmin(temporary_left, start_left);
+                final_left = temporary_left;
+                if (final_left > start_left)
+                    final_left = start_left;
+
                 remaining -= final_left;
                 if (remaining < 0)
                     remaining = 0;
@@ -203,7 +209,9 @@ void(entity player, float slot) XZIEL_GobbleGumEphemeralRestore =
                 final_left = 0;
             }
 
-            final_reserve = jmin(remaining, start_reserve);
+            final_reserve = remaining;
+            if (final_reserve > start_reserve)
+                final_reserve = start_reserve;
         }
     }
 
