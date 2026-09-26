@@ -58,6 +58,32 @@ int main(void)
     assert(locus->native_enablement_allowed == 0);
     assert(!XzBo3WeaponSpec_IsNativeReady(locus));
 
+    assert(kn44->damage_falloff_verified == 1);
+    assert(kn44->falloff_start_units == 700.0f);
+    assert(kn44->falloff_end_units == 2001.0f);
+    assert(kuda->falloff_start_units == 400.0f);
+    assert(kuda->falloff_end_units == 2001.0f);
+    assert(rk5->falloff_start_units == 200.0f);
+    assert(rk5->falloff_end_units == 751.0f);
+    assert(pharo->falloff_start_units == 400.0f);
+    assert(pharo->falloff_end_units == 1501.0f);
+    assert(sheiva->falloff_start_units == 750.0f);
+    assert(sheiva->falloff_end_units == 2001.0f);
+    assert(locus->falloff_start_units == 4000.0f);
+    assert(locus->falloff_end_units == 5000.0f);
+
+    assert(argus->damage_falloff_verified == 0);
+    assert(krm->damage_falloff_verified == 0);
+    assert(XzBo3WeaponSpec_DamageAtDistanceUnits(argus, 300.0f) == 0.0f);
+    assert(XzBo3WeaponSpec_DamageAtDistanceUnits(krm, 200.0f) == 0.0f);
+
+    assert(fabsf(XzBo3WeaponSpec_DamageAtDistanceUnits(kn44, 0.0f) - 120.0f) < 0.0001f);
+    assert(fabsf(XzBo3WeaponSpec_DamageAtDistanceUnits(kn44, 700.0f) - 120.0f) < 0.0001f);
+    assert(fabsf(XzBo3WeaponSpec_DamageAtDistanceUnits(kn44, 1350.5f) - 95.0f) < 0.0001f);
+    assert(fabsf(XzBo3WeaponSpec_DamageAtDistanceUnits(kn44, 2001.0f) - 70.0f) < 0.0001f);
+    assert(fabsf(XzBo3WeaponSpec_DamageAtDistanceUnits(rk5, 475.5f) - 62.5f) < 0.0001f);
+    assert(fabsf(XzBo3WeaponSpec_DamageAtDistanceUnits(locus, 99999.0f) - 500.0f) < 0.0001f);
+
     for (size_t i = 0u; i < XzBo3WeaponSpec_Count(); ++i) {
         const XzBo3WeaponSpec *spec = XzBo3WeaponSpec_Get(i);
         assert(spec != 0);

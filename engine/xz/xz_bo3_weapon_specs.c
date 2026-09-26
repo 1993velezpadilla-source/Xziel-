@@ -19,7 +19,9 @@ static const XzBo3WeaponSpec kWeaponSpecs[XZ_BO3_WEAPON_SPEC_COUNT] = {
         .damage_min = 70.0f,
         .projectiles_per_shot = 1u,
         .head_multiplier = 4.0f,
-        .damage_falloff_verified = 0,
+        .falloff_start_units = 700.0f,
+        .falloff_end_units = 2001.0f,
+        .damage_falloff_verified = 1,
         .native_enablement_allowed = 0,
         .magazine = 30u,
         .reserve = 210u,
@@ -41,6 +43,8 @@ static const XzBo3WeaponSpec kWeaponSpecs[XZ_BO3_WEAPON_SPEC_COUNT] = {
         .damage_min = 500.0f,
         .projectiles_per_shot = 1u,
         .head_multiplier = 0.0f,
+        .falloff_start_units = 300.0f,
+        .falloff_end_units = 700.0f,
         .damage_falloff_verified = 0,
         .native_enablement_allowed = 0,
         .magazine = 10u,
@@ -63,6 +67,8 @@ static const XzBo3WeaponSpec kWeaponSpecs[XZ_BO3_WEAPON_SPEC_COUNT] = {
         .damage_min = 15.0f,
         .projectiles_per_shot = 4u,
         .head_multiplier = 0.0f,
+        .falloff_start_units = 200.0f,
+        .falloff_end_units = 600.0f,
         .damage_falloff_verified = 0,
         .native_enablement_allowed = 0,
         .magazine = 8u,
@@ -85,7 +91,9 @@ static const XzBo3WeaponSpec kWeaponSpecs[XZ_BO3_WEAPON_SPEC_COUNT] = {
         .damage_min = 60.0f,
         .projectiles_per_shot = 1u,
         .head_multiplier = 4.0f,
-        .damage_falloff_verified = 0,
+        .falloff_start_units = 400.0f,
+        .falloff_end_units = 2001.0f,
+        .damage_falloff_verified = 1,
         .native_enablement_allowed = 0,
         .magazine = 30u,
         .reserve = 210u,
@@ -107,6 +115,8 @@ static const XzBo3WeaponSpec kWeaponSpecs[XZ_BO3_WEAPON_SPEC_COUNT] = {
         .damage_min = 500.0f,
         .projectiles_per_shot = 1u,
         .head_multiplier = 0.0f,
+        .falloff_start_units = 4000.0f,
+        .falloff_end_units = 5000.0f,
         .damage_falloff_verified = 1,
         .native_enablement_allowed = 0,
         .magazine = 10u,
@@ -129,7 +139,9 @@ static const XzBo3WeaponSpec kWeaponSpecs[XZ_BO3_WEAPON_SPEC_COUNT] = {
         .damage_min = 60.0f,
         .projectiles_per_shot = 1u,
         .head_multiplier = 0.0f,
-        .damage_falloff_verified = 0,
+        .falloff_start_units = 400.0f,
+        .falloff_end_units = 1501.0f,
+        .damage_falloff_verified = 1,
         .native_enablement_allowed = 0,
         .magazine = 40u,
         .reserve = 160u,
@@ -151,7 +163,9 @@ static const XzBo3WeaponSpec kWeaponSpecs[XZ_BO3_WEAPON_SPEC_COUNT] = {
         .damage_min = 80.0f,
         .projectiles_per_shot = 1u,
         .head_multiplier = 3.0f,
-        .damage_falloff_verified = 0,
+        .falloff_start_units = 750.0f,
+        .falloff_end_units = 2001.0f,
+        .damage_falloff_verified = 1,
         .native_enablement_allowed = 0,
         .magazine = 10u,
         .reserve = 100u,
@@ -173,7 +187,9 @@ static const XzBo3WeaponSpec kWeaponSpecs[XZ_BO3_WEAPON_SPEC_COUNT] = {
         .damage_min = 25.0f,
         .projectiles_per_shot = 1u,
         .head_multiplier = 0.0f,
-        .damage_falloff_verified = 0,
+        .falloff_start_units = 200.0f,
+        .falloff_end_units = 751.0f,
+        .damage_falloff_verified = 1,
         .native_enablement_allowed = 0,
         .magazine = 15u,
         .reserve = 120u,
@@ -275,6 +291,39 @@ float XzBo3WeaponSpec_BurstTailSeconds(
     return tail > 0.0f ? tail : 0.0f;
 }
 
+float XzBo3WeaponSpec_DamageAtDistanceUnits(
+    const XzBo3WeaponSpec *spec,
+    float distance_units)
+{
+    float t;
+
+    if (!spec ||
+        !spec->damage_falloff_verified ||
+        !isfinite(distance_units) ||
+        distance_units < 0.0f)
+        return 0.0f;
+
+    if (spec->damage_max == spec->damage_min)
+        return spec->damage_max;
+
+    if (!isfinite(spec->falloff_start_units) ||
+        !isfinite(spec->falloff_end_units) ||
+        spec->falloff_start_units < 0.0f ||
+        spec->falloff_end_units <= spec->falloff_start_units)
+        return 0.0f;
+
+    if (distance_units <= spec->falloff_start_units)
+        return spec->damage_max;
+    if (distance_units >= spec->falloff_end_units)
+        return spec->damage_min;
+
+    t = (distance_units - spec->falloff_start_units) /
+        (spec->falloff_end_units - spec->falloff_start_units);
+
+    return spec->damage_max +
+        ((spec->damage_min - spec->damage_max) * t);
+}
+
 int XzBo3WeaponSpec_IsNativeReady(
     const XzBo3WeaponSpec *spec)
 {
@@ -313,6 +362,11 @@ int XzBo3WeaponSpec_SelfTest(void)
             spec->damage_max <= 0.0f ||
             spec->damage_min <= 0.0f ||
             spec->projectiles_per_shot == 0u)
+            return 0;
+
+        if (spec->damage_falloff_verified &&
+            (spec->falloff_start_units < 0.0f ||
+             spec->falloff_end_units <= spec->falloff_start_units))
             return 0;
     }
 
@@ -372,6 +426,20 @@ int XzBo3WeaponSpec_SelfTest(void)
     if (fabsf(
             XzBo3WeaponSpec_BurstTailSeconds(pharo) -
             0.166169f) > 0.0002f)
+        return 0;
+
+    if (fabsf(
+            XzBo3WeaponSpec_DamageAtDistanceUnits(rk5, 200.0f) -
+            100.0f) > 0.0001f)
+        return 0;
+
+    if (fabsf(
+            XzBo3WeaponSpec_DamageAtDistanceUnits(rk5, 751.0f) -
+            25.0f) > 0.0001f)
+        return 0;
+
+    if (XzBo3WeaponSpec_DamageAtDistanceUnits(argus, 300.0f) != 0.0f ||
+        XzBo3WeaponSpec_DamageAtDistanceUnits(krm, 200.0f) != 0.0f)
         return 0;
 
     return 1;

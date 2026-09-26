@@ -91,10 +91,39 @@ def main() -> int:
         if not damage.get("model"):
             fail(f"missing damage model for {logical_id}")
         falloff = spec.get("damageFalloff", {})
-        if falloff.get("status") != "pending_verified_zombies_distance_curve":
-            fail(f"unexpected falloff readiness for {logical_id}: {falloff}")
-        if falloff.get("implementationAllowed") is not False:
-            fail(f"native falloff implementation must remain blocked for {logical_id}")
+        if falloff.get("sourceWeaponfile") != f"{logical_id}_zm":
+            fail(f"wrong Zombies weaponfile identity for {logical_id}: {falloff}")
+        if falloff.get("source") != "https://github.com/luqmaan/cod-charts/blob/ca12bc436332e4f8518facfd84d1e1b81d0415a0/src/data/raw_weapons.csv":
+            fail(f"unexpected Zombies range source for {logical_id}")
+        if not isinstance(falloff.get("maxDamageRangeUnits"), (int, float)):
+            fail(f"missing maxDamageRangeUnits for {logical_id}")
+        if not isinstance(falloff.get("minDamageRangeUnits"), (int, float)):
+            fail(f"missing minDamageRangeUnits for {logical_id}")
+        if falloff["minDamageRangeUnits"] <= falloff["maxDamageRangeUnits"]:
+            fail(f"invalid damage range order for {logical_id}")
+
+        simple_falloff_ids = {
+            "ar_standard",
+            "smg_standard",
+            "sniper_fastbolt",
+            "smg_burst",
+            "ar_marksman",
+            "pistol_burst",
+        }
+        if logical_id in simple_falloff_ids:
+            if falloff.get("implementationAllowed") is not True:
+                fail(f"verified simple falloff must be implementable for {logical_id}")
+            if falloff.get("curve") not in {"linear", "flat"}:
+                fail(f"unexpected simple falloff curve for {logical_id}: {falloff}")
+        else:
+            if falloff.get("status") != "verified_zombies_ranges_multishot_model_pending":
+                fail(f"shotgun multishot model must remain pending for {logical_id}")
+            if falloff.get("implementationAllowed") is not False:
+                fail(f"shotgun falloff must remain blocked for {logical_id}")
+            if not isinstance(falloff.get("multishotBaseDamage"), list):
+                fail(f"missing multishotBaseDamage for {logical_id}")
+            if not isinstance(falloff.get("multishotBaseDamageRangeUnits"), list):
+                fail(f"missing multishotBaseDamageRangeUnits for {logical_id}")
         numeric_damage = [
             damage.get("base"),
             damage.get("max"),
@@ -159,8 +188,10 @@ def main() -> int:
     if expected.get("behaviorSpecReadyWeaponCount") != 8:
         fail("all eight behavior specs must be ready")
 
-    if expected.get("damageFalloffReadyWeaponCount") != 0:
-        fail("no BO3 firearm may claim a verified Zombies falloff curve yet")
+    if expected.get("damageFalloffReadyWeaponCount") != 6:
+        fail("six non-multishot BO3 firearm falloff models must be ready")
+    if expected.get("damageFalloffRangeDataVerifiedCount") != 8:
+        fail("all eight BO3 firearm range datasets must be verified")
     if expected.get("nativeEnablementAllowed") is not False:
         fail("native wall-buy enablement must remain blocked")
 
@@ -169,6 +200,8 @@ def main() -> int:
         "blockedPurchasesMatched": len(blocked),
         "directAmmoRefillCosts": direct_refills,
         "derivedAmmoRefillCosts": derived_refills,
+        "damageFalloffReadyWeapons": 6,
+        "damageFalloffRangeDataVerified": 8,
         "nativeReadyWeapons": 0,
         "status": "PASS",
     }

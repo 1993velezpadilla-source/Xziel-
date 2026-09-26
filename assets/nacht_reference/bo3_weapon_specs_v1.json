@@ -5,7 +5,8 @@
   "notes": [
     "Gameplay facts only. This file contains no Treyarch/Pavlov models, textures, audio, animation data, or extracted code.",
     "A behavior spec is not a native-ready weapon. XZIEL must still implement firing, reload, recoil, presentation, replication, and original/licensed assets.",
-    "Where an ammo refill cost is not independently cited, it is explicitly marked as derived_half_wall_cost_policy instead of presented as directly verified."
+    "Where an ammo refill cost is not independently cited, it is explicitly marked as derived_half_wall_cost_policy instead of presented as directly verified.",
+    "BO3 Zombies (_zm) weaponfile range endpoints are tracked separately from MP/CP data; stock XZIEL enablement stays gated until the required damage model is implemented."
   ],
   "assetPolicy": {
     "rawProprietaryAssetsAllowed": false,
@@ -43,7 +44,9 @@
       },
       "sourceAuthority": {
         "behavior": "https://callofduty.fandom.com/wiki/KN-44",
-        "wallPlacementAndCost": "assets/nacht_reference/runtime_reference_v1.json"
+        "wallPlacementAndCost": "assets/nacht_reference/runtime_reference_v1.json",
+        "zombiesWeaponfileDump": "https://github.com/luqmaan/cod-charts/blob/ca12bc436332e4f8518facfd84d1e1b81d0415a0/src/data/raw_weapons.csv",
+        "damageRangeSemanticsReference": "https://github.com/SwagSoftware/KisakCOD/blob/b3199b90f416c62265eef87e643f59dadbc29838/src/game/bullet.cpp"
       },
       "readiness": {
         "behaviorSpec": "ready",
@@ -52,9 +55,16 @@
         "audio": "pending"
       },
       "damageFalloff": {
-        "status": "pending_verified_zombies_distance_curve",
-        "implementationAllowed": false,
-        "note": "Generic Range fields are not accepted as Zombies falloff thresholds without ZM-specific evidence."
+        "status": "verified_zombies_weaponfile_linear_range",
+        "implementationAllowed": true,
+        "curve": "linear",
+        "maxDamageRangeUnits": 700,
+        "minDamageRangeUnits": 2001,
+        "unitsPerMeter": 39.3700787402,
+        "sourceWeaponfile": "ar_standard_zm",
+        "source": "https://github.com/luqmaan/cod-charts/blob/ca12bc436332e4f8518facfd84d1e1b81d0415a0/src/data/raw_weapons.csv",
+        "semanticsAuthority": "https://github.com/SwagSoftware/KisakCOD/blob/b3199b90f416c62265eef87e643f59dadbc29838/src/game/bullet.cpp",
+        "semanticsNote": "BO3 Zombies weaponfile endpoints are direct behavior data. Linear interpolation semantics is corroborated by the open IW-engine lineage implementation; no Treyarch engine code is copied."
       }
     },
     {
@@ -83,7 +93,9 @@
       },
       "sourceAuthority": {
         "behavior": "https://callofduty.fandom.com/wiki/Argus",
-        "wallPlacementAndCost": "assets/nacht_reference/runtime_reference_v1.json"
+        "wallPlacementAndCost": "assets/nacht_reference/runtime_reference_v1.json",
+        "zombiesWeaponfileDump": "https://github.com/luqmaan/cod-charts/blob/ca12bc436332e4f8518facfd84d1e1b81d0415a0/src/data/raw_weapons.csv",
+        "damageRangeSemanticsReference": "https://github.com/SwagSoftware/KisakCOD/blob/b3199b90f416c62265eef87e643f59dadbc29838/src/game/bullet.cpp"
       },
       "readiness": {
         "behaviorSpec": "ready",
@@ -92,9 +104,33 @@
         "audio": "pending"
       },
       "damageFalloff": {
-        "status": "pending_verified_zombies_distance_curve",
+        "status": "verified_zombies_ranges_multishot_model_pending",
         "implementationAllowed": false,
-        "note": "Generic Range fields are not accepted as Zombies falloff thresholds without ZM-specific evidence."
+        "curve": "multishot_pending",
+        "maxDamageRangeUnits": 300,
+        "minDamageRangeUnits": 700,
+        "unitsPerMeter": 39.3700787402,
+        "sourceWeaponfile": "shotgun_precision_zm",
+        "source": "https://github.com/luqmaan/cod-charts/blob/ca12bc436332e4f8518facfd84d1e1b81d0415a0/src/data/raw_weapons.csv",
+        "semanticsAuthority": "https://github.com/SwagSoftware/KisakCOD/blob/b3199b90f416c62265eef87e643f59dadbc29838/src/game/bullet.cpp",
+        "semanticsNote": "BO3 Zombies weaponfile endpoints are direct behavior data. Linear interpolation semantics is corroborated by the open IW-engine lineage implementation; no Treyarch engine code is copied.",
+        "multishotBaseDamage": [
+          50,
+          0,
+          0,
+          0,
+          50,
+          50
+        ],
+        "multishotBaseDamageRangeUnits": [
+          300,
+          0,
+          0,
+          0,
+          699,
+          700
+        ],
+        "note": "Range endpoints are verified, but native implementation remains blocked until BO3 multishot-base-damage semantics are modeled exactly."
       }
     },
     {
@@ -120,7 +156,9 @@
       },
       "sourceAuthority": {
         "behavior": "https://callofduty.fandom.com/wiki/KRM-262",
-        "wallPlacementAndCost": "assets/nacht_reference/runtime_reference_v1.json"
+        "wallPlacementAndCost": "assets/nacht_reference/runtime_reference_v1.json",
+        "zombiesWeaponfileDump": "https://github.com/luqmaan/cod-charts/blob/ca12bc436332e4f8518facfd84d1e1b81d0415a0/src/data/raw_weapons.csv",
+        "damageRangeSemanticsReference": "https://github.com/SwagSoftware/KisakCOD/blob/b3199b90f416c62265eef87e643f59dadbc29838/src/game/bullet.cpp"
       },
       "readiness": {
         "behaviorSpec": "ready",
@@ -129,9 +167,33 @@
         "audio": "pending"
       },
       "damageFalloff": {
-        "status": "pending_verified_zombies_distance_curve",
+        "status": "verified_zombies_ranges_multishot_model_pending",
         "implementationAllowed": false,
-        "note": "Generic Range fields are not accepted as Zombies falloff thresholds without ZM-specific evidence."
+        "curve": "multishot_pending",
+        "maxDamageRangeUnits": 200,
+        "minDamageRangeUnits": 600,
+        "unitsPerMeter": 39.3700787402,
+        "sourceWeaponfile": "shotgun_pump_zm",
+        "source": "https://github.com/luqmaan/cod-charts/blob/ca12bc436332e4f8518facfd84d1e1b81d0415a0/src/data/raw_weapons.csv",
+        "semanticsAuthority": "https://github.com/SwagSoftware/KisakCOD/blob/b3199b90f416c62265eef87e643f59dadbc29838/src/game/bullet.cpp",
+        "semanticsNote": "BO3 Zombies weaponfile endpoints are direct behavior data. Linear interpolation semantics is corroborated by the open IW-engine lineage implementation; no Treyarch engine code is copied.",
+        "multishotBaseDamage": [
+          98,
+          84,
+          50,
+          0,
+          50,
+          50
+        ],
+        "multishotBaseDamageRangeUnits": [
+          250,
+          400,
+          401,
+          0,
+          599,
+          600
+        ],
+        "note": "Range endpoints are verified, but native implementation remains blocked until BO3 multishot-base-damage semantics are modeled exactly."
       }
     },
     {
@@ -164,7 +226,9 @@
       },
       "sourceAuthority": {
         "behavior": "https://callofduty.fandom.com/wiki/Kuda",
-        "wallPlacementAndCost": "assets/nacht_reference/runtime_reference_v1.json"
+        "wallPlacementAndCost": "assets/nacht_reference/runtime_reference_v1.json",
+        "zombiesWeaponfileDump": "https://github.com/luqmaan/cod-charts/blob/ca12bc436332e4f8518facfd84d1e1b81d0415a0/src/data/raw_weapons.csv",
+        "damageRangeSemanticsReference": "https://github.com/SwagSoftware/KisakCOD/blob/b3199b90f416c62265eef87e643f59dadbc29838/src/game/bullet.cpp"
       },
       "readiness": {
         "behaviorSpec": "ready",
@@ -173,9 +237,16 @@
         "audio": "pending"
       },
       "damageFalloff": {
-        "status": "pending_verified_zombies_distance_curve",
-        "implementationAllowed": false,
-        "note": "Generic Range fields are not accepted as Zombies falloff thresholds without ZM-specific evidence."
+        "status": "verified_zombies_weaponfile_linear_range",
+        "implementationAllowed": true,
+        "curve": "linear",
+        "maxDamageRangeUnits": 400,
+        "minDamageRangeUnits": 2001,
+        "unitsPerMeter": 39.3700787402,
+        "sourceWeaponfile": "smg_standard_zm",
+        "source": "https://github.com/luqmaan/cod-charts/blob/ca12bc436332e4f8518facfd84d1e1b81d0415a0/src/data/raw_weapons.csv",
+        "semanticsAuthority": "https://github.com/SwagSoftware/KisakCOD/blob/b3199b90f416c62265eef87e643f59dadbc29838/src/game/bullet.cpp",
+        "semanticsNote": "BO3 Zombies weaponfile endpoints are direct behavior data. Linear interpolation semantics is corroborated by the open IW-engine lineage implementation; no Treyarch engine code is copied."
       }
     },
     {
@@ -199,7 +270,9 @@
       },
       "sourceAuthority": {
         "behaviorAndNachtAmmoCost": "https://callofduty.fandom.com/wiki/Locus",
-        "wallPlacementAndCost": "assets/nacht_reference/runtime_reference_v1.json"
+        "wallPlacementAndCost": "assets/nacht_reference/runtime_reference_v1.json",
+        "zombiesWeaponfileDump": "https://github.com/luqmaan/cod-charts/blob/ca12bc436332e4f8518facfd84d1e1b81d0415a0/src/data/raw_weapons.csv",
+        "damageRangeSemanticsReference": "https://github.com/SwagSoftware/KisakCOD/blob/b3199b90f416c62265eef87e643f59dadbc29838/src/game/bullet.cpp"
       },
       "readiness": {
         "behaviorSpec": "ready",
@@ -208,9 +281,16 @@
         "audio": "pending"
       },
       "damageFalloff": {
-        "status": "pending_verified_zombies_distance_curve",
-        "implementationAllowed": false,
-        "note": "Generic Range fields are not accepted as Zombies falloff thresholds without ZM-specific evidence."
+        "status": "verified_zombies_weaponfile_flat_damage",
+        "implementationAllowed": true,
+        "curve": "flat",
+        "maxDamageRangeUnits": 4000,
+        "minDamageRangeUnits": 5000,
+        "unitsPerMeter": 39.3700787402,
+        "sourceWeaponfile": "sniper_fastbolt_zm",
+        "source": "https://github.com/luqmaan/cod-charts/blob/ca12bc436332e4f8518facfd84d1e1b81d0415a0/src/data/raw_weapons.csv",
+        "semanticsAuthority": "https://github.com/SwagSoftware/KisakCOD/blob/b3199b90f416c62265eef87e643f59dadbc29838/src/game/bullet.cpp",
+        "semanticsNote": "BO3 Zombies weaponfile endpoints are direct behavior data. Linear interpolation semantics is corroborated by the open IW-engine lineage implementation; no Treyarch engine code is copied."
       }
     },
     {
@@ -242,7 +322,9 @@
       },
       "sourceAuthority": {
         "behavior": "https://callofduty.fandom.com/wiki/Pharo",
-        "wallPlacementAndCost": "assets/nacht_reference/runtime_reference_v1.json"
+        "wallPlacementAndCost": "assets/nacht_reference/runtime_reference_v1.json",
+        "zombiesWeaponfileDump": "https://github.com/luqmaan/cod-charts/blob/ca12bc436332e4f8518facfd84d1e1b81d0415a0/src/data/raw_weapons.csv",
+        "damageRangeSemanticsReference": "https://github.com/SwagSoftware/KisakCOD/blob/b3199b90f416c62265eef87e643f59dadbc29838/src/game/bullet.cpp"
       },
       "readiness": {
         "behaviorSpec": "ready",
@@ -251,9 +333,16 @@
         "audio": "pending"
       },
       "damageFalloff": {
-        "status": "pending_verified_zombies_distance_curve",
-        "implementationAllowed": false,
-        "note": "Generic Range fields are not accepted as Zombies falloff thresholds without ZM-specific evidence."
+        "status": "verified_zombies_weaponfile_linear_range",
+        "implementationAllowed": true,
+        "curve": "linear",
+        "maxDamageRangeUnits": 400,
+        "minDamageRangeUnits": 1501,
+        "unitsPerMeter": 39.3700787402,
+        "sourceWeaponfile": "smg_burst_zm",
+        "source": "https://github.com/luqmaan/cod-charts/blob/ca12bc436332e4f8518facfd84d1e1b81d0415a0/src/data/raw_weapons.csv",
+        "semanticsAuthority": "https://github.com/SwagSoftware/KisakCOD/blob/b3199b90f416c62265eef87e643f59dadbc29838/src/game/bullet.cpp",
+        "semanticsNote": "BO3 Zombies weaponfile endpoints are direct behavior data. Linear interpolation semantics is corroborated by the open IW-engine lineage implementation; no Treyarch engine code is copied."
       }
     },
     {
@@ -283,7 +372,9 @@
         "behavior": "https://callofduty.fandom.com/wiki/Sheiva",
         "multiplier": "https://callofduty.fandom.com/wiki/Upgraded_Weapons/Black_Ops_III",
         "directAmmoCost": "https://nazizombies.fandom.com/wiki/Der_Eisendrache",
-        "wallPlacementAndCost": "assets/nacht_reference/runtime_reference_v1.json"
+        "wallPlacementAndCost": "assets/nacht_reference/runtime_reference_v1.json",
+        "zombiesWeaponfileDump": "https://github.com/luqmaan/cod-charts/blob/ca12bc436332e4f8518facfd84d1e1b81d0415a0/src/data/raw_weapons.csv",
+        "damageRangeSemanticsReference": "https://github.com/SwagSoftware/KisakCOD/blob/b3199b90f416c62265eef87e643f59dadbc29838/src/game/bullet.cpp"
       },
       "readiness": {
         "behaviorSpec": "ready",
@@ -292,9 +383,16 @@
         "audio": "pending"
       },
       "damageFalloff": {
-        "status": "pending_verified_zombies_distance_curve",
-        "implementationAllowed": false,
-        "note": "Generic Range fields are not accepted as Zombies falloff thresholds without ZM-specific evidence."
+        "status": "verified_zombies_weaponfile_linear_range",
+        "implementationAllowed": true,
+        "curve": "linear",
+        "maxDamageRangeUnits": 750,
+        "minDamageRangeUnits": 2001,
+        "unitsPerMeter": 39.3700787402,
+        "sourceWeaponfile": "ar_marksman_zm",
+        "source": "https://github.com/luqmaan/cod-charts/blob/ca12bc436332e4f8518facfd84d1e1b81d0415a0/src/data/raw_weapons.csv",
+        "semanticsAuthority": "https://github.com/SwagSoftware/KisakCOD/blob/b3199b90f416c62265eef87e643f59dadbc29838/src/game/bullet.cpp",
+        "semanticsNote": "BO3 Zombies weaponfile endpoints are direct behavior data. Linear interpolation semantics is corroborated by the open IW-engine lineage implementation; no Treyarch engine code is copied."
       }
     },
     {
@@ -326,7 +424,9 @@
       "sourceAuthority": {
         "behavior": "https://callofduty.fandom.com/wiki/RK5",
         "directAmmoCost": "https://nazizombies.fandom.com/wiki/Der_Eisendrache",
-        "wallPlacementAndCost": "assets/nacht_reference/runtime_reference_v1.json"
+        "wallPlacementAndCost": "assets/nacht_reference/runtime_reference_v1.json",
+        "zombiesWeaponfileDump": "https://github.com/luqmaan/cod-charts/blob/ca12bc436332e4f8518facfd84d1e1b81d0415a0/src/data/raw_weapons.csv",
+        "damageRangeSemanticsReference": "https://github.com/SwagSoftware/KisakCOD/blob/b3199b90f416c62265eef87e643f59dadbc29838/src/game/bullet.cpp"
       },
       "readiness": {
         "behaviorSpec": "ready",
@@ -335,9 +435,16 @@
         "audio": "pending"
       },
       "damageFalloff": {
-        "status": "pending_verified_zombies_distance_curve",
-        "implementationAllowed": false,
-        "note": "Generic Range fields are not accepted as Zombies falloff thresholds without ZM-specific evidence."
+        "status": "verified_zombies_weaponfile_linear_range",
+        "implementationAllowed": true,
+        "curve": "linear",
+        "maxDamageRangeUnits": 200,
+        "minDamageRangeUnits": 751,
+        "unitsPerMeter": 39.3700787402,
+        "sourceWeaponfile": "pistol_burst_zm",
+        "source": "https://github.com/luqmaan/cod-charts/blob/ca12bc436332e4f8518facfd84d1e1b81d0415a0/src/data/raw_weapons.csv",
+        "semanticsAuthority": "https://github.com/SwagSoftware/KisakCOD/blob/b3199b90f416c62265eef87e643f59dadbc29838/src/game/bullet.cpp",
+        "semanticsNote": "BO3 Zombies weaponfile endpoints are direct behavior data. Linear interpolation semantics is corroborated by the open IW-engine lineage implementation; no Treyarch engine code is copied."
       }
     }
   ],
@@ -355,7 +462,8 @@
     ],
     "nativeReadyWeaponCount": 0,
     "behaviorSpecReadyWeaponCount": 8,
-    "damageFalloffReadyWeaponCount": 0,
-    "nativeEnablementAllowed": false
+    "damageFalloffReadyWeaponCount": 6,
+    "nativeEnablementAllowed": false,
+    "damageFalloffRangeDataVerifiedCount": 8
   }
 }
