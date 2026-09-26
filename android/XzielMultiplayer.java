@@ -781,6 +781,17 @@ public final class XzielMultiplayer {
                 scheduleCiEvidenceScenario();
                 return;
             }
+
+            if ("ci_action".equals(type) && ciEvidenceMode) {
+                int remoteSlot = message.optInt("slot", 0);
+                String action = message.optString("action", "");
+                if (remoteSlot >= 1 && remoteSlot <= MAX_PLAYERS &&
+                    remoteSlot != localSlot && !action.isEmpty()) {
+                    Log.i(TAG, "CI_REMOTE_ACTION observer=" + localSlot +
+                        " remote=" + remoteSlot + " action=" + action);
+                }
+                return;
+            }
         } catch (Exception ignored) {
         }
     }
@@ -926,6 +937,123 @@ public final class XzielMultiplayer {
                 toast("Connected to match");
                 if (ciEvidenceMode) sendCiReady();
             }
+        }
+    }
+
+    private void sendCiReady() {
+        if (!ciEvidenceMode || ciReadySent) return;
+        WebSocket socket = gameSocket;
+        if (socket == null || localSlot < 1) return;
+
+        ciReadySent = true;
+        JSONObject ready = new JSONObject();
+        try {
+            ready.put("type", "ci_ready");
+            socket.send(ready.toString());
+            Log.i(TAG, "CI_READY slot=" + localSlot);
+        } catch (Exception e) {
+            ciReadySent = false;
+        }
+    }
+
+    private void ciCommand(long delayMs, String marker, String command) {
+        activity.getWindow().getDecorView().postDelayed(() -> {
+            if (!ciEvidenceMode || !isOnlineActive()) return;
+
+            if (command != null && !command.isEmpty()) {
+                queueNativeCommand(command);
+            }
+
+            if (marker != null && !marker.isEmpty()) {
+                Log.i(TAG, marker + " slot=" + localSlot);
+                JSONObject action = new JSONObject();
+                try {
+                    action.put("type", "ci_action");
+                    action.put("action", marker);
+                    WebSocket socket = gameSocket;
+                    if (socket != null) socket.send(action.toString());
+                } catch (Exception ignored) {}
+            }
+        }, delayMs);
+    }
+
+    private void scheduleCiEvidenceScenario() {
+        if (localSlot == 1) {
+            ciCommand(250, "CI_P1_SPRINT_AWAY",
+                "cl_yawspeed 180\nimpulse 23\n+forward\n");
+            ciCommand(1450, "CI_P1_TURN_BACK",
+                "-forward\nimpulse 24\n+left\n");
+            ciCommand(2500, "CI_CAMERA_READY", "-left\n");
+            activity.getWindow().getDecorView().postDelayed(() -> {
+                if (ciEvidenceMode) voiceChat.sendCiTestTone();
+            }, 2850);
+            ciCommand(5200, "CI_SCENARIO_DONE", "");
+        } else if (localSlot == 2) {
+            ciCommand(700, "CI_P2_WALK_START", "+forward\n");
+            ciCommand(1250, "CI_P2_WALK_STOP", "-forward\n");
+            ciCommand(2700, "CI_P2_AIM_START", "+aim\n");
+            activity.getWindow().getDecorView().postDelayed(() -> {
+                if (ciEvidenceMode) voiceChat.sendCiTestTone();
+            }, 3150);
+            ciCommand(4000, "CI_P2_AIM_STOP", "-aim\n");
+            ciCommand(5200, "CI_SCENARIO_DONE", "");
+        } else if (localSlot == 3) {
+            ciCommand(700, "CI_P3_SPRINT_START", "impulse 23\n+forward\n");
+            ciCommand(1450, "CI_P3_SPRINT_STOP", "-forward\nimpulse 24\n");
+            activity.getWindow().getDecorView().postDelayed(() -> {
+                if (ciEvidenceMode) voiceChat.sendCiTestTone();
+            }, 3350);
+            ciCommand(5200, "CI_SCENARIO_DONE", "");
+        } else if (localSlot == 4) {
+            ciCommand(1200, "CI_P4_AIM_START", "+aim\n");
+            ciCommand(2850, "CI_P4_FIRE_START", "+attack\n");
+            activity.getWindow().getDecorView().postDelayed(() -> {
+                if (ciEvidenceMode) voiceChat.sendCiTestTone();
+            }, 3550);
+            ciCommand(3550, "CI_P4_FIRE_STOP", "-attack\n");
+            ciCommand(4300, "CI_P4_AIM_STOP", "-aim\n");
+            ciCommand(5200, "CI_SCENARIO_DONE", "");
+        }
+    }
+
+    public void onCiRemoteEntity(int slot, float x, float y, float z,
+                                 int frame, float yaw) {
+        if (!ciEvidenceMode || slot < 1 || slot > MAX_PLAYERS ||
+            slot == localSlot) {
+            return;
+        }
+
+        if (!ciRemoteSeen[slot]) {
+            ciRemoteSeen[slot] = true;
+            ciRemoteX[slot] = x;
+            ciRemoteY[slot] = y;
+            ciRemoteZ[slot] = z;
+            ciRemoteFrame[slot] = frame;
+            Log.i(TAG, "CI_REMOTE_SEEN observer=" + localSlot +
+                " remote=" + slot + " frame=" + frame +
+                " pos=" + x + "," + y + "," + z + " yaw=" + yaw);
+            return;
+        }
+
+        float dx = x - ciRemoteX[slot];
+        float dy = y - ciRemoteY[slot];
+        float dz = z - ciRemoteZ[slot];
+        float moved = (float)Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+        if (moved >= 3.0f) {
+            Log.i(TAG, "CI_REMOTE_MOVE observer=" + localSlot +
+                " remote=" + slot + " delta=" + moved +
+                " pos=" + x + "," + y + "," + z);
+            ciRemoteX[slot] = x;
+            ciRemoteY[slot] = y;
+            ciRemoteZ[slot] = z;
+        }
+
+        if (frame != ciRemoteFrame[slot]) {
+            Log.i(TAG, "CI_REMOTE_FRAME observer=" + localSlot +
+                " remote=" + slot + " from=" + ciRemoteFrame[slot] +
+                " to=" + frame + " yaw=" + yaw);
+            ciRemoteFrame[slot] = frame;
         }
     }
 
