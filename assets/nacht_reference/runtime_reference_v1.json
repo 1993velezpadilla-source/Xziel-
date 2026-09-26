@@ -544,5 +544,43 @@
       "riser": false,
       "linkedBarricadeIndex": 0
     }
+  ],
+  "playerSpawns": [
+    {
+      "id": "player_spawn_pavlov_spawn_1",
+      "source": "pavlov_port_spatial_reference",
+      "positionMeters": [
+        -0.10019207954406738,
+        11.94,
+        1.0938642883300782
+      ]
+    },
+    {
+      "id": "player_spawn_pavlov_spawn2",
+      "source": "pavlov_port_spatial_reference",
+      "positionMeters": [
+        -0.11,
+        10.51,
+        0.9621702575683594
+      ]
+    },
+    {
+      "id": "player_spawn_pavlov_spawn3",
+      "source": "pavlov_port_spatial_reference",
+      "positionMeters": [
+        -0.11,
+        8.83,
+        0.9728014373779297
+      ]
+    },
+    {
+      "id": "player_spawn_pavlov_spawn4",
+      "source": "pavlov_port_spatial_reference",
+      "positionMeters": [
+        0.33532253265380857,
+        -7.530911865234375,
+        1.0938642883300782
+      ]
+    }
   ]
 }
