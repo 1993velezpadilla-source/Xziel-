@@ -130,6 +130,7 @@ jobs:
           test "$BOOTED" = "1"
 
           "$ADB" install -r apk/Xziel-NZP-native-universal-debug.apk
+          "$ADB" shell pm grant com.xziel.nzp android.permission.RECORD_AUDIO || true
           "$ADB" shell settings put secure immersive_mode_confirmations confirmed || true
           "$ADB" logcat -c
 
@@ -156,13 +157,18 @@ jobs:
           for i in $(seq 1 120); do
             "$ADB" logcat -d -v brief > "evidence/logcat-${{ matrix.runner }}.txt" || true
 
-            if grep -q "XzielOnline.*SIGNON_COMPLETE" "evidence/logcat-${{ matrix.runner }}.txt"; then
+            VOICE_OPEN=0
+            if grep -q "XzielVoice.*VOICE_OPEN" "evidence/logcat-${{ matrix.runner }}.txt"; then
+              VOICE_OPEN=1
+            fi
+
+            if grep -q "XzielOnline.*SIGNON_COMPLETE" "evidence/logcat-${{ matrix.runner }}.txt" && [[ "$VOICE_OPEN" = "1" ]]; then
               SUCCESS=1
               break
             fi
 
             READY_COUNT="$(grep -c "XzielOnline.*CLIENT_READY host=1" "evidence/logcat-${{ matrix.runner }}.txt" || true)"
-            if [[ "$READY_COUNT" -ge 3 ]]; then
+            if [[ "$READY_COUNT" -ge 3 && "$VOICE_OPEN" = "1" ]]; then
               SUCCESS=1
               break
             fi
@@ -175,7 +181,7 @@ jobs:
           {
             echo "runner=${{ matrix.runner }}"
             echo "queue=$QUEUE"
-            grep -E "XzielOnline.*(WELCOME|PLAYER_JOINED|HOST_PREPARE|HOST_SERVER_READY|SERVER_READY|CONNECT_START|CONNECT_RETRY|SIGNON_COMPLETE|CLIENT_READY)" \
+            grep -E "(XzielOnline.*(WELCOME|PLAYER_JOINED|HOST_PREPARE|HOST_SERVER_READY|SERVER_READY|CONNECT_START|CONNECT_RETRY|SIGNON_COMPLETE|CLIENT_READY)|XzielVoice.*(VOICE_OPEN|CAPTURE_STARTED|PLAYER_MUTE))" \
               "evidence/logcat-${{ matrix.runner }}.txt" || true
           } > "evidence/online-summary-${{ matrix.runner }}.txt"
 
