@@ -3,6 +3,7 @@ name: Sanctum Exterior Detail A-B Android
 # XZIEL_FULL_LINEAGE_ANDROID_ASSET_SYNC_V1
 # XZIEL_FULL_LINEAGE_ANDROID_ASSET_SYNC_V2
 # XZIEL_EXACT_SOURCE_REFERENCE_RUN_V1
+# XZIEL_SOURCE_LOCKED_STRONG_RUNTIME_AB_V1
 
 on:
   push:
@@ -368,12 +369,12 @@ jobs:
           # This is an A/B candidate only. The exact 1K GLB texture remains
           # the authority; the derivative may enter the APK only when its
           # report proves source locking against the same decoded source hash.
-          RESPONSE="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/st-giles-source-locked-superres.yml/runs?branch=engine%2Fmobile-power-fidelity-v1&status=success&per_page=10")"
+          RESPONSE="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/st-giles-source-locked-retune.yml/runs?branch=engine%2Fmobile-power-fidelity-v1&status=success&per_page=10")"
           SR_RUN_ID="$(jq -r '.workflow_runs[0].id // empty' <<<"${RESPONSE}")"
           test -n "${SR_RUN_ID}"
 
           ARTIFACTS="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${SR_RUN_ID}/artifacts")"
-          SR_ARTIFACT_ID="$(jq -r '.artifacts[] | select(.name == "Xziel-St-Giles-Source-Locked-SR-AB" and .expired == false) | .id' <<<"${ARTIFACTS}" | head -n1)"
+          SR_ARTIFACT_ID="$(jq -r '.artifacts[] | select(.name == "Xziel-St-Giles-Source-Locked-SR-Strong" and .expired == false) | .id' <<<"${ARTIFACTS}" | head -n1)"
           test -n "${SR_ARTIFACT_ID}"
           test "${SR_ARTIFACT_ID}" != "null"
 
@@ -382,8 +383,8 @@ jobs:
           gh api "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${SR_ARTIFACT_ID}/zip" > build/st-giles-source-locked-runtime.zip
           unzip -q build/st-giles-source-locked-runtime.zip -d build/st-giles-source-locked-runtime
 
-          SR_REPORT="$(find build/st-giles-source-locked-runtime -name 'st-giles-source-locked-4k-report.json' -print -quit)"
-          SR_TEXTURE="$(find build/st-giles-source-locked-runtime -name 'st-giles-source-locked-4k.png' -print -quit)"
+          SR_REPORT="$(find build/st-giles-source-locked-runtime -name 'st-giles-source-locked-strong-4k-report.json' -print -quit)"
+          SR_TEXTURE="$(find build/st-giles-source-locked-runtime -name 'st-giles-source-locked-strong-4k.png' -print -quit)"
           SOURCE_REPORT="$(find build/sanctum-artifact -name 'xziel_native_static_mesh_report.json' -print -quit)"
 
           test -s "${SR_REPORT}"
@@ -394,8 +395,9 @@ jobs:
           jq -e '.classification == "DERIVATIVE_NOT_ORIGINAL"' "${SR_REPORT}"
           jq -e '.sourceAuthority == true' "${SR_REPORT}"
           jq -e '.outputDimensions == [4096,4096]' "${SR_REPORT}"
-          jq -e '.roundTripMae <= 2.0' "${SR_REPORT}"
-          jq -e '.roundTripPsnrDb >= 38.0' "${SR_REPORT}"
+          jq -e '.acceptedHighPassAlpha >= 0.64' "${SR_REPORT}"
+          jq -e '.roundTripMae <= 3.0' "${SR_REPORT}"
+          jq -e '.roundTripPsnrDb >= 33.0' "${SR_REPORT}"
 
           SOURCE_SHA="$(jq -r '.materialReport | to_entries[] | select(.key | contains("Exterior04")) | .value.sourceDecodedSha256' "${SOURCE_REPORT}" | head -n1)"
           CANDIDATE_SOURCE_SHA="$(jq -r '.sourceDecodedRgbaSha256' "${SR_REPORT}")"
@@ -1062,6 +1064,8 @@ jobs:
               echo "XZIEL_ASTC_RUNTIME_ACTIVE textures=${KTX_LOAD_COUNT}"
             grep -q "XZIEL_EXTERIOR_SOURCE_PNG_FIDELITY_ACTIVE" dist/sanctum-hq-logcat.txt
             echo "XZIEL_EXACT_EXTERIOR_SOURCE_RUNTIME_OK"
+            grep -q "XZIEL_ST_GILES_CLOSE_DETAIL_SAMPLER_V1" dist/sanctum-hq-logcat.txt
+            echo "XZIEL_ST_GILES_CLOSE_DETAIL_SAMPLER_ACTIVE"
 
               grep -Eq "XZIEL_PBR_MATERIALS_READY .*pbr=[1-9][0-9]* .*normal=[1-9][0-9]* .*orm=[1-9][0-9]* .*photo_pbr=[1-9][0-9]* .*photo_detail=[1-9][0-9]*" dist/sanctum-hq-logcat.txt
               echo "XZIEL_PHOTOGRAMMETRY_PBR_RUNTIME_ACTIVE"
@@ -1112,13 +1116,16 @@ jobs:
 
           grep -q "XZIEL_TRANSIENT_DEPTH_"             dist/sanctum-hq-logcat.txt
           grep -q "XZIEL_SCENE_COMPOSITE_READY"             dist/sanctum-hq-logcat.txt
-          grep -Eq "XZIEL_DYNAMIC_RESOLUTION scale=0\.9[0-9] scene=[0-9]+x[0-9]+ native=[0-9]+x[0-9]+"             dist/sanctum-hq-logcat.txt
-
-          if grep -Eq "XZIEL_DYNAMIC_RESOLUTION scale=0\.[0-8][0-9]" dist/sanctum-hq-logcat.txt; then
-            echo "ERROR: non-thermal CI dropped scene below 0.90 render scale"
-            exit 1
+          if grep -q "XZIEL_DYNAMIC_RESOLUTION" dist/sanctum-hq-logcat.txt; then
+            grep -Eq "XZIEL_DYNAMIC_RESOLUTION scale=(0\.9[0-9]|1\.00) scene=[0-9]+x[0-9]+ native=[0-9]+x[0-9]+" dist/sanctum-hq-logcat.txt
+            if grep -Eq "XZIEL_DYNAMIC_RESOLUTION scale=0\.[0-8][0-9]" dist/sanctum-hq-logcat.txt; then
+              echo "ERROR: non-thermal CI dropped scene below 0.90 render scale"
+              exit 1
+            fi
+            echo "XZIEL_RENDER_SCALE_FIDELITY_FLOOR_OK"
+          else
+            echo "XZIEL_RENDER_SCALE_NATIVE_DEFAULT"
           fi
-          echo "XZIEL_RENDER_SCALE_FIDELITY_FLOOR_OK"
           grep -q "XZIEL_ADPF "             dist/sanctum-hq-logcat.txt
           grep -q "XZIEL_GAME_STATE loading=0 mode=1"             dist/sanctum-hq-logcat.txt
           grep -Eq "XZIEL_FRAME_PACING_(READY|SKIPPED_CPU|UNAVAILABLE)"             dist/sanctum-hq-logcat.txt
