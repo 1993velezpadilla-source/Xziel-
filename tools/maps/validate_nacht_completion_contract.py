@@ -235,7 +235,7 @@ def main() -> int:
             "source": ("scripts/zm/bgbs/_zm_bgb_crate_power.gsc", "b3683e2da10edf0dcb208eb10e353172f37e8fcf"),
         },
         "ephemeral_enhancement": {
-            "status": "identity_backend_ready_runtime_pending",
+            "status": "logic_ready_dormant",
             "source": ("scripts/zm/bgbs/_zm_bgb_ephemeral_enhancement.gsc", "d9dd26127ac48e7b39ec0705b05faf14e8a42999"),
         },
         "disorderly_combat": {
@@ -261,6 +261,25 @@ def main() -> int:
                 fail(f"{gum_id} readiness gate drift")
             if primitive.get("exposedUpgradeCount") != 0:
                 fail(f"{gum_id} must expose zero PaP rewards while runtime-ready count is zero")
+        if gum_id == "ephemeral_enhancement":
+            if primitive.get("canActivateFunction") != "XZIEL_GobbleGumEphemeralCanActivate":
+                fail("Ephemeral Enhancement activation validator drift")
+            if primitive.get("activationFunction") != "XZIEL_GobbleGumActivateEphemeralEnhancement":
+                fail("Ephemeral Enhancement activation function drift")
+            if primitive.get("tickFunction") != "XZIEL_GobbleGumEphemeralTick":
+                fail("Ephemeral Enhancement tick function drift")
+            if primitive.get("restoreFunction") != "XZIEL_GobbleGumEphemeralRestore":
+                fail("Ephemeral Enhancement restore function drift")
+            if primitive.get("readinessGate") != "XZIEL_PackAPunchRuntimeReady":
+                fail("Ephemeral Enhancement readiness gate drift")
+            if primitive.get("durationSeconds") != 60:
+                fail("Ephemeral Enhancement duration drift")
+            if primitive.get("downedExpiry") != "defer restore until revive":
+                fail("Ephemeral Enhancement downed-expiry semantics drift")
+            if primitive.get("replacedWeapon") != "clear effect without recreating original":
+                fail("Ephemeral Enhancement replaced-weapon semantics drift")
+            if primitive.get("exposedUpgradeCount") != 0:
+                fail("Ephemeral Enhancement must expose zero upgrades while PaP runtime-ready count is zero")
         sources = row.get("sourceAuthority", [])
         if not any(
             src.get("path") == expected["source"][0]
@@ -274,6 +293,10 @@ def main() -> int:
         fail("PaP-dependent GobbleGum verified spec count drift")
     if gum_validation.get("papEventPlumbingLogicReady") != 2:
         fail("Wall/Crate Power event plumbing count drift")
+    if gum_validation.get("papTimedEffectLogicReady") != 1:
+        fail("Ephemeral Enhancement timed PaP backend count drift")
+    if gum_validation.get("papDependentRuntimeLogicReady") != 3:
+        fail("PaP-dependent GobbleGum runtime logic-ready count drift")
     if gum_validation.get("papRuntimeRewardsExposed") != 0:
         fail("PaP GobbleGums must expose zero runtime rewards while PaP variants are pending")
 
