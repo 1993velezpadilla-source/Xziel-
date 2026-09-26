@@ -59,5 +59,21 @@ int main(void)
 
     assert(fabsf(XzBo3WeaponSpec_SecondsPerShot(kn44) - 0.096f) < 0.0001f);
 
+    assert(fabsf(
+        XzBo3WeaponSpec_BurstCycleSeconds(rk5) -
+        (3.0f * 60.0f / 775.0f)) < 0.0001f);
+    assert(fabsf(
+        XzBo3WeaponSpec_BurstTailSeconds(rk5) -
+        0.100245f) < 0.0002f);
+
+    assert(fabsf(
+        XzBo3WeaponSpec_BurstCycleSeconds(pharo) -
+        (4.0f * 60.0f / 659.0f)) < 0.0001f);
+    assert(fabsf(
+        XzBo3WeaponSpec_BurstTailSeconds(pharo) -
+        0.166169f) < 0.0002f);
+
+    assert(XzBo3WeaponSpec_BurstTailSeconds(kn44) == 0.0f);
+
     return 0;
 }
