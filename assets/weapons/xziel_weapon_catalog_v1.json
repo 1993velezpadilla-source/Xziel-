@@ -46,7 +46,7 @@
         "isLimited": false,
         "limit": null,
         "class": "rifle",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -71,7 +71,7 @@
         "isLimited": false,
         "limit": null,
         "class": "rifle",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -96,7 +96,7 @@
         "isLimited": false,
         "limit": null,
         "class": "rifle",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -153,7 +153,7 @@
         "isLimited": false,
         "limit": null,
         "class": "rifle",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -178,7 +178,7 @@
         "isLimited": false,
         "limit": null,
         "class": "rifle",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -203,7 +203,7 @@
         "isLimited": false,
         "limit": null,
         "class": "rifle",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -228,7 +228,7 @@
         "isLimited": false,
         "limit": null,
         "class": "rifle",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -253,7 +253,7 @@
         "isLimited": false,
         "limit": null,
         "class": "rifle",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -275,10 +275,10 @@
         "upgradeId": null,
         "inBox": false,
         "upgradeInBox": false,
-        "isLimited": false,
+        "isLimited": null,
         "limit": null,
         "class": "special",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": false
       }
     },
@@ -303,7 +303,7 @@
         "isLimited": false,
         "limit": null,
         "class": "grenade",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -328,7 +328,7 @@
         "isLimited": false,
         "limit": null,
         "class": "grenade",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -353,7 +353,7 @@
         "isLimited": false,
         "limit": null,
         "class": "grenade",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -400,10 +400,10 @@
         "upgradeId": null,
         "inBox": false,
         "upgradeInBox": false,
-        "isLimited": false,
+        "isLimited": null,
         "limit": null,
         "class": "special",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": false
       }
     },
@@ -428,7 +428,7 @@
         "isLimited": false,
         "limit": null,
         "class": "special",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -453,7 +453,7 @@
         "isLimited": false,
         "limit": null,
         "class": "lmg",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -478,7 +478,7 @@
         "isLimited": false,
         "limit": null,
         "class": "lmg",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -503,7 +503,7 @@
         "isLimited": false,
         "limit": null,
         "class": "lmg",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -528,7 +528,7 @@
         "isLimited": false,
         "limit": null,
         "class": "lmg",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -553,7 +553,7 @@
         "isLimited": false,
         "limit": null,
         "class": "lmg",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -578,7 +578,7 @@
         "isLimited": false,
         "limit": null,
         "class": "pistol",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       },
       "nativeBindingNotes": [
@@ -624,7 +624,7 @@
         "isLimited": false,
         "limit": null,
         "class": "pistol",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -649,7 +649,7 @@
         "isLimited": true,
         "limit": 0,
         "class": "pistol",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": false
       }
     },
@@ -690,7 +690,7 @@
         "isLimited": true,
         "limit": 0,
         "class": "pistol",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": false
       }
     },
@@ -781,7 +781,7 @@
         "isLimited": false,
         "limit": null,
         "class": "shotgun",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -806,7 +806,7 @@
         "isLimited": false,
         "limit": null,
         "class": "shotgun",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -831,7 +831,7 @@
         "isLimited": false,
         "limit": null,
         "class": "shotgun",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -856,7 +856,7 @@
         "isLimited": false,
         "limit": null,
         "class": "shotgun",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -881,7 +881,7 @@
         "isLimited": false,
         "limit": null,
         "class": "smg",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -906,7 +906,7 @@
         "isLimited": false,
         "limit": null,
         "class": "smg",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -931,7 +931,7 @@
         "isLimited": false,
         "limit": null,
         "class": "smg",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -956,7 +956,7 @@
         "isLimited": false,
         "limit": null,
         "class": "smg",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -1013,7 +1013,7 @@
         "isLimited": false,
         "limit": null,
         "class": "smg",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -1038,7 +1038,7 @@
         "isLimited": false,
         "limit": null,
         "class": "smg",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -1063,7 +1063,7 @@
         "isLimited": false,
         "limit": null,
         "class": "smg",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -1088,7 +1088,7 @@
         "isLimited": false,
         "limit": null,
         "class": "smg",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -1129,7 +1129,7 @@
         "isLimited": false,
         "limit": null,
         "class": "sniper",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
@@ -1170,7 +1170,7 @@
         "isLimited": false,
         "limit": null,
         "class": "sniper",
-        "isWonderWeapon": false,
+        "isWonderWeapon": null,
         "wallBuyAutospawn": true
       }
     },
