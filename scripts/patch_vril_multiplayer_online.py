@@ -377,6 +377,9 @@ text = cl_main.read_text(encoding="utf-8")
 cl_include = '#include "nzportable_def.h"\n'
 cl_voice_decl = """#ifdef __ANDROID__
 extern void Xziel_Android_VoiceUpdatePosition(float x, float y, float z);
+extern void Xziel_Android_CiRemoteEntity(int slot, float x, float y, float z,
+    int frame, float yaw);
+static double xziel_ci_avatar_next;
 #endif
 """
 if "Xziel_Android_VoiceUpdatePosition" not in text:
@@ -400,6 +403,25 @@ cl_update_repl = """	CL_RelinkEntities ();
 			voice_listener->origin[0],
 			voice_listener->origin[1],
 			voice_listener->origin[2]);
+	}
+
+	if (Sys_FloatTime() >= xziel_ci_avatar_next) {
+		int xziel_slot;
+		xziel_ci_avatar_next = Sys_FloatTime() + 0.20;
+		for (xziel_slot = 1;
+			 xziel_slot <= cl.maxclients && xziel_slot <= 4;
+			 ++xziel_slot) {
+			entity_t *avatar;
+			if (xziel_slot == cl.viewentity)
+				continue;
+			if (!cl.scores || !cl.scores[xziel_slot - 1].name[0])
+				continue;
+			avatar = &cl_entities[xziel_slot];
+			Xziel_Android_CiRemoteEntity(
+				xziel_slot,
+				avatar->origin[0], avatar->origin[1], avatar->origin[2],
+				avatar->frame, avatar->angles[YAW]);
+		}
 	}
 #endif
 
