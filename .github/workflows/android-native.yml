@@ -29,7 +29,10 @@ on:
       - "README.md"
 
 concurrency:
-  group: xziel-android-${{ github.ref }}
+  # Keep stale runs of the same workflow from wasting runners, but do not let
+  # the PR build, Cloudflare deploy build and 4-player integration build cancel
+  # each other merely because they share the same branch.
+  group: xziel-android-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
