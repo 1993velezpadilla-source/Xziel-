@@ -69,9 +69,9 @@
   "readiness": {
     "identity": "ready",
     "behaviorSpec": "verified",
-    "stateTimerRuntime": "partial",
+    "stateTimerRuntime": "logic_ready",
     "interactionRestrictions": "partial",
-    "damageFormula": "verified",
+    "damageFormula": "logic_ready",
     "firingRuntime": "pending",
     "model": "pending",
     "audio": "pending",
@@ -99,14 +99,18 @@
     ],
     "powerupPickupSafeToEnable": false,
     "sourceParityGaps": [
-      "active pickup refresh-to-30 behavior",
-      "player_downed immediate cleanup",
       "timer-expiry weapon restoration",
       "weapon-change-away removal without forced restore",
       "Temporal Gift +30 behavior",
-      "damage formula hook",
       "actual minigun weapon assignment/presentation"
-    ]
+    ],
+    "damageHook": {
+      "status": "logic_ready_dormant_until_weapon_binding",
+      "quakecFunction": "XZIEL_DeathMachineAdjustDamage",
+      "formula": "baseDamage + victimCurrentHealth * (0.34 + random() * 0.41)"
+    },
+    "refreshTo30Seconds": true,
+    "downCleanup": true
   },
   "refreshBehavior": "If already active and remaining time is below 30 seconds, reset remaining time to 30 seconds.",
   "temporalGiftBehavior": "Generic BO3 weapon_powerup countdown adds 30 seconds when Temporal Gift is team-enabled.",
