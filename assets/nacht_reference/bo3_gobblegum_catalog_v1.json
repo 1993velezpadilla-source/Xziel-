@@ -132,10 +132,20 @@
       "id": "cache_back",
       "displayName": "Cache Back",
       "identityStatus": "verified",
-      "effectSpecStatus": "pending",
+      "effectSpecStatus": "verified",
       "runtimeStatus": "pending",
       "androidStatus": "pending",
-      "regressionTestStatus": "pending"
+      "regressionTestStatus": "pending",
+      "effectSpec": {
+        "type": "spawn_max_ammo",
+        "activations": 1
+      },
+      "runtimePrimitive": {
+        "status": "logic_ready",
+        "quakecFunction": "XZIEL_GobbleGumSpawnMappedPowerup",
+        "powerupSemantic": "XZIEL_PU_MAXAMMO",
+        "activationCountFunction": "XZIEL_GobbleGumMappedActivationCount"
+      }
     },
     {
       "index": 13,
@@ -182,10 +192,20 @@
       "id": "dead_of_nuclear_winter",
       "displayName": "Dead of Nuclear Winter",
       "identityStatus": "verified",
-      "effectSpecStatus": "pending",
+      "effectSpecStatus": "verified",
       "runtimeStatus": "pending",
       "androidStatus": "pending",
-      "regressionTestStatus": "pending"
+      "regressionTestStatus": "pending",
+      "effectSpec": {
+        "type": "spawn_nuke",
+        "activations": 2
+      },
+      "runtimePrimitive": {
+        "status": "logic_ready",
+        "quakecFunction": "XZIEL_GobbleGumSpawnMappedPowerup",
+        "powerupSemantic": "XZIEL_PU_NUKE",
+        "activationCountFunction": "XZIEL_GobbleGumMappedActivationCount"
+      }
     },
     {
       "index": 18,
@@ -332,10 +352,20 @@
       "id": "kill_joy",
       "displayName": "Kill Joy",
       "identityStatus": "verified",
-      "effectSpecStatus": "pending",
+      "effectSpecStatus": "verified",
       "runtimeStatus": "pending",
       "androidStatus": "pending",
-      "regressionTestStatus": "pending"
+      "regressionTestStatus": "pending",
+      "effectSpec": {
+        "type": "spawn_insta_kill",
+        "activations": 2
+      },
+      "runtimePrimitive": {
+        "status": "logic_ready",
+        "quakecFunction": "XZIEL_GobbleGumSpawnMappedPowerup",
+        "powerupSemantic": "XZIEL_PU_INSTAKILL",
+        "activationCountFunction": "XZIEL_GobbleGumMappedActivationCount"
+      }
     },
     {
       "index": 33,
@@ -352,10 +382,20 @@
       "id": "licensed_contractor",
       "displayName": "Licensed Contractor",
       "identityStatus": "verified",
-      "effectSpecStatus": "pending",
+      "effectSpecStatus": "verified",
       "runtimeStatus": "pending",
       "androidStatus": "pending",
-      "regressionTestStatus": "pending"
+      "regressionTestStatus": "pending",
+      "effectSpec": {
+        "type": "spawn_carpenter",
+        "activations": 3
+      },
+      "runtimePrimitive": {
+        "status": "logic_ready",
+        "quakecFunction": "XZIEL_GobbleGumSpawnMappedPowerup",
+        "powerupSemantic": "XZIEL_PU_CARPENTER",
+        "activationCountFunction": "XZIEL_GobbleGumMappedActivationCount"
+      }
     },
     {
       "index": 35,
@@ -412,10 +452,20 @@
       "id": "on_the_house",
       "displayName": "On the House",
       "identityStatus": "verified",
-      "effectSpecStatus": "pending",
+      "effectSpecStatus": "verified",
       "runtimeStatus": "pending",
       "androidStatus": "pending",
-      "regressionTestStatus": "pending"
+      "regressionTestStatus": "pending",
+      "effectSpec": {
+        "type": "spawn_random_perk",
+        "activations": 1
+      },
+      "runtimePrimitive": {
+        "status": "logic_ready",
+        "quakecFunction": "XZIEL_GobbleGumSpawnMappedPowerup",
+        "powerupSemantic": "XZIEL_PU_RANDOMPERK",
+        "activationCountFunction": "XZIEL_GobbleGumMappedActivationCount"
+      }
     },
     {
       "index": 41,
@@ -642,16 +692,28 @@
       "id": "whos_keeping_score",
       "displayName": "Who's Keeping Score?",
       "identityStatus": "verified",
-      "effectSpecStatus": "pending",
+      "effectSpecStatus": "verified",
       "runtimeStatus": "pending",
       "androidStatus": "pending",
-      "regressionTestStatus": "pending"
+      "regressionTestStatus": "pending",
+      "effectSpec": {
+        "type": "spawn_double_points",
+        "activations": 2
+      },
+      "runtimePrimitive": {
+        "status": "logic_ready",
+        "quakecFunction": "XZIEL_GobbleGumSpawnMappedPowerup",
+        "powerupSemantic": "XZIEL_PU_DOUBLEPOINTS",
+        "activationCountFunction": "XZIEL_GobbleGumMappedActivationCount"
+      }
     }
   ],
   "validation": {
     "expectedIdentityCount": 63,
     "allRuntimeReady": false,
-    "runtimeCoreReady": true
+    "runtimeCoreReady": true,
+    "effectSpecsVerified": 6,
+    "effectPrimitivesLogicReady": 6
   },
   "runtimeCore": {
     "status": "logic_ready",
