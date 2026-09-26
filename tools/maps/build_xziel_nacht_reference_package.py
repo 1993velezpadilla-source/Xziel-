@@ -319,6 +319,68 @@ def main() -> int:
             "replicationPolicy": "server_authoritative",
         })
 
+    # Portable runtime contract.  Placement/purchase identity is complete for
+    # all nine slots even when the current NZ:P weapon VM does not yet expose
+    # a matching BO3 firearm implementation.  Never silently substitute a
+    # different gun: unsupported weapons remain explicit integration blockers.
+    nzp_native_weapon_symbols = {
+        "frag_grenade": "W_GRENADE",
+    }
+    runtime_purchases: list[dict[str, Any]] = []
+    for purchase in purchases:
+        props = purchase["properties"]
+        logical_weapon_id = props["bo3WeaponId"]
+        native_symbol = nzp_native_weapon_symbols.get(logical_weapon_id)
+        is_grenade = logical_weapon_id == "frag_grenade"
+        runtime_purchases.append({
+            "id": purchase["id"],
+            "name": purchase["name"],
+            "purchaseType": purchase["type"],
+            "transform": purchase["transform"],
+            "interaction": {
+                "radiusMeters": float(props["interactionRadiusCm"]) / 100.0,
+                "serverAuthoritative": True,
+            },
+            "economy": {
+                "purchaseCost": props["price"],
+                "ammoRefillCost": (
+                    props["price"] if is_grenade else None
+                ),
+                "ammoRefillCostStatus": (
+                    "native_grenade_refill_cost"
+                    if is_grenade
+                    else "awaiting_bo3_weapon_definition"
+                ),
+            },
+            "weapon": {
+                "logicalWeaponId": logical_weapon_id,
+                "pavlovWeaponId": props["pavlovWeaponId"],
+                "nativeWeaponSymbol": native_symbol,
+                "adapterStatus": (
+                    "native_ready"
+                    if native_symbol
+                    else "awaiting_native_weapon_definition"
+                ),
+            },
+            "nzpAdapter": {
+                "triggerClass": "buy_weapon",
+                "visualClass": (
+                    "weapon_wall"
+                    if purchase["type"] != "weapon_cabinet"
+                    else None
+                ),
+                "costField": "cost2" if is_grenade else "cost",
+                "chalkSequence": 25 if is_grenade else None,
+                "requiresNativeWeaponDefinition": native_symbol is None,
+                "note": (
+                    "Grenades map directly to NZ:P W_GRENADE. "
+                    "BO3 firearms intentionally remain unmapped until their "
+                    "native XZIEL/QuakeC weapon definitions exist."
+                ),
+            },
+            "source": purchase["source"],
+        })
+
     # ------------------------------------------------------------------
     # Doors and utility actors.
     # ------------------------------------------------------------------
@@ -542,6 +604,7 @@ def main() -> int:
         "environment": "environment.json",
         "collision": "collision.json",
         "profiles": "profiles.json",
+        "purchaseRuntime": "purchase_runtime.json",
         "defaultProfile": "bo3_chronicles",
         "referenceOnly": True,
     }
@@ -634,6 +697,15 @@ def main() -> int:
             "houndSpawnsPavlovExtension": len(hound_spawns),
             "playerSpawnCandidates": len(player_spawns),
             "purchaseSlots": len(purchases),
+            "runtimePurchaseContracts": len(runtime_purchases),
+            "nativeRuntimePurchasesReady": sum(
+                1 for row in runtime_purchases
+                if row["weapon"]["adapterStatus"] == "native_ready"
+            ),
+            "runtimePurchasesAwaitingWeaponDefinitions": sum(
+                1 for row in runtime_purchases
+                if row["weapon"]["adapterStatus"] == "awaiting_native_weapon_definition"
+            ),
             "doors": len(doors),
             "utilityEntities": len(utility_entities),
             "environmentActors": len(environment),
@@ -657,6 +729,11 @@ def main() -> int:
         "environment.json": {"schemaVersion": 1, "actors": environment},
         "collision.json": {"schemaVersion": 1, "actors": collision},
         "profiles.json": {"schemaVersion": 1, "profiles": profiles},
+        "purchase_runtime.json": {
+            "schemaVersion": 1,
+            "adapter": "xziel_nzp_purchase_bridge",
+            "purchases": runtime_purchases,
+        },
         "preflight.json": preflight,
     }
 
