@@ -1,0 +1,319 @@
+{
+  "schemaVersion": 1,
+  "contractId": "bo3_nacht_wall_weapons_v1",
+  "scope": "clean_room_behavior_reference_only",
+  "notes": [
+    "Gameplay facts only. This file contains no Treyarch/Pavlov models, textures, audio, animation data, or extracted code.",
+    "A behavior spec is not a native-ready weapon. XZIEL must still implement firing, reload, recoil, presentation, replication, and original/licensed assets.",
+    "Where an ammo refill cost is not independently cited, it is explicitly marked as derived_half_wall_cost_policy instead of presented as directly verified."
+  ],
+  "assetPolicy": {
+    "rawProprietaryAssetsAllowed": false,
+    "visualAssets": "original_or_licensed_replacements_only",
+    "audioAssets": "original_or_licensed_replacements_only"
+  },
+  "weapons": [
+    {
+      "specId": "bo3_kn44_v1",
+      "displayName": "KN-44",
+      "logicalItemId": "ar_standard",
+      "wallCost": 1400,
+      "fire": {
+        "mode": "automatic",
+        "rateRpm": 625
+      },
+      "damage": {
+        "model": "hitscan_range",
+        "max": 120,
+        "min": 70,
+        "headMultiplier": 4,
+        "chestMultiplier": 1,
+        "abdomenMultiplier": 1
+      },
+      "ammo": {
+        "magazine": 30,
+        "reserve": 210,
+        "reloadSeconds": {
+          "loaded": 2.03,
+          "empty": 2.8,
+          "fast": 1.4
+        },
+        "wallRefillCost": 700,
+        "wallRefillCostAuthority": "derived_half_wall_cost_policy"
+      },
+      "sourceAuthority": {
+        "behavior": "https://callofduty.fandom.com/wiki/KN-44",
+        "wallPlacementAndCost": "assets/nacht_reference/runtime_reference_v1.json"
+      },
+      "readiness": {
+        "behaviorSpec": "ready",
+        "nativeImplementation": "pending",
+        "art": "pending",
+        "audio": "pending"
+      }
+    },
+    {
+      "specId": "bo3_argus_v1",
+      "displayName": "Argus",
+      "logicalItemId": "shotgun_precision",
+      "wallCost": 1100,
+      "fire": {
+        "mode": "lever_action",
+        "rateRpm": 63
+      },
+      "damage": {
+        "model": "single_slug_range",
+        "max": 800,
+        "min": 500,
+        "projectilesPerShot": 1
+      },
+      "ammo": {
+        "magazine": 10,
+        "reserve": 60,
+        "wallRefillCost": 550,
+        "wallRefillCostAuthority": "derived_half_wall_cost_policy"
+      },
+      "zombiesBehavior": {
+        "singleSlugInsteadOfBuckshot": true
+      },
+      "sourceAuthority": {
+        "behavior": "https://callofduty.fandom.com/wiki/Argus",
+        "wallPlacementAndCost": "assets/nacht_reference/runtime_reference_v1.json"
+      },
+      "readiness": {
+        "behaviorSpec": "ready",
+        "nativeImplementation": "pending",
+        "art": "pending",
+        "audio": "pending"
+      }
+    },
+    {
+      "specId": "bo3_krm262_v1",
+      "displayName": "KRM-262",
+      "logicalItemId": "shotgun_pump",
+      "wallCost": 750,
+      "fire": {
+        "mode": "pump_action",
+        "rateRpm": 60
+      },
+      "damage": {
+        "model": "pellet_range",
+        "max": 225,
+        "min": 15,
+        "projectilesPerShot": 4
+      },
+      "ammo": {
+        "magazine": 8,
+        "reserve": 48,
+        "wallRefillCost": 375,
+        "wallRefillCostAuthority": "derived_half_wall_cost_policy"
+      },
+      "sourceAuthority": {
+        "behavior": "https://callofduty.fandom.com/wiki/KRM-262",
+        "wallPlacementAndCost": "assets/nacht_reference/runtime_reference_v1.json"
+      },
+      "readiness": {
+        "behaviorSpec": "ready",
+        "nativeImplementation": "pending",
+        "art": "pending",
+        "audio": "pending"
+      }
+    },
+    {
+      "specId": "bo3_kuda_v1",
+      "displayName": "Kuda",
+      "logicalItemId": "smg_standard",
+      "wallCost": 1250,
+      "fire": {
+        "mode": "automatic",
+        "rateRpm": 722
+      },
+      "damage": {
+        "model": "hitscan_range",
+        "max": 110,
+        "min": 60,
+        "headMultiplier": 4,
+        "chestMultiplier": 1,
+        "abdomenMultiplier": 1
+      },
+      "ammo": {
+        "magazine": 30,
+        "reserve": 210,
+        "reloadSeconds": {
+          "loaded": 1.8,
+          "empty": 2.3,
+          "fast": 1.2
+        },
+        "wallRefillCost": 625,
+        "wallRefillCostAuthority": "derived_half_wall_cost_policy"
+      },
+      "sourceAuthority": {
+        "behavior": "https://callofduty.fandom.com/wiki/Kuda",
+        "wallPlacementAndCost": "assets/nacht_reference/runtime_reference_v1.json"
+      },
+      "readiness": {
+        "behaviorSpec": "ready",
+        "nativeImplementation": "pending",
+        "art": "pending",
+        "audio": "pending"
+      }
+    },
+    {
+      "specId": "bo3_locus_v1",
+      "displayName": "Locus",
+      "logicalItemId": "sniper_fastbolt",
+      "wallCost": 5000,
+      "fire": {
+        "mode": "bolt_action",
+        "rateRpm": 57
+      },
+      "damage": {
+        "model": "hitscan_flat",
+        "base": 500
+      },
+      "ammo": {
+        "magazine": 10,
+        "reserve": 60,
+        "wallRefillCost": 2500,
+        "wallRefillCostAuthority": "direct_nacht_reference"
+      },
+      "sourceAuthority": {
+        "behaviorAndNachtAmmoCost": "https://callofduty.fandom.com/wiki/Locus",
+        "wallPlacementAndCost": "assets/nacht_reference/runtime_reference_v1.json"
+      },
+      "readiness": {
+        "behaviorSpec": "ready",
+        "nativeImplementation": "pending",
+        "art": "pending",
+        "audio": "pending"
+      }
+    },
+    {
+      "specId": "bo3_pharo_v1",
+      "displayName": "Pharo",
+      "logicalItemId": "smg_burst",
+      "wallCost": 700,
+      "fire": {
+        "mode": "auto_burst",
+        "burstSize": 4,
+        "rateRpmPerBurst": 909,
+        "rateRpmOverall": 659
+      },
+      "damage": {
+        "model": "hitscan_range",
+        "max": 80,
+        "min": 60
+      },
+      "ammo": {
+        "magazine": 40,
+        "reserve": 160,
+        "reloadSeconds": {
+          "loaded": 2.1,
+          "empty": 2.4,
+          "fast": 1.4
+        },
+        "wallRefillCost": 350,
+        "wallRefillCostAuthority": "derived_half_wall_cost_policy"
+      },
+      "sourceAuthority": {
+        "behavior": "https://callofduty.fandom.com/wiki/Pharo",
+        "wallPlacementAndCost": "assets/nacht_reference/runtime_reference_v1.json"
+      },
+      "readiness": {
+        "behaviorSpec": "ready",
+        "nativeImplementation": "pending",
+        "art": "pending",
+        "audio": "pending"
+      }
+    },
+    {
+      "specId": "bo3_sheiva_v1",
+      "displayName": "Sheiva",
+      "logicalItemId": "ar_marksman",
+      "wallCost": 500,
+      "fire": {
+        "mode": "semi_automatic",
+        "rateRpm": 257
+      },
+      "damage": {
+        "model": "hitscan_range",
+        "max": 100,
+        "min": 80,
+        "headMultiplier": 3,
+        "chestMultiplier": 1,
+        "abdomenMultiplier": 1
+      },
+      "ammo": {
+        "magazine": 10,
+        "reserve": 100,
+        "wallRefillCost": 250,
+        "wallRefillCostAuthority": "direct_bo3_wall_reference"
+      },
+      "sourceAuthority": {
+        "behavior": "https://callofduty.fandom.com/wiki/Sheiva",
+        "multiplier": "https://callofduty.fandom.com/wiki/Upgraded_Weapons/Black_Ops_III",
+        "directAmmoCost": "https://nazizombies.fandom.com/wiki/Der_Eisendrache",
+        "wallPlacementAndCost": "assets/nacht_reference/runtime_reference_v1.json"
+      },
+      "readiness": {
+        "behaviorSpec": "ready",
+        "nativeImplementation": "pending",
+        "art": "pending",
+        "audio": "pending"
+      }
+    },
+    {
+      "specId": "bo3_rk5_v1",
+      "displayName": "RK5",
+      "logicalItemId": "pistol_burst",
+      "wallCost": 500,
+      "fire": {
+        "mode": "burst",
+        "burstSize": 3,
+        "rateRpmPerBurst": 909,
+        "rateRpmOverall": 775
+      },
+      "damage": {
+        "model": "hitscan_range",
+        "max": 100,
+        "min": 25
+      },
+      "ammo": {
+        "magazine": 15,
+        "reserve": 120,
+        "reloadSeconds": {
+          "loaded": 1.5,
+          "empty": 1.85
+        },
+        "wallRefillCost": 250,
+        "wallRefillCostAuthority": "direct_bo3_wall_reference"
+      },
+      "sourceAuthority": {
+        "behavior": "https://callofduty.fandom.com/wiki/RK5",
+        "directAmmoCost": "https://nazizombies.fandom.com/wiki/Der_Eisendrache",
+        "wallPlacementAndCost": "assets/nacht_reference/runtime_reference_v1.json"
+      },
+      "readiness": {
+        "behaviorSpec": "ready",
+        "nativeImplementation": "pending",
+        "art": "pending",
+        "audio": "pending"
+      }
+    }
+  ],
+  "validation": {
+    "expectedWeaponCount": 8,
+    "expectedLogicalItemIds": [
+      "ar_standard",
+      "shotgun_precision",
+      "shotgun_pump",
+      "smg_standard",
+      "sniper_fastbolt",
+      "smg_burst",
+      "ar_marksman",
+      "pistol_burst"
+    ],
+    "nativeReadyWeaponCount": 0,
+    "behaviorSpecReadyWeaponCount": 8
+  }
+}
