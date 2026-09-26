@@ -145,6 +145,31 @@ void HordeDirector::clearNavigationObstacles() noexcept {
     navigationObstacleCount_ = 0;
 }
 
+bool HordeDirector::replaceSpawnPoints(
+    std::span<const Vec3> spawnPoints) noexcept {
+    if (spawnPoints.empty() ||
+        spawnPoints.size() >
+            config_.spawnPoints.size()) {
+        return false;
+    }
+
+    for (std::size_t i = 0;
+         i < spawnPoints.size();
+         ++i) {
+        config_.spawnPoints[i] =
+            spawnPoints[i];
+    }
+
+    config_.spawnPointCount =
+        static_cast<std::uint32_t>(
+            spawnPoints.size());
+
+    nextSpawnPoint_ %=
+        config_.spawnPointCount;
+
+    return true;
+}
+
 bool HordeDirector::addNavigationObstacle(
     const Aabb& obstacle) noexcept {
     if (navigationObstacleCount_ >=
