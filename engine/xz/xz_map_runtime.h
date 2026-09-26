@@ -2,6 +2,7 @@
 #define XZ_MAP_RUNTIME_H
 
 #include "xz_nacht_reference.h"
+#include "xz_bo3_weapon_specs.h"
 #include "xz_world_transform.h"
 
 #include <stdint.h>
@@ -47,6 +48,10 @@ int XzMapRuntime_NachtPurchasePositionUnits(
     const XzMapRuntimeState *state,
     size_t index,
     XzWorldVec3 *out_position_units);
+
+const XzBo3WeaponSpec *XzMapRuntime_NachtPurchaseWeaponSpec(
+    const XzMapRuntimeState *state,
+    size_t index);
 
 int XzMapRuntime_NachtDoorPositionUnits(
     const XzMapRuntimeState *state,
