@@ -154,12 +154,12 @@ public class NZPActivity extends SDLActivity {
         }
 
         if (hudPreview) {
-            // CI-only visual validation path. "ndu" is the bundled Nacht der
-            // Untoten map; starting it directly lets the workflow capture the
-            // actual gameplay HUD rather than only a menu/loading screen.
+            // CI-only visual validation path. Respect the explicitly requested
+            // map so dedicated harness workflows can boot their own world
+            // instead of silently falling back to the legacy bundled ndu.
             return new String[] {
                 "-basedir", dataRoot.getAbsolutePath(),
-                "+map", "ndu"
+                "+map", ciMap
             };
         }
 
