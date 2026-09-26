@@ -458,7 +458,8 @@ private:
 
     [[nodiscard]] bool createTextureSampler(
         std::uint32_t mipLevels,
-        GpuTexture& out) noexcept;
+        GpuTexture& out,
+        float mipLodBias = -0.35f) noexcept;
 
     [[nodiscard]] bool createMaterialDescriptor(
         GpuMaterial& material) noexcept;
