@@ -50,6 +50,8 @@ python3 "$ROOT/scripts/patch_vril_animation_feel.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_mobile_v021.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_mobile_v022.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_mobile_v024.py" "$DEPS/vril"
+python3 "$ROOT/scripts/patch_vril_multiplayer_hud_test.py" "$DEPS/vril"
+python3 "$ROOT/scripts/patch_vril_multiplayer_online.py" "$DEPS/vril"
 python3 "$ROOT/scripts/patch_vril_sanctum_staticmesh.py" "$DEPS/vril"
 
 echo "==> Patching and compiling Xziel mobile QuakeC"
@@ -60,6 +62,7 @@ python3 "$ROOT/scripts/patch_quakec_modern_movement.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_mobile_v021.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_mobile_v022.py" "$DEPS/quakec"
 python3 "$ROOT/scripts/patch_quakec_mobile_v024.py" "$DEPS/quakec"
+python3 "$ROOT/scripts/patch_quakec_multiplayer_v026.py" "$DEPS/quakec"
 if [[ "${XZIEL_NACHT_BENCHMARK:-0}" == "1" ]]; then
     echo "==> Enabling Nacht golden-reference stress controls"
     python3 "$ROOT/scripts/patch_quakec_nacht_benchmark.py" "$DEPS/quakec"
@@ -96,6 +99,7 @@ cp "$ROOT/android/jni/Android.mk" "$APP/jni/Android.mk"
 cp "$ROOT/android/jni/Application.mk" "$APP/jni/Application.mk"
 mkdir -p "$APP/jni/src"
 cp "$ROOT/android/jni/src/Android.mk" "$APP/jni/src/Android.mk"
+cp "$ROOT/android/jni/src/xziel_android_bridge.c" "$APP/jni/src/xziel_android_bridge.c"
 python3 - "$APP/jni/src/Android.mk" "$XZIEL_MAX_AI_COUNT" <<'PY'
 from pathlib import Path
 import sys
@@ -117,6 +121,8 @@ cp "$ROOT/android/app-build.gradle" "$APP/build.gradle"
 cp "$ROOT/android/AndroidManifest.xml" "$APP/src/main/AndroidManifest.xml"
 cp "$ROOT/android/strings.xml" "$APP/src/main/res/values/strings.xml"
 cp "$ROOT/android/NZPActivity.java"    "$APP/src/main/java/org/libsdl/app/NZPActivity.java"
+cp "$ROOT/android/XzielMultiplayer.java" "$APP/src/main/java/org/libsdl/app/XzielMultiplayer.java"
+cp "$ROOT/android/XzielVoiceChat.java" "$APP/src/main/java/org/libsdl/app/XzielVoiceChat.java"
 
 echo "==> Assembling official NZ:P game data for the APK"
 ASSET_WORK="$BUILD/nzp-data"

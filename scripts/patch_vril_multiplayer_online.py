@@ -1,0 +1,637 @@
+#!/usr/bin/env python3
+"""Patch Vril's Android build with the Xziel Cloudflare datagram tunnel.
+
+The original Quake/NZ:P datagram protocol remains authoritative. Only the SDL
+UDP transport is intercepted for virtual 10.77.0.<player-slot> addresses while
+an Xziel online room is active.
+"""
+from pathlib import Path
+import sys
+
+if len(sys.argv) != 2:
+    raise SystemExit("usage: patch_vril_multiplayer_online.py <vril-root>")
+
+root = Path(sys.argv[1])
+source = root / "source"
+
+def replace_once(text: str, old: str, new: str, label: str) -> str:
+    if old not in text:
+        raise SystemExit("Could not find " + label)
+    return text.replace(old, new, 1)
+
+# ---------------------------------------------------------------------------
+# Main menu: use the formerly-grey cooperative slot as the room entry point.
+# ---------------------------------------------------------------------------
+main = source / "menu" / "menu_main.c"
+text = main.read_text(encoding="utf-8")
+resume_anchor = """#ifdef __ANDROID__
+static qboolean Menu_XzielResumeExists(void)
+"""
+if "Menu_XzielMultiplayer" not in text:
+    bridge = """#ifdef __ANDROID__
+extern void Xziel_Android_OpenMultiplayer(void);
+
+static void Menu_XzielMultiplayer(void)
+{
+    Xziel_Android_OpenMultiplayer();
+}
+#endif
+
+"""
+    text = replace_once(text, resume_anchor, bridge + resume_anchor,
+                        "Android main-menu anchor")
+
+old = """		Menu_DrawButton(1 + xziel_offset, xziel_offset, "SOLO", "Play Solo.", Menu_Solo);
+		Menu_DrawGreyButton(2 + xziel_offset, "COOPERATIVE");
+
+		Menu_DrawDivider(3 + xziel_offset);
+"""
+new = """		Menu_DrawButton(1 + xziel_offset, xziel_offset, "SOLO", "Play Solo.", Menu_Solo);
+		Menu_DrawButton(2 + xziel_offset, 1 + xziel_offset, "MULTIPLAYER", "Create or join a private internet room.", Menu_XzielMultiplayer);
+
+		Menu_DrawDivider(3 + xziel_offset);
+"""
+if old in text:
+    text = text.replace(old, new, 1)
+
+# Shift the following Android buttons down one logical selector slot.
+text = text.replace(
+    'Menu_DrawButton(3 + xziel_offset, 1 + xziel_offset, "CONFIGURATION"',
+    'Menu_DrawButton(3 + xziel_offset, 2 + xziel_offset, "CONFIGURATION"',
+    1)
+text = text.replace(
+    'Menu_DrawButton(4 + xziel_offset, 2 + xziel_offset, "CHARACTER BIOS"',
+    'Menu_DrawButton(4 + xziel_offset, 3 + xziel_offset, "CHARACTER BIOS"',
+    1)
+text = text.replace(
+    'Menu_DrawButton(5 + xziel_offset, 3 + xziel_offset, "CREDITS"',
+    'Menu_DrawButton(5 + xziel_offset, 4 + xziel_offset, "CREDITS"',
+    1)
+text = text.replace(
+    'Menu_DrawButton(6 + xziel_offset, 4 + xziel_offset, "QUIT GAME"',
+    'Menu_DrawButton(6 + xziel_offset, 5 + xziel_offset, "QUIT GAME"',
+    1)
+main.write_text(text, encoding="utf-8")
+
+# ---------------------------------------------------------------------------
+# Host frame: UI/network threads never call Cbuf directly. Android deposits
+# commands and the game thread consumes them here before Cbuf_Execute().
+# ---------------------------------------------------------------------------
+host = source / "host.c"
+text = host.read_text(encoding="utf-8")
+platform_anchor = """#ifdef PLATFORM_SDL
+extern qboolean sdl_running;
+#endif
+"""
+online_decl = """#ifdef __ANDROID__
+extern int Xziel_Android_OnlinePollCommand(char *out, int outSize);
+extern void Xziel_Android_OnlineReportEngineState(int serverActive,
+    int clientConnected, int signon, const char *map);
+static double xziel_online_state_next;
+#endif
+"""
+if "Xziel_Android_OnlinePollCommand" not in text:
+    text = replace_once(text, platform_anchor, platform_anchor + online_decl,
+                        "host Android declaration anchor")
+
+execute_anchor = """// process console commands
+	Cbuf_Execute ();
+"""
+execute_repl = """// process console commands
+#ifdef __ANDROID__
+	{
+		char xziel_online_command[512];
+		if (Xziel_Android_OnlinePollCommand(
+			xziel_online_command, sizeof(xziel_online_command)))
+			Cbuf_AddText(xziel_online_command);
+	}
+#endif
+	Cbuf_Execute ();
+#ifdef __ANDROID__
+	if (Sys_FloatTime() >= xziel_online_state_next) {
+		xziel_online_state_next = Sys_FloatTime() + 0.25;
+		Xziel_Android_OnlineReportEngineState(
+			sv.active ? 1 : 0,
+			cls.state == ca_connected ? 1 : 0,
+			cls.signon,
+			sv.active ? sv.name : "");
+	}
+#endif
+"""
+if "char xziel_online_command[512]" not in text:
+    text = replace_once(text, execute_anchor, execute_repl,
+                        "host command execution anchor")
+host.write_text(text, encoding="utf-8")
+
+# ---------------------------------------------------------------------------
+# Cross-client game-audio evidence. The normal Vril sound packet is parsed and
+# played first; Android only receives metadata afterwards, so this hook cannot
+# synthesize or replace game audio.
+# ---------------------------------------------------------------------------
+cl_parse = source / "cl_parse.c"
+text = cl_parse.read_text(encoding="utf-8")
+
+cl_parse_include = '#include "nzportable_def.h"\n'
+cl_parse_decl = """#ifdef __ANDROID__
+extern void Xziel_Android_CiSoundEvent(int ent, int channel, const char *name,
+    float x, float y, float z);
+#endif
+"""
+if "Xziel_Android_CiSoundEvent" not in text:
+    text = replace_once(text, cl_parse_include, cl_parse_include + cl_parse_decl,
+                        "cl_parse CI sound declaration")
+
+sound_anchor = """    S_StartSound (ent, channel, cl.sound_precache[sound_num], pos, volume/255.0, attenuation);
+}"""
+sound_repl = """    S_StartSound (ent, channel, cl.sound_precache[sound_num], pos, volume/255.0, attenuation);
+#ifdef __ANDROID__
+    if (cl.sound_precache[sound_num]) {
+        Xziel_Android_CiSoundEvent(
+            ent, channel, cl.sound_precache[sound_num]->name,
+            pos[0], pos[1], pos[2]);
+    }
+#endif
+}"""
+if "Xziel_Android_CiSoundEvent(" not in text[text.find("void CL_ParseStartSoundPacket"):]:
+    text = replace_once(text, sound_anchor, sound_repl,
+                        "CL_ParseStartSoundPacket CI evidence hook")
+
+cl_parse.write_text(text, encoding="utf-8")
+
+# ---------------------------------------------------------------------------
+# Online pause menu: gameplay continues while the overlay is open. Reuse the
+# existing native scoreboard and expose only SETTINGS + QUIT MATCH. This runs
+# after patch_vril_android.py, so the replacement deliberately preserves the
+# mobile Solo Save & Exit path from that earlier patch.
+# ---------------------------------------------------------------------------
+pause = source / "menu" / "menu_pause.c"
+text = pause.read_text(encoding="utf-8")
+
+pause_include = '#include "menu_defs.h"\n'
+pause_decls = r'''
+#ifdef __ANDROID__
+extern int Xziel_Android_OnlineActive(void);
+extern void Xziel_Android_OnlineLeaveRoom(void);
+extern void Xziel_Android_OnlinePauseVoice(int visible);
+extern qboolean showscoreboard;
+extern void HUD_EndScreen(void);
+#endif
+'''
+if "Xziel_Android_OnlineLeaveRoom" not in text:
+    text = replace_once(text, pause_include, pause_include + pause_decls,
+                        "pause Android declarations")
+
+def replace_c_function(src: str, signature: str, replacement: str) -> str:
+    start = src.find(signature)
+    if start < 0:
+        raise SystemExit("Could not find " + signature)
+    brace = src.find("{", start)
+    if brace < 0:
+        raise SystemExit("Could not find body for " + signature)
+    depth = 0
+    end = -1
+    for i in range(brace, len(src)):
+        if src[i] == "{":
+            depth += 1
+        elif src[i] == "}":
+            depth -= 1
+            if depth == 0:
+                end = i + 1
+                break
+    if end < 0:
+        raise SystemExit("Could not find end for " + signature)
+    if end < len(src) and src[end] == ";":
+        end += 1
+    return src[:start] + replacement + src[end:]
+
+pause_resume = r'''void Menu_Resume(void)
+{
+	key_dest = key_game;
+	m_state = m_none;
+	m_previous_state = m_state;
+#ifdef __ANDROID__
+	if (Xziel_Android_OnlineActive()) {
+		Xziel_Android_OnlinePauseVoice(0);
+	} else if (sv.active && svs.maxclients == 1) {
+		Xziel_BeginMobileResumeCountdown();
+		return;
+	}
+#endif
+	Music_Resume();
+}'''
+text = replace_c_function(text, "void Menu_Resume(void)", pause_resume)
+
+configuration_old = "void Menu_Configuration(void) { Menu_Configuration_Set(); key_dest = key_menu_pause; };"
+configuration_new = r'''void Menu_Configuration(void)
+{
+#ifdef __ANDROID__
+	if (Xziel_Android_OnlineActive())
+		Xziel_Android_OnlinePauseVoice(0);
+#endif
+	Menu_Configuration_Set();
+	key_dest = key_menu_pause;
+};'''
+if configuration_old in text:
+    text = text.replace(configuration_old, configuration_new, 1)
+
+pause_set = r'''void Menu_Pause_Set (void)
+{
+	Menu_ResetMenuButtons();
+#ifdef __ANDROID__
+	if (!Xziel_Android_OnlineActive()) {
+		S_StopAllSounds(true);
+		Music_Pause();
+	}
+#else
+	S_StopAllSounds(true);
+	Music_Pause();
+#endif
+	Menu_SetSound(MENU_SND_ENTER);
+
+	menu_paus_submenu = 0;
+	loadingScreen = 0;
+	loadscreeninit = false;
+	key_dest = key_menu_pause;
+	m_state = m_pause;
+	m_previous_state = m_state;
+#ifdef __ANDROID__
+	// Solo still freezes exactly as before. Online maxclients > 1 keeps
+	// simulation and networking running behind this menu.
+	if (Xziel_Android_OnlineActive()) {
+		Xziel_Android_OnlinePauseVoice(1);
+	} else if (sv.active && svs.maxclients == 1) {
+		sv.paused = true;
+	}
+#endif
+}'''
+text = replace_c_function(text, "void Menu_Pause_Set (void)", pause_set)
+
+online_confirm = r'''
+#ifdef __ANDROID__
+static void Menu_Pause_OnlineQuitConfirm(void)
+{
+	menu_paus_submenu = 9;
+	Menu_ResetMenuButtons();
+	Menu_SetSound(MENU_SND_ENTER);
+}
+#endif
+'''
+if "Menu_Pause_OnlineQuitConfirm" not in text:
+    anchor = "void Menu_Pause_Yes(void)\n"
+    text = replace_once(text, anchor, online_confirm + "\n" + anchor,
+                        "online quit confirm anchor")
+
+pause_yes = r'''void Menu_Pause_Yes(void)
+{
+#ifdef __ANDROID__
+	if (Xziel_Android_OnlineActive() && menu_paus_submenu == 9) {
+		Xziel_Android_OnlineLeaveRoom();
+		menu_paus_submenu = 0;
+		Menu_ExitMap();
+		return;
+	}
+#endif
+
+	if (menu_paus_submenu == 1) {
+		// User is restarting the map.
+		menu_paus_submenu = 0;
+		key_dest = key_game;
+		m_state = m_none;
+		m_previous_state = m_state;
+
+		if (music_paused)
+			Music_Resume();
+
+		SV_RestartServer ();
+	} else if (menu_paus_submenu ==
+#ifdef __ANDROID__
+		4
+#else
+		3
+#endif
+	) {
+		// User is returning to Main Menu.
+		menu_paus_submenu = 0;
+		Menu_ExitMap();
+	}
+
+	Menu_Pause_EnterSubMenu();
+}'''
+text = replace_c_function(text, "void Menu_Pause_Yes(void)", pause_yes)
+
+pause_draw = r'''void Menu_Pause_Draw (void)
+{
+#ifdef __ANDROID__
+	if (Xziel_Android_OnlineActive()) {
+		qboolean old_scoreboard = showscoreboard;
+
+		Menu_DrawCustomBackground (true);
+		Menu_DrawTitle ("ONLINE MATCH", MENU_COLOR_WHITE);
+
+		// Native NZ:P scoreboard: Score, Kills, Downs, Revives,
+		// Headshots and ping for every connected player.
+		showscoreboard = true;
+		HUD_EndScreen();
+		showscoreboard = old_scoreboard;
+
+		if (menu_paus_submenu == 0) {
+			Menu_DrawButton (1, 0, "SETTINGS",
+				"Adjust controls, audio and video.", Menu_Configuration);
+			Menu_DrawButton (2, 1, "QUIT MATCH",
+				"Leave this online match.", Menu_Pause_OnlineQuitConfirm);
+		} else {
+			Menu_DrawGreyButton (1, "SETTINGS");
+			Menu_DrawGreyButton (2, "QUIT MATCH");
+			Menu_DrawSubMenu("Leave online match?",
+				"The other players will keep playing.");
+			Menu_DrawButton (7, 0, "QUIT MATCH", "", Menu_Pause_Yes);
+			Menu_DrawButton (8, 1, "STAY", "", Menu_Pause_No);
+		}
+		return;
+	}
+#endif
+
+	// Existing Solo pause menu.
+	Menu_DrawCustomBackground (true);
+	Menu_DrawTitle ("PAUSED", MENU_COLOR_WHITE);
+
+	if (menu_paus_submenu == 0) {
+		Menu_DrawButton (1, 0, "RESUME CARNAGE", "Return to Game.", Menu_Resume);
+		Menu_DrawButton (2, 1, "RESTART LEVEL",
+			"Tough luck? Give things another go.", Menu_Pause_EnterSubMenu);
+		Menu_DrawButton (3, 2, "OPTIONS",
+			"Tweak Game related Options.", Menu_Configuration);
+#ifdef __ANDROID__
+		Menu_DrawButton (4, 3, "SAVE & EXIT",
+			"Save current Solo state and return to Main Menu.", Menu_Pause_SaveAndExit);
+		Menu_DrawButton (5, 4, "EXIT TO MENU",
+			"Return to Main Menu without saving.", Menu_Pause_EnterSubMenu);
+#else
+		Menu_DrawButton (4, 3, "END GAME",
+			"Return to Main Menu.", Menu_Pause_EnterSubMenu);
+#endif
+	} else {
+		Menu_DrawGreyButton (1, "RESUME CARNAGE");
+		Menu_DrawGreyButton (2, "RESTART LEVEL");
+		Menu_DrawGreyButton (3, "OPTIONS");
+#ifdef __ANDROID__
+		Menu_DrawGreyButton (4, "SAVE & EXIT");
+		Menu_DrawGreyButton (5, "EXIT TO MENU");
+#else
+		Menu_DrawGreyButton (4, "END GAME");
+#endif
+
+		if (menu_paus_submenu == 1) {
+			Menu_DrawSubMenu("Are you sure you want to restart?",
+				"You will lose any progress that you have made.");
+		} else if (menu_paus_submenu ==
+#ifdef __ANDROID__
+			4
+#else
+			3
+#endif
+		) {
+			Menu_DrawSubMenu("Are you sure you want to quit?",
+				"You will lose any unsaved progress.");
+		}
+
+		Menu_DrawButton (7, 0, "GET ME OUTTA HERE!", "", Menu_Pause_Yes);
+		Menu_DrawButton (8, 1, "I WILL PERSEVERE", "", Menu_Pause_No);
+	}
+}'''
+text = replace_c_function(text, "void Menu_Pause_Draw (void)", pause_draw)
+pause.write_text(text, encoding="utf-8")
+
+# ---------------------------------------------------------------------------
+# Proximity voice: push the rendered local player origin to Android. This is
+# presentation-only and never changes movement, hit detection or net state.
+# ---------------------------------------------------------------------------
+cl_main = source / "cl_main.c"
+text = cl_main.read_text(encoding="utf-8")
+
+cl_include = '#include "nzportable_def.h"\n'
+cl_voice_decl = """#ifdef __ANDROID__
+extern void Xziel_Android_VoiceUpdatePosition(float x, float y, float z);
+extern void Xziel_Android_CiRemoteEntity(int slot, float x, float y, float z,
+    int frame, float yaw);
+static double xziel_ci_avatar_next;
+#endif
+"""
+if "Xziel_Android_VoiceUpdatePosition" not in text:
+    text = replace_once(text, cl_include, cl_include + cl_voice_decl,
+                        "cl_main voice include anchor")
+
+cl_update_anchor = """	CL_RelinkEntities ();
+	CL_UpdateTEnts ();
+
+//
+// bring the links up to date
+//
+"""
+cl_update_repl = """	CL_RelinkEntities ();
+	CL_UpdateTEnts ();
+
+#ifdef __ANDROID__
+	if (cl.viewentity > 0 && cl.viewentity < cl.num_entities) {
+		entity_t *voice_listener = &cl_entities[cl.viewentity];
+		Xziel_Android_VoiceUpdatePosition(
+			voice_listener->origin[0],
+			voice_listener->origin[1],
+			voice_listener->origin[2]);
+	}
+
+	if (Sys_FloatTime() >= xziel_ci_avatar_next) {
+		int xziel_slot;
+		xziel_ci_avatar_next = Sys_FloatTime() + 0.20;
+		for (xziel_slot = 1;
+			 xziel_slot <= cl.maxclients && xziel_slot <= 4;
+			 ++xziel_slot) {
+			entity_t *avatar;
+			if (xziel_slot == cl.viewentity)
+				continue;
+			if (!cl.scores || !cl.scores[xziel_slot - 1].name[0])
+				continue;
+			avatar = &cl_entities[xziel_slot];
+			Xziel_Android_CiRemoteEntity(
+				xziel_slot,
+				avatar->origin[0], avatar->origin[1], avatar->origin[2],
+				avatar->frame, avatar->angles[YAW]);
+		}
+	}
+#endif
+
+//
+// bring the links up to date
+//
+"""
+if "voice_listener = &cl_entities[cl.viewentity]" not in text:
+    text = replace_once(text, cl_update_anchor, cl_update_repl,
+                        "CL_ReadFromServer voice position anchor")
+
+cl_main.write_text(text, encoding="utf-8")
+
+# ---------------------------------------------------------------------------
+# SDL UDP: virtual internet peers are 10.77.0.<slot>. OS UDP remains untouched
+# for normal solo/LAN operation and for local socket allocation/port identity.
+# ---------------------------------------------------------------------------
+udp = source / "platform" / "sdl" / "net_udp_sdl.c"
+text = udp.read_text(encoding="utf-8")
+include_anchor = '#include <unistd.h>\n\n'
+decls = r'''#ifdef __ANDROID__
+extern int Xziel_Android_OnlineActive(void);
+extern int Xziel_Android_GameHasPacket(int localPort);
+extern int Xziel_Android_GameSend(const unsigned char *data, int len,
+    int destinationSlot, int sourcePort, int destinationPort);
+extern int Xziel_Android_GamePoll(int localPort, unsigned char *out, int maxLen,
+    int *sourceSlot, int *sourcePort);
+
+#define XZIEL_VIRTUAL_NET 0x0A4D0000u
+
+static int Xziel_SocketPort(int socket_fd)
+{
+    struct sockaddr_in address;
+    socklen_t len = sizeof(address);
+    if (getsockname(socket_fd, (struct sockaddr *)&address, &len) == -1)
+        return 0;
+    return ntohs(address.sin_port);
+}
+
+static int Xziel_VirtualSlot(const struct qsockaddr *addr)
+{
+    unsigned int host;
+    if (!addr || addr->sa_family != AF_INET)
+        return 0;
+    host = ntohl(((const struct sockaddr_in *)addr)->sin_addr.s_addr);
+    if ((host & 0xFFFFFF00u) != XZIEL_VIRTUAL_NET)
+        return 0;
+    host &= 0xFFu;
+    return (host >= 1u && host <= 4u) ? (int)host : 0;
+}
+
+static void Xziel_SetVirtualAddr(struct qsockaddr *addr, int slot, int port)
+{
+    struct sockaddr_in *internet = (struct sockaddr_in *)addr;
+    memset(addr, 0, sizeof(*addr));
+    internet->sin_family = AF_INET;
+    internet->sin_addr.s_addr = htonl(XZIEL_VIRTUAL_NET | (unsigned int)slot);
+    internet->sin_port = htons((unsigned short)port);
+}
+#endif
+
+'''
+if "XZIEL_VIRTUAL_NET" not in text:
+    text = replace_once(text, include_anchor, include_anchor + decls,
+                        "UDP include anchor")
+
+old_check = r'''int UDP_CheckNewConnections (void)
+{
+	char buf[4096];
+	
+	if (net_acceptsocket == -1)
+		return -1;
+
+	if (recvfrom(net_acceptsocket, buf, 4096, MSG_PEEK, NULL, NULL) > 0)
+		return net_acceptsocket;
+		
+	return -1;
+}'''
+new_check = r'''int UDP_CheckNewConnections (void)
+{
+	char buf[4096];
+
+	if (net_acceptsocket == -1)
+		return -1;
+
+#ifdef __ANDROID__
+	if (Xziel_Android_OnlineActive()) {
+		int local_port = Xziel_SocketPort(net_acceptsocket);
+		if (local_port > 0 && Xziel_Android_GameHasPacket(local_port))
+			return net_acceptsocket;
+	}
+#endif
+
+	if (recvfrom(net_acceptsocket, buf, 4096, MSG_PEEK, NULL, NULL) > 0)
+		return net_acceptsocket;
+
+	return -1;
+}'''
+text = replace_once(text, old_check, new_check, "UDP_CheckNewConnections")
+
+old_read = r'''int UDP_Read (int socket, byte *buf, int len, struct qsockaddr *addr)
+{
+	int addrlen = sizeof (struct qsockaddr);
+	int ret;
+
+	ret = recvfrom(socket, (char *)buf, len, 0, (struct sockaddr *)addr, (socklen_t*)&addrlen);
+	if (ret == -1 )
+		return 0;
+	return ret;
+}'''
+new_read = r'''int UDP_Read (int socket, byte *buf, int len, struct qsockaddr *addr)
+{
+	int addrlen = sizeof (struct qsockaddr);
+	int ret;
+
+#ifdef __ANDROID__
+	if (Xziel_Android_OnlineActive()) {
+		int local_port = Xziel_SocketPort(socket);
+		int source_slot = 0;
+		int source_port = 0;
+		if (local_port > 0) {
+			ret = Xziel_Android_GamePoll(local_port, buf, len,
+				&source_slot, &source_port);
+			if (ret > 0 && source_slot >= 1 && source_slot <= 4) {
+				Xziel_SetVirtualAddr(addr, source_slot, source_port);
+				return ret;
+			}
+		}
+	}
+#endif
+
+	ret = recvfrom(socket, (char *)buf, len, 0,
+		(struct sockaddr *)addr, (socklen_t*)&addrlen);
+	if (ret == -1 )
+		return 0;
+	return ret;
+}'''
+text = replace_once(text, old_read, new_read, "UDP_Read")
+
+old_write = r'''int UDP_Write (int socket, byte *buf, int len, struct qsockaddr *addr)
+{
+	int ret;
+
+	ret = sendto (socket, (const char *)buf, len, 0, (struct sockaddr *)addr, sizeof(struct qsockaddr));
+	if (ret == -1 )
+		return 0;
+	return ret;
+}'''
+new_write = r'''int UDP_Write (int socket, byte *buf, int len, struct qsockaddr *addr)
+{
+	int ret;
+
+#ifdef __ANDROID__
+	if (Xziel_Android_OnlineActive()) {
+		int destination_slot = Xziel_VirtualSlot(addr);
+		if (destination_slot) {
+			int source_port = Xziel_SocketPort(socket);
+			int destination_port =
+				ntohs(((struct sockaddr_in *)addr)->sin_port);
+			if (source_port > 0 &&
+				Xziel_Android_GameSend(buf, len, destination_slot,
+					source_port, destination_port))
+				return len;
+			return 0;
+		}
+	}
+#endif
+
+	ret = sendto (socket, (const char *)buf, len, 0,
+		(struct sockaddr *)addr, sizeof(struct qsockaddr));
+	if (ret == -1 )
+		return 0;
+	return ret;
+}'''
+text = replace_once(text, old_write, new_write, "UDP_Write")
+udp.write_text(text, encoding="utf-8")
+
+print("Xziel multiplayer internet tunnel patch applied.")
