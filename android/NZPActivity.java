@@ -96,6 +96,16 @@ public class NZPActivity extends SDLActivity {
                 }
             }, 5000);
         }
+        boolean ciSquadPreview = getIntent() != null
+            && getIntent().getBooleanExtra("xziel_ci_squad_preview", false);
+        if (ciSquadPreview) {
+            getWindow().getDecorView().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if (multiplayer != null) multiplayer.showCiSquadPreview();
+                }
+            }, 5000);
+        }
         getWindow().getDecorView().postDelayed(new Runnable() {
             @Override
             public void run() {
