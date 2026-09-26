@@ -115,6 +115,14 @@ if [[ -f "$DEPS/quakec/build/standard/progs.lno" ]]; then
     cp "$DEPS/quakec/build/standard/progs.lno" "$ASSET_WORK/nzp/progs.lno"
 fi
 
+# Bundle the global XZIEL weapon identity catalog and generated Mystery Box pool.
+# These are gameplay metadata only; native weapon implementations/assets remain separate.
+mkdir -p "$ASSET_WORK/nzp/xziel/weapons"
+cp "$ROOT/assets/weapons/xziel_weapon_catalog_v1.json" \
+    "$ASSET_WORK/nzp/xziel/weapons/xziel_weapon_catalog_v1.json"
+cp "$ROOT/assets/weapons/xziel_mystery_box_pool_v1.json" \
+    "$ASSET_WORK/nzp/xziel/weapons/xziel_mystery_box_pool_v1.json"
+
 # Optional CI/development map overlay. The normal product build remains
 # unchanged when these variables are unset. Map-specific workflows can inject
 # freshly compiled BSP/NSZ files without committing generated binaries.
