@@ -200,6 +200,56 @@ def main() -> int:
         if row not in map_file_decal_rows
     ]
 
+    # BO3 Zombies Chronicles Nacht purchase markers are preserved in imported
+    # map geometry. The Pavlov port only instantiates three interactive
+    # WallBuy_C actors, so that actor count is not authoritative for BO3.
+    bo3_purchase_aliases = {
+        "arak": {"canonical": "KN-44", "kind": "weapon"},
+        "argus": {"canonical": "Argus", "kind": "weapon"},
+        "frag": {"canonical": "Fragmentation Grenades", "kind": "equipment"},
+        "krm": {"canonical": "KRM-262", "kind": "weapon"},
+        "kuda": {"canonical": "Kuda", "kind": "weapon"},
+        "locus_decal": {"canonical": "Locus", "kind": "sniper_cabinet"},
+        "pharaoh": {"canonical": "Pharo", "kind": "weapon"},
+        "shiva": {"canonical": "Sheiva", "kind": "weapon"},
+        "triton": {"canonical": "RK5", "kind": "weapon"},
+    }
+    bo3_purchase_markers = []
+    for row in mesh_rows:
+        mesh = row.get("mesh")
+        if not isinstance(mesh, str):
+            continue
+        low = mesh.lower()
+        marker_key = next(
+            (
+                key for key in bo3_purchase_aliases
+                if f"chalk_buy_{key}" in low
+            ),
+            None,
+        )
+        if marker_key is None:
+            continue
+        meta = bo3_purchase_aliases[marker_key]
+        bo3_purchase_markers.append({
+            "source_marker": marker_key,
+            "canonical": meta["canonical"],
+            "kind": meta["kind"],
+            "mesh": mesh,
+            "actor_name": row.get("actor_name"),
+            "relative_location": row.get("relative_location"),
+            "relative_rotation": row.get("relative_rotation"),
+            "relative_scale": row.get("relative_scale"),
+            "note": (
+                "Null/default transforms can mean placement is baked into the "
+                "imported mesh vertices; resolve from mesh bounds during geometry export."
+            ),
+        })
+
+    pavlov_wallbuy_actors = [
+        row for row in actor_rows
+        if row["class"].endswith("/WallBuy_C")
+    ]
+
     output = {
         "schema": 1,
         "source": {
@@ -230,8 +280,15 @@ def main() -> int:
             "map_files_decal_unique_mesh_count": len({
                 r["mesh"] for r in map_file_decal_rows if r["mesh"]
             }),
+            "bo3_purchase_marker_count": len(bo3_purchase_markers),
+            "bo3_weapon_purchase_marker_count": sum(
+                1 for r in bo3_purchase_markers if r["kind"] != "equipment"
+            ),
+            "pavlov_functional_wallbuy_actor_count": len(pavlov_wallbuy_actors),
             "gameplay_actor_count": len(gameplay),
         },
+        "bo3_reference_purchase_markers": bo3_purchase_markers,
+        "pavlov_functional_wallbuy_actors": pavlov_wallbuy_actors,
         "gameplay_actors": gameplay,
         "map_files_structural": map_file_structural_rows,
         "map_files_decals": map_file_decal_rows,
