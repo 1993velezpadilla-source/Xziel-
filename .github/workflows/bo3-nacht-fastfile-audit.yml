@@ -26,7 +26,8 @@ jobs:
           Expand-Archive (Join-Path $env:RUNNER_TEMP 'steamcmd.zip') -DestinationPath $steam -Force
           & (Join-Path $steam 'steamcmd.exe') +login anonymous +workshop_download_item 311210 3596966808 validate +quit
           $steamRc = $LASTEXITCODE
-          Write-Host "SteamCMD exit code: $steamRc"
+          $global:LASTEXITCODE = 0
+          Write-Host "SteamCMD exit code: $steamRc (ignored after verified payload)"
           $root = Get-ChildItem -Path $steam,$env:RUNNER_TEMP -Directory -Recurse -ErrorAction SilentlyContinue |
             Where-Object { $_.FullName -like '*steamapps\workshop\content\311210\3596966808' } |
             Select-Object -First 1
@@ -35,6 +36,7 @@ jobs:
           if (-not (Test-Path $ff)) { throw "Workshop folder exists but zm_mod.ff is missing" }
           "WORKSHOP_ROOT=$($root.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           Get-Item $ff | Format-List FullName,Length
+          exit 0
 
       - name: Download Atian COD Tools
         shell: pwsh
