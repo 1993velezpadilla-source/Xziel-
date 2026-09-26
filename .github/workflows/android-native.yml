@@ -1,6 +1,13 @@
 name: Native Android APK
 
 on:
+  workflow_call:
+    inputs:
+      multiplayer_url:
+        description: Cloudflare multiplayer deployment URL to bake into the APK
+        required: false
+        type: string
+        default: ""
   workflow_dispatch:
   pull_request:
     branches:
@@ -33,6 +40,8 @@ jobs:
   build-and-smoke-test:
     name: Build native APK + Android smoke test
     runs-on: ubuntu-latest
+    env:
+      XZIEL_MULTIPLAYER_URL: ${{ inputs.multiplayer_url }}
     timeout-minutes: 25
 
     steps:
@@ -58,6 +67,7 @@ jobs:
           python3 -m py_compile \
             scripts/patch_vril_mobile_v024.py \
             scripts/patch_vril_multiplayer_hud_test.py \
+            scripts/patch_vril_multiplayer_online.py \
             scripts/build_xziel_icons.py \
             scripts/patch_vril_sanctum_staticmesh.py \
             scripts/patch_quakec_mobile_v024.py
