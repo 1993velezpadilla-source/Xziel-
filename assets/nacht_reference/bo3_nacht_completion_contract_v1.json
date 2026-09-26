@@ -119,7 +119,10 @@
       "firstRollFree": true,
       "machineInteractionStatus": "pending",
       "effectDispatchReady": 0,
-      "presentationStatus": "pending"
+      "presentationStatus": "pending",
+      "effectSpecsVerified": 6,
+      "effectPrimitivesLogicReady": 6,
+      "remainingEffectPrimitives": 57
     },
     "der_wunderfizz_and_perk_randomization": {
       "state": "pending",
