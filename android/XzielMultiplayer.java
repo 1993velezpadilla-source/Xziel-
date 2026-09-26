@@ -986,33 +986,33 @@ public final class XzielMultiplayer {
             ciCommand(2500, "CI_CAMERA_READY", "-left\n");
             activity.getWindow().getDecorView().postDelayed(() -> {
                 if (ciEvidenceMode) voiceChat.sendCiTestTone();
-            }, 2850);
-            ciCommand(5200, "CI_SCENARIO_DONE", "");
+            }, 3400);
+            ciCommand(6000, "CI_SCENARIO_DONE", "");
         } else if (localSlot == 2) {
             ciCommand(700, "CI_P2_WALK_START", "+forward\n");
             ciCommand(1250, "CI_P2_WALK_STOP", "-forward\n");
-            ciCommand(2700, "CI_P2_AIM_START", "+aim\n");
+            ciCommand(3100, "CI_P2_AIM_START", "+aim\n");
             activity.getWindow().getDecorView().postDelayed(() -> {
                 if (ciEvidenceMode) voiceChat.sendCiTestTone();
-            }, 3150);
-            ciCommand(4000, "CI_P2_AIM_STOP", "-aim\n");
-            ciCommand(5200, "CI_SCENARIO_DONE", "");
+            }, 3600);
+            ciCommand(4400, "CI_P2_AIM_STOP", "-aim\n");
+            ciCommand(6000, "CI_SCENARIO_DONE", "");
         } else if (localSlot == 3) {
-            ciCommand(700, "CI_P3_SPRINT_START", "impulse 23\n+forward\n");
-            ciCommand(1450, "CI_P3_SPRINT_STOP", "-forward\nimpulse 24\n");
+            ciCommand(3000, "CI_P3_SPRINT_START", "impulse 23\n+forward\n");
+            ciCommand(4000, "CI_P3_SPRINT_STOP", "-forward\nimpulse 24\n");
             activity.getWindow().getDecorView().postDelayed(() -> {
                 if (ciEvidenceMode) voiceChat.sendCiTestTone();
-            }, 3350);
-            ciCommand(5200, "CI_SCENARIO_DONE", "");
+            }, 3800);
+            ciCommand(6000, "CI_SCENARIO_DONE", "");
         } else if (localSlot == 4) {
-            ciCommand(1200, "CI_P4_AIM_START", "+aim\n");
-            ciCommand(2850, "CI_P4_FIRE_START", "+attack\n");
+            ciCommand(3000, "CI_P4_AIM_START", "+aim\n");
+            ciCommand(3600, "CI_P4_FIRE_START", "+attack\n");
             activity.getWindow().getDecorView().postDelayed(() -> {
                 if (ciEvidenceMode) voiceChat.sendCiTestTone();
-            }, 3550);
-            ciCommand(3550, "CI_P4_FIRE_STOP", "-attack\n");
-            ciCommand(4300, "CI_P4_AIM_STOP", "-aim\n");
-            ciCommand(5200, "CI_SCENARIO_DONE", "");
+            }, 4000);
+            ciCommand(4300, "CI_P4_FIRE_STOP", "-attack\n");
+            ciCommand(4700, "CI_P4_AIM_STOP", "-aim\n");
+            ciCommand(6000, "CI_SCENARIO_DONE", "");
         }
     }
 
