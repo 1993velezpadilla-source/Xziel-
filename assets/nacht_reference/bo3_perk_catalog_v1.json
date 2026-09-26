@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "catalogId": "bo3_nacht_perk_catalog_v1",
+  "mapId": "bo3_nacht_reference",
+  "rule": "Track canonical BO3 Nacht perk identities separately from placement/runtime readiness.",
+  "wunderfizz": {
+    "cost": 1500,
+    "placementId": "der_wunderfizz_upstairs",
+    "runtimeStatus": "pending"
+  },
+  "entries": [
+    {
+      "id": "mule_kick",
+      "displayName": "Mule Kick",
+      "acquisition": [
+        "standalone_machine"
+      ],
+      "wunderfizzEligible": false,
+      "knownCost": 4000,
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending"
+    },
+    {
+      "id": "juggernog",
+      "displayName": "Juggernog",
+      "acquisition": [
+        "der_wunderfizz"
+      ],
+      "wunderfizzEligible": true,
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending"
+    },
+    {
+      "id": "quick_revive",
+      "displayName": "Quick Revive",
+      "acquisition": [
+        "der_wunderfizz"
+      ],
+      "wunderfizzEligible": true,
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending"
+    },
+    {
+      "id": "speed_cola",
+      "displayName": "Speed Cola",
+      "acquisition": [
+        "der_wunderfizz"
+      ],
+      "wunderfizzEligible": true,
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending"
+    },
+    {
+      "id": "double_tap_ii",
+      "displayName": "Double Tap II Root Beer",
+      "acquisition": [
+        "der_wunderfizz"
+      ],
+      "wunderfizzEligible": true,
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending"
+    },
+    {
+      "id": "stamin_up",
+      "displayName": "Stamin-Up",
+      "acquisition": [
+        "der_wunderfizz"
+      ],
+      "wunderfizzEligible": true,
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending"
+    },
+    {
+      "id": "deadshot_daiquiri",
+      "displayName": "Deadshot Daiquiri",
+      "acquisition": [
+        "der_wunderfizz"
+      ],
+      "wunderfizzEligible": true,
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending"
+    },
+    {
+      "id": "widows_wine",
+      "displayName": "Widow's Wine",
+      "acquisition": [
+        "der_wunderfizz"
+      ],
+      "wunderfizzEligible": true,
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending"
+    }
+  ],
+  "validation": {
+    "expectedPerkCount": 8,
+    "expectedWunderfizzPoolCount": 7,
+    "allRuntimeReady": false
+  }
+}
