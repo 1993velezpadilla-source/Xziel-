@@ -24,7 +24,11 @@ jobs:
           "$RUNNER_TEMP/steamcmd/steamcmd.sh" +quit || true
           curl -fL --retry 5 https://github.com/trumank/repak/releases/download/v0.2.3/repak_cli-x86_64-unknown-linux-gnu.tar.xz -o "$RUNNER_TEMP/repak.tar.xz"
           tar -xJf "$RUNNER_TEMP/repak.tar.xz" -C "$RUNNER_TEMP/repak"
-          chmod +x "$RUNNER_TEMP/repak/repak"
+          REPAK_BIN=$(find "$RUNNER_TEMP/repak" -type f \( -name "repak" -o -name "repak_cli" -o -name "repak*" \) -print -quit)
+          test -n "$REPAK_BIN"
+          chmod +x "$REPAK_BIN"
+          echo "REPAK_BIN=$REPAK_BIN" >> "$GITHUB_ENV"
+          echo "repak binary: $REPAK_BIN"
 
       - name: Download and unpack Pavlov BO3 Nacht
         run: |
@@ -35,7 +39,7 @@ jobs:
           PAK="$ROOT/WindowsNoEditor.pak"
           test -f "$PAK" || exit 1
           mkdir -p "$RUNNER_TEMP/pakextract"
-          "$RUNNER_TEMP/repak/repak" unpack "$PAK" -o "$RUNNER_TEMP/pakextract"
+          "$REPAK_BIN" unpack "$PAK" -o "$RUNNER_TEMP/pakextract"
           echo "PAK_EXTRACT=$RUNNER_TEMP/pakextract" >> "$GITHUB_ENV"
           exit 0
 
