@@ -24,8 +24,8 @@ jobs:
       - name: Download Workshop 2755515831
         run: |
           set +e
-          "$RUNNER_TEMP/steamcmd/steamcmd.sh" +login anonymous +workshop_download_item 311210 2755515831 validate +quit 2>&1 | tee "$RUNNER_TEMP/steamcmd.log"
-          ROOT=$(find "$HOME" "$RUNNER_TEMP" -type d -path '*/steamapps/workshop/content/311210/2755515831' -print -quit 2>/dev/null)
+          "$RUNNER_TEMP/steamcmd/steamcmd.sh" +login anonymous +workshop_download_item 555160 2755515831 validate +quit 2>&1 | tee "$RUNNER_TEMP/steamcmd.log"
+          ROOT=$(find "$HOME" "$RUNNER_TEMP" -type d -path '*/steamapps/workshop/content/555160/2755515831' -print -quit 2>/dev/null)
           if [ -z "$ROOT" ]; then echo 'workshop payload missing'; exit 1; fi
           echo "ROOT=$ROOT" >> "$GITHUB_ENV"
           exit 0
