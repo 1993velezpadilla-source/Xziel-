@@ -1050,6 +1050,19 @@ public final class XzielMultiplayer {
         });
     }
 
+    private void updateMatchmakingReconnectState() {
+        activity.runOnUiThread(() -> {
+            AlertDialog dialog = matchmakingDialog;
+            if (dialog == null || !dialog.isShowing()) return;
+            dialog.setTitle("FIND MATCH - " + squadLabel(targetPlayers));
+            dialog.setMessage(
+                "RECONNECTING...\n" +
+                prettyMap(selectedMap) + "\n" +
+                "WAITING FOR NETWORK"
+            );
+        });
+    }
+
     private void cancelMatchmaking() {
         matchmakingActive = false;
         WebSocket socket = matchSocket;
