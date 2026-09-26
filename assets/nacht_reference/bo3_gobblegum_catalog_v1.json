@@ -1,0 +1,655 @@
+{
+  "schemaVersion": 1,
+  "catalogId": "bo3_gobblegum_identity_catalog_v1",
+  "game": "Call of Duty: Black Ops III Zombies",
+  "identityCount": 63,
+  "scope": "All BO3 GobbleGum identities are tracked so Nacht's machines cannot silently omit an available gum. Effect/runtime parity remains explicitly separate.",
+  "sourceAuthority": [
+    {
+      "type": "web_reference",
+      "title": "Black Ops 3 GobbleGums — Full List, Tiers & Effects",
+      "note": "Cross-check states 63 total BO3 GobbleGums."
+    },
+    {
+      "type": "community_runtime_index",
+      "title": "Offline & Unlimited Gobblegum",
+      "note": "63-entry runtime selection index used as an independent identity cross-check."
+    }
+  ],
+  "entries": [
+    {
+      "index": 1,
+      "id": "aftertaste",
+      "displayName": "Aftertaste",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 2,
+      "id": "alchemical_antithesis",
+      "displayName": "Alchemical Antithesis",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 3,
+      "id": "always_done_swiftly",
+      "displayName": "Always Done Swiftly",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 4,
+      "id": "anywhere_but_here",
+      "displayName": "Anywhere But Here!",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 5,
+      "id": "armamental_accomplishment",
+      "displayName": "Armamental Accomplishment",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 6,
+      "id": "arms_grace",
+      "displayName": "Arms Grace",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 7,
+      "id": "arsenal_accelerator",
+      "displayName": "Arsenal Accelerator",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 8,
+      "id": "board_games",
+      "displayName": "Board Games",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 9,
+      "id": "board_to_death",
+      "displayName": "Board To Death",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 10,
+      "id": "bullet_boost",
+      "displayName": "Bullet Boost",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 11,
+      "id": "burned_out",
+      "displayName": "Burned Out",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 12,
+      "id": "cache_back",
+      "displayName": "Cache Back",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 13,
+      "id": "coagulant",
+      "displayName": "Coagulant",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 14,
+      "id": "crate_power",
+      "displayName": "Crate Power",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 15,
+      "id": "crawl_space",
+      "displayName": "Crawl Space",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 16,
+      "id": "danger_closest",
+      "displayName": "Danger Closest",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 17,
+      "id": "dead_of_nuclear_winter",
+      "displayName": "Dead of Nuclear Winter",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 18,
+      "id": "disorderly_combat",
+      "displayName": "Disorderly Combat",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 19,
+      "id": "ephemeral_enhancement",
+      "displayName": "Ephemeral Enhancement",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 20,
+      "id": "extra_credit",
+      "displayName": "Extra Credit",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 21,
+      "id": "eye_candy",
+      "displayName": "Eye Candy",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 22,
+      "id": "fatal_contraption",
+      "displayName": "Fatal Contraption",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 23,
+      "id": "fear_in_headlights",
+      "displayName": "Fear in Headlights",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 24,
+      "id": "firing_on_all_cylinders",
+      "displayName": "Firing On All Cylinders",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 25,
+      "id": "flavor_hexed",
+      "displayName": "Flavor Hexed",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 26,
+      "id": "head_drama",
+      "displayName": "Head Drama",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 27,
+      "id": "idle_eyes",
+      "displayName": "Idle Eyes",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 28,
+      "id": "im_feeling_lucky",
+      "displayName": "I'm Feeling Lucky",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 29,
+      "id": "immolation_liquidation",
+      "displayName": "Immolation Liquidation",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 30,
+      "id": "impatient",
+      "displayName": "Impatient",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 31,
+      "id": "in_plain_sight",
+      "displayName": "In Plain Sight",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 32,
+      "id": "kill_joy",
+      "displayName": "Kill Joy",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 33,
+      "id": "killing_time",
+      "displayName": "Killing Time",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 34,
+      "id": "licensed_contractor",
+      "displayName": "Licensed Contractor",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 35,
+      "id": "lucky_crit",
+      "displayName": "Lucky Crit",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 36,
+      "id": "mind_blown",
+      "displayName": "Mind Blown",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 37,
+      "id": "near_death_experience",
+      "displayName": "Near Death Experience",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 38,
+      "id": "newtonian_negation",
+      "displayName": "Newtonian Negation",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 39,
+      "id": "now_you_see_me",
+      "displayName": "Now You See Me",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 40,
+      "id": "on_the_house",
+      "displayName": "On the House",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 41,
+      "id": "perkaholic",
+      "displayName": "Perkaholic",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 42,
+      "id": "phoenix_up",
+      "displayName": "Phoenix Up",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 43,
+      "id": "pop_shocks",
+      "displayName": "Pop Shocks",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 44,
+      "id": "power_vacuum",
+      "displayName": "Power Vacuum",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 45,
+      "id": "profit_sharing",
+      "displayName": "Profit Sharing",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 46,
+      "id": "projectile_vomiting",
+      "displayName": "Projectile Vomiting",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 47,
+      "id": "reign_drops",
+      "displayName": "Reign Drops",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 48,
+      "id": "respin_cycle",
+      "displayName": "Respin Cycle",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 49,
+      "id": "round_robbin",
+      "displayName": "Round Robbin'",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 50,
+      "id": "secret_shopper",
+      "displayName": "Secret Shopper",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 51,
+      "id": "self_medication",
+      "displayName": "Self Medication",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 52,
+      "id": "shopping_free",
+      "displayName": "Shopping Free",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 53,
+      "id": "slaughter_slide",
+      "displayName": "Slaughter Slide",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 54,
+      "id": "soda_fountain",
+      "displayName": "Soda Fountain",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 55,
+      "id": "stock_option",
+      "displayName": "Stock Option",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 56,
+      "id": "sword_flay",
+      "displayName": "Sword Flay",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 57,
+      "id": "temporal_gift",
+      "displayName": "Temporal Gift",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 58,
+      "id": "tone_death",
+      "displayName": "Tone Death",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 59,
+      "id": "unbearable",
+      "displayName": "Unbearable",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 60,
+      "id": "undead_man_walking",
+      "displayName": "Undead Man Walking",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 61,
+      "id": "unquenchable",
+      "displayName": "Unquenchable",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 62,
+      "id": "wall_power",
+      "displayName": "Wall Power",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    },
+    {
+      "index": 63,
+      "id": "whos_keeping_score",
+      "displayName": "Who's Keeping Score?",
+      "identityStatus": "verified",
+      "effectSpecStatus": "pending",
+      "runtimeStatus": "pending",
+      "androidStatus": "pending",
+      "regressionTestStatus": "pending"
+    }
+  ],
+  "validation": {
+    "expectedIdentityCount": 63,
+    "allRuntimeReady": false
+  }
+}
