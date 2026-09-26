@@ -19,6 +19,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.nio.ByteBuffer;
@@ -599,9 +600,22 @@ public final class XzielMultiplayer {
                 roomMode = message.optString("mode", roomMode);
                 targetPlayers = message.optInt("targetPlayers",
                     "public".equals(roomMode) ? targetPlayers : MAX_PLAYERS);
+                connectedSlots.clear();
+                JSONArray roster = message.optJSONArray("players");
+                if (roster != null) {
+                    for (int i = 0; i < roster.length(); i++) {
+                        int playerSlot = roster.optInt(i, 0);
+                        if (playerSlot >= 1 && playerSlot <= MAX_PLAYERS) {
+                            connectedSlots.add(playerSlot);
+                        }
+                    }
+                }
                 connectedSlots.add(slot);
+
                 voiceChat.connect(baseUrl, roomCode, playerId, slot);
-                voiceChat.setPlayerConnected(slot, true);
+                for (int playerSlot : connectedSlots) {
+                    voiceChat.setPlayerConnected(playerSlot, true);
+                }
                 queueNativeCommand("name XzielP" + slot + "\n");
                 Log.i(TAG, "WELCOME room=" + roomCode + " mode=" + roomMode +
                     " slot=" + slot + " map=" + selectedMap +
