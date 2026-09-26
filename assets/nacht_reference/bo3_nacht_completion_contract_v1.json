@@ -9,7 +9,9 @@
     "globalMysteryBoxPool": "assets/weapons/xziel_mystery_box_pool_v1.json",
     "nachtPrototypePool": "assets/weapons/nacht_prototype_box_pool_v1.json",
     "runtimeReference": "assets/nacht_reference/runtime_reference_v1.json",
-    "bo3WeaponBehavior": "assets/nacht_reference/bo3_weapon_specs_v1.json"
+    "bo3WeaponBehavior": "assets/nacht_reference/bo3_weapon_specs_v1.json",
+    "gobbleGumCatalog": "assets/nacht_reference/bo3_gobblegum_catalog_v1.json",
+    "systemPlacements": "assets/nacht_reference/bo3_system_placements_v1.json"
   },
   "baseline": {
     "catalogWeaponCount": 51,
@@ -20,7 +22,11 @@
     "playerSpawns": 4,
     "maxPlayers": 4,
     "roundSoakTarget": 100,
-    "bo3StructuredBehaviorSpecCount": 8
+    "bo3StructuredBehaviorSpecCount": 8,
+    "gobbleGumIdentityCount": 63,
+    "gobbleGumMachinePlacements": 2,
+    "wunderfizzMachinePlacements": 1,
+    "mysteryBoxAnchors": 1
   },
   "bo3ChroniclesFeatureReference": {
     "mysteryBox": true,
@@ -74,13 +80,19 @@
       "state": "partial"
     },
     "mystery_box_full_pool_and_teddy_flow": {
-      "state": "pending"
+      "state": "pending",
+      "anchorPlacements": 1
     },
     "gobblegum_machines_and_full_effect_runtime": {
-      "state": "pending"
+      "state": "pending",
+      "identityCatalogCount": 63,
+      "machinePlacements": 2,
+      "effectSpecsReady": 0
     },
     "der_wunderfizz_and_perk_randomization": {
-      "state": "pending"
+      "state": "pending",
+      "wunderfizzPlacements": 1,
+      "muleKickPlacementState": "pending"
     },
     "mule_kick_and_weapon_slot_semantics": {
       "state": "pending"
