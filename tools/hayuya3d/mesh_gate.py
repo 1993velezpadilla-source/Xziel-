@@ -100,6 +100,66 @@ def _cross(a, b):
         a[0] * b[1] - a[1] * b[0],
     )
 
+def _geometric_connectivity(vertices, faces, scale: float) -> tuple[int, float]:
+    """Count connected geometry after welding coincident POSITION vertices.
+
+    glTF requires one attribute tuple per vertex. UV seams therefore duplicate
+    POSITION values even when the underlying surface is continuous. Connectivity
+    QA must operate on welded geometric positions, otherwise a valid textured
+    atlas can look catastrophically fragmented purely because of UV chart seams.
+    """
+    weld_epsilon=max(abs(float(scale))*1e-7,1e-9)
+    key_to_id={}
+    remap=[]
+    for vertex in vertices:
+        key=tuple(
+            int(round(float(component)/weld_epsilon))
+            for component in vertex[:3]
+        )
+        welded=key_to_id.get(key)
+        if welded is None:
+            welded=len(key_to_id)
+            key_to_id[key]=welded
+        remap.append(welded)
+
+    parent=list(range(len(key_to_id)))
+    size=[1]*len(key_to_id)
+
+    def find(x):
+        while parent[x]!=x:
+            parent[x]=parent[parent[x]]
+            x=parent[x]
+        return x
+
+    def union(a,b):
+        ra,rb=find(a),find(b)
+        if ra==rb:
+            return
+        if size[ra]<size[rb]:
+            ra,rb=rb,ra
+        parent[rb]=ra
+        size[ra]+=size[rb]
+
+    used=set()
+    for a,b,c in faces:
+        wa,wb,wc=remap[a],remap[b],remap[c]
+        union(wa,wb)
+        union(wa,wc)
+        used.update((wa,wb,wc))
+
+    roots={}
+    for vertex in used:
+        root=find(vertex)
+        roots[root]=roots.get(root,0)+1
+    component_sizes=sorted(roots.values(),reverse=True)
+    components=len(component_sizes)
+    largest_fraction=(
+        component_sizes[0]/max(1,len(used))
+        if component_sizes else 0.0
+    )
+    return components,largest_fraction
+
+
 def _catastrophic_fragmentation_reason(components: int, largest_fraction: float) -> str | None:
     # Extremely fragmented geometry is not a detailed multi-part asset; it is a
     # failed surface extraction. Keep normal clothing/hair/accessory islands as
@@ -167,22 +227,6 @@ def inspect(path: Path, *, require_normals: bool = False) -> MeshGateReport:
         scale = max(ext)
         epsilon_area2 = max(scale * scale * 1e-12, 1e-18)
 
-        parent = list(range(len(vertices)))
-        size = [1] * len(vertices)
-        def find(x):
-            while parent[x] != x:
-                parent[x] = parent[parent[x]]
-                x = parent[x]
-            return x
-        def union(a, b):
-            ra, rb = find(a), find(b)
-            if ra == rb:
-                return
-            if size[ra] < size[rb]:
-                ra, rb = rb, ra
-            parent[rb] = ra
-            size[ra] += size[rb]
-
         total_area2 = 0.0
         degenerate = 0
         aligned98_area2 = 0.0
@@ -190,8 +234,6 @@ def inspect(path: Path, *, require_normals: bool = False) -> MeshGateReport:
         axis_area2 = [0.0, 0.0, 0.0]
 
         for a, b, c in faces:
-            union(a, b)
-            union(a, c)
             va, vb, vc = vertices[a], vertices[b], vertices[c]
             e1 = (vb[0]-va[0], vb[1]-va[1], vb[2]-va[2])
             e2 = (vc[0]-va[0], vc[1]-va[1], vc[2]-va[2])
@@ -210,16 +252,9 @@ def inspect(path: Path, *, require_normals: bool = False) -> MeshGateReport:
             if peak >= 0.98:
                 aligned98_area2 += area2
 
-        roots = {}
-        used = set()
-        for a, b, c in faces:
-            used.update((a, b, c))
-        for v in used:
-            r = find(v)
-            roots[r] = roots.get(r, 0) + 1
-        component_sizes = sorted(roots.values(), reverse=True)
-        components = len(component_sizes)
-        largest_fraction = component_sizes[0] / max(1, len(used)) if component_sizes else 0.0
+        components,largest_fraction=_geometric_connectivity(
+            vertices,faces,scale
+        )
 
         degenerate_ratio = degenerate / max(1, len(faces))
         if total_area2 <= 0:
