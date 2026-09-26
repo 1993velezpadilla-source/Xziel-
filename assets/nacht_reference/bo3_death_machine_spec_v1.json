@@ -14,7 +14,8 @@
     "displayMagazine": 999,
     "reserve": 0,
     "reload": false,
-    "runtimeSemantics": "effectively_unlimited_for_powerup_duration"
+    "runtimeSemantics": "effectively_unlimited_for_powerup_duration",
+    "ignoreMaxAmmo": true
   },
   "fire": {
     "mode": "automatic",
@@ -40,20 +41,37 @@
     "purchase_subtypes_not_explicitly_documented_for_BO3"
   ],
   "damage": {
-    "model": "percentage_based_high_round_scaling",
-    "exactFormulaStatus": "pending",
-    "observedHighRoundBehavior": "approximately_two_headshots_or_a_few_bodyshots_on_round_70_plus",
-    "implementationAllowed": false
+    "model": "base_damage_plus_current_health_fraction",
+    "appliesTo": [
+      "zombie",
+      "zombie_dog",
+      "zombie_quad"
+    ],
+    "exactFormulaStatus": "verified_from_bo3_source",
+    "formula": "finalDamage = baseDamage + victimCurrentHealth * random(0.34, 0.75)",
+    "randomLowerInclusive": 0.34,
+    "randomUpperExclusive": 0.75,
+    "mapOverrideHook": "level.minigun_damage_adjust_override",
+    "implementationAllowed": true
   },
   "sourceAuthority": {
-    "behavior": "https://callofduty.fandom.com/wiki/Death_Machine"
+    "implementationSource": {
+      "repository": "ate47/bo3-source",
+      "path": "scripts/zm/_zm_powerup_weapon_minigun.gsc",
+      "blobSha": "9d3f0cbe0d1dd9ac72289cad9531d91a46eccaf8"
+    },
+    "genericPowerupWeaponSource": {
+      "repository": "ate47/bo3-source",
+      "path": "scripts/zm/_zm_powerups.gsc",
+      "blobSha": "8965a32e1d9f426f94f24e83c095fda8b9c00512"
+    }
   },
   "readiness": {
     "identity": "ready",
-    "behaviorSpec": "partial",
-    "stateTimerRuntime": "logic_ready",
+    "behaviorSpec": "verified",
+    "stateTimerRuntime": "partial",
     "interactionRestrictions": "partial",
-    "damageFormula": "pending",
+    "damageFormula": "verified",
     "firingRuntime": "pending",
     "model": "pending",
     "audio": "pending",
@@ -79,6 +97,32 @@
       "doors",
       "debris"
     ],
-    "powerupPickupSafeToEnable": false
+    "powerupPickupSafeToEnable": false,
+    "sourceParityGaps": [
+      "active pickup refresh-to-30 behavior",
+      "player_downed immediate cleanup",
+      "timer-expiry weapon restoration",
+      "weapon-change-away removal without forced restore",
+      "Temporal Gift +30 behavior",
+      "damage formula hook",
+      "actual minigun weapon assignment/presentation"
+    ]
+  },
+  "refreshBehavior": "If already active and remaining time is below 30 seconds, reset remaining time to 30 seconds.",
+  "temporalGiftBehavior": "Generic BO3 weapon_powerup countdown adds 30 seconds when Temporal Gift is team-enabled.",
+  "lifecycle": {
+    "endsOn": [
+      "disconnect",
+      "death",
+      "player_downed",
+      "timer_expiry",
+      "weapon_change_away",
+      "replace_weapon_powerup"
+    ],
+    "allowWeaponCycling": true,
+    "savePriorWeapon": true,
+    "timerExpiry": "remove minigun and switch back to saved primary weapon",
+    "weaponChangeAway": "remove minigun without forcing switch back",
+    "downed": "remove minigun and clear powerup weapon state"
   }
 }
