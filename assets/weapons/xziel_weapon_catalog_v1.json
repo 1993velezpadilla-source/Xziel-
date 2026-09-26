@@ -113,7 +113,7 @@
       "mysteryBoxEligible": true,
       "nativeBindingStatus": "pending",
       "origin": "bo3_reference_identity",
-      "nachtWallBuyId": "purchase_sheiva"
+      "nachtWallBuyId": "purchase_shiva"
     },
     {
       "weaponId": "ar_fastburst",
@@ -245,7 +245,7 @@
       "mysteryBoxEligible": true,
       "nativeBindingStatus": "pending",
       "origin": "bo3_reference_identity",
-      "nachtWallBuyId": "purchase_rk5"
+      "nachtWallBuyId": "purchase_triton"
     },
     {
       "weaponId": "shotgun_semiauto",
@@ -341,7 +341,7 @@
       "mysteryBoxEligible": true,
       "nativeBindingStatus": "pending",
       "origin": "bo3_reference_identity",
-      "nachtWallBuyId": "purchase_pharo"
+      "nachtWallBuyId": "purchase_pharaoh"
     },
     {
       "weaponId": "smg_longrange",
@@ -413,7 +413,7 @@
       "mysteryBoxEligible": true,
       "nativeBindingStatus": "pending",
       "origin": "bo3_reference_identity",
-      "nachtWallBuyId": "purchase_locus"
+      "nachtWallBuyId": "purchase_locus_decal"
     },
     {
       "weaponId": "sniper_chargeshot",
