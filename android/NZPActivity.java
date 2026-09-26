@@ -178,6 +178,27 @@ public class NZPActivity extends SDLActivity {
         if (multiplayer != null) multiplayer.leaveRoom();
     }
 
+    public void xzielVoiceUpdatePosition(float x, float y, float z) {
+        if (multiplayer != null) multiplayer.updateVoicePosition(x, y, z);
+    }
+
+    public void xzielOnlinePauseVoice(boolean visible) {
+        if (multiplayer != null) multiplayer.showVoicePausePanel(visible);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                                           int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == XzielVoiceChat.MIC_PERMISSION_REQUEST &&
+            multiplayer != null) {
+            boolean granted = grantResults != null && grantResults.length > 0
+                && grantResults[0] ==
+                    android.content.pm.PackageManager.PERMISSION_GRANTED;
+            multiplayer.onMicrophonePermissionResult(granted);
+        }
+    }
+
     @Override
     protected void onDestroy() {
         if (multiplayer != null) {
