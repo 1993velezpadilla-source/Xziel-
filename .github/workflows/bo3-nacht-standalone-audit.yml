@@ -50,6 +50,24 @@ jobs:
           pathlib.Path('audit-out/inventory.json').write_text(json.dumps(report,indent=2)+'\n')
           print(json.dumps(report,indent=2)[:30000])
           PY
+      - name: List Unreal pak contents
+        run: |
+          set -euo pipefail
+          curl -fL https://github.com/trumank/repak/releases/download/v0.2.3/repak_cli-x86_64-unknown-linux-gnu.tar.xz -o "$RUNNER_TEMP/repak.tar.xz"
+          mkdir -p "$RUNNER_TEMP/repak"
+          tar -xJf "$RUNNER_TEMP/repak.tar.xz" -C "$RUNNER_TEMP/repak"
+          REPAK=$(find "$RUNNER_TEMP/repak" -type f -name repak -perm -111 | head -1)
+          test -n "$REPAK"
+          "$REPAK" list "$ROOT/WindowsNoEditor.pak" > audit-out/pak-list.txt
+          python3 - <<'PY'
+          import json,pathlib,collections
+          lines=[x.strip() for x in pathlib.Path('audit-out/pak-list.txt').read_text(errors='replace').splitlines() if x.strip()]
+          interesting=[x for x in lines if any(k in x.lower() for k in ('nacht','prototype','cod5','bo3','zombie','map','level','material','texture','mesh','weapon','barrier','window'))]
+          ext=collections.Counter((pathlib.PurePosixPath(x).suffix.lower() or '<none>') for x in lines)
+          report={'entries':len(lines),'extensions':dict(ext.most_common()),'interesting_paths':interesting[:20000]}
+          pathlib.Path('audit-out/pak-index.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps(report,indent=2)[:50000])
+          PY
       - name: Upload report
         uses: actions/upload-artifact@v4
         with:
