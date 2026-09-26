@@ -50,6 +50,15 @@ constexpr NachtReferenceProfile kProfile{
         {"purchase_shiva", "Sheiva", "ar_marksman", PurchaseKind::WallWeapon, 500U, {-5.232187f, 1.440421f, 6.058283f}, 1.5f, true},
         {"purchase_triton", "RK5", "pistol_burst", PurchaseKind::WallWeapon, 500U, {-2.489199f, 1.411515f, -10.343102f}, 1.5f, true},
     }},
+    .doors = {{
+        // Canonical Nacht progression has three 1000-point routes.
+        // Transforms are mapped from the Pavlov port actors by DoorFlag
+        // topology; the 10000-point unflagged port actor is intentionally
+        // excluded from the BO3 reference profile.
+        {"door_start_to_box", {4.343400f, 1.244600f, 14.884401f}, 1000U, 1.6f, kNachtStartZoneMask, kNachtBoxZoneMask, true},
+        {"door_start_to_upstairs", {4.290648f, 4.073596f, 2.219196f}, 1000U, 1.6f, kNachtStartZoneMask, kNachtUpstairsZoneMask, true},
+        {"door_box_to_upstairs", {-1.153160f, 4.003040f, 26.810671f}, 1000U, 1.6f, kNachtBoxZoneMask, kNachtUpstairsZoneMask, true},
+    }},
 };
 
 constexpr NachtZoneMask zoneBit(
