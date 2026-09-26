@@ -16,6 +16,8 @@ on:
       - "engine/xz/xz_nacht_reference.*"
       - "engine/xz/xz_map_runtime.*"
       - "engine/xz/xz_world_transform.*"
+      - "engine/xz/xz_bo3_weapon_specs.*"
+      - "tests/xz_bo3_weapon_specs_test.c"
       - "android/**"
       - ".github/workflows/nacht-gameplay-harness.yml"
 
@@ -55,6 +57,17 @@ jobs:
           python3 tools/maps/validate_nacht_bo3_weapon_specs.py
           python3 tools/maps/export_nacht_nzp_runtime_overlay.py
           git diff --exit-code -- assets/nacht_reference/nzp_runtime_overlay.json
+
+      - name: Test XZIEL BO3 weapon registry
+        shell: bash
+        run: |
+          set -euo pipefail
+          cc -std=c99 -O2 -Wall -Wextra -Werror \
+            -Iengine/xz \
+            tests/xz_bo3_weapon_specs_test.c \
+            engine/xz/xz_bo3_weapon_specs.c \
+            -lm -o /tmp/xz_bo3_weapon_specs_test
+          /tmp/xz_bo3_weapon_specs_test
 
       - name: Validate Nacht server entity contract
         shell: bash
